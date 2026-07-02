@@ -1,15 +1,13 @@
-import type { SyncConfig, SyncModule } from "./types";
+import type { Module, ModuleDeps } from "../../lib/types";
 
-export type { SyncConfig, SyncModule } from "./types";
+export interface SyncConfig {
+  provider?: string;
+}
 
-export function createSyncModule(config: SyncConfig = {}): SyncModule {
+export interface SyncModule extends Module {}
+
+export function createSyncModule(_config: SyncConfig = {}): SyncModule {
   return {
-    name: "sync",
-
-    async initialize() {
-      // TODO: implement sync initialization
-    },
-
     async destroy() {
       // TODO: implement sync teardown
     },
@@ -17,5 +15,10 @@ export function createSyncModule(config: SyncConfig = {}): SyncModule {
     async healthCheck() {
       return true;
     },
+
+    async initialize(_deps: ModuleDeps) {
+      // TODO: implement sync initialization
+    },
+    name: "sync",
   };
 }

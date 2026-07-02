@@ -5,6 +5,7 @@
     "@opentelemetry/api": "^1.9.1",
     "@orpc/server": "^1.14.6",
     "better-auth": "^1.2.8",
+    "drizzle-kit": "^0.28.1",
     "drizzle-orm": "^0.36.4",
     "nanoid": "^5.0.9",
     "pg": "^8.13.1",
@@ -16,18 +17,23 @@
   "devDependencies": {
     "@types/bun": "latest",
     "@types/pg": "^8.11.10",
-    "drizzle-kit": "^0.28.1",
     "typescript": "^5.7.2"
   },
   "exports": {
-    ".": "./src/modules/index.ts",
+    ".": "./src/index.ts",
     "./auth": "./src/modules/auth/index.ts",
-    "./rpc": "./src/modules/rpc/index.ts"
+    "./cache": "./src/modules/cache/index.ts",
+    "./logs": "./src/modules/logs/index.ts",
+    "./notification": "./src/modules/notification/index.ts",
+    "./pubsub": "./src/modules/pubsub/index.ts",
+    "./rpc": "./src/modules/rpc/index.ts",
+    "./storage": "./src/modules/storage/index.ts",
+    "./sync": "./src/modules/sync/index.ts"
   },
   "name": "@aspen-os/framework",
   "scripts": {
-    "dev": "tsc --noEmit --watch",
-    "typecheck": "tsc --noEmit"
+    "check:lint": "biome check --fix .",
+    "check:types": "tsc --noEmit"
   },
   "type": "module",
   "version": "0.1.0"

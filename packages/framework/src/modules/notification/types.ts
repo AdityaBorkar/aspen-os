@@ -1,4 +1,4 @@
-import type { DatabaseConfig } from "../../lib/types";
+import type { DatabaseConfig, ModuleDeps } from "../../lib/types";
 
 export type NotificationType = "email" | "sms" | "push" | "webhook";
 export type NotificationStatus = "pending" | "sent" | "failed" | "delivered";
@@ -49,7 +49,7 @@ export interface NotificationModule {
     options?: NotificationHistoryOptions,
   ): Promise<NotificationRecord[]>;
   getStatus(notificationId: string): Promise<NotificationRecord | null>;
-  initialize(): Promise<void>;
+  initialize(deps: ModuleDeps): Promise<void>;
 
   send(
     type: NotificationType,

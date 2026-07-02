@@ -1,8 +1,17 @@
-import { getDrizzle, getPool } from "../../lib/db";
+import { createDrizzle } from "../../lib/db";
+import type { Module, ModuleDeps } from "../../lib/types";
 import { createS3Client, createS3Operations } from "./s3-client";
 import * as schema from "./schema";
 import { createFileMetadataService } from "./service";
-import type { FileObject, FilesConfig, FilesModule } from "./types";
+import type {
+  FileObject,
+  FilesConfig,
+  FilesModule,
+  FileUploadInput,
+  ListOptions,
+  SignedUrlOptions,
+  StorageProvider,
+} from "./types";
 
 export type {
   FileObject,
@@ -14,20 +23,25 @@ export type {
   StorageProvider,
 } from "./types";
 
-export function createFilesModule(config: FilesConfig): FilesModule {
-  const pool = getPool(config.database);
-  const db = getDrizzle(config.database, schema);
+export function createFilesModule(config: FilesConfig): FilesModule & Module {
   const prefix = config.prefix ?? "";
-
-  const s3 = createS3Client(config.provider, config.region);
-  const s3Ops = createS3Operations(s3, config.bucket, fullKey);
-  const metadataService = createFileMetadataService(db);
+  let pool: import("pg").Pool | null = null;
+  let db: ReturnType<typeof createDrizzle> | null = null;
+  let s3Ops: ReturnType<typeof createS3Operations> | null = null;
+  let metadataService: ReturnType<typeof createFileMetadataService> | null =
+    null;
 
   function fullKey(key: string): string {
     return prefix ? `${prefix}/${key}` : key;
   }
 
-  async function initialize(): Promise<void> {
+  async function initialize(deps: ModuleDeps): Promise<void> {
+    pool = deps.pool;
+    db = createDrizzle(deps.pool, schema);
+    const s3 = createS3Client(config.provider, config.region);
+    s3Ops = createS3Operations(s3, config.bucket, fullKey);
+    metadataService = createFileMetadataService(db);
+
     await pool.query(`
       CREATE TABLE IF NOT EXISTS file_metadata (
         id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
@@ -48,14 +62,26 @@ export function createFilesModule(config: FilesConfig): FilesModule {
   }
 
   async function destroy(): Promise<void> {
-    s3.destroy();
+    s3Ops = null;
+    metadataService = null;
+    db = null;
+    pool = null;
   }
 
-  async function upload(
-    input: import("./types").FileUploadInput,
-  ): Promise<FileObject> {
-    const { head } = await s3Ops.upload(input);
-    await metadataService.upsertMetadata({
+  async function healthCheck(): Promise<boolean> {
+    return s3Ops !== null;
+  }
+
+  function requireOps() {
+    if (!s3Ops || !metadataService)
+      throw new Error("Storage module not initialized");
+    return { metadata: metadataService, ops: s3Ops };
+  }
+
+  async function upload(input: FileUploadInput): Promise<FileObject> {
+    const { metadata, ops } = requireOps();
+    const { head } = await ops.upload(input);
+    await metadata.upsertMetadata({
       bucket: config.bucket,
       contentType: input.contentType,
       etag: head.etag,
@@ -75,8 +101,9 @@ export function createFilesModule(config: FilesConfig): FilesModule {
   }
 
   async function remove(key: string): Promise<void> {
-    await s3Ops.remove(key);
-    await metadataService.deleteMetadata(key);
+    const { metadata, ops } = requireOps();
+    await ops.remove(key);
+    await metadata.deleteMetadata(key);
   }
 
   async function removeMany(keys: string[]): Promise<void> {
@@ -87,8 +114,9 @@ export function createFilesModule(config: FilesConfig): FilesModule {
     sourceKey: string,
     destinationKey: string,
   ): Promise<FileObject> {
-    await s3Ops.copy(sourceKey, destinationKey);
-    return s3Ops.getMetadata(destinationKey);
+    const { ops } = requireOps();
+    await ops.copy(sourceKey, destinationKey);
+    return ops.getMetadata(destinationKey);
   }
 
   async function move(
@@ -104,10 +132,11 @@ export function createFilesModule(config: FilesConfig): FilesModule {
     key: string,
     archiveKey?: string,
   ): Promise<FileObject> {
+    const { metadata } = requireOps();
     const destKey = archiveKey ?? `archive/${key}`;
     const file = await copy(key, destKey);
     await remove(key);
-    await metadataService.markArchived(key, destKey);
+    await metadata.markArchived(key, destKey);
     return { ...file, key: destKey };
   }
 
@@ -115,14 +144,18 @@ export function createFilesModule(config: FilesConfig): FilesModule {
     archive,
     copy,
     destroy,
-    exists: s3Ops.exists,
-    get: s3Ops.get,
-    getMetadata: s3Ops.getMetadata,
-    getSignedGetUrl: s3Ops.getSignedGetUrl,
-    getSignedPutUrl: s3Ops.getSignedPutUrl,
+    exists: (key) => requireOps().ops.exists(key),
+    get: (key) => requireOps().ops.get(key),
+    getMetadata: (key) => requireOps().ops.getMetadata(key),
+    getSignedGetUrl: (key, options) =>
+      requireOps().ops.getSignedGetUrl(key, options),
+    getSignedPutUrl: (key, options) =>
+      requireOps().ops.getSignedPutUrl(key, options),
+    healthCheck,
     initialize,
-    list: s3Ops.list,
+    list: (prefix, options) => requireOps().ops.list(prefix, options),
     move,
+    name: "storage",
     remove,
     removeMany,
     upload,

@@ -1,4 +1,4 @@
-import type { Role, Session, User } from "./types";
+import type { RoleData, Session, User } from "./types";
 
 export interface AuthEventMap {
   "role:assigned": RoleAssignedEvent;
@@ -35,7 +35,7 @@ export interface RoleUnassignedEvent {
 }
 
 export interface RoleCreatedEvent {
-  role: Role;
+  role: RoleData;
 }
 
 export interface RoleDeletedEvent {

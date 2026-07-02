@@ -1,10 +1,12 @@
 import { eq } from "drizzle-orm";
 
-import { getDrizzle, getPool } from "../../lib/db";
+import { createDrizzle } from "../../lib/db";
+import type { Module, ModuleDeps } from "../../lib/types";
 import * as schema from "./schema";
 import { createNotificationQueryService } from "./service";
 import type {
   NotificationConfig,
+  NotificationHistoryOptions,
   NotificationModule,
   NotificationPayload,
   NotificationProvider,
@@ -25,17 +27,22 @@ export type {
 
 export function createNotificationModule(
   config: NotificationConfig,
-): NotificationModule {
-  const pool = getPool(config.database);
-  const db = getDrizzle(config.database, schema);
-  const queryService = createNotificationQueryService(db);
-
+): NotificationModule & Module {
   const providers = new Map<string, NotificationProvider>();
   for (const provider of config.providers) {
     providers.set(provider.type, provider);
   }
 
-  async function initialize(): Promise<void> {
+  let pool: import("pg").Pool | null = null;
+  let db: ReturnType<typeof createDrizzle> | null = null;
+  let queryService: ReturnType<typeof createNotificationQueryService> | null =
+    null;
+
+  async function initialize(deps: ModuleDeps): Promise<void> {
+    pool = deps.pool;
+    db = createDrizzle(deps.pool, schema);
+    queryService = createNotificationQueryService(db);
+
     await pool.query(`
       CREATE TABLE IF NOT EXISTS notifications (
         id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
@@ -56,12 +63,27 @@ export function createNotificationModule(
     `);
   }
 
-  async function destroy(): Promise<void> {}
+  async function destroy(): Promise<void> {
+    queryService = null;
+    db = null;
+    pool = null;
+  }
+
+  async function healthCheck(): Promise<boolean> {
+    return db !== null;
+  }
+
+  function requireDb() {
+    if (!db || !queryService)
+      throw new Error("Notification module not initialized");
+    return { db, queryService };
+  }
 
   async function send(
     type: NotificationType,
     payload: NotificationPayload,
   ): Promise<NotificationRecord> {
+    const { db: database, queryService: qs } = requireDb();
     const provider = providers.get(type);
     if (!provider) throw new Error(`No provider registered for type "${type}"`);
 
@@ -69,7 +91,7 @@ export function createNotificationModule(
     let lastRecord: NotificationRecord | null = null;
 
     for (const recipient of recipients) {
-      const [row] = await db
+      const [row] = await database
         .insert(schema.notifications)
         .values({
           body: payload.body,
@@ -83,7 +105,7 @@ export function createNotificationModule(
 
       try {
         await provider.send({ ...payload, to: recipient });
-        await db
+        await database
           .update(schema.notifications)
           .set({ sentAt: new Date(), status: "sent" })
           .where(eq(schema.notifications.id, row!.id));
@@ -100,7 +122,7 @@ export function createNotificationModule(
         };
       } catch (err) {
         const error = err instanceof Error ? err.message : String(err);
-        await db
+        await database
           .update(schema.notifications)
           .set({ error, status: "failed" })
           .where(eq(schema.notifications.id, row!.id));
@@ -123,9 +145,12 @@ export function createNotificationModule(
 
   return {
     destroy,
-    getHistory: queryService.getHistory,
-    getStatus: queryService.getStatus,
+    getHistory: (options?: NotificationHistoryOptions) =>
+      requireDb().queryService.getHistory(options),
+    getStatus: (id: string) => requireDb().queryService.getStatus(id),
+    healthCheck,
     initialize,
+    name: "notification",
     send,
     sendEmail: (to, subject, body, html) =>
       send("email", { body, html, subject, to }),

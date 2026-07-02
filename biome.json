@@ -13,7 +13,7 @@
               ":BLANK_LINE:",
               [":PACKAGE:"],
               ":BLANK_LINE:",
-              [":ALIAS:",":PATH:"],
+              [":ALIAS:",":PATH:"]
             ],
             "sortBareImports": true
           }

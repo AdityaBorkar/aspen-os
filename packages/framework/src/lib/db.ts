@@ -4,7 +4,6 @@ import pg from "pg";
 import type { DatabaseConfig } from "./types";
 
 let pool: pg.Pool | null = null;
-let db: NodePgDatabase | null = null;
 
 export function getPool(config: DatabaseConfig): pg.Pool {
   if (!pool) {
@@ -21,22 +20,17 @@ export function getPool(config: DatabaseConfig): pg.Pool {
   return pool;
 }
 
-export function getDrizzle(
-  config: DatabaseConfig,
+export function createDrizzle(
+  pool: pg.Pool,
   schema?: Record<string, unknown>,
 ): NodePgDatabase {
-  if (!db) {
-    const p = getPool(config);
-    db = drizzle(p, { schema: schema as any });
-  }
-  return db;
+  return drizzle(pool, { schema: schema as any });
 }
 
 export async function closePool(): Promise<void> {
   if (pool) {
     await pool.end();
     pool = null;
-    db = null;
   }
 }
 

@@ -1,10 +1,9 @@
-import { eq, like, sql } from "drizzle-orm";
-import { bigint, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { eq, like } from "drizzle-orm";
+import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
-import { getDrizzle, getPool } from "./db";
-import type { DatabaseConfig } from "./types";
+import { createDrizzle } from "./db";
 
-const kvStore = pgTable("kv_store", {
+export const kvStore = pgTable("kv_store", {
   expiresAt: timestamp("expires_at", { withTimezone: true }),
   key: text("key").primaryKey(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -13,28 +12,28 @@ const kvStore = pgTable("kv_store", {
   value: text("value").notNull(),
 });
 
-class PostgresKV {
+export class PostgresKvStore {
   private pool;
   private db;
   private initialized = false;
 
-  constructor(config: DatabaseConfig) {
-    this.pool = getPool(config);
-    this.db = getDrizzle(config, { kvStore });
+  constructor(pool: import("pg").Pool) {
+    this.pool = pool;
+    this.db = createDrizzle(pool, { kvStore });
   }
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
     await this.pool.query(`
-			CREATE UNLOGGED TABLE IF NOT EXISTS kv_store (
-				key TEXT PRIMARY KEY,
-				value TEXT NOT NULL,
-				expires_at TIMESTAMPTZ,
-				updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-			);
-			CREATE INDEX IF NOT EXISTS idx_kv_store_expires_at
-				ON kv_store (expires_at) WHERE expires_at IS NOT NULL;
-		`);
+      CREATE UNLOGGED TABLE IF NOT EXISTS kv_store (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        expires_at TIMESTAMPTZ,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_kv_store_expires_at
+        ON kv_store (expires_at) WHERE expires_at IS NOT NULL;
+    `);
     this.initialized = true;
   }
 
@@ -62,12 +61,11 @@ class PostgresKV {
   async set(
     key: string,
     value: string,
-    ...args: (string | number)[]
-  ): Promise<string> {
+    options?: { ttlSeconds?: number },
+  ): Promise<void> {
     let expiresAt: Date | null = null;
-    if (args.length >= 2 && args[0] === "EX") {
-      const seconds = Number(args[1]);
-      expiresAt = new Date(Date.now() + seconds * 1000);
+    if (options?.ttlSeconds) {
+      expiresAt = new Date(Date.now() + options.ttlSeconds * 1000);
     }
 
     await this.db
@@ -77,7 +75,6 @@ class PostgresKV {
         set: { expiresAt, updatedAt: new Date(), value },
         target: kvStore.key,
       });
-    return "OK";
   }
 
   async del(...keys: string[]): Promise<number> {
@@ -130,20 +127,20 @@ class PostgresKV {
   }
 
   async close(): Promise<void> {
-    // Pool is shared via db.ts singleton, don't close it here
+    // Pool is shared, don't close it here
   }
 }
 
-let instance: PostgresKV | null = null;
+let instance: PostgresKvStore | null = null;
 
-export function getRedis(config: DatabaseConfig): PostgresKV {
+export function createKvStore(pool: import("pg").Pool): PostgresKvStore {
   if (!instance) {
-    instance = new PostgresKV(config);
+    instance = new PostgresKvStore(pool);
   }
   return instance;
 }
 
-export async function closeRedis(): Promise<void> {
+export async function closeKvStore(): Promise<void> {
   if (instance) {
     await instance.close();
     instance = null;

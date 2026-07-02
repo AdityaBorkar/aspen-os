@@ -1,6 +1,6 @@
 import PgBoss from "pg-boss";
 
-import type { DatabaseConfig } from "../../lib/types";
+import type { DatabaseConfig, Module, ModuleDeps } from "../../lib/types";
 
 export interface PubSubConfig {
   database: DatabaseConfig;
@@ -29,18 +29,13 @@ export type MessageHandler<T = unknown> = (
   message: Message<T>,
 ) => void | Promise<void>;
 
-export interface PubSubModule {
-  destroy(): Promise<void>;
-
+export interface PubSubModule extends Module {
   getQueueSize(topic: string): Promise<number>;
-  initialize(): Promise<void>;
-
   publish<T = unknown>(
     topic: string,
     data: T,
     options?: PublishOptions,
   ): Promise<string>;
-
   publishBatch<T = unknown>(
     topic: string,
     messages: { data: T; options?: PublishOptions }[],
@@ -57,7 +52,7 @@ export function createPubSubModule(config: PubSubConfig): PubSubModule {
   let boss: PgBoss | null = null;
   const subscriptions = new Map<string, PgBoss.WorkHandler<object>>();
 
-  async function initialize(): Promise<void> {
+  async function initialize(_deps: ModuleDeps): Promise<void> {
     boss = new PgBoss({
       database: config.database.database,
       host: config.database.host,
@@ -72,8 +67,22 @@ export function createPubSubModule(config: PubSubConfig): PubSubModule {
 
   async function destroy(): Promise<void> {
     if (boss) {
+      for (const topic of subscriptions.keys()) {
+        await boss.offWork(topic);
+      }
+      subscriptions.clear();
       await boss.stop();
       boss = null;
+    }
+  }
+
+  async function healthCheck(): Promise<boolean> {
+    if (!boss) return false;
+    try {
+      await boss.getQueueSize("___health___");
+      return true;
+    } catch {
+      return false;
     }
   }
 
@@ -116,6 +125,7 @@ export function createPubSubModule(config: PubSubConfig): PubSubModule {
 
   async function unsubscribe(topic: string): Promise<void> {
     if (!boss) throw new Error("PubSub not initialized");
+    await boss.offWork(topic);
     subscriptions.delete(topic);
   }
 
@@ -142,8 +152,7 @@ export function createPubSubModule(config: PubSubConfig): PubSubModule {
 
   async function getQueueSize(topic: string): Promise<number> {
     if (!boss) throw new Error("PubSub not initialized");
-    const sizes = await boss.getQueueSize(topic);
-    return sizes;
+    return boss.getQueueSize(topic);
   }
 
   async function purgeQueue(topic: string): Promise<void> {
@@ -154,7 +163,9 @@ export function createPubSubModule(config: PubSubConfig): PubSubModule {
   return {
     destroy,
     getQueueSize,
+    healthCheck,
     initialize,
+    name: "pubsub",
     publish,
     publishBatch,
     purgeQueue,

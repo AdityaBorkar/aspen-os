@@ -2,7 +2,6 @@ import { eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 import * as s from "./schema";
-import type { FileObject, FileUploadInput } from "./types";
 
 type DrizzleDB = NodePgDatabase<Record<string, never>>;
 

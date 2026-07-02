@@ -2,11 +2,9 @@ import { AsyncLocalStorage } from "node:async_hooks";
 
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-import type { PubSubModule } from "../modules/pubsub";
-
 export const context = new AsyncLocalStorage<{
   db: NodePgDatabase<Record<string, never>>;
-  pubsub: PubSubModule;
+  pubsub: { publish<T = unknown>(topic: string, data: T): Promise<string> };
 }>();
 
 export function getContext() {

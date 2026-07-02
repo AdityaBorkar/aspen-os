@@ -1,8 +1,7 @@
 import type { Auth } from "better-auth";
-import type { createAccessControl, Role } from "better-auth/plugins";
-import type { ReactAuthClient } from "better-auth/react";
+import type { createAccessControl } from "better-auth/plugins";
 
-import type { DatabaseConfig } from "../../lib/types";
+import type { DatabaseConfig, Module } from "../../lib/types";
 
 export interface Permission {
   action: string;
@@ -11,13 +10,22 @@ export interface Permission {
   resource: string;
 }
 
+export interface RoleData {
+  createdAt: Date;
+  description?: string;
+  id: string;
+  name: string;
+  permissions: Permission[];
+  updatedAt: Date;
+}
+
 export interface User {
   createdAt: Date;
   email: string;
   id: string;
   metadata?: Record<string, unknown>;
   name?: string;
-  roles: Role[];
+  roles: RoleData[];
   updatedAt: Date;
 }
 
@@ -32,7 +40,7 @@ export interface Session {
 export interface AuthConfig {
   access_control: ReturnType<typeof createAccessControl>;
   baseURL: string;
-  roles: Record<string, Role>;
+  roles: Record<string, any>;
   secret: string;
   session: { expiresIn?: number };
 }
@@ -64,7 +72,7 @@ export interface UserAPI {
   role: {
     assign(userId: string, roleName: string): Promise<void>;
     unassign(userId: string, roleName: string): Promise<void>;
-    list(userId: string): Promise<Role[]>;
+    list(userId: string): Promise<RoleData[]>;
   };
   update(
     id: string,
@@ -83,13 +91,12 @@ export interface SessionAPI {
 
 export interface RoleAPI {
   delete(name: string): Promise<void>;
-  list(): Promise<Role[]>;
+  list(): Promise<RoleData[]>;
 }
 
 export interface AuthModule {
-  client: ReactAuthClient<any>;
+  client: any;
   db_schema: Record<string, unknown>;
-  register(): Promise<void>;
   server: {
     $: Auth;
     handler: (request: Request) => Promise<Response>;
@@ -99,5 +106,4 @@ export interface AuthModule {
       role: RoleAPI;
     };
   };
-  terminate(): Promise<void>;
 }

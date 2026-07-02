@@ -1,6 +1,5 @@
-export interface ModuleConfig {
-  database: DatabaseConfig;
-}
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type pg from "pg";
 
 export interface DatabaseConfig {
   database: string;
@@ -10,6 +9,21 @@ export interface DatabaseConfig {
   port: number;
   ssl?: boolean;
   user: string;
+}
+
+export interface ModuleDeps {
+  db: NodePgDatabase<Record<string, never>>;
+  pool: pg.Pool;
+  pubsub: {
+    publish<T = unknown>(topic: string, data: T): Promise<string>;
+  };
+}
+
+export interface Module {
+  destroy(): Promise<void>;
+  healthCheck(): Promise<boolean>;
+  initialize(deps: ModuleDeps): Promise<void>;
+  readonly name: string;
 }
 
 export interface PaginationParams {
@@ -28,10 +42,3 @@ export interface PaginatedResult<T> {
 export type Result<T, E = Error> =
   | { success: true; data: T }
   | { success: false; error: E };
-
-export interface Module {
-  destroy(): Promise<void>;
-  healthCheck(): Promise<boolean>;
-  initialize(): Promise<void>;
-  readonly name: string;
-}

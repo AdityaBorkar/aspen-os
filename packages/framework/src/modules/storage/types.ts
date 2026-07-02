@@ -1,4 +1,4 @@
-import type { DatabaseConfig } from "../../lib/types";
+import type { DatabaseConfig, ModuleDeps } from "../../lib/types";
 
 export interface FilesConfig {
   bucket: string;
@@ -54,7 +54,7 @@ export interface FilesModule {
   getMetadata(key: string): Promise<FileObject>;
   getSignedGetUrl(key: string, options?: SignedUrlOptions): Promise<string>;
   getSignedPutUrl(key: string, options?: SignedUrlOptions): Promise<string>;
-  initialize(): Promise<void>;
+  initialize(deps: ModuleDeps): Promise<void>;
   list(
     prefix?: string,
     options?: ListOptions,

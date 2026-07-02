@@ -2,7 +2,7 @@ import { os } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import { z } from "zod";
 
-import { getContext } from "@/lib";
+import type { Module, ModuleDeps } from "../../lib/types";
 import type { RpcConfig, RpcContext, RpcModule } from "./types";
 
 export type { RpcConfig, RpcContext, RpcModule } from "./types";
@@ -28,16 +28,23 @@ export const router = {
 
 export type RpcRouter = typeof router;
 
-export function createRpcModule(config: RpcConfig = {}): RpcModule {
+export function createRpcModule(config: RpcConfig = {}): RpcModule & Module {
   const prefix = (config.prefix ?? "/api/rpc") as `/${string}`;
   let handler: InstanceType<typeof RPCHandler> | null = null;
+  let deps: ModuleDeps | null = null;
 
-  async function register() {
+  async function initialize(incomingDeps: ModuleDeps) {
+    deps = incomingDeps;
     handler = new RPCHandler(router);
   }
 
-  async function terminate() {
+  async function destroy() {
     handler = null;
+    deps = null;
+  }
+
+  async function healthCheckResult(): Promise<boolean> {
+    return handler !== null;
   }
 
   async function handle(
@@ -52,17 +59,21 @@ export function createRpcModule(config: RpcConfig = {}): RpcModule {
   }
 
   async function requestHandler(request: Request): Promise<Response> {
-    if (!handler) throw new Error("RPC module not initialized");
-    const { db, pubsub } = getContext();
-    const { matched, response } = await handle(request, { db, pubsub });
+    if (!handler || !deps) throw new Error("RPC module not initialized");
+    const { matched, response } = await handle(request, {
+      db: deps.db,
+      pubsub: deps.pubsub as unknown as import("../pubsub").PubSubModule,
+    });
     if (matched && response) return response;
     return new Response("Not Found", { status: 404 });
   }
 
   return {
-    register,
-    terminate,
+    destroy,
     handler: requestHandler,
+    healthCheck: healthCheckResult,
+    initialize,
+    name: "rpc",
     router,
     server: {
       handle,

@@ -5,11 +5,10 @@
 - Perform drizzle migrations in initialize() step. Before that, collect all db_schemas from the registered modules
 - Auth
   - Expand to configuring all options for `better-auth`
-- Rename `files` to `storage`
-- Merge `logging` and `observability` and `logger`
 - `pubsub`
 - `database`
 - `cache`
+- 
 - `events`
   - THINK
 - `config`

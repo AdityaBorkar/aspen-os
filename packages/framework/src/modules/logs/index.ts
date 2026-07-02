@@ -1,4 +1,5 @@
-import { getDrizzle, getPool } from "../../lib/db";
+import { createDrizzle } from "../../lib/db";
+import type { Module, ModuleDeps } from "../../lib/types";
 import { createEntryFactory, createLogBuffer } from "./buffer";
 import * as schema from "./schema";
 import { createLogQueryService } from "./service";
@@ -21,41 +22,28 @@ export type {
   LogStats,
 } from "./types";
 
-export function createLoggingModule(config: LoggingConfig): LoggingModule {
-  const pool = getPool(config.database);
-  const db = getDrizzle(config.database, schema);
+export function createLoggingModule(
+  config: LoggingConfig,
+): LoggingModule & Module {
   const serviceName = config.serviceName ?? "app";
   const defaultLevel = config.defaultLevel ?? "info";
 
-  const queryService = createLogQueryService(db);
-  const createEntry = createEntryFactory(serviceName);
-
-  const buffer = createLogBuffer(100, async (entries) => {
-    await db.insert(schema.logs).values(
-      entries.map((entry) => ({
-        durationMs: entry.duration ?? null,
-        errorMessage: entry.error?.message ?? null,
-        errorName: entry.error?.name ?? null,
-        errorStack: entry.error?.stack ?? null,
-        id: entry.id,
-        level: entry.level,
-        message: entry.message,
-        metadata: entry.metadata ?? {},
-        requestId: entry.requestId ?? null,
-        service: entry.service,
-        spanId: entry.spanId ?? null,
-        timestamp: entry.timestamp,
-        traceId: entry.traceId ?? null,
-        userId: entry.userId ?? null,
-      })),
-    );
-  });
-
+  let pool: import("pg").Pool | null = null;
+  let db: ReturnType<typeof createDrizzle> | null = null;
+  let queryService: ReturnType<typeof createLogQueryService> | null = null;
+  let buffer: ReturnType<typeof createLogBuffer> | null = null;
   let flushTimer: ReturnType<typeof setInterval> | null = null;
 
   function shouldLog(level: LogLevel): boolean {
     return levelPriority[level] >= levelPriority[defaultLevel];
   }
+
+  function requireBuffer() {
+    if (!buffer) throw new Error("Logging module not initialized");
+    return buffer;
+  }
+
+  const createEntry = createEntryFactory(serviceName);
 
   function enqueue(
     level: LogLevel,
@@ -64,10 +52,35 @@ export function createLoggingModule(config: LoggingConfig): LoggingModule {
     error?: Error,
   ): void {
     if (!shouldLog(level)) return;
-    buffer.push(createEntry(level, message, metadata, error));
+    requireBuffer().push(createEntry(level, message, metadata, error));
   }
 
-  async function initialize(): Promise<void> {
+  async function initialize(deps: ModuleDeps): Promise<void> {
+    pool = deps.pool;
+    db = createDrizzle(deps.pool, schema);
+    queryService = createLogQueryService(db);
+
+    buffer = createLogBuffer(100, async (entries) => {
+      await db!.insert(schema.logs).values(
+        entries.map((entry) => ({
+          durationMs: entry.duration ?? null,
+          errorMessage: entry.error?.message ?? null,
+          errorName: entry.error?.name ?? null,
+          errorStack: entry.error?.stack ?? null,
+          id: entry.id,
+          level: entry.level,
+          message: entry.message,
+          metadata: entry.metadata ?? {},
+          requestId: entry.requestId ?? null,
+          service: entry.service,
+          spanId: entry.spanId ?? null,
+          timestamp: entry.timestamp,
+          traceId: entry.traceId ?? null,
+          userId: entry.userId ?? null,
+        })),
+      );
+    });
+
     await pool.query(`
       CREATE TABLE IF NOT EXISTS logs (
         id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
@@ -94,7 +107,7 @@ export function createLoggingModule(config: LoggingConfig): LoggingModule {
       CREATE INDEX IF NOT EXISTS idx_logs_user_id ON logs(user_id);
     `);
 
-    flushTimer = setInterval(() => buffer.flush(), 5000);
+    flushTimer = setInterval(() => buffer!.flush(), 5000);
   }
 
   async function destroy(): Promise<void> {
@@ -102,7 +115,17 @@ export function createLoggingModule(config: LoggingConfig): LoggingModule {
       clearInterval(flushTimer);
       flushTimer = null;
     }
-    await buffer.drain();
+    if (buffer) {
+      await buffer.drain();
+      buffer = null;
+    }
+    queryService = null;
+    db = null;
+    pool = null;
+  }
+
+  async function healthCheck(): Promise<boolean> {
+    return db !== null;
   }
 
   function child(context: Record<string, unknown>): ChildLogger {
@@ -115,10 +138,14 @@ export function createLoggingModule(config: LoggingConfig): LoggingModule {
         enqueue("debug", message, mergeMeta(metadata)),
       error: (message, err, metadata) => {
         if (shouldLog("error"))
-          buffer.push(createEntry("error", message, mergeMeta(metadata), err));
+          requireBuffer().push(
+            createEntry("error", message, mergeMeta(metadata), err),
+          );
       },
       fatal: (message, err, metadata) =>
-        buffer.push(createEntry("fatal", message, mergeMeta(metadata), err)),
+        requireBuffer().push(
+          createEntry("fatal", message, mergeMeta(metadata), err),
+        ),
       info: (message, metadata) =>
         enqueue("info", message, mergeMeta(metadata)),
       log: (level, message, metadata) =>
@@ -134,15 +161,23 @@ export function createLoggingModule(config: LoggingConfig): LoggingModule {
     destroy,
     error: (message, err, metadata) => {
       if (shouldLog("error"))
-        buffer.push(createEntry("error", message, metadata, err));
+        requireBuffer().push(createEntry("error", message, metadata, err));
     },
     fatal: (message, err, metadata) =>
-      buffer.push(createEntry("fatal", message, metadata, err)),
-    getStats: queryService.getStats,
+      requireBuffer().push(createEntry("fatal", message, metadata, err)),
+    getStats: (service?, startTime?, endTime?) =>
+      requireQueryService().getStats(service, startTime, endTime),
+    healthCheck,
     info: (message, metadata) => enqueue("info", message, metadata),
     initialize,
     log: (level, message, metadata) => enqueue(level, message, metadata),
-    query: queryService.query,
+    name: "logs",
+    query: (filter) => requireQueryService().query(filter),
     warn: (message, metadata) => enqueue("warn", message, metadata),
   };
+
+  function requireQueryService() {
+    if (!queryService) throw new Error("Logging module not initialized");
+    return queryService;
+  }
 }
