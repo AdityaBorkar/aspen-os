@@ -1,0 +1,13 @@
+{
+	"name": "aspen-os",
+	"type": "module",
+	"workspaces": [
+		"./packages/*",
+		"./presets/*"
+	],
+	"dependencies": {
+		"@biomejs/biome": "^2.5.2",
+		"@types/bun": "^1.3.14",
+		"typescript": "^7.0.1-rc"
+	}
+}
