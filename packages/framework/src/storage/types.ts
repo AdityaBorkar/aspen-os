@@ -1,6 +1,6 @@
-import type { DatabaseConfig, ModuleDeps } from "../types";
+import type { DatabaseConfig, UnitDeps } from "../types";
 
-export interface FilesConfig {
+export interface StorageConfig {
   bucket: string;
   database: DatabaseConfig;
   prefix?: string;
@@ -45,7 +45,7 @@ export interface ListOptions {
   maxKeys?: number;
 }
 
-export interface FilesModule {
+export interface StorageUnit {
   archive(key: string, archiveKey?: string): Promise<FileObject>;
   copy(sourceKey: string, destinationKey: string): Promise<FileObject>;
   destroy(): Promise<void>;
@@ -54,7 +54,7 @@ export interface FilesModule {
   getMetadata(key: string): Promise<FileObject>;
   getSignedGetUrl(key: string, options?: SignedUrlOptions): Promise<string>;
   getSignedPutUrl(key: string, options?: SignedUrlOptions): Promise<string>;
-  initialize(deps: ModuleDeps): Promise<void>;
+  initialize(deps: UnitDeps): Promise<void>;
   list(
     prefix?: string,
     options?: ListOptions,

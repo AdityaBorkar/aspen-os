@@ -1,4 +1,4 @@
-import type { DatabaseConfig, ModuleDeps } from "../types";
+import type { DatabaseConfig, UnitDeps } from "../types";
 
 export type LogLevel = "debug" | "info" | "warn" | "error" | "fatal";
 
@@ -62,7 +62,7 @@ export interface ChildLogger {
   warn(message: string, metadata?: Record<string, unknown>): void;
 }
 
-export interface LoggingModule {
+export interface LoggingUnit {
   child(context: Record<string, unknown>): ChildLogger;
   debug(message: string, metadata?: Record<string, unknown>): void;
   destroy(): Promise<void>;
@@ -82,7 +82,7 @@ export interface LoggingModule {
     endTime?: Date,
   ): Promise<LogStats>;
   info(message: string, metadata?: Record<string, unknown>): void;
-  initialize(deps: ModuleDeps): Promise<void>;
+  initialize(deps: UnitDeps): Promise<void>;
 
   log(
     level: LogLevel,

@@ -7,9 +7,9 @@ import {
 } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 
-import type { Module, ModuleDeps } from "../types";
+import type { Unit, UnitDeps } from "../types";
 import * as db_schema from "./db-schema";
-import type { AuthConfig, AuthModule } from "./types";
+import type { AuthConfig, AuthUnit } from "./types";
 import { createRoleWorkflows } from "./workflows/role";
 import { createSessionWorkflows } from "./workflows/session";
 import { createUserWorkflows } from "./workflows/user";
@@ -30,7 +30,7 @@ export type {
 } from "./event-map";
 export type {
   AuthConfig,
-  AuthModule,
+  AuthUnit,
   Permission,
   RoleAPI,
   RoleDefinition,
@@ -40,7 +40,7 @@ export type {
   UserAPI,
 } from "./types";
 
-export function createAuthModule(config: AuthConfig): AuthModule & Module {
+export function createAuthUnit(config: AuthConfig): AuthUnit & Unit {
   const { access_control, roles, ...$config } = config;
 
   let auth: any = null;
@@ -71,7 +71,7 @@ export function createAuthModule(config: AuthConfig): AuthModule & Module {
       return auth !== null;
     },
 
-    async initialize(deps: ModuleDeps) {
+    async initialize(deps: UnitDeps) {
       auth = betterAuth({
         emailAndPassword: { enabled: true },
         ...$config,
@@ -109,19 +109,19 @@ export function createAuthModule(config: AuthConfig): AuthModule & Module {
         return auth;
       },
       handler: async (request: Request) => {
-        if (!auth) throw new Error("Auth module not initialized");
+        if (!auth) throw new Error("Auth unit not initialized");
         return auth.handler(request);
       },
       workflows: {
         get role() {
-          if (!workflows) throw new Error("Auth module not initialized");
+          if (!workflows) throw new Error("Auth unit not initialized");
           return {
             delete: workflows.role.deleteRole,
             list: workflows.role.getAllRoles as () => Promise<any[]>,
           };
         },
         get session() {
-          if (!workflows) throw new Error("Auth module not initialized");
+          if (!workflows) throw new Error("Auth unit not initialized");
           return {
             create: workflows.session.authenticate,
             invalidate: workflows.session.invalidateSession,
@@ -129,7 +129,7 @@ export function createAuthModule(config: AuthConfig): AuthModule & Module {
           };
         },
         get user() {
-          if (!workflows) throw new Error("Auth module not initialized");
+          if (!workflows) throw new Error("Auth unit not initialized");
           return {
             create: workflows.user.createUser,
             delete: workflows.user.deleteUser,

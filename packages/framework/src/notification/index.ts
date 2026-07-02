@@ -1,33 +1,33 @@
 import { eq } from "drizzle-orm";
 
 import { createDrizzle } from "../db";
-import type { Module, ModuleDeps } from "../types";
+import type { Unit, UnitDeps } from "../types";
 import * as schema from "./schema";
 import { createNotificationQueryService } from "./service";
 import type {
   NotificationConfig,
   NotificationHistoryOptions,
-  NotificationModule,
   NotificationPayload,
   NotificationProvider,
   NotificationRecord,
   NotificationType,
+  NotificationUnit,
 } from "./types";
 
 export type {
   NotificationConfig,
   NotificationHistoryOptions,
-  NotificationModule,
   NotificationPayload,
   NotificationProvider,
   NotificationRecord,
   NotificationStatus,
   NotificationType,
+  NotificationUnit,
 } from "./types";
 
-export function createNotificationModule(
+export function createNotificationUnit(
   config: NotificationConfig,
-): NotificationModule & Module {
+): NotificationUnit & Unit {
   const providers = new Map<string, NotificationProvider>();
   for (const provider of config.providers) {
     providers.set(provider.type, provider);
@@ -38,7 +38,7 @@ export function createNotificationModule(
   let queryService: ReturnType<typeof createNotificationQueryService> | null =
     null;
 
-  async function initialize(deps: ModuleDeps): Promise<void> {
+  async function initialize(deps: UnitDeps): Promise<void> {
     pool = deps.pool;
     db = createDrizzle(deps.pool, schema);
     queryService = createNotificationQueryService(db);
@@ -75,7 +75,7 @@ export function createNotificationModule(
 
   function requireDb() {
     if (!db || !queryService)
-      throw new Error("Notification module not initialized");
+      throw new Error("Notification unit not initialized");
     return { db, queryService };
   }
 

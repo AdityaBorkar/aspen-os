@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 
-import type { ModuleDeps } from "../../types";
+import type { UnitDeps } from "../../types";
 import * as s from "../db-schema";
 import type { Permission } from "../types";
 
@@ -13,7 +13,7 @@ interface RoleData {
   updatedAt: Date;
 }
 
-export function createRoleWorkflows(deps: ModuleDeps) {
+export function createRoleWorkflows(deps: UnitDeps) {
   const { db, pubsub } = deps;
 
   async function getRolePermissions(roleId: string): Promise<Permission[]> {

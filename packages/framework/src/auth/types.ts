@@ -92,7 +92,7 @@ export interface RoleAPI {
   list(): Promise<RoleData[]>;
 }
 
-export interface AuthModule {
+export interface AuthUnit {
   client: any;
   db_schema: Record<string, unknown>;
   server: {

@@ -1,17 +1,17 @@
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-import type { PubSubModule } from "../pubsub";
+import type { PubSubUnit } from "../pubsub";
 
 export interface RpcContext {
   db: NodePgDatabase<Record<string, never>>;
-  pubsub: PubSubModule;
+  pubsub: PubSubUnit;
 }
 
 export interface RpcConfig {
   prefix?: string;
 }
 
-export interface RpcModule {
+export interface RpcUnit {
   handler(request: Request): Promise<Response>;
   router: import("./index").RpcRouter;
 

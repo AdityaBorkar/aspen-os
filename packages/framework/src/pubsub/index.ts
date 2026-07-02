@@ -1,6 +1,6 @@
 import PgBoss from "pg-boss";
 
-import type { DatabaseConfig, Module, ModuleDeps } from "../types";
+import type { DatabaseConfig, Unit, UnitDeps } from "../types";
 
 export interface PubSubConfig {
   database: DatabaseConfig;
@@ -29,7 +29,7 @@ export type MessageHandler<T = unknown> = (
   message: Message<T>,
 ) => void | Promise<void>;
 
-export interface PubSubModule extends Module {
+export interface PubSubUnit extends Unit {
   getQueueSize(topic: string): Promise<number>;
   publish<T = unknown>(
     topic: string,
@@ -48,11 +48,11 @@ export interface PubSubModule extends Module {
   unsubscribe(topic: string): Promise<void>;
 }
 
-export function createPubSubModule(config: PubSubConfig): PubSubModule {
+export function createPubSubUnit(config: PubSubConfig): PubSubUnit {
   let boss: PgBoss | null = null;
   const subscriptions = new Map<string, PgBoss.WorkHandler<object>>();
 
-  async function initialize(_deps: ModuleDeps): Promise<void> {
+  async function initialize(_deps: UnitDeps): Promise<void> {
     boss = new PgBoss({
       database: config.database.database,
       host: config.database.host,

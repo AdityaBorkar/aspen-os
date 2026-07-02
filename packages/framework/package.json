@@ -21,14 +21,14 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./auth": "./src/modules/auth/index.ts",
-    "./cache": "./src/modules/cache/index.ts",
-    "./logs": "./src/modules/logs/index.ts",
-    "./notification": "./src/modules/notification/index.ts",
-    "./pubsub": "./src/modules/pubsub/index.ts",
-    "./rpc": "./src/modules/rpc/index.ts",
-    "./storage": "./src/modules/storage/index.ts",
-    "./sync": "./src/modules/sync/index.ts"
+    "./auth": "./src/auth/index.ts",
+    "./cache": "./src/cache/index.ts",
+    "./logs": "./src/logs/index.ts",
+    "./notification": "./src/notification/index.ts",
+    "./pubsub": "./src/pubsub/index.ts",
+    "./rpc": "./src/rpc/index.ts",
+    "./storage": "./src/storage/index.ts",
+    "./sync": "./src/sync/index.ts"
   },
   "name": "@aspen-os/framework",
   "scripts": {

@@ -1,46 +1,38 @@
 export {
   type AuthConfig,
-  type AuthModule,
+  type AuthUnit,
   createAccessControl,
-  createAuthModule,
   type Permission,
   type Session,
   type User,
 } from "./auth";
-export {
-  type CacheConfig,
-  type CacheModule,
-  createCacheModule,
+export type {
+  CacheConfig,
+  CacheUnit,
 } from "./cache";
 export { Framework, type FrameworkConfig } from "./framework";
-export {
-  createLoggingModule,
-  type LoggingConfig,
-  type LoggingModule,
+export type {
+  LoggingConfig,
+  LoggingUnit,
 } from "./logs";
-export {
-  createNotificationModule,
-  type NotificationConfig,
-  type NotificationModule,
+export type {
+  NotificationConfig,
+  NotificationUnit,
 } from "./notification";
-export {
-  createPubSubModule,
-  type PubSubConfig,
-  type PubSubModule,
+export type {
+  PubSubConfig,
+  PubSubUnit,
 } from "./pubsub";
-export {
-  createRpcModule,
-  type RpcConfig,
-  type RpcModule,
+export type {
+  RpcConfig,
+  RpcUnit,
 } from "./rpc";
-export {
-  createFilesModule,
-  type FilesConfig,
-  type FilesModule,
+export type {
+  StorageConfig,
+  StorageUnit,
 } from "./storage";
-export {
-  createSyncModule,
-  type SyncConfig,
-  type SyncModule,
+export type {
+  SyncConfig,
+  SyncUnit,
 } from "./sync";
-export type { DatabaseConfig, Module, ModuleDeps, Result } from "./types";
+export type { DatabaseConfig, Result, Unit, UnitDeps } from "./types";

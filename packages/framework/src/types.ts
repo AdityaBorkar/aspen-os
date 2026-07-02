@@ -11,7 +11,7 @@ export interface DatabaseConfig {
   user: string;
 }
 
-export interface ModuleDeps {
+export interface UnitDeps {
   db: NodePgDatabase<Record<string, never>>;
   pool: pg.Pool;
   pubsub: {
@@ -19,10 +19,10 @@ export interface ModuleDeps {
   };
 }
 
-export interface Module {
+export interface Unit {
   destroy(): Promise<void>;
   healthCheck(): Promise<boolean>;
-  initialize(deps: ModuleDeps): Promise<void>;
+  initialize(deps: UnitDeps): Promise<void>;
   readonly name: string;
 }
 

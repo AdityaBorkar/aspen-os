@@ -1,12 +1,12 @@
 import { createKvStore, type PostgresKvStore } from "../kv-store";
-import type { Module, ModuleDeps } from "../types";
+import type { Unit, UnitDeps } from "../types";
 
 export interface CacheConfig {
   defaultTtl?: number;
   keyPrefix?: string;
 }
 
-export interface CacheModule extends Module {
+export interface CacheUnit extends Unit {
   clear(pattern?: string): Promise<void>;
   decrement(key: string, amount?: number): Promise<number>;
   del(key: string): Promise<void>;
@@ -22,7 +22,7 @@ export interface CacheModule extends Module {
   set(key: string, value: unknown, ttl?: number): Promise<void>;
 }
 
-export function createCacheModule(config: CacheConfig): CacheModule {
+export function createCacheUnit(config: CacheConfig): CacheUnit {
   const defaultTtl = config.defaultTtl ?? 3600;
   const prefix = config.keyPrefix ?? "";
   let kv: PostgresKvStore | null = null;
@@ -31,7 +31,7 @@ export function createCacheModule(config: CacheConfig): CacheModule {
     return prefix ? `${prefix}:${key}` : key;
   }
 
-  async function initialize(deps: ModuleDeps): Promise<void> {
+  async function initialize(deps: UnitDeps): Promise<void> {
     kv = createKvStore(deps.pool);
     await kv.initialize();
     await kv.ping();
@@ -52,7 +52,7 @@ export function createCacheModule(config: CacheConfig): CacheModule {
   }
 
   function requireKv(): PostgresKvStore {
-    if (!kv) throw new Error("Cache module not initialized");
+    if (!kv) throw new Error("Cache unit not initialized");
     return kv;
   }
 

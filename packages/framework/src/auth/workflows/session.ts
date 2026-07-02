@@ -1,11 +1,11 @@
 import { and, eq, gte } from "drizzle-orm";
 
-import type { ModuleDeps } from "../../types";
+import type { UnitDeps } from "../../types";
 import * as s from "../db-schema";
 import type { Session, User } from "../types";
 
 export function createSessionWorkflows(
-  deps: ModuleDeps,
+  deps: UnitDeps,
   getUserById: (id: string) => Promise<User | null>,
 ) {
   const { db, pubsub } = deps;

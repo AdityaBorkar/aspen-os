@@ -10,14 +10,13 @@ Bun monorepo. Business framework with pluggable domain modules and presets.
 - **tsconfig**: `noEmit: true`, `verbatimModuleSyntax: true`, bundler module resolution
 - **Linter/formatter**: Biome (`biome.json` at root) — double quotes, 2-space indent, LF, organized imports
 - Root `package.json` has TypeScript `^7.0.1-rc`; framework package pins `^5.7.2`
-- `bunfig.toml` disables install scripts (`ignore-scripts=true`) and telemetry
+- `bunfig.toml` disables install scripts (`ignore-scripts=true`), enforces 3-day minimum release age for deps
 
 ## Commands
 
 ```
 bun install                                    # install all workspace deps
-cd packages/framework && bun run typecheck     # typecheck framework (tsc --noEmit)
-cd packages/framework && bun run dev           # typecheck in watch mode
+cd packages/framework && bun run check:types   # typecheck framework (tsc --noEmit)
 bun run check:lint                             # biome check --fix (from root)
 bun run check:types                            # tsc --noEmit (from root)
 ```
@@ -39,15 +38,17 @@ packages/
   reports/      # Empty
 ```
 
-Only `packages/framework` has deps, scripts, and source code. The `presets/*` workspace glob in root `package.json` has no matching directories yet.
+Only `packages/framework` has deps, scripts, and source code.
 
 ## Framework Architecture (`packages/framework`)
 
 ### Entrypoints
 
 - `src/framework.ts` — `Framework` class. Orchestrates module lifecycle: `new Framework(config)` → `framework.initialize()` → `framework.run(fn)` → `framework.destroy()`.
-- `src/modules/` — each subdirectory is a module. No barrel `index.ts` exists at this level.
-- `src/lib/` — shared infra: `db.ts`, `redis.ts`, `context.ts`, `pubsub.ts`, `types.ts`.
+- `src/index.ts` — barrel re-exporting all modules and the Framework class.
+- `src/db/index.ts` — `getPool()` and `createDrizzle()` (also duplicated in `src/lib/db.ts`).
+- `src/context.ts` — `AsyncLocalStorage` providing `{ db, pubsub }` per request.
+- `src/types.ts` — shared interfaces: `Module`, `ModuleDeps`, `DatabaseConfig`, `Result`, `PaginatedResult`.
 
 ### Framework Usage Pattern
 
@@ -56,7 +57,7 @@ import { Framework } from "@aspen-os/framework"
 
 const framework = new Framework({
   db: { host, port, user, password, database },
-  auth: { secret, roles: [...] },
+  auth: { /* better-auth config + roles + access_control */ },
 })
 await framework.initialize()
 await framework.run(async () => {
@@ -65,15 +66,15 @@ await framework.run(async () => {
 await framework.destroy()
 ```
 
-`framework.run()` provides `{ db, pubsub }` via `AsyncLocalStorage` — all module calls inside it share the same DB connection and pubsub instance.
+`framework.run()` provides `{ db, pubsub }` via `AsyncLocalStorage` — all module calls inside it share the same DB connection and pubsub instance. `framework.register(modules)` adds extra modules before `initialize()`.
 
 ### Module Pattern
 
-Every module follows: `createXModule(config) → XModule`. The module interface exposes `initialize()`, `destroy()`, and `healthCheck()`. Modules with DB state also export a `db_schema` (Drizzle tables) and a `*Schema` namespace re-export.
+Every module follows: `createXModule(config) → XModule`. The `Module` interface (in `src/types.ts`) requires `name`, `initialize(deps)`, `destroy()`, `healthCheck()`. `ModuleDeps` provides `{ db, pool, pubsub }`. Modules with DB state create their own tables via raw SQL in `initialize()`.
 
-Directory layout for complex modules:
+Directory layout for modules:
 ```
-modules/<name>/
+src/<name>/
   index.ts       # factory function + public re-exports
   types.ts       # interfaces
   schema.ts      # Drizzle ORM table definitions (pgTable)
@@ -82,62 +83,42 @@ modules/<name>/
 
 ### Current Modules
 
-- **auth**: Users, roles, permissions, sessions. Drizzle schemas in `auth/db-schema/`. Workflows in `auth/workflows/` (user.ts, role.ts, session.ts). Uses `better-auth` under the hood.
-- **pubsub**: Database-backed pub/sub (uses `pg-boss`). Creates its own tables via raw SQL.
-- **rpc**: RPC module using `@orpc/server`.
-- **sync**: Sync module (config-driven).
-- **cache**: Redis-backed with TTL, prefix support, `getOrSet` pattern.
-- **storage**: S3 storage via `@aws-sdk/client-s3`. Has schema.ts + service.ts.
-- **notification**: Multi-provider notifications. Has schema.ts + service.ts.
-- **logs**: Structured logging with buffer. Has buffer.ts, logger.ts, schema.ts, service.ts.
-
-### Lib Layer (`src/lib/`)
-
-- `db.ts`: Singleton pg.Pool + Drizzle instance. `getPool()`, `getDrizzle()`, `query()`, `closePool()`.
-- `redis.ts`: Singleton ioredis instance. `getRedis()`, `closeRedis()`.
-- `context.ts`: `AsyncLocalStorage` providing `{ db, pubsub }` per request.
-- `types.ts`: Shared interfaces (`Module`, `ModuleConfig`, `DatabaseConfig`, `RedisConfig`, `Result`, `PaginatedResult`).
-
-### Path Alias
-
-Framework tsconfig has `@/* → ./src/*`. Use this for internal imports within the framework package.
+- **auth**: Users, roles, permissions, sessions. Factory: `createAuthModule`. Drizzle schemas in `auth/db-schema/`. Workflows in `auth/workflows/` (user.ts, role.ts, session.ts). Uses `better-auth` under the hood.
+- **pubsub**: Database-backed pub/sub via `pg-boss`. Factory: `createPubSubModule`. Creates its own tables.
+- **rpc**: RPC module using `@orpc/server`. Factory: `createRpcModule`.
+- **sync**: Stub (not yet implemented). Factory: `createSyncModule`.
+- **cache**: Postgres-backed KV store with TTL, prefix, `getOrSet`. Factory: `createCacheModule`. Uses internal `kv-store/` module.
+- **storage**: S3 storage via `@aws-sdk/client-s3`. Factory: `createFilesModule` (not `createStorageModule`). Has schema.ts + service.ts.
+- **notification**: Multi-provider notifications. Factory: `createNotificationModule`. Has schema.ts + service.ts.
+- **logs**: Structured logging with buffer + TimescaleDB hypertable. Factory: `createLoggingModule`. Has buffer.ts, schema.ts, service.ts.
+- **kv-store**: Internal Postgres KV store (`PostgresKvStore`). Not exported from `@aspen-os/framework`. Used by cache module.
 
 ### Package Exports
 
 `@aspen-os/framework` exposes subpath exports for each module:
 ```ts
-import { Framework } from "@aspen-os/framework"        // src/modules/index.ts (does not exist yet)
+import { Framework } from "@aspen-os/framework"
 import { createAuthModule } from "@aspen-os/framework/auth"
+import { createCacheModule } from "@aspen-os/framework/cache"
 import { createRpcModule } from "@aspen-os/framework/rpc"
+// etc.
 ```
 
-Only `.`, `./auth`, and `./rpc` are currently declared in `exports`.
-
-## Dev Infrastructure
-
-Docker Compose (`packages/framework/docker-compose.yaml`) provides:
-- **PostgreSQL** (custom Dockerfile with TimescaleDB + pgvector + extensions)
-- **Redis 7** (alpine)
-- Default creds: `aspen-os`/`aspen-os` on both, DB name `aspen-os`
-
-Start with: `cd packages/framework && docker compose up -d`
+All module subpaths are declared in `exports` (auth, cache, logs, notification, pubsub, rpc, storage, sync).
 
 ## Conventions
 
 - All DB IDs are `text` with `gen_random_uuid()::text` default (not native UUID type)
 - All timestamps use `withTimezone: true`
-- Drizzle schemas exported as namespaces: `export * as authSchema from "./auth/schema"`
 - Module factory functions are named `create<Name>Module`
-- `Result<T, E>` type for error handling: `{ success: true, data } | { success: false, error }`
+- `Result<T, E>` type: `{ success: true, data } | { success: false, error }`
 - Do not create barrel files unless explicitly told to (per CODING_CONVENTIONS.md)
-- Biome has import groups referencing `@plasmo` and `@plasmohq` — these are template leftovers, not real deps
-- Biome has a linter override disabling rules for `./src/components/ui/**` — that directory does not exist in this repo
+- Biome config has template leftovers: import groups referencing `@plasmo`/`@plasmohq`, linter override for `./src/components/ui/**` — neither exists in this repo
 
 ## Current State
 
 - Most domain packages (`hr`, `analytics`, `banking`, `reports`) are empty stubs
-- `packages/framework/src/modules/index.ts` barrel file does not exist yet (package.json `.` export points to it)
-- `packages/framework/src/index.ts` is empty
 - No CI/CD, Docker for the app itself, or deployment config
 - No test files or test infrastructure
+- No docker-compose file exists despite framework depending on Postgres + Redis
 - `codedb.snapshot` at root is a CodeDB indexing artifact, not source

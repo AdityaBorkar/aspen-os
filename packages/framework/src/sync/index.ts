@@ -1,12 +1,12 @@
-import type { Module, ModuleDeps } from "../types";
+import type { Unit, UnitDeps } from "../types";
 
 export interface SyncConfig {
   provider?: string;
 }
 
-export interface SyncModule extends Module {}
+export interface SyncUnit extends Unit {}
 
-export function createSyncModule(_config: SyncConfig = {}): SyncModule {
+export function createSyncUnit(_config: SyncConfig = {}): SyncUnit {
   return {
     async destroy() {
       // TODO: implement sync teardown
@@ -16,7 +16,7 @@ export function createSyncModule(_config: SyncConfig = {}): SyncModule {
       return true;
     },
 
-    async initialize(_deps: ModuleDeps) {
+    async initialize(_deps: UnitDeps) {
       // TODO: implement sync initialization
     },
     name: "sync",

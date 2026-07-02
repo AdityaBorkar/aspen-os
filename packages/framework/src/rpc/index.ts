@@ -2,10 +2,10 @@ import { os } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import { z } from "zod";
 
-import type { Module, ModuleDeps } from "../types";
-import type { RpcConfig, RpcContext, RpcModule } from "./types";
+import type { Unit, UnitDeps } from "../types";
+import type { RpcConfig, RpcContext, RpcUnit } from "./types";
 
-export type { RpcConfig, RpcContext, RpcModule } from "./types";
+export type { RpcConfig, RpcContext, RpcUnit } from "./types";
 
 const base = os.$context<RpcContext>();
 
@@ -28,12 +28,12 @@ export const router = {
 
 export type RpcRouter = typeof router;
 
-export function createRpcModule(config: RpcConfig = {}): RpcModule & Module {
+export function createRpcUnit(config: RpcConfig = {}): RpcUnit & Unit {
   const prefix = (config.prefix ?? "/api/rpc") as `/${string}`;
   let handler: InstanceType<typeof RPCHandler> | null = null;
-  let deps: ModuleDeps | null = null;
+  let deps: UnitDeps | null = null;
 
-  async function initialize(incomingDeps: ModuleDeps) {
+  async function initialize(incomingDeps: UnitDeps) {
     deps = incomingDeps;
     handler = new RPCHandler(router);
   }
@@ -51,7 +51,7 @@ export function createRpcModule(config: RpcConfig = {}): RpcModule & Module {
     request: Request,
     context: RpcContext,
   ): Promise<{ matched: boolean; response: Response | undefined }> {
-    if (!handler) throw new Error("RPC module not initialized");
+    if (!handler) throw new Error("RPC unit not initialized");
     return handler.handle(request, {
       context,
       prefix,
@@ -59,10 +59,10 @@ export function createRpcModule(config: RpcConfig = {}): RpcModule & Module {
   }
 
   async function requestHandler(request: Request): Promise<Response> {
-    if (!handler || !deps) throw new Error("RPC module not initialized");
+    if (!handler || !deps) throw new Error("RPC unit not initialized");
     const { matched, response } = await handle(request, {
       db: deps.db,
-      pubsub: deps.pubsub as unknown as import("../pubsub").PubSubModule,
+      pubsub: deps.pubsub as unknown as import("../pubsub").PubSubUnit,
     });
     if (matched && response) return response;
     return new Response("Not Found", { status: 404 });

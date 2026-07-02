@@ -1,26 +1,26 @@
 import { createDrizzle } from "../db";
-import type { Module, ModuleDeps } from "../types";
+import type { Unit, UnitDeps } from "../types";
 import { createS3Client, createS3Operations } from "./s3-client";
 import * as schema from "./schema";
 import { createFileMetadataService } from "./service";
 import type {
   FileObject,
-  FilesConfig,
-  FilesModule,
   FileUploadInput,
+  StorageConfig,
+  StorageUnit,
 } from "./types";
 
 export type {
   FileObject,
-  FilesConfig,
-  FilesModule,
   FileUploadInput,
   ListOptions,
   SignedUrlOptions,
+  StorageConfig,
   StorageProvider,
+  StorageUnit,
 } from "./types";
 
-export function createFilesModule(config: FilesConfig): FilesModule & Module {
+export function createStorageUnit(config: StorageConfig): StorageUnit & Unit {
   const prefix = config.prefix ?? "";
   let pool: import("pg").Pool | null = null;
   let db: ReturnType<typeof createDrizzle> | null = null;
@@ -32,7 +32,7 @@ export function createFilesModule(config: FilesConfig): FilesModule & Module {
     return prefix ? `${prefix}/${key}` : key;
   }
 
-  async function initialize(deps: ModuleDeps): Promise<void> {
+  async function initialize(deps: UnitDeps): Promise<void> {
     pool = deps.pool;
     db = createDrizzle(deps.pool, schema);
     const s3 = createS3Client(config.provider, config.region);
@@ -71,7 +71,7 @@ export function createFilesModule(config: FilesConfig): FilesModule & Module {
 
   function requireOps() {
     if (!s3Ops || !metadataService)
-      throw new Error("Storage module not initialized");
+      throw new Error("Storage unit not initialized");
     return { metadata: metadataService, ops: s3Ops };
   }
 

@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 
-import type { ModuleDeps } from "../../types";
+import type { UnitDeps } from "../../types";
 import * as s from "../db-schema";
 import type { CreateUserInput, Permission, User } from "../types";
 
@@ -14,7 +14,7 @@ interface RoleData {
 }
 
 export function createUserWorkflows(
-  deps: ModuleDeps,
+  deps: UnitDeps,
   getRolePermissions: (roleId: string) => Promise<Permission[]>,
 ) {
   const { db, pubsub } = deps;

@@ -1,12 +1,12 @@
 import { createDrizzle } from "../db";
-import type { Module, ModuleDeps } from "../types";
+import type { Unit, UnitDeps } from "../types";
 import { createEntryFactory, createLogBuffer } from "./buffer";
 import * as schema from "./schema";
 import { createLogQueryService } from "./service";
 import type {
   ChildLogger,
   LoggingConfig,
-  LoggingModule,
+  LoggingUnit,
   LogLevel,
 } from "./types";
 import { LEVEL_PRIORITY as levelPriority } from "./types";
@@ -15,15 +15,13 @@ export type {
   ChildLogger,
   LogEntry,
   LoggingConfig,
-  LoggingModule,
+  LoggingUnit,
   LogLevel,
   LogQuery,
   LogStats,
 } from "./types";
 
-export function createLoggingModule(
-  config: LoggingConfig,
-): LoggingModule & Module {
+export function createLoggingUnit(config: LoggingConfig): LoggingUnit & Unit {
   const serviceName = config.serviceName ?? "app";
   const defaultLevel = config.defaultLevel ?? "info";
 
@@ -38,7 +36,7 @@ export function createLoggingModule(
   }
 
   function requireBuffer() {
-    if (!buffer) throw new Error("Logging module not initialized");
+    if (!buffer) throw new Error("Logging unit not initialized");
     return buffer;
   }
 
@@ -54,7 +52,7 @@ export function createLoggingModule(
     requireBuffer().push(createEntry(level, message, metadata, error));
   }
 
-  async function initialize(deps: ModuleDeps): Promise<void> {
+  async function initialize(deps: UnitDeps): Promise<void> {
     pool = deps.pool;
     db = createDrizzle(deps.pool, schema);
     queryService = createLogQueryService(db);
@@ -176,7 +174,7 @@ export function createLoggingModule(
   };
 
   function requireQueryService() {
-    if (!queryService) throw new Error("Logging module not initialized");
+    if (!queryService) throw new Error("Logging unit not initialized");
     return queryService;
   }
 }
