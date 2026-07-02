@@ -3,79 +3,79 @@ import type { DatabaseConfig } from "../../lib/types";
 export type GroupByInterval = "hour" | "day" | "week" | "month";
 
 export interface AnalyticsConfig {
-	database: DatabaseConfig;
-	retentionDays?: number;
+  database: DatabaseConfig;
+  retentionDays?: number;
 }
 
 export interface AnalyticsEvent {
-	id: string;
-	name: string;
-	properties: Record<string, unknown>;
-	userId?: string;
-	sessionId?: string;
-	timestamp: Date;
+  id: string;
+  name: string;
+  properties: Record<string, unknown>;
+  sessionId?: string;
+  timestamp: Date;
+  userId?: string;
 }
 
 export interface TrackInput {
-	name: string;
-	properties?: Record<string, unknown>;
-	userId?: string;
-	sessionId?: string;
-	timestamp?: Date;
+  name: string;
+  properties?: Record<string, unknown>;
+  sessionId?: string;
+  timestamp?: Date;
+  userId?: string;
 }
 
 export interface AnalyticsQuery {
-	name?: string;
-	userId?: string;
-	sessionId?: string;
-	startTime?: Date;
-	endTime?: Date;
-	groupBy?: GroupByInterval;
-	limit?: number;
+  endTime?: Date;
+  groupBy?: GroupByInterval;
+  limit?: number;
+  name?: string;
+  sessionId?: string;
+  startTime?: Date;
+  userId?: string;
 }
 
 export interface AnalyticsResult {
-	events: AnalyticsEvent[];
-	aggregations?: Aggregation[];
+  aggregations?: Aggregation[];
+  events: AnalyticsEvent[];
 }
 
 export interface Aggregation {
-	period: string;
-	count: number;
-	uniqueUsers: number;
+  count: number;
+  period: string;
+  uniqueUsers: number;
 }
 
 export interface TopEvent {
-	name: string;
-	count: number;
+  count: number;
+  name: string;
 }
 
 export interface AnalyticsModule {
-	initialize(): Promise<void>;
-	destroy(): Promise<void>;
+  destroy(): Promise<void>;
+  getEventCount(
+    name: string,
+    startTime?: Date,
+    endTime?: Date,
+  ): Promise<number>;
+  getTopEvents(
+    limit?: number,
+    startTime?: Date,
+    endTime?: Date,
+  ): Promise<TopEvent[]>;
+  getUniqueUsers(
+    name: string,
+    startTime?: Date,
+    endTime?: Date,
+  ): Promise<number>;
+  getUserActivity(
+    userId: string,
+    startTime?: Date,
+    endTime?: Date,
+  ): Promise<AnalyticsEvent[]>;
+  initialize(): Promise<void>;
 
-	track(event: TrackInput): Promise<AnalyticsEvent>;
-	trackBatch(events: TrackInput[]): Promise<void>;
+  query(filter: AnalyticsQuery): Promise<AnalyticsResult>;
 
-	query(filter: AnalyticsQuery): Promise<AnalyticsResult>;
-	getEventCount(
-		name: string,
-		startTime?: Date,
-		endTime?: Date,
-	): Promise<number>;
-	getUniqueUsers(
-		name: string,
-		startTime?: Date,
-		endTime?: Date,
-	): Promise<number>;
-	getTopEvents(
-		limit?: number,
-		startTime?: Date,
-		endTime?: Date,
-	): Promise<TopEvent[]>;
-	getUserActivity(
-		userId: string,
-		startTime?: Date,
-		endTime?: Date,
-	): Promise<AnalyticsEvent[]>;
+  track(event: TrackInput): Promise<AnalyticsEvent>;
+  trackBatch(events: TrackInput[]): Promise<void>;
 }

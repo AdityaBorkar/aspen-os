@@ -1,71 +1,109 @@
-import { closePool, getDrizzle } from "./lib/db";
 import { context } from "./lib/context";
-import { createPubSubModule, type PubSubModule } from "./modules/pubsub";
-import { createAuthModule, type AuthModule, type RoleDefinition } from "./modules/auth";
+import { closePool, getDrizzle } from "./lib/db";
 import type { DatabaseConfig } from "./lib/types";
+import {
+  type AuthConfig,
+  type AuthModule,
+  createAuthModule,
+} from "./modules/auth";
 import * as authSchema from "./modules/auth/db-schema";
+import { createORPCModule, type ORPCModule } from "./modules/orpc";
+import { createPubSubModule, type PubSubModule } from "./modules/pubsub";
 
 export interface FrameworkConfig {
-	db: DatabaseConfig;
-	auth: {
-		secret: string;
-		roles: RoleDefinition[];
-		sessionExpiresIn?: number;
-	};
+  auth: AuthConfig;
+  db: DatabaseConfig;
 }
 
 export class Framework {
-	private config: FrameworkConfig;
-	private authModule: AuthModule | null = null;
-	private pubsubModule: PubSubModule | null = null;
-	private initialized = false;
+  private config: FrameworkConfig;
+  private authModule: AuthModule | null = null;
+  private pubsubModule: PubSubModule | null = null;
+  private orpcModule: ORPCModule | null = null;
+  private initialized = false;
 
-	constructor(config: FrameworkConfig) {
-		this.config = config;
-	}
+  constructor(config: FrameworkConfig) {
+    this.config = config;
+  }
 
-	async initialize(): Promise<void> {
-		if (this.initialized) throw new Error("Framework already initialized");
+  async initialize(): Promise<void> {
+    if (this.initialized) throw new Error("Framework already initialized");
 
-		const db = getDrizzle(this.config.db, authSchema);
+    const db = getDrizzle(this.config.db, authSchema);
 
-		this.pubsubModule = createPubSubModule({ database: this.config.db });
-		await this.pubsubModule.initialize();
+    this.pubsubModule = createPubSubModule({ database: this.config.db });
+    await this.pubsubModule.initialize();
 
-		this.authModule = createAuthModule({
-			database: this.config.db,
-			secret: this.config.auth.secret,
-			roles: this.config.auth.roles,
-			sessionExpiresIn: this.config.auth.sessionExpiresIn,
-		});
+    this.authModule = createAuthModule(this.config.auth);
 
-		await context.run({ db, pubsub: this.pubsubModule }, async () => {
-			await this.authModule!.register();
-		});
+    await context.run({ db, pubsub: this.pubsubModule }, async () => {
+      await this.authModule!.register();
+    });
 
-		this.initialized = true;
-	}
+    this.orpcModule = createORPCModule();
 
-	async run<T>(fn: () => T | Promise<T>): Promise<T> {
-		if (!this.initialized) throw new Error("Framework not initialized");
-		const db = getDrizzle(this.config.db, authSchema);
-		return context.run({ db, pubsub: this.pubsubModule! }, fn);
-	}
+    this.initialized = true;
+  }
 
-	async destroy(): Promise<void> {
-		if (this.authModule) await this.authModule.terminate();
-		if (this.pubsubModule) await this.pubsubModule.destroy();
-		await closePool();
-		this.initialized = false;
-	}
+  async run<T>(fn: () => T | Promise<T>): Promise<T> {
+    if (!this.initialized) throw new Error("Framework not initialized");
+    const db = getDrizzle(this.config.db, authSchema);
+    return context.run({ db, pubsub: this.pubsubModule! }, fn);
+  }
 
-	get auth(): AuthModule {
-		if (!this.authModule) throw new Error("Framework not initialized");
-		return this.authModule;
-	}
+  async destroy(): Promise<void> {
+    if (this.authModule) await this.authModule.terminate();
+    if (this.pubsubModule) await this.pubsubModule.destroy();
+    await closePool();
+    this.initialized = false;
+  }
 
-	get pubsub(): PubSubModule {
-		if (!this.pubsubModule) throw new Error("Framework not initialized");
-		return this.pubsubModule;
-	}
+  get auth(): AuthModule {
+    if (!this.authModule) throw new Error("Framework not initialized");
+    return this.authModule;
+  }
+
+    get pubsub(): PubSubModule {
+      if (!this.pubsubModule) throw new Error("Framework not initialized");
+      return this.pubsubModule;
+    }
+
+    // get rpc(): RpcModule {
+    //   if (!this.pubsubModule) throw new Error("Framework not initialized");
+    //   return this.pubsubModule;
+    // }
+
+    //   get sync(): SyncModule {
+    //     if (!this.pubsubModule) throw new Error("Framework not initialized");
+    //     return this.pubsubModule;
+    //   }
+
+  // get handlers() {
+  //   return {
+  //     auth: (): ((request: Request) => Promise<Response>) => {
+  //       if (!this.authModule) throw new Error("Framework not initialized");
+  //       return this.authModule.server.handler;
+  //     },
+  //     rpc: (): ((request: Request) => Promise<Response>) => {
+  //       if (!this.orpcModule) throw new Error("Framework not initialized");
+  //       const orpc = this.orpcModule;
+  //       const db = getDrizzle(this.config.db, authSchema);
+  //       const pubsub = this.pubsubModule!;
+  //       return async (request: Request) => {
+  //         const { matched, response } = await orpc.handle(request, {
+  //           db,
+  //           pubsub,
+  //         });
+  //         if (matched && response) return response;
+  //         return new Response("Not Found", { status: 404 });
+  //       };
+  //     },
+  //   };
+  // }
+
+  get client() {
+    return {
+      auth: this.authModule!.client,
+    };
+  }
 }

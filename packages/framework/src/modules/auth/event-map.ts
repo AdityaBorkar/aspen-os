@@ -1,52 +1,52 @@
 import type { Role, Session, User } from "./types";
 
 export interface AuthEventMap {
-	"user:created": UserCreatedEvent;
-	"user:updated": UserUpdatedEvent;
-	"user:deleted": UserDeletedEvent;
-	"role:assigned": RoleAssignedEvent;
-	"role:unassigned": RoleUnassignedEvent;
-	"role:created": RoleCreatedEvent;
-	"role:deleted": RoleDeletedEvent;
-	"session:created": SessionCreatedEvent;
-	"session:invalidated": SessionInvalidatedEvent;
+  "role:assigned": RoleAssignedEvent;
+  "role:created": RoleCreatedEvent;
+  "role:deleted": RoleDeletedEvent;
+  "role:unassigned": RoleUnassignedEvent;
+  "session:created": SessionCreatedEvent;
+  "session:invalidated": SessionInvalidatedEvent;
+  "user:created": UserCreatedEvent;
+  "user:deleted": UserDeletedEvent;
+  "user:updated": UserUpdatedEvent;
 }
 
 export interface UserCreatedEvent {
-	user: User;
+  user: User;
 }
 
 export interface UserUpdatedEvent {
-	user: User;
+  user: User;
 }
 
 export interface UserDeletedEvent {
-	userId: string;
+  userId: string;
 }
 
 export interface RoleAssignedEvent {
-	userId: string;
-	roleName: string;
+  roleName: string;
+  userId: string;
 }
 
 export interface RoleUnassignedEvent {
-	userId: string;
-	roleName: string;
+  roleName: string;
+  userId: string;
 }
 
 export interface RoleCreatedEvent {
-	role: Role;
+  role: Role;
 }
 
 export interface RoleDeletedEvent {
-	roleName: string;
+  roleName: string;
 }
 
 export interface SessionCreatedEvent {
-	user: User;
-	session: Session;
+  session: Session;
+  user: User;
 }
 
 export interface SessionInvalidatedEvent {
-	sessionId: string;
+  sessionId: string;
 }

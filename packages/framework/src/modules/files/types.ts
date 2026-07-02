@@ -1,67 +1,67 @@
 import type { DatabaseConfig } from "../../lib/types";
 
 export interface FilesConfig {
-	database: DatabaseConfig;
-	provider: StorageProvider;
-	bucket: string;
-	region?: string;
-	prefix?: string;
+  bucket: string;
+  database: DatabaseConfig;
+  prefix?: string;
+  provider: StorageProvider;
+  region?: string;
 }
 
 export interface StorageProvider {
-	type: "s3";
-	endpoint: string;
-	accessKeyId: string;
-	secretAccessKey: string;
-	region?: string;
-	forcePathStyle?: boolean;
+  accessKeyId: string;
+  endpoint: string;
+  forcePathStyle?: boolean;
+  region?: string;
+  secretAccessKey: string;
+  type: "s3";
 }
 
 export interface FileUploadInput {
-	key: string;
-	body: Buffer | ReadableStream | string;
-	contentType?: string;
-	metadata?: Record<string, string>;
-	cacheControl?: string;
+  body: Buffer | ReadableStream | string;
+  cacheControl?: string;
+  contentType?: string;
+  key: string;
+  metadata?: Record<string, string>;
 }
 
 export interface FileObject {
-	key: string;
-	size: number;
-	lastModified: Date;
-	etag: string;
-	contentType?: string;
-	metadata?: Record<string, string>;
+  contentType?: string;
+  etag: string;
+  key: string;
+  lastModified: Date;
+  metadata?: Record<string, string>;
+  size: number;
 }
 
 export interface SignedUrlOptions {
-	expiresIn?: number;
-	responseContentType?: string;
-	responseContentDisposition?: string;
+  expiresIn?: number;
+  responseContentDisposition?: string;
+  responseContentType?: string;
 }
 
 export interface ListOptions {
-	maxKeys?: number;
-	continuationToken?: string;
+  continuationToken?: string;
+  maxKeys?: number;
 }
 
 export interface FilesModule {
-	initialize(): Promise<void>;
-	destroy(): Promise<void>;
+  archive(key: string, archiveKey?: string): Promise<FileObject>;
+  copy(sourceKey: string, destinationKey: string): Promise<FileObject>;
+  destroy(): Promise<void>;
+  exists(key: string): Promise<boolean>;
+  get(key: string): Promise<Buffer>;
+  getMetadata(key: string): Promise<FileObject>;
+  getSignedGetUrl(key: string, options?: SignedUrlOptions): Promise<string>;
+  getSignedPutUrl(key: string, options?: SignedUrlOptions): Promise<string>;
+  initialize(): Promise<void>;
+  list(
+    prefix?: string,
+    options?: ListOptions,
+  ): Promise<{ files: FileObject[]; nextContinuationToken?: string }>;
+  move(sourceKey: string, destinationKey: string): Promise<FileObject>;
+  remove(key: string): Promise<void>;
+  removeMany(keys: string[]): Promise<void>;
 
-	upload(input: FileUploadInput): Promise<FileObject>;
-	get(key: string): Promise<Buffer>;
-	getSignedGetUrl(key: string, options?: SignedUrlOptions): Promise<string>;
-	getSignedPutUrl(key: string, options?: SignedUrlOptions): Promise<string>;
-	remove(key: string): Promise<void>;
-	removeMany(keys: string[]): Promise<void>;
-	list(
-		prefix?: string,
-		options?: ListOptions,
-	): Promise<{ files: FileObject[]; nextContinuationToken?: string }>;
-	exists(key: string): Promise<boolean>;
-	copy(sourceKey: string, destinationKey: string): Promise<FileObject>;
-	move(sourceKey: string, destinationKey: string): Promise<FileObject>;
-	getMetadata(key: string): Promise<FileObject>;
-	archive(key: string, archiveKey?: string): Promise<FileObject>;
+  upload(input: FileUploadInput): Promise<FileObject>;
 }

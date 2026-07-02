@@ -1,95 +1,96 @@
 import { and, desc, eq, gte, ilike, lte, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+
 import * as s from "./schema";
 import type { LogEntry, LogLevel, LogQuery, LogStats } from "./types";
 
 type DrizzleDB = NodePgDatabase<Record<string, never>>;
 
 export function createLogQueryService(db: DrizzleDB) {
-	async function query(filter: LogQuery): Promise<LogEntry[]> {
-		const conditions = [];
-		if (filter.level) conditions.push(eq(s.logs.level, filter.level));
-		if (filter.service) conditions.push(eq(s.logs.service, filter.service));
-		if (filter.startTime)
-			conditions.push(gte(s.logs.timestamp, filter.startTime));
-		if (filter.endTime) conditions.push(lte(s.logs.timestamp, filter.endTime));
-		if (filter.traceId) conditions.push(eq(s.logs.traceId, filter.traceId));
-		if (filter.userId) conditions.push(eq(s.logs.userId, filter.userId));
-		if (filter.search)
-			conditions.push(ilike(s.logs.message, `%${filter.search}%`));
+  async function query(filter: LogQuery): Promise<LogEntry[]> {
+    const conditions = [];
+    if (filter.level) conditions.push(eq(s.logs.level, filter.level));
+    if (filter.service) conditions.push(eq(s.logs.service, filter.service));
+    if (filter.startTime)
+      conditions.push(gte(s.logs.timestamp, filter.startTime));
+    if (filter.endTime) conditions.push(lte(s.logs.timestamp, filter.endTime));
+    if (filter.traceId) conditions.push(eq(s.logs.traceId, filter.traceId));
+    if (filter.userId) conditions.push(eq(s.logs.userId, filter.userId));
+    if (filter.search)
+      conditions.push(ilike(s.logs.message, `%${filter.search}%`));
 
-		const where = conditions.length > 0 ? and(...conditions) : undefined;
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
 
-		const rows = await db
-			.select()
-			.from(s.logs)
-			.where(where)
-			.orderBy(desc(s.logs.timestamp))
-			.limit(filter.limit ?? 100)
-			.offset(filter.offset ?? 0);
+    const rows = await db
+      .select()
+      .from(s.logs)
+      .where(where)
+      .orderBy(desc(s.logs.timestamp))
+      .limit(filter.limit ?? 100)
+      .offset(filter.offset ?? 0);
 
-		return rows.map((row) => ({
-			id: row.id,
-			level: row.level as LogLevel,
-			message: row.message,
-			service: row.service,
-			timestamp: row.timestamp,
-			metadata: row.metadata as Record<string, unknown>,
-			traceId: row.traceId ?? undefined,
-			spanId: row.spanId ?? undefined,
-			userId: row.userId ?? undefined,
-			requestId: row.requestId ?? undefined,
-			duration: row.durationMs ?? undefined,
-			error: row.errorName
-				? {
-						name: row.errorName,
-						message: row.errorMessage ?? "",
-						stack: row.errorStack ?? undefined,
-					}
-				: undefined,
-		}));
-	}
+    return rows.map((row) => ({
+      duration: row.durationMs ?? undefined,
+      error: row.errorName
+        ? {
+            message: row.errorMessage ?? "",
+            name: row.errorName,
+            stack: row.errorStack ?? undefined,
+          }
+        : undefined,
+      id: row.id,
+      level: row.level as LogLevel,
+      message: row.message,
+      metadata: row.metadata as Record<string, unknown>,
+      requestId: row.requestId ?? undefined,
+      service: row.service,
+      spanId: row.spanId ?? undefined,
+      timestamp: row.timestamp,
+      traceId: row.traceId ?? undefined,
+      userId: row.userId ?? undefined,
+    }));
+  }
 
-	async function getStats(
-		service?: string,
-		startTime?: Date,
-		endTime?: Date,
-	): Promise<LogStats> {
-		const conditions = [];
-		if (service) conditions.push(eq(s.logs.service, service));
-		if (startTime) conditions.push(gte(s.logs.timestamp, startTime));
-		if (endTime) conditions.push(lte(s.logs.timestamp, endTime));
+  async function getStats(
+    service?: string,
+    startTime?: Date,
+    endTime?: Date,
+  ): Promise<LogStats> {
+    const conditions = [];
+    if (service) conditions.push(eq(s.logs.service, service));
+    if (startTime) conditions.push(gte(s.logs.timestamp, startTime));
+    if (endTime) conditions.push(lte(s.logs.timestamp, endTime));
 
-		const where = conditions.length > 0 ? and(...conditions) : undefined;
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
 
-		const rows = await db
-			.select({
-				level: s.logs.level,
-				count: sql<number>`count(*)::int`,
-			})
-			.from(s.logs)
-			.where(where)
-			.groupBy(s.logs.level);
+    const rows = await db
+      .select({
+        count: sql<number>`count(*)::int`,
+        level: s.logs.level,
+      })
+      .from(s.logs)
+      .where(where)
+      .groupBy(s.logs.level);
 
-		const byLevel: Record<LogLevel, number> = {
-			debug: 0,
-			info: 0,
-			warn: 0,
-			error: 0,
-			fatal: 0,
-		};
-		let total = 0;
-		for (const row of rows) {
-			byLevel[row.level as LogLevel] = row.count;
-			total += row.count;
-		}
+    const byLevel: Record<LogLevel, number> = {
+      debug: 0,
+      error: 0,
+      fatal: 0,
+      info: 0,
+      warn: 0,
+    };
+    let total = 0;
+    for (const row of rows) {
+      byLevel[row.level as LogLevel] = row.count;
+      total += row.count;
+    }
 
-		return {
-			total,
-			byLevel,
-			errorRate: total > 0 ? (byLevel.error + byLevel.fatal) / total : 0,
-		};
-	}
+    return {
+      byLevel,
+      errorRate: total > 0 ? (byLevel.error + byLevel.fatal) / total : 0,
+      total,
+    };
+  }
 
-	return { query, getStats };
+  return { getStats, query };
 }

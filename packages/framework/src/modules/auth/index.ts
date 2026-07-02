@@ -1,93 +1,139 @@
+import { type Auth, betterAuth } from "better-auth";
+
 import * as db_schema from "./db-schema";
 import type { AuthConfig, AuthModule } from "./types";
 import {
-	assignRole,
-	createRole,
-	deleteRole,
-	getAllRoles,
-	getUserPermissions,
-	getUserRoles,
-	hasPermission,
-	 unassignRole,
+  assignRole,
+  deleteRole,
+  getAllRoles,
+  getUserPermissions,
+  getUserRoles,
+  hasPermission,
+  unassignRole,
 } from "./workflows/role";
 import {
-	authenticate,
-	invalidateSession,
-	validateSession,
+  authenticate,
+  invalidateSession,
+  validateSession,
 } from "./workflows/session";
 import {
-	createUser,
-	deleteUser,
-	getUserByEmail,
-	getUserById,
-	updateUser,
+  createUser,
+  deleteUser,
+  getUserByEmail,
+  getUserById,
+  updateUser,
 } from "./workflows/user";
+
 export type {
-	AuthConfig,
-	AuthModule,
-	Permission,
-	Role,
-	RoleAPI,
-	RoleDefinition,
-	Session,
-	SessionAPI,
-	User,
-	UserAPI,
-} from "./types";
-export type {
-	AuthEventMap,
-	UserCreatedEvent,
-	UserUpdatedEvent,
-	UserDeletedEvent,
-	RoleAssignedEvent,
-	RoleUnassignedEvent,
-	RoleCreatedEvent,
-	RoleDeletedEvent,
-	SessionCreatedEvent,
-	SessionInvalidatedEvent,
+  AuthEventMap,
+  RoleAssignedEvent,
+  RoleCreatedEvent,
+  RoleDeletedEvent,
+  RoleUnassignedEvent,
+  SessionCreatedEvent,
+  SessionInvalidatedEvent,
+  UserCreatedEvent,
+  UserDeletedEvent,
+  UserUpdatedEvent,
 } from "./event-map";
+export type {
+  AuthConfig,
+  AuthModule,
+  Permission,
+  RoleAPI,
+  RoleDefinition,
+  Session,
+  SessionAPI,
+  User,
+  UserAPI,
+} from "./types";
+
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import {
+  adminClient,
+  customSessionClient,
+  phoneNumberClient,
+} from "better-auth/client/plugins";
+import { createAuthClient } from "better-auth/react";
+
+import { getContext } from "@/lib";
+
+export { createAccessControl } from "better-auth/plugins/access";
 
 export function createAuthModule(config: AuthConfig): AuthModule {
-	async function register(): Promise<void> {
-		for (const roleDef of config.roles) {
-			await createRole(roleDef.name, roleDef.permissions, roleDef.description);
-		}
-	}
+  const { access_control, roles, ...$config } = config;
 
-	async function terminate(): Promise<void> {}
+  let auth: Auth | null = null;
 
-	return {
-		register,
-		db_schema,
-		terminate,
-		workflows: {
-			user: {
-				create: createUser,
-				get(query) {
-					if ("id" in query) return getUserById(query.id);
-					return getUserByEmail(query.email);
-				},
-				update: updateUser,
-				delete: deleteUser,
-				role: {
-					assign: assignRole,
-					unassign: unassignRole,
-					list: getUserRoles,
-				},
-				permission: {
-					check: hasPermission,
-					list: getUserPermissions,
-				},
-			},
-			session: {
-				create: authenticate,
-				validate: validateSession,
-				invalidate: invalidateSession,
-			},
-			role: {
-				delete: deleteRole,
-				list: getAllRoles,
-			},
-		},
-	};
+  async function register() {
+    const { db } = getContext();
+    auth = betterAuth({
+      emailAndPassword: { enabled: true },
+      ...$config,
+      database: drizzleAdapter(db, {
+        camelCase: false,
+        provider: "pg",
+        schema: db_schema,
+        transaction: true,
+        usePlural: true,
+      }),
+    });
+  }
+
+  async function terminate() {
+    auth = null;
+  }
+
+  async function handler(request: Request): Promise<Response> {
+    if (!auth) throw new Error("Auth module not initialized");
+    return auth.handler(request);
+  }
+
+  const client = createAuthClient({
+    plugins: [
+      phoneNumberClient(),
+      adminClient({ ac: access_control, roles }),
+      customSessionClient<typeof auth>(),
+    ],
+  });
+
+  return {
+    client,
+    db_schema,
+    register,
+    server: {
+      $: auth,
+      handler,
+      workflows: {
+        role: {
+          delete: deleteRole,
+          list: getAllRoles,
+        },
+        session: {
+          create: authenticate,
+          invalidate: invalidateSession,
+          validate: validateSession,
+        },
+        user: {
+          create: createUser,
+          delete: deleteUser,
+          get(query) {
+            if ("id" in query) return getUserById(query.id);
+            return getUserByEmail(query.email);
+          },
+          permission: {
+            check: hasPermission,
+            list: getUserPermissions,
+          },
+          role: {
+            assign: assignRole,
+            list: getUserRoles,
+            unassign: unassignRole,
+          },
+          update: updateUser,
+        },
+      },
+    },
+    terminate,
+  };
 }

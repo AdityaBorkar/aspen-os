@@ -4,72 +4,72 @@ export type NotificationType = "email" | "sms" | "push" | "webhook";
 export type NotificationStatus = "pending" | "sent" | "failed" | "delivered";
 
 export interface NotificationConfig {
-	database: DatabaseConfig;
-	providers: NotificationProvider[];
+  database: DatabaseConfig;
+  providers: NotificationProvider[];
 }
 
 export interface NotificationProvider {
-	type: NotificationType;
-	send(notification: NotificationPayload): Promise<void>;
+  send(notification: NotificationPayload): Promise<void>;
+  type: NotificationType;
 }
 
 export interface NotificationPayload {
-	to: string | string[];
-	subject?: string;
-	body: string;
-	html?: string;
-	data?: Record<string, unknown>;
-	channel?: string;
+  body: string;
+  channel?: string;
+  data?: Record<string, unknown>;
+  html?: string;
+  subject?: string;
+  to: string | string[];
 }
 
 export interface NotificationRecord {
-	id: string;
-	type: string;
-	to: string;
-	subject?: string;
-	body: string;
-	status: NotificationStatus;
-	provider: string;
-	error?: string;
-	sentAt?: Date;
-	createdAt: Date;
+  body: string;
+  createdAt: Date;
+  error?: string;
+  id: string;
+  provider: string;
+  sentAt?: Date;
+  status: NotificationStatus;
+  subject?: string;
+  to: string;
+  type: string;
 }
 
 export interface NotificationHistoryOptions {
-	to?: string;
-	type?: string;
-	status?: string;
-	limit?: number;
+  limit?: number;
+  status?: string;
+  to?: string;
+  type?: string;
 }
 
 export interface NotificationModule {
-	initialize(): Promise<void>;
-	destroy(): Promise<void>;
+  destroy(): Promise<void>;
 
-	send(
-		type: NotificationType,
-		payload: NotificationPayload,
-	): Promise<NotificationRecord>;
-	sendEmail(
-		to: string | string[],
-		subject: string,
-		body: string,
-		html?: string,
-	): Promise<NotificationRecord>;
-	sendSms(to: string, body: string): Promise<NotificationRecord>;
-	sendPush(
-		to: string,
-		title: string,
-		body: string,
-		data?: Record<string, unknown>,
-	): Promise<NotificationRecord>;
-	sendWebhook(
-		url: string,
-		data: Record<string, unknown>,
-	): Promise<NotificationRecord>;
+  getHistory(
+    options?: NotificationHistoryOptions,
+  ): Promise<NotificationRecord[]>;
+  getStatus(notificationId: string): Promise<NotificationRecord | null>;
+  initialize(): Promise<void>;
 
-	getHistory(
-		options?: NotificationHistoryOptions,
-	): Promise<NotificationRecord[]>;
-	getStatus(notificationId: string): Promise<NotificationRecord | null>;
+  send(
+    type: NotificationType,
+    payload: NotificationPayload,
+  ): Promise<NotificationRecord>;
+  sendEmail(
+    to: string | string[],
+    subject: string,
+    body: string,
+    html?: string,
+  ): Promise<NotificationRecord>;
+  sendPush(
+    to: string,
+    title: string,
+    body: string,
+    data?: Record<string, unknown>,
+  ): Promise<NotificationRecord>;
+  sendSms(to: string, body: string): Promise<NotificationRecord>;
+  sendWebhook(
+    url: string,
+    data: Record<string, unknown>,
+  ): Promise<NotificationRecord>;
 }

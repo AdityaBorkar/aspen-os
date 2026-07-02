@@ -1,73 +1,74 @@
 import { and, desc, eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+
 import * as s from "./schema";
 import type {
-	NotificationHistoryOptions,
-	NotificationRecord,
-	NotificationStatus,
+  NotificationHistoryOptions,
+  NotificationRecord,
+  NotificationStatus,
 } from "./types";
 
 type DrizzleDB = NodePgDatabase<Record<string, never>>;
 
 export function createNotificationQueryService(db: DrizzleDB) {
-	async function getHistory(
-		options?: NotificationHistoryOptions,
-	): Promise<NotificationRecord[]> {
-		const conditions = [];
-		if (options?.to) conditions.push(eq(s.notifications.to, options.to));
-		if (options?.type) conditions.push(eq(s.notifications.type, options.type));
-		if (options?.status)
-			conditions.push(eq(s.notifications.status, options.status));
+  async function getHistory(
+    options?: NotificationHistoryOptions,
+  ): Promise<NotificationRecord[]> {
+    const conditions = [];
+    if (options?.to) conditions.push(eq(s.notifications.to, options.to));
+    if (options?.type) conditions.push(eq(s.notifications.type, options.type));
+    if (options?.status)
+      conditions.push(eq(s.notifications.status, options.status));
 
-		const where = conditions.length > 0 ? and(...conditions) : undefined;
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
 
-		const rows = await db
-			.select()
-			.from(s.notifications)
-			.where(where)
-			.orderBy(desc(s.notifications.createdAt))
-			.limit(options?.limit ?? 100);
+    const rows = await db
+      .select()
+      .from(s.notifications)
+      .where(where)
+      .orderBy(desc(s.notifications.createdAt))
+      .limit(options?.limit ?? 100);
 
-		return rows.map(toRecord);
-	}
+    return rows.map(toRecord);
+  }
 
-	async function getStatus(
-		notificationId: string,
-	): Promise<NotificationRecord | null> {
-		const [row] = await db
-			.select()
-			.from(s.notifications)
-			.where(eq(s.notifications.id, notificationId))
-			.limit(1);
+  async function getStatus(
+    notificationId: string,
+  ): Promise<NotificationRecord | null> {
+    const [row] = await db
+      .select()
+      .from(s.notifications)
+      .where(eq(s.notifications.id, notificationId))
+      .limit(1);
 
-		return row ? toRecord(row) : null;
-	}
+    return row ? toRecord(row) : null;
+  }
 
-	function toRecord(row: {
-		id: string;
-		type: string;
-		to: string;
-		subject: string | null;
-		body: string;
-		status: string;
-		provider: string;
-		error: string | null;
-		sentAt: Date | null;
-		createdAt: Date;
-	}): NotificationRecord {
-		return {
-			id: row.id,
-			type: row.type,
-			to: row.to,
-			subject: row.subject ?? undefined,
-			body: row.body,
-			status: row.status as NotificationStatus,
-			provider: row.provider,
-			error: row.error ?? undefined,
-			sentAt: row.sentAt ?? undefined,
-			createdAt: row.createdAt,
-		};
-	}
+  function toRecord(row: {
+    id: string;
+    type: string;
+    to: string;
+    subject: string | null;
+    body: string;
+    status: string;
+    provider: string;
+    error: string | null;
+    sentAt: Date | null;
+    createdAt: Date;
+  }): NotificationRecord {
+    return {
+      body: row.body,
+      createdAt: row.createdAt,
+      error: row.error ?? undefined,
+      id: row.id,
+      provider: row.provider,
+      sentAt: row.sentAt ?? undefined,
+      status: row.status as NotificationStatus,
+      subject: row.subject ?? undefined,
+      to: row.to,
+      type: row.type,
+    };
+  }
 
-	return { getHistory, getStatus };
+  return { getHistory, getStatus };
 }

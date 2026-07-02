@@ -1,37 +1,37 @@
 export interface ModuleConfig {
-	database: DatabaseConfig;
+  database: DatabaseConfig;
 }
 
 export interface DatabaseConfig {
-	host: string;
-	port: number;
-	user: string;
-	password: string;
-	database: string;
-	ssl?: boolean;
-	maxConnections?: number;
+  database: string;
+  host: string;
+  maxConnections?: number;
+  password: string;
+  port: number;
+  ssl?: boolean;
+  user: string;
 }
 
 export interface PaginationParams {
-	page?: number;
-	limit?: number;
+  limit?: number;
+  page?: number;
 }
 
 export interface PaginatedResult<T> {
-	data: T[];
-	total: number;
-	page: number;
-	limit: number;
-	totalPages: number;
+  data: T[];
+  limit: number;
+  page: number;
+  total: number;
+  totalPages: number;
 }
 
 export type Result<T, E = Error> =
-	| { success: true; data: T }
-	| { success: false; error: E };
+  | { success: true; data: T }
+  | { success: false; error: E };
 
 export interface Module {
-	readonly name: string;
-	initialize(): Promise<void>;
-	destroy(): Promise<void>;
-	healthCheck(): Promise<boolean>;
+  destroy(): Promise<void>;
+  healthCheck(): Promise<boolean>;
+  initialize(): Promise<void>;
+  readonly name: string;
 }

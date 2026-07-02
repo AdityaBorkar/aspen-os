@@ -1,13 +1,16 @@
 {
-	"name": "aspen-os",
-	"type": "module",
-	"workspaces": [
-		"./packages/*",
-		"./presets/*"
-	],
-	"dependencies": {
-		"@biomejs/biome": "^2.5.2",
-		"@types/bun": "^1.3.14",
-		"typescript": "^7.0.1-rc"
-	}
+  "dependencies": {
+    "@biomejs/biome": "^2.5.2",
+    "@types/bun": "^1.3.14",
+    "taze": "^19.14.1",
+    "typescript": "^7.0.1-rc"
+  },
+  "name": "aspen-os",
+  "scripts": {
+    "check:lint": "biome check --fix .",
+    "check:types": "tsc --noEmit",
+    "update:deps": "taze -rw --maturity-period 3"
+  },
+  "type": "module",
+  "workspaces": ["./packages/*", "./presets/*"]
 }

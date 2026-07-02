@@ -1,69 +1,69 @@
 import type { DatabaseConfig } from "../../lib/types";
 
 export type WorkflowStatus =
-	| "pending"
-	| "running"
-	| "completed"
-	| "failed"
-	| "compensating"
-	| "compensated";
+  | "pending"
+  | "running"
+  | "completed"
+  | "failed"
+  | "compensating"
+  | "compensated";
 
 export interface WorkflowConfig {
-	database: DatabaseConfig;
-	schema?: string;
+  database: DatabaseConfig;
+  schema?: string;
 }
 
 export interface WorkflowStep<TInput = unknown, TOutput = unknown> {
-	name: string;
-	handler: (
-		input: TInput,
-		context: WorkflowContext,
-	) => TOutput | Promise<TOutput>;
-	compensate?: (
-		input: TInput,
-		output: TOutput,
-		context: WorkflowContext,
-	) => void | Promise<void>;
+  compensate?: (
+    input: TInput,
+    output: TOutput,
+    context: WorkflowContext,
+  ) => void | Promise<void>;
+  handler: (
+    input: TInput,
+    context: WorkflowContext,
+  ) => TOutput | Promise<TOutput>;
+  name: string;
 }
 
 export interface WorkflowContext {
-	workflowId: string;
-	stepIndex: number;
-	metadata: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+  stepIndex: number;
+  workflowId: string;
 }
 
 export interface Workflow<TInput = unknown, TOutput = unknown> {
-	name: string;
-	steps: WorkflowStep<TInput, TOutput>[];
+  name: string;
+  steps: WorkflowStep<TInput, TOutput>[];
 }
 
 export interface WorkflowExecution {
-	id: string;
-	workflowName: string;
-	status: WorkflowStatus;
-	input: unknown;
-	output?: unknown;
-	error?: string;
-	currentStep: number;
-	startedAt: Date;
-	completedAt?: Date;
+  completedAt?: Date;
+  currentStep: number;
+  error?: string;
+  id: string;
+  input: unknown;
+  output?: unknown;
+  startedAt: Date;
+  status: WorkflowStatus;
+  workflowName: string;
 }
 
 export interface WorkflowsModule {
-	initialize(): Promise<void>;
-	destroy(): Promise<void>;
+  destroy(): Promise<void>;
+  execute<TInput = unknown, TOutput = unknown>(
+    workflowName: string,
+    input: TInput,
+    metadata?: Record<string, unknown>,
+  ): Promise<WorkflowExecution>;
+  getExecution(executionId: string): Promise<WorkflowExecution | null>;
+  initialize(): Promise<void>;
+  listExecutions(
+    workflowName?: string,
+    limit?: number,
+  ): Promise<WorkflowExecution[]>;
 
-	register<TInput = unknown, TOutput = unknown>(
-		workflow: Workflow<TInput, TOutput>,
-	): void;
-	execute<TInput = unknown, TOutput = unknown>(
-		workflowName: string,
-		input: TInput,
-		metadata?: Record<string, unknown>,
-	): Promise<WorkflowExecution>;
-	getExecution(executionId: string): Promise<WorkflowExecution | null>;
-	listExecutions(
-		workflowName?: string,
-		limit?: number,
-	): Promise<WorkflowExecution[]>;
+  register<TInput = unknown, TOutput = unknown>(
+    workflow: Workflow<TInput, TOutput>,
+  ): void;
 }

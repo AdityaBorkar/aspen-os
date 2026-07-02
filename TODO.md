@@ -31,3 +31,9 @@ framework.register([hrModule, driveModule]);
 
 // server.ts
 framework.initialize();
+
+---
+
+## Auth
+
+- Expand to configuring all options for `better-auth`
