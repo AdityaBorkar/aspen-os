@@ -1,9 +1,5 @@
-import {
-  closeKvStore,
-  createKvStore,
-  type PostgresKvStore,
-} from "../../lib/kv-store";
-import type { Module, ModuleDeps } from "../../lib/types";
+import { createKvStore, type PostgresKvStore } from "../kv-store";
+import type { Module, ModuleDeps } from "../types";
 
 export interface CacheConfig {
   defaultTtl?: number;
@@ -42,7 +38,6 @@ export function createCacheModule(config: CacheConfig): CacheModule {
   }
 
   async function destroy(): Promise<void> {
-    await closeKvStore();
     kv = null;
   }
 

@@ -1,4 +1,4 @@
-import type { DatabaseConfig, ModuleDeps } from "../../lib/types";
+import type { DatabaseConfig, ModuleDeps } from "../types";
 
 export type NotificationType = "email" | "sms" | "push" | "webhook";
 export type NotificationStatus = "pending" | "sent" | "failed" | "delivered";

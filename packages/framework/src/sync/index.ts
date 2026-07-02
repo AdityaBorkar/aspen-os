@@ -1,4 +1,4 @@
-import type { Module, ModuleDeps } from "../../lib/types";
+import type { Module, ModuleDeps } from "../types";
 
 export interface SyncConfig {
   provider?: string;

@@ -1,23 +1,15 @@
-import { context } from "./lib/context";
-import { closePool, createDrizzle, getPool } from "./lib/db";
-import type { DatabaseConfig, Module, ModuleDeps } from "./lib/types";
-import {
-  type AuthConfig,
-  type AuthModule,
-  createAuthModule,
-} from "./modules/auth";
-import * as authSchema from "./modules/auth/db-schema";
+import { type AuthConfig, type AuthModule, createAuthModule } from "./auth";
+import * as authSchema from "./auth/db-schema";
+import { context } from "./context";
+import { createDrizzle, getPool } from "./db";
 import {
   createPubSubModule,
   type PubSubConfig,
   type PubSubModule,
-} from "./modules/pubsub";
-import { createRpcModule, type RpcConfig, type RpcModule } from "./modules/rpc";
-import {
-  createSyncModule,
-  type SyncConfig,
-  type SyncModule,
-} from "./modules/sync";
+} from "./pubsub";
+import { createRpcModule, type RpcConfig, type RpcModule } from "./rpc";
+import { createSyncModule, type SyncConfig, type SyncModule } from "./sync";
+import type { DatabaseConfig, Module, ModuleDeps } from "./types";
 
 export interface FrameworkConfig {
   auth: AuthConfig;
@@ -36,6 +28,7 @@ export class Framework {
   private syncModule: (SyncModule & Module) | null = null;
   private deps: ModuleDeps | null = null;
   private initialized = false;
+  private pool: import("pg").Pool | null = null;
 
   constructor(config: FrameworkConfig) {
     this.config = config;
@@ -51,9 +44,9 @@ export class Framework {
   async initialize(): Promise<void> {
     if (this.initialized) throw new Error("Framework already initialized");
 
-    const pool = getPool(this.config.db);
+    this.pool = getPool(this.config.db);
     const db = createDrizzle(
-      pool,
+      this.pool,
       authSchema,
     ) as import("drizzle-orm/node-postgres").NodePgDatabase<
       Record<string, never>
@@ -70,7 +63,7 @@ export class Framework {
 
     this.deps = {
       db,
-      pool,
+      pool: this.pool,
       pubsub: this.pubsubModule as unknown as {
         publish<T>(topic: string, data: T): Promise<string>;
       },
@@ -119,7 +112,11 @@ export class Framework {
         // Continue destroying remaining modules
       }
     }
-    await closePool();
+    if (this.pool) {
+      await this.pool.end();
+      this.pool = null;
+    }
+    this.deps = null;
     this.initialized = false;
   }
 

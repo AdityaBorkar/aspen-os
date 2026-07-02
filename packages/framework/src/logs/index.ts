@@ -1,11 +1,10 @@
-import { createDrizzle } from "../../lib/db";
-import type { Module, ModuleDeps } from "../../lib/types";
+import { createDrizzle } from "../db";
+import type { Module, ModuleDeps } from "../types";
 import { createEntryFactory, createLogBuffer } from "./buffer";
 import * as schema from "./schema";
 import { createLogQueryService } from "./service";
 import type {
   ChildLogger,
-  LEVEL_PRIORITY,
   LoggingConfig,
   LoggingModule,
   LogLevel,
@@ -61,7 +60,7 @@ export function createLoggingModule(
     queryService = createLogQueryService(db);
 
     buffer = createLogBuffer(100, async (entries) => {
-      await db!.insert(schema.logs).values(
+      await db?.insert(schema.logs).values(
         entries.map((entry) => ({
           durationMs: entry.duration ?? null,
           errorMessage: entry.error?.message ?? null,
@@ -107,7 +106,7 @@ export function createLoggingModule(
       CREATE INDEX IF NOT EXISTS idx_logs_user_id ON logs(user_id);
     `);
 
-    flushTimer = setInterval(() => buffer!.flush(), 5000);
+    flushTimer = setInterval(() => buffer?.flush(), 5000);
   }
 
   async function destroy(): Promise<void> {

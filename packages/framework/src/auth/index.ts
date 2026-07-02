@@ -7,7 +7,7 @@ import {
 } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 
-import type { Module, ModuleDeps } from "../../lib/types";
+import type { Module, ModuleDeps } from "../types";
 import * as db_schema from "./db-schema";
 import type { AuthConfig, AuthModule } from "./types";
 import { createRoleWorkflows } from "./workflows/role";
@@ -86,10 +86,10 @@ export function createAuthModule(config: AuthConfig): AuthModule & Module {
       workflows = {
         role: createRoleWorkflows(deps),
         session: createSessionWorkflows(deps, (id: string) =>
-          workflows!.user.getUserById(id),
+          workflows?.user.getUserById(id),
         ),
         user: createUserWorkflows(deps, () =>
-          workflows!.role.getRolePermissions(""),
+          workflows?.role.getRolePermissions(""),
         ),
       };
       // Re-wire user with proper getRolePermissions
@@ -134,8 +134,8 @@ export function createAuthModule(config: AuthConfig): AuthModule & Module {
             create: workflows.user.createUser,
             delete: workflows.user.deleteUser,
             get(query: { id: string } | { email: string }) {
-              if ("id" in query) return workflows!.user.getUserById(query.id);
-              return workflows!.user.getUserByEmail(query.email);
+              if ("id" in query) return workflows?.user.getUserById(query.id);
+              return workflows?.user.getUserByEmail(query.email);
             },
             permission: {
               check: workflows.user.hasPermission,

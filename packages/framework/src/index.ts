@@ -1,5 +1,3 @@
-export { Framework, type FrameworkConfig } from "./framework";
-export type { DatabaseConfig, Module, ModuleDeps, Result } from "./lib/types";
 export {
   type AuthConfig,
   type AuthModule,
@@ -8,39 +6,41 @@ export {
   type Permission,
   type Session,
   type User,
-} from "./modules/auth";
+} from "./auth";
 export {
   type CacheConfig,
   type CacheModule,
   createCacheModule,
-} from "./modules/cache";
+} from "./cache";
+export { Framework, type FrameworkConfig } from "./framework";
 export {
   createLoggingModule,
   type LoggingConfig,
   type LoggingModule,
-} from "./modules/logs";
+} from "./logs";
 export {
   createNotificationModule,
   type NotificationConfig,
   type NotificationModule,
-} from "./modules/notification";
+} from "./notification";
 export {
   createPubSubModule,
   type PubSubConfig,
   type PubSubModule,
-} from "./modules/pubsub";
+} from "./pubsub";
 export {
   createRpcModule,
   type RpcConfig,
   type RpcModule,
-} from "./modules/rpc";
+} from "./rpc";
 export {
   createFilesModule,
   type FilesConfig,
   type FilesModule,
-} from "./modules/storage";
+} from "./storage";
 export {
   createSyncModule,
   type SyncConfig,
   type SyncModule,
-} from "./modules/sync";
+} from "./sync";
+export type { DatabaseConfig, Module, ModuleDeps, Result } from "./types";

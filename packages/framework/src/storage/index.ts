@@ -1,5 +1,5 @@
-import { createDrizzle } from "../../lib/db";
-import type { Module, ModuleDeps } from "../../lib/types";
+import { createDrizzle } from "../db";
+import type { Module, ModuleDeps } from "../types";
 import { createS3Client, createS3Operations } from "./s3-client";
 import * as schema from "./schema";
 import { createFileMetadataService } from "./service";
@@ -8,9 +8,6 @@ import type {
   FilesConfig,
   FilesModule,
   FileUploadInput,
-  ListOptions,
-  SignedUrlOptions,
-  StorageProvider,
 } from "./types";
 
 export type {

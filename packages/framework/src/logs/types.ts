@@ -1,4 +1,4 @@
-import type { DatabaseConfig, ModuleDeps } from "../../lib/types";
+import type { DatabaseConfig, ModuleDeps } from "../types";
 
 export type LogLevel = "debug" | "info" | "warn" | "error" | "fatal";
 

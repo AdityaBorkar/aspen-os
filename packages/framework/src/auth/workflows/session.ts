@@ -1,6 +1,6 @@
 import { and, eq, gte } from "drizzle-orm";
 
-import type { ModuleDeps } from "../../../lib/types";
+import type { ModuleDeps } from "../../types";
 import * as s from "../db-schema";
 import type { Session, User } from "../types";
 
@@ -36,11 +36,11 @@ export function createSessionWorkflows(
       .returning();
 
     const session: Session = {
-      createdAt: sessionRow!.createdAt,
-      expiresAt: sessionRow!.expiresAt,
-      id: sessionRow!.id,
-      token: sessionRow!.token,
-      userId: sessionRow!.userId,
+      createdAt: sessionRow?.createdAt,
+      expiresAt: sessionRow?.expiresAt,
+      id: sessionRow?.id,
+      token: sessionRow?.token,
+      userId: sessionRow?.userId,
     };
 
     await pubsub.publish("session:created", { session, user });

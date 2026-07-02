@@ -1,7 +1,7 @@
 import { eq, like } from "drizzle-orm";
 import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
-import { createDrizzle } from "./db";
+import { createDrizzle } from "../db";
 
 export const kvStore = pgTable("kv_store", {
   expiresAt: timestamp("expires_at", { withTimezone: true }),
@@ -131,18 +131,6 @@ export class PostgresKvStore {
   }
 }
 
-let instance: PostgresKvStore | null = null;
-
 export function createKvStore(pool: import("pg").Pool): PostgresKvStore {
-  if (!instance) {
-    instance = new PostgresKvStore(pool);
-  }
-  return instance;
-}
-
-export async function closeKvStore(): Promise<void> {
-  if (instance) {
-    await instance.close();
-    instance = null;
-  }
+  return new PostgresKvStore(pool);
 }

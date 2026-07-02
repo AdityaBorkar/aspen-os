@@ -43,7 +43,7 @@ export function createLogBuffer(
     return buffer.length;
   }
 
-  function startAutoFlush(interval: number): void {
+  function _startAutoFlush(interval: number): void {
     flushTimer = setInterval(flush, interval);
   }
 

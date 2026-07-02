@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 
-import { createDrizzle } from "../../lib/db";
-import type { Module, ModuleDeps } from "../../lib/types";
+import { createDrizzle } from "../db";
+import type { Module, ModuleDeps } from "../types";
 import * as schema from "./schema";
 import { createNotificationQueryService } from "./service";
 import type {
@@ -108,34 +108,34 @@ export function createNotificationModule(
         await database
           .update(schema.notifications)
           .set({ sentAt: new Date(), status: "sent" })
-          .where(eq(schema.notifications.id, row!.id));
+          .where(eq(schema.notifications.id, row?.id));
         lastRecord = {
-          body: row!.body,
-          createdAt: row!.createdAt,
-          id: row!.id,
-          provider: row!.provider,
+          body: row?.body,
+          createdAt: row?.createdAt,
+          id: row?.id,
+          provider: row?.provider,
           sentAt: new Date(),
           status: "sent",
-          subject: row!.subject ?? undefined,
-          to: row!.to,
-          type: row!.type,
+          subject: row?.subject ?? undefined,
+          to: row?.to,
+          type: row?.type,
         };
       } catch (err) {
         const error = err instanceof Error ? err.message : String(err);
         await database
           .update(schema.notifications)
           .set({ error, status: "failed" })
-          .where(eq(schema.notifications.id, row!.id));
+          .where(eq(schema.notifications.id, row?.id));
         lastRecord = {
-          body: row!.body,
-          createdAt: row!.createdAt,
+          body: row?.body,
+          createdAt: row?.createdAt,
           error,
-          id: row!.id,
-          provider: row!.provider,
+          id: row?.id,
+          provider: row?.provider,
           status: "failed",
-          subject: row!.subject ?? undefined,
-          to: row!.to,
-          type: row!.type,
+          subject: row?.subject ?? undefined,
+          to: row?.to,
+          type: row?.type,
         };
       }
     }

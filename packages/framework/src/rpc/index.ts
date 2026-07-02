@@ -2,7 +2,7 @@ import { os } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import { z } from "zod";
 
-import type { Module, ModuleDeps } from "../../lib/types";
+import type { Module, ModuleDeps } from "../types";
 import type { RpcConfig, RpcContext, RpcModule } from "./types";
 
 export type { RpcConfig, RpcContext, RpcModule } from "./types";

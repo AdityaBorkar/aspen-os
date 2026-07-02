@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 
-import type { ModuleDeps } from "../../../lib/types";
+import type { ModuleDeps } from "../../types";
 import * as s from "../db-schema";
 import type { CreateUserInput, Permission, User } from "../types";
 
@@ -60,13 +60,13 @@ export function createUserWorkflows(
       .returning();
 
     const user: User = {
-      createdAt: row!.createdAt,
-      email: row!.email,
-      id: row!.id,
-      metadata: row!.metadata as Record<string, unknown>,
-      name: row!.name ?? undefined,
+      createdAt: row?.createdAt,
+      email: row?.email,
+      id: row?.id,
+      metadata: row?.metadata as Record<string, unknown>,
+      name: row?.name ?? undefined,
       roles: [],
-      updatedAt: row!.updatedAt,
+      updatedAt: row?.updatedAt,
     };
 
     await pubsub.publish("user:created", { user });
@@ -129,13 +129,13 @@ export function createUserWorkflows(
 
     const roles = await getUserRoles(id);
     const user: User = {
-      createdAt: row!.createdAt,
-      email: row!.email,
-      id: row!.id,
-      metadata: row!.metadata as Record<string, unknown>,
-      name: row!.name ?? undefined,
+      createdAt: row?.createdAt,
+      email: row?.email,
+      id: row?.id,
+      metadata: row?.metadata as Record<string, unknown>,
+      name: row?.name ?? undefined,
       roles: roles as User["roles"],
-      updatedAt: row!.updatedAt,
+      updatedAt: row?.updatedAt,
     };
 
     await pubsub.publish("user:updated", { user });

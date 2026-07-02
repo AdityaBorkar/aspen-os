@@ -1,6 +1,6 @@
 import PgBoss from "pg-boss";
 
-import type { DatabaseConfig, Module, ModuleDeps } from "../../lib/types";
+import type { DatabaseConfig, Module, ModuleDeps } from "../types";
 
 export interface PubSubConfig {
   database: DatabaseConfig;

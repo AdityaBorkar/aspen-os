@@ -1,8 +1,6 @@
 import type { Auth } from "better-auth";
 import type { createAccessControl } from "better-auth/plugins";
 
-import type { DatabaseConfig, Module } from "../../lib/types";
-
 export interface Permission {
   action: string;
   description?: string;
