@@ -11,6 +11,5 @@
     "check:types": "tsc --noEmit",
     "update:deps": "taze -rw --maturity-period 3"
   },
-  "type": "module",
-  "workspaces": ["./packages/*", "./presets/*"]
+  "workspaces": ["./packages/*"]
 }

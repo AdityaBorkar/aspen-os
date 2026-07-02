@@ -7,15 +7,13 @@
           "level": "on",
           "options": {
             "groups": [
-              ":URL:",
+              [":URL:", ":PACKAGE_WITH_PROTOCOL:"],
               ":BLANK_LINE:",
-              [":NODE:", ":BUN:", "^@plasmo/(.*)$", "^@plasmohq/(.*)$"],
+              [":NODE:", ":BUN:"],
               ":BLANK_LINE:",
-              [":PACKAGE:", ":PACKAGE_WITH_PROTOCOL:"],
+              [":PACKAGE:"],
               ":BLANK_LINE:",
-              [":ALIAS:"],
-              ":BLANK_LINE:",
-              [":PATH:"]
+              [":ALIAS:",":PATH:"],
             ],
             "sortBareImports": true
           }

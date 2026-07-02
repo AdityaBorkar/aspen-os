@@ -1,5 +1,5 @@
-import { closeRedis, getRedis } from "../lib/redis";
-import type { DatabaseConfig } from "../lib/types";
+import { closeRedis, getRedis } from "../../lib/redis";
+import type { DatabaseConfig } from "../../lib/types";
 
 export interface CacheConfig {
   database: DatabaseConfig;

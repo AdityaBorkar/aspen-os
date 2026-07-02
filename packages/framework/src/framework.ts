@@ -7,19 +7,23 @@ import {
   createAuthModule,
 } from "./modules/auth";
 import * as authSchema from "./modules/auth/db-schema";
-import { createORPCModule, type ORPCModule } from "./modules/orpc";
 import { createPubSubModule, type PubSubModule } from "./modules/pubsub";
+import { createRpcModule, type RpcModule } from "./modules/rpc";
+import { createSyncModule, type SyncModule } from "./modules/sync";
 
 export interface FrameworkConfig {
   auth: AuthConfig;
   db: DatabaseConfig;
+  rpc?: import("./modules/rpc").RpcConfig;
+  sync?: import("./modules/sync").SyncConfig;
 }
 
 export class Framework {
   private config: FrameworkConfig;
   private authModule: AuthModule | null = null;
   private pubsubModule: PubSubModule | null = null;
-  private orpcModule: ORPCModule | null = null;
+  private rpcModule: RpcModule | null = null;
+  private syncModule: SyncModule | null = null;
   private initialized = false;
 
   constructor(config: FrameworkConfig) {
@@ -38,9 +42,12 @@ export class Framework {
 
     await context.run({ db, pubsub: this.pubsubModule }, async () => {
       await this.authModule!.register();
+      this.rpcModule = createRpcModule(this.config.rpc);
+      await this.rpcModule.register();
     });
 
-    this.orpcModule = createORPCModule();
+    this.syncModule = createSyncModule(this.config.sync);
+    await this.syncModule.initialize();
 
     this.initialized = true;
   }
@@ -52,8 +59,15 @@ export class Framework {
   }
 
   async destroy(): Promise<void> {
-    if (this.authModule) await this.authModule.terminate();
-    if (this.pubsubModule) await this.pubsubModule.destroy();
+    const modules = [
+      this.rpcModule,
+      this.syncModule,
+      this.authModule,
+      this.pubsubModule,
+    ];
+    for await (const module of modules) {
+      await module?.destroy();
+    }
     await closePool();
     this.initialized = false;
   }
@@ -63,47 +77,18 @@ export class Framework {
     return this.authModule;
   }
 
-    get pubsub(): PubSubModule {
-      if (!this.pubsubModule) throw new Error("Framework not initialized");
-      return this.pubsubModule;
-    }
+  get pubsub(): PubSubModule {
+    if (!this.pubsubModule) throw new Error("Framework not initialized");
+    return this.pubsubModule;
+  }
 
-    // get rpc(): RpcModule {
-    //   if (!this.pubsubModule) throw new Error("Framework not initialized");
-    //   return this.pubsubModule;
-    // }
+  get rpc(): RpcModule {
+    if (!this.rpcModule) throw new Error("Framework not initialized");
+    return this.rpcModule;
+  }
 
-    //   get sync(): SyncModule {
-    //     if (!this.pubsubModule) throw new Error("Framework not initialized");
-    //     return this.pubsubModule;
-    //   }
-
-  // get handlers() {
-  //   return {
-  //     auth: (): ((request: Request) => Promise<Response>) => {
-  //       if (!this.authModule) throw new Error("Framework not initialized");
-  //       return this.authModule.server.handler;
-  //     },
-  //     rpc: (): ((request: Request) => Promise<Response>) => {
-  //       if (!this.orpcModule) throw new Error("Framework not initialized");
-  //       const orpc = this.orpcModule;
-  //       const db = getDrizzle(this.config.db, authSchema);
-  //       const pubsub = this.pubsubModule!;
-  //       return async (request: Request) => {
-  //         const { matched, response } = await orpc.handle(request, {
-  //           db,
-  //           pubsub,
-  //         });
-  //         if (matched && response) return response;
-  //         return new Response("Not Found", { status: 404 });
-  //       };
-  //     },
-  //   };
-  // }
-
-  get client() {
-    return {
-      auth: this.authModule!.client,
-    };
+  get sync(): SyncModule {
+    if (!this.syncModule) throw new Error("Framework not initialized");
+    return this.syncModule;
   }
 }

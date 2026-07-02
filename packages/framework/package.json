@@ -21,7 +21,8 @@
   },
   "exports": {
     ".": "./src/modules/index.ts",
-    "./auth": "./src/modules/auth/index.ts"
+    "./auth": "./src/modules/auth/index.ts",
+    "./rpc": "./src/modules/rpc/index.ts"
   },
   "name": "@aspen-os/framework",
   "scripts": {
