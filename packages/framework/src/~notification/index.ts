@@ -103,39 +103,41 @@ export function createNotificationUnit(
         })
         .returning();
 
+      if (!row) throw new Error("Failed to insert notification");
+
       try {
         await provider.send({ ...payload, to: recipient });
         await database
           .update(schema.notifications)
           .set({ sentAt: new Date(), status: "sent" })
-          .where(eq(schema.notifications.id, row!.id));
+          .where(eq(schema.notifications.id, row.id));
         lastRecord = {
-          body: row!.body,
-          createdAt: row!.createdAt,
-          id: row!.id,
-          provider: row!.provider,
+          body: row.body,
+          createdAt: row.createdAt,
+          id: row.id,
+          provider: row.provider,
           sentAt: new Date(),
           status: "sent",
-          subject: row!.subject ?? undefined,
-          to: row!.to,
-          type: row!.type,
+          subject: row.subject ?? undefined,
+          to: row.to,
+          type: row.type,
         };
       } catch (err) {
         const error = err instanceof Error ? err.message : String(err);
         await database
           .update(schema.notifications)
           .set({ error, status: "failed" })
-          .where(eq(schema.notifications.id, row!.id));
+          .where(eq(schema.notifications.id, row.id));
         lastRecord = {
-          body: row!.body,
-          createdAt: row!.createdAt,
+          body: row.body,
+          createdAt: row.createdAt,
           error,
-          id: row!.id,
-          provider: row!.provider,
+          id: row.id,
+          provider: row.provider,
           status: "failed",
-          subject: row!.subject ?? undefined,
-          to: row!.to,
-          type: row!.type,
+          subject: row.subject ?? undefined,
+          to: row.to,
+          type: row.type,
         };
       }
     }

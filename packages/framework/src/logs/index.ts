@@ -2,63 +2,76 @@ import { createDrizzle } from "../db";
 import type { Unit, UnitDeps } from "../types";
 import { createEntryFactory, createLogBuffer } from "./buffer";
 import * as schema from "./schema";
-import { createLogQueryService } from "./service";
-import type {
-  ChildLogger,
-  LoggingConfig,
-  LoggingUnit,
-  LogLevel,
-} from "./types";
+import { LogQueryService } from "./service";
+import type { ChildLogger, LoggingConfig, LogLevel } from "./types";
 import { LEVEL_PRIORITY as levelPriority } from "./types";
 
+export { LogQueryService } from "./service";
 export type {
   ChildLogger,
   LogEntry,
   LoggingConfig,
-  LoggingUnit,
   LogLevel,
   LogQuery,
   LogStats,
 } from "./types";
 
-export function createLoggingUnit(config: LoggingConfig): LoggingUnit & Unit {
-  const serviceName = config.serviceName ?? "app";
-  const defaultLevel = config.defaultLevel ?? "info";
+export class LoggingUnit implements Unit {
+  readonly name = "logs";
 
-  let pool: import("pg").Pool | null = null;
-  let db: ReturnType<typeof createDrizzle> | null = null;
-  let queryService: ReturnType<typeof createLogQueryService> | null = null;
-  let buffer: ReturnType<typeof createLogBuffer> | null = null;
-  let flushTimer: ReturnType<typeof setInterval> | null = null;
+  private serviceName: string;
+  private defaultLevel: LogLevel;
+  private pool: import("pg").Pool | null = null;
+  private db: ReturnType<typeof createDrizzle> | null = null;
+  private queryService: LogQueryService | null = null;
+  private buffer: ReturnType<typeof createLogBuffer> | null = null;
+  private flushTimer: ReturnType<typeof setInterval> | null = null;
+  private createEntry: (
+    level: LogLevel,
+    message: string,
+    metadata?: Record<string, unknown>,
+    error?: Error,
+  ) => import("./types").LogEntry;
 
-  function shouldLog(level: LogLevel): boolean {
-    return levelPriority[level] >= levelPriority[defaultLevel];
+  constructor(config: LoggingConfig) {
+    this.serviceName = config.serviceName ?? "app";
+    this.defaultLevel = config.defaultLevel ?? "info";
+    this.createEntry = createEntryFactory(this.serviceName);
   }
 
-  function requireBuffer() {
-    if (!buffer) throw new Error("Logging unit not initialized");
-    return buffer;
+  private shouldLog(level: LogLevel): boolean {
+    return levelPriority[level] >= levelPriority[this.defaultLevel];
   }
 
-  const createEntry = createEntryFactory(serviceName);
+  private requireBuffer() {
+    if (!this.buffer) throw new Error("Logging unit not initialized");
+    return this.buffer;
+  }
 
-  function enqueue(
+  private requireQueryService() {
+    if (!this.queryService) throw new Error("Logging unit not initialized");
+    return this.queryService;
+  }
+
+  private enqueue(
     level: LogLevel,
     message: string,
     metadata?: Record<string, unknown>,
     error?: Error,
   ): void {
-    if (!shouldLog(level)) return;
-    requireBuffer().push(createEntry(level, message, metadata, error));
+    if (!this.shouldLog(level)) return;
+    this.requireBuffer().push(
+      this.createEntry(level, message, metadata, error),
+    );
   }
 
-  async function initialize(deps: UnitDeps): Promise<void> {
-    pool = deps.pool;
-    db = createDrizzle(deps.pool, schema);
-    queryService = createLogQueryService(db);
+  async initialize(deps: UnitDeps): Promise<void> {
+    this.pool = deps.pool;
+    this.db = createDrizzle(deps.pool, schema);
+    this.queryService = new LogQueryService(this.db);
 
-    buffer = createLogBuffer(100, async (entries) => {
-      await db?.insert(schema.logs).values(
+    this.buffer = createLogBuffer(100, async (entries) => {
+      await this.db?.insert(schema.logs).values(
         entries.map((entry) => ({
           durationMs: entry.duration ?? null,
           errorMessage: entry.error?.message ?? null,
@@ -78,7 +91,7 @@ export function createLoggingUnit(config: LoggingConfig): LoggingUnit & Unit {
       );
     });
 
-    await pool.query(`
+    await this.pool.query(`
       CREATE TABLE IF NOT EXISTS logs (
         id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
         level TEXT NOT NULL,
@@ -104,77 +117,106 @@ export function createLoggingUnit(config: LoggingConfig): LoggingUnit & Unit {
       CREATE INDEX IF NOT EXISTS idx_logs_user_id ON logs(user_id);
     `);
 
-    flushTimer = setInterval(() => buffer?.flush(), 5000);
+    this.flushTimer = setInterval(() => this.buffer?.flush(), 5000);
   }
 
-  async function destroy(): Promise<void> {
-    if (flushTimer) {
-      clearInterval(flushTimer);
-      flushTimer = null;
+  async destroy(): Promise<void> {
+    if (this.flushTimer) {
+      clearInterval(this.flushTimer);
+      this.flushTimer = null;
     }
-    if (buffer) {
-      await buffer.drain();
-      buffer = null;
+    if (this.buffer) {
+      await this.buffer.drain();
+      this.buffer = null;
     }
-    queryService = null;
-    db = null;
-    pool = null;
+    this.queryService = null;
+    this.db = null;
+    this.pool = null;
   }
 
-  async function healthCheck(): Promise<boolean> {
-    return db !== null;
+  async healthCheck(): Promise<boolean> {
+    return this.db !== null;
   }
 
-  function child(context: Record<string, unknown>): ChildLogger {
+  child(context: Record<string, unknown>): ChildLogger {
     const mergeMeta = (meta?: Record<string, unknown>) => ({
       ...context,
       ...meta,
     });
     return {
       debug: (message, metadata) =>
-        enqueue("debug", message, mergeMeta(metadata)),
+        this.enqueue("debug", message, mergeMeta(metadata)),
       error: (message, err, metadata) => {
-        if (shouldLog("error"))
-          requireBuffer().push(
-            createEntry("error", message, mergeMeta(metadata), err),
+        if (this.shouldLog("error"))
+          this.requireBuffer().push(
+            this.createEntry("error", message, mergeMeta(metadata), err),
           );
       },
       fatal: (message, err, metadata) =>
-        requireBuffer().push(
-          createEntry("fatal", message, mergeMeta(metadata), err),
+        this.requireBuffer().push(
+          this.createEntry("fatal", message, mergeMeta(metadata), err),
         ),
       info: (message, metadata) =>
-        enqueue("info", message, mergeMeta(metadata)),
+        this.enqueue("info", message, mergeMeta(metadata)),
       log: (level, message, metadata) =>
-        enqueue(level, message, mergeMeta(metadata)),
+        this.enqueue(level, message, mergeMeta(metadata)),
       warn: (message, metadata) =>
-        enqueue("warn", message, mergeMeta(metadata)),
+        this.enqueue("warn", message, mergeMeta(metadata)),
     };
   }
 
-  return {
-    child,
-    debug: (message, metadata) => enqueue("debug", message, metadata),
-    destroy,
-    error: (message, err, metadata) => {
-      if (shouldLog("error"))
-        requireBuffer().push(createEntry("error", message, metadata, err));
-    },
-    fatal: (message, err, metadata) =>
-      requireBuffer().push(createEntry("fatal", message, metadata, err)),
-    getStats: (service?, startTime?, endTime?) =>
-      requireQueryService().getStats(service, startTime, endTime),
-    healthCheck,
-    info: (message, metadata) => enqueue("info", message, metadata),
-    initialize,
-    log: (level, message, metadata) => enqueue(level, message, metadata),
-    name: "logs",
-    query: (filter) => requireQueryService().query(filter),
-    warn: (message, metadata) => enqueue("warn", message, metadata),
-  };
+  debug(message: string, metadata?: Record<string, unknown>): void {
+    this.enqueue("debug", message, metadata);
+  }
 
-  function requireQueryService() {
-    if (!queryService) throw new Error("Logging unit not initialized");
-    return queryService;
+  info(message: string, metadata?: Record<string, unknown>): void {
+    this.enqueue("info", message, metadata);
+  }
+
+  warn(message: string, metadata?: Record<string, unknown>): void {
+    this.enqueue("warn", message, metadata);
+  }
+
+  error(
+    message: string,
+    error?: Error,
+    metadata?: Record<string, unknown>,
+  ): void {
+    if (this.shouldLog("error"))
+      this.requireBuffer().push(
+        this.createEntry("error", message, metadata, error),
+      );
+  }
+
+  fatal(
+    message: string,
+    error?: Error,
+    metadata?: Record<string, unknown>,
+  ): void {
+    this.requireBuffer().push(
+      this.createEntry("fatal", message, metadata, error),
+    );
+  }
+
+  log(
+    level: LogLevel,
+    message: string,
+    metadata?: Record<string, unknown>,
+  ): void {
+    this.enqueue(level, message, metadata);
+  }
+
+  async getStats(
+    service?: string,
+    startTime?: Date,
+    endTime?: Date,
+  ): Promise<import("./types").LogStats> {
+    return this.requireQueryService().getStats(service, startTime, endTime);
+  }
+
+  async query(
+    filter: import("./types").LogQuery,
+  ): Promise<import("./types").LogEntry[]> {
+    return this.requireQueryService().query(filter);
   }
 }

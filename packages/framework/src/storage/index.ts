@@ -3,12 +3,7 @@ import type { Unit, UnitDeps } from "../types";
 import { createS3Client, createS3Operations } from "./s3-client";
 import * as schema from "./schema";
 import { createFileMetadataService } from "./service";
-import type {
-  FileObject,
-  FileUploadInput,
-  StorageConfig,
-  StorageUnit,
-} from "./types";
+import type { FileObject, FileUploadInput, StorageConfig } from "./types";
 
 export type {
   FileObject,
@@ -17,29 +12,38 @@ export type {
   SignedUrlOptions,
   StorageConfig,
   StorageProvider,
-  StorageUnit,
 } from "./types";
 
-export function createStorageUnit(config: StorageConfig): StorageUnit & Unit {
-  const prefix = config.prefix ?? "";
-  let pool: import("pg").Pool | null = null;
-  let db: ReturnType<typeof createDrizzle> | null = null;
-  let s3Ops: ReturnType<typeof createS3Operations> | null = null;
-  let metadataService: ReturnType<typeof createFileMetadataService> | null =
+export class StorageUnit implements Unit {
+  readonly name = "storage";
+
+  private config: StorageConfig;
+  private prefix: string;
+  private pool: import("pg").Pool | null = null;
+  private db: ReturnType<typeof createDrizzle> | null = null;
+  private s3Ops: ReturnType<typeof createS3Operations> | null = null;
+  private metadataService: ReturnType<typeof createFileMetadataService> | null =
     null;
 
-  function fullKey(key: string): string {
-    return prefix ? `${prefix}/${key}` : key;
+  constructor(config: StorageConfig) {
+    this.config = config;
+    this.prefix = config.prefix ?? "";
   }
 
-  async function initialize(deps: UnitDeps): Promise<void> {
-    pool = deps.pool;
-    db = createDrizzle(deps.pool, schema);
-    const s3 = createS3Client(config.provider, config.region);
-    s3Ops = createS3Operations(s3, config.bucket, fullKey);
-    metadataService = createFileMetadataService(db);
+  private fullKey(key: string): string {
+    return this.prefix ? `${this.prefix}/${key}` : key;
+  }
 
-    await pool.query(`
+  async initialize(deps: UnitDeps): Promise<void> {
+    this.pool = deps.pool;
+    this.db = createDrizzle(deps.pool, schema);
+    const s3 = createS3Client(this.config.provider, this.config.region);
+    this.s3Ops = createS3Operations(s3, this.config.bucket, (key) =>
+      this.fullKey(key),
+    );
+    this.metadataService = createFileMetadataService(this.db);
+
+    await this.pool.query(`
       CREATE TABLE IF NOT EXISTS file_metadata (
         id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
         key TEXT UNIQUE NOT NULL,
@@ -58,28 +62,28 @@ export function createStorageUnit(config: StorageConfig): StorageUnit & Unit {
     `);
   }
 
-  async function destroy(): Promise<void> {
-    s3Ops = null;
-    metadataService = null;
-    db = null;
-    pool = null;
+  async destroy(): Promise<void> {
+    this.s3Ops = null;
+    this.metadataService = null;
+    this.db = null;
+    this.pool = null;
   }
 
-  async function healthCheck(): Promise<boolean> {
-    return s3Ops !== null;
+  async healthCheck(): Promise<boolean> {
+    return this.s3Ops !== null;
   }
 
-  function requireOps() {
-    if (!s3Ops || !metadataService)
+  private requireOps() {
+    if (!this.s3Ops || !this.metadataService)
       throw new Error("Storage unit not initialized");
-    return { metadata: metadataService, ops: s3Ops };
+    return { metadata: this.metadataService, ops: this.s3Ops };
   }
 
-  async function upload(input: FileUploadInput): Promise<FileObject> {
-    const { metadata, ops } = requireOps();
+  async upload(input: FileUploadInput): Promise<FileObject> {
+    const { metadata, ops } = this.requireOps();
     const { head } = await ops.upload(input);
     await metadata.upsertMetadata({
-      bucket: config.bucket,
+      bucket: this.config.bucket,
       contentType: input.contentType,
       etag: head.etag,
       key: input.key,
@@ -97,64 +101,67 @@ export function createStorageUnit(config: StorageConfig): StorageUnit & Unit {
     };
   }
 
-  async function remove(key: string): Promise<void> {
-    const { metadata, ops } = requireOps();
+  async remove(key: string): Promise<void> {
+    const { metadata, ops } = this.requireOps();
     await ops.remove(key);
     await metadata.deleteMetadata(key);
   }
 
-  async function removeMany(keys: string[]): Promise<void> {
-    await Promise.all(keys.map(remove));
+  async removeMany(keys: string[]): Promise<void> {
+    await Promise.all(keys.map((key) => this.remove(key)));
   }
 
-  async function copy(
-    sourceKey: string,
-    destinationKey: string,
-  ): Promise<FileObject> {
-    const { ops } = requireOps();
+  async copy(sourceKey: string, destinationKey: string): Promise<FileObject> {
+    const { ops } = this.requireOps();
     await ops.copy(sourceKey, destinationKey);
     return ops.getMetadata(destinationKey);
   }
 
-  async function move(
-    sourceKey: string,
-    destinationKey: string,
-  ): Promise<FileObject> {
-    const file = await copy(sourceKey, destinationKey);
-    await remove(sourceKey);
+  async move(sourceKey: string, destinationKey: string): Promise<FileObject> {
+    const file = await this.copy(sourceKey, destinationKey);
+    await this.remove(sourceKey);
     return file;
   }
 
-  async function archive(
-    key: string,
-    archiveKey?: string,
-  ): Promise<FileObject> {
-    const { metadata } = requireOps();
+  async archive(key: string, archiveKey?: string): Promise<FileObject> {
+    const { metadata } = this.requireOps();
     const destKey = archiveKey ?? `archive/${key}`;
-    const file = await copy(key, destKey);
-    await remove(key);
+    const file = await this.copy(key, destKey);
+    await this.remove(key);
     await metadata.markArchived(key, destKey);
     return { ...file, key: destKey };
   }
 
-  return {
-    archive,
-    copy,
-    destroy,
-    exists: (key) => requireOps().ops.exists(key),
-    get: (key) => requireOps().ops.get(key),
-    getMetadata: (key) => requireOps().ops.getMetadata(key),
-    getSignedGetUrl: (key, options) =>
-      requireOps().ops.getSignedGetUrl(key, options),
-    getSignedPutUrl: (key, options) =>
-      requireOps().ops.getSignedPutUrl(key, options),
-    healthCheck,
-    initialize,
-    list: (prefix, options) => requireOps().ops.list(prefix, options),
-    move,
-    name: "storage",
-    remove,
-    removeMany,
-    upload,
-  };
+  async exists(key: string): Promise<boolean> {
+    return this.requireOps().ops.exists(key);
+  }
+
+  async get(key: string): Promise<Buffer> {
+    return this.requireOps().ops.get(key);
+  }
+
+  async getMetadata(key: string): Promise<FileObject> {
+    return this.requireOps().ops.getMetadata(key);
+  }
+
+  async getSignedGetUrl(
+    key: string,
+    options?: import("./types").SignedUrlOptions,
+  ): Promise<string> {
+    return this.requireOps().ops.getSignedGetUrl(key, options);
+  }
+
+  async getSignedPutUrl(
+    key: string,
+    options?: import("./types").SignedUrlOptions,
+  ): Promise<string> {
+    return this.requireOps().ops.getSignedPutUrl(key, options);
+  }
+
+  async list(
+    prefix?: string,
+    options?: import("./types").ListOptions,
+  ): Promise<{ files: FileObject[]; nextContinuationToken?: string }> {
+    return this.requireOps().ops.list(prefix, options);
+  }
 }

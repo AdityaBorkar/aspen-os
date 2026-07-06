@@ -23,6 +23,10 @@ export const framework = new Framework({
     ssl: env.DB_SSL,
     user: env.DB_USER,
   },
+  logs: {},
+  pubsub: {},
+  rpc: {},
+  storage: {},
 });
 
 await framework.initialize();

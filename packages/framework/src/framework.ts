@@ -1,39 +1,32 @@
-import { type AuthConfig, type AuthUnit, createAuthUnit } from "./auth";
+import { type AuthConfig, AuthUnit } from "./auth";
 import * as authSchema from "./auth/db-schema";
 import { context } from "./context";
-import { createDrizzle, getPool } from "./db";
-import { createLogQueryService } from "./logs/service";
-import { createPubSubUnit, type PubSubConfig, type PubSubUnit } from "./pubsub";
-import { createRpcUnit, type RpcConfig, type RpcUnit } from "./rpc";
-import { createStorageUnit, type StorageUnit } from "./storage";
+import { DatabaseUnit } from "./db";
+import { type LoggingConfig, LoggingUnit } from "./logs";
+import { type PubSubConfig, PubSubUnit } from "./pubsub";
+import { type RpcConfig, RpcUnit } from "./rpc";
+import { type StorageConfig, StorageUnit } from "./storage";
 import type { DatabaseConfig, Module, Unit } from "./types";
 
 export interface FrameworkConfig {
   auth: AuthConfig;
   db: DatabaseConfig;
-  pubsub?: Omit<PubSubConfig, "database">;
-  rpc?: RpcConfig;
+  logs: Omit<LoggingConfig, "database">;
+  pubsub: Omit<PubSubConfig, "database">;
+  rpc: RpcConfig;
+  storage: Omit<StorageConfig, "database">;
 }
 
 export class Framework {
   private config: FrameworkConfig;
   private units: {
-    auth: (AuthUnit & Unit) | null;
-    pubsub: (PubSubUnit & Unit) | null;
-    rpc: (RpcUnit & Unit) | null;
-    workflows: (WorkflowUnit & Unit) | null;
-    storage: StorageUnit | null;
-    logs: LogQueryService | null;
-    db: AuthConfig | null;
-  } = {
-    auth: null,
-    db: null,
-    logs: null,
-    pubsub: null,
-    rpc: null,
-    storage: null,
-    workflows: null,
-  };
+    auth: AuthUnit;
+    db: DatabaseUnit;
+    logs: LoggingUnit;
+    pubsub: PubSubUnit;
+    rpc: RpcUnit;
+    storage: StorageUnit;
+  } | null = null;
   private modules: Module[] = [];
   private initialized: boolean = false;
 
@@ -51,18 +44,25 @@ export class Framework {
   async initialize(): Promise<void> {
     if (this.initialized) throw new Error("Framework already initialized");
 
-    this.units.logs = createLogQueryService();
-    this.units.db = createDrizzle(getPool(this.config.db), authSchema);
-    this.units.pubsub = createPubSubUnit({
-      database: this.config.db,
-      ...this.config.pubsub,
-    }) as unknown as PubSubUnit & Unit;
-    this.units.auth = createAuthUnit(this.config.auth);
-    this.units.rpc = createRpcUnit(this.config.rpc);
-    this.units.storage = createStorageUnit();
-    this.units.workflows = createWorkflowUnit();
+    const $config = this.config;
+    const database = $config.db;
+    const db = new DatabaseUnit(database, authSchema);
+    const storage = new StorageUnit({ database, ...$config.storage });
+    const logs = new LoggingUnit({ database, ...$config.logs });
+    const pubsub = new PubSubUnit({ database, ...$config.pubsub });
+    const auth = new AuthUnit($config.auth);
+    const rpc = new RpcUnit($config.rpc);
 
+    this.units = { auth, db, logs, pubsub, rpc, storage };
+
+    if (!this.units) throw new Error("Could not setup framework units");
     await context.run(this.units, async () => {
+      if (!this.units) throw new Error("Could not setup framework units");
+      await this.units.pubsub.initialize(this.units);
+      await this.units.auth.initialize(this.units);
+      await this.units.rpc.initialize(this.units);
+      await this.units.storage.initialize(this.units);
+      await this.units.logs.initialize(this.units);
       for (const module of this.modules) {
         await module.initialize(this.units);
       }
@@ -72,6 +72,7 @@ export class Framework {
   }
 
   async run<T>(fn: () => T | Promise<T>): Promise<T> {
+    if (!this.units) throw new Error("Could not setup framework units");
     if (!this.initialized) throw new Error("Framework not initialized");
     return context.run(this.units, fn);
   }
@@ -81,9 +82,11 @@ export class Framework {
       try {
         await module.destroy();
       } catch {
-        console.error(`Failed to destroy unit "${module.name}"`);
+        console.error(`Failed to destroy module "${module.name}"`);
       }
     }
+
+    if (!this.units) throw new Error("Could not setup framework units");
     for await (const [name, unit] of Object.entries(this.units)) {
       try {
         await unit?.destroy();
@@ -103,6 +106,7 @@ export class Framework {
   }
 
   getUnit(name?: keyof typeof this.units): Unit | typeof this.units {
+    if (!this.units) throw new Error("Could not setup framework units");
     if (!this.initialized) throw new Error("Framework not initialized");
     if (!name) return this.units;
     if (!(name in this.units)) throw new Error(`Unit "${name}" not found`);

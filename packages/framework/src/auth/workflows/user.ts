@@ -59,14 +59,16 @@ export function createUserWorkflows(
       })
       .returning();
 
+    if (!row) throw new Error("Failed to create user");
+
     const user: User = {
-      createdAt: row!.createdAt,
-      email: row!.email,
-      id: row!.id,
-      metadata: row!.metadata as Record<string, unknown>,
-      name: row!.name ?? undefined,
+      createdAt: row.createdAt,
+      email: row.email,
+      id: row.id,
+      metadata: row.metadata as Record<string, unknown>,
+      name: row.name ?? undefined,
       roles: [],
-      updatedAt: row!.updatedAt,
+      updatedAt: row.updatedAt,
     };
 
     await pubsub.publish("user:created", { user });
@@ -127,15 +129,17 @@ export function createUserWorkflows(
       .where(eq(s.authUsers.id, id))
       .returning();
 
+    if (!row) throw new Error(`User "${id}" not found`);
+
     const roles = await getUserRoles(id);
     const user: User = {
-      createdAt: row!.createdAt,
-      email: row!.email,
-      id: row!.id,
-      metadata: row!.metadata as Record<string, unknown>,
-      name: row!.name ?? undefined,
+      createdAt: row.createdAt,
+      email: row.email,
+      id: row.id,
+      metadata: row.metadata as Record<string, unknown>,
+      name: row.name ?? undefined,
       roles: roles as User["roles"],
-      updatedAt: row!.updatedAt,
+      updatedAt: row.updatedAt,
     };
 
     await pubsub.publish("user:updated", { user });

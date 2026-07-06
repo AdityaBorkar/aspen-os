@@ -67,6 +67,8 @@ export function createRoleWorkflows(deps: UnitDeps) {
       .values({ description, name })
       .returning();
 
+    if (!roleRow) throw new Error("Failed to insert role");
+
     const permIds: string[] = [];
     for (const perm of permissions) {
       const [permRow] = await db
@@ -77,27 +79,28 @@ export function createRoleWorkflows(deps: UnitDeps) {
           target: [s.authPermissions.resource, s.authPermissions.action],
         })
         .returning();
-      permIds.push(permRow!.id);
+      if (!permRow) throw new Error("Failed to insert permission");
+      permIds.push(permRow.id);
     }
 
     for (const permId of permIds) {
       await db
         .insert(s.authRolePermissions)
-        .values({ permissionId: permId, roleId: roleRow!.id })
+        .values({ permissionId: permId, roleId: roleRow.id })
         .onConflictDoNothing();
     }
 
     const role: RoleData = {
-      createdAt: roleRow!.createdAt,
+      createdAt: roleRow.createdAt,
       description,
-      id: roleRow!.id,
+      id: roleRow.id,
       name,
-      permissions: permIds.map((id, i) => ({
-        action: permissions[i]!.action,
-        id,
-        resource: permissions[i]!.resource,
-      })),
-      updatedAt: roleRow!.updatedAt,
+      permissions: permIds.map((id, i) => {
+        const perm = permissions[i];
+        if (!perm) throw new Error(`Permission at index ${i} not found`);
+        return { action: perm.action, id, resource: perm.resource };
+      }),
+      updatedAt: roleRow.updatedAt,
     };
 
     await pubsub.publish("role:created", { role });

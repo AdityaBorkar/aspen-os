@@ -1,8 +1,8 @@
+import { kvStore } from "../../~kv-store/db-schema";
+import * as notificationSchema from "../../~notification/schema";
 import * as authSchema from "../../auth/db-schema";
 import type { Framework } from "../../framework";
-import { kvStore } from "../../kv-store/db-schema";
 import * as logSchema from "../../logs/schema";
-import * as notificationSchema from "../../notification/schema";
 import * as storageSchema from "../../storage/schema";
 
 export function getSchemas(framework: Framework) {
@@ -15,9 +15,10 @@ export function getSchemas(framework: Framework) {
   };
 
   const unitSchemas: Record<string, unknown> = {};
-  for (const unit of framework.getUnits()) {
-    const unitAny = unit as unknown as Record<string, unknown>;
-    if (unitAny.db_schema && typeof unitAny.db_schema === "object") {
+  const units = framework.getUnit() as Record<string, unknown>;
+  for (const unit of Object.values(units)) {
+    const unitAny = unit as Record<string, unknown>;
+    if (unitAny?.db_schema && typeof unitAny.db_schema === "object") {
       Object.assign(unitSchemas, unitAny.db_schema);
     }
   }

@@ -3,9 +3,9 @@ import { RPCHandler } from "@orpc/server/fetch";
 import { z } from "zod";
 
 import type { Unit, UnitDeps } from "../types";
-import type { RpcConfig, RpcContext, RpcUnit } from "./types";
+import type { RpcConfig, RpcContext } from "./types";
 
-export type { RpcConfig, RpcContext, RpcUnit } from "./types";
+export type { RpcConfig, RpcContext } from "./types";
 
 const base = os.$context<RpcContext>();
 
@@ -28,56 +28,64 @@ export const router = {
 
 export type RpcRouter = typeof router;
 
-export function createRpcUnit(config: RpcConfig = {}): RpcUnit & Unit {
-  const prefix = (config.prefix ?? "/api/rpc") as `/${string}`;
-  let handler: InstanceType<typeof RPCHandler> | null = null;
-  let deps: UnitDeps | null = null;
+export class RpcUnit implements Unit {
+  readonly name = "rpc";
+  readonly router = router;
 
-  async function initialize(incomingDeps: UnitDeps) {
-    deps = incomingDeps;
-    handler = new RPCHandler(router);
+  private prefix: `/${string}`;
+  private rpcHandler: InstanceType<typeof RPCHandler> | null = null;
+  private deps: UnitDeps | null = null;
+
+  readonly server: {
+    handle(
+      request: Request,
+      context: RpcContext,
+    ): Promise<{ matched: boolean; response: Response | undefined }>;
+    router: RpcRouter;
+  };
+
+  constructor(config: RpcConfig = {}) {
+    this.prefix = (config.prefix ?? "/api/rpc") as `/${string}`;
+
+    this.server = {
+      handle: this.handle.bind(this),
+      router,
+    };
   }
 
-  async function destroy() {
-    handler = null;
-    deps = null;
+  async initialize(incomingDeps: UnitDeps): Promise<void> {
+    this.deps = incomingDeps;
+    this.rpcHandler = new RPCHandler(router);
   }
 
-  async function healthCheckResult(): Promise<boolean> {
-    return handler !== null;
+  async destroy(): Promise<void> {
+    this.rpcHandler = null;
+    this.deps = null;
   }
 
-  async function handle(
+  async healthCheck(): Promise<boolean> {
+    return this.rpcHandler !== null;
+  }
+
+  async handle(
     request: Request,
     context: RpcContext,
   ): Promise<{ matched: boolean; response: Response | undefined }> {
-    if (!handler) throw new Error("RPC unit not initialized");
-    return handler.handle(request, {
+    if (!this.rpcHandler) throw new Error("RPC unit not initialized");
+    return this.rpcHandler.handle(request, {
       context,
-      prefix,
+      prefix: this.prefix,
     });
   }
 
-  async function requestHandler(request: Request): Promise<Response> {
-    if (!handler || !deps) throw new Error("RPC unit not initialized");
-    const { matched, response } = await handle(request, {
-      db: deps.db,
-      pubsub: deps.pubsub as unknown as import("../pubsub").PubSubUnit,
+  async handler(request: Request): Promise<Response> {
+    if (!this.rpcHandler || !this.deps)
+      throw new Error("RPC unit not initialized");
+    const { matched, response } = await this.handle(request, {
+      db: this.deps.db,
+      pubsub: this.deps.pubsub as unknown as import("../pubsub").PubSubUnit,
     });
     if (matched && response) return response;
     return new Response("Not Found", { status: 404 });
   }
-
-  return {
-    destroy,
-    handler: requestHandler,
-    healthCheck: healthCheckResult,
-    initialize,
-    name: "rpc",
-    router,
-    server: {
-      handle,
-      router,
-    },
-  };
 }

@@ -35,12 +35,14 @@ export function createSessionWorkflows(
       .values({ expiresAt, token, userId: user.id })
       .returning();
 
+    if (!sessionRow) throw new Error("Failed to create session");
+
     const session: Session = {
-      createdAt: sessionRow!.createdAt,
-      expiresAt: sessionRow!.expiresAt,
-      id: sessionRow!.id,
-      token: sessionRow!.token,
-      userId: sessionRow!.userId,
+      createdAt: sessionRow.createdAt,
+      expiresAt: sessionRow.expiresAt,
+      id: sessionRow.id,
+      token: sessionRow.token,
+      userId: sessionRow.userId,
     };
 
     await pubsub.publish("session:created", { session, user });

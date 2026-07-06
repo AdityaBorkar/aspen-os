@@ -6,8 +6,14 @@ import type { LogEntry, LogLevel, LogQuery, LogStats } from "./types";
 
 type DrizzleDB = NodePgDatabase<Record<string, never>>;
 
-export function createLogQueryService(db: DrizzleDB) {
-  async function query(filter: LogQuery): Promise<LogEntry[]> {
+export class LogQueryService {
+  private db: DrizzleDB;
+
+  constructor(db: DrizzleDB) {
+    this.db = db;
+  }
+
+  async query(filter: LogQuery): Promise<LogEntry[]> {
     const conditions = [];
     if (filter.level) conditions.push(eq(s.logs.level, filter.level));
     if (filter.service) conditions.push(eq(s.logs.service, filter.service));
@@ -21,7 +27,7 @@ export function createLogQueryService(db: DrizzleDB) {
 
     const where = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const rows = await db
+    const rows = await this.db
       .select()
       .from(s.logs)
       .where(where)
@@ -51,7 +57,7 @@ export function createLogQueryService(db: DrizzleDB) {
     }));
   }
 
-  async function getStats(
+  async getStats(
     service?: string,
     startTime?: Date,
     endTime?: Date,
@@ -63,7 +69,7 @@ export function createLogQueryService(db: DrizzleDB) {
 
     const where = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const rows = await db
+    const rows = await this.db
       .select({
         count: sql<number>`count(*)::int`,
         level: s.logs.level,
@@ -91,6 +97,4 @@ export function createLogQueryService(db: DrizzleDB) {
       total,
     };
   }
-
-  return { getStats, query };
 }
