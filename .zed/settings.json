@@ -21,7 +21,6 @@
     "!typescript-language-server",
     "!vtsls",
     "!markdownlint",
-    "!docker-language-server",
     "..."
   ]
 }

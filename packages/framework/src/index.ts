@@ -12,6 +12,10 @@ export type {
 } from "./cache";
 export { Framework, type FrameworkConfig } from "./framework";
 export type {
+  KvStoreConfig,
+  KvStoreUnit,
+} from "./kv-store";
+export type {
   LoggingConfig,
   LoggingUnit,
 } from "./logs";

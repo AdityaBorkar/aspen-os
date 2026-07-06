@@ -30,10 +30,10 @@ export class Framework {
     this.config = config;
   }
 
-  register(units: Unit[]): this {
+  register(modules: Unit[]): this {
     if (this.initialized)
       throw new Error("Cannot register units after initialization");
-    this.extraUnits.push(...units);
+    this.extraUnits.push(...modules);
     return this;
   }
 

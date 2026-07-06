@@ -1,6 +1,6 @@
 # @openbiz-framework
 
-Bun monorepo. Business framework with pluggable domain modules and presets.
+Bun monorepo. Business framework with pluggable domain units and presets.
 
 ## Runtime & Toolchain
 
@@ -25,7 +25,7 @@ No test, build, or format scripts are defined anywhere yet.
 
 ## Commit Conventions
 
-Commitlint enforces conventional commits. Allowed types: `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `test`, `wip`.
+`commitlint.config.ts` defines conventional commit types but the `@commitlint` package is not installed and no git hooks are active. Treat as aspirational convention, not enforced. Allowed types: `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `test`, `wip`.
 
 ## Project Structure
 
@@ -36,29 +36,37 @@ packages/
   analytics/    # Empty
   banking/      # Empty
   reports/      # Empty
+examples/
+  recruiter/    # TanStack Start + React 19 + Vite 8 + Tailwind 4 app (has its own biome.json, not framework-linked yet)
 ```
 
-Only `packages/framework` has deps, scripts, and source code.
+Only `packages/framework` has deps, scripts, and source code. Workspace globs: `./packages/*` and `./examples/*`.
 
 ## Framework Architecture (`packages/framework`)
 
+### Terminology: "Unit", not "Module"
+
+The codebase uses **Unit** terminology. The `Unit` interface and `UnitDeps` are in `src/types.ts`. All factory functions are `createXUnit`. The TODO.md explicitly notes "Remove the 'Module' analogy" — the current naming is intentional.
+
 ### Entrypoints
 
-- `src/framework.ts` — `Framework` class. Orchestrates module lifecycle: `new Framework(config)` → `framework.initialize()` → `framework.run(fn)` → `framework.destroy()`.
-- `src/index.ts` — barrel re-exporting all modules and the Framework class.
-- `src/db/index.ts` — `getPool()` and `createDrizzle()` (also duplicated in `src/lib/db.ts`).
+- `src/framework.ts` — `Framework` class. Orchestrates unit lifecycle: `new Framework(config)` → `framework.initialize()` → `framework.run(fn)` → `framework.destroy()`.
+- `src/index.ts` — barrel re-exporting **types only** (not factory functions). Use subpath imports for factories.
+- `src/db/index.ts` — `getPool()` and `createDrizzle()`.
 - `src/context.ts` — `AsyncLocalStorage` providing `{ db, pubsub }` per request.
-- `src/types.ts` — shared interfaces: `Module`, `ModuleDeps`, `DatabaseConfig`, `Result`, `PaginatedResult`.
+- `src/types.ts` — shared interfaces: `Unit`, `UnitDeps`, `DatabaseConfig`, `Result`, `PaginatedResult`.
 
 ### Framework Usage Pattern
 
 ```ts
 import { Framework } from "@aspen-os/framework"
+import { createAuthUnit } from "@aspen-os/framework/auth"
 
 const framework = new Framework({
   db: { host, port, user, password, database },
   auth: { /* better-auth config + roles + access_control */ },
 })
+framework.register([someExtraUnit])
 await framework.initialize()
 await framework.run(async () => {
   // code runs inside AsyncLocalStorage context with db + pubsub
@@ -66,13 +74,31 @@ await framework.run(async () => {
 await framework.destroy()
 ```
 
-`framework.run()` provides `{ db, pubsub }` via `AsyncLocalStorage` — all module calls inside it share the same DB connection and pubsub instance. `framework.register(modules)` adds extra modules before `initialize()`.
+`framework.run()` provides `{ db, pubsub }` via `AsyncLocalStorage` — all calls inside share the same DB connection and pubsub instance. `framework.register(units)` adds extra units **before** `initialize()`. Calling `register()` after `initialize()` throws.
 
-### Module Pattern
+### Core vs Extra Units
 
-Every module follows: `createXModule(config) → XModule`. The `Module` interface (in `src/types.ts`) requires `name`, `initialize(deps)`, `destroy()`, `healthCheck()`. `ModuleDeps` provides `{ db, pool, pubsub }`. Modules with DB state create their own tables via raw SQL in `initialize()`.
+**Core units** are created internally by `Framework` based on config — do not instantiate them yourself:
+- **auth**: `createAuthUnit`. Users, roles, permissions, sessions via `better-auth`. Drizzle schemas in `auth/db-schema/`. Workflows in `auth/workflows/` (user.ts, role.ts, session.ts).
+- **pubsub**: `createPubSubUnit`. Database-backed pub/sub via `pg-boss`. Creates its own tables.
+- **rpc**: `createRpcUnit`. RPC via `@orpc/server`. Exposes `router` and `handler`.
+- **sync**: `createSyncUnit`. Stub (not yet implemented).
 
-Directory layout for modules:
+**Extra units** — register via `framework.register()`:
+- **storage**: `createStorageUnit`. S3 via `@aws-sdk/client-s3`. Has schema.ts + service.ts.
+- **notification**: `createNotificationUnit`. Multi-provider notifications. Has schema.ts + service.ts.
+- **logs**: `createLoggingUnit`. Structured logging with buffer + TimescaleDB hypertable. Has buffer.ts, schema.ts, service.ts.
+
+**Internal** (not exported):
+- **kv-store**: `PostgresKvStore` / `createKvStore` in `src/kv-store/`. Not a subpath export.
+
+**Note**: `src/index.ts` imports types from `./cache` and `./kv-store`, but the `cache` directory no longer exists on disk. This may cause build errors — verify before relying on those type imports.
+
+### Unit Interface
+
+Every unit follows: `createXUnit(config) → XUnit & Unit`. The `Unit` interface requires `name`, `initialize(deps)`, `destroy()`, `healthCheck()`. `UnitDeps` provides `{ db, pool, pubsub }`. Units with DB state create their own tables via raw SQL in `initialize()`.
+
+Directory layout for units:
 ```
 src/<name>/
   index.ts       # factory function + public re-exports
@@ -81,38 +107,42 @@ src/<name>/
   service.ts     # internal DB operations
 ```
 
-### Current Modules
+### Accessing Units
 
-- **auth**: Users, roles, permissions, sessions. Factory: `createAuthModule`. Drizzle schemas in `auth/db-schema/`. Workflows in `auth/workflows/` (user.ts, role.ts, session.ts). Uses `better-auth` under the hood.
-- **pubsub**: Database-backed pub/sub via `pg-boss`. Factory: `createPubSubModule`. Creates its own tables.
-- **rpc**: RPC module using `@orpc/server`. Factory: `createRpcModule`.
-- **sync**: Stub (not yet implemented). Factory: `createSyncModule`.
-- **cache**: Postgres-backed KV store with TTL, prefix, `getOrSet`. Factory: `createCacheModule`. Uses internal `kv-store/` module.
-- **storage**: S3 storage via `@aws-sdk/client-s3`. Factory: `createFilesModule` (not `createStorageModule`). Has schema.ts + service.ts.
-- **notification**: Multi-provider notifications. Factory: `createNotificationModule`. Has schema.ts + service.ts.
-- **logs**: Structured logging with buffer + TimescaleDB hypertable. Factory: `createLoggingModule`. Has buffer.ts, schema.ts, service.ts.
-- **kv-store**: Internal Postgres KV store (`PostgresKvStore`). Not exported from `@aspen-os/framework`. Used by cache module.
+```ts
+// Typed getters for core units (throw if not initialized)
+framework.auth    // AuthUnit
+framework.pubsub  // PubSubUnit
+framework.rpc     // RpcUnit
+framework.sync    // SyncUnit
+
+// Generic accessor for any unit by name
+framework.getUnit<CacheUnit>("cache")
+```
+
+### Auth Unit Shape
+
+The auth unit exposes `server.handler(request)` for HTTP, `server.workflows.{user,session,role}` for programmatic access, and `client` for frontend auth. The `AuthConfig` requires `access_control`, `roles`, `baseURL`, `secret`.
 
 ### Package Exports
 
-`@aspen-os/framework` exposes subpath exports for each module:
+`@aspen-os/framework` subpath exports (declared in `exports` in `package.json`):
 ```ts
-import { Framework } from "@aspen-os/framework"
-import { createAuthModule } from "@aspen-os/framework/auth"
-import { createCacheModule } from "@aspen-os/framework/cache"
-import { createRpcModule } from "@aspen-os/framework/rpc"
-// etc.
+import { Framework } from "@aspen-os/framework"        // types only
+import { createAuthUnit } from "@aspen-os/framework/auth"
+import { createRpcUnit } from "@aspen-os/framework/rpc"
 ```
 
-All module subpaths are declared in `exports` (auth, cache, logs, notification, pubsub, rpc, storage, sync).
+Currently exported subpaths: `auth`, `logs`, `notification`, `rpc`, `sync`. Not exported despite having source: `storage` (has directory), `pubsub` (has directory). Missing entirely: `cache` (directory removed).
 
 ## Conventions
 
 - All DB IDs are `text` with `gen_random_uuid()::text` default (not native UUID type)
 - All timestamps use `withTimezone: true`
-- Module factory functions are named `create<Name>Module`
+- Unit factory functions are named `create<Name>Unit`
 - `Result<T, E>` type: `{ success: true, data } | { success: false, error }`
 - Do not create barrel files unless explicitly told to (per CODING_CONVENTIONS.md)
+- Framework tsconfig has path alias `@/*` → `./src/*`
 - Biome config has template leftovers: import groups referencing `@plasmo`/`@plasmohq`, linter override for `./src/components/ui/**` — neither exists in this repo
 
 ## Current State
@@ -122,3 +152,4 @@ All module subpaths are declared in `exports` (auth, cache, logs, notification, 
 - No test files or test infrastructure
 - No docker-compose file exists despite framework depending on Postgres + Redis
 - `codedb.snapshot` at root is a CodeDB indexing artifact, not source
+- `src/db/drizzle.config.ts` is empty — no Drizzle Kit config is active yet

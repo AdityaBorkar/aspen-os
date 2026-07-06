@@ -22,13 +22,11 @@
   "exports": {
     ".": "./src/index.ts",
     "./auth": "./src/auth/index.ts",
-    "./cache": "./src/cache/index.ts",
     "./logs": "./src/logs/index.ts",
     "./notification": "./src/notification/index.ts",
-    "./pubsub": "./src/pubsub/index.ts",
     "./rpc": "./src/rpc/index.ts",
-    "./storage": "./src/storage/index.ts",
-    "./sync": "./src/sync/index.ts"
+    "./sync": "./src/sync/index.ts",
+    "./drizzle": "./src/db/drizzle/index.ts"
   },
   "name": "@aspen-os/framework",
   "scripts": {
