@@ -16,16 +16,18 @@ export interface FrameworkConfig {
   storage: StorageConfig;
 }
 
+type Units = {
+  auth: AuthUnit;
+  db: DatabaseUnit;
+  logs: LoggingUnit;
+  pubsub: PubSubUnit;
+  rpc: RpcUnit;
+  storage: StorageUnit;
+};
+
 export class Framework {
   private config: FrameworkConfig;
-  private units: {
-    auth: AuthUnit;
-    db: DatabaseUnit;
-    logs: LoggingUnit;
-    pubsub: PubSubUnit;
-    rpc: RpcUnit;
-    storage: StorageUnit;
-  } | null = null;
+  private units: Units | null = null;
   private modules: Record<string, Module> = {};
   private initialized: boolean = false;
 
@@ -94,7 +96,7 @@ export class Framework {
     return unit;
   }
 
-  getUnit(name?: keyof typeof this.units) {
+  getUnit(name?: keyof Units) {
     if (!this.units) throw new Error("Could not setup framework units");
     if (!this.initialized) throw new Error("Framework not initialized");
 

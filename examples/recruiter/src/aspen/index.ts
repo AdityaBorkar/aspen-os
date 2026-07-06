@@ -42,3 +42,5 @@ export const framework = new Framework({
 });
 
 await framework.initialize();
+
+export const auth = framework.getUnit("auth");

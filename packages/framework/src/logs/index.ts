@@ -1,9 +1,8 @@
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import type { Pool } from "pg";
 
 import type { DatabaseUnit } from "../db";
-import { createEntryFactory, createLogBuffer } from "./buffer";
 import { logs } from "./db-schema";
+import { createEntryFactory, createLogBuffer } from "./log-buffer";
 import { LogQueryService } from "./query-service";
 import type {
   ChildLogger,
@@ -30,7 +29,6 @@ export class LoggingUnit {
 
   private serviceName: string;
   private defaultLevel: LogLevel;
-  private pool: Pool;
   private db: NodePgDatabase;
   private queryService: LogQueryService;
   private buffer: ReturnType<typeof createLogBuffer>;
@@ -46,7 +44,6 @@ export class LoggingUnit {
     this.serviceName = config.serviceName ?? "app";
     this.defaultLevel = config.defaultLevel ?? "info";
     this.createEntry = createEntryFactory(this.serviceName);
-    this.pool = db.pool;
     this.db = db.db;
     this.queryService = new LogQueryService(this.db);
 
