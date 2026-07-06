@@ -1,4 +1,5 @@
 import { type Auth, betterAuth } from "better-auth";
+import type { Role } from "better-auth/plugins/access";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import {
   adminClient,
@@ -53,7 +54,7 @@ export function createAuthUnit(config: AuthConfig): AuthUnit & Unit {
   const client = createAuthClient({
     plugins: [
       phoneNumberClient(),
-      adminClient({ ac: access_control, roles }),
+      adminClient({ ac: access_control, roles: roles as { [key in string]: Role } }),
       customSessionClient(),
     ],
   });
@@ -82,14 +83,14 @@ export function createAuthUnit(config: AuthConfig): AuthUnit & Unit {
           transaction: true,
           usePlural: true,
         }),
-      });
+      }) as Auth;
       workflows = {
         role: createRoleWorkflows(deps),
         session: createSessionWorkflows(deps, (id: string) =>
-          workflows?.user.getUserById(id),
+          workflows?.user.getUserById(id) ?? Promise.resolve(null),
         ),
         user: createUserWorkflows(deps, () =>
-          workflows?.role.getRolePermissions(""),
+          workflows?.role.getRolePermissions("") ?? Promise.resolve([]),
         ),
       };
       // Re-wire user with proper getRolePermissions
@@ -106,7 +107,7 @@ export function createAuthUnit(config: AuthConfig): AuthUnit & Unit {
 
     server: {
       get $(): Auth {
-        return auth;
+        return auth!;
       },
       handler: async (request: Request) => {
         if (!auth) throw new Error("Auth unit not initialized");
@@ -134,8 +135,8 @@ export function createAuthUnit(config: AuthConfig): AuthUnit & Unit {
             create: workflows.user.createUser,
             delete: workflows.user.deleteUser,
             get(query: { id: string } | { email: string }) {
-              if ("id" in query) return workflows?.user.getUserById(query.id);
-              return workflows?.user.getUserByEmail(query.email);
+              if ("id" in query) return workflows?.user.getUserById(query.id) ?? Promise.resolve(null);
+              return workflows?.user.getUserByEmail(query.email) ?? Promise.resolve(null);
             },
             permission: {
               check: workflows.user.hasPermission,

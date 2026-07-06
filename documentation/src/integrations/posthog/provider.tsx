@@ -2,6 +2,8 @@ import { PostHogProvider as BasePostHogProvider } from "@posthog/react";
 import posthog from "posthog-js";
 import type { ReactNode } from "react";
 
+declare const window: Window & typeof globalThis;
+
 if (typeof window !== "undefined" && import.meta.env.VITE_POSTHOG_KEY) {
   posthog.init(import.meta.env.VITE_POSTHOG_KEY, {
     api_host: import.meta.env.VITE_POSTHOG_HOST || "https://us.i.posthog.com",

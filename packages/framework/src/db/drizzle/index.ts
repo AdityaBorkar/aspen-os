@@ -1,6 +1,6 @@
 import * as authSchema from "../../auth/db-schema";
 import type { Framework } from "../../framework";
-import { kvStore } from "../../kv-store";
+import { kvStore } from "../../kv-store/db-schema";
 import * as logSchema from "../../logs/schema";
 import * as notificationSchema from "../../notification/schema";
 import * as storageSchema from "../../storage/schema";

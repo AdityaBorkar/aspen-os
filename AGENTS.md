@@ -37,10 +37,11 @@ packages/
   banking/      # Empty
   reports/      # Empty
 examples/
-  recruiter/    # TanStack Start + React 19 + Vite 8 + Tailwind 4 app (has its own biome.json, not framework-linked yet)
+  recruiter/    # TanStack Start + React 19 + Vite 8 + Tailwind 4 app
+documentation/  # TanStack Start docs site, deploys to Cloudflare Workers
 ```
 
-Only `packages/framework` has deps, scripts, and source code. Workspace globs: `./packages/*` and `./examples/*`.
+Only `packages/framework` has deps, scripts, and source code. Workspace globs: `./packages/*`, `./examples/*`, `./documentation`.
 
 ## Framework Architecture (`packages/framework`)
 
@@ -97,8 +98,6 @@ await framework.destroy()
 
 **Internal** (not exported):
 - **kv-store**: `PostgresKvStore` / `createKvStore` in `src/kv-store/`. Not a subpath export.
-
-**Note**: `src/index.ts` imports types from `./cache` and `./kv-store`, but the `cache` directory no longer exists on disk. This may cause build errors — verify before relying on those type imports.
 
 ### Unit Interface
 
@@ -157,7 +156,7 @@ import { createAuthUnit } from "@aspen-os/framework/auth"
 import { createRpcUnit } from "@aspen-os/framework/rpc"
 ```
 
-Currently exported subpaths: `auth`, `logs`, `notification`, `rpc`, `sync`. Not exported despite having source: `storage` (has directory), `pubsub` (has directory). Missing entirely: `cache` (directory removed).
+Currently exported subpaths: `auth`, `drizzle`, `logs`, `notification`, `rpc`, `storage`, `sync`. Not exported despite having source: `pubsub` (has directory). The `pubsub` unit is internal to the framework.
 
 ## Conventions
 
@@ -165,15 +164,13 @@ Currently exported subpaths: `auth`, `logs`, `notification`, `rpc`, `sync`. Not 
 - All timestamps use `withTimezone: true`
 - Unit factory functions are named `create<Name>Unit`
 - `Result<T, E>` type: `{ success: true, data } | { success: false, error }`
-- Do not create barrel files unless explicitly told to (per CODING_CONVENTIONS.md)
+- Do not create barrel files unless explicitly told to
 - Framework tsconfig has path alias `@/*` → `./src/*`
-- Biome config has template leftovers: import groups referencing `@plasmo`/`@plasmohq`, linter override for `./src/components/ui/**` — neither exists in this repo
 
 ## Current State
 
 - Most domain packages (`hr`, `analytics`, `banking`, `reports`) are empty stubs
 - No CI/CD, Docker for the app itself, or deployment config
 - No test files or test infrastructure
-- No docker-compose file exists despite framework depending on Postgres + Redis
 - `codedb.snapshot` at root is a CodeDB indexing artifact, not source
 - `src/db/drizzle.config.ts` is empty — no Drizzle Kit config is active yet

@@ -77,27 +77,27 @@ export function createRoleWorkflows(deps: UnitDeps) {
           target: [s.authPermissions.resource, s.authPermissions.action],
         })
         .returning();
-      permIds.push(permRow?.id);
+      permIds.push(permRow!.id);
     }
 
     for (const permId of permIds) {
       await db
         .insert(s.authRolePermissions)
-        .values({ permissionId: permId, roleId: roleRow?.id })
+        .values({ permissionId: permId, roleId: roleRow!.id })
         .onConflictDoNothing();
     }
 
     const role: RoleData = {
-      createdAt: roleRow?.createdAt,
+      createdAt: roleRow!.createdAt,
       description,
-      id: roleRow?.id,
+      id: roleRow!.id,
       name,
       permissions: permIds.map((id, i) => ({
-        action: permissions[i]?.action,
+        action: permissions[i]!.action,
         id,
-        resource: permissions[i]?.resource,
+        resource: permissions[i]!.resource,
       })),
-      updatedAt: roleRow?.updatedAt,
+      updatedAt: roleRow!.updatedAt,
     };
 
     await pubsub.publish("role:created", { role });

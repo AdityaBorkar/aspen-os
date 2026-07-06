@@ -2,6 +2,7 @@ import { eq, like } from "drizzle-orm";
 
 import { createDrizzle } from "../db";
 import type { Unit, UnitDeps } from "../types";
+import { kvStore } from "./db-schema";
 
 export interface KvStoreConfig {
   defaultTtl?: number;
