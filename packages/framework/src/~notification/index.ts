@@ -1,7 +1,6 @@
 import { eq } from "drizzle-orm";
 
 import { createDrizzle } from "../db";
-import type { Unit, UnitDeps } from "../types";
 import * as schema from "./schema";
 import { createNotificationQueryService } from "./service";
 import type {
@@ -27,55 +26,45 @@ export type {
 
 export function createNotificationUnit(
   config: NotificationConfig,
-): NotificationUnit & Unit {
+  pool: import("pg").Pool,
+): NotificationUnit {
   const providers = new Map<string, NotificationProvider>();
   for (const provider of config.providers) {
     providers.set(provider.type, provider);
   }
 
-  let pool: import("pg").Pool | null = null;
-  let db: ReturnType<typeof createDrizzle> | null = null;
-  let queryService: ReturnType<typeof createNotificationQueryService> | null =
-    null;
+  const db = createDrizzle(pool, schema);
+  const queryService = createNotificationQueryService(db);
 
-  async function initialize(deps: UnitDeps): Promise<void> {
-    pool = deps.pool;
-    db = createDrizzle(deps.pool, schema);
-    queryService = createNotificationQueryService(db);
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS notifications (
-        id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-        type TEXT NOT NULL,
-        "to" TEXT NOT NULL,
-        subject TEXT,
-        body TEXT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'pending',
-        provider TEXT NOT NULL,
-        error TEXT,
-        data JSONB DEFAULT '{}',
-        sent_at TIMESTAMPTZ,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      );
-      CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications(type);
-      CREATE INDEX IF NOT EXISTS idx_notifications_status ON notifications(status);
-      CREATE INDEX IF NOT EXISTS idx_notifications_to ON notifications("to");
-    `);
-  }
+  // Initialize table synchronously in background
+  pool.query(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      type TEXT NOT NULL,
+      "to" TEXT NOT NULL,
+      subject TEXT,
+      body TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      provider TEXT NOT NULL,
+      error TEXT,
+      data JSONB DEFAULT '{}',
+      sent_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications(type);
+    CREATE INDEX IF NOT EXISTS idx_notifications_status ON notifications(status);
+    CREATE INDEX IF NOT EXISTS idx_notifications_to ON notifications("to");
+  `);
 
   async function destroy(): Promise<void> {
-    queryService = null;
-    db = null;
-    pool = null;
+    // Cleanup if needed
   }
 
   async function healthCheck(): Promise<boolean> {
-    return db !== null;
+    return true;
   }
 
   function requireDb() {
-    if (!db || !queryService)
-      throw new Error("Notification unit not initialized");
     return { db, queryService };
   }
 
@@ -152,7 +141,6 @@ export function createNotificationUnit(
       requireDb().queryService.getHistory(options),
     getStatus: (id: string) => requireDb().queryService.getStatus(id),
     healthCheck,
-    initialize,
     name: "notification",
     send,
     sendEmail: (to, subject, body, html) =>

@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-import type { UnitDeps } from "../../types";
 import * as s from "../db-schema";
 import type { Permission } from "../types";
 
@@ -13,7 +13,12 @@ interface RoleData {
   updatedAt: Date;
 }
 
-export function createRoleWorkflows(deps: UnitDeps) {
+interface RoleWorkflowsDeps {
+  db: NodePgDatabase;
+  pubsub: { publish<T = unknown>(topic: string, data: T): Promise<string> };
+}
+
+export function createRoleWorkflows(deps: RoleWorkflowsDeps) {
   const { db, pubsub } = deps;
 
   async function getRolePermissions(roleId: string): Promise<Permission[]> {

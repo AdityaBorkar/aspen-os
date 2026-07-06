@@ -1,7 +1,6 @@
 import { eq, like } from "drizzle-orm";
 
 import { createDrizzle } from "../db";
-import type { Unit, UnitDeps } from "../types";
 import { kvStore } from "./db-schema";
 
 export interface KvStoreConfig {
@@ -9,11 +8,12 @@ export interface KvStoreConfig {
   keyPrefix?: string;
 }
 
-export interface KvStoreUnit extends Unit {
+export interface KvStoreUnit {
   clear(pattern?: string): Promise<void>;
   decrement(key: string, amount?: number): Promise<number>;
   del(key: string): Promise<void>;
   delMany(keys: string[]): Promise<void>;
+  destroy(): Promise<void>;
   exists(key: string): Promise<boolean>;
   get<T = unknown>(key: string): Promise<T | null>;
   getOrSet<T = unknown>(
@@ -21,14 +21,15 @@ export interface KvStoreUnit extends Unit {
     factory: () => Promise<T>,
     ttl?: number,
   ): Promise<T>;
+  healthCheck(): Promise<boolean>;
   increment(key: string, amount?: number): Promise<number>;
+  readonly name: string;
   set(key: string, value: unknown, ttl?: number): Promise<void>;
 }
 
 export class PostgresKvStore {
   private pool;
   private db;
-  private initialized: boolean = false;
 
   constructor(pool: import("pg").Pool) {
     this.pool = pool;
@@ -36,7 +37,6 @@ export class PostgresKvStore {
   }
 
   async initialize(): Promise<void> {
-    if (this.initialized) return;
     await this.pool.query(`
       CREATE UNLOGGED TABLE IF NOT EXISTS kv_store (
         key TEXT PRIMARY KEY,
@@ -47,7 +47,6 @@ export class PostgresKvStore {
       CREATE INDEX IF NOT EXISTS idx_kv_store_expires_at
         ON kv_store (expires_at) WHERE expires_at IS NOT NULL;
     `);
-    this.initialized = true;
   }
 
   async ping(): Promise<string> {
@@ -134,7 +133,7 @@ export class PostgresKvStore {
     }
 
     const rows = await query.limit(count).offset(offset);
-    const keys = rows.map((r) => r.key);
+    const keys = rows.map((r: { key: string }) => r.key);
     const nextCursor = rows.length < count ? "0" : String(offset + rows.length);
 
     return [nextCursor, keys];
@@ -149,27 +148,26 @@ export function createKvStore(pool: import("pg").Pool): PostgresKvStore {
   return new PostgresKvStore(pool);
 }
 
-export function createKvStoreUnit(config: KvStoreConfig = {}): KvStoreUnit {
+export function createKvStoreUnit(
+  config: KvStoreConfig = {},
+  pool: import("pg").Pool,
+): KvStoreUnit {
   const defaultTtl = config.defaultTtl ?? 3600;
   const prefix = config.keyPrefix ?? "";
-  let kv: PostgresKvStore | null = null;
+  const kv = createKvStore(pool);
+
+  // Initialize table synchronously in background
+  kv.initialize().catch(console.error);
 
   function k(key: string): string {
     return prefix ? `${prefix}:${key}` : key;
   }
 
-  async function initialize(deps: UnitDeps): Promise<void> {
-    kv = createKvStore(deps.pool);
-    await kv.initialize();
-    await kv.ping();
-  }
-
   async function destroy(): Promise<void> {
-    kv = null;
+    // Cleanup if needed
   }
 
   async function healthCheck(): Promise<boolean> {
-    if (!kv) return false;
     try {
       await kv.ping();
       return true;
@@ -178,13 +176,8 @@ export function createKvStoreUnit(config: KvStoreConfig = {}): KvStoreUnit {
     }
   }
 
-  function requireKv(): PostgresKvStore {
-    if (!kv) throw new Error("KvStore unit not initialized");
-    return kv;
-  }
-
   async function get<T = unknown>(key: string): Promise<T | null> {
-    const value = await requireKv().get(k(key));
+    const value = await kv.get(k(key));
     if (value === null) return null;
     try {
       return JSON.parse(value) as T;
@@ -198,32 +191,32 @@ export function createKvStoreUnit(config: KvStoreConfig = {}): KvStoreUnit {
       typeof value === "string" ? value : JSON.stringify(value);
     const effectiveTtl = ttl ?? defaultTtl;
     if (effectiveTtl > 0) {
-      await requireKv().set(k(key), serialized, { ttlSeconds: effectiveTtl });
+      await kv.set(k(key), serialized, { ttlSeconds: effectiveTtl });
     } else {
-      await requireKv().set(k(key), serialized);
+      await kv.set(k(key), serialized);
     }
   }
 
   async function del(key: string): Promise<void> {
-    await requireKv().del(k(key));
+    await kv.del(k(key));
   }
 
   async function delMany(keys: string[]): Promise<void> {
     if (keys.length === 0) return;
-    await requireKv().del(...keys.map(k));
+    await kv.del(...keys.map(k));
   }
 
   async function exists(key: string): Promise<boolean> {
-    const result = await requireKv().exists(k(key));
+    const result = await kv.exists(k(key));
     return result === 1;
   }
 
   async function increment(key: string, amount = 1): Promise<number> {
-    return requireKv().incrby(k(key), amount);
+    return kv.incrby(k(key), amount);
   }
 
   async function decrement(key: string, amount = 1): Promise<number> {
-    return requireKv().decrby(k(key), amount);
+    return kv.decrby(k(key), amount);
   }
 
   async function getOrSet<T = unknown>(
@@ -239,12 +232,11 @@ export function createKvStoreUnit(config: KvStoreConfig = {}): KvStoreUnit {
   }
 
   async function clear(pattern?: string): Promise<void> {
-    const store = requireKv();
     const searchPattern = pattern ? k(pattern) : `${prefix}:*`;
     const keys: string[] = [];
     let cursor = "0";
     do {
-      const [nextCursor, found] = await store.scan(
+      const [nextCursor, found] = await kv.scan(
         cursor,
         "MATCH",
         searchPattern,
@@ -256,7 +248,7 @@ export function createKvStoreUnit(config: KvStoreConfig = {}): KvStoreUnit {
     } while (cursor !== "0");
 
     if (keys.length > 0) {
-      await store.del(...keys);
+      await kv.del(...keys);
     }
   }
 
@@ -271,7 +263,6 @@ export function createKvStoreUnit(config: KvStoreConfig = {}): KvStoreUnit {
     getOrSet,
     healthCheck,
     increment,
-    initialize,
     name: "kv-store",
     set,
   };

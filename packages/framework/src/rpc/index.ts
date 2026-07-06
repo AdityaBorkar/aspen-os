@@ -2,7 +2,6 @@ import { os } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import { z } from "zod";
 
-import type { Unit, UnitDeps } from "../types";
 import type { RpcConfig, RpcContext } from "./types";
 
 export type { RpcConfig, RpcContext } from "./types";
@@ -28,13 +27,12 @@ export const router = {
 
 export type RpcRouter = typeof router;
 
-export class RpcUnit implements Unit {
+export class RpcUnit {
   readonly name = "rpc";
   readonly router = router;
 
   private prefix: `/${string}`;
-  private rpcHandler: InstanceType<typeof RPCHandler> | null = null;
-  private deps: UnitDeps | null = null;
+  private rpcHandler: InstanceType<typeof RPCHandler>;
 
   readonly server: {
     handle(
@@ -46,6 +44,7 @@ export class RpcUnit implements Unit {
 
   constructor(config: RpcConfig = {}) {
     this.prefix = (config.prefix ?? "/api/rpc") as `/${string}`;
+    this.rpcHandler = new RPCHandler(router);
 
     this.server = {
       handle: this.handle.bind(this),
@@ -53,14 +52,8 @@ export class RpcUnit implements Unit {
     };
   }
 
-  async initialize(incomingDeps: UnitDeps): Promise<void> {
-    this.deps = incomingDeps;
-    this.rpcHandler = new RPCHandler(router);
-  }
-
   async destroy(): Promise<void> {
-    this.rpcHandler = null;
-    this.deps = null;
+    // Cleanup if needed
   }
 
   async healthCheck(): Promise<boolean> {
@@ -76,16 +69,5 @@ export class RpcUnit implements Unit {
       context,
       prefix: this.prefix,
     });
-  }
-
-  async handler(request: Request): Promise<Response> {
-    if (!this.rpcHandler || !this.deps)
-      throw new Error("RPC unit not initialized");
-    const { matched, response } = await this.handle(request, {
-      db: this.deps.db,
-      pubsub: this.deps.pubsub as unknown as import("../pubsub").PubSubUnit,
-    });
-    if (matched && response) return response;
-    return new Response("Not Found", { status: 404 });
   }
 }

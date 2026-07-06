@@ -7,8 +7,8 @@ import {
 } from "better-auth/client/plugins";
 import type { Role } from "better-auth/plugins/access";
 import { createAuthClient } from "better-auth/react";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-import type { Unit, UnitDeps } from "../types";
 import * as db_schema from "./db-schema";
 import type { AuthConfig, RoleData } from "./types";
 import { createRoleWorkflows } from "./workflows/role";
@@ -41,20 +41,17 @@ export type {
   UserAPI,
 } from "./types";
 
-export class AuthUnit implements Unit {
+export class AuthUnit {
   readonly name = "auth";
   readonly client;
   readonly db_schema = db_schema;
 
-  private config: Omit<AuthConfig, "access_control" | "roles">;
-  private accessControl: AuthConfig["access_control"];
-  private roles: AuthConfig["roles"];
-  private auth: Auth | null = null;
+  private auth: Auth;
   private workflows: {
     role: ReturnType<typeof createRoleWorkflows>;
     session: ReturnType<typeof createSessionWorkflows>;
     user: ReturnType<typeof createUserWorkflows>;
-  } | null = null;
+  };
 
   readonly server: {
     $: Auth;
@@ -66,45 +63,78 @@ export class AuthUnit implements Unit {
     };
   };
 
-  constructor(config: AuthConfig) {
+  constructor(
+    config: AuthConfig,
+    db: NodePgDatabase,
+    pubsub: { publish<T = unknown>(topic: string, data: T): Promise<string> },
+  ) {
     const { access_control, roles, ...rest } = config;
-    this.config = rest;
-    this.accessControl = access_control;
-    this.roles = roles;
 
     this.client = createAuthClient({
       plugins: [
         phoneNumberClient(),
         adminClient({
-          ac: this.accessControl,
-          roles: this.roles as { [key in string]: Role },
+          ac: access_control,
+          roles: roles as { [key in string]: Role },
         }),
         customSessionClient(),
       ],
     });
 
+    this.auth = betterAuth({
+      emailAndPassword: { enabled: true },
+      ...rest,
+      database: drizzleAdapter(db, {
+        camelCase: false,
+        provider: "pg",
+        schema: db_schema,
+        transaction: true,
+        usePlural: true,
+      }),
+    }) as Auth;
+
+    const deps = { db, pubsub };
+    this.workflows = {
+      role: createRoleWorkflows(deps),
+      session: createSessionWorkflows(
+        deps,
+        (id: string) =>
+          this.workflows.user.getUserById(id) ?? Promise.resolve(null),
+      ),
+      user: createUserWorkflows(
+        deps,
+        () => this.workflows.role.getRolePermissions("") ?? Promise.resolve([]),
+      ),
+    };
+
+    // Re-wire user with proper getRolePermissions
+    this.workflows.user = createUserWorkflows(
+      deps,
+      this.workflows.role.getRolePermissions,
+    );
+    this.workflows.session = createSessionWorkflows(
+      deps,
+      this.workflows.user.getUserById,
+    );
+
     const self = this;
     this.server = {
       get $(): Auth {
-        if (!self.auth) throw new Error("Auth unit not initialized");
         return self.auth;
       },
 
       handler: async (request: Request): Promise<Response> => {
-        if (!self.auth) throw new Error("Auth unit not initialized");
         return self.auth.handler(request);
       },
 
       workflows: {
         get role() {
-          if (!self.workflows) throw new Error("Auth unit not initialized");
           return {
             delete: self.workflows.role.deleteRole,
             list: self.workflows.role.getAllRoles as () => Promise<RoleData[]>,
           };
         },
         get session() {
-          if (!self.workflows) throw new Error("Auth unit not initialized");
           return {
             create: self.workflows.session.authenticate,
             invalidate: self.workflows.session.invalidateSession,
@@ -112,18 +142,17 @@ export class AuthUnit implements Unit {
           };
         },
         get user() {
-          if (!self.workflows) throw new Error("Auth unit not initialized");
           return {
             create: self.workflows.user.createUser,
             delete: self.workflows.user.deleteUser,
             get(query: { id: string } | { email: string }) {
               if ("id" in query)
                 return (
-                  self.workflows?.user.getUserById(query.id) ??
+                  self.workflows.user.getUserById(query.id) ??
                   Promise.resolve(null)
                 );
               return (
-                self.workflows?.user.getUserByEmail(query.email) ??
+                self.workflows.user.getUserByEmail(query.email) ??
                 Promise.resolve(null)
               );
             },
@@ -145,50 +174,11 @@ export class AuthUnit implements Unit {
     };
   }
 
-  async initialize(deps: UnitDeps): Promise<void> {
-    this.auth = betterAuth({
-      emailAndPassword: { enabled: true },
-      ...this.config,
-      database: drizzleAdapter(deps.db, {
-        camelCase: false,
-        provider: "pg",
-        schema: db_schema,
-        transaction: true,
-        usePlural: true,
-      }),
-    }) as Auth;
-
-    this.workflows = {
-      role: createRoleWorkflows(deps),
-      session: createSessionWorkflows(
-        deps,
-        (id: string) =>
-          this.workflows?.user.getUserById(id) ?? Promise.resolve(null),
-      ),
-      user: createUserWorkflows(
-        deps,
-        () =>
-          this.workflows?.role.getRolePermissions("") ?? Promise.resolve([]),
-      ),
-    };
-
-    // Re-wire user with proper getRolePermissions
-    this.workflows.user = createUserWorkflows(
-      deps,
-      this.workflows.role.getRolePermissions,
-    );
-    this.workflows.session = createSessionWorkflows(
-      deps,
-      this.workflows.user.getUserById,
-    );
-  }
-
   async destroy(): Promise<void> {
-    this.auth = null;
-    this.workflows = null;
+    // Auth cleanup if needed
   }
 
   async healthCheck(): Promise<boolean> {
-    return this.auth !== null;
+    return true;
   }
 }

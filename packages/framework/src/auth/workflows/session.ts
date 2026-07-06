@@ -1,11 +1,16 @@
 import { and, eq, gte } from "drizzle-orm";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-import type { UnitDeps } from "../../types";
 import * as s from "../db-schema";
 import type { Session, User } from "../types";
 
+interface SessionWorkflowsDeps {
+  db: NodePgDatabase;
+  pubsub: { publish<T = unknown>(topic: string, data: T): Promise<string> };
+}
+
 export function createSessionWorkflows(
-  deps: UnitDeps,
+  deps: SessionWorkflowsDeps,
   getUserById: (id: string) => Promise<User | null>,
 ) {
   const { db, pubsub } = deps;

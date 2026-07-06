@@ -1,4 +1,4 @@
-import type { DatabaseConfig, UnitDeps } from "../types";
+import type { DatabaseConfig } from "../types";
 
 export interface StorageConfig {
   bucket: string;
@@ -54,7 +54,6 @@ export interface StorageUnit {
   getMetadata(key: string): Promise<FileObject>;
   getSignedGetUrl(key: string, options?: SignedUrlOptions): Promise<string>;
   getSignedPutUrl(key: string, options?: SignedUrlOptions): Promise<string>;
-  initialize(deps: UnitDeps): Promise<void>;
   list(
     prefix?: string,
     options?: ListOptions,

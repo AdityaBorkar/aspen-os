@@ -1,10 +1,12 @@
-import type { Unit, UnitDeps } from "../types";
-
 export interface SyncConfig {
   provider?: string;
 }
 
-export interface SyncUnit extends Unit {}
+export interface SyncUnit {
+  destroy(): Promise<void>;
+  healthCheck(): Promise<boolean>;
+  readonly name: "sync";
+}
 
 export function createSyncUnit(_config: SyncConfig = {}): SyncUnit {
   return {
@@ -15,10 +17,6 @@ export function createSyncUnit(_config: SyncConfig = {}): SyncUnit {
     async healthCheck() {
       return true;
     },
-
-    async initialize(_deps: UnitDeps) {
-      // TODO: implement sync initialization
-    },
-    name: "sync",
+    name: "sync" as const,
   };
 }

@@ -3,10 +3,10 @@ import * as authSchema from "./auth/db-schema";
 import { context } from "./context";
 import { DatabaseUnit } from "./db";
 import { type LoggingConfig, LoggingUnit } from "./logs";
-import { type PubSubConfig, PubSubUnit } from "./pubsub";
+import { createPubSubUnit, type PubSubConfig } from "./pubsub";
 import { type RpcConfig, RpcUnit } from "./rpc";
 import { type StorageConfig, StorageUnit } from "./storage";
-import type { DatabaseConfig, Module, Unit } from "./types";
+import type { DatabaseConfig, Module } from "./types";
 
 export interface FrameworkConfig {
   auth: AuthConfig;
@@ -23,7 +23,7 @@ export class Framework {
     auth: AuthUnit;
     db: DatabaseUnit;
     logs: LoggingUnit;
-    pubsub: PubSubUnit;
+    pubsub: import("./pubsub").PubSubUnit;
     rpc: RpcUnit;
     storage: StorageUnit;
   } | null = null;
@@ -46,27 +46,17 @@ export class Framework {
 
     const $config = this.config;
     const database = $config.db;
-    const db = new DatabaseUnit(database, authSchema);
-    const storage = new StorageUnit({ database, ...$config.storage });
-    const logs = new LoggingUnit({ database, ...$config.logs });
-    const pubsub = new PubSubUnit({ database, ...$config.pubsub });
-    const auth = new AuthUnit($config.auth);
+
+    const db = new DatabaseUnit(database);
+    const pubsub = await createPubSubUnit({ database, ...$config.pubsub });
+
+    // Create other units with pool/db from DatabaseUnit
+    const storage = new StorageUnit({ database, ...$config.storage }, db.pool);
+    const logs = new LoggingUnit({ database, ...$config.logs }, db.pool);
+    const auth = new AuthUnit($config.auth, db.db, pubsub);
     const rpc = new RpcUnit($config.rpc);
 
     this.units = { auth, db, logs, pubsub, rpc, storage };
-
-    if (!this.units) throw new Error("Could not setup framework units");
-    await context.run(this.units, async () => {
-      if (!this.units) throw new Error("Could not setup framework units");
-      await this.units.pubsub.initialize(this.units);
-      await this.units.auth.initialize(this.units);
-      await this.units.rpc.initialize(this.units);
-      await this.units.storage.initialize(this.units);
-      await this.units.logs.initialize(this.units);
-      for (const module of this.modules) {
-        await module.initialize(this.units);
-      }
-    });
 
     this.initialized = true;
   }
@@ -74,7 +64,7 @@ export class Framework {
   async run<T>(fn: () => T | Promise<T>): Promise<T> {
     if (!this.units) throw new Error("Could not setup framework units");
     if (!this.initialized) throw new Error("Framework not initialized");
-    return context.run(this.units, fn);
+    return context.run({ db: this.units.db.db, pubsub: this.units.pubsub }, fn);
   }
 
   async destroy(): Promise<void> {
@@ -105,7 +95,7 @@ export class Framework {
     return module;
   }
 
-  getUnit(name?: keyof typeof this.units): Unit | typeof this.units {
+  getUnit(name?: keyof typeof this.units) {
     if (!this.units) throw new Error("Could not setup framework units");
     if (!this.initialized) throw new Error("Framework not initialized");
     if (!name) return this.units;

@@ -1,4 +1,4 @@
-import type { DatabaseConfig, UnitDeps } from "../types";
+import type { DatabaseConfig } from "../types";
 
 export type LogLevel = "debug" | "info" | "warn" | "error" | "fatal";
 
@@ -82,7 +82,6 @@ export interface LoggingUnit {
     endTime?: Date,
   ): Promise<LogStats>;
   info(message: string, metadata?: Record<string, unknown>): void;
-  initialize(deps: UnitDeps): Promise<void>;
 
   log(
     level: LogLevel,

@@ -1,5 +1,4 @@
 import { createDrizzle } from "../db";
-import type { Unit, UnitDeps } from "../types";
 import { createEntryFactory, createLogBuffer } from "./buffer";
 import * as schema from "./schema";
 import { LogQueryService } from "./service";
@@ -16,16 +15,16 @@ export type {
   LogStats,
 } from "./types";
 
-export class LoggingUnit implements Unit {
+export class LoggingUnit {
   readonly name = "logs";
 
   private serviceName: string;
   private defaultLevel: LogLevel;
-  private pool: import("pg").Pool | null = null;
-  private db: ReturnType<typeof createDrizzle> | null = null;
-  private queryService: LogQueryService | null = null;
-  private buffer: ReturnType<typeof createLogBuffer> | null = null;
-  private flushTimer: ReturnType<typeof setInterval> | null = null;
+  private pool: import("pg").Pool;
+  private db: ReturnType<typeof createDrizzle>;
+  private queryService: LogQueryService;
+  private buffer: ReturnType<typeof createLogBuffer>;
+  private flushTimer: ReturnType<typeof setInterval>;
   private createEntry: (
     level: LogLevel,
     message: string,
@@ -33,41 +32,12 @@ export class LoggingUnit implements Unit {
     error?: Error,
   ) => import("./types").LogEntry;
 
-  constructor(config: LoggingConfig) {
+  constructor(config: LoggingConfig, pool: import("pg").Pool) {
     this.serviceName = config.serviceName ?? "app";
     this.defaultLevel = config.defaultLevel ?? "info";
     this.createEntry = createEntryFactory(this.serviceName);
-  }
-
-  private shouldLog(level: LogLevel): boolean {
-    return levelPriority[level] >= levelPriority[this.defaultLevel];
-  }
-
-  private requireBuffer() {
-    if (!this.buffer) throw new Error("Logging unit not initialized");
-    return this.buffer;
-  }
-
-  private requireQueryService() {
-    if (!this.queryService) throw new Error("Logging unit not initialized");
-    return this.queryService;
-  }
-
-  private enqueue(
-    level: LogLevel,
-    message: string,
-    metadata?: Record<string, unknown>,
-    error?: Error,
-  ): void {
-    if (!this.shouldLog(level)) return;
-    this.requireBuffer().push(
-      this.createEntry(level, message, metadata, error),
-    );
-  }
-
-  async initialize(deps: UnitDeps): Promise<void> {
-    this.pool = deps.pool;
-    this.db = createDrizzle(deps.pool, schema);
+    this.pool = pool;
+    this.db = createDrizzle(pool, schema);
     this.queryService = new LogQueryService(this.db);
 
     this.buffer = createLogBuffer(100, async (entries) => {
@@ -91,7 +61,8 @@ export class LoggingUnit implements Unit {
       );
     });
 
-    await this.pool.query(`
+    // Initialize table synchronously in background
+    this.pool.query(`
       CREATE TABLE IF NOT EXISTS logs (
         id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
         level TEXT NOT NULL,
@@ -120,22 +91,42 @@ export class LoggingUnit implements Unit {
     this.flushTimer = setInterval(() => this.buffer?.flush(), 5000);
   }
 
+  private shouldLog(level: LogLevel): boolean {
+    return levelPriority[level] >= levelPriority[this.defaultLevel];
+  }
+
+  private requireBuffer() {
+    if (!this.buffer) throw new Error("Logging unit not initialized");
+    return this.buffer;
+  }
+
+  private requireQueryService() {
+    return this.queryService;
+  }
+
+  private enqueue(
+    level: LogLevel,
+    message: string,
+    metadata?: Record<string, unknown>,
+    error?: Error,
+  ): void {
+    if (!this.shouldLog(level)) return;
+    this.requireBuffer().push(
+      this.createEntry(level, message, metadata, error),
+    );
+  }
+
   async destroy(): Promise<void> {
     if (this.flushTimer) {
       clearInterval(this.flushTimer);
-      this.flushTimer = null;
     }
     if (this.buffer) {
       await this.buffer.drain();
-      this.buffer = null;
     }
-    this.queryService = null;
-    this.db = null;
-    this.pool = null;
   }
 
   async healthCheck(): Promise<boolean> {
-    return this.db !== null;
+    return true;
   }
 
   child(context: Record<string, unknown>): ChildLogger {

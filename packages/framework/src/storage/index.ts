@@ -1,5 +1,4 @@
 import { createDrizzle } from "../db";
-import type { Unit, UnitDeps } from "../types";
 import { createS3Client, createS3Operations } from "./s3-client";
 import * as schema from "./schema";
 import { createFileMetadataService } from "./service";
@@ -14,36 +13,30 @@ export type {
   StorageProvider,
 } from "./types";
 
-export class StorageUnit implements Unit {
+export class StorageUnit {
   readonly name = "storage";
 
   private config: StorageConfig;
   private prefix: string;
-  private pool: import("pg").Pool | null = null;
-  private db: ReturnType<typeof createDrizzle> | null = null;
-  private s3Ops: ReturnType<typeof createS3Operations> | null = null;
-  private metadataService: ReturnType<typeof createFileMetadataService> | null =
-    null;
+  private pool: import("pg").Pool;
+  private db: ReturnType<typeof createDrizzle>;
+  private s3Ops: ReturnType<typeof createS3Operations>;
+  private metadataService: ReturnType<typeof createFileMetadataService>;
 
-  constructor(config: StorageConfig) {
+  constructor(config: StorageConfig, pool: import("pg").Pool) {
     this.config = config;
     this.prefix = config.prefix ?? "";
-  }
+    this.pool = pool;
+    this.db = createDrizzle(pool, schema);
 
-  private fullKey(key: string): string {
-    return this.prefix ? `${this.prefix}/${key}` : key;
-  }
-
-  async initialize(deps: UnitDeps): Promise<void> {
-    this.pool = deps.pool;
-    this.db = createDrizzle(deps.pool, schema);
-    const s3 = createS3Client(this.config.provider, this.config.region);
-    this.s3Ops = createS3Operations(s3, this.config.bucket, (key) =>
+    const s3 = createS3Client(config.provider, config.region);
+    this.s3Ops = createS3Operations(s3, config.bucket, (key) =>
       this.fullKey(key),
     );
     this.metadataService = createFileMetadataService(this.db);
 
-    await this.pool.query(`
+    // Initialize table synchronously in background
+    this.pool.query(`
       CREATE TABLE IF NOT EXISTS file_metadata (
         id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
         key TEXT UNIQUE NOT NULL,
@@ -62,11 +55,12 @@ export class StorageUnit implements Unit {
     `);
   }
 
+  private fullKey(key: string): string {
+    return this.prefix ? `${this.prefix}/${key}` : key;
+  }
+
   async destroy(): Promise<void> {
-    this.s3Ops = null;
-    this.metadataService = null;
-    this.db = null;
-    this.pool = null;
+    // Cleanup if needed
   }
 
   async healthCheck(): Promise<boolean> {

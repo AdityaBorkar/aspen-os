@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-import type { UnitDeps } from "../../types";
 import * as s from "../db-schema";
 import type { CreateUserInput, Permission, User } from "../types";
 
@@ -13,8 +13,13 @@ interface RoleData {
   updatedAt: Date;
 }
 
+interface UserWorkflowsDeps {
+  db: NodePgDatabase;
+  pubsub: { publish<T = unknown>(topic: string, data: T): Promise<string> };
+}
+
 export function createUserWorkflows(
-  deps: UnitDeps,
+  deps: UserWorkflowsDeps,
   getRolePermissions: (roleId: string) => Promise<Permission[]>,
 ) {
   const { db, pubsub } = deps;
