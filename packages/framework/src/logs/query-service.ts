@@ -1,7 +1,7 @@
 import { and, desc, eq, gte, ilike, lte, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-import * as s from "./schema";
+import { logs } from "./db-schema";
 import type { LogEntry, LogLevel, LogQuery, LogStats } from "./types";
 
 type DrizzleDB = NodePgDatabase<Record<string, never>>;
@@ -15,23 +15,23 @@ export class LogQueryService {
 
   async query(filter: LogQuery): Promise<LogEntry[]> {
     const conditions = [];
-    if (filter.level) conditions.push(eq(s.logs.level, filter.level));
-    if (filter.service) conditions.push(eq(s.logs.service, filter.service));
+    if (filter.level) conditions.push(eq(logs.level, filter.level));
+    if (filter.service) conditions.push(eq(logs.service, filter.service));
     if (filter.startTime)
-      conditions.push(gte(s.logs.timestamp, filter.startTime));
-    if (filter.endTime) conditions.push(lte(s.logs.timestamp, filter.endTime));
-    if (filter.traceId) conditions.push(eq(s.logs.traceId, filter.traceId));
-    if (filter.userId) conditions.push(eq(s.logs.userId, filter.userId));
+      conditions.push(gte(logs.timestamp, filter.startTime));
+    if (filter.endTime) conditions.push(lte(logs.timestamp, filter.endTime));
+    if (filter.traceId) conditions.push(eq(logs.traceId, filter.traceId));
+    if (filter.userId) conditions.push(eq(logs.userId, filter.userId));
     if (filter.search)
-      conditions.push(ilike(s.logs.message, `%${filter.search}%`));
+      conditions.push(ilike(logs.message, `%${filter.search}%`));
 
     const where = conditions.length > 0 ? and(...conditions) : undefined;
 
     const rows = await this.db
       .select()
-      .from(s.logs)
+      .from(logs)
       .where(where)
-      .orderBy(desc(s.logs.timestamp))
+      .orderBy(desc(logs.timestamp))
       .limit(filter.limit ?? 100)
       .offset(filter.offset ?? 0);
 
@@ -63,20 +63,20 @@ export class LogQueryService {
     endTime?: Date,
   ): Promise<LogStats> {
     const conditions = [];
-    if (service) conditions.push(eq(s.logs.service, service));
-    if (startTime) conditions.push(gte(s.logs.timestamp, startTime));
-    if (endTime) conditions.push(lte(s.logs.timestamp, endTime));
+    if (service) conditions.push(eq(logs.service, service));
+    if (startTime) conditions.push(gte(logs.timestamp, startTime));
+    if (endTime) conditions.push(lte(logs.timestamp, endTime));
 
     const where = conditions.length > 0 ? and(...conditions) : undefined;
 
     const rows = await this.db
       .select({
         count: sql<number>`count(*)::int`,
-        level: s.logs.level,
+        level: logs.level,
       })
-      .from(s.logs)
+      .from(logs)
       .where(where)
-      .groupBy(s.logs.level);
+      .groupBy(logs.level);
 
     const byLevel: Record<LogLevel, number> = {
       debug: 0,

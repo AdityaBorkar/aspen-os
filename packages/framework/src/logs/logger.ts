@@ -2,15 +2,17 @@ import { context, trace } from "@opentelemetry/api";
 import pino from "pino";
 import pretty from "pino-pretty";
 
-const isDev = ["development", "dev"].includes(
-  process.env.NODE_ENV || "development",
-);
+const baseEnv = process.env.NODE_ENV;
+if (!baseEnv) throw new Error("NODE_ENV is not set");
+
+const serviceName = process.env.OTEL_SERVICE_NAME;
+if (!serviceName) throw new Error("OTEL_SERVICE_NAME is not set");
 
 export const logger = pino(
   {
     base: {
-      env: process.env.NODE_ENV || "development",
-      service: process.env.OTEL_SERVICE_NAME || "alpauls-ats",
+      env: baseEnv,
+      service: serviceName,
     },
     level: process.env.LOG_LEVEL || "info",
     mixin() {
@@ -20,7 +22,7 @@ export const logger = pino(
       return { span_id: spanId, trace_id: traceId };
     },
   },
-  isDev
+  baseEnv === "development"
     ? pretty({
         colorize: true,
         ignore: "pid,hostname",

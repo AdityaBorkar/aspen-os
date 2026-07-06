@@ -1,13 +1,21 @@
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { Pool } from "pg";
 
 import type { DatabaseUnit } from "../db";
 import { createEntryFactory, createLogBuffer } from "./buffer";
-import * as schema from "./schema";
-import { LogQueryService } from "./service";
-import type { ChildLogger, LoggingConfig, LogLevel } from "./types";
+import { logs } from "./db-schema";
+import { LogQueryService } from "./query-service";
+import type {
+  ChildLogger,
+  LogEntry,
+  LoggingConfig,
+  LogLevel,
+  LogQuery,
+  LogStats,
+} from "./types";
 import { LEVEL_PRIORITY as levelPriority } from "./types";
 
-export { LogQueryService } from "./service";
+export { LogQueryService } from "./query-service";
 export type {
   ChildLogger,
   LogEntry,
@@ -22,7 +30,7 @@ export class LoggingUnit {
 
   private serviceName: string;
   private defaultLevel: LogLevel;
-  private pool: import("pg").Pool;
+  private pool: Pool;
   private db: NodePgDatabase;
   private queryService: LogQueryService;
   private buffer: ReturnType<typeof createLogBuffer>;
@@ -32,7 +40,7 @@ export class LoggingUnit {
     message: string,
     metadata?: Record<string, unknown>,
     error?: Error,
-  ) => import("./types").LogEntry;
+  ) => LogEntry;
 
   constructor(config: LoggingConfig, { db }: { db: DatabaseUnit }) {
     this.serviceName = config.serviceName ?? "app";
@@ -43,7 +51,7 @@ export class LoggingUnit {
     this.queryService = new LogQueryService(this.db);
 
     this.buffer = createLogBuffer(100, async (entries) => {
-      await this.db?.insert(schema.logs).values(
+      await this.db?.insert(logs).values(
         entries.map((entry) => ({
           durationMs: entry.duration ?? null,
           errorMessage: entry.error?.message ?? null,
@@ -62,34 +70,6 @@ export class LoggingUnit {
         })),
       );
     });
-
-    // Initialize table synchronously in background
-    this.pool.query(`
-      CREATE TABLE IF NOT EXISTS logs (
-        id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-        level TEXT NOT NULL,
-        message TEXT NOT NULL,
-        service TEXT NOT NULL,
-        timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        metadata JSONB DEFAULT '{}',
-        trace_id TEXT,
-        span_id TEXT,
-        user_id TEXT,
-        request_id TEXT,
-        duration_ms INTEGER,
-        error_name TEXT,
-        error_message TEXT,
-        error_stack TEXT
-      );
-
-      SELECT create_hypertable('logs', 'timestamp', if_not_exists => TRUE);
-
-      CREATE INDEX IF NOT EXISTS idx_logs_level ON logs(level);
-      CREATE INDEX IF NOT EXISTS idx_logs_service ON logs(service);
-      CREATE INDEX IF NOT EXISTS idx_logs_trace_id ON logs(trace_id);
-      CREATE INDEX IF NOT EXISTS idx_logs_user_id ON logs(user_id);
-    `);
-
     this.flushTimer = setInterval(() => this.buffer?.flush(), 5000);
   }
 
@@ -203,13 +183,11 @@ export class LoggingUnit {
     service?: string,
     startTime?: Date,
     endTime?: Date,
-  ): Promise<import("./types").LogStats> {
+  ): Promise<LogStats> {
     return this.requireQueryService().getStats(service, startTime, endTime);
   }
 
-  async query(
-    filter: import("./types").LogQuery,
-  ): Promise<import("./types").LogEntry[]> {
+  async query(filter: LogQuery): Promise<LogEntry[]> {
     return this.requireQueryService().query(filter);
   }
 }
