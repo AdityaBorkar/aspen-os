@@ -1,31 +1,9 @@
-import { os } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
-import { z } from "zod";
 
+import { type RpcRouter, router } from "./router";
 import type { RpcConfig, RpcContext } from "./types";
 
 export type { RpcConfig, RpcContext } from "./types";
-
-const base = os.$context<RpcContext>();
-
-export const healthCheck = base.handler(async () => {
-  return { status: "ok" as const };
-});
-
-export const echo = base
-  .input(z.object({ message: z.string() }))
-  .handler(async ({ input }) => {
-    return { echo: input.message };
-  });
-
-export const router = {
-  echo,
-  health: {
-    check: healthCheck,
-  },
-};
-
-export type RpcRouter = typeof router;
 
 export class RpcUnit {
   readonly name = "rpc";
