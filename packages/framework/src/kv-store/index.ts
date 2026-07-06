@@ -1,17 +1,7 @@
 import { eq, like } from "drizzle-orm";
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 import { createDrizzle } from "../db";
 import type { Unit, UnitDeps } from "../types";
-
-export const kvStore = pgTable("kv_store", {
-  expiresAt: timestamp("expires_at", { withTimezone: true }),
-  key: text("key").primaryKey(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  value: text("value").notNull(),
-});
 
 export interface KvStoreConfig {
   defaultTtl?: number;
@@ -37,7 +27,7 @@ export interface KvStoreUnit extends Unit {
 export class PostgresKvStore {
   private pool;
   private db;
-  private initialized = false;
+  private initialized: boolean = false;
 
   constructor(pool: import("pg").Pool) {
     this.pool = pool;
@@ -72,7 +62,8 @@ export class PostgresKvStore {
       .limit(1);
 
     if (rows.length === 0) return null;
-    const row = rows[0]!;
+    const row = rows[0];
+    if (!row) return null;
     if (row.expiresAt && row.expiresAt.getTime() < Date.now()) {
       await this.del(key);
       return null;

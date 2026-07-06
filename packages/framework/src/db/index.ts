@@ -19,5 +19,5 @@ export function createDrizzle(
   pool: pg.Pool,
   schema?: Record<string, unknown>,
 ): NodePgDatabase {
-  return drizzle(pool, { schema: schema as any });
+  return drizzle(pool, { schema: schema as Record<string, never> });
 }

@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@biomejs/biome": "^2.5.2",
+    "@biomejs/biome": "2.5.1",
     "@types/bun": "^1.3.14",
     "taze": "^19.14.1",
     "typescript": "^7.0.1-rc"
@@ -11,8 +11,5 @@
     "check:types": "tsc --noEmit",
     "update:deps": "taze -rw --maturity-period 3"
   },
-  "workspaces": [
-    "./packages/*",
-    "./examples/*"
-  ]
+  "workspaces": ["./packages/*", "./examples/*", "./documentation"]
 }

@@ -1,6 +1,9 @@
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type pg from "pg";
 
+import type { AuthUnit } from "./auth/types";
+import type { RpcUnit } from "./rpc/types";
+
 export interface DatabaseConfig {
   database: string;
   host: string;
@@ -23,6 +26,18 @@ export interface Unit {
   destroy(): Promise<void>;
   healthCheck(): Promise<boolean>;
   initialize(deps: UnitDeps): Promise<void>;
+  readonly name: string;
+}
+
+export interface ModuleDeps extends UnitDeps {
+  auth: AuthUnit;
+  rpc: RpcUnit;
+}
+
+export interface Module {
+  destroy(): Promise<void>;
+  healthCheck(): Promise<boolean>;
+  initialize(deps: ModuleDeps): Promise<void>;
   readonly name: string;
 }
 

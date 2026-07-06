@@ -1,18 +1,4 @@
 {
-  "name": "recruiter",
-  "private": true,
-  "type": "module",
-  "imports": {
-    "#/*": "./src/*"
-  },
-  "scripts": {
-    "dev": "vite dev --port 3000",
-    "generate-routes": "tsr generate",
-    "build": "vite build",
-    "preview": "vite preview",
-    "check:types": "tsc --noEmit",
-    "check:lint": "biome check --fix ."
-  },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-devtools": "latest",
@@ -28,7 +14,6 @@
     "tailwindcss": "^4.1.18"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.5",
     "@tailwindcss/typography": "^0.5.16",
     "@tanstack/devtools-vite": "latest",
     "@tanstack/router-cli": "^1.132.0",
@@ -43,10 +28,21 @@
     "vite": "^8.0.0",
     "vitest": "^4.1.5"
   },
+  "imports": {
+    "#/*": "./src/*"
+  },
+  "name": "recruiter",
   "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "lightningcss"
-    ]
-  }
+    "onlyBuiltDependencies": ["esbuild", "lightningcss"]
+  },
+  "private": true,
+  "scripts": {
+    "build": "vite build",
+    "check:lint": "biome check --fix .",
+    "check:types": "tsc --noEmit",
+    "dev": "vite dev --port 3000",
+    "generate-routes": "tsr generate",
+    "preview": "vite preview"
+  },
+  "type": "module"
 }

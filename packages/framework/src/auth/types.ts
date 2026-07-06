@@ -38,7 +38,7 @@ export interface Session {
 export interface AuthConfig {
   access_control: ReturnType<typeof createAccessControl>;
   baseURL: string;
-  roles: Record<string, any>;
+  roles: Record<string, unknown>;
   secret: string;
   session: { expiresIn?: number };
 }
@@ -93,7 +93,7 @@ export interface RoleAPI {
 }
 
 export interface AuthUnit {
-  client: any;
+  client: unknown;
   db_schema: Record<string, unknown>;
   server: {
     $: Auth;

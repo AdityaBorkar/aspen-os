@@ -44,9 +44,13 @@ Only `packages/framework` has deps, scripts, and source code. Workspace globs: `
 
 ## Framework Architecture (`packages/framework`)
 
-### Terminology: "Unit", not "Module"
+### Terminology: Units vs Modules
 
-The codebase uses **Unit** terminology. The `Unit` interface and `UnitDeps` are in `src/types.ts`. All factory functions are `createXUnit`. The TODO.md explicitly notes "Remove the 'Module' analogy" — the current naming is intentional.
+The codebase distinguishes between **Units** and **Modules**:
+
+- **Unit**: Internal, primary building blocks necessary for the framework to operate. Units provide the foundational infrastructure (auth, pubsub, rpc, sync, storage, notification, logs). The `Unit` interface and `UnitDeps` are in `src/types.ts`. All factory functions are `createXUnit`.
+
+- **Module**: Optional business functionality defined in separate packages (e.g., `hr`, `analytics`, `banking`, `reports`). Modules depend on units and receive `ModuleDeps` which provides access to core units. The `Module` interface and `ModuleDeps` are in `src/types.ts`.
 
 ### Entrypoints
 
@@ -66,7 +70,7 @@ const framework = new Framework({
   db: { host, port, user, password, database },
   auth: { /* better-auth config + roles + access_control */ },
 })
-framework.register([someExtraUnit])
+framework.registerModules([hrModule, driveModule])
 await framework.initialize()
 await framework.run(async () => {
   // code runs inside AsyncLocalStorage context with db + pubsub
@@ -74,9 +78,9 @@ await framework.run(async () => {
 await framework.destroy()
 ```
 
-`framework.run()` provides `{ db, pubsub }` via `AsyncLocalStorage` — all calls inside share the same DB connection and pubsub instance. `framework.register(units)` adds extra units **before** `initialize()`. Calling `register()` after `initialize()` throws.
+`framework.run()` provides `{ db, pubsub }` via `AsyncLocalStorage` — all calls inside share the same DB connection and pubsub instance. `framework.registerModules(modules)` adds business modules **before** `initialize()`. Calling `registerModules()` after `initialize()` throws. Modules receive `ModuleDeps` which extends `UnitDeps` with access to `auth` and `rpc` units.
 
-### Core vs Extra Units
+### Core Units
 
 **Core units** are created internally by `Framework` based on config — do not instantiate them yourself:
 - **auth**: `createAuthUnit`. Users, roles, permissions, sessions via `better-auth`. Drizzle schemas in `auth/db-schema/`. Workflows in `auth/workflows/` (user.ts, role.ts, session.ts).
@@ -84,7 +88,9 @@ await framework.destroy()
 - **rpc**: `createRpcUnit`. RPC via `@orpc/server`. Exposes `router` and `handler`.
 - **sync**: `createSyncUnit`. Stub (not yet implemented).
 
-**Extra units** — register via `framework.register()`:
+### Extra Units
+
+**Extra units** — register via `framework.registerModules()`:
 - **storage**: `createStorageUnit`. S3 via `@aws-sdk/client-s3`. Has schema.ts + service.ts.
 - **notification**: `createNotificationUnit`. Multi-provider notifications. Has schema.ts + service.ts.
 - **logs**: `createLoggingUnit`. Structured logging with buffer + TimescaleDB hypertable. Has buffer.ts, schema.ts, service.ts.
@@ -107,6 +113,14 @@ src/<name>/
   service.ts     # internal DB operations
 ```
 
+### Module Interface
+
+Modules follow the same shape as units but receive `ModuleDeps` which extends `UnitDeps` with access to core units:
+- `auth: AuthUnit` — access to auth workflows and server
+- `rpc: RpcUnit` — access to RPC router/handler
+
+Modules are defined in separate packages (e.g., `packages/hr`) and registered via `framework.registerModules()`.
+
 ### Accessing Units
 
 ```ts
@@ -118,6 +132,16 @@ framework.sync    // SyncUnit
 
 // Generic accessor for any unit by name
 framework.getUnit<CacheUnit>("cache")
+```
+
+### Accessing Modules
+
+```ts
+// Get a registered module by name (throws if not found or not initialized)
+const hrModule = framework.getModule<HrModule>("hr")
+
+// Get all registered modules
+const modules = framework.getModules()
 ```
 
 ### Auth Unit Shape

@@ -5,7 +5,7 @@ import { createDrizzle, getPool } from "./db";
 import { createPubSubUnit, type PubSubConfig, type PubSubUnit } from "./pubsub";
 import { createRpcUnit, type RpcConfig, type RpcUnit } from "./rpc";
 import { createSyncUnit, type SyncConfig, type SyncUnit } from "./sync";
-import type { DatabaseConfig, Unit, UnitDeps } from "./types";
+import type { DatabaseConfig, Module, ModuleDeps, Unit, UnitDeps } from "./types";
 
 export interface FrameworkConfig {
   auth: AuthConfig;
@@ -17,23 +17,23 @@ export interface FrameworkConfig {
 
 export class Framework {
   private config: FrameworkConfig;
-  private extraUnits: Unit[] = [];
+  private modules: Module[] = [];
   private authUnit: (AuthUnit & Unit) | null = null;
   private pubsubUnit: (PubSubUnit & Unit) | null = null;
   private rpcUnit: (RpcUnit & Unit) | null = null;
   private syncUnit: (SyncUnit & Unit) | null = null;
-  private deps: UnitDeps | null = null;
-  private initialized = false;
+  private deps: ModuleDeps | null = null;
+  private initialized: boolean = false;
   private pool: import("pg").Pool | null = null;
 
   constructor(config: FrameworkConfig) {
     this.config = config;
   }
 
-  register(modules: Unit[]): this {
+  registerModules(modules: Module[]): this {
     if (this.initialized)
-      throw new Error("Cannot register units after initialization");
-    this.extraUnits.push(...modules);
+      throw new Error("Cannot register modules after initialization");
+    this.modules.push(...modules);
     return this;
   }
 
@@ -51,35 +51,46 @@ export class Framework {
     this.pubsubUnit = createPubSubUnit({
       database: this.config.db,
       ...this.config.pubsub,
-    }) as any;
+    }) as unknown as PubSubUnit & Unit;
 
-    this.authUnit = createAuthUnit(this.config.auth) as any;
-    this.rpcUnit = createRpcUnit(this.config.rpc) as any;
-    this.syncUnit = createSyncUnit(this.config.sync) as any;
+    this.authUnit = createAuthUnit(this.config.auth);
+    this.rpcUnit = createRpcUnit(this.config.rpc);
+    this.syncUnit = createSyncUnit(this.config.sync) as unknown as SyncUnit &
+      Unit;
 
     this.deps = {
+      auth: this.authUnit as unknown as AuthUnit,
       db,
       pool: this.pool,
       pubsub: this.pubsubUnit as unknown as {
         publish<T>(topic: string, data: T): Promise<string>;
       },
+      rpc: this.rpcUnit as unknown as RpcUnit,
     };
 
     const coreUnits: Unit[] = [
-      this.pubsubUnit!,
-      this.authUnit!,
-      this.rpcUnit!,
-      this.syncUnit!,
-    ];
+      this.pubsubUnit,
+      this.authUnit,
+      this.rpcUnit,
+      this.syncUnit,
+    ].filter((u): u is Unit => u !== null);
 
-    await context.run({ db, pubsub: this.pubsubUnit as any }, async () => {
-      for (const unit of coreUnits) {
-        await unit.initialize(this.deps!);
-      }
-      for (const unit of this.extraUnits) {
-        await unit.initialize(this.deps!);
-      }
-    });
+    await context.run(
+      {
+        db,
+        pubsub: this.pubsubUnit as unknown as {
+          publish<T>(topic: string, data: T): Promise<string>;
+        },
+      },
+      async () => {
+        for (const unit of coreUnits) {
+          await unit.initialize(this.deps as UnitDeps);
+        }
+        for (const module of this.modules) {
+          await module.initialize(this.deps as ModuleDeps);
+        }
+      },
+    );
 
     this.initialized = true;
   }
@@ -88,20 +99,31 @@ export class Framework {
     if (!this.initialized || !this.deps)
       throw new Error("Framework not initialized");
     return context.run(
-      { db: this.deps.db, pubsub: this.deps.pubsub as any },
+      {
+        db: this.deps.db,
+        pubsub: this.deps.pubsub as unknown as {
+          publish<T>(topic: string, data: T): Promise<string>;
+        },
+      },
       fn,
     );
   }
 
   async destroy(): Promise<void> {
-    const allUnits = [
-      ...this.extraUnits,
+    for (const module of this.modules) {
+      try {
+        await module.destroy();
+      } catch {
+        // Continue destroying remaining modules
+      }
+    }
+    const coreUnits = [
       this.rpcUnit,
       this.syncUnit,
       this.authUnit,
       this.pubsubUnit,
     ];
-    for (const unit of allUnits) {
+    for (const unit of coreUnits) {
       try {
         await unit?.destroy();
       } catch {
@@ -118,18 +140,24 @@ export class Framework {
 
   async healthCheck(): Promise<Record<string, boolean>> {
     const result: Record<string, boolean> = {};
-    const allUnits = [
-      ...this.extraUnits,
+    const coreUnits = [
       this.rpcUnit,
       this.syncUnit,
       this.authUnit,
       this.pubsubUnit,
     ].filter(Boolean) as Unit[];
-    for (const unit of allUnits) {
+    for (const unit of coreUnits) {
       try {
         result[unit.name] = await unit.healthCheck();
       } catch {
         result[unit.name] = false;
+      }
+    }
+    for (const module of this.modules) {
+      try {
+        result[module.name] = await module.healthCheck();
+      } catch {
+        result[module.name] = false;
       }
     }
     return result;
@@ -155,13 +183,23 @@ export class Framework {
     return this.syncUnit as unknown as SyncUnit;
   }
 
-  getUnit<T extends Unit>(name: string): T | undefined {
+  getModule<T>(name: string): T {
+    if (!this.initialized) throw new Error("Framework not initialized");
+    const module = this.modules.find((m) => m.name === name);
+    if (!module) throw new Error(`Module "${name}" not found`);
+    return module as T;
+  }
+
+  getUnits(): Unit[] {
     return [
       this.authUnit,
       this.pubsubUnit,
       this.rpcUnit,
       this.syncUnit,
-      ...this.extraUnits,
-    ].find((u) => u?.name === name) as T | undefined;
+    ].filter(Boolean) as Unit[];
+  }
+
+  getModules(): Module[] {
+    return [...this.modules];
   }
 }

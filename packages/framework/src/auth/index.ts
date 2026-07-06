@@ -9,7 +9,7 @@ import { createAuthClient } from "better-auth/react";
 
 import type { Unit, UnitDeps } from "../types";
 import * as db_schema from "./db-schema";
-import type { AuthConfig, AuthUnit } from "./types";
+import type { AuthConfig, AuthUnit, RoleData } from "./types";
 import { createRoleWorkflows } from "./workflows/role";
 import { createSessionWorkflows } from "./workflows/session";
 import { createUserWorkflows } from "./workflows/user";
@@ -43,7 +43,7 @@ export type {
 export function createAuthUnit(config: AuthConfig): AuthUnit & Unit {
   const { access_control, roles, ...$config } = config;
 
-  let auth: any = null;
+  let auth: Auth | null = null;
   let workflows: {
     role: ReturnType<typeof createRoleWorkflows>;
     session: ReturnType<typeof createSessionWorkflows>;
@@ -117,7 +117,7 @@ export function createAuthUnit(config: AuthConfig): AuthUnit & Unit {
           if (!workflows) throw new Error("Auth unit not initialized");
           return {
             delete: workflows.role.deleteRole,
-            list: workflows.role.getAllRoles as () => Promise<any[]>,
+            list: workflows.role.getAllRoles as () => Promise<RoleData[]>,
           };
         },
         get session() {
@@ -143,7 +143,7 @@ export function createAuthUnit(config: AuthConfig): AuthUnit & Unit {
             },
             role: {
               assign: workflows.role.assignRole,
-              list: workflows.user.getUserRoles as () => Promise<any[]>,
+              list: workflows.user.getUserRoles as () => Promise<RoleData[]>,
               unassign: workflows.role.unassignRole,
             },
             update: workflows.user.updateUser,

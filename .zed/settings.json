@@ -21,6 +21,8 @@
     "!typescript-language-server",
     "!vtsls",
     "!markdownlint",
+    "biome",
+    "tsgo",
     "..."
   ]
 }

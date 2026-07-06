@@ -6,10 +6,6 @@ export {
   type Session,
   type User,
 } from "./auth";
-export type {
-  CacheConfig,
-  CacheUnit,
-} from "./cache";
 export { Framework, type FrameworkConfig } from "./framework";
 export type {
   KvStoreConfig,
@@ -39,4 +35,4 @@ export type {
   SyncConfig,
   SyncUnit,
 } from "./sync";
-export type { DatabaseConfig, Result, Unit, UnitDeps } from "./types";
+export type { DatabaseConfig, Module, ModuleDeps, Result, Unit, UnitDeps } from "./types";

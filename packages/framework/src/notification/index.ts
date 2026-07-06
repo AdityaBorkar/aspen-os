@@ -83,7 +83,7 @@ export function createNotificationUnit(
     type: NotificationType,
     payload: NotificationPayload,
   ): Promise<NotificationRecord> {
-    const { db: database, queryService: qs } = requireDb();
+    const { db: database } = requireDb();
     const provider = providers.get(type);
     if (!provider) throw new Error(`No provider registered for type "${type}"`);
 
@@ -140,7 +140,8 @@ export function createNotificationUnit(
       }
     }
 
-    return lastRecord!;
+    if (!lastRecord) throw new Error("No recipients processed");
+    return lastRecord;
   }
 
   return {

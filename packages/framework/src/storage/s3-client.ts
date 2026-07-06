@@ -75,7 +75,7 @@ export function createS3Operations(
     const chunks: Uint8Array[] = [];
     const stream = result.Body as ReadableStream;
     const reader = stream.getReader();
-    while (true) {
+    for (;;) {
       const { done, value } = await reader.read();
       if (done) break;
       chunks.push(value);
