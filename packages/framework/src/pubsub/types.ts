@@ -1,4 +1,4 @@
-import type { DatabaseConfig, Unit } from "../types";
+import type { DatabaseConfig } from "../types";
 
 export interface PubSubConfig {
   database: DatabaseConfig;
@@ -27,8 +27,11 @@ export type MessageHandler<T = unknown> = (
   message: Message<T>,
 ) => void | Promise<void>;
 
-export interface PubSubUnit extends Unit {
+export interface PubSubUnit {
+  destroy(): Promise<void>;
   getQueueSize(topic: string): Promise<number>;
+  healthCheck(): Promise<boolean>;
+  readonly name: string;
   publish<T = unknown>(
     topic: string,
     data: T,

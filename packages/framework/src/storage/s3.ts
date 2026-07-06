@@ -14,14 +14,18 @@ import type {
   FileUploadInput,
   ListOptions,
   SignedUrlOptions,
-  StorageProvider,
+  StorageConfig,
 } from "./types";
 
-export function createS3Client(
-  provider: StorageProvider,
-  region?: string,
-): S3Client {
-  return new S3Client({
+export function createS3Adapter({
+  provider,
+  bucket,
+  getKey,
+}: StorageConfig & {
+  bucket: string;
+  getKey: (key: string) => string;
+}) {
+  const s3 = new S3Client({
     credentials: {
       accessKeyId: provider.accessKeyId,
       secretAccessKey: provider.secretAccessKey,
@@ -30,17 +34,11 @@ export function createS3Client(
     forcePathStyle: provider.forcePathStyle ?? true,
     region: provider.region ?? region ?? "us-east-1",
   });
-}
 
-export function createS3Operations(
-  s3: S3Client,
-  bucket: string,
-  fullKey: (key: string) => string,
-) {
   async function upload(input: FileUploadInput): Promise<{
     head: { contentLength: number; etag: string; lastModified: Date };
   }> {
-    const key = fullKey(input.key);
+    const key = getKey(input.key);
     const body =
       typeof input.body === "string" ? Buffer.from(input.body) : input.body;
 
@@ -70,7 +68,7 @@ export function createS3Operations(
 
   async function get(key: string): Promise<Buffer> {
     const result = await s3.send(
-      new GetObjectCommand({ Bucket: bucket, Key: fullKey(key) }),
+      new GetObjectCommand({ Bucket: bucket, Key: getKey(key) }),
     );
     const chunks: Uint8Array[] = [];
     const stream = result.Body as ReadableStream;
@@ -89,7 +87,7 @@ export function createS3Operations(
   ): Promise<string> {
     const command = new GetObjectCommand({
       Bucket: bucket,
-      Key: fullKey(key),
+      Key: getKey(key),
       ResponseContentDisposition: options?.responseContentDisposition,
       ResponseContentType: options?.responseContentType,
     });
@@ -103,14 +101,14 @@ export function createS3Operations(
     const command = new PutObjectCommand({
       Bucket: bucket,
       ContentType: options?.responseContentType,
-      Key: fullKey(key),
+      Key: getKey(key),
     });
     return getSignedUrl(s3, command, { expiresIn: options?.expiresIn ?? 3600 });
   }
 
   async function removeObject(key: string): Promise<void> {
     await s3.send(
-      new DeleteObjectCommand({ Bucket: bucket, Key: fullKey(key) }),
+      new DeleteObjectCommand({ Bucket: bucket, Key: getKey(key) }),
     );
   }
 
@@ -118,7 +116,7 @@ export function createS3Operations(
     prefix?: string,
     options?: ListOptions,
   ): Promise<{ files: FileObject[]; nextContinuationToken?: string }> {
-    const listPrefix = prefix ? fullKey(prefix) : prefix;
+    const listPrefix = prefix ? getKey(prefix) : prefix;
     const result = await s3.send(
       new ListObjectsV2Command({
         Bucket: bucket,
@@ -148,7 +146,7 @@ export function createS3Operations(
   async function exists(key: string): Promise<boolean> {
     try {
       await s3.send(
-        new HeadObjectCommand({ Bucket: bucket, Key: fullKey(key) }),
+        new HeadObjectCommand({ Bucket: bucket, Key: getKey(key) }),
       );
       return true;
     } catch {
@@ -163,15 +161,15 @@ export function createS3Operations(
     await s3.send(
       new CopyObjectCommand({
         Bucket: bucket,
-        CopySource: `${bucket}/${fullKey(sourceKey)}`,
-        Key: fullKey(destinationKey),
+        CopySource: `${bucket}/${getKey(sourceKey)}`,
+        Key: getKey(destinationKey),
       }),
     );
   }
 
   async function getMetadata(key: string): Promise<FileObject> {
     const head = await s3.send(
-      new HeadObjectCommand({ Bucket: bucket, Key: fullKey(key) }),
+      new HeadObjectCommand({ Bucket: bucket, Key: getKey(key) }),
     );
     return {
       contentType: head.ContentType,

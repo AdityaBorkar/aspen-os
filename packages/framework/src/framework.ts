@@ -1,9 +1,8 @@
 import { type AuthConfig, AuthUnit } from "./auth";
-import * as authSchema from "./auth/db-schema";
 import { context } from "./context";
 import { DatabaseUnit } from "./db";
 import { type LoggingConfig, LoggingUnit } from "./logs";
-import { createPubSubUnit, type PubSubConfig } from "./pubsub";
+import { type PubSubConfig, PubSubUnit } from "./pubsub";
 import { type RpcConfig, RpcUnit } from "./rpc";
 import { type StorageConfig, StorageUnit } from "./storage";
 import type { DatabaseConfig, Module } from "./types";
@@ -48,7 +47,7 @@ export class Framework {
     const database = $config.db;
 
     const db = new DatabaseUnit(database);
-    const pubsub = await createPubSubUnit({ database, ...$config.pubsub });
+    const pubsub = await PubSubUnit.create({ database, ...$config.pubsub });
 
     // Create other units with pool/db from DatabaseUnit
     const storage = new StorageUnit({ database, ...$config.storage }, db.pool);

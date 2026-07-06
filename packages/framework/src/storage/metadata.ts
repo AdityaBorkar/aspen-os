@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-import * as s from "./schema";
+import * as s from "./db-schema";
 
 type DrizzleDB = NodePgDatabase<Record<string, never>>;
 
