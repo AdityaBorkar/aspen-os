@@ -1,12 +1,14 @@
 import { eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-import * as s from "./db-schema";
+import { fileMetadata } from "./db-schema";
 
 type DrizzleDB = NodePgDatabase<Record<string, never>>;
 
-export function createFileMetadataService(db: DrizzleDB) {
-  async function upsertMetadata(input: {
+export class FileMetadataService {
+  constructor(private readonly db: DrizzleDB) {}
+
+  async upsertMetadata(input: {
     key: string;
     bucket: string;
     size: number;
@@ -14,8 +16,8 @@ export function createFileMetadataService(db: DrizzleDB) {
     etag?: string;
     metadata?: Record<string, string>;
   }): Promise<void> {
-    await db
-      .insert(s.fileMetadata)
+    await this.db
+      .insert(fileMetadata)
       .values({
         bucket: input.bucket,
         contentType: input.contentType ?? null,
@@ -32,20 +34,18 @@ export function createFileMetadataService(db: DrizzleDB) {
           size: input.size,
           updatedAt: new Date(),
         },
-        target: s.fileMetadata.key,
+        target: fileMetadata.key,
       });
   }
 
-  async function deleteMetadata(key: string): Promise<void> {
-    await db.delete(s.fileMetadata).where(eq(s.fileMetadata.key, key));
+  async deleteMetadata(key: string): Promise<void> {
+    await this.db.delete(fileMetadata).where(eq(fileMetadata.key, key));
   }
 
-  async function markArchived(key: string, archivedKey: string): Promise<void> {
-    await db
-      .update(s.fileMetadata)
+  async markArchived(key: string, archivedKey: string): Promise<void> {
+    await this.db
+      .update(fileMetadata)
       .set({ archived: true, archivedKey, updatedAt: new Date() })
-      .where(eq(s.fileMetadata.key, key));
+      .where(eq(fileMetadata.key, key));
   }
-
-  return { deleteMetadata, markArchived, upsertMetadata };
 }

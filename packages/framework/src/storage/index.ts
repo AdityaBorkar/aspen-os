@@ -1,31 +1,24 @@
-import { createDrizzle } from "../db";
-import * as schema from "./db-schema";
-import { createFileMetadataService } from "./metadata";
-import { createS3Adapter } from "./s3";
+import type { createDrizzle } from "../db";
+import { FileMetadataService } from "./file-metadata-service";
+import { S3Adapter } from "./s3-adapter";
 import type { FileObject, FileUploadInput, StorageConfig } from "./types";
 
-export type {
-  FileObject,
-  FileUploadInput,
-  ListOptions,
-  SignedUrlOptions,
-  StorageConfig,
-  StorageProvider,
-} from "./types";
+export type { StorageConfig };
 
 export class StorageUnit {
   readonly name = "storage";
 
-  private db: ReturnType<typeof createDrizzle>;
-  private config: StorageConfig;
-  private ops: ReturnType<typeof createS3Adapter>;
-  private metadata: ReturnType<typeof createFileMetadataService>;
+  private readonly config: StorageConfig;
+  private readonly ops: S3Adapter;
+  private readonly metadata: FileMetadataService;
 
-  constructor(config: StorageConfig, pool: import("pg").Pool) {
+  constructor(
+    config: StorageConfig,
+    { db }: { db: ReturnType<typeof createDrizzle> },
+  ) {
     this.config = config;
-    this.db = createDrizzle(pool, schema);
-    this.metadata = createFileMetadataService(this.db);
-    this.ops = createS3Adapter({
+    this.metadata = new FileMetadataService(db);
+    this.ops = new S3Adapter({
       ...config,
       getKey: (key) => (config.prefix ? `${config.prefix ?? ""}/${key}` : key),
     });
@@ -36,7 +29,7 @@ export class StorageUnit {
   }
 
   async healthCheck(): Promise<boolean> {
-    return this.ops !== null;
+    return true;
   }
 
   // -------------------------------------------------
