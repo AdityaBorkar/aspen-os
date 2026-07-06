@@ -1,41 +1,30 @@
 import PgBoss from "pg-boss";
 
-import type {
-  MessageHandler,
-  PublishOptions,
-  PubSubConfig,
-  PubSubUnit as PubSubUnitInterface,
-} from "./types";
+import type { DatabaseUnit } from "../db";
+import type { MessageHandler, PublishOptions, PubSubConfig } from "./types";
 
-export type {
-  Message,
-  MessageHandler,
-  PublishOptions,
-  PubSubConfig,
-} from "./types";
+export type { PubSubConfig } from "./types";
 
-export class PubSubUnit implements PubSubUnitInterface {
+export class PubSubUnit {
   readonly name = "pubsub" as const;
 
   private boss: PgBoss;
   private subscriptions = new Map<string, PgBoss.WorkHandler<object>>();
 
-  private constructor(boss: PgBoss) {
-    this.boss = boss;
-  }
-
-  static async create(config: PubSubConfig): Promise<PubSubUnit> {
-    const boss = new PgBoss({
-      database: config.database.database,
-      host: config.database.host,
-      monitorStateIntervalSeconds: config.monitorStateIntervalSeconds ?? 30,
-      password: config.database.password,
-      port: config.database.port,
-      schema: config.database.ssl ? "pgboss" : undefined,
-      user: config.database.user,
+  constructor(config: PubSubConfig, { db }: { db: DatabaseUnit }) {
+    const { database, host, password, port, user, ssl } = db.config;
+    const monitorStateIntervalSeconds =
+      config.monitorStateIntervalSeconds ?? 30;
+    this.boss = new PgBoss({
+      database,
+      host,
+      monitorStateIntervalSeconds,
+      password,
+      port,
+      schema: ssl ? "pgboss" : undefined,
+      user,
     });
-    await boss.start();
-    return new PubSubUnit(boss);
+    this.boss.start();
   }
 
   async destroy(): Promise<void> {

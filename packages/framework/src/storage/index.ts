@@ -1,4 +1,4 @@
-import type { createDrizzle } from "../db";
+import type { DatabaseUnit } from "../db";
 import { FileMetadataService } from "./file-metadata-service";
 import { S3Adapter } from "./s3-adapter";
 import type {
@@ -18,12 +18,9 @@ export class StorageUnit {
   private readonly ops: S3Adapter;
   private readonly metadata: FileMetadataService;
 
-  constructor(
-    config: StorageConfig,
-    { db }: { db: ReturnType<typeof createDrizzle> },
-  ) {
+  constructor(config: StorageConfig, { db }: { db: DatabaseUnit }) {
     this.config = config;
-    this.metadata = new FileMetadataService(db);
+    this.metadata = new FileMetadataService(db.db);
     this.ops = new S3Adapter({
       ...config,
       getKey: (key) => (config.prefix ? `${config.prefix ?? ""}/${key}` : key),

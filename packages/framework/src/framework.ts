@@ -44,10 +44,10 @@ export class Framework {
 
     const $config = this.config;
     const db = new DatabaseUnit($config.db);
+    const logs = new LoggingUnit($config.logs, { db });
     const pubsub = new PubSubUnit($config.pubsub, { db });
     const storage = new StorageUnit($config.storage, { db });
-    const logs = new LoggingUnit($config.logs, { db });
-    const auth = new AuthUnit($config.auth, { db, pubsub });
+    const auth = new AuthUnit($config.auth, { db, logs, pubsub });
     const rpc = new RpcUnit($config.rpc, { auth, db, logs, pubsub });
 
     this.units = { auth, db, logs, pubsub, rpc, storage };

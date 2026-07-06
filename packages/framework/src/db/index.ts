@@ -26,10 +26,12 @@ export class DatabaseUnit {
   readonly name = "database";
   readonly pool: pg.Pool;
   readonly db: NodePgDatabase;
+  readonly config: DatabaseConfig;
 
   constructor(config: DatabaseConfig, schema?: Record<string, unknown>) {
     this.pool = getPool(config);
     this.db = createDrizzle(this.pool, schema);
+    this.config = config;
   }
 
   async destroy(): Promise<void> {
