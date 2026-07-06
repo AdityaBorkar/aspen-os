@@ -35,4 +35,11 @@ export type {
   SyncConfig,
   SyncUnit,
 } from "./sync";
-export type { DatabaseConfig, Module, ModuleDeps, Result, Unit, UnitDeps } from "./types";
+export type {
+  DatabaseConfig,
+  Module,
+  ModuleDeps,
+  Result,
+  Unit,
+  UnitDeps,
+} from "./types";

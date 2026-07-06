@@ -1,21 +1,4 @@
 {
-  "name": "documentation",
-  "private": true,
-  "type": "module",
-  "imports": {
-    "#/*": "./src/*"
-  },
-  "scripts": {
-    "dev": "vite dev --port 3000",
-    "generate-routes": "tsr generate",
-    "build": "vite build",
-    "preview": "vite preview",
-    "test": "vitest run",
-    "format": "biome format",
-    "lint": "biome lint",
-    "check": "biome check",
-    "deploy": "bun run build && wrangler deploy"
-  },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.26.0",
     "@posthog/react": "^1.7.0",
@@ -58,10 +41,21 @@
     "vitest": "^4.1.5",
     "wrangler": "^4.70.0"
   },
+  "name": "documentation",
   "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "lightningcss"
-    ]
-  }
+    "onlyBuiltDependencies": ["esbuild", "lightningcss"]
+  },
+  "private": true,
+  "scripts": {
+    "build": "vite build",
+    "check": "biome check",
+    "deploy": "bun run build && wrangler deploy",
+    "dev": "vite dev --port 3000",
+    "format": "biome format",
+    "generate-routes": "tsr generate",
+    "lint": "biome lint",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "type": "module"
 }

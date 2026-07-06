@@ -5,7 +5,13 @@ import { createDrizzle, getPool } from "./db";
 import { createPubSubUnit, type PubSubConfig, type PubSubUnit } from "./pubsub";
 import { createRpcUnit, type RpcConfig, type RpcUnit } from "./rpc";
 import { createSyncUnit, type SyncConfig, type SyncUnit } from "./sync";
-import type { DatabaseConfig, Module, ModuleDeps, Unit, UnitDeps } from "./types";
+import type {
+  DatabaseConfig,
+  Module,
+  ModuleDeps,
+  Unit,
+  UnitDeps,
+} from "./types";
 
 export interface FrameworkConfig {
   auth: AuthConfig;
@@ -191,12 +197,9 @@ export class Framework {
   }
 
   getUnits(): Unit[] {
-    return [
-      this.authUnit,
-      this.pubsubUnit,
-      this.rpcUnit,
-      this.syncUnit,
-    ].filter(Boolean) as Unit[];
+    return [this.authUnit, this.pubsubUnit, this.rpcUnit, this.syncUnit].filter(
+      Boolean,
+    ) as Unit[];
   }
 
   getModules(): Module[] {

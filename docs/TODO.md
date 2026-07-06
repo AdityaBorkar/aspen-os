@@ -2,6 +2,7 @@
 
 ## Goals
 
+- /init
 - Ensure database schemas and migration
 - Ensure authentication and custom roles and users
 - Ensure auth seeding

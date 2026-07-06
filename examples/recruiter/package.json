@@ -29,7 +29,7 @@
     "vitest": "^4.1.5"
   },
   "imports": {
-    "#/*": "./src/*"
+    "@/*": "./src/*"
   },
   "name": "recruiter",
   "pnpm": {
