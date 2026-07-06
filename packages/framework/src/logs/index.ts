@@ -1,3 +1,5 @@
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+
 import type { DatabaseUnit } from "../db";
 import { createEntryFactory, createLogBuffer } from "./buffer";
 import * as schema from "./schema";
@@ -21,7 +23,7 @@ export class LoggingUnit {
   private serviceName: string;
   private defaultLevel: LogLevel;
   private pool: import("pg").Pool;
-  private db: ReturnType<typeof createDrizzle>;
+  private db: NodePgDatabase;
   private queryService: LogQueryService;
   private buffer: ReturnType<typeof createLogBuffer>;
   private flushTimer: ReturnType<typeof setInterval>;

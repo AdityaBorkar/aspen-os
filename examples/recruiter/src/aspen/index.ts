@@ -26,7 +26,19 @@ export const framework = new Framework({
   logs: {},
   pubsub: {},
   rpc: {},
-  storage: {},
+  storage: {
+    bucket: env.STORAGE_BUCKET,
+    provider: {
+      credentials: {
+        accessKeyId: env.STORAGE_ACCESS_KEY,
+        secretAccessKey: env.STORAGE_SECRET_KEY,
+      },
+      endpoint: env.STORAGE_ENDPOINT,
+      forcePathStyle: env.STORAGE_FORCE_PATH_STYLE,
+      region: env.STORAGE_REGION,
+      type: "s3",
+    },
+  },
 });
 
 await framework.initialize();

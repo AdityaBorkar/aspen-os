@@ -18,7 +18,6 @@ import type {
 } from "./types";
 
 export interface S3AdapterConfig extends StorageConfig {
-  bucket: string;
   getKey: (key: string) => string;
 }
 
@@ -31,16 +30,7 @@ export class S3Adapter {
     const { provider, bucket, getKey } = config;
     this.bucket = bucket;
     this.getKey = getKey;
-
-    this.s3 = new S3Client({
-      credentials: {
-        accessKeyId: provider.accessKeyId,
-        secretAccessKey: provider.secretAccessKey,
-      },
-      endpoint: provider.endpoint,
-      forcePathStyle: provider.forcePathStyle ?? true,
-      region: provider.region ?? config.region ?? "us-east-1",
-    });
+    this.s3 = new S3Client(provider);
   }
 
   async upload(input: FileUploadInput): Promise<{

@@ -26,7 +26,12 @@ export class RpcUnit {
 
   constructor(
     config: RpcConfig = {},
-    _deps: { auth: AuthUnit; db: DatabaseUnit; logs: LoggingUnit; pubsub: PubSubUnit },
+    _deps: {
+      auth: AuthUnit;
+      db: DatabaseUnit;
+      logs: LoggingUnit;
+      pubsub: PubSubUnit;
+    },
   ) {
     this.prefix = (config.prefix ?? "/api/rpc") as `/${string}`;
     this.rpcHandler = new RPCHandler(router);

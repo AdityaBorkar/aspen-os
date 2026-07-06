@@ -67,7 +67,11 @@ export class AuthUnit {
 
   constructor(
     config: AuthConfig,
-    { db, logs: _logs, pubsub }: { db: DatabaseUnit; logs: LoggingUnit; pubsub: PubSubUnit },
+    {
+      db,
+      logs: _logs,
+      pubsub,
+    }: { db: DatabaseUnit; logs: LoggingUnit; pubsub: PubSubUnit },
   ) {
     const { access_control, roles, ...rest } = config;
 

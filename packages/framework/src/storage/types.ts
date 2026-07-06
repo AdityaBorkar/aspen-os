@@ -2,15 +2,16 @@ export interface StorageConfig {
   bucket: string;
   prefix?: string;
   provider: StorageProvider;
-  region?: string;
 }
 
 export interface StorageProvider {
-  accessKeyId: string;
+  credentials: {
+    accessKeyId: string;
+    secretAccessKey: string;
+  };
   endpoint: string;
-  forcePathStyle?: boolean;
-  region?: string;
-  secretAccessKey: string;
+  forcePathStyle: boolean;
+  region: string;
   type: "s3";
 }
 
