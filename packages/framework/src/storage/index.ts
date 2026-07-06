@@ -1,7 +1,13 @@
 import type { createDrizzle } from "../db";
 import { FileMetadataService } from "./file-metadata-service";
 import { S3Adapter } from "./s3-adapter";
-import type { FileObject, FileUploadInput, StorageConfig } from "./types";
+import type {
+  FileObject,
+  FileUploadInput,
+  ListOptions,
+  SignedUrlOptions,
+  StorageConfig,
+} from "./types";
 
 export type { StorageConfig };
 
@@ -61,21 +67,21 @@ export class StorageUnit {
 
   async getSignedGetUrl(
     key: string,
-    options?: import("./types").SignedUrlOptions,
+    options?: SignedUrlOptions,
   ): Promise<string> {
     return this.ops.getSignedGetUrl(key, options);
   }
 
   async getSignedPutUrl(
     key: string,
-    options?: import("./types").SignedUrlOptions,
+    options?: SignedUrlOptions,
   ): Promise<string> {
     return this.ops.getSignedPutUrl(key, options);
   }
 
   async list(
     prefix?: string,
-    options?: import("./types").ListOptions,
+    options?: ListOptions,
   ): Promise<{ files: FileObject[]; nextContinuationToken?: string }> {
     return this.ops.list(prefix, options);
   }
