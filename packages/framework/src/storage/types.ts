@@ -1,8 +1,5 @@
-import type { DatabaseConfig } from "../types";
-
 export interface StorageConfig {
   bucket: string;
-  database: DatabaseConfig;
   prefix?: string;
   provider: StorageProvider;
   region?: string;

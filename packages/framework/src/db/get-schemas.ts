@@ -1,9 +1,9 @@
-import { kvStore } from "../../~kv-store/db-schema";
-import * as notificationSchema from "../../~notification/schema";
-import * as authSchema from "../../auth/db-schema";
-import type { Framework } from "../../framework";
-import * as logSchema from "../../logs/schema";
-import * as storageSchema from "../../storage/db-schema";
+import { kvStore } from "@/~kv-store/db-schema";
+import * as notificationSchema from "@/~notification/schema";
+import * as authSchema from "@/auth/db-schema";
+import type { Framework } from "@/framework";
+import * as logSchema from "@/logs/schema";
+import * as storageSchema from "@/storage/db-schema";
 
 export function getSchemas(framework: Framework) {
   const coreSchemas = {

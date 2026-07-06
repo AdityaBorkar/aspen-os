@@ -12,8 +12,8 @@ export interface RpcConfig {
 }
 
 export interface RpcUnit {
-  handler(request: Request): Promise<Response>;
-  router: import("./index").RpcRouter;
+  readonly name: string;
+  readonly router: import("./index").RpcRouter;
 
   server: {
     handle(

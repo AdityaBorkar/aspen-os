@@ -1,5 +1,9 @@
 import { RPCHandler } from "@orpc/server/fetch";
 
+import type { AuthUnit } from "../auth";
+import type { DatabaseUnit } from "../db";
+import type { LoggingUnit } from "../logs";
+import type { PubSubUnit } from "../pubsub";
 import { type RpcRouter, router } from "./router";
 import type { RpcConfig, RpcContext } from "./types";
 
@@ -20,7 +24,10 @@ export class RpcUnit {
     router: RpcRouter;
   };
 
-  constructor(config: RpcConfig = {}) {
+  constructor(
+    config: RpcConfig = {},
+    _deps: { auth: AuthUnit; db: DatabaseUnit; logs: LoggingUnit; pubsub: PubSubUnit },
+  ) {
     this.prefix = (config.prefix ?? "/api/rpc") as `/${string}`;
     this.rpcHandler = new RPCHandler(router);
 

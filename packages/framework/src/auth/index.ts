@@ -7,8 +7,10 @@ import {
 } from "better-auth/client/plugins";
 import type { Role } from "better-auth/plugins/access";
 import { createAuthClient } from "better-auth/react";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
+import type { DatabaseUnit } from "../db";
+import type { LoggingUnit } from "../logs";
+import type { PubSubUnit } from "../pubsub";
 import * as db_schema from "./db-schema";
 import type { AuthConfig, RoleData } from "./types";
 import { createRoleWorkflows } from "./workflows/role";
@@ -65,8 +67,7 @@ export class AuthUnit {
 
   constructor(
     config: AuthConfig,
-    db: NodePgDatabase,
-    pubsub: { publish<T = unknown>(topic: string, data: T): Promise<string> },
+    { db, logs: _logs, pubsub }: { db: DatabaseUnit; logs: LoggingUnit; pubsub: PubSubUnit },
   ) {
     const { access_control, roles, ...rest } = config;
 
@@ -84,7 +85,7 @@ export class AuthUnit {
     this.auth = betterAuth({
       emailAndPassword: { enabled: true },
       ...rest,
-      database: drizzleAdapter(db, {
+      database: drizzleAdapter(db.db, {
         camelCase: false,
         provider: "pg",
         schema: db_schema,
@@ -93,7 +94,7 @@ export class AuthUnit {
       }),
     }) as Auth;
 
-    const deps = { db, pubsub };
+    const deps = { db: db.db, pubsub };
     this.workflows = {
       role: createRoleWorkflows(deps),
       session: createSessionWorkflows(

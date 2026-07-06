@@ -1,4 +1,4 @@
-import { createDrizzle } from "../db";
+import type { DatabaseUnit } from "../db";
 import { createEntryFactory, createLogBuffer } from "./buffer";
 import * as schema from "./schema";
 import { LogQueryService } from "./service";
@@ -32,12 +32,12 @@ export class LoggingUnit {
     error?: Error,
   ) => import("./types").LogEntry;
 
-  constructor(config: LoggingConfig, pool: import("pg").Pool) {
+  constructor(config: LoggingConfig, { db }: { db: DatabaseUnit }) {
     this.serviceName = config.serviceName ?? "app";
     this.defaultLevel = config.defaultLevel ?? "info";
     this.createEntry = createEntryFactory(this.serviceName);
-    this.pool = pool;
-    this.db = createDrizzle(pool, schema);
+    this.pool = db.pool;
+    this.db = db.db;
     this.queryService = new LogQueryService(this.db);
 
     this.buffer = createLogBuffer(100, async (entries) => {

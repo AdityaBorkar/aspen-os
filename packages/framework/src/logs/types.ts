@@ -1,9 +1,6 @@
-import type { DatabaseConfig } from "../types";
-
 export type LogLevel = "debug" | "info" | "warn" | "error" | "fatal";
 
 export interface LoggingConfig {
-  database: DatabaseConfig;
   defaultLevel?: LogLevel;
   serviceName?: string;
 }
@@ -81,6 +78,7 @@ export interface LoggingUnit {
     startTime?: Date,
     endTime?: Date,
   ): Promise<LogStats>;
+  healthCheck(): Promise<boolean>;
   info(message: string, metadata?: Record<string, unknown>): void;
 
   log(
@@ -89,6 +87,7 @@ export interface LoggingUnit {
     metadata?: Record<string, unknown>,
   ): void;
 
+  readonly name: string;
   query(filter: LogQuery): Promise<LogEntry[]>;
   warn(message: string, metadata?: Record<string, unknown>): void;
 }

@@ -1,7 +1,4 @@
-import type { DatabaseConfig } from "../types";
-
 export interface PubSubConfig {
-  database: DatabaseConfig;
   monitorStateIntervalSeconds?: number;
   schema?: string;
 }
