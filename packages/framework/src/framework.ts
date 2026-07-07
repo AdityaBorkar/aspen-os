@@ -1,6 +1,7 @@
 import { type AuthConfig, AuthUnit } from "./auth";
 import { context } from "./context";
 import { DatabaseUnit } from "./db";
+import { getSchemas } from "./db/get-schemas";
 import { type KvStoreConfig, KvStoreUnit } from "./kv-store";
 import { type LoggingConfig, LoggingUnit } from "./logs";
 import { type PubSubConfig, PubSubUnit } from "./pubsub";
@@ -36,6 +37,42 @@ export class Framework {
 
   constructor(config: FrameworkConfig) {
     this.config = config;
+  }
+
+  async prepare(): Promise<void> {
+    const $config = this.config;
+    const db = new DatabaseUnit($config.db);
+    const logs = new LoggingUnit($config.logs, { db });
+    const pubsub = new PubSubUnit($config.pubsub, { db });
+    const storage = new StorageUnit($config.storage, { db });
+    const auth = new AuthUnit($config.auth, { db, logs, pubsub });
+    const rpc = new RpcUnit($config.rpc, { auth, db, logs, pubsub });
+    const kvStore = new KvStoreUnit($config.kvStore, { db });
+
+    const tempUnits: Units = { auth, db, kvStore, logs, pubsub, rpc, storage };
+    this.units = tempUnits;
+
+    try {
+      const schemas = getSchemas(this);
+      const { pushSchema } = await import("drizzle-kit/api");
+      const result = await pushSchema(schemas, db.db);
+
+      if (result.statementsToExecute.length > 0) {
+        if (result.hasDataLoss) {
+          console.warn("Schema push has data loss warnings:", result.warnings);
+        }
+        await result.apply();
+      }
+    } finally {
+      await tempUnits.kvStore.destroy();
+      await tempUnits.rpc.destroy();
+      await tempUnits.auth.destroy();
+      await tempUnits.storage.destroy();
+      await tempUnits.pubsub.destroy();
+      await tempUnits.logs.destroy();
+      await tempUnits.db.destroy();
+      this.units = null;
+    }
   }
 
   registerModule(module: Module) {

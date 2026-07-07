@@ -4,7 +4,7 @@
       "@/*": ["./src/*"]
     }
   },
-  "declarationDir": "../../.local/types/framework",
+  "declarationDir": "../../.local/types/hr",
   "exclude": ["node_modules"],
   "extends": "../../tsconfig.json"
 }

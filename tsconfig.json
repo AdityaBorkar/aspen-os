@@ -7,20 +7,22 @@
     "module": "Preserve",
     "moduleDetection": "force",
     "moduleResolution": "bundler",
-    "noEmit": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": false,
     "noUncheckedIndexedAccess": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "paths": {
-      "@/*": ["./examples/recruiter/src/*"]
-    },
     "skipLibCheck": true,
     "strict": true,
     "target": "ESNext",
     "types": ["bun"],
     "verbatimModuleSyntax": true
-  }
+  },
+  "include": ["**/*.ts", "**/*.tsx"],
+  "references": [
+    { "path": "./examples/recruiter" },
+    { "path": "./packages/hr" },
+    { "path": "./packages/framework" }
+  ]
 }
