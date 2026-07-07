@@ -8,7 +8,7 @@
   "name": "aspen-os",
   "scripts": {
     "check:lint": "biome check --fix .",
-    "check:types": "tsc --noEmit",
+    "check:types": "tsc -b",
     "update:deps": "taze -rw --maturity-period 3"
   },
   "workspaces": ["./packages/*", "./examples/*", "./documentation"]
