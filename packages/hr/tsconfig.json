@@ -1,10 +1,9 @@
 {
   "compilerOptions": {
+    "declarationDir": "../../.local/types/hr",
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "declarationDir": "../../.local/types/hr",
-  "exclude": ["node_modules"],
   "extends": "../../tsconfig.json"
 }

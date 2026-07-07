@@ -43,9 +43,9 @@ export function createLogBuffer(
     return buffer.length;
   }
 
-  function _startAutoFlush(interval: number): void {
-    flushTimer = setInterval(flush, interval);
-  }
+  // function startAutoFlush(interval: number): void {
+  //   flushTimer = setInterval(flush, interval);
+  // }
 
   return { drain, flush, push, size };
 }

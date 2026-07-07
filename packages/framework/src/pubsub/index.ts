@@ -27,6 +27,10 @@ export class PubSubUnit {
     this.boss.start();
   }
 
+  async prepare(): Promise<void> {
+    return;
+  }
+
   async destroy(): Promise<void> {
     for (const topic of this.subscriptions.keys()) {
       await this.boss.offWork(topic);

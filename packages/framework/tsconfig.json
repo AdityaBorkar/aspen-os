@@ -1,10 +1,9 @@
 {
   "compilerOptions": {
+    "declarationDir": "../../.local/types/framework",
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "declarationDir": "../../.local/types/framework",
-  "exclude": ["node_modules"],
   "extends": "../../tsconfig.json"
 }

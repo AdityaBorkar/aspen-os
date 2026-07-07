@@ -1,12 +1,11 @@
 {
   "compilerOptions": {
+    "declarationDir": "../../.local/types/examples/recruiter",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "paths": {
       "@/*": ["./src/*"]
     },
     "types": ["vite/client"]
   },
-  "declarationDir": "../../.local/types/examples/recruiter",
-  "exclude": ["node_modules"],
   "extends": "../../tsconfig.json"
 }

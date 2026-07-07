@@ -70,6 +70,23 @@ export class LoggingUnit {
     this.flushTimer = setInterval(() => this.buffer?.flush(), 5000);
   }
 
+  async prepare(): Promise<void> {
+    return;
+  }
+
+  async destroy(): Promise<void> {
+    if (this.flushTimer) {
+      clearInterval(this.flushTimer);
+    }
+    if (this.buffer) {
+      await this.buffer.drain();
+    }
+  }
+
+  async healthCheck(): Promise<boolean> {
+    return true;
+  }
+
   private shouldLog(level: LogLevel): boolean {
     return levelPriority[level] >= levelPriority[this.defaultLevel];
   }
@@ -93,19 +110,6 @@ export class LoggingUnit {
     this.requireBuffer().push(
       this.createEntry(level, message, metadata, error),
     );
-  }
-
-  async destroy(): Promise<void> {
-    if (this.flushTimer) {
-      clearInterval(this.flushTimer);
-    }
-    if (this.buffer) {
-      await this.buffer.drain();
-    }
-  }
-
-  async healthCheck(): Promise<boolean> {
-    return true;
   }
 
   child(context: Record<string, unknown>): ChildLogger {

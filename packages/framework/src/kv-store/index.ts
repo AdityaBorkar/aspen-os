@@ -21,6 +21,10 @@ export class KvStoreUnit {
     this.prefix = config.keyPrefix ?? "";
   }
 
+  async prepare(): Promise<void> {
+    return;
+  }
+
   async destroy(): Promise<void> {
     // Cleanup if needed
   }

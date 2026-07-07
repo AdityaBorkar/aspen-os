@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@orpc/server": "^1.14.6",
     "@t3-oss/env-core": "^0.13.11",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-devtools": "latest",
@@ -42,6 +43,7 @@
     "app:preview": "vite preview",
     "check:lint": "biome check --fix .",
     "check:types": "tsc --noEmit",
+    "db:studio": "drizzle-kit studio",
     "generate-routes": "tsr generate"
   },
   "type": "module"

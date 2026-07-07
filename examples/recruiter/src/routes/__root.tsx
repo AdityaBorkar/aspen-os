@@ -2,27 +2,15 @@ import { TanStackDevtools } from "@tanstack/react-devtools";
 import { createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 
-import appCss from "../styles.css?url";
+import css from "../styles.css?url";
 
 export const Route = createRootRoute({
   head: () => ({
-    links: [
-      {
-        href: appCss,
-        rel: "stylesheet",
-      },
-    ],
+    links: [{ href: css, rel: "stylesheet" }],
     meta: [
-      {
-        charSet: "utf-8",
-      },
-      {
-        content: "width=device-width, initial-scale=1",
-        name: "viewport",
-      },
-      {
-        title: "TanStack Start Starter",
-      },
+      { charSet: "utf-8" },
+      { content: "width=device-width, initial-scale=1", name: "viewport" },
+      { title: "Recruiter" },
     ],
   }),
   shellComponent: RootDocument,

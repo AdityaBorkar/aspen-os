@@ -1,7 +1,9 @@
+import { pushSchema } from "drizzle-kit/api";
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import pg from "pg";
 
 import type { DatabaseConfig } from "../types";
+import { getSchemas } from "./get-schemas";
 
 export class DatabaseUnit {
   readonly name = "database";
@@ -21,6 +23,17 @@ export class DatabaseUnit {
     });
     this.db = drizzle(this.pool);
     this.config = config;
+  }
+
+  async prepare(): Promise<void> {
+    const schemas = getSchemas();
+    const result = await pushSchema(schemas, this.db);
+    if (result.statementsToExecute.length > 0) {
+      if (result.hasDataLoss) {
+        console.warn("Schema push has data loss warnings:", result.warnings);
+      }
+      await result.apply();
+    }
   }
 
   async destroy(): Promise<void> {

@@ -179,6 +179,10 @@ export class AuthUnit {
     };
   }
 
+  async prepare(): Promise<void> {
+    return;
+  }
+
   async destroy(): Promise<void> {
     // Auth cleanup if needed
   }
