@@ -45,7 +45,7 @@ export type {
 
 export class AuthUnit {
   readonly name = "auth";
-  readonly client;
+  readonly client: ReturnType<typeof createAuthClient>;
   readonly db_schema = db_schema;
 
   private auth: Auth;

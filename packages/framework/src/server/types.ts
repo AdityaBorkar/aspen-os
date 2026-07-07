@@ -1,8 +1,8 @@
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type pg from "pg";
 
-import type { AuthUnit } from "./server/auth/types";
-import type { RpcUnit } from "./server/rpc/types";
+import type { AuthUnit } from "./auth/types";
+import type { RpcUnit } from "./rpc/types";
 
 export interface DatabaseConfig {
   database: string;

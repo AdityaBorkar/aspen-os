@@ -2,6 +2,8 @@
 
 ## Goals
 
+npx drizzle-kit studio --host=0.0.0.0 --port=3000 --config=?
+
 - Perform drizzle migrations in prepare() step. Before that, collect all db_schemas from the registered modules
 - Ensure database schemas and migration
 - initialize()

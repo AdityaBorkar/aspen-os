@@ -48,7 +48,7 @@ export class LoggingUnit {
     this.queryService = new LogQueryService(this.db);
 
     this.buffer = createLogBuffer(100, async (entries) => {
-      await this.db?.insert(logs).values(
+      await this.db.insert(logs).values(
         entries.map((entry) => ({
           durationMs: entry.duration ?? null,
           errorMessage: entry.error?.message ?? null,
