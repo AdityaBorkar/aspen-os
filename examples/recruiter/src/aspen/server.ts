@@ -1,4 +1,4 @@
-import { Framework } from "@aspen-os/framework";
+import { type AuthUnit, Framework } from "@aspen-os/framework";
 
 import { env } from "../env";
 import { access_control, roles } from "./auth";
@@ -14,6 +14,12 @@ export const framework = new Framework({
     session: {
       expiresIn: 60 * 60 * 24 * 7, // 7 days
     },
+    socialProviders: {
+      google: {
+        clientId: env.GOOGLE_CLIENT_ID,
+        clientSecret: env.GOOGLE_CLIENT_SECRET,
+      },
+    },
   },
   db: {
     database: env.DB_NAME,
@@ -23,6 +29,7 @@ export const framework = new Framework({
     ssl: env.DB_SSL,
     user: env.DB_USER,
   },
+  kvStore: {},
   logs: {},
   pubsub: {},
   rpc: {},
@@ -43,4 +50,4 @@ export const framework = new Framework({
 
 await framework.initialize();
 
-export const auth = framework.getUnit("auth");
+export const auth = framework.getUnit("auth") as AuthUnit;

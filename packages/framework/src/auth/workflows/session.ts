@@ -26,6 +26,7 @@ export function createSessionWorkflows(
       .limit(1);
 
     if (!row) throw new Error("Invalid credentials");
+    if (!row.passwordHash) throw new Error("Invalid credentials");
     const valid = await Bun.password.verify(password, row.passwordHash);
     if (!valid) throw new Error("Invalid credentials");
 

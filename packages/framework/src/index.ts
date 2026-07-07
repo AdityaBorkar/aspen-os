@@ -1,15 +1,3 @@
-export type {
-  KvStoreConfig,
-  KvStoreUnit,
-} from "./~kv-store";
-export type {
-  NotificationConfig,
-  NotificationUnit,
-} from "./~notification";
-export type {
-  SyncConfig,
-  SyncUnit,
-} from "./~sync";
 export {
   type AuthConfig,
   type AuthUnit,
@@ -19,6 +7,8 @@ export {
   type User,
 } from "./auth";
 export { Framework, type FrameworkConfig } from "./framework";
+export type { KvStoreConfig } from "./kv-store";
+export { KvStoreUnit } from "./kv-store";
 export type {
   LoggingConfig,
   LoggingUnit,

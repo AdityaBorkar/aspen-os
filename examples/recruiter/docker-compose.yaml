@@ -6,11 +6,61 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: recruiter
+      POSTGRES_PASSWORD: recruiter
       POSTGRES_DB: recruiter
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/18/data
+
+  seaweedfs-master:
+    image: chrislusf/seaweedfs:latest
+    container_name: recruiter-seaweedfs-master
+    restart: unless-stopped
+    command: master -ip.bind=0.0.0.0
+    ports:
+      - "9333:9333"
+    volumes:
+      - seaweedfs-master:/data
+
+  seaweedfs-volume:
+    image: chrislusf/seaweedfs:latest
+    container_name: recruiter-seaweedfs-volume
+    restart: unless-stopped
+    command: volume -master=seaweedfs-master:9333 -max=0 -ip.bind=0.0.0.0 -port=8080 -publicUrl=localhost:8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      - seaweedfs-master
+    volumes:
+      - seaweedfs-volume:/data
+
+  seaweedfs-filer:
+    image: chrislusf/seaweedfs:latest
+    container_name: recruiter-seaweedfs-filer
+    restart: unless-stopped
+    command: filer -master=seaweedfs-master:9333 -ip.bind=0.0.0.0
+    ports:
+      - "8888:8888"
+    depends_on:
+      - seaweedfs-master
+      - seaweedfs-volume
+    volumes:
+      - seaweedfs-filer:/data
+
+  seaweedfs-s3:
+    image: chrislusf/seaweedfs:latest
+    container_name: recruiter-seaweedfs-s3
+    restart: unless-stopped
+    command: s3 -filer=seaweedfs-filer:8888 -ip.bind=0.0.0.0 -config=/etc/seaweedfs/s3.json
+    ports:
+      - "8333:8333"
+    depends_on:
+      - seaweedfs-filer
+    volumes:
+      - ./seaweedfs-s3.json:/etc/seaweedfs/s3.json:ro
 
 volumes:
   postgres-data:
+  seaweedfs-master:
+  seaweedfs-volume:
+  seaweedfs-filer:

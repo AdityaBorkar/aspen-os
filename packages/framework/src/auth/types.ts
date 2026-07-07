@@ -41,6 +41,13 @@ export interface AuthConfig {
   roles: Record<string, unknown>;
   secret: string;
   session: { expiresIn?: number };
+  socialProviders?: {
+    google?: {
+      clientId: string;
+      clientSecret: string;
+      redirectURI?: string;
+    };
+  };
 }
 
 export interface RoleDefinition {

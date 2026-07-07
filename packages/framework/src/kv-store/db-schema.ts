@@ -8,3 +8,5 @@ export const kvStore = pgTable("kv_store", {
     .defaultNow(),
   value: text("value").notNull(),
 });
+
+// await db.db.execute(sql`ALTER TABLE kv_store SET UNLOGGED;`);

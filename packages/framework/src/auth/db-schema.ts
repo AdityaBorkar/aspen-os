@@ -57,7 +57,7 @@ export const authUsers = pgTable("auth_users", {
   id: text("id").primaryKey().default("gen_random_uuid()::text"),
   metadata: jsonb("metadata").default({}),
   name: text("name"),
-  passwordHash: text("password_hash").notNull(),
+  passwordHash: text("password_hash"),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
