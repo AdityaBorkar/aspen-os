@@ -12,7 +12,7 @@ export type { AuthConfig } from "./types";
 
 export class AuthUnit {
   readonly name = "auth";
-  readonly client;
+  readonly client: ReturnType<typeof createAuthClient>;
 
   constructor(config: AuthConfig) {
     const { baseURL, roles, access_control } = config;

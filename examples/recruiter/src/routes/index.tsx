@@ -7,7 +7,7 @@ export const Route = createFileRoute("/")({ component: LoginPage });
 
 function LoginPage() {
   const handleGoogleSignIn = useCallback(async () => {
-    const { error } = await auth.signIn.social({
+    const { error } = await auth.client.signIn.social({
       callbackURL: "/",
       provider: "google",
     });

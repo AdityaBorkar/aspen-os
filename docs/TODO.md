@@ -6,10 +6,12 @@
 - Client: RPC, Log
 - 
 - Standardizing the types in `framework`
+- Module Integration and Standardization
 - 
 - Log:
   - https://errore.org/
   - https://loggingsucks.com/
+  - Ensure logging works as intended. Structured logging.
 - 
 - Workflows Engine & BPNM??
   - https://www.inngest.com/
@@ -18,9 +20,11 @@
   - https://www.activiti.org/
   - https://www.npmjs.com/package/bpmn-engine
 - 
-- Ensure events are properly published and consumed (pubsub)
-- Ensure logging works as intended. Structured logging.
-- storage
+- PubSub
+  - Ensure events are properly published and consumed (pubsub)
+- 
+- Storage
+- 
 - /grill-with-docs
 - /improve-codebase-architecture
 
@@ -38,11 +42,37 @@
 - List of Modules
 - Features and Configuration in each module.
 
+## Units
+
+## List of Units (in order of precendence)
+
+- Pubsub
+- Workflows (BPNM)
+- RPC
+- AI
+
 ## Modules
 
 ### List of Modules (in order of precendence)
 
+- Project Management https://frappe.io/erpnext/open-source-project-management-software
+- Quality Assurance https://frappe.io/erpnext/open-source-quality-management-software
 - 
+- ATS
+- Patient Management
+- 
+- Accounting https://frappe.io/erpnext/open-source-accounting
+- Sales https://frappe.io/erpnext/open-source-sales-invoicing
+- Purchasing https://frappe.io/erpnext/open-source-procurement
+- 
+- Inventory https://frappe.io/erpnext/open-source-inventory-management-system
+- Asset Management https://frappe.io/erpnext/open-source-asset-management-software
+- 
+- CRM https://frappe.io/crm
+- 
+- Helpdesk https://frappe.io/helpdesk
+- 
+- Payments & POS https://frappe.io/erpnext/open-source-pos-software
 
 ### HR Module
 

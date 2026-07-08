@@ -5,7 +5,9 @@ export type { LogConfig } from "./types";
 export class LogUnit {
   readonly name = "logs";
 
-  constructor(_config: LogConfig) {}
+  constructor(config: LogConfig) {
+    console.log({ config });
+  }
 
   async prepare(): Promise<void> {
     throw new Error("LogUnit is not supported on the client side.");

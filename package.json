@@ -11,9 +11,5 @@
     "check:types": "tsc -b",
     "update:deps": "taze -rw --maturity-period 3"
   },
-  "workspaces": [
-    "./packages/*",
-    "./examples/*",
-    "./documentation"
-  ]
+  "workspaces": ["./packages/*", "./examples/*", "./documentation"]
 }

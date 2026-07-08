@@ -3,6 +3,8 @@ import { type AuthConfig, AuthUnit } from "./auth";
 import { type LogConfig, LogUnit } from "./log";
 import { type RpcConfig, RpcUnit } from "./rpc";
 
+export type { AuthUnit } from "./auth";
+
 export interface FrameworkConfig {
   auth: AuthConfig;
   logs: LogConfig;
