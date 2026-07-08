@@ -1,4 +1,3 @@
-import type { AuthUnit } from "@aspen-os/framework";
 import { Framework } from "@aspen-os/framework/server";
 
 import { env } from "../env";
@@ -51,4 +50,4 @@ export const framework = new Framework({
 
 await framework.initialize();
 
-export const auth = framework.getUnit("auth") as AuthUnit;
+export const auth = framework.getUnit("auth");

@@ -1,5 +1,6 @@
 export {
   type AuthConfig,
+  type AuthUnit,
   createAccessControl,
 } from "./server/auth";
 export { Framework, type FrameworkConfig } from "./server/index";

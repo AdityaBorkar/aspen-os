@@ -86,14 +86,11 @@ export class Framework {
     return unit;
   }
 
-  getUnit(name?: keyof Units) {
+  getUnit<K extends keyof Units>(name: K) {
     if (!this.units) throw new Error("Could not setup framework units");
     if (!this.initialized) throw new Error("Framework not initialized");
 
-    if (!name) return this.units;
     if (!(name in this.units)) throw new Error(`Unit "${name}" not found`);
-    const unit = this.units[name];
-    if (!unit) throw new Error(`Unit "${name}" not initialized`);
-    return unit;
+    return this.units[name] as Units[K];
   }
 }
