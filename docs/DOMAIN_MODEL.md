@@ -6,32 +6,29 @@
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        AUTH DOMAIN                                  │
 │                                                                     │
-│  ┌──────────┐       ┌──────────────┐       ┌──────────────┐        │
-│  │  AuthUser │──M:N──│   UserRole   │──M:N──│   AuthRole   │        │
-│  │          │       │              │       │              │        │
-│  │ id       │       │ userId (FK)  │       │ id           │        │
-│  │ email    │       │ roleId (FK)  │       │ name         │        │
-│  │ name     │       └──────────────┘       │ description  │        │
-│  │ metadata │                              │ createdAt    │        │
-│  │ passHash │                              │ updatedAt    │        │
-│  │ createdAt│                              └──────┬───────┘        │
-│  │ updatedAt│                                     │                │
-│  └────┬─────┘                                     │ M:N            │
-│       │                                    ┌──────┴───────┐        │
-│       │ 1:N                                │RolePermission│        │
-│       ▼                                    │              │        │
-│  ┌──────────┐                              │ roleId (FK)  │        │
-│  │AuthSession│                              │ permId (FK)  │        │
-│  │          │                              └──────┬───────┘        │
-│  │ id       │                                     │ M:1            │
-│  │ token    │                              ┌──────┴───────┐        │
-│  │ userId   │                              │AuthPermission│        │
-│  │ expiresAt│                              │              │        │
-│  │ createdAt│                              │ id           │        │
-│  └──────────┘                              │ resource     │        │
-│                                            │ action       │        │
-│                                            │ description  │        │
-│                                            └──────────────┘        │
+│  ┌──────────┐       ┌──────────────┐       ┌──────────────────┐    │
+│  │   User    │──1:N──│   Session    │       │   Account        │    │
+│  │          │       │              │       │                  │    │
+│  │ id       │       │ id           │       │ id               │    │
+│  │ email    │       │ token        │       │ userId (FK)      │    │
+│  │ name     │       │ userId (FK)  │       │ providerId       │    │
+│  │ role     │  ┌───→│ expiresAt    │       │ accountId        │    │
+│  │ username │  │    │ createdAt    │       │ password         │    │
+│  │ phoneNum │  │    └──────────────┘       │ accessToken      │    │
+│  │ banned   │──┘                           │ refreshToken     │    │
+│  │ image    │──1:N────────────────────────→│ idToken          │    │
+│  │ createdAt│                               └──────────────────┘    │
+│  │ updatedAt│                                                       │
+│  └──────────┘                                                       │
+│                                                                     │
+│  ┌────────────────┐                                                  │
+│  │  Verification   │                                                  │
+│  │                 │                                                  │
+│  │ id              │                                                  │
+│  │ identifier      │                                                  │
+│  │ value           │                                                  │
+│  │ expiresAt       │                                                  │
+│  └─────────────────┘                                                  │
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -83,25 +80,6 @@
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
-│                     NOTIFICATION DOMAIN                              │
-│                                                                     │
-│  ┌─────────────────┐                                                  │
-│  │NotificationRecord│                                                  │
-│  │                  │                                                  │
-│  │ id               │                                                  │
-│  │ type             │  email | sms | push | webhook                   │
-│  │ to               │                                                  │
-│  │ subject          │                                                  │
-│  │ body             │                                                  │
-│  │ status           │  pending | sent | failed | delivered            │
-│  │ provider         │                                                  │
-│  │ error            │                                                  │
-│  │ sentAt           │                                                  │
-│  │ createdAt        │                                                  │
-│  └─────────────────┘                                                  │
-└─────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────┐
 │                       KV-STORE DOMAIN                                │
 │                                                                     │
 │  ┌─────────────────┐                                                  │
@@ -117,47 +95,44 @@
 
 ## Aggregates
 
-### AuthUser (Aggregate Root)
+### User (Aggregate Root)
 
-**Identity**: `id` (text, UUID)
-
-**Value objects**:
-- `UserMetadata` — `Record<string, unknown>` (jsonb)
-- `PasswordHash` — text (hashed, never exposed)
+**Identity**: `id` (text, generated via `crypto.randomUUID()`)
 
 **Invariants**:
 - Email must be unique
-- PasswordHash is write-only (never returned in User type)
-- Metadata defaults to `{}`
+- Phone number, if present, must be unique
+- Username, if present, must be unique
 
 **Lifecycle commands**:
 - `create(email, password, name?, metadata?)` → User
 - `update(id, { name?, metadata? })` → User
-- `delete(id)` → void (cascades to sessions, user_roles)
+- `delete(id)` → void (cascades to sessions, accounts)
 
 **Relationships**:
-- Has many `AuthSession` (1:N, cascade delete)
-- Has many `UserRole` (M:N via join table)
+- Has many `Session` (1:N, cascade delete)
+- Has many `Account` (1:N, cascade delete)
+- Has one `role` (text field on user table — not a separate entity)
 
-### AuthRole (Aggregate Root)
+### Account (Entity)
 
-**Identity**: `id` (text, UUID) or `name` (unique)
+**Identity**: `id` (text, generated via `crypto.randomUUID()`)
+
+**Value objects**:
+- `Password` — text, hashed (stored on account, not user)
+- `ProviderId` — text, identifies the auth provider (e.g., "credential")
 
 **Invariants**:
-- Name must be unique
-- Permissions are managed via join table
-
-**Lifecycle commands**:
-- Created implicitly via `access_control.newRole()` + DB seeding
-- `delete(name)` → void (cascades to role_permissions, user_roles)
+- Belongs to exactly one User via `userId` FK
+- Password is stored here, not on the User table
+- Multiple accounts per user possible (OAuth providers)
 
 **Relationships**:
-- Has many `AuthPermission` (M:N via `RolePermission`)
-- Has many `AuthUser` (M:N via `UserRole`)
+- Belongs to `User` (N:1, cascade delete)
 
-### AuthSession (Aggregate Root)
+### Session (Aggregate Root)
 
-**Identity**: `id` (text, UUID)
+**Identity**: `id` (text, generated via `crypto.randomUUID()`)
 
 **Value objects**:
 - `Token` — text, unique session identifier
@@ -165,16 +140,24 @@
 **Invariants**:
 - Token must be unique
 - Has expiration (`expiresAt`)
-- Cascades delete from user
+- Cascades delete from User
 
 **Lifecycle commands**:
 - `create(email, password)` → `{ user, session }`
 - `validate(token)` → `{ user, session } | null`
 - `invalidate(id)` → void
 
+### Verification (Entity)
+
+**Identity**: `id` (text, generated via `crypto.randomUUID()`)
+
+**Invariants**:
+- Has expiration (`expiresAt`)
+- Used for email verification, password reset, etc.
+
 ### FileMetadata (Aggregate Root)
 
-**Identity**: `id` (text, UUID)
+**Identity**: `id` (text, UUID, default `gen_random_uuid()::text`)
 
 **Value objects**:
 - `FileKey` — text, unique S3 object key
@@ -194,7 +177,7 @@
 
 ### LogEntry (Entity — append-only)
 
-**Identity**: `id` (text, UUID)
+**Identity**: `id` (text, UUID, default `gen_random_uuid()::text`)
 
 **Value objects**:
 - `LogLevel` — `"debug" | "info" | "warn" | "error" | "fatal"`
@@ -203,21 +186,6 @@
 **Invariants**:
 - Append-only (no updates/deletes from application)
 - Level priority: debug(0) < info(1) < warn(2) < error(3) < fatal(4)
-
-### NotificationRecord (Aggregate Root)
-
-**Identity**: `id` (text, UUID)
-
-**Value objects**:
-- `NotificationType` — `"email" | "sms" | "push" | "webhook"`
-- `NotificationStatus` — `"pending" | "sent" | "failed" | "delivered"`
-
-**State machine**:
-```
-pending → sent → delivered
-pending → failed
-sent → failed
-```
 
 ### KVEntry (Entity)
 
@@ -234,10 +202,7 @@ sent → failed
 
 | Value Object | Type | Usage |
 |---|---|---|
-| `Result<T, E>` | `{ success: true, data: T } \| { success: false, error: E }` | Error handling across all units |
-| `PaginationParams` | `{ page?, limit? }` | List operations |
-| `PaginatedResult<T>` | `{ data, total, page, limit, totalPages }` | Paginated responses |
-| `DatabaseConfig` | `{ host, port, user, password, database, ssl?, maxConnections? }` | DB connection |
+| `DatabaseConfig` | `{ host, port, user, password, database, ssl?, maxConnections? }` | DB connection (in `server/db/types.ts`) |
 | `StorageProvider` | `{ type: "s3", endpoint, region, credentials, forcePathStyle }` | S3 config |
 
 ## Domain Events
@@ -251,15 +216,17 @@ sent → failed
 | `user:deleted` | `{ userId: string }` | User deleted |
 | `session:created` | `{ session, user }` | Session authenticated |
 | `session:invalidated` | `{ sessionId }` | Session invalidated |
-| `role:created` | `{ role: RoleData }` | Role created |
-| `role:deleted` | `{ roleName }` | Role deleted |
 | `role:assigned` | `{ roleName, userId }` | Role assigned to user |
-| `role:unassigned` | `{ roleName, userId }` | Role unassigned from user |
+| `role:unassigned` | `{ userId }` | Role unassigned (note: missing `roleName` — known gap) |
+| `role:deleted` | `{ roleName }` | Role deleted |
+
+### Known Gap
+
+- `RoleUnassignedEvent` is missing `roleName` — inconsistent with `RoleAssignedEvent` which has both `roleName` and `userId`.
 
 ### Not Yet Defined (Gaps)
 
 - File events: `file:uploaded`, `file:deleted`, `file:archived`
-- Notification events: `notification:sent`, `notification:failed`
 - Log events: `log:error-threshold-exceeded`
 - KV events: (none expected — cache operations are internal)
 
@@ -281,9 +248,9 @@ sent → failed
 | Storage | Delete file | `storage.delete()` |
 | Storage | Archive file | `storage.archive()` |
 | PubSub | Publish message | `pubsub.publish()` |
+| PubSub | Subscribe | `pubsub.subscribe()` |
 | KV | Set key | `kv.set()` |
 | KV | Delete key | `kv.del()` |
-| Notification | Send | `notification.send()` |
 
 ### Queries (Read Side)
 
@@ -291,9 +258,6 @@ sent → failed
 |---|---|---|
 | Auth | Get user by ID | `auth.server.workflows.user.get({ id })` |
 | Auth | Get user by email | `auth.server.workflows.user.get({ email })` |
-| Auth | List user roles | `auth.server.workflows.user.role.list()` |
-| Auth | Check permission | `auth.server.workflows.user.permission.check()` |
-| Auth | List user permissions | `auth.server.workflows.user.permission.list()` |
 | Auth | Validate session | `auth.server.workflows.session.validate()` |
 | Auth | List roles | `auth.server.workflows.role.list()` |
 | Storage | Get signed URL | `storage.getSignedUrl()` |
@@ -303,40 +267,39 @@ sent → failed
 | Logs | Get stats | `logs.getStats()` |
 | KV | Get key | `kv.get()` |
 | KV | Check exists | `kv.exists()` |
-| Notification | Get history | `notification.getHistory()` |
-| Notification | Get status | `notification.getStatus()` |
+| PubSub | Get queue size | `pubsub.getQueueSize()` |
 
 ## Invariants & Business Rules
 
 ### Cross-Cutting
 
-1. **All IDs are text UUIDs** — `DEFAULT gen_random_uuid()::text`, never native UUID type
+1. **All IDs are text** — either app-generated via `crypto.randomUUID()` or DB-generated via `gen_random_uuid()::text`
 2. **All timestamps are TIMESTAMPTZ** — `withTimezone: true` on all timestamp columns
-3. **Cascade deletes** — AuthUser deletion cascades to sessions and user_roles; Role deletion cascades to role_permissions and user_roles
+3. **Cascade deletes** — User deletion cascades to sessions and accounts
 4. **No barrel files** — explicit convention in CODING_CONVENTIONS.md
 
 ### Auth
 
 5. **Email uniqueness** — enforced by DB unique constraint
 6. **Session token uniqueness** — enforced by DB unique constraint
-7. **Permission uniqueness** — (resource, action) pair has unique index
-8. **Role name uniqueness** — enforced by DB unique constraint
+7. **Phone number uniqueness** — enforced by DB unique constraint (nullable)
+8. **Username uniqueness** — enforced by DB unique constraint (nullable)
+9. **Roles are strings** — stored as text on user table, not as separate entities
 
 ### Storage
 
-9. **Key uniqueness** — enforced by DB unique constraint on file_metadata.key
-10. **Archive immutability** — archived files get new key, original marked as archived
+10. **Key uniqueness** — enforced by DB unique constraint on file_metadata.key
+11. **Archive immutability** — archived files get new key, original marked as archived
 
 ### KV Store
 
-11. **Lazy TTL eviction** — expired entries deleted on read, not by background job
-12. **UNLOGGED table** — data lost on Postgres crash (by design — cache semantics)
+12. **Lazy TTL eviction** — expired entries deleted on read, not by background job
+13. **UNLOGGED table** — data lost on Postgres crash (by design — cache semantics)
 
 ## Anti-Patterns to Avoid
 
 1. **Don't create barrel files** unless explicitly told
-2. **Don't use native UUID columns** — always text with `gen_random_uuid()::text`
+2. **Don't use native UUID columns** — always text
 3. **Don't use `timestamp without time zone`** — always `withTimezone: true`
-4. **Don't access units by casting** — use `framework.getUnit("name")`
-5. **Don't register modules after `initialize()`** — throws error
-6. **Don't import from `@/~` paths** outside the framework — these are internal
+4. **Don't register modules after `initialize()`** — throws error
+5. **Don't assume dedicated role/permission tables** — roles are text on user table

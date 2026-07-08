@@ -111,9 +111,9 @@ export class Framework {
     if (!this.initialized) throw new Error("Framework not initialized");
 
     if (!name) return this.modules;
-    if (!(name in this.modules)) throw new Error(`Unit "${name}" not found`);
+    if (!(name in this.modules)) throw new Error(`Module "${name}" not found`);
     const unit = this.modules[name];
-    if (!unit) throw new Error(`Unit "${name}" not initialized`);
+    if (!unit) throw new Error(`Module "${name}" not initialized`);
     return unit;
   }
 

@@ -1,240 +1,243 @@
-# Aspen OS — Context Map
+# Aspen OS
 
-## Vision
+Aspen OS is a business application framework built on Bun/TypeScript. The framework kernel provides composable infrastructure (database, auth, logging, pub/sub, RPC, storage, KV store) so domain-specific modules can be built on top without reinventing plumbing. The first concrete application is **Recruiter** — a recruitment management system.
 
-Aspen OS is a **business application framework** built on Bun/TypeScript that provides composable infrastructure (auth, storage, logging, pub/sub, RPC, database) so domain-specific modules (HR, recruiting, analytics, etc.) can be built on top without reinventing plumbing.
+## Language
 
-The first concrete application built on this framework is **Recruiter** — a recruitment management system.
+### Framework Kernel
 
-## Strategic Pattern
+**Framework**:
+The orchestrator class. Owns all Units, wires their dependencies, and manages lifecycle (`initialize` → `prepare` → `run` → `destroy`).
+_Avoid_: App, Container, DI Container
 
-**Pluggable Kernel** — a small framework kernel (`Framework` class) orchestrates lifecycle and wiring of infrastructure Units, while business Modules are registered externally and receive typed dependencies.
+**Unit**:
+An infrastructure building block with a name, a `destroy()` method, and an optional `prepare()` method. Seven core units: `db`, `auth`, `logs`, `pubsub`, `rpc`, `storage`, `kvStore`.
+_Avoid_: Service, Provider
 
-```
-┌─────────────────────────────────────────────────┐
-│                  Application Layer               │
-│  (recruiter, documentation, future apps)         │
-├─────────────────────────────────────────────────┤
-│                Domain Modules                    │
-│  (hr, analytics, banking, reports — stubs)       │
-├─────────────────────────────────────────────────┤
-│              Framework Kernel                    │
-│  Framework → Units (db, auth, logs, pubsub,      │
-│             rpc, storage) + Modules              │
-├─────────────────────────────────────────────────┤
-│            Infrastructure                        │
-│  Postgres, S3, pg-boss, better-auth, oRPC        │
-└─────────────────────────────────────────────────┘
-```
+**Module**:
+A business logic plugin registered before `initialize()`. Receives unit dependencies. Same interface shape as Unit (`name`, `destroy()`).
+_Avoid_: Plugin, Extension
 
-## Bounded Contexts
+**Register**:
+Adding a Module to the Framework before initialization. Singular — one module at a time.
+_Avoid_: Mount, Attach
 
-### 1. Framework Kernel (Core)
-**Role**: Universal infrastructure provider
+**Initialize**:
+Creating and wiring all Units from config. Must happen after all `registerModule()` calls.
+_Avoid_: Boot, Start
 
-Owns the lifecycle of all core units and provides dependency injection via constructors. Exposes `AsyncLocalStorage` context for request-scoped access to `db` and `pubsub`.
+**Prepare**:
+Running post-initialization setup on all Units (e.g., schema migrations via `pushSchema`). Called after `initialize()`.
+_Avoid_: Migrate, Setup
 
-**Key aggregates**:
-- `Framework` — orchestrator, owns `Units` map and `Modules` map
-- `Unit` (interface) — `{ name, destroy(), healthCheck() }`
-- `Module` (interface) — same shape as Unit, receives richer deps (`ModuleDeps`)
+**Run**:
+Executing a function within `AsyncLocalStorage` context that provides `db` (drizzle instance) and `pubsub` (narrow publish interface).
+_Avoid_: Execute, Dispatch
 
-**Ubiquitous language**: Unit, Module, Framework, Initialize, Destroy, HealthCheck, Register
+**Destroy**:
+Graceful shutdown of all Modules, then all Units. Clears internal state.
+_Avoid_: Shutdown, Cleanup
 
-### 2. Authentication & Authorization
-**Role**: Identity, sessions, and access control
+**GetUnit**:
+Typed accessor to retrieve a Unit by name after initialization. Requires a name — no zero-arg overload.
+_Avoid_: Resolve, Get
 
-Built on `better-auth`. Manages users, sessions, roles, and permissions. Exposes both an HTTP handler and programmatic workflows.
+**GetModule**:
+Typed accessor to retrieve a Module by name. Supports zero-arg to return the full module map.
+_Avoid_: Resolve, Get
 
-**Key aggregates**:
-- `AuthUser` — id, email, name, metadata, passwordHash
-- `AuthSession` — id, token, userId, expiresAt
-- `AuthRole` — id, name, description
-- `AuthPermission` — id, resource, action
-- `UserRole` (join) — userId ↔ roleId
-- `RolePermission` (join) — roleId ↔ permissionId
+### Database
 
-**Key workflows** (command side):
-- `user.create/delete/update/get`
-- `user.role.assign/unassign/list`
-- `user.permission.check/list`
-- `session.create/validate/invalidate`
-- `role.list/delete`
+**DatabaseUnit**:
+Core unit owning a `pg.Pool` and drizzle `NodePgDatabase`. Exposes `prepare()` which runs `pushSchema()` from drizzle-kit to apply schema migrations.
+_Avoid_: DbUnit, ConnectionPool
 
-**Events** (domain events via event-map):
-- `user:created`, `user:updated`, `user:deleted`
-- `session:created`, `session:invalidated`
-- `role:created`, `role:deleted`, `role:assigned`, `role:unassigned`
+**DatabaseConfig**:
+Connection parameters: `host`, `port`, `user`, `password`, `database`, `ssl?`, `maxConnections?`.
 
-**Ubiquitous language**: User, Session, Role, Permission, Grant, Revoke, Authenticate, Authorize
+### Authentication
 
-### 3. Access Control Definition
-**Role**: Declarative permission model
+**AuthUnit**:
+Core unit wrapping better-auth. Exposes a React client, an HTTP handler, and programmatic workflows for user, session, and role management.
+_Avoid_: Auth, AuthProvider
 
-`createAccessControl` (from better-auth) defines a statement matrix: `{ resource: [actions...] }`. Roles are created via `ac.newRole({...})`.
+**User**:
+An authenticated identity with `id`, `email`, `name`, optional `phoneNumber`, `image`, `role` (text field), and metadata. Passwords are stored in the separate `account` table, not on the user record.
+_Avoid_: Account, Profile
 
-**In the Recruiter app**, 12 resources and 7 roles are defined:
-- Resources: `audit_logs`, `client_contracts`, `clients`, `drafts`, `filter_views`, `job_mandates`, `notification`, `prospects`, `reminders`, `tasks`, `team_members`
-- Roles: `admin`, `bd` (business dev), `caller`, `qc` (quality check), `rm` (resource manager), `sc` (sourcing), `tl` (team lead)
+**Session**:
+A time-bounded authentication token tied to a User. Has `id`, `token`, `userId`, `expiresAt`. Cascades delete from User.
+_Avoid_: Token, Login
 
-**Ubiquitous language**: Statement, Resource, Action, Role Definition, Access Control
+**Account**:
+A credential record linking a User to an authentication provider (email/password, OAuth, etc.). Stores `password`, `accessToken`, `refreshToken`, and provider metadata. Not the same as User.
+_Avoid_: Credential, AuthMethod
 
-### 4. Logging & Observability
-**Role**: Structured logging with Postgres persistence
+**Role**:
+A plain text field on the User table. In the Recruiter app, values are `admin`, `bd`, `caller`, `qc`, `rm`, `sc`, `tl`. Not a separate entity — no dedicated role table exists.
+_Avoid_: Permission Group, Access Level
 
-Provides pino-based logging with buffered writes to a `logs` table. Integrates OpenTelemetry span context (traceId, spanId).
+**Access Control**:
+A declarative statement matrix defining `{ resource: [actions...] }`. Created via `createAccessControl` (from better-auth). Roles are created via `ac.newRole()`. Defined at the application level, not the framework level.
+_Avoid_: Permission Matrix, ACL
 
-**Key aggregates**:
-- `LogEntry` — id, level, message, service, timestamp, metadata, error, traceId, spanId, userId, requestId, duration
-- `LogStats` — total, byLevel, errorRate
+**Auth Event**:
+A typed domain event published via PubSub when auth state changes. Events: `user:created`, `user:updated`, `user:deleted`, `session:created`, `session:invalidated`, `role:assigned`, `role:unassigned`, `role:deleted`.
+_Avoid_: Auth Signal, Auth Hook
 
-**Key operations**:
-- Log at levels: debug, info, warn, error, fatal
-- Query logs by filter (level, service, time range, search, traceId)
-- Get aggregated stats
-- Create child loggers with fixed context
+### Logging
 
-**Ubiquitous language**: Log Entry, Level, Service, Span, Trace, Buffer, Flush, Drain
+**LogUnit**:
+Core unit providing pino-based structured logging with buffered writes to a Postgres `logs` table. Integrates OpenTelemetry span context.
+_Avoid_: Logger, LoggingService
 
-### 5. Pub/Sub & Messaging
-**Role**: Async event bus backed by pg-boss
+**LogEntry**:
+An append-only record: `id`, `level`, `message`, `service`, `timestamp`, `metadata`, `error`, `traceId`, `spanId`, `userId`, `requestId`, `duration`.
+_Avoid_: Log Record, Log Line
 
-Provides topic-based publish/subscribe over Postgres (pg-boss job queue).
+**LogLevel**:
+Severity enum: `debug`, `info`, `warn`, `error`, `fatal`.
+_Avoid_: Severity, Priority
 
-**Key aggregates**:
-- `Message<T>` — id, name, data, createdOn, completedOn
-- `PublishOptions` — retryLimit, retryDelay, retryBackoff, priority, expireInMinutes, startAfter
+### Pub/Sub
 
-**Key operations**:
-- `publish(topic, data)` — enqueue a message
-- (Subscription handling via pg-boss workers — internal)
+**PubSubUnit**:
+Core unit backed by pg-boss. Provides topic-based publish/subscribe over Postgres job queue. Exposes `publish`, `publishBatch`, `subscribe`, `unsubscribe`, `getQueueSize`, `purgeQueue`.
+_Avoid_: EventBus, MessageBroker
 
-**Ubiquitous language**: Topic, Publish, Subscribe, Message, Handler, Retry, Priority
+**Topic**:
+A named message channel. Messages are published to topics and consumed by subscribers.
+_Avoid_: Queue, Channel, Subject
 
-### 6. File Storage
-**Role**: Object storage with metadata tracking
+**Message**:
+A typed payload with `id`, `name`, `data`, `createdOn`. Generic over `T`.
+_Avoid_: Event, Payload
 
-S3-compatible storage with a Postgres metadata table for tracking files.
+**PublishOptions**:
+Retry and delivery configuration: `retryLimit`, `retryDelay`, `retryBackoff`, `priority`, `expireInMinutes`, `startAfter`.
+_Avoid_: DeliveryConfig, SendOptions
 
-**Key aggregates**:
-- `FileMetadata` — id, key, bucket, contentType, size, etag, metadata, archived, archivedKey, createdAt, updatedAt
-- `FileObject` — key, size, etag, lastModified, contentType, metadata
-- `FileUploadInput` — key, body, contentType, cacheControl, metadata
+### File Storage
 
-**Key operations**:
-- Upload, download, delete, list files
-- Generate signed URLs (presigned GET/PUT)
-- Archive files (soft-delete with key migration)
-- Query file metadata
+**StorageUnit**:
+Core unit providing S3-compatible object storage with Postgres metadata tracking.
+_Avoid_: FileUnit, ObjectStore
 
-**Ubiquitous language**: File, Bucket, Key, Upload, Download, Archive, Signed URL, ETag
+**FileMetadata**:
+A Postgres record tracking S3 objects: `id`, `key`, `bucket`, `contentType`, `size`, `etag`, `metadata`, `archived`, `archivedKey`, `createdAt`, `updatedAt`.
+_Avoid_: FileRecord, FileInfo
 
-### 7. RPC (Remote Procedure Call)
-**Role**: Type-safe API layer via oRPC
+**Key**:
+A unique S3 object identifier stored in `file_metadata.key`.
+_Avoid_: Path, Filename
 
-Provides a router-based RPC server with middleware support.
+**Archive**:
+Soft-delete that moves a file to a new key and marks the original as archived.
+_Avoid_: SoftDelete, Trash
 
-**Key aggregates**:
-- `RpcRouter` — routes (echo, health.check)
-- `RpcContext` — `{ db, pubsub }`
+**Signed URL**:
+A time-limited presigned URL for direct S3 upload or download.
+_Avoid_: PresignedLink, TempUrl
 
-**Built-in procedures**:
-- `echo` — echo back input (test/diagnostic)
-- `health.check` — system health check
+### RPC
 
-**Ubiquitous language**: Procedure, Router, Handler, Middleware, Context
+**RpcUnit**:
+Core unit providing a type-safe API layer via oRPC. Exposes a router with middleware support.
+_Avoid_: ApiUnit, EndpointUnit
 
-### 8. Notification (Optional/Extra)
-**Role**: Multi-channel notification dispatch
+**Procedure**:
+A named RPC handler with typed input/output. Built-in: `echo`, `health.check`.
+_Avoid_: Endpoint, Action
 
-Supports email, SMS, push, and webhook notifications with delivery tracking.
+**RpcContext**:
+Request context passed to procedures: `{ db, pubsub }`.
+_Avoid_: RequestContext, HandlerContext
 
-**Key aggregates**:
-- `NotificationRecord` — id, type, to, subject, body, status, provider, error, sentAt, createdAt
-- `NotificationPayload` — to, subject, body, html, channel, data
-- `NotificationProvider` — type, send()
+### KV Store
 
-**Statuses**: pending → sent → delivered | failed
+**KvStoreUnit**:
+Core unit providing a Redis-like key-value API over a Postgres `UNLOGGED TABLE` with TTL support.
+_Avoid_: CacheUnit, RedisUnit
 
-**Ubiquitous language**: Notification, Channel, Provider, Delivery, Status
+**KVEntry**:
+A key-value pair: `key` (PK), `value` (text, JSON-serialized), `expiresAt` (nullable TTL), `updatedAt`.
+_Avoid_: CacheEntry, KVPair
 
-### 9. KV Store (Optional/Extra)
-**Role**: Postgres-backed key-value cache
+**TTL**:
+Time-to-live on a KV entry. Expired entries are lazily evicted on read, not by a background job.
+_Avoid_: Expiration, TTL
 
-Redis-like API over a Postgres `UNLOGGED TABLE` with TTL support.
+### Recruiter Domain
 
-**Key aggregates**:
-- `KVEntry` — key, value, expiresAt, updatedAt
+**Prospect**:
+A candidate being tracked through the recruitment pipeline.
 
-**Key operations**:
-- get, set, del, exists, increment, decrement
-- getOrSet (cache-aside pattern)
-- clear (pattern-based)
-- scan (cursor-based iteration)
+**Client**:
+An organization engaging the recruiter for hiring.
 
-**Ubiquitous language**: Key, Value, TTL, Cache, Evict, Scan
+**Job Mandate**:
+A specific hiring requirement from a Client.
 
-### 10. Sync (Optional/Extra)
-**Role**: Data synchronization (stub)
+**Draft**:
+A preliminary version of a submission or document.
 
-Currently a no-op stub. Intended for cross-system data sync.
+**Filter View**:
+A saved search/filter configuration.
 
-**Ubiquitous language**: Sync, Replicate, Conflict
+**Reminder**:
+A time-bound follow-up task.
+
+**Task**:
+A unit of work assigned to a team member.
+
+**Team Member**:
+An internal user within the recruiting organization.
+
+**Contract**:
+A formal agreement between the recruiter and a Client.
 
 ## Context Relationships
 
 ```
-┌──────────────┐    provides infra    ┌──────────────────┐
-│   Recruiter  │ ──────────────────→  │  Framework Kernel │
-│   (app)      │                      │                   │
-└──────┬───────┘                      └──────┬────────────┘
-       │                                     │
-       │ uses                                │ wires
-       ▼                                     ▼
-┌──────────────┐    ┌────────────────────────────────────┐
-│ Access Ctrl  │    │  Units: db, auth, logs, pubsub,    │
-│ (definition) │    │         rpc, storage               │
-└──────────────┘    └────────────────────────────────────┘
-                            │
-                    ┌───────┼───────┬──────────┬──────────┐
-                    ▼       ▼       ▼          ▼          ▼
-                 Auth    Logs    PubSub    Storage      RPC
-                    │       │       │          │          │
-                    └───────┴───────┴──────────┴──────────┘
-                               │
-                          ┌────┴────┐
-                          ▼         ▼
-                       Postgres    S3
+┌──────────────────┐    ┌─────────────────────────────────────┐
+│    Recruiter     │───→│          Framework Kernel            │
+│    (app)         │    │  7 core units: db, auth, logs,      │
+└──────────────────┘    │  pubsub, rpc, storage, kvStore      │
+                        └──────────┬──────────────────────────┘
+                                   │ wires
+                    ┌──────────────┼──────────────┬──────────────┐
+                    ▼              ▼              ▼              ▼
+                 Database       AuthUnit       LogUnit      PubSubUnit
+                    │              │              │              │
+                    │              │ uses         │ uses         │ uses
+                    │              ▼              ▼              ▼
+                    │         better-auth      pino         pg-boss
+                    │
+                    ├──────────────────────────────────────────────┐
+                    ▼              ▼              ▼              ▼
+              StorageUnit     KvStoreUnit     RpcUnit
+                    │              │              │
+                    ▼              │              ▼
+                 S3 SDK           │           oRPC
+                                  │
+                              Postgres
+                             (UNLOGGED)
 ```
 
-## Domain Events Flow
+## Known Gaps
 
-Auth unit defines typed domain events but does not currently publish them via PubSub. This is a known gap (see TODO.md — "events" under THINK).
+1. **Module initialization is commented out** — `initialize()` stores modules but does not call their lifecycle hooks. The commented code passes `this.units` but `Module` has no `initialize()` method.
+2. **No `healthCheck()` on Unit** — docs claim it exists, code has only `name` and `destroy()`.
+3. **`getModule()` error messages say "Unit"** — code bug at `server/index.ts:114-116`.
+4. **`RoleUnassignedEvent` missing `roleName`** — unlike `RoleAssignedEvent` which has `{ roleName, userId }`, the unassigned event only has `{ userId }`.
+5. **Client-side framework undocumented** — `src/client/` has its own `Framework` class with `AuthUnit`, `LogUnit`, `RpcUnit`. Exported as `./client` subpath.
+6. **`prepare()` lifecycle undocumented** — critical step that runs schema migrations.
+7. **`Result<T,E>` and `PaginatedResult<T>` don't exist** — referenced in docs but not in code.
+8. **No barrel files** — explicit convention, not enforced by tooling.
 
-**Defined events**: user:created, user:updated, user:deleted, session:created, session:invalidated, role:created, role:deleted, role:assigned, role:unassigned
+## Anti-Patterns
 
-**Intended flow**: Unit/Module → publish(event) → PubSub → subscribers (notifications, audit logs, analytics)
-
-## Known Gaps & Tensions
-
-1. **Module initialization is commented out** — `initialize()` stores modules but doesn't call their lifecycle hooks
-2. **Optional units have broken imports** — `~notification` and `~kv-store` import `createDrizzle` from `../db` which no longer exports it
-3. **Missing drizzle export** — `./drizzle` subpath in package.json points to empty directory
-4. **No migrations** — `getSchemas()` collects schemas but no migration runner exists
-5. **TypeScript version fragmentation** — root `^7.0.1-rc`, framework `^5.7.2`, apps `^6.0.2`
-6. **Events not wired** — AuthEventMap types exist but PubSub integration is not implemented
-7. **Empty domain packages** — hr, analytics, banking, reports are stubs
-
-## Glossary
-
-| Term | Meaning |
-|------|---------|
-| **Unit** | Infrastructure building block (db, auth, logs, etc.) with lifecycle |
-| **Module** | Business logic plugin that receives Unit dependencies |
-| **Framework** | Orchestrator class managing Unit/Module lifecycle |
-| **Statement** | Permission declaration: `{ resource: [actions] }` |
-| **Role** | Named collection of permission statements |
-| **Workflow** | Named set of operations on an aggregate (e.g., user workflows) |
-| **Context** | AsyncLocalStorage providing request-scoped db + pubsub |
-| **HealthCheck** | Boolean probe for unit liveness |
-| **Destroy** | Graceful cleanup/shutdown of a unit or module |
+- Don't register modules after `initialize()` — throws error
+- Don't use native UUID columns — always text with `gen_random_uuid()::text` or app-generated UUIDs
+- Don't use `timestamp without time zone` — always `withTimezone: true`
+- Don't create barrel files unless explicitly told

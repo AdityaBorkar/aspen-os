@@ -5,9 +5,7 @@
 ```
                     ┌─────────────────────────────┐
                     │      SHARED KERNEL           │
-                    │  types.ts: Unit, Module,     │
-                    │  Result, PaginationParams,   │
-                    │  DatabaseConfig, UnitDeps    │
+                    │  types.ts: Unit, Module       │
                     └──────────────┬──────────────┘
                                    │
           ┌────────────────────────┼────────────────────────┐
@@ -32,26 +30,17 @@
 
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │  PARTNER        │    │  CONFORMIST     │    │  CONFORMIST     │
-│  Storage Unit   │    │  RPC Unit       │    │  Notification   │
-│                 │    │                 │    │  Unit (~extra)  │
-│  S3-compatible  │    │  oRPC router    │    │                 │
-│  interface      │    │  conventions    │    │  multi-provider │
+│  Storage Unit   │    │  RPC Unit       │    │  KV Store Unit  │
+│                 │    │                 │    │                 │
+│  S3-compatible  │    │  oRPC router    │    │  Redis-like API │
+│  interface      │    │  conventions    │    │  over Postgres  │
 └────────┬────────┘    └────────┬────────┘    └────────┬────────┘
          │                      │                      │
          ▼                      ▼                      ▼
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│  S3 (external)  │    │  HTTP clients   │    │  Email/SMS/Push │
-│  AWS SDK        │    │                 │    │  providers      │
+│  S3 (external)  │    │  HTTP clients   │    │  Postgres       │
+│  AWS SDK        │    │                 │    │  (UNLOGGED)     │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
-
-┌─────────────────┐
-│  CONFORMIST     │
-│  KV Store       │
-│  Unit (~extra)  │
-│                 │
-│  Redis-like API │
-│  over Postgres  │
-└─────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
 │                     DOWNSTREAM CONTEXTS                          │
@@ -65,6 +54,13 @@
 │  └───────────────┘  │ interface     │  │ interface     │        │
 │                     └───────────────┘  └───────────────┘        │
 └─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                     CLIENT FRAMEWORK                             │
+│  Exported as ./client subpath                                    │
+│  3 units: AuthUnit, LogUnit (stub), RpcUnit (stub)               │
+│  Uses: better-auth React client, no database dependency          │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ## Context Relationships
@@ -74,13 +70,10 @@
 **Shared between**: All units and modules
 
 **Contents** (`packages/framework/src/types.ts`):
-- `Unit` interface — `{ name, destroy(), healthCheck() }`
-- `Module` interface — same shape
-- `UnitDeps` — `{ db, pool, pubsub }`
-- `ModuleDeps extends UnitDeps` — adds `auth`, `rpc`
-- `DatabaseConfig` — connection parameters
-- `Result<T, E>` — success/failure discriminated union
-- `PaginationParams` / `PaginatedResult<T>` — pagination contracts
+- `Unit` interface — `{ name: string, destroy(): Promise<void> }`
+- `Module` interface — same shape as Unit
+
+**Note**: `DatabaseConfig`, `AuthConfig`, `LogConfig`, etc. live in their respective unit directories, not in the shared kernel. The shared kernel is intentionally minimal.
 
 **Rules**:
 - Changes to the shared kernel require coordinated updates across all units
@@ -99,7 +92,8 @@ Framework (supplier)
     ├── creates PubSubUnit(config, { db })
     ├── creates StorageUnit(config, { db })
     ├── creates AuthUnit(config, { db, logs, pubsub })
-    └── creates RpcUnit(config, { auth, db, logs, pubsub })
+    ├── creates RpcUnit(config, { auth, db, logs, pubsub })
+    └── creates KvStoreUnit(config, { db })
 ```
 
 **Dependency graph** (constructor injection):
@@ -114,6 +108,7 @@ DatabaseUnit ← RpcUnit
 LogUnit  ← RpcUnit
 PubSubUnit   ← RpcUnit
 AuthUnit     ← RpcUnit
+DatabaseUnit ← KvStoreUnit
 ```
 
 ### 3. Conformist: Auth → better-auth
@@ -125,6 +120,14 @@ AuthUnit     ← RpcUnit
 - `betterAuth()` → wrapped in AuthUnit constructor
 - `drizzleAdapter` → configures better-auth to use framework's drizzle instance
 - better-auth's session/user/role APIs → wrapped as `server.workflows`
+
+**Schema**: Auth tables follow better-auth's adapter pattern:
+- `user` table — core identity (id, email, name, role, phone, etc.)
+- `session` table — authentication tokens (token, userId, expiresAt)
+- `account` table — credentials and OAuth tokens (providerId, password, accessToken)
+- `verification` table — email verification, password reset tokens
+
+**Role model**: Roles are stored as a plain `text` column on the `user` table — not as separate entities. Access control statements are defined at the application level via `createAccessControl`, not at the framework level.
 
 **Risk**: Auth domain is tightly coupled to better-auth's type system and plugin API. Migration away would require significant rework.
 
@@ -143,8 +146,10 @@ AuthUnit     ← RpcUnit
 
 **Adaptations**:
 - pg-boss `publish()` → wrapped with type-safe `Message<T>` generic
-- pg-boss `subscribe()` → internal (not exposed in public API)
+- pg-boss `subscribe()` / `unsubscribe()` → exposed as public API
 - pg-boss schema → configurable via `PubSubConfig.schema`
+
+**Public API**: `publish`, `publishBatch`, `subscribe`, `unsubscribe`, `getQueueSize`, `purgeQueue`
 
 ### 6. Partner: Storage ↔ S3
 
@@ -173,11 +178,13 @@ AuthUnit     ← RpcUnit
 - TTL → `expiresAt` column with lazy eviction on read
 - Redis-like API → implemented via SQL operations
 
+**Status**: Core unit, not optional. Required in `FrameworkConfig`.
+
 ### 9. Downstream: Recruiter → Framework
 
 **Relationship**: Recruiter app conforms to framework's API surface. It:
-- Creates `Framework` with full config
-- Calls `framework.initialize()`
+- Creates `Framework` with full config (all 7 units)
+- Calls `framework.initialize()` then `framework.prepare()`
 - Accesses units via `framework.getUnit()`
 - Defines its own RBAC model (access_control + roles) using framework's auth primitives
 
@@ -188,19 +195,25 @@ AuthUnit     ← RpcUnit
 
 ### 10. Downstream: HR Module → Framework (Planned)
 
-**Relationship**: HR module will implement the `Module` interface and receive `ModuleDeps` (`{ db, pool, pubsub, auth, rpc }`).
+**Relationship**: HR module will implement the `Module` interface and receive unit dependencies.
 
-**Planned structure** (from `packages/hr/src/`):
-- `index.ts` — module entry
-- `types.ts` — HR-specific types
-- `register.ts` — registration with framework
-- `event-map.ts` — HR domain events
-- `subscriptions.ts` — event handlers
-- `handlers/` — request handlers
-- `workflows/` — business logic
-- `schema-db/` — database schemas
-- `schema-forms/` — form definitions
-- `notifications/` — notification templates
+**Planned structure** (from `packages/hr/`):
+- Module entry, HR-specific types
+- Registration with framework
+- HR domain events
+- Event handlers, request handlers, business logic
+- Database schemas, form definitions, notification templates
+
+### 11. Client Framework
+
+**Exported as**: `@aspen-os/framework/client`
+
+**Relationship**: A separate `Framework` class for browser-side use with 3 units:
+- `AuthUnit` — wraps better-auth React client with plugins (admin, emailOTP, username, phoneNumber)
+- `LogUnit` — stub (throws on `prepare()`/`destroy()`)
+- `RpcUnit` — stub (no-op)
+
+**No database dependency**: Client framework has no `DatabaseUnit`, `PubSubUnit`, `StorageUnit`, or `KvStoreUnit`.
 
 ## Integration Patterns
 
@@ -212,7 +225,11 @@ All units receive their dependencies via constructor parameters:
 // Framework wires this in initialize():
 const db = new DatabaseUnit(config.db);
 const logs = new LogUnit(config.logs, { db });
+const pubsub = new PubSubUnit(config.pubsub, { db });
+const storage = new StorageUnit(config.storage, { db });
 const auth = new AuthUnit(config.auth, { db, logs, pubsub });
+const rpc = new RpcUnit(config.rpc, { auth, db, logs, pubsub });
+const kvStore = new KvStoreUnit(config.kvStore, { db });
 ```
 
 ### AsyncLocalStorage Context
@@ -222,35 +239,37 @@ The `run()` method provides request-scoped context:
 ```typescript
 await framework.run(async () => {
   const { db, pubsub } = getContext();
-  // db and pubsub available without explicit passing
+  // db: NodePgDatabase (drizzle instance)
+  // pubsub: { publish<T>(topic, data): Promise<string> } (narrow interface)
 });
 ```
 
-### Event-Driven (Planned)
+### Event-Driven (Active)
 
-Domain events defined in `event-map.ts` files but not yet published via PubSub:
-
-```
-Unit/Module → publish(event) → PubSubTopic → Subscribers
-```
-
-### Schema Collection
-
-`getSchemas(framework)` merges all unit schemas for migration generation:
+Auth domain events are published via PubSub:
 
 ```
-Core schemas (auth, logs, storage, notification, kv-store)
-    +
-Unit schemas (from unit.db_schema)
-    =
-Complete schema for drizzle migrations
+AuthWorkflow → pubsub.publish("user:created", { user }) → pg-boss topic
 ```
+
+All 8 auth events are wired: `user:created`, `user:updated`, `user:deleted`, `session:created`, `session:invalidated`, `role:assigned`, `role:unassigned`, `role:deleted`.
+
+### Schema Management
+
+`DatabaseUnit.prepare()` uses `pushSchema()` from drizzle-kit to automatically apply schema changes:
+
+```
+Framework.prepare() → unit.prepare() for each unit
+    → DatabaseUnit.prepare() → pushSchema(schemas, db) → apply()
+```
+
+Schemas collected: `authSchema`, `logSchema`, `storageSchema`, `kvStoreSchema`.
 
 ## Context Map Table
 
 | Context | Type | Upstream | Downstream | Relationship |
 |---|---|---|---|---|
-| Shared Kernel | Shared | — | All units/modules | Shared types |
+| Shared Kernel | Shared | — | All units/modules | Shared types (Unit, Module) |
 | Database | Shared Kernel | — | All units | Foundation |
 | Framework | Customer | — | Units, Modules | Creates & wires |
 | Auth | Conformist | better-auth | Modules | Adapts API |
@@ -258,9 +277,8 @@ Complete schema for drizzle migrations
 | PubSub | Conformist | pg-boss | — | Adapts API |
 | Storage | Partner | S3 (AWS SDK) | — | Defines interface |
 | RPC | Conformist | oRPC | — | Adapts API |
-| Notification | Conformist | Providers | — | Multi-provider |
-| KV Store | Conformist | Postgres | — | Redis-like API |
-| Sync | — | — | — | Stub |
+| KV Store | Conformist | Postgres | — | Redis-like API (core) |
+| Client Framework | — | — | — | Browser-side (3 units) |
 | Recruiter | Downstream | Framework | — | Uses framework |
 | HR Module | Downstream | Framework | — | Planned |
 | Analytics | Downstream | Framework | — | Empty |
@@ -270,25 +288,22 @@ Complete schema for drizzle migrations
 ## Language Boundaries
 
 ### Framework Kernel Language
-- Unit, Module, Framework, Initialize, Destroy, HealthCheck, Register, Context, Run
+- Unit, Module, Framework, Initialize, Prepare, Destroy, Register, Context, Run, GetUnit, GetModule
 
 ### Auth Language
-- User, Session, Role, Permission, Grant, Revoke, Authenticate, Authorize, Statement, Access Control
+- User, Session, Account, Verification, Role, Permission, Grant, Revoke, Authenticate, Authorize, Statement, Access Control
 
 ### Logging Language
 - Log Entry, Level, Service, Span, Trace, Buffer, Flush, Drain, Query, Stats
 
 ### PubSub Language
-- Topic, Publish, Subscribe, Message, Handler, Retry, Priority, Queue
+- Topic, Publish, Subscribe, Unsubscribe, Message, Handler, Retry, Priority, Queue
 
 ### Storage Language
 - File, Bucket, Key, Upload, Download, Archive, Signed URL, ETag, Metadata
 
 ### RPC Language
 - Procedure, Router, Handler, Middleware, Context, Request, Response
-
-### Notification Language
-- Notification, Channel, Provider, Delivery, Status, Payload, Template
 
 ### KV Store Language
 - Key, Value, TTL, Cache, Evict, Scan, Increment, Decrement
