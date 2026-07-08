@@ -32,10 +32,8 @@ export type {
 } from "./event-map";
 export type {
   AuthConfig,
-  Permission,
   RoleAPI,
   RoleData,
-  RoleDefinition,
   Session,
   SessionAPI,
   User,
@@ -98,17 +96,9 @@ export class AuthUnit {
         (id: string) =>
           this.workflows.user.getUserById(id) ?? Promise.resolve(null),
       ),
-      user: createUserWorkflows(
-        deps,
-        () => this.workflows.role.getRolePermissions("") ?? Promise.resolve([]),
-      ),
+      user: createUserWorkflows(deps),
     };
 
-    // Re-wire user with proper getRolePermissions
-    this.workflows.user = createUserWorkflows(
-      deps,
-      this.workflows.role.getRolePermissions,
-    );
     this.workflows.session = createSessionWorkflows(
       deps,
       this.workflows.user.getUserById,
@@ -153,15 +143,8 @@ export class AuthUnit {
                 Promise.resolve(null)
               );
             },
-            permission: {
-              check: self.workflows.user.hasPermission,
-              list: self.workflows.user.getUserPermissions,
-            },
             role: {
               assign: self.workflows.role.assignRole,
-              list: self.workflows.user.getUserRoles as () => Promise<
-                RoleData[]
-              >,
               unassign: self.workflows.role.unassignRole,
             },
             update: self.workflows.user.updateUser,

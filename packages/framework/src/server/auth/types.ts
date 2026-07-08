@@ -1,7 +1,34 @@
-import type { Session, User } from "better-auth";
 import type { createAccessControl, Role } from "better-auth/plugins";
 
-export type { Session, User };
+export interface User {
+  banExpires?: Date;
+  banned?: boolean;
+  banReason?: string;
+  createdAt: Date;
+  displayUsername?: string;
+  email: string;
+  emailVerified: boolean;
+  id: string;
+  image?: string;
+  name: string;
+  phoneNumber?: string;
+  phoneNumberVerified?: boolean;
+  role?: string;
+  updatedAt: Date;
+  username?: string;
+}
+
+export interface Session {
+  createdAt: Date;
+  expiresAt: Date;
+  id: string;
+  impersonatedBy?: string;
+  ipAddress?: string;
+  token: string;
+  updatedAt: Date;
+  userAgent?: string;
+  userId: string;
+}
 
 export interface AuthConfig {
   access_control: ReturnType<typeof createAccessControl>;
@@ -18,31 +45,8 @@ export interface AuthConfig {
   };
 }
 
-export interface Permission {
-  action: string;
-  description?: string;
-  id: string;
-  resource: string;
-}
-
-export interface RoleData {
-  createdAt: Date;
-  description?: string;
-  id: string;
-  name: string;
-  permissions: Permission[];
-  updatedAt: Date;
-}
-
-export interface RoleDefinition {
-  id: string;
-  name: string;
-  permissions: { resource: string; action: string }[];
-}
-
 export interface CreateUserInput {
   email: string;
-  metadata?: Record<string, unknown>;
   name?: string;
   password: string;
 }
@@ -52,18 +56,14 @@ export interface UserAPI {
   delete(id: string): Promise<void>;
   get(query: { id: string }): Promise<User | null>;
   get(query: { email: string }): Promise<User | null>;
-
-  permission: {
-    check(userId: string, resource: string, action: string): Promise<boolean>;
-    list(userId: string): Promise<Permission[]>;
-  };
-
   role: {
     assign(userId: string, roleName: string): Promise<void>;
-    unassign(userId: string, roleName: string): Promise<void>;
-    list(userId: string): Promise<RoleData[]>;
+    unassign(userId: string): Promise<void>;
   };
-  update(id: string, data: Partial<Pick<User, "name">>): Promise<User>;
+  update(
+    id: string,
+    data: Partial<Pick<User, "name" | "image" | "role">>,
+  ): Promise<User>;
 }
 
 export interface SessionAPI {
@@ -73,6 +73,15 @@ export interface SessionAPI {
   ): Promise<{ user: User; session: Session }>;
   invalidate(sessionId: string): Promise<void>;
   validate(token: string): Promise<{ user: User; session: Session } | null>;
+}
+
+export interface RoleData {
+  createdAt: Date;
+  description?: string;
+  id: string;
+  name: string;
+  permissions: [];
+  updatedAt: Date;
 }
 
 export interface RoleAPI {

@@ -6,8 +6,8 @@ declare const window: Window & typeof globalThis;
 export const env = createEnv({
   client: {
     PUBLIC_WEB_DOMAIN: z.string().min(1),
-    PUBLIC_WEB_PORT: z.string().transform(Number),
-    PUBLIC_WEB_SSL: z.string().transform((val) => val === "true"),
+    PUBLIC_WEB_PORT: z.coerce.number(),
+    PUBLIC_WEB_SSL: z.coerce.boolean(),
   },
   clientPrefix: "PUBLIC_",
   emptyStringAsUndefined: true,
@@ -17,8 +17,8 @@ export const env = createEnv({
     DB_HOST: z.string().min(1),
     DB_NAME: z.string().min(1),
     DB_PASSWORD: z.string().default(""),
-    DB_PORT: z.string().transform(Number),
-    DB_SSL: z.string().transform((val) => val === "true"),
+    DB_PORT: z.coerce.number(),
+    DB_SSL: z.coerce.boolean(),
     DB_USER: z.string().min(1),
     GOOGLE_CLIENT_ID: z.string().min(1),
     GOOGLE_CLIENT_SECRET: z.string().min(1),

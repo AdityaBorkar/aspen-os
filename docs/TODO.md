@@ -40,6 +40,10 @@
 
 ## Modules
 
+### List of Modules (in order of precendence)
+
+- 
+
 ### HR Module
 
 // index.ts

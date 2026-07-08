@@ -30,7 +30,6 @@ export interface RoleAssignedEvent {
 }
 
 export interface RoleUnassignedEvent {
-  roleName: string;
   userId: string;
 }
 
