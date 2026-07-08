@@ -1,7 +1,7 @@
+import type { Module } from "../types";
 import { type AuthConfig, AuthUnit } from "./auth";
-import { type LogConfig, LogUnit } from "./logs";
+import { type LogConfig, LogUnit } from "./log";
 import { type RpcConfig, RpcUnit } from "./rpc";
-import type { Module } from "./types";
 
 export interface FrameworkConfig {
   auth: AuthConfig;

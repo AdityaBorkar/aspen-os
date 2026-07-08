@@ -4,9 +4,11 @@ import pg from "pg";
 
 import * as authSchema from "../auth/db-schema";
 import * as kvStoreSchema from "../kv-store/db-schema";
-import * as logSchema from "../logs/db-schema";
+import * as logSchema from "../log/db-schema";
 import * as storageSchema from "../storage/db-schema";
-import type { DatabaseConfig } from "../types";
+import type { DatabaseConfig } from "./types";
+
+export type { DatabaseConfig } from "./types";
 
 export class DatabaseUnit {
   readonly name = "database";
@@ -28,7 +30,7 @@ export class DatabaseUnit {
     this.config = config;
   }
 
-  async prepare(): Promise<void> {
+  async prepare() {
     const schemas = this.getSchemas();
     const result = await pushSchema(schemas, this.db);
     if (result.statementsToExecute.length > 0) {
@@ -42,7 +44,7 @@ export class DatabaseUnit {
     }
   }
 
-  async destroy(): Promise<void> {
+  async destroy() {
     await this.pool.end();
   }
 

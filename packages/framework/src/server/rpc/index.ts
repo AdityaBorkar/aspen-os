@@ -2,7 +2,7 @@ import { RPCHandler } from "@orpc/server/fetch";
 
 import type { AuthUnit } from "../auth";
 import type { DatabaseUnit } from "../db";
-import type { LogUnit } from "../logs";
+import type { LogUnit } from "../log";
 import type { PubSubUnit } from "../pubsub";
 import { type RpcRouter, router } from "./router";
 import type { RpcConfig, RpcContext } from "./types";

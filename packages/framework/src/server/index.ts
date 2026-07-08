@@ -1,12 +1,12 @@
+import type { Module } from "../types";
 import { type AuthConfig, AuthUnit } from "./auth";
 import { context } from "./context";
-import { DatabaseUnit } from "./db";
+import { type DatabaseConfig, DatabaseUnit } from "./db";
 import { type KvStoreConfig, KvStoreUnit } from "./kv-store";
-import { type LogConfig, LogUnit } from "./logs";
+import { type LogConfig, LogUnit } from "./log";
 import { type PubSubConfig, PubSubUnit } from "./pubsub";
 import { type RpcConfig, RpcUnit } from "./rpc";
 import { type StorageConfig, StorageUnit } from "./storage";
-import type { DatabaseConfig, Module } from "./types";
 
 export interface FrameworkConfig {
   auth: AuthConfig;

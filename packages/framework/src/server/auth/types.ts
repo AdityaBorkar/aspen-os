@@ -1,5 +1,22 @@
-import type { Auth } from "better-auth";
-import type { createAccessControl } from "better-auth/plugins";
+import type { Session, User } from "better-auth";
+import type { createAccessControl, Role } from "better-auth/plugins";
+
+export type { Session, User };
+
+export interface AuthConfig {
+  access_control: ReturnType<typeof createAccessControl>;
+  baseURL: string;
+  roles: Record<string, Role>;
+  secret: string;
+  session: { expiresIn?: number };
+  socialProviders?: {
+    google?: {
+      clientId: string;
+      clientSecret: string;
+      redirectURI?: string;
+    };
+  };
+}
 
 export interface Permission {
   action: string;
@@ -15,39 +32,6 @@ export interface RoleData {
   name: string;
   permissions: Permission[];
   updatedAt: Date;
-}
-
-export interface User {
-  createdAt: Date;
-  email: string;
-  id: string;
-  metadata?: Record<string, unknown>;
-  name?: string;
-  roles: RoleData[];
-  updatedAt: Date;
-}
-
-export interface Session {
-  createdAt: Date;
-  expiresAt: Date;
-  id: string;
-  token: string;
-  userId: string;
-}
-
-export interface AuthConfig {
-  access_control: ReturnType<typeof createAccessControl>;
-  baseURL: string;
-  roles: Record<string, unknown>;
-  secret: string;
-  session: { expiresIn?: number };
-  socialProviders?: {
-    google?: {
-      clientId: string;
-      clientSecret: string;
-      redirectURI?: string;
-    };
-  };
 }
 
 export interface RoleDefinition {
@@ -79,10 +63,7 @@ export interface UserAPI {
     unassign(userId: string, roleName: string): Promise<void>;
     list(userId: string): Promise<RoleData[]>;
   };
-  update(
-    id: string,
-    data: Partial<Pick<User, "name" | "metadata">>,
-  ): Promise<User>;
+  update(id: string, data: Partial<Pick<User, "name">>): Promise<User>;
 }
 
 export interface SessionAPI {
@@ -97,18 +78,4 @@ export interface SessionAPI {
 export interface RoleAPI {
   delete(name: string): Promise<void>;
   list(): Promise<RoleData[]>;
-}
-
-export interface AuthUnit {
-  client: unknown;
-  db_schema: Record<string, unknown>;
-  server: {
-    $: Auth;
-    handler: (request: Request) => Promise<Response>;
-    workflows: {
-      user: UserAPI;
-      session: SessionAPI;
-      role: RoleAPI;
-    };
-  };
 }

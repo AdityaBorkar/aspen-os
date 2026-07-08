@@ -1,22 +1,32 @@
 # TODO
 
-## Issues
-
-- Drizzle Migrations could not be performed
-
 ## Goals
 
-- Perform drizzle migrations in prepare() step. Before that, collect all db_schemas from the registered modules
-- 
 - Ensure auth seeding
+- Client: RPC, Log
+- 
+- Standardizing the types in `framework`
+- 
+- Log:
+  - https://errore.org/
+  - https://loggingsucks.com/
+- 
+- Workflows Engine & BPNM??
+  - https://www.inngest.com/
+  - https://temporal.io/
+  - https://www.flowable.com/open-source
+  - https://www.activiti.org/
+  - https://www.npmjs.com/package/bpmn-engine
 - 
 - Ensure events are properly published and consumed (pubsub)
 - Ensure logging works as intended. Structured logging.
-- 
 - storage
--
 - /grill-with-docs
 - /improve-codebase-architecture
+
+## Issues
+
+- Drizzle Migrations could not be performed
 
 ## Documentation
 

@@ -1,4 +1,4 @@
-export interface DatabaseConfig {
+export type DatabaseConfig = {
   database: string;
   host: string;
   maxConnections?: number;
@@ -6,9 +6,4 @@ export interface DatabaseConfig {
   port: number;
   ssl?: boolean;
   user: string;
-}
-
-export interface Module {
-  destroy(): Promise<void>;
-  readonly name: string;
-}
+};
