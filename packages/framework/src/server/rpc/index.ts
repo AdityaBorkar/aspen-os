@@ -2,7 +2,7 @@ import { RPCHandler } from "@orpc/server/fetch";
 
 import type { AuthUnit } from "../auth";
 import type { DatabaseUnit } from "../db";
-import type { LoggingUnit } from "../logs";
+import type { LogUnit } from "../logs";
 import type { PubSubUnit } from "../pubsub";
 import { type RpcRouter, router } from "./router";
 import type { RpcConfig, RpcContext } from "./types";
@@ -29,7 +29,7 @@ export class RpcUnit {
     _deps: {
       auth: AuthUnit;
       db: DatabaseUnit;
-      logs: LoggingUnit;
+      logs: LogUnit;
       pubsub: PubSubUnit;
     },
   ) {

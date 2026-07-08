@@ -5,11 +5,10 @@ import {
   customSessionClient,
   phoneNumberClient,
 } from "better-auth/client/plugins";
-import type { Role } from "better-auth/plugins/access";
 import { createAuthClient } from "better-auth/react";
 
 import type { DatabaseUnit } from "../db";
-import type { LoggingUnit } from "../logs";
+import type { LogUnit } from "../log";
 import type { PubSubUnit } from "../pubsub";
 import * as db_schema from "./db-schema";
 import type { AuthConfig, RoleData } from "./types";
@@ -71,19 +70,12 @@ export class AuthUnit {
       db,
       logs: _logs,
       pubsub,
-    }: { db: DatabaseUnit; logs: LoggingUnit; pubsub: PubSubUnit },
+    }: { db: DatabaseUnit; logs: LogUnit; pubsub: PubSubUnit },
   ) {
     const { access_control, roles, ...rest } = config;
 
     this.client = createAuthClient({
-      plugins: [
-        phoneNumberClient(),
-        adminClient({
-          ac: access_control,
-          roles: roles as { [key in string]: Role },
-        }),
-        customSessionClient(),
-      ],
+      plugins: [phoneNumberClient(), adminClient({}), customSessionClient()],
     });
 
     this.auth = betterAuth({

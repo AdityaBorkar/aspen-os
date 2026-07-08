@@ -6,8 +6,8 @@ import { createEntryFactory, createLogBuffer } from "./log-buffer";
 import { LogQueryService } from "./query-service";
 import type {
   ChildLogger,
+  LogConfig,
   LogEntry,
-  LoggingConfig,
   LogLevel,
   LogQuery,
   LogStats,
@@ -17,14 +17,14 @@ import { LEVEL_PRIORITY as levelPriority } from "./types";
 export { LogQueryService } from "./query-service";
 export type {
   ChildLogger,
+  LogConfig,
   LogEntry,
-  LoggingConfig,
   LogLevel,
   LogQuery,
   LogStats,
 } from "./types";
 
-export class LoggingUnit {
+export class LogUnit {
   readonly name = "logs";
 
   private serviceName: string;
@@ -40,7 +40,7 @@ export class LoggingUnit {
     error?: Error,
   ) => LogEntry;
 
-  constructor(config: LoggingConfig, { db }: { db: DatabaseUnit }) {
+  constructor(config: LogConfig, { db }: { db: DatabaseUnit }) {
     this.serviceName = config.serviceName ?? "app";
     this.defaultLevel = config.defaultLevel ?? "info";
     this.createEntry = createEntryFactory(this.serviceName);

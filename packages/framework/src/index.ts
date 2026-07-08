@@ -10,8 +10,8 @@ export { Framework, type FrameworkConfig } from "./server/index";
 export type { KvStoreConfig } from "./server/kv-store";
 export { KvStoreUnit } from "./server/kv-store";
 export type {
-  LoggingConfig,
-  LoggingUnit,
+  LogConfig,
+  LogUnit,
 } from "./server/logs";
 export type {
   PubSubConfig,

@@ -95,7 +95,7 @@
 Framework (supplier)
     │
     ├── creates DatabaseUnit(config)
-    ├── creates LoggingUnit(config, { db })
+    ├── creates LogUnit(config, { db })
     ├── creates PubSubUnit(config, { db })
     ├── creates StorageUnit(config, { db })
     ├── creates AuthUnit(config, { db, logs, pubsub })
@@ -104,14 +104,14 @@ Framework (supplier)
 
 **Dependency graph** (constructor injection):
 ```
-DatabaseUnit ← LoggingUnit
+DatabaseUnit ← LogUnit
 DatabaseUnit ← PubSubUnit
 DatabaseUnit ← StorageUnit
 DatabaseUnit ← AuthUnit
-LoggingUnit  ← AuthUnit
+LogUnit  ← AuthUnit
 PubSubUnit   ← AuthUnit
 DatabaseUnit ← RpcUnit
-LoggingUnit  ← RpcUnit
+LogUnit  ← RpcUnit
 PubSubUnit   ← RpcUnit
 AuthUnit     ← RpcUnit
 ```
@@ -130,7 +130,7 @@ AuthUnit     ← RpcUnit
 
 ### 4. Conformist: Logs → pino
 
-**Relationship**: LoggingUnit conforms to pino's logger API. The internal `logger` field is a pino instance with OpenTelemetry span injection.
+**Relationship**: LogUnit conforms to pino's logger API. The internal `logger` field is a pino instance with OpenTelemetry span injection.
 
 **Adaptations**:
 - Pino log levels → mapped to framework's `LogLevel` type
@@ -211,7 +211,7 @@ All units receive their dependencies via constructor parameters:
 ```typescript
 // Framework wires this in initialize():
 const db = new DatabaseUnit(config.db);
-const logs = new LoggingUnit(config.logs, { db });
+const logs = new LogUnit(config.logs, { db });
 const auth = new AuthUnit(config.auth, { db, logs, pubsub });
 ```
 

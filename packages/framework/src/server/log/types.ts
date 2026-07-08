@@ -1,6 +1,6 @@
 export type LogLevel = "debug" | "info" | "warn" | "error" | "fatal";
 
-export interface LoggingConfig {
+export interface LogConfig {
   defaultLevel?: LogLevel;
   serviceName?: string;
 }
@@ -59,7 +59,7 @@ export interface ChildLogger {
   warn(message: string, metadata?: Record<string, unknown>): void;
 }
 
-export interface LoggingUnit {
+export interface LogUnit {
   child(context: Record<string, unknown>): ChildLogger;
   debug(message: string, metadata?: Record<string, unknown>): void;
   destroy(): Promise<void>;

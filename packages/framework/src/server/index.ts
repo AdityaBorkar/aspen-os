@@ -2,7 +2,7 @@ import { type AuthConfig, AuthUnit } from "./auth";
 import { context } from "./context";
 import { DatabaseUnit } from "./db";
 import { type KvStoreConfig, KvStoreUnit } from "./kv-store";
-import { type LoggingConfig, LoggingUnit } from "./logs";
+import { type LogConfig, LogUnit } from "./logs";
 import { type PubSubConfig, PubSubUnit } from "./pubsub";
 import { type RpcConfig, RpcUnit } from "./rpc";
 import { type StorageConfig, StorageUnit } from "./storage";
@@ -12,7 +12,7 @@ export interface FrameworkConfig {
   auth: AuthConfig;
   db: DatabaseConfig;
   kvStore: KvStoreConfig;
-  logs: LoggingConfig;
+  logs: LogConfig;
   pubsub: PubSubConfig;
   rpc: RpcConfig;
   storage: StorageConfig;
@@ -21,7 +21,7 @@ export interface FrameworkConfig {
 type Units = {
   auth: AuthUnit;
   db: DatabaseUnit;
-  logs: LoggingUnit;
+  logs: LogUnit;
   pubsub: PubSubUnit;
   rpc: RpcUnit;
   storage: StorageUnit;
@@ -49,7 +49,7 @@ export class Framework {
 
     const $config = this.config;
     const db = new DatabaseUnit($config.db);
-    const logs = new LoggingUnit($config.logs, { db });
+    const logs = new LogUnit($config.logs, { db });
     const pubsub = new PubSubUnit($config.pubsub, { db });
     const storage = new StorageUnit($config.storage, { db });
     const auth = new AuthUnit($config.auth, { db, logs, pubsub });

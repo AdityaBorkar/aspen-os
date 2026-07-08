@@ -1,14 +1,13 @@
 # TODO
 
+## Issues
+
+- Drizzle Migrations could not be performed
+
 ## Goals
 
-npx drizzle-kit studio --host=0.0.0.0 --port=3000 --config=?
-
 - Perform drizzle migrations in prepare() step. Before that, collect all db_schemas from the registered modules
-- Ensure database schemas and migration
-- initialize()
 - 
-- Ensure authentication and custom roles and users
 - Ensure auth seeding
 - 
 - Ensure events are properly published and consumed (pubsub)

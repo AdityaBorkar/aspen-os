@@ -1,17 +1,17 @@
 import { type AuthConfig, AuthUnit } from "./auth";
-import { type LoggingConfig, LoggingUnit } from "./logs";
+import { type LogConfig, LogUnit } from "./logs";
 import { type RpcConfig, RpcUnit } from "./rpc";
 import type { Module } from "./types";
 
 export interface FrameworkConfig {
   auth: AuthConfig;
-  logs: LoggingConfig;
+  logs: LogConfig;
   rpc: RpcConfig;
 }
 
 type Units = {
   auth: AuthUnit;
-  logs: LoggingUnit;
+  logs: LogUnit;
   rpc: RpcUnit;
 };
 
@@ -36,7 +36,7 @@ export class Framework {
 
     const $config = this.config;
     const auth = new AuthUnit($config.auth);
-    const logs = new LoggingUnit($config.logs);
+    const logs = new LogUnit($config.logs);
     const rpc = new RpcUnit($config.rpc);
 
     this.units = { auth, logs, rpc };

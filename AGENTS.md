@@ -88,7 +88,7 @@ All are **classes** instantiated in `framework.ts` with constructor-injected dep
 | Unit | Class | Injected deps |
 |---|---|---|
 | db | `DatabaseUnit` (`src/db/index.ts`) | — (owns `pg.Pool` + drizzle `db`) |
-| logs | `LoggingUnit` | `{ db }` |
+| logs | `LogUnit` | `{ db }` |
 | pubsub | `PubSubUnit` | `{ db }` |
 | storage | `StorageUnit` | `{ db }` |
 | auth | `AuthUnit` | `{ db, logs, pubsub }` |

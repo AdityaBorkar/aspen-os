@@ -1,5 +1,7 @@
 import type { RpcConfig } from "./types";
 
+export type { RpcConfig } from "./types";
+
 export class RpcUnit {
   readonly name = "rpc";
 

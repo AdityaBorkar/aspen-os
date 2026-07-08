@@ -1,24 +1,29 @@
+import {
+  adminClient,
+  emailOTPClient,
+  phoneNumberClient,
+  usernameClient,
+} from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 
 import type { AuthConfig } from "./types";
 
-export { createAccessControl } from "better-auth/plugins/access";
-
-export type {
-  AuthConfig,
-  Permission,
-  Session,
-  User,
-} from "./types";
+export type { AuthConfig } from "./types";
 
 export class AuthUnit {
   readonly name = "auth";
   readonly client;
 
   constructor(config: AuthConfig) {
+    const { baseURL, roles, access_control } = config;
     this.client = createAuthClient({
-      baseURL: config.baseURL,
-      // plugins: [emailOTPClient(), phoneNumberClient(), usernameClient()],
+      baseURL,
+      plugins: [
+        adminClient({ ac: access_control, roles }),
+        emailOTPClient(),
+        usernameClient(),
+        phoneNumberClient(),
+      ],
     });
   }
 
