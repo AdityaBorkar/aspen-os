@@ -94,7 +94,7 @@ export class AuthUnit {
         provider: "pg",
         schema: db_schema,
         transaction: true,
-        usePlural: true,
+        usePlural: false,
       }),
     }) as Auth;
 

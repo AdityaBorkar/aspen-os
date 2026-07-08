@@ -4,7 +4,7 @@ import { Framework } from "@aspen-os/framework/server";
 import { env } from "../env";
 import { access_control, roles } from "./auth";
 
-const BASE_URL = `${env.WEB_SSL ? "https" : "http"}://${env.WEB_DOMAIN}:${env.WEB_PORT}`;
+const BASE_URL = `${env.PUBLIC_WEB_SSL ? "https" : "http"}://${env.PUBLIC_WEB_DOMAIN}:${env.PUBLIC_WEB_PORT}`;
 
 export const framework = new Framework({
   auth: {

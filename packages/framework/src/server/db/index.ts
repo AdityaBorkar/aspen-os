@@ -32,10 +32,13 @@ export class DatabaseUnit {
     const schemas = this.getSchemas();
     const result = await pushSchema(schemas, this.db);
     if (result.statementsToExecute.length > 0) {
+      console.log("Applying schema: ", result.statementsToExecute.length);
+      // console.log(result.statementsToExecute);
       if (result.hasDataLoss) {
         console.warn("Schema push has data loss warnings:", result.warnings);
       }
       await result.apply();
+      console.log("Schema Applied");
     }
   }
 

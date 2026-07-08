@@ -4,7 +4,11 @@ import { z } from "zod";
 declare const window: Window & typeof globalThis;
 
 export const env = createEnv({
-  client: {},
+  client: {
+    PUBLIC_WEB_DOMAIN: z.string().min(1),
+    PUBLIC_WEB_PORT: z.string().transform(Number),
+    PUBLIC_WEB_SSL: z.string().transform((val) => val === "true"),
+  },
   clientPrefix: "PUBLIC_",
   emptyStringAsUndefined: true,
   runtimeEnv: typeof window === "undefined" ? process.env : import.meta.env,
@@ -24,8 +28,5 @@ export const env = createEnv({
     STORAGE_FORCE_PATH_STYLE: z.string().transform((val) => val === "true"),
     STORAGE_REGION: z.string().min(1),
     STORAGE_SECRET_KEY: z.string().min(1),
-    WEB_DOMAIN: z.string().min(1),
-    WEB_PORT: z.string().transform(Number),
-    WEB_SSL: z.string().transform((val) => val === "true"),
   },
 });
