@@ -29,15 +29,6 @@ export class KvStoreUnit {
     // Cleanup if needed
   }
 
-  async healthCheck(): Promise<boolean> {
-    try {
-      await this.db.execute("SELECT 1");
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
   async get<T = unknown>(key: string): Promise<T | null> {
     const rows = await this.db
       .select({

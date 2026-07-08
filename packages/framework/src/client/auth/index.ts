@@ -1,3 +1,8 @@
+// import {
+//   emailOTPClient,
+//   phoneNumberClient,
+//   usernameClient,
+// } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 
 import type { AuthConfig } from "./types";
@@ -18,6 +23,7 @@ export class AuthUnit {
   constructor(config: AuthConfig) {
     this.client = createAuthClient({
       baseURL: config.baseURL,
+      // plugins: [emailOTPClient(), phoneNumberClient(), usernameClient()],
     });
   }
 
@@ -27,9 +33,5 @@ export class AuthUnit {
 
   async destroy(): Promise<void> {
     // Auth cleanup if needed
-  }
-
-  async healthCheck(): Promise<boolean> {
-    return true;
   }
 }

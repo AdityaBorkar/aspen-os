@@ -35,10 +35,6 @@ export class StorageUnit {
     // Cleanup if needed
   }
 
-  async healthCheck(): Promise<boolean> {
-    return true;
-  }
-
   // -------------------------------------------------
 
   async archive(key: string, archiveKey?: string): Promise<FileObject> {

@@ -1,4 +1,5 @@
-import { type AuthUnit, Framework } from "@aspen-os/framework";
+import type { AuthUnit } from "@aspen-os/framework";
+import { Framework } from "@aspen-os/framework/server";
 
 import { env } from "../env";
 import { access_control, roles } from "./auth";

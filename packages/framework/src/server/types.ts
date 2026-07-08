@@ -24,7 +24,6 @@ export interface UnitDeps {
 
 export interface Unit {
   destroy(): Promise<void>;
-  healthCheck(): Promise<boolean>;
   readonly name: string;
 }
 
@@ -35,7 +34,6 @@ export interface ModuleDeps extends UnitDeps {
 
 export interface Module {
   destroy(): Promise<void>;
-  healthCheck(): Promise<boolean>;
   readonly name: string;
 }
 

@@ -43,15 +43,6 @@ export class PubSubUnit {
     return this.boss.getQueueSize(topic);
   }
 
-  async healthCheck(): Promise<boolean> {
-    try {
-      await this.boss.getQueueSize("___health___");
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
   async publish<T = unknown>(
     topic: string,
     data: T,

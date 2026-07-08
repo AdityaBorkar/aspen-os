@@ -83,10 +83,6 @@ export class LoggingUnit {
     }
   }
 
-  async healthCheck(): Promise<boolean> {
-    return true;
-  }
-
   private shouldLog(level: LogLevel): boolean {
     return levelPriority[level] >= levelPriority[this.defaultLevel];
   }

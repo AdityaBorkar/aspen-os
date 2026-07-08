@@ -1,12 +1,16 @@
 {
+  "bin": {
+    "aspen": "./src/cli/index.ts"
+  },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.700.0",
     "@aws-sdk/s3-request-presigner": "^3.700.0",
     "@opentelemetry/api": "^1.9.1",
     "@orpc/server": "^1.14.6",
     "better-auth": "^1.2.8",
-    "drizzle-kit": "^0.28.1",
-    "drizzle-orm": "^0.36.4",
+    "commander": "^13.1.0",
+    "drizzle-kit": "^0.31.10",
+    "drizzle-orm": "^0.45.2",
     "nanoid": "^5.0.9",
     "pg": "^8.13.1",
     "pg-boss": "^10.1.3",
@@ -27,7 +31,7 @@
   "name": "@aspen-os/framework",
   "scripts": {
     "check:lint": "biome check --fix .",
-    "check:types": "tsc --noEmit"
+    "check:types": "tsc -b"
   },
   "type": "module",
   "version": "0.1.0"

@@ -27,6 +27,7 @@
   "references": [
     { "path": "./examples/recruiter" },
     { "path": "./packages/hr" },
-    { "path": "./packages/framework" }
+    { "path": "./packages/framework" },
+    { "path": "./documentation" }
   ]
 }

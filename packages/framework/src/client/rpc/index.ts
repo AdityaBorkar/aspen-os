@@ -12,11 +12,10 @@ export class RpcUnit {
   }
 
   async prepare(): Promise<void> {
-    return
+    return;
   }
 
   async destroy(): Promise<void> {
-    return
+    return;
   }
-
 }

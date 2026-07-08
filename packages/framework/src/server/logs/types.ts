@@ -78,7 +78,6 @@ export interface LoggingUnit {
     startTime?: Date,
     endTime?: Date,
   ): Promise<LogStats>;
-  healthCheck(): Promise<boolean>;
   info(message: string, metadata?: Record<string, unknown>): void;
 
   log(

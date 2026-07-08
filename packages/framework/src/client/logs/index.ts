@@ -33,10 +33,6 @@ export class LoggingUnit {
     throw new Error("LoggingUnit is not supported on the client side.");
   }
 
-  async healthCheck(): Promise<boolean> {
-    return false;
-  }
-
   child(_context: Record<string, unknown>): ChildLogger {
     throw new Error("LoggingUnit is not supported on the client side.");
   }

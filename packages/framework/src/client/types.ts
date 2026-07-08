@@ -10,6 +10,5 @@ export interface DatabaseConfig {
 
 export interface Module {
   destroy(): Promise<void>;
-  healthCheck(): Promise<boolean>;
   readonly name: string;
 }

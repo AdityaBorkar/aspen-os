@@ -1,19 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useCallback } from "react";
 
-import { signIn } from "@/aspen/client";
+import { auth } from "@/aspen/client";
 
 export const Route = createFileRoute("/")({ component: LoginPage });
 
 function LoginPage() {
-  const handleGoogleSignIn = async () => {
-    const { error } = await signIn.social({
+  const handleGoogleSignIn = useCallback(async () => {
+    const { error } = await auth.signIn.social({
       callbackURL: "/",
       provider: "google",
     });
     if (error) {
       console.error("Sign in failed:", error.message);
     }
-  };
+  }, []);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50">

@@ -186,8 +186,4 @@ export class AuthUnit {
   async destroy(): Promise<void> {
     // Auth cleanup if needed
   }
-
-  async healthCheck(): Promise<boolean> {
-    return true;
-  }
 }

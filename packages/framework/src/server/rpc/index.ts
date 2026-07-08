@@ -50,10 +50,6 @@ export class RpcUnit {
     // Cleanup if needed
   }
 
-  async healthCheck(): Promise<boolean> {
-    return this.rpcHandler !== null;
-  }
-
   async handle(
     request: Request,
     context: RpcContext,

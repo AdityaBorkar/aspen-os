@@ -2,8 +2,11 @@ import { pushSchema } from "drizzle-kit/api";
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import pg from "pg";
 
+import * as authSchema from "../auth/db-schema";
+import * as kvStoreSchema from "../kv-store/db-schema";
+import * as logSchema from "../logs/db-schema";
+import * as storageSchema from "../storage/db-schema";
 import type { DatabaseConfig } from "../types";
-import { getSchemas } from "./get-schemas";
 
 export class DatabaseUnit {
   readonly name = "database";
@@ -26,7 +29,7 @@ export class DatabaseUnit {
   }
 
   async prepare(): Promise<void> {
-    const schemas = getSchemas();
+    const schemas = this.getSchemas();
     const result = await pushSchema(schemas, this.db);
     if (result.statementsToExecute.length > 0) {
       if (result.hasDataLoss) {
@@ -40,12 +43,14 @@ export class DatabaseUnit {
     await this.pool.end();
   }
 
-  async healthCheck(): Promise<boolean> {
-    try {
-      await this.pool.query("SELECT 1");
-      return true;
-    } catch {
-      return false;
-    }
+  getSchemas() {
+    const schemas = {
+      ...authSchema,
+      ...logSchema,
+      ...storageSchema,
+      ...kvStoreSchema,
+    };
+
+    return schemas;
   }
 }

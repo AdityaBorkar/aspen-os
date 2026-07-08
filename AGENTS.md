@@ -15,7 +15,7 @@ Bun monorepo. A business framework (`@aspen-os/framework`) with pluggable units/
 ```
 bun install                                    # install all workspace deps
 bun run check:lint                             # biome check --fix . (root)
-bun run check:types                            # tsc --noEmit (root tsconfig)
+bun run check:types                            # tsc -b (root tsconfig)
 cd packages/framework && bun run check:types   # typecheck framework (own tsconfig)
 cd packages/framework && bun run check:lint    # biome check --fix . (framework)
 ```
