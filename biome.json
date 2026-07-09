@@ -7,9 +7,9 @@
           "level": "on",
           "options": {
             "groups": [
-              [":URL:", ":PACKAGE_WITH_PROTOCOL:"],
+              [":URL:"],
               ":BLANK_LINE:",
-              [":NODE:", ":BUN:"],
+              [":NODE:", ":BUN:", ":PACKAGE_WITH_PROTOCOL:"],
               ":BLANK_LINE:",
               [":PACKAGE:"],
               ":BLANK_LINE:",

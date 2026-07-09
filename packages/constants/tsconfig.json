@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "declarationDir": "../../.local/types/drive",
+    "declarationDir": "../../.local/types/constants",
     "paths": {
       "@/*": ["./src/*"]
     }

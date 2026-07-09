@@ -1,9 +1,7 @@
 {
   "dependencies": {
-    "@aspen-os/constants": "workspace:*",
     "@aspen-os/framework": "workspace:*",
-    "drizzle-orm": "^0.45.2",
-    "valibot": "^1.1.0"
+    "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {
     "@types/bun": "latest",
@@ -12,7 +10,7 @@
   "exports": {
     ".": "./src/index.ts"
   },
-  "name": "@aspen-os/organization",
+  "name": "@aspen-os/constants",
   "scripts": {
     "check:lint": "biome check --fix .",
     "check:types": "tsc -b"

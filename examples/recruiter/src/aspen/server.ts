@@ -1,4 +1,5 @@
 import { Framework } from "@aspen-os/framework/server";
+import { createOrganizationModule } from "@aspen-os/organization";
 
 import { env } from "../env";
 import { access_control, roles } from "./auth";
@@ -54,6 +55,10 @@ const f = new Framework({
 // const driveModule = new DriveModule({});
 // f.registerModule(driveModule);
 
+const organizationModule = createOrganizationModule();
+f.registerModule(organizationModule);
+
 export const framework = await f.initialize();
 
 export const auth = framework.getUnit("auth");
+export const organization = framework.getModule("organization");

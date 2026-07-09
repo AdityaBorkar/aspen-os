@@ -5,5 +5,6 @@ export interface Unit {
 
 export interface Module {
   destroy(): Promise<void>;
+  initialize?: (units: Record<string, Unit>) => void;
   readonly name: string;
 }

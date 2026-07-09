@@ -1,27 +1,22 @@
 # TODO
 
+Create / Envision a mechanism where the modules are given access to the Framework Units. Also, there can be communication between two modules. Tell me the approaches that can be implemented to implement this feature. Do not write code.
+
 ## AI Coding
 
 - Create custom docs and index them and allow AI to fetch and read this local wiki
-
-## Goals
-
-Create a Scope of Work for a recruitment management system to manage:
-- Job Mandate Management
-- Prospect Management
-- Applicant Management
-- Candidate Management
-
 - Working on the Frontend simultaneously
-
 - Organization Module
   - /settings/features = Enable/Disable each mdoule and their feature flags
-
 - Implement the HR module
   - Canvas like Users
   - Custom Roles and RBAC Permissions
   - Users with Branch-wise access controls
-- 
+- Task Management
+- CRM
+
+## Goals
+
 - Accounting
   - Ledger
   - Transactions
@@ -31,14 +26,16 @@ Create a Scope of Work for a recruitment management system to manage:
   - Purchase???
   - Vouchers???
 - 
-- Ensure auth seeding for organization SETUP = Onboarding Script
 - Client: RPC, Log
 - 
 - Standardizing the types in `framework`
 - Module Integration and Standardization
-- 
 - /grill-with-docs
 - /improve-codebase-architecture
+- 
+- Onboarding Script for the Framework
+  - Auth Seeding
+- 
 
 ## Issues
 

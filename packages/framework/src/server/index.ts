@@ -8,6 +8,11 @@ import { type PubSubConfig, PubSubUnit } from "./pubsub";
 import { type RpcConfig, RpcUnit } from "./rpc";
 import { type StorageConfig, StorageUnit } from "./storage";
 
+export type { DatabaseConfig } from "./db";
+export { DatabaseUnit } from "./db";
+export type { PubSubConfig } from "./pubsub";
+export { PubSubUnit } from "./pubsub";
+
 export interface FrameworkConfig {
   auth: AuthConfig;
   db: DatabaseConfig;
@@ -59,9 +64,11 @@ export class Framework {
     this.units = { auth, db, kvStore, logs, pubsub, rpc, storage };
     this.initialized = true;
 
-    // for await (const module of this.modules) {
-    //   module.initialize(this.units);
-    // }
+    for (const mod of Object.values(this.modules)) {
+      if (mod.initialize) {
+        mod.initialize(this.units);
+      }
+    }
   }
 
   async prepare(): Promise<void> {

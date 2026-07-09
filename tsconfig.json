@@ -26,9 +26,12 @@
   "exclude": ["**/node_modules", "**/.output", "**/.tanstack"],
   "references": [
     { "path": "./documentation" },
+    // { "path": "./examples/healthcare" },
     { "path": "./examples/recruiter" },
     { "path": "./packages/accounting" },
+    { "path": "./packages/constants" },
     { "path": "./packages/crm" },
+    { "path": "./packages/drive" },
     { "path": "./packages/fleet" },
     { "path": "./packages/framework" },
     { "path": "./packages/hr" },
