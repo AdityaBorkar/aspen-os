@@ -25,9 +25,16 @@
   },
   "exclude": ["**/node_modules", "**/.output", "**/.tanstack"],
   "references": [
+    { "path": "./documentation" },
     { "path": "./examples/recruiter" },
-    { "path": "./packages/hr" },
+    { "path": "./packages/accounting" },
+    { "path": "./packages/crm" },
+    { "path": "./packages/fleet" },
     { "path": "./packages/framework" },
-    { "path": "./documentation" }
+    { "path": "./packages/hr" },
+    { "path": "./packages/inventory" },
+    { "path": "./packages/organization" },
+    { "path": "./packages/reports" },
+    { "path": "./packages/tasks" }
   ]
 }

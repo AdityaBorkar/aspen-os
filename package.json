@@ -5,10 +5,20 @@
     "taze": "^19.14.1",
     "typescript": "^7.0.1-rc"
   },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.0",
+    "@commitlint/config-conventional": "^21.2.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.8"
+  },
+  "lint-staged": {
+    "*": "biome check --fix --no-errors-on-unmatched"
+  },
   "name": "aspen-os",
   "scripts": {
     "check:lint": "biome check --fix .",
     "check:types": "tsc -b",
+    "prepare": "husky",
     "update:deps": "taze -rw --maturity-period 3"
   },
   "workspaces": ["./packages/*", "./examples/*", "./documentation"]

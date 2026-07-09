@@ -48,11 +48,11 @@ const f = new Framework({
   },
 });
 
-const hrModule = new HrModule({});
-f.registerModule(hrModule);
+// const hrModule = new HrModule({});
+// f.registerModule(hrModule);
 
-const driveModule = new DriveModule({});
-f.registerModule(driveModule);
+// const driveModule = new DriveModule({});
+// f.registerModule(driveModule);
 
 export const framework = await f.initialize();
 
