@@ -10,5 +10,6 @@ silent=false
 
 [install]
 minimumReleaseAge=259200 # 3 days
+minimumReleaseAgeExcludes = ["@types/bun", "typescript", "@biomejs/biome"]
 saveTextLockfile=false
 ignore-scripts=true

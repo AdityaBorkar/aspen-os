@@ -1,3 +1,3 @@
-import { framework } from "@/aspen/server";
+import { f } from "@/aspen/server";
 
-framework.prepare();
+f.prepare();

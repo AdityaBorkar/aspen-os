@@ -3,7 +3,7 @@
     "@aspen-os/constants": "workspace:*",
     "@aspen-os/framework": "workspace:*",
     "drizzle-orm": "^0.45.2",
-    "valibot": "^1.1.0"
+    "valibot": "^1.4.2"
   },
   "devDependencies": {
     "@types/bun": "latest",

@@ -6,7 +6,7 @@ import { access_control, roles } from "./auth";
 
 const BASE_URL = `${env.PUBLIC_WEB_SSL ? "https" : "http"}://${env.PUBLIC_WEB_DOMAIN}:${env.PUBLIC_WEB_PORT}`;
 
-const f = new Framework({
+const framework = new Framework({
   auth: {
     access_control,
     baseURL: BASE_URL,
@@ -49,16 +49,10 @@ const f = new Framework({
   },
 });
 
-// const hrModule = new HrModule({});
-// f.registerModule(hrModule);
+framework.register(DriveModule, {});
 
-// const driveModule = new DriveModule({});
-// f.registerModule(driveModule);
+framework.register(OrganizationModule, {});
 
-const organizationModule = createOrganizationModule();
-f.registerModule(organizationModule);
+framework.register(HrModule, {});
 
-export const framework = await f.initialize();
-
-export const auth = framework.getUnit("auth");
-export const organization = framework.getModule("organization");
+export const f = await framework.initialize();
