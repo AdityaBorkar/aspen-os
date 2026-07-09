@@ -45,14 +45,19 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                     DOWNSTREAM CONTEXTS                          │
 │                                                                  │
+│  ┌───────────────┐  ┌───────────────────┐  ┌───────────────┐   │
+│  │ Recruiter App │  │ Organization      │  │ HR Module     │   │
+│  │               │  │ Module            │  │ (stub)        │   │
+│  │ creates via   │  │                   │  │               │   │
+│  │ Framework.    │  │ implements        │  │ implements    │   │
+│  │ create()      │  │ Module interface  │  │ Module interface  │
+│  └───────────────┘  │ 6 workflows       │  │ (empty)       │   │
+│                     └───────────────────┘  └───────────────┘   │
+│                                                                  │
 │  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐        │
-│  │ Recruiter App │  │ HR Module     │  │ Analytics     │        │
-│  │               │  │ (stub)        │  │ (empty)       │        │
-│  │ conforms to   │  │               │  │               │        │
-│  │ framework     │  │ will conform  │  │ will conform  │        │
-│  │ API surface   │  │ to Module     │  │ to Module     │        │
-│  └───────────────┘  │ interface     │  │ interface     │        │
-│                     └───────────────┘  └───────────────┘        │
+│  │ Accounting    │  │ CRM           │  │ Tasks         │        │
+│  │ (stub)        │  │ (stub)        │  │ (stub)        │        │
+│  └───────────────┘  └───────────────┘  └───────────────┘        │
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
@@ -70,8 +75,8 @@
 **Shared between**: All units and modules
 
 **Contents** (`packages/framework/src/types.ts`):
-- `Unit` interface — `{ name: string, destroy(): Promise<void> }`
-- `Module` interface — same shape as Unit
+- `Unit` interface — `{ name: string, destroy(): Promise<void>, prepare?(): Promise<void> }`
+- `Module` interface — `{ name: string, destroy(): Promise<void>, initialize?(units: Record<string, Unit>): void, prepare?(): Promise<void> }`
 
 **Note**: `DatabaseConfig`, `AuthConfig`, `LogConfig`, etc. live in their respective unit directories, not in the shared kernel. The shared kernel is intentionally minimal.
 
@@ -82,18 +87,21 @@
 
 ### 2. Customer-Supplier: Framework → Units
 
-**Direction**: Framework creates and wires units; units have no knowledge of Framework.
+**Direction**: Framework creates and wires units via `Framework.create(config, modules)`. Units have no knowledge of Framework.
 
 ```
-Framework (supplier)
+Framework.create(config, modules)
     │
-    ├── creates DatabaseUnit(config)
-    ├── creates LogUnit(config, { db })
-    ├── creates PubSubUnit(config, { db })
-    ├── creates StorageUnit(config, { db })
-    ├── creates AuthUnit(config, { db, logs, pubsub })
-    ├── creates RpcUnit(config, { auth, db, logs, pubsub })
-    └── creates KvStoreUnit(config, { db })
+    ├── creates DatabaseUnit(config.db)
+    ├── creates LogUnit(config.logs, { db })
+    ├── creates PubSubUnit(config.pubsub, { db })
+    ├── creates StorageUnit(config.storage, { db })
+    ├── creates AuthUnit(config.auth, { db, logs, pubsub })
+    ├── creates RpcUnit(config.rpc, { auth, db, logs, pubsub })
+    ├── creates KvStoreUnit(config.kvStore, { db })
+    │
+    └── calls module.initialize(units) for each module
+        └── returns proxy-wrapped FrameworkInstance
 ```
 
 **Dependency graph** (constructor injection):
@@ -129,6 +137,8 @@ DatabaseUnit ← KvStoreUnit
 
 **Role model**: Roles are stored as a plain `text` column on the `user` table — not as separate entities. Access control statements are defined at the application level via `createAccessControl`, not at the framework level.
 
+**Intentional design**: The server AuthUnit accepts `access_control` and `roles` in config but does not pass them to `betterAuth()`. These values are used only by the client AuthUnit (passed to `adminClient()` plugin). This is intentional — access control enforcement happens at the application level, not inside better-auth on the server.
+
 **Risk**: Auth domain is tightly coupled to better-auth's type system and plugin API. Migration away would require significant rework.
 
 ### 4. Conformist: Logs → pino
@@ -151,6 +161,8 @@ DatabaseUnit ← KvStoreUnit
 
 **Public API**: `publish`, `publishBatch`, `subscribe`, `unsubscribe`, `getQueueSize`, `purgeQueue`
 
+**Note**: PubSubUnit creates its own pg connection pool (does not reuse DatabaseUnit's pool). This is because pg-boss manages its own connection lifecycle.
+
 ### 6. Partner: Storage ↔ S3
 
 **Relationship**: StorageUnit is a partner context with S3-compatible storage. It defines its own interface (`StorageProvider`) that S3 must conform to.
@@ -169,6 +181,8 @@ DatabaseUnit ← KvStoreUnit
 - Procedures → defined as oRPC handlers with zod validation
 - Router → oRPC `Router` type
 
+**Note**: The RPC unit's constructor accepts `{ auth, db, logs, pubsub }` as deps but does not use them. The `RpcContext` is passed at request time via `handle()`, not injected at construction.
+
 ### 8. Conformist: KV Store → Postgres
 
 **Relationship**: KV Store adapts Postgres as a key-value store (Redis alternative).
@@ -182,29 +196,42 @@ DatabaseUnit ← KvStoreUnit
 
 ### 9. Downstream: Recruiter → Framework
 
-**Relationship**: Recruiter app conforms to framework's API surface. It:
-- Creates `Framework` with full config (all 7 units)
-- Calls `framework.initialize()` then `framework.prepare()`
-- Accesses units via `framework.getUnit()`
-- Defines its own RBAC model (access_control + roles) using framework's auth primitives
+**Relationship**: Recruiter app creates the framework via `Framework.create(config, modules)` and passes the `OrganizationModule` as a module.
+
+**Lifecycle**:
+```
+Framework.create(config, { organization })  // creates units + calls organization.initialize(units)
+    → framework.prepare()                   // runs unit.prepare() + module.prepare()
+    → framework.run(fn)                     // AsyncLocalStorage context
+    → framework.destroy()                   // module.destroy() then unit.destroy()
+```
 
 **Adaptations**:
-- 12 domain resources mapped to auth statements
+- 11 domain resources mapped to auth statements
 - 7 roles defined for recruitment workflow
 - Environment variables mapped to framework config
 
-### 10. Downstream: HR Module → Framework (Planned)
+### 10. Downstream: Organization Module → Framework
+
+**Relationship**: Organization module implements the `Module` interface and receives unit dependencies via `initialize(units)`.
+
+**Structure** (`packages/organization/`):
+- `OrganizationModule.create()` — factory that returns a Module instance
+- `initialize(units)` — extracts `db` and `pubsub` from units, creates 6 workflow instances
+- 6 workflows: `OrganizationWorkflow`, `BranchWorkflow`, `AddressWorkflow`, `BankAccountWorkflow`, `ComplianceWorkflow`, `ConnectionWorkflow`
+- 8 database tables with Drizzle schema
+- Typed domain events published via PubSub
+- Valibot validation schemas for all inputs
+
+**Exposed on framework instance**: `framework.organization.addresses`, `framework.organization.branches`, etc.
+
+### 11. Downstream: HR Module → Framework (Stub)
 
 **Relationship**: HR module will implement the `Module` interface and receive unit dependencies.
 
-**Planned structure** (from `packages/hr/`):
-- Module entry, HR-specific types
-- Registration with framework
-- HR domain events
-- Event handlers, request handlers, business logic
-- Database schemas, form definitions, notification templates
+**Current state**: Skeleton `HrModule` class with empty `initialize()`, `prepare()`, `destroy()`. No schema, no workflows, no types.
 
-### 11. Client Framework
+### 12. Client Framework
 
 **Exported as**: `@aspen-os/framework/client`
 
@@ -215,22 +242,25 @@ DatabaseUnit ← KvStoreUnit
 
 **No database dependency**: Client framework has no `DatabaseUnit`, `PubSubUnit`, `StorageUnit`, or `KvStoreUnit`.
 
+**No `run()` method**: Client framework has no `AsyncLocalStorage` — the `client/context.ts` file is empty.
+
 ## Integration Patterns
 
-### Dependency Injection (Constructor)
+### Framework.create() (Static Factory)
 
-All units receive their dependencies via constructor parameters:
+All units are created and wired inside `Framework.create()`:
 
 ```typescript
-// Framework wires this in initialize():
-const db = new DatabaseUnit(config.db);
-const logs = new LogUnit(config.logs, { db });
-const pubsub = new PubSubUnit(config.pubsub, { db });
-const storage = new StorageUnit(config.storage, { db });
-const auth = new AuthUnit(config.auth, { db, logs, pubsub });
-const rpc = new RpcUnit(config.rpc, { auth, db, logs, pubsub });
-const kvStore = new KvStoreUnit(config.kvStore, { db });
+const framework = Framework.create(
+  { auth, db, kvStore, logs, pubsub, rpc, storage },  // FrameworkConfig
+  { organization },                                      // modules record
+);
 ```
+
+This:
+1. Instantiates all 7 units in dependency order
+2. Calls `module.initialize(units)` on each module
+3. Returns a proxy-wrapped `FrameworkInstance` that allows `framework.organization` syntax
 
 ### AsyncLocalStorage Context
 
@@ -240,30 +270,31 @@ The `run()` method provides request-scoped context:
 await framework.run(async () => {
   const { db, pubsub } = getContext();
   // db: NodePgDatabase (drizzle instance)
-  // pubsub: { publish<T>(topic, data): Promise<string> } (narrow interface)
+  // pubsub: PubSubUnit (full unit, not just publish)
 });
 ```
 
 ### Event-Driven (Active)
 
-Auth domain events are published via PubSub:
+Auth and Organization domain events are published via PubSub:
 
 ```
 AuthWorkflow → pubsub.publish("user:created", { user }) → pg-boss topic
+OrganizationWorkflow → pubsub.publish("branch:created", { branch }) → pg-boss topic
 ```
 
-All 8 auth events are wired: `user:created`, `user:updated`, `user:deleted`, `session:created`, `session:invalidated`, `role:assigned`, `role:unassigned`, `role:deleted`.
+9 auth events and 19 organization events are defined as type contracts in their respective event maps.
 
 ### Schema Management
 
 `DatabaseUnit.prepare()` uses `pushSchema()` from drizzle-kit to automatically apply schema changes:
 
 ```
-Framework.prepare() → unit.prepare() for each unit
+Framework.prepare() → unit.prepare() + module.prepare()
     → DatabaseUnit.prepare() → pushSchema(schemas, db) → apply()
 ```
 
-Schemas collected: `authSchema`, `logSchema`, `storageSchema`, `kvStoreSchema`.
+Schemas collected: `authSchema`, `logSchema`, `storageSchema`, `kvStoreSchema`, `organizationSchema` (from module's `db_schema`).
 
 ## Context Map Table
 
@@ -271,7 +302,7 @@ Schemas collected: `authSchema`, `logSchema`, `storageSchema`, `kvStoreSchema`.
 |---|---|---|---|---|
 | Shared Kernel | Shared | — | All units/modules | Shared types (Unit, Module) |
 | Database | Shared Kernel | — | All units | Foundation |
-| Framework | Customer | — | Units, Modules | Creates & wires |
+| Framework | Customer | — | Units, Modules | Creates & wires via `create()` |
 | Auth | Conformist | better-auth | Modules | Adapts API |
 | Logs | Conformist | pino, OTel | — | Adapts API |
 | PubSub | Conformist | pg-boss | — | Adapts API |
@@ -280,15 +311,16 @@ Schemas collected: `authSchema`, `logSchema`, `storageSchema`, `kvStoreSchema`.
 | KV Store | Conformist | Postgres | — | Redis-like API (core) |
 | Client Framework | — | — | — | Browser-side (3 units) |
 | Recruiter | Downstream | Framework | — | Uses framework |
-| HR Module | Downstream | Framework | — | Planned |
-| Analytics | Downstream | Framework | — | Empty |
-| Banking | Downstream | Framework | — | Empty |
-| Reports | Downstream | Framework | — | Empty |
+| Organization | Downstream | Framework | — | 6 workflows, 8 tables |
+| HR Module | Downstream | Framework | — | Stub |
+| Accounting | Downstream | Framework | — | Stub |
+| CRM | Downstream | Framework | — | Stub |
+| Tasks | Downstream | Framework | — | Stub |
 
 ## Language Boundaries
 
 ### Framework Kernel Language
-- Unit, Module, Framework, Initialize, Prepare, Destroy, Register, Context, Run, GetUnit, GetModule
+- Unit, Module, Framework, Create, Prepare, Destroy, Run, GetUnit, GetModule
 
 ### Auth Language
 - User, Session, Account, Verification, Role, Permission, Grant, Revoke, Authenticate, Authorize, Statement, Access Control
@@ -307,6 +339,9 @@ Schemas collected: `authSchema`, `logSchema`, `storageSchema`, `kvStoreSchema`.
 
 ### KV Store Language
 - Key, Value, TTL, Cache, Evict, Scan, Increment, Decrement
+
+### Organization Language
+- Organization, Branch, Connection, Connection Contact, Connection Note, Address, Bank Account, Compliance Document, Workflow
 
 ### Recruiter Language
 - Prospect, Client, Job Mandate, Draft, Filter View, Reminder, Task, Team Member, Contract

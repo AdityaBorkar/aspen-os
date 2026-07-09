@@ -7,31 +7,27 @@ Aspen OS is a business application framework built on Bun/TypeScript. The framew
 ### Framework Kernel
 
 **Framework**:
-The orchestrator class. Owns all Units, wires their dependencies, and manages lifecycle (`initialize` → `prepare` → `run` → `destroy`).
+The orchestrator class. Created via the static `Framework.create(config, modules)` factory, which instantiates all Units, calls `module.initialize(units)` on each module, and returns a proxy-wrapped instance. Lifecycle: `create()` → `prepare()` → `run()` → `destroy()`.
 _Avoid_: App, Container, DI Container
 
 **Unit**:
-An infrastructure building block with a name, a `destroy()` method, and an optional `prepare()` method. Seven core units: `db`, `auth`, `logs`, `pubsub`, `rpc`, `storage`, `kvStore`.
+An infrastructure building block with a `name`, a `destroy()` method, and an optional `prepare()` method. Seven core units: `db`, `auth`, `logs`, `pubsub`, `rpc`, `storage`, `kvStore`.
 _Avoid_: Service, Provider
 
 **Module**:
-A business logic plugin registered before `initialize()`. Receives unit dependencies. Same interface shape as Unit (`name`, `destroy()`).
+A business logic plugin passed to `Framework.create()`. Receives unit dependencies via `initialize(units)`. Same interface shape as Unit (`name`, `destroy()`, optional `prepare()`). Accessed on the framework instance via proxy — e.g., `framework.organization`.
 _Avoid_: Plugin, Extension
 
-**Register**:
-Adding a Module to the Framework before initialization. Singular — one module at a time.
-_Avoid_: Mount, Attach
-
-**Initialize**:
-Creating and wiring all Units from config. Must happen after all `registerModule()` calls.
-_Avoid_: Boot, Start
+**Create**:
+The static factory `Framework.create(config, modules)`. Instantiates all Units from config, calls `module.initialize(units)` on each module, and returns a proxy-wrapped `FrameworkInstance`. This is the only way to construct a Framework — the constructor is internal.
+_Avoid_: Register, Mount, Attach
 
 **Prepare**:
-Running post-initialization setup on all Units (e.g., schema migrations via `pushSchema`). Called after `initialize()`.
+Running post-creation setup on all Units and Modules (e.g., schema migrations via `pushSchema`). Called after `create()`.
 _Avoid_: Migrate, Setup
 
 **Run**:
-Executing a function within `AsyncLocalStorage` context that provides `db` (drizzle instance) and `pubsub` (narrow publish interface).
+Executing a function within `AsyncLocalStorage` context that provides `db` (drizzle instance) and `pubsub` (the full PubSubUnit).
 _Avoid_: Execute, Dispatch
 
 **Destroy**:
@@ -39,11 +35,11 @@ Graceful shutdown of all Modules, then all Units. Clears internal state.
 _Avoid_: Shutdown, Cleanup
 
 **GetUnit**:
-Typed accessor to retrieve a Unit by name after initialization. Requires a name — no zero-arg overload.
+Typed accessor to retrieve a Unit by name after creation. Requires a name — no zero-arg overload.
 _Avoid_: Resolve, Get
 
 **GetModule**:
-Typed accessor to retrieve a Module by name. Supports zero-arg to return the full module map.
+Typed accessor to retrieve a Module by name. Requires a name — throws if not found. No zero-arg overload.
 _Avoid_: Resolve, Get
 
 ### Database
@@ -58,7 +54,7 @@ Connection parameters: `host`, `port`, `user`, `password`, `database`, `ssl?`, `
 ### Authentication
 
 **AuthUnit**:
-Core unit wrapping better-auth. Exposes a React client, an HTTP handler, and programmatic workflows for user, session, and role management.
+Core unit wrapping better-auth. Exposes a React client, an HTTP handler, and programmatic workflows for user, session, and role management. On the server side, `access_control` and `roles` from config are intentionally not passed to better-auth — they are used only by the client AuthUnit.
 _Avoid_: Auth, AuthProvider
 
 **User**:
@@ -66,7 +62,7 @@ An authenticated identity with `id`, `email`, `name`, optional `phoneNumber`, `i
 _Avoid_: Account, Profile
 
 **Session**:
-A time-bounded authentication token tied to a User. Has `id`, `token`, `userId`, `expiresAt`. Cascades delete from User.
+A time-bounded authentication token tied to a User. Has `id`, `token`, `userId`, `expiresAt`. Cascades delete from User. Expiry is hardcoded at 7 days in the session workflow.
 _Avoid_: Token, Login
 
 **Account**:
@@ -78,11 +74,11 @@ A plain text field on the User table. In the Recruiter app, values are `admin`, 
 _Avoid_: Permission Group, Access Level
 
 **Access Control**:
-A declarative statement matrix defining `{ resource: [actions...] }`. Created via `createAccessControl` (from better-auth). Roles are created via `ac.newRole()`. Defined at the application level, not the framework level.
+A declarative statement matrix defining `{ resource: [actions...] }`. Created via `createAccessControl` (from better-auth). Roles are created via `ac.newRole()`. Defined at the application level and passed to the client AuthUnit for admin plugin configuration. On the server side, these values are accepted in config but intentionally not forwarded to better-auth.
 _Avoid_: Permission Matrix, ACL
 
 **Auth Event**:
-A typed domain event published via PubSub when auth state changes. Events: `user:created`, `user:updated`, `user:deleted`, `session:created`, `session:invalidated`, `role:assigned`, `role:unassigned`, `role:deleted`.
+A typed domain event contract defined in `AuthEventMap`. Events: `user:created`, `user:updated`, `user:deleted`, `session:created`, `session:invalidated`, `role:assigned`, `role:created`, `role:unassigned`, `role:deleted`. Published via PubSub as plain string topics — the event map is a type-level contract, not a runtime bus.
 _Avoid_: Auth Signal, Auth Hook
 
 ### Logging
@@ -167,6 +163,44 @@ _Avoid_: CacheEntry, KVPair
 Time-to-live on a KV entry. Expired entries are lazily evicted on read, not by a background job.
 _Avoid_: Expiration, TTL
 
+### Organization Domain
+
+**Organization**:
+A business entity with `name`, `slug` (unique), `status` (active/suspended/archived), contact info, branding (logo, accent color), and locale settings. The root entity of the organization context.
+_Avoid_: Company, Tenant
+
+**Branch**:
+A physical or logical location belonging to an Organization. Has `name`, `code` (unique), `type` (headquarters/office/warehouse/store/factory/remote/other), and supports hierarchical nesting up to 5 levels deep. Exactly one headquarters branch per organization.
+_Avoid_: Location, Site, Office
+
+**Connection**:
+An external business relationship — a client, vendor, partner, or other entity the Organization interacts with. Has `name`, `type` (client/vendor/partner/subsidiary/etc.), `status` (active/inactive/prospect/former), and supports contacts and notes.
+_Avoid_: Contact, Relationship, Entity
+
+**Connection Contact**:
+A person associated with a Connection. Has `name`, `email`, `phone`, `title`, and a `isPrimary` flag.
+_Avoid_: Contact Person, Representative
+
+**Connection Note**:
+An interaction log entry on a Connection. Has `type` (general/call/email/meeting/contract_renewal/issue) and `content`.
+_Avoid_: Activity, Log Entry
+
+**Address**:
+A postal address with `line1`, `line2`, `city`, `state`, `postalCode`, `country`, optional `label` and `isPrimary` flag. Reusable across entities.
+_Avoid_: Location, Street Address
+
+**Bank Account**:
+A financial account record with `accountHolderName`, `accountNumber`, `bankName`, `routingNumber`, `swiftCode`, `currency`, and `isPrimary` flag.
+_Avoid_: Payment Method, Financial Account
+
+**Compliance Document**:
+A regulatory or legal document tracked by the Organization. Has `name`, `category` (tax/license/certificate/permit/insurance/etc.), `status` (active/expiring_soon/expired/etc.), `expiryDate`, and optional `renewalFrequency`. Supports renewal chains (archived old + created new).
+_Avoid_: Certificate, Permit, Regulatory Record
+
+**Workflow**:
+A domain operation class within the Organization module. Six workflows: `OrganizationWorkflow`, `BranchWorkflow`, `AddressWorkflow`, `BankAccountWorkflow`, `ComplianceWorkflow`, `ConnectionWorkflow`. Each receives `db` (and optionally `pubsub`) via `initialize()`.
+_Avoid_: Service, Handler
+
 ### Recruiter Domain
 
 **Prospect**:
@@ -203,41 +237,55 @@ A formal agreement between the recruiter and a Client.
 │    Recruiter     │───→│          Framework Kernel            │
 │    (app)         │    │  7 core units: db, auth, logs,      │
 └──────────────────┘    │  pubsub, rpc, storage, kvStore      │
-                        └──────────┬──────────────────────────┘
-                                   │ wires
-                    ┌──────────────┼──────────────┬──────────────┐
-                    ▼              ▼              ▼              ▼
-                 Database       AuthUnit       LogUnit      PubSubUnit
-                    │              │              │              │
-                    │              │ uses         │ uses         │ uses
-                    │              ▼              ▼              ▼
-                    │         better-auth      pino         pg-boss
-                    │
-                    ├──────────────────────────────────────────────┐
-                    ▼              ▼              ▼              ▼
-              StorageUnit     KvStoreUnit     RpcUnit
-                    │              │              │
-                    ▼              │              ▼
-                 S3 SDK           │           oRPC
-                                  │
-                              Postgres
-                             (UNLOGGED)
+         │              └──────────┬──────────────────────────┘
+         │                         │ wires
+         │              ┌──────────┼──────────┬──────────────┐
+         │              ▼          ▼          ▼              ▼
+         │           Database   AuthUnit   LogUnit      PubSubUnit
+         │              │          │          │              │
+         │              │          │ uses     │ uses         │ uses
+         │              │          ▼          ▼              ▼
+         │              │     better-auth   pino         pg-boss
+         │              │
+         │              ├──────────────────────────────────────┐
+         │              ▼          ▼              ▼            ▼
+         │        StorageUnit  KvStoreUnit     RpcUnit
+         │              │          │              │
+         │              ▼          │              ▼
+         │           S3 SDK       │           oRPC
+         │                         │
+         │                     Postgres
+         │                    (UNLOGGED)
+         │
+         │ registers
+         ▼
+┌──────────────────────┐
+│  OrganizationModule  │
+│  (domain module)     │
+│  6 workflows:        │
+│  - organization      │
+│  - branch            │
+│  - address           │
+│  - bank-account      │
+│  - compliance        │
+│  - connection        │
+└──────────────────────┘
 ```
 
 ## Known Gaps
 
-1. **Module initialization is commented out** — `initialize()` stores modules but does not call their lifecycle hooks. The commented code passes `this.units` but `Module` has no `initialize()` method.
-2. **No `healthCheck()` on Unit** — docs claim it exists, code has only `name` and `destroy()`.
-3. **`getModule()` error messages say "Unit"** — code bug at `server/index.ts:114-116`.
-4. **`RoleUnassignedEvent` missing `roleName`** — unlike `RoleAssignedEvent` which has `{ roleName, userId }`, the unassigned event only has `{ userId }`.
-5. **Client-side framework undocumented** — `src/client/` has its own `Framework` class with `AuthUnit`, `LogUnit`, `RpcUnit`. Exported as `./client` subpath.
-6. **`prepare()` lifecycle undocumented** — critical step that runs schema migrations.
-7. **`Result<T,E>` and `PaginatedResult<T>` don't exist** — referenced in docs but not in code.
-8. **No barrel files** — explicit convention, not enforced by tooling.
+1. **`RoleUnassignedEvent` missing `roleName`** — unlike `RoleAssignedEvent` which has `{ roleName, userId }`, the unassigned event only has `{ userId }`.
+2. **`DatabaseUnit.name` is `"database"` but the framework key is `"db"`** — inconsistency between the unit's internal name and the key used in `FrameworkUnits`.
+3. **`AuthUnit` discards `access_control` and `roles` on server side** — these config values are destructured out and never passed to `betterAuth()`. Used only by the client AuthUnit. Intentional.
+4. **Session expiry hardcoded at 7 days** — `AuthConfig.session.expiresIn` is accepted but not read by the session workflow. The 7-day value is hardcoded in `session.ts`.
+5. **PubSub boss.start() not awaited** — the constructor calls `this.boss.start()` without `await`, which could cause race conditions if `publish`/`subscribe` are called before the connection is established.
+6. **Client LogUnit.prepare() and destroy() throw** — the client LogUnit is a stub that throws on lifecycle methods.
+7. **`client/context.ts` is empty** — the client framework has no `run()` method or `AsyncLocalStorage`.
+8. **`increment()`/`decrement()` on KvStoreUnit are not atomic** — read-modify-write, not database-level atomic ops.
 
 ## Anti-Patterns
 
-- Don't register modules after `initialize()` — throws error
+- Don't register modules after `create()` — pass them to `Framework.create()` as the second arg
 - Don't use native UUID columns — always text with `gen_random_uuid()::text` or app-generated UUIDs
 - Don't use `timestamp without time zone` — always `withTimezone: true`
 - Don't create barrel files unless explicitly told

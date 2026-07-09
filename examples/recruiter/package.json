@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@orpc/server": "^1.14.6",
+    "@orpc/server": "^1.14.7",
     "@t3-oss/env-core": "^0.13.11",
     "@tailwindcss/vite": "^4.3.2",
     "@tanstack/react-devtools": "latest",

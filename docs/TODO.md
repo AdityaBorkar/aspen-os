@@ -5,7 +5,7 @@ Create / Envision a mechanism where the modules are given access to the Framewor
 ## AI Coding
 
 - Create custom docs and index them and allow AI to fetch and read this local wiki
-- Working on the Frontend simultaneously
+- **Working on the Frontend simultaneously**
 - Organization Module
   - /settings/features = Enable/Disable each mdoule and their feature flags
 - Implement the HR module
@@ -30,6 +30,7 @@ Create / Envision a mechanism where the modules are given access to the Framewor
 - 
 - Standardizing the types in `framework`
 - Module Integration and Standardization
+- 
 - /grill-with-docs
 - /improve-codebase-architecture
 - 

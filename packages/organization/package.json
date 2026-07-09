@@ -2,12 +2,12 @@
   "dependencies": {
     "@aspen-os/constants": "workspace:*",
     "@aspen-os/framework": "workspace:*",
-    "drizzle-orm": "^0.45.2",
-    "valibot": "^1.4.2"
+    "drizzle-orm": "catalog:",
+    "valibot": "catalog:"
   },
   "devDependencies": {
-    "@types/bun": "latest",
-    "typescript": "^7.0.2"
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
   },
   "exports": {
     ".": "./src/index.ts"

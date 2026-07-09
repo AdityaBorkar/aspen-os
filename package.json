@@ -21,5 +21,13 @@
     "prepare": "husky",
     "update:deps": "taze -rw --maturity-period 3"
   },
-  "workspaces": ["./packages/*", "./examples/*", "./documentation"]
+  "workspaces": {
+    "catalog": {
+      "@types/bun": "latest",
+      "drizzle-orm": "^0.45.2",
+      "typescript": "^7.0.2",
+      "valibot": "^1.4.2"
+    },
+    "packages": ["./packages/*", "./examples/*", "./documentation"]
+  }
 }
