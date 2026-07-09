@@ -1,14 +1,14 @@
-telemetry = false
-logLevel = "warn"
+telemetry=false
+logLevel="warn"
 
 [console]
-depth = 10
+depth=10
 
 [run]
-bun = true
-silent = false
+bun=true
+silent=false
 
 [install]
-minimumReleaseAge = 259200 # 3 days
-saveTextLockfile = false
+minimumReleaseAge=259200 # 3 days
+saveTextLockfile=false
 ignore-scripts=true
