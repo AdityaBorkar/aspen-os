@@ -5,8 +5,8 @@ import { resolve } from "node:path";
 import { Command } from "commander";
 import { startStudioPostgresServer } from "drizzle-kit/api";
 
-import type { DatabaseUnit } from "@/server/db";
 import type { Framework } from "../server/index";
+import type { Module } from "../types";
 
 const program = new Command();
 
@@ -21,7 +21,7 @@ program
   .action(async (options: { config: string; port: string; host: string }) => {
     const configPath = resolve(process.cwd(), options.config);
 
-    let framework: Framework;
+    let framework: Framework<Record<string, Module>>;
     try {
       const mod = await import(configPath);
       framework = mod.framework;
@@ -35,8 +35,8 @@ program
       process.exit(1);
     }
 
-    const dbUnit = framework.getUnit("db") as DatabaseUnit | undefined;
-    if (!dbUnit?.config) {
+    const dbUnit = framework.getUnit("db");
+    if (!dbUnit.config) {
       console.error(
         "Error: Could not get database configuration from framework",
       );

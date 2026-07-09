@@ -13,7 +13,7 @@ export { DatabaseUnit } from "./db";
 export type { PubSubConfig } from "./pubsub";
 export { PubSubUnit } from "./pubsub";
 
-export interface FrameworkConfig {
+export type FrameworkConfig = {
   auth: AuthConfig;
   db: DatabaseConfig;
   kvStore: KvStoreConfig;
@@ -21,114 +21,123 @@ export interface FrameworkConfig {
   pubsub: PubSubConfig;
   rpc: RpcConfig;
   storage: StorageConfig;
-}
+};
 
-type Units = {
+export type FrameworkUnits = {
   auth: AuthUnit;
   db: DatabaseUnit;
+  kvStore: KvStoreUnit;
   logs: LogUnit;
   pubsub: PubSubUnit;
   rpc: RpcUnit;
   storage: StorageUnit;
-  kvStore: KvStoreUnit;
 };
 
-export class Framework {
-  private config: FrameworkConfig;
-  private units: Units | null = null;
-  private modules: Record<string, Module> = {};
-  private initialized: boolean = false;
+type UnitAccessors = { [K in keyof FrameworkUnits]: FrameworkUnits[K] };
+type ModuleAccessors<M extends Record<string, Module>> = {
+  [K in keyof M]: M[K];
+};
 
-  constructor(config: FrameworkConfig) {
-    this.config = config;
+export type FrameworkInstance<M extends Record<string, Module>> = Framework<M> &
+  UnitAccessors &
+  ModuleAccessors<M>;
+
+export class Framework<M extends Record<string, Module>> {
+  constructor(
+    private readonly units: FrameworkUnits,
+    private readonly modules: M,
+  ) {
+    // biome-ignore lint/correctness/noConstructorReturn: Exception
+    return new Proxy(this, {
+      get(target, prop, receiver) {
+        if (typeof prop === "string") {
+          const mod = target.modules[prop as keyof M];
+          if (mod) return mod;
+        }
+        return Reflect.get(target, prop, receiver);
+      },
+    });
   }
 
-  registerModule(module: Module) {
-    if (this.initialized)
-      throw new Error("Cannot register module after initialization");
-    this.modules[module.name] = module;
-  }
+  static create<M extends Record<string, Module>>(
+    config: FrameworkConfig,
+    modules: M,
+  ): FrameworkInstance<M> {
+    const db = new DatabaseUnit(config.db);
+    const logs = new LogUnit(config.logs, { db });
+    const pubsub = new PubSubUnit(config.pubsub, { db });
+    const storage = new StorageUnit(config.storage, { db });
+    const auth = new AuthUnit(config.auth, { db, logs, pubsub });
+    const rpc = new RpcUnit(config.rpc, { auth, db, logs, pubsub });
+    const kvStore = new KvStoreUnit(config.kvStore, { db });
 
-  async initialize(): Promise<void> {
-    if (this.initialized) throw new Error("Framework already initialized");
+    const units: FrameworkUnits = {
+      auth,
+      db,
+      kvStore,
+      logs,
+      pubsub,
+      rpc,
+      storage,
+    };
 
-    const $config = this.config;
-    const db = new DatabaseUnit($config.db);
-    const logs = new LogUnit($config.logs, { db });
-    const pubsub = new PubSubUnit($config.pubsub, { db });
-    const storage = new StorageUnit($config.storage, { db });
-    const auth = new AuthUnit($config.auth, { db, logs, pubsub });
-    const rpc = new RpcUnit($config.rpc, { auth, db, logs, pubsub });
-    const kvStore = new KvStoreUnit($config.kvStore, { db });
-
-    this.units = { auth, db, kvStore, logs, pubsub, rpc, storage };
-    this.initialized = true;
-
-    for (const mod of Object.values(this.modules)) {
-      if (mod.initialize) {
-        mod.initialize(this.units);
-      }
+    const initializedModules = {} as Record<string, Module>;
+    for (const mod of Object.values(modules)) {
+      mod.initialize?.(units);
+      initializedModules[mod.name] = mod;
     }
+
+    return new Framework<M>(
+      units,
+      initializedModules as M,
+    ) as FrameworkInstance<M>;
   }
 
   async prepare(): Promise<void> {
-    if (!this.initialized) throw new Error("Framework not initialized");
-    if (!this.units) throw new Error("Could not setup framework units");
-
-    for await (const [name, unit] of Object.entries(this.units)) {
+    for await (const unit of Object.values(this.units)) {
       try {
-        await unit?.prepare();
+        await unit.prepare?.();
       } catch (err) {
-        console.error(`Failed to prepare unit "${name}"`, err);
+        console.error(`Failed to prepare unit "${unit.name}"`, err);
       }
     }
-
-    // for await (const module of this.modules) {
-    //   module.prepare(this.units);
-    // }
+    for await (const mod of Object.values(this.modules)) {
+      try {
+        await mod.prepare?.();
+      } catch (err) {
+        console.error(`Failed to prepare module "${mod.name}"`, err);
+      }
+    }
   }
 
   async run<T>(fn: () => T | Promise<T>): Promise<T> {
-    if (!this.units) throw new Error("Could not setup framework units");
-    if (!this.initialized) throw new Error("Framework not initialized");
     return context.run({ db: this.units.db.db, pubsub: this.units.pubsub }, fn);
   }
 
   async destroy(): Promise<void> {
-    for await (const [name, module] of Object.entries(this.modules)) {
+    for await (const mod of Object.values(this.modules)) {
       try {
-        await module?.destroy();
+        await mod.destroy();
       } catch {
-        console.error(`Failed to destroy module "${name}"`);
+        console.error(`Failed to destroy module "${mod.name}"`);
       }
     }
-
-    if (!this.units) throw new Error("Could not setup framework units");
-    for await (const [name, unit] of Object.entries(this.units)) {
+    for await (const unit of Object.values(this.units)) {
       try {
-        await unit?.destroy();
+        await unit.destroy();
       } catch {
-        console.error(`Failed to destroy unit "${name}"`);
+        console.error(`Failed to destroy unit "${unit.name}"`);
       }
     }
-    this.initialized = false;
   }
 
-  getModule<N extends keyof typeof this.modules>(name?: N) {
-    if (!this.initialized) throw new Error("Framework not initialized");
-
-    if (!name) return this.modules;
-    if (!(name in this.modules)) throw new Error(`Module "${name}" not found`);
-    const unit = this.modules[name];
-    if (!unit) throw new Error(`Module "${name}" not initialized`);
-    return unit;
+  getModule<K extends keyof M>(name: K): M[K] {
+    const module = this.modules[name];
+    if (!module) throw new Error(`Module "${String(name)}" not found`);
+    return module;
   }
 
-  getUnit<K extends keyof Units>(name: K) {
-    if (!this.units) throw new Error("Could not setup framework units");
-    if (!this.initialized) throw new Error("Framework not initialized");
-
-    if (!(name in this.units)) throw new Error(`Unit "${name}" not found`);
-    return this.units[name] as Units[K];
+  getUnit<K extends keyof FrameworkUnits>(name: K): FrameworkUnits[K] {
+    return this.units[name];
   }
 }

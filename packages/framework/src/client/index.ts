@@ -20,79 +20,71 @@ type Units = {
 export class Framework {
   private config: FrameworkConfig;
   private units: Units | null = null;
-  private modules: Record<string, Module> = {};
-  private initialized: boolean = false;
+  private modules: Module[] = [];
 
   constructor(config: FrameworkConfig) {
     this.config = config;
   }
 
-  registerModule(module: Module) {
-    if (this.initialized)
+  register<M extends Module>(module: M): this {
+    if (this.units)
       throw new Error("Cannot register module after initialization");
-    this.modules[module.name] = module;
+    this.modules.push(module);
+    return this;
   }
 
   async initialize(): Promise<void> {
-    if (this.initialized) throw new Error("Framework already initialized");
+    if (this.units) throw new Error("Framework already initialized");
 
-    const $config = this.config;
-    const auth = new AuthUnit($config.auth);
-    const logs = new LogUnit($config.logs);
-    const rpc = new RpcUnit($config.rpc);
-
-    this.units = { auth, logs, rpc };
-    this.initialized = true;
+    const c = this.config;
+    this.units = {
+      auth: new AuthUnit(c.auth),
+      logs: new LogUnit(c.logs),
+      rpc: new RpcUnit(c.rpc),
+    };
   }
 
   async prepare(): Promise<void> {
-    if (!this.initialized) throw new Error("Framework not initialized");
-    if (!this.units) throw new Error("Could not setup framework units");
+    if (!this.units) throw new Error("Framework not initialized");
 
-    for await (const [name, unit] of Object.entries(this.units)) {
+    for (const unit of Object.values(this.units)) {
       try {
-        await unit?.prepare();
+        await unit.prepare?.();
       } catch (err) {
-        console.error(`Failed to prepare unit "${name}"`, err);
+        console.error(`Failed to prepare unit "${unit.name}"`, err);
       }
     }
   }
 
   async destroy(): Promise<void> {
-    for await (const [name, module] of Object.entries(this.modules)) {
+    for (const mod of this.modules) {
       try {
-        await module?.destroy();
+        await mod.destroy();
       } catch {
-        console.error(`Failed to destroy module "${name}"`);
+        console.error(`Failed to destroy module "${mod.name}"`);
       }
     }
 
-    if (!this.units) throw new Error("Could not setup framework units");
-    for await (const [name, unit] of Object.entries(this.units)) {
+    if (!this.units) throw new Error("Framework not initialized");
+    for (const unit of Object.values(this.units)) {
       try {
-        await unit?.destroy();
+        await unit.destroy();
       } catch {
-        console.error(`Failed to destroy unit "${name}"`);
+        console.error(`Failed to destroy unit "${unit.name}"`);
       }
     }
-    this.initialized = false;
+    this.units = null;
   }
 
-  getModule<N extends keyof typeof this.modules>(name?: N) {
-    if (!this.initialized) throw new Error("Framework not initialized");
-
-    if (!name) return this.modules;
-    if (!(name in this.modules)) throw new Error(`Module "${name}" not found`);
-    const unit = this.modules[name];
-    if (!unit) throw new Error(`Module "${name}" not initialized`);
-    return unit;
+  getModule<T extends Module = Module>(name: string): T {
+    if (!this.units) throw new Error("Framework not initialized");
+    const mod = this.modules.find((m) => m.name === name);
+    if (!mod) throw new Error(`Module "${name}" not found`);
+    return mod as T;
   }
 
-  getUnit<K extends keyof Units>(name: K) {
-    if (!this.units) throw new Error("Could not setup framework units");
-    if (!this.initialized) throw new Error("Framework not initialized");
-
-    if (!(name in this.units)) throw new Error(`Unit "${name}" not found`);
-    return this.units[name] as Units[K];
+  getUnit<K extends keyof Units>(name: K): Units[K] {
+    if (!this.units) throw new Error("Framework not initialized");
+    return this.units[name];
   }
 }

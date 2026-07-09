@@ -43,84 +43,72 @@ export type {
 } from "./types";
 export { dbSchema };
 
-export interface OrganizationModule {
-  readonly addresses: AddressWorkflow;
-  readonly bankAccounts: BankAccountWorkflow;
-  readonly branches: BranchWorkflow;
-  readonly compliance: ComplianceWorkflow;
-  readonly connections: ConnectionWorkflow;
-  readonly db_schema: typeof dbSchema;
+export type OrganizationModuleConfig = {};
 
-  destroy(): Promise<void>;
-  readonly name: string;
-  readonly organization: OrganizationWorkflow;
-}
+export class OrganizationModule {
+  static create(config: OrganizationModuleConfig): OrganizationModule {
+    return new OrganizationModule(config);
+  }
 
-export function createOrganizationModule(): OrganizationModule {
-  let _addresses: AddressWorkflow | null = null;
-  let _bankAccounts: BankAccountWorkflow | null = null;
-  let _branches: BranchWorkflow | null = null;
-  let _compliance: ComplianceWorkflow | null = null;
-  let _connections: ConnectionWorkflow | null = null;
-  let _organization: OrganizationWorkflow | null = null;
+  constructor(private config: OrganizationModuleConfig) {}
 
-  const mod: OrganizationModule = {
-    get addresses(): AddressWorkflow {
-      if (!_addresses) throw notInitialized();
-      return _addresses;
-    },
+  readonly db_schema = dbSchema;
+  readonly name = "organization";
 
-    get bankAccounts(): BankAccountWorkflow {
-      if (!_bankAccounts) throw notInitialized();
-      return _bankAccounts;
-    },
+  #addresses: AddressWorkflow | null = null;
+  #bankAccounts: BankAccountWorkflow | null = null;
+  #branches: BranchWorkflow | null = null;
+  #compliance: ComplianceWorkflow | null = null;
+  #connections: ConnectionWorkflow | null = null;
+  #organization: OrganizationWorkflow | null = null;
 
-    get branches(): BranchWorkflow {
-      if (!_branches) throw notInitialized();
-      return _branches;
-    },
+  get addresses(): AddressWorkflow {
+    if (!this.#addresses) throw notInitialized();
+    return this.#addresses;
+  }
 
-    get compliance(): ComplianceWorkflow {
-      if (!_compliance) throw notInitialized();
-      return _compliance;
-    },
+  get bankAccounts(): BankAccountWorkflow {
+    if (!this.#bankAccounts) throw notInitialized();
+    return this.#bankAccounts;
+  }
 
-    get connections(): ConnectionWorkflow {
-      if (!_connections) throw notInitialized();
-      return _connections;
-    },
+  get branches(): BranchWorkflow {
+    if (!this.#branches) throw notInitialized();
+    return this.#branches;
+  }
 
-    db_schema: dbSchema,
+  get compliance(): ComplianceWorkflow {
+    if (!this.#compliance) throw notInitialized();
+    return this.#compliance;
+  }
 
-    async destroy(): Promise<void> {
-      _addresses = null;
-      _bankAccounts = null;
-      _branches = null;
-      _compliance = null;
-      _connections = null;
-      _organization = null;
-    },
-    name: "organization",
+  get connections(): ConnectionWorkflow {
+    if (!this.#connections) throw notInitialized();
+    return this.#connections;
+  }
 
-    get organization(): OrganizationWorkflow {
-      if (!_organization) throw notInitialized();
-      return _organization;
-    },
-  };
+  get organization(): OrganizationWorkflow {
+    if (!this.#organization) throw notInitialized();
+    return this.#organization;
+  }
 
-  Object.defineProperty(mod, "initialize", {
-    value: (units: { db: DatabaseUnit; pubsub: PubSubUnit }) => {
-      _addresses = new AddressWorkflow(units.db.db);
-      _bankAccounts = new BankAccountWorkflow(units.db.db);
-      _branches = new BranchWorkflow(units.db.db);
-      _compliance = new ComplianceWorkflow(units.db.db, units.pubsub);
-      _connections = new ConnectionWorkflow(units.db.db);
-      _organization = new OrganizationWorkflow(units.db.db);
-    },
-    writable: false,
-  });
+  initialize(units: { db: DatabaseUnit; pubsub: PubSubUnit }): void {
+    this.#addresses = new AddressWorkflow(units.db.db);
+    this.#bankAccounts = new BankAccountWorkflow(units.db.db);
+    this.#branches = new BranchWorkflow(units.db.db);
+    this.#compliance = new ComplianceWorkflow(units.db.db, units.pubsub);
+    this.#connections = new ConnectionWorkflow(units.db.db);
+    this.#organization = new OrganizationWorkflow(units.db.db);
+  }
 
-  return mod;
+  async destroy(): Promise<void> {
+    this.#addresses = null;
+    this.#bankAccounts = null;
+    this.#branches = null;
+    this.#compliance = null;
+    this.#connections = null;
+    this.#organization = null;
+  }
 }
 
 function notInitialized(): Error {
