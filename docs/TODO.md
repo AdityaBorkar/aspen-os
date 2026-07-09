@@ -6,6 +6,12 @@
 
 ## Goals
 
+Create a Scope of Work for a recruitment management system to manage:
+- Job Mandate Management
+- Prospect Management
+- Applicant Management
+- Candidate Management
+
 - Working on the Frontend simultaneously
 
 - Organization Module
