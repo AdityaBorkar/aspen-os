@@ -61,7 +61,9 @@ const storage = {
   },
 } satisfies StorageConfig;
 
-const organization = OrganizationModule.create({});
+const organization = OrganizationModule.create({
+  country: "INDIA",
+});
 
 export const f = Framework.create(
   { auth, db, kvStore, logs, pubsub, rpc, storage },

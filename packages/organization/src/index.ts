@@ -43,7 +43,9 @@ export type {
 } from "./types";
 export { dbSchema };
 
-export type OrganizationModuleConfig = {};
+export type OrganizationModuleConfig = {
+  country: "INDIA";
+};
 
 export class OrganizationModule {
   static create(config: OrganizationModuleConfig): OrganizationModule {
@@ -63,6 +65,7 @@ export class OrganizationModule {
   #organization: OrganizationWorkflow | null = null;
 
   get addresses(): AddressWorkflow {
+    console.log(this.config);
     if (!this.#addresses) throw notInitialized();
     return this.#addresses;
   }
