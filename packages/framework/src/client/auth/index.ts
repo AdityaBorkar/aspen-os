@@ -18,7 +18,7 @@ export interface AuthConfig {
 
 const TypedClient = createAuthClient({
   plugins: [
-    // adminClient(),
+    adminClient(),
     emailOTPClient(),
     usernameClient(),
     lastLoginMethodClient(),

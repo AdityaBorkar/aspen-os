@@ -8,7 +8,7 @@ import type { KvStoreConfig } from "./types";
 export type { KvStoreConfig } from "./types";
 
 export class KvStoreUnit {
-  readonly name = "kv-store" as const;
+  readonly $name = "kv-store" as const;
   readonly db_schema = db_schema;
 
   private db: NodePgDatabase;
@@ -21,11 +21,11 @@ export class KvStoreUnit {
     this.prefix = config.keyPrefix ?? "";
   }
 
-  async prepare(): Promise<void> {
+  async $prepare(): Promise<void> {
     return;
   }
 
-  async destroy(): Promise<void> {
+  async $destroy(): Promise<void> {
     // Cleanup if needed
   }
 

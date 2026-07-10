@@ -6,7 +6,7 @@ import type { MessageHandler, PublishOptions, PubSubConfig } from "./types";
 export type { PubSubConfig } from "./types";
 
 export class PubSubUnit {
-  readonly name = "pubsub" as const;
+  readonly $name = "pubsub" as const;
 
   private boss: PgBoss;
   private subscriptions = new Map<string, PgBoss.WorkHandler<object>>();
@@ -27,11 +27,11 @@ export class PubSubUnit {
     this.boss.start();
   }
 
-  async prepare(): Promise<void> {
+  async $prepare(): Promise<void> {
     return;
   }
 
-  async destroy(): Promise<void> {
+  async $destroy(): Promise<void> {
     for (const topic of this.subscriptions.keys()) {
       await this.boss.offWork(topic);
     }

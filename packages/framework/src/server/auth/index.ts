@@ -42,10 +42,7 @@ export class AuthUnit {
   readonly $db_schema = db_schema;
   readonly auth: Auth;
 
-  constructor(
-    config: AuthConfig,
-    units: { db: DatabaseUnit; log: LogUnit; pubsub: PubSubUnit },
-  ) {
+  constructor(config: AuthConfig, units: { db: DatabaseUnit }) {
     const { cfSecretKey, access_control, roles, ...rest } = config;
     this.auth = betterAuth({
       ...rest,

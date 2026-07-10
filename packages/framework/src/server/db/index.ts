@@ -10,7 +10,7 @@ import type { DatabaseConfig } from "./types";
 export type { DatabaseConfig } from "./types";
 
 export class DatabaseUnit {
-  readonly name = "database";
+  readonly $name = "database";
   readonly pool: pg.Pool;
   readonly db: NodePgDatabase;
   readonly config: DatabaseConfig;
@@ -29,7 +29,7 @@ export class DatabaseUnit {
     this.config = config;
   }
 
-  async prepare() {
+  async $prepare() {
     const { pushSchema } = await import("drizzle-kit/api");
     const schemas = this.getSchemas();
     const result = await pushSchema(schemas, this.db);
@@ -44,7 +44,7 @@ export class DatabaseUnit {
     }
   }
 
-  async destroy() {
+  async $destroy() {
     await this.pool.end();
   }
 

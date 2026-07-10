@@ -25,7 +25,7 @@ export type {
 } from "./types";
 
 export class LogUnit {
-  readonly name = "logs";
+  readonly $name = "logs";
 
   private serviceName: string;
   private defaultLevel: LogLevel;
@@ -70,11 +70,11 @@ export class LogUnit {
     this.flushTimer = setInterval(() => this.buffer?.flush(), 5000);
   }
 
-  async prepare(): Promise<void> {
+  async $prepare(): Promise<void> {
     return;
   }
 
-  async destroy(): Promise<void> {
+  async $destroy(): Promise<void> {
     if (this.flushTimer) {
       clearInterval(this.flushTimer);
     }

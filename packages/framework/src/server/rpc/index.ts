@@ -10,7 +10,7 @@ import type { RpcConfig, RpcContext } from "./types";
 export type { RpcConfig, RpcContext } from "./types";
 
 export class RpcUnit {
-  readonly name = "rpc";
+  readonly $name = "rpc";
   readonly router = router;
 
   private prefix: `/${string}`;
@@ -42,11 +42,11 @@ export class RpcUnit {
     };
   }
 
-  async prepare(): Promise<void> {
+  async $prepare(): Promise<void> {
     return;
   }
 
-  async destroy(): Promise<void> {
+  async $destroy(): Promise<void> {
     // Cleanup if needed
   }
 

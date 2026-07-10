@@ -12,7 +12,7 @@ import type {
 export type { StorageConfig };
 
 export class StorageUnit {
-  readonly name = "storage";
+  readonly $name = "storage";
 
   private readonly config: StorageConfig;
   private readonly ops: S3Adapter;
@@ -27,11 +27,11 @@ export class StorageUnit {
     });
   }
 
-  async prepare(): Promise<void> {
+  async $prepare(): Promise<void> {
     return;
   }
 
-  async destroy(): Promise<void> {
+  async $destroy(): Promise<void> {
     // Cleanup if needed
   }
 
