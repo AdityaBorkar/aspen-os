@@ -1,6 +1,6 @@
-import type { RpcConfig } from "./types";
-
-export type { RpcConfig } from "./types";
+export interface RpcConfig {
+  prefix?: string;
+}
 
 export class RpcUnit {
   readonly name = "rpc";

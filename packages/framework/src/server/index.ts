@@ -1,4 +1,3 @@
-import type { Module } from "../types";
 import { type AuthConfig, AuthUnit } from "./auth";
 import { context } from "./context";
 import { type DatabaseConfig, DatabaseUnit } from "./db";
@@ -8,10 +7,19 @@ import { type PubSubConfig, PubSubUnit } from "./pubsub";
 import { type RpcConfig, RpcUnit } from "./rpc";
 import { type StorageConfig, StorageUnit } from "./storage";
 
+export {
+  type AuthConfig,
+  type AuthUnit,
+  createAccessControl,
+} from "./auth";
 export type { DatabaseConfig } from "./db";
 export { DatabaseUnit } from "./db";
+export type { KvStoreConfig } from "./kv-store";
+export type { LogConfig } from "./log";
 export type { PubSubConfig } from "./pubsub";
 export { PubSubUnit } from "./pubsub";
+export type { RpcConfig } from "./rpc";
+export type { StorageConfig } from "./storage";
 
 export type FrameworkConfig = {
   auth: AuthConfig;
@@ -29,9 +37,22 @@ export type FrameworkUnits = {
   kvStore: KvStoreUnit;
   logs: LogUnit;
   pubsub: PubSubUnit;
-  rpc: RpcUnit;
+  // rpc: RpcUnit;
   storage: StorageUnit;
 };
+
+export interface Unit {
+  destroy(): Promise<void>;
+  readonly name: string;
+  prepare?(): Promise<void>;
+}
+
+export interface Module<N extends string = string> {
+  destroy(): Promise<void>;
+  initialize?(units: Record<string, Unit>): void;
+  readonly name: N;
+  prepare?(): Promise<void>;
+}
 
 type UnitAccessors = { [K in keyof FrameworkUnits]: FrameworkUnits[K] };
 type ModuleAccessors<M extends Record<string, Module>> = {
@@ -51,6 +72,10 @@ export class Framework<M extends Record<string, Module>> {
     return new Proxy(this, {
       get(target, prop, receiver) {
         if (typeof prop === "string") {
+          const unit = target.units[prop as keyof FrameworkUnits];
+          if (unit) return unit;
+        }
+        if (typeof prop === "string") {
           const mod = target.modules[prop as keyof M];
           if (mod) return mod;
         }
@@ -68,7 +93,7 @@ export class Framework<M extends Record<string, Module>> {
     const pubsub = new PubSubUnit(config.pubsub, { db });
     const storage = new StorageUnit(config.storage, { db });
     const auth = new AuthUnit(config.auth, { db, logs, pubsub });
-    const rpc = new RpcUnit(config.rpc, { auth, db, logs, pubsub });
+    // const rpc = new RpcUnit(config.rpc, { auth, db, logs, pubsub });
     const kvStore = new KvStoreUnit(config.kvStore, { db });
 
     const units: FrameworkUnits = {
@@ -77,7 +102,7 @@ export class Framework<M extends Record<string, Module>> {
       kvStore,
       logs,
       pubsub,
-      rpc,
+      // rpc,
       storage,
     };
 
@@ -96,7 +121,7 @@ export class Framework<M extends Record<string, Module>> {
   async prepare(): Promise<void> {
     for await (const unit of Object.values(this.units)) {
       try {
-        await unit.prepare?.();
+        await unit.$prepare?.();
       } catch (err) {
         console.error(`Failed to prepare unit "${unit.name}"`, err);
       }
@@ -124,7 +149,7 @@ export class Framework<M extends Record<string, Module>> {
     }
     for await (const unit of Object.values(this.units)) {
       try {
-        await unit.destroy();
+        await unit.$destroy();
       } catch {
         console.error(`Failed to destroy unit "${unit.name}"`);
       }

@@ -33,6 +33,7 @@ export interface Session {
 export interface AuthConfig {
   access_control: ReturnType<typeof createAccessControl>;
   baseURL: string;
+  cfSecretKey: string;
   roles: Record<string, Role>;
   secret: string;
   session: { expiresIn?: number };
@@ -45,35 +46,35 @@ export interface AuthConfig {
   };
 }
 
-export interface CreateUserInput {
-  email: string;
-  name?: string;
-  password: string;
-}
+// export interface CreateUserInput {
+//   email: string;
+//   name?: string;
+//   password: string;
+// }
 
-export interface UserAPI {
-  create(data: CreateUserInput): Promise<User>;
-  delete(id: string): Promise<void>;
-  get(query: { id: string }): Promise<User | null>;
-  get(query: { email: string }): Promise<User | null>;
-  role: {
-    assign(userId: string, roleName: string): Promise<void>;
-    unassign(userId: string): Promise<void>;
-  };
-  update(
-    id: string,
-    data: Partial<Pick<User, "name" | "image" | "role">>,
-  ): Promise<User>;
-}
+// export interface UserAPI {
+//   create(data: CreateUserInput): Promise<User>;
+//   delete(id: string): Promise<void>;
+//   get(query: { id: string }): Promise<User | null>;
+//   get(query: { email: string }): Promise<User | null>;
+//   role: {
+//     assign(userId: string, roleName: string): Promise<void>;
+//     unassign(userId: string): Promise<void>;
+//   };
+//   update(
+//     id: string,
+//     data: Partial<Pick<User, "name" | "image" | "role">>,
+//   ): Promise<User>;
+// }
 
-export interface SessionAPI {
-  create(
-    email: string,
-    password: string,
-  ): Promise<{ user: User; session: Session }>;
-  invalidate(sessionId: string): Promise<void>;
-  validate(token: string): Promise<{ user: User; session: Session } | null>;
-}
+// export interface SessionAPI {
+//   create(
+//     email: string,
+//     password: string,
+//   ): Promise<{ user: User; session: Session }>;
+//   invalidate(sessionId: string): Promise<void>;
+//   validate(token: string): Promise<{ user: User; session: Session } | null>;
+// }
 
 export interface RoleData {
   createdAt: Date;
@@ -84,7 +85,7 @@ export interface RoleData {
   updatedAt: Date;
 }
 
-export interface RoleAPI {
-  delete(name: string): Promise<void>;
-  list(): Promise<RoleData[]>;
-}
+// export interface RoleAPI {
+//   delete(name: string): Promise<void>;
+//   list(): Promise<RoleData[]>;
+// }

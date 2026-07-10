@@ -1,7 +1,8 @@
-import type { Module } from "../types";
 import { type AuthConfig, AuthUnit } from "./auth";
 import { type LogConfig, LogUnit } from "./log";
 import { type RpcConfig, RpcUnit } from "./rpc";
+
+export { createAccessControl } from "better-auth/plugins/access";
 
 export type { AuthUnit } from "./auth";
 
@@ -17,6 +18,18 @@ export type FrameworkUnits = {
   rpc: RpcUnit;
 };
 
+export interface Unit {
+  destroy(): Promise<void>;
+  readonly name: string;
+  prepare?(): Promise<void>;
+}
+
+export interface Module<N extends string = string> {
+  destroy(): Promise<void>;
+  initialize?(units: Record<string, Unit>): void;
+  readonly name: N;
+  prepare?(): Promise<void>;
+}
 type UnitAccessors = { [K in keyof FrameworkUnits]: FrameworkUnits[K] };
 type ModuleAccessors<M extends Record<string, Module>> = {
   [K in keyof M]: M[K];
@@ -34,6 +47,10 @@ export class Framework<M extends Record<string, Module>> {
     // biome-ignore lint/correctness/noConstructorReturn: Exception
     return new Proxy(this, {
       get(target, prop, receiver) {
+        if (typeof prop === "string") {
+          const unit = target.units[prop as keyof FrameworkUnits];
+          if (unit) return unit;
+        }
         if (typeof prop === "string") {
           const mod = target.modules[prop as keyof M];
           if (mod) return mod;

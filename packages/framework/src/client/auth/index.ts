@@ -1,18 +1,36 @@
+import { passkeyClient } from "@better-auth/passkey/client";
+import type { createAccessControl, Role } from "better-auth/client";
 import {
   adminClient,
   emailOTPClient,
+  lastLoginMethodClient,
   phoneNumberClient,
+  twoFactorClient,
   usernameClient,
 } from "better-auth/client/plugins";
-import { createAuthClient } from "better-auth/react";
+import { createAuthClient, type ReactAuthClient } from "better-auth/react";
 
-import type { AuthConfig } from "./types";
+export interface AuthConfig {
+  access_control: ReturnType<typeof createAccessControl>;
+  baseURL: string;
+  roles: Record<string, Role>;
+}
 
-export type { AuthConfig } from "./types";
+const TypedClient = createAuthClient({
+  plugins: [
+    // adminClient(),
+    emailOTPClient(),
+    usernameClient(),
+    lastLoginMethodClient(),
+    phoneNumberClient(),
+    twoFactorClient(),
+    passkeyClient(),
+  ],
+});
 
 export class AuthUnit {
   readonly name = "auth";
-  readonly client: ReturnType<typeof createAuthClient>;
+  readonly client: typeof TypedClient;
 
   constructor(config: AuthConfig) {
     const { baseURL, roles, access_control } = config;
@@ -22,6 +40,7 @@ export class AuthUnit {
         adminClient({ ac: access_control, roles }),
         emailOTPClient(),
         usernameClient(),
+        passkeyClient(),
         phoneNumberClient(),
       ],
     });

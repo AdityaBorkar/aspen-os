@@ -23,7 +23,8 @@
   },
   "workspaces": {
     "catalog": {
-      "@types/bun": "latest",
+      "@types/bun": "^1.3.14",
+      "bun": "^1.3.14",
       "drizzle-orm": "^0.45.2",
       "typescript": "^7.0.2",
       "valibot": "^1.4.2"

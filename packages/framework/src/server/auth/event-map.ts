@@ -12,40 +12,40 @@ export interface AuthEventMap {
   "user:updated": UserUpdatedEvent;
 }
 
-export interface UserCreatedEvent {
+interface UserCreatedEvent {
   user: User;
 }
 
-export interface UserUpdatedEvent {
+interface UserUpdatedEvent {
   user: User;
 }
 
-export interface UserDeletedEvent {
+interface UserDeletedEvent {
   userId: string;
 }
 
-export interface RoleAssignedEvent {
+interface RoleAssignedEvent {
   roleName: string;
   userId: string;
 }
 
-export interface RoleUnassignedEvent {
+interface RoleUnassignedEvent {
   userId: string;
 }
 
-export interface RoleCreatedEvent {
+interface RoleCreatedEvent {
   role: RoleData;
 }
 
-export interface RoleDeletedEvent {
+interface RoleDeletedEvent {
   roleName: string;
 }
 
-export interface SessionCreatedEvent {
+interface SessionCreatedEvent {
   session: Session;
   user: User;
 }
 
-export interface SessionInvalidatedEvent {
+interface SessionInvalidatedEvent {
   sessionId: string;
 }

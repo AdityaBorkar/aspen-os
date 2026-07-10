@@ -1,4 +1,3 @@
-import { pushSchema } from "drizzle-kit/api";
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import pg from "pg";
 
@@ -31,6 +30,7 @@ export class DatabaseUnit {
   }
 
   async prepare() {
+    const { pushSchema } = await import("drizzle-kit/api");
     const schemas = this.getSchemas();
     const result = await pushSchema(schemas, this.db);
     if (result.statementsToExecute.length > 0) {
