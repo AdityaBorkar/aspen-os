@@ -5,8 +5,7 @@ import { resolve } from "node:path";
 import { Command } from "commander";
 import { startStudioPostgresServer } from "drizzle-kit/api";
 
-import type { Framework } from "../server/index";
-import type { Module } from "../types";
+import type { FrameworkInstance } from "../server/index";
 
 const program = new Command();
 
@@ -21,11 +20,11 @@ program
   .action(async (options: { config: string; port: string; host: string }) => {
     const configPath = resolve(process.cwd(), options.config);
 
-    let framework: Framework<Record<string, Module>>;
+    let f: FrameworkInstance<any>;
     try {
       const mod = await import(configPath);
-      framework = mod.framework;
-      if (!framework) {
+      f = mod.framework || mod.f;
+      if (!f) {
         console.error(`Error: No 'framework' export found in ${configPath}`);
         process.exit(1);
       }
@@ -35,15 +34,14 @@ program
       process.exit(1);
     }
 
-    const dbUnit = framework.getUnit("db");
-    if (!dbUnit.config) {
+    if (!f.db.config) {
       console.error(
         "Error: Could not get database configuration from framework",
       );
       process.exit(1);
     }
 
-    await startStudioPostgresServer(dbUnit.getSchemas(), dbUnit.config);
+    await startStudioPostgresServer(f.db.getSchemas(), f.db.config);
   });
 
 program.parse();

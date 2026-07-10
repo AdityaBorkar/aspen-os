@@ -4,7 +4,7 @@ import { type RpcConfig, RpcUnit } from "./rpc";
 
 export { createAccessControl } from "better-auth/plugins/access";
 
-export type { AuthUnit } from "./auth";
+export type { AuthClient, AuthUnit } from "./auth";
 
 export type FrameworkConfig = {
   auth: AuthConfig;
