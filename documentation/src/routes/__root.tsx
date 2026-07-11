@@ -1,43 +1,42 @@
-import { TanStackDevtools } from "@tanstack/react-devtools";
-import { createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
-import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import {
+  createRootRoute,
+  HeadContent,
+  Outlet,
+  Scripts,
+} from "@tanstack/react-router";
+import { RootProvider } from "fumadocs-ui/provider/tanstack";
 
-import PostHogProvider from "../integrations/posthog/provider";
-import css from "../styles.css?url";
+import appCss from "@/styles/app.css?url";
 
 export const Route = createRootRoute({
+  component: RootComponent,
   head: () => ({
-    links: [{ href: css, rel: "stylesheet" }],
+    links: [{ href: appCss, rel: "stylesheet" }],
     meta: [
-      { charSet: "utf-8" },
-      { content: "width=device-width, initial-scale=1", name: "viewport" },
-      { title: "TanStack Start Starter" },
+      {
+        charSet: "utf-8",
+      },
+      {
+        content: "width=device-width, initial-scale=1",
+        name: "viewport",
+      },
+      {
+        title: "Fumadocs on TanStack Start",
+      },
     ],
   }),
-  shellComponent: RootDocument,
 });
 
-function RootDocument({ children }: { children: React.ReactNode }) {
+function RootComponent() {
   return (
     <html lang="en">
       <head>
         <HeadContent />
       </head>
-      <body>
-        <PostHogProvider>
-          {children}
-          <TanStackDevtools
-            config={{
-              position: "bottom-right",
-            }}
-            plugins={[
-              {
-                name: "Tanstack Router",
-                render: <TanStackRouterDevtoolsPanel />,
-              },
-            ]}
-          />
-        </PostHogProvider>
+      <body className="flex min-h-screen flex-col">
+        <RootProvider>
+          <Outlet />
+        </RootProvider>
         <Scripts />
       </body>
     </html>

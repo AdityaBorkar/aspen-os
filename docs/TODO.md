@@ -1,19 +1,28 @@
 # TODO
 
-Create / Envision a mechanism where the modules are given access to the Framework Units. Also, there can be communication between two modules. Tell me the approaches that can be implemented to implement this feature. Do not write code.
+## Module Implementation
 
-## AI Coding
-
-- Create custom docs and index them and allow AI to fetch and read this local wiki
-- **Working on the Frontend simultaneously**
-- Organization Module
-  - /settings/features = Enable/Disable each mdoule and their feature flags
+- Task Management
+- CRM
 - Implement the HR module
   - Canvas like Users
   - Custom Roles and RBAC Permissions
   - Users with Branch-wise access controls
-- Task Management
-- CRM
+- Organization
+  - Addresses
+  - Filter Views
+  - Bank Accounts
+  - Personal Drafts
+  - Personal Dashboard / Dashboards
+- 
+- Documentation Website
+  - Documentation for each module
+  - Create custom docs and index them and allow AI to fetch and read this local wiki
+
+## Phase 2
+
+- Dynamic Loading of Modules
+  - /settings/features = Enable/Disable each mdoule and their feature flags
 
 ## Goals
 
@@ -51,13 +60,18 @@ Create / Envision a mechanism where the modules are given access to the Framewor
 
 ## Documentation
 
+Perform implementation of MDX documentation in Mintlify-styled website with the following requirements:
+
+Sidebar Groups Selector = Framework / [Module Names]
+
+Framework:
 - Parts of the Framework
 - How to use the framework? What can be customized?
 - Unit vs Module?
 - How to create a Custom Module?
-
-- List of Modules
-- Features and Configuration in each module.
-
 - List of Units
-- Features and Configuration in each unit.
+  - Features and Configuration in each unit.
+- List of available Modules
+  - Features and Configuration in each module.
+
+Collect the individual module docs from their respective directories /docs

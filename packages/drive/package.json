@@ -1,3 +1,22 @@
 {
-  "name": "@aspen-os/drive"
+  "dependencies": {
+    "@aspen-os/framework": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "fflate": "^0.8.3",
+    "valibot": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "name": "@aspen-os/drive",
+  "scripts": {
+    "check:lint": "biome check --fix .",
+    "check:types": "tsc -b"
+  },
+  "type": "module",
+  "version": "0.1.0"
 }

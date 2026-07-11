@@ -3,8 +3,6 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin, captcha, phoneNumber, username } from "better-auth/plugins";
 
 import type { DatabaseUnit } from "../db";
-import type { LogUnit } from "../log";
-import type { PubSubUnit } from "../pubsub";
 import * as db_schema from "./db-schema";
 import {
   assignRole,

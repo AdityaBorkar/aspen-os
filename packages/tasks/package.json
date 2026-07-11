@@ -1,3 +1,22 @@
 {
-  "name": "@aspen-os/tasks"
+  "dependencies": {
+    "@aspen-os/constants": "workspace:*",
+    "@aspen-os/framework": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "valibot": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "name": "@aspen-os/tasks",
+  "scripts": {
+    "check:lint": "biome check --fix .",
+    "check:types": "tsc -b"
+  },
+  "type": "module",
+  "version": "0.1.0"
 }

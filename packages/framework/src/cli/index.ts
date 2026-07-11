@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 import { Command } from "commander";
 import { startStudioPostgresServer } from "drizzle-kit/api";
 
-import type { FrameworkInstance } from "../server/index";
+import type { FrameworkInstance, Module } from "../server/index";
 
 const program = new Command();
 
@@ -20,7 +20,7 @@ program
   .action(async (options: { config: string; port: string; host: string }) => {
     const configPath = resolve(process.cwd(), options.config);
 
-    let f: FrameworkInstance<any>;
+    let f: FrameworkInstance<Record<string, Module>>;
     try {
       const mod = await import(configPath);
       f = mod.framework || mod.f;

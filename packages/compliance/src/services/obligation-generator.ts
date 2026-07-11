@@ -175,8 +175,7 @@ export class ObligationGenerator {
     const startDate = new Date(obligation.startDate);
     const monthsPerPeriod = MONTHS_PER_FREQUENCY[obligation.frequency] ?? 1;
 
-    let index = 0;
-    while (true) {
+    for (let index = 0; ; index++) {
       const periodStart = new Date(
         startDate.getFullYear(),
         startDate.getMonth() + index * monthsPerPeriod,
@@ -225,7 +224,6 @@ export class ObligationGenerator {
       }
 
       periods.push(entry);
-      index++;
     }
 
     return periods;

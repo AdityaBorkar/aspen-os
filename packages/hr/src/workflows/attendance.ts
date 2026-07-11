@@ -160,7 +160,8 @@ export class AttendanceWorkflow {
     };
 
     for (const record of records) {
-      switch (record.status) {
+      const status = record.status as string;
+      switch (status) {
         case "present":
           summary.present++;
           break;

@@ -1110,7 +1110,7 @@ export class LeaveWorkflow {
   // ─── Helper Methods ──────────────────────────────────────────────────────
 
   private async checkLeaveBlockList(
-    employeeId: string,
+    _employeeId: string,
     fromDate: string,
     toDate: string,
   ): Promise<void> {
