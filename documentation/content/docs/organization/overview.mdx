@@ -1,0 +1,102 @@
+---
+title: Organization Module Overview
+description: Architecture, initialization, and module structure of the Organization domain module.
+icon: Building2
+---
+
+The Organization module manages organizational structure, branches, connections (clients/vendors/partners), addresses, and bank accounts. It is a fully implemented domain module following the framework's module pattern.
+
+## Module Configuration
+
+```ts
+import { OrganizationModule } from "@aspen-os/organization";
+
+const organization = OrganizationModule.create({
+  country: "INDIA",
+});
+```
+
+| Option | Type | Description |
+|---|---|---|
+| `country` | `"INDIA"` | Country-specific configuration |
+
+## Initialization
+
+The module receives `db` and `pubsub` units via `initialize()`:
+
+```ts
+initialize(units: { db: DatabaseUnit; pubsub: PubSubUnit }): void {
+  this.#addresses = new AddressWorkflow(units.db.db);
+  this.#bankAccounts = new BankAccountWorkflow(units.db.db);
+  this.#branches = new BranchWorkflow(units.db.db);
+  this.#connections = new ConnectionWorkflow(units.db.db);
+  this.#organization = new OrganizationWorkflow(units.db.db);
+}
+```
+
+## Module Structure
+
+```
+packages/organization/src/
+  index.ts              # Module class + type re-exports
+  db-schema.ts          # 7 tables + 5 enums
+  types.ts              # Type re-exports from schemas + BranchTreeNode
+  event-map.ts          # 11 events across 3 event groups
+  schemas/              # Valibot validation schemas
+    index.ts
+    enums.ts
+    utils.ts
+    organization.ts
+    branch.ts
+    connection.ts
+    address.ts
+    bank-account.ts
+  workflows/            # 5 workflow classes
+    organization.ts
+    branch.ts
+    connection.ts
+    address.ts
+    bank-account.ts
+```
+
+## Accessing Workflows
+
+```ts
+framework.organization.organization     // → OrganizationWorkflow
+framework.organization.branches          // → BranchWorkflow
+framework.organization.connections       // → ConnectionWorkflow
+framework.organization.addresses         // → AddressWorkflow
+framework.organization.bankAccounts      // → BankAccountWorkflow
+```
+
+<Callout type="warn">
+  Accessing a workflow before `initialize()` throws a "not initialized" error. This happens if you access the module before calling `Framework.create()`.
+</Callout>
+
+## Package
+
+```json
+{
+  "name": "@aspen-os/organization",
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@aspenos/framework": "workspace:*",
+    "@aspen-os/constants": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "valibot": "catalog:"
+  }
+}
+```
+
+## Constants & Enums
+
+Organization-specific enums come from `@aspen-os/constants`:
+
+| Enum | Values |
+|---|---|
+| `OrganizationStatus` | `active`, `suspended`, `archived` |
+| `BranchType` | `headquarters`, `office`, `warehouse`, `store`, `factory`, `remote`, `other` |
+| `ConnectionType` | `client`, `vendor`, `partner`, `subsidiary`, `parent_company`, `investor`, `regulator`, `insurer`, `bank`, `other` |
+| `ConnectionStatus` | `active`, `inactive`, `prospect`, `former` |
+| `ConnectionNoteType` | `general`, `call`, `email`, `meeting`, `contract_renewal`, `issue` |

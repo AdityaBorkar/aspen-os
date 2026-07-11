@@ -18,6 +18,7 @@
 - Documentation Website
   - Documentation for each module
   - Create custom docs and index them and allow AI to fetch and read this local wiki
+- How to create public docs
 
 ## Phase 2
 
@@ -60,7 +61,7 @@
 
 ## Documentation
 
-Perform implementation of MDX documentation in Mintlify-styled website with the following requirements:
+Perform implementation of MDX documentation in website with the following requirements:
 
 Sidebar Groups Selector = Framework / [Module Names]
 

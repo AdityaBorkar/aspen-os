@@ -1,12 +1,21 @@
 @import "tailwindcss";
 @import "fumadocs-ui/css/neutral.css";
 @import "fumadocs-ui/css/preset.css";
+@import "@fontsource-variable/mona-sans";
+@import "@fontsource-variable/fira-code";
 
-html {
-  scrollbar-gutter: stable;
+:root {
+  --font-sans: "Mona Sans Variable", sans-serif;
+  --font-mono: "Fira Code Variable", monospace;
 }
 
-html > body[data-scroll-locked] {
-  --removed-body-scroll-bar-size: 0px;
-  margin-right: 0px;
+@layer base {
+  html {
+    scrollbar-gutter: stable;
+  }
+
+  html > body[data-scroll-locked] {
+    --removed-body-scroll-bar-size: 0px;
+    margin-right: 0px;
+  }
 }

@@ -1,0 +1,203 @@
+---
+title: Organization Workflows
+description: API reference for the 5 workflows exposed by the Organization module.
+icon: Workflow
+---
+
+The Organization module exposes 5 workflows, each managing a domain aggregate.
+
+## OrganizationWorkflow
+
+Access: `framework.organization.organization`
+
+Manages the organization entity itself — branding, locale, timezone, status.
+
+```ts
+// Create
+const org = await framework.organization.organization.create({
+  name: "Acme Corp",
+  slug: "acme-corp",
+  email: "contact@acme.com",
+  phone: "+91-9876543210",
+  website: "https://acme.com",
+});
+
+// Update
+await framework.organization.organization.update(id, {
+  name: "Acme Corporation",
+});
+
+// Update branding
+await framework.organization.organization.updateBranding(id, {
+  accentColor: "#FF5733",
+  logo: "logos/acme.png",
+});
+
+// Upload/delete logo
+await framework.organization.organization.uploadLogo(id, file);
+await framework.organization.organization.deleteLogo(id);
+
+// Get
+const org = await framework.organization.organization.get(id);
+
+// Delete
+await framework.organization.organization.delete(id);
+```
+
+### Validation Schemas
+
+- `CreateOrganizationSchema` — name, slug, email, phone, website, status
+- `UpdateOrganizationSchema` — all fields optional
+- `UpdateBrandingSchema` — logo, accentColor
+- `OrganizationFiltersSchema` — status, search
+
+## BranchWorkflow
+
+Access: `framework.organization.branches`
+
+Manages hierarchical branch structures with a maximum depth of 5 levels and exactly one headquarters per organization.
+
+```ts
+// Create
+const branch = await framework.organization.branches.create({
+  organizationId: orgId,
+  name: "HQ Mumbai",
+  code: "HQ-MUM",
+  type: "headquarters",
+  parentId: null,
+});
+
+// Update
+await framework.organization.branches.update(branchId, { name: "HQ Mumbai Central" });
+
+// Status changes
+await framework.organization.branches.activate(branchId);
+await framework.organization.branches.deactivate(branchId);
+await framework.organization.branches.close(branchId);
+
+// Archive / restore
+await framework.organization.branches.archive(branchId);
+await framework.organization.branches.restore(branchId);
+
+// Get tree (hierarchical view)
+const tree = await framework.organization.branches.getTree(orgId);
+// tree = [{ id, name, children: [...] }]
+
+// List
+const branches = await framework.organization.branches.list({ organizationId: orgId });
+```
+
+### Business Rules
+
+- **Single headquarters** — exactly one branch of type `headquarters` per organization
+- **Max 5 levels** — branch hierarchy depth is enforced in the workflow
+- **No circular parents** — detected via recursive traversal
+- **Code uniqueness** — branch codes must be unique
+
+## ConnectionWorkflow
+
+Access: `framework.organization.connections`
+
+Manages external entities (clients, vendors, partners) with contacts and notes.
+
+```ts
+// Create connection
+const conn = await framework.organization.connections.create({
+  organizationId: orgId,
+  name: "Tech Supplier Ltd",
+  type: "vendor",
+  contactPerson: "John Doe",
+  contactEmail: "john@techsupplier.com",
+  tags: ["IT", "hardware"],
+});
+
+// Update
+await framework.organization.connections.update(connId, { name: "Tech Supplier Inc" });
+
+// Status management
+await framework.organization.connections.updateStatus(connId, "inactive");
+await framework.organization.connections.archive(connId);
+await framework.organization.connections.restore(connId);
+
+// Search
+const results = await framework.organization.connections.search("tech");
+
+// Contacts (1:N)
+await framework.organization.connections.addContact(connId, {
+  name: "Jane Smith",
+  email: "jane@techsupplier.com",
+  isPrimary: true,
+});
+await framework.organization.connections.updateContact(contactId, { name: "Jane Doe" });
+await framework.organization.connections.deleteContact(contactId);
+
+// Notes (1:N)
+await framework.organization.connections.addNote(connId, {
+  userId: "user-1",
+  type: "call",
+  content: "Discussed Q4 pricing",
+});
+const notes = await framework.organization.connections.listNotes(connId);
+```
+
+## AddressWorkflow
+
+Access: `framework.organization.addresses`
+
+Manages reusable address records with a primary flag.
+
+```ts
+// Create
+const addr = await framework.organization.addresses.create({
+  line1: "123 Business Park",
+  city: "Mumbai",
+  state: "Maharashtra",
+  postalCode: "400001",
+  country: "IN",
+  label: "Office",
+});
+
+// Update
+await framework.organization.addresses.update(addrId, { city: "Pune" });
+
+// Primary management
+await framework.organization.addresses.setPrimary(addrId);
+await framework.organization.addresses.unsetPrimary(addrId);
+
+// Delete
+await framework.organization.addresses.delete(addrId);
+
+// List with filters
+const addresses = await framework.organization.addresses.list({ country: "IN" });
+```
+
+## BankAccountWorkflow
+
+Access: `framework.organization.bankAccounts`
+
+Manages bank account records with primary flag and active toggle.
+
+```ts
+// Create
+const acct = await framework.organization.bankAccounts.create({
+  accountHolder: "Acme Corp",
+  accountNumber: "1234567890",
+  bankName: "HDFC Bank",
+  routingNumber: "HDFC0001234",
+  swiftCode: "HDFCINBB",
+  currency: "INR",
+});
+
+// Update
+await framework.organization.bankAccounts.update(acctId, { bankName: "ICICI Bank" });
+
+// Primary management
+await framework.organization.bankAccounts.setPrimary(acctId);
+
+// Activate / deactivate
+await framework.organization.bankAccounts.activate(acctId);
+await framework.organization.bankAccounts.deactivate(acctId);
+
+// List
+const accounts = await framework.organization.bankAccounts.list();
+```

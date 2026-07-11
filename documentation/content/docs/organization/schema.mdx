@@ -1,0 +1,154 @@
+---
+title: Organization Schema
+description: Database tables, enums, and relationships for the Organization module.
+icon: Database
+---
+
+The Organization module defines 7 tables and 5 enums using Drizzle ORM.
+
+## Enums
+
+| Enum | Table Column | Values |
+|---|---|---|
+| `organization_status` | `organization.status` | `active`, `suspended`, `archived` |
+| `branch_type` | `branch.type` | `headquarters`, `office`, `warehouse`, `store`, `factory`, `remote`, `other` |
+| `connection_type` | `connection.type` | `client`, `vendor`, `partner`, `subsidiary`, `parent_company`, `investor`, `regulator`, `insurer`, `bank`, `other` |
+| `connection_status` | `connection.status` | `active`, `inactive`, `prospect`, `former` |
+| `connection_note_type` | `connection_note.type` | `general`, `call`, `email`, `meeting`, `contract_renewal`, `issue` |
+
+## Tables
+
+### `organization`
+
+The root aggregate — represents a company/organization.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | UUID |
+| `name` | text | Organization name |
+| `slug` | text (unique) | URL-safe identifier |
+| `status` | organization_status | `active` / `suspended` / `archived` |
+| `email` | text | Contact email |
+| `phone` | text | Contact phone |
+| `website` | text | Website URL |
+| `logo` | text | Storage key for logo |
+| `accent_color` | text | Hex color (default `#3B82F6`) |
+| `locale` | text | Locale (default `en-US`) |
+| `timezone` | text | Timezone (default `UTC`) |
+| `metadata` | jsonb | Flexible metadata |
+| `created_at` | timestamptz | Creation timestamp |
+| `updated_at` | timestamptz | Last update timestamp |
+
+### `branch`
+
+Hierarchical branch structure (self-referential parent).
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | UUID |
+| `organization_id` | text (FK → organization) | Parent organization |
+| `name` | text | Branch name |
+| `code` | text (unique) | Branch code |
+| `type` | branch_type | Branch type |
+| `is_active` | boolean | Active flag |
+| `parent_branch` | text (FK → branch, self-ref) | Parent branch (nullable) |
+| `founded_date` | date | Founded date |
+| `opened_date` | date | Opened date |
+| `metadata` | jsonb | Flexible metadata |
+| `created_at` | timestamptz | Creation timestamp |
+| `updated_at` | timestamptz | Last update timestamp |
+
+### `connection`
+
+External entities (clients, vendors, partners, etc.).
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | UUID |
+| `organization_id` | text (FK → organization) | Parent organization |
+| `name` | text | Connection name |
+| `type` | connection_type | Connection type |
+| `status` | connection_status | Connection status |
+| `contact_person` | text | Contact person name |
+| `contact_email` | text | Contact email |
+| `tags` | text[] | Tags (default `[]`) |
+| `metadata` | jsonb | Flexible metadata |
+| `created_at` | timestamptz | Creation timestamp |
+| `updated_at` | timestamptz | Last update timestamp |
+
+### `connection_contact`
+
+Contacts belonging to a connection (1:N).
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | UUID |
+| `connection_id` | text (FK → connection, cascade) | Parent connection |
+| `name` | text | Contact name |
+| `email` | text | Contact email |
+| `is_primary` | boolean | Primary contact flag |
+| `created_at` | timestamptz | Creation timestamp |
+| `updated_at` | timestamptz | Last update timestamp |
+
+### `connection_note`
+
+Notes belonging to a connection (1:N).
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | UUID |
+| `connection_id` | text (FK → connection, cascade) | Parent connection |
+| `user_id` | text | Author user ID |
+| `type` | connection_note_type | Note type |
+| `content` | text | Note content |
+| `created_at` | timestamptz | Creation timestamp |
+| `updated_at` | timestamptz | Last update timestamp |
+
+### `address`
+
+Reusable address records.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | UUID |
+| `line1` | text | Address line 1 |
+| `line2` | text | Address line 2 |
+| `city` | text | City |
+| `state` | text | State/Province |
+| `postal_code` | text | Postal code |
+| `country` | text | Country code |
+| `is_primary` | boolean | Primary flag |
+| `label` | text | Address label |
+| `metadata` | jsonb | Flexible metadata |
+| `created_at` | timestamptz | Creation timestamp |
+| `updated_at` | timestamptz | Last update timestamp |
+
+### `bank_account`
+
+Bank account records.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | UUID |
+| `account_holder` | text | Account holder name |
+| `account_number` | text | Account number |
+| `bank_name` | text | Bank name |
+| `routing_number` | text | Routing number |
+| `swift_code` | text | SWIFT code |
+| `currency` | text | Currency code |
+| `is_primary` | boolean | Primary flag |
+| `is_active` | boolean | Active flag |
+| `metadata` | jsonb | Flexible metadata |
+| `created_at` | timestamptz | Creation timestamp |
+| `updated_at` | timestamptz | Last update timestamp |
+
+## Relationships
+
+```
+organization ──1:N──→ branch (hierarchical, self-ref parent_branch)
+organization ──1:N──→ connection
+connection   ──1:N──→ connection_contact (cascade delete)
+connection   ──1:N──→ connection_note (cascade delete)
+```
+
+Addresses and bank accounts are standalone tables (reusable across entities).

@@ -14,7 +14,10 @@ export function markdownPathToSlugs(segs: string[]) {
   if (segs.length === 0) return [];
 
   const out = [...segs];
-  out[out.length - 1] = out[out.length - 1].replace(/\.md$/, "");
+  const last = out[out.length - 1];
+  if (last !== undefined) {
+    out[out.length - 1] = last.replace(/\.md$/, "");
+  }
   if (out.length === 1 && out[0] === "index") out.pop();
   return out;
 }

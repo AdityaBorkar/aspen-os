@@ -1,0 +1,130 @@
+---
+title: Compliance Module Overview
+description: Architecture, initialization, and module structure of the Compliance domain module.
+icon: ClipboardCheck
+---
+
+The Compliance module manages compliance documents through their full lifecycle — creation, submission, verification, expiry, renewal, and archival — with obligation templates, automated reminders, and audit trails.
+
+## Module Configuration
+
+```ts
+import { ComplianceModule } from "@aspen-os/compliance";
+
+const compliance = ComplianceModule.create({
+  country: "INDIA",
+  dashboardCacheTtl: 600,        // 10 minutes
+  defaultReminderDays: [90, 60, 30, 7],  // expiry reminders
+  defaultEscalationDays: [1, 7, 30],     // escalation thresholds
+});
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `country` | `"INDIA"` | — | Country-specific configuration |
+| `dashboardCacheTtl` | `number?` | — | KV cache TTL for dashboard summary |
+| `defaultReminderDays` | `number[]?` | `[90, 60, 30, 7]` (expiry), `[30, 15, 7, 1]` (due) | Days before expiry/due date to send reminders |
+| `defaultEscalationDays` | `number[]?` | `[1, 7, 30]` | Days after expiry to escalate |
+
+## Initialization
+
+The module receives `db`, `kvStore`, and `pubsub` units via `initialize()`:
+
+```ts
+initialize(units: { db: DatabaseUnit; kvStore: KvStoreUnit; pubsub: PubSubUnit }): void {
+  this.#documents = new DocumentWorkflow(units.db.db, units.pubsub);
+  this.#obligations = new ObligationWorkflow(units.db.db, units.pubsub);
+  this.#verification = new VerificationWorkflow(units.db.db);
+  this.#audit = new AuditWorkflow(units.db.db);
+  this.#dashboard = new DashboardWorkflow(units.db.db, units.kvStore, ...);
+  this.#reminderEngine = new ReminderEngine(units.db.db, units.pubsub, ...);
+  this.#obligationGenerator = new ObligationGenerator(units.db.db, units.pubsub, ...);
+  this.#eventBridge = new EventBridge(units.pubsub, ...);
+}
+```
+
+## Prepare Phase
+
+The `prepare()` method:
+1. Pushes the compliance schema via `pushSchema()`
+2. Registers reminder schedules (daily expiry scan, daily escalation, weekly summary)
+3. Registers reminder handlers
+4. Registers the obligation generator handler
+5. Registers event bridge subscriptions (listens to organization events)
+
+```ts
+async prepare(): Promise<void> {
+  // 1. Push schema
+  await pushSchema(dbSchema.complianceTables, this.#db);
+
+  // 2-3. Reminder engine
+  await this.#reminderEngine?.registerSchedules();
+  await this.#reminderEngine?.registerHandlers();
+
+  // 4. Obligation generator
+  await this.#obligationGenerator?.registerHandler();
+
+  // 5. Event bridge
+  await this.#eventBridge?.registerSubscriptions();
+}
+```
+
+## Module Structure
+
+```
+packages/compliance/src/
+  index.ts              # Module class + type re-exports
+  db-schema.ts          # 4 tables + 7 enums
+  types.ts              # Valibot schemas + domain interfaces
+  constants.ts          # Enums, defaults, cron schedules, scheduled job names
+  event-map.ts          # 22 events + event interfaces + ComplianceEventMap
+  schemas/              # (inline in types.ts for compliance)
+  workflows/            # 5 workflow classes
+    document.ts
+    obligation.ts
+    verification.ts
+    audit.ts
+    dashboard.ts
+  services/             # 5 service classes
+    reminder-engine.ts
+    obligation-generator.ts
+    event-bridge.ts
+    status-derivation.ts
+    audit-writer.ts
+```
+
+## Accessing Workflows
+
+```ts
+framework.compliance.documents      // → DocumentWorkflow
+framework.compliance.obligations    // → ObligationWorkflow
+framework.compliance.verification   // → VerificationWorkflow
+framework.compliance.audit          // → AuditWorkflow
+framework.compliance.dashboard      // → DashboardWorkflow
+```
+
+## Scheduled Jobs
+
+| Job Name | Cron | Description |
+|---|---|---|
+| `compliance:daily-expiry-scan` | `0 8 * * *` | Daily scan for expiring/expired documents |
+| `compliance:daily-escalation` | `0 9 * * *` | Daily escalation for overdue documents |
+| `compliance:daily-status-transition` | `0 0 * * *` | Daily status transitions (expired → overdue) |
+| `compliance:obligation-generate` | `0 6 * * *` | Daily obligation auto-generation |
+| `compliance:weekly-summary` | `0 9 * * 1` | Weekly summary report |
+
+## Package
+
+```json
+{
+  "name": "@aspen-os/compliance",
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@aspen-os/framework": "workspace:*",
+    "@aspen-os/constants": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "valibot": "catalog:"
+  }
+}
+```

@@ -1,0 +1,143 @@
+---
+title: Compliance Schema
+description: Database tables, enums, and relationships for the Compliance module.
+icon: Database
+---
+
+The Compliance module defines 4 tables and 7 enums using Drizzle ORM.
+
+## Enums
+
+| Enum | Values |
+|---|---|
+| `compliance_category` | `tax`, `license`, `certificate`, `permit`, `insurance`, `regulatory`, `legal`, `hr`, `safety`, `environmental`, `audit`, `data_privacy`, `financial`, `property`, `vehicle`, `other` |
+| `verification_status` | `draft`, `submitted`, `under_review`, `verified`, `rejected`, `expired`, `overdue`, `renewed`, `archived` |
+| `renewal_frequency` | `monthly`, `quarterly`, `semi_annual`, `annual`, `biennial`, `triennial`, `one_time` |
+| `obligation_frequency` | `monthly`, `quarterly`, `semi_annual`, `annual`, `biennial`, `triennial`, `custom` |
+| `reminder_channel` | `email`, `pubsub`, `both` |
+| `audit_entity_type` | `compliance_document`, `compliance_obligation`, `verification_rule` |
+| `audit_action` | `created`, `updated`, `submitted`, `verified`, `rejected`, `completed`, `renewed`, `archived`, `escalated`, `expired`, `overdue`, `snoozed`, `reviewer_assigned`, `attachment_uploaded`, `reminder_sent`, `document_generated`, `obligation_activated`, `obligation_deactivated` |
+
+## Tables
+
+### `compliance_document`
+
+The core table — stores compliance documents with their lifecycle state.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | UUID |
+| `name` | text | Document name |
+| `category` | compliance_category | Document category |
+| `verification_status` | verification_status | Lifecycle status |
+| `document_type` | text | Document type (nullable) |
+| `reference_number` | text | Reference number (nullable) |
+| `source_module` | text | Source module name |
+| `source_entity_id` | text | Source entity ID (nullable) |
+| `source_entity_type` | text | Source entity type (nullable) |
+| `branch` | text (FK → branch) | Branch (nullable) |
+| `connection` | text (FK → connection) | Connection (nullable) |
+| `obligation_id` | text (FK → compliance_obligation) | Originating obligation (nullable) |
+| `created_by` | text | Creator user ID |
+| `assigned_to` | text | Assigned user (nullable) |
+| `assigned_reviewer` | text | Assigned reviewer (nullable) |
+| `attachment` | text | Storage key (nullable) |
+| `issue_date` | date | Issue date (nullable) |
+| `effective_date` | date | Effective date (nullable) |
+| `expiry_date` | date | Expiry date (nullable) |
+| `due_date` | date | Due date (nullable) |
+| `renewal_date` | date | Renewal date (nullable) |
+| `renewal_frequency` | renewal_frequency | Renewal frequency (nullable) |
+| `period_start` | date | Period start (nullable) |
+| `period_end` | date | Period end (nullable) |
+| `reminder_days` | integer[] | Days before expiry to remind |
+| `escalation_days` | integer[] | Days after expiry to escalate |
+| `reminder_channel` | reminder_channel | How to send reminders |
+| `auto_renewal` | boolean | Auto-renewal flag |
+| `jurisdiction` | text | Jurisdiction (nullable) |
+| `issuing_authority` | text | Issuing authority (nullable) |
+| `notes` | text | Notes (nullable) |
+| `metadata` | jsonb | Flexible metadata |
+| `snoozed_until` | date | Snooze date (nullable) |
+| `snoozed_by` | text | Snooze user (nullable) |
+| `renewed_from` | text (FK → compliance_document, self-ref) | Previous document in renewal chain |
+| `created_at` | timestamptz | Creation timestamp |
+| `updated_at` | timestamptz | Last update timestamp |
+
+### `compliance_obligation`
+
+Recurring compliance obligation templates.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | UUID |
+| `name` | text | Obligation name |
+| `category` | compliance_category | Category |
+| `frequency` | obligation_frequency | Recurrence frequency |
+| `document_type` | text | Document type (nullable) |
+| `source_module` | text | Source module name |
+| `source_entity_id` | text | Source entity (nullable) |
+| `source_entity_type` | text | Source entity type (nullable) |
+| `branch` | text (FK → branch) | Branch (nullable) |
+| `created_by` | text | Creator user ID |
+| `start_date` | date | Start date |
+| `end_date` | date | End date (nullable) |
+| `is_active` | boolean | Active flag |
+| `expiry_based` | boolean | Whether based on expiry |
+| `expiry_duration_months` | integer | Expiry duration (nullable) |
+| `period_based` | boolean | Whether based on period |
+| `due_day` | integer | Day of month for due date |
+| `due_month_offset` | integer | Month offset for due date |
+| `custom_cron` | text | Custom cron expression (nullable) |
+| `auto_generate` | boolean | Auto-generate documents |
+| `default_reminder_days` | integer[] | Default reminder days |
+| `default_escalation_days` | integer[] | Default escalation days |
+| `default_assigned_to` | text | Default assignee (nullable) |
+| `default_assigned_reviewer` | text | Default reviewer (nullable) |
+| `default_jurisdiction` | text | Default jurisdiction (nullable) |
+| `default_issuing_authority` | text | Default issuing authority (nullable) |
+| `default_metadata` | jsonb | Default metadata (nullable) |
+| `created_at` | timestamptz | Creation timestamp |
+| `updated_at` | timestamptz | Last update timestamp |
+
+### `compliance_verification_rule`
+
+Rules for auto-assigning reviewers based on category and source.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | UUID |
+| `name` | text | Rule name |
+| `category` | compliance_category (nullable) | Category filter |
+| `source_module` | text (nullable) | Source module filter |
+| `assigned_reviewer` | text (nullable) | Reviewer to assign |
+| `required_reviewer_role` | text (nullable) | Required reviewer role |
+| `priority` | integer | Rule priority |
+| `is_active` | boolean | Active flag |
+| `created_at` | timestamptz | Creation timestamp |
+| `updated_at` | timestamptz | Last update timestamp |
+
+### `compliance_audit_entry`
+
+Append-only audit trail for every compliance action.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | UUID |
+| `entity_type` | audit_entity_type | Entity type |
+| `entity_id` | text | Entity ID |
+| `action` | audit_action | Action performed |
+| `performed_by` | text | User who performed action |
+| `metadata` | jsonb | Action metadata |
+| `created_at` | timestamptz | Action timestamp |
+
+## Relationships
+
+```
+compliance_obligation ──1:N──→ compliance_document (obligation_id)
+compliance_document   ──self-ref──→ compliance_document (renewed_from)
+branch                ──1:N──→ compliance_document (branch)
+connection            ──1:N──→ compliance_document (connection)
+compliance_document   ──1:N──→ compliance_audit_entry (entity_id)
+compliance_obligation ──1:N──→ compliance_audit_entry (entity_id)
+```

@@ -1,0 +1,13 @@
+{
+  "pages": [
+    "---Docs---",
+    "overview",
+    "workflows",
+    "---Reference---",
+    "schema",
+    "events",
+    "services"
+  ],
+  "root": true,
+  "title": "Compliance"
+}

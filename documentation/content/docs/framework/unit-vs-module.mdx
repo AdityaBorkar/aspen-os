@@ -1,0 +1,115 @@
+---
+title: Unit vs Module
+description: Understand the distinction between infrastructure units and domain modules in the framework.
+icon: GitCompare
+---
+
+The framework has two types of composable building blocks: **Units** and **Modules**. They serve different purposes and follow different conventions.
+
+## At a Glance
+
+| | Unit | Module |
+|---|---|---|
+| **Purpose** | Infrastructure service | Domain business logic |
+| **Created by** | Framework (via `new` in `Framework.create()`) | Application (via `Module.create()` factory) |
+| **Dependency injection** | Constructor injection | `initialize(units)` method |
+| **Lifecycle prefix** | `$` (server) / none (client) | none |
+| **Count** | Fixed at 7 (required) | Unlimited (optional) |
+| **Schema** | Owns core schemas | Owns domain schemas |
+| **Example** | `DatabaseUnit`, `AuthUnit` | `OrganizationModule`, `ComplianceModule` |
+
+## Unit Interface
+
+A **Unit** is an infrastructure service. There are exactly 7, all required, and they are created by the framework itself.
+
+### Server interface (with `$` prefix)
+
+```ts
+interface Unit {
+  readonly $name: string;
+  $destroy(): Promise<void>;
+  $prepare?(): Promise<void>;
+}
+```
+
+Server units use the `$` prefix for lifecycle methods (`$name`, `$destroy`, `$prepare`). This avoids collisions with the unit's own public API (e.g. `db.destroy()` vs `db.$destroy()`).
+
+### Client interface (no prefix)
+
+```ts
+interface Unit {
+  readonly name: string;
+  destroy(): Promise<void>;
+  prepare?(): Promise<void>;
+}
+```
+
+### Key characteristics
+
+- **Fixed set**: There are always 7 units — `db`, `auth`, `logs`, `pubsub`, `rpc`, `storage`, `kvStore`. You cannot add or remove units.
+- **Framework-managed**: Units are instantiated by `Framework.create()` using `new`. You provide config, not instances.
+- **Dependency-injected**: Units receive their dependencies via constructor injection (e.g. `new LogUnit(config, { db })`).
+- **Schema ownership**: Each unit owns its database schema (auth tables, log table, storage table, kv-store table). These are pushed during `framework.prepare()`.
+- **Not extensible**: You don't create custom units (though the interface is exported if you need to implement the contract).
+
+## Module Interface
+
+A **Module** is a package of domain logic. Modules are optional, pluggable, and created by the application.
+
+```ts
+interface Module<N extends string = string> {
+  readonly name: N;
+  initialize?(units: Record<string, Unit>): void;
+  prepare?(): Promise<void>;
+  destroy(): Promise<void>;
+}
+```
+
+### Key characteristics
+
+- **Pluggable**: You choose which modules to include. Pass them as a named object to `Framework.create(config, modules)`.
+- **Application-managed**: Modules are created by the application via their static `create(config)` factory before being passed to the framework.
+- **Unit access**: Modules receive unit dependencies via `initialize(units)`. This is where workflows are created with `db` and `pubsub` references.
+- **Schema ownership**: Each module pushes its own domain schemas in its `prepare()` method.
+- **Extensible**: You can create your own custom modules (see [Creating a Custom Module](/docs/framework/custom-module)).
+
+## Side-by-Side Example
+
+### A Unit (DatabaseUnit)
+
+```ts
+// Created by Framework.create() — you provide config, not an instance
+const framework = Framework.create(
+  {
+    db: { host: "localhost", port: 5432, user: "app", password: "secret", database: "app" },
+    // ... other 6 unit configs
+  },
+  { organization: orgModule },
+);
+
+// Access via proxy
+framework.db            // → DatabaseUnit
+framework.getUnit("db") // → DatabaseUnit
+```
+
+### A Module (OrganizationModule)
+
+```ts
+// Created by the application via its factory
+const organization = OrganizationModule.create({ country: "INDIA" });
+
+// Passed to Framework.create()
+const framework = Framework.create(config, { organization });
+
+// Access via proxy
+framework.organization             // → OrganizationModule
+framework.organization.branches     // → BranchWorkflow
+framework.getModule("organization") // → OrganizationModule
+```
+
+## When to Use Which?
+
+- **You work with units** when configuring infrastructure: database connections, auth providers, storage buckets, log levels.
+- **You work with modules** when implementing domain logic: organizations, branches, compliance documents, workflows.
+
+You **never** create custom units. You **do** create custom modules for your domain.

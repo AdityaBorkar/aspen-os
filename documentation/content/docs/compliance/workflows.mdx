@@ -1,0 +1,220 @@
+---
+title: Compliance Workflows
+description: API reference for the 5 workflows exposed by the Compliance module.
+icon: Workflow
+---
+
+The Compliance module exposes 5 workflows managing the compliance document lifecycle.
+
+## DocumentWorkflow
+
+Access: `framework.compliance.documents`
+
+Manages compliance documents through their full lifecycle.
+
+```ts
+// Create
+const doc = await framework.compliance.documents.create({
+  name: "GST Registration Certificate",
+  category: "tax",
+  sourceModule: "organization",
+  createdBy: "user-1",
+  expiryDate: new Date("2025-03-31"),
+  renewalFrequency: "annual",
+  reminderDays: [90, 60, 30, 7],
+  escalationDays: [1, 7, 30],
+  branch: "branch-1",
+  connection: "conn-1",
+});
+
+// Lifecycle
+await framework.compliance.documents.submit(docId, { submittedBy: "user-1" });
+await framework.compliance.documents.verify(docId, {
+  verifiedBy: "user-2",
+  sourceModule: "organization",
+  category: "tax",
+});
+await framework.compliance.documents.reject(docId, {
+  rejectedBy: "user-2",
+  reason: "Invalid document",
+  sourceModule: "organization",
+  category: "tax",
+});
+await framework.compliance.documents.complete(docId, {
+  referenceNumber: "GST-2024-001",
+});
+
+// Renew (archives old, creates new)
+const renewed = await framework.compliance.documents.renew(docId);
+
+// Other operations
+await framework.compliance.documents.archive(docId);
+await framework.compliance.documents.snooze(docId, {
+  snoozedBy: "user-1",
+  snoozedUntil: "2024-12-31",
+});
+await framework.compliance.documents.assignReviewer(docId, "user-3");
+await framework.compliance.documents.uploadAttachment(docId, "storage-key-1");
+
+// Queries
+const doc = await framework.compliance.documents.get(docId);
+const list = await framework.compliance.documents.list({
+  category: "tax",
+  verificationStatus: "verified",
+  expiringWithinDays: 30,
+});
+const chain = await framework.compliance.documents.getRenewalChain(docId);
+```
+
+### Verification Status Flow
+
+```
+draft → submitted → under_review → verified
+                         ↓
+                     rejected → (resubmit) → submitted
+                         
+verified/expired/overdue → renewed → (new document, draft)
+```
+
+## ObligationWorkflow
+
+Access: `framework.compliance.obligations`
+
+Manages recurring compliance obligation templates that auto-generate documents.
+
+```ts
+// Create an obligation (recurring template)
+const obligation = await framework.compliance.obligations.create({
+  name: "Annual GST Return",
+  category: "tax",
+  frequency: "annual",
+  sourceModule: "organization",
+  createdBy: "user-1",
+  startDate: new Date("2024-04-01"),
+  expiryBased: false,
+  periodBased: true,
+  dueDay: 31,
+  dueMonthOffset: 0,
+  autoGenerate: true,
+  defaultReminderDays: [30, 15, 7, 1],
+  defaultEscalationDays: [1, 7, 30],
+});
+
+// Update
+await framework.compliance.obligations.update(obligationId, {
+  frequency: "quarterly",
+});
+
+// Activate / deactivate
+await framework.compliance.obligations.activate(obligationId);
+await framework.compliance.obligations.deactivate(obligationId);
+
+// Queries
+const obligation = await framework.compliance.obligations.get(obligationId);
+const list = await framework.compliance.obligations.list({ active: true, category: "tax" });
+
+// Preview next period
+const preview = await framework.compliance.obligations.previewNextPeriod(obligationId);
+// preview = { dueDate, expiryDate, periodStart, periodEnd }
+```
+
+### Obligation Frequencies
+
+`monthly`, `quarterly`, `semi_annual`, `annual`, `biennial`, `triennial`, `custom`
+
+## VerificationWorkflow
+
+Access: `framework.compliance.verification`
+
+Manages verification rules that auto-assign reviewers based on category and source module.
+
+```ts
+// Create a rule
+const rule = await framework.compliance.verification.createRule({
+  name: "Tax documents require finance reviewer",
+  category: "tax",
+  sourceModule: "organization",
+  assignedReviewer: "user-finance-1",
+  requiredReviewerRole: "finance_manager",
+  priority: 1,
+  isActive: true,
+});
+
+// Update
+await framework.compliance.verification.updateRule(ruleId, { priority: 2 });
+
+// Get rules
+const rules = await framework.compliance.verification.getRules({
+  category: "tax",
+});
+
+// Assign reviewer based on rules
+await framework.compliance.verification.assignReviewer(docId);
+```
+
+## AuditWorkflow
+
+Access: `framework.compliance.audit`
+
+Provides a full audit trail for every compliance action.
+
+```ts
+// Log an action (usually called internally by other workflows)
+await framework.compliance.audit.log({
+  entityType: "compliance_document",
+  entityId: docId,
+  action: "verified",
+  performedBy: "user-2",
+  metadata: { verifiedAt: new Date() },
+});
+
+// Query audit trail
+const trail = await framework.compliance.audit.getTrail({
+  entityType: "compliance_document",
+  dateFrom: new Date("2024-01-01"),
+  dateTo: new Date(),
+  action: "verified",
+  performedBy: "user-2",
+});
+
+// Entity history
+const history = await framework.compliance.audit.getEntityHistory(docId);
+```
+
+### Audit Actions
+
+`created`, `updated`, `submitted`, `verified`, `rejected`, `completed`, `renewed`, `archived`, `escalated`, `expired`, `overdue`, `snoozed`, `reviewer_assigned`, `attachment_uploaded`, `reminder_sent`, `document_generated`, `obligation_activated`, `obligation_deactivated`
+
+## DashboardWorkflow
+
+Access: `framework.compliance.dashboard`
+
+Provides cached summary data for compliance dashboards.
+
+```ts
+// Get summary (cached via KV store)
+const summary = await framework.compliance.dashboard.getSummary();
+// summary = {
+//   total: 150,
+//   byStatus: { verified: 80, draft: 20, expired: 10, overdue: 5, ... },
+//   byCategory: { tax: 40, legal: 30, insurance: 20, ... },
+//   byBranch: { "branch-1": 50, "branch-2": 30, ... },
+//   bySourceModule: { organization: 100, hr: 50, ... },
+//   expiringSoon: 15,
+//   expired: 10,
+//   overdue: 5,
+//   pendingReview: 8,
+//   rejected: 3,
+//   verified: 80,
+//   activeObligations: 25,
+//   documentsGenerated30d: 12,
+//   dueSoon: 7,
+//   healthScore: 0.82,
+// }
+
+// Get timeline (upcoming deadlines)
+const timeline = await framework.compliance.dashboard.getTimeline({
+  category: "tax",
+  limit: 20,
+});
+```

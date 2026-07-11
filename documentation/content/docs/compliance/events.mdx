@@ -1,0 +1,126 @@
+---
+title: Compliance Events
+description: Domain event map for the Compliance module — 22 events covering the full document lifecycle.
+icon: Bell
+---
+
+The Compliance module defines 22 domain events covering document lifecycle, obligation management, and scheduled jobs.
+
+## Event Constants
+
+```ts
+export const COMPLIANCE_EVENTS = {
+  DOCUMENT_CREATED: "compliance:document_created",
+  DOCUMENT_UPDATED: "compliance:document_updated",
+  DOCUMENT_SUBMITTED: "compliance:document_submitted",
+  DOCUMENT_VERIFIED: "compliance:document_verified",
+  DOCUMENT_REJECTED: "compliance:document_rejected",
+  DOCUMENT_EXPIRING: "compliance:document_expiring",
+  DOCUMENT_DUE: "compliance:document_due",
+  DOCUMENT_EXPIRED: "compliance:document_expired",
+  DOCUMENT_OVERDUE: "compliance:document_overdue",
+  DOCUMENT_COMPLETED: "compliance:document_completed",
+  DOCUMENT_ESCALATED: "compliance:document_escalated",
+  DOCUMENT_RENEWED: "compliance:document_renewed",
+  DOCUMENT_ARCHIVED: "compliance:document_archived",
+  DOCUMENT_REVIEWER_ASSIGNED: "compliance:document_reviewer_assigned",
+  DOCUMENT_ATTACHMENT_UPLOADED: "compliance:document_attachment_uploaded",
+  DOCUMENT_SNOOZED: "compliance:document_snoozed",
+  DOCUMENT_GENERATED: "compliance:document_generated",
+  OBLIGATION_CREATED: "compliance:obligation_created",
+  OBLIGATION_ACTIVATED: "compliance:obligation_activated",
+  OBLIGATION_DEACTIVATED: "compliance:obligation_deactivated",
+  OBLIGATION_UPDATED: "compliance:obligation_updated",
+  WEEKLY_SUMMARY: "compliance:weekly_summary",
+  SCHEDULED_JOB_EXECUTED: "compliance:scheduled_job_executed",
+} as const;
+```
+
+## Event Map
+
+### Document Lifecycle Events
+
+| Event | Payload | Trigger |
+|---|---|---|
+| `compliance:document_created` | `{ document: { category, id, name } }` | Document created |
+| `compliance:document_updated` | `{ document: { id, name }, changes }` | Document updated |
+| `compliance:document_submitted` | `{ documentId, submittedBy }` | Document submitted for review |
+| `compliance:document_verified` | `{ category, documentId, sourceEntityId, sourceModule, verifiedBy }` | Document verified |
+| `compliance:document_rejected` | `{ category, documentId, reason, rejectedBy, sourceEntityId, sourceModule }` | Document rejected |
+| `compliance:document_completed` | `{ completedAt, documentId, referenceNumber, sourceEntityId, sourceModule }` | Document completed |
+| `compliance:document_archived` | `{ documentId }` | Document archived |
+| `compliance:document_renewed` | `{ newDocumentId, oldDocumentId }` | Document renewed |
+| `compliance:document_reviewer_assigned` | `{ documentId, reviewerId }` | Reviewer assigned |
+| `compliance:document_attachment_uploaded` | `{ documentId, storageKey }` | Attachment uploaded |
+| `compliance:document_snoozed` | `{ documentId, snoozedBy, snoozedUntil }` | Document snoozed |
+| `compliance:document_generated` | `{ documentId, obligationId, sourceModule }` | Auto-generated from obligation |
+
+### Expiry & Reminder Events
+
+| Event | Payload | Trigger |
+|---|---|---|
+| `compliance:document_expiring` | `{ daysUntilExpiry, documentId, sourceEntityId, sourceModule }` | Expiry reminder threshold reached |
+| `compliance:document_due` | `{ daysUntilDue, documentId, sourceEntityId, sourceModule }` | Due date reminder threshold reached |
+| `compliance:document_expired` | `{ category, documentId, sourceEntityId, sourceModule }` | Document expired |
+| `compliance:document_overdue` | `{ category, daysOverdue, documentId, sourceEntityId, sourceModule }` | Document overdue |
+| `compliance:document_escalated` | `{ daysSinceExpiry, documentId, escalationLevel }` | Escalation triggered |
+
+### Obligation Events
+
+| Event | Payload | Trigger |
+|---|---|---|
+| `compliance:obligation_created` | `{ obligation: { category, id, name } }` | Obligation created |
+| `compliance:obligation_activated` | `{ obligationId }` | Obligation activated |
+| `compliance:obligation_deactivated` | `{ obligationId }` | Obligation deactivated |
+| `compliance:obligation_updated` | `{ obligation: { id, name }, changes }` | Obligation updated |
+
+### System Events
+
+| Event | Payload | Trigger |
+|---|---|---|
+| `compliance:weekly_summary` | `{ summary: { total, verified, expired, expiringSoon, overdue, activeObligations, documentsGenerated } }` | Weekly summary report |
+| `compliance:scheduled_job_executed` | `{ jobName, executionTime, recordsProcessed, errors }` | Scheduled job completed |
+
+## Usage
+
+### Subscribing to Events
+
+```ts
+// React to document verification
+await framework.pubsub.subscribe(
+  "compliance:document_verified",
+  async (message) => {
+    const { documentId, verifiedBy, category } = message.data;
+    // Send notification, update dashboard, etc.
+  },
+);
+
+// React to expiry reminders
+await framework.pubsub.subscribe(
+  "compliance:document_expiring",
+  async (message) => {
+    const { documentId, daysUntilExpiry } = message.data;
+    // Send email notification
+  },
+);
+
+// Listen to weekly summary
+await framework.pubsub.subscribe(
+  "compliance:weekly_summary",
+  async (message) => {
+    const { summary } = message.data;
+    // Push to dashboard, send report email
+  },
+);
+```
+
+## Event Map Type
+
+```ts
+export type ComplianceEventMap = {
+  [COMPLIANCE_EVENTS.DOCUMENT_CREATED]: DocumentCreatedEvent;
+  [COMPLIANCE_EVENTS.DOCUMENT_UPDATED]: DocumentUpdatedEvent;
+  // ... 20 more events
+  [COMPLIANCE_EVENTS.SCHEDULED_JOB_EXECUTED]: ScheduledJobExecutedEvent;
+};
+```

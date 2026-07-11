@@ -1,0 +1,12 @@
+{
+  "pages": [
+    "---Docs---",
+    "overview",
+    "workflows",
+    "---Reference---",
+    "schema",
+    "events"
+  ],
+  "root": true,
+  "title": "Organization"
+}

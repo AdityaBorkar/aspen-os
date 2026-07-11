@@ -1,0 +1,55 @@
+---
+title: Organization Module
+description: Multi-branch organization management with connections, addresses, bank accounts, and compliance documents.
+icon: Building2
+---
+
+The `OrganizationModule` (`name: "organization"`) manages organizational structure, branches, connections, addresses, and bank accounts.
+
+## Configuration
+
+```ts
+type OrganizationModuleConfig = {
+  country: "INDIA";
+};
+```
+
+### Example
+
+```ts
+import { OrganizationModule } from "@aspen-os/organization";
+
+const organization = OrganizationModule.create({ country: "INDIA" });
+
+const framework = Framework.create(config, { organization });
+```
+
+## Features
+
+- **Organization CRUD** — create, update, delete organizations with branding (logo, accent color, locale, timezone)
+- **Branch management** — hierarchical branches (max 5 levels), single headquarters, activate/deactivate/close/archive
+- **Connections** — manage clients, vendors, partners with contacts and notes
+- **Addresses** — reusable address records with primary flag
+- **Bank accounts** — manage bank accounts with primary flag and active toggle
+- **Typed events** — 11 domain events published via PubSub
+
+## Workflows
+
+| Workflow | Accessor | Methods |
+|---|---|---|
+| OrganizationWorkflow | `framework.organization.organization` | `create`, `update`, `updateBranding`, `uploadLogo`, `deleteLogo`, `delete`, `get` |
+| BranchWorkflow | `framework.organization.branches` | `create`, `update`, `activate`, `deactivate`, `close`, `archive`, `restore`, `getTree`, `list` |
+| ConnectionWorkflow | `framework.organization.connections` | `create`, `update`, `updateStatus`, `archive`, `restore`, `search`, `addContact`, `updateContact`, `deleteContact`, `addNote`, `listNotes` |
+| AddressWorkflow | `framework.organization.addresses` | `create`, `update`, `delete`, `setPrimary`, `unsetPrimary`, `list` |
+| BankAccountWorkflow | `framework.organization.bankAccounts` | `create`, `update`, `delete`, `setPrimary`, `activate`, `deactivate`, `list` |
+
+## Database Tables
+
+7 tables: `organization`, `branch`, `connection`, `connection_contact`, `connection_note`, `address`, `bank_account`.
+
+<Cards>
+  <Card title="Overview" href="/docs/organization/overview" description="Module architecture and initialization" />
+  <Card title="Workflows" href="/docs/organization/workflows" description="Detailed workflow API reference" />
+  <Card title="Schema" href="/docs/organization/schema" description="Database tables and relationships" />
+  <Card title="Events" href="/docs/organization/events" description="Domain event map" />
+</Cards>

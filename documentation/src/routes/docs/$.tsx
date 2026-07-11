@@ -12,6 +12,7 @@ import {
   MarkdownCopyButton,
   ViewOptionsPopover,
 } from "fumadocs-ui/layouts/docs/page";
+import { getLayoutTabs } from "fumadocs-ui/layouts/shared";
 import { MessageCircleIcon } from "lucide-react";
 import { Suspense } from "react";
 
@@ -90,7 +91,11 @@ function Page() {
   );
 
   return (
-    <DocsLayout {...baseOptions()} tree={pageTree}>
+    <DocsLayout
+      {...baseOptions()}
+      tabs={getLayoutTabs(pageTree)}
+      tree={pageTree}
+    >
       <AISearch>
         <AISearchPanel />
         <AISearchTrigger

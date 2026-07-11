@@ -26,7 +26,11 @@ export function useAISearchContext() {
 }
 
 export function useChatContext() {
-  return use(Context)?.chat;
+  const ctx = use(Context);
+  if (!ctx) {
+    throw new Error("useChatContext must be used within an AISearch");
+  }
+  return ctx.chat;
 }
 
 export function useHotKey() {

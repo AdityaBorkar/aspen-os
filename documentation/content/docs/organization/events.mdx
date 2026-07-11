@@ -1,0 +1,96 @@
+---
+title: Organization Events
+description: Domain event map for the Organization module — 11 events across 3 event groups.
+icon: Bell
+---
+
+The Organization module defines 11 domain events across 3 event groups. Events are type-level contracts published as plain string topics via PubSub.
+
+## Event Constants
+
+```ts
+export const ORGANIZATION_EVENTS = {
+  UPDATED: "organization:updated",
+  BRANDING_UPDATED: "organization:branding_updated",
+} as const;
+
+export const BRANCH_EVENTS = {
+  CREATED: "branch:created",
+  UPDATED: "branch:updated",
+  ACTIVATED: "branch:activated",
+  DEACTIVATED: "branch:deactivated",
+  CLOSED: "branch:closed",
+} as const;
+
+export const CONNECTION_EVENTS = {
+  CREATED: "connection:created",
+  UPDATED: "connection:updated",
+  STATUS_CHANGED: "connection:status_changed",
+  NOTE_ADDED: "connection:note_added",
+} as const;
+```
+
+## Event Map
+
+### Organization Events
+
+| Event | Payload | Trigger |
+|---|---|---|
+| `organization:updated` | `{ changes, organization: { id, name, slug } }` | Organization updated |
+| `organization:branding_updated` | `{ name?, logo?, accentColor? }` | Branding changed |
+
+### Branch Events
+
+| Event | Payload | Trigger |
+|---|---|---|
+| `branch:created` | `{ branch: { code, id, name, type } }` | Branch created |
+| `branch:updated` | `{ branch: { id, name }, changes }` | Branch updated |
+| `branch:activated` | `{ branchId }` | Branch activated |
+| `branch:deactivated` | `{ branchId }` | Branch deactivated |
+| `branch:closed` | `{ branchId, date }` | Branch closed |
+
+### Connection Events
+
+| Event | Payload | Trigger |
+|---|---|---|
+| `connection:created` | `{ connection: { id, name, type } }` | Connection created |
+| `connection:updated` | `{ connection: { id, name }, changes }` | Connection updated |
+| `connection:status_changed` | `{ connectionId, fromStatus, toStatus }` | Status changed |
+| `connection:note_added` | `{ connectionId, note: { content, id, type } }` | Note added |
+
+## Usage
+
+### Publishing Events
+
+Events are published via `PubSubUnit.publish()`:
+
+```ts
+await framework.pubsub.publish("branch:created", {
+  branch: { code: "HQ-MUM", id: "br-1", name: "HQ Mumbai", type: "headquarters" },
+});
+```
+
+### Subscribing to Events
+
+```ts
+await framework.pubsub.subscribe("branch:created", async (message) => {
+  console.log("Branch created:", message.data.branch);
+});
+
+await framework.pubsub.subscribe("connection:status_changed", async (message) => {
+  const { connectionId, fromStatus, toStatus } = message.data;
+  // React to status change
+});
+```
+
+## Event Map Type
+
+```ts
+export type OrganizationDomainEventMap = OrganizationEventMap &
+  BranchEventMap &
+  ConnectionEventMap;
+```
+
+<Callout type="info">
+  The event map is a type-level contract — it is not enforced at runtime. Workflows publish events as plain string topics. The type map ensures type safety when subscribing if you use the typed `Message<T>` generic.
+</Callout>

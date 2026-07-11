@@ -1,31 +1,54 @@
 ---
-title: Hello World
-description: Your favourite docs framework.
-icon: Rocket
+title: Aspen Framework
+description: A business framework with pluggable units and modules for building domain-driven applications.
+icon: Layers
 ---
 
-Hey there! Fumadocs is the docs framework that also works on Tanstack Start!
+The Aspen Framework is a TypeScript business framework that provides a set of composable **units** (infrastructure services) and **modules** (domain logic) wired together via a single `Framework` entry point.
 
-## Heading
+<Callout type="info">
+  Built on Bun, Drizzle ORM, better-auth, pg-boss, oRPC, and S3-compatible storage.
+</Callout>
 
-Hello World!
-
-<Cards>
-  <Card title="Learn more about Tanstack Start" href="https://tanstack.com/start" />
-  <Card title="Learn more about Fumadocs" href="https://fumadocs.dev" />
-</Cards>
-
-### CodeBlock
+## Quick Start
 
 ```ts
-console.log('Hello World');
+import { Framework } from "@aspen-os/framework/server";
+import { OrganizationModule } from "@aspen-os/organization";
+
+const framework = Framework.create(config, {
+  organization: OrganizationModule.create({ country: "INDIA" }),
+});
+
+await framework.prepare();
+
+await framework.run(async () => {
+  const { db, pubsub } = getContext();
+  // db: NodePgDatabase (drizzle instance)
+  // pubsub: PubSubUnit
+});
+
+await framework.destroy();
 ```
 
-#### Table
+## Three Entry Surfaces
 
-| Head                            | Description                         |
-| ------------------------------- | ----------------------------------- |
-| `hello`                         | Hello World                         |
-| very **important**              | Hey                                 |
-| _Surprisingly_                  | Fumadocs                            |
-| very long text that looks weird | hello world hello world hello world |
+The framework package (`@aspen-os/framework`) exposes two subpaths:
+
+| Subpath | Environment | Purpose |
+|---|---|---|
+| `./server` | Node/Bun | `Framework` class, all unit classes, config types |
+| `./client` | Browser | Client `Framework` class, `createAccessControl`, client config types |
+
+The root `.` export re-exports types and `createAccessControl` (works via Bun workspace resolution).
+
+## What's Inside
+
+<Cards>
+  <Card title="Parts of the Framework" href="/docs/framework/parts" description="Architecture overview and entry surfaces" />
+  <Card title="Usage & Customization" href="/docs/framework/usage" description="How to configure and customize the framework" />
+  <Card title="Unit vs Module" href="/docs/framework/unit-vs-module" description="Understand the two building blocks" />
+  <Card title="Custom Module" href="/docs/framework/custom-module" description="Build your own domain module" />
+  <Card title="Units" href="/docs/framework/units/database" description="The 7 infrastructure units" />
+  <Card title="Modules" href="/docs/framework/modules/organization" description="Available domain modules" />
+</Cards>

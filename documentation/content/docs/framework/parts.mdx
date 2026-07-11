@@ -1,0 +1,152 @@
+---
+title: Parts of the Framework
+description: Architecture overview, entry surfaces, and the lifecycle of a Framework instance.
+icon: Boxes
+---
+
+The framework is organized around three concepts: **units** (infrastructure), **modules** (domain logic), and the **Framework** orchestrator that wires them together.
+
+## Architecture
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                    FRAMEWORK                              │
+│                                                          │
+│  Framework.create(config, modules)                        │
+│    │                                                     │
+│    ├── Instantiates 7 units (dependency-injected)        │
+│    │   db → logs → pubsub → storage → auth → rpc → kv    │
+│    │                                                     │
+│    └── Calls module.initialize(units) for each module   │
+│        └── Returns proxy-wrapped FrameworkInstance       │
+│                                                          │
+│  Proxy access:                                           │
+│    framework.db          → DatabaseUnit                  │
+│    framework.auth         → AuthUnit                      │
+│    framework.organization → OrganizationModule           │
+│    framework.getUnit("db") → DatabaseUnit                │
+│    framework.getModule("organization") → OrganizationModule │
+└──────────────────────────────────────────────────────────┘
+```
+
+## Entry Surfaces
+
+The framework package (`@aspen-os/framework`) declares only `./client` and `./server` in its `exports` map. There is no root `.` entry in the package.json — the bare import `@aspenos/framework` works via Bun workspace resolution.
+
+### Server (`@aspen-os/framework/server`)
+
+Exports:
+- `Framework` class (with static `create()` factory)
+- `FrameworkConfig`, `FrameworkInstance` types
+- `Unit`, `Module` interfaces
+- All 7 unit classes and their config types:
+  - `DatabaseUnit`, `DatabaseConfig`
+  - `AuthUnit`, `AuthConfig`
+  - `LogUnit`, `LogConfig`
+  - `PubSubUnit`, `PubSubConfig`
+  - `StorageUnit`, `StorageConfig`
+  - `RpcUnit`, `RpcConfig`
+  - `KvStoreUnit`, `KvStoreConfig`
+
+### Client (`@aspen-os/framework/client`)
+
+Exports:
+- Client `Framework` class (browser-side, 3 units only)
+- `createAccessControl` (re-exported from `better-auth/plugins/access`)
+- Client config types
+
+The client framework has 3 units:
+- `AuthUnit` — wraps better-auth React client
+- `LogUnit` — stub (throws on `prepare()`/`destroy()`)
+- `RpcUnit` — stub (no-op)
+
+## FrameworkConfig
+
+All 7 units are **required** in the config:
+
+```ts
+type FrameworkConfig = {
+  auth: AuthConfig;
+  db: DatabaseConfig;
+  kvStore: KvStoreConfig;
+  logs: LogConfig;
+  pubsub: PubSubConfig;
+  rpc: RpcConfig;
+  storage: StorageConfig;
+};
+```
+
+## Lifecycle
+
+```
+Framework.create(config, modules)   →  creates units + initializes modules
+    ↓
+framework.prepare()                 →  unit.$prepare() then module.prepare()
+    ↓
+framework.run(fn)                   →  AsyncLocalStorage { db, pubsub }
+    ↓
+framework.destroy()                 →  module.destroy() then unit.$destroy()
+```
+
+### `create(config, modules)`
+
+Static factory — the **only** way to construct a Framework. It:
+1. Instantiates all 7 units in dependency order
+2. Calls `module.initialize(units)` on each module
+3. Returns a proxy-wrapped `FrameworkInstance`
+
+<Callout type="warn">
+  There is no `new Framework(config)` or `registerModule()`. All modules must be passed to `create()` at once.
+</Callout>
+
+### `prepare()`
+
+Runs each unit's `$prepare()` (e.g. `DatabaseUnit.$prepare()` calls `pushSchema()`), then each module's `prepare()`. Errors are caught and logged per-unit/module.
+
+### `run(fn)`
+
+Executes `fn` inside `AsyncLocalStorage` providing `{ db, pubsub }`:
+- `db` — the drizzle `NodePgDatabase`
+- `pubsub` — the `PubSubUnit`
+
+### `destroy()`
+
+Runs module `destroy()` then unit `$destroy()`. Errors are caught and logged.
+
+## Dependency Graph
+
+Units are constructor-injected:
+
+```
+DatabaseUnit ← LogUnit
+DatabaseUnit ← PubSubUnit
+DatabaseUnit ← StorageUnit
+DatabaseUnit ← AuthUnit
+DatabaseUnit ← RpcUnit (also ← LogUnit, PubSubUnit, AuthUnit)
+DatabaseUnit ← KvStoreUnit
+```
+
+| Unit | Injected deps |
+|---|---|
+| `db` | — (owns `pg.Pool` + drizzle `db`) |
+| `logs` | `{ db }` |
+| `pubsub` | `{ db }` |
+| `storage` | `{ db }` |
+| `auth` | `{ db }` |
+| `rpc` | `{ auth, db, logs, pubsub }` |
+| `kvStore` | `{ db }` |
+
+## Accessing Units and Modules
+
+The `FrameworkInstance` is a Proxy that intercepts property access:
+
+```ts
+// Proxy access (preferred for readability)
+framework.db              // → DatabaseUnit
+framework.auth             // → AuthUnit
+framework.organization     // → OrganizationModule
+
+// Typed accessor methods
+framework.getUnit("db")        // → DatabaseUnit
+framework.getModule("organization") // → OrganizationModule (throws if not found)
+```

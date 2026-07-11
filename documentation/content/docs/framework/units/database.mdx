@@ -1,0 +1,96 @@
+---
+title: Database Unit
+description: PostgreSQL connection pool and Drizzle ORM integration with automatic schema management.
+icon: Database
+---
+
+The `DatabaseUnit` (`$name: "database"`) is the foundational unit — all other units depend on it. It owns a `pg.Pool` and a Drizzle `NodePgDatabase` instance.
+
+## Configuration
+
+```ts
+type DatabaseConfig = {
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  database: string;
+  ssl?: boolean;
+  maxConnections?: number;  // default: 20
+};
+```
+
+### Example
+
+```ts
+const dbConfig: DatabaseConfig = {
+  host: "localhost",
+  port: 5432,
+  user: "recruiter",
+  password: "recruiter",
+  database: "recruiter",
+  ssl: false,
+  maxConnections: 20,
+};
+```
+
+## Public API
+
+```ts
+class DatabaseUnit {
+  readonly $name = "database";
+  readonly pool: pg.Pool;           // raw pg connection pool
+  readonly db: NodePgDatabase;      // drizzle ORM instance
+  readonly config: DatabaseConfig;
+
+  async $prepare(): Promise<void>;  // pushes core schemas via pushSchema()
+  async $destroy(): Promise<void>;   // ends the connection pool
+  getSchemas(): Record<string, unknown>;  // returns auth, logs, storage, kv-store schemas
+}
+```
+
+## Features
+
+### Connection Pool
+
+The unit creates a `pg.Pool` with configurable max connections. All database operations across units go through this pool.
+
+```ts
+framework.db.pool  // pg.Pool — direct access if needed
+framework.db.db    // NodePgDatabase — drizzle ORM instance
+```
+
+### Automatic Schema Management
+
+During `$prepare()`, the unit calls `pushSchema()` from `drizzle-kit/api` to automatically apply schema changes for core schemas:
+
+- Auth schema (`user`, `session`, `account`, `verification` tables)
+- Log schema (`logs` table)
+- Storage schema (`file_metadata` table)
+- KV Store schema (`kv_store` table)
+
+```ts
+framework.db.getSchemas();
+// → { ...authSchema, ...logSchema, ...storageSchema, ...kvStoreSchema }
+```
+
+<Callout type="info">
+  Data-loss warnings are logged but the push proceeds. Domain modules push their own schemas in their `prepare()` method.
+</Callout>
+
+## Dependency Injection
+
+The `DatabaseUnit` is the only unit with no injected dependencies. All other units receive `{ db: DatabaseUnit }` (or more) via constructor injection.
+
+## Access in Request Context
+
+Inside `framework.run()`, the Drizzle `db` instance is available via `getContext()`:
+
+```ts
+import { getContext } from "@aspen-os/framework/server";
+
+await framework.run(async () => {
+  const { db } = getContext();
+  const users = await db.select().from(user);
+});
+```

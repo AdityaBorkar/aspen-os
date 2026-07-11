@@ -1,0 +1,177 @@
+---
+title: Auth Unit
+description: Authentication and authorization powered by better-auth with plugins for admin, 2FA, passkey, and more.
+icon: ShieldCheck
+---
+
+The `AuthUnit` (`$name: "auth"`) wraps [better-auth](https://www.better-auth.com) with plugins for admin, username, phone number, two-factor, passkey, and Cloudflare Turnstile captcha.
+
+## Configuration
+
+```ts
+interface AuthConfig {
+  access_control: ReturnType<typeof createAccessControl>;
+  baseURL: string;
+  cfSecretKey: string;
+  roles: Record<string, Role>;
+  secret: string;
+  session: { expiresIn?: number };
+  socialProviders?: {
+    google?: {
+      clientId: string;
+      clientSecret: string;
+      redirectURI?: string;
+    };
+  };
+}
+```
+
+<Callout type="warn">
+  `access_control` and `roles` are accepted but **intentionally not passed** to `betterAuth()` on the server. They are used only by the client `AuthUnit` (passed to the `adminClient()` plugin). Access control enforcement happens at the application level.
+</Callout>
+
+### Example
+
+```ts
+import { createAccessControl } from "@aspen-os/framework/client";
+
+const access_control = createAccessControl({
+  organization: ["create", "read", "update", "delete"],
+  branch: ["create", "read", "update", "delete"],
+});
+
+const roles = {
+  admin: access_control.newRole({
+    organization: ["create", "read", "update", "delete"],
+  }),
+  viewer: access_control.newRole({
+    organization: ["read"],
+  }),
+};
+
+const authConfig: AuthConfig = {
+  access_control,
+  baseURL: "http://localhost:3000",
+  cfSecretKey: process.env.CF_SECRET_KEY!,
+  roles,
+  secret: process.env.AUTH_SECRET!,
+  session: { expiresIn: 604800 }, // 7 days (note: hardcoded in better-auth)
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    },
+  },
+};
+```
+
+## Public API
+
+```ts
+class AuthUnit {
+  readonly $name = "auth";
+  readonly $db_schema: typeof db_schema;  // auth Drizzle schema
+  readonly auth: Auth;                      // raw betterAuth instance
+
+  async $prepare(): Promise<void>;
+  async $destroy(): Promise<void>;
+  async fetch_handler(request: Request): Promise<Response>;
+
+  // Programmatic APIs:
+  get user(): UserAPI;
+  get session(): SessionAPI;
+  get role(): RoleAPI;
+}
+```
+
+## Workflows
+
+### User Workflow
+
+```ts
+framework.auth.user.create({ email, password, name })    // → Promise<User>
+framework.auth.user.get({ id })                           // → Promise<User | null>
+framework.auth.user.get({ email })                       // → Promise<User | null>
+framework.auth.user.update(id, { name, image, role })   // → Promise<User>
+framework.auth.user.delete(id)                           // → Promise<void>
+framework.auth.user.role.assign(userId, roleName)        // → Promise<void>
+framework.auth.user.role.unassign(userId)                 // → Promise<void>
+```
+
+### Session Workflow
+
+```ts
+framework.auth.session.create(email, password)  // → Promise<{ user, session }>
+framework.auth.session.validate(token)          // → Promise<{ user, session } | null>
+framework.auth.session.invalidate(sessionId)    // → Promise<void>
+```
+
+### Role Workflow
+
+```ts
+framework.auth.role.list()      // → Promise<RoleData[]>
+framework.auth.role.delete(name) // → Promise<void>
+```
+
+## HTTP Handler
+
+The unit exposes a `fetch_handler` method for handling HTTP requests (e.g. in a server middleware):
+
+```ts
+framework.auth.fetch_handler(request);
+// Equivalent to:
+framework.auth.auth.handler(request);
+```
+
+## Auth Schema
+
+The auth tables follow better-auth's adapter pattern:
+
+| Table | Description |
+|---|---|
+| `user` | Core identity (id, email, name, role, phone, username, banned, image) |
+| `session` | Authentication tokens (token, userId, expiresAt, ipAddress, userAgent) |
+| `account` | Credentials and OAuth tokens (providerId, password, accessToken, refreshToken) |
+| `verification` | Email verification, password reset tokens (identifier, value, expiresAt) |
+
+<Callout type="info">
+  Auth tables do **not** follow the `gen_random_uuid()::text` ID convention — better-auth manages ID generation. Role is a plain `text("role")` column on the `user` table, not a separate entity.
+</Callout>
+
+## Auth Events
+
+Events are type-level contracts (see `AuthEventMap`). They are published as plain string topics via PubSub:
+
+| Event | Payload | Trigger |
+|---|---|---|
+| `user:created` | `{ user: User }` | User created |
+| `user:updated` | `{ user: User }` | User updated |
+| `user:deleted` | `{ userId: string }` | User deleted |
+| `session:created` | `{ session, user }` | Session authenticated |
+| `session:invalidated` | `{ sessionId }` | Session invalidated |
+| `role:assigned` | `{ roleName, userId }` | Role assigned |
+| `role:unassigned` | `{ userId }` | Role unassigned |
+| `role:created` | `{ role: RoleData }` | Role created |
+| `role:deleted` | `{ roleName }` | Role deleted |
+
+## Plugins
+
+The `AuthUnit` configures better-auth with these plugins:
+
+| Plugin | Purpose |
+|---|---|
+| `admin` | Access control and role management |
+| `username` | Username support |
+| `phoneNumber` | Phone number authentication |
+| `lastLoginMethod` | Tracks last login method |
+| `twoFactor` | TOTP-based 2FA |
+| `passkey` | WebAuthn/passkey authentication |
+| `captcha` | Cloudflare Turnstile integration |
+
+## Drizzle Adapter
+
+The unit configures better-auth's drizzle adapter with:
+- `camelCase: false`
+- `provider: "pg"`
+- `usePlural: false`
+- `transaction: true`

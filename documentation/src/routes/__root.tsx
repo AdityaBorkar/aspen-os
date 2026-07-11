@@ -21,7 +21,7 @@ export const Route = createRootRoute({
         name: "viewport",
       },
       {
-        title: "Fumadocs on TanStack Start",
+        title: "Aspen OS — Framework Documentation",
       },
     ],
   }),
@@ -33,7 +33,7 @@ function RootComponent() {
       <head>
         <HeadContent />
       </head>
-      <body className="flex min-h-screen flex-col">
+      <body className="flex min-h-screen flex-col font-sans">
         <RootProvider>
           <Outlet />
         </RootProvider>

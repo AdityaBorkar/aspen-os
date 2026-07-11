@@ -1,0 +1,220 @@
+---
+title: Storage Unit
+description: S3-compatible file storage with Postgres metadata tracking, archive, copy, and signed URLs.
+icon: HardDrive
+---
+
+The `StorageUnit` (`$name: "storage"`) provides file storage operations using an S3-compatible adapter, enriched with Postgres metadata tracking via `FileMetadataService`.
+
+## Configuration
+
+```ts
+interface StorageConfig {
+  bucket: string;
+  prefix?: string;            // key prefix for all objects
+  provider: StorageProvider;
+}
+
+interface StorageProvider {
+  type: "s3";
+  endpoint: string;
+  region: string;
+  credentials: {
+    accessKeyId: string;
+    secretAccessKey: string;
+  };
+  forcePathStyle: boolean;
+}
+```
+
+### Example
+
+```ts
+const storageConfig: StorageConfig = {
+  bucket: "recruiter",
+  prefix: "uploads",
+  provider: {
+    type: "s3",
+    endpoint: "http://localhost:8333",
+    region: "us-east-1",
+    credentials: {
+      accessKeyId: process.env.STORAGE_ACCESS_KEY!,
+      secretAccessKey: process.env.STORAGE_SECRET_KEY!,
+    },
+    forcePathStyle: true,
+  },
+};
+```
+
+## Public API
+
+```ts
+class StorageUnit {
+  readonly $name = "storage";
+
+  // File operations
+  async upload(input: FileUploadInput): Promise<FileObject>;
+  async get(key: string): Promise<Buffer>;
+  async remove(key: string): Promise<void>;
+  async exists(key: string): Promise<boolean>;
+  async getMetadata(key: string): Promise<FileObject>;
+
+  // Copy / Move / Archive
+  async copy(sourceKey: string, destinationKey: string): Promise<FileObject>;
+  async move(sourceKey: string, destinationKey: string): Promise<FileObject>;
+  async archive(key: string, archiveKey?: string): Promise<FileObject>;
+
+  // Signed URLs
+  async getSignedGetUrl(key: string, options?: SignedUrlOptions): Promise<string>;
+  async getSignedPutUrl(key: string, options?: SignedUrlOptions): Promise<string>;
+
+  // Listing
+  async list(
+    prefix?: string,
+    options?: ListOptions,
+  ): Promise<{ files: FileObject[]; nextContinuationToken?: string }>;
+
+  async $prepare(): Promise<void>;
+  async $destroy(): Promise<void>;
+}
+```
+
+## Features
+
+### Upload Files
+
+```ts
+const file = await framework.storage.upload({
+  key: "documents/report.pdf",
+  body: buffer,
+  contentType: "application/pdf",
+  metadata: { uploadedBy: userId, category: "financial" },
+});
+
+// file = { key, etag, size, contentType, lastModified, metadata }
+```
+
+### Download Files
+
+```ts
+const buffer = await framework.storage.get("documents/report.pdf");
+const metadata = await framework.storage.getMetadata("documents/report.pdf");
+```
+
+### Signed URLs
+
+Generate time-limited URLs for direct browser access:
+
+```ts
+// Download URL
+const downloadUrl = await framework.storage.getSignedGetUrl(
+  "documents/report.pdf",
+  {
+    expiresIn: 3600,  // 1 hour
+    responseContentDisposition: 'attachment; filename="report.pdf"',
+    responseContentType: "application/pdf",
+  },
+);
+
+// Upload URL (for direct browser uploads)
+const uploadUrl = await framework.storage.getSignedPutUrl(
+  "uploads/user-avatar.jpg",
+  { expiresIn: 1800 },
+);
+```
+
+### Archive Files
+
+Archiving moves a file to an archive prefix and marks the original as archived in the metadata table:
+
+```ts
+// Archive with auto-generated key (archive/<original-key>)
+await framework.storage.archive("documents/report.pdf");
+
+// Archive with custom key
+await framework.storage.archive(
+  "documents/report.pdf",
+  "archive/2024/report.pdf",
+);
+```
+
+### Copy and Move
+
+```ts
+await framework.storage.copy("source.pdf", "backup/source.pdf");
+await framework.storage.move("temp/upload.pdf", "documents/final.pdf");
+```
+
+### List Files
+
+```ts
+const { files, nextContinuationToken } = await framework.storage.list(
+  "documents/",
+  { maxKeys: 50 },
+);
+
+// Paginate
+if (nextContinuationToken) {
+  const next = await framework.storage.list("documents/", {
+    continuationToken: nextContinuationToken,
+    maxKeys: 50,
+  });
+}
+```
+
+## File Upload Input
+
+```ts
+interface FileUploadInput {
+  key: string;
+  body: Buffer | ReadableStream | string;
+  contentType?: string;
+  cacheControl?: string;
+  metadata?: Record<string, string>;
+}
+```
+
+## File Object
+
+```ts
+interface FileObject {
+  key: string;
+  etag: string;
+  size: number;
+  contentType?: string;
+  lastModified: Date;
+  metadata?: Record<string, string>;
+}
+```
+
+## Metadata Tracking
+
+All file operations are enriched with Postgres metadata tracking via `FileMetadataService`. The `file_metadata` table stores:
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | UUID |
+| `key` | text (unique) | S3 object key |
+| `bucket` | text | S3 bucket name |
+| `content_type` | text | MIME type |
+| `size` | bigint | File size in bytes |
+| `etag` | text | S3 ETag |
+| `metadata` | jsonb | Custom metadata |
+| `archived` | boolean | Whether archived |
+| `archived_key` | text | Key in archive location |
+| `created_at` | timestamptz | Upload timestamp |
+| `updated_at` | timestamptz | Last update timestamp |
+
+## Key Prefixing
+
+If `prefix` is configured, all S3 keys are automatically prefixed:
+
+```ts
+// Config: { prefix: "uploads" }
+// Upload key: "documents/report.pdf"
+// Actual S3 key: "uploads/documents/report.pdf"
+```
+
+## Dependency
+
+Receives `{ db: DatabaseUnit }` via constructor injection. The database is used for metadata tracking, not for file storage itself.

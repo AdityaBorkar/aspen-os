@@ -1,0 +1,14 @@
+{
+  "pages": [
+    "---Docs---",
+    "parts",
+    "usage",
+    "unit-vs-module",
+    "custom-module",
+    "---Reference---",
+    "units",
+    "modules"
+  ],
+  "root": true,
+  "title": "Framework"
+}

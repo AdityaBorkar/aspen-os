@@ -1,0 +1,148 @@
+---
+title: Compliance Services
+description: Internal services powering the compliance module — reminder engine, obligation generator, event bridge, and status derivation.
+icon: Cog
+---
+
+The Compliance module uses 5 internal service classes that handle scheduled jobs, auto-generation, event bridging, and status derivation. These are not directly accessible on the module — they are managed internally via `prepare()` and `destroy()`.
+
+## ReminderEngine
+
+Manages automated expiry and due-date reminders via PubSub schedules and handlers.
+
+### Responsibilities
+
+- Registers 5 cron schedules during `prepare()`
+- Handles `compliance:document_expiring` and `compliance:document_due` events
+- Sends reminders via configured channel (`email`, `pubsub`, or `both`)
+- Tracks multi-level escalation for overdue documents
+
+### Scheduled Jobs
+
+| Job | Cron | Purpose |
+|---|---|---|
+| `compliance:daily-expiry-scan` | `0 8 * * *` | Scans for documents nearing expiry, publishes `document_expiring` events |
+| `compliance:daily-escalation` | `0 9 * * *` | Escalates overdue documents, publishes `document_escalated` events |
+| `compliance:daily-status-transition` | `0 0 * * *` | Transitions expired → overdue, publishes `document_expired` and `document_overdue` |
+| `compliance:obligation-generate` | `0 6 * * *` | Triggers obligation auto-generation |
+| `compliance:weekly-summary` | `0 9 * * 1` | Generates and publishes weekly summary |
+
+### Reminder Flow
+
+```
+Daily Expiry Scan (8am)
+    ↓
+Document has expiryDate within reminderDays window?
+    ↓ yes
+Publish "compliance:document_expiring" { documentId, daysUntilExpiry, ... }
+    ↓
+ReminderEngine handler → sends notification via configured channel
+    ↓
+If past expiry → Daily Status Transition (midnight)
+    ↓
+Publish "compliance:document_expired"
+    ↓
+Daily Escalation (9am) checks escalationDays
+    ↓
+Publish "compliance:document_escalated" { escalationLevel: 1/2/3 }
+```
+
+## ObligationGenerator
+
+Listens to obligation schedules and auto-generates compliance documents when they come due.
+
+### Responsibilities
+
+- Registers a handler for the `compliance:obligation-generate` scheduled job
+- When triggered, finds active obligations whose next period matches the current date
+- Creates a new `compliance_document` from the obligation template
+- Fills in default values (reminder days, escalation days, assignee, reviewer, jurisdiction)
+- Publishes `compliance:document_generated` event
+
+### Auto-Generation Flow
+
+```
+Scheduled Job "compliance:obligation-generate" (6am daily)
+    ↓
+Find active obligations where autoGenerate = true
+    ↓
+For each: calculate next period (dueDay, dueMonthOffset, frequency)
+    ↓
+If period matches current date → create compliance_document
+    ↓
+Copy defaults from obligation (reminderDays, escalationDays, assignee, reviewer)
+    ↓
+Publish "compliance:document_generated" { documentId, obligationId, sourceModule }
+```
+
+## EventBridge
+
+Subscribes to external module events and creates compliance documents in response.
+
+### Responsibilities
+
+- Registers PubSub subscriptions during `prepare()`
+- Listens to organization events (e.g., `organization:created`, `branch:created`)
+- When an organization event fires, checks if there are matching obligations
+- If a matching obligation exists and auto-generates, creates a compliance document
+- Unregisters all subscriptions in `destroy()`
+
+### Event Bridge Flow
+
+```
+Organization module publishes "organization:created"
+    ↓
+EventBridge handler receives the event
+    ↓
+Find obligations where sourceModule = "organization" and sourceEntityType = "organization"
+    ↓
+For each matching obligation: create compliance document
+    ↓
+Set sourceEntityId = organization.id on the new document
+    ↓
+Publish "compliance:document_generated"
+```
+
+## StatusDerivation
+
+Derives the verification status of a compliance document from its dates and renewal state, rather than allowing direct status assignment.
+
+### Status Derivation Rules
+
+| Condition | Derived Status |
+|---|---|
+| No expiry date and not submitted | `draft` |
+| Submitted but not reviewed | `submitted` or `under_review` |
+| Reviewed and approved | `verified` |
+| Reviewed and rejected | `rejected` |
+| Past expiry date | `expired` |
+| Past expiry date + grace period | `overdue` |
+| Renewed (new document created from old) | `renewed` (old document) |
+| Manually archived | `archived` |
+
+<Callout type="info">
+  Status is **derived**, not set directly. The `verification_status` column is updated by the workflow based on date calculations and lifecycle actions.
+</Callout>
+
+## AuditWriter
+
+Internal utility that writes audit entries to the `compliance_audit_entry` table.
+
+### Responsibilities
+
+- Called by other workflows whenever a compliance action occurs
+- Writes an append-only audit entry with entity type, entity ID, action, performer, and metadata
+- Does not publish events — purely a database write operation
+
+### Usage (Internal)
+
+```ts
+// Called internally by DocumentWorkflow:
+await this.auditWriter.write({
+  entityType: "compliance_document",
+  entityId: docId,
+  action: "verified",
+  performedBy: userId,
+  metadata: { verifiedAt: new Date(), previousStatus: "under_review" },
+});
+```

@@ -6,6 +6,12 @@ import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
 
 export default defineConfig({
+  optimizeDeps: {
+    include: [
+      "use-sync-external-store/shim",
+      "use-sync-external-store/shim/with-selector",
+    ],
+  },
   plugins: [
     mdx(),
     tailwindcss(),
