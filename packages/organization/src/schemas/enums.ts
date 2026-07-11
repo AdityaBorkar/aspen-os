@@ -44,35 +44,3 @@ export const ConnectionNoteTypeSchema = enum_({
   issue: "issue",
   meeting: "meeting",
 });
-
-export const ComplianceCategorySchema = enum_({
-  certificate: "certificate",
-  environmental: "environmental",
-  hr: "hr",
-  insurance: "insurance",
-  legal: "legal",
-  license: "license",
-  other: "other",
-  permit: "permit",
-  regulatory: "regulatory",
-  safety: "safety",
-  tax: "tax",
-});
-
-export const ComplianceStatusSchema = enum_({
-  active: "active",
-  archived: "archived",
-  expired: "expired",
-  expiring_soon: "expiring_soon",
-  renewal_in_progress: "renewal_in_progress",
-});
-
-export const RenewalFrequencySchema = enum_({
-  annual: "annual",
-  biennial: "biennial",
-  monthly: "monthly",
-  one_time: "one_time",
-  quarterly: "quarterly",
-  semi_annual: "semi_annual",
-  triennial: "triennial",
-});

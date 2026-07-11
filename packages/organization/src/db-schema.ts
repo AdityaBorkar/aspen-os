@@ -56,38 +56,6 @@ export const connectionNoteTypeEnum = pgEnum("connection_note_type", [
   "issue",
 ]);
 
-export const complianceCategoryEnum = pgEnum("compliance_category", [
-  "tax",
-  "license",
-  "certificate",
-  "permit",
-  "insurance",
-  "regulatory",
-  "legal",
-  "hr",
-  "safety",
-  "environmental",
-  "other",
-]);
-
-export const complianceStatusEnum = pgEnum("compliance_status", [
-  "active",
-  "expiring_soon",
-  "expired",
-  "renewal_in_progress",
-  "archived",
-]);
-
-export const renewalFrequencyEnum = pgEnum("renewal_frequency", [
-  "monthly",
-  "quarterly",
-  "semi_annual",
-  "annual",
-  "biennial",
-  "triennial",
-  "one_time",
-]);
-
 export const address = pgTable(
   "address",
   {
@@ -285,43 +253,5 @@ export const connectionNote = pgTable(
   (table) => [
     index("idx_connection_note_connection").on(table.connectionId),
     index("idx_connection_note_type").on(table.type),
-  ],
-);
-
-export const complianceDocument = pgTable(
-  "compliance_document",
-  {
-    attachment: text("attachment"),
-    autoRenewal: boolean("auto_renewal").notNull().default(false),
-    branch: text("branch"),
-    category: complianceCategoryEnum("category").notNull(),
-    connection: text("connection"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    createdBy: text("created_by").notNull(),
-    documentNumber: text("document_number"),
-    expiryDate: date("expiry_date"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
-    issueDate: date("issue_date"),
-    issuingAuthority: text("issuing_authority"),
-    lastNotifiedAt: timestamp("last_notified_at", { withTimezone: true }),
-    metadata: jsonb("metadata"),
-    name: text("name").notNull(),
-    notes: text("notes"),
-    reminderDays: integer("reminder_days").array().default([90, 60, 30, 7]),
-    renewalDate: date("renewal_date"),
-    renewalFrequency: renewalFrequencyEnum("renewal_frequency"),
-    renewedFrom: text("renewed_from"),
-    status: complianceStatusEnum("status").notNull().default("active"),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (table) => [
-    index("idx_compliance_document_category").on(table.category),
-    index("idx_compliance_document_status").on(table.status),
-    index("idx_compliance_document_branch").on(table.branch),
-    index("idx_compliance_document_expiry").on(table.expiryDate),
   ],
 );

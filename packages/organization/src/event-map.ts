@@ -1,9 +1,4 @@
-import type {
-  BranchType,
-  ComplianceStatus,
-  ConnectionNoteType,
-  ConnectionStatus,
-} from "./types";
+import type { BranchType, ConnectionNoteType, ConnectionStatus } from "./types";
 
 export const ORGANIZATION_EVENTS = {
   BRANDING_UPDATED: "organization:branding_updated",
@@ -23,14 +18,6 @@ export const CONNECTION_EVENTS = {
   NOTE_ADDED: "connection:note_added",
   STATUS_CHANGED: "connection:status_changed",
   UPDATED: "connection:updated",
-} as const;
-
-export const COMPLIANCE_EVENTS = {
-  DOCUMENT_CREATED: "compliance:document_created",
-  DOCUMENT_EXPIRED: "compliance:document_expired",
-  DOCUMENT_EXPIRING: "compliance:document_expiring",
-  DOCUMENT_RENEWED: "compliance:document_renewed",
-  STATUS_CHANGED: "compliance:status_changed",
 } as const;
 
 export interface OrganizationUpdatedEvent {
@@ -99,42 +86,6 @@ export interface ConnectionNoteAddedEvent {
   };
 }
 
-export interface ComplianceDocumentCreatedEvent {
-  document: {
-    category: string;
-    id: string;
-    name: string;
-  };
-}
-
-export interface ComplianceDocumentExpiringEvent {
-  daysUntilExpiry: number;
-  document: {
-    expiryDate: string;
-    id: string;
-    name: string;
-  };
-}
-
-export interface ComplianceDocumentExpiredEvent {
-  document: {
-    expiryDate: string;
-    id: string;
-    name: string;
-  };
-}
-
-export interface ComplianceDocumentRenewedEvent {
-  newDocument: { id: string; name: string };
-  oldDocument: { id: string; name: string };
-}
-
-export interface ComplianceStatusChangedEvent {
-  documentId: string;
-  fromStatus: ComplianceStatus;
-  toStatus: ComplianceStatus;
-}
-
 export type OrganizationEventMap = {
   [ORGANIZATION_EVENTS.UPDATED]: OrganizationUpdatedEvent;
   [ORGANIZATION_EVENTS.BRANDING_UPDATED]: OrganizationBrandingUpdatedEvent;
@@ -155,15 +106,6 @@ export type ConnectionEventMap = {
   [CONNECTION_EVENTS.UPDATED]: ConnectionUpdatedEvent;
 };
 
-export type ComplianceEventMap = {
-  [COMPLIANCE_EVENTS.DOCUMENT_CREATED]: ComplianceDocumentCreatedEvent;
-  [COMPLIANCE_EVENTS.DOCUMENT_EXPIRED]: ComplianceDocumentExpiredEvent;
-  [COMPLIANCE_EVENTS.DOCUMENT_EXPIRING]: ComplianceDocumentExpiringEvent;
-  [COMPLIANCE_EVENTS.DOCUMENT_RENEWED]: ComplianceDocumentRenewedEvent;
-  [COMPLIANCE_EVENTS.STATUS_CHANGED]: ComplianceStatusChangedEvent;
-};
-
 export type OrganizationDomainEventMap = OrganizationEventMap &
   BranchEventMap &
-  ConnectionEventMap &
-  ComplianceEventMap;
+  ConnectionEventMap;

@@ -4,7 +4,6 @@ import * as dbSchema from "./db-schema";
 import { AddressWorkflow } from "./workflows/address";
 import { BankAccountWorkflow } from "./workflows/bank-account";
 import { BranchWorkflow } from "./workflows/branch";
-import { ComplianceWorkflow } from "./workflows/compliance";
 import { ConnectionWorkflow } from "./workflows/connection";
 import { OrganizationWorkflow } from "./workflows/organization";
 
@@ -14,10 +13,6 @@ export type {
   BranchFilters,
   BranchTreeNode,
   BranchType,
-  ComplianceCategory,
-  ComplianceFilters,
-  ComplianceStatus,
-  ComplianceSummary,
   ConnectionFilters,
   ConnectionNoteType,
   ConnectionStatus,
@@ -25,18 +20,15 @@ export type {
   CreateAddressInput,
   CreateBankAccountInput,
   CreateBranchInput,
-  CreateComplianceDocumentInput,
   CreateConnectionContactInput,
   CreateConnectionInput,
   CreateConnectionNoteInput,
   CreateOrganizationInput,
   OrganizationStatus,
-  RenewalFrequency,
   UpdateAddressInput,
   UpdateBankAccountInput,
   UpdateBranchInput,
   UpdateBrandingInput,
-  UpdateComplianceDocumentInput,
   UpdateConnectionContactInput,
   UpdateConnectionInput,
   UpdateOrganizationInput,
@@ -60,7 +52,6 @@ export class OrganizationModule {
   #addresses: AddressWorkflow | null = null;
   #bankAccounts: BankAccountWorkflow | null = null;
   #branches: BranchWorkflow | null = null;
-  #compliance: ComplianceWorkflow | null = null;
   #connections: ConnectionWorkflow | null = null;
   #organization: OrganizationWorkflow | null = null;
 
@@ -80,11 +71,6 @@ export class OrganizationModule {
     return this.#branches;
   }
 
-  get compliance(): ComplianceWorkflow {
-    if (!this.#compliance) throw notInitialized();
-    return this.#compliance;
-  }
-
   get connections(): ConnectionWorkflow {
     if (!this.#connections) throw notInitialized();
     return this.#connections;
@@ -99,7 +85,6 @@ export class OrganizationModule {
     this.#addresses = new AddressWorkflow(units.db.db);
     this.#bankAccounts = new BankAccountWorkflow(units.db.db);
     this.#branches = new BranchWorkflow(units.db.db);
-    this.#compliance = new ComplianceWorkflow(units.db.db, units.pubsub);
     this.#connections = new ConnectionWorkflow(units.db.db);
     this.#organization = new OrganizationWorkflow(units.db.db);
   }
@@ -108,7 +93,6 @@ export class OrganizationModule {
     this.#addresses = null;
     this.#bankAccounts = null;
     this.#branches = null;
-    this.#compliance = null;
     this.#connections = null;
     this.#organization = null;
   }

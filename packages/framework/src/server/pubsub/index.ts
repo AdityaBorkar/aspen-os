@@ -1,9 +1,14 @@
 import PgBoss from "pg-boss";
 
 import type { DatabaseUnit } from "../db";
-import type { MessageHandler, PublishOptions, PubSubConfig } from "./types";
+import type {
+  MessageHandler,
+  PublishOptions,
+  PubSubConfig,
+  ScheduleOptions,
+} from "./types";
 
-export type { PubSubConfig } from "./types";
+export type { PubSubConfig, ScheduleOptions } from "./types";
 
 export class PubSubUnit {
   readonly $name = "pubsub" as const;
@@ -105,5 +110,30 @@ export class PubSubUnit {
   async unsubscribe(topic: string): Promise<void> {
     await this.boss.offWork(topic);
     this.subscriptions.delete(topic);
+  }
+
+  async schedule(
+    topic: string,
+    cron: string,
+    data?: unknown,
+    options?: ScheduleOptions,
+  ): Promise<void> {
+    await this.boss.schedule(topic, cron, data as object | undefined, {
+      expireInMinutes: options?.expireInMinutes,
+      priority: options?.priority,
+      retryBackoff: options?.retryBackoff,
+      retryDelay: options?.retryDelay,
+      retryLimit: options?.retryLimit,
+      startAfter: options?.startAfter,
+      tz: options?.tz,
+    });
+  }
+
+  async unschedule(topic: string): Promise<void> {
+    await this.boss.unschedule(topic);
+  }
+
+  async getSchedules(): Promise<unknown[]> {
+    return this.boss.getSchedules();
   }
 }

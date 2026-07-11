@@ -12,6 +12,10 @@ export interface PublishOptions {
   startAfter?: Date | string;
 }
 
+export interface ScheduleOptions extends PublishOptions {
+  tz?: string;
+}
+
 export interface Message<T = unknown> {
   completedOn?: Date;
   createdOn: Date;

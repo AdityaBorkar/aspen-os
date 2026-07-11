@@ -29,6 +29,7 @@
     // { "path": "./examples/healthcare" },
     { "path": "./examples/recruiter" },
     { "path": "./packages/accounting" },
+    { "path": "./packages/compliance" },
     { "path": "./packages/constants" },
     { "path": "./packages/crm" },
     { "path": "./packages/drive" },

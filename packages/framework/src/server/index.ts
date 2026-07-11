@@ -9,12 +9,19 @@ import { type StorageConfig, StorageUnit } from "./storage";
 
 export type {
   AuthConfig,
+  AuthUnit,
   DatabaseConfig,
+  DatabaseUnit,
   KvStoreConfig,
+  KvStoreUnit,
   LogConfig,
+  LogUnit,
   PubSubConfig,
+  PubSubUnit,
   RpcConfig,
+  RpcUnit,
   StorageConfig,
+  StorageUnit,
 };
 
 export type FrameworkConfig = {
