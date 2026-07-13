@@ -33,7 +33,7 @@ export interface Session {
 export interface AuthConfig {
   access_control: ReturnType<typeof createAccessControl>;
   baseURL: string;
-  cfSecretKey: string;
+  cfSecretKey?: string;
   roles: Record<string, Role>;
   secret: string;
   session: { expiresIn?: number };

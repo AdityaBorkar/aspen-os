@@ -5,7 +5,7 @@ import type {
   PubSubConfig,
   RpcConfig,
   StorageConfig,
-} from "@aspen-os/framework";
+} from "@aspen-os/framework/server";
 import { type DatabaseConfig, Framework } from "@aspen-os/framework/server";
 import { OrganizationModule } from "@aspen-os/organization";
 

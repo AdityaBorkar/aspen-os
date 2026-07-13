@@ -1,4 +1,4 @@
-import { createAccessControl } from "@aspen-os/framework";
+import { createAccessControl } from "@aspen-os/framework/client";
 
 export const access_control = createAccessControl({
   audit_logs: ["read"],

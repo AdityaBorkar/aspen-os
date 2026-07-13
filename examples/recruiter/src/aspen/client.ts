@@ -1,4 +1,4 @@
-import type { LogConfig, RpcConfig } from "@aspen-os/framework";
+import type { LogConfig, RpcConfig } from "@aspen-os/framework/client";
 import { Framework } from "@aspen-os/framework/client";
 
 import { env } from "../env";

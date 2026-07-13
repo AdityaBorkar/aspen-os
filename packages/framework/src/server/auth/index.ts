@@ -59,12 +59,16 @@ export class AuthUnit {
         lastLoginMethod(),
         twoFactor(),
         passkey(),
-        captcha({
-          provider: "cloudflare-turnstile",
-          secretKey: cfSecretKey,
-        }),
+        ...(cfSecretKey
+          ? [
+              captcha({
+                provider: "cloudflare-turnstile",
+                secretKey: cfSecretKey,
+              }),
+            ]
+          : []),
       ],
-    });
+    }) as unknown as Auth;
   }
 
   async $prepare() {

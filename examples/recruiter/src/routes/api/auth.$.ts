@@ -7,7 +7,7 @@ export const Route = createFileRoute("/api/auth/$")({
     handlers: {
       ANY: async ({ request }) => {
         return f.run(() => {
-          return f.auth.server.handler(request);
+          return f.auth.auth.handler(request);
         });
       },
     },
