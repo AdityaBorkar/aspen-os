@@ -2,16 +2,16 @@ import browserCollections from "collections/browser";
 import type { CompiledMDXProperties } from "fumadocs-mdx";
 import { createClientLoader } from "fumadocs-mdx/runtime/browser";
 
-const { docs, framework, organization, compliance } = browserCollections;
-type DocFrontmatter = {
-  title: string;
-  display?: string;
-  description?: string;
-  icon?: string;
-  full?: boolean;
-};
+type DocEntry = () => Promise<
+  CompiledMDXProperties<{
+    title: string;
+    display?: string;
+    description?: string;
+    icon?: string;
+    full?: boolean;
+  }>
+>;
 
-type DocEntry = () => Promise<CompiledMDXProperties<DocFrontmatter>>;
 function prefixEntries(
   prefix: string,
   entries: Record<string, DocEntry>,
@@ -25,11 +25,11 @@ function prefixEntries(
   return out;
 }
 
-const mergedEntries: Record<string, DocEntry> = {
-  ...docs.raw,
-  ...prefixEntries("framework/", framework.raw),
-  ...prefixEntries("organization/", organization.raw),
-  ...prefixEntries("compliance/", compliance.raw),
-};
+const mergedEntries: Record<string, DocEntry> = Object.fromEntries(
+  Object.entries(browserCollections).flatMap(([name, collection]) => {
+    const raw = collection.raw as Record<string, DocEntry>;
+    return Object.entries(prefixEntries(`${name}/`, raw));
+  }),
+);
 
-export { createClientLoader, mergedEntries };
+export { createClientLoader, type mergedEntries };

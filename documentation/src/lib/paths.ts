@@ -1,4 +1,4 @@
-import { docsRoute } from "./shared";
+import { DOCS_ROUTE } from "./constants";
 
 export function markdownPathToSlugs(segs: string[]) {
   if (segs.length === 0) return [];
@@ -22,21 +22,12 @@ export function slugsToMarkdownPath(slugs: string[]) {
 
   return {
     segments,
-    url: `${docsRoute}/${segments.join("/")}`,
+    url: `${DOCS_ROUTE}/${segments.join("/")}`,
   };
 }
 
-const contentPathMap: Record<string, string> = {
-  compliance: "packages/compliance/docs-www",
-  framework: "packages/framework/docs-www",
-  organization: "packages/organization/docs-www",
-};
-
 export function resolveContentPath(path: string): string {
   const slashIdx = path.indexOf("/");
-  if (slashIdx === -1) return `content/docs/${path}`;
-  const prefix = path.slice(0, slashIdx);
-  const rest = path.slice(slashIdx + 1);
-  const mapped = contentPathMap[prefix];
-  return mapped ? `${mapped}/${rest}` : `content/docs/${path}`;
+  if (slashIdx === -1) return `packages/${path}/docs-www`;
+  return `packages/${path.slice(0, slashIdx)}/docs-www/${path.slice(slashIdx + 1)}`;
 }

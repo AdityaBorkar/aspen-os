@@ -24,9 +24,8 @@ import {
 import { useMDXComponents } from "@/components/mdx";
 import { createClientLoader, mergedEntries } from "@/lib/client-loader";
 import { cn } from "@/lib/cn";
-import { baseOptions } from "@/lib/layout.shared";
+import { GIT_CONFIG, LAYOUT_BASE_OPTIONS } from "@/lib/constants";
 import { resolveContentPath } from "@/lib/paths";
-import { gitConfig } from "@/lib/shared";
 
 export const Route = createFileRoute("/docs/$")({
   component: Page,
@@ -46,7 +45,8 @@ const serverLoader = createServerFn({
 })
   .validator((slugs: string[]) => slugs)
   .handler(async ({ data: slugs }) => {
-    const { source, slugsToMarkdownPath } = await import("@/lib/source");
+    const { source } = await import("@/lib/source");
+    const { slugsToMarkdownPath } = await import("@/lib/paths");
     const page = source.getPage(slugs);
     if (!page) throw notFound();
 
@@ -71,7 +71,7 @@ const clientLoader = createClientLoader(mergedEntries, {
         <div className="-mt-4 flex flex-row items-center gap-2 border-b pb-6">
           <MarkdownCopyButton markdownUrl={markdownUrl} />
           <ViewOptionsPopover
-            githubUrl={`https://github.com/${gitConfig.user}/${gitConfig.repo}/blob/${gitConfig.branch}/${resolveContentPath(path)}`}
+            githubUrl={`https://github.com/${GIT_CONFIG.user}/${GIT_CONFIG.repo}/blob/${GIT_CONFIG.branch}/${resolveContentPath(path)}`}
             markdownUrl={markdownUrl}
           />
         </div>
@@ -102,7 +102,7 @@ function Page() {
 
   return (
     <DocsLayout
-      {...baseOptions()}
+      {...LAYOUT_BASE_OPTIONS}
       tabs={getLayoutTabs(pageTree, {
         transform: (option, node): LayoutTab | null => ({
           ...option,

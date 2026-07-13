@@ -1,18 +1,11 @@
 import * as TablerIcons from "@tabler/icons-react";
-import { compliance, docs, framework, organization } from "collections/server";
+import * as serverCollections from "collections/server";
 import type { LoaderPlugin } from "fumadocs-core/source";
 import { loader } from "fumadocs-core/source";
 import type { ReactElement } from "react";
 import { createElement } from "react";
 
-import {
-  markdownPathToSlugs,
-  resolveContentPath,
-  slugsToMarkdownPath,
-} from "./paths";
-import { docsRoute } from "./shared";
-
-export { markdownPathToSlugs, resolveContentPath, slugsToMarkdownPath };
+import { DOCS_ROUTE } from "./constants";
 
 function tablerIconPlugin(): LoaderPlugin {
   function resolveIcon(icon: string | undefined) {
@@ -62,23 +55,19 @@ function displayTitlePlugin(): LoaderPlugin {
   };
 }
 
-export const source = loader(
-  {
-    compliance: compliance.toFumadocsSource({ baseDir: "compliance" }),
-    framework: framework.toFumadocsSource({ baseDir: "framework" }),
-    organization: organization.toFumadocsSource({ baseDir: "organization" }),
-    root: docs.toFumadocsSource(),
-  },
-  {
-    baseUrl: docsRoute,
-    plugins: [tablerIconPlugin(), displayTitlePlugin()],
-  },
+const sources = Object.fromEntries(
+  Object.entries(serverCollections).map(([name, collection]) => [
+    name,
+    collection.toFumadocsSource({ baseDir: name }),
+  ]),
 );
+
+export const source = loader(sources, {
+  baseUrl: DOCS_ROUTE,
+  plugins: [tablerIconPlugin(), displayTitlePlugin()],
+});
 
 export async function getLLMText(page: (typeof source)["$inferPage"]) {
   const processed = await page.data.getText("processed");
-
-  return `# ${page.data.title} (${page.url})
-
-${processed}`;
+  return `# ${page.data.title} (${page.url})\n\n${processed}`;
 }

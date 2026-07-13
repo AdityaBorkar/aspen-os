@@ -1,14 +1,13 @@
 {
-  "description": "Core business framework — units, modules, and lifecycle",
   "icon": "IconStack",
   "pages": [
     "---Getting Started---",
     "parts",
     "usage",
     "customization",
-    "units",
-    "modules",
-    "unit-vs-module"
+    "unit-vs-module",
+    "---Units---",
+    "units"
   ],
   "pagesIndex": "index",
   "root": true,

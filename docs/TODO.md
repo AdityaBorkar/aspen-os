@@ -22,17 +22,6 @@ Units
 
 - List of Features and Configuration in each unit.
 
-## Write documentation for
-
-Create proper subagents and write comprehensive documentation for each package:
-
-- Framework
-- Organization
-- HR
-- Tasks
-- Drive
-- Reports
-
 ## Module Implementation
 
 - Task Management
@@ -52,11 +41,6 @@ Create proper subagents and write comprehensive documentation for each package:
   - Documentation for each module
   - Create custom docs and index them and allow AI to fetch and read this local wiki
 - How to create public docs
-
-## Phase 2
-
-- Dynamic Loading of Modules
-  - /settings/features = Enable/Disable each mdoule and their feature flags
 
 ## Goals
 
@@ -84,6 +68,12 @@ Create proper subagents and write comprehensive documentation for each package:
 ## Issues
 
 - Drizzle Migrations could not be performed
+
+## Phase 2
+
+- /write-docs skill for writing documentation
+- Dynamic Loading of Modules
+  - /settings/features = Enable/Disable each mdoule and their feature flags
 
 ## Not a Priority
 
