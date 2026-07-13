@@ -52,7 +52,7 @@ All seven are **required** in `FrameworkConfig`. They are instantiated in depend
 
 ### Dependency Graph
 
-```
+```text
 db ← logs
 db ← pubsub
 db ← storage
@@ -104,7 +104,7 @@ Inside `create()`, the framework instantiates each unit with `new` in dependency
 
 Units participate in the framework's `prepare()` and `destroy()` phases:
 
-```
+```text
 framework.prepare()
   → for each unit: unit.$prepare?.()   // catches + logs per-unit errors
   → for each module: mod.prepare?.()

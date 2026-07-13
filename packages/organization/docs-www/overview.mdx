@@ -36,7 +36,7 @@ initialize(units: { db: DatabaseUnit; pubsub: PubSubUnit }): void {
 
 ## Module Structure
 
-```
+```text
 packages/organization/src/
   index.ts              # Module class + type re-exports
   db-schema.ts          # 7 tables + 5 enums
@@ -75,7 +75,7 @@ framework.organization.bankAccounts      // → BankAccountWorkflow
 
 ## Package
 
-```json
+```json title="package.json"
 {
   "name": "@aspen-os/organization",
   "type": "module",

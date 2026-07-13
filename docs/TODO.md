@@ -2,9 +2,7 @@
 
 ## Documentation
 
-Write relevant file name header (wherever applicable) for the code and language hint for syntax highlighting for code in all ./docs-www/* markdown files
-
-HR, Drive, Constants,Tasks
+Write Documentation for HR, Drive, Constants,Tasks
 
 - List of Features and Configuration in each unit.
 
@@ -54,7 +52,6 @@ HR, Drive, Constants,Tasks
 
 ## Phase 2
 
-- Ideate: LLMs to read the `docs-www`
 - Dynamic Loading of Modules
   - /settings/features = Enable/Disable each mdoule and their feature flags
 

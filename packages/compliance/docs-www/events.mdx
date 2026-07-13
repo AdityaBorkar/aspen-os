@@ -8,7 +8,7 @@ The Compliance module defines 22 domain events covering document lifecycle, obli
 
 ## Event Constants
 
-```ts
+```ts title="src/event-map.ts"
 export const COMPLIANCE_EVENTS = {
   DOCUMENT_CREATED: "compliance:document_created",
   DOCUMENT_UPDATED: "compliance:document_updated",
@@ -116,7 +116,7 @@ await framework.pubsub.subscribe(
 
 ## Event Map Type
 
-```ts
+```ts title="src/event-map.ts"
 export type ComplianceEventMap = {
   [COMPLIANCE_EVENTS.DOCUMENT_CREATED]: DocumentCreatedEvent;
   [COMPLIANCE_EVENTS.DOCUMENT_UPDATED]: DocumentUpdatedEvent;

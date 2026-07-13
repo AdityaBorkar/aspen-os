@@ -8,7 +8,7 @@ The Organization module defines 11 domain events across 3 event groups. Events a
 
 ## Event Constants
 
-```ts
+```ts title="src/event-map.ts"
 export const ORGANIZATION_EVENTS = {
   UPDATED: "organization:updated",
   BRANDING_UPDATED: "organization:branding_updated",
@@ -85,7 +85,7 @@ await framework.pubsub.subscribe("connection:status_changed", async (message) =>
 
 ## Event Map Type
 
-```ts
+```ts title="src/event-map.ts"
 export type OrganizationDomainEventMap = OrganizationEventMap &
   BranchEventMap &
   ConnectionEventMap;

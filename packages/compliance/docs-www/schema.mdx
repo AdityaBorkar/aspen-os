@@ -133,7 +133,7 @@ Append-only audit trail for every compliance action.
 
 ## Relationships
 
-```
+```text
 compliance_obligation ──1:N──→ compliance_document (obligation_id)
 compliance_document   ──self-ref──→ compliance_document (renewed_from)
 branch                ──1:N──→ compliance_document (branch)

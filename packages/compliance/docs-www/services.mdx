@@ -29,7 +29,7 @@ Manages automated expiry and due-date reminders via PubSub schedules and handler
 
 ### Reminder Flow
 
-```
+```text
 Daily Expiry Scan (8am)
     ↓
 Document has expiryDate within reminderDays window?
@@ -61,7 +61,7 @@ Listens to obligation schedules and auto-generates compliance documents when the
 
 ### Auto-Generation Flow
 
-```
+```text
 Scheduled Job "compliance:obligation-generate" (6am daily)
     ↓
 Find active obligations where autoGenerate = true
@@ -89,7 +89,7 @@ Subscribes to external module events and creates compliance documents in respons
 
 ### Event Bridge Flow
 
-```
+```text
 Organization module publishes "organization:created"
     ↓
 EventBridge handler receives the event

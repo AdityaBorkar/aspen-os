@@ -12,7 +12,7 @@ A module is a class that implements the `Module` interface and packages domain w
 
 ## File Structure
 
-```
+```text
 packages/my-module/
   src/
     index.ts              # Module class, type re-exports, dbSchema export
@@ -35,7 +35,7 @@ packages/my-module/
 
 `package.json`:
 
-```json
+```json title="package.json"
 {
   "name": "@aspen-os/my-module",
   "type": "module",
@@ -57,7 +57,7 @@ packages/my-module/
 
 Create `src/db-schema.ts` with Drizzle table and enum definitions:
 
-```ts
+```ts title="src/db-schema.ts"
 import { relations } from "drizzle-orm";
 import {
   boolean,
@@ -96,7 +96,7 @@ export const myEntityRelations = relations(myEntity, ({ many }) => ({}));
 
 `src/constants.ts`:
 
-```ts
+```ts title="src/constants.ts"
 export const MY_ENTITY_STATUS = {
   ACTIVE: "active",
   INACTIVE: "inactive",
@@ -110,7 +110,7 @@ export type MyEntityStatus =
 
 `src/schemas/entity.ts`:
 
-```ts
+```ts title="src/schemas/entity.ts"
 import { type InferOutput, object, optional, pipe, string, minLength } from "valibot";
 
 export const CreateMyEntitySchema = object({
@@ -138,7 +138,7 @@ export type MyEntityFilters = InferOutput<typeof MyEntityFiltersSchema>;
 
 `src/event-map.ts`:
 
-```ts
+```ts title="src/event-map.ts"
 export const MY_ENTITY_EVENTS = {
   CREATED: "my-module:entity_created",
   UPDATED: "my-module:entity_updated",
@@ -163,7 +163,7 @@ export type MyModuleEventMap = {
 
 `src/workflows/entity.ts`:
 
-```ts
+```ts title="src/workflows/entity.ts"
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { eq } from "drizzle-orm";
 import { parse } from "valibot";
@@ -201,7 +201,7 @@ export class MyEntityWorkflow {
 
 `src/index.ts`:
 
-```ts
+```ts title="src/index.ts"
 import type { DatabaseUnit, PubSubUnit } from "@aspenos/framework/server";
 
 import * as dbSchema from "./db-schema";

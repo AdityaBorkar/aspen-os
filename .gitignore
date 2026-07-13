@@ -13,4 +13,5 @@ node_modules
 !.env.example
 *.gen.ts
 
+.agents
 codedb.snapshot
