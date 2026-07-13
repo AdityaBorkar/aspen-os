@@ -72,7 +72,7 @@ export class ObligationWorkflow {
         sourceEntityId: parsed.sourceEntityId ?? null,
         sourceEntityType: parsed.sourceEntityType ?? null,
         sourceModule: parsed.sourceModule,
-        startDate: parsed.startDate.toISOString().split("T")[0],
+        startDate: parsed.startDate.toISOString().slice(0, 10),
       })
       .returning();
 

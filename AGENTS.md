@@ -28,9 +28,12 @@ No build/test/format scripts at root or in framework. Each domain package has `c
 ```
 cd examples/recruiter && bun run app:dev       # vite dev --port 3000
 cd examples/recruiter && bun run app:build     # vite build
-cd examples/recruiter && bun run app:prepare   # bun scripts/prepare.ts
+cd examples/recruiter && bun run app:prepare   # bun scripts/prepare.ts (calls f.prepare())
+cd examples/recruiter && bun run app:preview   # vite preview
 cd examples/recruiter && bun run db:studio     # aspen db-studio --config=src/aspen/server.ts
 cd examples/recruiter && bun run generate-routes  # tsr generate (TanStack Router)
+cd examples/recruiter && bun run check:lint    # biome check --fix .
+cd examples/recruiter && bun run check:types    # tsc -b
 ```
 
 **documentation** (`bun run dev` → port 3005; `bun run types:check` → `fumadocs-mdx && tsc --noEmit`). Has no `deploy` script — deploy manually via `vite build && wrangler deploy` (uses `wrangler.jsonc`, `nodejs_compat` flag). **Gotcha**: `ignore-scripts=true` in `bunfig.toml` prevents the `postinstall` (`fumadocs-mdx`) from running — run `bunx fumadocs-mdx` manually before `bun run build` if `.source/` is missing.
@@ -40,8 +43,8 @@ cd examples/recruiter && bun run generate-routes  # tsr generate (TanStack Route
 ## Git Hooks (Husky)
 
 Hooks **are** active via `.husky/`:
-- **pre-commit**: `bunx lint-staged` → runs `biome check --fix --no-errors-on-unmatched` on staged files.
-- **commit-msg**: `bunx commitlint --edit $1` → enforces conventional commits.
+- **pre-commit**: `bunx lint-staged` → runs `biome format --fix --no-errors-on-unmatched` on staged files.
+- **commit-msg**: `bunx commitlint --edit $1` → enforces conventional commits (`.commitlintrc.json`).
 
 Allowed commit types: `build chore ci docs feat fix perf refactor revert test wip`.
 
@@ -52,24 +55,27 @@ packages/
   framework/          # Core library — only package with real source, deps, scripts
   organization/       # Domain module (5 workflows, 7 tables)
   compliance/         # Domain module (5 workflows, 3 services)
+  tasks/              # Domain module (11 workflows, 2 services)
+  drive/              # Domain module (6 workflows, 5 services)
   constants/          # Shared enums and constants (@aspen-os/constants)
-  hr/                 # Stub — package.json only has { "name": "@aspen-os/hr" }
-  accounting/ crm/ drive/ fleet/ inventory/ reports/ tasks/  # Pure stubs
-  pharmacy/           # Empty index.tsx — no package.json, not in tsconfig refs
+  hr/                 # Scaffold — has package.json with deps + src structure, but module class is incomplete (TODOs)
+  accounting/ crm/ fleet/ inventory/ reports/ pharmacy/  # Pure stubs (package.json is just { "name": "..." })
 examples/
   recruiter/          # TanStack Start + React 19 + Vite 8 + Tailwind 4 app (dev port 3000)
 documentation/        # TanStack Start docs site → Cloudflare Workers
-docs/                 # CODING_CONVENTIONS.md, DOMAIN_MODEL.md, BOUNDED_CONTEXTS.md, ADRs, TODO.md
+docs/                 # CODING_CONVENTIONS.md, DOMAIN_MODEL.md, BOUNDED_CONTEXTS.md, ADRs, TODO.md, sow/
 ```
 
-Workspace globs: `./packages/*`, `./examples/*`, `./documentation`. Root `tsconfig.json` uses composite project references to all packages except `pharmacy`.
+Workspace globs: `./packages/*`, `./examples/*`, `./documentation`. Root `tsconfig.json` uses composite project references to all packages (including `pharmacy`).
+
+**Documentation sourcing**: The `documentation` app pulls MDX content from each package's `docs-www/` directory, configured in `documentation/source.config.ts`. Packages with docs content: framework, organization, compliance, tasks, drive, hr, constants. To add a new package's docs, add a `defineDocs()` entry in `source.config.ts` and create `packages/<name>/docs-www/`.
 
 ## App Setup (recruiter)
 
 - **Docker Compose** (`examples/recruiter/docker-compose.yaml`): starts **Postgres** (`postgres:18-alpine`, port 5432, user/pass/db all `recruiter`) and **SeaweedFS** (S3-compatible storage: master on 9333, volume on 8080, filer on 8888, S3 on 8333).
 - Reads `.env.local` (gitignored). Key vars: `DB_*`, `AUTH_SECRET`, `STORAGE_*` (endpoint `http://localhost:8333`), `GOOGLE_CLIENT_*`, `PUBLIC_WEB_*`.
 - Framework config lives in `examples/recruiter/src/aspen/`: `server.ts` (`Framework.create`), `auth.ts` (access control + roles), `client.ts`.
-- Env validated via `@t3-oss/env-core` with Zod. Vite env prefix is `PUBLIC_`.
+- Env validated via `@t3-oss/env-core` with Zod (`examples/recruiter/src/env.ts`). Vite env prefix is `PUBLIC_`.
 - **`aspen` CLI** (from framework `bin`): `aspen db-studio --config=<path>` dynamically imports the framework config and launches Drizzle Kit Studio (default port 4983).
 
 ## Framework Architecture (`packages/framework`)
@@ -137,13 +143,14 @@ All are classes instantiated in `src/server/index.ts` with constructor-injected 
 
 ## Domain Module Pattern
 
-Modules follow a strict pattern (see `organization` and `compliance` for reference):
+Modules follow a strict pattern (see `organization`, `compliance`, `tasks`, `drive` for reference):
 - Static `create(config)` factory. Private workflow fields with `#` prefix, initialized lazily in `initialize(units)`.
 - Getter properties that throw `notInitialized()` if accessed before `initialize()`.
 - `db_schema` export (drizzle schema namespace). `name` as kebab-case readonly string.
-- `prepare()` pushes schema via `pushSchema()` and registers pubsub handlers/schedules. `destroy()` nulls out fields and unregisters.
+- `prepare()` is optional — registers pubsub handlers/schedules (e.g. drive registers a trash purge cron). Schema pushing is handled by `DatabaseUnit.$prepare()`, not by modules. `destroy()` nulls out fields and unregisters.
 - File structure: `src/{index,db-schema,types,event-map,constants}.ts`, `src/schemas/`, `src/workflows/`, optionally `src/services/`.
 - Package: `@aspen-os/<module>`, `"type": "module"`, `exports: { ".": "./src/index.ts" }`, deps on framework + constants via `workspace:*`.
+- **Module `initialize()` signatures vary** — each module types its own subset of units: organization/tasks take `{ db, pubsub }`, compliance takes `{ db, kvStore, pubsub }`, drive takes `{ db, storage, pubsub }`.
 
 ## Conventions
 
@@ -161,7 +168,7 @@ Modules follow a strict pattern (see `organization` and `compliance` for referen
 
 ## Current State
 
-- `organization` and `compliance` are fully implemented domain modules. All other domain packages are stubs.
+- `organization`, `compliance`, `tasks`, and `drive` are fully implemented domain modules. `hr` is a scaffold (has src structure but incomplete module class). All other domain packages (`accounting`, `crm`, `fleet`, `inventory`, `reports`, `pharmacy`) are pure stubs.
 - No CI/CD, no Docker for the framework, no deployment config beyond `documentation`'s `wrangler.jsonc`.
 - No tests for the framework or domain modules. `recruiter` has `vitest` + `@testing-library` in devDeps but no `test` script — testing not yet wired up.
 - `codedb.snapshot` at root is a CodeDB indexing artifact, not source.
