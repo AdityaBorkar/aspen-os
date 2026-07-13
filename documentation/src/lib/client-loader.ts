@@ -32,4 +32,4 @@ const mergedEntries: Record<string, DocEntry> = Object.fromEntries(
   }),
 );
 
-export { createClientLoader, type mergedEntries };
+export { createClientLoader, mergedEntries };

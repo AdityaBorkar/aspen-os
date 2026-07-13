@@ -1,52 +1,16 @@
-# dependencies (bun install)
 node_modules
-
-# output
-out
-dist
-*.tgz
-
-# code coverage
-coverage
-*.lcov
-
-# logs
-_.log
-report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
-
-# dotenv environment variable files
-.env*
-!.env.example
-
-*.gen.ts
-
-# caches
-.eslintcache
-.cache
-*.tsbuildinfo
-
-# IntelliJ based IDEs
-.idea
-
-# Finder (MacOS) folder config
-.DS_Store
-
-node_modules
-.DS_Store
-dist
-dist-ssr
-*.local
-.env
 .nitro
 .tanstack
 .wrangler
 .output
-.vinxi
-__unconfig*
-todos.json
-
-
 .source
-/documentation/content/docs/*
-!/documentation/content/docs/index.mdx
-!/documentation/content/docs/meta.json
+.local
+.cache
+*.tsbuildinfo
+.DS_Store
+
+.env*
+!.env.example
+*.gen.ts
+
+codedb.snapshot

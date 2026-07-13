@@ -2,23 +2,9 @@
 
 ## Documentation
 
-Framework:
+Write relevant file name header (wherever applicable) for the code and language hint for syntax highlighting for code in all ./docs-www/* markdown files
 
-Getting Started
-- Parts of the Framework -> Overview
-- How to use the framework? -> Usage
-- What can be customized? -> Customization
-- Units
-- Modules
-- Creating a Custom Module -> Custom Modules
-- Unit vs Module? -> Units vs Modules
-
-Units
-- Name of the Unit
-- Name of the Unit
-- Name of the Unit
-- Name of the Unit
-- Name of the Unit
+HR, Drive, Constants,Tasks
 
 - List of Features and Configuration in each unit.
 
@@ -36,14 +22,19 @@ Units
   - Bank Accounts
   - Personal Drafts
   - Personal Dashboard / Dashboards
-- 
-- Documentation Website
-  - Documentation for each module
-  - Create custom docs and index them and allow AI to fetch and read this local wiki
-- How to create public docs
 
 ## Goals
 
+- Units
+  - RPC
+  - Log
+  - Workflows
+  - Notification
+- 
+- Standardization
+  - `framework` types
+  - `framework` module types
+- 
 - Accounting
   - Ledger
   - Transactions
@@ -53,17 +44,9 @@ Units
   - Purchase???
   - Vouchers???
 - 
-- Client: RPC, Log
-- 
-- Standardizing the types in `framework`
-- Module Integration and Standardization
-- 
 - /grill-with-docs
 - /improve-codebase-architecture
-- 
-- Onboarding Script for the Framework
-  - Auth Seeding
-- 
+- /write-docs skill for writing documentation
 
 ## Issues
 
@@ -71,7 +54,7 @@ Units
 
 ## Phase 2
 
-- /write-docs skill for writing documentation
+- Ideate: LLMs to read the `docs-www`
 - Dynamic Loading of Modules
   - /settings/features = Enable/Disable each mdoule and their feature flags
 

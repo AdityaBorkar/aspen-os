@@ -1,0 +1,197 @@
+---
+title: Unit
+description: Infrastructure services — the seven required building blocks the framework creates and manages for you.
+icon: IconBox
+---
+
+A **Unit** is an infrastructure service managed by the framework. There are exactly seven on the server and three on the client. You never instantiate units yourself — you provide configuration and the framework wires them together with dependency injection.
+
+## The Unit Interface
+
+### Server
+
+```ts
+interface Unit {
+  readonly $name: string;
+  $destroy(): Promise<void>;
+  $prepare?(): Promise<void>;
+}
+```
+
+Server units use a `$` prefix on lifecycle methods (`$name`, `$prepare`, `$destroy`). This deliberately separates framework lifecycle calls from the unit's own public API — for example, `DatabaseUnit.$destroy()` shuts down the connection pool, while `DatabaseUnit.db` is the drizzle instance you use day-to-day.
+
+### Client
+
+```ts
+interface Unit {
+  readonly name: string;
+  destroy(): Promise<void>;
+  prepare?(): Promise<void>;
+}
+```
+
+Client units drop the `$` prefix. The client framework is lighter — it has no database, no pubsub, no storage, and no kv store.
+
+## The Seven Server Units
+
+All seven are **required** in `FrameworkConfig`. They are instantiated in dependency order inside `Framework.create()`:
+
+| Key | Unit class | `$name` | Depends on | Purpose |
+|---|---|---|---|---|
+| `db` | `DatabaseUnit` | `"database"` | — | PostgreSQL connection pool + Drizzle ORM |
+| `logs` | `LogUnit` | `"logs"` | `{ db }` | Structured logging to the database |
+| `pubsub` | `PubSubUnit` | `"pubsub"` | `{ db }` | Pub/sub messaging, subscriptions, scheduled jobs |
+| `storage` | `StorageUnit` | `"storage"` | `{ db }` | S3-compatible file storage with signed URLs |
+| `auth` | `AuthUnit` | `"auth"` | `{ db }` | Authentication via better-auth (sessions, users, roles, 2FA, passkeys) |
+| `rpc` | `RpcUnit` | `"rpc"` | `{ auth, db, logs, pubsub }` | oRPC procedure registry and HTTP handler |
+| `kvStore` | `KvStoreUnit` | `"kvStore"` | `{ db }` | Key-value cache with TTL, counters, getOrSet |
+
+<Callout type="info">
+  Each unit has a dedicated reference page under the **Units** section in the sidebar. See [Database](/docs/framework/units/database), [Auth](/docs/framework/units/auth), [PubSub](/docs/framework/units/pubsub), [Storage](/docs/framework/units/storage), [KV Store](/docs/framework/units/kv-store), [Logs](/docs/framework/units/logs), and [RPC](/docs/framework/units/rpc).
+</Callout>
+
+### Dependency Graph
+
+```
+db ← logs
+db ← pubsub
+db ← storage
+db ← auth
+db ← rpc (also ← logs, pubsub, auth)
+db ← kvStore
+```
+
+`DatabaseUnit` is the root — every other unit depends on it, either directly or transitively. `RpcUnit` is the most connected, pulling in four other units.
+
+## The Three Client Units
+
+The client framework (`@aspen-os/framework/client`) instantiates only three units:
+
+| Key | Unit class | Purpose |
+|---|---|---|
+| `auth` | `AuthUnit` | Wraps the better-auth React client |
+| `logs` | `LogUnit` | Stub — throws on `prepare()` / `destroy()` |
+| `rpc` | `RpcUnit` | Stub — no-op |
+
+Client units receive no constructor-injected dependencies. The client `AuthUnit` takes the `access_control` and `roles` config that the server intentionally ignores, passing them to the `adminClient()` plugin for client-side role checking.
+
+## How Units Are Created
+
+You never call `new DatabaseUnit(...)` yourself. You provide a `FrameworkConfig` object and the framework does the rest:
+
+```ts
+const framework = Framework.create(
+  {
+    db: { host, port, user, password, database },
+    auth: { baseURL, secret, access_control, roles, ... },
+    logs: { defaultLevel: "info", serviceName: "my-app" },
+    pubsub: { schema: "public" },
+    storage: { bucket, prefix, provider: { ... } },
+    rpc: { prefix: "/api/rpc" },
+    kvStore: { defaultTtl: 3600, keyPrefix: "app" },
+  },
+  { organization, compliance },
+);
+```
+
+Inside `create()`, the framework instantiates each unit with `new` in dependency order, passing previously-created units as constructor arguments. The resulting `FrameworkUnits` object is then passed to each module's `initialize(units)`.
+
+<Callout type="warn">
+  The unit set is fixed. You cannot add, remove, or replace units. All seven configs are required — there are no optional units.
+</Callout>
+
+## Unit Lifecycle
+
+Units participate in the framework's `prepare()` and `destroy()` phases:
+
+```
+framework.prepare()
+  → for each unit: unit.$prepare?.()   // catches + logs per-unit errors
+  → for each module: mod.prepare?.()
+
+framework.destroy()
+  → for each module: mod.destroy()     // catches + logs per-module errors
+  → for each unit: unit.$destroy()      // catches + logs per-unit errors
+```
+
+### `$prepare()`
+
+Called during `framework.prepare()`. This is where a unit sets up its runtime state:
+
+- `DatabaseUnit.$prepare()` pushes core database schemas (auth, logs, storage, kv-store) via `pushSchema()` from `drizzle-kit/api`.
+- `AuthUnit.$prepare()` may run migrations or validate configuration.
+- Other units may override `$prepare()` if they need async initialization.
+
+Errors are caught and logged per-unit — a failing unit does not prevent other units or modules from preparing.
+
+### `$destroy()`
+
+Called during `framework.destroy()`, after all modules are destroyed. This is where a unit releases resources:
+
+- `DatabaseUnit.$destroy()` ends the `pg.Pool`.
+- `PubSubUnit.$destroy()` stops the monitor loop and unregisters listeners.
+- Other units close connections, clear caches, or release handles.
+
+Errors are caught and logged — a failing destroy does not prevent other units from being destroyed.
+
+## Schema Ownership
+
+Each server unit that needs persistence owns its own database schema. These are pushed automatically during `DatabaseUnit.$prepare()`:
+
+| Unit | Tables |
+|---|---|
+| `auth` | `user`, `session`, `account`, `verification` |
+| `logs` | `logs` |
+| `storage` | `file_metadata` |
+| `kvStore` | `kv_store` |
+
+Domain modules push their own schemas in their `prepare()` method — the framework does not manage module schemas.
+
+## Accessing Units
+
+The `FrameworkInstance` is a `Proxy` that intercepts property access. Units are available via two patterns:
+
+### Proxy access (preferred)
+
+```ts
+framework.db       // → DatabaseUnit
+framework.auth     // → AuthUnit
+framework.pubsub   // → PubSubUnit
+framework.storage  // → StorageUnit
+framework.kvStore  // → KvStoreUnit
+framework.logs     // → LogUnit
+framework.rpc      // → RpcUnit
+```
+
+### Typed accessor
+
+```ts
+framework.getUnit("db")     // → DatabaseUnit
+framework.getUnit("auth")   // → AuthUnit
+```
+
+The proxy checks units first, then modules. If a property name matches a unit key, the unit is returned; otherwise it checks modules; otherwise it falls through to the `Framework` class's own methods.
+
+### Inside request context
+
+Within `framework.run(fn)`, the drizzle `db` instance and `pubsub` unit are available via `AsyncLocalStorage`:
+
+```ts
+import { getContext } from "@aspen-os/framework/server";
+
+await framework.run(async () => {
+  const { db, pubsub } = getContext();
+  // db: NodePgDatabase
+  // pubsub: PubSubUnit
+});
+```
+
+## Why You Can't Create Custom Units
+
+Units represent fixed infrastructure — database, auth, storage, pubsub. These are framework-level concerns with well-defined contracts. The set is closed by design:
+
+- **Stable contracts**: Each unit's constructor signature and injected dependencies are known at compile time. The framework's `FrameworkUnits` type is a fixed map.
+- **Dependency order**: Instantiation order matters (units depend on each other). The framework controls this via `Framework.create()`.
+- **Lifecycle guarantees**: The framework calls `$prepare()` and `$destroy()` in the correct order, with error isolation per-unit.
+
+If you need to add functionality, create a **module** instead — modules are pluggable, receive all units via `initialize()`, and follow their own lifecycle. See [Modules](/docs/framework/module) and [Custom Module](/docs/framework/custom-module).

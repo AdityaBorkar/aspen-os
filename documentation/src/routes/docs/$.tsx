@@ -24,7 +24,7 @@ import {
 import { useMDXComponents } from "@/components/mdx";
 import { createClientLoader, mergedEntries } from "@/lib/client-loader";
 import { cn } from "@/lib/cn";
-import { GIT_CONFIG, LAYOUT_BASE_OPTIONS } from "@/lib/constants";
+import { DOCS_ROUTE, GIT_CONFIG, LAYOUT_BASE_OPTIONS } from "@/lib/constants";
 import { resolveContentPath } from "@/lib/paths";
 
 export const Route = createFileRoute("/docs/$")({
@@ -99,19 +99,21 @@ function Page() {
   const { path, pageTree, markdownUrl } = useFumadocsLoader(
     Route.useLoaderData(),
   );
+  const frameworkUrl = `${DOCS_ROUTE}/framework`;
+  const tabs = getLayoutTabs(pageTree, {
+    transform: (option, node): LayoutTab | null => ({
+      ...option,
+      $folder: undefined,
+      urls: collectFolderUrls(node),
+    }),
+  }).sort((a, b) => {
+    if (a.url === frameworkUrl) return -1;
+    if (b.url === frameworkUrl) return 1;
+    return a.url.localeCompare(b.url);
+  });
 
   return (
-    <DocsLayout
-      {...LAYOUT_BASE_OPTIONS}
-      tabs={getLayoutTabs(pageTree, {
-        transform: (option, node): LayoutTab | null => ({
-          ...option,
-          $folder: undefined,
-          urls: collectFolderUrls(node),
-        }),
-      })}
-      tree={pageTree}
-    >
+    <DocsLayout {...LAYOUT_BASE_OPTIONS} tabs={tabs} tree={pageTree}>
       <AISearch>
         <AISearchPanel />
         <AISearchTrigger
