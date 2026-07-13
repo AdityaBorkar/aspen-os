@@ -24,7 +24,7 @@ const organization = OrganizationModule.create({
 
 The module receives `db` and `pubsub` units via `initialize()`:
 
-```ts
+```ts title="src/index.ts"
 initialize(units: { db: DatabaseUnit; pubsub: PubSubUnit }): void {
   this.#addresses = new AddressWorkflow(units.db.db);
   this.#bankAccounts = new BankAccountWorkflow(units.db.db);

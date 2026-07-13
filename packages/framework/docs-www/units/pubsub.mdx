@@ -8,7 +8,7 @@ The `PubSubUnit` (`$name: "pubsub"`) provides a typed publish/subscribe messagin
 
 ## Configuration
 
-```ts
+```ts title="src/server/pubsub/types.ts"
 interface PubSubConfig {
   schema?: string;                          // pg-boss schema (only when SSL)
   monitorStateIntervalSeconds?: number;     // default: 30
@@ -29,7 +29,7 @@ const pubsubConfig: PubSubConfig = {
 
 ## Public API
 
-```ts
+```ts title="src/server/pubsub/index.ts"
 class PubSubUnit {
   readonly $name = "pubsub";
 
@@ -158,7 +158,7 @@ await framework.pubsub.purgeQueue("notifications:send");
 
 ## Publish Options
 
-```ts
+```ts title="src/server/pubsub/types.ts"
 interface PublishOptions {
   expireInMinutes?: number;     // job expiration
   priority?: number;            // higher = processed first
@@ -175,7 +175,7 @@ interface ScheduleOptions extends PublishOptions {
 
 ## Message Structure
 
-```ts
+```ts title="src/server/pubsub/types.ts"
 interface Message<T = unknown> {
   id: string;
   name: string;         // topic name

@@ -8,7 +8,7 @@ The `LogUnit` (`$name: "logs"`) provides structured logging with a buffered writ
 
 ## Configuration
 
-```ts
+```ts title="src/server/log/types.ts"
 interface LogConfig {
   defaultLevel?: LogLevel;  // default: "info"
   serviceName?: string;     // default: "app"
@@ -28,7 +28,7 @@ const logConfig: LogConfig = {
 
 ## Public API
 
-```ts
+```ts title="src/server/log/index.ts"
 class LogUnit {
   readonly $name = "logs";
 
@@ -125,7 +125,7 @@ const stats = await framework.logs.getStats(
 
 ## Log Entry Structure
 
-```ts
+```ts title="src/server/log/types.ts"
 interface LogEntry {
   id: string;
   level: LogLevel;

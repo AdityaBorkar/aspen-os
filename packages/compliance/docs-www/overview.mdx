@@ -30,7 +30,7 @@ const compliance = ComplianceModule.create({
 
 The module receives `db`, `kvStore`, and `pubsub` units via `initialize()`:
 
-```ts
+```ts title="src/index.ts"
 initialize(units: { db: DatabaseUnit; kvStore: KvStoreUnit; pubsub: PubSubUnit }): void {
   this.#documents = new DocumentWorkflow(units.db.db, units.pubsub);
   this.#obligations = new ObligationWorkflow(units.db.db, units.pubsub);
@@ -52,7 +52,7 @@ The `prepare()` method:
 4. Registers the obligation generator handler
 5. Registers event bridge subscriptions (listens to organization events)
 
-```ts
+```ts title="src/index.ts"
 async prepare(): Promise<void> {
   // 1. Push schema
   await pushSchema(dbSchema.complianceTables, this.#db);

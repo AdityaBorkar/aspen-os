@@ -8,7 +8,7 @@ The `AuthUnit` (`$name: "auth"`) wraps [better-auth](https://www.better-auth.com
 
 ## Configuration
 
-```ts
+```ts title="src/server/auth/types.ts"
 interface AuthConfig {
   access_control: ReturnType<typeof createAccessControl>;
   baseURL: string;
@@ -67,7 +67,7 @@ const authConfig: AuthConfig = {
 
 ## Public API
 
-```ts
+```ts title="src/server/auth/index.ts"
 class AuthUnit {
   readonly $name = "auth";
   readonly $db_schema: typeof db_schema;  // auth Drizzle schema

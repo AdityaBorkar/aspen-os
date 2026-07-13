@@ -8,7 +8,7 @@ The `RpcUnit` (`$name: "rpc"`) provides an RPC layer using [oRPC](https://orpc.u
 
 ## Configuration
 
-```ts
+```ts title="src/server/rpc/types.ts"
 interface RpcConfig {
   prefix?: string;  // default: "/api/rpc"
 }
@@ -24,7 +24,7 @@ const rpcConfig: RpcConfig = {
 
 ## Public API
 
-```ts
+```ts title="src/server/rpc/index.ts"
 class RpcUnit {
   readonly $name = "rpc";
   readonly router = router;  // oRPC Router
@@ -46,7 +46,7 @@ class RpcUnit {
 
 The RPC context provides `db` and `pubsub` to procedures at request time:
 
-```ts
+```ts title="src/server/rpc/types.ts"
 interface RpcContext {
   db: NodePgDatabase<Record<string, never>>;
   pubsub: PubSubUnit;
@@ -75,7 +75,7 @@ if (result.matched) {
 
 Procedures are defined using oRPC's `os` base with Zod validation:
 
-```ts
+```ts title="src/server/rpc/procedures/echo.ts"
 import { os } from "../base";
 import { z } from "zod";
 
@@ -90,7 +90,7 @@ export const echo = os
 
 The router is a nested object of procedures:
 
-```ts
+```ts title="src/server/rpc/router.ts"
 // router.ts
 export const router = {
   echo: echoProcedure,
@@ -108,7 +108,7 @@ The `handle()` method checks if the request URL starts with the configured `pref
 
 The `os` base is created with the `RpcContext` type:
 
-```ts
+```ts title="src/server/rpc/base.ts"
 import { os } from "./base";
 // os = os.$context<RpcContext>()
 ```

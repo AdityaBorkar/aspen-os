@@ -8,7 +8,7 @@ A **Module** is a package of domain business logic. Modules are optional, plugga
 
 ## The Module Interface
 
-```ts
+```ts title="src/server/index.ts"
 interface Module<N extends string = string> {
   readonly name: N;
   initialize?(units: Record<string, Unit>): void;
@@ -80,7 +80,7 @@ All domain modules in the aspen-os ecosystem follow a strict set of conventions.
 
 Never use `new` directly. Always expose a static factory:
 
-```ts
+```ts title="src/index.ts"
 export class OrganizationModule {
   static create(config: OrganizationConfig): OrganizationModule {
     return new OrganizationModule(config);
@@ -234,7 +234,7 @@ export type CreateBranchInput = InferOutput<typeof CreateBranchSchema>;
 
 Modules define events in the `"domain:event_name"` format. Events are typed via an `EventMap` type — a compile-time contract, not a runtime bus. Events are published as plain string topics via PubSub:
 
-```ts
+```ts title="src/event-map.ts"
 export const ORG_EVENTS = {
   BRANCH_CREATED: "organization:branch_created",
   BRANCH_UPDATED: "organization:branch_updated",

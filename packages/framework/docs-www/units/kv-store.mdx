@@ -8,7 +8,7 @@ The `KvStoreUnit` (`$name: "kv-store"`) provides a Redis-like key-value API back
 
 ## Configuration
 
-```ts
+```ts title="src/server/kv-store/types.ts"
 interface KvStoreConfig {
   defaultTtl?: number;     // default: 3600 (seconds)
   keyPrefix?: string;      // default: "" (no prefix)
@@ -26,7 +26,7 @@ const kvConfig: KvStoreConfig = {
 
 ## Public API
 
-```ts
+```ts title="src/server/kv-store/index.ts"
 class KvStoreUnit {
   readonly $name = "kv-store";
   readonly db_schema: typeof db_schema;

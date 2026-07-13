@@ -8,7 +8,7 @@ The `StorageUnit` (`$name: "storage"`) provides file storage operations using an
 
 ## Configuration
 
-```ts
+```ts title="src/server/storage/types.ts"
 interface StorageConfig {
   bucket: string;
   prefix?: string;            // key prefix for all objects
@@ -48,7 +48,7 @@ const storageConfig: StorageConfig = {
 
 ## Public API
 
-```ts
+```ts title="src/server/storage/index.ts"
 class StorageUnit {
   readonly $name = "storage";
 
@@ -164,7 +164,7 @@ if (nextContinuationToken) {
 
 ## File Upload Input
 
-```ts
+```ts title="src/server/storage/types.ts"
 interface FileUploadInput {
   key: string;
   body: Buffer | ReadableStream | string;
@@ -176,7 +176,7 @@ interface FileUploadInput {
 
 ## File Object
 
-```ts
+```ts title="src/server/storage/types.ts"
 interface FileObject {
   key: string;
   etag: string;

@@ -10,7 +10,7 @@ A **Unit** is an infrastructure service managed by the framework. There are exac
 
 ### Server
 
-```ts
+```ts title="src/server/index.ts"
 interface Unit {
   readonly $name: string;
   $destroy(): Promise<void>;
@@ -22,7 +22,7 @@ Server units use a `$` prefix on lifecycle methods (`$name`, `$prepare`, `$destr
 
 ### Client
 
-```ts
+```ts title="src/client/index.ts"
 interface Unit {
   readonly name: string;
   destroy(): Promise<void>;

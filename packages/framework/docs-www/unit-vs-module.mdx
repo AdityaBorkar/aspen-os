@@ -24,7 +24,7 @@ A **Unit** is an infrastructure service. There are exactly 7, all required, and 
 
 ### Server interface (with `$` prefix)
 
-```ts
+```ts title="src/server/index.ts"
 interface Unit {
   readonly $name: string;
   $destroy(): Promise<void>;
@@ -36,7 +36,7 @@ Server units use the `$` prefix for lifecycle methods (`$name`, `$destroy`, `$pr
 
 ### Client interface (no prefix)
 
-```ts
+```ts title="src/client/index.ts"
 interface Unit {
   readonly name: string;
   destroy(): Promise<void>;
@@ -56,7 +56,7 @@ interface Unit {
 
 A **Module** is a package of domain logic. Modules are optional, pluggable, and created by the application.
 
-```ts
+```ts title="src/server/index.ts"
 interface Module<N extends string = string> {
   readonly name: N;
   initialize?(units: Record<string, Unit>): void;

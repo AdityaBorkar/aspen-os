@@ -8,7 +8,7 @@ The `DatabaseUnit` (`$name: "database"`) is the foundational unit — all other 
 
 ## Configuration
 
-```ts
+```ts title="src/server/db/types.ts"
 type DatabaseConfig = {
   host: string;
   port: number;
@@ -36,7 +36,7 @@ const dbConfig: DatabaseConfig = {
 
 ## Public API
 
-```ts
+```ts title="src/server/db/index.ts"
 class DatabaseUnit {
   readonly $name = "database";
   readonly pool: pg.Pool;           // raw pg connection pool
