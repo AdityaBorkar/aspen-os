@@ -1,14 +1,6 @@
 {
   "icon": "IconClipboardCheck",
-  "pages": [
-    "---Docs---",
-    "overview",
-    "workflows",
-    "---Reference---",
-    "schema",
-    "events",
-    "services"
-  ],
+  "pages": ["overview", "workflows", "services", "events", "db-schemas"],
   "pagesIndex": "index",
   "root": true,
   "title": "Compliance"
