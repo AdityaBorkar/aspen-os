@@ -163,5 +163,5 @@ Modules follow a strict pattern (see `organization` and `compliance` for referen
 
 - `organization` and `compliance` are fully implemented domain modules. All other domain packages are stubs.
 - No CI/CD, no Docker for the framework, no deployment config beyond `documentation`'s `wrangler.jsonc`.
-- No tests for the framework or domain modules.
+- No tests for the framework or domain modules. `recruiter` has `vitest` + `@testing-library` in devDeps but no `test` script — testing not yet wired up.
 - `codedb.snapshot` at root is a CodeDB indexing artifact, not source.

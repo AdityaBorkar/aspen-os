@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@ai-sdk/react": "^4.0.18",
+    "@ai-sdk/react": "^4.0.20",
     "@fontsource-variable/fira-code": "^5.2.7",
     "@fontsource-variable/mona-sans": "^5.2.8",
     "@fontsource-variable/nunito": "^5.2.7",
@@ -10,7 +10,7 @@
     "@tanstack/react-router": "1.170.17",
     "@tanstack/react-router-devtools": "1.167.0",
     "@tanstack/react-start": "1.168.27",
-    "ai": "^7.0.17",
+    "ai": "^7.0.19",
     "class-variance-authority": "^0.7.1",
     "cnfast": "^0.0.8",
     "flexsearch": "^0.8.212",
@@ -18,7 +18,7 @@
     "fumadocs-mdx": "15.1.0",
     "fumadocs-ui": "npm:@fumadocs/base-ui@16.11.1",
     "hast-util-to-jsx-runtime": "^2.3.6",
-    "lucide-react": "^1.23.0",
+    "lucide-react": "^1.24.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "remark": "^15.0.1",
@@ -30,29 +30,30 @@
   "devDependencies": {
     "@biomejs/biome": "^2.5.3",
     "@tailwindcss/vite": "^4.3.2",
-    "@types/hast": "^3.0.4",
+    "@types/hast": "^3.0.5",
     "@types/mdx": "^2.0.14",
-    "@types/node": "^26.1.0",
+    "@types/node": "^26.1.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
     "nitro": "3.0.260610-beta",
     "tailwindcss": "^4.3.2",
     "typescript": "^7.0.2",
-    "vite": "^8.1.3",
-    "wrangler": "^4.107.1"
+    "vite": "^8.1.4",
+    "wrangler": "^4.110.0"
   },
   "name": "documentation",
   "private": true,
   "scripts": {
-    "build": "vite build",
-    "dev": "vite dev --port 3005",
+    "build": "bun run link-docs && vite build",
+    "dev": "bun run link-docs && vite dev --port 3005",
     "format": "biome format --write",
+    "link-docs": "bun run scripts/symbolic-links-dir.ts",
     "lint": "biome check",
     "postinstall": "fumadocs-mdx",
     "preview": "vite preview",
     "start": "vite preview",
-    "types:check": "fumadocs-mdx && tsc --noEmit"
+    "types:check": "bun run link-docs && fumadocs-mdx && tsc --noEmit"
   },
   "sideEffects": false,
   "type": "module"

@@ -24,7 +24,7 @@
     "@tanstack/router-cli": "^1.167.18",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
-    "@types/node": "^22.20.0",
+    "@types/node": "^22.20.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
@@ -35,7 +35,10 @@
   },
   "name": "recruiter",
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "lightningcss"]
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "lightningcss"
+    ]
   },
   "private": true,
   "scripts": {
