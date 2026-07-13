@@ -11,8 +11,8 @@ import {
 import { Document, type DocumentData } from "flexsearch";
 import { z } from "zod";
 
+import type { ChatUIMessage, SearchTool } from "@/components/ai/search";
 import { source } from "@/lib/source";
-import type { ChatUIMessage, SearchTool } from "../components/ai/search";
 
 interface CustomDocument extends DocumentData {
   content: string;

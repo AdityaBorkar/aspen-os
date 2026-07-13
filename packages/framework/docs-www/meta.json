@@ -1,4 +1,9 @@
 {
+  "title": "Framework",
+  "description": "Core business framework — units, modules, and lifecycle",
+  "icon": "IconStack",
+  "root": true,
+  "pagesIndex": "index",
   "pages": [
     "---Docs---",
     "parts",
@@ -8,7 +13,5 @@
     "---Reference---",
     "units",
     "modules"
-  ],
-  "root": true,
-  "title": "Framework"
+  ]
 }

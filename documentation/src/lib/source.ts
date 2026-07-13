@@ -1,14 +1,52 @@
-import { docs } from "collections/server";
+import * as TablerIcons from "@tabler/icons-react";
+import { compliance, docs, framework, organization } from "collections/server";
+import type { LoaderPlugin } from "fumadocs-core/source";
 import { loader } from "fumadocs-core/source";
-import { lucideIconsPlugin } from "fumadocs-core/source/lucide-icons";
+import type { ReactElement } from "react";
+import { createElement } from "react";
 
 import { docsRoute } from "./shared";
 
-export const source = loader({
-  baseUrl: docsRoute,
-  plugins: [lucideIconsPlugin()],
-  source: docs.toFumadocsSource(),
-});
+function tablerIconPlugin(): LoaderPlugin {
+  function resolveIcon(icon: string | undefined) {
+    if (!icon) return;
+    const Icon = (TablerIcons as Record<string, unknown>)[icon] as
+      | ((props: { size?: number }) => ReactElement)
+      | undefined;
+    if (!Icon) {
+      console.warn(`[tabler-icons] Unknown icon: ${icon}`);
+      return;
+    }
+    return createElement(Icon);
+  }
+  function replaceIcon<T extends { icon?: unknown }>(node: T): T {
+    if (node.icon === undefined || typeof node.icon === "string") {
+      node.icon = resolveIcon(node.icon as string | undefined);
+    }
+    return node;
+  }
+  return {
+    name: "tabler-icons",
+    transformPageTree: {
+      file: replaceIcon,
+      folder: replaceIcon,
+      separator: replaceIcon,
+    },
+  };
+}
+
+export const source = loader(
+  {
+    compliance: compliance.toFumadocsSource({ baseDir: "compliance" }),
+    framework: framework.toFumadocsSource({ baseDir: "framework" }),
+    organization: organization.toFumadocsSource({ baseDir: "organization" }),
+    root: docs.toFumadocsSource(),
+  },
+  {
+    baseUrl: docsRoute,
+    plugins: [tablerIconPlugin()],
+  },
+);
 
 export function markdownPathToSlugs(segs: string[]) {
   if (segs.length === 0) return [];
@@ -42,4 +80,18 @@ export async function getLLMText(page: (typeof source)["$inferPage"]) {
   return `# ${page.data.title} (${page.url})
 
 ${processed}`;
+}
+const contentPathMap: Record<string, string> = {
+  compliance: "packages/compliance/docs-www",
+  framework: "packages/framework/docs-www",
+  organization: "packages/organization/docs-www",
+};
+
+export function resolveContentPath(path: string): string {
+  const slashIdx = path.indexOf("/");
+  if (slashIdx === -1) return `content/docs/${path}`;
+  const prefix = path.slice(0, slashIdx);
+  const rest = path.slice(slashIdx + 1);
+  const mapped = contentPathMap[prefix];
+  return mapped ? `${mapped}/${rest}` : `content/docs/${path}`;
 }

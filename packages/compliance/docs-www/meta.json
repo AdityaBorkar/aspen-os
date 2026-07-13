@@ -1,4 +1,9 @@
 {
+  "title": "Compliance",
+  "description": "Domain module for compliance documents and audit trails",
+  "icon": "IconClipboardCheck",
+  "root": true,
+  "pagesIndex": "index",
   "pages": [
     "---Docs---",
     "overview",
@@ -7,7 +12,5 @@
     "schema",
     "events",
     "services"
-  ],
-  "root": true,
-  "title": "Compliance"
+  ]
 }

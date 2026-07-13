@@ -9,11 +9,8 @@ export const Route = createFileRoute("/docs/{$}.md")({
         const slugs = markdownPathToSlugs(params._splat?.split("/") ?? []);
         const page = source.getPage(slugs);
         if (!page) throw notFound();
-
         return new Response(await getLLMText(page), {
-          headers: {
-            "Content-Type": "text/markdown",
-          },
+          headers: { "Content-Type": "text/markdown" },
         });
       },
     },

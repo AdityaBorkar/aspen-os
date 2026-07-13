@@ -1,6 +1,6 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import browserCollections from "collections/browser";
+import type * as PageTree from "fumadocs-core/page-tree";
 import { useFumadocsLoader } from "fumadocs-core/source/client";
 import { buttonVariants } from "fumadocs-ui/components/ui/button";
 import { DocsLayout } from "fumadocs-ui/layouts/docs";
@@ -12,7 +12,7 @@ import {
   MarkdownCopyButton,
   ViewOptionsPopover,
 } from "fumadocs-ui/layouts/docs/page";
-import { getLayoutTabs } from "fumadocs-ui/layouts/shared";
+import { getLayoutTabs, type LayoutTab } from "fumadocs-ui/layouts/shared";
 import { MessageCircleIcon } from "lucide-react";
 import { Suspense } from "react";
 
@@ -22,15 +22,19 @@ import {
   AISearchTrigger,
 } from "@/components/ai/search";
 import { useMDXComponents } from "@/components/mdx";
+import { createClientLoader, mergedEntries } from "@/lib/client-loader";
 import { cn } from "@/lib/cn";
 import { baseOptions } from "@/lib/layout.shared";
 import { gitConfig } from "@/lib/shared";
-import { slugsToMarkdownPath, source } from "@/lib/source";
+import { resolveContentPath, slugsToMarkdownPath, source } from "@/lib/source";
 
 export const Route = createFileRoute("/docs/$")({
   component: Page,
   loader: async ({ params }) => {
     const slugs = params._splat?.split("/") ?? [];
+    if (slugs.length === 0 || (slugs.length === 1 && slugs[0] === "")) {
+      throw redirect({ to: "/docs/$", params: { _splat: "framework" } });
+    }
     const data = await serverLoader({ data: slugs });
     await clientLoader.preload(data.path);
     return data;
@@ -52,7 +56,7 @@ const serverLoader = createServerFn({
     };
   });
 
-const clientLoader = browserCollections.docs.createClientLoader({
+const clientLoader = createClientLoader(mergedEntries, {
   component(
     { toc, frontmatter, default: MDX },
     // you can define props for the component
@@ -73,7 +77,7 @@ const clientLoader = browserCollections.docs.createClientLoader({
         <div className="-mt-4 flex flex-row items-center gap-2 border-b pb-6">
           <MarkdownCopyButton markdownUrl={markdownUrl} />
           <ViewOptionsPopover
-            githubUrl={`https://github.com/${gitConfig.user}/${gitConfig.repo}/blob/${gitConfig.branch}/content/docs/${path}`}
+            githubUrl={`https://github.com/${gitConfig.user}/${gitConfig.repo}/blob/${gitConfig.branch}/${resolveContentPath(path)}`}
             markdownUrl={markdownUrl}
           />
         </div>
@@ -85,6 +89,18 @@ const clientLoader = browserCollections.docs.createClientLoader({
   },
 });
 
+function collectFolderUrls(folder: PageTree.Folder): Set<string> {
+  const urls = new Set<string>();
+  if (folder.index) urls.add(folder.index.url);
+  for (const child of folder.children) {
+    if (child.type === "page") urls.add(child.url);
+    else if (child.type === "folder") {
+      for (const url of collectFolderUrls(child)) urls.add(url);
+    }
+  }
+  return urls;
+}
+
 function Page() {
   const { path, pageTree, markdownUrl } = useFumadocsLoader(
     Route.useLoaderData(),
@@ -93,7 +109,13 @@ function Page() {
   return (
     <DocsLayout
       {...baseOptions()}
-      tabs={getLayoutTabs(pageTree)}
+      tabs={getLayoutTabs(pageTree, {
+        transform: (option, node): LayoutTab | null => ({
+          ...option,
+          $folder: undefined,
+          urls: collectFolderUrls(node),
+        }),
+      })}
       tree={pageTree}
     >
       <AISearch>
