@@ -2,11 +2,7 @@
 
 ## Documentation
 
-Provide the language hints for syntax highlighting for all code blocks and inline-code snippets in the .mdx files.
-
-Write Documentation for HR, Drive, Constants,Tasks
-
-- List of Features and Configuration in each unit.
+Write Documentation for HR, Drive, Constants, Tasks using subagents and the SKILL. Always write in ./docs-www/ in the respective package.
 
 ## Module Implementation
 
