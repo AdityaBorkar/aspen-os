@@ -1,0 +1,101 @@
+---
+title: Services
+description: Internal services powering the Tasks module — reports, notifications, dependency graph, and filter engine.
+icon: IconDeviceGamepad3
+---
+
+The Tasks module uses 4 internal service classes. `ReportService` is accessible via `framework.tasks.reports`; the others are used internally by workflows.
+
+## ReportService
+
+Access: `framework.tasks.reports`
+
+Aggregates task, assignee, and time data into summary, workload, time, and cumulative flow reports.
+
+```ts
+getTaskSummary(projectId: string): Promise<{
+  byPriority: Record<string, number>;
+  byStatus: Record<string, number>;
+  total: number;
+}>
+
+getWorkloadReport(projectId: string): Promise<{
+  assignedCount: number;
+  completedCount: number;
+  overdueCount: number;
+  userId: string;
+}[]>
+
+getTimeReport(projectId: string, dateFrom?: Date, dateTo?: Date): Promise<{
+  billable: boolean;
+  duration: string | null;
+  taskId: string;
+  userId: string;
+}[]>
+
+getCumulativeFlow(projectId: string, dateFrom: Date, dateTo: Date): Promise<{
+  count: number;
+  date: string;
+  statusId: string;
+}[]>
+```
+
+- `getTaskSummary` groups by `priority` and `statusId` in a single query, then assembles two count maps.
+- `getWorkloadReport` joins `task_assignee` with `task` and uses `SUM(CASE WHEN ...)` for completed and overdue counts.
+- `getTimeReport` joins `task_time_entry` with `task` to filter by project, grouping by user, task, and billable flag.
+- `getCumulativeFlow` executes raw SQL to bucket tasks by `DATE(created_at)` and `status_id`.
+
+## NotificationBridge
+
+Used internally by `ReminderWorkflow` when `enableNotifications` is set on `TaskModuleConfig`.
+
+```ts
+publishTaskCreated(event: TaskCreatedEvent): Promise<void>
+publishTaskUpdated(event: TaskUpdatedEvent): Promise<void>
+publishTaskDeleted(event: TaskDeletedEvent): Promise<void>
+publishTaskStatusChanged(event: TaskStatusChangedEvent): Promise<void>
+publishTaskAssigned(event: TaskAssignedEvent): Promise<void>
+publishTaskUnassigned(event: TaskUnassignedEvent): Promise<void>
+publishTaskLinked(event: TaskLinkedEvent): Promise<void>
+publishTaskUnlinked(event: TaskUnlinkedEvent): Promise<void>
+publishTaskCommented(event: TaskCommentedEvent): Promise<void>
+publishReminderFired(event: ReminderFiredEvent): Promise<void>
+```
+
+Each method calls `pubsub.publish(topic, event)` with the corresponding event constant. The bridge is the only path through which task events reach the pubsub bus.
+
+## DependencyGraphService
+
+Used internally by `LinkWorkflow` for cycle detection and graph algorithms.
+
+```ts
+wouldCreateCycle(sourceId: string, targetId: string): Promise<boolean>
+getDependencies(taskId: string): Promise<string[]>
+getDependents(taskId: string): Promise<string[]>
+topologicalSort(taskIds: string[]): Promise<string[]>
+getCriticalPath(projectId: string): Promise<CriticalPathResult>
+buildDependencyGraph(taskIds: string[]): Promise<TaskDependencyNode[]>
+```
+
+- `wouldCreateCycle` performs BFS from `targetId` following `blocks` links, returning `true` if `sourceId` is reachable.
+- `topologicalSort` uses Kahn's algorithm (in-degree queue). Throws if a cycle is detected.
+- `getCriticalPath` computes the longest path by estimated hours using a topological traversal, returning `{ duration, path }`.
+- `buildDependencyGraph` returns nodes with their `dependsOn` arrays for client-side rendering.
+- Only `blocks`-type links are considered for graph operations.
+
+## FilterEngine
+
+Used internally by `TaskWorkflow.list()` to build Drizzle WHERE clauses from `TaskFilters`.
+
+```ts
+buildTaskWhereClause(filters: TaskFilters | undefined): SQL | undefined
+buildDateRangeClause(column: typeof task.dueDate, before?: Date, after?: Date): SQL | undefined
+buildArrayAnyClause(column: typeof task.labels, values: string[]): SQL
+buildArrayAllClause(column: typeof task.labels, values: string[]): SQL
+buildEmptyClause(column: typeof task.dueDate, isEmpty: boolean): SQL
+buildInClause(column: typeof task.priority, values: string[]): SQL
+```
+
+- `buildTaskWhereClause` supports: `projectId`, `statusId`, `typeId`, `priority`, `reporterId`, `parentId` (null = top-level), `isArchived`, `label` (array contains), `search` (ilike on title + description), `assigneeId` (subquery on `task_assignee`).
+- `buildArrayAnyClause` uses the `&&` operator (overlap). `buildArrayAllClause` uses `@>` (contains).
+- `buildInClause` returns `1=1` for empty value arrays (no-op).

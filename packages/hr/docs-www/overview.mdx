@@ -1,0 +1,57 @@
+---
+title: Overview
+description: Module structure, workflows, and schema layout of the HR domain module.
+icon: IconInfoCircle
+---
+
+The HR module is a domain module for human resources management covering employees, attendance, leave, lifecycle, overtime, shifts, and HR setup.
+
+## Module Structure
+
+```text
+packages/hr/src/
+  index.ts              # Stub module class (HrModule)
+  db-schema.ts          # Empty — not yet wired
+  types.ts              # Empty — types come from schemas/
+  event-map.ts          # Empty — not yet wired
+  schemas/              # Valibot validation schemas
+    index.ts            # Re-exports all schemas, types, and enums
+    enums.ts            # 24 enum schemas
+    utils.ts            # Shared pipes (NameSchema, EmployeeIdSchema, etc.)
+    employee.ts
+    attendance.ts
+    leave.ts
+    lifecycle.ts
+    overtime.ts
+    setup.ts
+    shift.ts
+  workflows/            # 7 workflow classes
+    index.ts
+    employee.ts
+    attendance.ts
+    leave.ts
+    lifecycle.ts
+    overtime.ts
+    setup.ts
+    shift.ts
+```
+
+## Workflows
+
+| Workflow | Access Path | Manages |
+|---|---|---|
+| `EmployeeWorkflow` | `framework.hr.employees` | Employee records, groups, health insurance, skill maps |
+| `AttendanceWorkflow` | `framework.hr.attendance` | Attendance, check-ins, attendance requests |
+| `LeaveWorkflow` | `framework.hr.leave` | Leave types, periods, policies, allocations, applications, encashment, block lists, adjustments, ledger |
+| `LifecycleWorkflow` | `framework.hr.lifecycle` | Onboarding, promotions, transfers, separations, exit interviews, full and final statements |
+| `OvertimeWorkflow` | `framework.hr.overtime` | Overtime types and overtime slips |
+| `SetupWorkflow` | `framework.hr.setup` | HR/payroll settings, employment types, departments, designations, grades, holiday lists, holidays |
+| `ShiftWorkflow` | `framework.hr.shift` | Shift types, locations, assignments, requests, schedules, schedule assignments |
+
+## Schemas
+
+Validation schemas live in `src/schemas/` and are re-exported from `src/schemas/index.ts`. Each domain file defines `Create*Schema`, `Update*Schema`, and `*FiltersSchema` objects with corresponding `InferOutput` types. Shared pipes (`NameSchema`, `EmployeeIdSchema`, `EmailSchema`, `PhoneSchema`) are in `utils.ts`.
+
+<Callout type="warn">
+  The module is not yet wired into the framework. The `HrModule` class in `src/index.ts` is a stub with empty `initialize()`, `prepare()`, and `destroy()`. The `db-schema.ts`, `event-map.ts`, and `types.ts` files are empty. The `package.json` has no dependencies, exports, or scripts. The workflow classes and Valibot schemas are fully implemented but cannot be used until the module is wired up.
+</Callout>

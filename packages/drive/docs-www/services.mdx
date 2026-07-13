@@ -1,0 +1,172 @@
+---
+title: Services
+description: Internal services powering the Drive module — path management, storage bridging, access control, archiving, and search.
+icon: IconDeviceGamepad3
+---
+
+The Drive module uses 5 internal service classes that handle path resolution, storage abstraction, permission checks, folder archiving, and search. These are accessible as getters on the module instance after `initialize()`.
+
+## PathService
+
+Access: `framework.drive.paths`
+
+Resolves, computes, and validates filesystem paths stored as `/folder/subfolder/file.ext` strings in the database.
+
+```ts
+// Path computation
+async computeFolderPath(name: string, parentId: string | null): Promise<string>
+async computeFilePath(name: string, folderId: string | null): Promise<string>
+
+// Resolution & navigation
+async resolvePath(path: string): Promise<PathResolution | null>
+async getBreadcrumbs(folderId: string): Promise<BreadcrumbItem[]>
+async getFolderPath(folderId: string): Promise<string>
+async getFilePath(fileId: string): Promise<string>
+
+// Validation
+async checkNameUniqueness(name: string, parentId: string | null, excludeId?: string): Promise<void>
+async wouldCreateCycle(folderId: string, newParentId: string | null): Promise<boolean>
+
+// Depth
+get maxDepth(): number
+async getDepth(folderId: string): Promise<number>
+async getSubtreeMaxDepth(folderPath: string): Promise<number>
+
+// Cascade
+async cascadePaths(oldPath: string, newPath: string, tx?: DB): Promise<void>
+```
+
+- `checkNameUniqueness` compares case-insensitively against both folders and files in the same parent.
+- `cascadePaths` updates all descendant folder and file paths by prefix replacement when a folder is renamed or moved.
+- `wouldCreateCycle` walks the parent chain up to `maxDepth` to detect circular moves.
+
+## StorageBridge
+
+Access: `framework.drive.paths.storageBridge` (internal only — not exposed as a module getter)
+
+Wraps the framework's `StorageUnit` with Drive-specific key computation and S3-compatible operations.
+
+```ts
+computeStorageKey(folderPath: string, fileName: string): string
+computeArchiveKey(folderId: string): string
+
+async upload(input: {
+  body: Buffer | ReadableStream | string;
+  contentType?: string;
+  key: string;
+  metadata?: Record<string, string>;
+}): Promise<FileObject>
+
+async getSignedGetUrl(key: string, expiresIn?: number): Promise<string>
+async copy(sourceKey: string, destKey: string): Promise<FileObject>
+async move(sourceKey: string, destKey: string): Promise<FileObject>
+async remove(key: string): Promise<void>
+async get(key: string): Promise<Buffer>
+async exists(key: string): Promise<boolean>
+```
+
+- `computeStorageKey` appends a `crypto.randomUUID()` to the file name for collision-free storage.
+- `computeArchiveKey` returns `archives/{folderId}/{uuid}.zip`.
+
+## AccessService
+
+Access: `framework.drive.access`
+
+Checks ownership and share-based permissions, including inheritance from parent folders.
+
+```ts
+async checkPermission(
+  itemId: string,
+  itemType: "file" | "folder",
+  userId: string,
+  required: "viewer" | "editor" | "owner",
+): Promise<boolean>
+
+async isOwner(itemId: string, itemType: "file" | "folder", userId: string): Promise<boolean>
+
+async getEffectivePermission(
+  itemId: string,
+  itemType: "file" | "folder",
+  userId: string,
+): Promise<DrivePermission | null>
+
+async logAccess(input: {
+  itemId: string;
+  itemType: "file" | "folder";
+  action: string;
+  accessedBy?: string | null;
+  ip?: string | null;
+  userAgent?: string | null;
+  publicLinkId?: string | null;
+}): Promise<void>
+```
+
+- Permission ranking: `viewer` (1) < `editor` (2) < `owner` (3). Owners always pass `checkPermission`.
+- `getEffectivePermission` walks the parent chain upward, returning the highest-ranking non-expired share found.
+- Expired shares are treated as `null` (no permission).
+
+## ArchiveService
+
+Access: `framework.drive.archive`
+
+Generates ZIP archives of folder contents using `fflate`, with both synchronous and job-based modes.
+
+```ts
+async createArchive(
+  folderId: string,
+  options?: { expiresIn?: number; includeSubfolders?: boolean },
+): Promise<ArchiveResult>
+
+async processArchiveJob(data: {
+  folderId: string;
+  includeSubfolders: boolean;
+}): Promise<ArchiveResult>
+```
+
+```ts
+// Return type
+interface ArchiveResult {
+  key: string;  // storage key for the generated ZIP
+  url: string;  // signed download URL
+}
+```
+
+- `createArchive` throws `ArchiveTooLargeError` if the folder exceeds 1000 files or 1 GB total size.
+- `processArchiveJob` is the async entry point for large folders that exceed the synchronous threshold.
+- Archives include a `_manifest.json` entry with `folderName`, `fileCount`, and `createdAt`.
+
+## SearchService
+
+Access: `framework.drive.search`
+
+Queries files and folders by name, description, owner, content type, date range, size range, and labels.
+
+```ts
+async search(opts: {
+  query?: string;
+  ownerId?: string;
+  contentType?: string;
+  type?: "file" | "folder";
+  dateFrom?: Date;
+  dateTo?: Date;
+  sizeMin?: number;
+  sizeMax?: number;
+  labels?: string[];
+  scope?: "all" | "my_files" | "shared_with_me";
+  userId?: string;
+  limit?: number;    // default 50
+  offset?: number;   // default 0
+}): Promise<SearchResult>
+```
+
+```ts
+// Return type
+interface SearchResult {
+  files: DriveFileRow[];
+  folders: DriveFolderRow[];
+}
+```
+
+- `query` matches against `name` and `description` using `ilike` (case-insensitive substring).
+- `labels` filters results to items that have at least one of the specified label IDs applied.
+- `scope` and `userId` are accepted but only `ownerId` is applied as a filter — `scope` filtering must be handled by the caller.

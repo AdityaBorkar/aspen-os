@@ -1,0 +1,96 @@
+---
+title: Overview
+description: Architecture, initialization, and module structure of the Tasks domain module.
+icon: IconInfoCircle
+---
+
+The Tasks module manages projects, tasks, statuses, time tracking, comments, attachments, reminders, automation rules, saved views, and dependency graphs.
+
+## Module Configuration
+
+```ts
+import { TaskModule } from "@aspen-os/tasks";
+
+const tasks = TaskModule.create({
+  enableNotifications: true,
+});
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `enableNotifications` | `boolean?` | `false` | Instantiates `NotificationBridge` for pubsub event publishing |
+
+## Initialization
+
+```ts title="src/index.ts"
+initialize(units: { db: DatabaseUnit; pubsub: PubSubUnit }): void
+```
+
+Receives `db` and `pubsub` units. Instantiates all 11 workflows, the `ReportService`, and optionally the `NotificationBridge` (when `enableNotifications` is set). The `ReminderWorkflow` receives the notification bridge instance.
+
+## Module Structure
+
+```text
+packages/tasks/src/
+  index.ts              # TaskModule class + type re-exports
+  db-schema.ts          # 17 tables + 8 enums
+  types.ts              # Re-exports from schemas/ + domain interfaces
+  event-map.ts          # 10 task events + 1 reminder event + event maps
+  schemas/              # Valibot input/filter schemas
+    index.ts
+    enums.ts
+    utils.ts
+    project.ts
+    task.ts
+    status.ts
+    task-type.ts
+    time-entry.ts
+    comment.ts
+    link.ts
+    collaboration.ts
+    reminder.ts
+    automation.ts
+  workflows/            # 11 workflow classes
+    project.ts
+    task.ts
+    status.ts
+    task-type.ts
+    time-entry.ts
+    comment.ts
+    link.ts
+    collaboration.ts
+    reminder.ts
+    automation.ts
+    view.ts
+  services/             # 4 service classes
+    report-service.ts
+    notification-bridge.ts
+    dependency-graph.ts
+    filter-engine.ts
+```
+
+## Accessing Workflows
+
+```ts
+framework.tasks.projects       // → ProjectWorkflow
+framework.tasks.tasks           // → TaskWorkflow
+framework.tasks.statuses        // → StatusWorkflow
+framework.tasks.taskTypes       // → TaskTypeWorkflow
+framework.tasks.timeEntries     // → TimeEntryWorkflow
+framework.tasks.comments        // → CommentWorkflow
+framework.tasks.links           // → LinkWorkflow
+framework.tasks.collaboration   // → CollaborationWorkflow
+framework.tasks.reminders       // → ReminderWorkflow
+framework.tasks.automation      // → AutomationWorkflow
+framework.tasks.views           // → ViewWorkflow
+```
+
+## Accessing Services
+
+```ts
+framework.tasks.reports         // → ReportService
+```
+
+<Callout type="warn">
+  Accessing any workflow or service getter before `initialize()` throws: `"Tasks module not initialized. Call initialize() after framework.initialize()."`
+</Callout>

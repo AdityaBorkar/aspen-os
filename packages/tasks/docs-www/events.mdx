@@ -1,0 +1,62 @@
+---
+title: Events
+description: Domain event map for the Tasks module — 10 task events and 1 reminder event.
+icon: IconBell
+---
+
+The Tasks module defines 10 task events and 1 reminder event published as plain string topics via PubSub.
+
+## Event Constants
+
+```ts title="src/event-map.ts"
+export const TASK_EVENTS = {
+  ASSIGNED: "task:assigned",
+  COMMENTED: "task:commented",
+  CREATED: "task:created",
+  DELETED: "task:deleted",
+  LINKED: "task:linked",
+  STATUS_CHANGED: "task:status_changed",
+  UNASSIGNED: "task:unassigned",
+  UNLINKED: "task:unlinked",
+  UPDATED: "task:updated",
+} as const;
+
+export const REMINDER_EVENTS = {
+  FIRED: "reminder:fired",
+} as const;
+```
+
+## Event Map
+
+| Event | Payload | Trigger |
+|---|---|---|
+| `task:created` | `{ task: { id, number, projectId, title } }` | Task created |
+| `task:updated` | `{ task: { id, title }, changes: Record<string, unknown> }` | Task updated |
+| `task:deleted` | `{ taskId }` | Task deleted |
+| `task:status_changed` | `{ task: { id, title }, fromStatus, toStatus }` | Task status changed |
+| `task:assigned` | `{ taskId, userId, assignedBy }` | User assigned to task |
+| `task:unassigned` | `{ taskId, userId }` | User unassigned from task |
+| `task:linked` | `{ sourceId, targetId, linkType }` | Task link created |
+| `task:unlinked` | `{ sourceId, targetId }` | Task link deleted |
+| `task:commented` | `{ taskId, comment: { id, body } }` | Comment added to task |
+| `reminder:fired` | `{ taskId, reminder: { id, type, userId } }` | Reminder processed by `processPendingReminders()` |
+
+## Usage
+
+```ts
+// Subscribe to task creation
+await framework.pubsub.subscribe("task:created", async (message) => {
+  const { task } = message.data;
+  // React to new task
+});
+
+// Subscribe to reminder firing
+await framework.pubsub.subscribe("reminder:fired", async (message) => {
+  const { taskId, reminder } = message.data;
+  // Send notification to reminder.userId
+});
+```
+
+<Callout type="info">
+  The event map (`TaskDomainEventMap`) is a type-level contract. Events are published as plain string topics via PubSub — the map provides TypeScript inference for subscribers but does not enforce topics at runtime. The `NotificationBridge` is the only publisher; it is instantiated when `enableNotifications: true` is set on `TaskModuleConfig`.
+</Callout>

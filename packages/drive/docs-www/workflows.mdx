@@ -1,0 +1,325 @@
+---
+title: Workflows
+description: API reference for the 6 workflows exposed by the Drive module.
+icon: IconListCheck
+---
+
+The Drive module exposes 6 workflows managing folders, files, labels, shares, public links, and trash.
+
+## FolderWorkflow
+
+Access: `framework.drive.folders`
+
+Manages folder creation, movement, metadata, and lifecycle.
+
+### Create
+
+```ts
+async create(input: {
+  name: string;             // 1-255 chars, no slashes or null bytes
+  ownerId: string;
+  parentId?: string | null;
+  color?: string | null;    // hex color, e.g. "#3B82F6"
+  description?: string | null;
+}): Promise<DriveFolderRow>
+```
+
+### Rename & Move
+
+```ts
+async rename(id: string, input: { name: string }): Promise<DriveFolderRow>
+
+async move(id: string, input: { newParentId?: string | null }): Promise<DriveFolderRow>
+```
+
+### Update
+
+```ts
+async update(id: string, input: {
+  color?: string | null;
+  description?: string | null;
+}): Promise<DriveFolderRow>
+```
+
+### Lifecycle
+
+```ts
+async delete(id: string, force?: boolean): Promise<DriveFolderRow>
+async restore(id: string): Promise<DriveFolderRow>
+```
+
+- `delete` soft-deletes (sets `isTrashed: true`). Throws if the folder has non-trashed children unless `force = true`.
+- `restore` re-parents to `null` if the parent folder is itself trashed.
+
+### Queries
+
+```ts
+async getById(id: string): Promise<DriveFolderRow>
+async get(id: string): Promise<FolderWithMetadata>
+async list(parentId?: string | null, opts?: ListFolderOptions): Promise<{
+  files: DriveFileRow[];
+  folders: DriveFolderRow[];
+  sortBy: string;
+  sortOrder: "asc" | "desc";
+}>
+```
+
+- `get` returns folder plus `childCount` and `totalSize` (aggregated from all non-trashed descendants).
+- `list` returns non-trashed child folders and files. Supports `limit`, `offset`, `search`, `sortBy`, `sortOrder`.
+
+## FileWorkflow
+
+Access: `framework.drive.files`
+
+Manages file upload, download, versioning, movement, and lifecycle.
+
+### Upload
+
+```ts
+async upload(input: {
+  name: string;
+  ownerId: string;
+  body: Buffer | ReadableStream | string;
+  contentType: string;
+  folderId?: string | null;
+  description?: string | null;
+}): Promise<DriveFileRow>
+```
+
+### Download
+
+```ts
+async download(id: string, userId: string, options?: {
+  expiresIn?: number;   // capped at maxDownloadLinkExpiry
+}): Promise<{ file: DriveFileRow; url: string }>
+
+async getDownloadLink(id: string, options?: {
+  expiresIn?: number;
+}): Promise<{ file: DriveFileRow; url: string }>
+```
+
+- `download` publishes a `drive:file_downloaded` event with `userId`. `getDownloadLink` does not.
+
+### Update & Versioning
+
+```ts
+async update(id: string, input: {
+  body: Buffer | ReadableStream | string;
+  uploadedBy: string;
+  contentType?: string;
+  description?: string | null;
+}): Promise<DriveFileRow>
+
+async listVersions(id: string): Promise<DriveFileVersionRow[]>
+```
+
+- `update` snapshots the current version to `drive_file_version`, uploads new content, increments `version`, and prunes old versions beyond `maxVersions`.
+
+### Rename, Move & Copy
+
+```ts
+async rename(id: string, input: { name: string }): Promise<DriveFileRow>
+async move(id: string, input: { newFolderId?: string | null }): Promise<DriveFileRow>
+async copy(id: string, destFolderId?: string | null): Promise<DriveFileRow>
+```
+
+- `move` relocates the object in storage. `copy` duplicates the storage object and creates a new `drive_file` row.
+
+### Lifecycle
+
+```ts
+async delete(id: string): Promise<DriveFileRow>
+async restore(id: string): Promise<DriveFileRow>
+async purge(id: string): Promise<void>
+```
+
+- `delete` soft-deletes. `restore` re-parents to `null` if the parent folder is trashed.
+- `purge` removes the storage object, all version storage objects, and the database rows. Irreversible.
+
+## LabelWorkflow
+
+Access: `framework.drive.labels`
+
+Manages labels (global or personal) and their application to files and folders.
+
+### CRUD
+
+```ts
+async create(input: {
+  name: string;           // 1-100 chars
+  color: string;          // hex color
+  isGlobal?: boolean;     // default false
+  ownerId?: string | null;
+}): Promise<DriveLabelRow>
+
+async delete(id: string): Promise<void>
+```
+
+- Personal labels (`isGlobal: false`) require `ownerId`. `delete` also removes all `drive_item_label` associations.
+
+### Assignment
+
+```ts
+async apply(input: {
+  labelId: string;
+  itemId: string;
+  itemType: "file" | "folder";
+  appliedBy: string;
+}): Promise<{ applied: true }>
+
+async remove(itemId: string, itemType: "file" | "folder", labelId: string): Promise<{ removed: true }>
+```
+
+- `apply` uses `onConflictDoNothing` — re-applying a label is a no-op.
+
+### Queries
+
+```ts
+async list(opts?: {
+  ownerId?: string;
+  includeGlobal?: boolean;  // default true
+  limit?: number;           // default 50
+  offset?: number;          // default 0
+}): Promise<DriveLabelRow[]>
+
+async listByLabel(labelId: string, opts?: {
+  limit?: number;
+  offset?: number;
+}): Promise<{ files: DriveFileRow[]; folders: DriveFolderRow[] }>
+```
+
+## ShareWorkflow
+
+Access: `framework.drive.shares`
+
+Manages item sharing with users or groups at `viewer`, `editor`, or `owner` permission.
+
+### Manage
+
+```ts
+async create(input: {
+  itemId: string;
+  itemType: "file" | "folder";
+  granteeId: string;
+  granteeType: "user" | "group";
+  permission: "viewer" | "editor" | "owner";
+  sharedBy: string;
+  expiresAt?: Date | null;
+  message?: string | null;
+}): Promise<DriveShareRow>
+
+async update(id: string, input: {
+  permission: "viewer" | "editor" | "owner";
+}): Promise<DriveShareRow>
+
+async remove(id: string): Promise<void>
+```
+
+- `create` rejects duplicate shares (same item + grantee + grantee type).
+- `update` only changes `permission`.
+
+### Queries
+
+```ts
+async list(itemId: string, itemType: "file" | "folder"): Promise<DriveShareRow[]>
+async listSharedWithMe(userId: string, opts?: {
+  limit?: number;
+  offset?: number;
+}): Promise<DriveShareRow[]>
+async getById(id: string): Promise<DriveShareRow>
+```
+
+## PublicLinkWorkflow
+
+Access: `framework.drive.publicLinks`
+
+Manages public links with passwords, view limits, expiry, and access logging.
+
+### Manage
+
+```ts
+async create(input: {
+  itemId: string;
+  itemType: "file" | "folder";
+  permission: "view" | "edit";
+  createdBy: string;
+  expiresAt?: Date | null;
+  maxViews?: number | null;
+  password?: string | null;
+}): Promise<DrivePublicLinkRow>
+
+async update(id: string, input: {
+  permission?: "view" | "edit";
+  expiresAt?: Date | null;
+  isActive?: boolean;
+  maxViews?: number | null;
+  password?: string | null;
+}): Promise<DrivePublicLinkRow>
+
+async revoke(id: string): Promise<void>
+```
+
+- Passwords are hashed with `Bun.password.hash` before storage.
+- `revoke` sets `isActive: false` (does not delete the row).
+
+### Resolution
+
+```ts
+async resolve(
+  input: { token: string; password?: string },
+  requestInfo?: { ip?: string; userAgent?: string },
+): Promise<ResolvedPublicLink | null>
+```
+
+- Returns `null` if the link is inactive, expired, view-limited, or password-protected without a valid password.
+- Increments `viewCount` and writes to `drive_access_log` on each successful resolution.
+
+### Queries
+
+```ts
+async list(itemId: string, itemType: "file" | "folder"): Promise<DrivePublicLinkRow[]>
+async getById(id: string): Promise<DrivePublicLinkRow>
+```
+
+## TrashWorkflow
+
+Access: `framework.drive.trash`
+
+Manages trashed items, restoration, manual emptying, and scheduled auto-purge.
+
+### List
+
+```ts
+async list(opts?: {
+  ownerId?: string;
+  limit?: number;   // default 50
+  offset?: number;  // default 0
+}): Promise<{ files: DriveFileRow[]; folders: DriveFolderRow[] }>
+```
+
+### Restore
+
+```ts
+async restore(id: string, itemType: "file" | "folder"): Promise<DriveFileRow | DriveFolderRow>
+```
+
+- Throws if the item is not in trash. Re-parents to `null` if the parent is also trashed.
+
+### Empty
+
+```ts
+async emptyTrash(opts?: { ownerId?: string }): Promise<{
+  filesPurged: number;
+  foldersPurged: number;
+}>
+```
+
+- Permanently deletes trashed files (including storage objects) and folders. Optionally scoped by `ownerId`.
+
+### Auto-Purge
+
+```ts
+async purgeExpired(): Promise<void>
+```
+
+- Called by the `drive:auto-purge` cron (`0 3 * * *`). Deletes items whose `trashedAt` is older than `trashRetentionDays`.

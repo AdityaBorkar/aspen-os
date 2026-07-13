@@ -4,6 +4,10 @@
 
 Write Documentation for HR, Drive, Constants, Tasks using subagents and the SKILL. Always write in ./docs-www/ in the respective package.
 
+- /init
+- /grill-with-docs
+- /improve-codebase-architecture
+
 ## Module Implementation
 
 - Task Management
@@ -42,7 +46,6 @@ Write Documentation for HR, Drive, Constants, Tasks using subagents and the SKIL
 - 
 - /grill-with-docs
 - /improve-codebase-architecture
-- /write-docs skill for writing documentation
 
 ## Issues
 

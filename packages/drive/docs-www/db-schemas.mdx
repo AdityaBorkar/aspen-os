@@ -1,0 +1,152 @@
+---
+title: Database Schema
+description: Tables, enums, and relationships for the Drive module.
+icon: IconDatabase
+---
+
+The Drive module defines 8 tables and 4 enums using Drizzle ORM.
+
+## Enums
+
+| Enum | Values |
+|---|---|
+| `drive_item_type` | `file`, `folder` |
+| `drive_grantee_type` | `user`, `group` |
+| `drive_permission` | `viewer`, `editor`, `owner` |
+| `drive_public_link_permission` | `view`, `edit` |
+
+## Tables
+
+### `drive_folder`
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | `gen_random_uuid()::text` |
+| `name` | text | Folder name |
+| `owner_id` | text | Owner user ID |
+| `parent_id` | text | Parent folder (nullable, FK → `drive_folder.id`) |
+| `path` | text | Full path (unique), e.g. `/Documents/Reports` |
+| `color` | text | Hex color label (nullable) |
+| `description` | text | Description (nullable) |
+| `is_trashed` | boolean | Soft-delete flag (default `false`) |
+| `trashed_at` | timestamptz | When trashed (nullable) |
+| `created_at` | timestamptz | Creation timestamp (default `now()`) |
+| `updated_at` | timestamptz | Last update timestamp (default `now()`) |
+
+### `drive_file`
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | `gen_random_uuid()::text` |
+| `name` | text | File name |
+| `owner_id` | text | Owner user ID |
+| `folder_id` | text | Parent folder (nullable, FK → `drive_folder.id`) |
+| `path` | text | Full path (unique), e.g. `/Documents/Reports/report.pdf` |
+| `content_type` | text | MIME type |
+| `size` | bigint | File size in bytes |
+| `storage_key` | text | Object key in storage backend |
+| `etag` | text | ETag from storage (nullable) |
+| `description` | text | Description (nullable) |
+| `version` | integer | Current version number (default `1`) |
+| `is_trashed` | boolean | Soft-delete flag (default `false`) |
+| `trashed_at` | timestamptz | When trashed (nullable) |
+| `created_at` | timestamptz | Creation timestamp (default `now()`) |
+| `updated_at` | timestamptz | Last update timestamp (default `now()`) |
+
+### `drive_file_version`
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | `gen_random_uuid()::text` |
+| `file_id` | text | Parent file (FK → `drive_file.id`) |
+| `version` | integer | Version number |
+| `content_type` | text | MIME type at this version |
+| `size` | bigint | File size in bytes |
+| `storage_key` | text | Object key in storage backend |
+| `etag` | text | ETag from storage (nullable) |
+| `uploaded_by` | text | User who uploaded this version |
+| `created_at` | timestamptz | Creation timestamp (default `now()`) |
+
+### `drive_label`
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | `gen_random_uuid()::text` |
+| `name` | text | Label name |
+| `color` | text | Hex color |
+| `is_global` | boolean | Org-wide vs personal (default `false`) |
+| `owner_id` | text | Owner for personal labels (nullable) |
+| `created_at` | timestamptz | Creation timestamp (default `now()`) |
+
+### `drive_item_label`
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | `gen_random_uuid()::text` |
+| `item_id` | text | File or folder ID |
+| `item_type` | drive_item_type | `file` or `folder` |
+| `label_id` | text | Label (FK → `drive_label.id`) |
+| `applied_by` | text | User who applied the label |
+| `applied_at` | timestamptz | When applied (default `now()`) |
+
+- Unique index on `(item_id, item_type, label_id)` prevents duplicate label assignments.
+
+### `drive_share`
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | `gen_random_uuid()::text` |
+| `item_id` | text | Shared file or folder ID |
+| `item_type` | drive_item_type | `file` or `folder` |
+| `grantee_id` | text | User or group ID |
+| `grantee_type` | drive_grantee_type | `user` or `group` |
+| `permission` | drive_permission | `viewer`, `editor`, or `owner` |
+| `shared_by` | text | User who created the share |
+| `message` | text | Share message (nullable) |
+| `expires_at` | timestamptz | Expiry timestamp (nullable) |
+| `created_at` | timestamptz | Creation timestamp (default `now()`) |
+
+### `drive_public_link`
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | `gen_random_uuid()::text` |
+| `item_id` | text | Linked file or folder ID |
+| `item_type` | drive_item_type | `file` or `folder` |
+| `token` | text | Public access token (unique) |
+| `permission` | drive_public_link_permission | `view` or `edit` (default `view`) |
+| `created_by` | text | Creator user ID |
+| `password` | text | Hashed password (nullable) |
+| `max_views` | integer | View limit (nullable) |
+| `view_count` | integer | Current view count (default `0`) |
+| `is_active` | boolean | Active flag (default `true`) |
+| `expires_at` | timestamptz | Expiry timestamp (nullable) |
+| `created_at` | timestamptz | Creation timestamp (default `now()`) |
+
+### `drive_access_log`
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | `gen_random_uuid()::text` |
+| `item_id` | text | Accessed file or folder ID |
+| `item_type` | drive_item_type | `file` or `folder` |
+| `action` | text | Action performed |
+| `accessed_by` | text | User ID (nullable) |
+| `public_link_id` | text | Originating public link (nullable, FK → `drive_public_link.id`) |
+| `ip` | text | Request IP (nullable) |
+| `user_agent` | text | Request user agent (nullable) |
+| `created_at` | timestamptz | Access timestamp (default `now()`) |
+
+## Relationships
+
+```text
+drive_folder ──self-ref──→ drive_folder (parent_id)
+drive_folder ──1:N──→ drive_file (folder_id)
+drive_file   ──1:N──→ drive_file_version (file_id)
+drive_label ──1:N──→ drive_item_label (label_id)
+drive_folder/file ──1:N──→ drive_item_label (item_id + item_type)
+drive_folder/file ──1:N──→ drive_share (item_id + item_type)
+drive_folder/file ──1:N──→ drive_public_link (item_id + item_type)
+drive_public_link ──1:N──→ drive_access_log (public_link_id)
+drive_folder/file ──1:N──→ drive_access_log (item_id + item_type)
+```

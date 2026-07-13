@@ -1,0 +1,308 @@
+---
+title: Workflows
+description: API reference for the 11 workflows exposed by the Tasks module.
+icon: IconListCheck
+---
+
+The Tasks module exposes 11 workflows managing projects, tasks, statuses, types, time tracking, comments, links, collaboration, reminders, automation, and saved views.
+
+## ProjectWorkflow
+
+Access: `framework.tasks.projects`
+
+Manages projects and their members.
+
+### Projects
+
+```ts
+create(input: CreateProjectInput): Promise<project>
+update(id: string, patch: UpdateProjectInput): Promise<project>
+archive(id: string): Promise<project>
+restore(id: string): Promise<project>
+delete(id: string): Promise<void>
+getById(id: string): Promise<project>
+list(filters?: ProjectFilters): Promise<project[]>
+```
+
+### Members
+
+```ts
+addMember(input: CreateProjectMemberInput): Promise<projectMember>
+updateMember(projectId: string, userId: string, patch: UpdateProjectMemberInput): Promise<projectMember>
+removeMember(projectId: string, userId: string): Promise<void>
+listMembers(projectId: string): Promise<projectMember[]>
+```
+
+- `create` auto-adds the `leadId` user as a project member with `admin` role.
+- `create` and `update` enforce unique project `key` (2–10 uppercase letters).
+- `delete` throws if the project has any tasks — archive instead.
+
+## TaskWorkflow
+
+Access: `framework.tasks.tasks`
+
+Manages tasks, subtasks, assignees, and activity logging.
+
+### Tasks
+
+```ts
+create(input: CreateTaskInput): Promise<task>
+update(id: string, patch: UpdateTaskInput): Promise<task>
+delete(id: string): Promise<void>
+archive(id: string): Promise<task>
+restore(id: string): Promise<task>
+bulkUpdate(input: BulkUpdateTaskInput): Promise<task>
+getById(id: string): Promise<task>
+list(filters?: TaskFilters): Promise<task[]>
+```
+
+### Subtasks
+
+```ts
+getSubTasks(parentId: string): Promise<task[]>
+getCompletionSummary(parentId: string): Promise<TaskCompletionSummary>
+```
+
+### Assignees
+
+```ts
+assign(input: AssignTaskInput): Promise<taskAssignee>
+unassign(taskId: string, userId: string): Promise<void>
+getAssignees(taskId: string): Promise<taskAssignee[]>
+getLoggedHours(taskId: string): Promise<number>
+```
+
+- `create` generates a display number (`KEY-SEQ`) by incrementing the project's `taskCounter`.
+- Parent tasks must belong to the same project. Nesting depth is capped at 3 levels.
+- Setting a parent that would create a circular reference throws.
+- `assign` with `isLead: true` unsets any existing lead assignee on the task.
+- `assign` auto-adds the assignee as a watcher.
+- `update` writes activity log entries for status changes and field updates.
+
+## StatusWorkflow
+
+Access: `framework.tasks.statuses`
+
+Manages task statuses and status transition rules.
+
+### Statuses
+
+```ts
+createStatus(input: CreateStatusInput): Promise<status>
+updateStatus(id: string, patch: UpdateStatusInput): Promise<status>
+deleteStatus(id: string): Promise<void>
+getStatusById(id: string): Promise<status>
+listStatuses(projectId?: string): Promise<status[]>
+getGlobalStatuses(): Promise<status[]>
+```
+
+### Transitions
+
+```ts
+createTransition(input: CreateStatusTransitionInput): Promise<statusTransition>
+deleteTransition(id: string): Promise<void>
+listTransitions(projectId: string): Promise<statusTransition[]>
+validateTransition(fromStatusId: string, toStatusId: string, projectId: string): Promise<boolean>
+```
+
+- Setting `isDefault: true` on a new or updated status unsets the previous default for that project (or global scope if `projectId` is null).
+- `validateTransition` returns `true` if an explicit transition rule exists, or if no transition rules are defined for the project (open model).
+- `createTransition` rejects `fromStatusId === toStatusId`.
+
+## TaskTypeWorkflow
+
+Access: `framework.tasks.taskTypes`
+
+Manages task types and labels.
+
+### Task Types
+
+```ts
+createTaskType(input: CreateTaskTypeInput): Promise<taskType>
+updateTaskType(id: string, patch: UpdateTaskTypeInput): Promise<taskType>
+deleteTaskType(id: string): Promise<void>
+listTaskTypes(projectId?: string): Promise<taskType[]>
+```
+
+### Labels
+
+```ts
+createLabel(input: CreateLabelInput): Promise<label>
+updateLabel(id: string, patch: UpdateLabelInput): Promise<label>
+deleteLabel(id: string): Promise<void>
+listLabels(projectId?: string): Promise<label[]>
+```
+
+- Setting `isDefault: true` on a task type unsets the previous default for that project (or global scope if `projectId` is null).
+- Task types and labels can be project-scoped (`projectId` set) or global (`projectId` null).
+
+## TimeEntryWorkflow
+
+Access: `framework.tasks.timeEntries`
+
+Manages time tracking entries on tasks.
+
+```ts
+create(input: CreateTimeEntryInput): Promise<timeEntry>
+update(id: string, patch: UpdateTimeEntryInput): Promise<timeEntry>
+delete(id: string): Promise<void>
+getById(id: string): Promise<timeEntry>
+list(filters?: TimeEntryFilters): Promise<timeEntry[]>
+getTotalDuration(taskId: string, billableOnly?: boolean): Promise<number>
+```
+
+- `create` defaults `date` to today if not provided.
+- `getTotalDuration` sums the `duration` column (integer) and returns 0 when no entries exist.
+
+## CommentWorkflow
+
+Access: `framework.tasks.comments`
+
+Manages threaded comments on tasks.
+
+```ts
+create(input: CreateCommentInput): Promise<comment>
+update(id: string, patch: UpdateCommentInput): Promise<comment>
+delete(id: string): Promise<comment>
+getById(id: string): Promise<comment>
+listByTask(taskId: string): Promise<comment[]>
+listReplies(parentId: string): Promise<comment[]>
+```
+
+- `delete` is a soft delete — sets `isDeleted: true` and `body: "[comment deleted]"`.
+- `update` sets `editedAt` to the current timestamp.
+
+## LinkWorkflow
+
+Access: `framework.tasks.links`
+
+Manages dependency links between tasks and exposes graph operations.
+
+### Links
+
+```ts
+create(input: CreateTaskLinkInput): Promise<taskLink>
+delete(sourceId: string, targetId: string): Promise<void>
+listByTask(taskId: string): Promise<{ incoming: taskLink[]; outgoing: taskLink[] }>
+```
+
+### Graph Operations
+
+```ts
+topologicalSort(taskIds: string[]): Promise<string[]>
+getCriticalPath(projectId: string): Promise<CriticalPathResult>
+getDependencyGraph(taskIds: string[]): Promise<TaskDependencyNode[]>
+```
+
+- `create` rejects self-links (`sourceId === targetId`).
+- `create` with `linkType: "blocks"` checks for cycles via BFS traversal of the dependency graph.
+- Each link creates an inverse link automatically: `blocks` ↔ `blocked_by`, `related_to` ↔ `related_to`, `duplicates` ↔ `duplicates`, `caused_by` ↔ `caused_by`, `split_from` ↔ `split_from`.
+- `delete` removes both the link and its inverse.
+- `topologicalSort` throws if a cycle is detected.
+
+## CollaborationWorkflow
+
+Access: `framework.tasks.collaboration`
+
+Manages watchers, attachments, and activity logs.
+
+### Watchers
+
+```ts
+addWatcher(input: CreateWatcherInput): Promise<watcher>
+removeWatcher(taskId: string, userId: string): Promise<void>
+listWatchers(taskId: string): Promise<watcher[]>
+```
+
+### Attachments
+
+```ts
+addAttachment(input: CreateAttachmentInput): Promise<attachment>
+deleteAttachment(id: string): Promise<void>
+listAttachments(taskId: string): Promise<attachment[]>
+listAttachmentsByComment(commentId: string): Promise<attachment[]>
+```
+
+### Activity Log
+
+```ts
+getActivityLog(taskId: string, action?: string): Promise<activityLog[]>
+```
+
+- `addWatcher` is idempotent — returns the existing watcher row if already present.
+
+## ReminderWorkflow
+
+Access: `framework.tasks.reminders`
+
+Manages task reminders with recurring scheduling and notification dispatch.
+
+### Reminders
+
+```ts
+create(input: CreateReminderInput): Promise<reminder>
+update(id: string, patch: UpdateReminderInput): Promise<reminder>
+delete(id: string): Promise<void>
+getById(id: string): Promise<reminder>
+list(filters?: ReminderFilters): Promise<reminder[]>
+```
+
+### Processing
+
+```ts
+getPendingReminders(): Promise<reminder[]>
+processPendingReminders(): Promise<number>
+```
+
+### Helpers
+
+```ts
+createDueDateReminders(taskId: string, dueDate: Date, userId: string): Promise<void>
+createOverdueReminder(taskId: string, userId: string): Promise<void>
+```
+
+- `createDueDateReminders` creates three `due_date` reminders: 24 hours before, 1 hour before, and at due date.
+- `createOverdueReminder` creates a recurring daily `overdue` reminder if the task has a past `dueDate`.
+- `processPendingReminders` publishes `reminder:fired` events via `NotificationBridge` (when enabled), marks reminders as sent, and schedules the next occurrence for recurring reminders.
+- Supported intervals: `daily`, `weekly`, `monthly`, `every_2_hours`.
+
+## AutomationWorkflow
+
+Access: `framework.tasks.automation`
+
+Manages automation rules that trigger actions on task events.
+
+```ts
+create(input: CreateAutomationRuleInput): Promise<automationRule>
+update(id: string, patch: UpdateAutomationRuleInput): Promise<automationRule>
+delete(id: string): Promise<void>
+getById(id: string): Promise<automationRule>
+listByProject(projectId: string): Promise<automationRule[]>
+getActiveRules(projectId: string, trigger: string): Promise<automationRule[]>
+evaluateRules(context: { taskId: string; trigger: string; values: Record<string, unknown> }): Promise<AutomationAction[]>
+```
+
+- `evaluateRules` fetches active rules matching the trigger, checks each rule's `conditions` against the context `values`, and returns the `actions` array from all matching rules.
+- Condition matching is exact equality per key. Empty or null conditions match everything.
+- Triggers: `status_change`, `assignment_change`, `due_date_passed`, `task_created`, `task_updated`.
+
+## ViewWorkflow
+
+Access: `framework.tasks.views`
+
+Manages saved views with filters, sorting, and grouping.
+
+```ts
+create(input: CreateSavedViewInput): Promise<savedView>
+update(id: string, patch: UpdateSavedViewInput): Promise<savedView>
+delete(id: string): Promise<void>
+getById(id: string): Promise<savedView>
+listByOwner(ownerId: string): Promise<savedView[]>
+listByProject(projectId: string): Promise<savedView[]>
+listShared(projectId: string): Promise<savedView[]>
+getDefault(ownerId: string, projectId?: string): Promise<savedView | null>
+```
+
+- Setting `isDefault: true` unsets the previous default for that owner (and project, if specified).
+- View types: `list`, `board`, `calendar`, `timeline` (defaults to `list`).
+- `filters` and `sort` columns are `jsonb` — the schema accepts arbitrary objects.

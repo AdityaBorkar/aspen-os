@@ -14,7 +14,7 @@ import {
 } from "fumadocs-ui/layouts/docs/page";
 import { getLayoutTabs, type LayoutTab } from "fumadocs-ui/layouts/shared";
 import { MessageCircleIcon } from "lucide-react";
-import { Suspense } from "react";
+import { cloneElement, Suspense } from "react";
 
 import {
   AISearch,
@@ -104,6 +104,7 @@ function Page() {
     transform: (option, node): LayoutTab | null => ({
       ...option,
       $folder: undefined,
+      icon: option.icon && cloneElement(option.icon, { className: "*:size-5" }),
       urls: collectFolderUrls(node),
     }),
   }).sort((a, b) => {

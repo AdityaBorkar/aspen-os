@@ -1,0 +1,7 @@
+{
+  "icon": "IconCircleNumber3",
+  "pages": ["reference"],
+  "pagesIndex": "index",
+  "root": true,
+  "title": "Constants"
+}

@@ -1,0 +1,66 @@
+---
+title: Enums
+description: Valibot enum schemas defined in the HR module, grouped by domain.
+icon: IconNumber123
+---
+
+The HR module defines 24 Valibot enum schemas in `src/schemas/enums.ts`.
+
+## Employee
+
+| Enum | Values |
+|---|---|
+| `EmployeeStatusSchema` | `active`, `inactive`, `left`, `suspended` |
+| `GenderSchema` | `female`, `male`, `other`, `prefer_not_to_say` |
+| `EmploymentTypeSchema` | `contract`, `freelance`, `intern`, `part_time`, `permanent`, `temporary` |
+| `SkillProficiencySchema` | `advanced`, `beginner`, `expert`, `intermediate` |
+
+## Attendance
+
+| Enum | Values |
+|---|---|
+| `AttendanceStatusSchema` | `absent`, `half_day`, `on_leave`, `present`, `work_from_home` |
+| `CheckinLogTypeSchema` | `in`, `out` |
+| `AttendanceRequestStatusSchema` | `approved`, `pending`, `rejected` |
+
+## Leave
+
+| Enum | Values |
+|---|---|
+| `LeaveApplicationStatusSchema` | `approved`, `cancelled`, `draft`, `pending`, `rejected` |
+| `LeaveAllocationStatusSchema` | `active`, `cancelled`, `expired` |
+| `CompensatoryLeaveStatusSchema` | `approved`, `pending`, `rejected` |
+| `LeaveEncashmentStatusSchema` | `approved`, `paid`, `pending`, `rejected` |
+| `EarnedLeaveFrequencySchema` | `half_yearly`, `monthly`, `quarterly`, `yearly` |
+| `LeaveBlockListScopeSchema` | `company`, `department` |
+
+## Lifecycle
+
+| Enum | Values |
+|---|---|
+| `OnboardingStatusSchema` | `cancelled`, `completed`, `in_progress`, `pending` |
+| `SeparationStatusSchema` | `cancelled`, `completed`, `in_progress`, `pending` |
+| `LifecycleTaskStatusSchema` | `completed`, `in_progress`, `pending`, `skipped` |
+| `PromotionStatusSchema` | `approved`, `completed`, `pending`, `rejected` |
+| `TransferStatusSchema` | `approved`, `completed`, `pending`, `rejected` |
+| `ExitInterviewStatusSchema` | `cancelled`, `completed`, `scheduled` |
+| `FullAndFinalStatusSchema` | `approved`, `cancelled`, `draft`, `paid`, `pending` |
+
+## Overtime
+
+| Enum | Values |
+|---|---|
+| `OvertimeStatusSchema` | `approved`, `pending`, `rejected` |
+
+## Shift
+
+| Enum | Values |
+|---|---|
+| `ShiftRequestStatusSchema` | `approved`, `pending`, `rejected` |
+| `ShiftAssignmentStatusSchema` | `active`, `completed`, `inactive` |
+
+## Setup
+
+| Enum | Values |
+|---|---|
+| `HolidayTypeSchema` | `company`, `optional`, `public`, `weekly_off` |

@@ -1,0 +1,561 @@
+---
+title: Workflows
+description: API reference for the 7 workflow classes exposed by the HR module.
+icon: IconListCheck
+---
+
+The HR module exposes 7 workflow classes, each managing a distinct HR domain aggregate.
+
+## EmployeeWorkflow
+
+Access: `framework.hr.employees`
+
+Manages employee records, employee groups, health insurance, and skill maps.
+
+### Employee CRUD
+
+```ts
+create(input: CreateEmployeeInput)
+update(id: string, patch: UpdateEmployeeInput)
+getById(id: string)
+getByEmployeeId(employeeId: string)
+list(filters?: EmployeeFilters)
+deactivate(id: string)
+activate(id: string)
+markAsLeft(id: string, dateOfLeaving: string)
+getOrganizationalChart(company?: string): Promise<EmployeeTreeNode[]>
+```
+
+### Employee Group
+
+```ts
+createGroup(input: CreateEmployeeGroupInput)
+updateGroup(id: string, patch: UpdateEmployeeGroupInput)
+getGroupById(id: string)
+listGroups()
+deleteGroup(id: string)
+addGroupMember(input: AddGroupMemberInput)
+removeGroupMember(groupId: string, employeeId: string)
+listGroupMembers(groupId: string)
+```
+
+### Health Insurance
+
+```ts
+createHealthInsurance(input: CreateHealthInsuranceInput)
+updateHealthInsurance(id: string, patch: UpdateHealthInsuranceInput)
+getHealthInsuranceById(id: string)
+listHealthInsuranceByEmployee(employeeId: string)
+deleteHealthInsurance(id: string)
+```
+
+### Skill Map
+
+```ts
+createSkillMap(input: CreateSkillMapInput)
+updateSkillMap(id: string, patch: UpdateSkillMapInput)
+getSkillMapById(id: string)
+listSkillMapByEmployee(employeeId: string)
+deleteSkillMap(id: string)
+```
+
+### Business Rules
+
+- Employee ID uniqueness enforced on `create` and `update`
+- `deleteGroup` removes all members before deleting the group
+- `addGroupMember` verifies employee and group exist, rejects duplicate membership
+- `createHealthInsurance` and `createSkillMap` verify the employee exists before creating
+
+## AttendanceWorkflow
+
+Access: `framework.hr.attendance`
+
+Manages attendance records, employee check-ins, and attendance correction requests.
+
+### Attendance
+
+```ts
+create(input: CreateAttendanceInput)
+update(id: string, patch: UpdateAttendanceInput)
+getById(id: string)
+list(filters?: AttendanceFilters)
+getSummary(employeeId: string, month: string): Promise<AttendanceSummary>
+delete(id: string)
+```
+
+### Checkin
+
+```ts
+createCheckin(input: CreateCheckinInput)
+getCheckinById(id: string)
+listCheckins(filters?: CheckinFilters)
+deleteCheckin(id: string)
+```
+
+### Attendance Request
+
+```ts
+createAttendanceRequest(input: CreateAttendanceRequestInput)
+updateAttendanceRequest(id: string, patch: UpdateAttendanceRequestInput)
+getAttendanceRequestById(id: string)
+listAttendanceRequests(filters?: AttendanceRequestFilters)
+approveAttendanceRequest(id: string, approvedBy: string)
+rejectAttendanceRequest(id: string, rejectedBy: string, rejectionReason: string)
+deleteAttendanceRequest(id: string)
+```
+
+### Business Rules
+
+- Cannot mark attendance for future dates
+- One attendance record per employee per date (duplicate check on `create`)
+- `getSummary` takes a `month` string (e.g. `"2024-01"`) and returns counts by status
+
+## LeaveWorkflow
+
+Access: `framework.hr.leave`
+
+Manages leave types, periods, policies, allocations, applications, compensatory leave, encashment, block lists, adjustments, and ledger entries.
+
+### Leave Type
+
+```ts
+createLeaveType(input: CreateLeaveTypeInput)
+updateLeaveType(id: string, patch: UpdateLeaveTypeInput)
+getLeaveTypeById(id: string)
+listLeaveTypes()
+deleteLeaveType(id: string)
+```
+
+### Leave Period
+
+```ts
+createLeavePeriod(input: CreateLeavePeriodInput)
+updateLeavePeriod(id: string, patch: UpdateLeavePeriodInput)
+getLeavePeriodById(id: string)
+listLeavePeriods()
+deleteLeavePeriod(id: string)
+```
+
+### Leave Policy
+
+```ts
+createLeavePolicy(input: CreateLeavePolicyInput)
+updateLeavePolicy(id: string, patch: UpdateLeavePolicyInput)
+getLeavePolicyById(id: string)
+listLeavePolicies()
+deleteLeavePolicy(id: string)
+```
+
+### Leave Policy Detail
+
+```ts
+createLeavePolicyDetail(input: CreateLeavePolicyDetailInput)
+listLeavePolicyDetails(leavePolicyId: string)
+deleteLeavePolicyDetail(id: string)
+```
+
+### Leave Policy Assignment
+
+```ts
+createLeavePolicyAssignment(input: CreateLeavePolicyAssignmentInput)
+updateLeavePolicyAssignment(id: string, patch: UpdateLeavePolicyAssignmentInput)
+getLeavePolicyAssignmentById(id: string)
+listLeavePolicyAssignments(filters?: LeavePolicyAssignmentFilters)
+deleteLeavePolicyAssignment(id: string)
+```
+
+### Leave Allocation
+
+```ts
+createLeaveAllocation(input: CreateLeaveAllocationInput)
+updateLeaveAllocation(id: string, patch: UpdateLeaveAllocationInput)
+getLeaveAllocationById(id: string)
+listLeaveAllocations(filters?: LeaveAllocationFilters)
+getLeaveBalance(employeeId: string, leavePeriod: string): Promise<LeaveBalance[]>
+deleteLeaveAllocation(id: string)
+```
+
+### Leave Application
+
+```ts
+createLeaveApplication(input: CreateLeaveApplicationInput)
+updateLeaveApplication(id: string, patch: UpdateLeaveApplicationInput)
+getLeaveApplicationById(id: string)
+listLeaveApplications(filters?: LeaveApplicationFilters)
+approveLeaveApplication(id: string, approvedBy: string)
+rejectLeaveApplication(id: string, rejectedBy: string, rejectionReason: string)
+cancelLeaveApplication(id: string)
+deleteLeaveApplication(id: string)
+```
+
+### Compensatory Leave
+
+```ts
+createCompensatoryLeave(input: CreateCompensatoryLeaveInput)
+updateCompensatoryLeave(id: string, patch: UpdateCompensatoryLeaveInput)
+getCompensatoryLeaveById(id: string)
+listCompensatoryLeaves(filters?: CompensatoryLeaveFilters)
+approveCompensatoryLeave(id: string, approvedBy: string)
+rejectCompensatoryLeave(id: string, rejectedBy: string, rejectionReason: string)
+deleteCompensatoryLeave(id: string)
+```
+
+### Leave Encashment
+
+```ts
+createLeaveEncashment(input: CreateLeaveEncashmentInput)
+updateLeaveEncashment(id: string, patch: UpdateLeaveEncashmentInput)
+getLeaveEncashmentById(id: string)
+listLeaveEncashments(filters?: LeaveEncashmentFilters)
+approveLeaveEncashment(id: string, approvedBy: string)
+rejectLeaveEncashment(id: string, rejectedBy: string, rejectionReason: string)
+markLeaveEncashmentPaid(id: string)
+deleteLeaveEncashment(id: string)
+```
+
+### Leave Block List
+
+```ts
+createLeaveBlockList(input: CreateLeaveBlockListInput)
+updateLeaveBlockList(id: string, patch: UpdateLeaveBlockListInput)
+getLeaveBlockListById(id: string)
+listLeaveBlockLists(filters?: LeaveBlockListFilters)
+deleteLeaveBlockList(id: string)
+```
+
+### Leave Adjustment
+
+```ts
+createLeaveAdjustment(input: CreateLeaveAdjustmentInput)
+listLeaveAdjustments(employeeId: string)
+```
+
+### Leave Ledger Entry
+
+```ts
+listLedgerEntries(employeeId: string, leaveType?: string)
+```
+
+### Business Rules
+
+- `createLeaveApplication` checks the block list and leave balance (skipped when `isLeaveWithoutPay` is `true`)
+- `approveLeaveApplication` increments allocation `usedDays` and creates a ledger entry with `transactionType: "application"`
+- `cancelLeaveApplication` decrements allocation `usedDays` (floored at 0) and creates a reversal ledger entry with `transactionType: "cancellation"`
+- `approveCompensatoryLeave` creates a leave allocation and a `transactionType: "compensatory"` ledger entry
+- `deleteLeaveType` and `deleteLeavePeriod` are soft deletes (`isActive: false`)
+- `deleteLeaveAllocation` sets `status: "cancelled"`
+- `deleteLeavePolicy` hard deletes, cascading to policy details first
+- `createLeavePolicyDetail` verifies both the leave policy and leave type exist
+- `createLeavePolicyAssignment` verifies both the leave policy and leave period exist
+- `createLeaveAllocation` verifies the leave type and leave period exist
+
+## LifecycleWorkflow
+
+Access: `framework.hr.lifecycle`
+
+Manages onboarding, promotions, transfers, separations, exit interviews, and full and final statements.
+
+### Onboarding
+
+```ts
+createOnboarding(input: CreateOnboardingInput)
+updateOnboarding(id: string, patch: UpdateOnboardingInput)
+getOnboardingById(id: string)
+listOnboardings(filters?: OnboardingFilters)
+deleteOnboarding(id: string)
+```
+
+### Onboarding Task
+
+```ts
+createOnboardingTask(input: CreateOnboardingTaskInput)
+updateOnboardingTask(id: string, patch: UpdateOnboardingTaskInput)
+getOnboardingTaskById(id: string)
+listOnboardingTasks(onboardingId: string)
+completeOnboardingTask(id: string, completedBy: string)
+deleteOnboardingTask(id: string)
+```
+
+### Promotion
+
+```ts
+createPromotion(input: CreatePromotionInput)
+updatePromotion(id: string, patch: UpdatePromotionInput)
+getPromotionById(id: string)
+listPromotions(filters?: PromotionFilters)
+approvePromotion(id: string, approvedBy: string)
+rejectPromotion(id: string, rejectedBy: string, rejectionReason: string)
+completePromotion(id: string)
+deletePromotion(id: string)
+```
+
+### Transfer
+
+```ts
+createTransfer(input: CreateTransferInput)
+updateTransfer(id: string, patch: UpdateTransferInput)
+getTransferById(id: string)
+listTransfers(filters?: TransferFilters)
+approveTransfer(id: string, approvedBy: string)
+rejectTransfer(id: string, rejectedBy: string, rejectionReason: string)
+completeTransfer(id: string)
+deleteTransfer(id: string)
+```
+
+### Separation
+
+```ts
+createSeparation(input: CreateSeparationInput)
+updateSeparation(id: string, patch: UpdateSeparationInput)
+getSeparationById(id: string)
+listSeparations(filters?: SeparationFilters)
+deleteSeparation(id: string)
+```
+
+### Separation Task
+
+```ts
+createSeparationTask(input: CreateSeparationTaskInput)
+updateSeparationTask(id: string, patch: UpdateSeparationTaskInput)
+getSeparationTaskById(id: string)
+listSeparationTasks(separationId: string)
+completeSeparationTask(id: string, completedBy: string)
+deleteSeparationTask(id: string)
+```
+
+### Exit Interview
+
+```ts
+createExitInterview(input: CreateExitInterviewInput)
+updateExitInterview(id: string, patch: UpdateExitInterviewInput)
+getExitInterviewById(id: string)
+listExitInterviews(filters?: ExitInterviewFilters)
+completeExitInterview(id: string, feedback: string, responses: Record<string, unknown>)
+deleteExitInterview(id: string)
+```
+
+### Full and Final Statement
+
+```ts
+createFullAndFinal(input: CreateFullAndFinalInput)
+updateFullAndFinal(id: string, patch: UpdateFullAndFinalInput)
+getFullAndFinalById(id: string)
+listFullAndFinalStatements(filters?: FullAndFinalFilters)
+approveFullAndFinal(id: string, approvedBy: string)
+markFullAndFinalPaid(id: string, paymentEntry: string)
+deleteFullAndFinal(id: string)
+```
+
+### Business Rules
+
+- `deleteOnboarding` and `deleteSeparation` cascade-delete their tasks first
+- `completeOnboardingTask` and `completeSeparationTask` set `completedAt` and `status: "completed"`
+- `updateOnboardingTask` and `updateSeparationTask` auto-set `completedAt` when status becomes `"completed"`
+- `approveFullAndFinal` calculates `totalEarnings`, `totalDeductions`, and `netPayable` from component amounts
+- `completePromotion` and `completeTransfer` mark status as `"completed"` — the employee record update is not yet wired to `EmployeeWorkflow`
+
+## OvertimeWorkflow
+
+Access: `framework.hr.overtime`
+
+Manages overtime types and overtime slips with approval workflow and summary reporting.
+
+### Overtime Type
+
+```ts
+createOvertimeType(input: CreateOvertimeTypeInput)
+updateOvertimeType(id: string, patch: UpdateOvertimeTypeInput)
+getOvertimeTypeById(id: string)
+listOvertimeTypes()
+deleteOvertimeType(id: string)
+```
+
+### Overtime Slip
+
+```ts
+createOvertimeSlip(input: CreateOvertimeSlipInput)
+updateOvertimeSlip(id: string, patch: UpdateOvertimeSlipInput)
+getOvertimeSlipById(id: string)
+listOvertimeSlips(filters?: OvertimeSlipFilters)
+approveOvertimeSlip(id: string, approvedBy: string)
+rejectOvertimeSlip(id: string, rejectedBy: string, rejectionReason: string)
+getOvertimeSummary(employeeId: string, fromDate: string, toDate: string): Promise<OvertimeSummary>
+deleteOvertimeSlip(id: string)
+```
+
+### Business Rules
+
+- `approveOvertimeSlip` calculates `amount` using the overtime type's multipliers: `standardHours × rate × standardMultiplier + holidayHours × rate × holidayMultiplier + weekendHours × rate × weekendMultiplier` (only when `amountCalculation === "fixed"` and `fixedHourlyRate` is set)
+- `getOvertimeSummary` aggregates only approved slips within the date range
+- `deleteOvertimeType` is a soft delete (`isActive: false`)
+- `createOvertimeSlip` verifies the overtime type exists
+
+## SetupWorkflow
+
+Access: `framework.hr.setup`
+
+Manages HR settings, payroll settings, employment types, departments, designations, employee grades, holiday lists, and holidays.
+
+### HR Settings
+
+```ts
+getHrSettings()
+updateHrSettings(patch: UpdateHrSettingsInput)
+```
+
+### Payroll Settings
+
+```ts
+getPayrollSettings()
+updatePayrollSettings(patch: UpdatePayrollSettingsInput)
+```
+
+### Employment Type
+
+```ts
+createEmploymentType(input: CreateEmploymentTypeInput)
+updateEmploymentType(id: string, patch: UpdateEmploymentTypeInput)
+getEmploymentTypeById(id: string)
+listEmploymentTypes()
+deleteEmploymentType(id: string)
+```
+
+### Department
+
+```ts
+createDepartment(input: CreateDepartmentInput)
+updateDepartment(id: string, patch: UpdateDepartmentInput)
+getDepartmentById(id: string)
+listDepartments(filters?: DepartmentFilters)
+deleteDepartment(id: string)
+```
+
+### Designation
+
+```ts
+createDesignation(input: CreateDesignationInput)
+updateDesignation(id: string, patch: UpdateDesignationInput)
+getDesignationById(id: string)
+listDesignations()
+deleteDesignation(id: string)
+```
+
+### Employee Grade
+
+```ts
+createEmployeeGrade(input: CreateEmployeeGradeInput)
+updateEmployeeGrade(id: string, patch: UpdateEmployeeGradeInput)
+getEmployeeGradeById(id: string)
+listEmployeeGrades()
+deleteEmployeeGrade(id: string)
+```
+
+### Holiday List
+
+```ts
+createHolidayList(input: CreateHolidayListInput)
+updateHolidayList(id: string, patch: UpdateHolidayListInput)
+getHolidayListById(id: string)
+listHolidayLists()
+deleteHolidayList(id: string)
+```
+
+### Holiday
+
+```ts
+createHoliday(input: CreateHolidayInput)
+updateHoliday(id: string, patch: UpdateHolidayInput)
+getHolidayById(id: string)
+listHolidaysByList(holidayListId: string)
+deleteHoliday(id: string)
+```
+
+### Business Rules
+
+- `updateHrSettings` and `updatePayrollSettings` are upserts — they create the singleton settings row if it doesn't exist
+- Department codes are uppercased on `create` and `update`
+- `createDepartment` validates the parent department exists when `parentDepartment` is provided
+- `updateDepartment` prevents circular references by walking the parent chain (max depth 10)
+- A department cannot be set as its own parent
+- `updateDepartment` enforces department code uniqueness on update
+- `deleteEmploymentType`, `deleteDepartment`, `deleteDesignation`, `deleteEmployeeGrade`, `deleteHolidayList` are soft deletes (`isActive: false`)
+- `deleteHoliday` is a hard delete
+- `createHoliday` verifies the holiday list exists
+
+## ShiftWorkflow
+
+Access: `framework.hr.shift`
+
+Manages shift types, shift locations, shift assignments, shift requests, shift schedules, and schedule assignments.
+
+### Shift Type
+
+```ts
+createShiftType(input: CreateShiftTypeInput)
+updateShiftType(id: string, patch: UpdateShiftTypeInput)
+getShiftTypeById(id: string)
+listShiftTypes()
+deleteShiftType(id: string)
+```
+
+### Shift Location
+
+```ts
+createShiftLocation(input: CreateShiftLocationInput)
+updateShiftLocation(id: string, patch: UpdateShiftLocationInput)
+getShiftLocationById(id: string)
+listShiftLocations()
+deleteShiftLocation(id: string)
+```
+
+### Shift Assignment
+
+```ts
+createShiftAssignment(input: CreateShiftAssignmentInput)
+updateShiftAssignment(id: string, patch: UpdateShiftAssignmentInput)
+getShiftAssignmentById(id: string)
+listShiftAssignments(filters?: ShiftAssignmentFilters)
+deactivateShiftAssignment(id: string)
+deleteShiftAssignment(id: string)
+```
+
+### Shift Request
+
+```ts
+createShiftRequest(input: CreateShiftRequestInput)
+updateShiftRequest(id: string, patch: UpdateShiftRequestInput)
+getShiftRequestById(id: string)
+listShiftRequests(filters?: ShiftRequestFilters)
+approveShiftRequest(id: string, approvedBy: string)
+rejectShiftRequest(id: string, rejectedBy: string, rejectionReason: string)
+deleteShiftRequest(id: string)
+```
+
+### Shift Schedule
+
+```ts
+createShiftSchedule(input: CreateShiftScheduleInput)
+updateShiftSchedule(id: string, patch: UpdateShiftScheduleInput)
+getShiftScheduleById(id: string)
+listShiftSchedules()
+deleteShiftSchedule(id: string)
+```
+
+### Shift Schedule Assignment
+
+```ts
+createShiftScheduleAssignment(input: CreateShiftScheduleAssignmentInput)
+updateShiftScheduleAssignment(id: string, patch: UpdateShiftScheduleAssignmentInput)
+getShiftScheduleAssignmentById(id: string)
+listShiftScheduleAssignments(employeeId?: string)
+deleteShiftScheduleAssignment(id: string)
+```
+
+### Business Rules
+
+- `approveShiftRequest` creates a shift assignment from the request data and links it back to the request
+- `createShiftAssignment`, `createShiftRequest`, `createShiftSchedule`, and `createShiftScheduleAssignment` all verify the shift type exists first
+- `createShiftScheduleAssignment` verifies the shift schedule exists
+- `deactivateShiftAssignment` sets `status: "inactive"`
+- `deleteShiftType` and `deleteShiftLocation` are soft deletes (`isActive: false`)
+- `deleteShiftAssignment`, `deleteShiftSchedule`, and `deleteShiftScheduleAssignment` are hard deletes

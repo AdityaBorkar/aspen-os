@@ -1,0 +1,114 @@
+---
+title: Overview
+description: Architecture, initialization, and module structure of the Drive domain module.
+icon: IconInfoCircle
+---
+
+The Drive module manages files and folders with versioning, sharing, public links, labels, trash, and search across 6 workflows and 5 internal services.
+
+## Module Configuration
+
+```ts
+export type DriveModuleConfig = {
+  allowedContentTypes?: string[];        // empty = all types allowed
+  defaultDownloadLinkExpiry?: number;    // seconds
+  maxDownloadLinkExpiry?: number;        // seconds
+  maxFileSize?: number;                  // bytes
+  maxNestingDepth?: number;              // folder hierarchy depth
+  maxVersions?: number;                 // retained file versions
+  trashRetentionDays?: number;          // auto-purge threshold
+};
+```
+
+```ts
+import { DriveModule } from "@aspen-os/drive";
+
+const drive = DriveModule.create({
+  allowedContentTypes: ["image/png", "application/pdf"],
+  maxFileSize: 2 * 1024 * 1024 * 1024,  // 2 GB
+  maxNestingDepth: 15,
+  maxVersions: 5,
+  trashRetentionDays: 14,
+});
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `allowedContentTypes` | `string[]?` | `[]` | MIME type allowlist; empty permits all |
+| `defaultDownloadLinkExpiry` | `number?` | `3600` | Default signed URL TTL in seconds |
+| `maxDownloadLinkExpiry` | `number?` | `604800` | Maximum signed URL TTL in seconds (7 days) |
+| `maxFileSize` | `number?` | `5368709120` | Maximum upload size in bytes (5 GB) |
+| `maxNestingDepth` | `number?` | `20` | Maximum folder hierarchy depth |
+| `maxVersions` | `number?` | `10` | Retained file versions before pruning |
+| `trashRetentionDays` | `number?` | `30` | Days before trashed items are auto-purged |
+
+## Initialization
+
+```ts title="src/index.ts"
+initialize(units: {
+  db: DatabaseUnit;
+  storage: StorageUnit;
+  pubsub: PubSubUnit;
+}): void
+```
+
+## Prepare Phase
+
+`prepare()` subscribes to the `drive:auto-purge` pubsub topic and schedules it with a daily cron (`0 3 * * *`). The handler calls `TrashWorkflow.purgeExpired()` to delete trashed items older than `trashRetentionDays`.
+
+## Module Structure
+
+```text
+packages/drive/src/
+  index.ts              # Module class + type/schema re-exports
+  db-schema.ts          # 8 tables + 4 enums
+  types.ts              # Re-exports from schemas/ + domain interfaces
+  event-map.ts          # 14 events + DriveEventMap
+  schemas/              # Valibot input schemas
+    enums.ts            # DriveItemType, DrivePermission, etc.
+    folder.ts
+    file.ts
+    label.ts
+    share.ts
+    public-link.ts
+    trash.ts
+    search.ts
+    utils.ts            # HexColorSchema, ItemNameSchema, LabelNameSchema
+  workflows/            # 6 workflow classes
+    folder.ts
+    file.ts
+    label.ts
+    share.ts
+    public-link.ts
+    trash.ts
+  services/             # 5 service classes
+    path-service.ts
+    storage-bridge.ts
+    access-service.ts
+    archive-service.ts
+    search-service.ts
+```
+
+## Accessing Workflows
+
+```ts
+framework.drive.folders      // → FolderWorkflow
+framework.drive.files        // → FileWorkflow
+framework.drive.labels       // → LabelWorkflow
+framework.drive.shares       // → ShareWorkflow
+framework.drive.publicLinks  // → PublicLinkWorkflow
+framework.drive.trash        // → TrashWorkflow
+```
+
+## Accessing Services
+
+```ts
+framework.drive.search       // → SearchService
+framework.drive.archive      // → ArchiveService
+framework.drive.access       // → AccessService
+framework.drive.paths        // → PathService
+```
+
+<Callout type="warn">
+  Accessing any workflow or service getter before `initialize()` throws `Error("Drive module not initialized. Call initialize() after Framework.create().")`.
+</Callout>

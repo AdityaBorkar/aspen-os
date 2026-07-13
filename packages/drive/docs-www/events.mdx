@@ -1,0 +1,118 @@
+---
+title: Events
+description: Domain event map for the Drive module — 14 events covering file, folder, share, public link, and trash lifecycle.
+icon: IconBell
+---
+
+The Drive module defines 14 domain events covering file operations, folder operations, sharing, public links, and trash lifecycle.
+
+## Event Constants
+
+```ts title="src/event-map.ts"
+export const DRIVE_EVENTS = {
+  FILE_DOWNLOADED: "drive:file_downloaded",
+  FILE_UPDATED: "drive:file_updated",
+  FILE_UPLOADED: "drive:file_uploaded",
+  FOLDER_CREATED: "drive:folder_created",
+  FOLDER_RENAMED: "drive:folder_renamed",
+  MOVED: "drive:moved",
+  PUBLIC_LINK_ACCESSED: "drive:public_link_accessed",
+  PUBLIC_LINK_CREATED: "drive:public_link_created",
+  PUBLIC_LINK_REVOKED: "drive:public_link_revoked",
+  PURGED: "drive:purged",
+  RESTORED: "drive:restored",
+  SHARED: "drive:shared",
+  TRASHED: "drive:trashed",
+  UNSHARED: "drive:unshared",
+} as const;
+```
+
+## Event Map
+
+### File Events
+
+| Event | Payload | Trigger |
+|---|---|---|
+| `drive:file_uploaded` | `{ file: { contentType, etag, folderId, id, name, ownerId, path, size, storageKey, version } }` | New file uploaded |
+| `drive:file_updated` | `{ file: { contentType, etag, id, name, ownerId, path, size, storageKey, version }, previousVersion }` | File content replaced |
+| `drive:file_downloaded` | `{ file: { id, name, ownerId }, userId }` | `FileWorkflow.download()` called |
+
+### Folder Events
+
+| Event | Payload | Trigger |
+|---|---|---|
+| `drive:folder_created` | `{ folder: { id, name, ownerId, parentId, path } }` | New folder created |
+| `drive:folder_renamed` | `{ folder: { id, name, path }, oldName }` | Folder renamed |
+| `drive:moved` | `{ item: { id, name, path }, itemType, newPath, oldPath }` | File or folder moved |
+
+### Share Events
+
+| Event | Payload | Trigger |
+|---|---|---|
+| `drive:shared` | `{ share: { createdAt, granteeId, granteeType, id, itemId, itemType, permission, sharedBy } }` | Share created |
+| `drive:unshared` | `{ itemId, shareId }` | Share removed |
+
+### Public Link Events
+
+| Event | Payload | Trigger |
+|---|---|---|
+| `drive:public_link_created` | `{ publicLink: { createdBy, id, itemId, itemType, permission, token } }` | Public link created |
+| `drive:public_link_accessed` | `{ publicLink: { id, itemId, token }, ip, userAgent }` | Public link resolved |
+| `drive:public_link_revoked` | `{ itemId, publicLinkId }` | Public link revoked |
+
+### Trash Events
+
+| Event | Payload | Trigger |
+|---|---|---|
+| `drive:trashed` | `{ itemId, itemType }` | File or folder soft-deleted |
+| `drive:restored` | `{ itemId, itemType }` | File or folder restored from trash |
+| `drive:purged` | `{ itemId, itemType, storageKey }` | Item permanently deleted (storageKey is `null` for folders) |
+
+## Usage
+
+### Subscribing to Events
+
+```ts
+// React to file uploads
+await framework.pubsub.subscribe(
+  "drive:file_uploaded",
+  async (message) => {
+    const { file } = message.data;
+    // Index for search, send notification, etc.
+  },
+);
+
+// React to sharing
+await framework.pubsub.subscribe(
+  "drive:shared",
+  async (message) => {
+    const { share } = message.data;
+    // Notify grantee, update UI, etc.
+  },
+);
+
+// React to purge
+await framework.pubsub.subscribe(
+  "drive:purged",
+  async (message) => {
+    const { itemId, itemType, storageKey } = message.data;
+    // Clean up external references, CDN cache, etc.
+  },
+);
+```
+
+### Publishing Events
+
+Events are published internally by workflows via `this.pubsub.publish()`. The `DRIVE_EVENTS` constant should be used as the topic key:
+
+```ts
+import { DRIVE_EVENTS } from "@aspen-os/drive";
+
+await framework.pubsub.publish(DRIVE_EVENTS.FILE_UPLOADED, {
+  file: { id, name, ownerId, path, size, /* ... */ },
+});
+```
+
+<Callout type="info">
+  The `DriveEventMap` type is a type-level contract — it maps event strings to their payload interfaces but does not register a runtime bus. Events are published as plain string topics through the framework's `PubSubUnit`.
+</Callout>

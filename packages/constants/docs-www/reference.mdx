@@ -1,0 +1,50 @@
+---
+title: Reference
+description: Every constant, type, and utility exported by @aspen-os/constants.
+icon: IconConstants
+---
+
+The package exports eight `as const` objects with derived union types, plus a country code array, type, and type guard.
+
+## Organization Constants
+
+| Constant | Type | Values |
+|---|---|---|
+| `ORGANIZATION_STATUS` | `OrganizationStatus` | `active`, `archived`, `suspended` |
+| `BRANCH_TYPE` | `BranchType` | `factory`, `headquarters`, `office`, `other`, `remote`, `store`, `warehouse` |
+| `CONNECTION_TYPE` | `ConnectionType` | `bank`, `client`, `insurer`, `investor`, `other`, `parent_company`, `partner`, `regulator`, `subsidiary`, `vendor` |
+| `CONNECTION_STATUS` | `ConnectionStatus` | `active`, `former`, `inactive`, `prospect` |
+| `CONNECTION_NOTE_TYPE` | `ConnectionNoteType` | `call`, `contract_renewal`, `email`, `general`, `issue`, `meeting` |
+
+## Compliance Constants
+
+| Constant | Type | Values |
+|---|---|---|
+| `COMPLIANCE_CATEGORY` | `ComplianceCategory` | `certificate`, `environmental`, `hr`, `insurance`, `legal`, `license`, `other`, `permit`, `regulatory`, `safety`, `tax` |
+| `COMPLIANCE_STATUS` | `ComplianceStatus` | `active`, `archived`, `expired`, `expiring_soon`, `renewal_in_progress` |
+| `RENEWAL_FREQUENCY` | `RenewalFrequency` | `annual`, `biennial`, `monthly`, `one_time`, `quarterly`, `semi_annual`, `triennial` |
+
+## Country Codes
+
+```ts
+import {
+  COUNTRY_CODES,
+  type CountryCode,
+  isValidCountryCode,
+} from "@aspen-os/constants";
+
+const code: CountryCode = "US";
+
+function setCountry(input: string): CountryCode {
+  if (!isValidCountryCode(input)) {
+    throw new Error(`Unknown country code: ${input}`);
+  }
+  return input; // narrowed to CountryCode
+}
+
+COUNTRY_CODES; // readonly ["AD", "AE", ..., "ZW"] — 249 ISO 3166-1 alpha-2 codes
+```
+
+<Callout type="info">
+  `src/country-codes.ts` and `src/languages.ts` are empty placeholder files reserved for future expansion of country and language data beyond the alpha-2 codes in `COUNTRY_CODES`.
+</Callout>
