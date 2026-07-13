@@ -1,5 +1,38 @@
 # TODO
 
+## Documentation
+
+Framework:
+
+Getting Started
+- Parts of the Framework -> Overview
+- How to use the framework? -> Usage
+- What can be customized? -> Customization
+- Units
+- Modules
+- Creating a Custom Module -> Custom Modules
+- Unit vs Module? -> Units vs Modules
+
+Units
+- Name of the Unit
+- Name of the Unit
+- Name of the Unit
+- Name of the Unit
+- Name of the Unit
+
+- List of Features and Configuration in each unit.
+
+## Write documentation for
+
+Create proper subagents and write comprehensive documentation for each package:
+
+- Framework
+- Organization
+- HR
+- Tasks
+- Drive
+- Reports
+
 ## Module Implementation
 
 - Task Management
@@ -58,21 +91,3 @@
 - Chatbot
 - Agents
 - Automations
-
-## Documentation
-
-Perform implementation of MDX documentation in website with the following requirements:
-
-Sidebar Groups Selector = Framework / [Module Names]
-
-Framework:
-- Parts of the Framework
-- How to use the framework? What can be customized?
-- Unit vs Module?
-- How to create a Custom Module?
-- List of Units
-  - Features and Configuration in each unit.
-- List of available Modules
-  - Features and Configuration in each module.
-
-Collect the individual module docs from their respective directories /docs

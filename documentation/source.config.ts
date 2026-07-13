@@ -1,4 +1,10 @@
+import { pageSchema } from "fumadocs-core/source/schema";
 import { defineConfig, defineDocs } from "fumadocs-mdx/config";
+import { z } from "zod";
+
+const docsSchema = pageSchema.extend({
+  display: z.string().optional(),
+});
 
 export const docs = defineDocs({
   dir: "content/docs",
@@ -6,6 +12,7 @@ export const docs = defineDocs({
     postprocess: {
       includeProcessedMarkdown: true,
     },
+    schema: docsSchema,
   },
 });
 
@@ -15,6 +22,7 @@ export const framework = defineDocs({
     postprocess: {
       includeProcessedMarkdown: true,
     },
+    schema: docsSchema,
   },
 });
 
@@ -24,6 +32,7 @@ export const organization = defineDocs({
     postprocess: {
       includeProcessedMarkdown: true,
     },
+    schema: docsSchema,
   },
 });
 
@@ -33,6 +42,7 @@ export const compliance = defineDocs({
     postprocess: {
       includeProcessedMarkdown: true,
     },
+    schema: docsSchema,
   },
 });
 

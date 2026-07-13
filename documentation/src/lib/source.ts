@@ -5,7 +5,14 @@ import { loader } from "fumadocs-core/source";
 import type { ReactElement } from "react";
 import { createElement } from "react";
 
+import {
+  markdownPathToSlugs,
+  resolveContentPath,
+  slugsToMarkdownPath,
+} from "./paths";
 import { docsRoute } from "./shared";
+
+export { markdownPathToSlugs, resolveContentPath, slugsToMarkdownPath };
 
 function tablerIconPlugin(): LoaderPlugin {
   function resolveIcon(icon: string | undefined) {
@@ -35,6 +42,26 @@ function tablerIconPlugin(): LoaderPlugin {
   };
 }
 
+function displayTitlePlugin(): LoaderPlugin {
+  return {
+    name: "display-title",
+    transformPageTree: {
+      file(node, filePath) {
+        if (!filePath) return node;
+        const file = this.storage.read(filePath);
+        if (
+          file?.format === "page" &&
+          "display" in file.data &&
+          typeof file.data.display === "string"
+        ) {
+          node.name = file.data.display;
+        }
+        return node;
+      },
+    },
+  };
+}
+
 export const source = loader(
   {
     compliance: compliance.toFumadocsSource({ baseDir: "compliance" }),
@@ -44,35 +71,9 @@ export const source = loader(
   },
   {
     baseUrl: docsRoute,
-    plugins: [tablerIconPlugin()],
+    plugins: [tablerIconPlugin(), displayTitlePlugin()],
   },
 );
-
-export function markdownPathToSlugs(segs: string[]) {
-  if (segs.length === 0) return [];
-
-  const out = [...segs];
-  const last = out[out.length - 1];
-  if (last !== undefined) {
-    out[out.length - 1] = last.replace(/\.md$/, "");
-  }
-  if (out.length === 1 && out[0] === "index") out.pop();
-  return out;
-}
-
-export function slugsToMarkdownPath(slugs: string[]) {
-  const segments = [...slugs];
-  if (segments.length === 0) {
-    segments.push("index.md");
-  } else {
-    segments[segments.length - 1] += ".md";
-  }
-
-  return {
-    segments,
-    url: `${docsRoute}/${segments.join("/")}`,
-  };
-}
 
 export async function getLLMText(page: (typeof source)["$inferPage"]) {
   const processed = await page.data.getText("processed");
@@ -80,18 +81,4 @@ export async function getLLMText(page: (typeof source)["$inferPage"]) {
   return `# ${page.data.title} (${page.url})
 
 ${processed}`;
-}
-const contentPathMap: Record<string, string> = {
-  compliance: "packages/compliance/docs-www",
-  framework: "packages/framework/docs-www",
-  organization: "packages/organization/docs-www",
-};
-
-export function resolveContentPath(path: string): string {
-  const slashIdx = path.indexOf("/");
-  if (slashIdx === -1) return `content/docs/${path}`;
-  const prefix = path.slice(0, slashIdx);
-  const rest = path.slice(slashIdx + 1);
-  const mapped = contentPathMap[prefix];
-  return mapped ? `${mapped}/${rest}` : `content/docs/${path}`;
 }

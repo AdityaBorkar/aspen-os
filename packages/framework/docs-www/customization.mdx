@@ -1,0 +1,67 @@
+---
+title: Customization
+description: What can be customized — unit configuration, module selection, access control, and schema management.
+display: What can be customized?
+icon: IconAdjustments
+---
+
+## Unit Configuration
+
+Each unit accepts a config object. Here's what you can tune:
+
+| Unit | Config | Customizable options |
+|---|---|---|
+| `db` | `DatabaseConfig` | `host`, `port`, `user`, `password`, `database`, `ssl`, `maxConnections` |
+| `auth` | `AuthConfig` | `baseURL`, `secret`, `access_control`, `roles`, `session.expiresIn`, `socialProviders.google`, `cfSecretKey` |
+| `logs` | `LogConfig` | `defaultLevel` (`"debug"` — `"fatal"`), `serviceName` |
+| `pubsub` | `PubSubConfig` | `schema`, `monitorStateIntervalSeconds` |
+| `storage` | `StorageConfig` | `bucket`, `prefix`, `provider` (S3 config) |
+| `rpc` | `RpcConfig` | `prefix` (default `"/api/rpc"`) |
+| `kvStore` | `KvStoreConfig` | `defaultTtl` (default 3600s), `keyPrefix` |
+
+## Module Selection
+
+You choose which domain modules to include by passing them to `Framework.create()`. Each module is created via its static `create()` factory:
+
+```ts
+const framework = Framework.create(config, {
+  organization: OrganizationModule.create({ country: "INDIA" }),
+  compliance: ComplianceModule.create({ country: "INDIA" }),
+});
+```
+
+Module names (the `name` property on the module) become proxy keys on the framework instance:
+- `framework.organization.addresses`
+- `framework.organization.branches`
+- `framework.compliance.documents`
+
+## Access Control & Roles
+
+The `AuthConfig` accepts `access_control` and `roles`, but these are **intentionally not passed** to `betterAuth()` on the server. They are used only by the client `AuthUnit` (passed to `adminClient()` plugin). Access control enforcement happens at the application level.
+
+```ts
+import { createAccessControl } from "@aspen-os/framework/client";
+
+const access_control = createAccessControl({
+  organization: ["create", "read", "update", "delete"],
+  branch: ["create", "read", "update", "delete"],
+});
+
+const roles = {
+  admin: access_control.newRole({
+    organization: ["create", "read", "update", "delete"],
+    branch: ["create", "read", "update", "delete"],
+  }),
+};
+```
+
+## Schema Management
+
+The `DatabaseUnit.$prepare()` automatically pushes schema changes using `pushSchema()` from `drizzle-kit/api`. Core schemas (auth, logs, storage, kv-store) are pushed during `framework.prepare()`. Domain modules push their own schemas in their `prepare()` method.
+
+```ts
+await framework.prepare();
+// → DatabaseUnit pushes auth, logs, storage, kv-store schemas
+// → OrganizationModule pushes organization schema
+// → ComplianceModule pushes compliance schema
+```

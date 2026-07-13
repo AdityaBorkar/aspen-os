@@ -7,7 +7,7 @@ import {
 import { isMarkdownPreferred } from "fumadocs-core/negotiation";
 
 import { docsRoute } from "@/lib/shared";
-import { slugsToMarkdownPath } from "./lib/source";
+import { slugsToMarkdownPath } from "./lib/paths";
 
 const csrfMiddleware = createCsrfMiddleware({
   filter: (ctx) => ctx.handlerType === "serverFn",

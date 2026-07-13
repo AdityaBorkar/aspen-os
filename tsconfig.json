@@ -38,6 +38,7 @@
     { "path": "./packages/hr" },
     { "path": "./packages/inventory" },
     { "path": "./packages/organization" },
+    { "path": "./packages/pharmacy" },
     { "path": "./packages/reports" },
     { "path": "./packages/tasks" }
   ]

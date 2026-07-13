@@ -25,15 +25,15 @@ import { useMDXComponents } from "@/components/mdx";
 import { createClientLoader, mergedEntries } from "@/lib/client-loader";
 import { cn } from "@/lib/cn";
 import { baseOptions } from "@/lib/layout.shared";
+import { resolveContentPath } from "@/lib/paths";
 import { gitConfig } from "@/lib/shared";
-import { resolveContentPath, slugsToMarkdownPath, source } from "@/lib/source";
 
 export const Route = createFileRoute("/docs/$")({
   component: Page,
   loader: async ({ params }) => {
     const slugs = params._splat?.split("/") ?? [];
     if (slugs.length === 0 || (slugs.length === 1 && slugs[0] === "")) {
-      throw redirect({ to: "/docs/$", params: { _splat: "framework" } });
+      throw redirect({ params: { _splat: "framework" }, to: "/docs/$" });
     }
     const data = await serverLoader({ data: slugs });
     await clientLoader.preload(data.path);
@@ -46,6 +46,7 @@ const serverLoader = createServerFn({
 })
   .validator((slugs: string[]) => slugs)
   .handler(async ({ data: slugs }) => {
+    const { source, slugsToMarkdownPath } = await import("@/lib/source");
     const page = source.getPage(slugs);
     if (!page) throw notFound();
 
@@ -59,14 +60,7 @@ const serverLoader = createServerFn({
 const clientLoader = createClientLoader(mergedEntries, {
   component(
     { toc, frontmatter, default: MDX },
-    // you can define props for the component
-    {
-      markdownUrl,
-      path,
-    }: {
-      markdownUrl: string;
-      path: string;
-    },
+    { markdownUrl, path }: { markdownUrl: string; path: string },
   ) {
     // biome-ignore lint/correctness/useHookAtTopLevel: framework component function
     const components = useMDXComponents();

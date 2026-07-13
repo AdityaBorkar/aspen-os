@@ -1,9 +1,6 @@
 {
-  "title": "Organization",
   "description": "Domain module for org structure, branches, and connections",
   "icon": "IconBuilding",
-  "root": true,
-  "pagesIndex": "index",
   "pages": [
     "---Docs---",
     "overview",
@@ -11,5 +8,8 @@
     "---Reference---",
     "schema",
     "events"
-  ]
+  ],
+  "pagesIndex": "index",
+  "root": true,
+  "title": "Organization"
 }

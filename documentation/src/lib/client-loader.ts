@@ -5,6 +5,7 @@ import { createClientLoader } from "fumadocs-mdx/runtime/browser";
 const { docs, framework, organization, compliance } = browserCollections;
 type DocFrontmatter = {
   title: string;
+  display?: string;
   description?: string;
   icon?: string;
   full?: boolean;
