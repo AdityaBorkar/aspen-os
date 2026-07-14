@@ -3,5 +3,5 @@
   "compatibility_date": "2025-09-02",
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
-  "name": "tanstack-start-app"
+  "name": "aspen-os-docs"
 }

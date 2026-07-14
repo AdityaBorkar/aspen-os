@@ -26,9 +26,6 @@ export default defineConfig({
     }),
   ],
   resolve: {
-    alias: {
-      tslib: "tslib/tslib.es6.js",
-    },
     tsconfigPaths: true,
   },
 });

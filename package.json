@@ -29,6 +29,6 @@
       "typescript": "^7.0.1-rc",
       "valibot": "^1.4.2"
     },
-    "packages": ["./packages/*", "./examples/*", "./documentation"]
+    "packages": ["./packages/*", "./examples/*", "./docs-www"]
   }
 }

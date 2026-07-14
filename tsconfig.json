@@ -25,7 +25,7 @@
   },
   "exclude": ["**/node_modules", "**/.output", "**/.tanstack"],
   "references": [
-    { "path": "./documentation" },
+    { "path": "./docs-www" },
     // { "path": "./examples/healthcare" },
     { "path": "./examples/recruiter" },
     { "path": "./packages/accounting" },
