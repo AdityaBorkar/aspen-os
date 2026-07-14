@@ -78,7 +78,7 @@ export class ComplianceModule {
   constructor(private config: ComplianceModuleConfig) {}
 
   readonly db_schema = dbSchema;
-  readonly name = "compliance";
+  readonly $name = "compliance";
 
   #documents: DocumentWorkflow | null = null;
   #obligations: ObligationWorkflow | null = null;
@@ -115,7 +115,7 @@ export class ComplianceModule {
     return this.#dashboard;
   }
 
-  initialize(units: {
+  $initialize(units: {
     db: DatabaseUnit;
     kvStore: KvStoreUnit;
     pubsub: PubSubUnit;
@@ -149,7 +149,7 @@ export class ComplianceModule {
     );
   }
 
-  async prepare(): Promise<void> {
+  async $prepare(): Promise<void> {
     if (!this.#db) throw notInitialized();
 
     const { pushSchema } = await import("drizzle-kit/api");
@@ -174,7 +174,7 @@ export class ComplianceModule {
     await this.#eventBridge?.registerSubscriptions();
   }
 
-  async destroy(): Promise<void> {
+  async $destroy(): Promise<void> {
     await this.#reminderEngine?.unregister();
     await this.#obligationGenerator?.unregister();
     await this.#eventBridge?.unregister();
@@ -192,6 +192,6 @@ export class ComplianceModule {
 
 function notInitialized(): Error {
   return new Error(
-    "Compliance module not initialized. Call initialize() after framework.initialize().",
+    "Compliance module not initialized. Call $initialize() after Framework.create().",
   );
 }

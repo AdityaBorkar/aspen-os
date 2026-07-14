@@ -118,7 +118,7 @@ const PURGE_TOPIC = "drive:auto-purge";
 
 export class DriveModule {
   readonly db_schema = dbSchema;
-  readonly name = "drive";
+  readonly $name = "drive";
 
   private config: typeof DEFAULT_CONFIG;
 
@@ -195,7 +195,7 @@ export class DriveModule {
     return this.#pathService;
   }
 
-  initialize(units: {
+  $initialize(units: {
     db: DatabaseUnit;
     storage: StorageUnit;
     pubsub: PubSubUnit;
@@ -236,7 +236,7 @@ export class DriveModule {
     this.#pubsub = units.pubsub;
   }
 
-  async prepare(): Promise<void> {
+  async $prepare(): Promise<void> {
     if (!this.#pubsub || !this.#trash) return;
 
     await this.#pubsub.subscribe(PURGE_TOPIC, async () => {
@@ -246,7 +246,7 @@ export class DriveModule {
     await this.#pubsub.schedule(PURGE_TOPIC, PURGE_CRON);
   }
 
-  async destroy(): Promise<void> {
+  async $destroy(): Promise<void> {
     if (this.#pubsub) {
       try {
         await this.#pubsub.unsubscribe(PURGE_TOPIC);
@@ -273,6 +273,6 @@ export class DriveModule {
 
 function notInitialized(): Error {
   return new Error(
-    "Drive module not initialized. Call initialize() after Framework.create().",
+    "Drive module not initialized. Call $initialize() after Framework.create().",
   );
 }

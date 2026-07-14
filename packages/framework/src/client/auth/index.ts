@@ -41,7 +41,7 @@ export class AuthUnit<
   AC extends AccessControl = AccessControl,
   R extends Record<string, Role> = Record<string, Role>,
 > {
-  readonly name = "auth";
+  readonly $name = "auth";
   readonly client: AuthClient<AC, R>;
 
   constructor(config: AuthConfig<AC, R>) {
@@ -58,11 +58,11 @@ export class AuthUnit<
     }) as unknown as AuthClient<AC, R>;
   }
 
-  async prepare(): Promise<void> {
+  async $prepare(): Promise<void> {
     return;
   }
 
-  async destroy(): Promise<void> {
+  async $destroy(): Promise<void> {
     return;
   }
 }

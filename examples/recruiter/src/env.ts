@@ -7,7 +7,7 @@ export const env = createEnv({
   client: {
     PUBLIC_WEB_DOMAIN: z.string().min(1),
     PUBLIC_WEB_PORT: z.coerce.number(),
-    PUBLIC_WEB_SSL: z.coerce.boolean(),
+    PUBLIC_WEB_SSL: z.stringbool(),
   },
   clientPrefix: "PUBLIC_",
   emptyStringAsUndefined: true,
@@ -18,7 +18,7 @@ export const env = createEnv({
     DB_NAME: z.string().min(1),
     DB_PASSWORD: z.string().default(""),
     DB_PORT: z.coerce.number(),
-    DB_SSL: z.coerce.boolean(),
+    DB_SSL: z.stringbool(),
     DB_USER: z.string().min(1),
     GOOGLE_CLIENT_ID: z.string().min(1),
     GOOGLE_CLIENT_SECRET: z.string().min(1),

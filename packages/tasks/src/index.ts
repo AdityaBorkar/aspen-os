@@ -71,7 +71,7 @@ export class TaskModule {
   }
 
   readonly db_schema = dbSchema;
-  readonly name = "tasks";
+  readonly $name = "tasks";
 
   #automation: AutomationWorkflow | null = null;
   #collaboration: CollaborationWorkflow | null = null;
@@ -149,7 +149,7 @@ export class TaskModule {
     return this.#views;
   }
 
-  initialize(units: { db: DatabaseUnit; pubsub: PubSubUnit }): void {
+  $initialize(units: { db: DatabaseUnit; pubsub: PubSubUnit }): void {
     const db = units.db.db;
 
     if (this.config.enableNotifications) {
@@ -170,7 +170,7 @@ export class TaskModule {
     this.#views = new ViewWorkflow(db);
   }
 
-  async destroy(): Promise<void> {
+  async $destroy(): Promise<void> {
     this.#automation = null;
     this.#collaboration = null;
     this.#comments = null;
@@ -189,6 +189,6 @@ export class TaskModule {
 
 function notInitialized(): Error {
   return new Error(
-    "Tasks module not initialized. Call initialize() after framework.initialize().",
+    "Tasks module not initialized. Call $initialize() after Framework.create().",
   );
 }

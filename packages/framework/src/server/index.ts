@@ -51,10 +51,10 @@ export interface Unit {
 }
 
 export interface Module<N extends string = string> {
-  destroy(): Promise<void>;
-  initialize?(units: Record<string, Unit>): void;
-  readonly name: N;
-  prepare?(): Promise<void>;
+  $destroy(): Promise<void>;
+  $initialize?(units: Record<string, Unit>): void;
+  readonly $name: N;
+  $prepare?(): Promise<void>;
 }
 
 type UnitAccessors = { [K in keyof FrameworkUnits]: FrameworkUnits[K] };
@@ -111,8 +111,8 @@ export class Framework<M extends Record<string, Module>> {
 
     const initializedModules = {} as Record<string, Module>;
     for (const mod of Object.values(modules)) {
-      mod.initialize?.(units);
-      initializedModules[mod.name] = mod;
+      mod.$initialize?.(units);
+      initializedModules[mod.$name] = mod;
     }
 
     return new Framework<M>(
@@ -131,9 +131,9 @@ export class Framework<M extends Record<string, Module>> {
     }
     for await (const mod of Object.values(this.modules)) {
       try {
-        await mod.prepare?.();
+        await mod.$prepare?.();
       } catch (err) {
-        console.error(`Failed to prepare module "${mod.name}"`, err);
+        console.error(`Failed to prepare module "${mod.$name}"`, err);
       }
     }
   }
@@ -145,9 +145,9 @@ export class Framework<M extends Record<string, Module>> {
   async destroy(): Promise<void> {
     for await (const mod of Object.values(this.modules)) {
       try {
-        await mod.destroy();
+        await mod.$destroy();
       } catch {
-        console.error(`Failed to destroy module "${mod.name}"`);
+        console.error(`Failed to destroy module "${mod.$name}"`);
       }
     }
     for await (const unit of Object.values(this.units)) {

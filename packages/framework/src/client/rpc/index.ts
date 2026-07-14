@@ -3,17 +3,17 @@ export interface RpcConfig {
 }
 
 export class RpcUnit {
-  readonly name = "rpc";
+  readonly $name = "rpc";
 
   constructor(config: RpcConfig = {}) {
     console.log({ config });
   }
 
-  async prepare(): Promise<void> {
+  async $prepare(): Promise<void> {
     return;
   }
 
-  async destroy(): Promise<void> {
+  async $destroy(): Promise<void> {
     return;
   }
 }

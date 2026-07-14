@@ -9,7 +9,7 @@ Bun monorepo. A business framework (`@aspen-os/framework`) with pluggable units/
 - **Linter/formatter**: Biome (`biome.json` at root) — double quotes, 2-space indent, LF, `lineWidth: 80`, organized imports. Tailwind `useSortedClasses` is `error` (auto-fixed via `clsx`/`cva`/`tw`).
 - **`bunfig.toml`**: install scripts disabled (`ignore-scripts=true`), 3-day minimum release age (`minimumReleaseAge=259200`, excludes `@types/bun`/`typescript`/`@biomejs/biome`), lockfile not saved as text.
 - **Workspace catalog**: shared dep versions pinned in root `package.json` `workspaces.catalog` (`@types/bun`, `bun`, `drizzle-orm`, `typescript`, `valibot`); referenced as `catalog:` in packages.
-- TypeScript is `^7.0.2` across all packages (via catalog where applicable).
+- TypeScript is `^7.0.1-rc` in the catalog (some packages like recruiter/docs-www override to `^7.0.2` in their own devDeps).
 
 ## Commands
 
@@ -36,7 +36,7 @@ cd examples/recruiter && bun run check:lint    # biome check --fix .
 cd examples/recruiter && bun run check:types    # tsc -b
 ```
 
-**documentation** (`bun run dev` → port 3005; `bun run types:check` → `fumadocs-mdx && tsc --noEmit`). Has no `deploy` script — deploy manually via `vite build && wrangler deploy` (uses `wrangler.jsonc`, `nodejs_compat` flag). **Gotcha**: `ignore-scripts=true` in `bunfig.toml` prevents the `postinstall` (`fumadocs-mdx`) from running — run `bunx fumadocs-mdx` manually before `bun run build` if `.source/` is missing.
+**docs-www** (`bun run dev` → port 3005; `bun run types:check` → `fumadocs-mdx && tsc --noEmit`). Has no `deploy` script — deploy manually via `vite build && wrangler deploy` (uses `wrangler.jsonc`, `nodejs_compat` flag). **Gotcha**: `ignore-scripts=true` in `bunfig.toml` prevents the `postinstall` (`fumadocs-mdx`) from running — run `bunx fumadocs-mdx` manually before `bun run build` if `.source/` is missing.
 
 **Path-alias gotcha**: Each package's tsconfig maps `@/*` to its own `./src/*`. Root tsconfig has no `paths` field. Run typecheck in the package whose alias you mean.
 
@@ -62,13 +62,15 @@ packages/
   accounting/ crm/ fleet/ inventory/ reports/ pharmacy/  # Pure stubs (package.json is just { "name": "..." })
 examples/
   recruiter/          # TanStack Start + React 19 + Vite 8 + Tailwind 4 app (dev port 3000)
-documentation/        # TanStack Start docs site → Cloudflare Workers
-docs/                 # CODING_CONVENTIONS.md, DOMAIN_MODEL.md, BOUNDED_CONTEXTS.md, ADRs, TODO.md, sow/
+docs-www/             # TanStack Start docs site → Cloudflare Workers (fumadocs)
+docs/                 # adr/, BOUNDED_CONTEXTS.md, DOMAIN_MODEL.md, TODO.md, sow/
 ```
 
-Workspace globs: `./packages/*`, `./examples/*`, `./documentation`. Root `tsconfig.json` uses composite project references to all packages (including `pharmacy`).
+Root also has `CODING_CONVENTIONS.md` and `CONTEXT.md` with full domain language and anti-patterns.
 
-**Documentation sourcing**: The `documentation` app pulls MDX content from each package's `docs-www/` directory, configured in `documentation/source.config.ts`. Packages with docs content: framework, organization, compliance, tasks, drive, hr, constants. To add a new package's docs, add a `defineDocs()` entry in `source.config.ts` and create `packages/<name>/docs-www/`.
+Workspace globs: `./packages/*`, `./examples/*`, `./docs-www`. Root `tsconfig.json` uses composite project references to all packages (including `pharmacy`).
+
+**Documentation sourcing**: The `docs-www` app pulls MDX content from each package's `docs-www/` directory, configured in `docs-www/source.config.ts`. Packages with docs content: framework, organization, compliance, tasks, drive, hr, constants. To add a new package's docs, add a `defineDocs()` entry in `source.config.ts` and create `packages/<name>/docs-www/`.
 
 ## App Setup (recruiter)
 
@@ -127,19 +129,19 @@ All are classes instantiated in `src/server/index.ts` with constructor-injected 
 | rpc | `RpcUnit` | `src/server/rpc/` | `{ auth, db, logs, pubsub }` |
 | kvStore | `KvStoreUnit` | `src/server/kv-store/` | `{ db }` |
 
-### Auth unit shape
+### Auth unit shape (server)
 
-`AuthUnit` exposes:
-- `client` — better-auth React client (frontend).
-- `db_schema` — the auth Drizzle schema record.
-- `server.$` — the raw `betterAuth` `Auth` instance.
-- `server.handler(request)` — HTTP handler.
-- `server.workflows.{user,session,role}` — programmatic API:
-  - `user`: `create`, `delete`, `get({id}|{email})`, `update`, `role.{assign,unassign}`.
-  - `session`: `create` (email+password → `{user,session}`), `validate(token)`, `invalidate(id)`.
-  - `role`: `list`, `delete(name)`.
+`AuthUnit` (`src/server/auth/index.ts`) exposes:
+- `$db_schema` — the auth Drizzle schema record (note the `$` prefix, consistent with server unit convention).
+- `auth` — the raw `betterAuth` `Auth` instance.
+- `fetch_handler(request)` — HTTP handler (not `handler`).
+- `user` getter — `{ create, delete, get({id}|{email}), update, role: { assign, unassign } }`.
+- `session` getter — `{ create (email+password → {user,session}), validate(token), invalidate(id) }`.
+- `role` getter — `{ list, delete(name) }`.
 
-`AuthConfig` (`src/server/auth/types.ts`) requires: `access_control`, `roles`, `baseURL`, `secret`, `session{expiresIn?}`; optional `socialProviders.google`. Note: `access_control` and `roles` are accepted but intentionally not passed to `betterAuth()` on the server — they are used only by the client AuthUnit.
+The client `AuthUnit` (`src/client/auth/index.ts`) exposes `client` — the better-auth React client. It has `name` (not `$name`).
+
+`AuthConfig` (`src/server/auth/types.ts`) requires: `access_control`, `roles`, `baseURL`, `secret`, `session{expiresIn?}`; optional `cfSecretKey`, `socialProviders.google`. `access_control` and `roles` are destructured out of config to avoid being spread into `betterAuth()` top-level, but **are** passed to betterAuth via the `admin()` plugin (`admin({ ac: access_control, roles })`).
 
 ## Domain Module Pattern
 
@@ -158,17 +160,17 @@ Modules follow a strict pattern (see `organization`, `compliance`, `tasks`, `dri
 - Timestamps use `TIMESTAMPTZ` / `withTimezone: true`. `createdAt`: `.notNull().defaultNow()`. `updatedAt`: `.notNull().defaultNow().$onUpdate(() => new Date())` (auth) or manually set in workflows.
 - Table names: `snake_case`. Column names: `snake_case` in Postgres, `camelCase` in TS (drizzle maps). Columns sorted alphabetically by TS property name.
 - **Validation**: Valibot for domain module input (create/update/filter schemas). Zod for RPC procedures (oRPC) and env vars (t3-env).
-- **No barrel files** unless explicitly told (`docs/CODING_CONVENTIONS.md`).
+- **No barrel files** unless explicitly told (`CODING_CONVENTIONS.md`).
 - **No build step**: package `exports` point at raw `.ts` files.
 - `*.gen.ts` is gitignored (codegen output).
 - Constants as `as const` objects with `UPPER_SNAKE` keys and lowercase string values. Shared in `@aspen-os/constants`, module-specific in `constants.ts`.
 - Events: `"domain:event_name"` format, typed via `EventMap` type. Published via PubSub as plain string topics — the event map is a type-level contract, not a runtime bus.
 - There is no `Result<T,E>` or `PaginatedResult` type — don't use or create them.
-- See `docs/CODING_CONVENTIONS.md`, `docs/DOMAIN_MODEL.md`, and `CONTEXT.md` for full domain language and anti-patterns.
+- See `CODING_CONVENTIONS.md`, `CONTEXT.md`, and `docs/DOMAIN_MODEL.md` for full domain language and anti-patterns.
 
 ## Current State
 
 - `organization`, `compliance`, `tasks`, and `drive` are fully implemented domain modules. `hr` is a scaffold (has src structure but incomplete module class). All other domain packages (`accounting`, `crm`, `fleet`, `inventory`, `reports`, `pharmacy`) are pure stubs.
-- No CI/CD, no Docker for the framework, no deployment config beyond `documentation`'s `wrangler.jsonc`.
+- No CI/CD, no Docker for the framework, no deployment config beyond `docs-www`'s `wrangler.jsonc`.
 - No tests for the framework or domain modules. `recruiter` has `vitest` + `@testing-library` in devDeps but no `test` script — testing not yet wired up.
 - `codedb.snapshot` at root is a CodeDB indexing artifact, not source.

@@ -5,12 +5,12 @@ export class HrModule {
 
   // constructor(){}
 
-  initialize() {
+  $initialize() {
     // TODO: SERVER STARTUP AND INITIALIZATION OF RESOURCES
     // Event Subscriptions and Cron Jobs
   }
 
-  prepare() {}
+  $prepare() {}
 
-  destroy() {}
+  $destroy() {}
 }

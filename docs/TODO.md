@@ -2,8 +2,10 @@
 
 ## Module Implementation
 
-- /grill-with-docs
-- /improve-codebase-architecture
+- Resolve known gaps
+- /improve-codebase-architecture Analyze the entire monorepo and suggest major improvements or wins.
+- checks
+- 
 - Task Management
 - CRM
 - Implement the HR module
@@ -16,19 +18,21 @@
   - Bank Accounts
   - Personal Drafts
   - Personal Dashboard / Dashboards
-
-## Goals
-
-- Units
-  - RPC
-  - Log
-  - Workflows
-  - Notification
-- 
 - Standardization
   - `framework` types
   - `framework` module types
-- 
+- Drizzle Migrations could not be performed
+- CONTEXT.md lists Prospect, Client, Job Mandate, Draft, Filter View, Reminder, Task, Team Member, Contract under "Recruiter Domain."
+
+## Units
+
+- RPC
+- Log
+- Workflows
+- Notification
+
+## Modules
+
 - Accounting
   - Ledger
   - Transactions
@@ -37,18 +41,14 @@
   - Sales???
   - Purchase???
   - Vouchers???
-- 
-- /grill-with-docs
-- /improve-codebase-architecture
-
-## Issues
-
-- Drizzle Migrations could not be performed
 
 ## Phase 2
 
 - Dynamic Loading of Modules
   - /settings/features = Enable/Disable each mdoule and their feature flags
+- Custom Skills:
+  - /grill-with-docs
+  - /improve-codebase-architecture
 
 ## Not a Priority
 

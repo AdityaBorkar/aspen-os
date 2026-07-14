@@ -47,7 +47,7 @@ export class OrganizationModule {
   constructor(private config: OrganizationModuleConfig) {}
 
   readonly db_schema = dbSchema;
-  readonly name = "organization";
+  readonly $name = "organization";
 
   #addresses: AddressWorkflow | null = null;
   #bankAccounts: BankAccountWorkflow | null = null;
@@ -81,7 +81,7 @@ export class OrganizationModule {
     return this.#organization;
   }
 
-  initialize(units: { db: DatabaseUnit; pubsub: PubSubUnit }): void {
+  $initialize(units: { db: DatabaseUnit; pubsub: PubSubUnit }): void {
     this.#addresses = new AddressWorkflow(units.db.db);
     this.#bankAccounts = new BankAccountWorkflow(units.db.db);
     this.#branches = new BranchWorkflow(units.db.db);
@@ -89,7 +89,7 @@ export class OrganizationModule {
     this.#organization = new OrganizationWorkflow(units.db.db);
   }
 
-  async destroy(): Promise<void> {
+  async $destroy(): Promise<void> {
     this.#addresses = null;
     this.#bankAccounts = null;
     this.#branches = null;
@@ -100,6 +100,6 @@ export class OrganizationModule {
 
 function notInitialized(): Error {
   return new Error(
-    "Organization module not initialized. Call initialize(db) after framework.initialize().",
+    "Organization module not initialized. Call $initialize() after Framework.create().",
   );
 }
