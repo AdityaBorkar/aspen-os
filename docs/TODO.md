@@ -2,38 +2,31 @@
 
 ## Module Implementation
 
+Complete the implementation of the HR module
+- Workflows fully implemented (7 workflows, 44 tables, 235 methods)
+- Module class incomplete — needs `$name`, `static create()`, `$initialize(units)` signature
+- Workflows not wired to module class
+- `event-map.ts` is empty
+- `dbSchemas` export should be renamed to `db_schema`
+- Canvas like Users
+- Custom Roles and RBAC Permissions
+- Users with Branch-wise access controls
+
 - Resolve known gaps
 - /improve-codebase-architecture Analyze the entire monorepo and suggest major improvements or wins.
 - checks
-- 
-- Task Management
-- CRM
-- Implement the HR module
-  - Canvas like Users
-  - Custom Roles and RBAC Permissions
-  - Users with Branch-wise access controls
-- Organization
-  - Addresses
+
+- [ ] Organization
   - Filter Views
-  - Bank Accounts
   - Personal Drafts
   - Personal Dashboard / Dashboards
-- Standardization
+- [ ] CRM
+- [ ] Standardization
   - `framework` types
   - `framework` module types
-- Drizzle Migrations could not be performed
-- CONTEXT.md lists Prospect, Client, Job Mandate, Draft, Filter View, Reminder, Task, Team Member, Contract under "Recruiter Domain."
-
-## Units
-
-- RPC
-- Log
-- Workflows
-- Notification
-
-## Modules
-
-- Accounting
+- Drizzle Migrations could not be performed (using pushSchema instead — see ADR-0004)
+- [ ] Notification unit
+- [ ] Accounting
   - Ledger
   - Transactions
   - Accounts
@@ -41,14 +34,35 @@
   - Sales???
   - Purchase???
   - Vouchers???
+- [ ] Fleet
+- [ ] Inventory
+- [ ] Reports
+- [ ] Pharmacy
+
+## Units
+
+- Units
+  - RPC
+  - Log
+  - Workflows
+  - Notification
+- Organization
+  - Addresses
+  - Filter Views
+  - Bank Accounts
+  - Personal Drafts
+  - Personal Dashboard / Dashboards
+- Implement the HR module
+  - Canvas like Users
+  - Custom Roles and RBAC Permissions
+  - Users with Branch-wise access controls
+- Task Management
+- CONTEXT.md lists Prospect, Client, Job Mandate, Draft, Filter View, Reminder, Task, Team Member, Contract under "Recruiter Domain."
 
 ## Phase 2
 
 - Dynamic Loading of Modules
-  - /settings/features = Enable/Disable each mdoule and their feature flags
-- Custom Skills:
-  - /grill-with-docs
-  - /improve-codebase-architecture
+  - /settings/features = Enable/Disable each module and their feature flags
 
 ## Not a Priority
 

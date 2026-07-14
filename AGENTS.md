@@ -92,8 +92,8 @@ Three entry surfaces: `./src/server/` (Node/Bun), `./src/client/` (browser), `./
 
 ### Units vs Modules
 
-- **Unit** (server): `{ readonly $name: string; $destroy(): Promise<void>; $prepare?(): Promise<void> }` — uses `$` prefix for lifecycle methods. Client units use no prefix (`name`, `destroy()`, `prepare?()`).
-- **Module**: `{ readonly name: N; initialize?(units: Record<string, Unit>): void; prepare?(): Promise<void>; destroy(): Promise<void> }`.
+- **Unit**: `{ readonly $name: string; $destroy(): Promise<void>; $prepare?(): Promise<void> }` — `$` prefix on all lifecycle methods, on both server and client.
+- **Module**: `{ readonly $name: N; $initialize?(units: Record<string, Unit>): void; $prepare?(): Promise<void>; $destroy(): Promise<void> }` — same `$` prefix convention.
 - Both interfaces are defined inline in `src/server/index.ts` and `src/client/index.ts` — there is no separate `src/types.ts`.
 
 ### Framework usage
@@ -102,18 +102,18 @@ Three entry surfaces: `./src/server/` (Node/Bun), `./src/client/` (browser), `./
 import { Framework } from "@aspen-os/framework/server"
 
 const framework = Framework.create(config, { organization: orgModule })
-await framework.prepare()                 // runs unit.$prepare() then module.prepare()
+await framework.prepare()                 // runs unit.$prepare() then module.$prepare()
 await framework.run(async () => { /* AsyncLocalStorage: { db, pubsub } */ })
 await framework.destroy()
 ```
 
 API facts that differ from what you might guess:
-- `Framework.create(config, modules)` is the **only** constructor — it instantiates all 7 units, calls `module.initialize(units)` on each module, and returns a proxy-wrapped `FrameworkInstance`. There is no `new Framework(config)` or `registerModule()`.
+- `Framework.create(config, modules)` is the **only** constructor — it instantiates all 7 units, calls `module.$initialize(units)` on each module, and returns a proxy-wrapped `FrameworkInstance`. There is no `new Framework(config)` or `registerModule()`.
 - **Seven** units are **required** in `FrameworkConfig`: `db, auth, logs, pubsub, rpc, storage, kvStore`.
 - Modules are passed as a **named object** to `create()`. Module names become proxy keys — e.g. `framework.organization` returns the module.
 - Use `framework.getUnit("auth")` / `framework.getModule("organization")` for typed access, or proxy access (`framework.db`, `framework.organization`).
 - `run(fn)` provides `{ db, pubsub }` via `AsyncLocalStorage`; `db` is the drizzle `NodePgDatabase`, `pubsub` is the `PubSubUnit`.
-- `prepare()` runs each unit's `$prepare()` (e.g. `DatabaseUnit.$prepare()` calls `pushSchema()`), then each module's `prepare()`. Errors are caught and logged per-unit/module.
+- `prepare()` runs each unit's `$prepare()` (e.g. `DatabaseUnit.$prepare()` calls `pushSchema()`), then each module's `$prepare()`. Errors are caught and logged per-unit/module.
 
 ### Core units (created by `Framework` via `new`)
 
@@ -139,20 +139,20 @@ All are classes instantiated in `src/server/index.ts` with constructor-injected 
 - `session` getter — `{ create (email+password → {user,session}), validate(token), invalidate(id) }`.
 - `role` getter — `{ list, delete(name) }`.
 
-The client `AuthUnit` (`src/client/auth/index.ts`) exposes `client` — the better-auth React client. It has `name` (not `$name`).
+The client `AuthUnit` (`src/client/auth/index.ts`) exposes `client` — the better-auth React client. It uses `$name` like all other units.
 
 `AuthConfig` (`src/server/auth/types.ts`) requires: `access_control`, `roles`, `baseURL`, `secret`, `session{expiresIn?}`; optional `cfSecretKey`, `socialProviders.google`. `access_control` and `roles` are destructured out of config to avoid being spread into `betterAuth()` top-level, but **are** passed to betterAuth via the `admin()` plugin (`admin({ ac: access_control, roles })`).
 
 ## Domain Module Pattern
 
 Modules follow a strict pattern (see `organization`, `compliance`, `tasks`, `drive` for reference):
-- Static `create(config)` factory. Private workflow fields with `#` prefix, initialized lazily in `initialize(units)`.
-- Getter properties that throw `notInitialized()` if accessed before `initialize()`.
-- `db_schema` export (drizzle schema namespace). `name` as kebab-case readonly string.
-- `prepare()` is optional — registers pubsub handlers/schedules (e.g. drive registers a trash purge cron). Schema pushing is handled by `DatabaseUnit.$prepare()`, not by modules. `destroy()` nulls out fields and unregisters.
+- Static `create(config)` factory. Private workflow fields with `#` prefix, initialized lazily in `$initialize(units)`.
+- Getter properties that throw `notInitialized()` if accessed before `$initialize()`.
+- `db_schema` export (drizzle schema namespace). `$name` as kebab-case readonly string.
+- `$prepare()` is optional — pushes module DB schemas via `pushSchema()` (compliance does this) and/or registers pubsub handlers/schedules (drive registers a trash purge cron). `DatabaseUnit.$prepare()` only pushes framework-internal schemas (auth, log, storage, kvStore) — modules are responsible for their own. `$destroy()` nulls out fields and unregisters.
 - File structure: `src/{index,db-schema,types,event-map,constants}.ts`, `src/schemas/`, `src/workflows/`, optionally `src/services/`.
 - Package: `@aspen-os/<module>`, `"type": "module"`, `exports: { ".": "./src/index.ts" }`, deps on framework + constants via `workspace:*`.
-- **Module `initialize()` signatures vary** — each module types its own subset of units: organization/tasks take `{ db, pubsub }`, compliance takes `{ db, kvStore, pubsub }`, drive takes `{ db, storage, pubsub }`.
+- **Module `$initialize()` signatures vary** — each module types its own subset of units: organization/tasks take `{ db, pubsub }`, compliance takes `{ db, kvStore, pubsub }`, drive takes `{ db, storage, pubsub }`.
 
 ## Conventions
 
