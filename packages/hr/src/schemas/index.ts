@@ -1,4 +1,34 @@
 // Attendance schemas
+
+// Access schemas
+export type {
+  AssignPermissionInput,
+  AssignRoleInput,
+  CreateHrPermissionInput,
+  CreateHrRoleInput,
+  CreateHrUserInput,
+  GrantBranchAccessInput,
+  HrPermissionFilters,
+  HrRoleFilters,
+  HrUserFilters,
+  UpdateBranchAccessInput,
+  UpdateHrRoleInput,
+  UpdateHrUserInput,
+} from "./access";
+export {
+  AssignPermissionSchema,
+  AssignRoleSchema,
+  CreateHrPermissionSchema,
+  CreateHrRoleSchema,
+  CreateHrUserSchema,
+  GrantBranchAccessSchema,
+  HrPermissionFiltersSchema,
+  HrRoleFiltersSchema,
+  HrUserFiltersSchema,
+  UpdateBranchAccessSchema,
+  UpdateHrRoleSchema,
+  UpdateHrUserSchema,
+} from "./access";
 export type {
   AttendanceFilters,
   AttendanceRequestFilters,
@@ -46,6 +76,7 @@ export {
 } from "./employee";
 // Enum schemas
 export {
+  AccessLevelSchema,
   AttendanceRequestStatusSchema,
   AttendanceStatusSchema,
   CheckinLogTypeSchema,
@@ -64,6 +95,7 @@ export {
   LifecycleTaskStatusSchema,
   OnboardingStatusSchema,
   OvertimeStatusSchema,
+  PermissionActionSchema,
   PromotionStatusSchema,
   SeparationStatusSchema,
   ShiftAssignmentStatusSchema,

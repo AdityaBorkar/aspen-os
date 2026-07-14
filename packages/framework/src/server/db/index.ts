@@ -10,7 +10,7 @@ import type { DatabaseConfig } from "./types";
 export type { DatabaseConfig } from "./types";
 
 export class DatabaseUnit {
-  readonly $name = "database";
+  readonly $name = "db";
   readonly pool: pg.Pool;
   readonly db: NodePgDatabase;
   readonly config: DatabaseConfig;

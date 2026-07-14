@@ -161,3 +161,19 @@ export const LeaveBlockListScopeSchema = enum_({
   company: "company",
   department: "department",
 });
+
+export const AccessLevelSchema = enum_({
+  full: "full",
+  manage: "manage",
+  read_only: "read_only",
+});
+
+export const PermissionActionSchema = enum_({
+  approve: "approve",
+  create: "create",
+  delete: "delete",
+  manage: "manage",
+  reject: "reject",
+  update: "update",
+  view: "view",
+});

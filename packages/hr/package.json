@@ -2,6 +2,7 @@
   "dependencies": {
     "@aspen-os/constants": "workspace:*",
     "@aspen-os/framework": "workspace:*",
+    "drizzle-kit": "^0.31.10",
     "drizzle-orm": "catalog:",
     "valibot": "catalog:"
   },

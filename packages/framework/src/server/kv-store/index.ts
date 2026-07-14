@@ -1,4 +1,4 @@
-import { eq, like } from "drizzle-orm";
+import { eq, like, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 import type { DatabaseUnit } from "../db";
@@ -8,7 +8,7 @@ import type { KvStoreConfig } from "./types";
 export type { KvStoreConfig } from "./types";
 
 export class KvStoreUnit {
-  readonly $name = "kv-store" as const;
+  readonly $name = "kvStore" as const;
   readonly db_schema = db_schema;
 
   private db: NodePgDatabase;
@@ -87,11 +87,37 @@ export class KvStoreUnit {
   }
 
   async increment(key: string, amount = 1): Promise<number> {
-    const current = await this.get<string>(key);
-    const val = current ? Number.parseInt(String(current), 10) : 0;
-    const newVal = val + amount;
-    await this.set(key, String(newVal));
-    return newVal;
+    const fullKey = this.getKeyName(key);
+    const effectiveTtl = this.defaultTtl;
+    let expiresAt: Date | null = null;
+    if (effectiveTtl > 0) {
+      expiresAt = new Date(Date.now() + effectiveTtl * 1000);
+    }
+
+    const result = await this.db
+      .insert(db_schema.kvStore)
+      .values({
+        expiresAt,
+        key: fullKey,
+        value: String(amount),
+      })
+      .onConflictDoUpdate({
+        set: {
+          expiresAt,
+          updatedAt: new Date(),
+          value: sql`CASE
+            WHEN ${db_schema.kvStore.expiresAt} IS NULL OR ${db_schema.kvStore.expiresAt} > NOW()
+            THEN (CAST(${db_schema.kvStore.value} AS INTEGER) + ${amount})::text
+            ELSE ${String(amount)}
+          END`,
+        },
+        target: db_schema.kvStore.key,
+      })
+      .returning({ value: db_schema.kvStore.value });
+
+    const row = result[0];
+    if (!row) throw new Error("Failed to increment key");
+    return Number.parseInt(row.value, 10);
   }
 
   async decrement(key: string, amount = 1): Promise<number> {

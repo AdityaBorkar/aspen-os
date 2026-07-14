@@ -29,11 +29,10 @@ export class PubSubUnit {
       schema: ssl ? "pgboss" : undefined,
       user,
     });
-    this.boss.start();
   }
 
   async $prepare(): Promise<void> {
-    return;
+    await this.boss.start();
   }
 
   async $destroy(): Promise<void> {

@@ -42,7 +42,7 @@ export class AuthUnit {
 
   constructor(config: AuthConfig, units: { db: DatabaseUnit }) {
     const { cfSecretKey, access_control, roles, ...rest } = config;
-    this.auth = betterAuth({
+    const auth = betterAuth({
       ...rest,
       database: drizzleAdapter(units.db.db, {
         camelCase: false,
@@ -68,7 +68,8 @@ export class AuthUnit {
             ]
           : []),
       ],
-    }) as unknown as Auth;
+    });
+    this.auth = auth as unknown as Auth;
   }
 
   async $prepare() {
@@ -81,6 +82,10 @@ export class AuthUnit {
 
   async fetch_handler(request: Request) {
     return this.auth.handler(request);
+  }
+
+  get api() {
+    return this.auth.api;
   }
 
   get role() {

@@ -2,19 +2,10 @@
 
 ## Module Implementation
 
-Complete the implementation of the HR module
-- Workflows fully implemented (7 workflows, 44 tables, 235 methods)
-- Module class incomplete — needs `$name`, `static create()`, `$initialize(units)` signature
-- Workflows not wired to module class
-- `event-map.ts` is empty
-- `dbSchemas` export should be renamed to `db_schema`
-- Canvas like Users
-- Custom Roles and RBAC Permissions
-- Users with Branch-wise access controls
-
 - Resolve known gaps
 - /improve-codebase-architecture Analyze the entire monorepo and suggest major improvements or wins.
 - checks
+- `session.ts` use methods from auth.api as much possible.
 
 - [ ] Organization
   - Filter Views

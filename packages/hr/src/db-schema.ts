@@ -167,6 +167,22 @@ export const leaveBlockListScopeEnum = pgEnum("hr_leave_block_list_scope", [
   "department",
 ]);
 
+export const accessLevelEnum = pgEnum("hr_access_level", [
+  "full",
+  "manage",
+  "read_only",
+]);
+
+export const permissionActionEnum = pgEnum("hr_permission_action", [
+  "approve",
+  "create",
+  "delete",
+  "manage",
+  "reject",
+  "update",
+  "view",
+]);
+
 // ─── Attendance Tables ─────────────────────────────────────────────────────
 
 export const attendance = pgTable(
@@ -1277,3 +1293,175 @@ export const shiftScheduleAssignment = pgTable(
     index("idx_shift_schedule_assignment_employee_id").on(table.employeeId),
   ],
 );
+
+// ─── Access Control Tables ─────────────────────────────────────────────────
+
+export const hrUser = pgTable(
+  "hr_user",
+  {
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    employeeId: text("employee_id").notNull(),
+    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    isActive: boolean("is_active").notNull().default(true),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    userId: text("user_id").notNull(),
+  },
+  (table) => [
+    index("idx_hr_user_employee_id").on(table.employeeId),
+    index("idx_hr_user_user_id").on(table.userId),
+  ],
+);
+
+export const hrRole = pgTable("hr_role", {
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  description: text("description"),
+  id: text("id").primaryKey().default("gen_random_uuid()::text"),
+  isActive: boolean("is_active").notNull().default(true),
+  isSystem: boolean("is_system").notNull().default(false),
+  name: text("name").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const hrPermission = pgTable("hr_permission", {
+  action: permissionActionEnum("action").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  description: text("description"),
+  id: text("id").primaryKey().default("gen_random_uuid()::text"),
+  module: text("module").notNull(),
+});
+
+export const hrRolePermission = pgTable(
+  "hr_role_permission",
+  {
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    permissionId: text("permission_id").notNull(),
+    roleId: text("role_id").notNull(),
+  },
+  (table) => [
+    index("idx_hr_role_permission_role_id").on(table.roleId),
+    index("idx_hr_role_permission_permission_id").on(table.permissionId),
+  ],
+);
+
+export const hrUserRole = pgTable(
+  "hr_user_role",
+  {
+    branchId: text("branch_id"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    hrUserId: text("hr_user_id").notNull(),
+    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    roleId: text("role_id").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_hr_user_role_hr_user_id").on(table.hrUserId),
+    index("idx_hr_user_role_role_id").on(table.roleId),
+    index("idx_hr_user_role_branch_id").on(table.branchId),
+  ],
+);
+
+export const hrUserBranchAccess = pgTable(
+  "hr_user_branch_access",
+  {
+    accessLevel: accessLevelEnum("access_level").notNull().default("read_only"),
+    branchId: text("branch_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    hrUserId: text("hr_user_id").notNull(),
+    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_hr_user_branch_access_hr_user_id").on(table.hrUserId),
+    index("idx_hr_user_branch_access_branch_id").on(table.branchId),
+  ],
+);
+
+// ─── Table Registry ────────────────────────────────────────────────────────
+
+export const hrTables = {
+  attendance,
+  attendanceRequest,
+  compensatoryLeaveRequest,
+  department,
+  designation,
+  employee,
+  employeeCheckin,
+  employeeGrade,
+  employeeGroup,
+  employeeGroupMember,
+  employeeHealthInsurance,
+  employeeOnboarding,
+  employeePromotion,
+  employeeSeparation,
+  employeeSkillMap,
+  employeeTransfer,
+  employmentType,
+  exitInterview,
+  fullAndFinalStatement,
+  holiday,
+  holidayList,
+  hrPermission,
+  hrRole,
+  hrRolePermission,
+  hrSettings,
+  hrUser,
+  hrUserBranchAccess,
+  hrUserRole,
+  leaveAdjustment,
+  leaveAllocation,
+  leaveApplication,
+  leaveBlockList,
+  leaveEncashment,
+  leaveLedgerEntry,
+  leavePeriod,
+  leavePolicy,
+  leavePolicyAssignment,
+  leavePolicyDetail,
+  leaveType,
+  onboardingTask,
+  overtimeSlip,
+  overtimeType,
+  payrollSettings,
+  separationTask,
+  shiftAssignment,
+  shiftLocation,
+  shiftRequest,
+  shiftSchedule,
+  shiftScheduleAssignment,
+  shiftType,
+} as const;
+
+export type HrUser = typeof hrUser.$inferSelect;
+export type HrRole = typeof hrRole.$inferSelect;
+export type HrPermission = typeof hrPermission.$inferSelect;
+export type HrRolePermission = typeof hrRolePermission.$inferSelect;
+export type HrUserRole = typeof hrUserRole.$inferSelect;
+export type HrUserBranchAccess = typeof hrUserBranchAccess.$inferSelect;
+
+export type NewHrUser = typeof hrUser.$inferInsert;
+export type NewHrRole = typeof hrRole.$inferInsert;
+export type NewHrPermission = typeof hrPermission.$inferInsert;
+export type NewHrRolePermission = typeof hrRolePermission.$inferInsert;
+export type NewHrUserRole = typeof hrUserRole.$inferInsert;
+export type NewHrUserBranchAccess = typeof hrUserBranchAccess.$inferInsert;

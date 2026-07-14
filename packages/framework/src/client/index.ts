@@ -1,4 +1,5 @@
 import { type AuthConfig, AuthUnit } from "./auth";
+import { setContext } from "./context";
 import { type LogConfig, LogUnit } from "./log";
 import { type RpcConfig, RpcUnit } from "./rpc";
 
@@ -103,6 +104,18 @@ export class Framework<M extends Record<string, Module>> {
         console.error(`Failed to prepare module "${mod.$name}"`, err);
       }
     }
+    setContext({
+      auth: this.units.auth.client,
+      rpc: this.units.rpc,
+    });
+  }
+
+  async run<T>(fn: () => T | Promise<T>): Promise<T> {
+    setContext({
+      auth: this.units.auth.client,
+      rpc: this.units.rpc,
+    });
+    return fn();
   }
 
   async destroy(): Promise<void> {

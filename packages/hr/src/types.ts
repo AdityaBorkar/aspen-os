@@ -1,5 +1,7 @@
 export type {
   AddGroupMemberInput,
+  AssignPermissionInput,
+  AssignRoleInput,
   AttendanceFilters,
   AttendanceRequestFilters,
   CheckinFilters,
@@ -19,6 +21,9 @@ export type {
   CreateHealthInsuranceInput,
   CreateHolidayInput,
   CreateHolidayListInput,
+  CreateHrPermissionInput,
+  CreateHrRoleInput,
+  CreateHrUserInput,
   CreateLeaveAdjustmentInput,
   CreateLeaveAllocationInput,
   CreateLeaveApplicationInput,
@@ -48,6 +53,10 @@ export type {
   EmployeeFilters,
   ExitInterviewFilters,
   FullAndFinalFilters,
+  GrantBranchAccessInput,
+  HrPermissionFilters,
+  HrRoleFilters,
+  HrUserFilters,
   LeaveAllocationFilters,
   LeaveApplicationFilters,
   LeaveBlockListFilters,
@@ -62,6 +71,7 @@ export type {
   TransferFilters,
   UpdateAttendanceInput,
   UpdateAttendanceRequestInput,
+  UpdateBranchAccessInput,
   UpdateCompensatoryLeaveInput,
   UpdateDepartmentInput,
   UpdateDesignationInput,
@@ -74,7 +84,9 @@ export type {
   UpdateHealthInsuranceInput,
   UpdateHolidayInput,
   UpdateHolidayListInput,
+  UpdateHrRoleInput,
   UpdateHrSettingsInput,
+  UpdateHrUserInput,
   UpdateLeaveAllocationInput,
   UpdateLeaveApplicationInput,
   UpdateLeaveBlockListInput,
@@ -101,7 +113,10 @@ export type {
   UpdateTransferInput,
 } from "./schemas";
 export {
+  AccessLevelSchema,
   AddGroupMemberSchema,
+  AssignPermissionSchema,
+  AssignRoleSchema,
   AttendanceFiltersSchema,
   AttendanceRequestFiltersSchema,
   CheckinFiltersSchema,
@@ -121,6 +136,9 @@ export {
   CreateHealthInsuranceSchema,
   CreateHolidayListSchema,
   CreateHolidaySchema,
+  CreateHrPermissionSchema,
+  CreateHrRoleSchema,
+  CreateHrUserSchema,
   CreateLeaveAdjustmentSchema,
   CreateLeaveAllocationSchema,
   CreateLeaveApplicationSchema,
@@ -150,6 +168,10 @@ export {
   EmployeeFiltersSchema,
   ExitInterviewFiltersSchema,
   FullAndFinalFiltersSchema,
+  GrantBranchAccessSchema,
+  HrPermissionFiltersSchema,
+  HrRoleFiltersSchema,
+  HrUserFiltersSchema,
   LeaveAllocationFiltersSchema,
   LeaveApplicationFiltersSchema,
   LeaveBlockListFiltersSchema,
@@ -157,6 +179,7 @@ export {
   LeavePolicyAssignmentFiltersSchema,
   OnboardingFiltersSchema,
   OvertimeSlipFiltersSchema,
+  PermissionActionSchema,
   PromotionFiltersSchema,
   SeparationFiltersSchema,
   ShiftAssignmentFiltersSchema,
@@ -164,6 +187,7 @@ export {
   TransferFiltersSchema,
   UpdateAttendanceRequestSchema,
   UpdateAttendanceSchema,
+  UpdateBranchAccessSchema,
   UpdateCompensatoryLeaveSchema,
   UpdateDepartmentSchema,
   UpdateDesignationSchema,
@@ -176,7 +200,9 @@ export {
   UpdateHealthInsuranceSchema,
   UpdateHolidayListSchema,
   UpdateHolidaySchema,
+  UpdateHrRoleSchema,
   UpdateHrSettingsSchema,
+  UpdateHrUserSchema,
   UpdateLeaveAllocationSchema,
   UpdateLeaveApplicationSchema,
   UpdateLeaveBlockListSchema,
@@ -234,4 +260,9 @@ export interface OvertimeSummary {
   standardHours: number;
   totalHours: number;
   weekendHours: number;
+}
+
+export interface ResolvedPermission {
+  action: string;
+  module: string;
 }

@@ -1,3 +1,4 @@
+export { AccessWorkflow } from "./access";
 export { AttendanceWorkflow } from "./attendance";
 export { EmployeeWorkflow } from "./employee";
 export { LeaveWorkflow } from "./leave";
