@@ -32,6 +32,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.3",
+    "@cloudflare/vite-plugin": "^1.0.0",
     "@tailwindcss/vite": "^4.3.2",
     "@types/hast": "^3.0.5",
     "@types/mdx": "^2.0.14",
@@ -39,7 +40,6 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
-    "nitro": "3.0.260610-beta",
     "tailwindcss": "^4.3.2",
     "typescript": "^7.0.2",
     "vite": "^8.1.4",
@@ -48,14 +48,15 @@
   "name": "docs-www",
   "private": true,
   "scripts": {
-    "build": "vite build",
+    "build": "bun gen:cf-types && vite build",
+    "check:lint": "biome check",
+    "check:types": "fumadocs-mdx && tsc --noEmit",
+    "deploy": "wrangler deploy",
     "dev": "vite dev --port 3005",
-    "format": "biome format --write",
-    "lint": "biome check",
+    "gen:cf-types": "wrangler types",
     "postinstall": "fumadocs-mdx",
     "preview": "vite preview",
-    "start": "vite preview",
-    "types:check": "fumadocs-mdx && tsc --noEmit"
+    "start": "vite preview"
   },
   "sideEffects": false,
   "type": "module"

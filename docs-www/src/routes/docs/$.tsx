@@ -24,8 +24,14 @@ import {
 import { useMDXComponents } from "@/components/mdx";
 import { createClientLoader, mergedEntries } from "@/lib/client-loader";
 import { cn } from "@/lib/cn";
-import { DOCS_ROUTE, GIT_CONFIG, LAYOUT_BASE_OPTIONS } from "@/lib/constants";
+import {
+  APP_NAME,
+  DOCS_ROUTE,
+  GIT_CONFIG,
+  LAYOUT_BASE_OPTIONS,
+} from "@/lib/constants";
 import { resolveContentPath } from "@/lib/paths";
+import { STAGE } from "@/lib/stage";
 
 export const Route = createFileRoute("/docs/$")({
   component: Page,
@@ -119,7 +125,24 @@ function Page() {
   });
 
   return (
-    <DocsLayout {...LAYOUT_BASE_OPTIONS} tabs={tabs} tree={pageTree}>
+    <DocsLayout
+      {...LAYOUT_BASE_OPTIONS}
+      nav={{
+        ...LAYOUT_BASE_OPTIONS.nav,
+        title: (
+          <>
+            <img
+              alt=""
+              className="size-5"
+              src={`/icon${STAGE && `.${STAGE}`}.png`}
+            />
+            {APP_NAME}
+          </>
+        ),
+      }}
+      tabs={tabs}
+      tree={pageTree}
+    >
       <AISearch>
         <AISearchPanel />
         <AISearchTrigger

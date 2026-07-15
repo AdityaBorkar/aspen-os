@@ -3,31 +3,36 @@
   "compatibility_date": "2026-07-15",
   "compatibility_flags": ["nodejs_compat"],
   "env": {
+    "preview": {
+      "name": "aspen-docs-preview",
+      "routes": [
+        { "custom_domain": true, "pattern": "preview-id.aspen.adityab.tech" }
+      ],
+      // "vars": {
+      //   "OPENROUTER_MODEL": "anthropic/claude-3.5-sonnet"
+      // }
+      "workers_dev": false
+    },
     "production": {
       "name": "aspen-docs",
-      "routes": [{ "custom_domain": true, "pattern": "aspen.adityab.tech/*" }],
+      "routes": [{ "custom_domain": true, "pattern": "aspen.adityab.tech" }],
       // "vars": {
       //   "OPENROUTER_MODEL": "anthropic/claude-3.5-sonnet"
       // },
       "workers_dev": false
-    },
-    "staging": {
-      "name": "aspen-docs-staging"
-      // "vars": {
-      //   "OPENROUTER_MODEL": "anthropic/claude-3.5-sonnet"
-      // }
     }
   },
   // "limits": {
   //   "cpu_ms": 30000
   // },
   "main": "@tanstack/react-start/server-entry",
-  "minify": true,
   "name": "aspen-docs",
   "observability": {
     "enabled": true,
     "logs": {
-      "head_sampling_rate": 1
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "invocation_logs": true
     },
     "traces": {
       "enabled": true,
@@ -37,7 +42,6 @@
   "placement": {
     "mode": "smart"
   },
-  "tsconfig": "./tsconfig.json",
   "upload_source_maps": true,
   "vars": {
     // "OPENROUTER_MODEL": "anthropic/claude-3.5-sonnet"
