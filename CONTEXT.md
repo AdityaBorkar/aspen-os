@@ -45,7 +45,7 @@ _Avoid_: Resolve, Get
 ### Database
 
 **DatabaseUnit**:
-Core unit owning a `pg.Pool` and drizzle `NodePgDatabase`. `$name` is `"database"` (note: the framework config key is `"db"`). Exposes `$prepare()` which runs `pushSchema()` from drizzle-kit to apply schema migrations.
+Core unit owning a `pg.Pool` and drizzle `NodePgDatabase`. `$name` is `"db"`. Exposes `$prepare()` which runs `pushSchema()` from drizzle-kit to apply schema migrations.
 _Avoid_: DbUnit, ConnectionPool
 
 **DatabaseConfig**:
@@ -152,7 +152,7 @@ _Avoid_: RequestContext, HandlerContext
 ### KV Store
 
 **KvStoreUnit**:
-Core unit providing a Redis-like key-value API over a Postgres `UNLOGGED TABLE` with TTL support. `$name` is `"kv-store"` (note: the framework config key is `"kvStore"`).
+Core unit providing a Redis-like key-value API over a Postgres `UNLOGGED TABLE` with TTL support. `$name` is `"kvStore"`.
 _Avoid_: CacheUnit, RedisUnit
 
 **KVEntry**:
@@ -200,7 +200,7 @@ _Avoid_: Service, Handler
 ### Compliance Domain
 
 **Compliance Document**:
-A regulatory or legal document tracked through a verification lifecycle. Has `name`, `category` (tax/license/certificate/permit/insurance/regulatory/legal/hr/safety/environmental/data_privacy/financial/vehicle/property/audit/other), `verificationStatus` (draft/submitted/under_review/verified/rejected/expired/overdue/renewed/archived), `expiryDate`, `dueDate`, `reminderDays`, `escalationDays`, and optional `renewalFrequency`. Supports renewal chains (archived old + created new via `renewedFrom`). Linked to external entities via `{sourceModule, sourceEntityType, sourceEntityId}`.
+A regulatory or legal document tracked through a verification lifecycle. Has `name`, `category` (tax/license/certificate/permit/insurance/regulatory/legal/hr/safety/environmental + module-local: data_privacy/financial/vehicle/property/audit/other), `verificationStatus` (draft/submitted/under_review/verified/rejected/expired/overdue/renewed/archived), `expiryDate`, `dueDate`, `reminderDays`, `escalationDays`, and optional `renewalFrequency`. Supports renewal chains (archived old + created new via `renewedFrom`). Linked to external entities via `{sourceModule, sourceEntityType, sourceEntityId}`.
 _Avoid_: Certificate, Permit, Regulatory Record
 
 **Compliance Obligation**:
@@ -349,6 +349,10 @@ _Avoid_: Extra Hours, Overtime Log
 The shift management sub-domain covering shift types (start/end times, grace periods, auto-attendance), shift locations (geofencing), shift assignments, shift requests (approval workflow), and shift schedules (weekly day-of-week assignments).
 _Avoid_: Roster, Schedule
 
+**HR Access**:
+Role-based access control within the HR module, with permissions, roles, and branch-wise access controls for HR users.
+_Avoid_: HR Permissions, HR Auth
+
 **Department**:
 An organizational unit with `name`, `code`, `manager`, `parentDepartment` (hierarchical), `isActive`.
 _Avoid_: Team, Unit
@@ -388,50 +392,43 @@ _Avoid_: Contract Type, Employment Status
      │                         Postgres
      │                        (UNLOGGED)
      │
-     │  registers modules via Framework.create(config, { organization, compliance, tasks, drive })
+     │  registers modules via Framework.create(config, { organization, compliance, tasks, drive, hr })
      │
-     ├──────────────────────┬─────────────────────┬──────────────────────┐
-     ▼                      ▼                     ▼                      ▼
-┌──────────────┐  ┌──────────────────┐  ┌──────────────┐  ┌──────────────┐
-│ Organization │  │   Compliance     │  │    Tasks     │  │    Drive     │
-│  Module      │  │    Module        │  │   Module     │  │   Module     │
-│              │  │                  │  │              │  │              │
-│ 5 workflows  │  │ 5 workflows      │  │ 11 workflows│  │ 6 workflows  │
-│ 7 tables     │  │ 5 services       │  │ 4 services   │  │ 5 services   │
-│ 11 events    │  │ 4 tables         │  │ 17 tables    │  │ 8 tables     │
-│              │  │ 23 events        │  │ 10 events    │  │ 14 events    │
-│ units:       │  │                  │  │              │  │              │
-│  db, pubsub  │  │ units:           │  │ units:       │  │ units:       │
-│              │  │  db, kvStore,    │  │  db, pubsub  │  │  db, storage,│
-│              │  │  pubsub           │  │              │  │  pubsub      │
-│              │  │                  │  │              │  │              │
-│              │  │ prepare():       │  │              │  │ prepare():   │
-│              │  │  schema push,    │  │              │  │  trash purge │
-│              │  │  crons, handlers │  │              │  │  cron (3 AM) │
-└──────────────┘  └──────────────────┘  └──────────────┘  └──────────────┘
+     ├──────────────┬─────────────────────┬──────────────────────┬──────────────────────┐
+     ▼              ▼                     ▼                      ▼                      ▼
+┌──────────┐ ┌──────────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+│Organizat.│ │   Compliance     │ │    Tasks     │ │    Drive     │ │     HR       │
+│  Module  │ │    Module        │ │   Module     │ │   Module     │ │   Module     │
+│          │ │                  │ │              │ │              │ │              │
+│5 workflows│ │ 5 workflows     │ │ 11 workflows│ │ 6 workflows  │ │ 8 workflows  │
+│7 tables  │ │ 5 services       │ │ 4 services   │ │ 5 services   │ │ 0 services   │
+│11 events │ │ 4 tables         │ │ 17 tables    │ │ 8 tables     │ │ 51 tables    │
+│          │ │ 23 events        │ │ 10 events    │ │ 14 events    │ │ 43 events    │
+│units:    │ │                  │ │              │ │              │ │              │
+│db, pubsub│ │ units:           │ │ units:       │ │ units:       │ │ units:       │
+│          │ │ db, kvStore,     │ │ db, pubsub  │ │ db, storage, │ │ db, pubsub  │
+│          │ │ pubsub           │ │              │ │ pubsub       │ │              │
+│          │ │                  │ │              │ │              │ │              │
+│          │ │ prepare():       │ │              │ │ prepare():   │ │ prepare():   │
+│          │ │ schema push,     │ │              │ │ trash purge  │ │ schema push  │
+│          │ │ crons, handlers  │ │              │ │ cron (3 AM)  │ │              │
+└──────────┘ └──────────────────┘ └──────────────┘ └──────────────┘ └──────────────┘
 
-┌──────────────┐
-│     HR       │
-│   Module     │  Workflows implemented (7), module class incomplete
-│              │  44 tables, 0 events, no $name, no static create()
-│              │  Workflows not wired to module class
-└──────────────┘
-
-Stubs (package.json only): accounting, crm, fleet, inventory, reports, pharmacy
+Stubs (package.json + empty src/index.ts): accounting, crm, fleet, inventory, reports, pharmacy
 ```
 
 ## Known Gaps
 
 1. **`RoleUnassignedEvent` missing `roleName`** — unlike `RoleAssignedEvent` which has `{ roleName, userId }`, the unassigned event only has `{ userId }`.
-2. **`DatabaseUnit.$name` is `"database"` but the framework key is `"db"`** — inconsistency between the unit's internal name and the key used in `FrameworkUnits`.
-3. **`KvStoreUnit.$name` is `"kv-store"` but the framework key is `"kvStore"`** — same naming inconsistency as DatabaseUnit.
-4. **Session expiry hardcoded at 7 days** — `AuthConfig.session.expiresIn` is accepted but not read by the session workflow. The 7-day value is hardcoded in `session.ts`.
-5. **PubSub `boss.start()` not awaited** — the constructor calls `this.boss.start()` without `await`, which could cause race conditions if `publish`/`subscribe` are called before the connection is established.
-6. **Client LogUnit `$prepare()` and `$destroy()` throw** — the client LogUnit is a stub that throws on lifecycle methods.
-7. **`client/context.ts` is empty** — the client framework has no `run()` method or `AsyncLocalStorage`.
-8. **`increment()`/`decrement()` on KvStoreUnit are not atomic** — read-modify-write, not database-level atomic ops.
-9. **HR module class is incomplete** — `HrModule` has no `$name` property, no `static create()` factory, `$initialize()` takes no arguments, workflows are fully implemented but not wired to the module class, `event-map.ts` is empty, and the `db_schema` export is named `dbSchemas` instead of `db_schema`.
-10. **No DB-level foreign key constraints in compliance, tasks, or drive modules** — all cross-table references are logical (soft FKs by naming convention), not enforced by the database.
+2. **Session expiry hardcoded at 7 days** — `AuthConfig.session.expiresIn` is accepted but not read by the session workflow. The 7-day value is hardcoded in `session.ts`.
+3. **PubSub `boss.start()` not awaited** — the constructor calls `this.boss.start()` without `await`, which could cause race conditions if `publish`/`subscribe` are called before the connection is established.
+4. **Client LogUnit `$prepare()` and `$destroy()` throw** — the client LogUnit is a stub that throws on lifecycle methods.
+5. **`client/context.ts` is empty** — the client framework has no `run()` method or `AsyncLocalStorage`.
+6. **`increment()`/`decrement()` on KvStoreUnit are not atomic** — read-modify-write, not database-level atomic ops.
+7. **No DB-level foreign key constraints in compliance, tasks, or drive modules** — all cross-table references are logical (soft FKs by naming convention), not enforced by the database.
+8. **HR module has no services** — all business logic lives in workflow classes. Cross-cutting concerns (e.g., notification, audit) are not yet extracted into services.
+9. **Compliance services `audit-writer` and `status-derivation` exist as files but are not instantiated** in the module class — only `event-bridge`, `obligation-generator`, and `reminder-engine` are wired.
+10. **Tasks services `dependency-graph` and `filter-engine` exist as files but are not instantiated** in the module class — only `notification-bridge` and `report-service` are wired.
 
 ## Anti-Patterns
 

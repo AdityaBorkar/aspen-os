@@ -2,9 +2,6 @@
 
 ## Module Implementation
 
-- Resolve known gaps
-- /improve-codebase-architecture Analyze the entire monorepo and suggest major improvements or wins.
-- checks
 - `session.ts` use methods from auth.api as much possible.
 
 - [ ] Organization

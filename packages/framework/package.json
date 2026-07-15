@@ -1,6 +1,12 @@
 {
   "bin": {
-    "aspen": "./src/cli/index.ts"
+    "aspen": "./.output/cli/index.js"
+  },
+  "build": {
+    "targets": {
+      "client": "browser",
+      "server": "node"
+    }
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1084.0",
@@ -28,13 +34,35 @@
     "typescript": "catalog:"
   },
   "exports": {
-    "./client": "./src/client/index.ts",
-    "./server": "./src/server/index.ts"
+    "./client": {
+      "default": "./.output/client/index.js",
+      "types": "./.output/client/index.d.ts"
+    },
+    "./server": {
+      "default": "./.output/server/index.js",
+      "types": "./.output/server/index.d.ts"
+    }
   },
+  "files": ["./.output", "./docs-www", "package.json", "README.md"],
   "name": "@aspen-os/framework",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "publishing": {
+    "bin": {
+      "aspen": "./src/cli/index.ts"
+    },
+    "exports": {
+      "./client": "./src/client/index.ts",
+      "./server": "./src/server/index.ts"
+    }
+  },
   "scripts": {
+    "build": "bun run build.ts",
     "check:lint": "biome check --fix .",
-    "check:types": "tsc -b"
+    "check:types": "tsc -b",
+    "publish": "bun run build && bun publish"
   },
   "type": "module",
   "version": "0.1.0"
