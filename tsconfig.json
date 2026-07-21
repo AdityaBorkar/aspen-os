@@ -3,6 +3,7 @@
     "allowJs": true,
     "composite": true,
     "declaration": true,
+    "declarationDir": "./.local/types/root",
     "declarationMap": true,
     "emitDeclarationOnly": true,
     "jsx": "react-jsx",
@@ -26,7 +27,6 @@
   "exclude": ["**/node_modules", "**/.output", "**/.tanstack"],
   "references": [
     { "path": "./docs-www" },
-    // { "path": "./examples/healthcare" },
     { "path": "./examples/recruiter" },
     { "path": "./packages/accounting" },
     { "path": "./packages/compliance" },

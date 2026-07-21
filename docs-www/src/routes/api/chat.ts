@@ -76,14 +76,14 @@ export const Route = createFileRoute("/api/chat")({
   server: {
     handlers: {
       POST: async (ctx) => {
-        const req = ctx.request;
-        const reqJson = await req.json();
+        // biome-ignore lint/suspicious/noExplicitAny: Request body is parsed as any
+        const request = (await ctx.request.json()) as any;
 
         const result = streamText({
           messages: [
             { content: systemPrompt, role: "system" },
             ...(await convertToModelMessages<ChatUIMessage>(
-              reqJson.messages ?? [],
+              request?.messages ?? [],
               {
                 convertDataPart(part) {
                   if (part.type === "data-client")

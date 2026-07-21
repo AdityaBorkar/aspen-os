@@ -69,8 +69,8 @@ export class Framework<M extends Record<string, Module>> {
     modules: M,
   ): FrameworkInstance<M> {
     const auth = new AuthUnit(config.auth);
-    const logs = new LogUnit(config.logs);
-    const rpc = new RpcUnit(config.rpc);
+    const logs = new LogUnit();
+    const rpc = new RpcUnit();
 
     const units: FrameworkUnits = {
       auth,

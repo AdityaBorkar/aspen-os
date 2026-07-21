@@ -1,13 +1,17 @@
 # TODO
 
 - Implement the Framework Tenancy. Use it in an example. Analyze the code written for it.
-- Implement `tenant-platform`
 - Create both apps for DMS. Update Healthcare&Clinic Application to multi-tenant (isolated). Update recruiter to single-tenant.
   - shaun-healthcare
   - shaun-clinic
   - recruiter-alpauls
   - recruiter-maitriglobal
   - doclabs
+- build.ts
+  - Watch Mode??
+  - Use TS7 API after it is released
+- Release
+  - on NPM
 
 ## Module Implementation
 

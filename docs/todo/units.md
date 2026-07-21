@@ -23,6 +23,7 @@
   - MCP
   - Multi-Session
 - https://better-auth.com/docs/guides/optimizing-for-performance
+- Expand to configuring all options for `better-auth`
 
 ## i18n Unit
 
