@@ -1,9 +1,8 @@
 import { eq } from "drizzle-orm";
 
 import { password as Password } from "../../bun-compat";
-import { getContext } from "../../context";
 import { account, user } from "../db-schema";
-import type { User } from "../types";
+import type { AuthServiceDeps, User } from "../types";
 
 function toUser(row: typeof user.$inferSelect): User {
   return {
@@ -25,97 +24,101 @@ function toUser(row: typeof user.$inferSelect): User {
   };
 }
 
-export async function createUser({
-  email,
-  name,
-  password,
-}: {
-  email: string;
-  name?: string;
-  password: string;
-}): Promise<User> {
-  const { db, pubsub } = getContext();
-  const passwordHash = await Password.hash(password);
+export function createUserServices(deps: AuthServiceDeps) {
+  async function create({
+    email,
+    name,
+    password,
+  }: {
+    email: string;
+    name?: string;
+    password: string;
+  }): Promise<User> {
+    const { db, pubsub } = deps;
+    const passwordHash = await Password.hash(password);
 
-  const [row] = await db
-    .insert(user)
-    .values({
-      email,
-      emailVerified: false,
+    const [row] = await db
+      .insert(user)
+      .values({
+        email,
+        emailVerified: false,
+        id: crypto.randomUUID(),
+        name: name ?? "",
+      })
+      .returning();
+
+    if (!row) throw new Error("Failed to create user");
+
+    await db.insert(account).values({
+      accountId: row.id,
       id: crypto.randomUUID(),
-      name: name ?? "",
-    })
-    .returning();
+      password: passwordHash,
+      providerId: "credential",
+      userId: row.id,
+    });
 
-  if (!row) throw new Error("Failed to create user");
+    const $user = toUser(row);
+    await pubsub.publishControlPlane("user:created", { user: $user });
+    return $user;
+  }
 
-  await db.insert(account).values({
-    accountId: row.id,
-    id: crypto.randomUUID(),
-    password: passwordHash,
-    providerId: "credential",
-    userId: row.id,
-  });
+  async function getById({ id }: { id: string }): Promise<User | null> {
+    const { db } = deps;
+    const [row] = await db.select().from(user).where(eq(user.id, id)).limit(1);
+    if (!row) return null;
+    return toUser(row);
+  }
 
-  const $user = toUser(row);
-  await pubsub.publish("user:created", { user: $user });
-  return $user;
-}
+  async function getByEmail(input: { email: string }): Promise<User | null> {
+    const { db } = deps;
+    const [row] = await db
+      .select()
+      .from(user)
+      .where(eq(user.email, input.email))
+      .limit(1);
+    if (!row) return null;
+    return toUser(row);
+  }
 
-export async function getUserById({
-  id,
-}: {
-  id: string;
-}): Promise<User | null> {
-  const { db } = getContext();
-  const [row] = await db.select().from(user).where(eq(user.id, id)).limit(1);
+  async function update({
+    id,
+    data,
+  }: {
+    id: string;
+    data: Partial<Pick<User, "image" | "name" | "role">>;
+  }): Promise<User> {
+    const { db, pubsub } = deps;
+    const updateData: Record<string, unknown> = {};
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.image !== undefined) updateData.image = data.image;
+    if (data.role !== undefined) updateData.role = data.role;
 
-  if (!row) return null;
-  return toUser(row);
-}
+    const [row] = await db
+      .update(user)
+      .set(updateData)
+      .where(eq(user.id, id))
+      .returning();
 
-export async function getUserByEmail(input: {
-  email: string;
-}): Promise<User | null> {
-  const { db } = getContext();
-  const [row] = await db
-    .select()
-    .from(user)
-    .where(eq(user.email, input.email))
-    .limit(1);
+    if (!row) throw new Error(`User "${id}" not found`);
 
-  if (!row) return null;
-  return toUser(row);
-}
+    const $user = toUser(row);
+    await pubsub.publishControlPlane("user:updated", { user: $user });
+    return $user;
+  }
 
-export async function updateUser({
-  id,
-  data,
-}: {
-  id: string;
-  data: Partial<Pick<User, "name" | "image" | "role">>;
-}): Promise<User> {
-  const { db, pubsub } = getContext();
-  const updateData: Record<string, unknown> = {};
-  if (data.name !== undefined) updateData.name = data.name;
-  if (data.image !== undefined) updateData.image = data.image;
-  if (data.role !== undefined) updateData.role = data.role;
+  async function remove({ id }: { id: string }): Promise<void> {
+    const { db, pubsub } = deps;
+    await db.delete(user).where(eq(user.id, id));
+    await pubsub.publishControlPlane("user:deleted", { userId: id });
+  }
 
-  const [row] = await db
-    .update(user)
-    .set(updateData)
-    .where(eq(user.id, id))
-    .returning();
-
-  if (!row) throw new Error(`User "${id}" not found`);
-
-  const $user = toUser(row);
-  await pubsub.publish("user:updated", { user: $user });
-  return $user;
-}
-
-export async function deleteUser({ id }: { id: string }): Promise<void> {
-  const { db, pubsub } = getContext();
-  await db.delete(user).where(eq(user.id, id));
-  await pubsub.publish("user:deleted", { userId: id });
+  return {
+    create,
+    delete: remove,
+    get(query: { id: string } | { email: string }) {
+      if ("id" in query) return getById({ id: query.id });
+      return getByEmail({ email: query.email });
+    },
+    update,
+  };
 }

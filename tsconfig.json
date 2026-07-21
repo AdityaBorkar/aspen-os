@@ -40,6 +40,7 @@
     { "path": "./packages/organization" },
     { "path": "./packages/pharmacy" },
     { "path": "./packages/reports" },
+    { "path": "./packages/tenant-platform" },
     { "path": "./packages/tasks" }
   ]
 }

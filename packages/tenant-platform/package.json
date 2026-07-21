@@ -1,0 +1,25 @@
+{
+  "dependencies": {
+    "@aspen-os/constants": "workspace:*",
+    "@aspen-os/framework": "workspace:*",
+    "drizzle-kit": "^0.31.10",
+    "drizzle-orm": "catalog:",
+    "pg": "^8.22.0",
+    "valibot": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "@types/pg": "^8.20.0",
+    "typescript": "catalog:"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "name": "@aspen-os/tenant-platform",
+  "scripts": {
+    "check:lint": "biome check --fix .",
+    "check:types": "tsc -b"
+  },
+  "type": "module",
+  "version": "0.1.0"
+}

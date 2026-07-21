@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   index,
   integer,
@@ -21,6 +22,11 @@ export const logs = pgTable(
     requestId: text("request_id"),
     service: text("service").notNull(),
     spanId: text("span_id"),
+    tenantId: text("tenant_id")
+      .notNull()
+      .default(
+        sql`COALESCE(current_setting('app.tenant_id', true), 'default')`,
+      ),
     timestamp: timestamp("timestamp", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -30,6 +36,7 @@ export const logs = pgTable(
   (table) => ({
     levelIdx: index("idx_logs_level").on(table.level),
     serviceIdx: index("idx_logs_service").on(table.service),
+    tenantIdIdx: index("idx_logs_tenant_id").on(table.tenantId),
     traceIdIdx: index("idx_logs_trace_id").on(table.traceId),
     userIdIdx: index("idx_logs_user_id").on(table.userId),
   }),

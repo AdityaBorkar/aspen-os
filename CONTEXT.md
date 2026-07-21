@@ -365,6 +365,76 @@ _Avoid_: Title, Position
 A classification of employment (e.g., full-time, part-time, contract) with `name`, `description`, `isActive`.
 _Avoid_: Contract Type, Employment Status
 
+### Tenant Platform Domain
+
+**Tenancy Mode**:
+A config-time choice in `FrameworkConfig.tenancy` that selects the database isolation strategy for the entire application. Three modes: `single` (one database, no isolation), `shared-rls` (one shared database, Postgres RLS policies enforce isolation), `isolated-db` (control-plane DB + per-tenant DBs, physical isolation). Once set at `Framework.create()`, the mode cannot be changed. The same module code works in all three modes.
+_Avoid_: Tenancy Strategy, Isolation Mode, Deployment Mode
+
+**Tenant ID**:
+A string identifier for the tenant context of a request. In `single` mode, always `"default"`. In `shared-rls` and `isolated-db` modes, resolved from the authenticated session (e.g., better-auth's `session.activeOrganizationId`) and passed to `framework.run(tenantId, fn)`. Stored in `AsyncLocalStorage` context. Used by the stable DB wrapper to route queries, by `PubSubUnit` to route messages, and by `StorageUnit`/`KvStoreUnit` to prefix keys.
+_Avoid_: Org ID, Workspace ID, Customer ID
+
+**Tenant Resolver**:
+A function pair provided by the app in `isolated-db` mode: `resolve(tenantId)` returns the per-tenant `DatabaseConfig`, `list()` returns all tenant IDs. Used by `DatabaseUnit` to lazily create per-tenant connection pools and by `Framework.prepare()` to call `$prepareTenant()` for each tenant at startup.
+_Avoid_: Tenant Registry, Connection Provider
+
+**Control Plane**:
+The management/administration database connection. In `single` and `shared-rls` modes, this IS the app database. In `isolated-db` mode, this is the shared control-plane database holding auth tables and platform-level tables. `DatabaseUnit` always holds a control-plane pool. `AuthUnit` always uses `controlPlaneDb`. Auth tables are exempt from `tenant_id` columns and RLS policies.
+_Avoid_: Management DB, Admin DB
+
+**Tenant Database**:
+A per-tenant Postgres database in `isolated-db` mode. Holds that tenant's data-plane data (all module tables). No auth tables live here. `DatabaseUnit` lazily creates a pool per tenant database. Isolation is physical — a tenant cannot reach another tenant's database.
+_Avoid_: Tenant Schema, Data Plane DB
+
+**Stable DB Wrapper**:
+A JavaScript `Proxy` returned by `DatabaseUnit.db` (a getter). Created once at init time and stored by workflows as `this.db`. When any property is accessed (e.g., `this.db.select()`), the wrapper reads the per-request drizzle instance from `AsyncLocalStorage` and delegates to it. In `single` mode, falls back to the control-plane drizzle instance if no context is set. Transparent to workflows — no workflow code changes.
+_Avoid_: DB Proxy, Drizzle Router, Connection Resolver
+
+**Prepare Tenant**:
+A new optional lifecycle method on the `Module` interface: `$prepareTenant(tenantId)`. Called at startup for each existing tenant (in `isolated-db` mode) and during tenant provisioning. Modules register per-tenant cron schedules and subscriptions here. The framework sets up `AsyncLocalStorage` context with the `tenantId` before calling each module's `$prepareTenant()`. Not called in `single` or `shared-rls` modes.
+_Avoid_: Per-Tenant Init, Tenant Setup
+
+**Tenant**:
+A SaaS customer account at the platform layer. Implemented as a better-auth **Organization** (via better-auth's Organization plugin) — the Tenant IS the better-auth `organization` row in the control-plane DB, possibly with a companion `tenant` table for extra domain fields (status, plan, SP assignment). Carries `name`, `slug`, `logo` (on the better-auth org row) plus account-level fields (signup date, lifecycle status, plan, SP assignment). Does NOT hold rich profile fields (accentColor, website, industry, taxId, etc.) — those live on the aspen-os Organization companion. The "List of Organizations" UI in the SOW is a projection over Tenants.
+_Avoid_: Organization (when meaning the SaaS customer — collides with the aspen-os Organization module entity), Customer Account, Subscription, Workspace
+
+**Tenant Status**:
+The lifecycle state of a Tenant: `onboarding` (pre-go-live, SP doing physical-world work) → `active` (live) → `suspended` (voluntarily or involuntarily paused) → `churned` (offboarded). Coarse by design — `onboarding` is an opaque single stage; internal install/training/handoff sub-steps are NOT tracked by the platform. Distinct from any better-auth org status and from the aspen-os Organization module's `status` (active/suspended/archived) — that one is the rich-profile companion's operational state.
+_Avoid_: Tenant State, Account State, Lifecycle Stage
+
+**Organization (aspen-os module)**:
+The rich-profile companion entity in the aspen-os `organization` module. 1:1 with a Tenant (shares the better-auth org ID or references it). Lives in the per-tenant database. Holds the extended company-profile fields ONLY: `accentColor`, `website`, `industry`, `phone`, `email`, `address`, `taxId`, `registrationNumber`, `foundedDate`, `timezone`, `locale`, `metadata`, `status`. Does NOT hold `name`/`slug`/`logo` — those live on the Tenant (better-auth org row). Branches, Connections, Addresses, BankAccounts hang off this entity. Renamed conceptually to "Organization Profile" in the Tenant Platform context to avoid collision with the better-auth Organization/Tenant.
+_Avoid_: Tenant (different concept), Company, better-auth Organization
+
+**Service Provider**:
+A first-class platform entity — an implementation/integration partner that does physical-world onboarding work for a Tenant (site setup, install, training). Each Tenant has at most one active Service Provider at a time (1:1 active assignment); an SP may serve many Tenants. The SP's staged work happens during the Tenant's `onboarding` stage. Lives in its own table in the control-plane DB; not a Tenant subtype, not a reuse of the aspen-os `organization` module's `Connection`.
+_Avoid_: Integrator, Vendor, Partner, Connection, Reseller
+
+**Control Plane**:
+The management/administration layer of the platform. Backed by a single shared Postgres database holding: the better-auth tables (`user`, `session`, `account`, `verification`, `organization`, `member`, `invitation`), the `tenant` companion table (if separate from better-auth org), the `service_provider` table, and any platform-level tables. The framework's `AuthUnit` is a singleton over the control-plane DB. Platform admins operate here.
+_Avoid_: Management DB, Admin DB
+
+**Tenant Database**:
+A per-tenant Postgres database holding that tenant's data-plane data: the aspen-os Organization module's tables (Organization profile, Branch, Connection, Address, BankAccount), plus all other module tables (tasks, drive, hr, compliance). NO auth tables live here. Isolation is physical — a tenant cannot reach another tenant's database. The framework's `DatabaseUnit` resolves the right per-tenant connection from the request's `tenantId`.
+_Avoid_: Tenant Schema, Data Plane DB
+
+**Platform Admin**:
+A user with `user.role = 'platform_admin'` and zero `member` rows. Operates the management portal — CRUD over Tenants, Service Providers, platform users, and reports. Works ONLY against the control-plane DB; never touches tenant data-plane data directly. If a platform admin needs to inspect a tenant's data, they use better-auth's admin-impersonation (`signInAsUser`) to act as a tenant admin. Has cross-tenant visibility on control-plane entities.
+_Avoid_: Super Admin, Root, Operator
+
+**Service Provider User**:
+A user with `user.role = 'sp_user'` and an `sp_id` FK on the `user` row pointing to their Service Provider. Zero tenant `member` rows. Field staff working for an SP — can view assigned Tenants, update onboarding status, upload install/training artifacts. Scope is the SP they belong to, not a tenant.
+_Avoid_: Integrator User, Field Agent
+
+**Report**:
+A read-only view produced by the Tenant Platform over the control-plane DB. Four categories: (1) tenant usage metrics (users, modules, storage, API calls per tenant), (2) provisioning & lifecycle reports (tenants by lifecycle stage, assigned SP, time-in-onboarding, churn reasons), (3) audit & activity reports (who created/suspended/churned a tenant, SP assignments, role changes, platform admin actions), (4) SP performance reports (tenants per SP, avg onboarding duration, completion rates). All reports are control-plane queries; they never cross into per-tenant DBs.
+_Avoid_: Dashboard, Analytics, Metric
+
+**Provisioning**:
+The fully-automated workflow that creates a new Tenant end-to-end, run by the Tenant Platform module. Steps: (1) create the better-auth Organization (the Tenant), (2) issue `CREATE DATABASE` against the Postgres server, (3) run `pushSchema()` against the new tenant DB with all module schemas (organization, tasks, drive, hr, compliance), (4) seed the aspen-os Organization profile row (1:1 with the better-auth org ID), (5) record connection params in the control-plane `tenant` table, (6) assign a Service Provider (set FK), (7) set Tenant status to `onboarding`. May be synchronous or pubsub-driven; on completion the Tenant is ready for SP-led onboarding work.
+_Avoid_: Onboarding (that's the Tenant Status stage AFTER provisioning), Setup, Initialization
+
 ## Context Relationships
 
 ```

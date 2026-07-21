@@ -1,0 +1,225 @@
+---
+title: Workflows
+description: API reference for the 5 workflows exposed by the Tenant Platform module.
+icon: IconListCheck
+---
+
+The Tenant Platform module exposes 5 workflows. All operate exclusively on the control-plane DB.
+
+## TenantWorkflow
+
+Access: `framework.tenantPlatform.tenants`
+
+Manages the tenant lifecycle — provisioning, profile updates, status transitions, and SP assignment. The Tenant is a better-auth Organization (identity) plus a companion `tenant` row (domain fields).
+
+```ts
+// Provision a new tenant (fully automated — creates DB, pushes schema, seeds profile)
+const tenant = await framework.tenantPlatform.tenants.provision({
+  name: "Acme Corp",
+  slug: "acme-corp",
+  logo: "logos/acme.png",
+  plan: "pro",
+  serviceProviderId: "sp-1",
+});
+
+// Get (joins better-auth org + companion)
+const tenant = await framework.tenantPlatform.tenants.get(tenantId);
+
+// List with filters — the "List of Organizations" UI
+const tenants = await framework.tenantPlatform.tenants.list({
+  status: "onboarding",
+  serviceProviderId: "sp-1",
+});
+
+// Update display fields on the better-auth org row
+// tenant_admin can update their OWN tenant only
+await framework.tenantPlatform.tenants.updateProfile(tenantId, {
+  name: "Acme Corporation",
+  logo: "logos/acme-v2.png",
+});
+
+// Lifecycle transitions (platform_admin only)
+await framework.tenantPlatform.tenants.activate(tenantId);      // onboarding → active
+await framework.tenantPlatform.tenants.suspend(tenantId, "unpaid invoice");
+await framework.tenantPlatform.tenants.reactivate(tenantId);
+await framework.tenantPlatform.tenants.churn(tenantId, "switched to competitor");
+
+// Service Provider assignment (platform_admin only)
+await framework.tenantPlatform.tenants.assignServiceProvider(tenantId, "sp-2");
+await framework.tenantPlatform.tenants.unassignServiceProvider(tenantId);
+
+// Member management (delegates to better-auth Organization plugin)
+const members = await framework.tenantPlatform.tenants.getMembers(tenantId);
+await framework.tenantPlatform.tenants.inviteMember(tenantId, "user@acme.com", "tenant_admin");
+await framework.tenantPlatform.tenants.removeMember(tenantId, "user@acme.com");
+```
+
+### Tenant Status Machine
+
+```text
+   provision()        activate()         suspend()         churn()
+   ──────────►        ─────────►         ─────────►        ─────────►
+┌────────────┐     ┌────────┐         ┌──────────┐      ┌─────────┐
+│ onboarding │────►│ active │────────►│ suspended │─────►│ churned │
+└────────────┘     └────────┘         └──────────┘      └─────────┘
+                        ▲                   │
+                        │   reactivate()    │
+                        └───────────────────┘
+```
+
+`onboarding` is an opaque single stage — internal install/training/handoff sub-steps are NOT tracked. `churned` is terminal.
+
+### Validation Schemas
+
+- `ProvisionTenantSchema` — name, slug, logo?, plan?, serviceProviderId?, database overrides?
+- `UpdateTenantProfileSchema` — name?, slug?, logo?
+- `TenantFiltersSchema` — status?, plan?, serviceProviderId?, search?
+
+## ServiceProviderWorkflow
+
+Access: `framework.tenantPlatform.serviceProviders`
+
+Manages implementation partners that do physical-world onboarding work for tenants. An SP may serve many tenants; each tenant has at most one active SP.
+
+```ts
+// Create
+const sp = await framework.tenantPlatform.serviceProviders.create({
+  name: "Acme Integrators",
+  slug: "acme-integrators",
+  description: "Field installation and training services",
+  email: "ops@acme-integrators.com",
+  phone: "+91-9876543210",
+  website: "https://acme-integrators.com",
+  address: "Mumbai, IN",
+});
+
+// List — the "List of Service Providers" UI
+const sps = await framework.tenantPlatform.serviceProviders.list({ status: "active" });
+
+// Update
+await framework.tenantPlatform.serviceProviders.update(spId, { phone: "+91-9999999999" });
+
+// Status — inactive SPs can't be assigned to new tenants
+await framework.tenantPlatform.serviceProviders.deactivate(spId);
+await framework.tenantPlatform.serviceProviders.activate(spId);
+
+// Assigned tenants and users
+const tenants = await framework.tenantPlatform.serviceProviders.getAssignedTenants(spId);
+const users = await framework.tenantPlatform.serviceProviders.getUsers(spId);
+```
+
+### Validation Schemas
+
+- `CreateServiceProviderSchema` — name, slug, description?, email?, phone?, website?, address?
+- `UpdateServiceProviderSchema` — all fields optional
+- `ServiceProviderFiltersSchema` — status?, search?
+
+## PlatformUserWorkflow
+
+Access: `framework.tenantPlatform.platformUsers`
+
+Manages platform users — platform admins and service provider users. Tenant end-users are managed via the better-auth Organization plugin's membership API (see `TenantWorkflow.inviteMember`).
+
+```ts
+// Create a platform admin
+const admin = await framework.tenantPlatform.platformUsers.create({
+  email: "admin@aspen-os.com",
+  name: "Platform Admin",
+  role: "platform_admin",
+});
+
+// Create an SP user (spId required when role = 'sp_user')
+const spUser = await framework.tenantPlatform.platformUsers.create({
+  email: "field@acme-integrators.com",
+  name: "Field Agent",
+  role: "sp_user",
+  spId: "sp-1",
+});
+
+// List with filters
+const users = await framework.tenantPlatform.platformUsers.list({ role: "sp_user", spId: "sp-1" });
+
+// Update / delete / role assignment
+await framework.tenantPlatform.platformUsers.update(userId, { name: "Updated Name" });
+await framework.tenantPlatform.platformUsers.assignRole(userId, "platform_admin");
+await framework.tenantPlatform.platformUsers.assignToServiceProvider(userId, "sp-2");
+await framework.tenantPlatform.platformUsers.delete(userId);
+```
+
+<Callout type="warn">
+  `spId` is required when `role === "sp_user"` and forbidden otherwise. This is enforced in the valibot schema.
+</Callout>
+
+## ReportWorkflow
+
+Access: `framework.tenantPlatform.reports`
+
+Read-only views over the control-plane DB. All reports are control-plane queries — they never cross into per-tenant DBs.
+
+```ts
+// Tenant usage metrics (users, modules, sessions per tenant)
+const usage = await framework.tenantPlatform.reports.tenantUsage({ status: "active" });
+
+// Provisioning & lifecycle report (tenants by stage, time-in-onboarding, churn reasons)
+const lifecycle = await framework.tenantPlatform.reports.lifecycleReport({
+  from: new Date("2026-01-01"),
+  to: new Date("2026-12-31"),
+});
+
+// Audit & activity report (who did what, when)
+const audit = await framework.tenantPlatform.reports.auditReport({
+  actorId: "user-1",
+  action: "tenant_suspended",
+});
+
+// SP performance (tenants per SP, avg onboarding duration, completion rates)
+const spPerf = await framework.tenantPlatform.reports.spPerformance("sp-1");
+```
+
+| Report | Filters | Returns |
+|---|---|---|
+| `tenantUsage` | status? | Per-tenant user counts, modules enabled, active sessions |
+| `lifecycleReport` | from?, to?, status? | Tenants grouped by stage, time-in-onboarding, churn reasons |
+| `auditReport` | actorId?, action?, entityType?, dateRange? | Append-only audit trail entries |
+| `spPerformance` | spId? | Per-SP tenant counts, avg onboarding duration, completion rate |
+
+<Callout type="info">
+  Tenant usage metrics that require per-tenant DB aggregation (storage consumed, API calls) are populated by a scheduled sync job, not by cross-DB queries at report time.
+</Callout>
+
+## ProvisioningWorkflow
+
+Access: `framework.tenantPlatform.provisioning`
+
+The fully-automated tenant creation flow. Called internally by `TenantWorkflow.provision()` — not usually invoked directly.
+
+```text
+1. Create better-auth Organization
+   └─ organization.create({ name, slug, logo }) → returns org ID
+
+2. CREATE DATABASE
+   └─ Connect via postgresAdminConnection
+   └─ CREATE DATABASE tenant_<id>
+
+3. Push schema to new tenant DB
+   └─ Instantiate drizzle client for the new DB
+   └─ pushSchema(moduleSchemas, db) → applies all module schemas
+
+4. Seed Organization profile row
+   └─ Insert into per-tenant organization table
+   └─ ID = better-auth org ID, name/slug denormalized from org row
+
+5. Record connection params
+   └─ Insert companion tenant row in control-plane DB
+   └─ status = onboarding, signupAt = now
+
+6. Assign Service Provider (optional)
+   └─ Set serviceProviderId FK (validates SP is active)
+
+7. Emit tenant:provisioned event
+   └─ pubsub.publish("tenant:provisioned", { tenantId, serviceProviderId })
+```
+
+<Callout type="warn">
+  Provisioning may run synchronously (blocking the API call) or asynchronously via a `tenant:provision` pubsub job. The async approach decouples the API response from the slow DB creation + schema push and supports retries. The tenant row is created in a `provisioning` status and moves to `onboarding` on completion.
+</Callout>

@@ -32,6 +32,7 @@ export interface Module<N extends string = string> {
   $initialize?(units: Record<string, Unit>): void;
   readonly $name: N;
   $prepare?(): Promise<void>;
+  $prepareTenant?(tenantId: string): Promise<void>;
 }
 type UnitAccessors = { [K in keyof FrameworkUnits]: FrameworkUnits[K] };
 type ModuleAccessors<M extends Record<string, Module>> = {

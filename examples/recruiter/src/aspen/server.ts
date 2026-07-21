@@ -61,11 +61,13 @@ const storage = {
   },
 } satisfies StorageConfig;
 
+const tenancy = { mode: "single" } as const;
+
 const organization = OrganizationModule.create({
   country: "INDIA",
 });
 
 export const f = Framework.create(
-  { auth, db, kvStore, logs, pubsub, rpc, storage },
+  { auth, db, kvStore, logs, pubsub, rpc, storage, tenancy },
   { organization },
 );

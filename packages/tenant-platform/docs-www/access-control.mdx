@@ -1,0 +1,110 @@
+---
+title: Access Control
+description: Resources, operations, roles, and the permission matrix for the Tenant Platform module.
+icon: IconShield
+---
+
+Access control uses better-auth's `createAccessControl` + `ac.newRole()` pattern, passed to better-auth via the `admin({ ac, roles })` plugin — consistent with the framework's existing `AuthUnit` wiring.
+
+## Resources & Operations
+
+```ts title="src/constants.ts"
+const ac = createAccessControl({
+  tenant: ["create", "read", "update", "delete", "suspend", "provision", "assignSp", "activate", "churn", "reactivate"],
+  serviceProvider: ["create", "read", "update", "delete", "deactivate", "activate"],
+  platformUser: ["create", "read", "update", "delete", "assignRole", "assignToSp"],
+  report: ["read"],
+});
+```
+
+| Resource | Operations |
+|---|---|
+| `tenant` | `create`, `read`, `update`, `delete`, `suspend`, `provision`, `assignSp`, `activate`, `churn`, `reactivate` |
+| `serviceProvider` | `create`, `read`, `update`, `delete`, `deactivate`, `activate` |
+| `platformUser` | `create`, `read`, `update`, `delete`, `assignRole`, `assignToSp` |
+| `report` | `read` |
+
+## Roles
+
+Three roles are defined. The global category is on `user.role` (text column, per ADR-0001); per-tenant roles live on the `member` table (better-auth Organization plugin).
+
+### platform_admin
+
+Full access to all control-plane resources.
+
+```ts
+const platformAdmin = ac.newRole({
+  tenant: ["create", "read", "update", "delete", "suspend", "provision", "assignSp", "activate", "churn", "reactivate"],
+  serviceProvider: ["create", "read", "update", "delete", "deactivate", "activate"],
+  platformUser: ["create", "read", "update", "delete", "assignRole", "assignToSp"],
+  report: ["read"],
+});
+```
+
+### sp_user
+
+Narrow read access scoped to their Service Provider — assigned tenants and own SP profile. Can read SP performance reports for their own SP.
+
+```ts
+const spUser = ac.newRole({
+  tenant: ["read"],
+  serviceProvider: ["read"],
+  report: ["read"],
+});
+```
+
+### tenant_admin
+
+Read and update their OWN tenant's profile only. Cannot manage SPs or platform users.
+
+```ts
+const tenantAdmin = ac.newRole({
+  tenant: ["read", "update"],
+  serviceProvider: ["read"],
+});
+```
+
+## Permission Matrix
+
+| Role | `tenant` | `serviceProvider` | `platformUser` | `report` |
+|---|---|---|---|---|
+| `platform_admin` | all ops | all ops | all ops | `read` |
+| `sp_user` | `read` | `read` | — | `read` |
+| `tenant_admin` | `read` + `update` | `read` | — | — |
+
+## Row-Level Scoping
+
+`sp_user` and `tenant_admin` permissions are row-level, not just statement-level:
+
+| Role | Scope |
+|---|---|
+| `sp_user` | `tenant.read` → only tenants where `serviceProviderId = user.sp_id`. `serviceProvider.read` → only their own SP. `report.read` → only SP performance for their own SP. |
+| `tenant_admin` | `tenant.read` + `tenant.update` → only their own tenant row (matched via `member.organizationId`). `serviceProvider.read` → only the SP assigned to their tenant. |
+
+Row-level scoping is enforced in the workflow layer — the workflow filters queries by `user.sp_id` or `user.activeOrganizationId` before returning results.
+
+## Wiring
+
+```ts title="host app auth config"
+import { createAccessControl } from "@aspen-os/framework/client";
+
+const ac = createAccessControl({ /* resources above */ });
+
+const roles = {
+  platform_admin: ac.newRole({ /* ... */ }),
+  sp_user: ac.newRole({ /* ... */ }),
+  tenant_admin: ac.newRole({ /* ... */ }),
+};
+
+const auth = {
+  access_control: ac,
+  roles,
+  // ...rest of AuthConfig
+};
+```
+
+`access_control` and `roles` are destructured out of the top-level config and passed to better-auth via the `admin({ ac, roles })` plugin — the same pattern used by the Recruiter app and documented in **ADR-0001** (in `docs/adr/`).
+
+<Callout type="info">
+  Per-tenant roles (e.g. `tenant_user`, or recruiter-specific roles like `bd`, `caller`, `qc`) live on the `member` table, not on `user.role`. They are managed via better-auth's Organization plugin API (`organization.inviteMember` with a role argument) and govern data-plane access, not control-plane access.
+</Callout>

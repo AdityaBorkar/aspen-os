@@ -1,105 +1,145 @@
-import { and, eq, gte } from "drizzle-orm";
+import { createHmac } from "node:crypto";
 
-import { password } from "../../bun-compat";
-import { getContext } from "../../context";
+import { eq } from "drizzle-orm";
+
 import * as s from "../db-schema";
-import type { Session, User } from "../types";
-import { getUserById } from "./user";
+import type { AuthServiceDeps, Session, User } from "../types";
 
-function toSession(row: typeof s.session.$inferSelect): Session {
+type AuthSession = {
+  createdAt: Date;
+  expiresAt: Date;
+  id: string;
+  impersonatedBy?: string | null;
+  ipAddress?: string | null;
+  token: string;
+  updatedAt: Date;
+  userAgent?: string | null;
+  userId: string;
+};
+
+type AuthUser = {
+  banExpires?: Date | null;
+  banned?: boolean | null;
+  banReason?: string | null;
+  createdAt: Date;
+  displayUsername?: string | null;
+  email: string;
+  emailVerified: boolean;
+  id: string;
+  image?: string | null;
+  name: string;
+  phoneNumber?: string | null;
+  phoneNumberVerified?: boolean | null;
+  role?: string | null;
+  updatedAt: Date;
+  username?: string | null;
+};
+
+function toSession(session: AuthSession): Session {
   return {
-    createdAt: row.createdAt,
-    expiresAt: row.expiresAt,
-    id: row.id,
-    impersonatedBy: row.impersonatedBy ?? undefined,
-    ipAddress: row.ipAddress ?? undefined,
-    token: row.token,
-    updatedAt: row.updatedAt,
-    userAgent: row.userAgent ?? undefined,
-    userId: row.userId,
+    createdAt: session.createdAt,
+    expiresAt: session.expiresAt,
+    id: session.id,
+    impersonatedBy: session.impersonatedBy ?? undefined,
+    ipAddress: session.ipAddress ?? undefined,
+    token: session.token,
+    updatedAt: session.updatedAt,
+    userAgent: session.userAgent ?? undefined,
+    userId: session.userId,
   };
 }
 
-export async function authenticate(input: {
-  email: string;
-  password: string;
-}): Promise<{ user: User; session: Session }> {
-  const { db, pubsub } = getContext();
-
-  const [userRow] = await db
-    .select()
-    .from(s.user)
-    .where(eq(s.user.email, input.email))
-    .limit(1);
-
-  if (!userRow) throw new Error("Invalid credentials");
-
-  const [accountRow] = await db
-    .select()
-    .from(s.account)
-    .where(
-      and(
-        eq(s.account.userId, userRow.id),
-        eq(s.account.providerId, "credential"),
-      ),
-    )
-    .limit(1);
-
-  if (!accountRow?.password) throw new Error("Invalid credentials");
-
-  const valid = await password.verify(input.password, accountRow.password);
-  if (!valid) throw new Error("Invalid credentials");
-
-  const user = await getUserById({ id: userRow.id });
-  if (!user) throw new Error("User not found");
-
-  const token = crypto.randomUUID();
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-  const [sessionRow] = await db
-    .insert(s.session)
-    .values({
-      expiresAt,
-      id: crypto.randomUUID(),
-      token,
-      userId: user.id,
-    })
-    .returning();
-
-  if (!sessionRow) throw new Error("Failed to create session");
-
-  const session = toSession(sessionRow);
-  await pubsub.publish("session:created", { session, user });
-  return { session, user };
+function toUser(user: AuthUser): User {
+  return {
+    banExpires: user.banExpires ?? undefined,
+    banned: user.banned ?? false,
+    banReason: user.banReason ?? undefined,
+    createdAt: user.createdAt,
+    displayUsername: user.displayUsername ?? undefined,
+    email: user.email,
+    emailVerified: user.emailVerified,
+    id: user.id,
+    image: user.image ?? undefined,
+    name: user.name,
+    phoneNumber: user.phoneNumber ?? undefined,
+    phoneNumberVerified: user.phoneNumberVerified ?? undefined,
+    role: user.role ?? undefined,
+    updatedAt: user.updatedAt,
+    username: user.username ?? undefined,
+  };
 }
 
-export async function validateSession(input: {
-  token: string;
-}): Promise<{ user: User; session: Session } | null> {
-  const { db } = getContext();
+export function createSessionServices(deps: AuthServiceDeps) {
+  async function createHeadersFromToken(token: string): Promise<Headers> {
+    const { auth } = deps;
+    const ctx = await auth.$context;
+    const signature = createHmac("sha256", ctx.secret)
+      .update(token)
+      .digest("base64");
+    const signedValue = encodeURIComponent(`${token}.${signature}`);
+    const headers = new Headers();
+    headers.set(
+      "cookie",
+      `${ctx.authCookies.sessionToken.name}=${signedValue}`,
+    );
+    return headers;
+  }
 
-  const [row] = await db
-    .select()
-    .from(s.session)
-    .where(
-      and(
-        eq(s.session.token, input.token),
-        gte(s.session.expiresAt, new Date()),
-      ),
-    )
-    .limit(1);
+  async function authenticate(input: {
+    email: string;
+    password: string;
+  }): Promise<{ session: Session; user: User }> {
+    const { auth, pubsub } = deps;
 
-  if (!row) return null;
-  const user = await getUserById({ id: row.userId });
-  if (!user) return null;
+    const response = await auth.api.signInEmail({
+      body: { email: input.email, password: input.password },
+    });
 
-  return { session: toSession(row), user };
-}
+    if ("twoFactorRedirect" in response) {
+      throw new Error("Two-factor authentication required");
+    }
 
-export async function invalidateSession(input: {
-  sessionId: string;
-}): Promise<void> {
-  const { db, pubsub } = getContext();
-  await db.delete(s.session).where(eq(s.session.id, input.sessionId));
-  await pubsub.publish("session:invalidated", { sessionId: input.sessionId });
+    const headers = await createHeadersFromToken(response.token);
+    const sessionData = await auth.api.getSession({
+      headers,
+      query: { disableCookieCache: true, disableRefresh: true },
+    });
+
+    if (!sessionData) throw new Error("Failed to create session");
+
+    const session = toSession(sessionData.session as AuthSession);
+    const user = toUser(sessionData.user as AuthUser);
+
+    await pubsub.publishControlPlane("session:created", { session, user });
+    return { session, user };
+  }
+
+  async function validate(input: {
+    token: string;
+  }): Promise<{ session: Session; user: User } | null> {
+    const { auth } = deps;
+
+    const headers = await createHeadersFromToken(input.token);
+    const sessionData = await auth.api.getSession({
+      headers,
+      query: { disableCookieCache: true, disableRefresh: true },
+    });
+
+    if (!sessionData) return null;
+
+    return {
+      session: toSession(sessionData.session as AuthSession),
+      user: toUser(sessionData.user as AuthUser),
+    };
+  }
+
+  async function invalidate(input: { sessionId: string }): Promise<void> {
+    const { db, pubsub } = deps;
+    await db.delete(s.session).where(eq(s.session.id, input.sessionId));
+    await pubsub.publishControlPlane("session:invalidated", {
+      sessionId: input.sessionId,
+    });
+  }
+
+  return { authenticate, invalidate, validate };
 }

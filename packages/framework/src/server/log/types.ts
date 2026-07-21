@@ -15,6 +15,7 @@ export interface LogEntry {
   requestId?: string;
   service: string;
   spanId?: string;
+  tenantId?: string;
   timestamp: Date;
   traceId?: string;
   userId?: string;
@@ -28,6 +29,7 @@ export interface LogQuery {
   search?: string;
   service?: string;
   startTime?: Date;
+  tenantId?: string;
   traceId?: string;
   userId?: string;
 }

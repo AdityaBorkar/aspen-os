@@ -6,6 +6,7 @@ import type { RpcRouter } from "./router";
 export interface RpcContext {
   db: NodePgDatabase<Record<string, never>>;
   pubsub: PubSubUnit;
+  tenantId?: string;
 }
 
 export interface RpcConfig {

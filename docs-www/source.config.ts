@@ -44,4 +44,9 @@ export const tasks = defineDocs({
   docs,
 });
 
+export const tenantPlatform = defineDocs({
+  dir: `../packages/tenant-platform/docs-www`,
+  docs,
+});
+
 export default defineConfig();

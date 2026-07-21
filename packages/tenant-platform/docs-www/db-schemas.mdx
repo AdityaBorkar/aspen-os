@@ -1,0 +1,140 @@
+---
+title: DB Schemas
+description: Control-plane tables, enums, and better-auth Organization plugin tables for the Tenant Platform module.
+icon: IconDatabase
+---
+
+The Tenant Platform defines 3 control-plane tables (`tenant`, `service_provider`, `audit_log`) and relies on better-auth's Organization plugin tables (`organization`, `member`, `invitation`). All live in the default schema of the control-plane DB — there is no `management` schema.
+
+## Enums
+
+| Enum | Table Column | Values |
+|---|---|---|
+| `tenant_status` | `tenant.status` | `onboarding`, `active`, `suspended`, `churned` |
+| `service_provider_status` | `service_provider.status` | `active`, `inactive` |
+| `audit_action` | `audit_log.action` | see [Audit Actions](#audit-actions) |
+
+## Tables
+
+### `tenant`
+
+Companion to the better-auth `organization` row. Shares the org ID. Holds lifecycle, plan, SP assignment, and per-tenant DB connection params.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK, FK → `organization.id`) | Shares the better-auth org ID. |
+| `status` | tenant_status | Default `onboarding`. |
+| `plan` | text (nullable) | Subscription plan identifier. |
+| `service_provider_id` | text (FK → `service_provider`, nullable) | Active SP assignment. 1:1 per tenant. |
+| `signup_at` | timestamptz | When the tenant signed up. |
+| `suspended_at` | timestamptz (nullable) | Last suspension timestamp. |
+| `suspended_reason` | text (nullable) | Suspension reason. |
+| `churned_at` | timestamptz (nullable) | Churn timestamp. |
+| `churn_reason` | text (nullable) | Churn reason. |
+| `database_host` | text | Per-tenant DB host. |
+| `database_port` | integer | Per-tenant DB port. |
+| `database_name` | text | Per-tenant DB name. |
+| `database_user` | text | Per-tenant DB user. |
+| `database_password` | text | Per-tenant DB password (encrypted at rest). |
+| `database_ssl` | boolean | SSL flag for the per-tenant connection. |
+| `created_at` | timestamptz | Creation timestamp. |
+| `updated_at` | timestamptz | Last update timestamp. |
+
+<Callout type="info">
+  The `organization` row (name, slug, logo) is the source of truth for the tenant's display identity. The `tenant` companion holds only the domain fields the better-auth org doesn't. Connection params may be split into a separate `tenant_database` table if multiple databases per tenant are ever needed.
+</Callout>
+
+### `service_provider`
+
+First-class entity — an implementation/integration partner doing physical-world onboarding work.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK, auto) | UUID. |
+| `name` | text | Display name. |
+| `slug` | text (unique) | URL-safe identifier. |
+| `logo` | text (nullable) | Logo URL or Storage reference. |
+| `description` | text (nullable) | Free-text description of services. |
+| `email` | text (nullable) | Primary contact email. |
+| `phone` | text (nullable) | Primary contact phone. |
+| `website` | text (nullable) | Website URL. |
+| `address` | text (nullable) | Address (single text field). |
+| `status` | service_provider_status | Default `active`. `inactive` SPs can't be assigned to new tenants. |
+| `created_at` | timestamptz | Creation timestamp. |
+| `updated_at` | timestamptz | Last update timestamp. |
+
+### `audit_log`
+
+Append-only record of platform operations, backing the audit & activity reports.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK, auto) | UUID. |
+| `action` | audit_action | The action performed. |
+| `actor_id` | text (FK → `user`) | The platform admin who performed the action. |
+| `entity_type` | text | `tenant`, `serviceProvider`, or `platformUser`. |
+| `entity_id` | text | The affected entity's ID. |
+| `previous_state` | jsonb (nullable) | State before the action. |
+| `new_state` | jsonb (nullable) | State after the action. |
+| `changes` | jsonb (nullable) | Field-level diff for updates. |
+| `performed_at` | timestamptz | When the action was performed. |
+| `metadata` | jsonb (nullable) | Extensible. |
+
+## Audit Actions
+
+| Action | Trigger |
+|---|---|
+| `tenant_provisioned` | `provision()` completes |
+| `tenant_activated` | `activate()` |
+| `tenant_suspended` | `suspend()` |
+| `tenant_reactivated` | `reactivate()` |
+| `tenant_churned` | `churn()` |
+| `tenant_profile_updated` | `updateProfile()` |
+| `sp_assigned` | `assignServiceProvider()` |
+| `sp_unassigned` | `unassignServiceProvider()` |
+| `sp_created` | `ServiceProviderWorkflow.create()` |
+| `sp_updated` | `ServiceProviderWorkflow.update()` |
+| `sp_deactivated` | `deactivate()` |
+| `sp_activated` | `activate()` |
+| `platform_user_created` | `PlatformUserWorkflow.create()` |
+| `platform_user_updated` | `PlatformUserWorkflow.update()` |
+| `platform_user_deleted` | `PlatformUserWorkflow.delete()` |
+| `role_assigned` | `assignRole()` |
+| `sp_assigned_to_user` | `assignToServiceProvider()` |
+
+## better-auth Organization Plugin Tables
+
+Managed by better-auth — the Tenant Platform module invokes the plugin's API rather than writing to these tables directly.
+
+| Table | Purpose |
+|---|---|
+| `organization` | The Tenant identity (id, name, slug, logo, metadata, createdAt). |
+| `member` | User ↔ Tenant membership with a per-membership role. |
+| `invitation` | Pending member invitations. |
+
+The session table gains `activeOrganizationId` (the currently selected tenant).
+
+## User Table Extension
+
+The framework's existing `user` table (per ADR-0001) gains one column:
+
+| Column | Type | Description |
+|---|---|---|
+| `sp_id` | text (FK → `service_provider`, nullable) | Set only for `sp_user` role. Null for `platform_admin` and `tenant_user`. |
+
+No `tenant_id` column — membership is via the `member` table.
+
+## Relationships
+
+```text
+organization (better-auth) ──1:1──→ tenant (companion)
+tenant ──N:1──→ service_provider (active assignment)
+user ──N:1──→ service_provider (sp_user only, via sp_id)
+user ──M:N──→ organization (via member table)
+audit_log ──N:1──→ user (actor)
+audit_log ──N:1──→ tenant | service_provider (entity)
+```
+
+<Callout type="warn">
+  Per-tenant DB tables (organization, branch, task, drive_file, employee, all HR tables, etc.) are NOT defined here. They live in each tenant's own database and are managed by their respective modules. The Tenant Platform module never touches them directly.
+</Callout>

@@ -9,12 +9,12 @@ export class FileMetadataService {
   constructor(private readonly db: DrizzleDB) {}
 
   async upsertMetadata(input: {
-    key: string;
     bucket: string;
-    size: number;
     contentType?: string;
     etag?: string;
+    key: string;
     metadata?: Record<string, string>;
+    size: number;
   }): Promise<void> {
     await this.db
       .insert(fileMetadata)
@@ -34,7 +34,7 @@ export class FileMetadataService {
           size: input.size,
           updatedAt: new Date(),
         },
-        target: fileMetadata.key,
+        target: [fileMetadata.key, fileMetadata.tenantId],
       });
   }
 

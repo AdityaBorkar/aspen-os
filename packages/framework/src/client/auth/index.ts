@@ -1,8 +1,10 @@
+import { apiKeyClient } from "@better-auth/api-key/client";
 import { passkeyClient } from "@better-auth/passkey/client";
 import type { AccessControl, Role } from "better-auth/client";
 import {
   adminClient,
   emailOTPClient,
+  organizationClient,
   phoneNumberClient,
   usernameClient,
 } from "better-auth/client/plugins";
@@ -50,10 +52,12 @@ export class AuthUnit<
       baseURL,
       plugins: [
         adminClient({ ac: access_control, roles }),
-        emailOTPClient(),
         usernameClient(),
         passkeyClient(),
+        emailOTPClient(),
         phoneNumberClient(),
+        organizationClient(),
+        apiKeyClient(),
       ],
     }) as unknown as AuthClient<AC, R>;
   }

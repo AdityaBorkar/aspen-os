@@ -1,4 +1,14 @@
+import type { Auth } from "better-auth";
 import type { createAccessControl, Role } from "better-auth/plugins";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+
+import type { PubSubUnit } from "../pubsub";
+
+export interface AuthServiceDeps {
+  auth: Auth;
+  db: NodePgDatabase<Record<string, never>>;
+  pubsub: PubSubUnit;
+}
 
 export interface User {
   banExpires?: Date;

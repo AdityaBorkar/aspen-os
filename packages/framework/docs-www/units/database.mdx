@@ -1,10 +1,10 @@
 ---
 title: Database
-description: PostgreSQL connection pool and Drizzle ORM integration with automatic schema management.
+description: PostgreSQL connection pool and Drizzle ORM integration with automatic schema management and multi-tenant support.
 icon: IconDatabase
 ---
 
-The `DatabaseUnit` (`$name: "database"`) is the foundational unit — all other units depend on it. It owns a `pg.Pool` and a Drizzle `NodePgDatabase` instance.
+The `DatabaseUnit` (`$name: "db"`) is the foundational unit — all other units depend on it. It owns a control-plane `pg.Pool` and a Drizzle `NodePgDatabase` instance, plus per-tenant pools in isolated-db mode.
 
 ## Configuration
 
@@ -20,54 +20,52 @@ type DatabaseConfig = {
 };
 ```
 
-### Example
-
-```ts
-const dbConfig: DatabaseConfig = {
-  host: "localhost",
-  port: 5432,
-  user: "recruiter",
-  password: "recruiter",
-  database: "recruiter",
-  ssl: false,
-  maxConnections: 20,
-};
-```
+The `db` config is always the **control-plane** database connection. In single/RLS mode, this IS the app database. In isolated-db mode, this is the control-plane database; per-tenant DB configs are resolved by the `TenantResolver`.
 
 ## Public API
 
 ```ts title="src/server/db/index.ts"
 class DatabaseUnit {
-  readonly $name = "database";
-  readonly pool: pg.Pool;           // raw pg connection pool
-  readonly db: NodePgDatabase;      // drizzle ORM instance
+  readonly $name = "db";
   readonly config: DatabaseConfig;
+  readonly tenancyMode: TenancyMode;
+  readonly tenantResolver?: TenantResolver;
 
-  async $prepare(): Promise<void>;  // pushes core schemas via pushSchema()
-  async $destroy(): Promise<void>;   // ends the connection pool
-  getSchemas(): Record<string, unknown>;  // returns auth, logs, storage, kv-store schemas
+  get db(): NodePgDatabase;              // stable wrapper (Proxy) — resolves per-request
+  get controlPlaneDb(): NodePgDatabase;  // control-plane drizzle instance
+  get pool(): pg.Pool;                   // control-plane connection pool
+
+  async $prepare(): Promise<void>;       // pushes core schemas to control-plane DB
+  async $destroy(): Promise<void>;       // ends all pools
+  getSchemas(): Record<string, unknown>;
+
+  // Per-tenant (isolated-db mode)
+  async getTenantDb(tenantId: string): Promise<NodePgDatabase>;
+  async pushSchemasToTenant(tenantId: string, moduleSchemas: Record<string, unknown>): Promise<void>;
+
+  // RLS (shared-rls mode)
+  async applyRlsPolicies(db: NodePgDatabase): Promise<void>;
 }
 ```
 
-## Features
+## Stable DB Wrapper
 
-### Connection Pool
-
-The unit creates a `pg.Pool` with configurable max connections. All database operations across units go through this pool.
+The `db` property is a getter that returns a stable wrapper object (a JavaScript `Proxy`). The wrapper resolves the correct per-request drizzle instance via `AsyncLocalStorage` at query time. Workflows keep `this.db = units.db.db` — no workflow code changes needed.
 
 ```ts
-framework.db.pool  // pg.Pool — direct access if needed
-framework.db.db    // NodePgDatabase — drizzle ORM instance
+framework.db.db           // stable wrapper — resolves per-request via context
+framework.db.controlPlaneDb  // direct control-plane drizzle instance
+framework.db.pool         // pg.Pool — control-plane connection pool
 ```
 
-### Automatic Schema Management
+## Automatic Schema Management
 
-During `$prepare()`, the unit calls `pushSchema()` from `drizzle-kit/api` to automatically apply schema changes for core schemas:
+During `$prepare()`, the unit calls `pushSchema()` from `drizzle-kit/api` to apply schema changes for core schemas:
 
-- Auth schema (`user`, `session`, `account`, `verification` tables)
-- Log schema (`logs` table)
-- Storage schema (`file_metadata` table)
-- KV Store schema (`kv_store` table)
+- Auth schema (`user`, `session`, `account`, `verification` tables — no `tenant_id`)
+- Log schema (`logs` table — with `tenant_id`)
+- Storage schema (`file_metadata` table — with `tenant_id`)
+- KV Store schema (`kv_store` table — with `tenant_id`)
 
 ```ts
 framework.db.getSchemas();
@@ -75,8 +73,26 @@ framework.db.getSchemas();
 ```
 
 <Callout type="info">
-  Data-loss warnings are logged but the push proceeds. Domain modules push their own schemas in their `prepare()` method.
+  In shared-RLS mode, RLS policies are applied to all tables with a `tenant_id` column after all schemas are pushed. Auth tables are exempt — they have no `tenant_id` and no RLS.
 </Callout>
+
+## Multi-Tenant Support
+
+The `DatabaseUnit` is tenancy-mode-aware. See the [Tenancy guide](../tenancy) for full details on the three modes.
+
+### Per-Tenant Pools (Isolated-DB Mode)
+
+```ts
+await framework.db.getTenantDb("tenant_123");
+// Lazily creates and caches a pg.Pool + drizzle instance for the tenant
+```
+
+### RLS Policies (Shared-RLS Mode)
+
+```ts
+await framework.db.applyRlsPolicies(framework.db.controlPlaneDb);
+// Discovers all tables with tenant_id, creates tenant_role, applies RLS policies
+```
 
 ## Dependency Injection
 
@@ -89,8 +105,13 @@ Inside `framework.run()`, the Drizzle `db` instance is available via `getContext
 ```ts
 import { getContext } from "@aspen-os/framework/server";
 
+// Single-tenant
 await framework.run(async () => {
   const { db } = getContext();
-  const users = await db.select().from(user);
+});
+
+// Multi-tenant
+await framework.run(tenantId, async () => {
+  const { db, tenantId } = getContext();
 });
 ```

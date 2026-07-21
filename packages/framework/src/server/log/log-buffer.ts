@@ -1,3 +1,4 @@
+import { context } from "../context";
 import type { LogEntry, LogLevel } from "./types";
 
 export interface LogBuffer {
@@ -12,40 +13,35 @@ export function createLogBuffer(
   flushFn: (entries: LogEntry[]) => Promise<void>,
 ): LogBuffer {
   const buffer: LogEntry[] = [];
-  let flushTimer: ReturnType<typeof setInterval> | null = null;
+  let flushing = false;
 
   function push(entry: LogEntry): void {
     buffer.push(entry);
-    if (buffer.length >= bufferSize) {
+    if (buffer.length >= bufferSize && !flushing) {
       flush();
     }
   }
 
   async function flush(): Promise<void> {
-    if (buffer.length === 0) return;
+    if (buffer.length === 0 || flushing) return;
+    flushing = true;
     const entries = buffer.splice(0, bufferSize);
     try {
       await flushFn(entries);
     } catch {
       // Buffer flush failure is non-critical
+    } finally {
+      flushing = false;
     }
   }
 
   async function drain(): Promise<void> {
-    if (flushTimer) {
-      clearInterval(flushTimer);
-      flushTimer = null;
-    }
     await flush();
   }
 
   function size(): number {
     return buffer.length;
   }
-
-  // function startAutoFlush(interval: number): void {
-  //   flushTimer = setInterval(flush, interval);
-  // }
 
   return { drain, flush, push, size };
 }
@@ -57,6 +53,7 @@ export function createEntryFactory(serviceName: string) {
     metadata?: Record<string, unknown>,
     error?: Error,
   ): LogEntry {
+    const ctx = context.getStore();
     return {
       duration: metadata?.duration as number | undefined,
       error: error
@@ -69,6 +66,7 @@ export function createEntryFactory(serviceName: string) {
       requestId: metadata?.requestId as string | undefined,
       service: serviceName,
       spanId: metadata?.spanId as string | undefined,
+      tenantId: ctx?.tenantId,
       timestamp: new Date(),
       traceId: metadata?.traceId as string | undefined,
       userId: metadata?.userId as string | undefined,

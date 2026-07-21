@@ -1,0 +1,200 @@
+---
+title: Overview
+description: Architecture, multi-tenancy model, initialization, and config of the Tenant Platform module.
+icon: IconInfoCircle
+---
+
+The Tenant Platform is the control-plane module of a multi-tenant SaaS. It manages tenants (SaaS customer accounts), service providers (implementation partners), platform users, and reports — operating exclusively against the shared control-plane database. It never queries per-tenant databases directly.
+
+Two architectural decisions shape this module (see `docs/adr/`):
+
+- **ADR-0005** — multi-tenant host app with single-realm auth
+- **ADR-0006** — database-per-tenant isolation
+
+## Architecture
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                   CONTROL-PLANE DATABASE                     │
+│                                                              │
+│  better-auth tables (single realm):                          │
+│    user, session, account, verification                      │
+│    organization, member, invitation  ← Organization plugin  │
+│                                                              │
+│  Tenant Platform tables:                                     │
+│    tenant, service_provider, audit_log                       │
+│                                                              │
+│  AuthUnit is a singleton over this DB.                       │
+└──────────────────────────┬──────────────────────────────────┘
+                           │ tenantId resolved per request
+                           ▼
+┌────────────────┐  ┌────────────────┐  ┌────────────────┐
+│  Tenant DB A   │  │  Tenant DB B   │  │  Tenant DB C   │
+│                │  │                │  │                │
+│ organization,  │  │ organization,  │  │ organization,  │
+│ branch, task,  │  │ branch, task,  │  │ branch, task,  │
+│ drive, hr,     │  │ drive, hr,     │  │ drive, hr,     │
+│ compliance     │  │ compliance     │  │ compliance     │
+│                │  │                │  │                │
+│ NO auth tables │  │ NO auth tables │  │ NO auth tables │
+└────────────────┘  └────────────────┘  └────────────────┘
+```
+
+Isolation is physical: a tenant cannot reach another tenant's data because it lives in a separate database. No `tenant_id` columns on data-plane tables, no row-level security, no app-level `.where(tenantId)` filtering.
+
+## Auth Model
+
+Authentication uses the framework's existing `AuthUnit` — a single better-auth instance, one set of auth tables in the control-plane DB. No multi-realm.
+
+Tenant membership is handled by better-auth's **Organization plugin**:
+
+| Table | Purpose |
+|---|---|
+| `organization` | The Tenant identity (name, slug, logo). The Tenant IS this row. |
+| `member` | User ↔ Tenant membership (M:N), with a per-membership role. |
+| `invitation` | Pending member invitations. |
+
+The `user` table does **not** have a `tenant_id` column. Global category is on `user.role` (text, per ADR-0001):
+
+| `user.role` | `member` rows | `sp_id` | Scope |
+|---|---|---|---|
+| `platform_admin` | zero | null | Control-plane only. Cross-tenant. |
+| `tenant_user` | one or more | null | Per-tenant data-plane. |
+| `sp_user` | zero | set | Belongs to a Service Provider. |
+
+The active tenant for a request is `session.activeOrganizationId` (better-auth's mechanism).
+
+<Callout type="warn">
+  Platform admins never touch the data-plane. If a platform admin needs to inspect a tenant's data, they use better-auth's admin-impersonation (`signInAsUser`) to act as a tenant admin. The Tenant Platform module has no "act as tenant" mechanism.
+</Callout>
+
+## Tenant vs Organization
+
+Three "organization"-ish concepts are disambiguated:
+
+| Concept | Where | Holds |
+|---|---|---|
+| **Tenant** (≡ better-auth Organization) | Control-plane DB | `name`, `slug`, `logo` + lifecycle/plan/SP assignment (companion table) |
+| **Organization** (aspen-os `organization` module) | Per-tenant DB | Rich profile: `accentColor`, `website`, `industry`, `taxId`, `timezone`, `locale`, `metadata` |
+
+The Tenant IS the better-auth `organization` row. A companion `tenant` table holds the extra domain fields. The aspen-os Organization module's Organization is a 1:1 rich-profile companion in the per-tenant DB — it does NOT hold name/slug/logo (those are on the Tenant).
+
+## Module Configuration
+
+```ts
+import { TenantPlatformModule } from "@aspen-os/tenant-platform";
+
+const tenantPlatform = TenantPlatformModule.create({
+  postgresAdminConnection: {
+    host: "localhost",
+    port: 5432,
+    user: "postgres",
+    password: "postgres",
+    database: "aspen_control",
+  },
+  defaultTenantDbHost: "localhost",
+  defaultTenantDbPort: 5432,
+  defaultTenantDbUser: "aspen_tenant",
+  defaultTenantDbPassword: "secure-password",
+  defaultTenantDbSsl: false,
+  tenantDbNamingScheme: (tenantId) => `tenant_${tenantId.replace(/-/g, "_")}`,
+  moduleSchemas: {
+    organization: organizationSchema,
+    compliance: complianceSchema,
+    tasks: tasksSchema,
+    drive: driveSchema,
+    hr: hrSchema,
+  },
+});
+```
+
+| Option | Type | Description |
+|---|---|---|
+| `postgresAdminConnection` | `DatabaseConfig` | Connection used to issue `CREATE DATABASE` during provisioning. |
+| `defaultTenantDbHost` | `string` | Default host for per-tenant DBs. |
+| `defaultTenantDbPort` | `number` | Default port. |
+| `defaultTenantDbUser` | `string` | Default DB user for per-tenant DBs. |
+| `defaultTenantDbPassword` | `string` | Default DB password. |
+| `defaultTenantDbSsl` | `boolean` | Default SSL setting. |
+| `tenantDbNamingScheme` | `(tenantId: string) => string` | Maps a tenant ID to a database name. |
+| `moduleSchemas` | `Record<string, DrizzleSchema>` | Schemas pushed to each new tenant DB during provisioning. |
+
+## Initialization
+
+The module receives `db`, `auth`, and `pubsub` units via `$initialize()`:
+
+```ts title="src/index.ts"
+$initialize(units: { db: DatabaseUnit; auth: AuthUnit; pubsub: PubSubUnit }): void {
+  this.#tenant = new TenantWorkflow(units.db.db, units.auth, units.pubsub);
+  this.#serviceProvider = new ServiceProviderWorkflow(units.db.db, units.pubsub);
+  this.#platformUser = new PlatformUserWorkflow(units.db.db, units.auth, units.pubsub);
+  this.#report = new ReportWorkflow(units.db.db);
+  this.#provisioning = new ProvisioningWorkflow(units.db.db, units.auth, units.pubsub, this.config);
+}
+```
+
+`$prepare()` pushes the module's control-plane schema (`tenant`, `service_provider`, `audit_log`). It does NOT touch per-tenant DBs — those are provisioned by the `ProvisioningWorkflow`.
+
+## Module Structure
+
+```text
+packages/tenant-platform/src/
+  index.ts                  # Module class + create() factory
+  db-schema.ts              # 3 control-plane tables + enums
+  types.ts                  # TenantPlatformConfig, input types, filters
+  event-map.ts              # 16 events across 3 event groups
+  constants.ts              # TENANT_STATUS, SP_STATUS, AUDIT_ACTIONS, ROLES
+  schemas/                  # Valibot validation schemas
+    index.ts
+    tenant.ts
+    service-provider.ts
+    platform-user.ts
+    provisioning.ts
+  workflows/
+    tenant-workflow.ts          # CRUD + lifecycle for tenants
+    service-provider-workflow.ts # CRUD + lifecycle for SPs
+    platform-user-workflow.ts    # CRUD + role/SP assignment for platform users
+    report-workflow.ts           # 4 report categories
+    provisioning-workflow.ts    # automated tenant DB creation + schema push
+```
+
+## Accessing Workflows
+
+```ts
+framework.tenantPlatform.tenants           // → TenantWorkflow
+framework.tenantPlatform.serviceProviders  // → ServiceProviderWorkflow
+framework.tenantPlatform.platformUsers     // → PlatformUserWorkflow
+framework.tenantPlatform.reports           // → ReportWorkflow
+framework.tenantPlatform.provisioning      // → ProvisioningWorkflow
+```
+
+<Callout type="warn">
+  Accessing a workflow before `$initialize()` throws a "not initialized" error. This happens if you access the module before calling `Framework.create()`.
+</Callout>
+
+## Package
+
+```json title="package.json"
+{
+  "name": "@aspen-os/tenant-platform",
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@aspen-os/framework": "workspace:*",
+    "@aspen-os/constants": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "valibot": "catalog:"
+  }
+}
+```
+
+## Framework Kernel Prerequisites
+
+The module depends on changes to the framework kernel (out of scope for this package, required by the host app):
+
+- `DatabaseUnit` becomes tenant-aware — resolves the per-tenant connection pool from the request's `tenantId`.
+- `run()` AsyncLocalStorage context gains `tenantId`.
+- The host app wires better-auth's Organization plugin into `AuthUnit`.
+- The `user` table gains the `sp_id` FK column.
+
+See **ADR-0005** and **ADR-0006** (in `docs/adr/`) for the full rationale.

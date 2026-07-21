@@ -1,5 +1,6 @@
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
+import { context } from "../context";
 import type { DatabaseUnit } from "../db";
 import { logs } from "./db-schema";
 import { createEntryFactory, createLogBuffer } from "./log-buffer";
@@ -24,12 +25,14 @@ export type {
   LogStats,
 } from "./types";
 
+type DrizzleDB = NodePgDatabase<Record<string, never>>;
+
 export class LogUnit {
   readonly $name = "logs";
 
   private serviceName: string;
   private defaultLevel: LogLevel;
-  private db: NodePgDatabase;
+  private db: DrizzleDB;
   private queryService: LogQueryService;
   private buffer: ReturnType<typeof createLogBuffer>;
   private flushTimer: ReturnType<typeof setInterval>;
@@ -61,6 +64,7 @@ export class LogUnit {
           requestId: entry.requestId ?? null,
           service: entry.service,
           spanId: entry.spanId ?? null,
+          tenantId: entry.tenantId ?? "default",
           timestamp: entry.timestamp,
           traceId: entry.traceId ?? null,
           userId: entry.userId ?? null,
@@ -181,10 +185,17 @@ export class LogUnit {
     startTime?: Date,
     endTime?: Date,
   ): Promise<LogStats> {
-    return this.requireQueryService().getStats(service, startTime, endTime);
+    const tenantId = context.getStore()?.tenantId;
+    return this.requireQueryService().getStats(
+      service,
+      startTime,
+      endTime,
+      tenantId,
+    );
   }
 
   async query(filter: LogQuery): Promise<LogEntry[]> {
-    return this.requireQueryService().query(filter);
+    const tenantId = context.getStore()?.tenantId;
+    return this.requireQueryService().query({ ...filter, tenantId });
   }
 }

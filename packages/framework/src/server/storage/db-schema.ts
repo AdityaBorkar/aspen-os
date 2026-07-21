@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
@@ -6,6 +7,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 export const fileMetadata = pgTable(
@@ -20,9 +22,14 @@ export const fileMetadata = pgTable(
       .defaultNow(),
     etag: text("etag"),
     id: text("id").primaryKey().default("gen_random_uuid()::text"),
-    key: text("key").unique().notNull(),
+    key: text("key").notNull(),
     metadata: jsonb("metadata").default({}),
     size: bigint("size", { mode: "number" }).notNull().default(0),
+    tenantId: text("tenant_id")
+      .notNull()
+      .default(
+        sql`COALESCE(current_setting('app.tenant_id', true), 'default')`,
+      ),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -30,5 +37,9 @@ export const fileMetadata = pgTable(
   (table) => ({
     archivedIdx: index("idx_file_metadata_archived").on(table.archived),
     keyIdx: index("idx_file_metadata_key").on(table.key),
+    keyTenantUnique: uniqueIndex("file_metadata_key_tenant_unique").on(
+      table.key,
+      table.tenantId,
+    ),
   }),
 );

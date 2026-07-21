@@ -1,0 +1,121 @@
+---
+title: Events
+description: Domain event map for the Tenant Platform module — 16 events across 3 event groups.
+icon: IconBell
+---
+
+The Tenant Platform module defines 16 domain events across 3 event groups. Events are type-level contracts published as plain string topics via PubSub.
+
+## Event Constants
+
+```ts title="src/event-map.ts"
+export const TENANT_EVENTS = {
+  PROVISIONED: "tenant:provisioned",
+  ACTIVATED: "tenant:activated",
+  SUSPENDED: "tenant:suspended",
+  REACTIVATED: "tenant:reactivated",
+  CHURNED: "tenant:churned",
+  PROFILE_UPDATED: "tenant:profile_updated",
+  SP_ASSIGNED: "tenant:sp_assigned",
+  SP_UNASSIGNED: "tenant:sp_unassigned",
+} as const;
+
+export const SERVICE_PROVIDER_EVENTS = {
+  CREATED: "service_provider:created",
+  UPDATED: "service_provider:updated",
+  DEACTIVATED: "service_provider:deactivated",
+  ACTIVATED: "service_provider:activated",
+} as const;
+
+export const PLATFORM_USER_EVENTS = {
+  CREATED: "platform_user:created",
+  UPDATED: "platform_user:updated",
+  DELETED: "platform_user:deleted",
+  ROLE_ASSIGNED: "platform_user:role_assigned",
+} as const;
+```
+
+## Event Map
+
+### Tenant Events
+
+| Event | Payload | Trigger |
+|---|---|---|
+| `tenant:provisioned` | `{ tenantId, serviceProviderId? }` | `provision()` completes |
+| `tenant:activated` | `{ tenantId }` | `activate()` — onboarding → active |
+| `tenant:suspended` | `{ tenantId, reason }` | `suspend()` |
+| `tenant:reactivated` | `{ tenantId }` | `reactivate()` — suspended → active |
+| `tenant:churned` | `{ tenantId, reason }` | `churn()` |
+| `tenant:profile_updated` | `{ tenantId, changes }` | `updateProfile()` |
+| `tenant:sp_assigned` | `{ tenantId, serviceProviderId }` | `assignServiceProvider()` |
+| `tenant:sp_unassigned` | `{ tenantId }` | `unassignServiceProvider()` |
+
+### Service Provider Events
+
+| Event | Payload | Trigger |
+|---|---|---|
+| `service_provider:created` | `{ serviceProvider: { id, name, slug } }` | SP created |
+| `service_provider:updated` | `{ serviceProvider: { id }, changes }` | SP updated |
+| `service_provider:deactivated` | `{ serviceProviderId }` | SP deactivated |
+| `service_provider:activated` | `{ serviceProviderId }` | SP activated |
+
+### Platform User Events
+
+| Event | Payload | Trigger |
+|---|---|---|
+| `platform_user:created` | `{ user: { id, email, role } }` | Platform user created |
+| `platform_user:updated` | `{ userId, changes }` | Platform user updated |
+| `platform_user:deleted` | `{ userId }` | Platform user deleted |
+| `platform_user:role_assigned` | `{ userId, role }` | `assignRole()` |
+
+## Usage
+
+### Publishing Events
+
+Events are published via `PubSubUnit.publish()`:
+
+```ts
+await framework.pubsub.publish("tenant:provisioned", {
+  tenantId: "org-123",
+  serviceProviderId: "sp-1",
+});
+```
+
+### Subscribing to Events
+
+```ts
+// React to a new tenant being provisioned (e.g., a future billing module)
+await framework.pubsub.subscribe("tenant:provisioned", async (message) => {
+  const { tenantId, serviceProviderId } = message.data;
+  // Start billing, send welcome email, etc.
+});
+
+// Track SP assignments for analytics
+await framework.pubsub.subscribe("tenant:sp_assigned", async (message) => {
+  const { tenantId, serviceProviderId } = message.data;
+  // Update SP performance metrics
+});
+```
+
+## Event Map Type
+
+```ts title="src/event-map.ts"
+export type TenantPlatformEventMap =
+  & TenantEventMap
+  & ServiceProviderEventMap
+  & PlatformUserEventMap;
+```
+
+<Callout type="info">
+  The event map is a type-level contract — it is not enforced at runtime. Workflows publish events as plain string topics. The type map ensures type safety when subscribing if you use the typed `Message<T>` generic.
+</Callout>
+
+## Cross-Module Integration
+
+Other modules can subscribe to Tenant Platform events to react to tenant lifecycle changes:
+
+| Subscriber | Subscribed Topic | Action |
+|---|---|---|
+| Future billing module | `tenant:provisioned`, `tenant:activated`, `tenant:suspended`, `tenant:churned` | Start/stop billing, adjust plan |
+| Notification service | `tenant:provisioned`, `tenant:sp_assigned` | Send welcome emails, notify SP of assignment |
+| SP performance tracking | `tenant:sp_assigned`, `tenant:activated` | Update onboarding duration metrics |

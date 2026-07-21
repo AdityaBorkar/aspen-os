@@ -1,104 +1,12 @@
 #!/usr/bin/env bun
 
-import { chmod, cp, mkdir, rm, writeFile } from "node:fs/promises";
-import { basename, dirname, join, resolve } from "node:path";
+import { mkdir, rm, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
+import { $, build, file } from "bun";
 
-const ROOT = resolve(process.argv[2] ?? process.cwd());
-const OUT_DIR = join(ROOT, ".output");
-
-const pkg = await Bun.file(join(ROOT, "package.json")).json();
-const external = Object.keys(pkg.dependencies ?? {});
-
-const normalize = (p: string): string => p.replace(/^\.\//, "");
-const toRelSrc = (p: string): string => normalize(p).replace(/^src\//, "");
-const toOutSubdir = (p: string): string => dirname(toRelSrc(p));
-const toOutputPath = (p: string, ext: ".js" | ".d.ts"): string =>
-  `./.output/${toRelSrc(p).replace(/\.tsx?$/, ext)}`;
-
-const publishing = (pkg.publishing ?? {}) as {
-  bin?: Record<string, string> | string;
-  exports?: Record<string, string>;
-};
-
-const sourceExports = (publishing.exports ?? pkg.exports) as
-  | Record<string, string>
-  | undefined;
-const sourceBin = publishing.bin ?? pkg.bin;
-const binMap = sourceBin
-  ? typeof sourceBin === "string"
-    ? { [pkg.name ?? "bin"]: sourceBin }
-    : sourceBin
-  : undefined;
-const buildTargets = ((pkg.build ?? {}).targets ?? {}) as Record<
-  string,
-  "node" | "browser" | "bun"
->;
-
-interface Entry {
-  bin?: boolean;
-  name: string;
-  out: string;
-  src: string;
-  target: "node" | "browser" | "bun";
-}
-
-const entries: Entry[] = [];
-
-if (sourceExports) {
-  for (const [key, srcPath] of Object.entries(sourceExports)) {
-    const name = normalize(key);
-    entries.push({
-      name,
-      out: toOutSubdir(srcPath),
-      src: join(ROOT, normalize(srcPath)),
-      target: buildTargets[name] ?? "node",
-    });
-  }
-}
-
-if (binMap) {
-  for (const [name, srcPath] of Object.entries(binMap)) {
-    entries.push({
-      bin: true,
-      name,
-      out: toOutSubdir(srcPath),
-      src: join(ROOT, normalize(srcPath)),
-      target: "bun",
-    });
-  }
-}
-
-await rm(OUT_DIR, { force: true, recursive: true });
-await mkdir(OUT_DIR, { recursive: true });
-
-for (const entry of entries) {
-  const result = await Bun.build({
-    entrypoints: [entry.src],
-    external,
-    format: "esm",
-    minify: true,
-    outdir: join(OUT_DIR, entry.out),
-    sourcemap: "none",
-    target: entry.target,
-    ...(entry.bin ? { banner: "#!/usr/bin/env bun" } : {}),
-  });
-
-  if (!result.success) {
-    for (const log of result.logs) {
-      console.error(log);
-    }
-    throw new Error(`Build failed for ${entry.name}`);
-  }
-
-  if (entry.bin) {
-    const outFile = basename(entry.src).replace(/\.tsx?$/, ".js");
-    await chmod(join(OUT_DIR, entry.out, outFile), 0o755);
-  }
-
-  console.log(`  bundled ${entry.name}`);
-}
-
-const tsconfigBuild = {
+const ROOT = resolve(process.cwd());
+const OUTPUT_DIR = join(ROOT, ".output");
+const TSCONFIG_BUILD = {
   compilerOptions: {
     composite: false,
     declaration: true,
@@ -114,42 +22,131 @@ const tsconfigBuild = {
   include: ["src/**/*.ts", "src/**/*.tsx"],
 };
 
-const tsconfigPath = join(ROOT, "tsconfig.build.json");
-await writeFile(tsconfigPath, JSON.stringify(tsconfigBuild, null, 2));
+type Target = "node" | "browser" | "bun";
+type ExportValue = string | { default: string; types: string };
 
-try {
-  await Bun.$`bunx tsc -p ${tsconfigPath}`.cwd(ROOT);
-  console.log("  generated type declarations");
-} finally {
-  await rm(tsconfigPath, { force: true });
+interface Entry {
+  bin: boolean;
+  name: string;
+  outDir: string;
+  src: string;
+  target: Target;
 }
 
-if (!pkg.publishing) pkg.publishing = {};
-if (sourceExports) pkg.publishing.exports = sourceExports;
-if (binMap) pkg.publishing.bin = binMap;
+const relToSrc = (p: string) => p.replace(/^src\//, "");
+const subdirFor = (srcPath: string) => dirname(relToSrc(srcPath));
+const outputFile = (srcPath: string, ext: ".js" | ".d.ts") =>
+  `./.output/${relToSrc(srcPath).replace(/\.tsx?$/, ext)}`;
 
-if (binMap) {
-  pkg.bin = Object.fromEntries(
-    Object.entries(binMap).map(([key, val]) => [key, toOutputPath(val, ".js")]),
+async function parsePackageJson() {
+  const pkg = await file(join(ROOT, "package.json")).json();
+
+  const bin = pkg.bin || {};
+  if (typeof bin === "string") throw new Error("bin must be an object");
+
+  const exports = pkg.exports || {};
+  if (typeof exports === "string") throw new Error("exports must be an object");
+
+  const targets = pkg.build?.targets ?? {};
+  if (typeof targets === "string") throw new Error("targets must be an object");
+
+  const entries: Entry[] = [];
+  const revisedPkg = { bin, exports, targets };
+
+  if (bin) {
+    const binMap = Object.entries(bin);
+    revisedPkg.bin = Object.fromEntries(
+      binMap.map(([key, val]) => [key, outputFile(val, ".js")]),
+    );
+    for (const [name, srcPath] of binMap) {
+      console.log({ name, src: subdirFor(srcPath), srcPath });
+      entries.push({
+        bin: true,
+        name,
+        outDir: subdirFor(srcPath),
+        src: join(ROOT, srcPath),
+        target: "bun",
+      });
+    }
+  }
+  if (exports) {
+    const exportsMap = Object.entries(exports);
+    revisedPkg.exports = Object.fromEntries(
+      exportsMap.map(([key, fileName]) => [
+        key,
+        {
+          default: outputFile(fileName, ".js"),
+          types: outputFile(fileName, ".d.ts"),
+        },
+      ]),
+    );
+    for (const [name, srcPath] of exportsMap) {
+      const name = stripDot(name);
+      entries.push({
+        bin: false,
+        name,
+        outDir: subdirFor(srcPath),
+        src: join(ROOT, stripDot(srcPath)),
+        target: buildTargets[name] ?? "node",
+      });
+    }
+  }
+
+  return { entries, pkg, revisedPkg };
+}
+
+async function main() {
+  const { pkg, entries, revisedPkg } = await parsePackageJson();
+
+  await rm(OUTPUT_DIR, { force: true, recursive: true });
+  await mkdir(OUTPUT_DIR, { recursive: true });
+
+  const packageJson = deepmerge(pkg, revisedPkg);
+  await writeFile(
+    join(ROOT, "package.json"),
+    `${JSON.stringify(packageJson, null, 2)}\n`,
   );
+
+  for (const { name, src, outDir, target } of entries) {
+    const result = await build({
+      entrypoints: [src],
+      external: ["drizzle-kit"],
+      format: "esm",
+      minify: true,
+      outdir: join(OUTPUT_DIR, outDir),
+      sourcemap: "none",
+      target,
+    });
+    if (!result.success) {
+      for (const log of result.logs) console.error(log);
+      throw new Error(`Build failed for ${name}`);
+    }
+    // if (bin) {
+    //   const outFile = basename(src).replace(/\.tsx?$/, ".js");
+    //   await chmod(join(OUTPUT_DIR, outDir, outFile), 0o755);
+    // }
+  }
+
+  const tsconfigPath = join(ROOT, "tsconfig.build.json");
+  try {
+    // await writeFile(tsconfigPath, JSON.stringify(TSCONFIG_BUILD, null, 2));
+    // await $`bun tsc -p ${tsconfigPath}`.cwd(ROOT);
+
+    const parsed = ts.parseJsonConfigFileContent(
+      TSCONFIG_BUILD,
+      ts.sys,
+      process.cwd(),
+    );
+
+    const program = ts.createProgram({
+      rootNames: parsed.fileNames,
+      options: parsed.options,
+    });
+
+    const emitResult = program.emit();
+  } finally {
+    await rm(tsconfigPath, { force: true });
+  }
 }
 
-if (sourceExports) {
-  pkg.exports = Object.fromEntries(
-    Object.entries(sourceExports).map(([key, val]) => [
-      key,
-      {
-        default: toOutputPath(val, ".js"),
-        types: toOutputPath(val, ".d.ts"),
-      },
-    ]),
-  );
-}
-
-await writeFile(
-  join(ROOT, "package.json"),
-  `${JSON.stringify(pkg, null, 2)}\n`,
-);
-
-console.log("  updated package.json");
-console.log(`\nBuild complete -> ${OUT_DIR}`);
+await main();

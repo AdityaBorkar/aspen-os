@@ -17,10 +17,19 @@
     }
   },
   "language_servers": [
-    "!eslint",
     "!typescript-language-server",
-    "!vtsls",
     "!markdownlint",
+    "!eslint",
+    "vtsls",
+    "biome",
     "..."
-  ]
+  ],
+  "lsp": {
+    "vtsls": {
+      "binary": {
+        "arguments": ["--lsp", "--stdio"],
+        "path": "node_modules/.bin/tsc"
+      }
+    }
+  }
 }

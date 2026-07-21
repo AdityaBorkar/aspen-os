@@ -5,10 +5,6 @@ export interface RpcConfig {
 export class RpcUnit {
   readonly $name = "rpc";
 
-  constructor(config: RpcConfig = {}) {
-    console.log({ config });
-  }
-
   async $prepare(): Promise<void> {
     return;
   }

@@ -1,17 +1,20 @@
 import { eq, like, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
+import { context } from "../context";
 import type { DatabaseUnit } from "../db";
 import * as db_schema from "./db-schema";
 import type { KvStoreConfig } from "./types";
 
 export type { KvStoreConfig } from "./types";
 
+type DrizzleDB = NodePgDatabase<Record<string, never>>;
+
 export class KvStoreUnit {
   readonly $name = "kvStore" as const;
   readonly db_schema = db_schema;
 
-  private db: NodePgDatabase;
+  private db: DrizzleDB;
   private defaultTtl: number;
   private prefix: string;
 
@@ -137,9 +140,11 @@ export class KvStoreUnit {
   }
 
   async clear(pattern?: string): Promise<void> {
+    const tenantId = context.getStore()?.tenantId ?? "default";
+    const tenantPrefix = this.getTenantPrefix(tenantId);
     const searchPattern = pattern
       ? this.getKeyName(pattern)
-      : `${this.prefix}:*`;
+      : `${tenantPrefix}*`;
     const keys: string[] = [];
     let cursor = "0";
     do {
@@ -161,8 +166,13 @@ export class KvStoreUnit {
     }
   }
 
+  private getTenantPrefix(tenantId: string): string {
+    return this.prefix ? `${this.prefix}:${tenantId}:` : `${tenantId}:`;
+  }
+
   private getKeyName(key: string): string {
-    return this.prefix ? `${this.prefix}:${key}` : key;
+    const tenantId = context.getStore()?.tenantId ?? "default";
+    return `${this.getTenantPrefix(tenantId)}${key}`;
   }
 
   private async scan(

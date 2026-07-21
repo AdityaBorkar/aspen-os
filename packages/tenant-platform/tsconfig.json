@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "declarationDir": "../../.local/types/tenant-platform",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "extends": "../../tsconfig.json"
+}

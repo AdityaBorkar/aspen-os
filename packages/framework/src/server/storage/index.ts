@@ -1,3 +1,4 @@
+import { context } from "../context";
 import type { DatabaseUnit } from "../db";
 import { FileMetadataService } from "./file-metadata-service";
 import { S3Adapter } from "./s3-adapter";
@@ -23,7 +24,11 @@ export class StorageUnit {
     this.metadata = new FileMetadataService(db.db);
     this.ops = new S3Adapter({
       ...config,
-      getKey: (key) => (config.prefix ? `${config.prefix ?? ""}/${key}` : key),
+      getKey: (key) => {
+        const tenantId = context.getStore()?.tenantId ?? "default";
+        const prefix = config.prefix ? `${config.prefix}/` : "";
+        return `${prefix}${tenantId}/${key}`;
+      },
     });
   }
 
