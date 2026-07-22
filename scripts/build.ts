@@ -6,9 +6,10 @@ import { $, build, file } from "bun";
 
 import deepmerge from "deepmerge";
 
+const $dev = true;
 const OUTPUT_DIRNAME = ".output";
+
 const ROOT = resolve(process.cwd());
-const OUTPUT_DIR = join(ROOT, OUTPUT_DIRNAME);
 const TSCONFIG_BUILD = {
   compilerOptions: {
     composite: false,
@@ -36,25 +37,30 @@ interface Entry {
 interface BuildConfig {
   bin?: Record<string, string>;
   exports?: Record<string, { path: string; target: Entry["target"] }>;
+  files?: string[];
 }
 
 interface RevisedPkg {
   bin?: Record<string, string>;
-  exports?: Record<string, { default: string; types: string }>;
+  exports?: Record<string, { default: string; types: string } | string>;
+  files?: string[];
 }
 
 const relToSrc = (p: string) => p.replace(/^\.\/src\//, "");
 const subdirFor = (srcPath: string) => dirname(relToSrc(srcPath));
-const outputFile = (srcPath: string, ext: ".js" | ".d.ts") =>
-  `./${OUTPUT_DIRNAME}/${relToSrc(srcPath).replace(/(?:\.d\.ts|\.[^.]+)$/, ext)}`;
 
 async function parsePackageJson() {
-  // @ts-expect-error Bug in bun types
-  const pkg = await (await file(join(ROOT, "package.json"))).json();
+  const outputDirname = $dev ? "src" : OUTPUT_DIRNAME;
+  const OUTPUT_DIR = join(ROOT, outputDirname);
+  const outputFile = (srcPath: string, ext: ".js" | ".d.ts") =>
+    `./${outputDirname}/${relToSrc(srcPath).replace(/(?:\.d\.ts|\.[^.]+)$/, ext)}`;
+
+  const pkg = await file(join(ROOT, "package.json")).json();
 
   const buildConfig = (pkg.build ?? {}) as BuildConfig;
   const binConfig = buildConfig.bin ?? {};
   const exportsConfig = buildConfig.exports ?? {};
+  const filesConfig = buildConfig.files ?? [];
 
   const entries: Entry[] = [];
   const revisedPkg: RevisedPkg = {};
@@ -62,7 +68,10 @@ async function parsePackageJson() {
   if (Object.keys(binConfig).length > 0) {
     const binMap = Object.entries(binConfig);
     revisedPkg.bin = Object.fromEntries(
-      binMap.map(([key, srcPath]) => [key, outputFile(srcPath, ".js")]),
+      binMap.map(([key, srcPath]) => [
+        key,
+        $dev ? srcPath : outputFile(srcPath, ".js"),
+      ]),
     );
     for (const [name, srcPath] of binMap) {
       const outdir = join(OUTPUT_DIR, subdirFor(srcPath));
@@ -76,7 +85,12 @@ async function parsePackageJson() {
     revisedPkg.exports = Object.fromEntries(
       exportsMap.map(([key, { path }]) => [
         key,
-        { default: outputFile(path, ".js"), types: outputFile(path, ".d.ts") },
+        $dev
+          ? path
+          : {
+              default: outputFile(path, ".js"),
+              types: outputFile(path, ".d.ts"),
+            },
       ]),
     );
     for (const [name, { path: srcPath, target }] of exportsMap) {
@@ -86,19 +100,23 @@ async function parsePackageJson() {
     }
   }
 
+  revisedPkg.files = [...filesConfig, `./${OUTPUT_DIRNAME}`];
+
   return { entries, pkg, revisedPkg };
 }
 
 async function main() {
   const { pkg, entries, revisedPkg } = await parsePackageJson();
 
-  await rm(OUTPUT_DIR, { force: true, recursive: true });
-  await mkdir(OUTPUT_DIR, { recursive: true });
+  await rm(join(ROOT, OUTPUT_DIRNAME), { force: true, recursive: true });
+  await mkdir(join(ROOT, OUTPUT_DIRNAME), { recursive: true });
 
-  const packageJson = deepmerge(pkg, revisedPkg);
+  const packageJson = deepmerge(pkg, revisedPkg, { arrayMerge: (_, d) => d });
   await file(join(ROOT, "package.json")).write(
     `${JSON.stringify(packageJson, null, 2)}\n`,
   );
+
+  if ($dev) return;
 
   for (const { name, src, outdir, target } of entries) {
     const result = await build({

@@ -5,8 +5,9 @@
   },
   "file_scan_exclusions": [
     "**/.git",
-    "**/node_modules",
     "**/.coverage",
+    "**/.output",
+    "**/node_modules",
     "codedb.snapshot",
     "tsconfig.tsbuildinfo"
   ],

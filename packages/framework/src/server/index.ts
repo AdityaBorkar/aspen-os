@@ -5,7 +5,7 @@ import type { LogConfig, LogUnit } from "./log";
 import type { PubSubConfig, PubSubUnit } from "./pubsub";
 import type { RpcConfig, RpcUnit } from "./rpc";
 import type { StorageConfig, StorageUnit } from "./storage";
-
+export type hello = "world";
 export { getContext } from "./context";
 export type {
   AuthConfig,

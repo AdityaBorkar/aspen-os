@@ -1,6 +1,6 @@
 {
   "bin": {
-    "aspen": "./.output/cli/index.js"
+    "aspen": "./src/cli/index.ts"
   },
   "build": {
     "bin": {
@@ -15,7 +15,8 @@
         "path": "./src/server/index.ts",
         "target": "node"
       }
-    }
+    },
+    "files": ["./docs-www", "package.json", "README.md"]
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1090.0",
@@ -45,16 +46,10 @@
     "typescript": "catalog:"
   },
   "exports": {
-    "./client": {
-      "default": "./.output/client/index.js",
-      "types": "./.output/client/index.d.ts"
-    },
-    "./server": {
-      "default": "./.output/server/index.js",
-      "types": "./.output/server/index.d.ts"
-    }
+    "./client": "./src/client/index.ts",
+    "./server": "./src/server/index.ts"
   },
-  "files": ["./.output", "./docs-www", "package.json", "README.md"],
+  "files": ["./docs-www", "package.json", "README.md", "./.output"],
   "name": "@aspen-os/framework",
   "publishConfig": {
     "access": "public",

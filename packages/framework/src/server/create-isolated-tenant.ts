@@ -9,7 +9,7 @@ import type {
   FrameworkUnits,
   Module,
   ModuleAccessors,
-  TenantResolver,
+  // TenantResolver,
   UnitAccessors,
 } from "./index";
 import { type KvStoreConfig, KvStoreUnit } from "./kv-store";
@@ -26,7 +26,7 @@ export type IsolatedTenantConfig = {
   pubsub: PubSubConfig;
   rpc: RpcConfig;
   storage: StorageConfig;
-  resolver: TenantResolver;
+  // resolver: TenantResolver;
 };
 
 export type IsolatedTenantPlatformInstance<M extends Record<string, Module>> =
@@ -66,9 +66,13 @@ export class IsolatedTenantPlatform<M extends Record<string, Module>> {
       ssl: config.db.connection.ssl,
       user: config.db.connection.user,
     };
+    const resolver = {
+      list: async () => [""],
+      resolve: async (tenantId: string) => tenantId,
+    };
     const db = new DatabaseUnit(dbConfig, {
       mode: "isolated",
-      resolver: config.resolver,
+      resolver,
     });
     const logs = new LogUnit(config.logs, { db });
     const pubsub = new PubSubUnit(config.pubsub, { db });
