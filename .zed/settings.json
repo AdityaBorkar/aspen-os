@@ -20,7 +20,8 @@
     "!typescript-language-server",
     "!markdownlint",
     "!eslint",
-    "vtsls",
+    "!vtsls",
+    "typescript-ls",
     "biome",
     "..."
   ],

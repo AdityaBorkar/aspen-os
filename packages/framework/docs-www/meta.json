@@ -16,7 +16,6 @@
     "units/pubsub",
     "units/storage",
     "units/auth",
-    "units/workflows",
     "units/rpc"
   ],
   "pagesIndex": "index",

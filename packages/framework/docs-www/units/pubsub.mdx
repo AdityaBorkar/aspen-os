@@ -40,6 +40,12 @@ class PubSubUnit {
     options?: PublishOptions,
   ): Promise<string>;
 
+  async publishControlPlane<T = unknown>(
+    topic: string,
+    data: T,
+    options?: PublishOptions,
+  ): Promise<string>;
+
   async publishBatch<T = unknown>(
     topic: string,
     messages: { data: T; options?: PublishOptions }[],
@@ -105,6 +111,14 @@ await framework.pubsub.publishBatch("notifications:send", [
   { data: { userId: "1", message: "Hello" } },
   { data: { userId: "2", message: "World" }, options: { priority: 2 } },
 ]);
+```
+
+### Control-Plane Publishing
+
+In isolated mode, each tenant DB has its own pg-boss. Use `publishControlPlane()` for events that belong to the control plane (e.g. auth events) rather than a specific tenant:
+
+```ts
+await framework.pubsub.publishControlPlane("user:created", { user });
 ```
 
 ### Subscribe to Topics
@@ -192,11 +206,11 @@ type MessageHandler<T = unknown> = (message: Message<T>) => void | Promise<void>
 Domain modules register pubsub handlers and schedules in their `prepare()` method and unregister in `destroy()`:
 
 ```ts
-// In module.prepare():
+// In module.$prepare():
 await this.pubsub.subscribe("organization:created", this.handleOrgCreated);
 await this.pubsub.schedule("daily:cleanup", "0 2 * * *");
 
-// In module.destroy():
+// In module.$destroy():
 await this.pubsub.unsubscribe("organization:created");
 await this.pubsub.unschedule("daily:cleanup");
 ```

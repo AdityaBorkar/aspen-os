@@ -140,7 +140,7 @@ export class KvStoreUnit {
   }
 
   async clear(pattern?: string): Promise<void> {
-    const tenantId = context.getStore()?.tenantId ?? "default";
+    const tenantId = "abcd"; // context.getStore()?.tenantId ?? "default";
     const tenantPrefix = this.getTenantPrefix(tenantId);
     const searchPattern = pattern
       ? this.getKeyName(pattern)

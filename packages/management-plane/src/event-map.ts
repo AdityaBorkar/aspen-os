@@ -131,6 +131,6 @@ export type PlatformUserEventMap = {
   [PLATFORM_USER_EVENTS.ROLE_ASSIGNED]: PlatformUserRoleAssignedEvent;
 };
 
-export type TenantPlatformEventMap = TenantEventMap &
+export type ManagementPlaneEventMap = TenantEventMap &
   ServiceProviderEventMap &
   PlatformUserEventMap;

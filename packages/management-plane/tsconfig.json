@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "declarationDir": "../../.local/types/tenant-platform",
+    "declarationDir": "../../.local/types/management-plane",
     "paths": {
       "@/*": ["./src/*"]
     }

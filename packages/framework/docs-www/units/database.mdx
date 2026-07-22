@@ -4,7 +4,7 @@ description: PostgreSQL connection pool and Drizzle ORM integration with automat
 icon: IconDatabase
 ---
 
-The `DatabaseUnit` (`$name: "db"`) is the foundational unit — all other units depend on it. It owns a control-plane `pg.Pool` and a Drizzle `NodePgDatabase` instance, plus per-tenant pools in isolated-db mode.
+The `DatabaseUnit` (`$name: "db"`) is the foundational unit — all other units depend on it. It owns a control-plane `pg.Pool` and a Drizzle `NodePgDatabase` instance, plus per-tenant pools in isolated mode.
 
 ## Configuration
 
@@ -20,7 +20,7 @@ type DatabaseConfig = {
 };
 ```
 
-The `db` config is always the **control-plane** database connection. In single/RLS mode, this IS the app database. In isolated-db mode, this is the control-plane database; per-tenant DB configs are resolved by the `TenantResolver`.
+The `db` config is always the **control-plane** database connection. In single/RLS mode, this IS the app database. In isolated mode, this is the control-plane database; per-tenant DB configs are resolved by the `TenantResolver`.
 
 ## Public API
 
@@ -29,7 +29,7 @@ class DatabaseUnit {
   readonly $name = "db";
   readonly config: DatabaseConfig;
   readonly tenancyMode: TenancyMode;
-  readonly tenantResolver?: TenantResolver;
+  readonly resolver?: TenantResolver;
 
   get db(): NodePgDatabase;              // stable wrapper (Proxy) — resolves per-request
   get controlPlaneDb(): NodePgDatabase;  // control-plane drizzle instance
@@ -39,11 +39,11 @@ class DatabaseUnit {
   async $destroy(): Promise<void>;       // ends all pools
   getSchemas(): Record<string, unknown>;
 
-  // Per-tenant (isolated-db mode)
+  // Per-tenant (isolated mode)
   async getTenantDb(tenantId: string): Promise<NodePgDatabase>;
   async pushSchemasToTenant(tenantId: string, moduleSchemas: Record<string, unknown>): Promise<void>;
 
-  // RLS (shared-rls mode)
+  // RLS (shared mode)
   async applyRlsPolicies(db: NodePgDatabase): Promise<void>;
 }
 ```
@@ -73,21 +73,21 @@ framework.db.getSchemas();
 ```
 
 <Callout type="info">
-  In shared-RLS mode, RLS policies are applied to all tables with a `tenant_id` column after all schemas are pushed. Auth tables are exempt — they have no `tenant_id` and no RLS.
+  In shared mode, RLS policies are applied to all tables with a `tenant_id` column after all schemas are pushed. Auth tables are exempt — they have no `tenant_id` and no RLS.
 </Callout>
 
 ## Multi-Tenant Support
 
 The `DatabaseUnit` is tenancy-mode-aware. See the [Tenancy guide](../tenancy) for full details on the three modes.
 
-### Per-Tenant Pools (Isolated-DB Mode)
+### Per-Tenant Pools (isolated Mode)
 
 ```ts
 await framework.db.getTenantDb("tenant_123");
 // Lazily creates and caches a pg.Pool + drizzle instance for the tenant
 ```
 
-### RLS Policies (Shared-RLS Mode)
+### RLS Policies (shared Mode)
 
 ```ts
 await framework.db.applyRlsPolicies(framework.db.controlPlaneDb);
@@ -113,5 +113,6 @@ await framework.run(async () => {
 // Multi-tenant
 await framework.run(tenantId, async () => {
   const { db, tenantId } = getContext();
+  // ctx also provides: auth (better-auth instance), pubsub (PubSubUnit)
 });
 ```

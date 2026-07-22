@@ -202,7 +202,7 @@ export class MyEntityWorkflow {
 `src/index.ts`:
 
 ```ts title="src/index.ts"
-import type { DatabaseUnit, PubSubUnit } from "@aspenos/framework/server";
+import type { DatabaseUnit, PubSubUnit } from "@aspen-os/framework/server";
 
 import * as dbSchema from "./db-schema";
 import { MyEntityWorkflow } from "./workflows/entity";
@@ -227,8 +227,9 @@ export class MyModule {
   constructor(private config: MyModuleConfig) {}
 
   readonly db_schema = dbSchema;
-  readonly name = "my-module";
+  readonly $name = "my-module";
 
+  #db: NodePgDatabase | null = null;
   #entities: MyEntityWorkflow | null = null;
 
   get entities(): MyEntityWorkflow {
@@ -236,27 +237,29 @@ export class MyModule {
     return this.#entities;
   }
 
-  initialize(units: { db: DatabaseUnit; pubsub: PubSubUnit }): void {
+  $initialize(units: { db: DatabaseUnit; pubsub: PubSubUnit }): void {
+    this.#db = units.db.db;
     this.#entities = new MyEntityWorkflow(units.db.db);
   }
 
-  async prepare(): Promise<void> {
+  async $prepare(): Promise<void> {
     const { pushSchema } = await import("drizzle-kit/api");
-    const result = await pushSchema(dbSchema, units.db.db);
+    const result = await pushSchema(dbSchema, this.#db);
     if (result.statementsToExecute.length > 0) {
       console.log("[my-module] Applying schema");
       await result.apply();
     }
   }
 
-  async destroy(): Promise<void> {
+  async $destroy(): Promise<void> {
     this.#entities = null;
+    this.#db = null;
   }
 }
 
 function notInitialized(): Error {
   return new Error(
-    "My module not initialized. Call initialize() after framework.create().",
+    "My module not initialized. Call $initialize() after framework.create().",
   );
 }
 ```
@@ -288,10 +291,10 @@ await framework.run(async () => {
 |---|---|
 | Static `create(config)` factory | Always use a static factory, not `new` directly |
 | `#` prefix for private fields | `#entities: MyEntityWorkflow \| null = null` |
-| Lazy getters with `notInitialized()` | Throw if accessed before `initialize()` |
+| Lazy getters with `notInitialized()` | Throw if accessed before `$initialize()` |
 | `db_schema` export | The drizzle schema namespace |
-| `name` as kebab-case | `readonly name = "my-module"` |
-| `prepare()` pushes schema | Uses `pushSchema()` from `drizzle-kit/api` |
-| `destroy()` nulls fields | Unregisters handlers and nulls private fields |
+| `$name` as a readonly string | `readonly $name = "my-module"` |
+| `$prepare()` pushes schema | Uses `pushSchema()` from `drizzle-kit/api` |
+| `$destroy()` nulls fields | Unregisters handlers and nulls private fields |
 | Valibot for validation | Domain module input validation |
 | Events as `"domain:event_name"` | Typed via `EventMap`, published as plain strings |

@@ -1,6 +1,6 @@
 ---
 title: Logs
-description: Structured logging with buffered writes to Postgres, OpenTelemetry span injection, and query capabilities.
+description: Structured logging with buffered writes to Postgres, tenant-aware scoping, and query capabilities.
 icon: IconListTree
 ---
 
@@ -105,6 +105,10 @@ const entries = await framework.logs.query({
 });
 ```
 
+<Callout type="info">
+  Both `query()` and `getStats()` automatically scope results to the current `tenantId` from the request context. You don't need to pass `tenantId` manually.
+</Callout>
+
 ### Log Stats
 
 Get aggregate statistics:
@@ -134,8 +138,9 @@ interface LogEntry {
   timestamp: Date;
   metadata?: Record<string, unknown>;
   error?: { name: string; message: string; stack?: string };
-  traceId?: string;      // OpenTelemetry trace ID
-  spanId?: string;       // OpenTelemetry span ID
+  traceId?: string;      // populated from metadata, if provided
+  spanId?: string;       // populated from metadata, if provided
+  tenantId?: string;     // auto-scoped from request context
   userId?: string;
   requestId?: string;
   duration?: number;
@@ -157,8 +162,9 @@ Logs are stored in the `logs` table with the following columns:
 | `error_name` | text | Error name (if applicable) |
 | `error_message` | text | Error message |
 | `error_stack` | text | Error stack trace |
-| `trace_id` | text | OpenTelemetry trace ID |
-| `span_id` | text | OpenTelemetry span ID |
+| `trace_id` | text | Trace ID (from metadata, if provided) |
+| `span_id` | text | Span ID (from metadata, if provided) |
+| `tenant_id` | text | Tenant scope (default: `"default"`) |
 | `user_id` | text | Associated user |
 | `request_id` | text | Associated request |
 | `duration_ms` | integer | Duration in milliseconds |

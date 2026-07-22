@@ -6,7 +6,10 @@ import type {
   RpcConfig,
   StorageConfig,
 } from "@aspen-os/framework/server";
-import { type DatabaseConfig, Framework } from "@aspen-os/framework/server";
+import {
+  type DatabaseConfig,
+  SingleTenantPlatform,
+} from "@aspen-os/framework/server";
 import { OrganizationModule } from "@aspen-os/organization";
 
 import { env } from "../env";
@@ -61,13 +64,11 @@ const storage = {
   },
 } satisfies StorageConfig;
 
-const tenancy = { mode: "single" } as const;
-
 const organization = OrganizationModule.create({
   country: "INDIA",
 });
 
-export const f = Framework.create(
-  { auth, db, kvStore, logs, pubsub, rpc, storage, tenancy },
+export const f = SingleTenantPlatform.create(
+  { auth, db, kvStore, logs, pubsub, rpc, storage },
   { organization },
 );

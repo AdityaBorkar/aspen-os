@@ -24,13 +24,35 @@ Server units use a `$` prefix on lifecycle methods (`$name`, `$prepare`, `$destr
 
 ```ts title="src/client/index.ts"
 interface Unit {
-  readonly name: string;
-  destroy(): Promise<void>;
-  prepare?(): Promise<void>;
+  readonly $name: string;
+  $destroy(): Promise<void>;
+  $prepare?(): Promise<void>;
 }
 ```
 
-Client units drop the `$` prefix. The client framework is lighter — it has no database, no pubsub, no storage, and no kv store.
+Client units use the same `---
+title: Unit
+description: Infrastructure services — the seven required building blocks the framework creates and manages for you.
+icon: IconBox
+---
+
+A **Unit** is an infrastructure service managed by the framework. There are exactly seven on the server and three on the client. You never instantiate units yourself — you provide configuration and the framework wires them together with dependency injection.
+
+## The Unit Interface
+
+### Server
+
+```ts title="src/server/index.ts"
+interface Unit {
+  readonly $name: string;
+  $destroy(): Promise<void>;
+  $prepare?(): Promise<void>;
+}
+```
+
+Server units use a `$` prefix on lifecycle methods (`$name`, `$prepare`, `$destroy`). This deliberately separates framework lifecycle calls from the unit's own public API — for example, `DatabaseUnit.$destroy()` shuts down the connection pool, while `DatabaseUnit.db` is the drizzle instance you use day-to-day.
+
+ prefix as server units. The client framework is lighter — it has no database, no pubsub, no storage, and no kv store.
 
 ## The Seven Server Units
 
@@ -38,7 +60,7 @@ All seven are **required** in `FrameworkConfig`. They are instantiated in depend
 
 | Key | Unit class | `$name` | Depends on | Purpose |
 |---|---|---|---|---|
-| `db` | `DatabaseUnit` | `"database"` | — | PostgreSQL connection pool + Drizzle ORM |
+| `db` | `DatabaseUnit` | `"db"` | — | PostgreSQL connection pool + Drizzle ORM |
 | `logs` | `LogUnit` | `"logs"` | `{ db }` | Structured logging to the database |
 | `pubsub` | `PubSubUnit` | `"pubsub"` | `{ db }` | Pub/sub messaging, subscriptions, scheduled jobs |
 | `storage` | `StorageUnit` | `"storage"` | `{ db }` | S3-compatible file storage with signed URLs |
@@ -70,10 +92,10 @@ The client framework (`@aspen-os/framework/client`) instantiates only three unit
 | Key | Unit class | Purpose |
 |---|---|---|
 | `auth` | `AuthUnit` | Wraps the better-auth React client |
-| `logs` | `LogUnit` | Stub — throws on `prepare()` / `destroy()` |
+| `logs` | `LogUnit` | Stub — throws on `$prepare()` / `$destroy()` |
 | `rpc` | `RpcUnit` | Stub — no-op |
 
-Client units receive no constructor-injected dependencies. The client `AuthUnit` takes the `access_control` and `roles` config that the server intentionally ignores, passing them to the `adminClient()` plugin for client-side role checking.
+Client units receive no constructor-injected dependencies. The client `AuthUnit` takes the `access_control` and `roles` config and passes them to the `adminClient()` plugin for client-side role checking.
 
 ## How Units Are Created
 
@@ -85,16 +107,17 @@ const framework = Framework.create(
     db: { host, port, user, password, database },
     auth: { baseURL, secret, access_control, roles, ... },
     logs: { defaultLevel: "info", serviceName: "my-app" },
-    pubsub: { schema: "public" },
+    pubsub: {},
     storage: { bucket, prefix, provider: { ... } },
     rpc: { prefix: "/api/rpc" },
     kvStore: { defaultTtl: 3600, keyPrefix: "app" },
+    tenancy: { mode: "single" },
   },
   { organization, compliance },
 );
 ```
 
-Inside `create()`, the framework instantiates each unit with `new` in dependency order, passing previously-created units as constructor arguments. The resulting `FrameworkUnits` object is then passed to each module's `initialize(units)`.
+Inside `create()`, the framework instantiates each unit with `new` in dependency order, passing previously-created units as constructor arguments. The resulting `FrameworkUnits` object is then passed to each module's `$initialize(units)`.
 
 <Callout type="warn">
   The unit set is fixed. You cannot add, remove, or replace units. All seven configs are required — there are no optional units.
@@ -107,10 +130,12 @@ Units participate in the framework's `prepare()` and `destroy()` phases:
 ```text
 framework.prepare()
   → for each unit: unit.$prepare?.()   // catches + logs per-unit errors
-  → for each module: mod.prepare?.()
+  → for each module: mod.$prepare?.()
+  → shared mode: applyRlsPolicies()
+  → isolated mode: $prepareTenant(tenantId) per tenant
 
 framework.destroy()
-  → for each module: mod.destroy()     // catches + logs per-module errors
+  → for each module: mod.$destroy()     // catches + logs per-module errors
   → for each unit: unit.$destroy()      // catches + logs per-unit errors
 ```
 
@@ -119,7 +144,8 @@ framework.destroy()
 Called during `framework.prepare()`. This is where a unit sets up its runtime state:
 
 - `DatabaseUnit.$prepare()` pushes core database schemas (auth, logs, storage, kv-store) via `pushSchema()` from `drizzle-kit/api`.
-- `AuthUnit.$prepare()` may run migrations or validate configuration.
+- `PubSubUnit.$prepare()` starts the control-plane pg-boss instance.
+- `AuthUnit.$prepare()` is a no-op (auth tables are pushed by `DatabaseUnit`).
 - Other units may override `$prepare()` if they need async initialization.
 
 Errors are caught and logged per-unit — a failing unit does not prevent other units or modules from preparing.
@@ -174,15 +200,21 @@ The proxy checks units first, then modules. If a property name matches a unit ke
 
 ### Inside request context
 
-Within `framework.run(fn)`, the drizzle `db` instance and `pubsub` unit are available via `AsyncLocalStorage`:
+Within `framework.run(fn)`, the drizzle `db` instance, `pubsub`, `auth`, and `tenantId` are available via `AsyncLocalStorage`:
 
 ```ts
 import { getContext } from "@aspen-os/framework/server";
 
 await framework.run(async () => {
-  const { db, pubsub } = getContext();
+  const { auth, db, pubsub } = getContext();
   // db: NodePgDatabase
   // pubsub: PubSubUnit
+  // auth: better-auth Auth instance
+});
+
+// Multi-tenant
+await framework.run(tenantId, async () => {
+  const { db, tenantId } = getContext();
 });
 ```
 

@@ -4,7 +4,7 @@ import PgBoss from "pg-boss";
 import { context } from "../context";
 import type { DatabaseUnit } from "../db";
 import type { DatabaseConfig } from "../db/types";
-import type { TenancyMode } from "../tenancy/types";
+import type { TenancyMode } from "../index";
 import type {
   MessageHandler,
   PublishOptions,
@@ -155,7 +155,7 @@ export class PubSubUnit {
 
   private async resolveBoss(tenantId?: string): Promise<PgBoss> {
     const id = tenantId ?? context.getStore()?.tenantId;
-    if (this.tenancyMode === "isolated-db" && id) {
+    if (this.tenancyMode === "isolated" && id) {
       return this.getTenantBoss(id);
     }
     return this.controlPlaneBoss;
@@ -164,13 +164,21 @@ export class PubSubUnit {
   private async getTenantBoss(tenantId: string): Promise<PgBoss> {
     let boss = this.tenantBosses.get(tenantId);
     if (!boss) {
-      if (!this.dbUnit.tenantResolver) {
+      if (!this.dbUnit.resolver) {
         throw new Error(
-          "Tenant resolver is not available — tenancy mode is not isolated-db",
+          "Tenant resolver is not available — tenancy mode is not isolated",
         );
       }
-      const config = await this.dbUnit.tenantResolver.resolve(tenantId);
-      boss = this.createBoss(config);
+      const config = await this.dbUnit.resolver.resolve(tenantId);
+      boss = this.createBoss({
+        // max: tenantConfig.maxConnections ?? 20,
+        database: config,
+        host: "tenantConfig.host",
+        password: "tenantConfig.password",
+        port: 5432,
+        ssl: true, // tenantConfig.ssl ? { rejectUnauthorized: false } : false,
+        user: "tenantConfig.user",
+      });
       await boss.start();
       this.tenantBosses.set(tenantId, boss);
     }
@@ -184,7 +192,7 @@ export class PubSubUnit {
     const workHandler: PgBoss.WorkHandler<object> = async (jobs) => {
       for (const job of jobs) {
         const handlerDb =
-          this.tenancyMode === "isolated-db" && tenantId
+          this.tenancyMode === "isolated" && tenantId
             ? await this.dbUnit.getTenantDb(tenantId)
             : this.dbUnit.controlPlaneDb;
 

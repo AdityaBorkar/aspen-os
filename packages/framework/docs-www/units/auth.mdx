@@ -4,7 +4,7 @@ description: Authentication and authorization powered by better-auth with plugin
 icon: IconShieldCheck
 ---
 
-The `AuthUnit` (`$name: "auth"`) wraps [better-auth](https://www.better-auth.com) with plugins for admin, username, phone number, two-factor, passkey, and Cloudflare Turnstile captcha.
+The `AuthUnit` (`$name: "auth"`) wraps [better-auth](https://www.better-auth.com) with plugins for admin, organization, username, phone number, email OTP, API keys, two-factor, passkey, and Cloudflare Turnstile captcha (conditional).
 
 ## Configuration
 
@@ -12,7 +12,7 @@ The `AuthUnit` (`$name: "auth"`) wraps [better-auth](https://www.better-auth.com
 interface AuthConfig {
   access_control: ReturnType<typeof createAccessControl>;
   baseURL: string;
-  cfSecretKey: string;
+  cfSecretKey?: string;
   roles: Record<string, Role>;
   secret: string;
   session: { expiresIn?: number };
@@ -26,8 +26,8 @@ interface AuthConfig {
 }
 ```
 
-<Callout type="warn">
-  `access_control` and `roles` are accepted but **intentionally not passed** to `betterAuth()` on the server. They are used only by the client `AuthUnit` (passed to the `adminClient()` plugin). Access control enforcement happens at the application level.
+<Callout type="info">
+  `access_control` and `roles` are destructured out of the config to avoid being spread into `betterAuth()` at the top level, but they **are** passed to better-auth via the `admin()` plugin (`admin({ ac: access_control, roles })`). The client `AuthUnit` passes the same values to `adminClient()` for client-side role checking. Access control enforcement (checking permissions before performing operations) is not built into the framework's workflows — it must be done at the application level (e.g. in RPC procedure middleware).
 </Callout>
 
 ### Example
@@ -73,9 +73,11 @@ class AuthUnit {
   readonly $db_schema: typeof db_schema;  // auth Drizzle schema
   readonly auth: Auth;                      // raw betterAuth instance
 
-  async $prepare(): Promise<void>;
-  async $destroy(): Promise<void>;
+  async $prepare(): Promise<void>;   // no-op
+  async $destroy(): Promise<void>;   // no-op
   async fetch_handler(request: Request): Promise<Response>;
+
+  get api(): Auth["api"];  // raw better-auth API object
 
   // Programmatic APIs:
   get user(): UserAPI;
@@ -89,28 +91,28 @@ class AuthUnit {
 ### User Workflow
 
 ```ts
-framework.auth.user.create({ email, password, name })    // → Promise<User>
-framework.auth.user.get({ id })                           // → Promise<User | null>
-framework.auth.user.get({ email })                       // → Promise<User | null>
-framework.auth.user.update(id, { name, image, role })   // → Promise<User>
-framework.auth.user.delete(id)                           // → Promise<void>
-framework.auth.user.role.assign(userId, roleName)        // → Promise<void>
-framework.auth.user.role.unassign(userId)                 // → Promise<void>
+framework.auth.user.create({ email, password, name? })           // → Promise<User>
+framework.auth.user.get({ id })                                  // → Promise<User | null>
+framework.auth.user.get({ email })                               // → Promise<User | null>
+framework.auth.user.update({ id, data: { name?, image?, role? } }) // → Promise<User>
+framework.auth.user.delete({ id })                               // → Promise<void>
+framework.auth.user.role.assign({ userId, roleName })            // → Promise<void>
+framework.auth.user.role.unassign({ userId })                    // → Promise<void>
 ```
 
 ### Session Workflow
 
 ```ts
-framework.auth.session.create(email, password)  // → Promise<{ user, session }>
-framework.auth.session.validate(token)          // → Promise<{ user, session } | null>
-framework.auth.session.invalidate(sessionId)    // → Promise<void>
+framework.auth.session.create({ email, password })    // → Promise<{ session, user }>
+framework.auth.session.validate({ token })             // → Promise<{ session, user } | null>
+framework.auth.session.invalidate({ sessionId })       // → Promise<void>
 ```
 
 ### Role Workflow
 
 ```ts
-framework.auth.role.list()      // → Promise<RoleData[]>
-framework.auth.role.delete(name) // → Promise<void>
+framework.auth.role.list()               // → Promise<RoleData[]>
+framework.auth.role.delete({ name })     // → Promise<void>
 ```
 
 ## HTTP Handler
@@ -160,13 +162,16 @@ The `AuthUnit` configures better-auth with these plugins:
 
 | Plugin | Purpose |
 |---|---|
-| `admin` | Access control and role management |
+| `admin` | Access control and role management (`ac` + `roles`) |
 | `username` | Username support |
+| `organization` | Multi-organization support |
 | `phoneNumber` | Phone number authentication |
+| `emailOTP` | Email-based OTP sign-in, verification, and password reset |
+| `apiKey` | API key authentication with rate limiting |
 | `lastLoginMethod` | Tracks last login method |
 | `twoFactor` | TOTP-based 2FA |
 | `passkey` | WebAuthn/passkey authentication |
-| `captcha` | Cloudflare Turnstile integration |
+| `captcha` | Cloudflare Turnstile (conditional on `cfSecretKey`) |
 
 ## Drizzle Adapter
 

@@ -9,6 +9,11 @@ export const context = new AsyncLocalStorage<{
   auth?: Auth;
   db: NodePgDatabase<Record<string, never>>;
   pubsub: PubSubUnit;
+  log?: null;
+  rpc?: null;
+  kvStore?: null;
+  storage?: null;
+  workflows?: null;
   tenantId?: string;
 }>();
 

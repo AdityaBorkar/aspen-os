@@ -4,13 +4,13 @@ import pg from "pg";
 
 import * as authSchema from "../auth/db-schema";
 import { context } from "../context";
+import type { TenancyMode, TenantResolver } from "../index";
 import * as kvStoreSchema from "../kv-store/db-schema";
 import * as logSchema from "../log/db-schema";
 import * as storageSchema from "../storage/db-schema";
-import type { TenancyConfig, TenancyMode } from "../tenancy/types";
 import type { DatabaseConfig } from "./types";
 
-export type { DatabaseConfig } from "./types";
+export type { DatabaseConfig, IsolatedTenantDatabaseConfig } from "./types";
 
 type DrizzleDB = NodePgDatabase<Record<string, never>>;
 
@@ -18,7 +18,7 @@ export class DatabaseUnit {
   readonly $name = "db";
   readonly config: DatabaseConfig;
   readonly tenancyMode: TenancyMode;
-  readonly tenantResolver;
+  readonly resolver: TenantResolver | undefined;
 
   private readonly controlPlanePool: pg.Pool;
   private readonly controlPlaneDbInstance: DrizzleDB;
@@ -26,11 +26,16 @@ export class DatabaseUnit {
     new Map();
   private readonly dbWrapper: DrizzleDB;
 
-  constructor(config: DatabaseConfig, tenancy: TenancyConfig) {
+  constructor(
+    config: DatabaseConfig,
+    tenancy: {
+      mode: TenancyMode;
+      resolver?: TenantResolver;
+    },
+  ) {
     this.config = config;
     this.tenancyMode = tenancy.mode;
-    this.tenantResolver =
-      tenancy.mode === "isolated-db" ? tenancy.tenantResolver : undefined;
+    this.resolver = tenancy.mode === "isolated" ? tenancy.resolver : undefined;
 
     this.controlPlanePool = new pg.Pool({
       database: config.database,
@@ -83,20 +88,20 @@ export class DatabaseUnit {
   async getTenantDb(tenantId: string): Promise<DrizzleDB> {
     let entry = this.tenantPools.get(tenantId);
     if (!entry) {
-      if (!this.tenantResolver) {
+      if (!this.resolver) {
         throw new Error(
-          "Tenant resolution is not available — tenancy mode is not isolated-db",
+          "Tenant resolution is not available — tenancy mode is not isolated",
         );
       }
-      const tenantConfig = await this.tenantResolver.resolve(tenantId);
+      const tenantConfig = await this.resolver.resolve(tenantId);
       const pool = new pg.Pool({
-        database: tenantConfig.database,
-        host: tenantConfig.host,
-        max: tenantConfig.maxConnections ?? 20,
-        password: tenantConfig.password,
-        port: tenantConfig.port,
-        ssl: tenantConfig.ssl ? { rejectUnauthorized: false } : false,
-        user: tenantConfig.user,
+        // max: tenantConfig.maxConnections ?? 20,
+        database: tenantConfig,
+        host: "tenantConfig.host",
+        password: "tenantConfig.password",
+        port: 5432,
+        ssl: true, // tenantConfig.ssl ? { rejectUnauthorized: false } : false,
+        user: "tenantConfig.user",
       });
       const db = drizzle(pool);
       entry = { db, pool };

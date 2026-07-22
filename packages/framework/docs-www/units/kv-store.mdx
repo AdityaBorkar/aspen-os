@@ -4,7 +4,7 @@ description: Redis-like key-value store implemented over Postgres with TTL, scan
 icon: IconKey
 ---
 
-The `KvStoreUnit` (`$name: "kv-store"`) provides a Redis-like key-value API backed by a Postgres `UNLOGGED` table. It is a **core unit** — required in `FrameworkConfig`, not optional.
+The `KvStoreUnit` (`$name: "kvStore"`) provides a Redis-like key-value API backed by a Postgres `UNLOGGED` table. It is a **core unit** — required in `FrameworkConfig`, not optional.
 
 ## Configuration
 
@@ -28,7 +28,7 @@ const kvConfig: KvStoreConfig = {
 
 ```ts title="src/server/kv-store/index.ts"
 class KvStoreUnit {
-  readonly $name = "kv-store";
+  readonly $name = "kvStore";
   readonly db_schema: typeof db_schema;
 
   // Basic operations
@@ -136,13 +136,16 @@ await framework.kvStore.clear();
 
 ## Key Prefixing
 
-If `keyPrefix` is configured, all keys are automatically prefixed:
+Keys are automatically prefixed with both the configured `keyPrefix` (if set) and the current `tenantId` from the request context:
 
 ```ts
 // Config: { keyPrefix: "recruiter" }
+// Context: { tenantId: "tenant_123" }
 // Set key: "user:123"
-// Actual DB key: "recruiter:user:123"
+// Actual DB key: "recruiter:tenant_123:user:123"
 ```
+
+If no `keyPrefix` is configured, keys are prefixed with just the tenant: `tenant_123:user:123`. The `clear()` method is scoped to the current tenant's prefix.
 
 ## Value Serialization
 
@@ -156,9 +159,10 @@ The `kv_store` table is an `UNLOGGED TABLE` — no Write-Ahead Log (WAL) for per
 
 | Column | Type | Description |
 |---|---|---|
-| `key` | text (PK) | Cache key (may include prefix) |
+| `key` | text (PK) | Cache key (includes prefix + tenantId) |
 | `value` | text | JSON-serialized or raw string |
 | `expires_at` | timestamptz | TTL expiration (nullable = no expiry) |
+| `tenant_id` | text | Tenant scope (default: `"default"`) |
 | `updated_at` | timestamptz | Last update timestamp |
 
 ## Dependency

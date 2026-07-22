@@ -25,12 +25,12 @@ import type { TenancyConfig } from "@aspen-os/framework/server";
 const tenancy: TenancyConfig = { mode: "single" };
 
 // Shared DB with Row-Level Security
-const tenancy: TenancyConfig = { mode: "shared-rls" };
+const tenancy: TenancyConfig = { mode: "shared" };
 
 // Isolated database per tenant
 const tenancy: TenancyConfig = {
-  mode: "isolated-db",
-  tenantResolver: {
+  mode: "isolated",
+  resolver: {
     resolve: async (tenantId) => ({ /* DatabaseConfig */ }),
     list: async () => ["tenant_1", "tenant_2"],
   },
@@ -55,7 +55,7 @@ const framework = Framework.create(
 );
 ```
 
-The `db` config is always the **control-plane** database. In single/RLS mode, this IS the app database. In isolated-db mode, this is the control-plane database (auth + platform tables); per-tenant DB configs are resolved by the `TenantResolver`.
+The `db` config is always the **control-plane** database. In single/RLS mode, this IS the app database. In isolated mode, this is the control-plane database (auth + platform tables); per-tenant DB configs are resolved by the `TenantResolver`.
 
 ## `run()` Signatures
 
@@ -66,7 +66,7 @@ await framework.run(async () => {
   // db resolves to the control-plane (app) database
 });
 
-// Multi-tenant modes (shared-rls or isolated-db)
+// Multi-tenant modes (shared or isolated)
 await framework.run(tenantId, async () => {
   const { db, tenantId } = getContext();
   // db resolves to the per-request/per-tenant drizzle instance
@@ -82,8 +82,8 @@ The caller resolves the tenant ID (e.g., from the auth session's `activeOrganiza
 `DatabaseUnit.db` is a getter that returns a stable wrapper (a JavaScript `Proxy`). The wrapper resolves the correct per-request drizzle instance via `AsyncLocalStorage` at query time. Workflows keep `this.db = units.db.db` — no workflow code changes.
 
 - **Single-tenant**: context db is the control-plane db. Falls back to control-plane db outside `run()`.
-- **Shared-RLS**: `run(tenantId, fn)` acquires a dedicated client, starts a transaction, sets `SET LOCAL app.tenant_id`, creates a drizzle instance wrapping that client. The wrapper delegates to it.
-- **Isolated-DB**: `run(tenantId, fn)` resolves the per-tenant drizzle instance. The wrapper delegates to it.
+- **shared**: `run(tenantId, fn)` acquires a dedicated client, starts a transaction, sets `SET LOCAL app.tenant_id`, creates a drizzle instance wrapping that client. The wrapper delegates to it.
+- **isolated**: `run(tenantId, fn)` resolves the per-tenant drizzle instance. The wrapper delegates to it.
 
 ### Control-Plane Connection
 
@@ -94,14 +94,14 @@ framework.db.controlPlaneDb   // drizzle instance for control-plane queries
 framework.db.pool              // pg.Pool for the control-plane connection
 ```
 
-### Per-Tenant Pool Management (Isolated-DB)
+### Per-Tenant Pool Management (isolated)
 
 ```ts
 framework.db.getTenantDb(tenantId)       // lazily creates + caches per-tenant pool
 framework.db.pushSchemasToTenant(tenantId, moduleSchemas)  // provisioning
 ```
 
-### RLS Policies (Shared-RLS Mode)
+### RLS Policies (shared Mode)
 
 After all schemas are pushed during `prepare()`, the framework discovers all tables with a `tenant_id` column and applies standard RLS policies:
 
@@ -126,10 +126,10 @@ tenantId: text("tenant_id")
 ```
 
 - **Single-tenant**: always `"default"` (the GUC is never set).
-- **Shared-RLS**: set per-request via `SET LOCAL app.tenant_id`.
-- **Isolated-DB**: `"default"` (redundant but harmless — isolation is physical).
+- **shared**: set per-request via `SET LOCAL app.tenant_id`.
+- **isolated**: `"default"` (redundant but harmless — isolation is physical).
 
-### Per-Tenant PubSub (Isolated-DB)
+### Per-Tenant PubSub (isolated)
 
 Each tenant DB has its own pg-boss instance. `PubSubUnit` routes `publish`/`subscribe`/`schedule` to the correct per-tenant pg-boss based on the context's `tenantId`. A control-plane pg-boss handles platform-level events.
 
@@ -141,14 +141,14 @@ framework.pubsub.publishControlPlane("user:created", { user });
 
 ### `$prepareTenant()` Lifecycle
 
-The `Module` interface gains an optional `$prepareTenant(tenantId)` method. In isolated-db mode, the framework calls it for each tenant at startup and during provisioning. Modules register per-tenant cron schedules and subscriptions here.
+The `Module` interface gains an optional `$prepareTenant(tenantId)` method. In isolated mode, the framework calls it for each tenant at startup and during provisioning. Modules register per-tenant cron schedules and subscriptions here.
 
 ```ts
 interface Module<N extends string = string> {
   readonly $name: N;
   $initialize?(units: Record<string, Unit>): void;
   $prepare?(): Promise<void>;
-  $prepareTenant?(tenantId: string): Promise<void>;  // isolated-db mode
+  $prepareTenant?(tenantId: string): Promise<void>;  // isolated mode
   $destroy(): Promise<void>;
 }
 ```
@@ -167,7 +167,7 @@ interface Module<N extends string = string> {
 # Control-plane database
 aspen db-studio --config=src/aspen/server.ts
 
-# Per-tenant database (isolated-db mode)
+# Per-tenant database (isolated mode)
 aspen db-studio --config=src/aspen/server.ts --tenant=tenant_123
 ```
 
@@ -177,7 +177,7 @@ aspen db-studio --config=src/aspen/server.ts --tenant=tenant_123
 aspen tenants --config=src/aspen/server.ts
 ```
 
-Lists all tenant IDs via `tenantResolver.list()` (isolated-db mode only).
+Lists all tenant IDs via `resolver.list()` (isolated mode only).
 
 ## Migration
 
@@ -187,9 +187,9 @@ Add `tenancy: { mode: "single" }` to `FrameworkConfig`. The `tenant_id` column i
 
 ### New Multi-Tenant Apps
 
-1. Choose a mode: `shared-rls` or `isolated-db`.
+1. Choose a mode: `shared` or `isolated`.
 2. Configure `tenancy` in `FrameworkConfig`.
 3. In RLS mode: the framework creates the `tenant_role` and applies policies during `prepare()`.
-4. In isolated-db mode: provide a `TenantResolver`.
+4. In isolated mode: provide a `TenantResolver`.
 5. Resolve `tenantId` from the auth session and pass to `run(tenantId, fn)`.
 6. Register modules as before — they work transparently.

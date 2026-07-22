@@ -24,6 +24,7 @@ const framework = Framework.create(
     pubsub: pubsubConfig,
     rpc: rpcConfig,
     storage: storageConfig,
+    tenancy: { mode: "single" },
   },
   { organization, compliance },
 );
@@ -39,9 +40,10 @@ The `run()` method provides request-scoped context via `AsyncLocalStorage`:
 import { getContext } from "@aspen-os/framework/server";
 
 await framework.run(async () => {
-  const { db, pubsub } = getContext();
+  const { auth, db, pubsub } = getContext();
   // db: NodePgDatabase (drizzle)
   // pubsub: PubSubUnit
+  // auth: better-auth Auth instance
 
   const result = await db.select().from(organizations);
   await pubsub.publish("organization:created", { organization });
@@ -59,16 +61,16 @@ const user = await framework.auth.user.create({
 });
 
 // Create a session
-const { user, session } = await framework.auth.session.create(
-  "user@example.com",
-  "secure-password",
-);
+const { session, user } = await framework.auth.session.create({
+  email: "user@example.com",
+  password: "secure-password",
+});
 
 // Validate a session
-const result = await framework.auth.session.validate(token);
+const result = await framework.auth.session.validate({ token });
 
 // Assign a role
-await framework.auth.user.role.assign(userId, "admin");
+await framework.auth.user.role.assign({ userId, roleName: "admin" });
 ```
 
 ## Using the Storage Unit

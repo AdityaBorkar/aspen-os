@@ -50,6 +50,7 @@ The RPC context provides `db` and `pubsub` to procedures at request time:
 interface RpcContext {
   db: NodePgDatabase<Record<string, never>>;
   pubsub: PubSubUnit;
+  tenantId?: string;
 }
 ```
 

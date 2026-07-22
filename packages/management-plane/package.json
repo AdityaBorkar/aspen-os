@@ -15,7 +15,7 @@
   "exports": {
     ".": "./src/index.ts"
   },
-  "name": "@aspen-os/tenant-platform",
+  "name": "@aspen-os/management-plane",
   "scripts": {
     "check:lint": "biome check --fix .",
     "check:types": "tsc -b"

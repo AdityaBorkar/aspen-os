@@ -1,10 +1,10 @@
 ---
 title: DB Schemas
-description: Control-plane tables, enums, and better-auth Organization plugin tables for the Tenant Platform module.
+description: Control-plane tables, enums, and better-auth Organization plugin tables for the Management Plane module.
 icon: IconDatabase
 ---
 
-The Tenant Platform defines 3 control-plane tables (`tenant`, `service_provider`, `audit_log`) and relies on better-auth's Organization plugin tables (`organization`, `member`, `invitation`). All live in the default schema of the control-plane DB — there is no `management` schema.
+The Management Plane defines 3 control-plane tables (`tenant`, `service_provider`, `audit_log`) and relies on better-auth's Organization plugin tables (`organization`, `member`, `invitation`). All live in the default schema of the control-plane DB — there is no `management` schema.
 
 ## Enums
 
@@ -104,7 +104,7 @@ Append-only record of platform operations, backing the audit & activity reports.
 
 ## better-auth Organization Plugin Tables
 
-Managed by better-auth — the Tenant Platform module invokes the plugin's API rather than writing to these tables directly.
+Managed by better-auth — the Management Plane module invokes the plugin's API rather than writing to these tables directly.
 
 | Table | Purpose |
 |---|---|
@@ -136,5 +136,5 @@ audit_log ──N:1──→ tenant | service_provider (entity)
 ```
 
 <Callout type="warn">
-  Per-tenant DB tables (organization, branch, task, drive_file, employee, all HR tables, etc.) are NOT defined here. They live in each tenant's own database and are managed by their respective modules. The Tenant Platform module never touches them directly.
+  Per-tenant DB tables (organization, branch, task, drive_file, employee, all HR tables, etc.) are NOT defined here. They live in each tenant's own database and are managed by their respective modules. The Management Plane module never touches them directly.
 </Callout>

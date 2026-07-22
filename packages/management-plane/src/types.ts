@@ -8,6 +8,7 @@ export type {
   TenantStatus,
 } from "./constants";
 export type {
+  ManagementPlaneEventMap,
   PlatformUserCreatedEvent,
   PlatformUserDeletedEvent,
   PlatformUserRoleAssignedEvent,
@@ -18,7 +19,6 @@ export type {
   ServiceProviderUpdatedEvent,
   TenantActivatedEvent,
   TenantChurnedEvent,
-  TenantPlatformEventMap,
   TenantProfileUpdatedEvent,
   TenantProvisionedEvent,
   TenantReactivatedEvent,
@@ -67,7 +67,7 @@ export {
   WebsiteSchema,
 } from "./schemas";
 
-export type TenantPlatformConfig = {
+export type ManagementPlaneConfig = {
   defaultTenantDbHost: string;
   defaultTenantDbPassword: string;
   defaultTenantDbPort: number;

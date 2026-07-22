@@ -1,10 +1,10 @@
 ---
 title: Events
-description: Domain event map for the Tenant Platform module — 16 events across 3 event groups.
+description: Domain event map for the Management Plane module — 16 events across 3 event groups.
 icon: IconBell
 ---
 
-The Tenant Platform module defines 16 domain events across 3 event groups. Events are type-level contracts published as plain string topics via PubSub.
+The Management Plane module defines 16 domain events across 3 event groups. Events are type-level contracts published as plain string topics via PubSub.
 
 ## Event Constants
 
@@ -100,7 +100,7 @@ await framework.pubsub.subscribe("tenant:sp_assigned", async (message) => {
 ## Event Map Type
 
 ```ts title="src/event-map.ts"
-export type TenantPlatformEventMap =
+export type ManagementPlaneEventMap =
   & TenantEventMap
   & ServiceProviderEventMap
   & PlatformUserEventMap;
@@ -112,7 +112,7 @@ export type TenantPlatformEventMap =
 
 ## Cross-Module Integration
 
-Other modules can subscribe to Tenant Platform events to react to tenant lifecycle changes:
+Other modules can subscribe to Management Plane events to react to tenant lifecycle changes:
 
 | Subscriber | Subscribed Topic | Action |
 |---|---|---|

@@ -6,7 +6,7 @@ import type {
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 import * as dbSchema from "./db-schema";
-import type { TenantPlatformConfig } from "./types";
+import type { ManagementPlaneConfig } from "./types";
 import { PlatformUserWorkflow } from "./workflows/platform-user-workflow";
 import { ProvisioningWorkflow } from "./workflows/provisioning-workflow";
 import { ReportWorkflow } from "./workflows/report-workflow";
@@ -21,15 +21,15 @@ export type {
 } from "./workflows/report-workflow";
 export { dbSchema };
 
-export class TenantPlatformModule {
-  static create(config: TenantPlatformConfig): TenantPlatformModule {
-    return new TenantPlatformModule(config);
+export class ManagementPlaneModule {
+  static create(config: ManagementPlaneConfig): ManagementPlaneModule {
+    return new ManagementPlaneModule(config);
   }
 
-  constructor(private config: TenantPlatformConfig) {}
+  constructor(private config: ManagementPlaneConfig) {}
 
   readonly db_schema = dbSchema;
-  readonly $name = "tenantPlatform";
+  readonly $name = "managementPlane";
 
   #tenant: TenantWorkflow | null = null;
   #serviceProvider: ServiceProviderWorkflow | null = null;
@@ -97,19 +97,19 @@ export class TenantPlatformModule {
     if (!this.#db) throw notInitialized();
 
     const { pushSchema } = await import("drizzle-kit/api");
-    const result = await pushSchema(dbSchema.tenantPlatformTables, this.#db);
+    const result = await pushSchema(dbSchema.managementPlaneTables, this.#db);
     if (result.statementsToExecute.length > 0) {
       console.log(
-        `[tenant-platform] Applying schema: ${result.statementsToExecute.length} statements`,
+        `[management-plane] Applying schema: ${result.statementsToExecute.length} statements`,
       );
       if (result.hasDataLoss) {
         console.warn(
-          "[tenant-platform] Schema push has data loss warnings:",
+          "[management-plane] Schema push has data loss warnings:",
           result.warnings,
         );
       }
       await result.apply();
-      console.log("[tenant-platform] Schema applied");
+      console.log("[management-plane] Schema applied");
     }
   }
 
@@ -125,6 +125,6 @@ export class TenantPlatformModule {
 
 function notInitialized(): Error {
   return new Error(
-    "Tenant Platform module not initialized. Call $initialize() after Framework.create().",
+    "Management Plane module not initialized. Call $initialize() after Framework.create().",
   );
 }

@@ -179,7 +179,7 @@ export const user = pgTable("user", {
   updatedAt: timestamp("updated_at").notNull(),
 });
 
-export const tenantPlatformTables = {
+export const managementPlaneTables = {
   auditLog,
   serviceProvider,
   tenant,

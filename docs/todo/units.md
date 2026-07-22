@@ -5,6 +5,7 @@
 - Single Tenant
 - Multi Tenant (DB with RLS)
 - Multi Tenant (Isolated DB)
+  - lru-cache to manage multiple pools (Use the same in Durable Objects for Serverless Executions)
 
 ## Auth Unit
 
@@ -35,7 +36,8 @@
 
 ## Log Unit
 
-- 
+- Logging server on the same machine. Only ensure to have 24x7 backups till the last minute to ensure continuous logging.
+- Ensure a backup option to spin up a standalone log-viewer server to view logs remotely.
 
 ## Workflows Unit
 

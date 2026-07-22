@@ -202,17 +202,19 @@ All file operations are enriched with Postgres metadata tracking via `FileMetada
 | `metadata` | jsonb | Custom metadata |
 | `archived` | boolean | Whether archived |
 | `archived_key` | text | Key in archive location |
+| `tenant_id` | text | Tenant scope (default: `"default"`) |
 | `created_at` | timestamptz | Upload timestamp |
 | `updated_at` | timestamptz | Last update timestamp |
 
 ## Key Prefixing
 
-If `prefix` is configured, all S3 keys are automatically prefixed:
+S3 keys are automatically prefixed with the configured `prefix` (if set) and the current `tenantId` from the request context:
 
 ```ts
 // Config: { prefix: "uploads" }
+// Context: { tenantId: "tenant_123" }
 // Upload key: "documents/report.pdf"
-// Actual S3 key: "uploads/documents/report.pdf"
+// Actual S3 key: "uploads/tenant_123/documents/report.pdf"
 ```
 
 ## Dependency

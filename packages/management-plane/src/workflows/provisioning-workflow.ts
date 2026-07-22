@@ -7,7 +7,7 @@ import { parse } from "valibot";
 
 import { tenant } from "../db-schema";
 import { TENANT_EVENTS } from "../event-map";
-import type { ProvisioningInput, TenantPlatformConfig } from "../types";
+import type { ManagementPlaneConfig, ProvisioningInput } from "../types";
 import { ProvisioningInputSchema } from "../types";
 
 type DB = NodePgDatabase<Record<string, never>>;
@@ -30,7 +30,7 @@ export class ProvisioningWorkflow {
     private readonly db: DB,
     private readonly auth: AuthUnit,
     private readonly pubsub: PubSubUnit,
-    private readonly config: TenantPlatformConfig,
+    private readonly config: ManagementPlaneConfig,
   ) {}
 
   async provision(
@@ -138,16 +138,16 @@ export class ProvisioningWorkflow {
       const result = await pushSchema(allSchemas, tenantDb);
       if (result.statementsToExecute.length > 0) {
         console.log(
-          `[tenant-platform] Applying ${result.statementsToExecute.length} schema statements to new tenant DB`,
+          `[management-plane] Applying ${result.statementsToExecute.length} schema statements to new tenant DB`,
         );
         if (result.hasDataLoss) {
           console.warn(
-            "[tenant-platform] Schema push has data loss warnings:",
+            "[management-plane] Schema push has data loss warnings:",
             result.warnings,
           );
         }
         await result.apply();
-        console.log("[tenant-platform] Tenant DB schema applied");
+        console.log("[management-plane] Tenant DB schema applied");
       }
     } finally {
       await pool.end();

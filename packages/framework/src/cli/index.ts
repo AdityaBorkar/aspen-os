@@ -38,7 +38,7 @@ program
   .option("-h, --host <host>", "Host for Drizzle Studio", "0.0.0.0")
   .option(
     "-t, --tenant <tenantId>",
-    "Tenant ID (isolated-db mode) — launches Studio against that tenant's database",
+    "Tenant ID (isolated mode) — launches Studio against that tenant's database",
   )
   .action(
     async (options: {
@@ -49,8 +49,8 @@ program
     }) => {
       const f = await loadFramework(options.config);
 
-      if (options.tenant && f.db.tenantResolver) {
-        const tenantConfig = await f.db.tenantResolver.resolve(options.tenant);
+      if (options.tenant && f.db.resolver) {
+        const tenantConfig = await f.db.resolver.resolve(options.tenant);
         await startStudioPostgresServer(f.db.getSchemas(), tenantConfig);
         return;
       }
@@ -68,19 +68,19 @@ program
 
 program
   .command("tenants")
-  .description("List all tenants (isolated-db mode)")
+  .description("List all tenants (isolated mode)")
   .requiredOption("-c, --config <path>", "Path to the Aspen config file")
   .action(async (options: { config: string }) => {
     const f = await loadFramework(options.config);
 
-    if (!f.db.tenantResolver) {
+    if (!f.db.resolver) {
       console.error(
-        "Error: Tenants command is only available in isolated-db mode",
+        "Error: Tenants command is only available in isolated mode",
       );
       process.exit(1);
     }
 
-    const tenantIds = await f.db.tenantResolver.list();
+    const tenantIds = await f.db.resolver.list();
     console.log(`Found ${tenantIds.length} tenant(s):`);
     for (const id of tenantIds) {
       console.log(`  - ${id}`);

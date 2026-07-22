@@ -3,9 +3,12 @@ import { passkeyClient } from "@better-auth/passkey/client";
 import type { AccessControl, Role } from "better-auth/client";
 import {
   adminClient,
+  // captchaClient,
   emailOTPClient,
+  lastLoginMethodClient,
   organizationClient,
   phoneNumberClient,
+  twoFactorClient,
   usernameClient,
 } from "better-auth/client/plugins";
 import type { ReactAuthClient } from "better-auth/react";
@@ -25,10 +28,15 @@ type ResolvePlugins<
   R extends Record<string, Role>,
 > = [
   ReturnType<typeof adminClient<{ ac: AC; roles: R }>>,
-  ReturnType<typeof emailOTPClient>,
   ReturnType<typeof usernameClient>,
-  ReturnType<typeof passkeyClient>,
+  ReturnType<typeof organizationClient>,
   ReturnType<typeof phoneNumberClient>,
+  ReturnType<typeof emailOTPClient>,
+  ReturnType<typeof apiKeyClient>,
+  ReturnType<typeof lastLoginMethodClient>,
+  ReturnType<typeof twoFactorClient>,
+  // ReturnType<typeof captchaClient>,
+  ReturnType<typeof passkeyClient>,
 ];
 
 export type AuthClient<
@@ -53,11 +61,14 @@ export class AuthUnit<
       plugins: [
         adminClient({ ac: access_control, roles }),
         usernameClient(),
-        passkeyClient(),
-        emailOTPClient(),
-        phoneNumberClient(),
         organizationClient(),
+        phoneNumberClient(),
+        emailOTPClient(),
         apiKeyClient(),
+        lastLoginMethodClient(),
+        twoFactorClient(),
+        // captchaClient(),
+        passkeyClient(),
       ],
     }) as unknown as AuthClient<AC, R>;
   }

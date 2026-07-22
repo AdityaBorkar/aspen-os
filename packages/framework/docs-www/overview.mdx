@@ -14,10 +14,12 @@ The framework is organized around three concepts: **units** (infrastructure), **
 │                                                          │
 │  Framework.create(config, modules)                        │
 │    │                                                     │
+│    ├── Validates tenancy config                          │
 │    ├── Instantiates 7 units (dependency-injected)        │
-│    │   db → logs → pubsub → storage → auth → rpc → kv    │
+│    │   db → logs → pubsub → auth → storage → kvStore → rpc │
+│    │   (pubsub ↔ auth cross-wired after creation)        │
 │    │                                                     │
-│    └── Calls module.initialize(units) for each module   │
+│    └── Calls module.$initialize(units) for each module   │
 │        └── Returns proxy-wrapped FrameworkInstance       │
 │                                                          │
 │  Proxy access:                                           │
@@ -31,15 +33,17 @@ The framework is organized around three concepts: **units** (infrastructure), **
 
 ## Entry Surfaces
 
-The framework package (`@aspen-os/framework`) declares only `./client` and `./server` in its `exports` map. There is no root `.` entry in the package.json — the bare import `@aspenos/framework` works via Bun workspace resolution.
+The framework package (`@aspen-os/framework`) declares only `./client` and `./server` in its `exports` map. There is no root `.` entry — the bare import `@aspen-os/framework` does not resolve. Always import via subpaths: `@aspen-os/framework/server` or `@aspen-os/framework/client`.
 
 ### Server (`@aspen-os/framework/server`)
 
 Exports:
 - `Framework` class (with static `create()` factory)
-- `FrameworkConfig`, `FrameworkInstance` types
+- `getContext` function (access AsyncLocalStorage context inside `run()`)
+- `FrameworkConfig`, `FrameworkInstance`, `FrameworkUnits` types
 - `Unit`, `Module` interfaces
-- All 7 unit classes and their config types:
+- `TenancyConfig`, `TenancyMode`, `TenantResolver` types
+- All 7 unit classes and their config types (as types):
   - `DatabaseUnit`, `DatabaseConfig`
   - `AuthUnit`, `AuthConfig`
   - `LogUnit`, `LogConfig`
@@ -53,16 +57,18 @@ Exports:
 Exports:
 - Client `Framework` class (browser-side, 3 units only)
 - `createAccessControl` (re-exported from `better-auth/plugins/access`)
-- Client config types
+- `FrameworkConfig`, `FrameworkInstance`, `FrameworkUnits` types
+- `Unit`, `Module` interfaces
+- `AuthUnit`, `AuthClient`, `LogConfig`, `RpcConfig` types
 
 The client framework has 3 units:
 - `AuthUnit` — wraps better-auth React client
-- `LogUnit` — stub (throws on `prepare()`/`destroy()`)
+- `LogUnit` — stub (throws on `$prepare()`/`$destroy()`)
 - `RpcUnit` — stub (no-op)
 
 ## FrameworkConfig
 
-All 7 units are **required** in the config:
+All 7 units plus a `tenancy` config are **required** in the config:
 
 ```ts title="src/server/index.ts"
 type FrameworkConfig = {
@@ -73,6 +79,7 @@ type FrameworkConfig = {
   pubsub: PubSubConfig;
   rpc: RpcConfig;
   storage: StorageConfig;
+  tenancy: TenancyConfig;
 };
 ```
 
@@ -81,19 +88,24 @@ type FrameworkConfig = {
 ```text
 Framework.create(config, modules)   →  creates units + initializes modules
     ↓
-framework.prepare()                 →  unit.$prepare() then module.prepare()
+framework.prepare()                 →  unit.$prepare() then module.$prepare()
+                                       (+ RLS policies in shared mode)
+                                       (+ $prepareTenant per tenant in isolated mode)
     ↓
-framework.run(fn)                   →  AsyncLocalStorage { db, pubsub }
+framework.run(fn)                   →  AsyncLocalStorage { auth, db, pubsub, tenantId? }
+framework.run(tenantId, fn)         →  per-request db + tenantId in context
     ↓
-framework.destroy()                 →  module.destroy() then unit.$destroy()
+framework.destroy()                 →  module.$destroy() then unit.$destroy()
 ```
 
 ### `create(config, modules)`
 
 Static factory — the **only** way to construct a Framework. It:
-1. Instantiates all 7 units in dependency order
-2. Calls `module.initialize(units)` on each module
-3. Returns a proxy-wrapped `FrameworkInstance`
+1. Validates the `tenancy` config
+2. Instantiates all 7 units in dependency order
+3. Cross-wires `pubsub` ↔ `auth` (bidirectional dependency)
+4. Calls `module.$initialize(units)` on each module
+5. Returns a proxy-wrapped `FrameworkInstance`
 
 <Callout type="warn">
   There is no `new Framework(config)` or `registerModule()`. All modules must be passed to `create()` at once.
@@ -101,17 +113,21 @@ Static factory — the **only** way to construct a Framework. It:
 
 ### `prepare()`
 
-Runs each unit's `$prepare()` (e.g. `DatabaseUnit.$prepare()` calls `pushSchema()`), then each module's `prepare()`. Errors are caught and logged per-unit/module.
+Runs each unit's `$prepare()` (e.g. `DatabaseUnit.$prepare()` calls `pushSchema()`), then each module's `$prepare()`. In `shared` mode it additionally applies RLS policies; in `isolated` mode it lists tenants via the resolver and calls `$prepareTenant()` per tenant. Errors are caught and logged per-unit/module/tenant.
 
-### `run(fn)`
+### `run(fn)` / `run(tenantId, fn)`
 
-Executes `fn` inside `AsyncLocalStorage` providing `{ db, pubsub }`:
-- `db` — the drizzle `NodePgDatabase`
+Executes `fn` inside `AsyncLocalStorage` providing `{ auth, db, pubsub, tenantId? }`:
+- `db` — the drizzle `NodePgDatabase` (per-request in multi-tenant modes)
 - `pubsub` — the `PubSubUnit`
+- `auth` — the better-auth `Auth` instance
+- `tenantId` — the tenant ID (only in multi-tenant modes)
+
+In `single` mode, `run(fn)` is used. In `shared`/`isolated` modes, `run(tenantId, fn)` is required.
 
 ### `destroy()`
 
-Runs module `destroy()` then unit `$destroy()`. Errors are caught and logged.
+Runs `module.$destroy()` then `unit.$destroy()`. Errors are caught and logged.
 
 ## Dependency Graph
 
@@ -119,11 +135,11 @@ Units are constructor-injected:
 
 ```text
 DatabaseUnit ← LogUnit
-DatabaseUnit ← PubSubUnit
+DatabaseUnit ← PubSubUnit ←→ AuthUnit  (cross-wired: pubsub.setAuth, auth.setPubSub)
 DatabaseUnit ← StorageUnit
 DatabaseUnit ← AuthUnit
-DatabaseUnit ← RpcUnit (also ← LogUnit, PubSubUnit, AuthUnit)
 DatabaseUnit ← KvStoreUnit
+DatabaseUnit ← RpcUnit (also ← LogUnit, PubSubUnit, AuthUnit)
 ```
 
 | Unit | Injected deps |

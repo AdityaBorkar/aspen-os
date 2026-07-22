@@ -7,3 +7,18 @@ export type DatabaseConfig = {
   ssl?: boolean;
   user: string;
 };
+
+export type IsolatedTenantDatabaseConfig = {
+  controlDbName: string;
+  tenantDbPrefix: string;
+  pool?: {
+    maxConnections?: number;
+  };
+  connection: {
+    host: string;
+    password: string;
+    port: number;
+    ssl: boolean;
+    user: string;
+  };
+};

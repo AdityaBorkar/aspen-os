@@ -1,16 +1,14 @@
 {
   "dependencies": {
-    "@biomejs/biome": "2.5.1",
-    "@types/bun": "^1.3.14",
-    "deepmerge": "^4.3.1",
-    "taze": "^19.14.1",
-    "typescript": "^7.0.2"
-  },
-  "devDependencies": {
+    "@biomejs/biome": "^2.5.1",
     "@commitlint/cli": "^21.2.1",
     "@commitlint/config-conventional": "^21.2.0",
+    "@types/bun": "^1.3.14",
+    "deepmerge": "^4.3.1",
     "husky": "^9.1.7",
-    "lint-staged": "^17.0.8"
+    "lint-staged": "^17.1.0",
+    "taze": "^19.14.1",
+    "typescript": "^7.0.2"
   },
   "lint-staged": {
     "*": "biome format --fix --no-errors-on-unmatched"
@@ -19,6 +17,7 @@
   "scripts": {
     "check:lint": "biome check --fix .",
     "check:types": "tsc -b",
+    "clean": "bunx rimraf --glob \"**/{node_modules,.output,.local,bun.lockb}\"",
     "prepare": "husky",
     "update:deps": "taze -rw --maturity-period 3"
   },
@@ -27,7 +26,7 @@
       "@types/bun": "^1.3.14",
       "bun": "^1.3.14",
       "drizzle-orm": "^0.45.2",
-      "typescript": "7.0.2",
+      "typescript": "^7.0.2",
       "valibot": "^1.4.2"
     },
     "packages": ["./packages/*", "./examples/*", "./docs-www"]

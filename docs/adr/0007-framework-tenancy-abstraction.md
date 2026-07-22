@@ -5,7 +5,7 @@ Multi-Tenant (Shared DB + RLS), and Multi-Tenant (Isolated DB). The developer pi
 `FrameworkConfig.tenancy` and commits to it for the application's lifetime. The same module code
 — workflows, services, schemas — works transparently across all three modes.
 
-A `tenancy: { mode: "single" | "shared-rls" | "isolated-db" }` config field selects the mode.
+A `tenancy: { mode: "single" | "shared" | "isolated" }` config field selects the mode.
 `DatabaseUnit` checks the mode internally (conditionals, not a strategy pattern). The `db`
 property becomes a getter returning a stable wrapper object (a JavaScript `Proxy`) that resolves
 the correct per-request drizzle instance via `AsyncLocalStorage`. Workflows keep
@@ -27,7 +27,7 @@ Key sub-decisions:
 
 - **`tenant_id` column always present** on every table (except auth tables), with
   `DEFAULT 'default'`. Avoids conditional schema definitions. In single-tenant mode it's always
-  `"default"`. In RLS mode it varies per row. In isolated-DB mode it's redundant but harmless.
+  `"default"`. In RLS mode it varies per row. In isolated mode it's redundant but harmless.
 - **RLS policies applied via post-push SQL**, not drizzle's `pgPolicy()`. Drizzle's `pgPolicy`
   is inline in the table definition and can't be conditionally included. Post-push SQL
   (`ALTER TABLE ... ENABLE RLS; CREATE POLICY ...`) is applied after `pushSchema()` in RLS mode
@@ -35,7 +35,7 @@ Key sub-decisions:
 - **Per-request client + `SET LOCAL`** for RLS mode. `run(tenantId, fn)` acquires a dedicated
   client, starts a transaction, sets `SET LOCAL app.tenant_id`, creates a drizzle instance
   wrapping that client, and releases after `fn()`.
-- **Per-tenant PubSub instances** in isolated-DB mode. Each tenant DB has its own pg-boss.
+- **Per-tenant PubSub instances** in isolated mode. Each tenant DB has its own pg-boss.
   `PubSubUnit` routes based on context `tenantId`. A new `$prepareTenant(tenantId)` module
   lifecycle method registers per-tenant crons/subscriptions.
 - **Control-plane connection always**. `DatabaseUnit` always holds a control-plane pool.
@@ -54,7 +54,7 @@ only option. The framework now supports all three; the app developer chooses one
 - The `Module` interface gains an optional `$prepareTenant(tenantId)` method.
 - Every table (except auth tables) gains a `tenant_id` column with `DEFAULT 'default'`.
 - Unique constraints on existing tables need composite variants including `tenant_id`.
-- In isolated-DB mode, the app provides a `TenantResolver` (resolve + list functions).
-- `PubSubUnit` gains per-tenant pg-boss management in isolated-DB mode.
+- In isolated mode, the app provides a `TenantResolver` (resolve + list functions).
+- `PubSubUnit` gains per-tenant pg-boss management in isolated mode.
 - `StorageUnit` and `KvStoreUnit` prefix keys with `tenantId`.
 - The CLI gains a `--tenant` flag for `db-studio`.

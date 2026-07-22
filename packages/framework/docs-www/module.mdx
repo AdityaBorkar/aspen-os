@@ -10,25 +10,37 @@ A **Module** is a package of domain business logic. Modules are optional, plugga
 
 ```ts title="src/server/index.ts"
 interface Module<N extends string = string> {
-  readonly name: N;
-  initialize?(units: Record<string, Unit>): void;
-  prepare?(): Promise<void>;
-  destroy(): Promise<void>;
+  readonly $name: N;
+  $initialize?(units: Record<string, Unit>): void;
+  $prepare?(): Promise<void>;
+  $prepareTenant?(tenantId: string): Promise<void>;
+  $destroy(): Promise<void>;
 }
 ```
 
-The interface is the same on both server and client — no `$` prefix, unlike units.
+The interface is identical on both server and client — same `---
+title: Module
+description: Domain logic packages — pluggable, application-managed, and wired into the framework via initialize().
+icon: IconHexagons
+---
+
+A **Module** is a package of domain business logic. Modules are optional, pluggable, and created by the application — not the framework. You choose which modules to include, create them via their static `create()` factory, and pass them to `Framework.create()`.
+
+## The Module Interface
+
+ prefix as units.
 
 ### Lifecycle methods
 
 | Method | When it's called | What it does |
 |---|---|---|
-| `initialize(units)` | Inside `Framework.create()`, after all units are instantiated | Receives all 7 units. Creates workflows with `db` and `pubsub` references. |
-| `prepare()` | During `framework.prepare()`, after all units have prepared | Pushes domain schemas via `pushSchema()`, registers pubsub handlers/schedules. |
-| `destroy()` | During `framework.destroy()`, before units are destroyed | Nulls private fields, unregisters pubsub handlers. **Required** (not optional). |
+| `$initialize(units)` | Inside `Framework.create()`, after all units are instantiated | Receives all 7 units. Creates workflows with `db` and `pubsub` references. |
+| `$prepare()` | During `framework.prepare()`, after all units have prepared | Pushes domain schemas via `pushSchema()`, registers pubsub handlers/schedules. |
+| `$prepareTenant(tenantId)` | During `framework.prepare()` in isolated mode, per tenant | Registers per-tenant cron schedules and subscriptions. |
+| `$destroy()` | During `framework.destroy()`, before units are destroyed | Nulls private fields, unregisters pubsub handlers. **Required** (not optional). |
 
 <Callout type="warn">
-  `destroy()` is the only **required** method on the `Module` interface. `initialize()` and `prepare()` are optional.
+  `$destroy()` is the only **required** method on the `Module` interface. `$initialize()`, `$prepare()`, and `$prepareTenant()` are optional.
 </Callout>
 
 ## How Modules Are Created
@@ -47,11 +59,11 @@ const compliance = ComplianceModule.create({ country: "INDIA" });
 // 2. Pass them to the framework
 const framework = Framework.create(config, { organization, compliance });
 
-// 3. Prepare (runs unit.$prepare() then module.prepare())
+// 3. Prepare (runs unit.$prepare() then module.$prepare())
 await framework.prepare();
 ```
 
-Inside `create()`, the framework iterates over the modules object and calls `mod.initialize?.(units)` on each, passing the fully-constructed `FrameworkUnits`. Module names (the `name` property) become proxy keys on the framework instance.
+Inside `create()`, the framework iterates over the modules object and calls `mod.$initialize?.(units)` on each, passing the fully-constructed `FrameworkUnits`. Module `$name`s become proxy keys on the framework instance.
 
 ## Accessing Modules
 
@@ -92,7 +104,7 @@ export class OrganizationModule {
 
 ### `#` private fields with lazy getters
 
-Workflow fields are private (`#` prefix) and initialized lazily in `initialize()`. Getters throw if accessed before initialization:
+Workflow fields are private (`#` prefix) and initialized lazily in `$initialize()`. Getters throw if accessed before initialization:
 
 ```ts
 #branches: BranchWorkflow | null = null;
@@ -102,44 +114,44 @@ get branches(): BranchWorkflow {
   return this.#branches;
 }
 
-initialize(units: { db: DatabaseUnit; pubsub: PubSubUnit }): void {
+$initialize(units: { db: DatabaseUnit; pubsub: PubSubUnit }): void {
   this.#branches = new BranchWorkflow(units.db.db, units.pubsub);
 }
 ```
 
-### `initialize(units)` creates workflows
+### `$initialize(units)` creates workflows
 
 This is where domain workflows are constructed with `db` and `pubsub` references. The `units` parameter is typed as `Record<string, Unit>`, but modules typically destructure the specific units they need:
 
 ```ts
-initialize(units: Record<string, Unit>): void {
+$initialize(units: Record<string, Unit>): void {
   const { db, pubsub } = units;
   this.#branches = new BranchWorkflow(db.db, pubsub);
   this.#addresses = new AddressWorkflow(db.db);
 }
 ```
 
-### `prepare()` pushes schema
+### `$prepare()` pushes schema
 
 Uses `pushSchema()` from `drizzle-kit/api` to apply domain table changes:
 
 ```ts
-async prepare(): Promise<void> {
+async $prepare(): Promise<void> {
   const { pushSchema } = await import("drizzle-kit/api");
-  const result = await pushSchema(dbSchema, this.units.db.db);
+  const result = await pushSchema(dbSchema, this.#db);
   if (result.statementsToExecute.length > 0) {
     await result.apply();
   }
 }
 ```
 
-### `destroy()` nulls fields
+### `$destroy()` nulls fields
 
 Required. Unregisters pubsub handlers and nulls out private workflow fields to prevent use-after-destroy:
 
 ```ts
-async destroy(): Promise<void> {
-  this.pubsub.unsubscribe(/* ... */);
+async $destroy(): Promise<void> {
+  this.#pubsub.unsubscribe(/* ... */);
   this.#branches = null;
   this.#addresses = null;
 }
@@ -154,12 +166,12 @@ import * as dbSchema from "./db-schema";
 export { dbSchema };
 ```
 
-### `name` as kebab-case
+### `$name` as a readonly string
 
-The `name` property is a readonly string in kebab-case — this becomes the proxy key:
+The `$name` property is a readonly string — this becomes the proxy key:
 
 ```ts
-readonly name = "organization" as const;
+readonly $name = "organization" as const;
 ```
 
 ## File Structure
@@ -200,7 +212,7 @@ Manages organizational structure — branches, addresses, and related entities.
 
 - **Tables**: 7 (branches, addresses, and supporting entities)
 - **Config**: `{ country: CountryCode }` — determines address validation rules
-- **Name**: `"organization"`
+- **`$name`**: `"organization"`
 
 ### Compliance (`@aspen-os/compliance`)
 
@@ -213,7 +225,7 @@ Manages compliance documents, attestations, and regulatory workflows.
 
 - **Services**: 3 (document, attestation, and a scheduling service)
 - **Config**: `{ country: CountryCode }` — determines regulatory requirements
-- **Name**: `"compliance"`
+- **`$name`**: `"compliance"`
 
 ## Validation
 

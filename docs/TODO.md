@@ -7,11 +7,8 @@
   - recruiter-alpauls
   - recruiter-maitriglobal
   - doclabs
-- build.ts
-  - Watch Mode??
-  - Use TS7 API after it is released
-- Release
-  - on NPM
+- Deploy a MVP on Wednesday for all the repositories
+- Start working on the modules
 
 ## Module Implementation
 

@@ -1,4 +1,4 @@
-# Tenant Platform Module — Scope of Work
+# Management Plane Module — Scope of Work
 
 > Scope of Work for the multi-tenant SaaS management module built on the `@aspen-os/framework`.
 >
@@ -6,11 +6,11 @@
 > [ADR-0005](../../docs/adr/0005-multi-tenant-host-app-single-realm-auth.md) (multi-tenant host app,
 > single-realm auth) and [ADR-0006](../../docs/adr/0006-database-per-tenant-isolation.md)
 > (database-per-tenant isolation). Domain language is captured in
-> [CONTEXT.md → Tenant Platform Domain](../../CONTEXT.md).
+> [CONTEXT.md → Management Plane Domain](../../CONTEXT.md).
 
 ## Overview
 
-The Tenant Platform is the control-plane module of a multi-tenant SaaS built on aspen-os. It manages
+The Management Plane is the control-plane module of a multi-tenant SaaS built on aspen-os. It manages
 the lifecycle of **Tenants** (SaaS customer accounts), **Service Providers** (implementation partners
 that do physical-world onboarding work), platform users (with the existing single-realm `AuthUnit`),
 and reports over the control-plane. It also fully automates tenant provisioning: creating the
@@ -21,7 +21,7 @@ The module is registered into a **new multi-tenant host app** that replaces the 
 Recruiter app. Auth is handled by the framework's existing `AuthUnit` (single better-auth instance)
 using better-auth's **Organization plugin** for tenant membership. Each tenant's data lives in its
 own Postgres database (database-per-tenant isolation); auth tables live only in the control-plane
-database. The Tenant Platform module itself operates **only** on the control-plane DB — it never
+database. The Management Plane module itself operates **only** on the control-plane DB — it never
 queries per-tenant databases directly. Platform admins use better-auth admin-impersonation if they
 need to inspect a tenant's data-plane data.
 
@@ -54,7 +54,7 @@ need to inspect a tenant's data-plane data.
    revised away. Module tables live in the default schema of the control-plane DB, consistent with
    how other modules use the default schema.
 
-6. **Platform admins never touch the data-plane**. The Tenant Platform module operates only on the
+6. **Platform admins never touch the data-plane**. The Management Plane module operates only on the
    control-plane DB. If a platform admin needs to inspect a tenant's data, they use better-auth's
    admin-impersonation (`signInAsUser`) to act as a tenant admin. No "act as tenant" mechanism is
    built into the module.
@@ -77,7 +77,7 @@ lifecycle/plan/SP-assignment on the companion.
 
 Managed via better-auth's Organization plugin API (`organization.create`, `organization.list`,
 `organization.setActive`, `organization.inviteMember`, etc.). Schema and table are owned by
-better-auth; the Tenant Platform module invokes the plugin's API rather than writing to the table
+better-auth; the Management Plane module invokes the plugin's API rather than writing to the table
 directly.
 
 | Field | Type | Description |
@@ -260,7 +260,7 @@ workflow layer, not just the access-control statement.
 
 ## 4. Reports
 
-Read-only views produced by the Tenant Platform over the control-plane DB. All reports are
+Read-only views produced by the Management Plane over the control-plane DB. All reports are
 control-plane queries — they never cross into per-tenant DBs.
 
 ### 4.1 Report Categories
@@ -290,7 +290,7 @@ control-plane queries — they never cross into per-tenant DBs.
 
 ## 5. Provisioning Workflow
 
-Fully automated, run by the Tenant Platform module. Creates a new Tenant end-to-end.
+Fully automated, run by the Management Plane module. Creates a new Tenant end-to-end.
 
 ### 5.1 Steps
 
@@ -368,12 +368,12 @@ Follows the standard aspen-os domain module pattern (see `organization`, `compli
 `drive` for reference).
 
 ```
-packages/tenant-platform/
+packages/management-plane/
   src/
-    index.ts              # TenantPlatformModule.create(config), $initialize(units), getters
+    index.ts              # ManagementPlaneModule.create(config), $initialize(units), getters
     db-schema.ts          # drizzle schema namespace: tenant, service_provider, audit_log
-    types.ts              # TenantPlatformConfig, input types, filters
-    event-map.ts          # TenantPlatformEventMap (tenant:provisioned, tenant:activated, etc.)
+    types.ts              # ManagementPlaneConfig, input types, filters
+    event-map.ts          # ManagementPlaneEventMap (tenant:provisioned, tenant:activated, etc.)
     constants.ts          # TENANT_STATUS, SP_STATUS, AUDIT_ACTIONS, ROLES
     schemas/              # valibot input schemas for create/update/filter
     workflows/
@@ -382,11 +382,11 @@ packages/tenant-platform/
       platform-user-workflow.ts    # create, get, list, update, delete, assignRole, assignToSp
       report-workflow.ts           # tenantUsage, lifecycleReport, auditReport, spPerformance
       provisioning-workflow.ts     # the automated provisioning flow (§5)
-  package.json           # @aspen-os/tenant-platform, deps on framework + constants
+  package.json           # @aspen-os/management-plane, deps on framework + constants
   SOW.md                 # this file
 ```
 
-- **`$name`**: `"tenant-platform"` (kebab-case).
+- **`$name`**: `"management-plane"` (kebab-case).
 - **`$initialize(units)`** signature: `{ db, auth, pubsub }`. The module needs `auth` to invoke
   better-auth's Organization plugin API, `db` for the control-plane tables, and `pubsub` for
   events.
@@ -416,7 +416,7 @@ packages/tenant-platform/
 
 ### 8.2 Framework Kernel Changes (out of scope for this module, required by the host app)
 
-These changes are required by ADR-0005/0006 but are framework kernel work, not Tenant Platform
+These changes are required by ADR-0005/0006 but are framework kernel work, not Management Plane
 module work:
 
 - `DatabaseUnit` becomes tenant-aware (resolves per-tenant connection pool from `tenantId`).
@@ -428,7 +428,7 @@ module work:
 ### 8.3 Module Config
 
 ```ts
-type TenantPlatformConfig = {
+type ManagementPlaneConfig = {
   // Postgres connection params for issuing CREATE DATABASE (tenant-creator role)
   postgresAdminConnection: { host, port, user, password, database }
   // Default per-tenant DB connection params (overridable per provisioning request)
@@ -452,7 +452,7 @@ The original SOW bullets, with their resolutions:
 
 | Original bullet | Resolution |
 |---|---|
-| "SaaS Management Module that manages the multi-tenant setup" | Confirmed — the Tenant Platform module. |
+| "SaaS Management Module that manages the multi-tenant setup" | Confirmed — the Management Plane module. |
 | "drizzle schema with a schema name 'management' with better-auth tables for admin access" | **Revised**: no `management` Postgres schema (default schema, like other modules). Auth tables stay in the control-plane DB's default schema (single realm). No separate "better-auth tables for admin access" — the existing auth tables are reused. |
 | "Better Auth setup for management portal" | **Revised**: use the framework's existing `AuthUnit` (single better-auth instance). No separate auth setup. Add better-auth's Organization plugin for tenant membership. |
 | "Users — Users with Access Controls" | Confirmed — §3. Four categories, 3 roles, 4 resources, access-control matrix in §3.4. |
