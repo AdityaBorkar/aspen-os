@@ -6,28 +6,32 @@ Aspen OS is a business application framework built on Bun/TypeScript. The framew
 
 ### Framework Kernel
 
-**Framework**:
-The orchestrator class. Created via the static `Framework.create(config, modules)` factory, which instantiates all Units, calls `module.$initialize(units)` on each module, and returns a proxy-wrapped instance. Lifecycle: `create()` → `prepare()` → `run()` → `destroy()`.
-_Avoid_: App, Container, DI Container
+**Platform**:
+A server-side orchestrator class. The framework exports three self-contained classes — `SingleTenantPlatform`, `SharedTenantPlatform`, `IsolatedTenantPlatform` — one per tenancy architecture. Each has its own `create()` static factory, config type, and `run()` signature. Created via `Platform.create(config, modules)`, which instantiates all Units, validates module `$dependencies`, calls `module.$initialize(units)` on each module, and returns a proxy-wrapped instance. Lifecycle: `create()` → `prepareInfra()` → `run()` → `destroy()`.
+_Avoid_: Framework (on the server — that name is reserved for the client class), App, Container, DI Container
+
+**Framework** (client only):
+The client-side orchestrator class. Created via `Framework.create(config, modules)` with 3 units (auth, logs, rpc). No database, no tenancy. The server has no `Framework` class — use a Platform class instead.
+_Avoid_: Platform (on the client)
 
 **Unit**:
-An infrastructure building block with a `$name`, a `$cleanup()` method, and an optional `$prepare()` method. Seven core server units: `db`, `auth`, `logs`, `pubsub`, `rpc`, `storage`, `kvStore`. Three client units: `auth`, `logs`, `rpc`. Both server and client Unit interfaces use the `$` prefix for lifecycle methods and the name property.
+An infrastructure building block with a `$name`, a `$cleanup()` method, and an optional `$prepareInfra()` method. Seven core server units: `db`, `auth`, `logs`, `pubsub`, `rpc`, `storage`, `kvStore`. Three client units: `auth`, `logs`, `rpc`. Both server and client Unit interfaces use the `$` prefix for lifecycle methods and the name property.
 _Avoid_: Service, Provider
 
 **Module**:
-A business logic plugin passed to `Framework.create()`. Receives unit dependencies via `$initialize(units)`. Same interface shape as Unit (`$name`, `$cleanup()`, optional `$prepare()`). Accessed on the framework instance via proxy — e.g., `framework.organization`. Both server and client Module interfaces use the `$` prefix.
+A business logic plugin passed to `Platform.create()`. Receives unit dependencies via `$initialize(units)`. Declares infra needs via `$prepareInfra()` (returns `ModuleInfra`), runtime setup via `$prepareRuntime()`, and optional per-tenant setup via `$prepareTenant?(tenantId)`. Declares module dependencies via `$dependencies: readonly string[]` (validated at `create()` time — throws if a dependency isn't provided). Accessed on the platform instance via proxy — e.g., `f.organization`. Both server and client Module interfaces use the `$` prefix.
 _Avoid_: Plugin, Extension
 
 **Create**:
-The static factory `Framework.create(config, modules)`. Instantiates all Units from config, calls `module.$initialize(units)` on each module, and returns a proxy-wrapped `FrameworkInstance`. This is the only way to construct a Framework — the constructor is internal.
+The static factory `Platform.create(config, modules)`. Instantiates all Units from config, validates module `$dependencies`, calls `module.$initialize(units)` on each module, and returns a proxy-wrapped platform instance. This is the only way to construct a Platform — the constructor is internal.
 _Avoid_: Register, Mount, Attach
 
-**Prepare**:
-Running post-creation setup on all Units and Modules (e.g., schema migrations via `pushSchema`). Called after `create()`. Calls `unit.$prepare()` then `mod.$prepare()`.
-_Avoid_: Migrate, Setup
+**PrepareInfra**:
+Post-creation infrastructure setup on all Units and Modules. Called after `create()`. Calls `unit.$prepareInfra()` on each unit, collects `mod.$prepareInfra()` declarations (schemas, ACL, events) from modules, merges them, calls `db.prepareWithModules()` (schema push) and `auth.applyModuleAcl()`, then calls `mod.$prepareRuntime()` on each module. In isolated mode, also iterates tenants from `resolver.list()` and calls `mod.$prepareTenant(tenantId)` per tenant. In shared mode, applies RLS policies via `db.applyRlsPolicies()`.
+_Avoid_: Migrate, Setup, Prepare
 
 **Run**:
-Executing a function within `AsyncLocalStorage` context that provides `db` (drizzle instance) and `pubsub` (the full PubSubUnit).
+Executing a function within `AsyncLocalStorage` context that provides `auth`, `db` (drizzle instance), and `pubsub` (the full PubSubUnit). Signature varies by platform: `SingleTenantPlatform.run(fn)` takes no tenant ID; `SharedTenantPlatform.run(tenantId, fn)` and `IsolatedTenantPlatform.run(tenantId, fn)` require one. In shared mode, opens a transaction, sets `app.tenant_id` and `SET LOCAL ROLE tenant_role`, creates a per-call drizzle instance. In isolated mode, resolves and connects to the tenant DB.
 _Avoid_: Execute, Dispatch
 
 **Destroy**:
@@ -45,7 +49,7 @@ _Avoid_: Resolve, Get
 ### Database
 
 **DatabaseUnit**:
-Core unit owning a `pg.Pool` and drizzle `NodePgDatabase`. `$name` is `"db"`. Exposes `$prepare()` which runs `pushSchema()` from drizzle-kit to apply schema migrations.
+Core unit owning a `pg.Pool` and drizzle `NodePgDatabase`. `$name` is `"db"`. Exposes `$prepareInfra()` which runs `pushSchema()` from drizzle-kit to apply schema migrations. Also exposes `tenancyMode`, `controlPlaneDb`, `resolver`, `pool`, `applyRlsPolicies()`, and `prepareWithModules()`.
 _Avoid_: DbUnit, ConnectionPool
 
 **DatabaseConfig**:
@@ -368,15 +372,15 @@ _Avoid_: Contract Type, Employment Status
 ### Management Plane Domain
 
 **Tenancy Mode**:
-A config-time choice in `FrameworkConfig.tenancy` that selects the database isolation strategy for the entire application. Three modes: `single` (one database, no isolation), `shared` (one shared database, Postgres RLS policies enforce isolation), `isolated` (control-plane DB + per-tenant DBs, physical isolation). Once set at `Framework.create()`, the mode cannot be changed. The same module code works in all three modes.
+A class-time choice — the developer selects one of three platform classes at application startup: `SingleTenantPlatform` (one database, no isolation, `run(fn)` — currently EXPERIMENTAL), `SharedTenantPlatform` (one shared database, Postgres RLS policies enforce isolation, `run(tenantId, fn)`), or `IsolatedTenantPlatform` (control-plane DB + per-tenant DBs, physical isolation, `run(tenantId, fn)`). Once a class is chosen, the mode cannot be changed. The same module code works in all three modes. The config type (`SingleTenantConfig`, `SharedTenantConfig`, `IsolatedTenantConfig`) does not include a `tenancy` field — the class IS the mode.
 _Avoid_: Tenancy Strategy, Isolation Mode, Deployment Mode
 
 **Tenant ID**:
-A string identifier for the tenant context of a request. In `single` mode, always `"default"`. In `shared` and `isolated` modes, resolved from the authenticated session (e.g., better-auth's `session.activeOrganizationId`) and passed to `framework.run(tenantId, fn)`. Stored in `AsyncLocalStorage` context. Used by the stable DB wrapper to route queries, by `PubSubUnit` to route messages, and by `StorageUnit`/`KvStoreUnit` to prefix keys.
+A string identifier for the tenant context of a request. In `single` mode, always `"default"`. In `shared` and `isolated` modes, resolved from the authenticated session (e.g., better-auth's `session.activeOrganizationId`) and passed to `platform.run(tenantId, fn)`. Stored in `AsyncLocalStorage` context. Used by the stable DB wrapper to route queries, by `PubSubUnit` to route messages, and by `StorageUnit`/`KvStoreUnit` to prefix keys.
 _Avoid_: Org ID, Workspace ID, Customer ID
 
 **Tenant Resolver**:
-A function pair provided by the app in `isolated` mode: `resolve(tenantId)` returns the per-tenant `DatabaseConfig`, `list()` returns all tenant IDs. Used by `DatabaseUnit` to lazily create per-tenant connection pools and by `Framework.prepare()` to call `$prepareTenant()` for each tenant at startup.
+A function pair provided by the app in `isolated` mode: `resolve(tenantId)` returns the per-tenant database name, `list()` returns all tenant IDs. Used by `DatabaseUnit` to lazily create per-tenant connection pools and by `prepareInfra()` to call `$prepareTenant()` for each tenant at startup. Note: `IsolatedTenantConfig` currently has the `resolver` field commented out — a dummy resolver (`list: async () => [""]`, `resolve: async (id) => id`) is used inline. This is a known WIP gap.
 _Avoid_: Tenant Registry, Connection Provider
 
 **Control Plane**:
@@ -392,11 +396,11 @@ A JavaScript `Proxy` returned by `DatabaseUnit.db` (a getter). Created once at i
 _Avoid_: DB Proxy, Drizzle Router, Connection Resolver
 
 **Prepare Tenant**:
-A new optional lifecycle method on the `Module` interface: `$prepareTenant(tenantId)`. Called at startup for each existing tenant (in `isolated` mode) and during tenant provisioning. Modules register per-tenant cron schedules and subscriptions here. The framework sets up `AsyncLocalStorage` context with the `tenantId` before calling each module's `$prepareTenant()`. Not called in `single` or `shared` modes.
+An optional lifecycle method on the `Module` interface: `$prepareTenant(tenantId)`. Called at startup for each existing tenant (in `isolated` mode) during `prepareInfra()` and during tenant provisioning. Modules register per-tenant cron schedules and subscriptions here. The platform sets up `AsyncLocalStorage` context with the `tenantId` before calling each module's `$prepareTenant()`. Not called in `single` or `shared` modes.
 _Avoid_: Per-Tenant Init, Tenant Setup
 
 **Tenant**:
-A SaaS customer account at the platform layer. Implemented as a better-auth **Organization** (via better-auth's Organization plugin) — the Tenant IS the better-auth `organization` row in the control-plane DB, possibly with a companion `tenant` table for extra domain fields (status, plan, SP assignment). Carries `name`, `slug`, `logo` (on the better-auth org row) plus account-level fields (signup date, lifecycle status, plan, SP assignment). Does NOT hold rich profile fields (accentColor, website, industry, taxId, etc.) — those live on the aspen-os Organization companion. The "List of Organizations" UI in the SOW is a projection over Tenants.
+A SaaS customer account at the platform layer. Implemented as a better-auth **Organization** (via better-auth's Organization plugin) — the Tenant IS the better-auth `organization` row in the control-plane DB, with a companion `tenant` table for extra domain fields (status, plan, SP assignment, database connection params). Carries `name`, `slug`, `logo` (on the better-auth org row) plus account-level fields (signup date, lifecycle status, plan, SP assignment). Does NOT hold rich profile fields (accentColor, website, industry, taxId, etc.) — those live on the aspen-os Organization companion. The "List of Organizations" UI in the SOW is a projection over Tenants.
 _Avoid_: Organization (when meaning the SaaS customer — collides with the aspen-os Organization module entity), Customer Account, Subscription, Workspace
 
 **Tenant Status**:
@@ -404,20 +408,12 @@ The lifecycle state of a Tenant: `onboarding` (pre-go-live, SP doing physical-wo
 _Avoid_: Tenant State, Account State, Lifecycle Stage
 
 **Organization (aspen-os module)**:
-The rich-profile companion entity in the aspen-os `organization` module. 1:1 with a Tenant (shares the better-auth org ID or references it). Lives in the per-tenant database. Holds the extended company-profile fields ONLY: `accentColor`, `website`, `industry`, `phone`, `email`, `address`, `taxId`, `registrationNumber`, `foundedDate`, `timezone`, `locale`, `metadata`, `status`. Does NOT hold `name`/`slug`/`logo` — those live on the Tenant (better-auth org row). Branches, Connections, Addresses, BankAccounts hang off this entity. Renamed conceptually to "Organization Profile" in the Management Plane context to avoid collision with the better-auth Organization/Tenant.
+The rich-profile companion entity in the aspen-os `organization` module. 1:1 with a Tenant (shares the better-auth org ID). Lives in the per-tenant database. Holds all company-profile fields: `name`, `slug`, `logo`, `accentColor`, `website`, `industry`, `phone`, `email`, `address`, `taxId`, `registrationNumber`, `foundedDate`, `timezone`, `locale`, `metadata`, `status`. Branches, Connections, Addresses, BankAccounts hang off this entity. Renamed conceptually to "Organization Profile" in the Management Plane context to avoid collision with the better-auth Organization/Tenant. Note: `name`/`slug`/`logo` are duplicated between the better-auth org row (control-plane) and this table (per-tenant) — the provisioning workflow seeds both.
 _Avoid_: Tenant (different concept), Company, better-auth Organization
 
 **Service Provider**:
 A first-class platform entity — an implementation/integration partner that does physical-world onboarding work for a Tenant (site setup, install, training). Each Tenant has at most one active Service Provider at a time (1:1 active assignment); an SP may serve many Tenants. The SP's staged work happens during the Tenant's `onboarding` stage. Lives in its own table in the control-plane DB; not a Tenant subtype, not a reuse of the aspen-os `organization` module's `Connection`.
 _Avoid_: Integrator, Vendor, Partner, Connection, Reseller
-
-**Control Plane**:
-The management/administration layer of the platform. Backed by a single shared Postgres database holding: the better-auth tables (`user`, `session`, `account`, `verification`, `organization`, `member`, `invitation`), the `tenant` companion table (if separate from better-auth org), the `service_provider` table, and any platform-level tables. The framework's `AuthUnit` is a singleton over the control-plane DB. Platform admins operate here.
-_Avoid_: Management DB, Admin DB
-
-**Tenant Database**:
-A per-tenant Postgres database holding that tenant's data-plane data: the aspen-os Organization module's tables (Organization profile, Branch, Connection, Address, BankAccount), plus all other module tables (tasks, drive, hr, compliance). NO auth tables live here. Isolation is physical — a tenant cannot reach another tenant's database. The framework's `DatabaseUnit` resolves the right per-tenant connection from the request's `tenantId`.
-_Avoid_: Tenant Schema, Data Plane DB
 
 **Platform Admin**:
 A user with `user.role = 'platform_admin'` and zero `member` rows. Operates the management portal — CRUD over Tenants, Service Providers, platform users, and reports. Works ONLY against the control-plane DB; never touches tenant data-plane data directly. If a platform admin needs to inspect a tenant's data, they use better-auth's admin-impersonation (`signInAsUser`) to act as a tenant admin. Has cross-tenant visibility on control-plane entities.
@@ -427,64 +423,75 @@ _Avoid_: Super Admin, Root, Operator
 A user with `user.role = 'sp_user'` and an `sp_id` FK on the `user` row pointing to their Service Provider. Zero tenant `member` rows. Field staff working for an SP — can view assigned Tenants, update onboarding status, upload install/training artifacts. Scope is the SP they belong to, not a tenant.
 _Avoid_: Integrator User, Field Agent
 
+**Audit Log**:
+An append-only record of management-plane actions. Has `entityType` (tenant/serviceProvider/platformUser), `entityId`, `action` (one of 17 defined audit actions), `actorId`, `performedAt`, `previousState`, `newState`, `changes`, `metadata`. Lives in the `audit_log` table in the control-plane DB. Written by the `logAuditStep` workflow step shared across all management-plane workflows.
+_Avoid_: Audit Trail, Change Record
+
+**Platform User**:
+A user managed by the Management Plane module — distinct from tenant end-users. Platform users include platform admins and service provider users. Created/updated/deleted via the `users` workflow, which delegates to `AuthUnit.user` for better-auth operations and also manages the `spId` FK on the `user` table for SP users.
+_Avoid_: Admin User, Management User
+
 **Report**:
 A read-only view produced by the Management Plane over the control-plane DB. Four categories: (1) tenant usage metrics (users, modules, storage, API calls per tenant), (2) provisioning & lifecycle reports (tenants by lifecycle stage, assigned SP, time-in-onboarding, churn reasons), (3) audit & activity reports (who created/suspended/churned a tenant, SP assignments, role changes, platform admin actions), (4) SP performance reports (tenants per SP, avg onboarding duration, completion rates). All reports are control-plane queries; they never cross into per-tenant DBs.
 _Avoid_: Dashboard, Analytics, Metric
 
 **Provisioning**:
-The fully-automated workflow that creates a new Tenant end-to-end, run by the Management Plane module. Steps: (1) create the better-auth Organization (the Tenant), (2) issue `CREATE DATABASE` against the Postgres server, (3) run `pushSchema()` against the new tenant DB with all module schemas (organization, tasks, drive, hr, compliance), (4) seed the aspen-os Organization profile row (1:1 with the better-auth org ID), (5) record connection params in the control-plane `tenant` table, (6) assign a Service Provider (set FK), (7) set Tenant status to `onboarding`. May be synchronous or pubsub-driven; on completion the Tenant is ready for SP-led onboarding work.
+The workflow that creates a new Tenant end-to-end, run by the Management Plane module as a `WorkflowStep` named `provision-tenant`. Steps: (1) create the better-auth Organization (the Tenant) via `auth.api.createOrganization()`, (2) resolve DB config from provisioning input + defaults, (3) issue `CREATE DATABASE` against the Postgres server via an admin connection, (4) run `pushSchema()` against the new tenant DB with all module schemas, (5) seed the aspen-os Organization profile row (1:1 with the better-auth org ID, with name/slug/logo), (6) record connection params + status in the control-plane `tenant` table, (7) assign a Service Provider if provided (set FK), (8) publish `tenant:provisioned` event. Sets Tenant status to `onboarding`. Exposed via `f.managementPlane.tenants.onboard()`. Note: `ManagementPlaneConfig` is currently `undefined` — the provisioning step expects a richer config (`tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`) but the type hasn't been defined yet. This is a known WIP gap.
 _Avoid_: Onboarding (that's the Tenant Status stage AFTER provisioning), Setup, Initialization
 
 ## Context Relationships
 
 ```
-┌──────────────────┐    ┌─────────────────────────────────────┐
-│    Recruiter     │───→│          Framework Kernel            │
-│    (app)         │    │  7 core units: db, auth, logs,      │
-└──────────────────┘    │  pubsub, rpc, storage, kvStore      │
-     │                  └──────────┬──────────────────────────┘
-     │                             │ wires
-     │                  ┌──────────┼──────────┬──────────────┐
-     │                  ▼          ▼          ▼              ▼
-     │               Database   AuthUnit   LogUnit      PubSubUnit
-     │                  │          │          │              │
-     │                  │          │ uses     │ uses         │ uses
-     │                  │          ▼          ▼              ▼
-     │                  │     better-auth   pino         pg-boss
-     │                  │
-     │                  ├──────────────────────────────────────┐
-     │                  ▼          ▼              ▼            ▼
-     │            StorageUnit  KvStoreUnit     RpcUnit
-     │                  │          │              │
-     │                  ▼          │              ▼
-     │               S3 SDK       │           oRPC
-     │                             │
-     │                         Postgres
-     │                        (UNLOGGED)
-     │
-     │  registers modules via Framework.create(config, { organization, compliance, tasks, drive, hr })
-     │
-     ├──────────────┬─────────────────────┬──────────────────────┬──────────────────────┐
-     ▼              ▼                     ▼                      ▼                      ▼
-┌──────────┐ ┌──────────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
-│Organizat.│ │   Compliance     │ │    Tasks     │ │    Drive     │ │     HR       │
-│  Module  │ │    Module        │ │   Module     │ │   Module     │ │   Module     │
-│          │ │                  │ │              │ │              │ │              │
-│5 workflows│ │ 5 workflows     │ │ 11 workflows│ │ 6 workflows  │ │ 8 workflows  │
-│7 tables  │ │ 5 services       │ │ 4 services   │ │ 5 services   │ │ 0 services   │
-│11 events │ │ 4 tables         │ │ 17 tables    │ │ 8 tables     │ │ 51 tables    │
-│          │ │ 23 events        │ │ 10 events    │ │ 14 events    │ │ 43 events    │
-│units:    │ │                  │ │              │ │              │ │              │
-│db, pubsub│ │ units:           │ │ units:       │ │ units:       │ │ units:       │
-│          │ │ db, kvStore,     │ │ db, pubsub  │ │ db, storage, │ │ db, pubsub  │
-│          │ │ pubsub           │ │              │ │ pubsub       │ │              │
-│          │ │                  │ │              │ │              │ │              │
-│          │ │ prepare():       │ │              │ │ prepare():   │ │ prepare():   │
-│          │ │ schema push,     │ │              │ │ trash purge  │ │ schema push  │
-│          │ │ crons, handlers  │ │              │ │ cron (3 AM)  │ │              │
-└──────────┘ └──────────────────┘ └──────────────┘ └──────────────┘ └──────────────┘
+┌──────────────────┐    ┌─────────────────────────────────────────────┐
+│    Recruiter     │───→│            Server Platform Classes            │
+│    (app)         │    │  SingleTenantPlatform (EXPERIMENTAL, run(fn)) │
+│                  │    │  SharedTenantPlatform (RLS, run(tenantId,fn)) │
+│  uses            │    │  IsolatedTenantPlatform (DB/tenant, run(...)) │
+│  SingleTenant    │    │  7 core units: db, auth, logs, pubsub,       │
+│  Platform        │    │  rpc, storage, kvStore                       │
+└──────────────────┘    └──────────┬──────────────────────────────────┘
+      │                            │ wires
+      │                  ┌─────────┼──────────┬──────────────┐
+      │                  ▼         ▼          ▼              ▼
+      │               Database   AuthUnit   LogUnit      PubSubUnit
+      │                  │          │          │              │
+      │                  │          │ uses     │ uses         │ uses
+      │                  │          ▼          ▼              ▼
+      │                  │     better-auth   pino         pg-boss
+      │                  │
+      │                  ├──────────────────────────────────────┐
+      │                  ▼          ▼              ▼            ▼
+      │            StorageUnit  KvStoreUnit     RpcUnit
+      │                  │          │              │
+      │                  ▼          │              ▼
+      │               S3 SDK       │           oRPC
+      │                             │
+      │                         Postgres
+      │                        (UNLOGGED)
+      │
+      │  registers modules via SingleTenantPlatform.create(config, { organization })
+      │
+      ├──────────────┬─────────────────────┬──────────────────────┬──────────────────────┬─────────────────┐
+      ▼              ▼                     ▼                      ▼                      ▼                 ▼
+┌──────────┐ ┌──────────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────────┐
+│Organizat.│ │   Compliance     │ │    Tasks     │ │    Drive     │ │     HR       │ │ Management Plane │
+│  Module  │ │    Module        │ │   Module     │ │   Module     │ │   Module     │ │     Module       │
+│          │ │                  │ │              │ │              │ │ (scaffold)   │ │                  │
+│5 workflows│ │ 5 workflows     │ │ 11 workflows│ │ 6 workflows  │ │ 8 workflows  │ │ 4 workflows      │
+│7 tables  │ │ 5 services       │ │ 4 services   │ │ 5 services   │ │ 0 services   │ │ 3 tables         │
+│11 events │ │ 4 tables         │ │ 17 tables    │ │ 8 tables     │ │ 44 tables    │ │ 16 events        │
+│          │ │ 23 events        │ │ 10 events    │ │ 14 events    │ │ 0 events     │ │ deps: organization│
+│units:    │ │                  │ │              │ │              │ │              │ │                  │
+│db, pubsub│ │ units:           │ │ units:       │ │ units:       │ │ units:       │ │ units:           │
+│          │ │ db, kvStore,     │ │ db, pubsub  │ │ db, storage, │ │ db, pubsub  │ │ db, auth, pubsub │
+│          │ │ pubsub           │ │              │ │ pubsub       │ │              │ │                  │
+│          │ │                  │ │              │ │              │ │              │ │                  │
+│          │ │ prepareInfra():  │ │              │ │ prepareInfra│ │ prepareInfra │ │ prepareInfra():  │
+│          │ │ schema push,     │ │              │ │ trash purge  │ │ schema push  │ │ schema push,     │
+│          │ │ crons, handlers  │ │              │ │ cron (3 AM)  │ │              │ │ audit step       │
+└──────────┘ └──────────────────┘ └──────────────┘ └──────────────┘ └──────────────┘ └──────────────────┘
 
-Stubs (package.json + empty src/index.ts): accounting, crm, fleet, inventory, reports, pharmacy
+Stubs (package.json only — no source): accounting, crm, fleet, inventory, reports, pharmacy
 ```
 
 ## Known Gaps
@@ -492,17 +499,22 @@ Stubs (package.json + empty src/index.ts): accounting, crm, fleet, inventory, re
 1. **`RoleUnassignedEvent` missing `roleName`** — unlike `RoleAssignedEvent` which has `{ roleName, userId }`, the unassigned event only has `{ userId }`.
 2. **Session expiry hardcoded at 7 days** — `AuthConfig.session.expiresIn` is accepted but not read by the session workflow. The 7-day value is hardcoded in `session.ts`.
 3. **PubSub `boss.start()` not awaited** — the constructor calls `this.boss.start()` without `await`, which could cause race conditions if `publish`/`subscribe` are called before the connection is established.
-4. **Client LogUnit `$prepare()` and `$cleanup()` throw** — the client LogUnit is a stub that throws on lifecycle methods.
+4. **Client LogUnit `$prepareInfra()` and `$cleanup()` throw** — the client LogUnit is a stub that throws on lifecycle methods.
 5. **`client/context.ts` is empty** — the client framework has no `run()` method or `AsyncLocalStorage`.
 6. **`increment()`/`decrement()` on KvStoreUnit are not atomic** — read-modify-write, not database-level atomic ops.
 7. **No DB-level foreign key constraints in compliance, tasks, or drive modules** — all cross-table references are logical (soft FKs by naming convention), not enforced by the database.
-8. **HR module has no services** — all business logic lives in workflow classes. Cross-cutting concerns (e.g., notification, audit) are not yet extracted into services.
+8. **HR module has no services** — all business logic lives in workflow classes. Cross-cutting concerns (e.g., notification, audit) are not yet extracted into services. Module class is non-conformant (no `$name`, no `static create()`, workflows not wired).
 9. **Compliance services `audit-writer` and `status-derivation` exist as files but are not instantiated** in the module class — only `event-bridge`, `obligation-generator`, and `reminder-engine` are wired.
 10. **Tasks services `dependency-graph` and `filter-engine` exist as files but are not instantiated** in the module class — only `notification-bridge` and `report-service` are wired.
+11. **`SingleTenantPlatform` is EXPERIMENTAL** — constructor emits `console.warn("Single Tenant Architecture is currently EXPERIMENTAL")`.
+12. **`IsolatedTenantConfig` resolver is commented out** — a dummy resolver (`list: async () => [""]`, `resolve: async (id) => id`) is used inline instead of accepting a real `TenantResolver`.
+13. **`ManagementPlaneConfig` is `undefined`** — the provisioning workflow expects a richer config (`tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`) but the type hasn't been defined yet.
+14. **`hello` type export in server index** — `packages/framework/src/server/index.ts` exports `type hello = "world"` — a leftover that should be removed.
 
 ## Anti-Patterns
 
-- Don't register modules after `create()` — pass them to `Framework.create()` as the second arg
+- Don't register modules after `create()` — pass them to `Platform.create()` as the second arg
 - Don't use native UUID columns — always text with `gen_random_uuid()::text` or app-generated UUIDs
 - Don't use `timestamp without time zone` — always `withTimezone: true`
 - Don't create barrel files unless explicitly told
+- Don't import bare `@aspen-os/framework` — use `/server` or `/client` subpath explicitly

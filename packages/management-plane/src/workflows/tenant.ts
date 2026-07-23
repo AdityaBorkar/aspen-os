@@ -13,7 +13,7 @@ import {
   UpdateTenantProfileSchema,
 } from "../types";
 import { provisionTenant } from "./provisioning";
-import { logAuditStep } from "./steps";
+import { logAuditStep } from "./steps/log-audit";
 import { stripUndefined } from "./utils";
 
 const fetchTenantStep = WorkflowStep.name("fetch-tenant")

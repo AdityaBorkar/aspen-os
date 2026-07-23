@@ -29,7 +29,7 @@ No build/test/format scripts at root. Each domain package has `check:lint` and `
 ```
 cd examples/recruiter && bun run app:dev          # vite dev --port 3000
 cd examples/recruiter && bun run app:build        # vite build
-cd examples/recruiter && bun run app:prepare       # bun scripts/prepare.ts (calls f.prepare())
+cd examples/recruiter && bun run app:prepare       # bun scripts/prepare.ts (calls f.prepareInfra())
 cd examples/recruiter && bun run app:preview       # vite preview
 cd examples/recruiter && bun run db:studio         # aspen db-studio --config=src/aspen/server.ts (port 4983)
 cd examples/recruiter && bun run generate-routes   # tsr generate (TanStack Router)
@@ -39,7 +39,7 @@ cd examples/recruiter && bun run check:types       # tsc -b
 
 **docs-www** (`bun run dev` → port 3005). `check:types` runs `fumadocs-mdx && tsc --noEmit`; `build` runs `bun gen:cf-types && vite build`; `deploy` runs `wrangler deploy` (uses `wrangler.jsonc`, `nodejs_compat` flag). **Gotcha**: `ignore-scripts=true` in `bunfig.toml` blocks the `postinstall` (`fumadocs-mdx`) — run `bunx fumadocs-mdx` manually before `bun run build`/`check:types` if `.source/` is missing. Note: docs-www `check:lint` is `biome check` (no `--fix`, unlike other packages).
 
-**Framework build gotcha**: the framework's `exports` field points at `.output/` (built JS + `.d.ts`). TypeScript resolves types from `.output/`, not source. After changing framework exports, run `cd packages/framework && bun run build` before typechecking downstream packages (e.g. recruiter). The `build` field in `package.json` maps exports to source `.ts` for Bun runtime resolution (in-workspace dev needs no build), but **TypeScript still uses `.output/` for type resolution**.
+**Framework build gotcha**: the framework's `exports` field points at `.output/` (built JS + `.d.ts`). TypeScript resolves types from `.output/`, not source. After changing framework exports, run `cd packages/framework && bun run build` before typechecking downstream packages (e.g. recruiter). The `build` field in `package.json` maps exports to source `.ts` for Bun runtime resolution (in-workspace dev needs no build), but **TypeScript still uses `.output/` for type resolution**. Organization and management-plane also have `build` scripts — run them if their exports change.
 
 ## Git Hooks (Husky)
 
@@ -53,12 +53,12 @@ Allowed commit types: `build chore ci docs feat fix perf refactor revert test wi
 
 ```
 packages/
-  framework/          # Core library — units, modules, tenancy, CLI (only package with a build step)
-  organization/       # Domain module (5 workflows, 7 tables)
-  compliance/         # Domain module (5 workflows, 3 services)
-  tasks/              # Domain module (11 workflows, 2 services)
-  drive/              # Domain module (6 workflows, 5 services)
-  management-plane/    # Domain module — control plane (5 workflows: tenant, service-provider, platform-user, report, provisioning)
+  framework/          # Core library — units, modules, tenancy, CLI (has build step)
+  organization/       # Domain module (has build step)
+  compliance/         # Domain module
+  tasks/              # Domain module
+  drive/              # Domain module
+  management-plane/    # Domain module — control plane (has build step)
   constants/          # Shared enums and constants (@aspen-os/constants)
   hr/                 # Scaffold — has package.json + src, but module class is incomplete (TODOs)
   accounting/ crm/ fleet/ inventory/ pharmacy/ reports/  # Pure stubs (package.json is just { "name": "..." })
@@ -88,14 +88,14 @@ Three entry surfaces: `./src/server/` (Node/Bun), `./src/client/` (browser), `./
 
 `@aspen-os/framework` declares only `./client` and `./server` — **no `.` entry**, so bare `@aspen-os/framework` does not resolve. Always import via subpaths.
 
-- `@aspen-os/framework/server` — three platform classes, `Unit`, `Module`, `FrameworkInstance`, all config types, all unit classes.
+- `@aspen-os/framework/server` — three platform classes, `Unit`, `Module`, `FrameworkInstance`, all config types, all unit classes, `Workflow`, `WorkflowStep`, `getContext`.
 - `@aspen-os/framework/client` — client `Framework` class, `createAccessControl` (re-exported from `better-auth/plugins/access`), client config types.
 
 **Build step (framework only):** the framework's published `exports` and `bin` point at `./.output/` (built JS + `.d.ts`, gitignored). A `build` field in `package.json` maps those same keys to source `.ts` so **Bun runtime resolves to source with no build**. But TypeScript resolves types from `.output/` — run `bun run build` after changing exports. **Domain modules have no build step** — their `exports` point at raw `.ts`.
 
 ### Server: three separate platform classes
 
-The server exports **three self-contained classes** — there is no shared base class or single `Framework` class on the server side. Each lives in its own file and contains its own constructor, proxy, `create()`, `prepare()`, `run()`, `destroy()`, `getModule()`, `getUnit()`:
+The server exports **three self-contained classes** — there is no shared base class or single `Framework` class on the server side. Each lives in its own file and contains its own constructor, proxy, `create()`, `prepareInfra()`, `run()`, `destroy()`, `getModule()`, `getUnit()`:
 
 | Class | File | `run()` signature | Config type |
 |---|---|---|---|
@@ -110,7 +110,7 @@ const f = SingleTenantPlatform.create(
   { auth, db, kvStore, logs, pubsub, rpc, storage },
   { organization: orgModule },
 )
-await f.prepare()
+await f.prepareInfra()
 await f.run(async () => { /* ctx: { auth, db, pubsub } via getContext() */ })
 await f.destroy()
 ```
@@ -129,15 +129,39 @@ The client (`src/client/index.ts`) still has a single `Framework` class with `Fr
 
 ### Units vs Modules
 
-- **Unit**: `{ readonly $name: string; $cleanup(): Promise<void>; $prepare?(): Promise<void> }` — `$` prefix on all lifecycle methods.
-- **Module**: `{ readonly $name: N; $initialize?(units: Record<string, Unit>): void; $prepare?(): Promise<void>; $prepareTenant?(tenantId: string): Promise<void>; $cleanup(): Promise<void> }`.
+- **Unit**: `{ readonly $name: string; $cleanup(): Promise<void>; $prepareInfra?(): Promise<void> }` — `$` prefix on all lifecycle methods.
+- **Module**: `{ readonly $name: N; readonly $dependencies: readonly string[]; $initialize?(units: Record<string, Unit>): void; $prepareInfra(): ModuleInfra; $prepareRuntime(): void | Promise<void>; $prepareTenant?(tenantId: string): Promise<void>; $cleanup(): void | Promise<void> }`.
 - Both interfaces are defined in `src/server/index.ts` and `src/client/index.ts` — no separate types file.
+
+### ModuleInfra
+
+Modules declare their infrastructure needs via `$prepareInfra()`:
+
+```ts
+type ModuleInfra = {
+  auth: { acl: Record<string, { allowedActions: string[] }> };
+  db: { schemas: Record<string, unknown> };
+  events: Record<string, Record<string, string>>;
+};
+```
+
+The framework merges all module infra during `prepareInfra()`:
+- `auth.acl` → merged and applied to `AuthUnit.applyModuleAcl()`
+- `db.schemas` → merged and passed to `DatabaseUnit.prepareWithModules()` for `pushSchema()`
+- `events` → used for type-level contracts (not runtime)
+
+### Lifecycle
+
+1. `SingleTenantPlatform.create(config, modules)` → instantiates units, calls `mod.$initialize?.(units)` on each module, returns proxy
+2. `f.prepareInfra()` → calls `unit.$prepareInfra?.()` on units, collects `mod.$prepareInfra()` from modules, merges schemas/acl, calls `db.prepareWithModules(mergedSchemas)`, then calls `mod.$prepareRuntime?.()` on each module
+3. `f.run(fn)` → executes `fn` inside `AsyncLocalStorage` providing `{ auth, db, pubsub }`
+4. `f.destroy()` → calls `mod.$cleanup()` then `unit.$cleanup()`
 
 ### Multi-tenancy
 
-- **Single**: one DB, no tenant scoping. `run(fn)`. No mode-specific `prepare()` logic.
-- **Shared**: one DB with row-level security. `prepare()` applies RLS policies via `DatabaseUnit.applyRlsPolicies()`. `run(tenantId, fn)` opens a transaction, sets `app.tenant_id` + `SET LOCAL ROLE tenant_role`, creates a per-call drizzle instance.
-- **Isolated**: DB-per-tenant. Requires `TenantResolver` (`{ list(), resolve(tenantId) → DatabaseConfig }`). `prepare()` iterates tenants and calls `$prepareTenant()` per module. `run(tenantId, fn)` resolves and connects to the tenant DB.
+- **Single**: one DB, no tenant scoping. `run(fn)`. No mode-specific `prepareInfra()` logic.
+- **Shared**: one DB with row-level security. `prepareInfra()` applies RLS policies via `DatabaseUnit.applyRlsPolicies()`. `run(tenantId, fn)` opens a transaction, sets `app.tenant_id` + `SET LOCAL ROLE tenant_role`, creates a per-call drizzle instance.
+- **Isolated**: DB-per-tenant. Requires `TenantResolver` (`{ list(), resolve(tenantId) → DatabaseConfig }`). `prepareInfra()` iterates tenants and calls `$prepareTenant()` per module. `run(tenantId, fn)` resolves and connects to the tenant DB.
 
 `DatabaseUnit` exposes `tenancyMode`, `controlPlaneDb`, `resolver`, `pool`, `applyRlsPolicies()`. `f.tenancyMode` reads through to the db unit.
 
@@ -157,6 +181,31 @@ All are classes with constructor-injected deps:
 
 Server `src/server/` also has `tenancy/`, `workflows/`, `context.ts`, `bun-compat.ts`. Client `src/client/` has `auth`, `rpc`, `log`, `context.ts` only.
 
+### Workflows (framework-level)
+
+The framework provides a `Workflow` builder for durable, step-based workflows:
+
+```ts
+import { Workflow, WorkflowStep } from "@aspen-os/framework/server"
+
+const myWorkflow = Workflow.name("my-workflow")
+  .input(MySchema)
+  .handler(async (input, ctx) => {
+    const result = await ctx.step(
+      WorkflowStep.name("step1")
+        .input(StepSchema)
+        .handler(async (stepInput, stepCtx) => { /* ... */ })
+    )
+    return result
+  })
+```
+
+- `Workflow.name(name).handler(fn)` or `Workflow.name(name).input(schema).handler(fn)`
+- `WorkflowStep.name(name).handler(fn)` or `WorkflowStep.name(name).input(schema).handler(fn)`
+- Steps run inside `WorkflowContext` with step-level retry and status tracking
+- Workflow runs and steps are persisted to `workflow_runs` and `workflow_steps` tables
+- Use `RunOptions` for idempotency keys and step options
+
 ### Auth unit shape (server)
 
 `AuthUnit` exposes: `$db_schema` (auth Drizzle schema), `auth` (raw betterAuth `Auth` instance), `fetch_handler(request)`, `user` getter (`{ create, delete, get, update, role: { assign, unassign } }`), `session` getter (`{ create, validate, invalidate }`), `role` getter (`{ list, delete }`).
@@ -166,11 +215,66 @@ Server `src/server/` also has `tenancy/`, `workflows/`, `context.ts`, `bun-compa
 ## Domain Module Pattern
 
 Modules follow a strict pattern (see `organization`, `compliance`, `tasks`, `drive`, `management-plane` for reference):
-- Static `create(config)` factory. Private workflow fields with `#` prefix, initialized lazily in `$initialize(units)`.
-- Getter properties that throw `notInitialized()` if accessed before `$initialize()`.
+
+### Required interface
+
+```ts
+class MyModule implements Module {
+  readonly $name = "my-module";
+  readonly $dependencies: readonly string[] = [];  // module deps for ordering
+
+  static create(config: MyModuleConfig): MyModule {
+    return new MyModule(config);
+  }
+
+  constructor(private config: MyModuleConfig) {}
+
+  // Declare infra needs — called during prepareInfra()
+  $prepareInfra(): ModuleInfra {
+    return {
+      auth: { acl: { /* resource: { allowedActions: [...] } */ } },
+      db: { schemas: myTables },
+      events: { myModule: MY_EVENTS },
+    };
+  }
+
+  // Initialize workflows with unit deps — called during create()
+  $initialize(units: { db: DatabaseUnit; pubsub: PubSubUnit }): void {
+    this.#workflow = new MyWorkflow(units.db.db, units.pubsub);
+  }
+
+  // Register cron schedules, pubsub handlers — called during prepareInfra()
+  async $prepareRuntime(): Promise<void> {
+    await this.#pubsub?.schedule(TOPIC, CRON);
+  }
+
+  // Unregister and null out — called during destroy()
+  async $cleanup(): Promise<void> {
+    this.#workflow = null;
+  }
+}
+```
+
+### Two module patterns exist
+
+**Newer pattern** (organization, management-plane):
+- Workflows are readonly properties (no `#` private fields)
+- `$initialize()` is empty
+- `$prepareRuntime()` is empty
+- `$cleanup()` is empty
+- File structure: `src/{index,auth-acl.ts,pubsub-events.ts,types.ts,constants.ts}`, `src/db-schemas/`, `src/schemas/`, `src/workflows/`
+
+**Older pattern** (compliance, tasks, drive):
+- Private workflow fields with `#` prefix, initialized in `$initialize(units)`
+- Getter properties that throw `notInitialized()` if accessed before `$initialize()`
+- `$prepareRuntime()` registers pubsub handlers/schedules
+- `$cleanup()` nulls out fields and unregisters
+- File structure: `src/{index,db-schema.ts,event-map.ts,types.ts,constants.ts}`, `src/schemas/`, `src/workflows/`, optionally `src/services/`
+
+### Common conventions
+
 - `db_schema` export (drizzle schema namespace). `$name` as a readonly string (kebab-case or camelCase).
-- `$prepare()` is optional — pushes module DB schemas via `pushSchema()` and/or registers pubsub handlers/schedules. `$cleanup()` nulls out fields and unregisters.
-- File structure: `src/{index,db-schema,types,event-map,constants}.ts`, `src/schemas/`, `src/workflows/`, optionally `src/services/`.
+- `$dependencies` lists module names this module depends on (used for initialization ordering)
 - Package: `@aspen-os/<module>`, `"type": "module"`, `exports: { ".": "./src/index.ts" }`, deps on framework + constants via `workspace:*`.
 - **Module `$initialize()` signatures vary** — each module types its own subset of units: organization/tasks take `{ db, pubsub }`; compliance takes `{ db, kvStore, pubsub }`; drive takes `{ db, storage, pubsub }`; **management-plane takes `{ db, auth, pubsub }`**.
 
@@ -181,7 +285,7 @@ Modules follow a strict pattern (see `organization`, `compliance`, `tasks`, `dri
 - Table names: `snake_case`. Column names: `snake_case` in Postgres, `camelCase` in TS (drizzle maps). Columns sorted alphabetically by TS property name.
 - **Validation**: Valibot for domain module input. Zod for RPC procedures (oRPC) and env vars (t3-env).
 - **No barrel files** unless explicitly told (`CODING_CONVENTIONS.md`).
-- **No build step** for domain modules — `exports` point at raw `.ts`. (Framework is the exception.)
+- **No build step** for domain modules — `exports` point at raw `.ts`. (Framework, organization, and management-plane are exceptions.)
 - `*.gen.ts` and `worker-configuration.d.ts` are gitignored (codegen output).
 - Constants as `as const` objects with `UPPER_SNAKE` keys and lowercase string values. Shared in `@aspen-os/constants`, module-specific in `constants.ts`.
 - Events: `"domain:event_name"` format, typed via `EventMap` type. Published via PubSub as plain string topics.

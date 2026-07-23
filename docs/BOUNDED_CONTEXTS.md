@@ -51,22 +51,31 @@
 │  │ Recruiter App │  │ Organization      │  │ Compliance    │   │
 │  │               │  │ Module            │  │ Module        │   │
 │  │ creates via   │  │ 5 workflows       │  │ 5 workflows   │   │
-│  │ Framework.    │  │ 7 tables          │  │ 5 services     │   │
-│  │ create()      │  │ 11 events         │  │ 4 tables       │   │
-│  └───────────────┘  │ units: db, pubsub │  │ 23 events      │   │
-│                     └───────────────────┘  │ units: db,     │   │
+│  │ SingleTenant  │  │ 7 tables          │  │ 5 services     │   │
+│  │ Platform      │  │ 11 events         │  │ 4 tables       │   │
+│  │ .create()     │  │ units: db, pubsub │  │ 23 events      │   │
+│  └───────────────┘  └───────────────────┘  │ units: db,     │   │
 │                                            │ kvStore, pubsub│   │
 │  ┌───────────────┐  ┌───────────────┐     └───────────────┘   │
 │  │ Tasks         │  │ Drive         │     ┌───────────────┐   │
 │  │ Module        │  │ Module        │     │ HR Module     │   │
 │  │ 11 workflows  │  │ 6 workflows   │     │ (incomplete)   │   │
-│  │ 4 services    │  │ 5 services     │     │ 7 workflows    │   │
+│  │ 4 services    │  │ 5 services     │     │ 8 workflows    │   │
 │  │ 17 tables     │  │ 8 tables       │     │ 44 tables      │   │
 │  │ 10 events     │  │ 14 events      │     │ 0 events       │   │
 │  │ units:        │  │ units:         │     │ module class   │   │
 │  │  db, pubsub   │  │  db, storage,  │     │ not wired      │   │
 │  │               │  │  pubsub         │     └───────────────┘   │
 │  └───────────────┘  └───────────────┘                          │
+│  ┌───────────────────────────┐                                   │
+│  │ Management Plane          │                                   │
+│  │ Module                    │                                   │
+│  │ 4 workflows               │                                   │
+│  │ 3 tables                  │                                   │
+│  │ 16 events                 │                                   │
+│  │ deps: organization        │                                   │
+│  │ units: db, auth, pubsub   │                                   │
+│  └───────────────────────────┘                                   │
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
@@ -90,8 +99,8 @@
 **Shared between**: All units and modules
 
 **Contents** (inline in `packages/framework/src/server/index.ts` and `packages/framework/src/client/index.ts`):
-- `Unit` interface — `{ $name: string, $cleanup(): Promise<void>, $prepareInfra?(): Promise<void> }`
-- `Module` interface — `{ $name: N, $initialize?(units: Record<string, Unit>): void, $prepareInfra?(): ModuleInfra, $prepareRuntime?(): Promise<void>, $cleanup(): Promise<void> }`
+- `Unit` interface — `{ readonly $name: string, $cleanup(): Promise<void>, $prepareInfra?(): Promise<void> }`
+- `Module` interface — `{ readonly $name: N, readonly $dependencies: readonly string[], $initialize(units: Record<string, Unit>): void, $prepareInfra(): ModuleInfra, $prepareRuntime(): void | Promise<void>, $prepareTenant?(tenantId: string): Promise<void>, $cleanup(): void | Promise<void> }`
 
 Both server and client use the `$` prefix for lifecycle methods and the name property.
 
@@ -102,23 +111,27 @@ Both server and client use the `$` prefix for lifecycle methods and the name pro
 - The shared kernel should remain minimal — only truly universal types
 - No implementation details leak through the shared kernel
 
-### 2. Customer-Supplier: Framework → Units
+### 2. Customer-Supplier: Platform → Units
 
-**Direction**: Framework creates and wires units via `Framework.create(config, modules)`. Units have no knowledge of Framework.
+**Direction**: Platform classes create and wire units via `Platform.create(config, modules)`. Units have no knowledge of Platform. Three server platform classes: `SingleTenantPlatform`, `SharedTenantPlatform`, `IsolatedTenantPlatform`. The client has a single `Framework` class.
 
 ```
-Framework.create(config, modules)
+SingleTenantPlatform.create(config, modules)
+SharedTenantPlatform.create(config, modules)
+IsolatedTenantPlatform.create(config, modules)
     │
-    ├── creates DatabaseUnit(config.db)
+    ├── creates DatabaseUnit(config.db, { mode })
     ├── creates LogUnit(config.logs, { db })
     ├── creates PubSubUnit(config.pubsub, { db })
-    ├── creates StorageUnit(config.storage, { db })
     ├── creates AuthUnit(config.auth, { db })
-    ├── creates RpcUnit(config.rpc, { auth, db, logs, pubsub })
+    ├── wires pubsub.setAuth(auth) + auth.setPubSub(pubsub)
+    ├── creates StorageUnit(config.storage, { db })
     ├── creates KvStoreUnit(config.kvStore, { db })
+    ├── creates RpcUnit(config.rpc, { auth, db, logs, pubsub })
+    ├── validates module $dependencies
     │
     └── calls mod.$initialize(units) for each module
-        └── returns proxy-wrapped FrameworkInstance
+        └── returns proxy-wrapped platform instance
 ```
 
 **Dependency graph** (constructor injection):
@@ -214,16 +227,16 @@ DatabaseUnit ← KvStoreUnit
 
 **Status**: Core unit, not optional. Required in `FrameworkConfig`.
 
-### 9. Downstream: Recruiter → Framework
+### 9. Downstream: Recruiter → Platform
 
-**Relationship**: Recruiter app creates the framework via `Framework.create(config, modules)` and passes domain modules.
+**Relationship**: Recruiter app creates the platform via `SingleTenantPlatform.create(config, modules)` and passes domain modules.
 
 **Lifecycle**:
 ```
-Framework.create(config, { organization, compliance, tasks, drive })
-    → framework.prepareInfra()  // unit.$prepareInfra() + collect mod.$prepareInfra() + mod.$prepareRuntime()
-    → framework.run(fn)         // AsyncLocalStorage context
-    → framework.destroy()       // mod.$cleanup() then unit.$cleanup()
+SingleTenantPlatform.create(config, { organization })
+    → f.prepareInfra()  // unit.$prepareInfra() + collect mod.$prepareInfra() + db.prepareWithModules() + auth.applyModuleAcl() + mod.$prepareRuntime()
+    → f.run(fn)         // AsyncLocalStorage context
+    → f.destroy()       // mod.$cleanup() then unit.$cleanup()
 ```
 
 **Adaptations**:
@@ -244,7 +257,7 @@ Framework.create(config, { organization, compliance, tasks, drive })
 - Valibot validation schemas for all inputs
 - `$prepareInfra()` returns declarative infra (db schemas, events) — schema pushing handled centrally by platform
 
-**Exposed on framework instance**: `framework.organization.addresses`, `framework.organization.branches`, `framework.organization.connections`, `framework.organization.organization`, `framework.organization.bankAccounts`
+**Exposed on platform instance**: `f.organization.addresses`, `f.organization.bankAccounts`, `f.organization.branches`, `f.organization.connections`, `f.organization.organizations`
 
 ### 11. Downstream: Compliance Module → Framework
 
@@ -298,13 +311,36 @@ Framework.create(config, { organization, compliance, tasks, drive })
 
 **Config**: `DriveModuleConfig = { allowedContentTypes?, maxFileSize?, maxNestingDepth?, maxVersions?, trashRetentionDays?, ... }`
 
-### 14. Downstream: HR Module → Framework (Incomplete)
+### 14. Downstream: HR Module → Platform (Incomplete)
 
 **Relationship**: HR module will implement the `Module` interface and receive unit dependencies. Currently incomplete.
 
-**Current state**: 7 fully implemented workflow classes (`EmployeeWorkflow`, `AttendanceWorkflow`, `LeaveWorkflow`, `LeaveWorkflow`, `LifecycleWorkflow`, `OvertimeWorkflow`, `ShiftWorkflow`, `SetupWorkflow`) with 235 public methods across 44 database tables. However, the `HrModule` class is non-conformant: no `$name` property, no `static create()` factory, `$initialize()` takes no arguments, workflows are not instantiated or exposed by the module, `event-map.ts` is empty, and `db_schema` export is named `dbSchemas` instead of `db_schema`.
+**Current state**: 8 workflow files (`access.ts`, `attendance.ts`, `employee.ts`, `leave.ts`, `lifecycle.ts`, `overtime.ts`, `setup.ts`, `shift.ts`) with ~235 public methods across 44 database tables. However, the `HrModule` class is non-conformant: no `$name` property, no `static create()` factory, `$initialize()` takes no arguments, workflows are not instantiated or exposed by the module, `event-map.ts` is empty, and `db_schema` export is named `dbSchemas` instead of `db_schema`.
 
-### 15. Client Framework
+### 15. Downstream: Management Plane Module → Platform
+
+**Relationship**: Management Plane module implements the `Module` interface. Uses the newer module pattern (readonly workflow properties, empty `$initialize()`/`$prepareRuntime()`/`$cleanup()`).
+
+**Structure** (`packages/management-plane/`):
+- `ManagementPlane.create(config)` — factory that returns a Module instance
+- `$name = "management-plane"`, `$dependencies = ["organization"]`
+- 4 workflows: `TenantWorkflow` (onboard, get, list, update), `ServiceProviderWorkflow` (create, get, list, update, activate, deactivate, getAssignedTenants, getUsers), `PlatformUserWorkflow` (create, get, list, update, delete, assignRole, assignToServiceProvider), `ProvisioningWorkflow` (provisionTenant step)
+- 3 owned database tables (pushed via `$prepareInfra()`): `audit_log`, `service_provider`, `tenant`
+- 4 query-only table definitions (NOT pushed — shadow auth tables for joins): `user`, `member`, `organization`, `session`
+- 16 domain events: 8 tenant + 4 service_provider + 4 platform_user
+- `logAuditStep` — shared workflow step for audit logging across all management-plane workflows
+- `$prepareInfra()` returns declarative infra (db schemas, acl, events) — schema pushing handled centrally by platform
+- Has build step (build script + `build` field in package.json)
+
+**Config**: `ManagementPlaneConfig = undefined` (known WIP gap — provisioning workflow expects richer config with `tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`)
+
+**ACL**: 3 resources (platformUser, serviceProvider, tenant)
+
+**Roles**: `platform_admin`, `sp_user`, `tenant_admin`, `tenant_user`
+
+**Exposed on platform instance**: `f.managementPlane.tenants`, `f.managementPlane.serviceProviders`, `f.managementPlane.users`
+
+### 16. Client Framework
 
 **Exported as**: `@aspen-os/framework/client`
 
@@ -319,31 +355,41 @@ Framework.create(config, { organization, compliance, tasks, drive })
 
 ## Integration Patterns
 
-### Framework.create() (Static Factory)
+### Platform.create() (Static Factory)
 
-All units are created and wired inside `Framework.create()`:
+All units are created and wired inside `Platform.create()`:
 
 ```typescript
-const framework = Framework.create(
-  { auth, db, kvStore, logs, pubsub, rpc, storage },  // FrameworkConfig
-  { organization, compliance, tasks, drive },           // modules record
+import { SingleTenantPlatform } from "@aspen-os/framework/server"
+
+const f = SingleTenantPlatform.create(
+  { auth, db, kvStore, logs, pubsub, rpc, storage },  // SingleTenantConfig
+  { organization },                                     // modules record
 );
 ```
 
 This:
 1. Instantiates all 7 units in dependency order
-2. Calls `mod.$initialize(units)` on each module
-3. Returns a proxy-wrapped `FrameworkInstance` that allows `framework.organization` syntax
+2. Wires pubsub↔auth (setAuth/setPubSub)
+3. Validates module `$dependencies`
+4. Calls `mod.$initialize(units)` on each module
+5. Returns a proxy-wrapped platform instance that allows `f.organization` syntax
 
 ### AsyncLocalStorage Context
 
-The `run()` method provides request-scoped context:
+The `run()` method provides request-scoped context. Signature varies by platform class:
 
 ```typescript
-await framework.run(async () => {
-  const { db, pubsub } = getContext();
+// SingleTenantPlatform — no tenantId
+await f.run(async () => {
+  const { auth, db, pubsub } = getContext();
   // db: NodePgDatabase (drizzle instance)
   // pubsub: PubSubUnit (full unit, not just publish)
+});
+
+// SharedTenantPlatform / IsolatedTenantPlatform — tenantId required
+await f.run(tenantId, async () => {
+  const { auth, db, pubsub, tenantId } = getContext();
 });
 ```
 
@@ -365,6 +411,7 @@ Event counts by module:
 - Compliance: 23 events
 - Tasks: 10 events
 - Drive: 14 events
+- Management Plane: 16 events (8 tenant + 4 service_provider + 4 platform_user)
 - HR: 0 events (event map empty)
 
 Event maps are type-level contracts (`*EventMap` types), not runtime type-safe buses. Workflows publish via `pubsub.publish("topic_string", payload)`.
@@ -387,12 +434,14 @@ The Compliance module's `EventBridge` service actively subscribes to events from
 Modules declare their DB schemas via `$prepareInfra()` (returns `{ db: { schemas } }`). The platform collects all module schemas and applies them centrally via `DatabaseUnit.prepareWithModules()`:
 
 ```
-Framework.prepareInfra()
+Platform.prepareInfra()
     → unit.$prepareInfra()                    // core infra (db pool, pubsub boss, etc.)
     → mod.$prepareInfra() for each module     // collect { db, auth, events } declarations
     → DatabaseUnit.prepareWithModules(schemas) // pushSchema(coreSchemas + moduleSchemas, db)
     → AuthUnit.applyModuleAcl(acl)            // store merged ACL metadata
     → mod.$prepareRuntime() for each module   // register pubsub schedules/handlers
+    → [isolated only] $prepareTenant(tenantId) per tenant
+    → [shared only] db.applyRlsPolicies()
 ```
 
 Schemas collected by `DatabaseUnit.prepareWithModules()`: core schemas (`authSchema`, `logSchema`, `storageSchema`, `kvStoreSchema`, `workflowSchema`) merged with module `db.schemas` from `$prepareInfra()`.
@@ -416,7 +465,7 @@ Two modules register scheduled cron jobs via PubSub:
 |---|---|---|---|---|
 | Shared Kernel | Shared | — | All units/modules | Unit & Module interfaces (inline) |
 | Database | Shared Kernel | — | All units | Foundation |
-| Framework | Customer | — | Units, Modules | Creates & wires via `create()` |
+| Platform | Customer | — | Units, Modules | Creates & wires via `create()` — three server classes + one client class |
 | Auth | Conformist | better-auth | Modules | Adapts API |
 | Logs | Conformist | pino, OTel | — | Adapts API |
 | PubSub | Conformist | pg-boss | — | Adapts API |
@@ -424,12 +473,13 @@ Two modules register scheduled cron jobs via PubSub:
 | RPC | Conformist | oRPC | — | Adapts API |
 | KV Store | Conformist | Postgres | Compliance module | Redis-like API (core) |
 | Client Framework | — | — | — | Browser-side (3 units) |
-| Recruiter | Downstream | Framework | — | Uses framework |
-| Organization | Downstream | Framework | Compliance | 5 workflows, 7 tables |
-| Compliance | Downstream | Framework, HR, Organization, Fleet, Accounting | — | 5 workflows, 4 tables, subscribes to external events |
-| Tasks | Downstream | Framework | — | 11 workflows, 17 tables |
-| Drive | Downstream | Framework, Storage | — | 6 workflows, 8 tables |
-| HR | Downstream (incomplete) | Framework | Compliance | 7 workflows (unwired), 44 tables |
+| Recruiter | Downstream | Platform | — | Uses `SingleTenantPlatform` |
+| Organization | Downstream | Platform | Compliance, Management Plane | 5 workflows, 7 tables |
+| Compliance | Downstream | Platform, HR, Organization, Fleet, Accounting | — | 5 workflows, 4 tables, subscribes to external events |
+| Tasks | Downstream | Platform | — | 11 workflows, 17 tables |
+| Drive | Downstream | Platform, Storage | — | 6 workflows, 8 tables |
+| Management Plane | Downstream | Platform, Organization | — | 4 workflows, 3 tables, 16 events, has build step |
+| HR | Downstream (incomplete) | Platform | Compliance | 8 workflows (unwired), 44 tables |
 | Accounting | Stub | — | — | Package.json only |
 | CRM | Stub | — | — | Package.json only |
 | Fleet | Stub | — | — | Package.json only |
@@ -440,7 +490,7 @@ Two modules register scheduled cron jobs via PubSub:
 ## Language Boundaries
 
 ### Framework Kernel Language
-- Unit, Module, Framework, Create, Prepare, Destroy, Run, GetUnit, GetModule
+- Platform, Framework (client), Unit, Module, Create, PrepareInfra, Destroy, Run, GetUnit, GetModule, $dependencies
 
 ### Auth Language
 - User, Session, Account, Verification, Role, Access Control, Auth Event
@@ -474,3 +524,6 @@ Two modules register scheduled cron jobs via PubSub:
 
 ### HR Language
 - Employee, Attendance, Employee Check-in, Leave, Lifecycle, Overtime, Shift, Department, Designation, Employment Type
+
+### Management Plane Language
+- Tenant, Tenant Status, Service Provider, Platform User, Audit Log, Provisioning, Tenant Resolver, Control Plane, Tenant Database, Platform Admin, Service Provider User, Report

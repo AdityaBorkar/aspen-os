@@ -1,6 +1,6 @@
 import { WorkflowStep } from "@aspen-os/framework/server";
 
-import { auditLog } from "../db-schemas";
+import { auditLog } from "../../db-schemas";
 
 export const logAuditStep = WorkflowStep.name("log-audit").handler(
   async (

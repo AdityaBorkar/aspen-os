@@ -274,6 +274,49 @@
 │  Setup: Department, Designation, EmploymentType, Grade, HolidayList │
 │  (Module class incomplete — workflows not wired)                    │
 └─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                  MANAGEMENT PLANE DOMAIN                             │
+│                                                                     │
+│  ┌──────────────────┐       ┌──────────────────────┐                │
+│  │      Tenant       │──1:N──│   AuditLog            │                │
+│  │  (companion)      │       │  id (PK)              │                │
+│  │  id (PK)          │       │  entityType (enum)    │                │
+│  │  status (enum)    │       │  entityId             │                │
+│  │  plan             │       │  action (enum, 17)    │                │
+│  │  serviceProviderId│──N:1─→│  actorId              │                │
+│  │  signupAt         │       │  performedAt          │                │
+│  │  databaseHost     │       │  previousState (jsonb)│                │
+│  │  databaseName     │       │  newState (jsonb)     │                │
+│  │  databasePort     │       │  changes (jsonb)      │                │
+│  │  databaseUser     │       │  metadata (jsonb)     │                │
+│  │  databasePassword │       └──────────────────────┘                │
+│  │  databaseSsl      │                                               │
+│  │  suspendedAt      │       ┌──────────────────────┐                │
+│  │  suspendedReason  │       │  ServiceProvider      │                │
+│  │  churnedAt        │       │  id (PK)              │                │
+│  │  churnReason      │       │  name                 │                │
+│  └────────┬──────────┘       │  slug (uniq)          │                │
+│           │                  │  status (enum)        │                │
+│           │ 1:1              │  description          │                │
+│           │                  │  email, phone         │                │
+│           ▼                  │  address, website     │                │
+│  ┌──────────────────┐       │  logo                 │                │
+│  │  better-auth     │       └──────────┬───────────┘                │
+│  │  Organization     │                  │ 1:N                        │
+│  │  (the Tenant)     │                  ▼                            │
+│  │  id (PK)          │       ┌──────────────────────┐                │
+│  │  name             │       │  User (shadow)        │                │
+│  │  slug             │       │  id (PK)              │                │
+│  │  logo             │       │  email, name          │                │
+│  │  metadata         │       │  role (text)          │                │
+│  └──────────────────┘       │  spId (FK→SP)         │                │
+│                              └──────────────────────┘                │
+│                                                                     │
+│  Roles: platform_admin, sp_user, tenant_admin, tenant_user           │
+│  Config: ManagementPlaneConfig = undefined (WIP)                    │
+│  Deps: ["organization"]                                             │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Aggregates
@@ -676,6 +719,78 @@
 
 **Note**: HR workflows are fully implemented but not wired to the module class.
 
+### Tenant (Aggregate Root — Management Plane)
+
+**Identity**: `id` (text, PK — shares ID with better-auth Organization row)
+
+**Value objects**:
+- `TenantStatus` — enum: `onboarding`, `active`, `suspended`, `churned`
+
+**Invariants**:
+- Status transitions: `onboarding` → `active` → `suspended` ↔ `active` → `churned`
+- `suspendedAt`/`suspendedReason` set when suspended; `churnedAt`/`churnReason` set when churned
+- At most one active Service Provider assignment (`serviceProviderId`)
+- Database connection params (`databaseHost`, `databaseName`, `databasePort`, `databaseUser`, `databasePassword`, `databaseSsl`) record the per-tenant DB connection
+
+**Lifecycle commands** (via `TenantWorkflow`):
+- `onboard(input)` → provisions a new tenant (creates better-auth org, creates DB, pushes schemas, seeds profile, records tenant, assigns SP)
+- `get(id)` → Tenant (joins `organization` + `tenant` tables)
+- `list(filters?)` → Tenant[]
+- `update(id, { profile?, companion? })` → Tenant
+
+**Relationships**:
+- 1:1 with better-auth Organization (shares ID)
+- N:1 with ServiceProvider (`serviceProviderId`)
+
+### ServiceProvider (Aggregate Root — Management Plane)
+
+**Identity**: `id` (text, PK, `default gen_random_uuid()::text`)
+
+**Value objects**:
+- `SpStatus` — enum: `active`, `inactive`
+
+**Invariants**:
+- `slug` must be unique
+- Status can be toggled active/inactive
+
+**Lifecycle commands** (via `ServiceProviderWorkflow`):
+- `create(input)` → ServiceProvider
+- `get(id)` → ServiceProvider
+- `list(filters?)` → ServiceProvider[]
+- `update(id, patch)` → ServiceProvider
+- `activate(id)` / `deactivate(id)` → ServiceProvider
+- `getAssignedTenants(spId)` → Tenant[]
+- `getUsers(spId)` → User[]
+
+### PlatformUser (Aggregate Root — Management Plane)
+
+**Identity**: `id` (text, PK — better-auth `user` table ID)
+
+**Invariants**:
+- If `role = 'sp_user'`, `spId` must be set (FK to ServiceProvider)
+- If `role != 'sp_user'`, `spId` must NOT be set
+- Created/deleted via `AuthUnit.user` API (better-auth), with `spId` managed on the `user` table directly
+
+**Lifecycle commands** (via `PlatformUserWorkflow`):
+- `create(input)` → User (delegates to `auth.api.createUser()`, sets `spId` if SP user)
+- `get(id)` → User
+- `list(filters?)` → User[]
+- `update(id, patch)` → User (delegates name/role to `auth.user.update()`, sets `spId` directly)
+- `delete(id)` → void (delegates to `auth.user.delete()`)
+- `assignRole(id, role)` → void (delegates to `auth.user.role.assign()`)
+- `assignToServiceProvider(userId, spId)` → void (sets `role='sp_user'` + `spId`)
+
+### AuditLog (Entity — append-only, Management Plane)
+
+**Identity**: `id` (text, PK, `default gen_random_uuid()::text`)
+
+**Invariants**:
+- Append-only (no updates/deletes)
+- `entityType` is one of: `tenant`, `serviceProvider`, `platformUser`
+- `action` is one of 17 defined audit actions (e.g., `tenant_provisioned`, `sp_created`, `platform_user_updated`, `role_assigned`)
+- Written by the shared `logAuditStep` workflow step
+- Polymorphic: `entityType` + `entityId` references any management-plane entity
+
 ### FileMetadata (Aggregate Root — Framework Storage)
 
 **Identity**: `id` (text, UUID, default `gen_random_uuid()::text`)
@@ -805,6 +920,39 @@
 
 The HR module's `event-map.ts` is empty. No events are defined.
 
+### Management Plane Events (ManagementPlaneEventMap) — 16 events
+
+#### Tenant Events (8)
+
+| Event | Payload | Trigger |
+|---|---|---|
+| `tenant:provisioned` | `{ tenantId, serviceProviderId? }` | Tenant provisioned (DB created, schemas pushed, profile seeded) |
+| `tenant:activated` | `{ tenantId }` | Tenant activated (from onboarding/suspended) |
+| `tenant:suspended` | `{ tenantId, reason }` | Tenant suspended |
+| `tenant:reactivated` | `{ tenantId }` | Tenant reactivated from suspended |
+| `tenant:churned` | `{ tenantId, reason }` | Tenant churned (offboarded) |
+| `tenant:profile_updated` | `{ tenantId, changes }` | Tenant profile updated |
+| `tenant:sp_assigned` | `{ tenantId, serviceProviderId }` | Service Provider assigned to tenant |
+| `tenant:sp_unassigned` | `{ tenantId }` | Service Provider unassigned from tenant |
+
+#### Service Provider Events (4)
+
+| Event | Payload | Trigger |
+|---|---|---|
+| `service_provider:created` | `{ serviceProvider: { id, name, slug } }` | Service Provider created |
+| `service_provider:updated` | `{ serviceProvider: { id, name }, changes }` | Service Provider updated |
+| `service_provider:deactivated` | `{ serviceProviderId }` | Service Provider deactivated |
+| `service_provider:activated` | `{ serviceProviderId }` | Service Provider activated |
+
+#### Platform User Events (4)
+
+| Event | Payload | Trigger |
+|---|---|---|
+| `platform_user:created` | `{ user: { id, email, role } }` | Platform user created |
+| `platform_user:updated` | `{ userId, changes }` | Platform user updated |
+| `platform_user:deleted` | `{ userId }` | Platform user deleted |
+| `platform_user:role_assigned` | `{ userId, role }` | Role assigned to platform user |
+
 ### Not Yet Defined (Gaps)
 
 - File events (framework storage): `file:uploaded`, `file:deleted`, `file:archived`
@@ -833,9 +981,9 @@ The HR module's `event-map.ts` is empty. No events are defined.
 | PubSub | Subscribe | `pubsub.subscribe()` |
 | KV | Set key | `kv.set()` |
 | KV | Delete key | `kv.del()` |
-| Organization | Create org | `f.organization.organization.create()` |
-| Organization | Update org | `f.organization.organization.update()` |
-| Organization | Update branding | `f.organization.organization.updateBranding()` |
+| Organization | Create org | `f.organization.organizations.create()` |
+| Organization | Update org | `f.organization.organizations.update()` |
+| Organization | Update branding | `f.organization.organizations.updateBranding()` |
 | Branch | Create branch | `f.organization.branches.create()` |
 | Branch | Archive branch | `f.organization.branches.archive()` |
 | Connection | Create connection | `f.organization.connections.create()` |
@@ -874,6 +1022,17 @@ The HR module's `event-map.ts` is empty. No events are defined.
 | Drive | Restore item | `f.drive.trash.restore()` |
 | Drive | Empty trash | `f.drive.trash.emptyTrash()` |
 | Drive | Apply label | `f.drive.labels.apply()` |
+| Management Plane | Onboard tenant | `f.managementPlane.tenants.onboard()` |
+| Management Plane | Update tenant | `f.managementPlane.tenants.update()` |
+| Management Plane | Create SP | `f.managementPlane.serviceProviders.create()` |
+| Management Plane | Update SP | `f.managementPlane.serviceProviders.update()` |
+| Management Plane | Activate SP | `f.managementPlane.serviceProviders.activate()` |
+| Management Plane | Deactivate SP | `f.managementPlane.serviceProviders.deactivate()` |
+| Management Plane | Create platform user | `f.managementPlane.users.create()` |
+| Management Plane | Update platform user | `f.managementPlane.users.update()` |
+| Management Plane | Delete platform user | `f.managementPlane.users.delete()` |
+| Management Plane | Assign role | `f.managementPlane.users.assignRole()` |
+| Management Plane | Assign user to SP | `f.managementPlane.users.assignToServiceProvider()` |
 
 ### Queries (Read Side)
 
@@ -891,7 +1050,7 @@ The HR module's `event-map.ts` is empty. No events are defined.
 | KV | Get key | `kv.get()` |
 | KV | Check exists | `kv.exists()` |
 | PubSub | Get queue size | `pubsub.getQueueSize()` |
-| Organization | Get org | `f.organization.organization.get()` |
+| Organization | Get org | `f.organization.organizations.get()` |
 | Branch | List branches | `f.organization.branches.list()` |
 | Branch | Get tree | `f.organization.branches.getTree()` |
 | Connection | Search | `f.organization.connections.search()` |
@@ -933,6 +1092,14 @@ The HR module's `event-map.ts` is empty. No events are defined.
 | Drive | List trash | `f.drive.trash.list()` |
 | Drive | List labels | `f.drive.labels.list()` |
 | Drive | Get breadcrumbs | `f.drive.paths.getBreadcrumbs()` |
+| Management Plane | Get tenant | `f.managementPlane.tenants.get()` |
+| Management Plane | List tenants | `f.managementPlane.tenants.list()` |
+| Management Plane | Get SP | `f.managementPlane.serviceProviders.get()` |
+| Management Plane | List SPs | `f.managementPlane.serviceProviders.list()` |
+| Management Plane | Get SP assigned tenants | `f.managementPlane.serviceProviders.getAssignedTenants()` |
+| Management Plane | Get SP users | `f.managementPlane.serviceProviders.getUsers()` |
+| Management Plane | Get platform user | `f.managementPlane.users.get()` |
+| Management Plane | List platform users | `f.managementPlane.users.list()` |
 
 ## Invariants & Business Rules
 
@@ -1001,12 +1168,21 @@ The HR module's `event-map.ts` is empty. No events are defined.
 40. **Lazy TTL eviction** — expired entries deleted on read, not by background job
 41. **UNLOGGED table** — data lost on Postgres crash (by design — cache semantics)
 
+### Management Plane
+
+42. **SP slug uniqueness** — enforced by DB unique constraint on service_provider.slug
+43. **SP user requires spId** — if `role = 'sp_user'`, `spId` must be set; otherwise `spId` must NOT be set (enforced in workflow)
+44. **Tenant status transitions** — `onboarding` → `active` → `suspended` ↔ `active` → `churned` (enforced in workflow)
+45. **Audit log append-only** — no updates or deletes; written by shared `logAuditStep` workflow step
+46. **Tenant-Organization ID sharing** — tenant companion table ID = better-auth organization ID (1:1 relationship)
+47. **Provisioning idempotency** — `CREATE DATABASE` catches "already exists" errors and continues
+
 ## Anti-Patterns to Avoid
 
 1. **Don't create barrel files** unless explicitly told
 2. **Don't use native UUID columns** — always text
 3. **Don't use `timestamp without time zone`** — always `withTimezone: true`
-4. **Don't call `create()` then try to register more modules** — pass all modules to `Framework.create()` at once
+4. **Don't call `create()` then try to register more modules** — pass all modules to `Platform.create()` at once
 5. **Don't assume dedicated role/permission tables** — roles are text on user table
 6. **Don't read `AuthConfig.session.expiresIn`** — session expiry is hardcoded at 7 days
 7. **Don't add DB-level foreign key constraints in domain modules** — use soft FKs (logical references by naming convention)

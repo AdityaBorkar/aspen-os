@@ -1,12 +1,13 @@
 # 0005 — Multi-tenant host app with single-realm auth
 
-> **Revised by [ADR-0007](./0007-framework-tenancy-abstraction.md)**: The framework now supports
-> three tenancy modes as a config-time choice (single, shared, isolated). This ADR's
-> description of a multi-tenant host app with single-realm auth remains valid for the
-> `isolated` mode specifically. The `tenant_id` column requirement described below is revised
-> — see ADR-0007 for the updated schema approach (always present, not added per-query).
+> **Revised by [ADR-0007](./0007-framework-tenancy-abstraction.md)**: The framework now exports
+> three platform classes (`SingleTenantPlatform`, `SharedTenantPlatform`,
+> `IsolatedTenantPlatform`) — one per tenancy mode. This ADR's description of a multi-tenant
+> host app with single-realm auth remains valid for the `isolated` mode specifically. The
+> `tenant_id` column requirement described below is revised — see ADR-0007 for the updated
+> schema approach (always present, not added per-query).
 
-The Management Plane is implemented as a module registered into a new multi-tenant host app that replaces the single-tenant Recruiter app. One `Framework.create()` instance, one `AuthUnit`, one better-auth instance, one set of auth tables — serving both platform admins and tenant end-users in a single `user` table.
+The Management Plane is implemented as a module registered into a multi-tenant host app that replaces the single-tenant Recruiter app. One platform class `create()` instance, one `AuthUnit`, one better-auth instance, one set of auth tables — serving both platform admins and tenant end-users in a single `user` table.
 
 We rejected two alternatives:
 

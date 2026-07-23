@@ -17,7 +17,7 @@ import {
   RoleSchema,
   UpdatePlatformUserSchema,
 } from "../types";
-import { logAuditStep } from "./steps";
+import { logAuditStep } from "./steps/log-audit";
 
 const CreateInputSchema = object({
   input: CreatePlatformUserSchema,

@@ -16,7 +16,7 @@ import {
   ServiceProviderFiltersSchema,
   UpdateServiceProviderSchema,
 } from "../types";
-import { logAuditStep } from "./steps";
+import { logAuditStep } from "./steps/log-audit";
 import { stripUndefined } from "./utils";
 
 const CreateInputSchema = object({

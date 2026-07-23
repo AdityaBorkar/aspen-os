@@ -1,11 +1,11 @@
 # 0006 — Database-per-tenant isolation with control-plane auth
 
 > **Revised by [ADR-0007](./0007-framework-tenancy-abstraction.md)**: Database-per-tenant is now
-> one of three selectable tenancy modes (`isolated`), not the only option. The framework
-> supports `single`, `shared`, and `isolated` modes as a config-time choice. This ADR
-> describes the `isolated` mode specifically. The rejection of app-level `tenant_id` filtering
-> and RLS below was the decision for the management-plane host app; ADR-0007 makes RLS a
-> first-class supported mode for other apps.
+> one of three platform classes (`IsolatedTenantPlatform`), not the only option. The framework
+> exports `SingleTenantPlatform`, `SharedTenantPlatform`, and `IsolatedTenantPlatform`. This
+> ADR describes the `isolated` mode specifically. The rejection of app-level `tenant_id`
+> filtering and RLS below was the decision for the management-plane host app; ADR-0007 makes
+> RLS a first-class supported mode for other apps.
 
 Each tenant's data lives in its own Postgres database. Authentication tables (`user`, `session`, `account`, `verification`) live only in the control-plane database — they are NOT replicated into per-tenant databases. Every user (platform admin + tenant end-user) authenticates against the control-plane DB; after auth, the user's `tenant_id` claim determines which per-tenant database to use for data-plane queries.
 
