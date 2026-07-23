@@ -1,22 +1,16 @@
 # TODO
 
-Make the $prepareInfra method return a set of pre-defined resources. Example:
-- db-schema: []
-- auth-acl: []
-- events: []
-
----
-
-Refactor the code to use domain-specific, hierarchical input structures instead of flat parameter objects. Group related fields into nested objects that match their usage, eliminating unnecessary object reconstruction and conditional schema processing. Design APIs so each function receives data in the shape it actually consumes. Similarly, optimize to use valibot validation schema as much possible for input validation.
-
----
-
 DB Schemas (How to handle migrations?)
 
 ACL List (How to handle migrations?)
 
 PubSub Events (How to handle migrations?)
 
+Refactor the code to use domain-specific, hierarchical input structures instead of flat parameter objects. Group related fields into nested objects that match their usage, eliminating unnecessary object reconstruction and conditional schema processing. Design APIs so each function receives data in the shape it actually consumes. Similarly, optimize to use valibot validation schema as much possible for input validation.
+
+---
+
+Provisioning?
 Use the workflows in ManagementPlane to create a web application
 
 ---
@@ -29,6 +23,10 @@ Use the workflows in ManagementPlane to create a web application
   - doclabs
 - Deploy a MVP on Wednesday for all the repositories
 - Start working on the modules
+
+## Improving Code Quality
+
+Create a Biome GritQL rule to make index.ts module files like @management-plane/src/index.ts
 
 ## Module Implementation
 

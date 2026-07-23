@@ -49,7 +49,7 @@
     "./client": "./src/client/index.ts",
     "./server": "./src/server/index.ts"
   },
-  "files": ["./docs-www", "package.json", "README.md", "./.output"],
+  "files": ["./docs-www", "package.json", "README.md", "./src"],
   "name": "@aspen-os/framework",
   "publishConfig": {
     "access": "public",

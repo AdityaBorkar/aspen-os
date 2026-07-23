@@ -10,7 +10,7 @@ import {
   type DatabaseConfig,
   SingleTenantPlatform,
 } from "@aspen-os/framework/server";
-import { OrganizationModule } from "@aspen-os/organization";
+import { Organization } from "@aspen-os/organization";
 
 import { env } from "../env";
 import { access_control, roles } from "./auth";
@@ -64,7 +64,7 @@ const storage = {
   },
 } satisfies StorageConfig;
 
-const organization = OrganizationModule.create({
+const organization = Organization.create({
   country: "INDIA",
 });
 

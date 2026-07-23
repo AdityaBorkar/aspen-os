@@ -1,37 +1,50 @@
+import { Workflow, WorkflowStep } from "@aspen-os/framework/server";
 import { eq } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { parse } from "valibot";
 
-import { organization } from "../db-schema";
-import type {
-  CreateOrganizationInput,
-  UpdateBrandingInput,
-  UpdateOrganizationInput,
-} from "../types";
+import { organization } from "../db-schemas";
+import { ORGANIZATION_EVENTS } from "../pubsub-events";
 import {
   CreateOrganizationSchema,
   SlugSchema,
   UpdateBrandingSchema,
   UpdateOrganizationSchema,
 } from "../types";
+import { generateSlug, stripUndefined } from "./utils";
 
-const SLUG_MAX_LENGTH = 63;
-
-export class OrganizationWorkflow {
-  constructor(private readonly db: NodePgDatabase) {}
-
-  async get() {
-    const [org] = await this.db.select().from(organization).limit(1);
+const fetchOrganizationStep = WorkflowStep.name("fetch-organization").handler(
+  async (_input: Record<string, never>, ctx) => {
+    const [org] = await ctx.db.select().from(organization).limit(1);
     return org ?? null;
-  }
+  },
+);
 
-  async create(input: CreateOrganizationInput) {
+const createOrganization = Workflow.name("org.create").handler(
+  async (
+    input: {
+      accentColor?: string;
+      address?: string | null;
+      email?: string | null;
+      foundedDate?: Date;
+      industry?: string | null;
+      locale?: string;
+      metadata?: Record<string, unknown> | null;
+      name: string;
+      phone?: string | null;
+      registrationNumber?: string | null;
+      slug?: string;
+      taxId?: string | null;
+      timezone?: string;
+      website?: string | null;
+    },
+    ctx,
+  ) => {
     const parsed = parse(CreateOrganizationSchema, input);
 
-    const slug = parsed.slug ?? this.generateSlug(parsed.name);
+    const slug = parsed.slug ?? generateSlug(parsed.name);
     parse(SlugSchema, slug);
 
-    const [existing] = await this.db
+    const [existing] = await ctx.db
       .select({ id: organization.id })
       .from(organization)
       .where(eq(organization.slug, slug))
@@ -41,7 +54,7 @@ export class OrganizationWorkflow {
       throw new Error(`Organization with slug "${slug}" already exists.`);
     }
 
-    const [org] = await this.db
+    const [org] = await ctx.db
       .insert(organization)
       .values({
         accentColor: parsed.accentColor,
@@ -62,18 +75,49 @@ export class OrganizationWorkflow {
       .returning();
 
     return org;
-  }
+  },
+);
 
-  async update(patch: UpdateOrganizationInput) {
-    const current = await this.get();
+const getOrganization = Workflow.name("org.get").handler(
+  async (_input: Record<string, never>, ctx) => {
+    return ctx.step.run(fetchOrganizationStep, {});
+  },
+);
+
+const updateOrganization = Workflow.name("org.update").handler(
+  async (
+    input: {
+      accentColor?: string;
+      address?: string | null;
+      email?: string | null;
+      foundedDate?: Date;
+      industry?: string | null;
+      locale?: string;
+      logo?: string | null;
+      metadata?: Record<string, unknown> | null;
+      name?: string;
+      phone?: string | null;
+      registrationNumber?: string | null;
+      slug?: string;
+      status?: string;
+      taxId?: string | null;
+      timezone?: string;
+      website?: string | null;
+    },
+    ctx,
+  ) => {
+    const current = await ctx.step.run(fetchOrganizationStep, {});
     if (!current) {
       throw new Error("Organization not found. Create one first.");
     }
 
-    const parsed = parse(UpdateOrganizationSchema, patch);
+    const parsed = parse(UpdateOrganizationSchema, input);
+    const data = stripUndefined(parsed as Record<string, unknown>);
+
+    if (Object.keys(data).length === 0) return current;
 
     if (parsed.slug !== undefined) {
-      const [conflict] = await this.db
+      const [conflict] = await ctx.db
         .select({ id: organization.id })
         .from(organization)
         .where(eq(organization.slug, parsed.slug))
@@ -86,10 +130,10 @@ export class OrganizationWorkflow {
       }
     }
 
-    const [updated] = await this.db
+    const [updated] = await ctx.db
       .update(organization)
       .set({
-        ...parsed,
+        ...data,
         foundedDate:
           parsed.foundedDate?.toISOString().split("T")[0] ?? undefined,
         updatedAt: new Date(),
@@ -97,18 +141,32 @@ export class OrganizationWorkflow {
       .where(eq(organization.id, current.id))
       .returning();
 
-    return updated;
-  }
+    if (!updated) {
+      throw new Error("Failed to update organization.");
+    }
 
-  async updateBranding(patch: UpdateBrandingInput) {
-    const current = await this.get();
+    await ctx.pubsub.publish(ORGANIZATION_EVENTS.UPDATED, {
+      changes: data,
+      organization: { id: updated.id, name: updated.name, slug: updated.slug },
+    });
+
+    return updated;
+  },
+);
+
+const updateBranding = Workflow.name("org.update-branding").handler(
+  async (
+    input: { accentColor?: string; logo?: string | null; name?: string },
+    ctx,
+  ) => {
+    const current = await ctx.step.run(fetchOrganizationStep, {});
     if (!current) {
       throw new Error("Organization not found. Create one first.");
     }
 
-    const parsed = parse(UpdateBrandingSchema, patch);
+    const parsed = parse(UpdateBrandingSchema, input);
 
-    const [updated] = await this.db
+    const [updated] = await ctx.db
       .update(organization)
       .set({
         accentColor: parsed.accentColor ?? current.accentColor,
@@ -119,48 +177,67 @@ export class OrganizationWorkflow {
       .where(eq(organization.id, current.id))
       .returning();
 
-    return updated;
-  }
+    if (!updated) {
+      throw new Error("Failed to update branding.");
+    }
 
-  async uploadLogo(storageKey: string) {
-    const current = await this.get();
+    await ctx.pubsub.publish(ORGANIZATION_EVENTS.BRANDING_UPDATED, {
+      accentColor: parsed.accentColor,
+      logo: parsed.logo,
+      name: parsed.name,
+    });
+
+    return updated;
+  },
+);
+
+const uploadLogo = Workflow.name("org.upload-logo").handler(
+  async (input: { storageKey: string }, ctx) => {
+    const current = await ctx.step.run(fetchOrganizationStep, {});
     if (!current) {
       throw new Error("Organization not found. Create one first.");
     }
 
-    const [updated] = await this.db
+    const [updated] = await ctx.db
       .update(organization)
-      .set({ logo: storageKey, updatedAt: new Date() })
+      .set({ logo: input.storageKey, updatedAt: new Date() })
       .where(eq(organization.id, current.id))
       .returning();
 
-    return updated;
-  }
+    if (!updated) {
+      throw new Error("Failed to upload logo.");
+    }
 
-  async deleteLogo() {
-    const current = await this.get();
+    return updated;
+  },
+);
+
+const deleteLogo = Workflow.name("org.delete-logo").handler(
+  async (_input: Record<string, never>, ctx) => {
+    const current = await ctx.step.run(fetchOrganizationStep, {});
     if (!current) {
       throw new Error("Organization not found. Create one first.");
     }
 
-    const [updated] = await this.db
+    const [updated] = await ctx.db
       .update(organization)
       .set({ logo: null, updatedAt: new Date() })
       .where(eq(organization.id, current.id))
       .returning();
 
+    if (!updated) {
+      throw new Error("Failed to delete logo.");
+    }
+
     return updated;
-  }
+  },
+);
 
-  private generateSlug(name: string): string {
-    const slug = name
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9\s-]/g, "")
-      .replace(/[\s_]+/g, "-")
-      .replace(/-+/g, "-")
-      .replace(/^-|-$/g, "");
-
-    return slug.slice(0, SLUG_MAX_LENGTH);
-  }
-}
+export const organizations = {
+  create: createOrganization,
+  deleteLogo,
+  get: getOrganization,
+  update: updateOrganization,
+  updateBranding,
+  uploadLogo,
+};

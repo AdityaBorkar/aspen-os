@@ -20,6 +20,12 @@ export const CONNECTION_EVENTS = {
   UPDATED: "connection:updated",
 } as const;
 
+export const events = {
+  BRANCH_EVENTS,
+  CONNECTION_EVENTS,
+  ORGANIZATION_EVENTS,
+};
+
 export interface OrganizationUpdatedEvent {
   changes: Record<string, unknown>;
   organization: { id: string; name: string; slug: string };

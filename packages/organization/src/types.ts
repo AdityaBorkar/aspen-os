@@ -1,4 +1,4 @@
-import type {
+export type {
   BranchType,
   ConnectionNoteType,
   ConnectionStatus,
@@ -6,6 +6,25 @@ import type {
   OrganizationStatus,
 } from "@aspen-os/constants";
 
+export type {
+  BranchActivatedEvent,
+  BranchClosedEvent,
+  BranchCreatedEvent,
+  BranchDeactivatedEvent,
+  BranchUpdatedEvent,
+  ConnectionCreatedEvent,
+  ConnectionNoteAddedEvent,
+  ConnectionStatusChangedEvent,
+  ConnectionUpdatedEvent,
+  OrganizationBrandingUpdatedEvent,
+  OrganizationDomainEventMap,
+  OrganizationUpdatedEvent,
+} from "./pubsub-events";
+export {
+  BRANCH_EVENTS,
+  CONNECTION_EVENTS,
+  ORGANIZATION_EVENTS,
+} from "./pubsub-events";
 export type {
   AddressFilters,
   BankAccountFilters,
@@ -53,13 +72,6 @@ export {
   UpdateConnectionSchema,
   UpdateOrganizationSchema,
 } from "./schemas";
-export type {
-  BranchType,
-  ConnectionNoteType,
-  ConnectionStatus,
-  ConnectionType,
-  OrganizationStatus,
-};
 
 export interface BranchTreeNode {
   children: BranchTreeNode[];

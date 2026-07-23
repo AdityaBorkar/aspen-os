@@ -23,12 +23,12 @@ export type {
   TenantSpAssignedEvent,
   TenantSpUnassignedEvent,
   TenantSuspendedEvent,
-} from "./event-map";
+} from "./pubsub-events";
 export {
   PLATFORM_USER_EVENTS,
   SERVICE_PROVIDER_EVENTS,
   TENANT_EVENTS,
-} from "./event-map";
+} from "./pubsub-events";
 export type {
   AuditReportFilters,
   CreatePlatformUserInput,

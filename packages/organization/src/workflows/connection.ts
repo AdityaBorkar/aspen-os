@@ -1,8 +1,10 @@
+import { Workflow, WorkflowStep } from "@aspen-os/framework/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { parse } from "valibot";
+import { object, parse } from "valibot";
 
-import { connection, connectionContact, connectionNote } from "../db-schema";
+import { connection, connectionContact, connectionNote } from "../db-schemas";
+import { CONNECTION_EVENTS } from "../pubsub-events";
 import type {
   ConnectionFilters,
   ConnectionStatus,
@@ -21,13 +23,31 @@ import {
   UpdateConnectionSchema,
 } from "../types";
 
-export class ConnectionWorkflow {
-  constructor(private readonly db: NodePgDatabase) {}
+type DrizzleDB = NodePgDatabase<Record<string, never>>;
 
-  async create(input: CreateConnectionInput) {
-    const parsed = parse(CreateConnectionSchema, input);
+const CreateInputSchema = object({ input: CreateConnectionSchema });
 
-    const [result] = await this.db
+const fetchConnectionStep = WorkflowStep.name("fetch-connection").handler(
+  async (input: { id: string }, ctx) => {
+    const [result] = await ctx.db
+      .select()
+      .from(connection)
+      .where(eq(connection.id, input.id))
+      .limit(1);
+
+    if (!result) {
+      throw new Error(`Connection with id "${input.id}" not found.`);
+    }
+
+    return result;
+  },
+);
+
+const createConnection = Workflow.name("connection.create").handler(
+  async (input: { input: CreateConnectionInput }, ctx) => {
+    const { input: parsed } = parse(CreateInputSchema, input);
+
+    const [result] = await ctx.db
       .insert(connection)
       .values({
         address: parsed.address ?? null,
@@ -53,14 +73,66 @@ export class ConnectionWorkflow {
       })
       .returning();
 
+    if (!result) {
+      throw new Error("Failed to create connection.");
+    }
+
+    await ctx.pubsub.publish(CONNECTION_EVENTS.CREATED, {
+      connection: {
+        id: result.id,
+        name: result.name,
+        type: result.type,
+      },
+    });
+
     return result;
-  }
+  },
+);
 
-  async update(id: string, patch: UpdateConnectionInput) {
-    await this.getById(id);
-    const parsed = parse(UpdateConnectionSchema, patch);
+const getConnection = Workflow.name("connection.get").handler(
+  async (input: { id: string }, ctx) => {
+    return ctx.step.run(fetchConnectionStep, { id: input.id });
+  },
+);
 
-    const [updated] = await this.db
+const listConnections = Workflow.name("connection.list").handler(
+  async (input: { filters?: ConnectionFilters }, ctx) => {
+    return ctx.step.run("query", async () => {
+      const parsed = input.filters
+        ? parse(ConnectionFiltersSchema, input.filters)
+        : {};
+      const conditions = [];
+
+      if (parsed.type) {
+        conditions.push(eq(connection.type, parsed.type));
+      }
+      if (parsed.status) {
+        conditions.push(eq(connection.status, parsed.status));
+      }
+      if (parsed.tags && parsed.tags.length > 0) {
+        conditions.push(sql`${connection.tags} && ${parsed.tags}`);
+      }
+      if (parsed.search) {
+        const term = `%${parsed.search}%`;
+        conditions.push(
+          sql`(${connection.name} ilike ${term} or ${connection.contactPerson} ilike ${term})`,
+        );
+      }
+
+      const whereClause =
+        conditions.length > 0 ? and(...conditions) : undefined;
+
+      return ctx.db.select().from(connection).where(whereClause);
+    });
+  },
+);
+
+const updateConnection = Workflow.name("connection.update").handler(
+  async (input: { id: string; patch: UpdateConnectionInput }, ctx) => {
+    await ctx.step.run(fetchConnectionStep, { id: input.id });
+    const parsed = parse(UpdateConnectionSchema, input.patch);
+
+    const [updated] = await ctx.db
       .update(connection)
       .set({
         address: parsed.address,
@@ -85,140 +157,149 @@ export class ConnectionWorkflow {
         updatedAt: new Date(),
         website: parsed.website,
       })
-      .where(eq(connection.id, id))
+      .where(eq(connection.id, input.id))
       .returning();
 
-    return updated;
-  }
+    if (!updated) {
+      throw new Error(`Connection with id "${input.id}" not found.`);
+    }
 
-  async updateStatus(id: string, status: ConnectionStatus) {
-    const current = await this.getById(id);
+    await ctx.pubsub.publish(CONNECTION_EVENTS.UPDATED, {
+      changes: parsed as Record<string, unknown>,
+      connection: { id: updated.id, name: updated.name },
+    });
+
+    return updated;
+  },
+);
+
+const updateStatus = Workflow.name("connection.update-status").handler(
+  async (input: { id: string; status: ConnectionStatus }, ctx) => {
+    const current = await ctx.step.run(fetchConnectionStep, { id: input.id });
     const fromStatus = current.status;
 
-    const [updated] = await this.db
+    const [updated] = await ctx.db
       .update(connection)
-      .set({ status, updatedAt: new Date() })
-      .where(eq(connection.id, id))
+      .set({ status: input.status, updatedAt: new Date() })
+      .where(eq(connection.id, input.id))
       .returning();
 
-    return { connection: updated, fromStatus, toStatus: status };
-  }
+    if (!updated) {
+      throw new Error(`Connection with id "${input.id}" not found.`);
+    }
 
-  async archive(id: string) {
-    const [updated] = await this.db
+    await ctx.pubsub.publish(CONNECTION_EVENTS.STATUS_CHANGED, {
+      connectionId: input.id,
+      fromStatus: fromStatus as ConnectionStatus,
+      toStatus: input.status,
+    });
+
+    return { connection: updated, fromStatus, toStatus: input.status };
+  },
+);
+
+const archiveConnection = Workflow.name("connection.archive").handler(
+  async (input: { id: string }, ctx) => {
+    const [updated] = await ctx.db
       .update(connection)
       .set({ status: "inactive", updatedAt: new Date() })
-      .where(eq(connection.id, id))
+      .where(eq(connection.id, input.id))
       .returning();
 
-    return updated;
-  }
+    if (!updated) {
+      throw new Error(`Connection with id "${input.id}" not found.`);
+    }
 
-  async restore(id: string) {
-    const [updated] = await this.db
+    return updated;
+  },
+);
+
+const restoreConnection = Workflow.name("connection.restore").handler(
+  async (input: { id: string }, ctx) => {
+    const [updated] = await ctx.db
       .update(connection)
       .set({ status: "active", updatedAt: new Date() })
-      .where(eq(connection.id, id))
+      .where(eq(connection.id, input.id))
       .returning();
 
+    if (!updated) {
+      throw new Error(`Connection with id "${input.id}" not found.`);
+    }
+
     return updated;
-  }
+  },
+);
 
-  async list(filters?: ConnectionFilters) {
-    const parsed = filters ? parse(ConnectionFiltersSchema, filters) : {};
-    const conditions = [];
+const searchConnections = Workflow.name("connection.search").handler(
+  async (input: { query: string; filters?: ConnectionFilters }, ctx) => {
+    return ctx.step.run("query", async () => {
+      const searchTerm = `%${input.query}%`;
+      const parsed = input.filters
+        ? parse(ConnectionFiltersSchema, input.filters)
+        : {};
+      const conditions = [];
 
-    if (parsed.type) {
-      conditions.push(eq(connection.type, parsed.type));
-    }
-    if (parsed.status) {
-      conditions.push(eq(connection.status, parsed.status));
-    }
-    if (parsed.tags && parsed.tags.length > 0) {
-      conditions.push(sql`${connection.tags} && ${parsed.tags}`);
-    }
-    if (parsed.search) {
-      const term = `%${parsed.search}%`;
-      conditions.push(
-        sql`(${connection.name} ilike ${term} or ${connection.contactPerson} ilike ${term})`,
+      if (parsed.type) {
+        conditions.push(eq(connection.type, parsed.type));
+      }
+      if (parsed.status) {
+        conditions.push(eq(connection.status, parsed.status));
+      }
+      if (parsed.tags && parsed.tags.length > 0) {
+        conditions.push(sql`${connection.tags} && ${parsed.tags}`);
+      }
+
+      const searchCondition = or(
+        ilike(connection.name, searchTerm),
+        ilike(connection.contactPerson, searchTerm),
+        sql`${connection.tags}::text ilike ${searchTerm}`,
       );
-    }
 
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+      const whereClause =
+        conditions.length > 0
+          ? and(searchCondition, ...conditions)
+          : searchCondition;
 
-    return this.db.select().from(connection).where(whereClause);
-  }
+      return ctx.db.select().from(connection).where(whereClause);
+    });
+  },
+);
 
-  async getById(id: string) {
-    const [result] = await this.db
-      .select()
-      .from(connection)
-      .where(eq(connection.id, id))
-      .limit(1);
+const searchContacts = Workflow.name("connection.search-contacts").handler(
+  async (input: { query: string; connectionId?: string }, ctx) => {
+    return ctx.step.run("query", async () => {
+      const searchTerm = `%${input.query}%`;
+      const conditions = [
+        or(
+          ilike(connectionContact.name, searchTerm),
+          ilike(connectionContact.email, searchTerm),
+        ),
+      ];
 
-    if (!result) {
-      throw new Error(`Connection with id "${id}" not found.`);
-    }
+      if (input.connectionId) {
+        conditions.push(eq(connectionContact.connectionId, input.connectionId));
+      }
 
-    return result;
-  }
+      return ctx.db
+        .select()
+        .from(connectionContact)
+        .where(and(...conditions));
+    });
+  },
+);
 
-  async search(query: string, filters?: ConnectionFilters) {
-    const searchTerm = `%${query}%`;
-    const parsed = filters ? parse(ConnectionFiltersSchema, filters) : {};
-    const conditions = [];
-
-    if (parsed.type) {
-      conditions.push(eq(connection.type, parsed.type));
-    }
-    if (parsed.status) {
-      conditions.push(eq(connection.status, parsed.status));
-    }
-    if (parsed.tags && parsed.tags.length > 0) {
-      conditions.push(sql`${connection.tags} && ${parsed.tags}`);
-    }
-
-    const searchCondition = or(
-      ilike(connection.name, searchTerm),
-      ilike(connection.contactPerson, searchTerm),
-      sql`${connection.tags}::text ilike ${searchTerm}`,
-    );
-
-    const whereClause =
-      conditions.length > 0
-        ? and(searchCondition, ...conditions)
-        : searchCondition;
-
-    return this.db.select().from(connection).where(whereClause);
-  }
-
-  async searchContacts(query: string, connectionId?: string) {
-    const searchTerm = `%${query}%`;
-    const conditions = [
-      or(
-        ilike(connectionContact.name, searchTerm),
-        ilike(connectionContact.email, searchTerm),
-      ),
-    ];
-
-    if (connectionId) {
-      conditions.push(eq(connectionContact.connectionId, connectionId));
-    }
-
-    return this.db
-      .select()
-      .from(connectionContact)
-      .where(and(...conditions));
-  }
-
-  async createContact(input: CreateConnectionContactInput) {
-    const parsed = parse(CreateConnectionContactSchema, input);
+const createContact = Workflow.name("connection.create-contact").handler(
+  async (input: { input: CreateConnectionContactInput }, ctx) => {
+    const parsed = parse(
+      object({ input: CreateConnectionContactSchema }),
+      input,
+    ).input;
 
     if (parsed.isPrimary) {
-      await this.unsetPrimaryContacts(parsed.connectionId);
+      await unsetPrimaryContacts(ctx.db, parsed.connectionId);
     }
 
-    const [result] = await this.db
+    const [result] = await ctx.db
       .insert(connectionContact)
       .values({
         connectionId: parsed.connectionId,
@@ -232,69 +313,84 @@ export class ConnectionWorkflow {
       .returning();
 
     return result;
-  }
+  },
+);
 
-  async updateContact(id: string, patch: UpdateConnectionContactInput) {
-    const parsed = parse(UpdateConnectionContactSchema, patch);
+const updateContact = Workflow.name("connection.update-contact").handler(
+  async (input: { id: string; patch: UpdateConnectionContactInput }, ctx) => {
+    const parsed = parse(UpdateConnectionContactSchema, input.patch);
 
     if (parsed.isPrimary === true) {
-      const [contact] = await this.db
+      const [contact] = await ctx.db
         .select({ connectionId: connectionContact.connectionId })
         .from(connectionContact)
-        .where(eq(connectionContact.id, id))
+        .where(eq(connectionContact.id, input.id))
         .limit(1);
 
       if (contact) {
-        await this.unsetPrimaryContacts(contact.connectionId);
+        await unsetPrimaryContacts(ctx.db, contact.connectionId);
       }
     }
 
-    const [updated] = await this.db
+    const [updated] = await ctx.db
       .update(connectionContact)
       .set({ ...parsed, updatedAt: new Date() })
-      .where(eq(connectionContact.id, id))
+      .where(eq(connectionContact.id, input.id))
       .returning();
 
     return updated;
+  },
+);
+
+const deleteContact = Workflow.name("connection.delete-contact").handler(
+  async (input: { id: string }, ctx) => {
+    await ctx.db
+      .delete(connectionContact)
+      .where(eq(connectionContact.id, input.id));
+  },
+);
+
+const setPrimaryContact = Workflow.name(
+  "connection.set-primary-contact",
+).handler(async (input: { id: string }, ctx) => {
+  const [contact] = await ctx.db
+    .select({ connectionId: connectionContact.connectionId })
+    .from(connectionContact)
+    .where(eq(connectionContact.id, input.id))
+    .limit(1);
+
+  if (!contact) {
+    throw new Error(`Contact with id "${input.id}" not found.`);
   }
 
-  async deleteContact(id: string) {
-    await this.db.delete(connectionContact).where(eq(connectionContact.id, id));
-  }
+  await unsetPrimaryContacts(ctx.db, contact.connectionId);
 
-  async setPrimaryContact(id: string) {
-    const [contact] = await this.db
-      .select({ connectionId: connectionContact.connectionId })
-      .from(connectionContact)
-      .where(eq(connectionContact.id, id))
-      .limit(1);
+  const [updated] = await ctx.db
+    .update(connectionContact)
+    .set({ isPrimary: true, updatedAt: new Date() })
+    .where(eq(connectionContact.id, input.id))
+    .returning();
 
-    if (!contact) {
-      throw new Error(`Contact with id "${id}" not found.`);
-    }
+  return updated;
+});
 
-    await this.unsetPrimaryContacts(contact.connectionId);
-
-    const [updated] = await this.db
-      .update(connectionContact)
-      .set({ isPrimary: true, updatedAt: new Date() })
-      .where(eq(connectionContact.id, id))
-      .returning();
-
-    return updated;
-  }
-
-  async listContacts(connectionId: string) {
-    return this.db
+const listContacts = Workflow.name("connection.list-contacts").handler(
+  async (input: { connectionId: string }, ctx) => {
+    return ctx.db
       .select()
       .from(connectionContact)
-      .where(eq(connectionContact.connectionId, connectionId));
-  }
+      .where(eq(connectionContact.connectionId, input.connectionId));
+  },
+);
 
-  async addNote(input: CreateConnectionNoteInput) {
-    const parsed = parse(CreateConnectionNoteSchema, input);
+const addNote = Workflow.name("connection.add-note").handler(
+  async (input: { input: CreateConnectionNoteInput }, ctx) => {
+    const parsed = parse(
+      object({ input: CreateConnectionNoteSchema }),
+      input,
+    ).input;
 
-    const [result] = await this.db
+    const [result] = await ctx.db
       .insert(connectionNote)
       .values({
         connectionId: parsed.connectionId,
@@ -304,16 +400,31 @@ export class ConnectionWorkflow {
       })
       .returning();
 
-    return result;
-  }
+    if (!result) {
+      throw new Error("Failed to add note.");
+    }
 
-  async listNotes(connectionId: string, type?: string) {
-    const conditions = [eq(connectionNote.connectionId, connectionId)];
-    if (type) {
+    await ctx.pubsub.publish(CONNECTION_EVENTS.NOTE_ADDED, {
+      connectionId: parsed.connectionId,
+      note: {
+        content: result.content,
+        id: result.id,
+        type: result.type,
+      },
+    });
+
+    return result;
+  },
+);
+
+const listNotes = Workflow.name("connection.list-notes").handler(
+  async (input: { connectionId: string; type?: string }, ctx) => {
+    const conditions = [eq(connectionNote.connectionId, input.connectionId)];
+    if (input.type) {
       conditions.push(
         eq(
           connectionNote.type,
-          type as
+          input.type as
             | "call"
             | "contract_renewal"
             | "email"
@@ -324,22 +435,44 @@ export class ConnectionWorkflow {
       );
     }
 
-    return this.db
+    return ctx.db
       .select()
       .from(connectionNote)
       .where(and(...conditions))
       .orderBy(desc(connectionNote.createdAt));
-  }
+  },
+);
 
-  private async unsetPrimaryContacts(connectionId: string): Promise<void> {
-    await this.db
-      .update(connectionContact)
-      .set({ isPrimary: false })
-      .where(
-        and(
-          eq(connectionContact.connectionId, connectionId),
-          eq(connectionContact.isPrimary, true),
-        ),
-      );
-  }
+async function unsetPrimaryContacts(
+  db: DrizzleDB,
+  connectionId: string,
+): Promise<void> {
+  await db
+    .update(connectionContact)
+    .set({ isPrimary: false })
+    .where(
+      and(
+        eq(connectionContact.connectionId, connectionId),
+        eq(connectionContact.isPrimary, true),
+      ),
+    );
 }
+
+export const connections = {
+  addNote,
+  archive: archiveConnection,
+  create: createConnection,
+  createContact,
+  deleteContact,
+  get: getConnection,
+  list: listConnections,
+  listContacts,
+  listNotes,
+  restore: restoreConnection,
+  search: searchConnections,
+  searchContacts,
+  setPrimaryContact,
+  update: updateConnection,
+  updateContact,
+  updateStatus,
+};

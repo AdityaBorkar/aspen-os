@@ -4,7 +4,7 @@ import { object, optional, parse } from "valibot";
 
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, ROLES } from "../constants";
 import { serviceProvider, user } from "../db-schemas";
-import { PLATFORM_USER_EVENTS } from "../event-map";
+import { PLATFORM_USER_EVENTS } from "../pubsub-events";
 import type {
   CreatePlatformUserInput,
   PlatformUserFilters,

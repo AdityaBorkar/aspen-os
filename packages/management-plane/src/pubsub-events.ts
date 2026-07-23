@@ -23,6 +23,12 @@ export const PLATFORM_USER_EVENTS = {
   UPDATED: "platform_user:updated",
 } as const;
 
+export const events = {
+  PLATFORM_USER_EVENTS,
+  SERVICE_PROVIDER_EVENTS,
+  TENANT_EVENTS,
+};
+
 export interface TenantProvisionedEvent {
   serviceProviderId?: string;
   tenantId: string;

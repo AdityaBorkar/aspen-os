@@ -1,8 +1,9 @@
+import { Workflow, WorkflowStep } from "@aspen-os/framework/server";
 import { and, eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { parse } from "valibot";
+import { object, parse } from "valibot";
 
-import { address } from "../db-schema";
+import { address } from "../db-schemas";
 import type {
   AddressFilters,
   CreateAddressInput,
@@ -14,17 +15,42 @@ import {
   UpdateAddressSchema,
 } from "../types";
 
-export class AddressWorkflow {
-  constructor(private readonly db: NodePgDatabase) {}
+type DrizzleDB = NodePgDatabase<Record<string, never>>;
 
-  async create(input: CreateAddressInput) {
-    const parsed = parse(CreateAddressSchema, input);
+const CreateInputSchema = object({ input: CreateAddressSchema });
 
-    if (parsed.isPrimary) {
-      await this.unsetPrimary();
+const fetchAddressStep = WorkflowStep.name("fetch-address").handler(
+  async (input: { id: string }, ctx) => {
+    const [result] = await ctx.db
+      .select()
+      .from(address)
+      .where(eq(address.id, input.id))
+      .limit(1);
+
+    if (!result) {
+      throw new Error(`Address with id "${input.id}" not found.`);
     }
 
-    const [result] = await this.db
+    return result;
+  },
+);
+
+async function unsetPrimary(db: DrizzleDB): Promise<void> {
+  await db
+    .update(address)
+    .set({ isPrimary: false })
+    .where(eq(address.isPrimary, true));
+}
+
+const createAddress = Workflow.name("address.create").handler(
+  async (input: { input: CreateAddressInput }, ctx) => {
+    const { input: parsed } = parse(CreateInputSchema, input);
+
+    if (parsed.isPrimary) {
+      await unsetPrimary(ctx.db);
+    }
+
+    const [result] = await ctx.db
       .insert(address)
       .values({
         city: parsed.city ?? null,
@@ -40,17 +66,25 @@ export class AddressWorkflow {
       .returning();
 
     return result;
-  }
+  },
+);
 
-  async update(id: string, patch: UpdateAddressInput) {
-    await this.getById(id);
-    const parsed = parse(UpdateAddressSchema, patch);
+const getAddress = Workflow.name("address.get").handler(
+  async (input: { id: string }, ctx) => {
+    return ctx.step.run(fetchAddressStep, { id: input.id });
+  },
+);
+
+const updateAddress = Workflow.name("address.update").handler(
+  async (input: { id: string; patch: UpdateAddressInput }, ctx) => {
+    await ctx.step.run(fetchAddressStep, { id: input.id });
+    const parsed = parse(UpdateAddressSchema, input.patch);
 
     if (parsed.isPrimary === true) {
-      await this.unsetPrimary();
+      await unsetPrimary(ctx.db);
     }
 
-    const [updated] = await this.db
+    const [updated] = await ctx.db
       .update(address)
       .set({
         city: parsed.city,
@@ -64,63 +98,62 @@ export class AddressWorkflow {
         state: parsed.state,
         updatedAt: new Date(),
       })
-      .where(eq(address.id, id))
+      .where(eq(address.id, input.id))
       .returning();
 
     return updated;
-  }
+  },
+);
 
-  async delete(id: string) {
-    await this.db.delete(address).where(eq(address.id, id));
-  }
+const deleteAddress = Workflow.name("address.delete").handler(
+  async (input: { id: string }, ctx) => {
+    await ctx.db.delete(address).where(eq(address.id, input.id));
+  },
+);
 
-  async getById(id: string) {
-    const [result] = await this.db
-      .select()
-      .from(address)
-      .where(eq(address.id, id))
-      .limit(1);
+const listAddresses = Workflow.name("address.list").handler(
+  async (input: { filters?: AddressFilters }, ctx) => {
+    return ctx.step.run("query", async () => {
+      const parsed = input.filters
+        ? parse(AddressFiltersSchema, input.filters)
+        : {};
+      const conditions = [];
 
-    if (!result) {
-      throw new Error(`Address with id "${id}" not found.`);
-    }
+      if (parsed.country) {
+        conditions.push(eq(address.country, parsed.country.toUpperCase()));
+      }
+      if (parsed.isPrimary !== undefined) {
+        conditions.push(eq(address.isPrimary, parsed.isPrimary));
+      }
 
-    return result;
-  }
+      const whereClause =
+        conditions.length > 0 ? and(...conditions) : undefined;
 
-  async list(filters?: AddressFilters) {
-    const parsed = filters ? parse(AddressFiltersSchema, filters) : {};
-    const conditions = [];
+      return ctx.db.select().from(address).where(whereClause);
+    });
+  },
+);
 
-    if (parsed.country) {
-      conditions.push(eq(address.country, parsed.country.toUpperCase()));
-    }
-    if (parsed.isPrimary !== undefined) {
-      conditions.push(eq(address.isPrimary, parsed.isPrimary));
-    }
+const setPrimary = Workflow.name("address.set-primary").handler(
+  async (input: { id: string }, ctx) => {
+    await ctx.step.run(fetchAddressStep, { id: input.id });
+    await unsetPrimary(ctx.db);
 
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-
-    return this.db.select().from(address).where(whereClause);
-  }
-
-  async setPrimary(id: string) {
-    await this.getById(id);
-    await this.unsetPrimary();
-
-    const [updated] = await this.db
+    const [updated] = await ctx.db
       .update(address)
       .set({ isPrimary: true, updatedAt: new Date() })
-      .where(eq(address.id, id))
+      .where(eq(address.id, input.id))
       .returning();
 
     return updated;
-  }
+  },
+);
 
-  private async unsetPrimary(): Promise<void> {
-    await this.db
-      .update(address)
-      .set({ isPrimary: false })
-      .where(eq(address.isPrimary, true));
-  }
-}
+export const addresses = {
+  create: createAddress,
+  delete: deleteAddress,
+  get: getAddress,
+  list: listAddresses,
+  setPrimary,
+  update: updateAddress,
+};

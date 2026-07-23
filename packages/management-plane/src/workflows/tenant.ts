@@ -4,7 +4,7 @@ import { object, optional, parse } from "valibot";
 
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../constants";
 import { organization, tenant } from "../db-schemas";
-import { TENANT_EVENTS } from "../event-map";
+import { TENANT_EVENTS } from "../pubsub-events";
 import {
   IdSchema,
   ProvisionTenantSchema,

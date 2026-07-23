@@ -4,7 +4,7 @@ import { object, optional, parse } from "valibot";
 
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, SP_STATUS } from "../constants";
 import { serviceProvider, tenant, user } from "../db-schemas";
-import { SERVICE_PROVIDER_EVENTS } from "../event-map";
+import { SERVICE_PROVIDER_EVENTS } from "../pubsub-events";
 import type {
   CreateServiceProviderInput,
   ServiceProviderFilters,

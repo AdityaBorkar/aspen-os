@@ -6,7 +6,7 @@ import { parse } from "valibot";
 
 import type { ManagementPlaneConfig } from "..";
 import { tenant } from "../db-schemas";
-import { TENANT_EVENTS } from "../event-map";
+import { TENANT_EVENTS } from "../pubsub-events";
 import type { ProvisioningInput } from "../types";
 import { IdSchema, ProvisioningInputSchema } from "../types";
 
