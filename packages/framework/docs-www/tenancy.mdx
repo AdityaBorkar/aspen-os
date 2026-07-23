@@ -149,7 +149,7 @@ interface Module<N extends string = string> {
   $initialize?(units: Record<string, Unit>): void;
   $prepare?(): Promise<void>;
   $prepareTenant?(tenantId: string): Promise<void>;  // isolated mode
-  $destroy(): Promise<void>;
+  $cleanup(): Promise<void>;
 }
 ```
 

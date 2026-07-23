@@ -75,7 +75,7 @@ class PubSubUnit {
   async purgeQueue(topic: string): Promise<void>;
 
   async $prepare(): Promise<void>;
-  async $destroy(): Promise<void>;
+  async $cleanup(): Promise<void>;
 }
 ```
 
@@ -210,7 +210,7 @@ Domain modules register pubsub handlers and schedules in their `prepare()` metho
 await this.pubsub.subscribe("organization:created", this.handleOrgCreated);
 await this.pubsub.schedule("daily:cleanup", "0 2 * * *");
 
-// In module.$destroy():
+// In module.$cleanup():
 await this.pubsub.unsubscribe("organization:created");
 await this.pubsub.unschedule("daily:cleanup");
 ```

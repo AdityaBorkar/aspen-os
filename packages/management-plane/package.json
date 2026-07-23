@@ -1,4 +1,13 @@
 {
+  "build": {
+    "exports": {
+      ".": {
+        "path": "./src/index.ts",
+        "target": "node"
+      }
+    },
+    "files": ["./docs-www", "package.json", "README.md"]
+  },
   "dependencies": {
     "@aspen-os/constants": "workspace:*",
     "@aspen-os/framework": "workspace:*",
@@ -15,8 +24,10 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "files": ["./docs-www", "package.json", "README.md", "./src"],
   "name": "@aspen-os/management-plane",
   "scripts": {
+    "build": "bun run ../../scripts/build.ts",
     "check:lint": "biome check --fix .",
     "check:types": "tsc -b"
   },

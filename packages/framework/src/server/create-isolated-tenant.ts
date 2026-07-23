@@ -9,6 +9,7 @@ import type {
   FrameworkUnits,
   Module,
   ModuleAccessors,
+  TenancyMode,
   // TenantResolver,
   UnitAccessors,
 } from "./index";
@@ -77,7 +78,7 @@ export class IsolatedTenantPlatform<M extends Record<string, Module>> {
     const logs = new LogUnit(config.logs, { db });
     const pubsub = new PubSubUnit(config.pubsub, { db });
     const auth = new AuthUnit(config.auth, { db });
-    pubsub.setAuth(auth.auth);
+    pubsub.setAuth(auth);
     auth.setPubSub(pubsub);
     const storage = new StorageUnit(config.storage, { db });
     const kvStore = new KvStoreUnit(config.kvStore, { db });
@@ -93,6 +94,17 @@ export class IsolatedTenantPlatform<M extends Record<string, Module>> {
       storage,
     };
 
+    const moduleNames = new Set(Object.values(modules).map((m) => m.$name));
+    for (const mod of Object.values(modules)) {
+      for (const dep of mod.$dependencies) {
+        if (!moduleNames.has(dep)) {
+          throw new Error(
+            `Module "${mod.$name}" depends on "${dep}", but it was not provided`,
+          );
+        }
+      }
+    }
+
     const initializedModules = {} as Record<string, Module>;
     for (const mod of Object.values(modules)) {
       mod.$initialize?.(units);
@@ -105,34 +117,72 @@ export class IsolatedTenantPlatform<M extends Record<string, Module>> {
     ) as IsolatedTenantPlatformInstance<M>;
   }
 
-  async $cleanup(): Promise<void> {
+  async destroy(): Promise<void> {
     for await (const mod of Object.values(this.modules)) {
       try {
-        await mod.$destroy();
+        await context.run(
+          {
+            auth: this.units.auth,
+            db: this.units.db.controlPlaneDb,
+            pubsub: this.units.pubsub,
+          },
+          () => mod.$cleanup(),
+        );
       } catch {
-        console.error(`Failed to cleanup module "${mod.$name}"`);
+        console.error(`Failed to destroy module "${mod.$name}"`);
       }
     }
     for await (const unit of Object.values(this.units)) {
       try {
-        await unit.$destroy();
+        await unit.$cleanup();
       } catch {
-        console.error(`Failed to cleanup unit "${unit.$name}"`);
+        console.error(`Failed to destroy unit "${unit.$name}"`);
       }
     }
   }
 
-  async $prepare(): Promise<void> {
+  get tenancyMode(): TenancyMode {
+    return this.units.db.tenancyMode;
+  }
+
+  async prepareInfra(): Promise<void> {
     for await (const unit of Object.values(this.units)) {
       try {
-        await unit.$prepare?.();
+        await unit.$prepareInfra?.();
       } catch (err) {
         console.error(`Failed to prepare unit "${unit.$name}"`, err);
       }
     }
+
+    const mergedModuleSchemas: Record<string, unknown> = {};
+    const mergedAcl: Record<string, { allowedActions: string[] }> = {};
+
+    for (const mod of Object.values(this.modules)) {
+      const infra = mod.$prepareInfra?.();
+      if (infra) {
+        Object.assign(mergedModuleSchemas, infra.db.schemas);
+        for (const [resource, config] of Object.entries(infra.auth.acl)) {
+          if (!mergedAcl[resource]) {
+            mergedAcl[resource] = { allowedActions: [] };
+          }
+          mergedAcl[resource].allowedActions.push(...config.allowedActions);
+        }
+      }
+    }
+
+    await this.units.db.prepareWithModules(mergedModuleSchemas);
+    this.units.auth.applyModuleAcl(mergedAcl);
+
     for await (const mod of Object.values(this.modules)) {
       try {
-        await mod.$prepare?.();
+        await context.run(
+          {
+            auth: this.units.auth,
+            db: this.units.db.controlPlaneDb,
+            pubsub: this.units.pubsub,
+          },
+          () => mod.$prepareRuntime?.(),
+        );
       } catch (err) {
         console.error(`Failed to prepare module "${mod.$name}"`, err);
       }
@@ -153,7 +203,7 @@ export class IsolatedTenantPlatform<M extends Record<string, Module>> {
     const db = await this.units.db.getTenantDb(tenantId);
     return context.run(
       {
-        auth: this.units.auth.auth,
+        auth: this.units.auth,
         db,
         pubsub: this.units.pubsub,
         tenantId,
@@ -176,7 +226,7 @@ export class IsolatedTenantPlatform<M extends Record<string, Module>> {
   //   const db = await this.units.db.getTenantDb(tenantId);
   //   await context.run(
   //     {
-  //       auth: this.units.auth.auth,
+  //       auth: this.units.auth,
   //       db,
   //       pubsub: this.units.pubsub,
   //       tenantId,
@@ -200,7 +250,7 @@ export class IsolatedTenantPlatform<M extends Record<string, Module>> {
     const db = await this.units.db.getTenantDb(tenantId);
     await context.run(
       {
-        auth: this.units.auth.auth,
+        auth: this.units.auth,
         db,
         pubsub: this.units.pubsub,
         tenantId,

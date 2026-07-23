@@ -13,19 +13,19 @@ A **Unit** is an infrastructure service managed by the framework. There are exac
 ```ts title="src/server/index.ts"
 interface Unit {
   readonly $name: string;
-  $destroy(): Promise<void>;
+  $cleanup(): Promise<void>;
   $prepare?(): Promise<void>;
 }
 ```
 
-Server units use a `$` prefix on lifecycle methods (`$name`, `$prepare`, `$destroy`). This deliberately separates framework lifecycle calls from the unit's own public API — for example, `DatabaseUnit.$destroy()` shuts down the connection pool, while `DatabaseUnit.db` is the drizzle instance you use day-to-day.
+Server units use a `$` prefix on lifecycle methods (`$name`, `$prepare`, `$cleanup`). This deliberately separates framework lifecycle calls from the unit's own public API — for example, `DatabaseUnit.$cleanup()` shuts down the connection pool, while `DatabaseUnit.db` is the drizzle instance you use day-to-day.
 
 ### Client
 
 ```ts title="src/client/index.ts"
 interface Unit {
   readonly $name: string;
-  $destroy(): Promise<void>;
+  $cleanup(): Promise<void>;
   $prepare?(): Promise<void>;
 }
 ```
@@ -45,12 +45,12 @@ A **Unit** is an infrastructure service managed by the framework. There are exac
 ```ts title="src/server/index.ts"
 interface Unit {
   readonly $name: string;
-  $destroy(): Promise<void>;
+  $cleanup(): Promise<void>;
   $prepare?(): Promise<void>;
 }
 ```
 
-Server units use a `$` prefix on lifecycle methods (`$name`, `$prepare`, `$destroy`). This deliberately separates framework lifecycle calls from the unit's own public API — for example, `DatabaseUnit.$destroy()` shuts down the connection pool, while `DatabaseUnit.db` is the drizzle instance you use day-to-day.
+Server units use a `$` prefix on lifecycle methods (`$name`, `$prepare`, `$cleanup`). This deliberately separates framework lifecycle calls from the unit's own public API — for example, `DatabaseUnit.$cleanup()` shuts down the connection pool, while `DatabaseUnit.db` is the drizzle instance you use day-to-day.
 
  prefix as server units. The client framework is lighter — it has no database, no pubsub, no storage, and no kv store.
 
@@ -92,7 +92,7 @@ The client framework (`@aspen-os/framework/client`) instantiates only three unit
 | Key | Unit class | Purpose |
 |---|---|---|
 | `auth` | `AuthUnit` | Wraps the better-auth React client |
-| `logs` | `LogUnit` | Stub — throws on `$prepare()` / `$destroy()` |
+| `logs` | `LogUnit` | Stub — throws on `$prepare()` / `$cleanup()` |
 | `rpc` | `RpcUnit` | Stub — no-op |
 
 Client units receive no constructor-injected dependencies. The client `AuthUnit` takes the `access_control` and `roles` config and passes them to the `adminClient()` plugin for client-side role checking.
@@ -135,8 +135,8 @@ framework.prepare()
   → isolated mode: $prepareTenant(tenantId) per tenant
 
 framework.destroy()
-  → for each module: mod.$destroy()     // catches + logs per-module errors
-  → for each unit: unit.$destroy()      // catches + logs per-unit errors
+  → for each module: mod.$cleanup()     // catches + logs per-module errors
+  → for each unit: unit.$cleanup()      // catches + logs per-unit errors
 ```
 
 ### `$prepare()`
@@ -150,12 +150,12 @@ Called during `framework.prepare()`. This is where a unit sets up its runtime st
 
 Errors are caught and logged per-unit — a failing unit does not prevent other units or modules from preparing.
 
-### `$destroy()`
+### `$cleanup()`
 
 Called during `framework.destroy()`, after all modules are destroyed. This is where a unit releases resources:
 
-- `DatabaseUnit.$destroy()` ends the `pg.Pool`.
-- `PubSubUnit.$destroy()` stops the monitor loop and unregisters listeners.
+- `DatabaseUnit.$cleanup()` ends the `pg.Pool`.
+- `PubSubUnit.$cleanup()` stops the monitor loop and unregisters listeners.
 - Other units close connections, clear caches, or release handles.
 
 Errors are caught and logged — a failing destroy does not prevent other units from being destroyed.
@@ -224,6 +224,6 @@ Units represent fixed infrastructure — database, auth, storage, pubsub. These 
 
 - **Stable contracts**: Each unit's constructor signature and injected dependencies are known at compile time. The framework's `FrameworkUnits` type is a fixed map.
 - **Dependency order**: Instantiation order matters (units depend on each other). The framework controls this via `Framework.create()`.
-- **Lifecycle guarantees**: The framework calls `$prepare()` and `$destroy()` in the correct order, with error isolation per-unit.
+- **Lifecycle guarantees**: The framework calls `$prepare()` and `$cleanup()` in the correct order, with error isolation per-unit.
 
 If you need to add functionality, create a **module** instead — modules are pluggable, receive all units via `initialize()`, and follow their own lifecycle. See [Modules](/docs/framework/module) and [Custom Module](/docs/framework/custom-module).

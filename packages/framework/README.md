@@ -157,7 +157,7 @@ A **Unit** is an infrastructure building block. The server `Unit` interface:
 ```ts
 interface Unit {
   readonly $name: string
-  $destroy(): Promise<void>
+  $cleanup(): Promise<void>
   $prepare?(): Promise<void>
 }
 ```
@@ -321,12 +321,12 @@ A **Unit** is an infrastructure building block. The server `Unit` interface:
 ```ts
 interface Unit {
   readonly $name: string
-  $destroy(): Promise<void>
+  $cleanup(): Promise<void>
   $prepare?(): Promise<void>
 }
 ```
 
- prefix for lifecycle methods (`$name`, `$prepare`, `$destroy`) to avoid collisions with the unit's own public API. Client units use the same `# @aspen-os/framework
+ prefix for lifecycle methods (`$name`, `$prepare`, `$cleanup`) to avoid collisions with the unit's own public API. Client units use the same `# @aspen-os/framework
 
 A composable business application framework for Bun/TypeScript. Provides seven infrastructure units (database, auth, logging, pub/sub, RPC, storage, KV store) and a module system so domain-specific business logic can be built on top without reinventing plumbing.
 
@@ -485,7 +485,7 @@ A **Unit** is an infrastructure building block. The server `Unit` interface:
 ```ts
 interface Unit {
   readonly $name: string
-  $destroy(): Promise<void>
+  $cleanup(): Promise<void>
   $prepare?(): Promise<void>
 }
 ```
@@ -504,7 +504,7 @@ interface Module<N extends string = string> {
   $initialize?(units: Record<string, Unit>): void
   $prepare?(): Promise<void>
   $prepareTenant?(tenantId: string): Promise<void>  // isolated mode
-  $destroy(): Promise<void>
+  $cleanup(): Promise<void>
 }
 ```
 
@@ -532,8 +532,8 @@ framework.run(fn)
 framework.run(tenantId, fn)   --> multi-tenant: per-request db + tenantId in context
 
 framework.destroy()
-    --> module.$destroy() for each module
-    --> unit.$destroy() for each unit
+    --> module.$cleanup() for each module
+    --> unit.$cleanup() for each unit
 ```
 
 `prepare()` and `destroy()` catch and log errors per-unit/module/tenant. They do not throw on individual failures.
@@ -671,7 +671,7 @@ interface LogConfig {
 type LogLevel = "debug" | "info" | "warn" | "error" | "fatal"
 ```
 
-Logs are buffered in memory (capacity: 100 entries) and flushed to Postgres every 5 seconds. `$destroy()` drains the buffer to ensure no logs are lost.
+Logs are buffered in memory (capacity: 100 entries) and flushed to Postgres every 5 seconds. `$cleanup()` drains the buffer to ensure no logs are lost.
 
 ```ts
 framework.logs.debug(message: string, metadata?: Record<string, unknown>): void
@@ -875,7 +875,7 @@ export class XxxModule {
     // push schema, register pubsub handlers/schedules
   }
 
-  async $destroy(): Promise<void> {
+  async $cleanup(): Promise<void> {
     // unregister handlers, null out private fields
     this.#workflow = null
   }
@@ -932,8 +932,8 @@ On the server side, `access_control` and `roles` from `AuthConfig` are passed to
 | `FrameworkInstance<M>` | Proxy-wrapped instance with unit + module accessors |
 | `FrameworkConfig` | Config for all 7 required units |
 | `FrameworkUnits` | Map of unit name to unit instance |
-| `Unit` | Server unit interface (`$name`, `$prepare`, `$destroy`) |
-| `Module<N>` | Module interface (`$name`, `$initialize`, `$prepare`, `$prepareTenant`, `$destroy`) |
+| `Unit` | Server unit interface (`$name`, `$prepare`, `$cleanup`) |
+| `Module<N>` | Module interface (`$name`, `$initialize`, `$prepare`, `$prepareTenant`, `$cleanup`) |
 | `DatabaseConfig` | DB connection parameters |
 | `TenancyConfig` | Tenancy mode configuration (`single`, `shared`, `isolated`) |
 | `TenancyMode` | `"single" \\| "shared" \\| "isolated"` |
@@ -1112,7 +1112,7 @@ A **Unit** is an infrastructure building block. The server `Unit` interface:
 ```ts
 interface Unit {
   readonly $name: string
-  $destroy(): Promise<void>
+  $cleanup(): Promise<void>
   $prepare?(): Promise<void>
 }
 ```
@@ -1276,12 +1276,12 @@ A **Unit** is an infrastructure building block. The server `Unit` interface:
 ```ts
 interface Unit {
   readonly $name: string
-  $destroy(): Promise<void>
+  $cleanup(): Promise<void>
   $prepare?(): Promise<void>
 }
 ```
 
- prefix for lifecycle methods (`$name`, `$prepare`, `$destroy`) to avoid collisions with the unit's own public API. Client units use the same `# @aspen-os/framework
+ prefix for lifecycle methods (`$name`, `$prepare`, `$cleanup`) to avoid collisions with the unit's own public API. Client units use the same `# @aspen-os/framework
 
 A composable business application framework for Bun/TypeScript. Provides seven infrastructure units (database, auth, logging, pub/sub, RPC, storage, KV store) and a module system so domain-specific business logic can be built on top without reinventing plumbing.
 
@@ -1440,7 +1440,7 @@ A **Unit** is an infrastructure building block. The server `Unit` interface:
 ```ts
 interface Unit {
   readonly $name: string
-  $destroy(): Promise<void>
+  $cleanup(): Promise<void>
   $prepare?(): Promise<void>
 }
 ```
@@ -1459,7 +1459,7 @@ interface Module<N extends string = string> {
   $initialize?(units: Record<string, Unit>): void
   $prepare?(): Promise<void>
   $prepareTenant?(tenantId: string): Promise<void>  // isolated mode
-  $destroy(): Promise<void>
+  $cleanup(): Promise<void>
 }
 ```
 
@@ -1487,8 +1487,8 @@ framework.run(fn)
 framework.run(tenantId, fn)   --> multi-tenant: per-request db + tenantId in context
 
 framework.destroy()
-    --> module.$destroy() for each module
-    --> unit.$destroy() for each unit
+    --> module.$cleanup() for each module
+    --> unit.$cleanup() for each unit
 ```
 
 `prepare()` and `destroy()` catch and log errors per-unit/module/tenant. They do not throw on individual failures.
@@ -1626,7 +1626,7 @@ interface LogConfig {
 type LogLevel = "debug" | "info" | "warn" | "error" | "fatal"
 ```
 
-Logs are buffered in memory (capacity: 100 entries) and flushed to Postgres every 5 seconds. `$destroy()` drains the buffer to ensure no logs are lost.
+Logs are buffered in memory (capacity: 100 entries) and flushed to Postgres every 5 seconds. `$cleanup()` drains the buffer to ensure no logs are lost.
 
 ```ts
 framework.logs.debug(message: string, metadata?: Record<string, unknown>): void
@@ -1830,7 +1830,7 @@ export class XxxModule {
     // push schema, register pubsub handlers/schedules
   }
 
-  async $destroy(): Promise<void> {
+  async $cleanup(): Promise<void> {
     // unregister handlers, null out private fields
     this.#workflow = null
   }
@@ -1887,8 +1887,8 @@ On the server side, `access_control` and `roles` from `AuthConfig` are passed to
 | `FrameworkInstance<M>` | Proxy-wrapped instance with unit + module accessors |
 | `FrameworkConfig` | Config for all 7 required units |
 | `FrameworkUnits` | Map of unit name to unit instance |
-| `Unit` | Server unit interface (`$name`, `$prepare`, `$destroy`) |
-| `Module<N>` | Module interface (`$name`, `$initialize`, `$prepare`, `$prepareTenant`, `$destroy`) |
+| `Unit` | Server unit interface (`$name`, `$prepare`, `$cleanup`) |
+| `Module<N>` | Module interface (`$name`, `$initialize`, `$prepare`, `$prepareTenant`, `$cleanup`) |
 | `DatabaseConfig` | DB connection parameters |
 | `TenancyConfig` | Tenancy mode configuration (`single`, `shared`, `isolated`) |
 | `TenancyMode` | `"single" \\| "shared" \\| "isolated"` |

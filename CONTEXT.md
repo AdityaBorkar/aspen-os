@@ -11,11 +11,11 @@ The orchestrator class. Created via the static `Framework.create(config, modules
 _Avoid_: App, Container, DI Container
 
 **Unit**:
-An infrastructure building block with a `$name`, a `$destroy()` method, and an optional `$prepare()` method. Seven core server units: `db`, `auth`, `logs`, `pubsub`, `rpc`, `storage`, `kvStore`. Three client units: `auth`, `logs`, `rpc`. Both server and client Unit interfaces use the `$` prefix for lifecycle methods and the name property.
+An infrastructure building block with a `$name`, a `$cleanup()` method, and an optional `$prepare()` method. Seven core server units: `db`, `auth`, `logs`, `pubsub`, `rpc`, `storage`, `kvStore`. Three client units: `auth`, `logs`, `rpc`. Both server and client Unit interfaces use the `$` prefix for lifecycle methods and the name property.
 _Avoid_: Service, Provider
 
 **Module**:
-A business logic plugin passed to `Framework.create()`. Receives unit dependencies via `$initialize(units)`. Same interface shape as Unit (`$name`, `$destroy()`, optional `$prepare()`). Accessed on the framework instance via proxy — e.g., `framework.organization`. Both server and client Module interfaces use the `$` prefix.
+A business logic plugin passed to `Framework.create()`. Receives unit dependencies via `$initialize(units)`. Same interface shape as Unit (`$name`, `$cleanup()`, optional `$prepare()`). Accessed on the framework instance via proxy — e.g., `framework.organization`. Both server and client Module interfaces use the `$` prefix.
 _Avoid_: Plugin, Extension
 
 **Create**:
@@ -492,7 +492,7 @@ Stubs (package.json + empty src/index.ts): accounting, crm, fleet, inventory, re
 1. **`RoleUnassignedEvent` missing `roleName`** — unlike `RoleAssignedEvent` which has `{ roleName, userId }`, the unassigned event only has `{ userId }`.
 2. **Session expiry hardcoded at 7 days** — `AuthConfig.session.expiresIn` is accepted but not read by the session workflow. The 7-day value is hardcoded in `session.ts`.
 3. **PubSub `boss.start()` not awaited** — the constructor calls `this.boss.start()` without `await`, which could cause race conditions if `publish`/`subscribe` are called before the connection is established.
-4. **Client LogUnit `$prepare()` and `$destroy()` throw** — the client LogUnit is a stub that throws on lifecycle methods.
+4. **Client LogUnit `$prepare()` and `$cleanup()` throw** — the client LogUnit is a stub that throws on lifecycle methods.
 5. **`client/context.ts` is empty** — the client framework has no `run()` method or `AsyncLocalStorage`.
 6. **`increment()`/`decrement()` on KvStoreUnit are not atomic** — read-modify-write, not database-level atomic ops.
 7. **No DB-level foreign key constraints in compliance, tasks, or drive modules** — all cross-table references are logical (soft FKs by naming convention), not enforced by the database.

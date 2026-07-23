@@ -1,12 +1,26 @@
-import type { DatabaseUnit, PubSubUnit } from "@aspen-os/framework/server";
+import type {
+  DatabaseUnit,
+  ModuleInfra,
+  PubSubUnit,
+} from "@aspen-os/framework/server";
 
 import * as dbSchema from "./db-schema";
+import {
+  BRANCH_EVENTS,
+  CONNECTION_EVENTS,
+  ORGANIZATION_EVENTS,
+} from "./event-map";
 import { AddressWorkflow } from "./workflows/address";
 import { BankAccountWorkflow } from "./workflows/bank-account";
 import { BranchWorkflow } from "./workflows/branch";
 import { ConnectionWorkflow } from "./workflows/connection";
 import { OrganizationWorkflow } from "./workflows/organization";
 
+export {
+  BRANCH_EVENTS,
+  CONNECTION_EVENTS,
+  ORGANIZATION_EVENTS,
+} from "./event-map";
 export type {
   AddressFilters,
   BankAccountFilters,
@@ -48,6 +62,7 @@ export class OrganizationModule {
 
   readonly db_schema = dbSchema;
   readonly $name = "organization";
+  readonly $dependencies: readonly string[] = [];
 
   #addresses: AddressWorkflow | null = null;
   #bankAccounts: BankAccountWorkflow | null = null;
@@ -89,7 +104,21 @@ export class OrganizationModule {
     this.#organization = new OrganizationWorkflow(units.db.db);
   }
 
-  async $destroy(): Promise<void> {
+  $prepareInfra(): ModuleInfra {
+    return {
+      auth: { acl: {} },
+      db: { schemas: dbSchema.organizationTables },
+      events: {
+        branch: BRANCH_EVENTS,
+        connection: CONNECTION_EVENTS,
+        organization: ORGANIZATION_EVENTS,
+      },
+    };
+  }
+
+  $prepareRuntime() {}
+
+  async $cleanup(): Promise<void> {
     this.#addresses = null;
     this.#bankAccounts = null;
     this.#branches = null;

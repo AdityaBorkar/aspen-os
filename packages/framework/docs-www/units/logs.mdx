@@ -48,7 +48,7 @@ class LogUnit {
   async getStats(service?, startTime?, endTime?): Promise<LogStats>;
 
   async $prepare(): Promise<void>;
-  async $destroy(): Promise<void>;
+  async $cleanup(): Promise<void>;
 }
 ```
 

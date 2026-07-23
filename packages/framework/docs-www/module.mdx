@@ -14,7 +14,7 @@ interface Module<N extends string = string> {
   $initialize?(units: Record<string, Unit>): void;
   $prepare?(): Promise<void>;
   $prepareTenant?(tenantId: string): Promise<void>;
-  $destroy(): Promise<void>;
+  $cleanup(): Promise<void>;
 }
 ```
 
@@ -37,10 +37,10 @@ A **Module** is a package of domain business logic. Modules are optional, plugga
 | `$initialize(units)` | Inside `Framework.create()`, after all units are instantiated | Receives all 7 units. Creates workflows with `db` and `pubsub` references. |
 | `$prepare()` | During `framework.prepare()`, after all units have prepared | Pushes domain schemas via `pushSchema()`, registers pubsub handlers/schedules. |
 | `$prepareTenant(tenantId)` | During `framework.prepare()` in isolated mode, per tenant | Registers per-tenant cron schedules and subscriptions. |
-| `$destroy()` | During `framework.destroy()`, before units are destroyed | Nulls private fields, unregisters pubsub handlers. **Required** (not optional). |
+| `$cleanup()` | During `framework.destroy()`, before units are destroyed | Nulls private fields, unregisters pubsub handlers. **Required** (not optional). |
 
 <Callout type="warn">
-  `$destroy()` is the only **required** method on the `Module` interface. `$initialize()`, `$prepare()`, and `$prepareTenant()` are optional.
+  `$cleanup()` is the only **required** method on the `Module` interface. `$initialize()`, `$prepare()`, and `$prepareTenant()` are optional.
 </Callout>
 
 ## How Modules Are Created
@@ -145,12 +145,12 @@ async $prepare(): Promise<void> {
 }
 ```
 
-### `$destroy()` nulls fields
+### `$cleanup()` nulls fields
 
 Required. Unregisters pubsub handlers and nulls out private workflow fields to prevent use-after-destroy:
 
 ```ts
-async $destroy(): Promise<void> {
+async $cleanup(): Promise<void> {
   this.#pubsub.unsubscribe(/* ... */);
   this.#branches = null;
   this.#addresses = null;

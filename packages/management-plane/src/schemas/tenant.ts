@@ -47,6 +47,16 @@ export type UpdateTenantCompanionInput = InferOutput<
   typeof UpdateTenantCompanionSchema
 >;
 
+export const UpdateTenantSchema = object({
+  logo: optional(nullable(string())),
+  name: optional(NameSchema),
+  plan: optional(nullable(string())),
+  slug: optional(SlugSchema),
+  status: optional(nullable(string())),
+});
+
+export type UpdateTenantInput = InferOutput<typeof UpdateTenantSchema>;
+
 export const TenantFiltersSchema = object({
   plan: optional(string()),
   search: optional(string()),

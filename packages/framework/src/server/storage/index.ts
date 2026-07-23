@@ -32,11 +32,11 @@ export class StorageUnit {
     });
   }
 
-  async $prepare(): Promise<void> {
+  async $prepareInfra(): Promise<void> {
     return;
   }
 
-  async $destroy(): Promise<void> {
+  async $cleanup(): Promise<void> {
     // Cleanup if needed
   }
 

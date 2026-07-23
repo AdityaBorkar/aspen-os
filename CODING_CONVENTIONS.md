@@ -109,12 +109,12 @@ Shared dependency versions are pinned in the root `package.json` `workspaces.cat
 ```ts
 interface Unit {
   readonly $name: string;
-  $destroy(): Promise<void>;
+  $cleanup(): Promise<void>;
   $prepare?(): Promise<void>;
 }
 ```
 
-Server units use the `$` prefix for lifecycle methods (`$name`, `$destroy`, `$prepare`).
+Server units use the `$` prefix for lifecycle methods (`$name`, `$cleanup`, `$prepare`).
 
 ### Unit interface (client)
 
@@ -146,7 +146,7 @@ interface Module<N extends string = string> {
 - `create()` is a **static factory** — the only way to construct a Framework. It instantiates all 7 units, calls `module.initialize(units)` on each module, and returns a proxy-wrapped `FrameworkInstance`.
 - `prepare()` runs each unit's `$prepare()` then each module's `prepare()`. Errors are caught and logged per-unit/module.
 - `run(fn)` executes `fn` inside `AsyncLocalStorage` providing `{ db: NodePgDatabase, pubsub: PubSubUnit }`.
-- `destroy()` runs module `destroy()` then unit `$destroy()`. Errors are caught and logged.
+- `destroy()` runs module `destroy()` then unit `$cleanup()`. Errors are caught and logged.
 
 ### Seven required units
 
@@ -394,7 +394,7 @@ export type DomainEventMap = EntityEventMap & OtherEntityEventMap;
 | DB columns | `snake_case` (mapped to camelCase TS) | `created_at` → `createdAt` |
 | Event topics | `domain:event_name` | `organization:updated` |
 | Private fields | `#` prefix | `#documents`, `#db` |
-| Unit lifecycle (server) | `$` prefix | `$name`, `$prepare`, `$destroy` |
+| Unit lifecycle (server) | `$` prefix | `$name`, `$prepare`, `$cleanup` |
 | Unit lifecycle (client) | no prefix | `name`, `prepare`, `destroy` |
 | Package exports | `@aspen-os/<name>` | `@aspen-os/framework`, `@aspen-os/organization` |
 | Module `name` property | `kebab-case` string | `"organization"`, `"compliance"` |

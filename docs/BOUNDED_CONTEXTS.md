@@ -90,8 +90,8 @@
 **Shared between**: All units and modules
 
 **Contents** (inline in `packages/framework/src/server/index.ts` and `packages/framework/src/client/index.ts`):
-- `Unit` interface — `{ $name: string, $destroy(): Promise<void>, $prepare?(): Promise<void> }`
-- `Module` interface — `{ $name: N, $initialize?(units: Record<string, Unit>): void, $prepare?(): Promise<void>, $destroy(): Promise<void> }`
+- `Unit` interface — `{ $name: string, $cleanup(): Promise<void>, $prepareInfra?(): Promise<void> }`
+- `Module` interface — `{ $name: N, $initialize?(units: Record<string, Unit>): void, $prepareInfra?(): ModuleInfra, $prepareRuntime?(): Promise<void>, $cleanup(): Promise<void> }`
 
 Both server and client use the `$` prefix for lifecycle methods and the name property.
 
@@ -221,9 +221,9 @@ DatabaseUnit ← KvStoreUnit
 **Lifecycle**:
 ```
 Framework.create(config, { organization, compliance, tasks, drive })
-    → framework.prepare()    // runs unit.$prepare() + mod.$prepare()
-    → framework.run(fn)      // AsyncLocalStorage context
-    → framework.destroy()    // mod.$destroy() then unit.$destroy()
+    → framework.prepareInfra()  // unit.$prepareInfra() + collect mod.$prepareInfra() + mod.$prepareRuntime()
+    → framework.run(fn)         // AsyncLocalStorage context
+    → framework.destroy()       // mod.$cleanup() then unit.$cleanup()
 ```
 
 **Adaptations**:
@@ -242,7 +242,7 @@ Framework.create(config, { organization, compliance, tasks, drive })
 - 7 database tables: `organization`, `branch`, `connection`, `connection_contact`, `connection_note`, `address`, `bank_account`
 - 11 domain events published via PubSub
 - Valibot validation schemas for all inputs
-- No `$prepare()` — schema pushing handled by `DatabaseUnit.$prepare()`
+- `$prepareInfra()` returns declarative infra (db schemas, events) — schema pushing handled centrally by platform
 
 **Exposed on framework instance**: `framework.organization.addresses`, `framework.organization.branches`, `framework.organization.connections`, `framework.organization.organization`, `framework.organization.bankAccounts`
 
@@ -256,7 +256,8 @@ Framework.create(config, { organization, compliance, tasks, drive })
 - 5 services: `AuditWriter`, `EventBridge`, `ObligationGenerator`, `ReminderEngine`, `StatusDerivation` (pure functions)
 - 4 database tables: `compliance_document`, `compliance_obligation`, `compliance_verification_rule`, `compliance_audit_entry`
 - 23 domain events published via PubSub
-- `$prepare()` — pushes schema to DB, registers reminder cron schedules, obligation generator handler, and event bridge subscriptions
+- `$prepareInfra()` — returns declarative infra (db schemas, acl, events)
+- `$prepareRuntime()` — registers reminder cron schedules, obligation generator handler, and event bridge subscriptions
 
 **Cross-context integration**: The `EventBridge` service subscribes to events from other modules:
 - `hr:employee_onboarded` → creates background check + ID verification documents
@@ -278,7 +279,7 @@ Framework.create(config, { organization, compliance, tasks, drive })
 - 4 services: `NotificationBridge`, `ReportService`, `FilterEngine`, `DependencyGraphService`
 - 17 database tables covering projects, tasks, statuses, types, links, time entries, reminders, comments, attachments, watchers, saved views, and automation rules
 - 10 domain events published via PubSub
-- No `$prepare()` — schema pushing handled by `DatabaseUnit.$prepare()`
+- `$prepareInfra()` returns declarative infra (db schemas, events) — schema pushing handled centrally by platform
 
 **Config**: `TaskModuleConfig = { enableNotifications?: boolean }`
 
@@ -292,7 +293,8 @@ Framework.create(config, { organization, compliance, tasks, drive })
 - 5 services: `AccessService`, `ArchiveService`, `PathService`, `SearchService`, `StorageBridge`
 - 8 database tables: `drive_folder`, `drive_file`, `drive_file_version`, `drive_label`, `drive_item_label`, `drive_share`, `drive_public_link`, `drive_access_log`
 - 14 domain events published via PubSub
-- `$prepare()` — registers trash purge cron (`0 3 * * *`) on topic `drive:auto-purge`
+- `$prepareInfra()` — returns declarative infra (db schemas, events)
+- `$prepareRuntime()` — registers trash purge cron (`0 3 * * *`) on topic `drive:auto-purge`
 
 **Config**: `DriveModuleConfig = { allowedContentTypes?, maxFileSize?, maxNestingDepth?, maxVersions?, trashRetentionDays?, ... }`
 
@@ -308,7 +310,7 @@ Framework.create(config, { organization, compliance, tasks, drive })
 
 **Relationship**: A separate `Framework` class for browser-side use with 3 units:
 - `AuthUnit` — wraps better-auth React client with plugins (admin, emailOTP, username, phoneNumber)
-- `LogUnit` — stub (throws on `$prepare()`/`$destroy()`)
+- `LogUnit` — stub (throws on `$prepareInfra()`/`$cleanup()`)
 - `RpcUnit` — stub (no-op)
 
 **No database dependency**: Client framework has no `DatabaseUnit`, `PubSubUnit`, `StorageUnit`, or `KvStoreUnit`.
@@ -382,16 +384,18 @@ The Compliance module's `EventBridge` service actively subscribes to events from
 
 ### Schema Management
 
-`DatabaseUnit.$prepare()` uses `pushSchema()` from drizzle-kit to automatically apply schema changes:
+Modules declare their DB schemas via `$prepareInfra()` (returns `{ db: { schemas } }`). The platform collects all module schemas and applies them centrally via `DatabaseUnit.prepareWithModules()`:
 
 ```
-Framework.prepare() → unit.$prepare() + mod.$prepare()
-    → DatabaseUnit.$prepare() → pushSchema(allSchemas, db) → apply()
+Framework.prepareInfra()
+    → unit.$prepareInfra()                    // core infra (db pool, pubsub boss, etc.)
+    → mod.$prepareInfra() for each module     // collect { db, auth, events } declarations
+    → DatabaseUnit.prepareWithModules(schemas) // pushSchema(coreSchemas + moduleSchemas, db)
+    → AuthUnit.applyModuleAcl(acl)            // store merged ACL metadata
+    → mod.$prepareRuntime() for each module   // register pubsub schedules/handlers
 ```
 
-Schemas collected by `DatabaseUnit.$prepare()`: `authSchema`, `logSchema`, `storageSchema`, `kvStoreSchema`, plus module `db_schema` exports.
-
-**Note**: The Compliance module also pushes its own schema in its `$prepare()` method (in addition to the framework's `DatabaseUnit.$prepare()`), because it needs schema available before registering cron handlers.
+Schemas collected by `DatabaseUnit.prepareWithModules()`: core schemas (`authSchema`, `logSchema`, `storageSchema`, `kvStoreSchema`, `workflowSchema`) merged with module `db.schemas` from `$prepareInfra()`.
 
 ### Scheduled Jobs
 

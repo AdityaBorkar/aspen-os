@@ -251,7 +251,7 @@ export class MyModule {
     }
   }
 
-  async $destroy(): Promise<void> {
+  async $cleanup(): Promise<void> {
     this.#entities = null;
     this.#db = null;
   }
@@ -295,6 +295,6 @@ await framework.run(async () => {
 | `db_schema` export | The drizzle schema namespace |
 | `$name` as a readonly string | `readonly $name = "my-module"` |
 | `$prepare()` pushes schema | Uses `pushSchema()` from `drizzle-kit/api` |
-| `$destroy()` nulls fields | Unregisters handlers and nulls private fields |
+| `$cleanup()` nulls fields | Unregisters handlers and nulls private fields |
 | Valibot for validation | Domain module input validation |
 | Events as `"domain:event_name"` | Typed via `EventMap`, published as plain strings |

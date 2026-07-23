@@ -100,11 +100,17 @@ export class AuthUnit {
     this.deps.pubsub = pubsub;
   }
 
-  async $prepare() {
+  private moduleAcl: Record<string, { allowedActions: string[] }> = {};
+
+  async $prepareInfra() {
     return;
   }
 
-  async $destroy() {
+  applyModuleAcl(acl: Record<string, { allowedActions: string[] }>): void {
+    Object.assign(this.moduleAcl, acl);
+  }
+
+  async $cleanup() {
     return;
   }
 

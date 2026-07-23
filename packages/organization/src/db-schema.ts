@@ -255,3 +255,13 @@ export const connectionNote = pgTable(
     index("idx_connection_note_type").on(table.type),
   ],
 );
+
+export const organizationTables = {
+  address,
+  bankAccount,
+  branch,
+  connection,
+  connectionContact,
+  connectionNote,
+  organization,
+} as const;

@@ -63,7 +63,7 @@ Exports:
 
 The client framework has 3 units:
 - `AuthUnit` — wraps better-auth React client
-- `LogUnit` — stub (throws on `$prepare()`/`$destroy()`)
+- `LogUnit` — stub (throws on `$prepare()`/`$cleanup()`)
 - `RpcUnit` — stub (no-op)
 
 ## FrameworkConfig
@@ -95,7 +95,7 @@ framework.prepare()                 →  unit.$prepare() then module.$prepare()
 framework.run(fn)                   →  AsyncLocalStorage { auth, db, pubsub, tenantId? }
 framework.run(tenantId, fn)         →  per-request db + tenantId in context
     ↓
-framework.destroy()                 →  module.$destroy() then unit.$destroy()
+framework.destroy()                 →  module.$cleanup() then unit.$cleanup()
 ```
 
 ### `create(config, modules)`
@@ -127,7 +127,7 @@ In `single` mode, `run(fn)` is used. In `shared`/`isolated` modes, `run(tenantId
 
 ### `destroy()`
 
-Runs `module.$destroy()` then `unit.$destroy()`. Errors are caught and logged.
+Runs `module.$cleanup()` then `unit.$cleanup()`. Errors are caught and logged.
 
 ## Dependency Graph
 

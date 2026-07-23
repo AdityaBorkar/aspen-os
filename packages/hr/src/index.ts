@@ -1,7 +1,20 @@
-import type { DatabaseUnit, PubSubUnit } from "@aspen-os/framework/server";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type {
+  DatabaseUnit,
+  ModuleInfra,
+  PubSubUnit,
+} from "@aspen-os/framework/server";
 
 import * as dbSchema from "./db-schema";
+import {
+  ACCESS_EVENTS,
+  ATTENDANCE_EVENTS,
+  EMPLOYEE_EVENTS,
+  LEAVE_EVENTS,
+  LIFECYCLE_EVENTS,
+  OVERTIME_EVENTS,
+  SETUP_EVENTS,
+  SHIFT_EVENTS,
+} from "./event-map";
 import { AccessWorkflow } from "./workflows/access";
 import { AttendanceWorkflow } from "./workflows/attendance";
 import { EmployeeWorkflow } from "./workflows/employee";
@@ -53,10 +66,12 @@ export class HrModule {
     return new HrModule(config);
   }
 
-  constructor(private config: HrModuleConfig) {}
+  // biome-ignore lint/complexity/noUselessConstructor: used by static create()
+  constructor(_config: HrModuleConfig) {}
 
   readonly db_schema = dbSchema;
   readonly $name = "hr";
+  readonly $dependencies: readonly string[] = [];
 
   #access: AccessWorkflow | null = null;
   #attendance: AttendanceWorkflow | null = null;
@@ -66,7 +81,6 @@ export class HrModule {
   #overtime: OvertimeWorkflow | null = null;
   #setup: SetupWorkflow | null = null;
   #shift: ShiftWorkflow | null = null;
-  #db: NodePgDatabase | null = null;
 
   get access(): AccessWorkflow {
     if (!this.#access) throw notInitialized();
@@ -109,7 +123,6 @@ export class HrModule {
   }
 
   $initialize(units: { db: DatabaseUnit; pubsub: PubSubUnit }): void {
-    this.#db = units.db.db;
     this.#access = new AccessWorkflow(units.db.db);
     this.#attendance = new AttendanceWorkflow(units.db.db);
     this.#employee = new EmployeeWorkflow(units.db.db);
@@ -120,27 +133,24 @@ export class HrModule {
     this.#shift = new ShiftWorkflow(units.db.db);
   }
 
-  async $prepare(): Promise<void> {
-    if (!this.#db) throw notInitialized();
-
-    const { pushSchema } = await import("drizzle-kit/api");
-    const result = await pushSchema(dbSchema.hrTables, this.#db);
-    if (result.statementsToExecute.length > 0) {
-      console.log(
-        `[hr] Applying schema for ${this.config.country}: ${result.statementsToExecute.length} statements`,
-      );
-      if (result.hasDataLoss) {
-        console.warn(
-          "[hr] Schema push has data loss warnings:",
-          result.warnings,
-        );
-      }
-      await result.apply();
-      console.log("[hr] Schema applied");
-    }
+  $prepareInfra(): ModuleInfra {
+    return {
+      auth: { acl: {} },
+      db: { schemas: dbSchema.hrTables },
+      events: {
+        access: ACCESS_EVENTS,
+        attendance: ATTENDANCE_EVENTS,
+        employee: EMPLOYEE_EVENTS,
+        leave: LEAVE_EVENTS,
+        lifecycle: LIFECYCLE_EVENTS,
+        overtime: OVERTIME_EVENTS,
+        setup: SETUP_EVENTS,
+        shift: SHIFT_EVENTS,
+      },
+    };
   }
 
-  async $destroy(): Promise<void> {
+  async $cleanup(): Promise<void> {
     this.#access = null;
     this.#attendance = null;
     this.#employee = null;
@@ -149,7 +159,6 @@ export class HrModule {
     this.#overtime = null;
     this.#setup = null;
     this.#shift = null;
-    this.#db = null;
   }
 }
 

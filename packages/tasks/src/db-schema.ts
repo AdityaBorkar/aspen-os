@@ -421,3 +421,23 @@ export const automationRule = pgTable(
     index("idx_task_automation_rule_active").on(table.isActive),
   ],
 );
+
+export const taskTables = {
+  activityLog,
+  attachment,
+  automationRule,
+  comment,
+  label,
+  project,
+  projectMember,
+  reminder,
+  savedView,
+  status,
+  statusTransition,
+  task,
+  taskAssignee,
+  taskLink,
+  taskType,
+  timeEntry,
+  watcher,
+} as const;

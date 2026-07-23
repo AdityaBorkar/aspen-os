@@ -129,8 +129,8 @@ The client (`src/client/index.ts`) still has a single `Framework` class with `Fr
 
 ### Units vs Modules
 
-- **Unit**: `{ readonly $name: string; $destroy(): Promise<void>; $prepare?(): Promise<void> }` — `$` prefix on all lifecycle methods.
-- **Module**: `{ readonly $name: N; $initialize?(units: Record<string, Unit>): void; $prepare?(): Promise<void>; $prepareTenant?(tenantId: string): Promise<void>; $destroy(): Promise<void> }`.
+- **Unit**: `{ readonly $name: string; $cleanup(): Promise<void>; $prepare?(): Promise<void> }` — `$` prefix on all lifecycle methods.
+- **Module**: `{ readonly $name: N; $initialize?(units: Record<string, Unit>): void; $prepare?(): Promise<void>; $prepareTenant?(tenantId: string): Promise<void>; $cleanup(): Promise<void> }`.
 - Both interfaces are defined in `src/server/index.ts` and `src/client/index.ts` — no separate types file.
 
 ### Multi-tenancy
@@ -169,7 +169,7 @@ Modules follow a strict pattern (see `organization`, `compliance`, `tasks`, `dri
 - Static `create(config)` factory. Private workflow fields with `#` prefix, initialized lazily in `$initialize(units)`.
 - Getter properties that throw `notInitialized()` if accessed before `$initialize()`.
 - `db_schema` export (drizzle schema namespace). `$name` as a readonly string (kebab-case or camelCase).
-- `$prepare()` is optional — pushes module DB schemas via `pushSchema()` and/or registers pubsub handlers/schedules. `$destroy()` nulls out fields and unregisters.
+- `$prepare()` is optional — pushes module DB schemas via `pushSchema()` and/or registers pubsub handlers/schedules. `$cleanup()` nulls out fields and unregisters.
 - File structure: `src/{index,db-schema,types,event-map,constants}.ts`, `src/schemas/`, `src/workflows/`, optionally `src/services/`.
 - Package: `@aspen-os/<module>`, `"type": "module"`, `exports: { ".": "./src/index.ts" }`, deps on framework + constants via `workspace:*`.
 - **Module `$initialize()` signatures vary** — each module types its own subset of units: organization/tasks take `{ db, pubsub }`; compliance takes `{ db, kvStore, pubsub }`; drive takes `{ db, storage, pubsub }`; **management-plane takes `{ db, auth, pubsub }`**.

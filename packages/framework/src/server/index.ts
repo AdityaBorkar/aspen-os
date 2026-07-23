@@ -39,17 +39,29 @@ export type FrameworkUnits = {
   storage: StorageUnit;
 };
 
+export type ModuleInfra = {
+  auth: {
+    acl: Record<string, { allowedActions: string[] }>;
+  };
+  db: {
+    schemas: Record<string, unknown>;
+  };
+  events: Record<string, Record<string, string>>;
+};
+
 export interface Unit {
-  $destroy(): Promise<void>;
+  $cleanup(): Promise<void>;
   readonly $name: string;
-  $prepare?(): Promise<void>;
+  $prepareInfra?(): Promise<void>;
 }
 
 export interface Module<N extends string = string> {
-  $destroy(): Promise<void>;
-  $initialize?(units: Record<string, Unit>): void;
+  $cleanup(): void | Promise<void>;
+  readonly $dependencies: readonly string[];
+  $initialize(units: Record<string, Unit>): void;
   readonly $name: N;
-  $prepare?(): Promise<void>;
+  $prepareInfra(): ModuleInfra;
+  $prepareRuntime(): void | Promise<void>;
   $prepareTenant?(tenantId: string): Promise<void>;
 }
 
@@ -62,7 +74,7 @@ export type ModuleAccessors<M extends Record<string, Module>> = {
 
 export type FrameworkInstance<M extends Record<string, Module>> = {
   tenancyMode: TenancyMode;
-  prepare(): Promise<void>;
+  prepareInfra(): Promise<void>;
   destroy(): Promise<void>;
   getModule<K extends keyof M>(name: K): M[K];
   getUnit<K extends keyof FrameworkUnits>(name: K): FrameworkUnits[K];
@@ -84,3 +96,18 @@ export {
   SingleTenantPlatform,
   type SingleTenantPlatformInstance,
 } from "./create-single-tenant";
+export {
+  type InferSchemaOutput,
+  type RunOptions,
+  type StandardSchema,
+  type StepOptions,
+  type StepRunner,
+  Workflow,
+  type WorkflowConfig,
+  type WorkflowContext,
+  type WorkflowInstance,
+  type WorkflowRunStatus,
+  WorkflowStep,
+  type WorkflowStepInstance,
+  type WorkflowStepStatus,
+} from "./workflows";

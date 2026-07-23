@@ -217,3 +217,14 @@ export const driveAccessLog = pgTable(
     index("idx_drive_access_log_created").on(table.createdAt),
   ],
 );
+
+export const driveTables = {
+  driveAccessLog,
+  driveFile,
+  driveFileVersion,
+  driveFolder,
+  driveItemLabel,
+  driveLabel,
+  drivePublicLink,
+  driveShare,
+} as const;

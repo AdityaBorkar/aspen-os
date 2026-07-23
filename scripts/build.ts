@@ -6,7 +6,7 @@ import { $, build, file } from "bun";
 
 import deepmerge from "deepmerge";
 
-const $dev = true;
+const $dev = process.argv.includes("--dev");
 const OUTPUT_DIRNAME = ".output";
 
 const ROOT = resolve(process.cwd());
@@ -100,7 +100,7 @@ async function parsePackageJson() {
     }
   }
 
-  revisedPkg.files = [...filesConfig, `./${OUTPUT_DIRNAME}`];
+  revisedPkg.files = [...filesConfig, `./${outputDirname}`];
 
   return { entries, pkg, revisedPkg };
 }

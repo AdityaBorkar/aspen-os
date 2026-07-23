@@ -1,6 +1,6 @@
-import type { Auth } from "better-auth";
 import PgBoss from "pg-boss";
 
+import type { AuthUnit } from "../auth";
 import { context } from "../context";
 import type { DatabaseUnit } from "../db";
 import type { DatabaseConfig } from "../db/types";
@@ -19,7 +19,7 @@ export class PubSubUnit {
 
   private tenancyMode: TenancyMode;
   private dbUnit: DatabaseUnit;
-  private authInstance: Auth | null = null;
+  private authInstance: AuthUnit | null = null;
   private monitorStateIntervalSeconds: number;
 
   private controlPlaneBoss: PgBoss;
@@ -33,15 +33,15 @@ export class PubSubUnit {
     this.controlPlaneBoss = this.createBoss(db.config);
   }
 
-  setAuth(auth: Auth): void {
+  setAuth(auth: AuthUnit): void {
     this.authInstance = auth;
   }
 
-  async $prepare(): Promise<void> {
+  async $prepareInfra(): Promise<void> {
     await this.controlPlaneBoss.start();
   }
 
-  async $destroy(): Promise<void> {
+  async $cleanup(): Promise<void> {
     for (const topic of this.subscriptions.keys()) {
       try {
         await this.controlPlaneBoss.offWork(topic);

@@ -73,11 +73,11 @@ export class AuthUnit<
     }) as unknown as AuthClient<AC, R>;
   }
 
-  async $prepare(): Promise<void> {
+  async $prepareInfra(): Promise<void> {
     return;
   }
 
-  async $destroy(): Promise<void> {
+  async $cleanup(): Promise<void> {
     return;
   }
 }

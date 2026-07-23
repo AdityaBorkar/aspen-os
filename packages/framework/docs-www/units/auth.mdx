@@ -74,7 +74,7 @@ class AuthUnit {
   readonly auth: Auth;                      // raw betterAuth instance
 
   async $prepare(): Promise<void>;   // no-op
-  async $destroy(): Promise<void>;   // no-op
+  async $cleanup(): Promise<void>;   // no-op
   async fetch_handler(request: Request): Promise<Response>;
 
   get api(): Auth["api"];  // raw better-auth API object

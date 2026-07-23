@@ -18,6 +18,16 @@ export {
 export type { ProvisioningInput } from "./provisioning";
 export { ProvisioningInputSchema } from "./provisioning";
 export type {
+  AuditReportFilters,
+  LifecycleReportFilters,
+  TenantUsageFilters,
+} from "./report";
+export {
+  AuditReportFiltersSchema,
+  LifecycleReportFiltersSchema,
+  TenantUsageFiltersSchema,
+} from "./report";
+export type {
   CreateServiceProviderInput,
   ServiceProviderFilters,
   UpdateServiceProviderInput,
@@ -31,6 +41,7 @@ export type {
   ProvisionTenantInput,
   TenantFilters,
   UpdateTenantCompanionInput,
+  UpdateTenantInput,
   UpdateTenantProfileInput,
 } from "./tenant";
 export {
@@ -38,5 +49,12 @@ export {
   TenantFiltersSchema,
   UpdateTenantCompanionSchema,
   UpdateTenantProfileSchema,
+  UpdateTenantSchema,
 } from "./tenant";
-export { EmailSchema, NameSchema, SlugSchema, WebsiteSchema } from "./utils";
+export {
+  EmailSchema,
+  IdSchema,
+  NameSchema,
+  SlugSchema,
+  WebsiteSchema,
+} from "./utils";

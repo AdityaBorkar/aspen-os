@@ -2,6 +2,8 @@ import { maxLength, minLength, object, pipe, regex, string } from "valibot";
 
 const SLUG_REGEX = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
+export const IdSchema = pipe(string(), minLength(1, "ID is required"));
+
 export const SlugSchema = pipe(
   string(),
   minLength(3, "Must be at least 3 characters"),

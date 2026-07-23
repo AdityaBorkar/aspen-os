@@ -75,7 +75,7 @@ class StorageUnit {
   ): Promise<{ files: FileObject[]; nextContinuationToken?: string }>;
 
   async $prepare(): Promise<void>;
-  async $destroy(): Promise<void>;
+  async $cleanup(): Promise<void>;
 }
 ```
 

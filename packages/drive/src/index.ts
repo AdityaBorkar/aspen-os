@@ -1,10 +1,12 @@
 import type {
   DatabaseUnit,
+  ModuleInfra,
   PubSubUnit,
   StorageUnit,
 } from "@aspen-os/framework/server";
 
 import * as dbSchema from "./db-schema";
+import { DRIVE_EVENTS } from "./event-map";
 import { AccessService } from "./services/access-service";
 import { ArchiveService } from "./services/archive-service";
 import { PathService } from "./services/path-service";
@@ -119,6 +121,7 @@ const PURGE_TOPIC = "drive:auto-purge";
 export class DriveModule {
   readonly db_schema = dbSchema;
   readonly $name = "drive";
+  readonly $dependencies: readonly string[] = [];
 
   private config: typeof DEFAULT_CONFIG;
 
@@ -236,7 +239,15 @@ export class DriveModule {
     this.#pubsub = units.pubsub;
   }
 
-  async $prepare(): Promise<void> {
+  $prepareInfra(): ModuleInfra {
+    return {
+      auth: { acl: {} },
+      db: { schemas: dbSchema.driveTables },
+      events: { drive: DRIVE_EVENTS },
+    };
+  }
+
+  async $prepareRuntime(): Promise<void> {
     if (!this.#pubsub || !this.#trash) return;
 
     await this.#pubsub.subscribe(PURGE_TOPIC, async () => {
@@ -246,7 +257,7 @@ export class DriveModule {
     await this.#pubsub.schedule(PURGE_TOPIC, PURGE_CRON);
   }
 
-  async $destroy(): Promise<void> {
+  async $cleanup(): Promise<void> {
     if (this.#pubsub) {
       try {
         await this.#pubsub.unsubscribe(PURGE_TOPIC);

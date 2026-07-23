@@ -1,6 +1,11 @@
-import type { DatabaseUnit, PubSubUnit } from "@aspen-os/framework/server";
+import type {
+  DatabaseUnit,
+  ModuleInfra,
+  PubSubUnit,
+} from "@aspen-os/framework/server";
 
 import * as dbSchema from "./db-schema";
+import { REMINDER_EVENTS, TASK_EVENTS } from "./event-map";
 import { NotificationBridge } from "./services/notification-bridge";
 import { ReportService } from "./services/report-service";
 import { AutomationWorkflow } from "./workflows/automation";
@@ -72,6 +77,7 @@ export class TaskModule {
 
   readonly db_schema = dbSchema;
   readonly $name = "tasks";
+  readonly $dependencies: readonly string[] = [];
 
   #automation: AutomationWorkflow | null = null;
   #collaboration: CollaborationWorkflow | null = null;
@@ -170,7 +176,15 @@ export class TaskModule {
     this.#views = new ViewWorkflow(db);
   }
 
-  async $destroy(): Promise<void> {
+  $prepareInfra(): ModuleInfra {
+    return {
+      auth: { acl: {} },
+      db: { schemas: dbSchema.taskTables },
+      events: { reminder: REMINDER_EVENTS, task: TASK_EVENTS },
+    };
+  }
+
+  async $cleanup(): Promise<void> {
     this.#automation = null;
     this.#collaboration = null;
     this.#comments = null;

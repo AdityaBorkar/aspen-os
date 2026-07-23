@@ -1,11 +1,12 @@
 import type {
   DatabaseUnit,
   KvStoreUnit,
+  ModuleInfra,
   PubSubUnit,
 } from "@aspen-os/framework/server";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 import * as dbSchema from "./db-schema";
+import { COMPLIANCE_EVENTS } from "./event-map";
 import { EventBridge } from "./services/event-bridge";
 import { ObligationGenerator } from "./services/obligation-generator";
 import { ReminderEngine } from "./services/reminder-engine";
@@ -79,6 +80,7 @@ export class ComplianceModule {
 
   readonly db_schema = dbSchema;
   readonly $name = "compliance";
+  readonly $dependencies: readonly string[] = [];
 
   #documents: DocumentWorkflow | null = null;
   #obligations: ObligationWorkflow | null = null;
@@ -88,7 +90,6 @@ export class ComplianceModule {
   #reminderEngine: ReminderEngine | null = null;
   #obligationGenerator: ObligationGenerator | null = null;
   #eventBridge: EventBridge | null = null;
-  #db: NodePgDatabase | null = null;
 
   get documents(): DocumentWorkflow {
     if (!this.#documents) throw notInitialized();
@@ -120,7 +121,6 @@ export class ComplianceModule {
     kvStore: KvStoreUnit;
     pubsub: PubSubUnit;
   }): void {
-    this.#db = units.db.db;
     this.#documents = new DocumentWorkflow(units.db.db, units.pubsub);
     this.#obligations = new ObligationWorkflow(units.db.db, units.pubsub);
     this.#verification = new VerificationWorkflow(units.db.db);
@@ -149,32 +149,50 @@ export class ComplianceModule {
     );
   }
 
-  async $prepare(): Promise<void> {
-    if (!this.#db) throw notInitialized();
+  $prepareInfra(): ModuleInfra {
+    return {
+      auth: {
+        acl: {
+          complianceAuditEntry: { allowedActions: ["read"] },
+          complianceDocument: {
+            allowedActions: [
+              "archive",
+              "create",
+              "delete",
+              "read",
+              "reject",
+              "update",
+              "verify",
+            ],
+          },
+          complianceObligation: {
+            allowedActions: [
+              "activate",
+              "create",
+              "deactivate",
+              "delete",
+              "read",
+              "update",
+            ],
+          },
+          complianceVerificationRule: {
+            allowedActions: ["create", "delete", "read", "update"],
+          },
+        },
+      },
+      db: { schemas: dbSchema.complianceTables },
+      events: { compliance: COMPLIANCE_EVENTS },
+    };
+  }
 
-    const { pushSchema } = await import("drizzle-kit/api");
-    const result = await pushSchema(dbSchema.complianceTables, this.#db);
-    if (result.statementsToExecute.length > 0) {
-      console.log(
-        `[compliance] Applying schema: ${result.statementsToExecute.length} statements`,
-      );
-      if (result.hasDataLoss) {
-        console.warn(
-          "[compliance] Schema push has data loss warnings:",
-          result.warnings,
-        );
-      }
-      await result.apply();
-      console.log("[compliance] Schema applied");
-    }
-
+  async $prepareRuntime(): Promise<void> {
     await this.#reminderEngine?.registerSchedules();
     await this.#reminderEngine?.registerHandlers();
     await this.#obligationGenerator?.registerHandler();
     await this.#eventBridge?.registerSubscriptions();
   }
 
-  async $destroy(): Promise<void> {
+  async $cleanup(): Promise<void> {
     await this.#reminderEngine?.unregister();
     await this.#obligationGenerator?.unregister();
     await this.#eventBridge?.unregister();
@@ -186,7 +204,6 @@ export class ComplianceModule {
     this.#reminderEngine = null;
     this.#obligationGenerator = null;
     this.#eventBridge = null;
-    this.#db = null;
   }
 }
 

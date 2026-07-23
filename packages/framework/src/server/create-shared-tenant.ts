@@ -59,7 +59,7 @@ export class SharedTenantPlatform<M extends Record<string, Module>> {
     const logs = new LogUnit(config.logs, { db });
     const pubsub = new PubSubUnit(config.pubsub, { db });
     const auth = new AuthUnit(config.auth, { db });
-    pubsub.setAuth(auth.auth);
+    pubsub.setAuth(auth);
     auth.setPubSub(pubsub);
     const storage = new StorageUnit(config.storage, { db });
     const kvStore = new KvStoreUnit(config.kvStore, { db });
@@ -91,17 +91,44 @@ export class SharedTenantPlatform<M extends Record<string, Module>> {
     return this.units.db.tenancyMode;
   }
 
-  async prepare(): Promise<void> {
+  async prepareInfra(): Promise<void> {
     for await (const unit of Object.values(this.units)) {
       try {
-        await unit.$prepare?.();
+        await unit.$prepareInfra?.();
       } catch (err) {
         console.error(`Failed to prepare unit "${unit.$name}"`, err);
       }
     }
+
+    const mergedModuleSchemas: Record<string, unknown> = {};
+    const mergedAcl: Record<string, { allowedActions: string[] }> = {};
+
+    for (const mod of Object.values(this.modules)) {
+      const infra = mod.$prepareInfra?.();
+      if (infra) {
+        Object.assign(mergedModuleSchemas, infra.db.schemas);
+        for (const [resource, config] of Object.entries(infra.auth.acl)) {
+          if (!mergedAcl[resource]) {
+            mergedAcl[resource] = { allowedActions: [] };
+          }
+          mergedAcl[resource].allowedActions.push(...config.allowedActions);
+        }
+      }
+    }
+
+    await this.units.db.prepareWithModules(mergedModuleSchemas);
+    this.units.auth.applyModuleAcl(mergedAcl);
+
     for await (const mod of Object.values(this.modules)) {
       try {
-        await mod.$prepare?.();
+        await context.run(
+          {
+            auth: this.units.auth,
+            db: this.units.db.controlPlaneDb,
+            pubsub: this.units.pubsub,
+          },
+          () => mod.$prepareRuntime?.(),
+        );
       } catch (err) {
         console.error(`Failed to prepare module "${mod.$name}"`, err);
       }
@@ -125,7 +152,7 @@ export class SharedTenantPlatform<M extends Record<string, Module>> {
       const db = drizzle(client);
       const result = await context.run(
         {
-          auth: this.units.auth.auth,
+          auth: this.units.auth,
           db,
           kvStore: null,
           log: null,
@@ -149,14 +176,21 @@ export class SharedTenantPlatform<M extends Record<string, Module>> {
   async destroy(): Promise<void> {
     for await (const mod of Object.values(this.modules)) {
       try {
-        await mod.$destroy();
+        await context.run(
+          {
+            auth: this.units.auth,
+            db: this.units.db.controlPlaneDb,
+            pubsub: this.units.pubsub,
+          },
+          () => mod.$cleanup(),
+        );
       } catch {
         console.error(`Failed to destroy module "${mod.$name}"`);
       }
     }
     for await (const unit of Object.values(this.units)) {
       try {
-        await unit.$destroy();
+        await unit.$cleanup();
       } catch {
         console.error(`Failed to destroy unit "${unit.$name}"`);
       }

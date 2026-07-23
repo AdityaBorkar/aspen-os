@@ -8,6 +8,7 @@ import type { TenancyMode, TenantResolver } from "../index";
 import * as kvStoreSchema from "../kv-store/db-schema";
 import * as logSchema from "../log/db-schema";
 import * as storageSchema from "../storage/db-schema";
+import * as workflowSchema from "../workflows/db-schema";
 import type { DatabaseConfig } from "./types";
 
 export type { DatabaseConfig, IsolatedTenantDatabaseConfig } from "./types";
@@ -63,12 +64,19 @@ export class DatabaseUnit {
     return this.controlPlanePool;
   }
 
-  async $prepare() {
+  async $prepareInfra() {
     const schemas = this.getSchemas();
     await this.pushSchemasTo(this.controlPlaneDbInstance, schemas);
   }
 
-  async $destroy() {
+  async prepareWithModules(
+    moduleSchemas: Record<string, unknown>,
+  ): Promise<void> {
+    const allSchemas = { ...this.getSchemas(), ...moduleSchemas };
+    await this.pushSchemasTo(this.controlPlaneDbInstance, allSchemas);
+  }
+
+  async $cleanup() {
     await this.controlPlanePool.end();
     for (const { pool } of this.tenantPools.values()) {
       await pool.end();
@@ -82,6 +90,7 @@ export class DatabaseUnit {
       ...logSchema,
       ...storageSchema,
       ...kvStoreSchema,
+      ...workflowSchema,
     };
   }
 

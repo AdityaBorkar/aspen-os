@@ -21,17 +21,28 @@ export type FrameworkUnits = {
   rpc: RpcUnit;
 };
 
+export type ModuleInfra = {
+  auth: {
+    acl: Record<string, { allowedActions: string[] }>;
+  };
+  db: {
+    schemas: Record<string, unknown>;
+  };
+  events: Record<string, Record<string, string>>;
+};
+
 export interface Unit {
-  $destroy(): Promise<void>;
+  $cleanup(): Promise<void>;
   readonly $name: string;
-  $prepare?(): Promise<void>;
+  $prepareInfra?(): Promise<void>;
 }
 
 export interface Module<N extends string = string> {
-  $destroy(): Promise<void>;
+  $cleanup(): Promise<void>;
   $initialize?(units: Record<string, Unit>): void;
   readonly $name: N;
-  $prepare?(): Promise<void>;
+  $prepareInfra?(): ModuleInfra;
+  $prepareRuntime?(): Promise<void>;
   $prepareTenant?(tenantId: string): Promise<void>;
 }
 type UnitAccessors = { [K in keyof FrameworkUnits]: FrameworkUnits[K] };
@@ -90,17 +101,24 @@ export class Framework<M extends Record<string, Module>> {
     ) as FrameworkInstance<M>;
   }
 
-  async prepare(): Promise<void> {
+  async prepareInfra(): Promise<void> {
     for await (const unit of Object.values(this.units)) {
       try {
-        await unit.$prepare?.();
+        await unit.$prepareInfra?.();
       } catch (err) {
         console.error(`Failed to prepare unit "${unit.$name}"`, err);
       }
     }
+    const mergedModuleSchemas: Record<string, unknown> = {};
+    for (const mod of Object.values(this.modules)) {
+      const infra = mod.$prepareInfra?.();
+      if (infra) {
+        Object.assign(mergedModuleSchemas, infra.db.schemas);
+      }
+    }
     for await (const mod of Object.values(this.modules)) {
       try {
-        await mod.$prepare?.();
+        await mod.$prepareRuntime?.();
       } catch (err) {
         console.error(`Failed to prepare module "${mod.$name}"`, err);
       }
@@ -122,14 +140,14 @@ export class Framework<M extends Record<string, Module>> {
   async destroy(): Promise<void> {
     for await (const mod of Object.values(this.modules)) {
       try {
-        await mod.$destroy();
+        await mod.$cleanup();
       } catch {
         console.error(`Failed to destroy module "${mod.$name}"`);
       }
     }
     for await (const unit of Object.values(this.units)) {
       try {
-        await unit.$destroy();
+        await unit.$cleanup();
       } catch {
         console.error(`Failed to destroy unit "${unit.$name}"`);
       }

@@ -36,7 +36,7 @@ class DatabaseUnit {
   get pool(): pg.Pool;                   // control-plane connection pool
 
   async $prepare(): Promise<void>;       // pushes core schemas to control-plane DB
-  async $destroy(): Promise<void>;       // ends all pools
+  async $cleanup(): Promise<void>;       // ends all pools
   getSchemas(): Record<string, unknown>;
 
   // Per-tenant (isolated mode)

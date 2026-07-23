@@ -47,12 +47,12 @@ A **Unit** is an infrastructure service. There are exactly 7, all required, and 
 ```ts title="src/server/index.ts"
 interface Unit {
   readonly $name: string;
-  $destroy(): Promise<void>;
+  $cleanup(): Promise<void>;
   $prepare?(): Promise<void>;
 }
 ```
 
-Server units use the `$` prefix for lifecycle methods (`$name`, `$destroy`, `$prepare`). This avoids collisions with the unit's own public API (e.g. `db.destroy()` vs `db.$destroy()`).
+Server units use the `$` prefix for lifecycle methods (`$name`, `$cleanup`, `$prepare`). This avoids collisions with the unit's own public API (e.g. `db.destroy()` vs `db.$cleanup()`).
 
 ### Client interface (same `---
 title: Unit vs Module
@@ -103,19 +103,19 @@ A **Unit** is an infrastructure service. There are exactly 7, all required, and 
 ```ts title="src/server/index.ts"
 interface Unit {
   readonly $name: string;
-  $destroy(): Promise<void>;
+  $cleanup(): Promise<void>;
   $prepare?(): Promise<void>;
 }
 ```
 
-Server units use the `$` prefix for lifecycle methods (`$name`, `$destroy`, `$prepare`). This avoids collisions with the unit's own public API (e.g. `db.destroy()` vs `db.$destroy()`).
+Server units use the `$` prefix for lifecycle methods (`$name`, `$cleanup`, `$prepare`). This avoids collisions with the unit's own public API (e.g. `db.destroy()` vs `db.$cleanup()`).
 
  prefix)
 
 ```ts title="src/client/index.ts"
 interface Unit {
   readonly $name: string;
-  $destroy(): Promise<void>;
+  $cleanup(): Promise<void>;
   $prepare?(): Promise<void>;
 }
 ```
@@ -138,7 +138,7 @@ interface Module<N extends string = string> {
   $initialize?(units: Record<string, Unit>): void;
   $prepare?(): Promise<void>;
   $prepareTenant?(tenantId: string): Promise<void>;
-  $destroy(): Promise<void>;
+  $cleanup(): Promise<void>;
 }
 ```
 

@@ -269,10 +269,10 @@ private async getTenantDb(tenantId: string): Promise<NodePgDatabase> {
 }
 ```
 
-Pools are lazily created and cached. `$destroy()` ends all pools:
+Pools are lazily created and cached. `$cleanup()` ends all pools:
 
 ```ts
-async $destroy() {
+async $cleanup() {
   await this.controlPlanePool.end()
   for (const { pool } of this.tenantPools.values()) {
     await pool.end()
@@ -450,7 +450,7 @@ export interface Module<N extends string = string> {
   $initialize?(units: Record<string, Unit>): void
   $prepare?(): Promise<void>
   $prepareTenant?(tenantId: string): Promise<void>  // NEW
-  $destroy(): Promise<void>
+  $cleanup(): Promise<void>
 }
 ```
 
@@ -589,12 +589,12 @@ This ensures that when a cron job fires, the handler has the correct tenant cont
 - **isolated mode**: `$prepare()` starts the control-plane pg-boss only. Per-tenant pg-boss
   instances are started lazily when first accessed (or during `$prepareTenant()`).
 
-### 5.8 `$destroy()` Changes
+### 5.8 `$cleanup()` Changes
 
 End all pg-boss instances:
 
 ```ts
-async $destroy() {
+async $cleanup() {
   await this.controlPlaneBoss.stop()
   for (const boss of this.tenantBosses.values()) {
     await boss.stop()
@@ -925,7 +925,7 @@ A new multi-tenant app:
 - Update `context.ts`: add `tenantId` to context type.
 - Update `Framework.run()`: two overloads, per-mode implementation.
 - Update `Framework.create()`: validate `tenancy` config, pass to `DatabaseUnit`.
-- Update `Framework.prepare()`: call `$prepareTenant()` for each tenant in isolated mode.
+- Update `Framework.prepareInfra()`: call `$prepareTenant()` for each tenant in isolated mode.
 
 ### Phase 2: Schema Changes (Framework Tables)
 
@@ -936,7 +936,7 @@ A new multi-tenant app:
 ### Phase 3: Module Interface
 
 - Add `$prepareTenant()` to the `Module` interface.
-- Update `Framework.prepare()` to call `$prepareTenant()` per-tenant in isolated mode.
+- Update `Framework.prepareInfra()` to call `$prepareTenant()` per-tenant in isolated mode.
 - Set up `AsyncLocalStorage` context before calling `$prepareTenant()`.
 
 ### Phase 4: PubSubUnit Transformation
@@ -944,7 +944,7 @@ A new multi-tenant app:
 - Add per-tenant pg-boss management (isolated mode).
 - Add context-based routing for `publish`/`subscribe`/`schedule`.
 - Add handler wrapping for context setup.
-- Update `$prepare()` and `$destroy()`.
+- Update `$prepare()` and `$cleanup()`.
 
 ### Phase 5: Unit Changes (Auth, Storage, KV, Logs, RPC)
 

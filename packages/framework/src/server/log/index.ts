@@ -74,11 +74,11 @@ export class LogUnit {
     this.flushTimer = setInterval(() => this.buffer?.flush(), 5000);
   }
 
-  async $prepare(): Promise<void> {
+  async $prepareInfra(): Promise<void> {
     return;
   }
 
-  async $destroy(): Promise<void> {
+  async $cleanup(): Promise<void> {
     if (this.flushTimer) {
       clearInterval(this.flushTimer);
     }
