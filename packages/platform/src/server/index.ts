@@ -73,6 +73,10 @@ export type ModuleAccessors<M extends Record<string, Module>> = {
   [K in keyof M]: M[K];
 };
 
+export type ArrayModuleAccessors<Names extends string> = {
+  [K in Names]: Extract<Module, { $name: K }>;
+};
+
 export type PlatformInstance<M extends Record<string, Module>> = {
   tenancyMode: TenancyMode;
   prepareInfra(): Promise<void>;

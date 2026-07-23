@@ -18,9 +18,9 @@ bun install                                    # install all workspace deps
 bun run check:lint                             # biome check --fix . (root)
 bun run check:types                            # tsc -b (root tsconfig)
 bun run update:deps                            # taze -rw --maturity-period 3
-cd packages/framework && bun run check:types   # typecheck framework
-cd packages/framework && bun run check:lint    # biome check --fix . (framework)
-cd packages/framework && bun run build         # build .output/ (required before bun publish)
+cd packages/platform && bun run check:types   # typecheck platform
+cd packages/platform && bun run check:lint    # biome check --fix . (platform)
+cd packages/platform && bun run build         # build .output/ (required before bun publish)
 ```
 
 No build/test/format scripts at root. Each domain package has `check:lint` and `check:types` scripts.
@@ -39,7 +39,7 @@ cd examples/recruiter && bun run check:types       # tsc -b
 
 **docs-www** (`bun run dev` → port 3005). `check:types` runs `fumadocs-mdx && tsc --noEmit`; `build` runs `bun gen:cf-types && vite build`; `deploy` runs `wrangler deploy` (uses `wrangler.jsonc`, `nodejs_compat` flag). **Gotcha**: `ignore-scripts=true` in `bunfig.toml` blocks the `postinstall` (`fumadocs-mdx`) — run `bunx fumadocs-mdx` manually before `bun run build`/`check:types` if `.source/` is missing. Note: docs-www `check:lint` is `biome check` (no `--fix`, unlike other packages).
 
-**Platform build gotcha**: the platform's `exports` field points at `.output/` (built JS + `.d.ts`). TypeScript resolves types from `.output/`, not source. After changing framework exports, run `cd packages/framework && bun run build` before typechecking downstream packages (e.g. recruiter). The `build` field in `package.json` maps exports to source `.ts` for Bun runtime resolution (in-workspace dev needs no build), but **TypeScript still uses `.output/` for type resolution**. Organization and management-plane also have `build` scripts — run them if their exports change.
+**Platform build gotcha**: the platform's `exports` field points at `.output/` (built JS + `.d.ts`). TypeScript resolves types from `.output/`, not source. After changing platform exports, run `cd packages/platform && bun run build` before typechecking downstream packages (e.g. recruiter). The `build` field in `package.json` maps exports to source `.ts` for Bun runtime resolution (in-workspace dev needs no build), but **TypeScript still uses `.output/` for type resolution**. Organization and management-plane also have `build` scripts — run them if their exports change.
 
 ## Git Hooks (Husky)
 
@@ -53,7 +53,7 @@ Allowed commit types: `build chore ci docs feat fix perf refactor revert test wi
 
 ```
 packages/
-  framework/          # Core library — units, modules, tenancy, CLI (has build step)
+  platform/           # Core library — units, modules, tenancy, CLI (has build step)
   organization/       # Domain module (has build step)
   compliance/         # Domain module
   tasks/              # Domain module
@@ -78,9 +78,9 @@ Workspace globs: `./packages/*`, `./examples/*`, `./docs-www`. Root `tsconfig.js
 - Reads `.env.local` (gitignored). Key vars: `DB_*`, `AUTH_SECRET`, `STORAGE_*` (endpoint `http://localhost:8333`), `GOOGLE_CLIENT_*`, `PUBLIC_WEB_*`.
 - Platform config lives in `examples/recruiter/src/aspen/`: `server.ts` (`SingleTenantPlatform.create`), `auth.ts` (access control + roles), `client.ts`.
 - Env validated via `@t3-oss/env-core` with Zod (`examples/recruiter/src/env.ts`). Vite env prefix is `PUBLIC_`.
-- **`aspen` CLI** (framework `bin`): `aspen db-studio --config=<path>` dynamically imports the platform config (looks for a `framework` or `f` export) and launches Drizzle Kit Studio (default port 4983).
+- **`aspen` CLI** (platform `bin`): `aspen db-studio --config=<path>` dynamically imports the platform config (looks for a `framework` or `f` export) and launches Drizzle Kit Studio (default port 4983).
 
-## Platform Architecture (`packages/framework`)
+## Platform Architecture (`packages/platform`)
 
 Three entry surfaces: `./src/server/` (Node/Bun), `./src/client/` (browser), `./src/cli/` (commander-based CLI, exposed as `aspen` bin). There is **no `src/index.ts`** barrel.
 
@@ -91,7 +91,7 @@ Three entry surfaces: `./src/server/` (Node/Bun), `./src/client/` (browser), `./
 - `@aspen-os/platform/server` — three platform classes, `Unit`, `Module`, `PlatformInstance`, all config types, all unit classes, `Workflow`, `WorkflowStep`, `getContext`.
 - `@aspen-os/platform/client` — client `Framework` class, `createAccessControl` (re-exported from `better-auth/plugins/access`), client config types.
 
-**Build step (framework only):** the platform's published `exports` and `bin` point at `./.output/` (built JS + `.d.ts`, gitignored). A `build` field in `package.json` maps those same keys to source `.ts` so **Bun runtime resolves to source with no build**. But TypeScript resolves types from `.output/` — run `bun run build` after changing exports. **Domain modules have no build step** — their `exports` point at raw `.ts`.
+**Build step (platform only):** the platform's published `exports` and `bin` point at `./.output/` (built JS + `.d.ts`, gitignored). A `build` field in `package.json` maps those same keys to source `.ts` so **Bun runtime resolves to source with no build**. But TypeScript resolves types from `.output/` — run `bun run build` after changing exports. **Domain modules have no build step** — their `exports` point at raw `.ts`.
 
 ### Server: three separate platform classes
 
@@ -285,7 +285,7 @@ class MyModule implements Module {
 - Table names: `snake_case`. Column names: `snake_case` in Postgres, `camelCase` in TS (drizzle maps). Columns sorted alphabetically by TS property name.
 - **Validation**: Valibot for domain module input. Zod for RPC procedures (oRPC) and env vars (t3-env).
 - **No barrel files** unless explicitly told (`CODING_CONVENTIONS.md`).
-- **No build step** for domain modules — `exports` point at raw `.ts`. (Framework, organization, and management-plane are exceptions.)
+- **No build step** for domain modules — `exports` point at raw `.ts`. (Platform, organization, and management-plane are exceptions.)
 - `*.gen.ts` and `worker-configuration.d.ts` are gitignored (codegen output).
 - Constants as `as const` objects with `UPPER_SNAKE` keys and lowercase string values. Shared in `@aspen-os/constants`, module-specific in `constants.ts`.
 - Events: `"domain:event_name"` format, typed via `EventMap` type. Published via PubSub as plain string topics.
