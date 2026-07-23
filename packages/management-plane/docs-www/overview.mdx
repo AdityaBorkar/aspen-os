@@ -44,7 +44,7 @@ Isolation is physical: a tenant cannot reach another tenant's data because it li
 
 ## Auth Model
 
-Authentication uses the framework's existing `AuthUnit` — a single better-auth instance, one set of auth tables in the control-plane DB. No multi-realm.
+Authentication uses the platform's existing `AuthUnit` — a single better-auth instance, one set of auth tables in the control-plane DB. No multi-realm.
 
 Tenant membership is handled by better-auth's **Organization plugin**:
 
@@ -161,15 +161,15 @@ packages/management-plane/src/
 ## Accessing Workflows
 
 ```ts
-framework.managementPlane.tenants           // → TenantWorkflow
-framework.managementPlane.serviceProviders  // → ServiceProviderWorkflow
-framework.managementPlane.platformUsers     // → PlatformUserWorkflow
-framework.managementPlane.reports           // → ReportWorkflow
-framework.managementPlane.provisioning      // → ProvisioningWorkflow
+platform.managementPlane.tenants           // → TenantWorkflow
+platform.managementPlane.serviceProviders  // → ServiceProviderWorkflow
+platform.managementPlane.platformUsers     // → PlatformUserWorkflow
+platform.managementPlane.reports           // → ReportWorkflow
+platform.managementPlane.provisioning      // → ProvisioningWorkflow
 ```
 
 <Callout type="warn">
-  Accessing a workflow before `$initialize()` throws a "not initialized" error. This happens if you access the module before calling `Framework.create()`.
+  Accessing a workflow before `$initialize()` throws a "not initialized" error. This happens if you access the module before calling `Platform.create()`.
 </Callout>
 
 ## Package
@@ -180,7 +180,7 @@ framework.managementPlane.provisioning      // → ProvisioningWorkflow
   "type": "module",
   "exports": { ".": "./src/index.ts" },
   "dependencies": {
-    "@aspen-os/framework": "workspace:*",
+    "@aspen-os/platform": "workspace:*",
     "@aspen-os/constants": "workspace:*",
     "drizzle-orm": "catalog:",
     "valibot": "catalog:"
@@ -188,9 +188,9 @@ framework.managementPlane.provisioning      // → ProvisioningWorkflow
 }
 ```
 
-## Framework Kernel Prerequisites
+## Platform Kernel Prerequisites
 
-The module depends on changes to the framework kernel (out of scope for this package, required by the host app):
+The module depends on changes to the platform kernel (out of scope for this package, required by the host app):
 
 - `DatabaseUnit` becomes tenant-aware — resolves the per-tenant connection pool from the request's `tenantId`.
 - `run()` AsyncLocalStorage context gains `tenantId`.

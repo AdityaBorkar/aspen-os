@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@aspen-os/framework": "workspace:*",
+    "@aspen-os/platform": "workspace:*",
     "drizzle-orm": "catalog:",
     "fflate": "^0.8.3",
     "valibot": "catalog:"

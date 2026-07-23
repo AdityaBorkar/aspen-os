@@ -1,4 +1,4 @@
-import { Workflow, WorkflowStep } from "@aspen-os/framework/server";
+import { Workflow, WorkflowStep } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { parse } from "valibot";
 

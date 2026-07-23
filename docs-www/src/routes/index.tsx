@@ -14,13 +14,13 @@ function Home() {
         <div className="flex flex-col items-center gap-4">
           <h1 className="font-bold text-4xl">Aspen OS</h1>
           <p className="text-fd-muted-foreground text-lg">
-            A business framework with pluggable units and modules.
+            A business platform with pluggable units and modules.
           </p>
         </div>
         <Link
           className="rounded-lg bg-fd-primary px-6 py-3 font-medium text-fd-primary-foreground text-sm"
           params={{
-            _splat: "framework",
+            _splat: "platform",
           }}
           to="/docs/$"
         >

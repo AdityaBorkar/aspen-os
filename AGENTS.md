@@ -1,6 +1,6 @@
 # @aspen-os
 
-Bun monorepo. A business framework (`@aspen-os/framework`) with pluggable units/modules and multi-tenancy, plus a TanStack Start example app and a docs site.
+Bun monorepo. A business framework (`@aspen-os/platform`) with pluggable units/modules and multi-tenancy, plus a TanStack Start example app and a docs site.
 
 ## Runtime & Toolchain
 
@@ -39,7 +39,7 @@ cd examples/recruiter && bun run check:types       # tsc -b
 
 **docs-www** (`bun run dev` → port 3005). `check:types` runs `fumadocs-mdx && tsc --noEmit`; `build` runs `bun gen:cf-types && vite build`; `deploy` runs `wrangler deploy` (uses `wrangler.jsonc`, `nodejs_compat` flag). **Gotcha**: `ignore-scripts=true` in `bunfig.toml` blocks the `postinstall` (`fumadocs-mdx`) — run `bunx fumadocs-mdx` manually before `bun run build`/`check:types` if `.source/` is missing. Note: docs-www `check:lint` is `biome check` (no `--fix`, unlike other packages).
 
-**Framework build gotcha**: the framework's `exports` field points at `.output/` (built JS + `.d.ts`). TypeScript resolves types from `.output/`, not source. After changing framework exports, run `cd packages/framework && bun run build` before typechecking downstream packages (e.g. recruiter). The `build` field in `package.json` maps exports to source `.ts` for Bun runtime resolution (in-workspace dev needs no build), but **TypeScript still uses `.output/` for type resolution**. Organization and management-plane also have `build` scripts — run them if their exports change.
+**Platform build gotcha**: the platform's `exports` field points at `.output/` (built JS + `.d.ts`). TypeScript resolves types from `.output/`, not source. After changing framework exports, run `cd packages/framework && bun run build` before typechecking downstream packages (e.g. recruiter). The `build` field in `package.json` maps exports to source `.ts` for Bun runtime resolution (in-workspace dev needs no build), but **TypeScript still uses `.output/` for type resolution**. Organization and management-plane also have `build` scripts — run them if their exports change.
 
 ## Git Hooks (Husky)
 
@@ -76,22 +76,22 @@ Workspace globs: `./packages/*`, `./examples/*`, `./docs-www`. Root `tsconfig.js
 
 - **Docker Compose** (`examples/recruiter/docker-compose.yaml`): starts **Postgres** (`postgres:18-alpine`, port 5432, user/pass/db all `recruiter`) and **SeaweedFS** (S3-compatible: master 9333, volume 8080, filer 8888, S3 8333).
 - Reads `.env.local` (gitignored). Key vars: `DB_*`, `AUTH_SECRET`, `STORAGE_*` (endpoint `http://localhost:8333`), `GOOGLE_CLIENT_*`, `PUBLIC_WEB_*`.
-- Framework config lives in `examples/recruiter/src/aspen/`: `server.ts` (`SingleTenantPlatform.create`), `auth.ts` (access control + roles), `client.ts`.
+- Platform config lives in `examples/recruiter/src/aspen/`: `server.ts` (`SingleTenantPlatform.create`), `auth.ts` (access control + roles), `client.ts`.
 - Env validated via `@t3-oss/env-core` with Zod (`examples/recruiter/src/env.ts`). Vite env prefix is `PUBLIC_`.
-- **`aspen` CLI** (framework `bin`): `aspen db-studio --config=<path>` dynamically imports the framework config (looks for a `framework` or `f` export) and launches Drizzle Kit Studio (default port 4983).
+- **`aspen` CLI** (framework `bin`): `aspen db-studio --config=<path>` dynamically imports the platform config (looks for a `framework` or `f` export) and launches Drizzle Kit Studio (default port 4983).
 
-## Framework Architecture (`packages/framework`)
+## Platform Architecture (`packages/framework`)
 
 Three entry surfaces: `./src/server/` (Node/Bun), `./src/client/` (browser), `./src/cli/` (commander-based CLI, exposed as `aspen` bin). There is **no `src/index.ts`** barrel.
 
 ### Package exports & build
 
-`@aspen-os/framework` declares only `./client` and `./server` — **no `.` entry**, so bare `@aspen-os/framework` does not resolve. Always import via subpaths.
+`@aspen-os/platform` declares only `./client` and `./server` — **no `.` entry**, so bare `@aspen-os/platform` does not resolve. Always import via subpaths.
 
-- `@aspen-os/framework/server` — three platform classes, `Unit`, `Module`, `FrameworkInstance`, all config types, all unit classes, `Workflow`, `WorkflowStep`, `getContext`.
-- `@aspen-os/framework/client` — client `Framework` class, `createAccessControl` (re-exported from `better-auth/plugins/access`), client config types.
+- `@aspen-os/platform/server` — three platform classes, `Unit`, `Module`, `PlatformInstance`, all config types, all unit classes, `Workflow`, `WorkflowStep`, `getContext`.
+- `@aspen-os/platform/client` — client `Framework` class, `createAccessControl` (re-exported from `better-auth/plugins/access`), client config types.
 
-**Build step (framework only):** the framework's published `exports` and `bin` point at `./.output/` (built JS + `.d.ts`, gitignored). A `build` field in `package.json` maps those same keys to source `.ts` so **Bun runtime resolves to source with no build**. But TypeScript resolves types from `.output/` — run `bun run build` after changing exports. **Domain modules have no build step** — their `exports` point at raw `.ts`.
+**Build step (framework only):** the platform's published `exports` and `bin` point at `./.output/` (built JS + `.d.ts`, gitignored). A `build` field in `package.json` maps those same keys to source `.ts` so **Bun runtime resolves to source with no build**. But TypeScript resolves types from `.output/` — run `bun run build` after changing exports. **Domain modules have no build step** — their `exports` point at raw `.ts`.
 
 ### Server: three separate platform classes
 
@@ -104,7 +104,7 @@ The server exports **three self-contained classes** — there is no shared base 
 | `IsolatedTenantPlatform` | `create-isolated-tenant.ts` | `run(tenantId, fn)` | `IsolatedTenantConfig` |
 
 ```ts
-import { SingleTenantPlatform } from "@aspen-os/framework/server"
+import { SingleTenantPlatform } from "@aspen-os/platform/server"
 
 const f = SingleTenantPlatform.create(
   { auth, db, kvStore, logs, pubsub, rpc, storage },
@@ -120,12 +120,12 @@ API facts:
 - `IsolatedTenantConfig` adds `resolver: TenantResolver` (the only config that takes extra fields).
 - `run()` signatures are **not overloaded** — `SingleTenantPlatform.run` only accepts `run(fn)`; shared/isolated only accept `run(tenantId, fn)`. The type system enforces correct usage.
 - All three classes return proxy-wrapped instances. Module `$name`s and unit keys become proxy accessors: `f.organization`, `f.db`, `f.auth`, etc.
-- `FrameworkInstance<M>` is a **structural type** (not tied to a specific class) used by the CLI for dynamic loading. Use the platform-specific instance types (`SingleTenantPlatformInstance<M>`, etc.) for typed access including `run()`.
-- Shared types (`Unit`, `Module`, `FrameworkUnits`, `UnitAccessors`, `ModuleAccessors`) are defined in `src/server/index.ts`. Each platform file imports them via `import type`.
+- `PlatformInstance<M>` is a **structural type** (not tied to a specific class) used by the CLI for dynamic loading. Use the platform-specific instance types (`SingleTenantPlatformInstance<M>`, etc.) for typed access including `run()`.
+- Shared types (`Unit`, `Module`, `PlatformUnits`, `UnitAccessors`, `ModuleAccessors`) are defined in `src/server/index.ts`. Each platform file imports them via `import type`.
 
 ### Client: single `Framework` class
 
-The client (`src/client/index.ts`) still has a single `Framework` class with `Framework.create(config, modules)`. It has 3 units (`auth`, `logs`, `rpc`), no tenancy, no DB. Uses `$` prefix on lifecycle methods like the server.
+The client (`src/client/index.ts`) still has a single `Framework` class with `Platform.create(config, modules)`. It has 3 units (`auth`, `logs`, `rpc`), no tenancy, no DB. Uses `$` prefix on lifecycle methods like the server.
 
 ### Units vs Modules
 
@@ -145,7 +145,7 @@ type ModuleInfra = {
 };
 ```
 
-The framework merges all module infra during `prepareInfra()`:
+The platform merges all module infra during `prepareInfra()`:
 - `auth.acl` → merged and applied to `AuthUnit.applyModuleAcl()`
 - `db.schemas` → merged and passed to `DatabaseUnit.prepareWithModules()` for `pushSchema()`
 - `events` → used for type-level contracts (not runtime)
@@ -183,10 +183,10 @@ Server `src/server/` also has `tenancy/`, `workflows/`, `context.ts`, `bun-compa
 
 ### Workflows (framework-level)
 
-The framework provides a `Workflow` builder for durable, step-based workflows:
+The platform provides a `Workflow` builder for durable, step-based workflows:
 
 ```ts
-import { Workflow, WorkflowStep } from "@aspen-os/framework/server"
+import { Workflow, WorkflowStep } from "@aspen-os/platform/server"
 
 const myWorkflow = Workflow.name("my-workflow")
   .input(MySchema)
@@ -295,5 +295,5 @@ class MyModule implements Module {
 ## Current State
 
 - `organization`, `compliance`, `tasks`, `drive`, and `management-plane` are fully implemented domain modules. `hr` is a scaffold. All other domain packages are pure stubs.
-- No CI/CD, no Docker for the framework, no deployment config beyond `docs-www`'s `wrangler.jsonc`.
-- No tests for the framework or domain modules. `recruiter` has `vitest` + `@testing-library` in devDeps but no `test` script.
+- No CI/CD, no Docker for the platform, no deployment config beyond `docs-www`'s `wrangler.jsonc`.
+- No tests for the platform or domain modules. `recruiter` has `vitest` + `@testing-library` in devDeps but no `test` script.

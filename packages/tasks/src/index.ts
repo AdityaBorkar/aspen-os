@@ -2,7 +2,7 @@ import type {
   DatabaseUnit,
   ModuleInfra,
   PubSubUnit,
-} from "@aspen-os/framework/server";
+} from "@aspen-os/platform/server";
 
 import * as dbSchema from "./db-schema";
 import { REMINDER_EVENTS, TASK_EVENTS } from "./event-map";
@@ -203,6 +203,6 @@ export class TaskModule {
 
 function notInitialized(): Error {
   return new Error(
-    "Tasks module not initialized. Call $initialize() after Framework.create().",
+    "Tasks module not initialized. Call $initialize() after Platform.create().",
   );
 }

@@ -1,6 +1,6 @@
 # Compliance Module — Scope of Work
 
-> Scope of Work for a centralized compliance management module built on the `@aspen-os/framework`.
+> Scope of Work for a centralized compliance management module built on the `@aspen-os/platform`.
 
 ## Overview
 
@@ -12,9 +12,9 @@ Unlike domain-specific modules (HR, Accounting, Fleet) that own their own data, 
 
 ### Key Architectural Decisions
 
-1. **pg-boss `schedule()` for recurring jobs**: The reminder engine uses pg-boss cron scheduling (`boss.schedule(name, cron, data, options)`) for daily expiry scans, status transitions, obligation generation, and weekly summaries. This requires exposing `schedule()`, `unschedule()`, and `getSchedules()` on the framework's `PubSubUnit`, which currently only wraps `publish`/`subscribe`/`send`/`work`.
+1. **pg-boss `schedule()` for recurring jobs**: The reminder engine uses pg-boss cron scheduling (`boss.schedule(name, cron, data, options)`) for daily expiry scans, status transitions, obligation generation, and weekly summaries. This requires exposing `schedule()`, `unschedule()`, and `getSchedules()` on the platform's `PubSubUnit`, which currently only wraps `publish`/`subscribe`/`send`/`work`.
 
-2. **Event-driven intake**: Other modules create compliance documents either by calling the Compliance module's workflow API directly (`framework.compliance.documents.create(...)`) or by publishing domain events that the Compliance module subscribes to (e.g., `hr:employee_onboarded` → compliance module creates a "background check verification" requirement).
+2. **Event-driven intake**: Other modules create compliance documents either by calling the Compliance module's workflow API directly (`platform.compliance.documents.create(...)`) or by publishing domain events that the Compliance module subscribes to (e.g., `hr:employee_onboarded` → compliance module creates a "background check verification" requirement).
 
 3. **Verification as a first-class workflow**: Documents are not just stored — they go through a verification lifecycle (`draft` → `submitted` → `under_review` → `verified` / `rejected` → `expired` / `renewed`), with assignable reviewers and audit trail entries at every transition.
 
@@ -373,7 +373,7 @@ The escalation levels are configurable via `Escalation Days` on each document. I
 - After the snooze period expires, normal reminder behavior resumes.
 - Snooze does not affect the `Verification Status`, `Expiry Date`, or `Due Date` — it only suppresses notifications.
 
-### 4.6 Framework Enhancement: PubSubUnit `schedule()` / `unschedule()`
+### 4.6 Platform Enhancement: PubSubUnit `schedule()` / `unschedule()`
 
 The current `PubSubUnit` wraps pg-boss but does not expose the `schedule()`, `unschedule()`, or `getSchedules()` methods. The Compliance module requires these for cron-based job scheduling.
 
@@ -484,7 +484,7 @@ Other modules call the Compliance module's workflow directly. The generic docume
 
 ```ts
 // HR module registering a compliance requirement for a new employee
-framework.compliance.documents.create({
+platform.compliance.documents.create({
   name: "Background Check Verification",
   category: "hr",
   documentType: "background_check",
@@ -498,7 +498,7 @@ framework.compliance.documents.create({
 })
 
 // Fleet module registering a vehicle's pollution certificate
-framework.compliance.documents.create({
+platform.compliance.documents.create({
   name: "Vehicle Pollution Certificate — MH-12-AB-1234",
   category: "vehicle",
   documentType: "pollution_certificate",
@@ -513,7 +513,7 @@ framework.compliance.documents.create({
 })
 
 // Accounting module registering a tax filing via the generic document model
-framework.compliance.documents.create({
+platform.compliance.documents.create({
   name: "GSTR-1 April 2025",
   category: "tax",
   documentType: "GST Return",
@@ -535,7 +535,7 @@ framework.compliance.documents.create({
 })
 
 // Accounting module setting up a recurring monthly GST obligation
-framework.compliance.obligations.create({
+platform.compliance.obligations.create({
   name: "Monthly GST Returns",
   category: "tax",
   documentType: "GST Return",
@@ -559,7 +559,7 @@ framework.compliance.obligations.create({
 })
 
 // Operations module setting up a recurring annual safety audit
-framework.compliance.obligations.create({
+platform.compliance.obligations.create({
   name: "Annual Fire Safety Audit",
   category: "audit",
   documentType: "Fire Safety Audit",
@@ -806,7 +806,7 @@ packages/compliance/
 ### Module Implementation (index.ts)
 
 ```ts
-import type { DatabaseUnit, PubSubUnit, KvStoreUnit } from "@aspen-os/framework/server";
+import type { DatabaseUnit, PubSubUnit, KvStoreUnit } from "@aspen-os/platform/server";
 
 import * as dbSchema from "./db-schema";
 import { DocumentWorkflow } from "./workflows/document";
@@ -913,10 +913,10 @@ The Organization module currently contains a `ComplianceWorkflow` with its own `
    ```ts
    // In OrganizationModule.initialize()
    // No longer creates its own ComplianceWorkflow
-   // The framework.compliance module handles all compliance
+   // The platform.compliance module handles all compliance
    ```
 4. **Event map consolidation**: Move `COMPLIANCE_EVENTS` from `packages/organization/src/event-map.ts` to `packages/compliance/src/event-map.ts`. The organization module re-exports or references the compliance module's events.
-5. **Backward compatibility**: The Organization module's `compliance` getter can proxy to `framework.compliance.documents` for existing callers, or callers are updated to use `framework.compliance.documents` directly.
+5. **Backward compatibility**: The Organization module's `compliance` getter can proxy to `platform.compliance.documents` for existing callers, or callers are updated to use `platform.compliance.documents` directly.
 
 ### Migration Impact
 

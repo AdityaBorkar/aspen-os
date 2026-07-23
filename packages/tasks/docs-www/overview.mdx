@@ -72,25 +72,25 @@ packages/tasks/src/
 ## Accessing Workflows
 
 ```ts
-framework.tasks.projects       // → ProjectWorkflow
-framework.tasks.tasks           // → TaskWorkflow
-framework.tasks.statuses        // → StatusWorkflow
-framework.tasks.taskTypes       // → TaskTypeWorkflow
-framework.tasks.timeEntries     // → TimeEntryWorkflow
-framework.tasks.comments        // → CommentWorkflow
-framework.tasks.links           // → LinkWorkflow
-framework.tasks.collaboration   // → CollaborationWorkflow
-framework.tasks.reminders       // → ReminderWorkflow
-framework.tasks.automation      // → AutomationWorkflow
-framework.tasks.views           // → ViewWorkflow
+platform.tasks.projects       // → ProjectWorkflow
+platform.tasks.tasks           // → TaskWorkflow
+platform.tasks.statuses        // → StatusWorkflow
+platform.tasks.taskTypes       // → TaskTypeWorkflow
+platform.tasks.timeEntries     // → TimeEntryWorkflow
+platform.tasks.comments        // → CommentWorkflow
+platform.tasks.links           // → LinkWorkflow
+platform.tasks.collaboration   // → CollaborationWorkflow
+platform.tasks.reminders       // → ReminderWorkflow
+platform.tasks.automation      // → AutomationWorkflow
+platform.tasks.views           // → ViewWorkflow
 ```
 
 ## Accessing Services
 
 ```ts
-framework.tasks.reports         // → ReportService
+platform.tasks.reports         // → ReportService
 ```
 
 <Callout type="warn">
-  Accessing any workflow or service getter before `initialize()` throws: `"Tasks module not initialized. Call initialize() after framework.initialize()."`
+  Accessing any workflow or service getter before `initialize()` throws: `"Tasks module not initialized. Call initialize() after platform.initialize()."`
 </Callout>

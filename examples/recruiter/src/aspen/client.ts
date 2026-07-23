@@ -1,5 +1,5 @@
-import type { LogConfig, RpcConfig } from "@aspen-os/framework/client";
-import { Framework } from "@aspen-os/framework/client";
+import type { LogConfig, RpcConfig } from "@aspen-os/platform/client";
+import { Platform } from "@aspen-os/platform/client";
 
 import { env } from "../env";
 import { access_control, roles } from "./auth";
@@ -16,4 +16,4 @@ const logs = {} satisfies LogConfig;
 
 const rpc = {} satisfies RpcConfig;
 
-export const f = Framework.create({ auth, logs, rpc }, {});
+export const p = Platform.create({ auth, logs, rpc }, {});

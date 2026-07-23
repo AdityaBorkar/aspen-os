@@ -3,7 +3,7 @@ import type {
   ModuleInfra,
   PubSubUnit,
   StorageUnit,
-} from "@aspen-os/framework/server";
+} from "@aspen-os/platform/server";
 
 import * as dbSchema from "./db-schema";
 import { DRIVE_EVENTS } from "./event-map";
@@ -284,6 +284,6 @@ export class DriveModule {
 
 function notInitialized(): Error {
   return new Error(
-    "Drive module not initialized. Call $initialize() after Framework.create().",
+    "Drive module not initialized. Call $initialize() after Platform.create().",
   );
 }

@@ -32,7 +32,7 @@ The tasks module is a fully implemented domain module following the Aspen OS Dom
 
 **Package**: `@aspen-os/tasks`  
 **Module name**: `"tasks"`  
-**Dependencies**: `@aspen-os/framework`, `@aspen-os/constants`, `drizzle-orm`, `valibot`  
+**Dependencies**: `@aspen-os/platform`, `@aspen-os/constants`, `drizzle-orm`, `valibot`  
 **Tables**: 16 tables, 8 pg enums
 
 ## Installation
@@ -44,20 +44,20 @@ bun install  # workspace package
 ## Quick Start
 
 ```ts
-import { Framework } from "@aspen-os/framework/server"
+import { Platform } from "@aspen-os/platform/server"
 import { TaskModule } from "@aspen-os/tasks"
 
 const tasks = TaskModule.create()
 
-const framework = Framework.create(config, { tasks })
+const platform = Platform.create(config, { tasks })
 
-await framework.prepare()  // pushes schema, registers pubsub handlers
+await platform.prepare()  // pushes schema, registers pubsub handlers
 
 // Access workflows via the module proxy
-framework.tasks.tasks       // TaskWorkflow
-framework.tasks.projects    // ProjectWorkflow
-framework.tasks.statuses    // StatusWorkflow
-framework.tasks.comments    // CommentWorkflow
+platform.tasks.tasks       // TaskWorkflow
+platform.tasks.projects    // ProjectWorkflow
+platform.tasks.statuses    // StatusWorkflow
+platform.tasks.comments    // CommentWorkflow
 // ... etc
 ```
 
@@ -140,17 +140,17 @@ All IDs are `text` with `DEFAULT gen_random_uuid()::text`. All timestamps are `T
 `TaskWorkflow` (435 lines) -- the central workflow:
 
 ```ts
-framework.tasks.tasks.create(input: CreateTaskInput): Promise<Task>
-framework.tasks.tasks.update(id: string, patch: UpdateTaskInput): Promise<Task>
-framework.tasks.tasks.delete(id: string): Promise<void>
-framework.tasks.tasks.getById(id: string): Promise<Task>
-framework.tasks.tasks.list(filters?: TaskFilters): Promise<Task[]>
-framework.tasks.tasks.archive(id: string): Promise<void>
-framework.tasks.tasks.restore(id: string): Promise<void>
-framework.tasks.tasks.assign(id: string, userId: string, isLead?: boolean): Promise<void>
-framework.tasks.tasks.unassign(id: string, userId: string): Promise<void>
-framework.tasks.tasks.bulkUpdate(ids: string[], patch: UpdateTaskInput): Promise<void>
-framework.tasks.tasks.getCompletionSummary(projectId?: string): Promise<TaskCompletionSummary>
+platform.tasks.tasks.create(input: CreateTaskInput): Promise<Task>
+platform.tasks.tasks.update(id: string, patch: UpdateTaskInput): Promise<Task>
+platform.tasks.tasks.delete(id: string): Promise<void>
+platform.tasks.tasks.getById(id: string): Promise<Task>
+platform.tasks.tasks.list(filters?: TaskFilters): Promise<Task[]>
+platform.tasks.tasks.archive(id: string): Promise<void>
+platform.tasks.tasks.restore(id: string): Promise<void>
+platform.tasks.tasks.assign(id: string, userId: string, isLead?: boolean): Promise<void>
+platform.tasks.tasks.unassign(id: string, userId: string): Promise<void>
+platform.tasks.tasks.bulkUpdate(ids: string[], patch: UpdateTaskInput): Promise<void>
+platform.tasks.tasks.getCompletionSummary(projectId?: string): Promise<TaskCompletionSummary>
 ```
 
 Key behaviors:
@@ -164,13 +164,13 @@ Key behaviors:
 `ProjectWorkflow` -- manages projects:
 
 ```ts
-framework.tasks.projects.create(input): Promise<Project>
-framework.tasks.projects.update(id, patch): Promise<Project>
-framework.tasks.projects.archive(id) / restore(id): Promise<Project>
-framework.tasks.projects.list(filters?): Promise<Project[]>
-framework.tasks.projects.addMember(projectId, userId, role): Promise<void>
-framework.tasks.projects.removeMember(projectId, userId): Promise<void>
-framework.tasks.projects.updateMemberRole(projectId, userId, role): Promise<void>
+platform.tasks.projects.create(input): Promise<Project>
+platform.tasks.projects.update(id, patch): Promise<Project>
+platform.tasks.projects.archive(id) / restore(id): Promise<Project>
+platform.tasks.projects.list(filters?): Promise<Project[]>
+platform.tasks.projects.addMember(projectId, userId, role): Promise<void>
+platform.tasks.projects.removeMember(projectId, userId): Promise<void>
+platform.tasks.projects.updateMemberRole(projectId, userId, role): Promise<void>
 ```
 
 Projects have a `key` (e.g., `PROJ`) used for task number generation. Each project maintains a `taskCounter` that increments on task creation.
@@ -180,13 +180,13 @@ Projects have a `key` (e.g., `PROJ`) used for task number generation. Each proje
 `StatusWorkflow` -- manages workflow statuses and transitions:
 
 ```ts
-framework.tasks.statuses.create(input): Promise<Status>
-framework.tasks.statuses.update(id, patch): Promise<Status>
-framework.tasks.statuses.delete(id): Promise<void>
-framework.tasks.statuses.list(projectId): Promise<Status[]>
-framework.tasks.statuses.addTransition(input): Promise<void>
-framework.tasks.statuses.removeTransition(id): Promise<void>
-framework.tasks.statuses.getTransitions(projectId): Promise<StatusTransition[]>
+platform.tasks.statuses.create(input): Promise<Status>
+platform.tasks.statuses.update(id, patch): Promise<Status>
+platform.tasks.statuses.delete(id): Promise<void>
+platform.tasks.statuses.list(projectId): Promise<Status[]>
+platform.tasks.statuses.addTransition(input): Promise<void>
+platform.tasks.statuses.removeTransition(id): Promise<void>
+platform.tasks.statuses.getTransitions(projectId): Promise<StatusTransition[]>
 ```
 
 Statuses are categorized (`backlog`, `unstarted`, `started`, `completed`, `cancelled`) and have `isResolved` flag. Transitions define allowed status changes.
@@ -200,10 +200,10 @@ Statuses are categorized (`backlog`, `unstarted`, `started`, `completed`, `cance
 `CommentWorkflow` -- threaded comments with markdown support and soft-delete:
 
 ```ts
-framework.tasks.comments.create(input: { taskId, body, parentId? }): Promise<Comment>
-framework.tasks.comments.update(id, patch): Promise<Comment>
-framework.tasks.comments.delete(id): Promise<void>  // soft-delete (sets isDeleted)
-framework.tasks.comments.list(taskId): Promise<Comment[]>
+platform.tasks.comments.create(input: { taskId, body, parentId? }): Promise<Comment>
+platform.tasks.comments.update(id, patch): Promise<Comment>
+platform.tasks.comments.delete(id): Promise<void>  // soft-delete (sets isDeleted)
+platform.tasks.comments.list(taskId): Promise<Comment[]>
 ```
 
 ### Time Entries
@@ -211,11 +211,11 @@ framework.tasks.comments.list(taskId): Promise<Comment[]>
 `TimeEntryWorkflow` -- time tracking:
 
 ```ts
-framework.tasks.timeEntries.create(input: { taskId, userId, duration, description?, billable?, date? }): Promise<TimeEntry>
-framework.tasks.timeEntries.update(id, patch): Promise<TimeEntry>
-framework.tasks.timeEntries.delete(id): Promise<void>
-framework.tasks.timeEntries.list(filters?): Promise<TimeEntry[]>
-framework.tasks.timeEntries.getTotalTime(taskId?): Promise<number>
+platform.tasks.timeEntries.create(input: { taskId, userId, duration, description?, billable?, date? }): Promise<TimeEntry>
+platform.tasks.timeEntries.update(id, patch): Promise<TimeEntry>
+platform.tasks.timeEntries.delete(id): Promise<void>
+platform.tasks.timeEntries.list(filters?): Promise<TimeEntry[]>
+platform.tasks.timeEntries.getTotalTime(taskId?): Promise<number>
 ```
 
 Duration is stored in minutes.
@@ -225,10 +225,10 @@ Duration is stored in minutes.
 `ReminderWorkflow` -- task reminders:
 
 ```ts
-framework.tasks.reminders.create(input: { taskId, type, remindAt?, isRecurring? }): Promise<Reminder>
-framework.tasks.reminders.update(id, patch): Promise<Reminder>
-framework.tasks.reminders.delete(id): Promise<void>
-framework.tasks.reminders.list(filters?): Promise<Reminder[]>
+platform.tasks.reminders.create(input: { taskId, type, remindAt?, isRecurring? }): Promise<Reminder>
+platform.tasks.reminders.update(id, patch): Promise<Reminder>
+platform.tasks.reminders.delete(id): Promise<void>
+platform.tasks.reminders.list(filters?): Promise<Reminder[]>
 ```
 
 Reminder types: `due_date`, `custom`, `overdue`. Supports recurring reminders.
@@ -238,11 +238,11 @@ Reminder types: `due_date`, `custom`, `overdue`. Supports recurring reminders.
 `AutomationWorkflow` -- automation rules with triggers and actions:
 
 ```ts
-framework.tasks.automation.create(input: { projectId, trigger, conditions, actions, name }): Promise<AutomationRule>
-framework.tasks.automation.update(id, patch): Promise<AutomationRule>
-framework.tasks.automation.delete(id): Promise<void>
-framework.tasks.automation.list(projectId): Promise<AutomationRule[]>
-framework.tasks.automation.toggle(id, isActive): Promise<void>
+platform.tasks.automation.create(input: { projectId, trigger, conditions, actions, name }): Promise<AutomationRule>
+platform.tasks.automation.update(id, patch): Promise<AutomationRule>
+platform.tasks.automation.delete(id): Promise<void>
+platform.tasks.automation.list(projectId): Promise<AutomationRule[]>
+platform.tasks.automation.toggle(id, isActive): Promise<void>
 ```
 
 Triggers: `status_change`, `assignment_change`, `due_date_passed`, `task_created`, `task_updated`. Conditions and actions are stored as JSONB.
@@ -252,11 +252,11 @@ Triggers: `status_change`, `assignment_change`, `due_date_passed`, `task_created
 `LinkWorkflow` -- task relationships (dependency DAG):
 
 ```ts
-framework.tasks.links.create(input: { sourceId, targetId, type }): Promise<TaskLink>
-framework.tasks.links.delete(id): Promise<void>
-framework.tasks.links.list(taskId): Promise<TaskLinkInfo[]>
-framework.tasks.links.getBlockers(taskId): Promise<Task[]>
-framework.tasks.links.getRelated(taskId): Promise<Task[]>
+platform.tasks.links.create(input: { sourceId, targetId, type }): Promise<TaskLink>
+platform.tasks.links.delete(id): Promise<void>
+platform.tasks.links.list(taskId): Promise<TaskLinkInfo[]>
+platform.tasks.links.getBlockers(taskId): Promise<Task[]>
+platform.tasks.links.getRelated(taskId): Promise<Task[]>
 ```
 
 Link types: `blocks`, `blocked_by`, `related_to`, `duplicates`, `caused_by`, `split_from`. Cycle prevention is enforced.
@@ -266,12 +266,12 @@ Link types: `blocks`, `blocked_by`, `related_to`, `duplicates`, `caused_by`, `sp
 `CollaborationWorkflow` -- watchers and attachments:
 
 ```ts
-framework.tasks.collaboration.addWatcher(taskId, userId): Promise<void>
-framework.tasks.collaboration.removeWatcher(taskId, userId): Promise<void>
-framework.tasks.collaboration.listWatchers(taskId): Promise<string[]>
-framework.tasks.collaboration.addAttachment(input): Promise<Attachment>
-framework.tasks.collaboration.removeAttachment(id): Promise<void>
-framework.tasks.collaboration.listAttachments(taskId): Promise<Attachment[]>
+platform.tasks.collaboration.addWatcher(taskId, userId): Promise<void>
+platform.tasks.collaboration.removeWatcher(taskId, userId): Promise<void>
+platform.tasks.collaboration.listWatchers(taskId): Promise<string[]>
+platform.tasks.collaboration.addAttachment(input): Promise<Attachment>
+platform.tasks.collaboration.removeAttachment(id): Promise<void>
+platform.tasks.collaboration.listAttachments(taskId): Promise<Attachment[]>
 ```
 
 ### Views
@@ -279,10 +279,10 @@ framework.tasks.collaboration.listAttachments(taskId): Promise<Attachment[]>
 `ViewWorkflow` -- saved filter/sort configurations:
 
 ```ts
-framework.tasks.views.create(input: { name, type, filters, sort, projectId?, ownerId? }): Promise<SavedView>
-framework.tasks.views.update(id, patch): Promise<SavedView>
-framework.tasks.views.delete(id): Promise<void>
-framework.tasks.views.list(ownerId?, projectId?): Promise<SavedView[]>
+platform.tasks.views.create(input: { name, type, filters, sort, projectId?, ownerId? }): Promise<SavedView>
+platform.tasks.views.update(id, patch): Promise<SavedView>
+platform.tasks.views.delete(id): Promise<void>
+platform.tasks.views.list(ownerId?, projectId?): Promise<SavedView[]>
 ```
 
 View types: `list`, `board`, `calendar`, `timeline`. Filters and sort configurations stored as JSONB.
@@ -292,11 +292,11 @@ View types: `list`, `board`, `calendar`, `timeline`. Filters and sort configurat
 `ReportService` -- reporting and analytics:
 
 ```ts
-framework.tasks.reports.getTaskSummary(projectId?): Promise<TaskCompletionSummary>
-framework.tasks.reports.getWorkload(userId?): Promise<...>
-framework.tasks.reports.getVelocity(projectId): Promise<...>
-framework.tasks.reports.getBurndown(projectId): Promise<...>
-framework.tasks.reports.getTimeReport(filters?): Promise<...>
+platform.tasks.reports.getTaskSummary(projectId?): Promise<TaskCompletionSummary>
+platform.tasks.reports.getWorkload(userId?): Promise<...>
+platform.tasks.reports.getVelocity(projectId): Promise<...>
+platform.tasks.reports.getBurndown(projectId): Promise<...>
+platform.tasks.reports.getTimeReport(filters?): Promise<...>
 ```
 
 ## Services

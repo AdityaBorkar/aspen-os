@@ -1,0 +1,118 @@
+---
+title: Database
+description: PostgreSQL connection pool and Drizzle ORM integration with automatic schema management and multi-tenant support.
+icon: IconDatabase
+---
+
+The `DatabaseUnit` (`$name: "db"`) is the foundational unit — all other units depend on it. It owns a control-plane `pg.Pool` and a Drizzle `NodePgDatabase` instance, plus per-tenant pools in isolated mode.
+
+## Configuration
+
+```ts title="src/server/db/types.ts"
+type DatabaseConfig = {
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  database: string;
+  ssl?: boolean;
+  maxConnections?: number;  // default: 20
+};
+```
+
+The `db` config is always the **control-plane** database connection. In single/RLS mode, this IS the app database. In isolated mode, this is the control-plane database; per-tenant DB configs are resolved by the `TenantResolver`.
+
+## Public API
+
+```ts title="src/server/db/index.ts"
+class DatabaseUnit {
+  readonly $name = "db";
+  readonly config: DatabaseConfig;
+  readonly tenancyMode: TenancyMode;
+  readonly resolver?: TenantResolver;
+
+  get db(): NodePgDatabase;              // stable wrapper (Proxy) — resolves per-request
+  get controlPlaneDb(): NodePgDatabase;  // control-plane drizzle instance
+  get pool(): pg.Pool;                   // control-plane connection pool
+
+  async $prepare(): Promise<void>;       // pushes core schemas to control-plane DB
+  async $cleanup(): Promise<void>;       // ends all pools
+  getSchemas(): Record<string, unknown>;
+
+  // Per-tenant (isolated mode)
+  async getTenantDb(tenantId: string): Promise<NodePgDatabase>;
+  async pushSchemasToTenant(tenantId: string, moduleSchemas: Record<string, unknown>): Promise<void>;
+
+  // RLS (shared mode)
+  async applyRlsPolicies(db: NodePgDatabase): Promise<void>;
+}
+```
+
+## Stable DB Wrapper
+
+The `db` property is a getter that returns a stable wrapper object (a JavaScript `Proxy`). The wrapper resolves the correct per-request drizzle instance via `AsyncLocalStorage` at query time. Workflows keep `this.db = units.db.db` — no workflow code changes needed.
+
+```ts
+platform.db.db           // stable wrapper — resolves per-request via context
+platform.db.controlPlaneDb  // direct control-plane drizzle instance
+platform.db.pool         // pg.Pool — control-plane connection pool
+```
+
+## Automatic Schema Management
+
+During `$prepare()`, the unit calls `pushSchema()` from `drizzle-kit/api` to apply schema changes for core schemas:
+
+- Auth schema (`user`, `session`, `account`, `verification` tables — no `tenant_id`)
+- Log schema (`logs` table — with `tenant_id`)
+- Storage schema (`file_metadata` table — with `tenant_id`)
+- KV Store schema (`kv_store` table — with `tenant_id`)
+
+```ts
+platform.db.getSchemas();
+// → { ...authSchema, ...logSchema, ...storageSchema, ...kvStoreSchema }
+```
+
+<Callout type="info">
+  In shared mode, RLS policies are applied to all tables with a `tenant_id` column after all schemas are pushed. Auth tables are exempt — they have no `tenant_id` and no RLS.
+</Callout>
+
+## Multi-Tenant Support
+
+The `DatabaseUnit` is tenancy-mode-aware. See the [Tenancy guide](../tenancy) for full details on the three modes.
+
+### Per-Tenant Pools (isolated Mode)
+
+```ts
+await platform.db.getTenantDb("tenant_123");
+// Lazily creates and caches a pg.Pool + drizzle instance for the tenant
+```
+
+### RLS Policies (shared Mode)
+
+```ts
+await platform.db.applyRlsPolicies(platform.db.controlPlaneDb);
+// Discovers all tables with tenant_id, creates tenant_role, applies RLS policies
+```
+
+## Dependency Injection
+
+The `DatabaseUnit` is the only unit with no injected dependencies. All other units receive `{ db: DatabaseUnit }` (or more) via constructor injection.
+
+## Access in Request Context
+
+Inside `platform.run()`, the Drizzle `db` instance is available via `getContext()`:
+
+```ts
+import { getContext } from "@aspen-os/platform/server";
+
+// Single-tenant
+await platform.run(async () => {
+  const { db } = getContext();
+});
+
+// Multi-tenant
+await platform.run(tenantId, async () => {
+  const { db, tenantId } = getContext();
+  // ctx also provides: auth (better-auth instance), pubsub (PubSubUnit)
+});
+```

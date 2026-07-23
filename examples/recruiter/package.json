@@ -1,5 +1,7 @@
 {
   "dependencies": {
+    "@aspen-os/organization": "workspace:*",
+    "@aspen-os/platform": "workspace:*",
     "@orpc/server": "^1.14.8",
     "@t3-oss/env-core": "^0.13.11",
     "@tailwindcss/vite": "^4.3.3",

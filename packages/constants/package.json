@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@aspen-os/framework": "workspace:*",
+    "@aspen-os/platform": "workspace:*",
     "drizzle-orm": "catalog:"
   },
   "devDependencies": {

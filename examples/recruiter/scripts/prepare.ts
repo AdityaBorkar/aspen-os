@@ -1,6 +1,6 @@
-import { f } from "@/aspen/server";
+import { p } from "@/aspen/server";
 
-f.prepareInfra()
+p.prepareInfra()
   .then(() => {
     console.log("Prepared");
     process.exit(0);

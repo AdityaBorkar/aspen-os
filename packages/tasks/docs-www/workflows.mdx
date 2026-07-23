@@ -8,7 +8,7 @@ The Tasks module exposes 11 workflows managing projects, tasks, statuses, types,
 
 ## ProjectWorkflow
 
-Access: `framework.tasks.projects`
+Access: `platform.tasks.projects`
 
 Manages projects and their members.
 
@@ -39,7 +39,7 @@ listMembers(projectId: string): Promise<projectMember[]>
 
 ## TaskWorkflow
 
-Access: `framework.tasks.tasks`
+Access: `platform.tasks.tasks`
 
 Manages tasks, subtasks, assignees, and activity logging.
 
@@ -81,7 +81,7 @@ getLoggedHours(taskId: string): Promise<number>
 
 ## StatusWorkflow
 
-Access: `framework.tasks.statuses`
+Access: `platform.tasks.statuses`
 
 Manages task statuses and status transition rules.
 
@@ -111,7 +111,7 @@ validateTransition(fromStatusId: string, toStatusId: string, projectId: string):
 
 ## TaskTypeWorkflow
 
-Access: `framework.tasks.taskTypes`
+Access: `platform.tasks.taskTypes`
 
 Manages task types and labels.
 
@@ -138,7 +138,7 @@ listLabels(projectId?: string): Promise<label[]>
 
 ## TimeEntryWorkflow
 
-Access: `framework.tasks.timeEntries`
+Access: `platform.tasks.timeEntries`
 
 Manages time tracking entries on tasks.
 
@@ -156,7 +156,7 @@ getTotalDuration(taskId: string, billableOnly?: boolean): Promise<number>
 
 ## CommentWorkflow
 
-Access: `framework.tasks.comments`
+Access: `platform.tasks.comments`
 
 Manages threaded comments on tasks.
 
@@ -174,7 +174,7 @@ listReplies(parentId: string): Promise<comment[]>
 
 ## LinkWorkflow
 
-Access: `framework.tasks.links`
+Access: `platform.tasks.links`
 
 Manages dependency links between tasks and exposes graph operations.
 
@@ -202,7 +202,7 @@ getDependencyGraph(taskIds: string[]): Promise<TaskDependencyNode[]>
 
 ## CollaborationWorkflow
 
-Access: `framework.tasks.collaboration`
+Access: `platform.tasks.collaboration`
 
 Manages watchers, attachments, and activity logs.
 
@@ -233,7 +233,7 @@ getActivityLog(taskId: string, action?: string): Promise<activityLog[]>
 
 ## ReminderWorkflow
 
-Access: `framework.tasks.reminders`
+Access: `platform.tasks.reminders`
 
 Manages task reminders with recurring scheduling and notification dispatch.
 
@@ -268,7 +268,7 @@ createOverdueReminder(taskId: string, userId: string): Promise<void>
 
 ## AutomationWorkflow
 
-Access: `framework.tasks.automation`
+Access: `platform.tasks.automation`
 
 Manages automation rules that trigger actions on task events.
 
@@ -288,7 +288,7 @@ evaluateRules(context: { taskId: string; trigger: string; values: Record<string,
 
 ## ViewWorkflow
 
-Access: `framework.tasks.views`
+Access: `platform.tasks.views`
 
 Manages saved views with filters, sorting, and grouping.
 

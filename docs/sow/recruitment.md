@@ -1,6 +1,6 @@
 # Recruitment Module — Scope of Work
 
-> Scope of Work for a recruitment management module built on the `@aspen-os/framework`.
+> Scope of Work for a recruitment management module built on the `@aspen-os/platform`.
 
 ## Overview
 

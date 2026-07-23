@@ -1,0 +1,24 @@
+{
+  "icon": "IconStack",
+  "pages": [
+    "---Getting Started---",
+    "overview",
+    "usage",
+    "tenancy",
+    "unit",
+    "module",
+    "unit-vs-module",
+    "custom-module",
+    "---Units---",
+    "units/logs",
+    "units/database",
+    "units/kv-store",
+    "units/pubsub",
+    "units/storage",
+    "units/auth",
+    "units/rpc"
+  ],
+  "pagesIndex": "index",
+  "root": true,
+  "title": "Platform"
+}

@@ -65,7 +65,7 @@ export const CONNECTION_EVENTS = {
 Events are published via `PubSubUnit.publish()`:
 
 ```ts
-await framework.pubsub.publish("branch:created", {
+await platform.pubsub.publish("branch:created", {
   branch: { code: "HQ-MUM", id: "br-1", name: "HQ Mumbai", type: "headquarters" },
 });
 ```
@@ -73,11 +73,11 @@ await framework.pubsub.publish("branch:created", {
 ### Subscribing to Events
 
 ```ts
-await framework.pubsub.subscribe("branch:created", async (message) => {
+await platform.pubsub.subscribe("branch:created", async (message) => {
   console.log("Branch created:", message.data.branch);
 });
 
-await framework.pubsub.subscribe("connection:status_changed", async (message) => {
+await platform.pubsub.subscribe("connection:status_changed", async (message) => {
   const { connectionId, fromStatus, toStatus } = message.data;
   // React to status change
 });

@@ -1,6 +1,6 @@
-# Framework Tenancy Transformation — Scope of Work
+# Platform Tenancy Transformation — Scope of Work
 
-> Scope of Work for transforming `@aspen-os/framework` to support three selectable tenancy
+> Scope of Work for transforming `@aspen-os/platform` to support three selectable tenancy
 > architectures: Single Tenant, Multi-Tenant (Shared DB + RLS), and Multi-Tenant (Isolated DB).
 >
 > The developer chooses one mode at config time and commits to it for the entire application.
@@ -13,12 +13,12 @@
 
 ## Overview
 
-The framework today is hardcoded single-tenant: one `pg.Pool`, one drizzle instance, one
+The platform today is hardcoded single-tenant: one `pg.Pool`, one drizzle instance, one
 `DatabaseConfig`. Every workflow captures `this.db = units.db.db` at init time and holds it
 forever. There is zero tenant awareness anywhere — no tenant context, no `tenant_id` columns,
 no RLS, no per-tenant connection routing.
 
-This SOW transforms the framework so that the tenancy mode is a **config-time choice**. Three
+This SOW transforms the platform so that the tenancy mode is a **config-time choice**. Three
 modes are supported:
 
 | Mode | Databases | Isolation | `tenant_id` columns | Connection routing |
@@ -28,13 +28,13 @@ modes are supported:
 | **Isolated DB** | N+1 (control-plane + per-tenant) | Physical (separate DBs) | Present (redundant per DB) | Per-tenant pool resolution |
 
 The same module code — workflows, services, schemas — works in all three modes without
-modification. The framework handles mode-specific behavior internally.
+modification. The platform handles mode-specific behavior internally.
 
 ---
 
 ## Key Architectural Decisions
 
-1. **Config flag with conditionals** — A `tenancy` field in `FrameworkConfig` selects the mode.
+1. **Config flag with conditionals** — A `tenancy` field in `PlatformConfig` selects the mode.
    `DatabaseUnit` checks the mode internally. No strategy pattern, no separate tenancy unit.
 
 2. **Stable DB wrapper** — `DatabaseUnit.db` becomes a getter that returns a stable wrapper object
@@ -48,7 +48,7 @@ modification. The framework handles mode-specific behavior internally.
    after `fn()` completes.
 
 4. **`run(tenantId, fn)`** — The caller resolves the tenant ID (e.g., from the auth session's
-   `activeOrganizationId`) and passes it to `run()`. The framework doesn't know about auth — it
+   `activeOrganizationId`) and passes it to `run()`. The platform doesn't know about auth — it
    just takes a tenant ID.
 
 5. **Always include `tenant_id` column** — Every table in every module gets a `tenant_id` column
@@ -57,7 +57,7 @@ modification. The framework handles mode-specific behavior internally.
    (redundant but harmless). This avoids conditional schema definitions.
 
 6. **Post-push SQL for RLS policies** — RLS policies are applied via raw SQL (using drizzle's `sql`
-   tag) after `pushSchema()` in RLS mode only. The framework provides a standard policy template.
+   tag) after `pushSchema()` in RLS mode only. The platform provides a standard policy template.
    This avoids conditional `pgPolicy()` in schema definitions.
 
 7. **Mode-aware `$prepare()` + provisioning** — `DatabaseUnit.$prepare()` pushes framework schemas
@@ -83,7 +83,7 @@ modification. The framework handles mode-specific behavior internally.
     resolved per-request from context.
 
 12. **Required config field, validated at `create()`** — The `tenancy` field is required in
-    `FrameworkConfig`. The framework validates it at `Framework.create()` time. Once set, the mode
+    `PlatformConfig`. The platform validates it at `Platform.create()` time. Once set, the mode
     cannot be changed.
 
 ---
@@ -92,10 +92,10 @@ modification. The framework handles mode-specific behavior internally.
 
 ### 1.1 TenancyConfig
 
-A new required field on `FrameworkConfig`:
+A new required field on `PlatformConfig`:
 
 ```ts
-type FrameworkConfig = {
+type PlatformConfig = {
   tenancy: TenancyConfig
   auth: AuthConfig
   db: DatabaseConfig
@@ -135,20 +135,20 @@ type TenantResolver = {
 
 ### 1.2 Mode Access
 
-The framework instance exposes the mode via a getter:
+The platform instance exposes the mode via a getter:
 
 ```ts
-framework.tenancyMode  // "single" | "shared" | "isolated"
+platform.tenancyMode  // "single" | "shared" | "isolated"
 ```
 
 Units and modules can check the mode at runtime if needed, though most should be transparent.
 
 ### 1.3 Validation
 
-`Framework.create()` validates:
+`Platform.create()` validates:
 - `tenancy` is present and `mode` is one of the three values.
 - In `isolated` mode, `resolver` is present with both `resolve` and `list` functions.
-- The mode is fixed for the lifetime of the framework instance — there is no `setMode()`.
+- The mode is fixed for the lifetime of the platform instance — there is no `setMode()`.
 
 ---
 
@@ -302,7 +302,7 @@ async $prepare() {
 
 ### 2.7 `applyRlsPolicies()` — Post-Push RLS SQL
 
-In RLS mode, after `pushSchema()`, the framework applies standard RLS policies to every table:
+In RLS mode, after `pushSchema()`, the platform applies standard RLS policies to every table:
 
 ```ts
 private async applyRlsPolicies(db: NodePgDatabase, schemas: Record<string, unknown>) {
@@ -456,13 +456,13 @@ export interface Module<N extends string = string> {
 
 ### 4.2 When `$prepareTenant()` Is Called
 
-- **At startup (isolated mode only)**: After `prepare()`, the framework calls
+- **At startup (isolated mode only)**: After `prepare()`, the platform calls
   `resolver.list()` to get all tenant IDs, then calls `$prepareTenant(tenantId)` for each
-  module for each tenant. The framework sets up the `AsyncLocalStorage` context with the tenantId
+  module for each tenant. The platform sets up the `AsyncLocalStorage` context with the tenantId
   before calling each module's `$prepareTenant()`, so units (db, pubsub) route to the correct
   tenant.
 
-- **During tenant provisioning**: When a new tenant is created, the framework calls
+- **During tenant provisioning**: When a new tenant is created, the platform calls
   `$prepareTenant(tenantId)` for each module. This registers per-tenant cron schedules and
   subscriptions on the new tenant's pg-boss.
 
@@ -639,12 +639,12 @@ The `session.activeOrganizationId` is the tenant ID. The host app resolves this 
 `run(tenantId, fn)`.
 
 In single-tenant mode, the `organization()` plugin may or may not be used — it's an app-level
-decision, not a framework concern.
+decision, not a platform concern.
 
 ### 6.4 User Table Extension
 
 In isolated mode, the `user` table gains an `sp_id` FK column (per the management-plane SOW).
-This is an app-level concern, not a framework concern — the framework's `AuthUnit` doesn't
+This is an app-level concern, not a platform concern — the platform's `AuthUnit` doesn't
 enforce it.
 
 ---
@@ -660,7 +660,7 @@ tenantId: text("tenant_id").notNull().default("default")
 ```
 
 This includes:
-- **Framework tables**: `user`, `session`, `account`, `verification` (auth), `logs`,
+- **Platform tables**: `user`, `session`, `account`, `verification` (auth), `logs`,
   `file_metadata` (storage), `kv_store`.
 - **Domain module tables**: all tables in organization, compliance, tasks, drive, hr.
 
@@ -672,7 +672,7 @@ they are control-plane only and exempt from RLS.
 
 ### 7.2 RLS Policies — RLS Mode Only
 
-In RLS mode, after `pushSchema()`, the framework applies RLS policies via SQL (see §2.7). The
+In RLS mode, after `pushSchema()`, the platform applies RLS policies via SQL (see §2.7). The
 policies use `current_setting('app.tenant_id')` to filter rows.
 
 Auth tables are exempt — they have no `tenant_id` column and no RLS policies. Auth queries
@@ -680,7 +680,7 @@ always go through the control-plane connection (which bypasses RLS or uses a `BY
 
 ### 7.3 Schema Push Per Mode
 
-| Mode | Framework schemas | Module schemas | RLS policies |
+| Mode | Platform schemas | Module schemas | RLS policies |
 |---|---|---|---|
 | Single | Push to app DB (once) | Push to app DB (once) | None |
 | shared | Push to shared DB (once) | Push to shared DB (once) | Apply after push |
@@ -826,12 +826,12 @@ type RpcContext = {
 ```
 
 The host app passes the `tenantId` in the `RpcContext`, and the RPC handler wraps procedure
-execution in `framework.run(tenantId, fn)` (or `framework.run(fn)` in single-tenant mode).
+execution in `platform.run(tenantId, fn)` (or `platform.run(fn)` in single-tenant mode).
 
 ### 11.2 No Structural Change
 
 The `RpcUnit` itself doesn't change structurally — it's the host app's responsibility to resolve
-the tenant and set up the context. The framework provides the `run()` method for this.
+the tenant and set up the context. The platform provides the `run()` method for this.
 
 ---
 
@@ -867,7 +867,7 @@ operations.
 
 ### 13.1 No Structural Changes
 
-The client framework (`@aspen-os/framework/client`) does not need significant changes. The
+The client framework (`@aspen-os/platform/client`) does not need significant changes. The
 client operates within a single tenant's browser session. The `tenantId` is resolved on the
 server and encoded in the auth session. The client doesn't need to know about tenancy mode.
 
@@ -885,7 +885,7 @@ session's `activeOrganizationId`. The server reads this on the next request.
 
 The Recruiter app is single-tenant today. To migrate:
 
-1. Add `tenancy: { mode: "single" }` to `FrameworkConfig`.
+1. Add `tenancy: { mode: "single" }` to `PlatformConfig`.
 2. Add `tenant_id` column to all tables (via `pushSchema()` — it will add the column with
    `DEFAULT 'default'`).
 3. No other changes needed — workflows work as before.
@@ -905,7 +905,7 @@ Each domain module (organization, compliance, tasks, drive, hr) needs:
 A new multi-tenant app:
 
 1. Choose a mode: `shared` or `isolated`.
-2. Configure `tenancy` in `FrameworkConfig`.
+2. Configure `tenancy` in `PlatformConfig`.
 3. In RLS mode: create the `tenant_role` Postgres role, ensure `app.tenant_id` is set per
    request.
 4. In isolated mode: provide a `TenantResolver` that reads from the control-plane `tenant`
@@ -917,17 +917,17 @@ A new multi-tenant app:
 
 ## 15. Work Phases
 
-### Phase 1: Core Framework (DatabaseUnit, Context, run())
+### Phase 1: Core Platform (DatabaseUnit, Context, run())
 
-- Add `TenancyConfig` type and `tenancy` field to `FrameworkConfig`.
+- Add `TenancyConfig` type and `tenancy` field to `PlatformConfig`.
 - Transform `DatabaseUnit`: control-plane pool, per-tenant pools, stable wrapper, mode-aware
   `$prepare()`, `applyRlsPolicies()`, `pushSchemasToTenant()`.
 - Update `context.ts`: add `tenantId` to context type.
-- Update `Framework.run()`: two overloads, per-mode implementation.
-- Update `Framework.create()`: validate `tenancy` config, pass to `DatabaseUnit`.
-- Update `Framework.prepareInfra()`: call `$prepareTenant()` for each tenant in isolated mode.
+- Update `Platform.run()`: two overloads, per-mode implementation.
+- Update `Platform.create()`: validate `tenancy` config, pass to `DatabaseUnit`.
+- Update `Platform.prepareInfra()`: call `$prepareTenant()` for each tenant in isolated mode.
 
-### Phase 2: Schema Changes (Framework Tables)
+### Phase 2: Schema Changes (Platform Tables)
 
 - Add `tenant_id` column to auth, logs, storage, kv-store schema definitions.
 - Update unique constraints where needed.
@@ -936,7 +936,7 @@ A new multi-tenant app:
 ### Phase 3: Module Interface
 
 - Add `$prepareTenant()` to the `Module` interface.
-- Update `Framework.prepareInfra()` to call `$prepareTenant()` per-tenant in isolated mode.
+- Update `Platform.prepareInfra()` to call `$prepareTenant()` per-tenant in isolated mode.
 - Set up `AsyncLocalStorage` context before calling `$prepareTenant()`.
 
 ### Phase 4: PubSubUnit Transformation
@@ -980,15 +980,15 @@ A new multi-tenant app:
 1. **Per-tenant pool limits**: Max number of concurrent tenant pools, idle timeout, LRU eviction
    policy. Implementation detail — start with unbounded Map, add limits if needed.
 
-2. **RLS role management**: Whether the framework creates the `tenant_role` Postgres role during
-   `$prepare()` or assumes it exists. Likely the framework creates it if it doesn't exist.
+2. **RLS role management**: Whether the platform creates the `tenant_role` Postgres role during
+   `$prepare()` or assumes it exists. Likely the platform creates it if it doesn't exist.
 
 3. **`SET LOCAL` vs `SET`**: `SET LOCAL` is transaction-scoped (safer). The `run()` implementation
    wraps in `BEGIN`/`COMMIT`. If workflows need to run outside a transaction, `SET` (session-level)
    may be needed. Start with `SET LOCAL` + transaction wrapping.
 
 4. **Cron job tenant iteration in RLS mode**: In shared mode, cron handlers need to iterate
-   over tenants. The framework could provide a `forEachTenant(fn)` helper, or the module handles
+   over tenants. The platform could provide a `forEachTenant(fn)` helper, or the module handles
    it. Deferred to implementation.
 
 5. **Connection pool sizing per tenant**: Whether per-tenant pools share a max connection count
@@ -996,4 +996,4 @@ A new multi-tenant app:
    control-plane pool.
 
 6. **PubSub message format**: Whether `tenantId` is automatically injected into pubsub message
-   payloads or left to the publisher. Start with the framework injecting it via the wrapper.
+   payloads or left to the publisher. Start with the platform injecting it via the wrapper.

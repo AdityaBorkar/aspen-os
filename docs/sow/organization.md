@@ -1,6 +1,6 @@
 # Organization Module — Scope of Work
 
-> Scope of Work for an organization management module built on the `@aspen-os/framework`.
+> Scope of Work for an organization management module built on the `@aspen-os/platform`.
 
 ## Overview
 
@@ -358,7 +358,7 @@ Automated notification for upcoming document expirations.
 
 ## 9. Out of Scope
 
-- **Multi-organization / multi-tenant management**: this module manages a single organization per tenant. Tenant-level isolation is handled by the framework.
+- **Multi-organization / multi-tenant management**: this module manages a single organization per tenant. Tenant-level isolation is handled by the platform.
 - **Document versioning / approval workflows**: compliance documents track renewal chains but do not have multi-step approval processes.
 - **Regulatory rule engine**: no automated compliance checking against regulatory databases. Document tracking is manual.
 - **Advanced analytics**: compliance trend analysis, risk scoring, benchmark comparisons (future module).

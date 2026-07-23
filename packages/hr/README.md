@@ -24,7 +24,7 @@ A domain module for the Aspen OS framework that provides comprehensive Human Res
 
 ## Overview
 
-The HR module is a comprehensive HRMS (Human Resource Management System) built on the Aspen OS framework. It covers the full employee journey from onboarding through separation, including time tracking, leave management, payroll-adjacent features, and talent management.
+The HR module is a comprehensive HRMS (Human Resource Management System) built on the Aspen OS platform. It covers the full employee journey from onboarding through separation, including time tracking, leave management, payroll-adjacent features, and talent management.
 
 **Package**: `@aspen-os/hr`  
 **Module name**: `"hr"` (planned)  
@@ -32,7 +32,7 @@ The HR module is a comprehensive HRMS (Human Resource Management System) built o
 
 ## Status
 
-**Partially implemented.** The module has substantial code written (~5,300 lines across schemas and workflows) but is not yet compilable or wired into the framework. The following are incomplete:
+**Partially implemented.** The module has substantial code written (~5,300 lines across schemas and workflows) but is not yet compilable or wired into the platform. The following are incomplete:
 
 | Component | Status |
 |---|---|
@@ -50,7 +50,7 @@ The HR module is a comprehensive HRMS (Human Resource Management System) built o
 2. Populate `types.ts` to re-export schema types and define `EmployeeTreeNode`, `AttendanceSummary`, `LeaveBalance`, `OvertimeSummary`.
 3. Rewrite `index.ts` to follow the [Domain Module Pattern](../framework/README.md#writing-a-domain-module).
 4. Define HR events in `event-map.ts`.
-5. Update `package.json` with dependencies (`@aspen-os/framework`, `drizzle-orm`, `valibot`) and exports.
+5. Update `package.json` with dependencies (`@aspen-os/platform`, `drizzle-orm`, `valibot`) and exports.
 
 ## Installation
 
@@ -67,20 +67,20 @@ import { HrModule } from "@aspen-os/hr"
 
 const hr = HrModule.create({ country: "INDIA" })
 
-const framework = Framework.create(config, { organization, hr })
+const platform = Platform.create(config, { organization, hr })
 ```
 
 ### Planned workflow accessors
 
 | Getter | Workflow | Domain |
 |---|---|---|
-| `framework.hr.setup` | `SetupWorkflow` | HR settings, departments, designations, grades, holidays |
-| `framework.hr.employees` | `EmployeeWorkflow` | Employee CRUD, groups, health insurance, skills, org chart |
-| `framework.hr.attendance` | `AttendanceWorkflow` | Attendance records, checkins, requests |
-| `framework.hr.shifts` | `ShiftWorkflow` | Shift types, locations, assignments, schedules |
-| `framework.hr.leave` | `LeaveWorkflow` | Leave types, policies, allocations, applications, ledger |
-| `framework.hr.lifecycle` | `LifecycleWorkflow` | Onboarding, promotions, transfers, separations |
-| `framework.hr.overtime` | `OvertimeWorkflow` | Overtime types, slips, approval, summary |
+| `platform.hr.setup` | `SetupWorkflow` | HR settings, departments, designations, grades, holidays |
+| `platform.hr.employees` | `EmployeeWorkflow` | Employee CRUD, groups, health insurance, skills, org chart |
+| `platform.hr.attendance` | `AttendanceWorkflow` | Attendance records, checkins, requests |
+| `platform.hr.shifts` | `ShiftWorkflow` | Shift types, locations, assignments, schedules |
+| `platform.hr.leave` | `LeaveWorkflow` | Leave types, policies, allocations, applications, ledger |
+| `platform.hr.lifecycle` | `LifecycleWorkflow` | Onboarding, promotions, transfers, separations |
+| `platform.hr.overtime` | `OvertimeWorkflow` | Overtime types, slips, approval, summary |
 
 ## Phase 1: Core Operations
 
@@ -267,7 +267,7 @@ The HR module integrates with other framework units and modules:
 
 ### Dependencies
 
-- **Required**: `@aspen-os/framework`, `drizzle-orm`, `valibot`
+- **Required**: `@aspen-os/platform`, `drizzle-orm`, `valibot`
 - **Optional**: `@aspen-os/constants` (for shared enums if promoted from local)
 - **Cross-module**: Tasks module optionally depends on HR for employee resolution and business-day logic
 

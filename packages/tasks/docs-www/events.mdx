@@ -45,13 +45,13 @@ export const REMINDER_EVENTS = {
 
 ```ts
 // Subscribe to task creation
-await framework.pubsub.subscribe("task:created", async (message) => {
+await platform.pubsub.subscribe("task:created", async (message) => {
   const { task } = message.data;
   // React to new task
 });
 
 // Subscribe to reminder firing
-await framework.pubsub.subscribe("reminder:fired", async (message) => {
+await platform.pubsub.subscribe("reminder:fired", async (message) => {
   const { taskId, reminder } = message.data;
   // Send notification to reminder.userId
 });

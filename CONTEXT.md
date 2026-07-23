@@ -1,17 +1,17 @@
 # Aspen OS
 
-Aspen OS is a business application framework built on Bun/TypeScript. The framework kernel provides composable infrastructure (database, auth, logging, pub/sub, RPC, storage, KV store) so domain-specific modules can be built on top without reinventing plumbing. The first concrete application is **Recruiter** — a recruitment management system.
+Aspen OS is a business application framework built on Bun/TypeScript. The platform kernel provides composable infrastructure (database, auth, logging, pub/sub, RPC, storage, KV store) so domain-specific modules can be built on top without reinventing plumbing. The first concrete application is **Recruiter** — a recruitment management system.
 
 ## Language
 
-### Framework Kernel
+### Platform Kernel
 
 **Platform**:
-A server-side orchestrator class. The framework exports three self-contained classes — `SingleTenantPlatform`, `SharedTenantPlatform`, `IsolatedTenantPlatform` — one per tenancy architecture. Each has its own `create()` static factory, config type, and `run()` signature. Created via `Platform.create(config, modules)`, which instantiates all Units, validates module `$dependencies`, calls `module.$initialize(units)` on each module, and returns a proxy-wrapped instance. Lifecycle: `create()` → `prepareInfra()` → `run()` → `destroy()`.
+A server-side orchestrator class. The platform exports three self-contained classes — `SingleTenantPlatform`, `SharedTenantPlatform`, `IsolatedTenantPlatform` — one per tenancy architecture. Each has its own `create()` static factory, config type, and `run()` signature. Created via `Platform.create(config, modules)`, which instantiates all Units, validates module `$dependencies`, calls `module.$initialize(units)` on each module, and returns a proxy-wrapped instance. Lifecycle: `create()` → `prepareInfra()` → `run()` → `destroy()`.
 _Avoid_: Framework (on the server — that name is reserved for the client class), App, Container, DI Container
 
 **Framework** (client only):
-The client-side orchestrator class. Created via `Framework.create(config, modules)` with 3 units (auth, logs, rpc). No database, no tenancy. The server has no `Framework` class — use a Platform class instead.
+The client-side orchestrator class. Created via `Platform.create(config, modules)` with 3 units (auth, logs, rpc). No database, no tenancy. The server has no `Framework` class — use a Platform class instead.
 _Avoid_: Platform (on the client)
 
 **Unit**:
@@ -316,7 +316,7 @@ A soft-delete state for files and folders. Trashed items retain their data but a
 _Avoid_: Recycle Bin, Deleted Items
 
 **Storage Bridge**:
-A service that wraps the framework's `StorageUnit` to compute storage keys, upload/download objects, and manage signed URLs for drive files.
+A service that wraps the platform's `StorageUnit` to compute storage keys, upload/download objects, and manage signed URLs for drive files.
 _Avoid_: File Adapter, Storage Handler
 
 **Path Service**:
@@ -517,4 +517,4 @@ Stubs (package.json only — no source): accounting, crm, fleet, inventory, repo
 - Don't use native UUID columns — always text with `gen_random_uuid()::text` or app-generated UUIDs
 - Don't use `timestamp without time zone` — always `withTimezone: true`
 - Don't create barrel files unless explicitly told
-- Don't import bare `@aspen-os/framework` — use `/server` or `/client` subpath explicitly
+- Don't import bare `@aspen-os/platform` — use `/server` or `/client` subpath explicitly

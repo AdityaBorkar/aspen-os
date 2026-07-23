@@ -8,13 +8,13 @@ The Organization module exposes 5 workflows, each managing a domain aggregate.
 
 ## OrganizationWorkflow
 
-Access: `framework.organization.organization`
+Access: `platform.organization.organization`
 
 Manages the organization entity itself — branding, locale, timezone, status.
 
 ```ts
 // Create
-const org = await framework.organization.organization.create({
+const org = await platform.organization.organization.create({
   name: "Acme Corp",
   slug: "acme-corp",
   email: "contact@acme.com",
@@ -23,25 +23,25 @@ const org = await framework.organization.organization.create({
 });
 
 // Update
-await framework.organization.organization.update(id, {
+await platform.organization.organization.update(id, {
   name: "Acme Corporation",
 });
 
 // Update branding
-await framework.organization.organization.updateBranding(id, {
+await platform.organization.organization.updateBranding(id, {
   accentColor: "#FF5733",
   logo: "logos/acme.png",
 });
 
 // Upload/delete logo
-await framework.organization.organization.uploadLogo(id, file);
-await framework.organization.organization.deleteLogo(id);
+await platform.organization.organization.uploadLogo(id, file);
+await platform.organization.organization.deleteLogo(id);
 
 // Get
-const org = await framework.organization.organization.get(id);
+const org = await platform.organization.organization.get(id);
 
 // Delete
-await framework.organization.organization.delete(id);
+await platform.organization.organization.delete(id);
 ```
 
 ### Validation Schemas
@@ -53,13 +53,13 @@ await framework.organization.organization.delete(id);
 
 ## BranchWorkflow
 
-Access: `framework.organization.branches`
+Access: `platform.organization.branches`
 
 Manages hierarchical branch structures with a maximum depth of 5 levels and exactly one headquarters per organization.
 
 ```ts
 // Create
-const branch = await framework.organization.branches.create({
+const branch = await platform.organization.branches.create({
   organizationId: orgId,
   name: "HQ Mumbai",
   code: "HQ-MUM",
@@ -68,23 +68,23 @@ const branch = await framework.organization.branches.create({
 });
 
 // Update
-await framework.organization.branches.update(branchId, { name: "HQ Mumbai Central" });
+await platform.organization.branches.update(branchId, { name: "HQ Mumbai Central" });
 
 // Status changes
-await framework.organization.branches.activate(branchId);
-await framework.organization.branches.deactivate(branchId);
-await framework.organization.branches.close(branchId);
+await platform.organization.branches.activate(branchId);
+await platform.organization.branches.deactivate(branchId);
+await platform.organization.branches.close(branchId);
 
 // Archive / restore
-await framework.organization.branches.archive(branchId);
-await framework.organization.branches.restore(branchId);
+await platform.organization.branches.archive(branchId);
+await platform.organization.branches.restore(branchId);
 
 // Get tree (hierarchical view)
-const tree = await framework.organization.branches.getTree(orgId);
+const tree = await platform.organization.branches.getTree(orgId);
 // tree = [{ id, name, children: [...] }]
 
 // List
-const branches = await framework.organization.branches.list({ organizationId: orgId });
+const branches = await platform.organization.branches.list({ organizationId: orgId });
 ```
 
 ### Business Rules
@@ -96,13 +96,13 @@ const branches = await framework.organization.branches.list({ organizationId: or
 
 ## ConnectionWorkflow
 
-Access: `framework.organization.connections`
+Access: `platform.organization.connections`
 
 Manages external entities (clients, vendors, partners) with contacts and notes.
 
 ```ts
 // Create connection
-const conn = await framework.organization.connections.create({
+const conn = await platform.organization.connections.create({
   organizationId: orgId,
   name: "Tech Supplier Ltd",
   type: "vendor",
@@ -112,43 +112,43 @@ const conn = await framework.organization.connections.create({
 });
 
 // Update
-await framework.organization.connections.update(connId, { name: "Tech Supplier Inc" });
+await platform.organization.connections.update(connId, { name: "Tech Supplier Inc" });
 
 // Status management
-await framework.organization.connections.updateStatus(connId, "inactive");
-await framework.organization.connections.archive(connId);
-await framework.organization.connections.restore(connId);
+await platform.organization.connections.updateStatus(connId, "inactive");
+await platform.organization.connections.archive(connId);
+await platform.organization.connections.restore(connId);
 
 // Search
-const results = await framework.organization.connections.search("tech");
+const results = await platform.organization.connections.search("tech");
 
 // Contacts (1:N)
-await framework.organization.connections.addContact(connId, {
+await platform.organization.connections.addContact(connId, {
   name: "Jane Smith",
   email: "jane@techsupplier.com",
   isPrimary: true,
 });
-await framework.organization.connections.updateContact(contactId, { name: "Jane Doe" });
-await framework.organization.connections.deleteContact(contactId);
+await platform.organization.connections.updateContact(contactId, { name: "Jane Doe" });
+await platform.organization.connections.deleteContact(contactId);
 
 // Notes (1:N)
-await framework.organization.connections.addNote(connId, {
+await platform.organization.connections.addNote(connId, {
   userId: "user-1",
   type: "call",
   content: "Discussed Q4 pricing",
 });
-const notes = await framework.organization.connections.listNotes(connId);
+const notes = await platform.organization.connections.listNotes(connId);
 ```
 
 ## AddressWorkflow
 
-Access: `framework.organization.addresses`
+Access: `platform.organization.addresses`
 
 Manages reusable address records with a primary flag.
 
 ```ts
 // Create
-const addr = await framework.organization.addresses.create({
+const addr = await platform.organization.addresses.create({
   line1: "123 Business Park",
   city: "Mumbai",
   state: "Maharashtra",
@@ -158,28 +158,28 @@ const addr = await framework.organization.addresses.create({
 });
 
 // Update
-await framework.organization.addresses.update(addrId, { city: "Pune" });
+await platform.organization.addresses.update(addrId, { city: "Pune" });
 
 // Primary management
-await framework.organization.addresses.setPrimary(addrId);
-await framework.organization.addresses.unsetPrimary(addrId);
+await platform.organization.addresses.setPrimary(addrId);
+await platform.organization.addresses.unsetPrimary(addrId);
 
 // Delete
-await framework.organization.addresses.delete(addrId);
+await platform.organization.addresses.delete(addrId);
 
 // List with filters
-const addresses = await framework.organization.addresses.list({ country: "IN" });
+const addresses = await platform.organization.addresses.list({ country: "IN" });
 ```
 
 ## BankAccountWorkflow
 
-Access: `framework.organization.bankAccounts`
+Access: `platform.organization.bankAccounts`
 
 Manages bank account records with primary flag and active toggle.
 
 ```ts
 // Create
-const acct = await framework.organization.bankAccounts.create({
+const acct = await platform.organization.bankAccounts.create({
   accountHolder: "Acme Corp",
   accountNumber: "1234567890",
   bankName: "HDFC Bank",
@@ -189,15 +189,15 @@ const acct = await framework.organization.bankAccounts.create({
 });
 
 // Update
-await framework.organization.bankAccounts.update(acctId, { bankName: "ICICI Bank" });
+await platform.organization.bankAccounts.update(acctId, { bankName: "ICICI Bank" });
 
 // Primary management
-await framework.organization.bankAccounts.setPrimary(acctId);
+await platform.organization.bankAccounts.setPrimary(acctId);
 
 // Activate / deactivate
-await framework.organization.bankAccounts.activate(acctId);
-await framework.organization.bankAccounts.deactivate(acctId);
+await platform.organization.bankAccounts.activate(acctId);
+await platform.organization.bankAccounts.deactivate(acctId);
 
 // List
-const accounts = await framework.organization.bankAccounts.list();
+const accounts = await platform.organization.bankAccounts.list();
 ```

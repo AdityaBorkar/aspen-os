@@ -27,7 +27,7 @@ The drive module is a fully implemented domain module following the Aspen OS Dom
 
 **Package**: `@aspen-os/drive`  
 **Module name**: `"drive"`  
-**Dependencies**: `@aspen-os/framework`, `drizzle-orm`, `valibot`, `fflate` (for ZIP generation)  
+**Dependencies**: `@aspen-os/platform`, `drizzle-orm`, `valibot`, `fflate` (for ZIP generation)  
 **Tables**: 8 tables, 4 pg enums
 
 ## Installation
@@ -39,28 +39,28 @@ bun install  # workspace package
 ## Quick Start
 
 ```ts
-import { Framework } from "@aspen-os/framework/server"
+import { Platform } from "@aspen-os/platform/server"
 import { DriveModule } from "@aspen-os/drive"
 
 const drive = DriveModule.create()
 
-const framework = Framework.create(config, { drive })
+const platform = Platform.create(config, { drive })
 
-await framework.prepare()  // pushes schema, subscribes + schedules auto-purge
+await platform.prepare()  // pushes schema, subscribes + schedules auto-purge
 
 // Access workflows via the module proxy
-framework.drive.folders      // FolderWorkflow
-framework.drive.files        // FileWorkflow
-framework.drive.labels       // LabelWorkflow
-framework.drive.shares       // ShareWorkflow
-framework.drive.publicLinks  // PublicLinkWorkflow
-framework.drive.trash        // TrashWorkflow
+platform.drive.folders      // FolderWorkflow
+platform.drive.files        // FileWorkflow
+platform.drive.labels       // LabelWorkflow
+platform.drive.shares       // ShareWorkflow
+platform.drive.publicLinks  // PublicLinkWorkflow
+platform.drive.trash        // TrashWorkflow
 
 // Access services
-framework.drive.search       // SearchService
-framework.drive.archive     // ArchiveService
-framework.drive.access      // AccessService
-framework.drive.paths       // PathService
+platform.drive.search       // SearchService
+platform.drive.archive     // ArchiveService
+platform.drive.access      // AccessService
+platform.drive.paths       // PathService
 ```
 
 ## Module API
@@ -150,14 +150,14 @@ All IDs are `text` with `DEFAULT gen_random_uuid()::text`. All timestamps are `T
 `FolderWorkflow` (391 lines) -- manages the virtual folder tree with materialized paths:
 
 ```ts
-framework.drive.folders.create(input: { name, parentId?, ownerId?, color?, description? }): Promise<Folder>
-framework.drive.folders.rename(id, name): Promise<Folder>
-framework.drive.folders.move(id, newParentId): Promise<Folder>
-framework.drive.folders.update(id, patch): Promise<Folder>
-framework.drive.folders.delete(id, force?: boolean): Promise<void>
-framework.drive.folders.restore(id): Promise<Folder>
-framework.drive.folders.get(id): Promise<FolderWithMetadata>  // includes childCount + totalSize
-framework.drive.folders.list(filters?): Promise<Folder[]>
+platform.drive.folders.create(input: { name, parentId?, ownerId?, color?, description? }): Promise<Folder>
+platform.drive.folders.rename(id, name): Promise<Folder>
+platform.drive.folders.move(id, newParentId): Promise<Folder>
+platform.drive.folders.update(id, patch): Promise<Folder>
+platform.drive.folders.delete(id, force?: boolean): Promise<void>
+platform.drive.folders.restore(id): Promise<Folder>
+platform.drive.folders.get(id): Promise<FolderWithMetadata>  // includes childCount + totalSize
+platform.drive.folders.list(filters?): Promise<Folder[]>
 ```
 
 Key behaviors:
@@ -173,33 +173,33 @@ Key behaviors:
 `FileWorkflow` -- manages S3-backed files with versioning:
 
 ```ts
-framework.drive.files.upload(input: { folderId?, filename, contentType, body, metadata? }): Promise<FileRecord>
-framework.drive.files.download(id): Promise<{ stream, contentType, filename, size }>
-framework.drive.files.getDownloadUrl(id, expiry?): Promise<string>  // presigned S3 URL
-framework.drive.files.update(id, patch): Promise<FileRecord>
-framework.drive.files.delete(id): Promise<void>     // soft-delete (trash)
-framework.drive.files.restore(id): Promise<FileRecord>
-framework.drive.files.getVersions(id): Promise<FileVersion[]>
-framework.drive.files.revertToVersion(id, version): Promise<FileRecord>
-framework.drive.files.getMetadata(id): Promise<FileRecord>
-framework.drive.files.move(id, newFolderId): Promise<FileRecord>
-framework.drive.files.copy(id, newFolderId?, newFilename?): Promise<FileRecord>
+platform.drive.files.upload(input: { folderId?, filename, contentType, body, metadata? }): Promise<FileRecord>
+platform.drive.files.download(id): Promise<{ stream, contentType, filename, size }>
+platform.drive.files.getDownloadUrl(id, expiry?): Promise<string>  // presigned S3 URL
+platform.drive.files.update(id, patch): Promise<FileRecord>
+platform.drive.files.delete(id): Promise<void>     // soft-delete (trash)
+platform.drive.files.restore(id): Promise<FileRecord>
+platform.drive.files.getVersions(id): Promise<FileVersion[]>
+platform.drive.files.revertToVersion(id, version): Promise<FileRecord>
+platform.drive.files.getMetadata(id): Promise<FileRecord>
+platform.drive.files.move(id, newFolderId): Promise<FileRecord>
+platform.drive.files.copy(id, newFolderId?, newFilename?): Promise<FileRecord>
 ```
 
-File uploads delegate to `StorageBridge` (which wraps the framework's `StorageUnit`). Version history is tracked in `drive_file_version`. Old versions are retained up to `maxVersions`.
+File uploads delegate to `StorageBridge` (which wraps the platform's `StorageUnit`). Version history is tracked in `drive_file_version`. Old versions are retained up to `maxVersions`.
 
 ### Labels
 
 `LabelWorkflow` -- label CRUD and application:
 
 ```ts
-framework.drive.labels.create(input: { name, color, isGlobal?, ownerId? }): Promise<Label>
-framework.drive.labels.update(id, patch): Promise<Label>
-framework.drive.labels.delete(id): Promise<void>
-framework.drive.labels.list(filters?): Promise<Label[]>
-framework.drive.labels.apply(itemId, labelId, itemType): Promise<void>
-framework.drive.labels.remove(itemId, labelId, itemType): Promise<void>
-framework.drive.labels.listForItem(itemId, itemType): Promise<Label[]>
+platform.drive.labels.create(input: { name, color, isGlobal?, ownerId? }): Promise<Label>
+platform.drive.labels.update(id, patch): Promise<Label>
+platform.drive.labels.delete(id): Promise<void>
+platform.drive.labels.list(filters?): Promise<Label[]>
+platform.drive.labels.apply(itemId, labelId, itemType): Promise<void>
+platform.drive.labels.remove(itemId, labelId, itemType): Promise<void>
+platform.drive.labels.listForItem(itemId, itemType): Promise<Label[]>
 ```
 
 Labels can be global (`isGlobal: true`) or user-owned. The `drive_item_label` table is polymorphic -- labels can be applied to both files and folders.
@@ -209,11 +209,11 @@ Labels can be global (`isGlobal: true`) or user-owned. The `drive_item_label` ta
 `ShareWorkflow` -- direct sharing with inheritance:
 
 ```ts
-framework.drive.shares.create(input: { itemId, itemType, granteeId, granteeType, permission, expiresAt?, message? }): Promise<Share>
-framework.drive.shares.update(id, patch): Promise<Share>
-framework.drive.shares.delete(id): Promise<void>
-framework.drive.shares.list(itemId, itemType): Promise<Share[]>
-framework.drive.shares.listForUser(userId): Promise<Share[]>
+platform.drive.shares.create(input: { itemId, itemType, granteeId, granteeType, permission, expiresAt?, message? }): Promise<Share>
+platform.drive.shares.update(id, patch): Promise<Share>
+platform.drive.shares.delete(id): Promise<void>
+platform.drive.shares.list(itemId, itemType): Promise<Share[]>
+platform.drive.shares.listForUser(userId): Promise<Share[]>
 ```
 
 Permissions: `viewer` (read-only), `editor` (read-write), `owner` (full control). Shares inherit to child items (a share on a folder grants access to its contents). Share overrides are supported at the child level.
@@ -223,11 +223,11 @@ Permissions: `viewer` (read-only), `editor` (read-write), `owner` (full control)
 `PublicLinkWorkflow` -- public link sharing:
 
 ```ts
-framework.drive.publicLinks.create(input: { itemId, itemType, permission, password?, maxViews?, expiresAt? }): Promise<PublicLink>
-framework.drive.publicLinks.update(id, patch): Promise<PublicLink>
-framework.drive.publicLinks.revoke(id): Promise<void>
-framework.drive.publicLinks.resolve(token, password?): Promise<{ itemId, itemType, permission } | null>
-framework.drive.publicLinks.list(itemId, itemType): Promise<PublicLink[]>
+platform.drive.publicLinks.create(input: { itemId, itemType, permission, password?, maxViews?, expiresAt? }): Promise<PublicLink>
+platform.drive.publicLinks.update(id, patch): Promise<PublicLink>
+platform.drive.publicLinks.revoke(id): Promise<void>
+platform.drive.publicLinks.resolve(token, password?): Promise<{ itemId, itemType, permission } | null>
+platform.drive.publicLinks.list(itemId, itemType): Promise<PublicLink[]>
 ```
 
 Features:
@@ -243,10 +243,10 @@ Features:
 `TrashWorkflow` -- trash management with auto-purge:
 
 ```ts
-framework.drive.trash.list(userId?, filters?): Promise<TrashItem[]>
-framework.drive.trash.restore(id, itemType): Promise<void>
-framework.drive.trash.emptyTrash(userId?): Promise<void>
-framework.drive.trash.purgeExpired(): Promise<number>  // called by scheduled cron
+platform.drive.trash.list(userId?, filters?): Promise<TrashItem[]>
+platform.drive.trash.restore(id, itemType): Promise<void>
+platform.drive.trash.emptyTrash(userId?): Promise<void>
+platform.drive.trash.purgeExpired(): Promise<number>  // called by scheduled cron
 ```
 
 `purgeExpired()` permanently deletes items that have been in the trash longer than `trashRetentionDays` (default 30). This method is registered as a PubSub handler and scheduled via cron `"0 3 * * *"` in the module's `prepare()`.
@@ -256,7 +256,7 @@ framework.drive.trash.purgeExpired(): Promise<number>  // called by scheduled cr
 | Service | File | Purpose |
 |---|---|---|
 | `PathService` | `services/path-service.ts` | Materialized path computation, depth checking, cycle detection, name uniqueness, breadcrumb resolution, cascade path updates on rename/move |
-| `StorageBridge` | `services/storage-bridge.ts` | Wraps the framework's `StorageUnit` for upload, download, presigned URLs, copy, move, remove |
+| `StorageBridge` | `services/storage-bridge.ts` | Wraps the platform's `StorageUnit` for upload, download, presigned URLs, copy, move, remove |
 | `ArchiveService` | `services/archive-service.ts` | ZIP archive generation for folder downloads (uses `fflate`). Throws `ArchiveTooLargeError` for >1000 files or >1GB |
 | `SearchService` | `services/search-service.ts` | Full-text search across files and folders with scope, type, label, content-type, date, and size filters |
 | `AccessService` | `services/access-service.ts` | Permission checking, share inheritance resolution, public link access validation |

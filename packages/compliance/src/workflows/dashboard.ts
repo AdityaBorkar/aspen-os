@@ -1,4 +1,4 @@
-import type { KvStoreUnit } from "@aspen-os/framework/server";
+import type { KvStoreUnit } from "@aspen-os/platform/server";
 import { and, eq, gte, isNotNull, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 

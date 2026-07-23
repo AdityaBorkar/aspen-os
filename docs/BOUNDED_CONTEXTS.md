@@ -165,7 +165,7 @@ DatabaseUnit ← KvStoreUnit
 - `account` table — credentials and OAuth tokens (providerId, password, accessToken)
 - `verification` table — email verification, password reset tokens
 
-**Role model**: Roles are stored as a plain `text` column on the `user` table — not as separate entities. Access control statements are defined at the application level via `createAccessControl`, not at the framework level.
+**Role model**: Roles are stored as a plain `text` column on the `user` table — not as separate entities. Access control statements are defined at the application level via `createAccessControl`, not at the platform level.
 
 **Access control flow**: `access_control` and `roles` from `AuthConfig` are destructured out of the top-level config to avoid being spread into `betterAuth()` as top-level options. They ARE passed to better-auth via the `admin({ ac: access_control, roles })` plugin. The client AuthUnit receives them via the `adminClient()` plugin.
 
@@ -225,7 +225,7 @@ DatabaseUnit ← KvStoreUnit
 - TTL → `expiresAt` column with lazy eviction on read
 - Redis-like API → implemented via SQL operations
 
-**Status**: Core unit, not optional. Required in `FrameworkConfig`.
+**Status**: Core unit, not optional. Required in `PlatformConfig`.
 
 ### 9. Downstream: Recruiter → Platform
 
@@ -244,7 +244,7 @@ SingleTenantPlatform.create(config, { organization })
 - Roles defined for recruitment workflow
 - Environment variables mapped to framework config
 
-### 10. Downstream: Organization Module → Framework
+### 10. Downstream: Organization Module → Platform
 
 **Relationship**: Organization module implements the `Module` interface and receives unit dependencies via `$initialize(units)`.
 
@@ -259,7 +259,7 @@ SingleTenantPlatform.create(config, { organization })
 
 **Exposed on platform instance**: `f.organization.addresses`, `f.organization.bankAccounts`, `f.organization.branches`, `f.organization.connections`, `f.organization.organizations`
 
-### 11. Downstream: Compliance Module → Framework
+### 11. Downstream: Compliance Module → Platform
 
 **Relationship**: Compliance module implements the `Module` interface and receives `{ db, kvStore, pubsub }` via `$initialize(units)`.
 
@@ -282,7 +282,7 @@ SingleTenantPlatform.create(config, { organization })
 
 **Config**: `ComplianceModuleConfig = { country: "INDIA", dashboardCacheTtl?, defaultEscalationDays?, defaultReminderDays? }`
 
-### 12. Downstream: Tasks Module → Framework
+### 12. Downstream: Tasks Module → Platform
 
 **Relationship**: Tasks module implements the `Module` interface and receives `{ db, pubsub }` via `$initialize(units)`.
 
@@ -296,7 +296,7 @@ SingleTenantPlatform.create(config, { organization })
 
 **Config**: `TaskModuleConfig = { enableNotifications?: boolean }`
 
-### 13. Downstream: Drive Module → Framework
+### 13. Downstream: Drive Module → Platform
 
 **Relationship**: Drive module implements the `Module` interface and receives `{ db, storage, pubsub }` via `$initialize(units)`.
 
@@ -340,11 +340,11 @@ SingleTenantPlatform.create(config, { organization })
 
 **Exposed on platform instance**: `f.managementPlane.tenants`, `f.managementPlane.serviceProviders`, `f.managementPlane.users`
 
-### 16. Client Framework
+### 16. Client Platform
 
-**Exported as**: `@aspen-os/framework/client`
+**Exported as**: `@aspen-os/platform/client`
 
-**Relationship**: A separate `Framework` class for browser-side use with 3 units:
+**Relationship**: A separate client `Framework` class for browser-side use with 3 units:
 - `AuthUnit` — wraps better-auth React client with plugins (admin, emailOTP, username, phoneNumber)
 - `LogUnit` — stub (throws on `$prepareInfra()`/`$cleanup()`)
 - `RpcUnit` — stub (no-op)
@@ -360,7 +360,7 @@ SingleTenantPlatform.create(config, { organization })
 All units are created and wired inside `Platform.create()`:
 
 ```typescript
-import { SingleTenantPlatform } from "@aspen-os/framework/server"
+import { SingleTenantPlatform } from "@aspen-os/platform/server"
 
 const f = SingleTenantPlatform.create(
   { auth, db, kvStore, logs, pubsub, rpc, storage },  // SingleTenantConfig
@@ -472,7 +472,7 @@ Two modules register scheduled cron jobs via PubSub:
 | Storage | Partner | S3 (AWS SDK) | Drive module | Defines interface |
 | RPC | Conformist | oRPC | — | Adapts API |
 | KV Store | Conformist | Postgres | Compliance module | Redis-like API (core) |
-| Client Framework | — | — | — | Browser-side (3 units) |
+| Client Platform | — | — | — | Browser-side (3 units) |
 | Recruiter | Downstream | Platform | — | Uses `SingleTenantPlatform` |
 | Organization | Downstream | Platform | Compliance, Management Plane | 5 workflows, 7 tables |
 | Compliance | Downstream | Platform, HR, Organization, Fleet, Accounting | — | 5 workflows, 4 tables, subscribes to external events |
@@ -489,7 +489,7 @@ Two modules register scheduled cron jobs via PubSub:
 
 ## Language Boundaries
 
-### Framework Kernel Language
+### Platform Kernel Language
 - Platform, Framework (client), Unit, Module, Create, PrepareInfra, Destroy, Run, GetUnit, GetModule, $dependencies
 
 ### Auth Language

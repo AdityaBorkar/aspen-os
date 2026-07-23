@@ -1,4 +1,4 @@
-import { Workflow, WorkflowStep } from "@aspen-os/framework/server";
+import { Workflow, WorkflowStep } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { object, parse } from "valibot";

@@ -1,9 +1,0 @@
-{
-  "compilerOptions": {
-    "declarationDir": "../../.local/types/framework",
-    "paths": {
-      "@/*": ["./src/*"]
-    }
-  },
-  "extends": "../../tsconfig.json"
-}

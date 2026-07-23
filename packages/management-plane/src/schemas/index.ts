@@ -15,8 +15,6 @@ export {
   PlatformUserFiltersSchema,
   UpdatePlatformUserSchema,
 } from "./platform-user";
-export type { ProvisioningInput } from "./provisioning";
-export { ProvisioningInputSchema } from "./provisioning";
 export type {
   AuditReportFilters,
   LifecycleReportFilters,

@@ -1,3 +1,4 @@
+import { Organization } from "@aspen-os/organization";
 import type {
   AuthConfig,
   KvStoreConfig,
@@ -5,12 +6,11 @@ import type {
   PubSubConfig,
   RpcConfig,
   StorageConfig,
-} from "@aspen-os/framework/server";
+} from "@aspen-os/platform/server";
 import {
   type DatabaseConfig,
   SingleTenantPlatform,
-} from "@aspen-os/framework/server";
-import { Organization } from "@aspen-os/organization";
+} from "@aspen-os/platform/server";
 
 import { env } from "../env";
 import { access_control, roles } from "./auth";
@@ -68,7 +68,7 @@ const organization = Organization.create({
   country: "INDIA",
 });
 
-export const f = SingleTenantPlatform.create(
+export const p = SingleTenantPlatform.create(
   { auth, db, kvStore, logs, pubsub, rpc, storage },
   { organization },
 );

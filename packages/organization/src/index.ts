@@ -1,4 +1,4 @@
-import type { Module, ModuleInfra } from "@aspen-os/framework/server";
+import type { Module, ModuleInfra } from "@aspen-os/platform/server";
 
 import { acl } from "./auth-acl";
 import { schemas } from "./db-schemas";

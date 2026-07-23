@@ -3,7 +3,7 @@ import type {
   KvStoreUnit,
   ModuleInfra,
   PubSubUnit,
-} from "@aspen-os/framework/server";
+} from "@aspen-os/platform/server";
 
 import * as dbSchema from "./db-schema";
 import { COMPLIANCE_EVENTS } from "./event-map";
@@ -209,6 +209,6 @@ export class ComplianceModule {
 
 function notInitialized(): Error {
   return new Error(
-    "Compliance module not initialized. Call $initialize() after Framework.create().",
+    "Compliance module not initialized. Call $initialize() after Platform.create().",
   );
 }

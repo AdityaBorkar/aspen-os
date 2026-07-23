@@ -1,5 +1,11 @@
-import { Workflow, WorkflowStep } from "@aspen-os/framework/server";
+import {
+  type DatabaseUnit,
+  type TenantDbConfig,
+  Workflow,
+  WorkflowStep,
+} from "@aspen-os/platform/server";
 import { and, eq, ilike, or, type SQL } from "drizzle-orm";
+import pg from "pg";
 import { object, optional, parse } from "valibot";
 
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../constants";
@@ -12,7 +18,6 @@ import {
   UpdateTenantCompanionSchema,
   UpdateTenantProfileSchema,
 } from "../types";
-import { provisionTenant } from "./provisioning";
 import { logAuditStep } from "./steps/log-audit";
 import { stripUndefined } from "./utils";
 
@@ -38,16 +43,108 @@ const fetchTenantStep = WorkflowStep.name("fetch-tenant")
     return { ...org, ...companion };
   });
 
-const onboardTenant = Workflow.name("tenant.onboard")
-  .input(
-    object({
-      tenant: ProvisionTenantSchema,
-      userId: IdSchema,
-    }),
-  )
-  .handler(async (input, ctx) => {
-    return ctx.step.run(provisionTenant, input);
-  });
+function createOnboardTenant(dbUnit: DatabaseUnit) {
+  return Workflow.name("tenant.onboard")
+    .input(
+      object({
+        tenant: ProvisionTenantSchema,
+        userId: IdSchema,
+      }),
+    )
+    .handler(async (input, ctx) => {
+      if (!ctx.auth) throw new Error("Auth is required for provisioning");
+      const auth = ctx.auth;
+      const parsed = input.tenant;
+      const parsedUserId = parse(IdSchema, input.userId);
+
+      const org = await ctx.step.run("create-organization", async () => {
+        const api = auth.api as unknown as {
+          createOrganization: (opts: unknown) => Promise<unknown>;
+        };
+        return (await api.createOrganization({
+          body: {
+            logo: parsed.logo ?? undefined,
+            name: parsed.name,
+            slug: parsed.slug,
+            userId: parsedUserId,
+          },
+        } as Record<string, unknown>)) as { id: string };
+      });
+
+      const tenantId = org.id;
+
+      const dbConfig: TenantDbConfig = await ctx.step.run(
+        "create-tenant-infra",
+        async () => {
+          return dbUnit.createTenant(tenantId, {
+            databaseName: parsed.databaseName ?? undefined,
+            host: parsed.databaseHost ?? undefined,
+            password: parsed.databasePassword ?? undefined,
+            port: parsed.databasePort ?? undefined,
+            ssl: parsed.databaseSsl ?? undefined,
+            user: parsed.databaseUser ?? undefined,
+          });
+        },
+      );
+
+      await ctx.step.run("seed-profile", async () => {
+        const pool = new pg.Pool({
+          database: dbConfig.database,
+          host: dbConfig.host,
+          password: dbConfig.password,
+          port: dbConfig.port,
+          ssl: dbConfig.ssl ? { rejectUnauthorized: false } : false,
+          user: dbConfig.user,
+        });
+        try {
+          await pool.query(
+            "INSERT INTO organization (id, name, slug, logo) VALUES ($1, $2, $3, $4)",
+            [tenantId, parsed.name, parsed.slug, parsed.logo ?? null],
+          );
+        } finally {
+          await pool.end();
+        }
+      });
+
+      await ctx.step.run("record-tenant", async () => {
+        await ctx.db.insert(tenant).values({
+          databaseHost: dbConfig.host,
+          databaseName: dbConfig.database,
+          databasePassword: dbConfig.password,
+          databasePort: dbConfig.port,
+          databaseSsl: dbConfig.ssl,
+          databaseUser: dbConfig.user,
+          id: tenantId,
+          plan: parsed.plan ?? null,
+          serviceProviderId: parsed.serviceProviderId ?? null,
+          signupAt: new Date(),
+          status: "onboarding",
+        });
+      });
+
+      await ctx.step.run("audit-and-notify", async () => {
+        await ctx.step.run(logAuditStep, {
+          action: AUDIT_ACTION.TENANT_PROVISIONED,
+          entityId: tenantId,
+          entityType: AUDIT_ENTITY_TYPE.TENANT,
+          newState: {
+            name: parsed.name,
+            plan: parsed.plan ?? null,
+            serviceProviderId: parsed.serviceProviderId ?? null,
+            slug: parsed.slug,
+            status: "onboarding",
+          },
+        });
+
+        await ctx.pubsub.publish(TENANT_EVENTS.PROVISIONED, {
+          serviceProviderId: parsed.serviceProviderId ?? undefined,
+          tenantId,
+        });
+      });
+
+      return { tenantId };
+    });
+}
 
 const getTenant = Workflow.name("tenant.get")
   .input(object({ id: IdSchema }))
@@ -178,9 +275,11 @@ const updateTenant = Workflow.name("tenant.update")
     return ctx.step.run(fetchTenantStep, { id: tenantId });
   });
 
-export const tenants = {
-  get: getTenant,
-  list: listTenants,
-  onboard: onboardTenant,
-  update: updateTenant,
-};
+export function createTenants(dbUnit: DatabaseUnit) {
+  return {
+    get: getTenant,
+    list: listTenants,
+    onboard: createOnboardTenant(dbUnit),
+    update: updateTenant,
+  };
+}

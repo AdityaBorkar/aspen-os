@@ -38,7 +38,7 @@ export const Route = createFileRoute("/docs/$")({
   loader: async ({ params }) => {
     const slugs = params._splat?.split("/") ?? [];
     if (slugs.length === 0 || (slugs.length === 1 && slugs[0] === "")) {
-      throw redirect({ params: { _splat: "framework" }, to: "/docs/$" });
+      throw redirect({ params: { _splat: "platform" }, to: "/docs/$" });
     }
     const data = await serverLoader({ data: slugs });
     await clientLoader.preload(data.path);
@@ -105,7 +105,7 @@ function Page() {
   const { path, pageTree, markdownUrl } = useFumadocsLoader(
     Route.useLoaderData(),
   );
-  const frameworkUrl = `${DOCS_ROUTE}/framework`;
+  const platformUrl = `${DOCS_ROUTE}/platform`;
   const tabs = getLayoutTabs(pageTree, {
     transform: (option, node): LayoutTab | null => ({
       ...option,
@@ -119,8 +119,8 @@ function Page() {
       urls: collectFolderUrls(node),
     }),
   }).sort((a, b) => {
-    if (a.url === frameworkUrl) return -1;
-    if (b.url === frameworkUrl) return 1;
+    if (a.url === platformUrl) return -1;
+    if (b.url === platformUrl) return 1;
     return a.url.localeCompare(b.url);
   });
 

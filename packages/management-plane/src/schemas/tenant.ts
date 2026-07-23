@@ -10,6 +10,7 @@ import {
   string,
 } from "valibot";
 
+import { TenantStatusSchema } from "./enums";
 import { NameSchema, SlugSchema } from "./utils";
 
 export const ProvisionTenantSchema = object({
@@ -40,7 +41,7 @@ export type UpdateTenantProfileInput = InferOutput<
 
 export const UpdateTenantCompanionSchema = object({
   plan: optional(nullable(string())),
-  status: optional(nullable(string())),
+  status: optional(TenantStatusSchema),
 });
 
 export type UpdateTenantCompanionInput = InferOutput<
@@ -52,7 +53,7 @@ export const UpdateTenantSchema = object({
   name: optional(NameSchema),
   plan: optional(nullable(string())),
   slug: optional(SlugSchema),
-  status: optional(nullable(string())),
+  status: optional(TenantStatusSchema),
 });
 
 export type UpdateTenantInput = InferOutput<typeof UpdateTenantSchema>;

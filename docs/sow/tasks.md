@@ -1,6 +1,6 @@
 # Task Management Module — Scope of Work
 
-> Scope of Work for a Jira/Linear-style task management module built on the `@aspen-os/framework`.
+> Scope of Work for a Jira/Linear-style task management module built on the `@aspen-os/platform`.
 
 ## Overview
 

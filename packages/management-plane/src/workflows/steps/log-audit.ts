@@ -1,4 +1,4 @@
-import { WorkflowStep } from "@aspen-os/framework/server";
+import { WorkflowStep } from "@aspen-os/platform/server";
 
 import { auditLog } from "../../db-schemas";
 

@@ -2,7 +2,7 @@ import type {
   DatabaseUnit,
   ModuleInfra,
   PubSubUnit,
-} from "@aspen-os/framework/server";
+} from "@aspen-os/platform/server";
 
 import * as dbSchema from "./db-schema";
 import {
@@ -164,6 +164,6 @@ export class HrModule {
 
 function notInitialized(): Error {
   return new Error(
-    "HR module not initialized. Call $initialize() after Framework.create().",
+    "HR module not initialized. Call $initialize() after Platform.create().",
   );
 }

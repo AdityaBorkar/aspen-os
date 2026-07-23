@@ -21,7 +21,7 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "ESNext",
-    "types": ["bun"],
+    "types": ["bun", "@types/bun"],
     "verbatimModuleSyntax": true
   },
   "exclude": ["**/node_modules", "**/.output", "**/.tanstack"],
@@ -34,7 +34,7 @@
     { "path": "./packages/crm" },
     { "path": "./packages/drive" },
     { "path": "./packages/fleet" },
-    { "path": "./packages/framework" },
+    { "path": "./packages/platform" },
     { "path": "./packages/hr" },
     { "path": "./packages/inventory" },
     { "path": "./packages/organization" },

@@ -98,11 +98,11 @@ Shared dependency versions are pinned in the root `package.json` `workspaces.cat
 ### Schema management
 
 - **`pushSchema()`** from `drizzle-kit/api` — not migration files (see ADR 0004).
-- Framework's `DatabaseUnit.$prepare()` pushes core schemas (auth, logs, storage, kv-store) via `getSchemas()`.
+- Platform's `DatabaseUnit.$prepare()` pushes core schemas (auth, logs, storage, kv-store) via `getSchemas()`.
 - Domain modules push their own schemas in their `prepare()` method.
 - Data-loss warnings are logged but the push proceeds.
 
-## Framework
+## Platform
 
 ### Unit interface (server)
 
@@ -141,16 +141,16 @@ interface Module<N extends string = string> {
 
 ### Lifecycle
 
-`Framework.create(config, modules)` → `prepare()` → `run(fn)` → `destroy()`.
+`Platform.create(config, modules)` → `prepare()` → `run(fn)` → `destroy()`.
 
-- `create()` is a **static factory** — the only way to construct a Framework. It instantiates all 7 units, calls `module.initialize(units)` on each module, and returns a proxy-wrapped `FrameworkInstance`.
+- `create()` is a **static factory** — the only way to construct a Platform. It instantiates all 7 units, calls `module.initialize(units)` on each module, and returns a proxy-wrapped `PlatformInstance`.
 - `prepare()` runs each unit's `$prepare()` then each module's `prepare()`. Errors are caught and logged per-unit/module.
 - `run(fn)` executes `fn` inside `AsyncLocalStorage` providing `{ db: NodePgDatabase, pubsub: PubSubUnit }`.
 - `destroy()` runs module `destroy()` then unit `$cleanup()`. Errors are caught and logged.
 
 ### Seven required units
 
-All are required in `FrameworkConfig`: `db`, `auth`, `logs`, `pubsub`, `rpc`, `storage`, `kvStore`. Units are constructor-injected with dependencies:
+All are required in `PlatformConfig`: `db`, `auth`, `logs`, `pubsub`, `rpc`, `storage`, `kvStore`. Units are constructor-injected with dependencies:
 
 | Unit | Injected deps |
 | --- | --- |
@@ -164,17 +164,17 @@ All are required in `FrameworkConfig`: `db`, `auth`, `logs`, `pubsub`, `rpc`, `s
 
 ### Module registration
 
-Pass all modules as a named object to `Framework.create(config, modules)`. There is no `registerModule()`. Module names become proxy keys — `framework.organization` returns the module directly.
+Pass all modules as a named object to `Platform.create(config, modules)`. There is no `registerModule()`. Module names become proxy keys — `platform.organization` returns the module directly.
 
 ### Accessors
 
-- `framework.getUnit("name")` — typed, requires a name.
-- `framework.getModule("name")` — typed, throws if not found.
-- Or use proxy: `framework.moduleName`, `framework.unitName`.
+- `platform.getUnit("name")` — typed, requires a name.
+- `platform.getModule("name")` — typed, throws if not found.
+- Or use proxy: `platform.moduleName`, `platform.unitName`.
 
 ### Package exports
 
-`@aspen-os/framework` subpaths: `./server`, `./client`. The root `.` export re-exports types and `createAccessControl`.
+`@aspen-os/platform` subpaths: `./server`, `./client`. The root `.` export re-exports types and `createAccessControl`.
 
 ## Domain modules
 
@@ -214,7 +214,7 @@ export class XxxModule {
 }
 
 function notInitialized(): Error {
-  return new Error("Xxx module not initialized. Call initialize() after framework.initialize().");
+  return new Error("Xxx module not initialized. Call initialize() after platform.initialize().");
 }
 ```
 
@@ -373,7 +373,7 @@ export type DomainEventMap = EntityEventMap & OtherEntityEventMap;
 
 - Vite + TanStack Start + React + Tailwind.
 - File-based routing (TanStack Router) — run `tsr generate` when adding routes.
-- `aspen/` directory for framework config: `server.ts` (Framework.create), `auth.ts` (access_control + roles), `client.ts`.
+- `aspen/` directory for framework config: `server.ts` (Platform.create), `auth.ts` (access_control + roles), `client.ts`.
 - Config objects use `satisfies` against framework config types.
 - Docker Compose for Postgres (`postgres:18-alpine`).
 
@@ -396,7 +396,7 @@ export type DomainEventMap = EntityEventMap & OtherEntityEventMap;
 | Private fields | `#` prefix | `#documents`, `#db` |
 | Unit lifecycle (server) | `$` prefix | `$name`, `$prepare`, `$cleanup` |
 | Unit lifecycle (client) | no prefix | `name`, `prepare`, `destroy` |
-| Package exports | `@aspen-os/<name>` | `@aspen-os/framework`, `@aspen-os/organization` |
+| Package exports | `@aspen-os/<name>` | `@aspen-os/platform`, `@aspen-os/organization` |
 | Module `name` property | `kebab-case` string | `"organization"`, `"compliance"` |
 
 ## Commands
@@ -410,7 +410,7 @@ cd packages/framework && bun run check:types   # typecheck framework
 cd packages/framework && bun run check:lint    # biome check --fix . (framework)
 ```
 
-No build/test/format scripts at root or in framework. Testing exists only in `documentation` (`bun run test` = `vitest run`).
+No build/test/format scripts at root or in platform. Testing exists only in `documentation` (`bun run test` = `vitest run`).
 
 ### Per-package typecheck
 

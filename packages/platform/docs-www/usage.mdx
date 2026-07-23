@@ -1,0 +1,135 @@
+---
+title: Usage
+description: How to create, prepare, run, and destroy a Platform instance.
+display: Usage
+icon: IconCode
+---
+
+## Creating a Platform Instance
+
+```ts
+import { Platform } from "@aspen-os/platform/server";
+import { OrganizationModule } from "@aspen-os/organization";
+import { ComplianceModule } from "@aspen-os/compliance";
+
+const organization = OrganizationModule.create({ country: "INDIA" });
+const compliance = ComplianceModule.create({ country: "INDIA" });
+
+const platform = Platform.create(
+  {
+    auth: authConfig,
+    db: dbConfig,
+    kvStore: kvConfig,
+    logs: logConfig,
+    pubsub: pubsubConfig,
+    rpc: rpcConfig,
+    storage: storageConfig,
+    tenancy: { mode: "single" },
+  },
+  { organization, compliance },
+);
+
+await platform.prepare();
+```
+
+## Running in Request Context
+
+The `run()` method provides request-scoped context via `AsyncLocalStorage`:
+
+```ts
+import { getContext } from "@aspen-os/platform/server";
+
+await platform.run(async () => {
+  const { auth, db, pubsub } = getContext();
+  // db: NodePgDatabase (drizzle)
+  // pubsub: PubSubUnit
+  // auth: better-auth Auth instance
+
+  const result = await db.select().from(organizations);
+  await pubsub.publish("organization:created", { organization });
+});
+```
+
+## Using the Auth Unit
+
+```ts
+// Create a user
+const user = await platform.auth.user.create({
+  email: "user@example.com",
+  password: "secure-password",
+  name: "John Doe",
+});
+
+// Create a session
+const { session, user } = await platform.auth.session.create({
+  email: "user@example.com",
+  password: "secure-password",
+});
+
+// Validate a session
+const result = await platform.auth.session.validate({ token });
+
+// Assign a role
+await platform.auth.user.role.assign({ userId, roleName: "admin" });
+```
+
+## Using the Storage Unit
+
+```ts
+// Upload a file
+const file = await platform.storage.upload({
+  key: "documents/report.pdf",
+  body: buffer,
+  contentType: "application/pdf",
+  metadata: { uploadedBy: userId },
+});
+
+// Get a signed URL
+const url = await platform.storage.getSignedGetUrl("documents/report.pdf", {
+  expiresIn: 3600,
+});
+
+// Archive a file
+await platform.storage.archive("documents/report.pdf");
+```
+
+## Using the KV Store
+
+```ts
+// Set with TTL
+await platform.kvStore.set("cache:key", { data: "value" }, 1800);
+
+// Get (returns null if expired)
+const value = await platform.kvStore.get("cache:key");
+
+// Get or set (cache-aside pattern)
+const result = await platform.kvStore.getOrSet(
+  "expensive:query",
+  async () => await runExpensiveQuery(),
+  3600,
+);
+
+// Increment/decrement counters
+await platform.kvStore.increment("visits");
+await platform.kvStore.decrement("remaining");
+```
+
+## Using PubSub
+
+```ts
+// Publish a message
+await platform.pubsub.publish("organization:created", { organization });
+
+// Subscribe to a topic
+await platform.pubsub.subscribe("organization:created", async (message) => {
+  console.log("Received:", message.data);
+});
+
+// Schedule a recurring job
+await platform.pubsub.schedule(
+  "compliance:weekly-summary",
+  "0 9 * * 1",  // every Monday at 9am
+  {},
+  { tz: "Asia/Kolkata" },
+);
+```

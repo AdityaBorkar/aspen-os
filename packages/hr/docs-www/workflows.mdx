@@ -8,7 +8,7 @@ The HR module exposes 7 workflow classes, each managing a distinct HR domain agg
 
 ## EmployeeWorkflow
 
-Access: `framework.hr.employees`
+Access: `platform.hr.employees`
 
 Manages employee records, employee groups, health insurance, and skill maps.
 
@@ -68,7 +68,7 @@ deleteSkillMap(id: string)
 
 ## AttendanceWorkflow
 
-Access: `framework.hr.attendance`
+Access: `platform.hr.attendance`
 
 Manages attendance records, employee check-ins, and attendance correction requests.
 
@@ -112,7 +112,7 @@ deleteAttendanceRequest(id: string)
 
 ## LeaveWorkflow
 
-Access: `framework.hr.leave`
+Access: `platform.hr.leave`
 
 Manages leave types, periods, policies, allocations, applications, compensatory leave, encashment, block lists, adjustments, and ledger entries.
 
@@ -251,7 +251,7 @@ listLedgerEntries(employeeId: string, leaveType?: string)
 
 ## LifecycleWorkflow
 
-Access: `framework.hr.lifecycle`
+Access: `platform.hr.lifecycle`
 
 Manages onboarding, promotions, transfers, separations, exit interviews, and full and final statements.
 
@@ -356,7 +356,7 @@ deleteFullAndFinal(id: string)
 
 ## OvertimeWorkflow
 
-Access: `framework.hr.overtime`
+Access: `platform.hr.overtime`
 
 Manages overtime types and overtime slips with approval workflow and summary reporting.
 
@@ -392,7 +392,7 @@ deleteOvertimeSlip(id: string)
 
 ## SetupWorkflow
 
-Access: `framework.hr.setup`
+Access: `platform.hr.setup`
 
 Manages HR settings, payroll settings, employment types, departments, designations, employee grades, holiday lists, and holidays.
 
@@ -484,7 +484,7 @@ deleteHoliday(id: string)
 
 ## ShiftWorkflow
 
-Access: `framework.hr.shift`
+Access: `platform.hr.shift`
 
 Manages shift types, shift locations, shift assignments, shift requests, shift schedules, and schedule assignments.
 

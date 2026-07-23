@@ -96,11 +96,11 @@ packages/compliance/src/
 ## Accessing Workflows
 
 ```ts
-framework.compliance.documents      // → DocumentWorkflow
-framework.compliance.obligations    // → ObligationWorkflow
-framework.compliance.verification   // → VerificationWorkflow
-framework.compliance.audit          // → AuditWorkflow
-framework.compliance.dashboard      // → DashboardWorkflow
+platform.compliance.documents      // → DocumentWorkflow
+platform.compliance.obligations    // → ObligationWorkflow
+platform.compliance.verification   // → VerificationWorkflow
+platform.compliance.audit          // → AuditWorkflow
+platform.compliance.dashboard      // → DashboardWorkflow
 ```
 
 ## Scheduled Jobs
@@ -121,7 +121,7 @@ framework.compliance.dashboard      // → DashboardWorkflow
   "type": "module",
   "exports": { ".": "./src/index.ts" },
   "dependencies": {
-    "@aspen-os/framework": "workspace:*",
+    "@aspen-os/platform": "workspace:*",
     "@aspen-os/constants": "workspace:*",
     "drizzle-orm": "catalog:",
     "valibot": "catalog:"

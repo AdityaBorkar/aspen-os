@@ -4,7 +4,7 @@ description: Architecture, initialization, and module structure of the Organizat
 icon: IconInfoCircle
 ---
 
-The Organization module manages organizational structure, branches, connections (clients/vendors/partners), addresses, and bank accounts. It is a fully implemented domain module following the framework's module pattern.
+The Organization module manages organizational structure, branches, connections (clients/vendors/partners), addresses, and bank accounts. It is a fully implemented domain module following the platform's module pattern.
 
 ## Module Configuration
 
@@ -62,15 +62,15 @@ packages/organization/src/
 ## Accessing Workflows
 
 ```ts
-framework.organization.organization     // → OrganizationWorkflow
-framework.organization.branches          // → BranchWorkflow
-framework.organization.connections       // → ConnectionWorkflow
-framework.organization.addresses         // → AddressWorkflow
-framework.organization.bankAccounts      // → BankAccountWorkflow
+platform.organization.organization     // → OrganizationWorkflow
+platform.organization.branches          // → BranchWorkflow
+platform.organization.connections       // → ConnectionWorkflow
+platform.organization.addresses         // → AddressWorkflow
+platform.organization.bankAccounts      // → BankAccountWorkflow
 ```
 
 <Callout type="warn">
-  Accessing a workflow before `initialize()` throws a "not initialized" error. This happens if you access the module before calling `Framework.create()`.
+  Accessing a workflow before `initialize()` throws a "not initialized" error. This happens if you access the module before calling `Platform.create()`.
 </Callout>
 
 ## Package

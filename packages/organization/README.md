@@ -21,10 +21,10 @@ A domain module for the Aspen OS framework that manages organizational structure
 
 ## Overview
 
-The organization module is one of two fully implemented domain modules. It provides five workflows accessible on the framework instance via `framework.organization.<getter>`.
+The organization module is one of two fully implemented domain modules. It provides five workflows accessible on the platform instance via `platform.organization.<getter>`.
 
 **Package**: `@aspen-os/organization`  
-**Dependencies**: `@aspen-os/framework`, `@aspen-os/constants`, `drizzle-orm`, `valibot`  
+**Dependencies**: `@aspen-os/platform`, `@aspen-os/constants`, `drizzle-orm`, `valibot`  
 **Module name**: `"organization"`  
 **Tables**: 7 tables, 5 pg enums  
 **Validation**: Valibot for all input schemas
@@ -38,21 +38,21 @@ bun install  # workspace package, no separate install needed
 ## Quick Start
 
 ```ts
-import { Framework } from "@aspen-os/framework/server"
+import { Platform } from "@aspen-os/platform/server"
 import { OrganizationModule } from "@aspen-os/organization"
 
 const organization = OrganizationModule.create({ country: "INDIA" })
 
-const framework = Framework.create(config, { organization })
+const platform = Platform.create(config, { organization })
 
-await framework.prepare()
+await platform.prepare()
 
 // Access workflows via the module proxy
-framework.organization.organization     // OrganizationWorkflow
-framework.organization.branches         // BranchWorkflow
-framework.organization.connections       // ConnectionWorkflow
-framework.organization.addresses        // AddressWorkflow
-framework.organization.bankAccounts     // BankAccountWorkflow
+platform.organization.organization     // OrganizationWorkflow
+platform.organization.branches         // BranchWorkflow
+platform.organization.connections       // ConnectionWorkflow
+platform.organization.addresses        // AddressWorkflow
+platform.organization.bankAccounts     // BankAccountWorkflow
 ```
 
 ## Module API
@@ -114,12 +114,12 @@ All workflow methods are synchronous DB operations that `parse()` input with Val
 Manages a **single** organization record (singleton-style). `get()` returns the first row by `LIMIT 1`. Methods take no `id` argument.
 
 ```ts
-framework.organization.organization.get(): Promise<Organization | null>
-framework.organization.organization.create(input: CreateOrganizationInput): Promise<Organization>
-framework.organization.organization.update(patch: UpdateOrganizationInput): Promise<Organization>
-framework.organization.organization.updateBranding(patch: UpdateBrandingInput): Promise<Organization>
-framework.organization.organization.uploadLogo(storageKey: string): Promise<Organization>
-framework.organization.organization.deleteLogo(): Promise<Organization>
+platform.organization.organization.get(): Promise<Organization | null>
+platform.organization.organization.create(input: CreateOrganizationInput): Promise<Organization>
+platform.organization.organization.update(patch: UpdateOrganizationInput): Promise<Organization>
+platform.organization.organization.updateBranding(patch: UpdateBrandingInput): Promise<Organization>
+platform.organization.organization.uploadLogo(storageKey: string): Promise<Organization>
+platform.organization.organization.deleteLogo(): Promise<Organization>
 ```
 
 - `create()` auto-generates a slug from `name` if not provided (lowercase, hyphenated, max 63 chars).
@@ -131,16 +131,16 @@ framework.organization.organization.deleteLogo(): Promise<Organization>
 Manages branches with hierarchical nesting (max 5 levels) and a single-headquarters invariant.
 
 ```ts
-framework.organization.branches.create(input: CreateBranchInput): Promise<Branch>
-framework.organization.branches.update(id: string, patch: UpdateBranchInput): Promise<Branch>
-framework.organization.branches.activate(id: string): Promise<Branch>
-framework.organization.branches.deactivate(id: string): Promise<Branch>
-framework.organization.branches.close(id: string, date: Date): Promise<Branch>
-framework.organization.branches.archive(id: string): Promise<Branch>
-framework.organization.branches.restore(id: string): Promise<Branch>
-framework.organization.branches.list(filters?: BranchFilters): Promise<Branch[]>
-framework.organization.branches.getById(id: string): Promise<Branch>
-framework.organization.branches.getTree(): Promise<BranchTreeNode[]>
+platform.organization.branches.create(input: CreateBranchInput): Promise<Branch>
+platform.organization.branches.update(id: string, patch: UpdateBranchInput): Promise<Branch>
+platform.organization.branches.activate(id: string): Promise<Branch>
+platform.organization.branches.deactivate(id: string): Promise<Branch>
+platform.organization.branches.close(id: string, date: Date): Promise<Branch>
+platform.organization.branches.archive(id: string): Promise<Branch>
+platform.organization.branches.restore(id: string): Promise<Branch>
+platform.organization.branches.list(filters?: BranchFilters): Promise<Branch[]>
+platform.organization.branches.getById(id: string): Promise<Branch>
+platform.organization.branches.getTree(): Promise<BranchTreeNode[]>
 ```
 
 **Business rules enforced**:
@@ -158,26 +158,26 @@ Manages connections plus nested contacts (1:N) and notes (1:N, immutable).
 
 ```ts
 // Connection CRUD
-framework.organization.connections.create(input: CreateConnectionInput): Promise<Connection>
-framework.organization.connections.update(id: string, patch: UpdateConnectionInput): Promise<Connection>
-framework.organization.connections.updateStatus(id: string, status: ConnectionStatus): Promise<{ connection, fromStatus, toStatus }>
-framework.organization.connections.archive(id: string): Promise<Connection>
-framework.organization.connections.restore(id: string): Promise<Connection>
-framework.organization.connections.list(filters?: ConnectionFilters): Promise<Connection[]>
-framework.organization.connections.getById(id: string): Promise<Connection>
-framework.organization.connections.search(query: string, filters?): Promise<Connection[]>
+platform.organization.connections.create(input: CreateConnectionInput): Promise<Connection>
+platform.organization.connections.update(id: string, patch: UpdateConnectionInput): Promise<Connection>
+platform.organization.connections.updateStatus(id: string, status: ConnectionStatus): Promise<{ connection, fromStatus, toStatus }>
+platform.organization.connections.archive(id: string): Promise<Connection>
+platform.organization.connections.restore(id: string): Promise<Connection>
+platform.organization.connections.list(filters?: ConnectionFilters): Promise<Connection[]>
+platform.organization.connections.getById(id: string): Promise<Connection>
+platform.organization.connections.search(query: string, filters?): Promise<Connection[]>
 
 // Contacts (1:N per connection)
-framework.organization.connections.createContact(input: CreateConnectionContactInput): Promise<ConnectionContact>
-framework.organization.connections.updateContact(id: string, patch: UpdateConnectionContactInput): Promise<ConnectionContact>
-framework.organization.connections.deleteContact(id: string): Promise<void>
-framework.organization.connections.setPrimaryContact(id: string): Promise<ConnectionContact>
-framework.organization.connections.listContacts(connectionId: string): Promise<ConnectionContact[]>
-framework.organization.connections.searchContacts(query: string, connectionId?: string): Promise<ConnectionContact[]>
+platform.organization.connections.createContact(input: CreateConnectionContactInput): Promise<ConnectionContact>
+platform.organization.connections.updateContact(id: string, patch: UpdateConnectionContactInput): Promise<ConnectionContact>
+platform.organization.connections.deleteContact(id: string): Promise<void>
+platform.organization.connections.setPrimaryContact(id: string): Promise<ConnectionContact>
+platform.organization.connections.listContacts(connectionId: string): Promise<ConnectionContact[]>
+platform.organization.connections.searchContacts(query: string, connectionId?: string): Promise<ConnectionContact[]>
 
 // Notes (1:N per connection, immutable)
-framework.organization.connections.addNote(input: CreateConnectionNoteInput): Promise<ConnectionNote>
-framework.organization.connections.listNotes(connectionId: string, type?: string): Promise<ConnectionNote[]>
+platform.organization.connections.addNote(input: CreateConnectionNoteInput): Promise<ConnectionNote>
+platform.organization.connections.listNotes(connectionId: string, type?: string): Promise<ConnectionNote[]>
 ```
 
 **Notable behaviors**:
@@ -191,12 +191,12 @@ framework.organization.connections.listNotes(connectionId: string, type?: string
 CRUD over the `address` table with a primary-address singleton invariant.
 
 ```ts
-framework.organization.addresses.create(input: CreateAddressInput): Promise<Address>
-framework.organization.addresses.update(id: string, patch: UpdateAddressInput): Promise<Address>
-framework.organization.addresses.delete(id: string): Promise<void>
-framework.organization.addresses.getById(id: string): Promise<Address>
-framework.organization.addresses.list(filters?: AddressFilters): Promise<Address[]>
-framework.organization.addresses.setPrimary(id: string): Promise<Address>
+platform.organization.addresses.create(input: CreateAddressInput): Promise<Address>
+platform.organization.addresses.update(id: string, patch: UpdateAddressInput): Promise<Address>
+platform.organization.addresses.delete(id: string): Promise<void>
+platform.organization.addresses.getById(id: string): Promise<Address>
+platform.organization.addresses.list(filters?: AddressFilters): Promise<Address[]>
+platform.organization.addresses.setPrimary(id: string): Promise<Address>
 ```
 
 **Note**: `unsetPrimary()` is global (sets `is_primary=false` across **all** rows -- no scoping column exists on the `address` table).
@@ -206,14 +206,14 @@ framework.organization.addresses.setPrimary(id: string): Promise<Address>
 Same shape as Address, plus activate/deactivate toggles.
 
 ```ts
-framework.organization.bankAccounts.create(input: CreateBankAccountInput): Promise<BankAccount>
-framework.organization.bankAccounts.update(id: string, patch: UpdateBankAccountInput): Promise<BankAccount>
-framework.organization.bankAccounts.delete(id: string): Promise<void>
-framework.organization.bankAccounts.getById(id: string): Promise<BankAccount>
-framework.organization.bankAccounts.list(filters?: BankAccountFilters): Promise<BankAccount[]>
-framework.organization.bankAccounts.setPrimary(id: string): Promise<BankAccount>
-framework.organization.bankAccounts.activate(id: string): Promise<BankAccount>
-framework.organization.bankAccounts.deactivate(id: string): Promise<BankAccount>
+platform.organization.bankAccounts.create(input: CreateBankAccountInput): Promise<BankAccount>
+platform.organization.bankAccounts.update(id: string, patch: UpdateBankAccountInput): Promise<BankAccount>
+platform.organization.bankAccounts.delete(id: string): Promise<void>
+platform.organization.bankAccounts.getById(id: string): Promise<BankAccount>
+platform.organization.bankAccounts.list(filters?: BankAccountFilters): Promise<BankAccount[]>
+platform.organization.bankAccounts.setPrimary(id: string): Promise<BankAccount>
+platform.organization.bankAccounts.activate(id: string): Promise<BankAccount>
+platform.organization.bankAccounts.deactivate(id: string): Promise<BankAccount>
 ```
 
 **Note**: Same global `unsetPrimary()` behavior as Address.

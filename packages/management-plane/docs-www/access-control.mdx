@@ -4,7 +4,7 @@ description: Resources, operations, roles, and the permission matrix for the Man
 icon: IconShield
 ---
 
-Access control uses better-auth's `createAccessControl` + `ac.newRole()` pattern, passed to better-auth via the `admin({ ac, roles })` plugin — consistent with the framework's existing `AuthUnit` wiring.
+Access control uses better-auth's `createAccessControl` + `ac.newRole()` pattern, passed to better-auth via the `admin({ ac, roles })` plugin — consistent with the platform's existing `AuthUnit` wiring.
 
 ## Resources & Operations
 
@@ -86,7 +86,7 @@ Row-level scoping is enforced in the workflow layer — the workflow filters que
 ## Wiring
 
 ```ts title="host app auth config"
-import { createAccessControl } from "@aspen-os/framework/client";
+import { createAccessControl } from "@aspen-os/platform/client";
 
 const ac = createAccessControl({ /* resources above */ });
 

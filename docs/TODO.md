@@ -21,7 +21,6 @@ Use the workflows in ManagementPlane to create a web application
   - recruiter-alpauls
   - recruiter-maitriglobal
   - doclabs
-- Deploy a MVP on Wednesday for all the repositories
 - Start working on the modules
 
 ## Improving Code Quality

@@ -1,7 +1,7 @@
 # 0006 — Database-per-tenant isolation with control-plane auth
 
 > **Revised by [ADR-0007](./0007-framework-tenancy-abstraction.md)**: Database-per-tenant is now
-> one of three platform classes (`IsolatedTenantPlatform`), not the only option. The framework
+> one of three platform classes (`IsolatedTenantPlatform`), not the only option. The platform
 > exports `SingleTenantPlatform`, `SharedTenantPlatform`, and `IsolatedTenantPlatform`. This
 > ADR describes the `isolated` mode specifically. The rejection of app-level `tenant_id`
 > filtering and RLS below was the decision for the management-plane host app; ADR-0007 makes
@@ -18,8 +18,8 @@ Database-per-tenant gives physical isolation: a tenant cannot reach another tena
 
 ## Consequences
 
-- The framework `DatabaseUnit` becomes tenant-aware: it holds a control-plane connection (for auth + platform tables) AND a lazily-created pool per tenant database. `run()` resolves the right drizzle instance from the request's `tenantId`.
-- The framework `run()` AsyncLocalStorage context gains `tenantId` (resolved from the authenticated user's active tenant — see membership model below; for platform admins, an explicitly selected/impersonated tenant).
+- The platform `DatabaseUnit` becomes tenant-aware: it holds a control-plane connection (for auth + platform tables) AND a lazily-created pool per tenant database. `run()` resolves the right drizzle instance from the request's `tenantId`.
+- The platform `run()` AsyncLocalStorage context gains `tenantId` (resolved from the authenticated user's active tenant — see membership model below; for platform admins, an explicitly selected/impersonated tenant).
 - The `AuthUnit` stays a singleton over the control-plane DB — no multi-realm, no per-request adapter swapping. Auth is unified.
 - **Membership model**: tenant membership is via better-auth's Organization plugin `member` table (userId × organizationId × member.role). The `user` table does NOT have a `tenant_id` column. `user.role` (text, per ADR-0001) holds the global category: `platform_admin`, `tenant_user`, or `sp_user`. Platform admins have zero `member` rows. SP users have an `sp_id` FK on the `user` row pointing to their Service Provider (and zero tenant `member` rows). The active tenant for a request is `session.activeOrganizationId` (better-auth's mechanism).
 - Existing module tables (organization, branch, task, drive_file, employee, all HR tables, etc.) do NOT gain a `tenant_id` column — isolation is by database, not by row. They remain structurally single-tenant; the tenant is implied by which database the query runs against.

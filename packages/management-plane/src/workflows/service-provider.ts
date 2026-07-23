@@ -1,4 +1,4 @@
-import { Workflow, WorkflowStep } from "@aspen-os/framework/server";
+import { Workflow, WorkflowStep } from "@aspen-os/platform/server";
 import { and, eq, ilike, or, type SQL } from "drizzle-orm";
 import { object, optional, parse } from "valibot";
 

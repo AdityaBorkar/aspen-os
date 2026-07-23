@@ -1,10 +1,10 @@
 # Drive Module — Scope of Work
 
-> Scope of Work for a Google Drive-style file management module built on the `@aspen-os/framework`.
+> Scope of Work for a Google Drive-style file management module built on the `@aspen-os/platform`.
 
 ## Overview
 
-The Drive Module provides a virtual filesystem layer on top of the framework's StorageUnit, enabling users and teams to organize, store, share, and retrieve files through a familiar folder-based hierarchy. It adds path-based navigation, label-based categorization, download link generation, and public sharing with configurable access controls. All binary storage is delegated to the StorageUnit (S3); the Drive module owns the metadata, hierarchy, permissions, and sharing semantics.
+The Drive Module provides a virtual filesystem layer on top of the platform's StorageUnit, enabling users and teams to organize, store, share, and retrieve files through a familiar folder-based hierarchy. It adds path-based navigation, label-based categorization, download link generation, and public sharing with configurable access controls. All binary storage is delegated to the StorageUnit (S3); the Drive module owns the metadata, hierarchy, permissions, and sharing semantics.
 
 ---
 
@@ -138,7 +138,7 @@ Flexible tagging system for cross-cutting categorization independent of folder s
 
 ## 3. Storage Integration
 
-All binary data operations are delegated to the framework's StorageUnit. The Drive module never accesses S3 directly.
+All binary data operations are delegated to the platform's StorageUnit. The Drive module never accesses S3 directly.
 
 ### 3.1 Upload Flow
 

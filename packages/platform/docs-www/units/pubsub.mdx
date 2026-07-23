@@ -1,0 +1,220 @@
+---
+title: PubSub
+description: Message queue and pub/sub system powered by pg-boss with scheduling support.
+icon: IconTimelineEventText
+---
+
+The `PubSubUnit` (`$name: "pubsub"`) provides a typed publish/subscribe messaging system backed by [pg-boss](https://github.com/timgit/pg-boss), a Postgres-based job queue.
+
+## Configuration
+
+```ts title="src/server/pubsub/types.ts"
+interface PubSubConfig {
+  schema?: string;                          // pg-boss schema (only when SSL)
+  monitorStateIntervalSeconds?: number;     // default: 30
+}
+```
+
+<Callout type="info">
+  PubSub creates its own pg connection pool — it does not reuse `DatabaseUnit`'s pool. This is because pg-boss manages its own connection lifecycle. The connection details are copied from `DatabaseUnit.config`.
+</Callout>
+
+### Example
+
+```ts
+const pubsubConfig: PubSubConfig = {
+  monitorStateIntervalSeconds: 30,
+};
+```
+
+## Public API
+
+```ts title="src/server/pubsub/index.ts"
+class PubSubUnit {
+  readonly $name = "pubsub";
+
+  // Publishing
+  async publish<T = unknown>(
+    topic: string,
+    data: T,
+    options?: PublishOptions,
+  ): Promise<string>;
+
+  async publishControlPlane<T = unknown>(
+    topic: string,
+    data: T,
+    options?: PublishOptions,
+  ): Promise<string>;
+
+  async publishBatch<T = unknown>(
+    topic: string,
+    messages: { data: T; options?: PublishOptions }[],
+  ): Promise<string[]>;
+
+  // Subscribing
+  async subscribe<T = unknown>(
+    topic: string,
+    handler: MessageHandler<T>,
+  ): Promise<void>;
+
+  async unsubscribe(topic: string): Promise<void>;
+
+  // Scheduling
+  async schedule(
+    topic: string,
+    cron: string,
+    data?: unknown,
+    options?: ScheduleOptions,
+  ): Promise<void>;
+
+  async unschedule(topic: string): Promise<void>;
+  async getSchedules(): Promise<unknown[]>;
+
+  // Queue management
+  async getQueueSize(topic: string): Promise<number>;
+  async purgeQueue(topic: string): Promise<void>;
+
+  async $prepare(): Promise<void>;
+  async $cleanup(): Promise<void>;
+}
+```
+
+## Features
+
+### Publish Messages
+
+```ts
+// Simple publish
+const jobId = await platform.pubsub.publish("organization:created", {
+  organization: { id: "org-1", name: "Acme Corp" },
+});
+
+// Publish with options
+await platform.pubsub.publish(
+  "compliance:document_expiring",
+  { documentId: "doc-1", daysUntilExpiry: 7 },
+  {
+    retryLimit: 3,
+    retryDelay: 60,
+    retryBackoff: true,
+    expireInMinutes: 60,
+    priority: 1,
+    startAfter: new Date("2024-12-31"),
+  },
+);
+```
+
+### Batch Publishing
+
+```ts
+await platform.pubsub.publishBatch("notifications:send", [
+  { data: { userId: "1", message: "Hello" } },
+  { data: { userId: "2", message: "World" }, options: { priority: 2 } },
+]);
+```
+
+### Control-Plane Publishing
+
+In isolated mode, each tenant DB has its own pg-boss. Use `publishControlPlane()` for events that belong to the control plane (e.g. auth events) rather than a specific tenant:
+
+```ts
+await platform.pubsub.publishControlPlane("user:created", { user });
+```
+
+### Subscribe to Topics
+
+```ts
+await platform.pubsub.subscribe(
+  "organization:created",
+  async (message) => {
+    console.log("Received:", message.data);
+    console.log("Job ID:", message.id);
+    console.log("Created:", message.createdOn);
+  },
+);
+```
+
+### Cron-Based Scheduling
+
+Schedule recurring jobs using cron expressions:
+
+```ts
+// Daily at 8am
+await platform.pubsub.schedule(
+  "compliance:daily-expiry-scan",
+  "0 8 * * *",
+);
+
+// Weekly summary every Monday at 9am (IST)
+await platform.pubsub.schedule(
+  "compliance:weekly-summary",
+  "0 9 * * 1",
+  {},
+  { tz: "Asia/Kolkata" },
+);
+
+// List schedules
+const schedules = await platform.pubsub.getSchedules();
+
+// Cancel a schedule
+await platform.pubsub.unschedule("compliance:weekly-summary");
+```
+
+### Queue Management
+
+```ts
+// Check queue depth
+const size = await platform.pubsub.getQueueSize("compliance:document_expiring");
+
+// Purge a queue
+await platform.pubsub.purgeQueue("notifications:send");
+```
+
+## Publish Options
+
+```ts title="src/server/pubsub/types.ts"
+interface PublishOptions {
+  expireInMinutes?: number;     // job expiration
+  priority?: number;            // higher = processed first
+  retryBackoff?: boolean;       // exponential backoff on retry
+  retryDelay?: number;          // seconds between retries
+  retryLimit?: number;          // max retry attempts
+  startAfter?: Date | string;   // delayed execution
+}
+
+interface ScheduleOptions extends PublishOptions {
+  tz?: string;  // timezone for cron schedule
+}
+```
+
+## Message Structure
+
+```ts title="src/server/pubsub/types.ts"
+interface Message<T = unknown> {
+  id: string;
+  name: string;         // topic name
+  data: T;              // message payload
+  createdOn: Date;
+  completedOn?: Date;
+}
+
+type MessageHandler<T = unknown> = (message: Message<T>) => void | Promise<void>;
+```
+
+## Usage in Modules
+
+Domain modules register pubsub handlers and schedules in their `prepare()` method and unregister in `destroy()`:
+
+```ts
+// In module.$prepare():
+await this.pubsub.subscribe("organization:created", this.handleOrgCreated);
+await this.pubsub.schedule("daily:cleanup", "0 2 * * *");
+
+// In module.$cleanup():
+await this.pubsub.unsubscribe("organization:created");
+await this.pubsub.unschedule("daily:cleanup");
+```
+
+## Dependency
+
+Receives `{ db: DatabaseUnit }` via constructor injection. Copies connection details from `DatabaseUnit.config` to create its own pg-boss instance.

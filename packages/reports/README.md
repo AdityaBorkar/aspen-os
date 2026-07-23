@@ -1,6 +1,6 @@
 # @aspen-os/reports
 
-A placeholder package for a centralized reporting module within the Aspen OS framework. Currently a stub with no implementation.
+A placeholder package for a centralized reporting module within the Aspen OS platform. Currently a stub with no implementation.
 
 ## Table of Contents
 
@@ -44,11 +44,11 @@ Reporting functionality is currently implemented as **per-module services** rath
 
 ```ts
 // Tasks reports (already implemented)
-framework.tasks.reports.getTaskSummary(projectId?)
-framework.tasks.reports.getWorkload(userId?)
-framework.tasks.reports.getVelocity(projectId)
-framework.tasks.reports.getBurndown(projectId)
-framework.tasks.reports.getTimeReport(filters?)
+platform.tasks.reports.getTaskSummary(projectId?)
+platform.tasks.reports.getWorkload(userId?)
+platform.tasks.reports.getVelocity(projectId)
+platform.tasks.reports.getBurndown(projectId)
+platform.tasks.reports.getTimeReport(filters?)
 ```
 
 ## Planned Direction

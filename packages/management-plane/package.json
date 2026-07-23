@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@aspen-os/constants": "workspace:*",
-    "@aspen-os/framework": "workspace:*",
+    "@aspen-os/platform": "workspace:*",
     "drizzle-kit": "^0.31.10",
     "drizzle-orm": "catalog:",
     "pg": "^8.22.0",

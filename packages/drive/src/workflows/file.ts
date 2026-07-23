@@ -1,4 +1,4 @@
-import type { PubSubUnit } from "@aspen-os/framework/server";
+import type { PubSubUnit } from "@aspen-os/platform/server";
 import { desc, eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { parse } from "valibot";

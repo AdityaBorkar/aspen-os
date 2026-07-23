@@ -9,8 +9,8 @@ const docs = {
   }),
 };
 
-export const framework = defineDocs({
-  dir: `../packages/framework/docs-www`,
+export const platform = defineDocs({
+  dir: `../packages/platform/docs-www`,
   docs,
 });
 

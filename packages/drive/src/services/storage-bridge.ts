@@ -1,4 +1,4 @@
-import type { StorageUnit } from "@aspen-os/framework/server";
+import type { StorageUnit } from "@aspen-os/platform/server";
 
 export interface FileObject {
   contentType?: string;

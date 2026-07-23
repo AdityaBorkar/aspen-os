@@ -40,18 +40,18 @@ packages/hr/src/
 
 | Workflow | Access Path | Manages |
 |---|---|---|
-| `EmployeeWorkflow` | `framework.hr.employees` | Employee records, groups, health insurance, skill maps |
-| `AttendanceWorkflow` | `framework.hr.attendance` | Attendance, check-ins, attendance requests |
-| `LeaveWorkflow` | `framework.hr.leave` | Leave types, periods, policies, allocations, applications, encashment, block lists, adjustments, ledger |
-| `LifecycleWorkflow` | `framework.hr.lifecycle` | Onboarding, promotions, transfers, separations, exit interviews, full and final statements |
-| `OvertimeWorkflow` | `framework.hr.overtime` | Overtime types and overtime slips |
-| `SetupWorkflow` | `framework.hr.setup` | HR/payroll settings, employment types, departments, designations, grades, holiday lists, holidays |
-| `ShiftWorkflow` | `framework.hr.shift` | Shift types, locations, assignments, requests, schedules, schedule assignments |
+| `EmployeeWorkflow` | `platform.hr.employees` | Employee records, groups, health insurance, skill maps |
+| `AttendanceWorkflow` | `platform.hr.attendance` | Attendance, check-ins, attendance requests |
+| `LeaveWorkflow` | `platform.hr.leave` | Leave types, periods, policies, allocations, applications, encashment, block lists, adjustments, ledger |
+| `LifecycleWorkflow` | `platform.hr.lifecycle` | Onboarding, promotions, transfers, separations, exit interviews, full and final statements |
+| `OvertimeWorkflow` | `platform.hr.overtime` | Overtime types and overtime slips |
+| `SetupWorkflow` | `platform.hr.setup` | HR/payroll settings, employment types, departments, designations, grades, holiday lists, holidays |
+| `ShiftWorkflow` | `platform.hr.shift` | Shift types, locations, assignments, requests, schedules, schedule assignments |
 
 ## Schemas
 
 Validation schemas live in `src/schemas/` and are re-exported from `src/schemas/index.ts`. Each domain file defines `Create*Schema`, `Update*Schema`, and `*FiltersSchema` objects with corresponding `InferOutput` types. Shared pipes (`NameSchema`, `EmployeeIdSchema`, `EmailSchema`, `PhoneSchema`) are in `utils.ts`.
 
 <Callout type="warn">
-  The module is not yet wired into the framework. The `HrModule` class in `src/index.ts` is a stub with empty `initialize()`, `prepare()`, and `destroy()`. The `db-schema.ts`, `event-map.ts`, and `types.ts` files are empty. The `package.json` has no dependencies, exports, or scripts. The workflow classes and Valibot schemas are fully implemented but cannot be used until the module is wired up.
+  The module is not yet wired into the platform. The `HrModule` class in `src/index.ts` is a stub with empty `initialize()`, `prepare()`, and `destroy()`. The `db-schema.ts`, `event-map.ts`, and `types.ts` files are empty. The `package.json` has no dependencies, exports, or scripts. The workflow classes and Valibot schemas are fully implemented but cannot be used until the module is wired up.
 </Callout>

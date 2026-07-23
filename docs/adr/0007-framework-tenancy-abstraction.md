@@ -1,10 +1,10 @@
-# 0007 — Framework tenancy abstraction: three platform classes
+# 0007 — Platform tenancy abstraction: three platform classes
 
-The framework server exports three self-contained platform classes —
+The platform server exports three self-contained platform classes —
 `SingleTenantPlatform`, `SharedTenantPlatform`, and `IsolatedTenantPlatform` —
 one per tenancy architecture. The developer picks a class at application
 startup and commits to it for the application's lifetime. There is no single
-`Framework` class on the server and no `tenancy` config field. The class choice
+`Platform` class on the server and no `tenancy` config field. The class choice
 IS the mode. Each class has its own config type (`SingleTenantConfig`,
 `SharedTenantConfig`, `IsolatedTenantConfig`), its own `create()` static
 factory, its own `prepareInfra()`, `run()`, `destroy()`, `getModule()`, and
@@ -23,7 +23,7 @@ config field to the application developer.
 
 We rejected three alternatives:
 
-- **Single `Framework` class with a `tenancy: { mode }` config field** (the
+- **Single `Platform` class with a `tenancy: { mode }` config field** (the
   original ADR-0007 approach): simpler mental model but the `run()` signature
   had to be overloaded (`run(fn)` vs `run(tenantId, fn)`), making the
   type-level guarantee impossible. A single class also meant all tenancy
@@ -80,7 +80,7 @@ to database-per-tenant as the only option) are still valid for the
 - `run()` is not overloaded. `SingleTenantPlatform.run(fn)` and
   `SharedTenantPlatform.run(tenantId, fn)` are structurally different methods
   on different classes. The type system enforces correct usage.
-- `FrameworkInstance<M>` is a structural type (not tied to a specific class)
+- `PlatformInstance<M>` is a structural type (not tied to a specific class)
   used by the CLI for dynamic loading. Use the platform-specific instance
   types (`SingleTenantPlatformInstance<M>`, etc.) for typed access including
   `run()`.
