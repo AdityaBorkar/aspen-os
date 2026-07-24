@@ -5,6 +5,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import {
   admin,
   captcha,
+  createAccessControl,
   emailOTP,
   lastLoginMethod,
   organization,
@@ -21,6 +22,8 @@ import { createSessionServices } from "./services/session";
 import { createUserServices } from "./services/user";
 import type { AuthConfig, AuthServiceDeps } from "./types";
 
+export type { AclDeclaration } from "./acl";
+export { defineAcl } from "./acl";
 export type { AuthEventMap } from "./event-map";
 export type {
   AuthConfig,
@@ -36,11 +39,17 @@ export class AuthUnit {
   readonly auth: Auth;
 
   private readonly deps: AuthServiceDeps;
+  private readonly config: AuthConfig;
+  private readonly dbUnit: DatabaseUnit;
 
   constructor(config: AuthConfig, units: { db: DatabaseUnit }) {
-    const { cfSecretKey, access_control, roles, ...rest } = config;
+    this.config = config;
+    this.dbUnit = units.db;
+
+    // Create auth without admin plugin initially
+    // The admin plugin will be added when applyModuleAcl is called
     const auth = betterAuth({
-      ...rest,
+      baseURL: config.baseURL,
       database: drizzleAdapter(units.db.controlPlaneDb, {
         camelCase: false,
         provider: "pg",
@@ -50,7 +59,6 @@ export class AuthUnit {
       }),
       emailAndPassword: { enabled: true },
       plugins: [
-        admin({ ac: access_control, roles }),
         username(),
         organization(),
         phoneNumber(),
@@ -77,15 +85,18 @@ export class AuthUnit {
         lastLoginMethod(),
         twoFactor(),
         passkey(),
-        ...(cfSecretKey
+        ...(config.cfSecretKey
           ? [
               captcha({
                 provider: "cloudflare-turnstile",
-                secretKey: cfSecretKey,
+                secretKey: config.cfSecretKey,
               }),
             ]
           : []),
       ],
+      secret: config.secret,
+      session: config.session,
+      socialProviders: config.socialProviders,
     });
     this.auth = auth as unknown as Auth;
 
@@ -100,14 +111,76 @@ export class AuthUnit {
     this.deps.pubsub = pubsub;
   }
 
-  private moduleAcl: Record<string, { allowedActions: string[] }> = {};
-
   async $prepareInfra() {
     return;
   }
 
-  applyModuleAcl(acl: Record<string, { allowedActions: string[] }>): void {
-    Object.assign(this.moduleAcl, acl);
+  /**
+   * Apply module ACL declarations to the auth unit.
+   * This creates the access control from merged module ACL.
+   *
+   * Called by the platform during prepareInfra().
+   */
+  applyModuleAcl(acl: Record<string, readonly string[]>): void {
+    // Create access control from merged module ACL
+    const access_control = createAccessControl(acl);
+
+    // Re-create auth with admin plugin using the module-derived access control
+    const auth = betterAuth({
+      baseURL: this.config.baseURL,
+      database: drizzleAdapter(this.dbUnit.controlPlaneDb, {
+        camelCase: false,
+        provider: "pg",
+        schema: db_schema,
+        transaction: true,
+        usePlural: false,
+      }),
+      emailAndPassword: { enabled: true },
+      plugins: [
+        admin({ ac: access_control }),
+        username(),
+        organization(),
+        phoneNumber(),
+        emailOTP({
+          async sendVerificationOTP({ email, otp, type }) {
+            console.log({ email, otp, type });
+            if (type === "sign-in") {
+              // Send the OTP for sign in
+            } else if (type === "email-verification") {
+              // Send the OTP for email verification
+            } else {
+              // Send the OTP for password reset
+            }
+          },
+        }),
+        apiKey({
+          enableSessionForAPIKeys: false,
+          rateLimit: {
+            enabled: true,
+            maxRequests: 10,
+            timeWindow: 1000 * 60 * 60 * 24,
+          },
+        }),
+        lastLoginMethod(),
+        twoFactor(),
+        passkey(),
+        ...(this.config.cfSecretKey
+          ? [
+              captcha({
+                provider: "cloudflare-turnstile",
+                secretKey: this.config.cfSecretKey,
+              }),
+            ]
+          : []),
+      ],
+      secret: this.config.secret,
+      session: this.config.session,
+      socialProviders: this.config.socialProviders,
+    });
+
+    // Update the auth instance and deps
+    (this as { auth: Auth }).auth = auth as unknown as Auth;
+    this.deps.auth = this.auth;
   }
 
   async $cleanup() {

@@ -6,6 +6,9 @@ import type { PubSubConfig, PubSubUnit } from "./pubsub";
 import type { RpcConfig, RpcUnit } from "./rpc";
 import type { StorageConfig, StorageUnit } from "./storage";
 export type hello = "world";
+
+export type { AclDeclaration } from "./auth";
+export { defineAcl } from "./auth";
 export { getContext } from "./context";
 export type {
   AuthConfig,
@@ -42,7 +45,7 @@ export type PlatformUnits = {
 
 export type ModuleInfra = {
   auth: {
-    acl: Record<string, { allowedActions: string[] }>;
+    acl: Record<string, readonly string[]>;
   };
   db: {
     schemas: Record<string, unknown>;

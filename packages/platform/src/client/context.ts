@@ -1,8 +1,10 @@
 import type { AuthClient } from "./auth";
+import type { LogsUnit } from "./logs";
 import type { RpcUnit } from "./rpc";
 
 export interface ClientContext {
   auth: AuthClient;
+  logs: LogsUnit;
   rpc: RpcUnit;
 }
 

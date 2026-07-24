@@ -142,17 +142,17 @@ export class IsolatedTenantPlatform<M extends Module[]> {
     }
 
     const mergedModuleSchemas: Record<string, unknown> = {};
-    const mergedAcl: Record<string, { allowedActions: string[] }> = {};
+    const mergedAcl: Record<string, string[]> = {};
 
     for (const mod of this.modules) {
       const infra = mod.$prepareInfra?.();
       if (infra) {
         Object.assign(mergedModuleSchemas, infra.db.schemas);
-        for (const [resource, config] of Object.entries(infra.auth.acl)) {
+        for (const [resource, actions] of Object.entries(infra.auth.acl)) {
           if (!mergedAcl[resource]) {
-            mergedAcl[resource] = { allowedActions: [] };
+            mergedAcl[resource] = [];
           }
-          mergedAcl[resource].allowedActions.push(...config.allowedActions);
+          mergedAcl[resource].push(...(actions as string[]));
         }
       }
     }

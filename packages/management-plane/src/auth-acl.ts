@@ -1,25 +1,14 @@
-export const acl = {
-  platformUser: {
-    allowedActions: ["create", "read", "update", "delete", "assign_role"],
-  },
-  serviceProvider: {
-    allowedActions: [
-      "activate",
-      "create",
-      "deactivate",
-      "delete",
-      "read",
-      "update",
-    ],
-  },
-  tenant: {
-    allowedActions: [
-      "activate",
-      "create",
-      "delete",
-      "read",
-      "suspend",
-      "update",
-    ],
-  },
-};
+import { defineAcl } from "@aspen-os/platform/server";
+
+export const acl = defineAcl({
+  platformUser: ["create", "read", "update", "delete", "assign_role"],
+  serviceProvider: [
+    "activate",
+    "create",
+    "deactivate",
+    "delete",
+    "read",
+    "update",
+  ],
+  tenant: ["activate", "create", "delete", "read", "suspend", "update"],
+});

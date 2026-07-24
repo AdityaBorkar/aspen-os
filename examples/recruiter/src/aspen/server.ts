@@ -5,7 +5,6 @@ import type {
   LogConfig,
   PubSubConfig,
   RpcConfig,
-  StorageConfig,
 } from "@aspen-os/platform/server";
 import {
   type DatabaseConfig,
@@ -13,14 +12,11 @@ import {
 } from "@aspen-os/platform/server";
 
 import { env } from "../env";
-import { access_control, roles } from "./auth";
 
 const BASE_URL = `${env.PUBLIC_WEB_SSL ? "https" : "http"}://${env.PUBLIC_WEB_DOMAIN}:${env.PUBLIC_WEB_PORT}`;
 
 const auth = {
-  access_control,
   baseURL: BASE_URL,
-  roles,
   secret: env.AUTH_SECRET,
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7 days
@@ -62,7 +58,7 @@ const storage = {
     region: env.STORAGE_REGION,
     type: "s3",
   },
-} satisfies StorageConfig;
+} satisfies SingleTenantPlatform[""];
 
 const organization = Organization.create({
   country: "INDIA",

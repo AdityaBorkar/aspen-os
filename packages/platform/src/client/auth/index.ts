@@ -1,6 +1,5 @@
 import { apiKeyClient } from "@better-auth/api-key/client";
 import { passkeyClient } from "@better-auth/passkey/client";
-import type { AccessControl, Role } from "better-auth/client";
 import {
   adminClient,
   // captchaClient,
@@ -14,52 +13,39 @@ import {
 import type { ReactAuthClient } from "better-auth/react";
 import { createAuthClient } from "better-auth/react";
 
-export interface AuthConfig<
-  AC extends AccessControl = AccessControl,
-  R extends Record<string, Role> = Record<string, Role>,
-> {
-  access_control: AC;
+import type { Unit } from "../types";
+
+export interface AuthConfig {
   baseURL: string;
-  roles: R;
 }
 
-type ResolvePlugins<
-  AC extends AccessControl,
-  R extends Record<string, Role>,
-> = [
-  ReturnType<typeof adminClient<{ ac: AC; roles: R }>>,
-  ReturnType<typeof usernameClient>,
-  ReturnType<typeof organizationClient>,
-  ReturnType<typeof phoneNumberClient>,
-  ReturnType<typeof emailOTPClient>,
-  ReturnType<typeof apiKeyClient>,
-  ReturnType<typeof lastLoginMethodClient>,
-  ReturnType<typeof twoFactorClient>,
-  // ReturnType<typeof captchaClient>,
-  ReturnType<typeof passkeyClient>,
-];
-
-export type AuthClient<
-  AC extends AccessControl = AccessControl,
-  R extends Record<string, Role> = Record<string, Role>,
-> = ReactAuthClient<{
+export type AuthClient = ReactAuthClient<{
   baseURL: string;
-  plugins: ResolvePlugins<AC, R>;
+  plugins: [
+    ReturnType<typeof adminClient>,
+    ReturnType<typeof usernameClient>,
+    ReturnType<typeof organizationClient>,
+    ReturnType<typeof phoneNumberClient>,
+    ReturnType<typeof emailOTPClient>,
+    ReturnType<typeof apiKeyClient>,
+    ReturnType<typeof lastLoginMethodClient>,
+    ReturnType<typeof twoFactorClient>,
+    // ReturnType<typeof captchaClient>,
+    ReturnType<typeof passkeyClient>,
+  ];
 }>;
 
-export class AuthUnit<
-  AC extends AccessControl = AccessControl,
-  R extends Record<string, Role> = Record<string, Role>,
-> {
+export class AuthUnit implements Unit<AuthConfig> {
   readonly $name = "auth";
-  readonly client: AuthClient<AC, R>;
+  readonly $config: AuthConfig;
+  readonly client: AuthClient;
 
-  constructor(config: AuthConfig<AC, R>) {
-    const { baseURL, roles, access_control } = config;
+  constructor(config: AuthConfig) {
+    this.$config = config;
     this.client = createAuthClient({
-      baseURL,
+      ...config,
       plugins: [
-        adminClient({ ac: access_control, roles }),
+        adminClient(),
         usernameClient(),
         organizationClient(),
         phoneNumberClient(),
@@ -70,14 +56,6 @@ export class AuthUnit<
         // captchaClient(),
         passkeyClient(),
       ],
-    }) as unknown as AuthClient<AC, R>;
-  }
-
-  async $prepareInfra(): Promise<void> {
-    return;
-  }
-
-  async $cleanup(): Promise<void> {
-    return;
+    }) as unknown as AuthClient;
   }
 }

@@ -1,27 +1,23 @@
-export const acl = {
-  complianceAuditEntry: { allowedActions: ["read"] },
-  complianceDocument: {
-    allowedActions: [
-      "archive",
-      "create",
-      "delete",
-      "read",
-      "reject",
-      "update",
-      "verify",
-    ],
-  },
-  complianceObligation: {
-    allowedActions: [
-      "activate",
-      "create",
-      "deactivate",
-      "delete",
-      "read",
-      "update",
-    ],
-  },
-  complianceVerificationRule: {
-    allowedActions: ["create", "delete", "read", "update"],
-  },
-};
+import { defineAcl } from "@aspen-os/platform/server";
+
+export const acl = defineAcl({
+  complianceAuditEntry: ["read"],
+  complianceDocument: [
+    "archive",
+    "create",
+    "delete",
+    "read",
+    "reject",
+    "update",
+    "verify",
+  ],
+  complianceObligation: [
+    "activate",
+    "create",
+    "deactivate",
+    "delete",
+    "read",
+    "update",
+  ],
+  complianceVerificationRule: ["create", "delete", "read", "update"],
+});

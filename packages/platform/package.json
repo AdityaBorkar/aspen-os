@@ -1,6 +1,6 @@
 {
   "bin": {
-    "aspen": "./.output/cli/index.js"
+    "aspen": "./src/cli/index.ts"
   },
   "build": {
     "bin": {
@@ -46,16 +46,10 @@
     "typescript": "catalog:"
   },
   "exports": {
-    "./client": {
-      "default": "./.output/client/index.js",
-      "types": "./.output/client/index.d.ts"
-    },
-    "./server": {
-      "default": "./.output/server/index.js",
-      "types": "./.output/server/index.d.ts"
-    }
+    "./client": "./src/client/index.ts",
+    "./server": "./src/server/index.ts"
   },
-  "files": ["./docs-www", "package.json", "README.md", "./.output"],
+  "files": ["./docs-www", "package.json", "README.md", "./src"],
   "name": "@aspen-os/platform",
   "publishConfig": {
     "access": "public",

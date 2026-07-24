@@ -1,5 +1,4 @@
 import type { Auth } from "better-auth";
-import type { createAccessControl, Role } from "better-auth/plugins";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 import type { PubSubUnit } from "../pubsub";
@@ -41,10 +40,8 @@ export interface Session {
 }
 
 export interface AuthConfig {
-  access_control: ReturnType<typeof createAccessControl>;
   baseURL: string;
   cfSecretKey?: string;
-  roles: Record<string, Role>;
   secret: string;
   session: { expiresIn?: number };
   socialProviders?: {

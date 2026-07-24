@@ -1,1 +1,3 @@
-export const acl = {};
+import { defineAcl } from "@aspen-os/platform/server";
+
+export const acl = defineAcl({});

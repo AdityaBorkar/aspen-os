@@ -1,10 +1,5 @@
 export type LogLevel = "debug" | "info" | "warn" | "error" | "fatal";
 
-export interface LogConfig {
-  defaultLevel?: LogLevel;
-  serviceName?: string;
-}
-
 export interface LogEntry {
   duration?: number;
   error?: { name: string; message: string; stack?: string };
