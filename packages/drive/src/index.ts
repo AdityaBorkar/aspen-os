@@ -1,12 +1,14 @@
 import type {
   DatabaseUnit,
+  Module,
   ModuleInfra,
   PubSubUnit,
   StorageUnit,
 } from "@aspen-os/platform/server";
 
-import * as dbSchema from "./db-schema";
-import { DRIVE_EVENTS } from "./event-map";
+import { acl } from "./auth-acl";
+import { schemas } from "./db-schemas";
+import { events } from "./pubsub-events";
 import { AccessService } from "./services/access-service";
 import { ArchiveService } from "./services/archive-service";
 import { PathService } from "./services/path-service";
@@ -20,89 +22,15 @@ import { PublicLinkWorkflow } from "./workflows/public-link";
 import { ShareWorkflow } from "./workflows/share";
 import { TrashWorkflow } from "./workflows/trash";
 
-export type { DriveEventMap } from "./event-map";
-export { DRIVE_EVENTS } from "./event-map";
+export type { DriveEventMap } from "./pubsub-events";
+export { DRIVE_EVENTS } from "./pubsub-events";
 export type { ArchiveJobData, ArchiveResult } from "./services/archive-service";
 export { ArchiveTooLargeError } from "./services/archive-service";
-export type {
-  ApplyLabelInput,
-  BreadcrumbItem,
-  CreateFolderInput,
-  CreateLabelInput,
-  CreatePublicLinkInput,
-  CreateShareInput,
-  DownloadLinkOptions,
-  DriveAccessLogRow,
-  DriveFileRow,
-  DriveFileVersionRow,
-  DriveFolderRow,
-  DriveGranteeType,
-  DriveItemType,
-  DriveLabelRow,
-  DriveModuleConfig,
-  DrivePermission,
-  DrivePublicLinkPermission,
-  DrivePublicLinkRow,
-  DriveSearchScope,
-  DriveShareRow,
-  EmptyTrashOptions,
-  FolderDownloadLinkOptions,
-  FolderWithMetadata,
-  ListByLabelOptions,
-  ListFolderOptions,
-  ListLabelsOptions,
-  ListSharedWithMeOptions,
-  ListTrashOptions,
-  MoveFileInput,
-  MoveFolderInput,
-  PathResolution,
-  RenameFileInput,
-  RenameFolderInput,
-  ResolvePublicLinkInput,
-  SearchOptions,
-  SearchResult,
-  UpdateFileInput,
-  UpdateFolderInput,
-  UpdatePublicLinkInput,
-  UpdateShareInput,
-  UploadFileInput,
-} from "./types";
-export {
-  ApplyLabelSchema,
-  CreateFolderSchema,
-  CreateLabelSchema,
-  CreatePublicLinkSchema,
-  CreateShareSchema,
-  DownloadLinkOptionsSchema,
-  DriveGranteeTypeSchema,
-  DriveItemTypeSchema,
-  DrivePermissionSchema,
-  DrivePublicLinkPermissionSchema,
-  DriveSearchScopeSchema,
-  DriveSortOrderSchema,
-  EmptyTrashOptionsSchema,
-  FolderDownloadLinkOptionsSchema,
-  HexColorSchema,
-  ItemNameSchema,
-  LabelNameSchema,
-  ListByLabelOptionsSchema,
-  ListFolderOptionsSchema,
-  ListLabelsOptionsSchema,
-  ListSharedWithMeOptionsSchema,
-  ListTrashOptionsSchema,
-  MoveFileSchema,
-  MoveFolderSchema,
-  RenameFileSchema,
-  RenameFolderSchema,
-  ResolvePublicLinkSchema,
-  SearchOptionsSchema,
-  UpdateFileSchema,
-  UpdateFolderSchema,
-  UpdatePublicLinkSchema,
-  UpdateShareSchema,
-  UploadFileSchema,
-} from "./types";
+export * from "./types";
 export type { ResolvedPublicLink } from "./workflows/public-link";
+
+import * as dbSchema from "./db-schema";
+
 export { dbSchema };
 
 const DEFAULT_CONFIG = {
@@ -118,18 +46,10 @@ const DEFAULT_CONFIG = {
 const PURGE_CRON = "0 3 * * *";
 const PURGE_TOPIC = "drive:auto-purge";
 
-export class DriveModule {
-  readonly db_schema = dbSchema;
+export class Drive implements Module {
   readonly $name = "drive";
   readonly $dependencies: readonly string[] = [];
-
-  private config: typeof DEFAULT_CONFIG;
-
-  #pathService: PathService | null = null;
-  #storageBridge: StorageBridge | null = null;
-  #accessService: AccessService | null = null;
-  #archiveService: ArchiveService | null = null;
-  #searchService: SearchService | null = null;
+  readonly config: Required<DriveModuleConfig>;
 
   #folders: FolderWorkflow | null = null;
   #files: FileWorkflow | null = null;
@@ -137,65 +57,26 @@ export class DriveModule {
   #shares: ShareWorkflow | null = null;
   #publicLinks: PublicLinkWorkflow | null = null;
   #trash: TrashWorkflow | null = null;
-
+  #search: SearchService | null = null;
+  #archive: ArchiveService | null = null;
+  #access: AccessService | null = null;
+  #paths: PathService | null = null;
   #pubsub: PubSubUnit | null = null;
 
-  static create(config?: DriveModuleConfig): DriveModule {
-    return new DriveModule(config ?? {});
+  static create(config?: DriveModuleConfig): Drive {
+    return new Drive(config ?? {});
   }
 
   constructor(config: DriveModuleConfig) {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
-  get folders(): FolderWorkflow {
-    if (!this.#folders) throw notInitialized();
-    return this.#folders;
-  }
-
-  get files(): FileWorkflow {
-    if (!this.#files) throw notInitialized();
-    return this.#files;
-  }
-
-  get labels(): LabelWorkflow {
-    if (!this.#labels) throw notInitialized();
-    return this.#labels;
-  }
-
-  get shares(): ShareWorkflow {
-    if (!this.#shares) throw notInitialized();
-    return this.#shares;
-  }
-
-  get publicLinks(): PublicLinkWorkflow {
-    if (!this.#publicLinks) throw notInitialized();
-    return this.#publicLinks;
-  }
-
-  get trash(): TrashWorkflow {
-    if (!this.#trash) throw notInitialized();
-    return this.#trash;
-  }
-
-  get search(): SearchService {
-    if (!this.#searchService) throw notInitialized();
-    return this.#searchService;
-  }
-
-  get archive(): ArchiveService {
-    if (!this.#archiveService) throw notInitialized();
-    return this.#archiveService;
-  }
-
-  get access(): AccessService {
-    if (!this.#accessService) throw notInitialized();
-    return this.#accessService;
-  }
-
-  get paths(): PathService {
-    if (!this.#pathService) throw notInitialized();
-    return this.#pathService;
+  $prepareInfra(): ModuleInfra {
+    return {
+      auth: { acl },
+      db: { schemas },
+      events,
+    };
   }
 
   $initialize(units: {
@@ -205,17 +86,20 @@ export class DriveModule {
   }): void {
     const db = units.db.db;
 
-    this.#pathService = new PathService(db, this.config.maxNestingDepth);
-    this.#storageBridge = new StorageBridge(units.storage);
-    this.#accessService = new AccessService(db);
-    this.#archiveService = new ArchiveService(db, this.#storageBridge);
-    this.#searchService = new SearchService(db);
+    const pathService = new PathService(db, this.config.maxNestingDepth);
+    const storageBridge = new StorageBridge(units.storage);
+    const accessService = new AccessService(db);
 
-    this.#folders = new FolderWorkflow(db, this.#pathService, units.pubsub);
+    this.#paths = pathService;
+    this.#access = accessService;
+    this.#search = new SearchService(db);
+    this.#archive = new ArchiveService(db, storageBridge);
+
+    this.#folders = new FolderWorkflow(db, pathService, units.pubsub);
     this.#files = new FileWorkflow(
       db,
-      this.#storageBridge,
-      this.#pathService,
+      storageBridge,
+      pathService,
       units.pubsub,
       {
         allowedContentTypes: this.config.allowedContentTypes,
@@ -227,24 +111,11 @@ export class DriveModule {
     );
     this.#labels = new LabelWorkflow(db);
     this.#shares = new ShareWorkflow(db, units.pubsub);
-    this.#publicLinks = new PublicLinkWorkflow(
-      db,
-      this.#accessService,
-      units.pubsub,
-    );
-    this.#trash = new TrashWorkflow(db, this.#storageBridge, units.pubsub, {
+    this.#publicLinks = new PublicLinkWorkflow(db, accessService, units.pubsub);
+    this.#trash = new TrashWorkflow(db, storageBridge, units.pubsub, {
       trashRetentionDays: this.config.trashRetentionDays,
     });
-
     this.#pubsub = units.pubsub;
-  }
-
-  $prepareInfra(): ModuleInfra {
-    return {
-      auth: { acl: {} },
-      db: { schemas: dbSchema.driveTables },
-      events: { drive: DRIVE_EVENTS },
-    };
   }
 
   async $prepareRuntime(): Promise<void> {
@@ -267,11 +138,10 @@ export class DriveModule {
       }
     }
 
-    this.#pathService = null;
-    this.#storageBridge = null;
-    this.#accessService = null;
-    this.#archiveService = null;
-    this.#searchService = null;
+    this.#paths = null;
+    this.#access = null;
+    this.#archive = null;
+    this.#search = null;
     this.#folders = null;
     this.#files = null;
     this.#labels = null;
@@ -280,10 +150,54 @@ export class DriveModule {
     this.#trash = null;
     this.#pubsub = null;
   }
-}
 
-function notInitialized(): Error {
-  return new Error(
-    "Drive module not initialized. Call $initialize() after Platform.create().",
-  );
+  get folders() {
+    if (!this.#folders) throw new Error("Drive not initialized");
+    return this.#folders;
+  }
+
+  get files() {
+    if (!this.#files) throw new Error("Drive not initialized");
+    return this.#files;
+  }
+
+  get labels() {
+    if (!this.#labels) throw new Error("Drive not initialized");
+    return this.#labels;
+  }
+
+  get shares() {
+    if (!this.#shares) throw new Error("Drive not initialized");
+    return this.#shares;
+  }
+
+  get publicLinks() {
+    if (!this.#publicLinks) throw new Error("Drive not initialized");
+    return this.#publicLinks;
+  }
+
+  get trash() {
+    if (!this.#trash) throw new Error("Drive not initialized");
+    return this.#trash;
+  }
+
+  get search() {
+    if (!this.#search) throw new Error("Drive not initialized");
+    return this.#search;
+  }
+
+  get archive() {
+    if (!this.#archive) throw new Error("Drive not initialized");
+    return this.#archive;
+  }
+
+  get access() {
+    if (!this.#access) throw new Error("Drive not initialized");
+    return this.#access;
+  }
+
+  get paths() {
+    if (!this.#paths) throw new Error("Drive not initialized");
+    return this.#paths;
+  }
 }

@@ -1,12 +1,14 @@
 import type {
   DatabaseUnit,
   KvStoreUnit,
+  Module,
   ModuleInfra,
   PubSubUnit,
 } from "@aspen-os/platform/server";
 
-import * as dbSchema from "./db-schema";
-import { COMPLIANCE_EVENTS } from "./event-map";
+import { acl } from "./auth-acl";
+import { schemas } from "./db-schemas";
+import { events } from "./pubsub-events";
 import { EventBridge } from "./services/event-bridge";
 import { ObligationGenerator } from "./services/obligation-generator";
 import { ReminderEngine } from "./services/reminder-engine";
@@ -16,53 +18,7 @@ import { DocumentWorkflow } from "./workflows/document";
 import { ObligationWorkflow } from "./workflows/obligation";
 import { VerificationWorkflow } from "./workflows/verification";
 
-export type {
-  AuditAction,
-  AuditEntityType,
-  ComplianceCategory,
-  ObligationFrequency,
-  ReminderChannel,
-  RenewalFrequency,
-  VerificationStatus,
-} from "./constants";
-export type {
-  ComplianceAuditEntry,
-  ComplianceDocument,
-  ComplianceObligation,
-  ComplianceVerificationRule,
-} from "./db-schema";
-export type {
-  ComplianceEventMap,
-  DocumentCompletedEvent,
-  DocumentCreatedEvent,
-  DocumentDueEvent,
-  DocumentEscalatedEvent,
-  DocumentExpiredEvent,
-  DocumentExpiringEvent,
-  DocumentGeneratedEvent,
-  DocumentOverdueEvent,
-  DocumentRejectedEvent,
-  DocumentRenewedEvent,
-  DocumentVerifiedEvent,
-  WeeklySummaryEvent,
-} from "./event-map";
-export { COMPLIANCE_EVENTS } from "./event-map";
-export type {
-  AuditTrailFilters,
-  ComplianceDocumentFilters,
-  CreateComplianceDocumentInput,
-  CreateObligationInput,
-  CreateVerificationRuleInput,
-  DashboardSummary,
-  ObligationFilters,
-  PeriodPreview,
-  RenewalChainEntry,
-  TimelineEntry,
-  UpdateComplianceDocumentInput,
-  UpdateObligationInput,
-  UpdateVerificationRuleInput,
-} from "./types";
-export { dbSchema };
+export * from "./types";
 
 export type ComplianceModuleConfig = {
   country: "INDIA";
@@ -71,16 +27,14 @@ export type ComplianceModuleConfig = {
   defaultReminderDays?: number[];
 };
 
-export class ComplianceModule {
-  static create(config: ComplianceModuleConfig): ComplianceModule {
-    return new ComplianceModule(config);
+export class Compliance implements Module {
+  static create(config: ComplianceModuleConfig): Compliance {
+    return new Compliance(config);
   }
 
-  constructor(private config: ComplianceModuleConfig) {}
-
-  readonly db_schema = dbSchema;
   readonly $name = "compliance";
   readonly $dependencies: readonly string[] = [];
+  readonly $config: ComplianceModuleConfig;
 
   #documents: DocumentWorkflow | null = null;
   #obligations: ObligationWorkflow | null = null;
@@ -91,29 +45,16 @@ export class ComplianceModule {
   #obligationGenerator: ObligationGenerator | null = null;
   #eventBridge: EventBridge | null = null;
 
-  get documents(): DocumentWorkflow {
-    if (!this.#documents) throw notInitialized();
-    return this.#documents;
+  constructor(config: ComplianceModuleConfig) {
+    this.$config = config;
   }
 
-  get obligations(): ObligationWorkflow {
-    if (!this.#obligations) throw notInitialized();
-    return this.#obligations;
-  }
-
-  get verification(): VerificationWorkflow {
-    if (!this.#verification) throw notInitialized();
-    return this.#verification;
-  }
-
-  get audit(): AuditWorkflow {
-    if (!this.#audit) throw notInitialized();
-    return this.#audit;
-  }
-
-  get dashboard(): DashboardWorkflow {
-    if (!this.#dashboard) throw notInitialized();
-    return this.#dashboard;
+  $prepareInfra(): ModuleInfra {
+    return {
+      auth: { acl },
+      db: { schemas },
+      events,
+    };
   }
 
   $initialize(units: {
@@ -128,7 +69,7 @@ export class ComplianceModule {
     this.#dashboard = new DashboardWorkflow(
       units.db.db,
       units.kvStore,
-      this.config.dashboardCacheTtl,
+      this.$config.dashboardCacheTtl,
     );
     this.#reminderEngine = new ReminderEngine(
       units.db.db,
@@ -149,42 +90,6 @@ export class ComplianceModule {
     );
   }
 
-  $prepareInfra(): ModuleInfra {
-    return {
-      auth: {
-        acl: {
-          complianceAuditEntry: { allowedActions: ["read"] },
-          complianceDocument: {
-            allowedActions: [
-              "archive",
-              "create",
-              "delete",
-              "read",
-              "reject",
-              "update",
-              "verify",
-            ],
-          },
-          complianceObligation: {
-            allowedActions: [
-              "activate",
-              "create",
-              "deactivate",
-              "delete",
-              "read",
-              "update",
-            ],
-          },
-          complianceVerificationRule: {
-            allowedActions: ["create", "delete", "read", "update"],
-          },
-        },
-      },
-      db: { schemas: dbSchema.complianceTables },
-      events: { compliance: COMPLIANCE_EVENTS },
-    };
-  }
-
   async $prepareRuntime(): Promise<void> {
     await this.#reminderEngine?.registerSchedules();
     await this.#reminderEngine?.registerHandlers();
@@ -196,19 +101,38 @@ export class ComplianceModule {
     await this.#reminderEngine?.unregister();
     await this.#obligationGenerator?.unregister();
     await this.#eventBridge?.unregister();
+    this.#reminderEngine = null;
+    this.#obligationGenerator = null;
+    this.#eventBridge = null;
     this.#documents = null;
     this.#obligations = null;
     this.#verification = null;
     this.#audit = null;
     this.#dashboard = null;
-    this.#reminderEngine = null;
-    this.#obligationGenerator = null;
-    this.#eventBridge = null;
   }
-}
 
-function notInitialized(): Error {
-  return new Error(
-    "Compliance module not initialized. Call $initialize() after Platform.create().",
-  );
+  get documents() {
+    if (!this.#documents) throw new Error("Compliance not initialized");
+    return this.#documents;
+  }
+
+  get obligations() {
+    if (!this.#obligations) throw new Error("Compliance not initialized");
+    return this.#obligations;
+  }
+
+  get verification() {
+    if (!this.#verification) throw new Error("Compliance not initialized");
+    return this.#verification;
+  }
+
+  get audit() {
+    if (!this.#audit) throw new Error("Compliance not initialized");
+    return this.#audit;
+  }
+
+  get dashboard() {
+    if (!this.#dashboard) throw new Error("Compliance not initialized");
+    return this.#dashboard;
+  }
 }
