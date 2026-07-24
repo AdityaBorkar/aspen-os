@@ -10,8 +10,6 @@ Refactor the code to use domain-specific, hierarchical input structures instead 
 
 ---
 
-ACL List to modules
-
 Use the workflows in ManagementPlane to create a web application
 
 ---

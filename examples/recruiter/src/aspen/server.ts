@@ -1,15 +1,6 @@
 import { Organization } from "@aspen-os/organization";
-import type {
-  AuthConfig,
-  KvStoreConfig,
-  LogConfig,
-  PubSubConfig,
-  RpcConfig,
-} from "@aspen-os/platform/server";
-import {
-  type DatabaseConfig,
-  SingleTenantPlatform,
-} from "@aspen-os/platform/server";
+import type { SingleTenantConfig } from "@aspen-os/platform/server";
+import { SingleTenantPlatform } from "@aspen-os/platform/server";
 
 import { env } from "../env";
 
@@ -27,7 +18,7 @@ const auth = {
       clientSecret: env.GOOGLE_CLIENT_SECRET,
     },
   },
-} satisfies AuthConfig;
+} satisfies SingleTenantConfig["auth"];
 
 const db = {
   database: env.DB_NAME,
@@ -36,15 +27,15 @@ const db = {
   port: env.DB_PORT,
   ssl: env.DB_SSL,
   user: env.DB_USER,
-} satisfies DatabaseConfig;
+} satisfies SingleTenantConfig["db"];
 
-const kvStore = {} satisfies KvStoreConfig;
+const kvStore = {} satisfies SingleTenantConfig["kvStore"];
 
-const logs = {} satisfies LogConfig;
+const logs = {} satisfies SingleTenantConfig["logs"];
 
-const pubsub = {} satisfies PubSubConfig;
+const pubsub = {} satisfies SingleTenantConfig["pubsub"];
 
-const rpc = {} satisfies RpcConfig;
+const rpc = {} satisfies SingleTenantConfig["rpc"];
 
 const storage = {
   bucket: env.STORAGE_BUCKET,
@@ -58,7 +49,7 @@ const storage = {
     region: env.STORAGE_REGION,
     type: "s3",
   },
-} satisfies SingleTenantPlatform[""];
+} satisfies SingleTenantConfig["storage"];
 
 const organization = Organization.create({
   country: "INDIA",
@@ -66,5 +57,5 @@ const organization = Organization.create({
 
 export const p = SingleTenantPlatform.create(
   { auth, db, kvStore, logs, pubsub, rpc, storage },
-  { organization },
+  [organization],
 );

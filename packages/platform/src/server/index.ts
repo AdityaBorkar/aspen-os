@@ -80,14 +80,20 @@ export type ArrayModuleAccessors<Names extends string> = {
   [K in Names]: Extract<Module, { $name: K }>;
 };
 
-export type PlatformInstance<M extends Record<string, Module>> = {
+type ExtractModuleNames<M extends Module[]> = {
+  [K in keyof M]: M[K] extends { $name: infer N extends string } ? N : never;
+};
+
+export type PlatformInstance<M extends Module[]> = {
   tenancyMode: TenancyMode;
-  prepareInfra(): Promise<void>;
-  destroy(): Promise<void>;
-  getModule<K extends keyof M>(name: K): M[K];
+  $prepareInfra(): Promise<void>;
+  $cleanup(): Promise<void>;
+  getModule<K extends M[number]["$name"]>(
+    name: K,
+  ): Extract<M[number], { $name: K }>;
   getUnit<K extends keyof PlatformUnits>(name: K): PlatformUnits[K];
 } & UnitAccessors &
-  ModuleAccessors<M>;
+  ArrayModuleAccessors<ExtractModuleNames<M>[number]>;
 
 export {
   type IsolatedTenantConfig,

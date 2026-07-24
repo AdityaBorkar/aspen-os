@@ -4,24 +4,29 @@ import { type LogsConfig, LogsUnit } from "./logs";
 import { type RpcConfig, RpcUnit } from "./rpc";
 import type { Module } from "./types";
 
-type PlatformUnits = {
+export type PlatformUnits = {
   auth: AuthUnit;
   logs: LogsUnit;
   rpc: RpcUnit;
 };
 
-type PlatformModules = Record<string, Module>;
+export type UnitAccessors = {
+  [K in keyof PlatformUnits]: PlatformUnits[K];
+};
 
-type UnitAccessors<U extends PlatformUnits> = { [K in keyof U]: U[K] };
+type ExtractModuleNames<M extends Module[]> = {
+  [K in keyof M]: M[K] extends { $name: infer N extends string } ? N : never;
+};
 
-type ModuleAccessors<M extends PlatformModules> = { [K in keyof M]: M[K] };
+export type ModuleAccessors<Names extends string> = {
+  [K in Names]: Extract<Module, { $name: K }>;
+};
 
-export type PlatformInstance<
-  U extends PlatformUnits,
-  M extends PlatformModules,
-> = Platform<U, M> & UnitAccessors<U> & ModuleAccessors<M>;
+export type PlatformInstance<M extends Module[]> = Platform<M> &
+  UnitAccessors &
+  ModuleAccessors<ExtractModuleNames<M>[number]>;
 
-export class Platform<U extends PlatformUnits, M extends PlatformModules> {
+export class Platform<M extends Module[]> {
   static create<M extends Module[]>(
     config: {
       auth: AuthConfig;
@@ -29,10 +34,7 @@ export class Platform<U extends PlatformUnits, M extends PlatformModules> {
       rpc: RpcConfig;
     },
     modules: M,
-  ): PlatformInstance<
-    PlatformUnits,
-    { [K in M[number]["$name"]]: Extract<M[number], { $name: K }> }
-  > {
+  ): PlatformInstance<M> {
     const auth = new AuthUnit(config.auth);
     const logs = new LogsUnit(config.logs);
     const rpc = new RpcUnit(config.rpc);
@@ -44,25 +46,22 @@ export class Platform<U extends PlatformUnits, M extends PlatformModules> {
       modulesRecord[mod.$name] = mod;
     }
 
-    return new Platform(units, modulesRecord) as PlatformInstance<
-      PlatformUnits,
-      { [K in M[number]["$name"]]: Extract<M[number], { $name: K }> }
-    >;
+    return new Platform(units, modulesRecord) as unknown as PlatformInstance<M>;
   }
 
   constructor(
-    private readonly units: U,
-    private readonly modules: M,
+    private readonly units: PlatformUnits,
+    private readonly modules: Record<string, Module>,
   ) {
     // biome-ignore lint/correctness/noConstructorReturn: Exception
     return new Proxy(this, {
       get(target, prop, receiver) {
         if (typeof prop === "string") {
-          const unit = target.units[prop as keyof U];
+          const unit = target.units[prop as keyof PlatformUnits];
           if (unit) return unit;
         }
         if (typeof prop === "string") {
-          const mod = target.modules[prop as keyof M];
+          const mod = target.modules[prop];
           if (mod) return mod;
         }
         return Reflect.get(target, prop, receiver);
@@ -70,13 +69,15 @@ export class Platform<U extends PlatformUnits, M extends PlatformModules> {
     });
   }
 
-  getModule<K extends keyof M>(name: K): M[K] {
+  getModule<K extends M[number]["$name"]>(
+    name: K,
+  ): Extract<M[number], { $name: K }> {
     const module = this.modules[name];
     if (!module) throw new Error(`Module "${String(name)}" not found`);
-    return module;
+    return module as Extract<M[number], { $name: K }>;
   }
 
-  getUnit<K extends keyof U>(name: K): U[K] {
+  getUnit<K extends keyof PlatformUnits>(name: K): PlatformUnits[K] {
     return this.units[name];
   }
 

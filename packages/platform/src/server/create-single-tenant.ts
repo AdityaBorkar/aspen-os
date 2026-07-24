@@ -2,8 +2,8 @@ import { type AuthConfig, AuthUnit } from "./auth";
 import { context } from "./context";
 import { type DatabaseConfig, DatabaseUnit } from "./db";
 import type {
+  ArrayModuleAccessors,
   Module,
-  ModuleAccessors,
   PlatformUnits,
   TenancyMode,
   UnitAccessors,
@@ -24,10 +24,16 @@ export type SingleTenantConfig = {
   storage: StorageConfig;
 };
 
-export type SingleTenantPlatformInstance<M extends Record<string, Module>> =
-  SingleTenantPlatform<M> & UnitAccessors & ModuleAccessors<M>;
+type ExtractModuleNames<M extends Module[]> = {
+  [K in keyof M]: M[K] extends { $name: infer N extends string } ? N : never;
+};
 
-export class SingleTenantPlatform<M extends Record<string, Module>> {
+export type SingleTenantPlatformInstance<M extends Module[]> =
+  SingleTenantPlatform<M> &
+    UnitAccessors &
+    ArrayModuleAccessors<ExtractModuleNames<M>[number]>;
+
+export class SingleTenantPlatform<M extends Module[]> {
   constructor(
     private readonly units: PlatformUnits,
     private readonly modules: M,
@@ -40,9 +46,7 @@ export class SingleTenantPlatform<M extends Record<string, Module>> {
         if (typeof prop === "string") {
           const unit = target.units[prop as keyof PlatformUnits];
           if (unit) return unit;
-        }
-        if (typeof prop === "string") {
-          const mod = target.modules[prop as keyof M];
+          const mod = target.modules.find((m) => m.$name === prop);
           if (mod) return mod;
         }
         return Reflect.get(target, prop, receiver);
@@ -50,7 +54,7 @@ export class SingleTenantPlatform<M extends Record<string, Module>> {
     });
   }
 
-  static create<M extends Record<string, Module>>(
+  static create<M extends Module[]>(
     config: SingleTenantConfig,
     modules: M,
   ): SingleTenantPlatformInstance<M> {
@@ -64,25 +68,23 @@ export class SingleTenantPlatform<M extends Record<string, Module>> {
     const kvStore = new KvStoreUnit(config.kvStore, { db });
     const rpc = new RpcUnit(config.rpc, { auth, db, logs, pubsub });
 
-    const units: PlatformUnits = {
-      auth,
-      db,
-      kvStore,
-      logs,
-      pubsub,
-      rpc,
-      storage,
-    };
+    const units = { auth, db, kvStore, logs, pubsub, rpc, storage };
 
-    const initializedModules = {} as Record<string, Module>;
-    for (const mod of Object.values(modules)) {
+    const moduleNames = new Set(modules.map((m) => m.$name));
+    for (const mod of modules) {
+      for (const dep of mod.$dependencies) {
+        if (!moduleNames.has(dep)) {
+          throw new Error(
+            `Module "${mod.$name}" depends on "${dep}", but it was not provided`,
+          );
+        }
+      }
       mod.$initialize?.(units);
-      initializedModules[mod.$name] = mod;
     }
 
     return new SingleTenantPlatform<M>(
       units,
-      initializedModules as M,
+      modules,
     ) as SingleTenantPlatformInstance<M>;
   }
 
@@ -90,8 +92,8 @@ export class SingleTenantPlatform<M extends Record<string, Module>> {
     return this.units.db.tenancyMode;
   }
 
-  async prepareInfra(): Promise<void> {
-    for await (const unit of Object.values(this.units)) {
+  async $prepareInfra(): Promise<void> {
+    for (const unit of Object.values(this.units)) {
       try {
         await unit.$prepareInfra?.();
       } catch (err) {
@@ -102,7 +104,7 @@ export class SingleTenantPlatform<M extends Record<string, Module>> {
     const mergedModuleSchemas: Record<string, unknown> = {};
     const mergedAcl: Record<string, string[]> = {};
 
-    for (const mod of Object.values(this.modules)) {
+    for (const mod of this.modules) {
       const infra = mod.$prepareInfra?.();
       if (infra) {
         Object.assign(mergedModuleSchemas, infra.db.schemas);
@@ -118,16 +120,9 @@ export class SingleTenantPlatform<M extends Record<string, Module>> {
     await this.units.db.prepareWithModules(mergedModuleSchemas);
     this.units.auth.applyModuleAcl(mergedAcl);
 
-    for await (const mod of Object.values(this.modules)) {
+    for (const mod of this.modules) {
       try {
-        await context.run(
-          {
-            auth: this.units.auth,
-            db: this.units.db.controlPlaneDb,
-            pubsub: this.units.pubsub,
-          },
-          () => mod.$prepareRuntime?.(),
-        );
+        await this.runInContext(() => mod.$prepareRuntime?.());
       } catch (err) {
         console.error(`Failed to prepare module "${mod.$name}"`, err);
       }
@@ -135,6 +130,39 @@ export class SingleTenantPlatform<M extends Record<string, Module>> {
   }
 
   async run<T>(fn: () => T | Promise<T>): Promise<T> {
+    return this.runInContext(fn);
+  }
+
+  async $cleanup(): Promise<void> {
+    for (const mod of this.modules) {
+      try {
+        await this.runInContext(() => mod.$cleanup());
+      } catch {
+        console.error(`Failed to destroy module "${mod.$name}"`);
+      }
+    }
+    for (const unit of Object.values(this.units)) {
+      try {
+        await unit.$cleanup();
+      } catch {
+        console.error(`Failed to destroy unit "${unit.$name}"`);
+      }
+    }
+  }
+
+  getModule<K extends M[number]["$name"]>(
+    name: K,
+  ): Extract<M[number], { $name: K }> {
+    const mod = this.modules.find((m) => m.$name === name);
+    if (!mod) throw new Error(`Module "${String(name)}" not found`);
+    return mod as Extract<M[number], { $name: K }>;
+  }
+
+  getUnit<K extends keyof PlatformUnits>(name: K): PlatformUnits[K] {
+    return this.units[name];
+  }
+
+  private runInContext<T>(fn: () => T | Promise<T>): T | Promise<T> {
     return context.run(
       {
         auth: this.units.auth,
@@ -148,39 +176,5 @@ export class SingleTenantPlatform<M extends Record<string, Module>> {
       },
       fn,
     );
-  }
-
-  async destroy(): Promise<void> {
-    for await (const mod of Object.values(this.modules)) {
-      try {
-        await context.run(
-          {
-            auth: this.units.auth,
-            db: this.units.db.controlPlaneDb,
-            pubsub: this.units.pubsub,
-          },
-          () => mod.$cleanup(),
-        );
-      } catch {
-        console.error(`Failed to destroy module "${mod.$name}"`);
-      }
-    }
-    for await (const unit of Object.values(this.units)) {
-      try {
-        await unit.$cleanup();
-      } catch {
-        console.error(`Failed to destroy unit "${unit.$name}"`);
-      }
-    }
-  }
-
-  getModule<K extends keyof M>(name: K): M[K] {
-    const module = this.modules[name];
-    if (!module) throw new Error(`Module "${String(name)}" not found`);
-    return module;
-  }
-
-  getUnit<K extends keyof PlatformUnits>(name: K): PlatformUnits[K] {
-    return this.units[name];
   }
 }

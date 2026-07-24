@@ -13,7 +13,7 @@ program.name("aspen").description("Aspen OS Platform CLI").version("0.1.0");
 
 async function loadPlatform(
   configPath: string,
-): Promise<PlatformInstance<Record<string, Module>>> {
+): Promise<PlatformInstance<Module[]>> {
   const resolvedPath = resolve(process.cwd(), configPath);
   try {
     const mod = await import(resolvedPath);
