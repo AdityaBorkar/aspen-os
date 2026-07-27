@@ -1,21 +1,9 @@
-import { apiKey } from "@better-auth/api-key";
-import { passkey } from "@better-auth/passkey";
-import { type Auth, betterAuth } from "better-auth";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import {
-  admin,
-  captcha,
-  createAccessControl,
-  emailOTP,
-  lastLoginMethod,
-  organization,
-  phoneNumber,
-  twoFactor,
-  username,
-} from "better-auth/plugins";
+import type { Auth } from "better-auth";
+import { createAccessControl } from "better-auth/plugins";
 
 import type { DatabaseUnit } from "../db";
 import type { PubSubUnit } from "../pubsub";
+import { buildAuthConfig } from "./config-builder";
 import * as db_schema from "./db-schema";
 import { createRoleServices } from "./services/role";
 import { createSessionServices } from "./services/session";
@@ -25,6 +13,7 @@ import type { AuthConfig, AuthServiceDeps } from "./types";
 export type { AclDeclaration } from "./acl";
 export { defineAcl } from "./acl";
 export type { AuthEventMap } from "./event-map";
+export { toSession, toUser } from "./mappers";
 export type {
   AuthConfig,
   AuthServiceDeps,
@@ -46,59 +35,8 @@ export class AuthUnit {
     this.config = config;
     this.dbUnit = units.db;
 
-    // Create auth without admin plugin initially
-    // The admin plugin will be added when applyModuleAcl is called
-    const auth = betterAuth({
-      baseURL: config.baseURL,
-      database: drizzleAdapter(units.db.controlPlaneDb, {
-        camelCase: false,
-        provider: "pg",
-        schema: db_schema,
-        transaction: true,
-        usePlural: false,
-      }),
-      emailAndPassword: { enabled: true },
-      plugins: [
-        username(),
-        organization(),
-        phoneNumber(),
-        emailOTP({
-          async sendVerificationOTP({ email, otp, type }) {
-            console.log({ email, otp, type });
-            if (type === "sign-in") {
-              // Send the OTP for sign in
-            } else if (type === "email-verification") {
-              // Send the OTP for email verification
-            } else {
-              // Send the OTP for password reset
-            }
-          },
-        }),
-        apiKey({
-          enableSessionForAPIKeys: false,
-          rateLimit: {
-            enabled: true,
-            maxRequests: 10,
-            timeWindow: 1000 * 60 * 60 * 24,
-          },
-        }),
-        lastLoginMethod(),
-        twoFactor(),
-        passkey(),
-        ...(config.cfSecretKey
-          ? [
-              captcha({
-                provider: "cloudflare-turnstile",
-                secretKey: config.cfSecretKey,
-              }),
-            ]
-          : []),
-      ],
-      secret: config.secret,
-      session: config.session,
-      socialProviders: config.socialProviders,
-    });
-    this.auth = auth as unknown as Auth;
+    const auth = buildAuthConfig(config, units.db) as unknown as Auth;
+    this.auth = auth;
 
     this.deps = {
       auth: this.auth,
@@ -115,71 +53,15 @@ export class AuthUnit {
     return;
   }
 
-  /**
-   * Apply module ACL declarations to the auth unit.
-   * This creates the access control from merged module ACL.
-   *
-   * Called by the platform during prepareInfra().
-   */
   applyModuleAcl(acl: Record<string, readonly string[]>): void {
-    // Create access control from merged module ACL
     const access_control = createAccessControl(acl);
+    const auth = buildAuthConfig(
+      this.config,
+      this.dbUnit,
+      access_control,
+    ) as unknown as Auth;
 
-    // Re-create auth with admin plugin using the module-derived access control
-    const auth = betterAuth({
-      baseURL: this.config.baseURL,
-      database: drizzleAdapter(this.dbUnit.controlPlaneDb, {
-        camelCase: false,
-        provider: "pg",
-        schema: db_schema,
-        transaction: true,
-        usePlural: false,
-      }),
-      emailAndPassword: { enabled: true },
-      plugins: [
-        admin({ ac: access_control }),
-        username(),
-        organization(),
-        phoneNumber(),
-        emailOTP({
-          async sendVerificationOTP({ email, otp, type }) {
-            console.log({ email, otp, type });
-            if (type === "sign-in") {
-              // Send the OTP for sign in
-            } else if (type === "email-verification") {
-              // Send the OTP for email verification
-            } else {
-              // Send the OTP for password reset
-            }
-          },
-        }),
-        apiKey({
-          enableSessionForAPIKeys: false,
-          rateLimit: {
-            enabled: true,
-            maxRequests: 10,
-            timeWindow: 1000 * 60 * 60 * 24,
-          },
-        }),
-        lastLoginMethod(),
-        twoFactor(),
-        passkey(),
-        ...(this.config.cfSecretKey
-          ? [
-              captcha({
-                provider: "cloudflare-turnstile",
-                secretKey: this.config.cfSecretKey,
-              }),
-            ]
-          : []),
-      ],
-      secret: this.config.secret,
-      session: this.config.session,
-      socialProviders: this.config.socialProviders,
-    });
-
-    // Update the auth instance and deps
-    (this as { auth: Auth }).auth = auth as unknown as Auth;
+    (this as { auth: Auth }).auth = auth;
     this.deps.auth = this.auth;
   }
 
@@ -193,6 +75,40 @@ export class AuthUnit {
 
   get api() {
     return this.auth.api;
+  }
+
+  async createOrganization(input: {
+    body: { logo?: string; name: string; slug: string; userId: string };
+  }): Promise<{ id: string }> {
+    const api = this.auth.api as unknown as {
+      createOrganization: (input: unknown) => Promise<{ id: string }>;
+    };
+    return api.createOrganization(input);
+  }
+
+  async deleteOrganization(input: {
+    body: { organizationId: string };
+  }): Promise<void> {
+    const api = this.auth.api as unknown as {
+      deleteOrganization: (input: unknown) => Promise<void>;
+    };
+    await api.deleteOrganization(input);
+  }
+
+  async createUser(input: {
+    body: {
+      email: string;
+      name: string;
+      password: string;
+      role: string;
+    };
+  }): Promise<{ user: { id: string; email: string; role?: string } }> {
+    const api = this.auth.api as unknown as {
+      createUser: (input: unknown) => Promise<{
+        user: { id: string; email: string; role?: string };
+      }>;
+    };
+    return api.createUser(input);
   }
 
   get role() {

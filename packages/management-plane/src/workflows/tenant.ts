@@ -1,15 +1,16 @@
 import {
   type DatabaseUnit,
-  type TenantDbConfig,
+  type IsolatedTenantProvisioningResult,
   Workflow,
   WorkflowStep,
 } from "@aspen-os/platform/server";
 import { and, eq, ilike, or, type SQL } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
-import { object, optional, parse } from "valibot";
+import { object, optional, parse, string } from "valibot";
 
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../constants";
-import { organization, tenant } from "../db-schemas";
+import { organization, serviceProvider, tenant } from "../db-schemas";
 import { TENANT_EVENTS } from "../pubsub-events";
 import {
   IdSchema,
@@ -58,62 +59,106 @@ function createOnboardTenant(dbUnit: DatabaseUnit) {
       const parsedUserId = parse(IdSchema, input.userId);
 
       const org = await ctx.step.run("create-organization", async () => {
-        const api = auth.api as unknown as {
-          createOrganization: (opts: unknown) => Promise<unknown>;
-        };
-        return (await api.createOrganization({
+        return auth.createOrganization({
           body: {
             logo: parsed.logo ?? undefined,
             name: parsed.name,
             slug: parsed.slug,
             userId: parsedUserId,
           },
-        } as Record<string, unknown>)) as { id: string };
+        });
       });
 
       const tenantId = org.id;
 
-      const dbConfig: TenantDbConfig = await ctx.step.run(
-        "create-tenant-infra",
-        async () => {
-          return dbUnit.createTenant(tenantId, {
-            databaseName: parsed.databaseName ?? undefined,
-            host: parsed.databaseHost ?? undefined,
-            password: parsed.databasePassword ?? undefined,
-            port: parsed.databasePort ?? undefined,
-            ssl: parsed.databaseSsl ?? undefined,
-            user: parsed.databaseUser ?? undefined,
-          });
-        },
-      );
+      let provisioningResult: Awaited<
+        ReturnType<DatabaseUnit["provisionTenant"]>
+      >;
 
-      await ctx.step.run("seed-profile", async () => {
-        const pool = new pg.Pool({
-          database: dbConfig.database,
-          host: dbConfig.host,
-          password: dbConfig.password,
-          port: dbConfig.port,
-          ssl: dbConfig.ssl ? { rejectUnauthorized: false } : false,
-          user: dbConfig.user,
-        });
+      try {
+        provisioningResult = await ctx.step.run(
+          "provision-tenant",
+          async () => {
+            return dbUnit.provisionTenant(tenantId, {
+              databaseName: parsed.databaseName ?? undefined,
+              host: parsed.databaseHost ?? undefined,
+              password: parsed.databasePassword ?? undefined,
+              port: parsed.databasePort ?? undefined,
+              ssl: parsed.databaseSsl ?? undefined,
+              user: parsed.databaseUser ?? undefined,
+            });
+          },
+        );
+      } catch (err) {
+        console.error(
+          `Provisioning failed for tenant "${tenantId}", cleaning up organization`,
+          err,
+        );
         try {
-          await pool.query(
-            "INSERT INTO organization (id, name, slug, logo) VALUES ($1, $2, $3, $4)",
-            [tenantId, parsed.name, parsed.slug, parsed.logo ?? null],
+          await auth.deleteOrganization({
+            body: { organizationId: tenantId },
+          });
+        } catch (cleanupErr) {
+          console.error(
+            `Failed to cleanup organization "${tenantId}"`,
+            cleanupErr,
           );
-        } finally {
-          await pool.end();
         }
-      });
+        throw err;
+      }
+
+      if (provisioningResult.tenancyMode === "isolated") {
+        const dbConfig = provisioningResult as IsolatedTenantProvisioningResult;
+        await ctx.step.run("seed-profile", async () => {
+          const pool = new pg.Pool({
+            database: dbConfig.database,
+            host: dbConfig.host,
+            password: dbConfig.password,
+            port: dbConfig.port,
+            ssl: dbConfig.ssl ? { rejectUnauthorized: false } : false,
+            user: dbConfig.user,
+          });
+          try {
+            const tenantDb = drizzle(pool);
+            await tenantDb.insert(organization).values({
+              createdAt: new Date(),
+              id: tenantId,
+              logo: parsed.logo ?? null,
+              name: parsed.name,
+              slug: parsed.slug,
+            });
+          } finally {
+            await pool.end();
+          }
+        });
+      }
 
       await ctx.step.run("record-tenant", async () => {
         await ctx.db.insert(tenant).values({
-          databaseHost: dbConfig.host,
-          databaseName: dbConfig.database,
-          databasePassword: dbConfig.password,
-          databasePort: dbConfig.port,
-          databaseSsl: dbConfig.ssl,
-          databaseUser: dbConfig.user,
+          databaseHost:
+            provisioningResult.tenancyMode === "isolated"
+              ? provisioningResult.database
+              : null,
+          databaseName:
+            provisioningResult.tenancyMode === "isolated"
+              ? provisioningResult.database
+              : null,
+          databasePassword:
+            provisioningResult.tenancyMode === "isolated"
+              ? provisioningResult.password
+              : null,
+          databasePort:
+            provisioningResult.tenancyMode === "isolated"
+              ? provisioningResult.port
+              : null,
+          databaseSsl:
+            provisioningResult.tenancyMode === "isolated"
+              ? provisioningResult.ssl
+              : null,
+          databaseUser:
+            provisioningResult.tenancyMode === "isolated"
+              ? provisioningResult.user
+              : null,
           id: tenantId,
           plan: parsed.plan ?? null,
           serviceProviderId: parsed.serviceProviderId ?? null,
@@ -275,11 +320,283 @@ const updateTenant = Workflow.name("tenant.update")
     return ctx.step.run(fetchTenantStep, { id: tenantId });
   });
 
+const activateTenant = Workflow.name("tenant.activate")
+  .input(object({ id: IdSchema }))
+  .handler(async (input, ctx) => {
+    const { id } = input;
+
+    const [current] = await ctx.db
+      .select({ status: tenant.status })
+      .from(tenant)
+      .where(eq(tenant.id, id))
+      .limit(1);
+
+    if (!current) {
+      throw new Error(`Tenant with id "${id}" not found.`);
+    }
+    if (current.status !== "onboarding") {
+      throw new Error(
+        `Cannot activate tenant "${id}" — current status is "${current.status}", expected "onboarding".`,
+      );
+    }
+
+    await ctx.step.run("activate", async () => {
+      await ctx.db
+        .update(tenant)
+        .set({ status: "active", updatedAt: new Date() })
+        .where(eq(tenant.id, id));
+    });
+
+    await ctx.step.run("audit-and-notify", async () => {
+      await ctx.step.run(logAuditStep, {
+        action: AUDIT_ACTION.TENANT_ACTIVATED,
+        entityId: id,
+        entityType: AUDIT_ENTITY_TYPE.TENANT,
+        newState: { status: "active" },
+      });
+
+      await ctx.pubsub.publish(TENANT_EVENTS.ACTIVATED, { tenantId: id });
+    });
+
+    return ctx.step.run(fetchTenantStep, { id });
+  });
+
+const suspendTenant = Workflow.name("tenant.suspend")
+  .input(
+    object({
+      id: IdSchema,
+      reason: optional(string()),
+    }),
+  )
+  .handler(async (input, ctx) => {
+    const { id, reason } = input;
+
+    const [current] = await ctx.db
+      .select({ status: tenant.status })
+      .from(tenant)
+      .where(eq(tenant.id, id))
+      .limit(1);
+
+    if (!current) {
+      throw new Error(`Tenant with id "${id}" not found.`);
+    }
+    if (current.status !== "active") {
+      throw new Error(
+        `Cannot suspend tenant "${id}" — current status is "${current.status}", expected "active".`,
+      );
+    }
+
+    await ctx.step.run("suspend", async () => {
+      await ctx.db
+        .update(tenant)
+        .set({
+          status: "suspended",
+          suspendedAt: new Date(),
+          suspendedReason: reason ?? null,
+          updatedAt: new Date(),
+        })
+        .where(eq(tenant.id, id));
+    });
+
+    await ctx.step.run("audit-and-notify", async () => {
+      await ctx.step.run(logAuditStep, {
+        action: AUDIT_ACTION.TENANT_SUSPENDED,
+        entityId: id,
+        entityType: AUDIT_ENTITY_TYPE.TENANT,
+        newState: { status: "suspended", suspendedReason: reason ?? null },
+      });
+
+      await ctx.pubsub.publish(TENANT_EVENTS.SUSPENDED, {
+        reason: reason ?? "unspecified",
+        tenantId: id,
+      });
+    });
+
+    return ctx.step.run(fetchTenantStep, { id });
+  });
+
+const reactivateTenant = Workflow.name("tenant.reactivate")
+  .input(object({ id: IdSchema }))
+  .handler(async (input, ctx) => {
+    const { id } = input;
+
+    const [current] = await ctx.db
+      .select({ status: tenant.status })
+      .from(tenant)
+      .where(eq(tenant.id, id))
+      .limit(1);
+
+    if (!current) {
+      throw new Error(`Tenant with id "${id}" not found.`);
+    }
+    if (current.status !== "suspended") {
+      throw new Error(
+        `Cannot reactivate tenant "${id}" — current status is "${current.status}", expected "suspended".`,
+      );
+    }
+
+    await ctx.step.run("reactivate", async () => {
+      await ctx.db
+        .update(tenant)
+        .set({
+          status: "active",
+          suspendedAt: null,
+          suspendedReason: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(tenant.id, id));
+    });
+
+    await ctx.step.run("audit-and-notify", async () => {
+      await ctx.step.run(logAuditStep, {
+        action: AUDIT_ACTION.TENANT_REACTIVATED,
+        entityId: id,
+        entityType: AUDIT_ENTITY_TYPE.TENANT,
+        newState: { status: "active" },
+      });
+
+      await ctx.pubsub.publish(TENANT_EVENTS.REACTIVATED, { tenantId: id });
+    });
+
+    return ctx.step.run(fetchTenantStep, { id });
+  });
+
+const churnTenant = Workflow.name("tenant.churn")
+  .input(
+    object({
+      id: IdSchema,
+      reason: optional(string()),
+    }),
+  )
+  .handler(async (input, ctx) => {
+    const { id, reason } = input;
+
+    const [current] = await ctx.db
+      .select({ status: tenant.status })
+      .from(tenant)
+      .where(eq(tenant.id, id))
+      .limit(1);
+
+    if (!current) {
+      throw new Error(`Tenant with id "${id}" not found.`);
+    }
+    if (current.status !== "active" && current.status !== "suspended") {
+      throw new Error(
+        `Cannot churn tenant "${id}" — current status is "${current.status}", expected "active" or "suspended".`,
+      );
+    }
+
+    await ctx.step.run("churn", async () => {
+      await ctx.db
+        .update(tenant)
+        .set({
+          churnedAt: new Date(),
+          churnReason: reason ?? null,
+          status: "churned",
+          updatedAt: new Date(),
+        })
+        .where(eq(tenant.id, id));
+    });
+
+    await ctx.step.run("audit-and-notify", async () => {
+      await ctx.step.run(logAuditStep, {
+        action: AUDIT_ACTION.TENANT_CHURNED,
+        entityId: id,
+        entityType: AUDIT_ENTITY_TYPE.TENANT,
+        newState: { churnReason: reason ?? null, status: "churned" },
+      });
+
+      await ctx.pubsub.publish(TENANT_EVENTS.CHURNED, {
+        reason: reason ?? "unspecified",
+        tenantId: id,
+      });
+    });
+
+    return ctx.step.run(fetchTenantStep, { id });
+  });
+
+const assignServiceProvider = Workflow.name("tenant.assign-sp")
+  .input(
+    object({
+      serviceProviderId: IdSchema,
+      tenantId: IdSchema,
+    }),
+  )
+  .handler(async (input, ctx) => {
+    const { tenantId, serviceProviderId } = input;
+
+    const [sp] = await ctx.db
+      .select({ id: serviceProvider.id })
+      .from(serviceProvider)
+      .where(eq(serviceProvider.id, serviceProviderId))
+      .limit(1);
+
+    if (!sp) {
+      throw new Error(
+        `Service Provider with id "${serviceProviderId}" not found.`,
+      );
+    }
+
+    await ctx.step.run("assign", async () => {
+      await ctx.db
+        .update(tenant)
+        .set({ serviceProviderId, updatedAt: new Date() })
+        .where(eq(tenant.id, tenantId));
+    });
+
+    await ctx.step.run("audit-and-notify", async () => {
+      await ctx.step.run(logAuditStep, {
+        action: AUDIT_ACTION.SP_ASSIGNED,
+        entityId: tenantId,
+        entityType: AUDIT_ENTITY_TYPE.TENANT,
+        newState: { serviceProviderId },
+      });
+
+      await ctx.pubsub.publish(TENANT_EVENTS.SP_ASSIGNED, {
+        serviceProviderId,
+        tenantId,
+      });
+    });
+
+    return ctx.step.run(fetchTenantStep, { id: tenantId });
+  });
+
+const unassignServiceProvider = Workflow.name("tenant.unassign-sp")
+  .input(object({ tenantId: IdSchema }))
+  .handler(async (input, ctx) => {
+    const { tenantId } = input;
+
+    await ctx.step.run("unassign", async () => {
+      await ctx.db
+        .update(tenant)
+        .set({ serviceProviderId: null, updatedAt: new Date() })
+        .where(eq(tenant.id, tenantId));
+    });
+
+    await ctx.step.run("audit-and-notify", async () => {
+      await ctx.step.run(logAuditStep, {
+        action: AUDIT_ACTION.SP_UNASSIGNED,
+        entityId: tenantId,
+        entityType: AUDIT_ENTITY_TYPE.TENANT,
+      });
+
+      await ctx.pubsub.publish(TENANT_EVENTS.SP_UNASSIGNED, { tenantId });
+    });
+
+    return ctx.step.run(fetchTenantStep, { id: tenantId });
+  });
+
 export function createTenants(dbUnit: DatabaseUnit) {
   return {
+    activate: activateTenant,
+    assignServiceProvider,
+    churn: churnTenant,
     get: getTenant,
     list: listTenants,
     onboard: createOnboardTenant(dbUnit),
+    reactivate: reactivateTenant,
+    suspend: suspendTenant,
+    unassignServiceProvider,
     update: updateTenant,
   };
 }

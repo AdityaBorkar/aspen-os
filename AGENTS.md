@@ -140,20 +140,24 @@ Modules declare their infrastructure needs via `$prepareInfra()`:
 ```ts
 type ModuleInfra = {
   auth: { acl: Record<string, { allowedActions: string[] }> };
-  db: { schemas: Record<string, unknown> };
+  db: {
+    control_plane_schemas: Record<string, unknown>;
+    tenant_schemas: Record<string, unknown>;
+  };
   events: Record<string, Record<string, string>>;
 };
 ```
 
 The platform merges all module infra during `prepareInfra()`:
 - `auth.acl` → merged and applied to `AuthUnit.applyModuleAcl()`
-- `db.schemas` → merged and passed to `DatabaseUnit.prepareWithModules()` for `pushSchema()`
+- `db.control_plane_schemas` → merged and pushed to the control-plane DB (alongside platform core schemas)
+- `db.tenant_schemas` → in single/shared mode, pushed to the same DB; in isolated mode, pushed to each tenant DB
 - `events` → used for type-level contracts (not runtime)
 
 ### Lifecycle
 
 1. `SingleTenantPlatform.create(config, modules)` → instantiates units, calls `mod.$initialize?.(units)` on each module, returns proxy
-2. `f.prepareInfra()` → calls `unit.$prepareInfra?.()` on units, collects `mod.$prepareInfra()` from modules, merges schemas/acl, calls `db.prepareWithModules(mergedSchemas)`, then calls `mod.$prepareRuntime?.()` on each module
+2. `f.prepareInfra()` → calls `unit.$prepareInfra?.()` on units, collects `mod.$prepareInfra()` from modules, merges control_plane_schemas/tenant_schemas/acl, calls `db.prepareWithModules(controlPlaneSchemas, tenantSchemas)`, then calls `mod.$prepareRuntime?.()` on each module
 3. `f.run(fn)` → executes `fn` inside `AsyncLocalStorage` providing `{ auth, db, pubsub }`
 4. `f.destroy()` → calls `mod.$cleanup()` then `unit.$cleanup()`
 
@@ -233,7 +237,7 @@ class MyModule implements Module {
   $prepareInfra(): ModuleInfra {
     return {
       auth: { acl: { /* resource: { allowedActions: [...] } */ } },
-      db: { schemas: myTables },
+      db: { control_plane_schemas: cpTables, tenant_schemas: tTables },
       events: { myModule: MY_EVENTS },
     };
   }

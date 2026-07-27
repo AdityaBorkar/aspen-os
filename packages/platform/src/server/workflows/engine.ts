@@ -216,6 +216,7 @@ export async function executeWorkflow<TInput, TOutput>(
   let ctx: WorkflowContext;
   const getCtx = () => ctx;
   ctx = {
+    actorId: options?.actorId ?? store?.actorId,
     auth,
     config: options?.config ?? {},
     db,

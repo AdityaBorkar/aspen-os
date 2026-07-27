@@ -95,19 +95,21 @@ const createUser = Workflow.name("user.create").handler(
       }
     }
 
-    const api = auth.api as unknown as {
-      createUser: (opts: unknown) => Promise<unknown>;
-    };
-    const response = (await api.createUser({
+    if (!parsed.email) {
+      throw new Error("Email is required for user creation.");
+    }
+    if (!parsed.password) {
+      throw new Error("Password is required for user creation.");
+    }
+
+    const response = await auth.createUser({
       body: {
         email: parsed.email,
         name: parsed.name,
         password: parsed.password,
         role: parsed.role,
       },
-    } as Record<string, unknown>)) as {
-      user: { id: string; email: string; role?: string };
-    };
+    });
 
     const createdUser = response.user;
 
@@ -269,6 +271,8 @@ const deleteUser = Workflow.name("user.delete").handler(
     const auth = ctx.auth;
     const { id } = parse(GetInputSchema, input);
 
+    const previousState = await ctx.step.run(fetchUserStep, { id });
+
     await ctx.step.run("delete-auth-user", async () => {
       await auth.user.delete({ id });
     });
@@ -277,6 +281,7 @@ const deleteUser = Workflow.name("user.delete").handler(
       action: AUDIT_ACTION.PLATFORM_USER_DELETED,
       entityId: id,
       entityType: AUDIT_ENTITY_TYPE.PLATFORM_USER,
+      previousState: previousState as Record<string, unknown>,
     });
 
     await ctx.pubsub.publish(PLATFORM_USER_EVENTS.DELETED, {

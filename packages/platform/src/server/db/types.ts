@@ -8,7 +8,7 @@ export type DatabaseConfig = {
   user: string;
 };
 
-export type TenantDbConfig = {
+export type IsolatedTenantDbConfig = {
   database: string;
   host: string;
   password: string;
@@ -17,8 +17,29 @@ export type TenantDbConfig = {
   user: string;
 };
 
+export type SharedTenantDbConfig = {
+  tenantId: string;
+};
+
+export type SingleTenantDbConfig = Record<string, never>;
+
+/** @deprecated Use IsolatedTenantDbConfig instead */
+export type TenantDbConfig = IsolatedTenantDbConfig;
+
+export type IsolatedTenantProvisioningResult = {
+  tenancyMode: "isolated";
+} & IsolatedTenantDbConfig;
+
+export type SharedTenantProvisioningResult = {
+  tenancyMode: "shared";
+} & SharedTenantDbConfig;
+
+export type TenantProvisioningResult =
+  | IsolatedTenantProvisioningResult
+  | SharedTenantProvisioningResult;
+
 export type IsolatedTenantDatabaseConfig = {
-  adminDatabase?: string;
+  controlPlaneDbName?: string;
   connection: {
     host: string;
     password: string;

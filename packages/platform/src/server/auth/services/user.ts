@@ -2,27 +2,8 @@ import { eq } from "drizzle-orm";
 
 import { password as Password } from "../../bun-compat";
 import { account, user } from "../db-schema";
+import { toUser } from "../mappers";
 import type { AuthServiceDeps, User } from "../types";
-
-function toUser(row: typeof user.$inferSelect): User {
-  return {
-    banExpires: row.banExpires ?? undefined,
-    banned: row.banned ?? false,
-    banReason: row.banReason ?? undefined,
-    createdAt: row.createdAt,
-    displayUsername: row.displayUsername ?? undefined,
-    email: row.email,
-    emailVerified: row.emailVerified,
-    id: row.id,
-    image: row.image ?? undefined,
-    name: row.name,
-    phoneNumber: row.phoneNumber ?? undefined,
-    phoneNumberVerified: row.phoneNumberVerified ?? undefined,
-    role: row.role ?? undefined,
-    updatedAt: row.updatedAt,
-    username: row.username ?? undefined,
-  };
-}
 
 export function createUserServices(deps: AuthServiceDeps) {
   async function create({

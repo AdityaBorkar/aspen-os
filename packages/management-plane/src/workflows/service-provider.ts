@@ -166,6 +166,8 @@ const deactivateSp = Workflow.name("sp.deactivate").handler(
   async (input: { id: string }, ctx) => {
     const id = parse(IdSchema, input.id);
 
+    const previous = await ctx.step.run(fetchServiceProviderStep, { id });
+
     const [updated] = await ctx.db
       .update(serviceProvider)
       .set({ status: SP_STATUS.INACTIVE, updatedAt: new Date() })
@@ -181,6 +183,7 @@ const deactivateSp = Workflow.name("sp.deactivate").handler(
       entityId: id,
       entityType: AUDIT_ENTITY_TYPE.SERVICE_PROVIDER,
       newState: { status: SP_STATUS.INACTIVE },
+      previousState: previous as Record<string, unknown>,
     });
 
     await ctx.pubsub.publish(SERVICE_PROVIDER_EVENTS.DEACTIVATED, {
@@ -194,6 +197,8 @@ const deactivateSp = Workflow.name("sp.deactivate").handler(
 const activateSp = Workflow.name("sp.activate").handler(
   async (input: { id: string }, ctx) => {
     const id = parse(IdSchema, input.id);
+
+    const previous = await ctx.step.run(fetchServiceProviderStep, { id });
 
     const [updated] = await ctx.db
       .update(serviceProvider)
@@ -210,6 +215,7 @@ const activateSp = Workflow.name("sp.activate").handler(
       entityId: id,
       entityType: AUDIT_ENTITY_TYPE.SERVICE_PROVIDER,
       newState: { status: SP_STATUS.ACTIVE },
+      previousState: previous as Record<string, unknown>,
     });
 
     await ctx.pubsub.publish(SERVICE_PROVIDER_EVENTS.ACTIVATED, {

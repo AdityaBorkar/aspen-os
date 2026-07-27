@@ -7,7 +7,7 @@ import type {
 } from "@aspen-os/platform/server";
 
 import { acl } from "./auth-acl";
-import { schemas } from "./db-schemas";
+import { control_plane_schemas, tenant_schemas } from "./db-schemas";
 import { events } from "./pubsub-events";
 import { users } from "./workflows/platform-user";
 import { serviceProviders } from "./workflows/service-provider";
@@ -22,7 +22,7 @@ export class ManagementPlane implements Module {
     return new ManagementPlane(config);
   }
 
-  readonly $name = "management-plane";
+  readonly $name = "management";
   readonly $dependencies = ["organization"];
   readonly $config: ManagementPlaneConfig;
 
@@ -35,7 +35,7 @@ export class ManagementPlane implements Module {
   $prepareInfra(): ModuleInfra {
     return {
       auth: { acl },
-      db: { schemas },
+      db: { control_plane_schemas, tenant_schemas },
       events,
     };
   }

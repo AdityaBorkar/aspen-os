@@ -16,4 +16,6 @@ export {
 
 import { driveTables } from "../db-schema";
 
-export const schemas = driveTables;
+export const control_plane_schemas = {} as Record<string, unknown>;
+
+export const tenant_schemas = driveTables;

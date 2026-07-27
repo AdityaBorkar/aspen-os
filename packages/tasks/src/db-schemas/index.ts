@@ -47,22 +47,25 @@ import {
   watcher,
 } from "../db-schema";
 
-export const schemas = {
+export const control_plane_schemas = {
+  label,
+  project,
+  projectMember,
+  status,
+  statusTransition,
+  taskType,
+} as const;
+
+export const tenant_schemas = {
   activityLog,
   attachment,
   automationRule,
   comment,
-  label,
-  project,
-  projectMember,
   reminder,
   savedView,
-  status,
-  statusTransition,
   task,
   taskAssignee,
   taskLink,
-  taskType,
   timeEntry,
   watcher,
 } as const;

@@ -6,6 +6,7 @@ import type { AuthUnit } from "./auth";
 import type { PubSubUnit } from "./pubsub";
 
 export const context = new AsyncLocalStorage<{
+  actorId?: string;
   auth?: AuthUnit;
   db: NodePgDatabase<Record<string, never>>;
   pubsub: PubSubUnit;

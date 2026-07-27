@@ -17,7 +17,9 @@ import { branch } from "./branch";
 import { connection, connectionContact, connectionNote } from "./connection";
 import { organization } from "./organization";
 
-export const schemas = {
+export const control_plane_schemas = {} as const;
+
+export const tenant_schemas = {
   address,
   bankAccount,
   branch,

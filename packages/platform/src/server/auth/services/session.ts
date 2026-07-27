@@ -3,6 +3,7 @@ import { createHmac } from "node:crypto";
 import { eq } from "drizzle-orm";
 
 import * as s from "../db-schema";
+import { toSession, toUser } from "../mappers";
 import type { AuthServiceDeps, Session, User } from "../types";
 
 type AuthSession = {
@@ -34,40 +35,6 @@ type AuthUser = {
   updatedAt: Date;
   username?: string | null;
 };
-
-function toSession(session: AuthSession): Session {
-  return {
-    createdAt: session.createdAt,
-    expiresAt: session.expiresAt,
-    id: session.id,
-    impersonatedBy: session.impersonatedBy ?? undefined,
-    ipAddress: session.ipAddress ?? undefined,
-    token: session.token,
-    updatedAt: session.updatedAt,
-    userAgent: session.userAgent ?? undefined,
-    userId: session.userId,
-  };
-}
-
-function toUser(user: AuthUser): User {
-  return {
-    banExpires: user.banExpires ?? undefined,
-    banned: user.banned ?? false,
-    banReason: user.banReason ?? undefined,
-    createdAt: user.createdAt,
-    displayUsername: user.displayUsername ?? undefined,
-    email: user.email,
-    emailVerified: user.emailVerified,
-    id: user.id,
-    image: user.image ?? undefined,
-    name: user.name,
-    phoneNumber: user.phoneNumber ?? undefined,
-    phoneNumberVerified: user.phoneNumberVerified ?? undefined,
-    role: user.role ?? undefined,
-    updatedAt: user.updatedAt,
-    username: user.username ?? undefined,
-  };
-}
 
 export function createSessionServices(deps: AuthServiceDeps) {
   async function createHeadersFromToken(token: string): Promise<Headers> {

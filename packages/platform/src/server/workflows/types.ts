@@ -48,6 +48,7 @@ export interface StepRunner {
 }
 
 export interface WorkflowContext {
+  actorId?: string;
   auth?: AuthUnit;
   config: Record<string, unknown>;
   db: DrizzleDB;
@@ -62,6 +63,7 @@ export interface WorkflowConfig<TInput, TOutput> {
 }
 
 export interface RunOptions {
+  actorId?: string;
   auth?: AuthUnit;
   config?: Record<string, unknown>;
   db?: DrizzleDB;

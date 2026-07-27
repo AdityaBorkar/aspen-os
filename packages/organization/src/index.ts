@@ -1,7 +1,7 @@
 import type { Module, ModuleInfra } from "@aspen-os/platform/server";
 
 import { acl } from "./auth-acl";
-import { schemas } from "./db-schemas";
+import { control_plane_schemas, tenant_schemas } from "./db-schemas";
 import { events } from "./pubsub-events";
 import { addresses } from "./workflows/address";
 import { bankAccounts } from "./workflows/bank-account";
@@ -31,7 +31,7 @@ export class Organization implements Module {
   $prepareInfra(): ModuleInfra {
     return {
       auth: { acl },
-      db: { schemas },
+      db: { control_plane_schemas, tenant_schemas },
       events,
     };
   }

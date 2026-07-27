@@ -25,12 +25,12 @@ export const tenant = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    databaseHost: text("database_host").notNull(),
-    databaseName: text("database_name").notNull(),
-    databasePassword: text("database_password").notNull(),
-    databasePort: integer("database_port").notNull(),
-    databaseSsl: boolean("database_ssl").notNull(),
-    databaseUser: text("database_user").notNull(),
+    databaseHost: text("database_host"),
+    databaseName: text("database_name"),
+    databasePassword: text("database_password"),
+    databasePort: integer("database_port"),
+    databaseSsl: boolean("database_ssl"),
+    databaseUser: text("database_user"),
     id: text("id").primaryKey(),
     plan: text("plan"),
     serviceProviderId: text("service_provider_id"),

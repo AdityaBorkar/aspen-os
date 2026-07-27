@@ -24,4 +24,6 @@ export {
 
 import { complianceTables } from "../db-schema";
 
-export const schemas = complianceTables;
+export const control_plane_schemas = {} as Record<string, unknown>;
+
+export const tenant_schemas = complianceTables;

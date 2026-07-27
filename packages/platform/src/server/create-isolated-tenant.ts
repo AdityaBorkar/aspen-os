@@ -1,37 +1,26 @@
+import { join } from "node:path";
+
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-import { type AuthConfig, AuthUnit } from "./auth";
-import { context } from "./context";
+import {
+  BasePlatform as Base,
+  type CommonConfig,
+  type ExtractModuleNames,
+} from "./base-platform";
 import {
   type DatabaseConfig,
-  DatabaseUnit,
   type IsolatedTenantDatabaseConfig,
+  IsolatedTenantDatabaseUnit,
 } from "./db";
 import type {
   ArrayModuleAccessors,
   Module,
   PlatformUnits,
-  TenancyMode,
   UnitAccessors,
 } from "./index";
-import { type KvStoreConfig, KvStoreUnit } from "./kv-store";
-import { type LogConfig, LogUnit } from "./log";
-import { type PubSubConfig, PubSubUnit } from "./pubsub";
-import { type RpcConfig, RpcUnit } from "./rpc";
-import { type StorageConfig, StorageUnit } from "./storage";
 
-export type IsolatedTenantConfig = {
-  auth: AuthConfig;
+export type IsolatedTenantConfig = CommonConfig & {
   db: IsolatedTenantDatabaseConfig;
-  kvStore: KvStoreConfig;
-  logs: LogConfig;
-  pubsub: PubSubConfig;
-  rpc: RpcConfig;
-  storage: StorageConfig;
-};
-
-type ExtractModuleNames<M extends Module[]> = {
-  [K in keyof M]: M[K] extends { $name: infer N extends string } ? N : never;
 };
 
 export type IsolatedTenantPlatformInstance<M extends Module[]> =
@@ -39,23 +28,12 @@ export type IsolatedTenantPlatformInstance<M extends Module[]> =
     UnitAccessors &
     ArrayModuleAccessors<ExtractModuleNames<M>[number]>;
 
-export class IsolatedTenantPlatform<M extends Module[]> {
-  constructor(
-    private readonly units: PlatformUnits,
-    private readonly modules: M,
-  ) {
-    // biome-ignore lint/correctness/noConstructorReturn: Exception
-    return new Proxy(this, {
-      get(target, prop, receiver) {
-        if (typeof prop === "string") {
-          const unit = target.units[prop as keyof PlatformUnits];
-          if (unit) return unit;
-          const mod = target.modules.find((m) => m.$name === prop);
-          if (mod) return mod;
-        }
-        return Reflect.get(target, prop, receiver);
-      },
-    });
+export class IsolatedTenantPlatform<M extends Module[]> extends Base<M> {
+  private readonly dbUnit: IsolatedTenantDatabaseUnit;
+
+  constructor(units: PlatformUnits, modules: M) {
+    super(units, modules);
+    this.dbUnit = units.db as IsolatedTenantDatabaseUnit;
   }
 
   static create<M extends Module[]>(
@@ -75,79 +53,43 @@ export class IsolatedTenantPlatform<M extends Module[]> {
       list: async () => [] as string[],
       resolve: async (tenantId: string) => tenantId,
     };
-    const db = new DatabaseUnit(dbConfig, {
-      adminDatabase: config.db.adminDatabase,
-      mode: "isolated",
+    const db = new IsolatedTenantDatabaseUnit(dbConfig, {
+      controlPlaneDbName: config.db.controlPlaneDbName,
       resolver,
       tenantDbDefaults: config.db.tenantDbDefaults,
       tenantDbPrefix: config.db.tenantDbPrefix,
     });
-    const logs = new LogUnit(config.logs, { db });
-    const pubsub = new PubSubUnit(config.pubsub, { db });
-    const auth = new AuthUnit(config.auth, { db });
-    pubsub.setAuth(auth);
-    auth.setPubSub(pubsub);
-    const storage = new StorageUnit(config.storage, { db });
-    const kvStore = new KvStoreUnit(config.kvStore, { db });
-    const rpc = new RpcUnit(config.rpc, { auth, db, logs, pubsub });
-
-    const units = { auth, db, kvStore, logs, pubsub, rpc, storage };
-
-    const moduleNames = new Set(modules.map((m) => m.$name));
-    for (const mod of modules) {
-      for (const dep of mod.$dependencies) {
-        if (!moduleNames.has(dep)) {
-          throw new Error(
-            `Module "${mod.$name}" depends on "${dep}", but it was not provided`,
-          );
-        }
-      }
-      mod.$initialize?.(units);
-    }
-
+    const core = Base.createCore(db, config, modules);
     return new IsolatedTenantPlatform<M>(
-      units,
-      modules,
-    ) as IsolatedTenantPlatformInstance<M>;
+      core.units,
+      core.modules,
+    ) as unknown as IsolatedTenantPlatformInstance<M>;
   }
 
-  get tenancyMode(): TenancyMode {
-    return this.units.db.tenancyMode;
-  }
+  override async $prepareInfra(): Promise<void> {
+    console.log("Preparing schema files...");
 
-  async $cleanup(): Promise<void> {
-    for (const mod of this.modules) {
-      try {
-        await this.runInContext(() => mod.$cleanup());
-      } catch {
-        console.error(`Failed to destroy module "${mod.$name}"`);
-      }
-    }
     for (const unit of Object.values(this.units)) {
       try {
-        await unit.$cleanup();
-      } catch {
-        console.error(`Failed to destroy unit "${unit.$name}"`);
-      }
-    }
-  }
-
-  async $prepareInfra(): Promise<void> {
-    for (const unit of Object.values(this.units)) {
-      try {
+        console.log("Processing Unit - ", unit.$name);
         await unit.$prepareInfra?.();
       } catch (err) {
         console.error(`Failed to prepare unit "${unit.$name}"`, err);
       }
     }
 
-    const mergedModuleSchemas: Record<string, unknown> = {};
+    const mergedControlPlaneSchemas: Record<string, unknown> = {};
+    const mergedTenantSchemas: Record<string, unknown> = {};
     const mergedAcl: Record<string, string[]> = {};
 
     for (const mod of this.modules) {
       const infra = mod.$prepareInfra?.();
       if (infra) {
-        Object.assign(mergedModuleSchemas, infra.db.schemas);
+        Object.assign(
+          mergedControlPlaneSchemas,
+          infra.db.control_plane_schemas,
+        );
+        Object.assign(mergedTenantSchemas, infra.db.tenant_schemas);
         for (const [resource, actions] of Object.entries(infra.auth.acl)) {
           if (!mergedAcl[resource]) {
             mergedAcl[resource] = [];
@@ -157,7 +99,25 @@ export class IsolatedTenantPlatform<M extends Module[]> {
       }
     }
 
-    await this.units.db.prepareWithModules(mergedModuleSchemas);
+    console.log("Writing schema files...");
+
+    Bun.write(
+      join(process.cwd(), "./acl.ts"),
+      `export const acl = ${JSON.stringify(mergedAcl)};`,
+    );
+    Bun.write(
+      join(process.cwd(), "./control-plane-schemas.ts"),
+      `export const controlPlaneSchemas = ${JSON.stringify(mergedControlPlaneSchemas)};`,
+    );
+    Bun.write(
+      join(process.cwd(), "./tenant-schemas.ts"),
+      `export const tenantSchemas = ${JSON.stringify(mergedTenantSchemas)};`,
+    );
+
+    await this.units.db.prepareWithModules(
+      mergedControlPlaneSchemas,
+      mergedTenantSchemas,
+    );
     this.units.auth.applyModuleAcl(mergedAcl);
 
     for (const mod of this.modules) {
@@ -168,11 +128,10 @@ export class IsolatedTenantPlatform<M extends Module[]> {
       }
     }
 
-    if (!this.units.db.resolver) return;
     try {
-      const tenantIds = await this.units.db.resolver.list();
+      const tenantIds = await this.dbUnit.resolver.list();
       for (const tenantId of tenantIds) {
-        const tenantDb = await this.units.db.getTenantDb(tenantId);
+        const tenantDb = await this.dbUnit.getTenantDb(tenantId);
         await this.runInContext(
           async () => {
             for (const mod of this.modules) {
@@ -195,37 +154,17 @@ export class IsolatedTenantPlatform<M extends Module[]> {
   }
 
   async run<T>(tenantId: string, fn: () => T | Promise<T>): Promise<T> {
-    const db = await this.units.db.getTenantDb(tenantId);
+    const db = await this.dbUnit.getTenantDb(tenantId);
     return this.runInContext(fn, { db, tenantId }) as T;
   }
 
-  getModule<K extends M[number]["$name"]>(
-    name: K,
-  ): Extract<M[number], { $name: K }> {
-    const mod = this.modules.find((m) => m.$name === name);
-    if (!mod) throw new Error(`Module "${String(name)}" not found`);
-    return mod as Extract<M[number], { $name: K }>;
-  }
-
-  getUnit<K extends keyof PlatformUnits>(name: K): PlatformUnits[K] {
-    return this.units[name];
-  }
-
-  private runInContext<T>(
+  protected override runInContext<T>(
     fn: () => T | Promise<T>,
     overrides?: {
       db?: NodePgDatabase<Record<string, never>>;
       tenantId?: string;
     },
   ): T | Promise<T> {
-    return context.run(
-      {
-        auth: this.units.auth,
-        db: overrides?.db ?? this.units.db.controlPlaneDb,
-        pubsub: this.units.pubsub,
-        ...(overrides?.tenantId && { tenantId: overrides.tenantId }),
-      },
-      fn,
-    );
+    return super.runInContext(fn, overrides);
   }
 }

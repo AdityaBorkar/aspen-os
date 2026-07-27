@@ -7,7 +7,7 @@ import type {
 } from "@aspen-os/platform/server";
 
 import { acl } from "./auth-acl";
-import { schemas } from "./db-schemas";
+import { control_plane_schemas, tenant_schemas } from "./db-schemas";
 import { events } from "./pubsub-events";
 import { AccessService } from "./services/access-service";
 import { ArchiveService } from "./services/archive-service";
@@ -74,7 +74,7 @@ export class Drive implements Module {
   $prepareInfra(): ModuleInfra {
     return {
       auth: { acl },
-      db: { schemas },
+      db: { control_plane_schemas, tenant_schemas },
       events,
     };
   }

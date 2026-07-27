@@ -1,11 +1,20 @@
 import type { AuthConfig, AuthUnit } from "./auth";
-import type { DatabaseConfig, DatabaseUnit, TenantDbConfig } from "./db";
+import type {
+  DatabaseConfig,
+  DatabaseUnit,
+  IsolatedTenantDbConfig,
+  IsolatedTenantProvisioningResult,
+  SharedTenantDbConfig,
+  SharedTenantProvisioningResult,
+  SingleTenantDbConfig,
+  TenantDbConfig,
+  TenantProvisioningResult,
+} from "./db";
 import type { KvStoreConfig, KvStoreUnit } from "./kv-store";
 import type { LogConfig, LogUnit } from "./log";
 import type { PubSubConfig, PubSubUnit } from "./pubsub";
 import type { RpcConfig, RpcUnit } from "./rpc";
 import type { StorageConfig, StorageUnit } from "./storage";
-export type hello = "world";
 
 export type { AclDeclaration } from "./auth";
 export { defineAcl } from "./auth";
@@ -15,6 +24,8 @@ export type {
   AuthUnit,
   DatabaseConfig,
   DatabaseUnit,
+  IsolatedTenantDbConfig,
+  IsolatedTenantProvisioningResult,
   KvStoreConfig,
   KvStoreUnit,
   LogConfig,
@@ -23,9 +34,13 @@ export type {
   PubSubUnit,
   RpcConfig,
   RpcUnit,
+  SharedTenantDbConfig,
+  SharedTenantProvisioningResult,
+  SingleTenantDbConfig,
   StorageConfig,
   StorageUnit,
   TenantDbConfig,
+  TenantProvisioningResult,
 };
 export type TenancyMode = "single" | "shared" | "isolated";
 export type TenantResolver = {
@@ -48,7 +63,8 @@ export type ModuleInfra = {
     acl: Record<string, readonly string[]>;
   };
   db: {
-    schemas: Record<string, unknown>;
+    control_plane_schemas: Record<string, unknown>;
+    tenant_schemas: Record<string, unknown>;
   };
   events: Record<string, Record<string, string>>;
 };
@@ -76,12 +92,10 @@ export type ModuleAccessors<M extends Record<string, Module>> = {
   [K in keyof M]: M[K];
 };
 
+import type { ExtractModuleNames } from "./base-platform";
+
 export type ArrayModuleAccessors<Names extends string> = {
   [K in Names]: Extract<Module, { $name: K }>;
-};
-
-type ExtractModuleNames<M extends Module[]> = {
-  [K in keyof M]: M[K] extends { $name: infer N extends string } ? N : never;
 };
 
 export type PlatformInstance<M extends Module[]> = {
@@ -95,6 +109,7 @@ export type PlatformInstance<M extends Module[]> = {
 } & UnitAccessors &
   ArrayModuleAccessors<ExtractModuleNames<M>[number]>;
 
+export { BasePlatform, type CommonConfig } from "./base-platform";
 export {
   type IsolatedTenantConfig,
   IsolatedTenantPlatform,

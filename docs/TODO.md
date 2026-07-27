@@ -10,7 +10,12 @@ Refactor the code to use domain-specific, hierarchical input structures instead 
 
 ---
 
+Ensure p.run can run on global context when using the Tenant ID = $global
+
+
 Use the workflows in ManagementPlane to create a web application
+
+Rename adminDatabase to controlPlaneDb
 
 ---
 
