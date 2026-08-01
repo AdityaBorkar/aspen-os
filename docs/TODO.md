@@ -11,9 +11,11 @@ Refactor the code to use domain-specific, hierarchical input structures instead 
 ---
 
 Ensure p.run can run on global context when using the Tenant ID = $global
-
+Ensure good code architecture
 
 Use the workflows in ManagementPlane to create a web application
+
+Do not repeat schemas, import them from the `framework` package using Typed DB Unit that includes these types
 
 Rename adminDatabase to controlPlaneDb
 

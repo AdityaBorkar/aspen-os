@@ -1,6 +1,7 @@
 import PgBoss from "pg-boss";
 
 import type { AuthUnit } from "../auth";
+import { isGlobalTenantId } from "../constants";
 import { context } from "../context";
 import type { DatabaseUnit } from "../db";
 import type { DatabaseConfig } from "../db/types";
@@ -155,7 +156,7 @@ export class PubSubUnit {
 
   private async resolveBoss(tenantId?: string): Promise<PgBoss> {
     const id = tenantId ?? context.getStore()?.tenantId;
-    if (this.tenancyMode === "isolated" && id) {
+    if (this.tenancyMode === "isolated" && id && !isGlobalTenantId(id)) {
       return this.getTenantBoss(id);
     }
     return this.controlPlaneBoss;
@@ -192,7 +193,9 @@ export class PubSubUnit {
     const workHandler: PgBoss.WorkHandler<object> = async (jobs) => {
       for (const job of jobs) {
         const handlerDb =
-          this.tenancyMode === "isolated" && tenantId
+          this.tenancyMode === "isolated" &&
+          tenantId &&
+          !isGlobalTenantId(tenantId)
             ? await this.dbUnit.getTenantDb(tenantId)
             : this.dbUnit.controlPlaneDb;
 

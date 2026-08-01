@@ -1,7 +1,4 @@
-export { BaseDatabaseUnit } from "./base";
-export { IsolatedTenantDatabaseUnit } from "./isolated-tenant";
-export { SharedTenantDatabaseUnit } from "./shared-tenant";
-export { SingleTenantDatabaseUnit } from "./single-tenant";
+export { DatabaseUnit } from "./base";
 export type {
   DatabaseConfig,
   IsolatedTenantDatabaseConfig,
@@ -13,12 +10,3 @@ export type {
   TenantDbConfig,
   TenantProvisioningResult,
 } from "./types";
-
-import type { IsolatedTenantDatabaseUnit } from "./isolated-tenant";
-import type { SharedTenantDatabaseUnit } from "./shared-tenant";
-import type { SingleTenantDatabaseUnit } from "./single-tenant";
-
-export type DatabaseUnit =
-  | SingleTenantDatabaseUnit
-  | SharedTenantDatabaseUnit
-  | IsolatedTenantDatabaseUnit;

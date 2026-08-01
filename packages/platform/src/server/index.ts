@@ -18,6 +18,11 @@ import type { StorageConfig, StorageUnit } from "./storage";
 
 export type { AclDeclaration } from "./auth";
 export { defineAcl } from "./auth";
+export {
+  type GlobalTenantId,
+  isGlobalTenantId,
+  TENANT_IDS,
+} from "./constants";
 export { getContext } from "./context";
 export type {
   AuthConfig,

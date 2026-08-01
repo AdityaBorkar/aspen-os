@@ -1,16 +1,15 @@
 import { join } from "node:path";
 
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-
 import {
   BasePlatform as Base,
   type CommonConfig,
   type ExtractModuleNames,
 } from "./base-platform";
+import { isGlobalTenantId } from "./constants";
 import {
   type DatabaseConfig,
+  DatabaseUnit,
   type IsolatedTenantDatabaseConfig,
-  IsolatedTenantDatabaseUnit,
 } from "./db";
 import type {
   ArrayModuleAccessors,
@@ -29,11 +28,11 @@ export type IsolatedTenantPlatformInstance<M extends Module[]> =
     ArrayModuleAccessors<ExtractModuleNames<M>[number]>;
 
 export class IsolatedTenantPlatform<M extends Module[]> extends Base<M> {
-  private readonly dbUnit: IsolatedTenantDatabaseUnit;
+  private readonly dbUnit: DatabaseUnit;
 
   constructor(units: PlatformUnits, modules: M) {
     super(units, modules);
-    this.dbUnit = units.db as IsolatedTenantDatabaseUnit;
+    this.dbUnit = units.db as DatabaseUnit;
   }
 
   static create<M extends Module[]>(
@@ -53,7 +52,7 @@ export class IsolatedTenantPlatform<M extends Module[]> extends Base<M> {
       list: async () => [] as string[],
       resolve: async (tenantId: string) => tenantId,
     };
-    const db = new IsolatedTenantDatabaseUnit(dbConfig, {
+    const db = new DatabaseUnit(dbConfig, "isolated", {
       controlPlaneDbName: config.db.controlPlaneDbName,
       resolver,
       tenantDbDefaults: config.db.tenantDbDefaults,
@@ -129,8 +128,9 @@ export class IsolatedTenantPlatform<M extends Module[]> extends Base<M> {
     }
 
     try {
-      const tenantIds = await this.dbUnit.resolver.list();
+      const tenantIds = await this.dbUnit.resolver!.list();
       for (const tenantId of tenantIds) {
+        if (isGlobalTenantId(tenantId)) continue;
         const tenantDb = await this.dbUnit.getTenantDb(tenantId);
         await this.runInContext(
           async () => {
@@ -154,17 +154,10 @@ export class IsolatedTenantPlatform<M extends Module[]> extends Base<M> {
   }
 
   async run<T>(tenantId: string, fn: () => T | Promise<T>): Promise<T> {
+    if (isGlobalTenantId(tenantId)) {
+      return this.runInContext(fn, { tenantId });
+    }
     const db = await this.dbUnit.getTenantDb(tenantId);
     return this.runInContext(fn, { db, tenantId }) as T;
-  }
-
-  protected override runInContext<T>(
-    fn: () => T | Promise<T>,
-    overrides?: {
-      db?: NodePgDatabase<Record<string, never>>;
-      tenantId?: string;
-    },
-  ): T | Promise<T> {
-    return super.runInContext(fn, overrides);
   }
 }

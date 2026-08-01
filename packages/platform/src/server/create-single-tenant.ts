@@ -3,8 +3,7 @@ import {
   type CommonConfig,
   type ExtractModuleNames,
 } from "./base-platform";
-import type { DatabaseConfig } from "./db";
-import { SingleTenantDatabaseUnit } from "./db";
+import { type DatabaseConfig, DatabaseUnit } from "./db";
 import type {
   ArrayModuleAccessors,
   Module,
@@ -31,7 +30,7 @@ export class SingleTenantPlatform<M extends Module[]> extends Base<M> {
     config: SingleTenantConfig,
     modules: M,
   ): SingleTenantPlatformInstance<M> {
-    const db = new SingleTenantDatabaseUnit(config.db);
+    const db = new DatabaseUnit(config.db, "single");
     const core = Base.createCore(db, config, modules);
     return new SingleTenantPlatform<M>(
       core.units,

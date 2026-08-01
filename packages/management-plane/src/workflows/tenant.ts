@@ -5,8 +5,6 @@ import {
   WorkflowStep,
 } from "@aspen-os/platform/server";
 import { and, eq, ilike, or, type SQL } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/node-postgres";
-import pg from "pg";
 import { object, optional, parse, string } from "valibot";
 
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../constants";
@@ -110,16 +108,7 @@ function createOnboardTenant(dbUnit: DatabaseUnit) {
       if (provisioningResult.tenancyMode === "isolated") {
         const dbConfig = provisioningResult as IsolatedTenantProvisioningResult;
         await ctx.step.run("seed-profile", async () => {
-          const pool = new pg.Pool({
-            database: dbConfig.database,
-            host: dbConfig.host,
-            password: dbConfig.password,
-            port: dbConfig.port,
-            ssl: dbConfig.ssl ? { rejectUnauthorized: false } : false,
-            user: dbConfig.user,
-          });
-          try {
-            const tenantDb = drizzle(pool);
+          await dbUnit.seedTenantDb(dbConfig, async (tenantDb) => {
             await tenantDb.insert(organization).values({
               createdAt: new Date(),
               id: tenantId,
@@ -127,9 +116,7 @@ function createOnboardTenant(dbUnit: DatabaseUnit) {
               name: parsed.name,
               slug: parsed.slug,
             });
-          } finally {
-            await pool.end();
-          }
+          });
         });
       }
 

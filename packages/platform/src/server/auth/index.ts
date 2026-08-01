@@ -30,6 +30,10 @@ export class AuthUnit {
   private readonly deps: AuthServiceDeps;
   private readonly config: AuthConfig;
   private readonly dbUnit: DatabaseUnit;
+  private _userServices: ReturnType<typeof createUserServices> | null = null;
+  private _sessionServices: ReturnType<typeof createSessionServices> | null =
+    null;
+  private _roleServices: ReturnType<typeof createRoleServices> | null = null;
 
   constructor(config: AuthConfig, units: { db: DatabaseUnit }) {
     this.config = config;
@@ -111,35 +115,47 @@ export class AuthUnit {
     return api.createUser(input);
   }
 
+  private get userServices() {
+    if (!this._userServices) this._userServices = createUserServices(this.deps);
+    return this._userServices;
+  }
+
+  private get sessionServices() {
+    if (!this._sessionServices)
+      this._sessionServices = createSessionServices(this.deps);
+    return this._sessionServices;
+  }
+
+  private get roleServices() {
+    if (!this._roleServices) this._roleServices = createRoleServices(this.deps);
+    return this._roleServices;
+  }
+
   get role() {
-    const services = createRoleServices(this.deps);
     return {
-      delete: services.remove,
-      list: services.list,
+      delete: this.roleServices.remove,
+      list: this.roleServices.list,
     };
   }
 
   get session() {
-    const services = createSessionServices(this.deps);
     return {
-      create: services.authenticate,
-      invalidate: services.invalidate,
-      validate: services.validate,
+      create: this.sessionServices.authenticate,
+      invalidate: this.sessionServices.invalidate,
+      validate: this.sessionServices.validate,
     };
   }
 
   get user() {
-    const userServices = createUserServices(this.deps);
-    const roleServices = createRoleServices(this.deps);
     return {
-      create: userServices.create,
-      delete: userServices.delete,
-      get: userServices.get,
+      create: this.userServices.create,
+      delete: this.userServices.delete,
+      get: this.userServices.get,
       role: {
-        assign: roleServices.assign,
-        unassign: roleServices.unassign,
+        assign: this.roleServices.assign,
+        unassign: this.roleServices.unassign,
       },
-      update: userServices.update,
+      update: this.userServices.update,
     };
   }
 }
