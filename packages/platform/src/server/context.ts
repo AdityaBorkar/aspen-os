@@ -19,7 +19,9 @@ export const context = new AsyncLocalStorage<{
 }>();
 
 export function getContext() {
+  console.log("Getting context...");
   const ctx = context.getStore();
+  console.log({ ctx });
   if (!ctx) throw new Error("Context was not initialized");
   return ctx;
 }

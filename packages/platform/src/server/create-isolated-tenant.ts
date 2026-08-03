@@ -154,10 +154,10 @@ export class IsolatedTenantPlatform<M extends Module[]> extends Base<M> {
   }
 
   async run<T>(tenantId: string, fn: () => T | Promise<T>): Promise<T> {
-    if (isGlobalTenantId(tenantId)) {
-      return this.runInContext(fn, { tenantId });
-    }
-    const db = await this.dbUnit.getTenantDb(tenantId);
+    const db = isGlobalTenantId(tenantId)
+      ? this.dbUnit.controlPlaneDb
+      : await this.dbUnit.getTenantDb(tenantId);
+    console.log({ db });
     return this.runInContext(fn, { db, tenantId }) as T;
   }
 }

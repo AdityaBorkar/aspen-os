@@ -22,9 +22,12 @@
     "typescript": "catalog:"
   },
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "default": "./.output/index.js",
+      "types": "./.output/index.d.ts"
+    }
   },
-  "files": ["./docs-www", "package.json", "README.md", "./src"],
+  "files": ["./docs-www", "package.json", "README.md", "./.output"],
   "name": "@aspen-os/management-plane",
   "scripts": {
     "build": "bun run ../../scripts/build.ts",

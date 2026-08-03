@@ -6,12 +6,12 @@ ACL List (How to handle migrations?)
 
 PubSub Events (How to handle migrations?)
 
-Refactor the code to use domain-specific, hierarchical input structures instead of flat parameter objects. Group related fields into nested objects that match their usage, eliminating unnecessary object reconstruction and conditional schema processing. Design APIs so each function receives data in the shape it actually consumes. Similarly, optimize to use valibot validation schema as much possible for input validation.
-
 ---
 
-Ensure p.run can run on global context when using the Tenant ID = $global
+Manually read and simplify the code as much as possible
 Ensure good code architecture
+
+---
 
 Use the workflows in ManagementPlane to create a web application
 
@@ -32,6 +32,19 @@ Rename adminDatabase to controlPlaneDb
 ## Improving Code Quality
 
 Create a Biome GritQL rule to make index.ts module files like @management-plane/src/index.ts
+
+## Workflows Module
+
+- https://activiti.org/
+- https://flowable.com/
+- https://temporal.io/
+- https://hatchet.run/
+- https://restate.dev/
+- https://inngest.com/
+
+## Module Verification
+
+- [ ] 
 
 ## Module Implementation
 

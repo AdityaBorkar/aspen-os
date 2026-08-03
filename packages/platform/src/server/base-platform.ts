@@ -158,14 +158,13 @@ export abstract class BasePlatform<M extends Module[]> {
       tenantId?: string;
     },
   ): T | Promise<T> {
-    return context.run(
-      {
-        auth: this.units.auth,
-        db: overrides?.db ?? this.units.db.controlPlaneDb,
-        pubsub: this.units.pubsub,
-        ...(overrides?.tenantId && { tenantId: overrides.tenantId }),
-      },
-      fn,
-    );
+    const ctx = {
+      auth: this.units.auth,
+      db: this.units.db.controlPlaneDb,
+      pubsub: this.units.pubsub,
+      ...overrides,
+    };
+    console.log("Context:", ctx);
+    return context.run(ctx, fn);
   }
 }

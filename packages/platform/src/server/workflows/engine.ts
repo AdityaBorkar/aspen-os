@@ -187,7 +187,9 @@ export async function executeWorkflow<TInput, TOutput>(
   input: TInput,
   options?: RunOptions,
 ): Promise<TOutput> {
+  console.log("Running Engine");
   const store = options?.db ? null : getContext();
+  console.log({ store });
   const db = options?.db ?? store?.db;
   const auth = options?.auth ?? store?.auth;
   const pubsub = options?.pubsub ?? store?.pubsub;
