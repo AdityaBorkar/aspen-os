@@ -1,4 +1,3 @@
-export { DatabaseUnit } from "./base";
 export type {
   DatabaseConfig,
   IsolatedTenantDatabaseConfig,
@@ -10,3 +9,4 @@ export type {
   TenantDbConfig,
   TenantProvisioningResult,
 } from "./types";
+export { DatabaseUnit } from "./unit";

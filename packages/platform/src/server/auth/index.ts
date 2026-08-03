@@ -1,35 +1,30 @@
-import type { Auth } from "better-auth";
-import { createAccessControl } from "better-auth/plugins";
+import { apiKey } from "@better-auth/api-key";
+import { passkey } from "@better-auth/passkey";
+import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import {
+  admin,
+  emailOTP,
+  lastLoginMethod,
+  organization,
+  phoneNumber,
+  twoFactor,
+  username,
+} from "better-auth/plugins";
 
 import type { DatabaseUnit } from "../db";
+import type { Unit } from "../index";
 import type { PubSubUnit } from "../pubsub";
-import { buildAuthConfig } from "./config-builder";
 import * as db_schema from "./db-schema";
-import { createRoleServices } from "./services/role";
-import { createSessionServices } from "./services/session";
-import { createUserServices } from "./services/user";
-import type { AuthConfig, AuthServiceDeps } from "./types";
-
-type AuthApi = Auth["api"];
-
-type AdminAuthApi = AuthApi & {
-  createOrganization: (input: unknown) => Promise<{ id: string }>;
-  createUser: (input: {
-    body: {
-      email: string;
-      name: string;
-      password: string;
-      role: string;
-    };
-  }) => Promise<{ user: { id: string; email: string; role?: string } }>;
-  deleteOrganization: (input: unknown) => Promise<void>;
-};
+import type { AdminAuth, AuthConfig } from "./types";
 
 export type { AclDeclaration } from "./acl";
 export { defineAcl } from "./acl";
 export type { AuthEventMap } from "./event-map";
 export { toSession, toUser } from "./mappers";
 export type {
+  AdminAuth,
+  AdminAuthApi,
   AuthConfig,
   AuthServiceDeps,
   RoleData,
@@ -37,128 +32,116 @@ export type {
   User,
 } from "./types";
 
-export class AuthUnit {
-  readonly $name = "auth";
+export class AuthUnit implements Unit {
+  readonly $name = "auth" as const;
   readonly $db_schema = db_schema;
-  readonly auth: Auth;
+  readonly service: AdminAuth;
 
-  private readonly deps: AuthServiceDeps;
   private readonly config: AuthConfig;
-  private readonly dbUnit: DatabaseUnit;
-  private _userServices: ReturnType<typeof createUserServices> | null = null;
-  private _sessionServices: ReturnType<typeof createSessionServices> | null =
-    null;
-  private _roleServices: ReturnType<typeof createRoleServices> | null = null;
+  private readonly pubsub: PubSubUnit;
+  private readonly db: DatabaseUnit["db"];
 
-  constructor(config: AuthConfig, units: { db: DatabaseUnit }) {
+  constructor(
+    config: AuthConfig,
+    units: { db: DatabaseUnit; pubsub: PubSubUnit },
+  ) {
     this.config = config;
-    this.dbUnit = units.db;
+    this.db = units.db.controlPlaneDb;
+    this.pubsub = units.pubsub;
 
-    const auth = buildAuthConfig(config, units.db);
-    this.auth = auth;
+    const accessControl = {};
 
-    this.deps = {
-      auth: this.auth,
-      db: units.db.controlPlaneDb,
-      pubsub: null,
-    };
+    this.service = betterAuth({
+      baseURL: config.baseURL,
+      database: drizzleAdapter(this.db, {
+        camelCase: false,
+        provider: "pg",
+        schema: db_schema,
+        transaction: true,
+        usePlural: false,
+      }),
+      emailAndPassword: { enabled: true },
+      plugins: [
+        admin({ ac: accessControl }),
+        username(),
+        organization(),
+        phoneNumber(),
+        emailOTP({
+          async sendVerificationOTP({ email, otp, type }) {
+            console.log({ email, otp, type });
+            if (type === "sign-in") {
+              // Send the OTP for sign in
+            } else if (type === "email-verification") {
+              // Send the OTP for email verification
+            } else {
+              // Send the OTP for password reset
+            }
+          },
+        }),
+        apiKey({
+          enableSessionForAPIKeys: false,
+          rateLimit: {
+            enabled: true,
+            maxRequests: 10,
+            timeWindow: 1000 * 60 * 60 * 24,
+          },
+        }),
+        lastLoginMethod(),
+        twoFactor(),
+        passkey(),
+        // captcha({
+        //   provider: "cloudflare-turnstile",
+        //   secretKey: config.cfSecretKey,
+        // }),
+      ],
+      secret: config.secret,
+      session: config.session,
+      socialProviders: config.socialProviders,
+    });
   }
 
-  setPubSub(pubsub: PubSubUnit): void {
-    this.deps.pubsub = pubsub;
+  async $prepareInfra() {}
+
+  async $cleanup() {}
+
+  async fetchHandler(request: Request): Promise<Response> {
+    return this.service.handler(request);
   }
 
-  async $prepareInfra() {
-    return;
-  }
+  // get user() {
+  //   return {
+  //     create: this.userServices.create,
+  //     delete: this.userServices.delete,
+  //     get: this.userServices.get,
+  //     role: {
+  //       assign: this.roleServices.assign,
+  //       unassign: this.roleServices.unassign,
+  //     },
+  //     update: this.userServices.update,
+  //   };
+  // }
 
-  applyModuleAcl(acl: Record<string, readonly string[]>): void {
-    const access_control = createAccessControl(acl);
-    const auth = buildAuthConfig(this.config, this.dbUnit, access_control);
+  // get session() {
+  //   return {
+  //     create: this.sessionServices.authenticate,
+  //     invalidate: this.sessionServices.invalidate,
+  //     validate: this.sessionServices.validate,
+  //   };
+  // }
 
-    (this as { auth: Auth }).auth = auth;
-    this.deps.auth = this.auth;
-  }
+  // get role() {
+  //   return {
+  //     delete: this.roleServices.remove,
+  //     list: this.roleServices.list,
+  //   };
+  // }
 
-  async $cleanup() {
-    return;
-  }
-
-  async fetch_handler(request: Request) {
-    return this.auth.handler(request);
-  }
-
-  get api() {
-    return this.auth.api;
-  }
-
-  async createOrganization(input: {
-    body: { logo?: string; name: string; slug: string; userId: string };
-  }): Promise<{ id: string }> {
-    const api = this.auth.api as AdminAuthApi;
-    return api.createOrganization(input);
-  }
-
-  async deleteOrganization(input: {
-    body: { organizationId: string };
-  }): Promise<void> {
-    const api = this.auth.api as AdminAuthApi;
-    await api.deleteOrganization(input);
-  }
-
-  async createUser(input: {
-    body: {
-      email: string;
-      name: string;
-      password: string;
-      role: string;
-    };
-  }): Promise<{ user: { id: string; email: string; role?: string } }> {
-    const api = this.auth.api as AdminAuthApi;
-    return api.createUser(input);
-  }
-
-  private get userServices() {
-    if (!this._userServices) this._userServices = createUserServices(this.deps);
-    return this._userServices;
-  }
-
-  private get sessionServices() {
-    if (!this._sessionServices)
-      this._sessionServices = createSessionServices(this.deps);
-    return this._sessionServices;
-  }
-
-  private get roleServices() {
-    if (!this._roleServices) this._roleServices = createRoleServices(this.deps);
-    return this._roleServices;
-  }
-
-  get role() {
-    return {
-      delete: this.roleServices.remove,
-      list: this.roleServices.list,
-    };
-  }
-
-  get session() {
-    return {
-      create: this.sessionServices.authenticate,
-      invalidate: this.sessionServices.invalidate,
-      validate: this.sessionServices.validate,
-    };
-  }
-
-  get user() {
-    return {
-      create: this.userServices.create,
-      delete: this.userServices.delete,
-      get: this.userServices.get,
-      role: {
-        assign: this.roleServices.assign,
-        unassign: this.roleServices.unassign,
-      },
-      update: this.userServices.update,
-    };
-  }
+  // get admin() {
+  //   const api = this.$auth.api;
+  //   return {
+  //     createOrganization: api.createOrganization,
+  //     createUser: api.createUser,
+  //     deleteOrganization: api.deleteOrganization,
+  //   };
+  // }
 }

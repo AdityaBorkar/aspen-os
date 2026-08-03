@@ -102,7 +102,7 @@ const createUser = Workflow.name("user.create").handler(
       throw new Error("Password is required for user creation.");
     }
 
-    const response = await auth.createUser({
+    const response = await auth.admin.createUser({
       body: {
         email: parsed.email,
         name: parsed.name,

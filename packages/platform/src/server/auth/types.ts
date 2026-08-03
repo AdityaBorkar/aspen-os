@@ -3,6 +3,12 @@ import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 import type { PubSubUnit } from "../pubsub";
 
+type AuthApi = Auth["api"];
+
+export type AdminAuthApi = AuthApi;
+
+export type AdminAuth = Omit<Auth, "api"> & { api: AdminAuthApi };
+
 export interface AuthServiceDeps {
   auth: Auth;
   db: NodePgDatabase<Record<string, never>>;

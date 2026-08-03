@@ -64,9 +64,8 @@ export abstract class BasePlatform<M extends Module[]>
   ): { units: PlatformUnits; modules: M } {
     const logs = new LogUnit(config.logs, { db });
     const pubsub = new PubSubUnit(config.pubsub, { db });
-    const auth = new AuthUnit(config.auth, { db });
+    const auth = new AuthUnit(config.auth, { db, pubsub });
     pubsub.setAuth(auth);
-    auth.setPubSub(pubsub);
     const storage = new StorageUnit(config.storage, { db });
     const kvStore = new KvStoreUnit(config.kvStore, { db });
     const rpc = new RpcUnit(config.rpc, { auth, db, logs, pubsub });
