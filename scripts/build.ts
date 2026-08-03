@@ -55,7 +55,9 @@ async function parsePackageJson() {
   const outputFile = (srcPath: string, ext: ".js" | ".d.ts") =>
     `./${outputDirname}/${relToSrc(srcPath).replace(/(?:\.d\.ts|\.[^.]+)$/, ext)}`;
 
-  const pkg = await file(join(ROOT, "package.json")).json();
+  const pkg = JSON.parse(
+    await file(join(ROOT, "package.json")).text(),
+  ) as Record<string, unknown>;
 
   const buildConfig = (pkg.build ?? {}) as BuildConfig;
   const binConfig = buildConfig.bin ?? {};

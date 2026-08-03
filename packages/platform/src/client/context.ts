@@ -2,6 +2,11 @@ import type { AuthClient } from "./auth";
 import type { LogsUnit } from "./logs";
 import type { RpcUnit } from "./rpc";
 
+declare global {
+  // biome-ignore lint/suspicious/noExplicitAny: Global variable for client-side context access
+  var aspen: ClientContext | undefined;
+}
+
 export interface ClientContext {
   auth: AuthClient;
   logs: LogsUnit;
@@ -13,7 +18,7 @@ let context: ClientContext | null = null;
 export function setContext(ctx: ClientContext): void {
   context = ctx;
   if (typeof globalThis !== "undefined") {
-    (globalThis as unknown as { aspen?: ClientContext }).aspen = ctx;
+    globalThis.aspen = ctx;
   }
 }
 

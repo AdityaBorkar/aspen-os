@@ -26,7 +26,11 @@ export type PlatformInstance<M extends Module[]> = Platform<M> &
   UnitAccessors &
   ModuleAccessors<ExtractModuleNames<M>[number]>;
 
-export class Platform<M extends Module[]> {
+export class Platform<M extends Module[]> implements UnitAccessors {
+  declare readonly auth: PlatformUnits["auth"];
+  declare readonly logs: PlatformUnits["logs"];
+  declare readonly rpc: PlatformUnits["rpc"];
+
   static create<M extends Module[]>(
     config: {
       auth: AuthConfig;
@@ -46,7 +50,7 @@ export class Platform<M extends Module[]> {
       modulesRecord[mod.$name] = mod;
     }
 
-    return new Platform(units, modulesRecord) as unknown as PlatformInstance<M>;
+    return new Platform(units, modulesRecord) as PlatformInstance<M>;
   }
 
   constructor(

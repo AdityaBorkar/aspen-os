@@ -268,11 +268,12 @@
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
-│                        HR DOMAIN (44 tables, 7 sub-domains)         │
+│                        HR DOMAIN (50 tables, 7 sub-domains)         │
 │                                                                     │
 │  Employee ←─ 1:N ─→ Attendance, Leave, Lifecycle, Overtime, Shift   │
 │  Setup: Department, Designation, EmploymentType, Grade, HolidayList │
-│  (Module class incomplete — workflows not wired)                    │
+│  Access: HR Users, Roles, Permissions, Branch-wise Access           │
+│  (Module partially conformant — not `implements Module`)           │
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -355,7 +356,7 @@
 
 **Invariants**:
 - Token must be unique
-- Has expiration (`expiresAt`) — hardcoded at 7 days
+- Has expiration (`expiresAt`) — configured via `AuthConfig.session.expiresIn`, forwarded to better-auth
 - Cascades delete from User
 
 **Lifecycle commands**:
@@ -717,7 +718,7 @@
 - Health insurance management (create, update, delete)
 - Skill map management (create, update, delete)
 
-**Note**: HR workflows are fully implemented but not wired to the module class.
+**Note**: HR workflows are wired to the module class via `$initialize()`. The module is partially conformant — it has `$name`, `static create()`, `$prepareInfra()`, and `$cleanup()` but does not declare `implements Module` and lacks `$prepareRuntime()`.
 
 ### Tenant (Aggregate Root — Management Plane)
 
@@ -916,9 +917,20 @@
 | `drive:restored` | `{ itemId, itemType }` | Item restored from trash |
 | `drive:purged` | `{ itemId, itemType, storageKey }` | Item permanently deleted |
 
-### HR Events — 0 events
+### HR Events — 43 events
 
-The HR module's `event-map.ts` is empty. No events are defined.
+The HR module defines 43 events across 8 event groups, combined into `HrEventMap`:
+
+| Group | Count | Events |
+|---|---|---|
+| Employee | 4 | `employee:created`, `employee:updated`, `employee:status_changed`, `employee:group_created` |
+| Attendance | 5 | `attendance:created`, `attendance:checkin_created`, `attendance:request_created`, `attendance:request_approved`, `attendance:request_rejected` |
+| Leave | 6 | `leave:application_submitted`, `leave:application_approved`, `leave:application_rejected`, `leave:application_cancelled`, `leave:allocation_created`, `leave:encashment_requested` |
+| Lifecycle | 9 | `lifecycle:onboarding_started`, `lifecycle:onboarding_completed`, `lifecycle:promotion_requested`, `lifecycle:promotion_approved`, `lifecycle:transfer_requested`, `lifecycle:transfer_approved`, `lifecycle:separation_initiated`, `lifecycle:separation_completed`, `lifecycle:exit_interview_scheduled` |
+| Overtime | 3 | `overtime:slip_created`, `overtime:slip_approved`, `overtime:slip_rejected` |
+| Setup | 4 | `setup:department_created`, `setup:designation_created`, `setup:holiday_list_created`, `setup:settings_updated` |
+| Shift | 4 | `shift:assignment_created`, `shift:request_created`, `shift:request_approved`, `shift:request_rejected` |
+| Access | 8 | `access:user_created`, `access:user_activated`, `access:user_deactivated`, `access:role_created`, `access:role_assigned`, `access:role_revoked`, `access:branch_access_granted`, `access:branch_access_revoked` |
 
 ### Management Plane Events (ManagementPlaneEventMap) — 16 events
 
@@ -958,7 +970,7 @@ The HR module's `event-map.ts` is empty. No events are defined.
 - File events (framework storage): `file:uploaded`, `file:deleted`, `file:archived`
 - Log events: `log:error-threshold-exceeded`
 - KV events: (none expected — cache operations are internal)
-- HR events: (not yet defined — module incomplete)
+- HR events: (defined — 43 events across 8 event groups, see HR Events section above)
 
 ## Command-Query Separation
 
@@ -1022,17 +1034,17 @@ The HR module's `event-map.ts` is empty. No events are defined.
 | Drive | Restore item | `f.drive.trash.restore()` |
 | Drive | Empty trash | `f.drive.trash.emptyTrash()` |
 | Drive | Apply label | `f.drive.labels.apply()` |
-| Management Plane | Onboard tenant | `f.managementPlane.tenants.onboard()` |
-| Management Plane | Update tenant | `f.managementPlane.tenants.update()` |
-| Management Plane | Create SP | `f.managementPlane.serviceProviders.create()` |
-| Management Plane | Update SP | `f.managementPlane.serviceProviders.update()` |
-| Management Plane | Activate SP | `f.managementPlane.serviceProviders.activate()` |
-| Management Plane | Deactivate SP | `f.managementPlane.serviceProviders.deactivate()` |
-| Management Plane | Create platform user | `f.managementPlane.users.create()` |
-| Management Plane | Update platform user | `f.managementPlane.users.update()` |
-| Management Plane | Delete platform user | `f.managementPlane.users.delete()` |
-| Management Plane | Assign role | `f.managementPlane.users.assignRole()` |
-| Management Plane | Assign user to SP | `f.managementPlane.users.assignToServiceProvider()` |
+| Management Plane | Onboard tenant | `f.management.tenants.onboard()` |
+| Management Plane | Update tenant | `f.management.tenants.update()` |
+| Management Plane | Create SP | `f.management.serviceProviders.create()` |
+| Management Plane | Update SP | `f.management.serviceProviders.update()` |
+| Management Plane | Activate SP | `f.management.serviceProviders.activate()` |
+| Management Plane | Deactivate SP | `f.management.serviceProviders.deactivate()` |
+| Management Plane | Create platform user | `f.management.users.create()` |
+| Management Plane | Update platform user | `f.management.users.update()` |
+| Management Plane | Delete platform user | `f.management.users.delete()` |
+| Management Plane | Assign role | `f.management.users.assignRole()` |
+| Management Plane | Assign user to SP | `f.management.users.assignToServiceProvider()` |
 
 ### Queries (Read Side)
 
@@ -1092,14 +1104,14 @@ The HR module's `event-map.ts` is empty. No events are defined.
 | Drive | List trash | `f.drive.trash.list()` |
 | Drive | List labels | `f.drive.labels.list()` |
 | Drive | Get breadcrumbs | `f.drive.paths.getBreadcrumbs()` |
-| Management Plane | Get tenant | `f.managementPlane.tenants.get()` |
-| Management Plane | List tenants | `f.managementPlane.tenants.list()` |
-| Management Plane | Get SP | `f.managementPlane.serviceProviders.get()` |
-| Management Plane | List SPs | `f.managementPlane.serviceProviders.list()` |
-| Management Plane | Get SP assigned tenants | `f.managementPlane.serviceProviders.getAssignedTenants()` |
-| Management Plane | Get SP users | `f.managementPlane.serviceProviders.getUsers()` |
-| Management Plane | Get platform user | `f.managementPlane.users.get()` |
-| Management Plane | List platform users | `f.managementPlane.users.list()` |
+| Management Plane | Get tenant | `f.management.tenants.get()` |
+| Management Plane | List tenants | `f.management.tenants.list()` |
+| Management Plane | Get SP | `f.management.serviceProviders.get()` |
+| Management Plane | List SPs | `f.management.serviceProviders.list()` |
+| Management Plane | Get SP assigned tenants | `f.management.serviceProviders.getAssignedTenants()` |
+| Management Plane | Get SP users | `f.management.serviceProviders.getUsers()` |
+| Management Plane | Get platform user | `f.management.users.get()` |
+| Management Plane | List platform users | `f.management.users.list()` |
 
 ## Invariants & Business Rules
 
@@ -1109,7 +1121,7 @@ The HR module's `event-map.ts` is empty. No events are defined.
 2. **All timestamps are TIMESTAMPTZ** — `withTimezone: true` on all timestamp columns
 3. **Cascade deletes** — User deletion cascades to sessions and accounts
 4. **No barrel files** — explicit convention in CODING_CONVENTIONS.md
-5. **No DB-level foreign keys in domain modules** — compliance, tasks, and drive use soft FKs (logical references by naming convention, not enforced by the database)
+5. **No DB-level foreign keys in domain modules** — compliance, tasks, drive, organization, and management-plane all use soft FKs (logical references by naming convention, not enforced by the database)
 
 ### Auth
 
@@ -1184,6 +1196,5 @@ The HR module's `event-map.ts` is empty. No events are defined.
 3. **Don't use `timestamp without time zone`** — always `withTimezone: true`
 4. **Don't call `create()` then try to register more modules** — pass all modules to `Platform.create()` at once
 5. **Don't assume dedicated role/permission tables** — roles are text on user table
-6. **Don't read `AuthConfig.session.expiresIn`** — session expiry is hardcoded at 7 days
-7. **Don't add DB-level foreign key constraints in domain modules** — use soft FKs (logical references by naming convention)
-8. **Don't set compliance verification status directly** — use the lifecycle commands (submit, verify, reject, etc.) or `updateStatus`
+6. **Don't add DB-level foreign key constraints in domain modules** — use soft FKs (logical references by naming convention)
+7. **Don't set compliance verification status directly** — use the lifecycle commands (submit, verify, reject, etc.) or `updateStatus`

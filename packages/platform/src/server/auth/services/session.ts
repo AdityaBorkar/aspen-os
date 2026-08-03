@@ -77,7 +77,7 @@ export function createSessionServices(deps: AuthServiceDeps) {
     const session = toSession(sessionData.session as AuthSession);
     const user = toUser(sessionData.user as AuthUser);
 
-    await pubsub.publishControlPlane("session:created", { session, user });
+    await pubsub?.publishControlPlane("session:created", { session, user });
     return { session, user };
   }
 
@@ -103,7 +103,7 @@ export function createSessionServices(deps: AuthServiceDeps) {
   async function invalidate(input: { sessionId: string }): Promise<void> {
     const { db, pubsub } = deps;
     await db.delete(s.session).where(eq(s.session.id, input.sessionId));
-    await pubsub.publishControlPlane("session:invalidated", {
+    await pubsub?.publishControlPlane("session:invalidated", {
       sessionId: input.sessionId,
     });
   }

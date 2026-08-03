@@ -39,7 +39,7 @@ export function createUserServices(deps: AuthServiceDeps) {
     });
 
     const $user = toUser(row);
-    await pubsub.publishControlPlane("user:created", { user: $user });
+    await pubsub?.publishControlPlane("user:created", { user: $user });
     return $user;
   }
 
@@ -83,14 +83,14 @@ export function createUserServices(deps: AuthServiceDeps) {
     if (!row) throw new Error(`User "${id}" not found`);
 
     const $user = toUser(row);
-    await pubsub.publishControlPlane("user:updated", { user: $user });
+    await pubsub?.publishControlPlane("user:updated", { user: $user });
     return $user;
   }
 
   async function remove({ id }: { id: string }): Promise<void> {
     const { db, pubsub } = deps;
     await db.delete(user).where(eq(user.id, id));
-    await pubsub.publishControlPlane("user:deleted", { userId: id });
+    await pubsub?.publishControlPlane("user:deleted", { userId: id });
   }
 
   return {

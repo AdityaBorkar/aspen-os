@@ -52,7 +52,7 @@ export class KvStoreUnit {
     try {
       return JSON.parse(row.value) as T;
     } catch {
-      return row.value as unknown as T;
+      return row.value as T;
     }
   }
 

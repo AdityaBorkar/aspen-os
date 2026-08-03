@@ -22,8 +22,8 @@ export class TaskTypeWorkflow {
   async createTaskType(input: CreateTaskTypeInput) {
     const parsed = parse(CreateTaskTypeSchema, input);
 
-    if (parsed.isDefault) {
-      await this.unsetDefaultTaskType(parsed.projectId ?? null);
+    if (parsed.isDefault && parsed.projectId) {
+      await this.unsetDefaultTaskType(parsed.projectId);
     }
 
     const [result] = await this.db
@@ -49,7 +49,7 @@ export class TaskTypeWorkflow {
         .from(taskType)
         .where(eq(taskType.id, id))
         .limit(1);
-      if (current) {
+      if (current?.projectId) {
         await this.unsetDefaultTaskType(current.projectId);
       }
     }
@@ -118,17 +118,10 @@ export class TaskTypeWorkflow {
     return this.db.select().from(label).where(conditions);
   }
 
-  private async unsetDefaultTaskType(projectId: string | null): Promise<void> {
-    if (projectId) {
-      await this.db
-        .update(taskType)
-        .set({ isDefault: false })
-        .where(eq(taskType.projectId, projectId));
-    } else {
-      await this.db
-        .update(taskType)
-        .set({ isDefault: false })
-        .where(eq(taskType.projectId, null as unknown as string));
-    }
+  private async unsetDefaultTaskType(projectId: string): Promise<void> {
+    await this.db
+      .update(taskType)
+      .set({ isDefault: false })
+      .where(eq(taskType.projectId, projectId));
   }
 }

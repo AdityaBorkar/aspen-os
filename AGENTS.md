@@ -29,7 +29,7 @@ No build/test/format scripts at root. Each domain package has `check:lint` and `
 ```
 cd examples/recruiter && bun run app:dev          # vite dev --port 3000
 cd examples/recruiter && bun run app:build        # vite build
-cd examples/recruiter && bun run app:prepare       # bun scripts/prepare.ts (calls f.prepareInfra())
+cd examples/recruiter && bun run app:prepare       # bun scripts/prepare.ts (calls p.$prepareInfra())
 cd examples/recruiter && bun run app:preview       # vite preview
 cd examples/recruiter && bun run db:studio         # aspen db-studio --config=src/aspen/server.ts (port 4983)
 cd examples/recruiter && bun run generate-routes   # tsr generate (TanStack Router)
@@ -60,7 +60,7 @@ packages/
   drive/              # Domain module
   management-plane/    # Domain module — control plane (has build step)
   constants/          # Shared enums and constants (@aspen-os/constants)
-  hr/                 # Scaffold — has package.json + src, but module class is incomplete (TODOs)
+  hr/                 # Partial — has package.json + src, module class substantially implemented but not fully conformant
   accounting/ crm/ fleet/ inventory/ pharmacy/ reports/  # Pure stubs (package.json is just { "name": "..." })
 examples/
   recruiter/          # TanStack Start + React 19 + Vite 8 + Tailwind 4 app (dev port 3000)
@@ -76,9 +76,9 @@ Workspace globs: `./packages/*`, `./examples/*`, `./docs-www`. Root `tsconfig.js
 
 - **Docker Compose** (`examples/recruiter/docker-compose.yaml`): starts **Postgres** (`postgres:18-alpine`, port 5432, user/pass/db all `recruiter`) and **SeaweedFS** (S3-compatible: master 9333, volume 8080, filer 8888, S3 8333).
 - Reads `.env.local` (gitignored). Key vars: `DB_*`, `AUTH_SECRET`, `STORAGE_*` (endpoint `http://localhost:8333`), `GOOGLE_CLIENT_*`, `PUBLIC_WEB_*`.
-- Platform config lives in `examples/recruiter/src/aspen/`: `server.ts` (`SingleTenantPlatform.create`), `auth.ts` (access control + roles), `client.ts`.
+- Platform config lives in `examples/recruiter/src/aspen/`: `server.ts` (`SingleTenantPlatform.create`, exports `p`), `auth-client.ts` (access control), `client.ts` (client `Platform.create`).
 - Env validated via `@t3-oss/env-core` with Zod (`examples/recruiter/src/env.ts`). Vite env prefix is `PUBLIC_`.
-- **`aspen` CLI** (platform `bin`): `aspen db-studio --config=<path>` dynamically imports the platform config (looks for a `framework` or `f` export) and launches Drizzle Kit Studio (default port 4983).
+- **`aspen` CLI** (platform `bin`): `aspen db-studio --config=<path>` dynamically imports the platform config (looks for a `platform` or `p` export) and launches Drizzle Kit Studio (default port 4983).
 
 ## Platform Architecture (`packages/platform`)
 
@@ -89,13 +89,13 @@ Three entry surfaces: `./src/server/` (Node/Bun), `./src/client/` (browser), `./
 `@aspen-os/platform` declares only `./client` and `./server` — **no `.` entry**, so bare `@aspen-os/platform` does not resolve. Always import via subpaths.
 
 - `@aspen-os/platform/server` — three platform classes, `Unit`, `Module`, `PlatformInstance`, all config types, all unit classes, `Workflow`, `WorkflowStep`, `getContext`.
-- `@aspen-os/platform/client` — client `Framework` class, `createAccessControl` (re-exported from `better-auth/plugins/access`), client config types.
+- `@aspen-os/platform/client` — client `Platform` class, `createAccessControl` (re-exported from `better-auth/plugins/access`), client config types.
 
 **Build step (platform only):** the platform's published `exports` and `bin` point at `./.output/` (built JS + `.d.ts`, gitignored). A `build` field in `package.json` maps those same keys to source `.ts` so **Bun runtime resolves to source with no build**. But TypeScript resolves types from `.output/` — run `bun run build` after changing exports. **Domain modules have no build step** — their `exports` point at raw `.ts`.
 
-### Server: three separate platform classes
+### Server: three platform classes sharing `BasePlatform`
 
-The server exports **three self-contained classes** — there is no shared base class or single `Framework` class on the server side. Each lives in its own file and contains its own constructor, proxy, `create()`, `prepareInfra()`, `run()`, `destroy()`, `getModule()`, `getUnit()`:
+The server exports **three platform classes** that all extend a shared abstract `BasePlatform<M>` (`src/server/base-platform.ts`). `BasePlatform` owns the Proxy wrapper, `createCore()` (instantiates units, validates module deps, calls `mod.$initialize`), `$prepareInfra()` (merges module infra), `$cleanup()`, `getModule()`, `getUnit()`, and `runInContext()` (runs a function inside `AsyncLocalStorage`). Each subclass adds its own `create()` and `run()`:
 
 | Class | File | `run()` signature | Config type |
 |---|---|---|---|
@@ -106,31 +106,32 @@ The server exports **three self-contained classes** — there is no shared base 
 ```ts
 import { SingleTenantPlatform } from "@aspen-os/platform/server"
 
-const f = SingleTenantPlatform.create(
+const p = SingleTenantPlatform.create(
   { auth, db, kvStore, logs, pubsub, rpc, storage },
-  { organization: orgModule },
+  [organizationModule],
 )
-await f.prepareInfra()
-await f.run(async () => { /* ctx: { auth, db, pubsub } via getContext() */ })
-await f.destroy()
+await p.$prepareInfra()
+await p.run(async () => { /* ctx: { auth, db, pubsub } via getContext() */ })
+await p.$cleanup()
 ```
 
 API facts:
 - **Config does not include `tenancy`** — the platform choice implies the mode. Each `create()` constructs the tenancy config internally.
-- `IsolatedTenantConfig` adds `resolver: TenantResolver` (the only config that takes extra fields).
+- `IsolatedTenantConfig.db` is `IsolatedTenantDatabaseConfig` (fields: `controlDbName`, `connection`, `tenantDbPrefix`, `tenantDbDefaults`, `pool`) — NOT `DatabaseConfig`. It does NOT include a `resolver` field — a dummy resolver (`list: () => []`, `resolve: id => id`) is constructed inline. See Known Gap #7 in CONTEXT.md.
 - `run()` signatures are **not overloaded** — `SingleTenantPlatform.run` only accepts `run(fn)`; shared/isolated only accept `run(tenantId, fn)`. The type system enforces correct usage.
-- All three classes return proxy-wrapped instances. Module `$name`s and unit keys become proxy accessors: `f.organization`, `f.db`, `f.auth`, etc.
+- All three classes return proxy-wrapped instances (the Proxy is in `BasePlatform`'s constructor). Module `$name`s and unit keys become proxy accessors: `p.organization`, `p.db`, `p.auth`, etc.
 - `PlatformInstance<M>` is a **structural type** (not tied to a specific class) used by the CLI for dynamic loading. Use the platform-specific instance types (`SingleTenantPlatformInstance<M>`, etc.) for typed access including `run()`.
-- Shared types (`Unit`, `Module`, `PlatformUnits`, `UnitAccessors`, `ModuleAccessors`) are defined in `src/server/index.ts`. Each platform file imports them via `import type`.
+- Shared types (`Unit`, `Module`, `PlatformUnits`, `UnitAccessors`, `ModuleAccessors`, `ModuleInfra`) are defined in `src/server/index.ts`. `BasePlatform` and `CommonConfig` are exported from `src/server/base-platform.ts`.
+- `SingleTenantPlatform` and `SharedTenantPlatform` constructors `console.warn` that the architecture is EXPERIMENTAL.
 
-### Client: single `Framework` class
+### Client: single `Platform` class
 
-The client (`src/client/index.ts`) still has a single `Framework` class with `Platform.create(config, modules)`. It has 3 units (`auth`, `logs`, `rpc`), no tenancy, no DB. Uses `$` prefix on lifecycle methods like the server.
+The client (`src/client/index.ts`) has a single `Platform` class with `Platform.create(config, modules)`. It has 3 units (`auth`, `logs`, `rpc`), no tenancy, no DB. Uses `$` prefix on lifecycle methods like the server.
 
 ### Units vs Modules
 
 - **Unit**: `{ readonly $name: string; $cleanup(): Promise<void>; $prepareInfra?(): Promise<void> }` — `$` prefix on all lifecycle methods.
-- **Module**: `{ readonly $name: N; readonly $dependencies: readonly string[]; $initialize?(units: Record<string, Unit>): void; $prepareInfra(): ModuleInfra; $prepareRuntime(): void | Promise<void>; $prepareTenant?(tenantId: string): Promise<void>; $cleanup(): void | Promise<void> }`.
+- **Module**: `{ readonly $name: N; readonly $dependencies: readonly string[]; $initialize(units: Record<string, Unit>): void; $prepareInfra(): ModuleInfra; $prepareRuntime(): void | Promise<void>; $prepareTenant?(tenantId: string): Promise<void>; $cleanup(): void | Promise<void> }`.
 - Both interfaces are defined in `src/server/index.ts` and `src/client/index.ts` — no separate types file.
 
 ### ModuleInfra
@@ -139,7 +140,7 @@ Modules declare their infrastructure needs via `$prepareInfra()`:
 
 ```ts
 type ModuleInfra = {
-  auth: { acl: Record<string, { allowedActions: string[] }> };
+  auth: { acl: Record<string, readonly string[]> };
   db: {
     control_plane_schemas: Record<string, unknown>;
     tenant_schemas: Record<string, unknown>;
@@ -156,18 +157,18 @@ The platform merges all module infra during `prepareInfra()`:
 
 ### Lifecycle
 
-1. `SingleTenantPlatform.create(config, modules)` → instantiates units, calls `mod.$initialize?.(units)` on each module, returns proxy
-2. `f.prepareInfra()` → calls `unit.$prepareInfra?.()` on units, collects `mod.$prepareInfra()` from modules, merges control_plane_schemas/tenant_schemas/acl, calls `db.prepareWithModules(controlPlaneSchemas, tenantSchemas)`, then calls `mod.$prepareRuntime?.()` on each module
-3. `f.run(fn)` → executes `fn` inside `AsyncLocalStorage` providing `{ auth, db, pubsub }`
-4. `f.destroy()` → calls `mod.$cleanup()` then `unit.$cleanup()`
+1. `SingleTenantPlatform.create(config, modules)` → `BasePlatform.createCore()` instantiates units, validates module deps, calls `mod.$initialize?.(units)`, returns proxy
+2. `p.$prepareInfra()` → calls `unit.$prepareInfra?.()` on units, collects `mod.$prepareInfra()` from modules, merges control_plane_schemas/tenant_schemas/acl, calls `db.prepareWithModules(controlPlaneSchemas, tenantSchemas)`, then calls `mod.$prepareRuntime?.()` on each module
+3. `p.run(fn)` → executes `fn` inside `AsyncLocalStorage` via `runInContext()` — `getContext()` returns `{ auth, db, pubsub, tenantId?, actorId? }` where `db` is a `NodePgDatabase` (controlPlaneDb by default, or tenant-specific in shared/isolated mode)
+4. `p.$cleanup()` → calls `mod.$cleanup()` then `unit.$cleanup()`
 
 ### Multi-tenancy
 
 - **Single**: one DB, no tenant scoping. `run(fn)`. No mode-specific `prepareInfra()` logic.
 - **Shared**: one DB with row-level security. `prepareInfra()` applies RLS policies via `DatabaseUnit.applyRlsPolicies()`. `run(tenantId, fn)` opens a transaction, sets `app.tenant_id` + `SET LOCAL ROLE tenant_role`, creates a per-call drizzle instance.
-- **Isolated**: DB-per-tenant. Requires `TenantResolver` (`{ list(), resolve(tenantId) → DatabaseConfig }`). `prepareInfra()` iterates tenants and calls `$prepareTenant()` per module. `run(tenantId, fn)` resolves and connects to the tenant DB.
+- **Isolated**: DB-per-tenant. Uses a `TenantResolver` (`{ list(): Promise<string[]>, resolve(tenantId): Promise<string> }`). `prepareInfra()` iterates tenants and calls `$prepareTenant()` per module. `run(tenantId, fn)` resolves and connects to the tenant DB (global tenant IDs use the controlPlaneDb).
 
-`DatabaseUnit` exposes `tenancyMode`, `controlPlaneDb`, `resolver`, `pool`, `applyRlsPolicies()`. `f.tenancyMode` reads through to the db unit.
+`DatabaseUnit` exposes `tenancyMode`, `controlPlaneDb`, `resolver`, `pool`, `applyRlsPolicies()`. `p.tenancyMode` reads through to the db unit.
 
 ### Core units (created by each platform's `create()` via `new`)
 
@@ -183,7 +184,7 @@ All are classes with constructor-injected deps:
 | rpc | `RpcUnit` | `src/server/rpc/` | `{ auth, db, logs, pubsub }` |
 | kvStore | `KvStoreUnit` | `src/server/kv-store/` | `{ db }` |
 
-Server `src/server/` also has `tenancy/`, `workflows/`, `context.ts`, `bun-compat.ts`. Client `src/client/` has `auth`, `rpc`, `log`, `context.ts` only.
+Server `src/server/` also has `workflows/`, `context.ts`, `bun-compat.ts`. Client `src/client/` has `auth`, `rpc`, `log`, `context.ts` only.
 
 ### Workflows (framework-level)
 
@@ -214,7 +215,7 @@ const myWorkflow = Workflow.name("my-workflow")
 
 `AuthUnit` exposes: `$db_schema` (auth Drizzle schema), `auth` (raw betterAuth `Auth` instance), `fetch_handler(request)`, `user` getter (`{ create, delete, get, update, role: { assign, unassign } }`), `session` getter (`{ create, validate, invalidate }`), `role` getter (`{ list, delete }`).
 
-`AuthConfig` requires: `access_control`, `roles`, `baseURL`, `secret`, `session{expiresIn?}`; optional `socialProviders.google`. These are passed to betterAuth via the `admin()` plugin.
+`AuthConfig` requires: `baseURL`, `secret`, `session{expiresIn?}`; optional `socialProviders.google`, `cfSecretKey`. ACL is NOT part of `AuthConfig` — modules declare ACL via `defineAcl()` and the platform applies it during `prepareInfra()` through `AuthUnit.applyModuleAcl()`.
 
 ## Domain Module Pattern
 
@@ -236,7 +237,7 @@ class MyModule implements Module {
   // Declare infra needs — called during prepareInfra()
   $prepareInfra(): ModuleInfra {
     return {
-      auth: { acl: { /* resource: { allowedActions: [...] } */ } },
+      auth: { acl: { /* resource: ["action1", "action2", ...] */ } },
       db: { control_plane_schemas: cpTables, tenant_schemas: tTables },
       events: { myModule: MY_EVENTS },
     };
@@ -252,7 +253,7 @@ class MyModule implements Module {
     await this.#pubsub?.schedule(TOPIC, CRON);
   }
 
-  // Unregister and null out — called during destroy()
+  // Unregister and null out — called during $cleanup()
   async $cleanup(): Promise<void> {
     this.#workflow = null;
   }
@@ -298,6 +299,6 @@ class MyModule implements Module {
 
 ## Current State
 
-- `organization`, `compliance`, `tasks`, `drive`, and `management-plane` are fully implemented domain modules. `hr` is a scaffold. All other domain packages are pure stubs.
+- `organization`, `compliance`, `tasks`, `drive`, and `management-plane` are fully implemented domain modules. `hr` is partially implemented — workflows and schemas are wired but the module class doesn't declare `implements Module` and lacks `$prepareRuntime()`. All other domain packages are pure stubs.
 - No CI/CD, no Docker for the platform, no deployment config beyond `docs-www`'s `wrangler.jsonc`.
 - No tests for the platform or domain modules. `recruiter` has `vitest` + `@testing-library` in devDeps but no `test` script.

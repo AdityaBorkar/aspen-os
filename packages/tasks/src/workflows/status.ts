@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { parse } from "valibot";
 
@@ -103,7 +103,7 @@ export class StatusWorkflow {
     return this.db
       .select()
       .from(status)
-      .where(eq(status.projectId, null as unknown as string))
+      .where(isNull(status.projectId))
       .orderBy(asc(status.sortOrder));
   }
 
@@ -168,16 +168,13 @@ export class StatusWorkflow {
   }
 
   private async unsetDefault(projectId: string | null): Promise<void> {
-    if (projectId) {
-      await this.db
-        .update(status)
-        .set({ isDefault: false })
-        .where(eq(status.projectId, projectId));
-    } else {
-      await this.db
-        .update(status)
-        .set({ isDefault: false })
-        .where(eq(status.projectId, null as unknown as string));
-    }
+    await this.db
+      .update(status)
+      .set({ isDefault: false })
+      .where(
+        projectId === null
+          ? isNull(status.projectId)
+          : eq(status.projectId, projectId),
+      );
   }
 }

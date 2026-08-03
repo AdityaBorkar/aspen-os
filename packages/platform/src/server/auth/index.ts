@@ -10,6 +10,21 @@ import { createSessionServices } from "./services/session";
 import { createUserServices } from "./services/user";
 import type { AuthConfig, AuthServiceDeps } from "./types";
 
+type AuthApi = Auth["api"];
+
+type AdminAuthApi = AuthApi & {
+  createOrganization: (input: unknown) => Promise<{ id: string }>;
+  createUser: (input: {
+    body: {
+      email: string;
+      name: string;
+      password: string;
+      role: string;
+    };
+  }) => Promise<{ user: { id: string; email: string; role?: string } }>;
+  deleteOrganization: (input: unknown) => Promise<void>;
+};
+
 export type { AclDeclaration } from "./acl";
 export { defineAcl } from "./acl";
 export type { AuthEventMap } from "./event-map";
@@ -39,13 +54,13 @@ export class AuthUnit {
     this.config = config;
     this.dbUnit = units.db;
 
-    const auth = buildAuthConfig(config, units.db) as unknown as Auth;
+    const auth = buildAuthConfig(config, units.db);
     this.auth = auth;
 
     this.deps = {
       auth: this.auth,
       db: units.db.controlPlaneDb,
-      pubsub: undefined as unknown as PubSubUnit,
+      pubsub: null,
     };
   }
 
@@ -59,11 +74,7 @@ export class AuthUnit {
 
   applyModuleAcl(acl: Record<string, readonly string[]>): void {
     const access_control = createAccessControl(acl);
-    const auth = buildAuthConfig(
-      this.config,
-      this.dbUnit,
-      access_control,
-    ) as unknown as Auth;
+    const auth = buildAuthConfig(this.config, this.dbUnit, access_control);
 
     (this as { auth: Auth }).auth = auth;
     this.deps.auth = this.auth;
@@ -84,18 +95,14 @@ export class AuthUnit {
   async createOrganization(input: {
     body: { logo?: string; name: string; slug: string; userId: string };
   }): Promise<{ id: string }> {
-    const api = this.auth.api as unknown as {
-      createOrganization: (input: unknown) => Promise<{ id: string }>;
-    };
+    const api = this.auth.api as AdminAuthApi;
     return api.createOrganization(input);
   }
 
   async deleteOrganization(input: {
     body: { organizationId: string };
   }): Promise<void> {
-    const api = this.auth.api as unknown as {
-      deleteOrganization: (input: unknown) => Promise<void>;
-    };
+    const api = this.auth.api as AdminAuthApi;
     await api.deleteOrganization(input);
   }
 
@@ -107,16 +114,7 @@ export class AuthUnit {
       role: string;
     };
   }): Promise<{ user: { id: string; email: string; role?: string } }> {
-    const api = this.auth.api as unknown as {
-      createUser: (input: {
-        body: {
-          email: string;
-          name: string;
-          password: string;
-          role: string;
-        };
-      }) => Promise<{ user: { id: string; email: string; role?: string } }>;
-    };
+    const api = this.auth.api as AdminAuthApi;
     return api.createUser(input);
   }
 

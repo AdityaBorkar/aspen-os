@@ -19,19 +19,19 @@ export function createRoleServices(deps: AuthServiceDeps) {
       .returning();
 
     if (!row) throw new Error(`User "${userId}" not found`);
-    await pubsub.publishControlPlane("role:assigned", { roleName, userId });
+    await pubsub?.publishControlPlane("role:assigned", { roleName, userId });
   }
 
   async function unassign({ userId }: { userId: string }): Promise<void> {
     const { db, pubsub } = deps;
     await db.update(user).set({ role: null }).where(eq(user.id, userId));
-    await pubsub.publishControlPlane("role:unassigned", { userId });
+    await pubsub?.publishControlPlane("role:unassigned", { userId });
   }
 
   async function remove({ name }: { name: string }): Promise<void> {
     const { db, pubsub } = deps;
     await db.update(user).set({ role: null }).where(eq(user.role, name));
-    await pubsub.publishControlPlane("role:deleted", { roleName: name });
+    await pubsub?.publishControlPlane("role:deleted", { roleName: name });
   }
 
   async function list(): Promise<RoleData[]> {

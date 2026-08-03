@@ -6,7 +6,7 @@ import type { PubSubUnit } from "../pubsub";
 export interface AuthServiceDeps {
   auth: Auth;
   db: NodePgDatabase<Record<string, never>>;
-  pubsub: PubSubUnit;
+  pubsub: PubSubUnit | null;
 }
 
 export interface User {

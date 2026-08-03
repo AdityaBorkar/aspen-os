@@ -35,7 +35,7 @@ export class SingleTenantPlatform<M extends Module[]> extends Base<M> {
     return new SingleTenantPlatform<M>(
       core.units,
       core.modules,
-    ) as unknown as SingleTenantPlatformInstance<M>;
+    ) as SingleTenantPlatformInstance<M>;
   }
 
   async run<T>(fn: () => T | Promise<T>): Promise<T> {

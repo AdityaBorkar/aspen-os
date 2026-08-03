@@ -82,7 +82,7 @@ export class ObligationWorkflow {
       action: "created",
       entityId: result.id,
       entityType: "compliance_obligation",
-      newState: result as unknown as Record<string, unknown>,
+      newState: result,
       performedBy: parsed.createdBy,
     });
 
@@ -153,10 +153,12 @@ export class ObligationWorkflow {
     if (!updated) throw new Error("Database operation returned no result");
 
     const changes: Record<string, { new: unknown; old: unknown }> = {};
+    const oldRecord = current as unknown as Record<string, unknown>;
+    const newRecord = updated as unknown as Record<string, unknown>;
     for (const key of Object.keys(updateData)) {
       if (key === "updatedAt") continue;
-      const oldVal = (current as unknown as Record<string, unknown>)[key];
-      const newVal = (updated as unknown as Record<string, unknown>)[key];
+      const oldVal = oldRecord[key];
+      const newVal = newRecord[key];
       if (oldVal !== newVal) {
         changes[key] = { new: newVal, old: oldVal };
       }
@@ -167,9 +169,9 @@ export class ObligationWorkflow {
       changes,
       entityId: id,
       entityType: "compliance_obligation",
-      newState: updated as unknown as Record<string, unknown>,
+      newState: updated,
       performedBy: current.createdBy,
-      previousState: current as unknown as Record<string, unknown>,
+      previousState: current,
     });
 
     await this.pubsub.publish(COMPLIANCE_EVENTS.OBLIGATION_UPDATED, {

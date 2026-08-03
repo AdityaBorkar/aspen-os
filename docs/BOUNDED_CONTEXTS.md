@@ -59,18 +59,18 @@
 │  ┌───────────────┐  ┌───────────────┐     └───────────────┘   │
 │  │ Tasks         │  │ Drive         │     ┌───────────────┐   │
 │  │ Module        │  │ Module        │     │ HR Module     │   │
-│  │ 11 workflows  │  │ 6 workflows   │     │ (incomplete)   │   │
+│  │ 11 workflows  │  │ 6 workflows   │     │ (partial)     │   │
 │  │ 4 services    │  │ 5 services     │     │ 8 workflows    │   │
-│  │ 17 tables     │  │ 8 tables       │     │ 44 tables      │   │
-│  │ 10 events     │  │ 14 events      │     │ 0 events       │   │
-│  │ units:        │  │ units:         │     │ module class   │   │
-│  │  db, pubsub   │  │  db, storage,  │     │ not wired      │   │
+│  │ 17 tables     │  │ 8 tables       │     │ 50 tables      │   │
+│  │ 10 events     │  │ 14 events      │     │ 43 events      │   │
+│  │ units:        │  │ units:         │     │ not fully      │   │
+│  │  db, pubsub   │  │  db, storage,  │     │ conformant     │   │
 │  │               │  │  pubsub         │     └───────────────┘   │
 │  └───────────────┘  └───────────────┘                          │
 │  ┌───────────────────────────┐                                   │
 │  │ Management Plane          │                                   │
 │  │ Module                    │                                   │
-│  │ 4 workflows               │                                   │
+│  │ 3 workflows               │                                   │
 │  │ 3 tables                  │                                   │
 │  │ 16 events                 │                                   │
 │  │ deps: organization        │                                   │
@@ -98,13 +98,13 @@
 
 **Shared between**: All units and modules
 
-**Contents** (inline in `packages/framework/src/server/index.ts` and `packages/framework/src/client/index.ts`):
+**Contents** (inline in `packages/platform/src/server/index.ts` and `packages/platform/src/client/index.ts`):
 - `Unit` interface — `{ readonly $name: string, $cleanup(): Promise<void>, $prepareInfra?(): Promise<void> }`
 - `Module` interface — `{ readonly $name: N, readonly $dependencies: readonly string[], $initialize(units: Record<string, Unit>): void, $prepareInfra(): ModuleInfra, $prepareRuntime(): void | Promise<void>, $prepareTenant?(tenantId: string): Promise<void>, $cleanup(): void | Promise<void> }`
 
 Both server and client use the `$` prefix for lifecycle methods and the name property.
 
-**Note**: There is no separate `types.ts` file. The interfaces are defined inline at the top of each framework entry point. `DatabaseConfig`, `AuthConfig`, `LogConfig`, etc. live in their respective unit directories.
+**Note**: There is no separate `types.ts` file. The interfaces are defined inline at the top of each platform entry point. `DatabaseConfig`, `AuthConfig`, `LogConfig`, etc. live in their respective unit directories.
 
 **Rules**:
 - Changes to the shared kernel require coordinated updates across all units
@@ -167,9 +167,9 @@ DatabaseUnit ← KvStoreUnit
 
 **Role model**: Roles are stored as a plain `text` column on the `user` table — not as separate entities. Access control statements are defined at the application level via `createAccessControl`, not at the platform level.
 
-**Access control flow**: `access_control` and `roles` from `AuthConfig` are destructured out of the top-level config to avoid being spread into `betterAuth()` as top-level options. They ARE passed to better-auth via the `admin({ ac: access_control, roles })` plugin. The client AuthUnit receives them via the `adminClient()` plugin.
+**Access control flow**: `AuthConfig` does NOT include `access_control` or `roles` fields. Instead, modules declare their ACL via `defineAcl()` (returning an `AclDeclaration` — a `Record<string, readonly string[]>`). During `prepareInfra()`, the platform merges all module ACLs and calls `AuthUnit.applyModuleAcl(mergedAcl)`, which creates an `AccessControl` via `createAccessControl` (from better-auth) and rebuilds the better-auth instance with the `admin({ ac: accessControl })` plugin. The initial `AuthUnit` construction does not include the admin plugin.
 
-**Auth plugins**: `admin`, `username`, `phoneNumber`, `lastLoginMethod`, `twoFactor`, `passkey`, and optionally `captcha` (when `cfSecretKey` is provided).
+**Auth plugins**: `admin` (applied during `prepareInfra()` via `applyModuleAcl`, not at construction), `organization`, `username`, `phoneNumber`, `emailOTP`, `apiKey`, `lastLoginMethod`, `twoFactor`, `passkey`, and optionally `captcha` (when `cfSecretKey` is provided).
 
 **Risk**: Auth domain is tightly coupled to better-auth's type system and plugin API. Migration away would require significant rework.
 
@@ -311,11 +311,11 @@ SingleTenantPlatform.create(config, { organization })
 
 **Config**: `DriveModuleConfig = { allowedContentTypes?, maxFileSize?, maxNestingDepth?, maxVersions?, trashRetentionDays?, ... }`
 
-### 14. Downstream: HR Module → Platform (Incomplete)
+### 14. Downstream: HR Module → Platform (Partial)
 
-**Relationship**: HR module will implement the `Module` interface and receive unit dependencies. Currently incomplete.
+**Relationship**: HR module implements most of the `Module` interface and receives unit dependencies via `$initialize(units)`. Partially conformant.
 
-**Current state**: 8 workflow files (`access.ts`, `attendance.ts`, `employee.ts`, `leave.ts`, `lifecycle.ts`, `overtime.ts`, `setup.ts`, `shift.ts`) with ~235 public methods across 44 database tables. However, the `HrModule` class is non-conformant: no `$name` property, no `static create()` factory, `$initialize()` takes no arguments, workflows are not instantiated or exposed by the module, `event-map.ts` is empty, and `db_schema` export is named `dbSchemas` instead of `db_schema`.
+**Current state**: 8 workflow files (`access.ts`, `attendance.ts`, `employee.ts`, `leave.ts`, `lifecycle.ts`, `overtime.ts`, `setup.ts`, `shift.ts`) with ~235 public methods across 50 database tables. The `HrModule` class has `$name = "hr"`, `static create()`, `$initialize()` (wires all 8 workflows with `units.db.db`), `$prepareInfra()` (returns full `ModuleInfra` with ACL, 14 control-plane schemas + 36 tenant schemas, and 8 event groups), and `$cleanup()`. However, it does NOT declare `implements Module` and lacks `$prepareRuntime()`. The HR event map defines 43 events across 8 groups (`EmployeeEventMap`, `AttendanceEventMap`, `LeaveEventMap`, `LifecycleEventMap`, `OvertimeEventMap`, `SetupEventMap`, `ShiftEventMap`, `AccessEventMap`), all combined into `HrEventMap`.
 
 ### 15. Downstream: Management Plane Module → Platform
 
@@ -323,8 +323,9 @@ SingleTenantPlatform.create(config, { organization })
 
 **Structure** (`packages/management-plane/`):
 - `ManagementPlane.create(config)` — factory that returns a Module instance
-- `$name = "management-plane"`, `$dependencies = ["organization"]`
-- 4 workflows: `TenantWorkflow` (onboard, get, list, update), `ServiceProviderWorkflow` (create, get, list, update, activate, deactivate, getAssignedTenants, getUsers), `PlatformUserWorkflow` (create, get, list, update, delete, assignRole, assignToServiceProvider), `ProvisioningWorkflow` (provisionTenant step)
+- `$name = "management"`, `$dependencies = ["organization"]`
+- 3 workflow modules: `TenantWorkflow` (onboard, get, list, update, activate, suspend, reactivate, churn, assignSP, unassignSP), `ServiceProviderWorkflow` (create, get, list, update, activate, deactivate, getAssignedTenants, getUsers), `PlatformUserWorkflow` (create, get, list, update, delete, assignRole, assignToServiceProvider)
+- 1 shared workflow step: `logAuditStep` (audit logging across all workflows)
 - 3 owned database tables (pushed via `$prepareInfra()`): `audit_log`, `service_provider`, `tenant`
 - 4 query-only table definitions (NOT pushed — shadow auth tables for joins): `user`, `member`, `organization`, `session`
 - 16 domain events: 8 tenant + 4 service_provider + 4 platform_user
@@ -338,20 +339,20 @@ SingleTenantPlatform.create(config, { organization })
 
 **Roles**: `platform_admin`, `sp_user`, `tenant_admin`, `tenant_user`
 
-**Exposed on platform instance**: `f.managementPlane.tenants`, `f.managementPlane.serviceProviders`, `f.managementPlane.users`
+**Exposed on platform instance**: `f.management.tenants`, `f.management.serviceProviders`, `f.management.users`
 
 ### 16. Client Platform
 
 **Exported as**: `@aspen-os/platform/client`
 
-**Relationship**: A separate client `Framework` class for browser-side use with 3 units:
+**Relationship**: A separate client `Platform` class (not `Framework` — the client class was renamed) for browser-side use with 3 units:
 - `AuthUnit` — wraps better-auth React client with plugins (admin, emailOTP, username, phoneNumber)
-- `LogUnit` — stub (throws on `$prepareInfra()`/`$cleanup()`)
+- `LogsUnit` — stub (stores config only, no logging methods)
 - `RpcUnit` — stub (no-op)
 
-**No database dependency**: Client framework has no `DatabaseUnit`, `PubSubUnit`, `StorageUnit`, or `KvStoreUnit`.
+**No database dependency**: Client platform has no `DatabaseUnit`, `PubSubUnit`, `StorageUnit`, or `KvStoreUnit`.
 
-**No `run()` method**: Client framework has no `AsyncLocalStorage` — the `client/context.ts` file is empty.
+**Context**: The client has `setContext()`/`getContext()` in `client/context.ts` (module-level variable, not `AsyncLocalStorage`). No `run()` method.
 
 ## Integration Patterns
 
@@ -412,7 +413,7 @@ Event counts by module:
 - Tasks: 10 events
 - Drive: 14 events
 - Management Plane: 16 events (8 tenant + 4 service_provider + 4 platform_user)
-- HR: 0 events (event map empty)
+- HR: 43 events (8 event groups across employee, attendance, leave, lifecycle, overtime, setup, shift, access)
 
 Event maps are type-level contracts (`*EventMap` types), not runtime type-safe buses. Workflows publish via `pubsub.publish("topic_string", payload)`.
 
@@ -431,7 +432,7 @@ The Compliance module's `EventBridge` service actively subscribes to events from
 
 ### Schema Management
 
-Modules declare their DB schemas via `$prepareInfra()` (returns `{ db: { schemas } }`). The platform collects all module schemas and applies them centrally via `DatabaseUnit.prepareWithModules()`:
+Modules declare their DB schemas via `$prepareInfra()` (returns `{ db: { control_plane_schemas, tenant_schemas } }`). The platform collects all module schemas and applies them centrally via `DatabaseUnit.prepareWithModules()`:
 
 ```
 Platform.prepareInfra()
@@ -444,7 +445,7 @@ Platform.prepareInfra()
     → [shared only] db.applyRlsPolicies()
 ```
 
-Schemas collected by `DatabaseUnit.prepareWithModules()`: core schemas (`authSchema`, `logSchema`, `storageSchema`, `kvStoreSchema`, `workflowSchema`) merged with module `db.schemas` from `$prepareInfra()`.
+Schemas collected by `DatabaseUnit.prepareWithModules()`: core schemas (`authSchema`, `logSchema`, `storageSchema`, `kvStoreSchema`, `workflowSchema`) merged with module `db.control_plane_schemas` and `db.tenant_schemas` from `$prepareInfra()`.
 
 ### Scheduled Jobs
 
@@ -478,8 +479,8 @@ Two modules register scheduled cron jobs via PubSub:
 | Compliance | Downstream | Platform, HR, Organization, Fleet, Accounting | — | 5 workflows, 4 tables, subscribes to external events |
 | Tasks | Downstream | Platform | — | 11 workflows, 17 tables |
 | Drive | Downstream | Platform, Storage | — | 6 workflows, 8 tables |
-| Management Plane | Downstream | Platform, Organization | — | 4 workflows, 3 tables, 16 events, has build step |
-| HR | Downstream (incomplete) | Platform | Compliance | 8 workflows (unwired), 44 tables |
+| Management Plane | Downstream | Platform, Organization | — | 3 workflows, 3 tables, 16 events, has build step |
+| HR | Downstream (partial) | Platform | Compliance | 8 workflows, 50 tables, 43 events, not fully conformant |
 | Accounting | Stub | — | — | Package.json only |
 | CRM | Stub | — | — | Package.json only |
 | Fleet | Stub | — | — | Package.json only |

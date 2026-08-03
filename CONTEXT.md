@@ -10,9 +10,9 @@ Aspen OS is a business application framework built on Bun/TypeScript. The platfo
 A server-side orchestrator class. The platform exports three self-contained classes — `SingleTenantPlatform`, `SharedTenantPlatform`, `IsolatedTenantPlatform` — one per tenancy architecture. Each has its own `create()` static factory, config type, and `run()` signature. Created via `Platform.create(config, modules)`, which instantiates all Units, validates module `$dependencies`, calls `module.$initialize(units)` on each module, and returns a proxy-wrapped instance. Lifecycle: `create()` → `prepareInfra()` → `run()` → `destroy()`.
 _Avoid_: Framework (on the server — that name is reserved for the client class), App, Container, DI Container
 
-**Framework** (client only):
+**Platform** (client only):
 The client-side orchestrator class. Created via `Platform.create(config, modules)` with 3 units (auth, logs, rpc). No database, no tenancy. The server has no `Framework` class — use a Platform class instead.
-_Avoid_: Platform (on the client)
+_Avoid_: Framework (on the client — the class was renamed to `Platform`), App, Container, DI Container
 
 **Unit**:
 An infrastructure building block with a `$name`, a `$cleanup()` method, and an optional `$prepareInfra()` method. Seven core server units: `db`, `auth`, `logs`, `pubsub`, `rpc`, `storage`, `kvStore`. Three client units: `auth`, `logs`, `rpc`. Both server and client Unit interfaces use the `$` prefix for lifecycle methods and the name property.
@@ -58,7 +58,7 @@ Connection parameters: `host`, `port`, `user`, `password`, `database`, `ssl?`, `
 ### Authentication
 
 **AuthUnit**:
-Core unit wrapping better-auth. Exposes a React client, an HTTP handler (`fetch_handler`), and programmatic workflows for user, session, and role management. `access_control` and `roles` from config are destructured out of the top-level spread to avoid being passed as top-level better-auth options, but ARE passed to better-auth via the `admin({ ac: access_control, roles })` plugin.
+Core unit wrapping better-auth. Exposes a React client, an HTTP handler (`fetch_handler`), and programmatic workflows for user, session, and role management. ACL is NOT part of `AuthConfig` — it is applied later during `prepareInfra()` via `AuthUnit.applyModuleAcl(mergedAcl)`, which creates an `AccessControl` from the merged module ACL declarations and rebuilds the better-auth instance with the `admin({ ac: accessControl })` plugin. The initial construction does not include the admin plugin at all.
 _Avoid_: Auth, AuthProvider
 
 **User**:
@@ -66,7 +66,7 @@ An authenticated identity with `id`, `email`, `name`, optional `phoneNumber`, `i
 _Avoid_: Account, Profile
 
 **Session**:
-A time-bounded authentication token tied to a User. Has `id`, `token`, `userId`, `expiresAt`. Cascades delete from User. Expiry is hardcoded at 7 days in the session workflow.
+A time-bounded authentication token tied to a User. Has `id`, `token`, `userId`, `expiresAt`. Cascades delete from User. Expiry is passed to better-auth via `AuthConfig.session.expiresIn` (forwarded in `config-builder.ts`); better-auth handles expiry internally.
 _Avoid_: Token, Login
 
 **Account**:
@@ -78,7 +78,7 @@ A plain text field on the User table. In the Recruiter app, values are `admin`, 
 _Avoid_: Permission Group, Access Level
 
 **Access Control**:
-A declarative statement matrix defining `{ resource: [actions...] }`. Created via `createAccessControl` (from better-auth). Roles are created via `ac.newRole()`. Defined at the application level and passed to both the server AuthUnit (via `admin()` plugin) and the client AuthUnit (via `adminClient()` plugin).
+A declarative statement matrix defining `{ resource: [actions...] }`. Modules declare their ACL via `defineAcl()` (a type-helper from `@aspen-os/platform/server`) returning an `AclDeclaration`. During `prepareInfra()`, the platform merges all module ACLs and calls `AuthUnit.applyModuleAcl(mergedAcl)`, which creates an `AccessControl` via `createAccessControl` (from better-auth) and rebuilds the better-auth instance with the `admin({ ac: accessControl })` plugin. The initial `AuthUnit` construction does not include the admin plugin — ACL is applied only after module infra is collected.
 _Avoid_: Permission Matrix, ACL
 
 **Auth Event**:
@@ -380,7 +380,7 @@ A string identifier for the tenant context of a request. In `single` mode, alway
 _Avoid_: Org ID, Workspace ID, Customer ID
 
 **Tenant Resolver**:
-A function pair provided by the app in `isolated` mode: `resolve(tenantId)` returns the per-tenant database name, `list()` returns all tenant IDs. Used by `DatabaseUnit` to lazily create per-tenant connection pools and by `prepareInfra()` to call `$prepareTenant()` for each tenant at startup. Note: `IsolatedTenantConfig` currently has the `resolver` field commented out — a dummy resolver (`list: async () => [""]`, `resolve: async (id) => id`) is used inline. This is a known WIP gap.
+A function pair provided by the app in `isolated` mode: `resolve(tenantId)` returns the per-tenant database name, `list()` returns all tenant IDs. Used by `DatabaseUnit` to lazily create per-tenant connection pools and by `prepareInfra()` to call `$prepareTenant()` for each tenant at startup. Note: `IsolatedTenantConfig` does NOT include a `resolver` field — a dummy resolver (`list: async () => []`, `resolve: async (id) => id`) is constructed inline in `IsolatedTenantPlatform.create()`. This is a known WIP gap.
 _Avoid_: Tenant Registry, Connection Provider
 
 **Control Plane**:
@@ -436,7 +436,7 @@ A read-only view produced by the Management Plane over the control-plane DB. Fou
 _Avoid_: Dashboard, Analytics, Metric
 
 **Provisioning**:
-The workflow that creates a new Tenant end-to-end, run by the Management Plane module as a `WorkflowStep` named `provision-tenant`. Steps: (1) create the better-auth Organization (the Tenant) via `auth.api.createOrganization()`, (2) resolve DB config from provisioning input + defaults, (3) issue `CREATE DATABASE` against the Postgres server via an admin connection, (4) run `pushSchema()` against the new tenant DB with all module schemas, (5) seed the aspen-os Organization profile row (1:1 with the better-auth org ID, with name/slug/logo), (6) record connection params + status in the control-plane `tenant` table, (7) assign a Service Provider if provided (set FK), (8) publish `tenant:provisioned` event. Sets Tenant status to `onboarding`. Exposed via `f.managementPlane.tenants.onboard()`. Note: `ManagementPlaneConfig` is currently `undefined` — the provisioning step expects a richer config (`tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`) but the type hasn't been defined yet. This is a known WIP gap.
+The workflow that creates a new Tenant end-to-end, run by the Management Plane module as a `WorkflowStep` named `provision-tenant`. Steps: (1) create the better-auth Organization (the Tenant) via `auth.api.createOrganization()`, (2) resolve DB config from provisioning input + defaults, (3) issue `CREATE DATABASE` against the Postgres server via an admin connection, (4) run `pushSchema()` against the new tenant DB with all module schemas, (5) seed the aspen-os Organization profile row (1:1 with the better-auth org ID, with name/slug/logo), (6) record connection params + status in the control-plane `tenant` table, (7) assign a Service Provider if provided (set FK), (8) publish `tenant:provisioned` event. Sets Tenant status to `onboarding`. Exposed via `f.management.tenants.onboard()`. Note: `ManagementPlaneConfig` is currently `undefined` — the provisioning step expects a richer config (`tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`) but the type hasn't been defined yet. This is a known WIP gap.
 _Avoid_: Onboarding (that's the Tenant Status stage AFTER provisioning), Setup, Initialization
 
 ## Context Relationships
@@ -476,11 +476,11 @@ _Avoid_: Onboarding (that's the Tenant Status stage AFTER provisioning), Setup, 
 ┌──────────┐ ┌──────────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────────┐
 │Organizat.│ │   Compliance     │ │    Tasks     │ │    Drive     │ │     HR       │ │ Management Plane │
 │  Module  │ │    Module        │ │   Module     │ │   Module     │ │   Module     │ │     Module       │
-│          │ │                  │ │              │ │              │ │ (scaffold)   │ │                  │
-│5 workflows│ │ 5 workflows     │ │ 11 workflows│ │ 6 workflows  │ │ 8 workflows  │ │ 4 workflows      │
+│          │ │                  │ │              │ │              │ │ (partial)    │ │                  │
+│5 workflows│ │ 5 workflows     │ │ 11 workflows│ │ 6 workflows  │ │ 8 workflows  │ │ 3 workflows      │
 │7 tables  │ │ 5 services       │ │ 4 services   │ │ 5 services   │ │ 0 services   │ │ 3 tables         │
-│11 events │ │ 4 tables         │ │ 17 tables    │ │ 8 tables     │ │ 44 tables    │ │ 16 events        │
-│          │ │ 23 events        │ │ 10 events    │ │ 14 events    │ │ 0 events     │ │ deps: organization│
+│11 events │ │ 4 tables         │ │ 17 tables    │ │ 8 tables     │ │ 50 tables    │ │ 16 events        │
+│          │ │ 23 events        │ │ 10 events    │ │ 14 events    │ │ 43 events    │ │ deps: organization│
 │units:    │ │                  │ │              │ │              │ │              │ │                  │
 │db, pubsub│ │ units:           │ │ units:       │ │ units:       │ │ units:       │ │ units:           │
 │          │ │ db, kvStore,     │ │ db, pubsub  │ │ db, storage, │ │ db, pubsub  │ │ db, auth, pubsub │
@@ -497,19 +497,14 @@ Stubs (package.json only — no source): accounting, crm, fleet, inventory, repo
 ## Known Gaps
 
 1. **`RoleUnassignedEvent` missing `roleName`** — unlike `RoleAssignedEvent` which has `{ roleName, userId }`, the unassigned event only has `{ userId }`.
-2. **Session expiry hardcoded at 7 days** — `AuthConfig.session.expiresIn` is accepted but not read by the session workflow. The 7-day value is hardcoded in `session.ts`.
-3. **PubSub `boss.start()` not awaited** — the constructor calls `this.boss.start()` without `await`, which could cause race conditions if `publish`/`subscribe` are called before the connection is established.
-4. **Client LogUnit `$prepareInfra()` and `$cleanup()` throw** — the client LogUnit is a stub that throws on lifecycle methods.
-5. **`client/context.ts` is empty** — the client framework has no `run()` method or `AsyncLocalStorage`.
-6. **`increment()`/`decrement()` on KvStoreUnit are not atomic** — read-modify-write, not database-level atomic ops.
-7. **No DB-level foreign key constraints in compliance, tasks, or drive modules** — all cross-table references are logical (soft FKs by naming convention), not enforced by the database.
-8. **HR module has no services** — all business logic lives in workflow classes. Cross-cutting concerns (e.g., notification, audit) are not yet extracted into services. Module class is non-conformant (no `$name`, no `static create()`, workflows not wired).
-9. **Compliance services `audit-writer` and `status-derivation` exist as files but are not instantiated** in the module class — only `event-bridge`, `obligation-generator`, and `reminder-engine` are wired.
-10. **Tasks services `dependency-graph` and `filter-engine` exist as files but are not instantiated** in the module class — only `notification-bridge` and `report-service` are wired.
-11. **`SingleTenantPlatform` is EXPERIMENTAL** — constructor emits `console.warn("Single Tenant Architecture is currently EXPERIMENTAL")`.
-12. **`IsolatedTenantConfig` resolver is commented out** — a dummy resolver (`list: async () => [""]`, `resolve: async (id) => id`) is used inline instead of accepting a real `TenantResolver`.
-13. **`ManagementPlaneConfig` is `undefined`** — the provisioning workflow expects a richer config (`tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`) but the type hasn't been defined yet.
-14. **`hello` type export in server index** — `packages/framework/src/server/index.ts` exports `type hello = "world"` — a leftover that should be removed.
+2. **No DB-level foreign key constraints in domain modules** — all cross-table references in compliance, tasks, drive, organization, and management-plane are logical (soft FKs by naming convention), not enforced by the database.
+3. **HR module does not declare `implements Module`** — `HrModule` has `$name`, `static create()`, wired workflows, `$prepareInfra()`, and `$cleanup()`, but does not declare `implements Module` and lacks `$prepareRuntime()`. The class is substantially implemented but not fully conformant.
+4. **Compliance services `audit-writer` and `status-derivation` exist as files but are not instantiated** in the module class — only `event-bridge`, `obligation-generator`, and `reminder-engine` are wired.
+5. **Tasks services `dependency-graph` and `filter-engine` exist as files but are not instantiated** in the module class — only `notification-bridge` and `report-service` are wired.
+6. **`SingleTenantPlatform` is EXPERIMENTAL** — constructor emits `console.warn("Single Tenant Architecture is currently EXPERIMENTAL")`.
+7. **`IsolatedTenantConfig` has no `resolver` field** — a dummy resolver (`list: async () => []`, `resolve: async (id) => id`) is constructed inline in `IsolatedTenantPlatform.create()` instead of accepting a real `TenantResolver` via config.
+8. **`ManagementPlaneConfig` is `undefined`** — the provisioning workflow expects a richer config (`tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`) but the type hasn't been defined yet.
+9. **Management Plane `$name` is `"management"`** — the module's `$name` is `"management"`, not `"management-plane"` as the package name suggests. Proxy accessor is `f.management`, not `f.managementPlane`.
 
 ## Anti-Patterns
 

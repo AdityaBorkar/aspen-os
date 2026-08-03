@@ -44,7 +44,7 @@ export class VerificationWorkflow {
       action: "created",
       entityId: result.id,
       entityType: "verification_rule",
-      newState: result as unknown as Record<string, unknown>,
+      newState: result,
     });
 
     return result;
@@ -81,8 +81,8 @@ export class VerificationWorkflow {
       action: "updated",
       entityId: id,
       entityType: "verification_rule",
-      newState: updated as unknown as Record<string, unknown>,
-      previousState: current as unknown as Record<string, unknown>,
+      newState: updated,
+      previousState: current,
     });
 
     return updated;

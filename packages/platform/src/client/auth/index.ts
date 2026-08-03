@@ -56,6 +56,6 @@ export class AuthUnit implements Unit<AuthConfig> {
         // captchaClient(),
         passkeyClient(),
       ],
-    }) as unknown as AuthClient;
+    });
   }
 }

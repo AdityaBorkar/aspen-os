@@ -62,7 +62,7 @@ export class IsolatedTenantPlatform<M extends Module[]> extends Base<M> {
     return new IsolatedTenantPlatform<M>(
       core.units,
       core.modules,
-    ) as unknown as IsolatedTenantPlatformInstance<M>;
+    ) as IsolatedTenantPlatformInstance<M>;
   }
 
   override async $prepareInfra(): Promise<void> {

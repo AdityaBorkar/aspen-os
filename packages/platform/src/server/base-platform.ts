@@ -3,7 +3,12 @@ import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { type AuthConfig, AuthUnit } from "./auth";
 import { context } from "./context";
 import type { DatabaseUnit } from "./db";
-import type { Module, PlatformUnits, TenancyMode } from "./index";
+import type {
+  Module,
+  PlatformUnits,
+  TenancyMode,
+  UnitAccessors,
+} from "./index";
 import { type KvStoreConfig, KvStoreUnit } from "./kv-store";
 import { type LogConfig, LogUnit } from "./log";
 import { type PubSubConfig, PubSubUnit } from "./pubsub";
@@ -23,7 +28,17 @@ export type CommonConfig = {
   storage: StorageConfig;
 };
 
-export abstract class BasePlatform<M extends Module[]> {
+export abstract class BasePlatform<M extends Module[]>
+  implements UnitAccessors
+{
+  declare readonly auth: PlatformUnits["auth"];
+  declare readonly db: PlatformUnits["db"];
+  declare readonly kvStore: PlatformUnits["kvStore"];
+  declare readonly logs: PlatformUnits["logs"];
+  declare readonly pubsub: PlatformUnits["pubsub"];
+  declare readonly rpc: PlatformUnits["rpc"];
+  declare readonly storage: PlatformUnits["storage"];
+
   constructor(
     protected readonly units: PlatformUnits,
     protected readonly modules: M,

@@ -39,7 +39,7 @@ export class SharedTenantPlatform<M extends Module[]> extends Base<M> {
     return new SharedTenantPlatform<M>(
       core.units,
       core.modules,
-    ) as unknown as SharedTenantPlatformInstance<M>;
+    ) as SharedTenantPlatformInstance<M>;
   }
 
   override async $prepareInfra(): Promise<void> {
