@@ -11,6 +11,8 @@ PubSub Events (How to handle migrations?)
 Manually read and simplify the code as much as possible
 Ensure good code architecture
 
+--verbose flag for debugging in the Create Instance
+
 ---
 
 Use the workflows in ManagementPlane to create a web application

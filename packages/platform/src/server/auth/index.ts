@@ -108,9 +108,14 @@ export class AuthUnit {
     };
   }): Promise<{ user: { id: string; email: string; role?: string } }> {
     const api = this.auth.api as unknown as {
-      createUser: (input: unknown) => Promise<{
-        user: { id: string; email: string; role?: string };
-      }>;
+      createUser: (input: {
+        body: {
+          email: string;
+          name: string;
+          password: string;
+          role: string;
+        };
+      }) => Promise<{ user: { id: string; email: string; role?: string } }>;
     };
     return api.createUser(input);
   }
