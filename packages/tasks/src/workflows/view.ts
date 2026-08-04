@@ -6,137 +6,157 @@ import { savedView } from "../db-schema";
 import type { CreateSavedViewInput, UpdateSavedViewInput } from "../types";
 import { CreateSavedViewSchema, UpdateSavedViewSchema } from "../types";
 
-export class ViewWorkflow {
-  constructor(private readonly db: NodePgDatabase) {}
+type ViewType = "list" | "board" | "calendar" | "timeline";
 
-  async create(input: CreateSavedViewInput) {
-    const parsed = parse(CreateSavedViewSchema, input);
+export interface ViewServiceDeps {
+  db: NodePgDatabase;
+}
 
-    if (parsed.isDefault) {
-      await this.unsetDefault(parsed.ownerId, parsed.projectId ?? null);
-    }
+export async function createSavedView(
+  input: CreateSavedViewInput,
+  deps: ViewServiceDeps,
+) {
+  const { db } = deps;
+  const parsed = parse(CreateSavedViewSchema, input);
 
-    const [result] = await this.db
-      .insert(savedView)
-      .values({
-        filters: parsed.filters ?? null,
-        groupBy: parsed.groupBy ?? null,
-        isDefault: parsed.isDefault ?? false,
-        isShared: parsed.isShared ?? false,
-        name: parsed.name,
-        ownerId: parsed.ownerId,
-        projectId: parsed.projectId ?? null,
-        sort: parsed.sort ?? null,
-        type:
-          (parsed.type as "list" | "board" | "calendar" | "timeline") ?? "list",
-      })
-      .returning();
-
-    return result;
+  if (parsed.isDefault) {
+    await unsetDefault(parsed.ownerId, parsed.projectId ?? null, deps);
   }
 
-  async update(id: string, patch: UpdateSavedViewInput) {
-    await this.getById(id);
-    const parsed = parse(UpdateSavedViewSchema, patch);
+  const [result] = await db
+    .insert(savedView)
+    .values({
+      filters: parsed.filters ?? null,
+      groupBy: parsed.groupBy ?? null,
+      isDefault: parsed.isDefault ?? false,
+      isShared: parsed.isShared ?? false,
+      name: parsed.name,
+      ownerId: parsed.ownerId,
+      projectId: parsed.projectId ?? null,
+      sort: parsed.sort ?? null,
+      type: (parsed.type ?? "list") as ViewType,
+    })
+    .returning();
 
-    const [updated] = await this.db
-      .update(savedView)
-      .set({
-        filters: parsed.filters,
-        groupBy: parsed.groupBy,
-        isDefault: parsed.isDefault,
-        isShared: parsed.isShared,
-        name: parsed.name,
-        sort: parsed.sort,
-        type: parsed.type as
-          | "list"
-          | "board"
-          | "calendar"
-          | "timeline"
-          | undefined,
-      })
-      .where(eq(savedView.id, id))
-      .returning();
+  return result;
+}
 
-    return updated;
+export async function updateSavedView(
+  id: string,
+  patch: UpdateSavedViewInput,
+  deps: ViewServiceDeps,
+) {
+  const { db } = deps;
+  await getSavedViewById(id, deps);
+  const parsed = parse(UpdateSavedViewSchema, patch);
+
+  const [updated] = await db
+    .update(savedView)
+    .set({
+      filters: parsed.filters,
+      groupBy: parsed.groupBy,
+      isDefault: parsed.isDefault,
+      isShared: parsed.isShared,
+      name: parsed.name,
+      sort: parsed.sort,
+      type: parsed.type as ViewType | undefined,
+    })
+    .where(eq(savedView.id, id))
+    .returning();
+
+  return updated;
+}
+
+export async function deleteSavedView(id: string, deps: ViewServiceDeps) {
+  const { db } = deps;
+  await db.delete(savedView).where(eq(savedView.id, id));
+}
+
+export async function getSavedViewById(id: string, deps: ViewServiceDeps) {
+  const { db } = deps;
+  const [result] = await db
+    .select()
+    .from(savedView)
+    .where(eq(savedView.id, id))
+    .limit(1);
+
+  if (!result) {
+    throw new Error(`Saved view with id "${id}" not found.`);
   }
 
-  async delete(id: string) {
-    await this.db.delete(savedView).where(eq(savedView.id, id));
+  return result;
+}
+
+export async function listSavedViewsByOwner(
+  ownerId: string,
+  deps: ViewServiceDeps,
+) {
+  const { db } = deps;
+  return db.select().from(savedView).where(eq(savedView.ownerId, ownerId));
+}
+
+export async function listSavedViewsByProject(
+  projectId: string,
+  deps: ViewServiceDeps,
+) {
+  const { db } = deps;
+  return db.select().from(savedView).where(eq(savedView.projectId, projectId));
+}
+
+export async function listSharedSavedViews(
+  projectId: string,
+  deps: ViewServiceDeps,
+) {
+  const { db } = deps;
+  return db
+    .select()
+    .from(savedView)
+    .where(
+      and(eq(savedView.projectId, projectId), eq(savedView.isShared, true)),
+    );
+}
+
+export async function getDefaultSavedView(
+  ownerId: string,
+  projectId: string | undefined,
+  deps: ViewServiceDeps,
+) {
+  const { db } = deps;
+  const conditions = [
+    eq(savedView.ownerId, ownerId),
+    eq(savedView.isDefault, true),
+  ];
+
+  if (projectId) {
+    conditions.push(eq(savedView.projectId, projectId));
   }
 
-  async getById(id: string) {
-    const [result] = await this.db
-      .select()
-      .from(savedView)
-      .where(eq(savedView.id, id))
-      .limit(1);
+  const [result] = await db
+    .select()
+    .from(savedView)
+    .where(and(...conditions))
+    .limit(1);
 
-    if (!result) {
-      throw new Error(`Saved view with id "${id}" not found.`);
-    }
+  return result ?? null;
+}
 
-    return result;
+async function unsetDefault(
+  ownerId: string,
+  projectId: string | null,
+  deps: ViewServiceDeps,
+): Promise<void> {
+  const { db } = deps;
+  const conditions = [
+    eq(savedView.ownerId, ownerId),
+    eq(savedView.isDefault, true),
+  ];
+
+  if (projectId) {
+    conditions.push(eq(savedView.projectId, projectId));
   }
 
-  async listByOwner(ownerId: string) {
-    return this.db
-      .select()
-      .from(savedView)
-      .where(eq(savedView.ownerId, ownerId));
-  }
-
-  async listByProject(projectId: string) {
-    return this.db
-      .select()
-      .from(savedView)
-      .where(eq(savedView.projectId, projectId));
-  }
-
-  async listShared(projectId: string) {
-    return this.db
-      .select()
-      .from(savedView)
-      .where(
-        and(eq(savedView.projectId, projectId), eq(savedView.isShared, true)),
-      );
-  }
-
-  async getDefault(ownerId: string, projectId?: string) {
-    const conditions = [
-      eq(savedView.ownerId, ownerId),
-      eq(savedView.isDefault, true),
-    ];
-
-    if (projectId) {
-      conditions.push(eq(savedView.projectId, projectId));
-    }
-
-    const [result] = await this.db
-      .select()
-      .from(savedView)
-      .where(and(...conditions))
-      .limit(1);
-
-    return result ?? null;
-  }
-
-  private async unsetDefault(
-    ownerId: string,
-    projectId: string | null,
-  ): Promise<void> {
-    const conditions = [
-      eq(savedView.ownerId, ownerId),
-      eq(savedView.isDefault, true),
-    ];
-
-    if (projectId) {
-      conditions.push(eq(savedView.projectId, projectId));
-    }
-
-    await this.db
-      .update(savedView)
-      .set({ isDefault: false })
-      .where(and(...conditions));
-  }
+  await db
+    .update(savedView)
+    .set({ isDefault: false })
+    .where(and(...conditions));
 }

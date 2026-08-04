@@ -102,7 +102,7 @@ const createUser = Workflow.name("user.create").handler(
       throw new Error("Password is required for user creation.");
     }
 
-    const response = await auth.admin.createUser({
+    const response = await (auth.service as any).api.createUser({
       body: {
         email: parsed.email,
         name: parsed.name,
@@ -228,10 +228,7 @@ const updateUser = Workflow.name("user.update").handler(
           changes.role = patch.role;
         }
 
-        await auth.user.update({
-          data: updateData,
-          id,
-        });
+        await auth._.user.update({ data: updateData, id });
       }
     });
 
@@ -274,7 +271,7 @@ const deleteUser = Workflow.name("user.delete").handler(
     const previousState = await ctx.step.run(fetchUserStep, { id });
 
     await ctx.step.run("delete-auth-user", async () => {
-      await auth.user.remove({ id });
+      await auth._.user.remove({ id });
     });
 
     await ctx.step.run(logAuditStep, {
@@ -297,7 +294,7 @@ const assignRole = Workflow.name("user.assign-role").handler(
     const { id, role } = parse(AssignRoleInputSchema, input);
 
     await ctx.step.run("assign-auth-role", async () => {
-      await auth.user.role.assign({
+      await auth._.user.role.assign({
         roleName: role,
         userId: id,
       });

@@ -18,8 +18,8 @@ import type { StorageConfig, StorageUnit } from "./storage";
 
 export type { AclDeclaration } from "./auth";
 export { defineAcl } from "./auth";
-export { isGlobalTenantId } from "./utils/is-global-tenant-id";
 export { getContext } from "./utils/context";
+export { isGlobalTenantId } from "./utils/is-global-tenant-id";
 export type {
   AuthConfig,
   AuthUnit,

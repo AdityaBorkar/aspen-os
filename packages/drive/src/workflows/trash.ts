@@ -3,9 +3,12 @@ import { and, eq, lt } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { parse } from "valibot";
 
-import { driveFile, driveFolder } from "../db-schema";
-import { DRIVE_EVENTS } from "../event-map";
-import type { StorageBridge } from "../services/storage-bridge";
+import * as s from "../db-schema";
+import { DRIVE_EVENTS } from "../pubsub-events";
+import {
+  remove as removeStorage,
+  type StorageBridgeDeps,
+} from "../services/storage-bridge";
 import type { EmptyTrashOptions, ListTrashOptions } from "../types";
 import { EmptyTrashOptionsSchema, ListTrashOptionsSchema } from "../types";
 
@@ -15,239 +18,258 @@ interface TrashConfig {
   trashRetentionDays: number;
 }
 
-export class TrashWorkflow {
-  constructor(
-    private db: DB,
-    private storageBridge: StorageBridge,
-    private pubsub: PubSubUnit,
-    private config: TrashConfig,
-  ) {}
+export interface TrashDeps {
+  config: TrashConfig;
+  db: DB;
+  pubsub: PubSubUnit;
+  storageDeps: StorageBridgeDeps;
+}
 
-  async list(opts?: ListTrashOptions) {
-    const parsed = parse(ListTrashOptionsSchema, opts ?? {});
-    const limit = parsed.limit ?? 50;
-    const offset = parsed.offset ?? 0;
+export async function listTrash(
+  opts: ListTrashOptions | undefined,
+  { db }: TrashDeps,
+) {
+  const parsed = parse(ListTrashOptionsSchema, opts ?? {});
+  const limit = parsed.limit ?? 50;
+  const offset = parsed.offset ?? 0;
 
-    const folderConditions = [eq(driveFolder.isTrashed, true)];
-    const fileConditions = [eq(driveFile.isTrashed, true)];
+  const folderConditions = [eq(s.driveFolder.isTrashed, true)];
+  const fileConditions = [eq(s.driveFile.isTrashed, true)];
 
-    if (parsed.ownerId) {
-      folderConditions.push(eq(driveFolder.ownerId, parsed.ownerId));
-      fileConditions.push(eq(driveFile.ownerId, parsed.ownerId));
-    }
-
-    const folders = await this.db
-      .select()
-      .from(driveFolder)
-      .where(and(...folderConditions))
-      .limit(limit)
-      .offset(offset);
-
-    const files = await this.db
-      .select()
-      .from(driveFile)
-      .where(and(...fileConditions))
-      .limit(limit)
-      .offset(offset);
-
-    return { files, folders };
+  if (parsed.ownerId) {
+    folderConditions.push(eq(s.driveFolder.ownerId, parsed.ownerId));
+    fileConditions.push(eq(s.driveFile.ownerId, parsed.ownerId));
   }
 
-  async restore(id: string, itemType: "file" | "folder") {
-    if (itemType === "folder") {
-      return this.restoreFolder(id);
-    }
-    return this.restoreFile(id);
+  const folders = await db
+    .select()
+    .from(s.driveFolder)
+    .where(and(...folderConditions))
+    .limit(limit)
+    .offset(offset);
+
+  const files = await db
+    .select()
+    .from(s.driveFile)
+    .where(and(...fileConditions))
+    .limit(limit)
+    .offset(offset);
+
+  return { files, folders };
+}
+
+export async function restoreFromTrash(
+  { id, itemType }: { id: string; itemType: "file" | "folder" },
+  deps: TrashDeps,
+) {
+  if (itemType === "folder") {
+    return restoreTrashFolder({ id }, deps);
+  }
+  return restoreTrashFile({ id }, deps);
+}
+
+export async function emptyTrash(
+  opts: EmptyTrashOptions | undefined,
+  { db, pubsub, storageDeps }: TrashDeps,
+) {
+  const parsed = parse(EmptyTrashOptionsSchema, opts ?? {});
+
+  const folderConditions = [eq(s.driveFolder.isTrashed, true)];
+  const fileConditions = [eq(s.driveFile.isTrashed, true)];
+
+  if (parsed.ownerId) {
+    folderConditions.push(eq(s.driveFolder.ownerId, parsed.ownerId));
+    fileConditions.push(eq(s.driveFile.ownerId, parsed.ownerId));
   }
 
-  async emptyTrash(opts?: EmptyTrashOptions) {
-    const parsed = parse(EmptyTrashOptionsSchema, opts ?? {});
+  const trashedFiles = await db
+    .select({
+      id: s.driveFile.id,
+      storageKey: s.driveFile.storageKey,
+    })
+    .from(s.driveFile)
+    .where(and(...fileConditions));
 
-    const folderConditions = [eq(driveFolder.isTrashed, true)];
-    const fileConditions = [eq(driveFile.isTrashed, true)];
+  for (const file of trashedFiles) {
+    await removeStorage({ key: file.storageKey }, storageDeps);
+    await db.delete(s.driveFile).where(eq(s.driveFile.id, file.id));
 
-    if (parsed.ownerId) {
-      folderConditions.push(eq(driveFolder.ownerId, parsed.ownerId));
-      fileConditions.push(eq(driveFile.ownerId, parsed.ownerId));
-    }
-
-    const trashedFiles = await this.db
-      .select({
-        id: driveFile.id,
-        storageKey: driveFile.storageKey,
-      })
-      .from(driveFile)
-      .where(and(...fileConditions));
-
-    for (const file of trashedFiles) {
-      await this.storageBridge.remove(file.storageKey);
-      await this.db.delete(driveFile).where(eq(driveFile.id, file.id));
-
-      await this.pubsub.publish(DRIVE_EVENTS.PURGED, {
-        itemId: file.id,
-        itemType: "file",
-        storageKey: file.storageKey,
-      });
-    }
-
-    const trashedFolders = await this.db
-      .select({ id: driveFolder.id })
-      .from(driveFolder)
-      .where(and(...folderConditions));
-
-    for (const folder of trashedFolders) {
-      await this.db.delete(driveFolder).where(eq(driveFolder.id, folder.id));
-
-      await this.pubsub.publish(DRIVE_EVENTS.PURGED, {
-        itemId: folder.id,
-        itemType: "folder",
-        storageKey: null,
-      });
-    }
-
-    return {
-      filesPurged: trashedFiles.length,
-      foldersPurged: trashedFolders.length,
-    };
-  }
-
-  async purgeExpired(): Promise<void> {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - this.config.trashRetentionDays);
-
-    const expiredFiles = await this.db
-      .select({
-        id: driveFile.id,
-        storageKey: driveFile.storageKey,
-      })
-      .from(driveFile)
-      .where(
-        and(eq(driveFile.isTrashed, true), lt(driveFile.trashedAt, cutoffDate)),
-      );
-
-    for (const file of expiredFiles) {
-      await this.storageBridge.remove(file.storageKey);
-      await this.db.delete(driveFile).where(eq(driveFile.id, file.id));
-
-      await this.pubsub.publish(DRIVE_EVENTS.PURGED, {
-        itemId: file.id,
-        itemType: "file",
-        storageKey: file.storageKey,
-      });
-    }
-
-    const expiredFolders = await this.db
-      .select({ id: driveFolder.id })
-      .from(driveFolder)
-      .where(
-        and(
-          eq(driveFolder.isTrashed, true),
-          lt(driveFolder.trashedAt, cutoffDate),
-        ),
-      );
-
-    for (const folder of expiredFolders) {
-      await this.db.delete(driveFolder).where(eq(driveFolder.id, folder.id));
-
-      await this.pubsub.publish(DRIVE_EVENTS.PURGED, {
-        itemId: folder.id,
-        itemType: "folder",
-        storageKey: null,
-      });
-    }
-  }
-
-  private async restoreFolder(id: string) {
-    const [folder] = await this.db
-      .select()
-      .from(driveFolder)
-      .where(eq(driveFolder.id, id))
-      .limit(1);
-
-    if (!folder) {
-      throw new Error(`Folder with id "${id}" not found.`);
-    }
-    if (!folder.isTrashed) {
-      throw new Error(`Folder "${id}" is not in trash.`);
-    }
-
-    if (folder.parentId) {
-      const [parent] = await this.db
-        .select({ isTrashed: driveFolder.isTrashed })
-        .from(driveFolder)
-        .where(eq(driveFolder.id, folder.parentId))
-        .limit(1);
-
-      if (!parent || parent.isTrashed) {
-        await this.db
-          .update(driveFolder)
-          .set({ parentId: null, updatedAt: new Date() })
-          .where(eq(driveFolder.id, id));
-      }
-    }
-
-    const [updated] = await this.db
-      .update(driveFolder)
-      .set({
-        isTrashed: false,
-        trashedAt: null,
-        updatedAt: new Date(),
-      })
-      .where(eq(driveFolder.id, id))
-      .returning();
-
-    await this.pubsub.publish(DRIVE_EVENTS.RESTORED, {
-      itemId: id,
-      itemType: "folder",
-    });
-
-    return updated;
-  }
-
-  private async restoreFile(id: string) {
-    const [file] = await this.db
-      .select()
-      .from(driveFile)
-      .where(eq(driveFile.id, id))
-      .limit(1);
-
-    if (!file) {
-      throw new Error(`File with id "${id}" not found.`);
-    }
-    if (!file.isTrashed) {
-      throw new Error(`File "${id}" is not in trash.`);
-    }
-
-    if (file.folderId) {
-      const [folder] = await this.db
-        .select({ isTrashed: driveFolder.isTrashed })
-        .from(driveFolder)
-        .where(eq(driveFolder.id, file.folderId))
-        .limit(1);
-
-      if (!folder || folder.isTrashed) {
-        await this.db
-          .update(driveFile)
-          .set({ folderId: null, updatedAt: new Date() })
-          .where(eq(driveFile.id, id));
-      }
-    }
-
-    const [updated] = await this.db
-      .update(driveFile)
-      .set({
-        isTrashed: false,
-        trashedAt: null,
-        updatedAt: new Date(),
-      })
-      .where(eq(driveFile.id, id))
-      .returning();
-
-    await this.pubsub.publish(DRIVE_EVENTS.RESTORED, {
-      itemId: id,
+    await pubsub.publish(DRIVE_EVENTS.PURGED, {
+      itemId: file.id,
       itemType: "file",
+      storageKey: file.storageKey,
     });
-
-    return updated;
   }
+
+  const trashedFolders = await db
+    .select({ id: s.driveFolder.id })
+    .from(s.driveFolder)
+    .where(and(...folderConditions));
+
+  for (const folder of trashedFolders) {
+    await db.delete(s.driveFolder).where(eq(s.driveFolder.id, folder.id));
+
+    await pubsub.publish(DRIVE_EVENTS.PURGED, {
+      itemId: folder.id,
+      itemType: "folder",
+      storageKey: null,
+    });
+  }
+
+  return {
+    filesPurged: trashedFiles.length,
+    foldersPurged: trashedFolders.length,
+  };
+}
+
+export async function purgeExpired(
+  _input: Record<string, never>,
+  { db, pubsub, storageDeps, config }: TrashDeps,
+): Promise<void> {
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - config.trashRetentionDays);
+
+  const expiredFiles = await db
+    .select({
+      id: s.driveFile.id,
+      storageKey: s.driveFile.storageKey,
+    })
+    .from(s.driveFile)
+    .where(
+      and(
+        eq(s.driveFile.isTrashed, true),
+        lt(s.driveFile.trashedAt, cutoffDate),
+      ),
+    );
+
+  for (const file of expiredFiles) {
+    await removeStorage({ key: file.storageKey }, storageDeps);
+    await db.delete(s.driveFile).where(eq(s.driveFile.id, file.id));
+
+    await pubsub.publish(DRIVE_EVENTS.PURGED, {
+      itemId: file.id,
+      itemType: "file",
+      storageKey: file.storageKey,
+    });
+  }
+
+  const expiredFolders = await db
+    .select({ id: s.driveFolder.id })
+    .from(s.driveFolder)
+    .where(
+      and(
+        eq(s.driveFolder.isTrashed, true),
+        lt(s.driveFolder.trashedAt, cutoffDate),
+      ),
+    );
+
+  for (const folder of expiredFolders) {
+    await db.delete(s.driveFolder).where(eq(s.driveFolder.id, folder.id));
+
+    await pubsub.publish(DRIVE_EVENTS.PURGED, {
+      itemId: folder.id,
+      itemType: "folder",
+      storageKey: null,
+    });
+  }
+}
+
+async function restoreTrashFolder(
+  { id }: { id: string },
+  { db, pubsub }: TrashDeps,
+) {
+  const [folder] = await db
+    .select()
+    .from(s.driveFolder)
+    .where(eq(s.driveFolder.id, id))
+    .limit(1);
+
+  if (!folder) {
+    throw new Error(`Folder with id "${id}" not found.`);
+  }
+  if (!folder.isTrashed) {
+    throw new Error(`Folder "${id}" is not in trash.`);
+  }
+
+  if (folder.parentId) {
+    const [parent] = await db
+      .select({ isTrashed: s.driveFolder.isTrashed })
+      .from(s.driveFolder)
+      .where(eq(s.driveFolder.id, folder.parentId))
+      .limit(1);
+
+    if (!parent || parent.isTrashed) {
+      await db
+        .update(s.driveFolder)
+        .set({ parentId: null, updatedAt: new Date() })
+        .where(eq(s.driveFolder.id, id));
+    }
+  }
+
+  const [updated] = await db
+    .update(s.driveFolder)
+    .set({
+      isTrashed: false,
+      trashedAt: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(s.driveFolder.id, id))
+    .returning();
+
+  await pubsub.publish(DRIVE_EVENTS.RESTORED, {
+    itemId: id,
+    itemType: "folder",
+  });
+
+  return updated;
+}
+
+async function restoreTrashFile(
+  { id }: { id: string },
+  { db, pubsub }: TrashDeps,
+) {
+  const [file] = await db
+    .select()
+    .from(s.driveFile)
+    .where(eq(s.driveFile.id, id))
+    .limit(1);
+
+  if (!file) {
+    throw new Error(`File with id "${id}" not found.`);
+  }
+  if (!file.isTrashed) {
+    throw new Error(`File "${id}" is not in trash.`);
+  }
+
+  if (file.folderId) {
+    const [folder] = await db
+      .select({ isTrashed: s.driveFolder.isTrashed })
+      .from(s.driveFolder)
+      .where(eq(s.driveFolder.id, file.folderId))
+      .limit(1);
+
+    if (!folder || folder.isTrashed) {
+      await db
+        .update(s.driveFile)
+        .set({ folderId: null, updatedAt: new Date() })
+        .where(eq(s.driveFile.id, id));
+    }
+  }
+
+  const [updated] = await db
+    .update(s.driveFile)
+    .set({
+      isTrashed: false,
+      trashedAt: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(s.driveFile.id, id))
+    .returning();
+
+  await pubsub.publish(DRIVE_EVENTS.RESTORED, {
+    itemId: id,
+    itemType: "file",
+  });
+
+  return updated;
 }

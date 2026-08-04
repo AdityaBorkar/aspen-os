@@ -5,7 +5,6 @@ import {
   type CommonConfig,
   type ExtractModuleNames,
 } from "./base-platform";
-import { isGlobalTenantId } from "./utils/is-global-tenant-id";
 import {
   type DatabaseConfig,
   DatabaseUnit,
@@ -17,6 +16,7 @@ import type {
   PlatformUnits,
   UnitAccessors,
 } from "./index";
+import { isGlobalTenantId } from "./utils/is-global-tenant-id";
 
 export type IsolatedTenantConfig = CommonConfig & {
   db: IsolatedTenantDatabaseConfig;

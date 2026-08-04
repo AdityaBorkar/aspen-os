@@ -16,48 +16,75 @@ export interface UploadBridgeInput {
   metadata?: Record<string, string>;
 }
 
-export class StorageBridge {
-  constructor(private storage: StorageUnit) {}
+export interface StorageBridgeDeps {
+  storage: StorageUnit;
+}
 
-  computeStorageKey(folderPath: string, fileName: string): string {
-    const uuid = crypto.randomUUID();
-    const sanitized = folderPath.startsWith("/")
-      ? folderPath.slice(1)
-      : folderPath;
-    const cleanPath = sanitized || "_root";
-    return `${cleanPath}/${fileName}-${uuid}`;
-  }
+export function computeStorageKey({
+  folderPath,
+  fileName,
+}: {
+  folderPath: string;
+  fileName: string;
+}): string {
+  const uuid = crypto.randomUUID();
+  const sanitized = folderPath.startsWith("/")
+    ? folderPath.slice(1)
+    : folderPath;
+  const cleanPath = sanitized || "_root";
+  return `${cleanPath}/${fileName}-${uuid}`;
+}
 
-  computeArchiveKey(folderId: string): string {
-    const uuid = crypto.randomUUID();
-    return `archives/${folderId}/${uuid}.zip`;
-  }
+export function computeArchiveKey({ folderId }: { folderId: string }): string {
+  const uuid = crypto.randomUUID();
+  return `archives/${folderId}/${uuid}.zip`;
+}
 
-  async upload(input: UploadBridgeInput): Promise<FileObject> {
-    return this.storage.upload(input);
-  }
+export async function upload(
+  input: UploadBridgeInput,
+  { storage }: StorageBridgeDeps,
+): Promise<FileObject> {
+  return storage.upload(input);
+}
 
-  async getSignedGetUrl(key: string, expiresIn?: number): Promise<string> {
-    return this.storage.getSignedGetUrl(key, { expiresIn });
-  }
+export async function getSignedGetUrl(
+  { key, expiresIn }: { key: string; expiresIn?: number },
+  { storage }: StorageBridgeDeps,
+): Promise<string> {
+  return storage.getSignedGetUrl(key, { expiresIn });
+}
 
-  async copy(sourceKey: string, destKey: string): Promise<FileObject> {
-    return this.storage.copy(sourceKey, destKey);
-  }
+export async function copy(
+  { sourceKey, destKey }: { sourceKey: string; destKey: string },
+  { storage }: StorageBridgeDeps,
+): Promise<FileObject> {
+  return storage.copy(sourceKey, destKey);
+}
 
-  async move(sourceKey: string, destKey: string): Promise<FileObject> {
-    return this.storage.move(sourceKey, destKey);
-  }
+export async function move(
+  { sourceKey, destKey }: { sourceKey: string; destKey: string },
+  { storage }: StorageBridgeDeps,
+): Promise<FileObject> {
+  return storage.move(sourceKey, destKey);
+}
 
-  async remove(key: string): Promise<void> {
-    return this.storage.remove(key);
-  }
+export async function remove(
+  { key }: { key: string },
+  { storage }: StorageBridgeDeps,
+): Promise<void> {
+  return storage.remove(key);
+}
 
-  async get(key: string): Promise<Buffer> {
-    return this.storage.get(key);
-  }
+export async function get(
+  { key }: { key: string },
+  { storage }: StorageBridgeDeps,
+): Promise<Buffer> {
+  return storage.get(key);
+}
 
-  async exists(key: string): Promise<boolean> {
-    return this.storage.exists(key);
-  }
+export async function exists(
+  { key }: { key: string },
+  { storage }: StorageBridgeDeps,
+): Promise<boolean> {
+  return storage.exists(key);
 }

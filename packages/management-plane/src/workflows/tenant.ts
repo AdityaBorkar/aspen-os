@@ -57,7 +57,7 @@ function createOnboardTenant(dbUnit: DatabaseUnit) {
       const parsedUserId = parse(IdSchema, input.userId);
 
       const org = await ctx.step.run("create-organization", async () => {
-        return auth.admin.createOrganization({
+        return (auth.service as any).api.createOrganization({
           body: {
             logo: parsed.logo ?? undefined,
             name: parsed.name,
@@ -93,7 +93,7 @@ function createOnboardTenant(dbUnit: DatabaseUnit) {
           err,
         );
         try {
-          await auth.admin.deleteOrganization({
+          await (auth.service as any).api.deleteOrganization({
             body: { organizationId: tenantId },
             headers: new Headers(),
           });

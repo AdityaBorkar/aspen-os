@@ -6,90 +6,118 @@ import { activityLog, attachment, watcher } from "../db-schema";
 import type { CreateAttachmentInput, CreateWatcherInput } from "../types";
 import { CreateAttachmentSchema, CreateWatcherSchema } from "../types";
 
-export class CollaborationWorkflow {
-  constructor(private readonly db: NodePgDatabase) {}
+export interface CollaborationServiceDeps {
+  db: NodePgDatabase;
+}
 
-  async addWatcher(input: CreateWatcherInput) {
-    const parsed = parse(CreateWatcherSchema, input);
+export async function addWatcher(
+  input: CreateWatcherInput,
+  deps: CollaborationServiceDeps,
+) {
+  const { db } = deps;
+  const parsed = parse(CreateWatcherSchema, input);
 
-    const [existing] = await this.db
-      .select({ id: watcher.id })
-      .from(watcher)
-      .where(
-        and(
-          eq(watcher.taskId, parsed.taskId),
-          eq(watcher.userId, parsed.userId),
-        ),
-      )
-      .limit(1);
+  const [existing] = await db
+    .select({ id: watcher.id })
+    .from(watcher)
+    .where(
+      and(eq(watcher.taskId, parsed.taskId), eq(watcher.userId, parsed.userId)),
+    )
+    .limit(1);
 
-    if (existing) return existing;
+  if (existing) return existing;
 
-    const [result] = await this.db
-      .insert(watcher)
-      .values({
-        taskId: parsed.taskId,
-        userId: parsed.userId,
-      })
-      .returning();
+  const [result] = await db
+    .insert(watcher)
+    .values({
+      taskId: parsed.taskId,
+      userId: parsed.userId,
+    })
+    .returning();
 
-    return result;
+  return result;
+}
+
+export async function removeWatcher(
+  taskId: string,
+  userId: string,
+  deps: CollaborationServiceDeps,
+) {
+  const { db } = deps;
+  await db
+    .delete(watcher)
+    .where(and(eq(watcher.taskId, taskId), eq(watcher.userId, userId)));
+}
+
+export async function listWatchers(
+  taskId: string,
+  deps: CollaborationServiceDeps,
+) {
+  const { db } = deps;
+  return db.select().from(watcher).where(eq(watcher.taskId, taskId));
+}
+
+export async function addAttachment(
+  input: CreateAttachmentInput,
+  deps: CollaborationServiceDeps,
+) {
+  const { db } = deps;
+  const parsed = parse(CreateAttachmentSchema, input);
+
+  const [result] = await db
+    .insert(attachment)
+    .values({
+      commentId: parsed.commentId ?? null,
+      fileId: parsed.fileId,
+      taskId: parsed.taskId,
+      uploadedBy: parsed.uploadedBy,
+    })
+    .returning();
+
+  return result;
+}
+
+export async function deleteAttachment(
+  id: string,
+  deps: CollaborationServiceDeps,
+) {
+  const { db } = deps;
+  await db.delete(attachment).where(eq(attachment.id, id));
+}
+
+export async function listAttachments(
+  taskId: string,
+  deps: CollaborationServiceDeps,
+) {
+  const { db } = deps;
+  return db.select().from(attachment).where(eq(attachment.taskId, taskId));
+}
+
+export async function listAttachmentsByComment(
+  commentId: string,
+  deps: CollaborationServiceDeps,
+) {
+  const { db } = deps;
+  return db
+    .select()
+    .from(attachment)
+    .where(eq(attachment.commentId, commentId));
+}
+
+export async function getActivityLog(
+  taskId: string,
+  action: string | undefined,
+  deps: CollaborationServiceDeps,
+) {
+  const { db } = deps;
+  const conditions = [eq(activityLog.taskId, taskId)];
+  if (action) {
+    conditions.push(eq(activityLog.action, action));
   }
 
-  async removeWatcher(taskId: string, userId: string) {
-    await this.db
-      .delete(watcher)
-      .where(and(eq(watcher.taskId, taskId), eq(watcher.userId, userId)));
-  }
-
-  async listWatchers(taskId: string) {
-    return this.db.select().from(watcher).where(eq(watcher.taskId, taskId));
-  }
-
-  async addAttachment(input: CreateAttachmentInput) {
-    const parsed = parse(CreateAttachmentSchema, input);
-
-    const [result] = await this.db
-      .insert(attachment)
-      .values({
-        commentId: parsed.commentId ?? null,
-        fileId: parsed.fileId,
-        taskId: parsed.taskId,
-        uploadedBy: parsed.uploadedBy,
-      })
-      .returning();
-
-    return result;
-  }
-
-  async deleteAttachment(id: string) {
-    await this.db.delete(attachment).where(eq(attachment.id, id));
-  }
-
-  async listAttachments(taskId: string) {
-    return this.db
-      .select()
-      .from(attachment)
-      .where(eq(attachment.taskId, taskId));
-  }
-
-  async listAttachmentsByComment(commentId: string) {
-    return this.db
-      .select()
-      .from(attachment)
-      .where(eq(attachment.commentId, commentId));
-  }
-
-  async getActivityLog(taskId: string, action?: string) {
-    const conditions = [eq(activityLog.taskId, taskId)];
-    if (action) {
-      conditions.push(eq(activityLog.action, action));
-    }
-
-    return this.db
-      .select()
-      .from(activityLog)
-      .where(and(...conditions))
-      .orderBy(desc(activityLog.createdAt));
-  }
+  return db
+    .select()
+    .from(activityLog)
+    .where(and(...conditions))
+    .orderBy(desc(activityLog.createdAt));
 }

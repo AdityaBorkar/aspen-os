@@ -2,12 +2,7 @@ import { and, eq, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { parse } from "valibot";
 
-import {
-  driveFile,
-  driveFolder,
-  driveItemLabel,
-  driveLabel,
-} from "../db-schema";
+import * as s from "../db-schema";
 import type {
   ApplyLabelInput,
   CreateLabelInput,
@@ -23,144 +18,157 @@ import {
 
 type DB = NodePgDatabase<Record<string, never>>;
 
-export class LabelWorkflow {
-  constructor(private db: DB) {}
+export interface LabelDeps {
+  db: DB;
+}
 
-  async create(input: CreateLabelInput) {
-    const parsed = parse(CreateLabelSchema, input);
+export async function createLabel(input: CreateLabelInput, { db }: LabelDeps) {
+  const parsed = parse(CreateLabelSchema, input);
 
-    if (!parsed.isGlobal && !parsed.ownerId) {
-      throw new Error(
-        "Personal labels must have an ownerId. Set isGlobal=true for org-wide labels.",
-      );
-    }
-
-    const [label] = await this.db
-      .insert(driveLabel)
-      .values({
-        color: parsed.color,
-        isGlobal: parsed.isGlobal,
-        name: parsed.name,
-        ownerId: parsed.ownerId ?? null,
-      })
-      .returning();
-
-    return label;
+  if (!parsed.isGlobal && !parsed.ownerId) {
+    throw new Error(
+      "Personal labels must have an ownerId. Set isGlobal=true for org-wide labels.",
+    );
   }
 
-  async delete(id: string) {
-    await this.db.delete(driveItemLabel).where(eq(driveItemLabel.labelId, id));
-    await this.db.delete(driveLabel).where(eq(driveLabel.id, id));
-  }
+  const [label] = await db
+    .insert(s.driveLabel)
+    .values({
+      color: parsed.color,
+      isGlobal: parsed.isGlobal,
+      name: parsed.name,
+      ownerId: parsed.ownerId ?? null,
+    })
+    .returning();
 
-  async apply(input: ApplyLabelInput) {
-    const parsed = parse(ApplyLabelSchema, input);
+  return label;
+}
 
-    await this.db
-      .insert(driveItemLabel)
-      .values({
-        appliedBy: parsed.appliedBy,
-        itemId: parsed.itemId,
-        itemType: parsed.itemType,
-        labelId: parsed.labelId,
-      })
-      .onConflictDoNothing();
+export async function deleteLabel({ id }: { id: string }, { db }: LabelDeps) {
+  await db.delete(s.driveItemLabel).where(eq(s.driveItemLabel.labelId, id));
+  await db.delete(s.driveLabel).where(eq(s.driveLabel.id, id));
+}
 
-    return { applied: true };
-  }
+export async function applyLabel(input: ApplyLabelInput, { db }: LabelDeps) {
+  const parsed = parse(ApplyLabelSchema, input);
 
-  async remove(itemId: string, itemType: "file" | "folder", labelId: string) {
-    await this.db
-      .delete(driveItemLabel)
-      .where(
+  await db
+    .insert(s.driveItemLabel)
+    .values({
+      appliedBy: parsed.appliedBy,
+      itemId: parsed.itemId,
+      itemType: parsed.itemType,
+      labelId: parsed.labelId,
+    })
+    .onConflictDoNothing();
+
+  return { applied: true };
+}
+
+export async function removeLabel(
+  {
+    itemId,
+    itemType,
+    labelId,
+  }: { itemId: string; itemType: "file" | "folder"; labelId: string },
+  { db }: LabelDeps,
+) {
+  await db
+    .delete(s.driveItemLabel)
+    .where(
+      and(
+        eq(s.driveItemLabel.itemId, itemId),
+        eq(s.driveItemLabel.itemType, itemType),
+        eq(s.driveItemLabel.labelId, labelId),
+      ),
+    );
+
+  return { removed: true };
+}
+
+export async function listLabels(
+  opts: ListLabelsOptions | undefined,
+  { db }: LabelDeps,
+) {
+  const parsed = parse(ListLabelsOptionsSchema, opts ?? {});
+
+  const conditions = [];
+
+  if (parsed.ownerId) {
+    if (parsed.includeGlobal) {
+      conditions.push(
         and(
-          eq(driveItemLabel.itemId, itemId),
-          eq(driveItemLabel.itemType, itemType),
-          eq(driveItemLabel.labelId, labelId),
+          eq(s.driveLabel.isGlobal, true),
+          eq(s.driveLabel.ownerId, parsed.ownerId),
         ),
       );
-
-    return { removed: true };
-  }
-
-  async list(opts?: ListLabelsOptions) {
-    const parsed = parse(ListLabelsOptionsSchema, opts ?? {});
-
-    const conditions = [];
-
-    if (parsed.ownerId) {
-      if (parsed.includeGlobal) {
-        conditions.push(
-          and(
-            eq(driveLabel.isGlobal, true),
-            eq(driveLabel.ownerId, parsed.ownerId),
-          ),
-        );
-      } else {
-        conditions.push(eq(driveLabel.ownerId, parsed.ownerId));
-      }
-    } else if (parsed.includeGlobal) {
-      conditions.push(eq(driveLabel.isGlobal, true));
+    } else {
+      conditions.push(eq(s.driveLabel.ownerId, parsed.ownerId));
     }
-
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-
-    return this.db
-      .select()
-      .from(driveLabel)
-      .where(whereClause)
-      .limit(parsed.limit ?? 50)
-      .offset(parsed.offset ?? 0);
+  } else if (parsed.includeGlobal) {
+    conditions.push(eq(s.driveLabel.isGlobal, true));
   }
 
-  async listByLabel(labelId: string, opts?: ListByLabelOptions) {
-    const parsed = parse(ListByLabelOptionsSchema, opts ?? {});
-    const limit = parsed.limit ?? 50;
-    const offset = parsed.offset ?? 0;
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const itemLabels = await this.db
-      .select({
-        itemId: driveItemLabel.itemId,
-        itemType: driveItemLabel.itemType,
-      })
-      .from(driveItemLabel)
-      .where(eq(driveItemLabel.labelId, labelId))
-      .limit(limit)
-      .offset(offset);
+  return db
+    .select()
+    .from(s.driveLabel)
+    .where(whereClause)
+    .limit(parsed.limit ?? 50)
+    .offset(parsed.offset ?? 0);
+}
 
-    const folderIds = itemLabels
-      .filter((l) => l.itemType === "folder")
-      .map((l) => l.itemId);
-    const fileIds = itemLabels
-      .filter((l) => l.itemType === "file")
-      .map((l) => l.itemId);
+export async function listByLabel(
+  { labelId, opts }: { labelId: string; opts?: ListByLabelOptions },
+  { db }: LabelDeps,
+) {
+  const parsed = parse(ListByLabelOptionsSchema, opts ?? {});
+  const limit = parsed.limit ?? 50;
+  const offset = parsed.offset ?? 0;
 
-    const folders =
-      folderIds.length > 0
-        ? await this.db
-            .select()
-            .from(driveFolder)
-            .where(
-              and(
-                eq(driveFolder.isTrashed, false),
-                sql`${driveFolder.id} = ANY(${folderIds})`,
-              ),
-            )
-        : [];
+  const itemLabels = await db
+    .select({
+      itemId: s.driveItemLabel.itemId,
+      itemType: s.driveItemLabel.itemType,
+    })
+    .from(s.driveItemLabel)
+    .where(eq(s.driveItemLabel.labelId, labelId))
+    .limit(limit)
+    .offset(offset);
 
-    const files =
-      fileIds.length > 0
-        ? await this.db
-            .select()
-            .from(driveFile)
-            .where(
-              and(
-                eq(driveFile.isTrashed, false),
-                sql`${driveFile.id} = ANY(${fileIds})`,
-              ),
-            )
-        : [];
+  const folderIds = itemLabels
+    .filter((l) => l.itemType === "folder")
+    .map((l) => l.itemId);
+  const fileIds = itemLabels
+    .filter((l) => l.itemType === "file")
+    .map((l) => l.itemId);
 
-    return { files, folders };
-  }
+  const folders =
+    folderIds.length > 0
+      ? await db
+          .select()
+          .from(s.driveFolder)
+          .where(
+            and(
+              eq(s.driveFolder.isTrashed, false),
+              sql`${s.driveFolder.id} = ANY(${folderIds})`,
+            ),
+          )
+      : [];
+
+  const files =
+    fileIds.length > 0
+      ? await db
+          .select()
+          .from(s.driveFile)
+          .where(
+            and(
+              eq(s.driveFile.isTrashed, false),
+              sql`${s.driveFile.id} = ANY(${fileIds})`,
+            ),
+          )
+      : [];
+
+  return { files, folders };
 }

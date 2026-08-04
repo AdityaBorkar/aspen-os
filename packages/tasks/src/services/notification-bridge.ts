@@ -11,49 +11,79 @@ import type {
   TaskUnassignedEvent,
   TaskUnlinkedEvent,
   TaskUpdatedEvent,
-} from "../event-map";
-import { REMINDER_EVENTS, TASK_EVENTS } from "../event-map";
+} from "../pubsub-events";
+import { REMINDER_EVENTS, TASK_EVENTS } from "../pubsub-events";
 
-export class NotificationBridge {
-  constructor(private readonly pubsub: PubSubUnit) {}
+export interface NotificationBridgeDeps {
+  pubsub: PubSubUnit;
+}
 
-  async publishTaskCreated(event: TaskCreatedEvent): Promise<void> {
-    await this.pubsub.publish(TASK_EVENTS.CREATED, event);
-  }
+export async function publishTaskCreated(
+  event: TaskCreatedEvent,
+  { pubsub }: NotificationBridgeDeps,
+): Promise<void> {
+  await pubsub.publish(TASK_EVENTS.CREATED, event);
+}
 
-  async publishTaskUpdated(event: TaskUpdatedEvent): Promise<void> {
-    await this.pubsub.publish(TASK_EVENTS.UPDATED, event);
-  }
+export async function publishTaskUpdated(
+  event: TaskUpdatedEvent,
+  { pubsub }: NotificationBridgeDeps,
+): Promise<void> {
+  await pubsub.publish(TASK_EVENTS.UPDATED, event);
+}
 
-  async publishTaskDeleted(event: TaskDeletedEvent): Promise<void> {
-    await this.pubsub.publish(TASK_EVENTS.DELETED, event);
-  }
+export async function publishTaskDeleted(
+  event: TaskDeletedEvent,
+  { pubsub }: NotificationBridgeDeps,
+): Promise<void> {
+  await pubsub.publish(TASK_EVENTS.DELETED, event);
+}
 
-  async publishTaskStatusChanged(event: TaskStatusChangedEvent): Promise<void> {
-    await this.pubsub.publish(TASK_EVENTS.STATUS_CHANGED, event);
-  }
+export async function publishTaskStatusChanged(
+  event: TaskStatusChangedEvent,
+  { pubsub }: NotificationBridgeDeps,
+): Promise<void> {
+  await pubsub.publish(TASK_EVENTS.STATUS_CHANGED, event);
+}
 
-  async publishTaskAssigned(event: TaskAssignedEvent): Promise<void> {
-    await this.pubsub.publish(TASK_EVENTS.ASSIGNED, event);
-  }
+export async function publishTaskAssigned(
+  event: TaskAssignedEvent,
+  { pubsub }: NotificationBridgeDeps,
+): Promise<void> {
+  await pubsub.publish(TASK_EVENTS.ASSIGNED, event);
+}
 
-  async publishTaskUnassigned(event: TaskUnassignedEvent): Promise<void> {
-    await this.pubsub.publish(TASK_EVENTS.UNASSIGNED, event);
-  }
+export async function publishTaskUnassigned(
+  event: TaskUnassignedEvent,
+  { pubsub }: NotificationBridgeDeps,
+): Promise<void> {
+  await pubsub.publish(TASK_EVENTS.UNASSIGNED, event);
+}
 
-  async publishTaskLinked(event: TaskLinkedEvent): Promise<void> {
-    await this.pubsub.publish(TASK_EVENTS.LINKED, event);
-  }
+export async function publishTaskLinked(
+  event: TaskLinkedEvent,
+  { pubsub }: NotificationBridgeDeps,
+): Promise<void> {
+  await pubsub.publish(TASK_EVENTS.LINKED, event);
+}
 
-  async publishTaskUnlinked(event: TaskUnlinkedEvent): Promise<void> {
-    await this.pubsub.publish(TASK_EVENTS.UNLINKED, event);
-  }
+export async function publishTaskUnlinked(
+  event: TaskUnlinkedEvent,
+  { pubsub }: NotificationBridgeDeps,
+): Promise<void> {
+  await pubsub.publish(TASK_EVENTS.UNLINKED, event);
+}
 
-  async publishTaskCommented(event: TaskCommentedEvent): Promise<void> {
-    await this.pubsub.publish(TASK_EVENTS.COMMENTED, event);
-  }
+export async function publishTaskCommented(
+  event: TaskCommentedEvent,
+  { pubsub }: NotificationBridgeDeps,
+): Promise<void> {
+  await pubsub.publish(TASK_EVENTS.COMMENTED, event);
+}
 
-  async publishReminderFired(event: ReminderFiredEvent): Promise<void> {
-    await this.pubsub.publish(REMINDER_EVENTS.FIRED, event);
-  }
+export async function publishReminderFired(
+  event: ReminderFiredEvent,
+  { pubsub }: NotificationBridgeDeps,
+): Promise<void> {
+  await pubsub.publish(REMINDER_EVENTS.FIRED, event);
 }

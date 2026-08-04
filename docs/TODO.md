@@ -1,29 +1,13 @@
 # TODO
 
 DB Schemas (How to handle migrations?)
-
 ACL List (How to handle migrations?)
-
 PubSub Events (How to handle migrations?)
 
 ---
 
-Solve `auth`
-
-Manually read and simplify the code as much as possible
-Ensure good code architecture
-
---verbose flag for debugging in the Create Instance
-
-Create a REST like interface 
-
----
-
 Use the workflows in ManagementPlane to create a web application
-
 Do not repeat schemas, import them from the `framework` package using Typed DB Unit that includes these types
-
-Rename adminDatabase to controlPlaneDb
 
 ---
 
@@ -35,11 +19,7 @@ Rename adminDatabase to controlPlaneDb
   - doclabs
 - Start working on the modules
 
-## Improving Code Quality
-
-Create a Biome GritQL rule to make index.ts module files like @management-plane/src/index.ts
-
-## Workflows Module
+## Workflows Unit
 
 - https://activiti.org/
 - https://flowable.com/
@@ -48,9 +28,11 @@ Create a Biome GritQL rule to make index.ts module files like @management-plane/
 - https://restate.dev/
 - https://inngest.com/
 
-## Module Verification
+## `platform`
 
-- [ ] 
+- Manually read and simplify the `platform` code as much as possible
+- Ensure good code architecture
+- --verbose flag for debugging in the `platform`
 
 ## Module Implementation
 
@@ -109,11 +91,17 @@ If you press YES, the account manager shall access the application and respond a
 - GDPR
 - HIPAA
 
+---
+
 ## Phase 2
 
 - CONTEXT.md lists Prospect, Client, Job Mandate, Draft, Filter View, Reminder, Task, Team Member, Contract under "Recruiter Domain."
 - Dynamic Loading of Modules
   - /settings/features = Enable/Disable each module and their feature flags
+
+## Improving Code Quality
+
+Create a Biome GritQL rule to make index.ts module files like @management-plane/src/index.ts
 
 ## Not a Priority
 

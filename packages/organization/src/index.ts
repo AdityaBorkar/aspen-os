@@ -1,8 +1,8 @@
 import type { Module, ModuleInfra } from "@aspen-os/platform/server";
 
-import { acl } from "./auth-acl";
 import { control_plane_schemas, tenant_schemas } from "./db-schemas";
 import { events } from "./pubsub-events";
+import { acl } from "./utils/acl";
 import { addresses } from "./workflows/address";
 import { bankAccounts } from "./workflows/bank-account";
 import { branches } from "./workflows/branch";

@@ -3,7 +3,6 @@ import {
   type CommonConfig,
   type ExtractModuleNames,
 } from "./base-platform";
-import { isGlobalTenantId } from "./utils/is-global-tenant-id";
 import { type DatabaseConfig, DatabaseUnit } from "./db";
 import type {
   ArrayModuleAccessors,
@@ -11,6 +10,7 @@ import type {
   PlatformUnits,
   UnitAccessors,
 } from "./index";
+import { isGlobalTenantId } from "./utils/is-global-tenant-id";
 
 export type SharedTenantConfig = CommonConfig & {
   db: DatabaseConfig;

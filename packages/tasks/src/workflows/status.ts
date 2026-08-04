@@ -14,167 +14,198 @@ import {
   UpdateStatusSchema,
 } from "../types";
 
-export class StatusWorkflow {
-  constructor(private readonly db: NodePgDatabase) {}
+export interface StatusServiceDeps {
+  db: NodePgDatabase;
+}
 
-  async createStatus(input: CreateStatusInput) {
-    const parsed = parse(CreateStatusSchema, input);
+export async function createStatus(
+  input: CreateStatusInput,
+  deps: StatusServiceDeps,
+) {
+  const { db } = deps;
+  const parsed = parse(CreateStatusSchema, input);
 
-    if (parsed.isDefault) {
-      await this.unsetDefault(parsed.projectId ?? null);
-    }
-
-    const [result] = await this.db
-      .insert(status)
-      .values({
-        category: parsed.category,
-        color: parsed.color ?? null,
-        isDefault: parsed.isDefault ?? false,
-        isResolved: parsed.isResolved ?? false,
-        name: parsed.name,
-        projectId: parsed.projectId ?? null,
-        sortOrder: parsed.sortOrder ?? 0,
-      })
-      .returning();
-
-    return result;
+  if (parsed.isDefault) {
+    await unsetDefault(parsed.projectId ?? null, deps);
   }
 
-  async updateStatus(id: string, patch: UpdateStatusInput) {
-    await this.getStatusById(id);
-    const parsed = parse(UpdateStatusSchema, patch);
+  const [result] = await db
+    .insert(status)
+    .values({
+      category: parsed.category,
+      color: parsed.color ?? null,
+      isDefault: parsed.isDefault ?? false,
+      isResolved: parsed.isResolved ?? false,
+      name: parsed.name,
+      projectId: parsed.projectId ?? null,
+      sortOrder: parsed.sortOrder ?? 0,
+    })
+    .returning();
 
-    if (parsed.isDefault) {
-      const [current] = await this.db
-        .select({ projectId: status.projectId })
-        .from(status)
-        .where(eq(status.id, id))
-        .limit(1);
-      if (current) {
-        await this.unsetDefault(current.projectId);
-      }
-    }
+  return result;
+}
 
-    const [updated] = await this.db
-      .update(status)
-      .set({
-        category: parsed.category,
-        color: parsed.color,
-        isDefault: parsed.isDefault,
-        isResolved: parsed.isResolved,
-        name: parsed.name,
-        sortOrder: parsed.sortOrder,
-      })
-      .where(eq(status.id, id))
-      .returning();
+export async function updateStatus(
+  id: string,
+  patch: UpdateStatusInput,
+  deps: StatusServiceDeps,
+) {
+  const { db } = deps;
+  await getStatusById(id, deps);
+  const parsed = parse(UpdateStatusSchema, patch);
 
-    return updated;
-  }
-
-  async deleteStatus(id: string) {
-    await this.db.delete(status).where(eq(status.id, id));
-  }
-
-  async getStatusById(id: string) {
-    const [result] = await this.db
-      .select()
+  if (parsed.isDefault) {
+    const [current] = await db
+      .select({ projectId: status.projectId })
       .from(status)
       .where(eq(status.id, id))
       .limit(1);
-
-    if (!result) {
-      throw new Error(`Status with id "${id}" not found.`);
+    if (current) {
+      await unsetDefault(current.projectId, deps);
     }
-
-    return result;
   }
 
-  async listStatuses(projectId?: string) {
-    const conditions = projectId ? eq(status.projectId, projectId) : undefined;
+  const [updated] = await db
+    .update(status)
+    .set({
+      category: parsed.category,
+      color: parsed.color,
+      isDefault: parsed.isDefault,
+      isResolved: parsed.isResolved,
+      name: parsed.name,
+      sortOrder: parsed.sortOrder,
+    })
+    .where(eq(status.id, id))
+    .returning();
 
-    return this.db
-      .select()
-      .from(status)
-      .where(conditions)
-      .orderBy(asc(status.sortOrder));
+  return updated;
+}
+
+export async function deleteStatus(id: string, deps: StatusServiceDeps) {
+  const { db } = deps;
+  await db.delete(status).where(eq(status.id, id));
+}
+
+export async function getStatusById(id: string, deps: StatusServiceDeps) {
+  const { db } = deps;
+  const [result] = await db
+    .select()
+    .from(status)
+    .where(eq(status.id, id))
+    .limit(1);
+
+  if (!result) {
+    throw new Error(`Status with id "${id}" not found.`);
   }
 
-  async getGlobalStatuses() {
-    return this.db
-      .select()
-      .from(status)
-      .where(isNull(status.projectId))
-      .orderBy(asc(status.sortOrder));
+  return result;
+}
+
+export async function listStatuses(
+  projectId: string | undefined,
+  deps: StatusServiceDeps,
+) {
+  const { db } = deps;
+  const conditions = projectId ? eq(status.projectId, projectId) : undefined;
+
+  return db
+    .select()
+    .from(status)
+    .where(conditions)
+    .orderBy(asc(status.sortOrder));
+}
+
+export async function getGlobalStatuses(deps: StatusServiceDeps) {
+  const { db } = deps;
+  return db
+    .select()
+    .from(status)
+    .where(isNull(status.projectId))
+    .orderBy(asc(status.sortOrder));
+}
+
+export async function createTransition(
+  input: CreateStatusTransitionInput,
+  deps: StatusServiceDeps,
+) {
+  const { db } = deps;
+  const parsed = parse(CreateStatusTransitionSchema, input);
+
+  if (parsed.fromStatusId === parsed.toStatusId) {
+    throw new Error("From and to status cannot be the same.");
   }
 
-  async createTransition(input: CreateStatusTransitionInput) {
-    const parsed = parse(CreateStatusTransitionSchema, input);
+  const [result] = await db
+    .insert(statusTransition)
+    .values({
+      fromStatusId: parsed.fromStatusId,
+      projectId: parsed.projectId,
+      requiresComment: parsed.requiresComment ?? false,
+      requiresRole: parsed.requiresRole ?? null,
+      toStatusId: parsed.toStatusId,
+    })
+    .returning();
 
-    if (parsed.fromStatusId === parsed.toStatusId) {
-      throw new Error("From and to status cannot be the same.");
-    }
+  return result;
+}
 
-    const [result] = await this.db
-      .insert(statusTransition)
-      .values({
-        fromStatusId: parsed.fromStatusId,
-        projectId: parsed.projectId,
-        requiresComment: parsed.requiresComment ?? false,
-        requiresRole: parsed.requiresRole ?? null,
-        toStatusId: parsed.toStatusId,
-      })
-      .returning();
+export async function deleteTransition(id: string, deps: StatusServiceDeps) {
+  const { db } = deps;
+  await db.delete(statusTransition).where(eq(statusTransition.id, id));
+}
 
-    return result;
-  }
+export async function listTransitions(
+  projectId: string,
+  deps: StatusServiceDeps,
+) {
+  const { db } = deps;
+  return db
+    .select()
+    .from(statusTransition)
+    .where(eq(statusTransition.projectId, projectId));
+}
 
-  async deleteTransition(id: string) {
-    await this.db.delete(statusTransition).where(eq(statusTransition.id, id));
-  }
+export async function validateTransition(
+  fromStatusId: string,
+  toStatusId: string,
+  projectId: string,
+  deps: StatusServiceDeps,
+): Promise<boolean> {
+  const { db } = deps;
+  const [transition] = await db
+    .select({ id: statusTransition.id })
+    .from(statusTransition)
+    .where(
+      and(
+        eq(statusTransition.fromStatusId, fromStatusId),
+        eq(statusTransition.toStatusId, toStatusId),
+        eq(statusTransition.projectId, projectId),
+      ),
+    )
+    .limit(1);
 
-  async listTransitions(projectId: string) {
-    return this.db
-      .select()
-      .from(statusTransition)
-      .where(eq(statusTransition.projectId, projectId));
-  }
+  if (transition) return true;
 
-  async validateTransition(
-    fromStatusId: string,
-    toStatusId: string,
-    projectId: string,
-  ): Promise<boolean> {
-    const [transition] = await this.db
-      .select({ id: statusTransition.id })
-      .from(statusTransition)
-      .where(
-        and(
-          eq(statusTransition.fromStatusId, fromStatusId),
-          eq(statusTransition.toStatusId, toStatusId),
-          eq(statusTransition.projectId, projectId),
-        ),
-      )
-      .limit(1);
+  const anyTransition = await db
+    .select({ id: statusTransition.id })
+    .from(statusTransition)
+    .where(eq(statusTransition.projectId, projectId))
+    .limit(1);
 
-    if (transition) return true;
+  return anyTransition.length === 0;
+}
 
-    const anyTransition = await this.db
-      .select({ id: statusTransition.id })
-      .from(statusTransition)
-      .where(eq(statusTransition.projectId, projectId))
-      .limit(1);
-
-    return anyTransition.length === 0;
-  }
-
-  private async unsetDefault(projectId: string | null): Promise<void> {
-    await this.db
-      .update(status)
-      .set({ isDefault: false })
-      .where(
-        projectId === null
-          ? isNull(status.projectId)
-          : eq(status.projectId, projectId),
-      );
-  }
+async function unsetDefault(
+  projectId: string | null,
+  deps: StatusServiceDeps,
+): Promise<void> {
+  const { db } = deps;
+  await db
+    .update(status)
+    .set({ isDefault: false })
+    .where(
+      projectId === null
+        ? isNull(status.projectId)
+        : eq(status.projectId, projectId),
+    );
 }

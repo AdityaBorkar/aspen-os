@@ -1,8 +1,8 @@
 import type { PubSubUnit } from "@aspen-os/platform/server";
 
 import type { CreateComplianceDocumentInput } from "../types";
-import type { DocumentWorkflow } from "../workflows/document";
-import type { ObligationWorkflow } from "../workflows/obligation";
+import { createDocument, type DocumentDeps } from "../workflows/document";
+import { createObligation, type ObligationDeps } from "../workflows/obligation";
 
 interface EmployeeOnboardedEvent {
   employeeId: string;
@@ -40,160 +40,179 @@ interface ConnectionCreatedEvent {
   };
 }
 
-export class EventBridge {
-  private subscribedTopics: string[] = [];
+export interface EventBridgeDeps {
+  documentDeps: DocumentDeps;
+  obligationDeps: ObligationDeps;
+  pubsub: PubSubUnit;
+}
 
-  constructor(
-    private readonly pubsub: PubSubUnit,
-    private readonly documents: DocumentWorkflow,
-    private readonly obligations: ObligationWorkflow,
-  ) {}
+export async function registerEventBridgeSubscriptions(
+  deps: EventBridgeDeps,
+): Promise<string[]> {
+  const topics: string[] = [];
 
-  async registerSubscriptions(): Promise<void> {
-    await this.subscribeSafe("hr:employee_onboarded", async (data: unknown) => {
-      const event = data as EmployeeOnboardedEvent;
-      await this.handleEmployeeOnboarded(event);
-    });
+  await subscribeSafe(deps, "hr:employee_onboarded", async (data: unknown) => {
+    const event = data as EmployeeOnboardedEvent;
+    await handleEmployeeOnboarded(event, deps);
+  });
+  topics.push("hr:employee_onboarded");
 
-    await this.subscribeSafe("hr:employee_separated", async (data: unknown) => {
-      const event = data as EmployeeSeparatedEvent;
-      await this.handleEmployeeSeparated(event);
-    });
+  await subscribeSafe(deps, "hr:employee_separated", async (data: unknown) => {
+    const event = data as EmployeeSeparatedEvent;
+    await handleEmployeeSeparated(event, deps);
+  });
+  topics.push("hr:employee_separated");
 
-    await this.subscribeSafe(
-      "fleet:vehicle_registered",
-      async (data: unknown) => {
-        const event = data as VehicleRegisteredEvent;
-        await this.handleVehicleRegistered(event);
-      },
-    );
+  await subscribeSafe(
+    deps,
+    "fleet:vehicle_registered",
+    async (data: unknown) => {
+      const event = data as VehicleRegisteredEvent;
+      await handleVehicleRegistered(event, deps);
+    },
+  );
+  topics.push("fleet:vehicle_registered");
 
-    await this.subscribeSafe(
-      "organization:branch_created",
-      async (data: unknown) => {
-        const event = data as BranchCreatedEvent;
-        await this.handleBranchCreated(event);
-      },
-    );
+  await subscribeSafe(
+    deps,
+    "organization:branch_created",
+    async (data: unknown) => {
+      const event = data as BranchCreatedEvent;
+      await handleBranchCreated(event, deps);
+    },
+  );
+  topics.push("organization:branch_created");
 
-    await this.subscribeSafe(
-      "accounting:financial_year_started",
-      async (data: unknown) => {
-        const event = data as FinancialYearStartedEvent;
-        await this.handleFinancialYearStarted(event);
-      },
-    );
+  await subscribeSafe(
+    deps,
+    "accounting:financial_year_started",
+    async (data: unknown) => {
+      const event = data as FinancialYearStartedEvent;
+      await handleFinancialYearStarted(event, deps);
+    },
+  );
+  topics.push("accounting:financial_year_started");
 
-    await this.subscribeSafe(
-      "organization:connection_created",
-      async (data: unknown) => {
-        const event = data as ConnectionCreatedEvent;
-        await this.handleConnectionCreated(event);
-      },
-    );
-  }
+  await subscribeSafe(
+    deps,
+    "organization:connection_created",
+    async (data: unknown) => {
+      const event = data as ConnectionCreatedEvent;
+      await handleConnectionCreated(event, deps);
+    },
+  );
+  topics.push("organization:connection_created");
 
-  async unregister(): Promise<void> {
-    for (const topic of this.subscribedTopics) {
-      try {
-        await this.pubsub.unsubscribe(topic);
-      } catch {
-        // ignore
-      }
-    }
-    this.subscribedTopics = [];
-  }
+  return topics;
+}
 
-  private async subscribeSafe(
-    topic: string,
-    handler: (data: unknown) => Promise<void>,
-  ): Promise<void> {
+export async function unregisterEventBridge(
+  topics: string[],
+  { pubsub }: Pick<EventBridgeDeps, "pubsub">,
+): Promise<void> {
+  for (const topic of topics) {
     try {
-      await this.pubsub.subscribe(topic, async (message) => {
-        await handler(message.data);
-      });
-      this.subscribedTopics.push(topic);
+      await pubsub.unsubscribe(topic);
     } catch {
-      // Source module not installed — silently no-op
+      // ignore
     }
   }
+}
 
-  private async handleEmployeeOnboarded(
-    event: EmployeeOnboardedEvent,
-  ): Promise<void> {
-    const docs: CreateComplianceDocumentInput[] = [
-      {
-        category: "hr",
-        createdBy: "system",
-        documentType: "background_check",
-        expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-        metadata: {
-          checkType: "criminal",
-          employeeId: event.employeeId,
-        },
-        name: `Background Check — ${event.employeeName}`,
-        reminderDays: [30, 7],
-        sourceEntityId: event.employeeId,
-        sourceEntityType: "employee",
-        sourceModule: "hr",
-      },
-      {
-        category: "hr",
-        createdBy: "system",
-        documentType: "id_verification",
-        metadata: {
-          checkType: "identity",
-          employeeId: event.employeeId,
-        },
-        name: `ID Verification — ${event.employeeName}`,
-        sourceEntityId: event.employeeId,
-        sourceEntityType: "employee",
-        sourceModule: "hr",
-      },
-    ];
-
-    for (const doc of docs) {
-      await this.documents.create(doc);
-    }
+async function subscribeSafe(
+  deps: EventBridgeDeps,
+  topic: string,
+  handler: (data: unknown) => Promise<void>,
+): Promise<void> {
+  try {
+    await deps.pubsub.subscribe(topic, async (message) => {
+      await handler(message.data);
+    });
+  } catch {
+    // Source module not installed — silently no-op
   }
+}
 
-  private async handleEmployeeSeparated(
-    event: EmployeeSeparatedEvent,
-  ): Promise<void> {
-    const docs: CreateComplianceDocumentInput[] = [
-      {
-        category: "hr",
-        createdBy: "system",
-        documentType: "exit_documents",
-        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        metadata: { employeeId: event.employeeId },
-        name: `Exit Documents — ${event.employeeName}`,
-        sourceEntityId: event.employeeId,
-        sourceEntityType: "employee",
-        sourceModule: "hr",
+async function handleEmployeeOnboarded(
+  event: EmployeeOnboardedEvent,
+  deps: EventBridgeDeps,
+): Promise<void> {
+  const docs: CreateComplianceDocumentInput[] = [
+    {
+      category: "hr",
+      createdBy: "system",
+      documentType: "background_check",
+      expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      metadata: {
+        checkType: "criminal",
+        employeeId: event.employeeId,
       },
-      {
-        category: "hr",
-        createdBy: "system",
-        documentType: "final_settlement",
-        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        metadata: { employeeId: event.employeeId },
-        name: `Final Settlement — ${event.employeeName}`,
-        sourceEntityId: event.employeeId,
-        sourceEntityType: "employee",
-        sourceModule: "hr",
+      name: `Background Check — ${event.employeeName}`,
+      reminderDays: [30, 7],
+      sourceEntityId: event.employeeId,
+      sourceEntityType: "employee",
+      sourceModule: "hr",
+    },
+    {
+      category: "hr",
+      createdBy: "system",
+      documentType: "id_verification",
+      metadata: {
+        checkType: "identity",
+        employeeId: event.employeeId,
       },
-    ];
+      name: `ID Verification — ${event.employeeName}`,
+      sourceEntityId: event.employeeId,
+      sourceEntityType: "employee",
+      sourceModule: "hr",
+    },
+  ];
 
-    for (const doc of docs) {
-      await this.documents.create(doc);
-    }
+  for (const doc of docs) {
+    await createDocument(doc, deps.documentDeps);
   }
+}
 
-  private async handleVehicleRegistered(
-    event: VehicleRegisteredEvent,
-  ): Promise<void> {
-    await this.documents.create({
+async function handleEmployeeSeparated(
+  event: EmployeeSeparatedEvent,
+  deps: EventBridgeDeps,
+): Promise<void> {
+  const docs: CreateComplianceDocumentInput[] = [
+    {
+      category: "hr",
+      createdBy: "system",
+      documentType: "exit_documents",
+      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      metadata: { employeeId: event.employeeId },
+      name: `Exit Documents — ${event.employeeName}`,
+      sourceEntityId: event.employeeId,
+      sourceEntityType: "employee",
+      sourceModule: "hr",
+    },
+    {
+      category: "hr",
+      createdBy: "system",
+      documentType: "final_settlement",
+      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      metadata: { employeeId: event.employeeId },
+      name: `Final Settlement — ${event.employeeName}`,
+      sourceEntityId: event.employeeId,
+      sourceEntityType: "employee",
+      sourceModule: "hr",
+    },
+  ];
+
+  for (const doc of docs) {
+    await createDocument(doc, deps.documentDeps);
+  }
+}
+
+async function handleVehicleRegistered(
+  event: VehicleRegisteredEvent,
+  deps: EventBridgeDeps,
+): Promise<void> {
+  await createDocument(
+    {
       category: "vehicle",
       createdBy: "system",
       documentType: "pollution_certificate",
@@ -208,9 +227,12 @@ export class EventBridge {
       sourceEntityId: event.vehicleId,
       sourceEntityType: "vehicle",
       sourceModule: "fleet",
-    });
+    },
+    deps.documentDeps,
+  );
 
-    await this.obligations.create({
+  await createObligation(
+    {
       category: "vehicle",
       createdBy: "system",
       documentType: "pollution_certificate",
@@ -222,11 +244,17 @@ export class EventBridge {
       sourceEntityType: "vehicle",
       sourceModule: "fleet",
       startDate: new Date(),
-    });
-  }
+    },
+    deps.obligationDeps,
+  );
+}
 
-  private async handleBranchCreated(event: BranchCreatedEvent): Promise<void> {
-    await this.documents.create({
+async function handleBranchCreated(
+  event: BranchCreatedEvent,
+  deps: EventBridgeDeps,
+): Promise<void> {
+  await createDocument(
+    {
       branch: event.branch.id,
       category: "permit",
       createdBy: "system",
@@ -237,9 +265,12 @@ export class EventBridge {
       sourceEntityId: event.branch.id,
       sourceEntityType: "branch",
       sourceModule: "organization",
-    });
+    },
+    deps.documentDeps,
+  );
 
-    await this.documents.create({
+  await createDocument(
+    {
       branch: event.branch.id,
       category: "safety",
       createdBy: "system",
@@ -250,9 +281,12 @@ export class EventBridge {
       sourceEntityId: event.branch.id,
       sourceEntityType: "branch",
       sourceModule: "organization",
-    });
+    },
+    deps.documentDeps,
+  );
 
-    await this.obligations.create({
+  await createObligation(
+    {
       branch: event.branch.id,
       category: "permit",
       createdBy: "system",
@@ -265,13 +299,17 @@ export class EventBridge {
       sourceEntityType: "branch",
       sourceModule: "organization",
       startDate: new Date(),
-    });
-  }
+    },
+    deps.obligationDeps,
+  );
+}
 
-  private async handleFinancialYearStarted(
-    event: FinancialYearStartedEvent,
-  ): Promise<void> {
-    await this.obligations.create({
+async function handleFinancialYearStarted(
+  event: FinancialYearStartedEvent,
+  deps: EventBridgeDeps,
+): Promise<void> {
+  await createObligation(
+    {
       category: "tax",
       createdBy: "system",
       documentType: "GST Return",
@@ -282,15 +320,19 @@ export class EventBridge {
       periodBased: true,
       sourceModule: "accounting",
       startDate: new Date(),
-    });
-  }
+    },
+    deps.obligationDeps,
+  );
+}
 
-  private async handleConnectionCreated(
-    event: ConnectionCreatedEvent,
-  ): Promise<void> {
-    if (event.connection.type !== "insurer") return;
+async function handleConnectionCreated(
+  event: ConnectionCreatedEvent,
+  deps: EventBridgeDeps,
+): Promise<void> {
+  if (event.connection.type !== "insurer") return;
 
-    await this.documents.create({
+  await createDocument(
+    {
       category: "insurance",
       connection: event.connection.id,
       createdBy: "system",
@@ -298,6 +340,7 @@ export class EventBridge {
       metadata: { policyNumber: null },
       name: `Insurance Policy — ${event.connection.name}`,
       sourceModule: "organization",
-    });
-  }
+    },
+    deps.documentDeps,
+  );
 }

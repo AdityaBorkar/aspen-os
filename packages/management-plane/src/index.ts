@@ -6,9 +6,9 @@ import type {
   PubSubUnit,
 } from "@aspen-os/platform/server";
 
-import { acl } from "./auth-acl";
 import { control_plane_schemas, tenant_schemas } from "./db-schemas";
 import { events } from "./pubsub-events";
+import { acl } from "./utils/acl";
 import { users } from "./workflows/platform-user";
 import { serviceProviders } from "./workflows/service-provider";
 import { createTenants } from "./workflows/tenant";

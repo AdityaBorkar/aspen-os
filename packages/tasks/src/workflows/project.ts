@@ -18,228 +18,262 @@ import {
   UpdateProjectSchema,
 } from "../types";
 
-export class ProjectWorkflow {
-  constructor(private readonly db: NodePgDatabase) {}
+export interface ProjectServiceDeps {
+  db: NodePgDatabase;
+}
 
-  async create(input: CreateProjectInput) {
-    const parsed = parse(CreateProjectSchema, input);
+export async function createProject(
+  input: CreateProjectInput,
+  deps: ProjectServiceDeps,
+) {
+  const { db } = deps;
+  const parsed = parse(CreateProjectSchema, input);
 
-    await this.ensureKeyUnique(parsed.key);
+  await ensureKeyUnique(parsed.key, undefined, deps);
 
-    const [result] = await this.db
-      .insert(project)
-      .values({
-        defaultTaskTypeId: parsed.defaultTaskTypeId ?? null,
-        description: parsed.description ?? null,
-        key: parsed.key,
-        leadId: parsed.leadId,
-        name: parsed.name,
-        startDate: parsed.startDate ?? null,
-        targetDate: parsed.targetDate ?? null,
-      })
-      .returning();
+  const [result] = await db
+    .insert(project)
+    .values({
+      defaultTaskTypeId: parsed.defaultTaskTypeId ?? null,
+      description: parsed.description ?? null,
+      key: parsed.key,
+      leadId: parsed.leadId,
+      name: parsed.name,
+      startDate: parsed.startDate ?? null,
+      targetDate: parsed.targetDate ?? null,
+    })
+    .returning();
 
-    if (!result) {
-      throw new Error("Failed to create project.");
-    }
-
-    await this.db.insert(projectMember).values({
-      projectId: result.id,
-      role: "admin",
-      userId: parsed.leadId,
-    });
-
-    return result;
+  if (!result) {
+    throw new Error("Failed to create project.");
   }
 
-  async update(id: string, patch: UpdateProjectInput) {
-    await this.getById(id);
-    const parsed = parse(UpdateProjectSchema, patch);
+  await db.insert(projectMember).values({
+    projectId: result.id,
+    role: "admin",
+    userId: parsed.leadId,
+  });
 
-    if (parsed.key) {
-      await this.ensureKeyUnique(parsed.key, id);
-    }
+  return result;
+}
 
-    const [updated] = await this.db
-      .update(project)
-      .set({
-        defaultTaskTypeId: parsed.defaultTaskTypeId,
-        description: parsed.description,
-        key: parsed.key,
-        leadId: parsed.leadId,
-        name: parsed.name,
-        startDate: parsed.startDate,
-        status: parsed.status,
-        targetDate: parsed.targetDate,
-        updatedAt: new Date(),
-      })
-      .where(eq(project.id, id))
-      .returning();
+export async function updateProject(
+  id: string,
+  patch: UpdateProjectInput,
+  deps: ProjectServiceDeps,
+) {
+  const { db } = deps;
+  await getProjectById(id, deps);
+  const parsed = parse(UpdateProjectSchema, patch);
 
-    return updated;
+  if (parsed.key) {
+    await ensureKeyUnique(parsed.key, id, deps);
   }
 
-  async archive(id: string) {
-    await this.getById(id);
-    const [updated] = await this.db
-      .update(project)
-      .set({ status: "archived", updatedAt: new Date() })
-      .where(eq(project.id, id))
-      .returning();
-    return updated;
+  const [updated] = await db
+    .update(project)
+    .set({
+      defaultTaskTypeId: parsed.defaultTaskTypeId,
+      description: parsed.description,
+      key: parsed.key,
+      leadId: parsed.leadId,
+      name: parsed.name,
+      startDate: parsed.startDate,
+      status: parsed.status,
+      targetDate: parsed.targetDate,
+      updatedAt: new Date(),
+    })
+    .where(eq(project.id, id))
+    .returning();
+
+  return updated;
+}
+
+export async function archiveProject(id: string, deps: ProjectServiceDeps) {
+  const { db } = deps;
+  await getProjectById(id, deps);
+  const [updated] = await db
+    .update(project)
+    .set({ status: "archived", updatedAt: new Date() })
+    .where(eq(project.id, id))
+    .returning();
+  return updated;
+}
+
+export async function restoreProject(id: string, deps: ProjectServiceDeps) {
+  const { db } = deps;
+  await getProjectById(id, deps);
+  const [updated] = await db
+    .update(project)
+    .set({ status: "active", updatedAt: new Date() })
+    .where(eq(project.id, id))
+    .returning();
+  return updated;
+}
+
+export async function deleteProject(id: string, deps: ProjectServiceDeps) {
+  const { db } = deps;
+  const [taskExists] = await db
+    .select({ id: task.id })
+    .from(task)
+    .where(eq(task.projectId, id))
+    .limit(1);
+
+  if (taskExists) {
+    throw new Error(
+      "Cannot delete project with existing tasks. Archive instead.",
+    );
   }
 
-  async restore(id: string) {
-    await this.getById(id);
-    const [updated] = await this.db
-      .update(project)
-      .set({ status: "active", updatedAt: new Date() })
-      .where(eq(project.id, id))
-      .returning();
-    return updated;
+  await db.delete(projectMember).where(eq(projectMember.projectId, id));
+  await db.delete(project).where(eq(project.id, id));
+}
+
+export async function getProjectById(id: string, deps: ProjectServiceDeps) {
+  const { db } = deps;
+  const [result] = await db
+    .select()
+    .from(project)
+    .where(eq(project.id, id))
+    .limit(1);
+
+  if (!result) {
+    throw new Error(`Project with id "${id}" not found.`);
   }
 
-  async delete(id: string) {
-    const [taskExists] = await this.db
-      .select({ id: task.id })
-      .from(task)
-      .where(eq(task.projectId, id))
-      .limit(1);
+  return result;
+}
 
-    if (taskExists) {
-      throw new Error(
-        "Cannot delete project with existing tasks. Archive instead.",
-      );
-    }
+export async function listProjects(
+  filters: ProjectFilters | undefined,
+  deps: ProjectServiceDeps,
+) {
+  const { db } = deps;
+  const parsed = filters ? parse(ProjectFiltersSchema, filters) : {};
+  const conditions = [];
 
-    await this.db.delete(projectMember).where(eq(projectMember.projectId, id));
-    await this.db.delete(project).where(eq(project.id, id));
+  if (parsed.leadId) {
+    conditions.push(eq(project.leadId, parsed.leadId));
+  }
+  if (parsed.status) {
+    conditions.push(eq(project.status, parsed.status));
   }
 
-  async getById(id: string) {
-    const [result] = await this.db
-      .select()
-      .from(project)
-      .where(eq(project.id, id))
-      .limit(1);
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    if (!result) {
-      throw new Error(`Project with id "${id}" not found.`);
-    }
+  return db
+    .select()
+    .from(project)
+    .where(whereClause)
+    .orderBy(desc(project.createdAt));
+}
 
-    return result;
+export async function addProjectMember(
+  input: CreateProjectMemberInput,
+  deps: ProjectServiceDeps,
+) {
+  const { db } = deps;
+  const parsed = parse(CreateProjectMemberSchema, input);
+
+  const [existing] = await db
+    .select({ userId: projectMember.userId })
+    .from(projectMember)
+    .where(
+      and(
+        eq(projectMember.projectId, parsed.projectId),
+        eq(projectMember.userId, parsed.userId),
+      ),
+    )
+    .limit(1);
+
+  if (existing) {
+    throw new Error("User is already a member of this project.");
   }
 
-  async list(filters?: ProjectFilters) {
-    const parsed = filters ? parse(ProjectFiltersSchema, filters) : {};
-    const conditions = [];
+  const [result] = await db
+    .insert(projectMember)
+    .values({
+      projectId: parsed.projectId,
+      role: parsed.role ?? "member",
+      userId: parsed.userId,
+    })
+    .returning();
 
-    if (parsed.leadId) {
-      conditions.push(eq(project.leadId, parsed.leadId));
-    }
-    if (parsed.status) {
-      conditions.push(eq(project.status, parsed.status));
-    }
+  return result;
+}
 
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+export async function updateProjectMember(
+  projectId: string,
+  userId: string,
+  patch: UpdateProjectMemberInput,
+  deps: ProjectServiceDeps,
+) {
+  const { db } = deps;
+  const parsed = parse(UpdateProjectMemberSchema, patch);
 
-    return this.db
-      .select()
-      .from(project)
-      .where(whereClause)
-      .orderBy(desc(project.createdAt));
+  const [updated] = await db
+    .update(projectMember)
+    .set({ role: parsed.role })
+    .where(
+      and(
+        eq(projectMember.projectId, projectId),
+        eq(projectMember.userId, userId),
+      ),
+    )
+    .returning();
+
+  if (!updated) {
+    throw new Error("Project member not found.");
   }
 
-  async addMember(input: CreateProjectMemberInput) {
-    const parsed = parse(CreateProjectMemberSchema, input);
+  return updated;
+}
 
-    const [existing] = await this.db
-      .select({ userId: projectMember.userId })
-      .from(projectMember)
-      .where(
-        and(
-          eq(projectMember.projectId, parsed.projectId),
-          eq(projectMember.userId, parsed.userId),
-        ),
-      )
-      .limit(1);
+export async function removeProjectMember(
+  projectId: string,
+  userId: string,
+  deps: ProjectServiceDeps,
+) {
+  const { db } = deps;
+  await db
+    .delete(projectMember)
+    .where(
+      and(
+        eq(projectMember.projectId, projectId),
+        eq(projectMember.userId, userId),
+      ),
+    );
+}
 
-    if (existing) {
-      throw new Error("User is already a member of this project.");
-    }
+export async function listProjectMembers(
+  projectId: string,
+  deps: ProjectServiceDeps,
+) {
+  const { db } = deps;
+  return db
+    .select()
+    .from(projectMember)
+    .where(eq(projectMember.projectId, projectId));
+}
 
-    const [result] = await this.db
-      .insert(projectMember)
-      .values({
-        projectId: parsed.projectId,
-        role: parsed.role ?? "member",
-        userId: parsed.userId,
-      })
-      .returning();
-
-    return result;
+async function ensureKeyUnique(
+  key: string,
+  excludeId: string | undefined,
+  deps: ProjectServiceDeps,
+): Promise<void> {
+  const { db } = deps;
+  const conditions = [eq(project.key, key)];
+  if (excludeId) {
+    conditions.push(sql`${project.id} != ${excludeId}`);
   }
 
-  async updateMember(
-    projectId: string,
-    userId: string,
-    patch: UpdateProjectMemberInput,
-  ) {
-    const parsed = parse(UpdateProjectMemberSchema, patch);
+  const [existing] = await db
+    .select({ id: project.id })
+    .from(project)
+    .where(and(...conditions))
+    .limit(1);
 
-    const [updated] = await this.db
-      .update(projectMember)
-      .set({ role: parsed.role })
-      .where(
-        and(
-          eq(projectMember.projectId, projectId),
-          eq(projectMember.userId, userId),
-        ),
-      )
-      .returning();
-
-    if (!updated) {
-      throw new Error("Project member not found.");
-    }
-
-    return updated;
-  }
-
-  async removeMember(projectId: string, userId: string) {
-    await this.db
-      .delete(projectMember)
-      .where(
-        and(
-          eq(projectMember.projectId, projectId),
-          eq(projectMember.userId, userId),
-        ),
-      );
-  }
-
-  async listMembers(projectId: string) {
-    return this.db
-      .select()
-      .from(projectMember)
-      .where(eq(projectMember.projectId, projectId));
-  }
-
-  private async ensureKeyUnique(
-    key: string,
-    excludeId?: string,
-  ): Promise<void> {
-    const conditions = [eq(project.key, key)];
-    if (excludeId) {
-      conditions.push(sql`${project.id} != ${excludeId}`);
-    }
-
-    const [existing] = await this.db
-      .select({ id: project.id })
-      .from(project)
-      .where(and(...conditions))
-      .limit(1);
-
-    if (existing) {
-      throw new Error(`Project key "${key}" already exists.`);
-    }
+  if (existing) {
+    throw new Error(`Project key "${key}" already exists.`);
   }
 }

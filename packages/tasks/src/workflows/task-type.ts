@@ -16,112 +16,142 @@ import {
   UpdateTaskTypeSchema,
 } from "../types";
 
-export class TaskTypeWorkflow {
-  constructor(private readonly db: NodePgDatabase) {}
+export interface TaskTypeServiceDeps {
+  db: NodePgDatabase;
+}
 
-  async createTaskType(input: CreateTaskTypeInput) {
-    const parsed = parse(CreateTaskTypeSchema, input);
+export async function createTaskType(
+  input: CreateTaskTypeInput,
+  deps: TaskTypeServiceDeps,
+) {
+  const { db } = deps;
+  const parsed = parse(CreateTaskTypeSchema, input);
 
-    if (parsed.isDefault && parsed.projectId) {
-      await this.unsetDefaultTaskType(parsed.projectId);
-    }
-
-    const [result] = await this.db
-      .insert(taskType)
-      .values({
-        color: parsed.color ?? null,
-        icon: parsed.icon ?? null,
-        isDefault: parsed.isDefault ?? false,
-        name: parsed.name,
-        projectId: parsed.projectId ?? null,
-      })
-      .returning();
-
-    return result;
+  if (parsed.isDefault && parsed.projectId) {
+    await unsetDefaultTaskType(parsed.projectId, deps);
   }
 
-  async updateTaskType(id: string, patch: UpdateTaskTypeInput) {
-    const parsed = parse(UpdateTaskTypeSchema, patch);
+  const [result] = await db
+    .insert(taskType)
+    .values({
+      color: parsed.color ?? null,
+      icon: parsed.icon ?? null,
+      isDefault: parsed.isDefault ?? false,
+      name: parsed.name,
+      projectId: parsed.projectId ?? null,
+    })
+    .returning();
 
-    if (parsed.isDefault) {
-      const [current] = await this.db
-        .select({ projectId: taskType.projectId })
-        .from(taskType)
-        .where(eq(taskType.id, id))
-        .limit(1);
-      if (current?.projectId) {
-        await this.unsetDefaultTaskType(current.projectId);
-      }
-    }
+  return result;
+}
 
-    const [updated] = await this.db
-      .update(taskType)
-      .set({
-        color: parsed.color,
-        icon: parsed.icon,
-        isDefault: parsed.isDefault,
-        name: parsed.name,
-      })
+export async function updateTaskType(
+  id: string,
+  patch: UpdateTaskTypeInput,
+  deps: TaskTypeServiceDeps,
+) {
+  const { db } = deps;
+  const parsed = parse(UpdateTaskTypeSchema, patch);
+
+  if (parsed.isDefault) {
+    const [current] = await db
+      .select({ projectId: taskType.projectId })
+      .from(taskType)
       .where(eq(taskType.id, id))
-      .returning();
-
-    return updated;
+      .limit(1);
+    if (current?.projectId) {
+      await unsetDefaultTaskType(current.projectId, deps);
+    }
   }
 
-  async deleteTaskType(id: string) {
-    await this.db.delete(taskType).where(eq(taskType.id, id));
-  }
+  const [updated] = await db
+    .update(taskType)
+    .set({
+      color: parsed.color,
+      icon: parsed.icon,
+      isDefault: parsed.isDefault,
+      name: parsed.name,
+    })
+    .where(eq(taskType.id, id))
+    .returning();
 
-  async listTaskTypes(projectId?: string) {
-    const conditions = projectId
-      ? eq(taskType.projectId, projectId)
-      : undefined;
-    return this.db.select().from(taskType).where(conditions);
-  }
+  return updated;
+}
 
-  async createLabel(input: CreateLabelInput) {
-    const parsed = parse(CreateLabelSchema, input);
+export async function deleteTaskType(id: string, deps: TaskTypeServiceDeps) {
+  const { db } = deps;
+  await db.delete(taskType).where(eq(taskType.id, id));
+}
 
-    const [result] = await this.db
-      .insert(label)
-      .values({
-        color: parsed.color ?? null,
-        name: parsed.name,
-        projectId: parsed.projectId ?? null,
-      })
-      .returning();
+export async function listTaskTypes(
+  projectId: string | undefined,
+  deps: TaskTypeServiceDeps,
+) {
+  const { db } = deps;
+  const conditions = projectId ? eq(taskType.projectId, projectId) : undefined;
+  return db.select().from(taskType).where(conditions);
+}
 
-    return result;
-  }
+export async function createLabel(
+  input: CreateLabelInput,
+  deps: TaskTypeServiceDeps,
+) {
+  const { db } = deps;
+  const parsed = parse(CreateLabelSchema, input);
 
-  async updateLabel(id: string, patch: UpdateLabelInput) {
-    const parsed = parse(UpdateLabelSchema, patch);
+  const [result] = await db
+    .insert(label)
+    .values({
+      color: parsed.color ?? null,
+      name: parsed.name,
+      projectId: parsed.projectId ?? null,
+    })
+    .returning();
 
-    const [updated] = await this.db
-      .update(label)
-      .set({
-        color: parsed.color,
-        name: parsed.name,
-      })
-      .where(eq(label.id, id))
-      .returning();
+  return result;
+}
 
-    return updated;
-  }
+export async function updateLabel(
+  id: string,
+  patch: UpdateLabelInput,
+  deps: TaskTypeServiceDeps,
+) {
+  const { db } = deps;
+  const parsed = parse(UpdateLabelSchema, patch);
 
-  async deleteLabel(id: string) {
-    await this.db.delete(label).where(eq(label.id, id));
-  }
+  const [updated] = await db
+    .update(label)
+    .set({
+      color: parsed.color,
+      name: parsed.name,
+    })
+    .where(eq(label.id, id))
+    .returning();
 
-  async listLabels(projectId?: string) {
-    const conditions = projectId ? eq(label.projectId, projectId) : undefined;
-    return this.db.select().from(label).where(conditions);
-  }
+  return updated;
+}
 
-  private async unsetDefaultTaskType(projectId: string): Promise<void> {
-    await this.db
-      .update(taskType)
-      .set({ isDefault: false })
-      .where(eq(taskType.projectId, projectId));
-  }
+export async function deleteLabel(id: string, deps: TaskTypeServiceDeps) {
+  const { db } = deps;
+  await db.delete(label).where(eq(label.id, id));
+}
+
+export async function listLabels(
+  projectId: string | undefined,
+  deps: TaskTypeServiceDeps,
+) {
+  const { db } = deps;
+  const conditions = projectId ? eq(label.projectId, projectId) : undefined;
+  return db.select().from(label).where(conditions);
+}
+
+async function unsetDefaultTaskType(
+  projectId: string,
+  deps: TaskTypeServiceDeps,
+): Promise<void> {
+  const { db } = deps;
+  await db
+    .update(taskType)
+    .set({ isDefault: false })
+    .where(eq(taskType.projectId, projectId));
 }
