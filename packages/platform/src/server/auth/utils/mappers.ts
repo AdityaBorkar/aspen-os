@@ -1,39 +1,6 @@
-import type { AuthService } from ".";
+import type { Session, User } from "..";
 
-type AuthSession = {
-  createdAt: Date;
-  expiresAt: Date;
-  id: string;
-  impersonatedBy?: string | null;
-  ipAddress?: string | null;
-  token: string;
-  updatedAt: Date;
-  userAgent?: string | null;
-  userId: string;
-};
-
-type AuthUser = {
-  banExpires?: Date | null;
-  banned?: boolean | null;
-  banReason?: string | null;
-  createdAt: Date;
-  displayUsername?: string | null;
-  email: string;
-  emailVerified: boolean;
-  id: string;
-  image?: string | null;
-  name: string;
-  phoneNumber?: string | null;
-  phoneNumberVerified?: boolean | null;
-  role?: string | null;
-  twoFactorEnabled?: boolean | null;
-  updatedAt: Date;
-  username?: string | null;
-};
-
-export function toUser(
-  user: AuthUser,
-): AuthService["$Infer"]["Session"]["user"] {
+export function toUser(user: any): User {
   return {
     banExpires: user.banExpires ?? undefined,
     banned: user.banned ?? false,
@@ -54,9 +21,7 @@ export function toUser(
   };
 }
 
-export function toSession(
-  session: AuthSession,
-): AuthService["$Infer"]["Session"]["session"] {
+export function toSession(session: any): Session {
   return {
     createdAt: session.createdAt,
     expiresAt: session.expiresAt,

@@ -1,7 +1,7 @@
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-import { context } from "../context";
 import type { DatabaseUnit } from "../db";
+import { context } from "../utils/context";
 import { logs } from "./db-schema";
 import { createEntryFactory, createLogBuffer } from "./log-buffer";
 import { LogQueryService } from "./query-service";

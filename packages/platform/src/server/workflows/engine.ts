@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-import { getContext } from "../context";
+import { getContext } from "../utils/context";
 import { workflowRuns, workflowSteps } from "./db-schema";
 import type {
   RunOptions,

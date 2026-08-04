@@ -8,6 +8,8 @@ PubSub Events (How to handle migrations?)
 
 ---
 
+Solve `auth`
+
 Manually read and simplify the code as much as possible
 Ensure good code architecture
 

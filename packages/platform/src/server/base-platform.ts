@@ -1,7 +1,6 @@
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 import { type AuthConfig, AuthUnit } from "./auth";
-import { context } from "./context";
 import type { DatabaseUnit } from "./db";
 import type {
   Module,
@@ -14,6 +13,7 @@ import { type LogConfig, LogUnit } from "./log";
 import { type PubSubConfig, PubSubUnit } from "./pubsub";
 import { type RpcConfig, RpcUnit } from "./rpc";
 import { type StorageConfig, StorageUnit } from "./storage";
+import { context } from "./utils/context";
 
 export type ExtractModuleNames<M extends Module[]> = {
   [K in keyof M]: M[K] extends { $name: infer N extends string } ? N : never;

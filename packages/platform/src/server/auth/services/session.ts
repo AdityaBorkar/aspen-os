@@ -3,110 +3,79 @@ import { createHmac } from "node:crypto";
 import { eq } from "drizzle-orm";
 
 import * as s from "../db-schema";
+import type {
+  AuthServiceDeps,
+  AuthSession,
+  AuthUser,
+  Session,
+  User,
+} from "../index";
 import { toSession, toUser } from "../mappers";
-import type { AuthServiceDeps, Session, User } from "../types";
 
-type AuthSession = {
-  createdAt: Date;
-  expiresAt: Date;
-  id: string;
-  impersonatedBy?: string | null;
-  ipAddress?: string | null;
-  token: string;
-  updatedAt: Date;
-  userAgent?: string | null;
-  userId: string;
-};
+async function createHeadersFromToken(
+  token: string,
+  { auth }: { auth: AuthServiceDeps["auth"] },
+): Promise<Headers> {
+  const ctx = await auth.$context;
+  const signature = createHmac("sha256", ctx.secret)
+    .update(token)
+    .digest("base64");
+  const signedValue = encodeURIComponent(`${token}.${signature}`);
+  const headers = new Headers();
+  headers.set("cookie", `${ctx.authCookies.sessionToken.name}=${signedValue}`);
+  return headers;
+}
 
-type AuthUser = {
-  banExpires?: Date | null;
-  banned?: boolean | null;
-  banReason?: string | null;
-  createdAt: Date;
-  displayUsername?: string | null;
-  email: string;
-  emailVerified: boolean;
-  id: string;
-  image?: string | null;
-  name: string;
-  phoneNumber?: string | null;
-  phoneNumberVerified?: boolean | null;
-  role?: string | null;
-  updatedAt: Date;
-  username?: string | null;
-};
+export async function authenticate(
+  input: { email: string; password: string },
+  { auth, pubsub }: AuthServiceDeps,
+): Promise<{ session: Session; user: User }> {
+  const response = await auth.api.signInEmail({
+    body: { email: input.email, password: input.password },
+  });
 
-export function createSessionServices(deps: AuthServiceDeps) {
-  async function createHeadersFromToken(token: string): Promise<Headers> {
-    const { auth } = deps;
-    const ctx = await auth.$context;
-    const signature = createHmac("sha256", ctx.secret)
-      .update(token)
-      .digest("base64");
-    const signedValue = encodeURIComponent(`${token}.${signature}`);
-    const headers = new Headers();
-    headers.set(
-      "cookie",
-      `${ctx.authCookies.sessionToken.name}=${signedValue}`,
-    );
-    return headers;
+  if ("twoFactorRedirect" in response) {
+    throw new Error("Two-factor authentication required");
   }
 
-  async function authenticate(input: {
-    email: string;
-    password: string;
-  }): Promise<{ session: Session; user: User }> {
-    const { auth, pubsub } = deps;
+  const headers = await createHeadersFromToken(response.token, { auth });
+  const sessionData = await auth.api.getSession({
+    headers,
+    query: { disableCookieCache: true, disableRefresh: true },
+  });
 
-    const response = await auth.api.signInEmail({
-      body: { email: input.email, password: input.password },
-    });
+  if (!sessionData) throw new Error("Failed to create session");
 
-    if ("twoFactorRedirect" in response) {
-      throw new Error("Two-factor authentication required");
-    }
+  const session = toSession(sessionData.session as AuthSession);
+  const user = toUser(sessionData.user as AuthUser);
+  await pubsub?.publishControlPlane("session:created", { session, user });
+  return { session, user };
+}
 
-    const headers = await createHeadersFromToken(response.token);
-    const sessionData = await auth.api.getSession({
-      headers,
-      query: { disableCookieCache: true, disableRefresh: true },
-    });
+export async function validateSession(
+  input: { token: string },
+  { auth }: AuthServiceDeps,
+): Promise<{ session: Session; user: User } | null> {
+  const headers = await createHeadersFromToken(input.token, { auth });
+  const sessionData = await auth.api.getSession({
+    headers,
+    query: { disableCookieCache: true, disableRefresh: true },
+  });
 
-    if (!sessionData) throw new Error("Failed to create session");
+  if (!sessionData) return null;
 
-    const session = toSession(sessionData.session as AuthSession);
-    const user = toUser(sessionData.user as AuthUser);
+  return {
+    session: toSession(sessionData.session as AuthSession),
+    user: toUser(sessionData.user as AuthUser),
+  };
+}
 
-    await pubsub?.publishControlPlane("session:created", { session, user });
-    return { session, user };
-  }
-
-  async function validate(input: {
-    token: string;
-  }): Promise<{ session: Session; user: User } | null> {
-    const { auth } = deps;
-
-    const headers = await createHeadersFromToken(input.token);
-    const sessionData = await auth.api.getSession({
-      headers,
-      query: { disableCookieCache: true, disableRefresh: true },
-    });
-
-    if (!sessionData) return null;
-
-    return {
-      session: toSession(sessionData.session as AuthSession),
-      user: toUser(sessionData.user as AuthUser),
-    };
-  }
-
-  async function invalidate(input: { sessionId: string }): Promise<void> {
-    const { db, pubsub } = deps;
-    await db.delete(s.session).where(eq(s.session.id, input.sessionId));
-    await pubsub?.publishControlPlane("session:invalidated", {
-      sessionId: input.sessionId,
-    });
-  }
-
-  return { authenticate, invalidate, validate };
+export async function invalidateSession(
+  input: { sessionId: string },
+  { db, pubsub }: AuthServiceDeps,
+): Promise<void> {
+  await db.delete(s.session).where(eq(s.session.id, input.sessionId));
+  await pubsub?.publishControlPlane("session:invalidated", {
+    sessionId: input.sessionId,
+  });
 }

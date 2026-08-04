@@ -1,4 +1,4 @@
-# ADR-0005: Split ModuleInfra DB Schemas into Control-Plane vs Tenant
+# ADR-0008: Split ModuleInfra DB Schemas into Control-Plane vs Tenant
 
 ## Status
 

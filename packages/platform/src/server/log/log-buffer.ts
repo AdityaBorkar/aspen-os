@@ -1,4 +1,4 @@
-import { context } from "../context";
+import { context } from "../utils/context";
 import type { LogEntry, LogLevel } from "./types";
 
 export interface LogBuffer {

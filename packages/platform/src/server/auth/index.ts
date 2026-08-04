@@ -1,6 +1,6 @@
 import { apiKey } from "@better-auth/api-key";
 import { passkey } from "@better-auth/passkey";
-import { betterAuth } from "better-auth";
+import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import {
   admin,
@@ -17,55 +17,41 @@ import type { DatabaseUnit } from "../db";
 import type { Unit } from "../index";
 import type { PubSubUnit } from "../pubsub";
 import * as db_schema from "./db-schema";
+import {
+  assignRole,
+  deleteRole,
+  listRoles,
+  unassignRole,
+} from "./services/role";
+import {
+  authenticate,
+  invalidateSession,
+  validateSession,
+} from "./services/session";
+import {
+  createUser,
+  deleteUser,
+  getUser,
+  getUserByEmail,
+  getUserById,
+  updateUser,
+} from "./services/user";
 
-export type { AclDeclaration } from "./acl";
-export { defineAcl } from "./acl";
-export type { AuthEventMap } from "./event-map";
-export { toSession, toUser } from "./mappers";
+export type { AclDeclaration } from "./utils/acl";
+export { defineAcl } from "./utils/acl";
+export { toSession, toUser } from "./utils/mappers";
 
 type DrizzleDB = NodePgDatabase<Record<string, never>>;
-export type AuthService = ReturnType<typeof createAuthService>;
+export type AuthService = ReturnType<typeof createBetterAuthService>;
 export interface AuthServiceDeps {
   auth: AuthService;
   db: DrizzleDB;
   pubsub: PubSubUnit | null;
 }
+export type Session = AuthService["$Infer"]["Session"]["session"];
+export type User = AuthService["$Infer"]["Session"]["user"];
 
-export interface AuthConfig {
-  baseURL: string;
-  cfSecretKey?: string;
-  secret: string;
-  session: {
-    expiresIn?: number;
-    updateAge?: number;
-    disableSessionRefresh?: boolean;
-    deferSessionRefresh?: boolean;
-    storeSessionInDatabase?: boolean;
-    preserveSessionInDatabase?: boolean;
-    freshAge?: number;
-    cookieCache?: {
-      maxAge?: number;
-      enabled?: boolean;
-      strategy?: "compact" | "jwt" | "jwe";
-      refreshCache?:
-        | boolean
-        | {
-            updateAge?: number;
-          };
-      version?: string;
-    };
-  };
-  socialProviders?: {
-    google?: {
-      clientId: string;
-      clientSecret: string;
-      scope?: string[];
-      disableDefaultScope?: boolean;
-      redirectURI?: string;
-      enabled?: boolean;
-    };
-  };
-}
+export interface AuthConfig extends BetterAuthOptions {}
 
 export interface RoleData {
   createdAt: Date;
@@ -79,31 +65,65 @@ export interface RoleData {
 export class AuthUnit implements Unit {
   readonly $name = "auth" as const;
   readonly $db_schema = db_schema;
+  #db: DrizzleDB;
+  #pubsub: PubSubUnit;
 
   constructor(
     config: AuthConfig,
     units: { db: DatabaseUnit; pubsub: PubSubUnit },
   ) {
-    this.service = createAuthService(config, units.db.controlPlaneDb);
+    this.#db = units.db.controlPlaneDb;
+    this.#pubsub = units.pubsub;
+    this.betterAuth = createBetterAuthService(config, units.db.controlPlaneDb);
   }
 
   async $prepareInfra() {}
 
   async $cleanup() {}
 
-  readonly service: AuthService;
+  readonly betterAuth: AuthService;
 
   async fetchHandler(request: Request): Promise<Response> {
-    return this.service.handler(request);
+    return this.betterAuth.handler(request);
   }
 
   get _() {
-    return {};
+    const deps: AuthServiceDeps = {
+      auth: this.betterAuth,
+      db: this.#db,
+      pubsub: this.#pubsub,
+    };
+
+    return {
+      assignRole: (input: { roleName: string; userId: string }) =>
+        assignRole(input, deps),
+      authenticate: (input: { email: string; password: string }) =>
+        authenticate(input, deps),
+      createUser: (input: { email: string; name?: string; password: string }) =>
+        createUser(input, deps),
+      deleteRole: (input: { name: string }) => deleteRole(input, deps),
+      deleteUser: (input: { id: string }) => deleteUser(input, deps),
+      getUser: (query: { id: string } | { email: string }) =>
+        getUser(query, deps),
+      getUserByEmail: (input: { email: string }) => getUserByEmail(input, deps),
+      getUserById: (input: { id: string }) => getUserById(input, deps),
+      invalidateSession: (input: { sessionId: string }) =>
+        invalidateSession(input, deps),
+      listRoles: () => listRoles(deps),
+      unassignRole: (input: { userId: string }) => unassignRole(input, deps),
+      updateUser: (input: {
+        id: string;
+        data: Partial<Pick<User, "image" | "name" | "role">>;
+      }) => updateUser(input, deps),
+      validateSession: (input: { token: string }) =>
+        validateSession(input, deps),
+    };
   }
 }
 
-export function createAuthService(config: AuthConfig, db: DrizzleDB) {
+export function createBetterAuthService(config: AuthConfig, db: DrizzleDB) {
   return betterAuth({
+    ...config,
     database: drizzleAdapter(db, {
       camelCase: false,
       provider: "pg",
@@ -138,6 +158,5 @@ export function createAuthService(config: AuthConfig, db: DrizzleDB) {
       twoFactor(),
       passkey(),
     ],
-    ...config,
   });
 }

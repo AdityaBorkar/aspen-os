@@ -113,14 +113,14 @@ Both server and client use the `$` prefix for lifecycle methods and the name pro
 
 ### 2. Customer-Supplier: Platform → Units
 
-**Direction**: Platform classes create and wire units via `Platform.create(config, modules)`. Units have no knowledge of Platform. Three server platform classes: `SingleTenantPlatform`, `SharedTenantPlatform`, `IsolatedTenantPlatform`. The client has a single `Framework` class.
+**Direction**: Platform classes create and wire units via `Platform.create(config, modules)`. Units have no knowledge of Platform. Three server platform classes: `SingleTenantPlatform`, `SharedTenantPlatform`, `IsolatedTenantPlatform`. The client has a single `Platform` class.
 
 ```
 SingleTenantPlatform.create(config, modules)
 SharedTenantPlatform.create(config, modules)
 IsolatedTenantPlatform.create(config, modules)
     │
-    ├── creates DatabaseUnit(config.db, { mode })
+    ├── creates DatabaseUnit(config.db, tenancy config)
     ├── creates LogUnit(config.logs, { db })
     ├── creates PubSubUnit(config.pubsub, { db })
     ├── creates AuthUnit(config.auth, { db })
@@ -234,9 +234,9 @@ DatabaseUnit ← KvStoreUnit
 **Lifecycle**:
 ```
 SingleTenantPlatform.create(config, { organization })
-    → f.prepareInfra()  // unit.$prepareInfra() + collect mod.$prepareInfra() + db.prepareWithModules() + auth.applyModuleAcl() + mod.$prepareRuntime()
-    → f.run(fn)         // AsyncLocalStorage context
-    → f.destroy()       // mod.$cleanup() then unit.$cleanup()
+    → p.$prepareInfra()  // unit.$prepareInfra() + collect mod.$prepareInfra() + db.prepareWithModules() + auth.applyModuleAcl() + mod.$prepareRuntime()
+    → p.run(fn)         // AsyncLocalStorage context
+    → p.$cleanup()       // mod.$cleanup() then unit.$cleanup()
 ```
 
 **Adaptations**:
@@ -257,7 +257,7 @@ SingleTenantPlatform.create(config, { organization })
 - Valibot validation schemas for all inputs
 - `$prepareInfra()` returns declarative infra (db schemas, events) — schema pushing handled centrally by platform
 
-**Exposed on platform instance**: `f.organization.addresses`, `f.organization.bankAccounts`, `f.organization.branches`, `f.organization.connections`, `f.organization.organizations`
+**Exposed on platform instance**: `p.organization.addresses`, `p.organization.bankAccounts`, `p.organization.branches`, `p.organization.connections`, `p.organization.organizations`
 
 ### 11. Downstream: Compliance Module → Platform
 
@@ -339,13 +339,13 @@ SingleTenantPlatform.create(config, { organization })
 
 **Roles**: `platform_admin`, `sp_user`, `tenant_admin`, `tenant_user`
 
-**Exposed on platform instance**: `f.management.tenants`, `f.management.serviceProviders`, `f.management.users`
+**Exposed on platform instance**: `p.management.tenants`, `p.management.serviceProviders`, `p.management.users`
 
 ### 16. Client Platform
 
 **Exported as**: `@aspen-os/platform/client`
 
-**Relationship**: A separate client `Platform` class (not `Framework` — the client class was renamed) for browser-side use with 3 units:
+**Relationship**: A separate client `Platform` class for browser-side use with 3 units:
 - `AuthUnit` — wraps better-auth React client with plugins (admin, emailOTP, username, phoneNumber)
 - `LogsUnit` — stub (stores config only, no logging methods)
 - `RpcUnit` — stub (no-op)
@@ -374,7 +374,7 @@ This:
 2. Wires pubsub↔auth (setAuth/setPubSub)
 3. Validates module `$dependencies`
 4. Calls `mod.$initialize(units)` on each module
-5. Returns a proxy-wrapped platform instance that allows `f.organization` syntax
+5. Returns a proxy-wrapped platform instance that allows `p.organization` syntax
 
 ### AsyncLocalStorage Context
 
@@ -382,14 +382,14 @@ The `run()` method provides request-scoped context. Signature varies by platform
 
 ```typescript
 // SingleTenantPlatform — no tenantId
-await f.run(async () => {
+await p.run(async () => {
   const { auth, db, pubsub } = getContext();
   // db: NodePgDatabase (drizzle instance)
   // pubsub: PubSubUnit (full unit, not just publish)
 });
 
 // SharedTenantPlatform / IsolatedTenantPlatform — tenantId required
-await f.run(tenantId, async () => {
+await p.run(tenantId, async () => {
   const { auth, db, pubsub, tenantId } = getContext();
 });
 ```
@@ -491,7 +491,7 @@ Two modules register scheduled cron jobs via PubSub:
 ## Language Boundaries
 
 ### Platform Kernel Language
-- Platform, Framework (client), Unit, Module, Create, PrepareInfra, Destroy, Run, GetUnit, GetModule, $dependencies
+- Platform, Platform (client), Unit, Module, Create, PrepareInfra, Destroy, Run, GetUnit, GetModule, $dependencies
 
 ### Auth Language
 - User, Session, Account, Verification, Role, Access Control, Auth Event

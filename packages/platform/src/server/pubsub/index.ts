@@ -1,11 +1,11 @@
 import PgBoss from "pg-boss";
 
 import type { AuthUnit } from "../auth";
-import { isGlobalTenantId } from "../constants";
-import { context } from "../context";
 import type { DatabaseUnit } from "../db";
 import type { DatabaseConfig } from "../db/types";
 import type { TenancyMode } from "../index";
+import { context } from "../utils/context";
+import { isGlobalTenantId } from "../utils/is-global-tenant-id";
 import type {
   MessageHandler,
   PublishOptions,

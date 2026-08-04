@@ -5,11 +5,11 @@ import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import pg from "pg";
 
 import * as authSchema from "../auth/db-schema";
-import { context } from "../context";
 import type { TenancyMode, TenantResolver } from "../index";
 import * as kvStoreSchema from "../kv-store/db-schema";
 import * as logSchema from "../log/db-schema";
 import * as storageSchema from "../storage/db-schema";
+import { context } from "../utils/context";
 import * as workflowSchema from "../workflows/db-schema";
 import type {
   DatabaseConfig,

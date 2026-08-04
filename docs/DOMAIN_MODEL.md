@@ -993,58 +993,58 @@ The HR module defines 43 events across 8 event groups, combined into `HrEventMap
 | PubSub | Subscribe | `pubsub.subscribe()` |
 | KV | Set key | `kv.set()` |
 | KV | Delete key | `kv.del()` |
-| Organization | Create org | `f.organization.organizations.create()` |
-| Organization | Update org | `f.organization.organizations.update()` |
-| Organization | Update branding | `f.organization.organizations.updateBranding()` |
-| Branch | Create branch | `f.organization.branches.create()` |
-| Branch | Archive branch | `f.organization.branches.archive()` |
-| Connection | Create connection | `f.organization.connections.create()` |
-| Connection | Add contact | `f.organization.connections.addContact()` |
-| Address | Create address | `f.organization.addresses.create()` |
-| Bank Account | Create account | `f.organization.bankAccounts.create()` |
-| Compliance | Create document | `f.compliance.documents.create()` |
-| Compliance | Submit document | `f.compliance.documents.submit()` |
-| Compliance | Verify document | `f.compliance.documents.verify()` |
-| Compliance | Reject document | `f.compliance.documents.reject()` |
-| Compliance | Renew document | `f.compliance.documents.renew()` |
-| Compliance | Archive document | `f.compliance.documents.archive()` |
-| Compliance | Snooze document | `f.compliance.documents.snooze()` |
-| Compliance | Create obligation | `f.compliance.obligations.create()` |
-| Compliance | Activate obligation | `f.compliance.obligations.activate()` |
-| Compliance | Create verification rule | `f.compliance.verification.create()` |
-| Tasks | Create task | `f.tasks.tasks.create()` |
-| Tasks | Update task | `f.tasks.tasks.update()` |
-| Tasks | Archive task | `f.tasks.tasks.archive()` |
-| Tasks | Assign task | `f.tasks.tasks.assign()` |
-| Tasks | Create project | `f.tasks.projects.create()` |
-| Tasks | Archive project | `f.tasks.projects.archive()` |
-| Tasks | Create comment | `f.tasks.comments.create()` |
-| Tasks | Create link | `f.tasks.links.create()` |
-| Tasks | Log time | `f.tasks.timeEntries.create()` |
-| Tasks | Create reminder | `f.tasks.reminders.create()` |
-| Tasks | Create automation rule | `f.tasks.automation.create()` |
-| Drive | Upload file | `f.drive.files.upload()` |
-| Drive | Update file | `f.drive.files.update()` |
-| Drive | Delete file | `f.drive.files.delete()` |
-| Drive | Create folder | `f.drive.folders.create()` |
-| Drive | Move item | `f.drive.files.move()` / `f.drive.folders.move()` |
-| Drive | Share item | `f.drive.shares.create()` |
-| Drive | Create public link | `f.drive.publicLinks.create()` |
-| Drive | Trash item | `f.drive.files.delete()` / `f.drive.folders.delete()` |
-| Drive | Restore item | `f.drive.trash.restore()` |
-| Drive | Empty trash | `f.drive.trash.emptyTrash()` |
-| Drive | Apply label | `f.drive.labels.apply()` |
-| Management Plane | Onboard tenant | `f.management.tenants.onboard()` |
-| Management Plane | Update tenant | `f.management.tenants.update()` |
-| Management Plane | Create SP | `f.management.serviceProviders.create()` |
-| Management Plane | Update SP | `f.management.serviceProviders.update()` |
-| Management Plane | Activate SP | `f.management.serviceProviders.activate()` |
-| Management Plane | Deactivate SP | `f.management.serviceProviders.deactivate()` |
-| Management Plane | Create platform user | `f.management.users.create()` |
-| Management Plane | Update platform user | `f.management.users.update()` |
-| Management Plane | Delete platform user | `f.management.users.delete()` |
-| Management Plane | Assign role | `f.management.users.assignRole()` |
-| Management Plane | Assign user to SP | `f.management.users.assignToServiceProvider()` |
+| Organization | Create org | `p.organization.organizations.create()` |
+| Organization | Update org | `p.organization.organizations.update()` |
+| Organization | Update branding | `p.organization.organizations.updateBranding()` |
+| Branch | Create branch | `p.organization.branches.create()` |
+| Branch | Archive branch | `p.organization.branches.archive()` |
+| Connection | Create connection | `p.organization.connections.create()` |
+| Connection | Add contact | `p.organization.connections.addContact()` |
+| Address | Create address | `p.organization.addresses.create()` |
+| Bank Account | Create account | `p.organization.bankAccounts.create()` |
+| Compliance | Create document | `p.compliance.documents.create()` |
+| Compliance | Submit document | `p.compliance.documents.submit()` |
+| Compliance | Verify document | `p.compliance.documents.verify()` |
+| Compliance | Reject document | `p.compliance.documents.reject()` |
+| Compliance | Renew document | `p.compliance.documents.renew()` |
+| Compliance | Archive document | `p.compliance.documents.archive()` |
+| Compliance | Snooze document | `p.compliance.documents.snooze()` |
+| Compliance | Create obligation | `p.compliance.obligations.create()` |
+| Compliance | Activate obligation | `p.compliance.obligations.activate()` |
+| Compliance | Create verification rule | `p.compliance.verification.create()` |
+| Tasks | Create task | `p.tasks.tasks.create()` |
+| Tasks | Update task | `p.tasks.tasks.update()` |
+| Tasks | Archive task | `p.tasks.tasks.archive()` |
+| Tasks | Assign task | `p.tasks.tasks.assign()` |
+| Tasks | Create project | `p.tasks.projects.create()` |
+| Tasks | Archive project | `p.tasks.projects.archive()` |
+| Tasks | Create comment | `p.tasks.comments.create()` |
+| Tasks | Create link | `p.tasks.links.create()` |
+| Tasks | Log time | `p.tasks.timeEntries.create()` |
+| Tasks | Create reminder | `p.tasks.reminders.create()` |
+| Tasks | Create automation rule | `p.tasks.automation.create()` |
+| Drive | Upload file | `p.drive.files.upload()` |
+| Drive | Update file | `p.drive.files.update()` |
+| Drive | Delete file | `p.drive.files.delete()` |
+| Drive | Create folder | `p.drive.folders.create()` |
+| Drive | Move item | `p.drive.files.move()` / `p.drive.folders.move()` |
+| Drive | Share item | `p.drive.shares.create()` |
+| Drive | Create public link | `p.drive.publicLinks.create()` |
+| Drive | Trash item | `p.drive.files.delete()` / `p.drive.folders.delete()` |
+| Drive | Restore item | `p.drive.trash.restore()` |
+| Drive | Empty trash | `p.drive.trash.emptyTrash()` |
+| Drive | Apply label | `p.drive.labels.apply()` |
+| Management Plane | Onboard tenant | `p.management.tenants.onboard()` |
+| Management Plane | Update tenant | `p.management.tenants.update()` |
+| Management Plane | Create SP | `p.management.serviceProviders.create()` |
+| Management Plane | Update SP | `p.management.serviceProviders.update()` |
+| Management Plane | Activate SP | `p.management.serviceProviders.activate()` |
+| Management Plane | Deactivate SP | `p.management.serviceProviders.deactivate()` |
+| Management Plane | Create platform user | `p.management.users.create()` |
+| Management Plane | Update platform user | `p.management.users.update()` |
+| Management Plane | Delete platform user | `p.management.users.delete()` |
+| Management Plane | Assign role | `p.management.users.assignRole()` |
+| Management Plane | Assign user to SP | `p.management.users.assignToServiceProvider()` |
 
 ### Queries (Read Side)
 
@@ -1062,56 +1062,56 @@ The HR module defines 43 events across 8 event groups, combined into `HrEventMap
 | KV | Get key | `kv.get()` |
 | KV | Check exists | `kv.exists()` |
 | PubSub | Get queue size | `pubsub.getQueueSize()` |
-| Organization | Get org | `f.organization.organizations.get()` |
-| Branch | List branches | `f.organization.branches.list()` |
-| Branch | Get tree | `f.organization.branches.getTree()` |
-| Connection | Search | `f.organization.connections.search()` |
-| Connection | List contacts | `f.organization.connections.listContacts()` |
-| Address | List addresses | `f.organization.addresses.list()` |
-| Bank Account | List accounts | `f.organization.bankAccounts.list()` |
-| Compliance | Get by ID | `f.compliance.documents.getById()` |
-| Compliance | List documents | `f.compliance.documents.list()` |
-| Compliance | Get expiring | `f.compliance.documents.getExpiring()` |
-| Compliance | Get due soon | `f.compliance.documents.getDueSoon()` |
-| Compliance | Get expired | `f.compliance.documents.getExpired()` |
-| Compliance | Get overdue | `f.compliance.documents.getOverdue()` |
-| Compliance | Get renewal chain | `f.compliance.documents.getRenewalChain()` |
-| Compliance | Get timeline | `f.compliance.documents.getTimeline()` |
-| Compliance | Get dashboard summary | `f.compliance.dashboard.getSummary()` |
-| Compliance | Get audit trail | `f.compliance.audit.getAuditTrail()` |
-| Compliance | List obligations | `f.compliance.obligations.list()` |
-| Compliance | List verification rules | `f.compliance.verification.list()` |
-| Tasks | Get task | `f.tasks.tasks.getById()` |
-| Tasks | List tasks | `f.tasks.tasks.list()` |
-| Tasks | Get sub-tasks | `f.tasks.tasks.getSubTasks()` |
-| Tasks | Get completion summary | `f.tasks.tasks.getCompletionSummary()` |
-| Tasks | List project members | `f.tasks.projects.listMembers()` |
-| Tasks | Get dependency graph | `f.tasks.links.getDependencyGraph()` |
-| Tasks | Get critical path | `f.tasks.links.getCriticalPath()` |
-| Tasks | Topological sort | `f.tasks.links.topologicalSort()` |
-| Tasks | Task summary report | `f.tasks.reports.getTaskSummary()` |
-| Tasks | Workload report | `f.tasks.reports.getWorkloadReport()` |
-| Tasks | Time report | `f.tasks.reports.getTimeReport()` |
-| Tasks | Cumulative flow | `f.tasks.reports.getCumulativeFlow()` |
-| Drive | Get file | `f.drive.files.getById()` |
-| Drive | List folder | `f.drive.folders.list()` |
-| Drive | Get folder metadata | `f.drive.folders.get()` |
-| Drive | List file versions | `f.drive.files.listVersions()` |
-| Drive | Get download link | `f.drive.files.getDownloadLink()` |
-| Drive | Search | `f.drive.search.search()` |
-| Drive | List shares | `f.drive.shares.list()` |
-| Drive | List shared with me | `f.drive.shares.listSharedWithMe()` |
-| Drive | List trash | `f.drive.trash.list()` |
-| Drive | List labels | `f.drive.labels.list()` |
-| Drive | Get breadcrumbs | `f.drive.paths.getBreadcrumbs()` |
-| Management Plane | Get tenant | `f.management.tenants.get()` |
-| Management Plane | List tenants | `f.management.tenants.list()` |
-| Management Plane | Get SP | `f.management.serviceProviders.get()` |
-| Management Plane | List SPs | `f.management.serviceProviders.list()` |
-| Management Plane | Get SP assigned tenants | `f.management.serviceProviders.getAssignedTenants()` |
-| Management Plane | Get SP users | `f.management.serviceProviders.getUsers()` |
-| Management Plane | Get platform user | `f.management.users.get()` |
-| Management Plane | List platform users | `f.management.users.list()` |
+| Organization | Get org | `p.organization.organizations.get()` |
+| Branch | List branches | `p.organization.branches.list()` |
+| Branch | Get tree | `p.organization.branches.getTree()` |
+| Connection | Search | `p.organization.connections.search()` |
+| Connection | List contacts | `p.organization.connections.listContacts()` |
+| Address | List addresses | `p.organization.addresses.list()` |
+| Bank Account | List accounts | `p.organization.bankAccounts.list()` |
+| Compliance | Get by ID | `p.compliance.documents.getById()` |
+| Compliance | List documents | `p.compliance.documents.list()` |
+| Compliance | Get expiring | `p.compliance.documents.getExpiring()` |
+| Compliance | Get due soon | `p.compliance.documents.getDueSoon()` |
+| Compliance | Get expired | `p.compliance.documents.getExpired()` |
+| Compliance | Get overdue | `p.compliance.documents.getOverdue()` |
+| Compliance | Get renewal chain | `p.compliance.documents.getRenewalChain()` |
+| Compliance | Get timeline | `p.compliance.documents.getTimeline()` |
+| Compliance | Get dashboard summary | `p.compliance.dashboard.getSummary()` |
+| Compliance | Get audit trail | `p.compliance.audit.getAuditTrail()` |
+| Compliance | List obligations | `p.compliance.obligations.list()` |
+| Compliance | List verification rules | `p.compliance.verification.list()` |
+| Tasks | Get task | `p.tasks.tasks.getById()` |
+| Tasks | List tasks | `p.tasks.tasks.list()` |
+| Tasks | Get sub-tasks | `p.tasks.tasks.getSubTasks()` |
+| Tasks | Get completion summary | `p.tasks.tasks.getCompletionSummary()` |
+| Tasks | List project members | `p.tasks.projects.listMembers()` |
+| Tasks | Get dependency graph | `p.tasks.links.getDependencyGraph()` |
+| Tasks | Get critical path | `p.tasks.links.getCriticalPath()` |
+| Tasks | Topological sort | `p.tasks.links.topologicalSort()` |
+| Tasks | Task summary report | `p.tasks.reports.getTaskSummary()` |
+| Tasks | Workload report | `p.tasks.reports.getWorkloadReport()` |
+| Tasks | Time report | `p.tasks.reports.getTimeReport()` |
+| Tasks | Cumulative flow | `p.tasks.reports.getCumulativeFlow()` |
+| Drive | Get file | `p.drive.files.getById()` |
+| Drive | List folder | `p.drive.folders.list()` |
+| Drive | Get folder metadata | `p.drive.folders.get()` |
+| Drive | List file versions | `p.drive.files.listVersions()` |
+| Drive | Get download link | `p.drive.files.getDownloadLink()` |
+| Drive | Search | `p.drive.search.search()` |
+| Drive | List shares | `p.drive.shares.list()` |
+| Drive | List shared with me | `p.drive.shares.listSharedWithMe()` |
+| Drive | List trash | `p.drive.trash.list()` |
+| Drive | List labels | `p.drive.labels.list()` |
+| Drive | Get breadcrumbs | `p.drive.paths.getBreadcrumbs()` |
+| Management Plane | Get tenant | `p.management.tenants.get()` |
+| Management Plane | List tenants | `p.management.tenants.list()` |
+| Management Plane | Get SP | `p.management.serviceProviders.get()` |
+| Management Plane | List SPs | `p.management.serviceProviders.list()` |
+| Management Plane | Get SP assigned tenants | `p.management.serviceProviders.getAssignedTenants()` |
+| Management Plane | Get SP users | `p.management.serviceProviders.getUsers()` |
+| Management Plane | Get platform user | `p.management.users.get()` |
+| Management Plane | List platform users | `p.management.users.list()` |
 
 ## Invariants & Business Rules
 

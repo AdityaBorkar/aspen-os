@@ -1,5 +1,5 @@
-import { context } from "../context";
 import type { DatabaseUnit } from "../db";
+import { context } from "../utils/context";
 import { FileMetadataService } from "./file-metadata-service";
 import { S3Adapter } from "./s3-adapter";
 import type {

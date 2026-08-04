@@ -122,7 +122,7 @@ API facts:
 - All three classes return proxy-wrapped instances (the Proxy is in `BasePlatform`'s constructor). Module `$name`s and unit keys become proxy accessors: `p.organization`, `p.db`, `p.auth`, etc.
 - `PlatformInstance<M>` is a **structural type** (not tied to a specific class) used by the CLI for dynamic loading. Use the platform-specific instance types (`SingleTenantPlatformInstance<M>`, etc.) for typed access including `run()`.
 - Shared types (`Unit`, `Module`, `PlatformUnits`, `UnitAccessors`, `ModuleAccessors`, `ModuleInfra`) are defined in `src/server/index.ts`. `BasePlatform` and `CommonConfig` are exported from `src/server/base-platform.ts`.
-- `SingleTenantPlatform` and `SharedTenantPlatform` constructors `console.warn` that the architecture is EXPERIMENTAL.
+- `SingleTenantPlatform` and `SharedTenantPlatform` constructors `console.warn` that the architecture is EXPERIMENTAL. `IsolatedTenantPlatform` does not warn.
 
 ### Client: single `Platform` class
 
@@ -159,7 +159,7 @@ The platform merges all module infra during `prepareInfra()`:
 
 1. `SingleTenantPlatform.create(config, modules)` → `BasePlatform.createCore()` instantiates units, validates module deps, calls `mod.$initialize?.(units)`, returns proxy
 2. `p.$prepareInfra()` → calls `unit.$prepareInfra?.()` on units, collects `mod.$prepareInfra()` from modules, merges control_plane_schemas/tenant_schemas/acl, calls `db.prepareWithModules(controlPlaneSchemas, tenantSchemas)`, then calls `mod.$prepareRuntime?.()` on each module
-3. `p.run(fn)` → executes `fn` inside `AsyncLocalStorage` via `runInContext()` — `getContext()` returns `{ auth, db, pubsub, tenantId?, actorId? }` where `db` is a `NodePgDatabase` (controlPlaneDb by default, or tenant-specific in shared/isolated mode)
+3. `p.run(fn)` → executes `fn` inside `AsyncLocalStorage` via `runInContext()` — `getContext()` returns `{ auth, db, pubsub, tenantId?, actorId? }` where `db` is a `NodePgDatabase` (controlPlaneDb by default, or tenant-specific in shared/isolated mode). **Note**: `getContext()` and `IsolatedTenantPlatform.$prepareInfra()`/`run()` currently contain `console.log` debug statements (noisy but harmless).
 4. `p.$cleanup()` → calls `mod.$cleanup()` then `unit.$cleanup()`
 
 ### Multi-tenancy
@@ -280,8 +280,9 @@ class MyModule implements Module {
 
 - `db_schema` export (drizzle schema namespace). `$name` as a readonly string (kebab-case or camelCase).
 - `$dependencies` lists module names this module depends on (used for initialization ordering)
-- Package: `@aspen-os/<module>`, `"type": "module"`, `exports: { ".": "./src/index.ts" }`, deps on framework + constants via `workspace:*`.
+- Package: `@aspen-os/<module>`, `"type": "module"`, `exports: { ".": "./src/index.ts" }`, deps on framework via `workspace:*`; most also depend on `@aspen-os/constants` (drive does not).
 - **Module `$initialize()` signatures vary** — each module types its own subset of units: organization/tasks take `{ db, pubsub }`; compliance takes `{ db, kvStore, pubsub }`; drive takes `{ db, storage, pubsub }`; **management-plane takes `{ db, auth, pubsub }`**.
+- The management-plane module's `$name` is `"management"` (not `"management-plane"`) — proxy access is `p.management`. Its `$dependencies` is `["organization"]`.
 
 ## Conventions
 

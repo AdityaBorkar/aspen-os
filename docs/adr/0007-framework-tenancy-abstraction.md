@@ -85,7 +85,7 @@ to database-per-tenant as the only option) are still valid for the
   types (`SingleTenantPlatformInstance<M>`, etc.) for typed access including
   `run()`.
 - `DatabaseUnit` exposes `tenancyMode`, `controlPlaneDb`, `resolver`, `pool`,
-  `applyRlsPolicies()`. `f.tenancyMode` reads through to the db unit.
+  `applyRlsPolicies()`. `p.tenancyMode` reads through to the db unit.
 - The `Module` interface gains `$dependencies: readonly string[]` and
   optional `$prepareTenant(tenantId)`.
 - Every table (except auth tables) gains a `tenant_id` column with
