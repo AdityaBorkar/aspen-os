@@ -107,7 +107,7 @@ const createUser = Workflow.name("user.create").handler(
         email: parsed.email,
         name: parsed.name,
         password: parsed.password,
-        role: parsed.role,
+        role: parsed.role as "admin",
       },
     });
 
@@ -274,7 +274,7 @@ const deleteUser = Workflow.name("user.delete").handler(
     const previousState = await ctx.step.run(fetchUserStep, { id });
 
     await ctx.step.run("delete-auth-user", async () => {
-      await auth.user.delete({ id });
+      await auth.user.remove({ id });
     });
 
     await ctx.step.run(logAuditStep, {

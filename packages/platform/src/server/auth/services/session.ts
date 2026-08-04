@@ -3,14 +3,8 @@ import { createHmac } from "node:crypto";
 import { eq } from "drizzle-orm";
 
 import * as s from "../db-schema";
-import type {
-  AuthServiceDeps,
-  AuthSession,
-  AuthUser,
-  Session,
-  User,
-} from "../index";
-import { toSession, toUser } from "../mappers";
+import type { AuthServiceDeps, Session, User } from "../index";
+import { toSession, toUser } from "../utils/mappers";
 
 async function createHeadersFromToken(
   token: string,
@@ -46,8 +40,8 @@ export async function authenticate(
 
   if (!sessionData) throw new Error("Failed to create session");
 
-  const session = toSession(sessionData.session as AuthSession);
-  const user = toUser(sessionData.user as AuthUser);
+  const session = toSession(sessionData.session);
+  const user = toUser(sessionData.user);
   await pubsub?.publishControlPlane("session:created", { session, user });
   return { session, user };
 }
@@ -65,8 +59,8 @@ export async function validateSession(
   if (!sessionData) return null;
 
   return {
-    session: toSession(sessionData.session as AuthSession),
-    user: toUser(sessionData.user as AuthUser),
+    session: toSession(sessionData.session),
+    user: toUser(sessionData.user),
   };
 }
 

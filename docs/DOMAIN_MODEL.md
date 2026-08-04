@@ -777,7 +777,7 @@
 - `get(id)` → User
 - `list(filters?)` → User[]
 - `update(id, patch)` → User (delegates name/role to `auth.user.update()`, sets `spId` directly)
-- `delete(id)` → void (delegates to `auth.user.delete()`)
+- `delete(id)` → void (delegates to `auth.user.remove()`)
 - `assignRole(id, role)` → void (delegates to `auth.user.role.assign()`)
 - `assignToServiceProvider(userId, spId)` → void (sets `role='sp_user'` + `spId`)
 
@@ -979,13 +979,13 @@ The HR module defines 43 events across 8 event groups, combined into `HrEventMap
 | Context | Command | Method |
 |---|---|---|
 | Auth | Create user | `auth.user.create()` |
-| Auth | Delete user | `auth.user.delete()` |
+| Auth | Delete user | `auth.user.remove()` |
 | Auth | Update user | `auth.user.update()` |
 | Auth | Assign role | `auth.user.role.assign()` |
 | Auth | Unassign role | `auth.user.role.unassign()` |
 | Auth | Create session | `auth.session.create()` |
 | Auth | Invalidate session | `auth.session.invalidate()` |
-| Auth | Delete role | `auth.role.delete()` |
+| Auth | Delete role | `auth.role.remove()` |
 | Storage | Upload file | `storage.upload()` |
 | Storage | Delete file | `storage.remove()` |
 | Storage | Archive file | `storage.archive()` |

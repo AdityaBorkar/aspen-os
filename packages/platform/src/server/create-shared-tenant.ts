@@ -3,7 +3,7 @@ import {
   type CommonConfig,
   type ExtractModuleNames,
 } from "./base-platform";
-import { isGlobalTenantId } from "./constants";
+import { isGlobalTenantId } from "./utils/is-global-tenant-id";
 import { type DatabaseConfig, DatabaseUnit } from "./db";
 import type {
   ArrayModuleAccessors,

@@ -95,6 +95,7 @@ function createOnboardTenant(dbUnit: DatabaseUnit) {
         try {
           await auth.admin.deleteOrganization({
             body: { organizationId: tenantId },
+            headers: new Headers(),
           });
         } catch (cleanupErr) {
           console.error(

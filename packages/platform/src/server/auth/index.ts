@@ -4,6 +4,7 @@ import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import {
   admin,
+  createAccessControl,
   emailOTP,
   lastLoginMethod,
   organization,
@@ -28,14 +29,7 @@ import {
   invalidateSession,
   validateSession,
 } from "./services/session";
-import {
-  createUser,
-  deleteUser,
-  getUser,
-  getUserByEmail,
-  getUserById,
-  updateUser,
-} from "./services/user";
+import { createUser, deleteUser, getUser, updateUser } from "./services/user";
 
 export type { AclDeclaration } from "./utils/acl";
 export { defineAcl } from "./utils/acl";
@@ -65,63 +59,83 @@ export interface RoleData {
 export class AuthUnit implements Unit {
   readonly $name = "auth" as const;
   readonly $db_schema = db_schema;
+  #config: AuthConfig;
   #db: DrizzleDB;
   #pubsub: PubSubUnit;
+  #betterAuth: AuthService;
 
   constructor(
     config: AuthConfig,
     units: { db: DatabaseUnit; pubsub: PubSubUnit },
   ) {
+    this.#config = config;
     this.#db = units.db.controlPlaneDb;
     this.#pubsub = units.pubsub;
-    this.betterAuth = createBetterAuthService(config, units.db.controlPlaneDb);
+    this.#betterAuth = createBetterAuthService(config, units.db.controlPlaneDb);
   }
 
   async $prepareInfra() {}
 
   async $cleanup() {}
 
-  readonly betterAuth: AuthService;
+  get service(): AuthService {
+    return this.#betterAuth;
+  }
 
   async fetchHandler(request: Request): Promise<Response> {
-    return this.betterAuth.handler(request);
+    return this.#betterAuth.handler(request);
+  }
+
+  applyModuleAcl(acl: Record<string, readonly string[]>): void {
+    // TODO: WORK ON THIS LOGIC
+    const ac = createAccessControl(acl);
+    this.#betterAuth = createBetterAuthService(this.#config, this.#db, ac);
   }
 
   get _() {
     const deps: AuthServiceDeps = {
-      auth: this.betterAuth,
+      auth: this.#betterAuth,
       db: this.#db,
       pubsub: this.#pubsub,
     };
-
     return {
-      assignRole: (input: { roleName: string; userId: string }) =>
-        assignRole(input, deps),
-      authenticate: (input: { email: string; password: string }) =>
-        authenticate(input, deps),
-      createUser: (input: { email: string; name?: string; password: string }) =>
-        createUser(input, deps),
-      deleteRole: (input: { name: string }) => deleteRole(input, deps),
-      deleteUser: (input: { id: string }) => deleteUser(input, deps),
-      getUser: (query: { id: string } | { email: string }) =>
-        getUser(query, deps),
-      getUserByEmail: (input: { email: string }) => getUserByEmail(input, deps),
-      getUserById: (input: { id: string }) => getUserById(input, deps),
-      invalidateSession: (input: { sessionId: string }) =>
-        invalidateSession(input, deps),
-      listRoles: () => listRoles(deps),
-      unassignRole: (input: { userId: string }) => unassignRole(input, deps),
-      updateUser: (input: {
-        id: string;
-        data: Partial<Pick<User, "image" | "name" | "role">>;
-      }) => updateUser(input, deps),
-      validateSession: (input: { token: string }) =>
-        validateSession(input, deps),
+      role: {
+        list: () => listRoles(deps),
+        remove: (input: Parameters<typeof deleteRole>[0]) =>
+          deleteRole(input, deps),
+      },
+      session: {
+        create: (input: Parameters<typeof authenticate>[0]) =>
+          authenticate(input, deps),
+        invalidate: (input: Parameters<typeof invalidateSession>[0]) =>
+          invalidateSession(input, deps),
+        validate: (input: Parameters<typeof validateSession>[0]) =>
+          validateSession(input, deps),
+      },
+      user: {
+        create: (input: Parameters<typeof createUser>[0]) =>
+          createUser(input, deps),
+        get: (query: Parameters<typeof getUser>[0]) => getUser(query, deps),
+        remove: (input: Parameters<typeof deleteUser>[0]) =>
+          deleteUser(input, deps),
+        role: {
+          assign: (input: Parameters<typeof assignRole>[0]) =>
+            assignRole(input, deps),
+          unassign: (input: Parameters<typeof unassignRole>[0]) =>
+            unassignRole(input, deps),
+        },
+        update: (input: Parameters<typeof updateUser>[0]) =>
+          updateUser(input, deps),
+      },
     };
   }
 }
 
-export function createBetterAuthService(config: AuthConfig, db: DrizzleDB) {
+export function createBetterAuthService(
+  config: AuthConfig,
+  db: DrizzleDB,
+  ac?: ReturnType<typeof createAccessControl>,
+) {
   return betterAuth({
     ...config,
     database: drizzleAdapter(db, {
@@ -133,7 +147,7 @@ export function createBetterAuthService(config: AuthConfig, db: DrizzleDB) {
     }),
     emailAndPassword: { enabled: true },
     plugins: [
-      admin(),
+      admin(ac ? { ac } : {}),
       username(),
       organization(),
       phoneNumber(),

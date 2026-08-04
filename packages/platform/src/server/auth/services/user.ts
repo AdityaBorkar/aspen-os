@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { password as Password } from "../../bun-compat";
 import { account, user } from "../db-schema";
 import type { AuthServiceDeps, User } from "../index";
-import { toUser } from "../mappers";
+import { toUser } from "../utils/mappers";
 
 export async function createUser(
   { email, name, password }: { email: string; name?: string; password: string },

@@ -95,7 +95,7 @@ platform.auth.user.create({ email, password, name? })           // → Promise<U
 platform.auth.user.get({ id })                                  // → Promise<User | null>
 platform.auth.user.get({ email })                               // → Promise<User | null>
 platform.auth.user.update({ id, data: { name?, image?, role? } }) // → Promise<User>
-platform.auth.user.delete({ id })                               // → Promise<void>
+platform.auth.user.remove({ id })                               // → Promise<void>
 platform.auth.user.role.assign({ userId, roleName })            // → Promise<void>
 platform.auth.user.role.unassign({ userId })                    // → Promise<void>
 ```
@@ -112,7 +112,7 @@ platform.auth.session.invalidate({ sessionId })       // → Promise<void>
 
 ```ts
 platform.auth.role.list()               // → Promise<RoleData[]>
-platform.auth.role.delete({ name })     // → Promise<void>
+platform.auth.role.remove({ name })     // → Promise<void>
 ```
 
 ## HTTP Handler
