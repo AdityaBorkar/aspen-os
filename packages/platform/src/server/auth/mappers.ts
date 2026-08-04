@@ -1,4 +1,4 @@
-import type { Session, User } from "./types";
+import type { AuthService } from ".";
 
 type AuthSession = {
   createdAt: Date;
@@ -26,11 +26,14 @@ type AuthUser = {
   phoneNumber?: string | null;
   phoneNumberVerified?: boolean | null;
   role?: string | null;
+  twoFactorEnabled?: boolean | null;
   updatedAt: Date;
   username?: string | null;
 };
 
-export function toUser(user: AuthUser): User {
+export function toUser(
+  user: AuthUser,
+): AuthService["$Infer"]["Session"]["user"] {
   return {
     banExpires: user.banExpires ?? undefined,
     banned: user.banned ?? false,
@@ -45,12 +48,15 @@ export function toUser(user: AuthUser): User {
     phoneNumber: user.phoneNumber ?? undefined,
     phoneNumberVerified: user.phoneNumberVerified ?? undefined,
     role: user.role ?? undefined,
+    twoFactorEnabled: user.twoFactorEnabled ?? false,
     updatedAt: user.updatedAt,
     username: user.username ?? undefined,
   };
 }
 
-export function toSession(session: AuthSession): Session {
+export function toSession(
+  session: AuthSession,
+): AuthService["$Infer"]["Session"]["session"] {
   return {
     createdAt: session.createdAt,
     expiresAt: session.expiresAt,
