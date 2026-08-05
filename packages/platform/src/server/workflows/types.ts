@@ -5,7 +5,9 @@ import type { AuditUnit } from "../audit";
 import type { AuthUnit } from "../auth";
 import type { PubSubUnit } from "../pubsub";
 
-type DrizzleDB = NodePgDatabase<Record<string, never>>;
+type DrizzleDB<
+  TSchemas extends Record<string, unknown> = Record<string, unknown>,
+> = NodePgDatabase<TSchemas>;
 
 /** A Standard Schema v1 compatible schema. */
 export type StandardSchema<Input = unknown, Output = Input> = StandardSchemaV1<
@@ -21,8 +23,15 @@ export interface StepOptions {
   retries?: number;
 }
 
-export interface WorkflowStepInstance<TInput, TOutput> {
-  readonly handler: (input: TInput, ctx: WorkflowContext) => Promise<TOutput>;
+export interface WorkflowStepInstance<
+  TInput,
+  TOutput,
+  TSchemas extends Record<string, unknown> = Record<string, unknown>,
+> {
+  readonly handler: (
+    input: TInput,
+    ctx: WorkflowContext<TSchemas>,
+  ) => Promise<TOutput>;
   readonly name: string;
   readonly schema?: StandardSchema;
 }
@@ -41,19 +50,25 @@ export interface StepRunner {
   sleep(ms: number): Promise<void>;
 }
 
-export interface WorkflowContext {
+export interface WorkflowContext<
+  TSchemas extends Record<string, unknown> = Record<string, unknown>,
+> {
   actorId?: string;
   audit: AuditUnit;
   auth?: AuthUnit;
   config: Record<string, unknown>;
-  db: DrizzleDB;
+  db: DrizzleDB<TSchemas>;
   pubsub: PubSubUnit;
   runId: string;
   step: StepRunner;
 }
 
-export interface WorkflowConfig<TInput, TOutput> {
-  handler: (input: TInput, ctx: WorkflowContext) => Promise<TOutput>;
+export interface WorkflowConfig<
+  TInput,
+  TOutput,
+  TSchemas extends Record<string, unknown> = Record<string, unknown>,
+> {
+  handler: (input: TInput, ctx: WorkflowContext<TSchemas>) => Promise<TOutput>;
   name: string;
   schema?: StandardSchema;
 }

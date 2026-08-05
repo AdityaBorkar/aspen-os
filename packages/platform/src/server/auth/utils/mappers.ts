@@ -1,6 +1,37 @@
 import type { Session, User } from "..";
 
-export function toUser(user: any): User {
+type UserInput = {
+  banExpires?: Date | null;
+  banned?: boolean | null;
+  banReason?: string | null;
+  createdAt: Date;
+  displayUsername?: string | null;
+  email: string;
+  emailVerified: boolean;
+  id: string;
+  image?: string | null;
+  name: string;
+  phoneNumber?: string | null;
+  phoneNumberVerified?: boolean | null;
+  role?: string | null;
+  twoFactorEnabled?: boolean | null;
+  updatedAt: Date;
+  username?: string | null;
+};
+
+type SessionInput = {
+  createdAt: Date;
+  expiresAt: Date;
+  id: string;
+  impersonatedBy?: string | null;
+  ipAddress?: string | null;
+  token: string;
+  updatedAt: Date;
+  userAgent?: string | null;
+  userId: string;
+};
+
+export function toUser(user: UserInput): User {
   return {
     banExpires: user.banExpires ?? undefined,
     banned: user.banned ?? false,
@@ -21,7 +52,7 @@ export function toUser(user: any): User {
   };
 }
 
-export function toSession(session: any): Session {
+export function toSession(session: SessionInput): Session {
   return {
     createdAt: session.createdAt,
     expiresAt: session.expiresAt,

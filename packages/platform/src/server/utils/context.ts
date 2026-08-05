@@ -10,7 +10,7 @@ export const context = new AsyncLocalStorage<{
   actorId?: string;
   audit?: AuditUnit;
   auth?: AuthUnit;
-  db: NodePgDatabase<Record<string, never>>;
+  db: NodePgDatabase<Record<string, unknown>>;
   pubsub: PubSubUnit;
   log?: null;
   rpc?: null;

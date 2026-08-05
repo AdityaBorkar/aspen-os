@@ -6,13 +6,12 @@ PubSub Events (How to handle migrations?)
 
 ---
 
+Do not repeat schemas, import them from the `framework` package using Typed DB Unit that includes these types. Use the RPC/service-calls via the class to call relevant workflows to make changes instead fo duplicating schemas and making changes directly.
+
 /improve-codebase-architecture
 /thermonuclear-code-analysis
-
-Auth
 Let's solve the workflow steps and audit logs
-
-Do not repeat schemas, import them from the `framework` package using Typed DB Unit that includes these types. Use the RPC/service-calls via the class to call relevant workflows to make changes instead fo duplicating schemas and making changes directly.
+Auth
 
 Use the workflows in ManagementPlane to create a web application
 
@@ -42,7 +41,7 @@ Update all docs-www
 
 - Manually read and simplify the `platform` code as much as possible
 - Ensure good code architecture
-- --verbose flag for debugging in the `platform`
+- --verbose flag for debugging in the `platform`. Take input a debugLogsDir: "./local/dir/" and store the logs there. Use the request time as the log file name for easier navigation.
 
 ## Module Implementation
 

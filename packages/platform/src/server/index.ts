@@ -56,10 +56,12 @@ export type TenantResolver = {
   list: () => Promise<string[]>;
 };
 
-export type PlatformUnits = {
+export type PlatformUnits<
+  S extends Record<string, unknown> = Record<string, never>,
+> = {
   audit: AuditUnit;
   auth: AuthUnit;
-  db: DatabaseUnit;
+  db: DatabaseUnit<S>;
   kvStore: KvStoreUnit;
   logs: LogUnit;
   pubsub: PubSubUnit;
@@ -67,13 +69,16 @@ export type PlatformUnits = {
   storage: StorageUnit;
 };
 
-export type ModuleInfra = {
+export type ModuleInfra<
+  TCP extends Record<string, unknown> = Record<string, unknown>,
+  TT extends Record<string, unknown> = Record<string, unknown>,
+> = {
   auth: {
     acl: Record<string, readonly string[]>;
   };
   db: {
-    control_plane_schemas: Record<string, unknown>;
-    tenant_schemas: Record<string, unknown>;
+    control_plane_schemas: TCP;
+    tenant_schemas: TT;
   };
   events: Record<string, Record<string, string>>;
 };
@@ -84,12 +89,16 @@ export interface Unit {
   $prepareInfra?(): Promise<void>;
 }
 
-export interface Module<N extends string = string> {
+export interface Module<
+  N extends string = string,
+  TCP extends Record<string, unknown> = Record<string, unknown>,
+  TT extends Record<string, unknown> = Record<string, unknown>,
+> {
   $cleanup(): void | Promise<void>;
   readonly $dependencies: readonly string[];
   $initialize(units: Record<string, Unit>): void;
   readonly $name: N;
-  $prepareInfra(): ModuleInfra;
+  $prepareInfra(): ModuleInfra<TCP, TT>;
   $prepareRuntime(): void | Promise<void>;
   $prepareTenant?(tenantId: string): Promise<void>;
 }

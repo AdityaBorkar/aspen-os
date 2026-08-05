@@ -18,9 +18,13 @@ import type {
   TenantProvisioningResult,
 } from "./types";
 
-type DrizzleDB = NodePgDatabase<Record<string, never>>;
+export type DrizzleDB<
+  TSchemas extends Record<string, unknown> = Record<string, never>,
+> = NodePgDatabase<TSchemas>;
 
-export class DatabaseUnit {
+export class DatabaseUnit<
+  TSchemas extends Record<string, unknown> = Record<string, never>,
+> {
   readonly $name = "db";
   readonly config: DatabaseConfig;
   readonly tenancyMode: TenancyMode;
@@ -38,13 +42,15 @@ export class DatabaseUnit {
     | undefined;
 
   protected controlPlanePool: pg.Pool;
-  protected controlPlaneDbInstance: DrizzleDB;
+  protected controlPlaneDbInstance: DrizzleDB<TSchemas>;
   protected storedControlPlaneSchemas: Record<string, unknown> = {};
   protected storedTenantSchemas: Record<string, unknown> = {};
 
-  private readonly tenantPools: Map<string, { db: DrizzleDB; pool: pg.Pool }> =
-    new Map();
-  private dbWrapper: DrizzleDB;
+  private readonly tenantPools: Map<
+    string,
+    { db: DrizzleDB<TSchemas>; pool: pg.Pool }
+  > = new Map();
+  private dbWrapper: DrizzleDB<TSchemas>;
 
   constructor(
     config: DatabaseConfig,
@@ -78,16 +84,16 @@ export class DatabaseUnit {
       ssl: config.ssl ? { rejectUnauthorized: false } : false,
       user: config.user,
     });
-    this.controlPlaneDbInstance = drizzle(this.controlPlanePool);
+    this.controlPlaneDbInstance = drizzle<TSchemas>(this.controlPlanePool);
 
     this.dbWrapper = this.createDbWrapper();
   }
 
-  get db(): DrizzleDB {
+  get db(): DrizzleDB<TSchemas> {
     return this.dbWrapper;
   }
 
-  get controlPlaneDb(): DrizzleDB {
+  get controlPlaneDb(): DrizzleDB<TSchemas> {
     return this.controlPlaneDbInstance;
   }
 
@@ -100,10 +106,10 @@ export class DatabaseUnit {
     await this.pushSchemasTo(this.controlPlaneDbInstance, schemas);
   }
 
-  async prepareWithModules(
-    controlPlaneSchemas: Record<string, unknown>,
-    tenantSchemas: Record<string, unknown>,
-  ): Promise<void> {
+  async prepareWithModules<
+    TCP extends Record<string, unknown>,
+    TT extends Record<string, unknown>,
+  >(controlPlaneSchemas: TCP, tenantSchemas: TT): Promise<void> {
     this.storedControlPlaneSchemas = controlPlaneSchemas;
     this.storedTenantSchemas = tenantSchemas;
     const allControlPlaneSchemas = {
@@ -124,7 +130,7 @@ export class DatabaseUnit {
     this.tenantPools.clear();
   }
 
-  async getTenantDb(tenantId: string): Promise<DrizzleDB> {
+  async getTenantDb(tenantId: string): Promise<DrizzleDB<TSchemas>> {
     if (this.tenancyMode !== "isolated") {
       throw new Error("getTenantDb is only available in isolated tenancy mode");
     }
