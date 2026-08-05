@@ -7,11 +7,12 @@ Proposed — 2026-08-05
 ## Context
 
 [ADR-0009](./0009-audit-log-capability.md) implemented **Layer 1**: a deliberate,
-application-level `AuditUnit` (`p.audit`) that records *intended* operations
-with actor/action/entity semantics. Layer 1 captures every change that goes
-through `ctx.audit.write(...)` — but it **cannot see writes that bypass that
-call** ("blind writes"). Anything that mutates a table without going through
-an instrumented workflow/service is invisible to the audit trail:
+application-level `AuditUnit` (`p.audit`, `packages/platform/src/server/audit/`)
+that records *intended* operations with actor/action/entity semantics. Layer 1
+captures every change that goes through `ctx.audit.write(...)` — but it
+**cannot see writes that bypass that call** ("blind writes"). Anything that
+mutates a table without going through an instrumented workflow/service is
+invisible to the audit trail:
 
 - Raw SQL, ad-hoc drizzle queries, migrations, scripts, `db-studio`.
 - Bugs where a code path forgets to call `ctx.audit.write`.
@@ -43,24 +44,25 @@ and shares the replay contract (`seq`-ordered, full-state, idempotent).
   at `prepareInfra()` time. There are no migration files (ADR-0004). Any DDL
   Layer 2 needs (trigger functions, event tables) must be applied in the same
   push window, or via post-push `db.execute(sql\`...\`)` like RLS does today
-  (`applyRlsPolicies`, `db/unit.ts:279-303`).
+  (`applyRlsPolicies`, `db/unit.ts:290-314`).
 - **Three tenancy modes** (ADR-0007) with different DB topologies:
-  - **single** — one DB; audit table already there from Layer 1.
+  - **single** — one DB; `audit_log` already there from Layer 1.
   - **shared** — one DB, RLS via `SET LOCAL app.tenant_id` + `tenant_role`
-    inside `runWithTenant` (`db/unit.ts:232-256`). Triggers run as the
+    inside `runWithTenant` (`db/unit.ts:244-268`). Triggers run as the
     connecting user/role; `current_setting('app.tenant_id', true)` is available
     inside a trigger function and gives the tenant for the row.
   - **isolated** — DB-per-tenant; each tenant DB has its own `audit_log` (Layer
     1 placement). Triggers must be created in *every* tenant DB during
-    `provisionTenant` / `$prepareTenant` (`db/unit.ts:162-230`), not just the
+    `provisionTenant` / `$prepareTenant` (`db/unit.ts:173-242`), not just the
     control plane.
-- **Layer 1 `audit_log` already exists** (`audit/db-schema.ts`) with the
-  columns Layer 2 needs: `previous_state`, `new_state`, `changes`, `crud_action`,
-  `seq`, `tenant_id`, `idempotency_key`, `metadata`. Layer 2 should **write
-  into the same `audit_log` table** — not a separate `audit_changelog` — to
-  keep one replay query, one retention policy, and one surface. Layer 2 rows
-  are distinguishable by `crud_action` (always set) + a `metadata.source` flag
-  (e.g. `"trigger"`) and by `actor_id = "system"` / `action = "blind_write"`.
+- **Layer 1 `audit_log` already exists** (`packages/platform/src/server/audit/db-schema.ts`)
+  with the columns Layer 2 needs: `previous_state`, `new_state`, `changes`,
+  `crud_action`, `seq`, `tenant_id`, `idempotency_key`, `metadata`. Layer 2
+  should **write into the same `audit_log` table** — not a separate
+  `audit_changelog` — to keep one replay query, one retention policy, and one
+  surface. Layer 2 rows are distinguishable by `crud_action` (always set) + a
+  `metadata.source` flag (e.g. `"trigger"`) and by `actor_id = "system"` /
+  `action = "blind_write"`.
 - **Module schemas declare their tables** via `ModuleInfra.db` (ADR-0008). A
   module must opt its tables into DB-level capture (not every table needs it —
   e.g. `logs`, `workflow_steps`, the audit table itself must never be
@@ -247,13 +249,14 @@ Mirror `applyRlsPolicies` exactly:
 - A new `DatabaseUnit.applyAuditTriggers(db, tables)` that creates the
   function (idempotently, `CREATE FUNCTION ... LANGUAGE plpgsql AS $$ ... $$`)
   and loops the opted-in tables creating triggers (`DROP TRIGGER IF EXISTS`
-  then `CREATE TRIGGER`), exactly like the RLS loop at `db/unit.ts:292-301`.
+  then `CREATE TRIGGER`), exactly like the RLS loop at `db/unit.ts:303-313`.
 - **single & shared:** call it from `BasePlatform.$prepareInfra` after
-  `prepareWithModules` + `applyRlsPolicies` (`base-platform.ts:132-136`),
+  `prepareWithModules` + `applyRlsPolicies` (`base-platform.ts:160-164`),
   against `this.units.db.controlPlaneDb`.
 - **isolated:** call it inside `provisionTenant` right after
-  `pushSchemasTo(tenantDb, allTenantSchemas)` (`db/unit.ts:212-217`), and in
-  `$prepareTenant` for existing tenant DBs (`create-isolated-tenant.ts:120-134`).
+  `pushSchemasTo(tenantDb, allTenantSchemas)` (`db/unit.ts:223-231`), and in
+  `$prepareTenant` for existing tenant DBs
+  (`create-isolated-tenant.ts:119-143`).
 
 **5. Correlation with Layer 1 (actor/action attribution).**
 A trigger row has no actor or domain action. To attribute it:

@@ -133,18 +133,20 @@
 │  │ sourceEntityId        │─────────────┘                             │
 │  └──────────────────────┘                                           │
 │                                                                     │
-│  ┌──────────────────────┐  ┌──────────────────────┐                 │
-│  │ VerificationRule     │  │ AuditEntry           │                 │
-│  │ id                    │  │ id                   │                 │
-│  │ name                  │  │ entityType (enum)    │                 │
-│  │ category              │  │ entityId             │                 │
-│  │ priority              │  │ action (enum)        │                 │
-│  │ requiredReviewerRole  │  │ performedBy          │                 │
-│  │ assignedReviewer      │  │ performedAt          │                 │
-│  │ isActive              │  │ previousState (jsonb)│                 │
-│  └──────────────────────┘  │ newState (jsonb)     │                 │
-│                             │ changes (jsonb)      │                 │
-│                             └──────────────────────┘                 │
+│  ┌──────────────────────┐                                           │
+│  │ VerificationRule     │                                           │
+│  │ id                    │                                           │
+│  │ name                  │                                           │
+│  │ category              │                                           │
+│  │ priority              │                                           │
+│  │ requiredReviewerRole  │                                           │
+│  │ assignedReviewer      │                                           │
+│  │ isActive              │                                           │
+│  └──────────────────────┘                                           │
+│                                                                     │
+│  (Audit entries for compliance entities are written to the          │
+│   platform's audit_log table via ctx.audit.write(...) — no         │
+│   module-local audit table. Queries go through ctx.audit.query())  │
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -268,6 +270,25 @@
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
+│                  AUDIT DOMAIN (Platform Core)                       │
+│  AuditLog: id, tenantId, seq(bigserial), action, crudAction,       │
+│    actorId, entityType, entityId, previousState(jsonb),              │
+│    newState(jsonb), changes(jsonb), metadata(jsonb),                 │
+│    idempotencyKey, workflowRunId, requestId, traceId, performedAt   │
+│  (Platform core schema — pushed by DatabaseUnit.getSchemas())       │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│               WORKFLOW DOMAIN (Platform Core)                       │
+│  WorkflowRun: id, workflowName, status, input(jsonb), output(jsonb),│
+│    error(jsonb), startedAt, completedAt, durationMs, tenantId,     │
+│    metadata(jsonb)                                                  │
+│  WorkflowStep: id, runId, stepName, status, attempt, output(jsonb),│
+│    error(jsonb), startedAt, completedAt, durationMs                 │
+│  (Platform core schemas — pushed by DatabaseUnit.getSchemas())      │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
 │                        HR DOMAIN (50 tables, 7 sub-domains)         │
 │                                                                     │
 │  Employee ←─ 1:N ─→ Attendance, Leave, Lifecycle, Overtime, Shift   │
@@ -281,38 +302,42 @@
 │                                                                     │
 │  ┌──────────────────┐       ┌──────────────────────┐                │
 │  │      Tenant       │──1:N──│   AuditLog            │                │
-│  │  (companion)      │       │  id (PK)              │                │
-│  │  id (PK)          │       │  entityType (enum)    │                │
-│  │  status (enum)    │       │  entityId             │                │
-│  │  plan             │       │  action (enum, 17)    │                │
-│  │  serviceProviderId│──N:1─→│  actorId              │                │
-│  │  signupAt         │       │  performedAt          │                │
-│  │  databaseHost     │       │  previousState (jsonb)│                │
-│  │  databaseName     │       │  newState (jsonb)     │                │
-│  │  databasePort     │       │  changes (jsonb)      │                │
-│  │  databaseUser     │       │  metadata (jsonb)     │                │
-│  │  databasePassword │       └──────────────────────┘                │
-│  │  databaseSsl      │                                               │
-│  │  suspendedAt      │       ┌──────────────────────┐                │
-│  │  suspendedReason  │       │  ServiceProvider      │                │
-│  │  churnedAt        │       │  id (PK)              │                │
-│  │  churnReason      │       │  name                 │                │
-│  └────────┬──────────┘       │  slug (uniq)          │                │
+│  │  (companion)      │       │  (platform core —     │                │
+│  │  id (PK)          │       │   not module-owned)   │                │
+│  │  status (enum)    │       │  id (PK)              │                │
+│  │  plan             │       │  entityType (enum)    │                │
+│  │  serviceProviderId│──N:1─→│  entityId             │                │
+│  │  signupAt         │       │  action (enum, 17)    │                │
+│  │  databaseHost     │       │  actorId              │                │
+│  │  databaseName     │       │  performedAt          │                │
+│  │  databasePort     │       │  previousState (jsonb)│                │
+│  │  databaseUser     │       │  newState (jsonb)     │                │
+│  │  databasePassword │       │  changes (jsonb)      │                │
+│  │  databaseSsl      │       │  metadata (jsonb)     │                │
+│  │  suspendedAt      │       └──────────────────────┘                │
+│  │  suspendedReason  │                                               │
+│  │  churnedAt        │       ┌──────────────────────┐                │
+│  │  churnReason      │       │  ServiceProvider      │                │
+│  └────────┬──────────┘       │  id (PK)              │                │
+│           │                  │  name                 │                │
+│           │ 1:1              │  slug (uniq)          │                │
 │           │                  │  status (enum)        │                │
-│           │ 1:1              │  description          │                │
-│           │                  │  email, phone         │                │
-│           ▼                  │  address, website     │                │
-│  ┌──────────────────┐       │  logo                 │                │
-│  │  better-auth     │       └──────────┬───────────┘                │
-│  │  Organization     │                  │ 1:N                        │
-│  │  (the Tenant)     │                  ▼                            │
-│  │  id (PK)          │       ┌──────────────────────┐                │
-│  │  name             │       │  User (shadow)        │                │
-│  │  slug             │       │  id (PK)              │                │
-│  │  logo             │       │  email, name          │                │
-│  │  metadata         │       │  role (text)          │                │
-│  └──────────────────┘       │  spId (FK→SP)         │                │
-│                              └──────────────────────┘                │
+│           ▼                  │  description          │                │
+│  ┌──────────────────┐       │  email, phone         │                │
+│  │  better-auth     │       │  address, website     │                │
+│  │  Organization     │       │  logo                 │                │
+│  │  (the Tenant)     │       └──────────┬───────────┘                │
+│  │  id (PK)          │                  │ 1:N                        │
+│  │  name             │                  ▼                            │
+│  │  slug             │       ┌──────────────────────┐                │
+│  │  logo             │       │  User (shadow)        │                │
+│  │  metadata         │       │  id (PK)              │                │
+│  └──────────────────┘       │  email, name          │                │
+│                              │  role (text)          │                │
+│  Owned tables (control_plane):  │  spId (FK→SP)         │                │
+│    tenant, service_provider  └──────────────────────┘                │
+│  Shadow tables (tenant):                                            │
+│    organization (better-auth mirror), user (better-auth mirror+spId)│
 │                                                                     │
 │  Roles: platform_admin, sp_user, tenant_admin, tenant_user           │
 │  Config: ManagementPlaneConfig = undefined (WIP)                    │
@@ -552,14 +577,16 @@
 - `list(filters?)` → ComplianceVerificationRule[]
 - `match(document)` → ComplianceVerificationRule | null
 
-### Audit Entry (Entity — append-only)
+### Audit Entry (Entity — append-only, via platform AuditUnit)
 
 **Identity**: `id` (text, UUID, default `gen_random_uuid()::text`)
+
+**Note**: Compliance audit entries are written to the platform's `audit_log` table via `ctx.audit.write(...)` and queried via `ctx.audit.query(...)`. There is no module-local `compliance_audit_entry` table. The `AuditWorkflow` (`compliance/src/workflows/audit.ts`) provides `getAuditTrail`, `list`, and `export` by querying the platform audit log.
 
 **Invariants**:
 - Append-only (no updates/deletes)
 - Polymorphic: `entityType` + `entityId` references any compliance entity
-- `action` is one of 18 defined audit actions
+- `action` is one of 18 defined audit actions (module-local constants)
 
 ### Project (Aggregate Root)
 
@@ -734,7 +761,7 @@
 - Database connection params (`databaseHost`, `databaseName`, `databasePort`, `databaseUser`, `databasePassword`, `databaseSsl`) record the per-tenant DB connection
 
 **Lifecycle commands** (via `TenantWorkflow`):
-- `onboard(input)` → provisions a new tenant (creates better-auth org, creates DB, pushes schemas, seeds profile, records tenant, assigns SP)
+- `onboard(input)` → provisions a new tenant (creates better-auth org, calls `dbUnit.provisionTenant()` which creates DB + pushes schemas, seeds profile via `dbUnit.seedTenantDb()`, records tenant row, writes audit entry, publishes event)
 - `get(id)` → Tenant (joins `organization` + `tenant` tables)
 - `list(filters?)` → Tenant[]
 - `update(id, { profile?, companion? })` → Tenant
@@ -781,15 +808,34 @@
 - `assignRole(id, role)` → void (delegates to `auth.user.role.assign()`)
 - `assignToServiceProvider(userId, spId)` → void (sets `role='sp_user'` + `spId`)
 
+### AuditLog (Entity — append-only, Platform Core)
+
+**Identity**: `id` (text, PK, `default gen_random_uuid()::text`)
+
+**Invariants**:
+- Append-only (no updates/deletes)
+- `seq bigserial` provides deterministic replay order
+- `idempotency_key` with partial unique index `UNIQUE(tenant_id, idempotency_key) WHERE idempotency_key IS NOT NULL` — retries with the same key no-op
+- `entityType` is open text (per-module constants, not a DB enum)
+- `action` is open text (per-module constants, not a DB enum)
+- `crudAction` is one of: `create`, `update`, `delete` (nullable — not all actions are CRUD)
+- `actorId` defaults to `"system"` when context has no actor (known gap: `context.actorId` is never populated by the framework)
+- `workflowRunId` is optional provenance — links to `workflow_runs.id` but is NOT a replay handle
+- Written by the platform's `AuditUnit` via `ctx.audit.write(entry, tx?)` — the optional `tx` handle provides transactional atomicity with the mutation
+
+**Relationships**:
+- Optionally links to `WorkflowRun` via `workflowRunId` (provenance only)
+
 ### AuditLog (Entity — append-only, Management Plane)
 
 **Identity**: `id` (text, PK, `default gen_random_uuid()::text`)
 
 **Invariants**:
 - Append-only (no updates/deletes)
+- Lives in the platform's `audit_log` table (NOT a management-plane-owned table)
 - `entityType` is one of: `tenant`, `serviceProvider`, `platformUser`
-- `action` is one of 17 defined audit actions (e.g., `tenant_provisioned`, `sp_created`, `platform_user_updated`, `role_assigned`)
-- Written by the shared `logAuditStep` workflow step
+- `action` is one of 17 defined audit actions (e.g., `tenant_provisioned`, `sp_created`, `platform_user_updated`, `role_assigned`) — defined as `as const` constants in `management-plane/src/utils/constants.ts`
+- Written inline in each management-plane workflow via `ctx.audit.write(...)` (NOT via a shared `logAuditStep`)
 - Polymorphic: `entityType` + `entityId` references any management-plane entity
 
 ### FileMetadata (Aggregate Root — Framework Storage)
@@ -970,7 +1016,6 @@ The HR module defines 43 events across 8 event groups, combined into `HrEventMap
 - File events (framework storage): `file:uploaded`, `file:deleted`, `file:archived`
 - Log events: `log:error-threshold-exceeded`
 - KV events: (none expected — cache operations are internal)
-- HR events: (defined — 43 events across 8 event groups, see HR Events section above)
 
 ## Command-Query Separation
 
@@ -1185,7 +1230,7 @@ The HR module defines 43 events across 8 event groups, combined into `HrEventMap
 42. **SP slug uniqueness** — enforced by DB unique constraint on service_provider.slug
 43. **SP user requires spId** — if `role = 'sp_user'`, `spId` must be set; otherwise `spId` must NOT be set (enforced in workflow)
 44. **Tenant status transitions** — `onboarding` → `active` → `suspended` ↔ `active` → `churned` (enforced in workflow)
-45. **Audit log append-only** — no updates or deletes; written by shared `logAuditStep` workflow step
+45. **Audit log append-only** — no updates or deletes; written via platform `ctx.audit.write(...)` inline in each workflow (the platform's `audit_log` table, not a module-local table)
 46. **Tenant-Organization ID sharing** — tenant companion table ID = better-auth organization ID (1:1 relationship)
 47. **Provisioning idempotency** — `CREATE DATABASE` catches "already exists" errors and continues
 

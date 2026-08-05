@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-08-05
+Accepted (Layer 1) — 2026-08-05. Layer 2 (blind-write capture) remains Proposed.
 
 ## Context
 
@@ -24,53 +24,58 @@ module.
 
 ### What exists today
 
-- **`@aspen-os/platform` has no audit capability** — no audit unit, no CDC, no
-  triggers, no outbox, no changelog. The only framework-level append-only path
-  is the `logs` table via `LogUnit` (`packages/platform/src/server/log/`), which
-  is log-message oriented, not entity-change oriented.
-- **`management-plane`** (`packages/management-plane/src/db-schemas/audit-log.ts`)
-  ships a working, module-local `audit_log` table (control-plane) plus a reusable
-  `logAuditStep` (`src/workflows/steps/log-audit.ts`); ~17 workflows write entries
-  via a co-located `"audit-and-notify"` step. It has no read/export surface.
-- **`compliance`** ships a second, richer variant
-  (`src/services/audit-writer.ts`) with old/new field diffing and a
-  read/export surface (`src/workflows/audit.ts`).
-
-Both existing implementations are **control-plane-only, app-specific, and
-duplicated**. Per ADR-0008, `audit_log` is currently classified as control-plane.
+- **`@aspen-os/platform` has an `AuditUnit`** (`packages/platform/src/server/audit/`)
+  implementing Layer 1 (below). It writes to the platform's `audit_log` table
+  (`audit/db-schema.ts`) with `seq bigserial`, `idempotency_key`, full-state
+  columns, and `workflow_run_id` provenance. The unit is a core server unit
+  (`$name = "audit"`), created in `BasePlatform.createCore()`, and pushed as a
+  platform core schema via `DatabaseUnit.getSchemas()`.
+- **`management-plane`** writes audit entries via `ctx.audit.write(...)` inline
+  in each workflow (e.g. `tenant.onboard.ts:126`, `tenant.suspend.ts:49`). It
+  does NOT own a separate `audit_log` table or `logAuditStep` — it uses the
+  platform `AuditUnit` directly. ~17 workflows write audit entries.
+- **`compliance`** has an `AuditWorkflow` (`src/workflows/audit.ts`) that
+  queries the platform `audit_log` via `ctx.audit.query(...)` for audit-trail
+  and export. It does NOT have a module-local audit table or `audit-writer`
+  service — the platform `AuditUnit` replaced both.
 
 ### Replayability gaps in the current code
 
 The existing write path has six problems that make replay untrustworthy:
 
 1. **No transactional atomicity.** The workflow engine
-   (`workflows/engine.ts:218-247`) does not wrap a mutation step and its
-   `"audit-and-notify"` step in one DB transaction. `logAuditStep`
-   (`log-audit.ts:19`) does its own auto-commit `db.insert` *after* the
-   mutation. If the audit step fails, the mutation is already committed →
-   **audit gap**. Only shared-mode `runWithTenant` (`db/unit.ts:241-248`)
-   provides a free ambient transaction; single and isolated modes do not.
+   (`workflows/engine.ts:232-261`) does not wrap a mutation step and its
+   `"audit-and-notify"` step in one DB transaction. `ctx.audit.write(...)`
+   does its own auto-commit `db.insert` *after* the mutation. If the audit
+   step fails, the mutation is already committed → **audit gap**. Only
+   shared-mode `runWithTenant` (`db/unit.ts:244-268`) provides a free ambient
+   transaction; single and isolated modes do not. (Mitigated by
+   `write(entry, tx)` / `withTransaction` — but most call sites don't pass a
+   tx yet.)
 2. **No deterministic ordering.** `performed_at` (defaultNow, ms resolution) is
-   not monotonic under concurrent inserts and cannot order a replay.
+   not monotonic under concurrent inserts and cannot order a replay. (Addressed
+   by `seq bigserial` — already in the schema.)
 3. **No idempotency.** The workflow engine dedups *steps* by
-   `(runId, stepName)` (`engine.ts:56-70`), so `logAuditStep` is idempotent when
-   keyed to a run. A direct audit write is not — retries double-log.
-4. **Incomplete state capture.** Management-plane logs only `newState` for many
-   actions (e.g. `tenant.activate.ts:44 newState: { status: "active" }`), with no
-   `previous_state`. From-scratch reconstruction of an entity requires the full
-   timeline.
+   `(runId, stepName)` (`engine.ts:56-70`), so an audit write keyed to a run is
+   idempotent. A direct audit write is not — retries double-log. (Addressed by
+   `idempotency_key` + partial unique index — already in the schema.)
+4. **Incomplete state capture.** Many workflows log only `newState` for some
+   actions (e.g. `tenant.activate.ts`), with no `previous_state`. From-scratch
+   reconstruction of an entity requires the full timeline.
 5. **Placement vs atomicity contradiction.** Writing to a control-plane table
    and "using `db.db` (context-aware)" contradict in isolated mode: `db.db`
    resolves to the *tenant* DB there, so a contextual write is not on the
    control plane. Central query loses atomicity; tenant DB keeps it.
 6. **Capture completeness.** Deliberate logging cannot see uninstrumented
    (blind) writes by definition — this is the inherent limit of an
-   application-level layer and the reason a DB-level layer is also needed.
+   application-level layer and the reason a DB-level layer is also needed
+   (ADR-0010).
 
 ### Other relevant facts
 
 - `context.actorId` is typed but **never populated by the framework**, so audit
-  cannot capture the acting user without app cooperation today.
+  cannot capture the acting user without app cooperation today. The `AuditUnit`
+  falls back to `actorId = "system"`.
 - `workflow_runs` / `workflow_steps` (`workflows/db-schema.ts`) persist inputs,
   outputs, errors, attempts, and timings per run/step with `tenant_id`. These
   are a workflow-execution trace, **not a DB-record replay trail** — they record
@@ -81,8 +86,14 @@ The existing write path has six problems that make replay untrustworthy:
   tenant_role` and creates a tx-scoped drizzle instance — an audit insert via
   `db.db` inside it rides the same transaction for free.
 - RLS auto-applies to any table with a `tenant_id` column
-  (`db/unit.ts:278-300`, `discoverTenantTables`), so an audit table with
+  (`db/unit.ts:387-402`, `discoverTenantTables`), so the `audit_log` table with
   `tenant_id` is tenant-isolated in shared mode automatically.
+- The `AuditUnit` is already implemented and shipped (`packages/platform/src/server/audit/`).
+  It is a core server unit with `$name = "audit"`, created in
+  `BasePlatform.createCore()`. Its `audit_log` table is pushed as a platform
+  core schema. The public surface matches the recommendations below:
+  `write(entry, tx?)`, `withTransaction(entry, fn)`, `query(filters)`,
+  `count(filters)`, `diff(before, after)`, `reconstructState(entityType, entityId)`.
 
 ## Approaches Considered
 
@@ -127,11 +138,10 @@ The existing write path has six problems that make replay untrustworthy:
 
 ## Recommendations
 
-Build the capability as a **core platform unit** (`p.audit`) in two layers,
-with Layer 1 implemented now and Layer 2 gated on a demonstrated blind-write
-need.
+**Layer 1 is implemented.** The `AuditUnit` is built and shipped as described
+below. Layer 2 (trigger-based blind-write capture) is deferred to ADR-0010.
 
-### Layer 1 — Application audit unit (implement now)
+### Layer 1 — Application audit unit (implemented)
 
 **Approach A1 + B3 + C1 + D1.**
 
@@ -163,8 +173,7 @@ Add an `AuditUnit` to `@aspen-os/platform/server`, mirroring `LogUnit`:
 **Atomicity (C1 — explicit tx handle):**
 
 - `write(entry, tx?)` accepts an optional transaction handle; when provided,
-  the insert uses it and commits with the mutation. This mirrors compliance's
-  `writeAuditEntry({ db })` (`audit-writer.ts:22-37`).
+  the insert uses it and commits with the mutation.
 - `withTransaction(fn)` is a convenience wrapper that runs `fn` + the audit
   write in one `db.transaction()`.
 - Additionally recommend **C3** as a follow-up: add an opt-in "transactional
@@ -185,9 +194,9 @@ Add an `AuditUnit` to `@aspen-os/platform/server`, mirroring `LogUnit`:
 
 **Replayability guarantees (addressing gaps 1–6):**
 
-1. **Atomicity** — `write(entry, tx?)` + `withTransaction` (above). Existing
-   module writers (`logAuditStep`, compliance `audit-writer`) become thin
-   callers passing the mutation's tx.
+1. **Atomicity** — `write(entry, tx?)` + `withTransaction` (above). Module
+   workflow writers call `ctx.audit.write(entry)` inline, optionally passing a
+   transaction handle for atomicity.
 2. **Deterministic ordering** — add a `seq bigserial` column; replay reads
    `ORDER BY seq`. `performed_at` stays for human display. In isolated mode
    each tenant DB has its own `seq`; a global merge uses `tenant_id` + `seq` +
@@ -200,8 +209,7 @@ Add an `AuditUnit` to `@aspen-os/platform/server`, mirroring `LogUnit`:
 4. **Full-state capture** — the `write` contract requires both states for
    mutations: `previous_state` for updates/deletes, `new_state` for
    creates/updates (null for delete). `diff(before, after)` produces the
-   `changes: Record<string,{new,old}>` shape compliance already uses
-   (`audit-writer.ts:8`).
+   `changes: Record<string,{new,old}>` shape.
 5. **Placement** — mode-aware per B3 (above).
 6. **Capture completeness** — maximize coverage of the *intended* path by
    making audit a first-class step in every mutating code path (workflows,

@@ -8,7 +8,7 @@ Bun monorepo. A business framework (`@aspen-os/platform`) with pluggable units/m
 - **Language**: TypeScript, ESM only (`"type": "module"`). `verbatimModuleSyntax: true`, bundler resolution, `strict` + `noUncheckedIndexedAccess` + `noUncheckedSideEffectImports` + `noUnusedLocals: true` + `noUnusedParameters: false`.
 - **Linter/formatter**: Biome (`biome.json` at root) — double quotes, 2-space indent, LF, `lineWidth: 80`, organized imports. Tailwind `useSortedClasses` is `error`.
 - **`bunfig.toml`**: install scripts disabled (`ignore-scripts=true`), 3-day minimum release age (`minimumReleaseAge=259200`, excludes `@types/bun`/`typescript`/`@biomejs/biome`), lockfile not saved as text.
-- **Workspace catalog**: shared dep versions pinned in root `package.json` `workspaces.catalog` (`@types/bun`, `bun`, `drizzle-orm`, `typescript`, `valibot`); referenced as `catalog:` in packages. `typescript` is `7.0.2`.
+- **Workspace catalog**: shared dep versions pinned in root `package.json` `workspaces.catalog` (`@standard-schema/spec`, `@standard-schema/utils`, `@types/bun`, `bun`, `drizzle-orm`, `typescript`, `valibot`); referenced as `catalog:` in packages. `typescript` is `7.0.2`.
 - **Path-alias gotcha**: each package's tsconfig maps `@/*` to its own `./src/*`. Root tsconfig has no `paths` field. Run typecheck in the package whose alias you mean.
 
 ## Commands
@@ -88,8 +88,8 @@ Three entry surfaces: `./src/server/` (Node/Bun), `./src/client/` (browser), `./
 
 `@aspen-os/platform` declares only `./client` and `./server` — **no `.` entry**, so bare `@aspen-os/platform` does not resolve. Always import via subpaths.
 
-- `@aspen-os/platform/server` — three platform classes, `Unit`, `Module`, `PlatformInstance`, all config types, all unit classes, `Workflow`, `WorkflowStep`, `getContext`.
-- `@aspen-os/platform/client` — client `Platform` class, `createAccessControl` (re-exported from `better-auth/plugins/access`), client config types.
+- `@aspen-os/platform/server` — three platform classes, `Unit`, `Module`, `PlatformInstance`, all config types, all unit classes, `Workflow`, `WorkflowStep`, `getContext`, `defineAcl`, `isGlobalTenantId`.
+- `@aspen-os/platform/client` — client `Platform` class, client config types.
 
 **Build step (platform only):** the platform's published `exports` and `bin` point at `./.output/` (built JS + `.d.ts`, gitignored). A `build` field in `package.json` maps those same keys to source `.ts` so **Bun runtime resolves to source with no build**. But TypeScript resolves types from `.output/` — run `bun run build` after changing exports. **Domain modules have no build step** — their `exports` point at raw `.ts`.
 
@@ -117,7 +117,7 @@ await p.$cleanup()
 
 API facts:
 - **Config does not include `tenancy`** — the platform choice implies the mode. Each `create()` constructs the tenancy config internally.
-- `IsolatedTenantConfig.db` is `IsolatedTenantDatabaseConfig` (fields: `controlDbName`, `connection`, `tenantDbPrefix`, `tenantDbDefaults`, `pool`) — NOT `DatabaseConfig`. It does NOT include a `resolver` field — a dummy resolver (`list: () => []`, `resolve: id => id`) is constructed inline. See Known Gap #7 in CONTEXT.md.
+- `IsolatedTenantConfig.db` is `IsolatedTenantDatabaseConfig` (fields: `controlDbName`, `connection`, `tenantDbPrefix`, `tenantDbDefaults?`, `controlPlaneDbName?`, `pool?`) — NOT `DatabaseConfig`. It does NOT include a `resolver` field — a dummy resolver (`list: () => []`, `resolve: id => id`) is constructed inline. See Known Gap #7 in CONTEXT.md.
 - `run()` signatures are **not overloaded** — `SingleTenantPlatform.run` only accepts `run(fn)`; shared/isolated only accept `run(tenantId, fn)`. The type system enforces correct usage.
 - All three classes return proxy-wrapped instances (the Proxy is in `BasePlatform`'s constructor). Module `$name`s and unit keys become proxy accessors: `p.organization`, `p.db`, `p.auth`, etc.
 - `PlatformInstance<M>` is a **structural type** (not tied to a specific class) used by the CLI for dynamic loading. Use the platform-specific instance types (`SingleTenantPlatformInstance<M>`, etc.) for typed access including `run()`.
@@ -159,7 +159,7 @@ The platform merges all module infra during `prepareInfra()`:
 
 1. `SingleTenantPlatform.create(config, modules)` → `BasePlatform.createCore()` instantiates units, validates module deps, calls `mod.$initialize?.(units)`, returns proxy
 2. `p.$prepareInfra()` → calls `unit.$prepareInfra?.()` on units, collects `mod.$prepareInfra()` from modules, merges control_plane_schemas/tenant_schemas/acl, calls `db.prepareWithModules(controlPlaneSchemas, tenantSchemas)`, then calls `mod.$prepareRuntime?.()` on each module
-3. `p.run(fn)` → executes `fn` inside `AsyncLocalStorage` via `runInContext()` — `getContext()` returns `{ auth, db, pubsub, tenantId?, actorId? }` where `db` is a `NodePgDatabase` (controlPlaneDb by default, or tenant-specific in shared/isolated mode). **Note**: `getContext()` and `IsolatedTenantPlatform.$prepareInfra()`/`run()` currently contain `console.log` debug statements (noisy but harmless).
+3. `p.run(fn)` → executes `fn` inside `AsyncLocalStorage` via `runInContext()` — `getContext()` returns `{ audit, auth, db, pubsub, tenantId?, actorId? }` where `db` is a `NodePgDatabase` (controlPlaneDb by default, or tenant-specific in shared/isolated mode). **Note**: `IsolatedTenantPlatform.$prepareInfra()` and `run()` currently contain `console.log` debug statements (noisy but harmless).
 4. `p.$cleanup()` → calls `mod.$cleanup()` then `unit.$cleanup()`
 
 ### Multi-tenancy
@@ -168,7 +168,7 @@ The platform merges all module infra during `prepareInfra()`:
 - **Shared**: one DB with row-level security. `prepareInfra()` applies RLS policies via `DatabaseUnit.applyRlsPolicies()`. `run(tenantId, fn)` opens a transaction, sets `app.tenant_id` + `SET LOCAL ROLE tenant_role`, creates a per-call drizzle instance.
 - **Isolated**: DB-per-tenant. Uses a `TenantResolver` (`{ list(): Promise<string[]>, resolve(tenantId): Promise<string> }`). `prepareInfra()` iterates tenants and calls `$prepareTenant()` per module. `run(tenantId, fn)` resolves and connects to the tenant DB (global tenant IDs use the controlPlaneDb).
 
-`DatabaseUnit` exposes `tenancyMode`, `controlPlaneDb`, `resolver`, `pool`, `applyRlsPolicies()`. `p.tenancyMode` reads through to the db unit.
+`DatabaseUnit` exposes `tenancyMode`, `db` (getter), `controlPlaneDb`, `resolver` (readonly, may be `undefined` in non-isolated mode), `pool`, `prepareWithModules()`, `getTenantDb()` (isolated only), `runWithTenant()` (shared only), `applyRlsPolicies()`. `p.tenancyMode` reads through to the db unit.
 
 ### Core units (created by each platform's `create()` via `new`)
 
@@ -178,9 +178,9 @@ All are classes with constructor-injected deps:
 |---|---|---|---|
 | db | `DatabaseUnit` | `src/server/db/` | `config.db`, tenancy config (owns `pg.Pool` + drizzle `db` + tenancy state) |
 | logs | `LogUnit` | `src/server/log/` | `{ db }` |
-| pubsub | `PubSubUnit` | `src/server/pubsub/` | `{ db }` (also wired to `auth` via `pubsub.setAuth()` / `auth.setPubSub()`) |
+| pubsub | `PubSubUnit` | `src/server/pubsub/` | `{ db }` (also wired to `auth` via `pubsub.setAuth(auth)` in `createCore()`) |
 | storage | `StorageUnit` | `src/server/storage/` | `{ db }` |
-| auth | `AuthUnit` | `src/server/auth/` | `{ db }` |
+| auth | `AuthUnit` | `src/server/auth/` | `{ db, pubsub }` |
 | rpc | `RpcUnit` | `src/server/rpc/` | `{ auth, db, logs, pubsub }` |
 | kvStore | `KvStoreUnit` | `src/server/kv-store/` | `{ db }` |
 
@@ -188,34 +188,40 @@ Server `src/server/` also has `audit/`, `utils/` (incl. `context.ts`, `bun-compa
 
 ### Workflows (framework-level)
 
-The platform provides a `Workflow` builder for durable, step-based workflows:
+The platform provides a `Workflow` builder for durable, step-based workflows. Define reusable steps with `WorkflowStep`, then call them via `ctx.step.run(stepInstance, input)`. Inline steps use `ctx.step.run("name", fn)`.
 
 ```ts
 import { Workflow, WorkflowStep } from "@aspen-os/platform/server"
 
+const fetchStep = WorkflowStep.name("fetch").handler(async (input, ctx) => {
+  return ctx.db.select().from(table).limit(1);
+});
+
 const myWorkflow = Workflow.name("my-workflow")
   .input(MySchema)
   .handler(async (input, ctx) => {
-    const result = await ctx.step(
-      WorkflowStep.name("step1")
-        .input(StepSchema)
-        .handler(async (stepInput, stepCtx) => { /* ... */ })
-    )
-    return result
-  })
+    const result = await ctx.step.run(fetchStep, { id: input.id });
+    // inline step:
+    const count = await ctx.step.run("count", async () => 42);
+    return result;
+  });
+
+// run:
+await myWorkflow.run(input, { actorId });
 ```
 
-- `Workflow.name(name).handler(fn)` or `Workflow.name(name).input(schema).handler(fn)`
-- `WorkflowStep.name(name).handler(fn)` or `WorkflowStep.name(name).input(schema).handler(fn)`
-- Steps run inside `WorkflowContext` with step-level retry and status tracking
-- Workflow runs and steps are persisted to `workflow_runs` and `workflow_steps` tables
-- Use `RunOptions` for idempotency keys and step options
+- `Workflow.name(name).handler(fn)` or `Workflow.name(name).input(schema).handler(fn)` — returns `WorkflowInstance` with `.run(input, options?)`.
+- `WorkflowStep.name(name).handler(fn)` or `WorkflowStep.name(name).input(schema).handler(fn)` — returns a `WorkflowStepInstance`.
+- `ctx.step` is a `StepRunner`: `.run(stepInstance, input, options?)` or `.run("name", fn, options?)`; also `.sleep(ms)`.
+- Steps run inside `WorkflowContext` (`{ actorId, audit, auth?, config, db, pubsub, runId, step }`) with step-level retry (`StepOptions.retries`) and status tracking.
+- Workflow runs and steps are persisted to `workflow_runs` and `workflow_steps` tables.
+- `RunOptions` (`{ actorId?, audit?, auth?, config?, db?, pubsub? }`) overrides context defaults; if omitted, uses `getContext()`. Throws if `db`/`pubsub`/`audit` are missing.
 
 ### Auth unit shape (server)
 
-`AuthUnit` exposes: `$db_schema` (auth Drizzle schema), `auth` (raw betterAuth `Auth` instance), `fetch_handler(request)`, `user` getter (`{ create, delete, get, update, role: { assign, unassign } }`), `session` getter (`{ create, validate, invalidate }`), `role` getter (`{ list, delete }`).
+`AuthUnit` exposes: `$db_schema` (auth Drizzle schema), `service` getter (raw betterAuth `Auth` instance), `fetchHandler(request)` (async, returns `Response`), `applyModuleAcl(acl)` (recreates the better-auth instance with access control), and a `_` getter returning `{ user, session, role }` — `user: { create, get, remove, update, role: { assign, unassign } }`, `session: { create, invalidate, validate }`, `role: { list, remove }`.
 
-`AuthConfig` requires: `baseURL`, `secret`, `session{expiresIn?}`; optional `socialProviders.google`, `cfSecretKey`. ACL is NOT part of `AuthConfig` — modules declare ACL via `defineAcl()` and the platform applies it during `prepareInfra()` through `AuthUnit.applyModuleAcl()`.
+`AuthConfig` is `extends BetterAuthOptions {}` — no custom wrapper fields. The recruiter example passes `baseURL`, `secret`, `session.expiresIn`, `socialProviders.google`. ACL is NOT part of `AuthConfig` — modules declare ACL via `defineAcl()` and the platform applies it during `prepareInfra()` through `AuthUnit.applyModuleAcl()`.
 
 ## Domain Module Pattern
 
@@ -262,26 +268,28 @@ class MyModule implements Module {
 
 ### Two module patterns exist
 
-**Newer pattern** (organization, management-plane):
+**Newer pattern** (organization, management-plane, tasks):
 - Workflows are readonly properties (no `#` private fields)
-- `$initialize()` is empty
+- `$initialize()` is empty (or stores a unit ref, e.g. management-plane stores `db`)
 - `$prepareRuntime()` is empty
 - `$cleanup()` is empty
-- File structure: `src/{index,auth-acl.ts,pubsub-events.ts,types.ts,constants.ts}`, `src/db-schemas/`, `src/schemas/`, `src/workflows/`
+- File structure: `src/{index,pubsub-events.ts,types.ts}`, `src/db-schemas/`, `src/schemas/`, `src/utils/` (for `acl.ts`), `src/workflows/`. Management-plane also has `src/{module.ts,auth.ts,pubsub.ts}`.
 
-**Older pattern** (compliance, tasks, drive):
+**Older pattern** (compliance, drive):
 - Private workflow fields with `#` prefix, initialized in `$initialize(units)`
 - Getter properties that throw `notInitialized()` if accessed before `$initialize()`
 - `$prepareRuntime()` registers pubsub handlers/schedules
 - `$cleanup()` nulls out fields and unregisters
-- File structure: `src/{index,db-schema.ts,event-map.ts,types.ts,constants.ts}`, `src/schemas/`, `src/workflows/`, optionally `src/services/`
+- File structure: `src/{index,db-schema.ts,pubsub-events.ts,types.ts,constants.ts}`, `src/schemas/`, `src/services/`, `src/utils/`, `src/workflows/`
+
+`hr` follows the older pattern but doesn't `implements Module` and lacks `$prepareRuntime()`.
 
 ### Common conventions
 
 - `db_schema` export (drizzle schema namespace). `$name` as a readonly string (kebab-case or camelCase).
 - `$dependencies` lists module names this module depends on (used for initialization ordering)
 - Package: `@aspen-os/<module>`, `"type": "module"`, `exports: { ".": "./src/index.ts" }`, deps on framework via `workspace:*`; most also depend on `@aspen-os/constants` (drive does not).
-- **Module `$initialize()` signatures vary** — each module types its own subset of units: organization/tasks take `{ db, pubsub }`; compliance takes `{ db, kvStore, pubsub }`; drive takes `{ db, storage, pubsub }`; **management-plane takes `{ db, auth, pubsub }`**.
+- **Module `$initialize()` signatures vary** — each module types its own subset of units: organization/tasks have empty `$initialize()` (no params); compliance takes `{ db, kvStore, pubsub }`; drive takes `{ db, storage, pubsub }`; **management-plane takes `{ db, auth, pubsub }`**.
 - The management-plane module's `$name` is `"management"` (not `"management-plane"`) — proxy access is `p.management`. Its `$dependencies` is `["organization"]`.
 
 ## Conventions

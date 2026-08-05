@@ -6,14 +6,6 @@ PubSub Events (How to handle migrations?)
 
 ---
 
-Do not repeat schemas, import them from the `framework` package using Typed DB Unit that includes these types. Use the RPC/service-calls via the class to call relevant workflows to make changes instead fo duplicating schemas and making changes directly.
-
-Verify the plan implementation and resolve bugs if any. I have made a commit if a diff is needed. refer to latest commit.
-
-Ensure schemas, unlocked postgres tables and signoz integration.
-
-Ensure structured logging (https://loggingsucks.com/) is compliant with OTEL. Aim is to implement the structured logging using OTEL to maintain a single source of universal logging.
-
 /improve-codebase-architecture
 /thermonuclear-code-analysis
 Let's solve the workflow steps and audit logs
@@ -37,6 +29,12 @@ Update all docs-www
   - recruiter-alpauls
   - recruiter-maitriglobal
   - doclabs
+
+
+Ensure schemas, unlocked postgres tables and signoz integration.
+
+Ensure structured logging (https://loggingsucks.com/) is compliant with OTEL. Aim is to implement the structured logging using OTEL to maintain a single source of universal logging.
+
 
 ## `platform`
 

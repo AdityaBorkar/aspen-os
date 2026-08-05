@@ -11,15 +11,15 @@ A server-side orchestrator class. The platform exports three self-contained clas
 _Avoid_: Framework (on the server — that name is reserved for the client class), App, Container, DI Container
 
 **Platform** (client only):
-The client-side orchestrator class. Created via `Platform.create(config, modules)` with 3 units (auth, logs, rpc). No database, no tenancy. The server has no `Framework` class — use a Platform class instead.
+The client-side orchestrator class. Created via `Platform.create(config, modules)` with 3 units (auth, logs, rpc). No database, no tenancy. Has a `run(fn)` method that sets client-side context (module-level variable, not `AsyncLocalStorage`) with `{ auth, logs, rpc }` and invokes `fn`. The server has no `Framework` class — use a Platform class instead.
 _Avoid_: Framework (on the client — the class was renamed to `Platform`), App, Container, DI Container
 
 **Unit**:
-An infrastructure building block with a `$name`, a `$cleanup()` method, and an optional `$prepareInfra()` method. Seven core server units: `db`, `auth`, `logs`, `pubsub`, `rpc`, `storage`, `kvStore`. Three client units: `auth`, `logs`, `rpc`. Both server and client Unit interfaces use the `$` prefix for lifecycle methods and the name property.
+An infrastructure building block with a `$name`, a `$cleanup()` method, and an optional `$prepareInfra()` method. Eight core server units: `db`, `auth`, `logs`, `pubsub`, `rpc`, `storage`, `kvStore`, `audit`. Three client units: `auth`, `logs`, `rpc`. Both server and client Unit interfaces use the `$` prefix for lifecycle methods and the name property.
 _Avoid_: Service, Provider
 
 **Module**:
-A business logic plugin passed to `Platform.create()`. Receives unit dependencies via `$initialize(units)`. Declares infra needs via `$prepareInfra()` (returns `ModuleInfra`), runtime setup via `$prepareRuntime()`, and optional per-tenant setup via `$prepareTenant?(tenantId)`. Declares module dependencies via `$dependencies: readonly string[]` (validated at `create()` time — throws if a dependency isn't provided). Accessed on the platform instance via proxy — e.g., `f.organization`. Both server and client Module interfaces use the `$` prefix.
+A business logic plugin passed to `Platform.create()`. Receives unit dependencies via `$initialize(units)`. Declares infra needs via `$prepareInfra()` (returns `ModuleInfra`), runtime setup via `$prepareRuntime()`, and optional per-tenant setup via `$prepareTenant?(tenantId)`. Declares module dependencies via `$dependencies: readonly string[]` (validated at `create()` time — throws if a dependency isn't provided). Accessed on the platform instance via proxy — e.g., `p.organization`. Both server and client Module interfaces use the `$` prefix.
 _Avoid_: Plugin, Extension
 
 **Create**:
@@ -153,6 +153,20 @@ _Avoid_: Endpoint, Action
 Request context passed to procedures: `{ db, pubsub }`.
 _Avoid_: RequestContext, HandlerContext
 
+### Workflow (framework-level)
+
+**Workflow**:
+A framework-level builder for durable, step-based workflows persisted to `workflow_runs` and `workflow_steps` tables. `Workflow.name(name).handler(fn)` or `Workflow.name(name).input(schema).handler(fn)` returns a `WorkflowInstance` with `.run(input, options?)`. The handler receives a `WorkflowContext` (`{ actorId, audit, auth?, config, db, pubsub, runId, step }`) and may call `ctx.step.run(stepInstance, input)` or `ctx.step.run("name", fn)` for sub-steps (persisted, deduped by `(runId, stepName)`, retried per `StepOptions.retries`). `ctx.step.sleep(ms)` is also available. `RunOptions` (`{ actorId?, audit?, auth?, config?, db?, pubsub? }`) overrides context defaults; if omitted, uses `getContext()`. Throws if `db`/`pubsub`/`audit` are missing. Steps defined with `WorkflowStep.name(name).handler(fn)` or `.input(schema).handler(fn)` return a `WorkflowStepInstance` — reusable across workflows.
+_Avoid_: Job, Task (collides with Tasks domain), Pipeline
+
+**Workflow Run**:
+A persisted execution record in `workflow_runs`: `id`, `workflowName`, `status` (running/completed/failed), `input`, `output`, `error`, `startedAt`, `completedAt`, `durationMs`, `tenantId`, `metadata`. One per `.run()` call.
+_Avoid_: Execution, Run Record
+
+**Workflow Step**:
+A persisted sub-step record in `workflow_steps`: `id`, `runId`, `stepName`, `status` (pending/running/completed/failed/skipped), `attempt`, `output`, `error`, `startedAt`, `completedAt`, `durationMs`. Deduped by `(runId, stepName)` — a completed step is skipped on retry.
+_Avoid_: Stage, Phase
+
 ### KV Store
 
 **KvStoreUnit**:
@@ -166,6 +180,12 @@ _Avoid_: CacheEntry, KVPair
 **TTL**:
 Time-to-live on a KV entry. Expired entries are lazily evicted on read, not by a background job.
 _Avoid_: Expiration, TTL
+
+### Audit
+
+**Audit**:
+A core server unit (`AuditUnit`, `$name = "audit"`) providing a cross-module, platform-level audit log with DB-record replayability. Writes to an `audit_log` table (platform schema) with `seq bigserial` for deterministic ordering, `idempotency_key` for dedup, `crud_action` (create/update/delete), `previous_state`/`new_state`/`changes` for full-state capture, and `workflow_run_id` for optional workflow provenance. Exposes `write(entry, tx?)` (with optional transaction handle for atomicity), `withTransaction(entry, fn)` (convenience wrapper), `query(filters)`, `diff(before, after)`, `reconstructState(entityType, entityId)` (replays `audit_log` rows in `seq` order to reconstruct a record's current state), and `count(filters)`. Reads `actorId` and `tenantId` from `AsyncLocalStorage` context. Layer 1 of ADR-0009 (deliberate, application-level capture); Layer 2 (trigger-based blind-write capture, ADR-0010) is not yet implemented.
+_Avoid_: Audit Trail, Change Log, Audit Service
 
 ### Organization Domain
 
@@ -197,8 +217,8 @@ _Avoid_: Location, Street Address
 A financial account record with `accountHolderName`, `accountNumber`, `bankName`, `routingNumber`, `swiftCode`, `currency`, and `isPrimary` flag.
 _Avoid_: Payment Method, Financial Account
 
-**Workflow**:
-A domain operation class within the Organization module. Five workflows: `OrganizationWorkflow`, `BranchWorkflow`, `AddressWorkflow`, `BankAccountWorkflow`, `ConnectionWorkflow`. Each receives `db` (and optionally `pubsub`) via `$initialize()`.
+**Organization Workflow**:
+A domain operation within the Organization module, built on the platform's `Workflow` builder. Five workflows: `OrganizationWorkflow`, `BranchWorkflow`, `AddressWorkflow`, `BankAccountWorkflow`, `ConnectionWorkflow`. Exposed as readonly properties on the module instance: `p.organization.organizations`, `p.organization.branches`, `p.organization.addresses`, `p.organization.bankAccounts`, `p.organization.connections`.
 _Avoid_: Service, Handler
 
 ### Compliance Domain
@@ -424,7 +444,7 @@ A user with `user.role = 'sp_user'` and an `sp_id` FK on the `user` row pointing
 _Avoid_: Integrator User, Field Agent
 
 **Audit Log**:
-An append-only record of management-plane actions. Has `entityType` (tenant/serviceProvider/platformUser), `entityId`, `action` (one of 17 defined audit actions), `actorId`, `performedAt`, `previousState`, `newState`, `changes`, `metadata`. Lives in the `audit_log` table in the control-plane DB. Written by the `logAuditStep` workflow step shared across all management-plane workflows.
+An append-only record of management-plane actions, written via the platform's `AuditUnit` (`ctx.audit.write(...)`) inline in each workflow. Has `entityType` (tenant/serviceProvider/platformUser), `entityId`, `action` (one of 17 defined audit actions), `actorId`, `performedAt`, `previousState`, `newState`, `changes`, `metadata`. Lives in the platform's `audit_log` table (pushed as a platform core schema). The management plane does NOT own a separate `audit_log` table or `logAuditStep` — it uses the platform unit directly.
 _Avoid_: Audit Trail, Change Record
 
 **Platform User**:
@@ -436,7 +456,7 @@ A read-only view produced by the Management Plane over the control-plane DB. Fou
 _Avoid_: Dashboard, Analytics, Metric
 
 **Provisioning**:
-The workflow that creates a new Tenant end-to-end, run by the Management Plane module as a `WorkflowStep` named `provision-tenant`. Steps: (1) create the better-auth Organization (the Tenant) via `auth.api.createOrganization()`, (2) resolve DB config from provisioning input + defaults, (3) issue `CREATE DATABASE` against the Postgres server via an admin connection, (4) run `pushSchema()` against the new tenant DB with all module schemas, (5) seed the aspen-os Organization profile row (1:1 with the better-auth org ID, with name/slug/logo), (6) record connection params + status in the control-plane `tenant` table, (7) assign a Service Provider if provided (set FK), (8) publish `tenant:provisioned` event. Sets Tenant status to `onboarding`. Exposed via `f.management.tenants.onboard()`. Note: `ManagementPlaneConfig` is currently `undefined` — the provisioning step expects a richer config (`tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`) but the type hasn't been defined yet. This is a known WIP gap.
+The workflow that creates a new Tenant end-to-end, run by the Management Plane module via `Workflow.name("tenant.onboard")`. Steps: (1) create the better-auth Organization (the Tenant) via `ctx.auth.service.api.createOrganization()`, (2) call `dbUnit.provisionTenant(tenantId, dbOptions)` — in isolated mode this issues `CREATE DATABASE` against the Postgres server via an admin connection, runs `pushSchema()` against the new tenant DB with all platform + module schemas, and returns connection params; in shared mode it's a no-op, (3) seed the aspen-os Organization profile row in the new tenant DB via `dbUnit.seedTenantDb()` (isolated only), (4) record connection params + status in the control-plane `tenant` table, (5) write an audit entry via `ctx.audit.write(...)`, (6) publish `tenant:provisioned` event. Sets Tenant status to `onboarding`. Exposed via `p.management.tenants.onboard()`. Note: `ManagementPlaneConfig` is currently `undefined` — the provisioning workflow expects a richer config (`tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`) but the type hasn't been defined yet. This is a known WIP gap.
 _Avoid_: Onboarding (that's the Tenant Status stage AFTER provisioning), Setup, Initialization
 
 ## Context Relationships
@@ -445,10 +465,11 @@ _Avoid_: Onboarding (that's the Tenant Status stage AFTER provisioning), Setup, 
 ┌──────────────────┐    ┌─────────────────────────────────────────────┐
 │    Recruiter     │───→│            Server Platform Classes            │
 │    (app)         │    │  SingleTenantPlatform (EXPERIMENTAL, run(fn)) │
-│                  │    │  SharedTenantPlatform (RLS, run(tenantId,fn)) │
-│  uses            │    │  IsolatedTenantPlatform (DB/tenant, run(...)) │
-│  SingleTenant    │    │  7 core units: db, auth, logs, pubsub,       │
-│  Platform        │    │  rpc, storage, kvStore                       │
+│                  │    │  SharedTenantPlatform (EXPERIMENTAL, RLS,    │
+│  uses            │    │    run(tenantId,fn))                          │
+│  SingleTenant    │    │  IsolatedTenantPlatform (DB/tenant, run(...)) │
+│  Platform        │    │  8 core units: db, auth, logs, pubsub,       │
+│  org + tasks     │    │  rpc, storage, kvStore, audit                │
 └──────────────────┘    └──────────┬──────────────────────────────────┘
       │                            │ wires
       │                  ┌─────────┼──────────┬──────────────┐
@@ -461,15 +482,15 @@ _Avoid_: Onboarding (that's the Tenant Status stage AFTER provisioning), Setup, 
       │                  │
       │                  ├──────────────────────────────────────┐
       │                  ▼          ▼              ▼            ▼
-      │            StorageUnit  KvStoreUnit     RpcUnit
-      │                  │          │              │
-      │                  ▼          │              ▼
-      │               S3 SDK       │           oRPC
-      │                             │
+      │            StorageUnit  KvStoreUnit     RpcUnit      AuditUnit
+      │                  │          │              │              │
+      │                  ▼          │              ▼              ▼
+      │               S3 SDK       │           oRPC         audit_log table
+      │                             │                         (platform schema)
       │                         Postgres
       │                        (UNLOGGED)
       │
-      │  registers modules via SingleTenantPlatform.create(config, { organization })
+      │  registers modules via SingleTenantPlatform.create(config, [organization, tasks])
       │
       ├──────────────┬─────────────────────┬──────────────────────┬──────────────────────┬─────────────────┐
       ▼              ▼                     ▼                      ▼                      ▼                 ▼
@@ -477,18 +498,17 @@ _Avoid_: Onboarding (that's the Tenant Status stage AFTER provisioning), Setup, 
 │Organizat.│ │   Compliance     │ │    Tasks     │ │    Drive     │ │     HR       │ │ Management Plane │
 │  Module  │ │    Module        │ │   Module     │ │   Module     │ │   Module     │ │     Module       │
 │          │ │                  │ │              │ │              │ │ (partial)    │ │                  │
-│5 workflows│ │ 5 workflows     │ │ 11 workflows│ │ 6 workflows  │ │ 8 workflows  │ │ 3 workflows      │
-│7 tables  │ │ 5 services       │ │ 4 services   │ │ 5 services   │ │ 0 services   │ │ 3 tables         │
-│11 events │ │ 4 tables         │ │ 17 tables    │ │ 8 tables     │ │ 50 tables    │ │ 16 events        │
-│          │ │ 23 events        │ │ 10 events    │ │ 14 events    │ │ 43 events    │ │ deps: organization│
-│units:    │ │                  │ │              │ │              │ │              │ │                  │
-│db, pubsub│ │ units:           │ │ units:       │ │ units:       │ │ units:       │ │ units:           │
-│          │ │ db, kvStore,     │ │ db, pubsub  │ │ db, storage, │ │ db, pubsub  │ │ db, auth, pubsub │
-│          │ │ pubsub           │ │              │ │ pubsub       │ │              │ │                  │
+│5 workflows│ │ 5 workflows     │ │ 11 workflows│ │ 6 workflows  │ │ 8 workflows  │ │ 10 wf groups     │
+│7 tables  │ │ 3 services       │ │ 3 services   │ │ 5 services   │ │ 0 services   │ │ 2 owned tables   │
+│11 events │ │ 3 tables         │ │ 17 tables    │ │ 8 tables     │ │ 50 tables    │ │ 2 shadow tables   │
+│units:    │ │ 23 events        │ │ 10 events    │ │ 14 events    │ │ 43 events    │ │ 16 events        │
+│db, pubsub│ │ units:           │ │ units:       │ │ units:       │ │ units:       │ │ deps: organization│
+│          │ │ db, kvStore,     │ │ db, pubsub  │ │ db, storage, │ │ db, pubsub  │ │ units:           │
+│          │ │ pubsub           │ │              │ │ pubsub       │ │              │ │ db, auth, pubsub │
 │          │ │                  │ │              │ │              │ │              │ │                  │
 │          │ │ prepareInfra():  │ │              │ │ prepareInfra│ │ prepareInfra │ │ prepareInfra():  │
-│          │ │ schema push,     │ │              │ │ trash purge  │ │ schema push  │ │ schema push,     │
-│          │ │ crons, handlers  │ │              │ │ cron (3 AM)  │ │              │ │ audit step       │
+│          │ │ schema push,     │ │              │ │ trash purge  │ │ schema push  │ │ schema push      │
+│          │ │ crons, handlers  │ │              │ │ cron (3 AM)  │ │              │ │                  │
 └──────────┘ └──────────────────┘ └──────────────┘ └──────────────┘ └──────────────┘ └──────────────────┘
 
 Stubs (package.json only — no source): accounting, crm, fleet, inventory, reports, pharmacy
@@ -499,16 +519,16 @@ Stubs (package.json only — no source): accounting, crm, fleet, inventory, repo
 1. **`RoleUnassignedEvent` missing `roleName`** — unlike `RoleAssignedEvent` which has `{ roleName, userId }`, the unassigned event only has `{ userId }`.
 2. **No DB-level foreign key constraints in domain modules** — all cross-table references in compliance, tasks, drive, organization, and management-plane are logical (soft FKs by naming convention), not enforced by the database.
 3. **HR module does not declare `implements Module`** — `HrModule` has `$name`, `static create()`, wired workflows, `$prepareInfra()`, and `$cleanup()`, but does not declare `implements Module` and lacks `$prepareRuntime()`. The class is substantially implemented but not fully conformant.
-4. **Compliance services `audit-writer` and `status-derivation` exist as files but are not instantiated** in the module class — only `event-bridge`, `obligation-generator`, and `reminder-engine` are wired.
-5. **Tasks services `dependency-graph` and `filter-engine` exist as files but are not instantiated** in the module class — only `notification-bridge` and `report-service` are wired.
-6. **`SingleTenantPlatform` is EXPERIMENTAL** — constructor emits `console.warn("Single Tenant Architecture is currently EXPERIMENTAL")`.
-7. **`IsolatedTenantConfig` has no `resolver` field** — a dummy resolver (`list: async () => []`, `resolve: async (id) => id`) is constructed inline in `IsolatedTenantPlatform.create()` instead of accepting a real `TenantResolver` via config.
-8. **`ManagementPlaneConfig` is `undefined`** — the provisioning workflow expects a richer config (`tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`) but the type hasn't been defined yet.
-9. **Management Plane `$name` is `"management"`** — the module's `$name` is `"management"`, not `"management-plane"` as the package name suggests. Proxy accessor is `f.management`, not `f.managementPlane`.
+4. **`SingleTenantPlatform` and `SharedTenantPlatform` are EXPERIMENTAL** — both constructors emit `console.warn("... Architecture is currently EXPERIMENTAL")`. `IsolatedTenantPlatform` does not warn.
+5. **`IsolatedTenantConfig` has no `resolver` field** — a dummy resolver (`list: async () => []`, `resolve: async (id) => id`) is constructed inline in `IsolatedTenantPlatform.create()` instead of accepting a real `TenantResolver` via config.
+6. **`ManagementPlaneConfig` is `undefined`** — the provisioning workflow expects a richer config (`tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`) but the type hasn't been defined yet.
+7. **Management Plane `$name` is `"management"`** — the module's `$name` is `"management"`, not `"management-plane"` as the package name suggests. Proxy accessor is `p.management`, not `p.managementPlane`.
+8. **`context.actorId` is typed but never populated by the framework** — the `AsyncLocalStorage` context declares `actorId?: string` but the platform never sets it from the authenticated session. Audit entries fall back to `"system"` until app code or middleware populates it.
+9. **ADR-0009 status is "Proposed" but Layer 1 is implemented** — the `AuditUnit` and `audit_log` table described in ADR-0009's Layer 1 are built and shipped. The ADR should be marked "Accepted" for Layer 1. Layer 2 (trigger-based blind-write capture, ADR-0010) remains unimplemented.
 
 ## Anti-Patterns
 
-- Don't register modules after `create()` — pass them to `Platform.create()` as the second arg
+- Don't register modules after `create()` — pass them to `Platform.create()` as the second arg (an array)
 - Don't use native UUID columns — always text with `gen_random_uuid()::text` or app-generated UUIDs
 - Don't use `timestamp without time zone` — always `withTimezone: true`
 - Don't create barrel files unless explicitly told
