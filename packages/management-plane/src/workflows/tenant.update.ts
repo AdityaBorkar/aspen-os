@@ -10,9 +10,9 @@ import {
   UpdateTenantProfileSchema,
 } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../utils/constants";
+import { stripUndefined } from "../utils/strip-undefined";
 import { fetchTenantStep } from "./steps/fetch-tenant";
 import { logAuditStep } from "./steps/log-audit";
-import { stripUndefined } from "./utils";
 
 export const updateTenant = Workflow.name("tenant.update")
   .input(

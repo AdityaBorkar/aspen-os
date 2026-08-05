@@ -157,7 +157,6 @@ export class IsolatedTenantPlatform<M extends Module[]> extends Base<M> {
     const db = isGlobalTenantId(tenantId)
       ? this.dbUnit.controlPlaneDb
       : await this.dbUnit.getTenantDb(tenantId);
-    console.log({ db });
     return this.runInContext(fn, { db, tenantId }) as T;
   }
 }

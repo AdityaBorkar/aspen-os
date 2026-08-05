@@ -15,6 +15,28 @@ import type {
 
 type DrizzleDB = NodePgDatabase<Record<string, never>>;
 
+interface ValidationIssue {
+  expected?: unknown;
+  message: string;
+  path?: ReadonlyArray<{ key?: string; input?: unknown; value?: unknown }>;
+  received?: unknown;
+}
+
+function formatValue(value: unknown): string {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function formatPath(path?: ValidationIssue["path"]): string {
+  if (!path || path.length === 0) return "";
+  return ` at ${path
+    .map((segment) => segment.key ?? formatValue(segment.value))
+    .join(".")}`;
+}
+
 function generateId(): string {
   return crypto.randomUUID();
 }
@@ -33,22 +55,37 @@ function serializeError(error: unknown): Record<string, unknown> {
 async function validateInput<T>(
   schema: StandardSchema,
   input: unknown,
+  descriptor: string,
 ): Promise<T> {
   const result = schema["~standard"].validate(input) as
     | {
         success: boolean;
         value?: unknown;
-        issues?: ReadonlyArray<{ message: string }>;
+        issues?: ReadonlyArray<ValidationIssue>;
       }
     | Promise<{
         success: boolean;
         value?: unknown;
-        issues?: ReadonlyArray<{ message: string }>;
+        issues?: ReadonlyArray<ValidationIssue>;
       }>;
   const awaited = result instanceof Promise ? await result : result;
   if (!awaited.success) {
-    const issues = (awaited.issues ?? []).map((i) => i.message).join("; ");
-    throw new Error(`Input validation failed: ${issues}`);
+    const details = (awaited.issues ?? []).map((issue) => {
+      const expected = issue.expected
+        ? `; expected ${formatValue(issue.expected)}`
+        : "";
+      const received =
+        typeof issue.received === "undefined"
+          ? ""
+          : `; received ${formatValue(issue.received)}`;
+      return `${issue.message}${formatPath(issue.path)}${expected}${received}`;
+    });
+    const lines = [
+      `Workflow input validation failed for ${descriptor}`,
+      `Input: ${formatValue(input)}`,
+      ...details.map((d) => `  - ${d}`),
+    ];
+    throw new Error(lines.join("\n"));
   }
   return awaited.value as T;
 }
@@ -144,6 +181,7 @@ function createStepRunner(
   db: DrizzleDB,
   getCtx: () => WorkflowContext,
   runId: string,
+  configName: string,
 ): StepRunner {
   return {
     run: ((
@@ -169,7 +207,11 @@ function createStepRunner(
         async () => {
           let validated = input;
           if (step.schema) {
-            validated = await validateInput(step.schema, input);
+            validated = await validateInput(
+              step.schema,
+              input,
+              `step "${step.name}" of workflow "${configName}"`,
+            );
           }
           return step.handler(validated, getCtx());
         },
@@ -187,9 +229,7 @@ export async function executeWorkflow<TInput, TOutput>(
   input: TInput,
   options?: RunOptions,
 ): Promise<TOutput> {
-  console.log("Running Engine");
   const store = options?.db ? null : getContext();
-  console.log({ store });
   const db = options?.db ?? store?.db;
   const auth = options?.auth ?? store?.auth;
   const pubsub = options?.pubsub ?? store?.pubsub;
@@ -201,7 +241,11 @@ export async function executeWorkflow<TInput, TOutput>(
   }
 
   if (config.schema) {
-    input = await validateInput<TInput>(config.schema, input);
+    input = await validateInput<TInput>(
+      config.schema,
+      input,
+      `workflow "${config.name}"`,
+    );
   }
 
   const runId = generateId();
@@ -223,7 +267,7 @@ export async function executeWorkflow<TInput, TOutput>(
     config: options?.config ?? {},
     db,
     pubsub,
-    step: createStepRunner(db, getCtx, runId),
+    step: createStepRunner(db, getCtx, runId, config.name),
   };
 
   try {

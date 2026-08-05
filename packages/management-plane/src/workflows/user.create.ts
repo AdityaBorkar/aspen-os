@@ -1,6 +1,5 @@
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-import { object } from "valibot";
 
 import { serviceProvider, user } from "../db-schemas";
 import { PLATFORM_USER_EVENTS } from "../pubsub";
@@ -8,13 +7,11 @@ import { CreatePlatformUserSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, ROLES } from "../utils/constants";
 import { logAuditStep } from "./steps/log-audit";
 
-const CreateInputSchema = object({
-  input: CreatePlatformUserSchema,
-});
+const CreateInputSchema = CreatePlatformUserSchema;
 
 export const createUser = Workflow.name("user.create")
   .input(CreateInputSchema)
-  .handler(async ({ input }, ctx) => {
+  .handler(async (input, ctx) => {
     if (!ctx.auth) throw new Error("Auth is required for user creation");
     const auth = ctx.auth;
 

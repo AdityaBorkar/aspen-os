@@ -19,6 +19,11 @@ export type ExtractModuleNames<M extends Module[]> = {
   [K in keyof M]: M[K] extends { $name: infer N extends string } ? N : never;
 };
 
+export type ModuleByName<
+  M extends Module[],
+  K extends M[number]["$name"],
+> = Extract<M[number], { $name: K }>;
+
 export type CommonConfig = {
   auth: AuthConfig;
   kvStore: KvStoreConfig;
@@ -54,7 +59,10 @@ export abstract class BasePlatform<M extends Module[]>
         }
         return Reflect.get(target, prop, receiver);
       },
-    });
+    }) as this &
+      PlatformUnits & {
+        [K in M[number]["$name"]]: Extract<M[number], { $name: K }>;
+      };
   }
 
   protected static createCore<M extends Module[]>(
@@ -153,12 +161,10 @@ export abstract class BasePlatform<M extends Module[]>
     }
   }
 
-  getModule<K extends M[number]["$name"]>(
-    name: K,
-  ): Extract<M[number], { $name: K }> {
+  getModule<K extends M[number]["$name"]>(name: K): ModuleByName<M, K> {
     const mod = this.modules.find((m) => m.$name === name);
     if (!mod) throw new Error(`Module "${String(name)}" not found`);
-    return mod as Extract<M[number], { $name: K }>;
+    return mod as ModuleByName<M, K>;
   }
 
   getUnit<K extends keyof PlatformUnits>(name: K): PlatformUnits[K] {
@@ -178,7 +184,6 @@ export abstract class BasePlatform<M extends Module[]>
       pubsub: this.units.pubsub,
       ...overrides,
     };
-    console.log("Context:", ctx);
     return context.run(ctx, fn);
   }
 }

@@ -6,13 +6,12 @@ PubSub Events (How to handle migrations?)
 
 ---
 
-For all the ACL in @ , keep only the permissions: "create", "delete", "read", "update"
+Let's solve the workflow steps
 
 Do not repeat schemas, import them from the `framework` package using Typed DB Unit that includes these types
 Use the workflows in ManagementPlane to create a web application
 
 Refactor all modules to be like ./management-plane. Make it a skill
-
 Update all docs-www
 
 ---
