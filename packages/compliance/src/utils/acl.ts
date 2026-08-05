@@ -1,7 +1,6 @@
 import { defineAcl } from "@aspen-os/platform/server";
 
 export const acl = defineAcl({
-  complianceAuditEntry: ["read"],
   complianceDocument: [
     "archive",
     "create",

@@ -14,7 +14,9 @@ import type {
   WorkflowStepInstance,
 } from "./types";
 
-type DrizzleDB = NodePgDatabase<Record<string, never>>;
+type DrizzleDB<
+  TSchemas extends Record<string, unknown> = Record<string, unknown>,
+> = NodePgDatabase<TSchemas>;
 
 function generateId(): string {
   return crypto.randomUUID();
@@ -44,8 +46,8 @@ async function validateInput(
   return result.value;
 }
 
-async function executeStep<T>(
-  db: DrizzleDB,
+async function executeStep<TSchemas extends Record<string, unknown>, T>(
+  db: DrizzleDB<TSchemas>,
   runId: string,
   name: string,
   fn: () => T | Promise<T>,
@@ -131,14 +133,14 @@ async function executeStep<T>(
   throw lastError;
 }
 
-function createStepRunner(
-  db: DrizzleDB,
-  getCtx: () => WorkflowContext,
+function createStepRunner<TSchemas extends Record<string, unknown>>(
+  db: DrizzleDB<TSchemas>,
+  getCtx: () => WorkflowContext<TSchemas>,
   runId: string,
 ): StepRunner {
   return {
     run: ((
-      nameOrStep: string | WorkflowStepInstance<unknown, unknown>,
+      nameOrStep: string | WorkflowStepInstance<unknown, unknown, TSchemas>,
       fnOrInput: (() => unknown) | unknown,
       options?: StepOptions,
     ) => {
@@ -173,8 +175,12 @@ function createStepRunner(
   };
 }
 
-export async function executeWorkflow<TInput, TOutput>(
-  config: WorkflowConfig<TInput, TOutput>,
+export async function executeWorkflow<
+  TInput,
+  TOutput,
+  TSchemas extends Record<string, unknown> = Record<string, never>,
+>(
+  config: WorkflowConfig<TInput, TOutput, TSchemas>,
   input: TInput,
   options?: RunOptions,
 ): Promise<TOutput> {
@@ -210,17 +216,17 @@ export async function executeWorkflow<TInput, TOutput>(
     workflowName: config.name,
   });
 
-  let ctx: WorkflowContext;
+  let ctx: WorkflowContext<TSchemas>;
   const getCtx = () => ctx;
   ctx = {
     actorId: options?.actorId ?? store?.actorId,
     audit,
     auth,
     config: options?.config ?? {},
-    db,
+    db: db as DrizzleDB<TSchemas>,
     pubsub,
     runId,
-    step: createStepRunner(db, getCtx, runId),
+    step: createStepRunner(db as DrizzleDB<TSchemas>, getCtx, runId),
   };
 
   try {

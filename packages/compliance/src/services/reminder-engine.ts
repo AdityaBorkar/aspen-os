@@ -1,4 +1,4 @@
-import type { PubSubUnit } from "@aspen-os/platform/server";
+import type { AuditUnit, PubSubUnit } from "@aspen-os/platform/server";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 import {
@@ -7,20 +7,8 @@ import {
   SCHEDULED_JOBS,
 } from "../constants";
 import { COMPLIANCE_EVENTS } from "../pubsub-events";
-import {
-  type DashboardDeps,
-  getDashboardSummary,
-} from "../workflows/dashboard";
-import {
-  type DocumentDeps,
-  getActiveDocumentsForReminders,
-  getEscalatableDocuments,
-  getExpiredAndOverdueDocuments,
-  updateDocumentEscalatedAt,
-  updateDocumentNotifiedAt,
-  updateDocumentStatus,
-} from "../workflows/document";
-import { writeSystemAudit } from "./audit-writer";
+import { dashboard } from "../workflows/dashboard";
+import { documents } from "../workflows/document";
 import {
   daysSince,
   daysUntil,
@@ -31,10 +19,17 @@ import {
   shouldNotify,
 } from "./status-derivation";
 
+interface KvStoreLike {
+  del(key: string): Promise<void>;
+  get<T>(key: string): Promise<T | null>;
+  set<T>(key: string, value: T, ttl?: number): Promise<void>;
+}
+
 export interface ReminderEngineDeps {
-  dashboardDeps: DashboardDeps | null;
+  audit: AuditUnit;
+  cacheTtl: number;
   db: NodePgDatabase;
-  documentDeps: DocumentDeps;
+  kvStore: KvStoreLike | null;
   pubsub: PubSubUnit;
 }
 
@@ -118,7 +113,10 @@ export async function scanExpiringAndDueDocuments(
   let errors = 0;
 
   try {
-    const docs = await getActiveDocumentsForReminders(deps.documentDeps);
+    const docs = await documents.getActiveDocumentsForReminders.run(
+      {},
+      { db: deps.db, pubsub: deps.pubsub },
+    );
 
     for (const doc of docs) {
       if (isSnoozed(doc.snoozedUntil)) continue;
@@ -138,17 +136,17 @@ export async function scanExpiringAndDueDocuments(
               sourceModule: doc.sourceModule,
             });
 
-            await updateDocumentNotifiedAt(doc.id, deps.documentDeps);
-
-            await writeSystemAudit(
-              {
-                action: "reminder_sent",
-                entityId: doc.id,
-                entityType: "compliance_document",
-                metadata: { daysUntilExpiry, threshold: "expiry" },
-              },
-              { db: deps.db },
+            await documents.updateNotifiedAt.run(
+              { id: doc.id },
+              { db: deps.db, pubsub: deps.pubsub },
             );
+
+            await deps.audit.write({
+              action: "reminder_sent",
+              entityId: doc.id,
+              entityType: "compliance_document",
+              metadata: { daysUntilExpiry, threshold: "expiry" },
+            });
 
             recordsProcessed++;
           }
@@ -166,17 +164,17 @@ export async function scanExpiringAndDueDocuments(
               sourceModule: doc.sourceModule,
             });
 
-            await updateDocumentNotifiedAt(doc.id, deps.documentDeps);
-
-            await writeSystemAudit(
-              {
-                action: "reminder_sent",
-                entityId: doc.id,
-                entityType: "compliance_document",
-                metadata: { daysUntilDue, threshold: "due" },
-              },
-              { db: deps.db },
+            await documents.updateNotifiedAt.run(
+              { id: doc.id },
+              { db: deps.db, pubsub: deps.pubsub },
             );
+
+            await deps.audit.write({
+              action: "reminder_sent",
+              entityId: doc.id,
+              entityType: "compliance_document",
+              metadata: { daysUntilDue, threshold: "due" },
+            });
 
             recordsProcessed++;
           }
@@ -205,7 +203,10 @@ export async function transitionExpiredAndOverdueDocuments(
   let errors = 0;
 
   try {
-    const docs = await getExpiredAndOverdueDocuments(deps.documentDeps);
+    const docs = await documents.getExpiredAndOverdueDocuments.run(
+      {},
+      { db: deps.db, pubsub: deps.pubsub },
+    );
 
     for (const doc of docs) {
       let newStatus: string | null = null;
@@ -224,11 +225,13 @@ export async function transitionExpiredAndOverdueDocuments(
       if (overdueStatus && !newStatus) newStatus = overdueStatus;
 
       if (newStatus) {
-        await updateDocumentStatus(
-          doc.id,
-          newStatus as "expired" | "overdue",
-          null,
-          deps.documentDeps,
+        await documents.updateStatus.run(
+          {
+            id: doc.id,
+            performedBy: null,
+            status: newStatus as "expired" | "overdue",
+          },
+          { audit: deps.audit, db: deps.db, pubsub: deps.pubsub },
         );
 
         if (newStatus === "expired") {
@@ -276,7 +279,10 @@ export async function scanEscalations(
   let errors = 0;
 
   try {
-    const docs = await getEscalatableDocuments(deps.documentDeps);
+    const docs = await documents.getEscalatableDocuments.run(
+      {},
+      { db: deps.db, pubsub: deps.pubsub },
+    );
 
     for (const doc of docs) {
       const escalationDays =
@@ -301,17 +307,17 @@ export async function scanEscalations(
           escalationLevel,
         });
 
-        await updateDocumentEscalatedAt(doc.id, deps.documentDeps);
-
-        await writeSystemAudit(
-          {
-            action: "escalated",
-            entityId: doc.id,
-            entityType: "compliance_document",
-            metadata: { daysSinceExpiry: daysSinceTarget, escalationLevel },
-          },
-          { db: deps.db },
+        await documents.updateEscalatedAt.run(
+          { id: doc.id },
+          { db: deps.db, pubsub: deps.pubsub },
         );
+
+        await deps.audit.write({
+          action: "escalated",
+          entityId: doc.id,
+          entityType: "compliance_document",
+          metadata: { daysSinceExpiry: daysSinceTarget, escalationLevel },
+        });
 
         recordsProcessed++;
       }
@@ -334,18 +340,26 @@ export async function generateWeeklySummary(
   deps: ReminderEngineDeps,
 ): Promise<void> {
   const startTime = Date.now();
+  const kvStore = deps.kvStore;
 
-  if (!deps.dashboardDeps) {
-    await deps.pubsub.publish(COMPLIANCE_EVENTS.SCHEDULED_JOB_EXECUTED, {
-      errors: 0,
-      executionTime: Date.now() - startTime,
-      jobName: SCHEDULED_JOBS.WEEKLY_SUMMARY,
-      recordsProcessed: 0,
-    });
-    return;
-  }
-
-  const summary = await getDashboardSummary(undefined, deps.dashboardDeps);
+  const summary = await dashboard.getSummary.run(
+    {},
+    {
+      config: {
+        cacheTtl: deps.cacheTtl,
+        kvStore: kvStore
+          ? {
+              del: (key: string) => kvStore.del(key),
+              get: (key: string) => kvStore.get<unknown>(key),
+              set: (key: string, value: unknown, ttl?: number) =>
+                kvStore.set(key, value, ttl),
+            }
+          : undefined,
+      },
+      db: deps.db,
+      pubsub: deps.pubsub,
+    },
+  );
 
   await deps.pubsub.publish(COMPLIANCE_EVENTS.WEEKLY_SUMMARY, {
     summary: {

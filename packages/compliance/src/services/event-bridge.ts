@@ -1,8 +1,9 @@
-import type { PubSubUnit } from "@aspen-os/platform/server";
+import type { AuditUnit, PubSubUnit } from "@aspen-os/platform/server";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 import type { CreateComplianceDocumentInput } from "../types";
-import { createDocument, type DocumentDeps } from "../workflows/document";
-import { createObligation, type ObligationDeps } from "../workflows/obligation";
+import { documents } from "../workflows/document";
+import { obligations } from "../workflows/obligation";
 
 interface EmployeeOnboardedEvent {
   employeeId: string;
@@ -41,8 +42,8 @@ interface ConnectionCreatedEvent {
 }
 
 export interface EventBridgeDeps {
-  documentDeps: DocumentDeps;
-  obligationDeps: ObligationDeps;
+  audit: AuditUnit;
+  db: NodePgDatabase;
   pubsub: PubSubUnit;
 }
 
@@ -169,7 +170,7 @@ async function handleEmployeeOnboarded(
   ];
 
   for (const doc of docs) {
-    await createDocument(doc, deps.documentDeps);
+    await createDocumentWorkflow(doc, deps);
   }
 }
 
@@ -203,7 +204,7 @@ async function handleEmployeeSeparated(
   ];
 
   for (const doc of docs) {
-    await createDocument(doc, deps.documentDeps);
+    await createDocumentWorkflow(doc, deps);
   }
 }
 
@@ -211,7 +212,7 @@ async function handleVehicleRegistered(
   event: VehicleRegisteredEvent,
   deps: EventBridgeDeps,
 ): Promise<void> {
-  await createDocument(
+  await createDocumentWorkflow(
     {
       category: "vehicle",
       createdBy: "system",
@@ -228,10 +229,10 @@ async function handleVehicleRegistered(
       sourceEntityType: "vehicle",
       sourceModule: "fleet",
     },
-    deps.documentDeps,
+    deps,
   );
 
-  await createObligation(
+  await createObligationWorkflow(
     {
       category: "vehicle",
       createdBy: "system",
@@ -245,7 +246,7 @@ async function handleVehicleRegistered(
       sourceModule: "fleet",
       startDate: new Date(),
     },
-    deps.obligationDeps,
+    deps,
   );
 }
 
@@ -253,7 +254,7 @@ async function handleBranchCreated(
   event: BranchCreatedEvent,
   deps: EventBridgeDeps,
 ): Promise<void> {
-  await createDocument(
+  await createDocumentWorkflow(
     {
       branch: event.branch.id,
       category: "permit",
@@ -266,10 +267,10 @@ async function handleBranchCreated(
       sourceEntityType: "branch",
       sourceModule: "organization",
     },
-    deps.documentDeps,
+    deps,
   );
 
-  await createDocument(
+  await createDocumentWorkflow(
     {
       branch: event.branch.id,
       category: "safety",
@@ -282,10 +283,10 @@ async function handleBranchCreated(
       sourceEntityType: "branch",
       sourceModule: "organization",
     },
-    deps.documentDeps,
+    deps,
   );
 
-  await createObligation(
+  await createObligationWorkflow(
     {
       branch: event.branch.id,
       category: "permit",
@@ -300,7 +301,7 @@ async function handleBranchCreated(
       sourceModule: "organization",
       startDate: new Date(),
     },
-    deps.obligationDeps,
+    deps,
   );
 }
 
@@ -308,7 +309,7 @@ async function handleFinancialYearStarted(
   event: FinancialYearStartedEvent,
   deps: EventBridgeDeps,
 ): Promise<void> {
-  await createObligation(
+  await createObligationWorkflow(
     {
       category: "tax",
       createdBy: "system",
@@ -321,7 +322,7 @@ async function handleFinancialYearStarted(
       sourceModule: "accounting",
       startDate: new Date(),
     },
-    deps.obligationDeps,
+    deps,
   );
 }
 
@@ -331,7 +332,7 @@ async function handleConnectionCreated(
 ): Promise<void> {
   if (event.connection.type !== "insurer") return;
 
-  await createDocument(
+  await createDocumentWorkflow(
     {
       category: "insurance",
       connection: event.connection.id,
@@ -341,6 +342,42 @@ async function handleConnectionCreated(
       name: `Insurance Policy — ${event.connection.name}`,
       sourceModule: "organization",
     },
-    deps.documentDeps,
+    deps,
+  );
+}
+
+async function createDocumentWorkflow(
+  input: CreateComplianceDocumentInput,
+  deps: EventBridgeDeps,
+): Promise<void> {
+  await documents.create.run(
+    { input },
+    { audit: deps.audit, db: deps.db, pubsub: deps.pubsub },
+  );
+}
+
+async function createObligationWorkflow(
+  input: {
+    branch?: string;
+    category: "vehicle" | "permit" | "tax";
+    createdBy: string;
+    documentType?: string;
+    dueDay?: number;
+    dueMonthOffset?: number;
+    expiryBased?: boolean;
+    expiryDurationMonths?: number;
+    frequency: "semi_annual" | "annual" | "monthly";
+    name: string;
+    periodBased?: boolean;
+    sourceEntityId?: string;
+    sourceEntityType?: string;
+    sourceModule: string;
+    startDate: Date;
+  },
+  deps: EventBridgeDeps,
+): Promise<void> {
+  await obligations.create.run(
+    { input },
+    { audit: deps.audit, db: deps.db, pubsub: deps.pubsub },
   );
 }

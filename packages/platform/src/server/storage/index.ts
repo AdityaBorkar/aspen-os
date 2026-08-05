@@ -1,4 +1,4 @@
-import type { DatabaseUnit } from "../db";
+import type { DatabaseUnit, DrizzleDB } from "../db";
 import { context } from "../utils/context";
 import { FileMetadataService } from "./file-metadata-service";
 import { S3Adapter } from "./s3-adapter";
@@ -19,9 +19,13 @@ export class StorageUnit {
   private readonly ops: S3Adapter;
   private readonly metadata: FileMetadataService;
 
-  constructor(config: StorageConfig, { db }: { db: DatabaseUnit }) {
+  constructor(
+    config: StorageConfig,
+    // biome-ignore lint/suspicious/noExplicitAny: drizzle NodePgDatabase invariance forces any here
+    { db }: { db: DatabaseUnit<any> },
+  ) {
     this.config = config;
-    this.metadata = new FileMetadataService(db.db);
+    this.metadata = new FileMetadataService(db.db as DrizzleDB);
     this.ops = new S3Adapter({
       ...config,
       getKey: (key) => {

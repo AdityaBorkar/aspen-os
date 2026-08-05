@@ -2,6 +2,7 @@ import {
   BasePlatform as Base,
   type CommonConfig,
   type ExtractModuleNames,
+  type MergedSchemas,
 } from "./base-platform";
 import { type DatabaseConfig, DatabaseUnit } from "./db";
 import type {
@@ -16,26 +17,31 @@ export type SharedTenantConfig = CommonConfig & {
   db: DatabaseConfig;
 };
 
-export type SharedTenantPlatformInstance<M extends Module[]> =
-  SharedTenantPlatform<M> &
-    UnitAccessors &
-    ArrayModuleAccessors<M, ExtractModuleNames<M>[number]>;
+export type SharedTenantPlatformInstance<
+  M extends Module[],
+  S extends Record<string, unknown> = MergedSchemas<M>,
+> = SharedTenantPlatform<M, S> &
+  UnitAccessors<S> &
+  ArrayModuleAccessors<M, ExtractModuleNames<M>[number]>;
 
-export class SharedTenantPlatform<M extends Module[]> extends Base<M> {
-  private readonly dbUnit: DatabaseUnit;
+export class SharedTenantPlatform<
+  M extends Module[],
+  S extends Record<string, unknown> = MergedSchemas<M>,
+> extends Base<M, S> {
+  private readonly dbUnit: DatabaseUnit<S>;
 
-  constructor(units: PlatformUnits, modules: M) {
+  constructor(units: PlatformUnits<S>, modules: M) {
     console.warn("Shared Tenant Architecture is currently EXPERIMENTAL");
     super(units, modules);
-    this.dbUnit = units.db as DatabaseUnit;
+    this.dbUnit = units.db as DatabaseUnit<S>;
   }
 
   static create<M extends Module[]>(
     config: SharedTenantConfig,
     modules: M,
   ): SharedTenantPlatformInstance<M> {
-    const db = new DatabaseUnit(config.db, "shared");
-    const core = Base.createCore(db, config, modules);
+    const db = new DatabaseUnit<MergedSchemas<M>>(config.db, "shared");
+    const core = Base.createCore<M, MergedSchemas<M>>(db, config, modules);
     return new SharedTenantPlatform<M>(
       core.units,
       core.modules,

@@ -25,6 +25,26 @@ export type ModuleByName<
   K extends M[number]["$name"],
 > = Extract<M[number], { $name: K }>;
 
+type UnionToIntersection<T> = (
+  T extends unknown
+    ? (x: T) => void
+    : never
+) extends (x: infer R) => void
+  ? R
+  : never;
+
+export type InferControlPlaneSchemas<M extends Module[]> = UnionToIntersection<
+  M[number] extends Module<infer _N, infer TCP, infer _TT> ? TCP : never
+>;
+
+export type InferTenantSchemas<M extends Module[]> = UnionToIntersection<
+  M[number] extends Module<infer _N, infer _TCP, infer TT> ? TT : never
+>;
+
+export type MergedSchemas<M extends Module[]> = InferControlPlaneSchemas<M> &
+  InferTenantSchemas<M> &
+  Record<string, unknown>;
+
 export type CommonConfig = {
   auth: AuthConfig;
   kvStore: KvStoreConfig;
@@ -34,27 +54,29 @@ export type CommonConfig = {
   storage: StorageConfig;
 };
 
-export abstract class BasePlatform<M extends Module[]>
-  implements UnitAccessors
+export abstract class BasePlatform<
+  M extends Module[],
+  S extends Record<string, unknown> = MergedSchemas<M>,
+> implements UnitAccessors<S>
 {
-  declare readonly audit: PlatformUnits["audit"];
-  declare readonly auth: PlatformUnits["auth"];
-  declare readonly db: PlatformUnits["db"];
-  declare readonly kvStore: PlatformUnits["kvStore"];
-  declare readonly logs: PlatformUnits["logs"];
-  declare readonly pubsub: PlatformUnits["pubsub"];
-  declare readonly rpc: PlatformUnits["rpc"];
-  declare readonly storage: PlatformUnits["storage"];
+  declare readonly audit: PlatformUnits<S>["audit"];
+  declare readonly auth: PlatformUnits<S>["auth"];
+  declare readonly db: PlatformUnits<S>["db"];
+  declare readonly kvStore: PlatformUnits<S>["kvStore"];
+  declare readonly logs: PlatformUnits<S>["logs"];
+  declare readonly pubsub: PlatformUnits<S>["pubsub"];
+  declare readonly rpc: PlatformUnits<S>["rpc"];
+  declare readonly storage: PlatformUnits<S>["storage"];
 
   constructor(
-    protected readonly units: PlatformUnits,
+    protected readonly units: PlatformUnits<S>,
     protected readonly modules: M,
   ) {
     // biome-ignore lint/correctness/noConstructorReturn: Exception
     return new Proxy(this, {
       get(target, prop, receiver) {
         if (typeof prop === "string") {
-          const unit = target.units[prop as keyof PlatformUnits];
+          const unit = target.units[prop as keyof PlatformUnits<S>];
           if (unit) return unit;
           const mod = target.modules.find((m) => m.$name === prop);
           if (mod) return mod;
@@ -62,16 +84,19 @@ export abstract class BasePlatform<M extends Module[]>
         return Reflect.get(target, prop, receiver);
       },
     }) as this &
-      PlatformUnits & {
+      PlatformUnits<S> & {
         [K in M[number]["$name"]]: Extract<M[number], { $name: K }>;
       };
   }
 
-  protected static createCore<M extends Module[]>(
-    db: DatabaseUnit,
+  protected static createCore<
+    M extends Module[],
+    S extends Record<string, unknown>,
+  >(
+    db: DatabaseUnit<S>,
     config: CommonConfig,
     modules: M,
-  ): { units: PlatformUnits; modules: M } {
+  ): { units: PlatformUnits<S>; modules: M } {
     const logs = new LogUnit(config.logs, { db });
     const audit = new AuditUnit({ db });
     const pubsub = new PubSubUnit(config.pubsub, { db });
@@ -170,21 +195,23 @@ export abstract class BasePlatform<M extends Module[]>
     return mod as ModuleByName<M, K>;
   }
 
-  getUnit<K extends keyof PlatformUnits>(name: K): PlatformUnits[K] {
+  getUnit<K extends keyof PlatformUnits<S>>(name: K): PlatformUnits<S>[K] {
     return this.units[name];
   }
 
   protected runInContext<T>(
     fn: () => T | Promise<T>,
     overrides?: {
-      db?: NodePgDatabase<Record<string, never>>;
+      db?: NodePgDatabase<S>;
       tenantId?: string;
     },
   ): T | Promise<T> {
     const ctx = {
       audit: this.units.audit,
       auth: this.units.auth,
-      db: this.units.db.controlPlaneDb,
+      db: this.units.db.controlPlaneDb as unknown as NodePgDatabase<
+        Record<string, unknown>
+      >,
       pubsub: this.units.pubsub,
       ...overrides,
     };

@@ -19,7 +19,8 @@ export class PubSubUnit {
   readonly $name = "pubsub" as const;
 
   private tenancyMode: TenancyMode;
-  private dbUnit: DatabaseUnit;
+  // biome-ignore lint/suspicious/noExplicitAny: drizzle NodePgDatabase invariance forces any here
+  private dbUnit: DatabaseUnit<any>;
   private authInstance: AuthUnit | null = null;
   private monitorStateIntervalSeconds: number;
 
@@ -27,7 +28,11 @@ export class PubSubUnit {
   private tenantBosses: Map<string, PgBoss> = new Map();
   private subscriptions = new Map<string, PgBoss.WorkHandler<object>>();
 
-  constructor(config: PubSubConfig, { db }: { db: DatabaseUnit }) {
+  constructor(
+    config: PubSubConfig,
+    // biome-ignore lint/suspicious/noExplicitAny: drizzle NodePgDatabase invariance forces any here
+    { db }: { db: DatabaseUnit<any> },
+  ) {
     this.tenancyMode = db.tenancyMode;
     this.dbUnit = db;
     this.monitorStateIntervalSeconds = config.monitorStateIntervalSeconds ?? 30;

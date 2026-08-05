@@ -245,33 +245,7 @@ export const complianceVerificationRule = pgTable(
   ],
 );
 
-export const complianceAuditEntry = pgTable(
-  "compliance_audit_entry",
-  {
-    action: auditActionEnum("action").notNull(),
-    changes: jsonb("changes"),
-    entityId: text("entity_id").notNull(),
-    entityType: auditEntityTypeEnum("entity_type").notNull(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
-    metadata: jsonb("metadata"),
-    newState: jsonb("new_state"),
-    notes: text("notes"),
-    performedAt: timestamp("performed_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    performedBy: text("performed_by"),
-    previousState: jsonb("previous_state"),
-  },
-  (table) => [
-    index("idx_compliance_audit_entity").on(table.entityType, table.entityId),
-    index("idx_compliance_audit_action").on(table.action),
-    index("idx_compliance_audit_performed_by").on(table.performedBy),
-    index("idx_compliance_audit_performed_at").on(table.performedAt),
-  ],
-);
-
 export const complianceTables = {
-  complianceAuditEntry,
   complianceDocument,
   complianceObligation,
   complianceVerificationRule,
@@ -281,12 +255,10 @@ export type ComplianceDocument = typeof complianceDocument.$inferSelect;
 export type ComplianceObligation = typeof complianceObligation.$inferSelect;
 export type ComplianceVerificationRule =
   typeof complianceVerificationRule.$inferSelect;
-export type ComplianceAuditEntry = typeof complianceAuditEntry.$inferSelect;
 
 export type NewComplianceDocument = typeof complianceDocument.$inferInsert;
 export type NewComplianceObligation = typeof complianceObligation.$inferInsert;
 export type NewComplianceVerificationRule =
   typeof complianceVerificationRule.$inferInsert;
-export type NewComplianceAuditEntry = typeof complianceAuditEntry.$inferInsert;
 
 export { sql };

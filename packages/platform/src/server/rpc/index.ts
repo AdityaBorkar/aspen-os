@@ -28,7 +28,8 @@ export class RpcUnit {
     config: RpcConfig = {},
     _deps: {
       auth: AuthUnit;
-      db: DatabaseUnit;
+      // biome-ignore lint/suspicious/noExplicitAny: drizzle NodePgDatabase invariance forces any here
+      db: DatabaseUnit<any>;
       logs: LogUnit;
       pubsub: PubSubUnit;
     },

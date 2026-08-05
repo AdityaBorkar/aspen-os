@@ -1,12 +1,9 @@
+import { Workflow, WorkflowStep } from "@aspen-os/platform/server";
 import { and, desc, eq } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { parse } from "valibot";
 
 import { automationRule } from "../db-schema";
-import type {
-  CreateAutomationRuleInput,
-  UpdateAutomationRuleInput,
-} from "../types";
+import type { UpdateAutomationRuleInput } from "../types";
 import {
   CreateAutomationRuleSchema,
   UpdateAutomationRuleSchema,
@@ -24,143 +21,148 @@ export interface AutomationAction {
   value?: unknown;
 }
 
-export interface AutomationServiceDeps {
-  db: NodePgDatabase;
-}
-
-export async function createAutomationRule(
-  input: CreateAutomationRuleInput,
-  deps: AutomationServiceDeps,
-) {
-  const { db } = deps;
-  const parsed = parse(CreateAutomationRuleSchema, input);
-
-  const [result] = await db
-    .insert(automationRule)
-    .values({
-      actions: parsed.actions,
-      conditions: parsed.conditions ?? null,
-      isActive: parsed.isActive ?? true,
-      name: parsed.name,
-      projectId: parsed.projectId,
-      trigger: parsed.trigger,
-    })
-    .returning();
-
-  return result;
-}
-
-export async function updateAutomationRule(
-  id: string,
-  patch: UpdateAutomationRuleInput,
-  deps: AutomationServiceDeps,
-) {
-  const { db } = deps;
-  await getAutomationRuleById(id, deps);
-  const parsed = parse(UpdateAutomationRuleSchema, patch);
-
-  const [updated] = await db
-    .update(automationRule)
-    .set({
-      actions: parsed.actions,
-      conditions: parsed.conditions,
-      isActive: parsed.isActive,
-      name: parsed.name,
-      trigger: parsed.trigger,
-      updatedAt: new Date(),
-    })
-    .where(eq(automationRule.id, id))
-    .returning();
-
-  return updated;
-}
-
-export async function deleteAutomationRule(
-  id: string,
-  deps: AutomationServiceDeps,
-) {
-  const { db } = deps;
-  await db.delete(automationRule).where(eq(automationRule.id, id));
-}
-
-export async function getAutomationRuleById(
-  id: string,
-  deps: AutomationServiceDeps,
-) {
-  const { db } = deps;
-  const [result] = await db
+const fetchAutomationRuleStep = WorkflowStep.name(
+  "fetch-automation-rule",
+).handler(async (input: { id: string }, ctx) => {
+  const [result] = await ctx.db
     .select()
     .from(automationRule)
-    .where(eq(automationRule.id, id))
+    .where(eq(automationRule.id, input.id))
     .limit(1);
 
   if (!result) {
-    throw new Error(`Automation rule with id "${id}" not found.`);
+    throw new Error(`Automation rule with id "${input.id}" not found.`);
   }
 
   return result;
-}
+});
 
-export async function listAutomationRulesByProject(
-  projectId: string,
-  deps: AutomationServiceDeps,
-) {
-  const { db } = deps;
-  return db
-    .select()
-    .from(automationRule)
-    .where(eq(automationRule.projectId, projectId))
-    .orderBy(desc(automationRule.createdAt));
-}
+const createAutomationRule = Workflow.name("automation.create")
+  .input(CreateAutomationRuleSchema)
+  .handler(async (parsed, ctx) => {
+    const [result] = await ctx.db
+      .insert(automationRule)
+      .values({
+        actions: parsed.actions,
+        conditions: parsed.conditions ?? null,
+        isActive: parsed.isActive ?? true,
+        name: parsed.name,
+        projectId: parsed.projectId,
+        trigger: parsed.trigger,
+      })
+      .returning();
 
-export async function getActiveAutomationRules(
-  projectId: string,
-  trigger: string,
-  deps: AutomationServiceDeps,
-) {
-  const { db } = deps;
-  return db
-    .select()
-    .from(automationRule)
-    .where(
-      and(
-        eq(automationRule.projectId, projectId),
-        eq(
-          automationRule.trigger,
-          trigger as
-            | "status_change"
-            | "assignment_change"
-            | "due_date_passed"
-            | "task_created"
-            | "task_updated",
-        ),
-        eq(automationRule.isActive, true),
-      ),
-    );
-}
+    return result;
+  });
 
-export async function evaluateAutomationRules(
-  context: AutomationContext,
-  deps: AutomationServiceDeps,
-): Promise<AutomationAction[]> {
-  const rules = await getActiveAutomationRules(
-    context.taskId,
-    context.trigger,
-    deps,
-  );
-  const matchingActions: AutomationAction[] = [];
+const updateAutomationRule = Workflow.name("automation.update").handler(
+  async (input: { id: string; patch: UpdateAutomationRuleInput }, ctx) => {
+    await ctx.step.run(fetchAutomationRuleStep, { id: input.id });
+    const parsed = parse(UpdateAutomationRuleSchema, input.patch);
 
-  for (const rule of rules) {
-    if (matchesConditions(rule.conditions, context.values)) {
-      const actions = rule.actions as AutomationAction[];
-      if (Array.isArray(actions)) {
-        matchingActions.push(...actions);
+    const [updated] = await ctx.db
+      .update(automationRule)
+      .set({
+        actions: parsed.actions,
+        conditions: parsed.conditions,
+        isActive: parsed.isActive,
+        name: parsed.name,
+        trigger: parsed.trigger,
+        updatedAt: new Date(),
+      })
+      .where(eq(automationRule.id, input.id))
+      .returning();
+
+    return updated;
+  },
+);
+
+const deleteAutomationRule = Workflow.name("automation.delete").handler(
+  async (input: { id: string }, ctx) => {
+    await ctx.db.delete(automationRule).where(eq(automationRule.id, input.id));
+  },
+);
+
+const getAutomationRuleById = Workflow.name("automation.get").handler(
+  async (input: { id: string }, ctx) => {
+    return ctx.step.run(fetchAutomationRuleStep, { id: input.id });
+  },
+);
+
+const listAutomationRulesByProject = Workflow.name(
+  "automation.list-by-project",
+).handler(async (input: { projectId: string }, ctx) => {
+  return ctx.step.run("query", async () => {
+    return ctx.db
+      .select()
+      .from(automationRule)
+      .where(eq(automationRule.projectId, input.projectId))
+      .orderBy(desc(automationRule.createdAt));
+  });
+});
+
+const getActiveAutomationRules = Workflow.name("automation.get-active").handler(
+  async (input: { projectId: string; trigger: string }, ctx) => {
+    return ctx.step.run("query", async () => {
+      return ctx.db
+        .select()
+        .from(automationRule)
+        .where(
+          and(
+            eq(automationRule.projectId, input.projectId),
+            eq(
+              automationRule.trigger,
+              input.trigger as
+                | "status_change"
+                | "assignment_change"
+                | "due_date_passed"
+                | "task_created"
+                | "task_updated",
+            ),
+            eq(automationRule.isActive, true),
+          ),
+        );
+    });
+  },
+);
+
+const evaluateAutomationRules = Workflow.name("automation.evaluate").handler(
+  async (input: { context: AutomationContext }, ctx) => {
+    const rules = await ctx.step.run("query", async () => {
+      return ctx.db
+        .select()
+        .from(automationRule)
+        .where(
+          and(
+            eq(automationRule.projectId, input.context.taskId),
+            eq(
+              automationRule.trigger,
+              input.context.trigger as
+                | "status_change"
+                | "assignment_change"
+                | "due_date_passed"
+                | "task_created"
+                | "task_updated",
+            ),
+            eq(automationRule.isActive, true),
+          ),
+        );
+    });
+
+    const matchingActions: AutomationAction[] = [];
+
+    for (const rule of rules) {
+      if (matchesConditions(rule.conditions, input.context.values)) {
+        const actions = rule.actions as AutomationAction[];
+        if (Array.isArray(actions)) {
+          matchingActions.push(...actions);
+        }
       }
     }
-  }
 
-  return matchingActions;
-}
+    return matchingActions;
+  },
+);
 
 function matchesConditions(
   conditions: unknown,
@@ -175,3 +177,13 @@ function matchesConditions(
 
   return true;
 }
+
+export const automations = {
+  create: createAutomationRule,
+  delete: deleteAutomationRule,
+  evaluateRules: evaluateAutomationRules,
+  get: getAutomationRuleById,
+  getActiveRules: getActiveAutomationRules,
+  listByProject: listAutomationRulesByProject,
+  update: updateAutomationRule,
+};

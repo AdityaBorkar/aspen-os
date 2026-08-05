@@ -9,4 +9,5 @@ export type {
   TenantDbConfig,
   TenantProvisioningResult,
 } from "./types";
+export type { DrizzleDB } from "./unit";
 export { DatabaseUnit } from "./unit";

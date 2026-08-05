@@ -1,3 +1,4 @@
+import { Workflow, WorkflowStep } from "@aspen-os/platform/server";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { parse } from "valibot";
@@ -11,9 +12,6 @@ import {
   watcher,
 } from "../db-schema";
 import type {
-  AssignTaskInput,
-  BulkUpdateTaskInput,
-  CreateTaskInput,
   TaskCompletionSummary,
   TaskFilters,
   UpdateTaskInput,
@@ -28,306 +26,324 @@ import { buildTaskWhereClause } from "../utils/filter-engine";
 
 const MAX_NESTING_DEPTH = 3;
 
-export interface TasksServiceDeps {
-  db: NodePgDatabase;
-}
+type DrizzleDB = NodePgDatabase<Record<string, never>>;
 
-export async function createTask(
-  input: CreateTaskInput,
-  deps: TasksServiceDeps,
-) {
-  const { db } = deps;
-  const parsed = parse(CreateTaskSchema, input);
+const fetchTaskStep = WorkflowStep.name("fetch-task").handler(
+  async (input: { id: string }, ctx) => {
+    const [result] = await ctx.db
+      .select()
+      .from(task)
+      .where(eq(task.id, input.id))
+      .limit(1);
 
-  if (parsed.parentId) {
-    await validateParentTask(
-      parsed.parentId,
-      parsed.projectId,
-      undefined,
-      deps,
-    );
-  }
-
-  const { displayNumber, taskSeq } = await generateTaskNumber(
-    parsed.projectId,
-    deps,
-  );
-
-  const [result] = await db
-    .insert(task)
-    .values({
-      description: parsed.description ?? null,
-      dueDate: parsed.dueDate ?? null,
-      estimatedHours: parsed.estimatedHours?.toString() ?? null,
-      labels: parsed.labels ?? [],
-      number: displayNumber,
-      parentId: parsed.parentId ?? null,
-      priority: parsed.priority ?? "none",
-      projectId: parsed.projectId,
-      reporterId: parsed.reporterId,
-      startDate: parsed.startDate ?? null,
-      statusId: parsed.statusId,
-      taskNumber: taskSeq,
-      title: parsed.title,
-      typeId: parsed.typeId ?? null,
-    })
-    .returning();
-
-  if (!result) {
-    throw new Error("Failed to create task.");
-  }
-
-  await addActivity(
-    result.id,
-    result.reporterId,
-    "task_created",
-    null,
-    {
-      id: result.id,
-      title: result.title,
-    },
-    deps,
-  );
-
-  return result;
-}
-
-export async function updateTask(
-  id: string,
-  patch: UpdateTaskInput,
-  deps: TasksServiceDeps,
-) {
-  const { db } = deps;
-  const current = await getTaskById(id, deps);
-  const parsed = parse(UpdateTaskSchema, patch);
-
-  if (parsed.parentId !== undefined) {
-    if (parsed.parentId !== null) {
-      if (parsed.parentId === id) {
-        throw new Error("A task cannot be its own parent.");
-      }
-      await validateParentTask(parsed.parentId, current.projectId, id, deps);
+    if (!result) {
+      throw new Error(`Task with id "${input.id}" not found.`);
     }
-  }
 
-  const changes: Record<string, unknown> = {};
+    return result;
+  },
+);
 
-  const [updated] = await db
-    .update(task)
-    .set({
-      description: parsed.description,
-      dueDate: parsed.dueDate,
-      estimatedHours: parsed.estimatedHours?.toString(),
-      labels: parsed.labels,
-      parentId: parsed.parentId,
-      priority: parsed.priority,
-      startDate: parsed.startDate,
-      statusId: parsed.statusId,
-      title: parsed.title,
-      typeId: parsed.typeId,
-      updatedAt: new Date(),
-    })
-    .where(eq(task.id, id))
-    .returning();
+const createTask = Workflow.name("task.create")
+  .input(CreateTaskSchema)
+  .handler(async (parsed, ctx) => {
+    if (parsed.parentId) {
+      await validateParentTask(
+        ctx.db,
+        parsed.parentId,
+        parsed.projectId,
+        undefined,
+      );
+    }
 
-  if (parsed.statusId && parsed.statusId !== current.statusId) {
-    changes.statusId = { from: current.statusId, to: parsed.statusId };
+    const { displayNumber, taskSeq } = await generateTaskNumber(
+      ctx.db,
+      parsed.projectId,
+    );
+
+    const [result] = await ctx.db
+      .insert(task)
+      .values({
+        description: parsed.description ?? null,
+        dueDate: parsed.dueDate ?? null,
+        estimatedHours: parsed.estimatedHours?.toString() ?? null,
+        labels: parsed.labels ?? [],
+        number: displayNumber,
+        parentId: parsed.parentId ?? null,
+        priority: parsed.priority ?? "none",
+        projectId: parsed.projectId,
+        reporterId: parsed.reporterId,
+        startDate: parsed.startDate ?? null,
+        statusId: parsed.statusId,
+        taskNumber: taskSeq,
+        title: parsed.title,
+        typeId: parsed.typeId ?? null,
+      })
+      .returning();
+
+    if (!result) {
+      throw new Error("Failed to create task.");
+    }
+
     await addActivity(
-      id,
+      ctx.db,
+      result.id,
+      result.reporterId,
+      "task_created",
+      null,
+      {
+        id: result.id,
+        title: result.title,
+      },
+    );
+
+    return result;
+  });
+
+const updateTask = Workflow.name("task.update").handler(
+  async (input: { id: string; patch: UpdateTaskInput }, ctx) => {
+    const current = await ctx.step.run(fetchTaskStep, { id: input.id });
+    const parsed = parse(UpdateTaskSchema, input.patch);
+
+    if (parsed.parentId !== undefined) {
+      if (parsed.parentId !== null) {
+        if (parsed.parentId === input.id) {
+          throw new Error("A task cannot be its own parent.");
+        }
+        await validateParentTask(
+          ctx.db,
+          parsed.parentId,
+          current.projectId,
+          input.id,
+        );
+      }
+    }
+
+    const changes: Record<string, unknown> = {};
+
+    const [updated] = await ctx.db
+      .update(task)
+      .set({
+        description: parsed.description,
+        dueDate: parsed.dueDate,
+        estimatedHours: parsed.estimatedHours?.toString(),
+        labels: parsed.labels,
+        parentId: parsed.parentId,
+        priority: parsed.priority,
+        startDate: parsed.startDate,
+        statusId: parsed.statusId,
+        title: parsed.title,
+        typeId: parsed.typeId,
+        updatedAt: new Date(),
+      })
+      .where(eq(task.id, input.id))
+      .returning();
+
+    if (parsed.statusId && parsed.statusId !== current.statusId) {
+      changes.statusId = { from: current.statusId, to: parsed.statusId };
+      await addActivity(
+        ctx.db,
+        input.id,
+        current.reporterId,
+        "status_changed",
+        { from: current.statusId },
+        { to: parsed.statusId },
+      );
+    }
+
+    if (parsed.title && parsed.title !== current.title) {
+      changes.title = { from: current.title, to: parsed.title };
+    }
+
+    await addActivity(
+      ctx.db,
+      input.id,
       current.reporterId,
-      "status_changed",
-      { from: current.statusId },
-      { to: parsed.statusId },
-      deps,
-    );
-  }
-
-  if (parsed.title && parsed.title !== current.title) {
-    changes.title = { from: current.title, to: parsed.title };
-  }
-
-  await addActivity(
-    id,
-    current.reporterId,
-    "task_updated",
-    current,
-    changes,
-    deps,
-  );
-
-  return updated;
-}
-
-export async function deleteTask(id: string, deps: TasksServiceDeps) {
-  const { db } = deps;
-  await getTaskById(id, deps);
-  await db.delete(task).where(eq(task.id, id));
-}
-
-export async function archiveTask(id: string, deps: TasksServiceDeps) {
-  const { db } = deps;
-  await getTaskById(id, deps);
-  const [updated] = await db
-    .update(task)
-    .set({ isArchived: true, updatedAt: new Date() })
-    .where(eq(task.id, id))
-    .returning();
-  return updated;
-}
-
-export async function restoreTask(id: string, deps: TasksServiceDeps) {
-  const { db } = deps;
-  await getTaskById(id, deps);
-  const [updated] = await db
-    .update(task)
-    .set({ isArchived: false, updatedAt: new Date() })
-    .where(eq(task.id, id))
-    .returning();
-  return updated;
-}
-
-export async function bulkUpdateTask(
-  input: BulkUpdateTaskInput,
-  deps: TasksServiceDeps,
-) {
-  const { db } = deps;
-  const parsed = parse(BulkUpdateTaskSchema, input);
-  const [updated] = await db
-    .update(task)
-    .set({
-      ...parsed.patch,
-      estimatedHours: parsed.patch.estimatedHours?.toString(),
-      updatedAt: new Date(),
-    })
-    .where(inArray(task.id, parsed.ids))
-    .returning();
-  return updated;
-}
-
-export async function getTaskById(id: string, deps: TasksServiceDeps) {
-  const { db } = deps;
-  const [result] = await db.select().from(task).where(eq(task.id, id)).limit(1);
-
-  if (!result) {
-    throw new Error(`Task with id "${id}" not found.`);
-  }
-
-  return result;
-}
-
-export async function listTasks(
-  filters: TaskFilters | undefined,
-  deps: TasksServiceDeps,
-) {
-  const { db } = deps;
-  const whereClause = buildTaskWhereClause(filters);
-  return db
-    .select()
-    .from(task)
-    .where(whereClause)
-    .orderBy(desc(task.createdAt));
-}
-
-export async function getSubTasks(parentId: string, deps: TasksServiceDeps) {
-  const { db } = deps;
-  return db
-    .select()
-    .from(task)
-    .where(eq(task.parentId, parentId))
-    .orderBy(desc(task.createdAt));
-}
-
-export async function getCompletionSummary(
-  parentId: string,
-  deps: TasksServiceDeps,
-): Promise<TaskCompletionSummary> {
-  const subTasks = await getSubTasks(parentId, deps);
-  const completed = subTasks.filter((t) => t.completedAt !== null).length;
-  const total = subTasks.length;
-
-  return {
-    completedCount: completed,
-    completionPercentage:
-      total === 0 ? 0 : Math.round((completed / total) * 100),
-    totalCount: total,
-  };
-}
-
-export async function assignTask(
-  input: AssignTaskInput,
-  deps: TasksServiceDeps,
-) {
-  const { db } = deps;
-  const parsed = parse(AssignTaskSchema, input);
-  await getTaskById(parsed.taskId, deps);
-
-  if (parsed.isLead) {
-    await unsetLeadAssignee(parsed.taskId, deps);
-  }
-
-  const [result] = await db
-    .insert(taskAssignee)
-    .values({
-      assignedBy: parsed.assignedBy,
-      isLead: parsed.isLead ?? false,
-      taskId: parsed.taskId,
-      userId: parsed.userId,
-    })
-    .returning();
-
-  await ensureWatcher(parsed.taskId, parsed.userId, deps);
-  await addActivity(
-    parsed.taskId,
-    parsed.assignedBy,
-    "assignee_added",
-    null,
-    { userId: parsed.userId },
-    deps,
-  );
-
-  return result;
-}
-
-export async function unassignTask(
-  taskId: string,
-  userId: string,
-  deps: TasksServiceDeps,
-) {
-  const { db } = deps;
-  await db
-    .delete(taskAssignee)
-    .where(
-      and(eq(taskAssignee.taskId, taskId), eq(taskAssignee.userId, userId)),
+      "task_updated",
+      current,
+      changes,
     );
 
-  await addActivity(taskId, userId, "assignee_removed", { userId }, null, deps);
-}
+    return updated;
+  },
+);
 
-export async function getAssignees(taskId: string, deps: TasksServiceDeps) {
-  const { db } = deps;
-  return db.select().from(taskAssignee).where(eq(taskAssignee.taskId, taskId));
-}
+const deleteTask = Workflow.name("task.delete").handler(
+  async (input: { id: string }, ctx) => {
+    await ctx.step.run(fetchTaskStep, { id: input.id });
+    await ctx.db.delete(task).where(eq(task.id, input.id));
+  },
+);
 
-export async function getLoggedHours(
-  taskId: string,
-  deps: TasksServiceDeps,
-): Promise<number> {
-  const { db } = deps;
-  const [result] = await db
-    .select({
-      total: sql<string>`COALESCE(SUM(duration), 0)`,
-    })
-    .from(timeEntry)
-    .where(eq(timeEntry.taskId, taskId));
+const archiveTask = Workflow.name("task.archive").handler(
+  async (input: { id: string }, ctx) => {
+    await ctx.step.run(fetchTaskStep, { id: input.id });
+    const [updated] = await ctx.db
+      .update(task)
+      .set({ isArchived: true, updatedAt: new Date() })
+      .where(eq(task.id, input.id))
+      .returning();
+    return updated;
+  },
+);
 
-  return result?.total ? Number.parseFloat(result.total) : 0;
-}
+const restoreTask = Workflow.name("task.restore").handler(
+  async (input: { id: string }, ctx) => {
+    await ctx.step.run(fetchTaskStep, { id: input.id });
+    const [updated] = await ctx.db
+      .update(task)
+      .set({ isArchived: false, updatedAt: new Date() })
+      .where(eq(task.id, input.id))
+      .returning();
+    return updated;
+  },
+);
+
+const bulkUpdateTask = Workflow.name("task.bulk-update")
+  .input(BulkUpdateTaskSchema)
+  .handler(async (parsed, ctx) => {
+    const [updated] = await ctx.db
+      .update(task)
+      .set({
+        ...parsed.patch,
+        estimatedHours: parsed.patch.estimatedHours?.toString(),
+        updatedAt: new Date(),
+      })
+      .where(inArray(task.id, parsed.ids))
+      .returning();
+    return updated;
+  });
+
+const getTaskById = Workflow.name("task.get").handler(
+  async (input: { id: string }, ctx) => {
+    return ctx.step.run(fetchTaskStep, { id: input.id });
+  },
+);
+
+const listTasks = Workflow.name("task.list").handler(
+  async (input: { filters?: TaskFilters }, ctx) => {
+    return ctx.step.run("query", async () => {
+      const whereClause = buildTaskWhereClause(input.filters);
+      return ctx.db
+        .select()
+        .from(task)
+        .where(whereClause)
+        .orderBy(desc(task.createdAt));
+    });
+  },
+);
+
+const getSubTasks = Workflow.name("task.sub-tasks").handler(
+  async (input: { parentId: string }, ctx) => {
+    return ctx.step.run("query", async () => {
+      return ctx.db
+        .select()
+        .from(task)
+        .where(eq(task.parentId, input.parentId))
+        .orderBy(desc(task.createdAt));
+    });
+  },
+);
+
+const getCompletionSummary = Workflow.name("task.completion-summary").handler(
+  async (input: { parentId: string }, _ctx): Promise<TaskCompletionSummary> => {
+    const subTasks = await getSubTasks.run({ parentId: input.parentId });
+    const completed = subTasks.filter((t) => t.completedAt !== null).length;
+    const total = subTasks.length;
+
+    return {
+      completedCount: completed,
+      completionPercentage:
+        total === 0 ? 0 : Math.round((completed / total) * 100),
+      totalCount: total,
+    };
+  },
+);
+
+const assignTask = Workflow.name("task.assign")
+  .input(AssignTaskSchema)
+  .handler(async (parsed, ctx) => {
+    await ctx.step.run(fetchTaskStep, { id: parsed.taskId });
+
+    if (parsed.isLead) {
+      await unsetLeadAssignee(ctx.db, parsed.taskId);
+    }
+
+    const [result] = await ctx.db
+      .insert(taskAssignee)
+      .values({
+        assignedBy: parsed.assignedBy,
+        isLead: parsed.isLead ?? false,
+        taskId: parsed.taskId,
+        userId: parsed.userId,
+      })
+      .returning();
+
+    await ensureWatcher(ctx.db, parsed.taskId, parsed.userId);
+    await addActivity(
+      ctx.db,
+      parsed.taskId,
+      parsed.assignedBy,
+      "assignee_added",
+      null,
+      { userId: parsed.userId },
+    );
+
+    return result;
+  });
+
+const unassignTask = Workflow.name("task.unassign").handler(
+  async (input: { taskId: string; userId: string }, ctx) => {
+    await ctx.db
+      .delete(taskAssignee)
+      .where(
+        and(
+          eq(taskAssignee.taskId, input.taskId),
+          eq(taskAssignee.userId, input.userId),
+        ),
+      );
+
+    await addActivity(
+      ctx.db,
+      input.taskId,
+      input.userId,
+      "assignee_removed",
+      { userId: input.userId },
+      null,
+    );
+  },
+);
+
+const getAssignees = Workflow.name("task.assignees").handler(
+  async (input: { taskId: string }, ctx) => {
+    return ctx.step.run("query", async () => {
+      return ctx.db
+        .select()
+        .from(taskAssignee)
+        .where(eq(taskAssignee.taskId, input.taskId));
+    });
+  },
+);
+
+const getLoggedHours = Workflow.name("task.logged-hours").handler(
+  async (input: { taskId: string }, ctx) => {
+    return ctx.step.run("query", async () => {
+      const [result] = await ctx.db
+        .select({
+          total: sql<string>`COALESCE(SUM(duration), 0)`,
+        })
+        .from(timeEntry)
+        .where(eq(timeEntry.taskId, input.taskId));
+
+      return result?.total ? Number.parseFloat(result.total) : 0;
+    });
+  },
+);
 
 async function generateTaskNumber(
+  db: DrizzleDB,
   projectId: string,
-  deps: TasksServiceDeps,
 ): Promise<{ displayNumber: string; taskSeq: number }> {
-  const { db } = deps;
   const [proj] = await db
     .select()
     .from(project)
@@ -349,12 +365,11 @@ async function generateTaskNumber(
 }
 
 async function validateParentTask(
+  db: DrizzleDB,
   parentId: string,
   projectId: string,
   currentTaskId: string | undefined,
-  deps: TasksServiceDeps,
 ): Promise<void> {
-  const { db } = deps;
   const [parent] = await db
     .select()
     .from(task)
@@ -371,16 +386,16 @@ async function validateParentTask(
 
   if (currentTaskId) {
     const wouldCycle = await wouldCreateParentCycle(
+      db,
       parentId,
       currentTaskId,
-      deps,
     );
     if (wouldCycle) {
       throw new Error("Setting this parent would create a circular reference.");
     }
   }
 
-  const depth = await getParentDepth(parentId, deps);
+  const depth = await getParentDepth(db, parentId);
   if (depth >= MAX_NESTING_DEPTH - 1) {
     throw new Error(
       `Maximum nesting depth of ${MAX_NESTING_DEPTH} levels would be exceeded.`,
@@ -389,11 +404,10 @@ async function validateParentTask(
 }
 
 async function wouldCreateParentCycle(
+  db: DrizzleDB,
   parentId: string,
   taskId: string,
-  deps: TasksServiceDeps,
 ): Promise<boolean> {
-  const { db } = deps;
   let currentId: string | null = parentId;
   let depth = 0;
 
@@ -415,11 +429,7 @@ async function wouldCreateParentCycle(
   return false;
 }
 
-async function getParentDepth(
-  taskId: string,
-  deps: TasksServiceDeps,
-): Promise<number> {
-  const { db } = deps;
+async function getParentDepth(db: DrizzleDB, taskId: string): Promise<number> {
   let depth = 0;
   let currentId: string | null = taskId;
 
@@ -444,11 +454,7 @@ async function getParentDepth(
   return depth;
 }
 
-async function unsetLeadAssignee(
-  taskId: string,
-  deps: TasksServiceDeps,
-): Promise<void> {
-  const { db } = deps;
+async function unsetLeadAssignee(db: DrizzleDB, taskId: string): Promise<void> {
   await db
     .update(taskAssignee)
     .set({ isLead: false })
@@ -456,11 +462,10 @@ async function unsetLeadAssignee(
 }
 
 async function ensureWatcher(
+  db: DrizzleDB,
   taskId: string,
   userId: string,
-  deps: TasksServiceDeps,
 ): Promise<void> {
-  const { db } = deps;
   const [existing] = await db
     .select({ id: watcher.id })
     .from(watcher)
@@ -473,14 +478,13 @@ async function ensureWatcher(
 }
 
 async function addActivity(
+  db: DrizzleDB,
   taskId: string,
   userId: string,
   action: string,
   oldValue: unknown,
   newValue: unknown,
-  deps: TasksServiceDeps,
 ): Promise<void> {
-  const { db } = deps;
   await db.insert(activityLog).values({
     action,
     newValue: newValue ? JSON.stringify(newValue) : null,
@@ -489,3 +493,20 @@ async function addActivity(
     userId,
   });
 }
+
+export const tasks = {
+  archive: archiveTask,
+  assign: assignTask,
+  bulkUpdate: bulkUpdateTask,
+  create: createTask,
+  delete: deleteTask,
+  get: getTaskById,
+  getAssignees,
+  getCompletionSummary,
+  getLoggedHours,
+  getSubTasks,
+  list: listTasks,
+  restore: restoreTask,
+  unassign: unassignTask,
+  update: updateTask,
+};

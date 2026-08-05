@@ -18,8 +18,13 @@ export class AuditUnit {
   private db: AuditDatabase;
   private queryService: AuditQueryService;
 
-  constructor({ db }: { db: DatabaseUnit }) {
-    this.db = db.db;
+  constructor({
+    db,
+  }: {
+    // biome-ignore lint/suspicious/noExplicitAny: drizzle NodePgDatabase invariance forces any here
+    db: DatabaseUnit<any>;
+  }) {
+    this.db = db.db as AuditDatabase;
     this.queryService = new AuditQueryService(this.db);
   }
 

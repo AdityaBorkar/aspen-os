@@ -1,18 +1,15 @@
+import { getContext } from "@aspen-os/platform/server";
 import { and, eq, or } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 import { task, taskLink } from "../db-schema";
 import type { CriticalPathResult, TaskDependencyNode } from "../types";
 
-export interface DependencyGraphDeps {
-  db: NodePgDatabase;
-}
-
 export async function wouldCreateCycle(
   sourceId: string,
   targetId: string,
-  { db }: DependencyGraphDeps,
 ): Promise<boolean> {
+  const { db } = getContext();
+
   if (sourceId === targetId) return true;
 
   const visited = new Set<string>();
@@ -41,10 +38,9 @@ export async function wouldCreateCycle(
   return false;
 }
 
-export async function getDependencies(
-  taskId: string,
-  { db }: DependencyGraphDeps,
-): Promise<string[]> {
+export async function getDependencies(taskId: string): Promise<string[]> {
+  const { db } = getContext();
+
   const links = await db
     .select({ targetId: taskLink.targetId })
     .from(taskLink)
@@ -53,10 +49,9 @@ export async function getDependencies(
   return links.map((l) => l.targetId);
 }
 
-export async function getDependents(
-  taskId: string,
-  { db }: DependencyGraphDeps,
-): Promise<string[]> {
+export async function getDependents(taskId: string): Promise<string[]> {
+  const { db } = getContext();
+
   const links = await db
     .select({ sourceId: taskLink.sourceId })
     .from(taskLink)
@@ -65,10 +60,9 @@ export async function getDependents(
   return links.map((l) => l.sourceId);
 }
 
-export async function topologicalSort(
-  taskIds: string[],
-  { db }: DependencyGraphDeps,
-): Promise<string[]> {
+export async function topologicalSort(taskIds: string[]): Promise<string[]> {
+  const { db } = getContext();
+
   const adj = new Map<string, string[]>();
   const inDegree = new Map<string, number>();
 
@@ -130,8 +124,9 @@ export async function topologicalSort(
 
 export async function getCriticalPath(
   projectId: string,
-  { db }: DependencyGraphDeps,
 ): Promise<CriticalPathResult> {
+  const { db } = getContext();
+
   const tasks = await db
     .select({
       estimatedHours: task.estimatedHours,
@@ -233,8 +228,9 @@ export async function getCriticalPath(
 
 export async function buildDependencyGraph(
   taskIds: string[],
-  { db }: DependencyGraphDeps,
 ): Promise<TaskDependencyNode[]> {
+  const { db } = getContext();
+
   const tasks = await db
     .select({
       id: task.id,
@@ -246,7 +242,7 @@ export async function buildDependencyGraph(
   const nodes: TaskDependencyNode[] = [];
 
   for (const t of tasks) {
-    const deps = await getDependencies(t.id, { db });
+    const deps = await getDependencies(t.id);
     nodes.push({ dependsOn: deps, id: t.id, title: t.title });
   }
 

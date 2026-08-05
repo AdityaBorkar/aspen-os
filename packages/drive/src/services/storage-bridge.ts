@@ -1,5 +1,7 @@
 import type { StorageUnit } from "@aspen-os/platform/server";
 
+import { getDriveStorage } from "../runtime";
+
 export interface FileObject {
   contentType?: string;
   etag: string;
@@ -14,10 +16,6 @@ export interface UploadBridgeInput {
   contentType?: string;
   key: string;
   metadata?: Record<string, string>;
-}
-
-export interface StorageBridgeDeps {
-  storage: StorageUnit;
 }
 
 export function computeStorageKey({
@@ -40,51 +38,52 @@ export function computeArchiveKey({ folderId }: { folderId: string }): string {
   return `archives/${folderId}/${uuid}.zip`;
 }
 
-export async function upload(
-  input: UploadBridgeInput,
-  { storage }: StorageBridgeDeps,
-): Promise<FileObject> {
-  return storage.upload(input);
+function storage(): StorageUnit {
+  return getDriveStorage();
 }
 
-export async function getSignedGetUrl(
-  { key, expiresIn }: { key: string; expiresIn?: number },
-  { storage }: StorageBridgeDeps,
-): Promise<string> {
-  return storage.getSignedGetUrl(key, { expiresIn });
+export async function upload(input: UploadBridgeInput): Promise<FileObject> {
+  return storage().upload(input);
 }
 
-export async function copy(
-  { sourceKey, destKey }: { sourceKey: string; destKey: string },
-  { storage }: StorageBridgeDeps,
-): Promise<FileObject> {
-  return storage.copy(sourceKey, destKey);
+export async function getSignedGetUrl({
+  key,
+  expiresIn,
+}: {
+  key: string;
+  expiresIn?: number;
+}): Promise<string> {
+  return storage().getSignedGetUrl(key, { expiresIn });
 }
 
-export async function move(
-  { sourceKey, destKey }: { sourceKey: string; destKey: string },
-  { storage }: StorageBridgeDeps,
-): Promise<FileObject> {
-  return storage.move(sourceKey, destKey);
+export async function copy({
+  sourceKey,
+  destKey,
+}: {
+  sourceKey: string;
+  destKey: string;
+}): Promise<FileObject> {
+  return storage().copy(sourceKey, destKey);
 }
 
-export async function remove(
-  { key }: { key: string },
-  { storage }: StorageBridgeDeps,
-): Promise<void> {
-  return storage.remove(key);
+export async function move({
+  sourceKey,
+  destKey,
+}: {
+  sourceKey: string;
+  destKey: string;
+}): Promise<FileObject> {
+  return storage().move(sourceKey, destKey);
 }
 
-export async function get(
-  { key }: { key: string },
-  { storage }: StorageBridgeDeps,
-): Promise<Buffer> {
-  return storage.get(key);
+export async function remove({ key }: { key: string }): Promise<void> {
+  return storage().remove(key);
 }
 
-export async function exists(
-  { key }: { key: string },
-  { storage }: StorageBridgeDeps,
-): Promise<boolean> {
-  return storage.exists(key);
+export async function get({ key }: { key: string }): Promise<Buffer> {
+  return storage().get(key);
+}
+
+export async function exists({ key }: { key: string }): Promise<boolean> {
+  return storage().exists(key);
 }

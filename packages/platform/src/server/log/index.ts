@@ -43,11 +43,15 @@ export class LogUnit {
     error?: Error,
   ) => LogEntry;
 
-  constructor(config: LogConfig, { db }: { db: DatabaseUnit }) {
+  constructor(
+    config: LogConfig,
+    // biome-ignore lint/suspicious/noExplicitAny: drizzle NodePgDatabase invariance forces any here
+    { db }: { db: DatabaseUnit<any> },
+  ) {
     this.serviceName = config.serviceName ?? "app";
     this.defaultLevel = config.defaultLevel ?? "info";
     this.createEntry = createEntryFactory(this.serviceName);
-    this.db = db.db;
+    this.db = db.db as DrizzleDB;
     this.queryService = new LogQueryService(this.db);
 
     this.buffer = createLogBuffer(100, async (entries) => {

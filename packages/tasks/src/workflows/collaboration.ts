@@ -1,123 +1,125 @@
+import { Workflow } from "@aspen-os/platform/server";
 import { and, desc, eq } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { parse } from "valibot";
 
 import { activityLog, attachment, watcher } from "../db-schema";
-import type { CreateAttachmentInput, CreateWatcherInput } from "../types";
 import { CreateAttachmentSchema, CreateWatcherSchema } from "../types";
 
-export interface CollaborationServiceDeps {
-  db: NodePgDatabase;
-}
+const addWatcher = Workflow.name("collaboration.add-watcher")
+  .input(CreateWatcherSchema)
+  .handler(async (parsed, ctx) => {
+    const [existing] = await ctx.db
+      .select({ id: watcher.id })
+      .from(watcher)
+      .where(
+        and(
+          eq(watcher.taskId, parsed.taskId),
+          eq(watcher.userId, parsed.userId),
+        ),
+      )
+      .limit(1);
 
-export async function addWatcher(
-  input: CreateWatcherInput,
-  deps: CollaborationServiceDeps,
-) {
-  const { db } = deps;
-  const parsed = parse(CreateWatcherSchema, input);
+    if (existing) return existing;
 
-  const [existing] = await db
-    .select({ id: watcher.id })
-    .from(watcher)
-    .where(
-      and(eq(watcher.taskId, parsed.taskId), eq(watcher.userId, parsed.userId)),
-    )
-    .limit(1);
+    const [result] = await ctx.db
+      .insert(watcher)
+      .values({
+        taskId: parsed.taskId,
+        userId: parsed.userId,
+      })
+      .returning();
 
-  if (existing) return existing;
+    return result;
+  });
 
-  const [result] = await db
-    .insert(watcher)
-    .values({
-      taskId: parsed.taskId,
-      userId: parsed.userId,
-    })
-    .returning();
+const removeWatcher = Workflow.name("collaboration.remove-watcher").handler(
+  async (input: { taskId: string; userId: string }, ctx) => {
+    await ctx.db
+      .delete(watcher)
+      .where(
+        and(eq(watcher.taskId, input.taskId), eq(watcher.userId, input.userId)),
+      );
+  },
+);
 
-  return result;
-}
+const listWatchers = Workflow.name("collaboration.list-watchers").handler(
+  async (input: { taskId: string }, ctx) => {
+    return ctx.step.run("query", async () => {
+      return ctx.db
+        .select()
+        .from(watcher)
+        .where(eq(watcher.taskId, input.taskId));
+    });
+  },
+);
 
-export async function removeWatcher(
-  taskId: string,
-  userId: string,
-  deps: CollaborationServiceDeps,
-) {
-  const { db } = deps;
-  await db
-    .delete(watcher)
-    .where(and(eq(watcher.taskId, taskId), eq(watcher.userId, userId)));
-}
+const addAttachment = Workflow.name("collaboration.add-attachment")
+  .input(CreateAttachmentSchema)
+  .handler(async (parsed, ctx) => {
+    const [result] = await ctx.db
+      .insert(attachment)
+      .values({
+        commentId: parsed.commentId ?? null,
+        fileId: parsed.fileId,
+        taskId: parsed.taskId,
+        uploadedBy: parsed.uploadedBy,
+      })
+      .returning();
 
-export async function listWatchers(
-  taskId: string,
-  deps: CollaborationServiceDeps,
-) {
-  const { db } = deps;
-  return db.select().from(watcher).where(eq(watcher.taskId, taskId));
-}
+    return result;
+  });
 
-export async function addAttachment(
-  input: CreateAttachmentInput,
-  deps: CollaborationServiceDeps,
-) {
-  const { db } = deps;
-  const parsed = parse(CreateAttachmentSchema, input);
+const deleteAttachment = Workflow.name(
+  "collaboration.delete-attachment",
+).handler(async (input: { id: string }, ctx) => {
+  await ctx.db.delete(attachment).where(eq(attachment.id, input.id));
+});
 
-  const [result] = await db
-    .insert(attachment)
-    .values({
-      commentId: parsed.commentId ?? null,
-      fileId: parsed.fileId,
-      taskId: parsed.taskId,
-      uploadedBy: parsed.uploadedBy,
-    })
-    .returning();
+const listAttachments = Workflow.name("collaboration.list-attachments").handler(
+  async (input: { taskId: string }, ctx) => {
+    return ctx.step.run("query", async () => {
+      return ctx.db
+        .select()
+        .from(attachment)
+        .where(eq(attachment.taskId, input.taskId));
+    });
+  },
+);
 
-  return result;
-}
+const listAttachmentsByComment = Workflow.name(
+  "collaboration.list-attachments-by-comment",
+).handler(async (input: { commentId: string }, ctx) => {
+  return ctx.step.run("query", async () => {
+    return ctx.db
+      .select()
+      .from(attachment)
+      .where(eq(attachment.commentId, input.commentId));
+  });
+});
 
-export async function deleteAttachment(
-  id: string,
-  deps: CollaborationServiceDeps,
-) {
-  const { db } = deps;
-  await db.delete(attachment).where(eq(attachment.id, id));
-}
+const getActivityLog = Workflow.name("collaboration.activity-log").handler(
+  async (input: { taskId: string; action?: string }, ctx) => {
+    return ctx.step.run("query", async () => {
+      const conditions = [eq(activityLog.taskId, input.taskId)];
+      if (input.action) {
+        conditions.push(eq(activityLog.action, input.action));
+      }
 
-export async function listAttachments(
-  taskId: string,
-  deps: CollaborationServiceDeps,
-) {
-  const { db } = deps;
-  return db.select().from(attachment).where(eq(attachment.taskId, taskId));
-}
+      return ctx.db
+        .select()
+        .from(activityLog)
+        .where(and(...conditions))
+        .orderBy(desc(activityLog.createdAt));
+    });
+  },
+);
 
-export async function listAttachmentsByComment(
-  commentId: string,
-  deps: CollaborationServiceDeps,
-) {
-  const { db } = deps;
-  return db
-    .select()
-    .from(attachment)
-    .where(eq(attachment.commentId, commentId));
-}
-
-export async function getActivityLog(
-  taskId: string,
-  action: string | undefined,
-  deps: CollaborationServiceDeps,
-) {
-  const { db } = deps;
-  const conditions = [eq(activityLog.taskId, taskId)];
-  if (action) {
-    conditions.push(eq(activityLog.action, action));
-  }
-
-  return db
-    .select()
-    .from(activityLog)
-    .where(and(...conditions))
-    .orderBy(desc(activityLog.createdAt));
-}
+export const collaboration = {
+  addAttachment,
+  addWatcher,
+  deleteAttachment,
+  getActivityLog,
+  listAttachments,
+  listAttachmentsByComment,
+  listWatchers,
+  removeWatcher,
+};

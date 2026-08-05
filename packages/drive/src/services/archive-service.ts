@@ -1,5 +1,5 @@
+import { getContext } from "@aspen-os/platform/server";
 import { eq, sql } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 import * as s from "../db-schema";
 import type { FolderDownloadLinkOptions } from "../types";
@@ -7,11 +7,8 @@ import {
   computeArchiveKey,
   get,
   getSignedGetUrl,
-  type StorageBridgeDeps,
   upload,
 } from "./storage-bridge";
-
-type DB = NodePgDatabase<Record<string, never>>;
 
 const LARGE_FOLDER_FILE_THRESHOLD = 1000;
 const LARGE_FOLDER_SIZE_THRESHOLD = 1024 * 1024 * 1024;
@@ -26,19 +23,15 @@ export interface ArchiveJobData {
   includeSubfolders: boolean;
 }
 
-export interface ArchiveServiceDeps {
-  db: DB;
-  storageDeps: StorageBridgeDeps;
-}
-
-export async function createArchive(
-  {
-    folderId,
-    options,
-  }: { folderId: string; options?: FolderDownloadLinkOptions },
-  deps: ArchiveServiceDeps,
-): Promise<ArchiveResult> {
-  const [folder] = await deps.db
+export async function createArchive({
+  folderId,
+  options,
+}: {
+  folderId: string;
+  options?: FolderDownloadLinkOptions;
+}): Promise<ArchiveResult> {
+  const { db } = getContext();
+  const [folder] = await db
     .select()
     .from(s.driveFolder)
     .where(eq(s.driveFolder.id, folderId))
@@ -49,10 +42,10 @@ export async function createArchive(
   }
 
   const includeSubfolders = options?.includeSubfolders ?? true;
-  const files = await collectFiles(
-    { folderPath: folder.path, includeSubfolders },
-    deps,
-  );
+  const files = await collectFiles({
+    folderPath: folder.path,
+    includeSubfolders,
+  });
 
   const totalSize = files.reduce((sum, f) => sum + f.size, 0);
   if (
@@ -62,22 +55,19 @@ export async function createArchive(
     throw new ArchiveTooLargeError(folderId, files.length, totalSize);
   }
 
-  return generateZip(
-    {
-      expiresIn: options?.expiresIn,
-      files,
-      folderName: folder.name,
-      folderPath: folder.path,
-    },
-    deps,
-  );
+  return generateZip({
+    expiresIn: options?.expiresIn,
+    files,
+    folderName: folder.name,
+    folderPath: folder.path,
+  });
 }
 
 export async function processArchiveJob(
   data: ArchiveJobData,
-  deps: ArchiveServiceDeps,
 ): Promise<ArchiveResult> {
-  const [folder] = await deps.db
+  const { db } = getContext();
+  const [folder] = await db
     .select()
     .from(s.driveFolder)
     .where(eq(s.driveFolder.id, data.folderId))
@@ -87,25 +77,27 @@ export async function processArchiveJob(
     throw new Error(`Folder "${data.folderId}" not found.`);
   }
 
-  const files = await collectFiles(
-    { folderPath: folder.path, includeSubfolders: data.includeSubfolders },
-    deps,
-  );
-  return generateZip(
-    { files, folderName: folder.name, folderPath: folder.path },
-    deps,
-  );
+  const files = await collectFiles({
+    folderPath: folder.path,
+    includeSubfolders: data.includeSubfolders,
+  });
+  return generateZip({
+    files,
+    folderName: folder.name,
+    folderPath: folder.path,
+  });
 }
 
-async function collectFiles(
-  {
-    folderPath,
-    includeSubfolders,
-  }: { folderPath: string; includeSubfolders: boolean },
-  deps: ArchiveServiceDeps,
-): Promise<(typeof s.driveFile.$inferSelect)[]> {
+async function collectFiles({
+  folderPath,
+  includeSubfolders,
+}: {
+  folderPath: string;
+  includeSubfolders: boolean;
+}): Promise<(typeof s.driveFile.$inferSelect)[]> {
+  const { db } = getContext();
   if (includeSubfolders) {
-    return deps.db
+    return db
       .select()
       .from(s.driveFile)
       .where(
@@ -113,7 +105,7 @@ async function collectFiles(
       );
   }
 
-  return deps.db
+  return db
     .select()
     .from(s.driveFile)
     .where(
@@ -123,27 +115,24 @@ async function collectFiles(
     );
 }
 
-async function generateZip(
-  {
-    expiresIn,
-    files,
-    folderName,
-    folderPath,
-  }: {
-    expiresIn?: number;
-    files: (typeof s.driveFile.$inferSelect)[];
-    folderName: string;
-    folderPath: string;
-  },
-  deps: ArchiveServiceDeps,
-): Promise<ArchiveResult> {
+async function generateZip({
+  expiresIn,
+  files,
+  folderName,
+  folderPath,
+}: {
+  expiresIn?: number;
+  files: (typeof s.driveFile.$inferSelect)[];
+  folderName: string;
+  folderPath: string;
+}): Promise<ArchiveResult> {
   const { zipSync, strToU8 } = await import("fflate");
 
   const zipEntries: Record<string, Uint8Array> = {};
   const basePathLength = folderPath.length;
 
   for (const file of files) {
-    const data = await get({ key: file.storageKey }, deps.storageDeps);
+    const data = await get({ key: file.storageKey });
     const relativePath = file.path.slice(basePathLength + 1);
     zipEntries[relativePath] = new Uint8Array(data);
   }
@@ -163,19 +152,13 @@ async function generateZip(
 
   const zipData = zipSync(zipEntries);
   const archiveKey = computeArchiveKey({ folderId: folderName });
-  await upload(
-    {
-      body: Buffer.from(zipData),
-      contentType: "application/zip",
-      key: archiveKey,
-    },
-    deps.storageDeps,
-  );
+  await upload({
+    body: Buffer.from(zipData),
+    contentType: "application/zip",
+    key: archiveKey,
+  });
 
-  const url = await getSignedGetUrl(
-    { expiresIn, key: archiveKey },
-    deps.storageDeps,
-  );
+  const url = await getSignedGetUrl({ expiresIn, key: archiveKey });
 
   return { key: archiveKey, url };
 }

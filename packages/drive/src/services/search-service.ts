@@ -1,19 +1,11 @@
+import { getContext } from "@aspen-os/platform/server";
 import { and, eq, ilike, or, sql } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 import * as s from "../db-schema";
 import type { SearchOptions, SearchResult } from "../types";
 
-type DB = NodePgDatabase<Record<string, never>>;
-
-export interface SearchServiceDeps {
-  db: DB;
-}
-
-export async function search(
-  opts: SearchOptions,
-  deps: SearchServiceDeps,
-): Promise<SearchResult> {
+export async function search(opts: SearchOptions): Promise<SearchResult> {
+  const { db } = getContext();
   const limit = opts.limit ?? 50;
   const offset = opts.offset ?? 0;
   const searchTerm = opts.query ? `%${opts.query}%` : null;
@@ -66,7 +58,7 @@ export async function search(
   let files: (typeof s.driveFile.$inferSelect)[] = [];
 
   if (!opts.type || opts.type === "folder") {
-    folders = await deps.db
+    folders = await db
       .select()
       .from(s.driveFolder)
       .where(and(...folderConditions))
@@ -75,7 +67,7 @@ export async function search(
   }
 
   if (!opts.type || opts.type === "file") {
-    files = await deps.db
+    files = await db
       .select()
       .from(s.driveFile)
       .where(and(...fileConditions))
@@ -84,8 +76,8 @@ export async function search(
   }
 
   if (opts.labels && opts.labels.length > 0) {
-    folders = await filterByLabels(folders, "folder", opts.labels, deps);
-    files = await filterByLabels(files, "file", opts.labels, deps);
+    folders = await filterByLabels(folders, "folder", opts.labels);
+    files = await filterByLabels(files, "file", opts.labels);
   }
 
   return { files, folders };
@@ -95,12 +87,12 @@ async function filterByLabels<T extends { id: string }>(
   items: T[],
   itemType: "file" | "folder",
   labelIds: string[],
-  deps: SearchServiceDeps,
 ): Promise<T[]> {
   if (items.length === 0) return items;
 
+  const { db } = getContext();
   const itemIds = items.map((i) => i.id);
-  const labelledItems = await deps.db
+  const labelledItems = await db
     .select({ itemId: s.driveItemLabel.itemId })
     .from(s.driveItemLabel)
     .where(

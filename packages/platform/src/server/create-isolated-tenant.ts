@@ -2,6 +2,7 @@ import {
   BasePlatform as Base,
   type CommonConfig,
   type ExtractModuleNames,
+  type MergedSchemas,
 } from "./base-platform";
 import {
   type DatabaseConfig,
@@ -20,17 +21,22 @@ export type IsolatedTenantConfig = CommonConfig & {
   db: IsolatedTenantDatabaseConfig;
 };
 
-export type IsolatedTenantPlatformInstance<M extends Module[]> =
-  IsolatedTenantPlatform<M> &
-    UnitAccessors &
-    ArrayModuleAccessors<M, ExtractModuleNames<M>[number]>;
+export type IsolatedTenantPlatformInstance<
+  M extends Module[],
+  S extends Record<string, unknown> = MergedSchemas<M>,
+> = IsolatedTenantPlatform<M, S> &
+  UnitAccessors<S> &
+  ArrayModuleAccessors<M, ExtractModuleNames<M>[number]>;
 
-export class IsolatedTenantPlatform<M extends Module[]> extends Base<M> {
-  private readonly dbUnit: DatabaseUnit;
+export class IsolatedTenantPlatform<
+  M extends Module[],
+  S extends Record<string, unknown> = MergedSchemas<M>,
+> extends Base<M, S> {
+  private readonly dbUnit: DatabaseUnit<S>;
 
-  constructor(units: PlatformUnits, modules: M) {
+  constructor(units: PlatformUnits<S>, modules: M) {
     super(units, modules);
-    this.dbUnit = units.db as DatabaseUnit;
+    this.dbUnit = units.db as DatabaseUnit<S>;
   }
 
   static create<M extends Module[]>(
@@ -50,13 +56,13 @@ export class IsolatedTenantPlatform<M extends Module[]> extends Base<M> {
       list: async () => [] as string[],
       resolve: async (tenantId: string) => tenantId,
     };
-    const db = new DatabaseUnit(dbConfig, "isolated", {
+    const db = new DatabaseUnit<MergedSchemas<M>>(dbConfig, "isolated", {
       controlPlaneDbName: config.db.controlPlaneDbName,
       resolver,
       tenantDbDefaults: config.db.tenantDbDefaults,
       tenantDbPrefix: config.db.tenantDbPrefix,
     });
-    const core = Base.createCore(db, config, modules);
+    const core = Base.createCore<M, MergedSchemas<M>>(db, config, modules);
     return new IsolatedTenantPlatform<M>(
       core.units,
       core.modules,

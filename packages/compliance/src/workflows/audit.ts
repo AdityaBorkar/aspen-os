@@ -1,83 +1,135 @@
-import { and, asc, desc, eq, gte, lte } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import { Workflow } from "@aspen-os/platform/server";
 import { parse } from "valibot";
 
 import type { AuditEntityType } from "../constants";
-import { complianceAuditEntry } from "../db-schema";
 import { type AuditTrailFilters, AuditTrailFiltersSchema } from "../types";
 
-export interface AuditDeps {
-  db: NodePgDatabase;
+interface AuditLogRow {
+  action: string;
+  actorId: string | null;
+  changes: Record<string, unknown> | null;
+  entityId: string;
+  entityType: string;
+  id: string;
+  metadata: Record<string, unknown> | null;
+  newState: Record<string, unknown> | null;
+  performedAt: Date;
+  previousState: Record<string, unknown> | null;
 }
 
-export async function getAuditTrail(
-  entityType: AuditEntityType,
-  entityId: string,
-  { db }: AuditDeps,
-) {
-  return db
-    .select()
-    .from(complianceAuditEntry)
-    .where(
-      and(
-        eq(complianceAuditEntry.entityType, entityType),
-        eq(complianceAuditEntry.entityId, entityId),
-      ),
-    )
-    .orderBy(asc(complianceAuditEntry.performedAt));
+export interface ComplianceAuditEntry {
+  action: string;
+  changes: Record<string, { new: unknown; old: unknown }> | null;
+  entityId: string;
+  entityType: string;
+  id: string;
+  metadata: Record<string, unknown> | null;
+  newState: Record<string, unknown> | null;
+  notes: string | null;
+  performedAt: Date;
+  performedBy: string | null;
+  previousState: Record<string, unknown> | null;
 }
 
-export async function listAuditEntries(
-  filters: AuditTrailFilters | undefined,
-  { db }: AuditDeps,
-) {
-  const parsed = filters ? parse(AuditTrailFiltersSchema, filters) : {};
-  const conditions = [];
-
-  if (parsed.entityType) {
-    conditions.push(eq(complianceAuditEntry.entityType, parsed.entityType));
-  }
-  if (parsed.action) {
-    conditions.push(eq(complianceAuditEntry.action, parsed.action));
-  }
-  if (parsed.performedBy) {
-    conditions.push(eq(complianceAuditEntry.performedBy, parsed.performedBy));
-  }
-  if (parsed.dateFrom) {
-    conditions.push(gte(complianceAuditEntry.performedAt, parsed.dateFrom));
-  }
-  if (parsed.dateTo) {
-    conditions.push(lte(complianceAuditEntry.performedAt, parsed.dateTo));
-  }
-
-  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-
-  return db
-    .select()
-    .from(complianceAuditEntry)
-    .where(whereClause)
-    .orderBy(desc(complianceAuditEntry.performedAt));
+function normalize(row: AuditLogRow): ComplianceAuditEntry {
+  return {
+    action: row.action,
+    changes: (row.changes ?? null) as Record<
+      string,
+      { new: unknown; old: unknown }
+    > | null,
+    entityId: row.entityId,
+    entityType: row.entityType,
+    id: row.id,
+    metadata: row.metadata,
+    newState: row.newState,
+    notes: null,
+    performedAt: row.performedAt,
+    performedBy: row.actorId,
+    previousState: row.previousState,
+  };
 }
 
-export async function exportAuditEntries(
-  filters: AuditTrailFilters | undefined,
-  deps: AuditDeps,
-) {
-  const entries = await listAuditEntries(filters, deps);
+function toFilter(filters: AuditTrailFilters | undefined): {
+  action?: string;
+  actorId?: string;
+  endTime?: Date;
+  entityType?: string;
+  startTime?: Date;
+} {
+  const filter: {
+    action?: string;
+    actorId?: string;
+    endTime?: Date;
+    entityType?: string;
+    startTime?: Date;
+  } = {};
 
-  return entries.map((entry) => ({
-    action: entry.action,
-    changes: entry.changes ? JSON.stringify(entry.changes) : null,
-    entityId: entry.entityId,
-    entityType: entry.entityType,
-    id: entry.id,
-    metadata: entry.metadata ? JSON.stringify(entry.metadata) : null,
-    newState: entry.newState ? JSON.stringify(entry.newState) : null,
-    notes: entry.notes,
-    performedAt: entry.performedAt.toISOString(),
-    performedBy: entry.performedBy,
-    previousState: entry.previousState
-      ? JSON.stringify(entry.previousState)
-      : null,
-  }));
+  if (filters?.action) filter.action = filters.action;
+  if (filters?.entityType) filter.entityType = filters.entityType;
+  if (filters?.performedBy) filter.actorId = filters.performedBy;
+  if (filters?.dateFrom) filter.startTime = filters.dateFrom;
+  if (filters?.dateTo) filter.endTime = filters.dateTo;
+  return filter;
 }
+
+const getAuditTrail = Workflow.name("audit.trail").handler(
+  async (input: { entityType: AuditEntityType; entityId: string }, ctx) => {
+    const rows = (await ctx.audit.query({
+      entityId: input.entityId,
+      entityType: input.entityType,
+    })) as AuditLogRow[];
+
+    return rows
+      .map(normalize)
+      .sort((a, b) => a.performedAt.getTime() - b.performedAt.getTime());
+  },
+);
+
+const listAuditEntries = Workflow.name("audit.list").handler(
+  async (input: { filters?: AuditTrailFilters }, ctx) => {
+    const filters = input.filters;
+    const parsed = filters ? parse(AuditTrailFiltersSchema, filters) : {};
+
+    const rows = (await ctx.audit.query(
+      toFilter(parsed as AuditTrailFilters | undefined),
+    )) as AuditLogRow[];
+
+    return rows.map(normalize);
+  },
+);
+
+const exportAuditEntries = Workflow.name("audit.export").handler(
+  async (input: { filters?: AuditTrailFilters }, ctx) => {
+    const rows = (await ctx.step.run("query", async () => {
+      const filters = input.filters;
+      const parsed = filters ? parse(AuditTrailFiltersSchema, filters) : {};
+      const result = (await ctx.audit.query(
+        toFilter(parsed as AuditTrailFilters | undefined),
+      )) as AuditLogRow[];
+      return result.map(normalize);
+    })) as ComplianceAuditEntry[];
+
+    return rows.map((entry) => ({
+      action: entry.action,
+      changes: entry.changes ? JSON.stringify(entry.changes) : null,
+      entityId: entry.entityId,
+      entityType: entry.entityType,
+      id: entry.id,
+      metadata: entry.metadata ? JSON.stringify(entry.metadata) : null,
+      newState: entry.newState ? JSON.stringify(entry.newState) : null,
+      notes: entry.notes,
+      performedAt: entry.performedAt.toISOString(),
+      performedBy: entry.performedBy,
+      previousState: entry.previousState
+        ? JSON.stringify(entry.previousState)
+        : null,
+    }));
+  },
+);
+
+export const audit = {
+  export: exportAuditEntries,
+  getAuditTrail,
+  list: listAuditEntries,
+} as const;

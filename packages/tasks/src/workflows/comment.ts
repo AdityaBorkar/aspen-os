@@ -1,106 +1,112 @@
+import { Workflow, WorkflowStep } from "@aspen-os/platform/server";
 import { desc, eq } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { parse } from "valibot";
 
 import { comment } from "../db-schema";
-import type { CreateCommentInput, UpdateCommentInput } from "../types";
+import type { UpdateCommentInput } from "../types";
 import { CreateCommentSchema, UpdateCommentSchema } from "../types";
 
-export interface CommentServiceDeps {
-  db: NodePgDatabase;
-}
+const fetchCommentStep = WorkflowStep.name("fetch-comment").handler(
+  async (input: { id: string }, ctx) => {
+    const [result] = await ctx.db
+      .select()
+      .from(comment)
+      .where(eq(comment.id, input.id))
+      .limit(1);
 
-export async function createComment(
-  input: CreateCommentInput,
-  deps: CommentServiceDeps,
-) {
-  const { db } = deps;
-  const parsed = parse(CreateCommentSchema, input);
+    if (!result) {
+      throw new Error(`Comment with id "${input.id}" not found.`);
+    }
 
-  const [result] = await db
-    .insert(comment)
-    .values({
-      body: parsed.body,
-      parentId: parsed.parentId ?? null,
-      taskId: parsed.taskId,
-      userId: parsed.userId,
-    })
-    .returning();
+    return result;
+  },
+);
 
-  return result;
-}
+const createComment = Workflow.name("comment.create")
+  .input(CreateCommentSchema)
+  .handler(async (parsed, ctx) => {
+    const [result] = await ctx.db
+      .insert(comment)
+      .values({
+        body: parsed.body,
+        parentId: parsed.parentId ?? null,
+        taskId: parsed.taskId,
+        userId: parsed.userId,
+      })
+      .returning();
 
-export async function updateComment(
-  id: string,
-  patch: UpdateCommentInput,
-  deps: CommentServiceDeps,
-) {
-  const { db } = deps;
-  await getCommentById(id, deps);
-  const parsed = parse(UpdateCommentSchema, patch);
+    return result;
+  });
 
-  const [updated] = await db
-    .update(comment)
-    .set({
-      body: parsed.body,
-      editedAt: new Date(),
-    })
-    .where(eq(comment.id, id))
-    .returning();
+const updateComment = Workflow.name("comment.update").handler(
+  async (input: { id: string; patch: UpdateCommentInput }, ctx) => {
+    await ctx.step.run(fetchCommentStep, { id: input.id });
+    const parsed = parse(UpdateCommentSchema, input.patch);
 
-  return updated;
-}
+    const [updated] = await ctx.db
+      .update(comment)
+      .set({
+        body: parsed.body,
+        editedAt: new Date(),
+      })
+      .where(eq(comment.id, input.id))
+      .returning();
 
-export async function deleteComment(id: string, deps: CommentServiceDeps) {
-  const { db } = deps;
-  await getCommentById(id, deps);
-  const [updated] = await db
-    .update(comment)
-    .set({
-      body: "[comment deleted]",
-      isDeleted: true,
-    })
-    .where(eq(comment.id, id))
-    .returning();
+    return updated;
+  },
+);
 
-  return updated;
-}
+const deleteComment = Workflow.name("comment.delete").handler(
+  async (input: { id: string }, ctx) => {
+    await ctx.step.run(fetchCommentStep, { id: input.id });
+    const [updated] = await ctx.db
+      .update(comment)
+      .set({
+        body: "[comment deleted]",
+        isDeleted: true,
+      })
+      .where(eq(comment.id, input.id))
+      .returning();
 
-export async function getCommentById(id: string, deps: CommentServiceDeps) {
-  const { db } = deps;
-  const [result] = await db
-    .select()
-    .from(comment)
-    .where(eq(comment.id, id))
-    .limit(1);
+    return updated;
+  },
+);
 
-  if (!result) {
-    throw new Error(`Comment with id "${id}" not found.`);
-  }
+const getCommentById = Workflow.name("comment.get").handler(
+  async (input: { id: string }, ctx) => {
+    return ctx.step.run(fetchCommentStep, { id: input.id });
+  },
+);
 
-  return result;
-}
+const listCommentsByTask = Workflow.name("comment.list-by-task").handler(
+  async (input: { taskId: string }, ctx) => {
+    return ctx.step.run("query", async () => {
+      return ctx.db
+        .select()
+        .from(comment)
+        .where(eq(comment.taskId, input.taskId))
+        .orderBy(desc(comment.createdAt));
+    });
+  },
+);
 
-export async function listCommentsByTask(
-  taskId: string,
-  deps: CommentServiceDeps,
-) {
-  const { db } = deps;
-  return db
-    .select()
-    .from(comment)
-    .where(eq(comment.taskId, taskId))
-    .orderBy(desc(comment.createdAt));
-}
+const listCommentReplies = Workflow.name("comment.list-replies").handler(
+  async (input: { parentId: string }, ctx) => {
+    return ctx.step.run("query", async () => {
+      return ctx.db
+        .select()
+        .from(comment)
+        .where(eq(comment.parentId, input.parentId))
+        .orderBy(desc(comment.createdAt));
+    });
+  },
+);
 
-export async function listCommentReplies(
-  parentId: string,
-  deps: CommentServiceDeps,
-) {
-  const { db } = deps;
-  return db
-    .select()
-    .from(comment)
-    .where(eq(comment.parentId, parentId))
-    .orderBy(desc(comment.createdAt));
-}
+export const comments = {
+  create: createComment,
+  delete: deleteComment,
+  get: getCommentById,
+  listByTask: listCommentsByTask,
+  listReplies: listCommentReplies,
+  update: updateComment,
+};

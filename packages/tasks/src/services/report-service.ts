@@ -1,20 +1,15 @@
+import { getContext } from "@aspen-os/platform/server";
 import { and, count, eq, gte, lte, sql, sum } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 import { task, taskAssignee, timeEntry } from "../db-schema";
 
-export interface ReportServiceDeps {
-  db: NodePgDatabase;
-}
-
-export async function getTaskSummary(
-  projectId: string,
-  { db }: ReportServiceDeps,
-): Promise<{
+export async function getTaskSummary(projectId: string): Promise<{
   byPriority: Record<string, number>;
   byStatus: Record<string, number>;
   total: number;
 }> {
+  const { db } = getContext();
+
   const rows = await db
     .select({
       count: count(),
@@ -41,10 +36,7 @@ export async function getTaskSummary(
   return { byPriority, byStatus, total: totalRow?.total ?? 0 };
 }
 
-export async function getWorkloadReport(
-  projectId: string,
-  { db }: ReportServiceDeps,
-): Promise<
+export async function getWorkloadReport(projectId: string): Promise<
   {
     assignedCount: number;
     completedCount: number;
@@ -52,6 +44,8 @@ export async function getWorkloadReport(
     userId: string;
   }[]
 > {
+  const { db } = getContext();
+
   const rows = await db
     .select({
       assignedCount: count(),
@@ -69,10 +63,11 @@ export async function getWorkloadReport(
 
 export async function getTimeReport(
   projectId: string,
-  { db }: ReportServiceDeps,
   dateFrom?: Date,
   dateTo?: Date,
 ) {
+  const { db } = getContext();
+
   const conditions = [
     eq(timeEntry.taskId, task.id),
     eq(task.projectId, projectId),
@@ -102,7 +97,6 @@ export async function getCumulativeFlow(
   projectId: string,
   dateFrom: Date,
   dateTo: Date,
-  { db }: ReportServiceDeps,
 ): Promise<
   {
     count: number;
@@ -110,6 +104,8 @@ export async function getCumulativeFlow(
     statusId: string;
   }[]
 > {
+  const { db } = getContext();
+
   const result = await db.execute(sql`
     SELECT
       DATE(t.created_at) AS date,

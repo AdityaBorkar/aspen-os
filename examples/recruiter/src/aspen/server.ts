@@ -1,6 +1,7 @@
 import { Organization } from "@aspen-os/organization";
 import type { SingleTenantConfig } from "@aspen-os/platform/server";
 import { SingleTenantPlatform } from "@aspen-os/platform/server";
+import { Tasks } from "@aspen-os/tasks";
 
 import { env } from "../env";
 
@@ -55,7 +56,9 @@ const organization = Organization.create({
   country: "INDIA",
 });
 
+const tasks = Tasks.create();
+
 export const p = SingleTenantPlatform.create(
   { auth, db, kvStore, logs, pubsub, rpc, storage },
-  [organization],
+  [organization, tasks],
 );

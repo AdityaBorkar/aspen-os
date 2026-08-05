@@ -1,132 +1,136 @@
+import { Workflow, WorkflowStep } from "@aspen-os/platform/server";
 import { and, desc, eq, sql } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { parse } from "valibot";
 
 import { timeEntry } from "../db-schema";
-import type {
-  CreateTimeEntryInput,
-  TimeEntryFilters,
-  UpdateTimeEntryInput,
-} from "../types";
+import type { TimeEntryFilters, UpdateTimeEntryInput } from "../types";
 import {
   CreateTimeEntrySchema,
   TimeEntryFiltersSchema,
   UpdateTimeEntrySchema,
 } from "../types";
 
-export interface TimeEntryServiceDeps {
-  db: NodePgDatabase;
-}
+const fetchTimeEntryStep = WorkflowStep.name("fetch-time-entry").handler(
+  async (input: { id: string }, ctx) => {
+    const [result] = await ctx.db
+      .select()
+      .from(timeEntry)
+      .where(eq(timeEntry.id, input.id))
+      .limit(1);
 
-export async function createTimeEntry(
-  input: CreateTimeEntryInput,
-  deps: TimeEntryServiceDeps,
-) {
-  const { db } = deps;
-  const parsed = parse(CreateTimeEntrySchema, input);
+    if (!result) {
+      throw new Error(`Time entry with id "${input.id}" not found.`);
+    }
 
-  const [result] = await db
-    .insert(timeEntry)
-    .values({
-      billable: parsed.billable ?? false,
-      date: (parsed.date ?? new Date()).toISOString().slice(0, 10),
-      description: parsed.description ?? null,
-      duration: parsed.duration,
-      taskId: parsed.taskId,
-      userId: parsed.userId,
-    })
-    .returning();
+    return result;
+  },
+);
 
-  return result;
-}
+const createTimeEntry = Workflow.name("time-entry.create")
+  .input(CreateTimeEntrySchema)
+  .handler(async (parsed, ctx) => {
+    const [result] = await ctx.db
+      .insert(timeEntry)
+      .values({
+        billable: parsed.billable ?? false,
+        date: (parsed.date ?? new Date()).toISOString().slice(0, 10),
+        description: parsed.description ?? null,
+        duration: parsed.duration,
+        taskId: parsed.taskId,
+        userId: parsed.userId,
+      })
+      .returning();
 
-export async function updateTimeEntry(
-  id: string,
-  patch: UpdateTimeEntryInput,
-  deps: TimeEntryServiceDeps,
-) {
-  const { db } = deps;
-  await getTimeEntryById(id, deps);
-  const parsed = parse(UpdateTimeEntrySchema, patch);
+    return result;
+  });
 
-  const [updated] = await db
-    .update(timeEntry)
-    .set({
-      billable: parsed.billable,
-      date: parsed.date?.toISOString().slice(0, 10),
-      description: parsed.description,
-      duration: parsed.duration,
-    })
-    .where(eq(timeEntry.id, id))
-    .returning();
+const updateTimeEntry = Workflow.name("time-entry.update").handler(
+  async (input: { id: string; patch: UpdateTimeEntryInput }, ctx) => {
+    await ctx.step.run(fetchTimeEntryStep, { id: input.id });
+    const parsed = parse(UpdateTimeEntrySchema, input.patch);
 
-  return updated;
-}
+    const [updated] = await ctx.db
+      .update(timeEntry)
+      .set({
+        billable: parsed.billable,
+        date: parsed.date?.toISOString().slice(0, 10),
+        description: parsed.description,
+        duration: parsed.duration,
+      })
+      .where(eq(timeEntry.id, input.id))
+      .returning();
 
-export async function deleteTimeEntry(id: string, deps: TimeEntryServiceDeps) {
-  const { db } = deps;
-  await db.delete(timeEntry).where(eq(timeEntry.id, id));
-}
+    return updated;
+  },
+);
 
-export async function getTimeEntryById(id: string, deps: TimeEntryServiceDeps) {
-  const { db } = deps;
-  const [result] = await db
-    .select()
-    .from(timeEntry)
-    .where(eq(timeEntry.id, id))
-    .limit(1);
+const deleteTimeEntry = Workflow.name("time-entry.delete").handler(
+  async (input: { id: string }, ctx) => {
+    await ctx.db.delete(timeEntry).where(eq(timeEntry.id, input.id));
+  },
+);
 
-  if (!result) {
-    throw new Error(`Time entry with id "${id}" not found.`);
-  }
+const getTimeEntryById = Workflow.name("time-entry.get").handler(
+  async (input: { id: string }, ctx) => {
+    return ctx.step.run(fetchTimeEntryStep, { id: input.id });
+  },
+);
 
-  return result;
-}
+const listTimeEntries = Workflow.name("time-entry.list").handler(
+  async (input: { filters?: TimeEntryFilters }, ctx) => {
+    return ctx.step.run("query", async () => {
+      const parsed = input.filters
+        ? parse(TimeEntryFiltersSchema, input.filters)
+        : {};
+      const conditions = [];
 
-export async function listTimeEntries(
-  filters: TimeEntryFilters | undefined,
-  deps: TimeEntryServiceDeps,
-) {
-  const { db } = deps;
-  const parsed = filters ? parse(TimeEntryFiltersSchema, filters) : {};
-  const conditions = [];
+      if (parsed.taskId) {
+        conditions.push(eq(timeEntry.taskId, parsed.taskId));
+      }
+      if (parsed.userId) {
+        conditions.push(eq(timeEntry.userId, parsed.userId));
+      }
+      if (parsed.billable !== undefined) {
+        conditions.push(eq(timeEntry.billable, parsed.billable));
+      }
 
-  if (parsed.taskId) {
-    conditions.push(eq(timeEntry.taskId, parsed.taskId));
-  }
-  if (parsed.userId) {
-    conditions.push(eq(timeEntry.userId, parsed.userId));
-  }
-  if (parsed.billable !== undefined) {
-    conditions.push(eq(timeEntry.billable, parsed.billable));
-  }
+      const whereClause =
+        conditions.length > 0 ? and(...conditions) : undefined;
 
-  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+      return ctx.db
+        .select()
+        .from(timeEntry)
+        .where(whereClause)
+        .orderBy(desc(timeEntry.date));
+    });
+  },
+);
 
-  return db
-    .select()
-    .from(timeEntry)
-    .where(whereClause)
-    .orderBy(desc(timeEntry.date));
-}
+const getTotalDuration = Workflow.name("time-entry.total-duration").handler(
+  async (input: { taskId: string; billableOnly?: boolean }, ctx) => {
+    return ctx.step.run("query", async () => {
+      const conditions = [eq(timeEntry.taskId, input.taskId)];
+      if (input.billableOnly) {
+        conditions.push(eq(timeEntry.billable, true));
+      }
 
-export async function getTotalDuration(
-  taskId: string,
-  billableOnly: boolean | undefined,
-  deps: TimeEntryServiceDeps,
-): Promise<number> {
-  const { db } = deps;
-  const conditions = [eq(timeEntry.taskId, taskId)];
-  if (billableOnly) {
-    conditions.push(eq(timeEntry.billable, true));
-  }
+      const [result] = await ctx.db
+        .select({
+          total: sql<string>`COALESCE(SUM(duration), 0)`,
+        })
+        .from(timeEntry)
+        .where(and(...conditions));
 
-  const [result] = await db
-    .select({
-      total: sql<string>`COALESCE(SUM(duration), 0)`,
-    })
-    .from(timeEntry)
-    .where(and(...conditions));
+      return result?.total ? Number.parseInt(result.total, 10) : 0;
+    });
+  },
+);
 
-  return result?.total ? Number.parseInt(result.total, 10) : 0;
-}
+export const timeEntries = {
+  create: createTimeEntry,
+  delete: deleteTimeEntry,
+  get: getTimeEntryById,
+  getTotalDuration,
+  list: listTimeEntries,
+  update: updateTimeEntry,
+};

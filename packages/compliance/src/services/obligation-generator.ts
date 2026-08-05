@@ -1,4 +1,5 @@
-import type { PubSubUnit } from "@aspen-os/platform/server";
+import type { AuditUnit, PubSubUnit } from "@aspen-os/platform/server";
+import { getContext } from "@aspen-os/platform/server";
 import { and, eq, isNull } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
@@ -6,12 +7,8 @@ import { SCHEDULED_JOBS } from "../constants";
 import type { ComplianceObligation } from "../db-schema";
 import { complianceDocument } from "../db-schema";
 import { COMPLIANCE_EVENTS } from "../pubsub-events";
-import {
-  getActiveObligations,
-  getObligationById,
-  type ObligationDeps,
-} from "../workflows/obligation";
-import { writeSystemAudit } from "./audit-writer";
+import { documents } from "../workflows/document";
+import { obligations } from "../workflows/obligation";
 
 const MONTHS_PER_FREQUENCY: Record<string, number> = {
   annual: 12,
@@ -30,33 +27,45 @@ interface ComputedPeriod {
 }
 
 export interface ObligationGeneratorDeps {
+  audit: AuditUnit;
   db: NodePgDatabase;
-  obligationDeps: ObligationDeps;
   pubsub: PubSubUnit;
 }
 
-export async function registerObligationGenerator({
-  pubsub,
-  db,
-  obligationDeps,
-}: ObligationGeneratorDeps): Promise<string> {
-  await pubsub.subscribe(SCHEDULED_JOBS.OBLIGATION_GENERATE, async () => {
-    await generatePendingDocuments({ db, obligationDeps, pubsub });
+function buildDepsFromContext(): ObligationGeneratorDeps {
+  const ctx = getContext();
+  if (!ctx.audit) {
+    throw new Error("Obligation generator requires an active audit context");
+  }
+  return {
+    audit: ctx.audit,
+    db: ctx.db as NodePgDatabase,
+    pubsub: ctx.pubsub,
+  };
+}
+
+export async function registerObligationGenerator(): Promise<string> {
+  const deps = buildDepsFromContext();
+  await deps.pubsub.subscribe(SCHEDULED_JOBS.OBLIGATION_GENERATE, async () => {
+    await generatePendingDocuments(deps);
   });
   return SCHEDULED_JOBS.OBLIGATION_GENERATE;
 }
 
 export async function unregisterObligationGenerator(
   topic: string,
-  { pubsub }: Pick<ObligationGeneratorDeps, "pubsub">,
 ): Promise<void> {
+  const { pubsub } = buildDepsFromContext();
   await pubsub.unsubscribe(topic);
 }
 
 export async function generatePendingDocuments(
   deps: ObligationGeneratorDeps,
 ): Promise<string[]> {
-  const activeObligations = await getActiveObligations(deps.obligationDeps);
+  const activeObligations = await obligations.getActive.run(
+    {},
+    { db: deps.db, pubsub: deps.pubsub },
+  );
   const generatedIds: string[] = [];
 
   for (const obligation of activeObligations) {
@@ -97,62 +106,47 @@ export async function generateForObligation(
       (obligation.defaultReminderDays as number[] | null) ??
       (obligation.expiryBased ? [90, 60, 30, 7] : [30, 15, 7, 1]);
 
-    const [doc] = await deps.db
-      .insert(complianceDocument)
-      .values({
-        assignedReviewer: obligation.defaultAssignedReviewer,
-        assignedTo: obligation.defaultAssignedTo,
-        branch: obligation.branch,
-        category: obligation.category,
-        createdBy: obligation.createdBy,
-        documentType: obligation.documentType,
-        dueDate: period.dueDate,
-        escalationDays: obligation.defaultEscalationDays,
-        expiryDate: period.expiryDate,
-        issuingAuthority: obligation.defaultIssuingAuthority,
-        jurisdiction: obligation.defaultJurisdiction,
-        metadata: {
-          ...(obligation.defaultMetadata as Record<string, unknown>),
-          idempotencyKey,
+    const doc = await documents.create.run(
+      {
+        input: {
+          assignedReviewer: obligation.defaultAssignedReviewer ?? undefined,
+          assignedTo: obligation.defaultAssignedTo ?? undefined,
+          branch: obligation.branch ?? undefined,
+          category: obligation.category,
+          createdBy: obligation.createdBy,
+          documentType: obligation.documentType ?? undefined,
+          dueDate: period.dueDate ? new Date(period.dueDate) : undefined,
+          escalationDays: obligation.defaultEscalationDays ?? undefined,
+          expiryDate: period.expiryDate
+            ? new Date(period.expiryDate)
+            : undefined,
+          issuingAuthority: obligation.defaultIssuingAuthority ?? undefined,
+          jurisdiction: obligation.defaultJurisdiction ?? undefined,
+          metadata: {
+            ...(obligation.defaultMetadata as Record<string, unknown>),
+            idempotencyKey,
+          },
+          name: docName,
+          obligationId: obligation.id,
+          periodEnd: period.periodEnd ? new Date(period.periodEnd) : undefined,
+          periodStart: period.periodStart
+            ? new Date(period.periodStart)
+            : undefined,
+          reminderDays,
+          sourceEntityId: obligation.sourceEntityId ?? undefined,
+          sourceEntityType: obligation.sourceEntityType ?? undefined,
+          sourceModule: obligation.sourceModule,
         },
-        name: docName,
-        obligationId: obligation.id,
-        periodEnd: period.periodEnd,
-        periodStart: period.periodStart,
-        reminderDays,
-        sourceEntityId: obligation.sourceEntityId,
-        sourceEntityType: obligation.sourceEntityType,
-        sourceModule: obligation.sourceModule,
-        verificationStatus: "draft",
-      })
-      .returning();
-
-    if (!doc) continue;
+      },
+      { audit: deps.audit, db: deps.db, pubsub: deps.pubsub },
+    );
 
     generatedIds.push(doc.id);
-
-    await writeSystemAudit(
-      {
-        action: "document_generated",
-        entityId: doc.id,
-        entityType: "compliance_document",
-        metadata: { obligationId: obligation.id, period },
-      },
-      { db: deps.db },
-    );
 
     await deps.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_GENERATED, {
       documentId: doc.id,
       obligationId: obligation.id,
       sourceModule: obligation.sourceModule,
-    });
-
-    await deps.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_CREATED, {
-      document: {
-        category: doc.category,
-        id: doc.id,
-        name: doc.name,
-      },
     });
   }
 
@@ -162,9 +156,12 @@ export async function generateForObligation(
 export async function generateDocuments(
   obligationId: string,
   upToDate: Date | undefined,
-  deps: ObligationGeneratorDeps,
 ): Promise<string[]> {
-  const obligation = await getObligationById(obligationId, deps.obligationDeps);
+  const deps = buildDepsFromContext();
+  const obligation = await obligations.getById.run(
+    { id: obligationId },
+    { db: deps.db, pubsub: deps.pubsub },
+  );
   return generateForObligation(obligation, upToDate, deps);
 }
 

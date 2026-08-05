@@ -18,8 +18,12 @@ export class KvStoreUnit {
   private defaultTtl: number;
   private prefix: string;
 
-  constructor(config: KvStoreConfig, { db }: { db: DatabaseUnit }) {
-    this.db = db.db;
+  constructor(
+    config: KvStoreConfig,
+    // biome-ignore lint/suspicious/noExplicitAny: drizzle NodePgDatabase invariance forces any here
+    { db }: { db: DatabaseUnit<any> },
+  ) {
+    this.db = db.db as DrizzleDB;
     this.defaultTtl = config.defaultTtl ?? 3600;
     this.prefix = config.keyPrefix ?? "";
   }

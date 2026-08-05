@@ -1,41 +1,50 @@
+import { getContext } from "@aspen-os/platform/server";
 import { and, eq, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 import * as s from "../db-schema";
+import { getDriveConfig } from "../runtime";
 import type { BreadcrumbItem, PathResolution } from "../types";
 
-type DB = NodePgDatabase<Record<string, never>>;
+export type DB = NodePgDatabase<Record<string, never>>;
 
-export interface PathServiceDeps {
-  db: DB;
-  maxDepth: number;
+function maxDepth(): number {
+  return getDriveConfig().maxNestingDepth;
 }
 
-export async function computeFolderPath(
-  { name, parentId }: { name: string; parentId: string | null },
-  deps: PathServiceDeps,
-): Promise<string> {
+export async function computeFolderPath({
+  name,
+  parentId,
+}: {
+  name: string;
+  parentId: string | null;
+}): Promise<string> {
   if (!parentId) return `/${name}`;
-  const parentPath = await getFolderPath({ folderId: parentId }, deps);
+  const parentPath = await getFolderPath({ folderId: parentId });
   return `${parentPath}/${name}`;
 }
 
-export async function computeFilePath(
-  { name, folderId }: { name: string; folderId: string | null },
-  deps: PathServiceDeps,
-): Promise<string> {
+export async function computeFilePath({
+  name,
+  folderId,
+}: {
+  name: string;
+  folderId: string | null;
+}): Promise<string> {
   if (!folderId) return `/${name}`;
-  const folderPath = await getFolderPath({ folderId }, deps);
+  const folderPath = await getFolderPath({ folderId });
   return `${folderPath}/${name}`;
 }
 
-export async function resolvePath(
-  { path }: { path: string },
-  deps: PathServiceDeps,
-): Promise<PathResolution | null> {
+export async function resolvePath({
+  path,
+}: {
+  path: string;
+}): Promise<PathResolution | null> {
+  const { db } = getContext();
   const normalized = normalizePath(path);
 
-  const [folder] = await deps.db
+  const [folder] = await db
     .select({
       id: s.driveFolder.id,
       name: s.driveFolder.name,
@@ -49,7 +58,7 @@ export async function resolvePath(
     return { ...folder, type: "folder" as const };
   }
 
-  const [file] = await deps.db
+  const [file] = await db
     .select({
       id: s.driveFile.id,
       name: s.driveFile.name,
@@ -66,11 +75,13 @@ export async function resolvePath(
   return null;
 }
 
-export async function getBreadcrumbs(
-  { folderId }: { folderId: string },
-  deps: PathServiceDeps,
-): Promise<BreadcrumbItem[]> {
-  const [folder] = await deps.db
+export async function getBreadcrumbs({
+  folderId,
+}: {
+  folderId: string;
+}): Promise<BreadcrumbItem[]> {
+  const { db } = getContext();
+  const [folder] = await db
     .select({
       id: s.driveFolder.id,
       name: s.driveFolder.name,
@@ -91,7 +102,7 @@ export async function getBreadcrumbs(
 
   let currentParentId = folder.parentId;
   while (currentParentId) {
-    const [parent] = await deps.db
+    const [parent] = await db
       .select({
         id: s.driveFolder.id,
         name: s.driveFolder.name,
@@ -116,10 +127,8 @@ export async function getBreadcrumbs(
 
 export async function cascadePaths(
   { newPath, oldPath }: { oldPath: string; newPath: string },
-  deps: PathServiceDeps,
-  tx?: DB,
+  db: DB,
 ): Promise<void> {
-  const db = tx ?? deps.db;
   const prefix = `${oldPath}/%`;
 
   const descendantFolders = await db
@@ -149,10 +158,14 @@ export async function cascadePaths(
   }
 }
 
-export async function wouldCreateCycle(
-  { folderId, newParentId }: { folderId: string; newParentId: string | null },
-  deps: PathServiceDeps,
-): Promise<boolean> {
+export async function wouldCreateCycle({
+  folderId,
+  newParentId,
+}: {
+  folderId: string;
+  newParentId: string | null;
+}): Promise<boolean> {
+  const { db } = getContext();
   if (!newParentId) return false;
   if (folderId === newParentId) return true;
 
@@ -161,9 +174,9 @@ export async function wouldCreateCycle(
 
   while (currentId !== null) {
     if (currentId === folderId) return true;
-    if (depth >= deps.maxDepth) return true;
+    if (depth >= maxDepth()) return true;
 
-    const [parent] = await deps.db
+    const [parent] = await db
       .select({ parentId: s.driveFolder.parentId })
       .from(s.driveFolder)
       .where(eq(s.driveFolder.id, currentId))
@@ -177,15 +190,17 @@ export async function wouldCreateCycle(
   return false;
 }
 
-export async function getDepth(
-  { folderId }: { folderId: string },
-  deps: PathServiceDeps,
-): Promise<number> {
+export async function getDepth({
+  folderId,
+}: {
+  folderId: string;
+}): Promise<number> {
+  const { db } = getContext();
   let depth = 0;
   let currentId: string | null = folderId;
 
   while (currentId !== null) {
-    const [parent] = await deps.db
+    const [parent] = await db
       .select({ parentId: s.driveFolder.parentId })
       .from(s.driveFolder)
       .where(eq(s.driveFolder.id, currentId))
@@ -195,9 +210,9 @@ export async function getDepth(
     currentId = parent.parentId;
     depth++;
 
-    if (depth > deps.maxDepth) {
+    if (depth > maxDepth()) {
       throw new Error(
-        `Folder hierarchy exceeds maximum depth of ${deps.maxDepth}`,
+        `Folder hierarchy exceeds maximum depth of ${maxDepth()}`,
       );
     }
   }
@@ -205,12 +220,14 @@ export async function getDepth(
   return depth;
 }
 
-export async function getSubtreeMaxDepth(
-  { folderPath }: { folderPath: string },
-  deps: PathServiceDeps,
-): Promise<number> {
+export async function getSubtreeMaxDepth({
+  folderPath,
+}: {
+  folderPath: string;
+}): Promise<number> {
+  const { db } = getContext();
   const prefix = `${folderPath}/%`;
-  const descendants = await deps.db
+  const descendants = await db
     .select({ path: s.driveFolder.path })
     .from(s.driveFolder)
     .where(sql`${s.driveFolder.path} like ${prefix}`);
@@ -226,17 +243,17 @@ export async function getSubtreeMaxDepth(
   return maxDepth;
 }
 
-export async function checkNameUniqueness(
-  {
-    excludeId,
-    name,
-    parentId,
-  }: { name: string; parentId: string | null; excludeId?: string },
-  deps: PathServiceDeps,
-): Promise<void> {
-  const basePath = parentId
-    ? await getFolderPath({ folderId: parentId }, deps)
-    : "";
+export async function checkNameUniqueness({
+  excludeId,
+  name,
+  parentId,
+}: {
+  name: string;
+  parentId: string | null;
+  excludeId?: string;
+}): Promise<void> {
+  const { db } = getContext();
+  const basePath = parentId ? await getFolderPath({ folderId: parentId }) : "";
   const newPath = `${basePath}/${name}`;
   const lowerPath = newPath.toLowerCase();
 
@@ -248,7 +265,7 @@ export async function checkNameUniqueness(
     folderConditions.push(sql`${s.driveFolder.id} != ${excludeId}`);
   }
 
-  const [existingFolder] = await deps.db
+  const [existingFolder] = await db
     .select({ id: s.driveFolder.id })
     .from(s.driveFolder)
     .where(and(...folderConditions))
@@ -263,7 +280,7 @@ export async function checkNameUniqueness(
     eq(s.driveFile.isTrashed, false),
   ];
 
-  const [existingFile] = await deps.db
+  const [existingFile] = await db
     .select({ id: s.driveFile.id })
     .from(s.driveFile)
     .where(and(...fileConditions))
@@ -274,11 +291,13 @@ export async function checkNameUniqueness(
   }
 }
 
-export async function getFolderPath(
-  { folderId }: { folderId: string },
-  deps: PathServiceDeps,
-): Promise<string> {
-  const [folder] = await deps.db
+export async function getFolderPath({
+  folderId,
+}: {
+  folderId: string;
+}): Promise<string> {
+  const { db } = getContext();
+  const [folder] = await db
     .select({ path: s.driveFolder.path })
     .from(s.driveFolder)
     .where(eq(s.driveFolder.id, folderId))
@@ -291,11 +310,13 @@ export async function getFolderPath(
   return folder.path;
 }
 
-export async function getFilePath(
-  { fileId }: { fileId: string },
-  deps: PathServiceDeps,
-): Promise<string> {
-  const [file] = await deps.db
+export async function getFilePath({
+  fileId,
+}: {
+  fileId: string;
+}): Promise<string> {
+  const { db } = getContext();
+  const [file] = await db
     .select({ path: s.driveFile.path })
     .from(s.driveFile)
     .where(eq(s.driveFile.id, fileId))

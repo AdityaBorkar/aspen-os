@@ -103,8 +103,10 @@ export interface Module<
   $prepareTenant?(tenantId: string): Promise<void>;
 }
 
-export type UnitAccessors = {
-  [K in keyof PlatformUnits]: PlatformUnits[K];
+export type UnitAccessors<
+  S extends Record<string, unknown> = Record<string, never>,
+> = {
+  [K in keyof PlatformUnits<S>]: PlatformUnits<S>[K];
 };
 export type ModuleAccessors<M extends Record<string, Module>> = {
   [K in keyof M]: M[K];

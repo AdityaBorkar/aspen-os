@@ -1,151 +1,21 @@
+import { Workflow, WorkflowStep } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { parse } from "valibot";
 
 import { savedView } from "../db-schema";
-import type { CreateSavedViewInput, UpdateSavedViewInput } from "../types";
+import type { UpdateSavedViewInput } from "../types";
 import { CreateSavedViewSchema, UpdateSavedViewSchema } from "../types";
 
 type ViewType = "list" | "board" | "calendar" | "timeline";
 
-export interface ViewServiceDeps {
-  db: NodePgDatabase;
-}
-
-export async function createSavedView(
-  input: CreateSavedViewInput,
-  deps: ViewServiceDeps,
-) {
-  const { db } = deps;
-  const parsed = parse(CreateSavedViewSchema, input);
-
-  if (parsed.isDefault) {
-    await unsetDefault(parsed.ownerId, parsed.projectId ?? null, deps);
-  }
-
-  const [result] = await db
-    .insert(savedView)
-    .values({
-      filters: parsed.filters ?? null,
-      groupBy: parsed.groupBy ?? null,
-      isDefault: parsed.isDefault ?? false,
-      isShared: parsed.isShared ?? false,
-      name: parsed.name,
-      ownerId: parsed.ownerId,
-      projectId: parsed.projectId ?? null,
-      sort: parsed.sort ?? null,
-      type: (parsed.type ?? "list") as ViewType,
-    })
-    .returning();
-
-  return result;
-}
-
-export async function updateSavedView(
-  id: string,
-  patch: UpdateSavedViewInput,
-  deps: ViewServiceDeps,
-) {
-  const { db } = deps;
-  await getSavedViewById(id, deps);
-  const parsed = parse(UpdateSavedViewSchema, patch);
-
-  const [updated] = await db
-    .update(savedView)
-    .set({
-      filters: parsed.filters,
-      groupBy: parsed.groupBy,
-      isDefault: parsed.isDefault,
-      isShared: parsed.isShared,
-      name: parsed.name,
-      sort: parsed.sort,
-      type: parsed.type as ViewType | undefined,
-    })
-    .where(eq(savedView.id, id))
-    .returning();
-
-  return updated;
-}
-
-export async function deleteSavedView(id: string, deps: ViewServiceDeps) {
-  const { db } = deps;
-  await db.delete(savedView).where(eq(savedView.id, id));
-}
-
-export async function getSavedViewById(id: string, deps: ViewServiceDeps) {
-  const { db } = deps;
-  const [result] = await db
-    .select()
-    .from(savedView)
-    .where(eq(savedView.id, id))
-    .limit(1);
-
-  if (!result) {
-    throw new Error(`Saved view with id "${id}" not found.`);
-  }
-
-  return result;
-}
-
-export async function listSavedViewsByOwner(
-  ownerId: string,
-  deps: ViewServiceDeps,
-) {
-  const { db } = deps;
-  return db.select().from(savedView).where(eq(savedView.ownerId, ownerId));
-}
-
-export async function listSavedViewsByProject(
-  projectId: string,
-  deps: ViewServiceDeps,
-) {
-  const { db } = deps;
-  return db.select().from(savedView).where(eq(savedView.projectId, projectId));
-}
-
-export async function listSharedSavedViews(
-  projectId: string,
-  deps: ViewServiceDeps,
-) {
-  const { db } = deps;
-  return db
-    .select()
-    .from(savedView)
-    .where(
-      and(eq(savedView.projectId, projectId), eq(savedView.isShared, true)),
-    );
-}
-
-export async function getDefaultSavedView(
-  ownerId: string,
-  projectId: string | undefined,
-  deps: ViewServiceDeps,
-) {
-  const { db } = deps;
-  const conditions = [
-    eq(savedView.ownerId, ownerId),
-    eq(savedView.isDefault, true),
-  ];
-
-  if (projectId) {
-    conditions.push(eq(savedView.projectId, projectId));
-  }
-
-  const [result] = await db
-    .select()
-    .from(savedView)
-    .where(and(...conditions))
-    .limit(1);
-
-  return result ?? null;
-}
+type DrizzleDB = NodePgDatabase<Record<string, never>>;
 
 async function unsetDefault(
+  db: DrizzleDB,
   ownerId: string,
   projectId: string | null,
-  deps: ViewServiceDeps,
 ): Promise<void> {
-  const { db } = deps;
   const conditions = [
     eq(savedView.ownerId, ownerId),
     eq(savedView.isDefault, true),
@@ -160,3 +30,151 @@ async function unsetDefault(
     .set({ isDefault: false })
     .where(and(...conditions));
 }
+
+const fetchSavedViewStep = WorkflowStep.name("fetch-saved-view").handler(
+  async (input: { id: string }, ctx) => {
+    const [result] = await ctx.db
+      .select()
+      .from(savedView)
+      .where(eq(savedView.id, input.id))
+      .limit(1);
+
+    if (!result) {
+      throw new Error(`Saved view with id "${input.id}" not found.`);
+    }
+
+    return result;
+  },
+);
+
+const createSavedView = Workflow.name("view.create")
+  .input(CreateSavedViewSchema)
+  .handler(async (parsed, ctx) => {
+    if (parsed.isDefault) {
+      await unsetDefault(ctx.db, parsed.ownerId, parsed.projectId ?? null);
+    }
+
+    const [result] = await ctx.db
+      .insert(savedView)
+      .values({
+        filters: parsed.filters ?? null,
+        groupBy: parsed.groupBy ?? null,
+        isDefault: parsed.isDefault ?? false,
+        isShared: parsed.isShared ?? false,
+        name: parsed.name,
+        ownerId: parsed.ownerId,
+        projectId: parsed.projectId ?? null,
+        sort: parsed.sort ?? null,
+        type: (parsed.type ?? "list") as ViewType,
+      })
+      .returning();
+
+    return result;
+  });
+
+const updateSavedView = Workflow.name("view.update").handler(
+  async (input: { id: string; patch: UpdateSavedViewInput }, ctx) => {
+    await ctx.step.run(fetchSavedViewStep, { id: input.id });
+    const parsed = parse(UpdateSavedViewSchema, input.patch);
+
+    const [updated] = await ctx.db
+      .update(savedView)
+      .set({
+        filters: parsed.filters,
+        groupBy: parsed.groupBy,
+        isDefault: parsed.isDefault,
+        isShared: parsed.isShared,
+        name: parsed.name,
+        sort: parsed.sort,
+        type: parsed.type as ViewType | undefined,
+      })
+      .where(eq(savedView.id, input.id))
+      .returning();
+
+    return updated;
+  },
+);
+
+const deleteSavedView = Workflow.name("view.delete").handler(
+  async (input: { id: string }, ctx) => {
+    await ctx.db.delete(savedView).where(eq(savedView.id, input.id));
+  },
+);
+
+const getSavedViewById = Workflow.name("view.get").handler(
+  async (input: { id: string }, ctx) => {
+    return ctx.step.run(fetchSavedViewStep, { id: input.id });
+  },
+);
+
+const listSavedViewsByOwner = Workflow.name("view.list-by-owner").handler(
+  async (input: { ownerId: string }, ctx) => {
+    return ctx.step.run("query", async () => {
+      return ctx.db
+        .select()
+        .from(savedView)
+        .where(eq(savedView.ownerId, input.ownerId));
+    });
+  },
+);
+
+const listSavedViewsByProject = Workflow.name("view.list-by-project").handler(
+  async (input: { projectId: string }, ctx) => {
+    return ctx.step.run("query", async () => {
+      return ctx.db
+        .select()
+        .from(savedView)
+        .where(eq(savedView.projectId, input.projectId));
+    });
+  },
+);
+
+const listSharedSavedViews = Workflow.name("view.list-shared").handler(
+  async (input: { projectId: string }, ctx) => {
+    return ctx.step.run("query", async () => {
+      return ctx.db
+        .select()
+        .from(savedView)
+        .where(
+          and(
+            eq(savedView.projectId, input.projectId),
+            eq(savedView.isShared, true),
+          ),
+        );
+    });
+  },
+);
+
+const getDefaultSavedView = Workflow.name("view.get-default").handler(
+  async (input: { ownerId: string; projectId?: string }, ctx) => {
+    return ctx.step.run("query", async () => {
+      const conditions = [
+        eq(savedView.ownerId, input.ownerId),
+        eq(savedView.isDefault, true),
+      ];
+
+      if (input.projectId) {
+        conditions.push(eq(savedView.projectId, input.projectId));
+      }
+
+      const [result] = await ctx.db
+        .select()
+        .from(savedView)
+        .where(and(...conditions))
+        .limit(1);
+
+      return result ?? null;
+    });
+  },
+);
+
+export const views = {
+  create: createSavedView,
+  delete: deleteSavedView,
+  get: getSavedViewById,
+  getDefault: getDefaultSavedView,
+  listByOwner: listSavedViewsByOwner,
+  listByProject: listSavedViewsByProject,
+  listShared: listSharedSavedViews,
+  update: updateSavedView,
+};

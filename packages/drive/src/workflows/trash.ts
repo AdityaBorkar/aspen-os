@@ -1,139 +1,190 @@
-import type { PubSubUnit } from "@aspen-os/platform/server";
+import { getContext, Workflow } from "@aspen-os/platform/server";
 import { and, eq, lt } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { parse } from "valibot";
+import { object, string } from "valibot";
 
 import * as s from "../db-schema";
 import { DRIVE_EVENTS } from "../pubsub-events";
-import {
-  remove as removeStorage,
-  type StorageBridgeDeps,
-} from "../services/storage-bridge";
+import { getDriveConfig } from "../runtime";
+import { remove as removeStorage } from "../services/storage-bridge";
 import type { EmptyTrashOptions, ListTrashOptions } from "../types";
 import { EmptyTrashOptionsSchema, ListTrashOptionsSchema } from "../types";
 
-type DB = NodePgDatabase<Record<string, never>>;
+const ListTrashSchema = ListTrashOptionsSchema;
+const EmptyTrashSchema = EmptyTrashOptionsSchema;
+const RestoreSchema = object({ id: string(), itemType: string() });
+const PurgeInputSchema = object({});
 
-interface TrashConfig {
-  trashRetentionDays: number;
-}
+export const listTrash = Workflow.name("drive.trash.list")
+  .input(ListTrashSchema)
+  .handler(async (input, ctx) => {
+    const validated = input as ListTrashOptions | undefined;
+    const limit = validated?.limit ?? 50;
+    const offset = validated?.offset ?? 0;
 
-export interface TrashDeps {
-  config: TrashConfig;
-  db: DB;
-  pubsub: PubSubUnit;
-  storageDeps: StorageBridgeDeps;
-}
+    const folderConditions = [eq(s.driveFolder.isTrashed, true)];
+    const fileConditions = [eq(s.driveFile.isTrashed, true)];
 
-export async function listTrash(
-  opts: ListTrashOptions | undefined,
-  { db }: TrashDeps,
-) {
-  const parsed = parse(ListTrashOptionsSchema, opts ?? {});
-  const limit = parsed.limit ?? 50;
-  const offset = parsed.offset ?? 0;
+    if (validated?.ownerId) {
+      folderConditions.push(eq(s.driveFolder.ownerId, validated.ownerId));
+      fileConditions.push(eq(s.driveFile.ownerId, validated.ownerId));
+    }
 
-  const folderConditions = [eq(s.driveFolder.isTrashed, true)];
-  const fileConditions = [eq(s.driveFile.isTrashed, true)];
+    const folders = await ctx.db
+      .select()
+      .from(s.driveFolder)
+      .where(and(...folderConditions))
+      .limit(limit)
+      .offset(offset);
 
-  if (parsed.ownerId) {
-    folderConditions.push(eq(s.driveFolder.ownerId, parsed.ownerId));
-    fileConditions.push(eq(s.driveFile.ownerId, parsed.ownerId));
-  }
+    const files = await ctx.db
+      .select()
+      .from(s.driveFile)
+      .where(and(...fileConditions))
+      .limit(limit)
+      .offset(offset);
 
-  const folders = await db
-    .select()
-    .from(s.driveFolder)
-    .where(and(...folderConditions))
-    .limit(limit)
-    .offset(offset);
+    return { files, folders };
+  });
 
-  const files = await db
-    .select()
-    .from(s.driveFile)
-    .where(and(...fileConditions))
-    .limit(limit)
-    .offset(offset);
+export const restoreFromTrash = Workflow.name("drive.trash.restore")
+  .input(RestoreSchema)
+  .handler(async ({ id, itemType }, ctx) => {
+    if (itemType === "folder") {
+      const [folder] = await ctx.db
+        .select()
+        .from(s.driveFolder)
+        .where(eq(s.driveFolder.id, id))
+        .limit(1);
+      if (!folder) throw new Error(`Folder with id "${id}" not found.`);
+      if (!folder.isTrashed) throw new Error(`Folder "${id}" is not in trash.`);
 
-  return { files, folders };
-}
+      if (folder.parentId) {
+        const [parent] = await ctx.db
+          .select({ isTrashed: s.driveFolder.isTrashed })
+          .from(s.driveFolder)
+          .where(eq(s.driveFolder.id, folder.parentId))
+          .limit(1);
+        if (!parent || parent.isTrashed) {
+          await ctx.db
+            .update(s.driveFolder)
+            .set({ parentId: null, updatedAt: new Date() })
+            .where(eq(s.driveFolder.id, id));
+        }
+      }
 
-export async function restoreFromTrash(
-  { id, itemType }: { id: string; itemType: "file" | "folder" },
-  deps: TrashDeps,
-) {
-  if (itemType === "folder") {
-    return restoreTrashFolder({ id }, deps);
-  }
-  return restoreTrashFile({ id }, deps);
-}
+      const [updated] = await ctx.db
+        .update(s.driveFolder)
+        .set({ isTrashed: false, trashedAt: null, updatedAt: new Date() })
+        .where(eq(s.driveFolder.id, id))
+        .returning();
 
-export async function emptyTrash(
-  opts: EmptyTrashOptions | undefined,
-  { db, pubsub, storageDeps }: TrashDeps,
-) {
-  const parsed = parse(EmptyTrashOptionsSchema, opts ?? {});
+      await ctx.pubsub.publish(DRIVE_EVENTS.RESTORED, {
+        itemId: id,
+        itemType: "folder",
+      });
+      return updated;
+    }
 
-  const folderConditions = [eq(s.driveFolder.isTrashed, true)];
-  const fileConditions = [eq(s.driveFile.isTrashed, true)];
+    const [file] = await ctx.db
+      .select()
+      .from(s.driveFile)
+      .where(eq(s.driveFile.id, id))
+      .limit(1);
+    if (!file) throw new Error(`File with id "${id}" not found.`);
+    if (!file.isTrashed) throw new Error(`File "${id}" is not in trash.`);
 
-  if (parsed.ownerId) {
-    folderConditions.push(eq(s.driveFolder.ownerId, parsed.ownerId));
-    fileConditions.push(eq(s.driveFile.ownerId, parsed.ownerId));
-  }
+    if (file.folderId) {
+      const [folder] = await ctx.db
+        .select({ isTrashed: s.driveFolder.isTrashed })
+        .from(s.driveFolder)
+        .where(eq(s.driveFolder.id, file.folderId))
+        .limit(1);
+      if (!folder || folder.isTrashed) {
+        await ctx.db
+          .update(s.driveFile)
+          .set({ folderId: null, updatedAt: new Date() })
+          .where(eq(s.driveFile.id, id));
+      }
+    }
 
-  const trashedFiles = await db
-    .select({
-      id: s.driveFile.id,
-      storageKey: s.driveFile.storageKey,
-    })
-    .from(s.driveFile)
-    .where(and(...fileConditions));
+    const [updated] = await ctx.db
+      .update(s.driveFile)
+      .set({ isTrashed: false, trashedAt: null, updatedAt: new Date() })
+      .where(eq(s.driveFile.id, id))
+      .returning();
 
-  for (const file of trashedFiles) {
-    await removeStorage({ key: file.storageKey }, storageDeps);
-    await db.delete(s.driveFile).where(eq(s.driveFile.id, file.id));
-
-    await pubsub.publish(DRIVE_EVENTS.PURGED, {
-      itemId: file.id,
+    await ctx.pubsub.publish(DRIVE_EVENTS.RESTORED, {
+      itemId: id,
       itemType: "file",
-      storageKey: file.storageKey,
     });
-  }
+    return updated;
+  });
 
-  const trashedFolders = await db
-    .select({ id: s.driveFolder.id })
-    .from(s.driveFolder)
-    .where(and(...folderConditions));
+export const emptyTrash = Workflow.name("drive.trash.empty")
+  .input(EmptyTrashSchema)
+  .handler(async (input, ctx) => {
+    const validated = input as EmptyTrashOptions | undefined;
 
-  for (const folder of trashedFolders) {
-    await db.delete(s.driveFolder).where(eq(s.driveFolder.id, folder.id));
+    const folderConditions = [eq(s.driveFolder.isTrashed, true)];
+    const fileConditions = [eq(s.driveFile.isTrashed, true)];
 
-    await pubsub.publish(DRIVE_EVENTS.PURGED, {
-      itemId: folder.id,
-      itemType: "folder",
-      storageKey: null,
-    });
-  }
+    if (validated?.ownerId) {
+      folderConditions.push(eq(s.driveFolder.ownerId, validated.ownerId));
+      fileConditions.push(eq(s.driveFile.ownerId, validated.ownerId));
+    }
 
-  return {
-    filesPurged: trashedFiles.length,
-    foldersPurged: trashedFolders.length,
-  };
-}
+    const trashedFiles = await ctx.db
+      .select({ id: s.driveFile.id, storageKey: s.driveFile.storageKey })
+      .from(s.driveFile)
+      .where(and(...fileConditions));
 
-export async function purgeExpired(
-  _input: Record<string, never>,
-  { db, pubsub, storageDeps, config }: TrashDeps,
-): Promise<void> {
+    for (const file of trashedFiles) {
+      await ctx.step.run("remove-storage", async () => {
+        await removeStorage({ key: file.storageKey });
+      });
+      await ctx.db.delete(s.driveFile).where(eq(s.driveFile.id, file.id));
+      await ctx.pubsub.publish(DRIVE_EVENTS.PURGED, {
+        itemId: file.id,
+        itemType: "file",
+        storageKey: file.storageKey,
+      });
+    }
+
+    const trashedFolders = await ctx.db
+      .select({ id: s.driveFolder.id })
+      .from(s.driveFolder)
+      .where(and(...folderConditions));
+
+    for (const folder of trashedFolders) {
+      await ctx.db.delete(s.driveFolder).where(eq(s.driveFolder.id, folder.id));
+      await ctx.pubsub.publish(DRIVE_EVENTS.PURGED, {
+        itemId: folder.id,
+        itemType: "folder",
+        storageKey: null,
+      });
+    }
+
+    return {
+      filesPurged: trashedFiles.length,
+      foldersPurged: trashedFolders.length,
+    };
+  });
+
+export const purgeExpired = Workflow.name("drive.trash.purge-expired")
+  .input(PurgeInputSchema)
+  .handler(async () => {
+    await purgeExpiredInternal();
+  });
+
+/** Runs the auto-purge job using getContext() (invoked from the cron schedule). */
+export async function purgeExpiredInternal(): Promise<void> {
+  const { db, pubsub } = getContext();
+  const config = getDriveConfig();
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - config.trashRetentionDays);
 
   const expiredFiles = await db
-    .select({
-      id: s.driveFile.id,
-      storageKey: s.driveFile.storageKey,
-    })
+    .select({ id: s.driveFile.id, storageKey: s.driveFile.storageKey })
     .from(s.driveFile)
     .where(
       and(
@@ -143,9 +194,8 @@ export async function purgeExpired(
     );
 
   for (const file of expiredFiles) {
-    await removeStorage({ key: file.storageKey }, storageDeps);
+    await removeStorage({ key: file.storageKey });
     await db.delete(s.driveFile).where(eq(s.driveFile.id, file.id));
-
     await pubsub.publish(DRIVE_EVENTS.PURGED, {
       itemId: file.id,
       itemType: "file",
@@ -165,7 +215,6 @@ export async function purgeExpired(
 
   for (const folder of expiredFolders) {
     await db.delete(s.driveFolder).where(eq(s.driveFolder.id, folder.id));
-
     await pubsub.publish(DRIVE_EVENTS.PURGED, {
       itemId: folder.id,
       itemType: "folder",
@@ -174,102 +223,9 @@ export async function purgeExpired(
   }
 }
 
-async function restoreTrashFolder(
-  { id }: { id: string },
-  { db, pubsub }: TrashDeps,
-) {
-  const [folder] = await db
-    .select()
-    .from(s.driveFolder)
-    .where(eq(s.driveFolder.id, id))
-    .limit(1);
-
-  if (!folder) {
-    throw new Error(`Folder with id "${id}" not found.`);
-  }
-  if (!folder.isTrashed) {
-    throw new Error(`Folder "${id}" is not in trash.`);
-  }
-
-  if (folder.parentId) {
-    const [parent] = await db
-      .select({ isTrashed: s.driveFolder.isTrashed })
-      .from(s.driveFolder)
-      .where(eq(s.driveFolder.id, folder.parentId))
-      .limit(1);
-
-    if (!parent || parent.isTrashed) {
-      await db
-        .update(s.driveFolder)
-        .set({ parentId: null, updatedAt: new Date() })
-        .where(eq(s.driveFolder.id, id));
-    }
-  }
-
-  const [updated] = await db
-    .update(s.driveFolder)
-    .set({
-      isTrashed: false,
-      trashedAt: null,
-      updatedAt: new Date(),
-    })
-    .where(eq(s.driveFolder.id, id))
-    .returning();
-
-  await pubsub.publish(DRIVE_EVENTS.RESTORED, {
-    itemId: id,
-    itemType: "folder",
-  });
-
-  return updated;
-}
-
-async function restoreTrashFile(
-  { id }: { id: string },
-  { db, pubsub }: TrashDeps,
-) {
-  const [file] = await db
-    .select()
-    .from(s.driveFile)
-    .where(eq(s.driveFile.id, id))
-    .limit(1);
-
-  if (!file) {
-    throw new Error(`File with id "${id}" not found.`);
-  }
-  if (!file.isTrashed) {
-    throw new Error(`File "${id}" is not in trash.`);
-  }
-
-  if (file.folderId) {
-    const [folder] = await db
-      .select({ isTrashed: s.driveFolder.isTrashed })
-      .from(s.driveFolder)
-      .where(eq(s.driveFolder.id, file.folderId))
-      .limit(1);
-
-    if (!folder || folder.isTrashed) {
-      await db
-        .update(s.driveFile)
-        .set({ folderId: null, updatedAt: new Date() })
-        .where(eq(s.driveFile.id, id));
-    }
-  }
-
-  const [updated] = await db
-    .update(s.driveFile)
-    .set({
-      isTrashed: false,
-      trashedAt: null,
-      updatedAt: new Date(),
-    })
-    .where(eq(s.driveFile.id, id))
-    .returning();
-
-  await pubsub.publish(DRIVE_EVENTS.RESTORED, {
-    itemId: id,
-    itemType: "file",
-  });
-
-  return updated;
-}
+export const trash = {
+  emptyTrash,
+  list: listTrash,
+  purgeExpired,
+  restore: restoreFromTrash,
+};

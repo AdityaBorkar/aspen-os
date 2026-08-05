@@ -8,17 +8,28 @@ PubSub Events (How to handle migrations?)
 
 Do not repeat schemas, import them from the `framework` package using Typed DB Unit that includes these types. Use the RPC/service-calls via the class to call relevant workflows to make changes instead fo duplicating schemas and making changes directly.
 
+Verify the plan implementation and resolve bugs if any. I have made a commit if a diff is needed. refer to latest commit.
+
+Ensure schemas, unlocked postgres tables and signoz integration.
+
+Ensure structured logging (https://loggingsucks.com/) is compliant with OTEL. Aim is to implement the structured logging using OTEL to maintain a single source of universal logging.
+
 /improve-codebase-architecture
 /thermonuclear-code-analysis
 Let's solve the workflow steps and audit logs
 Auth
 
 Use the workflows in ManagementPlane to create a web application
+- DEBUG SECTION Visualize the entire flow and logs on the Management App + SIGNOZ
+  - Logger logs
+  - Workflow logs
+  - Storage Explorer
+  - Pubsub Pipelines
+  - Auth Users
+  - DB CDC
 
 Refactor all modules to be like ./management-plane. Make it a skill
 Update all docs-www
-
----
 
 - Create both apps for DMS. Update Healthcare&Clinic Application to multi-tenant (isolated). Update recruiter to single-tenant.
   - shaun-healthcare
@@ -26,7 +37,12 @@ Update all docs-www
   - recruiter-alpauls
   - recruiter-maitriglobal
   - doclabs
-- Start working on the modules
+
+## `platform`
+
+- Manually read and simplify the `platform` code as much as possible
+- Ensure good code architecture
+- --verbose flag for debugging in the `platform`. Take input a debugLogsDir: "./local/dir/" and store the logs there. Use the request time as the log file name for easier navigation.
 
 ## Workflows Unit
 
@@ -36,12 +52,6 @@ Update all docs-www
 - https://hatchet.run/
 - https://restate.dev/
 - https://inngest.com/
-
-## `platform`
-
-- Manually read and simplify the `platform` code as much as possible
-- Ensure good code architecture
-- --verbose flag for debugging in the `platform`. Take input a debugLogsDir: "./local/dir/" and store the logs there. Use the request time as the log file name for easier navigation.
 
 ## Module Implementation
 

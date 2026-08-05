@@ -22,6 +22,9 @@ export type DrizzleDB<
   TSchemas extends Record<string, unknown> = Record<string, never>,
 > = NodePgDatabase<TSchemas>;
 
+/** Internal db type expected by drizzle-kit's pushSchema. */
+type AnyDrizzleDB = NodePgDatabase<Record<string, never>>;
+
 export class DatabaseUnit<
   TSchemas extends Record<string, unknown> = Record<string, never>,
 > {
@@ -84,7 +87,9 @@ export class DatabaseUnit<
       ssl: config.ssl ? { rejectUnauthorized: false } : false,
       user: config.user,
     });
-    this.controlPlaneDbInstance = drizzle<TSchemas>(this.controlPlanePool);
+    this.controlPlaneDbInstance = drizzle<TSchemas>(
+      this.controlPlanePool,
+    ) as DrizzleDB<TSchemas>;
 
     this.dbWrapper = this.createDbWrapper();
   }
@@ -149,7 +154,7 @@ export class DatabaseUnit<
             : false,
         user: this.tenantDbDefaults?.user ?? this.config.user,
       });
-      const db = drizzle(pool);
+      const db = drizzle(pool) as DrizzleDB<TSchemas>;
       entry = { db, pool };
       this.tenantPools.set(tenantId, entry);
     }
@@ -214,7 +219,7 @@ export class DatabaseUnit<
         ssl: dbConfig.ssl ? { rejectUnauthorized: false } : false,
         user: dbConfig.user,
       });
-      const tenantDb = drizzle(pool);
+      const tenantDb = drizzle(pool) as DrizzleDB<TSchemas>;
       try {
         const allTenantSchemas = {
           ...this.getSchemas(),
@@ -238,7 +243,7 @@ export class DatabaseUnit<
 
   async runWithTenant<T>(
     tenantId: string,
-    fn: (db: DrizzleDB) => T | Promise<T>,
+    fn: (db: DrizzleDB<TSchemas>) => T | Promise<T>,
   ): Promise<T> {
     if (this.tenancyMode !== "shared") {
       throw new Error("runWithTenant is only available in shared tenancy mode");
@@ -250,7 +255,7 @@ export class DatabaseUnit<
         tenantId,
       ]);
       await client.query("SET LOCAL ROLE tenant_role");
-      const db = drizzle(client);
+      const db = drizzle(client) as DrizzleDB<TSchemas>;
       const result = await fn(db);
       await client.query("COMMIT");
       return result;
@@ -264,7 +269,7 @@ export class DatabaseUnit<
 
   async seedTenantDb(
     dbConfig: IsolatedTenantDbConfig,
-    fn: (db: DrizzleDB) => Promise<void>,
+    fn: (db: DrizzleDB<TSchemas>) => Promise<void>,
   ): Promise<void> {
     const pool = new pg.Pool({
       database: dbConfig.database,
@@ -275,14 +280,14 @@ export class DatabaseUnit<
       user: dbConfig.user,
     });
     try {
-      const db = drizzle(pool);
+      const db = drizzle(pool) as DrizzleDB<TSchemas>;
       await fn(db);
     } finally {
       await pool.end();
     }
   }
 
-  async applyRlsPolicies(db: DrizzleDB): Promise<void> {
+  async applyRlsPolicies(db: DrizzleDB<TSchemas>): Promise<void> {
     await db.execute(sql`
       DO $$ BEGIN
         CREATE ROLE tenant_role NOLOGIN;
@@ -338,12 +343,12 @@ export class DatabaseUnit<
   }
 
   protected async pushSchemasTo(
-    db: DrizzleDB,
+    db: DrizzleDB<TSchemas>,
     schemas: Record<string, unknown>,
   ): Promise<void> {
     const { pushSchema } = await import("drizzle-kit/api");
 
-    const result = await pushSchema(schemas, db);
+    const result = await pushSchema(schemas, db as unknown as AnyDrizzleDB);
     if (result.statementsToExecute.length > 0) {
       console.log(`Applying ${result.statementsToExecute.length} Statements`);
       if (result.hasDataLoss) {
@@ -379,7 +384,9 @@ export class DatabaseUnit<
     }
   }
 
-  private async discoverTenantTables(db: DrizzleDB): Promise<string[]> {
+  private async discoverTenantTables(
+    db: DrizzleDB<TSchemas>,
+  ): Promise<string[]> {
     const result = await db.execute(
       sql`
         SELECT table_name
@@ -394,9 +401,9 @@ export class DatabaseUnit<
       .filter((name) => /^[a-z_][a-z0-9_]*$/.test(name));
   }
 
-  private createDbWrapper(): DrizzleDB {
+  private createDbWrapper(): DrizzleDB<TSchemas> {
     const self = this;
-    return new Proxy({} as DrizzleDB, {
+    return new Proxy({} as DrizzleDB<TSchemas>, {
       get(_target, prop) {
         const ctx = context.getStore();
         const realDb = ctx?.db ?? self.controlPlaneDbInstance;

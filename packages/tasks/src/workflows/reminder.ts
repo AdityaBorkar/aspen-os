@@ -1,223 +1,218 @@
+import { Workflow, WorkflowStep } from "@aspen-os/platform/server";
 import { and, eq, lte } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { parse } from "valibot";
 
 import { reminder, task } from "../db-schema";
-import type { NotificationBridgeDeps } from "../services/notification-bridge";
-import { publishReminderFired } from "../services/notification-bridge";
-import type {
-  CreateReminderInput,
-  ReminderFilters,
-  UpdateReminderInput,
-} from "../types";
+import { REMINDER_EVENTS } from "../pubsub-events";
+import type { ReminderFilters, UpdateReminderInput } from "../types";
 import {
   CreateReminderSchema,
   ReminderFiltersSchema,
   UpdateReminderSchema,
 } from "../types";
 
-export interface ReminderServiceDeps {
-  db: NodePgDatabase;
-  notificationBridge: NotificationBridgeDeps | null;
-}
+type DrizzleDB = NodePgDatabase<Record<string, never>>;
 
-export async function createReminder(
-  input: CreateReminderInput,
-  deps: ReminderServiceDeps,
-) {
-  const { db } = deps;
-  const parsed = parse(CreateReminderSchema, input);
+const fetchReminderStep = WorkflowStep.name("fetch-reminder").handler(
+  async (input: { id: string }, ctx) => {
+    const [result] = await ctx.db
+      .select()
+      .from(reminder)
+      .where(eq(reminder.id, input.id))
+      .limit(1);
 
-  const [result] = await db
-    .insert(reminder)
-    .values({
-      interval: parsed.interval ?? null,
-      isRecurring: parsed.isRecurring ?? false,
-      message: parsed.message ?? null,
-      remindAt: parsed.remindAt,
-      taskId: parsed.taskId,
-      type: parsed.type,
-      userId: parsed.userId,
-    })
-    .returning();
+    if (!result) {
+      throw new Error(`Reminder with id "${input.id}" not found.`);
+    }
 
-  return result;
-}
+    return result;
+  },
+);
 
-export async function updateReminder(
-  id: string,
-  patch: UpdateReminderInput,
-  deps: ReminderServiceDeps,
-) {
-  const { db } = deps;
-  await getReminderById(id, deps);
-  const parsed = parse(UpdateReminderSchema, patch);
+const createReminder = Workflow.name("reminder.create")
+  .input(CreateReminderSchema)
+  .handler(async (parsed, ctx) => {
+    const [result] = await ctx.db
+      .insert(reminder)
+      .values({
+        interval: parsed.interval ?? null,
+        isRecurring: parsed.isRecurring ?? false,
+        message: parsed.message ?? null,
+        remindAt: parsed.remindAt,
+        taskId: parsed.taskId,
+        type: parsed.type,
+        userId: parsed.userId,
+      })
+      .returning();
 
-  const [updated] = await db
-    .update(reminder)
-    .set({
-      interval: parsed.interval,
-      isRecurring: parsed.isRecurring,
-      isSent: parsed.isSent,
-      message: parsed.message,
-      remindAt: parsed.remindAt,
-    })
-    .where(eq(reminder.id, id))
-    .returning();
+    return result;
+  });
 
-  return updated;
-}
+const updateReminder = Workflow.name("reminder.update").handler(
+  async (input: { id: string; patch: UpdateReminderInput }, ctx) => {
+    await ctx.step.run(fetchReminderStep, { id: input.id });
+    const parsed = parse(UpdateReminderSchema, input.patch);
 
-export async function deleteReminder(id: string, deps: ReminderServiceDeps) {
-  const { db } = deps;
-  await db.delete(reminder).where(eq(reminder.id, id));
-}
+    const [updated] = await ctx.db
+      .update(reminder)
+      .set({
+        interval: parsed.interval,
+        isRecurring: parsed.isRecurring,
+        isSent: parsed.isSent,
+        message: parsed.message,
+        remindAt: parsed.remindAt,
+      })
+      .where(eq(reminder.id, input.id))
+      .returning();
 
-export async function getReminderById(id: string, deps: ReminderServiceDeps) {
-  const { db } = deps;
-  const [result] = await db
-    .select()
-    .from(reminder)
-    .where(eq(reminder.id, id))
-    .limit(1);
+    return updated;
+  },
+);
 
-  if (!result) {
-    throw new Error(`Reminder with id "${id}" not found.`);
-  }
+const deleteReminder = Workflow.name("reminder.delete").handler(
+  async (input: { id: string }, ctx) => {
+    await ctx.db.delete(reminder).where(eq(reminder.id, input.id));
+  },
+);
 
-  return result;
-}
+const getReminderById = Workflow.name("reminder.get").handler(
+  async (input: { id: string }, ctx) => {
+    return ctx.step.run(fetchReminderStep, { id: input.id });
+  },
+);
 
-export async function listReminders(
-  filters: ReminderFilters | undefined,
-  deps: ReminderServiceDeps,
-) {
-  const { db } = deps;
-  const parsed = filters ? parse(ReminderFiltersSchema, filters) : {};
-  const conditions = [];
+const listReminders = Workflow.name("reminder.list").handler(
+  async (input: { filters?: ReminderFilters }, ctx) => {
+    return ctx.step.run("query", async () => {
+      const parsed = input.filters
+        ? parse(ReminderFiltersSchema, input.filters)
+        : {};
+      const conditions = [];
 
-  if (parsed.taskId) {
-    conditions.push(eq(reminder.taskId, parsed.taskId));
-  }
-  if (parsed.userId) {
-    conditions.push(eq(reminder.userId, parsed.userId));
-  }
-  if (parsed.type) {
-    conditions.push(eq(reminder.type, parsed.type));
-  }
-  if (parsed.isSent !== undefined) {
-    conditions.push(eq(reminder.isSent, parsed.isSent));
-  }
+      if (parsed.taskId) {
+        conditions.push(eq(reminder.taskId, parsed.taskId));
+      }
+      if (parsed.userId) {
+        conditions.push(eq(reminder.userId, parsed.userId));
+      }
+      if (parsed.type) {
+        conditions.push(eq(reminder.type, parsed.type));
+      }
+      if (parsed.isSent !== undefined) {
+        conditions.push(eq(reminder.isSent, parsed.isSent));
+      }
 
-  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+      const whereClause =
+        conditions.length > 0 ? and(...conditions) : undefined;
 
-  return db.select().from(reminder).where(whereClause);
-}
+      return ctx.db.select().from(reminder).where(whereClause);
+    });
+  },
+);
 
-export async function getPendingReminders(deps: ReminderServiceDeps) {
-  const { db } = deps;
-  return db
-    .select()
-    .from(reminder)
-    .where(and(eq(reminder.isSent, false), lte(reminder.remindAt, new Date())));
-}
+const getPendingReminders = Workflow.name("reminder.get-pending").handler(
+  async (_input: undefined, ctx) => {
+    return ctx.step.run("query", async () => {
+      return ctx.db
+        .select()
+        .from(reminder)
+        .where(
+          and(eq(reminder.isSent, false), lte(reminder.remindAt, new Date())),
+        );
+    });
+  },
+);
 
-export async function processPendingReminders(
-  deps: ReminderServiceDeps,
-): Promise<number> {
-  const { db, notificationBridge } = deps;
-  const pending = await getPendingReminders(deps);
+const processPendingReminders = Workflow.name(
+  "reminder.process-pending",
+).handler(async (_input: undefined, ctx) => {
+  const pending = await getPendingReminders.run(undefined);
+
   let processed = 0;
 
   for (const r of pending) {
-    if (notificationBridge) {
-      await publishReminderFired(
-        {
-          reminder: { id: r.id, type: r.type, userId: r.userId },
-          taskId: r.taskId,
-        },
-        notificationBridge,
-      );
-    }
+    await ctx.pubsub.publish(REMINDER_EVENTS.FIRED, {
+      reminder: { id: r.id, type: r.type, userId: r.userId },
+      taskId: r.taskId,
+    });
 
-    await db
+    await ctx.db
       .update(reminder)
       .set({ isSent: true })
       .where(eq(reminder.id, r.id));
 
     if (r.isRecurring && r.interval) {
-      await scheduleNextOccurrence(r, deps);
+      await scheduleNextOccurrence(ctx.db, r);
     }
 
     processed++;
   }
 
   return processed;
-}
+});
 
-export async function createDueDateReminders(
-  taskId: string,
-  dueDate: Date,
-  userId: string,
-  deps: ReminderServiceDeps,
-): Promise<void> {
-  const { db } = deps;
-  const oneDayBefore = new Date(dueDate.getTime() - 24 * 60 * 60 * 1000);
-  const oneHourBefore = new Date(dueDate.getTime() - 60 * 60 * 1000);
+const createDueDateReminders = Workflow.name(
+  "reminder.create-due-date",
+).handler(
+  async (input: { taskId: string; dueDate: Date; userId: string }, ctx) => {
+    const { taskId, dueDate, userId } = input;
+    const oneDayBefore = new Date(dueDate.getTime() - 24 * 60 * 60 * 1000);
+    const oneHourBefore = new Date(dueDate.getTime() - 60 * 60 * 1000);
 
-  await db.insert(reminder).values([
-    {
-      interval: null,
-      isRecurring: false,
-      remindAt: oneDayBefore,
+    await ctx.db.insert(reminder).values([
+      {
+        interval: null,
+        isRecurring: false,
+        remindAt: oneDayBefore,
+        taskId,
+        type: "due_date",
+        userId,
+      },
+      {
+        interval: null,
+        isRecurring: false,
+        remindAt: oneHourBefore,
+        taskId,
+        type: "due_date",
+        userId,
+      },
+      {
+        interval: null,
+        isRecurring: false,
+        remindAt: dueDate,
+        taskId,
+        type: "due_date",
+        userId,
+      },
+    ]);
+  },
+);
+
+const createOverdueReminder = Workflow.name("reminder.create-overdue").handler(
+  async (input: { taskId: string; userId: string }, ctx) => {
+    const { taskId, userId } = input;
+    const [taskRow] = await ctx.db
+      .select({ dueDate: task.dueDate })
+      .from(task)
+      .where(eq(task.id, taskId))
+      .limit(1);
+
+    if (!taskRow?.dueDate) return;
+
+    await ctx.db.insert(reminder).values({
+      interval: "daily",
+      isRecurring: true,
+      remindAt: new Date(),
       taskId,
-      type: "due_date",
+      type: "overdue",
       userId,
-    },
-    {
-      interval: null,
-      isRecurring: false,
-      remindAt: oneHourBefore,
-      taskId,
-      type: "due_date",
-      userId,
-    },
-    {
-      interval: null,
-      isRecurring: false,
-      remindAt: dueDate,
-      taskId,
-      type: "due_date",
-      userId,
-    },
-  ]);
-}
-
-export async function createOverdueReminder(
-  taskId: string,
-  userId: string,
-  deps: ReminderServiceDeps,
-): Promise<void> {
-  const { db } = deps;
-  const [taskRow] = await db
-    .select({ dueDate: task.dueDate })
-    .from(task)
-    .where(eq(task.id, taskId))
-    .limit(1);
-
-  if (!taskRow?.dueDate) return;
-
-  await db.insert(reminder).values({
-    interval: "daily",
-    isRecurring: true,
-    remindAt: new Date(),
-    taskId,
-    type: "overdue",
-    userId,
-  });
-}
+    });
+  },
+);
 
 async function scheduleNextOccurrence(
+  db: DrizzleDB,
   r: {
     id: string;
     interval: string | null;
@@ -226,9 +221,7 @@ async function scheduleNextOccurrence(
     type: string;
     userId: string;
   },
-  deps: ReminderServiceDeps,
 ): Promise<void> {
-  const { db } = deps;
   if (!r.interval) return;
 
   const nextDate = computeNextOccurrence(r.remindAt, r.interval);
@@ -264,3 +257,15 @@ function computeNextOccurrence(current: Date, interval: string): Date | null {
       return null;
   }
 }
+
+export const reminders = {
+  create: createReminder,
+  createDueDateReminders,
+  createOverdueReminder,
+  delete: deleteReminder,
+  get: getReminderById,
+  getPending: getPendingReminders,
+  list: listReminders,
+  processPending: processPendingReminders,
+  update: updateReminder,
+};

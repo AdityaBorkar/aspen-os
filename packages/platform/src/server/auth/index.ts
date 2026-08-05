@@ -66,7 +66,8 @@ export class AuthUnit implements Unit {
 
   constructor(
     config: AuthConfig,
-    units: { db: DatabaseUnit; pubsub: PubSubUnit },
+    // biome-ignore lint/suspicious/noExplicitAny: drizzle NodePgDatabase invariance forces any here
+    units: { db: DatabaseUnit<any>; pubsub: PubSubUnit },
   ) {
     this.#config = config;
     this.#db = units.db.controlPlaneDb;
