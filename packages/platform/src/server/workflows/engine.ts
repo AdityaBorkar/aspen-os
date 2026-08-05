@@ -1,3 +1,4 @@
+import { SchemaError } from "@standard-schema/utils";
 import { and, eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
@@ -15,28 +16,6 @@ import type {
 
 type DrizzleDB = NodePgDatabase<Record<string, never>>;
 
-interface ValidationIssue {
-  expected?: unknown;
-  message: string;
-  path?: ReadonlyArray<{ key?: string; input?: unknown; value?: unknown }>;
-  received?: unknown;
-}
-
-function formatValue(value: unknown): string {
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return String(value);
-  }
-}
-
-function formatPath(path?: ValidationIssue["path"]): string {
-  if (!path || path.length === 0) return "";
-  return ` at ${path
-    .map((segment) => segment.key ?? formatValue(segment.value))
-    .join(".")}`;
-}
-
 function generateId(): string {
   return crypto.randomUUID();
 }
@@ -52,45 +31,17 @@ function serializeError(error: unknown): Record<string, unknown> {
   return { message: String(error), name: "Error" };
 }
 
-async function validateInput<T>(
+async function validateInput(
   schema: StandardSchema,
   input: unknown,
-  descriptor: string,
-): Promise<T> {
-  const result = (await schema["~standard"].validate(input)) as any;
-  // as
-  // | {
-  //     success: boolean;
-  //     value?: unknown;
-  //     issues?: ReadonlyArray<ValidationIssue>;
-  //   }
-  // | Promise<{
-  //     success: boolean;
-  //     value?: unknown;
-  //     issues?: ReadonlyArray<ValidationIssue>;
-  //   }>;
-  console.log(result);
-  if (!result.success) {
-    // @ts-expect-error
-    const details = (result.issues ?? []).map((issue) => {
-      const expected = issue.expected
-        ? `; expected ${formatValue(issue.expected)}`
-        : "";
-      const received =
-        typeof issue.received === "undefined"
-          ? ""
-          : `; received ${formatValue(issue.received)}`;
-      return `${issue.message}${formatPath(issue.path)}${expected}${received}`;
-    });
-    const lines = [
-      `Workflow input validation failed for ${descriptor}`,
-      `Input: ${formatValue(input)}`,
-      // @ts-expect-error
-      ...details.map((d) => `  - ${d}`),
-    ];
-    throw new Error(lines.join("\n"));
+): Promise<unknown> {
+  const result = await schema["~standard"].validate(input);
+
+  if (result.issues) {
+    throw new SchemaError(result.issues);
   }
-  return result.value as T;
+
+  return result.value;
 }
 
 async function executeStep<T>(
@@ -184,7 +135,6 @@ function createStepRunner(
   db: DrizzleDB,
   getCtx: () => WorkflowContext,
   runId: string,
-  configName: string,
 ): StepRunner {
   return {
     run: ((
@@ -210,11 +160,7 @@ function createStepRunner(
         async () => {
           let validated = input;
           if (step.schema) {
-            validated = await validateInput(
-              step.schema,
-              input,
-              `step "${step.name}" of workflow "${configName}"`,
-            );
+            validated = await validateInput(step.schema, input);
           }
           return step.handler(validated, getCtx());
         },
@@ -244,11 +190,7 @@ export async function executeWorkflow<TInput, TOutput>(
   }
 
   if (config.schema) {
-    input = await validateInput<TInput>(
-      config.schema,
-      input,
-      `workflow "${config.name}"`,
-    );
+    input = (await validateInput(config.schema, input)) as TInput;
   }
 
   const runId = generateId();
@@ -270,7 +212,7 @@ export async function executeWorkflow<TInput, TOutput>(
     config: options?.config ?? {},
     db,
     pubsub,
-    step: createStepRunner(db, getCtx, runId, config.name),
+    step: createStepRunner(db, getCtx, runId),
   };
 
   try {

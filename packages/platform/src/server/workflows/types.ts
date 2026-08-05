@@ -1,3 +1,4 @@
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 import type { AuthUnit } from "../auth";
@@ -5,23 +6,15 @@ import type { PubSubUnit } from "../pubsub";
 
 type DrizzleDB = NodePgDatabase<Record<string, never>>;
 
-export interface StandardSchema {
-  readonly "~standard": {
-    readonly version: 1;
-    readonly vendor: string;
-    readonly validate: (value: unknown) => unknown;
-    readonly types?: {
-      readonly input: unknown;
-      readonly output: unknown;
-    };
-  };
-}
+/** A Standard Schema v1 compatible schema. */
+export type StandardSchema<Input = unknown, Output = Input> = StandardSchemaV1<
+  Input,
+  Output
+>;
 
-export type InferSchemaOutput<T> = T extends {
-  readonly "~standard": { readonly types?: { readonly output: infer O } };
-}
-  ? O
-  : unknown;
+/** Infers the validated output type of a Standard Schema. */
+export type InferSchemaOutput<TSchema extends StandardSchema> =
+  StandardSchemaV1.InferOutput<TSchema>;
 
 export interface StepOptions {
   retries?: number;

@@ -27,6 +27,8 @@
   },
   "workspaces": {
     "catalog": {
+      "@standard-schema/spec": "^1.1.0",
+      "@standard-schema/utils": "^0.3.0",
       "@types/bun": "^1.3.14",
       "bun": "^1.3.14",
       "drizzle-orm": "^0.45.2",

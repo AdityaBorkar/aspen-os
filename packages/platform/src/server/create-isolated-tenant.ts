@@ -98,21 +98,6 @@ export class IsolatedTenantPlatform<M extends Module[]> extends Base<M> {
       }
     }
 
-    console.log("Writing schema files...");
-
-    Bun.write(
-      join(process.cwd(), "./acl.ts"),
-      `export const acl = ${JSON.stringify(mergedAcl)};`,
-    );
-    Bun.write(
-      join(process.cwd(), "./control-plane-schemas.ts"),
-      `export const controlPlaneSchemas = ${JSON.stringify(mergedControlPlaneSchemas)};`,
-    );
-    Bun.write(
-      join(process.cwd(), "./tenant-schemas.ts"),
-      `export const tenantSchemas = ${JSON.stringify(mergedTenantSchemas)};`,
-    );
-
     await this.units.db.prepareWithModules(
       mergedControlPlaneSchemas,
       mergedTenantSchemas,
