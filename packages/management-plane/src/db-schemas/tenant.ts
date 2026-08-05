@@ -8,7 +8,7 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 
-import { TENANT_STATUS } from "../constants";
+import { TENANT_STATUS } from "../utils/constants";
 
 export const tenantStatusEnum = pgEnum("tenant_status", [
   TENANT_STATUS.ACTIVE,

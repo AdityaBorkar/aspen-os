@@ -2,9 +2,8 @@ import { Workflow, WorkflowStep } from "@aspen-os/platform/server";
 import { and, eq, type SQL } from "drizzle-orm";
 import { object, optional, parse } from "valibot";
 
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, ROLES } from "../constants";
 import { serviceProvider, user } from "../db-schemas";
-import { PLATFORM_USER_EVENTS } from "../pubsub-events";
+import { PLATFORM_USER_EVENTS } from "../pubsub";
 import type {
   CreatePlatformUserInput,
   PlatformUserFilters,
@@ -17,6 +16,7 @@ import {
   RoleSchema,
   UpdatePlatformUserSchema,
 } from "../types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, ROLES } from "../utils/constants";
 import { logAuditStep } from "./steps/log-audit";
 
 const CreateInputSchema = object({
@@ -102,7 +102,7 @@ const createUser = Workflow.name("user.create").handler(
       throw new Error("Password is required for user creation.");
     }
 
-    const response = await (auth.service as any).api.createUser({
+    const response = await auth.service.api.createUser({
       body: {
         email: parsed.email,
         name: parsed.name,
@@ -224,7 +224,7 @@ const updateUser = Workflow.name("user.update").handler(
           changes.name = patch.name;
         }
         if (patch.role !== undefined) {
-          updateData.role = patch.role;
+          updateData.role = String(patch.role);
           changes.role = patch.role;
         }
 
@@ -295,7 +295,7 @@ const assignRole = Workflow.name("user.assign-role").handler(
 
     await ctx.step.run("assign-auth-role", async () => {
       await auth._.user.role.assign({
-        roleName: role,
+        roleName: String(role),
         userId: id,
       });
     });

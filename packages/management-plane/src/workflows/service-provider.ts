@@ -2,9 +2,8 @@ import { Workflow, WorkflowStep } from "@aspen-os/platform/server";
 import { and, eq, ilike, or, type SQL } from "drizzle-orm";
 import { object, optional, parse } from "valibot";
 
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, SP_STATUS } from "../constants";
 import { serviceProvider, tenant, user } from "../db-schemas";
-import { SERVICE_PROVIDER_EVENTS } from "../pubsub-events";
+import { SERVICE_PROVIDER_EVENTS } from "../pubsub";
 import type {
   CreateServiceProviderInput,
   ServiceProviderFilters,
@@ -16,6 +15,7 @@ import {
   ServiceProviderFiltersSchema,
   UpdateServiceProviderSchema,
 } from "../types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, SP_STATUS } from "../utils/constants";
 import { logAuditStep } from "./steps/log-audit";
 import { stripUndefined } from "./utils";
 
@@ -155,7 +155,7 @@ const updateSp = Workflow.name("sp.update").handler(
 
     await ctx.pubsub.publish(SERVICE_PROVIDER_EVENTS.UPDATED, {
       changes: data,
-      serviceProvider: { id, name: (data.name as string) ?? "" },
+      serviceProvider: { id, name: data.name ?? "" },
     });
 
     return ctx.step.run(fetchServiceProviderStep, { id });

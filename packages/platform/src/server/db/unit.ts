@@ -132,7 +132,7 @@ export class DatabaseUnit {
 
     let entry = this.tenantPools.get(tenantId);
     if (!entry) {
-      const database = await this.resolver!.resolve(tenantId);
+      const database = await this.resolver?.resolve(tenantId);
       const pool = new pg.Pool({
         database,
         host: this.tenantDbDefaults?.host ?? this.config.host,

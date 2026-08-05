@@ -3,7 +3,6 @@ import type { LogsUnit } from "./logs";
 import type { RpcUnit } from "./rpc";
 
 declare global {
-  // biome-ignore lint/suspicious/noExplicitAny: Global variable for client-side context access
   var aspen: ClientContext | undefined;
 }
 

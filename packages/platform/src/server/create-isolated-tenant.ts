@@ -128,7 +128,7 @@ export class IsolatedTenantPlatform<M extends Module[]> extends Base<M> {
     }
 
     try {
-      const tenantIds = await this.dbUnit.resolver!.list();
+      const tenantIds = (await this.dbUnit.resolver?.list()) || [];
       for (const tenantId of tenantIds) {
         if (isGlobalTenantId(tenantId)) continue;
         const tenantDb = await this.dbUnit.getTenantDb(tenantId);

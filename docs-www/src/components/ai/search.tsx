@@ -307,7 +307,7 @@ function Message({
   let markdown = "";
   const searchCalls: UIToolInvocation<SearchTool>[] = [];
 
-  for (const part of message.parts ?? []) {
+  for (const part of message.parts) {
     if (part.type === "text") {
       markdown += part.text;
       continue;

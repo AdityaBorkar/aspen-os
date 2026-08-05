@@ -7,7 +7,7 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../constants";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../utils/constants";
 
 export const auditActionEnum = pgEnum("audit_action", [
   AUDIT_ACTION.TENANT_PROVISIONED,

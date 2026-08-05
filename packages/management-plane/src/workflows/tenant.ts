@@ -7,9 +7,8 @@ import {
 import { and, eq, ilike, or, type SQL } from "drizzle-orm";
 import { object, optional, parse, string } from "valibot";
 
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../constants";
 import { organization, serviceProvider, tenant } from "../db-schemas";
-import { TENANT_EVENTS } from "../pubsub-events";
+import { TENANT_EVENTS } from "../pubsub";
 import {
   IdSchema,
   ProvisionTenantSchema,
@@ -17,6 +16,7 @@ import {
   UpdateTenantCompanionSchema,
   UpdateTenantProfileSchema,
 } from "../types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../utils/constants";
 import { logAuditStep } from "./steps/log-audit";
 import { stripUndefined } from "./utils";
 
@@ -57,7 +57,7 @@ function createOnboardTenant(dbUnit: DatabaseUnit) {
       const parsedUserId = parse(IdSchema, input.userId);
 
       const org = await ctx.step.run("create-organization", async () => {
-        return (auth.service as any).api.createOrganization({
+        return auth.service.api.createOrganization({
           body: {
             logo: parsed.logo ?? undefined,
             name: parsed.name,
@@ -93,7 +93,7 @@ function createOnboardTenant(dbUnit: DatabaseUnit) {
           err,
         );
         try {
-          await (auth.service as any).api.deleteOrganization({
+          await auth.service.api.deleteOrganization({
             body: { organizationId: tenantId },
             headers: new Headers(),
           });

@@ -1,6 +1,6 @@
 import { index, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
-import { SP_STATUS } from "../constants";
+import { SP_STATUS } from "../utils/constants";
 
 export const serviceProviderStatusEnum = pgEnum("service_provider_status", [
   SP_STATUS.ACTIVE,
