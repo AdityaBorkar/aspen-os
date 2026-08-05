@@ -232,9 +232,11 @@ function List(props: Omit<ComponentProps<"div">, "dir">) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // biome-ignore lint/suspicious/noUnnecessaryConditions: Bug in Biome
     if (!containerRef.current) return;
     function callback() {
       const container = containerRef.current;
+      // biome-ignore lint/suspicious/noUnnecessaryConditions: Bug in Biome
       if (!container) return;
 
       container.scrollTo({

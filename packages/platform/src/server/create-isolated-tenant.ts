@@ -25,7 +25,7 @@ export type IsolatedTenantConfig = CommonConfig & {
 export type IsolatedTenantPlatformInstance<M extends Module[]> =
   IsolatedTenantPlatform<M> &
     UnitAccessors &
-    ArrayModuleAccessors<ExtractModuleNames<M>[number]>;
+    ArrayModuleAccessors<M, ExtractModuleNames<M>[number]>;
 
 export class IsolatedTenantPlatform<M extends Module[]> extends Base<M> {
   private readonly dbUnit: DatabaseUnit;

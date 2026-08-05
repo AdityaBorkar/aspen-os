@@ -57,20 +57,22 @@ async function validateInput<T>(
   input: unknown,
   descriptor: string,
 ): Promise<T> {
-  const result = schema["~standard"].validate(input) as
-    | {
-        success: boolean;
-        value?: unknown;
-        issues?: ReadonlyArray<ValidationIssue>;
-      }
-    | Promise<{
-        success: boolean;
-        value?: unknown;
-        issues?: ReadonlyArray<ValidationIssue>;
-      }>;
-  const awaited = result instanceof Promise ? await result : result;
-  if (!awaited.success) {
-    const details = (awaited.issues ?? []).map((issue) => {
+  const result = (await schema["~standard"].validate(input)) as any;
+  // as
+  // | {
+  //     success: boolean;
+  //     value?: unknown;
+  //     issues?: ReadonlyArray<ValidationIssue>;
+  //   }
+  // | Promise<{
+  //     success: boolean;
+  //     value?: unknown;
+  //     issues?: ReadonlyArray<ValidationIssue>;
+  //   }>;
+  console.log(result);
+  if (!result.success) {
+    // @ts-expect-error
+    const details = (result.issues ?? []).map((issue) => {
       const expected = issue.expected
         ? `; expected ${formatValue(issue.expected)}`
         : "";
@@ -83,11 +85,12 @@ async function validateInput<T>(
     const lines = [
       `Workflow input validation failed for ${descriptor}`,
       `Input: ${formatValue(input)}`,
+      // @ts-expect-error
       ...details.map((d) => `  - ${d}`),
     ];
     throw new Error(lines.join("\n"));
   }
-  return awaited.value as T;
+  return result.value as T;
 }
 
 async function executeStep<T>(

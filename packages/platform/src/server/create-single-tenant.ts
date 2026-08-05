@@ -18,7 +18,7 @@ export type SingleTenantConfig = CommonConfig & {
 export type SingleTenantPlatformInstance<M extends Module[]> =
   SingleTenantPlatform<M> &
     UnitAccessors &
-    ArrayModuleAccessors<ExtractModuleNames<M>[number]>;
+    ArrayModuleAccessors<M, ExtractModuleNames<M>[number]>;
 
 export class SingleTenantPlatform<M extends Module[]> extends Base<M> {
   constructor(units: PlatformUnits, modules: M) {

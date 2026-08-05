@@ -1,16 +1,16 @@
 import { type InferOutput, nullable, object, optional, string } from "valibot";
 
-import { NameSchema, SlugSchema } from "./utils";
+import { EmailSchema, NameSchema, SlugSchema, WebsiteSchema } from "./utils";
 
 export const CreateServiceProviderSchema = object({
   address: optional(nullable(string())),
   description: optional(nullable(string())),
-  email: optional(nullable(string())),
+  email: EmailSchema,
   logo: optional(nullable(string())),
   name: NameSchema,
   phone: optional(nullable(string())),
   slug: SlugSchema,
-  website: optional(nullable(string())),
+  website: WebsiteSchema,
 });
 
 export type CreateServiceProviderInput = InferOutput<
@@ -18,14 +18,14 @@ export type CreateServiceProviderInput = InferOutput<
 >;
 
 export const UpdateServiceProviderSchema = object({
-  address: optional(nullable(string())),
-  description: optional(nullable(string())),
-  email: optional(nullable(string())),
-  logo: optional(nullable(string())),
+  address: optional(string()),
+  description: optional(string()),
+  email: optional(EmailSchema),
+  logo: optional(string()),
   name: optional(NameSchema),
-  phone: optional(nullable(string())),
+  phone: optional(string()),
   slug: optional(SlugSchema),
-  website: optional(nullable(string())),
+  website: optional(WebsiteSchema),
 });
 
 export type UpdateServiceProviderInput = InferOutput<

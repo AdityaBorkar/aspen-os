@@ -95,8 +95,11 @@ export type ModuleAccessors<M extends Record<string, Module>> = {
 
 import type { ExtractModuleNames } from "./base-platform";
 
-export type ArrayModuleAccessors<Names extends string> = {
-  [K in Names]: Extract<Module, { $name: K }>;
+export type ArrayModuleAccessors<
+  M extends Module[],
+  Names extends M[number]["$name"],
+> = {
+  [K in Names]: Extract<M[number], { $name: K }>;
 };
 
 export type PlatformInstance<M extends Module[]> = {
@@ -108,7 +111,7 @@ export type PlatformInstance<M extends Module[]> = {
   ): Extract<M[number], { $name: K }>;
   getUnit<K extends keyof PlatformUnits>(name: K): PlatformUnits[K];
 } & UnitAccessors &
-  ArrayModuleAccessors<ExtractModuleNames<M>[number]>;
+  ArrayModuleAccessors<M, ExtractModuleNames<M>[number]>;
 
 export { BasePlatform, type CommonConfig } from "./base-platform";
 export {

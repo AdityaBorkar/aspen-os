@@ -18,13 +18,16 @@ type ExtractModuleNames<M extends Module[]> = {
   [K in keyof M]: M[K] extends { $name: infer N extends string } ? N : never;
 };
 
-export type ModuleAccessors<Names extends string> = {
-  [K in Names]: Extract<Module, { $name: K }>;
+export type ModuleAccessors<
+  M extends Module[],
+  Names extends M[number]["$name"],
+> = {
+  [K in Names]: Extract<M[number], { $name: K }>;
 };
 
 export type PlatformInstance<M extends Module[]> = Platform<M> &
   UnitAccessors &
-  ModuleAccessors<ExtractModuleNames<M>[number]>;
+  ModuleAccessors<M, ExtractModuleNames<M>[number]>;
 
 export class Platform<M extends Module[]> implements UnitAccessors {
   declare readonly auth: PlatformUnits["auth"];

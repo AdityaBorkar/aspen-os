@@ -7,10 +7,8 @@ import { CreatePlatformUserSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, ROLES } from "../utils/constants";
 import { logAuditStep } from "./steps/log-audit";
 
-const CreateInputSchema = CreatePlatformUserSchema;
-
 export const createUser = Workflow.name("user.create")
-  .input(CreateInputSchema)
+  .input(CreatePlatformUserSchema)
   .handler(async (input, ctx) => {
     if (!ctx.auth) throw new Error("Auth is required for user creation");
     const auth = ctx.auth;

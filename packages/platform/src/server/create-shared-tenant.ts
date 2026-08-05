@@ -19,7 +19,7 @@ export type SharedTenantConfig = CommonConfig & {
 export type SharedTenantPlatformInstance<M extends Module[]> =
   SharedTenantPlatform<M> &
     UnitAccessors &
-    ArrayModuleAccessors<ExtractModuleNames<M>[number]>;
+    ArrayModuleAccessors<M, ExtractModuleNames<M>[number]>;
 
 export class SharedTenantPlatform<M extends Module[]> extends Base<M> {
   private readonly dbUnit: DatabaseUnit;

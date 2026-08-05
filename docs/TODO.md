@@ -6,6 +6,10 @@ PubSub Events (How to handle migrations?)
 
 ---
 
+Module Types
+
+Auth
+
 Let's solve the workflow steps
 
 Do not repeat schemas, import them from the `framework` package using Typed DB Unit that includes these types

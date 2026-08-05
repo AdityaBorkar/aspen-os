@@ -1,5 +1,3 @@
-import { join } from "node:path";
-
 import { sql } from "drizzle-orm";
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import pg from "pg";
@@ -336,24 +334,6 @@ export class DatabaseUnit {
     schemas: Record<string, unknown>,
   ): Promise<void> {
     const { pushSchema } = await import("drizzle-kit/api");
-
-    function circularReplacer() {
-      const seen = new WeakSet();
-      return (_key: string, value: any) => {
-        if (typeof value === "object" && value !== null) {
-          if (seen.has(value)) {
-            return "[Circular]";
-          }
-          seen.add(value);
-        }
-        return value;
-      };
-    }
-
-    Bun.write(
-      join(process.cwd(), "./schema.ts"),
-      `export const schema = ${JSON.stringify(schemas, circularReplacer(), 2)};`,
-    );
 
     const result = await pushSchema(schemas, db);
     if (result.statementsToExecute.length > 0) {

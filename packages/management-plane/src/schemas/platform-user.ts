@@ -4,9 +4,9 @@ import { RoleSchema } from "./enums";
 import { NameSchema } from "./utils";
 
 export const CreatePlatformUserSchema = object({
-  email: nullable(string()),
+  email: string(),
   name: NameSchema,
-  password: optional(string()),
+  password: string(),
   role: RoleSchema,
   spId: optional(nullable(string())),
 });
