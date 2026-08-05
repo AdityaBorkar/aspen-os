@@ -7,7 +7,6 @@ import { TENANT_EVENTS } from "../pubsub";
 import { IdSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../utils/constants";
 import { fetchTenantStep } from "./steps/fetch-tenant";
-import { logAuditStep } from "./steps/log-audit";
 
 export const activateTenant = Workflow.name("tenant.activate")
   .input(object({ id: IdSchema }))
@@ -37,8 +36,9 @@ export const activateTenant = Workflow.name("tenant.activate")
     });
 
     await ctx.step.run("audit-and-notify", async () => {
-      await ctx.step.run(logAuditStep, {
+      await ctx.audit.write({
         action: AUDIT_ACTION.TENANT_ACTIVATED,
+        crudAction: "update",
         entityId: id,
         entityType: AUDIT_ENTITY_TYPE.TENANT,
         newState: { status: "active" },

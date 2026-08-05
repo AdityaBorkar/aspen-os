@@ -5,7 +5,6 @@ import { serviceProvider, user } from "../db-schemas";
 import { PLATFORM_USER_EVENTS } from "../pubsub";
 import { CreatePlatformUserSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, ROLES } from "../utils/constants";
-import { logAuditStep } from "./steps/log-audit";
 
 export const createUser = Workflow.name("user.create")
   .input(CreatePlatformUserSchema)
@@ -57,8 +56,9 @@ export const createUser = Workflow.name("user.create")
         .where(eq(user.id, createdUser.id));
     }
 
-    await ctx.step.run(logAuditStep, {
+    await ctx.audit.write({
       action: AUDIT_ACTION.PLATFORM_USER_CREATED,
+      crudAction: "create",
       entityId: createdUser.id,
       entityType: AUDIT_ENTITY_TYPE.PLATFORM_USER,
       newState: {

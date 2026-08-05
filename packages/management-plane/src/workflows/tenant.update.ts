@@ -12,7 +12,6 @@ import {
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../utils/constants";
 import { stripUndefined } from "../utils/strip-undefined";
 import { fetchTenantStep } from "./steps/fetch-tenant";
-import { logAuditStep } from "./steps/log-audit";
 
 export const updateTenant = Workflow.name("tenant.update")
   .input(
@@ -63,9 +62,10 @@ export const updateTenant = Workflow.name("tenant.update")
       if (companion) Object.assign(changes, stripUndefined(companion));
       if (Object.keys(changes).length === 0) return;
 
-      await ctx.step.run(logAuditStep, {
+      await ctx.audit.write({
         action: AUDIT_ACTION.TENANT_PROFILE_UPDATED,
         changes,
+        crudAction: "update",
         entityId: tenantId,
         entityType: AUDIT_ENTITY_TYPE.TENANT,
       });

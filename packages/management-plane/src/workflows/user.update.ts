@@ -7,7 +7,6 @@ import { PLATFORM_USER_EVENTS } from "../pubsub";
 import { IdSchema, UpdatePlatformUserSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, ROLES } from "../utils/constants";
 import { fetchUserStep } from "./steps/fetch-user";
-import { logAuditStep } from "./steps/log-audit";
 
 export const updateUser = Workflow.name("user.update")
   .input(
@@ -75,9 +74,10 @@ export const updateUser = Workflow.name("user.update")
     await ctx.step.run("audit-and-notify", async () => {
       if (Object.keys(changes).length === 0) return;
 
-      await ctx.step.run(logAuditStep, {
+      await ctx.audit.write({
         action: AUDIT_ACTION.PLATFORM_USER_UPDATED,
         changes,
+        crudAction: "update",
         entityId: id,
         entityType: AUDIT_ENTITY_TYPE.PLATFORM_USER,
       });

@@ -1,6 +1,7 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
+import type { AuditUnit } from "../audit";
 import type { AuthUnit } from "../auth";
 import type { PubSubUnit } from "../pubsub";
 
@@ -42,10 +43,12 @@ export interface StepRunner {
 
 export interface WorkflowContext {
   actorId?: string;
+  audit: AuditUnit;
   auth?: AuthUnit;
   config: Record<string, unknown>;
   db: DrizzleDB;
   pubsub: PubSubUnit;
+  runId: string;
   step: StepRunner;
 }
 
@@ -57,6 +60,7 @@ export interface WorkflowConfig<TInput, TOutput> {
 
 export interface RunOptions {
   actorId?: string;
+  audit?: AuditUnit;
   auth?: AuthUnit;
   config?: Record<string, unknown>;
   db?: DrizzleDB;

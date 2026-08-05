@@ -180,12 +180,18 @@ export async function executeWorkflow<TInput, TOutput>(
 ): Promise<TOutput> {
   const store = options?.db ? null : getContext();
   const db = options?.db ?? store?.db;
+  const audit = options?.audit ?? store?.audit;
   const auth = options?.auth ?? store?.auth;
   const pubsub = options?.pubsub ?? store?.pubsub;
 
   if (!db || !pubsub) {
     throw new Error(
       "Workflow requires db and pubsub — pass via RunOptions or ensure context is active",
+    );
+  }
+  if (!audit) {
+    throw new Error(
+      "Workflow requires audit — pass via RunOptions or ensure context is active",
     );
   }
 
@@ -208,10 +214,12 @@ export async function executeWorkflow<TInput, TOutput>(
   const getCtx = () => ctx;
   ctx = {
     actorId: options?.actorId ?? store?.actorId,
+    audit,
     auth,
     config: options?.config ?? {},
     db,
     pubsub,
+    runId,
     step: createStepRunner(db, getCtx, runId),
   };
 

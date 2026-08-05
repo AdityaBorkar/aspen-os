@@ -7,7 +7,6 @@ import { TENANT_EVENTS } from "../pubsub";
 import { IdSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../utils/constants";
 import { fetchTenantStep } from "./steps/fetch-tenant";
-import { logAuditStep } from "./steps/log-audit";
 
 export const suspendTenant = Workflow.name("tenant.suspend")
   .input(
@@ -47,8 +46,9 @@ export const suspendTenant = Workflow.name("tenant.suspend")
     });
 
     await ctx.step.run("audit-and-notify", async () => {
-      await ctx.step.run(logAuditStep, {
+      await ctx.audit.write({
         action: AUDIT_ACTION.TENANT_SUSPENDED,
+        crudAction: "update",
         entityId: id,
         entityType: AUDIT_ENTITY_TYPE.TENANT,
         newState: { status: "suspended", suspendedReason: reason ?? null },

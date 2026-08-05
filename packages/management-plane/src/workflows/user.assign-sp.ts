@@ -6,7 +6,6 @@ import { serviceProvider, user } from "../db-schemas";
 import { PLATFORM_USER_EVENTS } from "../pubsub";
 import { IdSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, ROLES } from "../utils/constants";
-import { logAuditStep } from "./steps/log-audit";
 
 export const assignToServiceProvider = Workflow.name("user.assign-sp")
   .input(
@@ -37,8 +36,9 @@ export const assignToServiceProvider = Workflow.name("user.assign-sp")
         .where(eq(user.id, userId));
     });
 
-    await ctx.step.run(logAuditStep, {
+    await ctx.audit.write({
       action: AUDIT_ACTION.SP_ASSIGNED_TO_USER,
+      crudAction: "update",
       entityId: userId,
       entityType: AUDIT_ENTITY_TYPE.PLATFORM_USER,
       newState: { role: ROLES.SP_USER, spId },

@@ -6,13 +6,14 @@ PubSub Events (How to handle migrations?)
 
 ---
 
-Module Types
+/improve-codebase-architecture
+/thermonuclear-code-analysis
 
 Auth
+Let's solve the workflow steps and audit logs
 
-Let's solve the workflow steps
+Do not repeat schemas, import them from the `framework` package using Typed DB Unit that includes these types. Use the RPC/service-calls via the class to call relevant workflows to make changes instead fo duplicating schemas and making changes directly.
 
-Do not repeat schemas, import them from the `framework` package using Typed DB Unit that includes these types
 Use the workflows in ManagementPlane to create a web application
 
 Refactor all modules to be like ./management-plane. Make it a skill
@@ -109,6 +110,10 @@ If you press YES, the account manager shall access the application and respond a
 
 ## Phase 2
 
+- Audit Unit
+  - Blind Writes
+  - WAL Outbox
+  - Replicated State
 - CONTEXT.md lists Prospect, Client, Job Mandate, Draft, Filter View, Reminder, Task, Team Member, Contract under "Recruiter Domain."
 - Dynamic Loading of Modules
   - /settings/features = Enable/Disable each module and their feature flags

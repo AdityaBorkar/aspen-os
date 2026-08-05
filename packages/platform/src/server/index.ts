@@ -1,3 +1,4 @@
+import type { AuditUnit } from "./audit";
 import type { AuthConfig, AuthUnit } from "./auth";
 import type {
   DatabaseConfig,
@@ -16,6 +17,12 @@ import type { PubSubConfig, PubSubUnit } from "./pubsub";
 import type { RpcConfig, RpcUnit } from "./rpc";
 import type { StorageConfig, StorageUnit } from "./storage";
 
+export type {
+  AuditEntry,
+  AuditQuery,
+  AuditUnit,
+  CrudAction,
+} from "./audit";
 export type { AclDeclaration } from "./auth";
 export { defineAcl } from "./auth";
 export { getContext } from "./utils/context";
@@ -50,6 +57,7 @@ export type TenantResolver = {
 };
 
 export type PlatformUnits = {
+  audit: AuditUnit;
   auth: AuthUnit;
   db: DatabaseUnit;
   kvStore: KvStoreUnit;

@@ -184,7 +184,7 @@ All are classes with constructor-injected deps:
 | rpc | `RpcUnit` | `src/server/rpc/` | `{ auth, db, logs, pubsub }` |
 | kvStore | `KvStoreUnit` | `src/server/kv-store/` | `{ db }` |
 
-Server `src/server/` also has `workflows/`, `context.ts`, `bun-compat.ts`. Client `src/client/` has `auth`, `rpc`, `log`, `context.ts` only.
+Server `src/server/` also has `audit/`, `utils/` (incl. `context.ts`, `bun-compat.ts`, `is-global-tenant-id.ts`), and `workflows/`. Client `src/client/` has `auth`, `rpc`, `logs`, `context.ts`, `types.ts`.
 
 ### Workflows (framework-level)
 
@@ -300,6 +300,6 @@ class MyModule implements Module {
 
 ## Current State
 
-- `organization`, `compliance`, `tasks`, `drive`, and `management-plane` are fully implemented domain modules. `hr` is partially implemented — workflows and schemas are wired but the module class doesn't declare `implements Module` and lacks `$prepareRuntime()`. All other domain packages are pure stubs.
+- `organization`, `compliance`, `tasks`, `drive`, and `management-plane` are fully implemented domain modules. `hr` is substantially implemented — `$initialize`, a full `$prepareInfra()` `ModuleInfra` (control-plane + tenant schemas, ACL, events), and `$cleanup()` are wired, but the module class doesn't declare `implements Module` and lacks `$prepareRuntime()`. All other domain packages are pure stubs.
 - No CI/CD, no Docker for the platform, no deployment config beyond `docs-www`'s `wrangler.jsonc`.
 - No tests for the platform or domain modules. `recruiter` has `vitest` + `@testing-library` in devDeps but no `test` script.

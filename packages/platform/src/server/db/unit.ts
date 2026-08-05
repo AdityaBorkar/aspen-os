@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import pg from "pg";
 
+import * as auditSchema from "../audit/db-schema";
 import * as authSchema from "../auth/db-schema";
 import type { TenancyMode, TenantResolver } from "../index";
 import * as kvStoreSchema from "../kv-store/db-schema";
@@ -321,6 +322,7 @@ export class DatabaseUnit {
 
   getSchemas() {
     return {
+      ...auditSchema,
       ...authSchema,
       ...logSchema,
       ...storageSchema,

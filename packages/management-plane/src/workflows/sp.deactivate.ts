@@ -7,7 +7,6 @@ import { SERVICE_PROVIDER_EVENTS } from "../pubsub";
 import { IdSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, SP_STATUS } from "../utils/constants";
 import { fetchServiceProviderStep } from "./steps/fetch-sp";
-import { logAuditStep } from "./steps/log-audit";
 
 export const deactivateSp = Workflow.name("sp.deactivate")
   .input(object({ id: IdSchema }))
@@ -26,8 +25,9 @@ export const deactivateSp = Workflow.name("sp.deactivate")
       throw new Error(`Service Provider with id "${id}" not found.`);
     }
 
-    await ctx.step.run(logAuditStep, {
+    await ctx.audit.write({
       action: AUDIT_ACTION.SP_DEACTIVATED,
+      crudAction: "update",
       entityId: id,
       entityType: AUDIT_ENTITY_TYPE.SERVICE_PROVIDER,
       newState: { status: SP_STATUS.INACTIVE },

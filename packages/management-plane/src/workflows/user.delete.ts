@@ -5,7 +5,6 @@ import { PLATFORM_USER_EVENTS } from "../pubsub";
 import { IdSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../utils/constants";
 import { fetchUserStep } from "./steps/fetch-user";
-import { logAuditStep } from "./steps/log-audit";
 
 export const deleteUser = Workflow.name("user.delete")
   .input(object({ id: IdSchema }))
@@ -20,8 +19,9 @@ export const deleteUser = Workflow.name("user.delete")
       await auth._.user.remove({ id });
     });
 
-    await ctx.step.run(logAuditStep, {
+    await ctx.audit.write({
       action: AUDIT_ACTION.PLATFORM_USER_DELETED,
+      crudAction: "delete",
       entityId: id,
       entityType: AUDIT_ENTITY_TYPE.PLATFORM_USER,
       previousState: previousState as Record<string, unknown>,

@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 
-import { password as Password } from "../../bun-compat";
+import { password as Password } from "../../utils/bun-compat";
 import { account, user } from "../db-schema";
 import type { AuthServiceDeps, User } from "../index";
 import { toUser } from "../utils/mappers";

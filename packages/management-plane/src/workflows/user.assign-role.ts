@@ -4,7 +4,6 @@ import { object } from "valibot";
 import { PLATFORM_USER_EVENTS } from "../pubsub";
 import { IdSchema, RoleSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../utils/constants";
-import { logAuditStep } from "./steps/log-audit";
 
 export const assignRole = Workflow.name("user.assign-role")
   .input(
@@ -25,8 +24,9 @@ export const assignRole = Workflow.name("user.assign-role")
       });
     });
 
-    await ctx.step.run(logAuditStep, {
+    await ctx.audit.write({
       action: AUDIT_ACTION.ROLE_ASSIGNED,
+      crudAction: "update",
       entityId: id,
       entityType: AUDIT_ENTITY_TYPE.PLATFORM_USER,
       newState: { role },

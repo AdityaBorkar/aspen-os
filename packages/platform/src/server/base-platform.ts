@@ -1,5 +1,6 @@
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
+import { AuditUnit } from "./audit";
 import { type AuthConfig, AuthUnit } from "./auth";
 import type { DatabaseUnit } from "./db";
 import type {
@@ -36,6 +37,7 @@ export type CommonConfig = {
 export abstract class BasePlatform<M extends Module[]>
   implements UnitAccessors
 {
+  declare readonly audit: PlatformUnits["audit"];
   declare readonly auth: PlatformUnits["auth"];
   declare readonly db: PlatformUnits["db"];
   declare readonly kvStore: PlatformUnits["kvStore"];
@@ -71,6 +73,7 @@ export abstract class BasePlatform<M extends Module[]>
     modules: M,
   ): { units: PlatformUnits; modules: M } {
     const logs = new LogUnit(config.logs, { db });
+    const audit = new AuditUnit({ db });
     const pubsub = new PubSubUnit(config.pubsub, { db });
     const auth = new AuthUnit(config.auth, { db, pubsub });
     pubsub.setAuth(auth);
@@ -78,7 +81,7 @@ export abstract class BasePlatform<M extends Module[]>
     const kvStore = new KvStoreUnit(config.kvStore, { db });
     const rpc = new RpcUnit(config.rpc, { auth, db, logs, pubsub });
 
-    const units = { auth, db, kvStore, logs, pubsub, rpc, storage };
+    const units = { audit, auth, db, kvStore, logs, pubsub, rpc, storage };
 
     const moduleNames = new Set(modules.map((m) => m.$name));
     for (const mod of modules) {
@@ -179,6 +182,7 @@ export abstract class BasePlatform<M extends Module[]>
     },
   ): T | Promise<T> {
     const ctx = {
+      audit: this.units.audit,
       auth: this.units.auth,
       db: this.units.db.controlPlaneDb,
       pubsub: this.units.pubsub,

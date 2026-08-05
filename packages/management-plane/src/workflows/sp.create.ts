@@ -5,7 +5,6 @@ import { serviceProvider } from "../db-schemas";
 import { SERVICE_PROVIDER_EVENTS } from "../pubsub";
 import { CreateServiceProviderSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../utils/constants";
-import { logAuditStep } from "./steps/log-audit";
 
 const CreateInputSchema = object({
   input: CreateServiceProviderSchema,
@@ -32,8 +31,9 @@ export const createSp = Workflow.name("sp.create")
       throw new Error("Failed to create service provider.");
     }
 
-    await ctx.step.run(logAuditStep, {
+    await ctx.audit.write({
       action: AUDIT_ACTION.SP_CREATED,
+      crudAction: "create",
       entityId: result.id,
       entityType: AUDIT_ENTITY_TYPE.SERVICE_PROVIDER,
       newState: { name: result.name, slug: result.slug, status: result.status },
