@@ -6,8 +6,14 @@ PubSub Events (How to handle migrations?)
 
 ---
 
-Use the workflows in ManagementPlane to create a web application
+For all the ACL in @ , keep only the permissions: "create", "delete", "read", "update"
+
 Do not repeat schemas, import them from the `framework` package using Typed DB Unit that includes these types
+Use the workflows in ManagementPlane to create a web application
+
+Refactor all modules to be like ./management-plane. Make it a skill
+
+Update all docs-www
 
 ---
 
@@ -93,15 +99,16 @@ If you press YES, the account manager shall access the application and respond a
 
 ---
 
+## Improving AI Output
+
+- Merging ./docs-www with ./docs to ensure a single source of truth
+- Create a Biome GritQL rule to make index.ts module files like @management-plane/src/index.ts
+
 ## Phase 2
 
 - CONTEXT.md lists Prospect, Client, Job Mandate, Draft, Filter View, Reminder, Task, Team Member, Contract under "Recruiter Domain."
 - Dynamic Loading of Modules
   - /settings/features = Enable/Disable each module and their feature flags
-
-## Improving Code Quality
-
-Create a Biome GritQL rule to make index.ts module files like @management-plane/src/index.ts
 
 ## Not a Priority
 

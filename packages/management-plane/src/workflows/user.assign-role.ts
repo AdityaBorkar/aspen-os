@@ -1,0 +1,39 @@
+import { Workflow } from "@aspen-os/platform/server";
+import { object } from "valibot";
+
+import { PLATFORM_USER_EVENTS } from "../pubsub";
+import { IdSchema, RoleSchema } from "../types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../utils/constants";
+import { logAuditStep } from "./steps/log-audit";
+
+export const assignRole = Workflow.name("user.assign-role")
+  .input(
+    object({
+      id: IdSchema,
+      role: RoleSchema,
+    }),
+  )
+  .handler(async (input, ctx) => {
+    if (!ctx.auth) throw new Error("Auth is required for role assignment");
+    const auth = ctx.auth;
+    const { id, role } = input;
+
+    await ctx.step.run("assign-auth-role", async () => {
+      await auth._.user.role.assign({
+        roleName: String(role),
+        userId: id,
+      });
+    });
+
+    await ctx.step.run(logAuditStep, {
+      action: AUDIT_ACTION.ROLE_ASSIGNED,
+      entityId: id,
+      entityType: AUDIT_ENTITY_TYPE.PLATFORM_USER,
+      newState: { role },
+    });
+
+    await ctx.pubsub.publish(PLATFORM_USER_EVENTS.ROLE_ASSIGNED, {
+      role,
+      userId: id,
+    });
+  });

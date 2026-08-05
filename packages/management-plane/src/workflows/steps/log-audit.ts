@@ -1,19 +1,21 @@
 import { WorkflowStep } from "@aspen-os/platform/server";
+import { nullable, object, optional, record, string, unknown } from "valibot";
 
 import { auditLog } from "../../db-schemas";
+import { AuditActionSchema, AuditEntityTypeSchema } from "../../schemas/enums";
 
-export const logAuditStep = WorkflowStep.name("log-audit").handler(
-  async (
-    input: {
-      action: (typeof auditLog.action.enumValues)[number];
-      changes?: Record<string, unknown>;
-      entityId: string;
-      entityType: (typeof auditLog.entityType.enumValues)[number];
-      newState?: Record<string, unknown> | null;
-      previousState?: Record<string, unknown> | null;
-    },
-    ctx,
-  ) => {
+const LogAuditInputSchema = object({
+  action: AuditActionSchema,
+  changes: optional(record(string(), unknown())),
+  entityId: string(),
+  entityType: AuditEntityTypeSchema,
+  newState: optional(nullable(record(string(), unknown()))),
+  previousState: optional(nullable(record(string(), unknown()))),
+});
+
+export const logAuditStep = WorkflowStep.name("log-audit")
+  .input(LogAuditInputSchema)
+  .handler(async (input, ctx) => {
     await ctx.db.insert(auditLog).values({
       action: input.action,
       actorId: ctx.actorId ?? "system",
@@ -23,5 +25,4 @@ export const logAuditStep = WorkflowStep.name("log-audit").handler(
       newState: input.newState ?? null,
       previousState: input.previousState ?? null,
     });
-  },
-);
+  });

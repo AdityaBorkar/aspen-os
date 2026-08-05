@@ -6,7 +6,7 @@ import {
   ROLES,
   SP_STATUS,
   TENANT_STATUS,
-} from "../constants";
+} from "../utils/constants";
 
 export const TenantStatusSchema = picklist(Object.values(TENANT_STATUS));
 
