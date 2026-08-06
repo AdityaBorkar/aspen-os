@@ -27,6 +27,7 @@ export class PubSubUnit {
   private controlPlaneBoss: PgBoss;
   private tenantBosses: Map<string, PgBoss> = new Map();
   private subscriptions = new Map<string, PgBoss.WorkHandler<object>>();
+  private started: boolean = false;
 
   constructor(
     config: PubSubConfig,
@@ -44,7 +45,14 @@ export class PubSubUnit {
   }
 
   async $prepareInfra(): Promise<void> {
-    await this.controlPlaneBoss.start();
+    try {
+      console.log("Pubsub starting");
+      await this.controlPlaneBoss.start();
+      this.started = true;
+    } catch (err) {
+      console.error(`[pubsub] Failed to start pg-boss for control plane`, err);
+      throw err;
+    }
   }
 
   async $cleanup(): Promise<void> {
@@ -74,7 +82,15 @@ export class PubSubUnit {
     options?: PublishOptions,
   ): Promise<string> {
     const boss = await this.resolveBoss();
-    return this.sendToBoss(boss, topic, data, options);
+    try {
+      return await this.sendToBoss(boss, topic, data, options);
+    } catch (err) {
+      const msg = `Failed to publish message to topic "${topic}"`;
+      console.error(msg, err);
+      throw new Error(
+        `${msg}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
   }
 
   async publishControlPlane<T = unknown>(
@@ -82,7 +98,15 @@ export class PubSubUnit {
     data: T,
     options?: PublishOptions,
   ): Promise<string> {
-    return this.sendToBoss(this.controlPlaneBoss, topic, data, options);
+    try {
+      return await this.sendToBoss(this.controlPlaneBoss, topic, data, options);
+    } catch (err) {
+      const msg = `Failed to publish control-plane message to topic "${topic}"`;
+      console.error(msg, err);
+      throw new Error(
+        `${msg}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
   }
 
   async publishBatch<T = unknown>(
@@ -95,8 +119,16 @@ export class PubSubUnit {
       name: topic,
       options: this.toBossOptions(msg.options),
     }));
-    const result = await boss.insert(jobs);
-    return result ?? [];
+    try {
+      const result = await boss.insert(jobs);
+      return result ?? [];
+    } catch (err) {
+      const msg = `Failed to publish batch of ${messages.length} message(s) to topic "${topic}"`;
+      console.error(msg, err);
+      throw new Error(
+        `${msg}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
   }
 
   async purgeQueue(topic: string): Promise<void> {
@@ -164,7 +196,16 @@ export class PubSubUnit {
     if (this.tenancyMode === "isolated" && id && !isGlobalTenantId(id)) {
       return this.getTenantBoss(id);
     }
+    this.assertStarted();
     return this.controlPlaneBoss;
+  }
+
+  private assertStarted(): void {
+    if (!this.started) {
+      throw new Error(
+        "PubSub is not initialized — $prepareInfra() must run before publishing",
+      );
+    }
   }
 
   private async getTenantBoss(tenantId: string): Promise<PgBoss> {

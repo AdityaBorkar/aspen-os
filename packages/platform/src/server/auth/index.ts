@@ -75,7 +75,9 @@ export class AuthUnit implements Unit {
     this.#betterAuth = createBetterAuthService(config, units.db.controlPlaneDb);
   }
 
-  async $prepareInfra() {}
+  async $prepareInfra(acl: Record<string, readonly string[]> = {}) {
+    this.applyModuleAcl(acl);
+  }
 
   async $cleanup() {}
 

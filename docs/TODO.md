@@ -6,7 +6,6 @@ PubSub Events (How to handle migrations?)
 
 ---
 
-/improve-codebase-architecture
 /thermonuclear-code-analysis
 Let's solve the workflow steps and audit logs
 Auth

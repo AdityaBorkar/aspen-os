@@ -86,7 +86,7 @@ export type ModuleInfra<
 export interface Unit {
   $cleanup(): Promise<void>;
   readonly $name: string;
-  $prepareInfra?(): Promise<void>;
+  $prepareInfra?(...args: unknown[]): Promise<void>;
 }
 
 export interface Module<

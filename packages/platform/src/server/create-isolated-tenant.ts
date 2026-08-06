@@ -70,44 +70,45 @@ export class IsolatedTenantPlatform<
   }
 
   override async $prepareInfra(): Promise<void> {
-    console.log("Preparing schema files...");
+    // Commons
+    const controlSchemas: Record<string, unknown> = {};
+    const tenantSchemas: Record<string, unknown> = {};
+    const acl: Record<string, string[]> = {};
 
-    for (const unit of Object.values(this.units)) {
-      try {
-        console.log("Processing Unit - ", unit.$name);
-        await unit.$prepareInfra?.();
-      } catch (err) {
-        console.error(`Failed to prepare unit "${unit.$name}"`, err);
-      }
-    }
-
-    const mergedControlPlaneSchemas: Record<string, unknown> = {};
-    const mergedTenantSchemas: Record<string, unknown> = {};
-    const mergedAcl: Record<string, string[]> = {};
-
+    // Preparing Modules
     for (const mod of this.modules) {
       const infra = mod.$prepareInfra?.();
       if (infra) {
-        Object.assign(
-          mergedControlPlaneSchemas,
-          infra.db.control_plane_schemas,
-        );
-        Object.assign(mergedTenantSchemas, infra.db.tenant_schemas);
+        Object.assign(controlSchemas, infra.db.control_plane_schemas);
+        Object.assign(tenantSchemas, infra.db.tenant_schemas);
         for (const [resource, actions] of Object.entries(infra.auth.acl)) {
-          if (!mergedAcl[resource]) {
-            mergedAcl[resource] = [];
+          if (!acl[resource]) {
+            acl[resource] = [];
           }
-          mergedAcl[resource].push(...(actions as string[]));
+          acl[resource].push(...(actions as string[]));
         }
       }
     }
 
-    await this.units.db.prepareWithModules(
-      mergedControlPlaneSchemas,
-      mergedTenantSchemas,
-    );
-    this.units.auth.applyModuleAcl(mergedAcl);
+    // Preparing Unit Methods
+    const prepareUnits: Array<() => Promise<void>> = [
+      () => this.units.db.$prepareInfra(controlSchemas, tenantSchemas),
+      () => this.units.auth.$prepareInfra(acl),
+    ];
+    for (const unit of Object.values(this.units)) {
+      if (unit.$name !== "db" && unit.$name !== "auth") {
+        prepareUnits.push(() => unit.$prepareInfra?.());
+      }
+    }
 
+    // Preparing Units
+    for await (const prepare of prepareUnits) {
+      await prepare().catch((err) => {
+        console.error(`Failed to prepare unit`, err);
+      });
+    }
+
+    // Preparing Runtime Modules
     for (const mod of this.modules) {
       try {
         await this.runInContext(() => mod.$prepareRuntime?.());
@@ -116,29 +117,19 @@ export class IsolatedTenantPlatform<
       }
     }
 
-    try {
-      const tenantIds = (await this.dbUnit.resolver?.list()) || [];
-      for (const tenantId of tenantIds) {
-        if (isGlobalTenantId(tenantId)) continue;
-        const tenantDb = await this.dbUnit.getTenantDb(tenantId);
-        await this.runInContext(
-          async () => {
-            for (const mod of this.modules) {
-              try {
-                await mod.$prepareTenant?.(tenantId);
-              } catch (err) {
-                console.error(
-                  `Failed to prepare tenant "${tenantId}" for module "${mod.$name}"`,
-                  err,
-                );
-              }
-            }
-          },
-          { db: tenantDb, tenantId },
-        );
-      }
-    } catch (err) {
-      console.error("Failed to prepare tenants", err);
+    // Preparing Tenant Modules
+    const tenantIds = (await this.dbUnit.resolver?.list()) || [];
+    for (const tenantId of tenantIds) {
+      await this.run(tenantId, async () => {
+        for await (const mod of this.modules) {
+          await mod.$prepareTenant?.(tenantId).catch((err) => {
+            console.error(
+              `Failed to prepare tenant "${tenantId}" for module "${mod.$name}"`,
+              err,
+            );
+          });
+        }
+      });
     }
   }
 

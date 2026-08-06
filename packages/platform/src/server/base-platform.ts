@@ -128,13 +128,17 @@ export abstract class BasePlatform<
   }
 
   async $prepareInfra(): Promise<void> {
-    for (const unit of Object.values(this.units)) {
+    console.log("Preparing INFRA");
+    for await (const unit of Object.values(this.units)) {
       try {
+        console.log("PROCESSING: ", unit.$name);
         await unit.$prepareInfra?.();
+        console.log("DONE: ", unit.$name);
       } catch (err) {
         console.error(`Failed to prepare unit "${unit.$name}"`, err);
       }
     }
+    console.log("Done unit infra");
 
     const mergedControlPlaneSchemas: Record<string, unknown> = {};
     const mergedTenantSchemas: Record<string, unknown> = {};
@@ -156,20 +160,23 @@ export abstract class BasePlatform<
         }
       }
     }
+    console.log("Done merged schemas");
 
     await this.units.db.prepareWithModules(
       mergedControlPlaneSchemas,
       mergedTenantSchemas,
     );
     this.units.auth.applyModuleAcl(mergedAcl);
+    console.log("Done db prepare");
 
-    for (const mod of this.modules) {
+    for await (const mod of this.modules) {
       try {
         await this.runInContext(() => mod.$prepareRuntime?.());
       } catch (err) {
         console.error(`Failed to prepare module "${mod.$name}"`, err);
       }
     }
+    console.log("Done module prepare");
   }
 
   async $cleanup(): Promise<void> {

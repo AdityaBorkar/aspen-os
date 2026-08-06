@@ -68,8 +68,7 @@ export class AuditUnit {
 
   /** Write an audit entry, optionally within a provided transaction handle. */
   async write(entry: AuditEntry, db?: AuditDatabase): Promise<void> {
-    const store = context.getStore();
-    const target = db ?? this.db ?? store?.db;
+    const target = db ?? this.db;
     const resolved = this.resolveContextEntry(entry);
     await target.insert(auditLog).values({
       action: resolved.action,

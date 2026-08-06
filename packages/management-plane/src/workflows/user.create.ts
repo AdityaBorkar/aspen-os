@@ -31,13 +31,6 @@ export const createUser = Workflow.name("user.create")
       }
     }
 
-    if (!input.email) {
-      throw new Error("Email is required for user creation.");
-    }
-    if (!input.password) {
-      throw new Error("Password is required for user creation.");
-    }
-
     const response = await auth.service.api.createUser({
       body: {
         email: input.email,
@@ -46,7 +39,6 @@ export const createUser = Workflow.name("user.create")
         role: input.role as "admin",
       },
     });
-
     const createdUser = response.user;
 
     if (input.spId) {

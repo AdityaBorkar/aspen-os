@@ -22,9 +22,6 @@ export type DrizzleDB<
   TSchemas extends Record<string, unknown> = Record<string, never>,
 > = NodePgDatabase<TSchemas>;
 
-/** Internal db type expected by drizzle-kit's pushSchema. */
-type AnyDrizzleDB = NodePgDatabase<Record<string, never>>;
-
 export class DatabaseUnit<
   TSchemas extends Record<string, unknown> = Record<string, never>,
 > {
@@ -106,8 +103,13 @@ export class DatabaseUnit<
     return this.controlPlanePool;
   }
 
-  async $prepareInfra() {
-    const schemas = this.getSchemas();
+  async $prepareInfra(
+    controlPlaneSchemas: Record<string, unknown> = {},
+    tenantSchemas: Record<string, unknown> = {},
+  ) {
+    this.storedControlPlaneSchemas = controlPlaneSchemas;
+    this.storedTenantSchemas = tenantSchemas;
+    const schemas = { ...this.getSchemas(), ...controlPlaneSchemas };
     await this.pushSchemasTo(this.controlPlaneDbInstance, schemas);
   }
 
@@ -348,15 +350,16 @@ export class DatabaseUnit<
   ): Promise<void> {
     const { pushSchema } = await import("drizzle-kit/api");
 
-    const result = await pushSchema(schemas, db as unknown as AnyDrizzleDB);
+    // @ts-expect-error DB Type Mismatch
+    const result = await pushSchema(schemas, db);
     if (result.statementsToExecute.length > 0) {
       console.log(`Applying ${result.statementsToExecute.length} Statements`);
       if (result.hasDataLoss) {
         console.warn("Schema push has data loss warnings:", result.warnings);
       }
       await result.apply();
-      console.log("Schema Applied");
     }
+    return;
   }
 
   private async createTenantDatabase(

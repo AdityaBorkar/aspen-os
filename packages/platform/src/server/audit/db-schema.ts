@@ -7,6 +7,7 @@ import {
   text,
   timestamp,
   uniqueIndex,
+  uuid,
 } from "drizzle-orm/pg-core";
 
 export const auditLog = pgTable(
@@ -18,7 +19,7 @@ export const auditLog = pgTable(
     crudAction: text("crud_action"),
     entityId: text("entity_id").notNull(),
     entityType: text("entity_type").notNull(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: uuid().primaryKey().default(sql`gen_random_uuid()`),
     idempotencyKey: text("idempotency_key"),
     metadata: jsonb("metadata"),
     newState: jsonb("new_state"),
