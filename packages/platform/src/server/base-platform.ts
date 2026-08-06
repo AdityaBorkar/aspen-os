@@ -68,6 +68,12 @@ export type HealthReport = {
     db: HealthCheckResult;
     pubsub: HealthCheckResult;
   };
+  /**
+   * Topics that have been produced to (via publish/publishBatch) but have no
+   * registered subscriber. pg-boss silently drops these, so they flag a likely
+   * producer/consumer wiring bug. Present only when there are any.
+   */
+  unsubscribedTopics?: string[];
   tenancyMode: TenancyMode;
   /** ISO timestamp of when the check ran. */
   at: string;
@@ -274,17 +280,31 @@ export abstract class BasePlatform<
     const dbResult = await this.checkDbHealth();
     const pubsubResult = await this.checkPubSubHealth();
 
+    const unsubscribedTopics =
+      this.units.pubsub.getUnsubscribedProducedTopics();
+
     const overall: "ok" | "unhealthy" =
-      dbResult.status === "ok" && pubsubResult.status === "ok"
+      dbResult.status === "ok" &&
+      pubsubResult.status === "ok" &&
+      unsubscribedTopics.length === 0
         ? "ok"
         : "unhealthy";
 
-    return {
+    const report: HealthReport = {
       at: new Date().toISOString(),
       checks: { db: dbResult, pubsub: pubsubResult },
       status: overall,
       tenancyMode: this.tenancyMode,
     };
+
+    if (unsubscribedTopics.length > 0) {
+      // Topics produced to but with no registered consumer: pg-boss silently
+      // drops these messages. Flag them and mark the whole report unhealthy so
+      // monitoring surfaces the wiring bug early.
+      report.unsubscribedTopics = unsubscribedTopics;
+    }
+
+    return report;
   }
 
   protected async checkDbHealth(): Promise<HealthCheckResult> {

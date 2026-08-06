@@ -26,6 +26,7 @@ export class PubSubUnit {
 
   private readonly boss: PgBoss;
   private subscriptions = new Map<string, PgBoss.WorkHandler<object>>();
+  private producedTopics = new Map<string, number>();
   private bossStarted: Promise<void> | null = null;
 
   constructor(
@@ -69,13 +70,16 @@ export class PubSubUnit {
     topic: string,
     data: T,
     options?: PublishOptions,
-  ): Promise<string> {
+  ) {
     await this.ensureStarted();
     try {
       const opts = this.toBossOptions(options);
       const id = await this.boss.send(topic, data, opts);
+      this.recordProduced(topic);
       if (!id) {
-        throw new Error("Failed to publish message");
+        console.warn(
+          `Failed to publish message to topic "${topic}": pg-boss send() returned no job id, so the message was NOT inserted.`,
+        );
       }
       return id;
     } catch (err) {
@@ -99,6 +103,9 @@ export class PubSubUnit {
     }));
     try {
       const result = await this.boss.insert(jobs);
+      for (const job of jobs) {
+        this.recordProduced(job.name);
+      }
       return result ?? [];
     } catch (err) {
       const msg = `Failed to publish batch of ${messages.length} message(s) to topic "${topic}"`;
@@ -216,6 +223,26 @@ export class PubSubUnit {
       }
     };
     return workHandler;
+  }
+
+  /**
+   * Track that a message was published to `topic`. Used by the health check to
+   * detect topics that were produced to but have no registered consumer (which
+   * pg-boss silently drops).
+   */
+  private recordProduced(topic: string): void {
+    this.producedTopics.set(topic, (this.producedTopics.get(topic) ?? 0) + 1);
+  }
+
+  /**
+   * Topics that have been produced to but currently have no registered
+   * subscriber. Publishing to such a topic is silently dropped by pg-boss
+   * (send() returns null), so this flags a likely bug.
+   */
+  getUnsubscribedProducedTopics(): string[] {
+    return [...this.producedTopics.keys()].filter(
+      (topic) => !this.subscriptions.has(topic),
+    );
   }
 
   private toBossOptions(options?: PublishOptions): Record<string, unknown> {

@@ -6,11 +6,8 @@ PubSub Events (How to handle migrations?)
 
 ---
 
-PubSub is not started yet. Instead of assertStarted method, continue the flow without it. Do not use "this.started" in "$prepareInfra". $prepareInfra is supposed to run independtly when the server is being deployed and it is not run when the server starts.
-
-Let's solve the workflow steps and audit logs
 Auth
-
+Let's solve the workflow steps and audit logs
 Use the workflows in ManagementPlane to create a web application
 - DEBUG SECTION Visualize the entire flow and logs on the Management App + SIGNOZ
   - Logger logs
@@ -30,17 +27,13 @@ Update all docs-www
   - recruiter-maitriglobal
   - doclabs
 
-
-Ensure schemas, unlocked postgres tables and signoz integration.
-
-Ensure structured logging (https://loggingsucks.com/) is compliant with OTEL. Aim is to implement the structured logging using OTEL to maintain a single source of universal logging.
-
-
 ## `platform`
 
 - Manually read and simplify the `platform` code as much as possible
 - Ensure good code architecture
 - --verbose flag for debugging in the `platform`. Take input a debugLogsDir: "./local/dir/" and store the logs there. Use the request time as the log file name for easier navigation.
+- Ensure schemas, unlocked postgres tables and signoz integration.
+- Ensure structured logging (https://loggingsucks.com/) is compliant with OTEL. Aim is to implement the structured logging using OTEL to maintain a single source of universal logging.
 
 ## Workflows Unit
 
