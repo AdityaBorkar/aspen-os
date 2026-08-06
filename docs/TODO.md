@@ -6,7 +6,8 @@ PubSub Events (How to handle migrations?)
 
 ---
 
-/thermonuclear-code-analysis
+PubSub is not started yet. Instead of assertStarted method, continue the flow without it. Do not use "this.started" in "$prepareInfra". $prepareInfra is supposed to run independtly when the server is being deployed and it is not run when the server starts.
+
 Let's solve the workflow steps and audit logs
 Auth
 

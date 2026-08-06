@@ -27,7 +27,7 @@ export class PubSubUnit {
   private controlPlaneBoss: PgBoss;
   private tenantBosses: Map<string, PgBoss> = new Map();
   private subscriptions = new Map<string, PgBoss.WorkHandler<object>>();
-  private started: boolean = false;
+  private controlPlaneBossStarted: Promise<void> | null = null;
 
   constructor(
     config: PubSubConfig,
@@ -45,14 +45,8 @@ export class PubSubUnit {
   }
 
   async $prepareInfra(): Promise<void> {
-    try {
-      console.log("Pubsub starting");
-      await this.controlPlaneBoss.start();
-      this.started = true;
-    } catch (err) {
-      console.error(`[pubsub] Failed to start pg-boss for control plane`, err);
-      throw err;
-    }
+    // No-op: controls-plane pg-boss is started lazily on first use. $prepareInfra
+    // runs at deploy time, before the server starts.
   }
 
   async $cleanup(): Promise<void> {
@@ -76,14 +70,19 @@ export class PubSubUnit {
     return boss.getQueueSize(topic);
   }
 
-  async publish<T = unknown>(
+  async publish<T extends object>(
     topic: string,
     data: T,
     options?: PublishOptions,
   ): Promise<string> {
     const boss = await this.resolveBoss();
     try {
-      return await this.sendToBoss(boss, topic, data, options);
+      const opts = this.toBossOptions(options);
+      const id = await boss.send(topic, data, opts);
+      if (!id) {
+        throw new Error("Failed to publish message");
+      }
+      return id;
     } catch (err) {
       const msg = `Failed to publish message to topic "${topic}"`;
       console.error(msg, err);
@@ -93,13 +92,18 @@ export class PubSubUnit {
     }
   }
 
-  async publishControlPlane<T = unknown>(
+  async publishControlPlane<T extends object>(
     topic: string,
     data: T,
     options?: PublishOptions,
   ): Promise<string> {
     try {
-      return await this.sendToBoss(this.controlPlaneBoss, topic, data, options);
+      const opts = this.toBossOptions(options);
+      const id = await this.controlPlaneBoss.send(topic, data, opts);
+      if (!id) {
+        throw new Error("Failed to publish message");
+      }
+      return id;
     } catch (err) {
       const msg = `Failed to publish control-plane message to topic "${topic}"`;
       console.error(msg, err);
@@ -196,15 +200,23 @@ export class PubSubUnit {
     if (this.tenancyMode === "isolated" && id && !isGlobalTenantId(id)) {
       return this.getTenantBoss(id);
     }
-    this.assertStarted();
+    await this.ensureControlPlaneStarted();
     return this.controlPlaneBoss;
   }
 
-  private assertStarted(): void {
-    if (!this.started) {
-      throw new Error(
-        "PubSub is not initialized — $prepareInfra() must run before publishing",
-      );
+  private async ensureControlPlaneStarted(): Promise<void> {
+    if (!this.controlPlaneBossStarted) {
+      this.controlPlaneBossStarted = this.startControlPlaneBoss();
+    }
+    await this.controlPlaneBossStarted;
+  }
+
+  private async startControlPlaneBoss(): Promise<void> {
+    try {
+      await this.controlPlaneBoss.start();
+    } catch (err) {
+      this.controlPlaneBossStarted = null;
+      throw err;
     }
   }
 
@@ -276,20 +288,5 @@ export class PubSubUnit {
       retryLimit: options.retryLimit,
       startAfter: options.startAfter,
     };
-  }
-
-  private async sendToBoss<T>(
-    boss: PgBoss,
-    topic: string,
-    data: T,
-    options?: PublishOptions,
-  ): Promise<string> {
-    const id = await boss.send(
-      topic,
-      data as object,
-      this.toBossOptions(options),
-    );
-    if (!id) throw new Error("Failed to publish message");
-    return id;
   }
 }
