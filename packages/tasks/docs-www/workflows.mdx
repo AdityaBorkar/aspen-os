@@ -4,11 +4,11 @@ description: API reference for the 11 workflows exposed by the Tasks module.
 icon: IconListCheck
 ---
 
-The Tasks module exposes 11 workflows managing projects, tasks, statuses, types, time tracking, comments, links, collaboration, reminders, automation, and saved views.
+The Tasks module exposes 11 workflow groups as flat `Workflow` objects: `projects`, `tasks`, `statuses`, `taskTypes`, `timeEntries`, `comments`, `links`, `collaboration`, `reminders`, `automations`, and `views`.
 
 ## ProjectWorkflow
 
-Access: `platform.tasks.projects`
+Access: `p.tasks.projects`
 
 Manages projects and their members.
 
@@ -39,7 +39,7 @@ listMembers(projectId: string): Promise<projectMember[]>
 
 ## TaskWorkflow
 
-Access: `platform.tasks.tasks`
+Access: `p.tasks.tasks`
 
 Manages tasks, subtasks, assignees, and activity logging.
 
@@ -81,7 +81,7 @@ getLoggedHours(taskId: string): Promise<number>
 
 ## StatusWorkflow
 
-Access: `platform.tasks.statuses`
+Access: `p.tasks.statuses`
 
 Manages task statuses and status transition rules.
 
@@ -111,7 +111,7 @@ validateTransition(fromStatusId: string, toStatusId: string, projectId: string):
 
 ## TaskTypeWorkflow
 
-Access: `platform.tasks.taskTypes`
+Access: `p.tasks.taskTypes`
 
 Manages task types and labels.
 
@@ -138,7 +138,7 @@ listLabels(projectId?: string): Promise<label[]>
 
 ## TimeEntryWorkflow
 
-Access: `platform.tasks.timeEntries`
+Access: `p.tasks.timeEntries`
 
 Manages time tracking entries on tasks.
 
@@ -156,7 +156,7 @@ getTotalDuration(taskId: string, billableOnly?: boolean): Promise<number>
 
 ## CommentWorkflow
 
-Access: `platform.tasks.comments`
+Access: `p.tasks.comments`
 
 Manages threaded comments on tasks.
 
@@ -174,7 +174,7 @@ listReplies(parentId: string): Promise<comment[]>
 
 ## LinkWorkflow
 
-Access: `platform.tasks.links`
+Access: `p.tasks.links`
 
 Manages dependency links between tasks and exposes graph operations.
 
@@ -202,7 +202,7 @@ getDependencyGraph(taskIds: string[]): Promise<TaskDependencyNode[]>
 
 ## CollaborationWorkflow
 
-Access: `platform.tasks.collaboration`
+Access: `p.tasks.collaboration`
 
 Manages watchers, attachments, and activity logs.
 
@@ -233,7 +233,7 @@ getActivityLog(taskId: string, action?: string): Promise<activityLog[]>
 
 ## ReminderWorkflow
 
-Access: `platform.tasks.reminders`
+Access: `p.tasks.reminders`
 
 Manages task reminders with recurring scheduling and notification dispatch.
 
@@ -263,12 +263,12 @@ createOverdueReminder(taskId: string, userId: string): Promise<void>
 
 - `createDueDateReminders` creates three `due_date` reminders: 24 hours before, 1 hour before, and at due date.
 - `createOverdueReminder` creates a recurring daily `overdue` reminder if the task has a past `dueDate`.
-- `processPendingReminders` publishes `reminder:fired` events via `NotificationBridge` (when enabled), marks reminders as sent, and schedules the next occurrence for recurring reminders.
+- `processPendingReminders` publishes `reminder:fired` events directly via `ctx.pubsub.publish(REMINDER_EVENTS.FIRED, …)`, marks reminders as sent, and schedules the next occurrence for recurring reminders.
 - Supported intervals: `daily`, `weekly`, `monthly`, `every_2_hours`.
 
 ## AutomationWorkflow
 
-Access: `platform.tasks.automation`
+Access: `p.tasks.automations`
 
 Manages automation rules that trigger actions on task events.
 
@@ -288,7 +288,7 @@ evaluateRules(context: { taskId: string; trigger: string; values: Record<string,
 
 ## ViewWorkflow
 
-Access: `platform.tasks.views`
+Access: `p.tasks.views`
 
 Manages saved views with filters, sorting, and grouping.
 

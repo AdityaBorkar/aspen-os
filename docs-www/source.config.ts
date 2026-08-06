@@ -49,4 +49,34 @@ export const managementPlane = defineDocs({
   docs,
 });
 
+export const accounting = defineDocs({
+  dir: `../packages/accounting/docs-www`,
+  docs,
+});
+
+export const crm = defineDocs({
+  dir: `../packages/crm/docs-www`,
+  docs,
+});
+
+export const fleet = defineDocs({
+  dir: `../packages/fleet/docs-www`,
+  docs,
+});
+
+export const inventory = defineDocs({
+  dir: `../packages/inventory/docs-www`,
+  docs,
+});
+
+export const pharmacy = defineDocs({
+  dir: `../packages/pharmacy/docs-www`,
+  docs,
+});
+
+export const reports = defineDocs({
+  dir: `../packages/reports/docs-www`,
+  docs,
+});
+
 export default defineConfig();

@@ -5,6 +5,7 @@
     "overview",
     "usage",
     "tenancy",
+    "workflows",
     "unit",
     "module",
     "unit-vs-module",
@@ -16,6 +17,7 @@
     "units/pubsub",
     "units/storage",
     "units/auth",
+    "units/audit",
     "units/rpc"
   ],
   "pagesIndex": "index",

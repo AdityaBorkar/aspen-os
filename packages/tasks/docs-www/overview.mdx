@@ -9,33 +9,31 @@ The Tasks module manages projects, tasks, statuses, time tracking, comments, att
 ## Module Configuration
 
 ```ts
-import { TaskModule } from "@aspen-os/tasks";
+import { Tasks } from "@aspen-os/tasks";
 
-const tasks = TaskModule.create({
+const tasks = Tasks.create({
   enableNotifications: true,
 });
 ```
 
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `enableNotifications` | `boolean?` | `false` | Instantiates `NotificationBridge` for pubsub event publishing |
+| `enableNotifications` | `boolean?` | `false` | Configures reminder-based pubsub event publishing |
 
 ## Initialization
 
 ```ts title="src/index.ts"
-initialize(units: { db: DatabaseUnit; pubsub: PubSubUnit }): void
+$initialize(): void
 ```
 
-Receives `db` and `pubsub` units. Instantiates all 11 workflows, the `ReportService`, and optionally the `NotificationBridge` (when `enableNotifications` is set). The `ReminderWorkflow` receives the notification bridge instance.
+The `$initialize()` method is empty. Workflows are flat imported `Workflow` objects aggregated on the class — they are not instantiated per-call. The `enableNotifications` config key is accepted, and the `NotificationBridge` defined in `services/` is not wired into any workflow.
 
 ## Module Structure
 
 ```text
 packages/tasks/src/
-  index.ts              # TaskModule class + type re-exports
+  index.ts              # Tasks class + type re-exports
   db-schema.ts          # 17 tables + 8 enums
   types.ts              # Re-exports from schemas/ + domain interfaces
-  event-map.ts          # 10 task events + 1 reminder event + event maps
+  pubsub-events.ts      # 9 task events + 1 reminder event + event maps
   schemas/              # Valibot input/filter schemas
     index.ts
     enums.ts
@@ -50,7 +48,7 @@ packages/tasks/src/
     collaboration.ts
     reminder.ts
     automation.ts
-  workflows/            # 11 workflow classes
+  workflows/            # 11 workflow groups
     project.ts
     task.ts
     status.ts
@@ -62,35 +60,33 @@ packages/tasks/src/
     reminder.ts
     automation.ts
     view.ts
-  services/             # 4 service classes
+  services/             # 3 service modules
     report-service.ts
     notification-bridge.ts
     dependency-graph.ts
-    filter-engine.ts
+  utils/
+    filter-engine.ts      # Drizzle query builder used by TaskWorkflow.list()
 ```
 
 ## Accessing Workflows
 
 ```ts
-platform.tasks.projects       // → ProjectWorkflow
-platform.tasks.tasks           // → TaskWorkflow
-platform.tasks.statuses        // → StatusWorkflow
-platform.tasks.taskTypes       // → TaskTypeWorkflow
-platform.tasks.timeEntries     // → TimeEntryWorkflow
-platform.tasks.comments        // → CommentWorkflow
-platform.tasks.links           // → LinkWorkflow
-platform.tasks.collaboration   // → CollaborationWorkflow
-platform.tasks.reminders       // → ReminderWorkflow
-platform.tasks.automation      // → AutomationWorkflow
-platform.tasks.views           // → ViewWorkflow
+p.tasks.projects       // → projects (Workflow group)
+p.tasks.tasks          // → tasks
+p.tasks.statuses       // → statuses
+p.tasks.taskTypes      // → taskTypes
+p.tasks.timeEntries    // → timeEntries
+p.tasks.comments       // → comments
+p.tasks.links          // → links
+p.tasks.collaboration  // → collaboration
+p.tasks.reminders      // → reminders
+p.tasks.automations    // → automations
+p.tasks.views          // → views
 ```
 
 ## Accessing Services
 
-```ts
-platform.tasks.reports         // → ReportService
-```
-
-<Callout type="warn">
-  Accessing any workflow or service getter before `initialize()` throws: `"Tasks module not initialized. Call initialize() after platform.initialize()."`
+The `Tasks` module exposes no public service accessors. The internal service modules (`report-service`, `dependency-graph`, `notification-bridge`) and the `filter-engine` utility are consumed directly by workflow code, not surfaced as module properties.
+<Callout type="info">
+  Workflow accessors are plain module properties — no initialization guard. Workflows are stateless `Workflow` objects that use `getContext()` at runtime.
 </Callout>

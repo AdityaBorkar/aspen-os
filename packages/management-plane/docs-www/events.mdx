@@ -8,7 +8,7 @@ The Management Plane module defines 16 domain events across 3 event groups. Even
 
 ## Event Constants
 
-```ts title="src/event-map.ts"
+```ts title="src/pubsub.ts"
 export const TENANT_EVENTS = {
   PROVISIONED: "tenant:provisioned",
   ACTIVATED: "tenant:activated",
@@ -75,7 +75,7 @@ export const PLATFORM_USER_EVENTS = {
 Events are published via `PubSubUnit.publish()`:
 
 ```ts
-await framework.pubsub.publish("tenant:provisioned", {
+await p.pubsub.publish("tenant:provisioned", {
   tenantId: "org-123",
   serviceProviderId: "sp-1",
 });
@@ -85,13 +85,13 @@ await framework.pubsub.publish("tenant:provisioned", {
 
 ```ts
 // React to a new tenant being provisioned (e.g., a future billing module)
-await framework.pubsub.subscribe("tenant:provisioned", async (message) => {
+await p.pubsub.subscribe("tenant:provisioned", async (message) => {
   const { tenantId, serviceProviderId } = message.data;
   // Start billing, send welcome email, etc.
 });
 
 // Track SP assignments for analytics
-await framework.pubsub.subscribe("tenant:sp_assigned", async (message) => {
+await p.pubsub.subscribe("tenant:sp_assigned", async (message) => {
   const { tenantId, serviceProviderId } = message.data;
   // Update SP performance metrics
 });

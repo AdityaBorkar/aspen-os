@@ -4,7 +4,7 @@ description: Database tables, enums, and relationships for the Compliance module
 icon: IconDatabase
 ---
 
-The Compliance module defines 4 tables and 7 enums using Drizzle ORM.
+The Compliance module defines 3 tables and 7 enums using Drizzle ORM. Audit trails are written to the platform's `audit_log` table via `AuditUnit`, not a module table.
 
 ## Enums
 
@@ -117,20 +117,6 @@ Rules for auto-assigning reviewers based on category and source.
 | `created_at` | timestamptz | Creation timestamp |
 | `updated_at` | timestamptz | Last update timestamp |
 
-### `compliance_audit_entry`
-
-Append-only audit trail for every compliance action.
-
-| Column | Type | Description |
-|---|---|---|
-| `id` | text (PK) | UUID |
-| `entity_type` | audit_entity_type | Entity type |
-| `entity_id` | text | Entity ID |
-| `action` | audit_action | Action performed |
-| `performed_by` | text | User who performed action |
-| `metadata` | jsonb | Action metadata |
-| `created_at` | timestamptz | Action timestamp |
-
 ## Relationships
 
 ```text
@@ -138,6 +124,4 @@ compliance_obligation ──1:N──→ compliance_document (obligation_id)
 compliance_document   ──self-ref──→ compliance_document (renewed_from)
 branch                ──1:N──→ compliance_document (branch)
 connection            ──1:N──→ compliance_document (connection)
-compliance_document   ──1:N──→ compliance_audit_entry (entity_id)
-compliance_obligation ──1:N──→ compliance_audit_entry (entity_id)
 ```

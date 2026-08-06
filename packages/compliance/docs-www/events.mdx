@@ -1,14 +1,14 @@
 ---
 title: Events
-description: Domain event map for the Compliance module — 22 events covering the full document lifecycle.
+description: Domain event map for the Compliance module — 23 events covering the full document lifecycle.
 icon: IconBell
 ---
 
-The Compliance module defines 22 domain events covering document lifecycle, obligation management, and scheduled jobs.
+The Compliance module defines 23 domain events covering document lifecycle, obligation management, and scheduled jobs.
 
 ## Event Constants
 
-```ts title="src/event-map.ts"
+```ts title="src/pubsub-events.ts"
 export const COMPLIANCE_EVENTS = {
   DOCUMENT_CREATED: "compliance:document_created",
   DOCUMENT_UPDATED: "compliance:document_updated",
@@ -87,7 +87,7 @@ export const COMPLIANCE_EVENTS = {
 
 ```ts
 // React to document verification
-await framework.pubsub.subscribe(
+await p.pubsub.subscribe(
   "compliance:document_verified",
   async (message) => {
     const { documentId, verifiedBy, category } = message.data;
@@ -96,7 +96,7 @@ await framework.pubsub.subscribe(
 );
 
 // React to expiry reminders
-await framework.pubsub.subscribe(
+await p.pubsub.subscribe(
   "compliance:document_expiring",
   async (message) => {
     const { documentId, daysUntilExpiry } = message.data;
@@ -105,7 +105,7 @@ await framework.pubsub.subscribe(
 );
 
 // Listen to weekly summary
-await framework.pubsub.subscribe(
+await p.pubsub.subscribe(
   "compliance:weekly_summary",
   async (message) => {
     const { summary } = message.data;
@@ -116,7 +116,7 @@ await framework.pubsub.subscribe(
 
 ## Event Map Type
 
-```ts title="src/event-map.ts"
+```ts title="src/pubsub-events.ts"
 export type ComplianceEventMap = {
   [COMPLIANCE_EVENTS.DOCUMENT_CREATED]: DocumentCreatedEvent;
   [COMPLIANCE_EVENTS.DOCUMENT_UPDATED]: DocumentUpdatedEvent;

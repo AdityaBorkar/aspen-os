@@ -4,11 +4,11 @@ description: API reference for the 6 workflows exposed by the Drive module.
 icon: IconListCheck
 ---
 
-The Drive module exposes 6 workflows managing folders, files, labels, shares, public links, and trash.
+The Drive module exposes 6 workflow groups as flat `Workflow` objects: `folders`, `files`, `labels`, `shares`, `publicLinks`, and `trash`.
 
 ## FolderWorkflow
 
-Access: `framework.drive.folders`
+Access: `p.drive.folders`
 
 Manages folder creation, movement, metadata, and lifecycle.
 
@@ -69,7 +69,7 @@ async list(parentId?: string | null, opts?: ListFolderOptions): Promise<{
 
 ## FileWorkflow
 
-Access: `framework.drive.files`
+Access: `p.drive.files`
 
 Manages file upload, download, versioning, movement, and lifecycle.
 
@@ -138,7 +138,7 @@ async purge(id: string): Promise<void>
 
 ## LabelWorkflow
 
-Access: `framework.drive.labels`
+Access: `p.drive.labels`
 
 Manages labels (global or personal) and their application to files and folders.
 
@@ -190,7 +190,7 @@ async listByLabel(labelId: string, opts?: {
 
 ## ShareWorkflow
 
-Access: `framework.drive.shares`
+Access: `p.drive.shares`
 
 Manages item sharing with users or groups at `viewer`, `editor`, or `owner` permission.
 
@@ -231,7 +231,7 @@ async getById(id: string): Promise<DriveShareRow>
 
 ## PublicLinkWorkflow
 
-Access: `framework.drive.publicLinks`
+Access: `p.drive.publicLinks`
 
 Manages public links with passwords, view limits, expiry, and access logging.
 
@@ -283,7 +283,7 @@ async getById(id: string): Promise<DrivePublicLinkRow>
 
 ## TrashWorkflow
 
-Access: `framework.drive.trash`
+Access: `p.drive.trash`
 
 Manages trashed items, restoration, manual emptying, and scheduled auto-purge.
 

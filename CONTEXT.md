@@ -46,6 +46,10 @@ _Avoid_: Resolve, Get
 Typed accessor to retrieve a Module by name. Requires a name — throws if not found. No zero-arg overload.
 _Avoid_: Resolve, Get
 
+**Health Check**:
+A liveness probe on the platform exposed via `BasePlatform.healthCheck()`. Returns a `HealthReport` `{ status, checks: { db, pubsub }, unsubscribedTopics?, tenancyMode, at }`. Probes the control-plane DB (`SELECT 1`) and pub/sub (`getQueueSize` on a probe topic — lazily starting the control-plane pg-boss, proving it can connect). Also reports topics produced to but with no registered subscriber (`unsubscribedTopics`) — pg-boss silently drops these, so they flag a producer/consumer wiring bug. `status` is `"ok"` only when every check passes AND no unsubscribed produced topics exist. `checkDbHealth`/`checkPubSubHealth` are protected hooks derived classes may override.
+_Avoid_: Ping, Health Probe, Heartbeat
+
 ### Database
 
 **DatabaseUnit**:
@@ -102,7 +106,7 @@ _Avoid_: Severity, Priority
 ### Pub/Sub
 
 **PubSubUnit**:
-Core unit backed by pg-boss. Provides topic-based publish/subscribe over Postgres job queue. Exposes `publish`, `publishBatch`, `subscribe`, `unsubscribe`, `getQueueSize`, `purgeQueue`, `schedule`.
+Core unit backed by pg-boss. Provides topic-based publish/subscribe over Postgres job queue. Exposes `publish`, `publishBatch`, `subscribe`, `unsubscribe`, `getQueueSize`, `purgeQueue`, `schedule`, and `getUnsubscribedProducedTopics`. Uses a single control-plane pg-boss started lazily on first use (not in `$prepareInfra()`). Tracks produced topics so the Health Check can flag topics published to with no registered subscriber — pg-boss silently drops these (its `send()` returns no job id). On such a no-id result, `publish()` warns but does not throw.
 _Avoid_: EventBus, MessageBroker
 
 **Topic**:
@@ -524,7 +528,7 @@ Stubs (package.json only — no source): accounting, crm, fleet, inventory, repo
 6. **`ManagementPlaneConfig` is `undefined`** — the provisioning workflow expects a richer config (`tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`) but the type hasn't been defined yet.
 7. **Management Plane `$name` is `"management"`** — the module's `$name` is `"management"`, not `"management-plane"` as the package name suggests. Proxy accessor is `p.management`, not `p.managementPlane`.
 8. **`context.actorId` is typed but never populated by the framework** — the `AsyncLocalStorage` context declares `actorId?: string` but the platform never sets it from the authenticated session. Audit entries fall back to `"system"` until app code or middleware populates it.
-9. **ADR-0009 status is "Proposed" but Layer 1 is implemented** — the `AuditUnit` and `audit_log` table described in ADR-0009's Layer 1 are built and shipped. The ADR should be marked "Accepted" for Layer 1. Layer 2 (trigger-based blind-write capture, ADR-0010) remains unimplemented.
+9. **ADR-0009 has been accepted for Layer 1** — the `AuditUnit` and `audit_log` table described in ADR-0009's Layer 1 are built and shipped; the ADR status is now "Accepted (Layer 1)". Layer 2 (trigger-based blind-write capture, ADR-0010) remains proposed/unimplemented.
 
 ## Anti-Patterns
 

@@ -1,14 +1,14 @@
 ---
 title: Events
-description: Domain event map for the Tasks module — 10 task events and 1 reminder event.
+description: Domain event map for the Tasks module — 9 task events and 1 reminder event.
 icon: IconBell
 ---
 
-The Tasks module defines 10 task events and 1 reminder event published as plain string topics via PubSub.
+The Tasks module defines 9 task events and 1 reminder event published as plain string topics via PubSub.
 
 ## Event Constants
 
-```ts title="src/event-map.ts"
+```ts title="src/pubsub-events.ts"
 export const TASK_EVENTS = {
   ASSIGNED: "task:assigned",
   COMMENTED: "task:commented",
@@ -45,18 +45,18 @@ export const REMINDER_EVENTS = {
 
 ```ts
 // Subscribe to task creation
-await platform.pubsub.subscribe("task:created", async (message) => {
+await p.pubsub.subscribe("task:created", async (message) => {
   const { task } = message.data;
   // React to new task
 });
 
 // Subscribe to reminder firing
-await platform.pubsub.subscribe("reminder:fired", async (message) => {
+await p.pubsub.subscribe("reminder:fired", async (message) => {
   const { taskId, reminder } = message.data;
   // Send notification to reminder.userId
 });
 ```
 
 <Callout type="info">
-  The event map (`TaskDomainEventMap`) is a type-level contract. Events are published as plain string topics via PubSub — the map provides TypeScript inference for subscribers but does not enforce topics at runtime. The `NotificationBridge` is the only publisher; it is instantiated when `enableNotifications: true` is set on `TaskModuleConfig`.
+  The event map (`TaskDomainEventMap`) is a type-level contract. Events are published as plain string topics via PubSub — the map provides TypeScript inference for subscribers but does not enforce topics at runtime. The reminder workflow publishes `reminder:fired` directly via `ctx.pubsub.publish()`.
 </Callout>

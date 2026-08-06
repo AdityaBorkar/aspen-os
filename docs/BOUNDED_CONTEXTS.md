@@ -203,9 +203,13 @@ DatabaseUnit ← KvStoreUnit
 - pg-boss schema → configurable via `PubSubConfig.schema`
 - pg-boss `schedule()` → exposed for cron-based job scheduling
 
-**Public API**: `publish`, `publishBatch`, `subscribe`, `unsubscribe`, `getQueueSize`, `purgeQueue`, `schedule`
+**Public API**: `publish`, `publishBatch`, `subscribe`, `unsubscribe`, `getQueueSize`, `purgeQueue`, `schedule`, `getUnsubscribedProducedTopics`
 
-**Note**: PubSubUnit creates its own pg connection pool (does not reuse DatabaseUnit's pool). This is because pg-boss manages its own connection lifecycle.
+**Lifecycle**: PubSubUnit uses a single control-plane pg-boss, started **lazily on first use** (`ensureStarted()` memoizes a started-promise; reset on failure so it can retry). `$prepareInfra()` is a no-op — runtime connections are deferred to first use because `$prepareInfra()` runs at deploy time, not server start. It does **not** reuse DatabaseUnit's pool; pg-boss manages its own connection lifecycle.
+
+**Health probe**: `getQueueSize(topic)` lazily starts the boss and runs a live SQL COUNT round-trip; it works on unregistered topics and has no side effects, so the platform's `healthCheck()` uses it (on `__platform_health_check`) to prove pub/sub connectivity.
+
+**Produce tracking**: `publish`/`publishBatch` record produced topics in a `producedTopics` map. `getUnsubscribedProducedTopics()` filters to those with no registered subscriber. pg-boss silently drops publishes to topics with no queue row (`send()` returns no job id) — the health check surfaces these as `unsubscribedTopics` on the `HealthReport`. On a no-id result `publish()` warns but does not throw.
 
 ### 6. Partner: Storage ↔ S3
 
@@ -469,7 +473,7 @@ Modules declare their DB schemas via `$prepareInfra()` (returns `{ db: { control
 
 ```
 Platform.prepareInfra()
-    → unit.$prepareInfra()                    // core infra (db pool, pubsub boss, etc.)
+    → unit.$prepareInfra()                    // core infra (db pool, etc.; pubsub boss is lazy)
     → mod.$prepareInfra() for each module     // collect { db, auth, events } declarations
     → DatabaseUnit.prepareWithModules(schemas) // pushSchema(coreSchemas + moduleSchemas, db)
     → AuthUnit.applyModuleAcl(acl)            // store merged ACL metadata
@@ -479,6 +483,8 @@ Platform.prepareInfra()
 ```
 
 Schemas collected by `DatabaseUnit.prepareWithModules()`: core schemas (`auditSchema`, `authSchema`, `logSchema`, `storageSchema`, `kvStoreSchema`, `workflowSchema`) merged with module `db.control_plane_schemas` and `db.tenant_schemas` from `$prepareInfra()`.
+
+`$prepareInfra()` on a **Unit** is per-unit and optional. Most units perform their infra setup here; PubSubUnit's is a no-op because its single control-plane pg-boss is started lazily on first use at runtime, not at deploy time.
 
 ### Scheduled Jobs
 
@@ -492,6 +498,28 @@ Two modules register scheduled cron jobs via PubSub:
 | Compliance | `compliance:weekly-summary` | `0 9 * * 1` | Generate weekly summary |
 | Compliance | `compliance:obligation-generate` | `0 6 * * *` | Generate documents from obligations |
 | Drive | `drive:auto-purge` | `0 3 * * *` | Purge trashed items older than retention |
+
+### Health Check
+
+`BasePlatform.healthCheck()` returns a `HealthReport`:
+
+```typescript
+{
+  status: "ok" | "unhealthy",
+  checks: {
+    db:      { status, latencyMs?, error? },
+    pubsub:  { status, latencyMs?, error? },
+  },
+  unsubscribedTopics?: string[],  // produced but no registered consumer
+  tenancyMode: TenancyMode,
+  at: string,                      // ISO timestamp
+}
+```
+
+- **DB probe**: `controlPlaneDb.execute(sql`SELECT 1`)` (always the real control plane, not the context-routed wrapper).
+- **PubSub probe**: `getQueueSize("__platform_health_check")` — lazily starts the boss and does a live SQL round-trip; safe on unregistered topics.
+- **Unsubscribed topics**: `pubsub.getUnsubscribedProducedTopics()` lists topics published to with no registered subscriber; pg-boss silently drops these, so their presence flips the report to `unhealthy` to surface the wiring bug early. Present only when non-empty.
+- `checkDbHealth` / `checkPubSubHealth` are protected hooks derived classes may override.
 
 ## Context Map Table
 
@@ -525,7 +553,7 @@ Two modules register scheduled cron jobs via PubSub:
 ## Language Boundaries
 
 ### Platform Kernel Language
-- Platform, Platform (client), Unit, Module, Create, PrepareInfra, Destroy, Run, GetUnit, GetModule, $dependencies, Workflow, WorkflowStep, WorkflowContext, StepRunner, RunOptions, StepOptions
+- Platform, Platform (client), Unit, Module, Create, PrepareInfra, Destroy, Run, GetUnit, GetModule, $dependencies, Workflow, WorkflowStep, WorkflowContext, StepRunner, RunOptions, StepOptions, Health Check
 
 ### Auth Language
 - User, Session, Account, Verification, Role, Access Control, Auth Event
@@ -534,7 +562,7 @@ Two modules register scheduled cron jobs via PubSub:
 - Log Entry, Level, Service, Span, Trace, Buffer, Flush, Drain, Query, Stats
 
 ### PubSub Language
-- Topic, Publish, Subscribe, Unsubscribe, Message, Handler, Retry, Priority, Queue, Schedule
+- Topic, Publish, Subscribe, Unsubscribe, Message, Handler, Retry, Priority, Queue, Schedule, Unsubscribed Produced Topic, Health Probe
 
 ### Storage Language
 - File, Bucket, Key, Upload, Download, Archive, Signed URL, ETag, Metadata

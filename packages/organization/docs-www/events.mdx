@@ -8,7 +8,7 @@ The Organization module defines 11 domain events across 3 event groups. Events a
 
 ## Event Constants
 
-```ts title="src/event-map.ts"
+```ts title="src/pubsub-events.ts"
 export const ORGANIZATION_EVENTS = {
   UPDATED: "organization:updated",
   BRANDING_UPDATED: "organization:branding_updated",
@@ -65,7 +65,7 @@ export const CONNECTION_EVENTS = {
 Events are published via `PubSubUnit.publish()`:
 
 ```ts
-await platform.pubsub.publish("branch:created", {
+await p.pubsub.publish("branch:created", {
   branch: { code: "HQ-MUM", id: "br-1", name: "HQ Mumbai", type: "headquarters" },
 });
 ```
@@ -73,11 +73,11 @@ await platform.pubsub.publish("branch:created", {
 ### Subscribing to Events
 
 ```ts
-await platform.pubsub.subscribe("branch:created", async (message) => {
+await p.pubsub.subscribe("branch:created", async (message) => {
   console.log("Branch created:", message.data.branch);
 });
 
-await platform.pubsub.subscribe("connection:status_changed", async (message) => {
+await p.pubsub.subscribe("connection:status_changed", async (message) => {
   const { connectionId, fromStatus, toStatus } = message.data;
   // React to status change
 });
@@ -85,7 +85,7 @@ await platform.pubsub.subscribe("connection:status_changed", async (message) => 
 
 ## Event Map Type
 
-```ts title="src/event-map.ts"
+```ts title="src/pubsub-events.ts"
 export type OrganizationDomainEventMap = OrganizationEventMap &
   BranchEventMap &
   ConnectionEventMap;

@@ -1107,6 +1107,8 @@ The HR module defines 43 events across 8 event groups, combined into `HrEventMap
 | KV | Get key | `kv.get()` |
 | KV | Check exists | `kv.exists()` |
 | PubSub | Get queue size | `pubsub.getQueueSize()` |
+| PubSub | List produced-but-unsubscribed topics | `pubsub.getUnsubscribedProducedTopics()` |
+| Platform | Health check | `p.healthCheck()` |
 | Organization | Get org | `p.organization.organizations.get()` |
 | Branch | List branches | `p.organization.branches.list()` |
 | Branch | Get tree | `p.organization.branches.getTree()` |

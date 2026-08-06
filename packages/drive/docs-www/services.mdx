@@ -4,11 +4,11 @@ description: Internal services powering the Drive module — path management, st
 icon: IconDeviceGamepad3
 ---
 
-The Drive module uses 5 internal service classes that handle path resolution, storage abstraction, permission checks, folder archiving, and search. These are accessible as getters on the module instance after `initialize()`.
+The Drive module uses 5 internal service modules for path resolution, storage abstraction, permission checks, folder archiving, and search. They are exposed as module accessors (`paths`, `storage`, `access`, `archive`, `search`).
 
 ## PathService
 
-Access: `framework.drive.paths`
+Access: `p.drive.paths`
 
 Resolves, computes, and validates filesystem paths stored as `/folder/subfolder/file.ext` strings in the database.
 
@@ -42,9 +42,9 @@ async cascadePaths(oldPath: string, newPath: string, tx?: DB): Promise<void>
 
 ## StorageBridge
 
-Access: `framework.drive.paths.storageBridge` (internal only — not exposed as a module getter)
+Access: `p.drive.storage` (backed by `services/storage-bridge.ts`)
 
-Wraps the framework's `StorageUnit` with Drive-specific key computation and S3-compatible operations.
+Wraps the platform `StorageUnit` (registered in `$initialize`) with Drive-specific key computation and S3-compatible operations.
 
 ```ts
 computeStorageKey(folderPath: string, fileName: string): string
@@ -70,7 +70,7 @@ async exists(key: string): Promise<boolean>
 
 ## AccessService
 
-Access: `framework.drive.access`
+Access: `p.drive.access`
 
 Checks ownership and share-based permissions, including inheritance from parent folders.
 
@@ -107,7 +107,7 @@ async logAccess(input: {
 
 ## ArchiveService
 
-Access: `framework.drive.archive`
+Access: `p.drive.archive`
 
 Generates ZIP archives of folder contents using `fflate`, with both synchronous and job-based modes.
 
@@ -137,7 +137,7 @@ interface ArchiveResult {
 
 ## SearchService
 
-Access: `framework.drive.search`
+Access: `p.drive.search`
 
 Queries files and folders by name, description, owner, content type, date range, size range, and labels.
 

@@ -1,14 +1,95 @@
 ---
 title: Workflows
-description: API reference for the 7 workflow classes exposed by the HR module.
+description: API reference for the 8 workflow classes exposed by the HR module.
 icon: IconListCheck
 ---
 
-The HR module exposes 7 workflow classes, each managing a distinct HR domain aggregate.
+The HR module exposes 8 workflow classes, each managing a distinct HR domain aggregate.
+
+## AccessWorkflow
+
+Access: `p.hr.access`
+
+Manages HR users (system users linked to employees), custom RBAC roles, permissions, and branch-wise access control.
+
+### HR User
+
+```ts
+createUser(input: CreateHrUserInput)
+getUserById(id: string)
+getUserByEmployeeId(employeeId: string)
+getUserByUserId(userId: string)
+listUsers(filters?: HrUserFilters)
+updateUser(id: string, patch: UpdateHrUserInput)
+deleteUser(id: string)
+```
+
+### RBAC Role
+
+```ts
+createRole(input: CreateHrRoleInput)
+getRoleById(id: string)
+getRoleByName(name: string)
+listRoles(filters?: HrRoleFilters)
+updateRole(id: string, patch: UpdateHrRoleInput)
+deleteRole(id: string)
+```
+
+### Permission
+
+```ts
+createPermission(input: CreateHrPermissionInput)
+getPermissionById(id: string)
+listPermissions(filters?: HrPermissionFilters)
+listPermissionsByModule(module: string)
+deletePermission(id: string)
+```
+
+### Role-Permission Mapping
+
+```ts
+assignPermissionToRole(input: AssignPermissionInput)
+removePermissionFromRole(roleId: string, permissionId: string)
+getRolePermissions(roleId: string)
+```
+
+### User-Role Assignment
+
+```ts
+assignRoleToUser(input: AssignRoleInput)
+removeRoleFromUser(hrUserId: string, roleId: string, branchId?: string)
+getUserRoles(hrUserId: string)
+getUserRolesForBranch(hrUserId: string, branchId: string)
+```
+
+### Branch Access
+
+```ts
+grantBranchAccess(input: GrantBranchAccessInput)
+revokeBranchAccess(hrUserId: string, branchId: string)
+getUserBranches(hrUserId: string)
+updateBranchAccess(id: string, patch: UpdateBranchAccessInput)
+getAccessibleBranches(hrUserId: string): Promise<string[]>
+hasBranchAccess(hrUserId: string, branchId: string)
+```
+
+### Permission Resolution
+
+```ts
+getUserPermissions(hrUserId: string, branchId?: string): Promise<ResolvedPermission[]>
+hasPermission(hrUserId: string, module: string, action: string, branchId?: string): Promise<boolean>
+```
+
+### Business Rules
+
+- `deleteRole` refuses to delete a system role
+- `removeRoleFromUser` optionally scopes removal to a branch
+- `getAccessibleBranches` merges direct branch access with role-based branch grants
+- `getUserPermissions` returns de-duplicated `module:action` pairs from the user's resolved roles
 
 ## EmployeeWorkflow
 
-Access: `platform.hr.employees`
+Access: `p.hr.employee`
 
 Manages employee records, employee groups, health insurance, and skill maps.
 
@@ -68,7 +149,7 @@ deleteSkillMap(id: string)
 
 ## AttendanceWorkflow
 
-Access: `platform.hr.attendance`
+Access: `p.hr.attendance`
 
 Manages attendance records, employee check-ins, and attendance correction requests.
 
@@ -112,7 +193,7 @@ deleteAttendanceRequest(id: string)
 
 ## LeaveWorkflow
 
-Access: `platform.hr.leave`
+Access: `p.hr.leave`
 
 Manages leave types, periods, policies, allocations, applications, compensatory leave, encashment, block lists, adjustments, and ledger entries.
 
@@ -251,7 +332,7 @@ listLedgerEntries(employeeId: string, leaveType?: string)
 
 ## LifecycleWorkflow
 
-Access: `platform.hr.lifecycle`
+Access: `p.hr.lifecycle`
 
 Manages onboarding, promotions, transfers, separations, exit interviews, and full and final statements.
 
@@ -356,7 +437,7 @@ deleteFullAndFinal(id: string)
 
 ## OvertimeWorkflow
 
-Access: `platform.hr.overtime`
+Access: `p.hr.overtime`
 
 Manages overtime types and overtime slips with approval workflow and summary reporting.
 
@@ -392,7 +473,7 @@ deleteOvertimeSlip(id: string)
 
 ## SetupWorkflow
 
-Access: `platform.hr.setup`
+Access: `p.hr.setup`
 
 Manages HR settings, payroll settings, employment types, departments, designations, employee grades, holiday lists, and holidays.
 
@@ -484,7 +565,7 @@ deleteHoliday(id: string)
 
 ## ShiftWorkflow
 
-Access: `platform.hr.shift`
+Access: `p.hr.shift`
 
 Manages shift types, shift locations, shift assignments, shift requests, shift schedules, and schedule assignments.
 

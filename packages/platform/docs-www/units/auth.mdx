@@ -4,58 +4,23 @@ description: Authentication and authorization powered by better-auth with plugin
 icon: IconShieldCheck
 ---
 
-The `AuthUnit` (`$name: "auth"`) wraps [better-auth](https://www.better-auth.com) with plugins for admin, organization, username, phone number, email OTP, API keys, two-factor, passkey, and Cloudflare Turnstile captcha (conditional).
+The `AuthUnit` (`$name: "auth"`) wraps [better-auth](https://www.better-auth.com) with plugins for admin, organization, username, phone number, email OTP, API keys, two-factor, and passkey.
 
 ## Configuration
 
-```ts title="src/server/auth/types.ts"
-interface AuthConfig {
-  access_control: ReturnType<typeof createAccessControl>;
-  baseURL: string;
-  cfSecretKey?: string;
-  roles: Record<string, Role>;
-  secret: string;
-  session: { expiresIn?: number };
-  socialProviders?: {
-    google?: {
-      clientId: string;
-      clientSecret: string;
-      redirectURI?: string;
-    };
-  };
-}
+```ts title="src/server/auth/index.ts"
+interface AuthConfig extends BetterAuthOptions {}
 ```
 
-<Callout type="info">
-  `access_control` and `roles` are destructured out of the config to avoid being spread into `betterAuth()` at the top level, but they **are** passed to better-auth via the `admin()` plugin (`admin({ ac: access_control, roles })`). The client `AuthUnit` passes the same values to `adminClient()` for client-side role checking. Access control enforcement (checking permissions before performing operations) is not built into the platform's workflows — it must be done at the application level (e.g. in RPC procedure middleware).
-</Callout>
+`AuthConfig` is a plain alias of `BetterAuthOptions`. There are **no** custom wrapper fields — in particular no `access_control`, `roles`, or `cfSecretKey`. Module ACL is declared via `defineAcl()` and applied by the platform through `applyModuleAcl()`.
 
 ### Example
 
 ```ts
-import { createAccessControl } from "@aspen-os/platform/client";
-
-const access_control = createAccessControl({
-  organization: ["create", "read", "update", "delete"],
-  branch: ["create", "read", "update", "delete"],
-});
-
-const roles = {
-  admin: access_control.newRole({
-    organization: ["create", "read", "update", "delete"],
-  }),
-  viewer: access_control.newRole({
-    organization: ["read"],
-  }),
-};
-
 const authConfig: AuthConfig = {
-  access_control,
   baseURL: "http://localhost:3000",
-  cfSecretKey: process.env.CF_SECRET_KEY!,
-  roles,
   secret: process.env.AUTH_SECRET!,
-  session: { expiresIn: 604800 }, // 7 days (note: hardcoded in better-auth)
+  session: { expiresIn: 604800 },  // 7 days
   socialProviders: {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -68,62 +33,90 @@ const authConfig: AuthConfig = {
 ## Public API
 
 ```ts title="src/server/auth/index.ts"
-class AuthUnit {
+class AuthUnit implements Unit {
   readonly $name = "auth";
-  readonly $db_schema: typeof db_schema;  // auth Drizzle schema
-  readonly auth: Auth;                      // raw betterAuth instance
+  readonly $db_schema: typeof db_schema;   // auth Drizzle schema
 
-  async $prepare(): Promise<void>;   // no-op
-  async $cleanup(): Promise<void>;   // no-op
-  async fetch_handler(request: Request): Promise<Response>;
+  get service(): AuthService;              // raw betterAuth instance
+  async fetchHandler(request: Request): Promise<Response>;
 
-  get api(): Auth["api"];  // raw better-auth API object
+  applyModuleAcl(acl: Record<string, readonly string[]>): void;
 
-  // Programmatic APIs:
-  get user(): UserAPI;
-  get session(): SessionAPI;
-  get role(): RoleAPI;
+  get _(): {
+    role: {
+      list(): Promise<RoleData[]>;
+      remove(input: DeleteRoleInput): Promise<...>;
+    };
+    session: {
+      create(input: AuthenticateInput): Promise<...>;
+      invalidate(input: InvalidateSessionInput): Promise<...>;
+      validate(input: ValidateSessionInput): Promise<...>;
+    };
+    user: {
+      create(input: CreateUserInput): Promise<...>;
+      get(query: GetUserQuery): Promise<...>;
+      remove(input: DeleteUserInput): Promise<...>;
+      update(input: UpdateUserInput): Promise<...>;
+      role: {
+        assign(input: AssignRoleInput): Promise<...>;
+        unassign(input: UnassignRoleInput): Promise<...>;
+      };
+    };
+  };
+
+  async $prepareInfra(acl?): Promise<void>;  // calls applyModuleAcl(acl)
+  async $cleanup(): Promise<void>;
 }
 ```
 
-## Workflows
+## Auth Operations
 
-### User Workflow
-
-```ts
-platform.auth.user.create({ email, password, name? })           // → Promise<User>
-platform.auth.user.get({ id })                                  // → Promise<User | null>
-platform.auth.user.get({ email })                               // → Promise<User | null>
-platform.auth.user.update({ id, data: { name?, image?, role? } }) // → Promise<User>
-platform.auth.user.remove({ id })                               // → Promise<void>
-platform.auth.user.role.assign({ userId, roleName })            // → Promise<void>
-platform.auth.user.role.unassign({ userId })                    // → Promise<void>
-```
-
-### Session Workflow
+All programmatic auth operations go through the `_` getter, structured as `resource.action`:
 
 ```ts
-platform.auth.session.create({ email, password })    // → Promise<{ session, user }>
-platform.auth.session.validate({ token })             // → Promise<{ session, user } | null>
-platform.auth.session.invalidate({ sessionId })       // → Promise<void>
-```
+// Users
+await p.auth._.user.create({ email, password, name });
+await p.auth._.user.get({ email });          // or { id }
+await p.auth._.user.update({ id, data: { name } });
+await p.auth._.user.remove({ id });
 
-### Role Workflow
+// Roles
+await p.auth._.user.role.assign({ userId, roleName });
+await p.auth._.user.role.unassign({ userId, roleName });
+await p.auth._.role.list();
 
-```ts
-platform.auth.role.list()               // → Promise<RoleData[]>
-platform.auth.role.remove({ name })     // → Promise<void>
+// Sessions
+await p.auth._.session.create({ email, password });
+await p.auth._.session.validate({ token });
+await p.auth._.session.invalidate({ sessionId });
 ```
 
 ## HTTP Handler
 
-The unit exposes a `fetch_handler` method for handling HTTP requests (e.g. in a server middleware):
+Serve better-auth HTTP requests:
 
 ```ts
-platform.auth.fetch_handler(request);
-// Equivalent to:
-platform.auth.auth.handler(request);
+// Equivalent:
+await p.auth.fetchHandler(request);
+await p.auth.service.handler(request);
 ```
+
+## Access Control
+
+`applyModuleAcl(acl)` re-creates the better-auth service with `admin({ ac: createAccessControl(acl) })`. The platform calls it during `$prepareInfra()` with the merged ACL from all modules' `ModuleInfra.auth.acl`.
+
+```ts
+// In a module's $prepareInfra()
+import { defineAcl } from "@aspen-os/platform/server";
+
+const acl = defineAcl({
+  connection: ["create", "update", "archive", "restore"],
+});
+```
+
+<Callout type="info">
+  Access control declaration (`defineAcl`) is a type and runtime helper only. Permission *enforcement* (checking a principal's permissions before an operation) is not built into workflows — it must be done at the application layer (e.g. in RPC middleware).
+</Callout>
 
 ## Auth Schema
 
@@ -140,42 +133,25 @@ The auth tables follow better-auth's adapter pattern:
   Auth tables do **not** follow the `gen_random_uuid()::text` ID convention — better-auth manages ID generation. Role is a plain `text("role")` column on the `user` table, not a separate entity.
 </Callout>
 
-## Auth Events
-
-Events are type-level contracts (see `AuthEventMap`). They are published as plain string topics via PubSub:
-
-| Event | Payload | Trigger |
-|---|---|---|
-| `user:created` | `{ user: User }` | User created |
-| `user:updated` | `{ user: User }` | User updated |
-| `user:deleted` | `{ userId: string }` | User deleted |
-| `session:created` | `{ session, user }` | Session authenticated |
-| `session:invalidated` | `{ sessionId }` | Session invalidated |
-| `role:assigned` | `{ roleName, userId }` | Role assigned |
-| `role:unassigned` | `{ userId }` | Role unassigned |
-| `role:created` | `{ role: RoleData }` | Role created |
-| `role:deleted` | `{ roleName }` | Role deleted |
-
 ## Plugins
 
-The `AuthUnit` configures better-auth with these plugins:
+The `createBetterAuthService()` factory configures better-auth with:
 
 | Plugin | Purpose |
 |---|---|
-| `admin` | Access control and role management (`ac` + `roles`) |
+| `admin` | Access control (receives `ac` when ACL applied) |
 | `username` | Username support |
 | `organization` | Multi-organization support |
 | `phoneNumber` | Phone number authentication |
-| `emailOTP` | Email-based OTP sign-in, verification, and password reset |
+| `emailOTP` | Email OTP sign-in, verification, password reset |
 | `apiKey` | API key authentication with rate limiting |
 | `lastLoginMethod` | Tracks last login method |
 | `twoFactor` | TOTP-based 2FA |
 | `passkey` | WebAuthn/passkey authentication |
-| `captcha` | Cloudflare Turnstile (conditional on `cfSecretKey`) |
 
 ## Drizzle Adapter
 
-The unit configures better-auth's drizzle adapter with:
+The factory configures better-auth's drizzle adapter with:
 - `camelCase: false`
 - `provider: "pg"`
 - `usePlural: false`

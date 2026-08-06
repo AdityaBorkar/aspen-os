@@ -4,7 +4,7 @@ description: Internal services powering the compliance module — reminder engin
 icon: IconDeviceGamepad3
 ---
 
-The Compliance module uses 5 internal service classes that handle scheduled jobs, auto-generation, event bridging, and status derivation. These are not directly accessible on the module — they are managed internally via `prepare()` and `destroy()`.
+The Compliance module uses 4 internal service modules that handle scheduled jobs, auto-generation, event bridging, and status derivation. These are not directly accessible on the module — they are managed internally via the module lifecycle and registered in `$prepareRuntime()`.
 
 ## ReminderEngine
 
@@ -124,25 +124,6 @@ Derives the verification status of a compliance document from its dates and rene
   Status is **derived**, not set directly. The `verification_status` column is updated by the workflow based on date calculations and lifecycle actions.
 </Callout>
 
-## AuditWriter
-
-Internal utility that writes audit entries to the `compliance_audit_entry` table.
-
-### Responsibilities
-
-- Called by other workflows whenever a compliance action occurs
-- Writes an append-only audit entry with entity type, entity ID, action, performer, and metadata
-- Does not publish events — purely a database write operation
-
-### Usage (Internal)
-
-```ts
-// Called internally by DocumentWorkflow:
-await this.auditWriter.write({
-  entityType: "compliance_document",
-  entityId: docId,
-  action: "verified",
-  performedBy: userId,
-  metadata: { verifiedAt: new Date(), previousStatus: "under_review" },
-});
-```
+<Callout type="info">
+  Audit trails are written through the platform's `AuditUnit` (`ctx.audit.write()`), not a module-specific audit table.
+</Callout>

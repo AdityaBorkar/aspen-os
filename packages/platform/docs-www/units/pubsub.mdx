@@ -4,19 +4,19 @@ description: Message queue and pub/sub system powered by pg-boss with scheduling
 icon: IconTimelineEventText
 ---
 
-The `PubSubUnit` (`$name: "pubsub"`) provides a typed publish/subscribe messaging system backed by [pg-boss](https://github.com/timgit/pg-boss), a Postgres-based job queue.
+The `PubSubUnit` (`$name: "pubsub"`) provides a typed publish/subscribe messaging system backed by [pg-boss](https://github.com/timgit/pg-boss), a Postgres-based job queue. There is always exactly one pg-boss — the single control-plane boss.
 
 ## Configuration
 
 ```ts title="src/server/pubsub/types.ts"
 interface PubSubConfig {
-  schema?: string;                          // pg-boss schema (only when SSL)
-  monitorStateIntervalSeconds?: number;     // default: 30
+  monitorStateIntervalSeconds?: number; // default: 30
+  schema?: string;                      // pg-boss schema (only when SSL)
 }
 ```
 
 <Callout type="info">
-  PubSub creates its own pg connection pool — it does not reuse `DatabaseUnit`'s pool. This is because pg-boss manages its own connection lifecycle. The connection details are copied from `DatabaseUnit.config`.
+  PubSub creates its own pg connection pool (via pg-boss) — it does not reuse `DatabaseUnit`'s pool. Connection details are copied from the DB unit config.
 </Callout>
 
 ### Example
@@ -33,18 +33,14 @@ const pubsubConfig: PubSubConfig = {
 class PubSubUnit {
   readonly $name = "pubsub";
 
-  // Publishing
-  async publish<T = unknown>(
-    topic: string,
-    data: T,
-    options?: PublishOptions,
-  ): Promise<string>;
+  setAuth(auth: AuthUnit): void;   // wired once during createCore()
 
-  async publishControlPlane<T = unknown>(
+  // Publishing
+  async publish<T extends object>(
     topic: string,
     data: T,
     options?: PublishOptions,
-  ): Promise<string>;
+  ): Promise<string | undefined>;
 
   async publishBatch<T = unknown>(
     topic: string,
@@ -52,21 +48,11 @@ class PubSubUnit {
   ): Promise<string[]>;
 
   // Subscribing
-  async subscribe<T = unknown>(
-    topic: string,
-    handler: MessageHandler<T>,
-  ): Promise<void>;
-
+  async subscribe<T = unknown>(topic: string, handler: MessageHandler<T>): Promise<void>;
   async unsubscribe(topic: string): Promise<void>;
 
   // Scheduling
-  async schedule(
-    topic: string,
-    cron: string,
-    data?: unknown,
-    options?: ScheduleOptions,
-  ): Promise<void>;
-
+  async schedule(topic: string, cron: string, data?: unknown, options?: ScheduleOptions): Promise<void>;
   async unschedule(topic: string): Promise<void>;
   async getSchedules(): Promise<unknown[]>;
 
@@ -74,7 +60,10 @@ class PubSubUnit {
   async getQueueSize(topic: string): Promise<number>;
   async purgeQueue(topic: string): Promise<void>;
 
-  async $prepare(): Promise<void>;
+  // Diagnostics
+  getUnsubscribedProducedTopics(): string[];
+
+  async $prepareInfra(): Promise<void>;  // no-op — boss starts lazily
   async $cleanup(): Promise<void>;
 }
 ```
@@ -85,12 +74,12 @@ class PubSubUnit {
 
 ```ts
 // Simple publish
-const jobId = await platform.pubsub.publish("organization:created", {
+const jobId = await p.pubsub.publish("organization:created", {
   organization: { id: "org-1", name: "Acme Corp" },
 });
 
 // Publish with options
-await platform.pubsub.publish(
+await p.pubsub.publish(
   "compliance:document_expiring",
   { documentId: "doc-1", daysUntilExpiry: 7 },
   {
@@ -104,27 +93,23 @@ await platform.pubsub.publish(
 );
 ```
 
+<Callout type="warn">
+  Publishing to a topic with no registered subscriber (no `subscribe()` call → no pg-boss worker) is **silently dropped** — `send()` returns `null` because the INSERT matches no queue row. `publish()` logs a warning and returns `undefined` in this case. `getUnsubscribedProducedTopics()` and `healthCheck().unsubscribedTopics` surface these for monitoring.
+</Callout>
+
 ### Batch Publishing
 
 ```ts
-await platform.pubsub.publishBatch("notifications:send", [
+await p.pubsub.publishBatch("notifications:send", [
   { data: { userId: "1", message: "Hello" } },
   { data: { userId: "2", message: "World" }, options: { priority: 2 } },
 ]);
 ```
 
-### Control-Plane Publishing
-
-In isolated mode, each tenant DB has its own pg-boss. Use `publishControlPlane()` for events that belong to the control plane (e.g. auth events) rather than a specific tenant:
-
-```ts
-await platform.pubsub.publishControlPlane("user:created", { user });
-```
-
 ### Subscribe to Topics
 
 ```ts
-await platform.pubsub.subscribe(
+await p.pubsub.subscribe(
   "organization:created",
   async (message) => {
     console.log("Received:", message.data);
@@ -134,52 +119,41 @@ await platform.pubsub.subscribe(
 );
 ```
 
-### Cron-Based Scheduling
+The handler's `ctx.db` (via `getContext()`) is the tenant DB when running in isolated mode with a per-tenant subscription; otherwise it is the control-plane DB.
 
-Schedule recurring jobs using cron expressions:
+### Cron-Based Scheduling
 
 ```ts
 // Daily at 8am
-await platform.pubsub.schedule(
-  "compliance:daily-expiry-scan",
-  "0 8 * * *",
-);
+await p.pubsub.schedule("compliance:daily-expiry-scan", "0 8 * * *");
 
 // Weekly summary every Monday at 9am (IST)
-await platform.pubsub.schedule(
-  "compliance:weekly-summary",
-  "0 9 * * 1",
-  {},
-  { tz: "Asia/Kolkata" },
-);
+await p.pubsub.schedule("compliance:weekly-summary", "0 9 * * 1", {}, { tz: "Asia/Kolkata" });
 
-// List schedules
-const schedules = await platform.pubsub.getSchedules();
-
-// Cancel a schedule
-await platform.pubsub.unschedule("compliance:weekly-summary");
+// List / cancel
+const schedules = await p.pubsub.getSchedules();
+await p.pubsub.unschedule("compliance:weekly-summary");
 ```
 
 ### Queue Management
 
 ```ts
-// Check queue depth
-const size = await platform.pubsub.getQueueSize("compliance:document_expiring");
-
-// Purge a queue
-await platform.pubsub.purgeQueue("notifications:send");
+const size = await p.pubsub.getQueueSize("compliance:document_expiring");
+await p.pubsub.purgeQueue("notifications:send");
 ```
+
+`getQueueSize()` works on unregistered topics and is used by the platform health check as the pubsub connectivity probe.
 
 ## Publish Options
 
 ```ts title="src/server/pubsub/types.ts"
 interface PublishOptions {
-  expireInMinutes?: number;     // job expiration
-  priority?: number;            // higher = processed first
-  retryBackoff?: boolean;       // exponential backoff on retry
-  retryDelay?: number;          // seconds between retries
-  retryLimit?: number;          // max retry attempts
-  startAfter?: Date | string;   // delayed execution
+  expireInMinutes?: number;   // job expiration
+  priority?: number;          // higher = processed first
+  retryBackoff?: boolean;     // exponential backoff on retry
+  retryDelay?: number;        // seconds between retries
+  retryLimit?: number;        // max retry attempts
+  startAfter?: Date | string; // delayed execution
 }
 
 interface ScheduleOptions extends PublishOptions {
@@ -203,10 +177,10 @@ type MessageHandler<T = unknown> = (message: Message<T>) => void | Promise<void>
 
 ## Usage in Modules
 
-Domain modules register pubsub handlers and schedules in their `prepare()` method and unregister in `destroy()`:
+Domain modules register pubsub handlers and schedules in `$prepareRuntime()` and unregister in `$cleanup()`:
 
 ```ts
-// In module.$prepare():
+// In module.$prepareRuntime():
 await this.pubsub.subscribe("organization:created", this.handleOrgCreated);
 await this.pubsub.schedule("daily:cleanup", "0 2 * * *");
 
@@ -217,4 +191,4 @@ await this.pubsub.unschedule("daily:cleanup");
 
 ## Dependency
 
-Receives `{ db: DatabaseUnit }` via constructor injection. Copies connection details from `DatabaseUnit.config` to create its own pg-boss instance.
+Receives `{ db: DatabaseUnit }` via constructor injection, and is wired to `auth` via `setAuth(auth)` during `createCore()`. The single control-plane pg-boss is started lazily on first use.

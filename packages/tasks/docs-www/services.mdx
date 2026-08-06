@@ -4,11 +4,11 @@ description: Internal services powering the Tasks module — reports, notificati
 icon: IconDeviceGamepad3
 ---
 
-The Tasks module uses 4 internal service classes. `ReportService` is accessible via `platform.tasks.reports`; the others are used internally by workflows.
+The Tasks module ships 3 internal service modules under `services/` (`report-service`, `notification-bridge`, `dependency-graph`) plus a query-building utility under `utils/filter-engine.ts`. None are exposed as module accessors — workflow code consumes them directly via `getContext()`.
 
 ## ReportService
 
-Access: `platform.tasks.reports`
+Consumed by workflow code via `getContext()`; not exposed as a module accessor.
 
 Aggregates task, assignee, and time data into summary, workload, time, and cumulative flow reports.
 
@@ -47,7 +47,7 @@ getCumulativeFlow(projectId: string, dateFrom: Date, dateTo: Date): Promise<{
 
 ## NotificationBridge
 
-Used internally by `ReminderWorkflow` when `enableNotifications` is set on `TaskModuleConfig`.
+Defines `publish*` helper functions that wrap `pubsub.publish(topic, event)` for each task/reminder event. Defined in `services/notification-bridge.ts`; not currently wired into any workflow.
 
 ```ts
 publishTaskCreated(event: TaskCreatedEvent): Promise<void>
@@ -62,11 +62,11 @@ publishTaskCommented(event: TaskCommentedEvent): Promise<void>
 publishReminderFired(event: ReminderFiredEvent): Promise<void>
 ```
 
-Each method calls `pubsub.publish(topic, event)` with the corresponding event constant. The bridge is the only path through which task events reach the pubsub bus.
+Each function publishes to the corresponding event constant. The reminder workflow, however, publishes `reminder:fired` directly via `ctx.pubsub.publish(REMINDER_EVENTS.FIRED, …)`.
 
 ## DependencyGraphService
 
-Used internally by `LinkWorkflow` for cycle detection and graph algorithms.
+Used by `LinkWorkflow` for cycle detection and graph algorithms.
 
 ```ts
 wouldCreateCycle(sourceId: string, targetId: string): Promise<boolean>
@@ -85,7 +85,7 @@ buildDependencyGraph(taskIds: string[]): Promise<TaskDependencyNode[]>
 
 ## FilterEngine
 
-Used internally by `TaskWorkflow.list()` to build Drizzle WHERE clauses from `TaskFilters`.
+Lives under `utils/filter-engine.ts`. Used by `TaskWorkflow.list()` to build Drizzle WHERE clauses from `TaskFilters`.
 
 ```ts
 buildTaskWhereClause(filters: TaskFilters | undefined): SQL | undefined

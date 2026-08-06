@@ -8,14 +8,14 @@ icon: IconCode
 ## Creating a Platform Instance
 
 ```ts
-import { Platform } from "@aspen-os/platform/server";
-import { OrganizationModule } from "@aspen-os/organization";
-import { ComplianceModule } from "@aspen-os/compliance";
+import { SingleTenantPlatform } from "@aspen-os/platform/server";
+import { Organization } from "@aspen-os/organization";
+import { Compliance } from "@aspen-os/compliance";
 
-const organization = OrganizationModule.create({ country: "INDIA" });
-const compliance = ComplianceModule.create({ country: "INDIA" });
+const organization = Organization.create({ country: "INDIA" });
+const compliance = Compliance.create({ country: "INDIA" });
 
-const platform = Platform.create(
+const p = SingleTenantPlatform.create(
   {
     auth: authConfig,
     db: dbConfig,
@@ -24,26 +24,28 @@ const platform = Platform.create(
     pubsub: pubsubConfig,
     rpc: rpcConfig,
     storage: storageConfig,
-    tenancy: { mode: "single" },
   },
-  { organization, compliance },
+  [organization, compliance],
 );
 
-await platform.prepare();
+await p.$prepareInfra();
 ```
+
+`CommonConfig` (all server configs except `db`) plus `db` make up each platform's config type. There is no `tenancy` field — the platform class you choose implies the tenancy mode.
 
 ## Running in Request Context
 
-The `run()` method provides request-scoped context via `AsyncLocalStorage`:
+`run()` provides request-scoped context via `AsyncLocalStorage`:
 
 ```ts
 import { getContext } from "@aspen-os/platform/server";
 
-await platform.run(async () => {
-  const { auth, db, pubsub } = getContext();
+await p.run(async () => {
+  const { audit, auth, db, pubsub } = getContext();
   // db: NodePgDatabase (drizzle)
   // pubsub: PubSubUnit
-  // auth: better-auth Auth instance
+  // auth: AuthUnit (not raw betterAuth)
+  // audit: AuditUnit
 
   const result = await db.select().from(organizations);
   await pubsub.publish("organization:created", { organization });
@@ -52,32 +54,37 @@ await platform.run(async () => {
 
 ## Using the Auth Unit
 
+Auth operations go through the `_` getter, structured as `resource.action`:
+
 ```ts
 // Create a user
-const user = await platform.auth.user.create({
+await p.auth._.user.create({
   email: "user@example.com",
   password: "secure-password",
   name: "John Doe",
 });
 
 // Create a session
-const { session, user } = await platform.auth.session.create({
-  email: "user@example.com",
-  password: "secure-password",
-});
+await p.auth._.session.create({ email: "user@example.com", password: "..." });
 
 // Validate a session
-const result = await platform.auth.session.validate({ token });
+await p.auth._.session.validate({ token });
 
-// Assign a role
-await platform.auth.user.role.assign({ userId, roleName: "admin" });
+// Assign/remove a role
+await p.auth._.user.role.assign({ userId, roleName: "admin" });
+await p.auth._.user.role.unassign({ userId, roleName: "admin" });
+
+// List roles
+await p.auth._.role.list();
 ```
+
+`p.auth.service` is the raw better-auth instance; `p.auth.fetchHandler(request)` serves HTTP auth requests.
 
 ## Using the Storage Unit
 
 ```ts
 // Upload a file
-const file = await platform.storage.upload({
+const file = await p.storage.upload({
   key: "documents/report.pdf",
   body: buffer,
   contentType: "application/pdf",
@@ -85,51 +92,72 @@ const file = await platform.storage.upload({
 });
 
 // Get a signed URL
-const url = await platform.storage.getSignedGetUrl("documents/report.pdf", {
+const url = await p.storage.getSignedGetUrl("documents/report.pdf", {
   expiresIn: 3600,
 });
 
 // Archive a file
-await platform.storage.archive("documents/report.pdf");
+await p.storage.archive("documents/report.pdf");
 ```
+
+<Callout type="info">
+  Confirm the exact `StorageUnit` method names against the installed version — consult the [Storage unit reference](/docs/platform/units/storage) for the current API surface.
+</Callout>
 
 ## Using the KV Store
 
 ```ts
 // Set with TTL
-await platform.kvStore.set("cache:key", { data: "value" }, 1800);
+await p.kvStore.set("cache:key", { data: "value" }, 1800);
 
 // Get (returns null if expired)
-const value = await platform.kvStore.get("cache:key");
+const value = await p.kvStore.get("cache:key");
 
 // Get or set (cache-aside pattern)
-const result = await platform.kvStore.getOrSet(
+const result = await p.kvStore.getOrSet(
   "expensive:query",
   async () => await runExpensiveQuery(),
   3600,
 );
 
 // Increment/decrement counters
-await platform.kvStore.increment("visits");
-await platform.kvStore.decrement("remaining");
+await p.kvStore.increment("visits");
+await p.kvStore.decrement("remaining");
 ```
 
 ## Using PubSub
 
 ```ts
 // Publish a message
-await platform.pubsub.publish("organization:created", { organization });
+await p.pubsub.publish("organization:created", { organization });
 
 // Subscribe to a topic
-await platform.pubsub.subscribe("organization:created", async (message) => {
+await p.pubsub.subscribe("organization:created", async (message) => {
   console.log("Received:", message.data);
 });
 
 // Schedule a recurring job
-await platform.pubsub.schedule(
+await p.pubsub.schedule(
   "compliance:weekly-summary",
   "0 9 * * 1",  // every Monday at 9am
   {},
   { tz: "Asia/Kolkata" },
 );
+```
+
+<Callout type="warn">
+  Publishing to a topic with no registered subscriber is silently dropped by pg-boss. `p.healthCheck()` reports these unsubscribed topics. Always `subscribe()` (register a worker) before `publish()` to the same topic.
+</Callout>
+
+## Health Check
+
+```ts
+const report = await p.healthCheck();
+// { status, checks: { db, pubsub }, unsubscribedTopics?, tenancyMode, at }
+```
+
+## Cleanup
+
+```ts
+await p.$cleanup();
 ```

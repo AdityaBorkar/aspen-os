@@ -6,19 +6,13 @@ PubSub Events (How to handle migrations?)
 
 ---
 
-Auth
-Let's solve the workflow steps and audit logs
 Use the workflows in ManagementPlane to create a web application
-- DEBUG SECTION Visualize the entire flow and logs on the Management App + SIGNOZ
-  - Logger logs
-  - Workflow logs
-  - Storage Explorer
-  - Pubsub Pipelines
-  - Auth Users
-  - DB CDC
 
 Refactor all modules to be like ./management-plane. Make it a skill
-Update all docs-www
+
+WORK ON DMS
+
+WORK ON TASK MANAGEMENT
 
 - Create both apps for DMS. Update Healthcare&Clinic Application to multi-tenant (isolated). Update recruiter to single-tenant.
   - shaun-healthcare
@@ -31,9 +25,10 @@ Update all docs-www
 
 - Manually read and simplify the `platform` code as much as possible
 - Ensure good code architecture
-- --verbose flag for debugging in the `platform`. Take input a debugLogsDir: "./local/dir/" and store the logs there. Use the request time as the log file name for easier navigation.
 - Ensure schemas, unlocked postgres tables and signoz integration.
-- Ensure structured logging (https://loggingsucks.com/) is compliant with OTEL. Aim is to implement the structured logging using OTEL to maintain a single source of universal logging.
+- Logging: OTEL + Signoz Integration
+  - Ensure structured logging (https://loggingsucks.com/) is compliant with OTEL. Aim is to implement the structured logging using OTEL to maintain a single source of universal logging.
+  - --verbose flag for debugging in the `platform`. Take input a debugLogsDir: "./local/dir/" and store the logs there. Use the request time as the log file name for easier navigation.
 
 ## Workflows Unit
 

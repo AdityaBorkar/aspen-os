@@ -8,7 +8,7 @@ The Drive module defines 14 domain events covering file operations, folder opera
 
 ## Event Constants
 
-```ts title="src/event-map.ts"
+```ts title="src/pubsub-events.ts"
 export const DRIVE_EVENTS = {
   FILE_DOWNLOADED: "drive:file_downloaded",
   FILE_UPDATED: "drive:file_updated",
@@ -74,7 +74,7 @@ export const DRIVE_EVENTS = {
 
 ```ts
 // React to file uploads
-await framework.pubsub.subscribe(
+await p.pubsub.subscribe(
   "drive:file_uploaded",
   async (message) => {
     const { file } = message.data;
@@ -83,7 +83,7 @@ await framework.pubsub.subscribe(
 );
 
 // React to sharing
-await framework.pubsub.subscribe(
+await p.pubsub.subscribe(
   "drive:shared",
   async (message) => {
     const { share } = message.data;
@@ -92,7 +92,7 @@ await framework.pubsub.subscribe(
 );
 
 // React to purge
-await framework.pubsub.subscribe(
+await p.pubsub.subscribe(
   "drive:purged",
   async (message) => {
     const { itemId, itemType, storageKey } = message.data;
@@ -108,11 +108,11 @@ Events are published internally by workflows via `this.pubsub.publish()`. The `D
 ```ts
 import { DRIVE_EVENTS } from "@aspen-os/drive";
 
-await framework.pubsub.publish(DRIVE_EVENTS.FILE_UPLOADED, {
+await p.pubsub.publish(DRIVE_EVENTS.FILE_UPLOADED, {
   file: { id, name, ownerId, path, size, /* ... */ },
 });
 ```
 
 <Callout type="info">
-  The `DriveEventMap` type is a type-level contract — it maps event strings to their payload interfaces but does not register a runtime bus. Events are published as plain string topics through the framework's `PubSubUnit`.
+  The `DriveEventMap` type is a type-level contract — it maps event strings to their payload interfaces but does not register a runtime bus. Events are published as plain string topics through the platform's `PubSubUnit` (`p.pubsub`).
 </Callout>

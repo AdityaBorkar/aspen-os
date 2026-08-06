@@ -1,203 +1,121 @@
 ---
 title: Workflows
-description: API reference for the 5 workflows exposed by the Organization module.
+description: API reference for the workflow groups exposed by the Organization module.
 icon: IconListCheck
 ---
 
-The Organization module exposes 5 workflows, each managing a domain aggregate.
+The Organization module exposes five workflow groups as flat `Workflow` objects: `organizations`, `branches`, `connections`, `addresses`, and `bankAccounts`. Access via the platform proxy key `p.organization`.
 
-## OrganizationWorkflow
+## Organizations
 
-Access: `platform.organization.organization`
+Access: `p.organization.organizations`
 
-Manages the organization entity itself — branding, locale, timezone, status.
+Manages the organization entity itself — branding, logo, profile.
 
 ```ts
-// Create
-const org = await platform.organization.organization.create({
-  name: "Acme Corp",
-  slug: "acme-corp",
-  email: "contact@acme.com",
-  phone: "+91-9876543210",
-  website: "https://acme.com",
-});
-
-// Update
-await platform.organization.organization.update(id, {
-  name: "Acme Corporation",
-});
-
-// Update branding
-await platform.organization.organization.updateBranding(id, {
-  accentColor: "#FF5733",
-  logo: "logos/acme.png",
-});
-
-// Upload/delete logo
-await platform.organization.organization.uploadLogo(id, file);
-await platform.organization.organization.deleteLogo(id);
-
-// Get
-const org = await platform.organization.organization.get(id);
-
-// Delete
-await platform.organization.organization.delete(id);
+await p.organization.organizations.create({ name, slug, ... });
+const org = await p.organization.organizations.get({ id });
+await p.organization.organizations.update({ id, name });
+await p.organization.organizations.updateBranding({ id, accentColor, logo });
+await p.organization.organizations.uploadLogo({ id, file });
+await p.organization.organizations.deleteLogo({ id });
 ```
 
-### Validation Schemas
+## Branches
 
-- `CreateOrganizationSchema` — name, slug, email, phone, website, status
-- `UpdateOrganizationSchema` — all fields optional
-- `UpdateBrandingSchema` — logo, accentColor
-- `OrganizationFiltersSchema` — status, search
+Access: `p.organization.branches`
 
-## BranchWorkflow
-
-Access: `platform.organization.branches`
-
-Manages hierarchical branch structures with a maximum depth of 5 levels and exactly one headquarters per organization.
+Manages hierarchical branch structures.
 
 ```ts
-// Create
-const branch = await platform.organization.branches.create({
-  organizationId: orgId,
-  name: "HQ Mumbai",
-  code: "HQ-MUM",
-  type: "headquarters",
-  parentId: null,
-});
+await p.organization.branches.create({ organizationId, name, code, type, parentId });
+await p.organization.branches.update({ id, name });
+await p.organization.branches.activate({ id });
+await p.organization.branches.deactivate({ id });
+await p.organization.branches.close({ id });
+await p.organization.branches.archive({ id });
+await p.organization.branches.restore({ id });
+await p.organization.branches.get({ id });
 
-// Update
-await platform.organization.branches.update(branchId, { name: "HQ Mumbai Central" });
+// Hierarchical view
+const tree = await p.organization.branches.tree({ organizationId });
+// [{ id, name, children: [...] }]
 
-// Status changes
-await platform.organization.branches.activate(branchId);
-await platform.organization.branches.deactivate(branchId);
-await platform.organization.branches.close(branchId);
-
-// Archive / restore
-await platform.organization.branches.archive(branchId);
-await platform.organization.branches.restore(branchId);
-
-// Get tree (hierarchical view)
-const tree = await platform.organization.branches.getTree(orgId);
-// tree = [{ id, name, children: [...] }]
-
-// List
-const branches = await platform.organization.branches.list({ organizationId: orgId });
+const branches = await p.organization.branches.list({ organizationId });
 ```
 
 ### Business Rules
 
 - **Single headquarters** — exactly one branch of type `headquarters` per organization
-- **Max 5 levels** — branch hierarchy depth is enforced in the workflow
+- **Max 5 levels** — hierarchy depth enforced in the workflow
 - **No circular parents** — detected via recursive traversal
 - **Code uniqueness** — branch codes must be unique
 
-## ConnectionWorkflow
+## Connections
 
-Access: `platform.organization.connections`
+Access: `p.organization.connections`
 
 Manages external entities (clients, vendors, partners) with contacts and notes.
 
 ```ts
-// Create connection
-const conn = await platform.organization.connections.create({
-  organizationId: orgId,
-  name: "Tech Supplier Ltd",
-  type: "vendor",
-  contactPerson: "John Doe",
-  contactEmail: "john@techsupplier.com",
-  tags: ["IT", "hardware"],
-});
+await p.organization.connections.create({ organizationId, name, type, ... });
+await p.organization.connections.get({ id });
+await p.organization.connections.list({ filters? });
+await p.organization.connections.update({ id, patch });
+await p.organization.connections.updateStatus({ id, status });
+await p.organization.connections.archive({ id });
+await p.organization.connections.restore({ id });
 
-// Update
-await platform.organization.connections.update(connId, { name: "Tech Supplier Inc" });
-
-// Status management
-await platform.organization.connections.updateStatus(connId, "inactive");
-await platform.organization.connections.archive(connId);
-await platform.organization.connections.restore(connId);
-
-// Search
-const results = await platform.organization.connections.search("tech");
+// Search across connections / contacts
+await p.organization.connections.search({ query, filters? });
+await p.organization.connections.searchContacts({ query, connectionId? });
 
 // Contacts (1:N)
-await platform.organization.connections.addContact(connId, {
-  name: "Jane Smith",
-  email: "jane@techsupplier.com",
-  isPrimary: true,
-});
-await platform.organization.connections.updateContact(contactId, { name: "Jane Doe" });
-await platform.organization.connections.deleteContact(contactId);
+await p.organization.connections.createContact({ connectionId, name, email, isPrimary });
+await p.organization.connections.listContacts({ connectionId });
+await p.organization.connections.updateContact({ id, patch });
+await p.organization.connections.deleteContact({ id });
+await p.organization.connections.setPrimaryContact({ id });
 
 // Notes (1:N)
-await platform.organization.connections.addNote(connId, {
-  userId: "user-1",
-  type: "call",
-  content: "Discussed Q4 pricing",
-});
-const notes = await platform.organization.connections.listNotes(connId);
+await p.organization.connections.addNote({ connectionId, userId, type, content });
+await p.organization.connections.listNotes({ connectionId, type? });
 ```
 
-## AddressWorkflow
+## Addresses
 
-Access: `platform.organization.addresses`
+Access: `p.organization.addresses`
 
-Manages reusable address records with a primary flag.
+Reusable address records with a primary flag.
 
 ```ts
-// Create
-const addr = await platform.organization.addresses.create({
-  line1: "123 Business Park",
-  city: "Mumbai",
-  state: "Maharashtra",
-  postalCode: "400001",
-  country: "IN",
-  label: "Office",
-});
+await p.organization.addresses.create({ line1, city, state, postalCode, country, label });
+await p.organization.addresses.get({ id });
+await p.organization.addresses.update({ id, patch });
+await p.organization.addresses.delete({ id });
+await p.organization.addresses.setPrimary({ id });
 
-// Update
-await platform.organization.addresses.update(addrId, { city: "Pune" });
-
-// Primary management
-await platform.organization.addresses.setPrimary(addrId);
-await platform.organization.addresses.unsetPrimary(addrId);
-
-// Delete
-await platform.organization.addresses.delete(addrId);
-
-// List with filters
-const addresses = await platform.organization.addresses.list({ country: "IN" });
+const addresses = await p.organization.addresses.list({ country: "IN" });
 ```
 
-## BankAccountWorkflow
+## Bank Accounts
 
-Access: `platform.organization.bankAccounts`
+Access: `p.organization.bankAccounts`
 
-Manages bank account records with primary flag and active toggle.
+Bank account records with a primary flag and active toggle.
 
 ```ts
-// Create
-const acct = await platform.organization.bankAccounts.create({
-  accountHolder: "Acme Corp",
-  accountNumber: "1234567890",
-  bankName: "HDFC Bank",
-  routingNumber: "HDFC0001234",
-  swiftCode: "HDFCINBB",
-  currency: "INR",
-});
+await p.organization.bankAccounts.create({ accountHolder, accountNumber, bankName, ... });
+await p.organization.bankAccounts.get({ id });
+await p.organization.bankAccounts.update({ id, patch });
+await p.organization.bankAccounts.delete({ id });
+await p.organization.bankAccounts.setPrimary({ id });
+await p.organization.bankAccounts.activate({ id });
+await p.organization.bankAccounts.deactivate({ id });
 
-// Update
-await platform.organization.bankAccounts.update(acctId, { bankName: "ICICI Bank" });
-
-// Primary management
-await platform.organization.bankAccounts.setPrimary(acctId);
-
-// Activate / deactivate
-await platform.organization.bankAccounts.activate(acctId);
-await platform.organization.bankAccounts.deactivate(acctId);
-
-// List
-const accounts = await platform.organization.bankAccounts.list();
+const accounts = await p.organization.bankAccounts.list();
 ```
+
+## Notes
+
+All workflow methods are `Workflow.name(...)` instances with Valibot input validation and platform workflow persistence. Create-style methods take `{ input: CreateXxxSchema }`; update takes `{ id, patch: UpdateXxxSchema }`. Each operation writes audit entries and publishes domain events via the platform context.

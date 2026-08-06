@@ -1,0 +1,31 @@
+---
+title: Reports
+description: Placeholder package — centralized reporting module is not yet implemented.
+icon: IconReportAnalytics
+---
+
+`@aspen-os/reports` is a **not-started** stub. Its `src/index.ts` is empty and `package.json` has no exports, dependencies, or scripts.
+
+It is intended to provide a unified reporting layer across all aspen-os domain modules. Today, reporting is implemented as per-module services rather than through this package — for example `Tasks` → `ReportService` (`packages/tasks/src/services/report-service.ts`) exposes task summary, workload, velocity, burndown, cumulative flow, and time reports.
+
+## Planned Direction
+
+A future `@aspen-os/reports` package could provide:
+
+1. **Cross-module dashboards** — aggregate metrics from tasks, HR, organization, and drive
+2. **Report builder** — configurable templates with filters and groupings
+3. **Export capabilities** — PDF, Excel, CSV export
+4. **Scheduled reports** — recurring generation/delivery via PubSub
+5. **Report sharing** — shareable links with access control
+
+## Integration Points
+
+| Integration | Usage |
+|---|---|
+| `DatabaseUnit` | Read-only queries across all module tables |
+| `PubSubUnit` | Scheduled report generation, delivery notifications |
+| `AuthUnit` | Access control for report visibility |
+| `StorageUnit` | Exported report file storage |
+| All domain modules | Data sources (tasks, organization, HR, drive) |
+
+See the package `README.md` and `docs/TODO.md` for detailed planned scope.

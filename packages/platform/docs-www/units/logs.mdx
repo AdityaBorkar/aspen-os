@@ -47,7 +47,7 @@ class LogUnit {
   async query(filter: LogQuery): Promise<LogEntry[]>;
   async getStats(service?, startTime?, endTime?): Promise<LogStats>;
 
-  async $prepare(): Promise<void>;
+  async $prepareInfra(): Promise<void>;
   async $cleanup(): Promise<void>;
 }
 ```

@@ -21,9 +21,9 @@ export type DriveModuleConfig = {
 ```
 
 ```ts
-import { DriveModule } from "@aspen-os/drive";
+import { Drive } from "@aspen-os/drive";
 
-const drive = DriveModule.create({
+const drive = Drive.create({
   allowedContentTypes: ["image/png", "application/pdf"],
   maxFileSize: 2 * 1024 * 1024 * 1024,  // 2 GB
   maxNestingDepth: 15,
@@ -45,16 +45,18 @@ const drive = DriveModule.create({
 ## Initialization
 
 ```ts title="src/index.ts"
-initialize(units: {
+$initialize(units: {
   db: DatabaseUnit;
   storage: StorageUnit;
   pubsub: PubSubUnit;
 }): void
 ```
 
-## Prepare Phase
+`$initialize` stores the `pubsub` unit and registers the `storage` unit via `setDriveStorage()`.
 
-`prepare()` subscribes to the `drive:auto-purge` pubsub topic and schedules it with a daily cron (`0 3 * * *`). The handler calls `TrashWorkflow.purgeExpired()` to delete trashed items older than `trashRetentionDays`.
+## Prepare Runtime
+
+`$prepareRuntime()` subscribes to the `drive:auto-purge` pubsub topic and schedules it with a daily cron (`0 3 * * *`). The handler calls `purgeExpiredInternal()` to delete trashed items older than `trashRetentionDays`.
 
 ## Module Structure
 
@@ -63,8 +65,9 @@ packages/drive/src/
   index.ts              # Module class + type/schema re-exports
   db-schema.ts          # 8 tables + 4 enums
   types.ts              # Re-exports from schemas/ + domain interfaces
-  event-map.ts          # 14 events + DriveEventMap
+  pubsub-events.ts      # 14 events + DriveEventMap
   schemas/              # Valibot input schemas
+    index.ts
     enums.ts            # DriveItemType, DrivePermission, etc.
     folder.ts
     file.ts
@@ -74,14 +77,14 @@ packages/drive/src/
     trash.ts
     search.ts
     utils.ts            # HexColorSchema, ItemNameSchema, LabelNameSchema
-  workflows/            # 6 workflow classes
+  workflows/            # 6 workflow groups
     folder.ts
     file.ts
     label.ts
     share.ts
     public-link.ts
     trash.ts
-  services/             # 5 service classes
+  services/             # 5 service modules
     path-service.ts
     storage-bridge.ts
     access-service.ts
@@ -92,23 +95,24 @@ packages/drive/src/
 ## Accessing Workflows
 
 ```ts
-framework.drive.folders      // → FolderWorkflow
-framework.drive.files        // → FileWorkflow
-framework.drive.labels       // → LabelWorkflow
-framework.drive.shares       // → ShareWorkflow
-framework.drive.publicLinks  // → PublicLinkWorkflow
-framework.drive.trash        // → TrashWorkflow
+p.drive.folders      // → folders (Workflow group)
+p.drive.files        // → files
+p.drive.labels       // → labels
+p.drive.shares       // → shares
+p.drive.publicLinks  // → publicLinks
+p.drive.trash        // → trash
 ```
 
 ## Accessing Services
 
 ```ts
-framework.drive.search       // → SearchService
-framework.drive.archive      // → ArchiveService
-framework.drive.access       // → AccessService
-framework.drive.paths        // → PathService
+p.drive.search       // → search
+p.drive.archive      // → archive
+p.drive.access       // → access
+p.drive.paths        // → paths
+p.drive.storage      // → storage
 ```
 
-<Callout type="warn">
-  Accessing any workflow or service getter before `initialize()` throws `Error("Drive module not initialized. Call initialize() after Framework.create().")`.
+<Callout type="info">
+  These accessors are plain module properties available immediately after construction — there is no initialization guard. Workflows and services are stateless modules using `getContext()` at runtime.
 </Callout>

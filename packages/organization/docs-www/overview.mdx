@@ -6,32 +6,44 @@ icon: IconInfoCircle
 
 The Organization module manages organizational structure, branches, connections (clients/vendors/partners), addresses, and bank accounts. It is a fully implemented domain module following the platform's module pattern.
 
-## Module Configuration
-
-```ts
-import { OrganizationModule } from "@aspen-os/organization";
-
-const organization = OrganizationModule.create({
-  country: "INDIA",
-});
-```
-
-| Option | Type | Description |
-|---|---|---|
-| `country` | `"INDIA"` | Country-specific configuration |
-
-## Initialization
-
-The module receives `db` and `pubsub` units via `initialize()`:
+## Module
 
 ```ts title="src/index.ts"
-initialize(units: { db: DatabaseUnit; pubsub: PubSubUnit }): void {
-  this.#addresses = new AddressWorkflow(units.db.db);
-  this.#bankAccounts = new BankAccountWorkflow(units.db.db);
-  this.#branches = new BranchWorkflow(units.db.db);
-  this.#connections = new ConnectionWorkflow(units.db.db);
-  this.#organization = new OrganizationWorkflow(units.db.db);
+export class Organization implements Module {
+  static create(config: OrganizationConfig): Organization;
+  readonly $name = "organization";
+  readonly $dependencies: readonly string[] = [];
 }
+```
+
+`OrganizationConfig` is `{ country: "INDIA" }` — country-specific configuration for address validation.
+
+## Infrastructure
+
+`$prepareInfra()` declares the module's ACL, DB schemas, and events:
+
+```ts
+$prepareInfra(): ModuleInfra {
+  return {
+    auth: { acl },                              // connection, address, ...
+    db: { control_plane_schemas, tenant_schemas },
+    events,                                     // organization:*, branch:*, ...
+  };
+}
+```
+
+`$initialize()`, `$prepareRuntime()`, and `$cleanup()` are no-ops — the workflows are stateless objects.
+
+## Workflow Accessors
+
+The module exposes five workflow groups as readonly objects:
+
+```ts
+p.organization.organizations   // → OrganizationWorkflow
+p.organization.branches         // → BranchWorkflow
+p.organization.connections      // → ConnectionWorkflow
+p.organization.addresses        // → AddressWorkflow
+p.organization.bankAccounts     // → BankAccountWorkflow
 ```
 
 ## Module Structure
@@ -39,39 +51,24 @@ initialize(units: { db: DatabaseUnit; pubsub: PubSubUnit }): void {
 ```text
 packages/organization/src/
   index.ts              # Module class + type re-exports
-  db-schema.ts          # 7 tables + 5 enums
-  types.ts              # Type re-exports from schemas + BranchTreeNode
-  event-map.ts          # 11 events across 3 event groups
+  db-schemas/           # 7 tables + 5 enums (organization, branch, connection, address, bank-account, ...)
+  types.ts              # Type re-exports
+  pubsub-events.ts      # Events across 3 event groups
+  utils/
+    acl.ts              # defineAcl() ACL declaration
   schemas/              # Valibot validation schemas
     index.ts
     enums.ts
-    utils.ts
-    organization.ts
-    branch.ts
     connection.ts
     address.ts
     bank-account.ts
-  workflows/            # 5 workflow classes
+  workflows/
     organization.ts
     branch.ts
     connection.ts
     address.ts
     bank-account.ts
 ```
-
-## Accessing Workflows
-
-```ts
-platform.organization.organization     // → OrganizationWorkflow
-platform.organization.branches          // → BranchWorkflow
-platform.organization.connections       // → ConnectionWorkflow
-platform.organization.addresses         // → AddressWorkflow
-platform.organization.bankAccounts      // → BankAccountWorkflow
-```
-
-<Callout type="warn">
-  Accessing a workflow before `initialize()` throws a "not initialized" error. This happens if you access the module before calling `Platform.create()`.
-</Callout>
 
 ## Package
 
@@ -81,7 +78,7 @@ platform.organization.bankAccounts      // → BankAccountWorkflow
   "type": "module",
   "exports": { ".": "./src/index.ts" },
   "dependencies": {
-    "@aspenos/framework": "workspace:*",
+    "@aspen-os/platform": "workspace:*",
     "@aspen-os/constants": "workspace:*",
     "drizzle-orm": "catalog:",
     "valibot": "catalog:"
