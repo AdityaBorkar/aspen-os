@@ -18,26 +18,25 @@ export type { PubSubConfig, ScheduleOptions } from "./types";
 export class PubSubUnit {
   readonly $name = "pubsub" as const;
 
-  private tenancyMode: TenancyMode;
   // biome-ignore lint/suspicious/noExplicitAny: drizzle NodePgDatabase invariance forces any here
   private dbUnit: DatabaseUnit<any>;
+  private tenancyMode: TenancyMode;
   private authInstance: AuthUnit | null = null;
   private monitorStateIntervalSeconds: number;
 
-  private controlPlaneBoss: PgBoss;
-  private tenantBosses: Map<string, PgBoss> = new Map();
+  private readonly boss: PgBoss;
   private subscriptions = new Map<string, PgBoss.WorkHandler<object>>();
-  private controlPlaneBossStarted: Promise<void> | null = null;
+  private bossStarted: Promise<void> | null = null;
 
   constructor(
     config: PubSubConfig,
     // biome-ignore lint/suspicious/noExplicitAny: drizzle NodePgDatabase invariance forces any here
     { db }: { db: DatabaseUnit<any> },
   ) {
-    this.tenancyMode = db.tenancyMode;
     this.dbUnit = db;
+    this.tenancyMode = db.tenancyMode;
     this.monitorStateIntervalSeconds = config.monitorStateIntervalSeconds ?? 30;
-    this.controlPlaneBoss = this.createBoss(db.config);
+    this.boss = this.createBoss(db.config);
   }
 
   setAuth(auth: AuthUnit): void {
@@ -45,29 +44,25 @@ export class PubSubUnit {
   }
 
   async $prepareInfra(): Promise<void> {
-    // No-op: controls-plane pg-boss is started lazily on first use. $prepareInfra
-    // runs at deploy time, before the server starts.
+    // No-op: the single control-plane pg-boss is started lazily on first use.
+    // $prepareInfra runs at deploy time, before the server starts.
   }
 
   async $cleanup(): Promise<void> {
     for (const topic of this.subscriptions.keys()) {
       try {
-        await this.controlPlaneBoss.offWork(topic);
+        await this.boss.offWork(topic);
       } catch {
-        // Topic may be on a per-tenant boss
+        // Ignore — topic may not be registered on the control-plane boss
       }
     }
     this.subscriptions.clear();
-    await this.controlPlaneBoss.stop();
-    for (const boss of this.tenantBosses.values()) {
-      await boss.stop();
-    }
-    this.tenantBosses.clear();
+    await this.boss.stop();
   }
 
   async getQueueSize(topic: string): Promise<number> {
-    const boss = await this.resolveBoss();
-    return boss.getQueueSize(topic);
+    await this.ensureStarted();
+    return this.boss.getQueueSize(topic);
   }
 
   async publish<T extends object>(
@@ -75,10 +70,10 @@ export class PubSubUnit {
     data: T,
     options?: PublishOptions,
   ): Promise<string> {
-    const boss = await this.resolveBoss();
+    await this.ensureStarted();
     try {
       const opts = this.toBossOptions(options);
-      const id = await boss.send(topic, data, opts);
+      const id = await this.boss.send(topic, data, opts);
       if (!id) {
         throw new Error("Failed to publish message");
       }
@@ -92,39 +87,18 @@ export class PubSubUnit {
     }
   }
 
-  async publishControlPlane<T extends object>(
-    topic: string,
-    data: T,
-    options?: PublishOptions,
-  ): Promise<string> {
-    try {
-      const opts = this.toBossOptions(options);
-      const id = await this.controlPlaneBoss.send(topic, data, opts);
-      if (!id) {
-        throw new Error("Failed to publish message");
-      }
-      return id;
-    } catch (err) {
-      const msg = `Failed to publish control-plane message to topic "${topic}"`;
-      console.error(msg, err);
-      throw new Error(
-        `${msg}: ${err instanceof Error ? err.message : String(err)}`,
-      );
-    }
-  }
-
   async publishBatch<T = unknown>(
     topic: string,
     messages: { data: T; options?: PublishOptions }[],
   ): Promise<string[]> {
-    const boss = await this.resolveBoss();
+    await this.ensureStarted();
     const jobs = messages.map((msg) => ({
       data: msg.data as object,
       name: topic,
       options: this.toBossOptions(msg.options),
     }));
     try {
-      const result = await boss.insert(jobs);
+      const result = await this.boss.insert(jobs);
       return result ?? [];
     } catch (err) {
       const msg = `Failed to publish batch of ${messages.length} message(s) to topic "${topic}"`;
@@ -136,8 +110,8 @@ export class PubSubUnit {
   }
 
   async purgeQueue(topic: string): Promise<void> {
-    const boss = await this.resolveBoss();
-    await boss.deleteQueue(topic);
+    await this.ensureStarted();
+    await this.boss.deleteQueue(topic);
   }
 
   async subscribe<T = unknown>(
@@ -148,14 +122,13 @@ export class PubSubUnit {
     const wrappedHandler = await this.wrapHandler(handler, tenantId);
     this.subscriptions.set(topic, wrappedHandler);
 
-    const boss = await this.resolveBoss(tenantId);
-    await boss.work(topic, wrappedHandler);
+    await this.ensureStarted();
+    await this.boss.work(topic, wrappedHandler);
   }
 
   async unsubscribe(topic: string): Promise<void> {
-    const tenantId = context.getStore()?.tenantId;
-    const boss = await this.resolveBoss(tenantId);
-    await boss.offWork(topic);
+    await this.ensureStarted();
+    await this.boss.offWork(topic);
     this.subscriptions.delete(topic);
   }
 
@@ -165,20 +138,20 @@ export class PubSubUnit {
     data?: unknown,
     options?: ScheduleOptions,
   ): Promise<void> {
-    const boss = await this.resolveBoss();
-    await boss.schedule(topic, cron, data as object | undefined, {
+    await this.ensureStarted();
+    await this.boss.schedule(topic, cron, data as object | undefined, {
       ...this.toBossOptions(options),
       tz: options?.tz,
     });
   }
 
   async unschedule(topic: string): Promise<void> {
-    const boss = await this.resolveBoss();
-    await boss.unschedule(topic);
+    await this.ensureStarted();
+    await this.boss.unschedule(topic);
   }
 
   async getSchedules(): Promise<unknown[]> {
-    return this.controlPlaneBoss.getSchedules();
+    return this.boss.getSchedules();
   }
 
   // -------------------------------------------------
@@ -195,53 +168,20 @@ export class PubSubUnit {
     });
   }
 
-  private async resolveBoss(tenantId?: string): Promise<PgBoss> {
-    const id = tenantId ?? context.getStore()?.tenantId;
-    if (this.tenancyMode === "isolated" && id && !isGlobalTenantId(id)) {
-      return this.getTenantBoss(id);
+  private async ensureStarted(): Promise<void> {
+    if (!this.bossStarted) {
+      this.bossStarted = this.startBoss();
     }
-    await this.ensureControlPlaneStarted();
-    return this.controlPlaneBoss;
+    await this.bossStarted;
   }
 
-  private async ensureControlPlaneStarted(): Promise<void> {
-    if (!this.controlPlaneBossStarted) {
-      this.controlPlaneBossStarted = this.startControlPlaneBoss();
-    }
-    await this.controlPlaneBossStarted;
-  }
-
-  private async startControlPlaneBoss(): Promise<void> {
+  private async startBoss(): Promise<void> {
     try {
-      await this.controlPlaneBoss.start();
+      await this.boss.start();
     } catch (err) {
-      this.controlPlaneBossStarted = null;
+      this.bossStarted = null;
       throw err;
     }
-  }
-
-  private async getTenantBoss(tenantId: string): Promise<PgBoss> {
-    let boss = this.tenantBosses.get(tenantId);
-    if (!boss) {
-      if (!this.dbUnit.resolver) {
-        throw new Error(
-          "Tenant resolver is not available — tenancy mode is not isolated",
-        );
-      }
-      const config = await this.dbUnit.resolver.resolve(tenantId);
-      boss = this.createBoss({
-        // max: tenantConfig.maxConnections ?? 20,
-        database: config,
-        host: "tenantConfig.host",
-        password: "tenantConfig.password",
-        port: 5432,
-        ssl: true, // tenantConfig.ssl ? { rejectUnauthorized: false } : false,
-        user: "tenantConfig.user",
-      });
-      await boss.start();
-      this.tenantBosses.set(tenantId, boss);
-    }
-    return boss;
   }
 
   private async wrapHandler<T>(

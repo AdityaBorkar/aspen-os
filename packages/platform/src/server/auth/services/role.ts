@@ -14,7 +14,7 @@ export async function assignRole(
     .returning();
 
   if (!row) throw new Error(`User "${userId}" not found`);
-  await pubsub?.publishControlPlane("role:assigned", { roleName, userId });
+  await pubsub?.publish("role:assigned", { roleName, userId });
 }
 
 export async function unassignRole(
@@ -22,7 +22,7 @@ export async function unassignRole(
   { db, pubsub }: AuthServiceDeps,
 ): Promise<void> {
   await db.update(s.user).set({ role: null }).where(eq(s.user.id, userId));
-  await pubsub?.publishControlPlane("role:unassigned", { userId });
+  await pubsub?.publish("role:unassigned", { userId });
 }
 
 export async function deleteRole(
@@ -30,7 +30,7 @@ export async function deleteRole(
   { db, pubsub }: AuthServiceDeps,
 ): Promise<void> {
   await db.update(s.user).set({ role: null }).where(eq(s.user.role, name));
-  await pubsub?.publishControlPlane("role:deleted", { roleName: name });
+  await pubsub?.publish("role:deleted", { roleName: name });
 }
 
 export async function listRoles({ db }: AuthServiceDeps): Promise<RoleData[]> {

@@ -42,7 +42,7 @@ export async function authenticate(
 
   const session = toSession(sessionData.session);
   const user = toUser(sessionData.user);
-  await pubsub?.publishControlPlane("session:created", { session, user });
+  await pubsub?.publish("session:created", { session, user });
   return { session, user };
 }
 
@@ -69,7 +69,7 @@ export async function invalidateSession(
   { db, pubsub }: AuthServiceDeps,
 ): Promise<void> {
   await db.delete(s.session).where(eq(s.session.id, input.sessionId));
-  await pubsub?.publishControlPlane("session:invalidated", {
+  await pubsub?.publish("session:invalidated", {
     sessionId: input.sessionId,
   });
 }

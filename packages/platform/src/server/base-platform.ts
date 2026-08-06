@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 import { AuditUnit } from "./audit";
@@ -44,6 +45,35 @@ export type InferTenantSchemas<M extends Module[]> = UnionToIntersection<
 export type MergedSchemas<M extends Module[]> = InferControlPlaneSchemas<M> &
   InferTenantSchemas<M> &
   Record<string, unknown>;
+
+/**
+ * A single connectivity probe result.
+ */
+export type HealthCheckResult = {
+  /** "ok" when the dependency answered the probe, otherwise "unhealthy". */
+  status: "ok" | "unhealthy";
+  /** Round-trip latency of the probe in milliseconds, when it succeeded. */
+  latencyMs?: number;
+  /** Reason for failure, when the probe did not succeed. */
+  error?: string;
+};
+
+/**
+ * Aggregate health report returned by {@link BasePlatform.healthCheck}.
+ */
+export type HealthReport = {
+  /** "ok" only when every check passed, otherwise "unhealthy". */
+  status: "ok" | "unhealthy";
+  checks: {
+    db: HealthCheckResult;
+    pubsub: HealthCheckResult;
+  };
+  tenancyMode: TenancyMode;
+  /** ISO timestamp of when the check ran. */
+  at: string;
+};
+
+const PUBSUB_HEALTH_PROBE_TOPIC = "__platform_health_check";
 
 export type CommonConfig = {
   auth: AuthConfig;
@@ -222,6 +252,67 @@ export abstract class BasePlatform<
       pubsub: this.units.pubsub,
       ...overrides,
     };
+
     return context.run(ctx, fn);
+  }
+
+  /**
+   * Probe the DB and PubSub units for connectivity and report their status.
+   *
+   * The check is best-effort: a failure in one dependency does not prevent
+   * the other from being probed. Returns an aggregate {@link HealthReport}.
+   */
+  /**
+   * Probe the DB and PubSub units for connectivity and report their status.
+   *
+   * The check is best-effort: a failure in one dependency does not prevent
+   * the other from being probed. Returns an aggregate {@link HealthReport}.
+   * Derived platform classes may override {@link checkDbHealth} or
+   * {@link checkPubSubHealth} to add mode-specific probes.
+   */
+  async healthCheck(): Promise<HealthReport> {
+    const dbResult = await this.checkDbHealth();
+    const pubsubResult = await this.checkPubSubHealth();
+
+    const overall: "ok" | "unhealthy" =
+      dbResult.status === "ok" && pubsubResult.status === "ok"
+        ? "ok"
+        : "unhealthy";
+
+    return {
+      at: new Date().toISOString(),
+      checks: { db: dbResult, pubsub: pubsubResult },
+      status: overall,
+      tenancyMode: this.tenancyMode,
+    };
+  }
+
+  protected async checkDbHealth(): Promise<HealthCheckResult> {
+    const start = performance.now();
+    try {
+      await this.units.db.controlPlaneDb.execute(sql`SELECT 1`);
+      return { latencyMs: Math.round(performance.now() - start), status: "ok" };
+    } catch (err) {
+      return {
+        error: err instanceof Error ? err.message : String(err),
+        status: "unhealthy",
+      };
+    }
+  }
+
+  protected async checkPubSubHealth(): Promise<HealthCheckResult> {
+    const start = performance.now();
+    try {
+      // Lazily starts the control-plane pg-boss (proving it can connect to
+      // the database), then performs a live SQL round-trip against a queue.
+      // getQueueSize works on unregistered topics and has no side effects.
+      await this.units.pubsub.getQueueSize(PUBSUB_HEALTH_PROBE_TOPIC);
+      return { latencyMs: Math.round(performance.now() - start), status: "ok" };
+    } catch (err) {
+      return {
+        error: err instanceof Error ? err.message : String(err),
+        status: "unhealthy",
+      };
+    }
   }
 }

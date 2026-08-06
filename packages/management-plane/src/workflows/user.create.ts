@@ -60,7 +60,7 @@ export const createUser = Workflow.name("user.create")
       },
     });
 
-    await ctx.pubsub.publishControlPlane(PLATFORM_USER_EVENTS.CREATED, {
+    await ctx.pubsub.publish(PLATFORM_USER_EVENTS.CREATED, {
       user: {
         email: createdUser.email,
         id: createdUser.id,
@@ -68,8 +68,5 @@ export const createUser = Workflow.name("user.create")
       },
     });
 
-    return {
-      ...createdUser,
-      spId: input.spId ?? null,
-    };
+    return { ...createdUser, spId: input.spId ?? null };
   });
