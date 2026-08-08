@@ -15,7 +15,7 @@ export const logs = pgTable(
     errorMessage: text("error_message"),
     errorName: text("error_name"),
     errorStack: text("error_stack"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     level: text("level").notNull(),
     message: text("message").notNull(),
     metadata: jsonb("metadata").default({}),

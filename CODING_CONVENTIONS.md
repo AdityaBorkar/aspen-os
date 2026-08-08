@@ -49,7 +49,7 @@ Shared dependency versions are pinned in the root `package.json` `workspaces.cat
 
 ### IDs
 
-- Always `text` with `DEFAULT gen_random_uuid()::text` — never native UUID columns.
+- Always `text` with `DEFAULT uuidv7()` — never native UUID columns.
 - Exception: better-auth tables (`user`, `session`, `account`, `verification`) use `text("id").primaryKey()` without a default (better-auth manages ID generation).
 
 ### Timestamps
@@ -342,7 +342,7 @@ export type DomainEventMap = EntityEventMap & OtherEntityEventMap;
 - `access_control` and `roles` from `AuthConfig` are **not** passed to server-side `betterAuth()` — they are client-only (used by the admin plugin on the client).
 - Drizzle adapter: `camelCase: false`, `provider: "pg"`, `usePlural: false`, `transaction: true`.
 - Role is a plain `text("role")` column on `user` — not a separate table.
-- Auth tables do not follow the `gen_random_uuid()::text` ID convention (better-auth manages IDs).
+- Auth tables do not follow the `uuidv7()` ID convention (better-auth manages IDs).
 
 ## PubSub
 

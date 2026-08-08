@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { index, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 import { SP_STATUS } from "../utils/constants";
@@ -16,7 +17,7 @@ export const serviceProvider = pgTable(
       .defaultNow(),
     description: text("description"),
     email: text("email"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     logo: text("logo"),
     name: text("name").notNull(),
     phone: text("phone"),

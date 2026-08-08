@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -15,7 +16,7 @@ export const address = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     isPrimary: boolean("is_primary").notNull().default(false),
     label: text("label"),
     line1: text("line1").notNull(),

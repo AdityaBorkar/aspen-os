@@ -533,7 +533,7 @@ Stubs (package.json only — no source): accounting, crm, fleet, inventory, repo
 ## Anti-Patterns
 
 - Don't register modules after `create()` — pass them to `Platform.create()` as the second arg (an array)
-- Don't use native UUID columns — always text with `gen_random_uuid()::text` or app-generated UUIDs
+- Don't use native UUID columns — always text with `uuidv7()` or app-generated UUIDs
 - Don't use `timestamp without time zone` — always `withTimezone: true`
 - Don't create barrel files unless explicitly told
 - Don't import bare `@aspen-os/platform` — use `/server` or `/client` subpath explicitly

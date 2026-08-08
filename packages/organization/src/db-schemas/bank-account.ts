@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -19,7 +20,7 @@ export const bankAccount = pgTable(
       .notNull()
       .defaultNow(),
     currency: text("currency").notNull().default("USD"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     isActive: boolean("is_active").notNull().default(true),
     isPrimary: boolean("is_primary").notNull().default(false),
     metadata: jsonb("metadata"),

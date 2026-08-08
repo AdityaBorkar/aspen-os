@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
@@ -36,7 +37,7 @@ export const driveFolder = pgTable(
       .notNull()
       .defaultNow(),
     description: text("description"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     isTrashed: boolean("is_trashed").notNull().default(false),
     name: text("name").notNull(),
     ownerId: text("owner_id").notNull(),
@@ -65,7 +66,7 @@ export const driveFile = pgTable(
     description: text("description"),
     etag: text("etag"),
     folderId: text("folder_id"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     isTrashed: boolean("is_trashed").notNull().default(false),
     name: text("name").notNull(),
     ownerId: text("owner_id").notNull(),
@@ -95,7 +96,7 @@ export const driveFileVersion = pgTable(
       .defaultNow(),
     etag: text("etag"),
     fileId: text("file_id").notNull(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     size: bigint("size", { mode: "number" }).notNull(),
     storageKey: text("storage_key").notNull(),
     uploadedBy: text("uploaded_by").notNull(),
@@ -114,7 +115,7 @@ export const driveLabel = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     isGlobal: boolean("is_global").notNull().default(false),
     name: text("name").notNull(),
     ownerId: text("owner_id"),
@@ -132,7 +133,7 @@ export const driveItemLabel = pgTable(
       .notNull()
       .defaultNow(),
     appliedBy: text("applied_by").notNull(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     itemId: text("item_id").notNull(),
     itemType: driveItemTypeEnum("item_type").notNull(),
     labelId: text("label_id").notNull(),
@@ -157,7 +158,7 @@ export const driveShare = pgTable(
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     granteeId: text("grantee_id").notNull(),
     granteeType: driveGranteeTypeEnum("grantee_type").notNull(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     itemId: text("item_id").notNull(),
     itemType: driveItemTypeEnum("item_type").notNull(),
     message: text("message"),
@@ -178,7 +179,7 @@ export const drivePublicLink = pgTable(
       .defaultNow(),
     createdBy: text("created_by").notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     isActive: boolean("is_active").notNull().default(true),
     itemId: text("item_id").notNull(),
     itemType: driveItemTypeEnum("item_type").notNull(),
@@ -204,7 +205,7 @@ export const driveAccessLog = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     ip: text("ip"),
     itemId: text("item_id").notNull(),
     itemType: driveItemTypeEnum("item_type").notNull(),

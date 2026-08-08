@@ -1,4 +1,5 @@
 import { BRANCH_TYPE } from "@aspen-os/constants";
+import { sql } from "drizzle-orm";
 import {
   boolean,
   date,
@@ -35,7 +36,7 @@ export const branch = pgTable(
       .notNull()
       .defaultNow(),
     email: text("email"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     isActive: boolean("is_active").notNull().default(true),
     manager: text("manager"),
     metadata: jsonb("metadata"),

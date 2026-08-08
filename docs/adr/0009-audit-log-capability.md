@@ -278,7 +278,7 @@ set.
 
 ```
 audit_log
-  id              text        PK default gen_random_uuid()::text
+  id              text        PK default uuidv7()
   tenant_id       text        notNull default 'default'   -- ADR-0007
   seq             bigserial                                 -- deterministic replay order (R2)
   action          text        notNull                      -- module-specific verb

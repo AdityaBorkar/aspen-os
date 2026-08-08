@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   date,
@@ -199,7 +200,7 @@ export const attendance = pgTable(
     earlyExitMinutes: integer("early_exit_minutes").notNull().default(0),
     employeeId: text("employee_id").notNull(),
     halfDayType: text("half_day_type"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     isHalfDay: boolean("is_half_day").notNull().default(false),
     lateEntry: boolean("late_entry").notNull().default(false),
     lateEntryMinutes: integer("late_entry_minutes").notNull().default(0),
@@ -226,7 +227,7 @@ export const employeeCheckin = pgTable(
       .defaultNow(),
     deviceId: text("device_id"),
     employeeId: text("employee_id").notNull(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     isOffShift: boolean("is_off_shift").notNull().default(false),
     latitude: text("latitude"),
     logType: checkinLogTypeEnum("log_type").notNull(),
@@ -251,7 +252,7 @@ export const attendanceRequest = pgTable(
       .defaultNow(),
     employeeId: text("employee_id").notNull(),
     fromDate: date("from_date").notNull(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     reason: text("reason").notNull(),
     rejectedAt: timestamp("rejected_at", { withTimezone: true }),
     rejectedBy: text("rejected_by"),
@@ -300,7 +301,7 @@ export const employee = pgTable(
     gender: genderEnum("gender"),
     grade: text("grade"),
     holidayList: text("holiday_list"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     ifscCode: text("ifsc_code"),
     image: text("image"),
     lastName: text("last_name").notNull(),
@@ -336,7 +337,7 @@ export const employeeGroup = pgTable("employee_group", {
     .notNull()
     .defaultNow(),
   description: text("description"),
-  id: text("id").primaryKey().default("gen_random_uuid()::text"),
+  id: text("id").primaryKey().default(sql`uuidv7()`),
   isActive: boolean("is_active").notNull().default(true),
   name: text("name").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -352,7 +353,7 @@ export const employeeGroupMember = pgTable(
       .defaultNow(),
     employeeId: text("employee_id").notNull(),
     groupId: text("group_id").notNull(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -372,7 +373,7 @@ export const employeeHealthInsurance = pgTable(
       .defaultNow(),
     employeeId: text("employee_id").notNull(),
     endDate: date("end_date"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     insurer: text("insurer").notNull(),
     isActive: boolean("is_active").notNull().default(true),
     metadata: jsonb("metadata"),
@@ -400,7 +401,7 @@ export const employeeSkillMap = pgTable(
       .defaultNow(),
     employeeId: text("employee_id").notNull(),
     expiryDate: date("expiry_date"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     notes: text("notes"),
     proficiency: skillProficiencyEnum("proficiency").notNull(),
     skill: text("skill").notNull(),
@@ -426,7 +427,7 @@ export const leaveType = pgTable(
       .notNull()
       .defaultNow(),
     earnedLeaveFrequency: earnedLeaveFrequencyEnum("earned_leave_frequency"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     includeHolidaysWithinLeaves: boolean("include_holidays_within_leaves")
       .notNull()
       .default(false),
@@ -454,7 +455,7 @@ export const leavePeriod = pgTable(
       .notNull()
       .defaultNow(),
     endDate: date("end_date").notNull(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     isActive: boolean("is_active").notNull().default(true),
     name: text("name").notNull(),
     startDate: date("start_date").notNull(),
@@ -470,7 +471,7 @@ export const leavePolicy = pgTable("leave_policy", {
     .notNull()
     .defaultNow(),
   description: text("description"),
-  id: text("id").primaryKey().default("gen_random_uuid()::text"),
+  id: text("id").primaryKey().default(sql`uuidv7()`),
   isActive: boolean("is_active").notNull().default(true),
   name: text("name").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -485,7 +486,7 @@ export const leavePolicyDetail = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     leavePolicyId: text("leave_policy_id").notNull(),
     leaveType: text("leave_type").notNull(),
     maxDays: integer("max_days").notNull(),
@@ -507,7 +508,7 @@ export const leavePolicyAssignment = pgTable(
     effectiveFrom: date("effective_from").notNull(),
     effectiveTo: date("effective_to"),
     employeeId: text("employee_id").notNull(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     isActive: boolean("is_active").notNull().default(true),
     leavePeriod: text("leave_period").notNull(),
     leavePolicy: text("leave_policy").notNull(),
@@ -531,7 +532,7 @@ export const leaveAllocation = pgTable(
       .defaultNow(),
     earnedDays: numeric("earned_days").notNull().default("0"),
     employeeId: text("employee_id").notNull(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     leavePeriod: text("leave_period").notNull(),
     leavePolicyAssignment: text("leave_policy_assignment"),
     leaveType: text("leave_type").notNull(),
@@ -561,7 +562,7 @@ export const leaveApplication = pgTable(
     employeeId: text("employee_id").notNull(),
     fromDate: date("from_date").notNull(),
     halfDayDate: date("half_day_date"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     isHalfDay: boolean("is_half_day").notNull().default(false),
     leaveAllocation: text("leave_allocation"),
     leaveType: text("leave_type").notNull(),
@@ -591,7 +592,7 @@ export const compensatoryLeaveRequest = pgTable(
       .notNull()
       .defaultNow(),
     employeeId: text("employee_id").notNull(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     leaveAllocation: text("leave_allocation"),
     leaveType: text("leave_type").notNull(),
     numberOfDays: numeric("number_of_days").notNull().default("1"),
@@ -623,7 +624,7 @@ export const leaveEncashment = pgTable(
     employeeId: text("employee_id").notNull(),
     encashableDays: numeric("encashable_days").notNull(),
     encashedDays: numeric("encashed_days").notNull(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     leavePeriod: text("leave_period").notNull(),
     leaveType: text("leave_type").notNull(),
     rejectedAt: timestamp("rejected_at", { withTimezone: true }),
@@ -649,7 +650,7 @@ export const leaveBlockList = pgTable(
       .defaultNow(),
     department: text("department"),
     fromDate: date("from_date").notNull(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     isActive: boolean("is_active").notNull().default(true),
     name: text("name").notNull(),
     reason: text("reason"),
@@ -671,7 +672,7 @@ export const leaveAdjustment = pgTable(
       .defaultNow(),
     days: numeric("days").notNull(),
     employeeId: text("employee_id").notNull(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     leaveLedgerEntry: text("leave_ledger_entry").notNull(),
     leavePeriod: text("leave_period"),
     leaveType: text("leave_type").notNull(),
@@ -692,7 +693,7 @@ export const leaveLedgerEntry = pgTable(
     days: numeric("days").notNull(),
     description: text("description").notNull(),
     employeeId: text("employee_id").notNull(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     leaveApplication: text("leave_application"),
     leaveType: text("leave_type").notNull(),
     transactionType: text("transaction_type").notNull(),
@@ -717,7 +718,7 @@ export const employeeOnboarding = pgTable(
       .defaultNow(),
     employeeId: text("employee_id").notNull(),
     expectedCompletionDate: date("expected_completion_date"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     metadata: jsonb("metadata"),
     notes: text("notes"),
     startDate: date("start_date").notNull(),
@@ -744,7 +745,7 @@ export const onboardingTask = pgTable(
     department: text("department"),
     description: text("description"),
     dueDate: date("due_date"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     notes: text("notes"),
     onboardingId: text("onboarding_id").notNull(),
     status: lifecycleTaskStatusEnum("status").notNull().default("pending"),
@@ -771,7 +772,7 @@ export const employeePromotion = pgTable(
     currentGrade: text("current_grade"),
     effectiveDate: date("effective_date").notNull(),
     employeeId: text("employee_id").notNull(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     newDepartment: text("new_department"),
     newDesignation: text("new_designation").notNull(),
     newGrade: text("new_grade"),
@@ -804,7 +805,7 @@ export const employeeTransfer = pgTable(
     fromBranch: text("from_branch"),
     fromCompany: text("from_company"),
     fromDepartment: text("from_department"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     reason: text("reason"),
     rejectedAt: timestamp("rejected_at", { withTimezone: true }),
     rejectedBy: text("rejected_by"),
@@ -831,7 +832,7 @@ export const employeeSeparation = pgTable(
       .defaultNow(),
     employeeId: text("employee_id").notNull(),
     exitDate: date("exit_date").notNull(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     metadata: jsonb("metadata"),
     notes: text("notes"),
     reason: text("reason"),
@@ -859,7 +860,7 @@ export const separationTask = pgTable(
     department: text("department"),
     description: text("description"),
     dueDate: date("due_date"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     notes: text("notes"),
     separationId: text("separation_id").notNull(),
     status: lifecycleTaskStatusEnum("status").notNull().default("pending"),
@@ -882,7 +883,7 @@ export const exitInterview = pgTable(
       .defaultNow(),
     employeeId: text("employee_id").notNull(),
     feedback: text("feedback"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     interviewer: text("interviewer"),
     questionnaireTemplate: text("questionnaire_template"),
     responses: jsonb("responses"),
@@ -911,7 +912,7 @@ export const fullAndFinalStatement = pgTable(
     deductions: numeric("deductions").notNull().default("0"),
     employeeId: text("employee_id").notNull(),
     gratuity: numeric("gratuity").notNull().default("0"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     leaveEncashment: numeric("leave_encashment").notNull().default("0"),
     loanRecovery: numeric("loan_recovery").notNull().default("0"),
     metadata: jsonb("metadata"),
@@ -946,7 +947,7 @@ export const overtimeType = pgTable(
     description: text("description"),
     fixedHourlyRate: numeric("fixed_hourly_rate"),
     holidayMultiplier: numeric("holiday_multiplier").notNull().default("2"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     isActive: boolean("is_active").notNull().default(true),
     maxOvertimeHoursPerDay: numeric("max_overtime_hours_per_day"),
     name: text("name").notNull(),
@@ -972,7 +973,7 @@ export const overtimeSlip = pgTable(
     employeeId: text("employee_id").notNull(),
     fromDate: date("from_date").notNull(),
     holidayHours: numeric("holiday_hours").notNull().default("0"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     metadata: jsonb("metadata"),
     notes: text("notes"),
     overtimeType: text("overtime_type").notNull(),
@@ -1006,7 +1007,7 @@ export const hrSettings = pgTable("hr_settings", {
   employeeNamingSeries: text("employee_naming_series"),
   expenseClaimDefault: text("expense_claim_default"),
   geolocationTracking: boolean("geolocation_tracking"),
-  id: text("id").primaryKey().default("gen_random_uuid()::text"),
+  id: text("id").primaryKey().default(sql`uuidv7()`),
   leaveApprovalWorkflow: text("leave_approval_workflow"),
   leaveWithoutPayHandling: text("leave_without_pay_handling"),
   updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -1021,7 +1022,7 @@ export const payrollSettings = pgTable("payroll_settings", {
     .defaultNow(),
   fiscalYearEnd: text("fiscal_year_end"),
   fiscalYearStart: text("fiscal_year_start"),
-  id: text("id").primaryKey().default("gen_random_uuid()::text"),
+  id: text("id").primaryKey().default(sql`uuidv7()`),
   incomeTaxComponent: text("income_tax_component"),
   multiCurrencyExpenseClaims: boolean("multi_currency_expense_claims"),
   payrollPeriodEnd: text("payroll_period_end"),
@@ -1039,7 +1040,7 @@ export const employmentType = pgTable(
       .notNull()
       .defaultNow(),
     description: text("description"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     isActive: boolean("is_active").notNull().default(true),
     name: text("name").notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -1056,7 +1057,7 @@ export const department = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     isActive: boolean("is_active").notNull().default(true),
     manager: text("manager"),
     metadata: jsonb("metadata"),
@@ -1077,7 +1078,7 @@ export const designation = pgTable("designation", {
     .notNull()
     .defaultNow(),
   description: text("description"),
-  id: text("id").primaryKey().default("gen_random_uuid()::text"),
+  id: text("id").primaryKey().default(sql`uuidv7()`),
   isActive: boolean("is_active").notNull().default(true),
   name: text("name").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -1091,7 +1092,7 @@ export const employeeGrade = pgTable("employee_grade", {
     .defaultNow(),
   defaultSalaryStructure: text("default_salary_structure"),
   description: text("description"),
-  id: text("id").primaryKey().default("gen_random_uuid()::text"),
+  id: text("id").primaryKey().default(sql`uuidv7()`),
   isActive: boolean("is_active").notNull().default(true),
   name: text("name").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -1104,7 +1105,7 @@ export const holidayList = pgTable("holiday_list", {
     .notNull()
     .defaultNow(),
   description: text("description"),
-  id: text("id").primaryKey().default("gen_random_uuid()::text"),
+  id: text("id").primaryKey().default(sql`uuidv7()`),
   isActive: boolean("is_active").notNull().default(true),
   name: text("name").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -1123,7 +1124,7 @@ export const holiday = pgTable(
     date: date("date").notNull(),
     description: text("description"),
     holidayListId: text("holiday_list_id").notNull(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     name: text("name").notNull(),
     type: holidayTypeEnum("type").notNull().default("public"),
     updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -1160,7 +1161,7 @@ export const shiftType = pgTable(
       .default(false),
     endTime: text("end_time").notNull(),
     holidayList: text("holiday_list"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     isActive: boolean("is_active").notNull().default(true),
     lateEntryGraceMinutes: integer("late_entry_grace_minutes")
       .notNull()
@@ -1188,7 +1189,7 @@ export const shiftLocation = pgTable("shift_location", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-  id: text("id").primaryKey().default("gen_random_uuid()::text"),
+  id: text("id").primaryKey().default(sql`uuidv7()`),
   isActive: boolean("is_active").notNull().default(true),
   latitude: text("latitude").notNull(),
   longitude: text("longitude").notNull(),
@@ -1207,7 +1208,7 @@ export const shiftAssignment = pgTable(
       .defaultNow(),
     employeeId: text("employee_id").notNull(),
     endDate: date("end_date"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     notes: text("notes"),
     shiftLocation: text("shift_location"),
     shiftType: text("shift_type").notNull(),
@@ -1234,7 +1235,7 @@ export const shiftRequest = pgTable(
       .defaultNow(),
     employeeId: text("employee_id").notNull(),
     fromDate: date("from_date").notNull(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     reason: text("reason"),
     rejectedAt: timestamp("rejected_at", { withTimezone: true }),
     rejectedBy: text("rejected_by"),
@@ -1258,7 +1259,7 @@ export const shiftSchedule = pgTable("shift_schedule", {
     .notNull()
     .defaultNow(),
   friday: boolean("friday").notNull().default(false),
-  id: text("id").primaryKey().default("gen_random_uuid()::text"),
+  id: text("id").primaryKey().default(sql`uuidv7()`),
   isActive: boolean("is_active").notNull().default(true),
   monday: boolean("monday").notNull().default(false),
   name: text("name").notNull(),
@@ -1281,7 +1282,7 @@ export const shiftScheduleAssignment = pgTable(
       .defaultNow(),
     employeeId: text("employee_id").notNull(),
     endDate: date("end_date"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     isActive: boolean("is_active").notNull().default(true),
     shiftSchedule: text("shift_schedule").notNull(),
     startDate: date("start_date").notNull(),
@@ -1303,7 +1304,7 @@ export const hrUser = pgTable(
       .notNull()
       .defaultNow(),
     employeeId: text("employee_id").notNull(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     isActive: boolean("is_active").notNull().default(true),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
@@ -1321,7 +1322,7 @@ export const hrRole = pgTable("hr_role", {
     .notNull()
     .defaultNow(),
   description: text("description"),
-  id: text("id").primaryKey().default("gen_random_uuid()::text"),
+  id: text("id").primaryKey().default(sql`uuidv7()`),
   isActive: boolean("is_active").notNull().default(true),
   isSystem: boolean("is_system").notNull().default(false),
   name: text("name").notNull(),
@@ -1336,7 +1337,7 @@ export const hrPermission = pgTable("hr_permission", {
     .notNull()
     .defaultNow(),
   description: text("description"),
-  id: text("id").primaryKey().default("gen_random_uuid()::text"),
+  id: text("id").primaryKey().default(sql`uuidv7()`),
   module: text("module").notNull(),
 });
 
@@ -1346,7 +1347,7 @@ export const hrRolePermission = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     permissionId: text("permission_id").notNull(),
     roleId: text("role_id").notNull(),
   },
@@ -1364,7 +1365,7 @@ export const hrUserRole = pgTable(
       .notNull()
       .defaultNow(),
     hrUserId: text("hr_user_id").notNull(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     roleId: text("role_id").notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
@@ -1386,7 +1387,7 @@ export const hrUserBranchAccess = pgTable(
       .notNull()
       .defaultNow(),
     hrUserId: text("hr_user_id").notNull(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   index,
   pgTable,
@@ -12,7 +13,7 @@ export const serviceProviderUser = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     serviceProviderId: text("service_provider_id").notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()

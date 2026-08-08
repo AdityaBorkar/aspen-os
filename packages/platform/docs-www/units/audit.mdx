@@ -118,7 +118,7 @@ The `audit_log` table:
 
 | Column | Type | Description |
 |---|---|---|
-| `id` | uuid (PK) | Default `gen_random_uuid()` |
+| `id` | uuid (PK) | Default `uuidv7()` |
 | `seq` | bigserial | Monotonic sequence for ordering |
 | `tenant_id` | text (notNull) | Tenant scope; defaults to `current_setting('app.tenant_id')` or `"default"` |
 | `entity_type` | text (notNull) | Entity kind (e.g. `organization`) |

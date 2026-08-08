@@ -21,7 +21,7 @@ export const fileMetadata = pgTable(
       .notNull()
       .defaultNow(),
     etag: text("etag"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     key: text("key").notNull(),
     metadata: jsonb("metadata").default({}),
     size: bigint("size", { mode: "number" }).notNull().default(0),

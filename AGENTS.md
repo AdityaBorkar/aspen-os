@@ -154,7 +154,7 @@ type ModuleInfra = {
 
 ### Database (Drizzle)
 
-- IDs: `text` with `DEFAULT gen_random_uuid()::text` (never native UUID). Exception: better-auth tables use `text("id").primaryKey()` without default.
+- IDs: `text` with `DEFAULT uuidv7()` (never native UUID). Exception: better-auth tables use `text("id").primaryKey()` without default.
 - Timestamps: `timestamp(..., { withTimezone: true })`; `createdAt` `.notNull().defaultNow()`, `updatedAt` `.notNull().defaultNow().$onUpdate(() => new Date())`.
 - Table/column names `snake_case` in Postgres, `camelCase` in TS (drizzle maps). Columns sorted alphabetically by TS property name. Tables `snake_case`.
 - `text` arrays, `jsonb("metadata")`, `numeric` for money, `bigint(..., { mode: "number" })` for sizes, `text("user_id").references(() => user.id, { onDelete: "cascade" })`.

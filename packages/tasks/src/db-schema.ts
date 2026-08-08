@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   date,
@@ -78,7 +79,7 @@ export const project = pgTable(
       .defaultNow(),
     defaultTaskTypeId: text("default_task_type_id"),
     description: text("description"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     key: text("key").notNull().unique(),
     leadId: text("lead_id").notNull(),
     name: text("name").notNull(),
@@ -121,7 +122,7 @@ export const taskType = pgTable(
   {
     color: text("color"),
     icon: text("icon"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     isDefault: boolean("is_default").notNull().default(false),
     name: text("name").notNull(),
     projectId: text("project_id"),
@@ -134,7 +135,7 @@ export const status = pgTable(
   {
     category: statusCategoryEnum("category").notNull(),
     color: text("color"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     isDefault: boolean("is_default").notNull().default(false),
     isResolved: boolean("is_resolved").notNull().default(false),
     name: text("name").notNull(),
@@ -151,7 +152,7 @@ export const statusTransition = pgTable(
   "task_status_transition",
   {
     fromStatusId: text("from_status_id").notNull(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     projectId: text("project_id").notNull(),
     requiresComment: boolean("requires_comment").notNull().default(false),
     requiresRole: text("requires_role"),
@@ -171,7 +172,7 @@ export const label = pgTable(
   "task_label_def",
   {
     color: text("color"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     name: text("name").notNull(),
     projectId: text("project_id"),
   },
@@ -189,7 +190,7 @@ export const task = pgTable(
     description: text("description"),
     dueDate: timestamp("due_date", { withTimezone: true }),
     estimatedHours: numeric("estimated_hours"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     isArchived: boolean("is_archived").notNull().default(false),
     labels: text("labels").array().default([]),
     number: text("number"),
@@ -226,7 +227,7 @@ export const taskAssignee = pgTable(
       .notNull()
       .defaultNow(),
     assignedBy: text("assigned_by").notNull(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     isLead: boolean("is_lead").notNull().default(false),
     taskId: text("task_id").notNull(),
     userId: text("user_id").notNull(),
@@ -244,7 +245,7 @@ export const taskLink = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     linkType: taskLinkTypeEnum("link_type").notNull(),
     sourceId: text("source_id").notNull(),
     targetId: text("target_id").notNull(),
@@ -270,7 +271,7 @@ export const timeEntry = pgTable(
     date: date("date").notNull(),
     description: text("description"),
     duration: integer("duration").notNull(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     taskId: text("task_id").notNull(),
     userId: text("user_id").notNull(),
   },
@@ -284,7 +285,7 @@ export const timeEntry = pgTable(
 export const reminder = pgTable(
   "task_reminder",
   {
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     interval: text("interval"),
     isRecurring: boolean("is_recurring").notNull().default(false),
     isSent: boolean("is_sent").notNull().default(false),
@@ -309,7 +310,7 @@ export const activityLog = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     newValue: jsonb("new_value"),
     oldValue: jsonb("old_value"),
     taskId: text("task_id").notNull(),
@@ -330,7 +331,7 @@ export const comment = pgTable(
       .notNull()
       .defaultNow(),
     editedAt: timestamp("edited_at", { withTimezone: true }),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     isDeleted: boolean("is_deleted").notNull().default(false),
     parentId: text("parent_id"),
     taskId: text("task_id").notNull(),
@@ -351,7 +352,7 @@ export const attachment = pgTable(
       .notNull()
       .defaultNow(),
     fileId: text("file_id").notNull(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     taskId: text("task_id").notNull(),
     uploadedBy: text("uploaded_by").notNull(),
   },
@@ -367,7 +368,7 @@ export const watcher = pgTable(
     addedAt: timestamp("added_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     taskId: text("task_id").notNull(),
     userId: text("user_id").notNull(),
   },
@@ -383,7 +384,7 @@ export const savedView = pgTable(
   {
     filters: jsonb("filters"),
     groupBy: text("group_by"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     isDefault: boolean("is_default").notNull().default(false),
     isShared: boolean("is_shared").notNull().default(false),
     name: text("name").notNull(),
@@ -406,7 +407,7 @@ export const automationRule = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     isActive: boolean("is_active").notNull().default(true),
     name: text("name").notNull(),
     projectId: text("project_id").notNull(),

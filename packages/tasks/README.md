@@ -131,7 +131,7 @@ When `enableNotifications` is `true`, the module instantiates a `NotificationBri
 | `task_saved_view` | Saved filter/sort configurations | `type` (list/board/calendar/timeline), `filters`/`sort` (jsonb) |
 | `task_automation_rule` | Automation rules | `trigger`, `conditions`/`actions` (jsonb), `isActive` |
 
-All IDs are `text` with `DEFAULT gen_random_uuid()::text`. All timestamps are `TIMESTAMPTZ` with `withTimezone: true`.
+All IDs are `text` with `DEFAULT uuidv7()`. All timestamps are `TIMESTAMPTZ` with `withTimezone: true`.
 
 ## Workflows
 

@@ -42,7 +42,7 @@ An implementation/integration partner that does physical-world onboarding work.
 
 | Column | Type | Description |
 |---|---|---|
-| `id` | text (PK) | Default `gen_random_uuid()::text`. |
+| `id` | text (PK) | Default `uuidv7()`. |
 | `name` | text (notNull) | Display name. |
 | `slug` | text (notNull, unique) | URL-safe identifier. |
 | `logo` | text | Logo URL or Storage reference. |

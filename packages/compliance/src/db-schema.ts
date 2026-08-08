@@ -125,7 +125,7 @@ export const complianceDocument = pgTable(
     effectiveDate: date("effective_date"),
     escalationDays: integer("escalation_days").array(),
     expiryDate: date("expiry_date"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     issueDate: date("issue_date"),
     issuingAuthority: text("issuing_authority"),
     jurisdiction: text("jurisdiction"),
@@ -200,7 +200,7 @@ export const complianceObligation = pgTable(
     expiryBased: boolean("expiry_based").notNull().default(false),
     expiryDurationMonths: integer("expiry_duration_months"),
     frequency: obligationFrequencyEnum("frequency").notNull(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     isActive: boolean("is_active").notNull().default(true),
     name: text("name").notNull(),
     periodBased: boolean("period_based").notNull().default(false),
@@ -231,7 +231,7 @@ export const complianceVerificationRule = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     isActive: boolean("is_active").notNull().default(true),
     name: text("name").notNull(),
     priority: integer("priority").notNull().default(0),

@@ -130,7 +130,7 @@ The auth tables follow better-auth's adapter pattern:
 | `verification` | Email verification, password reset tokens (identifier, value, expiresAt) |
 
 <Callout type="info">
-  Auth tables do **not** follow the `gen_random_uuid()::text` ID convention — better-auth manages ID generation. Role is a plain `text("role")` column on the `user` table, not a separate entity.
+  Auth tables do **not** follow the `uuidv7()` ID convention — better-auth manages ID generation. Role is a plain `text("role")` column on the `user` table, not a separate entity.
 </Callout>
 
 ## Plugins

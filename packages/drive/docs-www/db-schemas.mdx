@@ -21,7 +21,7 @@ The Drive module defines 8 tables and 4 enums using Drizzle ORM.
 
 | Column | Type | Description |
 |---|---|---|
-| `id` | text (PK) | `gen_random_uuid()::text` |
+| `id` | text (PK) | `uuidv7()` |
 | `name` | text | Folder name |
 | `owner_id` | text | Owner user ID |
 | `parent_id` | text | Parent folder (nullable, FK → `drive_folder.id`) |
@@ -37,7 +37,7 @@ The Drive module defines 8 tables and 4 enums using Drizzle ORM.
 
 | Column | Type | Description |
 |---|---|---|
-| `id` | text (PK) | `gen_random_uuid()::text` |
+| `id` | text (PK) | `uuidv7()` |
 | `name` | text | File name |
 | `owner_id` | text | Owner user ID |
 | `folder_id` | text | Parent folder (nullable, FK → `drive_folder.id`) |
@@ -57,7 +57,7 @@ The Drive module defines 8 tables and 4 enums using Drizzle ORM.
 
 | Column | Type | Description |
 |---|---|---|
-| `id` | text (PK) | `gen_random_uuid()::text` |
+| `id` | text (PK) | `uuidv7()` |
 | `file_id` | text | Parent file (FK → `drive_file.id`) |
 | `version` | integer | Version number |
 | `content_type` | text | MIME type at this version |
@@ -71,7 +71,7 @@ The Drive module defines 8 tables and 4 enums using Drizzle ORM.
 
 | Column | Type | Description |
 |---|---|---|
-| `id` | text (PK) | `gen_random_uuid()::text` |
+| `id` | text (PK) | `uuidv7()` |
 | `name` | text | Label name |
 | `color` | text | Hex color |
 | `is_global` | boolean | Org-wide vs personal (default `false`) |
@@ -82,7 +82,7 @@ The Drive module defines 8 tables and 4 enums using Drizzle ORM.
 
 | Column | Type | Description |
 |---|---|---|
-| `id` | text (PK) | `gen_random_uuid()::text` |
+| `id` | text (PK) | `uuidv7()` |
 | `item_id` | text | File or folder ID |
 | `item_type` | drive_item_type | `file` or `folder` |
 | `label_id` | text | Label (FK → `drive_label.id`) |
@@ -95,7 +95,7 @@ The Drive module defines 8 tables and 4 enums using Drizzle ORM.
 
 | Column | Type | Description |
 |---|---|---|
-| `id` | text (PK) | `gen_random_uuid()::text` |
+| `id` | text (PK) | `uuidv7()` |
 | `item_id` | text | Shared file or folder ID |
 | `item_type` | drive_item_type | `file` or `folder` |
 | `grantee_id` | text | User or group ID |
@@ -110,7 +110,7 @@ The Drive module defines 8 tables and 4 enums using Drizzle ORM.
 
 | Column | Type | Description |
 |---|---|---|
-| `id` | text (PK) | `gen_random_uuid()::text` |
+| `id` | text (PK) | `uuidv7()` |
 | `item_id` | text | Linked file or folder ID |
 | `item_type` | drive_item_type | `file` or `folder` |
 | `token` | text | Public access token (unique) |
@@ -127,7 +127,7 @@ The Drive module defines 8 tables and 4 enums using Drizzle ORM.
 
 | Column | Type | Description |
 |---|---|---|
-| `id` | text (PK) | `gen_random_uuid()::text` |
+| `id` | text (PK) | `uuidv7()` |
 | `item_id` | text | Accessed file or folder ID |
 | `item_type` | drive_item_type | `file` or `folder` |
 | `action` | text | Action performed |

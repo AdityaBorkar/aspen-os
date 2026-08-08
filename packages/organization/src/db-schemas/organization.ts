@@ -1,4 +1,5 @@
 import { ORGANIZATION_STATUS } from "@aspen-os/constants";
+import { sql } from "drizzle-orm";
 import {
   date,
   index,
@@ -25,7 +26,7 @@ export const organization = pgTable(
       .defaultNow(),
     email: text("email"),
     foundedDate: date("founded_date"),
-    id: text("id").primaryKey().default("gen_random_uuid()::text"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     industry: text("industry"),
     locale: text("locale").notNull().default("en-US"),
     logo: text("logo"),

@@ -89,7 +89,7 @@ export const myEntityRelations = relations(myEntity, ({ many }) => ({}));
 ```
 
 <Callout type="warn">
-  IDs are always `text` with `DEFAULT gen_random_uuid()::text` — never native UUID columns. Timestamps use `TIMESTAMPTZ` / `withTimezone: true`.
+  IDs are always `text` with `DEFAULT uuidv7()` — never native UUID columns. Timestamps use `TIMESTAMPTZ` / `withTimezone: true`.
 </Callout>
 
 ## Step 3: Constants & Enums

@@ -6,9 +6,16 @@ PubSub Events (How to handle migrations?)
 
 ---
 
+Update CODING_CONVENTIONS.md as per the current design and state of the repository.
+/init
+
 Add Service Provider to ManagementPlane
 WORK ON ORGANIZATION
 Branches & Organization
+
+Ensure Provisioning happens and Login works in the Tenant
+
+---
 
 Refactor all modules to be like ./management-plane. Make it a skill
 
@@ -30,15 +37,13 @@ WORK ON TASK MANAGEMENT
 - Logging: OTEL + Signoz Integration
   - Ensure structured logging (https://loggingsucks.com/) is compliant with OTEL. Aim is to implement the structured logging using OTEL to maintain a single source of universal logging.
   - --verbose flag for debugging in the `platform`. Take input a debugLogsDir: "./local/dir/" and store the logs there. Use the request time as the log file name for easier navigation.
-
-## Workflows Unit
-
-- https://activiti.org/
-- https://flowable.com/
-- https://temporal.io/
-- https://hatchet.run/
-- https://restate.dev/
-- https://inngest.com/
+- Workflows Unit
+  - https://activiti.org/
+  - https://flowable.com/
+  - https://temporal.io/
+  - https://hatchet.run/
+  - https://restate.dev/
+  - https://inngest.com/
 
 ## Module Implementation
 

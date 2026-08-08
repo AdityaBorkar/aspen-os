@@ -15,7 +15,4 @@ export const control_plane_schemas = {
   ...tenant,
 } as const;
 
-export const tenant_schemas = {
-  organization,
-  user,
-} as const;
+export const tenant_schemas = {} as const;
