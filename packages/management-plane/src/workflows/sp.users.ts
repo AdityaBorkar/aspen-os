@@ -1,8 +1,9 @@
 import { Workflow } from "@aspen-os/platform/server";
+import { user } from "@aspen-os/platform/server/db-schemas";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
 
-import { user } from "../db-schemas";
+import { serviceProviderUser } from "../db-schemas";
 import { IdSchema } from "../types";
 
 export const getUsers = Workflow.name("sp.users")
@@ -18,10 +19,11 @@ export const getUsers = Workflow.name("sp.users")
           id: user.id,
           name: user.name,
           role: user.role,
-          spId: user.spId,
+          spId: serviceProviderUser.serviceProviderId,
           updatedAt: user.updatedAt,
         })
-        .from(user)
-        .where(eq(user.spId, spId));
+        .from(serviceProviderUser)
+        .innerJoin(user, eq(serviceProviderUser.userId, user.id))
+        .where(eq(serviceProviderUser.serviceProviderId, spId));
     });
   });

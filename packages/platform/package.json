@@ -14,6 +14,10 @@
       "./server": {
         "path": "./src/server/index.ts",
         "target": "node"
+      },
+      "./server/db-schemas": {
+        "path": "./src/server/db-schemas.ts",
+        "target": "node"
       }
     },
     "files": ["./docs-www", "package.json", "README.md"]
@@ -55,6 +59,10 @@
     "./server": {
       "default": "./.output/server/index.js",
       "types": "./.output/server/index.d.ts"
+    },
+    "./server/db-schemas": {
+      "default": "./.output/server/db-schemas.js",
+      "types": "./.output/server/db-schemas.d.ts"
     }
   },
   "files": ["./docs-www", "package.json", "README.md", "./.output"],

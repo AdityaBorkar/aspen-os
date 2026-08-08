@@ -1,19 +1,21 @@
-import * as organization from "./organization";
-import * as serviceProvider from "./service-provider";
-import * as tenant from "./tenant";
-import * as user from "./user";
+import { organization, user } from "@aspen-os/platform/server/db-schemas";
 
-export * from "./organization";
-export * from "./service-provider";
-export * from "./tenant";
-export * from "./user";
+import * as serviceProvider from "./service-provider";
+import * as serviceProviderUser from "./service-provider-user";
+import * as tenant from "./tenant";
+
+export { serviceProvider, serviceProviderStatusEnum } from "./service-provider";
+export { serviceProviderUser } from "./service-provider-user";
+export { tenant, tenantStatusEnum } from "./tenant";
+export { organization, user };
 
 export const control_plane_schemas = {
   ...serviceProvider,
+  ...serviceProviderUser,
   ...tenant,
 } as const;
 
 export const tenant_schemas = {
-  ...organization,
-  ...user,
+  organization,
+  user,
 } as const;

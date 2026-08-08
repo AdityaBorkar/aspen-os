@@ -6,12 +6,13 @@ PubSub Events (How to handle migrations?)
 
 ---
 
-Use the workflows in ManagementPlane to create a web application
+Add Service Provider to ManagementPlane
+WORK ON ORGANIZATION
+Branches & Organization
 
 Refactor all modules to be like ./management-plane. Make it a skill
 
 WORK ON DMS
-
 WORK ON TASK MANAGEMENT
 
 - Create both apps for DMS. Update Healthcare&Clinic Application to multi-tenant (isolated). Update recruiter to single-tenant.

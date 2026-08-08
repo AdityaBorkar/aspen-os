@@ -2,14 +2,9 @@ import { sql } from "drizzle-orm";
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import pg from "pg";
 
-import * as auditSchema from "../audit/db-schema";
-import * as authSchema from "../auth/db-schema";
+import { db_schemas } from "../db-schemas";
 import type { TenancyMode, TenantResolver } from "../index";
-import * as kvStoreSchema from "../kv-store/db-schema";
-import * as logSchema from "../log/db-schema";
-import * as storageSchema from "../storage/db-schema";
 import { context } from "../utils/context";
-import * as workflowSchema from "../workflows/db-schema";
 import type {
   DatabaseConfig,
   IsolatedTenantDbConfig,
@@ -334,14 +329,7 @@ export class DatabaseUnit<
   }
 
   getSchemas() {
-    return {
-      ...auditSchema,
-      ...authSchema,
-      ...logSchema,
-      ...storageSchema,
-      ...kvStoreSchema,
-      ...workflowSchema,
-    };
+    return db_schemas;
   }
 
   protected async pushSchemasTo(

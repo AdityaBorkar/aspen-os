@@ -1,8 +1,9 @@
 import { WorkflowStep } from "@aspen-os/platform/server";
+import { user } from "@aspen-os/platform/server/db-schemas";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
 
-import { user } from "../../db-schemas";
+import { serviceProviderUser } from "../../db-schemas";
 import { IdSchema } from "../../types";
 
 export const fetchUserStep = WorkflowStep.name("fetch-user")
@@ -15,10 +16,11 @@ export const fetchUserStep = WorkflowStep.name("fetch-user")
         id: user.id,
         name: user.name,
         role: user.role,
-        spId: user.spId,
+        spId: serviceProviderUser.serviceProviderId,
         updatedAt: user.updatedAt,
       })
       .from(user)
+      .leftJoin(serviceProviderUser, eq(serviceProviderUser.userId, user.id))
       .where(eq(user.id, input.id))
       .limit(1);
 
@@ -26,5 +28,5 @@ export const fetchUserStep = WorkflowStep.name("fetch-user")
       throw new Error(`Platform user with id "${input.id}" not found.`);
     }
 
-    return result;
+    return { ...result, spId: result.spId ?? null };
   });

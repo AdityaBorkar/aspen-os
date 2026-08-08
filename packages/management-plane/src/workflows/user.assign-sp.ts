@@ -2,7 +2,7 @@ import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
 
-import { serviceProvider, user } from "../db-schemas";
+import { serviceProvider, serviceProviderUser } from "../db-schemas";
 import { PLATFORM_USER_EVENTS } from "../pubsub";
 import { IdSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, ROLES } from "../utils/constants";
@@ -29,11 +29,31 @@ export const assignToServiceProvider = Workflow.name("user.assign-sp")
       }
     });
 
-    await ctx.step.run("update-user-sp", async () => {
-      await ctx.db
-        .update(user)
-        .set({ role: ROLES.SP_USER, spId })
-        .where(eq(user.id, userId));
+    await ctx.step.run("create-assignment", async () => {
+      const [existing] = await ctx.db
+        .select({ id: serviceProviderUser.id })
+        .from(serviceProviderUser)
+        .where(eq(serviceProviderUser.userId, userId))
+        .limit(1);
+
+      if (existing) {
+        await ctx.db
+          .update(serviceProviderUser)
+          .set({ serviceProviderId: spId, updatedAt: new Date() })
+          .where(eq(serviceProviderUser.id, existing.id));
+      } else {
+        await ctx.db.insert(serviceProviderUser).values({
+          serviceProviderId: spId,
+          userId,
+        });
+      }
+    });
+
+    await ctx.step.run("assign-auth-role", async () => {
+      await ctx.auth?._.user.role.assign({
+        roleName: ROLES.SP_USER,
+        userId,
+      });
     });
 
     await ctx.audit.write({

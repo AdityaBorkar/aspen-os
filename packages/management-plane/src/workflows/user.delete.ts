@@ -1,6 +1,8 @@
 import { Workflow } from "@aspen-os/platform/server";
+import { eq } from "drizzle-orm";
 import { object } from "valibot";
 
+import { serviceProviderUser } from "../db-schemas";
 import { PLATFORM_USER_EVENTS } from "../pubsub";
 import { IdSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../utils/constants";
@@ -17,6 +19,12 @@ export const deleteUser = Workflow.name("user.delete")
 
     await ctx.step.run("delete-auth-user", async () => {
       await auth._.user.remove({ id });
+    });
+
+    await ctx.step.run("delete-sp-assignment", async () => {
+      await ctx.db
+        .delete(serviceProviderUser)
+        .where(eq(serviceProviderUser.userId, id));
     });
 
     await ctx.audit.write({

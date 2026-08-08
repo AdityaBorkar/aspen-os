@@ -1,8 +1,9 @@
 import { Workflow } from "@aspen-os/platform/server";
+import { organization } from "@aspen-os/platform/server/db-schemas";
 import { eq } from "drizzle-orm";
 import { object, optional } from "valibot";
 
-import { organization, tenant } from "../db-schemas";
+import { tenant } from "../db-schemas";
 import { TENANT_EVENTS } from "../pubsub";
 import {
   IdSchema,

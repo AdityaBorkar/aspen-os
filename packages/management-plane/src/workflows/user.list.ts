@@ -1,8 +1,9 @@
 import { Workflow } from "@aspen-os/platform/server";
+import { user } from "@aspen-os/platform/server/db-schemas";
 import { and, eq, type SQL } from "drizzle-orm";
 import { object, optional } from "valibot";
 
-import { user } from "../db-schemas";
+import { serviceProviderUser } from "../db-schemas";
 import { PlatformUserFiltersSchema } from "../types";
 
 export const listUsers = Workflow.name("user.list")
@@ -20,7 +21,7 @@ export const listUsers = Workflow.name("user.list")
         conditions.push(eq(user.role, parsed.role));
       }
       if (parsed.spId) {
-        conditions.push(eq(user.spId, parsed.spId));
+        conditions.push(eq(serviceProviderUser.serviceProviderId, parsed.spId));
       }
 
       const whereClause =
@@ -33,10 +34,11 @@ export const listUsers = Workflow.name("user.list")
           id: user.id,
           name: user.name,
           role: user.role,
-          spId: user.spId,
+          spId: serviceProviderUser.serviceProviderId,
           updatedAt: user.updatedAt,
         })
         .from(user)
+        .leftJoin(serviceProviderUser, eq(serviceProviderUser.userId, user.id))
         .where(whereClause);
     });
   });

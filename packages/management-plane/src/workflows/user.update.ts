@@ -2,7 +2,7 @@ import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
 
-import { serviceProvider, user } from "../db-schemas";
+import { serviceProvider, serviceProviderUser } from "../db-schemas";
 import { PLATFORM_USER_EVENTS } from "../pubsub";
 import { IdSchema, UpdatePlatformUserSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, ROLES } from "../utils/constants";
@@ -61,14 +61,35 @@ export const updateUser = Workflow.name("user.update")
       }
     });
 
-    await ctx.step.run("update-db-user", async () => {
-      if (patch.spId !== undefined) {
+    await ctx.step.run("update-sp-assignment", async () => {
+      if (patch.spId === undefined) return;
+
+      if (patch.spId === null) {
         await ctx.db
-          .update(user)
-          .set({ spId: patch.spId })
-          .where(eq(user.id, id));
-        changes.spId = patch.spId;
+          .delete(serviceProviderUser)
+          .where(eq(serviceProviderUser.userId, id));
+        changes.spId = null;
+        return;
       }
+
+      const [existing] = await ctx.db
+        .select({ id: serviceProviderUser.id })
+        .from(serviceProviderUser)
+        .where(eq(serviceProviderUser.userId, id))
+        .limit(1);
+
+      if (existing) {
+        await ctx.db
+          .update(serviceProviderUser)
+          .set({ serviceProviderId: patch.spId, updatedAt: new Date() })
+          .where(eq(serviceProviderUser.id, existing.id));
+      } else {
+        await ctx.db.insert(serviceProviderUser).values({
+          serviceProviderId: patch.spId,
+          userId: id,
+        });
+      }
+      changes.spId = patch.spId;
     });
 
     await ctx.step.run("audit-and-notify", async () => {
