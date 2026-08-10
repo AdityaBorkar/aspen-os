@@ -971,7 +971,7 @@ A new multi-tenant app:
 - Revise ADR-0005 and ADR-0006 in place.
 - Update `CONTEXT.md` with tenancy terms.
 - Update framework `README.md` with tenancy configuration section.
-- Update `docs-www` framework docs with tenancy mode guide.
+- Update `docs` framework docs with tenancy mode guide.
 
 ---
 

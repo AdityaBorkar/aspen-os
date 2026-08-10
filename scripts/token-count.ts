@@ -8,7 +8,7 @@ const DIRECTORIES = [
   ".",
   "./.agents",
   "./docs",
-  "./docs-www",
+  "./docs",
   "./examples/*",
   "./packages/*",
 ];

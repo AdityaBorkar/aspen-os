@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-`@aspen-os` is a Bun monorepo containing a business framework (`@aspen-os/platform`) with pluggable **units** (infrastructure) and **modules** (domain logic), first-class multi-tenancy, plus a TanStack Start example app (`recruiter`) and a Fumadocs docs site (`docs-www`).
+`@aspen-os` is a Bun monorepo containing a business framework (`@aspen-os/platform`) with pluggable **units** (infrastructure) and **modules** (domain logic), first-class multi-tenancy, plus a TanStack Start example app (`recruiter`) and a Fumadocs docs site (`docs`).
 
 Workspace state:
 
@@ -78,7 +78,7 @@ examples/
     src/aspen/         # server.ts, auth-client.ts, client.ts
     src/env.ts         # @t3-oss/env-core + Zod validation
     scripts/prepare.ts # calls p.$prepareInfra()
-docs-www/              # TanStack Start docs → Cloudflare Workers (fumadocs; port 3005)
+docs/              # TanStack Start docs → Cloudflare Workers (fumadocs; port 3005)
 docs/                  # adr/ BOUNDED_CONTEXTS.md DOMAIN_MODEL.md TODO.md sow/
 scripts/               # build.ts (package builds), token-count.ts
 ```
@@ -117,7 +117,7 @@ bun run generate-routes  # tsr generate (TanStack Router)
 bun run db:studio        # aspen db-studio --config=src/aspen/server.ts (port 4983)
 ```
 
-docs-www (`bun run dev` → 3005):
+docs (`bun run dev` → 3005):
 
 ```
 bun run dev             # vite dev --port 3005
@@ -126,7 +126,7 @@ bun run build           # bun gen:cf-types && vite build
 bun run deploy          # wrangler deploy (Cloudflare Workers, wrangler.jsonc)
 ```
 
-**docs-www gotchas**: `ignore-scripts=true` blocks the `postinstall` (`fumadocs-mdx`) — run `bunx fumadocs-mdx` manually if `.source/` is missing before build/typecheck. `check:lint` is `biome check` (no `--fix`, unlike others).
+**docs gotchas**: `ignore-scripts=true` blocks the `postinstall` (`fumadocs-mdx`) — run `bunx fumadocs-mdx` manually if `.source/` is missing before build/typecheck. `check:lint` is `biome check` (no `--fix`, unlike others).
 
 ## Code Conventions & Common Patterns
 
@@ -194,7 +194,7 @@ Root `tsconfig.json` (extended everywhere, `composite: true` project references)
 | `scripts/build.ts` | Package builder: rewrites `exports`/`bin` → `.output/`, runs `Bun.build()` + `tsc` declarations |
 | `examples/recruiter/src/aspen/server.ts` | `SingleTenantPlatform.create`, exports `p` (config target for CLI) |
 | `examples/recruiter/src/env.ts` | `@t3-oss/env-core` + Zod env validation; client prefix `PUBLIC_` |
-| `docs-www/src/routes/docs/$.tsx` | Docs catch-all route — Fumadocs layout, `getLayoutTabs`, server fn loader |
+| `docs/src/routes/docs/$.tsx` | Docs catch-all route — Fumadocs layout, `getLayoutTabs`, server fn loader |
 | `biome.json`, `tsconfig.json`, `bunfig.toml`, `.commitlintrc.json` | Toolchain config |
 
 ### `_` getter (server AuthUnit)
@@ -226,7 +226,7 @@ await myWorkflow.run(input, { actorId });
 - **`bunfig.toml`**: `ignore-scripts=true`, `minimumReleaseAge=259200` (3 days; excludes `@types/bun`/`typescript`/`@biomejs/biome`), `saveTextLockfile=false`.
 - **Env (recruiter)**: `.env.local` with `DB_*`, `AUTH_SECRET`, `STORAGE_*`, `GOOGLE_CLIENT_*`, `PUBLIC_WEB_*`. Vite exposes only `PUBLIC_`-prefixed vars.
 - **Infra (recruiter, docker-compose)**: Postgres `postgres:18-alpine` (5432) + SeaweedFS (master 9333, volume 8080, filer 8888, S3 8333, S3 config `seaweedfs-s3.json`).
-- **No CI/CD** beyond `docs-www`'s `wrangler.jsonc` (deploy via `wrangler deploy`).
+- **No CI/CD** beyond `docs`'s `wrangler.jsonc` (deploy via `wrangler deploy`).
 
 ## Testing & QA
 

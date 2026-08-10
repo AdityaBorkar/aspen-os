@@ -6,7 +6,7 @@
         "target": "node"
       }
     },
-    "files": ["./docs-www", "package.json", "README.md"]
+    "files": ["./docs", "package.json", "README.md"]
   },
   "dependencies": {
     "@aspen-os/constants": "workspace:*",
@@ -24,7 +24,7 @@
       "types": "./.output/index.d.ts"
     }
   },
-  "files": ["./docs-www", "package.json", "README.md", "./.output"],
+  "files": ["./docs", "package.json", "README.md", "./.output"],
   "name": "@aspen-os/organization",
   "scripts": {
     "build": "bun run ../../scripts/build.ts",

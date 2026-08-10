@@ -28,6 +28,6 @@ export function slugsToMarkdownPath(slugs: string[]) {
 
 export function resolveContentPath(path: string): string {
   const slashIdx = path.indexOf("/");
-  if (slashIdx === -1) return `packages/${path}/docs-www`;
-  return `packages/${path.slice(0, slashIdx)}/docs-www/${path.slice(slashIdx + 1)}`;
+  if (slashIdx === -1) return `packages/${path}/docs`;
+  return `packages/${path.slice(0, slashIdx)}/docs/${path.slice(slashIdx + 1)}`;
 }

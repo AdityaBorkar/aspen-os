@@ -28,7 +28,7 @@ Apply the conventions below. For the type-specific structure, follow [`DOC-TYPES
 
 ### Placement
 
-Docs live in `packages/{package}/docs-www/` as `.mdx` files. Register new pages in the package's `meta.json`:
+Docs live in `packages/{package}/docs/` as `.mdx` files. Register new pages in the package's `meta.json`:
 
 ```json
 {

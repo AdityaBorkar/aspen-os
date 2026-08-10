@@ -6,21 +6,32 @@ PubSub Events (How to handle migrations?)
 
 ---
 
-Update CODING_CONVENTIONS.md as per the current design and state of the repository.
+Replace zod with valibot entirely
 /init
+docs -> ./.working-docs
+Update CODING_CONVENTIONS.md as per the current design and state of the repository.
+/domain-modelling Update ADRs to reflect the current design and state of the repository.
 
-Add Service Provider to ManagementPlane
 WORK ON ORGANIZATION
-Branches & Organization
-
-Ensure Provisioning happens and Login works in the Tenant
-
----
-
+- [ ] Organization
+  - Filter Views
+  - Addresses
+  - Bank Accounts
+  - Personal Drafts
+  - Personal Dashboard / Dashboards
+  - Branches & Organization
 Refactor all modules to be like ./management-plane. Make it a skill
-
 WORK ON DMS
 WORK ON TASK MANAGEMENT
+WORK ON HR MODULE
+  - Implement the HR module
+  - Canvas like Users
+  - Custom Roles and RBAC Permissions
+  - Users with Branch-wise access controls
+- [ ] CRM
+- [ ] HOSPITAL
+- [ ] RECRUITER
+- [ ] ERP
 
 - Create both apps for DMS. Update Healthcare&Clinic Application to multi-tenant (isolated). Update recruiter to single-tenant.
   - shaun-healthcare
@@ -29,36 +40,14 @@ WORK ON TASK MANAGEMENT
   - recruiter-maitriglobal
   - doclabs
 
-## `platform`
-
-- Manually read and simplify the `platform` code as much as possible
-- Ensure good code architecture
-- Ensure schemas, unlocked postgres tables and signoz integration.
-- Logging: OTEL + Signoz Integration
-  - Ensure structured logging (https://loggingsucks.com/) is compliant with OTEL. Aim is to implement the structured logging using OTEL to maintain a single source of universal logging.
-  - --verbose flag for debugging in the `platform`. Take input a debugLogsDir: "./local/dir/" and store the logs there. Use the request time as the log file name for easier navigation.
-- Workflows Unit
-  - https://activiti.org/
-  - https://flowable.com/
-  - https://temporal.io/
-  - https://hatchet.run/
-  - https://restate.dev/
-  - https://inngest.com/
+---
 
 ## Module Implementation
 
-- [ ] Organization
-  - Filter Views
-  - Addresses
-  - Bank Accounts
-  - Personal Drafts
-  - Personal Dashboard / Dashboards
 - Drizzle Migrations could not be performed (using pushSchema instead — see ADR-0004)
-- [ ] CRM
 - [ ] Standardization
   - `framework` types
   - `framework` module types
-- [ ] Notification unit
 - [ ] Accounting
   - Ledger
   - Transactions
@@ -72,13 +61,6 @@ WORK ON TASK MANAGEMENT
 - [ ] Reports
 - [ ] Pharmacy
 
-## HR Module
-
-- Implement the HR module
-- Canvas like Users
-- Custom Roles and RBAC Permissions
-- Users with Branch-wise access controls
-
 ## Support Module
 
 Support = No Account Code. Grant Access. -> Download Screen Control Module and then show the screen to the operator.
@@ -91,10 +73,6 @@ Show a Notification - Account Manager is requesting access to the application. Y
 If you have not requested for support, press NO.
 If you press YES, the account manager shall access the application and respond accordingly.
 
-## Task Management Module
-
-- Task Management
-
 ## Compliance Module
 
 - India DPDP
@@ -104,17 +82,10 @@ If you press YES, the account manager shall access the application and respond a
 
 ---
 
-## Improving AI Output
-
-- Merging ./docs-www with ./docs to ensure a single source of truth
-- Create a Biome GritQL rule to make index.ts module files like @management-plane/src/index.ts
-
 ## Phase 2
 
-- Audit Unit
-  - Blind Writes
-  - WAL Outbox
-  - Replicated State
+- Merging ./docs with ./docs to ensure a single source of truth
+- Create a Biome GritQL rule to make index.ts module files like @management-plane/src/index.ts
 - CONTEXT.md lists Prospect, Client, Job Mandate, Draft, Filter View, Reminder, Task, Team Member, Contract under "Recruiter Domain."
 - Dynamic Loading of Modules
   - /settings/features = Enable/Disable each module and their feature flags

@@ -35,6 +35,6 @@
       "typescript": "^7.0.2",
       "valibot": "^1.4.2"
     },
-    "packages": ["./packages/*", "./examples/*", "./docs-www"]
+    "packages": ["./packages/*", "./examples/*", "./docs"]
   }
 }

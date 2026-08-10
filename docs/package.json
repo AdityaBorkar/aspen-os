@@ -44,7 +44,7 @@
     "vite": "^8.2.0",
     "wrangler": "^4.118.0"
   },
-  "name": "docs-www",
+  "name": "docs",
   "private": true,
   "scripts": {
     "build": "bun gen:cf-types && vite build",

@@ -10,72 +10,72 @@ const docs = {
 };
 
 export const platform = defineDocs({
-  dir: `../packages/platform/docs-www`,
+  dir: `../packages/platform/docs`,
   docs,
 });
 
 export const organization = defineDocs({
-  dir: `../packages/organization/docs-www`,
+  dir: `../packages/organization/docs`,
   docs,
 });
 
 export const compliance = defineDocs({
-  dir: `../packages/compliance/docs-www`,
+  dir: `../packages/compliance/docs`,
   docs,
 });
 
 export const hr = defineDocs({
-  dir: `../packages/hr/docs-www`,
+  dir: `../packages/hr/docs`,
   docs,
 });
 
 export const drive = defineDocs({
-  dir: `../packages/drive/docs-www`,
+  dir: `../packages/drive/docs`,
   docs,
 });
 
 export const constants = defineDocs({
-  dir: `../packages/constants/docs-www`,
+  dir: `../packages/constants/docs`,
   docs,
 });
 
 export const tasks = defineDocs({
-  dir: `../packages/tasks/docs-www`,
+  dir: `../packages/tasks/docs`,
   docs,
 });
 
-export const managementPlane = defineDocs({
-  dir: `../packages/management-plane/docs-www`,
+export const management = defineDocs({
+  dir: `../packages/management/docs`,
   docs,
 });
 
 export const accounting = defineDocs({
-  dir: `../packages/accounting/docs-www`,
+  dir: `../packages/accounting/docs`,
   docs,
 });
 
 export const crm = defineDocs({
-  dir: `../packages/crm/docs-www`,
+  dir: `../packages/crm/docs`,
   docs,
 });
 
 export const fleet = defineDocs({
-  dir: `../packages/fleet/docs-www`,
+  dir: `../packages/fleet/docs`,
   docs,
 });
 
 export const inventory = defineDocs({
-  dir: `../packages/inventory/docs-www`,
+  dir: `../packages/inventory/docs`,
   docs,
 });
 
 export const pharmacy = defineDocs({
-  dir: `../packages/pharmacy/docs-www`,
+  dir: `../packages/pharmacy/docs`,
   docs,
 });
 
 export const reports = defineDocs({
-  dir: `../packages/reports/docs-www`,
+  dir: `../packages/reports/docs`,
   docs,
 });
 

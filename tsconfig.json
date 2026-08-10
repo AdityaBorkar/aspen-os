@@ -26,8 +26,7 @@
   },
   "exclude": ["**/node_modules", "**/.output", "**/.tanstack"],
   "references": [
-    { "path": "./docs-www" },
-    { "path": "./examples/recruiter" },
+    { "path": "./docs" },
     { "path": "./packages/accounting" },
     { "path": "./packages/compliance" },
     { "path": "./packages/constants" },
@@ -40,7 +39,7 @@
     { "path": "./packages/organization" },
     { "path": "./packages/pharmacy" },
     { "path": "./packages/reports" },
-    { "path": "./packages/management-plane" },
+    { "path": "./packages/management" },
     { "path": "./packages/tasks" }
   ]
 }

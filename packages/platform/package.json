@@ -20,7 +20,7 @@
         "target": "node"
       }
     },
-    "files": ["./docs-www", "package.json", "README.md"]
+    "files": ["./docs", "package.json", "README.md"]
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1101.0",
@@ -65,7 +65,7 @@
       "types": "./.output/server/db-schemas.d.ts"
     }
   },
-  "files": ["./docs-www", "package.json", "README.md", "./.output"],
+  "files": ["./docs", "package.json", "README.md", "./.output"],
   "name": "@aspen-os/platform",
   "publishConfig": {
     "access": "public",

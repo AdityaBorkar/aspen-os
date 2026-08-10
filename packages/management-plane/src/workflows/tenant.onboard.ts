@@ -93,7 +93,7 @@ export function createOnboardTenant(dbUnit: DatabaseUnit) {
         await ctx.db.insert(tenant).values({
           databaseHost:
             provisioningResult.tenancyMode === "isolated"
-              ? provisioningResult.database
+              ? provisioningResult.host
               : null,
           databaseName:
             provisioningResult.tenancyMode === "isolated"
