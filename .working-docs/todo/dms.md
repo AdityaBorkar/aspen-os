@@ -46,28 +46,7 @@ Feature Pages
 
 Create a scope-of-work to make a Google Drive like file management system.
 
-It does not support direct file uploads. We need compulsary indexing for each file uploaded.
-
-Domain Terms:
-
-File Categories
-  Indexes
-  File Naming Schema
-  <!-- Upload Metadata File (as Excel / CSV / Paper) -->
-  <!-- Flag inconsistencies?? -->
-  Compression Options
-  OCR / Deepsearch
-  AI / Deepsearch
-
-+ Upload Files
-
-<!-- Folders and Subfolders -->
-
-Create Folders using a filter view / Live Folders
-
-- Sharing
-
-All Files
+> Resolved (see `sow/dms.md`): uploads ARE the entry point, but never land directly in the active set — every upload goes through compulsory indexation via Triage (upload → fill class/tags/metadata/compression → classify → active).
 
 Adobe Acrobat like Document Features
 
@@ -75,5 +54,3 @@ Adobe Acrobat like Document Features
 - Doc Split
 - Export as
 - Share Link (with password)
-
-Hosting: Cloud or Bare-Metal

@@ -15,9 +15,7 @@ import { createAuthClient } from "better-auth/react";
 
 import type { Unit } from "../types";
 
-export interface AuthConfig {
-  baseURL: string;
-}
+export type AuthConfig = Parameters<typeof createAuthClient>[0];
 
 export type AuthClient = ReactAuthClient<{
   baseURL: string;
@@ -28,7 +26,7 @@ export type AuthClient = ReactAuthClient<{
     ReturnType<typeof phoneNumberClient>,
     ReturnType<typeof emailOTPClient>,
     ReturnType<typeof apiKeyClient>,
-    ReturnType<typeof lastLoginMethodClient>,
+    // ReturnType<typeof lastLoginMethodClient>,
     ReturnType<typeof twoFactorClient>,
     // ReturnType<typeof captchaClient>,
     ReturnType<typeof passkeyClient>,
@@ -51,7 +49,7 @@ export class AuthUnit implements Unit<AuthConfig> {
         phoneNumberClient(),
         emailOTPClient(),
         apiKeyClient(),
-        lastLoginMethodClient(),
+        // lastLoginMethodClient(),
         twoFactorClient(),
         // captchaClient(),
         passkeyClient(),

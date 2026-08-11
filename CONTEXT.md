@@ -393,6 +393,44 @@ _Avoid_: Title, Position
 A classification of employment (e.g., full-time, part-time, contract) with `name`, `description`, `isActive`.
 _Avoid_: Contract Type, Employment Status
 
+### DMS Domain
+
+**Document**:
+The central record of the DMS module — one uploaded file. Has `status` (`triaged`/`active`/`expired`/`deleted`), `tags`, `metadata` (jsonb), `fieldValues` (per-class, jsonb), optional `compression` override, optional `expiryDate`, `owner`, `uploadedBy`, `storageKey`. Never uploaded directly into the active set — always enters as `triaged`.
+_Avoid_: File, Asset, Drive File
+
+**Triage**:
+The mandatory first-class stage every Document passes through. Uploads land here regardless of captured fields; a document is not searchable, normally listable, or shareable until classified. The only exit is `classify()` (→ `active`). Can be pinned to the sidebar.
+_Avoid_: Inbox, Draft Folder, Pending Queue
+
+**Classify**:
+The validation-enforced transition that assigns a triaged Document to a Document Class, validates its required fields, optionally applies the class's file-naming schema (object rename via `storageUnit.move`), and sets status to `active`. The one and only way out of Triage.
+_Avoid_: File Into, Assign Class, Register
+
+**Document Class**:
+An admin-defined template with typed fields (some required) that a Document must satisfy to become active in that class. Optionally defines a file-naming schema with field/date/sequence placeholders. Archived (not hard-deleted) when superseded.
+_Avoid_: Document Type, Category, Template
+
+**Class Field**:
+A typed column of a Document Class (`text`/`number`/`date`/`select`/`multi-select`/`boolean`/`user`/`contact`/`url`/`email`/`phone`) with required/default/options/order. Field values are stored as jsonb on the Document.
+_Avoid_: Column, Attribute, Metadata Key
+
+**Document View**:
+A saved, reusable filter+sort configuration over active documents. Conditions cover document-level columns, classes, and class fields (`classField:<name>`). Personal views are user-owned; admins publish shared views. Can be pinned to the sidebar.
+_Avoid_: Saved Filter, Dashboard, Query
+
+**Contact**:
+An org-wide address-book entry (first name, last name, email, phone, company name, designation — all mandatory) used as a sharing handle for external parties; may be linked to an internal AuthUnit user. Removal requires a mandatory reason and revokes all shares granted to the contact.
+_Avoid_: Sharee, External Recipient, Address Book Entry
+
+**Share (DMS)**:
+A permission grant (`viewer`/`editor`) on a Document to a grantee — either a Contact (token-based access, no login required) or an internal User. Revoking, or removing the contact, invalidates access immediately.
+_Avoid_: External Link, Public Link (Drive), Access Grant
+
+**Recycle Bin**:
+A read-mostly view over Documents with status `deleted` or `expired`. Restore (owner/admin) reactivates; permanent deletion is **admin-only**. Distinct from Drive's Trash (auto-purge, folder-aware).
+_Avoid_: Trash, Deleted Items, Bin
+
 ### Management Plane Domain
 
 **Tenancy Mode**:
@@ -514,6 +552,14 @@ _Avoid_: Onboarding (that's the Tenant Status stage AFTER provisioning), Setup, 
 │          │ │ schema push,     │ │              │ │ trash purge  │ │ schema push  │ │ schema push      │
 │          │ │ crons, handlers  │ │              │ │ cron (3 AM)  │ │              │ │                  │
 └──────────┘ └──────────────────┘ └──────────────┘ └──────────────┘ └──────────────┘ └──────────────────┘
+
+Proposed (SOW drafted, not implemented): DMS (Document Management System) module
+  `sow/dms.md` — class-first records system, separate from Drive: Triage →
+  Classify → active; classes → required-field validation + naming schema;
+  org-wide Contacts sharing (contact + user grantees), Recycle Bin with
+  admin-only permanent delete + expiry scanner. Reuses StorageUnit (own key
+  prefix `dms/...`), AuthUnit, PubSub (expiry cron). 9 `dms_*` tables, all
+  tenant schemas. No module dependencies.
 
 Stubs (package.json only — no source): accounting, crm, fleet, inventory, reports, pharmacy
 ```

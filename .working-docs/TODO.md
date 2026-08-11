@@ -1,11 +1,5 @@
 # TODO
 
-DB Schemas (How to handle migrations?)
-ACL List (How to handle migrations?)
-PubSub Events (How to handle migrations?)
-
----
-
 Replace zod with valibot entirely
 /init
 docs -> ./.working-docs
@@ -41,6 +35,12 @@ WORK ON HR MODULE
   - doclabs
 
 ---
+
+## Bugs
+
+DB Schemas (How to handle migrations?)
+ACL List (How to handle migrations?)
+PubSub Events (How to handle migrations?)
 
 ## Module Implementation
 
