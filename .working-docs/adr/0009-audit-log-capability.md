@@ -149,15 +149,18 @@ Add an `AuditUnit` to `@aspen-os/platform/server`, mirroring `LogUnit`:
 
 - New directory `packages/platform/src/server/audit/`, unit class `AuditUnit`
   with `$name = "audit"`.
-- Constructor-injected `{ db: DatabaseUnit, pubsub: PubSubUnit }`.
+- Constructor-injected `{ db: DatabaseUnit }` (implemented).
 - Added to `PlatformUnits` (`src/server/index.ts`), `BasePlatform.createCore` +
   proxy accessors, and `DatabaseUnit.getSchemas()` so the `audit_log` schema is
   pushed automatically.
 - Reads `tenantId` and `actorId` from `context.getStore()` (the `LogUnit.query`
   pattern at `log/index.ts:197-199`).
 - Public surface: `p.audit.write(entry, tx?)`, `p.audit.query(filters)`,
-  `p.audit.export()`, `p.audit.withTransaction(fn)`, `p.audit.diff(before,
-  after)`.
+  `p.audit.count(filters)`, `p.audit.withTransaction(entry, fn)`,
+  `p.audit.diff(before, after)`, `p.audit.reconstructState(entityType,
+  entityId)`. (Note: implemented `withTransaction` takes an audit entry first
+  and runs `fn` + write in one `db.transaction()`; `export()` is not
+  implemented.)
 
 **Placement (B3 — mode-aware, atomicity-first):**
 
@@ -278,7 +281,7 @@ set.
 
 ```
 audit_log
-  id              text        PK default uuidv7()
+  id              uuid        PK default gen_random_uuid()   -- note: deviates from the text+uuidv7() convention
   tenant_id       text        notNull default 'default'   -- ADR-0007
   seq             bigserial                                 -- deterministic replay order (R2)
   action          text        notNull                      -- module-specific verb

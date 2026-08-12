@@ -1,7 +1,5 @@
 # TODO
 
-Replace zod with valibot entirely
-
 Refactor all modules to be like ./management. Make it a skill
 
 WORK ON DMS
@@ -45,6 +43,7 @@ PubSub Events (How to handle migrations?)
 
 ## Module Implementation
 
+- Replace zod with valibot entirely
 - Drizzle Migrations could not be performed (using pushSchema instead — see ADR-0004)
 - [ ] Standardization
   - `framework` types

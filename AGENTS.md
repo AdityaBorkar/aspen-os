@@ -10,7 +10,7 @@ Workspace state:
 - **Partial**: `hr` — module logic largely written but the class does not `implements Module` and lacks `$prepareRuntime()`.
 - **Pure stubs**: `accounting`, `crm`, `fleet`, `inventory`, `pharmacy`, `reports` (package.json is just `{ "name": "..." }`).
 
-Read `CODING_CONVENTIONS.md`, `CONTEXT.md`, and the domain docs in `.working-docs/` (`DOMAIN_MODEL.md`, `BOUNDED_CONTEXTS.md`, `TODO.md`, `adr/`) before modeling domain changes. Note: `CODING_CONVENTIONS.md` may lag the code (it references the old `Framework` name) — trust the code and `CONTEXT.md` (which documents known gaps). `docs/` is the built documentation site, not the source of truth for domain docs.
+Read `CODING_CONVENTIONS.md`, `CONTEXT.md`, and the domain docs in `.working-docs/` (`DOMAIN_MODEL.md`, `BOUNDED_CONTEXTS.md`, `TODO.md`, `adr/`) before modeling domain changes. `CONTEXT.md` documents known gaps. `docs/` is the built documentation site, not the source of truth for domain docs.
 
 ## Architecture & Data Flow
 
@@ -65,12 +65,12 @@ packages/
                        # workflows/, utils/ (context.ts, bun-compat.ts, is-global-tenant-id.ts)
     src/client/        # Platform class + auth/ logs/ rpc + context.ts, types.ts
     src/cli/           # commander CLI (db-studio, tenants)
-  constants/           # Shared enums (country-codes.ts, languages.ts)
+  constants/           # Shared enums (country-codes.ts, languages.ts — both files currently empty; enums live in index.ts)
   organization/        # Domain module (build step) — db-schemas/ schemas/ utils/acl.ts workflows/ pubsub-events.ts
   compliance/          # Domain module — + services/ constants.ts
   tasks/               # Domain module — + services/ utils/filter-engine.ts (17 tables)
   drive/               # Domain module — + services/ runtime.ts
-  management/          # Control-plane module (build step) — module.ts auth.ts pubsub.ts workflows/steps/
+  management/          # Control-plane module (build step) — module.ts auth.ts pubsub.ts workflows/steps/ (3 owned tables: service_provider, service_provider_user, tenant; no shadow/tenant tables)
   hr/                  # Partial — db-schema.ts (single file) event-map.ts constants.ts
   accounting/ crm/ fleet/ inventory/ pharmacy/ reports/   # stubs
 docs/              # Fumadocs site (port 3005) → Cloudflare Workers (wrangler.jsonc)
@@ -129,16 +129,17 @@ type ModuleInfra = {
 
 `auth.acl` → merged + applied via `AuthUnit.applyModuleAcl()`; schemas → pushed to the control-plane/tenant DB; `events` → type-level contracts only. Modules declare ACL with `defineAcl({ resource: ["create","read","update","delete", ...] })` (identity fn with const generic for literal inference).
 
-### Two domain-module patterns
+### Three domain-module patterns
 
-- **Newer** (organization, tasks, management): workflows are `readonly` properties; `$initialize()` / `$prepareRuntime()` / `$cleanup()` are empty.
+- **Newer** (organization, tasks): workflows are `readonly` properties; `$initialize()` / `$prepareRuntime()` / `$cleanup()` are empty.
 - **Older** (compliance, drive, hr): `#private` workflow fields set in `$initialize(units)`; getters that throw `notInitialized()` if accessed early; non-empty `$prepareRuntime()` (pubsub schedules/handlers) and `$cleanup()` (unregister + null out).
+- **Hybrid** (management): `#private` `#db` field set in `$initialize({ db, auth, pubsub })`; `tenants` getter throws if uninitialized while `serviceProviders`/`users` are `readonly`; `$prepareRuntime()`/`$cleanup()` are empty.
 
 `$initialize()` signatures vary by module — each types its own unit subset: organization/tasks take none; compliance takes `{ db, kvStore, pubsub }`; drive `{ db, storage, pubsub }`; management `{ db, auth, pubsub }`. management's `$name` is `"management"` (proxy `p.management`), `$dependencies: ["organization"]`.
 
 ### Database (Drizzle)
 
-- IDs: `text` with `DEFAULT uuidv7()` (never native UUID). Exception: better-auth tables use `text("id").primaryKey()` without default.
+- IDs: `text` with `DEFAULT uuidv7()` (never native UUID). Exception: better-auth tables use `text("id").primaryKey()` without default, and `audit_log.id` uses `uuid().default(sql\`gen_random_uuid()\`)`.
 - Timestamps: `timestamp(..., { withTimezone: true })`; `createdAt` `.notNull().defaultNow()`, `updatedAt` `.notNull().defaultNow().$onUpdate(() => new Date())`.
 - Table/column names `snake_case` in Postgres, `camelCase` in TS (drizzle maps). Columns sorted alphabetically by TS property name. Tables `snake_case`.
 - `text` arrays, `jsonb("metadata")`, `numeric` for money, `bigint(..., { mode: "number" })` for sizes, `text("user_id").references(() => user.id, { onDelete: "cascade" })`.
@@ -182,7 +183,7 @@ Root `tsconfig.json` (extended everywhere, `composite: true` project references)
 
 ### `_` getter (server AuthUnit)
 
-`AuthUnit._` exposes a REST `resource.action` API: `user.{create, get, remove, update, role.{assign, unassign}}`, `session.{create, invalidate, validate}`, `role.{list, remove}`. Public `user`/`session`/`role` getters delegate to slices of `_`. Use `remove`, not `delete`. `admin` returns `betterAuth.api` (admin/organization plugin endpoints). `applyModuleAcl(acl)` re-creates the service with `admin({ ac: createAccessControl(acl) })` during `prepareInfra()`.
+`AuthUnit._` exposes a REST `resource.action` API: `user.{create, get, remove, update, role.{assign, unassign}}`, `session.{create, invalidate, validate}`, `role.{list, remove}`. The `service` getter returns the full better-auth `AuthService` (`betterAuth` instance with `.api` for admin/organization plugin endpoints). Use `remove`, not `delete`. `applyModuleAcl(acl)` re-creates the service with `admin({ ac: createAccessControl(acl) })` during `prepareInfra()`.
 
 ### Workflows
 

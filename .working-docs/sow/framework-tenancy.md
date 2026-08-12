@@ -643,7 +643,9 @@ decision, not a platform concern.
 
 ### 6.4 User Table Extension
 
-In isolated mode, the `user` table gains an `sp_id` FK column (per the management SOW).
+In isolated mode, SP membership for platform users is modelled by a
+`service_provider_user` join table in the control-plane DB (1:1 user→SP) rather
+than an `sp_id` FK column on `user` (per the management SOW's current implementation).
 This is an app-level concern, not a platform concern — the platform's `AuthUnit` doesn't
 enforce it.
 

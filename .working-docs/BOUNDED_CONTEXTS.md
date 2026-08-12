@@ -41,7 +41,7 @@
          ▼                      ▼                      ▼
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │  S3 (external)  │    │  HTTP clients   │    │  Postgres       │
-│  AWS SDK        │    │                 │    │  (UNLOGGED)     │
+│  AWS SDK        │    │                 │    │  (kv_store)     │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
@@ -77,8 +77,8 @@
 │  ┌───────────────────────────┐                                   │
 │  │ Management Plane          │                                   │
 │  │ Module                    │                                   │
-│  │ 10 workflow groups        │                                   │
-│  │ 2 owned + 2 shadow tables │                                   │
+│  │ 3 workflow groups         │                                   │
+│  │ 3 owned + 0 shadow tables │                                   │
 │  │ 16 events                 │                                   │
 │  │ deps: organization        │                                   │
 │  │ units: db, auth, pubsub   │                                   │
@@ -113,7 +113,7 @@
 
 Both server and client use the `$` prefix for lifecycle methods and the name property.
 
-**Note**: There is no separate `types.ts` file. The interfaces are defined inline at the top of each platform entry point. `DatabaseConfig`, `AuthConfig`, `LogConfig`, etc. live in their respective unit directories.
+**Note**: On the server, the interfaces are defined inline at the top of `packages/platform/src/server/index.ts`. On the client, `Unit`/`Module` live in `packages/platform/src/client/types.ts` while `PlatformUnits`/`Platform` are in `client/index.ts`. `DatabaseConfig`, `AuthConfig`, `LogConfig`, etc. live in their respective unit directories.
 
 **Rules**:
 - Changes to the shared kernel require coordinated updates across all units
@@ -178,7 +178,7 @@ DatabaseUnit ← KvStoreUnit
 
 **Role model**: Roles are stored as a plain `text` column on the `user` table — not as separate entities. Access control statements are defined at the application level via `createAccessControl`, not at the platform level.
 
-**Access control flow**: `AuthConfig` does NOT include `access_control` or `roles` fields. Instead, modules declare their ACL via `defineAcl()` (returning an `AclDeclaration` — a `Record<string, readonly string[]>`). During `prepareInfra()`, the platform merges all module ACLs and calls `AuthUnit.applyModuleAcl(mergedAcl)`, which creates an `AccessControl` via `createAccessControl` (from better-auth) and rebuilds the better-auth instance with the `admin({ ac: accessControl })` plugin. The initial `AuthUnit` construction does not include the admin plugin.
+**Access control flow**: `AuthConfig` does NOT include `access_control` or `roles` fields. Instead, modules declare their ACL via `defineAcl()` (returning an `AclDeclaration` — a `Record<string, readonly string[]>`). During `prepareInfra()`, the platform merges all module ACLs and calls `AuthUnit.applyModuleAcl(mergedAcl)`, which creates an `AccessControl` via `createAccessControl` (from better-auth) and rebuilds the better-auth instance with the `admin({ ac: accessControl })` plugin. The initial `AuthUnit` construction includes `admin({})` without an `ac` — the AC is applied only after module infra is collected.
 
 **Auth plugins**: `admin` (applied during `prepareInfra()` via `applyModuleAcl`, not at construction), `organization`, `username`, `phoneNumber`, `emailOTP`, `apiKey`, `lastLoginMethod`, `twoFactor`, `passkey`, and optionally `captcha` (when `cfSecretKey` is provided).
 
@@ -236,7 +236,7 @@ DatabaseUnit ← KvStoreUnit
 **Relationship**: KV Store adapts Postgres as a key-value store (Redis alternative).
 
 **Adaptations**:
-- `UNLOGGED TABLE` → no WAL for performance (cache semantics)
+- Regular `pgTable` `kv_store` (NOT `UNLOGGED` — durable writes)
 - TTL → `expiresAt` column with lazy eviction on read
 - Redis-like API → implemented via SQL operations
 
@@ -244,12 +244,12 @@ DatabaseUnit ← KvStoreUnit
 
 ### 9. Core: Audit Unit
 
-**Relationship**: `AuditUnit` is a core platform unit (`$name = "audit"`) providing a cross-module audit log with DB-record replayability. Constructor-injected with `{ db }`. Not a conformist to any external library — it is a native platform unit writing to the platform's own `audit_log` table.
+**Relationship**: AuditUnit is a core platform unit (`$name = "audit"`) providing a cross-module audit log with DB-record replayability. Constructor-injected with `{ db }`. Not a conformist to any external library — it is a native platform unit writing to the platform's own `audit_log` table.
 
 **Public API**: `write(entry, tx?)` (with optional transaction handle for atomicity), `withTransaction(entry, fn)` (runs fn + audit write in one `db.transaction()`), `query(filters)`, `count(filters)`, `diff(before, after)` (field-level diff), `reconstructState(entityType, entityId)` (replays `audit_log` rows in `seq` order to reconstruct a record's current state).
 
 **Schema**: `audit_log` table (platform core schema, pushed by `DatabaseUnit.getSchemas()`):
-- `id` (text PK), `tenant_id` (text, default `'default'`), `seq` (bigserial — deterministic replay order), `action` (text), `crud_action` (text, nullable — create/update/delete), `actor_id` (text), `entity_type` (text), `entity_id` (text), `previous_state` (jsonb), `new_state` (jsonb), `changes` (jsonb — `Record<string, {new, old}>`), `metadata` (jsonb), `idempotency_key` (text, with partial unique index `UNIQUE(tenant_id, idempotency_key) WHERE idempotency_key IS NOT NULL`), `workflow_run_id` (text, nullable — optional provenance), `request_id` (text), `trace_id` (text), `performed_at` (timestamptz).
+- `id` (uuid PK, default `gen_random_uuid()` — the one exception to the `uuidv7()` convention), `tenant_id` (text, default `'default'`), `seq` (bigserial — deterministic replay order), `action` (text), `crud_action` (text, nullable — create/update/delete), `actor_id` (text), `entity_type` (text), `entity_id` (text), `previous_state` (jsonb), `new_state` (jsonb), `changes` (jsonb — `Record<string, {new, old}>`), `metadata` (jsonb), `idempotency_key` (text, with partial unique index `UNIQUE(tenant_id, idempotency_key) WHERE idempotency_key IS NOT NULL`), `workflow_run_id` (text, nullable — optional provenance), `request_id` (text), `trace_id` (text), `performed_at` (timestamptz).
 
 **Context integration**: Reads `actorId`, `tenantId`, `requestId`, `traceId` from `AsyncLocalStorage` context. Falls back to `actorId = "system"` when context has no actor.
 
@@ -350,7 +350,7 @@ SingleTenantPlatform.create(config, [organization, tasks])
 
 **Relationship**: HR module implements most of the `Module` interface and receives unit dependencies via `$initialize(units)`. Partially conformant.
 
-**Current state**: 8 workflow files (`access.ts`, `attendance.ts`, `employee.ts`, `leave.ts`, `lifecycle.ts`, `overtime.ts`, `setup.ts`, `shift.ts`) with ~235 public methods across 50 database tables. The `HrModule` class has `$name = "hr"`, `static create()`, `$initialize()` (wires all 8 workflows with `units.db.db`), `$prepareInfra()` (returns full `ModuleInfra` with ACL, 14 control-plane schemas + 36 tenant schemas, and 8 event groups), and `$cleanup()`. However, it does NOT declare `implements Module` and lacks `$prepareRuntime()`. The HR event map defines 43 events across 8 groups (`EmployeeEventMap`, `AttendanceEventMap`, `LeaveEventMap`, `LifecycleEventMap`, `OvertimeEventMap`, `SetupEventMap`, `ShiftEventMap`, `AccessEventMap`), all combined into `HrEventMap`.
+**Current state**: 8 workflow files (`access.ts`, `attendance.ts`, `employee.ts`, `leave.ts`, `lifecycle.ts`, `overtime.ts`, `setup.ts`, `shift.ts`) — plus a `workflows/index.ts` barrel — with ~235 public methods across 50 database tables (14 control-plane + 36 tenant). The `HrModule` class has `$name = "hr"`, `static create()`, `$initialize()` (wires all 8 workflows with `units.db.db`), `$prepareInfra()` (returns full `ModuleInfra` with ACL, 14 control-plane schemas + 36 tenant schemas, and 8 event groups), and `$cleanup()`. However, it does NOT declare `implements Module` and lacks `$prepareRuntime()`. The HR event map defines 43 events across 8 groups (`EmployeeEventMap`, `AttendanceEventMap`, `LeaveEventMap`, `LifecycleEventMap`, `OvertimeEventMap`, `SetupEventMap`, `ShiftEventMap`, `AccessEventMap`), all combined into `HrEventMap`.
 
 ### 16. Downstream: Management Plane Module → Platform
 
@@ -362,8 +362,8 @@ SingleTenantPlatform.create(config, [organization, tasks])
 - `$initialize({ db, auth, pubsub })` — stores `db` only; `auth` and `pubsub` accepted but unused
 - 3 workflow groups: `tenants` (onboard, get, list, update, activate, suspend, reactivate, churn, assignSP, unassignSP), `serviceProviders` (create, get, list, update, activate, deactivate, getAssignedTenants, getUsers), `users` (create, get, list, update, delete, assignRole, assignToServiceProvider)
 - 3 workflow step files: `fetch-tenant`, `fetch-sp`, `fetch-user` (in `steps/`)
-- 2 owned database tables (pushed via `$prepareInfra()` control_plane_schemas): `service_provider`, `tenant`
-- 2 shadow table definitions (pushed via `$prepareInfra()` tenant_schemas — mirrors of better-auth tables for joins): `organization`, `user` (with added `spId` column)
+- 3 owned database tables (pushed via `$prepareInfra()` control_plane_schemas): `service_provider`, `service_provider_user`, `tenant`
+- No shadow table definitions — `tenant_schemas` is empty (the `organization`/`user` better-auth mirrors are imported but not pushed to tenant DBs)
 - 16 domain events: 8 tenant + 4 service_provider + 4 platform_user
 - Audit entries written via the platform's `ctx.audit.write(...)` inline in each workflow (NOT via a shared `logAuditStep` — the management plane does not own a separate `audit_log` table)
 - `$prepareInfra()` returns declarative infra (db schemas, acl, events) — schema pushing handled centrally by platform
@@ -382,7 +382,7 @@ SingleTenantPlatform.create(config, [organization, tasks])
 **Exported as**: `@aspen-os/platform/client`
 
 **Relationship**: A separate client `Platform` class for browser-side use with 3 units:
-- `AuthUnit` — wraps better-auth React client with plugins (admin, emailOTP, username, phoneNumber)
+- `AuthUnit` — wraps better-auth React client (`createAuthClient`) with plugins: admin, username, organization, phoneNumber, emailOTP, apiKey, twoFactor, passkey (lastLoginMethod + captcha commented out)
 - `LogsUnit` — stub (stores config only, no logging methods)
 - `RpcUnit` — stub (no-op)
 
@@ -444,7 +444,7 @@ DriveFileWorkflow → pubsub.publish("drive:file_uploaded", { file }) → pg-bos
 ```
 
 Event counts by module:
-- Auth: 9 events
+- Auth: 8 events
 - Organization: 11 events
 - Compliance: 23 events
 - Tasks: 10 events
@@ -541,7 +541,7 @@ Two modules register scheduled cron jobs via PubSub:
 | Compliance | Downstream | Platform, HR, Organization, Fleet, Accounting | — | 5 workflows, 3 tables, 3 services, subscribes to external events |
 | Tasks | Downstream | Platform | — | 11 workflows, 17 tables (6 control + 11 tenant) |
 | Drive | Downstream | Platform, Storage | — | 6 workflows, 8 tables, 5 services |
-| Management Plane | Downstream | Platform, Organization | — | 10 workflow groups, 2 owned + 2 shadow tables, 16 events, has build step |
+| Management Plane | Downstream | Platform, Organization | — | 3 workflow groups, 3 owned tables, 0 shadow tables, 16 events, has build step |
 | HR | Downstream (partial) | Platform | Compliance | 8 workflows, 50 tables, 43 events, not fully conformant |
 | Accounting | Stub | — | — | Package.json only |
 | CRM | Stub | — | — | Package.json only |

@@ -66,7 +66,8 @@ Shared dependency versions are pinned in the root `package.json` `workspaces.cat
 ### IDs
 
 - Always `text` with `DEFAULT uuidv7()` — never native UUID columns.
-- Exception: better-auth tables (`user`, `session`, `account`, `verification`, `organization`, `member`, `invitation`, `apikey`, `twoFactor`, `passkey`) use `text("id").primaryKey()` without a default (better-auth manages ID generation; generated via `bunx auth generate`, i.e. `gen:auth-schema`).
+- Exception 1: better-auth tables (`user`, `session`, `account`, `verification`, `organization`, `member`, `invitation`, `apikey`, `twoFactor`, `passkey`) use `text("id").primaryKey()` without a default (better-auth manages ID generation; generated via `bunx auth generate`, i.e. `gen:auth-schema`).
+- Exception 2: `audit_log.id` uses `uuid().primaryKey().default(sql\`gen_random_uuid()\`)` (a native uuid) — the one platform schema deviating from `text + uuidv7()`.
 
 ### Timestamps
 
@@ -245,9 +246,9 @@ All units:
 
 ## Domain modules
 
-### Two module-class patterns
+### Three module-class patterns
 
-**Newer** (organization, tasks, management): workflows are `readonly` properties; `$initialize()` / `$prepareRuntime()` / `$cleanup()` are empty. They still `implements Module` and return a full `ModuleInfra` from `$prepareInfra()`.
+**Newer** (organization, tasks): workflows are `readonly` properties; `$initialize()` / `$prepareRuntime()` / `$cleanup()` are empty. They still `implements Module` and return a full `ModuleInfra` from `$prepareInfra()`.
 
 ```ts
 export class Organization implements Module {
@@ -281,7 +282,9 @@ export class Organization implements Module {
 }
 ```
 
-**Older** (compliance, drive; hr leans this way): `#private` stored unit references set in `$initialize(units)`; non-empty `$prepareRuntime()` (pubsub schedules/handlers) and `$cleanup()` (unregister + null out). AGENTS.md documents this pattern; note that in practice current modules keep workflow groups as `readonly` properties rather than throwing getters — only `hr`/`management` use a `notInitialized()`-throwing getter.
+**Older** (compliance, drive; hr leans this way): `#private` stored unit references set in `$initialize(units)`; non-empty `$prepareRuntime()` (pubsub schedules/handlers) and `$cleanup()` (unregister + null out). AGENTS.md documents this pattern; note that in practice current modules keep workflow groups as `readonly` properties rather than throwing getters — only `hr` uses `notInitialized()`-throwing getters on all workflow groups.
+
+**Hybrid** (management): `#private` `#db` field set in `$initialize({ db, auth, pubsub })` (stores `units.db` only); `$prepareRuntime()` / `$cleanup()` are empty; the `tenants` getter throws if `#db` is null, while `serviceProviders` / `users` are `readonly`.
 
 Key conventions:
 
@@ -410,7 +413,7 @@ export type DomainEventMap = EntityEventMap & OtherEntityEventMap;
 
 ## Auth
 
-- **better-auth** with plugins: `admin`, `username`, `organization`, `phoneNumber`, `emailOTP`, `apiKey`, `twoFactor`, `passkey` (lastLoginMethod/captcha are commented out).
+- **better-auth** with plugins: `admin`, `username`, `organization`, `phoneNumber`, `emailOTP`, `apiKey`, `twoFactor`, `passkey`. `lastLoginMethod`/`lastLoginMethodClient` and `captcha` are commented out on both surfaces.
 - `createAccessControl` defines the permission matrix (`{ resource: [actions...] }`) via `defineAcl` in `utils/acl.ts`.
 - `AuthUnit.applyModuleAcl(acl)` re-creates the better-auth service with `admin({ ac: createAccessControl(acl) })` during `$prepareInfra()`.
 - Drizzle adapter: `camelCase: false`, `provider: "pg"`, `usePlural: false`, `transaction: true`.

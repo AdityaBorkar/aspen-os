@@ -7,7 +7,7 @@ Aspen OS is a business application framework built on Bun/TypeScript. The platfo
 ### Platform Kernel
 
 **Platform**:
-A server-side orchestrator class. The platform exports three self-contained classes — `SingleTenantPlatform`, `SharedTenantPlatform`, `IsolatedTenantPlatform` — one per tenancy architecture. Each has its own `create()` static factory, config type, and `run()` signature. Created via `Platform.create(config, modules)`, which instantiates all Units, validates module `$dependencies`, calls `module.$initialize(units)` on each module, and returns a proxy-wrapped instance. Lifecycle: `create()` → `prepareInfra()` → `run()` → `destroy()`.
+A server-side orchestrator class. The platform exports three self-contained classes — `SingleTenantPlatform`, `SharedTenantPlatform`, `IsolatedTenantPlatform` — one per tenancy architecture. Each has its own `create()` static factory, config type, and `run()` signature. Created via `Platform.create(config, modules)`, which instantiates all Units, validates module `$dependencies`, calls `module.$initialize(units)` on each module, and returns a proxy-wrapped instance. Lifecycle: `create()` → `$prepareInfra()` → `run()` → `$cleanup()`.
 _Avoid_: Framework (on the server — that name is reserved for the client class), App, Container, DI Container
 
 **Platform** (client only):
@@ -35,8 +35,8 @@ Executing a function within `AsyncLocalStorage` context that provides `auth`, `d
 _Avoid_: Execute, Dispatch
 
 **Destroy**:
-Graceful shutdown of all Modules, then all Units. Clears internal state.
-_Avoid_: Shutdown, Cleanup
+Graceful shutdown of all Modules, then all Units. Clears internal state. Implemented as `$cleanup()`, not `destroy()`.
+_Avoid_: Shutdown
 
 **GetUnit**:
 Typed accessor to retrieve a Unit by name after creation. Requires a name — no zero-arg overload.
@@ -62,7 +62,7 @@ Connection parameters: `host`, `port`, `user`, `password`, `database`, `ssl?`, `
 ### Authentication
 
 **AuthUnit**:
-Core unit wrapping better-auth. Exposes a React client, an HTTP handler (`fetch_handler`), and programmatic workflows for user, session, and role management. ACL is NOT part of `AuthConfig` — it is applied later during `prepareInfra()` via `AuthUnit.applyModuleAcl(mergedAcl)`, which creates an `AccessControl` from the merged module ACL declarations and rebuilds the better-auth instance with the `admin({ ac: accessControl })` plugin. The initial construction does not include the admin plugin at all.
+Core unit wrapping better-auth. Exposes a `service` getter (the better-auth instance, including `.api` admin/organization endpoints), an HTTP handler (`fetchHandler(request)`), and a `_` getter with REST-style `resource.action` workflow methods for user, session, and role management. (The browser-side `AuthUnit` in `@aspen-os/platform/client` wraps the better-auth React client instead.) ACL is NOT part of `AuthConfig` — it is applied later during `prepareInfra()` via `AuthUnit.applyModuleAcl(mergedAcl)`, which creates an `AccessControl` from the merged module ACL declarations and rebuilds the better-auth instance with the `admin({ ac: accessControl })` plugin. The initial construction includes `admin()` without an `ac` — AC is only applied after module infra is collected.
 _Avoid_: Auth, AuthProvider
 
 **User**:
@@ -70,7 +70,7 @@ An authenticated identity with `id`, `email`, `name`, optional `phoneNumber`, `i
 _Avoid_: Account, Profile
 
 **Session**:
-A time-bounded authentication token tied to a User. Has `id`, `token`, `userId`, `expiresAt`. Cascades delete from User. Expiry is passed to better-auth via `AuthConfig.session.expiresIn` (forwarded in `config-builder.ts`); better-auth handles expiry internally.
+A time-bounded authentication token tied to a User. Has `id`, `token`, `userId`, `expiresAt`. Cascades delete from User. `AuthConfig` extends `BetterAuthOptions`, so session expiry is configured via `AuthConfig.session.expiresIn` and forwarded directly into `betterAuth({ ...config, ... })`; better-auth handles expiry internally.
 _Avoid_: Token, Login
 
 **Account**:
@@ -82,11 +82,11 @@ A plain text field on the User table. In the Recruiter app, values are `admin`, 
 _Avoid_: Permission Group, Access Level
 
 **Access Control**:
-A declarative statement matrix defining `{ resource: [actions...] }`. Modules declare their ACL via `defineAcl()` (a type-helper from `@aspen-os/platform/server`) returning an `AclDeclaration`. During `prepareInfra()`, the platform merges all module ACLs and calls `AuthUnit.applyModuleAcl(mergedAcl)`, which creates an `AccessControl` via `createAccessControl` (from better-auth) and rebuilds the better-auth instance with the `admin({ ac: accessControl })` plugin. The initial `AuthUnit` construction does not include the admin plugin — ACL is applied only after module infra is collected.
+A declarative statement matrix defining `{ resource: [actions...] }`. Modules declare their ACL via `defineAcl()` (a type-helper from `@aspen-os/platform/server`) returning an `AclDeclaration`. During `prepareInfra()`, the platform merges all module ACLs and calls `AuthUnit.applyModuleAcl(mergedAcl)`, which creates an `AccessControl` via `createAccessControl` (from better-auth) and rebuilds the better-auth instance with the `admin({ ac: accessControl })` plugin. The initial `AuthUnit` construction includes `admin({})` without an `ac` — the AC is applied only after module infra is collected.
 _Avoid_: Permission Matrix, ACL
 
 **Auth Event**:
-A typed domain event contract defined in `AuthEventMap`. Events: `user:created`, `user:updated`, `user:deleted`, `session:created`, `session:invalidated`, `role:assigned`, `role:created`, `role:unassigned`, `role:deleted`. Published via PubSub as plain string topics — the event map is a type-level contract, not a runtime bus.
+A typed domain event contract defined in the auth services (`services/{role,session,user}.ts`). Events: `user:created`, `user:updated`, `user:deleted`, `session:created`, `session:invalidated`, `role:assigned`, `role:unassigned`, `role:deleted`. Published via PubSub as plain string topics — a type-level contract, not a runtime bus.
 _Avoid_: Auth Signal, Auth Hook
 
 ### Logging
@@ -174,7 +174,7 @@ _Avoid_: Stage, Phase
 ### KV Store
 
 **KvStoreUnit**:
-Core unit providing a Redis-like key-value API over a Postgres `UNLOGGED TABLE` with TTL support. `$name` is `"kvStore"`.
+Core unit providing a Redis-like key-value API over a Postgres `kv_store` table (a regular `pgTable`, not UNLOGGED) with TTL support. `$name` is `"kvStore"`.
 _Avoid_: CacheUnit, RedisUnit
 
 **KVEntry**:
@@ -502,7 +502,7 @@ A user with `user.role = 'platform_admin'` and zero `member` rows. Operates the 
 _Avoid_: Super Admin, Root, Operator
 
 **Service Provider User**:
-A user with `user.role = 'sp_user'` and an `sp_id` FK on the `user` row pointing to their Service Provider. Zero tenant `member` rows. Field staff working for an SP — can view assigned Tenants, update onboarding status, upload install/training artifacts. Scope is the SP they belong to, not a tenant.
+A user with `user.role = 'sp_user'` and a `service_provider_user` join row pointing to their Service Provider. Zero tenant `member` rows. Field staff working for an SP — can view assigned Tenants, update onboarding status, upload install/training artifacts. Scope is the SP they belong to, not a tenant.
 _Avoid_: Integrator User, Field Agent
 
 **Audit Log**:
@@ -510,7 +510,7 @@ An append-only record of management actions, written via the platform's `AuditUn
 _Avoid_: Audit Trail, Change Record
 
 **Platform User**:
-A user managed by the Management Plane module — distinct from tenant end-users. Platform users include platform admins and service provider users. Created/updated/deleted via the `users` workflow, which delegates to `AuthUnit.user` for better-auth operations and also manages the `spId` FK on the `user` table for SP users.
+A user managed by the Management Plane module — distinct from tenant end-users. Platform users include platform admins and service provider users. Created/updated/deleted via the `users` workflow, which delegates to `AuthUnit.user` for better-auth operations. SP membership is modelled by a `service_provider_user` join row (1:1 user→SP), not an `spId` column on `user`.
 _Avoid_: Admin User, Management User
 
 **Report**:
@@ -550,7 +550,6 @@ _Avoid_: Onboarding (that's the Tenant Status stage AFTER provisioning), Setup, 
       │               S3 SDK       │           oRPC         audit_log table
       │                             │                         (platform schema)
       │                         Postgres
-      │                        (UNLOGGED)
       │
       │  registers modules via SingleTenantPlatform.create(config, [organization, tasks])
       │
@@ -560,9 +559,9 @@ _Avoid_: Onboarding (that's the Tenant Status stage AFTER provisioning), Setup, 
 │Organizat.│ │   Compliance     │ │    Tasks     │ │    Drive     │ │     HR       │ │ Management Plane │
 │  Module  │ │    Module        │ │   Module     │ │   Module     │ │   Module     │ │     Module       │
 │          │ │                  │ │              │ │              │ │ (partial)    │ │                  │
-│5 workflows│ │ 5 workflows     │ │ 11 workflows│ │ 6 workflows  │ │ 8 workflows  │ │ 10 wf groups     │
-│7 tables  │ │ 3 services       │ │ 3 services   │ │ 5 services   │ │ 0 services   │ │ 2 owned tables   │
-│11 events │ │ 3 tables         │ │ 17 tables    │ │ 8 tables     │ │ 50 tables    │ │ 2 shadow tables   │
+│5 workflows│ │ 5 workflows     │ │ 11 workflows│ │ 6 workflows  │ │ 8 workflows  │ │ 3 wf groups     │
+│7 tables  │ │ 3 services       │ │ 3 services   │ │ 5 services   │ │ 0 services   │ │ 3 owned tables   │
+│11 events │ │ 3 tables         │ │ 17 tables    │ │ 8 tables     │ │ 50 tables    │ │ 0 shadow tables  │
 │units:    │ │ 23 events        │ │ 10 events    │ │ 14 events    │ │ 43 events    │ │ 16 events        │
 │db, pubsub│ │ units:           │ │ units:       │ │ units:       │ │ units:       │ │ deps: organization│
 │          │ │ db, kvStore,     │ │ db, pubsub  │ │ db, storage, │ │ db, pubsub  │ │ units:           │
@@ -593,14 +592,15 @@ Stubs (package.json only — no source): accounting, crm, fleet, inventory, repo
 4. **`SingleTenantPlatform` and `SharedTenantPlatform` are EXPERIMENTAL** — both constructors emit `console.warn("... Architecture is currently EXPERIMENTAL")`. `IsolatedTenantPlatform` does not warn.
 5. **`IsolatedTenantConfig` has no `resolver` field** — a dummy resolver (`list: async () => []`, `resolve: async (id) => id`) is constructed inline in `IsolatedTenantPlatform.create()` instead of accepting a real `TenantResolver` via config.
 6. **`ManagementPlaneConfig` is `undefined`** — the provisioning workflow expects a richer config (`tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`) but the type hasn't been defined yet.
-7. **Management Plane `$name` is `"management"`** — the module's `$name` is `"management"`, not `"management"` as the package name suggests. Proxy accessor is `p.management`, not `p.managementPlane`.
+7. **Management module `$name` = `"management"`** — matches the `@aspen-os/management` package name (renamed from `management-plane`). Proxy accessor is `p.management`.
 8. **`context.actorId` is typed but never populated by the framework** — the `AsyncLocalStorage` context declares `actorId?: string` but the platform never sets it from the authenticated session. Audit entries fall back to `"system"` until app code or middleware populates it.
 9. **ADR-0009 has been accepted for Layer 1** — the `AuditUnit` and `audit_log` table described in ADR-0009's Layer 1 are built and shipped; the ADR status is now "Accepted (Layer 1)". Layer 2 (trigger-based blind-write capture, ADR-0010) remains proposed/unimplemented.
+10. **`audit_log.id` uses `uuid()` + `gen_random_uuid()`** — the one table that deviates from the `text + uuidv7()` ID convention.
 
 ## Anti-Patterns
 
 - Don't register modules after `create()` — pass them to `Platform.create()` as the second arg (an array)
-- Don't use native UUID columns — always text with `uuidv7()` or app-generated UUIDs
+- Don't use native UUID columns — always text with `uuidv7()` or app-generated UUIDs (exception: `audit_log.id` is a native `uuid` with `gen_random_uuid()`)
 - Don't use `timestamp without time zone` — always `withTimezone: true`
 - Don't create barrel files unless explicitly told
 - Don't import bare `@aspen-os/platform` — use `/server` or `/client` subpath explicitly

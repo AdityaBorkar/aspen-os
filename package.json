@@ -9,7 +9,7 @@
     "husky": "^9.1.7",
     "ignore": "^6.0.2",
     "lint-staged": "^17.3.0",
-    "taze": "^19.17.1",
+    "taze": "^19.17.2",
     "tiktoken": "^1.0.22",
     "typescript": "^7.0.2",
     "typescript-coverage-report": "^1.1.1"

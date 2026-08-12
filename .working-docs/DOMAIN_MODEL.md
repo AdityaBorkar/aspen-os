@@ -248,7 +248,7 @@
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
-│                     STORAGE DOMAIN (Framework)                      │
+│                     STORAGE DOMAIN                                    │
 │                                                                     │
 │  ┌────────────────┐                                                  │
 │  │  FileMetadata   │  →  S3 Object (external)                       │
@@ -266,7 +266,7 @@
 ┌─────────────────────────────────────────────────────────────────────┐
 │                       KV-STORE DOMAIN                                │
 │  KVEntry: key(PK), value(text), expiresAt(nullable), updatedAt      │
-│  (UNLOGGED table — cache semantics)                                  │
+│  (regular pgTable — NOT UNLOGGED)                                    │
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -295,6 +295,7 @@
 │  Setup: Department, Designation, EmploymentType, Grade, HolidayList │
 │  Access: HR Users, Roles, Permissions, Branch-wise Access           │
 │  (Module partially conformant — not `implements Module`)           │
+│  Tables: 50 (14 control-plane, 36 tenant)                          │
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -330,16 +331,22 @@
 │  │  id (PK)          │                  │ 1:N                        │
 │  │  name             │                  ▼                            │
 │  │  slug             │       ┌──────────────────────┐                │
-│  │  logo             │       │  User (shadow)        │                │
+│  │  logo             │       │  ServiceProviderUser  │                │
 │  │  metadata         │       │  id (PK)              │                │
-│  └──────────────────┘       │  email, name          │                │
-│                              │  role (text)          │                │
-│  Owned tables (control_plane):  │  spId (FK→SP)         │                │
-│    tenant, service_provider  └──────────────────────┘                │
-│  Shadow tables (tenant):                                            │
-│    organization (better-auth mirror), user (better-auth mirror+spId)│
-│                                                                     │
-│  Roles: platform_admin, sp_user, tenant_admin, tenant_user           │
+│  └──────────────────┘       │  userId (FK→User)     │                │
+│                              │  serviceProviderId    │                │
+│                              │    (FK→ServiceProvider)│               │
+│                              │  (1:1 join, no spId    │               │
+│                              │   column on user)      │               │
+│                              └──────────┬───────────┘                │
+│                                         │ 1:N                        │
+│                                         ▼                            │
+│  Owned tables (control_plane):   ServiceProvider                      │
+│    tenant, service_provider,                                         │
+│    service_provider_user                                             │
+│  Shadow tables (tenant):   (none — tenant_schemas is empty)          │
+│                                                                       │
+│  Roles: platform_admin, sp_user, tenant_admin, tenant_user             │
 │  Config: ManagementPlaneConfig = undefined (WIP)                    │
 │  Deps: ["organization"]                                             │
 └─────────────────────────────────────────────────────────────────────┘
@@ -795,22 +802,23 @@
 **Identity**: `id` (text, PK — better-auth `user` table ID)
 
 **Invariants**:
-- If `role = 'sp_user'`, `spId` must be set (FK to ServiceProvider)
-- If `role != 'sp_user'`, `spId` must NOT be set
-- Created/deleted via `AuthUnit.user` API (better-auth), with `spId` managed on the `user` table directly
+- SP membership is via a `service_provider_user` join row (1:1 user→SP), not an `spId` column on `user`
+- If `role = 'sp_user'`, a `service_provider_user` row must exist
+- If `role != 'sp_user'`, no `service_provider_user` row for that user
+- Created/deleted via `AuthUnit.user` API (better-auth); the SP link is managed on `service_provider_user` in the control-plane DB
 
 **Lifecycle commands** (via `PlatformUserWorkflow`):
-- `create(input)` → User (delegates to `auth.api.createUser()`, sets `spId` if SP user)
+- `create(input)` → User (delegates to `auth.api.createUser()`, inserts `service_provider_user` row if SP user)
 - `get(id)` → User
-- `list(filters?)` → User[]
-- `update(id, patch)` → User (delegates name/role to `auth.user.update()`, sets `spId` directly)
-- `delete(id)` → void (delegates to `auth.user.remove()`)
+- `list(filters?)` → User[] (leftJoin `service_provider_user` to surface `spId` = `serviceProviderId`)
+- `update(id, patch)` → User (delegates name/role to `auth.user.update()`, manages `service_provider_user` row)
+- `delete(id)` → void (delegates to `auth.user.remove()`, cascades the `service_provider_user` row)
 - `assignRole(id, role)` → void (delegates to `auth.user.role.assign()`)
-- `assignToServiceProvider(userId, spId)` → void (sets `role='sp_user'` + `spId`)
+- `assignToServiceProvider(userId, spId)` → void (sets `role='sp_user'` + inserts `service_provider_user` row)
 
 ### AuditLog (Entity — append-only, Platform Core)
 
-**Identity**: `id` (text, PK, `default uuidv7()`)
+**Identity**: `id` (uuid, PK, `default gen_random_uuid()`) — note: this is the one exception to the `uuidv7()` convention
 
 **Invariants**:
 - Append-only (no updates/deletes)
@@ -867,11 +875,11 @@
 
 **Invariants**:
 - Expired entries are lazily evicted on read
-- Table is `UNLOGGED` (no WAL — performance over durability)
+- Table is a regular `pgTable` (no UNLOGGED modifier — durability over performance)
 
 ## Domain Events
 
-### Auth Events (AuthEventMap) — 9 events
+### Auth Events — 8 events
 
 | Event | Payload | Trigger |
 |---|---|---|
@@ -882,7 +890,6 @@
 | `session:invalidated` | `{ sessionId: string }` | Session invalidated |
 | `role:assigned` | `{ roleName: string, userId: string }` | Role assigned to user |
 | `role:unassigned` | `{ userId: string }` | Role unassigned (note: missing `roleName` — known gap) |
-| `role:created` | `{ role: RoleData }` | Role created |
 | `role:deleted` | `{ roleName: string }` | Role deleted |
 
 ### Organization Events (OrganizationDomainEventMap) — 11 events
@@ -1225,12 +1232,12 @@ The HR module defines 43 events across 8 event groups, combined into `HrEventMap
 ### KV Store
 
 40. **Lazy TTL eviction** — expired entries deleted on read, not by background job
-41. **UNLOGGED table** — data lost on Postgres crash (by design — cache semantics)
+41. **Regular table** — `kv_store` is a normal `pgTable` (not UNLOGGED; no WAL-style sacrifice — durability over cache semantics)
 
 ### Management Plane
 
 42. **SP slug uniqueness** — enforced by DB unique constraint on service_provider.slug
-43. **SP user requires spId** — if `role = 'sp_user'`, `spId` must be set; otherwise `spId` must NOT be set (enforced in workflow)
+43. **SP user resolved via service_provider_user table** — `service_provider_user` is a join table (1:1 from user to SP via FK), replacing the earlier `user.spId` column design. Role `'sp_user'` requires a matching `service_provider_user` row; enforced in workflow
 44. **Tenant status transitions** — `onboarding` → `active` → `suspended` ↔ `active` → `churned` (enforced in workflow)
 45. **Audit log append-only** — no updates or deletes; written via platform `ctx.audit.write(...)` inline in each workflow (the platform's `audit_log` table, not a module-local table)
 46. **Tenant-Organization ID sharing** — tenant companion table ID = better-auth organization ID (1:1 relationship)
