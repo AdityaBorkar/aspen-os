@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-`@aspen-os` is a Bun monorepo containing a business framework (`@aspen-os/platform`) with pluggable **units** (infrastructure) and **modules** (domain logic), first-class multi-tenancy, plus a TanStack Start example app (`recruiter`) and a Fumadocs docs site (`docs`).
+`@aspen-os` is a Bun monorepo containing a business framework (`@aspen-os/platform`) with pluggable **units** (infrastructure) and **modules** (domain logic), first-class multi-tenancy, and a Fumadocs docs site (`docs`). There is no host/example app in the repo yet (`CONTEXT.md` calls the intended first app "Recruiter").
 
 Workspace state:
 
@@ -10,7 +10,7 @@ Workspace state:
 - **Partial**: `hr` — module logic largely written but the class does not `implements Module` and lacks `$prepareRuntime()`.
 - **Pure stubs**: `accounting`, `crm`, `fleet`, `inventory`, `pharmacy`, `reports` (package.json is just `{ "name": "..." }`).
 
-Read `CODING_CONVENTIONS.md`, `CONTEXT.md`, and `docs/DOMAIN_MODEL.md` before modeling domain changes. Note: `CODING_CONVENTIONS.md` still references the old server `Framework` class — trust the code over that doc for server architecture; `CONTEXT.md` documents known gaps.
+Read `CODING_CONVENTIONS.md`, `CONTEXT.md`, and the domain docs in `.working-docs/` (`DOMAIN_MODEL.md`, `BOUNDED_CONTEXTS.md`, `TODO.md`, `adr/`) before modeling domain changes. Note: `CODING_CONVENTIONS.md` may lag the code (it references the old `Framework` name) — trust the code and `CONTEXT.md` (which documents known gaps). `docs/` is the built documentation site, not the source of truth for domain docs.
 
 ## Architecture & Data Flow
 
@@ -61,7 +61,7 @@ p.$cleanup()            → mod.$cleanup() then unit.$cleanup()
 packages/
   platform/            # Core library — units, modules, tenancy, workflows, CLI (build step)
     src/server/        # base-platform.ts, create-{single,shared,isolated}-tenant.ts,
-                       # units: db/ auth/ logs/ pubsub/ storage/ rpc/ kv-store/ audit/,
+                       # units: db/ auth/ log/ pubsub/ storage/ rpc/ kv-store/ audit/, example.docker-compose.yaml
                        # workflows/, utils/ (context.ts, bun-compat.ts, is-global-tenant-id.ts)
     src/client/        # Platform class + auth/ logs/ rpc + context.ts, types.ts
     src/cli/           # commander CLI (db-studio, tenants)
@@ -70,16 +70,11 @@ packages/
   compliance/          # Domain module — + services/ constants.ts
   tasks/               # Domain module — + services/ utils/filter-engine.ts (17 tables)
   drive/               # Domain module — + services/ runtime.ts
-  management/    # Control-plane module (build step) — module.ts auth.ts pubsub.ts workflows/steps/
+  management/          # Control-plane module (build step) — module.ts auth.ts pubsub.ts workflows/steps/
   hr/                  # Partial — db-schema.ts (single file) event-map.ts constants.ts
   accounting/ crm/ fleet/ inventory/ pharmacy/ reports/   # stubs
-examples/
-  recruiter/           # TanStack Start + React 19 + Vite 8 + Tailwind 4 (port 3000)
-    src/aspen/         # server.ts, auth-client.ts, client.ts
-    src/env.ts         # @t3-oss/env-core + Zod validation
-    scripts/prepare.ts # calls p.$prepareInfra()
-docs/              # TanStack Start docs → Cloudflare Workers (fumadocs; port 3005)
-docs/                  # adr/ BOUNDED_CONTEXTS.md DOMAIN_MODEL.md TODO.md sow/
+docs/              # Fumadocs site (port 3005) → Cloudflare Workers (wrangler.jsonc)
+.working-docs/         # Canonical domain model + ADRs + SOWs (source of truth for domain docs)
 scripts/               # build.ts (package builds), token-count.ts
 ```
 
@@ -105,17 +100,6 @@ cd packages/platform && bun run build         # scripts/build.ts → .output/
 ```
 
 **Build gotcha**: platform's published `exports`/`bin` point at `.output/`. TypeScript resolves types from `.output/`, not source (Bun runtime uses source via the `build` map, but `tsc` does not). After changing platform exports, run `bun run build` **before** typechecking downstream packages. `organization` and `management` also have `build` steps.
-
-recruiter (`examples/recruiter`, `app:` prefix):
-
-```
-bun run app:dev          # vite dev --port 3000
-bun run app:build        # vite build
-bun run app:preview      # vite preview
-bun run app:prepare      # bun scripts/prepare.ts (p.$prepareInfra())
-bun run generate-routes  # tsr generate (TanStack Router)
-bun run db:studio        # aspen db-studio --config=src/aspen/server.ts (port 4983)
-```
 
 docs (`bun run dev` → 3005):
 
@@ -192,9 +176,8 @@ Root `tsconfig.json` (extended everywhere, `composite: true` project references)
 | `packages/platform/src/server/workflows/` | `Workflow` / `WorkflowStep` durable step runner (`workflow_runs`/`workflow_steps` tables) |
 | `packages/platform/src/cli/index.ts` | `aspen` CLI — `db-studio`, `tenants`; dynamically imports config (`platform` or `p` export) |
 | `scripts/build.ts` | Package builder: rewrites `exports`/`bin` → `.output/`, runs `Bun.build()` + `tsc` declarations |
-| `examples/recruiter/src/aspen/server.ts` | `SingleTenantPlatform.create`, exports `p` (config target for CLI) |
-| `examples/recruiter/src/env.ts` | `@t3-oss/env-core` + Zod env validation; client prefix `PUBLIC_` |
-| `docs/src/routes/docs/$.tsx` | Docs catch-all route — Fumadocs layout, `getLayoutTabs`, server fn loader |
+| `docs/src/routes/docs/$.tsx` | Docs catch-all route — Fumadocs layout, server fn loader |
+| `docs/source.config.ts` | Fumadocs docs sources — each package's `docs/` dir (`packages/*/docs`, e.g. `platform`, `organization`, `hr`) |
 | `biome.json`, `tsconfig.json`, `bunfig.toml`, `.commitlintrc.json` | Toolchain config |
 
 ### `_` getter (server AuthUnit)
@@ -224,14 +207,13 @@ await myWorkflow.run(input, { actorId });
 - **TypeScript**: `typescript` catalog `^7.0.2`. **Validation**: valibot (domain), zod (RPC/env). **ORM**: drizzle-orm `^0.45.2` + `pg`. **Auth**: better-auth `^1.6.25` (+ api-key, passkey, admin, organization plugins). **Pub/Sub**: pg-boss `^10.4.2`. **RPC**: oRPC (`@orpc/server`). **Storage**: AWS S3 SDK (SeaweedFS-compatible). Telemetry: `@opentelemetry/api`, logs via pino.
 - **Root `workspaces.catalog`**: `@standard-schema/spec`, `@standard-schema/utils`, `@types/bun`, `bun`, `drizzle-orm`, `typescript`, `valibot` — referenced as `catalog:`.
 - **`bunfig.toml`**: `ignore-scripts=true`, `minimumReleaseAge=259200` (3 days; excludes `@types/bun`/`typescript`/`@biomejs/biome`), `saveTextLockfile=false`.
-- **Env (recruiter)**: `.env.local` with `DB_*`, `AUTH_SECRET`, `STORAGE_*`, `GOOGLE_CLIENT_*`, `PUBLIC_WEB_*`. Vite exposes only `PUBLIC_`-prefixed vars.
-- **Infra (recruiter, docker-compose)**: Postgres `postgres:18-alpine` (5432) + SeaweedFS (master 9333, volume 8080, filer 8888, S3 8333, S3 config `seaweedfs-s3.json`).
+- **Env (docs)**: `docs/.env.local` — `OPENROUTER_API_KEY`, optional `CLOUDFLARE_*` (account ID, API token, S3 credentials for the AI chat feature).
+- **Infra (docker-compose)**: `packages/platform/src/server/example.docker-compose.yaml` — Postgres `postgres:18-alpine` on 5432 (user `aspen`, password `change-me`, RLS disabled via `row_security=off`). No SeaweedFS/storage service is defined in the repo.
 - **No CI/CD** beyond `docs`'s `wrangler.jsonc` (deploy via `wrangler deploy`).
 
 ## Testing & QA
 
 - **Status: effectively no test infrastructure.** No test files, no test config (`vitest.config.*` / `jest.config.*` / `playwright.config.*`), no `__tests__`/`fixtures`/`mocks` directories anywhere in the repo.
-- `examples/recruiter` has unused devDeps `vitest@4.1.10`, `@testing-library/react@16.3.2`, `@testing-library/dom`, `jsdom` but **no `test` script** to invoke them.
 - No test scripts in any package. No coverage config; `.zed/settings.json` pre-excludes `**/.coverage`.
 - No dedicated type-check/test gate in CI (there is no CI). Quality checks are `check:lint` (biome) and `check:types` (`tsc -b`) per package.
 

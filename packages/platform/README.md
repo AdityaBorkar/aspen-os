@@ -773,8 +773,6 @@ Built-in procedures:
 - `echo` -- input: `{ message: string }`, returns `{ echo: string }`
 - `health.check` -- returns `{ status: "ok" }`
 
-Procedures use `zod` for input validation.
-
 ### KvStoreUnit
 
 Redis-like key-value API over a Postgres table with TTL support.
@@ -1727,8 +1725,6 @@ platform.rpc.router  // oRPC router object
 Built-in procedures:
 - `echo` -- input: `{ message: string }`, returns `{ echo: string }`
 - `health.check` -- returns `{ status: "ok" }`
-
-Procedures use `zod` for input validation.
 
 ### KvStoreUnit
 

@@ -1,10 +1,10 @@
 # TODO
 
 Replace zod with valibot entirely
-/init
-docs -> ./.working-docs
-Update CODING_CONVENTIONS.md as per the current design and state of the repository.
-/domain-modelling Update ADRs to reflect the current design and state of the repository.
+
+Refactor all modules to be like ./management. Make it a skill
+
+WORK ON DMS
 
 WORK ON ORGANIZATION
 - [ ] Organization
@@ -14,8 +14,9 @@ WORK ON ORGANIZATION
   - Personal Drafts
   - Personal Dashboard / Dashboards
   - Branches & Organization
-Refactor all modules to be like ./management. Make it a skill
-WORK ON DMS
+
+---
+
 WORK ON TASK MANAGEMENT
 WORK ON HR MODULE
   - Implement the HR module

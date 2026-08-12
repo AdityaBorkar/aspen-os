@@ -1,13 +1,5 @@
-import { z } from "zod";
-
 import { base } from "../base";
 
-export const echo = base
-  .input(
-    z.object({
-      message: z.string(),
-    }),
-  )
-  .handler(async ({ input }) => {
-    return { echo: input.message };
-  });
+export const echo = base.handler(async () => {
+  return { echo: "input.message" };
+});

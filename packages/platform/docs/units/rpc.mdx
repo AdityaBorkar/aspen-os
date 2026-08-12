@@ -1,10 +1,10 @@
 ---
 title: RPC
-description: Type-safe API procedures powered by oRPC with Zod validation.
+description: Type-safe API procedures powered by oRPC with validation.
 icon: IconWorld
 ---
 
-The `RpcUnit` (`$name: "rpc"`) provides an RPC layer using [oRPC](https://orpc.uno) with Zod input validation. It exposes a router and an HTTP handler.
+The `RpcUnit` (`$name: "rpc"`) provides an RPC layer using [oRPC](https://orpc.uno) with input validation. It exposes a router and an HTTP handler.
 
 ## Configuration
 
@@ -74,11 +74,10 @@ if (result.matched) {
 
 ## Defining Procedures
 
-Procedures are defined using oRPC's `os` base with Zod validation:
+Procedures are defined using oRPC's `os` base:
 
 ```ts title="src/server/rpc/procedures/echo.ts"
 import { os } from "../base";
-import { z } from "zod";
 
 export const echo = os
   .input(z.object({ message: z.string() }))
