@@ -1,0 +1,5 @@
+interface:
+  display_name: "Write Module"
+  short_description: "Scaffold a new aspen-os domain module"
+policy:
+  allow_implicit_invocation: false

@@ -1,6 +1,6 @@
 # TODO
 
-Refactor all modules to be like ./management. Make it a skill
+Refactor all modules to be like ./management.
 
 WORK ON DMS
 
