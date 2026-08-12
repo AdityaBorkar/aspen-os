@@ -1,11 +1,11 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import { index, pgTable, text } from "drizzle-orm/pg-core";
 
 export const label = pgTable(
   "task_label_def",
   {
     color: text("color"),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     name: text("name").notNull(),
     projectId: text("project_id"),
   },

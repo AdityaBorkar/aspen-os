@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import {
   index,
   pgTable,
@@ -14,7 +14,7 @@ export const dmsDocumentTag = pgTable(
       .notNull()
       .defaultNow(),
     documentId: text("document_id").notNull(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     tagId: text("tag_id").notNull(),
   },
   (table) => [

@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const driveLabel = pgTable(
@@ -8,7 +8,7 @@ export const driveLabel = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     isGlobal: boolean("is_global").notNull().default(false),
     name: text("name").notNull(),
     ownerId: text("owner_id"),

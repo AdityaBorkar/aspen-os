@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import {
   boolean,
   date,
@@ -22,7 +22,7 @@ export const hrSettings = pgTable("hr_settings", {
   employeeNamingSeries: text("employee_naming_series"),
   expenseClaimDefault: text("expense_claim_default"),
   geolocationTracking: boolean("geolocation_tracking"),
-  id: text("id").primaryKey().default(sql`uuidv7()`),
+  id: text("id").primaryKey().$defaultFn(uuidv7),
   leaveApprovalWorkflow: text("leave_approval_workflow"),
   leaveWithoutPayHandling: text("leave_without_pay_handling"),
   updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -37,7 +37,7 @@ export const payrollSettings = pgTable("payroll_settings", {
     .defaultNow(),
   fiscalYearEnd: text("fiscal_year_end"),
   fiscalYearStart: text("fiscal_year_start"),
-  id: text("id").primaryKey().default(sql`uuidv7()`),
+  id: text("id").primaryKey().$defaultFn(uuidv7),
   incomeTaxComponent: text("income_tax_component"),
   multiCurrencyExpenseClaims: boolean("multi_currency_expense_claims"),
   payrollPeriodEnd: text("payroll_period_end"),
@@ -55,7 +55,7 @@ export const employmentType = pgTable(
       .notNull()
       .defaultNow(),
     description: text("description"),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     isActive: boolean("is_active").notNull().default(true),
     name: text("name").notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -72,7 +72,7 @@ export const department = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     isActive: boolean("is_active").notNull().default(true),
     manager: text("manager"),
     metadata: jsonb("metadata"),
@@ -93,7 +93,7 @@ export const designation = pgTable("designation", {
     .notNull()
     .defaultNow(),
   description: text("description"),
-  id: text("id").primaryKey().default(sql`uuidv7()`),
+  id: text("id").primaryKey().$defaultFn(uuidv7),
   isActive: boolean("is_active").notNull().default(true),
   name: text("name").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -107,7 +107,7 @@ export const employeeGrade = pgTable("employee_grade", {
     .defaultNow(),
   defaultSalaryStructure: text("default_salary_structure"),
   description: text("description"),
-  id: text("id").primaryKey().default(sql`uuidv7()`),
+  id: text("id").primaryKey().$defaultFn(uuidv7),
   isActive: boolean("is_active").notNull().default(true),
   name: text("name").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -120,7 +120,7 @@ export const holidayList = pgTable("holiday_list", {
     .notNull()
     .defaultNow(),
   description: text("description"),
-  id: text("id").primaryKey().default(sql`uuidv7()`),
+  id: text("id").primaryKey().$defaultFn(uuidv7),
   isActive: boolean("is_active").notNull().default(true),
   name: text("name").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -139,7 +139,7 @@ export const holiday = pgTable(
     date: date("date").notNull(),
     description: text("description"),
     holidayListId: text("holiday_list_id").notNull(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     name: text("name").notNull(),
     type: holidayTypeEnum("type").notNull().default("public"),
     updatedAt: timestamp("updated_at", { withTimezone: true })

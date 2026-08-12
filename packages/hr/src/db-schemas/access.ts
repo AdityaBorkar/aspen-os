@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 import { accessLevelEnum, permissionActionEnum } from "./enums";
@@ -10,7 +10,7 @@ export const hrUser = pgTable(
       .notNull()
       .defaultNow(),
     employeeId: text("employee_id").notNull(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     isActive: boolean("is_active").notNull().default(true),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
@@ -28,7 +28,7 @@ export const hrRole = pgTable("hr_role", {
     .notNull()
     .defaultNow(),
   description: text("description"),
-  id: text("id").primaryKey().default(sql`uuidv7()`),
+  id: text("id").primaryKey().$defaultFn(uuidv7),
   isActive: boolean("is_active").notNull().default(true),
   isSystem: boolean("is_system").notNull().default(false),
   name: text("name").notNull(),
@@ -43,7 +43,7 @@ export const hrPermission = pgTable("hr_permission", {
     .notNull()
     .defaultNow(),
   description: text("description"),
-  id: text("id").primaryKey().default(sql`uuidv7()`),
+  id: text("id").primaryKey().$defaultFn(uuidv7),
   module: text("module").notNull(),
 });
 
@@ -53,7 +53,7 @@ export const hrRolePermission = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     permissionId: text("permission_id").notNull(),
     roleId: text("role_id").notNull(),
   },
@@ -71,7 +71,7 @@ export const hrUserRole = pgTable(
       .notNull()
       .defaultNow(),
     hrUserId: text("hr_user_id").notNull(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     roleId: text("role_id").notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
@@ -93,7 +93,7 @@ export const hrUserBranchAccess = pgTable(
       .notNull()
       .defaultNow(),
     hrUserId: text("hr_user_id").notNull(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import { index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 import { driveItemTypeEnum } from "./enums";
@@ -11,7 +11,7 @@ export const driveAccessLog = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     ip: text("ip"),
     itemId: text("item_id").notNull(),
     itemType: driveItemTypeEnum("item_type").notNull(),

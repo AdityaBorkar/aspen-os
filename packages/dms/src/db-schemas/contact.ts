@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const dmsContact = pgTable(
@@ -13,7 +13,7 @@ export const dmsContact = pgTable(
     designation: text("designation").notNull(),
     email: text("email").notNull(),
     firstName: text("first_name").notNull(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     isRemoved: boolean("is_removed").notNull().default(false),
     lastName: text("last_name").notNull(),
     linkedUserId: text("linked_user_id"),

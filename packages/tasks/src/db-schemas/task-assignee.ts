@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import {
   boolean,
   index,
@@ -15,7 +15,7 @@ export const taskAssignee = pgTable(
       .notNull()
       .defaultNow(),
     assignedBy: text("assigned_by").notNull(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     isLead: boolean("is_lead").notNull().default(false),
     taskId: text("task_id").notNull(),
     userId: text("user_id").notNull(),

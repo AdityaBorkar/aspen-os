@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import {
   index,
   pgTable,
@@ -13,7 +13,7 @@ export const watcher = pgTable(
     addedAt: timestamp("added_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     taskId: text("task_id").notNull(),
     userId: text("user_id").notNull(),
   },

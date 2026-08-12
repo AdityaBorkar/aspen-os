@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, index, jsonb, pgTable, text } from "drizzle-orm/pg-core";
 
 import { savedViewTypeEnum } from "./enums";
@@ -8,7 +8,7 @@ export const savedView = pgTable(
   {
     filters: jsonb("filters"),
     groupBy: text("group_by"),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     isDefault: boolean("is_default").notNull().default(false),
     isShared: boolean("is_shared").notNull().default(false),
     name: text("name").notNull(),

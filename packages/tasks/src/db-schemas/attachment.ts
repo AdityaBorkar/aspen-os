@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import { index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const attachment = pgTable(
@@ -9,7 +9,7 @@ export const attachment = pgTable(
       .notNull()
       .defaultNow(),
     fileId: text("file_id").notNull(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     taskId: text("task_id").notNull(),
     uploadedBy: text("uploaded_by").notNull(),
   },

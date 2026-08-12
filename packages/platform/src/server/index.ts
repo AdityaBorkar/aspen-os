@@ -28,6 +28,7 @@ export { defineAcl } from "./auth";
 export * from "./db-schemas";
 export { getContext } from "./utils/context";
 export { isGlobalTenantId } from "./utils/is-global-tenant-id";
+export { uuidv7 } from "./utils/uuidv7";
 export type {
   AuthConfig,
   AuthUnit,

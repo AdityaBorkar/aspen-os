@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import {
   boolean,
   date,
@@ -31,7 +31,7 @@ export const leaveType = pgTable(
       .notNull()
       .defaultNow(),
     earnedLeaveFrequency: earnedLeaveFrequencyEnum("earned_leave_frequency"),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     includeHolidaysWithinLeaves: boolean("include_holidays_within_leaves")
       .notNull()
       .default(false),
@@ -59,7 +59,7 @@ export const leavePeriod = pgTable(
       .notNull()
       .defaultNow(),
     endDate: date("end_date").notNull(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     isActive: boolean("is_active").notNull().default(true),
     name: text("name").notNull(),
     startDate: date("start_date").notNull(),
@@ -75,7 +75,7 @@ export const leavePolicy = pgTable("leave_policy", {
     .notNull()
     .defaultNow(),
   description: text("description"),
-  id: text("id").primaryKey().default(sql`uuidv7()`),
+  id: text("id").primaryKey().$defaultFn(uuidv7),
   isActive: boolean("is_active").notNull().default(true),
   name: text("name").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -90,7 +90,7 @@ export const leavePolicyDetail = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     leavePolicyId: text("leave_policy_id").notNull(),
     leaveType: text("leave_type").notNull(),
     maxDays: integer("max_days").notNull(),
@@ -112,7 +112,7 @@ export const leavePolicyAssignment = pgTable(
     effectiveFrom: date("effective_from").notNull(),
     effectiveTo: date("effective_to"),
     employeeId: text("employee_id").notNull(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     isActive: boolean("is_active").notNull().default(true),
     leavePeriod: text("leave_period").notNull(),
     leavePolicy: text("leave_policy").notNull(),
@@ -136,7 +136,7 @@ export const leaveAllocation = pgTable(
       .defaultNow(),
     earnedDays: numeric("earned_days").notNull().default("0"),
     employeeId: text("employee_id").notNull(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     leavePeriod: text("leave_period").notNull(),
     leavePolicyAssignment: text("leave_policy_assignment"),
     leaveType: text("leave_type").notNull(),
@@ -166,7 +166,7 @@ export const leaveApplication = pgTable(
     employeeId: text("employee_id").notNull(),
     fromDate: date("from_date").notNull(),
     halfDayDate: date("half_day_date"),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     isHalfDay: boolean("is_half_day").notNull().default(false),
     leaveAllocation: text("leave_allocation"),
     leaveType: text("leave_type").notNull(),
@@ -199,7 +199,7 @@ export const leaveEncashment = pgTable(
     employeeId: text("employee_id").notNull(),
     encashableDays: numeric("encashable_days").notNull(),
     encashedDays: numeric("encashed_days").notNull(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     leavePeriod: text("leave_period").notNull(),
     leaveType: text("leave_type").notNull(),
     rejectedAt: timestamp("rejected_at", { withTimezone: true }),
@@ -225,7 +225,7 @@ export const leaveBlockList = pgTable(
       .defaultNow(),
     department: text("department"),
     fromDate: date("from_date").notNull(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     isActive: boolean("is_active").notNull().default(true),
     name: text("name").notNull(),
     reason: text("reason"),
@@ -247,7 +247,7 @@ export const leaveAdjustment = pgTable(
       .defaultNow(),
     days: numeric("days").notNull(),
     employeeId: text("employee_id").notNull(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     leaveLedgerEntry: text("leave_ledger_entry").notNull(),
     leavePeriod: text("leave_period"),
     leaveType: text("leave_type").notNull(),
@@ -268,7 +268,7 @@ export const leaveLedgerEntry = pgTable(
     days: numeric("days").notNull(),
     description: text("description").notNull(),
     employeeId: text("employee_id").notNull(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     leaveApplication: text("leave_application"),
     leaveType: text("leave_type").notNull(),
     transactionType: text("transaction_type").notNull(),

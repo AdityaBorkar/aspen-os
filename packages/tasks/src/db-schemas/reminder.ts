@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 import { reminderTypeEnum } from "./enums";
@@ -6,7 +6,7 @@ import { reminderTypeEnum } from "./enums";
 export const reminder = pgTable(
   "task_reminder",
   {
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     interval: text("interval"),
     isRecurring: boolean("is_recurring").notNull().default(false),
     isSent: boolean("is_sent").notNull().default(false),

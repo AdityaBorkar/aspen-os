@@ -65,9 +65,9 @@ Shared dependency versions are pinned in the root `package.json` `workspaces.cat
 
 ### IDs
 
-- Always `text` with `DEFAULT uuidv7()` — never native UUID columns.
+- Always `text` with `.primaryKey().$defaultFn(uuidv7)` — never native UUID columns. `uuidv7` is the `crypto.getRandomValues()`-based function exported from `@aspen-os/platform/server`; using `.$defaultFn` sets the default at insert time in JS, avoiding DB-side `sql\`uuidv7()\`` magic.
 - Exception 1: better-auth tables (`user`, `session`, `account`, `verification`, `organization`, `member`, `invitation`, `apikey`, `twoFactor`, `passkey`) use `text("id").primaryKey()` without a default (better-auth manages ID generation; generated via `bunx auth generate`, i.e. `gen:auth-schema`).
-- Exception 2: `audit_log.id` uses `uuid().primaryKey().default(sql\`gen_random_uuid()\`)` (a native uuid) — the one platform schema deviating from `text + uuidv7()`.
+- Exception 2: `audit_log.id` uses `uuid().primaryKey().$defaultFn(() => uuidv7())` (a native uuid — the one platform schema deviating from `text + uuidv7()`).
 
 ### Timestamps
 

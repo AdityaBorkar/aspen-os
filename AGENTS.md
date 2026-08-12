@@ -146,7 +146,7 @@ Modules with non-empty runtime wiring (compliance schedules/handlers, drive purg
 
 ### Database (Drizzle)
 
-- IDs: `text` with `DEFAULT uuidv7()` (never native UUID). Exception: better-auth tables use `text("id").primaryKey()` without default, and `audit_log.id` uses `uuid().default(sql\`gen_random_uuid()\`)`.
+- IDs: `text` with `.primaryKey().$defaultFn(uuidv7)` — `uuidv7` is `crypto.getRandomValues()`-based, exported from `@aspen-os/platform/server`. Never native UUID (`text` columns hold UUID v7). Exception: better-auth tables use `text("id").primaryKey()` without default. `audit_log.id` is the sole native UUID column and uses `uuid().primaryKey().$defaultFn(() => uuidv7())`.
 - Timestamps: `timestamp(..., { withTimezone: true })`; `createdAt` `.notNull().defaultNow()`, `updatedAt` `.notNull().defaultNow().$onUpdate(() => new Date())`.
 - Table/column names `snake_case` in Postgres, `camelCase` in TS (drizzle maps). Columns sorted alphabetically by TS property name. Tables `snake_case`.
 - `text` arrays, `jsonb("metadata")`, `numeric` for money, `bigint(..., { mode: "number" })` for sizes, `text("user_id").references(() => user.id, { onDelete: "cascade" })`.

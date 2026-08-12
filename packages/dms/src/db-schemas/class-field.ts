@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import {
   boolean,
   index,
@@ -35,7 +35,7 @@ export const dmsClassField = pgTable(
       .notNull()
       .defaultNow(),
     defaultValue: jsonb("default_value"),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     includeInSearch: boolean("include_in_search").notNull().default(true),
     isActive: boolean("is_active").notNull().default(true),
     isRequired: boolean("is_required").notNull().default(false),

@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import {
   boolean,
   date,
@@ -22,7 +22,7 @@ export const overtimeType = pgTable(
     description: text("description"),
     fixedHourlyRate: numeric("fixed_hourly_rate"),
     holidayMultiplier: numeric("holiday_multiplier").notNull().default("2"),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     isActive: boolean("is_active").notNull().default(true),
     maxOvertimeHoursPerDay: numeric("max_overtime_hours_per_day"),
     name: text("name").notNull(),
@@ -48,7 +48,7 @@ export const overtimeSlip = pgTable(
     employeeId: text("employee_id").notNull(),
     fromDate: date("from_date").notNull(),
     holidayHours: numeric("holiday_hours").notNull().default("0"),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     metadata: jsonb("metadata"),
     notes: text("notes"),
     overtimeType: text("overtime_type").notNull(),

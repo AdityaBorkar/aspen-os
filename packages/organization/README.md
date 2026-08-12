@@ -103,7 +103,7 @@ class OrganizationModule {
 | `address` | Postal address (reusable across entities) | `id`, `line1`, `country`, `isPrimary`, `label` |
 | `bank_account` | Financial account record | `id`, `accountHolderName`, `accountNumber`, `bankName`, `currency`, `isPrimary`, `isActive` |
 
-All IDs are `text` with `DEFAULT uuidv7()`. All timestamps are `TIMESTAMPTZ` with `withTimezone: true`. No foreign keys are declared -- relations are implicit via `text` columns. The `updatedAt` column is manually set in workflows (no `$onUpdate` hook).
+All IDs are `text` with `.primaryKey().$defaultFn(uuidv7)` (the `uuidv7` function, imported from `@aspen-os/platform/server`). All timestamps are `TIMESTAMPTZ` with `withTimezone: true`. No foreign keys are declared -- relations are implicit via `text` columns. The `updatedAt` column is manually set in workflows (no `$onUpdate` hook).
 
 ## Workflows
 

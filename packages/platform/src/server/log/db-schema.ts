@@ -8,6 +8,8 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 
+import { uuidv7 } from "../utils/uuidv7";
+
 export const logs = pgTable(
   "logs",
   {
@@ -15,7 +17,7 @@ export const logs = pgTable(
     errorMessage: text("error_message"),
     errorName: text("error_name"),
     errorStack: text("error_stack"),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     level: text("level").notNull(),
     message: text("message").notNull(),
     metadata: jsonb("metadata").default({}),

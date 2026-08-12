@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import {
   bigint,
   boolean,
@@ -19,7 +19,7 @@ export const driveFile = pgTable(
     description: text("description"),
     etag: text("etag"),
     folderId: text("folder_id"),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     isTrashed: boolean("is_trashed").notNull().default(false),
     name: text("name").notNull(),
     ownerId: text("owner_id").notNull(),

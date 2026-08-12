@@ -10,6 +10,8 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
+import { uuidv7 } from "../utils/uuidv7";
+
 export const auditLog = pgTable(
   "audit_log",
   {
@@ -19,7 +21,9 @@ export const auditLog = pgTable(
     crudAction: text("crud_action"),
     entityId: text("entity_id").notNull(),
     entityType: text("entity_type").notNull(),
-    id: uuid().primaryKey().default(sql`gen_random_uuid()`),
+    id: uuid()
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
     idempotencyKey: text("idempotency_key"),
     metadata: jsonb("metadata"),
     newState: jsonb("new_state"),

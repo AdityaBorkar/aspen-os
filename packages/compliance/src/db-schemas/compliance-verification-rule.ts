@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import {
   boolean,
   index,
@@ -18,7 +18,7 @@ export const complianceVerificationRule = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     isActive: boolean("is_active").notNull().default(true),
     name: text("name").notNull(),
     priority: integer("priority").notNull().default(0),

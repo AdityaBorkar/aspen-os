@@ -1,3 +1,4 @@
+import { uuidv7 } from "@aspen-os/platform/server";
 import { sql } from "drizzle-orm";
 import {
   bigint,
@@ -37,7 +38,7 @@ export const dmsDocument = pgTable(
     expiredAt: timestamp("expired_at", { withTimezone: true }),
     expiryDate: date("expiry_date"),
     fieldValues: jsonb("field_values"),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     metadata: jsonb("metadata"),
     name: text("name").notNull(),
     ownerId: text("owner_id").notNull(),

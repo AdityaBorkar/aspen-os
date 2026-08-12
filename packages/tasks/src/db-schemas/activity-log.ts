@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import { index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const activityLog = pgTable(
@@ -8,7 +8,7 @@ export const activityLog = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     newValue: jsonb("new_value"),
     oldValue: jsonb("old_value"),
     taskId: text("task_id").notNull(),

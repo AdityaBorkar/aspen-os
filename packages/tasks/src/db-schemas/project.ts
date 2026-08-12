@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import { index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 import { projectStatusEnum } from "./enums";
@@ -11,7 +11,7 @@ export const project = pgTable(
       .defaultNow(),
     defaultTaskTypeId: text("default_task_type_id"),
     description: text("description"),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     key: text("key").notNull().unique(),
     leadId: text("lead_id").notNull(),
     name: text("name").notNull(),

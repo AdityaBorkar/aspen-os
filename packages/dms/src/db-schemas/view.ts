@@ -1,3 +1,4 @@
+import { uuidv7 } from "@aspen-os/platform/server";
 import { sql } from "drizzle-orm";
 import {
   boolean,
@@ -18,7 +19,7 @@ export const dmsView = pgTable(
       .notNull()
       .$type<Record<string, unknown>[]>()
       .default(sql`'[]'::jsonb`),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     isDefault: boolean("is_default").notNull().default(false),
     isPinned: boolean("is_pinned").notNull().default(false),
     isShared: boolean("is_shared").notNull().default(false),

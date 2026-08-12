@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import {
   boolean,
   date,
@@ -37,7 +37,7 @@ export const complianceDocument = pgTable(
     effectiveDate: date("effective_date"),
     escalationDays: integer("escalation_days").array(),
     expiryDate: date("expiry_date"),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     issueDate: date("issue_date"),
     issuingAuthority: text("issuing_authority"),
     jurisdiction: text("jurisdiction"),

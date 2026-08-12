@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, index, integer, pgTable, text } from "drizzle-orm/pg-core";
 
 import { statusCategoryEnum } from "./enums";
@@ -8,7 +8,7 @@ export const status = pgTable(
   {
     category: statusCategoryEnum("category").notNull(),
     color: text("color"),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     isDefault: boolean("is_default").notNull().default(false),
     isResolved: boolean("is_resolved").notNull().default(false),
     name: text("name").notNull(),

@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import {
   boolean,
   index,
@@ -22,7 +22,7 @@ export const task = pgTable(
     description: text("description"),
     dueDate: timestamp("due_date", { withTimezone: true }),
     estimatedHours: numeric("estimated_hours"),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     isArchived: boolean("is_archived").notNull().default(false),
     labels: text("labels").array().default([]),
     number: text("number"),

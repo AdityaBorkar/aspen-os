@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import {
   index,
   pgEnum,
@@ -30,7 +30,7 @@ export const dmsShare = pgTable(
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     granteeId: text("grantee_id").notNull(),
     granteeType: dmsGranteeTypeEnum("grantee_type").notNull(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     permission: dmsSharePermissionEnum("permission")
       .notNull()
       .default("viewer"),

@@ -4,7 +4,7 @@ description: All tenant tables declared by the DMS module — 12 tables + 7 enum
 icon: IconDatabase
 ---
 
-The DMS module declares 12 tables, all in tenant schemas (no control-plane tables). Every table uses `text("id")` with `DEFAULT uuidv7()`. Timestamps use `TIMESTAMPTZ` (`withTimezone: true`).
+The DMS module declares 12 tables, all in tenant schemas (no control-plane tables). Every table uses `text("id")` with `.primaryKey().$defaultFn(uuidv7)`. Timestamps use `TIMESTAMPTZ` (`withTimezone: true`).
 
 ## Enums
 

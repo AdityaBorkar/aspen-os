@@ -3,7 +3,7 @@ import {
   CONNECTION_STATUS,
   CONNECTION_TYPE,
 } from "@aspen-os/constants";
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import {
   boolean,
   date,
@@ -58,7 +58,7 @@ export const connection = pgTable(
       .notNull()
       .defaultNow(),
     createdBy: text("created_by").notNull(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     industry: text("industry"),
     logo: text("logo"),
     metadata: jsonb("metadata"),
@@ -89,7 +89,7 @@ export const connectionContact = pgTable(
       .notNull()
       .defaultNow(),
     email: text("email"),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     isPrimary: boolean("is_primary").notNull().default(false),
     name: text("name").notNull(),
     notes: text("notes"),
@@ -112,7 +112,7 @@ export const connectionNote = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     type: connectionNoteTypeEnum("type").notNull().default("general"),
     userId: text("user_id").notNull(),
   },

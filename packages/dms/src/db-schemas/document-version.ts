@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import {
   bigint,
   boolean,
@@ -21,7 +21,7 @@ export const dmsDocumentVersion = pgTable(
       .defaultNow(),
     documentId: text("document_id").notNull(),
     etag: text("etag"),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     isCurrent: boolean("is_current").notNull().default(false),
     name: text("name").notNull(),
     size: bigint("size", { mode: "number" }).notNull(),

@@ -10,6 +10,8 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
+import { uuidv7 } from "../utils/uuidv7";
+
 export const fileMetadata = pgTable(
   "file_metadata",
   {
@@ -21,7 +23,7 @@ export const fileMetadata = pgTable(
       .notNull()
       .defaultNow(),
     etag: text("etag"),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     key: text("key").notNull(),
     metadata: jsonb("metadata").default({}),
     size: bigint("size", { mode: "number" }).notNull().default(0),

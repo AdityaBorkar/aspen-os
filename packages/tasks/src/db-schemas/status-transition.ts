@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import {
   boolean,
   index,
@@ -11,7 +11,7 @@ export const statusTransition = pgTable(
   "task_status_transition",
   {
     fromStatusId: text("from_status_id").notNull(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     projectId: text("project_id").notNull(),
     requiresComment: boolean("requires_comment").notNull().default(false),
     requiresRole: text("requires_role"),

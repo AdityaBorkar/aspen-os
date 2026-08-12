@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import { index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const dmsTag = pgTable(
@@ -7,7 +7,7 @@ export const dmsTag = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     name: text("name").notNull().unique(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()

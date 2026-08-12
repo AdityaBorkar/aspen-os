@@ -142,7 +142,7 @@ Re-export the constants object (agents in the wild would add it to `types.ts`; t
 **`src/db-schemas/<entity>.ts`** — one file per table. Conventions from AGENTS.md:
 
 - `pgTable("snake_case_name", { … }, (t) => [indexes])`
-- `id: text("id").primaryKey().default(sql\`uuidv7()\`)` (exception: better-auth tables use plain `text("id").primaryKey()`)
+- `id: text("id").primaryKey().$defaultFn(uuidv7)` — `import { uuidv7 } from "@aspen-os/platform/server"` (do **not** use `sql\`uuidv7()\``) (exception: better-auth tables use plain `text("id").primaryKey()`)
 - `createdAt` / `updatedAt` with timestamptz, `notNull().defaultNow()`, `$onUpdate(() => new Date())` on updatedAt only
 - Columns sorted alphabetically by TS property name
 - `pgEnum` values reference constant objects

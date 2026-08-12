@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const driveFolder = pgTable(
@@ -9,7 +9,7 @@ export const driveFolder = pgTable(
       .notNull()
       .defaultNow(),
     description: text("description"),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     isTrashed: boolean("is_trashed").notNull().default(false),
     name: text("name").notNull(),
     ownerId: text("owner_id").notNull(),

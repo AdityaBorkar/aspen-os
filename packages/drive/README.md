@@ -141,7 +141,7 @@ Auto-purge runs daily at 3:00 AM via cron `"0 3 * * *"` on the topic `"drive:aut
 | `drive_public_link` | Public link sharing | `token` (unique), `password` (hashed), `maxViews`, `viewCount`, `expiresAt`, `isActive`, `permission` |
 | `drive_access_log` | Audit log | `itemId`, `itemType`, `action`, `ip`, `userAgent`, `accessedBy`, `publicLinkId` |
 
-All IDs are `text` with `DEFAULT uuidv7()`. All timestamps are `TIMESTAMPTZ` with `withTimezone: true`.
+All IDs are `text` with `.primaryKey().$defaultFn(uuidv7)`. All timestamps are `TIMESTAMPTZ` with `withTimezone: true`.
 
 ## Workflows
 

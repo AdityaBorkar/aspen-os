@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import {
   date,
   index,
@@ -27,7 +27,7 @@ export const onboardingTask = pgTable(
     department: text("department"),
     description: text("description"),
     dueDate: date("due_date"),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     notes: text("notes"),
     onboardingId: text("onboarding_id").notNull(),
     status: lifecycleTaskStatusEnum("status").notNull().default("pending"),
@@ -53,7 +53,7 @@ export const separationTask = pgTable(
     department: text("department"),
     description: text("description"),
     dueDate: date("due_date"),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     notes: text("notes"),
     separationId: text("separation_id").notNull(),
     status: lifecycleTaskStatusEnum("status").notNull().default("pending"),
@@ -76,7 +76,7 @@ export const exitInterview = pgTable(
       .defaultNow(),
     employeeId: text("employee_id").notNull(),
     feedback: text("feedback"),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     interviewer: text("interviewer"),
     questionnaireTemplate: text("questionnaire_template"),
     responses: jsonb("responses"),
@@ -105,7 +105,7 @@ export const fullAndFinalStatement = pgTable(
     deductions: numeric("deductions").notNull().default("0"),
     employeeId: text("employee_id").notNull(),
     gratuity: numeric("gratuity").notNull().default("0"),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     leaveEncashment: numeric("leave_encashment").notNull().default("0"),
     loanRecovery: numeric("loan_recovery").notNull().default("0"),
     metadata: jsonb("metadata"),

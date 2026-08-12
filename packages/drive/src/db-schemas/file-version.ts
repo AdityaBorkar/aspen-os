@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import {
   bigint,
   index,
@@ -17,7 +17,7 @@ export const driveFileVersion = pgTable(
       .defaultNow(),
     etag: text("etag"),
     fileId: text("file_id").notNull(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     size: bigint("size", { mode: "number" }).notNull(),
     storageKey: text("storage_key").notNull(),
     uploadedBy: text("uploaded_by").notNull(),

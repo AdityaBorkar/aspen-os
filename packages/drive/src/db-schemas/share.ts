@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import { index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 import {
@@ -16,7 +16,7 @@ export const driveShare = pgTable(
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     granteeId: text("grantee_id").notNull(),
     granteeType: driveGranteeTypeEnum("grantee_type").notNull(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     itemId: text("item_id").notNull(),
     itemType: driveItemTypeEnum("item_type").notNull(),
     message: text("message"),

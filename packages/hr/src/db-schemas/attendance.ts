@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import {
   boolean,
   date,
@@ -31,7 +31,7 @@ export const attendance = pgTable(
     earlyExitMinutes: integer("early_exit_minutes").notNull().default(0),
     employeeId: text("employee_id").notNull(),
     halfDayType: text("half_day_type"),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     isHalfDay: boolean("is_half_day").notNull().default(false),
     lateEntry: boolean("late_entry").notNull().default(false),
     lateEntryMinutes: integer("late_entry_minutes").notNull().default(0),
@@ -60,7 +60,7 @@ export const attendanceRequest = pgTable(
       .defaultNow(),
     employeeId: text("employee_id").notNull(),
     fromDate: date("from_date").notNull(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     reason: text("reason").notNull(),
     rejectedAt: timestamp("rejected_at", { withTimezone: true }),
     rejectedBy: text("rejected_by"),
@@ -86,7 +86,7 @@ export const compensatoryLeaveRequest = pgTable(
       .notNull()
       .defaultNow(),
     employeeId: text("employee_id").notNull(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     leaveAllocation: text("leave_allocation"),
     leaveType: text("leave_type").notNull(),
     numberOfDays: numeric("number_of_days").notNull().default("1"),

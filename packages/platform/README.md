@@ -654,7 +654,7 @@ platform.auth.role.list()  // Promise<RoleData[]>
 platform.auth.role.delete({ name })  // Promise<void>
 ```
 
-Auth tables (`user`, `session`, `account`, `verification`) follow better-auth's adapter pattern. They use `text("id").primaryKey()` without a default (better-auth manages ID generation), unlike other tables which use `uuidv7()`. Auth tables are **exempt** from `tenant_id` columns and RLS — they live only on the control-plane DB. `AuthUnit` always uses `DatabaseUnit.controlPlaneDb`.
+Auth tables (`user`, `session`, `account`, `verification`) follow better-auth's adapter pattern. They use `text("id").primaryKey()` without a default (better-auth manages ID generation), unlike other tables which use `.$defaultFn(uuidv7)`. Auth tables are **exempt** from `tenant_id` columns and RLS — they live only on the control-plane DB. `AuthUnit` always uses `DatabaseUnit.controlPlaneDb`.
 
 **Event Map** (`AuthEventMap`): 9 events -- `user:created`, `user:updated`, `user:deleted`, `session:created`, `session:invalidated`, `role:assigned`, `role:unassigned`, `role:created`, `role:deleted`. Published via PubSub as plain string topics.
 
@@ -1607,7 +1607,7 @@ platform.auth.role.list()  // Promise<RoleData[]>
 platform.auth.role.delete({ name })  // Promise<void>
 ```
 
-Auth tables (`user`, `session`, `account`, `verification`) follow better-auth's adapter pattern. They use `text("id").primaryKey()` without a default (better-auth manages ID generation), unlike other tables which use `uuidv7()`. Auth tables are **exempt** from `tenant_id` columns and RLS — they live only on the control-plane DB. `AuthUnit` always uses `DatabaseUnit.controlPlaneDb`.
+Auth tables (`user`, `session`, `account`, `verification`) follow better-auth's adapter pattern. They use `text("id").primaryKey()` without a default (better-auth manages ID generation), unlike other tables which use `.$defaultFn(uuidv7)`. Auth tables are **exempt** from `tenant_id` columns and RLS — they live only on the control-plane DB. `AuthUnit` always uses `DatabaseUnit.controlPlaneDb`.
 
 **Event Map** (`AuthEventMap`): 9 events -- `user:created`, `user:updated`, `user:deleted`, `session:created`, `session:invalidated`, `role:assigned`, `role:unassigned`, `role:created`, `role:deleted`. Published via PubSub as plain string topics.
 

@@ -77,7 +77,7 @@ export const myEntityStatusEnum = pgEnum("my_entity_status", [
 ```
 
 ```ts title="src/db-schemas/entity.ts"
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import {
   index,
   jsonb,
@@ -91,7 +91,7 @@ import { myEntityStatusEnum } from "./enums";
 export const myEntity = pgTable(
   "my_entity",
   {
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     name: text("name").notNull(),
     status: myEntityStatusEnum("status").notNull().default("active"),
     metadata: jsonb("metadata"),
@@ -124,7 +124,7 @@ export const tenant_schemas = {
 ```
 
 <Callout type="warn">
-  IDs are always `text` with `DEFAULT uuidv7()` — never native UUID columns. Timestamps use `TIMESTAMPTZ` / `withTimezone: true`.
+  IDs are always `text` with `.primaryKey().$defaultFn(uuidv7)` — never native UUID columns. Timestamps use `TIMESTAMPTZ` / `withTimezone: true`. `uuidv7` is exported from `@aspen-os/platform/server` (no `sql\`uuidv7()\`` needed in schema files).
 </Callout>
 
 ## Step 3: Constants & Enums

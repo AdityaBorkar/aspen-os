@@ -595,13 +595,13 @@ Stubs (package.json only — no source): accounting, crm, fleet, inventory, repo
 7. **Management module `$name` = `"management"`** — matches the `@aspen-os/management` package name (renamed from `management-plane`). Proxy accessor is `p.management`.
 8. **`context.actorId` is typed but never populated by the framework** — the `AsyncLocalStorage` context declares `actorId?: string` but the platform never sets it from the authenticated session. Audit entries fall back to `"system"` until app code or middleware populates it.
 9. **ADR-0009 has been accepted for Layer 1** — the `AuditUnit` and `audit_log` table described in ADR-0009's Layer 1 are built and shipped; the ADR status is now "Accepted (Layer 1)". Layer 2 (trigger-based blind-write capture, ADR-0010) remains proposed/unimplemented.
-10. **`audit_log.id` uses `uuid()` + `gen_random_uuid()`** — the one table that deviates from the `text + uuidv7()` ID convention.
+10. **`audit_log.id` uses `uuid()` + `$defaultFn(() => uuidv7())`** — the one table that deviates from `text` columns (it's a native `uuid` column), but it still uses the same JS `uuidv7` function.
 11. **HR module is fully conformant** — `Hr implements Module`, has `$prepareRuntime()`, and follows the one-file-per-action workflow layout. (Earlier docs marked HR "partial/not conformant"; that is no longer the case.)
 
 ## Anti-Patterns
 
 - Don't register modules after `create()` — pass them to `Platform.create()` as the second arg (an array)
-- Don't use native UUID columns — always text with `uuidv7()` or app-generated UUIDs (exception: `audit_log.id` is a native `uuid` with `gen_random_uuid()`)
+- Don't use native UUID columns — always `text` with `.$defaultFn(uuidv7)` (exception: `audit_log.id` uses `uuid().$defaultFn(() => uuidv7())` as the one native uuid column)
 - Don't use `timestamp without time zone` — always `withTimezone: true`
 - Don't create barrel files unless explicitly told
 - Don't import bare `@aspen-os/platform` — use `/server` or `/client` subpath explicitly

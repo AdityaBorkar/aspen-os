@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import {
   index,
   integer,
@@ -23,7 +23,7 @@ export const dmsPin = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     itemId: text("item_id").notNull(),
     itemType: dmsPinItemTypeEnum("item_type").notNull(),
     sortOrder: integer("sort_order").notNull().default(0),

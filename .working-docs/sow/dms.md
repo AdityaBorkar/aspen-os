@@ -481,7 +481,7 @@ Audited action trail, per document (and, optionally, per contact/class).
 | **Sidebar Pins** | `dms_pin` |
 | **Settings** | `dms_setting` |
 
-**12 tables**, all in tenant schemas (no control-plane tables). IDs are `text` with `DEFAULT uuidv7()`; timestamps `TIMESTAMPTZ` (`withTimezone: true`).
+**12 tables**, all in tenant schemas (no control-plane tables). IDs are `text` with `.primaryKey().$defaultFn(uuidv7)`; timestamps `TIMESTAMPTZ` (`withTimezone: true`).
 
 ---
 

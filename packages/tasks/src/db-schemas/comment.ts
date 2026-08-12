@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const comment = pgTable(
@@ -9,7 +9,7 @@ export const comment = pgTable(
       .notNull()
       .defaultNow(),
     editedAt: timestamp("edited_at", { withTimezone: true }),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     isDeleted: boolean("is_deleted").notNull().default(false),
     parentId: text("parent_id"),
     taskId: text("task_id").notNull(),

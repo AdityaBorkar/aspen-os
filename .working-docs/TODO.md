@@ -1,7 +1,5 @@
 # TODO
 
-Instead of using sql`uuidv7()`, use a function that returns a UUID v7. The aim is to use as much less sql`` magic statements possible.
-
 WORK ON DMS
 
 WORK ON ORGANIZATION
@@ -23,17 +21,18 @@ WORK ON TASK MANAGEMENT
 
 ## Bugs
 
-DB Schemas (How to handle migrations?)
-ACL List (How to handle migrations?)
-PubSub Events (How to handle migrations?)
+- DB Schemas
+  - Drizzle Migrations could not be performed (using pushSchema instead — see ADR-0004)
+  - How to handle migrations?
+  - Export utility functions like lastUpdatedAt(), uuidv7()
+- ACL List
+  - How to handle migrations?
+- PubSub Events
+  - How to handle migrations?
+- Replace zod with valibot entirely everywhere
 
 ## Module Implementation
 
-- Replace zod with valibot entirely
-- Drizzle Migrations could not be performed (using pushSchema instead — see ADR-0004)
-- [ ] Standardization
-  - `framework` types
-  - `framework` module types
 - [ ] Accounting
   - Ledger
   - Transactions

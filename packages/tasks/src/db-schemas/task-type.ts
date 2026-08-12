@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, index, pgTable, text } from "drizzle-orm/pg-core";
 
 export const taskType = pgTable(
@@ -6,7 +6,7 @@ export const taskType = pgTable(
   {
     color: text("color"),
     icon: text("icon"),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     isDefault: boolean("is_default").notNull().default(false),
     name: text("name").notNull(),
     projectId: text("project_id"),

@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import {
   boolean,
   date,
@@ -36,7 +36,7 @@ export const shiftType = pgTable(
       .default(false),
     endTime: text("end_time").notNull(),
     holidayList: text("holiday_list"),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     isActive: boolean("is_active").notNull().default(true),
     lateEntryGraceMinutes: integer("late_entry_grace_minutes")
       .notNull()
@@ -64,7 +64,7 @@ export const shiftLocation = pgTable("shift_location", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-  id: text("id").primaryKey().default(sql`uuidv7()`),
+  id: text("id").primaryKey().$defaultFn(uuidv7),
   isActive: boolean("is_active").notNull().default(true),
   latitude: text("latitude").notNull(),
   longitude: text("longitude").notNull(),
@@ -83,7 +83,7 @@ export const shiftAssignment = pgTable(
       .defaultNow(),
     employeeId: text("employee_id").notNull(),
     endDate: date("end_date"),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     notes: text("notes"),
     shiftLocation: text("shift_location"),
     shiftType: text("shift_type").notNull(),
@@ -110,7 +110,7 @@ export const shiftRequest = pgTable(
       .defaultNow(),
     employeeId: text("employee_id").notNull(),
     fromDate: date("from_date").notNull(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     reason: text("reason"),
     rejectedAt: timestamp("rejected_at", { withTimezone: true }),
     rejectedBy: text("rejected_by"),
@@ -134,7 +134,7 @@ export const shiftSchedule = pgTable("shift_schedule", {
     .notNull()
     .defaultNow(),
   friday: boolean("friday").notNull().default(false),
-  id: text("id").primaryKey().default(sql`uuidv7()`),
+  id: text("id").primaryKey().$defaultFn(uuidv7),
   isActive: boolean("is_active").notNull().default(true),
   monday: boolean("monday").notNull().default(false),
   name: text("name").notNull(),
@@ -157,7 +157,7 @@ export const shiftScheduleAssignment = pgTable(
       .defaultNow(),
     employeeId: text("employee_id").notNull(),
     endDate: date("end_date"),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     isActive: boolean("is_active").notNull().default(true),
     shiftSchedule: text("shift_schedule").notNull(),
     startDate: date("start_date").notNull(),

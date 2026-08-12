@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import {
   boolean,
   integer,
@@ -16,7 +16,7 @@ export const dmsDocumentClass = pgTable("dms_document_class", {
   description: text("description"),
   fileNamingSchema: text("file_naming_schema"),
   icon: text("icon"),
-  id: text("id").primaryKey().default(sql`uuidv7()`),
+  id: text("id").primaryKey().$defaultFn(uuidv7),
   isActive: boolean("is_active").notNull().default(true),
   name: text("name").notNull(),
   retentionDays: integer("retention_days"),

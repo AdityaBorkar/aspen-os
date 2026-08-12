@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import {
   index,
   pgTable,
@@ -16,7 +16,7 @@ export const driveItemLabel = pgTable(
       .notNull()
       .defaultNow(),
     appliedBy: text("applied_by").notNull(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     itemId: text("item_id").notNull(),
     itemType: driveItemTypeEnum("item_type").notNull(),
     labelId: text("label_id").notNull(),

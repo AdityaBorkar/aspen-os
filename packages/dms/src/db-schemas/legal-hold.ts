@@ -1,11 +1,11 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import { index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const dmsLegalHold = pgTable(
   "dms_legal_hold",
   {
     documentId: text("document_id").notNull(),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     placedAt: timestamp("placed_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

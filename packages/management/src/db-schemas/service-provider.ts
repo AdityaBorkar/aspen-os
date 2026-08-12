@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import { index, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 import { SP_STATUS } from "../utils/constants";
@@ -17,7 +17,7 @@ export const serviceProvider = pgTable(
       .defaultNow(),
     description: text("description"),
     email: text("email"),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     logo: text("logo"),
     name: text("name").notNull(),
     phone: text("phone"),

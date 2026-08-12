@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { uuidv7 } from "@aspen-os/platform/server";
 import {
   boolean,
   index,
@@ -18,7 +18,7 @@ export const drivePublicLink = pgTable(
       .defaultNow(),
     createdBy: text("created_by").notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
-    id: text("id").primaryKey().default(sql`uuidv7()`),
+    id: text("id").primaryKey().$defaultFn(uuidv7),
     isActive: boolean("is_active").notNull().default(true),
     itemId: text("item_id").notNull(),
     itemType: driveItemTypeEnum("item_type").notNull(),

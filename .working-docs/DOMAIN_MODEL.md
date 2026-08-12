@@ -407,7 +407,7 @@
 
 ### Organization (Aggregate Root)
 
-**Identity**: `id` (text, UUID, default `uuidv7()`)
+**Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Invariants**:
 - Slug must be unique
@@ -428,7 +428,7 @@
 
 ### Branch (Aggregate Root)
 
-**Identity**: `id` (text, UUID, default `uuidv7()`)
+**Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Invariants**:
 - Code must be unique
@@ -450,7 +450,7 @@
 
 ### Connection (Aggregate Root)
 
-**Identity**: `id` (text, UUID, default `uuidv7()`)
+**Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Invariants**:
 - Status transitions are controlled (e.g., can't un-archive)
@@ -473,7 +473,7 @@
 
 ### Address (Aggregate Root)
 
-**Identity**: `id` (text, UUID, default `uuidv7()`)
+**Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Lifecycle commands**:
 - `create(input)` → Address
@@ -485,7 +485,7 @@
 
 ### Bank Account (Aggregate Root)
 
-**Identity**: `id` (text, UUID, default `uuidv7()`)
+**Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Lifecycle commands**:
 - `create(input)` → BankAccount
@@ -497,7 +497,7 @@
 
 ### Compliance Document (Aggregate Root)
 
-**Identity**: `id` (text, UUID, default `uuidv7()`)
+**Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Value objects**:
 - `ComplianceCategory` — enum: tax, license, certificate, permit, insurance, regulatory, legal, hr, safety, environmental, data_privacy, financial, vehicle, property, audit, other
@@ -544,7 +544,7 @@
 
 ### Compliance Obligation (Aggregate Root)
 
-**Identity**: `id` (text, UUID, default `uuidv7()`)
+**Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Value objects**:
 - `ObligationFrequency` — enum: monthly, quarterly, semi_annual, annual, biennial, triennial, custom
@@ -570,7 +570,7 @@
 
 ### Verification Rule (Aggregate Root)
 
-**Identity**: `id` (text, UUID, default `uuidv7()`)
+**Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Invariants**:
 - Matches documents by `category` and `sourceModule`
@@ -587,7 +587,7 @@
 
 ### Audit Entry (Entity — append-only, via platform AuditUnit)
 
-**Identity**: `id` (text, UUID, default `uuidv7()`)
+**Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Note**: Compliance audit entries are written to the platform's `audit_log` table via `ctx.audit.write(...)` and queried via `ctx.audit.query(...)`. There is no module-local `compliance_audit_entry` table. The `AuditWorkflow` (`compliance/src/workflows/audit.ts`) provides `getAuditTrail`, `list`, and `export` by querying the platform audit log.
 
@@ -598,7 +598,7 @@
 
 ### Project (Aggregate Root)
 
-**Identity**: `id` (text, UUID, default `uuidv7()`)
+**Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Invariants**:
 - `key` must be unique
@@ -625,7 +625,7 @@
 
 ### Task (Aggregate Root)
 
-**Identity**: `id` (text, UUID, default `uuidv7()`)
+**Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Value objects**:
 - `TaskPriority` — enum: urgent, high, medium, low, none
@@ -666,7 +666,7 @@
 
 ### Drive Folder (Aggregate Root)
 
-**Identity**: `id` (text, UUID, default `uuidv7()`)
+**Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Invariants**:
 - `path` must be unique (hierarchical, e.g., `/Projects/2024`)
@@ -692,7 +692,7 @@
 
 ### Drive File (Aggregate Root)
 
-**Identity**: `id` (text, UUID, default `uuidv7()`)
+**Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Invariants**:
 - `path` must be unique
@@ -725,7 +725,7 @@
 
 ### Label (Aggregate Root)
 
-**Identity**: `id` (text, UUID, default `uuidv7()`)
+**Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Invariants**:
 - `isGlobal` labels have `ownerId = null`
@@ -738,7 +738,7 @@
 
 ### Employee (Aggregate Root — HR)
 
-**Identity**: `id` (text, UUID, default `uuidv7()`)
+**Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Invariants**:
 - `employeeId` must be unique
@@ -819,7 +819,7 @@
 
 ### AuditLog (Entity — append-only, Platform Core)
 
-**Identity**: `id` (uuid, PK, `default gen_random_uuid()`) — note: this is the one exception to the `uuidv7()` convention
+**Identity**: `id` (uuid, PK, `$defaultFn(() => uuidv7())`) — note: this is the one exception to the `text + uuidv7()` convention
 
 **Invariants**:
 - Append-only (no updates/deletes)
@@ -849,7 +849,7 @@
 
 ### FileMetadata (Aggregate Root — Framework Storage)
 
-**Identity**: `id` (text, UUID, default `uuidv7()`)
+**Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Invariants**:
 - Key must be unique
@@ -864,7 +864,7 @@
 
 ### LogEntry (Entity — append-only)
 
-**Identity**: `id` (text, UUID, default `uuidv7()`)
+**Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Invariants**:
 - Append-only (no updates/deletes from application)
@@ -1191,7 +1191,7 @@ The HR module defines 43 events across 8 event groups, combined into `HrEventMap
 
 ### Cross-Cutting
 
-1. **All IDs are text** — either app-generated via `crypto.randomUUID()` or DB-generated via `uuidv7()`
+1. **All IDs are text** — either app-generated via `crypto.randomUUID()` or via the JS `uuidv7()` function (inserted via drizzle's `$defaultFn`)
 2. **All timestamps are TIMESTAMPTZ** — `withTimezone: true` on all timestamp columns
 3. **Cascade deletes** — User deletion cascades to sessions and accounts
 4. **No barrel files** — explicit convention in CODING_CONVENTIONS.md
