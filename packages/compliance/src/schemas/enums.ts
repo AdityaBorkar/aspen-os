@@ -8,7 +8,7 @@ import {
   REMINDER_CHANNEL,
   RENEWAL_FREQUENCY,
   VERIFICATION_STATUS,
-} from "../constants";
+} from "../utils/constants";
 
 export const ComplianceCategorySchema = enum_(COMPLIANCE_CATEGORY);
 

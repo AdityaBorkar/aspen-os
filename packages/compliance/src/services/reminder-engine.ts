@@ -1,14 +1,13 @@
 import type { AuditUnit, PubSubUnit } from "@aspen-os/platform/server";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
+import { COMPLIANCE_EVENTS } from "../pubsub";
 import {
   CRON_SCHEDULES,
   DEFAULT_ESCALATION_DAYS,
   SCHEDULED_JOBS,
-} from "../constants";
-import { COMPLIANCE_EVENTS } from "../pubsub-events";
-import { dashboard } from "../workflows/dashboard";
-import { documents } from "../workflows/document";
+} from "../utils/constants";
+import { dashboard, documents } from "../workflows";
 import {
   daysSince,
   daysUntil,

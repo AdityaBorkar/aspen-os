@@ -1,59 +1,43 @@
-import { enum as enum_ } from "valibot";
+import { picklist } from "valibot";
 
-export const TaskPrioritySchema = enum_({
-  high: "high",
-  low: "low",
-  medium: "medium",
-  none: "none",
-  urgent: "urgent",
-});
+import {
+  AUTOMATION_TRIGGER,
+  PROJECT_MEMBER_ROLE,
+  PROJECT_STATUS,
+  REMINDER_TYPE,
+  SAVED_VIEW_TYPE,
+  STATUS_CATEGORY,
+  TASK_LINK_TYPE,
+  TASK_PRIORITY,
+} from "../utils/constants";
 
-export const TaskLinkTypeSchema = enum_({
-  blocked_by: "blocked_by",
-  blocks: "blocks",
-  caused_by: "caused_by",
-  duplicates: "duplicates",
-  related_to: "related_to",
-  split_from: "split_from",
-});
+export const TaskPrioritySchema = picklist(Object.values(TASK_PRIORITY));
 
-export const ProjectStatusSchema = enum_({
-  active: "active",
-  archived: "archived",
-  paused: "paused",
-});
+export const TaskLinkTypeSchema = picklist(Object.values(TASK_LINK_TYPE));
 
-export const ProjectMemberRoleSchema = enum_({
-  admin: "admin",
-  member: "member",
-  viewer: "viewer",
-});
+export const ProjectStatusSchema = picklist(Object.values(PROJECT_STATUS));
 
-export const StatusCategorySchema = enum_({
-  backlog: "backlog",
-  cancelled: "cancelled",
-  completed: "completed",
-  started: "started",
-  unstarted: "unstarted",
-});
+export const ProjectMemberRoleSchema = picklist(
+  Object.values(PROJECT_MEMBER_ROLE),
+);
 
-export const SavedViewTypeSchema = enum_({
-  board: "board",
-  calendar: "calendar",
-  list: "list",
-  timeline: "timeline",
-});
+export const StatusCategorySchema = picklist(Object.values(STATUS_CATEGORY));
 
-export const ReminderTypeSchema = enum_({
-  custom: "custom",
-  due_date: "due_date",
-  overdue: "overdue",
-});
+export const SavedViewTypeSchema = picklist(Object.values(SAVED_VIEW_TYPE));
 
-export const AutomationTriggerSchema = enum_({
-  assignment_change: "assignment_change",
-  due_date_passed: "due_date_passed",
-  status_change: "status_change",
-  task_created: "task_created",
-  task_updated: "task_updated",
-});
+export const ReminderTypeSchema = picklist(Object.values(REMINDER_TYPE));
+
+export const AutomationTriggerSchema = picklist(
+  Object.values(AUTOMATION_TRIGGER),
+);
+
+export {
+  AUTOMATION_TRIGGER,
+  PROJECT_MEMBER_ROLE,
+  PROJECT_STATUS,
+  REMINDER_TYPE,
+  SAVED_VIEW_TYPE,
+  STATUS_CATEGORY,
+  TASK_LINK_TYPE,
+  TASK_PRIORITY,
+};

@@ -1,51 +1,48 @@
+export { activityLog } from "./activity-log";
+export { attachment } from "./attachment";
+export { automationRule } from "./automation-rule";
+export { comment } from "./comment";
 export {
-  activityLog,
-  attachment,
-  automationRule,
   automationTriggerEnum,
-  comment,
-  label,
-  project,
-  projectMember,
   projectMemberRoleEnum,
   projectStatusEnum,
-  reminder,
   reminderTypeEnum,
-  savedView,
   savedViewTypeEnum,
-  status,
   statusCategoryEnum,
-  statusTransition,
-  task,
-  taskAssignee,
-  taskLink,
   taskLinkTypeEnum,
   taskPriorityEnum,
-  taskTables,
-  taskType,
-  timeEntry,
-  watcher,
-} from "../db-schema";
+} from "./enums";
+export { label } from "./label";
+export { project } from "./project";
+export { projectMember } from "./project-member";
+export { reminder } from "./reminder";
+export { savedView } from "./saved-view";
+export { status } from "./status";
+export { statusTransition } from "./status-transition";
+export { task } from "./task";
+export { taskAssignee } from "./task-assignee";
+export { taskLink } from "./task-link";
+export { taskType } from "./task-type";
+export { timeEntry } from "./time-entry";
+export { watcher } from "./watcher";
 
-import {
-  activityLog,
-  attachment,
-  automationRule,
-  comment,
-  label,
-  project,
-  projectMember,
-  reminder,
-  savedView,
-  status,
-  statusTransition,
-  task,
-  taskAssignee,
-  taskLink,
-  taskType,
-  timeEntry,
-  watcher,
-} from "../db-schema";
+import { activityLog } from "./activity-log";
+import { attachment } from "./attachment";
+import { automationRule } from "./automation-rule";
+import { comment } from "./comment";
+import { label } from "./label";
+import { project } from "./project";
+import { projectMember } from "./project-member";
+import { reminder } from "./reminder";
+import { savedView } from "./saved-view";
+import { status } from "./status";
+import { statusTransition } from "./status-transition";
+import { task } from "./task";
+import { taskAssignee } from "./task-assignee";
+import { taskLink } from "./task-link";
+import { taskType } from "./task-type";
+import { timeEntry } from "./time-entry";
+import { watcher } from "./watcher";
 
 export const control_plane_schemas = {
   label,

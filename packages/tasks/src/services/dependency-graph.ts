@@ -1,7 +1,8 @@
 import { getContext } from "@aspen-os/platform/server";
 import { and, eq, or } from "drizzle-orm";
 
-import { task, taskLink } from "../db-schema";
+import { task } from "../db-schemas/task";
+import { taskLink } from "../db-schemas/task-link";
 import type { CriticalPathResult, TaskDependencyNode } from "../types";
 
 export async function wouldCreateCycle(

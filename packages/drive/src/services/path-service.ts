@@ -2,7 +2,7 @@ import { getContext } from "@aspen-os/platform/server";
 import { and, eq, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-import * as s from "../db-schema";
+import * as s from "../db-schemas";
 import { getDriveConfig } from "../runtime";
 import type { BreadcrumbItem, PathResolution } from "../types";
 

@@ -2,8 +2,7 @@ import type { AuditUnit, PubSubUnit } from "@aspen-os/platform/server";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 import type { CreateComplianceDocumentInput } from "../types";
-import { documents } from "../workflows/document";
-import { obligations } from "../workflows/obligation";
+import { documents, obligations } from "../workflows";
 
 interface EmployeeOnboardedEvent {
   employeeId: string;

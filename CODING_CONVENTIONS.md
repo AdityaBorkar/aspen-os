@@ -286,6 +286,8 @@ export class Organization implements Module {
 
 **Hybrid** (management): `#private` `#db` field set in `$initialize({ db, auth, pubsub })` (stores `units.db` only); `$prepareRuntime()` / `$cleanup()` are empty; the `tenants` getter throws if `#db` is null, while `serviceProviders` / `users` are `readonly`.
 
+**Conforming modules** (management, organization, tasks, compliance, drive, hr): every module follows the management shape — `src/module.ts` holds the class, `src/auth.ts` holds the ACL, `src/pubsub.ts` holds events, `db-schemas/` is directory form, and workflows are one file per action under `workflows/<entity>.<action>.ts` with reusable steps in `workflows/steps/`. Modules that bind workflows to a unit at construction time (`createX(this.#db)`) use a `#db` getter; stateless workflow groups are `readonly` properties composed from imported per-workflow consts.
+
 Key conventions:
 
 - Class `implements Module`; static `create(config)` factory; `readonly $config`.
@@ -299,23 +301,26 @@ Key conventions:
 packages/<module>/
   docs/                 # Fumadocs source: index.mdx, overview.mdx, meta.json + domain pages
   src/
-    index.ts            # Module class, type re-exports, config types
+    index.ts            # Module class + type re-exports (re-exports from module.ts + types.ts)
+    module.ts           # Module class (implements Module, static create, lifecycle methods)
+    auth.ts             # defineAcl({ ... }) (flat file; NOT utils/acl.ts)
+    pubsub.ts           # Event constants + typed event interfaces + EventMap (a.k.a. event-map.ts)
     types.ts            # Type re-exports from schemas + module-specific interfaces
-    pubsub-events.ts    # Event constants + typed event interfaces + EventMap (a.k.a. event-map.ts)
-    constants.ts        # Module-specific enums (as const objects) [optional]
+    constants.ts        # Module-specific enums (as const objects) — or utils/constants.ts [optional]
     utils/
-      acl.ts            # defineAcl({ ... })
-    db-schemas/         # directory form (organization, tasks, management):
+      strip-undefined.ts  # stripUndefined helper
+    db-schemas/         # directory form (management, tasks, compliance, drive, organization):
       index.ts          #   exports control_plane_schemas + tenant_schemas
-      <entity>.ts       #   per-entity drizzle pgTable/pgEnum definitions
-    db-schema.ts        # single-file form (compliance, drive, hr)
+      enums.ts          #   shared pgEnum definitions referencing utils/constants
+      <entity>.ts       #   per-entity drizzle pgTable definitions
     schemas/
       index.ts          # Re-exports all schemas + types (separate export type / export blocks)
       enums.ts          # Valibot enum schemas mirroring constants
       utils.ts          # Shared valibot schema utilities (regex, lengths)
       <entity>.ts       # Per-entity valibot schemas
     workflows/
-      <entity>.ts       # Workflow.name("...").input(...).handler(...) groups
+      <entity>.<action>.ts  # One Workflow.name("...").input(...).handler(...) per file
+      steps/                # Reusable WorkflowStep.name("fetch-<entity>") steps
     services/           # Cross-cutting services [optional]
       <service>.ts
   package.json
@@ -403,13 +408,12 @@ export type DomainEventMap = EntityEventMap & OtherEntityEventMap;
 ## Workflows
 
 - Builder API (platform-level, durable): `Workflow.name("domain.action").input(Schema).handler(fn)` → `WorkflowInstance.run(input, options?)`; `WorkflowStep.name(name).handler(fn)` for reusable steps, run via `ctx.step.run(step, input, options?)`, `ctx.step.run("name", fn, options?)`, or `ctx.step.sleep(ms)`.
-- Module workflows are exported as named objects composed per entity (`export const organizations = { create, update, delete: deleteLogo, ... }`); `services/` facade objects may wrap them with `Parameters<typeof x>[0]` typing.
+- Module workflows are exported as per-action consts under `workflows/<entity>.<action>.ts`, composed into per-entity group objects in `module.ts` (`readonly serviceProviders = { create: createSp, ... }`); reusable steps in `workflows/steps/`; `services/` facade objects may wrap them with `Parameters<typeof x>[0]` typing.
 - `ctx.step.run` is **idempotent/durable**: completed step rows (`workflow_steps`) are replayed from cache; steps retry up to `options.retries`.
 - Persisted in `workflow_runs` / `workflow_steps` tables (`status`: `running|completed|failed`; steps add `pending|skipped`).
 - `WorkflowContext` is `{ actorId?, audit, auth?, config, db, pubsub, runId, step }`; `RunOptions` (`actorId?`, `audit?`, `auth?`, `config?`, `db?`, `pubsub?`) overrides `getContext()` defaults.
 - `ctx.pubsub.publish(EVENTS.X, payload)` for emitting events.
-- **hr exception**: hr's workflows are plain ES classes (`export class EmployeeWorkflow { constructor(private readonly db) {} async create() {} }`) — the one module not yet migrated to the `Workflow` builder.
-- Legacy method-conventions (still true of hr-style workflows): `.returning()` on insert/update to get the result row; optional fields use `?? null` coalescing; business-rule validation before DB ops.
+- All module workflows use the `Workflow` builder: `.returning()` on insert/update to get the result row; optional fields use `?? null` coalescing; business-rule validation before DB ops.
 
 ## Auth
 
@@ -447,7 +451,7 @@ export type DomainEventMap = EntityEventMap & OtherEntityEventMap;
 
 | Scope | Convention | Example |
 | --- | --- | --- |
-| Files | `kebab-case` | `db-schema.ts`, `event-map.ts` |
+| Files | `kebab-case` | `auth.ts`, `pubsub.ts`, `db-schemas/index.ts` |
 | Classes | `PascalCase` | `OrganizationWorkflow`, `DatabaseUnit` |
 | Constants | `UPPER_SNAKE_CASE` | `ORGANIZATION_STATUS`, `COMPLIANCE_EVENTS` |
 | DB tables | `snake_case` | `connection_contact`, `file_metadata` |

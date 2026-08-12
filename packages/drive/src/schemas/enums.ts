@@ -1,33 +1,35 @@
-import { enum as enum_ } from "valibot";
+import { picklist } from "valibot";
 
-export const DriveItemTypeSchema = enum_({
-  file: "file",
-  folder: "folder",
-});
+import {
+  DRIVE_GRANTEE_TYPE,
+  DRIVE_ITEM_TYPE,
+  DRIVE_PERMISSION,
+  DRIVE_PUBLIC_LINK_PERMISSION,
+} from "../utils/constants";
 
-export const DriveGranteeTypeSchema = enum_({
-  group: "group",
-  user: "user",
-});
+export const DriveItemTypeSchema = picklist(Object.values(DRIVE_ITEM_TYPE));
 
-export const DrivePermissionSchema = enum_({
-  editor: "editor",
-  owner: "owner",
-  viewer: "viewer",
-});
+export const DriveGranteeTypeSchema = picklist(
+  Object.values(DRIVE_GRANTEE_TYPE),
+);
 
-export const DrivePublicLinkPermissionSchema = enum_({
-  edit: "edit",
-  view: "view",
-});
+export const DrivePermissionSchema = picklist(Object.values(DRIVE_PERMISSION));
 
-export const DriveSearchScopeSchema = enum_({
-  all: "all",
-  my_files: "my_files",
-  shared_with_me: "shared_with_me",
-});
+export const DrivePublicLinkPermissionSchema = picklist(
+  Object.values(DRIVE_PUBLIC_LINK_PERMISSION),
+);
 
-export const DriveSortOrderSchema = enum_({
-  asc: "asc",
-  desc: "desc",
-});
+export {
+  DRIVE_GRANTEE_TYPE,
+  DRIVE_ITEM_TYPE,
+  DRIVE_PERMISSION,
+  DRIVE_PUBLIC_LINK_PERMISSION,
+};
+
+export const DriveSearchScopeSchema = picklist([
+  "all",
+  "my_files",
+  "shared_with_me",
+]);
+
+export const DriveSortOrderSchema = picklist(["asc", "desc"]);

@@ -1,17 +1,19 @@
 # TODO
 
-Refactor all modules to be like ./management.
+/init
+/domain-modeling Update ADRs, BOUNDED_CONTEXTS.md, DOMAIN_MODEL.md, CONTEXT.md, CODING_CONVENTIONS.md to reflect the current design and state of the repository.
 
 WORK ON DMS
 
 WORK ON ORGANIZATION
 - [ ] Organization
-  - Filter Views
+  - Branches
+  - Contacts
   - Addresses
   - Bank Accounts
-  - Personal Drafts
-  - Personal Dashboard / Dashboards
-  - Branches & Organization
+  - Filter Views
+  - Personal Drafts & Drafts
+  - Personal Dashboard & Dashboards
 
 ---
 

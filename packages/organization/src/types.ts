@@ -19,12 +19,12 @@ export type {
   OrganizationBrandingUpdatedEvent,
   OrganizationDomainEventMap,
   OrganizationUpdatedEvent,
-} from "./pubsub-events";
+} from "./pubsub";
 export {
   BRANCH_EVENTS,
   CONNECTION_EVENTS,
   ORGANIZATION_EVENTS,
-} from "./pubsub-events";
+} from "./pubsub";
 export type {
   AddressFilters,
   BankAccountFilters,

@@ -130,19 +130,23 @@ readonly $dependencies: readonly string[] = ["organization"];
 ```text
 packages/my-module/
   src/
-    index.ts              # Module class, type re-exports, dbSchema export
-    db-schemas/           # Drizzle pgTable/pgEnum definitions (or db-schema.ts)
+    index.ts              # Module class re-exports
+    module.ts             # Module class (implements Module)
+    auth.ts               # defineAcl() ACL declaration
+    pubsub.ts             # Event constants + typed interfaces + EventMap type
+    db-schemas/           # Per-entity drizzle pgTable/pgEnum definitions
     types.ts              # Type re-exports + domain interfaces
-    pubsub-events.ts      # Event constants + typed interfaces + EventMap type
     utils/
-      acl.ts              # defineAcl() ACL declaration
+      constants.ts        # Module-specific enums (as const objects)
+      strip-undefined.ts  # stripUndefined helper
     schemas/
       index.ts            # Re-exports all valibot schemas + types
       enums.ts            # Valibot enum schemas mirroring constants
       entity.ts           # Per-entity valibot schemas (create/update/filter)
     workflows/
-      name.ts             # Flat workflow files (newer pattern)
-    services/             # Older pattern services
+      <entity>.<action>.ts  # One file per workflow (Workflow.name() builder)
+      steps/                # Reusable WorkflowSteps
+    services/             # Optional cross-cutting services
   package.json
   tsconfig.json
 ```
@@ -166,7 +170,7 @@ export type CreateBranchInput = InferOutput<typeof CreateBranchSchema>;
 
 Modules define events in the `"domain:event_name"` format, typed via an `EventMap` type — a compile-time contract, not a runtime bus. Published as plain string topics via PubSub:
 
-```ts title="src/pubsub-events.ts"
+```ts title="src/pubsub.ts"
 export const ORG_EVENTS = {
   BRANCH_CREATED: "organization:branch_created",
   BRANCH_UPDATED: "organization:branch_updated",

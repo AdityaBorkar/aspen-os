@@ -110,6 +110,7 @@ export {
 } from "./time-entry";
 export {
   HexColorSchema,
+  IdSchema,
   NameSchema,
   ProjectKeySchema,
   TitleSchema,

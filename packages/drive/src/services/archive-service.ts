@@ -1,7 +1,7 @@
 import { getContext } from "@aspen-os/platform/server";
 import { eq, sql } from "drizzle-orm";
 
-import * as s from "../db-schema";
+import * as s from "../db-schemas";
 import type { FolderDownloadLinkOptions } from "../types";
 import {
   computeArchiveKey,

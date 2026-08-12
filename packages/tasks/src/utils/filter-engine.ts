@@ -12,7 +12,7 @@ import {
   sql,
 } from "drizzle-orm";
 
-import { task } from "../db-schema";
+import { task } from "../db-schemas/task";
 import type { TaskFilters } from "../types";
 
 export function buildTaskWhereClause(

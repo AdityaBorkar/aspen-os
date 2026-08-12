@@ -1,0 +1,18 @@
+import { Workflow } from "@aspen-os/platform/server";
+import { desc, eq } from "drizzle-orm";
+import { object } from "valibot";
+
+import { comment } from "../db-schemas/comment";
+import { IdSchema } from "../types";
+
+export const listCommentsByTask = Workflow.name("comment.list-by-task")
+  .input(object({ taskId: IdSchema }))
+  .handler(async ({ taskId }, ctx) => {
+    return ctx.step.run("query", async () => {
+      return ctx.db
+        .select()
+        .from(comment)
+        .where(eq(comment.taskId, taskId))
+        .orderBy(desc(comment.createdAt));
+    });
+  });

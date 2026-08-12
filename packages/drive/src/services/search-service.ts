@@ -1,7 +1,7 @@
 import { getContext } from "@aspen-os/platform/server";
 import { and, eq, ilike, or, sql } from "drizzle-orm";
 
-import * as s from "../db-schema";
+import * as s from "../db-schemas";
 import type { SearchOptions, SearchResult } from "../types";
 
 export async function search(opts: SearchOptions): Promise<SearchResult> {

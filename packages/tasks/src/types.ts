@@ -1,4 +1,20 @@
 export type {
+  ReminderFiredEvent,
+  TaskAssignedEvent,
+  TaskCommentedEvent,
+  TaskCreatedEvent,
+  TaskDeletedEvent,
+  TaskDomainEventMap,
+  TaskEventMap,
+  TaskLinkedEvent,
+  TaskStatusChangedEvent,
+  TaskTimeLoggedEvent,
+  TaskUnassignedEvent,
+  TaskUnlinkedEvent,
+  TaskUpdatedEvent,
+} from "./pubsub";
+export { REMINDER_EVENTS, TASK_EVENTS } from "./pubsub";
+export type {
   AssignTaskInput,
   BulkUpdateTaskInput,
   CreateAttachmentInput,
@@ -50,8 +66,10 @@ export {
   CreateTaskTypeSchema,
   CreateTimeEntrySchema,
   CreateWatcherSchema,
+  IdSchema,
   ProjectFiltersSchema,
   ReminderFiltersSchema,
+  TaskFiltersSchema,
   TimeEntryFiltersSchema,
   UpdateAutomationRuleSchema,
   UpdateCommentSchema,

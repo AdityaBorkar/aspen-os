@@ -11,8 +11,8 @@ import type {
   TaskUnassignedEvent,
   TaskUnlinkedEvent,
   TaskUpdatedEvent,
-} from "../pubsub-events";
-import { REMINDER_EVENTS, TASK_EVENTS } from "../pubsub-events";
+} from "../pubsub";
+import { REMINDER_EVENTS, TASK_EVENTS } from "../pubsub";
 
 export interface NotificationBridgeDeps {
   pubsub: PubSubUnit;

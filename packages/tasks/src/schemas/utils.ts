@@ -3,6 +3,8 @@ import { maxLength, minLength, pipe, regex, string } from "valibot";
 const HEX_COLOR_REGEX = /^#[0-9A-Fa-f]{6}$/;
 const PROJECT_KEY_REGEX = /^[A-Z]{2,10}$/;
 
+export const IdSchema = pipe(string(), minLength(1, "ID is required"));
+
 export const HexColorSchema = pipe(
   string(),
   regex(HEX_COLOR_REGEX, "Must be a valid 6-digit hex color (e.g., #3B82F6)"),

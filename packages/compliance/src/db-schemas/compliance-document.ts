@@ -1,0 +1,91 @@
+import { sql } from "drizzle-orm";
+import {
+  boolean,
+  date,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core";
+
+import {
+  complianceCategoryEnum,
+  reminderChannelEnum,
+  renewalFrequencyEnum,
+  verificationStatusEnum,
+} from "./enums";
+
+export const complianceDocument = pgTable(
+  "compliance_document",
+  {
+    assignedReviewer: text("assigned_reviewer"),
+    assignedTo: text("assigned_to"),
+    attachment: text("attachment"),
+    autoRenewal: boolean("auto_renewal").notNull().default(false),
+    branch: text("branch"),
+    category: complianceCategoryEnum("category").notNull(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    connection: text("connection"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    createdBy: text("created_by").notNull(),
+    documentType: text("document_type"),
+    dueDate: date("due_date"),
+    effectiveDate: date("effective_date"),
+    escalationDays: integer("escalation_days").array(),
+    expiryDate: date("expiry_date"),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
+    issueDate: date("issue_date"),
+    issuingAuthority: text("issuing_authority"),
+    jurisdiction: text("jurisdiction"),
+    lastEscalatedAt: timestamp("last_escalated_at", { withTimezone: true }),
+    lastNotifiedAt: timestamp("last_notified_at", { withTimezone: true }),
+    metadata: jsonb("metadata"),
+    name: text("name").notNull(),
+    notes: text("notes"),
+    obligationId: text("obligation_id"),
+    periodEnd: date("period_end"),
+    periodStart: date("period_start"),
+    referenceNumber: text("reference_number"),
+    rejectionReason: text("rejection_reason"),
+    reminderChannel: reminderChannelEnum("reminder_channel").default("pubsub"),
+    reminderDays: integer("reminder_days").array().default([90, 60, 30, 7]),
+    renewalDate: date("renewal_date"),
+    renewalFrequency: renewalFrequencyEnum("renewal_frequency"),
+    renewedFrom: text("renewed_from"),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    reviewedBy: text("reviewed_by"),
+    snoozedUntil: timestamp("snoozed_until", { withTimezone: true }),
+    sourceEntityId: text("source_entity_id"),
+    sourceEntityType: text("source_entity_type"),
+    sourceModule: text("source_module").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    verificationStatus: verificationStatusEnum("verification_status")
+      .notNull()
+      .default("draft"),
+  },
+  (table) => [
+    index("idx_compliance_document_category").on(table.category),
+    index("idx_compliance_document_status").on(table.verificationStatus),
+    index("idx_compliance_document_branch").on(table.branch),
+    index("idx_compliance_document_expiry").on(table.expiryDate),
+    index("idx_compliance_document_due").on(table.dueDate),
+    index("idx_compliance_document_source").on(
+      table.sourceModule,
+      table.sourceEntityType,
+      table.sourceEntityId,
+    ),
+    index("idx_compliance_document_reviewer").on(table.assignedReviewer),
+    index("idx_compliance_document_assignee").on(table.assignedTo),
+    index("idx_compliance_document_obligation").on(table.obligationId),
+    index("idx_compliance_document_renewed_from").on(table.renewedFrom),
+  ],
+);
+
+export type ComplianceDocument = typeof complianceDocument.$inferSelect;
+export type NewComplianceDocument = typeof complianceDocument.$inferInsert;

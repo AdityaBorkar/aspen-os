@@ -66,12 +66,12 @@ packages/
     src/client/        # Platform class + auth/ logs/ rpc + context.ts, types.ts
     src/cli/           # commander CLI (db-studio, tenants)
   constants/           # Shared enums (country-codes.ts, languages.ts — both files currently empty; enums live in index.ts)
-  organization/        # Domain module (build step) — db-schemas/ schemas/ utils/acl.ts workflows/ pubsub-events.ts
-  compliance/          # Domain module — + services/ constants.ts
-  tasks/               # Domain module — + services/ utils/filter-engine.ts (17 tables)
-  drive/               # Domain module — + services/ runtime.ts
+  organization/        # Domain module (build step) — module.ts auth.ts pubsub.ts db-schemas/ schemas/ workflows/<entity>.<action>.ts + steps/
+  compliance/          # Domain module — module.ts auth.ts pubsub.ts + services/ utils/constants.ts
+  tasks/               # Domain module — module.ts auth.ts pubsub.ts + services/ utils/filter-engine.ts (17 tables)
+  drive/               # Domain module — module.ts auth.ts pubsub.ts + services/ runtime.ts
   management/          # Control-plane module (build step) — module.ts auth.ts pubsub.ts workflows/steps/ (3 owned tables: service_provider, service_provider_user, tenant; no shadow/tenant tables)
-  hr/                  # Partial — db-schema.ts (single file) event-map.ts constants.ts
+  hr/                  # Domain module — module.ts auth.ts pubsub.ts db-schemas/ (38 tables) workflows/ (class-based → Workflow builder)
   accounting/ crm/ fleet/ inventory/ pharmacy/ reports/   # stubs
 docs/              # Fumadocs site (port 3005) → Cloudflare Workers (wrangler.jsonc)
 .working-docs/         # Canonical domain model + ADRs + SOWs (source of truth for domain docs)
@@ -129,13 +129,17 @@ type ModuleInfra = {
 
 `auth.acl` → merged + applied via `AuthUnit.applyModuleAcl()`; schemas → pushed to the control-plane/tenant DB; `events` → type-level contracts only. Modules declare ACL with `defineAcl({ resource: ["create","read","update","delete", ...] })` (identity fn with const generic for literal inference).
 
-### Three domain-module patterns
+### Domain-module pattern (management-aligned)
 
-- **Newer** (organization, tasks): workflows are `readonly` properties; `$initialize()` / `$prepareRuntime()` / `$cleanup()` are empty.
-- **Older** (compliance, drive, hr): `#private` workflow fields set in `$initialize(units)`; getters that throw `notInitialized()` if accessed early; non-empty `$prepareRuntime()` (pubsub schedules/handlers) and `$cleanup()` (unregister + null out).
-- **Hybrid** (management): `#private` `#db` field set in `$initialize({ db, auth, pubsub })`; `tenants` getter throws if uninitialized while `serviceProviders`/`users` are `readonly`; `$prepareRuntime()`/`$cleanup()` are empty.
+Every implemented module (management, organization, compliance, tasks, drive, hr) follows the same shape:
 
-`$initialize()` signatures vary by module — each types its own unit subset: organization/tasks take none; compliance takes `{ db, kvStore, pubsub }`; drive `{ db, storage, pubsub }`; management `{ db, auth, pubsub }`. management's `$name` is `"management"` (proxy `p.management`), `$dependencies: ["organization"]`.
+- `src/module.ts` holds the class (implements `Module`, static `create`, `readonly $name`/`$dependencies`/`$config`, `$prepareInfra()` returning `{ auth: { acl }, db: { control_plane_schemas, tenant_schemas }, events }`); `src/index.ts` just re-exports.
+- `src/auth.ts` holds the ACL (`defineAcl(...)`); `src/pubsub.ts` holds events; `src/types.ts` re-exports constants + events + schemas; `db-schemas/` is directory form (one file per table + `enums.ts`); workflows are one file per action under `workflows/<entity>.<action>.ts` with reusable steps in `workflows/steps/`.
+- Workflow groups: stateless `readonly` properties composed from imported per-workflow consts; a `#db` getter (management hybrid) only when a workflow is bound to a unit at construction time (`createX(this.#db)`).
+
+Modules with non-empty runtime wiring (compliance schedules/handlers, drive purge cron, hr scheduled jobs, management tenant onboarding) keep `#private` unit refs set in `$initialize(units)` plus `async $prepareRuntime()` / `async $cleanup()` that register/unregister pubsub schedules; their workflow groups stay `readonly`.
+
+`$initialize()` signatures vary by module — each types its own unit subset: organization/tasks take none; compliance takes `{ db, kvStore, pubsub }`; drive `{ db, storage, pubsub }`; management `{ db, auth, pubsub }`; hr `{ db, pubsub }`. management's `$name` is `"management"` (proxy `p.management`), `$dependencies: ["organization"]`.
 
 ### Database (Drizzle)
 
@@ -224,4 +228,4 @@ await myWorkflow.run(input, { actorId });
 
 ## Current State
 
-`organization`, `compliance`, `tasks`, `drive`, `management` fully implemented; `hr` substantially implemented (infra + lifecycle wired but not conformant — see Overview). `accounting`/`crm`/`fleet`/`inventory`/`pharmacy`/`reports` are stubs. No tests, no CI, no platform Docker/deployment config.
+`organization`, `compliance`, `tasks`, `drive`, `management`, `hr` fully implemented and aligned to the management module structure (module.ts/auth.ts/pubsub.ts, db-schemas/, one workflow per file + steps/). `accounting`/`crm`/`fleet`/`inventory`/`pharmacy`/`reports` are stubs. No tests, no CI, no platform Docker/deployment config.

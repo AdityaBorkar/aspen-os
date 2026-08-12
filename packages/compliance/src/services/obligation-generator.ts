@@ -3,12 +3,11 @@ import { getContext } from "@aspen-os/platform/server";
 import { and, eq, isNull } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-import { SCHEDULED_JOBS } from "../constants";
-import type { ComplianceObligation } from "../db-schema";
-import { complianceDocument } from "../db-schema";
-import { COMPLIANCE_EVENTS } from "../pubsub-events";
-import { documents } from "../workflows/document";
-import { obligations } from "../workflows/obligation";
+import type { ComplianceObligation } from "../db-schemas";
+import { complianceDocument } from "../db-schemas";
+import { COMPLIANCE_EVENTS } from "../pubsub";
+import { SCHEDULED_JOBS } from "../utils/constants";
+import { documents, obligations } from "../workflows";
 
 const MONTHS_PER_FREQUENCY: Record<string, number> = {
   annual: 12,

@@ -4,7 +4,7 @@ description: Step-by-step guide to building a pluggable domain module that integ
 icon: IconHexagonAsterisk
 ---
 
-This guide walks through creating a custom domain module that follows the platform's conventions. The pattern is derived from the `organization` and `compliance` modules.
+This guide walks through creating a custom domain module that follows the platform's conventions. The pattern is derived from the `management` module.
 
 ## Overview
 
@@ -15,18 +15,26 @@ A module is a class that implements the `Module` interface and packages domain w
 ```text
 packages/my-module/
   src/
-    index.ts              # Module class, type re-exports, dbSchema export
-    db-schema.ts          # Drizzle pgTable/pgEnum definitions
+    index.ts              # Module class + type re-exports
+    module.ts             # Module class (implements Module)
+    auth.ts               # defineAcl() ACL declaration
+    pubsub.ts             # Event constants + typed event interfaces + EventMap type
     types.ts              # Type re-exports from schemas + domain interfaces
-    event-map.ts          # Event constants + typed event interfaces + EventMap type
-    constants.ts          # Module-specific enums (as const objects) [optional]
+    utils/
+      constants.ts        # Module-specific enums (as const objects)
+      strip-undefined.ts  # stripUndefined helper
+    db-schemas/
+      index.ts            # control_plane_schemas + tenant_schemas aggregates
+      enums.ts            # pgEnum definitions referencing constants
+      entity.ts           # Per-entity drizzle pgTable definitions
     schemas/
       index.ts            # Re-exports all schemas + types
       enums.ts            # Valibot enum schemas mirroring constants
       utils.ts            # Shared valibot schema utilities (regex, lengths)
       entity.ts           # Per-entity valibot schemas
     workflows/
-      entity.ts           # Business logic classes
+      <entity>.<action>.ts  # One file per workflow (Workflow.name() builder)
+      steps/                # Reusable WorkflowSteps (fetch-<entity>.ts)
   package.json
   tsconfig.json
 ```
@@ -50,42 +58,69 @@ packages/my-module/
 ```
 
 <Callout type="info">
-  No build step. Package `exports` point at raw `.ts` files. Bun resolves them directly.
+  No build step. Package `exports` point at raw `.ts` files. Bun resolves them directly. (`@aspen-os/platform`, `@aspen-os/organization`, and `@aspen-os/management` build to `.output/`; most modules export raw source.)
 </Callout>
 
 ## Step 2: Database Schema
 
-Create `src/db-schema.ts` with Drizzle table and enum definitions:
+Create `src/db-schemas/entity.ts` with Drizzle table and enum definitions. One file per table, plus a shared `enums.ts` for `pgEnum` definitions:
 
-```ts title="src/db-schema.ts"
-import { relations } from "drizzle-orm";
+```ts title="src/db-schemas/enums.ts"
+import { pgEnum } from "drizzle-orm/pg-core";
+
+import { MY_ENTITY_STATUS } from "../utils/constants";
+
+export const myEntityStatusEnum = pgEnum("my_entity_status", [
+  MY_ENTITY_STATUS.ACTIVE,
+  MY_ENTITY_STATUS.INACTIVE,
+]);
+```
+
+```ts title="src/db-schemas/entity.ts"
+import { sql } from "drizzle-orm";
 import {
-  boolean,
   index,
   jsonb,
-  pgEnum,
   pgTable,
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
 
-// Enums reference constant objects when available
-export const statusEnum = pgEnum("my_entity_status", ["active", "inactive"]);
+import { myEntityStatusEnum } from "./enums";
 
 export const myEntity = pgTable(
   "my_entity",
   {
-    id: text("id").defaultRandom().primaryKey(),
+    id: text("id").primaryKey().default(sql`uuidv7()`),
     name: text("name").notNull(),
-    status: statusEnum().default("active").notNull(),
-    metadata: jsonb("metadata").default({}),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    status: myEntityStatusEnum("status").notNull().default("active"),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [index("idx_my_entity_status").on(table.status)],
 );
 
-export const myEntityRelations = relations(myEntity, ({ many }) => ({}));
+export type MyEntity = typeof myEntity.$inferSelect;
+export type NewMyEntity = typeof myEntity.$inferInsert;
+```
+
+Then aggregate in `src/db-schemas/index.ts`:
+
+```ts title="src/db-schemas/index.ts"
+import * as myEntity from "./my-entity";
+
+export { myEntity, myEntityStatusEnum } from "./my-entity";
+
+export const control_plane_schemas = {} as const;
+
+export const tenant_schemas = {
+  ...myEntity,
+} as const;
 ```
 
 <Callout type="warn">
@@ -94,9 +129,9 @@ export const myEntityRelations = relations(myEntity, ({ many }) => ({}));
 
 ## Step 3: Constants & Enums
 
-`src/constants.ts`:
+`src/utils/constants.ts`:
 
-```ts title="src/constants.ts"
+```ts title="src/utils/constants.ts"
 export const MY_ENTITY_STATUS = {
   ACTIVE: "active",
   INACTIVE: "inactive",
@@ -106,22 +141,44 @@ export type MyEntityStatus =
   (typeof MY_ENTITY_STATUS)[keyof typeof MY_ENTITY_STATUS];
 ```
 
+`src/schemas/enums.ts` mirrors the constants with valibot `picklist`:
+
+```ts title="src/schemas/enums.ts"
+import { picklist } from "valibot";
+
+import { MY_ENTITY_STATUS } from "./utils/constants";
+
+export const MyEntityStatusSchema = picklist(Object.values(MY_ENTITY_STATUS));
+
+export { MY_ENTITY_STATUS } from "./utils/constants";
+```
+
 ## Step 4: Validation Schemas (Valibot)
 
 `src/schemas/entity.ts`:
 
 ```ts title="src/schemas/entity.ts"
-import { type InferOutput, object, optional, pipe, string, minLength } from "valibot";
+import {
+  type InferOutput,
+  nullable,
+  object,
+  optional,
+  pipe,
+  string,
+  minLength,
+} from "valibot";
+
+import { NameSchema } from "./utils";
 
 export const CreateMyEntitySchema = object({
-  name: pipe(string(), minLength(1, "Name is required")),
-  status: optional(string()),
+  name: NameSchema,
+  status: optional(nullable(string())),
 });
 
 export type CreateMyEntityInput = InferOutput<typeof CreateMyEntitySchema>;
 
 export const UpdateMyEntitySchema = object({
-  name: optional(string()),
+  name: optional(NameSchema),
   status: optional(string()),
 });
 
@@ -134,15 +191,19 @@ export const MyEntityFiltersSchema = object({
 export type MyEntityFilters = InferOutput<typeof MyEntityFiltersSchema>;
 ```
 
-## Step 5: Event Map
+## Step 5: Events
 
-`src/event-map.ts`:
+`src/pubsub.ts`:
 
-```ts title="src/event-map.ts"
+```ts title="src/pubsub.ts"
 export const MY_ENTITY_EVENTS = {
   CREATED: "my-module:entity_created",
   UPDATED: "my-module:entity_updated",
 } as const;
+
+export const events = {
+  MY_ENTITY_EVENTS,
+};
 
 export interface MyEntityCreatedEvent {
   entity: { id: string; name: string };
@@ -153,72 +214,111 @@ export interface MyEntityUpdatedEvent {
   entity: { id: string; name: string };
 }
 
-export type MyModuleEventMap = {
+export type MyEntityEventMap = {
   [MY_ENTITY_EVENTS.CREATED]: MyEntityCreatedEvent;
   [MY_ENTITY_EVENTS.UPDATED]: MyEntityUpdatedEvent;
 };
+
+export type MyModuleEventMap = MyEntityEventMap;
 ```
 
-## Step 6: Workflow
+## Step 6: Auth ACL
 
-`src/workflows/entity.ts`:
+`src/auth.ts`:
 
-```ts title="src/workflows/entity.ts"
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+```ts title="src/auth.ts"
+import { defineAcl } from "@aspen-os/platform/server";
+
+export const acl = defineAcl({
+  myEntity: ["create", "delete", "read", "update"],
+});
+```
+
+## Step 7: Workflow
+
+Each workflow is a separate file using the `Workflow`/`WorkflowStep` builder API. Reusable DB lookups live in `src/workflows/steps/`:
+
+```ts title="src/workflows/steps/fetch-my-entity.ts"
+import { WorkflowStep } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-import { parse } from "valibot";
+import { object } from "valibot";
 
-import { myEntity } from "../db-schema";
-import { CreateMyEntitySchema, type CreateMyEntityInput } from "../schemas/entity";
+import { myEntity } from "../../db-schemas";
+import { IdSchema } from "../../types";
 
-export class MyEntityWorkflow {
-  constructor(private readonly db: NodePgDatabase) {}
-
-  async create(input: CreateMyEntityInput) {
-    const data = parse(CreateMyEntitySchema, input);
-    const [result] = await this.db
-      .insert(myEntity)
-      .values(data)
-      .returning();
-    return result;
-  }
-
-  async get(id: string) {
-    const [result] = await this.db
+export const fetchMyEntityStep = WorkflowStep.name("fetch-my-entity")
+  .input(object({ id: IdSchema }))
+  .handler(async (input, ctx) => {
+    const [result] = await ctx.db
       .select()
       .from(myEntity)
-      .where(eq(myEntity.id, id));
-    return result ?? null;
-  }
+      .where(eq(myEntity.id, input.id))
+      .limit(1);
 
-  async list() {
-    return this.db.select().from(myEntity);
-  }
-}
+    if (!result) {
+      throw new Error(`My entity with id "${input.id}" not found.`);
+    }
+
+    return result;
+  });
 ```
 
-## Step 7: Module Class
+```ts title="src/workflows/my-entity.create.ts"
+import { Workflow } from "@aspen-os/platform/server";
+import { object } from "valibot";
 
-`src/index.ts`:
+import { myEntity } from "../db-schemas";
+import { MY_ENTITY_EVENTS } from "../pubsub";
+import { CreateMyEntitySchema } from "../types";
 
-```ts title="src/index.ts"
+const CreateInputSchema = object({ input: CreateMyEntitySchema });
+
+export const createMyEntity = Workflow.name("my-entity.create")
+  .input(CreateInputSchema)
+  .handler(async ({ input }, ctx) => {
+    const [result] = await ctx.db
+      .insert(myEntity)
+      .values({ name: input.name, status: input.status ?? null })
+      .returning();
+
+    if (!result) throw new Error("Failed to create my entity.");
+
+    await ctx.audit.write({
+      action: "my-entity:created",
+      crudAction: "create",
+      entityId: result.id,
+      entityType: "myEntity",
+      newState: { name: result.name },
+    });
+
+    await ctx.pubsub.publish(MY_ENTITY_EVENTS.CREATED, {
+      entity: { id: result.id, name: result.name },
+    });
+
+    return result;
+  });
+```
+
+Workflows resolve their dependencies from `ctx` at runtime (`ctx.db`, `ctx.audit`, `ctx.pubsub`, `ctx.auth`). Stateless workflow groups are plain `readonly` properties; use a getter only when a workflow must be bound to a unit at construction time (`createX(this.#db)`).
+
+## Step 8: Module Class
+
+`src/module.ts`:
+
+```ts title="src/module.ts"
 import type {
+  AuthUnit,
   DatabaseUnit,
   Module,
   ModuleInfra,
   PubSubUnit,
 } from "@aspen-os/platform/server";
 
-import * as dbSchema from "./db-schema";
-import { MyEntityWorkflow } from "./workflows/entity";
-
-export type { MyEntityStatus } from "./constants";
-export type {
-  CreateMyEntityInput,
-  MyEntityFilters,
-  UpdateMyEntityInput,
-} from "./types";
-export { dbSchema };
+import { acl } from "./auth";
+import { control_plane_schemas, tenant_schemas } from "./db-schemas";
+import { events } from "./pubsub";
+import { createMyEntity } from "./workflows/my-entity.create";
+import { getMyEntity } from "./workflows/my-entity.get";
 
 export type MyModuleConfig = {
   // module-specific config options
@@ -231,44 +331,69 @@ export class MyModule implements Module {
 
   readonly $name = "my-module";
   readonly $dependencies: readonly string[] = [];
+  readonly $config: MyModuleConfig;
 
   #db: DatabaseUnit | null = null;
-  #entities: MyEntityWorkflow | null = null;
 
-  get entities(): MyEntityWorkflow {
-    if (!this.#entities) throw notInitialized();
-    return this.#entities;
-  }
-
-  $initialize(units: { db: DatabaseUnit; pubsub: PubSubUnit }): void {
-    this.#db = units.db;
-    this.#entities = new MyEntityWorkflow(units.db);
+  constructor(config: MyModuleConfig) {
+    this.$config = config;
   }
 
   $prepareInfra(): ModuleInfra {
     return {
-      auth: { acl: {} },
-      db: { control_plane_schemas: {}, tenant_schemas: dbSchema },
-      events: {},
+      auth: { acl },
+      db: { control_plane_schemas, tenant_schemas },
+      events,
     };
   }
 
-  $prepareRuntime(): void {}
-
-  async $cleanup(): Promise<void> {
-    this.#entities = null;
-    this.#db = null;
+  $initialize(units: {
+    db: DatabaseUnit;
+    auth: AuthUnit;
+    pubsub: PubSubUnit;
+  }): void {
+    this.#db = units.db;
   }
-}
 
-function notInitialized(): Error {
-  return new Error(
-    "My module not initialized. Call $initialize() after platform.create().",
-  );
+  $prepareRuntime() {}
+
+  $cleanup() {}
+
+  get myEntities() {
+    if (!this.#db) throw new Error("MyModule not initialized");
+    return {
+      create: createMyEntity,
+      get: getMyEntity,
+    };
+  }
 }
 ```
 
-## Step 8: Use It
+`src/index.ts` re-exports the class, config type, and public types:
+
+```ts title="src/index.ts"
+export { MyModule, type MyModuleConfig } from "./module";
+export * from "./types";
+```
+
+`src/types.ts` re-exports event types/constants and valibot schemas/types:
+
+```ts title="src/types.ts"
+export type { MyModuleEventMap } from "./pubsub";
+export { MY_ENTITY_EVENTS } from "./pubsub";
+export type {
+  CreateMyEntityInput,
+  MyEntityFilters,
+  UpdateMyEntityInput,
+} from "./schemas";
+export {
+  CreateMyEntitySchema,
+  MyEntityFiltersSchema,
+  UpdateMyEntitySchema,
+} from "./schemas";
+```
+
+## Step 9: Use It
 
 ```ts
 import { SingleTenantPlatform } from "@aspen-os/platform/server";
@@ -281,19 +406,23 @@ const p = SingleTenantPlatform.create(config, [myModule]);
 await p.$prepareInfra();
 
 await p.run(async () => {
-  const entity = await p["my-module"].entities.create({
+  const entity = await p["my-module"].myEntities.create({
     name: "My Entity",
   });
 });
 ```
+
 ## Key Conventions
 
 | Convention | Rule |
 |---|---|
 | Static `create(config)` factory | Always use a static factory, not `new` directly |
-| `#` prefix for private fields | `#entities: MyEntityWorkflow \| null = null` |
-| Lazy getters with `notInitialized()` | Throw if accessed before `$initialize()` |
-| `db_schema` export | The drizzle schema namespace |
+| `#` prefix for private fields | `#db: DatabaseUnit \| null = null` |
+| `module.ts` holds the class | `index.ts` only re-exports |
+| `auth.ts` holds the ACL | `defineAcl({ resource: ["create", ...] })` (was `utils/acl.ts`) |
+| `pubsub.ts` holds events | Constants + interfaces + EventMap (was `pubsub-events.ts` / `event-map.ts`) |
+| `db-schemas/` per entity | One `pgTable` per file, `enums.ts` for `pgEnum`s, aggregate in `index.ts` |
+| `workflows/` one per action | `Workflow.name("entity.action").input(...).handler(...)`, reusable steps in `workflows/steps/` |
 | `$name` / `$dependencies` as readonly | Become proxy keys + init ordering |
 | `$prepareInfra()` returns ModuleInfra | Declares ACL + DB schemas + events |
 | `$prepareRuntime()` | Registers pubsub handlers/schedules |

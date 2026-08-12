@@ -1,27 +1,4 @@
 export type {
-  AuditAction,
-  AuditEntityType,
-  ComplianceCategory,
-  ObligationFrequency,
-  ReminderChannel,
-  RenewalFrequency,
-  VerificationStatus,
-} from "./constants";
-export {
-  AUDIT_ACTION,
-  AUDIT_ENTITY_TYPE,
-  COMPLIANCE_CATEGORY,
-  CRON_SCHEDULES,
-  DEFAULT_ESCALATION_DAYS,
-  DEFAULT_REMINDER_DAYS_DUE,
-  DEFAULT_REMINDER_DAYS_EXPIRY,
-  OBLIGATION_FREQUENCY,
-  REMINDER_CHANNEL,
-  RENEWAL_FREQUENCY,
-  SCHEDULED_JOBS,
-  VERIFICATION_STATUS,
-} from "./constants";
-export type {
   ComplianceEventMap,
   DocumentArchivedEvent,
   DocumentAttachmentUploadedEvent,
@@ -46,12 +23,13 @@ export type {
   ObligationUpdatedEvent,
   ScheduledJobExecutedEvent,
   WeeklySummaryEvent,
-} from "./pubsub-events";
+} from "./pubsub";
 export {
+  COMPLIANCE_EVENTS,
   DOCUMENT_EVENTS,
   OBLIGATION_EVENTS,
   SYSTEM_EVENTS,
-} from "./pubsub-events";
+} from "./pubsub";
 export type {
   AuditTrailFilters,
   ComplianceDocumentFilters,
@@ -81,8 +59,31 @@ export {
   UpdateVerificationRuleSchema,
   VerificationStatusSchema,
 } from "./schemas";
+export type {
+  AuditAction,
+  AuditEntityType,
+  ComplianceCategory,
+  ObligationFrequency,
+  ReminderChannel,
+  RenewalFrequency,
+  VerificationStatus,
+} from "./utils/constants";
+export {
+  AUDIT_ACTION,
+  AUDIT_ENTITY_TYPE,
+  COMPLIANCE_CATEGORY,
+  CRON_SCHEDULES,
+  DEFAULT_ESCALATION_DAYS,
+  DEFAULT_REMINDER_DAYS_DUE,
+  DEFAULT_REMINDER_DAYS_EXPIRY,
+  OBLIGATION_FREQUENCY,
+  REMINDER_CHANNEL,
+  RENEWAL_FREQUENCY,
+  SCHEDULED_JOBS,
+  VERIFICATION_STATUS,
+} from "./utils/constants";
 
-import type { ComplianceCategory, VerificationStatus } from "./constants";
+import type { ComplianceCategory, VerificationStatus } from "./utils/constants";
 
 export interface DashboardSummary {
   activeObligations: number;

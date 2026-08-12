@@ -50,12 +50,12 @@ p.organization.bankAccounts     // → BankAccountWorkflow
 
 ```text
 packages/organization/src/
-  index.ts              # Module class + type re-exports
-  db-schemas/           # 7 tables + 5 enums (organization, branch, connection, address, bank-account, ...)
+  index.ts              # Module class re-exports
+  module.ts             # Module class (implements Module)
+  auth.ts               # defineAcl() ACL declaration
+  pubsub.ts             # Events across 3 event groups
+  db-schemas/           # Per-entity tables (organization, branch, connection, address, bank-account, ...)
   types.ts              # Type re-exports
-  pubsub-events.ts      # Events across 3 event groups
-  utils/
-    acl.ts              # defineAcl() ACL declaration
   schemas/              # Valibot validation schemas
     index.ts
     enums.ts
@@ -63,11 +63,8 @@ packages/organization/src/
     address.ts
     bank-account.ts
   workflows/
-    organization.ts
-    branch.ts
-    connection.ts
-    address.ts
-    bank-account.ts
+    <entity>.<action>.ts   # One file per workflow
+    steps/                 # Reusable WorkflowSteps (fetch-<entity>.ts)
 ```
 
 ## Package
