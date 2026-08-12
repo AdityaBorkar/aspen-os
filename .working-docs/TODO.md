@@ -14,7 +14,7 @@ WORK ON ORGANIZATION
   - Personal Drafts
   - Personal Dashboard / Dashboards
   - Branches & Organization
-Refactor all modules to be like ./management-plane. Make it a skill
+Refactor all modules to be like ./management. Make it a skill
 WORK ON DMS
 WORK ON TASK MANAGEMENT
 WORK ON HR MODULE
@@ -85,7 +85,7 @@ If you press YES, the account manager shall access the application and respond a
 ## Phase 2
 
 - Merging ./docs with ./docs to ensure a single source of truth
-- Create a Biome GritQL rule to make index.ts module files like @management-plane/src/index.ts
+- Create a Biome GritQL rule to make index.ts module files like @management/src/index.ts
 - CONTEXT.md lists Prospect, Client, Job Mandate, Draft, Filter View, Reminder, Task, Team Member, Contract under "Recruiter Domain."
 - Dynamic Loading of Modules
   - /settings/features = Enable/Disable each module and their feature flags

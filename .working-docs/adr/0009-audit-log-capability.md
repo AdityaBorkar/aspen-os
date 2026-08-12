@@ -19,7 +19,7 @@ We need an `audit_log` capability that serves two distinct, equally important ne
    trigger of changes; they are not what we replay.
 
 Both must be **accessible across all domain modules** (organization, tasks,
-drive, hr, compliance, management-plane) from one mechanism, not reinvented per
+drive, hr, compliance, management) from one mechanism, not reinvented per
 module.
 
 ### What exists today
@@ -30,7 +30,7 @@ module.
   columns, and `workflow_run_id` provenance. The unit is a core server unit
   (`$name = "audit"`), created in `BasePlatform.createCore()`, and pushed as a
   platform core schema via `DatabaseUnit.getSchemas()`.
-- **`management-plane`** writes audit entries via `ctx.audit.write(...)` inline
+- **`management`** writes audit entries via `ctx.audit.write(...)` inline
   in each workflow (e.g. `tenant.onboard.ts:126`, `tenant.suspend.ts:49`). It
   does NOT own a separate `audit_log` table or `logAuditStep` — it uses the
   platform `AuditUnit` directly. ~17 workflows write audit entries.
@@ -304,7 +304,7 @@ Indexes:
   (the primary replay query)
 - `(workflow_run_id)` — provenance drill-down (optional; not a replay index)
 - `(actor_id)`, `(action)`, `(performed_at)` —
-  query/export (mirrors management-plane's existing indexes)
+  query/export (mirrors management's existing indexes)
 
 ## Consequences
 
@@ -324,7 +324,7 @@ Indexes:
   single/shared only; isolated needs fan-out aggregation.
 - The shared audit table can grow large; partitioning/retention policy is out
   of scope here but will be needed.
-- Existing management-plane/compliance audit tables become redundant on
+- Existing management/compliance audit tables become redundant on
   consolidation (migration or coexistence decision deferred).
 - Layer 1 cannot replay blind writes — the honest boundary with Layer 2
   (record-state replay for uninstrumented writes requires DB-level capture).

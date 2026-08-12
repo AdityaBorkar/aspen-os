@@ -6,7 +6,7 @@
 
 Workspace state:
 
-- **Fully implemented**: `platform`, `organization`, `compliance`, `tasks`, `drive`, `management-plane` (modules), `constants` (shared enums).
+- **Fully implemented**: `platform`, `organization`, `compliance`, `tasks`, `drive`, `management` (modules), `constants` (shared enums).
 - **Partial**: `hr` — module logic largely written but the class does not `implements Module` and lacks `$prepareRuntime()`.
 - **Pure stubs**: `accounting`, `crm`, `fleet`, `inventory`, `pharmacy`, `reports` (package.json is just `{ "name": "..." }`).
 
@@ -70,7 +70,7 @@ packages/
   compliance/          # Domain module — + services/ constants.ts
   tasks/               # Domain module — + services/ utils/filter-engine.ts (17 tables)
   drive/               # Domain module — + services/ runtime.ts
-  management-plane/    # Control-plane module (build step) — module.ts auth.ts pubsub.ts workflows/steps/
+  management/    # Control-plane module (build step) — module.ts auth.ts pubsub.ts workflows/steps/
   hr/                  # Partial — db-schema.ts (single file) event-map.ts constants.ts
   accounting/ crm/ fleet/ inventory/ pharmacy/ reports/   # stubs
 examples/
@@ -104,7 +104,7 @@ cd packages/platform && bun run check:lint    # biome check --fix .
 cd packages/platform && bun run build         # scripts/build.ts → .output/
 ```
 
-**Build gotcha**: platform's published `exports`/`bin` point at `.output/`. TypeScript resolves types from `.output/`, not source (Bun runtime uses source via the `build` map, but `tsc` does not). After changing platform exports, run `bun run build` **before** typechecking downstream packages. `organization` and `management-plane` also have `build` steps.
+**Build gotcha**: platform's published `exports`/`bin` point at `.output/`. TypeScript resolves types from `.output/`, not source (Bun runtime uses source via the `build` map, but `tsc` does not). After changing platform exports, run `bun run build` **before** typechecking downstream packages. `organization` and `management` also have `build` steps.
 
 recruiter (`examples/recruiter`, `app:` prefix):
 
@@ -147,10 +147,10 @@ type ModuleInfra = {
 
 ### Two domain-module patterns
 
-- **Newer** (organization, tasks, management-plane): workflows are `readonly` properties; `$initialize()` / `$prepareRuntime()` / `$cleanup()` are empty.
+- **Newer** (organization, tasks, management): workflows are `readonly` properties; `$initialize()` / `$prepareRuntime()` / `$cleanup()` are empty.
 - **Older** (compliance, drive, hr): `#private` workflow fields set in `$initialize(units)`; getters that throw `notInitialized()` if accessed early; non-empty `$prepareRuntime()` (pubsub schedules/handlers) and `$cleanup()` (unregister + null out).
 
-`$initialize()` signatures vary by module — each types its own unit subset: organization/tasks take none; compliance takes `{ db, kvStore, pubsub }`; drive `{ db, storage, pubsub }`; management-plane `{ db, auth, pubsub }`. Management-plane's `$name` is `"management"` (proxy `p.management`), `$dependencies: ["organization"]`.
+`$initialize()` signatures vary by module — each types its own unit subset: organization/tasks take none; compliance takes `{ db, kvStore, pubsub }`; drive `{ db, storage, pubsub }`; management `{ db, auth, pubsub }`. management's `$name` is `"management"` (proxy `p.management`), `$dependencies: ["organization"]`.
 
 ### Database (Drizzle)
 
@@ -241,4 +241,4 @@ await myWorkflow.run(input, { actorId });
 
 ## Current State
 
-`organization`, `compliance`, `tasks`, `drive`, `management-plane` fully implemented; `hr` substantially implemented (infra + lifecycle wired but not conformant — see Overview). `accounting`/`crm`/`fleet`/`inventory`/`pharmacy`/`reports` are stubs. No tests, no CI, no platform Docker/deployment config.
+`organization`, `compliance`, `tasks`, `drive`, `management` fully implemented; `hr` substantially implemented (infra + lifecycle wired but not conformant — see Overview). `accounting`/`crm`/`fleet`/`inventory`/`pharmacy`/`reports` are stubs. No tests, no CI, no platform Docker/deployment config.

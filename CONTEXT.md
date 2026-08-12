@@ -396,7 +396,7 @@ _Avoid_: Contract Type, Employment Status
 ### DMS Domain
 
 **Document**:
-The central record of the DMS module — one uploaded file. Has `status` (`triaged`/`active`/`expired`/`deleted`), `tags`, `metadata` (jsonb), `fieldValues` (per-class, jsonb), optional `compression` override, optional `expiryDate`, `owner`, `uploadedBy`, `storageKey`. Never uploaded directly into the active set — always enters as `triaged`.
+The central record of the DMS module — one uploaded file. Has `status` (`triaged`/`active`/`expired`/`deleted`), `version` (current), `tags`, `metadata` (jsonb), `fieldValues` (per-class, jsonb), optional `compression` override, optional `expiryDate`, `owner`, `uploadedBy`, `storageKey`. Never uploaded directly into the active set — always enters as `triaged`.
 _Avoid_: File, Asset, Drive File
 
 **Triage**:
@@ -404,20 +404,28 @@ The mandatory first-class stage every Document passes through. Uploads land here
 _Avoid_: Inbox, Draft Folder, Pending Queue
 
 **Classify**:
-The validation-enforced transition that assigns a triaged Document to a Document Class, validates its required fields, optionally applies the class's file-naming schema (object rename via `storageUnit.move`), and sets status to `active`. The one and only way out of Triage.
+The validation-enforced transition that assigns a triaged Document to a Document Class, validates its required fields, optionally applies the class's file-naming schema, and sets status to `active`. The one and only way out of Triage.
 _Avoid_: File Into, Assign Class, Register
 
 **Document Class**:
-An admin-defined template with typed fields (some required) that a Document must satisfy to become active in that class. Optionally defines a file-naming schema with field/date/sequence placeholders. Archived (not hard-deleted) when superseded.
+An admin-defined template with typed fields (some required) that a Document must satisfy to become active in that class. Optionally defines a file-naming schema with field/date/sequence placeholders and a per-class retention period. Archived (not hard-deleted) when superseded.
 _Avoid_: Document Type, Category, Template
 
 **Class Field**:
-A typed column of a Document Class (`text`/`number`/`date`/`select`/`multi-select`/`boolean`/`user`/`contact`/`url`/`email`/`phone`) with required/default/options/order. Field values are stored as jsonb on the Document.
+A typed column of a Document Class (`text`/`number`/`date`/`select`/`multi-select`/`boolean`/`user`/`contact`/`url`/`email`/`phone`) with required/default/options/order. Field values are stored as jsonb on the Document and optionally indexed for search.
 _Avoid_: Column, Attribute, Metadata Key
 
+**Document Version**:
+A stored revision of a Document. Storage keys are version-bound (`dms/{tenant}/{documentId}/v{n}/{name}`), so `newVersion` writes a fresh object and prune retains `maxVersions` (skipped under a legal hold). Renames are metadata-only — never an S3 move.
+_Avoid_: Revision (allowed informally), Snapshot, Copy
+
 **Document View**:
-A saved, reusable filter+sort configuration over active documents. Conditions cover document-level columns, classes, and class fields (`classField:<name>`). Personal views are user-owned; admins publish shared views. Can be pinned to the sidebar.
+A saved, reusable filter+sort configuration over active documents. Conditions cover document-level columns, classes, class fields (`classField:<name>`), and a free-text `search` term. Personal views are user-owned; admins publish shared views. Can be pinned to the sidebar.
 _Avoid_: Saved Filter, Dashboard, Query
+
+**Full-Text Search**:
+Search over current-version name, tags, metadata, and class field values (an indexed `tsvector`, not file contents). Quick search offers type-ahead results and a search can be promoted into a persisted Document View.
+_Avoid_: Content Search, Semantic Search (AI — deferred)
 
 **Contact**:
 An org-wide address-book entry (first name, last name, email, phone, company name, designation — all mandatory) used as a sharing handle for external parties; may be linked to an internal AuthUnit user. Removal requires a mandatory reason and revokes all shares granted to the contact.
@@ -427,9 +435,21 @@ _Avoid_: Sharee, External Recipient, Address Book Entry
 A permission grant (`viewer`/`editor`) on a Document to a grantee — either a Contact (token-based access, no login required) or an internal User. Revoking, or removing the contact, invalidates access immediately.
 _Avoid_: External Link, Public Link (Drive), Access Grant
 
+**Legal Hold**:
+An admin-placed flag (with mandatory reason) that blocks permanent deletion and auto-purge of a Document and stops version pruning. Released only by an admin.
+_Avoid_: Freeze, Guard, Retention Lock
+
+**Retention**:
+A per-class (or settings-default) period after which `deleted`/`expired` Documents are auto-purged. Purge is skipped for documents on an active Legal Hold. Distinct from Drive's Trash auto-purge (folder-aware, no holds).
+_Avoid_: Retention Policy (informal), Archival Window, Deletion Schedule
+
 **Recycle Bin**:
-A read-mostly view over Documents with status `deleted` or `expired`. Restore (owner/admin) reactivates; permanent deletion is **admin-only**. Distinct from Drive's Trash (auto-purge, folder-aware).
+A read-mostly view over Documents with status `deleted` or `expired`. Restore (owner/admin) reactivates; permanent deletion is **admin-only** and blocked by an active Legal Hold. Distinct from Drive's Trash (auto-purge, no holds).
 _Avoid_: Trash, Deleted Items, Bin
+
+**Activity Feed**:
+A per-entity chronological trail of DMS actions (upload, classify, version, share, delete, expire, restore, purge, hold), projected from the platform AuditUnit's `audit_log` — not a DMS-owned table, not PubSub events.
+_Avoid_: Audit Trail (that's the platform unit), Event Log, Change History
 
 ### Management Plane Domain
 
@@ -486,7 +506,7 @@ A user with `user.role = 'sp_user'` and an `sp_id` FK on the `user` row pointing
 _Avoid_: Integrator User, Field Agent
 
 **Audit Log**:
-An append-only record of management-plane actions, written via the platform's `AuditUnit` (`ctx.audit.write(...)`) inline in each workflow. Has `entityType` (tenant/serviceProvider/platformUser), `entityId`, `action` (one of 17 defined audit actions), `actorId`, `performedAt`, `previousState`, `newState`, `changes`, `metadata`. Lives in the platform's `audit_log` table (pushed as a platform core schema). The management plane does NOT own a separate `audit_log` table or `logAuditStep` — it uses the platform unit directly.
+An append-only record of management actions, written via the platform's `AuditUnit` (`ctx.audit.write(...)`) inline in each workflow. Has `entityType` (tenant/serviceProvider/platformUser), `entityId`, `action` (one of 17 defined audit actions), `actorId`, `performedAt`, `previousState`, `newState`, `changes`, `metadata`. Lives in the platform's `audit_log` table (pushed as a platform core schema). The management plane does NOT own a separate `audit_log` table or `logAuditStep` — it uses the platform unit directly.
 _Avoid_: Audit Trail, Change Record
 
 **Platform User**:
@@ -556,10 +576,11 @@ _Avoid_: Onboarding (that's the Tenant Status stage AFTER provisioning), Setup, 
 Proposed (SOW drafted, not implemented): DMS (Document Management System) module
   `sow/dms.md` — class-first records system, separate from Drive: Triage →
   Classify → active; classes → required-field validation + naming schema;
-  org-wide Contacts sharing (contact + user grantees), Recycle Bin with
-  admin-only permanent delete + expiry scanner. Reuses StorageUnit (own key
-  prefix `dms/...`), AuthUnit, PubSub (expiry cron). 9 `dms_*` tables, all
-  tenant schemas. No module dependencies.
+  org-wide Contacts sharing (contact + user grantees), versioned documents,
+  full-text/quick search, Recycle Bin with retention + admin-only permanent
+  delete + legal holds + expiry scanner, Activity Feed via AuditUnit. Reuses
+  StorageUnit (own key prefix `dms/...`), AuthUnit, PubSub (expiry/auto-purge
+  crons), AuditUnit. 12 `dms_*` tables, all tenant schemas. No module deps.
 
 Stubs (package.json only — no source): accounting, crm, fleet, inventory, reports, pharmacy
 ```
@@ -567,12 +588,12 @@ Stubs (package.json only — no source): accounting, crm, fleet, inventory, repo
 ## Known Gaps
 
 1. **`RoleUnassignedEvent` missing `roleName`** — unlike `RoleAssignedEvent` which has `{ roleName, userId }`, the unassigned event only has `{ userId }`.
-2. **No DB-level foreign key constraints in domain modules** — all cross-table references in compliance, tasks, drive, organization, and management-plane are logical (soft FKs by naming convention), not enforced by the database.
+2. **No DB-level foreign key constraints in domain modules** — all cross-table references in compliance, tasks, drive, organization, and management are logical (soft FKs by naming convention), not enforced by the database.
 3. **HR module does not declare `implements Module`** — `HrModule` has `$name`, `static create()`, wired workflows, `$prepareInfra()`, and `$cleanup()`, but does not declare `implements Module` and lacks `$prepareRuntime()`. The class is substantially implemented but not fully conformant.
 4. **`SingleTenantPlatform` and `SharedTenantPlatform` are EXPERIMENTAL** — both constructors emit `console.warn("... Architecture is currently EXPERIMENTAL")`. `IsolatedTenantPlatform` does not warn.
 5. **`IsolatedTenantConfig` has no `resolver` field** — a dummy resolver (`list: async () => []`, `resolve: async (id) => id`) is constructed inline in `IsolatedTenantPlatform.create()` instead of accepting a real `TenantResolver` via config.
 6. **`ManagementPlaneConfig` is `undefined`** — the provisioning workflow expects a richer config (`tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`) but the type hasn't been defined yet.
-7. **Management Plane `$name` is `"management"`** — the module's `$name` is `"management"`, not `"management-plane"` as the package name suggests. Proxy accessor is `p.management`, not `p.managementPlane`.
+7. **Management Plane `$name` is `"management"`** — the module's `$name` is `"management"`, not `"management"` as the package name suggests. Proxy accessor is `p.management`, not `p.managementPlane`.
 8. **`context.actorId` is typed but never populated by the framework** — the `AsyncLocalStorage` context declares `actorId?: string` but the platform never sets it from the authenticated session. Audit entries fall back to `"system"` until app code or middleware populates it.
 9. **ADR-0009 has been accepted for Layer 1** — the `AuditUnit` and `audit_log` table described in ADR-0009's Layer 1 are built and shipped; the ADR status is now "Accepted (Layer 1)". Layer 2 (trigger-based blind-write capture, ADR-0010) remains proposed/unimplemented.
 

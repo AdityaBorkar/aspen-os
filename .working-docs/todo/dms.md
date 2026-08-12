@@ -47,7 +47,8 @@ Feature Pages
 Create a scope-of-work to make a Google Drive like file management system.
 
 > Resolved (see `sow/dms.md`): uploads ARE the entry point, but never land directly in the active set — every upload goes through compulsory indexation via Triage (upload → fill class/tags/metadata/compression → classify → active).
-
+>
+> Krystal DMS inspiration (see `sow/dms.md` §14-15): folded in — retention policies & legal hold, full-text/quick search, document versions & revert, audit-driven activity feeds. Deferred — approval workflows & task inbox, auto-tagging/indexing rules, e-signatures, transmittals, AI discovery, connectors, annotation tools.
 Adobe Acrobat like Document Features
 
 - Doc Merge

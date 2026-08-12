@@ -832,11 +832,11 @@
 
 **Invariants**:
 - Append-only (no updates/deletes)
-- Lives in the platform's `audit_log` table (NOT a management-plane-owned table)
+- Lives in the platform's `audit_log` table (NOT a management-owned table)
 - `entityType` is one of: `tenant`, `serviceProvider`, `platformUser`
-- `action` is one of 17 defined audit actions (e.g., `tenant_provisioned`, `sp_created`, `platform_user_updated`, `role_assigned`) — defined as `as const` constants in `management-plane/src/utils/constants.ts`
-- Written inline in each management-plane workflow via `ctx.audit.write(...)` (NOT via a shared `logAuditStep`)
-- Polymorphic: `entityType` + `entityId` references any management-plane entity
+- `action` is one of 17 defined audit actions (e.g., `tenant_provisioned`, `sp_created`, `platform_user_updated`, `role_assigned`) — defined as `as const` constants in `management/src/utils/constants.ts`
+- Written inline in each management workflow via `ctx.audit.write(...)` (NOT via a shared `logAuditStep`)
+- Polymorphic: `entityType` + `entityId` references any management entity
 
 ### FileMetadata (Aggregate Root — Framework Storage)
 
@@ -1168,7 +1168,7 @@ The HR module defines 43 events across 8 event groups, combined into `HrEventMap
 2. **All timestamps are TIMESTAMPTZ** — `withTimezone: true` on all timestamp columns
 3. **Cascade deletes** — User deletion cascades to sessions and accounts
 4. **No barrel files** — explicit convention in CODING_CONVENTIONS.md
-5. **No DB-level foreign keys in domain modules** — compliance, tasks, drive, organization, and management-plane all use soft FKs (logical references by naming convention, not enforced by the database)
+5. **No DB-level foreign keys in domain modules** — compliance, tasks, drive, organization, and management all use soft FKs (logical references by naming convention, not enforced by the database)
 
 ### Auth
 

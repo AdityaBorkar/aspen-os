@@ -295,7 +295,7 @@ distinguish deliberate vs. blind writes if needed.
 
 **7. Opt-in, not default-on.**
 Capturing every table is expensive and noisy. Start with the tables that
-matter for compliance/replay (the management-plane's `tenant`,
+matter for compliance/replay (the management's `tenant`,
 `service_provider`, `user`; domain modules' primary entities). The
 `audited_tables` infra declaration keeps it explicit and per-module.
 

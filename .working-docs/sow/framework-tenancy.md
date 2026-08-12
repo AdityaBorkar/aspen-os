@@ -344,7 +344,7 @@ async pushSchemasToTenant(tenantId: string, moduleSchemas: Record<string, unknow
 }
 ```
 
-This is called by the management-plane module's `ProvisioningWorkflow` (or equivalent) when a new
+This is called by the management module's `ProvisioningWorkflow` (or equivalent) when a new
 tenant is created.
 
 ---
@@ -643,7 +643,7 @@ decision, not a platform concern.
 
 ### 6.4 User Table Extension
 
-In isolated mode, the `user` table gains an `sp_id` FK column (per the management-plane SOW).
+In isolated mode, the `user` table gains an `sp_id` FK column (per the management SOW).
 This is an app-level concern, not a platform concern — the platform's `AuthUnit` doesn't
 enforce it.
 

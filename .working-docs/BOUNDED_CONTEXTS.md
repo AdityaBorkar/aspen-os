@@ -356,7 +356,7 @@ SingleTenantPlatform.create(config, [organization, tasks])
 
 **Relationship**: Management Plane module implements the `Module` interface. Uses a hybrid pattern — private `#db` field (older pattern), but `$prepareRuntime()` and `$cleanup()` are empty (newer pattern). Workflows are exposed as grouped accessor objects (getter for `tenants`, readonly for `serviceProviders` and `users`).
 
-**Structure** (`packages/management-plane/`):
+**Structure** (`packages/management/`):
 - `ManagementPlane.create(config)` — factory that returns a Module instance
 - `$name = "management"`, `$dependencies = ["organization"]`
 - `$initialize({ db, auth, pubsub })` — stores `db` only; `auth` and `pubsub` accepted but unused
