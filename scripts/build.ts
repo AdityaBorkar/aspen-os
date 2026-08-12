@@ -9,6 +9,29 @@ import deepmerge from "deepmerge";
 const $dev = process.argv.includes("--dev");
 const OUTPUT_DIRNAME = ".output";
 
+const DB_ADAPTERS = [
+  "@aws-sdk/client-rds-data",
+  "@electric-sql/pglite",
+  "@libsql/client",
+  "@libsql/client-wasm",
+  "@libsql/client/http",
+  "@libsql/client/node",
+  "@libsql/client/sqlite3",
+  "@libsql/client/web",
+  "@libsql/client/ws",
+  "@neondatabase/serverless",
+  "@planetscale/database",
+  "@prisma/client",
+  "@tidbcloud/serverless",
+  "@upstash/redis",
+  "@vercel/postgres",
+  "better-sqlite3",
+  "expo-sqlite",
+  "gel",
+  "mysql2",
+  "mysql2/promise",
+];
+
 const ROOT = resolve(process.cwd());
 const TSCONFIG_BUILD = {
   compilerOptions: {
@@ -123,7 +146,7 @@ async function main() {
   for (const { name, src, outdir, target } of entries) {
     const result = await build({
       entrypoints: [src],
-      external: ["drizzle-kit", "drizzle-orm", "@aspen-os/*"],
+      external: DB_ADAPTERS,
       format: "esm",
       minify: false, // true,
       outdir,
