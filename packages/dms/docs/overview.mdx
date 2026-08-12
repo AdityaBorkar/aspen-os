@@ -1,0 +1,126 @@
+---
+title: Overview
+description: Architecture, tenancy model, initialization, config, and module structure of the DMS module.
+icon: IconInfoCircle
+---
+
+The DMS module is a records-oriented document management system built on `@aspen-os/platform`. Unlike the Drive module (a free-form filesystem with folders and paths), DMS is **class-first**: every upload lands in a **Triage** stage and becomes an active **Document** only after it is assigned to a **Document Class** whose mandatory fields have been filled.
+
+All binary storage is delegated to the platform's `StorageUnit` under version-bound keys (`dms/{tenant}/{documentId}/v{n}/{name}`); DMS owns the indexing semantics — classes, fields, tags, metadata, versions, views, contacts, sharing, search, retention, and the recycle bin.
+
+## Module
+
+```ts title="src/module.ts"
+export class Dms implements Module {
+  static create(config?: DmsModuleConfig): Dms;
+  readonly $name = "dms";               // proxy key: p.dms
+  readonly $dependencies: readonly string[] = [];
+}
+```
+
+The module declares no platform-module dependencies. It is deliberately independent of `@aspen-os/drive` — it owns its own `dms_*` tables, storage-key scheme, and lifecycle.
+
+## Architecture
+
+The module operates against the **tenant** database (all 12 tables are tenant schemas; there are no control-plane tables):
+
+```text
+TENANT DATABASE
+  dms_document, dms_document_version
+  dms_document_class, dms_class_field
+  dms_tag, dms_document_tag
+  dms_view, dms_pin, dms_share, dms_contact
+  dms_legal_hold, dms_setting
+```
+
+## What It Exposes
+
+The module exposes 13 workflow groups:
+
+| Getter | Methods |
+|---|---|
+| `activity` | `get`, `getClass`, `getDocument` |
+| `bin` | `deletePermanently`, `empty`, `list`, `restore` |
+| `classes` | `addField`, `archive`, `create`, `deactivateField`, `get`, `list`, `update`, `updateField` |
+| `contacts` | `create`, `get`, `list`, `remove`, `update` |
+| `documents` | `addMetadata`, `delete`, `download`, `get`, `removeMetadata`, `tag`, `untag`, `update`, `upload`, `uploadBulk` |
+| `holds` | `list`, `place`, `release` |
+| `pins` | `create`, `delete`, `list` |
+| `search` | `promoteToView`, `quick`, `search` |
+| `settings` | `get`, `set` |
+| `shares` | `create`, `list`, `listByGrantee`, `remove`, `resolveToken`, `update` |
+| `triage` | `classify`, `detail`, `list` |
+| `versions` | `delete`, `get`, `getCurrent`, `list`, `new`, `revert` |
+| `views` | `apply`, `create`, `delete`, `getDefault`, `list`, `listByOwner`, `pin`, `setDefault`, `unpin`, `update` |
+
+```ts
+// Access via the platform proxy ($name = "dms")
+const p = IsolatedTenantPlatform.create(config, [dms]);
+
+await p.dms.documents.upload({
+  input: { name: "invoice.pdf", body, contentType: "application/pdf", ownerId: userId },
+});
+await p.dms.triage.classify({ id: docId, input: { classId, fieldValues } });
+await p.dms.views.create({ input: { name: "Invoices", ownerId: userId, filters: [...] } });
+```
+
+## Initialization
+
+`$initialize()` receives `db`, `auth`, `pubsub`, and `storage` units, stores `db`/`pubsub`, and binds the `StorageUnit` into the storage bridge (module-level runtime, mirroring Drive):
+
+```ts
+$initialize(units: {
+  db: DatabaseUnit;
+  auth: AuthUnit;
+  pubsub: PubSubUnit;
+  storage: StorageUnit;
+}): void;
+```
+
+`$prepareRuntime()` registers two scheduled pg-boss jobs with `ctx.audit` + the running DB:
+
+| Job | Topic | Cron | Purpose |
+|---|---|---|---|
+| Expiry scanner | `dms:expiry-scan` | `5 0 * * *` | Promotes active documents past their `expiryDate` to `expired` |
+| Auto-purge | `dms:auto-purge` | `30 3 * * *` | Permanently deletes `deleted`/`expired` documents past retention, skipping legal holds |
+
+`$cleanup()` unsubscribes and unschedules both.
+
+## Config
+
+`DmsModuleConfig` (all optional):
+
+```ts
+type DmsModuleConfig = {
+  allowedContentTypes?: string[];   // [] = all types allowed
+  defaultAutoPurgeEveryHours?: number; // 24
+  defaultCompression?: CompressionOption; // { enabled: true, mode: "none" }
+  defaultDownloadLinkExpiry?: number; // 3600 (s)
+  defaultRetentionDays?: number;     // 180
+  maxDownloadLinkExpiry?: number;    // 604800 (7d)
+  maxFileSize?: number;              // 5 GB
+  maxVersions?: number;              // 10
+};
+```
+
+## Infrastructure
+
+`$prepareInfra()` returns:
+
+```ts
+$prepareInfra(): ModuleInfra {
+  return {
+    auth: { acl },                      // document, class, contact, share, view, ...
+    db: { control_plane_schemas: {}, tenant_schemas: dmsTables }, // 12 tenant tables
+    events,                             // dms:* topics
+  };
+}
+```
+
+## Key Invariants
+
+- **Triage gate** — no direct uploads into the active store; classification is the only transition out of Triage (§1).
+- **Version-scoped keys** — renames and naming-schema application are metadata-only; no S3 object moves (§2.4).
+- **Expiry is a lifecycle state** — the expiry scanner promotes documents to `expired`; restore reactivates (§6.1).
+- **Retention is class-based; legal hold overrides** — auto-purge skips held documents; `deletePermanently` rejects them (§6.3).
+- **Admin-only destructive authority** — classes, settings, holds, shared views, permanent deletes and `emptyBin` are admin-managed.

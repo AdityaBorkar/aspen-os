@@ -1,0 +1,51 @@
+---
+title: Access Control
+description: ACL resources and operations declared by the DMS module.
+icon: IconShield
+---
+
+The DMS module declares its ACL via `defineAcl()`, which the platform merges from the module's `ModuleInfra.auth.acl` and applies to `AuthUnit` during `$prepareInfra()`.
+
+## Resources & Operations
+
+```ts title="src/auth.ts"
+import { defineAcl } from "@aspen-os/platform/server";
+
+export const acl = defineAcl({
+  classField: ["create", "deactivate", "read", "update"],
+  contact: ["create", "delete", "read", "update"],
+  document: ["classify", "create", "delete", "download", "read", "restore", "update"],
+  legalHold: ["create", "read"],
+  pin: ["create", "delete", "read"],
+  setting: ["read", "update"],
+  share: ["create", "delete", "read", "update"],
+  view: ["create", "delete", "pin", "read", "set_default", "update"],
+});
+```
+
+| Resource | Operations |
+|---|---|
+| `document` | `classify`, `create`, `delete`, `download`, `read`, `restore`, `update` |
+| `classField` | `create`, `deactivate`, `read`, `update` |
+| `contact` | `create`, `delete`, `read`, `update` |
+| `legalHold` | `create`, `read` |
+| `pin` | `create`, `delete`, `read` |
+| `setting` | `read`, `update` |
+| `share` | `create`, `delete`, `read`, `update` |
+| `view` | `create`, `delete`, `pin`, `read`, `set_default`, `update` |
+
+## Admin-Only Authority
+
+The ACL is the *declaration* of operations; role definitions and permission enforcement are application-level concerns. The following DMS semantics are **admin-only by design** and must be enforced by the host app's roles:
+
+- Manage document classes and class fields (`dms.class.*`, `dms.class.addField`, `dms.class.updateField`, `dms.class.deactivateField`)
+- Publish shared views (`views.create` with `isShared: true`) and update/delete them
+- Read/write module settings (`settings.set`)
+- Place/release legal holds (`holds.place`, `holds.release`)
+- Permanently delete documents from the Recycle Bin (`bin.deletePermanently`, `bin.empty`)
+
+Ordinary users may soft-delete their own documents, restore them, and pin views/triage to their sidebar.
+
+<Callout type="info">
+  The ACL is the *declaration* of operations. Role definitions and permission enforcement are application-level concerns — the module exposes the workflows that perform these operations; the host app decides who may call them.
+</Callout>

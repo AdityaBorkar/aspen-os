@@ -1,0 +1,122 @@
+---
+title: Events
+description: Domain event map for the DMS module — 25 events across 5 event groups.
+icon: IconBell
+---
+
+The DMS module defines domain events across 5 event groups. Events are type-level contracts published as plain string topics via PubSub, for cross-module consumers — the per-document activity feed reads the platform `AuditUnit`, not these topics.
+
+## Event Constants
+
+```ts title="src/pubsub.ts"
+export const DOCUMENT_EVENTS = {
+  CLASSIFIED: "dms:document_classified",
+  DELETED: "dms:document_deleted",
+  EXPIRED: "dms:document_expired",
+  HOLD_PLACED: "dms:document_hold_placed",
+  HOLD_RELEASED: "dms:document_hold_released",
+  PURGED: "dms:document_purged",
+  RESTORED: "dms:document_restored",
+  TAGGED: "dms:document_tagged",
+  UNTAGGED: "dms:document_untagged",
+  UPDATED: "dms:document_updated",
+  UPLOADED: "dms:document_uploaded",
+  VERSION_ADDED: "dms:document_version_added",
+  VERSION_REVERTED: "dms:document_version_reverted",
+} as const;
+
+export const CLASS_EVENTS = {
+  ARCHIVED: "dms:class_archived",
+  CREATED: "dms:class_created",
+  UPDATED: "dms:class_updated",
+} as const;
+
+export const CONTACT_EVENTS = {
+  CREATED: "dms:contact_created",
+  REMOVED: "dms:contact_removed",
+  UPDATED: "dms:contact_updated",
+} as const;
+
+export const SHARE_EVENTS = {
+  CREATED: "dms:share_created",
+  REVOKED: "dms:share_revoked",
+} as const;
+
+export const VIEW_EVENTS = {
+  CREATED: "dms:view_created",
+  DELETED: "dms:view_deleted",
+  PINNED: "dms:view_pinned",
+  UNPINNED: "dms:view_unpinned",
+  UPDATED: "dms:view_updated",
+} as const;
+```
+
+## Event Map
+
+### Document Events
+
+| Event | Payload | Trigger |
+|---|---|---|
+| `dms:document_uploaded` | `{ documentId, batchId?, version, size, contentType }` | Upload / bulk upload |
+| `dms:document_version_added` | `{ documentId, version }` | New version |
+| `dms:document_version_reverted` | `{ documentId, version }` | Version revert |
+| `dms:document_classified` | `{ documentId, classId, docNumber }` | Triage classify |
+| `dms:document_updated` | `{ documentId, changes }` | Update / tag / untag / metadata |
+| `dms:document_tagged` / `dms:document_untagged` | `{ documentId, tag }` | Tag apply / remove |
+| `dms:document_expired` | `{ documentId, expiryDate }` | Expiry scanner |
+| `dms:document_deleted` | `{ documentId, deletedBy }` | Soft delete |
+| `dms:document_restored` | `{ documentId }` | Recycle Bin restore |
+| `dms:document_purged` | `{ documentId, storageKey }` | Permanent delete / auto-purge |
+| `dms:document_hold_placed` / `dms:document_hold_released` | `{ documentId, reason }` | Legal hold mutations |
+
+### Class / Contact / Share / View Events
+
+| Event | Payload | Trigger |
+|---|---|---|
+| `dms:class_created` / `dms:class_updated` / `dms:class_archived` | `{ classId }` | Class mutations (incl. field changes) |
+| `dms:contact_created` / `dms:contact_updated` / `dms:contact_removed` | `{ contactId, reason? }` | Contact mutations |
+| `dms:share_created` / `dms:share_revoked` | `{ shareId, documentId, granteeType, granteeId }` | Share create / revoke |
+| `dms:view_created` / `dms:view_updated` / `dms:view_deleted` / `dms:view_pinned` / `dms:view_unpinned` | `{ viewId }` | View mutations |
+
+## Usage
+
+### Publishing Events
+
+Events are published via `PubSubUnit.publish()`:
+
+```ts
+await p.pubsub.publish("dms:document_classified", {
+  documentId: "doc-1",
+  classId: "cls-1",
+  docNumber: "DOC-000001",
+});
+```
+
+### Subscribing to Events
+
+```ts
+// e.g. react to newly classified documents
+await p.pubsub.subscribe("dms:document_classified", async (message) => {
+  const { classId, documentId } = message.data;
+  // notify downstream systems
+});
+```
+
+## Event Map Type
+
+```ts title="src/pubsub.ts"
+export type DmsEventMap =
+  & DocumentEventMap
+  & ClassEventMap
+  & ContactEventMap
+  & ShareEventMap
+  & ViewEventMap;
+```
+
+<Callout type="info">
+  The event map is a type-level contract — it is not enforced at runtime. Workflows publish events as plain string topics.
+</Callout>
+
+## Activity Feed vs Events
+
+DMS writes every action to the platform `AuditUnit` (`entityType` `dms:document`, `dms:contact`, `dms:class`, `dms:share`, `dms:view`) inline in each workflow. The per-document / per-class activity feed (`p.dms.activity.*`) is a projection over those entries, ordered by `seq`. PubSub events are published separately for cross-module integration and are not the source of the activity feed.

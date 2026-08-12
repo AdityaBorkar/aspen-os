@@ -34,6 +34,11 @@ export const drive = defineDocs({
   docs,
 });
 
+export const dms = defineDocs({
+  dir: `../packages/dms/docs`,
+  docs,
+});
+
 export const constants = defineDocs({
   dir: `../packages/constants/docs`,
   docs,

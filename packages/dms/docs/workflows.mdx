@@ -1,0 +1,152 @@
+---
+title: Workflows
+description: API reference for the workflow groups exposed by the DMS module.
+icon: IconListCheck
+---
+
+The DMS module exposes workflows as flat `Workflow` objects grouped under 13 accessors: `activity`, `bin`, `classes`, `contacts`, `documents`, `holds`, `pins`, `search`, `settings`, `shares`, `triage`, `versions`, and `views`. Access via the platform proxy key `p.dms`.
+
+## Lifecycle Flow
+
+```text
+upload / uploadBulk ──▶ triaged ──classify──▶ active ──▶ expired (expiryDate passed)
+                            │                    │
+                            └── delete ──────────┘──▶ deleted ── retention passes ──▶ auto-purge
+                                          ▲                 │
+                                          └── restore ──────┘
+```
+
+A legal hold placed while `active`/`expired` blocks auto-purge and `deletePermanently`.
+
+## Documents & Triage
+
+```ts
+// Upload lands in Triage (never active directly)
+const doc = await p.dms.documents.upload({
+  input: {
+    name: "invoice.pdf", body, contentType: "application/pdf",
+    ownerId: userId, // optional tags, metadata, compression, batchId
+  },
+});
+const { batchId, documents } = await p.dms.documents.uploadBulk({ input: { inputs: [...] } });
+
+// Triage list + detail
+await p.dms.triage.list({ filters: {} });
+await p.dms.triage.detail({ id: docId }); // incl. missing required fields per candidate class
+
+// Classify — validates required fields, applies file-naming schema (metadata rename)
+await p.dms.triage.classify({ id: docId, input: { classId, fieldValues: { invoiceNumber: "INV-1" } } });
+```
+
+`documents.get` returns the current record; `documents.download` returns a presigned GET URL for the current version (permission-checked, optional activity logging). `documents.update`, `tag`/`untag`, `addMetadata`/`removeMetadata` patch a triaged document or non-schema metadata on an active one. `documents.delete` is a soft-delete to the Recycle Bin.
+
+## Versions
+
+```ts
+await p.dms.versions.new({ documentId, input: { body, name, contentType } });
+await p.dms.versions.list({ documentId });         // current + history
+await p.dms.versions.getCurrent({ documentId });
+await p.dms.versions.get({ documentId, version: 2 }); // presigned URL for a revision
+await p.dms.versions.revert({ documentId, version: 2 }); // promotes version 2 as a NEW current (counters keep incrementing)
+await p.dms.versions.delete({ documentId, version: 2 }); // cannot delete the current version
+```
+
+`new` saves the previous current into `dms_document_version`, bumps the counter, and prunes the oldest versions beyond `maxVersions` (a version under an active legal hold is never pruned). `revert` copies the target revision's bytes into a new current version.
+
+## Classes
+
+```ts
+const cls = await p.dms.classes.create({ input: { name: "Invoice", createdBy: adminId } });
+await p.dms.classes.addField({ input: { classId: cls.id, name: "invoiceNumber", label: "Invoice Number", type: "text", isRequired: true } });
+
+await p.dms.classes.list({ filters: { activeOnly: true } });
+await p.dms.classes.get({ id: cls.id });
+
+await p.dms.classes.update({ id: cls.id, patch: { retentionDays: 90 } });
+await p.dms.classes.updateField({ id: fieldId, patch: { isRequired: false } });
+await p.dms.classes.deactivateField({ id: fieldId });
+
+await p.dms.classes.archive({ id: cls.id }); // blocked while triaged documents reference it
+```
+
+File-naming schemas (e.g. `{class}_{docNumber}_{field:invoiceNumber}-{date:yyyy}.pdf`) are rendered at classify time as a metadata-only rename. Fields whose type is changed after values exist are rejected — deactivate-then-recreate instead.
+
+## Views & Search
+
+```ts
+await p.dms.views.create({
+  input: { name: "Invoices due this month", ownerId: userId, filters: [...], sort: [] },
+});
+await p.dms.views.setDefault({ id: viewId });
+await p.dms.views.pin({ id: viewId });   // / unpin
+await p.dms.views.list({ ownerId: userId });
+await p.dms.views.apply({ viewId: viewId }); // resolves to a document listing
+
+// Search
+await p.dms.search.search({ query: "INV", options: { scope: "mine" } });
+await p.dms.search.quick({ input: { query: "INV" }, userId });
+await p.dms.search.promoteToView({ query: "INV", options: {}, name: "Search: INV", ownerId: userId });
+```
+
+Views never expose triaged/deleted documents unless a condition explicitly targets `status = triaged|deleted` (deleted only to admins). Full-text search covers current-version `name`, tags, metadata scalars, and class `fieldValues` (respecting `Include In Search`), scoped to the caller's visibility.
+
+## Contacts & Sharing
+
+```ts
+await p.dms.contacts.create({
+  input: {
+    firstName, lastName, email, phone, companyName, designation, createdBy,
+  }, // all 6 business fields mandatory
+});
+await p.dms.contacts.update({ id, patch: { phone } });
+await p.dms.contacts.list({ filters: {} });
+await p.dms.contacts.get({ id });
+
+await p.dms.contacts.remove({ id, input: { reason: "Left the project" } }); // reason required; revokes every share
+
+await p.dms.shares.create({
+  input: { documentId, granteeType: "user", granteeId: userId, permission: "viewer", sharedBy: userId },
+});
+await p.dms.shares.update({ id, patch: { permission: "editor" } });
+await p.dms.shares.remove({ id });
+await p.dms.shares.list({ documentId });
+await p.dms.shares.resolveToken({ input: { token } }); // contact (token) download endpoint
+```
+
+Sharing to a `contact` creates a `shareToken`; revoking the share or removing the contact invalidates it immediately. Sharing to a `user` enables access within normal authenticated visibility. Only `active` documents can be shared.
+
+## Recycle Bin, Retention & Holds
+
+```ts
+await p.dms.bin.list({ filters: {} });        // deleted + expired, with provenance + held flag
+await p.dms.bin.restore({ id, expiryDate });  // deleted/expired → active
+
+// Admin only
+await p.dms.bin.deletePermanently({ id });    // rejects documents under an active legal hold
+await p.dms.bin.empty({ filters: {} });       // bulk purge, skipped holders
+
+await p.dms.holds.place({ documentId, placedBy, reason });
+await p.dms.holds.release({ holdId, releasedBy });
+await p.dms.holds.list({ documentId });
+```
+
+Retention counts from `deletedAt`/`expiredAt`, resolved per class (`retentionDays`) falling back to the `defaultRetentionDays` setting. Auto-purge is a system job (no ACL) that skips held documents and never touches triaged/active documents.
+
+## Settings & Activity
+
+```ts
+await p.dms.settings.get({ key: "logDownloads" });
+await p.dms.settings.set({ key: "logDownloads", value: true }); // admin only
+
+await p.dms.activity.get({ entityId: docId, entityType: "document" });
+await p.dms.activity.getDocument({ documentId: docId });
+await p.dms.activity.getClass({ classId: classId });
+```
+
+Activity is a projection over the platform `AuditUnit` (entity types `dms:*`), ordered by `seq`, paged, over the caller's visible scope.
+
+## Notes
+
+- All workflows are `Workflow.name(...)` objects (`dms.document.upload`, `dms.triage.classify`, `dms.version.new`, etc.), each with Valibot input validation.
+- Mutations write audit entries inline (`ctx.audit.write`) and publish `dms:*` domain events via `ctx.pubsub`.
+- Admin-only enforcement points (classes, settings, holds, shared views, permanent deletes, `emptyBin`) are guarded by the caller's role at the application layer; the workflows receive the actor and the host app decides authorization.

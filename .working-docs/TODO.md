@@ -1,5 +1,7 @@
 # TODO
 
+Instead of using sql`uuidv7()`, use a function that returns a UUID v7. The aim is to use as much less sql`` magic statements possible.
+
 WORK ON DMS
 
 WORK ON ORGANIZATION
@@ -12,26 +14,12 @@ WORK ON ORGANIZATION
   - Personal Drafts & Drafts
   - Personal Dashboard & Dashboards
 
----
-
-WORK ON TASK MANAGEMENT
 WORK ON HR MODULE
   - Canvas like Users
   - Custom Roles and RBAC Permissions
   - Users with Branch-wise access controls
-- [ ] CRM
-- [ ] HOSPITAL
-- [ ] RECRUITER
-- [ ] ERP
 
-- Create both apps for DMS. Update Healthcare&Clinic Application to multi-tenant (isolated). Update recruiter to single-tenant.
-  - shaun-healthcare
-  - shaun-clinic
-  - recruiter-alpauls
-  - recruiter-maitriglobal
-  - doclabs
-
----
+WORK ON TASK MANAGEMENT
 
 ## Bugs
 

@@ -1,0 +1,205 @@
+---
+title: DB Schemas
+description: All tenant tables declared by the DMS module — 12 tables + 7 enums across the tenant database.
+icon: IconDatabase
+---
+
+The DMS module declares 12 tables, all in tenant schemas (no control-plane tables). Every table uses `text("id")` with `DEFAULT uuidv7()`. Timestamps use `TIMESTAMPTZ` (`withTimezone: true`).
+
+## Enums
+
+| Enum | Column | Values |
+|---|---|---|
+| `dms_document_status` | `dms_document.status` | `triaged`, `active`, `expired`, `deleted` |
+| `dms_field_type` | `dms_class_field.type` | `text`, `number`, `date`, `select`, `multi-select`, `boolean`, `user`, `contact`, `url`, `email`, `phone` |
+| `dms_grantee_type` | `dms_share.grantee_type` | `contact`, `user` |
+| `dms_share_permission` | `dms_share.permission` | `viewer`, `editor` |
+| `dms_pin_item_type` | `dms_pin.item_type` | `triage`, `view`, `class` |
+
+## Tables
+
+### `dms_document`
+
+Central record. Every uploaded file becomes one row. Has a GIN expression index over `to_tsvector('simple', name || tags || metadata || field_values)` for full-text search.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | Auto UUIDv7 |
+| `doc_number` | text (unique) | Sequential `DOC-000123` |
+| `name` | text | Current file name (may differ from the current version's original name if a naming schema was applied) |
+| `version` | integer | Current version number (starts at 1) |
+| `storage_key` | text | `dms/{tenant}/{id}/v{version}/{safeName}` |
+| `content_type` | text | MIME type |
+| `size` | bigint | Bytes of current version |
+| `etag` | text | S3 ETag for integrity |
+| `class_id` | text (FK) | Document class; `null` while triaged |
+| `status` | enum | `triaged`, `active`, `expired`, `deleted` |
+| `tags` | jsonb | `string[]` — denormalized tag names |
+| `metadata` | jsonb | Free-form key/value |
+| `field_values` | jsonb | Values for the assigned class fields (validated on classify) |
+| `compression` | jsonb | Per-document compression override |
+| `batch_id` | text | Groups bulk uploads |
+| `owner_id` | text | Uploader |
+| `uploaded_by` | text | Who performed the upload |
+| `expiry_date` | date | Optional expiry; when passed, status → `expired` |
+| `expired_at` / `deleted_at` | timestamptz | State transition timestamps |
+| `deleted_by` | text | Who soft-deleted |
+| `created_at` / `updated_at` | timestamptz | Record timestamps |
+
+Indexes: `status`, `class_id`, `batch_id`, `owner_id`, `uploaded_by`, `expiry_date`, GIN `search_vector`.
+
+### `dms_document_version`
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | Auto UUIDv7 |
+| `document_id` | text (FK) | Owning document |
+| `version` | integer | 1-based, unique per document |
+| `storage_key` | text | S3 key for this revision |
+| `name` | text | Original file name at the time this version was written |
+| `content_type` | text | MIME of this version |
+| `size` | bigint | Bytes of this version |
+| `etag` | text | S3 ETag of this version |
+| `compression` | jsonb | Compression applied to this version |
+| `uploaded_by` | text | Who created the version |
+| `is_current` | boolean | Mirrors the document's current version (fast join) |
+| `created_at` | timestamptz | Version creation timestamp |
+
+Unique index on `(document_id, version)`. Indexed on `document_id`.
+
+### `dms_document_class`
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | Auto UUIDv7 |
+| `name` | text | e.g. `Invoice`, `Certificate` |
+| `description` | text | Purpose / guidance |
+| `color` / `icon` | text | UI display hints |
+| `file_naming_schema` | text | Filename template with `{field:<name>}`, `{class}`, `{docNumber}`, `{date:yyyy}` etc. |
+| `retention_days` | integer | Overrides the settings default |
+| `is_active` | boolean | `false` archives the class |
+| `created_by` | text | Admin who created it |
+| `created_at` / `updated_at` | timestamptz | Record timestamps |
+
+### `dms_class_field`
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | Auto UUIDv7 |
+| `class_id` | text (FK) | Owning document class |
+| `name` | text | Unique field key within the class |
+| `label` | text | Display label |
+| `type` | enum | `text`, `number`, `date`, `select`, `multi-select`, `boolean`, `user`, `contact`, `url`, `email`, `phone` |
+| `is_required` | boolean | Must be filled before classify |
+| `include_in_search` | boolean | Indexed for full-text search |
+| `default_value` | jsonb | Auto-filled when not provided |
+| `options` | jsonb | For `select`/`multi-select`: list of allowed values |
+| `sort_order` | integer | Display order |
+| `is_active` | boolean | Inactive fields hidden from classify form |
+| `created_at` / `updated_at` | timestamptz | Record timestamps |
+
+Indexed on `class_id`, unique on `(class_id, name)`.
+
+### `dms_tag` & `dms_document_tag`
+
+Simple many-to-many tag system. `dms_tag.name` is unique. `dms_document_tag` has a unique constraint on `(document_id, tag_id)`. The `dms_document.tags` JSONB column is a denormalized copy for fast search.
+
+### `dms_view`
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | Auto UUIDv7 |
+| `name` | text | View title |
+| `owner_id` | text | Creator |
+| `filters` | jsonb | Array of `{ field, operator, value }` conditions |
+| `sort` | jsonb | Array of `{ field, direction }` |
+| `is_default` | boolean | Auto-applied for the owner |
+| `is_shared` | boolean | Admin-published, visible to all users |
+| `is_pinned` | boolean | Sidebar pin (also in `dms_pin`) |
+| `created_at` / `updated_at` | timestamptz | Record timestamps |
+
+Indexed on `owner_id`, `is_shared`.
+
+### `dms_contact`
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | Auto UUIDv7 |
+| `first_name` / `last_name` | text | Mandatory |
+| `email` | text | Mandatory, org-unique |
+| `phone` | text | Mandatory |
+| `company_name` | text | Mandatory |
+| `designation` | text | Mandatory |
+| `deletion_reason` | text | Required on remove |
+| `linked_user_id` | text | Optional link to internal AuthUnit user |
+| `is_removed` | boolean | Soft-delete flag |
+| `removed_at` | timestamptz | When removed |
+| `created_by` | text | Who added |
+| `created_at` / `updated_at` | timestamptz | Record timestamps |
+
+### `dms_share`
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | Auto UUIDv7 |
+| `document_id` | text (FK) | Shared document |
+| `grantee_type` | enum | `contact` or `user` |
+| `grantee_id` | text | Contact or user ID |
+| `permission` | enum | `viewer` or `editor` |
+| `share_token` | text | Access token for contact grantees |
+| `shared_by` | text | Who created |
+| `expires_at` | timestamptz | Optional expiry |
+| `created_at` | timestamptz | Share creation |
+
+Unique on `(document_id, grantee_type, grantee_id)`. Indexed on `document_id`, `grantee_id`.
+
+### `dms_legal_hold`
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | Auto UUIDv7 |
+| `document_id` | text (FK) | Held document |
+| `reason` | text | Mandatory justification |
+| `placed_by` | text | Admin who placed |
+| `placed_at` | timestamptz | When placed |
+| `released_by` | text | Admin who released |
+| `released_at` | timestamptz | When released (null = active) |
+
+One active hold per document. Indexed on `document_id`, `released_at`.
+
+### `dms_pin`
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | Auto UUIDv7 |
+| `user_id` | text | Pin owner |
+| `item_type` | enum | `triage`, `view`, `class` |
+| `item_id` | text | Referenced item |
+| `sort_order` | integer | Render order |
+| `created_at` | timestamptz | Pin creation |
+
+Unique on `(user_id, item_type, item_id)`.
+
+### `dms_setting`
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | Auto UUIDv7 |
+| `key` | text (unique) | Setting key |
+| `value` | jsonb | Setting value |
+| `created_at` / `updated_at` | timestamptz | Record timestamps |
+
+Default keys: `defaultCompression`, `presignedUrlDefaultExpiry`, `presignedUrlMaxExpiry`, `defaultRetentionDays`, `autoPurgeEveryHours`, `logDownloads`.
+
+## Relationships
+
+```text
+dms_document ──N:1──→ dms_document_class (class assignment)
+dms_document ──1:N──→ dms_document_version (version history)
+dms_document_class ──1:N──→ dms_class_field (class schema)
+dms_document ──N:M──→ dms_tag (via dms_document_tag)
+dms_document ──1:N──→ dms_share (grants)
+dms_contact ──1:N──→ dms_share (contact grants)
+dms_document ──1:N──→ dms_legal_hold (legal holds)
+dms_view ──1:N──→ dms_pin (sidebar pins by owner)
+```
