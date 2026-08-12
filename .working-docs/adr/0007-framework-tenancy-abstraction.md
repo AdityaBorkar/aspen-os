@@ -63,14 +63,17 @@ Key sub-decisions:
 - **Control-plane connection always**. `DatabaseUnit` always holds a
   control-plane pool. `AuthUnit` always uses `controlPlaneDb`. Auth tables
   are exempt from `tenant_id` and RLS.
-- **Client framework unchanged**. The client still has a single `Framework`
+- **Client framework unchanged**. The client still has a single `Platform`
   class (3 units, no DB, no tenancy). The server/client split is orthogonal
   to the tenancy platform choice.
 
 This revises the original ADR-0007, which described a single `Framework`
 class with a `tenancy` config field. ADR-0005 and ADR-0006 (which committed
 to database-per-tenant as the only option) are still valid for the
-`isolated` mode specifically.
+`isolated` mode specifically. The client framework later renamed its
+`Framework` class to `Platform` (matching the server's terminology) with 3
+units (auth, logs, rpc) — the name change is cosmetic, this ADR's "client
+unchanged" point still holds structurally.
 
 ## Consequences
 

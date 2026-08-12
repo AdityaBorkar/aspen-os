@@ -289,13 +289,14 @@
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
-│                        HR DOMAIN (50 tables, 7 sub-domains)         │
+│                        HR DOMAIN (50 tables, 8 sub-domains)         │
 │                                                                     │
 │  Employee ←─ 1:N ─→ Attendance, Leave, Lifecycle, Overtime, Shift   │
 │  Setup: Department, Designation, EmploymentType, Grade, HolidayList │
 │  Access: HR Users, Roles, Permissions, Branch-wise Access           │
-│  (Module partially conformant — not `implements Module`)           │
-│  Tables: 50 (14 control-plane, 36 tenant)                          │
+│  (Module fully conformant — `implements Module`, `$prepareRuntime()`│
+│   schedules DAILY_ATTENDANCE_SYNC + DAILY_LEAVE_ACCRUAL crons)      │
+│  Tables: 50 (14 control-plane, 36 tenant)                           │
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -752,7 +753,7 @@
 - Health insurance management (create, update, delete)
 - Skill map management (create, update, delete)
 
-**Note**: HR workflows are wired to the module class via `$initialize()`. The module is partially conformant — it has `$name`, `static create()`, `$prepareInfra()`, and `$cleanup()` but does not declare `implements Module` and lacks `$prepareRuntime()`.
+**Note**: HR workflows are wired to the module class via `$initialize()`. The module is fully conformant — `implements Module`, `$name = "hr"`, `static create()`, `$prepareInfra()` (returns full `ModuleInfra`), `$prepareRuntime()` (schedules `DAILY_ATTENDANCE_SYNC` + `DAILY_LEAVE_ACCRUAL` crons) and `$cleanup()` (unschedules them). Workflow groups are exposed as `readonly` accessor objects (`access`, `attendance`, `employee`, `leave`, `lifecycle`, `overtime`, `setup`, `shift`), backed by per-action workflow files and per-group `barrel-*` barrels.
 
 ### Tenant (Aggregate Root — Management Plane)
 
@@ -1097,6 +1098,18 @@ The HR module defines 43 events across 8 event groups, combined into `HrEventMap
 | Management Plane | Delete platform user | `p.management.users.delete()` |
 | Management Plane | Assign role | `p.management.users.assignRole()` |
 | Management Plane | Assign user to SP | `p.management.users.assignToServiceProvider()` |
+| HR | Create employee | `p.hr.employee.create()` |
+| HR | Update employee | `p.hr.employee.update()` |
+| HR | Create group | `p.hr.employee.createGroup()` |
+| HR | Create attendance | `p.hr.attendance.create()` |
+| HR | Create check-in | `p.hr.attendance.createCheckin()` |
+| HR | Create leave application | `p.hr.leave.createLeaveApplication()` |
+| HR | Approve leave application | `p.hr.leave.approveLeaveApplication()` |
+| HR | Create shift assignment | `p.hr.shift.createShiftAssignment()` |
+| HR | Create Overtime slip | `p.hr.overtime.createOvertimeSlip()` |
+| HR | Create department | `p.hr.setup.createDepartment()` |
+| HR | Create HR user | `p.hr.access.createUser()` |
+| HR | Grant branch access | `p.hr.access.grantBranchAccess()` |
 
 ### Queries (Read Side)
 
@@ -1166,6 +1179,13 @@ The HR module defines 43 events across 8 event groups, combined into `HrEventMap
 | Management Plane | Get SP users | `p.management.serviceProviders.getUsers()` |
 | Management Plane | Get platform user | `p.management.users.get()` |
 | Management Plane | List platform users | `p.management.users.list()` |
+| HR | Get employee | `p.hr.employee.getById()` |
+| HR | List employees | `p.hr.employee.list()` |
+| HR | Get organizational chart | `p.hr.employee.getOrganizationalChart()` |
+| HR | List leave applications | `p.hr.leave.listLeaveApplications()` |
+| HR | Get leave balance | `p.hr.leave.getLeaveBalance()` |
+| HR | List roles | `p.hr.access.listRoles()` |
+| HR | Get HR settings | `p.hr.setup.getHrSettings()` |
 
 ## Invariants & Business Rules
 
@@ -1175,7 +1195,7 @@ The HR module defines 43 events across 8 event groups, combined into `HrEventMap
 2. **All timestamps are TIMESTAMPTZ** — `withTimezone: true` on all timestamp columns
 3. **Cascade deletes** — User deletion cascades to sessions and accounts
 4. **No barrel files** — explicit convention in CODING_CONVENTIONS.md
-5. **No DB-level foreign keys in domain modules** — compliance, tasks, drive, organization, and management all use soft FKs (logical references by naming convention, not enforced by the database)
+5. **No DB-level foreign keys in domain modules** — compliance, tasks, drive, organization, management, and hr all use soft FKs (logical references by naming convention, not enforced by the database)
 
 ### Auth
 
@@ -1242,6 +1262,11 @@ The HR module defines 43 events across 8 event groups, combined into `HrEventMap
 45. **Audit log append-only** — no updates or deletes; written via platform `ctx.audit.write(...)` inline in each workflow (the platform's `audit_log` table, not a module-local table)
 46. **Tenant-Organization ID sharing** — tenant companion table ID = better-auth organization ID (1:1 relationship)
 47. **Provisioning idempotency** — `CREATE DATABASE` catches "already exists" errors and continues
+
+### HR
+
+48. **Scheduled cron jobs** — `DAILY_ATTENDANCE_SYNC` and `DAILY_LEAVE_ACCRUAL` are registered in `$prepareRuntime()` and unregistered in `$cleanup()`.
+49. **Schema placement** — 14 setup/access tables (departments, designations, grades, employment types, holidays, HR users/roles/permissions/branch-access, settings, payroll settings) live in the control plane (shared across tenants); the 36 operational/transactional tables (employee, attendance, leave, lifecycle, overtime, shift, health insurance, skill maps, groups) live in tenant schemas.
 
 ## Anti-Patterns to Avoid
 

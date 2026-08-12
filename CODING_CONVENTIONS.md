@@ -6,7 +6,7 @@ Conventions extracted from the codebase as it exists today. Every item below is 
 
 - **Bun monorepo** (`@aspen-os`) with a business framework (`@aspen-os/platform`) plus pluggable **units** (infrastructure) and **modules** (domain logic), first-class multi-tenancy, and a Fumadocs docs site (`docs`).
 - **No host/example app** in the repo yet (the intended first app is called "Recruiter"). There is no `examples/` directory.
-- **Workspace state**: `platform`, `organization`, `compliance`, `tasks`, `drive`, `management` fully implemented; `hr` partial (module logic largely written but does not `implement Module` and lacks `$prepareRuntime()`); `accounting`, `crm`, `fleet`, `inventory`, `pharmacy`, `reports` are stubs (`package.json` is just `{ "name": "..." }`).
+- **Workspace state**: `platform`, `organization`, `compliance`, `tasks`, `drive`, `management`, `hr` fully implemented (all six modules conform to the `Module` interface); `accounting`, `crm`, `fleet`, `inventory`, `pharmacy`, `reports` are stubs (`package.json` is just `{ "name": "..." }`). DMS has a written SOW (`sow/dms.md`) and CONTEXT.md terms but is not yet scaffolded as a package.
 - The domain model lives in `.working-docs/` (`DOMAIN_MODEL.md`, `BOUNDED_CONTEXTS.md`, `TODO.md`, `adr/`). `docs/` is the built Fumadocs site — **not** the source of truth for domain docs.
 
 ## General
@@ -282,11 +282,11 @@ export class Organization implements Module {
 }
 ```
 
-**Older** (compliance, drive; hr leans this way): `#private` stored unit references set in `$initialize(units)`; non-empty `$prepareRuntime()` (pubsub schedules/handlers) and `$cleanup()` (unregister + null out). AGENTS.md documents this pattern; note that in practice current modules keep workflow groups as `readonly` properties rather than throwing getters — only `hr` uses `notInitialized()`-throwing getters on all workflow groups.
+**Older** (compliance, drive; hr historically leaned this way): `#private` stored unit references set in `$initialize(units)`; non-empty `$prepareRuntime()` (pubsub schedules/handlers) and `$cleanup()` (unregister + null out). AGENTS.md documents this pattern; note that in practice current modules keep workflow groups as `readonly` properties rather than throwing getters. HR's current rewrite follows this node-based wiring pattern (stores `#pubsub`, schedules/unschedules two crons) but exposes all workflow groups as `readonly` objects.
 
 **Hybrid** (management): `#private` `#db` field set in `$initialize({ db, auth, pubsub })` (stores `units.db` only); `$prepareRuntime()` / `$cleanup()` are empty; the `tenants` getter throws if `#db` is null, while `serviceProviders` / `users` are `readonly`.
 
-**Conforming modules** (management, organization, tasks, compliance, drive, hr): every module follows the management shape — `src/module.ts` holds the class, `src/auth.ts` holds the ACL, `src/pubsub.ts` holds events, `db-schemas/` is directory form, and workflows are one file per action under `workflows/<entity>.<action>.ts` with reusable steps in `workflows/steps/`. Modules that bind workflows to a unit at construction time (`createX(this.#db)`) use a `#db` getter; stateless workflow groups are `readonly` properties composed from imported per-workflow consts.
+**Conforming modules** (management, organization, tasks, compliance, drive, hr): every module follows the management shape — `src/module.ts` holds the class, `src/auth.ts` holds the ACL, `src/pubsub.ts` holds events, `db-schemas/` is directory form, and workflows are one file per action under `workflows/<entity>.<action>.ts` with reusable steps in `workflows/steps/`. Modules that bind workflows to a unit at construction time (`createX(this.#db)`) use a `#db` getter; stateless workflow groups are `readonly` properties composed from imported per-workflow consts. HR additionally provides per-group `barrel-<entity>.ts` files that aggregate its many per-action workflow files.
 
 Key conventions:
 

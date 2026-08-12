@@ -66,14 +66,14 @@
 │  ┌───────────────┐  ┌───────────────┐     └───────────────┘   │
 │  │ Tasks         │  │ Drive         │     ┌───────────────┐   │
 │  │ Module        │  │ Module        │     │ HR Module     │   │
-│  │ 11 workflows  │  │ 6 workflows   │     │ (partial)     │   │
-│  │ 3 services    │  │ 5 services     │     │ 8 workflows    │   │
-│  │ 17 tables     │  │ 8 tables       │     │ 50 tables      │   │
-│  │ 10 events     │  │ 14 events      │     │ 43 events      │   │
-│  │ units:        │  │ units:         │     │ not fully      │   │
-│  │  db, pubsub   │  │  db, storage,  │     │ conformant     │   │
-│  │               │  │  pubsub         │     └───────────────┘   │
-│  └───────────────┘  └───────────────┘                          │
+│  │ 11 workflows  │  │ 6 workflows   │     │ (conformant)  │   │
+│  │ 3 services    │  │ 5 services    │     │ ~250 methods  │   │
+│  │ 17 tables     │  │ 8 tables      │     │ 50 tables     │   │
+│  │ 10 events     │  │ 14 events     │     │ 43 events     │   │
+│  │ units:        │  │ units:        │     │ 2 crons       │   │
+│  │  db, pubsub   │  │  db, storage, │     │ units:        │   │
+│  │               │  │  pubsub       │     │  db, pubsub   │   │
+│  └───────────────┘  └───────────────┘     └───────────────┘   │
 │  ┌───────────────────────────┐                                   │
 │  │ Management Plane          │                                   │
 │  │ Module                    │                                   │
@@ -90,6 +90,12 @@
 │  accounting, crm, fleet, inventory, reports, pharmacy           │
 │  (package.json only — no source)                                 │
 └─────────────────────────────────────────────────────────────────┘
+
+> Workflow counts: figures like "11 workflows" (tasks) / "6 workflows" (drive)
+> / "5 workflows" (organization, compliance) reflect legacy grouped-workflow
+> counts; the modules now follow the one-file-per-action layout
+> (`workflows/<entity>.<action>.ts`), so per-action file counts are much higher.
+> HR (fully conformant) exposes ~250 workflow methods.
 
 ┌─────────────────────────────────────────────────────────────────┐
 │                     CLIENT FRAMEWORK                             │
@@ -346,11 +352,13 @@ SingleTenantPlatform.create(config, [organization, tasks])
 
 **Config**: `DriveModuleConfig = { allowedContentTypes?, maxFileSize?, maxNestingDepth?, maxVersions?, trashRetentionDays?, ... }`
 
-### 15. Downstream: HR Module → Platform (Partial)
+### 15. Downstream: HR Module → Platform (fully conformant)
 
-**Relationship**: HR module implements most of the `Module` interface and receives unit dependencies via `$initialize(units)`. Partially conformant.
+**Relationship**: HR module implements the `Module` interface and receives `{ db, pubsub }` via `$initialize(units)`. Fully conformant since the `workflows/` rewrite to the one-file-per-action pattern.
 
-**Current state**: 8 workflow files (`access.ts`, `attendance.ts`, `employee.ts`, `leave.ts`, `lifecycle.ts`, `overtime.ts`, `setup.ts`, `shift.ts`) — plus a `workflows/index.ts` barrel — with ~235 public methods across 50 database tables (14 control-plane + 36 tenant). The `HrModule` class has `$name = "hr"`, `static create()`, `$initialize()` (wires all 8 workflows with `units.db.db`), `$prepareInfra()` (returns full `ModuleInfra` with ACL, 14 control-plane schemas + 36 tenant schemas, and 8 event groups), and `$cleanup()`. However, it does NOT declare `implements Module` and lacks `$prepareRuntime()`. The HR event map defines 43 events across 8 groups (`EmployeeEventMap`, `AttendanceEventMap`, `LeaveEventMap`, `LifecycleEventMap`, `OvertimeEventMap`, `SetupEventMap`, `ShiftEventMap`, `AccessEventMap`), all combined into `HrEventMap`.
+**Current state**: workflows are one file per action (`<entity>.<action>.ts`) with `steps/` and per-group `barrel-*.ts` barrels (not the 8 monolithic workflow files of the older layout) — ~250 public methods across 50 database tables (14 control-plane + 36 tenant). The `Hr` class has `$name = "hr"`, `static create()`, `$dependencies = []`, `$initialize()` (wires `#pubsub`), `$prepareInfra()` (returns full `ModuleInfra` with ACL, 14 control-plane schemas + 36 tenant schemas, and 8 event groups), `implements Module`, and `$prepareRuntime()` / `$cleanup()` (register/unregister two scheduled crons: daily attendance sync + daily leave accrual). The HR event map defines 43 events across 8 groups (`EmployeeEventMap`, `AttendanceEventMap`, `LeaveEventMap`, `LifecycleEventMap`, `OvertimeEventMap`, `SetupEventMap`, `ShiftEventMap`, `AccessEventMap`), all combined into `HrEventMap`.
+
+**DB-schema split**: control plane holds the 14 setup/access tables (`department`, `designation`, `employeeGrade`, `employmentType`, `holiday`, `holidayList`, `hrPermission`, `hrRole`, `hrRolePermission`, `hrSettings`, `hrUser`, `hrUserBranchAccess`, `hrUserRole`, `payrollSettings`); the 36 tenant tables hold the operational/transactional records (employee, attendance, leave, lifecycle, overtime, shift, employee check-in, groups, health insurance, skill maps, etc.).
 
 ### 16. Downstream: Management Plane Module → Platform
 
@@ -488,7 +496,7 @@ Schemas collected by `DatabaseUnit.prepareWithModules()`: core schemas (`auditSc
 
 ### Scheduled Jobs
 
-Two modules register scheduled cron jobs via PubSub:
+Three modules register scheduled cron jobs via PubSub:
 
 | Module | Topic | Cron | Action |
 |---|---|---|---|
@@ -498,6 +506,8 @@ Two modules register scheduled cron jobs via PubSub:
 | Compliance | `compliance:weekly-summary` | `0 9 * * 1` | Generate weekly summary |
 | Compliance | `compliance:obligation-generate` | `0 6 * * *` | Generate documents from obligations |
 | Drive | `drive:auto-purge` | `0 3 * * *` | Purge trashed items older than retention |
+| HR | `hr:daily-attendance-sync` | `0 1 * * *` | Sync daily attendance records |
+| HR | `hr:daily-leave-accrual` | `0 0 * * *` | Accrue leave balances |
 
 ### Health Check
 
@@ -542,7 +552,7 @@ Two modules register scheduled cron jobs via PubSub:
 | Tasks | Downstream | Platform | — | 11 workflows, 17 tables (6 control + 11 tenant) |
 | Drive | Downstream | Platform, Storage | — | 6 workflows, 8 tables, 5 services |
 | Management Plane | Downstream | Platform, Organization | — | 3 workflow groups, 3 owned tables, 0 shadow tables, 16 events, has build step |
-| HR | Downstream (partial) | Platform | Compliance | 8 workflows, 50 tables, 43 events, not fully conformant |
+| HR | Downstream | Platform | Compliance | ~250 workflow methods, 50 tables (14 control + 36 tenant), 43 events, 2 crons, fully conformant |
 | Accounting | Stub | — | — | Package.json only |
 | CRM | Stub | — | — | Package.json only |
 | Fleet | Stub | — | — | Package.json only |
@@ -589,7 +599,7 @@ Two modules register scheduled cron jobs via PubSub:
 - Drive Folder, Drive File, File Version, Label, Share, Public Link, Access Log, Trash, Storage Bridge, Path Service
 
 ### HR Language
-- Employee, Attendance, Employee Check-in, Leave, Lifecycle, Overtime, Shift, Department, Designation, Employment Type
+- Employee, Attendance, Employee Check-in, Leave, Lifecycle, Overtime, Shift, Department, Designation, Employment Type, Employee Grade, Holiday List, Payroll Settings
 
 ### Management Plane Language
 - Tenant, Tenant Status, Service Provider, Platform User, Audit Log, Provisioning, Tenant Resolver, Control Plane, Tenant Database, Platform Admin, Service Provider User, Report

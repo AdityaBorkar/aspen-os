@@ -1,8 +1,5 @@
 # TODO
 
-/init
-/domain-modeling Update ADRs, BOUNDED_CONTEXTS.md, DOMAIN_MODEL.md, CONTEXT.md, CODING_CONVENTIONS.md to reflect the current design and state of the repository.
-
 WORK ON DMS
 
 WORK ON ORGANIZATION
@@ -19,7 +16,6 @@ WORK ON ORGANIZATION
 
 WORK ON TASK MANAGEMENT
 WORK ON HR MODULE
-  - Implement the HR module
   - Canvas like Users
   - Custom Roles and RBAC Permissions
   - Users with Branch-wise access controls

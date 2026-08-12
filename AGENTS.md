@@ -6,8 +6,7 @@
 
 Workspace state:
 
-- **Fully implemented**: `platform`, `organization`, `compliance`, `tasks`, `drive`, `management` (modules), `constants` (shared enums).
-- **Partial**: `hr` — module logic largely written but the class does not `implements Module` and lacks `$prepareRuntime()`.
+- **Fully implemented**: `platform`, `organization`, `compliance`, `tasks`, `drive`, `management`, `hr` (modules), `constants` (shared enums).
 - **Pure stubs**: `accounting`, `crm`, `fleet`, `inventory`, `pharmacy`, `reports` (package.json is just `{ "name": "..." }`).
 
 Read `CODING_CONVENTIONS.md`, `CONTEXT.md`, and the domain docs in `.working-docs/` (`DOMAIN_MODEL.md`, `BOUNDED_CONTEXTS.md`, `TODO.md`, `adr/`) before modeling domain changes. `CONTEXT.md` documents known gaps. `docs/` is the built documentation site, not the source of truth for domain docs.
@@ -66,12 +65,16 @@ packages/
     src/client/        # Platform class + auth/ logs/ rpc + context.ts, types.ts
     src/cli/           # commander CLI (db-studio, tenants)
   constants/           # Shared enums (country-codes.ts, languages.ts — both files currently empty; enums live in index.ts)
-  organization/        # Domain module (build step) — module.ts auth.ts pubsub.ts db-schemas/ schemas/ workflows/<entity>.<action>.ts + steps/
+  organization/        # Domain module (build step) — module.ts auth.ts pubsub.ts db-schemas/ schemas/
+                       # workflows/<entity>.<action>.ts + steps/
   compliance/          # Domain module — module.ts auth.ts pubsub.ts + services/ utils/constants.ts
   tasks/               # Domain module — module.ts auth.ts pubsub.ts + services/ utils/filter-engine.ts (17 tables)
   drive/               # Domain module — module.ts auth.ts pubsub.ts + services/ runtime.ts
-  management/          # Control-plane module (build step) — module.ts auth.ts pubsub.ts workflows/steps/ (3 owned tables: service_provider, service_provider_user, tenant; no shadow/tenant tables)
-  hr/                  # Domain module — module.ts auth.ts pubsub.ts db-schemas/ (38 tables) workflows/ (class-based → Workflow builder)
+  management/          # Control-plane module (build step) — module.ts auth.ts pubsub.ts
+                       # workflows/steps/ (3 owned tables: service_provider, service_provider_user,
+                       # tenant; no shadow/tenant tables)
+  hr/                  # Domain module — module.ts auth.ts pubsub.ts db-schemas/ (50 tables: 14 control-plane + 36 tenant)
+                       # workflows/ (one file per action → barrel-<group>.ts)
   accounting/ crm/ fleet/ inventory/ pharmacy/ reports/   # stubs
 docs/              # Fumadocs site (port 3005) → Cloudflare Workers (wrangler.jsonc)
 .working-docs/         # Canonical domain model + ADRs + SOWs (source of truth for domain docs)

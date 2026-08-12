@@ -558,17 +558,17 @@ _Avoid_: Onboarding (that's the Tenant Status stage AFTER provisioning), Setup, 
 ┌──────────┐ ┌──────────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────────┐
 │Organizat.│ │   Compliance     │ │    Tasks     │ │    Drive     │ │     HR       │ │ Management Plane │
 │  Module  │ │    Module        │ │   Module     │ │   Module     │ │   Module     │ │     Module       │
-│          │ │                  │ │              │ │              │ │ (partial)    │ │                  │
-│5 workflows│ │ 5 workflows     │ │ 11 workflows│ │ 6 workflows  │ │ 8 workflows  │ │ 3 wf groups     │
-│7 tables  │ │ 3 services       │ │ 3 services   │ │ 5 services   │ │ 0 services   │ │ 3 owned tables   │
-│11 events │ │ 3 tables         │ │ 17 tables    │ │ 8 tables     │ │ 50 tables    │ │ 0 shadow tables  │
-│units:    │ │ 23 events        │ │ 10 events    │ │ 14 events    │ │ 43 events    │ │ 16 events        │
+│          │ │                  │ │              │ │              │ │ (conformant) │ │                  │
+│5 workflows│ │ 5 workflows     │ │ 11 workflows│ │ 6 workflows  │ │ ~250 methods │ │ 3 wf groups     │
+│7 tables  │ │ 3 services       │ │ 3 services   │ │ 5 services   │ │ 50 tables    │ │ 3 owned tables   │
+│11 events │ │ 3 tables         │ │ 17 tables    │ │ 8 tables     │ │ 43 events    │ │ 0 shadow tables  │
+│units:    │ │ 23 events        │ │ 10 events    │ │ 14 events    │ │ 2 crons      │ │ 16 events        │
 │db, pubsub│ │ units:           │ │ units:       │ │ units:       │ │ units:       │ │ deps: organization│
 │          │ │ db, kvStore,     │ │ db, pubsub  │ │ db, storage, │ │ db, pubsub  │ │ units:           │
 │          │ │ pubsub           │ │              │ │ pubsub       │ │              │ │ db, auth, pubsub │
 │          │ │                  │ │              │ │              │ │              │ │                  │
 │          │ │ prepareInfra():  │ │              │ │ prepareInfra│ │ prepareInfra │ │ prepareInfra():  │
-│          │ │ schema push,     │ │              │ │ trash purge  │ │ schema push  │ │ schema push      │
+│          │ │ schema push,     │ │              │ │ trash purge  │ │ 2 crons      │ │ schema push      │
 │          │ │ crons, handlers  │ │              │ │ cron (3 AM)  │ │              │ │                  │
 └──────────┘ └──────────────────┘ └──────────────┘ └──────────────┘ └──────────────┘ └──────────────────┘
 
@@ -587,8 +587,8 @@ Stubs (package.json only — no source): accounting, crm, fleet, inventory, repo
 ## Known Gaps
 
 1. **`RoleUnassignedEvent` missing `roleName`** — unlike `RoleAssignedEvent` which has `{ roleName, userId }`, the unassigned event only has `{ userId }`.
-2. **No DB-level foreign key constraints in domain modules** — all cross-table references in compliance, tasks, drive, organization, and management are logical (soft FKs by naming convention), not enforced by the database.
-3. **HR module does not declare `implements Module`** — `HrModule` has `$name`, `static create()`, wired workflows, `$prepareInfra()`, and `$cleanup()`, but does not declare `implements Module` and lacks `$prepareRuntime()`. The class is substantially implemented but not fully conformant.
+2. **No DB-level foreign key constraints in domain modules** — all cross-table references in compliance, tasks, drive, organization, management, and hr are logical (soft FKs by naming convention), not enforced by the database.
+3. **DMS is specified but not scaffolded** — the DMS domain (see `sow/dms.md`) is fully designed (terms in this glossary, 12 `dms_*` tables, six SOW phases) but no `packages/dms/` exists yet.
 4. **`SingleTenantPlatform` and `SharedTenantPlatform` are EXPERIMENTAL** — both constructors emit `console.warn("... Architecture is currently EXPERIMENTAL")`. `IsolatedTenantPlatform` does not warn.
 5. **`IsolatedTenantConfig` has no `resolver` field** — a dummy resolver (`list: async () => []`, `resolve: async (id) => id`) is constructed inline in `IsolatedTenantPlatform.create()` instead of accepting a real `TenantResolver` via config.
 6. **`ManagementPlaneConfig` is `undefined`** — the provisioning workflow expects a richer config (`tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`) but the type hasn't been defined yet.
@@ -596,6 +596,7 @@ Stubs (package.json only — no source): accounting, crm, fleet, inventory, repo
 8. **`context.actorId` is typed but never populated by the framework** — the `AsyncLocalStorage` context declares `actorId?: string` but the platform never sets it from the authenticated session. Audit entries fall back to `"system"` until app code or middleware populates it.
 9. **ADR-0009 has been accepted for Layer 1** — the `AuditUnit` and `audit_log` table described in ADR-0009's Layer 1 are built and shipped; the ADR status is now "Accepted (Layer 1)". Layer 2 (trigger-based blind-write capture, ADR-0010) remains proposed/unimplemented.
 10. **`audit_log.id` uses `uuid()` + `gen_random_uuid()`** — the one table that deviates from the `text + uuidv7()` ID convention.
+11. **HR module is fully conformant** — `Hr implements Module`, has `$prepareRuntime()`, and follows the one-file-per-action workflow layout. (Earlier docs marked HR "partial/not conformant"; that is no longer the case.)
 
 ## Anti-Patterns
 
