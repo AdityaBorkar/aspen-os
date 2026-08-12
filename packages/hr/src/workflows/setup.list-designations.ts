@@ -7,6 +7,6 @@ const InputSchema = object({});
 
 export const listDesignations = Workflow.name("hr.setup.list-designations")
   .input(InputSchema)
-  .handler(async (input, ctx) => {
+  .handler(async (_input, ctx) => {
     return ctx.db.select().from(designation);
   });

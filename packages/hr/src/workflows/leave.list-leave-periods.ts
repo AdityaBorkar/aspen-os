@@ -7,6 +7,6 @@ const InputSchema = object({});
 
 export const listLeavePeriods = Workflow.name("hr.leave.list-leave-periods")
   .input(InputSchema)
-  .handler(async (input, ctx) => {
+  .handler(async (_input, ctx) => {
     return ctx.db.select().from(leavePeriod);
   });

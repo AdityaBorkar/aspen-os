@@ -7,7 +7,7 @@ const InputSchema = object({});
 
 export const getHrSettings = Workflow.name("hr.setup.get-hr-settings")
   .input(InputSchema)
-  .handler(async (input, ctx) => {
+  .handler(async (_input, ctx) => {
     const [settings] = await ctx.db.select().from(hrSettings).limit(1);
     return settings ?? null;
   });

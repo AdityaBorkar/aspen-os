@@ -9,6 +9,6 @@ export const listEmploymentTypes = Workflow.name(
   "hr.setup.list-employment-types",
 )
   .input(InputSchema)
-  .handler(async (input, ctx) => {
+  .handler(async (_input, ctx) => {
     return ctx.db.select().from(employmentType);
   });

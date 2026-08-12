@@ -34,7 +34,7 @@
     "better-auth": "^1.6.26",
     "bun": "catalog:",
     "commander": "^13.1.0",
-    "drizzle-kit": "^0.31.10",
+    "drizzle-kit": "catalog:",
     "drizzle-orm": "catalog:",
     "nanoid": "^5.1.16",
     "pg": "^8.23.0",

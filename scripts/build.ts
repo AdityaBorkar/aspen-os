@@ -123,7 +123,7 @@ async function main() {
   for (const { name, src, outdir, target } of entries) {
     const result = await build({
       entrypoints: [src],
-      external: ["drizzle-kit", "@aspen-os/*", "@aspen-os/constants"],
+      external: ["drizzle-kit", "drizzle-orm", "@aspen-os/*"],
       format: "esm",
       minify: false, // true,
       outdir,

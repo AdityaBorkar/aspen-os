@@ -7,7 +7,7 @@ const InputSchema = object({});
 
 export const getPayrollSettings = Workflow.name("hr.setup.get-payroll-settings")
   .input(InputSchema)
-  .handler(async (input, ctx) => {
+  .handler(async (_input, ctx) => {
     const [settings] = await ctx.db.select().from(payrollSettings).limit(1);
     return settings ?? null;
   });

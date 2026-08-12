@@ -7,6 +7,6 @@ const InputSchema = object({});
 
 export const listGroups = Workflow.name("hr.employee.list-groups")
   .input(InputSchema)
-  .handler(async (input, ctx) => {
+  .handler(async (_input, ctx) => {
     return ctx.db.select().from(employeeGroup);
   });

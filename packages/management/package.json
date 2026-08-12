@@ -11,7 +11,7 @@
   "dependencies": {
     "@aspen-os/constants": "workspace:*",
     "@aspen-os/platform": "workspace:*",
-    "drizzle-kit": "^0.31.10",
+    "drizzle-kit": "catalog:",
     "drizzle-orm": "catalog:",
     "pg": "^8.23.0",
     "valibot": "catalog:"

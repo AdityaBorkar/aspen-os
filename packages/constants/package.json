@@ -10,8 +10,10 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "files": ["./.output"],
   "name": "@aspen-os/constants",
   "scripts": {
+    "build": "bun run ../../scripts/build.ts",
     "check:lint": "biome check --fix .",
     "check:types": "tsc -b"
   },
