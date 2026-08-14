@@ -16,8 +16,8 @@ import {
 
 interface KvStoreLike {
   del(key: string): Promise<void>;
-  get<T>(key: string): Promise<T | null>;
-  set<T>(key: string, value: T, ttl?: number): Promise<void>;
+  get<TValue>(key: string): Promise<TValue | null>;
+  set<TValue>(key: string, value: TValue, ttl?: number): Promise<void>;
 }
 
 export interface ReminderEngineDeps {
@@ -31,33 +31,33 @@ export interface ReminderEngineDeps {
 export async function registerReminderSchedules({
   pubsub,
 }: Pick<ReminderEngineDeps, "pubsub">): Promise<void> {
-  await pubsub.schedule(
-    SCHEDULED_JOBS.DAILY_EXPIRY_SCAN,
-    CRON_SCHEDULES.DAILY_EXPIRY_SCAN,
-    {},
-    { retryBackoff: true, retryDelay: 60, retryLimit: 3 },
-  );
+  await pubsub.schedule({
+    cron: CRON_SCHEDULES.DAILY_EXPIRY_SCAN,
+    data: {},
+    options: { retryBackoff: true, retryDelay: 60, retryLimit: 3 },
+    topic: SCHEDULED_JOBS.DAILY_EXPIRY_SCAN,
+  });
 
-  await pubsub.schedule(
-    SCHEDULED_JOBS.DAILY_STATUS_TRANSITION,
-    CRON_SCHEDULES.DAILY_STATUS_TRANSITION,
-    {},
-    { retryBackoff: true, retryDelay: 60, retryLimit: 3 },
-  );
+  await pubsub.schedule({
+    cron: CRON_SCHEDULES.DAILY_STATUS_TRANSITION,
+    data: {},
+    options: { retryBackoff: true, retryDelay: 60, retryLimit: 3 },
+    topic: SCHEDULED_JOBS.DAILY_STATUS_TRANSITION,
+  });
 
-  await pubsub.schedule(
-    SCHEDULED_JOBS.DAILY_ESCALATION,
-    CRON_SCHEDULES.DAILY_ESCALATION,
-    {},
-    { retryBackoff: true, retryDelay: 60, retryLimit: 3 },
-  );
+  await pubsub.schedule({
+    cron: CRON_SCHEDULES.DAILY_ESCALATION,
+    data: {},
+    options: { retryBackoff: true, retryDelay: 60, retryLimit: 3 },
+    topic: SCHEDULED_JOBS.DAILY_ESCALATION,
+  });
 
-  await pubsub.schedule(
-    SCHEDULED_JOBS.WEEKLY_SUMMARY,
-    CRON_SCHEDULES.WEEKLY_SUMMARY,
-    {},
-    { retryBackoff: true, retryDelay: 60, retryLimit: 3 },
-  );
+  await pubsub.schedule({
+    cron: CRON_SCHEDULES.WEEKLY_SUMMARY,
+    data: {},
+    options: { retryBackoff: true, retryDelay: 60, retryLimit: 3 },
+    topic: SCHEDULED_JOBS.WEEKLY_SUMMARY,
+  });
 }
 
 export async function registerReminderHandlers(deps: ReminderEngineDeps): Promise<string[]> {
@@ -90,9 +90,7 @@ export async function unregisterReminderEngine(
   topics: string[],
   { pubsub }: Pick<ReminderEngineDeps, "pubsub">,
 ): Promise<void> {
-  for (const topic of topics) {
-    await pubsub.unsubscribe(topic);
-  }
+  await Promise.all(topics.map((topic) => pubsub.unsubscribe(topic)));
 }
 
 export async function scanExpiringAndDueDocuments(deps: ReminderEngineDeps): Promise<number> {
@@ -106,69 +104,75 @@ export async function scanExpiringAndDueDocuments(deps: ReminderEngineDeps): Pro
       { db: deps.db, pubsub: deps.pubsub },
     );
 
-    for (const doc of docs) {
-      if (isSnoozed(doc.snoozedUntil)) {
-        continue;
-      }
+    const processed = await Promise.all(
+      docs.map(async (doc) => {
+        if (isSnoozed(doc.snoozedUntil)) {
+          return 0;
+        }
 
-      const reminderDays = (doc.reminderDays as number[] | null) ?? [90, 60, 30, 7];
+        const reminderDays = (doc.reminderDays as number[] | null) ?? [90, 60, 30, 7];
+        let processedPerDoc = 0;
 
-      if (doc.expiryDate) {
-        const daysUntilExpiry = daysUntil(doc.expiryDate);
-        if (daysUntilExpiry !== null && daysUntilExpiry > 0) {
-          if (shouldNotify(reminderDays, doc.lastNotifiedAt, daysUntilExpiry)) {
-            await deps.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_EXPIRING, {
-              daysUntilExpiry,
-              documentId: doc.id,
-              sourceEntityId: doc.sourceEntityId,
-              sourceModule: doc.sourceModule,
-            });
+        if (doc.expiryDate) {
+          const daysUntilExpiry = daysUntil(doc.expiryDate);
+          if (daysUntilExpiry !== null && daysUntilExpiry > 0) {
+            if (shouldNotify(reminderDays, doc.lastNotifiedAt, daysUntilExpiry)) {
+              await deps.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_EXPIRING, {
+                daysUntilExpiry,
+                documentId: doc.id,
+                sourceEntityId: doc.sourceEntityId,
+                sourceModule: doc.sourceModule,
+              });
 
-            await documents.updateNotifiedAt.run(
-              { id: doc.id },
-              { db: deps.db, pubsub: deps.pubsub },
-            );
+              await documents.updateNotifiedAt.run(
+                { id: doc.id },
+                { db: deps.db, pubsub: deps.pubsub },
+              );
 
-            await deps.audit.write({
-              action: "reminder_sent",
-              entityId: doc.id,
-              entityType: "compliance_document",
-              metadata: { daysUntilExpiry, threshold: "expiry" },
-            });
+              await deps.audit.write({
+                action: "reminder_sent",
+                entityId: doc.id,
+                entityType: "compliance_document",
+                metadata: { daysUntilExpiry, threshold: "expiry" },
+              });
 
-            recordsProcessed++;
+              processedPerDoc++;
+            }
           }
         }
-      }
 
-      if (doc.dueDate && !doc.completedAt) {
-        const daysUntilDue = daysUntil(doc.dueDate);
-        if (daysUntilDue !== null && daysUntilDue > 0) {
-          if (shouldNotify(reminderDays, doc.lastNotifiedAt, daysUntilDue)) {
-            await deps.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_DUE, {
-              daysUntilDue,
-              documentId: doc.id,
-              sourceEntityId: doc.sourceEntityId,
-              sourceModule: doc.sourceModule,
-            });
+        if (doc.dueDate && !doc.completedAt) {
+          const daysUntilDue = daysUntil(doc.dueDate);
+          if (daysUntilDue !== null && daysUntilDue > 0) {
+            if (shouldNotify(reminderDays, doc.lastNotifiedAt, daysUntilDue)) {
+              await deps.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_DUE, {
+                daysUntilDue,
+                documentId: doc.id,
+                sourceEntityId: doc.sourceEntityId,
+                sourceModule: doc.sourceModule,
+              });
 
-            await documents.updateNotifiedAt.run(
-              { id: doc.id },
-              { db: deps.db, pubsub: deps.pubsub },
-            );
+              await documents.updateNotifiedAt.run(
+                { id: doc.id },
+                { db: deps.db, pubsub: deps.pubsub },
+              );
 
-            await deps.audit.write({
-              action: "reminder_sent",
-              entityId: doc.id,
-              entityType: "compliance_document",
-              metadata: { daysUntilDue, threshold: "due" },
-            });
+              await deps.audit.write({
+                action: "reminder_sent",
+                entityId: doc.id,
+                entityType: "compliance_document",
+                metadata: { daysUntilDue, threshold: "due" },
+              });
 
-            recordsProcessed++;
+              processedPerDoc++;
+            }
           }
         }
-      }
-    }
+
+        return processedPerDoc;
+      }),
+    );
+    recordsProcessed += processed.reduce((sum, count) => sum + count, 0 as number);
   } catch {
     errors++;
   }
@@ -196,54 +200,59 @@ export async function transitionExpiredAndOverdueDocuments(
       { db: deps.db, pubsub: deps.pubsub },
     );
 
-    for (const doc of docs) {
-      let newStatus: string | null = null;
+    const processed = await Promise.all(
+      docs.map(async (doc) => {
+        let newStatus: string | null = null;
 
-      const expiryStatus = deriveExpiryStatus(doc.verificationStatus, doc.expiryDate);
-      if (expiryStatus) {
-        newStatus = expiryStatus;
-      }
-
-      const overdueStatus = deriveOverdueStatus(
-        doc.verificationStatus,
-        doc.dueDate,
-        doc.completedAt,
-      );
-      if (overdueStatus && !newStatus) {
-        newStatus = overdueStatus;
-      }
-
-      if (newStatus) {
-        await documents.updateStatus.run(
-          {
-            id: doc.id,
-            performedBy: null,
-            status: newStatus as "expired" | "overdue",
-          },
-          { audit: deps.audit, db: deps.db, pubsub: deps.pubsub },
-        );
-
-        if (newStatus === "expired") {
-          await deps.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_EXPIRED, {
-            category: doc.category,
-            documentId: doc.id,
-            sourceEntityId: doc.sourceEntityId,
-            sourceModule: doc.sourceModule,
-          });
-        } else if (newStatus === "overdue") {
-          const daysOverdue = doc.dueDate ? Math.abs(daysUntil(doc.dueDate) ?? 0) : 0;
-          await deps.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_OVERDUE, {
-            category: doc.category,
-            daysOverdue,
-            documentId: doc.id,
-            sourceEntityId: doc.sourceEntityId,
-            sourceModule: doc.sourceModule,
-          });
+        const expiryStatus = deriveExpiryStatus(doc.verificationStatus, doc.expiryDate);
+        if (expiryStatus) {
+          newStatus = expiryStatus;
         }
 
-        recordsProcessed++;
-      }
-    }
+        const overdueStatus = deriveOverdueStatus(
+          doc.verificationStatus,
+          doc.dueDate,
+          doc.completedAt,
+        );
+        if (overdueStatus && !newStatus) {
+          newStatus = overdueStatus;
+        }
+
+        if (newStatus) {
+          await documents.updateStatus.run(
+            {
+              id: doc.id,
+              performedBy: null,
+              status: newStatus as "expired" | "overdue",
+            },
+            { audit: deps.audit, db: deps.db, pubsub: deps.pubsub },
+          );
+
+          if (newStatus === "expired") {
+            await deps.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_EXPIRED, {
+              category: doc.category,
+              documentId: doc.id,
+              sourceEntityId: doc.sourceEntityId,
+              sourceModule: doc.sourceModule,
+            });
+          } else if (newStatus === "overdue") {
+            const daysOverdue = doc.dueDate ? Math.abs(daysUntil(doc.dueDate) ?? 0) : 0;
+            await deps.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_OVERDUE, {
+              category: doc.category,
+              daysOverdue,
+              documentId: doc.id,
+              sourceEntityId: doc.sourceEntityId,
+              sourceModule: doc.sourceModule,
+            });
+          }
+
+          return 1;
+        }
+
+        return 0;
+      }),
+    );
+    recordsProcessed += processed.reduce((sum, count) => sum + count, 0 as number);
   } catch {
     errors++;
   }
@@ -269,40 +278,52 @@ export async function scanEscalations(deps: ReminderEngineDeps): Promise<number>
       { db: deps.db, pubsub: deps.pubsub },
     );
 
-    for (const doc of docs) {
-      const escalationDays = (doc.escalationDays as number[] | null) ?? DEFAULT_ESCALATION_DAYS;
+    const processed = await Promise.all(
+      docs.map(async (doc) => {
+        const escalationDays = (doc.escalationDays as number[] | null) ?? DEFAULT_ESCALATION_DAYS;
 
-      const targetDate = doc.expiryDate ?? doc.dueDate;
-      if (!targetDate) {
-        continue;
-      }
+        const targetDate = doc.expiryDate ?? doc.dueDate;
+        if (!targetDate) {
+          return 0;
+        }
 
-      const daysSinceTarget = daysSince(targetDate);
-      if (daysSinceTarget === null) {
-        continue;
-      }
+        const daysSinceTarget = daysSince(targetDate);
+        if (daysSinceTarget === null) {
+          return 0;
+        }
 
-      const escalationLevel = shouldEscalate(escalationDays, doc.lastEscalatedAt, daysSinceTarget);
+        const escalationLevel = shouldEscalate(
+          escalationDays,
+          doc.lastEscalatedAt,
+          daysSinceTarget,
+        );
 
-      if (escalationLevel !== null) {
-        await deps.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_ESCALATED, {
-          daysSinceExpiry: daysSinceTarget,
-          documentId: doc.id,
-          escalationLevel,
-        });
+        if (escalationLevel !== null) {
+          await deps.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_ESCALATED, {
+            daysSinceExpiry: daysSinceTarget,
+            documentId: doc.id,
+            escalationLevel,
+          });
 
-        await documents.updateEscalatedAt.run({ id: doc.id }, { db: deps.db, pubsub: deps.pubsub });
+          await documents.updateEscalatedAt.run(
+            { id: doc.id },
+            { db: deps.db, pubsub: deps.pubsub },
+          );
 
-        await deps.audit.write({
-          action: "escalated",
-          entityId: doc.id,
-          entityType: "compliance_document",
-          metadata: { daysSinceExpiry: daysSinceTarget, escalationLevel },
-        });
+          await deps.audit.write({
+            action: "escalated",
+            entityId: doc.id,
+            entityType: "compliance_document",
+            metadata: { daysSinceExpiry: daysSinceTarget, escalationLevel },
+          });
 
-        recordsProcessed++;
-      }
-    }
+          return 1;
+        }
+
+        return 0;
+      }),
+    );
+    recordsProcessed += processed.reduce((sum, count) => sum + count, 0 as number);
   } catch {
     errors++;
   }

@@ -2,7 +2,7 @@ import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
 
 import { IdSchema } from "../types";
-import { fetchProjectStep } from "./steps/fetch-project";
+import { fetchProjectStep } from "../workflow-steps/fetch-project";
 
 export const getProject = Workflow.name("project.get")
   .input(object({ id: IdSchema }))

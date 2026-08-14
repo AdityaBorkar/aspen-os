@@ -6,7 +6,7 @@ import { driveFolder } from "../db-schemas";
 import { DRIVE_EVENTS } from "../pubsub";
 import { cascadePaths, checkNameUniqueness, getFolderPath } from "../services/path-service";
 import { RenameFolderSchema } from "../types";
-import { fetchFolderStep } from "./steps/fetch-folder";
+import { fetchFolderStep } from "../workflow-steps/fetch-folder";
 
 const RenameInputSchema = object({ id: string(), input: RenameFolderSchema });
 

@@ -5,7 +5,7 @@ import { object, string } from "valibot";
 import { connection } from "../db-schemas";
 import { CONNECTION_EVENTS } from "../pubsub";
 import { UpdateConnectionSchema } from "../types";
-import { fetchConnectionStep } from "./steps/fetch-connection";
+import { fetchConnectionStep } from "../workflow-steps/fetch-connection";
 
 const UpdateInputSchema = object({
   id: string(),

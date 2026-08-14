@@ -119,13 +119,16 @@ export function buildEmployeeTree(
   parentId: string | null,
 ): EmployeeTreeNode[] {
   return employees
-    .filter((e) => e.reportsTo === parentId)
-    .map((e) => ({
-      children: buildEmployeeTree(employees, String(e.id)),
-      designation: String(e.designation),
-      id: String(e.id),
-      image: e.image === null || e.image === undefined ? null : String(e.image),
-      name: `${String(e.firstName)} ${String(e.lastName)}`.trim(),
+    .filter((employeeItem) => employeeItem.reportsTo === parentId)
+    .map((employeeItem) => ({
+      children: buildEmployeeTree(employees, String(employeeItem.id)),
+      designation: String(employeeItem.designation),
+      id: String(employeeItem.id),
+      image:
+        employeeItem.image === null || employeeItem.image === undefined
+          ? null
+          : String(employeeItem.image),
+      name: `${String(employeeItem.firstName)} ${String(employeeItem.lastName)}`.trim(),
     }));
 }
 
@@ -282,10 +285,9 @@ export async function createLeaveLedgerEntry(
 
 export async function checkLeaveBlockList(
   db: NodePgDatabase,
-  _employeeId: string,
-  fromDate: string,
-  toDate: string,
+  options: { fromDate: string; toDate: string },
 ): Promise<void> {
+  const { fromDate, toDate } = options;
   const blockedDates = await db
     .select()
     .from(leaveBlockList)
@@ -300,7 +302,7 @@ export async function checkLeaveBlockList(
   if (blockedDates.length > 0) {
     throw new Error(
       `Leave is blocked for the selected dates. Blocked periods: ${blockedDates
-        .map((b) => b.name)
+        .map((blockedPeriod) => blockedPeriod.name)
         .join(", ")}`,
     );
   }
@@ -308,33 +310,36 @@ export async function checkLeaveBlockList(
 
 export async function checkLeaveBalance(
   db: NodePgDatabase,
-  employeeId: string,
-  leaveType: string,
-  days: number,
+  options: {
+    days: number;
+    employeeId: string;
+    leaveType: string;
+  },
 ): Promise<void> {
+  const { days, employeeId, leaveType: leaveTypeName } = options;
   const allocations = await db
     .select()
     .from(leaveAllocation)
     .where(
       and(
         eq(leaveAllocation.employeeId, employeeId),
-        eq(leaveAllocation.leaveType, leaveType),
+        eq(leaveAllocation.leaveType, leaveTypeName),
         eq(leaveAllocation.status, "active"),
       ),
     );
 
-  const leaveTypeRecord = await fetchLeaveTypeById(db, leaveType);
+  const leaveTypeRecord = await fetchLeaveTypeById(db, leaveTypeName);
 
   if (allocations.length === 0) {
     if (!leaveTypeRecord.allowNegativeBalance) {
-      throw new Error(`No active leave allocation found for leave type "${leaveType}".`);
+      throw new Error(`No active leave allocation found for leave type "${leaveTypeName}".`);
     }
     return;
   }
 
-  const allocation = allocations[0];
+  const [allocation] = allocations;
   if (!allocation) {
-    throw new Error(`No active leave allocation found for leave type "${leaveType}".`);
+    throw new Error(`No active leave allocation found for leave type "${leaveTypeName}".`);
   }
 
   const available =
@@ -507,6 +512,7 @@ export async function wouldCreateCircular(
   let depth = 0;
   const maxDepth = 10;
 
+  // oxlint-disable eslint/no-await-in-loop
   while (currentId !== null) {
     if (currentId === deptId) {
       return true;
@@ -527,6 +533,7 @@ export async function wouldCreateCircular(
     currentId = parent.parentDepartment;
     depth++;
   }
+  // oxlint-enable eslint/no-await-in-loop
 
   return false;
 }
@@ -626,8 +633,8 @@ export async function getUserPermissionsUtil(
     .where(inArray(hrRolePermission.roleId, roleIds));
 
   const seen = new Set<string>();
-  return permissions.filter((p) => {
-    const key = `${p.module}:${p.action}`;
+  return permissions.filter((permission) => {
+    const key = `${permission.module}:${permission.action}`;
     if (seen.has(key)) {
       return false;
     }
@@ -672,12 +679,12 @@ export async function getAccessibleBranchesUtil(
     .where(and(eq(hrUserRole.hrUserId, hrUserId), isNotNull(hrUserRole.branchId)));
 
   const branchIds = new Set<string>();
-  for (const d of direct) {
-    branchIds.add(d.branchId);
+  for (const directRow of direct) {
+    branchIds.add(directRow.branchId);
   }
-  for (const r of roleBased) {
-    if (r.branchId) {
-      branchIds.add(r.branchId);
+  for (const roleRow of roleBased) {
+    if (roleRow.branchId) {
+      branchIds.add(roleRow.branchId);
     }
   }
   return [...branchIds];

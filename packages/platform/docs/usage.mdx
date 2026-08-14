@@ -58,24 +58,24 @@ Auth operations go through the `_` getter, structured as `resource.action`:
 
 ```ts
 // Create a user
-await p.auth._.user.create({
+await p.auth.rest.user.create({
   email: "user@example.com",
   password: "secure-password",
   name: "John Doe",
 });
 
 // Create a session
-await p.auth._.session.create({ email: "user@example.com", password: "..." });
+await p.auth.rest.session.create({ email: "user@example.com", password: "..." });
 
 // Validate a session
-await p.auth._.session.validate({ token });
+await p.auth.rest.session.validate({ token });
 
 // Assign/remove a role
-await p.auth._.user.role.assign({ userId, roleName: "admin" });
-await p.auth._.user.role.unassign({ userId, roleName: "admin" });
+await p.auth.rest.user.role.assign({ userId, roleName: "admin" });
+await p.auth.rest.user.role.unassign({ userId, roleName: "admin" });
 
 // List roles
-await p.auth._.role.list();
+await p.auth.rest.role.list();
 ```
 
 `p.auth.service` is the raw better-auth instance; `p.auth.fetchHandler(request)` serves HTTP auth requests.

@@ -1,7 +1,7 @@
 import { getContext } from "@aspen-os/platform/server";
 import { and, eq, ilike, or, sql } from "drizzle-orm";
 
-import * as s from "../db-schemas";
+import * as schemas from "../db-schemas";
 import type { SearchOptions, SearchResult } from "../types";
 
 export async function search(opts: SearchOptions): Promise<SearchResult> {
@@ -10,21 +10,21 @@ export async function search(opts: SearchOptions): Promise<SearchResult> {
   const offset = opts.offset ?? 0;
   const searchTerm = opts.query ? `%${opts.query}%` : null;
 
-  const folderConditions = [eq(s.driveFolder.isTrashed, false)];
-  const fileConditions = [eq(s.driveFile.isTrashed, false)];
+  const folderConditions = [eq(schemas.driveFolder.isTrashed, false)];
+  const fileConditions = [eq(schemas.driveFile.isTrashed, false)];
 
   if (searchTerm) {
     const folderSearch = or(
-      ilike(s.driveFolder.name, searchTerm),
-      ilike(s.driveFolder.description, searchTerm),
+      ilike(schemas.driveFolder.name, searchTerm),
+      ilike(schemas.driveFolder.description, searchTerm),
     );
     if (folderSearch) {
       folderConditions.push(folderSearch);
     }
 
     const fileSearch = or(
-      ilike(s.driveFile.name, searchTerm),
-      ilike(s.driveFile.description, searchTerm),
+      ilike(schemas.driveFile.name, searchTerm),
+      ilike(schemas.driveFile.description, searchTerm),
     );
     if (fileSearch) {
       fileConditions.push(fileSearch);
@@ -32,39 +32,39 @@ export async function search(opts: SearchOptions): Promise<SearchResult> {
   }
 
   if (opts.ownerId) {
-    folderConditions.push(eq(s.driveFolder.ownerId, opts.ownerId));
-    fileConditions.push(eq(s.driveFile.ownerId, opts.ownerId));
+    folderConditions.push(eq(schemas.driveFolder.ownerId, opts.ownerId));
+    fileConditions.push(eq(schemas.driveFile.ownerId, opts.ownerId));
   }
 
   if (opts.contentType) {
-    fileConditions.push(eq(s.driveFile.contentType, opts.contentType));
+    fileConditions.push(eq(schemas.driveFile.contentType, opts.contentType));
   }
 
   if (opts.dateFrom) {
-    folderConditions.push(sql`${s.driveFolder.createdAt} >= ${opts.dateFrom}`);
-    fileConditions.push(sql`${s.driveFile.createdAt} >= ${opts.dateFrom}`);
+    folderConditions.push(sql`${schemas.driveFolder.createdAt} >= ${opts.dateFrom}`);
+    fileConditions.push(sql`${schemas.driveFile.createdAt} >= ${opts.dateFrom}`);
   }
 
   if (opts.dateTo) {
-    folderConditions.push(sql`${s.driveFolder.createdAt} <= ${opts.dateTo}`);
-    fileConditions.push(sql`${s.driveFile.createdAt} <= ${opts.dateTo}`);
+    folderConditions.push(sql`${schemas.driveFolder.createdAt} <= ${opts.dateTo}`);
+    fileConditions.push(sql`${schemas.driveFile.createdAt} <= ${opts.dateTo}`);
   }
 
   if (opts.sizeMin !== undefined) {
-    fileConditions.push(sql`${s.driveFile.size} >= ${opts.sizeMin}`);
+    fileConditions.push(sql`${schemas.driveFile.size} >= ${opts.sizeMin}`);
   }
 
   if (opts.sizeMax !== undefined) {
-    fileConditions.push(sql`${s.driveFile.size} <= ${opts.sizeMax}`);
+    fileConditions.push(sql`${schemas.driveFile.size} <= ${opts.sizeMax}`);
   }
 
-  let folders: (typeof s.driveFolder.$inferSelect)[] = [];
-  let files: (typeof s.driveFile.$inferSelect)[] = [];
+  let folders: (typeof schemas.driveFolder.$inferSelect)[] = [];
+  let files: (typeof schemas.driveFile.$inferSelect)[] = [];
 
   if (!opts.type || opts.type === "folder") {
     folders = await db
       .select()
-      .from(s.driveFolder)
+      .from(schemas.driveFolder)
       .where(and(...folderConditions))
       .limit(limit)
       .offset(offset);
@@ -73,7 +73,7 @@ export async function search(opts: SearchOptions): Promise<SearchResult> {
   if (!opts.type || opts.type === "file") {
     files = await db
       .select()
-      .from(s.driveFile)
+      .from(schemas.driveFile)
       .where(and(...fileConditions))
       .limit(limit)
       .offset(offset);
@@ -87,28 +87,28 @@ export async function search(opts: SearchOptions): Promise<SearchResult> {
   return { files, folders };
 }
 
-async function filterByLabels<T extends { id: string }>(
-  items: T[],
+async function filterByLabels<TValue extends { id: string }>(
+  items: TValue[],
   itemType: "file" | "folder",
   labelIds: string[],
-): Promise<T[]> {
+): Promise<TValue[]> {
   if (items.length === 0) {
     return items;
   }
 
   const { db } = getContext();
-  const itemIds = items.map((i) => i.id);
+  const itemIds = items.map((item) => item.id);
   const labelledItems = await db
-    .select({ itemId: s.driveItemLabel.itemId })
-    .from(s.driveItemLabel)
+    .select({ itemId: schemas.driveItemLabel.itemId })
+    .from(schemas.driveItemLabel)
     .where(
       and(
-        eq(s.driveItemLabel.itemType, itemType),
-        sql`${s.driveItemLabel.itemId} = ANY(${itemIds})`,
-        sql`${s.driveItemLabel.labelId} = ANY(${labelIds})`,
+        eq(schemas.driveItemLabel.itemType, itemType),
+        sql`${schemas.driveItemLabel.itemId} = ANY(${itemIds})`,
+        sql`${schemas.driveItemLabel.labelId} = ANY(${labelIds})`,
       ),
     );
 
-  const labelledIds = new Set(labelledItems.map((l) => l.itemId));
-  return items.filter((i) => labelledIds.has(i.id));
+  const labelledIds = new Set(labelledItems.map((label) => label.itemId));
+  return items.filter((item) => labelledIds.has(item.id));
 }

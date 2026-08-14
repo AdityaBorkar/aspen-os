@@ -14,7 +14,7 @@ import {
   wouldCreateCycle,
 } from "../services/item-path-service";
 import { MoveFolderSchema } from "../types";
-import { fetchItemFolderStep } from "./steps/fetch-item-folder";
+import { fetchItemFolderStep } from "../workflow-steps/fetch-item-folder";
 
 const MoveInputSchema = object({ id: string(), input: MoveFolderSchema });
 

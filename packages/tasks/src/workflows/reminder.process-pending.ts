@@ -14,30 +14,28 @@ export const processPendingReminders = Workflow.name("reminder.process-pending")
   async (_input: undefined, ctx) => {
     const pending = await getPendingReminders.run(undefined);
 
-    let processed = 0;
+    await Promise.all(
+      pending.map(async (row) => {
+        await ctx.pubsub.publish(REMINDER_EVENTS.FIRED, {
+          reminder: { id: row.id, type: row.type, userId: row.userId },
+          taskId: row.taskId,
+        });
 
-    for (const r of pending) {
-      await ctx.pubsub.publish(REMINDER_EVENTS.FIRED, {
-        reminder: { id: r.id, type: r.type, userId: r.userId },
-        taskId: r.taskId,
-      });
+        await ctx.db.update(reminder).set({ isSent: true }).where(eq(reminder.id, row.id));
 
-      await ctx.db.update(reminder).set({ isSent: true }).where(eq(reminder.id, r.id));
+        if (row.isRecurring && row.interval) {
+          await scheduleNextOccurrence(ctx.db, row);
+        }
+      }),
+    );
 
-      if (r.isRecurring && r.interval) {
-        await scheduleNextOccurrence(ctx.db, r);
-      }
-
-      processed++;
-    }
-
-    return processed;
+    return pending.length;
   },
 );
 
 async function scheduleNextOccurrence(
   db: DrizzleDB,
-  r: {
+  row: {
     id: string;
     interval: string | null;
     remindAt: Date;
@@ -46,22 +44,22 @@ async function scheduleNextOccurrence(
     userId: string;
   },
 ): Promise<void> {
-  if (!r.interval) {
+  if (!row.interval) {
     return;
   }
 
-  const nextDate = computeNextOccurrence(r.remindAt, r.interval);
+  const nextDate = computeNextOccurrence(row.remindAt, row.interval);
   if (!nextDate) {
     return;
   }
 
   await db.insert(reminder).values({
-    interval: r.interval,
+    interval: row.interval,
     isRecurring: true,
     remindAt: nextDate,
-    taskId: r.taskId,
-    type: r.type as ReminderType,
-    userId: r.userId,
+    taskId: row.taskId,
+    type: row.type as ReminderType,
+    userId: row.userId,
   });
 }
 

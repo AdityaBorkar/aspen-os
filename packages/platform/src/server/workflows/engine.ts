@@ -42,13 +42,14 @@ async function validateInput(schema: StandardSchema, input: unknown): Promise<un
   return result.value;
 }
 
-async function executeStep<TSchemas extends Record<string, unknown>, T>(
-  db: DrizzleDB<TSchemas>,
-  runId: string,
-  name: string,
-  fn: () => T | Promise<T>,
-  options?: StepOptions,
-): Promise<T> {
+async function executeStep<TSchemas extends Record<string, unknown>, TResult>(input: {
+  db: DrizzleDB<TSchemas>;
+  runId: string;
+  name: string;
+  fn: () => TResult | Promise<TResult>;
+  options?: StepOptions;
+}): Promise<TResult> {
+  const { db, runId, name, fn, options } = input;
   const maxAttempts = (options?.retries ?? 0) + 1;
 
   const [existing] = await db
@@ -64,7 +65,7 @@ async function executeStep<TSchemas extends Record<string, unknown>, T>(
     .limit(1);
 
   if (existing) {
-    return existing.output as T;
+    return existing.output as TResult;
   }
 
   const stepId = generateId();
@@ -78,8 +79,9 @@ async function executeStep<TSchemas extends Record<string, unknown>, T>(
     stepName: name,
   });
 
-  let lastError: unknown;
+  let lastError: unknown = undefined;
 
+  // oxlint-disable eslint/no-await-in-loop
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       const result = await fn();
@@ -112,6 +114,7 @@ async function executeStep<TSchemas extends Record<string, unknown>, T>(
       }
     }
   }
+  // oxlint-enable eslint/no-await-in-loop
 
   const completedAt = new Date();
 
@@ -141,23 +144,29 @@ function createStepRunner<TSchemas extends Record<string, unknown>>(
       options?: StepOptions,
     ) => {
       if (typeof nameOrStep === "string") {
-        return executeStep(db, runId, nameOrStep, fnOrInput as () => unknown, options);
+        return executeStep({
+          db,
+          fn: fnOrInput as () => unknown,
+          name: nameOrStep,
+          options,
+          runId,
+        });
       }
       const step = nameOrStep;
       const input = fnOrInput;
-      return executeStep(
+      return executeStep({
         db,
-        runId,
-        step.name,
-        async () => {
+        fn: async () => {
           let validated = input;
           if (step.schema) {
             validated = await validateInput(step.schema, input);
           }
           return step.handler(validated, getCtx());
         },
+        name: step.name,
         options,
-      );
+        runId,
+      });
     }) as StepRunner["run"],
     async sleep(ms: number): Promise<void> {
       await new Promise((resolve) => setTimeout(resolve, ms));
@@ -204,9 +213,7 @@ export async function executeWorkflow<
     workflowName: config.name,
   });
 
-  let ctx: WorkflowContext<TSchemas>;
-  const getCtx = () => ctx;
-  ctx = {
+  const ctx: WorkflowContext<TSchemas> = {
     actorId: options?.actorId ?? store?.actorId,
     audit,
     auth,
@@ -214,7 +221,7 @@ export async function executeWorkflow<
     db: db as DrizzleDB<TSchemas>,
     pubsub,
     runId,
-    step: createStepRunner(db as DrizzleDB<TSchemas>, getCtx, runId),
+    step: createStepRunner(db as DrizzleDB<TSchemas>, () => ctx, runId),
   };
 
   try {

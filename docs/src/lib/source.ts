@@ -1,9 +1,7 @@
 import * as TablerIcons from "@tabler/icons-react";
 import * as serverCollections from "collections/server";
-import type { LoaderPlugin } from "fumadocs-core/source";
-import { loader } from "fumadocs-core/source";
-import type { ReactElement } from "react";
-import { createElement } from "react";
+import { type LoaderPlugin, loader } from "fumadocs-core/source";
+import { createElement, type ReactElement } from "react";
 
 import { DOCS_ROUTE } from "./constants";
 
@@ -21,7 +19,7 @@ function tablerIconPlugin(): LoaderPlugin {
     }
     return createElement(Icon);
   }
-  function replaceIcon<T extends { icon?: unknown }>(node: T): T {
+  function replaceIcon<TNode extends { icon?: unknown }>(node: TNode): TNode {
     if (node.icon === undefined || typeof node.icon === "string") {
       node.icon = resolveIcon(node.icon as string | undefined);
     }

@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { object } from "valibot";
 
 import { organization } from "../db-schemas";
-import { fetchOrganizationStep } from "./steps/fetch-organization";
+import { fetchOrganizationStep } from "../workflow-steps/fetch-organization";
 
 export const deleteLogo = Workflow.name("org.delete-logo")
   .input(object({}))

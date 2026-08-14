@@ -7,7 +7,7 @@ import { DRIVE_EVENTS } from "../pubsub";
 import { getDriveConfig } from "../runtime";
 import { computeStorageKey, upload as uploadStorage } from "../services/storage-bridge";
 import { UpdateFileSchema } from "../types";
-import { fetchFileStep } from "./steps/fetch-file";
+import { fetchFileStep } from "../workflow-steps/fetch-file";
 import { FileIdSchema, pruneOldVersions } from "./utils";
 
 const UpdateInputSchema = object({

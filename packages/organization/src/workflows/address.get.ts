@@ -1,7 +1,7 @@
 import { Workflow } from "@aspen-os/platform/server";
 import { object, string } from "valibot";
 
-import { fetchAddressStep } from "./steps/fetch-address";
+import { fetchAddressStep } from "../workflow-steps/fetch-address";
 
 export const getAddress = Workflow.name("address.get")
   .input(object({ id: string() }))

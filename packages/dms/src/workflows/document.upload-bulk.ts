@@ -13,6 +13,7 @@ export const uploadBulkDocuments = Workflow.name("dms.document.upload-bulk")
     const batchId = crypto.randomUUID();
 
     const documents = [];
+    // oxlint-disable eslint/no-await-in-loop
     for (const item of parsed.inputs) {
       const doc = await uploadDocument.run(
         { input: { ...item, batchId } },
@@ -26,6 +27,7 @@ export const uploadBulkDocuments = Workflow.name("dms.document.upload-bulk")
       );
       documents.push(doc);
     }
+    // oxlint-enable eslint/no-await-in-loop
 
     return { batchId, documents };
   });

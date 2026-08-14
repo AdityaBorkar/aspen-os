@@ -86,10 +86,10 @@ export class AuditUnit {
   }
 
   /** Run fn and write one or more audit entries in the same transaction. */
-  async withTransaction<T>(
-    entry: AuditEntry | ((result: T) => AuditEntry),
-    fn: () => Promise<T>,
-  ): Promise<T> {
+  async withTransaction<TResult>(
+    entry: AuditEntry | ((result: TResult) => AuditEntry),
+    fn: () => Promise<TResult>,
+  ): Promise<TResult> {
     return this.db.transaction(async (tx) => {
       const result = await fn();
       const resolved = typeof entry === "function" ? entry(result) : entry;

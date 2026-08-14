@@ -4,7 +4,7 @@ import { object } from "valibot";
 
 import { status } from "../db-schemas/status";
 import { IdSchema, UpdateStatusSchema } from "../types";
-import { fetchStatusStep } from "./steps/fetch-status";
+import { fetchStatusStep } from "../workflow-steps/fetch-status";
 import { unsetDefaultProjectStatus } from "./utils";
 
 const UpdateInputSchema = object({

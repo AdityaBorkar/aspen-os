@@ -12,31 +12,33 @@ import { type RpcConfig, RpcUnit } from "./rpc";
 import { type StorageConfig, StorageUnit } from "./storage";
 import { context } from "./utils/context";
 
-export type ExtractModuleNames<M extends Module[]> = {
-  [K in keyof M]: M[K] extends { $name: infer N extends string } ? N : never;
+export type ExtractModuleNames<TModules extends Module[]> = {
+  [TKey in keyof TModules]: TModules[TKey] extends { $name: infer TName extends string }
+    ? TName
+    : never;
 };
 
-export type ModuleByName<M extends Module[], K extends M[number]["$name"]> = Extract<
-  M[number],
-  { $name: K }
->;
+export type ModuleByName<
+  TModules extends Module[],
+  TKey extends TModules[number]["$name"],
+> = Extract<TModules[number], { $name: TKey }>;
 
-type UnionToIntersection<T> = (T extends unknown ? (x: T) => void : never) extends (
-  x: infer R,
-) => void
-  ? R
+type UnionToIntersection<TValue> = (
+  TValue extends unknown ? (value: TValue) => void : never
+) extends (value: infer TResult) => void
+  ? TResult
   : never;
 
-export type InferControlPlaneSchemas<M extends Module[]> = UnionToIntersection<
-  M[number] extends Module<infer _N, infer TCP, infer _TT> ? TCP : never
+export type InferControlPlaneSchemas<TModules extends Module[]> = UnionToIntersection<
+  TModules[number] extends Module<infer _N, infer TCP, infer _TT> ? TCP : never
 >;
 
-export type InferTenantSchemas<M extends Module[]> = UnionToIntersection<
-  M[number] extends Module<infer _N, infer _TCP, infer TT> ? TT : never
+export type InferTenantSchemas<TModules extends Module[]> = UnionToIntersection<
+  TModules[number] extends Module<infer _N, infer _TCP, infer TT> ? TT : never
 >;
 
-export type MergedSchemas<M extends Module[]> = InferControlPlaneSchemas<M> &
-  InferTenantSchemas<M> &
+export type MergedSchemas<TModules extends Module[]> = InferControlPlaneSchemas<TModules> &
+  InferTenantSchemas<TModules> &
   Record<string, unknown>;
 
 /**
@@ -84,31 +86,31 @@ export type CommonConfig = {
 };
 
 export abstract class BasePlatform<
-  M extends Module[],
-  S extends Record<string, unknown> = MergedSchemas<M>,
-> implements UnitAccessors<S> {
-  declare readonly audit: PlatformUnits<S>["audit"];
-  declare readonly auth: PlatformUnits<S>["auth"];
-  declare readonly db: PlatformUnits<S>["db"];
-  declare readonly kvStore: PlatformUnits<S>["kvStore"];
-  declare readonly logs: PlatformUnits<S>["logs"];
-  declare readonly pubsub: PlatformUnits<S>["pubsub"];
-  declare readonly rpc: PlatformUnits<S>["rpc"];
-  declare readonly storage: PlatformUnits<S>["storage"];
+  TModules extends Module[],
+  TSchemas extends Record<string, unknown> = MergedSchemas<TModules>,
+> implements UnitAccessors<TSchemas> {
+  declare readonly audit: PlatformUnits<TSchemas>["audit"];
+  declare readonly auth: PlatformUnits<TSchemas>["auth"];
+  declare readonly db: PlatformUnits<TSchemas>["db"];
+  declare readonly kvStore: PlatformUnits<TSchemas>["kvStore"];
+  declare readonly logs: PlatformUnits<TSchemas>["logs"];
+  declare readonly pubsub: PlatformUnits<TSchemas>["pubsub"];
+  declare readonly rpc: PlatformUnits<TSchemas>["rpc"];
+  declare readonly storage: PlatformUnits<TSchemas>["storage"];
 
   constructor(
-    protected readonly units: PlatformUnits<S>,
-    protected readonly modules: M,
+    protected readonly units: PlatformUnits<TSchemas>,
+    protected readonly modules: TModules,
   ) {
     // Biome-ignore lint/correctness/noConstructorReturn: Exception
     return new Proxy(this, {
       get(target, prop, receiver) {
         if (typeof prop === "string") {
-          const unit = target.units[prop as keyof PlatformUnits<S>];
+          const unit = target.units[prop as keyof PlatformUnits<TSchemas>];
           if (unit) {
             return unit;
           }
-          const mod = target.modules.find((m) => m.$name === prop);
+          const mod = target.modules.find((module) => module.$name === prop);
           if (mod) {
             return mod;
           }
@@ -116,16 +118,16 @@ export abstract class BasePlatform<
         return Reflect.get(target, prop, receiver);
       },
     }) as this &
-      PlatformUnits<S> & {
-        [K in M[number]["$name"]]: Extract<M[number], { $name: K }>;
+      PlatformUnits<TSchemas> & {
+        [TKey in TModules[number]["$name"]]: Extract<TModules[number], { $name: TKey }>;
       };
   }
 
-  protected static createCore<M extends Module[], S extends Record<string, unknown>>(
-    db: DatabaseUnit<S>,
+  protected static createCore<TModules extends Module[], TSchemas extends Record<string, unknown>>(
+    db: DatabaseUnit<TSchemas>,
     config: CommonConfig,
-    modules: M,
-  ): { units: PlatformUnits<S>; modules: M } {
+    modules: TModules,
+  ): { units: PlatformUnits<TSchemas>; modules: TModules } {
     const logs = new LogUnit(config.logs, { db });
     const audit = new AuditUnit({ db });
     const pubsub = new PubSubUnit(config.pubsub, { db });
@@ -133,11 +135,11 @@ export abstract class BasePlatform<
     pubsub.setAuth(auth);
     const storage = new StorageUnit(config.storage, { db });
     const kvStore = new KvStoreUnit(config.kvStore, { db });
-    const rpc = new RpcUnit(config.rpc, { auth, db, logs, pubsub });
+    const rpc = new RpcUnit({ auth, db, logs, pubsub }, config.rpc);
 
     const units = { audit, auth, db, kvStore, logs, pubsub, rpc, storage };
 
-    const moduleNames = new Set(modules.map((m) => m.$name));
+    const moduleNames = new Set(modules.map((module) => module.$name));
     for (const mod of modules) {
       for (const dep of mod.$dependencies) {
         if (!moduleNames.has(dep)) {
@@ -201,6 +203,7 @@ export abstract class BasePlatform<
   }
 
   async $cleanup(): Promise<void> {
+    // oxlint-disable eslint/no-await-in-loop
     for (const mod of this.modules) {
       try {
         await this.runInContext(() => mod.$cleanup());
@@ -208,6 +211,8 @@ export abstract class BasePlatform<
         console.error(`Failed to destroy module "${mod.$name}"`);
       }
     }
+    // oxlint-enable eslint/no-await-in-loop
+    // oxlint-disable eslint/no-await-in-loop
     for (const unit of Object.values(this.units)) {
       try {
         await unit.$cleanup();
@@ -215,27 +220,28 @@ export abstract class BasePlatform<
         console.error(`Failed to destroy unit "${unit.$name}"`);
       }
     }
+    // oxlint-enable eslint/no-await-in-loop
   }
 
-  getModule<K extends M[number]["$name"]>(name: K): ModuleByName<M, K> {
-    const mod = this.modules.find((m) => m.$name === name);
+  getModule<TKey extends TModules[number]["$name"]>(name: TKey): ModuleByName<TModules, TKey> {
+    const mod = this.modules.find((module) => module.$name === name);
     if (!mod) {
       throw new Error(`Module "${String(name)}" not found`);
     }
-    return mod as ModuleByName<M, K>;
+    return mod as ModuleByName<TModules, TKey>;
   }
 
-  getUnit<K extends keyof PlatformUnits<S>>(name: K): PlatformUnits<S>[K] {
+  getUnit<TKey extends keyof PlatformUnits<TSchemas>>(name: TKey): PlatformUnits<TSchemas>[TKey] {
     return this.units[name];
   }
 
-  protected runInContext<T>(
-    fn: () => T | Promise<T>,
+  protected runInContext<TValue>(
+    fn: () => TValue | Promise<TValue>,
     overrides?: {
-      db?: NodePgDatabase<S>;
+      db?: NodePgDatabase<TSchemas>;
       tenantId?: string;
     },
-  ): T | Promise<T> {
+  ): TValue | Promise<TValue> {
     const ctx = {
       audit: this.units.audit,
       auth: this.units.auth,

@@ -3,8 +3,8 @@ import { eq } from "drizzle-orm";
 
 import { dmsFolder } from "../db-schemas";
 import { ITEM_EVENTS } from "../pubsub";
+import { fetchItemFolderStep } from "../workflow-steps/fetch-item-folder";
 import { WithIdSchema } from "./item-utils";
-import { fetchItemFolderStep } from "./steps/fetch-item-folder";
 
 export const restoreItemFolder = Workflow.name("dms.folder.restore")
   .input(WithIdSchema)

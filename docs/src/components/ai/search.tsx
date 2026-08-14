@@ -42,6 +42,7 @@ export function AISearchPanelHeader({ className, ...props }: ComponentProps<"div
         "sticky top-0 flex items-start gap-2 rounded-xl border bg-fd-secondary text-fd-secondary-foreground shadow-sm",
         className,
       )}
+      // oxlint-disable-next-line react/jsx-props-no-spreading
       {...props}
     >
       <div className="flex-1 px-3 py-2">
@@ -124,8 +125,8 @@ export function AISearchInput(props: ComponentProps<"form">) {
   const isLoading = status === "streaming" || status === "submitted";
 
   const onStart = useCallback(
-    (e?: SyntheticEvent) => {
-      e?.preventDefault();
+    (event?: SyntheticEvent) => {
+      event?.preventDefault();
       const message = input.trim();
       if (message.length === 0) {
         return;
@@ -152,9 +153,9 @@ export function AISearchInput(props: ComponentProps<"form">) {
     [input, sendMessage],
   );
 
-  const handleChange = useCallback((e: ChangeEvent<HTMLTextAreaElement>) => {
-    setInput(e.target.value);
-    localStorage.setItem(StorageKeyInput, e.target.value);
+  const handleChange = useCallback((event: ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(event.target.value);
+    localStorage.setItem(StorageKeyInput, event.target.value);
   }, []);
 
   const handleKeyDown = useCallback(
@@ -167,15 +168,19 @@ export function AISearchInput(props: ComponentProps<"form">) {
   );
 
   useEffect(() => {
+    document.getElementById(inputId)?.focus();
+  }, [inputId]);
+
+  useEffect(() => {
     if (isLoading) {
       document.getElementById(inputId)?.focus();
     }
   }, [inputId, isLoading]);
 
   return (
+    // oxlint-disable-next-line react/jsx-props-no-spreading
     <form {...props} className={cn("flex items-start pe-2", props.className)} onSubmit={onStart}>
       <Input
-        autoFocus
         className="p-3"
         disabled={status === "streaming" || status === "submitted"}
         id={inputId}
@@ -254,6 +259,7 @@ function List(props: Omit<ComponentProps<"div">, "dir">) {
   return (
     <div
       ref={containerRef}
+      // oxlint-disable-next-line react/jsx-props-no-spreading
       {...props}
       className={cn("fd-scroll-container flex min-w-0 flex-col overflow-y-auto", props.className)}
     >
@@ -269,6 +275,7 @@ function Input(props: ComponentProps<"textarea">) {
   return (
     <div className="grid flex-1">
       <textarea
+        // oxlint-disable-next-line react/jsx-props-no-spreading
         {...props}
         className={cn(
           "resize-none bg-transparent placeholder:text-fd-muted-foreground focus-visible:outline-none",
@@ -288,10 +295,6 @@ const roleName: Record<string, string> = {
 };
 
 function Message({ message, ...props }: { message: ChatUIMessage } & ComponentProps<"div">) {
-  const stopPropagation = useCallback((e: SyntheticEvent) => {
-    e.stopPropagation();
-  }, []);
-
   let markdown = "";
   const searchCalls: UIToolInvocation<SearchTool>[] = [];
 
@@ -303,18 +306,19 @@ function Message({ message, ...props }: { message: ChatUIMessage } & ComponentPr
 
     if (part.type.startsWith("tool-")) {
       const toolName = part.type.slice("tool-".length);
-      const p = part as UIToolInvocation<Tool>;
+      const toolInvocation = part as UIToolInvocation<Tool>;
 
-      if (toolName !== "search" || !p.toolCallId) {
+      if (toolName !== "search" || !toolInvocation.toolCallId) {
         continue;
       }
-      searchCalls.push(p);
+      searchCalls.push(toolInvocation);
     }
   }
 
   return (
     // Biome-ignore lint/a11y/useSemanticElements: chat message container
-    <div onClick={stopPropagation} onKeyDown={stopPropagation} role="group" {...props}>
+    // oxlint-disable-next-line react/jsx-props-no-spreading
+    <div {...props}>
       <p
         className={cn(
           "mb-1 font-medium text-fd-muted-foreground text-sm",
@@ -377,6 +381,7 @@ export function AISearchTrigger({
       )}
       data-state={open ? "open" : "closed"}
       onClick={handleToggle}
+      // oxlint-disable-next-line react/jsx-props-no-spreading
       {...props}
     >
       {props.children}
@@ -397,8 +402,8 @@ export function AISearchPanel() {
 
   const handleOverlayClick = useCallback(() => setOpen(false), [setOpen]);
   const handleOverlayKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLDivElement>) => {
-      if (e.key === "Escape") {
+    (event: KeyboardEvent<HTMLButtonElement>) => {
+      if (event.key === "Escape") {
         setOpen(false);
       }
     },
@@ -432,7 +437,8 @@ export function AISearchPanel() {
       </style>
       {actualOpen ? (
         // Biome-ignore lint/a11y/useSemanticElements: modal overlay backdrop
-        <div
+        <button
+          aria-label="Close search dialog"
           className={cn(
             "fixed inset-0 z-30 bg-fd-overlay backdrop-blur-xs lg:hidden",
             open ? "animate-fd-fade-in" : "animate-fd-fade-out",
@@ -440,8 +446,8 @@ export function AISearchPanel() {
           onAnimationEnd={handleAnimationEnd}
           onClick={handleOverlayClick}
           onKeyDown={handleOverlayKeyDown}
-          role="button"
           tabIndex={-1}
+          type="button"
         />
       ) : null}
       {actualOpen ? (
@@ -475,9 +481,6 @@ export function AISearchPanel() {
 export function AISearchPanelList({ className, style, ...props }: ComponentProps<"div">) {
   const chat = useChatContext();
   const messages = chat.messages.filter((msg) => msg.role !== "system");
-  const stopPropagation = useCallback((e: SyntheticEvent) => {
-    e.stopPropagation();
-  }, []);
 
   return (
     <List
@@ -487,14 +490,13 @@ export function AISearchPanelList({ className, style, ...props }: ComponentProps
           "linear-gradient(to bottom, transparent, white 1rem, white calc(100% - 1rem), transparent 100%)",
         ...style,
       }}
+      // oxlint-disable-next-line react/jsx-props-no-spreading
       {...props}
     >
       {messages.length === 0 ? (
         <div className="flex size-full flex-col items-center justify-center gap-2 text-center text-fd-muted-foreground/80 text-sm">
           <MessageCircleIcon fill="currentColor" stroke="none" />
-          <p onClick={stopPropagation} onKeyDown={stopPropagation}>
-            Start a new chat below.
-          </p>
+          <p>Start a new chat below.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-4 px-3">

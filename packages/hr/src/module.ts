@@ -49,14 +49,14 @@ export class Hr implements Module {
       return;
     }
 
-    await this.#pubsub.schedule(
-      SCHEDULED_JOBS.DAILY_ATTENDANCE_SYNC,
-      CRON_SCHEDULES.DAILY_ATTENDANCE_SYNC,
-    );
-    await this.#pubsub.schedule(
-      SCHEDULED_JOBS.DAILY_LEAVE_ACCRUAL,
-      CRON_SCHEDULES.DAILY_LEAVE_ACCRUAL,
-    );
+    await this.#pubsub.schedule({
+      cron: CRON_SCHEDULES.DAILY_ATTENDANCE_SYNC,
+      topic: SCHEDULED_JOBS.DAILY_ATTENDANCE_SYNC,
+    });
+    await this.#pubsub.schedule({
+      cron: CRON_SCHEDULES.DAILY_LEAVE_ACCRUAL,
+      topic: SCHEDULED_JOBS.DAILY_LEAVE_ACCRUAL,
+    });
   }
 
   async $cleanup(): Promise<void> {

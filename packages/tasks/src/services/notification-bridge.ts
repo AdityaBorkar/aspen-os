@@ -1,18 +1,19 @@
 import type { PubSubUnit } from "@aspen-os/platform/server";
 
-import type {
-  ReminderFiredEvent,
-  TaskAssignedEvent,
-  TaskCommentedEvent,
-  TaskCreatedEvent,
-  TaskDeletedEvent,
-  TaskLinkedEvent,
-  TaskStatusChangedEvent,
-  TaskUnassignedEvent,
-  TaskUnlinkedEvent,
-  TaskUpdatedEvent,
+import {
+  type ReminderFiredEvent,
+  type TaskAssignedEvent,
+  type TaskCommentedEvent,
+  type TaskCreatedEvent,
+  type TaskDeletedEvent,
+  type TaskLinkedEvent,
+  type TaskStatusChangedEvent,
+  type TaskUnassignedEvent,
+  type TaskUnlinkedEvent,
+  type TaskUpdatedEvent,
+  REMINDER_EVENTS,
+  TASK_EVENTS,
 } from "../pubsub";
-import { REMINDER_EVENTS, TASK_EVENTS } from "../pubsub";
 
 export interface NotificationBridgeDeps {
   pubsub: PubSubUnit;

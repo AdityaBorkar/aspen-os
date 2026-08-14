@@ -72,6 +72,7 @@ export async function getDepth(db: DrizzleDB, branchId: string): Promise<number>
   let depth = 0;
   let currentId: string | null = branchId;
 
+  // oxlint-disable eslint/no-await-in-loop
   while (currentId !== null) {
     const [row] = await db
       .select({ parentBranch: branch.parentBranch })
@@ -89,6 +90,7 @@ export async function getDepth(db: DrizzleDB, branchId: string): Promise<number>
       throw new Error(`Branch hierarchy exceeds maximum depth of ${MAX_HIERARCHY_DEPTH}`);
     }
   }
+  // oxlint-enable eslint/no-await-in-loop
 
   return depth;
 }
@@ -101,6 +103,7 @@ async function wouldCreateCircular(
   let currentId: string | null = newParentId;
   let depth = 0;
 
+  // oxlint-disable eslint/no-await-in-loop
   while (currentId !== null) {
     if (currentId === branchId) {
       return true;
@@ -121,6 +124,7 @@ async function wouldCreateCircular(
     currentId = row.parentBranch;
     depth++;
   }
+  // oxlint-enable eslint/no-await-in-loop
 
   return false;
 }
@@ -159,10 +163,10 @@ export function buildTree(
   parentId: string | null,
 ): BranchTreeNode[] {
   return branches
-    .filter((b) => b.parentBranch === parentId)
-    .map((b) => ({
-      children: buildTree(branches, b.id),
-      id: b.id,
-      name: b.name,
+    .filter((branchItem) => branchItem.parentBranch === parentId)
+    .map((branchItem) => ({
+      children: buildTree(branches, branchItem.id),
+      id: branchItem.id,
+      name: branchItem.name,
     }));
 }

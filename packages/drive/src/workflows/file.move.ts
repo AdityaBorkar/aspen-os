@@ -7,7 +7,7 @@ import { DRIVE_EVENTS } from "../pubsub";
 import { checkNameUniqueness, computeFilePath, getFolderPath } from "../services/path-service";
 import { computeStorageKey, move as moveStorage } from "../services/storage-bridge";
 import { MoveFileSchema } from "../types";
-import { fetchFileStep } from "./steps/fetch-file";
+import { fetchFileStep } from "../workflow-steps/fetch-file";
 import { FileIdSchema } from "./utils";
 
 const MoveInputSchema = object({ id: FileIdSchema, input: MoveFileSchema });

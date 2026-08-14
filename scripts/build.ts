@@ -69,7 +69,7 @@ interface RevisedPkg {
   files?: string[];
 }
 
-const relToSrc = (p: string) => p.replace(/^\.\/src\//, "");
+const relToSrc = (srcPath: string) => srcPath.replace(/^\.\/src\//, "");
 const subdirFor = (srcPath: string) => dirname(relToSrc(srcPath));
 
 async function parsePackageJson() {
@@ -131,13 +131,14 @@ async function main() {
   await rm(join(ROOT, OUTPUT_DIRNAME), { force: true, recursive: true });
   await mkdir(join(ROOT, OUTPUT_DIRNAME), { recursive: true });
 
-  const packageJson = deepmerge(pkg, revisedPkg, { arrayMerge: (_, d) => d });
+  const packageJson = deepmerge(pkg, revisedPkg, { arrayMerge: (_destination, source) => source });
   await file(join(ROOT, "package.json")).write(`${JSON.stringify(packageJson, null, 2)}\n`);
 
   if ($dev) {
     return;
   }
 
+  // oxlint-disable eslint/no-await-in-loop
   for (const { name, src, outdir, target } of entries) {
     const result = await build({
       entrypoints: [src],
@@ -155,6 +156,7 @@ async function main() {
       throw new Error(`Build failed for ${name}`);
     }
   }
+  // oxlint-enable eslint/no-await-in-loop
 
   const tsconfigPath = join(ROOT, "tsconfig.build.json");
   try {

@@ -13,31 +13,34 @@ export type SharedTenantConfig = CommonConfig & {
 };
 
 export type SharedTenantPlatformInstance<
-  M extends Module[],
-  S extends Record<string, unknown> = MergedSchemas<M>,
-> = SharedTenantPlatform<M, S> &
-  UnitAccessors<S> &
-  ArrayModuleAccessors<M, ExtractModuleNames<M>[number]>;
+  TModules extends Module[],
+  TSchemas extends Record<string, unknown> = MergedSchemas<TModules>,
+> = SharedTenantPlatform<TModules, TSchemas> &
+  UnitAccessors<TSchemas> &
+  ArrayModuleAccessors<TModules, ExtractModuleNames<TModules>[number]>;
 
 export class SharedTenantPlatform<
-  M extends Module[],
-  S extends Record<string, unknown> = MergedSchemas<M>,
-> extends Base<M, S> {
-  private readonly dbUnit: DatabaseUnit<S>;
+  TModules extends Module[],
+  TSchemas extends Record<string, unknown> = MergedSchemas<TModules>,
+> extends Base<TModules, TSchemas> {
+  private readonly dbUnit: DatabaseUnit<TSchemas>;
 
-  constructor(units: PlatformUnits<S>, modules: M) {
+  constructor(units: PlatformUnits<TSchemas>, modules: TModules) {
     console.warn("Shared Tenant Architecture is currently EXPERIMENTAL");
     super(units, modules);
-    this.dbUnit = units.db as DatabaseUnit<S>;
+    this.dbUnit = units.db as DatabaseUnit<TSchemas>;
   }
 
-  static create<M extends Module[]>(
+  static create<TModules extends Module[]>(
     config: SharedTenantConfig,
-    modules: M,
-  ): SharedTenantPlatformInstance<M> {
-    const db = new DatabaseUnit<MergedSchemas<M>>(config.db, "shared");
-    const core = Base.createCore<M, MergedSchemas<M>>(db, config, modules);
-    return new SharedTenantPlatform<M>(core.units, core.modules) as SharedTenantPlatformInstance<M>;
+    modules: TModules,
+  ): SharedTenantPlatformInstance<TModules> {
+    const db = new DatabaseUnit<MergedSchemas<TModules>>(config.db, "shared");
+    const core = Base.createCore<TModules, MergedSchemas<TModules>>(db, config, modules);
+    return new SharedTenantPlatform<TModules>(
+      core.units,
+      core.modules,
+    ) as SharedTenantPlatformInstance<TModules>;
   }
 
   override async $prepareInfra(): Promise<void> {
@@ -50,7 +53,7 @@ export class SharedTenantPlatform<
     }
   }
 
-  async run<T>(tenantId: string, fn: () => T | Promise<T>): Promise<T> {
+  async run<TValue>(tenantId: string, fn: () => TValue | Promise<TValue>): Promise<TValue> {
     if (isGlobalTenantId(tenantId)) {
       return this.runInContext(fn, { tenantId });
     }

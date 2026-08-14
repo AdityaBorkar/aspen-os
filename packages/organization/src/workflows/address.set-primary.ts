@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { object, string } from "valibot";
 
 import { address } from "../db-schemas";
-import { fetchAddressStep } from "./steps/fetch-address";
+import { fetchAddressStep } from "../workflow-steps/fetch-address";
 import { unsetPrimaryAddress } from "./utils";
 
 export const setPrimary = Workflow.name("address.set-primary")

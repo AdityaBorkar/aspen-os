@@ -87,9 +87,11 @@ export const uploadDocument = Workflow.name("dms.document.upload")
     }
 
     await ctx.step.run("ensure-tags", async () => {
-      for (const tagName of parsed.tags ?? []) {
-        await ctx.db.insert(dmsTag).values({ name: tagName }).onConflictDoNothing();
-      }
+      await Promise.all(
+        (parsed.tags ?? []).map(async (tagName) => {
+          await ctx.db.insert(dmsTag).values({ name: tagName }).onConflictDoNothing();
+        }),
+      );
     });
 
     await ctx.step.run("audit-and-notify", async () => {

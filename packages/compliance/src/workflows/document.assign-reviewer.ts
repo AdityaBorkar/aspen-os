@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { complianceDocument } from "../db-schemas";
 import { COMPLIANCE_EVENTS } from "../pubsub";
 import type { VerificationStatus } from "../utils/constants";
-import { fetchDocumentStep } from "./steps/fetch-document";
+import { fetchDocumentStep } from "../workflow-steps/fetch-document";
 
 const assignDocumentReviewer = Workflow.name("document.assign-reviewer").handler(
   async (input: { id: string; userId: string }, ctx) => {

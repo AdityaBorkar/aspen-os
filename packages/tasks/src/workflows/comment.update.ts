@@ -4,7 +4,7 @@ import { object } from "valibot";
 
 import { comment } from "../db-schemas/comment";
 import { IdSchema, UpdateCommentSchema } from "../types";
-import { fetchCommentStep } from "./steps/fetch-comment";
+import { fetchCommentStep } from "../workflow-steps/fetch-comment";
 
 const UpdateInputSchema = object({
   id: IdSchema,

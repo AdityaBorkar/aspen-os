@@ -5,7 +5,7 @@ import { object, string } from "valibot";
 import { dmsView } from "../db-schemas";
 import { VIEW_EVENTS } from "../pubsub";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../utils/constants";
-import { fetchViewStep } from "./steps/fetch-view";
+import { fetchViewStep } from "../workflow-steps/fetch-view";
 
 const DeleteInputSchema = object({ id: string() });
 

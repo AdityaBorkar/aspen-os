@@ -6,7 +6,7 @@ import { dmsDocument, dmsTag } from "../db-schemas";
 import { DOCUMENT_EVENTS } from "../pubsub";
 import { IdSchema, TagDocumentSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../utils/constants";
-import { fetchDocumentStep } from "./steps/fetch-document";
+import { fetchDocumentStep } from "../workflow-steps/fetch-document";
 
 const TagInputSchema = object({ id: IdSchema, input: TagDocumentSchema });
 
@@ -49,7 +49,7 @@ export const untagDocument = Workflow.name("dms.document.untag")
     const doc = await ctx.step.run(fetchDocumentStep, { documentId: id });
     const { tag } = input;
 
-    const tags = (doc.tags ?? []).filter((t) => t !== tag);
+    const tags = (doc.tags ?? []).filter((existingTag) => existingTag !== tag);
 
     const [updated] = await ctx.db
       .update(dmsDocument)

@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 
 import { driveFolder } from "../db-schemas";
 import { DRIVE_EVENTS } from "../pubsub";
-import { fetchFolderStep } from "./steps/fetch-folder";
+import { fetchFolderStep } from "../workflow-steps/fetch-folder";
 import { WithIdSchema } from "./utils";
 
 export const restoreFolder = Workflow.name("drive.folder.restore")

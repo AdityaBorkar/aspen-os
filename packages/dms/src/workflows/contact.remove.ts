@@ -6,7 +6,7 @@ import { dmsContact, dmsShare } from "../db-schemas";
 import { CONTACT_EVENTS } from "../pubsub";
 import { IdSchema, RemoveContactSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../utils/constants";
-import { fetchContactStep } from "./steps/fetch-contact";
+import { fetchContactStep } from "../workflow-steps/fetch-contact";
 
 const RemoveInputSchema = object({ id: IdSchema, input: RemoveContactSchema });
 

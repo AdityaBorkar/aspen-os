@@ -25,7 +25,7 @@ export async function getActiveFields(
   classId: string,
 ): Promise<ClassFieldRow[]> {
   const rows = await db.select().from(dmsClassField).where(eq(dmsClassField.classId, classId));
-  return rows.filter((r) => r.isActive);
+  return rows.filter((row) => row.isActive);
 }
 
 /**
@@ -89,7 +89,7 @@ export function validateFieldValues(
   return { errors, missing };
 }
 
-const PLACEHOLDER_REGEX = /\{([^}]+)\}/g;
+const PLACEHOLDER_REGEX = /\{(?<key>[^}]+)\}/g;
 
 function padZero(value: number | string, width: number): string {
   return String(value).padStart(width, "0");

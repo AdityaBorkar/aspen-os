@@ -1,7 +1,7 @@
 import { getContext } from "@aspen-os/platform/server";
 import { eq, sql } from "drizzle-orm";
 
-import * as s from "../db-schemas";
+import * as schemas from "../db-schemas";
 import type { FolderDownloadLinkOptions } from "../types";
 import { computeArchiveKey, get, getSignedGetUrl, upload } from "./storage-bridge";
 
@@ -28,8 +28,8 @@ export async function createArchive({
   const { db } = getContext();
   const [folder] = await db
     .select()
-    .from(s.driveFolder)
-    .where(eq(s.driveFolder.id, folderId))
+    .from(schemas.driveFolder)
+    .where(eq(schemas.driveFolder.id, folderId))
     .limit(1);
 
   if (!folder) {
@@ -42,7 +42,7 @@ export async function createArchive({
     includeSubfolders,
   });
 
-  const totalSize = files.reduce((sum, f) => sum + f.size, 0);
+  const totalSize = files.reduce((sum, file) => sum + file.size, 0);
   if (files.length > LARGE_FOLDER_FILE_THRESHOLD || totalSize > LARGE_FOLDER_SIZE_THRESHOLD) {
     throw new ArchiveTooLargeError(folderId, files.length, totalSize);
   }
@@ -59,8 +59,8 @@ export async function processArchiveJob(data: ArchiveJobData): Promise<ArchiveRe
   const { db } = getContext();
   const [folder] = await db
     .select()
-    .from(s.driveFolder)
-    .where(eq(s.driveFolder.id, data.folderId))
+    .from(schemas.driveFolder)
+    .where(eq(schemas.driveFolder.id, data.folderId))
     .limit(1);
 
   if (!folder) {
@@ -84,24 +84,24 @@ async function collectFiles({
 }: {
   folderPath: string;
   includeSubfolders: boolean;
-}): Promise<(typeof s.driveFile.$inferSelect)[]> {
+}): Promise<(typeof schemas.driveFile.$inferSelect)[]> {
   const { db } = getContext();
   if (includeSubfolders) {
     return db
       .select()
-      .from(s.driveFile)
+      .from(schemas.driveFile)
       .where(
-        sql`${s.driveFile.path} like ${`${folderPath}/%`} AND ${s.driveFile.isTrashed} = false`,
+        sql`${schemas.driveFile.path} like ${`${folderPath}/%`} AND ${schemas.driveFile.isTrashed} = false`,
       );
   }
 
   return db
     .select()
-    .from(s.driveFile)
+    .from(schemas.driveFile)
     .where(
-      sql`${s.driveFile.folderId} = (
+      sql`${schemas.driveFile.folderId} = (
         SELECT id FROM drive_folder WHERE path = ${folderPath}
-      ) AND ${s.driveFile.isTrashed} = false`,
+      ) AND ${schemas.driveFile.isTrashed} = false`,
     );
 }
 
@@ -112,7 +112,7 @@ async function generateZip({
   folderPath,
 }: {
   expiresIn?: number;
-  files: (typeof s.driveFile.$inferSelect)[];
+  files: (typeof schemas.driveFile.$inferSelect)[];
   folderName: string;
   folderPath: string;
 }): Promise<ArchiveResult> {
@@ -121,11 +121,13 @@ async function generateZip({
   const zipEntries: Record<string, Uint8Array> = {};
   const basePathLength = folderPath.length;
 
-  for (const file of files) {
-    const data = await get({ key: file.storageKey });
-    const relativePath = file.path.slice(basePathLength + 1);
-    zipEntries[relativePath] = new Uint8Array(data);
-  }
+  await Promise.all(
+    files.map(async (file) => {
+      const data = await get({ key: file.storageKey });
+      const relativePath = file.path.slice(basePathLength + 1);
+      zipEntries[relativePath] = new Uint8Array(data);
+    }),
+  );
 
   const manifest = strToU8(
     JSON.stringify(

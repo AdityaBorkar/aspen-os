@@ -2,7 +2,7 @@ import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, sql } from "drizzle-orm";
 
 import { driveFile, driveFolder } from "../db-schemas";
-import { fetchFolderStep } from "./steps/fetch-folder";
+import { fetchFolderStep } from "../workflow-steps/fetch-folder";
 import { WithIdSchema } from "./utils";
 
 export const getFolder = Workflow.name("drive.folder.get")

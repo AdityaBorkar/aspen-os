@@ -8,7 +8,7 @@ import { IdSchema } from "../types";
 export const listAttachmentsByComment = Workflow.name("collaboration.list-attachments-by-comment")
   .input(object({ commentId: IdSchema }))
   .handler(async ({ commentId }, ctx) =>
-    ctx.step.run("query", async () => {
-      return ctx.db.select().from(attachment).where(eq(attachment.commentId, commentId));
-    }),
+    ctx.step.run("query", async () =>
+      ctx.db.select().from(attachment).where(eq(attachment.commentId, commentId)),
+    ),
   );

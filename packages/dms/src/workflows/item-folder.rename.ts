@@ -6,7 +6,7 @@ import { dmsFolder } from "../db-schemas";
 import { ITEM_EVENTS } from "../pubsub";
 import { cascadePaths, checkNameUniqueness, getFolderPath } from "../services/item-path-service";
 import { RenameFolderSchema } from "../types";
-import { fetchItemFolderStep } from "./steps/fetch-item-folder";
+import { fetchItemFolderStep } from "../workflow-steps/fetch-item-folder";
 
 const RenameInputSchema = object({ id: string(), input: RenameFolderSchema });
 

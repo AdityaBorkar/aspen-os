@@ -2,7 +2,7 @@ import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 
 import { dmsShare } from "../db-schemas";
-import { fetchDocumentStep } from "./steps/fetch-document";
+import { fetchDocumentStep } from "../workflow-steps/fetch-document";
 
 export const listShares = Workflow.name("dms.share.list").handler(
   async (input: { documentId: string }, ctx) => {

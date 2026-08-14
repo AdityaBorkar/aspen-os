@@ -4,7 +4,7 @@ import { object } from "valibot";
 
 import { automationRule } from "../db-schemas/automation-rule";
 import { IdSchema, UpdateAutomationRuleSchema } from "../types";
-import { fetchAutomationRuleStep } from "./steps/fetch-automation-rule";
+import { fetchAutomationRuleStep } from "../workflow-steps/fetch-automation-rule";
 
 const UpdateInputSchema = object({
   id: IdSchema,

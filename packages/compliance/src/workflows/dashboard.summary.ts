@@ -12,8 +12,8 @@ const getDashboardSummary = Workflow.name("dashboard.summary").handler(
     const { branchFilter } = input;
     const kvStore = ctx.config.kvStore as
       | {
-          get<T>(key: string): Promise<T | null>;
-          set<T>(key: string, value: T, ttl?: number): Promise<void>;
+          get<TValue>(key: string): Promise<TValue | null>;
+          set<TValue>(key: string, value: TValue, ttl?: number): Promise<void>;
           del(key: string): Promise<void>;
         }
       | undefined;

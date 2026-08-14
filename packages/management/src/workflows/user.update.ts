@@ -6,7 +6,7 @@ import { serviceProvider, serviceProviderUser } from "../db-schemas";
 import { PLATFORM_USER_EVENTS } from "../pubsub";
 import { IdSchema, UpdatePlatformUserSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, ROLES } from "../utils/constants";
-import { fetchUserStep } from "./steps/fetch-user";
+import { fetchUserStep } from "../workflow-steps/fetch-user";
 
 export const updateUser = Workflow.name("user.update")
   .input(
@@ -55,7 +55,7 @@ export const updateUser = Workflow.name("user.update")
           changes.role = patch.role;
         }
 
-        await auth._.user.update({ data: updateData, id });
+        await auth.rest.user.update({ data: updateData, id });
       }
     });
 

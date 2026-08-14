@@ -4,8 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { driveFile, driveFolder } from "../db-schemas";
 import { DRIVE_EVENTS } from "../pubsub";
 import { remove as removeStorage } from "../services/storage-bridge";
-import type { EmptyTrashOptions } from "../types";
-import { EmptyTrashOptionsSchema } from "../types";
+import { type EmptyTrashOptions, EmptyTrashOptionsSchema } from "../types";
 
 const EmptyTrashSchema = EmptyTrashOptionsSchema;
 
@@ -27,6 +26,7 @@ export const emptyTrash = Workflow.name("drive.trash.empty")
       .from(driveFile)
       .where(and(...fileConditions));
 
+    // oxlint-disable eslint/no-await-in-loop
     for (const file of trashedFiles) {
       await ctx.step.run("remove-storage", async () => {
         await removeStorage({ key: file.storageKey });
@@ -38,13 +38,14 @@ export const emptyTrash = Workflow.name("drive.trash.empty")
         storageKey: file.storageKey,
       });
     }
+    // oxlint-enable eslint/no-await-in-loop
 
     const trashedFolders = await ctx.db
       .select({ id: driveFolder.id })
       .from(driveFolder)
       .where(and(...folderConditions));
 
-    for (const folder of trashedFolders) {
+    for await (const folder of trashedFolders) {
       await ctx.db.delete(driveFolder).where(eq(driveFolder.id, folder.id));
       await ctx.pubsub.publish(DRIVE_EVENTS.PURGED, {
         itemId: folder.id,

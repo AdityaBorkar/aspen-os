@@ -2,7 +2,7 @@ import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
 
 import { IdSchema } from "../types";
-import { fetchDocumentStep } from "./steps/fetch-document";
+import { fetchDocumentStep } from "../workflow-steps/fetch-document";
 
 const GetInputSchema = object({ id: IdSchema });
 

@@ -16,12 +16,12 @@ export interface ScheduleOptions extends PublishOptions {
   tz?: string;
 }
 
-export interface Message<T = unknown> {
+export interface Message<TValue = unknown> {
   completedOn?: Date;
   createdOn: Date;
-  data: T;
+  data: TValue;
   id: string;
   name: string;
 }
 
-export type MessageHandler<T = unknown> = (message: Message<T>) => void | Promise<void>;
+export type MessageHandler<TValue = unknown> = (message: Message<TValue>) => void | Promise<void>;

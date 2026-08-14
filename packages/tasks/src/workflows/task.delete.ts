@@ -4,7 +4,7 @@ import { object } from "valibot";
 
 import { task } from "../db-schemas/task";
 import { IdSchema } from "../types";
-import { fetchTaskStep } from "./steps/fetch-task";
+import { fetchTaskStep } from "../workflow-steps/fetch-task";
 
 export const deleteTask = Workflow.name("task.delete")
   .input(object({ id: IdSchema }))

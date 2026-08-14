@@ -5,7 +5,7 @@ import { parse } from "valibot";
 import { complianceObligation } from "../db-schemas";
 import { COMPLIANCE_EVENTS } from "../pubsub";
 import { type UpdateObligationInput, UpdateObligationSchema } from "../types";
-import { fetchObligationStep } from "./steps/fetch-obligation";
+import { fetchObligationStep } from "../workflow-steps/fetch-obligation";
 
 const updateObligation = Workflow.name("obligation.update").handler(
   async (input: { id: string; patch: UpdateObligationInput }, ctx) => {
@@ -70,7 +70,8 @@ const updateObligation = Workflow.name("obligation.update").handler(
       updateData.branch = parsed.branch;
     }
     if (parsed.startDate !== undefined) {
-      updateData.startDate = parsed.startDate.toISOString().split("T")[0];
+      const [date] = parsed.startDate.toISOString().split("T");
+      updateData.startDate = date;
     }
     if (parsed.endDate !== undefined) {
       updateData.endDate = parsed.endDate ? parsed.endDate.toISOString().split("T")[0] : null;

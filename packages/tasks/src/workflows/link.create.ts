@@ -26,27 +26,29 @@ const CreateInputSchema = object({
 
 async function createInverseLink(
   db: DrizzleDB,
-  sourceId: string,
-  targetId: string,
-  linkType: string,
+  options: {
+    sourceId: string;
+    targetId: string;
+    linkType: string;
+  },
 ): Promise<void> {
   const [existing] = await db
     .select({ id: taskLink.id })
     .from(taskLink)
     .where(
       and(
-        eq(taskLink.sourceId, sourceId),
-        eq(taskLink.targetId, targetId),
-        eq(taskLink.linkType, linkType as LinkTypeValue),
+        eq(taskLink.sourceId, options.sourceId),
+        eq(taskLink.targetId, options.targetId),
+        eq(taskLink.linkType, options.linkType as LinkTypeValue),
       ),
     )
     .limit(1);
 
   if (!existing) {
     await db.insert(taskLink).values({
-      linkType: linkType as LinkTypeValue,
-      sourceId,
-      targetId,
+      linkType: options.linkType as LinkTypeValue,
+      sourceId: options.sourceId,
+      targetId: options.targetId,
     });
   }
 }
@@ -92,7 +94,11 @@ export const createTaskLink = Workflow.name("link.create")
 
     const inverseType = linkTypeInverse(input.linkType);
     if (inverseType) {
-      await createInverseLink(ctx.db, input.targetId, input.sourceId, inverseType);
+      await createInverseLink(ctx.db, {
+        linkType: inverseType,
+        sourceId: input.targetId,
+        targetId: input.sourceId,
+      });
     }
 
     return result;

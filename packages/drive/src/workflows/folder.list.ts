@@ -3,8 +3,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { parse } from "valibot";
 
 import { driveFile, driveFolder } from "../db-schemas";
-import type { ListFolderOptions } from "../types";
-import { ListFolderOptionsSchema } from "../types";
+import { type ListFolderOptions, ListFolderOptionsSchema } from "../types";
 
 export const listFolders = Workflow.name("drive.folder.list").handler(async (input, ctx) => {
   const { id, opts } = (input ?? {}) as {
@@ -47,8 +46,8 @@ export const listFolders = Workflow.name("drive.folder.list").handler(async (inp
     .limit(limit)
     .offset(offset);
 
-  const sortFn = (a: { name: string }, b: { name: string }) => {
-    const cmp = a.name.localeCompare(b.name);
+  const sortFn = (left: { name: string }, right: { name: string }) => {
+    const cmp = left.name.localeCompare(right.name);
     return sortOrder === "desc" ? -cmp : cmp;
   };
 

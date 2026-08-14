@@ -11,7 +11,7 @@ import {
 } from "../services/classify-service";
 import { ClassifyDocumentSchema, IdSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../utils/constants";
-import { fetchDocumentStep } from "./steps/fetch-document";
+import { fetchDocumentStep } from "../workflow-steps/fetch-document";
 
 const ClassifyInputSchema = object({
   id: IdSchema,
@@ -47,7 +47,7 @@ export const classifyDocument = Workflow.name("dms.triage.classify")
     const validation = validateFieldValues(fields, input.fieldValues);
     if (validation.errors.length > 0) {
       throw new Error(
-        `Classification failed: ${validation.errors.map((e) => e.message).join(" ")}`,
+        `Classification failed: ${validation.errors.map((error) => error.message).join(" ")}`,
       );
     }
 

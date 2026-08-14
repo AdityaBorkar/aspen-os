@@ -4,7 +4,7 @@ import { object } from "valibot";
 
 import { dmsDocumentVersion } from "../db-schemas";
 import { IdSchema } from "../types";
-import { fetchDocumentStep } from "./steps/fetch-document";
+import { fetchDocumentStep } from "../workflow-steps/fetch-document";
 
 const ListVersionsInputSchema = object({ documentId: IdSchema });
 

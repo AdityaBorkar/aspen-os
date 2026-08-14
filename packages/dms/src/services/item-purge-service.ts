@@ -17,12 +17,12 @@ export interface ItemPurgeDeps {
 export const ITEM_AUTO_PURGE_CRON = "0 3 * * *";
 
 export async function registerItemPurgeSchedule(pubsub: PubSubUnit): Promise<string> {
-  await pubsub.schedule(
-    SCHEDULED_JOBS.ITEM_AUTO_PURGE,
-    ITEM_AUTO_PURGE_CRON,
-    {},
-    { retryBackoff: true, retryDelay: 60, retryLimit: 3 },
-  );
+  await pubsub.schedule({
+    cron: ITEM_AUTO_PURGE_CRON,
+    data: {},
+    options: { retryBackoff: true, retryDelay: 60, retryLimit: 3 },
+    topic: SCHEDULED_JOBS.ITEM_AUTO_PURGE,
+  });
   return SCHEDULED_JOBS.ITEM_AUTO_PURGE;
 }
 
@@ -61,29 +61,33 @@ export async function purgeExpiredItemsInternal(deps: ItemPurgeDeps): Promise<nu
     .from(dmsFile)
     .where(and(eq(dmsFile.isTrashed, true), lt(dmsFile.trashedAt, cutoffDate)));
 
-  for (const file of expiredFiles) {
-    await removeStorage({ key: file.storageKey });
-    await deps.db.delete(dmsFile).where(eq(dmsFile.id, file.id));
-    await deps.pubsub.publish(ITEM_EVENTS.PURGED, {
-      itemId: file.id,
-      itemType: "file",
-      storageKey: file.storageKey,
-    });
-  }
+  await Promise.all(
+    expiredFiles.map(async (file) => {
+      await removeStorage({ key: file.storageKey });
+      await deps.db.delete(dmsFile).where(eq(dmsFile.id, file.id));
+      await deps.pubsub.publish(ITEM_EVENTS.PURGED, {
+        itemId: file.id,
+        itemType: "file",
+        storageKey: file.storageKey,
+      });
+    }),
+  );
 
   const expiredFolders = await deps.db
     .select({ id: dmsFolder.id })
     .from(dmsFolder)
     .where(and(eq(dmsFolder.isTrashed, true), lt(dmsFolder.trashedAt, cutoffDate)));
 
-  for (const folder of expiredFolders) {
-    await deps.db.delete(dmsFolder).where(eq(dmsFolder.id, folder.id));
-    await deps.pubsub.publish(ITEM_EVENTS.PURGED, {
-      itemId: folder.id,
-      itemType: "folder",
-      storageKey: null,
-    });
-  }
+  await Promise.all(
+    expiredFolders.map(async (folder) => {
+      await deps.db.delete(dmsFolder).where(eq(dmsFolder.id, folder.id));
+      await deps.pubsub.publish(ITEM_EVENTS.PURGED, {
+        itemId: folder.id,
+        itemType: "folder",
+        storageKey: null,
+      });
+    }),
+  );
 
   return expiredFiles.length + expiredFolders.length;
 }

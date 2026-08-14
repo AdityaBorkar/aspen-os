@@ -31,10 +31,12 @@ export async function pruneOldVersions(db: DB, fileId: string, maxVersions: numb
 
   const toPrune = versions.slice(maxVersions);
 
-  for (const v of toPrune) {
-    await removeStorage({ key: v.storageKey });
-    await db.delete(driveFileVersion).where(eq(driveFileVersion.id, v.id));
-  }
+  await Promise.all(
+    toPrune.map(async (version) => {
+      await removeStorage({ key: version.storageKey });
+      await db.delete(driveFileVersion).where(eq(driveFileVersion.id, version.id));
+    }),
+  );
 }
 
 /** Runs the auto-purge job using getContext() (invoked from the cron schedule). */
@@ -49,27 +51,31 @@ export async function purgeExpiredInternal(): Promise<void> {
     .from(driveFile)
     .where(and(eq(driveFile.isTrashed, true), lt(driveFile.trashedAt, cutoffDate)));
 
-  for (const file of expiredFiles) {
-    await removeStorage({ key: file.storageKey });
-    await db.delete(driveFile).where(eq(driveFile.id, file.id));
-    await pubsub.publish(DRIVE_EVENTS.PURGED, {
-      itemId: file.id,
-      itemType: "file",
-      storageKey: file.storageKey,
-    });
-  }
+  await Promise.all(
+    expiredFiles.map(async (file) => {
+      await removeStorage({ key: file.storageKey });
+      await db.delete(driveFile).where(eq(driveFile.id, file.id));
+      await pubsub.publish(DRIVE_EVENTS.PURGED, {
+        itemId: file.id,
+        itemType: "file",
+        storageKey: file.storageKey,
+      });
+    }),
+  );
 
   const expiredFolders = await db
     .select({ id: driveFolder.id })
     .from(driveFolder)
     .where(and(eq(driveFolder.isTrashed, true), lt(driveFolder.trashedAt, cutoffDate)));
 
-  for (const folder of expiredFolders) {
-    await db.delete(driveFolder).where(eq(driveFolder.id, folder.id));
-    await pubsub.publish(DRIVE_EVENTS.PURGED, {
-      itemId: folder.id,
-      itemType: "folder",
-      storageKey: null,
-    });
-  }
+  await Promise.all(
+    expiredFolders.map(async (folder) => {
+      await db.delete(driveFolder).where(eq(driveFolder.id, folder.id));
+      await pubsub.publish(DRIVE_EVENTS.PURGED, {
+        itemId: folder.id,
+        itemType: "folder",
+        storageKey: null,
+      });
+    }),
+  );
 }

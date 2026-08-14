@@ -8,7 +8,7 @@ import { getSetting } from "../services/settings-service";
 import { getSignedGetUrl } from "../services/storage-bridge";
 import { IdSchema } from "../types";
 import { SETTING_KEYS } from "../utils/constants";
-import { fetchDocumentStep } from "./steps/fetch-document";
+import { fetchDocumentStep } from "../workflow-steps/fetch-document";
 
 const GetVersionInputSchema = object({
   documentId: IdSchema,

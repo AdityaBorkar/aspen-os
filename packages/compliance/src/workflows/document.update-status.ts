@@ -1,10 +1,9 @@
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 
-import type { ComplianceDocument } from "../db-schemas";
-import { complianceDocument } from "../db-schemas";
+import { complianceDocument, type ComplianceDocument } from "../db-schemas";
 import type { AuditAction, VerificationStatus } from "../utils/constants";
-import { fetchDocumentStep } from "./steps/fetch-document";
+import { fetchDocumentStep } from "../workflow-steps/fetch-document";
 
 const updateDocumentStatus = Workflow.name("document.update-status").handler(
   async (

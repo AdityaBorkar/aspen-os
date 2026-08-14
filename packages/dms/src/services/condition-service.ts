@@ -61,8 +61,8 @@ function parseNumeric(value: unknown): number | null {
     return value;
   }
   if (typeof value === "string" && value.trim() !== "") {
-    const n = Number(value);
-    return Number.isFinite(n) ? n : null;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : null;
   }
   return null;
 }
@@ -72,8 +72,8 @@ function parseDate(value: unknown): string | null {
     return value.toISOString();
   }
   if (typeof value === "string" && value.trim() !== "") {
-    const d = new Date(value);
-    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date.toISOString();
   }
   return null;
 }
@@ -108,7 +108,7 @@ export function buildCondition(cond: ViewCondition, _ctx?: ConditionContext): SQ
       return null;
     }
     const path = sql`${dmsDocument.metadata}->>${key}`;
-    return buildGenericCondition(path, operator, value, "string");
+    return buildGenericCondition({ col: path, operator, type: "string", value });
   }
 
   if (field.startsWith("classField:")) {
@@ -127,15 +127,16 @@ export function buildCondition(cond: ViewCondition, _ctx?: ConditionContext): SQ
         ? "number"
         : "string";
 
-  return buildGenericCondition(col, operator, value, type);
+  return buildGenericCondition({ col, operator, type, value });
 }
 
-function buildGenericCondition(
-  col: SQL,
-  operator: string,
-  value: unknown,
-  type: "date" | "number" | "string",
-): SQL | null {
+function buildGenericCondition(input: {
+  col: SQL;
+  operator: string;
+  type: "date" | "number" | "string";
+  value: unknown;
+}): SQL | null {
+  const { col, operator, type, value } = input;
   switch (operator) {
     case "eq":
       if (value === null) {
@@ -199,30 +200,30 @@ function buildGenericCondition(
       if (!Array.isArray(value) || value.length < 2) {
         return null;
       }
-      const a = parseNumeric(value[0]);
-      const b = parseNumeric(value[1]);
-      if (a === null || b === null) {
+      const lower = parseNumeric(value[0]);
+      const upper = parseNumeric(value[1]);
+      if (lower === null || upper === null) {
         return null;
       }
-      return drizzleBetween(col, a, b);
+      return drizzleBetween(col, lower, upper);
     }
     case "isEmpty":
       return isNull(col);
     case "isNotEmpty":
       return isNotNull(col);
     case "dateBefore": {
-      const d = parseDate(value);
-      if (!d) {
+      const date = parseDate(value);
+      if (!date) {
         return null;
       }
-      return lte(col, d);
+      return lte(col, date);
     }
     case "dateAfter": {
-      const d = parseDate(value);
-      if (!d) {
+      const date = parseDate(value);
+      if (!date) {
         return null;
       }
-      return gte(col, d);
+      return gte(col, date);
     }
     default:
       return null;
@@ -263,17 +264,17 @@ export function buildConditionsWhere(
  * Resolves a sort list into drizzle order-by expressions. Unsupported fields
  * are skipped; `resolve` maps a field name to a column.
  */
-export function buildSortOrder<T extends SQL>(
+export function buildSortOrder<TSQL extends SQL>(
   sort: ViewSort[] | undefined,
-  resolve: (field: string) => T | null,
-): T[] {
-  const clauses: T[] = [];
-  for (const s of sort ?? []) {
-    const col = resolve(s.field);
+  resolve: (field: string) => TSQL | null,
+): TSQL[] {
+  const clauses: TSQL[] = [];
+  for (const sortItem of sort ?? []) {
+    const col = resolve(sortItem.field);
     if (!col) {
       continue;
     }
-    clauses.push((s.direction === "desc" ? desc(col) : col) as unknown as T);
+    clauses.push((sortItem.direction === "desc" ? desc(col) : col) as unknown as TSQL);
   }
   return clauses;
 }

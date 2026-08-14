@@ -2,7 +2,7 @@ import { getContext } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-import * as s from "../db-schemas";
+import * as schemas from "../db-schemas";
 import type { ItemPermission } from "../types";
 
 type DB = NodePgDatabase<Record<string, never>>;
@@ -59,17 +59,17 @@ export async function isOwner({
   const { db } = getContext();
   if (itemType === "folder") {
     const [folder] = await db
-      .select({ ownerId: s.dmsFolder.ownerId })
-      .from(s.dmsFolder)
-      .where(eq(s.dmsFolder.id, itemId))
+      .select({ ownerId: schemas.dmsFolder.ownerId })
+      .from(schemas.dmsFolder)
+      .where(eq(schemas.dmsFolder.id, itemId))
       .limit(1);
     return folder?.ownerId === userId;
   }
 
   const [file] = await db
-    .select({ ownerId: s.dmsFile.ownerId })
-    .from(s.dmsFile)
-    .where(eq(s.dmsFile.id, itemId))
+    .select({ ownerId: schemas.dmsFile.ownerId })
+    .from(schemas.dmsFile)
+    .where(eq(schemas.dmsFile.id, itemId))
     .limit(1);
   return file?.ownerId === userId;
 }
@@ -86,13 +86,13 @@ export async function getEffectivePermission({
   const { db } = getContext();
   const [directShare] = await db
     .select()
-    .from(s.dmsItemShare)
+    .from(schemas.dmsItemShare)
     .where(
       and(
-        eq(s.dmsItemShare.itemId, itemId),
-        eq(s.dmsItemShare.itemType, itemType),
-        eq(s.dmsItemShare.granteeId, userId),
-        eq(s.dmsItemShare.granteeType, "user"),
+        eq(schemas.dmsItemShare.itemId, itemId),
+        eq(schemas.dmsItemShare.itemType, itemType),
+        eq(schemas.dmsItemShare.granteeId, userId),
+        eq(schemas.dmsItemShare.granteeType, "user"),
       ),
     )
     .limit(1);
@@ -106,9 +106,9 @@ export async function getEffectivePermission({
 
   if (itemType === "file") {
     const [file] = await db
-      .select({ folderId: s.dmsFile.folderId })
-      .from(s.dmsFile)
-      .where(eq(s.dmsFile.id, itemId))
+      .select({ folderId: schemas.dmsFile.folderId })
+      .from(schemas.dmsFile)
+      .where(eq(schemas.dmsFile.id, itemId))
       .limit(1);
 
     if (file?.folderId) {
@@ -116,9 +116,9 @@ export async function getEffectivePermission({
     }
   } else {
     const [folder] = await db
-      .select({ parentId: s.dmsFolder.parentId })
-      .from(s.dmsFolder)
-      .where(eq(s.dmsFolder.id, itemId))
+      .select({ parentId: schemas.dmsFolder.parentId })
+      .from(schemas.dmsFolder)
+      .where(eq(schemas.dmsFolder.id, itemId))
       .limit(1);
 
     if (folder?.parentId) {
@@ -131,7 +131,7 @@ export async function getEffectivePermission({
 
 export async function logAccess(input: ItemAccessLogInput, db?: DB): Promise<void> {
   const target = db ?? getContext().db;
-  await target.insert(s.dmsAccessLog).values({
+  await target.insert(schemas.dmsAccessLog).values({
     accessedBy: input.accessedBy ?? null,
     action: input.action,
     ip: input.ip ?? null,
@@ -153,16 +153,17 @@ async function getInheritedPermission({
   let currentId: string | null = folderId;
   let bestPermission: ItemPermission | null = null;
 
+  // oxlint-disable eslint/no-await-in-loop
   while (currentId !== null) {
     const [share] = await db
       .select()
-      .from(s.dmsItemShare)
+      .from(schemas.dmsItemShare)
       .where(
         and(
-          eq(s.dmsItemShare.itemId, currentId),
-          eq(s.dmsItemShare.itemType, "folder"),
-          eq(s.dmsItemShare.granteeId, userId),
-          eq(s.dmsItemShare.granteeType, "user"),
+          eq(schemas.dmsItemShare.itemId, currentId),
+          eq(schemas.dmsItemShare.itemType, "folder"),
+          eq(schemas.dmsItemShare.granteeId, userId),
+          eq(schemas.dmsItemShare.granteeType, "user"),
         ),
       )
       .limit(1);
@@ -179,13 +180,14 @@ async function getInheritedPermission({
     }
 
     const [folder] = await db
-      .select({ parentId: s.dmsFolder.parentId })
-      .from(s.dmsFolder)
-      .where(eq(s.dmsFolder.id, currentId))
+      .select({ parentId: schemas.dmsFolder.parentId })
+      .from(schemas.dmsFolder)
+      .where(eq(schemas.dmsFolder.id, currentId))
       .limit(1);
 
     currentId = folder?.parentId ?? null;
   }
+  // oxlint-enable eslint/no-await-in-loop
 
   return bestPermission;
 }

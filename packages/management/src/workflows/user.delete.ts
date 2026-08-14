@@ -6,7 +6,7 @@ import { serviceProviderUser } from "../db-schemas";
 import { PLATFORM_USER_EVENTS } from "../pubsub";
 import { IdSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../utils/constants";
-import { fetchUserStep } from "./steps/fetch-user";
+import { fetchUserStep } from "../workflow-steps/fetch-user";
 
 export const deleteUser = Workflow.name("user.delete")
   .input(object({ id: IdSchema }))
@@ -20,7 +20,7 @@ export const deleteUser = Workflow.name("user.delete")
     const previousState = await ctx.step.run(fetchUserStep, { id });
 
     await ctx.step.run("delete-auth-user", async () => {
-      await auth._.user.remove({ id });
+      await auth.rest.user.remove({ id });
     });
 
     await ctx.step.run("delete-sp-assignment", async () => {

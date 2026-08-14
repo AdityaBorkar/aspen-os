@@ -38,37 +38,38 @@ export const emptyBin = Workflow.name("dms.bin.empty").handler(
         .where(
           and(
             eq(dmsLegalHold.releasedAt, null as never),
-            or(...(rows.map((r) => eq(dmsLegalHold.documentId, r.id)) as SQL[])),
+            or(...(rows.map((row) => eq(dmsLegalHold.documentId, row.id)) as SQL[])),
           ),
         );
-      for (const h of heldRows) {
-        heldIds.add(h.documentId);
+      for (const hold of heldRows) {
+        heldIds.add(hold.documentId);
       }
     }
 
-    const purgeable = rows.filter((r) => !heldIds.has(r.id));
+    const purgeable = rows.filter((row) => !heldIds.has(row.id));
 
-    let purged = 0;
-    const freedKeys: string[] = [];
-    for (const doc of purgeable) {
-      const keys = await deleteDocumentPermanently(ctx.db, doc.id);
-      freedKeys.push(...keys);
+    const results = await Promise.all(
+      purgeable.map(async (doc) => {
+        const keys = await deleteDocumentPermanently(ctx.db, doc.id);
 
-      await ctx.audit.write({
-        action: AUDIT_ACTION.PURGED,
-        crudAction: "delete",
-        entityId: doc.id,
-        entityType: AUDIT_ENTITY_TYPE.DOCUMENT,
-        metadata: { storageKey: keys[0] ?? null },
-      });
+        await ctx.audit.write({
+          action: AUDIT_ACTION.PURGED,
+          crudAction: "delete",
+          entityId: doc.id,
+          entityType: AUDIT_ENTITY_TYPE.DOCUMENT,
+          metadata: { storageKey: keys[0] ?? null },
+        });
 
-      await ctx.pubsub.publish(DOCUMENT_EVENTS.PURGED, {
-        documentId: doc.id,
-        storageKey: keys[0] ?? "",
-      });
+        await ctx.pubsub.publish(DOCUMENT_EVENTS.PURGED, {
+          documentId: doc.id,
+          storageKey: keys[0] ?? "",
+        });
 
-      purged++;
-    }
+        return keys;
+      }),
+    );
+    const freedKeys = results.flat();
+    const purged = results.length;
 
     return { freedStorageKeys: freedKeys, purged, skippedHeld: heldIds.size };
   },

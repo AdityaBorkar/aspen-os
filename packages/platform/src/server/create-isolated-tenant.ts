@@ -13,27 +13,27 @@ export type IsolatedTenantConfig = CommonConfig & {
 };
 
 export type IsolatedTenantPlatformInstance<
-  M extends Module[],
-  S extends Record<string, unknown> = MergedSchemas<M>,
-> = IsolatedTenantPlatform<M, S> &
-  UnitAccessors<S> &
-  ArrayModuleAccessors<M, ExtractModuleNames<M>[number]>;
+  TModules extends Module[],
+  TSchemas extends Record<string, unknown> = MergedSchemas<TModules>,
+> = IsolatedTenantPlatform<TModules, TSchemas> &
+  UnitAccessors<TSchemas> &
+  ArrayModuleAccessors<TModules, ExtractModuleNames<TModules>[number]>;
 
 export class IsolatedTenantPlatform<
-  M extends Module[],
-  S extends Record<string, unknown> = MergedSchemas<M>,
-> extends Base<M, S> {
-  private readonly dbUnit: DatabaseUnit<S>;
+  TModules extends Module[],
+  TSchemas extends Record<string, unknown> = MergedSchemas<TModules>,
+> extends Base<TModules, TSchemas> {
+  private readonly dbUnit: DatabaseUnit<TSchemas>;
 
-  constructor(units: PlatformUnits<S>, modules: M) {
+  constructor(units: PlatformUnits<TSchemas>, modules: TModules) {
     super(units, modules);
-    this.dbUnit = units.db as DatabaseUnit<S>;
+    this.dbUnit = units.db as DatabaseUnit<TSchemas>;
   }
 
-  static create<M extends Module[]>(
+  static create<TModules extends Module[]>(
     config: IsolatedTenantConfig,
-    modules: M,
-  ): IsolatedTenantPlatformInstance<M> {
+    modules: TModules,
+  ): IsolatedTenantPlatformInstance<TModules> {
     const dbConfig: DatabaseConfig = {
       database: config.db.controlDbName,
       host: config.db.connection.host,
@@ -47,17 +47,17 @@ export class IsolatedTenantPlatform<
       list: async () => [] as string[],
       resolve: async (tenantId: string) => tenantId,
     };
-    const db = new DatabaseUnit<MergedSchemas<M>>(dbConfig, "isolated", {
+    const db = new DatabaseUnit<MergedSchemas<TModules>>(dbConfig, "isolated", {
       controlPlaneDbName: config.db.controlPlaneDbName,
       resolver,
       tenantDbDefaults: config.db.tenantDbDefaults,
       tenantDbPrefix: config.db.tenantDbPrefix,
     });
-    const core = Base.createCore<M, MergedSchemas<M>>(db, config, modules);
-    return new IsolatedTenantPlatform<M>(
+    const core = Base.createCore<TModules, MergedSchemas<TModules>>(db, config, modules);
+    return new IsolatedTenantPlatform<TModules>(
       core.units,
       core.modules,
-    ) as IsolatedTenantPlatformInstance<M>;
+    ) as IsolatedTenantPlatformInstance<TModules>;
   }
 
   override async $prepareInfra(): Promise<void> {
@@ -100,6 +100,7 @@ export class IsolatedTenantPlatform<
     }
 
     // Preparing Runtime Modules
+    // oxlint-disable eslint/no-await-in-loop
     for (const mod of this.modules) {
       try {
         await this.runInContext(() => mod.$prepareRuntime?.());
@@ -107,9 +108,11 @@ export class IsolatedTenantPlatform<
         console.error(`Failed to prepare module "${mod.$name}"`, err);
       }
     }
+    // oxlint-enable eslint/no-await-in-loop
 
     // Preparing Tenant Modules
     const tenantIds = (await this.dbUnit.resolver?.list()) || [];
+    // oxlint-disable eslint/no-await-in-loop
     for (const tenantId of tenantIds) {
       await this.run(tenantId, async () => {
         for await (const mod of this.modules) {
@@ -119,12 +122,13 @@ export class IsolatedTenantPlatform<
         }
       });
     }
+    // oxlint-enable eslint/no-await-in-loop
   }
 
-  async run<T>(tenantId: string, fn: () => T | Promise<T>): Promise<T> {
+  async run<TValue>(tenantId: string, fn: () => TValue | Promise<TValue>): Promise<TValue> {
     const db = isGlobalTenantId(tenantId)
       ? this.dbUnit.controlPlaneDb
       : await this.dbUnit.getTenantDb(tenantId);
-    return this.runInContext(fn, { db, tenantId }) as T;
+    return this.runInContext(fn, { db, tenantId }) as TValue;
   }
 }

@@ -2,8 +2,8 @@ import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, sql } from "drizzle-orm";
 
 import { dmsFile, dmsFolder } from "../db-schemas";
+import { fetchItemFolderStep } from "../workflow-steps/fetch-item-folder";
 import { WithIdSchema } from "./item-utils";
-import { fetchItemFolderStep } from "./steps/fetch-item-folder";
 
 export const getItemFolder = Workflow.name("dms.folder.get")
   .input(WithIdSchema)

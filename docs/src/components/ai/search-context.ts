@@ -36,15 +36,15 @@ export function useChatContext() {
 export function useHotKey() {
   const { open, setOpen } = useAISearchContext();
 
-  const onKeyPress = useEffectEvent((e: KeyboardEvent) => {
-    if (e.key === "Escape" && open) {
+  const onKeyPress = useEffectEvent((event: KeyboardEvent) => {
+    if (event.key === "Escape" && open) {
       setOpen(false);
-      e.preventDefault();
+      event.preventDefault();
     }
 
-    if (e.key === "/" && (e.metaKey || e.ctrlKey) && !open) {
+    if (event.key === "/" && (event.metaKey || event.ctrlKey) && !open) {
       setOpen(true);
-      e.preventDefault();
+      event.preventDefault();
     }
   });
 

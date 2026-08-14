@@ -4,8 +4,8 @@ import { eq } from "drizzle-orm";
 import { dmsFile, dmsFileVersion } from "../db-schemas";
 import { ITEM_EVENTS } from "../pubsub";
 import { remove as removeStorage } from "../services/item-storage-bridge";
+import { fetchItemFileStep } from "../workflow-steps/fetch-item-file";
 import { WithFileIdSchema } from "./item-utils";
-import { fetchItemFileStep } from "./steps/fetch-item-file";
 
 export const purgeItemFile = Workflow.name("dms.file.purge")
   .input(WithFileIdSchema)
@@ -21,11 +21,13 @@ export const purgeItemFile = Workflow.name("dms.file.purge")
       .from(dmsFileVersion)
       .where(eq(dmsFileVersion.fileId, id));
 
-    for (const v of versions) {
+    // oxlint-disable eslint/no-await-in-loop
+    for (const version of versions) {
       await ctx.step.run("remove-version-storage", async () => {
-        await removeStorage({ key: v.storageKey });
+        await removeStorage({ key: version.storageKey });
       });
     }
+    // oxlint-enable eslint/no-await-in-loop
 
     await ctx.db.delete(dmsFileVersion).where(eq(dmsFileVersion.fileId, id));
 

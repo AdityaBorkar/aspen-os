@@ -92,13 +92,15 @@ export async function unregisterEventBridge(
   topics: string[],
   { pubsub }: Pick<EventBridgeDeps, "pubsub">,
 ): Promise<void> {
-  for (const topic of topics) {
-    try {
-      await pubsub.unsubscribe(topic);
-    } catch {
-      // Ignore
-    }
-  }
+  await Promise.all(
+    topics.map(async (topic) => {
+      try {
+        await pubsub.unsubscribe(topic);
+      } catch {
+        // Ignore
+      }
+    }),
+  );
 }
 
 async function subscribeSafe(
@@ -150,9 +152,7 @@ async function handleEmployeeOnboarded(
     },
   ];
 
-  for (const doc of docs) {
-    await createDocumentWorkflow(doc, deps);
-  }
+  await Promise.all(docs.map((doc) => createDocumentWorkflow(doc, deps)));
 }
 
 async function handleEmployeeSeparated(
@@ -184,9 +184,7 @@ async function handleEmployeeSeparated(
     },
   ];
 
-  for (const doc of docs) {
-    await createDocumentWorkflow(doc, deps);
-  }
+  await Promise.all(docs.map((doc) => createDocumentWorkflow(doc, deps)));
 }
 
 async function handleVehicleRegistered(

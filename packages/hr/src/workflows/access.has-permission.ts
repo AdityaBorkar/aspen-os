@@ -16,5 +16,7 @@ export const hasPermission = Workflow.name("hr.access.has-permission")
     const { hrUserId, module, action, branchId } = input;
 
     const permissions = await getUserPermissionsUtil(ctx.db, hrUserId, branchId);
-    return permissions.some((p) => p.module === module && p.action === action);
+    return permissions.some(
+      (permission) => permission.module === module && permission.action === action,
+    );
   });

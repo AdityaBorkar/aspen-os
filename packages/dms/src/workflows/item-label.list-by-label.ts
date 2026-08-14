@@ -25,8 +25,12 @@ export const listItemsByLabel = Workflow.name("dms.label.list-by-label")
       .limit(limit)
       .offset(offset);
 
-    const folderIds = itemLabels.filter((l) => l.itemType === "folder").map((l) => l.itemId);
-    const fileIds = itemLabels.filter((l) => l.itemType === "file").map((l) => l.itemId);
+    const folderIds = itemLabels
+      .filter((label) => label.itemType === "folder")
+      .map((label) => label.itemId);
+    const fileIds = itemLabels
+      .filter((label) => label.itemType === "file")
+      .map((label) => label.itemId);
 
     const folders =
       folderIds.length > 0

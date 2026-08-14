@@ -4,7 +4,7 @@ import { object } from "valibot";
 
 import { timeEntry } from "../db-schemas/time-entry";
 import { IdSchema, UpdateTimeEntrySchema } from "../types";
-import { fetchTimeEntryStep } from "./steps/fetch-time-entry";
+import { fetchTimeEntryStep } from "../workflow-steps/fetch-time-entry";
 
 const UpdateInputSchema = object({
   id: IdSchema,

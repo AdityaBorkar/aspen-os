@@ -6,7 +6,7 @@ import { object, string } from "valibot";
 import { branch } from "../db-schemas";
 import { BRANCH_EVENTS } from "../pubsub";
 import { UpdateBranchSchema } from "../types";
-import { fetchBranchStep } from "./steps/fetch-branch";
+import { fetchBranchStep } from "../workflow-steps/fetch-branch";
 import { ensureCodeUnique, ensureNoHeadquartersExists, validateParentBranch } from "./utils";
 
 const UpdateInputSchema = object({

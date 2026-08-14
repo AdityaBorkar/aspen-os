@@ -4,7 +4,7 @@ import { object } from "valibot";
 
 import { taskType } from "../db-schemas/task-type";
 import { IdSchema, UpdateTaskTypeSchema } from "../types";
-import { fetchTaskTypeStep } from "./steps/fetch-task-type";
+import { fetchTaskTypeStep } from "../workflow-steps/fetch-task-type";
 import { unsetDefaultTaskType } from "./utils";
 
 const UpdateInputSchema = object({

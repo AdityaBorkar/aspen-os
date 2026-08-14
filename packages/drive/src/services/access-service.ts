@@ -2,7 +2,7 @@ import { getContext } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-import * as s from "../db-schemas";
+import * as schemas from "../db-schemas";
 import type { DrivePermission } from "../types";
 
 type DB = NodePgDatabase<Record<string, never>>;
@@ -59,17 +59,17 @@ export async function isOwner({
   const { db } = getContext();
   if (itemType === "folder") {
     const [folder] = await db
-      .select({ ownerId: s.driveFolder.ownerId })
-      .from(s.driveFolder)
-      .where(eq(s.driveFolder.id, itemId))
+      .select({ ownerId: schemas.driveFolder.ownerId })
+      .from(schemas.driveFolder)
+      .where(eq(schemas.driveFolder.id, itemId))
       .limit(1);
     return folder?.ownerId === userId;
   }
 
   const [file] = await db
-    .select({ ownerId: s.driveFile.ownerId })
-    .from(s.driveFile)
-    .where(eq(s.driveFile.id, itemId))
+    .select({ ownerId: schemas.driveFile.ownerId })
+    .from(schemas.driveFile)
+    .where(eq(schemas.driveFile.id, itemId))
     .limit(1);
   return file?.ownerId === userId;
 }
@@ -86,13 +86,13 @@ export async function getEffectivePermission({
   const { db } = getContext();
   const [directShare] = await db
     .select()
-    .from(s.driveShare)
+    .from(schemas.driveShare)
     .where(
       and(
-        eq(s.driveShare.itemId, itemId),
-        eq(s.driveShare.itemType, itemType),
-        eq(s.driveShare.granteeId, userId),
-        eq(s.driveShare.granteeType, "user"),
+        eq(schemas.driveShare.itemId, itemId),
+        eq(schemas.driveShare.itemType, itemType),
+        eq(schemas.driveShare.granteeId, userId),
+        eq(schemas.driveShare.granteeType, "user"),
       ),
     )
     .limit(1);
@@ -106,9 +106,9 @@ export async function getEffectivePermission({
 
   if (itemType === "file") {
     const [file] = await db
-      .select({ folderId: s.driveFile.folderId })
-      .from(s.driveFile)
-      .where(eq(s.driveFile.id, itemId))
+      .select({ folderId: schemas.driveFile.folderId })
+      .from(schemas.driveFile)
+      .where(eq(schemas.driveFile.id, itemId))
       .limit(1);
 
     if (file?.folderId) {
@@ -116,9 +116,9 @@ export async function getEffectivePermission({
     }
   } else {
     const [folder] = await db
-      .select({ parentId: s.driveFolder.parentId })
-      .from(s.driveFolder)
-      .where(eq(s.driveFolder.id, itemId))
+      .select({ parentId: schemas.driveFolder.parentId })
+      .from(schemas.driveFolder)
+      .where(eq(schemas.driveFolder.id, itemId))
       .limit(1);
 
     if (folder?.parentId) {
@@ -131,7 +131,7 @@ export async function getEffectivePermission({
 
 export async function logAccess(input: AccessLogInput, db?: DB): Promise<void> {
   const target = db ?? getContext().db;
-  await target.insert(s.driveAccessLog).values({
+  await target.insert(schemas.driveAccessLog).values({
     accessedBy: input.accessedBy ?? null,
     action: input.action,
     ip: input.ip ?? null,
@@ -153,16 +153,17 @@ async function getInheritedPermission({
   let currentId: string | null = folderId;
   let bestPermission: DrivePermission | null = null;
 
+  // oxlint-disable eslint/no-await-in-loop
   while (currentId !== null) {
     const [share] = await db
       .select()
-      .from(s.driveShare)
+      .from(schemas.driveShare)
       .where(
         and(
-          eq(s.driveShare.itemId, currentId),
-          eq(s.driveShare.itemType, "folder"),
-          eq(s.driveShare.granteeId, userId),
-          eq(s.driveShare.granteeType, "user"),
+          eq(schemas.driveShare.itemId, currentId),
+          eq(schemas.driveShare.itemType, "folder"),
+          eq(schemas.driveShare.granteeId, userId),
+          eq(schemas.driveShare.granteeType, "user"),
         ),
       )
       .limit(1);
@@ -179,13 +180,14 @@ async function getInheritedPermission({
     }
 
     const [folder] = await db
-      .select({ parentId: s.driveFolder.parentId })
-      .from(s.driveFolder)
-      .where(eq(s.driveFolder.id, currentId))
+      .select({ parentId: schemas.driveFolder.parentId })
+      .from(schemas.driveFolder)
+      .where(eq(schemas.driveFolder.id, currentId))
       .limit(1);
 
     currentId = folder?.parentId ?? null;
   }
+  // oxlint-enable eslint/no-await-in-loop
 
   return bestPermission;
 }

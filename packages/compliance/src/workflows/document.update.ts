@@ -5,7 +5,7 @@ import { parse } from "valibot";
 import { complianceDocument } from "../db-schemas";
 import { COMPLIANCE_EVENTS } from "../pubsub";
 import { type UpdateComplianceDocumentInput, UpdateComplianceDocumentSchema } from "../types";
-import { fetchDocumentStep } from "./steps/fetch-document";
+import { fetchDocumentStep } from "../workflow-steps/fetch-document";
 
 const updateDocument = Workflow.name("document.update").handler(
   async (input: { id: string; patch: UpdateComplianceDocumentInput }, ctx) => {

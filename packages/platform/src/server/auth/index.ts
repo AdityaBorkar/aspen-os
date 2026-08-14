@@ -85,7 +85,7 @@ export class AuthUnit implements Unit {
     this.#betterAuth = createBetterAuthService(this.#config, this.#db, ac);
   }
 
-  get _() {
+  get rest() {
     const deps: AuthServiceDeps = {
       auth: this.#betterAuth,
       db: this.#db,
@@ -139,10 +139,6 @@ export function createBetterAuthService(
       emailOTP({
         async sendVerificationOTP({ email, otp, type }) {
           console.log({ email, otp, type });
-          if (type === "sign-in") {
-          } else if (type === "email-verification") {
-          } else {
-          }
         },
       }),
       apiKey({

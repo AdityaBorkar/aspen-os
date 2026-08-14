@@ -2,7 +2,7 @@ import { createHmac } from "node:crypto";
 
 import { eq } from "drizzle-orm";
 
-import * as s from "../db-schema";
+import * as schema from "../db-schema";
 import type { AuthServiceDeps, Session, User } from "../index";
 import { toSession, toUser } from "../utils/mappers";
 
@@ -70,7 +70,7 @@ export async function invalidateSession(
   input: { sessionId: string },
   { db, pubsub }: AuthServiceDeps,
 ): Promise<void> {
-  await db.delete(s.session).where(eq(s.session.id, input.sessionId));
+  await db.delete(schema.session).where(eq(schema.session.id, input.sessionId));
   await pubsub?.publish("session:invalidated", {
     sessionId: input.sessionId,
   });

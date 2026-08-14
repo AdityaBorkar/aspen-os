@@ -1,7 +1,7 @@
 import { getContext } from "@aspen-os/platform/server";
 import { eq, sql } from "drizzle-orm";
 
-import * as s from "../db-schemas";
+import * as schemas from "../db-schemas";
 import type { FolderDownloadLinkOptions } from "../types";
 import { computeArchiveKey, get, getSignedGetUrl, upload } from "./item-storage-bridge";
 
@@ -26,7 +26,11 @@ export async function createArchive({
   options?: FolderDownloadLinkOptions;
 }): Promise<ArchiveResult> {
   const { db } = getContext();
-  const [folder] = await db.select().from(s.dmsFolder).where(eq(s.dmsFolder.id, folderId)).limit(1);
+  const [folder] = await db
+    .select()
+    .from(schemas.dmsFolder)
+    .where(eq(schemas.dmsFolder.id, folderId))
+    .limit(1);
 
   if (!folder) {
     throw new Error(`Folder "${folderId}" not found.`);
@@ -38,7 +42,7 @@ export async function createArchive({
     includeSubfolders,
   });
 
-  const totalSize = files.reduce((sum, f) => sum + f.size, 0);
+  const totalSize = files.reduce((sum, file) => sum + file.size, 0);
   if (files.length > LARGE_FOLDER_FILE_THRESHOLD || totalSize > LARGE_FOLDER_SIZE_THRESHOLD) {
     throw new ArchiveTooLargeError(folderId, files.length, totalSize);
   }
@@ -55,8 +59,8 @@ export async function processArchiveJob(data: ArchiveJobData): Promise<ArchiveRe
   const { db } = getContext();
   const [folder] = await db
     .select()
-    .from(s.dmsFolder)
-    .where(eq(s.dmsFolder.id, data.folderId))
+    .from(schemas.dmsFolder)
+    .where(eq(schemas.dmsFolder.id, data.folderId))
     .limit(1);
 
   if (!folder) {
@@ -80,22 +84,24 @@ async function collectFiles({
 }: {
   folderPath: string;
   includeSubfolders: boolean;
-}): Promise<(typeof s.dmsFile.$inferSelect)[]> {
+}): Promise<(typeof schemas.dmsFile.$inferSelect)[]> {
   const { db } = getContext();
   if (includeSubfolders) {
     return db
       .select()
-      .from(s.dmsFile)
-      .where(sql`${s.dmsFile.path} like ${`${folderPath}/%`} AND ${s.dmsFile.isTrashed} = false`);
+      .from(schemas.dmsFile)
+      .where(
+        sql`${schemas.dmsFile.path} like ${`${folderPath}/%`} AND ${schemas.dmsFile.isTrashed} = false`,
+      );
   }
 
   return db
     .select()
-    .from(s.dmsFile)
+    .from(schemas.dmsFile)
     .where(
-      sql`${s.dmsFile.folderId} = (
+      sql`${schemas.dmsFile.folderId} = (
         SELECT id FROM dms_folder WHERE path = ${folderPath}
-      ) AND ${s.dmsFile.isTrashed} = false`,
+      ) AND ${schemas.dmsFile.isTrashed} = false`,
     );
 }
 
@@ -106,7 +112,7 @@ async function generateZip({
   folderPath,
 }: {
   expiresIn?: number;
-  files: (typeof s.dmsFile.$inferSelect)[];
+  files: (typeof schemas.dmsFile.$inferSelect)[];
   folderName: string;
   folderPath: string;
 }): Promise<ArchiveResult> {
@@ -115,11 +121,13 @@ async function generateZip({
   const zipEntries: Record<string, Uint8Array> = {};
   const basePathLength = folderPath.length;
 
-  for (const file of files) {
-    const data = await get({ key: file.storageKey });
-    const relativePath = file.path.slice(basePathLength + 1);
-    zipEntries[relativePath] = new Uint8Array(data);
-  }
+  await Promise.all(
+    files.map(async (file) => {
+      const data = await get({ key: file.storageKey });
+      const relativePath = file.path.slice(basePathLength + 1);
+      zipEntries[relativePath] = new Uint8Array(data);
+    }),
+  );
 
   const manifest = strToU8(
     JSON.stringify(

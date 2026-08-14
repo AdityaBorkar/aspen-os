@@ -68,6 +68,7 @@ export class S3Adapter {
     const chunks: Uint8Array[] = [];
     const stream = result.Body as ReadableStream;
     const reader = stream.getReader();
+    // oxlint-disable eslint/no-await-in-loop
     for (;;) {
       const { done, value } = await reader.read();
       if (done) {
@@ -75,6 +76,7 @@ export class S3Adapter {
       }
       chunks.push(value);
     }
+    // oxlint-enable eslint/no-await-in-loop
     return Buffer.concat(chunks);
   }
 

@@ -6,8 +6,8 @@ import { dmsFile } from "../db-schemas";
 import { ITEM_EVENTS } from "../pubsub";
 import { checkNameUniqueness, computeFilePath } from "../services/item-path-service";
 import { RenameItemFileSchema } from "../types";
+import { fetchItemFileStep } from "../workflow-steps/fetch-item-file";
 import { FileIdSchema } from "./item-utils";
-import { fetchItemFileStep } from "./steps/fetch-item-file";
 
 const RenameInputSchema = object({
   id: FileIdSchema,

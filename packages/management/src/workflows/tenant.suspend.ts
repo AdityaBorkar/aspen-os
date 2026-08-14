@@ -6,7 +6,7 @@ import { tenant } from "../db-schemas";
 import { TENANT_EVENTS } from "../pubsub";
 import { IdSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../utils/constants";
-import { fetchTenantStep } from "./steps/fetch-tenant";
+import { fetchTenantStep } from "../workflow-steps/fetch-tenant";
 
 export const suspendTenant = Workflow.name("tenant.suspend")
   .input(

@@ -3,9 +3,8 @@ import { and, desc, type SQL, sql } from "drizzle-orm";
 
 import { dmsDocument } from "../db-schemas";
 import { buildConditionsWhere, buildSortOrder } from "../services/condition-service";
-import type { ViewCondition, ViewSort } from "../types";
-import { ApplyViewSchema } from "../types";
-import { fetchViewStep } from "./steps/fetch-view";
+import { type ViewCondition, ApplyViewSchema, type ViewSort } from "../types";
+import { fetchViewStep } from "../workflow-steps/fetch-view";
 
 const ApplyInputSchema = ApplyViewSchema;
 
@@ -41,7 +40,7 @@ export const applyView = Workflow.name("dms.view.apply")
     return ctx.step.run("query", async () => {
       const conditions: SQL[] = [];
 
-      const explicitStatus = filters.find((f) => f.field === "status");
+      const explicitStatus = filters.find((filter) => filter.field === "status");
       const targetsTriage = explicitStatus?.value === "triaged";
       const targetsDeleted = explicitStatus?.value === "deleted";
 

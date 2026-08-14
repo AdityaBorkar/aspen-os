@@ -6,7 +6,7 @@ import { dmsDocument, dmsDocumentClass } from "../db-schemas";
 import { CLASS_EVENTS } from "../pubsub";
 import { IdSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../utils/constants";
-import { fetchDocumentClassStep } from "./steps/fetch-document-class";
+import { fetchDocumentClassStep } from "../workflow-steps/fetch-document-class";
 
 const ArchiveInputSchema = object({ id: IdSchema });
 

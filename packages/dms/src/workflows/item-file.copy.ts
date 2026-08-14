@@ -4,8 +4,8 @@ import { object, optional, string } from "valibot";
 import { dmsFile } from "../db-schemas";
 import { checkNameUniqueness, computeFilePath, getFolderPath } from "../services/item-path-service";
 import { computeStorageKey, copy as copyStorage } from "../services/item-storage-bridge";
+import { fetchItemFileStep } from "../workflow-steps/fetch-item-file";
 import { FileIdSchema } from "./item-utils";
-import { fetchItemFileStep } from "./steps/fetch-item-file";
 
 const CopyInputSchema = object({
   destFolderId: optional(string()),

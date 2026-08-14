@@ -1,8 +1,8 @@
 import { check, maxLength, minLength, number, object, pipe, regex, string } from "valibot";
 
 const HEX_COLOR_REGEX = /^#[0-9A-Fa-f]{6}$/;
-const SLUG_REGEX = /^[a-z0-9]+(-[a-z0-9]+)*$/;
-const BRANCH_CODE_REGEX = /^[A-Z0-9]+(-[A-Z0-9]+)*$/;
+const SLUG_REGEX = /^[a-z0-9]+(?<suffix>-[a-z0-9]+)*$/;
+const BRANCH_CODE_REGEX = /^[A-Z0-9]+(?<suffix>-[A-Z0-9]+)*$/;
 const ISO_COUNTRY_CODE_REGEX = /^[A-Z]{2}$/;
 
 export const AccentColorSchema = pipe(

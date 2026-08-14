@@ -4,7 +4,7 @@ import { object, optional, string } from "valibot";
 import { driveFile } from "../db-schemas";
 import { checkNameUniqueness, computeFilePath, getFolderPath } from "../services/path-service";
 import { computeStorageKey, copy as copyStorage } from "../services/storage-bridge";
-import { fetchFileStep } from "./steps/fetch-file";
+import { fetchFileStep } from "../workflow-steps/fetch-file";
 import { FileIdSchema } from "./utils";
 
 const CopyInputSchema = object({

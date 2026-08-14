@@ -2,7 +2,7 @@ import { getContext } from "@aspen-os/platform/server";
 import { and, eq, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-import * as s from "../db-schemas";
+import * as schemas from "../db-schemas";
 import { getDriveConfig } from "../runtime";
 import type { BreadcrumbItem, PathResolution } from "../types";
 
@@ -46,12 +46,12 @@ export async function resolvePath({ path }: { path: string }): Promise<PathResol
 
   const [folder] = await db
     .select({
-      id: s.driveFolder.id,
-      name: s.driveFolder.name,
-      path: s.driveFolder.path,
+      id: schemas.driveFolder.id,
+      name: schemas.driveFolder.name,
+      path: schemas.driveFolder.path,
     })
-    .from(s.driveFolder)
-    .where(eq(s.driveFolder.path, normalized))
+    .from(schemas.driveFolder)
+    .where(eq(schemas.driveFolder.path, normalized))
     .limit(1);
 
   if (folder) {
@@ -60,12 +60,12 @@ export async function resolvePath({ path }: { path: string }): Promise<PathResol
 
   const [file] = await db
     .select({
-      id: s.driveFile.id,
-      name: s.driveFile.name,
-      path: s.driveFile.path,
+      id: schemas.driveFile.id,
+      name: schemas.driveFile.name,
+      path: schemas.driveFile.path,
     })
-    .from(s.driveFile)
-    .where(eq(s.driveFile.path, normalized))
+    .from(schemas.driveFile)
+    .where(eq(schemas.driveFile.path, normalized))
     .limit(1);
 
   if (file) {
@@ -83,13 +83,13 @@ export async function getBreadcrumbs({
   const { db } = getContext();
   const [folder] = await db
     .select({
-      id: s.driveFolder.id,
-      name: s.driveFolder.name,
-      parentId: s.driveFolder.parentId,
-      path: s.driveFolder.path,
+      id: schemas.driveFolder.id,
+      name: schemas.driveFolder.name,
+      parentId: schemas.driveFolder.parentId,
+      path: schemas.driveFolder.path,
     })
-    .from(s.driveFolder)
-    .where(eq(s.driveFolder.id, folderId))
+    .from(schemas.driveFolder)
+    .where(eq(schemas.driveFolder.id, folderId))
     .limit(1);
 
   if (!folder) {
@@ -98,17 +98,18 @@ export async function getBreadcrumbs({
 
   const breadcrumbs: BreadcrumbItem[] = [{ id: folder.id, name: folder.name, path: folder.path }];
 
+  // oxlint-disable eslint/no-await-in-loop
   let currentParentId = folder.parentId;
   while (currentParentId) {
     const [parent] = await db
       .select({
-        id: s.driveFolder.id,
-        name: s.driveFolder.name,
-        parentId: s.driveFolder.parentId,
-        path: s.driveFolder.path,
+        id: schemas.driveFolder.id,
+        name: schemas.driveFolder.name,
+        parentId: schemas.driveFolder.parentId,
+        path: schemas.driveFolder.path,
       })
-      .from(s.driveFolder)
-      .where(eq(s.driveFolder.id, currentParentId))
+      .from(schemas.driveFolder)
+      .where(eq(schemas.driveFolder.id, currentParentId))
       .limit(1);
 
     if (!parent) {
@@ -121,6 +122,7 @@ export async function getBreadcrumbs({
     });
     currentParentId = parent.parentId;
   }
+  // oxlint-enable eslint/no-await-in-loop
 
   return breadcrumbs;
 }
@@ -132,30 +134,34 @@ export async function cascadePaths(
   const prefix = `${oldPath}/%`;
 
   const descendantFolders = await db
-    .select({ id: s.driveFolder.id, path: s.driveFolder.path })
-    .from(s.driveFolder)
-    .where(sql`${s.driveFolder.path} like ${prefix}`);
+    .select({ id: schemas.driveFolder.id, path: schemas.driveFolder.path })
+    .from(schemas.driveFolder)
+    .where(sql`${schemas.driveFolder.path} like ${prefix}`);
 
-  for (const f of descendantFolders) {
-    const updatedPath = newPath + f.path.slice(oldPath.length);
-    await db
-      .update(s.driveFolder)
-      .set({ path: updatedPath, updatedAt: new Date() })
-      .where(eq(s.driveFolder.id, f.id));
-  }
+  await Promise.all(
+    descendantFolders.map(async (folder) => {
+      const updatedPath = newPath + folder.path.slice(oldPath.length);
+      await db
+        .update(schemas.driveFolder)
+        .set({ path: updatedPath, updatedAt: new Date() })
+        .where(eq(schemas.driveFolder.id, folder.id));
+    }),
+  );
 
   const descendantFiles = await db
-    .select({ id: s.driveFile.id, path: s.driveFile.path })
-    .from(s.driveFile)
-    .where(sql`${s.driveFile.path} like ${prefix}`);
+    .select({ id: schemas.driveFile.id, path: schemas.driveFile.path })
+    .from(schemas.driveFile)
+    .where(sql`${schemas.driveFile.path} like ${prefix}`);
 
-  for (const file of descendantFiles) {
-    const updatedPath = newPath + file.path.slice(oldPath.length);
-    await db
-      .update(s.driveFile)
-      .set({ path: updatedPath, updatedAt: new Date() })
-      .where(eq(s.driveFile.id, file.id));
-  }
+  await Promise.all(
+    descendantFiles.map(async (file) => {
+      const updatedPath = newPath + file.path.slice(oldPath.length);
+      await db
+        .update(schemas.driveFile)
+        .set({ path: updatedPath, updatedAt: new Date() })
+        .where(eq(schemas.driveFile.id, file.id));
+    }),
+  );
 }
 
 export async function wouldCreateCycle({
@@ -176,6 +182,7 @@ export async function wouldCreateCycle({
   let currentId: string | null = newParentId;
   let depth = 0;
 
+  // oxlint-disable eslint/no-await-in-loop
   while (currentId !== null) {
     if (currentId === folderId) {
       return true;
@@ -185,9 +192,9 @@ export async function wouldCreateCycle({
     }
 
     const [parent] = await db
-      .select({ parentId: s.driveFolder.parentId })
-      .from(s.driveFolder)
-      .where(eq(s.driveFolder.id, currentId))
+      .select({ parentId: schemas.driveFolder.parentId })
+      .from(schemas.driveFolder)
+      .where(eq(schemas.driveFolder.id, currentId))
       .limit(1);
 
     if (!parent) {
@@ -196,6 +203,7 @@ export async function wouldCreateCycle({
     currentId = parent.parentId;
     depth++;
   }
+  // oxlint-enable eslint/no-await-in-loop
 
   return false;
 }
@@ -205,11 +213,12 @@ export async function getDepth({ folderId }: { folderId: string }): Promise<numb
   let depth = 0;
   let currentId: string | null = folderId;
 
+  // oxlint-disable eslint/no-await-in-loop
   while (currentId !== null) {
     const [parent] = await db
-      .select({ parentId: s.driveFolder.parentId })
-      .from(s.driveFolder)
-      .where(eq(s.driveFolder.id, currentId))
+      .select({ parentId: schemas.driveFolder.parentId })
+      .from(schemas.driveFolder)
+      .where(eq(schemas.driveFolder.id, currentId))
       .limit(1);
 
     if (!parent?.parentId) {
@@ -222,6 +231,7 @@ export async function getDepth({ folderId }: { folderId: string }): Promise<numb
       throw new Error(`Folder hierarchy exceeds maximum depth of ${maxDepth()}`);
     }
   }
+  // oxlint-enable eslint/no-await-in-loop
 
   return depth;
 }
@@ -230,21 +240,21 @@ export async function getSubtreeMaxDepth({ folderPath }: { folderPath: string })
   const { db } = getContext();
   const prefix = `${folderPath}/%`;
   const descendants = await db
-    .select({ path: s.driveFolder.path })
-    .from(s.driveFolder)
-    .where(sql`${s.driveFolder.path} like ${prefix}`);
+    .select({ path: schemas.driveFolder.path })
+    .from(schemas.driveFolder)
+    .where(sql`${schemas.driveFolder.path} like ${prefix}`);
 
   const baseDepth = folderPath.split("/").length - 1;
-  let maxDepth = 0;
+  let maxObservedDepth = 0;
 
-  for (const d of descendants) {
-    const depth = d.path.split("/").length - 1 - baseDepth;
-    if (depth > maxDepth) {
-      maxDepth = depth;
+  for (const descendant of descendants) {
+    const depth = descendant.path.split("/").length - 1 - baseDepth;
+    if (depth > maxObservedDepth) {
+      maxObservedDepth = depth;
     }
   }
 
-  return maxDepth;
+  return maxObservedDepth;
 }
 
 export async function checkNameUniqueness({
@@ -262,16 +272,16 @@ export async function checkNameUniqueness({
   const lowerPath = newPath.toLowerCase();
 
   const folderConditions = [
-    sql`lower(${s.driveFolder.path}) = ${lowerPath}`,
-    eq(s.driveFolder.isTrashed, false),
+    sql`lower(${schemas.driveFolder.path}) = ${lowerPath}`,
+    eq(schemas.driveFolder.isTrashed, false),
   ];
   if (excludeId) {
-    folderConditions.push(sql`${s.driveFolder.id} != ${excludeId}`);
+    folderConditions.push(sql`${schemas.driveFolder.id} != ${excludeId}`);
   }
 
   const [existingFolder] = await db
-    .select({ id: s.driveFolder.id })
-    .from(s.driveFolder)
+    .select({ id: schemas.driveFolder.id })
+    .from(schemas.driveFolder)
     .where(and(...folderConditions))
     .limit(1);
 
@@ -280,13 +290,13 @@ export async function checkNameUniqueness({
   }
 
   const fileConditions = [
-    sql`lower(${s.driveFile.path}) = ${lowerPath}`,
-    eq(s.driveFile.isTrashed, false),
+    sql`lower(${schemas.driveFile.path}) = ${lowerPath}`,
+    eq(schemas.driveFile.isTrashed, false),
   ];
 
   const [existingFile] = await db
-    .select({ id: s.driveFile.id })
-    .from(s.driveFile)
+    .select({ id: schemas.driveFile.id })
+    .from(schemas.driveFile)
     .where(and(...fileConditions))
     .limit(1);
 
@@ -298,9 +308,9 @@ export async function checkNameUniqueness({
 export async function getFolderPath({ folderId }: { folderId: string }): Promise<string> {
   const { db } = getContext();
   const [folder] = await db
-    .select({ path: s.driveFolder.path })
-    .from(s.driveFolder)
-    .where(eq(s.driveFolder.id, folderId))
+    .select({ path: schemas.driveFolder.path })
+    .from(schemas.driveFolder)
+    .where(eq(schemas.driveFolder.id, folderId))
     .limit(1);
 
   if (!folder) {
@@ -313,9 +323,9 @@ export async function getFolderPath({ folderId }: { folderId: string }): Promise
 export async function getFilePath({ fileId }: { fileId: string }): Promise<string> {
   const { db } = getContext();
   const [file] = await db
-    .select({ path: s.driveFile.path })
-    .from(s.driveFile)
-    .where(eq(s.driveFile.id, fileId))
+    .select({ path: schemas.driveFile.path })
+    .from(schemas.driveFile)
+    .where(eq(schemas.driveFile.id, fileId))
     .limit(1);
 
   if (!file) {

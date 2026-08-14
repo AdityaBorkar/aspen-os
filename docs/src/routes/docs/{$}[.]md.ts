@@ -7,7 +7,7 @@ export const Route = createFileRoute("/docs/{$}.md")({
   server: {
     handlers: {
       GET: async ({ params }) => {
-        const slugs = markdownPathToSlugs(params._splat?.split("/") ?? []);
+        const slugs = markdownPathToSlugs(params["_splat"]?.split("/") ?? []);
         const page = source.getPage(slugs);
         if (!page) {
           throw notFound();

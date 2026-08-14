@@ -40,7 +40,7 @@ export const listBin = Workflow.name("dms.bin.list").handler(
       .limit(filters.limit ?? 50)
       .offset(filters.offset ?? 0);
 
-    const ids = rows.map((r) => r.id);
+    const ids = rows.map((row) => row.id);
     const holds = ids.length
       ? await ctx.db.select().from(dmsLegalHold).where(inArray(dmsLegalHold.documentId, ids))
       : [];
@@ -52,16 +52,16 @@ export const listBin = Workflow.name("dms.bin.list").handler(
       holdMap.set(hold.documentId, list);
     }
 
-    const classIds = [...new Set(rows.map((r) => r.classId).filter(Boolean))] as string[];
+    const classIds = [...new Set(rows.map((row) => row.classId).filter(Boolean))] as string[];
     const classes = classIds.length
       ? await ctx.db.select().from(dmsDocumentClass).where(inArray(dmsDocumentClass.id, classIds))
       : [];
-    const classMap = new Map(classes.map((c) => [c.id, c]));
+    const classMap = new Map(classes.map((cls) => [cls.id, cls]));
 
     return rows.map((row) => ({
       document: row,
-      held: (holdMap.get(row.id) ?? []).some((h) => !h.releasedAt),
-      hold: holdMap.get(row.id)?.find((h) => !h.releasedAt) ?? null,
+      held: (holdMap.get(row.id) ?? []).some((hold) => !hold.releasedAt),
+      hold: holdMap.get(row.id)?.find((hold) => !hold.releasedAt) ?? null,
       provenance:
         row.status === "deleted"
           ? { at: row.deletedAt, by: row.deletedBy }

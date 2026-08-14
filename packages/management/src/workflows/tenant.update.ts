@@ -8,7 +8,7 @@ import { TENANT_EVENTS } from "../pubsub";
 import { IdSchema, UpdateTenantCompanionSchema, UpdateTenantProfileSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../utils/constants";
 import { stripUndefined } from "../utils/strip-undefined";
-import { fetchTenantStep } from "./steps/fetch-tenant";
+import { fetchTenantStep } from "../workflow-steps/fetch-tenant";
 
 export const updateTenant = Workflow.name("tenant.update")
   .input(

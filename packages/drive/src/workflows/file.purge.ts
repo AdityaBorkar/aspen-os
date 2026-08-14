@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { driveFile, driveFileVersion } from "../db-schemas";
 import { DRIVE_EVENTS } from "../pubsub";
 import { remove as removeStorage } from "../services/storage-bridge";
-import { fetchFileStep } from "./steps/fetch-file";
+import { fetchFileStep } from "../workflow-steps/fetch-file";
 import { WithFileIdSchema } from "./utils";
 
 export const purgeFile = Workflow.name("drive.file.purge")
@@ -21,11 +21,13 @@ export const purgeFile = Workflow.name("drive.file.purge")
       .from(driveFileVersion)
       .where(eq(driveFileVersion.fileId, id));
 
-    for (const v of versions) {
+    // oxlint-disable eslint/no-await-in-loop
+    for (const version of versions) {
       await ctx.step.run("remove-version-storage", async () => {
-        await removeStorage({ key: v.storageKey });
+        await removeStorage({ key: version.storageKey });
       });
     }
+    // oxlint-enable eslint/no-await-in-loop
 
     await ctx.db.delete(driveFileVersion).where(eq(driveFileVersion.fileId, id));
 

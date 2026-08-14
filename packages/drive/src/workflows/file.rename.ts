@@ -6,7 +6,7 @@ import { driveFile } from "../db-schemas";
 import { DRIVE_EVENTS } from "../pubsub";
 import { checkNameUniqueness, computeFilePath } from "../services/path-service";
 import { RenameFileSchema } from "../types";
-import { fetchFileStep } from "./steps/fetch-file";
+import { fetchFileStep } from "../workflow-steps/fetch-file";
 import { FileIdSchema } from "./utils";
 
 const RenameInputSchema = object({ id: FileIdSchema, input: RenameFileSchema });

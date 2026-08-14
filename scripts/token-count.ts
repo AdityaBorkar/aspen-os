@@ -49,39 +49,46 @@ const enc = encoding_for_model("gpt-5");
 const gitignoreContent = await readFile(".gitignore", "utf8");
 const ig = ignore().add(gitignoreContent);
 
+const resolvedDirs = (
+  await Promise.all(
+    DIRECTORIES.map(async (dir) =>
+      dir.includes("*") ? fg(dir, { onlyDirectories: true }) : [dir],
+    ),
+  )
+).flat();
+
 const counts = new Map<string, number>();
 
-const resolvedDirs: string[] = [];
-for (const dir of DIRECTORIES) {
-  if (dir.includes("*")) {
-    const matches = await fg(dir, { onlyDirectories: true });
-    resolvedDirs.push(...matches);
-  } else {
-    resolvedDirs.push(dir);
-  }
-}
+await Promise.all(
+  resolvedDirs.map(async (dir) => {
+    const files = await fg("**/*", { cwd: dir, onlyFiles: true });
+    const tokenCounts = await Promise.all(
+      files.map(async (file) => {
+        const relativePath = dir === "." ? file : `${dir}/${file}`;
+        const normalizedPath = relativePath.replace(/^\.\//, "");
+        if (ig.ignores(normalizedPath)) {
+          return 0;
+        }
 
-for (const dir of resolvedDirs) {
-  let tokens = 0;
-  for (const file of await fg("**/*", { cwd: dir, onlyFiles: true })) {
-    const relativePath = dir === "." ? file : `${dir}/${file}`;
-    const normalizedPath = relativePath.replace(/^\.\//, "");
-    if (ig.ignores(normalizedPath)) {
-      continue;
-    }
+        const ext = file.split(".").pop()?.toLowerCase() ?? "";
+        if (BINARY_EXTENSIONS.has(ext)) {
+          return 0;
+        }
 
-    const ext = file.split(".").pop()?.toLowerCase() ?? "";
-    if (BINARY_EXTENSIONS.has(ext)) {
-      continue;
-    }
-
-    try {
-      const text = await readFile(relativePath, "utf8");
-      tokens += enc.encode(text).length;
-    } catch {}
-  }
-  counts.set(dir, tokens);
-}
+        try {
+          const text = await readFile(relativePath, "utf8");
+          return enc.encode(text).length;
+        } catch {
+          return 0;
+        }
+      }),
+    );
+    counts.set(
+      dir,
+      tokenCounts.reduce((total, count) => total + count, 0),
+    );
+  }),
+);
 
 interface TreeNode {
   children: TreeNode[];
@@ -96,14 +103,14 @@ function buildTree(dirs: string[], countMap: Map<string, number>): TreeNode[] {
     const parts = dir.replace(/^\.\//, "").split("/");
     let current = root;
 
-    for (let i = 0; i < parts.length; i++) {
-      const part = parts[i] ?? "";
-      let child = current.children.find((c) => c.name === part);
+    for (let index = 0; index < parts.length; index++) {
+      const part = parts[index] ?? "";
+      let child = current.children.find((existingChild) => existingChild.name === part);
       if (!child) {
         child = { children: [], name: part, tokens: 0 };
         current.children.push(child);
       }
-      if (i === parts.length - 1) {
+      if (index === parts.length - 1) {
         child.tokens = countMap.get(dir) ?? 0;
       }
       current = child;
@@ -119,9 +126,9 @@ function formatTokens(tokens: number): string {
 }
 
 function printTree(nodes: TreeNode[], prefix = "") {
-  for (let i = 0; i < nodes.length; i++) {
-    const node = nodes[i] ?? { children: [], name: "", tokens: 0 };
-    const isNodeLast = i === nodes.length - 1;
+  for (let index = 0; index < nodes.length; index++) {
+    const node = nodes[index] ?? { children: [], name: "", tokens: 0 };
+    const isNodeLast = index === nodes.length - 1;
     const connector = isNodeLast ? "└── " : "├── ";
     const childPrefix = prefix + (isNodeLast ? "    " : "│   ");
 
@@ -142,7 +149,7 @@ console.log(`./ ${formatTokens(rootTokens)} tokens`);
 console.log("│");
 
 const tree = buildTree(
-  resolvedDirs.filter((d) => d !== "."),
+  resolvedDirs.filter((dir) => dir !== "."),
   counts,
 );
 printTree(tree);

@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { organization } from "../db-schemas";
 import { ORGANIZATION_EVENTS } from "../pubsub";
 import { UpdateBrandingSchema } from "../types";
-import { fetchOrganizationStep } from "./steps/fetch-organization";
+import { fetchOrganizationStep } from "../workflow-steps/fetch-organization";
 
 export const updateBranding = Workflow.name("org.update-branding")
   .input(UpdateBrandingSchema)

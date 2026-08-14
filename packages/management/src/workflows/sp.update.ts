@@ -7,7 +7,7 @@ import { SERVICE_PROVIDER_EVENTS } from "../pubsub";
 import { IdSchema, UpdateServiceProviderSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../utils/constants";
 import { stripUndefined } from "../utils/strip-undefined";
-import { fetchServiceProviderStep } from "./steps/fetch-sp";
+import { fetchServiceProviderStep } from "../workflow-steps/fetch-sp";
 
 export const updateSp = Workflow.name("sp.update")
   .input(

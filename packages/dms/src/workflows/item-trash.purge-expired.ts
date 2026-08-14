@@ -1,8 +1,7 @@
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
 
-import type { ItemPurgeDeps } from "../services/item-purge-service";
-import { purgeExpiredItemsInternal } from "../services/item-purge-service";
+import { type ItemPurgeDeps, purgeExpiredItemsInternal } from "../services/item-purge-service";
 
 const PurgeInputSchema = object({});
 

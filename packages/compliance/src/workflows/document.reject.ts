@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 
 import { complianceDocument } from "../db-schemas";
 import { COMPLIANCE_EVENTS } from "../pubsub";
-import { fetchDocumentStep } from "./steps/fetch-document";
+import { fetchDocumentStep } from "../workflow-steps/fetch-document";
 
 const rejectDocument = Workflow.name("document.reject").handler(
   async (input: { id: string; reviewerId: string; reason: string }, ctx) => {

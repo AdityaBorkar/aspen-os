@@ -6,10 +6,10 @@
 
 Workspace state:
 
-- **Fully implemented**: `platform`, `organization`, `compliance`, `tasks`, `drive`, `management`, `hr` (modules), `constants` (shared enums).
+- **Fully implemented**: `platform`, `organization`, `compliance`, `tasks`, `dms`, `management`, `hr` (modules), `constants` (shared enums). `drive` is fully implemented but **deprecated** — superseded by `dms`, retained only for data migration.
 - **Pure stubs**: `accounting`, `crm`, `fleet`, `inventory`, `pharmacy`, `reports` (package.json is just `{ "name": "..." }`).
 
-Read `CODING_CONVENTIONS.md`, `CONTEXT.md`, and the domain docs in `.working-docs/` (`DOMAIN_MODEL.md`, `BOUNDED_CONTEXTS.md`, `TODO.md`, `adr/`) before modeling domain changes. `CONTEXT.md` documents known gaps. `docs/` is the built documentation site, not the source of truth for domain docs.
+Read `CODING_CONVENTIONS.md`, `CONTEXT.md`, and the domain docs in `.working-docs/` (`DOMAIN_MODEL.md`, `BOUNDED_CONTEXTS.md`, `TODO.md`, `adr/`, `plans/`, `sow/`, `todo/`) before modeling domain changes. `CONTEXT.md` documents known gaps. `docs/` is the built documentation site, not the source of truth for domain docs.
 
 ## Architecture & Data Flow
 
@@ -64,12 +64,16 @@ packages/
                        # workflows/, utils/ (context.ts, bun-compat.ts, is-global-tenant-id.ts)
     src/client/        # Platform class + auth/ logs/ rpc + context.ts, types.ts
     src/cli/           # commander CLI (db-studio, tenants)
-  constants/           # Shared enums (country-codes.ts, languages.ts — both files currently empty; enums live in index.ts)
+  constants/           # Shared enums (build step) — country-codes.ts / languages.ts are empty; enums live in index.ts
   organization/        # Domain module (build step) — module.ts auth.ts pubsub.ts db-schemas/ schemas/
                        # workflows/<entity>.<action>.ts + steps/
   compliance/          # Domain module — module.ts auth.ts pubsub.ts + services/ utils/constants.ts
   tasks/               # Domain module — module.ts auth.ts pubsub.ts + services/ utils/filter-engine.ts (17 tables)
-  drive/               # Domain module — module.ts auth.ts pubsub.ts + services/ runtime.ts
+  drive/               # Domain module — DEPRECATED; superseded by dms, retained for data migration only
+  dms/                 # Domain module (build step) — class-first document management (Triage → Classify → active,
+                       # classes, contacts/shares, legal holds, retention + purge) plus the whole Drive surface under
+                       # p.dms.{files,folders,labels,publicLinks,shares,trash} + driveSearch (20 dms_* tables,
+                       # expiry/auto-purge/item-purge crons)
   management/          # Control-plane module (build step) — module.ts auth.ts pubsub.ts
                        # workflows/steps/ (3 owned tables: service_provider, service_provider_user,
                        # tenant; no shadow/tenant tables)
@@ -102,7 +106,7 @@ cd packages/platform && bun run check:lint    # oxlint --fix . ; oxfmt .
 cd packages/platform && bun run build         # scripts/build.ts → .output/
 ```
 
-**Build gotcha**: platform's published `exports`/`bin` point at `.output/`. TypeScript resolves types from `.output/`, not source (Bun runtime uses source via the `build` map, but `tsc` does not). After changing platform exports, run `bun run build` **before** typechecking downstream packages. `organization` and `management` also have `build` steps.
+**Build gotcha**: platform, organization, management, `constants`, and `dms` publish `exports`/`bin` pointing at `.output/`. TypeScript resolves types from `.output/`, not source (Bun runtime uses source via the `build` map, but `tsc` does not). After changing exports, run `bun run build` **before** typechecking downstream packages (raw-src packages like `tasks`/`compliance`/`hr` still resolve platform types through `.output/`).
 
 docs (`bun run dev` → 3005):
 
@@ -113,7 +117,7 @@ bun run build           # bun gen:cf-types && vite build
 bun run deploy          # wrangler deploy (Cloudflare Workers, wrangler.jsonc)
 ```
 
-**docs gotchas**: `ignore-scripts=true` blocks the `postinstall` (`fumadocs-mdx`) — run `bunx fumadocs-mdx` manually if `.source/` is missing before build/typecheck. `check:lint` is `biome check` (no `--fix`, unlike others).
+**docs gotchas**: `ignore-scripts=true` blocks the `postinstall` (`fumadocs-mdx`) — run `bunx fumadocs-mdx` manually if `.source/` is missing before build/typecheck. Docs runs on `@tanstack/react-start` + Vite; `wrangler.jsonc` defines `preview`/`production` envs with custom domains. `gen:cf-types` (via `bun gen:cf-types`) writes `worker-configuration.d.ts` (gitignored).
 
 ## Code Conventions & Common Patterns
 
@@ -134,15 +138,15 @@ type ModuleInfra = {
 
 ### Domain-module pattern (management-aligned)
 
-Every implemented module (management, organization, compliance, tasks, drive, hr) follows the same shape:
+Every implemented module (management, organization, compliance, tasks, drive, dms, hr) follows the same shape:
 
 - `src/module.ts` holds the class (implements `Module`, static `create`, `readonly $name`/`$dependencies`/`$config`, `$prepareInfra()` returning `{ auth: { acl }, db: { control_plane_schemas, tenant_schemas }, events }`); `src/index.ts` just re-exports.
 - `src/auth.ts` holds the ACL (`defineAcl(...)`); `src/pubsub.ts` holds events; `src/types.ts` re-exports constants + events + schemas; `db-schemas/` is directory form (one file per table + `enums.ts`); workflows are one file per action under `workflows/<entity>.<action>.ts` with reusable steps in `workflows/steps/`.
 - Workflow groups: stateless `readonly` properties composed from imported per-workflow consts; a `#db` getter (management hybrid) only when a workflow is bound to a unit at construction time (`createX(this.#db)`).
 
-Modules with non-empty runtime wiring (compliance schedules/handlers, drive purge cron, hr scheduled jobs, management tenant onboarding) keep `#private` unit refs set in `$initialize(units)` plus `async $prepareRuntime()` / `async $cleanup()` that register/unregister pubsub schedules; their workflow groups stay `readonly`.
+Modules with non-empty runtime wiring (compliance schedules/handlers, drive purge cron, hr scheduled jobs, management tenant onboarding, dms expiry/auto-purge/item-purge) keep `#private` unit refs set in `$initialize(units)` plus `async $prepareRuntime()` / `async $cleanup()` that register/unregister pubsub schedules; their workflow groups stay `readonly`.
 
-`$initialize()` signatures vary by module — each types its own unit subset: organization/tasks take none; compliance takes `{ db, kvStore, pubsub }`; drive `{ db, storage, pubsub }`; management `{ db, auth, pubsub }`; hr `{ db, pubsub }`. management's `$name` is `"management"` (proxy `p.management`), `$dependencies: ["organization"]`.
+`$initialize()` signatures vary by module — each types its own unit subset: organization/tasks take none; compliance takes `{ db, kvStore, pubsub }`; drive `{ db, storage, pubsub }`; management `{ db, auth, pubsub }`; hr `{ db, pubsub }`; dms `{ db, auth, pubsub, storage }`. management's `$name` is `"management"` (proxy `p.management`), `$dependencies: ["organization"]`.
 
 ### Database (Drizzle)
 
@@ -159,38 +163,39 @@ Modules with non-empty runtime wiring (compliance schedules/handlers, drive purg
 - Constants as `as const` objects, `UPPER_SNAKE` keys, lowercase string values; shared in `@aspen-os/constants`, module-specific in `constants.ts`.
 - Events `"domain:event_name"`, typed via `EventMap`, published as plain string topics. No `Result<T,E>` / `PaginatedResult` types — don't create them.
 
-### TypeScript / Biome
+### TypeScript / Lint & Format
 
 Root `tsconfig.json` (extended everywhere, `composite: true` project references): `strict`, `verbatimModuleSyntax` (use `import type`), `noUncheckedIndexedAccess`, `noUnusedLocals` (params allowed), `moduleResolution: "bundler"`, `module/target: ESNext`, `types: ["bun", "@types/bun"]`.
 
 - **Path-alias gotcha**: each package maps `@/*` to its own `./src/*`. Root tsconfig has no `paths`. Run `tsc -b` in the package whose alias you mean.
-- **Biome** (`biome.json`): double quotes, 2-space indent, LF, `lineWidth: 80`, organized imports (`sortBareImports: true`, alias/URL import groups). Tailwind `useSortedClasses: "error"`. `src/components/ui/**` has linting disabled (shadcn).
+- **Linter/formatter is oxlint + oxfmt** (`.oxlintrc.json`, `.oxfmtrc.json`) — no Biome. `check:lint` runs `oxlint --fix` then `oxfmt` (both auto-fix). oxfmt sorts imports (URL → protocol/builtin → external → relative) and Tailwind classes (`clsx`/`cva`/`tw`/`cn`); it skips `.output`, `.wrangler`, `.tanstack`, `*.gen.ts`. oxlint ignores `src/components/ui/**` (shadcn). `.zed/settings.json` sets oxfmt as the formatter and excludes `codedb.snapshot`/`.output`/`.coverage`.
 
 ### Git hooks (Husky, active)
 
-- `pre-commit`: `bunx lint-staged` → `biome format --fix --no-errors-on-unmatched`.
-- `commit-msg`: `commitlint` — types `build chore ci docs feat fix perf refactor revert test wip`.
+- `pre-commit`: `bunx lint-staged` → runs `oxfmt` on staged files (root `lint-staged` config is `"*": "oxfmt"`).
+- `commit-msg`: `bunx commitlint --edit $1` — types `build chore ci docs feat fix perf refactor revert test wip`.
 
 ## Important Files
 
-| File                                                                                   | Purpose                                                                                                                                           |
-| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `packages/platform/src/server/index.ts`                                                | Server barrel: `Unit`/`Module`/`ModuleInfra`/`PlatformInstance`, three platform classes, workflows, `getContext`, `defineAcl`, `isGlobalTenantId` |
-| `packages/platform/src/server/base-platform.ts`                                        | `BasePlatform` (Proxy, `createCore`, `$prepareInfra`, `run`, `$cleanup`, `healthCheck`)                                                           |
-| `packages/platform/src/server/{create-single,create-shared,create-isolated}-tenant.ts` | The three platform classes                                                                                                                        |
-| `packages/platform/src/server/db/index.ts` + `unit.ts`                                 | `DatabaseUnit` — pool, `db`/`controlPlaneDb`, tenancy, RLS, `prepareWithModules`, `getSchemas`                                                    |
-| `packages/platform/src/server/auth/index.ts`                                           | `AuthUnit` — better-auth service, `fetchHandler`, `applyModuleAcl`, `_` getter, `defineAcl`                                                       |
-| `packages/platform/src/server/pubsub/index.ts`                                         | `PubSubUnit` — single control-plane pg-boss (lazy-started); see pubsub pitfalls below                                                             |
-| `packages/platform/src/server/workflows/`                                              | `Workflow` / `WorkflowStep` durable step runner (`workflow_runs`/`workflow_steps` tables)                                                         |
-| `packages/platform/src/cli/index.ts`                                                   | `aspen` CLI — `db-studio`, `tenants`; dynamically imports config (`platform` or `p` export)                                                       |
-| `scripts/build.ts`                                                                     | Package builder: rewrites `exports`/`bin` → `.output/`, runs `Bun.build()` + `tsc` declarations                                                   |
-| `docs/src/routes/docs/$.tsx`                                                           | Docs catch-all route — Fumadocs layout, server fn loader                                                                                          |
-| `docs/source.config.ts`                                                                | Fumadocs docs sources — each package's `docs/` dir (`packages/*/docs`, e.g. `platform`, `organization`, `hr`)                                     |
-| `biome.json`, `tsconfig.json`, `bunfig.toml`, `.commitlintrc.json`                     | Toolchain config                                                                                                                                  |
+| File                                                                                    | Purpose                                                                                                                                           |
+| --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/platform/src/server/index.ts`                                                 | Server barrel: `Unit`/`Module`/`ModuleInfra`/`PlatformInstance`, three platform classes, workflows, `getContext`, `defineAcl`, `isGlobalTenantId` |
+| `packages/platform/src/server/base-platform.ts`                                         | `BasePlatform` (Proxy, `createCore`, `$prepareInfra`, `run`, `$cleanup`, `healthCheck`)                                                           |
+| `packages/platform/src/server/{create-single,create-shared,create-isolated}-tenant.ts`  | The three platform classes                                                                                                                        |
+| `packages/platform/src/server/db/index.ts` + `unit.ts`                                  | `DatabaseUnit` — pool, `db`/`controlPlaneDb`, tenancy, RLS, `prepareWithModules`, `getSchemas`                                                    |
+| `packages/platform/src/server/auth/index.ts`                                            | `AuthUnit` — better-auth service, `fetchHandler`, `applyModuleAcl`, `rest` getter, `defineAcl`                                                    |
+| `packages/platform/src/server/auth/db-schema.ts`                                        | better-auth tables — **generated** via `bun run gen:auth-schema` (committed; regenerate from `~config.ts`)                                        |
+| `packages/platform/src/server/pubsub/index.ts`                                          | `PubSubUnit` — single control-plane pg-boss (lazy-started); see pubsub pitfalls below                                                             |
+| `packages/platform/src/server/workflows/`                                               | `Workflow` / `WorkflowStep` durable step runner (`workflow_runs`/`workflow_steps` tables)                                                         |
+| `packages/platform/src/cli/index.ts`                                                    | `aspen` CLI — `db-studio`, `tenants`; dynamically imports config (`platform` or `p` export)                                                       |
+| `scripts/build.ts`                                                                      | Package builder: rewrites `exports`/`bin` → `.output/`, runs `Bun.build()` + `tsc` declarations                                                   |
+| `docs/src/routes/docs/$.tsx`                                                            | Docs catch-all route — Fumadocs layout, server fn loader                                                                                          |
+| `docs/source.config.ts`                                                                 | Fumadocs docs sources — every package's `docs/` dir (`platform`, `organization`, `dms`, `constants`, …)                                           |
+| `.oxlintrc.json`, `.oxfmtrc.json`, `tsconfig.json`, `bunfig.toml`, `.commitlintrc.json` | Toolchain config                                                                                                                                  |
 
-### `_` getter (server AuthUnit)
+### `rest` getter (server AuthUnit)
 
-`AuthUnit._` exposes a REST `resource.action` API: `user.{create, get, remove, update, role.{assign, unassign}}`, `session.{create, invalidate, validate}`, `role.{list, remove}`. The `service` getter returns the full better-auth `AuthService` (`betterAuth` instance with `.api` for admin/organization plugin endpoints). Use `remove`, not `delete`. `applyModuleAcl(acl)` re-creates the service with `admin({ ac: createAccessControl(acl) })` during `prepareInfra()`.
+`AuthUnit.rest` exposes a REST `resource.action` API: `user.{create, get, remove, update, role.{assign, unassign}}`, `session.{create, invalidate, validate}`, `role.{list, remove}`. The `service` getter returns the full better-auth `AuthService` (`betterAuth` instance with `.api` for admin/organization plugin endpoints). Use `remove`, not `delete`. `applyModuleAcl(acl)` re-creates the service with `admin({ ac: createAccessControl(acl) })` during `prepareInfra()`.
 
 ### Workflows
 
@@ -212,23 +217,23 @@ await myWorkflow.run(input, { actorId });
 ## Runtime/Tooling Preferences
 
 - **Runtime**: Bun (not Node.js). Package manager: Bun workspaces. Lockfile `bun.lockb`.
-- **TypeScript**: `typescript` catalog `^7.0.2`. **Validation**: valibot (domain), zod (RPC/env). **ORM**: drizzle-orm `^0.45.2` + `pg`. **Auth**: better-auth `^1.6.25` (+ api-key, passkey, admin, organization plugins). **Pub/Sub**: pg-boss `^10.4.2`. **RPC**: oRPC (`@orpc/server`). **Storage**: AWS S3 SDK (SeaweedFS-compatible). Telemetry: `@opentelemetry/api`, logs via pino.
-- **Root `workspaces.catalog`**: `@standard-schema/spec`, `@standard-schema/utils`, `@types/bun`, `bun`, `drizzle-orm`, `typescript`, `valibot` — referenced as `catalog:`.
-- **`bunfig.toml`**: `ignore-scripts=true`, `minimumReleaseAge=259200` (3 days; excludes `@types/bun`/`typescript`/`@biomejs/biome`), `saveTextLockfile=false`.
+- **TypeScript**: `typescript` catalog `^7.0.2`. **Validation**: valibot (domain), zod (RPC/env). **ORM**: drizzle-orm `^0.45.2` + `pg`. **Auth**: better-auth `^1.6.26` (+ api-key, passkey, admin, organization plugins). **Pub/Sub**: pg-boss `^10.4.2`. **RPC**: oRPC (`@orpc/server`). **Storage**: AWS S3 SDK (SeaweedFS-compatible). Telemetry: `@opentelemetry/api`, logs via pino.
+- **Root `workspaces.catalog`**: `@standard-schema/spec`, `@standard-schema/utils`, `@types/bun`, `bun`, `drizzle-kit`, `drizzle-orm`, `typescript`, `valibot` — referenced as `catalog:`.
+- **`bunfig.toml`**: `ignore-scripts=true`, `minimumReleaseAge=259200` (3 days), `saveTextLockfile=false`, `telemetry=false`, `logLevel="warn"`.
 - **Env (docs)**: `docs/.env.local` — `OPENROUTER_API_KEY`, optional `CLOUDFLARE_*` (account ID, API token, S3 credentials for the AI chat feature).
 - **Infra (docker-compose)**: `packages/platform/src/server/example.docker-compose.yaml` — Postgres `postgres:18-alpine` on 5432 (user `aspen`, password `change-me`, RLS disabled via `row_security=off`). No SeaweedFS/storage service is defined in the repo.
-- **No CI/CD** beyond `docs`'s `wrangler.jsonc` (deploy via `wrangler deploy`).
+- **No CI/CD** beyond `docs`'s `wrangler.jsonc` (deploy via `wrangler deploy`; preview `preview-id.aspen.adityab.tech`, production `aspen.adityab.tech`).
 
 ## Testing & QA
 
 - **Status: effectively no test infrastructure.** No test files, no test config (`vitest.config.*` / `jest.config.*` / `playwright.config.*`), no `__tests__`/`fixtures`/`mocks` directories anywhere in the repo.
 - No test scripts in any package. No coverage config; `.zed/settings.json` pre-excludes `**/.coverage`.
-- No dedicated type-check/test gate in CI (there is no CI). Quality checks are `check:lint` (biome) and `check:types` (`tsc -b`) per package.
+- No dedicated type-check/test gate in CI (there is no CI). Quality checks are `check:lint` (oxlint/oxfmt) and `check:types` (`tsc -b`) per package.
 
 ## Pub/Sub Pitfall (pg-boss)
 
-`PubSubUnit.publish` delegates to pg-boss `send()`, which runs `INSERT … SELECT … JOIN queue … ON CONFLICT DO NOTHING RETURNING id`. If a topic has **no queue row** (no consumer has called `subscribe()` → `boss.work()`), the INSERT matches nothing and `send()` returns `null` — the message is silently dropped. Treat a null return as "not inserted": `publish()` should throw a verbose error pointing at a missing topic queue/worker. A topic with only producers is the classic silent-drop. The single control-plane boss must be started lazily on first use (not in `$prepareInfra()`); health-check connectivity uses `boss.getQueueSize(topic)`, not `send()`.
+`PubSubUnit.publish` delegates to pg-boss `send()`, which runs `INSERT … SELECT … JOIN queue … ON CONFLICT DO NOTHING RETURNING id`. If a topic has **no queue row** (no consumer has called `subscribe()` → `boss.work()`), the INSERT matches nothing and `send()` returns `null` — the message is silently dropped. `publish()` `console.warn`s on a null return (it does **not** throw — it only throws on actual pg-boss errors). A topic with only producers is the classic silent-drop. `getUnsubscribedProducedTopics()` tracks produced topics with no subscriber, and `BasePlatform.healthCheck()` flags the report `"unhealthy"` when any exist. The single control-plane boss must be started lazily on first use (not in `$prepareInfra()`); health-check connectivity uses `boss.getQueueSize(topic)`, not `send()`.
 
 ## Current State
 
-`organization`, `compliance`, `tasks`, `drive`, `management`, `hr` fully implemented and aligned to the management module structure (module.ts/auth.ts/pubsub.ts, db-schemas/, one workflow per file + steps/). `accounting`/`crm`/`fleet`/`inventory`/`pharmacy`/`reports` are stubs. No tests, no CI, no platform Docker/deployment config.
+`organization`, `compliance`, `tasks`, `dms`, `management`, `hr` fully implemented and aligned to the management module structure (module.ts/auth.ts/pubsub.ts, db-schemas/, one workflow per file + steps/). `drive` is deprecated and retained for data migration only. `accounting`/`crm`/`fleet`/`inventory`/`pharmacy`/`reports` are stubs. No tests, no CI, no platform Docker/deployment config.

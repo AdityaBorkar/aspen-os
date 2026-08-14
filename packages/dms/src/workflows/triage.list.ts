@@ -15,9 +15,15 @@ export const listTriage = Workflow.name("dms.triage.list")
     ctx.step.run("query", async () => {
       const conditions: SQL[] = [eq(dmsDocument.status, "triaged")];
 
-      if (filters.ownerId) conditions.push(eq(dmsDocument.ownerId, filters.ownerId));
-      if (filters.batchId) conditions.push(eq(dmsDocument.batchId, filters.batchId));
-      if (filters.classId) conditions.push(eq(dmsDocument.classId, filters.classId));
+      if (filters.ownerId) {
+        conditions.push(eq(dmsDocument.ownerId, filters.ownerId));
+      }
+      if (filters.batchId) {
+        conditions.push(eq(dmsDocument.batchId, filters.batchId));
+      }
+      if (filters.classId) {
+        conditions.push(eq(dmsDocument.classId, filters.classId));
+      }
       if (filters.tag) {
         conditions.push(sql`${dmsDocument.tags} ? ${filters.tag}`);
       }

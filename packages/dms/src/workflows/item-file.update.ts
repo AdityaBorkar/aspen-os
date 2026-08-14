@@ -7,8 +7,8 @@ import { ITEM_EVENTS } from "../pubsub";
 import { getDmsConfig } from "../runtime";
 import { computeStorageKey, upload as uploadStorage } from "../services/item-storage-bridge";
 import { UpdateItemFileSchema } from "../types";
+import { fetchItemFileStep } from "../workflow-steps/fetch-item-file";
 import { FileIdSchema, pruneOldVersions } from "./item-utils";
-import { fetchItemFileStep } from "./steps/fetch-item-file";
 
 const UpdateInputSchema = object({
   id: FileIdSchema,

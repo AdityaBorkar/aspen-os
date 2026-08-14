@@ -4,7 +4,7 @@ import { parse } from "valibot";
 
 import { complianceVerificationRule } from "../db-schemas";
 import { type UpdateVerificationRuleInput, UpdateVerificationRuleSchema } from "../types";
-import { fetchRuleStep } from "./steps/fetch-rule";
+import { fetchRuleStep } from "../workflow-steps/fetch-rule";
 
 const updateVerificationRule = Workflow.name("verification.update").handler(
   async (input: { id: string; patch: UpdateVerificationRuleInput }, ctx) => {

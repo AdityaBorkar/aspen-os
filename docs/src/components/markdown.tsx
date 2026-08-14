@@ -33,7 +33,7 @@ function createProcessor(): Processor {
         Fragment,
         components: {
           ...defaultMdxComponents,
-          img: undefined, // use JSX
+          img: undefined, // Use JSX
           pre: Pre,
         },
         development: false,
@@ -55,7 +55,7 @@ function Pre(props: ComponentProps<"pre">) {
   let lang =
     codeProps.className
       ?.split(" ")
-      .find((v) => v.startsWith("language-"))
+      .find((token) => token.startsWith("language-"))
       ?.slice("language-".length) ?? "text";
 
   if (lang === "mdx") {

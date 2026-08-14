@@ -13,7 +13,7 @@ import {
 } from "../services/storage-bridge";
 import { IdSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../utils/constants";
-import { fetchDocumentStep } from "./steps/fetch-document";
+import { fetchDocumentStep } from "../workflow-steps/fetch-document";
 
 const RevertInputSchema = object({
   documentId: IdSchema,

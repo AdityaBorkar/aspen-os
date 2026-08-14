@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { object, string } from "valibot";
 
 import { bankAccount } from "../db-schemas";
-import { fetchBankAccountStep } from "./steps/fetch-bank-account";
+import { fetchBankAccountStep } from "../workflow-steps/fetch-bank-account";
 import { unsetPrimaryBankAccount } from "./utils";
 
 export const setPrimary = Workflow.name("bank-account.set-primary")

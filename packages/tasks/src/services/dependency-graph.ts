@@ -15,6 +15,7 @@ export async function wouldCreateCycle(sourceId: string, targetId: string): Prom
   const visited = new Set<string>();
   const queue = [targetId];
 
+  // oxlint-disable eslint/no-await-in-loop
   while (queue.length > 0) {
     const current = queue.shift();
     if (!current) {
@@ -38,6 +39,7 @@ export async function wouldCreateCycle(sourceId: string, targetId: string): Prom
       queue.push(link.targetId);
     }
   }
+  // oxlint-enable eslint/no-await-in-loop
 
   return false;
 }
@@ -50,7 +52,7 @@ export async function getDependencies(taskId: string): Promise<string[]> {
     .from(taskLink)
     .where(and(eq(taskLink.sourceId, taskId), eq(taskLink.linkType, "blocks")));
 
-  return links.map((l) => l.targetId);
+  return links.map((link) => link.targetId);
 }
 
 export async function getDependents(taskId: string): Promise<string[]> {
@@ -61,7 +63,7 @@ export async function getDependents(taskId: string): Promise<string[]> {
     .from(taskLink)
     .where(and(eq(taskLink.targetId, taskId), eq(taskLink.linkType, "blocks")));
 
-  return links.map((l) => l.sourceId);
+  return links.map((link) => link.sourceId);
 }
 
 export async function topologicalSort(taskIds: string[]): Promise<string[]> {
@@ -143,13 +145,13 @@ export async function getCriticalPath(projectId: string): Promise<CriticalPathRe
     return { duration: 0, path: [] };
   }
 
-  const taskMap = new Map(tasks.map((t) => [t.id, t]));
+  const taskMap = new Map(tasks.map((taskRow) => [taskRow.id, taskRow]));
   const adj = new Map<string, string[]>();
   const inDegree = new Map<string, number>();
 
-  for (const t of tasks) {
-    adj.set(t.id, []);
-    inDegree.set(t.id, 0);
+  for (const taskRow of tasks) {
+    adj.set(taskRow.id, []);
+    inDegree.set(taskRow.id, 0);
   }
 
   const links = await db
@@ -159,7 +161,10 @@ export async function getCriticalPath(projectId: string): Promise<CriticalPathRe
     })
     .from(taskLink)
     .where(
-      and(eq(taskLink.linkType, "blocks"), or(...tasks.map((t) => eq(taskLink.sourceId, t.id)))),
+      and(
+        eq(taskLink.linkType, "blocks"),
+        or(...tasks.map((taskRow) => eq(taskLink.sourceId, taskRow.id))),
+      ),
     );
 
   for (const link of links) {
@@ -173,11 +178,11 @@ export async function getCriticalPath(projectId: string): Promise<CriticalPathRe
   const parent = new Map<string, string | null>();
   const queue: string[] = [];
 
-  for (const t of tasks) {
-    if ((inDegree.get(t.id) ?? 0) === 0) {
-      queue.push(t.id);
-      maxDuration.set(t.id, parseHours(taskMap.get(t.id)?.estimatedHours));
-      parent.set(t.id, null);
+  for (const taskRow of tasks) {
+    if ((inDegree.get(taskRow.id) ?? 0) === 0) {
+      queue.push(taskRow.id);
+      maxDuration.set(taskRow.id, parseHours(taskMap.get(taskRow.id)?.estimatedHours));
+      parent.set(taskRow.id, null);
     }
   }
 
@@ -239,12 +244,12 @@ export async function buildDependencyGraph(taskIds: string[]): Promise<TaskDepen
     .from(task)
     .where(or(...taskIds.map((id) => eq(task.id, id))));
 
-  const nodes: TaskDependencyNode[] = [];
-
-  for (const t of tasks) {
-    const deps = await getDependencies(t.id);
-    nodes.push({ dependsOn: deps, id: t.id, title: t.title });
-  }
+  const nodes = await Promise.all(
+    tasks.map(async (taskRow) => {
+      const deps = await getDependencies(taskRow.id);
+      return { dependsOn: deps, id: taskRow.id, title: taskRow.title };
+    }),
+  );
 
   return nodes;
 }

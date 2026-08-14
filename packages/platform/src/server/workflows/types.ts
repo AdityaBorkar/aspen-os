@@ -30,7 +30,11 @@ export interface WorkflowStepInstance<
 }
 
 export interface StepRunner {
-  run<T>(name: string, fn: () => T | Promise<T>, options?: StepOptions): Promise<T>;
+  run<TValue>(
+    name: string,
+    fn: () => TValue | Promise<TValue>,
+    options?: StepOptions,
+  ): Promise<TValue>;
   run<TInput, TOutput>(
     step: WorkflowStepInstance<TInput, TOutput>,
     input: TInput,

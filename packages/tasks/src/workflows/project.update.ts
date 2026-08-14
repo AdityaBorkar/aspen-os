@@ -4,7 +4,7 @@ import { object } from "valibot";
 
 import { project } from "../db-schemas/project";
 import { IdSchema, UpdateProjectSchema } from "../types";
-import { fetchProjectStep } from "./steps/fetch-project";
+import { fetchProjectStep } from "../workflow-steps/fetch-project";
 import { ensureKeyUnique } from "./utils";
 
 const UpdateInputSchema = object({

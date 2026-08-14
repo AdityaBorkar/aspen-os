@@ -16,15 +16,15 @@ const getUpcomingPeriods = Workflow.name("obligation.upcoming-periods").handler(
 
     const monthsPerPeriod = MONTHS_PER_FREQUENCY[obligation.frequency] ?? 1;
 
-    for (let i = 0; i < count; i++) {
+    for (let index = 0; index < count; index++) {
       const periodStart = new Date(
         startDate.getFullYear(),
-        startDate.getMonth() + i * monthsPerPeriod,
+        startDate.getMonth() + index * monthsPerPeriod,
         1,
       );
       const periodEnd = new Date(
         startDate.getFullYear(),
-        startDate.getMonth() + (i + 1) * monthsPerPeriod,
+        startDate.getMonth() + (index + 1) * monthsPerPeriod,
         0,
       );
 

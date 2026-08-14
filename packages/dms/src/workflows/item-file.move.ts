@@ -7,8 +7,8 @@ import { ITEM_EVENTS } from "../pubsub";
 import { checkNameUniqueness, computeFilePath, getFolderPath } from "../services/item-path-service";
 import { computeStorageKey, move as moveStorage } from "../services/item-storage-bridge";
 import { MoveItemFileSchema } from "../types";
+import { fetchItemFileStep } from "../workflow-steps/fetch-item-file";
 import { FileIdSchema } from "./item-utils";
-import { fetchItemFileStep } from "./steps/fetch-item-file";
 
 const MoveInputSchema = object({ id: FileIdSchema, input: MoveItemFileSchema });
 

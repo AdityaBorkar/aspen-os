@@ -4,7 +4,7 @@ import { object } from "valibot";
 
 import { comment } from "../db-schemas/comment";
 import { IdSchema } from "../types";
-import { fetchCommentStep } from "./steps/fetch-comment";
+import { fetchCommentStep } from "../workflow-steps/fetch-comment";
 
 export const deleteComment = Workflow.name("comment.delete")
   .input(object({ id: IdSchema }))

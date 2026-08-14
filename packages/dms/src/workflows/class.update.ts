@@ -7,7 +7,7 @@ import { CLASS_EVENTS } from "../pubsub";
 import { IdSchema, UpdateDocumentClassSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../utils/constants";
 import { stripUndefined } from "../utils/strip-undefined";
-import { fetchDocumentClassStep } from "./steps/fetch-document-class";
+import { fetchDocumentClassStep } from "../workflow-steps/fetch-document-class";
 
 const UpdateInputSchema = object({
   id: IdSchema,

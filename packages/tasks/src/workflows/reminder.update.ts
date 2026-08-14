@@ -4,7 +4,7 @@ import { object } from "valibot";
 
 import { reminder } from "../db-schemas/reminder";
 import { IdSchema, UpdateReminderSchema } from "../types";
-import { fetchReminderStep } from "./steps/fetch-reminder";
+import { fetchReminderStep } from "../workflow-steps/fetch-reminder";
 
 const UpdateInputSchema = object({
   id: IdSchema,
