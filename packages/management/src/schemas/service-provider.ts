@@ -13,9 +13,7 @@ export const CreateServiceProviderSchema = object({
   website: WebsiteSchema,
 });
 
-export type CreateServiceProviderInput = InferOutput<
-  typeof CreateServiceProviderSchema
->;
+export type CreateServiceProviderInput = InferOutput<typeof CreateServiceProviderSchema>;
 
 export const UpdateServiceProviderSchema = object({
   address: optional(string()),
@@ -28,15 +26,11 @@ export const UpdateServiceProviderSchema = object({
   website: optional(WebsiteSchema),
 });
 
-export type UpdateServiceProviderInput = InferOutput<
-  typeof UpdateServiceProviderSchema
->;
+export type UpdateServiceProviderInput = InferOutput<typeof UpdateServiceProviderSchema>;
 
 export const ServiceProviderFiltersSchema = object({
   search: optional(string()),
   status: optional(string()),
 });
 
-export type ServiceProviderFilters = InferOutput<
-  typeof ServiceProviderFiltersSchema
->;
+export type ServiceProviderFilters = InferOutput<typeof ServiceProviderFiltersSchema>;

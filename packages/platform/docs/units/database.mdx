@@ -74,26 +74,27 @@ class DatabaseUnit<TSchemas> {
 `db` is a getter returning a stable wrapper (a `Proxy`) that resolves the correct per-request drizzle instance via `AsyncLocalStorage` at query time. Workflows keep `this.db = units.db.db` — no workflow code changes:
 
 ```ts
-p.db.db            // stable wrapper — resolves per-request via context
-p.db.controlPlaneDb // direct control-plane drizzle instance
-p.db.pool          // pg.Pool — control-plane connection pool
+p.db.db; // stable wrapper — resolves per-request via context
+p.db.controlPlaneDb; // direct control-plane drizzle instance
+p.db.pool; // pg.Pool — control-plane connection pool
 ```
 
 ## Schema Management
 
 During `$prepareInfra()`, the platform calls `prepareWithModules(controlPlaneSchemas, tenantSchemas)` with the merged schemas from all modules' `ModuleInfra`. `getSchemas()` returns the platform core schemas:
 
-| Unit | Tables |
-|---|---|
-| `auth` | `user`, `session`, `account`, `verification` (no `tenant_id`) |
-| `logs` | `logs` |
-| `storage` | `file_metadata` |
-| `kvStore` | `kv_store` |
-| `audit` | `audit_log` |
-| workflows | `workflow_runs`, `workflow_steps` |
+| Unit      | Tables                                                        |
+| --------- | ------------------------------------------------------------- |
+| `auth`    | `user`, `session`, `account`, `verification` (no `tenant_id`) |
+| `logs`    | `logs`                                                        |
+| `storage` | `file_metadata`                                               |
+| `kvStore` | `kv_store`                                                    |
+| `audit`   | `audit_log`                                                   |
+| workflows | `workflow_runs`, `workflow_steps`                             |
 
 <Callout type="info">
-  In shared mode, RLS policies are applied to all tables with a `tenant_id` column after schemas are pushed. Auth tables are exempt — no `tenant_id`, no RLS.
+  In shared mode, RLS policies are applied to all tables with a `tenant_id` column after schemas are
+  pushed. Auth tables are exempt — no `tenant_id`, no RLS.
 </Callout>
 
 ## Multi-Tenant Support

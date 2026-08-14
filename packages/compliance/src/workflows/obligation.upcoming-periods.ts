@@ -42,20 +42,14 @@ const getUpcomingPeriods = Workflow.name("obligation.upcoming-periods").handler(
 
       if (obligation.expiryBased && obligation.expiryDurationMonths) {
         const expiryDate = new Date(periodStart);
-        expiryDate.setMonth(
-          expiryDate.getMonth() + obligation.expiryDurationMonths,
-        );
+        expiryDate.setMonth(expiryDate.getMonth() + obligation.expiryDurationMonths);
         entry.expiryDate = expiryDate.toISOString().split("T")[0] ?? null;
       } else if (!obligation.expiryBased) {
         const dueDate = new Date(periodEnd);
         const offset = obligation.dueMonthOffset ?? 0;
         dueDate.setMonth(dueDate.getMonth() + offset);
         if (obligation.dueDay) {
-          const lastDay = new Date(
-            dueDate.getFullYear(),
-            dueDate.getMonth() + 1,
-            0,
-          ).getDate();
+          const lastDay = new Date(dueDate.getFullYear(), dueDate.getMonth() + 1, 0).getDate();
           dueDate.setDate(Math.min(obligation.dueDay, lastDay));
         }
         entry.dueDate = dueDate.toISOString().split("T")[0] ?? null;

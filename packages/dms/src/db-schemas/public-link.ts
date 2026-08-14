@@ -1,21 +1,12 @@
 import { uuidv7 } from "@aspen-os/platform/server";
-import {
-  boolean,
-  index,
-  integer,
-  pgTable,
-  text,
-  timestamp,
-} from "drizzle-orm/pg-core";
+import { boolean, index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 import { dmsItemTypeEnum, dmsPublicLinkPermissionEnum } from "./enums";
 
 export const dmsPublicLink = pgTable(
   "dms_public_link",
   {
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     createdBy: text("created_by").notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     id: text("id").primaryKey().$defaultFn(uuidv7),
@@ -24,9 +15,7 @@ export const dmsPublicLink = pgTable(
     itemType: dmsItemTypeEnum("item_type").notNull(),
     maxViews: integer("max_views"),
     password: text("password"),
-    permission: dmsPublicLinkPermissionEnum("permission")
-      .notNull()
-      .default("view"),
+    permission: dmsPublicLinkPermissionEnum("permission").notNull().default("view"),
     token: text("token").notNull().unique(),
     viewCount: integer("view_count").notNull().default(0),
   },

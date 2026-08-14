@@ -5,11 +5,7 @@ import { object, parse } from "valibot";
 import { dmsDocument, dmsShare } from "../db-schemas";
 import { SHARE_EVENTS } from "../pubsub";
 import { CreateShareSchema } from "../types";
-import {
-  AUDIT_ACTION,
-  AUDIT_ENTITY_TYPE,
-  GRANTEE_TYPE,
-} from "../utils/constants";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, GRANTEE_TYPE } from "../utils/constants";
 
 const CreateInputSchema = object({ input: CreateShareSchema });
 
@@ -46,9 +42,7 @@ export const createShare = Workflow.name("dms.share.create")
       .limit(1);
 
     if (existing[0]) {
-      throw new Error(
-        "This document is already shared with the specified grantee.",
-      );
+      throw new Error("This document is already shared with the specified grantee.");
     }
 
     const [share] = await ctx.db
@@ -59,11 +53,8 @@ export const createShare = Workflow.name("dms.share.create")
         granteeId: parsed.granteeId,
         granteeType: parsed.granteeType,
         permission: parsed.permission ?? "viewer",
+        shareToken: parsed.granteeType === GRANTEE_TYPE.CONTACT ? crypto.randomUUID() : null,
         sharedBy: parsed.sharedBy,
-        shareToken:
-          parsed.granteeType === GRANTEE_TYPE.CONTACT
-            ? crypto.randomUUID()
-            : null,
       })
       .returning();
 

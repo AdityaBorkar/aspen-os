@@ -23,7 +23,7 @@ export const drivePermissionEnum = pgEnum("drive_permission", [
   DRIVE_PERMISSION.OWNER,
 ]);
 
-export const drivePublicLinkPermissionEnum = pgEnum(
-  "drive_public_link_permission",
-  [DRIVE_PUBLIC_LINK_PERMISSION.VIEW, DRIVE_PUBLIC_LINK_PERMISSION.EDIT],
-);
+export const drivePublicLinkPermissionEnum = pgEnum("drive_public_link_permission", [
+  DRIVE_PUBLIC_LINK_PERMISSION.VIEW,
+  DRIVE_PUBLIC_LINK_PERMISSION.EDIT,
+]);

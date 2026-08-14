@@ -19,16 +19,16 @@ export const deleteFolder = Workflow.name("drive.folder.delete")
         .from(driveFolder)
         .where(eq(driveFolder.id, id))
         .limit(1);
-      if (!row) throw new Error(`Folder with id "${id}" not found.`);
+      if (!row) {
+        throw new Error(`Folder with id "${id}" not found.`);
+      }
       return row;
     });
 
     const [childFolder] = await ctx.db
       .select({ id: driveFolder.id })
       .from(driveFolder)
-      .where(
-        and(eq(driveFolder.parentId, id), eq(driveFolder.isTrashed, false)),
-      )
+      .where(and(eq(driveFolder.parentId, id), eq(driveFolder.isTrashed, false)))
       .limit(1);
 
     const [childFile] = await ctx.db
@@ -49,7 +49,9 @@ export const deleteFolder = Workflow.name("drive.folder.delete")
       .where(eq(driveFolder.id, id))
       .returning();
 
-    if (!updated) throw new Error(`Folder with id "${id}" not found.`);
+    if (!updated) {
+      throw new Error(`Folder with id "${id}" not found.`);
+    }
 
     await ctx.pubsub.publish(DRIVE_EVENTS.TRASHED, {
       itemId: id,

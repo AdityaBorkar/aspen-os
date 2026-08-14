@@ -10,7 +10,7 @@ The `RpcUnit` (`$name: "rpc"`) provides an RPC layer using [oRPC](https://orpc.u
 
 ```ts title="src/server/rpc/types.ts"
 interface RpcConfig {
-  prefix?: string;  // default: "/api/rpc"
+  prefix?: string; // default: "/api/rpc"
 }
 ```
 
@@ -27,7 +27,7 @@ const rpcConfig: RpcConfig = {
 ```ts title="src/server/rpc/index.ts"
 class RpcUnit {
   readonly $name = "rpc";
-  readonly router = router;  // oRPC Router
+  readonly router = router; // oRPC Router
 
   readonly server: {
     handle(
@@ -79,11 +79,9 @@ Procedures are defined using oRPC's `os` base:
 ```ts title="src/server/rpc/procedures/echo.ts"
 import { os } from "../base";
 
-export const echo = os
-  .input(z.object({ message: z.string() }))
-  .handler(async ({ input }) => {
-    return { echo: input.message };
-  });
+export const echo = os.input(z.object({ message: z.string() })).handler(async ({ input }) => {
+  return { echo: input.message };
+});
 ```
 
 ## Router Structure

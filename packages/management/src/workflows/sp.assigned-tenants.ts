@@ -10,10 +10,7 @@ export const getAssignedTenants = Workflow.name("sp.assigned-tenants")
   .handler(async (input, ctx) => {
     const { spId } = input;
 
-    return ctx.step.run("query", async () => {
-      return ctx.db
-        .select()
-        .from(tenant)
-        .where(eq(tenant.serviceProviderId, spId));
-    });
+    return ctx.step.run("query", async () =>
+      ctx.db.select().from(tenant).where(eq(tenant.serviceProviderId, spId)),
+    );
   });

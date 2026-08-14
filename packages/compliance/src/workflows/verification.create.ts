@@ -24,7 +24,9 @@ const createVerificationRule = Workflow.name("verification.create")
       })
       .returning();
 
-    if (!result) throw new Error("Database operation returned no result");
+    if (!result) {
+      throw new Error("Database operation returned no result");
+    }
 
     await ctx.audit.write({
       action: "created",

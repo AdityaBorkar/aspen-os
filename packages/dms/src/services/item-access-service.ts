@@ -35,10 +35,14 @@ export async function checkPermission({
   required: ItemPermission;
 }): Promise<boolean> {
   const owner = await isOwner({ itemId, itemType, userId });
-  if (owner) return true;
+  if (owner) {
+    return true;
+  }
 
   const permission = await getEffectivePermission({ itemId, itemType, userId });
-  if (!permission) return false;
+  if (!permission) {
+    return false;
+  }
 
   return PERMISSION_RANK[permission] >= PERMISSION_RANK[required];
 }
@@ -125,10 +129,7 @@ export async function getEffectivePermission({
   return null;
 }
 
-export async function logAccess(
-  input: ItemAccessLogInput,
-  db?: DB,
-): Promise<void> {
+export async function logAccess(input: ItemAccessLogInput, db?: DB): Promise<void> {
   const target = db ?? getContext().db;
   await target.insert(s.dmsAccessLog).values({
     accessedBy: input.accessedBy ?? null,

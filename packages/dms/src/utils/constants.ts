@@ -5,8 +5,7 @@ export const DOCUMENT_STATUS = {
   TRIAGED: "triaged",
 } as const;
 
-export type DocumentStatus =
-  (typeof DOCUMENT_STATUS)[keyof typeof DOCUMENT_STATUS];
+export type DocumentStatus = (typeof DOCUMENT_STATUS)[keyof typeof DOCUMENT_STATUS];
 
 export const FIELD_TYPE = {
   BOOLEAN: "boolean",
@@ -36,8 +35,7 @@ export const SHARE_PERMISSION = {
   VIEWER: "viewer",
 } as const;
 
-export type SharePermission =
-  (typeof SHARE_PERMISSION)[keyof typeof SHARE_PERMISSION];
+export type SharePermission = (typeof SHARE_PERMISSION)[keyof typeof SHARE_PERMISSION];
 
 export const PIN_ITEM_TYPE = {
   CLASS: "class",
@@ -54,8 +52,7 @@ export const COMPRESSION_MODE = {
   PDF: "pdf",
 } as const;
 
-export type CompressionMode =
-  (typeof COMPRESSION_MODE)[keyof typeof COMPRESSION_MODE];
+export type CompressionMode = (typeof COMPRESSION_MODE)[keyof typeof COMPRESSION_MODE];
 
 export const SETTING_KEYS = {
   AUTO_PURGE_EVERY_HOURS: "autoPurgeEveryHours",
@@ -77,8 +74,7 @@ export const AUDIT_ENTITY_TYPE = {
   VIEW: "dms:view",
 } as const;
 
-export type AuditEntityType =
-  (typeof AUDIT_ENTITY_TYPE)[keyof typeof AUDIT_ENTITY_TYPE];
+export type AuditEntityType = (typeof AUDIT_ENTITY_TYPE)[keyof typeof AUDIT_ENTITY_TYPE];
 
 export const AUDIT_ACTION = {
   CLASSIFIED: "classified",
@@ -90,8 +86,8 @@ export const AUDIT_ACTION = {
   HOLD_RELEASED: "hold_released",
   PURGED: "purged",
   RESTORED: "restored",
-  SHARE_REVOKED: "share_revoked",
   SHARED: "shared",
+  SHARE_REVOKED: "share_revoked",
   UPDATED: "updated",
   UPLOADED: "uploaded",
   VERSION_ADDED: "version_added",
@@ -112,8 +108,7 @@ export const ITEM_GRANTEE_TYPE = {
   USER: "user",
 } as const;
 
-export type ItemGranteeType =
-  (typeof ITEM_GRANTEE_TYPE)[keyof typeof ITEM_GRANTEE_TYPE];
+export type ItemGranteeType = (typeof ITEM_GRANTEE_TYPE)[keyof typeof ITEM_GRANTEE_TYPE];
 
 export const ITEM_PERMISSION = {
   EDITOR: "editor",
@@ -121,8 +116,7 @@ export const ITEM_PERMISSION = {
   VIEWER: "viewer",
 } as const;
 
-export type ItemPermission =
-  (typeof ITEM_PERMISSION)[keyof typeof ITEM_PERMISSION];
+export type ItemPermission = (typeof ITEM_PERMISSION)[keyof typeof ITEM_PERMISSION];
 
 export const PUBLIC_LINK_PERMISSION = {
   EDIT: "edit",

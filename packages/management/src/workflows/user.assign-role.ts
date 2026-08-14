@@ -13,8 +13,10 @@ export const assignRole = Workflow.name("user.assign-role")
     }),
   )
   .handler(async (input, ctx) => {
-    if (!ctx.auth) throw new Error("Auth is required for role assignment");
-    const auth = ctx.auth;
+    if (!ctx.auth) {
+      throw new Error("Auth is required for role assignment");
+    }
+    const { auth } = ctx;
     const { id, role } = input;
 
     await ctx.step.run("assign-auth-role", async () => {

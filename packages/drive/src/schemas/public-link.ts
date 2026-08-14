@@ -40,6 +40,4 @@ export const ResolvePublicLinkSchema = object({
   token: pipe(string(), minLength(1, "Token is required")),
 });
 
-export type ResolvePublicLinkInput = InferOutput<
-  typeof ResolvePublicLinkSchema
->;
+export type ResolvePublicLinkInput = InferOutput<typeof ResolvePublicLinkSchema>;

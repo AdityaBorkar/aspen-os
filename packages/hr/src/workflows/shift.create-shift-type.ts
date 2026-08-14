@@ -32,10 +32,8 @@ export const createShiftType = Workflow.name("hr.shift.create-shift-type")
         processAttendanceAfter: parsed.processAttendanceAfter ?? null,
         startTime: parsed.startTime,
         workingHoursCalculation: parsed.workingHoursCalculation ?? null,
-        workingHoursThresholdForAbsent:
-          parsed.workingHoursThresholdForAbsent ?? null,
-        workingHoursThresholdForHalfDay:
-          parsed.workingHoursThresholdForHalfDay ?? null,
+        workingHoursThresholdForAbsent: parsed.workingHoursThresholdForAbsent ?? null,
+        workingHoursThresholdForHalfDay: parsed.workingHoursThresholdForHalfDay ?? null,
       })
       .returning();
 

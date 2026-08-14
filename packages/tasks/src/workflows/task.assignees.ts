@@ -7,11 +7,8 @@ import { IdSchema } from "../types";
 
 export const getTaskAssignees = Workflow.name("task.assignees")
   .input(object({ taskId: IdSchema }))
-  .handler(async ({ taskId }, ctx) => {
-    return ctx.step.run("query", async () => {
-      return ctx.db
-        .select()
-        .from(taskAssignee)
-        .where(eq(taskAssignee.taskId, taskId));
-    });
-  });
+  .handler(async ({ taskId }, ctx) =>
+    ctx.step.run("query", async () => {
+      return ctx.db.select().from(taskAssignee).where(eq(taskAssignee.taskId, taskId));
+    }),
+  );

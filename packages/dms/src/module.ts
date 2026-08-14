@@ -85,10 +85,14 @@ export class Dms implements Module {
   }
 
   async $prepareRuntime(): Promise<void> {
-    if (!this.#pubsub || !this.#db) return;
+    if (!this.#pubsub || !this.#db) {
+      return;
+    }
 
     const ctx = getContext();
-    if (!ctx.audit) return;
+    if (!ctx.audit) {
+      return;
+    }
 
     const deps = {
       audit: ctx.audit,

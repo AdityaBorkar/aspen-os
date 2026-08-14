@@ -11,11 +11,7 @@ export const FileIdSchema = string();
 export const WithFileIdSchema = object({ id: FileIdSchema });
 export const WithIdSchema = object({ id: string() });
 
-export async function pruneOldVersions(
-  db: DB,
-  fileId: string,
-  maxVersions: number,
-): Promise<void> {
+export async function pruneOldVersions(db: DB, fileId: string, maxVersions: number): Promise<void> {
   const versions = await db
     .select({
       id: dmsFileVersion.id,
@@ -26,7 +22,9 @@ export async function pruneOldVersions(
     .where(eq(dmsFileVersion.fileId, fileId))
     .orderBy(desc(dmsFileVersion.version));
 
-  if (versions.length <= maxVersions) return;
+  if (versions.length <= maxVersions) {
+    return;
+  }
 
   const toPrune = versions.slice(maxVersions);
 

@@ -22,6 +22,8 @@ export const context = new AsyncLocalStorage<{
 
 export function getContext() {
   const ctx = context.getStore();
-  if (!ctx) throw new Error("Context was not initialized");
+  if (!ctx) {
+    throw new Error("Context was not initialized");
+  }
   return ctx;
 }

@@ -5,12 +5,7 @@ import {
   type MergedSchemas,
 } from "./base-platform";
 import { type DatabaseConfig, DatabaseUnit } from "./db";
-import type {
-  ArrayModuleAccessors,
-  Module,
-  PlatformUnits,
-  UnitAccessors,
-} from "./index";
+import type { ArrayModuleAccessors, Module, PlatformUnits, UnitAccessors } from "./index";
 import { isGlobalTenantId } from "./utils/is-global-tenant-id";
 
 export type SharedTenantConfig = CommonConfig & {
@@ -42,10 +37,7 @@ export class SharedTenantPlatform<
   ): SharedTenantPlatformInstance<M> {
     const db = new DatabaseUnit<MergedSchemas<M>>(config.db, "shared");
     const core = Base.createCore<M, MergedSchemas<M>>(db, config, modules);
-    return new SharedTenantPlatform<M>(
-      core.units,
-      core.modules,
-    ) as SharedTenantPlatformInstance<M>;
+    return new SharedTenantPlatform<M>(core.units, core.modules) as SharedTenantPlatformInstance<M>;
   }
 
   override async $prepareInfra(): Promise<void> {
@@ -62,8 +54,6 @@ export class SharedTenantPlatform<
     if (isGlobalTenantId(tenantId)) {
       return this.runInContext(fn, { tenantId });
     }
-    return this.dbUnit.runWithTenant(tenantId, (db) =>
-      this.runInContext(fn, { db, tenantId }),
-    );
+    return this.dbUnit.runWithTenant(tenantId, (db) => this.runInContext(fn, { db, tenantId }));
   }
 }

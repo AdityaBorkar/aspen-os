@@ -26,11 +26,7 @@ export async function getSetting(db: DB, key: string): Promise<unknown> {
   return row?.value ?? null;
 }
 
-export async function setSetting(
-  db: DB,
-  key: string,
-  value: unknown,
-): Promise<void> {
+export async function setSetting(db: DB, key: string, value: unknown): Promise<void> {
   const existing = await db
     .select({ id: dmsSetting.id })
     .from(dmsSetting)
@@ -60,14 +56,11 @@ export async function getDefaultSetting(key: string): Promise<unknown> {
   const defaults: Record<string, unknown> = { ...DEFAULT_VALUES };
 
   if (key === SETTING_KEYS.AUTO_PURGE_EVERY_HOURS) {
-    defaults[SETTING_KEYS.AUTO_PURGE_EVERY_HOURS] =
-      getDmsConfig().defaultAutoPurgeEveryHours;
+    defaults[SETTING_KEYS.AUTO_PURGE_EVERY_HOURS] = getDmsConfig().defaultAutoPurgeEveryHours;
   } else if (key === SETTING_KEYS.DEFAULT_COMPRESSION) {
-    defaults[SETTING_KEYS.DEFAULT_COMPRESSION] =
-      getDmsConfig().defaultCompression;
+    defaults[SETTING_KEYS.DEFAULT_COMPRESSION] = getDmsConfig().defaultCompression;
   } else if (key === SETTING_KEYS.DEFAULT_RETENTION_DAYS) {
-    defaults[SETTING_KEYS.DEFAULT_RETENTION_DAYS] =
-      getDmsConfig().defaultRetentionDays;
+    defaults[SETTING_KEYS.DEFAULT_RETENTION_DAYS] = getDmsConfig().defaultRetentionDays;
   }
 
   return defaults[key] ?? null;
@@ -93,8 +86,7 @@ export async function getSettingValues(db: DB): Promise<DmsSettingsValues> {
       SETTING_KEYS.DEFAULT_RETENTION_DAYS,
       config.defaultRetentionDays,
     )) as number,
-    logDownloads:
-      ((await raw(SETTING_KEYS.LOG_DOWNLOADS, false)) as boolean) ?? false,
+    logDownloads: ((await raw(SETTING_KEYS.LOG_DOWNLOADS, false)) as boolean) ?? false,
     presignedUrlDefaultExpiry: (await raw(
       SETTING_KEYS.PRESIGNED_URL_DEFAULT_EXPIRY,
       config.defaultDownloadLinkExpiry,

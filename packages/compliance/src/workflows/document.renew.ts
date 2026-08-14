@@ -9,10 +9,7 @@ import { fetchDocumentStep } from "./steps/fetch-document";
 import { DEFAULT_REMINDER_DAYS } from "./utils";
 
 const renewDocument = Workflow.name("document.renew").handler(
-  async (
-    input: { id: string; newData: Partial<CreateComplianceDocumentInput> },
-    ctx,
-  ) => {
+  async (input: { id: string; newData: Partial<CreateComplianceDocumentInput> }, ctx) => {
     const { id, newData } = input;
     const current = await ctx.step.run(fetchDocumentStep, { id });
 
@@ -22,11 +19,8 @@ const renewDocument = Workflow.name("document.renew").handler(
       .where(eq(complianceDocument.id, id));
 
     const reminderDays =
-      newData.reminderDays ??
-      (current.reminderDays as number[] | null) ??
-      DEFAULT_REMINDER_DAYS;
-    const escalationDays =
-      newData.escalationDays ?? (current.escalationDays as number[] | null);
+      newData.reminderDays ?? (current.reminderDays as number[] | null) ?? DEFAULT_REMINDER_DAYS;
+    const escalationDays = newData.escalationDays ?? (current.escalationDays as number[] | null);
 
     const [newDoc] = await ctx.db
       .insert(complianceDocument)
@@ -36,38 +30,25 @@ const renewDocument = Workflow.name("document.renew").handler(
         attachment: newData.attachment ?? current.attachment,
         autoRenewal: newData.autoRenewal ?? current.autoRenewal,
         branch: newData.branch ?? current.branch,
-        category: (newData.category ??
-          current.category) as ComplianceDocument["category"],
+        category: (newData.category ?? current.category) as ComplianceDocument["category"],
         connection: newData.connection ?? current.connection,
         createdBy: newData.createdBy ?? current.createdBy,
         documentType: newData.documentType ?? current.documentType,
-        dueDate: newData.dueDate
-          ? newData.dueDate.toISOString().split("T")[0]
-          : null,
+        dueDate: newData.dueDate ? newData.dueDate.toISOString().split("T")[0] : null,
         escalationDays,
-        expiryDate: newData.expiryDate
-          ? newData.expiryDate.toISOString().split("T")[0]
-          : null,
-        issueDate: newData.issueDate
-          ? newData.issueDate.toISOString().split("T")[0]
-          : null,
+        expiryDate: newData.expiryDate ? newData.expiryDate.toISOString().split("T")[0] : null,
+        issueDate: newData.issueDate ? newData.issueDate.toISOString().split("T")[0] : null,
         issuingAuthority: newData.issuingAuthority ?? current.issuingAuthority,
         jurisdiction: newData.jurisdiction ?? current.jurisdiction,
         metadata: newData.metadata ?? current.metadata,
         name: newData.name ?? current.name,
         notes: newData.notes ?? current.notes,
         obligationId: current.obligationId,
-        periodEnd: newData.periodEnd
-          ? newData.periodEnd.toISOString().split("T")[0]
-          : null,
-        periodStart: newData.periodStart
-          ? newData.periodStart.toISOString().split("T")[0]
-          : null,
+        periodEnd: newData.periodEnd ? newData.periodEnd.toISOString().split("T")[0] : null,
+        periodStart: newData.periodStart ? newData.periodStart.toISOString().split("T")[0] : null,
         referenceNumber: newData.referenceNumber ?? null,
         reminderDays,
-        renewalDate: newData.renewalDate
-          ? newData.renewalDate.toISOString().split("T")[0]
-          : null,
+        renewalDate: newData.renewalDate ? newData.renewalDate.toISOString().split("T")[0] : null,
         renewalFrequency: newData.renewalFrequency ?? current.renewalFrequency,
         renewedFrom: id,
         sourceEntityId: current.sourceEntityId,
@@ -77,7 +58,9 @@ const renewDocument = Workflow.name("document.renew").handler(
       })
       .returning();
 
-    if (!newDoc) throw new Error("Database operation returned no result");
+    if (!newDoc) {
+      throw new Error("Database operation returned no result");
+    }
 
     await ctx.audit.write({
       action: "renewed",

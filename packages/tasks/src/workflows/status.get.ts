@@ -6,6 +6,4 @@ import { fetchStatusStep } from "./steps/fetch-status";
 
 export const getStatus = Workflow.name("status.get")
   .input(object({ id: IdSchema }))
-  .handler(async ({ id }, ctx) => {
-    return ctx.step.run(fetchStatusStep, { id });
-  });
+  .handler(async ({ id }, ctx) => ctx.step.run(fetchStatusStep, { id }));

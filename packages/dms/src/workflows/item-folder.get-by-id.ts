@@ -7,11 +7,9 @@ import { WithIdSchema } from "./item-utils";
 export const getItemFolderById = Workflow.name("dms.folder.get-by-id")
   .input(WithIdSchema)
   .handler(async ({ id }, ctx) => {
-    const [folder] = await ctx.db
-      .select()
-      .from(dmsFolder)
-      .where(eq(dmsFolder.id, id))
-      .limit(1);
-    if (!folder) throw new Error(`Folder with id "${id}" not found.`);
+    const [folder] = await ctx.db.select().from(dmsFolder).where(eq(dmsFolder.id, id)).limit(1);
+    if (!folder) {
+      throw new Error(`Folder with id "${id}" not found.`);
+    }
     return folder;
   });

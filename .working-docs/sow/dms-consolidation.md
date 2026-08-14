@@ -15,19 +15,19 @@ This consolidation removes the repetition: one `file`, one label mechanism, one 
 
 ### Confirmed Decisions
 
-| # | Decision | Outcome |
-|---|---|---|
-| 1 | Drive package | **Delete `@aspen-os/drive`.** Its surface stays in DMS; DMS is the single module. |
-| 2 | `item-file` == `document` | They are the same thing. **One unified `dms_file` table** (folder/path + class/triage/versions + lifecycle on a single row). `file` is the primary term; `document` disappears. |
-| 3 | File lifecycle | **Single `status` enum** on `dms_file`: `triaged` / `active` / `expired` / `trashed`. Trash covers both the records recycle bin and the filesystem trash — powering the merged trash module. Folders keep their own `isTrashed` (they are containers, not files). |
-| 4 | Triage gate | Files uploaded **into a folder are `active` immediately**; the triage gate applies only when a file is uploaded for classification into a class. The filesystem stays free-form. |
-| 5 | `item-` prefix | **Removed from the entire module.** Polymorphic joins (`dms_item_label`, `dms_item_share`) target file **or** folder, so the generic term **`entity`** replaces `item` (`dms_entity_label`, `dms_entity_share`, `dms_entity_type` enum). |
-| 6 | Tags vs labels | **Tags are removed; labels stay.** A file can carry multiple labels (`dms_label` + polymorphic `dms_entity_label`). `dms_tag`, `dms_document_tag`, and `dms_file.tags` (jsonb) are dropped. |
-| 7 | Sharing | **`share` + `item-share` + `public-link` merge** into one sharing module (`dms_share` grants to `user`/`group`/`contact` + `dms_public_link`), surfaced as a single `shares` group. |
-| 8 | Trash | **`bin` + `item-trash` merge** into one `trash` module over `status = trashed|expired` files, trashed folders, retention auto-purge, and admin-only permanent delete (hold-aware). |
-| 9 | Views | **`view` is renamed `file_views`** everywhere (table `dms_file_view`, group `fileViews`, schemas, events, pin item type). |
-| 10 | Pins | One mechanism: the generic `dms_pin` table. `dms_view.isPinned` and `view.pin`/`view.unpin` are dropped; view pins route through `p.dms.pins` with item type `file_view`. |
-| 11 | SOW location | This new file `sow/dms-consolidation.md`; the original `sow/dms.md` stays as the historical design record. |
+| #   | Decision                  | Outcome                                                                                                                                                                                                                                                           |
+| --- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Drive package             | **Delete `@aspen-os/drive`.** Its surface stays in DMS; DMS is the single module.                                                                                                                                                                                 |
+| 2   | `item-file` == `document` | They are the same thing. **One unified `dms_file` table** (folder/path + class/triage/versions + lifecycle on a single row). `file` is the primary term; `document` disappears.                                                                                   |
+| 3   | File lifecycle            | **Single `status` enum** on `dms_file`: `triaged` / `active` / `expired` / `trashed`. Trash covers both the records recycle bin and the filesystem trash — powering the merged trash module. Folders keep their own `isTrashed` (they are containers, not files). |
+| 4   | Triage gate               | Files uploaded **into a folder are `active` immediately**; the triage gate applies only when a file is uploaded for classification into a class. The filesystem stays free-form.                                                                                  |
+| 5   | `item-` prefix            | **Removed from the entire module.** Polymorphic joins (`dms_item_label`, `dms_item_share`) target file **or** folder, so the generic term **`entity`** replaces `item` (`dms_entity_label`, `dms_entity_share`, `dms_entity_type` enum).                          |
+| 6   | Tags vs labels            | **Tags are removed; labels stay.** A file can carry multiple labels (`dms_label` + polymorphic `dms_entity_label`). `dms_tag`, `dms_document_tag`, and `dms_file.tags` (jsonb) are dropped.                                                                       |
+| 7   | Sharing                   | **`share` + `item-share` + `public-link` merge** into one sharing module (`dms_share` grants to `user`/`group`/`contact` + `dms_public_link`), surfaced as a single `shares` group.                                                                               |
+| 8   | Trash                     | **`bin` + `item-trash` merge** into one `trash` module over `status = trashed                                                                                                                                                                                     | expired` files, trashed folders, retention auto-purge, and admin-only permanent delete (hold-aware). |
+| 9   | Views                     | **`view` is renamed `file_views`** everywhere (table `dms_file_view`, group `fileViews`, schemas, events, pin item type).                                                                                                                                         |
+| 10  | Pins                      | One mechanism: the generic `dms_pin` table. `dms_view.isPinned` and `view.pin`/`view.unpin` are dropped; view pins route through `p.dms.pins` with item type `file_view`.                                                                                         |
+| 11  | SOW location              | This new file `sow/dms-consolidation.md`; the original `sow/dms.md` stays as the historical design record.                                                                                                                                                        |
 
 ---
 
@@ -37,41 +37,41 @@ This consolidation removes the repetition: one `file`, one label mechanism, one 
 
 `diff` between DMS `item-*` sources and Drive `*` sources shows only renames — table prefixes (`dms_file` vs `drive_file`), event names, workflow names. Nothing else diverges.
 
-| Layer | DMS item files | Drive equivalent |
-|---|---|---|
-| DB tables (8) | `access-log`, `file`, `file-version`, `folder`, `item-label`, `item-share`, `label`, `public-link` (+ item enums) | identical, `drive_*` prefix |
-| Workflows (44 + `items.ts`) | `item-file.*`, `item-folder.*`, `item-label.*`, `item-public-link.*`, `item-share.*`, `item-trash.*` | identical |
-| Services (6) | `item-access`, `item-archive`, `item-path`, `item-purge`, `item-search`, `item-storage-bridge` | `access`, `archive`, `path`, `purge`, `search`, `storage-bridge` |
-| Module surface | `p.dms.files/.folders/.labels/.publicLinks/.shares/.trash/.driveSearch/.access/.archive/.paths/.storage` | `p.drive.*` identical |
+| Layer                       | DMS item files                                                                                                    | Drive equivalent                                                 |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| DB tables (8)               | `access-log`, `file`, `file-version`, `folder`, `item-label`, `item-share`, `label`, `public-link` (+ item enums) | identical, `drive_*` prefix                                      |
+| Workflows (44 + `items.ts`) | `item-file.*`, `item-folder.*`, `item-label.*`, `item-public-link.*`, `item-share.*`, `item-trash.*`              | identical                                                        |
+| Services (6)                | `item-access`, `item-archive`, `item-path`, `item-purge`, `item-search`, `item-storage-bridge`                    | `access`, `archive`, `path`, `purge`, `search`, `storage-bridge` |
+| Module surface              | `p.dms.files/.folders/.labels/.publicLinks/.shares/.trash/.driveSearch/.access/.archive/.paths/.storage`          | `p.drive.*` identical                                            |
 
 Roughly **40%** of DMS by volume (~2,300 of ~5,600 workflow LOC, ~1,000 of ~2,300 service LOC) is a copy of Drive.
 
 ### 1.2 Internal duplication (the consolidation targets)
 
-| Duplication | Pieces today | Merged into |
-|---|---|---|
-| Two file entities | `dms_document` (+ `dms_document_version`) and `dms_file` (+ `dms_file_version`) | One `dms_file` + one `dms_file_version` |
-| Two delete/restore surfaces | `bin.*` (documents) + `item-trash.*` (files/folders) | One `trash` group |
-| Three sharing surfaces | `share.*` (documents→contact/user) + `item-share.*` (files/folders→user/group) + `item-public-link.*` | One `shares` group (grants + public links) |
-| Tagging vs labeling | `dms_tag` + `dms_document_tag` + `dms_document.tags` jsonb vs `dms_label` + `dms_item_label` | Labels only |
-| Dual pin mechanism | `dms_view.isPinned` (`view.pin`/`view.unpin`) vs `dms_pin` table | `dms_pin` only |
-| Split event/enum files | `pubsub.ts` + `item-pubsub.ts`; `schemas/enums.ts` + `schemas/item-enums.ts` | Single `pubsub.ts`, single `enums.ts` |
-| Duplicated services | `search-service` + `item-search-service`, `purge-service` + `item-purge-service`, `storage-bridge` + `item-storage-bridge` | One of each |
-| Misleading names | `item-*` prefixes, `driveSearch`, `view` term, `pin.create.ts` group file | `file`/`folder`/`label`/`share`/`trash`, `fileViews`, `pins.ts` |
+| Duplication                 | Pieces today                                                                                                               | Merged into                                                     |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Two file entities           | `dms_document` (+ `dms_document_version`) and `dms_file` (+ `dms_file_version`)                                            | One `dms_file` + one `dms_file_version`                         |
+| Two delete/restore surfaces | `bin.*` (documents) + `item-trash.*` (files/folders)                                                                       | One `trash` group                                               |
+| Three sharing surfaces      | `share.*` (documents→contact/user) + `item-share.*` (files/folders→user/group) + `item-public-link.*`                      | One `shares` group (grants + public links)                      |
+| Tagging vs labeling         | `dms_tag` + `dms_document_tag` + `dms_document.tags` jsonb vs `dms_label` + `dms_item_label`                               | Labels only                                                     |
+| Dual pin mechanism          | `dms_view.isPinned` (`view.pin`/`view.unpin`) vs `dms_pin` table                                                           | `dms_pin` only                                                  |
+| Split event/enum files      | `pubsub.ts` + `item-pubsub.ts`; `schemas/enums.ts` + `schemas/item-enums.ts`                                               | Single `pubsub.ts`, single `enums.ts`                           |
+| Duplicated services         | `search-service` + `item-search-service`, `purge-service` + `item-purge-service`, `storage-bridge` + `item-storage-bridge` | One of each                                                     |
+| Misleading names            | `item-*` prefixes, `driveSearch`, `view` term, `pin.create.ts` group file                                                  | `file`/`folder`/`label`/`share`/`trash`, `fileViews`, `pins.ts` |
 
 ### 1.3 Cross-repo references to `@aspen-os/drive`
 
-| Location | Change needed |
-|---|---|
-| `packages/drive/` (whole package: `src/`, `docs/`, `README.md`, `package.json`, `tsconfig.json`, `.output/`) | Delete |
-| Root `tsconfig.json` line 35 (`{ "path": "./packages/drive" }`) | Remove reference |
-| `docs/source.config.ts` lines 32–33 (`defineDocs({ dir: "../packages/drive/docs" })`) | Remove docs source |
-| `packages/inventory/tsconfig.json` line 3 (`declarationDir: "../../.local/types/drive"`) | **Copy-paste bug** — points at drive's types dir; fix to inventory's own dir |
-| `CONTEXT.md` (Drive Domain §~308–350, deprecation note §342, DMS superset notes §452, §565, §582–590, §599) | Rewrite to DMS-only |
-| `AGENTS.md` (fully-implemented list §9, key dirs §72, module pattern §137/§143/§145, current state §234) | Remove drive mentions |
-| `.working-docs/sow/dms.md` §13 (Relationship to Drive) | Rewrite — Drive no longer exists |
-| `packages/dms/docs/overview.mdx` (deprecation/superset narrative, `(Drive)` group labels) | Rewrite DMS-only |
-| DMS docs (`access-control.mdx`, `db-schemas.mdx`, `events.mdx`, `workflows.mdx`) | Align to the consolidated model (§4) |
+| Location                                                                                                     | Change needed                                                                |
+| ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| `packages/drive/` (whole package: `src/`, `docs/`, `README.md`, `package.json`, `tsconfig.json`, `.output/`) | Delete                                                                       |
+| Root `tsconfig.json` line 35 (`{ "path": "./packages/drive" }`)                                              | Remove reference                                                             |
+| `docs/source.config.ts` lines 32–33 (`defineDocs({ dir: "../packages/drive/docs" })`)                        | Remove docs source                                                           |
+| `packages/inventory/tsconfig.json` line 3 (`declarationDir: "../../.local/types/drive"`)                     | **Copy-paste bug** — points at drive's types dir; fix to inventory's own dir |
+| `CONTEXT.md` (Drive Domain §~308–350, deprecation note §342, DMS superset notes §452, §565, §582–590, §599)  | Rewrite to DMS-only                                                          |
+| `AGENTS.md` (fully-implemented list §9, key dirs §72, module pattern §137/§143/§145, current state §234)     | Remove drive mentions                                                        |
+| `.working-docs/sow/dms.md` §13 (Relationship to Drive)                                                       | Rewrite — Drive no longer exists                                             |
+| `packages/dms/docs/overview.mdx` (deprecation/superset narrative, `(Drive)` group labels)                    | Rewrite DMS-only                                                             |
+| DMS docs (`access-control.mdx`, `db-schemas.mdx`, `events.mdx`, `workflows.mdx`)                             | Align to the consolidated model (§4)                                         |
 
 No code outside `packages/dms` imports `@aspen-os/dms` or `@aspen-os/drive`; `scripts/build.ts` auto-discovers packages (no hardcoded list). The refactor is confined to `packages/dms` plus the reference cleanup above.
 
@@ -81,23 +81,23 @@ No code outside `packages/dms` imports `@aspen-os/dms` or `@aspen-os/drive`; `sc
 
 ### 2.1 Tables
 
-| Table | Source | Notes |
-|---|---|---|
-| `dms_file` | merge `dms_document` + `dms_file` | Single entity; see §3.2. |
-| `dms_file_version` | merge `dms_document_version` + `dms_file_version` | Version history for `dms_file`. |
-| `dms_folder` | `dms_folder` | Keeps its own `isTrashed`/`trashedAt`/`trashedBy`. |
-| `dms_class` | rename `dms_document_class` | `document` term gone. |
-| `dms_class_field` | `dms_class_field` | Unchanged. |
-| `dms_label` | `dms_label` | Single labeling mechanism. |
-| `dms_entity_label` | rename `dms_item_label` | Polymorphic join `(entity_type file/folder, entity_id, label_id)`. |
-| `dms_share` | merge `dms_share` + `dms_item_share` | Grants to `user`/`group`/`contact`; polymorphic `(entity_type, entity_id)`. |
-| `dms_public_link` | `dms_public_link` | Lives in the unified shares module. |
-| `dms_contact` | `dms_contact` | Unchanged (external share handle). |
-| `dms_legal_hold` | `dms_legal_hold` | Now references `dms_file`. |
-| `dms_file_view` | rename `dms_view` | Saved filter/sort configurations. |
-| `dms_pin` | `dms_pin` | Item type enum → `triage`, `file_view`, `class`. |
-| `dms_setting` | `dms_setting` | Unchanged. |
-| `dms_access_log` | `dms_access_log` | Access/download logging (public links, `logDownloads`). |
+| Table              | Source                                            | Notes                                                                       |
+| ------------------ | ------------------------------------------------- | --------------------------------------------------------------------------- |
+| `dms_file`         | merge `dms_document` + `dms_file`                 | Single entity; see §3.2.                                                    |
+| `dms_file_version` | merge `dms_document_version` + `dms_file_version` | Version history for `dms_file`.                                             |
+| `dms_folder`       | `dms_folder`                                      | Keeps its own `isTrashed`/`trashedAt`/`trashedBy`.                          |
+| `dms_class`        | rename `dms_document_class`                       | `document` term gone.                                                       |
+| `dms_class_field`  | `dms_class_field`                                 | Unchanged.                                                                  |
+| `dms_label`        | `dms_label`                                       | Single labeling mechanism.                                                  |
+| `dms_entity_label` | rename `dms_item_label`                           | Polymorphic join `(entity_type file/folder, entity_id, label_id)`.          |
+| `dms_share`        | merge `dms_share` + `dms_item_share`              | Grants to `user`/`group`/`contact`; polymorphic `(entity_type, entity_id)`. |
+| `dms_public_link`  | `dms_public_link`                                 | Lives in the unified shares module.                                         |
+| `dms_contact`      | `dms_contact`                                     | Unchanged (external share handle).                                          |
+| `dms_legal_hold`   | `dms_legal_hold`                                  | Now references `dms_file`.                                                  |
+| `dms_file_view`    | rename `dms_view`                                 | Saved filter/sort configurations.                                           |
+| `dms_pin`          | `dms_pin`                                         | Item type enum → `triage`, `file_view`, `class`.                            |
+| `dms_setting`      | `dms_setting`                                     | Unchanged.                                                                  |
+| `dms_access_log`   | `dms_access_log`                                  | Access/download logging (public links, `logDownloads`).                     |
 
 **Dropped:** `dms_document`, `dms_document_version`, `dms_document_tag`, `dms_tag`, `dms_item_share`, `dms_item_label` (renamed), `dms_view` (renamed), `dms_file.tags` column.
 
@@ -156,15 +156,15 @@ p.dms.archive     createArchive, processArchiveJob
 
 `dms_file` combines the two existing tables:
 
-| Column | Source | Notes |
-|---|---|---|
-| `id`, `name`, `version`, `storageKey`, `contentType`, `size`, `etag` | both | unified; storage key `dms/{tenant}/{fileId}/v{n}/{name}` (single scheme) |
-| `folderId`, `path` | filesystem (`dms_file`) | nullable; `path` materialized when in a folder |
-| `classId`, `docNumber`, `fieldValues` | records (`dms_document`) | `docNumber` assigned on classification (`DOC-######`); null for plain filesystem files |
-| `status` | **new merged enum** | `triaged` / `active` / `expired` / `trashed` (replaces `status` + `isTrashed`) |
-| `expiryDate`, `expiredAt`, `batchId`, `compression` | records | unchanged semantics |
-| `deletedAt`, `deletedBy` | records | trash provenance (now also used by filesystem trash) |
-| `metadata`, `ownerId`, `uploadedBy`, `createdAt`, `updatedAt` | both | unified |
+| Column                                                               | Source                   | Notes                                                                                  |
+| -------------------------------------------------------------------- | ------------------------ | -------------------------------------------------------------------------------------- |
+| `id`, `name`, `version`, `storageKey`, `contentType`, `size`, `etag` | both                     | unified; storage key `dms/{tenant}/{fileId}/v{n}/{name}` (single scheme)               |
+| `folderId`, `path`                                                   | filesystem (`dms_file`)  | nullable; `path` materialized when in a folder                                         |
+| `classId`, `docNumber`, `fieldValues`                                | records (`dms_document`) | `docNumber` assigned on classification (`DOC-######`); null for plain filesystem files |
+| `status`                                                             | **new merged enum**      | `triaged` / `active` / `expired` / `trashed` (replaces `status` + `isTrashed`)         |
+| `expiryDate`, `expiredAt`, `batchId`, `compression`                  | records                  | unchanged semantics                                                                    |
+| `deletedAt`, `deletedBy`                                             | records                  | trash provenance (now also used by filesystem trash)                                   |
+| `metadata`, `ownerId`, `uploadedBy`, `createdAt`, `updatedAt`        | both                     | unified                                                                                |
 
 `dms_file_version` merges `dms_document_version` + `dms_file_version` (same columns — document/version/history differences collapse naturally). The tsvector GIN index (name + metadata + fieldValues, now + label names) moves onto `dms_file` with `folderId`, `classId`, `status`, `ownerId`, `batchId`, `expiryDate` supporting indexes.
 
@@ -201,13 +201,13 @@ Replace `document.*` + `item-file.*` + `triage.*` + `version.*` with `file.*` + 
 
 One `dms_share` table replaces `dms_share` + `dms_item_share`:
 
-| Column | Notes |
-|---|---|
-| `entityType` / `entityId` | polymorphic target — `file` or `folder` (enum `dms_entity_type`); grants to a folder inherit down the folder tree |
-| `granteeType` / `granteeId` | `user` (internal), `group` (internal group), `contact` (external, token-based) |
-| `permission` | `viewer` / `editor` / `owner` (owner added; records system previously capped at `editor`) |
-| `shareToken` | for `contact` grantees (16-byte base64url); revoke/contact-removal invalidates immediately |
-| `expiresAt`, `sharedBy`, `createdAt` | unchanged |
+| Column                               | Notes                                                                                                             |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| `entityType` / `entityId`            | polymorphic target — `file` or `folder` (enum `dms_entity_type`); grants to a folder inherit down the folder tree |
+| `granteeType` / `granteeId`          | `user` (internal), `group` (internal group), `contact` (external, token-based)                                    |
+| `permission`                         | `viewer` / `editor` / `owner` (owner added; records system previously capped at `editor`)                         |
+| `shareToken`                         | for `contact` grantees (16-byte base64url); revoke/contact-removal invalidates immediately                        |
+| `expiresAt`, `sharedBy`, `createdAt` | unchanged                                                                                                         |
 
 - `dms_public_link` stays its own table (token, optional password, `view`/`edit` permission, `maxViews`/`viewCount`, `expiresAt`, `isActive`, `entityType`/`entityId`) but is **managed by the same `shares` group** — public-link CRUD, resolve, revoke, and access logging sit beside grant operations. `listSharedWithMe` unions grants + public links.
 - Contact removal cascade revokes every grant + public link targeting that contact.
@@ -259,15 +259,15 @@ Mechanical rename pass across `packages/dms` after the functional merges:
 
 ## 10. Effort Estimate (Relative)
 
-| Area | Complexity | Notes |
-|---|---|---|
-| Remove `@aspen-os/drive` + reference sweep | Low | Deletion + `inventory/tsconfig.json` fix; docs rewrites. |
-| Unified `file` entity (schema, status, versions, storage keys, triage semantics) | **High** | The core merge; touches most workflows/services/schemas. |
-| Labels replace tags | Low–Medium | Drop tag tables/columns/events; route label apply; search updates. |
-| Unified sharing (+ public links) | Medium–High | One share table + grantee union; permission model gains `owner`. |
-| Unified trash (bin + item-trash) | Medium | Status-based listing; folder subtrees; one purge service/cron. |
-| Term consolidation (`item-` removal, `file_views`, `entity`, surface merges) | Medium | Mechanical but wide; mechanical renames are the risk-free bulk. |
-| Docs + verification | Medium | All DMS docs rewritten; grep sweeps + build gates. |
+| Area                                                                             | Complexity  | Notes                                                              |
+| -------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------ |
+| Remove `@aspen-os/drive` + reference sweep                                       | Low         | Deletion + `inventory/tsconfig.json` fix; docs rewrites.           |
+| Unified `file` entity (schema, status, versions, storage keys, triage semantics) | **High**    | The core merge; touches most workflows/services/schemas.           |
+| Labels replace tags                                                              | Low–Medium  | Drop tag tables/columns/events; route label apply; search updates. |
+| Unified sharing (+ public links)                                                 | Medium–High | One share table + grantee union; permission model gains `owner`.   |
+| Unified trash (bin + item-trash)                                                 | Medium      | Status-based listing; folder subtrees; one purge service/cron.     |
+| Term consolidation (`item-` removal, `file_views`, `entity`, surface merges)     | Medium      | Mechanical but wide; mechanical renames are the risk-free bulk.    |
+| Docs + verification                                                              | Medium      | All DMS docs rewritten; grep sweeps + build gates.                 |
 
 ---
 

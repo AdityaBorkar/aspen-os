@@ -25,23 +25,25 @@ db: {
 
 Modules declare which of their tables belong to the control plane and which belong to tenants. The platform routes them appropriately based on tenancy mode:
 
-| Mode | control_plane_schemas | tenant_schemas |
-|---|---|---|
-| **Single** | → single DB | → single DB |
-| **Shared** | → shared DB | → shared DB (RLS applied after) |
-| **Isolated** | → control-plane DB only | → each tenant DB only |
+| Mode         | control_plane_schemas   | tenant_schemas                  |
+| ------------ | ----------------------- | ------------------------------- |
+| **Single**   | → single DB             | → single DB                     |
+| **Shared**   | → shared DB             | → shared DB (RLS applied after) |
+| **Isolated** | → control-plane DB only | → each tenant DB only           |
 
 Platform core schemas (auth, log, storage, kvStore, workflow) always go to the control-plane DB, unchanged.
 
 ## Consequences
 
 **Positive:**
+
 - Correct schema placement in isolated-tenant mode — no cross-contamination
 - Modules self-document which tables are admin/management vs business/tenant
 - `createTenant()` only pushes tenant-relevant schemas to new tenant DBs
 - Clear mental model for module authors
 
 **Negative:**
+
 - Every module's `$prepareInfra()` must change
 - `DatabaseUnit` API changes (`prepareWithModules` signature)
 - All three platform class `$prepareInfra()` methods must update their merge logic

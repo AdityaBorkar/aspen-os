@@ -9,9 +9,7 @@ const InputSchema = object({
   input: CreateShiftScheduleSchema,
 });
 
-export const createShiftSchedule = Workflow.name(
-  "hr.shift.create-shift-schedule",
-)
+export const createShiftSchedule = Workflow.name("hr.shift.create-shift-schedule")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateShiftScheduleSchema, input);

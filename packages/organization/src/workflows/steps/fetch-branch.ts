@@ -7,11 +7,7 @@ import { branch } from "../../db-schemas";
 export const fetchBranchStep = WorkflowStep.name("fetch-branch")
   .input(object({ id: string() }))
   .handler(async (input, ctx) => {
-    const [result] = await ctx.db
-      .select()
-      .from(branch)
-      .where(eq(branch.id, input.id))
-      .limit(1);
+    const [result] = await ctx.db.select().from(branch).where(eq(branch.id, input.id)).limit(1);
 
     if (!result) {
       throw new Error(`Branch with id "${input.id}" not found.`);

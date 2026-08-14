@@ -10,9 +10,7 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const approveShiftRequest = Workflow.name(
-  "hr.shift.approve-shift-request",
-)
+export const approveShiftRequest = Workflow.name("hr.shift.approve-shift-request")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, approvedBy } = input;

@@ -2,8 +2,8 @@
 
 import { mkdir, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
-import { $, build, file } from "bun";
 
+import { $, build, file } from "bun";
 import deepmerge from "deepmerge";
 
 const $dev = process.argv.includes("--dev");
@@ -78,9 +78,7 @@ async function parsePackageJson() {
   const outputFile = (srcPath: string, ext: ".js" | ".d.ts") =>
     `./${outputDirname}/${relToSrc(srcPath).replace(/(?:\.d\.ts|\.[^.]+)$/, ext)}`;
 
-  const pkg = JSON.parse(
-    await file(join(ROOT, "package.json")).text(),
-  ) as Record<string, unknown>;
+  const pkg = JSON.parse(await file(join(ROOT, "package.json")).text()) as Record<string, unknown>;
 
   const buildConfig = (pkg.build ?? {}) as BuildConfig;
   const binConfig = buildConfig.bin ?? {};
@@ -93,10 +91,7 @@ async function parsePackageJson() {
   if (Object.keys(binConfig).length > 0) {
     const binMap = Object.entries(binConfig);
     revisedPkg.bin = Object.fromEntries(
-      binMap.map(([key, srcPath]) => [
-        key,
-        $dev ? srcPath : outputFile(srcPath, ".js"),
-      ]),
+      binMap.map(([key, srcPath]) => [key, $dev ? srcPath : outputFile(srcPath, ".js")]),
     );
     for (const [name, srcPath] of binMap) {
       const outdir = join(OUTPUT_DIR, subdirFor(srcPath));
@@ -137,33 +132,33 @@ async function main() {
   await mkdir(join(ROOT, OUTPUT_DIRNAME), { recursive: true });
 
   const packageJson = deepmerge(pkg, revisedPkg, { arrayMerge: (_, d) => d });
-  await file(join(ROOT, "package.json")).write(
-    `${JSON.stringify(packageJson, null, 2)}\n`,
-  );
+  await file(join(ROOT, "package.json")).write(`${JSON.stringify(packageJson, null, 2)}\n`);
 
-  if ($dev) return;
+  if ($dev) {
+    return;
+  }
 
   for (const { name, src, outdir, target } of entries) {
     const result = await build({
       entrypoints: [src],
       external: DB_ADAPTERS,
       format: "esm",
-      minify: false, // true,
+      minify: false, // True,
       outdir,
       sourcemap: "inline", // "none",
       target,
     });
     if (!result.success) {
-      for (const log of result.logs) console.error(log);
+      for (const log of result.logs) {
+        console.error(log);
+      }
       throw new Error(`Build failed for ${name}`);
     }
   }
 
   const tsconfigPath = join(ROOT, "tsconfig.build.json");
   try {
-    await file(tsconfigPath).write(
-      `${JSON.stringify(TSCONFIG_BUILD, null, 2)}\n`,
-    );
+    await file(tsconfigPath).write(`${JSON.stringify(TSCONFIG_BUILD, null, 2)}\n`);
     await $`bun tsc -p ${tsconfigPath}`.cwd(ROOT);
   } finally {
     await rm(tsconfigPath, { force: true });

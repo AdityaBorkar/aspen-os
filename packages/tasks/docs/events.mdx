@@ -28,18 +28,18 @@ export const REMINDER_EVENTS = {
 
 ## Event Map
 
-| Event | Payload | Trigger |
-|---|---|---|
-| `task:created` | `{ task: { id, number, projectId, title } }` | Task created |
-| `task:updated` | `{ task: { id, title }, changes: Record<string, unknown> }` | Task updated |
-| `task:deleted` | `{ taskId }` | Task deleted |
-| `task:status_changed` | `{ task: { id, title }, fromStatus, toStatus }` | Task status changed |
-| `task:assigned` | `{ taskId, userId, assignedBy }` | User assigned to task |
-| `task:unassigned` | `{ taskId, userId }` | User unassigned from task |
-| `task:linked` | `{ sourceId, targetId, linkType }` | Task link created |
-| `task:unlinked` | `{ sourceId, targetId }` | Task link deleted |
-| `task:commented` | `{ taskId, comment: { id, body } }` | Comment added to task |
-| `reminder:fired` | `{ taskId, reminder: { id, type, userId } }` | Reminder processed by `processPendingReminders()` |
+| Event                 | Payload                                                     | Trigger                                           |
+| --------------------- | ----------------------------------------------------------- | ------------------------------------------------- |
+| `task:created`        | `{ task: { id, number, projectId, title } }`                | Task created                                      |
+| `task:updated`        | `{ task: { id, title }, changes: Record<string, unknown> }` | Task updated                                      |
+| `task:deleted`        | `{ taskId }`                                                | Task deleted                                      |
+| `task:status_changed` | `{ task: { id, title }, fromStatus, toStatus }`             | Task status changed                               |
+| `task:assigned`       | `{ taskId, userId, assignedBy }`                            | User assigned to task                             |
+| `task:unassigned`     | `{ taskId, userId }`                                        | User unassigned from task                         |
+| `task:linked`         | `{ sourceId, targetId, linkType }`                          | Task link created                                 |
+| `task:unlinked`       | `{ sourceId, targetId }`                                    | Task link deleted                                 |
+| `task:commented`      | `{ taskId, comment: { id, body } }`                         | Comment added to task                             |
+| `reminder:fired`      | `{ taskId, reminder: { id, type, userId } }`                | Reminder processed by `processPendingReminders()` |
 
 ## Usage
 
@@ -58,5 +58,8 @@ await p.pubsub.subscribe("reminder:fired", async (message) => {
 ```
 
 <Callout type="info">
-  The event map (`TaskDomainEventMap`) is a type-level contract. Events are published as plain string topics via PubSub — the map provides TypeScript inference for subscribers but does not enforce topics at runtime. The reminder workflow publishes `reminder:fired` directly via `ctx.pubsub.publish()`.
+  The event map (`TaskDomainEventMap`) is a type-level contract. Events are published as plain
+  string topics via PubSub — the map provides TypeScript inference for subscribers but does not
+  enforce topics at runtime. The reminder workflow publishes `reminder:fired` directly via
+  `ctx.pubsub.publish()`.
 </Callout>

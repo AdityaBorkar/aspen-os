@@ -17,8 +17,7 @@ export const COMPLIANCE_CATEGORY = {
   VEHICLE: "vehicle",
 } as const;
 
-export type ComplianceCategory =
-  (typeof COMPLIANCE_CATEGORY)[keyof typeof COMPLIANCE_CATEGORY];
+export type ComplianceCategory = (typeof COMPLIANCE_CATEGORY)[keyof typeof COMPLIANCE_CATEGORY];
 
 export const VERIFICATION_STATUS = {
   ARCHIVED: "archived",
@@ -32,8 +31,7 @@ export const VERIFICATION_STATUS = {
   VERIFIED: "verified",
 } as const;
 
-export type VerificationStatus =
-  (typeof VERIFICATION_STATUS)[keyof typeof VERIFICATION_STATUS];
+export type VerificationStatus = (typeof VERIFICATION_STATUS)[keyof typeof VERIFICATION_STATUS];
 
 export const RENEWAL_FREQUENCY = {
   ANNUAL: "annual",
@@ -45,8 +43,7 @@ export const RENEWAL_FREQUENCY = {
   TRIENNIAL: "triennial",
 } as const;
 
-export type RenewalFrequency =
-  (typeof RENEWAL_FREQUENCY)[keyof typeof RENEWAL_FREQUENCY];
+export type RenewalFrequency = (typeof RENEWAL_FREQUENCY)[keyof typeof RENEWAL_FREQUENCY];
 
 export const OBLIGATION_FREQUENCY = {
   ANNUAL: "annual",
@@ -58,8 +55,7 @@ export const OBLIGATION_FREQUENCY = {
   TRIENNIAL: "triennial",
 } as const;
 
-export type ObligationFrequency =
-  (typeof OBLIGATION_FREQUENCY)[keyof typeof OBLIGATION_FREQUENCY];
+export type ObligationFrequency = (typeof OBLIGATION_FREQUENCY)[keyof typeof OBLIGATION_FREQUENCY];
 
 export const REMINDER_CHANNEL = {
   BOTH: "both",
@@ -67,8 +63,7 @@ export const REMINDER_CHANNEL = {
   PUBSUB: "pubsub",
 } as const;
 
-export type ReminderChannel =
-  (typeof REMINDER_CHANNEL)[keyof typeof REMINDER_CHANNEL];
+export type ReminderChannel = (typeof REMINDER_CHANNEL)[keyof typeof REMINDER_CHANNEL];
 
 export const AUDIT_ENTITY_TYPE = {
   COMPLIANCE_DOCUMENT: "compliance_document",
@@ -76,8 +71,7 @@ export const AUDIT_ENTITY_TYPE = {
   VERIFICATION_RULE: "verification_rule",
 } as const;
 
-export type AuditEntityType =
-  (typeof AUDIT_ENTITY_TYPE)[keyof typeof AUDIT_ENTITY_TYPE];
+export type AuditEntityType = (typeof AUDIT_ENTITY_TYPE)[keyof typeof AUDIT_ENTITY_TYPE];
 
 export const AUDIT_ACTION = {
   ARCHIVED: "archived",

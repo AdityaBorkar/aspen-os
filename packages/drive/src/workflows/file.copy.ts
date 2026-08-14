@@ -2,15 +2,8 @@ import { Workflow } from "@aspen-os/platform/server";
 import { object, optional, string } from "valibot";
 
 import { driveFile } from "../db-schemas";
-import {
-  checkNameUniqueness,
-  computeFilePath,
-  getFolderPath,
-} from "../services/path-service";
-import {
-  computeStorageKey,
-  copy as copyStorage,
-} from "../services/storage-bridge";
+import { checkNameUniqueness, computeFilePath, getFolderPath } from "../services/path-service";
+import { computeStorageKey, copy as copyStorage } from "../services/storage-bridge";
 import { fetchFileStep } from "./steps/fetch-file";
 import { FileIdSchema } from "./utils";
 
@@ -34,9 +27,7 @@ export const copyFile = Workflow.name("drive.file.copy")
     });
 
     const folderPath = folderId
-      ? await ctx.step.run("get-folder-path", async () =>
-          getFolderPath({ folderId }),
-        )
+      ? await ctx.step.run("get-folder-path", async () => getFolderPath({ folderId }))
       : "";
     const newStorageKey = computeStorageKey({
       fileName: file.name,

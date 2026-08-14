@@ -7,25 +7,16 @@ import { dmsDocument, dmsTag } from "../db-schemas";
 import { DOCUMENT_EVENTS } from "../pubsub";
 import { getDmsConfig } from "../runtime";
 import { getSetting } from "../services/settings-service";
-import {
-  computeStorageKey,
-  upload as uploadStorage,
-} from "../services/storage-bridge";
+import { computeStorageKey, upload as uploadStorage } from "../services/storage-bridge";
 import { UploadDocumentSchema } from "../types";
-import {
-  AUDIT_ACTION,
-  AUDIT_ENTITY_TYPE,
-  SETTING_KEYS,
-} from "../utils/constants";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, SETTING_KEYS } from "../utils/constants";
 
 const UploadInputSchema = object({ input: UploadDocumentSchema });
 
 const MAX_SEQ = 999999;
 
 async function nextDocNumber(db: NodePgDatabase): Promise<string> {
-  const rows = await db
-    .select({ value: count(dmsDocument.id) })
-    .from(dmsDocument);
+  const rows = await db.select({ value: count(dmsDocument.id) }).from(dmsDocument);
   const value = rows[0]?.value ?? 0;
   const seq = (value + 1) % (MAX_SEQ + 1);
   return `DOC-${String(seq).padStart(6, "0")}`;
@@ -43,23 +34,17 @@ export const uploadDocument = Workflow.name("dms.document.upload")
       }
     }
 
-    const defaultCompression = (await ctx.step.run(
-      "resolve-compression",
-      async () => {
-        const setting = (await getSetting(
-          ctx.db,
-          SETTING_KEYS.DEFAULT_COMPRESSION,
-        )) as typeof config.defaultCompression | null;
-        return setting ?? config.defaultCompression;
-      },
-    )) ?? { enabled: true, mode: "none" };
+    const defaultCompression = (await ctx.step.run("resolve-compression", async () => {
+      const setting = (await getSetting(ctx.db, SETTING_KEYS.DEFAULT_COMPRESSION)) as
+        | typeof config.defaultCompression
+        | null;
+      return setting ?? config.defaultCompression;
+    })) ?? { enabled: true, mode: "none" };
 
     const compression = parsed.compression ?? defaultCompression;
     const actorId = ctx.actorId ?? parsed.uploadedBy ?? parsed.ownerId;
 
-    const docNumber = await ctx.step.run("next-doc-number", async () =>
-      nextDocNumber(ctx.db),
-    );
+    const docNumber = await ctx.step.run("next-doc-number", async () => nextDocNumber(ctx.db));
 
     const documentId = crypto.randomUUID();
     const storageKey = computeStorageKey({
@@ -68,13 +53,13 @@ export const uploadDocument = Workflow.name("dms.document.upload")
       version: 1,
     });
 
-    const fileObject = await ctx.step.run("upload-storage", async () => {
-      return uploadStorage({
+    const fileObject = await ctx.step.run("upload-storage", async () =>
+      uploadStorage({
         body: parsed.body as Buffer | ReadableStream | string,
         contentType: parsed.contentType,
         key: storageKey,
-      });
-    });
+      }),
+    );
 
     const [document] = await ctx.db
       .insert(dmsDocument)
@@ -103,10 +88,7 @@ export const uploadDocument = Workflow.name("dms.document.upload")
 
     await ctx.step.run("ensure-tags", async () => {
       for (const tagName of parsed.tags ?? []) {
-        await ctx.db
-          .insert(dmsTag)
-          .values({ name: tagName })
-          .onConflictDoNothing();
+        await ctx.db.insert(dmsTag).values({ name: tagName }).onConflictDoNothing();
       }
     });
 

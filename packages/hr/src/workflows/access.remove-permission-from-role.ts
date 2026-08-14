@@ -9,9 +9,7 @@ const InputSchema = object({
   roleId: pipe(string(), minLength(1, "roleId is required")),
 });
 
-export const removePermissionFromRole = Workflow.name(
-  "hr.access.remove-permission-from-role",
-)
+export const removePermissionFromRole = Workflow.name("hr.access.remove-permission-from-role")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { roleId, permissionId } = input;
@@ -19,9 +17,6 @@ export const removePermissionFromRole = Workflow.name(
     await ctx.db
       .delete(hrRolePermission)
       .where(
-        and(
-          eq(hrRolePermission.roleId, roleId),
-          eq(hrRolePermission.permissionId, permissionId),
-        ),
+        and(eq(hrRolePermission.roleId, roleId), eq(hrRolePermission.permissionId, permissionId)),
       );
   });

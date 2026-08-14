@@ -9,9 +9,7 @@ const InputSchema = object({
   filters: optional(LeaveApplicationFiltersSchema),
 });
 
-export const listLeaveApplications = Workflow.name(
-  "hr.leave.list-leave-applications",
-)
+export const listLeaveApplications = Workflow.name("hr.leave.list-leave-applications")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { filters } = input;

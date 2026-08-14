@@ -5,13 +5,11 @@
   "env": {
     "preview": {
       "name": "aspen-docs-preview",
-      "routes": [
-        { "custom_domain": true, "pattern": "preview-id.aspen.adityab.tech" }
-      ],
+      "routes": [{ "custom_domain": true, "pattern": "preview-id.aspen.adityab.tech" }],
       // "vars": {
       //   "OPENROUTER_MODEL": "anthropic/claude-3.5-sonnet"
       // }
-      "workers_dev": false
+      "workers_dev": false,
     },
     "production": {
       "name": "aspen-docs",
@@ -19,8 +17,8 @@
       // "vars": {
       //   "OPENROUTER_MODEL": "anthropic/claude-3.5-sonnet"
       // },
-      "workers_dev": false
-    }
+      "workers_dev": false,
+    },
   },
   // "limits": {
   //   "cpu_ms": 30000
@@ -32,18 +30,18 @@
     "logs": {
       "enabled": true,
       "head_sampling_rate": 1,
-      "invocation_logs": true
+      "invocation_logs": true,
     },
     "traces": {
       "enabled": true,
-      "head_sampling_rate": 0.05
-    }
+      "head_sampling_rate": 0.05,
+    },
   },
   "placement": {
-    "mode": "smart"
+    "mode": "smart",
   },
   "upload_source_maps": true,
   "vars": {
     // "OPENROUTER_MODEL": "anthropic/claude-3.5-sonnet"
-  }
+  },
 }

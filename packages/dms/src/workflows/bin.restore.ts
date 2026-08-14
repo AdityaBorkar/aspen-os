@@ -19,9 +19,7 @@ export const restoreDocument = Workflow.name("dms.bin.restore")
     const doc = await ctx.step.run(fetchDocumentStep, { documentId: id });
 
     if (doc.status !== "deleted" && doc.status !== "expired") {
-      throw new Error(
-        `Document "${id}" cannot be restored (status is "${doc.status}").`,
-      );
+      throw new Error(`Document "${id}" cannot be restored (status is "${doc.status}").`);
     }
 
     const [updated] = await ctx.db

@@ -25,10 +25,8 @@ export const createConnection = Workflow.name("connection.create")
         metadata: input.metadata ?? null,
         name: input.name,
         notes: input.notes ?? null,
-        relationshipEndDate:
-          input.relationshipEndDate?.toISOString().split("T")[0] ?? null,
-        relationshipStartDate:
-          input.relationshipStartDate?.toISOString().split("T")[0] ?? null,
+        relationshipEndDate: input.relationshipEndDate?.toISOString().split("T")[0] ?? null,
+        relationshipStartDate: input.relationshipStartDate?.toISOString().split("T")[0] ?? null,
         tags: input.tags ?? [],
         taxId: input.taxId ?? null,
         type: input.type,

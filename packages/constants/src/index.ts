@@ -4,8 +4,7 @@ export const ORGANIZATION_STATUS = {
   SUSPENDED: "suspended",
 } as const;
 
-export type OrganizationStatus =
-  (typeof ORGANIZATION_STATUS)[keyof typeof ORGANIZATION_STATUS];
+export type OrganizationStatus = (typeof ORGANIZATION_STATUS)[keyof typeof ORGANIZATION_STATUS];
 
 export const BRANCH_TYPE = {
   FACTORY: "factory",
@@ -32,8 +31,7 @@ export const CONNECTION_TYPE = {
   VENDOR: "vendor",
 } as const;
 
-export type ConnectionType =
-  (typeof CONNECTION_TYPE)[keyof typeof CONNECTION_TYPE];
+export type ConnectionType = (typeof CONNECTION_TYPE)[keyof typeof CONNECTION_TYPE];
 
 export const CONNECTION_STATUS = {
   ACTIVE: "active",
@@ -42,8 +40,7 @@ export const CONNECTION_STATUS = {
   PROSPECT: "prospect",
 } as const;
 
-export type ConnectionStatus =
-  (typeof CONNECTION_STATUS)[keyof typeof CONNECTION_STATUS];
+export type ConnectionStatus = (typeof CONNECTION_STATUS)[keyof typeof CONNECTION_STATUS];
 
 export const CONNECTION_NOTE_TYPE = {
   CALL: "call",
@@ -54,8 +51,7 @@ export const CONNECTION_NOTE_TYPE = {
   MEETING: "meeting",
 } as const;
 
-export type ConnectionNoteType =
-  (typeof CONNECTION_NOTE_TYPE)[keyof typeof CONNECTION_NOTE_TYPE];
+export type ConnectionNoteType = (typeof CONNECTION_NOTE_TYPE)[keyof typeof CONNECTION_NOTE_TYPE];
 
 export const COMPLIANCE_CATEGORY = {
   CERTIFICATE: "certificate",
@@ -71,8 +67,7 @@ export const COMPLIANCE_CATEGORY = {
   TAX: "tax",
 } as const;
 
-export type ComplianceCategory =
-  (typeof COMPLIANCE_CATEGORY)[keyof typeof COMPLIANCE_CATEGORY];
+export type ComplianceCategory = (typeof COMPLIANCE_CATEGORY)[keyof typeof COMPLIANCE_CATEGORY];
 
 export const COMPLIANCE_STATUS = {
   ACTIVE: "active",
@@ -82,8 +77,7 @@ export const COMPLIANCE_STATUS = {
   RENEWAL_IN_PROGRESS: "renewal_in_progress",
 } as const;
 
-export type ComplianceStatus =
-  (typeof COMPLIANCE_STATUS)[keyof typeof COMPLIANCE_STATUS];
+export type ComplianceStatus = (typeof COMPLIANCE_STATUS)[keyof typeof COMPLIANCE_STATUS];
 
 export const RENEWAL_FREQUENCY = {
   ANNUAL: "annual",
@@ -95,8 +89,7 @@ export const RENEWAL_FREQUENCY = {
   TRIENNIAL: "triennial",
 } as const;
 
-export type RenewalFrequency =
-  (typeof RENEWAL_FREQUENCY)[keyof typeof RENEWAL_FREQUENCY];
+export type RenewalFrequency = (typeof RENEWAL_FREQUENCY)[keyof typeof RENEWAL_FREQUENCY];
 
 export const COUNTRY_CODES = [
   "AD",

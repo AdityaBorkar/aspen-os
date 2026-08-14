@@ -6,19 +6,14 @@ import type { DatabaseConfig } from "../db/types";
 import type { TenancyMode } from "../index";
 import { context } from "../utils/context";
 import { isGlobalTenantId } from "../utils/is-global-tenant-id";
-import type {
-  MessageHandler,
-  PublishOptions,
-  PubSubConfig,
-  ScheduleOptions,
-} from "./types";
+import type { MessageHandler, PublishOptions, PubSubConfig, ScheduleOptions } from "./types";
 
 export type { PubSubConfig, ScheduleOptions } from "./types";
 
 export class PubSubUnit {
   readonly $name = "pubsub" as const;
 
-  // biome-ignore lint/suspicious/noExplicitAny: drizzle NodePgDatabase invariance forces any here
+  // Biome-ignore lint/suspicious/noExplicitAny: drizzle NodePgDatabase invariance forces any here
   private dbUnit: DatabaseUnit<any>;
   private tenancyMode: TenancyMode;
   private authInstance: AuthUnit | null = null;
@@ -31,7 +26,7 @@ export class PubSubUnit {
 
   constructor(
     config: PubSubConfig,
-    // biome-ignore lint/suspicious/noExplicitAny: drizzle NodePgDatabase invariance forces any here
+    // Biome-ignore lint/suspicious/noExplicitAny: drizzle NodePgDatabase invariance forces any here
     { db }: { db: DatabaseUnit<any> },
   ) {
     this.dbUnit = db;
@@ -66,11 +61,7 @@ export class PubSubUnit {
     return this.boss.getQueueSize(topic);
   }
 
-  async publish<T extends object>(
-    topic: string,
-    data: T,
-    options?: PublishOptions,
-  ) {
+  async publish<T extends object>(topic: string, data: T, options?: PublishOptions) {
     await this.ensureStarted();
     try {
       const opts = this.toBossOptions(options);
@@ -85,9 +76,9 @@ export class PubSubUnit {
     } catch (err) {
       const msg = `Failed to publish message to topic "${topic}"`;
       console.error(msg, err);
-      throw new Error(
-        `${msg}: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      throw new Error(`${msg}: ${err instanceof Error ? err.message : String(err)}`, {
+        cause: err,
+      });
     }
   }
 
@@ -110,9 +101,9 @@ export class PubSubUnit {
     } catch (err) {
       const msg = `Failed to publish batch of ${messages.length} message(s) to topic "${topic}"`;
       console.error(msg, err);
-      throw new Error(
-        `${msg}: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      throw new Error(`${msg}: ${err instanceof Error ? err.message : String(err)}`, {
+        cause: err,
+      });
     }
   }
 
@@ -121,10 +112,7 @@ export class PubSubUnit {
     await this.boss.deleteQueue(topic);
   }
 
-  async subscribe<T = unknown>(
-    topic: string,
-    handler: MessageHandler<T>,
-  ): Promise<void> {
+  async subscribe<T = unknown>(topic: string, handler: MessageHandler<T>): Promise<void> {
     const tenantId = context.getStore()?.tenantId;
     const wrappedHandler = await this.wrapHandler(handler, tenantId);
     this.subscriptions.set(topic, wrappedHandler);
@@ -198,9 +186,7 @@ export class PubSubUnit {
     const workHandler: PgBoss.WorkHandler<object> = async (jobs) => {
       for (const job of jobs) {
         const handlerDb =
-          this.tenancyMode === "isolated" &&
-          tenantId &&
-          !isGlobalTenantId(tenantId)
+          this.tenancyMode === "isolated" && tenantId && !isGlobalTenantId(tenantId)
             ? await this.dbUnit.getTenantDb(tenantId)
             : this.dbUnit.controlPlaneDb;
 
@@ -240,13 +226,13 @@ export class PubSubUnit {
    * (send() returns null), so this flags a likely bug.
    */
   getUnsubscribedProducedTopics(): string[] {
-    return [...this.producedTopics.keys()].filter(
-      (topic) => !this.subscriptions.has(topic),
-    );
+    return [...this.producedTopics.keys()].filter((topic) => !this.subscriptions.has(topic));
   }
 
   private toBossOptions(options?: PublishOptions): Record<string, unknown> {
-    if (!options) return {};
+    if (!options) {
+      return {};
+    }
     return {
       expireInMinutes: options.expireInMinutes,
       priority: options.priority,

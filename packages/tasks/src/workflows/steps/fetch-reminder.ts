@@ -8,11 +8,7 @@ import { IdSchema } from "../../types";
 export const fetchReminderStep = WorkflowStep.name("fetch-reminder")
   .input(object({ id: IdSchema }))
   .handler(async (input, ctx) => {
-    const [result] = await ctx.db
-      .select()
-      .from(reminder)
-      .where(eq(reminder.id, input.id))
-      .limit(1);
+    const [result] = await ctx.db.select().from(reminder).where(eq(reminder.id, input.id)).limit(1);
 
     if (!result) {
       throw new Error(`Reminder with id "${input.id}" not found.`);

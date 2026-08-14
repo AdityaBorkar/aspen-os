@@ -14,9 +14,7 @@ export interface ExpiryScannerDeps {
 
 export const EXPIRY_SCAN_CRON = "5 0 * * *";
 
-export async function registerExpiryScanner(
-  pubsub: PubSubUnit,
-): Promise<string> {
+export async function registerExpiryScanner(pubsub: PubSubUnit): Promise<string> {
   await pubsub.schedule(
     SCHEDULED_JOBS.EXPIRY_SCAN,
     EXPIRY_SCAN_CRON,
@@ -30,12 +28,14 @@ export async function unregisterExpiryScanner(
   topic: string | null,
   { pubsub }: { pubsub: PubSubUnit },
 ): Promise<void> {
-  if (!topic) return;
+  if (!topic) {
+    return;
+  }
   try {
     await pubsub.unsubscribe(topic);
     await pubsub.unschedule(topic);
   } catch {
-    // best-effort
+    // Best-effort
   }
 }
 
@@ -48,9 +48,7 @@ export async function registerExpiryScanHandler(
   });
 }
 
-export async function scanExpiredDocuments(
-  deps: ExpiryScannerDeps,
-): Promise<number> {
+export async function scanExpiredDocuments(deps: ExpiryScannerDeps): Promise<number> {
   const now = new Date();
   const today = now.toISOString().split("T")[0];
 
@@ -72,7 +70,9 @@ export async function scanExpiredDocuments(
       .where(and(eq(dmsDocument.id, row.id), eq(dmsDocument.status, "active")))
       .returning();
 
-    if (updated.length === 0) continue;
+    if (updated.length === 0) {
+      continue;
+    }
 
     await deps.audit.write({
       action: "expired",

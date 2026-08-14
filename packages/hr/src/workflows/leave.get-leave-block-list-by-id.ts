@@ -8,9 +8,7 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const getLeaveBlockListById = Workflow.name(
-  "hr.leave.get-leave-block-list-by-id",
-)
+export const getLeaveBlockListById = Workflow.name("hr.leave.get-leave-block-list-by-id")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id } = input;

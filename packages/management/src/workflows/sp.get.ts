@@ -6,6 +6,4 @@ import { fetchServiceProviderStep } from "./steps/fetch-sp";
 
 export const getSp = Workflow.name("sp.get")
   .input(object({ id: IdSchema }))
-  .handler(async (input, ctx) => {
-    return ctx.step.run(fetchServiceProviderStep, { id: input.id });
-  });
+  .handler(async (input, ctx) => ctx.step.run(fetchServiceProviderStep, { id: input.id }));

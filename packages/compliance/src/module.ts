@@ -10,10 +10,7 @@ import { getContext } from "@aspen-os/platform/server";
 import { acl } from "./auth";
 import { control_plane_schemas, tenant_schemas } from "./db-schemas";
 import { events } from "./pubsub";
-import {
-  registerEventBridgeSubscriptions,
-  unregisterEventBridge,
-} from "./services/event-bridge";
+import { registerEventBridgeSubscriptions, unregisterEventBridge } from "./services/event-bridge";
 import {
   registerObligationGenerator,
   unregisterObligationGenerator,
@@ -23,13 +20,7 @@ import {
   registerReminderSchedules,
   unregisterReminderEngine,
 } from "./services/reminder-engine";
-import {
-  audit,
-  dashboard,
-  documents,
-  obligations,
-  verification,
-} from "./workflows";
+import { audit, dashboard, documents, obligations, verification } from "./workflows";
 
 export type ComplianceModuleConfig = {
   country: "INDIA";
@@ -66,21 +57,21 @@ export class Compliance implements Module {
     };
   }
 
-  $initialize(units: {
-    db: DatabaseUnit;
-    kvStore: KvStoreUnit;
-    pubsub: PubSubUnit;
-  }): void {
+  $initialize(units: { db: DatabaseUnit; kvStore: KvStoreUnit; pubsub: PubSubUnit }): void {
     this.#db = units.db;
     this.#pubsub = units.pubsub;
     this.#kvStore = units.kvStore;
   }
 
   async $prepareRuntime(): Promise<void> {
-    if (!this.#db || !this.#pubsub || !this.#kvStore) return;
+    if (!this.#db || !this.#pubsub || !this.#kvStore) {
+      return;
+    }
 
     const ctx = getContext();
-    if (!ctx.audit) return;
+    if (!ctx.audit) {
+      return;
+    }
 
     await registerReminderSchedules({ pubsub: this.#pubsub });
 
@@ -102,8 +93,7 @@ export class Compliance implements Module {
       pubsub: this.#pubsub,
     };
 
-    this.#eventBridgeTopics =
-      await registerEventBridgeSubscriptions(eventBridgeDeps);
+    this.#eventBridgeTopics = await registerEventBridgeSubscriptions(eventBridgeDeps);
   }
 
   async $cleanup(): Promise<void> {

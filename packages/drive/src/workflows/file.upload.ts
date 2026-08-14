@@ -3,15 +3,8 @@ import { object, parse } from "valibot";
 
 import { driveFile } from "../db-schemas";
 import { DRIVE_EVENTS } from "../pubsub";
-import {
-  checkNameUniqueness,
-  computeFilePath,
-  getFolderPath,
-} from "../services/path-service";
-import {
-  computeStorageKey,
-  upload as uploadStorage,
-} from "../services/storage-bridge";
+import { checkNameUniqueness, computeFilePath, getFolderPath } from "../services/path-service";
+import { computeStorageKey, upload as uploadStorage } from "../services/storage-bridge";
 import { UploadFileSchema } from "../types";
 
 const UploadInputSchema = object({ input: UploadFileSchema });
@@ -31,20 +24,18 @@ export const uploadFile = Workflow.name("drive.file.upload")
     });
 
     const folderPath = folderId
-      ? await ctx.step.run("get-folder-path", async () =>
-          getFolderPath({ folderId }),
-        )
+      ? await ctx.step.run("get-folder-path", async () => getFolderPath({ folderId }))
       : "";
 
     const storageKey = computeStorageKey({ fileName: parsed.name, folderPath });
 
-    const fileObject = await ctx.step.run("upload-storage", async () => {
-      return uploadStorage({
+    const fileObject = await ctx.step.run("upload-storage", async () =>
+      uploadStorage({
         body: parsed.body as Buffer | ReadableStream | string,
         contentType: parsed.contentType,
         key: storageKey,
-      });
-    });
+      }),
+    );
 
     const [file] = await ctx.db
       .insert(driveFile)

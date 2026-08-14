@@ -10,9 +10,7 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const approveFullAndFinal = Workflow.name(
-  "hr.lifecycle.approve-full-and-final",
-)
+export const approveFullAndFinal = Workflow.name("hr.lifecycle.approve-full-and-final")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, approvedBy } = input;
@@ -26,8 +24,7 @@ export const approveFullAndFinal = Workflow.name(
       parseFloat(statement.bonus) +
       parseFloat(statement.gratuity);
 
-    const totalDeductions =
-      parseFloat(statement.loanRecovery) + parseFloat(statement.deductions);
+    const totalDeductions = parseFloat(statement.loanRecovery) + parseFloat(statement.deductions);
 
     const netPayable = totalEarnings - totalDeductions;
 

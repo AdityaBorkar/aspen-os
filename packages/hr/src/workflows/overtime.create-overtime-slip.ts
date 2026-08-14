@@ -9,9 +9,7 @@ const InputSchema = object({
   input: CreateOvertimeSlipSchema,
 });
 
-export const createOvertimeSlip = Workflow.name(
-  "hr.overtime.create-overtime-slip",
-)
+export const createOvertimeSlip = Workflow.name("hr.overtime.create-overtime-slip")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateOvertimeSlipSchema, input);

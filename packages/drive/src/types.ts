@@ -73,12 +73,7 @@ export {
   DRIVE_PERMISSION,
   DRIVE_PUBLIC_LINK_PERMISSION,
 } from "./utils/constants";
-export type {
-  DriveGranteeType,
-  DriveItemType,
-  DrivePermission,
-  DrivePublicLinkPermission,
-};
+export type { DriveGranteeType, DriveItemType, DrivePermission, DrivePublicLinkPermission };
 export type DriveSearchScope = "all" | "my_files" | "shared_with_me";
 
 export interface BreadcrumbItem {

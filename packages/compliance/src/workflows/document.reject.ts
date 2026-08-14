@@ -11,9 +11,7 @@ const rejectDocument = Workflow.name("document.reject").handler(
     const current = await ctx.step.run(fetchDocumentStep, { id });
 
     if (current.verificationStatus !== "under_review") {
-      throw new Error(
-        `Cannot reject document in status "${current.verificationStatus}"`,
-      );
+      throw new Error(`Cannot reject document in status "${current.verificationStatus}"`);
     }
 
     const [updated] = await ctx.db
@@ -28,7 +26,9 @@ const rejectDocument = Workflow.name("document.reject").handler(
       .where(eq(complianceDocument.id, id))
       .returning();
 
-    if (!updated) throw new Error("Database operation returned no result");
+    if (!updated) {
+      throw new Error("Database operation returned no result");
+    }
 
     await ctx.audit.write({
       action: "rejected",

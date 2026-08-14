@@ -10,9 +10,7 @@ const InputSchema = object({
   patch: UpdateOvertimeTypeSchema,
 });
 
-export const updateOvertimeType = Workflow.name(
-  "hr.overtime.update-overtime-type",
-)
+export const updateOvertimeType = Workflow.name("hr.overtime.update-overtime-type")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, patch } = input;

@@ -5,25 +5,11 @@ import { context } from "../utils/context";
 import { logs } from "./db-schema";
 import { createEntryFactory, createLogBuffer } from "./log-buffer";
 import { LogQueryService } from "./query-service";
-import type {
-  ChildLogger,
-  LogConfig,
-  LogEntry,
-  LogLevel,
-  LogQuery,
-  LogStats,
-} from "./types";
+import type { ChildLogger, LogConfig, LogEntry, LogLevel, LogQuery, LogStats } from "./types";
 import { LEVEL_PRIORITY as levelPriority } from "./types";
 
 export { LogQueryService } from "./query-service";
-export type {
-  ChildLogger,
-  LogConfig,
-  LogEntry,
-  LogLevel,
-  LogQuery,
-  LogStats,
-} from "./types";
+export type { ChildLogger, LogConfig, LogEntry, LogLevel, LogQuery, LogStats } from "./types";
 
 type DrizzleDB = NodePgDatabase<Record<string, never>>;
 
@@ -45,7 +31,7 @@ export class LogUnit {
 
   constructor(
     config: LogConfig,
-    // biome-ignore lint/suspicious/noExplicitAny: drizzle NodePgDatabase invariance forces any here
+    // Biome-ignore lint/suspicious/noExplicitAny: drizzle NodePgDatabase invariance forces any here
     { db }: { db: DatabaseUnit<any> },
   ) {
     this.serviceName = config.serviceName ?? "app";
@@ -96,7 +82,9 @@ export class LogUnit {
   }
 
   private requireBuffer() {
-    if (!this.buffer) throw new Error("Logging unit not initialized");
+    if (!this.buffer) {
+      throw new Error("Logging unit not initialized");
+    }
     return this.buffer;
   }
 
@@ -110,10 +98,10 @@ export class LogUnit {
     metadata?: Record<string, unknown>,
     error?: Error,
   ): void {
-    if (!this.shouldLog(level)) return;
-    this.requireBuffer().push(
-      this.createEntry(level, message, metadata, error),
-    );
+    if (!this.shouldLog(level)) {
+      return;
+    }
+    this.requireBuffer().push(this.createEntry(level, message, metadata, error));
   }
 
   child(context: Record<string, unknown>): ChildLogger {
@@ -122,24 +110,17 @@ export class LogUnit {
       ...meta,
     });
     return {
-      debug: (message, metadata) =>
-        this.enqueue("debug", message, mergeMeta(metadata)),
+      debug: (message, metadata) => this.enqueue("debug", message, mergeMeta(metadata)),
       error: (message, err, metadata) => {
-        if (this.shouldLog("error"))
-          this.requireBuffer().push(
-            this.createEntry("error", message, mergeMeta(metadata), err),
-          );
+        if (this.shouldLog("error")) {
+          this.requireBuffer().push(this.createEntry("error", message, mergeMeta(metadata), err));
+        }
       },
       fatal: (message, err, metadata) =>
-        this.requireBuffer().push(
-          this.createEntry("fatal", message, mergeMeta(metadata), err),
-        ),
-      info: (message, metadata) =>
-        this.enqueue("info", message, mergeMeta(metadata)),
-      log: (level, message, metadata) =>
-        this.enqueue(level, message, mergeMeta(metadata)),
-      warn: (message, metadata) =>
-        this.enqueue("warn", message, mergeMeta(metadata)),
+        this.requireBuffer().push(this.createEntry("fatal", message, mergeMeta(metadata), err)),
+      info: (message, metadata) => this.enqueue("info", message, mergeMeta(metadata)),
+      log: (level, message, metadata) => this.enqueue(level, message, mergeMeta(metadata)),
+      warn: (message, metadata) => this.enqueue("warn", message, mergeMeta(metadata)),
     };
   }
 
@@ -155,47 +136,23 @@ export class LogUnit {
     this.enqueue("warn", message, metadata);
   }
 
-  error(
-    message: string,
-    error?: Error,
-    metadata?: Record<string, unknown>,
-  ): void {
-    if (this.shouldLog("error"))
-      this.requireBuffer().push(
-        this.createEntry("error", message, metadata, error),
-      );
+  error(message: string, error?: Error, metadata?: Record<string, unknown>): void {
+    if (this.shouldLog("error")) {
+      this.requireBuffer().push(this.createEntry("error", message, metadata, error));
+    }
   }
 
-  fatal(
-    message: string,
-    error?: Error,
-    metadata?: Record<string, unknown>,
-  ): void {
-    this.requireBuffer().push(
-      this.createEntry("fatal", message, metadata, error),
-    );
+  fatal(message: string, error?: Error, metadata?: Record<string, unknown>): void {
+    this.requireBuffer().push(this.createEntry("fatal", message, metadata, error));
   }
 
-  log(
-    level: LogLevel,
-    message: string,
-    metadata?: Record<string, unknown>,
-  ): void {
+  log(level: LogLevel, message: string, metadata?: Record<string, unknown>): void {
     this.enqueue(level, message, metadata);
   }
 
-  async getStats(
-    service?: string,
-    startTime?: Date,
-    endTime?: Date,
-  ): Promise<LogStats> {
+  async getStats(service?: string, startTime?: Date, endTime?: Date): Promise<LogStats> {
     const tenantId = context.getStore()?.tenantId;
-    return this.requireQueryService().getStats(
-      service,
-      startTime,
-      endTime,
-      tenantId,
-    );
+    return this.requireQueryService().getStats(service, startTime, endTime, tenantId);
   }
 
   async query(filter: LogQuery): Promise<LogEntry[]> {

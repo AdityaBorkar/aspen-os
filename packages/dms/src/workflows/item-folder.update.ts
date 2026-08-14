@@ -19,7 +19,9 @@ export const updateItemFolder = Workflow.name("dms.folder.update")
         .from(dmsFolder)
         .where(eq(dmsFolder.id, id))
         .limit(1);
-      if (!row) throw new Error(`Folder with id "${id}" not found.`);
+      if (!row) {
+        throw new Error(`Folder with id "${id}" not found.`);
+      }
       return row;
     });
     const parsed = parse(UpdateFolderSchema, input);
@@ -34,6 +36,8 @@ export const updateItemFolder = Workflow.name("dms.folder.update")
       .where(eq(dmsFolder.id, id))
       .returning();
 
-    if (!updated) throw new Error(`Folder with id "${id}" not found.`);
+    if (!updated) {
+      throw new Error(`Folder with id "${id}" not found.`);
+    }
     return updated;
   });

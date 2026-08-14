@@ -1,4 +1,14 @@
 {
+  "name": "@aspen-os/tasks",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "check:lint": "oxlint --fix . ; oxfmt .",
+    "check:types": "tsc -b"
+  },
   "dependencies": {
     "@aspen-os/constants": "workspace:*",
     "@aspen-os/platform": "workspace:*",
@@ -8,15 +18,5 @@
   "devDependencies": {
     "@types/bun": "catalog:",
     "typescript": "catalog:"
-  },
-  "exports": {
-    ".": "./src/index.ts"
-  },
-  "name": "@aspen-os/tasks",
-  "scripts": {
-    "check:lint": "biome check --fix .",
-    "check:types": "tsc -b"
-  },
-  "type": "module",
-  "version": "0.1.0"
+  }
 }

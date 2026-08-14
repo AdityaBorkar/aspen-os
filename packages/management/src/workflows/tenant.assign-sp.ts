@@ -25,9 +25,7 @@ export const assignServiceProvider = Workflow.name("tenant.assign-sp")
       .limit(1);
 
     if (!sp) {
-      throw new Error(
-        `Service Provider with id "${serviceProviderId}" not found.`,
-      );
+      throw new Error(`Service Provider with id "${serviceProviderId}" not found.`);
     }
 
     await ctx.step.run("assign", async () => {

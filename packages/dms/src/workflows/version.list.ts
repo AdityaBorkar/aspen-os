@@ -35,6 +35,4 @@ export const listDocumentVersions = Workflow.name("dms.version.list")
 
 export const getCurrentVersion = Workflow.name("dms.version.current")
   .input(ListVersionsInputSchema)
-  .handler(async ({ documentId }, ctx) => {
-    return ctx.step.run(fetchDocumentStep, { documentId });
-  });
+  .handler(async ({ documentId }, ctx) => ctx.step.run(fetchDocumentStep, { documentId }));

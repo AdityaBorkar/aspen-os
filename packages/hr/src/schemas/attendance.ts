@@ -106,9 +106,7 @@ export const CreateAttendanceRequestSchema = object({
   toDate: pipe(string(), minLength(1, "To date is required")),
 });
 
-export type CreateAttendanceRequestInput = InferOutput<
-  typeof CreateAttendanceRequestSchema
->;
+export type CreateAttendanceRequestInput = InferOutput<typeof CreateAttendanceRequestSchema>;
 
 export const UpdateAttendanceRequestSchema = object({
   fromDate: optional(string()),
@@ -116,15 +114,11 @@ export const UpdateAttendanceRequestSchema = object({
   toDate: optional(string()),
 });
 
-export type UpdateAttendanceRequestInput = InferOutput<
-  typeof UpdateAttendanceRequestSchema
->;
+export type UpdateAttendanceRequestInput = InferOutput<typeof UpdateAttendanceRequestSchema>;
 
 export const AttendanceRequestFiltersSchema = object({
   employeeId: optional(string()),
   status: optional(AttendanceRequestStatusSchema),
 });
 
-export type AttendanceRequestFilters = InferOutput<
-  typeof AttendanceRequestFiltersSchema
->;
+export type AttendanceRequestFilters = InferOutput<typeof AttendanceRequestFiltersSchema>;

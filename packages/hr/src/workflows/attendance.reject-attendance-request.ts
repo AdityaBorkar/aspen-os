@@ -10,9 +10,7 @@ const InputSchema = object({
   rejectionReason: pipe(string(), minLength(1, "rejectionReason is required")),
 });
 
-export const rejectAttendanceRequest = Workflow.name(
-  "hr.attendance.reject-attendance-request",
-)
+export const rejectAttendanceRequest = Workflow.name("hr.attendance.reject-attendance-request")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, rejectedBy, rejectionReason } = input;

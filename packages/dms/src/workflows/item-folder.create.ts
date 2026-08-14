@@ -4,11 +4,7 @@ import { object, parse } from "valibot";
 import { dmsFolder } from "../db-schemas";
 import { ITEM_EVENTS } from "../pubsub";
 import { getDmsConfig } from "../runtime";
-import {
-  checkNameUniqueness,
-  computeFolderPath,
-  getDepth,
-} from "../services/item-path-service";
+import { checkNameUniqueness, computeFolderPath, getDepth } from "../services/item-path-service";
 import { CreateFolderSchema } from "../types";
 
 const CreateInputSchema = object({ input: CreateFolderSchema });
@@ -50,7 +46,9 @@ export const createItemFolder = Workflow.name("dms.folder.create")
       })
       .returning();
 
-    if (!folder) throw new Error("Failed to create folder.");
+    if (!folder) {
+      throw new Error("Failed to create folder.");
+    }
 
     await ctx.pubsub.publish(ITEM_EVENTS.FOLDER_CREATED, {
       folder: {

@@ -9,9 +9,7 @@ const InputSchema = object({
   input: CreateOnboardingTaskSchema,
 });
 
-export const createOnboardingTask = Workflow.name(
-  "hr.lifecycle.create-onboarding-task",
-)
+export const createOnboardingTask = Workflow.name("hr.lifecycle.create-onboarding-task")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateOnboardingTaskSchema, input);

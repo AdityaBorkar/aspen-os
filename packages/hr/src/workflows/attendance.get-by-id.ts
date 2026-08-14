@@ -13,11 +13,7 @@ export const getById = Workflow.name("hr.attendance.get-by-id")
   .handler(async (input, ctx) => {
     const { id } = input;
 
-    const [result] = await ctx.db
-      .select()
-      .from(attendance)
-      .where(eq(attendance.id, id))
-      .limit(1);
+    const [result] = await ctx.db.select().from(attendance).where(eq(attendance.id, id)).limit(1);
 
     if (!result) {
       throw new Error(`Attendance with id "${id}" not found.`);

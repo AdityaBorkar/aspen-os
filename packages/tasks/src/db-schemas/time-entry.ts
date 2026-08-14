@@ -1,21 +1,11 @@
 import { uuidv7 } from "@aspen-os/platform/server";
-import {
-  boolean,
-  date,
-  index,
-  integer,
-  pgTable,
-  text,
-  timestamp,
-} from "drizzle-orm/pg-core";
+import { boolean, date, index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const timeEntry = pgTable(
   "task_time_entry",
   {
     billable: boolean("billable").notNull().default(false),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     date: date("date").notNull(),
     description: text("description"),
     duration: integer("duration").notNull(),

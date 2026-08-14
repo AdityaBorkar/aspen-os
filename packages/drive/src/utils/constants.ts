@@ -3,16 +3,14 @@ export const DRIVE_ITEM_TYPE = {
   FOLDER: "folder",
 } as const;
 
-export type DriveItemType =
-  (typeof DRIVE_ITEM_TYPE)[keyof typeof DRIVE_ITEM_TYPE];
+export type DriveItemType = (typeof DRIVE_ITEM_TYPE)[keyof typeof DRIVE_ITEM_TYPE];
 
 export const DRIVE_GRANTEE_TYPE = {
   GROUP: "group",
   USER: "user",
 } as const;
 
-export type DriveGranteeType =
-  (typeof DRIVE_GRANTEE_TYPE)[keyof typeof DRIVE_GRANTEE_TYPE];
+export type DriveGranteeType = (typeof DRIVE_GRANTEE_TYPE)[keyof typeof DRIVE_GRANTEE_TYPE];
 
 export const DRIVE_PERMISSION = {
   EDITOR: "editor",
@@ -20,8 +18,7 @@ export const DRIVE_PERMISSION = {
   VIEWER: "viewer",
 } as const;
 
-export type DrivePermission =
-  (typeof DRIVE_PERMISSION)[keyof typeof DRIVE_PERMISSION];
+export type DrivePermission = (typeof DRIVE_PERMISSION)[keyof typeof DRIVE_PERMISSION];
 
 export const DRIVE_PUBLIC_LINK_PERMISSION = {
   EDIT: "edit",

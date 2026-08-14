@@ -13,11 +13,7 @@ export const getDepartmentById = Workflow.name("hr.setup.get-department-by-id")
   .handler(async (input, ctx) => {
     const { id } = input;
 
-    const [result] = await ctx.db
-      .select()
-      .from(department)
-      .where(eq(department.id, id))
-      .limit(1);
+    const [result] = await ctx.db.select().from(department).where(eq(department.id, id)).limit(1);
 
     if (!result) {
       throw new Error(`Department with id "${id}" not found.`);

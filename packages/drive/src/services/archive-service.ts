@@ -3,12 +3,7 @@ import { eq, sql } from "drizzle-orm";
 
 import * as s from "../db-schemas";
 import type { FolderDownloadLinkOptions } from "../types";
-import {
-  computeArchiveKey,
-  get,
-  getSignedGetUrl,
-  upload,
-} from "./storage-bridge";
+import { computeArchiveKey, get, getSignedGetUrl, upload } from "./storage-bridge";
 
 const LARGE_FOLDER_FILE_THRESHOLD = 1000;
 const LARGE_FOLDER_SIZE_THRESHOLD = 1024 * 1024 * 1024;
@@ -48,10 +43,7 @@ export async function createArchive({
   });
 
   const totalSize = files.reduce((sum, f) => sum + f.size, 0);
-  if (
-    files.length > LARGE_FOLDER_FILE_THRESHOLD ||
-    totalSize > LARGE_FOLDER_SIZE_THRESHOLD
-  ) {
+  if (files.length > LARGE_FOLDER_FILE_THRESHOLD || totalSize > LARGE_FOLDER_SIZE_THRESHOLD) {
     throw new ArchiveTooLargeError(folderId, files.length, totalSize);
   }
 
@@ -63,9 +55,7 @@ export async function createArchive({
   });
 }
 
-export async function processArchiveJob(
-  data: ArchiveJobData,
-): Promise<ArchiveResult> {
+export async function processArchiveJob(data: ArchiveJobData): Promise<ArchiveResult> {
   const { db } = getContext();
   const [folder] = await db
     .select()

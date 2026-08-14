@@ -6,6 +6,4 @@ import { fetchTimeEntryStep } from "./steps/fetch-time-entry";
 
 export const getTimeEntry = Workflow.name("time-entry.get")
   .input(object({ id: IdSchema }))
-  .handler(async ({ id }, ctx) => {
-    return ctx.step.run(fetchTimeEntryStep, { id });
-  });
+  .handler(async ({ id }, ctx) => ctx.step.run(fetchTimeEntryStep, { id }));

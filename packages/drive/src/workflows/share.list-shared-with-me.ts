@@ -11,16 +11,11 @@ const ListSharedWithMeSchema = object({
 
 export const listSharedWithMe = Workflow.name("drive.share.list-shared-with-me")
   .input(ListSharedWithMeSchema)
-  .handler(async ({ userId }, ctx) => {
-    return ctx.db
+  .handler(async ({ userId }, ctx) =>
+    ctx.db
       .select()
       .from(driveShare)
-      .where(
-        and(
-          eq(driveShare.granteeId, userId),
-          eq(driveShare.granteeType, "user"),
-        ),
-      )
+      .where(and(eq(driveShare.granteeId, userId), eq(driveShare.granteeType, "user")))
       .limit(50)
-      .offset(0);
-  });
+      .offset(0),
+  );

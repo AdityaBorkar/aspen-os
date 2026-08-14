@@ -8,11 +8,7 @@ import { IdSchema } from "../../types";
 export const fetchTaskStep = WorkflowStep.name("fetch-task")
   .input(object({ id: IdSchema }))
   .handler(async (input, ctx) => {
-    const [result] = await ctx.db
-      .select()
-      .from(task)
-      .where(eq(task.id, input.id))
-      .limit(1);
+    const [result] = await ctx.db.select().from(task).where(eq(task.id, input.id)).limit(1);
 
     if (!result) {
       throw new Error(`Task with id "${input.id}" not found.`);

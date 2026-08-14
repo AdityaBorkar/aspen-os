@@ -1,9 +1,6 @@
 import type { DmsAccessLog, NewDmsAccessLog } from "./db-schemas/access-log";
 import type { DmsFile, NewDmsFile } from "./db-schemas/file";
-import type {
-  DmsFileVersion,
-  NewDmsFileVersion,
-} from "./db-schemas/file-version";
+import type { DmsFileVersion, NewDmsFileVersion } from "./db-schemas/file-version";
 import type { DmsFolder, NewDmsFolder } from "./db-schemas/folder";
 import type { DmsItemShare, NewDmsItemShare } from "./db-schemas/item-share";
 import type { DmsLabel, NewDmsLabel } from "./db-schemas/label";
@@ -15,18 +12,9 @@ export type { DmsClassField, NewDmsClassField } from "./db-schemas/class-field";
 export type { DmsContact, NewDmsContact } from "./db-schemas/contact";
 export type { DmsDocument, NewDmsDocument } from "./db-schemas/document";
 export type { DmsDocumentClass } from "./db-schemas/document-class";
-export type {
-  DmsDocumentTag,
-  NewDmsDocumentTag,
-} from "./db-schemas/document-tag";
-export type {
-  DmsDocumentVersion,
-  NewDmsDocumentVersion,
-} from "./db-schemas/document-version";
-export type {
-  DmsItemLabel,
-  NewDmsItemLabel,
-} from "./db-schemas/item-label";
+export type { DmsDocumentTag, NewDmsDocumentTag } from "./db-schemas/document-tag";
+export type { DmsDocumentVersion, NewDmsDocumentVersion } from "./db-schemas/document-version";
+export type { DmsItemLabel, NewDmsItemLabel } from "./db-schemas/item-label";
 export type { DmsLegalHold, NewDmsLegalHold } from "./db-schemas/legal-hold";
 export type { DmsPin, NewDmsPin } from "./db-schemas/pin";
 export type { DmsSetting, NewDmsSetting } from "./db-schemas/setting";
@@ -220,10 +208,7 @@ export {
   ViewConditionSchema,
   ViewSortSchema,
 } from "./schemas";
-export type {
-  ArchiveJobData,
-  ArchiveResult,
-} from "./services/item-archive-service";
+export type { ArchiveJobData, ArchiveResult } from "./services/item-archive-service";
 export { ArchiveTooLargeError } from "./services/item-archive-service";
 export type {
   AuditAction,

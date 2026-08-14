@@ -31,9 +31,7 @@ export const dmsClassField = pgTable(
   "dms_class_field",
   {
     classId: text("class_id").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     defaultValue: jsonb("default_value"),
     id: text("id").primaryKey().$defaultFn(uuidv7),
     includeInSearch: boolean("include_in_search").notNull().default(true),
@@ -44,9 +42,7 @@ export const dmsClassField = pgTable(
     options: jsonb("options"),
     sortOrder: integer("sort_order").notNull().default(0),
     type: dmsFieldTypeEnum("type").notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_dms_class_field_class").on(table.classId),

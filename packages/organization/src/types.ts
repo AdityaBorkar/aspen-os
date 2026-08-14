@@ -20,11 +20,7 @@ export type {
   OrganizationDomainEventMap,
   OrganizationUpdatedEvent,
 } from "./pubsub";
-export {
-  BRANCH_EVENTS,
-  CONNECTION_EVENTS,
-  ORGANIZATION_EVENTS,
-} from "./pubsub";
+export { BRANCH_EVENTS, CONNECTION_EVENTS, ORGANIZATION_EVENTS } from "./pubsub";
 export type {
   AddressFilters,
   BankAccountFilters,

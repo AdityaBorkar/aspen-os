@@ -15,16 +15,30 @@ export class LogQueryService {
 
   async query(filter: LogQuery): Promise<LogEntry[]> {
     const conditions = [];
-    if (filter.level) conditions.push(eq(logs.level, filter.level));
-    if (filter.service) conditions.push(eq(logs.service, filter.service));
-    if (filter.startTime)
+    if (filter.level) {
+      conditions.push(eq(logs.level, filter.level));
+    }
+    if (filter.service) {
+      conditions.push(eq(logs.service, filter.service));
+    }
+    if (filter.startTime) {
       conditions.push(gte(logs.timestamp, filter.startTime));
-    if (filter.endTime) conditions.push(lte(logs.timestamp, filter.endTime));
-    if (filter.traceId) conditions.push(eq(logs.traceId, filter.traceId));
-    if (filter.userId) conditions.push(eq(logs.userId, filter.userId));
-    if (filter.tenantId) conditions.push(eq(logs.tenantId, filter.tenantId));
-    if (filter.search)
+    }
+    if (filter.endTime) {
+      conditions.push(lte(logs.timestamp, filter.endTime));
+    }
+    if (filter.traceId) {
+      conditions.push(eq(logs.traceId, filter.traceId));
+    }
+    if (filter.userId) {
+      conditions.push(eq(logs.userId, filter.userId));
+    }
+    if (filter.tenantId) {
+      conditions.push(eq(logs.tenantId, filter.tenantId));
+    }
+    if (filter.search) {
       conditions.push(ilike(logs.message, `%${filter.search}%`));
+    }
 
     const where = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -66,10 +80,18 @@ export class LogQueryService {
     tenantId?: string,
   ): Promise<LogStats> {
     const conditions = [];
-    if (service) conditions.push(eq(logs.service, service));
-    if (startTime) conditions.push(gte(logs.timestamp, startTime));
-    if (endTime) conditions.push(lte(logs.timestamp, endTime));
-    if (tenantId) conditions.push(eq(logs.tenantId, tenantId));
+    if (service) {
+      conditions.push(eq(logs.service, service));
+    }
+    if (startTime) {
+      conditions.push(gte(logs.timestamp, startTime));
+    }
+    if (endTime) {
+      conditions.push(lte(logs.timestamp, endTime));
+    }
+    if (tenantId) {
+      conditions.push(eq(logs.tenantId, tenantId));
+    }
 
     const where = conditions.length > 0 ? and(...conditions) : undefined;
 

@@ -30,9 +30,7 @@ export const updatePublicLink = Workflow.name("drive.public-link.update")
       updates.maxViews = parsed.maxViews;
     }
     if (parsed.password !== undefined) {
-      updates.password = parsed.password
-        ? await Bun.password.hash(parsed.password)
-        : null;
+      updates.password = parsed.password ? await Bun.password.hash(parsed.password) : null;
     }
 
     const [updated] = await ctx.db

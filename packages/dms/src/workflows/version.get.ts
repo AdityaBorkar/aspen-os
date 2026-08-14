@@ -36,18 +36,15 @@ export const getDocumentVersion = Workflow.name("dms.version.get")
             )
             .limit(1);
           if (!row) {
-            throw new Error(
-              `Document "${documentId}" has no version "${version}".`,
-            );
+            throw new Error(`Document "${documentId}" has no version "${version}".`);
           }
           return row.storageKey;
         });
 
     const defaultExpiry = (await ctx.step.run("resolve-expiry", async () => {
-      const setting = (await getSetting(
-        ctx.db,
-        SETTING_KEYS.PRESIGNED_URL_DEFAULT_EXPIRY,
-      )) as number | null;
+      const setting = (await getSetting(ctx.db, SETTING_KEYS.PRESIGNED_URL_DEFAULT_EXPIRY)) as
+        | number
+        | null;
       return setting ?? config.defaultDownloadLinkExpiry;
     })) as number;
     const maxExpiry = 604800;

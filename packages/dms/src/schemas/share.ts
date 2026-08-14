@@ -1,12 +1,4 @@
-import {
-  check,
-  type InferOutput,
-  nullish,
-  object,
-  optional,
-  pipe,
-  string,
-} from "valibot";
+import { check, type InferOutput, nullish, object, optional, pipe, string } from "valibot";
 
 import { GranteeTypeSchema, SharePermissionSchema } from "./enums";
 
@@ -41,6 +33,4 @@ export const ResolveShareTokenSchema = object({
   ),
 });
 
-export type ResolveShareTokenInput = InferOutput<
-  typeof ResolveShareTokenSchema
->;
+export type ResolveShareTokenInput = InferOutput<typeof ResolveShareTokenSchema>;

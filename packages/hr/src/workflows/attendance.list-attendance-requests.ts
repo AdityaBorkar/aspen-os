@@ -9,16 +9,12 @@ const InputSchema = object({
   filters: optional(AttendanceRequestFiltersSchema),
 });
 
-export const listAttendanceRequests = Workflow.name(
-  "hr.attendance.list-attendance-requests",
-)
+export const listAttendanceRequests = Workflow.name("hr.attendance.list-attendance-requests")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { filters } = input;
 
-    const parsed = filters
-      ? parse(AttendanceRequestFiltersSchema, filters)
-      : {};
+    const parsed = filters ? parse(AttendanceRequestFiltersSchema, filters) : {};
     const conditions = [];
 
     if (parsed.employeeId) {

@@ -13,10 +13,6 @@ export const getUserByUserId = Workflow.name("hr.access.get-user-by-user-id")
   .handler(async (input, ctx) => {
     const { userId } = input;
 
-    const [record] = await ctx.db
-      .select()
-      .from(hrUser)
-      .where(eq(hrUser.userId, userId))
-      .limit(1);
+    const [record] = await ctx.db.select().from(hrUser).where(eq(hrUser.userId, userId)).limit(1);
     return record ?? null;
   });

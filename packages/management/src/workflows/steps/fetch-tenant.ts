@@ -19,11 +19,7 @@ export const fetchTenantStep = WorkflowStep.name("fetch-tenant")
       throw new Error(`Tenant with id "${input.id}" not found.`);
     }
 
-    const [companion] = await ctx.db
-      .select()
-      .from(tenant)
-      .where(eq(tenant.id, input.id))
-      .limit(1);
+    const [companion] = await ctx.db.select().from(tenant).where(eq(tenant.id, input.id)).limit(1);
 
     return { ...org, ...companion };
   });

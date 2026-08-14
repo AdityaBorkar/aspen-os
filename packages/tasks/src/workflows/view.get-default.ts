@@ -7,12 +7,9 @@ import { IdSchema } from "../types";
 
 export const getDefaultSavedView = Workflow.name("view.get-default")
   .input(object({ ownerId: IdSchema, projectId: optional(IdSchema) }))
-  .handler(async ({ ownerId, projectId }, ctx) => {
-    return ctx.step.run("query", async () => {
-      const conditions = [
-        eq(savedView.ownerId, ownerId),
-        eq(savedView.isDefault, true),
-      ];
+  .handler(async ({ ownerId, projectId }, ctx) =>
+    ctx.step.run("query", async () => {
+      const conditions = [eq(savedView.ownerId, ownerId), eq(savedView.isDefault, true)];
 
       if (projectId) {
         conditions.push(eq(savedView.projectId, projectId));
@@ -25,5 +22,5 @@ export const getDefaultSavedView = Workflow.name("view.get-default")
         .limit(1);
 
       return result ?? null;
-    });
-  });
+    }),
+  );

@@ -12,11 +12,9 @@ const ListSharesSchema = object({
 
 export const listShares = Workflow.name("drive.share.list")
   .input(ListSharesSchema)
-  .handler(async ({ itemId, itemType }, ctx) => {
-    return ctx.db
+  .handler(async ({ itemId, itemType }, ctx) =>
+    ctx.db
       .select()
       .from(driveShare)
-      .where(
-        and(eq(driveShare.itemId, itemId), eq(driveShare.itemType, itemType)),
-      );
-  });
+      .where(and(eq(driveShare.itemId, itemId), eq(driveShare.itemType, itemType))),
+  );

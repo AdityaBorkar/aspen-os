@@ -6,6 +6,4 @@ import { fetchUserStep } from "./steps/fetch-user";
 
 export const getUser = Workflow.name("user.get")
   .input(object({ id: IdSchema }))
-  .handler(async (input, ctx) => {
-    return ctx.step.run(fetchUserStep, input);
-  });
+  .handler(async (input, ctx) => ctx.step.run(fetchUserStep, input));

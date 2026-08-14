@@ -14,11 +14,7 @@ export const FileIdSchema = string();
 export const WithFileIdSchema = object({ id: FileIdSchema });
 export const WithIdSchema = object({ id: string() });
 
-export async function pruneOldVersions(
-  db: DB,
-  fileId: string,
-  maxVersions: number,
-): Promise<void> {
+export async function pruneOldVersions(db: DB, fileId: string, maxVersions: number): Promise<void> {
   const versions = await db
     .select({
       id: driveFileVersion.id,
@@ -29,7 +25,9 @@ export async function pruneOldVersions(
     .where(eq(driveFileVersion.fileId, fileId))
     .orderBy(desc(driveFileVersion.version));
 
-  if (versions.length <= maxVersions) return;
+  if (versions.length <= maxVersions) {
+    return;
+  }
 
   const toPrune = versions.slice(maxVersions);
 
@@ -49,9 +47,7 @@ export async function purgeExpiredInternal(): Promise<void> {
   const expiredFiles = await db
     .select({ id: driveFile.id, storageKey: driveFile.storageKey })
     .from(driveFile)
-    .where(
-      and(eq(driveFile.isTrashed, true), lt(driveFile.trashedAt, cutoffDate)),
-    );
+    .where(and(eq(driveFile.isTrashed, true), lt(driveFile.trashedAt, cutoffDate)));
 
   for (const file of expiredFiles) {
     await removeStorage({ key: file.storageKey });
@@ -66,12 +62,7 @@ export async function purgeExpiredInternal(): Promise<void> {
   const expiredFolders = await db
     .select({ id: driveFolder.id })
     .from(driveFolder)
-    .where(
-      and(
-        eq(driveFolder.isTrashed, true),
-        lt(driveFolder.trashedAt, cutoffDate),
-      ),
-    );
+    .where(and(eq(driveFolder.isTrashed, true), lt(driveFolder.trashedAt, cutoffDate)));
 
   for (const folder of expiredFolders) {
     await db.delete(driveFolder).where(eq(driveFolder.id, folder.id));

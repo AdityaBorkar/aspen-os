@@ -21,6 +21,7 @@ The reports package is intended to provide a unified reporting layer across all 
 ## Status
 
 **Not started.** The package has:
+
 - No `package.json` dependencies, exports, or scripts
 - No source files (empty `src/index.ts`)
 - No database schema
@@ -33,12 +34,12 @@ The reports package is intended to provide a unified reporting layer across all 
 
 Reporting functionality is currently implemented as **per-module services** rather than through a centralized reports package:
 
-| Module | Service | Reports Available |
-|---|---|---|
-| **Tasks** | `TaskModule` -> `ReportService` (`packages/tasks/src/services/report-service.ts`) | Task summary, workload, velocity, burndown, cumulative flow, time report |
-| **Organization** | (planned via SOW) | No dedicated report service yet |
-| **HR** (Phase 2 planned) | (per SOW) | Monthly attendance, leave balance/ledger, salary register/slips, tax exemption proofs, loan repayment/ledger, gratuity, overtime summary, employee CTC break-up, project profitability |
-| **Drive** | `SearchService` (`packages/drive/src/services/search-service.ts`) | Full-text search with scope/type/label/date/size filters (not a report service per se, but provides query capabilities) |
+| Module                   | Service                                                                           | Reports Available                                                                                                                                                                      |
+| ------------------------ | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Tasks**                | `TaskModule` -> `ReportService` (`packages/tasks/src/services/report-service.ts`) | Task summary, workload, velocity, burndown, cumulative flow, time report                                                                                                               |
+| **Organization**         | (planned via SOW)                                                                 | No dedicated report service yet                                                                                                                                                        |
+| **HR** (Phase 2 planned) | (per SOW)                                                                         | Monthly attendance, leave balance/ledger, salary register/slips, tax exemption proofs, loan repayment/ledger, gratuity, overtime summary, employee CTC break-up, project profitability |
+| **Drive**                | `SearchService` (`packages/drive/src/services/search-service.ts`)                 | Full-text search with scope/type/label/date/size filters (not a report service per se, but provides query capabilities)                                                                |
 
 ### Accessing existing reports
 
@@ -56,6 +57,7 @@ platform.tasks.reports.getTimeReport(filters?)
 Based on the SOW documents and `docs/TODO.md`, the following reporting areas are planned across the system:
 
 ### From Tasks SOW (Section 7)
+
 - Task Summary (by status, priority, type, assignee)
 - Workload Distribution (per-user task count and time allocation)
 - Velocity Tracking (completed tasks per sprint/period)
@@ -64,6 +66,7 @@ Based on the SOW documents and `docs/TODO.md`, the following reporting areas are
 - Time Reports (billable vs non-billable hours)
 
 ### From HR Phase 2 SOW (Section 7)
+
 - Monthly Attendance Report
 - Leave Balance and Ledger Reports
 - Salary Register and Salary Slips
@@ -88,13 +91,13 @@ A future `@aspen-os/reports` package could provide:
 
 When implemented, the reports module would integrate with:
 
-| Integration | Usage |
-|---|---|
-| **DatabaseUnit** | Read-only queries across all module tables |
-| **PubSubUnit** | Scheduled report generation, report delivery notifications |
-| **AuthUnit** | Access control for report visibility |
-| **StorageUnit** | Exported report file storage |
-| **All domain modules** | Data sources (tasks, organization, HR, drive) |
+| Integration            | Usage                                                      |
+| ---------------------- | ---------------------------------------------------------- |
+| **DatabaseUnit**       | Read-only queries across all module tables                 |
+| **PubSubUnit**         | Scheduled report generation, report delivery notifications |
+| **AuthUnit**           | Access control for report visibility                       |
+| **StorageUnit**        | Exported report file storage                               |
+| **All domain modules** | Data sources (tasks, organization, HR, drive)              |
 
 ## Package Structure (Planned)
 

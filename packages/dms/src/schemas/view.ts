@@ -29,10 +29,7 @@ const OperatorSchema = pipe(
 
 const DirectionSchema = pipe(
   string(),
-  check(
-    (val) => val === "asc" || val === "desc",
-    "Direction must be asc or desc",
-  ),
+  check((val) => val === "asc" || val === "desc", "Direction must be asc or desc"),
 );
 
 export const ViewConditionSchema = object({

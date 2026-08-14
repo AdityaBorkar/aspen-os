@@ -10,9 +10,7 @@ const InputSchema = object({
   patch: UpdateLeaveAllocationSchema,
 });
 
-export const updateLeaveAllocation = Workflow.name(
-  "hr.leave.update-leave-allocation",
-)
+export const updateLeaveAllocation = Workflow.name("hr.leave.update-leave-allocation")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, patch } = input;

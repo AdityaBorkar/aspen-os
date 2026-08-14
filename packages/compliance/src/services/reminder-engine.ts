@@ -2,11 +2,7 @@ import type { AuditUnit, PubSubUnit } from "@aspen-os/platform/server";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 import { COMPLIANCE_EVENTS } from "../pubsub";
-import {
-  CRON_SCHEDULES,
-  DEFAULT_ESCALATION_DAYS,
-  SCHEDULED_JOBS,
-} from "../utils/constants";
+import { CRON_SCHEDULES, DEFAULT_ESCALATION_DAYS, SCHEDULED_JOBS } from "../utils/constants";
 import { dashboard, documents } from "../workflows";
 import {
   daysSince,
@@ -64,9 +60,7 @@ export async function registerReminderSchedules({
   );
 }
 
-export async function registerReminderHandlers(
-  deps: ReminderEngineDeps,
-): Promise<string[]> {
+export async function registerReminderHandlers(deps: ReminderEngineDeps): Promise<string[]> {
   const topics: string[] = [];
 
   await deps.pubsub.subscribe(SCHEDULED_JOBS.DAILY_EXPIRY_SCAN, async () => {
@@ -74,12 +68,9 @@ export async function registerReminderHandlers(
   });
   topics.push(SCHEDULED_JOBS.DAILY_EXPIRY_SCAN);
 
-  await deps.pubsub.subscribe(
-    SCHEDULED_JOBS.DAILY_STATUS_TRANSITION,
-    async () => {
-      await transitionExpiredAndOverdueDocuments(deps);
-    },
-  );
+  await deps.pubsub.subscribe(SCHEDULED_JOBS.DAILY_STATUS_TRANSITION, async () => {
+    await transitionExpiredAndOverdueDocuments(deps);
+  });
   topics.push(SCHEDULED_JOBS.DAILY_STATUS_TRANSITION);
 
   await deps.pubsub.subscribe(SCHEDULED_JOBS.DAILY_ESCALATION, async () => {
@@ -104,9 +95,7 @@ export async function unregisterReminderEngine(
   }
 }
 
-export async function scanExpiringAndDueDocuments(
-  deps: ReminderEngineDeps,
-): Promise<number> {
+export async function scanExpiringAndDueDocuments(deps: ReminderEngineDeps): Promise<number> {
   const startTime = Date.now();
   let recordsProcessed = 0;
   let errors = 0;
@@ -118,11 +107,11 @@ export async function scanExpiringAndDueDocuments(
     );
 
     for (const doc of docs) {
-      if (isSnoozed(doc.snoozedUntil)) continue;
+      if (isSnoozed(doc.snoozedUntil)) {
+        continue;
+      }
 
-      const reminderDays = (doc.reminderDays as number[] | null) ?? [
-        90, 60, 30, 7,
-      ];
+      const reminderDays = (doc.reminderDays as number[] | null) ?? [90, 60, 30, 7];
 
       if (doc.expiryDate) {
         const daysUntilExpiry = daysUntil(doc.expiryDate);
@@ -210,18 +199,19 @@ export async function transitionExpiredAndOverdueDocuments(
     for (const doc of docs) {
       let newStatus: string | null = null;
 
-      const expiryStatus = deriveExpiryStatus(
-        doc.verificationStatus,
-        doc.expiryDate,
-      );
-      if (expiryStatus) newStatus = expiryStatus;
+      const expiryStatus = deriveExpiryStatus(doc.verificationStatus, doc.expiryDate);
+      if (expiryStatus) {
+        newStatus = expiryStatus;
+      }
 
       const overdueStatus = deriveOverdueStatus(
         doc.verificationStatus,
         doc.dueDate,
         doc.completedAt,
       );
-      if (overdueStatus && !newStatus) newStatus = overdueStatus;
+      if (overdueStatus && !newStatus) {
+        newStatus = overdueStatus;
+      }
 
       if (newStatus) {
         await documents.updateStatus.run(
@@ -241,9 +231,7 @@ export async function transitionExpiredAndOverdueDocuments(
             sourceModule: doc.sourceModule,
           });
         } else if (newStatus === "overdue") {
-          const daysOverdue = doc.dueDate
-            ? Math.abs(daysUntil(doc.dueDate) ?? 0)
-            : 0;
+          const daysOverdue = doc.dueDate ? Math.abs(daysUntil(doc.dueDate) ?? 0) : 0;
           await deps.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_OVERDUE, {
             category: doc.category,
             daysOverdue,
@@ -270,9 +258,7 @@ export async function transitionExpiredAndOverdueDocuments(
   return recordsProcessed;
 }
 
-export async function scanEscalations(
-  deps: ReminderEngineDeps,
-): Promise<number> {
+export async function scanEscalations(deps: ReminderEngineDeps): Promise<number> {
   const startTime = Date.now();
   let recordsProcessed = 0;
   let errors = 0;
@@ -284,20 +270,19 @@ export async function scanEscalations(
     );
 
     for (const doc of docs) {
-      const escalationDays =
-        (doc.escalationDays as number[] | null) ?? DEFAULT_ESCALATION_DAYS;
+      const escalationDays = (doc.escalationDays as number[] | null) ?? DEFAULT_ESCALATION_DAYS;
 
       const targetDate = doc.expiryDate ?? doc.dueDate;
-      if (!targetDate) continue;
+      if (!targetDate) {
+        continue;
+      }
 
       const daysSinceTarget = daysSince(targetDate);
-      if (daysSinceTarget === null) continue;
+      if (daysSinceTarget === null) {
+        continue;
+      }
 
-      const escalationLevel = shouldEscalate(
-        escalationDays,
-        doc.lastEscalatedAt,
-        daysSinceTarget,
-      );
+      const escalationLevel = shouldEscalate(escalationDays, doc.lastEscalatedAt, daysSinceTarget);
 
       if (escalationLevel !== null) {
         await deps.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_ESCALATED, {
@@ -306,10 +291,7 @@ export async function scanEscalations(
           escalationLevel,
         });
 
-        await documents.updateEscalatedAt.run(
-          { id: doc.id },
-          { db: deps.db, pubsub: deps.pubsub },
-        );
+        await documents.updateEscalatedAt.run({ id: doc.id }, { db: deps.db, pubsub: deps.pubsub });
 
         await deps.audit.write({
           action: "escalated",
@@ -335,11 +317,9 @@ export async function scanEscalations(
   return recordsProcessed;
 }
 
-export async function generateWeeklySummary(
-  deps: ReminderEngineDeps,
-): Promise<void> {
+export async function generateWeeklySummary(deps: ReminderEngineDeps): Promise<void> {
   const startTime = Date.now();
-  const kvStore = deps.kvStore;
+  const { kvStore } = deps;
 
   const summary = await dashboard.getSummary.run(
     {},
@@ -350,8 +330,7 @@ export async function generateWeeklySummary(
           ? {
               del: (key: string) => kvStore.del(key),
               get: (key: string) => kvStore.get<unknown>(key),
-              set: (key: string, value: unknown, ttl?: number) =>
-                kvStore.set(key, value, ttl),
+              set: (key: string, value: unknown, ttl?: number) => kvStore.set(key, value, ttl),
             }
           : undefined,
       },

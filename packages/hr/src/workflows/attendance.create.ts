@@ -28,9 +28,7 @@ export const create = Workflow.name("hr.attendance.create")
       .values({
         attendanceRequest: parsed.attendanceRequest ?? null,
         checkInTime: parsed.checkInTime ? new Date(parsed.checkInTime) : null,
-        checkOutTime: parsed.checkOutTime
-          ? new Date(parsed.checkOutTime)
-          : null,
+        checkOutTime: parsed.checkOutTime ? new Date(parsed.checkOutTime) : null,
         date: parsed.date,
         earlyExit: parsed.earlyExit ?? false,
         earlyExitMinutes: parsed.earlyExitMinutes ?? 0,

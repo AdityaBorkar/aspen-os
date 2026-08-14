@@ -8,11 +8,7 @@ import { getDmsConfig } from "../runtime";
 import { getSetting } from "../services/settings-service";
 import { getSignedGetUrl } from "../services/storage-bridge";
 import { IdSchema } from "../types";
-import {
-  AUDIT_ACTION,
-  AUDIT_ENTITY_TYPE,
-  SETTING_KEYS,
-} from "../utils/constants";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, SETTING_KEYS } from "../utils/constants";
 import { fetchDocumentStep } from "./steps/fetch-document";
 
 const DownloadInputSchema = object({
@@ -27,7 +23,9 @@ export async function resolveGranteeAccess(
   documentId: string,
   userId: string,
 ): Promise<boolean> {
-  if (userId === "dms:admin") return true;
+  if (userId === "dms:admin") {
+    return true;
+  }
   const [share] = await db
     .select({ id: dmsShare.id })
     .from(dmsShare)
@@ -54,12 +52,10 @@ export const downloadDocument = Workflow.name("dms.document.download")
         ctx.db,
         SETTING_KEYS.PRESIGNED_URL_DEFAULT_EXPIRY,
       )) as number | null;
-      const maxExpiry = (await getSetting(
-        ctx.db,
-        SETTING_KEYS.PRESIGNED_URL_MAX_EXPIRY,
-      )) as number | null;
-      const defaultExpirySecs =
-        defaultExpiry ?? config.defaultDownloadLinkExpiry;
+      const maxExpiry = (await getSetting(ctx.db, SETTING_KEYS.PRESIGNED_URL_MAX_EXPIRY)) as
+        | number
+        | null;
+      const defaultExpirySecs = defaultExpiry ?? config.defaultDownloadLinkExpiry;
       const maxExpirySecs = maxExpiry ?? config.maxDownloadLinkExpiry;
       return Math.min(options.expiresIn ?? defaultExpirySecs, maxExpirySecs);
     });
@@ -69,10 +65,7 @@ export const downloadDocument = Workflow.name("dms.document.download")
     );
 
     await ctx.step.run("maybe-audit-download", async () => {
-      const logDownloads = (await getSetting(
-        ctx.db,
-        SETTING_KEYS.LOG_DOWNLOADS,
-      )) as boolean | null;
+      const logDownloads = (await getSetting(ctx.db, SETTING_KEYS.LOG_DOWNLOADS)) as boolean | null;
       if (logDownloads) {
         await ctx.audit.write({
           action: AUDIT_ACTION.DOWNLOADED,

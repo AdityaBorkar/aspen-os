@@ -1,18 +1,12 @@
 import { uuidv7 } from "@aspen-os/platform/server";
 import { index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
-import {
-  driveGranteeTypeEnum,
-  driveItemTypeEnum,
-  drivePermissionEnum,
-} from "./enums";
+import { driveGranteeTypeEnum, driveItemTypeEnum, drivePermissionEnum } from "./enums";
 
 export const driveShare = pgTable(
   "drive_share",
   {
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     granteeId: text("grantee_id").notNull(),
     granteeType: driveGranteeTypeEnum("grantee_type").notNull(),

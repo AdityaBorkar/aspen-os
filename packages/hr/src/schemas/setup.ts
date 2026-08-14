@@ -42,9 +42,7 @@ export const UpdatePayrollSettingsSchema = object({
   rounding: optional(nullable(string())),
 });
 
-export type UpdatePayrollSettingsInput = InferOutput<
-  typeof UpdatePayrollSettingsSchema
->;
+export type UpdatePayrollSettingsInput = InferOutput<typeof UpdatePayrollSettingsSchema>;
 
 // Employment Type
 
@@ -53,9 +51,7 @@ export const CreateEmploymentTypeSchema = object({
   name: NameSchema,
 });
 
-export type CreateEmploymentTypeInput = InferOutput<
-  typeof CreateEmploymentTypeSchema
->;
+export type CreateEmploymentTypeInput = InferOutput<typeof CreateEmploymentTypeSchema>;
 
 export const UpdateEmploymentTypeSchema = object({
   description: optional(nullable(string())),
@@ -63,9 +59,7 @@ export const UpdateEmploymentTypeSchema = object({
   name: optional(NameSchema),
 });
 
-export type UpdateEmploymentTypeInput = InferOutput<
-  typeof UpdateEmploymentTypeSchema
->;
+export type UpdateEmploymentTypeInput = InferOutput<typeof UpdateEmploymentTypeSchema>;
 
 // Department
 
@@ -80,9 +74,7 @@ export const CreateDepartmentSchema = object({
 export type CreateDepartmentInput = InferOutput<typeof CreateDepartmentSchema>;
 
 export const UpdateDepartmentSchema = object({
-  code: optional(
-    pipe(string(), minLength(2, "Code must be at least 2 characters")),
-  ),
+  code: optional(pipe(string(), minLength(2, "Code must be at least 2 characters"))),
   isActive: optional(boolean()),
   manager: optional(nullable(string())),
   metadata: optional(nullable(object({}))),
@@ -106,9 +98,7 @@ export const CreateDesignationSchema = object({
   name: NameSchema,
 });
 
-export type CreateDesignationInput = InferOutput<
-  typeof CreateDesignationSchema
->;
+export type CreateDesignationInput = InferOutput<typeof CreateDesignationSchema>;
 
 export const UpdateDesignationSchema = object({
   description: optional(nullable(string())),
@@ -116,9 +106,7 @@ export const UpdateDesignationSchema = object({
   name: optional(NameSchema),
 });
 
-export type UpdateDesignationInput = InferOutput<
-  typeof UpdateDesignationSchema
->;
+export type UpdateDesignationInput = InferOutput<typeof UpdateDesignationSchema>;
 
 // Employee Grade
 
@@ -128,9 +116,7 @@ export const CreateEmployeeGradeSchema = object({
   name: NameSchema,
 });
 
-export type CreateEmployeeGradeInput = InferOutput<
-  typeof CreateEmployeeGradeSchema
->;
+export type CreateEmployeeGradeInput = InferOutput<typeof CreateEmployeeGradeSchema>;
 
 export const UpdateEmployeeGradeSchema = object({
   defaultSalaryStructure: optional(nullable(string())),
@@ -139,9 +125,7 @@ export const UpdateEmployeeGradeSchema = object({
   name: optional(NameSchema),
 });
 
-export type UpdateEmployeeGradeInput = InferOutput<
-  typeof UpdateEmployeeGradeSchema
->;
+export type UpdateEmployeeGradeInput = InferOutput<typeof UpdateEmployeeGradeSchema>;
 
 // Holiday List
 
@@ -152,9 +136,7 @@ export const CreateHolidayListSchema = object({
   year: number(),
 });
 
-export type CreateHolidayListInput = InferOutput<
-  typeof CreateHolidayListSchema
->;
+export type CreateHolidayListInput = InferOutput<typeof CreateHolidayListSchema>;
 
 export const UpdateHolidayListSchema = object({
   description: optional(nullable(string())),
@@ -164,9 +146,7 @@ export const UpdateHolidayListSchema = object({
   year: optional(number()),
 });
 
-export type UpdateHolidayListInput = InferOutput<
-  typeof UpdateHolidayListSchema
->;
+export type UpdateHolidayListInput = InferOutput<typeof UpdateHolidayListSchema>;
 
 // Holiday
 

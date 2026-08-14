@@ -12,14 +12,9 @@ const ListSharesSchema = object({
 
 export const listItemShares = Workflow.name("dms.item-share.list")
   .input(ListSharesSchema)
-  .handler(async ({ itemId, itemType }, ctx) => {
-    return ctx.db
+  .handler(async ({ itemId, itemType }, ctx) =>
+    ctx.db
       .select()
       .from(dmsItemShare)
-      .where(
-        and(
-          eq(dmsItemShare.itemId, itemId),
-          eq(dmsItemShare.itemType, itemType),
-        ),
-      );
-  });
+      .where(and(eq(dmsItemShare.itemId, itemId), eq(dmsItemShare.itemType, itemType))),
+  );

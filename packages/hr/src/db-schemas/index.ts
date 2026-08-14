@@ -6,11 +6,7 @@ import {
   hrUserBranchAccess,
   hrUserRole,
 } from "./access";
-import {
-  attendance,
-  attendanceRequest,
-  compensatoryLeaveRequest,
-} from "./attendance";
+import { attendance, attendanceRequest, compensatoryLeaveRequest } from "./attendance";
 import {
   employee,
   employeeCheckin,
@@ -36,12 +32,7 @@ import {
   leavePolicyDetail,
   leaveType,
 } from "./leave";
-import {
-  exitInterview,
-  fullAndFinalStatement,
-  onboardingTask,
-  separationTask,
-} from "./lifecycle";
+import { exitInterview, fullAndFinalStatement, onboardingTask, separationTask } from "./lifecycle";
 import { overtimeSlip, overtimeType } from "./overtime";
 import {
   department,
@@ -70,11 +61,7 @@ export {
   hrUserBranchAccess,
   hrUserRole,
 } from "./access";
-export {
-  attendance,
-  attendanceRequest,
-  compensatoryLeaveRequest,
-} from "./attendance";
+export { attendance, attendanceRequest, compensatoryLeaveRequest } from "./attendance";
 export {
   employee,
   employeeCheckin,
@@ -101,12 +88,7 @@ export {
   leavePolicyDetail,
   leaveType,
 } from "./leave";
-export {
-  exitInterview,
-  fullAndFinalStatement,
-  onboardingTask,
-  separationTask,
-} from "./lifecycle";
+export { exitInterview, fullAndFinalStatement, onboardingTask, separationTask } from "./lifecycle";
 export { overtimeSlip, overtimeType } from "./overtime";
 export {
   department,

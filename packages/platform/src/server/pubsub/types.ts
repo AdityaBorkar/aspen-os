@@ -24,6 +24,4 @@ export interface Message<T = unknown> {
   name: string;
 }
 
-export type MessageHandler<T = unknown> = (
-  message: Message<T>,
-) => void | Promise<void>;
+export type MessageHandler<T = unknown> = (message: Message<T>) => void | Promise<void>;

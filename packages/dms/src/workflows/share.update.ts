@@ -42,11 +42,7 @@ export const updateShare = Workflow.name("dms.share.update")
 export const removeShare = Workflow.name("dms.share.remove")
   .input(object({ id: IdSchema }))
   .handler(async ({ id }, ctx) => {
-    const [share] = await ctx.db
-      .select()
-      .from(dmsShare)
-      .where(eq(dmsShare.id, id))
-      .limit(1);
+    const [share] = await ctx.db.select().from(dmsShare).where(eq(dmsShare.id, id)).limit(1);
 
     if (!share) {
       throw new Error(`Share "${id}" not found.`);

@@ -6,9 +6,9 @@ import { connectionContact } from "../db-schemas";
 
 export const listContacts = Workflow.name("connection.list-contacts")
   .input(object({ connectionId: string() }))
-  .handler(async (input, ctx) => {
-    return ctx.db
+  .handler(async (input, ctx) =>
+    ctx.db
       .select()
       .from(connectionContact)
-      .where(eq(connectionContact.connectionId, input.connectionId));
-  });
+      .where(eq(connectionContact.connectionId, input.connectionId)),
+  );

@@ -1,21 +1,11 @@
 import { uuidv7 } from "@aspen-os/platform/server";
-import {
-  bigint,
-  boolean,
-  index,
-  integer,
-  pgTable,
-  text,
-  timestamp,
-} from "drizzle-orm/pg-core";
+import { bigint, boolean, index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const driveFile = pgTable(
   "drive_file",
   {
     contentType: text("content_type").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     description: text("description"),
     etag: text("etag"),
     folderId: text("folder_id"),
@@ -27,9 +17,7 @@ export const driveFile = pgTable(
     size: bigint("size", { mode: "number" }).notNull(),
     storageKey: text("storage_key").notNull(),
     trashedAt: timestamp("trashed_at", { withTimezone: true }),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     version: integer("version").notNull().default(1),
   },
   (table) => [

@@ -9,9 +9,7 @@ const InputSchema = object({
   hrUserId: pipe(string(), minLength(1, "hrUserId is required")),
 });
 
-export const revokeBranchAccess = Workflow.name(
-  "hr.access.revoke-branch-access",
-)
+export const revokeBranchAccess = Workflow.name("hr.access.revoke-branch-access")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { hrUserId, branchId } = input;
@@ -19,9 +17,6 @@ export const revokeBranchAccess = Workflow.name(
     await ctx.db
       .delete(hrUserBranchAccess)
       .where(
-        and(
-          eq(hrUserBranchAccess.hrUserId, hrUserId),
-          eq(hrUserBranchAccess.branchId, branchId),
-        ),
+        and(eq(hrUserBranchAccess.hrUserId, hrUserId), eq(hrUserBranchAccess.branchId, branchId)),
       );
   });

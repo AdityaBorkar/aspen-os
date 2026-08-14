@@ -10,9 +10,7 @@ const InputSchema = object({
   responses: record(string(), unknown()),
 });
 
-export const completeExitInterview = Workflow.name(
-  "hr.lifecycle.complete-exit-interview",
-)
+export const completeExitInterview = Workflow.name("hr.lifecycle.complete-exit-interview")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, feedback, responses } = input;

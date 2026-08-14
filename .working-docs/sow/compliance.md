@@ -28,62 +28,63 @@ The central store for all compliance documents. Any module can register a docume
 
 A single document model serves all compliance use cases:
 
-| Use Case | `Expiry Date` | `Due Date` | `Period Start/End` | `metadata` example |
-|---|---|---|---|---|
-| ISO 9001 Certificate | 2026-12-31 | — | — | `{ "certifyingBody": "TUV", "score": "A+" }` |
-| GST Return filing | — | 2025-05-20 | 2025-04-01 → 2025-04-30 | `{ "taxType": "gst", "jurisdiction": "IN-GST", "returnForm": "GSTR-1", "taxAmount": 125000, "amountPaid": 125000 }` |
-| Vehicle pollution certificate | 2026-06-15 | — | — | `{ "vehicleReg": "MH-12-AB-1234", "emissionNorms": "BS6" }` |
-| Quarterly safety audit | — | 2025-09-30 | 2025-07-01 → 2025-09-30 | `{ "auditScope": "Fire Safety", "auditor": "External" }` |
-| Employee background check | 2026-07-10 | — | — | `{ "employeeId": "emp-123", "checkType": "criminal" }` |
+| Use Case                      | `Expiry Date` | `Due Date` | `Period Start/End`      | `metadata` example                                                                                                  |
+| ----------------------------- | ------------- | ---------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| ISO 9001 Certificate          | 2026-12-31    | —          | —                       | `{ "certifyingBody": "TUV", "score": "A+" }`                                                                        |
+| GST Return filing             | —             | 2025-05-20 | 2025-04-01 → 2025-04-30 | `{ "taxType": "gst", "jurisdiction": "IN-GST", "returnForm": "GSTR-1", "taxAmount": 125000, "amountPaid": 125000 }` |
+| Vehicle pollution certificate | 2026-06-15    | —          | —                       | `{ "vehicleReg": "MH-12-AB-1234", "emissionNorms": "BS6" }`                                                         |
+| Quarterly safety audit        | —             | 2025-09-30 | 2025-07-01 → 2025-09-30 | `{ "auditScope": "Fire Safety", "auditor": "External" }`                                                            |
+| Employee background check     | 2026-07-10    | —          | —                       | `{ "employeeId": "emp-123", "checkType": "criminal" }`                                                              |
 
 ### 1.1 Compliance Document
 
-| Field | Type | Description |
-|---|---|---|
-| **ID** | text (auto) | System-generated unique identifier. |
-| **Name** | text | Document name (e.g., "GST Return April 2025", "ISO 9001 Certificate", "Vehicle Pollution Certificate — MH-12-AB-1234"). |
-| **Reference Number** | text (nullable) | Document number, license number, certificate ID, filing acknowledgment, or reference. |
-| **Category** | enum | `tax`, `license`, `certificate`, `permit`, `insurance`, `regulatory`, `legal`, `hr`, `safety`, `environmental`, `data_privacy`, `financial`, `vehicle`, `property`, `audit`, `other`. |
-| **Document Type** | text (nullable) | Free-text sub-type within a category (e.g., category=`tax`, type="GST Return"; category=`certificate`, type="ISO 9001"; category=`audit`, type="Fire Safety"). |
-| **Issuing Authority** | text (nullable) | Authority that issued the document (e.g., "Ministry of Corporate Affairs", "RTO Mumbai", "ISO Certifying Body"). |
-| **Jurisdiction** | text (nullable) | Geographic or regulatory jurisdiction (e.g., "IN-MH", "US-CA", "EU-GDPR", "global"). ISO 3166-2 or custom. |
-| **Issue Date** | date (nullable) | When the document was issued, filed, or completed. |
-| **Expiry Date** | date (nullable) | When the document expires. Used for certificates, licenses, permits. Null for documents with no expiry. |
-| **Due Date** | date (nullable) | Deadline by which the document must be filed, submitted, or completed. Used for filings, audits, periodic reports. Null for expiry-based documents. |
-| **Effective Date** | date (nullable) | When the document becomes effective (may differ from issue date). |
-| **Period Start** | date (nullable) | Start of the compliance period this document covers (e.g., tax period start, audit period start). |
-| **Period End** | date (nullable) | End of the compliance period. |
-| **Renewal Date** | date (nullable) | Planned renewal date (may differ from expiry). |
-| **Renewal Frequency** | enum (nullable) | `one_time`, `monthly`, `quarterly`, `semi_annual`, `annual`, `biennial`, `triennial`. |
-| **Auto Renewal** | boolean | Whether the document auto-renews. Default `false`. |
-| **Verification Status** | enum | `draft`, `submitted`, `under_review`, `verified`, `rejected`, `expired`, `overdue`, `renewed`, `archived`. |
-| **Reminder Days** | integer[] | Days before expiry/due date to trigger reminders (e.g., `[90, 60, 30, 7]`). Defaults to `[90, 60, 30, 7]`. |
-| **Escalation Days** | integer[] (nullable) | Additional escalation thresholds after expiry/overdue (e.g., `[1, 7, 30]` — escalate 1 day, 7 days, 30 days post-expiry). |
-| **Source Module** | text | The module that created this document (e.g., `organization`, `hr`, `fleet`, `accounting`). For audit and filtering. |
-| **Source Entity Type** | text (nullable) | The type of the source entity (e.g., `organization`, `employee`, `vehicle`, `property`). |
-| **Source Entity ID** | text (nullable) | FK to the source entity. |
-| **Branch** | text (FK, nullable) | Reference to Organization module's Branch if the document is branch-specific. |
-| **Connection** | text (FK, nullable) | Reference to Organization module's Connection (e.g., insurer, regulator). |
-| **Obligation ID** | text (FK, nullable) | Reference to the Compliance Obligation that auto-generated this document, if applicable. |
-| **Assigned Reviewer** | text (FK, nullable) | User assigned to verify this document. |
-| **Assigned To** | text (FK, nullable) | User responsible for completing/filing this document (for due-date-based documents). |
-| **Reviewed At** | timestamptz (nullable) | When the document was last verified. |
-| **Reviewed By** | text (FK, nullable) | User who verified the document. |
-| **Rejection Reason** | text (nullable) | Reason if verification was rejected. |
-| **Completed At** | timestamptz (nullable) | When a due-date-based document was completed/filed. |
-| **Attachment** | text (FK, nullable) | Reference to Storage unit for the document file (PDF, image, etc.). |
-| **Reminder Channel** | enum (nullable) | Preferred reminder channel: `pubsub`, `email`, `both`. Default `pubsub`. |
-| **Notes** | text (nullable) | Internal notes or renewal instructions. |
-| **Last Notified At** | timestamptz (nullable) | When the last reminder was sent. |
-| **Last Escalated At** | timestamptz (nullable) | When the last escalation was sent. |
-| **Snoozed Until** | timestamptz (nullable) | Reminders suppressed until this timestamp. |
-| **Renewed From** | text (FK, nullable) | Reference to the previous version of this document (renewal chain). |
-| **Created By** | text (FK) | User who created the record. |
-| **Created At** | timestamptz | Record creation timestamp. |
-| **Updated At** | timestamptz | Last modification timestamp. |
-| **Metadata** | jsonb (nullable) | Domain-specific structured data. This is the extensibility point that makes the generic model work for taxation, audits, vehicle compliance, and any future use case without schema changes. See §1.3 for metadata conventions. |
+| Field                   | Type                   | Description                                                                                                                                                                                                                     |
+| ----------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **ID**                  | text (auto)            | System-generated unique identifier.                                                                                                                                                                                             |
+| **Name**                | text                   | Document name (e.g., "GST Return April 2025", "ISO 9001 Certificate", "Vehicle Pollution Certificate — MH-12-AB-1234").                                                                                                         |
+| **Reference Number**    | text (nullable)        | Document number, license number, certificate ID, filing acknowledgment, or reference.                                                                                                                                           |
+| **Category**            | enum                   | `tax`, `license`, `certificate`, `permit`, `insurance`, `regulatory`, `legal`, `hr`, `safety`, `environmental`, `data_privacy`, `financial`, `vehicle`, `property`, `audit`, `other`.                                           |
+| **Document Type**       | text (nullable)        | Free-text sub-type within a category (e.g., category=`tax`, type="GST Return"; category=`certificate`, type="ISO 9001"; category=`audit`, type="Fire Safety").                                                                  |
+| **Issuing Authority**   | text (nullable)        | Authority that issued the document (e.g., "Ministry of Corporate Affairs", "RTO Mumbai", "ISO Certifying Body").                                                                                                                |
+| **Jurisdiction**        | text (nullable)        | Geographic or regulatory jurisdiction (e.g., "IN-MH", "US-CA", "EU-GDPR", "global"). ISO 3166-2 or custom.                                                                                                                      |
+| **Issue Date**          | date (nullable)        | When the document was issued, filed, or completed.                                                                                                                                                                              |
+| **Expiry Date**         | date (nullable)        | When the document expires. Used for certificates, licenses, permits. Null for documents with no expiry.                                                                                                                         |
+| **Due Date**            | date (nullable)        | Deadline by which the document must be filed, submitted, or completed. Used for filings, audits, periodic reports. Null for expiry-based documents.                                                                             |
+| **Effective Date**      | date (nullable)        | When the document becomes effective (may differ from issue date).                                                                                                                                                               |
+| **Period Start**        | date (nullable)        | Start of the compliance period this document covers (e.g., tax period start, audit period start).                                                                                                                               |
+| **Period End**          | date (nullable)        | End of the compliance period.                                                                                                                                                                                                   |
+| **Renewal Date**        | date (nullable)        | Planned renewal date (may differ from expiry).                                                                                                                                                                                  |
+| **Renewal Frequency**   | enum (nullable)        | `one_time`, `monthly`, `quarterly`, `semi_annual`, `annual`, `biennial`, `triennial`.                                                                                                                                           |
+| **Auto Renewal**        | boolean                | Whether the document auto-renews. Default `false`.                                                                                                                                                                              |
+| **Verification Status** | enum                   | `draft`, `submitted`, `under_review`, `verified`, `rejected`, `expired`, `overdue`, `renewed`, `archived`.                                                                                                                      |
+| **Reminder Days**       | integer[]              | Days before expiry/due date to trigger reminders (e.g., `[90, 60, 30, 7]`). Defaults to `[90, 60, 30, 7]`.                                                                                                                      |
+| **Escalation Days**     | integer[] (nullable)   | Additional escalation thresholds after expiry/overdue (e.g., `[1, 7, 30]` — escalate 1 day, 7 days, 30 days post-expiry).                                                                                                       |
+| **Source Module**       | text                   | The module that created this document (e.g., `organization`, `hr`, `fleet`, `accounting`). For audit and filtering.                                                                                                             |
+| **Source Entity Type**  | text (nullable)        | The type of the source entity (e.g., `organization`, `employee`, `vehicle`, `property`).                                                                                                                                        |
+| **Source Entity ID**    | text (nullable)        | FK to the source entity.                                                                                                                                                                                                        |
+| **Branch**              | text (FK, nullable)    | Reference to Organization module's Branch if the document is branch-specific.                                                                                                                                                   |
+| **Connection**          | text (FK, nullable)    | Reference to Organization module's Connection (e.g., insurer, regulator).                                                                                                                                                       |
+| **Obligation ID**       | text (FK, nullable)    | Reference to the Compliance Obligation that auto-generated this document, if applicable.                                                                                                                                        |
+| **Assigned Reviewer**   | text (FK, nullable)    | User assigned to verify this document.                                                                                                                                                                                          |
+| **Assigned To**         | text (FK, nullable)    | User responsible for completing/filing this document (for due-date-based documents).                                                                                                                                            |
+| **Reviewed At**         | timestamptz (nullable) | When the document was last verified.                                                                                                                                                                                            |
+| **Reviewed By**         | text (FK, nullable)    | User who verified the document.                                                                                                                                                                                                 |
+| **Rejection Reason**    | text (nullable)        | Reason if verification was rejected.                                                                                                                                                                                            |
+| **Completed At**        | timestamptz (nullable) | When a due-date-based document was completed/filed.                                                                                                                                                                             |
+| **Attachment**          | text (FK, nullable)    | Reference to Storage unit for the document file (PDF, image, etc.).                                                                                                                                                             |
+| **Reminder Channel**    | enum (nullable)        | Preferred reminder channel: `pubsub`, `email`, `both`. Default `pubsub`.                                                                                                                                                        |
+| **Notes**               | text (nullable)        | Internal notes or renewal instructions.                                                                                                                                                                                         |
+| **Last Notified At**    | timestamptz (nullable) | When the last reminder was sent.                                                                                                                                                                                                |
+| **Last Escalated At**   | timestamptz (nullable) | When the last escalation was sent.                                                                                                                                                                                              |
+| **Snoozed Until**       | timestamptz (nullable) | Reminders suppressed until this timestamp.                                                                                                                                                                                      |
+| **Renewed From**        | text (FK, nullable)    | Reference to the previous version of this document (renewal chain).                                                                                                                                                             |
+| **Created By**          | text (FK)              | User who created the record.                                                                                                                                                                                                    |
+| **Created At**          | timestamptz            | Record creation timestamp.                                                                                                                                                                                                      |
+| **Updated At**          | timestamptz            | Last modification timestamp.                                                                                                                                                                                                    |
+| **Metadata**            | jsonb (nullable)       | Domain-specific structured data. This is the extensibility point that makes the generic model work for taxation, audits, vehicle compliance, and any future use case without schema changes. See §1.3 for metadata conventions. |
 
 **Operations**:
+
 - `create(input)` — register a new compliance document. Validates category, derives initial verification status.
 - `update(id, patch)` — update document details.
 - `uploadAttachment(id, storageKey)` — attach or replace the document file.
@@ -134,6 +135,7 @@ A single document model serves all compliance use cases:
 ```
 
 **Status derivation rules** (automatic, via scheduled job):
+
 - `verified` + expiry within first `Reminder Days` threshold → `verified` remains, but reminder fires.
 - `verified` + `Expiry Date` passed → auto-transition to `expired`.
 - `submitted` + `Expiry Date` passed → auto-transition to `expired` (never verified before expiry).
@@ -147,14 +149,14 @@ A single document model serves all compliance use cases:
 
 The `metadata` jsonb field is the extensibility point that eliminates the need for domain-specific tables. While the schema is free-form, the module defines conventions for common use cases:
 
-| Use Case | Conventional metadata keys |
-|---|---|
-| **Tax filings** | `taxType` (`gst`, `vat`, `income_tax`, etc.), `jurisdiction` (e.g., `IN-GST`), `returnForm` (e.g., `GSTR-1`), `taxAmount` (numeric), `amountPaid` (numeric), `outstanding` (numeric, computed), `currency` (ISO 4217), `penaltyAmount` (numeric), `filingPortalUrl` (string), `filingReference` (string) |
-| **Certificates** | `certifyingBody`, `score` or `grade`, `scope` (e.g., "Design, Development, and Support") |
-| **Insurance** | `policyNumber`, `coverageType`, `sumInsured`, `premiumAmount`, `beneficiary` |
-| **Vehicle compliance** | `vehicleRegistration`, `emissionNorms`, `fitnessValidUntil` |
-| **HR compliance** | `employeeId`, `checkType` (e.g., `criminal`, `education`, `employment`), `verificationAgency` |
-| **Audits** | `auditScope`, `auditor` (internal/external), `findings`, `rating` |
+| Use Case               | Conventional metadata keys                                                                                                                                                                                                                                                                               |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Tax filings**        | `taxType` (`gst`, `vat`, `income_tax`, etc.), `jurisdiction` (e.g., `IN-GST`), `returnForm` (e.g., `GSTR-1`), `taxAmount` (numeric), `amountPaid` (numeric), `outstanding` (numeric, computed), `currency` (ISO 4217), `penaltyAmount` (numeric), `filingPortalUrl` (string), `filingReference` (string) |
+| **Certificates**       | `certifyingBody`, `score` or `grade`, `scope` (e.g., "Design, Development, and Support")                                                                                                                                                                                                                 |
+| **Insurance**          | `policyNumber`, `coverageType`, `sumInsured`, `premiumAmount`, `beneficiary`                                                                                                                                                                                                                             |
+| **Vehicle compliance** | `vehicleRegistration`, `emissionNorms`, `fitnessValidUntil`                                                                                                                                                                                                                                              |
+| **HR compliance**      | `employeeId`, `checkType` (e.g., `criminal`, `education`, `employment`), `verificationAgency`                                                                                                                                                                                                            |
+| **Audits**             | `auditScope`, `auditor` (internal/external), `findings`, `rating`                                                                                                                                                                                                                                        |
 
 These are conventions, not enforced schemas. Source modules populate `metadata` with whatever structured data they need. The Compliance Module treats `metadata` as opaque — it stores, retrieves, and passes it through to events and audit trails without interpreting its contents. Consumers (dashboards, reports, other modules) read specific keys based on the document's `category` and `documentType`.
 
@@ -166,39 +168,40 @@ A recurring schedule that auto-generates compliance documents on a periodic basi
 
 ### 2.1 Compliance Obligation
 
-| Field | Type | Description |
-|---|---|---|
-| **ID** | text (auto) | System-generated unique identifier. |
-| **Name** | text | Descriptive name (e.g., "Monthly GST Returns", "Annual ISO 9001 Renewal", "Quarterly Fire Safety Audit", "Annual Vehicle Pollution Certificate"). |
-| **Category** | enum | Same category enum as compliance documents. Determines the category of generated documents. |
-| **Document Type** | text (nullable) | Sub-type for generated documents (e.g., "GST Return", "ISO 9001", "Fire Safety Audit"). |
-| **Frequency** | enum | `monthly`, `quarterly`, `semi_annual`, `annual`, `biennial`, `triennial`, `custom`. |
-| **Custom Cron** | text (nullable) | Cron expression for `custom` frequency (e.g., `0 0 1 */3 *` for every 3 months on the 1st). 5-placeholder format (minute-level precision). |
-| **Due Day** | integer (nullable) | Day of month the generated document's `Due Date` falls on (for due-date-based obligations like tax filings). |
-| **Due Month Offset** | integer (nullable) | Months after period end when the document is due (e.g., 1 = file by next month, 0 = same month). |
-| **Expiry Based** | boolean | If `true`, generated documents track `Expiry Date` (certificates, permits). If `false`, generated documents track `Due Date` (filings, audits). Default `false`. |
-| **Expiry Duration Months** | integer (nullable) | For expiry-based obligations: how many months from generation until the document expires (e.g., 12 for an annual certificate). |
-| **Period Based** | boolean | If `true`, generated documents include `Period Start` and `Period End` fields (for tax periods, audit periods). Default `false`. |
-| **Default Reminder Days** | integer[] | Reminder days inherited by generated documents. Default `[30, 15, 7, 1]` for due-date-based, `[90, 60, 30, 7]` for expiry-based. |
-| **Default Escalation Days** | integer[] (nullable) | Escalation days inherited by generated documents. |
-| **Default Metadata** | jsonb (nullable) | Template for generated documents' `metadata` field (e.g., `{ "taxType": "gst", "jurisdiction": "IN-GST", "returnForm": "GSTR-1", "currency": "INR" }`). Merged into each generated document. |
-| **Default Issuing Authority** | text (nullable) | Default `Issuing Authority` for generated documents. |
-| **Default Jurisdiction** | text (nullable) | Default `Jurisdiction` for generated documents. |
-| **Default Assigned Reviewer** | text (FK, nullable) | Default reviewer for generated documents. |
-| **Default Assigned To** | text (FK, nullable) | Default user responsible for completing generated documents. |
-| **Source Module** | text | The module that owns this obligation (e.g., `accounting`, `organization`, `fleet`). |
-| **Source Entity Type** | text (nullable) | Source entity type if the obligation is entity-specific. |
-| **Source Entity ID** | text (nullable) | Source entity ID if the obligation is entity-specific. |
-| **Branch** | text (FK, nullable) | Branch reference if the obligation is branch-specific. |
-| **Start Date** | date | When this obligation begins generating documents. |
-| **End Date** | date (nullable) | When this obligation stops generating documents. Null = ongoing. |
-| **Is Active** | boolean | Whether the obligation is currently generating documents. Default `true`. |
-| **Auto-Generate** | boolean | Whether to auto-create compliance documents when a new period begins. Default `true`. |
-| **Created By** | text (FK) | User who created the obligation. |
-| **Created At** | timestamptz | Record creation timestamp. |
-| **Updated At** | timestamptz | Last modification timestamp. |
+| Field                         | Type                 | Description                                                                                                                                                                                  |
+| ----------------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **ID**                        | text (auto)          | System-generated unique identifier.                                                                                                                                                          |
+| **Name**                      | text                 | Descriptive name (e.g., "Monthly GST Returns", "Annual ISO 9001 Renewal", "Quarterly Fire Safety Audit", "Annual Vehicle Pollution Certificate").                                            |
+| **Category**                  | enum                 | Same category enum as compliance documents. Determines the category of generated documents.                                                                                                  |
+| **Document Type**             | text (nullable)      | Sub-type for generated documents (e.g., "GST Return", "ISO 9001", "Fire Safety Audit").                                                                                                      |
+| **Frequency**                 | enum                 | `monthly`, `quarterly`, `semi_annual`, `annual`, `biennial`, `triennial`, `custom`.                                                                                                          |
+| **Custom Cron**               | text (nullable)      | Cron expression for `custom` frequency (e.g., `0 0 1 */3 *` for every 3 months on the 1st). 5-placeholder format (minute-level precision).                                                   |
+| **Due Day**                   | integer (nullable)   | Day of month the generated document's `Due Date` falls on (for due-date-based obligations like tax filings).                                                                                 |
+| **Due Month Offset**          | integer (nullable)   | Months after period end when the document is due (e.g., 1 = file by next month, 0 = same month).                                                                                             |
+| **Expiry Based**              | boolean              | If `true`, generated documents track `Expiry Date` (certificates, permits). If `false`, generated documents track `Due Date` (filings, audits). Default `false`.                             |
+| **Expiry Duration Months**    | integer (nullable)   | For expiry-based obligations: how many months from generation until the document expires (e.g., 12 for an annual certificate).                                                               |
+| **Period Based**              | boolean              | If `true`, generated documents include `Period Start` and `Period End` fields (for tax periods, audit periods). Default `false`.                                                             |
+| **Default Reminder Days**     | integer[]            | Reminder days inherited by generated documents. Default `[30, 15, 7, 1]` for due-date-based, `[90, 60, 30, 7]` for expiry-based.                                                             |
+| **Default Escalation Days**   | integer[] (nullable) | Escalation days inherited by generated documents.                                                                                                                                            |
+| **Default Metadata**          | jsonb (nullable)     | Template for generated documents' `metadata` field (e.g., `{ "taxType": "gst", "jurisdiction": "IN-GST", "returnForm": "GSTR-1", "currency": "INR" }`). Merged into each generated document. |
+| **Default Issuing Authority** | text (nullable)      | Default `Issuing Authority` for generated documents.                                                                                                                                         |
+| **Default Jurisdiction**      | text (nullable)      | Default `Jurisdiction` for generated documents.                                                                                                                                              |
+| **Default Assigned Reviewer** | text (FK, nullable)  | Default reviewer for generated documents.                                                                                                                                                    |
+| **Default Assigned To**       | text (FK, nullable)  | Default user responsible for completing generated documents.                                                                                                                                 |
+| **Source Module**             | text                 | The module that owns this obligation (e.g., `accounting`, `organization`, `fleet`).                                                                                                          |
+| **Source Entity Type**        | text (nullable)      | Source entity type if the obligation is entity-specific.                                                                                                                                     |
+| **Source Entity ID**          | text (nullable)      | Source entity ID if the obligation is entity-specific.                                                                                                                                       |
+| **Branch**                    | text (FK, nullable)  | Branch reference if the obligation is branch-specific.                                                                                                                                       |
+| **Start Date**                | date                 | When this obligation begins generating documents.                                                                                                                                            |
+| **End Date**                  | date (nullable)      | When this obligation stops generating documents. Null = ongoing.                                                                                                                             |
+| **Is Active**                 | boolean              | Whether the obligation is currently generating documents. Default `true`.                                                                                                                    |
+| **Auto-Generate**             | boolean              | Whether to auto-create compliance documents when a new period begins. Default `true`.                                                                                                        |
+| **Created By**                | text (FK)            | User who created the obligation.                                                                                                                                                             |
+| **Created At**                | timestamptz          | Record creation timestamp.                                                                                                                                                                   |
+| **Updated At**                | timestamptz          | Last modification timestamp.                                                                                                                                                                 |
 
 **Operations**:
+
 - `create(input)` — define a recurring compliance obligation.
 - `update(id, patch)` — update obligation parameters.
 - `activate(id)` / `deactivate(id)` — toggle whether new documents are auto-generated.
@@ -226,12 +229,12 @@ A scheduled job (`compliance:obligation-generate`) runs daily and checks all act
 
 **Period computation** (examples):
 
-| Obligation | Frequency | Due Day | Month Offset | Generated Document |
-|---|---|---|---|---|
-| Monthly GST Returns | `monthly` | 20 | 1 | Period: 2025-04-01 → 2025-04-30. Due: 2025-05-20. |
-| Quarterly Safety Audit | `quarterly` | 30 | 0 | Period: 2025-07-01 → 2025-09-30. Due: 2025-09-30. |
-| Annual ISO 9001 Renewal | `annual` (expiry-based) | — | — | No period. Expiry: 12 months from issue. |
-| Annual Corporate Tax | `annual` | 31 | 7 | Period: FY2025-26. Due: 7 months after FY end. |
+| Obligation              | Frequency               | Due Day | Month Offset | Generated Document                                |
+| ----------------------- | ----------------------- | ------- | ------------ | ------------------------------------------------- |
+| Monthly GST Returns     | `monthly`               | 20      | 1            | Period: 2025-04-01 → 2025-04-30. Due: 2025-05-20. |
+| Quarterly Safety Audit  | `quarterly`             | 30      | 0            | Period: 2025-07-01 → 2025-09-30. Due: 2025-09-30. |
+| Annual ISO 9001 Renewal | `annual` (expiry-based) | —       | —            | No period. Expiry: 12 months from issue.          |
+| Annual Corporate Tax    | `annual`                | 31      | 7            | Period: FY2025-26. Due: 7 months after FY end.    |
 
 **Idempotency**: The generation job checks whether a document already exists for a given `(obligationId, periodStart, periodEnd)` tuple. If so, it skips generation — no duplicates.
 
@@ -253,19 +256,20 @@ When a document is submitted (`submit()`), it enters `submitted` status. A compl
 
 Configurable rules that auto-assign reviewers and set verification requirements based on document category and source module.
 
-| Field | Type | Description |
-|---|---|---|
-| **ID** | text (auto) | System-generated unique identifier. |
-| **Name** | text | Rule name (e.g., "HR documents → HR Manager"). |
-| **Category** | enum (nullable) | Document category to match. Null = matches all. |
-| **Source Module** | text (nullable) | Source module to match. Null = matches all. |
-| **Assigned Reviewer** | text (FK, nullable) | User to auto-assign when rule matches. |
-| **Required Reviewer Role** | text (nullable) | Role required to verify (e.g., `compliance:officer`). |
-| **Is Active** | boolean | Whether the rule is active. |
-| **Priority** | integer | Lower = higher priority. First match wins. |
-| **Created At** | timestamptz | Record creation timestamp. |
+| Field                      | Type                | Description                                           |
+| -------------------------- | ------------------- | ----------------------------------------------------- |
+| **ID**                     | text (auto)         | System-generated unique identifier.                   |
+| **Name**                   | text                | Rule name (e.g., "HR documents → HR Manager").        |
+| **Category**               | enum (nullable)     | Document category to match. Null = matches all.       |
+| **Source Module**          | text (nullable)     | Source module to match. Null = matches all.           |
+| **Assigned Reviewer**      | text (FK, nullable) | User to auto-assign when rule matches.                |
+| **Required Reviewer Role** | text (nullable)     | Role required to verify (e.g., `compliance:officer`). |
+| **Is Active**              | boolean             | Whether the rule is active.                           |
+| **Priority**               | integer             | Lower = higher priority. First match wins.            |
+| **Created At**             | timestamptz         | Record creation timestamp.                            |
 
 **Operations**:
+
 - `create(input)` — create a verification rule.
 - `update(id, patch)` — update rule.
 - `delete(id)` — delete rule.
@@ -275,6 +279,7 @@ Configurable rules that auto-assign reviewers and set verification requirements 
 ### 3.3 Rejection & Resubmission
 
 When a document is rejected:
+
 1. Status transitions to `rejected`.
 2. `Rejection Reason` is recorded.
 3. A `compliance:document_rejected` event is published via PubSub.
@@ -291,47 +296,63 @@ The reminder engine is the core proactive component. It uses pg-boss scheduling 
 
 The following recurring jobs are registered during module `prepare()` via `pubsub.schedule(name, cron, data, options)`:
 
-| Job Name | Cron | Schedule | Purpose |
-|---|---|---|---|
-| `compliance:daily-expiry-scan` | `0 8 * * *` | Daily at 08:00 UTC | Scans all documents with `Expiry Date` or `Due Date`. For each, checks if `daysUntilExpiry`/`daysUntilDue` hits a `Reminder Days` threshold. If so, publishes `compliance:document_expiring` or `compliance:document_due` event. |
-| `compliance:daily-status-transition` | `0 0 * * *` | Daily at midnight UTC | Transitions documents past their `Expiry Date` to `expired` and documents past their `Due Date` (not completed) to `overdue`. Publishes `compliance:document_expired` and `compliance:document_overdue` events. |
-| `compliance:daily-escalation` | `0 9 * * *` | Daily at 09:00 UTC | For documents in `expired` or `overdue` status, checks if `daysSinceExpiry`/`daysSinceOverdue` hits an `Escalation Days` threshold. Publishes `compliance:document_escalated` events. |
-| `compliance:obligation-generate` | `0 6 * * *` | Daily at 06:00 UTC | Checks all active `ComplianceObligation` records. For each, determines if a new compliance period has begun and auto-creates a `Compliance Document`. |
-| `compliance:weekly-summary` | `0 9 * * 1` | Mondays at 09:00 UTC | Aggregates compliance status for the past week. Publishes `compliance:weekly_summary` event with counts, upcoming expirations, overdue items, and obligation generation summary. |
+| Job Name                             | Cron        | Schedule              | Purpose                                                                                                                                                                                                                          |
+| ------------------------------------ | ----------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `compliance:daily-expiry-scan`       | `0 8 * * *` | Daily at 08:00 UTC    | Scans all documents with `Expiry Date` or `Due Date`. For each, checks if `daysUntilExpiry`/`daysUntilDue` hits a `Reminder Days` threshold. If so, publishes `compliance:document_expiring` or `compliance:document_due` event. |
+| `compliance:daily-status-transition` | `0 0 * * *` | Daily at midnight UTC | Transitions documents past their `Expiry Date` to `expired` and documents past their `Due Date` (not completed) to `overdue`. Publishes `compliance:document_expired` and `compliance:document_overdue` events.                  |
+| `compliance:daily-escalation`        | `0 9 * * *` | Daily at 09:00 UTC    | For documents in `expired` or `overdue` status, checks if `daysSinceExpiry`/`daysSinceOverdue` hits an `Escalation Days` threshold. Publishes `compliance:document_escalated` events.                                            |
+| `compliance:obligation-generate`     | `0 6 * * *` | Daily at 06:00 UTC    | Checks all active `ComplianceObligation` records. For each, determines if a new compliance period has begun and auto-creates a `Compliance Document`.                                                                            |
+| `compliance:weekly-summary`          | `0 9 * * 1` | Mondays at 09:00 UTC  | Aggregates compliance status for the past week. Publishes `compliance:weekly_summary` event with counts, upcoming expirations, overdue items, and obligation generation summary.                                                 |
 
 **Job registration**: All schedules are registered in the module's `prepare()` method. Each job name corresponds to a pg-boss queue that the module subscribes to via `pubsub.subscribe()`. The handler performs the scan and publishes domain events.
 
 **Singleton enforcement**: Each scheduled job uses `singletonKey` to prevent duplicate execution across multiple framework instances (via `pubsub.publish()` with `singletonKey` option).
 
 **Example registration flow** (in `prepare()`):
+
 ```ts
 // Register cron schedules
-await pubsub.schedule("compliance:daily-expiry-scan", "0 8 * * *", {}, {
-  retryLimit: 3,
-  retryDelay: 60,
-  retryBackoff: true,
-})
-await pubsub.schedule("compliance:daily-status-transition", "0 0 * * *", {}, {
-  retryLimit: 3,
-  retryDelay: 60,
-  retryBackoff: true,
-})
-await pubsub.schedule("compliance:obligation-generate", "0 6 * * *", {}, {
-  retryLimit: 3,
-  retryDelay: 60,
-  retryBackoff: true,
-})
+await pubsub.schedule(
+  "compliance:daily-expiry-scan",
+  "0 8 * * *",
+  {},
+  {
+    retryLimit: 3,
+    retryDelay: 60,
+    retryBackoff: true,
+  },
+);
+await pubsub.schedule(
+  "compliance:daily-status-transition",
+  "0 0 * * *",
+  {},
+  {
+    retryLimit: 3,
+    retryDelay: 60,
+    retryBackoff: true,
+  },
+);
+await pubsub.schedule(
+  "compliance:obligation-generate",
+  "0 6 * * *",
+  {},
+  {
+    retryLimit: 3,
+    retryDelay: 60,
+    retryBackoff: true,
+  },
+);
 
 // Subscribe handlers
 await pubsub.subscribe("compliance:daily-expiry-scan", async (message) => {
-  await this.reminderEngine.scanExpiringAndDueDocuments()
-})
+  await this.reminderEngine.scanExpiringAndDueDocuments();
+});
 await pubsub.subscribe("compliance:daily-status-transition", async (message) => {
-  await this.reminderEngine.transitionExpiredAndOverdueDocuments()
-})
+  await this.reminderEngine.transitionExpiredAndOverdueDocuments();
+});
 await pubsub.subscribe("compliance:obligation-generate", async (message) => {
-  await this.obligationService.generatePendingDocuments()
-})
+  await this.obligationService.generatePendingDocuments();
+});
 ```
 
 ### 4.2 Reminder Event Flow
@@ -352,11 +373,11 @@ await pubsub.subscribe("compliance:obligation-generate", async (message) => {
 
 When a document expires or becomes overdue, reminders escalate based on `Escalation Days`:
 
-| Days After Expiry/Overdue | Escalation Level | Recipients |
-|---|---|---|
-| 1 | Level 1 — Document owner + assigned reviewer/assignee | User who created the document + assigned reviewer (or `Assigned To` for due-date-based) |
-| 7 | Level 2 — Branch/department manager | Level 1 recipients + branch manager (if branch-specific) |
-| 30 | Level 3 — Compliance officer / admin | Level 2 recipients + all users with `compliance:admin` role |
+| Days After Expiry/Overdue | Escalation Level                                      | Recipients                                                                              |
+| ------------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| 1                         | Level 1 — Document owner + assigned reviewer/assignee | User who created the document + assigned reviewer (or `Assigned To` for due-date-based) |
+| 7                         | Level 2 — Branch/department manager                   | Level 1 recipients + branch manager (if branch-specific)                                |
+| 30                        | Level 3 — Compliance officer / admin                  | Level 2 recipients + all users with `compliance:admin` role                             |
 
 The escalation levels are configurable via `Escalation Days` on each document. If `Escalation Days` is null, no escalation occurs — only the initial expiry/overdue notification is sent.
 
@@ -393,6 +414,7 @@ async getSchedules(topic?: string): Promise<Schedule[]>
 ```
 
 Where `ScheduleOptions` extends `PublishOptions` with:
+
 - `tz?: string` — timezone for cron evaluation (default: UTC)
 - `key?: string` — unique key for multiple schedules on the same queue
 
@@ -406,26 +428,28 @@ An immutable, append-only log of every action taken on a compliance document or 
 
 ### 5.1 Audit Entry
 
-| Field | Type | Description |
-|---|---|---|
-| **ID** | text (auto) | System-generated unique identifier. |
-| **Entity Type** | enum | `compliance_document`, `compliance_obligation`, `verification_rule`. |
-| **Entity ID** | text (FK) | Reference to the entity. |
-| **Action** | enum | `created`, `updated`, `submitted`, `verified`, `rejected`, `expired`, `overdue`, `renewed`, `archived`, `completed`, `escalated`, `reminder_sent`, `snoozed`, `attachment_uploaded`, `reviewer_assigned`, `obligation_activated`, `obligation_deactivated`, `document_generated`. |
-| **Performed By** | text (FK, nullable) | User who performed the action. Null for system/scheduled actions. |
-| **Performed At** | timestamptz | When the action occurred. |
-| **Previous State** | jsonb (nullable) | Snapshot of relevant fields before the action. |
-| **New State** | jsonb (nullable) | Snapshot of relevant fields after the action. |
-| **Changes** | jsonb (nullable) | Diff of changed fields `{ field: { old, new } }`. |
-| **Notes** | text (nullable) | Optional context or reason. |
-| **Metadata** | jsonb (nullable) | Additional structured data (e.g., reminder threshold hit, escalation level, obligation period). |
+| Field              | Type                | Description                                                                                                                                                                                                                                                                       |
+| ------------------ | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **ID**             | text (auto)         | System-generated unique identifier.                                                                                                                                                                                                                                               |
+| **Entity Type**    | enum                | `compliance_document`, `compliance_obligation`, `verification_rule`.                                                                                                                                                                                                              |
+| **Entity ID**      | text (FK)           | Reference to the entity.                                                                                                                                                                                                                                                          |
+| **Action**         | enum                | `created`, `updated`, `submitted`, `verified`, `rejected`, `expired`, `overdue`, `renewed`, `archived`, `completed`, `escalated`, `reminder_sent`, `snoozed`, `attachment_uploaded`, `reviewer_assigned`, `obligation_activated`, `obligation_deactivated`, `document_generated`. |
+| **Performed By**   | text (FK, nullable) | User who performed the action. Null for system/scheduled actions.                                                                                                                                                                                                                 |
+| **Performed At**   | timestamptz         | When the action occurred.                                                                                                                                                                                                                                                         |
+| **Previous State** | jsonb (nullable)    | Snapshot of relevant fields before the action.                                                                                                                                                                                                                                    |
+| **New State**      | jsonb (nullable)    | Snapshot of relevant fields after the action.                                                                                                                                                                                                                                     |
+| **Changes**        | jsonb (nullable)    | Diff of changed fields `{ field: { old, new } }`.                                                                                                                                                                                                                                 |
+| **Notes**          | text (nullable)     | Optional context or reason.                                                                                                                                                                                                                                                       |
+| **Metadata**       | jsonb (nullable)    | Additional structured data (e.g., reminder threshold hit, escalation level, obligation period).                                                                                                                                                                                   |
 
 **Operations**:
+
 - `getAuditTrail(entityType, entityId)` — returns all audit entries for an entity, ordered chronologically.
 - `list(filters?)` — list audit entries with filters (entityType, action, performedBy, dateRange).
 - `export(filters?)` — generate a CSV/JSON export of audit entries for a date range (for regulatory reporting).
 
 **Constraints**:
+
 - Append-only — no updates or deletes.
 - Every state-changing operation on compliance documents and obligations writes an audit entry.
 - System-generated actions (scheduled job transitions, reminders, auto-generation) record `Performed By` as null and include a `system: true` flag in metadata.
@@ -438,26 +462,27 @@ Aggregated, real-time view of the organization's compliance posture.
 
 ### 6.1 Summary Metrics
 
-| Metric | Description |
-|---|---|
-| **Total Documents** | Count of all non-archived compliance documents. |
-| **Verified** | Documents with `verified` status. |
-| **Pending Review** | Documents with `submitted` or `under_review` status. |
-| **Expiring Soon** | Documents with `Expiry Date` within 30 days (configurable). |
-| **Due Soon** | Documents with `Due Date` within 30 days (configurable). |
-| **Expired** | Documents with `expired` status. |
-| **Overdue** | Documents with `overdue` status. |
-| **Rejected** | Documents with `rejected` status. |
-| **By Category** | Document counts grouped by category. |
-| **By Source Module** | Document counts grouped by source module. |
-| **By Branch** | Document counts grouped by branch. |
-| **By Status** | Document counts grouped by verification status. |
-| **Active Obligations** | Count of active compliance obligations. |
+| Metric                        | Description                                                           |
+| ----------------------------- | --------------------------------------------------------------------- |
+| **Total Documents**           | Count of all non-archived compliance documents.                       |
+| **Verified**                  | Documents with `verified` status.                                     |
+| **Pending Review**            | Documents with `submitted` or `under_review` status.                  |
+| **Expiring Soon**             | Documents with `Expiry Date` within 30 days (configurable).           |
+| **Due Soon**                  | Documents with `Due Date` within 30 days (configurable).              |
+| **Expired**                   | Documents with `expired` status.                                      |
+| **Overdue**                   | Documents with `overdue` status.                                      |
+| **Rejected**                  | Documents with `rejected` status.                                     |
+| **By Category**               | Document counts grouped by category.                                  |
+| **By Source Module**          | Document counts grouped by source module.                             |
+| **By Branch**                 | Document counts grouped by branch.                                    |
+| **By Status**                 | Document counts grouped by verification status.                       |
+| **Active Obligations**        | Count of active compliance obligations.                               |
 | **Documents Generated (30d)** | Count of documents auto-generated by obligations in the past 30 days. |
 
 ### 6.2 Expiry & Due Date Timeline
 
 A visual timeline showing upcoming document expirations and due dates over the next 30/60/90/180 days. Each entry includes:
+
 - Document name, category, source module, document type
 - Expiry date or due date, days remaining
 - Assigned reviewer / assignee
@@ -468,6 +493,7 @@ A visual timeline showing upcoming document expirations and due dates over the n
 ### 6.3 Compliance Health Score
 
 A simple computed score (0-100) representing overall compliance health:
+
 - **Weighted formula**: verified documents contribute positively, expired/overdue/rejected items contribute negatively.
 - **Factors**: % verified, % expired, % overdue, % pending review past SLA.
 - **Purpose**: quick at-a-glance indicator for leadership. Not a regulatory metric.
@@ -495,7 +521,7 @@ platform.compliance.documents.create({
   reminderDays: [30, 7],
   createdBy: userId,
   metadata: { employeeId, checkType: "criminal" },
-})
+});
 
 // Fleet module registering a vehicle's pollution certificate
 platform.compliance.documents.create({
@@ -510,7 +536,7 @@ platform.compliance.documents.create({
   reminderDays: [60, 30, 7],
   createdBy: userId,
   metadata: { vehicleRegistration: "MH-12-AB-1234", emissionNorms: "BS6" },
-})
+});
 
 // Accounting module registering a tax filing via the generic document model
 platform.compliance.documents.create({
@@ -532,7 +558,7 @@ platform.compliance.documents.create({
     currency: "INR",
     filingPortalUrl: "https://gst.gov.in",
   },
-})
+});
 
 // Accounting module setting up a recurring monthly GST obligation
 platform.compliance.obligations.create({
@@ -556,7 +582,7 @@ platform.compliance.obligations.create({
     filingPortalUrl: "https://gst.gov.in",
   },
   createdBy: userId,
-})
+});
 
 // Operations module setting up a recurring annual safety audit
 platform.compliance.obligations.create({
@@ -573,27 +599,28 @@ platform.compliance.obligations.create({
   startDate: new Date("2025-01-01"),
   defaultMetadata: { auditScope: "Fire Safety", auditor: "External" },
   createdBy: userId,
-})
+});
 ```
 
 ### 7.2 Event-Driven Integration
 
 The Compliance Module subscribes to domain events from other modules and auto-creates compliance requirements:
 
-| Subscribed Event | Compliance Action |
-|---|---|
-| `hr:employee_onboarded` | Create compliance documents: background check, ID verification, tax forms (e.g., W-4, Form 12BB). Each with appropriate `metadata`. |
-| `hr:employee_separated` | Create compliance documents: exit documents, final settlement, experience letter. |
-| `fleet:vehicle_registered` | Create compliance documents: pollution certificate, insurance, registration renewal. Also create an annual renewal obligation. |
-| `organization:branch_created` | Create compliance documents: trade license, fire safety certificate, local permits. Also create recurring obligations for annual renewals. |
-| `accounting:financial_year_started` | Create compliance obligations for the new financial year (monthly/quarterly tax returns). |
-| `organization:connection_created` (type=insurer) | Create insurance compliance document requirement. |
+| Subscribed Event                                 | Compliance Action                                                                                                                          |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `hr:employee_onboarded`                          | Create compliance documents: background check, ID verification, tax forms (e.g., W-4, Form 12BB). Each with appropriate `metadata`.        |
+| `hr:employee_separated`                          | Create compliance documents: exit documents, final settlement, experience letter.                                                          |
+| `fleet:vehicle_registered`                       | Create compliance documents: pollution certificate, insurance, registration renewal. Also create an annual renewal obligation.             |
+| `organization:branch_created`                    | Create compliance documents: trade license, fire safety certificate, local permits. Also create recurring obligations for annual renewals. |
+| `accounting:financial_year_started`              | Create compliance obligations for the new financial year (monthly/quarterly tax returns).                                                  |
+| `organization:connection_created` (type=insurer) | Create insurance compliance document requirement.                                                                                          |
 
 **Event subscription**: During `initialize()`, the Compliance module subscribes to relevant PubSub topics. Each handler creates the appropriate compliance document or obligation with default reminder/escalation settings based on the category.
 
 ### 7.3 Integration Contract
 
 Modules that submit compliance documents must provide:
+
 - `sourceModule` — identifies the originating module.
 - `sourceEntityType` — the type of entity (e.g., `employee`, `vehicle`, `branch`).
 - `sourceEntityId` — the entity's ID for traceability.
@@ -607,28 +634,28 @@ The Compliance Module does NOT validate the source entity's existence or interpr
 
 The Compliance Module also publishes events that other modules may subscribe to:
 
-| Event | Payload | Consumer Use Case |
-|---|---|---|
-| `compliance:document_verified` | `{ documentId, sourceModule, sourceEntityId, category }` | HR module unlocks employee onboarding tasks once background check is verified. |
-| `compliance:document_rejected` | `{ documentId, sourceModule, sourceEntityId, reason, category }` | HR module flags employee record for missing/invalid documentation. |
-| `compliance:document_expired` | `{ documentId, sourceModule, sourceEntityId, category }` | Fleet module marks vehicle as non-compliant / off-road. |
-| `compliance:document_overdue` | `{ documentId, sourceModule, sourceEntityId, category, daysOverdue }` | Accounting module triggers penalty accrual for overdue tax filing. |
-| `compliance:document_expiring` | `{ documentId, sourceModule, sourceEntityId, daysUntilExpiry }` | Source module shows UI warnings. |
-| `compliance:document_due` | `{ documentId, sourceModule, sourceEntityId, daysUntilDue }` | Source module shows upcoming deadline warnings. |
-| `compliance:document_completed` | `{ documentId, sourceModule, sourceEntityId, completedAt, referenceNumber }` | Accounting module records filed return reference. |
-| `compliance:document_generated` | `{ documentId, obligationId, sourceModule }` | Source module is notified that an obligation auto-generated a document. |
+| Event                           | Payload                                                                      | Consumer Use Case                                                              |
+| ------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `compliance:document_verified`  | `{ documentId, sourceModule, sourceEntityId, category }`                     | HR module unlocks employee onboarding tasks once background check is verified. |
+| `compliance:document_rejected`  | `{ documentId, sourceModule, sourceEntityId, reason, category }`             | HR module flags employee record for missing/invalid documentation.             |
+| `compliance:document_expired`   | `{ documentId, sourceModule, sourceEntityId, category }`                     | Fleet module marks vehicle as non-compliant / off-road.                        |
+| `compliance:document_overdue`   | `{ documentId, sourceModule, sourceEntityId, category, daysOverdue }`        | Accounting module triggers penalty accrual for overdue tax filing.             |
+| `compliance:document_expiring`  | `{ documentId, sourceModule, sourceEntityId, daysUntilExpiry }`              | Source module shows UI warnings.                                               |
+| `compliance:document_due`       | `{ documentId, sourceModule, sourceEntityId, daysUntilDue }`                 | Source module shows upcoming deadline warnings.                                |
+| `compliance:document_completed` | `{ documentId, sourceModule, sourceEntityId, completedAt, referenceNumber }` | Accounting module records filed return reference.                              |
+| `compliance:document_generated` | `{ documentId, obligationId, sourceModule }`                                 | Source module is notified that an obligation auto-generated a document.        |
 
 ---
 
 ## 8. Data Model Summary
 
-| Domain | Key Tables |
-|---|---|
-| **Document Registry** | `compliance_document` |
-| **Recurring Obligations** | `compliance_obligation` |
-| **Verification** | `compliance_verification_rule` |
-| **Audit** | `compliance_audit_entry` |
-| **Dashboard** | (computed — no tables) |
+| Domain                    | Key Tables                     |
+| ------------------------- | ------------------------------ |
+| **Document Registry**     | `compliance_document`          |
+| **Recurring Obligations** | `compliance_obligation`        |
+| **Verification**          | `compliance_verification_rule` |
+| **Audit**                 | `compliance_audit_entry`       |
+| **Dashboard**             | (computed — no tables)         |
 
 ### Table Indexes
 
@@ -661,18 +688,18 @@ compliance_audit_entry:
 
 ## 9. Dependencies & Prerequisites
 
-| Dependency | Reason | Status |
-|---|---|---|
-| **DB Unit** | Drizzle ORM for all compliance tables. | ✅ Available |
-| **PubSub Unit** | Event publishing, job scheduling, cron registration via pg-boss. | ✅ Available (publish/subscribe) |
-| **PubSub Unit `schedule()`** | Cron scheduling for daily expiry scans, status transitions, obligation generation. | ⚠️ **Requires enhancement** — expose `schedule()`, `unschedule()`, `getSchedules()` on `PubSubUnit`. |
-| **Auth Unit** | User identity for ownership, reviewer assignment, RBAC. | ✅ Available |
-| **Storage Unit** | Document attachment uploads. | ✅ Available |
-| **KV Store Unit** | Caching dashboard summary metrics, snooze state, idempotency keys for scheduled jobs. | ✅ Available |
-| **Organization Module** | Branch and Connection references on compliance documents. | ✅ Available |
-| **HR Module** (optional) | Employee references for HR-originated compliance documents. | 📦 Optional |
-| **Fleet Module** (optional) | Vehicle references for fleet-originated compliance documents. | 📦 Stub |
-| **Accounting Module** (optional) | Creates tax compliance documents and obligations via the generic model. | 📦 Stub |
+| Dependency                       | Reason                                                                                | Status                                                                                               |
+| -------------------------------- | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| **DB Unit**                      | Drizzle ORM for all compliance tables.                                                | ✅ Available                                                                                         |
+| **PubSub Unit**                  | Event publishing, job scheduling, cron registration via pg-boss.                      | ✅ Available (publish/subscribe)                                                                     |
+| **PubSub Unit `schedule()`**     | Cron scheduling for daily expiry scans, status transitions, obligation generation.    | ⚠️ **Requires enhancement** — expose `schedule()`, `unschedule()`, `getSchedules()` on `PubSubUnit`. |
+| **Auth Unit**                    | User identity for ownership, reviewer assignment, RBAC.                               | ✅ Available                                                                                         |
+| **Storage Unit**                 | Document attachment uploads.                                                          | ✅ Available                                                                                         |
+| **KV Store Unit**                | Caching dashboard summary metrics, snooze state, idempotency keys for scheduled jobs. | ✅ Available                                                                                         |
+| **Organization Module**          | Branch and Connection references on compliance documents.                             | ✅ Available                                                                                         |
+| **HR Module** (optional)         | Employee references for HR-originated compliance documents.                           | 📦 Optional                                                                                          |
+| **Fleet Module** (optional)      | Vehicle references for fleet-originated compliance documents.                         | 📦 Stub                                                                                              |
+| **Accounting Module** (optional) | Creates tax compliance documents and obligations via the generic model.               | 📦 Stub                                                                                              |
 
 ### PubSubUnit Enhancement Detail
 
@@ -681,6 +708,7 @@ The current `PubSubUnit` (`packages/framework/src/server/pubsub/index.ts`) wraps
 **Changes required:**
 
 1. Add `ScheduleOptions` type to `pubsub/types.ts`:
+
    ```ts
    export interface ScheduleOptions extends PublishOptions {
      tz?: string;
@@ -689,6 +717,7 @@ The current `PubSubUnit` (`packages/framework/src/server/pubsub/index.ts`) wraps
    ```
 
 2. Add methods to `PubSubUnit`:
+
    ```ts
    async schedule(topic: string, cron: string, data?: unknown, options?: ScheduleOptions): Promise<void>
    async unschedule(topic: string, key?: string): Promise<void>
@@ -705,32 +734,32 @@ The current `PubSubUnit` (`packages/framework/src/server/pubsub/index.ts`) wraps
 
 ### Roles
 
-| Role | Description |
-|---|---|
-| `compliance:admin` | Full access to all compliance resources. Can manage documents, obligations, verification rules, audit trail, and configuration. Can verify/reject any document. |
-| `compliance:officer` | Can create and manage documents and obligations. Can be assigned as reviewer or assignee. Cannot delete verification rules or configure scheduled jobs. |
-| `compliance:reviewer` | Can view all documents and verify/reject documents assigned to them. Cannot create or modify documents. |
-| `compliance:viewer` | Read-only access to compliance dashboard and documents. Cannot modify anything. |
+| Role                  | Description                                                                                                                                                     |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `compliance:admin`    | Full access to all compliance resources. Can manage documents, obligations, verification rules, audit trail, and configuration. Can verify/reject any document. |
+| `compliance:officer`  | Can create and manage documents and obligations. Can be assigned as reviewer or assignee. Cannot delete verification rules or configure scheduled jobs.         |
+| `compliance:reviewer` | Can view all documents and verify/reject documents assigned to them. Cannot create or modify documents.                                                         |
+| `compliance:viewer`   | Read-only access to compliance dashboard and documents. Cannot modify anything.                                                                                 |
 
 ### Resource Permissions
 
-| Action | compliance:admin | compliance:officer | compliance:reviewer | compliance:viewer |
-|---|---|---|---|---|
-| View dashboard | ✅ | ✅ | ✅ | ✅ |
-| Create document | ✅ | ✅ | ❌ | ❌ |
-| Update document | ✅ | ✅ (own) | ❌ | ❌ |
-| Submit for review | ✅ | ✅ | ❌ | ❌ |
-| Verify document | ✅ | ❌ | ✅ (assigned) | ❌ |
-| Reject document | ✅ | ❌ | ✅ (assigned) | ❌ |
-| Complete/filing | ✅ | ✅ (assigned) | ❌ | ❌ |
-| Renew document | ✅ | ✅ | ❌ | ❌ |
-| Archive document | ✅ | ✅ | ❌ | ❌ |
-| Snooze reminder | ✅ | ✅ | ❌ | ❌ |
-| Upload attachment | ✅ | ✅ | ❌ | ❌ |
-| Create obligation | ✅ | ✅ | ❌ | ❌ |
-| Manage verification rules | ✅ | ❌ | ❌ | ❌ |
-| View audit trail | ✅ | ✅ | ✅ (relevant) | ❌ |
-| Export audit trail | ✅ | ❌ | ❌ | ❌ |
+| Action                    | compliance:admin | compliance:officer | compliance:reviewer | compliance:viewer |
+| ------------------------- | ---------------- | ------------------ | ------------------- | ----------------- |
+| View dashboard            | ✅               | ✅                 | ✅                  | ✅                |
+| Create document           | ✅               | ✅                 | ❌                  | ❌                |
+| Update document           | ✅               | ✅ (own)           | ❌                  | ❌                |
+| Submit for review         | ✅               | ✅                 | ❌                  | ❌                |
+| Verify document           | ✅               | ❌                 | ✅ (assigned)       | ❌                |
+| Reject document           | ✅               | ❌                 | ✅ (assigned)       | ❌                |
+| Complete/filing           | ✅               | ✅ (assigned)      | ❌                  | ❌                |
+| Renew document            | ✅               | ✅                 | ❌                  | ❌                |
+| Archive document          | ✅               | ✅                 | ❌                  | ❌                |
+| Snooze reminder           | ✅               | ✅                 | ❌                  | ❌                |
+| Upload attachment         | ✅               | ✅                 | ❌                  | ❌                |
+| Create obligation         | ✅               | ✅                 | ❌                  | ❌                |
+| Manage verification rules | ✅               | ❌                 | ❌                  | ❌                |
+| View audit trail          | ✅               | ✅                 | ✅ (relevant)       | ❌                |
+| Export audit trail        | ✅               | ❌                 | ❌                  | ❌                |
 
 ### Module-Level Access Control
 
@@ -742,41 +771,41 @@ Modules submitting compliance documents programmatically (via direct API calls i
 
 ### 11.1 Document Lifecycle Events
 
-| Event | Payload | Trigger |
-|---|---|---|
-| `compliance:document_created` | `{ document }` | Document created (manually or auto-generated). |
-| `compliance:document_updated` | `{ document, changes }` | Document details modified. |
-| `compliance:document_submitted` | `{ documentId, submittedBy }` | Document submitted for review. |
-| `compliance:document_verified` | `{ documentId, verifiedBy, sourceModule, sourceEntityId, category }` | Document verified by reviewer. |
-| `compliance:document_rejected` | `{ documentId, rejectedBy, reason, sourceModule, sourceEntityId, category }` | Document verification rejected. |
-| `compliance:document_expiring` | `{ documentId, sourceModule, sourceEntityId, daysUntilExpiry }` | Expiry reminder triggered (expiry-based documents). |
-| `compliance:document_due` | `{ documentId, sourceModule, sourceEntityId, daysUntilDue }` | Due date reminder triggered (due-date-based documents). |
-| `compliance:document_expired` | `{ documentId, sourceModule, sourceEntityId, category }` | Document auto-transitioned to expired. |
-| `compliance:document_overdue` | `{ documentId, sourceModule, sourceEntityId, category, daysOverdue }` | Document auto-transitioned to overdue. |
-| `compliance:document_completed` | `{ documentId, sourceModule, sourceEntityId, completedAt, referenceNumber }` | Document marked as completed/filed. |
-| `compliance:document_escalated` | `{ documentId, escalationLevel, daysSinceExpiry }` | Escalation triggered post-expiry/overdue. |
-| `compliance:document_renewed` | `{ oldDocumentId, newDocumentId }` | Document renewed (new version created). |
-| `compliance:document_archived` | `{ documentId }` | Document archived. |
-| `compliance:document_reviewer_assigned` | `{ documentId, reviewerId }` | Reviewer assigned. |
-| `compliance:document_attachment_uploaded` | `{ documentId, storageKey }` | Attachment uploaded. |
-| `compliance:document_snoozed` | `{ documentId, snoozedUntil, snoozedBy }` | Reminder snoozed. |
-| `compliance:document_generated` | `{ documentId, obligationId, sourceModule }` | Document auto-generated by an obligation. |
+| Event                                     | Payload                                                                      | Trigger                                                 |
+| ----------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `compliance:document_created`             | `{ document }`                                                               | Document created (manually or auto-generated).          |
+| `compliance:document_updated`             | `{ document, changes }`                                                      | Document details modified.                              |
+| `compliance:document_submitted`           | `{ documentId, submittedBy }`                                                | Document submitted for review.                          |
+| `compliance:document_verified`            | `{ documentId, verifiedBy, sourceModule, sourceEntityId, category }`         | Document verified by reviewer.                          |
+| `compliance:document_rejected`            | `{ documentId, rejectedBy, reason, sourceModule, sourceEntityId, category }` | Document verification rejected.                         |
+| `compliance:document_expiring`            | `{ documentId, sourceModule, sourceEntityId, daysUntilExpiry }`              | Expiry reminder triggered (expiry-based documents).     |
+| `compliance:document_due`                 | `{ documentId, sourceModule, sourceEntityId, daysUntilDue }`                 | Due date reminder triggered (due-date-based documents). |
+| `compliance:document_expired`             | `{ documentId, sourceModule, sourceEntityId, category }`                     | Document auto-transitioned to expired.                  |
+| `compliance:document_overdue`             | `{ documentId, sourceModule, sourceEntityId, category, daysOverdue }`        | Document auto-transitioned to overdue.                  |
+| `compliance:document_completed`           | `{ documentId, sourceModule, sourceEntityId, completedAt, referenceNumber }` | Document marked as completed/filed.                     |
+| `compliance:document_escalated`           | `{ documentId, escalationLevel, daysSinceExpiry }`                           | Escalation triggered post-expiry/overdue.               |
+| `compliance:document_renewed`             | `{ oldDocumentId, newDocumentId }`                                           | Document renewed (new version created).                 |
+| `compliance:document_archived`            | `{ documentId }`                                                             | Document archived.                                      |
+| `compliance:document_reviewer_assigned`   | `{ documentId, reviewerId }`                                                 | Reviewer assigned.                                      |
+| `compliance:document_attachment_uploaded` | `{ documentId, storageKey }`                                                 | Attachment uploaded.                                    |
+| `compliance:document_snoozed`             | `{ documentId, snoozedUntil, snoozedBy }`                                    | Reminder snoozed.                                       |
+| `compliance:document_generated`           | `{ documentId, obligationId, sourceModule }`                                 | Document auto-generated by an obligation.               |
 
 ### 11.2 Obligation Events
 
-| Event | Payload | Trigger |
-|---|---|---|
-| `compliance:obligation_created` | `{ obligation }` | Compliance obligation created. |
-| `compliance:obligation_activated` | `{ obligationId }` | Obligation activated. |
-| `compliance:obligation_deactivated` | `{ obligationId }` | Obligation deactivated. |
-| `compliance:obligation_updated` | `{ obligation, changes }` | Obligation parameters modified. |
+| Event                               | Payload                   | Trigger                         |
+| ----------------------------------- | ------------------------- | ------------------------------- |
+| `compliance:obligation_created`     | `{ obligation }`          | Compliance obligation created.  |
+| `compliance:obligation_activated`   | `{ obligationId }`        | Obligation activated.           |
+| `compliance:obligation_deactivated` | `{ obligationId }`        | Obligation deactivated.         |
+| `compliance:obligation_updated`     | `{ obligation, changes }` | Obligation parameters modified. |
 
 ### 11.3 System Events
 
-| Event | Payload | Trigger |
-|---|---|---|
-| `compliance:weekly_summary` | `{ summary }` | Weekly compliance summary generated. |
-| `compliance:scheduled_job_executed` | `{ jobName, executionTime, recordsProcessed, errors }` | Scheduled job completed. |
+| Event                               | Payload                                                | Trigger                              |
+| ----------------------------------- | ------------------------------------------------------ | ------------------------------------ |
+| `compliance:weekly_summary`         | `{ summary }`                                          | Weekly compliance summary generated. |
+| `compliance:scheduled_job_executed` | `{ jobName, executionTime, recordsProcessed, errors }` | Scheduled job completed.             |
 
 ---
 
@@ -837,31 +866,35 @@ export class ComplianceModule {
   #obligationGenerator: ObligationGenerator | null = null;
   #eventBridge: EventBridge | null = null;
 
-  get documents() { /* throw if not init */ return this.#documents!; }
-  get obligations() { return this.#obligations!; }
-  get verification() { return this.#verification!; }
-  get audit() { return this.#audit!; }
-  get dashboard() { return this.#dashboard!; }
+  get documents() {
+    /* throw if not init */ return this.#documents!;
+  }
+  get obligations() {
+    return this.#obligations!;
+  }
+  get verification() {
+    return this.#verification!;
+  }
+  get audit() {
+    return this.#audit!;
+  }
+  get dashboard() {
+    return this.#dashboard!;
+  }
 
-  initialize(units: {
-    db: DatabaseUnit;
-    pubsub: PubSubUnit;
-    kvStore: KvStoreUnit;
-  }): void {
+  initialize(units: { db: DatabaseUnit; pubsub: PubSubUnit; kvStore: KvStoreUnit }): void {
     this.#documents = new DocumentWorkflow(units.db.db, units.pubsub);
     this.#obligations = new ObligationWorkflow(units.db.db);
     this.#verification = new VerificationWorkflow(units.db.db);
     this.#audit = new AuditWorkflow(units.db.db);
     this.#dashboard = new DashboardWorkflow(units.db.db, units.kvStore);
-    this.#reminderEngine = new ReminderEngine(
-      units.db.db, units.pubsub, this.#documents,
-    );
+    this.#reminderEngine = new ReminderEngine(units.db.db, units.pubsub, this.#documents);
     this.#obligationGenerator = new ObligationGenerator(
-      units.db.db, this.#documents, this.#obligations,
+      units.db.db,
+      this.#documents,
+      this.#obligations,
     );
-    this.#eventBridge = new EventBridge(
-      units.pubsub, this.#documents, this.#obligations,
-    );
+    this.#eventBridge = new EventBridge(units.pubsub, this.#documents, this.#obligations);
   }
 
   async prepare(): Promise<void> {
@@ -920,18 +953,18 @@ The Organization module currently contains a `ComplianceWorkflow` with its own `
 
 ### Migration Impact
 
-| File | Change |
-|---|---|
-| `packages/organization/src/db-schema.ts` | Remove `complianceDocument` table and related enums. |
-| `packages/organization/src/workflows/compliance.ts` | Remove or convert to a thin proxy. |
-| `packages/organization/src/schemas/compliance.ts` | Remove. |
-| `packages/organization/src/event-map.ts` | Remove `COMPLIANCE_EVENTS` and related interfaces. |
-| `packages/organization/src/types.ts` | Remove compliance types. |
-| `packages/organization/src/index.ts` | Remove `ComplianceWorkflow` import and `#compliance` field/getter. |
-| `packages/compliance/src/` | New module with expanded schema, workflows, and services. |
-| `packages/compliance/package.json` | New package. |
-| `packages/compliance/tsconfig.json` | New tsconfig. |
-| Root `tsconfig.json` | Add `./packages/compliance` to workspace globs. |
+| File                                                | Change                                                             |
+| --------------------------------------------------- | ------------------------------------------------------------------ |
+| `packages/organization/src/db-schema.ts`            | Remove `complianceDocument` table and related enums.               |
+| `packages/organization/src/workflows/compliance.ts` | Remove or convert to a thin proxy.                                 |
+| `packages/organization/src/schemas/compliance.ts`   | Remove.                                                            |
+| `packages/organization/src/event-map.ts`            | Remove `COMPLIANCE_EVENTS` and related interfaces.                 |
+| `packages/organization/src/types.ts`                | Remove compliance types.                                           |
+| `packages/organization/src/index.ts`                | Remove `ComplianceWorkflow` import and `#compliance` field/getter. |
+| `packages/compliance/src/`                          | New module with expanded schema, workflows, and services.          |
+| `packages/compliance/package.json`                  | New package.                                                       |
+| `packages/compliance/tsconfig.json`                 | New tsconfig.                                                      |
+| Root `tsconfig.json`                                | Add `./packages/compliance` to workspace globs.                    |
 
 ---
 
@@ -988,26 +1021,27 @@ The Organization module currently contains a `ComplianceWorkflow` with its own `
 
 ## 15. Estimated Effort (Relative)
 
-| Area | Complexity | Notes |
-|---|---|---|
-| Document CRUD & Schema | Medium | Expanded schema with source module tracking, verification status, dual expiry/due date, period fields, metadata. |
-| Expiry & Due-Date Status Derivation | Medium | Threshold-based derivation with reminder/escalation days arrays. Dual-mode (expiry vs. due date). |
-| PubSubUnit `schedule()` Enhancement | Low | Thin wrapper over existing pg-boss methods. ~20 lines of code + types. |
-| Reminder Engine (scheduled jobs) | High | Multiple cron jobs, deduplication logic, escalation matrix, singleton enforcement, dual expiry/due-date scanning. |
-| Verification Workflow | Medium | Status machine, reviewer assignment, verification rules matching. |
-| Audit Trail | Medium | Append-only log, state snapshotting, diff computation, export. |
-| Obligation CRUD | Low | Standard CRUD with frequency/cron configuration. |
-| Obligation Auto-Generation | High | Period computation per frequency, due date / expiry date calculation, edge cases (month-end, leap years, fiscal year boundaries), idempotency. |
-| Cross-Module Event Bridge | Medium | Subscribe to external events, map to compliance documents/obligations with appropriate metadata. |
-| Dashboard & Health Score | Medium | Aggregation queries, KV cache, health score formula. |
-| Organization Module Migration | Low | Data model is a superset; straightforward migration. |
-| RBAC Enforcement | Low | Integration with Auth unit's access control system. |
+| Area                                | Complexity | Notes                                                                                                                                          |
+| ----------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Document CRUD & Schema              | Medium     | Expanded schema with source module tracking, verification status, dual expiry/due date, period fields, metadata.                               |
+| Expiry & Due-Date Status Derivation | Medium     | Threshold-based derivation with reminder/escalation days arrays. Dual-mode (expiry vs. due date).                                              |
+| PubSubUnit `schedule()` Enhancement | Low        | Thin wrapper over existing pg-boss methods. ~20 lines of code + types.                                                                         |
+| Reminder Engine (scheduled jobs)    | High       | Multiple cron jobs, deduplication logic, escalation matrix, singleton enforcement, dual expiry/due-date scanning.                              |
+| Verification Workflow               | Medium     | Status machine, reviewer assignment, verification rules matching.                                                                              |
+| Audit Trail                         | Medium     | Append-only log, state snapshotting, diff computation, export.                                                                                 |
+| Obligation CRUD                     | Low        | Standard CRUD with frequency/cron configuration.                                                                                               |
+| Obligation Auto-Generation          | High       | Period computation per frequency, due date / expiry date calculation, edge cases (month-end, leap years, fiscal year boundaries), idempotency. |
+| Cross-Module Event Bridge           | Medium     | Subscribe to external events, map to compliance documents/obligations with appropriate metadata.                                               |
+| Dashboard & Health Score            | Medium     | Aggregation queries, KV cache, health score formula.                                                                                           |
+| Organization Module Migration       | Low        | Data model is a superset; straightforward migration.                                                                                           |
+| RBAC Enforcement                    | Low        | Integration with Auth unit's access control system.                                                                                            |
 
 ---
 
 ## 16. Testing Focus Areas
 
 ### Document Lifecycle
+
 - **Status transitions**: draft → submitted → under_review → verified/rejected → expired/overdue → renewed. Verify each transition is valid and invalid transitions are rejected.
 - **Expiry derivation**: documents at various days-until-expiry correctly derive `expiring_soon` vs `active` based on configurable `Reminder Days`.
 - **Due-date derivation**: due-date-based documents correctly derive `due_soon` and transition to `overdue` when the due date passes.
@@ -1017,6 +1051,7 @@ The Organization module currently contains a `ComplianceWorkflow` with its own `
 - **Metadata passthrough**: domain-specific metadata is stored, retrieved, and passed through to events without interpretation.
 
 ### Reminder Engine
+
 - **Scheduled job registration**: `schedule()` is called during `prepare()` with correct cron expressions. `getSchedules()` returns all registered schedules.
 - **Expiry/due scan**: the daily scan correctly identifies documents hitting reminder thresholds (both expiry and due-date based) and publishes events. Does not re-notify within the same threshold window.
 - **Status transition**: the midnight job correctly transitions documents past expiry to `expired` and past due date to `overdue`. Does not touch `draft`, `archived`, or `renewed` documents.
@@ -1026,11 +1061,13 @@ The Organization module currently contains a `ComplianceWorkflow` with its own `
 - **Deduplication**: a document notified at the 60-day threshold is not re-notified until the 30-day threshold.
 
 ### Verification Workflow
+
 - **Auto-assignment**: submitting a document with a matching verification rule auto-assigns the reviewer.
 - **Review state**: only `compliance:reviewer` (or admin) can verify/reject. Only assigned reviewer can verify (unless admin).
 - **Rejection + resubmission**: a rejected document can be updated and resubmitted, transitioning back to `submitted`.
 
 ### Obligation Auto-Generation
+
 - **Period computation**: obligation with `monthly` frequency correctly generates 12 documents per year with correct `Period Start`, `Period End`, and `Due Date`/`Expiry Date`.
 - **Due date edge cases**: documents due on month-end dates, leap years, fiscal year boundaries.
 - **Expiry-based generation**: obligation with `expiryBased: true` generates documents with `Expiry Date` computed from `Expiry Duration Months`.
@@ -1041,11 +1078,13 @@ The Organization module currently contains a `ComplianceWorkflow` with its own `
 - **End date**: an obligation with an `End Date` stops generating documents after that date.
 
 ### Cross-Module Integration
+
 - **Event-driven creation**: subscribing to `hr:employee_onboarded` creates the expected compliance documents with correct category, source module, and metadata.
 - **Bi-directional events**: `compliance:document_verified` is published when a document is verified, and source modules can subscribe to it.
 - **Missing source module**: if a source module is not installed, event subscriptions silently no-op (no crash).
 
 ### Audit Trail
+
 - **Completeness**: every state-changing operation writes an audit entry with correct previous/new state snapshots.
 - **Immutability**: audit entries cannot be updated or deleted.
 - **System actions**: scheduled job transitions, reminders, and auto-generation record `Performed By` as null with `system: true` in metadata.

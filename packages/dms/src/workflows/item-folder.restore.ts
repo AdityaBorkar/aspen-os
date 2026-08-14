@@ -32,7 +32,9 @@ export const restoreItemFolder = Workflow.name("dms.folder.restore")
       .where(eq(dmsFolder.id, id))
       .returning();
 
-    if (!updated) throw new Error(`Folder with id "${id}" not found.`);
+    if (!updated) {
+      throw new Error(`Folder with id "${id}" not found.`);
+    }
 
     await ctx.pubsub.publish(ITEM_EVENTS.RESTORED, {
       itemId: id,

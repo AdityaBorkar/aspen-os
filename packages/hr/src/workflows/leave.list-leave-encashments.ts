@@ -9,9 +9,7 @@ const InputSchema = object({
   filters: optional(LeaveEncashmentFiltersSchema),
 });
 
-export const listLeaveEncashments = Workflow.name(
-  "hr.leave.list-leave-encashments",
-)
+export const listLeaveEncashments = Workflow.name("hr.leave.list-leave-encashments")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { filters } = input;

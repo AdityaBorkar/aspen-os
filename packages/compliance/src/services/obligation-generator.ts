@@ -51,16 +51,12 @@ export async function registerObligationGenerator(): Promise<string> {
   return SCHEDULED_JOBS.OBLIGATION_GENERATE;
 }
 
-export async function unregisterObligationGenerator(
-  topic: string,
-): Promise<void> {
+export async function unregisterObligationGenerator(topic: string): Promise<void> {
   const { pubsub } = buildDepsFromContext();
   await pubsub.unsubscribe(topic);
 }
 
-export async function generatePendingDocuments(
-  deps: ObligationGeneratorDeps,
-): Promise<string[]> {
+export async function generatePendingDocuments(deps: ObligationGeneratorDeps): Promise<string[]> {
   const activeObligations = await obligations.getActive.run(
     {},
     { db: deps.db, pubsub: deps.pubsub },
@@ -84,7 +80,9 @@ export async function generateForObligation(
   const now = upToDate ?? new Date();
   const endDate = obligation.endDate ? new Date(obligation.endDate) : null;
 
-  if (endDate && endDate < now) return generatedIds;
+  if (endDate && endDate < now) {
+    return generatedIds;
+  }
 
   const periods = computePeriodsUpTo(obligation, now);
 
@@ -98,7 +96,9 @@ export async function generateForObligation(
       deps.db,
     );
 
-    if (existing) continue;
+    if (existing) {
+      continue;
+    }
 
     const docName = generateDocumentName(obligation, period);
     const reminderDays =
@@ -116,9 +116,7 @@ export async function generateForObligation(
           documentType: obligation.documentType ?? undefined,
           dueDate: period.dueDate ? new Date(period.dueDate) : undefined,
           escalationDays: obligation.defaultEscalationDays ?? undefined,
-          expiryDate: period.expiryDate
-            ? new Date(period.expiryDate)
-            : undefined,
+          expiryDate: period.expiryDate ? new Date(period.expiryDate) : undefined,
           issuingAuthority: obligation.defaultIssuingAuthority ?? undefined,
           jurisdiction: obligation.defaultJurisdiction ?? undefined,
           metadata: {
@@ -128,9 +126,7 @@ export async function generateForObligation(
           name: docName,
           obligationId: obligation.id,
           periodEnd: period.periodEnd ? new Date(period.periodEnd) : undefined,
-          periodStart: period.periodStart
-            ? new Date(period.periodStart)
-            : undefined,
+          periodStart: period.periodStart ? new Date(period.periodStart) : undefined,
           reminderDays,
           sourceEntityId: obligation.sourceEntityId ?? undefined,
           sourceEntityType: obligation.sourceEntityType ?? undefined,
@@ -164,10 +160,7 @@ export async function generateDocuments(
   return generateForObligation(obligation, upToDate, deps);
 }
 
-function computePeriodsUpTo(
-  obligation: ComplianceObligation,
-  upTo: Date,
-): ComputedPeriod[] {
+function computePeriodsUpTo(obligation: ComplianceObligation, upTo: Date): ComputedPeriod[] {
   if (obligation.frequency === "custom") {
     return [];
   }
@@ -183,7 +176,9 @@ function computePeriodsUpTo(
       1,
     );
 
-    if (periodStart > upTo) break;
+    if (periodStart > upTo) {
+      break;
+    }
 
     const periodEnd = new Date(
       startDate.getFullYear(),
@@ -205,20 +200,14 @@ function computePeriodsUpTo(
 
     if (obligation.expiryBased && obligation.expiryDurationMonths) {
       const expiryDate = new Date(periodStart);
-      expiryDate.setMonth(
-        expiryDate.getMonth() + obligation.expiryDurationMonths,
-      );
+      expiryDate.setMonth(expiryDate.getMonth() + obligation.expiryDurationMonths);
       entry.expiryDate = expiryDate.toISOString().split("T")[0] ?? null;
     } else if (!obligation.expiryBased) {
       const dueDate = new Date(periodEnd);
       const offset = obligation.dueMonthOffset ?? 0;
       dueDate.setMonth(dueDate.getMonth() + offset);
       if (obligation.dueDay) {
-        const lastDay = new Date(
-          dueDate.getFullYear(),
-          dueDate.getMonth() + 1,
-          0,
-        ).getDate();
+        const lastDay = new Date(dueDate.getFullYear(), dueDate.getMonth() + 1, 0).getDate();
         dueDate.setDate(Math.min(obligation.dueDay, lastDay));
       }
       entry.dueDate = dueDate.toISOString().split("T")[0] ?? null;
@@ -230,10 +219,7 @@ function computePeriodsUpTo(
   return periods;
 }
 
-function generateDocumentName(
-  obligation: ComplianceObligation,
-  period: ComputedPeriod,
-): string {
+function generateDocumentName(obligation: ComplianceObligation, period: ComputedPeriod): string {
   if (period.periodStart && period.periodEnd) {
     const start = new Date(period.periodStart);
     const end = new Date(period.periodEnd);
@@ -261,10 +247,7 @@ function generateDocumentName(
   return obligation.name;
 }
 
-function buildIdempotencyKey(
-  obligationId: string,
-  period: ComputedPeriod,
-): string {
+function buildIdempotencyKey(obligationId: string, period: ComputedPeriod): string {
   return `${obligationId}:${period.periodStart ?? "null"}:${period.periodEnd ?? "null"}`;
 }
 

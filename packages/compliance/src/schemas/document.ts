@@ -52,9 +52,7 @@ export const CreateComplianceDocumentSchema = object({
   sourceModule: pipe(string(), minLength(1, "sourceModule is required")),
 });
 
-export type CreateComplianceDocumentInput = InferOutput<
-  typeof CreateComplianceDocumentSchema
->;
+export type CreateComplianceDocumentInput = InferOutput<typeof CreateComplianceDocumentSchema>;
 
 export const UpdateComplianceDocumentSchema = object({
   assignedReviewer: optional(nullable(string())),
@@ -85,9 +83,7 @@ export const UpdateComplianceDocumentSchema = object({
   verificationStatus: optional(VerificationStatusSchema),
 });
 
-export type UpdateComplianceDocumentInput = InferOutput<
-  typeof UpdateComplianceDocumentSchema
->;
+export type UpdateComplianceDocumentInput = InferOutput<typeof UpdateComplianceDocumentSchema>;
 
 export const ComplianceDocumentFiltersSchema = object({
   assignedReviewer: optional(string()),
@@ -104,6 +100,4 @@ export const ComplianceDocumentFiltersSchema = object({
   verificationStatus: optional(VerificationStatusSchema),
 });
 
-export type ComplianceDocumentFilters = InferOutput<
-  typeof ComplianceDocumentFiltersSchema
->;
+export type ComplianceDocumentFilters = InferOutput<typeof ComplianceDocumentFiltersSchema>;

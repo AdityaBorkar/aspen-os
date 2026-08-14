@@ -41,65 +41,65 @@ bun install  # workspace package
 ## Quick Start
 
 ```ts
-import { Platform } from "@aspen-os/platform/server"
-import { DriveModule } from "@aspen-os/drive"
+import { Platform } from "@aspen-os/platform/server";
+import { DriveModule } from "@aspen-os/drive";
 
-const drive = DriveModule.create()
+const drive = DriveModule.create();
 
-const platform = Platform.create(config, { drive })
+const platform = Platform.create(config, { drive });
 
-await platform.prepare()  // pushes schema, subscribes + schedules auto-purge
+await platform.prepare(); // pushes schema, subscribes + schedules auto-purge
 
 // Access workflows via the module proxy
-platform.drive.folders      // FolderWorkflow
-platform.drive.files        // FileWorkflow
-platform.drive.labels       // LabelWorkflow
-platform.drive.shares       // ShareWorkflow
-platform.drive.publicLinks  // PublicLinkWorkflow
-platform.drive.trash        // TrashWorkflow
+platform.drive.folders; // FolderWorkflow
+platform.drive.files; // FileWorkflow
+platform.drive.labels; // LabelWorkflow
+platform.drive.shares; // ShareWorkflow
+platform.drive.publicLinks; // PublicLinkWorkflow
+platform.drive.trash; // TrashWorkflow
 
 // Access services
-platform.drive.search       // SearchService
-platform.drive.archive     // ArchiveService
-platform.drive.access      // AccessService
-platform.drive.paths       // PathService
+platform.drive.search; // SearchService
+platform.drive.archive; // ArchiveService
+platform.drive.access; // AccessService
+platform.drive.paths; // PathService
 ```
 
 ## Module API
 
 ```ts
 type DriveModuleConfig = {
-  maxFileSize?: number               // default: 5GB (5 * 1024 * 1024 * 1024)
-  maxNestingDepth?: number           // default: 20
-  maxVersions?: number               // default: 10
-  trashRetentionDays?: number        // default: 30
-  defaultDownloadLinkExpiry?: number // default: 3600 (seconds)
-  maxDownloadLinkExpiry?: number     // default: 604800 (7 days)
-  allowedContentTypes?: string[]     // default: [] (allow all)
-}
+  maxFileSize?: number; // default: 5GB (5 * 1024 * 1024 * 1024)
+  maxNestingDepth?: number; // default: 20
+  maxVersions?: number; // default: 10
+  trashRetentionDays?: number; // default: 30
+  defaultDownloadLinkExpiry?: number; // default: 3600 (seconds)
+  maxDownloadLinkExpiry?: number; // default: 604800 (7 days)
+  allowedContentTypes?: string[]; // default: [] (allow all)
+};
 
 class DriveModule {
-  static create(config?: DriveModuleConfig): DriveModule
-  readonly name: "drive"
-  readonly db_schema: typeof dbSchema
+  static create(config?: DriveModuleConfig): DriveModule;
+  readonly name: "drive";
+  readonly db_schema: typeof dbSchema;
 
-  initialize(units: { db: DatabaseUnit; storage: StorageUnit; pubsub: PubSubUnit }): void
-  prepare(): Promise<void>   // subscribes to auto-purge topic + schedules cron
-  destroy(): Promise<void>   // unsubscribes/unschedules purge
+  initialize(units: { db: DatabaseUnit; storage: StorageUnit; pubsub: PubSubUnit }): void;
+  prepare(): Promise<void>; // subscribes to auto-purge topic + schedules cron
+  destroy(): Promise<void>; // unsubscribes/unschedules purge
 
   // Workflow getters
-  get folders(): FolderWorkflow
-  get files(): FileWorkflow
-  get labels(): LabelWorkflow
-  get shares(): ShareWorkflow
-  get publicLinks(): PublicLinkWorkflow
-  get trash(): TrashWorkflow
+  get folders(): FolderWorkflow;
+  get files(): FileWorkflow;
+  get labels(): LabelWorkflow;
+  get shares(): ShareWorkflow;
+  get publicLinks(): PublicLinkWorkflow;
+  get trash(): TrashWorkflow;
 
   // Service getters
-  get search(): SearchService
-  get archive(): ArchiveService
-  get access(): AccessService
-  get paths(): PathService
+  get search(): SearchService;
+  get archive(): ArchiveService;
+  get access(): AccessService;
+  get paths(): PathService;
 }
 ```
 
@@ -107,15 +107,15 @@ class DriveModule {
 
 Default configuration values:
 
-| Option | Default | Description |
-|---|---|---|
-| `maxFileSize` | 5 GB | Maximum upload size per file |
-| `maxNestingDepth` | 20 | Maximum folder nesting depth |
-| `maxVersions` | 10 | Maximum file versions retained |
-| `trashRetentionDays` | 30 | Days before trashed items are auto-purged |
-| `defaultDownloadLinkExpiry` | 3600s (1 hour) | Default signed URL expiry |
-| `maxDownloadLinkExpiry` | 604800s (7 days) | Maximum allowed signed URL expiry |
-| `allowedContentTypes` | `[]` (all) | Content type whitelist (empty = allow all) |
+| Option                      | Default          | Description                                |
+| --------------------------- | ---------------- | ------------------------------------------ |
+| `maxFileSize`               | 5 GB             | Maximum upload size per file               |
+| `maxNestingDepth`           | 20               | Maximum folder nesting depth               |
+| `maxVersions`               | 10               | Maximum file versions retained             |
+| `trashRetentionDays`        | 30               | Days before trashed items are auto-purged  |
+| `defaultDownloadLinkExpiry` | 3600s (1 hour)   | Default signed URL expiry                  |
+| `maxDownloadLinkExpiry`     | 604800s (7 days) | Maximum allowed signed URL expiry          |
+| `allowedContentTypes`       | `[]` (all)       | Content type whitelist (empty = allow all) |
 
 Auto-purge runs daily at 3:00 AM via cron `"0 3 * * *"` on the topic `"drive:auto-purge"`.
 
@@ -123,25 +123,25 @@ Auto-purge runs daily at 3:00 AM via cron `"0 3 * * *"` on the topic `"drive:aut
 
 ### Enums
 
-| Enum | Values |
-|---|---|
-| `drive_item_type` | `file`, `folder` |
-| `drive_grantee_type` | `user`, `group` |
-| `drive_permission` | `viewer`, `editor`, `owner` |
-| `drive_public_link_permission` | `view`, `edit` |
+| Enum                           | Values                      |
+| ------------------------------ | --------------------------- |
+| `drive_item_type`              | `file`, `folder`            |
+| `drive_grantee_type`           | `user`, `group`             |
+| `drive_permission`             | `viewer`, `editor`, `owner` |
+| `drive_public_link_permission` | `view`, `edit`              |
 
 ### Tables
 
-| Table | Purpose | Key Columns |
-|---|---|---|
-| `drive_folder` | Virtual folder | `path` (unique materialized path), `parentId`, `ownerId`, `isTrashed`, `trashedAt`, `color`, `description` |
-| `drive_file` | File metadata | `storageKey`, `contentType`, `size` (bigint), `etag`, `version`, `isTrashed`, `path` (unique) |
-| `drive_file_version` | Version history | `fileId`, `version`, `storageKey`, `size`, `etag`, `uploadedBy` |
-| `drive_label` | Label definition | `color`, `isGlobal`, `ownerId` (nullable for global labels) |
-| `drive_item_label` | Polymorphic label join | `itemId`, `itemType` (file/folder), `labelId`, unique(item, type, label) |
-| `drive_share` | Direct sharing | `itemId`, `itemType`, `granteeId`, `granteeType` (user/group), `permission`, `expiresAt`, `message` |
-| `drive_public_link` | Public link sharing | `token` (unique), `password` (hashed), `maxViews`, `viewCount`, `expiresAt`, `isActive`, `permission` |
-| `drive_access_log` | Audit log | `itemId`, `itemType`, `action`, `ip`, `userAgent`, `accessedBy`, `publicLinkId` |
+| Table                | Purpose                | Key Columns                                                                                                |
+| -------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `drive_folder`       | Virtual folder         | `path` (unique materialized path), `parentId`, `ownerId`, `isTrashed`, `trashedAt`, `color`, `description` |
+| `drive_file`         | File metadata          | `storageKey`, `contentType`, `size` (bigint), `etag`, `version`, `isTrashed`, `path` (unique)              |
+| `drive_file_version` | Version history        | `fileId`, `version`, `storageKey`, `size`, `etag`, `uploadedBy`                                            |
+| `drive_label`        | Label definition       | `color`, `isGlobal`, `ownerId` (nullable for global labels)                                                |
+| `drive_item_label`   | Polymorphic label join | `itemId`, `itemType` (file/folder), `labelId`, unique(item, type, label)                                   |
+| `drive_share`        | Direct sharing         | `itemId`, `itemType`, `granteeId`, `granteeType` (user/group), `permission`, `expiresAt`, `message`        |
+| `drive_public_link`  | Public link sharing    | `token` (unique), `password` (hashed), `maxViews`, `viewCount`, `expiresAt`, `isActive`, `permission`      |
+| `drive_access_log`   | Audit log              | `itemId`, `itemType`, `action`, `ip`, `userAgent`, `accessedBy`, `publicLinkId`                            |
 
 All IDs are `text` with `.primaryKey().$defaultFn(uuidv7)`. All timestamps are `TIMESTAMPTZ` with `withTimezone: true`.
 
@@ -163,6 +163,7 @@ platform.drive.folders.list(filters?): Promise<Folder[]>
 ```
 
 Key behaviors:
+
 - **Materialized paths**: Folder paths are computed and stored (e.g., `/Projects/2024/Q1`). Renaming or moving a folder cascades path updates to all descendants via `PathService.cascadePaths()`.
 - **Depth check**: Enforces `maxNestingDepth` (default 20) on creation and move.
 - **Cycle detection**: Prevents moving a folder into its own subtree.
@@ -233,6 +234,7 @@ platform.drive.publicLinks.list(itemId, itemType): Promise<PublicLink[]>
 ```
 
 Features:
+
 - Token-based access (unique tokens per link)
 - Optional password protection (bcrypt hashed)
 - View count tracking with `maxViews` limit
@@ -255,43 +257,43 @@ platform.drive.trash.purgeExpired(): Promise<number>  // called by scheduled cro
 
 ## Services
 
-| Service | File | Purpose |
-|---|---|---|
-| `PathService` | `services/path-service.ts` | Materialized path computation, depth checking, cycle detection, name uniqueness, breadcrumb resolution, cascade path updates on rename/move |
-| `StorageBridge` | `services/storage-bridge.ts` | Wraps the platform's `StorageUnit` for upload, download, presigned URLs, copy, move, remove |
-| `ArchiveService` | `services/archive-service.ts` | ZIP archive generation for folder downloads (uses `fflate`). Throws `ArchiveTooLargeError` for >1000 files or >1GB |
-| `SearchService` | `services/search-service.ts` | Full-text search across files and folders with scope, type, label, content-type, date, and size filters |
-| `AccessService` | `services/access-service.ts` | Permission checking, share inheritance resolution, public link access validation |
+| Service          | File                          | Purpose                                                                                                                                     |
+| ---------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PathService`    | `services/path-service.ts`    | Materialized path computation, depth checking, cycle detection, name uniqueness, breadcrumb resolution, cascade path updates on rename/move |
+| `StorageBridge`  | `services/storage-bridge.ts`  | Wraps the platform's `StorageUnit` for upload, download, presigned URLs, copy, move, remove                                                 |
+| `ArchiveService` | `services/archive-service.ts` | ZIP archive generation for folder downloads (uses `fflate`). Throws `ArchiveTooLargeError` for >1000 files or >1GB                          |
+| `SearchService`  | `services/search-service.ts`  | Full-text search across files and folders with scope, type, label, content-type, date, and size filters                                     |
+| `AccessService`  | `services/access-service.ts`  | Permission checking, share inheritance resolution, public link access validation                                                            |
 
 ## Events
 
 14 events are defined in `src/event-map.ts`, each with a typed payload interface. Events are actively published by workflows via PubSub.
 
-| Event | Payload | Trigger |
-|---|---|---|
-| `drive:folder_created` | `{ folder: { id, name, path } }` | Folder created |
-| `drive:folder_renamed` | `{ folderId, oldName, newName, oldPath, newPath }` | Folder renamed |
-| `drive:moved` | `{ itemId, itemType, oldParentId, newParentId, oldPath, newPath }` | Item moved |
-| `drive:file_uploaded` | `{ file: { id, name, size, contentType } }` | File uploaded |
-| `drive:file_updated` | `{ fileId, version }` | File updated/new version |
-| `drive:file_downloaded` | `{ fileId, userId }` | File downloaded |
-| `drive:shared` | `{ share: { itemId, itemType, granteeId, permission } }` | Item shared |
-| `drive:unshared` | `{ shareId }` | Share removed |
-| `drive:public_link_created` | `{ linkId, itemId, itemType }` | Public link created |
-| `drive:public_link_accessed` | `{ linkId, itemId, itemType, ip }` | Public link accessed |
-| `drive:public_link_revoked` | `{ linkId }` | Public link revoked |
-| `drive:trashed` | `{ itemId, itemType }` | Item moved to trash |
-| `drive:restored` | `{ itemId, itemType }` | Item restored from trash |
-| `drive:purged` | `{ count }` | Expired items permanently purged |
+| Event                        | Payload                                                            | Trigger                          |
+| ---------------------------- | ------------------------------------------------------------------ | -------------------------------- |
+| `drive:folder_created`       | `{ folder: { id, name, path } }`                                   | Folder created                   |
+| `drive:folder_renamed`       | `{ folderId, oldName, newName, oldPath, newPath }`                 | Folder renamed                   |
+| `drive:moved`                | `{ itemId, itemType, oldParentId, newParentId, oldPath, newPath }` | Item moved                       |
+| `drive:file_uploaded`        | `{ file: { id, name, size, contentType } }`                        | File uploaded                    |
+| `drive:file_updated`         | `{ fileId, version }`                                              | File updated/new version         |
+| `drive:file_downloaded`      | `{ fileId, userId }`                                               | File downloaded                  |
+| `drive:shared`               | `{ share: { itemId, itemType, granteeId, permission } }`           | Item shared                      |
+| `drive:unshared`             | `{ shareId }`                                                      | Share removed                    |
+| `drive:public_link_created`  | `{ linkId, itemId, itemType }`                                     | Public link created              |
+| `drive:public_link_accessed` | `{ linkId, itemId, itemType, ip }`                                 | Public link accessed             |
+| `drive:public_link_revoked`  | `{ linkId }`                                                       | Public link revoked              |
+| `drive:trashed`              | `{ itemId, itemType }`                                             | Item moved to trash              |
+| `drive:restored`             | `{ itemId, itemType }`                                             | Item restored from trash         |
+| `drive:purged`               | `{ count }`                                                        | Expired items permanently purged |
 
 ## Integration Points
 
-| Integration | Usage |
-|---|---|
-| **DatabaseUnit** | All workflow DB operations via drizzle |
-| **StorageUnit** | S3-backed file storage (upload, download, presigned URLs, copy, move, remove) via `StorageBridge` |
-| **PubSubUnit** | Event publishing, auto-purge scheduling (`schedule()` + `subscribe()`) |
-| **AuthUnit** | User IDs for folder ownership, sharing, access control |
+| Integration      | Usage                                                                                             |
+| ---------------- | ------------------------------------------------------------------------------------------------- |
+| **DatabaseUnit** | All workflow DB operations via drizzle                                                            |
+| **StorageUnit**  | S3-backed file storage (upload, download, presigned URLs, copy, move, remove) via `StorageBridge` |
+| **PubSubUnit**   | Event publishing, auto-purge scheduling (`schedule()` + `subscribe()`)                            |
+| **AuthUnit**     | User IDs for folder ownership, sharing, access control                                            |
 
 The drive module is **self-contained** -- it has no optional module dependencies. It does not depend on `@aspen-os/constants` (unlike tasks).
 

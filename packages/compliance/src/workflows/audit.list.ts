@@ -7,7 +7,7 @@ import { type AuditLogRow, normalize, toFilter } from "./utils";
 
 const listAuditEntries = Workflow.name("audit.list").handler(
   async (input: { filters?: AuditTrailFilters }, ctx) => {
-    const filters = input.filters;
+    const { filters } = input;
     const parsed = filters ? parse(AuditTrailFiltersSchema, filters) : {};
 
     const rows = (await ctx.audit.query(

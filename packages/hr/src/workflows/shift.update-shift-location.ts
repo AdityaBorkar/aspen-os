@@ -10,9 +10,7 @@ const InputSchema = object({
   patch: UpdateShiftLocationSchema,
 });
 
-export const updateShiftLocation = Workflow.name(
-  "hr.shift.update-shift-location",
-)
+export const updateShiftLocation = Workflow.name("hr.shift.update-shift-location")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, patch } = input;

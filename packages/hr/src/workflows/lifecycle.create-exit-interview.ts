@@ -8,9 +8,7 @@ const InputSchema = object({
   input: CreateExitInterviewSchema,
 });
 
-export const createExitInterview = Workflow.name(
-  "hr.lifecycle.create-exit-interview",
-)
+export const createExitInterview = Workflow.name("hr.lifecycle.create-exit-interview")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateExitInterviewSchema, input);
@@ -21,9 +19,7 @@ export const createExitInterview = Workflow.name(
         employeeId: parsed.employeeId,
         interviewer: parsed.interviewer ?? null,
         questionnaireTemplate: parsed.questionnaireTemplate ?? null,
-        scheduledDate: parsed.scheduledDate
-          ? new Date(parsed.scheduledDate)
-          : null,
+        scheduledDate: parsed.scheduledDate ? new Date(parsed.scheduledDate) : null,
         separationId: parsed.separationId ?? null,
       })
       .returning();

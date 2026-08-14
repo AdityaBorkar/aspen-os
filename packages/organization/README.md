@@ -38,44 +38,44 @@ bun install  # workspace package, no separate install needed
 ## Quick Start
 
 ```ts
-import { Platform } from "@aspen-os/platform/server"
-import { OrganizationModule } from "@aspen-os/organization"
+import { Platform } from "@aspen-os/platform/server";
+import { OrganizationModule } from "@aspen-os/organization";
 
-const organization = OrganizationModule.create({ country: "INDIA" })
+const organization = OrganizationModule.create({ country: "INDIA" });
 
-const platform = Platform.create(config, { organization })
+const platform = Platform.create(config, { organization });
 
-await platform.prepare()
+await platform.prepare();
 
 // Access workflows via the module proxy
-platform.organization.organization     // OrganizationWorkflow
-platform.organization.branches         // BranchWorkflow
-platform.organization.connections       // ConnectionWorkflow
-platform.organization.addresses        // AddressWorkflow
-platform.organization.bankAccounts     // BankAccountWorkflow
+platform.organization.organization; // OrganizationWorkflow
+platform.organization.branches; // BranchWorkflow
+platform.organization.connections; // ConnectionWorkflow
+platform.organization.addresses; // AddressWorkflow
+platform.organization.bankAccounts; // BankAccountWorkflow
 ```
 
 ## Module API
 
 ```ts
 type OrganizationModuleConfig = {
-  country: "INDIA"
-}
+  country: "INDIA";
+};
 
 class OrganizationModule {
-  static create(config: OrganizationModuleConfig): OrganizationModule
-  readonly name: "organization"
-  readonly db_schema: typeof dbSchema
+  static create(config: OrganizationModuleConfig): OrganizationModule;
+  readonly name: "organization";
+  readonly db_schema: typeof dbSchema;
 
-  initialize(units: { db: DatabaseUnit; pubsub: PubSubUnit }): void
-  destroy(): Promise<void>
+  initialize(units: { db: DatabaseUnit; pubsub: PubSubUnit }): void;
+  destroy(): Promise<void>;
 
   // Workflow getters (throw if accessed before initialize())
-  get organization(): OrganizationWorkflow
-  get branches(): BranchWorkflow
-  get connections(): ConnectionWorkflow
-  get addresses(): AddressWorkflow
-  get bankAccounts(): BankAccountWorkflow
+  get organization(): OrganizationWorkflow;
+  get branches(): BranchWorkflow;
+  get connections(): ConnectionWorkflow;
+  get addresses(): AddressWorkflow;
+  get bankAccounts(): BankAccountWorkflow;
 }
 ```
 
@@ -83,25 +83,25 @@ class OrganizationModule {
 
 ### Enums
 
-| Enum | Values |
-|---|---|
-| `organization_status` | `active`, `suspended`, `archived` |
-| `branch_type` | `headquarters`, `office`, `warehouse`, `store`, `factory`, `remote`, `other` |
-| `connection_type` | `client`, `vendor`, `partner`, `subsidiary`, `parent_company`, `investor`, `regulator`, `insurer`, `bank`, `other` |
-| `connection_status` | `active`, `inactive`, `prospect`, `former` |
-| `connection_note_type` | `general`, `call`, `email`, `meeting`, `contract_renewal`, `issue` |
+| Enum                   | Values                                                                                                             |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `organization_status`  | `active`, `suspended`, `archived`                                                                                  |
+| `branch_type`          | `headquarters`, `office`, `warehouse`, `store`, `factory`, `remote`, `other`                                       |
+| `connection_type`      | `client`, `vendor`, `partner`, `subsidiary`, `parent_company`, `investor`, `regulator`, `insurer`, `bank`, `other` |
+| `connection_status`    | `active`, `inactive`, `prospect`, `former`                                                                         |
+| `connection_note_type` | `general`, `call`, `email`, `meeting`, `contract_renewal`, `issue`                                                 |
 
 ### Tables
 
-| Table | Description | Key Columns |
-|---|---|---|
-| `organization` | Root entity | `id`, `name`, `slug` (unique), `status`, `accentColor`, `locale`, `timezone` |
-| `branch` | Physical/logical location (hierarchical, max 5 levels) | `id`, `name`, `code` (unique), `type`, `parentBranch`, `isActive`, `capacity` |
-| `connection` | External business relationship | `id`, `name`, `type`, `status`, `createdBy`, `tags[]`, `annualRevenue` (numeric) |
-| `connection_contact` | Person associated with a connection | `id`, `connectionId`, `name`, `email`, `phone`, `isPrimary` |
-| `connection_note` | Interaction log entry on a connection | `id`, `connectionId`, `userId`, `type`, `content` (immutable, no `updatedAt`) |
-| `address` | Postal address (reusable across entities) | `id`, `line1`, `country`, `isPrimary`, `label` |
-| `bank_account` | Financial account record | `id`, `accountHolderName`, `accountNumber`, `bankName`, `currency`, `isPrimary`, `isActive` |
+| Table                | Description                                            | Key Columns                                                                                 |
+| -------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `organization`       | Root entity                                            | `id`, `name`, `slug` (unique), `status`, `accentColor`, `locale`, `timezone`                |
+| `branch`             | Physical/logical location (hierarchical, max 5 levels) | `id`, `name`, `code` (unique), `type`, `parentBranch`, `isActive`, `capacity`               |
+| `connection`         | External business relationship                         | `id`, `name`, `type`, `status`, `createdBy`, `tags[]`, `annualRevenue` (numeric)            |
+| `connection_contact` | Person associated with a connection                    | `id`, `connectionId`, `name`, `email`, `phone`, `isPrimary`                                 |
+| `connection_note`    | Interaction log entry on a connection                  | `id`, `connectionId`, `userId`, `type`, `content` (immutable, no `updatedAt`)               |
+| `address`            | Postal address (reusable across entities)              | `id`, `line1`, `country`, `isPrimary`, `label`                                              |
+| `bank_account`       | Financial account record                               | `id`, `accountHolderName`, `accountNumber`, `bankName`, `currency`, `isPrimary`, `isActive` |
 
 All IDs are `text` with `.primaryKey().$defaultFn(uuidv7)` (the `uuidv7` function, imported from `@aspen-os/platform/server`). All timestamps are `TIMESTAMPTZ` with `withTimezone: true`. No foreign keys are declared -- relations are implicit via `text` columns. The `updatedAt` column is manually set in workflows (no `$onUpdate` hook).
 
@@ -144,6 +144,7 @@ platform.organization.branches.getTree(): Promise<BranchTreeNode[]>
 ```
 
 **Business rules enforced**:
+
 - Single headquarters per organization (workflow-level check).
 - Max 5-level hierarchy depth (workflow-level check via parent-chain traversal).
 - No self-parent (rejected with error).
@@ -181,6 +182,7 @@ platform.organization.connections.listNotes(connectionId: string, type?: string)
 ```
 
 **Notable behaviors**:
+
 - Primary contact unsetting is **scoped per connection** (correctly).
 - `annualRevenue` and `contractValue` are `numeric` PG columns -- workflows convert JS `number` to string via `.toString()`.
 - `listNotes` accepts `type?: string` (no Valibot validation on this path).
@@ -224,20 +226,20 @@ All input validation uses **Valibot**. Each entity has `Create*Schema`, `Update*
 
 Shared validators in `schemas/utils.ts`:
 
-| Validator | Rules |
-|---|---|
-| `NameSchema` | String, 1-255 chars |
-| `SlugSchema` | String, 3-63 chars, `^[a-z0-9]+(-[a-z0-9]+)*$` |
-| `BranchCodeSchema` | String, 2-20 chars, uppercase alphanumeric + hyphens |
-| `CountryCodeSchema` | String matching `^[A-Z]{2}$` (ISO alpha-2 format) |
-| `AccentColorSchema` | String matching 6-digit hex (`#RRGGBB`) |
-| `LogoFileSchema` | `{ contentType, size }` -- png/jpeg/svg/webp, max 5MB |
+| Validator           | Rules                                                 |
+| ------------------- | ----------------------------------------------------- |
+| `NameSchema`        | String, 1-255 chars                                   |
+| `SlugSchema`        | String, 3-63 chars, `^[a-z0-9]+(-[a-z0-9]+)*$`        |
+| `BranchCodeSchema`  | String, 2-20 chars, uppercase alphanumeric + hyphens  |
+| `CountryCodeSchema` | String matching `^[A-Z]{2}$` (ISO alpha-2 format)     |
+| `AccentColorSchema` | String matching 6-digit hex (`#RRGGBB`)               |
+| `LogoFileSchema`    | `{ contentType, size }` -- png/jpeg/svg/webp, max 5MB |
 
 Schemas are co-exported with their inferred types:
 
 ```ts
-import type { CreateOrganizationInput, UpdateOrganizationInput } from "@aspen-os/organization"
-import { CreateOrganizationSchema, UpdateOrganizationSchema } from "@aspen-os/organization"
+import type { CreateOrganizationInput, UpdateOrganizationInput } from "@aspen-os/organization";
+import { CreateOrganizationSchema, UpdateOrganizationSchema } from "@aspen-os/organization";
 ```
 
 ## Events
@@ -246,41 +248,41 @@ The event map defines 11 events across 3 groups. These are **type-level contract
 
 ### Organization Events
 
-| Event | Payload |
-|---|---|
-| `organization:updated` | `{ changes: Record<string, unknown>; organization: { id, name, slug } }` |
-| `organization:branding_updated` | `{ accentColor?, logo?, name? }` |
+| Event                           | Payload                                                                  |
+| ------------------------------- | ------------------------------------------------------------------------ |
+| `organization:updated`          | `{ changes: Record<string, unknown>; organization: { id, name, slug } }` |
+| `organization:branding_updated` | `{ accentColor?, logo?, name? }`                                         |
 
 ### Branch Events
 
-| Event | Payload |
-|---|---|
-| `branch:created` | `{ branch: { code, id, name, type } }` |
-| `branch:updated` | `{ branch: { id, name }; changes: Record<string, unknown> }` |
-| `branch:activated` | `{ branchId }` |
-| `branch:deactivated` | `{ branchId }` |
-| `branch:closed` | `{ branchId, date }` |
+| Event                | Payload                                                      |
+| -------------------- | ------------------------------------------------------------ |
+| `branch:created`     | `{ branch: { code, id, name, type } }`                       |
+| `branch:updated`     | `{ branch: { id, name }; changes: Record<string, unknown> }` |
+| `branch:activated`   | `{ branchId }`                                               |
+| `branch:deactivated` | `{ branchId }`                                               |
+| `branch:closed`      | `{ branchId, date }`                                         |
 
 ### Connection Events
 
-| Event | Payload |
-|---|---|
-| `connection:created` | `{ connection: { id, name, type } }` |
-| `connection:updated` | `{ changes: Record<string, unknown>; connection: { id, name } }` |
-| `connection:status_changed` | `{ connectionId, fromStatus, toStatus }` |
-| `connection:note_added` | `{ connectionId, note: { content, id, type } }` |
+| Event                       | Payload                                                          |
+| --------------------------- | ---------------------------------------------------------------- |
+| `connection:created`        | `{ connection: { id, name, type } }`                             |
+| `connection:updated`        | `{ changes: Record<string, unknown>; connection: { id, name } }` |
+| `connection:status_changed` | `{ connectionId, fromStatus, toStatus }`                         |
+| `connection:note_added`     | `{ connectionId, note: { content, id, type } }`                  |
 
 ## Constants
 
 Shared constants live in `@aspen-os/constants` (not in this package):
 
-| Constant | Type | Values |
-|---|---|---|
-| `ORGANIZATION_STATUS` | `as const` object | `ACTIVE`, `ARCHIVED`, `SUSPENDED` |
-| `BRANCH_TYPE` | `as const` object | `FACTORY`, `HEADQUARTERS`, `OFFICE`, `OTHER`, `REMOTE`, `STORE`, `WAREHOUSE` |
-| `CONNECTION_TYPE` | `as const` object | `CLIENT`, `VENDOR`, `PARTNER`, `SUBSIDIARY`, `PARENT_COMPANY`, `INVESTOR`, `REGULATOR`, `INSURER`, `BANK`, `OTHER` |
-| `CONNECTION_STATUS` | `as const` object | `ACTIVE`, `INACTIVE`, `PROSPECT`, `FORMER` |
-| `CONNECTION_NOTE_TYPE` | `as const` object | `GENERAL`, `CALL`, `EMAIL`, `MEETING`, `CONTRACT_RENEWAL`, `ISSUE` |
+| Constant               | Type              | Values                                                                                                             |
+| ---------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `ORGANIZATION_STATUS`  | `as const` object | `ACTIVE`, `ARCHIVED`, `SUSPENDED`                                                                                  |
+| `BRANCH_TYPE`          | `as const` object | `FACTORY`, `HEADQUARTERS`, `OFFICE`, `OTHER`, `REMOTE`, `STORE`, `WAREHOUSE`                                       |
+| `CONNECTION_TYPE`      | `as const` object | `CLIENT`, `VENDOR`, `PARTNER`, `SUBSIDIARY`, `PARENT_COMPANY`, `INVESTOR`, `REGULATOR`, `INSURER`, `BANK`, `OTHER` |
+| `CONNECTION_STATUS`    | `as const` object | `ACTIVE`, `INACTIVE`, `PROSPECT`, `FORMER`                                                                         |
+| `CONNECTION_NOTE_TYPE` | `as const` object | `GENERAL`, `CALL`, `EMAIL`, `MEETING`, `CONTRACT_RENEWAL`, `ISSUE`                                                 |
 
 All constant keys are `UPPER_SNAKE`, values are lowercase strings. Types are derived via indexed access: `type OrganizationStatus = (typeof ORGANIZATION_STATUS)[keyof typeof ORGANIZATION_STATUS]`.
 

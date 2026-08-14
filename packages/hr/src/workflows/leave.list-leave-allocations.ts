@@ -9,9 +9,7 @@ const InputSchema = object({
   filters: optional(LeaveAllocationFiltersSchema),
 });
 
-export const listLeaveAllocations = Workflow.name(
-  "hr.leave.list-leave-allocations",
-)
+export const listLeaveAllocations = Workflow.name("hr.leave.list-leave-allocations")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { filters } = input;

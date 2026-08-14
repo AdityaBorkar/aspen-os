@@ -8,9 +8,7 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const deactivateShiftAssignment = Workflow.name(
-  "hr.shift.deactivate-shift-assignment",
-)
+export const deactivateShiftAssignment = Workflow.name("hr.shift.deactivate-shift-assignment")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id } = input;

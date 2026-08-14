@@ -101,7 +101,8 @@ await p.storage.archive("documents/report.pdf");
 ```
 
 <Callout type="info">
-  Confirm the exact `StorageUnit` method names against the installed version — consult the [Storage unit reference](/docs/platform/units/storage) for the current API surface.
+  Confirm the exact `StorageUnit` method names against the installed version — consult the [Storage
+  unit reference](/docs/platform/units/storage) for the current API surface.
 </Callout>
 
 ## Using the KV Store
@@ -139,14 +140,16 @@ await p.pubsub.subscribe("organization:created", async (message) => {
 // Schedule a recurring job
 await p.pubsub.schedule(
   "compliance:weekly-summary",
-  "0 9 * * 1",  // every Monday at 9am
+  "0 9 * * 1", // every Monday at 9am
   {},
   { tz: "Asia/Kolkata" },
 );
 ```
 
 <Callout type="warn">
-  Publishing to a topic with no registered subscriber is silently dropped by pg-boss. `p.healthCheck()` reports these unsubscribed topics. Always `subscribe()` (register a worker) before `publish()` to the same topic.
+  Publishing to a topic with no registered subscriber is silently dropped by pg-boss.
+  `p.healthCheck()` reports these unsubscribed topics. Always `subscribe()` (register a worker)
+  before `publish()` to the same topic.
 </Callout>
 
 ## Health Check

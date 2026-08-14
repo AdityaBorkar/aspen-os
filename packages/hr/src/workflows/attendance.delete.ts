@@ -13,10 +13,7 @@ export const deleteRecord = Workflow.name("hr.attendance.delete")
   .handler(async (input, ctx) => {
     const { id } = input;
 
-    const [deleted] = await ctx.db
-      .delete(attendance)
-      .where(eq(attendance.id, id))
-      .returning();
+    const [deleted] = await ctx.db.delete(attendance).where(eq(attendance.id, id)).returning();
 
     return deleted;
   });

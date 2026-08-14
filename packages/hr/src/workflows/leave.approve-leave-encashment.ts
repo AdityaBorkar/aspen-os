@@ -9,9 +9,7 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const approveLeaveEncashment = Workflow.name(
-  "hr.leave.approve-leave-encashment",
-)
+export const approveLeaveEncashment = Workflow.name("hr.leave.approve-leave-encashment")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, approvedBy } = input;

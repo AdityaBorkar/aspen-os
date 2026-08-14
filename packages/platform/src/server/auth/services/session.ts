@@ -11,9 +11,7 @@ async function createHeadersFromToken(
   { auth }: { auth: AuthServiceDeps["auth"] },
 ): Promise<Headers> {
   const ctx = await auth.$context;
-  const signature = createHmac("sha256", ctx.secret)
-    .update(token)
-    .digest("base64");
+  const signature = createHmac("sha256", ctx.secret).update(token).digest("base64");
   const signedValue = encodeURIComponent(`${token}.${signature}`);
   const headers = new Headers();
   headers.set("cookie", `${ctx.authCookies.sessionToken.name}=${signedValue}`);
@@ -38,7 +36,9 @@ export async function authenticate(
     query: { disableCookieCache: true, disableRefresh: true },
   });
 
-  if (!sessionData) throw new Error("Failed to create session");
+  if (!sessionData) {
+    throw new Error("Failed to create session");
+  }
 
   const session = toSession(sessionData.session);
   const user = toUser(sessionData.user);
@@ -56,7 +56,9 @@ export async function validateSession(
     query: { disableCookieCache: true, disableRefresh: true },
   });
 
-  if (!sessionData) return null;
+  if (!sessionData) {
+    return null;
+  }
 
   return {
     session: toSession(sessionData.session),

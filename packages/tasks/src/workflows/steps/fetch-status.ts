@@ -8,11 +8,7 @@ import { IdSchema } from "../../types";
 export const fetchStatusStep = WorkflowStep.name("fetch-status")
   .input(object({ id: IdSchema }))
   .handler(async (input, ctx) => {
-    const [result] = await ctx.db
-      .select()
-      .from(status)
-      .where(eq(status.id, input.id))
-      .limit(1);
+    const [result] = await ctx.db.select().from(status).where(eq(status.id, input.id)).limit(1);
 
     if (!result) {
       throw new Error(`Status with id "${input.id}" not found.`);

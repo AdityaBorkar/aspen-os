@@ -8,15 +8,15 @@ The platform has two types of composable building blocks: **Units** and **Module
 
 ## At a Glance
 
-| | Unit | Module |
-|---|---|---|
-| **Purpose** | Infrastructure service | Domain business logic |
-| **Created by** | Platform (via `new` in `createCore()`) | Application (via `Module.create()` factory) |
-| **Dependency injection** | Constructor injection | `$initialize(units)` method |
-| **Lifecycle prefix** | `$` (both server and client) | `$` (both server and client) |
-| **Count** | Fixed at 8 (required) | Unlimited (optional) |
-| **Schema** | Owns core schemas | Owns domain schemas |
-| **Example** | `DatabaseUnit`, `AuthUnit` | `Organization`, `Compliance` |
+|                          | Unit                                   | Module                                      |
+| ------------------------ | -------------------------------------- | ------------------------------------------- |
+| **Purpose**              | Infrastructure service                 | Domain business logic                       |
+| **Created by**           | Platform (via `new` in `createCore()`) | Application (via `Module.create()` factory) |
+| **Dependency injection** | Constructor injection                  | `$initialize(units)` method                 |
+| **Lifecycle prefix**     | `$` (both server and client)           | `$` (both server and client)                |
+| **Count**                | Fixed at 8 (required)                  | Unlimited (optional)                        |
+| **Schema**               | Owns core schemas                      | Owns domain schemas                         |
+| **Example**              | `DatabaseUnit`, `AuthUnit`             | `Organization`, `Compliance`                |
 
 ## Unit Interface
 
@@ -79,8 +79,8 @@ const p = SingleTenantPlatform.create(
 );
 
 // Access via proxy
-p.db                              // → DatabaseUnit
-p.getUnit("db")                   // → DatabaseUnit
+p.db; // → DatabaseUnit
+p.getUnit("db"); // → DatabaseUnit
 ```
 
 ### A Module (Organization)
@@ -93,9 +93,9 @@ const organization = Organization.create({ country: "INDIA" });
 const p = SingleTenantPlatform.create(config, [organization]);
 
 // Access via proxy
-p.organization             // → Organization
-p.organization.branches     // → BranchWorkflow
-p.getModule("organization") // → Organization
+p.organization; // → Organization
+p.organization.branches; // → BranchWorkflow
+p.getModule("organization"); // → Organization
 ```
 
 ## When to Use Which?

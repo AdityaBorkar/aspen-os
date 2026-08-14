@@ -1,12 +1,4 @@
-import {
-  array,
-  date,
-  type InferOutput,
-  number,
-  object,
-  optional,
-  string,
-} from "valibot";
+import { array, date, type InferOutput, number, object, optional, string } from "valibot";
 
 import { DriveSearchScopeSchema, ItemTypeSchema } from "./item-enums";
 

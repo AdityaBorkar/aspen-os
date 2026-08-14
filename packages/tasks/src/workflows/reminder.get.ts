@@ -6,6 +6,4 @@ import { fetchReminderStep } from "./steps/fetch-reminder";
 
 export const getReminder = Workflow.name("reminder.get")
   .input(object({ id: IdSchema }))
-  .handler(async ({ id }, ctx) => {
-    return ctx.step.run(fetchReminderStep, { id });
-  });
+  .handler(async ({ id }, ctx) => ctx.step.run(fetchReminderStep, { id }));

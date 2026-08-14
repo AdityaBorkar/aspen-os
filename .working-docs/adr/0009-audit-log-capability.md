@@ -8,9 +8,9 @@ Accepted (Layer 1) — 2026-08-05. Layer 2 (blind-write capture) remains Propose
 
 We need an `audit_log` capability that serves two distinct, equally important needs:
 
-1. **Action audit** — *who* performed *what* action on *which* entity, per user
+1. **Action audit** — _who_ performed _what_ action on _which_ entity, per user
    request, for compliance and operational visibility. (Actions often happen
-   *inside* workflows, but the unit of audit is the request/action, not the
+   _inside_ workflows, but the unit of audit is the request/action, not the
    workflow itself.)
 2. **DB record / state replay** — the actual row-state changes to DB records,
    recorded in commit order, so a record's history can be reconstructed and its
@@ -46,7 +46,7 @@ The existing write path has six problems that make replay untrustworthy:
 1. **No transactional atomicity.** The workflow engine
    (`workflows/engine.ts:232-261`) does not wrap a mutation step and its
    `"audit-and-notify"` step in one DB transaction. `ctx.audit.write(...)`
-   does its own auto-commit `db.insert` *after* the mutation. If the audit
+   does its own auto-commit `db.insert` _after_ the mutation. If the audit
    step fails, the mutation is already committed → **audit gap**. Only
    shared-mode `runWithTenant` (`db/unit.ts:244-268`) provides a free ambient
    transaction; single and isolated modes do not. (Mitigated by
@@ -55,7 +55,7 @@ The existing write path has six problems that make replay untrustworthy:
 2. **No deterministic ordering.** `performed_at` (defaultNow, ms resolution) is
    not monotonic under concurrent inserts and cannot order a replay. (Addressed
    by `seq bigserial` — already in the schema.)
-3. **No idempotency.** The workflow engine dedups *steps* by
+3. **No idempotency.** The workflow engine dedups _steps_ by
    `(runId, stepName)` (`engine.ts:56-70`), so an audit write keyed to a run is
    idempotent. A direct audit write is not — retries double-log. (Addressed by
    `idempotency_key` + partial unique index — already in the schema.)
@@ -64,7 +64,7 @@ The existing write path has six problems that make replay untrustworthy:
    reconstruction of an entity requires the full timeline.
 5. **Placement vs atomicity contradiction.** Writing to a control-plane table
    and "using `db.db` (context-aware)" contradict in isolated mode: `db.db`
-   resolves to the *tenant* DB there, so a contextual write is not on the
+   resolves to the _tenant_ DB there, so a contextual write is not on the
    control plane. Central query loses atomicity; tenant DB keeps it.
 6. **Capture completeness.** Deliberate logging cannot see uninstrumented
    (blind) writes by definition — this is the inherent limit of an
@@ -79,11 +79,11 @@ The existing write path has six problems that make replay untrustworthy:
 - `workflow_runs` / `workflow_steps` (`workflows/db-schema.ts`) persist inputs,
   outputs, errors, attempts, and timings per run/step with `tenant_id`. These
   are a workflow-execution trace, **not a DB-record replay trail** — they record
-  what a workflow *did*, not the row-level state changes it *caused*. They may
+  what a workflow _did_, not the row-level state changes it _caused_. They may
   be linked to audit entries as optional provenance (which workflow caused this
   record change), but they are not a substitute for record-state replay.
 - Shared-mode `runWithTenant` sets `SET LOCAL app.tenant_id` + `SET LOCAL ROLE
-  tenant_role` and creates a tx-scoped drizzle instance — an audit insert via
+tenant_role` and creates a tx-scoped drizzle instance — an audit insert via
   `db.db` inside it rides the same transaction for free.
 - RLS auto-applies to any table with a `tenant_id` column
   (`db/unit.ts:387-402`, `discoverTenantTables`), so the `audit_log` table with
@@ -99,42 +99,42 @@ The existing write path has six problems that make replay untrustworthy:
 
 ### A. Layering: application audit vs DB-level replay
 
-| Approach | What it captures | Atomicity | Blind-write coverage | Infra cost |
-|---|---|---|---|---|
-| **A1 — Application audit unit (deliberate `p.audit.write`)** | Intended operations with actor/action/entity semantics | Achievable via tx coupling (§R1) | None | Low |
-| **A2 — Trigger-based changelog** (post-`pushSchema()` `CREATE TRIGGER` + row snapshot table) | Actual row changes | Automatic (trigger fires in tx) | Full | Medium (per-table DDL) |
-| **A3 — Drizzle row interceptor** (wrap tx/db wrapper to diff before/after) | Actual row changes | Automatic | Full | Low-medium, but error-prone |
-| **A4 — Logical replication / WAL → outbox** | Statement-level changes | Automatic | Full | High |
-| **A5 — Reuse `workflow_runs`/`workflow_steps`** | Run inputs/outputs/errors per step | Already durable | Workflow-path only | None (exists) |
+| Approach                                                                                     | What it captures                                       | Atomicity                        | Blind-write coverage | Infra cost                  |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------------------ | -------------------------------- | -------------------- | --------------------------- |
+| **A1 — Application audit unit (deliberate `p.audit.write`)**                                 | Intended operations with actor/action/entity semantics | Achievable via tx coupling (§R1) | None                 | Low                         |
+| **A2 — Trigger-based changelog** (post-`pushSchema()` `CREATE TRIGGER` + row snapshot table) | Actual row changes                                     | Automatic (trigger fires in tx)  | Full                 | Medium (per-table DDL)      |
+| **A3 — Drizzle row interceptor** (wrap tx/db wrapper to diff before/after)                   | Actual row changes                                     | Automatic                        | Full                 | Low-medium, but error-prone |
+| **A4 — Logical replication / WAL → outbox**                                                  | Statement-level changes                                | Automatic                        | Full                 | High                        |
+| **A5 — Reuse `workflow_runs`/`workflow_steps`**                                              | Run inputs/outputs/errors per step                     | Already durable                  | Workflow-path only   | None (exists)               |
 
 > **A5 is not a replay mechanism for DB records.** It traces workflow
 > execution, not row-state changes. It is listed only because it already
-> exists; it can provide *provenance* (which workflow caused an audited change)
+> exists; it can provide _provenance_ (which workflow caused an audited change)
 > but cannot reconstruct a record's state. The replay target is the DB record.
 
 ### B. Where the audit table lives
 
-| Approach | single | shared | isolated |
-|---|---|---|---|
-| **B1 — Control-plane only** | central, atomic | central, atomic (rides `runWithTenant` tx) | **atomicity LOST** (different DB than mutation) |
-| **B2 — Contextual `db.db` (tenant DB)** | central, atomic | central, atomic | atomic, but **no central query** |
-| **B3 — Mode-aware** (control-plane in single/shared, tenant DB in isolated + fan-out query) | central, atomic | central, atomic | atomic, aggregated on read |
+| Approach                                                                                    | single          | shared                                     | isolated                                        |
+| ------------------------------------------------------------------------------------------- | --------------- | ------------------------------------------ | ----------------------------------------------- |
+| **B1 — Control-plane only**                                                                 | central, atomic | central, atomic (rides `runWithTenant` tx) | **atomicity LOST** (different DB than mutation) |
+| **B2 — Contextual `db.db` (tenant DB)**                                                     | central, atomic | central, atomic                            | atomic, but **no central query**                |
+| **B3 — Mode-aware** (control-plane in single/shared, tenant DB in isolated + fan-out query) | central, atomic | central, atomic                            | atomic, aggregated on read                      |
 
 ### C. How audit writes achieve atomicity with the mutation
 
-| Approach | Mechanism | Trade-off |
-|---|---|---|
-| **C1 — `write(entry, tx)`** (pass explicit tx handle, like compliance `writeAuditEntry({ db })`) | Caller wraps mutation + audit in one `db.transaction()` | Simplest in-process; caller must remember to pass tx |
-| **C2 — Outbox pattern** (audit outbox row in same tx, relay moves to `audit_log`) | Decouples audit insert from mutation tx | Adds outbox table + relay process; overkill in-process |
-| **C3 — Workflow "transactional step group"** (engine wraps mutation step + audit step in one tx) | Transparent for workflow authors | Engine change; only covers workflow-path writes |
+| Approach                                                                                         | Mechanism                                               | Trade-off                                              |
+| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------- | ------------------------------------------------------ |
+| **C1 — `write(entry, tx)`** (pass explicit tx handle, like compliance `writeAuditEntry({ db })`) | Caller wraps mutation + audit in one `db.transaction()` | Simplest in-process; caller must remember to pass tx   |
+| **C2 — Outbox pattern** (audit outbox row in same tx, relay moves to `audit_log`)                | Decouples audit insert from mutation tx                 | Adds outbox table + relay process; overkill in-process |
+| **C3 — Workflow "transactional step group"** (engine wraps mutation step + audit step in one tx) | Transparent for workflow authors                        | Engine change; only covers workflow-path writes        |
 
 ### D. Action / entity enum vocabulary
 
-| Approach | Integrity | Decoupling |
-|---|---|---|
-| **D1 — Open `text` columns + per-module `as const` constants** | None at DB level; typed in TS per module | Fully decoupled |
-| **D2 — One global `pgEnum` in `@aspen-os/constants`** | DB-level | Couples every module to a committee-grown enum |
-| **D3 — Per-module `pgEnum`** | DB-level per module | N enum types, can't query across modules uniformly |
+| Approach                                                       | Integrity                                | Decoupling                                         |
+| -------------------------------------------------------------- | ---------------------------------------- | -------------------------------------------------- |
+| **D1 — Open `text` columns + per-module `as const` constants** | None at DB level; typed in TS per module | Fully decoupled                                    |
+| **D2 — One global `pgEnum` in `@aspen-os/constants`**          | DB-level                                 | Couples every module to a committee-grown enum     |
+| **D3 — Per-module `pgEnum`**                                   | DB-level per module                      | N enum types, can't query across modules uniformly |
 
 ## Recommendations
 
@@ -158,7 +158,7 @@ Add an `AuditUnit` to `@aspen-os/platform/server`, mirroring `LogUnit`:
 - Public surface: `p.audit.write(entry, tx?)`, `p.audit.query(filters)`,
   `p.audit.count(filters)`, `p.audit.withTransaction(entry, fn)`,
   `p.audit.diff(before, after)`, `p.audit.reconstructState(entityType,
-  entityId)`. (Note: implemented `withTransaction` takes an audit entry first
+entityId)`. (Note: implemented `withTransaction` takes an audit entry first
   and runs `fn` + write in one `db.transaction()`; `export()` is not
   implemented.)
 
@@ -214,11 +214,11 @@ Add an `AuditUnit` to `@aspen-os/platform/server`, mirroring `LogUnit`:
    creates/updates (null for delete). `diff(before, after)` produces the
    `changes: Record<string,{new,old}>` shape.
 5. **Placement** — mode-aware per B3 (above).
-6. **Capture completeness** — maximize coverage of the *intended* path by
+6. **Capture completeness** — maximize coverage of the _intended_ path by
    making audit a first-class step in every mutating code path (workflows,
    services, direct writes), so authors don't forget to record a record change.
    True blind-write replay is Layer 2's job; a periodic drift-detection job
-   (out of scope here) can *flag* unrecorded record changes but not replay
+   (out of scope here) can _flag_ unrecorded record changes but not replay
    them.
 
 **What "replay" means with Layer 1 — replaying DB records, not workflows:**
@@ -242,7 +242,7 @@ answers "which workflow run caused this record change?" for drill-down. It is
 not a replay handle; we do not replay workflows. `workflow_runs`/`workflow_steps`
 are a workflow-execution trace, orthogonal to record-state replay.
 
-**Honest boundary:** Layer 1 replays *audited* record changes. It cannot
+**Honest boundary:** Layer 1 replays _audited_ record changes. It cannot
 reconstruct a record's state from changes that bypassed `p.audit.write` (blind
 writes). This is the explicit boundary between Layer 1 and Layer 2.
 
@@ -267,8 +267,8 @@ writes). This is the explicit boundary between Layer 1 and Layer 2.
 
 A follow-up ADR will decide A2 scope (which tables, snapshot granularity) once a
 concrete blind-write replay requirement is demonstrated. Layer 2 depends on
-Layer 1 for actor/action/entity attribution — CDC alone cannot tell *who* did
-*what*; Layer 1 supplies that context to the record-change stream.
+Layer 1 for actor/action/entity attribution — CDC alone cannot tell _who_ did
+_what_; Layer 1 supplies that context to the record-change stream.
 
 ### Framework fix (prerequisite)
 
@@ -312,6 +312,7 @@ Indexes:
 ## Consequences
 
 **Positive:**
+
 - One audit mechanism across all modules; new modules get audit for free.
 - `p.audit` available via the same proxy-accessor pattern as `p.logs`, `p.db`.
 - Centralized read/export surface (only compliance had one today).
@@ -321,6 +322,7 @@ Indexes:
 - Module action/entity vocabularies stay flexible via open-string columns.
 
 **Negative:**
+
 - Open `text` action/entity columns lose DB-level enum integrity (mitigated by
   TS-level typing per module).
 - Mode-aware placement means "one centrally-queryable table" is true in

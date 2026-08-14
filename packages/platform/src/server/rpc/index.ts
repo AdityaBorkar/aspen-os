@@ -28,7 +28,7 @@ export class RpcUnit {
     config: RpcConfig = {},
     _deps: {
       auth: AuthUnit;
-      // biome-ignore lint/suspicious/noExplicitAny: drizzle NodePgDatabase invariance forces any here
+      // Biome-ignore lint/suspicious/noExplicitAny: drizzle NodePgDatabase invariance forces any here
       db: DatabaseUnit<any>;
       logs: LogUnit;
       pubsub: PubSubUnit;
@@ -55,7 +55,9 @@ export class RpcUnit {
     request: Request,
     context: RpcContext,
   ): Promise<{ matched: boolean; response: Response | undefined }> {
-    if (!this.rpcHandler) throw new Error("RPC unit not initialized");
+    if (!this.rpcHandler) {
+      throw new Error("RPC unit not initialized");
+    }
     return this.rpcHandler.handle(request, {
       context,
       prefix: this.prefix,

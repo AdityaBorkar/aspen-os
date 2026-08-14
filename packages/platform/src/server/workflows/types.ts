@@ -5,15 +5,11 @@ import type { AuditUnit } from "../audit";
 import type { AuthUnit } from "../auth";
 import type { PubSubUnit } from "../pubsub";
 
-type DrizzleDB<
-  TSchemas extends Record<string, unknown> = Record<string, never>,
-> = NodePgDatabase<TSchemas>;
+type DrizzleDB<TSchemas extends Record<string, unknown> = Record<string, never>> =
+  NodePgDatabase<TSchemas>;
 
 /** A Standard Schema v1 compatible schema. */
-export type StandardSchema<Input = unknown, Output = Input> = StandardSchemaV1<
-  Input,
-  Output
->;
+export type StandardSchema<Input = unknown, Output = Input> = StandardSchemaV1<Input, Output>;
 
 /** Infers the validated output type of a Standard Schema. */
 export type InferSchemaOutput<TSchema extends StandardSchema> =
@@ -28,20 +24,13 @@ export interface WorkflowStepInstance<
   TOutput,
   TSchemas extends Record<string, unknown> = Record<string, never>,
 > {
-  readonly handler: (
-    input: TInput,
-    ctx: WorkflowContext<TSchemas>,
-  ) => Promise<TOutput>;
+  readonly handler: (input: TInput, ctx: WorkflowContext<TSchemas>) => Promise<TOutput>;
   readonly name: string;
   readonly schema?: StandardSchema;
 }
 
 export interface StepRunner {
-  run<T>(
-    name: string,
-    fn: () => T | Promise<T>,
-    options?: StepOptions,
-  ): Promise<T>;
+  run<T>(name: string, fn: () => T | Promise<T>, options?: StepOptions): Promise<T>;
   run<TInput, TOutput>(
     step: WorkflowStepInstance<TInput, TOutput>,
     input: TInput,
@@ -50,9 +39,7 @@ export interface StepRunner {
   sleep(ms: number): Promise<void>;
 }
 
-export interface WorkflowContext<
-  TSchemas extends Record<string, unknown> = Record<string, never>,
-> {
+export interface WorkflowContext<TSchemas extends Record<string, unknown> = Record<string, never>> {
   actorId?: string;
   audit: AuditUnit;
   auth?: AuthUnit;
@@ -88,9 +75,4 @@ export interface WorkflowInstance<TInput, TOutput> {
 }
 
 export type WorkflowRunStatus = "running" | "completed" | "failed";
-export type WorkflowStepStatus =
-  | "pending"
-  | "running"
-  | "completed"
-  | "failed"
-  | "skipped";
+export type WorkflowStepStatus = "pending" | "running" | "completed" | "failed" | "skipped";

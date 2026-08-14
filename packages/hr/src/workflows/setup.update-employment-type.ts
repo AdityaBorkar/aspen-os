@@ -10,9 +10,7 @@ const InputSchema = object({
   patch: UpdateEmploymentTypeSchema,
 });
 
-export const updateEmploymentType = Workflow.name(
-  "hr.setup.update-employment-type",
-)
+export const updateEmploymentType = Workflow.name("hr.setup.update-employment-type")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, patch } = input;

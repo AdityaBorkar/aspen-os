@@ -42,8 +42,8 @@ export const RequiredSchema = pipe(string(), minLength(1, "Value is required"));
 
 export const OptionalSchema = optional(string());
 
-// org-chart structure: rows come from a drizzle select projection, so fields are
-// conservatively typed (`unknown`) to be robust regardless of drizzle typing
+// Org-chart structure: rows come from a drizzle select projection, so fields are
+// Conservatively typed (`unknown`) to be robust regardless of drizzle typing
 type OrgChartEmployee = {
   designation: unknown;
   firstName: unknown;
@@ -63,26 +63,18 @@ export async function ensureNoDuplicateAttendance(
   const [existing] = await db
     .select({ id: attendance.id })
     .from(attendance)
-    .where(
-      and(eq(attendance.employeeId, employeeId), eq(attendance.date, date)),
-    )
+    .where(and(eq(attendance.employeeId, employeeId), eq(attendance.date, date)))
     .limit(1);
 
   if (existing) {
-    throw new Error(
-      `Attendance already exists for employee "${employeeId}" on date "${date}".`,
-    );
+    throw new Error(`Attendance already exists for employee "${employeeId}" on date "${date}".`);
   }
 }
 
 // ─── Employee ──────────────────────────────────────────────────────────────
 
 export async function fetchEmployeeById(db: NodePgDatabase, id: string) {
-  const [result] = await db
-    .select()
-    .from(employee)
-    .where(eq(employee.id, id))
-    .limit(1);
+  const [result] = await db.select().from(employee).where(eq(employee.id, id)).limit(1);
 
   if (!result) {
     throw new Error(`Employee with id "${id}" not found.`);
@@ -92,11 +84,7 @@ export async function fetchEmployeeById(db: NodePgDatabase, id: string) {
 }
 
 export async function fetchEmployeeGroupById(db: NodePgDatabase, id: string) {
-  const [result] = await db
-    .select()
-    .from(employeeGroup)
-    .where(eq(employeeGroup.id, id))
-    .limit(1);
+  const [result] = await db.select().from(employeeGroup).where(eq(employeeGroup.id, id)).limit(1);
 
   if (!result) {
     throw new Error(`Employee group with id "${id}" not found.`);
@@ -144,11 +132,7 @@ export function buildEmployeeTree(
 // ─── Leave ─────────────────────────────────────────────────────────────────
 
 export async function fetchLeaveTypeById(db: NodePgDatabase, id: string) {
-  const [result] = await db
-    .select()
-    .from(leaveType)
-    .where(eq(leaveType.id, id))
-    .limit(1);
+  const [result] = await db.select().from(leaveType).where(eq(leaveType.id, id)).limit(1);
 
   if (!result) {
     throw new Error(`Leave type with id "${id}" not found.`);
@@ -158,11 +142,7 @@ export async function fetchLeaveTypeById(db: NodePgDatabase, id: string) {
 }
 
 export async function fetchLeavePeriodById(db: NodePgDatabase, id: string) {
-  const [result] = await db
-    .select()
-    .from(leavePeriod)
-    .where(eq(leavePeriod.id, id))
-    .limit(1);
+  const [result] = await db.select().from(leavePeriod).where(eq(leavePeriod.id, id)).limit(1);
 
   if (!result) {
     throw new Error(`Leave period with id "${id}" not found.`);
@@ -172,11 +152,7 @@ export async function fetchLeavePeriodById(db: NodePgDatabase, id: string) {
 }
 
 export async function fetchLeavePolicyById(db: NodePgDatabase, id: string) {
-  const [result] = await db
-    .select()
-    .from(leavePolicy)
-    .where(eq(leavePolicy.id, id))
-    .limit(1);
+  const [result] = await db.select().from(leavePolicy).where(eq(leavePolicy.id, id)).limit(1);
 
   if (!result) {
     throw new Error(`Leave policy with id "${id}" not found.`);
@@ -199,10 +175,7 @@ export async function fetchLeaveAllocationById(db: NodePgDatabase, id: string) {
   return result;
 }
 
-export async function fetchLeaveApplicationById(
-  db: NodePgDatabase,
-  id: string,
-) {
+export async function fetchLeaveApplicationById(db: NodePgDatabase, id: string) {
   const [result] = await db
     .select()
     .from(leaveApplication)
@@ -216,10 +189,7 @@ export async function fetchLeaveApplicationById(
   return result;
 }
 
-export async function fetchCompensatoryLeaveById(
-  db: NodePgDatabase,
-  id: string,
-) {
+export async function fetchCompensatoryLeaveById(db: NodePgDatabase, id: string) {
   const [result] = await db
     .select()
     .from(compensatoryLeaveRequest)
@@ -357,18 +327,14 @@ export async function checkLeaveBalance(
 
   if (allocations.length === 0) {
     if (!leaveTypeRecord.allowNegativeBalance) {
-      throw new Error(
-        `No active leave allocation found for leave type "${leaveType}".`,
-      );
+      throw new Error(`No active leave allocation found for leave type "${leaveType}".`);
     }
     return;
   }
 
   const allocation = allocations[0];
   if (!allocation) {
-    throw new Error(
-      `No active leave allocation found for leave type "${leaveType}".`,
-    );
+    throw new Error(`No active leave allocation found for leave type "${leaveType}".`);
   }
 
   const available =
@@ -459,11 +425,7 @@ export async function fetchFullAndFinalById(db: NodePgDatabase, id: string) {
 // ─── Overtime ──────────────────────────────────────────────────────────────
 
 export async function fetchOvertimeTypeById(db: NodePgDatabase, id: string) {
-  const [result] = await db
-    .select()
-    .from(overtimeType)
-    .where(eq(overtimeType.id, id))
-    .limit(1);
+  const [result] = await db.select().from(overtimeType).where(eq(overtimeType.id, id)).limit(1);
 
   if (!result) {
     throw new Error(`Overtime type with id "${id}" not found.`);
@@ -473,11 +435,7 @@ export async function fetchOvertimeTypeById(db: NodePgDatabase, id: string) {
 }
 
 export async function fetchOvertimeSlipById(db: NodePgDatabase, id: string) {
-  const [result] = await db
-    .select()
-    .from(overtimeSlip)
-    .where(eq(overtimeSlip.id, id))
-    .limit(1);
+  const [result] = await db.select().from(overtimeSlip).where(eq(overtimeSlip.id, id)).limit(1);
 
   if (!result) {
     throw new Error(`Overtime slip with id "${id}" not found.`);
@@ -499,11 +457,7 @@ export async function fetchPayrollSettings(db: NodePgDatabase) {
 }
 
 export async function fetchHolidayListById(db: NodePgDatabase, id: string) {
-  const [result] = await db
-    .select()
-    .from(holidayList)
-    .where(eq(holidayList.id, id))
-    .limit(1);
+  const [result] = await db.select().from(holidayList).where(eq(holidayList.id, id)).limit(1);
 
   if (!result) {
     throw new Error(`Holiday list with id "${id}" not found.`);
@@ -513,11 +467,7 @@ export async function fetchHolidayListById(db: NodePgDatabase, id: string) {
 }
 
 export async function fetchDepartmentById(db: NodePgDatabase, id: string) {
-  const [result] = await db
-    .select()
-    .from(department)
-    .where(eq(department.id, id))
-    .limit(1);
+  const [result] = await db.select().from(department).where(eq(department.id, id)).limit(1);
 
   if (!result) {
     throw new Error(`Department with id "${id}" not found.`);
@@ -558,8 +508,12 @@ export async function wouldCreateCircular(
   const maxDepth = 10;
 
   while (currentId !== null) {
-    if (currentId === deptId) return true;
-    if (depth >= maxDepth) return true;
+    if (currentId === deptId) {
+      return true;
+    }
+    if (depth >= maxDepth) {
+      return true;
+    }
 
     const [parent] = await db
       .select({ parentDepartment: department.parentDepartment })
@@ -567,7 +521,9 @@ export async function wouldCreateCircular(
       .where(eq(department.id, currentId))
       .limit(1);
 
-    if (!parent) break;
+    if (!parent) {
+      break;
+    }
     currentId = parent.parentDepartment;
     depth++;
   }
@@ -591,11 +547,7 @@ export async function validateParentDepartment(
 // ─── Shift ─────────────────────────────────────────────────────────────────
 
 export async function fetchShiftTypeById(db: NodePgDatabase, id: string) {
-  const [result] = await db
-    .select()
-    .from(shiftType)
-    .where(eq(shiftType.id, id))
-    .limit(1);
+  const [result] = await db.select().from(shiftType).where(eq(shiftType.id, id)).limit(1);
 
   if (!result) {
     throw new Error(`Shift type with id "${id}" not found.`);
@@ -605,11 +557,7 @@ export async function fetchShiftTypeById(db: NodePgDatabase, id: string) {
 }
 
 export async function fetchShiftRequestById(db: NodePgDatabase, id: string) {
-  const [result] = await db
-    .select()
-    .from(shiftRequest)
-    .where(eq(shiftRequest.id, id))
-    .limit(1);
+  const [result] = await db.select().from(shiftRequest).where(eq(shiftRequest.id, id)).limit(1);
 
   if (!result) {
     throw new Error(`Shift request with id "${id}" not found.`);
@@ -619,11 +567,7 @@ export async function fetchShiftRequestById(db: NodePgDatabase, id: string) {
 }
 
 export async function fetchShiftScheduleById(db: NodePgDatabase, id: string) {
-  const [result] = await db
-    .select()
-    .from(shiftSchedule)
-    .where(eq(shiftSchedule.id, id))
-    .limit(1);
+  const [result] = await db.select().from(shiftSchedule).where(eq(shiftSchedule.id, id)).limit(1);
 
   if (!result) {
     throw new Error(`Shift schedule with id "${id}" not found.`);
@@ -632,31 +576,24 @@ export async function fetchShiftScheduleById(db: NodePgDatabase, id: string) {
   return result;
 }
 
-export async function hasBranchAccessUtil(
-  db: NodePgDatabase,
-  hrUserId: string,
-  branchId: string,
-) {
+export async function hasBranchAccessUtil(db: NodePgDatabase, hrUserId: string, branchId: string) {
   const [direct] = await db
     .select({ id: hrUserBranchAccess.id })
     .from(hrUserBranchAccess)
     .where(
-      and(
-        eq(hrUserBranchAccess.hrUserId, hrUserId),
-        eq(hrUserBranchAccess.branchId, branchId),
-      ),
+      and(eq(hrUserBranchAccess.hrUserId, hrUserId), eq(hrUserBranchAccess.branchId, branchId)),
     )
     .limit(1);
-  if (direct) return true;
+  if (direct) {
+    return true;
+  }
 
   const [roleBased] = await db
     .select({ id: hrUserRole.id })
     .from(hrUserRole)
-    .where(
-      and(eq(hrUserRole.hrUserId, hrUserId), eq(hrUserRole.branchId, branchId)),
-    )
+    .where(and(eq(hrUserRole.hrUserId, hrUserId), eq(hrUserRole.branchId, branchId)))
     .limit(1);
-  return !!roleBased;
+  return Boolean(roleBased);
 }
 
 export async function getUserPermissionsUtil(
@@ -670,14 +607,14 @@ export async function getUserPermissionsUtil(
     .where(
       and(
         eq(hrUserRole.hrUserId, hrUserId),
-        branchId
-          ? or(isNull(hrUserRole.branchId), eq(hrUserRole.branchId, branchId))
-          : undefined,
+        branchId ? or(isNull(hrUserRole.branchId), eq(hrUserRole.branchId, branchId)) : undefined,
       ),
     );
 
   const roleIds = userRoles.map((ur) => ur.roleId);
-  if (roleIds.length === 0) return [];
+  if (roleIds.length === 0) {
+    return [];
+  }
 
   const permissions = await db
     .select({
@@ -691,7 +628,9 @@ export async function getUserPermissionsUtil(
   const seen = new Set<string>();
   return permissions.filter((p) => {
     const key = `${p.module}:${p.action}`;
-    if (seen.has(key)) return false;
+    if (seen.has(key)) {
+      return false;
+    }
     seen.add(key);
     return true;
   });
@@ -730,14 +669,16 @@ export async function getAccessibleBranchesUtil(
   const roleBased = await db
     .select({ branchId: hrUserRole.branchId })
     .from(hrUserRole)
-    .where(
-      and(eq(hrUserRole.hrUserId, hrUserId), isNotNull(hrUserRole.branchId)),
-    );
+    .where(and(eq(hrUserRole.hrUserId, hrUserId), isNotNull(hrUserRole.branchId)));
 
   const branchIds = new Set<string>();
-  for (const d of direct) branchIds.add(d.branchId);
+  for (const d of direct) {
+    branchIds.add(d.branchId);
+  }
   for (const r of roleBased) {
-    if (r.branchId) branchIds.add(r.branchId);
+    if (r.branchId) {
+      branchIds.add(r.branchId);
+    }
   }
   return [...branchIds];
 }

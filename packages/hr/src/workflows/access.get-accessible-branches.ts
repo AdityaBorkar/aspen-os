@@ -8,9 +8,7 @@ const InputSchema = object({
   hrUserId: pipe(string(), minLength(1, "hrUserId is required")),
 });
 
-export const getAccessibleBranches = Workflow.name(
-  "hr.access.get-accessible-branches",
-)
+export const getAccessibleBranches = Workflow.name("hr.access.get-accessible-branches")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { hrUserId } = input;
@@ -23,14 +21,16 @@ export const getAccessibleBranches = Workflow.name(
     const roleBased = await ctx.db
       .select({ branchId: hrUserRole.branchId })
       .from(hrUserRole)
-      .where(
-        and(eq(hrUserRole.hrUserId, hrUserId), isNotNull(hrUserRole.branchId)),
-      );
+      .where(and(eq(hrUserRole.hrUserId, hrUserId), isNotNull(hrUserRole.branchId)));
 
     const branchIds = new Set<string>();
-    for (const d of direct) branchIds.add(d.branchId);
+    for (const d of direct) {
+      branchIds.add(d.branchId);
+    }
     for (const r of roleBased) {
-      if (r.branchId) branchIds.add(r.branchId);
+      if (r.branchId) {
+        branchIds.add(r.branchId);
+      }
     }
     return [...branchIds];
   });

@@ -7,6 +7,4 @@ const InputSchema = object({});
 
 export const listHolidayLists = Workflow.name("hr.setup.list-holiday-lists")
   .input(InputSchema)
-  .handler(async (_input, ctx) => {
-    return ctx.db.select().from(holidayList);
-  });
+  .handler(async (_input, ctx) => ctx.db.select().from(holidayList));

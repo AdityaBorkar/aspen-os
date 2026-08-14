@@ -23,12 +23,7 @@ export const getItemFolder = Workflow.name("dms.folder.get")
     const [sizeRow] = await ctx.db
       .select({ totalSize: sql<number>`coalesce(sum(${dmsFile.size}), 0)` })
       .from(dmsFile)
-      .where(
-        and(
-          sql`${dmsFile.path} like ${`${fetched.path}/%`}`,
-          eq(dmsFile.isTrashed, false),
-        ),
-      );
+      .where(and(sql`${dmsFile.path} like ${`${fetched.path}/%`}`, eq(dmsFile.isTrashed, false)));
 
     return {
       ...fetched,

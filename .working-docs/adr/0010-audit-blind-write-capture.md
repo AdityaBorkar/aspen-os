@@ -8,7 +8,7 @@ Proposed — 2026-08-05
 
 [ADR-0009](./0009-audit-log-capability.md) implemented **Layer 1**: a deliberate,
 application-level `AuditUnit` (`p.audit`, `packages/platform/src/server/audit/`)
-that records *intended* operations with actor/action/entity semantics. Layer 1
+that records _intended_ operations with actor/action/entity semantics. Layer 1
 captures every change that goes through `ctx.audit.write(...)` — but it
 **cannot see writes that bypass that call** ("blind writes"). Anything that
 mutates a table without going through an instrumented workflow/service is
@@ -18,7 +18,7 @@ invisible to the audit trail:
 - Bugs where a code path forgets to call `ctx.audit.write`.
 - Future modules that don't adopt the convention.
 
-This ADR covers **Layer 2**: a DB-level mechanism that captures *actual* row
+This ADR covers **Layer 2**: a DB-level mechanism that captures _actual_ row
 changes regardless of how they were issued, so the audit trail is complete and
 blind writes are recoverable. It builds on Layer 1 for actor/action attribution
 and shares the replay contract (`seq`-ordered, full-state, idempotent).
@@ -34,8 +34,8 @@ and shares the replay contract (`seq`-ordered, full-state, idempotent).
 4. **DB-deterministic order** — the change record's sequence reflects real
    commit order at the DB, not application call order.
 5. **No actor/action/entity semantics by default** — a blind write has no
-   domain context. Layer 2 records *what changed*; Layer 1 supplies *who* and
-   *why* via correlation (same transaction / request id / run id).
+   domain context. Layer 2 records _what changed_; Layer 1 supplies _who_ and
+   _why_ via correlation (same transaction / request id / run id).
 
 ### Constraints from the existing platform
 
@@ -44,7 +44,7 @@ and shares the replay contract (`seq`-ordered, full-state, idempotent).
   at `prepareInfra()` time. There are no migration files (ADR-0004). Any DDL
   Layer 2 needs (trigger functions, event tables) must be applied in the same
   push window, or via post-push `db.execute(sql\`...\`)` like RLS does today
-  (`applyRlsPolicies`, `db/unit.ts:290-314`).
+(`applyRlsPolicies`, `db/unit.ts:290-314`).
 - **Three tenancy modes** (ADR-0007) with different DB topologies:
   - **single** — one DB; `audit_log` already there from Layer 1.
   - **shared** — one DB, RLS via `SET LOCAL app.tenant_id` + `tenant_role`
@@ -52,7 +52,7 @@ and shares the replay contract (`seq`-ordered, full-state, idempotent).
     connecting user/role; `current_setting('app.tenant_id', true)` is available
     inside a trigger function and gives the tenant for the row.
   - **isolated** — DB-per-tenant; each tenant DB has its own `audit_log` (Layer
-    1 placement). Triggers must be created in *every* tenant DB during
+    1 placement). Triggers must be created in _every_ tenant DB during
     `provisionTenant` / `$prepareTenant` (`db/unit.ts:173-242`), not just the
     control plane.
 - **Layer 1 `audit_log` already exists** (`packages/platform/src/server/audit/db-schema.ts`)
@@ -91,6 +91,7 @@ need an opt-in table registry so not every table is captured; recursion guard
 (disable the trigger on `audit_log` itself, or check `TG_TABLE_NAME`).
 
 **Integration points:**
+
 - A new `ModuleInfra.db.audited_tables?: string[]` (or a separate
   `ModuleInfra.audit.triggers`) so modules declare which tables to capture.
   `BasePlatform.$prepareInfra` merges the list and calls a new
@@ -99,7 +100,7 @@ need an opt-in table registry so not every table is captured; recursion guard
 - `applyAuditTriggers` creates one generic PL/pgSQL function
   `audit.capture_change()` and a per-table trigger `audit_<table>_chg`
   via `db.execute(sql\`...\`)`, exactly like `applyRlsPolicies` does for RLS
-  policies (`db/unit.ts:293-301`).
+policies (`db/unit.ts:293-301`).
 - In isolated mode, triggers are applied in `provisionTenant`
   (`db/unit.ts:212-217`, right after `pushSchemasTo(tenantDb, ...)`) and in
   `$prepareTenant` for already-existing tenants.
@@ -140,14 +141,14 @@ across all modes since it sits on the context wrapper.
 
 **Cons:** **error-prone and incomplete by design** — drizzle's query builder
 is not easily interceptable in full (raw `db.execute(sql\`...\`)`, batch
-inserts, `ON CONFLICT`, `.returning()` composites, `values()` shapes all
+inserts, `ON CONFLICT`, `.returning()`composites,`values()`shapes all
 vary); a generic wrapper cannot reliably extract the row set being changed;
 interception is on the *client* side, so it misses everything that doesn't
-go through the wrapper (raw pool queries, `db-studio`, other clients, the
+go through the wrapper (raw pool queries,`db-studio`, other clients, the
 trigger itself); doubles the query count (before-select per write); no
 atomicity guarantee (the audit insert is a separate statement unless
 wrapped in an explicit tx, which most call sites don't open). This is the
-weakest option for *blind* writes specifically — it only catches writes
+weakest option for _blind_ writes specifically — it only catches writes
 that already go through the instrumented client, which is the opposite of
 the goal.
 
@@ -171,13 +172,13 @@ A scheduled job compares the audited state (reconstructed via
 `reconstructState`) against the actual table state and flags rows that
 diverge.
 
-**Pros:** no write-path overhead; cheap; catches *that* a blind write
+**Pros:** no write-path overhead; cheap; catches _that_ a blind write
 happened.
 
-**Cons:** **detection, not replay** — it cannot reconstruct *what* the
+**Cons:** **detection, not replay** — it cannot reconstruct _what_ the
 blind write changed (only that the record now differs from the audited
 state); needs full-state capture to compare; not a capture mechanism at all.
-Useful as a *complement* to A, not a substitute.
+Useful as a _complement_ to A, not a substitute.
 
 ## Recommendations
 
@@ -188,7 +189,7 @@ Useful as a *complement* to A, not a substitute.
 Triggers need only post-push `db.execute(sql\`...\`)`, which is already the
 established pattern for RLS (`applyRlsPolicies`). A is atomic by
 construction, covers blind writes at the DB level, reuses the existing
-`audit_log` table and its `seq`, and costs one generic function + N small
+`audit_log`table and its`seq`, and costs one generic function + N small
 per-table triggers. B's fidelity is higher but its ops cost is
 disproportionate unless external streaming is a hard requirement.
 
@@ -200,7 +201,7 @@ not the DB); D is Layer 1 work, not Layer 2.
 **1. Opt-in table registry via `ModuleInfra`.**
 Add an `audited_tables` list to module infra (e.g.
 `ModuleInfra.audit.triggers: string[]` or `ModuleInfra.db.audited_tables`).
-Modules declare which of *their* tables should be trigger-captured. The
+Modules declare which of _their_ tables should be trigger-captured. The
 platform core declares its own (e.g. none of `logs`/`workflow_runs`/
 `audit_log`/`kv_store`; possibly `storage` metadata). Tables without a
 `tenant_id` (e.g. auth tables, `service_provider`, `tenant`) can still be
@@ -282,14 +283,14 @@ A trigger row has no actor or domain action. To attribute it:
   workflow.
 - For genuinely uncorrelated blind writes (a script, `db-studio`), the
   trigger row stands alone with `actor_id = 'system'`, `metadata.source =
-  'trigger'`, `request_id = NULL` — which is the honest representation.
+'trigger'`, `request_id = NULL` — which is the honest representation.
 
 **6. Replay semantics (shared with Layer 1).**
 Because both layers write to the same `audit_log` ordered by `seq`,
 `reconstructState(entityType, entityId)` (already implemented on
 `AuditUnit`) naturally incorporates trigger rows: it replays every change
 to that entity in `seq` order, applying `new_state`/`previous_state`
-regardless of source. Trigger rows have full snapshots, so they *improve*
+regardless of source. Trigger rows have full snapshots, so they _improve_
 reconstruction fidelity. The `metadata.source` flag lets a viewer
 distinguish deliberate vs. blind writes if needed.
 
@@ -302,7 +303,7 @@ matter for compliance/replay (the management's `tenant`,
 ### Complement: E — drift detection (optional, later)
 
 A periodic job comparing `reconstructState` output to actual row state
-flags *untriggered* drift (e.g. a table that isn't in `audited_tables` but
+flags _untriggered_ drift (e.g. a table that isn't in `audited_tables` but
 was changed). This doesn't replay the change, but it surfaces gaps in the
 opt-in registry so the team can decide whether to add the table to
 `audited_tables`. Cheap to add once Layer 1 + A are in place; recommend
@@ -313,7 +314,7 @@ only after A is stable.
 Defer B until there is a concrete need for: (a) streaming changes to an
 external system (search index, data warehouse, event bus), (b) surviving
 trigger-dropping DDL, or (c) `TRUNCATE` capture. At that point B becomes a
-*consumer* of the same `audit_log` contract (or a parallel stream joined
+_consumer_ of the same `audit_log` contract (or a parallel stream joined
 to it), not a replacement for A — and the ops investment (slots, `wal_level`,
 consumers) is justified by the external-streaming requirement, not by
 blind-write capture alone.
@@ -321,6 +322,7 @@ blind-write capture alone.
 ## Consequences
 
 **Positive (A):**
+
 - Blind writes on opted-in tables are captured with full snapshots, in
   commit order, atomically with the mutation.
 - One replay path (`audit_log` + `seq`) serves both layers;
@@ -329,6 +331,7 @@ blind-write capture alone.
 - Per-module opt-in keeps cost predictable.
 
 **Negative (A):**
+
 - Per-table trigger DDL must be maintained and applied per tenant DB in
   isolated mode (ops surface grows with table count × tenant count).
 - Write-path cost: one `jsonb` snapshot insert per changed row (acceptable
@@ -359,7 +362,7 @@ blind-write capture alone.
 5. **Separate `audit_changelog` table** — rejected: keeping two capture
    paths in two tables doubles retention, query, and replay surface for no
    benefit. Both layers write one `audit_log`, distinguished by
-  `metadata.source`.
+   `metadata.source`.
 
 ## Relationship to ADR-0009
 

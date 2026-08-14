@@ -6,6 +6,4 @@ import { fetchTaskStep } from "./steps/fetch-task";
 
 export const getTask = Workflow.name("task.get")
   .input(object({ id: IdSchema }))
-  .handler(async ({ id }, ctx) => {
-    return ctx.step.run(fetchTaskStep, { id });
-  });
+  .handler(async ({ id }, ctx) => ctx.step.run(fetchTaskStep, { id }));

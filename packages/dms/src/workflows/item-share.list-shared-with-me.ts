@@ -9,20 +9,13 @@ const ListSharedWithMeSchema = object({
   userId: string(),
 });
 
-export const listSharedWithMe = Workflow.name(
-  "dms.item-share.list-shared-with-me",
-)
+export const listSharedWithMe = Workflow.name("dms.item-share.list-shared-with-me")
   .input(ListSharedWithMeSchema)
-  .handler(async ({ userId }, ctx) => {
-    return ctx.db
+  .handler(async ({ userId }, ctx) =>
+    ctx.db
       .select()
       .from(dmsItemShare)
-      .where(
-        and(
-          eq(dmsItemShare.granteeId, userId),
-          eq(dmsItemShare.granteeType, "user"),
-        ),
-      )
+      .where(and(eq(dmsItemShare.granteeId, userId), eq(dmsItemShare.granteeType, "user")))
       .limit(50)
-      .offset(0);
-  });
+      .offset(0),
+  );

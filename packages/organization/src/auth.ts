@@ -2,15 +2,7 @@ import { defineAcl } from "@aspen-os/platform/server";
 
 export const acl = defineAcl({
   address: ["create", "read", "update", "delete", "set_primary"],
-  bankAccount: [
-    "activate",
-    "create",
-    "deactivate",
-    "delete",
-    "read",
-    "set_primary",
-    "update",
-  ],
+  bankAccount: ["activate", "create", "deactivate", "delete", "read", "set_primary", "update"],
   branch: [
     "activate",
     "archive",

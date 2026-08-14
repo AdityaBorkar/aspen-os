@@ -10,9 +10,7 @@ const InputSchema = object({
   patch: UpdateFullAndFinalSchema,
 });
 
-export const updateFullAndFinal = Workflow.name(
-  "hr.lifecycle.update-full-and-final",
-)
+export const updateFullAndFinal = Workflow.name("hr.lifecycle.update-full-and-final")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, patch } = input;

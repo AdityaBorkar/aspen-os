@@ -15,10 +15,10 @@ import {
 import { task } from "../db-schemas/task";
 import type { TaskFilters } from "../types";
 
-export function buildTaskWhereClause(
-  filters: TaskFilters | undefined,
-): SQL | undefined {
-  if (!filters) return undefined;
+export function buildTaskWhereClause(filters: TaskFilters | undefined): SQL | undefined {
+  if (!filters) {
+    return undefined;
+  }
 
   const conditions: SQL[] = [];
 
@@ -52,9 +52,7 @@ export function buildTaskWhereClause(
   }
   if (filters.search) {
     const term = `%${filters.search}%`;
-    conditions.push(
-      or(ilike(task.title, term), ilike(task.description, term)) as SQL,
-    );
+    conditions.push(or(ilike(task.title, term), ilike(task.description, term)) as SQL);
   }
   if (filters.assigneeId) {
     conditions.push(
@@ -73,36 +71,30 @@ export function buildDateRangeClause(
   after?: Date,
 ): SQL | undefined {
   const conditions: SQL[] = [];
-  if (before) conditions.push(lte(column, before));
-  if (after) conditions.push(gte(column, after));
+  if (before) {
+    conditions.push(lte(column, before));
+  }
+  if (after) {
+    conditions.push(gte(column, after));
+  }
   return conditions.length > 0 ? and(...conditions) : undefined;
 }
 
-export function buildArrayAnyClause(
-  column: typeof task.labels,
-  values: string[],
-): SQL {
+export function buildArrayAnyClause(column: typeof task.labels, values: string[]): SQL {
   return sql`${column} && ${values}`;
 }
 
-export function buildArrayAllClause(
-  column: typeof task.labels,
-  values: string[],
-): SQL {
+export function buildArrayAllClause(column: typeof task.labels, values: string[]): SQL {
   return sql`${column} @> ${values}`;
 }
 
-export function buildEmptyClause(
-  column: typeof task.dueDate,
-  isEmpty: boolean,
-): SQL {
+export function buildEmptyClause(column: typeof task.dueDate, isEmpty: boolean): SQL {
   return isEmpty ? isNull(column) : isNotNull(column);
 }
 
-export function buildInClause(
-  column: typeof task.priority,
-  values: string[],
-): SQL {
-  if (values.length === 0) return sql`1=1`;
+export function buildInClause(column: typeof task.priority, values: string[]): SQL {
+  if (values.length === 0) {
+    return sql`1=1`;
+  }
   return inArray(column, values as never[]);
 }

@@ -13,8 +13,7 @@ const createObligation = Workflow.name("obligation.create")
     const parsed = input;
 
     const defaultReminderDays =
-      parsed.defaultReminderDays ??
-      (parsed.expiryBased ? [90, 60, 30, 7] : [30, 15, 7, 1]);
+      parsed.defaultReminderDays ?? (parsed.expiryBased ? [90, 60, 30, 7] : [30, 15, 7, 1]);
 
     const [result] = await ctx.db
       .insert(complianceObligation)
@@ -34,9 +33,7 @@ const createObligation = Workflow.name("obligation.create")
         documentType: parsed.documentType ?? null,
         dueDay: parsed.dueDay ?? null,
         dueMonthOffset: parsed.dueMonthOffset ?? null,
-        endDate: parsed.endDate
-          ? parsed.endDate.toISOString().split("T")[0]
-          : null,
+        endDate: parsed.endDate ? parsed.endDate.toISOString().split("T")[0] : null,
         expiryBased: parsed.expiryBased ?? false,
         expiryDurationMonths: parsed.expiryDurationMonths ?? null,
         frequency: parsed.frequency,
@@ -50,7 +47,9 @@ const createObligation = Workflow.name("obligation.create")
       })
       .returning();
 
-    if (!result) throw new Error("Database operation returned no result");
+    if (!result) {
+      throw new Error("Database operation returned no result");
+    }
 
     await ctx.audit.write({
       action: "created",

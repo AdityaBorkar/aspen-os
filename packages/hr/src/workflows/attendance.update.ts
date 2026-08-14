@@ -21,12 +21,8 @@ export const update = Workflow.name("hr.attendance.update")
       .update(attendance)
       .set({
         ...parsed,
-        checkInTime: parsed.checkInTime
-          ? new Date(parsed.checkInTime)
-          : undefined,
-        checkOutTime: parsed.checkOutTime
-          ? new Date(parsed.checkOutTime)
-          : undefined,
+        checkInTime: parsed.checkInTime ? new Date(parsed.checkInTime) : undefined,
+        checkOutTime: parsed.checkOutTime ? new Date(parsed.checkOutTime) : undefined,
         updatedAt: new Date(),
       })
       .where(eq(attendance.id, id))

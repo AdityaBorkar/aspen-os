@@ -11,9 +11,7 @@ const InputSchema = object({
   toDate: pipe(string(), minLength(1, "toDate is required")),
 });
 
-export const getOvertimeSummary = Workflow.name(
-  "hr.overtime.get-overtime-summary",
-)
+export const getOvertimeSummary = Workflow.name("hr.overtime.get-overtime-summary")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { employeeId, fromDate, toDate } = input;

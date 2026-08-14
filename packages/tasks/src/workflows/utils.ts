@@ -18,11 +18,7 @@ export async function generateTaskNumber(
   db: DrizzleDB,
   projectId: string,
 ): Promise<{ displayNumber: string; taskSeq: number }> {
-  const [proj] = await db
-    .select()
-    .from(project)
-    .where(eq(project.id, projectId))
-    .limit(1);
+  const [proj] = await db.select().from(project).where(eq(project.id, projectId)).limit(1);
 
   if (!proj) {
     throw new Error(`Project with id "${projectId}" not found.`);
@@ -30,10 +26,7 @@ export async function generateTaskNumber(
 
   const taskSeq = proj.taskCounter + 1;
 
-  await db
-    .update(project)
-    .set({ taskCounter: taskSeq })
-    .where(eq(project.id, projectId));
+  await db.update(project).set({ taskCounter: taskSeq }).where(eq(project.id, projectId));
 
   return { displayNumber: `${proj.key}-${taskSeq}`, taskSeq };
 }
@@ -44,11 +37,7 @@ export async function validateParentTask(
   projectId: string,
   currentTaskId: string | undefined,
 ): Promise<void> {
-  const [parent] = await db
-    .select()
-    .from(task)
-    .where(eq(task.id, parentId))
-    .limit(1);
+  const [parent] = await db.select().from(task).where(eq(task.id, parentId)).limit(1);
 
   if (!parent) {
     throw new Error(`Parent task with id "${parentId}" not found.`);
@@ -59,11 +48,7 @@ export async function validateParentTask(
   }
 
   if (currentTaskId) {
-    const wouldCycle = await wouldCreateParentCycle(
-      db,
-      parentId,
-      currentTaskId,
-    );
+    const wouldCycle = await wouldCreateParentCycle(db, parentId, currentTaskId);
     if (wouldCycle) {
       throw new Error("Setting this parent would create a circular reference.");
     }
@@ -71,9 +56,7 @@ export async function validateParentTask(
 
   const depth = await getParentDepth(db, parentId);
   if (depth >= MAX_NESTING_DEPTH - 1) {
-    throw new Error(
-      `Maximum nesting depth of ${MAX_NESTING_DEPTH} levels would be exceeded.`,
-    );
+    throw new Error(`Maximum nesting depth of ${MAX_NESTING_DEPTH} levels would be exceeded.`);
   }
 }
 
@@ -86,8 +69,12 @@ export async function wouldCreateParentCycle(
   let depth = 0;
 
   while (currentId !== null) {
-    if (currentId === taskId) return true;
-    if (depth >= MAX_NESTING_DEPTH) return true;
+    if (currentId === taskId) {
+      return true;
+    }
+    if (depth >= MAX_NESTING_DEPTH) {
+      return true;
+    }
 
     const [parent] = await db
       .select({ parentId: task.parentId })
@@ -95,7 +82,9 @@ export async function wouldCreateParentCycle(
       .where(eq(task.id, currentId))
       .limit(1);
 
-    if (!parent) break;
+    if (!parent) {
+      break;
+    }
     currentId = parent.parentId;
     depth++;
   }
@@ -103,10 +92,7 @@ export async function wouldCreateParentCycle(
   return false;
 }
 
-export async function getParentDepth(
-  db: DrizzleDB,
-  taskId: string,
-): Promise<number> {
+export async function getParentDepth(db: DrizzleDB, taskId: string): Promise<number> {
   let depth = 0;
   let currentId: string | null = taskId;
 
@@ -117,35 +103,28 @@ export async function getParentDepth(
       .where(eq(task.id, currentId))
       .limit(1);
 
-    if (!parent?.parentId) break;
+    if (!parent?.parentId) {
+      break;
+    }
     currentId = parent.parentId;
     depth++;
 
     if (depth > MAX_NESTING_DEPTH) {
-      throw new Error(
-        `Task hierarchy exceeds maximum depth of ${MAX_NESTING_DEPTH}.`,
-      );
+      throw new Error(`Task hierarchy exceeds maximum depth of ${MAX_NESTING_DEPTH}.`);
     }
   }
 
   return depth;
 }
 
-export async function unsetLeadAssignee(
-  db: DrizzleDB,
-  taskId: string,
-): Promise<void> {
+export async function unsetLeadAssignee(db: DrizzleDB, taskId: string): Promise<void> {
   await db
     .update(taskAssignee)
     .set({ isLead: false })
     .where(and(eq(taskAssignee.taskId, taskId), eq(taskAssignee.isLead, true)));
 }
 
-export async function ensureWatcher(
-  db: DrizzleDB,
-  taskId: string,
-  userId: string,
-): Promise<void> {
+export async function ensureWatcher(db: DrizzleDB, taskId: string, userId: string): Promise<void> {
   const [existing] = await db
     .select({ id: watcher.id })
     .from(watcher)
@@ -202,21 +181,11 @@ export async function unsetDefaultProjectStatus(
   await db
     .update(status)
     .set({ isDefault: false })
-    .where(
-      projectId === null
-        ? isNull(status.projectId)
-        : eq(status.projectId, projectId),
-    );
+    .where(projectId === null ? isNull(status.projectId) : eq(status.projectId, projectId));
 }
 
-export async function unsetDefaultTaskType(
-  db: DrizzleDB,
-  projectId: string,
-): Promise<void> {
-  await db
-    .update(taskType)
-    .set({ isDefault: false })
-    .where(eq(taskType.projectId, projectId));
+export async function unsetDefaultTaskType(db: DrizzleDB, projectId: string): Promise<void> {
+  await db.update(taskType).set({ isDefault: false }).where(eq(taskType.projectId, projectId));
 }
 
 export async function unsetDefaultSavedView(
@@ -224,10 +193,7 @@ export async function unsetDefaultSavedView(
   ownerId: string,
   projectId: string | null,
 ): Promise<void> {
-  const conditions = [
-    eq(savedView.ownerId, ownerId),
-    eq(savedView.isDefault, true),
-  ];
+  const conditions = [eq(savedView.ownerId, ownerId), eq(savedView.isDefault, true)];
 
   if (projectId) {
     conditions.push(eq(savedView.projectId, projectId));

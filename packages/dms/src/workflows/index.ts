@@ -43,11 +43,7 @@ import {
   trash,
 } from "./items";
 import { listPins, pinItem, unpinItem } from "./pin.create";
-import {
-  promoteSearchToView,
-  quickSearchWorkflow,
-  searchDocumentsWorkflow,
-} from "./search";
+import { promoteSearchToView, quickSearchWorkflow, searchDocumentsWorkflow } from "./search";
 import { getSettingWorkflow, setSettingWorkflow } from "./settings";
 import { createShare } from "./share.create";
 import { listShares, listSharesByGrantee } from "./share.list";

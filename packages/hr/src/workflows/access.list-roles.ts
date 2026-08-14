@@ -17,11 +17,15 @@ export const listRoles = Workflow.name("hr.access.list-roles")
     const parsed = filters ? parse(HrRoleFiltersSchema, filters) : {};
     const conditions = [];
 
-    if (parsed.isActive !== undefined)
+    if (parsed.isActive !== undefined) {
       conditions.push(eq(hrRole.isActive, parsed.isActive));
-    if (parsed.isSystem !== undefined)
+    }
+    if (parsed.isSystem !== undefined) {
       conditions.push(eq(hrRole.isSystem, parsed.isSystem));
-    if (parsed.name) conditions.push(eq(hrRole.name, parsed.name));
+    }
+    if (parsed.name) {
+      conditions.push(eq(hrRole.name, parsed.name));
+    }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 

@@ -21,8 +21,9 @@ export const updateSp = Workflow.name("sp.update")
     await ctx.step.run(fetchServiceProviderStep, { id });
 
     const data = stripUndefined(patch);
-    if (Object.keys(data).length === 0)
+    if (Object.keys(data).length === 0) {
       return ctx.step.run(fetchServiceProviderStep, { id });
+    }
 
     await ctx.step.run("update-record", async () => {
       await ctx.db

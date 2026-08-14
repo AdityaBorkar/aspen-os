@@ -56,6 +56,4 @@ export const FolderDownloadLinkOptionsSchema = object({
   includeSubfolders: optional(boolean(), true),
 });
 
-export type FolderDownloadLinkOptions = InferOutput<
-  typeof FolderDownloadLinkOptionsSchema
->;
+export type FolderDownloadLinkOptions = InferOutput<typeof FolderDownloadLinkOptionsSchema>;

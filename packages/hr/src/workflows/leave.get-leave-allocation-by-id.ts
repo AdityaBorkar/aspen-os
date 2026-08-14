@@ -8,9 +8,7 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const getLeaveAllocationById = Workflow.name(
-  "hr.leave.get-leave-allocation-by-id",
-)
+export const getLeaveAllocationById = Workflow.name("hr.leave.get-leave-allocation-by-id")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id } = input;

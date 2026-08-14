@@ -10,9 +10,7 @@ const InputSchema = object({
   patch: UpdateExitInterviewSchema,
 });
 
-export const updateExitInterview = Workflow.name(
-  "hr.lifecycle.update-exit-interview",
-)
+export const updateExitInterview = Workflow.name("hr.lifecycle.update-exit-interview")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, patch } = input;

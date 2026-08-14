@@ -8,9 +8,7 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const deleteOvertimeType = Workflow.name(
-  "hr.overtime.delete-overtime-type",
-)
+export const deleteOvertimeType = Workflow.name("hr.overtime.delete-overtime-type")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id } = input;

@@ -8,9 +8,7 @@ const InputSchema = object({
   input: AssignPermissionSchema,
 });
 
-export const assignPermissionToRole = Workflow.name(
-  "hr.access.assign-permission-to-role",
-)
+export const assignPermissionToRole = Workflow.name("hr.access.assign-permission-to-role")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(AssignPermissionSchema, input);

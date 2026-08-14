@@ -1,17 +1,9 @@
 import { uuidv7 } from "@aspen-os/platform/server";
-import {
-  boolean,
-  integer,
-  pgTable,
-  text,
-  timestamp,
-} from "drizzle-orm/pg-core";
+import { boolean, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const dmsDocumentClass = pgTable("dms_document_class", {
   color: text("color"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   createdBy: text("created_by").notNull(),
   description: text("description"),
   fileNamingSchema: text("file_naming_schema"),
@@ -20,9 +12,7 @@ export const dmsDocumentClass = pgTable("dms_document_class", {
   isActive: boolean("is_active").notNull().default(true),
   name: text("name").notNull(),
   retentionDays: integer("retention_days"),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export type DmsDocumentClass = typeof dmsDocumentClass.$inferSelect;

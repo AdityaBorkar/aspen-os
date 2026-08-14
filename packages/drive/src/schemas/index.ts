@@ -60,16 +60,8 @@ export {
 } from "./public-link";
 export type { SearchOptions } from "./search";
 export { SearchOptionsSchema } from "./search";
-export type {
-  CreateShareInput,
-  ListSharedWithMeOptions,
-  UpdateShareInput,
-} from "./share";
-export {
-  CreateShareSchema,
-  ListSharedWithMeOptionsSchema,
-  UpdateShareSchema,
-} from "./share";
+export type { CreateShareInput, ListSharedWithMeOptions, UpdateShareInput } from "./share";
+export { CreateShareSchema, ListSharedWithMeOptionsSchema, UpdateShareSchema } from "./share";
 export type { EmptyTrashOptions, ListTrashOptions } from "./trash";
 export { EmptyTrashOptionsSchema, ListTrashOptionsSchema } from "./trash";
 export { HexColorSchema, ItemNameSchema, LabelNameSchema } from "./utils";

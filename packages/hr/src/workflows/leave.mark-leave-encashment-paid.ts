@@ -8,9 +8,7 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const markLeaveEncashmentPaid = Workflow.name(
-  "hr.leave.mark-leave-encashment-paid",
-)
+export const markLeaveEncashmentPaid = Workflow.name("hr.leave.mark-leave-encashment-paid")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id } = input;

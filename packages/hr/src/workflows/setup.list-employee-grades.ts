@@ -7,6 +7,4 @@ const InputSchema = object({});
 
 export const listEmployeeGrades = Workflow.name("hr.setup.list-employee-grades")
   .input(InputSchema)
-  .handler(async (_input, ctx) => {
-    return ctx.db.select().from(employeeGrade);
-  });
+  .handler(async (_input, ctx) => ctx.db.select().from(employeeGrade));

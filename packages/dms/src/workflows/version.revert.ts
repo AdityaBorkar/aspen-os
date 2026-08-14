@@ -26,9 +26,7 @@ export const revertToVersion = Workflow.name("dms.version.revert")
     const doc = await ctx.step.run(fetchDocumentStep, { documentId });
 
     if (doc.status === "deleted") {
-      throw new Error(
-        `Document "${documentId}" is deleted and cannot be reverted.`,
-      );
+      throw new Error(`Document "${documentId}" is deleted and cannot be reverted.`);
     }
 
     if (version === doc.version) {
@@ -47,9 +45,7 @@ export const revertToVersion = Workflow.name("dms.version.revert")
         )
         .limit(1);
       if (!row) {
-        throw new Error(
-          `Document "${documentId}" has no version "${version}".`,
-        );
+        throw new Error(`Document "${documentId}" has no version "${version}".`);
       }
       return row;
     });

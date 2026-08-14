@@ -25,12 +25,8 @@ export const listByLabel = Workflow.name("drive.label.list-by-label")
       .limit(limit)
       .offset(offset);
 
-    const folderIds = itemLabels
-      .filter((l) => l.itemType === "folder")
-      .map((l) => l.itemId);
-    const fileIds = itemLabels
-      .filter((l) => l.itemType === "file")
-      .map((l) => l.itemId);
+    const folderIds = itemLabels.filter((l) => l.itemType === "folder").map((l) => l.itemId);
+    const fileIds = itemLabels.filter((l) => l.itemType === "file").map((l) => l.itemId);
 
     const folders =
       folderIds.length > 0
@@ -38,10 +34,7 @@ export const listByLabel = Workflow.name("drive.label.list-by-label")
             .select()
             .from(driveFolder)
             .where(
-              and(
-                eq(driveFolder.isTrashed, false),
-                sql`${driveFolder.id} = ANY(${folderIds})`,
-              ),
+              and(eq(driveFolder.isTrashed, false), sql`${driveFolder.id} = ANY(${folderIds})`),
             )
         : [];
 
@@ -50,12 +43,7 @@ export const listByLabel = Workflow.name("drive.label.list-by-label")
         ? await ctx.db
             .select()
             .from(driveFile)
-            .where(
-              and(
-                eq(driveFile.isTrashed, false),
-                sql`${driveFile.id} = ANY(${fileIds})`,
-              ),
-            )
+            .where(and(eq(driveFile.isTrashed, false), sql`${driveFile.id} = ANY(${fileIds})`))
         : [];
 
     return { files, folders };

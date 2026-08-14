@@ -20,7 +20,9 @@ function prefixEntries(
   for (const key in entries) {
     const path = key.startsWith("./") ? key.slice(2) : key;
     const entry = entries[key];
-    if (entry !== undefined) out[`${prefix}${path}`] = entry;
+    if (entry !== undefined) {
+      out[`${prefix}${path}`] = entry;
+    }
   }
   return out;
 }

@@ -10,9 +10,7 @@ const InputSchema = object({
   patch: UpdatePayrollSettingsSchema,
 });
 
-export const updatePayrollSettings = Workflow.name(
-  "hr.setup.update-payroll-settings",
-)
+export const updatePayrollSettings = Workflow.name("hr.setup.update-payroll-settings")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { patch } = input;
@@ -21,10 +19,7 @@ export const updatePayrollSettings = Workflow.name(
     const parsed = parse(UpdatePayrollSettingsSchema, patch);
 
     if (!current) {
-      const [created] = await ctx.db
-        .insert(payrollSettings)
-        .values(parsed)
-        .returning();
+      const [created] = await ctx.db.insert(payrollSettings).values(parsed).returning();
       return created;
     }
 

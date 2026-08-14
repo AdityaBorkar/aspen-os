@@ -8,9 +8,7 @@ const InputSchema = object({
   input: CreateAttendanceRequestSchema,
 });
 
-export const createAttendanceRequest = Workflow.name(
-  "hr.attendance.create-attendance-request",
-)
+export const createAttendanceRequest = Workflow.name("hr.attendance.create-attendance-request")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateAttendanceRequestSchema, input);

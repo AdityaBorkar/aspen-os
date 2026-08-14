@@ -17,9 +17,7 @@ export const deleteProject = Workflow.name("project.delete")
       .limit(1);
 
     if (taskExists) {
-      throw new Error(
-        "Cannot delete project with existing tasks. Archive instead.",
-      );
+      throw new Error("Cannot delete project with existing tasks. Archive instead.");
     }
 
     await ctx.db.delete(projectMember).where(eq(projectMember.projectId, id));

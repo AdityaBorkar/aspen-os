@@ -4,15 +4,8 @@ import { object, parse } from "valibot";
 
 import { dmsFile } from "../db-schemas";
 import { ITEM_EVENTS } from "../pubsub";
-import {
-  checkNameUniqueness,
-  computeFilePath,
-  getFolderPath,
-} from "../services/item-path-service";
-import {
-  computeStorageKey,
-  move as moveStorage,
-} from "../services/item-storage-bridge";
+import { checkNameUniqueness, computeFilePath, getFolderPath } from "../services/item-path-service";
+import { computeStorageKey, move as moveStorage } from "../services/item-storage-bridge";
 import { MoveItemFileSchema } from "../types";
 import { FileIdSchema } from "./item-utils";
 import { fetchItemFileStep } from "./steps/fetch-item-file";
@@ -40,9 +33,7 @@ export const moveItemFile = Workflow.name("dms.file.move")
     );
 
     const newFolderPath = newFolderId
-      ? await ctx.step.run("get-folder-path", async () =>
-          getFolderPath({ folderId: newFolderId }),
-        )
+      ? await ctx.step.run("get-folder-path", async () => getFolderPath({ folderId: newFolderId }))
       : "";
     const newStorageKey = computeStorageKey({
       fileName: file.name,

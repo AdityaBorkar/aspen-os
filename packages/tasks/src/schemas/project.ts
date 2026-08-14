@@ -50,14 +50,10 @@ export const CreateProjectMemberSchema = object({
   userId: pipe(string(), minLength(1, "userId is required")),
 });
 
-export type CreateProjectMemberInput = InferOutput<
-  typeof CreateProjectMemberSchema
->;
+export type CreateProjectMemberInput = InferOutput<typeof CreateProjectMemberSchema>;
 
 export const UpdateProjectMemberSchema = object({
   role: optional(ProjectMemberRoleSchema),
 });
 
-export type UpdateProjectMemberInput = InferOutput<
-  typeof UpdateProjectMemberSchema
->;
+export type UpdateProjectMemberInput = InferOutput<typeof UpdateProjectMemberSchema>;

@@ -19,20 +19,13 @@ export const placeLegalHold = Workflow.name("dms.hold.place")
   .handler(async ({ documentId, placedBy, reason }, ctx) => {
     const doc = await ctx.step.run(fetchDocumentStep, { documentId });
     if (doc.status === "deleted" || doc.status === "triaged") {
-      throw new Error(
-        `Document "${documentId}" cannot be placed on hold in its current state.`,
-      );
+      throw new Error(`Document "${documentId}" cannot be placed on hold in its current state.`);
     }
 
     const [active] = await ctx.db
       .select()
       .from(dmsLegalHold)
-      .where(
-        and(
-          eq(dmsLegalHold.documentId, documentId),
-          isNull(dmsLegalHold.releasedAt),
-        ),
-      )
+      .where(and(eq(dmsLegalHold.documentId, documentId), isNull(dmsLegalHold.releasedAt)))
       .limit(1);
 
     if (active) {

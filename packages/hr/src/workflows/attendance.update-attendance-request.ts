@@ -10,9 +10,7 @@ const InputSchema = object({
   patch: UpdateAttendanceRequestSchema,
 });
 
-export const updateAttendanceRequest = Workflow.name(
-  "hr.attendance.update-attendance-request",
-)
+export const updateAttendanceRequest = Workflow.name("hr.attendance.update-attendance-request")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, patch } = input;

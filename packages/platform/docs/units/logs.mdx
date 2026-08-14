@@ -10,8 +10,8 @@ The `LogUnit` (`$name: "logs"`) provides structured logging with a buffered writ
 
 ```ts title="src/server/log/types.ts"
 interface LogConfig {
-  defaultLevel?: LogLevel;  // default: "info"
-  serviceName?: string;     // default: "app"
+  defaultLevel?: LogLevel; // default: "info"
+  serviceName?: string; // default: "app"
 }
 
 type LogLevel = "debug" | "info" | "warn" | "error" | "fatal";
@@ -73,7 +73,7 @@ const requestLogger = platform.logs.child({
   userId: "user-456",
 });
 
-requestLogger.info("Processing request");    // includes requestId + userId
+requestLogger.info("Processing request"); // includes requestId + userId
 requestLogger.error("Validation failed", err); // includes requestId + userId + error
 ```
 
@@ -106,7 +106,8 @@ const entries = await platform.logs.query({
 ```
 
 <Callout type="info">
-  Both `query()` and `getStats()` automatically scope results to the current `tenantId` from the request context. You don't need to pass `tenantId` manually.
+  Both `query()` and `getStats()` automatically scope results to the current `tenantId` from the
+  request context. You don't need to pass `tenantId` manually.
 </Callout>
 
 ### Log Stats
@@ -114,11 +115,7 @@ const entries = await platform.logs.query({
 Get aggregate statistics:
 
 ```ts
-const stats = await platform.logs.getStats(
-  "recruiter-api",
-  new Date("2024-01-01"),
-  new Date(),
-);
+const stats = await platform.logs.getStats("recruiter-api", new Date("2024-01-01"), new Date());
 
 // stats = {
 //   total: 15234,
@@ -138,9 +135,9 @@ interface LogEntry {
   timestamp: Date;
   metadata?: Record<string, unknown>;
   error?: { name: string; message: string; stack?: string };
-  traceId?: string;      // populated from metadata, if provided
-  spanId?: string;       // populated from metadata, if provided
-  tenantId?: string;     // auto-scoped from request context
+  traceId?: string; // populated from metadata, if provided
+  spanId?: string; // populated from metadata, if provided
+  tenantId?: string; // auto-scoped from request context
   userId?: string;
   requestId?: string;
   duration?: number;
@@ -151,23 +148,23 @@ interface LogEntry {
 
 Logs are stored in the `logs` table with the following columns:
 
-| Column | Type | Description |
-|---|---|---|
-| `id` | text (PK) | UUID |
-| `level` | text | `debug` / `info` / `warn` / `error` / `fatal` |
-| `message` | text | Log message |
-| `service` | text | Service name |
-| `timestamp` | timestamptz | When the log was created |
-| `metadata` | jsonb | Additional metadata |
-| `error_name` | text | Error name (if applicable) |
-| `error_message` | text | Error message |
-| `error_stack` | text | Error stack trace |
-| `trace_id` | text | Trace ID (from metadata, if provided) |
-| `span_id` | text | Span ID (from metadata, if provided) |
-| `tenant_id` | text | Tenant scope (default: `"default"`) |
-| `user_id` | text | Associated user |
-| `request_id` | text | Associated request |
-| `duration_ms` | integer | Duration in milliseconds |
+| Column          | Type        | Description                                   |
+| --------------- | ----------- | --------------------------------------------- |
+| `id`            | text (PK)   | UUID                                          |
+| `level`         | text        | `debug` / `info` / `warn` / `error` / `fatal` |
+| `message`       | text        | Log message                                   |
+| `service`       | text        | Service name                                  |
+| `timestamp`     | timestamptz | When the log was created                      |
+| `metadata`      | jsonb       | Additional metadata                           |
+| `error_name`    | text        | Error name (if applicable)                    |
+| `error_message` | text        | Error message                                 |
+| `error_stack`   | text        | Error stack trace                             |
+| `trace_id`      | text        | Trace ID (from metadata, if provided)         |
+| `span_id`       | text        | Span ID (from metadata, if provided)          |
+| `tenant_id`     | text        | Tenant scope (default: `"default"`)           |
+| `user_id`       | text        | Associated user                               |
+| `request_id`    | text        | Associated request                            |
+| `duration_ms`   | integer     | Duration in milliseconds                      |
 
 ## Dependency
 

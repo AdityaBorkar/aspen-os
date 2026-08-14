@@ -16,20 +16,11 @@ import { getLayoutTabs, type LayoutTab } from "fumadocs-ui/layouts/shared";
 import { MessageCircleIcon } from "lucide-react";
 import { cloneElement, isValidElement, Suspense } from "react";
 
-import {
-  AISearch,
-  AISearchPanel,
-  AISearchTrigger,
-} from "@/components/ai/search";
+import { AISearch, AISearchPanel, AISearchTrigger } from "@/components/ai/search";
 import { useMDXComponents } from "@/components/mdx";
 import { createClientLoader, mergedEntries } from "@/lib/client-loader";
 import { cn } from "@/lib/cn";
-import {
-  APP_NAME,
-  DOCS_ROUTE,
-  GIT_CONFIG,
-  LAYOUT_BASE_OPTIONS,
-} from "@/lib/constants";
+import { APP_NAME, DOCS_ROUTE, GIT_CONFIG, LAYOUT_BASE_OPTIONS } from "@/lib/constants";
 import { resolveContentPath } from "@/lib/paths";
 import { STAGE } from "@/lib/stage";
 
@@ -54,7 +45,9 @@ const serverLoader = createServerFn({
     const { source } = await import("@/lib/source");
     const { slugsToMarkdownPath } = await import("@/lib/paths");
     const page = source.getPage(slugs);
-    if (!page) throw notFound();
+    if (!page) {
+      throw notFound();
+    }
 
     return {
       markdownUrl: slugsToMarkdownPath(page.slugs).url,
@@ -68,7 +61,7 @@ const clientLoader = createClientLoader(mergedEntries, {
     { toc, frontmatter, default: MDX },
     { markdownUrl, path }: { markdownUrl: string; path: string },
   ) {
-    // biome-ignore lint/correctness/useHookAtTopLevel: framework component function
+    // Biome-ignore lint/correctness/useHookAtTopLevel: framework component function
     const components = useMDXComponents();
     return (
       <DocsPage toc={toc}>
@@ -91,36 +84,42 @@ const clientLoader = createClientLoader(mergedEntries, {
 
 function collectFolderUrls(folder: PageTree.Folder): Set<string> {
   const urls = new Set<string>();
-  if (folder.index) urls.add(folder.index.url);
+  if (folder.index) {
+    urls.add(folder.index.url);
+  }
   for (const child of folder.children) {
-    if (child.type === "page") urls.add(child.url);
-    else if (child.type === "folder") {
-      for (const url of collectFolderUrls(child)) urls.add(url);
+    if (child.type === "page") {
+      urls.add(child.url);
+    } else if (child.type === "folder") {
+      for (const url of collectFolderUrls(child)) {
+        urls.add(url);
+      }
     }
   }
   return urls;
 }
 
 function Page() {
-  const { path, pageTree, markdownUrl } = useFumadocsLoader(
-    Route.useLoaderData(),
-  );
+  const { path, pageTree, markdownUrl } = useFumadocsLoader(Route.useLoaderData());
   const platformUrl = `${DOCS_ROUTE}/platform`;
   const tabs = getLayoutTabs(pageTree, {
     transform: (option, node): LayoutTab | null => ({
       ...option,
       $folder: undefined,
       icon: isValidElement(option.icon)
-        ? cloneElement(
-            option.icon as React.ReactElement<{ className?: string }>,
-            { className: "*:size-5" },
-          )
+        ? cloneElement(option.icon as React.ReactElement<{ className?: string }>, {
+            className: "*:size-5",
+          })
         : option.icon,
       urls: collectFolderUrls(node),
     }),
   }).sort((a, b) => {
-    if (a.url === platformUrl) return -1;
-    if (b.url === platformUrl) return 1;
+    if (a.url === platformUrl) {
+      return -1;
+    }
+    if (b.url === platformUrl) {
+      return 1;
+    }
     return a.url.localeCompare(b.url);
   });
 
@@ -131,11 +130,7 @@ function Page() {
         ...LAYOUT_BASE_OPTIONS.nav,
         title: (
           <>
-            <img
-              alt=""
-              className="size-5"
-              src={`/icon${STAGE && `.${STAGE}`}.png`}
-            />
+            <img alt="" className="size-5" src={`/icon${STAGE && `.${STAGE}`}.png`} />
             {APP_NAME}
           </>
         ),
@@ -159,9 +154,7 @@ function Page() {
         </AISearchTrigger>
       </AISearch>
 
-      <Suspense>
-        {clientLoader.useContent(path, { markdownUrl, path })}
-      </Suspense>
+      <Suspense>{clientLoader.useContent(path, { markdownUrl, path })}</Suspense>
     </DocsLayout>
   );
 }

@@ -22,7 +22,9 @@ const getRenewalChain = Workflow.name("document.renewal-chain").handler(
         .where(eq(complianceDocument.id, currentId))
         .limit(1);
 
-      if (!doc) break;
+      if (!doc) {
+        break;
+      }
 
       chain.push({
         createdAt: doc.createdAt.toISOString(),

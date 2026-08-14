@@ -1,13 +1,4 @@
-import {
-  check,
-  maxLength,
-  minLength,
-  number,
-  object,
-  pipe,
-  regex,
-  string,
-} from "valibot";
+import { check, maxLength, minLength, number, object, pipe, regex, string } from "valibot";
 
 const HEX_COLOR_REGEX = /^#[0-9A-Fa-f]{6}$/;
 const SLUG_REGEX = /^[a-z0-9]+(-[a-z0-9]+)*$/;

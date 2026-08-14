@@ -22,9 +22,7 @@ export const archiveDocumentClass = Workflow.name("dms.class.archive")
     const [triaged] = await ctx.db
       .select({ id: dmsDocument.id })
       .from(dmsDocument)
-      .where(
-        and(eq(dmsDocument.classId, id), eq(dmsDocument.status, "triaged")),
-      )
+      .where(and(eq(dmsDocument.classId, id), eq(dmsDocument.status, "triaged")))
       .limit(1);
 
     if (triaged) {

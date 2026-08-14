@@ -21,10 +21,7 @@ export const revokeItemPublicLink = Workflow.name("dms.public-link.revoke")
       throw new Error(`Public link with id "${id}" not found.`);
     }
 
-    await ctx.db
-      .update(dmsPublicLink)
-      .set({ isActive: false })
-      .where(eq(dmsPublicLink.id, id));
+    await ctx.db.update(dmsPublicLink).set({ isActive: false }).where(eq(dmsPublicLink.id, id));
 
     await ctx.pubsub.publish(ITEM_EVENTS.PUBLIC_LINK_REVOKED, {
       itemId: link.itemId,

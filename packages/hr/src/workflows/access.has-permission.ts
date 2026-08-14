@@ -15,10 +15,6 @@ export const hasPermission = Workflow.name("hr.access.has-permission")
   .handler(async (input, ctx) => {
     const { hrUserId, module, action, branchId } = input;
 
-    const permissions = await getUserPermissionsUtil(
-      ctx.db,
-      hrUserId,
-      branchId,
-    );
+    const permissions = await getUserPermissionsUtil(ctx.db, hrUserId, branchId);
     return permissions.some((p) => p.module === module && p.action === action);
   });

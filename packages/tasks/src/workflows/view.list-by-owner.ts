@@ -7,11 +7,8 @@ import { IdSchema } from "../types";
 
 export const listSavedViewsByOwner = Workflow.name("view.list-by-owner")
   .input(object({ ownerId: IdSchema }))
-  .handler(async ({ ownerId }, ctx) => {
-    return ctx.step.run("query", async () => {
-      return ctx.db
-        .select()
-        .from(savedView)
-        .where(eq(savedView.ownerId, ownerId));
-    });
-  });
+  .handler(async ({ ownerId }, ctx) =>
+    ctx.step.run("query", async () => {
+      return ctx.db.select().from(savedView).where(eq(savedView.ownerId, ownerId));
+    }),
+  );

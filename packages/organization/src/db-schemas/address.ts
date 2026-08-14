@@ -1,21 +1,12 @@
 import { uuidv7 } from "@aspen-os/platform/server";
-import {
-  boolean,
-  index,
-  jsonb,
-  pgTable,
-  text,
-  timestamp,
-} from "drizzle-orm/pg-core";
+import { boolean, index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const address = pgTable(
   "address",
   {
     city: text("city"),
     country: text("country").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: text("id").primaryKey().$defaultFn(uuidv7),
     isPrimary: boolean("is_primary").notNull().default(false),
     label: text("label"),
@@ -24,9 +15,7 @@ export const address = pgTable(
     metadata: jsonb("metadata"),
     postalCode: text("postal_code"),
     state: text("state"),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_address_country").on(table.country),

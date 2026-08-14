@@ -1,12 +1,4 @@
-import {
-  type InferOutput,
-  minLength,
-  nullable,
-  object,
-  optional,
-  pipe,
-  string,
-} from "valibot";
+import { type InferOutput, minLength, nullable, object, optional, pipe, string } from "valibot";
 
 import {
   ExitInterviewStatusSchema,
@@ -60,9 +52,7 @@ export const CreateOnboardingTaskSchema = object({
   title: pipe(string(), minLength(1, "Title is required")),
 });
 
-export type CreateOnboardingTaskInput = InferOutput<
-  typeof CreateOnboardingTaskSchema
->;
+export type CreateOnboardingTaskInput = InferOutput<typeof CreateOnboardingTaskSchema>;
 
 export const UpdateOnboardingTaskSchema = object({
   assignedTo: optional(nullable(string())),
@@ -74,18 +64,13 @@ export const UpdateOnboardingTaskSchema = object({
   title: optional(string()),
 });
 
-export type UpdateOnboardingTaskInput = InferOutput<
-  typeof UpdateOnboardingTaskSchema
->;
+export type UpdateOnboardingTaskInput = InferOutput<typeof UpdateOnboardingTaskSchema>;
 
 // Employee Promotion
 
 export const CreatePromotionSchema = object({
   currentDepartment: optional(nullable(string())),
-  currentDesignation: pipe(
-    string(),
-    minLength(1, "Current designation is required"),
-  ),
+  currentDesignation: pipe(string(), minLength(1, "Current designation is required")),
   currentGrade: optional(nullable(string())),
   effectiveDate: pipe(string(), minLength(1, "Effective date is required")),
   employeeId: pipe(string(), minLength(1, "Employee ID is required")),
@@ -198,9 +183,7 @@ export const CreateSeparationTaskSchema = object({
   title: pipe(string(), minLength(1, "Title is required")),
 });
 
-export type CreateSeparationTaskInput = InferOutput<
-  typeof CreateSeparationTaskSchema
->;
+export type CreateSeparationTaskInput = InferOutput<typeof CreateSeparationTaskSchema>;
 
 export const UpdateSeparationTaskSchema = object({
   assignedTo: optional(nullable(string())),
@@ -212,9 +195,7 @@ export const UpdateSeparationTaskSchema = object({
   title: optional(string()),
 });
 
-export type UpdateSeparationTaskInput = InferOutput<
-  typeof UpdateSeparationTaskSchema
->;
+export type UpdateSeparationTaskInput = InferOutput<typeof UpdateSeparationTaskSchema>;
 
 // Exit Interview
 
@@ -226,9 +207,7 @@ export const CreateExitInterviewSchema = object({
   separationId: optional(nullable(string())),
 });
 
-export type CreateExitInterviewInput = InferOutput<
-  typeof CreateExitInterviewSchema
->;
+export type CreateExitInterviewInput = InferOutput<typeof CreateExitInterviewSchema>;
 
 export const UpdateExitInterviewSchema = object({
   completedDate: optional(string()),
@@ -240,18 +219,14 @@ export const UpdateExitInterviewSchema = object({
   status: optional(ExitInterviewStatusSchema),
 });
 
-export type UpdateExitInterviewInput = InferOutput<
-  typeof UpdateExitInterviewSchema
->;
+export type UpdateExitInterviewInput = InferOutput<typeof UpdateExitInterviewSchema>;
 
 export const ExitInterviewFiltersSchema = object({
   employeeId: optional(string()),
   status: optional(ExitInterviewStatusSchema),
 });
 
-export type ExitInterviewFilters = InferOutput<
-  typeof ExitInterviewFiltersSchema
->;
+export type ExitInterviewFilters = InferOutput<typeof ExitInterviewFiltersSchema>;
 
 // Full and Final Statement
 
@@ -268,9 +243,7 @@ export const CreateFullAndFinalSchema = object({
   separationId: optional(nullable(string())),
 });
 
-export type CreateFullAndFinalInput = InferOutput<
-  typeof CreateFullAndFinalSchema
->;
+export type CreateFullAndFinalInput = InferOutput<typeof CreateFullAndFinalSchema>;
 
 export const UpdateFullAndFinalSchema = object({
   approvedBy: optional(nullable(string())),
@@ -290,9 +263,7 @@ export const UpdateFullAndFinalSchema = object({
   totalEarnings: optional(string()),
 });
 
-export type UpdateFullAndFinalInput = InferOutput<
-  typeof UpdateFullAndFinalSchema
->;
+export type UpdateFullAndFinalInput = InferOutput<typeof UpdateFullAndFinalSchema>;
 
 export const FullAndFinalFiltersSchema = object({
   employeeId: optional(string()),

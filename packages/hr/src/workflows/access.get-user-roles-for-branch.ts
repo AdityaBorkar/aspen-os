@@ -9,9 +9,7 @@ const InputSchema = object({
   hrUserId: pipe(string(), minLength(1, "hrUserId is required")),
 });
 
-export const getUserRolesForBranch = Workflow.name(
-  "hr.access.get-user-roles-for-branch",
-)
+export const getUserRolesForBranch = Workflow.name("hr.access.get-user-roles-for-branch")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { hrUserId, branchId } = input;

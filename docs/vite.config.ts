@@ -11,10 +11,7 @@ export default defineConfig({
     outDir: ".output",
   },
   optimizeDeps: {
-    include: [
-      "use-sync-external-store/shim",
-      "use-sync-external-store/shim/with-selector",
-    ],
+    include: ["use-sync-external-store/shim", "use-sync-external-store/shim/with-selector"],
   },
   plugins: [
     cloudflare({

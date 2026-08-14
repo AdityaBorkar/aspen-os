@@ -40,21 +40,25 @@ packages/hr/src/
 
 ## Workflows
 
-| Workflow | Access Path | Manages |
-|---|---|---|
-| `AccessWorkflow` | `p.hr.access` | HR users, RBAC roles, permissions, role-permission and user-role mappings, branch-wise access |
-| `EmployeeWorkflow` | `p.hr.employee` | Employee records, groups, health insurance, skill maps |
-| `AttendanceWorkflow` | `p.hr.attendance` | Attendance, check-ins, attendance requests |
-| `LeaveWorkflow` | `p.hr.leave` | Leave types, periods, policies, allocations, applications, encashment, block lists, adjustments, ledger |
-| `LifecycleWorkflow` | `p.hr.lifecycle` | Onboarding, promotions, transfers, separations, exit interviews, full and final statements |
-| `OvertimeWorkflow` | `p.hr.overtime` | Overtime types and overtime slips |
-| `SetupWorkflow` | `p.hr.setup` | HR/payroll settings, employment types, departments, designations, grades, holiday lists, holidays |
-| `ShiftWorkflow` | `p.hr.shift` | Shift types, locations, assignments, requests, schedules, schedule assignments |
+| Workflow             | Access Path       | Manages                                                                                                 |
+| -------------------- | ----------------- | ------------------------------------------------------------------------------------------------------- |
+| `AccessWorkflow`     | `p.hr.access`     | HR users, RBAC roles, permissions, role-permission and user-role mappings, branch-wise access           |
+| `EmployeeWorkflow`   | `p.hr.employee`   | Employee records, groups, health insurance, skill maps                                                  |
+| `AttendanceWorkflow` | `p.hr.attendance` | Attendance, check-ins, attendance requests                                                              |
+| `LeaveWorkflow`      | `p.hr.leave`      | Leave types, periods, policies, allocations, applications, encashment, block lists, adjustments, ledger |
+| `LifecycleWorkflow`  | `p.hr.lifecycle`  | Onboarding, promotions, transfers, separations, exit interviews, full and final statements              |
+| `OvertimeWorkflow`   | `p.hr.overtime`   | Overtime types and overtime slips                                                                       |
+| `SetupWorkflow`      | `p.hr.setup`      | HR/payroll settings, employment types, departments, designations, grades, holiday lists, holidays       |
+| `ShiftWorkflow`      | `p.hr.shift`      | Shift types, locations, assignments, requests, schedules, schedule assignments                          |
 
 ## Schemas
 
 Validation schemas live in `src/schemas/` and are re-exported from `src/schemas/index.ts`. Each domain file defines `Create*Schema`, `Update*Schema`, and `*FiltersSchema` objects with corresponding `InferOutput` types. Shared pipes (`NameSchema`, `EmployeeIdSchema`, `EmailSchema`, `PhoneSchema`) are in `utils.ts`.
 
 <Callout type="info">
-  The module is implemented: `$initialize()` instantiates the 8 workflows from the DB unit, `$prepareInfra()` returns a full `ModuleInfra` with control-plane and tenant schemas, ACL, and per-workflow event groups, and `$cleanup()` resets the workflow fields. Workflow getters throw until `$initialize()` has run. Two gaps remain: `HrModule` does not declare `implements Module`, and it lacks `$prepareRuntime()`.
+  The module is implemented: `$initialize()` instantiates the 8 workflows from the DB unit,
+  `$prepareInfra()` returns a full `ModuleInfra` with control-plane and tenant schemas, ACL, and
+  per-workflow event groups, and `$cleanup()` resets the workflow fields. Workflow getters throw
+  until `$initialize()` has run. Two gaps remain: `HrModule` does not declare `implements Module`,
+  and it lacks `$prepareRuntime()`.
 </Callout>

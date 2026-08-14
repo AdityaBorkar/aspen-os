@@ -5,31 +5,34 @@ import { task } from "../db-schemas/task";
 import { taskLink } from "../db-schemas/task-link";
 import type { CriticalPathResult, TaskDependencyNode } from "../types";
 
-export async function wouldCreateCycle(
-  sourceId: string,
-  targetId: string,
-): Promise<boolean> {
+export async function wouldCreateCycle(sourceId: string, targetId: string): Promise<boolean> {
   const { db } = getContext();
 
-  if (sourceId === targetId) return true;
+  if (sourceId === targetId) {
+    return true;
+  }
 
   const visited = new Set<string>();
   const queue = [targetId];
 
   while (queue.length > 0) {
     const current = queue.shift();
-    if (!current) break;
+    if (!current) {
+      break;
+    }
 
-    if (current === sourceId) return true;
-    if (visited.has(current)) continue;
+    if (current === sourceId) {
+      return true;
+    }
+    if (visited.has(current)) {
+      continue;
+    }
     visited.add(current);
 
     const blockingLinks = await db
       .select({ targetId: taskLink.targetId })
       .from(taskLink)
-      .where(
-        and(eq(taskLink.sourceId, current), eq(taskLink.linkType, "blocks")),
-      );
+      .where(and(eq(taskLink.sourceId, current), eq(taskLink.linkType, "blocks")));
 
     for (const link of blockingLinks) {
       queue.push(link.targetId);
@@ -82,12 +85,7 @@ export async function topologicalSort(taskIds: string[]): Promise<string[]> {
     .where(
       and(
         eq(taskLink.linkType, "blocks"),
-        or(
-          ...taskIds.flatMap((id) => [
-            eq(taskLink.sourceId, id),
-            eq(taskLink.targetId, id),
-          ]),
-        ),
+        or(...taskIds.flatMap((id) => [eq(taskLink.sourceId, id), eq(taskLink.targetId, id)])),
       ),
     );
 
@@ -100,19 +98,25 @@ export async function topologicalSort(taskIds: string[]): Promise<string[]> {
 
   const queue: string[] = [];
   for (const [id, degree] of inDegree.entries()) {
-    if (degree === 0) queue.push(id);
+    if (degree === 0) {
+      queue.push(id);
+    }
   }
 
   const sorted: string[] = [];
   while (queue.length > 0) {
     const current = queue.shift();
-    if (!current) break;
+    if (!current) {
+      break;
+    }
     sorted.push(current);
 
     for (const neighbor of adj.get(current) ?? []) {
       const newDegree = (inDegree.get(neighbor) ?? 0) - 1;
       inDegree.set(neighbor, newDegree);
-      if (newDegree === 0) queue.push(neighbor);
+      if (newDegree === 0) {
+        queue.push(neighbor);
+      }
     }
   }
 
@@ -123,9 +127,7 @@ export async function topologicalSort(taskIds: string[]): Promise<string[]> {
   return sorted;
 }
 
-export async function getCriticalPath(
-  projectId: string,
-): Promise<CriticalPathResult> {
+export async function getCriticalPath(projectId: string): Promise<CriticalPathResult> {
   const { db } = getContext();
 
   const tasks = await db
@@ -157,10 +159,7 @@ export async function getCriticalPath(
     })
     .from(taskLink)
     .where(
-      and(
-        eq(taskLink.linkType, "blocks"),
-        or(...tasks.map((t) => eq(taskLink.sourceId, t.id))),
-      ),
+      and(eq(taskLink.linkType, "blocks"), or(...tasks.map((t) => eq(taskLink.sourceId, t.id)))),
     );
 
   for (const link of links) {
@@ -184,13 +183,13 @@ export async function getCriticalPath(
 
   while (queue.length > 0) {
     const current = queue.shift();
-    if (!current) break;
+    if (!current) {
+      break;
+    }
     const currentDuration = maxDuration.get(current) ?? 0;
 
     for (const neighbor of adj.get(current) ?? []) {
-      const neighborDuration = parseHours(
-        taskMap.get(neighbor)?.estimatedHours,
-      );
+      const neighborDuration = parseHours(taskMap.get(neighbor)?.estimatedHours);
       const newDuration = currentDuration + neighborDuration;
 
       if (newDuration > (maxDuration.get(neighbor) ?? 0)) {
@@ -200,7 +199,9 @@ export async function getCriticalPath(
 
       const newDegree = (inDegree.get(neighbor) ?? 0) - 1;
       inDegree.set(neighbor, newDegree);
-      if (newDegree === 0) queue.push(neighbor);
+      if (newDegree === 0) {
+        queue.push(neighbor);
+      }
     }
   }
 
@@ -227,9 +228,7 @@ export async function getCriticalPath(
   return { duration: maxPath, path };
 }
 
-export async function buildDependencyGraph(
-  taskIds: string[],
-): Promise<TaskDependencyNode[]> {
+export async function buildDependencyGraph(taskIds: string[]): Promise<TaskDependencyNode[]> {
   const { db } = getContext();
 
   const tasks = await db
@@ -251,7 +250,9 @@ export async function buildDependencyGraph(
 }
 
 function parseHours(value: string | null | undefined): number {
-  if (!value) return 0;
+  if (!value) {
+    return 0;
+  }
   const parsed = Number.parseFloat(value);
   return Number.isNaN(parsed) ? 0 : parsed;
 }

@@ -4,11 +4,7 @@ import { object, parse, string } from "valibot";
 
 import { dmsFolder } from "../db-schemas";
 import { ITEM_EVENTS } from "../pubsub";
-import {
-  cascadePaths,
-  checkNameUniqueness,
-  getFolderPath,
-} from "../services/item-path-service";
+import { cascadePaths, checkNameUniqueness, getFolderPath } from "../services/item-path-service";
 import { RenameFolderSchema } from "../types";
 import { fetchItemFolderStep } from "./steps/fetch-item-folder";
 
@@ -42,7 +38,9 @@ export const renameItemFolder = Workflow.name("dms.folder.rename")
       .where(eq(dmsFolder.id, id))
       .returning();
 
-    if (!updated) throw new Error(`Folder with id "${id}" not found.`);
+    if (!updated) {
+      throw new Error(`Folder with id "${id}" not found.`);
+    }
 
     await ctx.step.run("cascade-paths", async () => {
       await cascadePaths({ newPath, oldPath }, ctx.db);

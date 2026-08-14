@@ -8,9 +8,7 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const getCompensatoryLeaveById = Workflow.name(
-  "hr.leave.get-compensatory-leave-by-id",
-)
+export const getCompensatoryLeaveById = Workflow.name("hr.leave.get-compensatory-leave-by-id")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id } = input;

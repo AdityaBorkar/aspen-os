@@ -44,20 +44,20 @@ bun install  # workspace package
 ## Quick Start
 
 ```ts
-import { Platform } from "@aspen-os/platform/server"
-import { TaskModule } from "@aspen-os/tasks"
+import { Platform } from "@aspen-os/platform/server";
+import { TaskModule } from "@aspen-os/tasks";
 
-const tasks = TaskModule.create()
+const tasks = TaskModule.create();
 
-const platform = Platform.create(config, { tasks })
+const platform = Platform.create(config, { tasks });
 
-await platform.prepare()  // pushes schema, registers pubsub handlers
+await platform.prepare(); // pushes schema, registers pubsub handlers
 
 // Access workflows via the module proxy
-platform.tasks.tasks       // TaskWorkflow
-platform.tasks.projects    // ProjectWorkflow
-platform.tasks.statuses    // StatusWorkflow
-platform.tasks.comments    // CommentWorkflow
+platform.tasks.tasks; // TaskWorkflow
+platform.tasks.projects; // ProjectWorkflow
+platform.tasks.statuses; // StatusWorkflow
+platform.tasks.comments; // CommentWorkflow
 // ... etc
 ```
 
@@ -65,30 +65,30 @@ platform.tasks.comments    // CommentWorkflow
 
 ```ts
 type TaskModuleConfig = {
-  enableNotifications?: boolean  // default: false
-}
+  enableNotifications?: boolean; // default: false
+};
 
 class TaskModule {
-  static create(config?: TaskModuleConfig): TaskModule
-  readonly name: "tasks"
-  readonly db_schema: typeof dbSchema
+  static create(config?: TaskModuleConfig): TaskModule;
+  readonly name: "tasks";
+  readonly db_schema: typeof dbSchema;
 
-  initialize(units: { db: DatabaseUnit; pubsub: PubSubUnit }): void
-  destroy(): Promise<void>
+  initialize(units: { db: DatabaseUnit; pubsub: PubSubUnit }): void;
+  destroy(): Promise<void>;
 
   // Workflow getters (throw if accessed before initialize())
-  get tasks(): TaskWorkflow
-  get projects(): ProjectWorkflow
-  get statuses(): StatusWorkflow
-  get taskTypes(): TaskTypeWorkflow
-  get comments(): CommentWorkflow
-  get timeEntries(): TimeEntryWorkflow
-  get reminders(): ReminderWorkflow
-  get automation(): AutomationWorkflow
-  get links(): LinkWorkflow
-  get collaboration(): CollaborationWorkflow
-  get views(): ViewWorkflow
-  get reports(): ReportService
+  get tasks(): TaskWorkflow;
+  get projects(): ProjectWorkflow;
+  get statuses(): StatusWorkflow;
+  get taskTypes(): TaskTypeWorkflow;
+  get comments(): CommentWorkflow;
+  get timeEntries(): TimeEntryWorkflow;
+  get reminders(): ReminderWorkflow;
+  get automation(): AutomationWorkflow;
+  get links(): LinkWorkflow;
+  get collaboration(): CollaborationWorkflow;
+  get views(): ViewWorkflow;
+  get reports(): ReportService;
 }
 ```
 
@@ -98,38 +98,38 @@ When `enableNotifications` is `true`, the module instantiates a `NotificationBri
 
 ### Enums
 
-| Enum | Values |
-|---|---|
-| `task_priority` | `urgent`, `high`, `medium`, `low`, `none` |
-| `task_link_type` | `blocks`, `blocked_by`, `related_to`, `duplicates`, `caused_by`, `split_from` |
-| `project_status` | `active`, `archived`, `paused` |
-| `project_member_role` | `admin`, `member`, `viewer` |
-| `status_category` | `backlog`, `unstarted`, `started`, `completed`, `cancelled` |
-| `saved_view_type` | `list`, `board`, `calendar`, `timeline` |
-| `reminder_type` | `due_date`, `custom`, `overdue` |
-| `automation_trigger` | `status_change`, `assignment_change`, `due_date_passed`, `task_created`, `task_updated` |
+| Enum                  | Values                                                                                  |
+| --------------------- | --------------------------------------------------------------------------------------- |
+| `task_priority`       | `urgent`, `high`, `medium`, `low`, `none`                                               |
+| `task_link_type`      | `blocks`, `blocked_by`, `related_to`, `duplicates`, `caused_by`, `split_from`           |
+| `project_status`      | `active`, `archived`, `paused`                                                          |
+| `project_member_role` | `admin`, `member`, `viewer`                                                             |
+| `status_category`     | `backlog`, `unstarted`, `started`, `completed`, `cancelled`                             |
+| `saved_view_type`     | `list`, `board`, `calendar`, `timeline`                                                 |
+| `reminder_type`       | `due_date`, `custom`, `overdue`                                                         |
+| `automation_trigger`  | `status_change`, `assignment_change`, `due_date_passed`, `task_created`, `task_updated` |
 
 ### Tables
 
-| Table | Purpose | Key Columns |
-|---|---|---|
-| `task_project` | Project with key and task counter | `key` (unique), `taskCounter`, `lead`, `status` |
-| `task_project_member` | Project membership | `role` (admin/member/viewer), unique(project, user) |
-| `task_type` | Task type definitions (Bug, Feature, etc.) | `project`, `name`, `icon`, `color` |
-| `task_status` | Workflow statuses | `project`, `category`, `isResolved`, `sortOrder` |
-| `task_status_transition` | Allowed status transitions | unique(from, to, project) |
-| `task_label_def` | Label definitions | `project`, `name`, `color` |
-| `task` | Central task entity | `number`, `taskNumber`, `priority`, `labels[]`, `parent` (sub-tasks), `isArchived` |
-| `task_assignee` | Multi-assignee support | `isLead`, unique(task, user) |
-| `task_link` | Task relationships (DAG edges) | `type` (blocks/blocked_by/related_to/...), unique(source, target, type) |
-| `task_time_entry` | Time tracking entries | `duration` (minutes), `billable`, `user`, `date` |
-| `task_reminder` | Task reminders | `type` (due_date/custom/overdue), `remindAt`, `isRecurring` |
-| `task_activity_log` | Immutable audit trail | `action`, `oldValue`/`newValue` (jsonb) |
-| `task_comment` | Threaded comments | `parentId` (threading), `isDeleted` |
-| `task_attachment` | File attachments | `fileId` (references Storage) |
-| `task_watcher` | Task watchers | unique(task, user) |
-| `task_saved_view` | Saved filter/sort configurations | `type` (list/board/calendar/timeline), `filters`/`sort` (jsonb) |
-| `task_automation_rule` | Automation rules | `trigger`, `conditions`/`actions` (jsonb), `isActive` |
+| Table                    | Purpose                                    | Key Columns                                                                        |
+| ------------------------ | ------------------------------------------ | ---------------------------------------------------------------------------------- |
+| `task_project`           | Project with key and task counter          | `key` (unique), `taskCounter`, `lead`, `status`                                    |
+| `task_project_member`    | Project membership                         | `role` (admin/member/viewer), unique(project, user)                                |
+| `task_type`              | Task type definitions (Bug, Feature, etc.) | `project`, `name`, `icon`, `color`                                                 |
+| `task_status`            | Workflow statuses                          | `project`, `category`, `isResolved`, `sortOrder`                                   |
+| `task_status_transition` | Allowed status transitions                 | unique(from, to, project)                                                          |
+| `task_label_def`         | Label definitions                          | `project`, `name`, `color`                                                         |
+| `task`                   | Central task entity                        | `number`, `taskNumber`, `priority`, `labels[]`, `parent` (sub-tasks), `isArchived` |
+| `task_assignee`          | Multi-assignee support                     | `isLead`, unique(task, user)                                                       |
+| `task_link`              | Task relationships (DAG edges)             | `type` (blocks/blocked_by/related_to/...), unique(source, target, type)            |
+| `task_time_entry`        | Time tracking entries                      | `duration` (minutes), `billable`, `user`, `date`                                   |
+| `task_reminder`          | Task reminders                             | `type` (due_date/custom/overdue), `remindAt`, `isRecurring`                        |
+| `task_activity_log`      | Immutable audit trail                      | `action`, `oldValue`/`newValue` (jsonb)                                            |
+| `task_comment`           | Threaded comments                          | `parentId` (threading), `isDeleted`                                                |
+| `task_attachment`        | File attachments                           | `fileId` (references Storage)                                                      |
+| `task_watcher`           | Task watchers                              | unique(task, user)                                                                 |
+| `task_saved_view`        | Saved filter/sort configurations           | `type` (list/board/calendar/timeline), `filters`/`sort` (jsonb)                    |
+| `task_automation_rule`   | Automation rules                           | `trigger`, `conditions`/`actions` (jsonb), `isActive`                              |
 
 All IDs are `text` with `.primaryKey().$defaultFn(uuidv7)`. All timestamps are `TIMESTAMPTZ` with `withTimezone: true`.
 
@@ -154,6 +154,7 @@ platform.tasks.tasks.getCompletionSummary(projectId?: string): Promise<TaskCompl
 ```
 
 Key behaviors:
+
 - Auto-generates task numbers in `PROJ-142` format via project counter (atomic increment).
 - Sub-task validation: cycle detection, max depth 3 levels.
 - Auto-creates watchers when a user is assigned.
@@ -301,38 +302,38 @@ platform.tasks.reports.getTimeReport(filters?): Promise<...>
 
 ## Services
 
-| Service | File | Purpose |
-|---|---|---|
-| `NotificationBridge` | `services/notification-bridge.ts` | PubSub integration for reminders and watcher notifications |
-| `FilterEngine` | `services/filter-engine.ts` | Query builder for saved views and ad-hoc filters (supports is/contains/in/before/after/between/empty with AND/OR + parentheses) |
-| `ReportService` | `services/report-service.ts` | Reporting queries (task summary, workload, velocity, burndown, time) |
-| `DependencyGraph` | `services/dependency-graph.ts` | DAG operations: cycle detection, topological sort, critical path analysis, Gantt data |
+| Service              | File                              | Purpose                                                                                                                         |
+| -------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `NotificationBridge` | `services/notification-bridge.ts` | PubSub integration for reminders and watcher notifications                                                                      |
+| `FilterEngine`       | `services/filter-engine.ts`       | Query builder for saved views and ad-hoc filters (supports is/contains/in/before/after/between/empty with AND/OR + parentheses) |
+| `ReportService`      | `services/report-service.ts`      | Reporting queries (task summary, workload, velocity, burndown, time)                                                            |
+| `DependencyGraph`    | `services/dependency-graph.ts`    | DAG operations: cycle detection, topological sort, critical path analysis, Gantt data                                           |
 
 ## Events
 
 10 events are defined in `src/event-map.ts`, each with a typed payload interface. Events are published via PubSub.
 
-| Event | Payload | Trigger |
-|---|---|---|
-| `task:created` | `{ task: { id, number, taskNumber, title } }` | Task created |
-| `task:updated` | `{ task: { id, title }; changes: Record<string, unknown> }` | Task updated |
-| `task:deleted` | `{ taskId }` | Task deleted |
-| `task:status_changed` | `{ taskId, fromStatus, toStatus }` | Status changed |
-| `task:assigned` | `{ taskId, userId, isLead }` | User assigned |
-| `task:unassigned` | `{ taskId, userId }` | User unassigned |
-| `task:linked` | `{ sourceId, targetId, linkType }` | Task link created |
-| `task:unlinked` | `{ linkId }` | Task link removed |
-| `task:commented` | `{ taskId, commentId, userId }` | Comment added |
-| `reminder:fired` | `{ reminderId, taskId, userId }` | Reminder fired |
+| Event                 | Payload                                                     | Trigger           |
+| --------------------- | ----------------------------------------------------------- | ----------------- |
+| `task:created`        | `{ task: { id, number, taskNumber, title } }`               | Task created      |
+| `task:updated`        | `{ task: { id, title }; changes: Record<string, unknown> }` | Task updated      |
+| `task:deleted`        | `{ taskId }`                                                | Task deleted      |
+| `task:status_changed` | `{ taskId, fromStatus, toStatus }`                          | Status changed    |
+| `task:assigned`       | `{ taskId, userId, isLead }`                                | User assigned     |
+| `task:unassigned`     | `{ taskId, userId }`                                        | User unassigned   |
+| `task:linked`         | `{ sourceId, targetId, linkType }`                          | Task link created |
+| `task:unlinked`       | `{ linkId }`                                                | Task link removed |
+| `task:commented`      | `{ taskId, commentId, userId }`                             | Comment added     |
+| `reminder:fired`      | `{ reminderId, taskId, userId }`                            | Reminder fired    |
 
 ## Integration Points
 
-| Integration | Usage |
-|---|---|
-| **DatabaseUnit** | All workflow DB operations via drizzle |
-| **PubSubUnit** | Event publishing, reminder scheduling, notification bridge |
-| **AuthUnit** | User IDs for assignees, reporters, watchers, comment authors |
-| **StorageUnit** | File attachments via `task_attachment.fileId` |
+| Integration              | Usage                                                                                                                                                                      |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **DatabaseUnit**         | All workflow DB operations via drizzle                                                                                                                                     |
+| **PubSubUnit**           | Event publishing, reminder scheduling, notification bridge                                                                                                                 |
+| **AuthUnit**             | User IDs for assignees, reporters, watchers, comment authors                                                                                                               |
+| **StorageUnit**          | File attachments via `task_attachment.fileId`                                                                                                                              |
 | **HR module** (optional) | Employee-to-assignee mapping, holiday list for business-day awareness in due date logic. Without HR, assignees fall back to Auth users and business-day logic is disabled. |
 
 ## Package Structure

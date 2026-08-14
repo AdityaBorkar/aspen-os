@@ -8,9 +8,7 @@ export const driveAccessLog = pgTable(
   {
     accessedBy: text("accessed_by"),
     action: text("action").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: text("id").primaryKey().$defaultFn(uuidv7),
     ip: text("ip"),
     itemId: text("item_id").notNull(),

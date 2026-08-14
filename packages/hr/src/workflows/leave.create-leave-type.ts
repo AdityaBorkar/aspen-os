@@ -19,8 +19,7 @@ export const createLeaveType = Workflow.name("hr.leave.create-leave-type")
         allowNegativeBalance: parsed.allowNegativeBalance ?? false,
         applicableAfterWorkingDays: parsed.applicableAfterWorkingDays ?? 0,
         earnedLeaveFrequency: parsed.earnedLeaveFrequency ?? null,
-        includeHolidaysWithinLeaves:
-          parsed.includeHolidaysWithinLeaves ?? false,
+        includeHolidaysWithinLeaves: parsed.includeHolidaysWithinLeaves ?? false,
         isCarryForward: parsed.isCarryForward ?? false,
         isEarnedLeave: parsed.isEarnedLeave ?? false,
         isLeaveWithoutPay: parsed.isLeaveWithoutPay ?? false,

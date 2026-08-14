@@ -33,7 +33,9 @@ async function createSearchServer() {
 
   const docs = await chunkedAll(
     source.getPages().map(async (page) => {
-      if (!("getText" in page.data)) return null;
+      if (!("getText" in page.data)) {
+        return null;
+      }
 
       return {
         content: await page.data.getText("processed"),
@@ -45,7 +47,9 @@ async function createSearchServer() {
   );
 
   for (const doc of docs) {
-    if (doc) search.add(doc);
+    if (doc) {
+      search.add(doc);
+    }
   }
 
   return search;
@@ -76,28 +80,24 @@ export const Route = createFileRoute("/api/chat")({
   server: {
     handlers: {
       POST: async (ctx) => {
-        // biome-ignore lint/suspicious/noExplicitAny: Request body is parsed as any
+        // Biome-ignore lint/suspicious/noExplicitAny: Request body is parsed as any
         const request = (await ctx.request.json()) as any;
 
         const result = streamText({
           messages: [
             { content: systemPrompt, role: "system" },
-            ...(await convertToModelMessages<ChatUIMessage>(
-              request?.messages ?? [],
-              {
-                convertDataPart(part) {
-                  if (part.type === "data-client")
-                    return {
-                      text: `[Client Context: ${JSON.stringify(part.data)}]`,
-                      type: "text",
-                    };
-                },
+            ...(await convertToModelMessages<ChatUIMessage>(request?.messages ?? [], {
+              convertDataPart(part) {
+                if (part.type === "data-client") {
+                  return {
+                    text: `[Client Context: ${JSON.stringify(part.data)}]`,
+                    type: "text",
+                  };
+                }
               },
-            )),
+            })),
           ],
-          model: openrouter.chat(
-            process.env.OPENROUTER_MODEL ?? "anthropic/claude-3.5-sonnet",
-          ),
+          model: openrouter.chat(process.env.OPENROUTER_MODEL ?? "anthropic/claude-3.5-sonnet"),
           stopWhen: stepCountIs(5),
           toolChoice: "auto",
           tools: {

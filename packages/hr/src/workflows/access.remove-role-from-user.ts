@@ -10,17 +10,12 @@ const InputSchema = object({
   roleId: pipe(string(), minLength(1, "roleId is required")),
 });
 
-export const removeRoleFromUser = Workflow.name(
-  "hr.access.remove-role-from-user",
-)
+export const removeRoleFromUser = Workflow.name("hr.access.remove-role-from-user")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { hrUserId, roleId, branchId } = input;
 
-    const conditions = [
-      eq(hrUserRole.hrUserId, hrUserId),
-      eq(hrUserRole.roleId, roleId),
-    ];
+    const conditions = [eq(hrUserRole.hrUserId, hrUserId), eq(hrUserRole.roleId, roleId)];
 
     if (branchId !== undefined) {
       conditions.push(eq(hrUserRole.branchId, branchId));

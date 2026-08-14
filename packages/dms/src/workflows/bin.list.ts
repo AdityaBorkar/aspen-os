@@ -14,16 +14,10 @@ export interface BinFilters {
 }
 
 export const listBin = Workflow.name("dms.bin.list").handler(
-  async (
-    input: { filters?: BinFilters; userId: string; admin?: boolean },
-    ctx,
-  ) => {
+  async (input: { filters?: BinFilters; userId: string; admin?: boolean }, ctx) => {
     const filters = input.filters ?? {};
     const conditions: SQL[] = [
-      or(
-        eq(dmsDocument.status, "deleted"),
-        eq(dmsDocument.status, "expired"),
-      ) as SQL,
+      or(eq(dmsDocument.status, "deleted"), eq(dmsDocument.status, "expired")) as SQL,
     ];
 
     if (!input.admin) {
@@ -32,10 +26,12 @@ export const listBin = Workflow.name("dms.bin.list").handler(
     if (filters.status) {
       conditions.push(eq(dmsDocument.status, filters.status));
     }
-    if (filters.classId)
+    if (filters.classId) {
       conditions.push(eq(dmsDocument.classId, filters.classId));
-    if (filters.deletedBy)
+    }
+    if (filters.deletedBy) {
       conditions.push(eq(dmsDocument.deletedBy, filters.deletedBy));
+    }
 
     const rows = await ctx.db
       .select()
@@ -46,10 +42,7 @@ export const listBin = Workflow.name("dms.bin.list").handler(
 
     const ids = rows.map((r) => r.id);
     const holds = ids.length
-      ? await ctx.db
-          .select()
-          .from(dmsLegalHold)
-          .where(inArray(dmsLegalHold.documentId, ids))
+      ? await ctx.db.select().from(dmsLegalHold).where(inArray(dmsLegalHold.documentId, ids))
       : [];
 
     const holdMap = new Map<string, (typeof holds)[number][]>();
@@ -59,14 +52,9 @@ export const listBin = Workflow.name("dms.bin.list").handler(
       holdMap.set(hold.documentId, list);
     }
 
-    const classIds = [
-      ...new Set(rows.map((r) => r.classId).filter(Boolean)),
-    ] as string[];
+    const classIds = [...new Set(rows.map((r) => r.classId).filter(Boolean))] as string[];
     const classes = classIds.length
-      ? await ctx.db
-          .select()
-          .from(dmsDocumentClass)
-          .where(inArray(dmsDocumentClass.id, classIds))
+      ? await ctx.db.select().from(dmsDocumentClass).where(inArray(dmsDocumentClass.id, classIds))
       : [];
     const classMap = new Map(classes.map((c) => [c.id, c]));
 

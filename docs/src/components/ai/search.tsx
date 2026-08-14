@@ -1,14 +1,7 @@
 "use client";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type Tool, type UIToolInvocation } from "ai";
-import {
-  Loader2,
-  MessageCircleIcon,
-  RefreshCw,
-  SearchIcon,
-  Send,
-  X,
-} from "lucide-react";
+import { Loader2, MessageCircleIcon, RefreshCw, SearchIcon, Send, X } from "lucide-react";
 import {
   type ChangeEvent,
   type ComponentProps,
@@ -39,10 +32,7 @@ export type { ChatUIMessage } from "./search-context";
 
 export type SearchTool = Tool<{ query: string; limit: number }>;
 
-export function AISearchPanelHeader({
-  className,
-  ...props
-}: ComponentProps<"div">) {
+export function AISearchPanelHeader({ className, ...props }: ComponentProps<"div">) {
   const { setOpen } = useAISearchContext();
   const handleClose = useCallback(() => setOpen(false), [setOpen]);
 
@@ -87,7 +77,9 @@ export function AISearchInputActions() {
   const handleRegenerate = useCallback(() => regenerate(), [regenerate]);
   const handleClear = useCallback(() => setMessages([]), [setMessages]);
 
-  if (messages.length === 0) return null;
+  if (messages.length === 0) {
+    return null;
+  }
 
   return (
     <>
@@ -127,9 +119,7 @@ export function AISearchInputActions() {
 const StorageKeyInput = "__ai_search_input";
 export function AISearchInput(props: ComponentProps<"form">) {
   const { status, sendMessage, stop } = useChatContext();
-  const [input, setInput] = useState(
-    () => localStorage.getItem(StorageKeyInput) ?? "",
-  );
+  const [input, setInput] = useState(() => localStorage.getItem(StorageKeyInput) ?? "");
   const inputId = useId();
   const isLoading = status === "streaming" || status === "submitted";
 
@@ -137,7 +127,9 @@ export function AISearchInput(props: ComponentProps<"form">) {
     (e?: SyntheticEvent) => {
       e?.preventDefault();
       const message = input.trim();
-      if (message.length === 0) return;
+      if (message.length === 0) {
+        return;
+      }
 
       void sendMessage({
         parts: [
@@ -175,15 +167,13 @@ export function AISearchInput(props: ComponentProps<"form">) {
   );
 
   useEffect(() => {
-    if (isLoading) document.getElementById(inputId)?.focus();
+    if (isLoading) {
+      document.getElementById(inputId)?.focus();
+    }
   }, [inputId, isLoading]);
 
   return (
-    <form
-      {...props}
-      className={cn("flex items-start pe-2", props.className)}
-      onSubmit={onStart}
-    >
+    <form {...props} className={cn("flex items-start pe-2", props.className)} onSubmit={onStart}>
       <Input
         autoFocus
         className="p-3"
@@ -232,10 +222,14 @@ function List(props: Omit<ComponentProps<"div">, "dir">) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current) {
+      return;
+    }
     function callback() {
       const container = containerRef.current;
-      if (!container) return;
+      if (!container) {
+        return;
+      }
 
       container.scrollTo({
         behavior: "instant",
@@ -261,10 +255,7 @@ function List(props: Omit<ComponentProps<"div">, "dir">) {
     <div
       ref={containerRef}
       {...props}
-      className={cn(
-        "fd-scroll-container flex min-w-0 flex-col overflow-y-auto",
-        props.className,
-      )}
+      className={cn("fd-scroll-container flex min-w-0 flex-col overflow-y-auto", props.className)}
     >
       {props.children}
     </div>
@@ -296,10 +287,7 @@ const roleName: Record<string, string> = {
   user: "you",
 };
 
-function Message({
-  message,
-  ...props
-}: { message: ChatUIMessage } & ComponentProps<"div">) {
+function Message({ message, ...props }: { message: ChatUIMessage } & ComponentProps<"div">) {
   const stopPropagation = useCallback((e: SyntheticEvent) => {
     e.stopPropagation();
   }, []);
@@ -317,19 +305,16 @@ function Message({
       const toolName = part.type.slice("tool-".length);
       const p = part as UIToolInvocation<Tool>;
 
-      if (toolName !== "search" || !p.toolCallId) continue;
+      if (toolName !== "search" || !p.toolCallId) {
+        continue;
+      }
       searchCalls.push(p);
     }
   }
 
   return (
-    // biome-ignore lint/a11y/useSemanticElements: chat message container
-    <div
-      onClick={stopPropagation}
-      onKeyDown={stopPropagation}
-      role="group"
-      {...props}
-    >
+    // Biome-ignore lint/a11y/useSemanticElements: chat message container
+    <div onClick={stopPropagation} onKeyDown={stopPropagation} role="group" {...props}>
       <p
         className={cn(
           "mb-1 font-medium text-fd-muted-foreground text-sm",
@@ -342,27 +327,19 @@ function Message({
         <Markdown text={markdown} />
       </div>
 
-      {searchCalls.map((call) => {
-        return (
-          <div
-            className="mt-3 flex flex-row items-center gap-2 rounded-lg border bg-fd-secondary p-2 text-fd-muted-foreground text-xs"
-            key={call.toolCallId}
-          >
-            <SearchIcon className="size-4" />
-            {call.state === "output-error" || call.state === "output-denied" ? (
-              <p className="text-fd-error">
-                {call.errorText ?? "Failed to search"}
-              </p>
-            ) : (
-              <p>
-                {!call.output
-                  ? "Searching…"
-                  : `${call.output.length} search results`}
-              </p>
-            )}
-          </div>
-        );
-      })}
+      {searchCalls.map((call) => (
+        <div
+          className="mt-3 flex flex-row items-center gap-2 rounded-lg border bg-fd-secondary p-2 text-fd-muted-foreground text-xs"
+          key={call.toolCallId}
+        >
+          <SearchIcon className="size-4" />
+          {call.state === "output-error" || call.state === "output-denied" ? (
+            <p className="text-fd-error">{call.errorText ?? "Failed to search"}</p>
+          ) : (
+            <p>{!call.output ? "Searching…" : `${call.output.length} search results`}</p>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
@@ -377,9 +354,7 @@ export function AISearch({ children }: { children: ReactNode }) {
   });
 
   return (
-    <Context value={useMemo(() => ({ chat, open, setOpen }), [chat, open])}>
-      {children}
-    </Context>
+    <Context value={useMemo(() => ({ chat, open, setOpen }), [chat, open])}>{children}</Context>
   );
 }
 
@@ -415,18 +390,24 @@ export function AISearchPanel() {
   useHotKey();
 
   const handleAnimationEnd = useCallback(() => {
-    if (!open) flushSync(() => setActualOpen(false));
+    if (!open) {
+      flushSync(() => setActualOpen(false));
+    }
   }, [open]);
 
   const handleOverlayClick = useCallback(() => setOpen(false), [setOpen]);
   const handleOverlayKeyDown = useCallback(
     (e: KeyboardEvent<HTMLDivElement>) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        setOpen(false);
+      }
     },
     [setOpen],
   );
 
-  if (open && !actualOpen) setActualOpen(open);
+  if (open && !actualOpen) {
+    setActualOpen(open);
+  }
 
   return (
     <>
@@ -450,7 +431,7 @@ export function AISearchPanel() {
         }`}
       </style>
       {actualOpen ? (
-        // biome-ignore lint/a11y/useSemanticElements: modal overlay backdrop
+        // Biome-ignore lint/a11y/useSemanticElements: modal overlay backdrop
         <div
           className={cn(
             "fixed inset-0 z-30 bg-fd-overlay backdrop-blur-xs lg:hidden",
@@ -491,11 +472,7 @@ export function AISearchPanel() {
   );
 }
 
-export function AISearchPanelList({
-  className,
-  style,
-  ...props
-}: ComponentProps<"div">) {
+export function AISearchPanelList({ className, style, ...props }: ComponentProps<"div">) {
   const chat = useChatContext();
   const messages = chat.messages.filter((msg) => msg.role !== "system");
   const stopPropagation = useCallback((e: SyntheticEvent) => {

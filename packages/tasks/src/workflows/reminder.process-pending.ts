@@ -10,33 +10,30 @@ type DrizzleDB = NodePgDatabase<Record<string, never>>;
 
 type ReminderType = "due_date" | "custom" | "overdue";
 
-export const processPendingReminders = Workflow.name(
-  "reminder.process-pending",
-).handler(async (_input: undefined, ctx) => {
-  const pending = await getPendingReminders.run(undefined);
+export const processPendingReminders = Workflow.name("reminder.process-pending").handler(
+  async (_input: undefined, ctx) => {
+    const pending = await getPendingReminders.run(undefined);
 
-  let processed = 0;
+    let processed = 0;
 
-  for (const r of pending) {
-    await ctx.pubsub.publish(REMINDER_EVENTS.FIRED, {
-      reminder: { id: r.id, type: r.type, userId: r.userId },
-      taskId: r.taskId,
-    });
+    for (const r of pending) {
+      await ctx.pubsub.publish(REMINDER_EVENTS.FIRED, {
+        reminder: { id: r.id, type: r.type, userId: r.userId },
+        taskId: r.taskId,
+      });
 
-    await ctx.db
-      .update(reminder)
-      .set({ isSent: true })
-      .where(eq(reminder.id, r.id));
+      await ctx.db.update(reminder).set({ isSent: true }).where(eq(reminder.id, r.id));
 
-    if (r.isRecurring && r.interval) {
-      await scheduleNextOccurrence(ctx.db, r);
+      if (r.isRecurring && r.interval) {
+        await scheduleNextOccurrence(ctx.db, r);
+      }
+
+      processed++;
     }
 
-    processed++;
-  }
-
-  return processed;
-});
+    return processed;
+  },
+);
 
 async function scheduleNextOccurrence(
   db: DrizzleDB,
@@ -49,10 +46,14 @@ async function scheduleNextOccurrence(
     userId: string;
   },
 ): Promise<void> {
-  if (!r.interval) return;
+  if (!r.interval) {
+    return;
+  }
 
   const nextDate = computeNextOccurrence(r.remindAt, r.interval);
-  if (!nextDate) return;
+  if (!nextDate) {
+    return;
+  }
 
   await db.insert(reminder).values({
     interval: r.interval,

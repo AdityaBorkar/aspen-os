@@ -16,12 +16,10 @@ const matchVerificationRule = Workflow.name("verification.match").handler(
       .where(eq(complianceVerificationRule.isActive, true))
       .orderBy(asc(complianceVerificationRule.priority));
 
-    const document = input.document;
+    const { document } = input;
     for (const rule of rules) {
-      const categoryMatch =
-        !rule.category || rule.category === document.category;
-      const moduleMatch =
-        !rule.sourceModule || rule.sourceModule === document.sourceModule;
+      const categoryMatch = !rule.category || rule.category === document.category;
+      const moduleMatch = !rule.sourceModule || rule.sourceModule === document.sourceModule;
 
       if (categoryMatch && moduleMatch) {
         return rule;

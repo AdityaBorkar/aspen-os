@@ -7,12 +7,12 @@ import { IdSchema } from "../types";
 
 export const listCommentsByTask = Workflow.name("comment.list-by-task")
   .input(object({ taskId: IdSchema }))
-  .handler(async ({ taskId }, ctx) => {
-    return ctx.step.run("query", async () => {
+  .handler(async ({ taskId }, ctx) =>
+    ctx.step.run("query", async () => {
       return ctx.db
         .select()
         .from(comment)
         .where(eq(comment.taskId, taskId))
         .orderBy(desc(comment.createdAt));
-    });
-  });
+    }),
+  );

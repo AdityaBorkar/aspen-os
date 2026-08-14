@@ -19,13 +19,13 @@ Manages automated expiry and due-date reminders via PubSub schedules and handler
 
 ### Scheduled Jobs
 
-| Job | Cron | Purpose |
-|---|---|---|
-| `compliance:daily-expiry-scan` | `0 8 * * *` | Scans for documents nearing expiry, publishes `document_expiring` events |
-| `compliance:daily-escalation` | `0 9 * * *` | Escalates overdue documents, publishes `document_escalated` events |
+| Job                                  | Cron        | Purpose                                                                            |
+| ------------------------------------ | ----------- | ---------------------------------------------------------------------------------- |
+| `compliance:daily-expiry-scan`       | `0 8 * * *` | Scans for documents nearing expiry, publishes `document_expiring` events           |
+| `compliance:daily-escalation`        | `0 9 * * *` | Escalates overdue documents, publishes `document_escalated` events                 |
 | `compliance:daily-status-transition` | `0 0 * * *` | Transitions expired → overdue, publishes `document_expired` and `document_overdue` |
-| `compliance:obligation-generate` | `0 6 * * *` | Triggers obligation auto-generation |
-| `compliance:weekly-summary` | `0 9 * * 1` | Generates and publishes weekly summary |
+| `compliance:obligation-generate`     | `0 6 * * *` | Triggers obligation auto-generation                                                |
+| `compliance:weekly-summary`          | `0 9 * * 1` | Generates and publishes weekly summary                                             |
 
 ### Reminder Flow
 
@@ -109,21 +109,23 @@ Derives the verification status of a compliance document from its dates and rene
 
 ### Status Derivation Rules
 
-| Condition | Derived Status |
-|---|---|
-| No expiry date and not submitted | `draft` |
-| Submitted but not reviewed | `submitted` or `under_review` |
-| Reviewed and approved | `verified` |
-| Reviewed and rejected | `rejected` |
-| Past expiry date | `expired` |
-| Past expiry date + grace period | `overdue` |
-| Renewed (new document created from old) | `renewed` (old document) |
-| Manually archived | `archived` |
+| Condition                               | Derived Status                |
+| --------------------------------------- | ----------------------------- |
+| No expiry date and not submitted        | `draft`                       |
+| Submitted but not reviewed              | `submitted` or `under_review` |
+| Reviewed and approved                   | `verified`                    |
+| Reviewed and rejected                   | `rejected`                    |
+| Past expiry date                        | `expired`                     |
+| Past expiry date + grace period         | `overdue`                     |
+| Renewed (new document created from old) | `renewed` (old document)      |
+| Manually archived                       | `archived`                    |
 
 <Callout type="info">
-  Status is **derived**, not set directly. The `verification_status` column is updated by the workflow based on date calculations and lifecycle actions.
+  Status is **derived**, not set directly. The `verification_status` column is updated by the
+  workflow based on date calculations and lifecycle actions.
 </Callout>
 
 <Callout type="info">
-  Audit trails are written through the platform's `AuditUnit` (`ctx.audit.write()`), not a module-specific audit table.
+  Audit trails are written through the platform's `AuditUnit` (`ctx.audit.write()`), not a
+  module-specific audit table.
 </Callout>

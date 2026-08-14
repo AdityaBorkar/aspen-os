@@ -27,9 +27,7 @@ export const createItemShare = Workflow.name("dms.item-share.create")
       .limit(1);
 
     if (existing) {
-      throw new Error(
-        "This item is already shared with the specified grantee.",
-      );
+      throw new Error("This item is already shared with the specified grantee.");
     }
 
     const [share] = await ctx.db

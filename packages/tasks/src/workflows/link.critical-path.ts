@@ -7,8 +7,8 @@ import { IdSchema } from "../types";
 
 export const getTaskLinkCriticalPath = Workflow.name("link.critical-path")
   .input(object({ projectId: IdSchema }))
-  .handler(async ({ projectId }, ctx): Promise<CriticalPathResult> => {
-    return ctx.step.run("query", async () => {
+  .handler(async ({ projectId }, ctx): Promise<CriticalPathResult> =>
+    ctx.step.run("query", async () => {
       return getCriticalPath(projectId);
-    });
-  });
+    }),
+  );

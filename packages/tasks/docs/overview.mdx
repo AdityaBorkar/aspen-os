@@ -71,22 +71,24 @@ packages/tasks/src/
 ## Accessing Workflows
 
 ```ts
-p.tasks.projects       // → projects (Workflow group)
-p.tasks.tasks          // → tasks
-p.tasks.statuses       // → statuses
-p.tasks.taskTypes      // → taskTypes
-p.tasks.timeEntries    // → timeEntries
-p.tasks.comments       // → comments
-p.tasks.links          // → links
-p.tasks.collaboration  // → collaboration
-p.tasks.reminders      // → reminders
-p.tasks.automations    // → automations
-p.tasks.views          // → views
+p.tasks.projects; // → projects (Workflow group)
+p.tasks.tasks; // → tasks
+p.tasks.statuses; // → statuses
+p.tasks.taskTypes; // → taskTypes
+p.tasks.timeEntries; // → timeEntries
+p.tasks.comments; // → comments
+p.tasks.links; // → links
+p.tasks.collaboration; // → collaboration
+p.tasks.reminders; // → reminders
+p.tasks.automations; // → automations
+p.tasks.views; // → views
 ```
 
 ## Accessing Services
 
 The `Tasks` module exposes no public service accessors. The internal service modules (`report-service`, `dependency-graph`, `notification-bridge`) and the `filter-engine` utility are consumed directly by workflow code, not surfaced as module properties.
+
 <Callout type="info">
-  Workflow accessors are plain module properties — no initialization guard. Workflows are stateless `Workflow` objects that use `getContext()` at runtime.
+  Workflow accessors are plain module properties — no initialization guard. Workflows are stateless
+  `Workflow` objects that use `getContext()` at runtime.
 </Callout>

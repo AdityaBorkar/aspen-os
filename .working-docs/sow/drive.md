@@ -14,21 +14,22 @@ The Drive Module provides a virtual filesystem layer on top of the platform's St
 
 A virtual container that organizes files and sub-folders into a tree.
 
-| Field | Type | Description |
-|---|---|---|
-| **ID** | text (auto) | System-generated unique identifier. |
-| **Name** | text | Display name (e.g., `Q4 Reports`). |
-| **Path** | text | Materialized path from root (e.g., `/finance/Q4 Reports`). Unique, indexed. |
-| **Parent** | text (FK, nullable) | Parent folder ID; `null` for root-level folders. |
-| **Owner** | text (FK) | User who created the folder. |
-| **Description** | text (nullable) | Optional description. |
-| **Color** | text (nullable) | Hex color for UI display. |
-| **Is Trashed** | boolean | Soft-delete flag. Default `false`. |
-| **Trashed At** | timestamptz (nullable) | When the folder was moved to trash. |
-| **Created At** | timestamptz | Record creation timestamp. |
-| **Updated At** | timestamptz | Last modification timestamp. |
+| Field           | Type                   | Description                                                                 |
+| --------------- | ---------------------- | --------------------------------------------------------------------------- |
+| **ID**          | text (auto)            | System-generated unique identifier.                                         |
+| **Name**        | text                   | Display name (e.g., `Q4 Reports`).                                          |
+| **Path**        | text                   | Materialized path from root (e.g., `/finance/Q4 Reports`). Unique, indexed. |
+| **Parent**      | text (FK, nullable)    | Parent folder ID; `null` for root-level folders.                            |
+| **Owner**       | text (FK)              | User who created the folder.                                                |
+| **Description** | text (nullable)        | Optional description.                                                       |
+| **Color**       | text (nullable)        | Hex color for UI display.                                                   |
+| **Is Trashed**  | boolean                | Soft-delete flag. Default `false`.                                          |
+| **Trashed At**  | timestamptz (nullable) | When the folder was moved to trash.                                         |
+| **Created At**  | timestamptz            | Record creation timestamp.                                                  |
+| **Updated At**  | timestamptz            | Last modification timestamp.                                                |
 
 **Operations**:
+
 - `createFolder(input)` — create a folder; auto-compute path from parent.
 - `renameFolder(id, name)` — rename; cascade path updates to all descendants.
 - `moveFolder(id, newParentId)` — move subtree; recompute paths for entire subtree.
@@ -38,6 +39,7 @@ A virtual container that organizes files and sub-folders into a tree.
 - `listFolder(id?, opts?)` — list children (files + sub-folders) with pagination, sort, and filter.
 
 **Constraints**:
+
 - Path uniqueness enforced at DB level — no two items (file or folder) share the same path.
 - Folder names: max 255 chars, no `/` or null bytes, case-preserving but case-insensitive uniqueness within same parent.
 - Maximum nesting depth: configurable (default: 20 levels).
@@ -48,25 +50,26 @@ A virtual container that organizes files and sub-folders into a tree.
 
 A stored binary object with metadata. The actual bytes live in S3 via the StorageUnit.
 
-| Field | Type | Description |
-|---|---|---|
-| **ID** | text (auto) | System-generated unique identifier. |
-| **Name** | text | Display name including extension (e.g., `report.pdf`). |
-| **Path** | text | Materialized path from root (e.g., `/finance/Q4 Reports/report.pdf`). Unique, indexed. |
-| **Folder** | text (FK, nullable) | Parent folder ID; `null` for root-level files. |
-| **Owner** | text (FK) | User who uploaded the file. |
-| **Storage Key** | text | S3 object key in the StorageUnit. |
-| **Content Type** | text | MIME type (e.g., `application/pdf`). |
-| **Size** | bigint | File size in bytes. |
-| **ETag** | text (nullable) | S3 ETag for integrity verification. |
-| **Description** | text (nullable) | Optional description. |
-| **Version** | integer | Current version number (starts at 1). |
-| **Is Trashed** | boolean | Soft-delete flag. Default `false`. |
-| **Trashed At** | timestamptz (nullable) | When the file was moved to trash. |
-| **Created At** | timestamptz | Record creation timestamp. |
-| **Updated At** | timestamptz | Last modification timestamp. |
+| Field            | Type                   | Description                                                                            |
+| ---------------- | ---------------------- | -------------------------------------------------------------------------------------- |
+| **ID**           | text (auto)            | System-generated unique identifier.                                                    |
+| **Name**         | text                   | Display name including extension (e.g., `report.pdf`).                                 |
+| **Path**         | text                   | Materialized path from root (e.g., `/finance/Q4 Reports/report.pdf`). Unique, indexed. |
+| **Folder**       | text (FK, nullable)    | Parent folder ID; `null` for root-level files.                                         |
+| **Owner**        | text (FK)              | User who uploaded the file.                                                            |
+| **Storage Key**  | text                   | S3 object key in the StorageUnit.                                                      |
+| **Content Type** | text                   | MIME type (e.g., `application/pdf`).                                                   |
+| **Size**         | bigint                 | File size in bytes.                                                                    |
+| **ETag**         | text (nullable)        | S3 ETag for integrity verification.                                                    |
+| **Description**  | text (nullable)        | Optional description.                                                                  |
+| **Version**      | integer                | Current version number (starts at 1).                                                  |
+| **Is Trashed**   | boolean                | Soft-delete flag. Default `false`.                                                     |
+| **Trashed At**   | timestamptz (nullable) | When the file was moved to trash.                                                      |
+| **Created At**   | timestamptz            | Record creation timestamp.                                                             |
+| **Updated At**   | timestamptz            | Last modification timestamp.                                                           |
 
 **Operations**:
+
 - `uploadFile(input)` — upload a file into a folder; delegates to StorageUnit.upload(); creates file record.
 - `downloadFile(id)` — returns a presigned GET URL via StorageUnit.getSignedGetUrl().
 - `getFile(id)` — fetch file metadata (no download).
@@ -78,6 +81,7 @@ A stored binary object with metadata. The actual bytes live in S3 via the Storag
 - `listVersions(id)` — list all versions of a file.
 
 **Constraints**:
+
 - Allowed file types: configurable per deployment (default: all types).
 - Maximum file size: configurable (default: 5 GB, limited by S3 multipart upload).
 - File names: max 255 chars, no `/` or null bytes.
@@ -102,26 +106,27 @@ Flexible tagging system for cross-cutting categorization independent of folder s
 
 ### 2.1 Label
 
-| Field | Type | Description |
-|---|---|---|
-| **ID** | text (auto) | System-generated unique identifier. |
-| **Name** | text | Label text (e.g., `important`, `reviewed`, `client-acme`). |
-| **Color** | text | Hex color for UI display. |
-| **Owner** | text (FK) | User who created the label (personal labels) or null (org-wide). |
-| **Is Global** | boolean | If `true`, visible to all users. Default `false`. |
-| **Created At** | timestamptz | Record creation timestamp. |
+| Field          | Type        | Description                                                      |
+| -------------- | ----------- | ---------------------------------------------------------------- |
+| **ID**         | text (auto) | System-generated unique identifier.                              |
+| **Name**       | text        | Label text (e.g., `important`, `reviewed`, `client-acme`).       |
+| **Color**      | text        | Hex color for UI display.                                        |
+| **Owner**      | text (FK)   | User who created the label (personal labels) or null (org-wide). |
+| **Is Global**  | boolean     | If `true`, visible to all users. Default `false`.                |
+| **Created At** | timestamptz | Record creation timestamp.                                       |
 
 ### 2.2 Item Label (Join Table)
 
-| Field | Type | Description |
-|---|---|---|
-| **Item ID** | text (FK) | Reference to file or folder. |
-| **Item Type** | enum | `file` or `folder`. |
-| **Label ID** | text (FK) | Reference to label. |
-| **Applied At** | timestamptz | When the label was applied. |
-| **Applied By** | text (FK) | User who applied the label. |
+| Field          | Type        | Description                  |
+| -------------- | ----------- | ---------------------------- |
+| **Item ID**    | text (FK)   | Reference to file or folder. |
+| **Item Type**  | enum        | `file` or `folder`.          |
+| **Label ID**   | text (FK)   | Reference to label.          |
+| **Applied At** | timestamptz | When the label was applied.  |
+| **Applied By** | text (FK)   | User who applied the label.  |
 
 **Operations**:
+
 - `createLabel(input)` — create a new label.
 - `deleteLabel(id)` — delete label; cascade-remove all associations.
 - `applyLabel(itemId, itemType, labelId)` — tag a file or folder.
@@ -130,6 +135,7 @@ Flexible tagging system for cross-cutting categorization independent of folder s
 - `listByLabel(labelId, opts?)` — list all files and folders with a given label.
 
 **Constraints**:
+
 - A label can be applied to both files and folders (polymorphic join).
 - Duplicate label application on the same item is prevented.
 - Deleting a label removes all associations (no orphaned tags).
@@ -194,20 +200,21 @@ Generate time-limited download URLs for files and folders.
 
 Direct sharing of files or folders with specific users or groups.
 
-| Field | Type | Description |
-|---|---|---|
-| **ID** | text (auto) | System-generated unique identifier. |
-| **Item ID** | text (FK) | Reference to file or folder. |
-| **Item Type** | enum | `file` or `folder`. |
-| **Grantee ID** | text (FK) | User or group receiving access. |
-| **Grantee Type** | enum | `user` or `group`. |
-| **Permission** | enum | `viewer`, `editor`, `owner`. |
-| **Shared By** | text (FK) | User who created the share. |
-| **Message** | text (nullable) | Optional message sent with the share notification. |
-| **Created At** | timestamptz | When the share was created. |
-| **Expires At** | timestamptz (nullable) | Optional expiration; after this, access is revoked. |
+| Field            | Type                   | Description                                         |
+| ---------------- | ---------------------- | --------------------------------------------------- |
+| **ID**           | text (auto)            | System-generated unique identifier.                 |
+| **Item ID**      | text (FK)              | Reference to file or folder.                        |
+| **Item Type**    | enum                   | `file` or `folder`.                                 |
+| **Grantee ID**   | text (FK)              | User or group receiving access.                     |
+| **Grantee Type** | enum                   | `user` or `group`.                                  |
+| **Permission**   | enum                   | `viewer`, `editor`, `owner`.                        |
+| **Shared By**    | text (FK)              | User who created the share.                         |
+| **Message**      | text (nullable)        | Optional message sent with the share notification.  |
+| **Created At**   | timestamptz            | When the share was created.                         |
+| **Expires At**   | timestamptz (nullable) | Optional expiration; after this, access is revoked. |
 
 **Operations**:
+
 - `share(input)` — share a file or folder with a user or group.
 - `updateShare(id, permission)` — change permission level.
 - `removeShare(id)` — revoke access.
@@ -215,6 +222,7 @@ Direct sharing of files or folders with specific users or groups.
 - `listSharedWithMe(userId, opts?)` — list items shared with a specific user.
 
 **Constraints**:
+
 - Folder shares are inherited: sharing a folder grants access to all contents (files and sub-folders) unless explicitly overridden.
 - Inherited permissions can be overridden at the item level (more permissive wins).
 - Permission levels: `viewer` (read, download), `editor` (read, upload, rename, move), `owner` (full control including delete and reshare).
@@ -225,22 +233,23 @@ Direct sharing of files or folders with specific users or groups.
 
 Generate a publicly accessible URL for a file or folder, shareable with anyone (no account required).
 
-| Field | Type | Description |
-|---|---|---|
-| **ID** | text (auto) | System-generated unique identifier. |
-| **Item ID** | text (FK) | Reference to file or folder. |
-| **Item Type** | enum | `file` or `folder`. |
-| **Token** | text (unique) | Random URL-safe token (e.g., `a1b2c3d4e5f6`). Used in the public URL. |
-| **Permission** | enum | `view` (preview/download), `edit` (upload allowed, folders only). |
-| **Created By** | text (FK) | User who created the link. |
-| **Password** | text (nullable) | Optional bcrypt-hashed password; required to access the link. |
-| **Max Views** | integer (nullable) | Optional cap on number of views/downloads. |
-| **View Count** | integer | Current view count. Default `0`. |
-| **Expires At** | timestamptz (nullable) | Optional expiration; after this, the link is invalid. |
-| **Is Active** | boolean | Can be deactivated without deleting. Default `true`. |
-| **Created At** | timestamptz | Record creation timestamp. |
+| Field          | Type                   | Description                                                           |
+| -------------- | ---------------------- | --------------------------------------------------------------------- |
+| **ID**         | text (auto)            | System-generated unique identifier.                                   |
+| **Item ID**    | text (FK)              | Reference to file or folder.                                          |
+| **Item Type**  | enum                   | `file` or `folder`.                                                   |
+| **Token**      | text (unique)          | Random URL-safe token (e.g., `a1b2c3d4e5f6`). Used in the public URL. |
+| **Permission** | enum                   | `view` (preview/download), `edit` (upload allowed, folders only).     |
+| **Created By** | text (FK)              | User who created the link.                                            |
+| **Password**   | text (nullable)        | Optional bcrypt-hashed password; required to access the link.         |
+| **Max Views**  | integer (nullable)     | Optional cap on number of views/downloads.                            |
+| **View Count** | integer                | Current view count. Default `0`.                                      |
+| **Expires At** | timestamptz (nullable) | Optional expiration; after this, the link is invalid.                 |
+| **Is Active**  | boolean                | Can be deactivated without deleting. Default `true`.                  |
+| **Created At** | timestamptz            | Record creation timestamp.                                            |
 
 **Operations**:
+
 - `createPublicLink(input)` — generate a public sharing link.
 - `updatePublicLink(id, input)` — modify link settings (password, expiry, permission).
 - `revokePublicLink(id)` — deactivate or delete the link.
@@ -248,6 +257,7 @@ Generate a publicly accessible URL for a file or folder, shareable with anyone (
 - `resolvePublicLink(token, password?)` — resolve a public link to the underlying item (for the consumer).
 
 **Constraints**:
+
 - Public links bypass normal permission checks; anyone with the token (and password, if set) can access.
 - Token is cryptographically random (16 bytes, base64url-encoded).
 - Password is hashed with bcrypt before storage; never stored in plaintext.
@@ -286,26 +296,26 @@ Generate a publicly accessible URL for a file or folder, shareable with anyone (
 
 ## 8. Data Model Summary
 
-| Domain | Key Tables |
-|---|---|
-| **Folders** | `drive_folder` |
-| **Files** | `drive_file`, `drive_file_version` |
-| **Labels** | `drive_label`, `drive_item_label` |
-| **Sharing** | `drive_share` |
-| **Public Links** | `drive_public_link` |
-| **Access Log** | `drive_access_log` |
+| Domain           | Key Tables                         |
+| ---------------- | ---------------------------------- |
+| **Folders**      | `drive_folder`                     |
+| **Files**        | `drive_file`, `drive_file_version` |
+| **Labels**       | `drive_label`, `drive_item_label`  |
+| **Sharing**      | `drive_share`                      |
+| **Public Links** | `drive_public_link`                |
+| **Access Log**   | `drive_access_log`                 |
 
 ---
 
 ## 9. Dependencies & Prerequisites
 
-| Dependency | Reason |
-|---|---|
+| Dependency       | Reason                                                                             |
+| ---------------- | ---------------------------------------------------------------------------------- |
 | **Storage Unit** | All binary file operations (upload, download, copy, move, delete, presigned URLs). |
-| **Auth Unit** | User identity, roles, access control for sharing and ownership. |
-| **PubSub Unit** | Event publishing (file uploaded, shared, trashed), scheduled jobs (auto-purge). |
-| **DB Unit** | Drizzle ORM for all metadata tables. |
-| **RPC Unit** | API exposure for client applications. |
+| **Auth Unit**    | User identity, roles, access control for sharing and ownership.                    |
+| **PubSub Unit**  | Event publishing (file uploaded, shared, trashed), scheduled jobs (auto-purge).    |
+| **DB Unit**      | Drizzle ORM for all metadata tables.                                               |
+| **RPC Unit**     | API exposure for client applications.                                              |
 
 **No optional module dependencies.** The Drive module is self-contained.
 
@@ -315,27 +325,27 @@ Generate a publicly accessible URL for a file or folder, shareable with anyone (
 
 ### Roles
 
-| Role | Description |
-|---|---|
-| **drive:admin** | Full access to all files and folders in the organization. Can manage sharing, purge trash, configure settings. |
-| **drive:user** | Standard user. Can create, upload, share, and manage own files. Can access items shared with them. |
-| **drive:viewer** | Read-only access. Can view and download files shared with them but cannot upload or modify. |
+| Role             | Description                                                                                                    |
+| ---------------- | -------------------------------------------------------------------------------------------------------------- |
+| **drive:admin**  | Full access to all files and folders in the organization. Can manage sharing, purge trash, configure settings. |
+| **drive:user**   | Standard user. Can create, upload, share, and manage own files. Can access items shared with them.             |
+| **drive:viewer** | Read-only access. Can view and download files shared with them but cannot upload or modify.                    |
 
 ### Resource Permissions
 
-| Action | drive:admin | drive:user | drive:viewer |
-|---|---|---|---|
-| Create folder | ✅ | ✅ | ❌ |
-| Upload file | ✅ | ✅ (own) | ❌ |
-| Download file | ✅ | ✅ (own + shared) | ✅ (shared) |
-| Move / Rename | ✅ | ✅ (own) | ❌ |
-| Delete (trash) | ✅ | ✅ (own) | ❌ |
-| Restore from trash | ✅ | ✅ (own) | ❌ |
-| Empty trash | ✅ | ✅ (own) | ❌ |
-| Share | ✅ | ✅ (owner-level) | ❌ |
-| Create public link | ✅ | ✅ (owner-level) | ❌ |
-| View all files | ✅ | ❌ | ❌ |
-| Purge expired | ✅ | ❌ | ❌ |
+| Action             | drive:admin | drive:user        | drive:viewer |
+| ------------------ | ----------- | ----------------- | ------------ |
+| Create folder      | ✅          | ✅                | ❌           |
+| Upload file        | ✅          | ✅ (own)          | ❌           |
+| Download file      | ✅          | ✅ (own + shared) | ✅ (shared)  |
+| Move / Rename      | ✅          | ✅ (own)          | ❌           |
+| Delete (trash)     | ✅          | ✅ (own)          | ❌           |
+| Restore from trash | ✅          | ✅ (own)          | ❌           |
+| Empty trash        | ✅          | ✅ (own)          | ❌           |
+| Share              | ✅          | ✅ (owner-level)  | ❌           |
+| Create public link | ✅          | ✅ (owner-level)  | ❌           |
+| View all files     | ✅          | ❌                | ❌           |
+| Purge expired      | ✅          | ❌                | ❌           |
 
 ---
 
@@ -381,26 +391,27 @@ packages/drive/
 
 ### Domain Events
 
-| Event | Payload | Trigger |
-|---|---|---|
-| `drive:folder_created` | `{ folder }` | Folder created |
-| `drive:folder_renamed` | `{ folder, oldName }` | Folder renamed |
-| `drive:moved` | `{ item, itemType, oldPath, newPath }` | File or folder moved |
-| `drive:file_uploaded` | `{ file }` | File uploaded |
-| `drive:file_updated` | `{ file, previousVersion }` | New version uploaded |
-| `drive:file_downloaded` | `{ file, userId }` | File downloaded (audit) |
-| `drive:shared` | `{ share }` | Item shared with user/group |
-| `drive:unshared` | `{ shareId, itemId }` | Share revoked |
-| `drive:public_link_created` | `{ publicLink }` | Public link generated |
-| `drive:public_link_accessed` | `{ publicLink, ip, userAgent }` | Public link used (audit) |
-| `drive:public_link_revoked` | `{ publicLinkId, itemId }` | Public link deactivated |
-| `drive:trashed` | `{ itemId, itemType }` | Item moved to trash |
-| `drive:restored` | `{ itemId, itemType }` | Item restored from trash |
-| `drive:purged` | `{ itemId, itemType, storageKey }` | Item permanently deleted |
+| Event                        | Payload                                | Trigger                     |
+| ---------------------------- | -------------------------------------- | --------------------------- |
+| `drive:folder_created`       | `{ folder }`                           | Folder created              |
+| `drive:folder_renamed`       | `{ folder, oldName }`                  | Folder renamed              |
+| `drive:moved`                | `{ item, itemType, oldPath, newPath }` | File or folder moved        |
+| `drive:file_uploaded`        | `{ file }`                             | File uploaded               |
+| `drive:file_updated`         | `{ file, previousVersion }`            | New version uploaded        |
+| `drive:file_downloaded`      | `{ file, userId }`                     | File downloaded (audit)     |
+| `drive:shared`               | `{ share }`                            | Item shared with user/group |
+| `drive:unshared`             | `{ shareId, itemId }`                  | Share revoked               |
+| `drive:public_link_created`  | `{ publicLink }`                       | Public link generated       |
+| `drive:public_link_accessed` | `{ publicLink, ip, userAgent }`        | Public link used (audit)    |
+| `drive:public_link_revoked`  | `{ publicLinkId, itemId }`             | Public link deactivated     |
+| `drive:trashed`              | `{ itemId, itemType }`                 | Item moved to trash         |
+| `drive:restored`             | `{ itemId, itemType }`                 | Item restored from trash    |
+| `drive:purged`               | `{ itemId, itemType, storageKey }`     | Item permanently deleted    |
 
 ### Phase Sequencing
 
 **Phase 1 — Core Filesystem**:
+
 - Folder CRUD with path computation and cascade updates
 - File upload via StorageUnit integration
 - File download via presigned URLs
@@ -408,12 +419,14 @@ packages/drive/
 - Trash and restore
 
 **Phase 2 — Organization**:
+
 - Labels (CRUD, apply/remove, list by label)
 - Search (file name, folder name, label filter)
 - Folder download as ZIP archive
 - Path resolution and breadcrumbs
 
 **Phase 3 — Sharing & Access Control**:
+
 - Direct sharing (user/group, permission levels)
 - Share inheritance (folder → contents)
 - Public link generation with token, password, and expiry
@@ -421,6 +434,7 @@ packages/drive/
 - RBAC integration with Auth unit
 
 **Phase 4 — Polish & Scale**:
+
 - Auto-purge scheduled job for expired trash items
 - Bulk operations (bulk move, bulk delete, bulk label)
 - Access log and audit trail
@@ -429,18 +443,18 @@ packages/drive/
 
 ### Estimated Effort (Relative)
 
-| Area | Complexity | Notes |
-|---|---|---|
-| Folder CRUD & Paths | Medium | Materialized path pattern, cascade updates, cycle detection. |
-| File Upload/Download | Low | Thin wrapper over StorageUnit with metadata bookkeeping. |
-| Versioning | Low | Version counter + optional version history table. |
-| Labels | Low | Standard CRUD with polymorphic join table. |
-| Sharing | Medium | Permission inheritance, override resolution, notification. |
-| Public Links | Medium | Token generation, password hashing, access logging, expiry enforcement. |
-| Folder ZIP Download | Medium | Streaming ZIP generation, async job for large folders. |
-| Search | Medium | Full-text search with permission scoping and filters. |
-| Trash & Auto-Purge | Low | Soft-delete flags + scheduled cleanup job. |
-| RBAC | Low | Integration with Auth unit's access control system. |
+| Area                 | Complexity | Notes                                                                   |
+| -------------------- | ---------- | ----------------------------------------------------------------------- |
+| Folder CRUD & Paths  | Medium     | Materialized path pattern, cascade updates, cycle detection.            |
+| File Upload/Download | Low        | Thin wrapper over StorageUnit with metadata bookkeeping.                |
+| Versioning           | Low        | Version counter + optional version history table.                       |
+| Labels               | Low        | Standard CRUD with polymorphic join table.                              |
+| Sharing              | Medium     | Permission inheritance, override resolution, notification.              |
+| Public Links         | Medium     | Token generation, password hashing, access logging, expiry enforcement. |
+| Folder ZIP Download  | Medium     | Streaming ZIP generation, async job for large folders.                  |
+| Search               | Medium     | Full-text search with permission scoping and filters.                   |
+| Trash & Auto-Purge   | Low        | Soft-delete flags + scheduled cleanup job.                              |
+| RBAC                 | Low        | Integration with Auth unit's access control system.                     |
 
 ### Testing Focus Areas
 

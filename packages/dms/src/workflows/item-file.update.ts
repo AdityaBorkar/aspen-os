@@ -5,10 +5,7 @@ import { object, parse } from "valibot";
 import { dmsFile, dmsFileVersion } from "../db-schemas";
 import { ITEM_EVENTS } from "../pubsub";
 import { getDmsConfig } from "../runtime";
-import {
-  computeStorageKey,
-  upload as uploadStorage,
-} from "../services/item-storage-bridge";
+import { computeStorageKey, upload as uploadStorage } from "../services/item-storage-bridge";
 import { UpdateItemFileSchema } from "../types";
 import { FileIdSchema, pruneOldVersions } from "./item-utils";
 import { fetchItemFileStep } from "./steps/fetch-item-file";
@@ -43,13 +40,13 @@ export const updateItemFile = Workflow.name("dms.file.update")
       folderPath: file.path.substring(0, file.path.lastIndexOf("/")) || "/",
     });
 
-    const fileObject = await ctx.step.run("upload-storage", async () => {
-      return uploadStorage({
+    const fileObject = await ctx.step.run("upload-storage", async () =>
+      uploadStorage({
         body: parsed.body as Buffer | ReadableStream | string,
         contentType,
         key: storageKey,
-      });
-    });
+      }),
+    );
 
     const [updated] = await ctx.db
       .update(dmsFile)

@@ -11,9 +11,7 @@
  * });
  * ```
  */
-export function defineAcl<const T extends Record<string, readonly string[]>>(
-  acl: T,
-): T {
+export function defineAcl<const T extends Record<string, readonly string[]>>(acl: T): T {
   return acl;
 }
 
@@ -31,7 +29,4 @@ export type ExtractResources<T extends AclDeclaration> = keyof T;
 /**
  * Extract allowed actions for a given resource from an ACL declaration.
  */
-export type ExtractActions<
-  T extends AclDeclaration,
-  R extends keyof T,
-> = T[R][number];
+export type ExtractActions<T extends AclDeclaration, R extends keyof T> = T[R][number];

@@ -12,11 +12,7 @@ import {
   string,
 } from "valibot";
 
-import {
-  AuditActionSchema,
-  AuditEntityTypeSchema,
-  ComplianceCategorySchema,
-} from "./enums";
+import { AuditActionSchema, AuditEntityTypeSchema, ComplianceCategorySchema } from "./enums";
 
 export const CreateVerificationRuleSchema = object({
   assignedReviewer: optional(nullable(string())),
@@ -28,9 +24,7 @@ export const CreateVerificationRuleSchema = object({
   sourceModule: optional(nullable(string())),
 });
 
-export type CreateVerificationRuleInput = InferOutput<
-  typeof CreateVerificationRuleSchema
->;
+export type CreateVerificationRuleInput = InferOutput<typeof CreateVerificationRuleSchema>;
 
 export const UpdateVerificationRuleSchema = object({
   assignedReviewer: optional(nullable(string())),
@@ -42,9 +36,7 @@ export const UpdateVerificationRuleSchema = object({
   sourceModule: optional(nullable(string())),
 });
 
-export type UpdateVerificationRuleInput = InferOutput<
-  typeof UpdateVerificationRuleSchema
->;
+export type UpdateVerificationRuleInput = InferOutput<typeof UpdateVerificationRuleSchema>;
 
 export const AuditTrailFiltersSchema = object({
   action: optional(AuditActionSchema),

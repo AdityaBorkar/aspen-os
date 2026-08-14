@@ -12,9 +12,7 @@ export const serviceProvider = pgTable(
   "service_provider",
   {
     address: text("address"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     description: text("description"),
     email: text("email"),
     id: text("id").primaryKey().$defaultFn(uuidv7),
@@ -23,9 +21,7 @@ export const serviceProvider = pgTable(
     phone: text("phone"),
     slug: text("slug").notNull().unique(),
     status: serviceProviderStatusEnum("status").notNull().default("active"),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     website: text("website"),
   },
   (table) => [index("idx_service_provider_status").on(table.status)],

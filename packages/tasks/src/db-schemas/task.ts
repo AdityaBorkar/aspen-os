@@ -1,13 +1,5 @@
 import { uuidv7 } from "@aspen-os/platform/server";
-import {
-  boolean,
-  index,
-  integer,
-  numeric,
-  pgTable,
-  text,
-  timestamp,
-} from "drizzle-orm/pg-core";
+import { boolean, index, integer, numeric, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 import { taskPriorityEnum } from "./enums";
 
@@ -16,9 +8,7 @@ export const task = pgTable(
   {
     assignedAt: timestamp("assigned_at", { withTimezone: true }),
     completedAt: timestamp("completed_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     description: text("description"),
     dueDate: timestamp("due_date", { withTimezone: true }),
     estimatedHours: numeric("estimated_hours"),
@@ -36,9 +26,7 @@ export const task = pgTable(
     taskNumber: integer("task_number"),
     title: text("title").notNull(),
     typeId: text("type_id"),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_task_project").on(table.projectId),

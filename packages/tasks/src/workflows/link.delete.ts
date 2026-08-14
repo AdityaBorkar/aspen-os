@@ -20,9 +20,7 @@ export const deleteTaskLink = Workflow.name("link.delete")
     const [link] = await ctx.db
       .select()
       .from(taskLink)
-      .where(
-        and(eq(taskLink.sourceId, sourceId), eq(taskLink.targetId, targetId)),
-      )
+      .where(and(eq(taskLink.sourceId, sourceId), eq(taskLink.targetId, targetId)))
       .limit(1);
 
     if (!link) {

@@ -21,9 +21,7 @@ export const CreateAutomationRuleSchema = object({
   trigger: AutomationTriggerSchema,
 });
 
-export type CreateAutomationRuleInput = InferOutput<
-  typeof CreateAutomationRuleSchema
->;
+export type CreateAutomationRuleInput = InferOutput<typeof CreateAutomationRuleSchema>;
 
 export const UpdateAutomationRuleSchema = object({
   actions: optional(object({})),
@@ -33,6 +31,4 @@ export const UpdateAutomationRuleSchema = object({
   trigger: optional(AutomationTriggerSchema),
 });
 
-export type UpdateAutomationRuleInput = InferOutput<
-  typeof UpdateAutomationRuleSchema
->;
+export type UpdateAutomationRuleInput = InferOutput<typeof UpdateAutomationRuleSchema>;

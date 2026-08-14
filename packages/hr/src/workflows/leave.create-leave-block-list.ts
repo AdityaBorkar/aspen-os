@@ -8,9 +8,7 @@ const InputSchema = object({
   input: CreateLeaveBlockListSchema,
 });
 
-export const createLeaveBlockList = Workflow.name(
-  "hr.leave.create-leave-block-list",
-)
+export const createLeaveBlockList = Workflow.name("hr.leave.create-leave-block-list")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateLeaveBlockListSchema, input);

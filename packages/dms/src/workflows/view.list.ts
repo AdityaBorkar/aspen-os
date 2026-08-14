@@ -4,23 +4,17 @@ import { and, eq, or } from "drizzle-orm";
 import { dmsView } from "../db-schemas";
 
 export const listViews = Workflow.name("dms.view.list").handler(
-  async (input: { ownerId: string }, ctx) => {
-    return ctx.db
+  async (input: { ownerId: string }, ctx) =>
+    ctx.db
       .select()
       .from(dmsView)
       .where(or(eq(dmsView.ownerId, input.ownerId), eq(dmsView.isShared, true)))
-      .orderBy(dmsView.name);
-  },
+      .orderBy(dmsView.name),
 );
 
 export const listViewsByOwner = Workflow.name("dms.view.list-by-owner").handler(
-  async (input: { ownerId: string }, ctx) => {
-    return ctx.db
-      .select()
-      .from(dmsView)
-      .where(eq(dmsView.ownerId, input.ownerId))
-      .orderBy(dmsView.name);
-  },
+  async (input: { ownerId: string }, ctx) =>
+    ctx.db.select().from(dmsView).where(eq(dmsView.ownerId, input.ownerId)).orderBy(dmsView.name),
 );
 
 export const getDefaultView = Workflow.name("dms.view.get-default").handler(
@@ -28,9 +22,7 @@ export const getDefaultView = Workflow.name("dms.view.get-default").handler(
     const [view] = await ctx.db
       .select()
       .from(dmsView)
-      .where(
-        and(eq(dmsView.ownerId, input.ownerId), eq(dmsView.isDefault, true)),
-      )
+      .where(and(eq(dmsView.ownerId, input.ownerId), eq(dmsView.isDefault, true)))
       .limit(1);
     return view ?? null;
   },

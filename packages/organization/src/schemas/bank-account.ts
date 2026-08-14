@@ -11,18 +11,10 @@ import {
 } from "valibot";
 
 export const CreateBankAccountSchema = object({
-  accountHolderName: pipe(
-    string(),
-    minLength(1, "Account holder name is required"),
-  ),
+  accountHolderName: pipe(string(), minLength(1, "Account holder name is required")),
   accountNumber: pipe(string(), minLength(1, "Account number is required")),
   accountType: optional(
-    nullable(
-      pipe(
-        string(),
-        maxLength(50, "Account type must be at most 50 characters"),
-      ),
-    ),
+    nullable(pipe(string(), maxLength(50, "Account type must be at most 50 characters"))),
   ),
   bankName: pipe(string(), minLength(1, "Bank name is required")),
   branchName: optional(nullable(string())),
@@ -32,26 +24,17 @@ export const CreateBankAccountSchema = object({
   metadata: optional(nullable(object({}))),
   routingNumber: optional(nullable(string())),
   swiftCode: optional(
-    nullable(
-      pipe(string(), maxLength(11, "SWIFT code must be at most 11 characters")),
-    ),
+    nullable(pipe(string(), maxLength(11, "SWIFT code must be at most 11 characters"))),
   ),
 });
 
-export type CreateBankAccountInput = InferOutput<
-  typeof CreateBankAccountSchema
->;
+export type CreateBankAccountInput = InferOutput<typeof CreateBankAccountSchema>;
 
 export const UpdateBankAccountSchema = object({
   accountHolderName: optional(string()),
   accountNumber: optional(string()),
   accountType: optional(
-    nullable(
-      pipe(
-        string(),
-        maxLength(50, "Account type must be at most 50 characters"),
-      ),
-    ),
+    nullable(pipe(string(), maxLength(50, "Account type must be at most 50 characters"))),
   ),
   bankName: optional(string()),
   branchName: optional(nullable(string())),
@@ -61,15 +44,11 @@ export const UpdateBankAccountSchema = object({
   metadata: optional(nullable(object({}))),
   routingNumber: optional(nullable(string())),
   swiftCode: optional(
-    nullable(
-      pipe(string(), maxLength(11, "SWIFT code must be at most 11 characters")),
-    ),
+    nullable(pipe(string(), maxLength(11, "SWIFT code must be at most 11 characters"))),
   ),
 });
 
-export type UpdateBankAccountInput = InferOutput<
-  typeof UpdateBankAccountSchema
->;
+export type UpdateBankAccountInput = InferOutput<typeof UpdateBankAccountSchema>;
 
 export const BankAccountFiltersSchema = object({
   currency: optional(string()),

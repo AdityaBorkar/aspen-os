@@ -13,11 +13,7 @@ export const getShiftTypeById = Workflow.name("hr.shift.get-shift-type-by-id")
   .handler(async (input, ctx) => {
     const { id } = input;
 
-    const [result] = await ctx.db
-      .select()
-      .from(shiftType)
-      .where(eq(shiftType.id, id))
-      .limit(1);
+    const [result] = await ctx.db.select().from(shiftType).where(eq(shiftType.id, id)).limit(1);
 
     if (!result) {
       throw new Error(`Shift type with id "${id}" not found.`);

@@ -1,19 +1,7 @@
 import { uuidv7 } from "@aspen-os/platform/server";
-import {
-  date,
-  index,
-  jsonb,
-  numeric,
-  pgTable,
-  text,
-  timestamp,
-} from "drizzle-orm/pg-core";
+import { date, index, jsonb, numeric, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
-import {
-  exitInterviewStatusEnum,
-  fullAndFinalStatusEnum,
-  lifecycleTaskStatusEnum,
-} from "./enums";
+import { exitInterviewStatusEnum, fullAndFinalStatusEnum, lifecycleTaskStatusEnum } from "./enums";
 
 export const onboardingTask = pgTable(
   "onboarding_task",
@@ -21,9 +9,7 @@ export const onboardingTask = pgTable(
     assignedTo: text("assigned_to"),
     completedAt: timestamp("completed_at", { withTimezone: true }),
     completedBy: text("completed_by"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     department: text("department"),
     description: text("description"),
     dueDate: date("due_date"),
@@ -32,13 +18,9 @@ export const onboardingTask = pgTable(
     onboardingId: text("onboarding_id").notNull(),
     status: lifecycleTaskStatusEnum("status").notNull().default("pending"),
     title: text("title").notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [
-    index("idx_onboarding_task_onboarding_id").on(table.onboardingId),
-  ],
+  (table) => [index("idx_onboarding_task_onboarding_id").on(table.onboardingId)],
 );
 
 export const separationTask = pgTable(
@@ -47,9 +29,7 @@ export const separationTask = pgTable(
     assignedTo: text("assigned_to"),
     completedAt: timestamp("completed_at", { withTimezone: true }),
     completedBy: text("completed_by"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     department: text("department"),
     description: text("description"),
     dueDate: date("due_date"),
@@ -58,22 +38,16 @@ export const separationTask = pgTable(
     separationId: text("separation_id").notNull(),
     status: lifecycleTaskStatusEnum("status").notNull().default("pending"),
     title: text("title").notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [
-    index("idx_separation_task_separation_id").on(table.separationId),
-  ],
+  (table) => [index("idx_separation_task_separation_id").on(table.separationId)],
 );
 
 export const exitInterview = pgTable(
   "exit_interview",
   {
     completedDate: timestamp("completed_date", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     employeeId: text("employee_id").notNull(),
     feedback: text("feedback"),
     id: text("id").primaryKey().$defaultFn(uuidv7),
@@ -83,9 +57,7 @@ export const exitInterview = pgTable(
     scheduledDate: timestamp("scheduled_date", { withTimezone: true }),
     separationId: text("separation_id"),
     status: exitInterviewStatusEnum("status").notNull().default("scheduled"),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_exit_interview_employee_id").on(table.employeeId),
@@ -99,9 +71,7 @@ export const fullAndFinalStatement = pgTable(
     approvedAt: timestamp("approved_at", { withTimezone: true }),
     approvedBy: text("approved_by"),
     bonus: numeric("bonus").notNull().default("0"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     deductions: numeric("deductions").notNull().default("0"),
     employeeId: text("employee_id").notNull(),
     gratuity: numeric("gratuity").notNull().default("0"),
@@ -118,9 +88,7 @@ export const fullAndFinalStatement = pgTable(
     status: fullAndFinalStatusEnum("status").notNull().default("draft"),
     totalDeductions: numeric("total_deductions"),
     totalEarnings: numeric("total_earnings"),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_full_and_final_statement_employee_id").on(table.employeeId),

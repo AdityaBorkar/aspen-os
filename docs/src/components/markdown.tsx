@@ -22,10 +22,7 @@ export interface Processor {
 }
 
 function createProcessor(): Processor {
-  const processor = remark()
-    .use(remarkGfm)
-    .use(remarkRehype)
-    .use(rehypeWrapWords);
+  const processor = remark().use(remarkGfm).use(remarkRehype).use(rehypeWrapWords);
 
   return {
     async process(content) {
@@ -33,13 +30,13 @@ function createProcessor(): Processor {
       const hast = await processor.run(nodes);
 
       return toJsxRuntime(hast, {
+        Fragment,
         components: {
           ...defaultMdxComponents,
           img: undefined, // use JSX
           pre: Pre,
         },
         development: false,
-        Fragment,
         jsx,
         jsxs,
       });
@@ -51,7 +48,9 @@ function Pre(props: ComponentProps<"pre">) {
   const code = Children.only(props.children) as ReactElement;
   const codeProps = code.props as ComponentProps<"code">;
   const content = codeProps.children;
-  if (typeof content !== "string") return null;
+  if (typeof content !== "string") {
+    return null;
+  }
 
   let lang =
     codeProps.className
@@ -59,7 +58,9 @@ function Pre(props: ComponentProps<"pre">) {
       .find((v) => v.startsWith("language-"))
       ?.slice("language-".length) ?? "text";
 
-  if (lang === "mdx") lang = "md";
+  if (lang === "mdx") {
+    lang = "md";
+  }
 
   return <DynamicCodeBlock code={content.trimEnd()} lang={lang} />;
 }

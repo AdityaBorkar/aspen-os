@@ -9,7 +9,9 @@ import { DOCS_ROUTE } from "./constants";
 
 function tablerIconPlugin(): LoaderPlugin {
   function resolveIcon(icon: string | undefined) {
-    if (!icon) return;
+    if (!icon) {
+      return;
+    }
     const Icon = (TablerIcons as Record<string, unknown>)[icon] as
       | ((props: { size?: number }) => ReactElement)
       | undefined;
@@ -40,7 +42,9 @@ function displayTitlePlugin(): LoaderPlugin {
     name: "display-title",
     transformPageTree: {
       file(node, filePath) {
-        if (!filePath) return node;
+        if (!filePath) {
+          return node;
+        }
         const file = this.storage.read(filePath);
         if (
           file?.format === "page" &&

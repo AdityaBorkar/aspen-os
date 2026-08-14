@@ -21,11 +21,11 @@ no RLS, no per-tenant connection routing.
 This SOW transforms the platform so that the tenancy mode is a **config-time choice**. Three
 modes are supported:
 
-| Mode | Databases | Isolation | `tenant_id` columns | Connection routing |
-|---|---|---|---|---|
-| **Single Tenant** | 1 | None needed | Present (always `"default"`) | Static pool |
-| **Shared DB + RLS** | 1 (shared) | Postgres RLS policies | Present (varies per row) | Per-request client + `SET LOCAL` |
-| **Isolated DB** | N+1 (control-plane + per-tenant) | Physical (separate DBs) | Present (redundant per DB) | Per-tenant pool resolution |
+| Mode                | Databases                        | Isolation               | `tenant_id` columns          | Connection routing               |
+| ------------------- | -------------------------------- | ----------------------- | ---------------------------- | -------------------------------- |
+| **Single Tenant**   | 1                                | None needed             | Present (always `"default"`) | Static pool                      |
+| **Shared DB + RLS** | 1 (shared)                       | Postgres RLS policies   | Present (varies per row)     | Per-request client + `SET LOCAL` |
+| **Isolated DB**     | N+1 (control-plane + per-tenant) | Physical (separate DBs) | Present (redundant per DB)   | Per-tenant pool resolution       |
 
 The same module code — workflows, services, schemas — works in all three modes without
 modification. The platform handles mode-specific behavior internally.
@@ -96,15 +96,15 @@ A new required field on `PlatformConfig`:
 
 ```ts
 type PlatformConfig = {
-  tenancy: TenancyConfig
-  auth: AuthConfig
-  db: DatabaseConfig
-  kvStore: KvStoreConfig
-  logs: LogConfig
-  pubsub: PubSubConfig
-  rpc: RpcConfig
-  storage: StorageConfig
-}
+  tenancy: TenancyConfig;
+  auth: AuthConfig;
+  db: DatabaseConfig;
+  kvStore: KvStoreConfig;
+  logs: LogConfig;
+  pubsub: PubSubConfig;
+  rpc: RpcConfig;
+  storage: StorageConfig;
+};
 ```
 
 The `db` config is always the **control-plane** database connection. In single/RLS mode, this IS
@@ -116,14 +116,14 @@ type TenancyConfig =
   | { mode: "single" }
   | { mode: "shared" }
   | {
-      mode: "isolated"
-      resolver: TenantResolver
-    }
+      mode: "isolated";
+      resolver: TenantResolver;
+    };
 
 type TenantResolver = {
-  resolve: (tenantId: string) => Promise<DatabaseConfig>
-  list: () => Promise<string[]>
-}
+  resolve: (tenantId: string) => Promise<DatabaseConfig>;
+  list: () => Promise<string[]>;
+};
 ```
 
 - **`single`**: No tenant resolution. One database. `run(fn)` takes no tenant ID.
@@ -138,7 +138,7 @@ type TenantResolver = {
 The platform instance exposes the mode via a getter:
 
 ```ts
-platform.tenancyMode  // "single" | "shared" | "isolated"
+platform.tenancyMode; // "single" | "shared" | "isolated"
 ```
 
 Units and modules can check the mode at runtime if needed, though most should be transparent.
@@ -146,6 +146,7 @@ Units and modules can check the mode at runtime if needed, though most should be
 ### 1.3 Validation
 
 `Platform.create()` validates:
+
 - `tenancy` is present and `mode` is one of the three values.
 - In `isolated` mode, `resolver` is present with both `resolve` and `list` functions.
 - The mode is fixed for the lifetime of the platform instance — there is no `setMode()`.
@@ -161,20 +162,20 @@ maintaining backward compatibility for single-tenant mode.
 
 ```ts
 export class DatabaseUnit {
-  readonly $name = "db"
-  readonly config: DatabaseConfig          // control-plane config
-  readonly tenancyMode: TenancyMode
+  readonly $name = "db";
+  readonly config: DatabaseConfig; // control-plane config
+  readonly tenancyMode: TenancyMode;
 
   // Control-plane connection (always present)
-  private controlPlanePool: pg.Pool
-  private controlPlaneDb: NodePgDatabase
+  private controlPlanePool: pg.Pool;
+  private controlPlaneDb: NodePgDatabase;
 
   // Per-tenant connections (isolated mode only)
-  private tenantPools: Map<string, { pool: pg.Pool; db: NodePgDatabase }> = new Map()
-  private resolver?: TenantResolver
+  private tenantPools: Map<string, { pool: pg.Pool; db: NodePgDatabase }> = new Map();
+  private resolver?: TenantResolver;
 
   // The stable wrapper (returned by the `db` getter)
-  private dbWrapper: NodePgDatabase
+  private dbWrapper: NodePgDatabase;
 }
 ```
 
@@ -357,11 +358,11 @@ The `AsyncLocalStorage` context gains an optional `tenantId`:
 
 ```ts
 export const context = new AsyncLocalStorage<{
-  db: NodePgDatabase
-  pubsub: PubSubUnit
-  auth: Auth
-  tenantId?: string
-}>()
+  db: NodePgDatabase;
+  pubsub: PubSubUnit;
+  auth: Auth;
+  tenantId?: string;
+}>();
 ```
 
 ### 3.2 `run()` Signatures
@@ -446,11 +447,11 @@ The `Module` interface gains an optional method:
 
 ```ts
 export interface Module<N extends string = string> {
-  readonly $name: N
-  $initialize?(units: Record<string, Unit>): void
-  $prepare?(): Promise<void>
-  $prepareTenant?(tenantId: string): Promise<void>  // NEW
-  $cleanup(): Promise<void>
+  readonly $name: N;
+  $initialize?(units: Record<string, Unit>): void;
+  $prepare?(): Promise<void>;
+  $prepareTenant?(tenantId: string): Promise<void>; // NEW
+  $cleanup(): Promise<void>;
 }
 ```
 
@@ -483,14 +484,14 @@ that logic to `$prepareTenant()`:
 
 ### 4.4 `$prepare()` vs `$prepareTenant()` Split
 
-| Concern | `$prepare()` | `$prepareTenant()` |
-|---|---|---|
-| Schema push (control-plane) | Yes | No |
-| Schema push (per-tenant) | No | No (handled by provisioning) |
-| Cron schedules (shared pg-boss) | Yes (single/RLS mode) | No |
-| Cron schedules (per-tenant pg-boss) | No | Yes (isolated mode) |
-| Subscriptions (shared pg-boss) | Yes (single/RLS mode) | No |
-| Subscriptions (per-tenant pg-boss) | No | Yes (isolated mode) |
+| Concern                             | `$prepare()`          | `$prepareTenant()`           |
+| ----------------------------------- | --------------------- | ---------------------------- |
+| Schema push (control-plane)         | Yes                   | No                           |
+| Schema push (per-tenant)            | No                    | No (handled by provisioning) |
+| Cron schedules (shared pg-boss)     | Yes (single/RLS mode) | No                           |
+| Cron schedules (per-tenant pg-boss) | No                    | Yes (isolated mode)          |
+| Subscriptions (shared pg-boss)      | Yes (single/RLS mode) | No                           |
+| Subscriptions (per-tenant pg-boss)  | No                    | Yes (isolated mode)          |
 
 ---
 
@@ -520,10 +521,10 @@ handlers need to be tenant-aware (iterate over tenants in the handler body).
 
 ```ts
 export class PubSubUnit {
-  private controlPlaneBoss: PgBoss
-  private tenantBosses: Map<string, PgBoss> = new Map()
-  private tenancyMode: TenancyMode
-  private resolver?: TenantResolver
+  private controlPlaneBoss: PgBoss;
+  private tenantBosses: Map<string, PgBoss> = new Map();
+  private tenancyMode: TenancyMode;
+  private resolver?: TenantResolver;
 }
 ```
 
@@ -658,10 +659,11 @@ enforce it.
 Every table in every module (framework + domain modules) gains:
 
 ```ts
-tenantId: text("tenant_id").notNull().default("default")
+tenantId: text("tenant_id").notNull().default("default");
 ```
 
 This includes:
+
 - **Platform tables**: `user`, `session`, `account`, `verification` (auth), `logs`,
   `file_metadata` (storage), `kv_store`.
 - **Domain module tables**: all tables in organization, compliance, tasks, drive, hr.
@@ -682,11 +684,11 @@ always go through the control-plane connection (which bypasses RLS or uses a `BY
 
 ### 7.3 Schema Push Per Mode
 
-| Mode | Platform schemas | Module schemas | RLS policies |
-|---|---|---|---|
-| Single | Push to app DB (once) | Push to app DB (once) | None |
-| shared | Push to shared DB (once) | Push to shared DB (once) | Apply after push |
-| isolated | Push to control-plane DB (once) | Push to each tenant DB (during provisioning) | None |
+| Mode     | Platform schemas                | Module schemas                               | RLS policies     |
+| -------- | ------------------------------- | -------------------------------------------- | ---------------- |
+| Single   | Push to app DB (once)           | Push to app DB (once)                        | None             |
+| shared   | Push to shared DB (once)        | Push to shared DB (once)                     | Apply after push |
+| isolated | Push to control-plane DB (once) | Push to each tenant DB (during provisioning) | None             |
 
 ### 7.4 Module Schema Changes
 
@@ -699,7 +701,7 @@ export const task = pgTable("task", {
   id: text().primaryKey(),
   title: text().notNull(),
   // ...
-})
+});
 
 // After
 export const task = pgTable("task", {
@@ -707,7 +709,7 @@ export const task = pgTable("task", {
   tenantId: text("tenant_id").notNull().default("default"),
   title: text().notNull(),
   // ...
-})
+});
 ```
 
 ### 7.5 Unique Constraints
@@ -717,12 +719,12 @@ Tables with unique constraints (e.g., `driveFolder.path`, `organization.slug`,
 
 ```ts
 // Before
-path: text().unique()
+path: text().unique();
 
 // After
-path: text(),
-// In table options:
-uniqueIndex("drive_folder_path_unique").on(t.path, t.tenantId)
+path: (text(),
+  // In table options:
+  uniqueIndex("drive_folder_path_unique").on(t.path, t.tenantId));
 ```
 
 In single-tenant mode, this is equivalent to the old unique constraint (all rows have the same
@@ -743,7 +745,7 @@ S3 keys are prefixed with `tenantId`:
 
 ```ts
 // In upload():
-const key = `${tenantId}/${originalKey}`
+const key = `${tenantId}/${originalKey}`;
 ```
 
 The `tenantId` is read from `context.getStore()?.tenantId ?? "default"`.
@@ -774,7 +776,7 @@ KV keys are prefixed with `tenantId`:
 
 ```ts
 // In get/set/del:
-const fullKey = `${tenantId}:${key}`
+const fullKey = `${tenantId}:${key}`;
 ```
 
 The `tenantId` is read from `context.getStore()?.tenantId ?? "default"`.
@@ -786,7 +788,7 @@ in addition:
 Final key: ${config.keyPrefix ?? ""}${tenantId}:${originalKey}
 ```
 
-### 9.3 `clear(pattern)` 
+### 9.3 `clear(pattern)`
 
 In multi-tenant modes, `clear()` should only clear keys for the current tenant. The `LIKE`
 pattern is scoped to the tenant prefix.
@@ -821,10 +823,10 @@ The `RpcContext` gains an optional `tenantId`:
 
 ```ts
 type RpcContext = {
-  db: NodePgDatabase
-  pubsub: PubSubUnit
-  tenantId?: string
-}
+  db: NodePgDatabase;
+  pubsub: PubSubUnit;
+  tenantId?: string;
+};
 ```
 
 The host app passes the `tenantId` in the `RpcContext`, and the RPC handler wraps procedure

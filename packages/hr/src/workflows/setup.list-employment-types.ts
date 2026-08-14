@@ -5,10 +5,6 @@ import { employmentType } from "../db-schemas";
 
 const InputSchema = object({});
 
-export const listEmploymentTypes = Workflow.name(
-  "hr.setup.list-employment-types",
-)
+export const listEmploymentTypes = Workflow.name("hr.setup.list-employment-types")
   .input(InputSchema)
-  .handler(async (_input, ctx) => {
-    return ctx.db.select().from(employmentType);
-  });
+  .handler(async (_input, ctx) => ctx.db.select().from(employmentType));

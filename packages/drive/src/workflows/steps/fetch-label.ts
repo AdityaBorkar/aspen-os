@@ -12,6 +12,8 @@ export const fetchLabelStep = WorkflowStep.name("fetch-label")
       .from(driveLabel)
       .where(eq(driveLabel.id, input.id))
       .limit(1);
-    if (!row) throw new Error(`Label with id "${input.id}" not found.`);
+    if (!row) {
+      throw new Error(`Label with id "${input.id}" not found.`);
+    }
     return row;
   });

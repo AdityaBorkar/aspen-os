@@ -4,17 +4,8 @@ import {
   type ExtractModuleNames,
   type MergedSchemas,
 } from "./base-platform";
-import {
-  type DatabaseConfig,
-  DatabaseUnit,
-  type IsolatedTenantDatabaseConfig,
-} from "./db";
-import type {
-  ArrayModuleAccessors,
-  Module,
-  PlatformUnits,
-  UnitAccessors,
-} from "./index";
+import { type DatabaseConfig, DatabaseUnit, type IsolatedTenantDatabaseConfig } from "./db";
+import type { ArrayModuleAccessors, Module, PlatformUnits, UnitAccessors } from "./index";
 import { isGlobalTenantId } from "./utils/is-global-tenant-id";
 
 export type IsolatedTenantConfig = CommonConfig & {
@@ -123,10 +114,7 @@ export class IsolatedTenantPlatform<
       await this.run(tenantId, async () => {
         for await (const mod of this.modules) {
           await mod.$prepareTenant?.(tenantId).catch((err) => {
-            console.error(
-              `Failed to prepare tenant "${tenantId}" for module "${mod.$name}"`,
-              err,
-            );
+            console.error(`Failed to prepare tenant "${tenantId}" for module "${mod.$name}"`, err);
           });
         }
       });

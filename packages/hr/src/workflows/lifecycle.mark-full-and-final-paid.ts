@@ -9,9 +9,7 @@ const InputSchema = object({
   paymentEntry: pipe(string(), minLength(1, "paymentEntry is required")),
 });
 
-export const markFullAndFinalPaid = Workflow.name(
-  "hr.lifecycle.mark-full-and-final-paid",
-)
+export const markFullAndFinalPaid = Workflow.name("hr.lifecycle.mark-full-and-final-paid")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, paymentEntry } = input;

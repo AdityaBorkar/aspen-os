@@ -9,8 +9,10 @@ import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, ROLES } from "../utils/constants";
 export const createUser = Workflow.name("user.create")
   .input(CreatePlatformUserSchema)
   .handler(async (input, ctx) => {
-    if (!ctx.auth) throw new Error("Auth is required for user creation");
-    const auth = ctx.auth;
+    if (!ctx.auth) {
+      throw new Error("Auth is required for user creation");
+    }
+    const { auth } = ctx;
 
     if (input.role === ROLES.SP_USER && !input.spId) {
       throw new Error("spId is required when role is 'sp_user'.");

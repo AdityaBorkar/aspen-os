@@ -10,9 +10,7 @@ const InputSchema = object({
   rejectionReason: pipe(string(), minLength(1, "rejectionReason is required")),
 });
 
-export const rejectCompensatoryLeave = Workflow.name(
-  "hr.leave.reject-compensatory-leave",
-)
+export const rejectCompensatoryLeave = Workflow.name("hr.leave.reject-compensatory-leave")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, rejectedBy, rejectionReason } = input;

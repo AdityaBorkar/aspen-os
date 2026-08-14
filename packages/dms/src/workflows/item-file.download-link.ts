@@ -16,12 +16,10 @@ export const getItemFileDownloadLink = Workflow.name("dms.file.download-link")
   .input(DownloadInputSchema)
   .handler(async ({ id, options = {} }, ctx) => {
     const file = await ctx.step.run("fetch-file", async () => {
-      const [row] = await ctx.db
-        .select()
-        .from(dmsFile)
-        .where(eq(dmsFile.id, id))
-        .limit(1);
-      if (!row) throw new Error(`File with id "${id}" not found.`);
+      const [row] = await ctx.db.select().from(dmsFile).where(eq(dmsFile.id, id)).limit(1);
+      if (!row) {
+        throw new Error(`File with id "${id}" not found.`);
+      }
       return row;
     });
     const config = getDmsConfig();

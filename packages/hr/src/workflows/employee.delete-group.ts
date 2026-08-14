@@ -14,9 +14,7 @@ export const deleteGroup = Workflow.name("hr.employee.delete-group")
     const { id } = input;
 
     // Remove all members first
-    await ctx.db
-      .delete(employeeGroupMember)
-      .where(eq(employeeGroupMember.groupId, id));
+    await ctx.db.delete(employeeGroupMember).where(eq(employeeGroupMember.groupId, id));
 
     const [deleted] = await ctx.db
       .delete(employeeGroup)

@@ -1,13 +1,5 @@
 import { uuidv7 } from "@aspen-os/platform/server";
-import {
-  boolean,
-  date,
-  index,
-  jsonb,
-  pgTable,
-  text,
-  timestamp,
-} from "drizzle-orm/pg-core";
+import { boolean, date, index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 import {
   checkinLogTypeEnum,
@@ -32,9 +24,7 @@ export const employee = pgTable(
     city: text("city"),
     company: text("company").notNull(),
     country: text("country"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     currentAddress: text("current_address"),
     dateOfBirth: date("date_of_birth"),
     dateOfJoining: date("date_of_joining").notNull(),
@@ -69,9 +59,7 @@ export const employee = pgTable(
     state: text("state"),
     status: employeeStatusEnum("status").notNull().default("active"),
     taxId: text("tax_id"),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     workEmail: text("work_email"),
     workPhone: text("work_phone"),
   },
@@ -83,30 +71,22 @@ export const employee = pgTable(
 );
 
 export const employeeGroup = pgTable("employee_group", {
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   description: text("description"),
   id: text("id").primaryKey().$defaultFn(uuidv7),
   isActive: boolean("is_active").notNull().default(true),
   name: text("name").notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const employeeGroupMember = pgTable(
   "employee_group_member",
   {
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     employeeId: text("employee_id").notNull(),
     groupId: text("group_id").notNull(),
     id: text("id").primaryKey().$defaultFn(uuidv7),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_employee_group_member_group_id").on(table.groupId),
@@ -118,9 +98,7 @@ export const employeeHealthInsurance = pgTable(
   "employee_health_insurance",
   {
     coverageDetails: text("coverage_details"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     employeeId: text("employee_id").notNull(),
     endDate: date("end_date"),
     id: text("id").primaryKey().$defaultFn(uuidv7),
@@ -130,13 +108,9 @@ export const employeeHealthInsurance = pgTable(
     policyNumber: text("policy_number").notNull(),
     premiumAmount: text("premium_amount"),
     startDate: date("start_date").notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [
-    index("idx_employee_health_insurance_employee_id").on(table.employeeId),
-  ],
+  (table) => [index("idx_employee_health_insurance_employee_id").on(table.employeeId)],
 );
 
 export const employeeSkillMap = pgTable(
@@ -146,18 +120,14 @@ export const employeeSkillMap = pgTable(
     assessmentDate: date("assessment_date"),
     certificationDate: date("certification_date"),
     certificationName: text("certification_name"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     employeeId: text("employee_id").notNull(),
     expiryDate: date("expiry_date"),
     id: text("id").primaryKey().$defaultFn(uuidv7),
     notes: text("notes"),
     proficiency: skillProficiencyEnum("proficiency").notNull(),
     skill: text("skill").notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index("idx_employee_skill_map_employee_id").on(table.employeeId)],
 );
@@ -165,9 +135,7 @@ export const employeeSkillMap = pgTable(
 export const employeeCheckin = pgTable(
   "employee_checkin",
   {
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     deviceId: text("device_id"),
     employeeId: text("employee_id").notNull(),
     id: text("id").primaryKey().$defaultFn(uuidv7),
@@ -178,9 +146,7 @@ export const employeeCheckin = pgTable(
     metadata: jsonb("metadata"),
     shift: text("shift"),
     time: timestamp("time", { withTimezone: true }).notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index("idx_employee_checkin_employee_id").on(table.employeeId)],
 );
@@ -189,9 +155,7 @@ export const employeeOnboarding = pgTable(
   "employee_onboarding",
   {
     actualCompletionDate: date("actual_completion_date"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     employeeId: text("employee_id").notNull(),
     expectedCompletionDate: date("expected_completion_date"),
     id: text("id").primaryKey().$defaultFn(uuidv7),
@@ -199,9 +163,7 @@ export const employeeOnboarding = pgTable(
     notes: text("notes"),
     startDate: date("start_date").notNull(),
     status: onboardingStatusEnum("status").notNull().default("pending"),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_employee_onboarding_employee_id").on(table.employeeId),
@@ -214,9 +176,7 @@ export const employeePromotion = pgTable(
   {
     approvedAt: timestamp("approved_at", { withTimezone: true }),
     approvedBy: text("approved_by"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     currentDepartment: text("current_department"),
     currentDesignation: text("current_designation").notNull(),
     currentGrade: text("current_grade"),
@@ -232,9 +192,7 @@ export const employeePromotion = pgTable(
     rejectionReason: text("rejection_reason"),
     salaryRevision: text("salary_revision"),
     status: promotionStatusEnum("status").notNull().default("pending"),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_employee_promotion_employee_id").on(table.employeeId),
@@ -245,9 +203,7 @@ export const employeePromotion = pgTable(
 export const employeeSeparation = pgTable(
   "employee_separation",
   {
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     employeeId: text("employee_id").notNull(),
     exitDate: date("exit_date").notNull(),
     id: text("id").primaryKey().$defaultFn(uuidv7),
@@ -256,9 +212,7 @@ export const employeeSeparation = pgTable(
     reason: text("reason"),
     resignationDate: date("resignation_date"),
     status: separationStatusEnum("status").notNull().default("pending"),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_employee_separation_employee_id").on(table.employeeId),
@@ -271,9 +225,7 @@ export const employeeTransfer = pgTable(
   {
     approvedAt: timestamp("approved_at", { withTimezone: true }),
     approvedBy: text("approved_by"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     effectiveDate: date("effective_date").notNull(),
     employeeId: text("employee_id").notNull(),
     fromBranch: text("from_branch"),
@@ -288,9 +240,7 @@ export const employeeTransfer = pgTable(
     toBranch: text("to_branch"),
     toCompany: text("to_company"),
     toDepartment: text("to_department"),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_employee_transfer_employee_id").on(table.employeeId),

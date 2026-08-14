@@ -17,8 +17,12 @@ export const listPermissions = Workflow.name("hr.access.list-permissions")
     const parsed = filters ? parse(HrPermissionFiltersSchema, filters) : {};
     const conditions = [];
 
-    if (parsed.action) conditions.push(eq(hrPermission.action, parsed.action));
-    if (parsed.module) conditions.push(eq(hrPermission.module, parsed.module));
+    if (parsed.action) {
+      conditions.push(eq(hrPermission.action, parsed.action));
+    }
+    if (parsed.module) {
+      conditions.push(eq(hrPermission.module, parsed.module));
+    }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 

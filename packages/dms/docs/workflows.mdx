@@ -44,7 +44,7 @@ await p.dms.triage.classify({ id: docId, input: { classId, fieldValues: { invoic
 
 ```ts
 await p.dms.versions.new({ documentId, input: { body, name, contentType } });
-await p.dms.versions.list({ documentId });         // current + history
+await p.dms.versions.list({ documentId }); // current + history
 await p.dms.versions.getCurrent({ documentId });
 await p.dms.versions.get({ documentId, version: 2 }); // presigned URL for a revision
 await p.dms.versions.revert({ documentId, version: 2 }); // promotes version 2 as a NEW current (counters keep incrementing)
@@ -57,7 +57,15 @@ await p.dms.versions.delete({ documentId, version: 2 }); // cannot delete the cu
 
 ```ts
 const cls = await p.dms.classes.create({ input: { name: "Invoice", createdBy: adminId } });
-await p.dms.classes.addField({ input: { classId: cls.id, name: "invoiceNumber", label: "Invoice Number", type: "text", isRequired: true } });
+await p.dms.classes.addField({
+  input: {
+    classId: cls.id,
+    name: "invoiceNumber",
+    label: "Invoice Number",
+    type: "text",
+    isRequired: true,
+  },
+});
 
 await p.dms.classes.list({ filters: { activeOnly: true } });
 await p.dms.classes.get({ id: cls.id });
@@ -95,7 +103,13 @@ Views never expose triaged/deleted documents unless a condition explicitly targe
 ```ts
 await p.dms.contacts.create({
   input: {
-    firstName, lastName, email, phone, companyName, designation, createdBy,
+    firstName,
+    lastName,
+    email,
+    phone,
+    companyName,
+    designation,
+    createdBy,
   }, // all 6 business fields mandatory
 });
 await p.dms.contacts.update({ id, patch: { phone } });
@@ -105,7 +119,13 @@ await p.dms.contacts.get({ id });
 await p.dms.contacts.remove({ id, input: { reason: "Left the project" } }); // reason required; revokes every share
 
 await p.dms.documentShares.create({
-  input: { documentId, granteeType: "user", granteeId: userId, permission: "viewer", sharedBy: userId },
+  input: {
+    documentId,
+    granteeType: "user",
+    granteeId: userId,
+    permission: "viewer",
+    sharedBy: userId,
+  },
 });
 await p.dms.documentShares.update({ id, patch: { permission: "editor" } });
 await p.dms.documentShares.remove({ id });
@@ -125,7 +145,7 @@ await p.dms.folders.move({ id, input: { newParentId } });
 await p.dms.folders.update({ id, input: { color: "#3B82F6" } });
 await p.dms.folders.delete({ id, force: false }); // soft-delete to trash
 await p.dms.folders.restore({ id });
-await p.dms.folders.get({ id });        // includes childCount + totalSize
+await p.dms.folders.get({ id }); // includes childCount + totalSize
 await p.dms.folders.list({ id, opts: { search, sortBy, sortOrder } });
 
 // Files — S3-backed with versioning
@@ -139,9 +159,9 @@ await p.dms.files.rename({ id, input: { name } });
 await p.dms.files.move({ id, input: { newFolderId } });
 await p.dms.files.copy({ id, destFolderId });
 await p.dms.files.listVersions({ id });
-await p.dms.files.delete({ id });   // soft-delete
+await p.dms.files.delete({ id }); // soft-delete
 await p.dms.files.restore({ id });
-await p.dms.files.purge({ id });    // hard-delete + storage removal
+await p.dms.files.purge({ id }); // hard-delete + storage removal
 ```
 
 ## Labels, Public Links & Item Shares
@@ -164,7 +184,9 @@ await p.dms.publicLinks.get({ id });
 await p.dms.publicLinks.revoke({ id });
 
 // Item shares — file/folder grants to users/groups with inheritance
-await p.dms.shares.create({ input: { itemId, itemType, granteeId, granteeType, permission, sharedBy } });
+await p.dms.shares.create({
+  input: { itemId, itemType, granteeId, granteeType, permission, sharedBy },
+});
 await p.dms.shares.update({ id, input: { permission } });
 await p.dms.shares.remove({ id });
 await p.dms.shares.list({ itemId, itemType });
@@ -187,12 +209,12 @@ await p.dms.storage.getSignedGetUrl({ key, expiresIn: 3600 });
 ## Recycle Bin, Retention & Holds
 
 ```ts
-await p.dms.bin.list({ filters: {} });        // deleted + expired, with provenance + held flag
-await p.dms.bin.restore({ id, expiryDate });  // deleted/expired → active
+await p.dms.bin.list({ filters: {} }); // deleted + expired, with provenance + held flag
+await p.dms.bin.restore({ id, expiryDate }); // deleted/expired → active
 
 // Admin only
-await p.dms.bin.deletePermanently({ id });    // rejects documents under an active legal hold
-await p.dms.bin.empty({ filters: {} });       // bulk purge, skipped holders
+await p.dms.bin.deletePermanently({ id }); // rejects documents under an active legal hold
+await p.dms.bin.empty({ filters: {} }); // bulk purge, skipped holders
 
 await p.dms.holds.place({ documentId, placedBy, reason });
 await p.dms.holds.release({ holdId, releasedBy });

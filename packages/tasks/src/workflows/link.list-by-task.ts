@@ -7,18 +7,12 @@ import { IdSchema } from "../types";
 
 export const listLinksByTask = Workflow.name("link.list-by-task")
   .input(object({ taskId: IdSchema }))
-  .handler(async ({ taskId }, ctx) => {
-    return ctx.step.run("query", async () => {
-      const outgoing = await ctx.db
-        .select()
-        .from(taskLink)
-        .where(eq(taskLink.sourceId, taskId));
+  .handler(async ({ taskId }, ctx) =>
+    ctx.step.run("query", async () => {
+      const outgoing = await ctx.db.select().from(taskLink).where(eq(taskLink.sourceId, taskId));
 
-      const incoming = await ctx.db
-        .select()
-        .from(taskLink)
-        .where(eq(taskLink.targetId, taskId));
+      const incoming = await ctx.db.select().from(taskLink).where(eq(taskLink.targetId, taskId));
 
       return { incoming, outgoing };
-    });
-  });
+    }),
+  );

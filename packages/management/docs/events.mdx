@@ -39,34 +39,34 @@ export const PLATFORM_USER_EVENTS = {
 
 ### Tenant Events
 
-| Event | Payload | Trigger |
-|---|---|---|
-| `tenant:provisioned` | `{ tenantId, serviceProviderId? }` | `provision()` completes |
-| `tenant:activated` | `{ tenantId }` | `activate()` — onboarding → active |
-| `tenant:suspended` | `{ tenantId, reason }` | `suspend()` |
-| `tenant:reactivated` | `{ tenantId }` | `reactivate()` — suspended → active |
-| `tenant:churned` | `{ tenantId, reason }` | `churn()` |
-| `tenant:profile_updated` | `{ tenantId, changes }` | `updateProfile()` |
-| `tenant:sp_assigned` | `{ tenantId, serviceProviderId }` | `assignServiceProvider()` |
-| `tenant:sp_unassigned` | `{ tenantId }` | `unassignServiceProvider()` |
+| Event                    | Payload                            | Trigger                             |
+| ------------------------ | ---------------------------------- | ----------------------------------- |
+| `tenant:provisioned`     | `{ tenantId, serviceProviderId? }` | `provision()` completes             |
+| `tenant:activated`       | `{ tenantId }`                     | `activate()` — onboarding → active  |
+| `tenant:suspended`       | `{ tenantId, reason }`             | `suspend()`                         |
+| `tenant:reactivated`     | `{ tenantId }`                     | `reactivate()` — suspended → active |
+| `tenant:churned`         | `{ tenantId, reason }`             | `churn()`                           |
+| `tenant:profile_updated` | `{ tenantId, changes }`            | `updateProfile()`                   |
+| `tenant:sp_assigned`     | `{ tenantId, serviceProviderId }`  | `assignServiceProvider()`           |
+| `tenant:sp_unassigned`   | `{ tenantId }`                     | `unassignServiceProvider()`         |
 
 ### Service Provider Events
 
-| Event | Payload | Trigger |
-|---|---|---|
-| `service_provider:created` | `{ serviceProvider: { id, name, slug } }` | SP created |
-| `service_provider:updated` | `{ serviceProvider: { id }, changes }` | SP updated |
-| `service_provider:deactivated` | `{ serviceProviderId }` | SP deactivated |
-| `service_provider:activated` | `{ serviceProviderId }` | SP activated |
+| Event                          | Payload                                   | Trigger        |
+| ------------------------------ | ----------------------------------------- | -------------- |
+| `service_provider:created`     | `{ serviceProvider: { id, name, slug } }` | SP created     |
+| `service_provider:updated`     | `{ serviceProvider: { id }, changes }`    | SP updated     |
+| `service_provider:deactivated` | `{ serviceProviderId }`                   | SP deactivated |
+| `service_provider:activated`   | `{ serviceProviderId }`                   | SP activated   |
 
 ### Platform User Events
 
-| Event | Payload | Trigger |
-|---|---|---|
-| `platform_user:created` | `{ user: { id, email, role } }` | Platform user created |
-| `platform_user:updated` | `{ userId, changes }` | Platform user updated |
-| `platform_user:deleted` | `{ userId }` | Platform user deleted |
-| `platform_user:role_assigned` | `{ userId, role }` | `assignRole()` |
+| Event                         | Payload                         | Trigger               |
+| ----------------------------- | ------------------------------- | --------------------- |
+| `platform_user:created`       | `{ user: { id, email, role } }` | Platform user created |
+| `platform_user:updated`       | `{ userId, changes }`           | Platform user updated |
+| `platform_user:deleted`       | `{ userId }`                    | Platform user deleted |
+| `platform_user:role_assigned` | `{ userId, role }`              | `assignRole()`        |
 
 ## Usage
 
@@ -100,10 +100,9 @@ await p.pubsub.subscribe("tenant:sp_assigned", async (message) => {
 ## Event Map Type
 
 ```ts title="src/event-map.ts"
-export type ManagementPlaneEventMap =
-  & TenantEventMap
-  & ServiceProviderEventMap
-  & PlatformUserEventMap;
+export type ManagementPlaneEventMap = TenantEventMap &
+  ServiceProviderEventMap &
+  PlatformUserEventMap;
 ```
 
 <Callout type="info">
@@ -114,8 +113,8 @@ export type ManagementPlaneEventMap =
 
 Other modules can subscribe to Management Plane events to react to tenant lifecycle changes:
 
-| Subscriber | Subscribed Topic | Action |
-|---|---|---|
-| Future billing module | `tenant:provisioned`, `tenant:activated`, `tenant:suspended`, `tenant:churned` | Start/stop billing, adjust plan |
-| Notification service | `tenant:provisioned`, `tenant:sp_assigned` | Send welcome emails, notify SP of assignment |
-| SP performance tracking | `tenant:sp_assigned`, `tenant:activated` | Update onboarding duration metrics |
+| Subscriber              | Subscribed Topic                                                               | Action                                       |
+| ----------------------- | ------------------------------------------------------------------------------ | -------------------------------------------- |
+| Future billing module   | `tenant:provisioned`, `tenant:activated`, `tenant:suspended`, `tenant:churned` | Start/stop billing, adjust plan              |
+| Notification service    | `tenant:provisioned`, `tenant:sp_assigned`                                     | Send welcome emails, notify SP of assignment |
+| SP performance tracking | `tenant:sp_assigned`, `tenant:activated`                                       | Update onboarding duration metrics           |

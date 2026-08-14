@@ -15,46 +15,72 @@ const updateObligation = Workflow.name("obligation.update").handler(
 
     const updateData: Record<string, unknown> = { updatedAt: new Date() };
 
-    if (parsed.name !== undefined) updateData.name = parsed.name;
-    if (parsed.category !== undefined) updateData.category = parsed.category;
-    if (parsed.documentType !== undefined)
+    if (parsed.name !== undefined) {
+      updateData.name = parsed.name;
+    }
+    if (parsed.category !== undefined) {
+      updateData.category = parsed.category;
+    }
+    if (parsed.documentType !== undefined) {
       updateData.documentType = parsed.documentType;
-    if (parsed.frequency !== undefined) updateData.frequency = parsed.frequency;
-    if (parsed.customCron !== undefined)
+    }
+    if (parsed.frequency !== undefined) {
+      updateData.frequency = parsed.frequency;
+    }
+    if (parsed.customCron !== undefined) {
       updateData.customCron = parsed.customCron;
-    if (parsed.dueDay !== undefined) updateData.dueDay = parsed.dueDay;
-    if (parsed.dueMonthOffset !== undefined)
+    }
+    if (parsed.dueDay !== undefined) {
+      updateData.dueDay = parsed.dueDay;
+    }
+    if (parsed.dueMonthOffset !== undefined) {
       updateData.dueMonthOffset = parsed.dueMonthOffset;
-    if (parsed.expiryBased !== undefined)
+    }
+    if (parsed.expiryBased !== undefined) {
       updateData.expiryBased = parsed.expiryBased;
-    if (parsed.expiryDurationMonths !== undefined)
+    }
+    if (parsed.expiryDurationMonths !== undefined) {
       updateData.expiryDurationMonths = parsed.expiryDurationMonths;
-    if (parsed.periodBased !== undefined)
+    }
+    if (parsed.periodBased !== undefined) {
       updateData.periodBased = parsed.periodBased;
-    if (parsed.defaultReminderDays !== undefined)
+    }
+    if (parsed.defaultReminderDays !== undefined) {
       updateData.defaultReminderDays = parsed.defaultReminderDays;
-    if (parsed.defaultEscalationDays !== undefined)
+    }
+    if (parsed.defaultEscalationDays !== undefined) {
       updateData.defaultEscalationDays = parsed.defaultEscalationDays;
-    if (parsed.defaultMetadata !== undefined)
+    }
+    if (parsed.defaultMetadata !== undefined) {
       updateData.defaultMetadata = parsed.defaultMetadata;
-    if (parsed.defaultIssuingAuthority !== undefined)
+    }
+    if (parsed.defaultIssuingAuthority !== undefined) {
       updateData.defaultIssuingAuthority = parsed.defaultIssuingAuthority;
-    if (parsed.defaultJurisdiction !== undefined)
+    }
+    if (parsed.defaultJurisdiction !== undefined) {
       updateData.defaultJurisdiction = parsed.defaultJurisdiction;
-    if (parsed.defaultAssignedReviewer !== undefined)
+    }
+    if (parsed.defaultAssignedReviewer !== undefined) {
       updateData.defaultAssignedReviewer = parsed.defaultAssignedReviewer;
-    if (parsed.defaultAssignedTo !== undefined)
+    }
+    if (parsed.defaultAssignedTo !== undefined) {
       updateData.defaultAssignedTo = parsed.defaultAssignedTo;
-    if (parsed.branch !== undefined) updateData.branch = parsed.branch;
-    if (parsed.startDate !== undefined)
+    }
+    if (parsed.branch !== undefined) {
+      updateData.branch = parsed.branch;
+    }
+    if (parsed.startDate !== undefined) {
       updateData.startDate = parsed.startDate.toISOString().split("T")[0];
-    if (parsed.endDate !== undefined)
-      updateData.endDate = parsed.endDate
-        ? parsed.endDate.toISOString().split("T")[0]
-        : null;
-    if (parsed.isActive !== undefined) updateData.isActive = parsed.isActive;
-    if (parsed.autoGenerate !== undefined)
+    }
+    if (parsed.endDate !== undefined) {
+      updateData.endDate = parsed.endDate ? parsed.endDate.toISOString().split("T")[0] : null;
+    }
+    if (parsed.isActive !== undefined) {
+      updateData.isActive = parsed.isActive;
+    }
+    if (parsed.autoGenerate !== undefined) {
       updateData.autoGenerate = parsed.autoGenerate;
+    }
 
     const [updated] = await ctx.db
       .update(complianceObligation)
@@ -62,13 +88,17 @@ const updateObligation = Workflow.name("obligation.update").handler(
       .where(eq(complianceObligation.id, id))
       .returning();
 
-    if (!updated) throw new Error("Database operation returned no result");
+    if (!updated) {
+      throw new Error("Database operation returned no result");
+    }
 
     const changes: Record<string, { new: unknown; old: unknown }> = {};
     const oldRecord = current as unknown as Record<string, unknown>;
     const newRecord = updated as unknown as Record<string, unknown>;
     for (const key of Object.keys(updateData)) {
-      if (key === "updatedAt") continue;
+      if (key === "updatedAt") {
+        continue;
+      }
       const oldVal = oldRecord[key];
       const newVal = newRecord[key];
       if (oldVal !== newVal) {

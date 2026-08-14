@@ -11,9 +11,7 @@ const program = new Command();
 
 program.name("aspen").description("Aspen OS Platform CLI").version("0.1.0");
 
-async function loadPlatform(
-  configPath: string,
-): Promise<PlatformInstance<Module[]>> {
+async function loadPlatform(configPath: string): Promise<PlatformInstance<Module[]>> {
   const resolvedPath = resolve(process.cwd(), configPath);
   try {
     const mod = await import(resolvedPath);
@@ -40,31 +38,22 @@ program
     "-t, --tenant <tenantId>",
     "Tenant ID (isolated mode) — launches Studio against that tenant's database",
   )
-  .action(
-    async (options: {
-      config: string;
-      host: string;
-      port: string;
-      tenant?: string;
-    }) => {
-      const f = await loadPlatform(options.config);
+  .action(async (options: { config: string; host: string; port: string; tenant?: string }) => {
+    const f = await loadPlatform(options.config);
 
-      if (options.tenant && f.db.resolver) {
-        const tenantConfig = await f.db.resolver.resolve(options.tenant);
-        await startStudioPostgresServer(f.db.getSchemas(), tenantConfig);
-        return;
-      }
+    if (options.tenant && f.db.resolver) {
+      const tenantConfig = await f.db.resolver.resolve(options.tenant);
+      await startStudioPostgresServer(f.db.getSchemas(), tenantConfig);
+      return;
+    }
 
-      if (!f.db.config) {
-        console.error(
-          "Error: Could not get database configuration from platform",
-        );
-        process.exit(1);
-      }
+    if (!f.db.config) {
+      console.error("Error: Could not get database configuration from platform");
+      process.exit(1);
+    }
 
-      await startStudioPostgresServer(f.db.getSchemas(), f.db.config);
-    },
-  );
+    await startStudioPostgresServer(f.db.getSchemas(), f.db.config);
+  });
 
 program
   .command("tenants")
@@ -74,9 +63,7 @@ program
     const f = await loadPlatform(options.config);
 
     if (!f.db.resolver) {
-      console.error(
-        "Error: Tenants command is only available in isolated mode",
-      );
+      console.error("Error: Tenants command is only available in isolated mode");
       process.exit(1);
     }
 

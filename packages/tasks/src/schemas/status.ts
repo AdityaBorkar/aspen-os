@@ -45,6 +45,4 @@ export const CreateStatusTransitionSchema = object({
   toStatusId: pipe(string(), minLength(1, "toStatusId is required")),
 });
 
-export type CreateStatusTransitionInput = InferOutput<
-  typeof CreateStatusTransitionSchema
->;
+export type CreateStatusTransitionInput = InferOutput<typeof CreateStatusTransitionSchema>;

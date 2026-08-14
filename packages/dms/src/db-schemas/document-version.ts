@@ -16,9 +16,7 @@ export const dmsDocumentVersion = pgTable(
   {
     compression: jsonb("compression"),
     contentType: text("content_type").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     documentId: text("document_id").notNull(),
     etag: text("etag"),
     id: text("id").primaryKey().$defaultFn(uuidv7),
@@ -31,10 +29,7 @@ export const dmsDocumentVersion = pgTable(
   },
   (table) => [
     index("idx_dms_document_version_document").on(table.documentId),
-    uniqueIndex("idx_dms_document_version_doc_ver").on(
-      table.documentId,
-      table.version,
-    ),
+    uniqueIndex("idx_dms_document_version_doc_ver").on(table.documentId, table.version),
   ],
 );
 

@@ -3,26 +3,22 @@ import { and, inArray, isNotNull, or } from "drizzle-orm";
 
 import { complianceDocument } from "../db-schemas";
 
-const getActiveDocumentsForReminders = Workflow.name(
-  "document.active-for-reminders",
-).handler(async (_input: Record<string, never>, ctx) => {
-  return ctx.db
-    .select()
-    .from(complianceDocument)
-    .where(
-      and(
-        inArray(complianceDocument.verificationStatus, [
-          "verified",
-          "submitted",
-          "under_review",
-          "draft",
-        ]),
-        or(
-          isNotNull(complianceDocument.expiryDate),
-          isNotNull(complianceDocument.dueDate),
+const getActiveDocumentsForReminders = Workflow.name("document.active-for-reminders").handler(
+  async (_input: Record<string, never>, ctx) =>
+    ctx.db
+      .select()
+      .from(complianceDocument)
+      .where(
+        and(
+          inArray(complianceDocument.verificationStatus, [
+            "verified",
+            "submitted",
+            "under_review",
+            "draft",
+          ]),
+          or(isNotNull(complianceDocument.expiryDate), isNotNull(complianceDocument.dueDate)),
         ),
       ),
-    );
-});
+);
 
 export { getActiveDocumentsForReminders };

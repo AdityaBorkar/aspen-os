@@ -34,29 +34,29 @@ export const CONNECTION_EVENTS = {
 
 ### Organization Events
 
-| Event | Payload | Trigger |
-|---|---|---|
-| `organization:updated` | `{ changes, organization: { id, name, slug } }` | Organization updated |
-| `organization:branding_updated` | `{ name?, logo?, accentColor? }` | Branding changed |
+| Event                           | Payload                                         | Trigger              |
+| ------------------------------- | ----------------------------------------------- | -------------------- |
+| `organization:updated`          | `{ changes, organization: { id, name, slug } }` | Organization updated |
+| `organization:branding_updated` | `{ name?, logo?, accentColor? }`                | Branding changed     |
 
 ### Branch Events
 
-| Event | Payload | Trigger |
-|---|---|---|
-| `branch:created` | `{ branch: { code, id, name, type } }` | Branch created |
-| `branch:updated` | `{ branch: { id, name }, changes }` | Branch updated |
-| `branch:activated` | `{ branchId }` | Branch activated |
-| `branch:deactivated` | `{ branchId }` | Branch deactivated |
-| `branch:closed` | `{ branchId, date }` | Branch closed |
+| Event                | Payload                                | Trigger            |
+| -------------------- | -------------------------------------- | ------------------ |
+| `branch:created`     | `{ branch: { code, id, name, type } }` | Branch created     |
+| `branch:updated`     | `{ branch: { id, name }, changes }`    | Branch updated     |
+| `branch:activated`   | `{ branchId }`                         | Branch activated   |
+| `branch:deactivated` | `{ branchId }`                         | Branch deactivated |
+| `branch:closed`      | `{ branchId, date }`                   | Branch closed      |
 
 ### Connection Events
 
-| Event | Payload | Trigger |
-|---|---|---|
-| `connection:created` | `{ connection: { id, name, type } }` | Connection created |
-| `connection:updated` | `{ connection: { id, name }, changes }` | Connection updated |
-| `connection:status_changed` | `{ connectionId, fromStatus, toStatus }` | Status changed |
-| `connection:note_added` | `{ connectionId, note: { content, id, type } }` | Note added |
+| Event                       | Payload                                         | Trigger            |
+| --------------------------- | ----------------------------------------------- | ------------------ |
+| `connection:created`        | `{ connection: { id, name, type } }`            | Connection created |
+| `connection:updated`        | `{ connection: { id, name }, changes }`         | Connection updated |
+| `connection:status_changed` | `{ connectionId, fromStatus, toStatus }`        | Status changed     |
+| `connection:note_added`     | `{ connectionId, note: { content, id, type } }` | Note added         |
 
 ## Usage
 
@@ -86,9 +86,7 @@ await p.pubsub.subscribe("connection:status_changed", async (message) => {
 ## Event Map Type
 
 ```ts title="src/pubsub.ts"
-export type OrganizationDomainEventMap = OrganizationEventMap &
-  BranchEventMap &
-  ConnectionEventMap;
+export type OrganizationDomainEventMap = OrganizationEventMap & BranchEventMap & ConnectionEventMap;
 ```
 
 <Callout type="info">

@@ -8,9 +8,7 @@ const InputSchema = object({
   roleId: pipe(string(), minLength(1, "roleId is required")),
 });
 
-export const getRolePermissions = Workflow.name(
-  "hr.access.get-role-permissions",
-)
+export const getRolePermissions = Workflow.name("hr.access.get-role-permissions")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { roleId } = input;
@@ -23,9 +21,6 @@ export const getRolePermissions = Workflow.name(
         module: hrPermission.module,
       })
       .from(hrRolePermission)
-      .innerJoin(
-        hrPermission,
-        eq(hrRolePermission.permissionId, hrPermission.id),
-      )
+      .innerJoin(hrPermission, eq(hrRolePermission.permissionId, hrPermission.id))
       .where(eq(hrRolePermission.roleId, roleId));
   });

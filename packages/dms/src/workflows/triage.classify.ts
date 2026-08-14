@@ -24,9 +24,7 @@ export const classifyDocument = Workflow.name("dms.triage.classify")
     const doc = await ctx.step.run(fetchDocumentStep, { documentId: id });
 
     if (doc.status !== "triaged") {
-      throw new Error(
-        `Document "${id}" is not in triage (status is "${doc.status}").`,
-      );
+      throw new Error(`Document "${id}" is not in triage (status is "${doc.status}").`);
     }
 
     const cls = await ctx.step.run("fetch-class", async () => {
@@ -44,9 +42,7 @@ export const classifyDocument = Workflow.name("dms.triage.classify")
       return row;
     });
 
-    const fields = await ctx.step.run("get-fields", async () =>
-      getActiveFields(ctx.db, cls.id),
-    );
+    const fields = await ctx.step.run("get-fields", async () => getActiveFields(ctx.db, cls.id));
 
     const validation = validateFieldValues(fields, input.fieldValues);
     if (validation.errors.length > 0) {
@@ -55,24 +51,21 @@ export const classifyDocument = Workflow.name("dms.triage.classify")
       );
     }
 
-    const resolvedFieldValues = await ctx.step.run(
-      "resolve-field-values",
-      async () => {
-        const values: Record<string, unknown> = {
-          ...(input.fieldValues ?? {}),
-        };
-        for (const field of fields) {
-          if (
-            values[field.name] === undefined &&
-            field.defaultValue !== null &&
-            field.defaultValue !== undefined
-          ) {
-            values[field.name] = field.defaultValue;
-          }
+    const resolvedFieldValues = await ctx.step.run("resolve-field-values", async () => {
+      const values: Record<string, unknown> = {
+        ...(input.fieldValues ?? {}),
+      };
+      for (const field of fields) {
+        if (
+          values[field.name] === undefined &&
+          field.defaultValue !== null &&
+          field.defaultValue !== undefined
+        ) {
+          values[field.name] = field.defaultValue;
         }
-        return values;
-      },
-    );
+      }
+      return values;
+    });
 
     const oldName = doc.name;
     const newName =

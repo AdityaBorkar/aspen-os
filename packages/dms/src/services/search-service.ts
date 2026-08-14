@@ -33,11 +33,10 @@ export interface QuickSearchResult {
  * caller). Triage/deleted/expired documents are normalized out unless the
  * caller explicitly overrides status.
  */
-export function buildVisibilityScope(input: {
-  admin?: boolean;
-  userId: string;
-}): SQL[] {
-  if (input.admin) return [];
+export function buildVisibilityScope(input: { admin?: boolean; userId: string }): SQL[] {
+  if (input.admin) {
+    return [];
+  }
   const { userId } = input;
   return [
     sql`(${dmsDocument.ownerId} = ${userId} OR EXISTS (
@@ -109,16 +108,16 @@ export async function searchDocuments(
   if (!input.admin && input.scope === "mine") {
     conditions.push(eq(dmsDocument.ownerId, input.userId));
   } else if (!input.admin && input.scope !== "mine") {
-    conditions.push(
-      ...buildVisibilityScope({ admin: false, userId: input.userId }),
-    );
+    conditions.push(...buildVisibilityScope({ admin: false, userId: input.userId }));
   }
 
   if (input.admin && input.scope === "mine") {
     conditions.push(eq(dmsDocument.ownerId, input.userId));
   }
 
-  if (input.classId) conditions.push(eq(dmsDocument.classId, input.classId));
+  if (input.classId) {
+    conditions.push(eq(dmsDocument.classId, input.classId));
+  }
   if (input.contentType) {
     conditions.push(eq(dmsDocument.contentType, input.contentType));
   }
@@ -128,9 +127,7 @@ export async function searchDocuments(
     }
   }
   if (input.dateRange?.start) {
-    conditions.push(
-      gte(dmsDocument.createdAt, new Date(input.dateRange.start)),
-    );
+    conditions.push(gte(dmsDocument.createdAt, new Date(input.dateRange.start)));
   }
   if (input.dateRange?.end) {
     conditions.push(lte(dmsDocument.createdAt, new Date(input.dateRange.end)));
@@ -164,7 +161,7 @@ export async function quickSearch(
   db: DB,
   input: QuickSearchInput & { admin?: boolean; userId: string },
 ): Promise<QuickSearchResult> {
-  const query = input.query;
+  const { query } = input;
   const limit = input.limit ?? 10;
 
   const docs = await searchDocuments(db, {
@@ -206,12 +203,15 @@ function findMatchInDocument(
   query: string,
 ): { field: string; value: string } | null {
   const q = query.toLowerCase();
-  if (doc.name.toLowerCase().includes(q))
+  if (doc.name.toLowerCase().includes(q)) {
     return { field: "name", value: doc.name };
+  }
 
   const tags = doc.tags ?? [];
   for (const tag of tags) {
-    if (tag.toLowerCase().includes(q)) return { field: "tag", value: tag };
+    if (tag.toLowerCase().includes(q)) {
+      return { field: "tag", value: tag };
+    }
   }
 
   const metadata = doc.metadata as Record<string, unknown> | null;
@@ -241,13 +241,11 @@ function findMatchInDocument(
  * Converts a search's query + options into view filter/sort conditions so the
  * result can be promoted to a persisted view in one step.
  */
-export function searchToViewConditions(input: {
-  query: string;
-  options: SearchOptions;
-}): { filters: ViewCondition[]; sort: ViewSort[] } {
-  const filters: ViewCondition[] = [
-    { field: "search", operator: "search", value: input.query },
-  ];
+export function searchToViewConditions(input: { query: string; options: SearchOptions }): {
+  filters: ViewCondition[];
+  sort: ViewSort[];
+} {
+  const filters: ViewCondition[] = [{ field: "search", operator: "search", value: input.query }];
   if (input.options.classId) {
     filters.push({
       field: "class",

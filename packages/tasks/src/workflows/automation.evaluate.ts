@@ -28,8 +28,8 @@ export const evaluateAutomationRules = Workflow.name("automation.evaluate")
     }),
   )
   .handler(async ({ context }, ctx) => {
-    const rules = await ctx.step.run("query", async () => {
-      return ctx.db
+    const rules = await ctx.step.run("query", async () =>
+      ctx.db
         .select()
         .from(automationRule)
         .where(
@@ -38,8 +38,8 @@ export const evaluateAutomationRules = Workflow.name("automation.evaluate")
             eq(automationRule.trigger, context.trigger as AutomationTrigger),
             eq(automationRule.isActive, true),
           ),
-        );
-    });
+        ),
+    );
 
     const matchingActions: AutomationAction[] = [];
 
@@ -55,15 +55,16 @@ export const evaluateAutomationRules = Workflow.name("automation.evaluate")
     return matchingActions;
   });
 
-function matchesConditions(
-  conditions: unknown,
-  values: Record<string, unknown>,
-): boolean {
-  if (!conditions || typeof conditions !== "object") return true;
+function matchesConditions(conditions: unknown, values: Record<string, unknown>): boolean {
+  if (!conditions || typeof conditions !== "object") {
+    return true;
+  }
 
   const conds = conditions as Record<string, unknown>;
   for (const [key, expected] of Object.entries(conds)) {
-    if (values[key] !== expected) return false;
+    if (values[key] !== expected) {
+      return false;
+    }
   }
 
   return true;

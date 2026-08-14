@@ -12,14 +12,9 @@ const ListSchema = object({
 
 export const listPublicLinks = Workflow.name("drive.public-link.list")
   .input(ListSchema)
-  .handler(async ({ itemId, itemType }, ctx) => {
-    return ctx.db
+  .handler(async ({ itemId, itemType }, ctx) =>
+    ctx.db
       .select()
       .from(drivePublicLink)
-      .where(
-        and(
-          eq(drivePublicLink.itemId, itemId),
-          eq(drivePublicLink.itemType, itemType),
-        ),
-      );
-  });
+      .where(and(eq(drivePublicLink.itemId, itemId), eq(drivePublicLink.itemType, itemType))),
+  );

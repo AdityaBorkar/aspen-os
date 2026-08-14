@@ -14,9 +14,7 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const cancelLeaveApplication = Workflow.name(
-  "hr.leave.cancel-leave-application",
-)
+export const cancelLeaveApplication = Workflow.name("hr.leave.cancel-leave-application")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id } = input;
@@ -25,12 +23,8 @@ export const cancelLeaveApplication = Workflow.name(
 
     // Revert leave allocation
     if (application.leaveAllocation) {
-      const allocation = await fetchLeaveAllocationById(
-        ctx.db,
-        application.leaveAllocation,
-      );
-      const newUsedDays =
-        parseFloat(allocation.usedDays) - parseFloat(application.totalDays);
+      const allocation = await fetchLeaveAllocationById(ctx.db, application.leaveAllocation);
+      const newUsedDays = parseFloat(allocation.usedDays) - parseFloat(application.totalDays);
 
       await updateLeaveAllocation(ctx.db, allocation.id, {
         usedDays: Math.max(0, newUsedDays).toString(),

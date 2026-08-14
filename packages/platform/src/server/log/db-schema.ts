@@ -1,12 +1,5 @@
 import { sql } from "drizzle-orm";
-import {
-  index,
-  integer,
-  jsonb,
-  pgTable,
-  text,
-  timestamp,
-} from "drizzle-orm/pg-core";
+import { index, integer, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 import { uuidv7 } from "../utils/uuidv7";
 
@@ -26,12 +19,8 @@ export const logs = pgTable(
     spanId: text("span_id"),
     tenantId: text("tenant_id")
       .notNull()
-      .default(
-        sql`COALESCE(current_setting('app.tenant_id', true), 'default')`,
-      ),
-    timestamp: timestamp("timestamp", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+      .default(sql`COALESCE(current_setting('app.tenant_id', true), 'default')`),
+    timestamp: timestamp("timestamp", { withTimezone: true }).notNull().defaultNow(),
     traceId: text("trace_id"),
     userId: text("user_id"),
   },

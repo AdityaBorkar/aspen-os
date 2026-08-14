@@ -12,6 +12,8 @@ export const fetchItemShareStep = WorkflowStep.name("fetch-item-share")
       .from(dmsItemShare)
       .where(eq(dmsItemShare.id, input.id))
       .limit(1);
-    if (!row) throw new Error(`Share with id "${input.id}" not found.`);
+    if (!row) {
+      throw new Error(`Share with id "${input.id}" not found.`);
+    }
     return row;
   });

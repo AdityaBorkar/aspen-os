@@ -9,9 +9,7 @@ const InputSchema = object({
   input: CreateLeaveAdjustmentSchema,
 });
 
-export const createLeaveAdjustment = Workflow.name(
-  "hr.leave.create-leave-adjustment",
-)
+export const createLeaveAdjustment = Workflow.name("hr.leave.create-leave-adjustment")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateLeaveAdjustmentSchema, input);

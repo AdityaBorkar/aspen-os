@@ -24,10 +24,7 @@ export async function getActiveFields(
   db: NodePgDatabase,
   classId: string,
 ): Promise<ClassFieldRow[]> {
-  const rows = await db
-    .select()
-    .from(dmsClassField)
-    .where(eq(dmsClassField.classId, classId));
+  const rows = await db.select().from(dmsClassField).where(eq(dmsClassField.classId, classId));
   return rows.filter((r) => r.isActive);
 }
 
@@ -46,16 +43,11 @@ export function validateFieldValues(
 
   for (const field of fields) {
     let value: unknown = values[field.name];
-    if (
-      value === undefined &&
-      field.defaultValue !== null &&
-      field.defaultValue !== undefined
-    ) {
+    if (value === undefined && field.defaultValue !== null && field.defaultValue !== undefined) {
       value = field.defaultValue;
     }
 
-    const isEmpty =
-      value === undefined || FIELD_VALUE_EMPTY.has(value as never);
+    const isEmpty = value === undefined || FIELD_VALUE_EMPTY.has(value as never);
 
     if (field.isRequired && isEmpty) {
       missing.push(field.name);
@@ -66,7 +58,9 @@ export function validateFieldValues(
       continue;
     }
 
-    if (isEmpty) continue;
+    if (isEmpty) {
+      continue;
+    }
 
     if (
       (field.type === "select" || field.type === "multi-select") &&
@@ -79,15 +73,9 @@ export function validateFieldValues(
       if (optionList.length > 0) {
         const allowed = new Set(optionList.map(String));
         const selected =
-          field.type === "multi-select" && Array.isArray(value)
-            ? (value as unknown[])
-            : [value];
+          field.type === "multi-select" && Array.isArray(value) ? (value as unknown[]) : [value];
         for (const item of selected) {
-          if (
-            item !== null &&
-            item !== undefined &&
-            !allowed.has(String(item))
-          ) {
+          if (item !== null && item !== undefined && !allowed.has(String(item))) {
             errors.push({
               message: `"${String(item)}" is not an allowed option for "${field.label}".`,
               name: field.name,
@@ -114,8 +102,8 @@ function safePart(value: unknown): string {
 
 function formatDateToken(token: string, date: Date): string {
   const parts: Record<string, string> = {
-    dd: padZero(date.getDate(), 2),
     MM: padZero(date.getMonth() + 1, 2),
+    dd: padZero(date.getDate(), 2),
     yyyy: String(date.getFullYear()),
   };
   return parts[token] ?? "";
@@ -139,37 +127,34 @@ export function renderFileNamingSchema(input: {
   schema: string | null;
   seq?: number;
 }): string | null {
-  if (!input.schema) return null;
+  if (!input.schema) {
+    return null;
+  }
 
   const date = input.date ?? new Date();
 
-  const rendered = input.schema.replace(
-    PLACEHOLDER_REGEX,
-    (_raw, key: string) => {
-      if (key.startsWith("field:")) {
-        const fieldName = key.slice("field:".length);
-        const value = input.fieldValues?.[fieldName];
-        return value === undefined || value === null || value === ""
-          ? "_"
-          : safePart(value);
-      }
-      switch (key) {
-        case "class":
-          return safePart(input.className ?? "_");
-        case "docNumber":
-          return safePart(input.docNumber);
-        case "date":
-          return date.toISOString().slice(0, 10);
-        case "seq":
-          return padZero(input.seq ?? 0, 4);
-        default:
-          if (key.startsWith("date:")) {
-            return formatDateToken(key.slice("date:".length), date);
-          }
-          return "_";
-      }
-    },
-  );
+  const rendered = input.schema.replace(PLACEHOLDER_REGEX, (_raw, key: string) => {
+    if (key.startsWith("field:")) {
+      const fieldName = key.slice("field:".length);
+      const value = input.fieldValues?.[fieldName];
+      return value === undefined || value === null || value === "" ? "_" : safePart(value);
+    }
+    switch (key) {
+      case "class":
+        return safePart(input.className ?? "_");
+      case "docNumber":
+        return safePart(input.docNumber);
+      case "date":
+        return date.toISOString().slice(0, 10);
+      case "seq":
+        return padZero(input.seq ?? 0, 4);
+      default:
+        if (key.startsWith("date:")) {
+          return formatDateToken(key.slice("date:".length), date);
+        }
+        return "_";
+    }
+  });
 
   const cleaned = rendered
     .replace(/[\\/]+/g, "_")

@@ -3,15 +3,16 @@
 REST like Workflow Names
 Ask questions on certain file names
 
-
 tasks
 
 dms
+
 - templates
 
 notifications
 
 comms-*
+
 - Link custom emails, whatsapp, etc to the application
 
 Create a scope of work for the "chat" module to add the following features:
@@ -20,21 +21,25 @@ chat
 discussions
 
 inventory
+
 - goods
 - services
 
 scheduler
 
 Create a scope of work for the "Tasks" module to add the following features:
+
 - tasks
 - notes
 
 Create a scope of work for the "Organization" module to add the following features:
+
 - orgs
 - contacts
 - drafts
 
 Create a scope of work for the CRM module
+
 - deals
 - crm
 
@@ -51,6 +56,7 @@ accounting
 WORK ON DMS
 
 WORK ON ORGANIZATION
+
 - [ ] Organization
   - Branches
   - Contacts
@@ -61,9 +67,10 @@ WORK ON ORGANIZATION
   - Personal Dashboard & Dashboards
 
 WORK ON HR MODULE
-  - Canvas like Users
-  - Custom Roles and RBAC Permissions
-  - Users with Branch-wise access controls
+
+- Canvas like Users
+- Custom Roles and RBAC Permissions
+- Users with Branch-wise access controls
 
 WORK ON TASK MANAGEMENT
 

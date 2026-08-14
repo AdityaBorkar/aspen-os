@@ -18,13 +18,17 @@ export async function search(opts: SearchOptions): Promise<SearchResult> {
       ilike(s.driveFolder.name, searchTerm),
       ilike(s.driveFolder.description, searchTerm),
     );
-    if (folderSearch) folderConditions.push(folderSearch);
+    if (folderSearch) {
+      folderConditions.push(folderSearch);
+    }
 
     const fileSearch = or(
       ilike(s.driveFile.name, searchTerm),
       ilike(s.driveFile.description, searchTerm),
     );
-    if (fileSearch) fileConditions.push(fileSearch);
+    if (fileSearch) {
+      fileConditions.push(fileSearch);
+    }
   }
 
   if (opts.ownerId) {
@@ -88,7 +92,9 @@ async function filterByLabels<T extends { id: string }>(
   itemType: "file" | "folder",
   labelIds: string[],
 ): Promise<T[]> {
-  if (items.length === 0) return items;
+  if (items.length === 0) {
+    return items;
+  }
 
   const { db } = getContext();
   const itemIds = items.map((i) => i.id);

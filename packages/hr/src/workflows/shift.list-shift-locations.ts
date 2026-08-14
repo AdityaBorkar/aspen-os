@@ -7,6 +7,4 @@ const InputSchema = object({});
 
 export const listShiftLocations = Workflow.name("hr.shift.list-shift-locations")
   .input(InputSchema)
-  .handler(async (_input, ctx) => {
-    return ctx.db.select().from(shiftLocation);
-  });
+  .handler(async (_input, ctx) => ctx.db.select().from(shiftLocation));

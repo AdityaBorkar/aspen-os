@@ -6,6 +6,4 @@ import { fetchProjectStep } from "./steps/fetch-project";
 
 export const getProject = Workflow.name("project.get")
   .input(object({ id: IdSchema }))
-  .handler(async ({ id }, ctx) => {
-    return ctx.step.run(fetchProjectStep, { id });
-  });
+  .handler(async ({ id }, ctx) => ctx.step.run(fetchProjectStep, { id }));

@@ -11,8 +11,10 @@ import { fetchUserStep } from "./steps/fetch-user";
 export const deleteUser = Workflow.name("user.delete")
   .input(object({ id: IdSchema }))
   .handler(async (input, ctx) => {
-    if (!ctx.auth) throw new Error("Auth is required for user deletion");
-    const auth = ctx.auth;
+    if (!ctx.auth) {
+      throw new Error("Auth is required for user deletion");
+    }
+    const { auth } = ctx;
     const { id } = input;
 
     const previousState = await ctx.step.run(fetchUserStep, { id });
@@ -22,9 +24,7 @@ export const deleteUser = Workflow.name("user.delete")
     });
 
     await ctx.step.run("delete-sp-assignment", async () => {
-      await ctx.db
-        .delete(serviceProviderUser)
-        .where(eq(serviceProviderUser.userId, id));
+      await ctx.db.delete(serviceProviderUser).where(eq(serviceProviderUser.userId, id));
     });
 
     await ctx.audit.write({

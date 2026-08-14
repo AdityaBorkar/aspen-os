@@ -8,9 +8,7 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const deleteExitInterview = Workflow.name(
-  "hr.lifecycle.delete-exit-interview",
-)
+export const deleteExitInterview = Workflow.name("hr.lifecycle.delete-exit-interview")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id } = input;

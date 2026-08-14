@@ -10,9 +10,7 @@ const getAuditTrail = Workflow.name("audit.trail").handler(
       entityType: input.entityType,
     })) as AuditLogRow[];
 
-    return rows
-      .map(normalize)
-      .sort((a, b) => a.performedAt.getTime() - b.performedAt.getTime());
+    return rows.map(normalize).sort((a, b) => a.performedAt.getTime() - b.performedAt.getTime());
   },
 );
 

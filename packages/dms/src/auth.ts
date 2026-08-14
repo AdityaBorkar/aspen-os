@@ -3,15 +3,7 @@ import { defineAcl } from "@aspen-os/platform/server";
 export const acl = defineAcl({
   classField: ["create", "deactivate", "read", "update"],
   contact: ["create", "delete", "read", "update"],
-  document: [
-    "classify",
-    "create",
-    "download",
-    "read",
-    "restore",
-    "update",
-    "delete",
-  ],
+  document: ["classify", "create", "download", "read", "restore", "update", "delete"],
   file: ["create", "delete", "download", "read", "update"],
   folder: ["create", "delete", "read", "update"],
   itemShare: ["create", "delete", "read", "update"],

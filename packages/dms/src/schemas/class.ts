@@ -43,9 +43,7 @@ export const CreateDocumentClassSchema = object({
   retentionDays: optional(nullable(pipe(valibotNumber(), integer()))),
 });
 
-export type CreateDocumentClassInput = InferOutput<
-  typeof CreateDocumentClassSchema
->;
+export type CreateDocumentClassInput = InferOutput<typeof CreateDocumentClassSchema>;
 
 export const UpdateDocumentClassSchema = object({
   color: optional(nullable(string())),
@@ -56,9 +54,7 @@ export const UpdateDocumentClassSchema = object({
   retentionDays: optional(nullable(pipe(valibotNumber(), integer()))),
 });
 
-export type UpdateDocumentClassInput = InferOutput<
-  typeof UpdateDocumentClassSchema
->;
+export type UpdateDocumentClassInput = InferOutput<typeof UpdateDocumentClassSchema>;
 
 export const ClassFiltersSchema = object({
   activeOnly: optional(boolean()),

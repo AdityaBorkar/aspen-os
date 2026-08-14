@@ -11,26 +11,20 @@ const TriageListInputSchema = object({
 
 export const listTriage = Workflow.name("dms.triage.list")
   .input(TriageListInputSchema)
-  .handler(async ({ filters }, ctx) => {
-    return ctx.step.run("query", async () => {
+  .handler(async ({ filters }, ctx) =>
+    ctx.step.run("query", async () => {
       const conditions: SQL[] = [eq(dmsDocument.status, "triaged")];
 
-      if (filters.ownerId)
-        conditions.push(eq(dmsDocument.ownerId, filters.ownerId));
-      if (filters.batchId)
-        conditions.push(eq(dmsDocument.batchId, filters.batchId));
-      if (filters.classId)
-        conditions.push(eq(dmsDocument.classId, filters.classId));
+      if (filters.ownerId) conditions.push(eq(dmsDocument.ownerId, filters.ownerId));
+      if (filters.batchId) conditions.push(eq(dmsDocument.batchId, filters.batchId));
+      if (filters.classId) conditions.push(eq(dmsDocument.classId, filters.classId));
       if (filters.tag) {
         conditions.push(sql`${dmsDocument.tags} ? ${filters.tag}`);
       }
       if (filters.search) {
         const term = `%${filters.search}%`;
         conditions.push(
-          or(
-            ilike(dmsDocument.name, term),
-            ilike(dmsDocument.docNumber, term),
-          ) as SQL,
+          or(ilike(dmsDocument.name, term), ilike(dmsDocument.docNumber, term)) as SQL,
         );
       }
 
@@ -44,5 +38,5 @@ export const listTriage = Workflow.name("dms.triage.list")
         .orderBy(desc(dmsDocument.createdAt))
         .limit(limit)
         .offset(offset);
-    });
-  });
+    }),
+  );

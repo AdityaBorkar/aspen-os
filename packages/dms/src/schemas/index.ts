@@ -148,15 +148,8 @@ export {
   UpdateItemShareSchema,
 } from "./item-share";
 export type { EmptyTrashOptions, ListTrashOptions } from "./item-trash";
-export {
-  EmptyTrashOptionsSchema,
-  ListTrashOptionsSchema,
-} from "./item-trash";
-export {
-  HexColorSchema,
-  ItemNameSchema,
-  LabelNameSchema,
-} from "./item-utils";
+export { EmptyTrashOptionsSchema, ListTrashOptionsSchema } from "./item-trash";
+export { HexColorSchema, ItemNameSchema, LabelNameSchema } from "./item-utils";
 export type {
   CreateShareInput,
   RemoveShareInput,

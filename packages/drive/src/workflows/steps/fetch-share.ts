@@ -12,6 +12,8 @@ export const fetchShareStep = WorkflowStep.name("fetch-share")
       .from(driveShare)
       .where(eq(driveShare.id, input.id))
       .limit(1);
-    if (!row) throw new Error(`Share with id "${input.id}" not found.`);
+    if (!row) {
+      throw new Error(`Share with id "${input.id}" not found.`);
+    }
     return row;
   });

@@ -25,10 +25,7 @@ export const CompressionOptionSchema = object({
 
 export type CompressionOption = InferOutput<typeof CompressionOptionSchema>;
 
-export const TagInputSchema = pipe(
-  string(),
-  minLength(1, "Tag name is required"),
-);
+export const TagInputSchema = pipe(string(), minLength(1, "Tag name is required"));
 
 export const MetadataSchema = record(string(), unknown());
 

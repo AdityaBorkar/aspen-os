@@ -8,9 +8,7 @@ const InputSchema = object({
   input: CreateEmployeeGradeSchema,
 });
 
-export const createEmployeeGrade = Workflow.name(
-  "hr.setup.create-employee-grade",
-)
+export const createEmployeeGrade = Workflow.name("hr.setup.create-employee-grade")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateEmployeeGradeSchema, input);

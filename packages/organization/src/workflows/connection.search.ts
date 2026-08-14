@@ -12,8 +12,8 @@ export const searchConnections = Workflow.name("connection.search")
       query: string(),
     }),
   )
-  .handler(async (input, ctx) => {
-    return ctx.step.run("query", async () => {
+  .handler(async (input, ctx) =>
+    ctx.step.run("query", async () => {
       const searchTerm = `%${input.query}%`;
       const parsed = input.filters ?? {};
       const conditions = [];
@@ -35,10 +35,8 @@ export const searchConnections = Workflow.name("connection.search")
       );
 
       const whereClause =
-        conditions.length > 0
-          ? and(searchCondition, ...conditions)
-          : searchCondition;
+        conditions.length > 0 ? and(searchCondition, ...conditions) : searchCondition;
 
       return ctx.db.select().from(connection).where(whereClause);
-    });
-  });
+    }),
+  );

@@ -17,13 +17,7 @@ export const listNotes = Workflow.name("connection.list-notes")
       conditions.push(
         eq(
           connectionNote.type,
-          input.type as
-            | "call"
-            | "contract_renewal"
-            | "email"
-            | "general"
-            | "issue"
-            | "meeting",
+          input.type as "call" | "contract_renewal" | "email" | "general" | "issue" | "meeting",
         ),
       );
     }

@@ -13,11 +13,7 @@ export const getById = Workflow.name("hr.employee.get-by-id")
   .handler(async (input, ctx) => {
     const { id } = input;
 
-    const [result] = await ctx.db
-      .select()
-      .from(employee)
-      .where(eq(employee.id, id))
-      .limit(1);
+    const [result] = await ctx.db.select().from(employee).where(eq(employee.id, id)).limit(1);
 
     if (!result) {
       throw new Error(`Employee with id "${id}" not found.`);

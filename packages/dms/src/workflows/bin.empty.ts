@@ -16,14 +16,14 @@ export const emptyBin = Workflow.name("dms.bin.empty").handler(
     const filters = input.filters ?? {};
 
     const conditions: SQL[] = [
-      or(
-        eq(dmsDocument.status, "deleted"),
-        eq(dmsDocument.status, "expired"),
-      ) as SQL,
+      or(eq(dmsDocument.status, "deleted"), eq(dmsDocument.status, "expired")) as SQL,
     ];
-    if (filters.status) conditions.push(eq(dmsDocument.status, filters.status));
-    if (filters.classId)
+    if (filters.status) {
+      conditions.push(eq(dmsDocument.status, filters.status));
+    }
+    if (filters.classId) {
       conditions.push(eq(dmsDocument.classId, filters.classId));
+    }
 
     const rows = await ctx.db
       .select({ id: dmsDocument.id, status: dmsDocument.status })
@@ -38,12 +38,12 @@ export const emptyBin = Workflow.name("dms.bin.empty").handler(
         .where(
           and(
             eq(dmsLegalHold.releasedAt, null as never),
-            or(
-              ...(rows.map((r) => eq(dmsLegalHold.documentId, r.id)) as SQL[]),
-            ),
+            or(...(rows.map((r) => eq(dmsLegalHold.documentId, r.id)) as SQL[])),
           ),
         );
-      for (const h of heldRows) heldIds.add(h.documentId);
+      for (const h of heldRows) {
+        heldIds.add(h.documentId);
+      }
     }
 
     const purgeable = rows.filter((r) => !heldIds.has(r.id));

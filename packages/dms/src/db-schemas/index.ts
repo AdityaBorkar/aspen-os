@@ -1,10 +1,7 @@
 export { dmsAccessLog } from "./access-log";
 export { dmsClassField, dmsFieldTypeEnum } from "./class-field";
 export { dmsContact } from "./contact";
-export {
-  dmsDocument,
-  dmsDocumentStatusEnum,
-} from "./document";
+export { dmsDocument, dmsDocumentStatusEnum } from "./document";
 export { dmsDocumentClass } from "./document-class";
 export { dmsDocumentTag } from "./document-tag";
 export { dmsDocumentVersion } from "./document-version";
@@ -24,11 +21,7 @@ export { dmsLegalHold } from "./legal-hold";
 export { dmsPin, dmsPinItemTypeEnum } from "./pin";
 export { dmsPublicLink } from "./public-link";
 export { dmsSetting } from "./setting";
-export {
-  dmsGranteeTypeEnum,
-  dmsShare,
-  dmsSharePermissionEnum,
-} from "./share";
+export { dmsGranteeTypeEnum, dmsShare, dmsSharePermissionEnum } from "./share";
 export { dmsTag } from "./tag";
 export { dmsView } from "./view";
 

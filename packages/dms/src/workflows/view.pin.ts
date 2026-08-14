@@ -17,7 +17,9 @@ export const pinView = Workflow.name("dms.view.pin")
       .where(eq(dmsView.id, id))
       .returning();
 
-    if (!updated) throw new Error(`View "${id}" not found.`);
+    if (!updated) {
+      throw new Error(`View "${id}" not found.`);
+    }
 
     await ctx.pubsub.publish(VIEW_EVENTS.PINNED, { viewId: id });
 
@@ -33,7 +35,9 @@ export const unpinView = Workflow.name("dms.view.unpin")
       .where(eq(dmsView.id, id))
       .returning();
 
-    if (!updated) throw new Error(`View "${id}" not found.`);
+    if (!updated) {
+      throw new Error(`View "${id}" not found.`);
+    }
 
     await ctx.pubsub.publish(VIEW_EVENTS.UNPINNED, { viewId: id });
 

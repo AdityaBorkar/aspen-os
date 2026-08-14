@@ -1,14 +1,6 @@
 import { ORGANIZATION_STATUS } from "@aspen-os/constants";
 import { uuidv7 } from "@aspen-os/platform/server";
-import {
-  date,
-  index,
-  jsonb,
-  pgEnum,
-  pgTable,
-  text,
-  timestamp,
-} from "drizzle-orm/pg-core";
+import { date, index, jsonb, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const organizationStatusEnum = pgEnum("organization_status", [
   ORGANIZATION_STATUS.ACTIVE,
@@ -21,9 +13,7 @@ export const organization = pgTable(
   {
     accentColor: text("accent_color").notNull().default("#3B82F6"),
     address: text("address"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     email: text("email"),
     foundedDate: date("founded_date"),
     id: text("id").primaryKey().$defaultFn(uuidv7),
@@ -38,9 +28,7 @@ export const organization = pgTable(
     status: organizationStatusEnum("status").notNull().default("active"),
     taxId: text("tax_id"),
     timezone: text("timezone").notNull().default("UTC"),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     website: text("website"),
   },
   (table) => [index("idx_organization_slug").on(table.slug)],

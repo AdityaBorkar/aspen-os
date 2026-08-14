@@ -55,10 +55,7 @@ export const Workflow = {
             fn: (input: TInput, ctx: WorkflowContext) => Promise<TOutput>,
           ): WorkflowInstance<TInput, TOutput> {
             return createWorkflow<TInput, TOutput>({
-              handler: fn as (
-                input: TInput,
-                ctx: WorkflowContext,
-              ) => Promise<TOutput>,
+              handler: fn as (input: TInput, ctx: WorkflowContext) => Promise<TOutput>,
               name: workflowName,
               schema,
             });
@@ -84,10 +81,7 @@ export const WorkflowStep = {
             fn: (input: TInput, ctx: WorkflowContext) => Promise<TOutput>,
           ): WorkflowStepInstance<TInput, TOutput> {
             return {
-              handler: fn as (
-                input: TInput,
-                ctx: WorkflowContext,
-              ) => Promise<TOutput>,
+              handler: fn as (input: TInput, ctx: WorkflowContext) => Promise<TOutput>,
               name: stepName,
               schema,
             };

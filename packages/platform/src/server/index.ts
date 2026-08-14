@@ -17,12 +17,7 @@ import type { PubSubConfig, PubSubUnit } from "./pubsub";
 import type { RpcConfig, RpcUnit } from "./rpc";
 import type { StorageConfig, StorageUnit } from "./storage";
 
-export type {
-  AuditEntry,
-  AuditQuery,
-  AuditUnit,
-  CrudAction,
-} from "./audit";
+export type { AuditEntry, AuditQuery, AuditUnit, CrudAction } from "./audit";
 export type { AclDeclaration } from "./auth";
 export { defineAcl } from "./auth";
 export * from "./db-schemas";
@@ -58,9 +53,7 @@ export type TenantResolver = {
   list: () => Promise<string[]>;
 };
 
-export type PlatformUnits<
-  S extends Record<string, unknown> = Record<string, never>,
-> = {
+export type PlatformUnits<S extends Record<string, unknown> = Record<string, never>> = {
   audit: AuditUnit;
   auth: AuthUnit;
   db: DatabaseUnit<S>;
@@ -105,9 +98,7 @@ export interface Module<
   $prepareTenant?(tenantId: string): Promise<void>;
 }
 
-export type UnitAccessors<
-  S extends Record<string, unknown> = Record<string, never>,
-> = {
+export type UnitAccessors<S extends Record<string, unknown> = Record<string, never>> = {
   [K in keyof PlatformUnits<S>]: PlatformUnits<S>[K];
 };
 export type ModuleAccessors<M extends Record<string, Module>> = {
@@ -116,10 +107,7 @@ export type ModuleAccessors<M extends Record<string, Module>> = {
 
 import type { ExtractModuleNames } from "./base-platform";
 
-export type ArrayModuleAccessors<
-  M extends Module[],
-  Names extends M[number]["$name"],
-> = {
+export type ArrayModuleAccessors<M extends Module[], Names extends M[number]["$name"]> = {
   [K in Names]: Extract<M[number], { $name: K }>;
 };
 
@@ -127,9 +115,7 @@ export type PlatformInstance<M extends Module[]> = {
   tenancyMode: TenancyMode;
   $prepareInfra(): Promise<void>;
   $cleanup(): Promise<void>;
-  getModule<K extends M[number]["$name"]>(
-    name: K,
-  ): Extract<M[number], { $name: K }>;
+  getModule<K extends M[number]["$name"]>(name: K): Extract<M[number], { $name: K }>;
   getUnit<K extends keyof PlatformUnits>(name: K): PlatformUnits[K];
 } & UnitAccessors &
   ArrayModuleAccessors<M, ExtractModuleNames<M>[number]>;

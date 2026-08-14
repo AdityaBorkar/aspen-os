@@ -4,11 +4,7 @@ import { object, parse, string } from "valibot";
 
 import { driveFolder } from "../db-schemas";
 import { DRIVE_EVENTS } from "../pubsub";
-import {
-  cascadePaths,
-  checkNameUniqueness,
-  getFolderPath,
-} from "../services/path-service";
+import { cascadePaths, checkNameUniqueness, getFolderPath } from "../services/path-service";
 import { RenameFolderSchema } from "../types";
 import { fetchFolderStep } from "./steps/fetch-folder";
 
@@ -42,7 +38,9 @@ export const renameFolder = Workflow.name("drive.folder.rename")
       .where(eq(driveFolder.id, id))
       .returning();
 
-    if (!updated) throw new Error(`Folder with id "${id}" not found.`);
+    if (!updated) {
+      throw new Error(`Folder with id "${id}" not found.`);
+    }
 
     await ctx.step.run("cascade-paths", async () => {
       await cascadePaths({ newPath, oldPath }, ctx.db);

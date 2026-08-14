@@ -5,9 +5,7 @@ export const driveLabel = pgTable(
   "drive_label",
   {
     color: text("color").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: text("id").primaryKey().$defaultFn(uuidv7),
     isGlobal: boolean("is_global").notNull().default(false),
     name: text("name").notNull(),

@@ -25,8 +25,7 @@ export const PROJECT_STATUS = {
   PAUSED: "paused",
 } as const;
 
-export type ProjectStatus =
-  (typeof PROJECT_STATUS)[keyof typeof PROJECT_STATUS];
+export type ProjectStatus = (typeof PROJECT_STATUS)[keyof typeof PROJECT_STATUS];
 
 export const PROJECT_MEMBER_ROLE = {
   ADMIN: "admin",
@@ -34,8 +33,7 @@ export const PROJECT_MEMBER_ROLE = {
   VIEWER: "viewer",
 } as const;
 
-export type ProjectMemberRole =
-  (typeof PROJECT_MEMBER_ROLE)[keyof typeof PROJECT_MEMBER_ROLE];
+export type ProjectMemberRole = (typeof PROJECT_MEMBER_ROLE)[keyof typeof PROJECT_MEMBER_ROLE];
 
 export const STATUS_CATEGORY = {
   BACKLOG: "backlog",
@@ -45,8 +43,7 @@ export const STATUS_CATEGORY = {
   UNSTARTED: "unstarted",
 } as const;
 
-export type StatusCategory =
-  (typeof STATUS_CATEGORY)[keyof typeof STATUS_CATEGORY];
+export type StatusCategory = (typeof STATUS_CATEGORY)[keyof typeof STATUS_CATEGORY];
 
 export const SAVED_VIEW_TYPE = {
   BOARD: "board",
@@ -55,8 +52,7 @@ export const SAVED_VIEW_TYPE = {
   TIMELINE: "timeline",
 } as const;
 
-export type SavedViewType =
-  (typeof SAVED_VIEW_TYPE)[keyof typeof SAVED_VIEW_TYPE];
+export type SavedViewType = (typeof SAVED_VIEW_TYPE)[keyof typeof SAVED_VIEW_TYPE];
 
 export const REMINDER_TYPE = {
   CUSTOM: "custom",
@@ -74,5 +70,4 @@ export const AUTOMATION_TRIGGER = {
   TASK_UPDATED: "task_updated",
 } as const;
 
-export type AutomationTrigger =
-  (typeof AUTOMATION_TRIGGER)[keyof typeof AUTOMATION_TRIGGER];
+export type AutomationTrigger = (typeof AUTOMATION_TRIGGER)[keyof typeof AUTOMATION_TRIGGER];

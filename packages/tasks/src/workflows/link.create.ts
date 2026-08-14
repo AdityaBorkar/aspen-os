@@ -59,14 +59,9 @@ export const createTaskLink = Workflow.name("link.create")
     }
 
     if (input.linkType === BLOCKS_LINK_TYPE) {
-      const wouldCycleErr = await wouldCreateCycle(
-        input.sourceId,
-        input.targetId,
-      );
+      const wouldCycleErr = await wouldCreateCycle(input.sourceId, input.targetId);
       if (wouldCycleErr) {
-        throw new Error(
-          "Creating this link would introduce a circular dependency.",
-        );
+        throw new Error("Creating this link would introduce a circular dependency.");
       }
     }
 
@@ -97,12 +92,7 @@ export const createTaskLink = Workflow.name("link.create")
 
     const inverseType = linkTypeInverse(input.linkType);
     if (inverseType) {
-      await createInverseLink(
-        ctx.db,
-        input.targetId,
-        input.sourceId,
-        inverseType,
-      );
+      await createInverseLink(ctx.db, input.targetId, input.sourceId, inverseType);
     }
 
     return result;

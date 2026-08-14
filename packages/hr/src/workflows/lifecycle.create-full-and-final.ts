@@ -8,9 +8,7 @@ const InputSchema = object({
   input: CreateFullAndFinalSchema,
 });
 
-export const createFullAndFinal = Workflow.name(
-  "hr.lifecycle.create-full-and-final",
-)
+export const createFullAndFinal = Workflow.name("hr.lifecycle.create-full-and-final")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateFullAndFinalSchema, input);

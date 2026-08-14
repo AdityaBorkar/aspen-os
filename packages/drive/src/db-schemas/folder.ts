@@ -5,9 +5,7 @@ export const driveFolder = pgTable(
   "drive_folder",
   {
     color: text("color"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     description: text("description"),
     id: text("id").primaryKey().$defaultFn(uuidv7),
     isTrashed: boolean("is_trashed").notNull().default(false),
@@ -16,9 +14,7 @@ export const driveFolder = pgTable(
     parentId: text("parent_id"),
     path: text("path").notNull().unique(),
     trashedAt: timestamp("trashed_at", { withTimezone: true }),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_drive_folder_parent").on(table.parentId),

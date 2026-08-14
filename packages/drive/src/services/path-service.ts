@@ -19,7 +19,9 @@ export async function computeFolderPath({
   name: string;
   parentId: string | null;
 }): Promise<string> {
-  if (!parentId) return `/${name}`;
+  if (!parentId) {
+    return `/${name}`;
+  }
   const parentPath = await getFolderPath({ folderId: parentId });
   return `${parentPath}/${name}`;
 }
@@ -31,16 +33,14 @@ export async function computeFilePath({
   name: string;
   folderId: string | null;
 }): Promise<string> {
-  if (!folderId) return `/${name}`;
+  if (!folderId) {
+    return `/${name}`;
+  }
   const folderPath = await getFolderPath({ folderId });
   return `${folderPath}/${name}`;
 }
 
-export async function resolvePath({
-  path,
-}: {
-  path: string;
-}): Promise<PathResolution | null> {
+export async function resolvePath({ path }: { path: string }): Promise<PathResolution | null> {
   const { db } = getContext();
   const normalized = normalizePath(path);
 
@@ -96,9 +96,7 @@ export async function getBreadcrumbs({
     throw new Error(`Folder "${folderId}" not found.`);
   }
 
-  const breadcrumbs: BreadcrumbItem[] = [
-    { id: folder.id, name: folder.name, path: folder.path },
-  ];
+  const breadcrumbs: BreadcrumbItem[] = [{ id: folder.id, name: folder.name, path: folder.path }];
 
   let currentParentId = folder.parentId;
   while (currentParentId) {
@@ -113,7 +111,9 @@ export async function getBreadcrumbs({
       .where(eq(s.driveFolder.id, currentParentId))
       .limit(1);
 
-    if (!parent) break;
+    if (!parent) {
+      break;
+    }
     breadcrumbs.unshift({
       id: parent.id,
       name: parent.name,
@@ -166,15 +166,23 @@ export async function wouldCreateCycle({
   newParentId: string | null;
 }): Promise<boolean> {
   const { db } = getContext();
-  if (!newParentId) return false;
-  if (folderId === newParentId) return true;
+  if (!newParentId) {
+    return false;
+  }
+  if (folderId === newParentId) {
+    return true;
+  }
 
   let currentId: string | null = newParentId;
   let depth = 0;
 
   while (currentId !== null) {
-    if (currentId === folderId) return true;
-    if (depth >= maxDepth()) return true;
+    if (currentId === folderId) {
+      return true;
+    }
+    if (depth >= maxDepth()) {
+      return true;
+    }
 
     const [parent] = await db
       .select({ parentId: s.driveFolder.parentId })
@@ -182,7 +190,9 @@ export async function wouldCreateCycle({
       .where(eq(s.driveFolder.id, currentId))
       .limit(1);
 
-    if (!parent) break;
+    if (!parent) {
+      break;
+    }
     currentId = parent.parentId;
     depth++;
   }
@@ -190,11 +200,7 @@ export async function wouldCreateCycle({
   return false;
 }
 
-export async function getDepth({
-  folderId,
-}: {
-  folderId: string;
-}): Promise<number> {
+export async function getDepth({ folderId }: { folderId: string }): Promise<number> {
   const { db } = getContext();
   let depth = 0;
   let currentId: string | null = folderId;
@@ -206,25 +212,21 @@ export async function getDepth({
       .where(eq(s.driveFolder.id, currentId))
       .limit(1);
 
-    if (!parent?.parentId) break;
+    if (!parent?.parentId) {
+      break;
+    }
     currentId = parent.parentId;
     depth++;
 
     if (depth > maxDepth()) {
-      throw new Error(
-        `Folder hierarchy exceeds maximum depth of ${maxDepth()}`,
-      );
+      throw new Error(`Folder hierarchy exceeds maximum depth of ${maxDepth()}`);
     }
   }
 
   return depth;
 }
 
-export async function getSubtreeMaxDepth({
-  folderPath,
-}: {
-  folderPath: string;
-}): Promise<number> {
+export async function getSubtreeMaxDepth({ folderPath }: { folderPath: string }): Promise<number> {
   const { db } = getContext();
   const prefix = `${folderPath}/%`;
   const descendants = await db
@@ -237,7 +239,9 @@ export async function getSubtreeMaxDepth({
 
   for (const d of descendants) {
     const depth = d.path.split("/").length - 1 - baseDepth;
-    if (depth > maxDepth) maxDepth = depth;
+    if (depth > maxDepth) {
+      maxDepth = depth;
+    }
   }
 
   return maxDepth;
@@ -291,11 +295,7 @@ export async function checkNameUniqueness({
   }
 }
 
-export async function getFolderPath({
-  folderId,
-}: {
-  folderId: string;
-}): Promise<string> {
+export async function getFolderPath({ folderId }: { folderId: string }): Promise<string> {
   const { db } = getContext();
   const [folder] = await db
     .select({ path: s.driveFolder.path })
@@ -310,11 +310,7 @@ export async function getFolderPath({
   return folder.path;
 }
 
-export async function getFilePath({
-  fileId,
-}: {
-  fileId: string;
-}): Promise<string> {
+export async function getFilePath({ fileId }: { fileId: string }): Promise<string> {
   const { db } = getContext();
   const [file] = await db
     .select({ path: s.driveFile.path })
@@ -330,6 +326,8 @@ export async function getFilePath({
 }
 
 function normalizePath(path: string): string {
-  if (!path.startsWith("/")) return `/${path}`;
+  if (!path.startsWith("/")) {
+    return `/${path}`;
+  }
   return path;
 }

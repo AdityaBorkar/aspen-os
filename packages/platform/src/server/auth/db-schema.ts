@@ -1,17 +1,10 @@
 import { relations } from "drizzle-orm";
-import {
-  boolean,
-  index,
-  integer,
-  pgTable,
-  text,
-  timestamp,
-} from "drizzle-orm/pg-core";
+import { boolean, index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
   banExpires: timestamp("ban_expires"),
-  banned: boolean("banned").default(false),
   banReason: text("ban_reason"),
+  banned: boolean("banned").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   displayUsername: text("display_username"),
   email: text("email").notNull().unique(),

@@ -14,7 +14,7 @@ export const tagDocument = Workflow.name("dms.document.tag")
   .input(TagInputSchema)
   .handler(async ({ id, input }, ctx) => {
     const doc = await ctx.step.run(fetchDocumentStep, { documentId: id });
-    const tag = input.tag;
+    const { tag } = input;
 
     const tags = doc.tags ?? [];
     if (tags.includes(tag)) {
@@ -47,7 +47,7 @@ export const untagDocument = Workflow.name("dms.document.untag")
   .input(TagInputSchema)
   .handler(async ({ id, input }, ctx) => {
     const doc = await ctx.step.run(fetchDocumentStep, { documentId: id });
-    const tag = input.tag;
+    const { tag } = input;
 
     const tags = (doc.tags ?? []).filter((t) => t !== tag);
 
@@ -111,9 +111,7 @@ export const addDocumentMetadata = Workflow.name("dms.document.add-metadata")
     return updated ?? doc;
   });
 
-export const removeDocumentMetadata = Workflow.name(
-  "dms.document.remove-metadata",
-)
+export const removeDocumentMetadata = Workflow.name("dms.document.remove-metadata")
   .input(object({ id: IdSchema, input: object({ key: string() }) }))
   .handler(async ({ id, input }, ctx) => {
     const doc = await ctx.step.run(fetchDocumentStep, { documentId: id });

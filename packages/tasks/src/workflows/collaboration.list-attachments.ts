@@ -7,11 +7,8 @@ import { IdSchema } from "../types";
 
 export const listAttachments = Workflow.name("collaboration.list-attachments")
   .input(object({ taskId: IdSchema }))
-  .handler(async ({ taskId }, ctx) => {
-    return ctx.step.run("query", async () => {
-      return ctx.db
-        .select()
-        .from(attachment)
-        .where(eq(attachment.taskId, taskId));
-    });
-  });
+  .handler(async ({ taskId }, ctx) =>
+    ctx.step.run("query", async () => {
+      return ctx.db.select().from(attachment).where(eq(attachment.taskId, taskId));
+    }),
+  );

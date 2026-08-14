@@ -4,15 +4,8 @@ import { object, parse } from "valibot";
 
 import { driveFile } from "../db-schemas";
 import { DRIVE_EVENTS } from "../pubsub";
-import {
-  checkNameUniqueness,
-  computeFilePath,
-  getFolderPath,
-} from "../services/path-service";
-import {
-  computeStorageKey,
-  move as moveStorage,
-} from "../services/storage-bridge";
+import { checkNameUniqueness, computeFilePath, getFolderPath } from "../services/path-service";
+import { computeStorageKey, move as moveStorage } from "../services/storage-bridge";
 import { MoveFileSchema } from "../types";
 import { fetchFileStep } from "./steps/fetch-file";
 import { FileIdSchema } from "./utils";
@@ -40,9 +33,7 @@ export const moveFile = Workflow.name("drive.file.move")
     );
 
     const newFolderPath = newFolderId
-      ? await ctx.step.run("get-folder-path", async () =>
-          getFolderPath({ folderId: newFolderId }),
-        )
+      ? await ctx.step.run("get-folder-path", async () => getFolderPath({ folderId: newFolderId }))
       : "";
     const newStorageKey = computeStorageKey({
       fileName: file.name,

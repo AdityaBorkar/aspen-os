@@ -33,7 +33,9 @@ const completeDocument = Workflow.name("document.complete").handler(
       .where(eq(complianceDocument.id, id))
       .returning();
 
-    if (!updated) throw new Error("Database operation returned no result");
+    if (!updated) {
+      throw new Error("Database operation returned no result");
+    }
 
     await ctx.audit.write({
       action: "completed",

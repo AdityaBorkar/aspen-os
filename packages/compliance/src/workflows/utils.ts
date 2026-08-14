@@ -43,10 +43,7 @@ export interface ComplianceAuditEntry {
 export function normalize(row: AuditLogRow): ComplianceAuditEntry {
   return {
     action: row.action,
-    changes: (row.changes ?? null) as Record<
-      string,
-      { new: unknown; old: unknown }
-    > | null,
+    changes: (row.changes ?? null) as Record<string, { new: unknown; old: unknown }> | null,
     entityId: row.entityId,
     entityType: row.entityType,
     id: row.id,
@@ -74,11 +71,21 @@ export function toFilter(filters: AuditTrailFilters | undefined): {
     startTime?: Date;
   } = {};
 
-  if (filters?.action) filter.action = filters.action;
-  if (filters?.entityType) filter.entityType = filters.entityType;
-  if (filters?.performedBy) filter.actorId = filters.performedBy;
-  if (filters?.dateFrom) filter.startTime = filters.dateFrom;
-  if (filters?.dateTo) filter.endTime = filters.dateTo;
+  if (filters?.action) {
+    filter.action = filters.action;
+  }
+  if (filters?.entityType) {
+    filter.entityType = filters.entityType;
+  }
+  if (filters?.performedBy) {
+    filter.actorId = filters.performedBy;
+  }
+  if (filters?.dateFrom) {
+    filter.startTime = filters.dateFrom;
+  }
+  if (filters?.dateTo) {
+    filter.endTime = filters.dateTo;
+  }
   return filter;
 }
 
@@ -89,7 +96,9 @@ export function computeHealthScore(data: {
   total: number;
   verified: number;
 }): number {
-  if (data.total === 0) return 100;
+  if (data.total === 0) {
+    return 100;
+  }
 
   const verifiedWeight = 1;
   const expiredWeight = -2;

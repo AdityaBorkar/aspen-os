@@ -27,12 +27,9 @@ class AuditUnit implements Unit {
   async query(filter: AuditQuery): Promise<unknown[]>;
   async count(filter: AuditQuery): Promise<number>;
 
-  reconstructState(
-    entityType: string,
-    entityId: string,
-  ): Promise<Record<string, unknown> | null>;
+  reconstructState(entityType: string, entityId: string): Promise<Record<string, unknown> | null>;
 
-  async $prepareInfra(): Promise<void>;  // no-op
+  async $prepareInfra(): Promise<void>; // no-op
   async $cleanup(): Promise<void>;
 }
 ```
@@ -116,23 +113,23 @@ const current = await audit.reconstructState("organization", "org-1");
 
 The `audit_log` table:
 
-| Column | Type | Description |
-|---|---|---|
-| `id` | uuid (PK) | `$defaultFn(() => uuidv7())` |
-| `seq` | bigserial | Monotonic sequence for ordering |
-| `tenant_id` | text (notNull) | Tenant scope; defaults to `current_setting('app.tenant_id')` or `"default"` |
-| `entity_type` | text (notNull) | Entity kind (e.g. `organization`) |
-| `entity_id` | text (notNull) | The record's ID |
-| `action` | text (notNull) | Verb (e.g. `organization.updated`) |
-| `crud_action` | text | `create` / `update` / `delete` |
-| `actor_id` | text (notNull) | Who performed the action |
-| `previous_state` | jsonb | Snapshot before the change |
-| `new_state` | jsonb | Snapshot after the change |
-| `changes` | jsonb | Field-level diff |
-| `metadata` | jsonb | Arbitrary extra data |
-| `idempotency_key` | text | Unique per `(tenant_id, idempotency_key)` to dedupe |
-| `request_id` / `trace_id` / `workflow_run_id` | text | Correlation identifiers |
-| `performed_at` | timestamptz (notNull) | Default `now()` |
+| Column                                        | Type                  | Description                                                                 |
+| --------------------------------------------- | --------------------- | --------------------------------------------------------------------------- |
+| `id`                                          | uuid (PK)             | `$defaultFn(() => uuidv7())`                                                |
+| `seq`                                         | bigserial             | Monotonic sequence for ordering                                             |
+| `tenant_id`                                   | text (notNull)        | Tenant scope; defaults to `current_setting('app.tenant_id')` or `"default"` |
+| `entity_type`                                 | text (notNull)        | Entity kind (e.g. `organization`)                                           |
+| `entity_id`                                   | text (notNull)        | The record's ID                                                             |
+| `action`                                      | text (notNull)        | Verb (e.g. `organization.updated`)                                          |
+| `crud_action`                                 | text                  | `create` / `update` / `delete`                                              |
+| `actor_id`                                    | text (notNull)        | Who performed the action                                                    |
+| `previous_state`                              | jsonb                 | Snapshot before the change                                                  |
+| `new_state`                                   | jsonb                 | Snapshot after the change                                                   |
+| `changes`                                     | jsonb                 | Field-level diff                                                            |
+| `metadata`                                    | jsonb                 | Arbitrary extra data                                                        |
+| `idempotency_key`                             | text                  | Unique per `(tenant_id, idempotency_key)` to dedupe                         |
+| `request_id` / `trace_id` / `workflow_run_id` | text                  | Correlation identifiers                                                     |
+| `performed_at`                                | timestamptz (notNull) | Default `now()`                                                             |
 
 Indexes cover entity ordering (`entity_type, entity_id, seq`), workflow run, actor, action, and performed_at.
 

@@ -10,9 +10,7 @@ const InputSchema = object({
   patch: UpdateLeaveBlockListSchema,
 });
 
-export const updateLeaveBlockList = Workflow.name(
-  "hr.leave.update-leave-block-list",
-)
+export const updateLeaveBlockList = Workflow.name("hr.leave.update-leave-block-list")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, patch } = input;

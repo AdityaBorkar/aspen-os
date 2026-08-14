@@ -4,14 +4,7 @@ import fg from "fast-glob";
 import ignore from "ignore";
 import { encoding_for_model } from "tiktoken";
 
-const DIRECTORIES = [
-  ".",
-  "./.agents",
-  "./docs",
-  "./docs",
-  "./examples/*",
-  "./packages/*",
-];
+const DIRECTORIES = [".", "./.agents", "./docs", "./docs", "./examples/*", "./packages/*"];
 
 const BINARY_EXTENSIONS = new Set([
   "png",
@@ -73,10 +66,14 @@ for (const dir of resolvedDirs) {
   for (const file of await fg("**/*", { cwd: dir, onlyFiles: true })) {
     const relativePath = dir === "." ? file : `${dir}/${file}`;
     const normalizedPath = relativePath.replace(/^\.\//, "");
-    if (ig.ignores(normalizedPath)) continue;
+    if (ig.ignores(normalizedPath)) {
+      continue;
+    }
 
     const ext = file.split(".").pop()?.toLowerCase() ?? "";
-    if (BINARY_EXTENSIONS.has(ext)) continue;
+    if (BINARY_EXTENSIONS.has(ext)) {
+      continue;
+    }
 
     try {
       const text = await readFile(relativePath, "utf8");
@@ -129,13 +126,9 @@ function printTree(nodes: TreeNode[], prefix = "") {
     const childPrefix = prefix + (isNodeLast ? "    " : "│   ");
 
     if (prefix === "" && isNodeLast && nodes.length === 1) {
-      console.log(
-        `${connector}${node.name}/ ${formatTokens(node.tokens)} tokens`,
-      );
+      console.log(`${connector}${node.name}/ ${formatTokens(node.tokens)} tokens`);
     } else {
-      console.log(
-        `${prefix}${connector}${node.name}/ ${formatTokens(node.tokens)} tokens`,
-      );
+      console.log(`${prefix}${connector}${node.name}/ ${formatTokens(node.tokens)} tokens`);
     }
 
     printTree(node.children, childPrefix);
@@ -155,5 +148,7 @@ const tree = buildTree(
 printTree(tree);
 
 let total = 0;
-for (const tokens of counts.values()) total += tokens;
+for (const tokens of counts.values()) {
+  total += tokens;
+}
 console.log(`\nTotal: ${total.toLocaleString()} tokens\n`);

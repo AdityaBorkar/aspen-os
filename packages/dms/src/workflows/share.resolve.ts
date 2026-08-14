@@ -32,12 +32,7 @@ export const resolveShareToken = Workflow.name("dms.share.resolve")
     const [doc] = await ctx.db
       .select()
       .from(dmsDocument)
-      .where(
-        and(
-          eq(dmsDocument.id, share.documentId),
-          eq(dmsDocument.status, "active"),
-        ),
-      )
+      .where(and(eq(dmsDocument.id, share.documentId), eq(dmsDocument.status, "active")))
       .limit(1);
 
     if (!doc) {

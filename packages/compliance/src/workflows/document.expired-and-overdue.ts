@@ -3,20 +3,19 @@ import { inArray } from "drizzle-orm";
 
 import { complianceDocument } from "../db-schemas";
 
-const getExpiredAndOverdueDocuments = Workflow.name(
-  "document.expired-and-overdue",
-).handler(async (_input: Record<string, never>, ctx) => {
-  return ctx.db
-    .select()
-    .from(complianceDocument)
-    .where(
-      inArray(complianceDocument.verificationStatus, [
-        "verified",
-        "submitted",
-        "under_review",
-        "draft",
-      ]),
-    );
-});
+const getExpiredAndOverdueDocuments = Workflow.name("document.expired-and-overdue").handler(
+  async (_input: Record<string, never>, ctx) =>
+    ctx.db
+      .select()
+      .from(complianceDocument)
+      .where(
+        inArray(complianceDocument.verificationStatus, [
+          "verified",
+          "submitted",
+          "under_review",
+          "draft",
+        ]),
+      ),
+);
 
 export { getExpiredAndOverdueDocuments };

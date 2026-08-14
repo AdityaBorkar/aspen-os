@@ -17,7 +17,9 @@ export const updateOrganization = Workflow.name("org.update")
 
     const data = stripUndefined(input as Record<string, unknown>);
 
-    if (Object.keys(data).length === 0) return current;
+    if (Object.keys(data).length === 0) {
+      return current;
+    }
 
     if (input.slug !== undefined) {
       const [conflict] = await ctx.db
@@ -27,9 +29,7 @@ export const updateOrganization = Workflow.name("org.update")
         .limit(1);
 
       if (conflict && conflict.id !== current.id) {
-        throw new Error(
-          `Organization with slug "${input.slug}" already exists.`,
-        );
+        throw new Error(`Organization with slug "${input.slug}" already exists.`);
       }
     }
 
@@ -37,8 +37,7 @@ export const updateOrganization = Workflow.name("org.update")
       .update(organization)
       .set({
         ...data,
-        foundedDate:
-          input.foundedDate?.toISOString().split("T")[0] ?? undefined,
+        foundedDate: input.foundedDate?.toISOString().split("T")[0] ?? undefined,
         updatedAt: new Date(),
       })
       .where(eq(organization.id, current.id))

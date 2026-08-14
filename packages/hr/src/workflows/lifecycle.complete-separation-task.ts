@@ -9,9 +9,7 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const completeSeparationTask = Workflow.name(
-  "hr.lifecycle.complete-separation-task",
-)
+export const completeSeparationTask = Workflow.name("hr.lifecycle.complete-separation-task")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, completedBy } = input;

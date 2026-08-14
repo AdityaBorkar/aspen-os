@@ -13,8 +13,8 @@ export const validateTransition = Workflow.name("status.validate-transition")
       toStatusId: IdSchema,
     }),
   )
-  .handler(async ({ fromStatusId, toStatusId, projectId }, ctx) => {
-    return ctx.step.run("query", async () => {
+  .handler(async ({ fromStatusId, toStatusId, projectId }, ctx) =>
+    ctx.step.run("query", async () => {
       const [transition] = await ctx.db
         .select({ id: statusTransition.id })
         .from(statusTransition)
@@ -36,5 +36,5 @@ export const validateTransition = Workflow.name("status.validate-transition")
         .limit(1);
 
       return anyTransition.length === 0;
-    });
-  });
+    }),
+  );

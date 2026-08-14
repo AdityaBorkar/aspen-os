@@ -9,9 +9,7 @@ const InputSchema = object({
   input: CreateLeavePolicyAssignmentSchema,
 });
 
-export const createLeavePolicyAssignment = Workflow.name(
-  "hr.leave.create-leave-policy-assignment",
-)
+export const createLeavePolicyAssignment = Workflow.name("hr.leave.create-leave-policy-assignment")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateLeavePolicyAssignmentSchema, input);

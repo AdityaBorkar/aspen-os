@@ -60,11 +60,7 @@ export class ManagementPlane implements Module {
     };
   }
 
-  $initialize(units: {
-    db: DatabaseUnit;
-    auth: AuthUnit;
-    pubsub: PubSubUnit;
-  }): void {
+  $initialize(units: { db: DatabaseUnit; auth: AuthUnit; pubsub: PubSubUnit }): void {
     this.#db = units.db;
   }
 
@@ -73,7 +69,9 @@ export class ManagementPlane implements Module {
   $cleanup() {}
 
   get tenants() {
-    if (!this.#db) throw new Error("ManagementPlane not initialized");
+    if (!this.#db) {
+      throw new Error("ManagementPlane not initialized");
+    }
     return {
       activate: activateTenant,
       assignServiceProvider,

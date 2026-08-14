@@ -7,8 +7,8 @@ import { IdSchema } from "../types";
 
 export const getTaskLinkDependencyGraph = Workflow.name("link.dependency-graph")
   .input(object({ taskIds: array(IdSchema) }))
-  .handler(async ({ taskIds }, ctx): Promise<TaskDependencyNode[]> => {
-    return ctx.step.run("query", async () => {
+  .handler(async ({ taskIds }, ctx): Promise<TaskDependencyNode[]> =>
+    ctx.step.run("query", async () => {
       return buildDependencyGraph(taskIds);
-    });
-  });
+    }),
+  );

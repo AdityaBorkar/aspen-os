@@ -19,11 +19,7 @@ export const pinItem = Workflow.name("dms.pin.create")
       .select({ id: dmsPin.id })
       .from(dmsPin)
       .where(
-        and(
-          eq(dmsPin.userId, userId),
-          eq(dmsPin.itemType, itemType),
-          eq(dmsPin.itemId, itemId),
-        ),
+        and(eq(dmsPin.userId, userId), eq(dmsPin.itemType, itemType), eq(dmsPin.itemId, itemId)),
       )
       .limit(1);
 
@@ -31,10 +27,7 @@ export const pinItem = Workflow.name("dms.pin.create")
       return existing[0];
     }
 
-    const [pin] = await ctx.db
-      .insert(dmsPin)
-      .values({ itemId, itemType, userId })
-      .returning();
+    const [pin] = await ctx.db.insert(dmsPin).values({ itemId, itemType, userId }).returning();
 
     await ctx.audit.write({
       action: AUDIT_ACTION.UPDATED,
@@ -53,11 +46,7 @@ export const unpinItem = Workflow.name("dms.pin.delete")
     await ctx.db
       .delete(dmsPin)
       .where(
-        and(
-          eq(dmsPin.userId, userId),
-          eq(dmsPin.itemType, itemType),
-          eq(dmsPin.itemId, itemId),
-        ),
+        and(eq(dmsPin.userId, userId), eq(dmsPin.itemType, itemType), eq(dmsPin.itemId, itemId)),
       );
 
     await ctx.audit.write({

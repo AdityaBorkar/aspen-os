@@ -27,37 +27,25 @@ const createDocument = Workflow.name("document.create")
         connection: parsed.connection ?? null,
         createdBy: parsed.createdBy,
         documentType: parsed.documentType ?? null,
-        dueDate: parsed.dueDate
-          ? parsed.dueDate.toISOString().split("T")[0]
-          : null,
+        dueDate: parsed.dueDate ? parsed.dueDate.toISOString().split("T")[0] : null,
         effectiveDate: parsed.effectiveDate
           ? parsed.effectiveDate.toISOString().split("T")[0]
           : null,
         escalationDays: parsed.escalationDays ?? null,
-        expiryDate: parsed.expiryDate
-          ? parsed.expiryDate.toISOString().split("T")[0]
-          : null,
-        issueDate: parsed.issueDate
-          ? parsed.issueDate.toISOString().split("T")[0]
-          : null,
+        expiryDate: parsed.expiryDate ? parsed.expiryDate.toISOString().split("T")[0] : null,
+        issueDate: parsed.issueDate ? parsed.issueDate.toISOString().split("T")[0] : null,
         issuingAuthority: parsed.issuingAuthority ?? null,
         jurisdiction: parsed.jurisdiction ?? null,
         metadata: parsed.metadata ?? null,
         name: parsed.name,
         notes: parsed.notes ?? null,
         obligationId: parsed.obligationId ?? null,
-        periodEnd: parsed.periodEnd
-          ? parsed.periodEnd.toISOString().split("T")[0]
-          : null,
-        periodStart: parsed.periodStart
-          ? parsed.periodStart.toISOString().split("T")[0]
-          : null,
+        periodEnd: parsed.periodEnd ? parsed.periodEnd.toISOString().split("T")[0] : null,
+        periodStart: parsed.periodStart ? parsed.periodStart.toISOString().split("T")[0] : null,
         referenceNumber: parsed.referenceNumber ?? null,
         reminderChannel: parsed.reminderChannel ?? "pubsub",
         reminderDays,
-        renewalDate: parsed.renewalDate
-          ? parsed.renewalDate.toISOString().split("T")[0]
-          : null,
+        renewalDate: parsed.renewalDate ? parsed.renewalDate.toISOString().split("T")[0] : null,
         renewalFrequency: parsed.renewalFrequency ?? null,
         sourceEntityId: parsed.sourceEntityId ?? null,
         sourceEntityType: parsed.sourceEntityType ?? null,
@@ -66,7 +54,9 @@ const createDocument = Workflow.name("document.create")
       })
       .returning();
 
-    if (!result) throw new Error("Database operation returned no result");
+    if (!result) {
+      throw new Error("Database operation returned no result");
+    }
 
     await ctx.audit.write({
       action: "created",

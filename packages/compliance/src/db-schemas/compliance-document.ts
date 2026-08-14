@@ -28,9 +28,7 @@ export const complianceDocument = pgTable(
     category: complianceCategoryEnum("category").notNull(),
     completedAt: timestamp("completed_at", { withTimezone: true }),
     connection: text("connection"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     createdBy: text("created_by").notNull(),
     documentType: text("document_type"),
     dueDate: date("due_date"),
@@ -62,12 +60,8 @@ export const complianceDocument = pgTable(
     sourceEntityId: text("source_entity_id"),
     sourceEntityType: text("source_entity_type"),
     sourceModule: text("source_module").notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    verificationStatus: verificationStatusEnum("verification_status")
-      .notNull()
-      .default("draft"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    verificationStatus: verificationStatusEnum("verification_status").notNull().default("draft"),
   },
   (table) => [
     index("idx_compliance_document_category").on(table.category),

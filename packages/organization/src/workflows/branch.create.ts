@@ -13,9 +13,7 @@ export const createBranch = Workflow.name("branch.create")
   .input(CreateInputSchema)
   .handler(async ({ input }, ctx) => {
     if (!isValidCountryCode(input.country)) {
-      throw new Error(
-        `Invalid country code: "${input.country}". Must be ISO 3166-1 alpha-2.`,
-      );
+      throw new Error(`Invalid country code: "${input.country}". Must be ISO 3166-1 alpha-2.`);
     }
 
     if (input.type === "headquarters") {

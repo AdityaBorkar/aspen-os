@@ -16,10 +16,7 @@ export const addProjectMember = Workflow.name("project.add-member")
       .select({ userId: projectMember.userId })
       .from(projectMember)
       .where(
-        and(
-          eq(projectMember.projectId, input.projectId),
-          eq(projectMember.userId, input.userId),
-        ),
+        and(eq(projectMember.projectId, input.projectId), eq(projectMember.userId, input.userId)),
       )
       .limit(1);
 

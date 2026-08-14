@@ -7,11 +7,7 @@ import { branch } from "../db-schemas";
 import { BRANCH_EVENTS } from "../pubsub";
 import { UpdateBranchSchema } from "../types";
 import { fetchBranchStep } from "./steps/fetch-branch";
-import {
-  ensureCodeUnique,
-  ensureNoHeadquartersExists,
-  validateParentBranch,
-} from "./utils";
+import { ensureCodeUnique, ensureNoHeadquartersExists, validateParentBranch } from "./utils";
 
 const UpdateInputSchema = object({
   id: string(),
@@ -27,26 +23,17 @@ export const updateBranch = Workflow.name("branch.update")
       await ensureCodeUnique(ctx.db, input.patch.code, input.id);
     }
 
-    if (
-      input.patch.country !== undefined &&
-      !isValidCountryCode(input.patch.country)
-    ) {
+    if (input.patch.country !== undefined && !isValidCountryCode(input.patch.country)) {
       throw new Error(
         `Invalid country code: "${input.patch.country}". Must be ISO 3166-1 alpha-2.`,
       );
     }
 
-    if (
-      input.patch.type === "headquarters" &&
-      current.type !== "headquarters"
-    ) {
+    if (input.patch.type === "headquarters" && current.type !== "headquarters") {
       await ensureNoHeadquartersExists(ctx.db, input.id);
     }
 
-    if (
-      input.patch.parentBranch !== undefined &&
-      input.patch.parentBranch !== null
-    ) {
+    if (input.patch.parentBranch !== undefined && input.patch.parentBranch !== null) {
       if (input.patch.parentBranch === input.id) {
         throw new Error("A branch cannot be its own parent.");
       }
@@ -60,8 +47,7 @@ export const updateBranch = Workflow.name("branch.update")
         addressLine2: input.patch.addressLine2,
         capacity: input.patch.capacity,
         city: input.patch.city,
-        closedDate:
-          input.patch.closedDate?.toISOString().split("T")[0] ?? undefined,
+        closedDate: input.patch.closedDate?.toISOString().split("T")[0] ?? undefined,
         code: input.patch.code?.toUpperCase(),
         country: input.patch.country?.toUpperCase(),
         email: input.patch.email,
@@ -70,8 +56,7 @@ export const updateBranch = Workflow.name("branch.update")
         metadata: input.patch.metadata,
         name: input.patch.name,
         notes: input.patch.notes,
-        openedDate:
-          input.patch.openedDate?.toISOString().split("T")[0] ?? undefined,
+        openedDate: input.patch.openedDate?.toISOString().split("T")[0] ?? undefined,
         parentBranch: input.patch.parentBranch,
         phone: input.patch.phone,
         postalCode: input.patch.postalCode,

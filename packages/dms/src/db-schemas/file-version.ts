@@ -1,20 +1,11 @@
 import { uuidv7 } from "@aspen-os/platform/server";
-import {
-  bigint,
-  index,
-  integer,
-  pgTable,
-  text,
-  timestamp,
-} from "drizzle-orm/pg-core";
+import { bigint, index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const dmsFileVersion = pgTable(
   "dms_file_version",
   {
     contentType: text("content_type").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     etag: text("etag"),
     fileId: text("file_id").notNull(),
     id: text("id").primaryKey().$defaultFn(uuidv7),

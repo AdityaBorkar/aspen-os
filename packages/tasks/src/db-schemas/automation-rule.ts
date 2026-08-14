@@ -1,12 +1,5 @@
 import { uuidv7 } from "@aspen-os/platform/server";
-import {
-  boolean,
-  index,
-  jsonb,
-  pgTable,
-  text,
-  timestamp,
-} from "drizzle-orm/pg-core";
+import { boolean, index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 import { automationTriggerEnum } from "./enums";
 
@@ -15,17 +8,13 @@ export const automationRule = pgTable(
   {
     actions: jsonb("actions").notNull(),
     conditions: jsonb("conditions"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: text("id").primaryKey().$defaultFn(uuidv7),
     isActive: boolean("is_active").notNull().default(true),
     name: text("name").notNull(),
     projectId: text("project_id").notNull(),
     trigger: automationTriggerEnum("trigger").notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_task_automation_rule_project").on(table.projectId),

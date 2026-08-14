@@ -5,9 +5,7 @@ export const comment = pgTable(
   "task_comment",
   {
     body: text("body").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     editedAt: timestamp("edited_at", { withTimezone: true }),
     id: text("id").primaryKey().$defaultFn(uuidv7),
     isDeleted: boolean("is_deleted").notNull().default(false),

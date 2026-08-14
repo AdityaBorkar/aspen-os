@@ -9,9 +9,7 @@ const InputSchema = object({
   input: CreateSeparationTaskSchema,
 });
 
-export const createSeparationTask = Workflow.name(
-  "hr.lifecycle.create-separation-task",
-)
+export const createSeparationTask = Workflow.name("hr.lifecycle.create-separation-task")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateSeparationTaskSchema, input);

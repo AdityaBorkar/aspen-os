@@ -58,7 +58,9 @@ packages/my-module/
 ```
 
 <Callout type="info">
-  No build step. Package `exports` point at raw `.ts` files. Bun resolves them directly. (`@aspen-os/platform`, `@aspen-os/organization`, and `@aspen-os/management` build to `.output/`; most modules export raw source.)
+  No build step. Package `exports` point at raw `.ts` files. Bun resolves them directly.
+  (`@aspen-os/platform`, `@aspen-os/organization`, and `@aspen-os/management` build to `.output/`;
+  most modules export raw source.)
 </Callout>
 
 ## Step 2: Database Schema
@@ -78,13 +80,7 @@ export const myEntityStatusEnum = pgEnum("my_entity_status", [
 
 ```ts title="src/db-schemas/entity.ts"
 import { uuidv7 } from "@aspen-os/platform/server";
-import {
-  index,
-  jsonb,
-  pgTable,
-  text,
-  timestamp,
-} from "drizzle-orm/pg-core";
+import { index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 import { myEntityStatusEnum } from "./enums";
 
@@ -95,12 +91,8 @@ export const myEntity = pgTable(
     name: text("name").notNull(),
     status: myEntityStatusEnum("status").notNull().default("active"),
     metadata: jsonb("metadata"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index("idx_my_entity_status").on(table.status)],
 );
@@ -124,7 +116,9 @@ export const tenant_schemas = {
 ```
 
 <Callout type="warn">
-  IDs are always `text` with `.primaryKey().$defaultFn(uuidv7)` — never native UUID columns. Timestamps use `TIMESTAMPTZ` / `withTimezone: true`. `uuidv7` is exported from `@aspen-os/platform/server` (no `sql\`uuidv7()\`` needed in schema files).
+  IDs are always `text` with `.primaryKey().$defaultFn(uuidv7)` — never native UUID columns.
+  Timestamps use `TIMESTAMPTZ` / `withTimezone: true`. `uuidv7` is exported from
+  `@aspen-os/platform/server` (no `sql\`uuidv7()\`` needed in schema files).
 </Callout>
 
 ## Step 3: Constants & Enums
@@ -137,8 +131,7 @@ export const MY_ENTITY_STATUS = {
   INACTIVE: "inactive",
 } as const;
 
-export type MyEntityStatus =
-  (typeof MY_ENTITY_STATUS)[keyof typeof MY_ENTITY_STATUS];
+export type MyEntityStatus = (typeof MY_ENTITY_STATUS)[keyof typeof MY_ENTITY_STATUS];
 ```
 
 `src/schemas/enums.ts` mirrors the constants with valibot `picklist`:
@@ -158,15 +151,7 @@ export { MY_ENTITY_STATUS } from "./utils/constants";
 `src/schemas/entity.ts`:
 
 ```ts title="src/schemas/entity.ts"
-import {
-  type InferOutput,
-  nullable,
-  object,
-  optional,
-  pipe,
-  string,
-  minLength,
-} from "valibot";
+import { type InferOutput, nullable, object, optional, pipe, string, minLength } from "valibot";
 
 import { NameSchema } from "./utils";
 
@@ -249,11 +234,7 @@ import { IdSchema } from "../../types";
 export const fetchMyEntityStep = WorkflowStep.name("fetch-my-entity")
   .input(object({ id: IdSchema }))
   .handler(async (input, ctx) => {
-    const [result] = await ctx.db
-      .select()
-      .from(myEntity)
-      .where(eq(myEntity.id, input.id))
-      .limit(1);
+    const [result] = await ctx.db.select().from(myEntity).where(eq(myEntity.id, input.id)).limit(1);
 
     if (!result) {
       throw new Error(`My entity with id "${input.id}" not found.`);
@@ -347,11 +328,7 @@ export class MyModule implements Module {
     };
   }
 
-  $initialize(units: {
-    db: DatabaseUnit;
-    auth: AuthUnit;
-    pubsub: PubSubUnit;
-  }): void {
+  $initialize(units: { db: DatabaseUnit; auth: AuthUnit; pubsub: PubSubUnit }): void {
     this.#db = units.db;
   }
 
@@ -381,16 +358,8 @@ export * from "./types";
 ```ts title="src/types.ts"
 export type { MyModuleEventMap } from "./pubsub";
 export { MY_ENTITY_EVENTS } from "./pubsub";
-export type {
-  CreateMyEntityInput,
-  MyEntityFilters,
-  UpdateMyEntityInput,
-} from "./schemas";
-export {
-  CreateMyEntitySchema,
-  MyEntityFiltersSchema,
-  UpdateMyEntitySchema,
-} from "./schemas";
+export type { CreateMyEntityInput, MyEntityFilters, UpdateMyEntityInput } from "./schemas";
+export { CreateMyEntitySchema, MyEntityFiltersSchema, UpdateMyEntitySchema } from "./schemas";
 ```
 
 ## Step 9: Use It
@@ -414,18 +383,18 @@ await p.run(async () => {
 
 ## Key Conventions
 
-| Convention | Rule |
-|---|---|
-| Static `create(config)` factory | Always use a static factory, not `new` directly |
-| `#` prefix for private fields | `#db: DatabaseUnit \| null = null` |
-| `module.ts` holds the class | `index.ts` only re-exports |
-| `auth.ts` holds the ACL | `defineAcl({ resource: ["create", ...] })` (was `utils/acl.ts`) |
-| `pubsub.ts` holds events | Constants + interfaces + EventMap (was `pubsub-events.ts` / `event-map.ts`) |
-| `db-schemas/` per entity | One `pgTable` per file, `enums.ts` for `pgEnum`s, aggregate in `index.ts` |
-| `workflows/` one per action | `Workflow.name("entity.action").input(...).handler(...)`, reusable steps in `workflows/steps/` |
-| `$name` / `$dependencies` as readonly | Become proxy keys + init ordering |
-| `$prepareInfra()` returns ModuleInfra | Declares ACL + DB schemas + events |
-| `$prepareRuntime()` | Registers pubsub handlers/schedules |
-| `$cleanup()` nulls fields | Unregisters handlers and nulls private fields |
-| Valibot for validation | Domain module input validation |
-| Events as `"domain:event_name"` | Typed via `EventMap`, published as plain strings |
+| Convention                            | Rule                                                                                           |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Static `create(config)` factory       | Always use a static factory, not `new` directly                                                |
+| `#` prefix for private fields         | `#db: DatabaseUnit \| null = null`                                                             |
+| `module.ts` holds the class           | `index.ts` only re-exports                                                                     |
+| `auth.ts` holds the ACL               | `defineAcl({ resource: ["create", ...] })` (was `utils/acl.ts`)                                |
+| `pubsub.ts` holds events              | Constants + interfaces + EventMap (was `pubsub-events.ts` / `event-map.ts`)                    |
+| `db-schemas/` per entity              | One `pgTable` per file, `enums.ts` for `pgEnum`s, aggregate in `index.ts`                      |
+| `workflows/` one per action           | `Workflow.name("entity.action").input(...).handler(...)`, reusable steps in `workflows/steps/` |
+| `$name` / `$dependencies` as readonly | Become proxy keys + init ordering                                                              |
+| `$prepareInfra()` returns ModuleInfra | Declares ACL + DB schemas + events                                                             |
+| `$prepareRuntime()`                   | Registers pubsub handlers/schedules                                                            |
+| `$cleanup()` nulls fields             | Unregisters handlers and nulls private fields                                                  |
+| Valibot for validation                | Domain module input validation                                                                 |
+| Events as `"domain:event_name"`       | Typed via `EventMap`, published as plain strings                                               |

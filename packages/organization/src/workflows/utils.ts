@@ -22,17 +22,11 @@ export function generateSlug(name: string): string {
 }
 
 export async function unsetPrimaryAddress(db: DrizzleDB): Promise<void> {
-  await db
-    .update(address)
-    .set({ isPrimary: false })
-    .where(eq(address.isPrimary, true));
+  await db.update(address).set({ isPrimary: false }).where(eq(address.isPrimary, true));
 }
 
 export async function unsetPrimaryBankAccount(db: DrizzleDB): Promise<void> {
-  await db
-    .update(bankAccount)
-    .set({ isPrimary: false })
-    .where(eq(bankAccount.isPrimary, true));
+  await db.update(bankAccount).set({ isPrimary: false }).where(eq(bankAccount.isPrimary, true));
 }
 
 export async function ensureCodeUnique(
@@ -57,10 +51,7 @@ export async function ensureCodeUnique(
   }
 }
 
-export async function ensureNoHeadquartersExists(
-  db: DrizzleDB,
-  excludeId?: string,
-): Promise<void> {
+export async function ensureNoHeadquartersExists(db: DrizzleDB, excludeId?: string): Promise<void> {
   const conditions = [eq(branch.type, "headquarters")];
   if (excludeId) {
     conditions.push(sql`${branch.id} != ${excludeId}`);
@@ -73,16 +64,11 @@ export async function ensureNoHeadquartersExists(
     .limit(1);
 
   if (existing) {
-    throw new Error(
-      "A headquarters branch already exists. Only one headquarters is allowed.",
-    );
+    throw new Error("A headquarters branch already exists. Only one headquarters is allowed.");
   }
 }
 
-export async function getDepth(
-  db: DrizzleDB,
-  branchId: string,
-): Promise<number> {
+export async function getDepth(db: DrizzleDB, branchId: string): Promise<number> {
   let depth = 0;
   let currentId: string | null = branchId;
 
@@ -93,14 +79,14 @@ export async function getDepth(
       .where(eq(branch.id, currentId))
       .limit(1);
 
-    if (!row?.parentBranch) break;
+    if (!row?.parentBranch) {
+      break;
+    }
     currentId = row.parentBranch;
     depth++;
 
     if (depth > MAX_HIERARCHY_DEPTH) {
-      throw new Error(
-        `Branch hierarchy exceeds maximum depth of ${MAX_HIERARCHY_DEPTH}`,
-      );
+      throw new Error(`Branch hierarchy exceeds maximum depth of ${MAX_HIERARCHY_DEPTH}`);
     }
   }
 
@@ -116,8 +102,12 @@ async function wouldCreateCircular(
   let depth = 0;
 
   while (currentId !== null) {
-    if (currentId === branchId) return true;
-    if (depth >= MAX_HIERARCHY_DEPTH) return true;
+    if (currentId === branchId) {
+      return true;
+    }
+    if (depth >= MAX_HIERARCHY_DEPTH) {
+      return true;
+    }
 
     const [row] = await db
       .select({ parentBranch: branch.parentBranch })
@@ -125,7 +115,9 @@ async function wouldCreateCircular(
       .where(eq(branch.id, currentId))
       .limit(1);
 
-    if (!row) break;
+    if (!row) {
+      break;
+    }
     currentId = row.parentBranch;
     depth++;
   }
@@ -153,18 +145,12 @@ export async function validateParentBranch(
   }
 }
 
-export async function unsetPrimaryContacts(
-  db: DrizzleDB,
-  connectionId: string,
-): Promise<void> {
+export async function unsetPrimaryContacts(db: DrizzleDB, connectionId: string): Promise<void> {
   await db
     .update(connectionContact)
     .set({ isPrimary: false })
     .where(
-      and(
-        eq(connectionContact.connectionId, connectionId),
-        eq(connectionContact.isPrimary, true),
-      ),
+      and(eq(connectionContact.connectionId, connectionId), eq(connectionContact.isPrimary, true)),
     );
 }
 

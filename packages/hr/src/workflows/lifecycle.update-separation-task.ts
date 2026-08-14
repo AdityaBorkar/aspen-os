@@ -10,9 +10,7 @@ const InputSchema = object({
   patch: UpdateSeparationTaskSchema,
 });
 
-export const updateSeparationTask = Workflow.name(
-  "hr.lifecycle.update-separation-task",
-)
+export const updateSeparationTask = Workflow.name("hr.lifecycle.update-separation-task")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, patch } = input;

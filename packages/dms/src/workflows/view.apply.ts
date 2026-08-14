@@ -2,10 +2,7 @@ import { Workflow } from "@aspen-os/platform/server";
 import { and, desc, type SQL, sql } from "drizzle-orm";
 
 import { dmsDocument } from "../db-schemas";
-import {
-  buildConditionsWhere,
-  buildSortOrder,
-} from "../services/condition-service";
+import { buildConditionsWhere, buildSortOrder } from "../services/condition-service";
 import type { ViewCondition, ViewSort } from "../types";
 import { ApplyViewSchema } from "../types";
 import { fetchViewStep } from "./steps/fetch-view";
@@ -49,7 +46,9 @@ export const applyView = Workflow.name("dms.view.apply")
       const targetsDeleted = explicitStatus?.value === "deleted";
 
       const base = buildConditionsWhere(filters, {});
-      if (base) conditions.push(base);
+      if (base) {
+        conditions.push(base);
+      }
 
       conditions.push(
         sql`${dmsDocument.status} <> 'deleted'`,

@@ -13,11 +13,7 @@ export const getHolidayById = Workflow.name("hr.setup.get-holiday-by-id")
   .handler(async (input, ctx) => {
     const { id } = input;
 
-    const [result] = await ctx.db
-      .select()
-      .from(holiday)
-      .where(eq(holiday.id, id))
-      .limit(1);
+    const [result] = await ctx.db.select().from(holiday).where(eq(holiday.id, id)).limit(1);
 
     if (!result) {
       throw new Error(`Holiday with id "${id}" not found.`);

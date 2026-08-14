@@ -19,7 +19,4 @@ export const FileNameSchema = pipe(
   check((val) => !val.includes("\0"), "Must not contain null bytes"),
 );
 
-export const EmailSchema = pipe(
-  string(),
-  regex(EMAIL_REGEX, "Must be a valid email address"),
-);
+export const EmailSchema = pipe(string(), regex(EMAIL_REGEX, "Must be a valid email address"));

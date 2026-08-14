@@ -11,7 +11,7 @@ The Management Plane is the control-plane module of a multi-tenant SaaS. It mana
 ```ts title="src/module.ts"
 export class ManagementPlane implements Module {
   static create(config: ManagementPlaneConfig): ManagementPlane;
-  readonly $name = "management";          // proxy key: p.management
+  readonly $name = "management"; // proxy key: p.management
   readonly $dependencies = ["organization"];
 }
 ```
@@ -39,11 +39,11 @@ Domain data (branches, tasks, drive, HR, compliance) lives in per-tenant databas
 
 The module exposes three workflow groups:
 
-| Getter | Methods |
-|---|---|
+| Getter             | Methods                                                                                                                              |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
 | `tenants` (getter) | `activate`, `assignServiceProvider`, `churn`, `get`, `list`, `onboard`, `reactivate`, `suspend`, `unassignServiceProvider`, `update` |
-| `serviceProviders` | `activate`, `create`, `deactivate`, `get`, `getAssignedTenants`, `getUsers`, `list`, `update` |
-| `users` | `assignRole`, `assignToServiceProvider`, `create`, `delete`, `get`, `list`, `update` |
+| `serviceProviders` | `activate`, `create`, `deactivate`, `get`, `getAssignedTenants`, `getUsers`, `list`, `update`                                        |
+| `users`            | `assignRole`, `assignToServiceProvider`, `create`, `delete`, `get`, `list`, `update`                                                 |
 
 ```ts
 // Access via the platform proxy ($name = "management")

@@ -1,30 +1,5 @@
 {
-  "dependencies": {
-    "@biomejs/biome": "2.5.1",
-    "@commitlint/cli": "^21.2.1",
-    "@commitlint/config-conventional": "^21.2.0",
-    "@types/bun": "^1.3.14",
-    "deepmerge": "^4.3.1",
-    "fast-glob": "^3.3.3",
-    "husky": "^9.1.7",
-    "ignore": "^6.0.2",
-    "lint-staged": "^17.3.0",
-    "taze": "^19.17.2",
-    "tiktoken": "^1.0.22",
-    "typescript": "^7.0.2",
-    "typescript-coverage-report": "^1.1.1"
-  },
-  "lint-staged": {
-    "*": "biome format --fix --no-errors-on-unmatched"
-  },
   "name": "aspen-os",
-  "scripts": {
-    "check:lint": "biome check --fix .",
-    "check:types": "tsc -b",
-    "clean": "bunx rimraf --glob \"**/{node_modules,.output,.local,bun.lockb}\"",
-    "prepare": "husky",
-    "update:deps": "taze -rw --maturity-period 3"
-  },
   "workspaces": {
     "catalog": {
       "@standard-schema/spec": "^1.1.0",
@@ -36,6 +11,36 @@
       "typescript": "^7.0.2",
       "valibot": "^1.4.2"
     },
-    "packages": ["./packages/*", "./examples/*", "./docs"]
+    "packages": [
+      "./packages/*",
+      "./examples/*",
+      "./docs"
+    ]
+  },
+  "scripts": {
+    "check:lint": "oxlint --fix . ; oxfmt .",
+    "check:types": "tsc -b",
+    "clean": "bunx rimraf --glob \"**/{node_modules,.output,.local,bun.lockb}\"",
+    "prepare": "husky",
+    "update:deps": "taze -rw --maturity-period 3"
+  },
+  "dependencies": {
+    "@commitlint/cli": "^21.2.1",
+    "@commitlint/config-conventional": "^21.2.0",
+    "@types/bun": "^1.3.14",
+    "deepmerge": "^4.3.1",
+    "fast-glob": "^3.3.3",
+    "husky": "^9.1.7",
+    "ignore": "^6.0.2",
+    "lint-staged": "^17.3.0",
+    "oxfmt": "^0.63.0",
+    "oxlint": "^1.78.0",
+    "taze": "^19.17.2",
+    "tiktoken": "^1.0.22",
+    "typescript": "^7.0.2",
+    "typescript-coverage-report": "^1.1.1"
+  },
+  "lint-staged": {
+    "*": "oxfmt"
   }
 }

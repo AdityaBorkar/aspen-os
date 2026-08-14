@@ -3,19 +3,13 @@ import { object, parse } from "valibot";
 
 import { leaveApplication } from "../db-schemas";
 import { CreateLeaveApplicationSchema } from "../types";
-import {
-  checkLeaveBalance,
-  checkLeaveBlockList,
-  fetchLeaveTypeById,
-} from "./utils";
+import { checkLeaveBalance, checkLeaveBlockList, fetchLeaveTypeById } from "./utils";
 
 const InputSchema = object({
   input: CreateLeaveApplicationSchema,
 });
 
-export const createLeaveApplication = Workflow.name(
-  "hr.leave.create-leave-application",
-)
+export const createLeaveApplication = Workflow.name("hr.leave.create-leave-application")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateLeaveApplicationSchema, input);
@@ -24,12 +18,7 @@ export const createLeaveApplication = Workflow.name(
     const leaveTypeRecord = await fetchLeaveTypeById(ctx.db, parsed.leaveType);
 
     // Check if leave is blocked
-    await checkLeaveBlockList(
-      ctx.db,
-      parsed.employeeId,
-      parsed.fromDate,
-      parsed.toDate,
-    );
+    await checkLeaveBlockList(ctx.db, parsed.employeeId, parsed.fromDate, parsed.toDate);
 
     // Check leave balance
     if (!leaveTypeRecord.isLeaveWithoutPay) {

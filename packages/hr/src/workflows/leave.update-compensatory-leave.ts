@@ -10,9 +10,7 @@ const InputSchema = object({
   patch: UpdateCompensatoryLeaveSchema,
 });
 
-export const updateCompensatoryLeave = Workflow.name(
-  "hr.leave.update-compensatory-leave",
-)
+export const updateCompensatoryLeave = Workflow.name("hr.leave.update-compensatory-leave")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, patch } = input;

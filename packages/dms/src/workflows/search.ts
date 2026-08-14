@@ -1,11 +1,7 @@
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse, string } from "valibot";
 
-import {
-  quickSearch,
-  searchDocuments,
-  searchToViewConditions,
-} from "../services/search-service";
+import { quickSearch, searchDocuments, searchToViewConditions } from "../services/search-service";
 import { QuickSearchSchema, SearchOptionsSchema } from "../types";
 import { createView } from "./view.create";
 
@@ -66,7 +62,7 @@ export const promoteSearchToView = Workflow.name("dms.search.promote-to-view")
           isDefault: false,
           isShared: false,
           name,
-          ownerId: ownerId,
+          ownerId,
           sort,
         },
       },

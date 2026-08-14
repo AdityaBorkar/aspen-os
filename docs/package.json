@@ -1,4 +1,19 @@
 {
+  "name": "docs",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "scripts": {
+    "build": "bun gen:cf-types && vite build",
+    "check:lint": "oxlint --fix . ; oxfmt .",
+    "check:types": "fumadocs-mdx && tsc --noEmit",
+    "deploy": "wrangler deploy",
+    "dev": "vite dev --port 3005",
+    "gen:cf-types": "wrangler types",
+    "postinstall": "fumadocs-mdx",
+    "preview": "vite preview",
+    "start": "vite preview"
+  },
   "dependencies": {
     "@ai-sdk/react": "^4.0.61",
     "@fontsource-variable/fira-code": "^5.3.0",
@@ -43,20 +58,5 @@
     "typescript": "catalog:",
     "vite": "^8.2.1",
     "wrangler": "^4.120.0"
-  },
-  "name": "docs",
-  "private": true,
-  "scripts": {
-    "build": "bun gen:cf-types && vite build",
-    "check:lint": "biome check",
-    "check:types": "fumadocs-mdx && tsc --noEmit",
-    "deploy": "wrangler deploy",
-    "dev": "vite dev --port 3005",
-    "gen:cf-types": "wrangler types",
-    "postinstall": "fumadocs-mdx",
-    "preview": "vite preview",
-    "start": "vite preview"
-  },
-  "sideEffects": false,
-  "type": "module"
+  }
 }

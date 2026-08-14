@@ -22,10 +22,7 @@ export const updateDepartment = Workflow.name("hr.setup.update-department")
       await ensureDepartmentCodeUnique(ctx.db, parsed.code, id);
     }
 
-    if (
-      parsed.parentDepartment !== undefined &&
-      parsed.parentDepartment !== null
-    ) {
+    if (parsed.parentDepartment !== undefined && parsed.parentDepartment !== null) {
       if (parsed.parentDepartment === id) {
         throw new Error("A department cannot be its own parent.");
       }

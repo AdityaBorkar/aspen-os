@@ -1,19 +1,10 @@
 import { uuidv7 } from "@aspen-os/platform/server";
-import {
-  boolean,
-  index,
-  pgTable,
-  text,
-  timestamp,
-  uniqueIndex,
-} from "drizzle-orm/pg-core";
+import { boolean, index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const taskAssignee = pgTable(
   "task_assignee",
   {
-    assignedAt: timestamp("assigned_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    assignedAt: timestamp("assigned_at", { withTimezone: true }).notNull().defaultNow(),
     assignedBy: text("assigned_by").notNull(),
     id: text("id").primaryKey().$defaultFn(uuidv7),
     isLead: boolean("is_lead").notNull().default(false),

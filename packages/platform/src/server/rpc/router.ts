@@ -4,7 +4,7 @@ import { healthCheck } from "./procedures/health-check";
 export type RpcRouter = typeof router;
 
 export const router = {
-  echo: echo,
+  echo,
   health: {
     check: healthCheck,
   },

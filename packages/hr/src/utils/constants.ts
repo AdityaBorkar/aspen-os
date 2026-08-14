@@ -9,8 +9,7 @@ export const HR_PERMISSION_MODULE = {
   SHIFT: "shift",
 } as const;
 
-export type HrPermissionModule =
-  (typeof HR_PERMISSION_MODULE)[keyof typeof HR_PERMISSION_MODULE];
+export type HrPermissionModule = (typeof HR_PERMISSION_MODULE)[keyof typeof HR_PERMISSION_MODULE];
 
 export const ACCESS_LEVEL = {
   FULL: "full",
@@ -30,8 +29,7 @@ export const PERMISSION_ACTION = {
   VIEW: "view",
 } as const;
 
-export type PermissionAction =
-  (typeof PERMISSION_ACTION)[keyof typeof PERMISSION_ACTION];
+export type PermissionAction = (typeof PERMISSION_ACTION)[keyof typeof PERMISSION_ACTION];
 
 export const SCHEDULED_JOBS = {
   DAILY_ATTENDANCE_SYNC: "hr:daily-attendance-sync",

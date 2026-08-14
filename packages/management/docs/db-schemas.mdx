@@ -8,10 +8,10 @@ The Management Plane declares 4 tables across two schema groups. Control-plane s
 
 ## Enums
 
-| Enum | Table Column | Values |
-|---|---|---|
-| `tenant_status` | `tenant.status` | `onboarding`, `active`, `suspended`, `churned` |
-| `service_provider_status` | `service_provider.status` | `active`, `inactive` |
+| Enum                      | Table Column              | Values                                         |
+| ------------------------- | ------------------------- | ---------------------------------------------- |
+| `tenant_status`           | `tenant.status`           | `onboarding`, `active`, `suspended`, `churned` |
+| `service_provider_status` | `service_provider.status` | `active`, `inactive`                           |
 
 ## Control-Plane Tables
 
@@ -19,20 +19,20 @@ The Management Plane declares 4 tables across two schema groups. Control-plane s
 
 Companion to the better-auth `organization` row. Holds lifecycle, plan, SP assignment, and per-tenant DB connection params.
 
-| Column | Type | Description |
-|---|---|---|
-| `id` | text (PK) | Shares the better-auth org ID. |
-| `status` | tenant_status | Default `onboarding`. |
-| `plan` | text | Subscription plan identifier. |
-| `service_provider_id` | text | Active SP assignment. |
-| `signup_at` | timestamptz (notNull) | When the tenant signed up. |
-| `suspended_at` | timestamptz | Last suspension timestamp. |
-| `suspended_reason` | text | Suspension reason. |
-| `churned_at` | timestamptz | Churn timestamp. |
-| `churn_reason` | text | Churn reason. |
+| Column                                                                                                       | Type                     | Description                      |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------ | -------------------------------- |
+| `id`                                                                                                         | text (PK)                | Shares the better-auth org ID.   |
+| `status`                                                                                                     | tenant_status            | Default `onboarding`.            |
+| `plan`                                                                                                       | text                     | Subscription plan identifier.    |
+| `service_provider_id`                                                                                        | text                     | Active SP assignment.            |
+| `signup_at`                                                                                                  | timestamptz (notNull)    | When the tenant signed up.       |
+| `suspended_at`                                                                                               | timestamptz              | Last suspension timestamp.       |
+| `suspended_reason`                                                                                           | text                     | Suspension reason.               |
+| `churned_at`                                                                                                 | timestamptz              | Churn timestamp.                 |
+| `churn_reason`                                                                                               | text                     | Churn reason.                    |
 | `database_host` / `database_name` / `database_user` / `database_password` / `database_port` / `database_ssl` | text / integer / boolean | Per-tenant DB connection params. |
-| `created_at` | timestamptz (notNull) | Default `now()`. |
-| `updated_at` | timestamptz (notNull) | Default `now()`. |
+| `created_at`                                                                                                 | timestamptz (notNull)    | Default `now()`.                 |
+| `updated_at`                                                                                                 | timestamptz (notNull)    | Default `now()`.                 |
 
 Indexed on `status`, `service_provider_id`, and `plan`.
 
@@ -40,20 +40,20 @@ Indexed on `status`, `service_provider_id`, and `plan`.
 
 An implementation/integration partner that does physical-world onboarding work.
 
-| Column | Type | Description |
-|---|---|---|
-| `id` | text (PK) | Default `$defaultFn(uuidv7)`. |
-| `name` | text (notNull) | Display name. |
-| `slug` | text (notNull, unique) | URL-safe identifier. |
-| `logo` | text | Logo URL or Storage reference. |
-| `description` | text | Free-text description of services. |
-| `email` | text | Primary contact email. |
-| `phone` | text | Primary contact phone. |
-| `website` | text | Website URL. |
-| `address` | text | Address (single text field). |
-| `status` | service_provider_status | Default `active`. |
-| `created_at` | timestamptz (notNull) | Default `now()`. |
-| `updated_at` | timestamptz (notNull) | Default `now()`. |
+| Column        | Type                    | Description                        |
+| ------------- | ----------------------- | ---------------------------------- |
+| `id`          | text (PK)               | Default `$defaultFn(uuidv7)`.      |
+| `name`        | text (notNull)          | Display name.                      |
+| `slug`        | text (notNull, unique)  | URL-safe identifier.               |
+| `logo`        | text                    | Logo URL or Storage reference.     |
+| `description` | text                    | Free-text description of services. |
+| `email`       | text                    | Primary contact email.             |
+| `phone`       | text                    | Primary contact phone.             |
+| `website`     | text                    | Website URL.                       |
+| `address`     | text                    | Address (single text field).       |
+| `status`      | service_provider_status | Default `active`.                  |
+| `created_at`  | timestamptz (notNull)   | Default `now()`.                   |
+| `updated_at`  | timestamptz (notNull)   | Default `now()`.                   |
 
 Indexed on `status`.
 
@@ -70,5 +70,6 @@ organization (better-auth) ──1:1──→ tenant (companion)
 ```
 
 <Callout type="info">
-  Per-tenant domain tables (organization, branch, task, drive_file, employee, HR tables, etc.) are NOT defined here — they live in each tenant's own database and are managed by their own modules.
+  Per-tenant domain tables (organization, branch, task, drive_file, employee, HR tables, etc.) are
+  NOT defined here — they live in each tenant's own database and are managed by their own modules.
 </Callout>

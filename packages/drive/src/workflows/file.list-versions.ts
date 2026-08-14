@@ -13,7 +13,9 @@ export const listFileVersions = Workflow.name("drive.file.list-versions")
         .from(driveFile)
         .where(eq(driveFile.id, id))
         .limit(1);
-      if (!row) throw new Error(`File with id "${id}" not found.`);
+      if (!row) {
+        throw new Error(`File with id "${id}" not found.`);
+      }
       return row;
     });
 

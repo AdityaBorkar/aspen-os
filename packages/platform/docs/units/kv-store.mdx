@@ -10,8 +10,8 @@ The `KvStoreUnit` (`$name: "kvStore"`) provides a Redis-like key-value API backe
 
 ```ts title="src/server/kv-store/types.ts"
 interface KvStoreConfig {
-  defaultTtl?: number;     // default: 3600 (seconds)
-  keyPrefix?: string;      // default: "" (no prefix)
+  defaultTtl?: number; // default: 3600 (seconds)
+  keyPrefix?: string; // default: "" (no prefix)
 }
 ```
 
@@ -19,7 +19,7 @@ interface KvStoreConfig {
 
 ```ts
 const kvConfig: KvStoreConfig = {
-  defaultTtl: 1800,  // 30 minutes
+  defaultTtl: 1800, // 30 minutes
   keyPrefix: "recruiter",
 };
 ```
@@ -42,11 +42,7 @@ class KvStoreUnit {
   async decrement(key: string, amount?: number): Promise<number>;
 
   // Cache-aside pattern
-  async getOrSet<T = unknown>(
-    key: string,
-    factory: () => Promise<T>,
-    ttl?: number,
-  ): Promise<T>;
+  async getOrSet<T = unknown>(key: string, factory: () => Promise<T>, ttl?: number): Promise<T>;
 
   // Bulk operations
   async clear(pattern?: string): Promise<void>;
@@ -81,25 +77,26 @@ const exists = await platform.kvStore.exists("user:123:preferences");
 
 ```ts
 // Custom TTL (overrides defaultTtl)
-await platform.kvStore.set("otp:123", "123456", 300);  // 5 minutes
+await platform.kvStore.set("otp:123", "123456", 300); // 5 minutes
 
 // TTL of 0 or negative means no expiration
-await platform.kvStore.set("config:settings", config, 0);  // never expires
+await platform.kvStore.set("config:settings", config, 0); // never expires
 ```
 
 <Callout type="info">
-  Expired entries are **lazily evicted** on read — when `get()` encounters an expired entry, it deletes it and returns `null`.
+  Expired entries are **lazily evicted** on read — when `get()` encounters an expired entry, it
+  deletes it and returns `null`.
 </Callout>
 
 ### Counter Operations
 
 ```ts
 // Increment (default by 1)
-await platform.kvStore.increment("visits:page:home");      // → 1
-await platform.kvStore.increment("visits:page:home", 5);   // → 6
+await platform.kvStore.increment("visits:page:home"); // → 1
+await platform.kvStore.increment("visits:page:home", 5); // → 6
 
 // Decrement
-await platform.kvStore.decrement("credits:user:123");     // → -1
+await platform.kvStore.decrement("credits:user:123"); // → -1
 await platform.kvStore.decrement("credits:user:123", 10); // → -11
 ```
 
@@ -114,7 +111,7 @@ const dashboard = await platform.kvStore.getOrSet(
     // This only runs on cache miss
     return await computeExpensiveDashboard("org-123");
   },
-  3600,  // cache for 1 hour
+  3600, // cache for 1 hour
 );
 ```
 
@@ -131,7 +128,8 @@ await platform.kvStore.clear();
 ```
 
 <Callout type="warn">
-  The `clear()` method uses a cursor-based scan to avoid loading all keys into memory. It internally translates `*` to `%` and `?` to `_` for SQL `LIKE` matching.
+  The `clear()` method uses a cursor-based scan to avoid loading all keys into memory. It internally
+  translates `*` to `%` and `?` to `_` for SQL `LIKE` matching.
 </Callout>
 
 ## Key Prefixing
@@ -157,13 +155,13 @@ If no `keyPrefix` is configured, keys are prefixed with just the tenant: `tenant
 
 The `kv_store` table is an `UNLOGGED TABLE` — no Write-Ahead Log (WAL) for performance. This means data may be lost on Postgres crash (by design — cache semantics).
 
-| Column | Type | Description |
-|---|---|---|
-| `key` | text (PK) | Cache key (includes prefix + tenantId) |
-| `value` | text | JSON-serialized or raw string |
-| `expires_at` | timestamptz | TTL expiration (nullable = no expiry) |
-| `tenant_id` | text | Tenant scope (default: `"default"`) |
-| `updated_at` | timestamptz | Last update timestamp |
+| Column       | Type        | Description                            |
+| ------------ | ----------- | -------------------------------------- |
+| `key`        | text (PK)   | Cache key (includes prefix + tenantId) |
+| `value`      | text        | JSON-serialized or raw string          |
+| `expires_at` | timestamptz | TTL expiration (nullable = no expiry)  |
+| `tenant_id`  | text        | Tenant scope (default: `"default"`)    |
+| `updated_at` | timestamptz | Last update timestamp                  |
 
 ## Dependency
 

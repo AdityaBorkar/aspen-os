@@ -27,33 +27,34 @@ The module is implemented **separately from `@aspen-os/drive`**. It shares the S
 
 The central record. Every uploaded file becomes one Document.
 
-| Field | Type | Description |
-|---|---|---|
-| **ID** | text (auto) | System-generated unique identifier. |
-| **Document Number** | text (auto) | Human-readable sequential number (e.g., `DOC-000123`). |
-| **Name** | text | Current file name, including extension. May be renamed when a file-naming schema is applied on classification. |
-| **Version** | integer | Current version number (starts at 1). See §2. |
-| **Storage Key** | text | S3 object key of the **current** version: `dms/{tenant}/{documentId}/v{version}/{name}`. |
-| **Content Type** | text | MIME type (e.g., `application/pdf`). |
-| **Size** | bigint | File size in bytes of the current version. |
-| **ETag** | text (nullable) | S3 ETag of the current version for integrity verification. |
-| **Class** | text (FK, nullable) | Assigned Document Class. `null` while in Triage. |
-| **Status** | enum | `triaged`, `active`, `expired`, `deleted`. See §1.4. |
-| **Tags** | text[] | Tag names applied directly on the document (indexed counterpart of the `dms_document_tag` join). |
-| **Metadata** | jsonb | Free-form key/value metadata captured at upload or patched later. |
-| **Field Values** | jsonb | Values for the assigned class's fields (validated against the class schema). |
-| **Compression** | jsonb (nullable) | Per-document compression/optimization override. `null` = use org default. See §1.3. |
-| **Batch ID** | text (nullable) | Groups files uploaded in a single bulk-upload request. |
-| **Owner** | text (FK) | User who uploaded the document. |
-| **Uploaded By** | text (FK) | User who performed the upload (may differ from owner in delegated flows). |
-| **Expiry Date** | date (nullable) | Optional expiry. When passed, status promotes to `expired` (see §6.1). |
-| **Expired At** | timestamptz (nullable) | When the document became expired. |
-| **Deleted At** | timestamptz (nullable) | When the document was moved to the Recycle Bin. |
-| **Deleted By** | text (FK, nullable) | Who soft-deleted the document. |
-| **Created At** | timestamptz | Record creation timestamp. |
-| **Updated At** | timestamptz | Last modification timestamp. |
+| Field               | Type                   | Description                                                                                                    |
+| ------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **ID**              | text (auto)            | System-generated unique identifier.                                                                            |
+| **Document Number** | text (auto)            | Human-readable sequential number (e.g., `DOC-000123`).                                                         |
+| **Name**            | text                   | Current file name, including extension. May be renamed when a file-naming schema is applied on classification. |
+| **Version**         | integer                | Current version number (starts at 1). See §2.                                                                  |
+| **Storage Key**     | text                   | S3 object key of the **current** version: `dms/{tenant}/{documentId}/v{version}/{name}`.                       |
+| **Content Type**    | text                   | MIME type (e.g., `application/pdf`).                                                                           |
+| **Size**            | bigint                 | File size in bytes of the current version.                                                                     |
+| **ETag**            | text (nullable)        | S3 ETag of the current version for integrity verification.                                                     |
+| **Class**           | text (FK, nullable)    | Assigned Document Class. `null` while in Triage.                                                               |
+| **Status**          | enum                   | `triaged`, `active`, `expired`, `deleted`. See §1.4.                                                           |
+| **Tags**            | text[]                 | Tag names applied directly on the document (indexed counterpart of the `dms_document_tag` join).               |
+| **Metadata**        | jsonb                  | Free-form key/value metadata captured at upload or patched later.                                              |
+| **Field Values**    | jsonb                  | Values for the assigned class's fields (validated against the class schema).                                   |
+| **Compression**     | jsonb (nullable)       | Per-document compression/optimization override. `null` = use org default. See §1.3.                            |
+| **Batch ID**        | text (nullable)        | Groups files uploaded in a single bulk-upload request.                                                         |
+| **Owner**           | text (FK)              | User who uploaded the document.                                                                                |
+| **Uploaded By**     | text (FK)              | User who performed the upload (may differ from owner in delegated flows).                                      |
+| **Expiry Date**     | date (nullable)        | Optional expiry. When passed, status promotes to `expired` (see §6.1).                                         |
+| **Expired At**      | timestamptz (nullable) | When the document became expired.                                                                              |
+| **Deleted At**      | timestamptz (nullable) | When the document was moved to the Recycle Bin.                                                                |
+| **Deleted By**      | text (FK, nullable)    | Who soft-deleted the document.                                                                                 |
+| **Created At**      | timestamptz            | Record creation timestamp.                                                                                     |
+| **Updated At**      | timestamptz            | Last modification timestamp.                                                                                   |
 
 **Operations**:
+
 - `upload(input)` — single upload. Accepts bytes (or a presigned upload once StorageUnit returns a URL), filename, content type, and optional tags, metadata, and compression override. Writes `v1`.
 - `uploadBulk(inputs)` — bulk upload. Accepts an array of single-upload inputs; each becomes its own triaged Document sharing a `batchId`.
 - `get(id)` — fetch current document state (no download).
@@ -64,6 +65,7 @@ The central record. Every uploaded file becomes one Document.
 - `delete(id)` — soft-delete (moves to Recycle Bin; see §6).
 
 **Constraints**:
+
 - No upload is inserted directly into the active document set. The initial (and only automatic) status is `triaged`.
 - Uploaded bytes are written once per version. Classification that applies a file-naming schema renames metadata only — no S3 object move (see §2.4).
 - Max file size, allowed content types, max versions, and default compression are configurable per module config (defaults: 5 GB, all types, 10 versions, org default below).
@@ -91,9 +93,9 @@ Compression is interpreted as "file compression/optimization" applied when a ver
 ```ts
 type CompressionOption = {
   mode: "none" | "archive" | "image" | "pdf"; // archive = ZIP, image = re-encode, pdf = optimize
-  quality?: number;                          // e.g., 0-100 for image/pdf
-  format?: string;                           // e.g., "zip", "jpeg", "webp", "pdf/a"
-  enabled: boolean;                          // soft switch; false = store as-is
+  quality?: number; // e.g., 0-100 for image/pdf
+  format?: string; // e.g., "zip", "jpeg", "webp", "pdf/a"
+  enabled: boolean; // soft switch; false = store as-is
 };
 ```
 
@@ -109,20 +111,20 @@ Version control: every new upload of the same document creates the next revision
 
 ### 2.1 Version
 
-| Field | Type | Description |
-|---|---|---|
-| **ID** | text (auto) | System-generated unique identifier. |
-| **Document** | text (FK) | Owning Document. |
-| **Version** | integer | 1-based revision number; unique per document. |
-| **Storage Key** | text | S3 object key `dms/{tenant}/{documentId}/v{version}/{name}`. |
-| **Name** | text | File name at the time this version was written. |
-| **Content Type** | text | MIME type of this version. |
-| **Size** | bigint | Bytes of this version. |
-| **ETag** | text (nullable) | S3 ETag of this version. |
-| **Compression** | jsonb (nullable) | Compression option applied to this version. |
-| **Uploaded By** | text (FK) | User who created the version. |
-| **Is Current** | boolean | Mirrors the current `version` on the Document row (denormalized for fast join). |
-| **Created At** | timestamptz | Version creation timestamp. |
+| Field            | Type             | Description                                                                     |
+| ---------------- | ---------------- | ------------------------------------------------------------------------------- |
+| **ID**           | text (auto)      | System-generated unique identifier.                                             |
+| **Document**     | text (FK)        | Owning Document.                                                                |
+| **Version**      | integer          | 1-based revision number; unique per document.                                   |
+| **Storage Key**  | text             | S3 object key `dms/{tenant}/{documentId}/v{version}/{name}`.                    |
+| **Name**         | text             | File name at the time this version was written.                                 |
+| **Content Type** | text             | MIME type of this version.                                                      |
+| **Size**         | bigint           | Bytes of this version.                                                          |
+| **ETag**         | text (nullable)  | S3 ETag of this version.                                                        |
+| **Compression**  | jsonb (nullable) | Compression option applied to this version.                                     |
+| **Uploaded By**  | text (FK)        | User who created the version.                                                   |
+| **Is Current**   | boolean          | Mirrors the current `version` on the Document row (denormalized for fast join). |
+| **Created At**   | timestamptz      | Version creation timestamp.                                                     |
 
 ### 2.2 Operations
 
@@ -153,19 +155,19 @@ Version control: every new upload of the same document creates the next revision
 
 A template that defines the schema a Document must satisfy before it becomes active in that class.
 
-| Field | Type | Description |
-|---|---|---|
-| **ID** | text (auto) | System-generated unique identifier. |
-| **Name** | text | e.g., `Invoice`, `Certificate`, `Board Resolution`. |
-| **Description** | text (nullable) | Purpose / guidance shown when classifying. |
-| **Color** | text (nullable) | Hex color for UI display. |
-| **Icon** | text (nullable) | Icon identifier for UI display. |
-| **File Naming Schema** | text (nullable) | Optional filename template; see §3.3. |
-| **Retention Days** | integer (nullable) | Retention period for deleted/expired documents (overrides the settings default). See §6.2. |
-| **Is Active** | boolean | `false` archives the class (existing documents unaffected). Default `true`. |
-| **Created By** | text (FK) | Admin who created the class. |
-| **Created At** | timestamptz | Record creation timestamp. |
-| **Updated At** | timestamptz | Last modification timestamp. |
+| Field                  | Type               | Description                                                                                |
+| ---------------------- | ------------------ | ------------------------------------------------------------------------------------------ |
+| **ID**                 | text (auto)        | System-generated unique identifier.                                                        |
+| **Name**               | text               | e.g., `Invoice`, `Certificate`, `Board Resolution`.                                        |
+| **Description**        | text (nullable)    | Purpose / guidance shown when classifying.                                                 |
+| **Color**              | text (nullable)    | Hex color for UI display.                                                                  |
+| **Icon**               | text (nullable)    | Icon identifier for UI display.                                                            |
+| **File Naming Schema** | text (nullable)    | Optional filename template; see §3.3.                                                      |
+| **Retention Days**     | integer (nullable) | Retention period for deleted/expired documents (overrides the settings default). See §6.2. |
+| **Is Active**          | boolean            | `false` archives the class (existing documents unaffected). Default `true`.                |
+| **Created By**         | text (FK)          | Admin who created the class.                                                               |
+| **Created At**         | timestamptz        | Record creation timestamp.                                                                 |
+| **Updated At**         | timestamptz        | Last modification timestamp.                                                               |
 
 Management is admin-only (`dms:admin`).
 
@@ -173,19 +175,19 @@ Management is admin-only (`dms:admin`).
 
 A typed column of a Document Class.
 
-| Field | Type | Description |
-|---|---|---|
-| **ID** | text (auto) | System-generated unique identifier. |
-| **Class** | text (FK) | Owning Document Class. |
-| **Name** | text | Unique field key within the class (e.g., `invoiceNumber`). |
-| **Label** | text | Display label (e.g., `Invoice Number`). |
-| **Type** | enum | `text`, `number`, `date`, `select`, `multi-select`, `boolean`, `user`, `contact`, `url`, `email`, `phone`. |
-| **Is Required** | boolean | Must be filled before a Document can be classified into the class. Default `false`. |
-| **Include In Search** | boolean | Whether this field's values are indexed for full-text search. Default `true`. |
-| **Default Value** | jsonb (nullable) | Auto-filled value when not provided. |
-| **Options** | jsonb (nullable) | For `select` / `multi-select`: the list of allowed values. |
-| **Sort Order** | integer | Display/validation order. |
-| **Is Active** | boolean | Inactive fields are hidden from the classify form but their stored values are preserved. |
+| Field                 | Type             | Description                                                                                                |
+| --------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------- |
+| **ID**                | text (auto)      | System-generated unique identifier.                                                                        |
+| **Class**             | text (FK)        | Owning Document Class.                                                                                     |
+| **Name**              | text             | Unique field key within the class (e.g., `invoiceNumber`).                                                 |
+| **Label**             | text             | Display label (e.g., `Invoice Number`).                                                                    |
+| **Type**              | enum             | `text`, `number`, `date`, `select`, `multi-select`, `boolean`, `user`, `contact`, `url`, `email`, `phone`. |
+| **Is Required**       | boolean          | Must be filled before a Document can be classified into the class. Default `false`.                        |
+| **Include In Search** | boolean          | Whether this field's values are indexed for full-text search. Default `true`.                              |
+| **Default Value**     | jsonb (nullable) | Auto-filled value when not provided.                                                                       |
+| **Options**           | jsonb (nullable) | For `select` / `multi-select`: the list of allowed values.                                                 |
+| **Sort Order**        | integer          | Display/validation order.                                                                                  |
+| **Is Active**         | boolean          | Inactive fields are hidden from the classify form but their stored values are preserved.                   |
 
 ### 3.3 File Naming Schema
 
@@ -213,17 +215,17 @@ Optional per-class filename template evaluated with the document's field values 
 
 Saved, reusable **filter + sort** configurations over active (and optionally expired) documents. Models a superset of the tasks `savedView` pattern, extended with class-field conditions and free-text search terms.
 
-| Field | Type | Description |
-|---|---|---|
-| **ID** | text (auto) | System-generated unique identifier. |
-| **Name** | text | e.g., `Invoices due this month`. |
-| **Owner** | text (FK) | User who created the view. |
-| **Filters** | jsonb | Array of conditions; see below. |
-| **Sort** | jsonb | Array of `{ field, direction }`. |
-| **Is Default** | boolean | Auto-applied view for the owner. Default `false`. |
-| **Is Shared** | boolean | Admin-published view visible to all users. Default `false`. |
-| **Is Pinned** | boolean | Pinned to the owner's sidebar. Default `false`. |
-| **Created At** / **Updated At** | timestamptz | Record timestamps. |
+| Field                           | Type        | Description                                                 |
+| ------------------------------- | ----------- | ----------------------------------------------------------- |
+| **ID**                          | text (auto) | System-generated unique identifier.                         |
+| **Name**                        | text        | e.g., `Invoices due this month`.                            |
+| **Owner**                       | text (FK)   | User who created the view.                                  |
+| **Filters**                     | jsonb       | Array of conditions; see below.                             |
+| **Sort**                        | jsonb       | Array of `{ field, direction }`.                            |
+| **Is Default**                  | boolean     | Auto-applied view for the owner. Default `false`.           |
+| **Is Shared**                   | boolean     | Admin-published view visible to all users. Default `false`. |
+| **Is Pinned**                   | boolean     | Pinned to the owner's sidebar. Default `false`.             |
+| **Created At** / **Updated At** | timestamptz | Record timestamps.                                          |
 
 **Condition model** (over document columns, class fields, and search):
 
@@ -232,6 +234,7 @@ Saved, reusable **filter + sort** configurations over active (and optionally exp
 - Operators: `eq`, `neq`, `contains`, `notContains`, `in`, `notIn`, `gt`, `gte`, `lt`, `lte`, `between`, `isEmpty`, `isNotEmpty`, `dateBefore`, `dateAfter`, and `search` (free-text term run through the full-text index, see §4.2).
 
 **Operations**:
+
 - `createView(input)` — any user; `isShared` allowed only for admins.
 - `updateView(id, patch)` — owner, or admins for shared views.
 - `deleteView(id)` — owner, or admins for shared views.
@@ -239,6 +242,7 @@ Saved, reusable **filter + sort** configurations over active (and optionally exp
 - `applyView(input)` — resolves a view (by ID or ad-hoc filter/sort) into a document listing, normalizing out triaged/deleted documents unless explicitly filtered.
 
 **Constraints**:
+
 - Views never expose triaged or deleted documents unless the view explicitly targets `status = triaged|deleted` (deleted only to admins).
 - Deleting a class or deactivating a field quietly drops the corresponding view conditions.
 
@@ -261,22 +265,23 @@ Smart search over document metadata and class fields, scoped to the caller's vis
 
 An org-wide address-book entry used to share files with external parties (and linked to internal users where applicable).
 
-| Field | Type | Mandatory | Description |
-|---|---|---|---|
-| **ID** | text (auto) | auto | System-generated unique identifier. |
-| **First Name** | text | ✅ | Contact's first name. |
-| **Last Name** | text | ✅ | Contact's surname. |
-| **Email** | text | ✅ | Email (shared org-uniqueness). |
-| **Phone** | text | ✅ | Phone number. |
-| **Company Name** | text | ✅ | Organization they belong to. |
-| **Designation** | text | ✅ | Role/title at that company. |
-| **Deletion Reason** | text | required on delete | Why the contact is being removed; optional on create/update. |
-| **Linked User** | text (FK, nullable) | — | Optional link to an internal `AuthUnit` user when the contact represents a platform account. |
-| **Created By** | text (FK) | auto | User who added the contact. |
-| **Is Removed** | boolean | auto | `true` after deletion (soft). |
-| **Removed At** | timestamptz (nullable) | — | When the contact was removed. |
+| Field               | Type                   | Mandatory          | Description                                                                                  |
+| ------------------- | ---------------------- | ------------------ | -------------------------------------------------------------------------------------------- |
+| **ID**              | text (auto)            | auto               | System-generated unique identifier.                                                          |
+| **First Name**      | text                   | ✅                 | Contact's first name.                                                                        |
+| **Last Name**       | text                   | ✅                 | Contact's surname.                                                                           |
+| **Email**           | text                   | ✅                 | Email (shared org-uniqueness).                                                               |
+| **Phone**           | text                   | ✅                 | Phone number.                                                                                |
+| **Company Name**    | text                   | ✅                 | Organization they belong to.                                                                 |
+| **Designation**     | text                   | ✅                 | Role/title at that company.                                                                  |
+| **Deletion Reason** | text                   | required on delete | Why the contact is being removed; optional on create/update.                                 |
+| **Linked User**     | text (FK, nullable)    | —                  | Optional link to an internal `AuthUnit` user when the contact represents a platform account. |
+| **Created By**      | text (FK)              | auto               | User who added the contact.                                                                  |
+| **Is Removed**      | boolean                | auto               | `true` after deletion (soft).                                                                |
+| **Removed At**      | timestamptz (nullable) | —                  | When the contact was removed.                                                                |
 
 **Operations**:
+
 - `createContact(input)` — all 6 business fields mandatory.
 - `updateContact(id, patch)` — any field except `deletionReason`.
 - `removeContact(id, reason)` — `deletionReason` is **mandatory**; marks `isRemoved = true` and revokes every share granted to this contact (see §5.3). The contact hides from listings via the `dms:contact:delete` action audit.
@@ -286,17 +291,17 @@ An org-wide address-book entry used to share files with external parties (and li
 
 Sharing grants a grantee access to a Document.
 
-| Field | Type | Description |
-|---|---|---|
-| **ID** | text (auto) | System-generated unique identifier. |
-| **Document** | text (FK) | Shared document (**current version** is what a grant resolves to). |
-| **Grantee Type** | enum | `contact` (external, no login) or `user` (internal AuthUnit user). |
-| **Grantee ID** | text (FK) | Contact ID or User ID. |
-| **Permission** | enum | `viewer` (view/download) or `editor` (also add/remove tags, metadata, and new versions; no delete). |
-| **Share Token** | text (nullable) | Access token for `contact` grantees (see below). |
-| **Shared By** | text (FK) | User who created the share. |
-| **Expires At** | timestamptz (nullable) | Optional expiry. |
-| **Created At** | timestamptz | Share creation timestamp. |
+| Field            | Type                   | Description                                                                                         |
+| ---------------- | ---------------------- | --------------------------------------------------------------------------------------------------- |
+| **ID**           | text (auto)            | System-generated unique identifier.                                                                 |
+| **Document**     | text (FK)              | Shared document (**current version** is what a grant resolves to).                                  |
+| **Grantee Type** | enum                   | `contact` (external, no login) or `user` (internal AuthUnit user).                                  |
+| **Grantee ID**   | text (FK)              | Contact ID or User ID.                                                                              |
+| **Permission**   | enum                   | `viewer` (view/download) or `editor` (also add/remove tags, metadata, and new versions; no delete). |
+| **Share Token**  | text (nullable)        | Access token for `contact` grantees (see below).                                                    |
+| **Shared By**    | text (FK)              | User who created the share.                                                                         |
+| **Expires At**   | timestamptz (nullable) | Optional expiry.                                                                                    |
+| **Created At**   | timestamptz            | Share creation timestamp.                                                                           |
 
 - `createShare(input)` — share a document with a contact or internal user.
 - `updateShare(id, patch)` — change permission/expiry.
@@ -310,6 +315,7 @@ Sharing grants a grantee access to a Document.
 ### 5.3 Contact Removal Cascade
 
 `removeContact(id, reason)`:
+
 1. Validates `reason` is non-empty.
 2. Marks `isRemoved = true` with `removedAt`.
 3. Deletes every `dms_share` referencing the contact (hard revoke — access stops immediately).
@@ -347,15 +353,15 @@ upload ──▶ triaged ──classify──▶ active ──▶ expired  (expi
 
 A legal-hold is an admin-placed flag that blocks destruction of a document for compliance/discovery purposes.
 
-| Field | Type | Description |
-|---|---|---|
-| **ID** | text (auto) | System-generated unique identifier. |
-| **Document** | text (FK) | Held document. |
-| **Reason** | text | Mandatory justification (e.g., case reference, regulatory request). |
-| **Placed By** | text (FK) | Admin who placed the hold. |
-| **Placed At** | timestamptz | When the hold was placed. |
-| **Released By** | text (FK, nullable) | Admin who released the hold. |
-| **Released At** | timestamptz (nullable) | When the hold was released (clears when null). |
+| Field           | Type                   | Description                                                         |
+| --------------- | ---------------------- | ------------------------------------------------------------------- |
+| **ID**          | text (auto)            | System-generated unique identifier.                                 |
+| **Document**    | text (FK)              | Held document.                                                      |
+| **Reason**      | text                   | Mandatory justification (e.g., case reference, regulatory request). |
+| **Placed By**   | text (FK)              | Admin who placed the hold.                                          |
+| **Placed At**   | timestamptz            | When the hold was placed.                                           |
+| **Released By** | text (FK, nullable)    | Admin who released the hold.                                        |
+| **Released At** | timestamptz (nullable) | When the hold was released (clears when null).                      |
 
 - `placeHold(documentId, reason)` / `releaseHold(holdId)` — **admin-only**; one active hold per document (re-placing while active updates reason).
 - **Effect while active**: `deletePermanently(id)` and `emptyBin(...)` reject the document; auto-purge skips it; versions past `maxVersions` are also never pruned. Soft-delete and restore remain allowed (data is preserved either way).
@@ -375,13 +381,13 @@ A legal-hold is an admin-placed flag that blocks destruction of a document for c
 
 Both Triage and Document Views (and optionally classes) can be pinned to a user's sidebar. Pinning is per-user, orthogonal to ownership.
 
-| Field | Type | Description |
-|---|---|---|
-| **User** | text (FK) | User whose sidebar contains the pin. |
-| **Item Type** | enum | `triage`, `view`, `class`. |
-| **Item ID** | text (FK) | Referenced item. |
-| **Sort Order** | integer | Render order in the sidebar. |
-| **Created At** | timestamptz | Pin creation timestamp. |
+| Field          | Type        | Description                          |
+| -------------- | ----------- | ------------------------------------ |
+| **User**       | text (FK)   | User whose sidebar contains the pin. |
+| **Item Type**  | enum        | `triage`, `view`, `class`.           |
+| **Item ID**    | text (FK)   | Referenced item.                     |
+| **Sort Order** | integer     | Render order in the sidebar.         |
+| **Created At** | timestamptz | Pin creation timestamp.              |
 
 - `pinItem(userId, itemType, itemId)` / `unpinItem(...)` / `listPinned(userId)`.
 - Deleting a view, archiving a class, or deleting a document removes stale pins.
@@ -418,14 +424,14 @@ All binary operations delegate to StorageUnit (S3-compatible); the module never 
 
 Org-level defaults, stored as key/value JSON in a `dms_setting` table; admin-managed.
 
-| Key | Example Value | Used By |
-|---|---|---|
-| `defaultCompression` | `{ mode: "none", enabled: true }` | §1.3 uploads without an override |
-| `presignedUrlDefaultExpiry` | `3600` | download URL default (seconds) |
-| `presignedUrlMaxExpiry` | `604800` | max download URL expiry |
-| `defaultRetentionDays` | `180` | §6.2 retention when the class sets none |
-| `autoPurgeEveryHours` | `24` | §6.2 auto-purge cron cadence |
-| `logDownloads` | `false` | §8.2 whether downloads write activity entries |
+| Key                         | Example Value                     | Used By                                       |
+| --------------------------- | --------------------------------- | --------------------------------------------- |
+| `defaultCompression`        | `{ mode: "none", enabled: true }` | §1.3 uploads without an override              |
+| `presignedUrlDefaultExpiry` | `3600`                            | download URL default (seconds)                |
+| `presignedUrlMaxExpiry`     | `604800`                          | max download URL expiry                       |
+| `defaultRetentionDays`      | `180`                             | §6.2 retention when the class sets none       |
+| `autoPurgeEveryHours`       | `24`                              | §6.2 auto-purge cron cadence                  |
+| `logDownloads`              | `false`                           | §8.2 whether downloads write activity entries |
 
 - `getSetting(key)` / `setSetting(key, value)` — read any user (for client prefill), write admin-only.
 
@@ -443,20 +449,20 @@ Audited action trail, per document (and, optionally, per contact/class).
 
 ### 10.2 Feed Content
 
-| Action | When | Notes |
-|---|---|---|
-| `uploaded` | Upload / bulk upload | metadata: `batchId`, `version: 1` |
-| `classified` | Triage classify | changes: class + field values applied |
-| `version_added` / `version_reverted` | §2.2 | metadata: `version` |
-| `updated` | Rename / metadata / tags | changes diff |
-| `expired` | Expiry scanner | metadata: `expiryDate` |
-| `deleted` | Soft delete | metadata: `deletedBy` |
-| `restored` | §6.4 | |
-| `purged` | §6.4 / auto-purge | metadata: `storageKey` |
-| `hold_placed` / `hold_released` | §6.3 | metadata: `reason` |
-| `shared` / `share_revoked` | §5.2 | metadata: grantee, permission |
-| `contact_removed` | §5.3 | reason |
-| `downloaded` | §8.2 | only when `logDownloads` = true |
+| Action                               | When                     | Notes                                 |
+| ------------------------------------ | ------------------------ | ------------------------------------- |
+| `uploaded`                           | Upload / bulk upload     | metadata: `batchId`, `version: 1`     |
+| `classified`                         | Triage classify          | changes: class + field values applied |
+| `version_added` / `version_reverted` | §2.2                     | metadata: `version`                   |
+| `updated`                            | Rename / metadata / tags | changes diff                          |
+| `expired`                            | Expiry scanner           | metadata: `expiryDate`                |
+| `deleted`                            | Soft delete              | metadata: `deletedBy`                 |
+| `restored`                           | §6.4                     |                                       |
+| `purged`                             | §6.4 / auto-purge        | metadata: `storageKey`                |
+| `hold_placed` / `hold_released`      | §6.3                     | metadata: `reason`                    |
+| `shared` / `share_revoked`           | §5.2                     | metadata: grantee, permission         |
+| `contact_removed`                    | §5.3                     | reason                                |
+| `downloaded`                         | §8.2                     | only when `logDownloads` = true       |
 
 ### 10.3 Operations
 
@@ -468,18 +474,18 @@ Audited action trail, per document (and, optionally, per contact/class).
 
 ## 11. Data Model Summary
 
-| Domain | Key Tables |
-|---|---|
-| **Documents & Triage** | `dms_document` |
-| **Versions** | `dms_document_version` |
-| **Classes** | `dms_document_class`, `dms_class_field` |
-| **Tags** | `dms_tag`, `dms_document_tag` |
-| **Views** | `dms_view` |
-| **Retention & Hold** | `dms_legal_hold` (retention days on class + settings) |
-| **Contacts** | `dms_contact` |
-| **Sharing** | `dms_share` |
-| **Sidebar Pins** | `dms_pin` |
-| **Settings** | `dms_setting` |
+| Domain                 | Key Tables                                            |
+| ---------------------- | ----------------------------------------------------- |
+| **Documents & Triage** | `dms_document`                                        |
+| **Versions**           | `dms_document_version`                                |
+| **Classes**            | `dms_document_class`, `dms_class_field`               |
+| **Tags**               | `dms_tag`, `dms_document_tag`                         |
+| **Views**              | `dms_view`                                            |
+| **Retention & Hold**   | `dms_legal_hold` (retention days on class + settings) |
+| **Contacts**           | `dms_contact`                                         |
+| **Sharing**            | `dms_share`                                           |
+| **Sidebar Pins**       | `dms_pin`                                             |
+| **Settings**           | `dms_setting`                                         |
 
 **12 tables**, all in tenant schemas (no control-plane tables). IDs are `text` with `.primaryKey().$defaultFn(uuidv7)`; timestamps `TIMESTAMPTZ` (`withTimezone: true`).
 
@@ -487,13 +493,13 @@ Audited action trail, per document (and, optionally, per contact/class).
 
 ## 12. Dependencies & Prerequisites
 
-| Dependency | Reason |
-|---|---|
-| **Storage Unit** | All binary operations: upload, presigned URLs, version prune/purge removes. |
-| **Auth Unit** | User identity, ownership, internal-user share grantees, RBAC (`applyModuleAcl`). |
-| **PubSub Unit** | Document/class/contact/share events; scheduled expiry-scanner + auto-purge crons. |
-| **DB Unit** | Drizzle ORM for all metadata tables. |
-| **Audit Unit** | Activity feed (§10), hold/reason audit entries (§6.3), deletion provenance. |
+| Dependency       | Reason                                                                            |
+| ---------------- | --------------------------------------------------------------------------------- |
+| **Storage Unit** | All binary operations: upload, presigned URLs, version prune/purge removes.       |
+| **Auth Unit**    | User identity, ownership, internal-user share grantees, RBAC (`applyModuleAcl`).  |
+| **PubSub Unit**  | Document/class/contact/share events; scheduled expiry-scanner + auto-purge crons. |
+| **DB Unit**      | Drizzle ORM for all metadata tables.                                              |
+| **Audit Unit**   | Activity feed (§10), hold/reason audit entries (§6.3), deletion provenance.       |
 
 **No module dependencies.** Deliberately independent of `@aspen-os/drive` (see §13). Optional future integration points: `@aspen-os/organization` sharing contacts-by-link, `@aspen-os/compliance` for expiry-driven verification.
 
@@ -580,23 +586,23 @@ packages/dms/
 
 ### Domain Events
 
-| Event | Payload (summary) | Trigger |
-|---|---|---|
-| `dms:document_uploaded` | `{ documentId, batchId?, version, size, contentType }` | Upload / bulk upload |
-| `dms:document_version_added` | `{ documentId, version }` | New version |
-| `dms:document_version_reverted` | `{ documentId, version }` | Revert |
-| `dms:document_classified` | `{ documentId, classId, docNumber }` | Triage classify |
-| `dms:document_updated` | `{ documentId, changes }` | Metadata/tags/rename |
-| `dms:document_expired` | `{ documentId, expiryDate }` | Expiry scanner |
-| `dms:document_deleted` | `{ documentId, deletedBy }` | Soft delete |
-| `dms:document_restored` | `{ documentId }` | Recycle Bin restore |
-| `dms:document_purged` | `{ documentId, storageKey }` | Permanent delete / auto-purge |
-| `dms:document_hold_placed` / `dms:document_hold_released` | `{ documentId, reason }` | Legal hold mutations |
-| `dms:document_tagged` / `dms:document_untagged` | `{ documentId, tag }` | Tag apply/remove |
-| `dms:class_created` / `dms:class_updated` / `dms:class_archived` | `{ classId }` | Class mutations |
-| `dms:contact_created` / `dms:contact_updated` / `dms:contact_removed` | `{ contactId, reason? }` | Contact mutations |
-| `dms:share_created` / `dms:share_revoked` | `{ shareId, documentId, granteeType, granteeId }` | Share create/revoke |
-| `dms:view_created` / `dms:view_updated` / `dms:view_deleted` | `{ viewId }` | View mutations |
+| Event                                                                 | Payload (summary)                                      | Trigger                       |
+| --------------------------------------------------------------------- | ------------------------------------------------------ | ----------------------------- |
+| `dms:document_uploaded`                                               | `{ documentId, batchId?, version, size, contentType }` | Upload / bulk upload          |
+| `dms:document_version_added`                                          | `{ documentId, version }`                              | New version                   |
+| `dms:document_version_reverted`                                       | `{ documentId, version }`                              | Revert                        |
+| `dms:document_classified`                                             | `{ documentId, classId, docNumber }`                   | Triage classify               |
+| `dms:document_updated`                                                | `{ documentId, changes }`                              | Metadata/tags/rename          |
+| `dms:document_expired`                                                | `{ documentId, expiryDate }`                           | Expiry scanner                |
+| `dms:document_deleted`                                                | `{ documentId, deletedBy }`                            | Soft delete                   |
+| `dms:document_restored`                                               | `{ documentId }`                                       | Recycle Bin restore           |
+| `dms:document_purged`                                                 | `{ documentId, storageKey }`                           | Permanent delete / auto-purge |
+| `dms:document_hold_placed` / `dms:document_hold_released`             | `{ documentId, reason }`                               | Legal hold mutations          |
+| `dms:document_tagged` / `dms:document_untagged`                       | `{ documentId, tag }`                                  | Tag apply/remove              |
+| `dms:class_created` / `dms:class_updated` / `dms:class_archived`      | `{ classId }`                                          | Class mutations               |
+| `dms:contact_created` / `dms:contact_updated` / `dms:contact_removed` | `{ contactId, reason? }`                               | Contact mutations             |
+| `dms:share_created` / `dms:share_revoked`                             | `{ shareId, documentId, granteeType, granteeId }`      | Share create/revoke           |
+| `dms:view_created` / `dms:view_updated` / `dms:view_deleted`          | `{ viewId }`                                           | View mutations                |
 
 ### Phase Sequencing
 
@@ -614,19 +620,19 @@ packages/dms/
 
 ### Estimated Effort (Relative)
 
-| Area | Complexity | Notes |
-|---|---|---|
-| Upload (single/bulk) + Storage bridge | Low-Medium | Thin StorageUnit wrapper, version-scoped keys, batch handling. |
-| Compression step | Medium | Mode resolution, safe-fail, async for large files; per-version. |
-| Classes + required-field validation | Medium | Schema constraints, naming-schema metadata rename. |
-| Versions + prune | Low-Medium | Counter, history table, revert, `maxVersions` prune with hold skip. |
-| Views + condition engine → SQL | Medium-High | Mirrors tasks `filter-engine`; class-field joins add complexity. |
-| Full-text + quick search | Medium | tsvector maintenance, GIN index, visibility scoping, promote-to-view. |
-| Contacts + cascade | Low-Medium | Mandatory-field + reason gating, revoke cascade. |
-| Sharing (contact/user) | Medium | Token resolution, expiry, permission checks. |
-| Recycle Bin + retention + holds | Medium | Retention resolution, auto-purge cron, hold enforcement at purge. |
-| Activity feed (AuditUnit) | Low-Medium | Inline `audit.write` per workflow; projection query with ordering. |
-| RBAC + ACL | Low | `defineAcl` per resource; admin-only enforcement points. |
+| Area                                  | Complexity  | Notes                                                                 |
+| ------------------------------------- | ----------- | --------------------------------------------------------------------- |
+| Upload (single/bulk) + Storage bridge | Low-Medium  | Thin StorageUnit wrapper, version-scoped keys, batch handling.        |
+| Compression step                      | Medium      | Mode resolution, safe-fail, async for large files; per-version.       |
+| Classes + required-field validation   | Medium      | Schema constraints, naming-schema metadata rename.                    |
+| Versions + prune                      | Low-Medium  | Counter, history table, revert, `maxVersions` prune with hold skip.   |
+| Views + condition engine → SQL        | Medium-High | Mirrors tasks `filter-engine`; class-field joins add complexity.      |
+| Full-text + quick search              | Medium      | tsvector maintenance, GIN index, visibility scoping, promote-to-view. |
+| Contacts + cascade                    | Low-Medium  | Mandatory-field + reason gating, revoke cascade.                      |
+| Sharing (contact/user)                | Medium      | Token resolution, expiry, permission checks.                          |
+| Recycle Bin + retention + holds       | Medium      | Retention resolution, auto-purge cron, hold enforcement at purge.     |
+| Activity feed (AuditUnit)             | Low-Medium  | Inline `audit.write` per workflow; projection query with ordering.    |
+| RBAC + ACL                            | Low         | `defineAcl` per resource; admin-only enforcement points.              |
 
 ### Testing Focus Areas
 

@@ -1,0 +1,31 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error",
+    "perf": "warn",
+    "style": "warn",
+    "suspicious": "warn"
+  },
+  "env": {
+    "browser": true,
+    "es2022": true,
+    "node": true
+  },
+  "globals": {
+    "Bun": "readonly"
+  },
+  "ignorePatterns": ["src/components/ui/**"],
+  "plugins": ["react", "jsx-a11y"],
+  "rules": {
+    "eslint/func-style": "off",
+    "eslint/max-statements": "off",
+    "eslint/no-continue": "off",
+    "eslint/no-magic-numbers": "off",
+    "eslint/no-nested-ternary": "off",
+    "eslint/no-ternary": "off",
+    "eslint/one-var": "off",
+    "eslint/sort-imports": "off",
+    "react/jsx-max-depth": "off",
+    "react/react-in-jsx-scope": "off"
+  }
+}

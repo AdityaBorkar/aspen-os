@@ -8,9 +8,7 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const getOvertimeSlipById = Workflow.name(
-  "hr.overtime.get-overtime-slip-by-id",
-)
+export const getOvertimeSlipById = Workflow.name("hr.overtime.get-overtime-slip-by-id")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id } = input;

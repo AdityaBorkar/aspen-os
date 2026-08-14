@@ -13,9 +13,7 @@ export const getFolder = Workflow.name("drive.folder.get")
     const [childCountRow] = await ctx.db
       .select({ count: sql<number>`count(*)::int` })
       .from(driveFolder)
-      .where(
-        and(eq(driveFolder.parentId, id), eq(driveFolder.isTrashed, false)),
-      );
+      .where(and(eq(driveFolder.parentId, id), eq(driveFolder.isTrashed, false)));
 
     const [fileCountRow] = await ctx.db
       .select({ count: sql<number>`count(*)::int` })
@@ -26,10 +24,7 @@ export const getFolder = Workflow.name("drive.folder.get")
       .select({ totalSize: sql<number>`coalesce(sum(${driveFile.size}), 0)` })
       .from(driveFile)
       .where(
-        and(
-          sql`${driveFile.path} like ${`${fetched.path}/%`}`,
-          eq(driveFile.isTrashed, false),
-        ),
+        and(sql`${driveFile.path} like ${`${fetched.path}/%`}`, eq(driveFile.isTrashed, false)),
       );
 
     return {

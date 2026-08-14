@@ -10,10 +10,5 @@ export const removeProjectMember = Workflow.name("project.remove-member")
   .handler(async ({ projectId, userId }, ctx) => {
     await ctx.db
       .delete(projectMember)
-      .where(
-        and(
-          eq(projectMember.projectId, projectId),
-          eq(projectMember.userId, userId),
-        ),
-      );
+      .where(and(eq(projectMember.projectId, projectId), eq(projectMember.userId, userId)));
   });

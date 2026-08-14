@@ -8,9 +8,7 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const deleteOnboardingTask = Workflow.name(
-  "hr.lifecycle.delete-onboarding-task",
-)
+export const deleteOnboardingTask = Workflow.name("hr.lifecycle.delete-onboarding-task")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id } = input;

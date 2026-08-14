@@ -249,15 +249,15 @@ Flexible benefit plans allow employees to choose from a menu of employer-provide
 
 ### 6.2 Benefit Payout Types
 
-| Type | Behavior |
-|---|---|
-| **Accrue and payout at end of payroll period** | Amount accrues each cycle; fully paid in the final cycle. |
-| **Accrue per cycle, pay only on claim** | Accrues monthly; paid only when employee submits a Benefit Claim. Unclaimed balance optionally auto-paid in final cycle. |
-| **Allow claim up to full period limit** | No accruals; employee can claim the entire annual amount at any time. |
+| Type                                           | Behavior                                                                                                                 |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **Accrue and payout at end of payroll period** | Amount accrues each cycle; fully paid in the final cycle.                                                                |
+| **Accrue per cycle, pay only on claim**        | Accrues monthly; paid only when employee submits a Benefit Claim. Unclaimed balance optionally auto-paid in final cycle. |
+| **Allow claim up to full period limit**        | No accruals; employee can claim the entire annual amount at any time.                                                    |
 
 ### 6.3 Accrual Component
 
-- Salary Component flag "Accrual Component" — records a benefit in the salary slip as *Accrued Earnings*.
+- Salary Component flag "Accrual Component" — records a benefit in the salary slip as _Accrued Earnings_.
 - Excluded from gross pay and accounting entries until explicitly paid via Additional Salary.
 - Benefit Ledger Entry created for tracking.
 - Use case: loyalty bonus accrued monthly, paid after N months.
@@ -280,18 +280,18 @@ Flexible benefit plans allow employees to choose from a menu of employer-provide
 
 Standard reports included in the HR module:
 
-| Report | Description |
-|---|---|
-| **Monthly Attendance Details** | Attendance summary per employee per month. |
-| **Employee Leave Balance** | Current leave balances per employee per leave type. |
-| **Leave Ledger Report** | Detailed leave transaction history. |
-| **Salary Register** | Summary of all salary slips for a pay period. |
-| **Salary Slip (Individual)** | Printable/downloadable individual salary slip. |
-| **Employee Tax Exemption Proof Submission** | Status of proof submissions. |
-| **Loan Repayment Schedule** | EMI breakdown per loan. |
-| **Loan Ledger** | Running balance of outstanding loans. |
-| **Gratuity** | Gratuity liability report. |
-| **Overtime Summary** | Overtime hours and pay per employee. |
+| Report                                      | Description                                         |
+| ------------------------------------------- | --------------------------------------------------- |
+| **Monthly Attendance Details**              | Attendance summary per employee per month.          |
+| **Employee Leave Balance**                  | Current leave balances per employee per leave type. |
+| **Leave Ledger Report**                     | Detailed leave transaction history.                 |
+| **Salary Register**                         | Summary of all salary slips for a pay period.       |
+| **Salary Slip (Individual)**                | Printable/downloadable individual salary slip.      |
+| **Employee Tax Exemption Proof Submission** | Status of proof submissions.                        |
+| **Loan Repayment Schedule**                 | EMI breakdown per loan.                             |
+| **Loan Ledger**                             | Running balance of outstanding loans.               |
+| **Gratuity**                                | Gratuity liability report.                          |
+| **Overtime Summary**                        | Overtime hours and pay per employee.                |
 
 ### 7.2 Employee CTC Break-Up
 
@@ -307,28 +307,28 @@ Standard reports included in the HR module:
 
 ## Data Model Summary (Phase 2 Doctypes)
 
-| Module | Key Doctypes |
-|---|---|
-| Travel & Expense | Employee Advance, Expense Claim, Travel Request |
-| Loans | Loan Type, Loan Application, Loan |
-| Salary Payouts | Salary Component, Salary Structure, Salary Structure Assignment, Payroll Period, Payroll Entry, Salary Slip, Additional Salary, Retention Bonus, Employee Incentive |
-| Gratuity | Gratuity Rule, Gratuity |
-| Tax & Benefits | Income Tax Slab, Employee Tax Exemption Category, Employee Tax Exemption Sub Category, Employee Tax Exemption Declaration, Employee Tax Exemption Proof Submission, Employee Other Income, Employee Benefit Application, Employee Benefit Claim |
-| Flexible Benefits | Benefit Ledger Entry, Accrued Earnings Report |
-| Payroll Correction | Payroll Correction, Arrears |
+| Module             | Key Doctypes                                                                                                                                                                                                                                    |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Travel & Expense   | Employee Advance, Expense Claim, Travel Request                                                                                                                                                                                                 |
+| Loans              | Loan Type, Loan Application, Loan                                                                                                                                                                                                               |
+| Salary Payouts     | Salary Component, Salary Structure, Salary Structure Assignment, Payroll Period, Payroll Entry, Salary Slip, Additional Salary, Retention Bonus, Employee Incentive                                                                             |
+| Gratuity           | Gratuity Rule, Gratuity                                                                                                                                                                                                                         |
+| Tax & Benefits     | Income Tax Slab, Employee Tax Exemption Category, Employee Tax Exemption Sub Category, Employee Tax Exemption Declaration, Employee Tax Exemption Proof Submission, Employee Other Income, Employee Benefit Application, Employee Benefit Claim |
+| Flexible Benefits  | Benefit Ledger Entry, Accrued Earnings Report                                                                                                                                                                                                   |
+| Payroll Correction | Payroll Correction, Arrears                                                                                                                                                                                                                     |
 
 ---
 
 ## Dependencies on Phase 1
 
-| Phase 1 Output | Phase 2 Usage |
-|---|---|
-| Employee Master | Referenced by all salary, loan, expense, and tax records. |
-| Attendance records | Used for working days calculation in Salary Slip. |
-| Leave Without Pay | Deducted from Salary Slip payment days. |
-| Overtime Slip → Additional Salary | Included in Salary Slip earnings. |
-| Holiday List | Used for working days and holiday multipliers in overtime. |
-| Department/Designation/Branch | Filters for Payroll Entry employee selection. |
+| Phase 1 Output                    | Phase 2 Usage                                              |
+| --------------------------------- | ---------------------------------------------------------- |
+| Employee Master                   | Referenced by all salary, loan, expense, and tax records.  |
+| Attendance records                | Used for working days calculation in Salary Slip.          |
+| Leave Without Pay                 | Deducted from Salary Slip payment days.                    |
+| Overtime Slip → Additional Salary | Included in Salary Slip earnings.                          |
+| Holiday List                      | Used for working days and holiday multipliers in overtime. |
+| Department/Designation/Branch     | Filters for Payroll Entry employee selection.              |
 
 ## Out of Scope (Phase 2)
 

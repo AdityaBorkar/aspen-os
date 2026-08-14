@@ -19,10 +19,7 @@ export const updateHrSettings = Workflow.name("hr.setup.update-hr-settings")
     const parsed = parse(UpdateHrSettingsSchema, patch);
 
     if (!current) {
-      const [created] = await ctx.db
-        .insert(hrSettings)
-        .values(parsed)
-        .returning();
+      const [created] = await ctx.db.insert(hrSettings).values(parsed).returning();
       return created;
     }
 

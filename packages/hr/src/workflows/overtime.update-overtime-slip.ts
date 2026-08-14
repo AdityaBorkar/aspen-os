@@ -10,9 +10,7 @@ const InputSchema = object({
   patch: UpdateOvertimeSlipSchema,
 });
 
-export const updateOvertimeSlip = Workflow.name(
-  "hr.overtime.update-overtime-slip",
-)
+export const updateOvertimeSlip = Workflow.name("hr.overtime.update-overtime-slip")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, patch } = input;

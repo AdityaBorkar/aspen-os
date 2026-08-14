@@ -17,12 +17,7 @@ export const updateProjectMember = Workflow.name("project.update-member")
     const [updated] = await ctx.db
       .update(projectMember)
       .set({ role: patch.role })
-      .where(
-        and(
-          eq(projectMember.projectId, projectId),
-          eq(projectMember.userId, userId),
-        ),
-      )
+      .where(and(eq(projectMember.projectId, projectId), eq(projectMember.userId, userId)))
       .returning();
 
     if (!updated) {

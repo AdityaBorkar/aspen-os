@@ -5,9 +5,7 @@ export const attachment = pgTable(
   "task_attachment",
   {
     commentId: text("comment_id"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     fileId: text("file_id").notNull(),
     id: text("id").primaryKey().$defaultFn(uuidv7),
     taskId: text("task_id").notNull(),

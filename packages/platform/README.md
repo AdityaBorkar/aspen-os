@@ -33,11 +33,11 @@ A composable business application framework for Bun/TypeScript. Provides seven i
 
 The platform is split into three entry surfaces:
 
-| Surface | Path | Runtime |
-|---|---|---|
-| Server | `@aspen-os/platform/server` | Node/Bun |
-| Client | `@aspen-os/platform/client` | Browser |
-| CLI | `aspen` (bin) | Terminal |
+| Surface | Path                        | Runtime  |
+| ------- | --------------------------- | -------- |
+| Server  | `@aspen-os/platform/server` | Node/Bun |
+| Client  | `@aspen-os/platform/client` | Browser  |
+| CLI     | `aspen` (bin)               | Terminal |
 
 There is no root `.` export. Import from `@aspen-os/platform/server` or `@aspen-os/platform/client` explicitly.
 
@@ -52,45 +52,67 @@ The platform is an internal workspace package (`workspace:*`). It can be publish
 ## Quick Start
 
 ```ts
-import { Platform } from "@aspen-os/platform/server"
-import { OrganizationModule } from "@aspen-os/organization"
+import { Platform } from "@aspen-os/platform/server";
+import { OrganizationModule } from "@aspen-os/organization";
 
-const organization = OrganizationModule.create({ country: "INDIA" })
+const organization = OrganizationModule.create({ country: "INDIA" });
 
 const platform = Platform.create(
   {
-    db: { host: "localhost", port: 5432, user: "recruiter", password: "recruiter", database: "recruiter" },
-    auth: { access_control, roles, baseURL: "http://localhost:3000", secret: AUTH_SECRET, session: {}, cfSecretKey: CF_SECRET },
+    db: {
+      host: "localhost",
+      port: 5432,
+      user: "recruiter",
+      password: "recruiter",
+      database: "recruiter",
+    },
+    auth: {
+      access_control,
+      roles,
+      baseURL: "http://localhost:3000",
+      secret: AUTH_SECRET,
+      session: {},
+      cfSecretKey: CF_SECRET,
+    },
     logs: { serviceName: "recruiter", defaultLevel: "info" },
     pubsub: {},
     rpc: { prefix: "/api/rpc" },
-    storage: { bucket: "recruiter", provider: { type: "s3", endpoint: "http://localhost:8333", region: "us-east-1", credentials: { accessKeyId: "...", secretAccessKey: "..." }, forcePathStyle: true } },
+    storage: {
+      bucket: "recruiter",
+      provider: {
+        type: "s3",
+        endpoint: "http://localhost:8333",
+        region: "us-east-1",
+        credentials: { accessKeyId: "...", secretAccessKey: "..." },
+        forcePathStyle: true,
+      },
+    },
     kvStore: { defaultTtl: 3600 },
     tenancy: { mode: "single" },
   },
   { organization },
-)
+);
 
-await platform.prepare()
+await platform.prepare();
 
 await platform.run(async () => {
   // AsyncLocalStorage context provides { auth, db, pubsub, tenantId? }
   // db: drizzle NodePgDatabase instance
   // pubsub: PubSubUnit instance
-})
+});
 
-await platform.destroy()
+await platform.destroy();
 ```
 
 ## Tenancy
 
 The platform supports three tenancy architectures as a **config-time choice**. The developer picks one mode in `PlatformConfig.tenancy` and commits to it for the application's lifetime. The same module code works transparently across all three modes.
 
-| Mode | Databases | Isolation | Connection routing |
-|---|---|---|---|
-| **Single Tenant** | 1 | None needed | Static pool |
-| **Shared DB + RLS** | 1 (shared) | Postgres RLS policies | Per-request client + `SET LOCAL` |
-| **Isolated DB** | N+1 (control-plane + per-tenant) | Physical (separate DBs) | Per-tenant pool resolution |
+| Mode                | Databases                        | Isolation               | Connection routing               |
+| ------------------- | -------------------------------- | ----------------------- | -------------------------------- |
+| **Single Tenant**   | 1                                | None needed             | Static pool                      |
+| **Shared DB + RLS** | 1 (shared)                       | Postgres RLS policies   | Per-request client + `SET LOCAL` |
+| **Isolated DB**     | N+1 (control-plane + per-tenant) | Physical (separate DBs) | Per-tenant pool resolution       |
 
 ```ts
 // Single tenant
@@ -113,10 +135,14 @@ tenancy: {
 
 ```ts
 // Single-tenant mode
-await platform.run(async () => { /* db resolves to control-plane */ });
+await platform.run(async () => {
+  /* db resolves to control-plane */
+});
 
 // Multi-tenant modes
-await platform.run(tenantId, async () => { /* db resolves per-request/per-tenant */ });
+await platform.run(tenantId, async () => {
+  /* db resolves per-request/per-tenant */
+});
 ```
 
 ### Key Design Points
@@ -156,9 +182,9 @@ A **Unit** is an infrastructure building block. The server `Unit` interface:
 
 ```ts
 interface Unit {
-  readonly $name: string
-  $cleanup(): Promise<void>
-  $prepare?(): Promise<void>
+  readonly $name: string;
+  $cleanup(): Promise<void>;
+  $prepare?(): Promise<void>;
 }
 ```
 
@@ -197,11 +223,11 @@ A composable business application framework for Bun/TypeScript. Provides seven i
 
 The platform is split into three entry surfaces:
 
-| Surface | Path | Runtime |
-|---|---|---|
-| Server | `@aspen-os/platform/server` | Node/Bun |
-| Client | `@aspen-os/platform/client` | Browser |
-| CLI | `aspen` (bin) | Terminal |
+| Surface | Path                        | Runtime  |
+| ------- | --------------------------- | -------- |
+| Server  | `@aspen-os/platform/server` | Node/Bun |
+| Client  | `@aspen-os/platform/client` | Browser  |
+| CLI     | `aspen` (bin)               | Terminal |
 
 There is no root `.` export. Import from `@aspen-os/platform/server` or `@aspen-os/platform/client` explicitly.
 
@@ -216,45 +242,67 @@ The platform is an internal workspace package (`workspace:*`). It can be publish
 ## Quick Start
 
 ```ts
-import { Platform } from "@aspen-os/platform/server"
-import { OrganizationModule } from "@aspen-os/organization"
+import { Platform } from "@aspen-os/platform/server";
+import { OrganizationModule } from "@aspen-os/organization";
 
-const organization = OrganizationModule.create({ country: "INDIA" })
+const organization = OrganizationModule.create({ country: "INDIA" });
 
 const platform = Platform.create(
   {
-    db: { host: "localhost", port: 5432, user: "recruiter", password: "recruiter", database: "recruiter" },
-    auth: { access_control, roles, baseURL: "http://localhost:3000", secret: AUTH_SECRET, session: {}, cfSecretKey: CF_SECRET },
+    db: {
+      host: "localhost",
+      port: 5432,
+      user: "recruiter",
+      password: "recruiter",
+      database: "recruiter",
+    },
+    auth: {
+      access_control,
+      roles,
+      baseURL: "http://localhost:3000",
+      secret: AUTH_SECRET,
+      session: {},
+      cfSecretKey: CF_SECRET,
+    },
     logs: { serviceName: "recruiter", defaultLevel: "info" },
     pubsub: {},
     rpc: { prefix: "/api/rpc" },
-    storage: { bucket: "recruiter", provider: { type: "s3", endpoint: "http://localhost:8333", region: "us-east-1", credentials: { accessKeyId: "...", secretAccessKey: "..." }, forcePathStyle: true } },
+    storage: {
+      bucket: "recruiter",
+      provider: {
+        type: "s3",
+        endpoint: "http://localhost:8333",
+        region: "us-east-1",
+        credentials: { accessKeyId: "...", secretAccessKey: "..." },
+        forcePathStyle: true,
+      },
+    },
     kvStore: { defaultTtl: 3600 },
     tenancy: { mode: "single" },
   },
   { organization },
-)
+);
 
-await platform.prepare()
+await platform.prepare();
 
 await platform.run(async () => {
   // AsyncLocalStorage context provides { auth, db, pubsub, tenantId? }
   // db: drizzle NodePgDatabase instance
   // pubsub: PubSubUnit instance
-})
+});
 
-await platform.destroy()
+await platform.destroy();
 ```
 
 ## Tenancy
 
 The platform supports three tenancy architectures as a **config-time choice**. The developer picks one mode in `PlatformConfig.tenancy` and commits to it for the application's lifetime. The same module code works transparently across all three modes.
 
-| Mode | Databases | Isolation | Connection routing |
-|---|---|---|---|
-| **Single Tenant** | 1 | None needed | Static pool |
-| **Shared DB + RLS** | 1 (shared) | Postgres RLS policies | Per-request client + `SET LOCAL` |
-| **Isolated DB** | N+1 (control-plane + per-tenant) | Physical (separate DBs) | Per-tenant pool resolution |
+| Mode                | Databases                        | Isolation               | Connection routing               |
+| ------------------- | -------------------------------- | ----------------------- | -------------------------------- |
+| **Single Tenant**   | 1                                | None needed             | Static pool                      |
+| **Shared DB + RLS** | 1 (shared)                       | Postgres RLS policies   | Per-request client + `SET LOCAL` |
+| **Isolated DB**     | N+1 (control-plane + per-tenant) | Physical (separate DBs) | Per-tenant pool resolution       |
 
 ```ts
 // Single tenant
@@ -277,10 +325,14 @@ tenancy: {
 
 ```ts
 // Single-tenant mode
-await platform.run(async () => { /* db resolves to control-plane */ });
+await platform.run(async () => {
+  /* db resolves to control-plane */
+});
 
 // Multi-tenant modes
-await platform.run(tenantId, async () => { /* db resolves per-request/per-tenant */ });
+await platform.run(tenantId, async () => {
+  /* db resolves per-request/per-tenant */
+});
 ```
 
 ### Key Design Points
@@ -320,13 +372,13 @@ A **Unit** is an infrastructure building block. The server `Unit` interface:
 
 ```ts
 interface Unit {
-  readonly $name: string
-  $cleanup(): Promise<void>
-  $prepare?(): Promise<void>
+  readonly $name: string;
+  $cleanup(): Promise<void>;
+  $prepare?(): Promise<void>;
 }
 ```
 
- prefix for lifecycle methods (`$name`, `$prepare`, `$cleanup`) to avoid collisions with the unit's own public API. Client units use the same `# @aspen-os/platform
+prefix for lifecycle methods (`$name`, `$prepare`, `$cleanup`) to avoid collisions with the unit's own public API. Client units use the same `# @aspen-os/platform
 
 A composable business application framework for Bun/TypeScript. Provides seven infrastructure units (database, auth, logging, pub/sub, RPC, storage, KV store) and a module system so domain-specific business logic can be built on top without reinventing plumbing.
 
@@ -361,11 +413,11 @@ A composable business application framework for Bun/TypeScript. Provides seven i
 
 The platform is split into three entry surfaces:
 
-| Surface | Path | Runtime |
-|---|---|---|
-| Server | `@aspen-os/platform/server` | Node/Bun |
-| Client | `@aspen-os/platform/client` | Browser |
-| CLI | `aspen` (bin) | Terminal |
+| Surface | Path                        | Runtime  |
+| ------- | --------------------------- | -------- |
+| Server  | `@aspen-os/platform/server` | Node/Bun |
+| Client  | `@aspen-os/platform/client` | Browser  |
+| CLI     | `aspen` (bin)               | Terminal |
 
 There is no root `.` export. Import from `@aspen-os/platform/server` or `@aspen-os/platform/client` explicitly.
 
@@ -380,45 +432,67 @@ The platform is an internal workspace package (`workspace:*`). It can be publish
 ## Quick Start
 
 ```ts
-import { Platform } from "@aspen-os/platform/server"
-import { OrganizationModule } from "@aspen-os/organization"
+import { Platform } from "@aspen-os/platform/server";
+import { OrganizationModule } from "@aspen-os/organization";
 
-const organization = OrganizationModule.create({ country: "INDIA" })
+const organization = OrganizationModule.create({ country: "INDIA" });
 
 const platform = Platform.create(
   {
-    db: { host: "localhost", port: 5432, user: "recruiter", password: "recruiter", database: "recruiter" },
-    auth: { access_control, roles, baseURL: "http://localhost:3000", secret: AUTH_SECRET, session: {}, cfSecretKey: CF_SECRET },
+    db: {
+      host: "localhost",
+      port: 5432,
+      user: "recruiter",
+      password: "recruiter",
+      database: "recruiter",
+    },
+    auth: {
+      access_control,
+      roles,
+      baseURL: "http://localhost:3000",
+      secret: AUTH_SECRET,
+      session: {},
+      cfSecretKey: CF_SECRET,
+    },
     logs: { serviceName: "recruiter", defaultLevel: "info" },
     pubsub: {},
     rpc: { prefix: "/api/rpc" },
-    storage: { bucket: "recruiter", provider: { type: "s3", endpoint: "http://localhost:8333", region: "us-east-1", credentials: { accessKeyId: "...", secretAccessKey: "..." }, forcePathStyle: true } },
+    storage: {
+      bucket: "recruiter",
+      provider: {
+        type: "s3",
+        endpoint: "http://localhost:8333",
+        region: "us-east-1",
+        credentials: { accessKeyId: "...", secretAccessKey: "..." },
+        forcePathStyle: true,
+      },
+    },
     kvStore: { defaultTtl: 3600 },
     tenancy: { mode: "single" },
   },
   { organization },
-)
+);
 
-await platform.prepare()
+await platform.prepare();
 
 await platform.run(async () => {
   // AsyncLocalStorage context provides { auth, db, pubsub, tenantId? }
   // db: drizzle NodePgDatabase instance
   // pubsub: PubSubUnit instance
-})
+});
 
-await platform.destroy()
+await platform.destroy();
 ```
 
 ## Tenancy
 
 The platform supports three tenancy architectures as a **config-time choice**. The developer picks one mode in `PlatformConfig.tenancy` and commits to it for the application's lifetime. The same module code works transparently across all three modes.
 
-| Mode | Databases | Isolation | Connection routing |
-|---|---|---|---|
-| **Single Tenant** | 1 | None needed | Static pool |
-| **Shared DB + RLS** | 1 (shared) | Postgres RLS policies | Per-request client + `SET LOCAL` |
-| **Isolated DB** | N+1 (control-plane + per-tenant) | Physical (separate DBs) | Per-tenant pool resolution |
+| Mode                | Databases                        | Isolation               | Connection routing               |
+| ------------------- | -------------------------------- | ----------------------- | -------------------------------- |
+| **Single Tenant**   | 1                                | None needed             | Static pool                      |
+| **Shared DB + RLS** | 1 (shared)                       | Postgres RLS policies   | Per-request client + `SET LOCAL` |
+| **Isolated DB**     | N+1 (control-plane + per-tenant) | Physical (separate DBs) | Per-tenant pool resolution       |
 
 ```ts
 // Single tenant
@@ -441,10 +515,14 @@ tenancy: {
 
 ```ts
 // Single-tenant mode
-await platform.run(async () => { /* db resolves to control-plane */ });
+await platform.run(async () => {
+  /* db resolves to control-plane */
+});
 
 // Multi-tenant modes
-await platform.run(tenantId, async () => { /* db resolves per-request/per-tenant */ });
+await platform.run(tenantId, async () => {
+  /* db resolves per-request/per-tenant */
+});
 ```
 
 ### Key Design Points
@@ -484,13 +562,13 @@ A **Unit** is an infrastructure building block. The server `Unit` interface:
 
 ```ts
 interface Unit {
-  readonly $name: string
-  $cleanup(): Promise<void>
-  $prepare?(): Promise<void>
+  readonly $name: string;
+  $cleanup(): Promise<void>;
+  $prepare?(): Promise<void>;
 }
 ```
 
- prefix — both interfaces are identical.
+prefix — both interfaces are identical.
 
 Seven core units are required: `db`, `auth`, `logs`, `pubsub`, `rpc`, `storage`, `kvStore`.
 
@@ -500,11 +578,11 @@ A **Module** is a business logic plugin. The `Module` interface:
 
 ```ts
 interface Module<N extends string = string> {
-  readonly $name: N
-  $initialize?(units: Record<string, Unit>): void
-  $prepare?(): Promise<void>
-  $prepareTenant?(tenantId: string): Promise<void>  // isolated mode
-  $cleanup(): Promise<void>
+  readonly $name: N;
+  $initialize?(units: Record<string, Unit>): void;
+  $prepare?(): Promise<void>;
+  $prepareTenant?(tenantId: string): Promise<void>; // isolated mode
+  $cleanup(): Promise<void>;
 }
 ```
 
@@ -546,15 +624,15 @@ All seven units are required:
 
 ```ts
 type PlatformConfig = {
-  auth: AuthConfig
-  db: DatabaseConfig
-  kvStore: KvStoreConfig
-  logs: LogConfig
-  pubsub: PubSubConfig
-  rpc: RpcConfig
-  storage: StorageConfig
-  tenancy: TenancyConfig
-}
+  auth: AuthConfig;
+  db: DatabaseConfig;
+  kvStore: KvStoreConfig;
+  logs: LogConfig;
+  pubsub: PubSubConfig;
+  rpc: RpcConfig;
+  storage: StorageConfig;
+  tenancy: TenancyConfig;
+};
 ```
 
 All seven units are required, plus a `tenancy` config that selects the tenancy mode.
@@ -563,15 +641,15 @@ All seven units are required, plus a `tenancy` config that selects the tenancy m
 
 Units are instantiated in dependency order inside `Platform.create()`:
 
-| Unit | Class | Injected Deps | $name |
-|---|---|---|---|
-| `db` | `DatabaseUnit` | -- | `"db"` |
-| `logs` | `LogUnit` | `{ db }` | `"logs"` |
-| `pubsub` | `PubSubUnit` | `{ db }` | `"pubsub"` |
-| `auth` | `AuthUnit` | `{ db }` | `"auth"` |
-| `storage` | `StorageUnit` | `{ db }` | `"storage"` |
-| `kvStore` | `KvStoreUnit` | `{ db }` | `"kvStore"` |
-| `rpc` | `RpcUnit` | `{ auth, db, logs, pubsub }` | `"rpc"` |
+| Unit      | Class          | Injected Deps                | $name       |
+| --------- | -------------- | ---------------------------- | ----------- |
+| `db`      | `DatabaseUnit` | --                           | `"db"`      |
+| `logs`    | `LogUnit`      | `{ db }`                     | `"logs"`    |
+| `pubsub`  | `PubSubUnit`   | `{ db }`                     | `"pubsub"`  |
+| `auth`    | `AuthUnit`     | `{ db }`                     | `"auth"`    |
+| `storage` | `StorageUnit`  | `{ db }`                     | `"storage"` |
+| `kvStore` | `KvStoreUnit`  | `{ db }`                     | `"kvStore"` |
+| `rpc`     | `RpcUnit`      | `{ auth, db, logs, pubsub }` | `"rpc"`     |
 
 ### DatabaseUnit
 
@@ -579,14 +657,14 @@ Owns a control-plane `pg.Pool` and a drizzle `NodePgDatabase` instance. In isola
 
 ```ts
 type DatabaseConfig = {
-  database: string
-  host: string
-  port: number
-  user: string
-  password: string
-  ssl?: boolean
-  maxConnections?: number  // default: 20
-}
+  database: string;
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  ssl?: boolean;
+  maxConnections?: number; // default: 20
+};
 ```
 
 The `db` config is always the **control-plane** database. In single/RLS mode, this IS the app database. In isolated mode, this is the control-plane database; per-tenant DBs are resolved by the `TenantResolver`.
@@ -597,16 +675,16 @@ The `db` config is always the **control-plane** database. In single/RLS mode, th
 
 ```ts
 // Access
-platform.db.db               // stable wrapper (Proxy) — resolves per-request via AsyncLocalStorage
-platform.db.controlPlaneDb    // drizzle NodePgDatabase — control-plane connection
-platform.db.pool              // pg.Pool — control-plane connection pool
-platform.db.config            // DatabaseConfig
-platform.db.tenancyMode       // "single" | "shared" | "isolated"
-platform.db.getSchemas()      // merged core schemas
+platform.db.db; // stable wrapper (Proxy) — resolves per-request via AsyncLocalStorage
+platform.db.controlPlaneDb; // drizzle NodePgDatabase — control-plane connection
+platform.db.pool; // pg.Pool — control-plane connection pool
+platform.db.config; // DatabaseConfig
+platform.db.tenancyMode; // "single" | "shared" | "isolated"
+platform.db.getSchemas(); // merged core schemas
 
 // Per-tenant (isolated mode)
-platform.db.getTenantDb(tenantId)                    // Promise<NodePgDatabase>
-platform.db.pushSchemasToTenant(tenantId, schemas)   // provisioning
+platform.db.getTenantDb(tenantId); // Promise<NodePgDatabase>
+platform.db.pushSchemasToTenant(tenantId, schemas); // provisioning
 ```
 
 ### AuthUnit
@@ -615,15 +693,15 @@ Wraps [better-auth](https://www.better-auth.com) with plugins: `admin`, `usernam
 
 ```ts
 interface AuthConfig {
-  access_control: ReturnType<typeof createAccessControl>
-  baseURL: string
-  secret: string
-  cfSecretKey?: string
-  session: { expiresIn?: number }
-  roles: Record<string, Role>
+  access_control: ReturnType<typeof createAccessControl>;
+  baseURL: string;
+  secret: string;
+  cfSecretKey?: string;
+  session: { expiresIn?: number };
+  roles: Record<string, Role>;
   socialProviders?: {
-    google?: { clientId: string; clientSecret: string; redirectURI?: string }
-  }
+    google?: { clientId: string; clientSecret: string; redirectURI?: string };
+  };
 }
 ```
 
@@ -664,11 +742,11 @@ Provides structured logging with buffered writes to a Postgres `logs` table. Log
 
 ```ts
 interface LogConfig {
-  defaultLevel?: LogLevel  // default: "info"
-  serviceName?: string    // default: "app"
+  defaultLevel?: LogLevel; // default: "info"
+  serviceName?: string; // default: "app"
 }
 
-type LogLevel = "debug" | "info" | "warn" | "error" | "fatal"
+type LogLevel = "debug" | "info" | "warn" | "error" | "fatal";
 ```
 
 Logs are buffered in memory (capacity: 100 entries) and flushed to Postgres every 5 seconds. `$cleanup()` drains the buffer to ensure no logs are lost.
@@ -692,8 +770,8 @@ Backed by [pg-boss](https://github.com/timgit/pg-boss) for topic-based publish/s
 
 ```ts
 interface PubSubConfig {
-  monitorStateIntervalSeconds?: number  // default: 30
-  schema?: string                        // pg-boss schema
+  monitorStateIntervalSeconds?: number; // default: 30
+  schema?: string; // pg-boss schema
 }
 ```
 
@@ -722,17 +800,17 @@ S3-compatible object storage with Postgres metadata tracking.
 
 ```ts
 interface StorageConfig {
-  bucket: string
-  prefix?: string
-  provider: StorageProvider
+  bucket: string;
+  prefix?: string;
+  provider: StorageProvider;
 }
 
 interface StorageProvider {
-  type: "s3"
-  endpoint: string
-  region: string
-  credentials: { accessKeyId: string; secretAccessKey: string }
-  forcePathStyle: boolean
+  type: "s3";
+  endpoint: string;
+  region: string;
+  credentials: { accessKeyId: string; secretAccessKey: string };
+  forcePathStyle: boolean;
 }
 ```
 
@@ -758,7 +836,7 @@ Type-safe API layer via [oRPC](https://orpc.unnoq.com).
 
 ```ts
 interface RpcConfig {
-  prefix?: string  // default: "/api/rpc"
+  prefix?: string; // default: "/api/rpc"
 }
 ```
 
@@ -770,6 +848,7 @@ platform.rpc.router  // oRPC router object
 ```
 
 Built-in procedures:
+
 - `echo` -- input: `{ message: string }`, returns `{ echo: string }`
 - `health.check` -- returns `{ status: "ok" }`
 
@@ -779,8 +858,8 @@ Redis-like key-value API over a Postgres table with TTL support.
 
 ```ts
 interface KvStoreConfig {
-  defaultTtl?: number    // default: 3600 (seconds)
-  keyPrefix?: string     // default: "" (no prefix)
+  defaultTtl?: number; // default: 3600 (seconds)
+  keyPrefix?: string; // default: "" (no prefix)
 }
 ```
 
@@ -796,6 +875,7 @@ platform.kvStore.clear(pattern?: string): Promise<void>
 ```
 
 Key behaviors:
+
 - **Lazy TTL eviction**: `get()` checks `expiresAt` and deletes expired entries, returning `null`.
 - **TTL of 0 or negative** means no expiration.
 - **Serialization**: Strings stored as-is; non-strings JSON-serialized. `get()` attempts JSON parse, falls back to raw string.
@@ -806,28 +886,28 @@ Key behaviors:
 
 The client framework (`@aspen-os/platform/client`) is for browser-side use with 3 units:
 
-| Unit | Description |
-|---|---|
+| Unit       | Description                                                                                                                                                                                       |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `AuthUnit` | Wraps `createAuthClient()` (better-auth React client) with plugins: `adminClient`, `usernameClient`, `passkeyClient`, `emailOTPClient`, `phoneNumberClient`, `organizationClient`, `apiKeyClient` |
-| `LogUnit` | Stub -- throws on `prepare()`/`destroy()` |
-| `RpcUnit` | Stub -- no-op |
+| `LogUnit`  | Stub -- throws on `prepare()`/`destroy()`                                                                                                                                                         |
+| `RpcUnit`  | Stub -- no-op                                                                                                                                                                                     |
 
 No `DatabaseUnit`, `PubSubUnit`, `StorageUnit`, or `KvStoreUnit` on the client. The client `Platform` has a `run(fn)` method that sets context (not AsyncLocalStorage — uses a module-level variable).
 
 ```ts
-import { Framework } from "@aspen-os/platform/client"
-import { createAccessControl } from "@aspen-os/platform/client"
+import { Framework } from "@aspen-os/platform/client";
+import { createAccessControl } from "@aspen-os/platform/client";
 
 const access_control = createAccessControl({
   organization: ["create", "read", "update", "delete"],
   branch: ["create", "read", "update", "delete"],
-})
+});
 
 const clientFramework = Framework.create({
   auth: { access_control, baseURL: "...", roles },
   logs: {},
   rpc: {},
-})
+});
 ```
 
 ## CLI
@@ -846,27 +926,27 @@ Dynamically imports the platform config file, reads the database config and sche
 Modules follow a strict pattern:
 
 ```ts
-import type { DatabaseUnit, PubSubUnit } from "@aspen-os/platform/server"
+import type { DatabaseUnit, PubSubUnit } from "@aspen-os/platform/server";
 
 export class XxxModule {
   static create(config: XxxModuleConfig): XxxModule {
-    return new XxxModule(config)
+    return new XxxModule(config);
   }
 
   constructor(private config: XxxModuleConfig) {}
 
-  readonly db_schema = dbSchema
-  readonly $name = "xxx"
+  readonly db_schema = dbSchema;
+  readonly $name = "xxx";
 
-  #workflow: XxxWorkflow | null = null
+  #workflow: XxxWorkflow | null = null;
 
   get workflow(): XxxWorkflow {
-    if (!this.#workflow) throw notInitialized()
-    return this.#workflow
+    if (!this.#workflow) throw notInitialized();
+    return this.#workflow;
   }
 
   $initialize(units: { db: DatabaseUnit; pubsub: PubSubUnit }): void {
-    this.#workflow = new XxxWorkflow(units.db.db)
+    this.#workflow = new XxxWorkflow(units.db.db);
   }
 
   async $prepare(): Promise<void> {
@@ -875,16 +955,17 @@ export class XxxModule {
 
   async $cleanup(): Promise<void> {
     // unregister handlers, null out private fields
-    this.#workflow = null
+    this.#workflow = null;
   }
 }
 
 function notInitialized(): Error {
-  return new Error("Xxx module not initialized. Call $initialize() after platform.create().")
+  return new Error("Xxx module not initialized. Call $initialize() after platform.create().");
 }
 ```
 
 Key conventions:
+
 - Static `create(config)` factory -- the only constructor pattern.
 - Private workflow fields with `#` prefix, initialized lazily in `$initialize(units)`.
 - Getter properties that throw `notInitialized()` if accessed before `$initialize()`.
@@ -898,13 +979,13 @@ Key conventions:
 `createAccessControl` is re-exported from `@aspen-os/platform/client` (originally from `better-auth/plugins/access`):
 
 ```ts
-import { createAccessControl } from "@aspen-os/platform/client"
+import { createAccessControl } from "@aspen-os/platform/client";
 
 const access_control = createAccessControl({
   organization: ["create", "read", "update", "delete"],
   branch: ["create", "read", "update", "delete"],
   file: ["create", "read", "delete"],
-})
+});
 
 const roles = {
   admin: access_control.newRole({
@@ -915,7 +996,7 @@ const roles = {
     organization: ["read"],
     branch: ["read"],
   }),
-}
+};
 ```
 
 On the server side, `access_control` and `roles` from `AuthConfig` are passed to the better-auth `admin()` plugin. Access control **enforcement** (checking permissions before performing operations) is not built into the platform's workflows -- it must be done at the application level (e.g., in RPC procedure middleware).
@@ -924,34 +1005,34 @@ On the server side, `access_control` and `roles` from `AuthConfig` are passed to
 
 ### Server types (`@aspen-os/platform/server`)
 
-| Type | Description |
-|---|---|
-| `Platform<M>` | The Platform class |
-| `PlatformInstance<M>` | Proxy-wrapped instance with unit + module accessors |
-| `PlatformConfig` | Config for all 7 required units |
-| `PlatformUnits` | Map of unit name to unit instance |
-| `Unit` | Server unit interface (`$name`, `$prepare`, `$cleanup`) |
-| `Module<N>` | Module interface (`$name`, `$initialize`, `$prepare`, `$prepareTenant`, `$cleanup`) |
-| `DatabaseConfig` | DB connection parameters |
-| `TenancyConfig` | Tenancy mode configuration (`single`, `shared`, `isolated`) |
-| `TenancyMode` | `"single" \\| "shared" \\| "isolated"` |
-| `TenantResolver` | Per-tenant DB config resolver (`resolve`, `list`) |
-| `AuthConfig` | Auth configuration |
-| `LogConfig` | Log configuration |
-| `PubSubConfig` | PubSub configuration |
-| `StorageConfig` | Storage configuration |
-| `RpcConfig` | RPC configuration |
-| `KvStoreConfig` | KV store configuration |
+| Type                  | Description                                                                         |
+| --------------------- | ----------------------------------------------------------------------------------- |
+| `Platform<M>`         | The Platform class                                                                  |
+| `PlatformInstance<M>` | Proxy-wrapped instance with unit + module accessors                                 |
+| `PlatformConfig`      | Config for all 7 required units                                                     |
+| `PlatformUnits`       | Map of unit name to unit instance                                                   |
+| `Unit`                | Server unit interface (`$name`, `$prepare`, `$cleanup`)                             |
+| `Module<N>`           | Module interface (`$name`, `$initialize`, `$prepare`, `$prepareTenant`, `$cleanup`) |
+| `DatabaseConfig`      | DB connection parameters                                                            |
+| `TenancyConfig`       | Tenancy mode configuration (`single`, `shared`, `isolated`)                         |
+| `TenancyMode`         | `"single" \\                                                                        | "shared" \\ | "isolated"` |
+| `TenantResolver`      | Per-tenant DB config resolver (`resolve`, `list`)                                   |
+| `AuthConfig`          | Auth configuration                                                                  |
+| `LogConfig`           | Log configuration                                                                   |
+| `PubSubConfig`        | PubSub configuration                                                                |
+| `StorageConfig`       | Storage configuration                                                               |
+| `RpcConfig`           | RPC configuration                                                                   |
+| `KvStoreConfig`       | KV store configuration                                                              |
 
 ### Client types (`@aspen-os/platform/client`)
 
-| Type | Description |
-|---|---|
-| `Framework<M>` | Client Framework class (3 units) |
-| `PlatformConfig` | Config for auth, logs, rpc |
+| Type               | Description                                         |
+| ------------------ | --------------------------------------------------- |
+| `Framework<M>`     | Client Framework class (3 units)                    |
+| `PlatformConfig`   | Config for auth, logs, rpc                          |
 | `PlatformInstance` | Proxy-wrapped instance with unit + module accessors |
-| `PlatformUnits` | Map of unit name to unit instance |
-| `Unit` | Client unit interface (same `# @aspen-os/platform
+| `PlatformUnits`    | Map of unit name to unit instance                   |
+| `Unit`             | Client unit interface (same `# @aspen-os/platform   |
 
 A composable business application framework for Bun/TypeScript. Provides seven infrastructure units (database, auth, logging, pub/sub, RPC, storage, KV store) and a module system so domain-specific business logic can be built on top without reinventing plumbing.
 
@@ -986,11 +1067,11 @@ A composable business application framework for Bun/TypeScript. Provides seven i
 
 The platform is split into three entry surfaces:
 
-| Surface | Path | Runtime |
-|---|---|---|
-| Server | `@aspen-os/platform/server` | Node/Bun |
-| Client | `@aspen-os/platform/client` | Browser |
-| CLI | `aspen` (bin) | Terminal |
+| Surface | Path                        | Runtime  |
+| ------- | --------------------------- | -------- |
+| Server  | `@aspen-os/platform/server` | Node/Bun |
+| Client  | `@aspen-os/platform/client` | Browser  |
+| CLI     | `aspen` (bin)               | Terminal |
 
 There is no root `.` export. Import from `@aspen-os/platform/server` or `@aspen-os/platform/client` explicitly.
 
@@ -1005,45 +1086,67 @@ The platform is an internal workspace package (`workspace:*`). It can be publish
 ## Quick Start
 
 ```ts
-import { Platform } from "@aspen-os/platform/server"
-import { OrganizationModule } from "@aspen-os/organization"
+import { Platform } from "@aspen-os/platform/server";
+import { OrganizationModule } from "@aspen-os/organization";
 
-const organization = OrganizationModule.create({ country: "INDIA" })
+const organization = OrganizationModule.create({ country: "INDIA" });
 
 const platform = Platform.create(
   {
-    db: { host: "localhost", port: 5432, user: "recruiter", password: "recruiter", database: "recruiter" },
-    auth: { access_control, roles, baseURL: "http://localhost:3000", secret: AUTH_SECRET, session: {}, cfSecretKey: CF_SECRET },
+    db: {
+      host: "localhost",
+      port: 5432,
+      user: "recruiter",
+      password: "recruiter",
+      database: "recruiter",
+    },
+    auth: {
+      access_control,
+      roles,
+      baseURL: "http://localhost:3000",
+      secret: AUTH_SECRET,
+      session: {},
+      cfSecretKey: CF_SECRET,
+    },
     logs: { serviceName: "recruiter", defaultLevel: "info" },
     pubsub: {},
     rpc: { prefix: "/api/rpc" },
-    storage: { bucket: "recruiter", provider: { type: "s3", endpoint: "http://localhost:8333", region: "us-east-1", credentials: { accessKeyId: "...", secretAccessKey: "..." }, forcePathStyle: true } },
+    storage: {
+      bucket: "recruiter",
+      provider: {
+        type: "s3",
+        endpoint: "http://localhost:8333",
+        region: "us-east-1",
+        credentials: { accessKeyId: "...", secretAccessKey: "..." },
+        forcePathStyle: true,
+      },
+    },
     kvStore: { defaultTtl: 3600 },
     tenancy: { mode: "single" },
   },
   { organization },
-)
+);
 
-await platform.prepare()
+await platform.prepare();
 
 await platform.run(async () => {
   // AsyncLocalStorage context provides { auth, db, pubsub, tenantId? }
   // db: drizzle NodePgDatabase instance
   // pubsub: PubSubUnit instance
-})
+});
 
-await platform.destroy()
+await platform.destroy();
 ```
 
 ## Tenancy
 
 The platform supports three tenancy architectures as a **config-time choice**. The developer picks one mode in `PlatformConfig.tenancy` and commits to it for the application's lifetime. The same module code works transparently across all three modes.
 
-| Mode | Databases | Isolation | Connection routing |
-|---|---|---|---|
-| **Single Tenant** | 1 | None needed | Static pool |
-| **Shared DB + RLS** | 1 (shared) | Postgres RLS policies | Per-request client + `SET LOCAL` |
-| **Isolated DB** | N+1 (control-plane + per-tenant) | Physical (separate DBs) | Per-tenant pool resolution |
+| Mode                | Databases                        | Isolation               | Connection routing               |
+| ------------------- | -------------------------------- | ----------------------- | -------------------------------- |
+| **Single Tenant**   | 1                                | None needed             | Static pool                      |
+| **Shared DB + RLS** | 1 (shared)                       | Postgres RLS policies   | Per-request client + `SET LOCAL` |
+| **Isolated DB**     | N+1 (control-plane + per-tenant) | Physical (separate DBs) | Per-tenant pool resolution       |
 
 ```ts
 // Single tenant
@@ -1066,10 +1169,14 @@ tenancy: {
 
 ```ts
 // Single-tenant mode
-await platform.run(async () => { /* db resolves to control-plane */ });
+await platform.run(async () => {
+  /* db resolves to control-plane */
+});
 
 // Multi-tenant modes
-await platform.run(tenantId, async () => { /* db resolves per-request/per-tenant */ });
+await platform.run(tenantId, async () => {
+  /* db resolves per-request/per-tenant */
+});
 ```
 
 ### Key Design Points
@@ -1109,9 +1216,9 @@ A **Unit** is an infrastructure building block. The server `Unit` interface:
 
 ```ts
 interface Unit {
-  readonly $name: string
-  $cleanup(): Promise<void>
-  $prepare?(): Promise<void>
+  readonly $name: string;
+  $cleanup(): Promise<void>;
+  $prepare?(): Promise<void>;
 }
 ```
 
@@ -1150,11 +1257,11 @@ A composable business application framework for Bun/TypeScript. Provides seven i
 
 The platform is split into three entry surfaces:
 
-| Surface | Path | Runtime |
-|---|---|---|
-| Server | `@aspen-os/platform/server` | Node/Bun |
-| Client | `@aspen-os/platform/client` | Browser |
-| CLI | `aspen` (bin) | Terminal |
+| Surface | Path                        | Runtime  |
+| ------- | --------------------------- | -------- |
+| Server  | `@aspen-os/platform/server` | Node/Bun |
+| Client  | `@aspen-os/platform/client` | Browser  |
+| CLI     | `aspen` (bin)               | Terminal |
 
 There is no root `.` export. Import from `@aspen-os/platform/server` or `@aspen-os/platform/client` explicitly.
 
@@ -1169,45 +1276,67 @@ The platform is an internal workspace package (`workspace:*`). It can be publish
 ## Quick Start
 
 ```ts
-import { Platform } from "@aspen-os/platform/server"
-import { OrganizationModule } from "@aspen-os/organization"
+import { Platform } from "@aspen-os/platform/server";
+import { OrganizationModule } from "@aspen-os/organization";
 
-const organization = OrganizationModule.create({ country: "INDIA" })
+const organization = OrganizationModule.create({ country: "INDIA" });
 
 const platform = Platform.create(
   {
-    db: { host: "localhost", port: 5432, user: "recruiter", password: "recruiter", database: "recruiter" },
-    auth: { access_control, roles, baseURL: "http://localhost:3000", secret: AUTH_SECRET, session: {}, cfSecretKey: CF_SECRET },
+    db: {
+      host: "localhost",
+      port: 5432,
+      user: "recruiter",
+      password: "recruiter",
+      database: "recruiter",
+    },
+    auth: {
+      access_control,
+      roles,
+      baseURL: "http://localhost:3000",
+      secret: AUTH_SECRET,
+      session: {},
+      cfSecretKey: CF_SECRET,
+    },
     logs: { serviceName: "recruiter", defaultLevel: "info" },
     pubsub: {},
     rpc: { prefix: "/api/rpc" },
-    storage: { bucket: "recruiter", provider: { type: "s3", endpoint: "http://localhost:8333", region: "us-east-1", credentials: { accessKeyId: "...", secretAccessKey: "..." }, forcePathStyle: true } },
+    storage: {
+      bucket: "recruiter",
+      provider: {
+        type: "s3",
+        endpoint: "http://localhost:8333",
+        region: "us-east-1",
+        credentials: { accessKeyId: "...", secretAccessKey: "..." },
+        forcePathStyle: true,
+      },
+    },
     kvStore: { defaultTtl: 3600 },
     tenancy: { mode: "single" },
   },
   { organization },
-)
+);
 
-await platform.prepare()
+await platform.prepare();
 
 await platform.run(async () => {
   // AsyncLocalStorage context provides { auth, db, pubsub, tenantId? }
   // db: drizzle NodePgDatabase instance
   // pubsub: PubSubUnit instance
-})
+});
 
-await platform.destroy()
+await platform.destroy();
 ```
 
 ## Tenancy
 
 The platform supports three tenancy architectures as a **config-time choice**. The developer picks one mode in `PlatformConfig.tenancy` and commits to it for the application's lifetime. The same module code works transparently across all three modes.
 
-| Mode | Databases | Isolation | Connection routing |
-|---|---|---|---|
-| **Single Tenant** | 1 | None needed | Static pool |
-| **Shared DB + RLS** | 1 (shared) | Postgres RLS policies | Per-request client + `SET LOCAL` |
-| **Isolated DB** | N+1 (control-plane + per-tenant) | Physical (separate DBs) | Per-tenant pool resolution |
+| Mode                | Databases                        | Isolation               | Connection routing               |
+| ------------------- | -------------------------------- | ----------------------- | -------------------------------- |
+| **Single Tenant**   | 1                                | None needed             | Static pool                      |
+| **Shared DB + RLS** | 1 (shared)                       | Postgres RLS policies   | Per-request client + `SET LOCAL` |
+| **Isolated DB**     | N+1 (control-plane + per-tenant) | Physical (separate DBs) | Per-tenant pool resolution       |
 
 ```ts
 // Single tenant
@@ -1230,10 +1359,14 @@ tenancy: {
 
 ```ts
 // Single-tenant mode
-await platform.run(async () => { /* db resolves to control-plane */ });
+await platform.run(async () => {
+  /* db resolves to control-plane */
+});
 
 // Multi-tenant modes
-await platform.run(tenantId, async () => { /* db resolves per-request/per-tenant */ });
+await platform.run(tenantId, async () => {
+  /* db resolves per-request/per-tenant */
+});
 ```
 
 ### Key Design Points
@@ -1273,13 +1406,13 @@ A **Unit** is an infrastructure building block. The server `Unit` interface:
 
 ```ts
 interface Unit {
-  readonly $name: string
-  $cleanup(): Promise<void>
-  $prepare?(): Promise<void>
+  readonly $name: string;
+  $cleanup(): Promise<void>;
+  $prepare?(): Promise<void>;
 }
 ```
 
- prefix for lifecycle methods (`$name`, `$prepare`, `$cleanup`) to avoid collisions with the unit's own public API. Client units use the same `# @aspen-os/platform
+prefix for lifecycle methods (`$name`, `$prepare`, `$cleanup`) to avoid collisions with the unit's own public API. Client units use the same `# @aspen-os/platform
 
 A composable business application framework for Bun/TypeScript. Provides seven infrastructure units (database, auth, logging, pub/sub, RPC, storage, KV store) and a module system so domain-specific business logic can be built on top without reinventing plumbing.
 
@@ -1314,11 +1447,11 @@ A composable business application framework for Bun/TypeScript. Provides seven i
 
 The platform is split into three entry surfaces:
 
-| Surface | Path | Runtime |
-|---|---|---|
-| Server | `@aspen-os/platform/server` | Node/Bun |
-| Client | `@aspen-os/platform/client` | Browser |
-| CLI | `aspen` (bin) | Terminal |
+| Surface | Path                        | Runtime  |
+| ------- | --------------------------- | -------- |
+| Server  | `@aspen-os/platform/server` | Node/Bun |
+| Client  | `@aspen-os/platform/client` | Browser  |
+| CLI     | `aspen` (bin)               | Terminal |
 
 There is no root `.` export. Import from `@aspen-os/platform/server` or `@aspen-os/platform/client` explicitly.
 
@@ -1333,45 +1466,67 @@ The platform is an internal workspace package (`workspace:*`). It can be publish
 ## Quick Start
 
 ```ts
-import { Platform } from "@aspen-os/platform/server"
-import { OrganizationModule } from "@aspen-os/organization"
+import { Platform } from "@aspen-os/platform/server";
+import { OrganizationModule } from "@aspen-os/organization";
 
-const organization = OrganizationModule.create({ country: "INDIA" })
+const organization = OrganizationModule.create({ country: "INDIA" });
 
 const platform = Platform.create(
   {
-    db: { host: "localhost", port: 5432, user: "recruiter", password: "recruiter", database: "recruiter" },
-    auth: { access_control, roles, baseURL: "http://localhost:3000", secret: AUTH_SECRET, session: {}, cfSecretKey: CF_SECRET },
+    db: {
+      host: "localhost",
+      port: 5432,
+      user: "recruiter",
+      password: "recruiter",
+      database: "recruiter",
+    },
+    auth: {
+      access_control,
+      roles,
+      baseURL: "http://localhost:3000",
+      secret: AUTH_SECRET,
+      session: {},
+      cfSecretKey: CF_SECRET,
+    },
     logs: { serviceName: "recruiter", defaultLevel: "info" },
     pubsub: {},
     rpc: { prefix: "/api/rpc" },
-    storage: { bucket: "recruiter", provider: { type: "s3", endpoint: "http://localhost:8333", region: "us-east-1", credentials: { accessKeyId: "...", secretAccessKey: "..." }, forcePathStyle: true } },
+    storage: {
+      bucket: "recruiter",
+      provider: {
+        type: "s3",
+        endpoint: "http://localhost:8333",
+        region: "us-east-1",
+        credentials: { accessKeyId: "...", secretAccessKey: "..." },
+        forcePathStyle: true,
+      },
+    },
     kvStore: { defaultTtl: 3600 },
     tenancy: { mode: "single" },
   },
   { organization },
-)
+);
 
-await platform.prepare()
+await platform.prepare();
 
 await platform.run(async () => {
   // AsyncLocalStorage context provides { auth, db, pubsub, tenantId? }
   // db: drizzle NodePgDatabase instance
   // pubsub: PubSubUnit instance
-})
+});
 
-await platform.destroy()
+await platform.destroy();
 ```
 
 ## Tenancy
 
 The platform supports three tenancy architectures as a **config-time choice**. The developer picks one mode in `PlatformConfig.tenancy` and commits to it for the application's lifetime. The same module code works transparently across all three modes.
 
-| Mode | Databases | Isolation | Connection routing |
-|---|---|---|---|
-| **Single Tenant** | 1 | None needed | Static pool |
-| **Shared DB + RLS** | 1 (shared) | Postgres RLS policies | Per-request client + `SET LOCAL` |
-| **Isolated DB** | N+1 (control-plane + per-tenant) | Physical (separate DBs) | Per-tenant pool resolution |
+| Mode                | Databases                        | Isolation               | Connection routing               |
+| ------------------- | -------------------------------- | ----------------------- | -------------------------------- |
+| **Single Tenant**   | 1                                | None needed             | Static pool                      |
+| **Shared DB + RLS** | 1 (shared)                       | Postgres RLS policies   | Per-request client + `SET LOCAL` |
+| **Isolated DB**     | N+1 (control-plane + per-tenant) | Physical (separate DBs) | Per-tenant pool resolution       |
 
 ```ts
 // Single tenant
@@ -1394,10 +1549,14 @@ tenancy: {
 
 ```ts
 // Single-tenant mode
-await platform.run(async () => { /* db resolves to control-plane */ });
+await platform.run(async () => {
+  /* db resolves to control-plane */
+});
 
 // Multi-tenant modes
-await platform.run(tenantId, async () => { /* db resolves per-request/per-tenant */ });
+await platform.run(tenantId, async () => {
+  /* db resolves per-request/per-tenant */
+});
 ```
 
 ### Key Design Points
@@ -1437,13 +1596,13 @@ A **Unit** is an infrastructure building block. The server `Unit` interface:
 
 ```ts
 interface Unit {
-  readonly $name: string
-  $cleanup(): Promise<void>
-  $prepare?(): Promise<void>
+  readonly $name: string;
+  $cleanup(): Promise<void>;
+  $prepare?(): Promise<void>;
 }
 ```
 
- prefix — both interfaces are identical.
+prefix — both interfaces are identical.
 
 Seven core units are required: `db`, `auth`, `logs`, `pubsub`, `rpc`, `storage`, `kvStore`.
 
@@ -1453,11 +1612,11 @@ A **Module** is a business logic plugin. The `Module` interface:
 
 ```ts
 interface Module<N extends string = string> {
-  readonly $name: N
-  $initialize?(units: Record<string, Unit>): void
-  $prepare?(): Promise<void>
-  $prepareTenant?(tenantId: string): Promise<void>  // isolated mode
-  $cleanup(): Promise<void>
+  readonly $name: N;
+  $initialize?(units: Record<string, Unit>): void;
+  $prepare?(): Promise<void>;
+  $prepareTenant?(tenantId: string): Promise<void>; // isolated mode
+  $cleanup(): Promise<void>;
 }
 ```
 
@@ -1499,15 +1658,15 @@ All seven units are required:
 
 ```ts
 type PlatformConfig = {
-  auth: AuthConfig
-  db: DatabaseConfig
-  kvStore: KvStoreConfig
-  logs: LogConfig
-  pubsub: PubSubConfig
-  rpc: RpcConfig
-  storage: StorageConfig
-  tenancy: TenancyConfig
-}
+  auth: AuthConfig;
+  db: DatabaseConfig;
+  kvStore: KvStoreConfig;
+  logs: LogConfig;
+  pubsub: PubSubConfig;
+  rpc: RpcConfig;
+  storage: StorageConfig;
+  tenancy: TenancyConfig;
+};
 ```
 
 All seven units are required, plus a `tenancy` config that selects the tenancy mode.
@@ -1516,15 +1675,15 @@ All seven units are required, plus a `tenancy` config that selects the tenancy m
 
 Units are instantiated in dependency order inside `Platform.create()`:
 
-| Unit | Class | Injected Deps | $name |
-|---|---|---|---|
-| `db` | `DatabaseUnit` | -- | `"db"` |
-| `logs` | `LogUnit` | `{ db }` | `"logs"` |
-| `pubsub` | `PubSubUnit` | `{ db }` | `"pubsub"` |
-| `auth` | `AuthUnit` | `{ db }` | `"auth"` |
-| `storage` | `StorageUnit` | `{ db }` | `"storage"` |
-| `kvStore` | `KvStoreUnit` | `{ db }` | `"kvStore"` |
-| `rpc` | `RpcUnit` | `{ auth, db, logs, pubsub }` | `"rpc"` |
+| Unit      | Class          | Injected Deps                | $name       |
+| --------- | -------------- | ---------------------------- | ----------- |
+| `db`      | `DatabaseUnit` | --                           | `"db"`      |
+| `logs`    | `LogUnit`      | `{ db }`                     | `"logs"`    |
+| `pubsub`  | `PubSubUnit`   | `{ db }`                     | `"pubsub"`  |
+| `auth`    | `AuthUnit`     | `{ db }`                     | `"auth"`    |
+| `storage` | `StorageUnit`  | `{ db }`                     | `"storage"` |
+| `kvStore` | `KvStoreUnit`  | `{ db }`                     | `"kvStore"` |
+| `rpc`     | `RpcUnit`      | `{ auth, db, logs, pubsub }` | `"rpc"`     |
 
 ### DatabaseUnit
 
@@ -1532,14 +1691,14 @@ Owns a control-plane `pg.Pool` and a drizzle `NodePgDatabase` instance. In isola
 
 ```ts
 type DatabaseConfig = {
-  database: string
-  host: string
-  port: number
-  user: string
-  password: string
-  ssl?: boolean
-  maxConnections?: number  // default: 20
-}
+  database: string;
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  ssl?: boolean;
+  maxConnections?: number; // default: 20
+};
 ```
 
 The `db` config is always the **control-plane** database. In single/RLS mode, this IS the app database. In isolated mode, this is the control-plane database; per-tenant DBs are resolved by the `TenantResolver`.
@@ -1550,16 +1709,16 @@ The `db` config is always the **control-plane** database. In single/RLS mode, th
 
 ```ts
 // Access
-platform.db.db               // stable wrapper (Proxy) — resolves per-request via AsyncLocalStorage
-platform.db.controlPlaneDb    // drizzle NodePgDatabase — control-plane connection
-platform.db.pool              // pg.Pool — control-plane connection pool
-platform.db.config            // DatabaseConfig
-platform.db.tenancyMode       // "single" | "shared" | "isolated"
-platform.db.getSchemas()      // merged core schemas
+platform.db.db; // stable wrapper (Proxy) — resolves per-request via AsyncLocalStorage
+platform.db.controlPlaneDb; // drizzle NodePgDatabase — control-plane connection
+platform.db.pool; // pg.Pool — control-plane connection pool
+platform.db.config; // DatabaseConfig
+platform.db.tenancyMode; // "single" | "shared" | "isolated"
+platform.db.getSchemas(); // merged core schemas
 
 // Per-tenant (isolated mode)
-platform.db.getTenantDb(tenantId)                    // Promise<NodePgDatabase>
-platform.db.pushSchemasToTenant(tenantId, schemas)   // provisioning
+platform.db.getTenantDb(tenantId); // Promise<NodePgDatabase>
+platform.db.pushSchemasToTenant(tenantId, schemas); // provisioning
 ```
 
 ### AuthUnit
@@ -1568,15 +1727,15 @@ Wraps [better-auth](https://www.better-auth.com) with plugins: `admin`, `usernam
 
 ```ts
 interface AuthConfig {
-  access_control: ReturnType<typeof createAccessControl>
-  baseURL: string
-  secret: string
-  cfSecretKey?: string
-  session: { expiresIn?: number }
-  roles: Record<string, Role>
+  access_control: ReturnType<typeof createAccessControl>;
+  baseURL: string;
+  secret: string;
+  cfSecretKey?: string;
+  session: { expiresIn?: number };
+  roles: Record<string, Role>;
   socialProviders?: {
-    google?: { clientId: string; clientSecret: string; redirectURI?: string }
-  }
+    google?: { clientId: string; clientSecret: string; redirectURI?: string };
+  };
 }
 ```
 
@@ -1617,11 +1776,11 @@ Provides structured logging with buffered writes to a Postgres `logs` table. Log
 
 ```ts
 interface LogConfig {
-  defaultLevel?: LogLevel  // default: "info"
-  serviceName?: string    // default: "app"
+  defaultLevel?: LogLevel; // default: "info"
+  serviceName?: string; // default: "app"
 }
 
-type LogLevel = "debug" | "info" | "warn" | "error" | "fatal"
+type LogLevel = "debug" | "info" | "warn" | "error" | "fatal";
 ```
 
 Logs are buffered in memory (capacity: 100 entries) and flushed to Postgres every 5 seconds. `$cleanup()` drains the buffer to ensure no logs are lost.
@@ -1645,8 +1804,8 @@ Backed by [pg-boss](https://github.com/timgit/pg-boss) for topic-based publish/s
 
 ```ts
 interface PubSubConfig {
-  monitorStateIntervalSeconds?: number  // default: 30
-  schema?: string                        // pg-boss schema
+  monitorStateIntervalSeconds?: number; // default: 30
+  schema?: string; // pg-boss schema
 }
 ```
 
@@ -1675,17 +1834,17 @@ S3-compatible object storage with Postgres metadata tracking.
 
 ```ts
 interface StorageConfig {
-  bucket: string
-  prefix?: string
-  provider: StorageProvider
+  bucket: string;
+  prefix?: string;
+  provider: StorageProvider;
 }
 
 interface StorageProvider {
-  type: "s3"
-  endpoint: string
-  region: string
-  credentials: { accessKeyId: string; secretAccessKey: string }
-  forcePathStyle: boolean
+  type: "s3";
+  endpoint: string;
+  region: string;
+  credentials: { accessKeyId: string; secretAccessKey: string };
+  forcePathStyle: boolean;
 }
 ```
 
@@ -1711,7 +1870,7 @@ Type-safe API layer via [oRPC](https://orpc.unnoq.com).
 
 ```ts
 interface RpcConfig {
-  prefix?: string  // default: "/api/rpc"
+  prefix?: string; // default: "/api/rpc"
 }
 ```
 
@@ -1723,6 +1882,7 @@ platform.rpc.router  // oRPC router object
 ```
 
 Built-in procedures:
+
 - `echo` -- input: `{ message: string }`, returns `{ echo: string }`
 - `health.check` -- returns `{ status: "ok" }`
 
@@ -1732,8 +1892,8 @@ Redis-like key-value API over a Postgres table with TTL support.
 
 ```ts
 interface KvStoreConfig {
-  defaultTtl?: number    // default: 3600 (seconds)
-  keyPrefix?: string     // default: "" (no prefix)
+  defaultTtl?: number; // default: 3600 (seconds)
+  keyPrefix?: string; // default: "" (no prefix)
 }
 ```
 
@@ -1749,6 +1909,7 @@ platform.kvStore.clear(pattern?: string): Promise<void>
 ```
 
 Key behaviors:
+
 - **Lazy TTL eviction**: `get()` checks `expiresAt` and deletes expired entries, returning `null`.
 - **TTL of 0 or negative** means no expiration.
 - **Serialization**: Strings stored as-is; non-strings JSON-serialized. `get()` attempts JSON parse, falls back to raw string.
@@ -1759,28 +1920,28 @@ Key behaviors:
 
 The client framework (`@aspen-os/platform/client`) is for browser-side use with 3 units:
 
-| Unit | Description |
-|---|---|
+| Unit       | Description                                                                                                                                                                                       |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `AuthUnit` | Wraps `createAuthClient()` (better-auth React client) with plugins: `adminClient`, `usernameClient`, `passkeyClient`, `emailOTPClient`, `phoneNumberClient`, `organizationClient`, `apiKeyClient` |
-| `LogUnit` | Stub -- throws on `prepare()`/`destroy()` |
-| `RpcUnit` | Stub -- no-op |
+| `LogUnit`  | Stub -- throws on `prepare()`/`destroy()`                                                                                                                                                         |
+| `RpcUnit`  | Stub -- no-op                                                                                                                                                                                     |
 
 No `DatabaseUnit`, `PubSubUnit`, `StorageUnit`, or `KvStoreUnit` on the client. The client `Platform` has a `run(fn)` method that sets context (not AsyncLocalStorage — uses a module-level variable).
 
 ```ts
-import { Framework } from "@aspen-os/platform/client"
-import { createAccessControl } from "@aspen-os/platform/client"
+import { Framework } from "@aspen-os/platform/client";
+import { createAccessControl } from "@aspen-os/platform/client";
 
 const access_control = createAccessControl({
   organization: ["create", "read", "update", "delete"],
   branch: ["create", "read", "update", "delete"],
-})
+});
 
 const clientFramework = Framework.create({
   auth: { access_control, baseURL: "...", roles },
   logs: {},
   rpc: {},
-})
+});
 ```
 
 ## CLI
@@ -1799,27 +1960,27 @@ Dynamically imports the platform config file, reads the database config and sche
 Modules follow a strict pattern:
 
 ```ts
-import type { DatabaseUnit, PubSubUnit } from "@aspen-os/platform/server"
+import type { DatabaseUnit, PubSubUnit } from "@aspen-os/platform/server";
 
 export class XxxModule {
   static create(config: XxxModuleConfig): XxxModule {
-    return new XxxModule(config)
+    return new XxxModule(config);
   }
 
   constructor(private config: XxxModuleConfig) {}
 
-  readonly db_schema = dbSchema
-  readonly $name = "xxx"
+  readonly db_schema = dbSchema;
+  readonly $name = "xxx";
 
-  #workflow: XxxWorkflow | null = null
+  #workflow: XxxWorkflow | null = null;
 
   get workflow(): XxxWorkflow {
-    if (!this.#workflow) throw notInitialized()
-    return this.#workflow
+    if (!this.#workflow) throw notInitialized();
+    return this.#workflow;
   }
 
   $initialize(units: { db: DatabaseUnit; pubsub: PubSubUnit }): void {
-    this.#workflow = new XxxWorkflow(units.db.db)
+    this.#workflow = new XxxWorkflow(units.db.db);
   }
 
   async $prepare(): Promise<void> {
@@ -1828,16 +1989,17 @@ export class XxxModule {
 
   async $cleanup(): Promise<void> {
     // unregister handlers, null out private fields
-    this.#workflow = null
+    this.#workflow = null;
   }
 }
 
 function notInitialized(): Error {
-  return new Error("Xxx module not initialized. Call $initialize() after platform.create().")
+  return new Error("Xxx module not initialized. Call $initialize() after platform.create().");
 }
 ```
 
 Key conventions:
+
 - Static `create(config)` factory -- the only constructor pattern.
 - Private workflow fields with `#` prefix, initialized lazily in `$initialize(units)`.
 - Getter properties that throw `notInitialized()` if accessed before `$initialize()`.
@@ -1851,13 +2013,13 @@ Key conventions:
 `createAccessControl` is re-exported from `@aspen-os/platform/client` (originally from `better-auth/plugins/access`):
 
 ```ts
-import { createAccessControl } from "@aspen-os/platform/client"
+import { createAccessControl } from "@aspen-os/platform/client";
 
 const access_control = createAccessControl({
   organization: ["create", "read", "update", "delete"],
   branch: ["create", "read", "update", "delete"],
   file: ["create", "read", "delete"],
-})
+});
 
 const roles = {
   admin: access_control.newRole({
@@ -1868,7 +2030,7 @@ const roles = {
     organization: ["read"],
     branch: ["read"],
   }),
-}
+};
 ```
 
 On the server side, `access_control` and `roles` from `AuthConfig` are passed to the better-auth `admin()` plugin. Access control **enforcement** (checking permissions before performing operations) is not built into the platform's workflows -- it must be done at the application level (e.g., in RPC procedure middleware).
@@ -1877,28 +2039,28 @@ On the server side, `access_control` and `roles` from `AuthConfig` are passed to
 
 ### Server types (`@aspen-os/platform/server`)
 
-| Type | Description |
-|---|---|
-| `Platform<M>` | The Platform class |
-| `PlatformInstance<M>` | Proxy-wrapped instance with unit + module accessors |
-| `PlatformConfig` | Config for all 7 required units |
-| `PlatformUnits` | Map of unit name to unit instance |
-| `Unit` | Server unit interface (`$name`, `$prepare`, `$cleanup`) |
-| `Module<N>` | Module interface (`$name`, `$initialize`, `$prepare`, `$prepareTenant`, `$cleanup`) |
-| `DatabaseConfig` | DB connection parameters |
-| `TenancyConfig` | Tenancy mode configuration (`single`, `shared`, `isolated`) |
-| `TenancyMode` | `"single" \\| "shared" \\| "isolated"` |
-| `TenantResolver` | Per-tenant DB config resolver (`resolve`, `list`) |
-| `AuthConfig` | Auth configuration |
-| `LogConfig` | Log configuration |
-| `PubSubConfig` | PubSub configuration |
-| `StorageConfig` | Storage configuration |
-| `RpcConfig` | RPC configuration |
-| `KvStoreConfig` | KV store configuration |
+| Type                  | Description                                                                         |
+| --------------------- | ----------------------------------------------------------------------------------- |
+| `Platform<M>`         | The Platform class                                                                  |
+| `PlatformInstance<M>` | Proxy-wrapped instance with unit + module accessors                                 |
+| `PlatformConfig`      | Config for all 7 required units                                                     |
+| `PlatformUnits`       | Map of unit name to unit instance                                                   |
+| `Unit`                | Server unit interface (`$name`, `$prepare`, `$cleanup`)                             |
+| `Module<N>`           | Module interface (`$name`, `$initialize`, `$prepare`, `$prepareTenant`, `$cleanup`) |
+| `DatabaseConfig`      | DB connection parameters                                                            |
+| `TenancyConfig`       | Tenancy mode configuration (`single`, `shared`, `isolated`)                         |
+| `TenancyMode`         | `"single" \\                                                                        | "shared" \\ | "isolated"` |
+| `TenantResolver`      | Per-tenant DB config resolver (`resolve`, `list`)                                   |
+| `AuthConfig`          | Auth configuration                                                                  |
+| `LogConfig`           | Log configuration                                                                   |
+| `PubSubConfig`        | PubSub configuration                                                                |
+| `StorageConfig`       | Storage configuration                                                               |
+| `RpcConfig`           | RPC configuration                                                                   |
+| `KvStoreConfig`       | KV store configuration                                                              |
 
 ### Client types (`@aspen-os/platform/client`)
 
- prefix as server) |
+prefix as server) |
 | `Module<N>` | Same as server |
 | `AuthClient` | better-auth client type |
 | `AuthUnit` | Client auth unit (wraps better-auth React client) |

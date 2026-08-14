@@ -8,11 +8,7 @@ import { IdSchema } from "../../types";
 export const fetchViewStep = WorkflowStep.name("dms-fetch-view")
   .input(object({ id: IdSchema }))
   .handler(async (input, ctx) => {
-    const [view] = await ctx.db
-      .select()
-      .from(dmsView)
-      .where(eq(dmsView.id, input.id))
-      .limit(1);
+    const [view] = await ctx.db.select().from(dmsView).where(eq(dmsView.id, input.id)).limit(1);
 
     if (!view) {
       throw new Error(`View with id "${input.id}" not found.`);

@@ -12,11 +12,7 @@ import {
   string,
 } from "valibot";
 
-import {
-  ConnectionNoteTypeSchema,
-  ConnectionStatusSchema,
-  ConnectionTypeSchema,
-} from "./enums";
+import { ConnectionNoteTypeSchema, ConnectionStatusSchema, ConnectionTypeSchema } from "./enums";
 
 export const CreateConnectionSchema = object({
   address: optional(nullable(string())),
@@ -82,9 +78,7 @@ export const CreateConnectionContactSchema = object({
   title: optional(nullable(string())),
 });
 
-export type CreateConnectionContactInput = InferOutput<
-  typeof CreateConnectionContactSchema
->;
+export type CreateConnectionContactInput = InferOutput<typeof CreateConnectionContactSchema>;
 
 export const UpdateConnectionContactSchema = object({
   email: optional(nullable(string())),
@@ -95,9 +89,7 @@ export const UpdateConnectionContactSchema = object({
   title: optional(nullable(string())),
 });
 
-export type UpdateConnectionContactInput = InferOutput<
-  typeof UpdateConnectionContactSchema
->;
+export type UpdateConnectionContactInput = InferOutput<typeof UpdateConnectionContactSchema>;
 
 export const CreateConnectionNoteSchema = object({
   connectionId: pipe(string(), minLength(1, "connectionId is required")),
@@ -106,6 +98,4 @@ export const CreateConnectionNoteSchema = object({
   userId: pipe(string(), minLength(1, "userId is required")),
 });
 
-export type CreateConnectionNoteInput = InferOutput<
-  typeof CreateConnectionNoteSchema
->;
+export type CreateConnectionNoteInput = InferOutput<typeof CreateConnectionNoteSchema>;

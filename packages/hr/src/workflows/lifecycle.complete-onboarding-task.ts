@@ -9,9 +9,7 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const completeOnboardingTask = Workflow.name(
-  "hr.lifecycle.complete-onboarding-task",
-)
+export const completeOnboardingTask = Workflow.name("hr.lifecycle.complete-onboarding-task")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, completedBy } = input;

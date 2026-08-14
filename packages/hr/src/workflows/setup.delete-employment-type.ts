@@ -8,9 +8,7 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const deleteEmploymentType = Workflow.name(
-  "hr.setup.delete-employment-type",
-)
+export const deleteEmploymentType = Workflow.name("hr.setup.delete-employment-type")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id } = input;

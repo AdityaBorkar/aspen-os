@@ -12,14 +12,9 @@ const ListSchema = object({
 
 export const listItemPublicLinks = Workflow.name("dms.public-link.list")
   .input(ListSchema)
-  .handler(async ({ itemId, itemType }, ctx) => {
-    return ctx.db
+  .handler(async ({ itemId, itemType }, ctx) =>
+    ctx.db
       .select()
       .from(dmsPublicLink)
-      .where(
-        and(
-          eq(dmsPublicLink.itemId, itemId),
-          eq(dmsPublicLink.itemType, itemType),
-        ),
-      );
-  });
+      .where(and(eq(dmsPublicLink.itemId, itemId), eq(dmsPublicLink.itemType, itemType))),
+  );

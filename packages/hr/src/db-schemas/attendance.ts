@@ -23,9 +23,7 @@ export const attendance = pgTable(
     attendanceRequest: text("attendance_request"),
     checkInTime: timestamp("check_in_time", { withTimezone: true }),
     checkOutTime: timestamp("check_out_time", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     date: date("date").notNull(),
     earlyExit: boolean("early_exit").notNull().default(false),
     earlyExitMinutes: integer("early_exit_minutes").notNull().default(0),
@@ -39,9 +37,7 @@ export const attendance = pgTable(
     notes: text("notes"),
     shift: text("shift"),
     status: attendanceStatusEnum("status").notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     workingHours: text("working_hours"),
   },
   (table) => [
@@ -55,9 +51,7 @@ export const attendanceRequest = pgTable(
   {
     approvedAt: timestamp("approved_at", { withTimezone: true }),
     approvedBy: text("approved_by"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     employeeId: text("employee_id").notNull(),
     fromDate: date("from_date").notNull(),
     id: text("id").primaryKey().$defaultFn(uuidv7),
@@ -67,9 +61,7 @@ export const attendanceRequest = pgTable(
     rejectionReason: text("rejection_reason"),
     status: attendanceRequestStatusEnum("status").notNull().default("pending"),
     toDate: date("to_date").notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_attendance_request_employee_id").on(table.employeeId),
@@ -82,9 +74,7 @@ export const compensatoryLeaveRequest = pgTable(
   {
     approvedAt: timestamp("approved_at", { withTimezone: true }),
     approvedBy: text("approved_by"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     employeeId: text("employee_id").notNull(),
     id: text("id").primaryKey().$defaultFn(uuidv7),
     leaveAllocation: text("leave_allocation"),
@@ -95,9 +85,7 @@ export const compensatoryLeaveRequest = pgTable(
     rejectedBy: text("rejected_by"),
     rejectionReason: text("rejection_reason"),
     status: compensatoryLeaveStatusEnum("status").notNull().default("pending"),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     workDate: date("work_date").notNull(),
   },
   (table) => [

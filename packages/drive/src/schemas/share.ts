@@ -10,11 +10,7 @@ import {
   string,
 } from "valibot";
 
-import {
-  DriveGranteeTypeSchema,
-  DriveItemTypeSchema,
-  DrivePermissionSchema,
-} from "./enums";
+import { DriveGranteeTypeSchema, DriveItemTypeSchema, DrivePermissionSchema } from "./enums";
 
 export const CreateShareSchema = object({
   expiresAt: optional(nullable(date())),
@@ -40,6 +36,4 @@ export const ListSharedWithMeOptionsSchema = object({
   offset: optional(number(), 0),
 });
 
-export type ListSharedWithMeOptions = InferOutput<
-  typeof ListSharedWithMeOptionsSchema
->;
+export type ListSharedWithMeOptions = InferOutput<typeof ListSharedWithMeOptionsSchema>;

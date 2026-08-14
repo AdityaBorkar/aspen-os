@@ -16,8 +16,12 @@ export const restoreFromTrash = Workflow.name("drive.trash.restore")
         .from(driveFolder)
         .where(eq(driveFolder.id, id))
         .limit(1);
-      if (!folder) throw new Error(`Folder with id "${id}" not found.`);
-      if (!folder.isTrashed) throw new Error(`Folder "${id}" is not in trash.`);
+      if (!folder) {
+        throw new Error(`Folder with id "${id}" not found.`);
+      }
+      if (!folder.isTrashed) {
+        throw new Error(`Folder "${id}" is not in trash.`);
+      }
 
       if (folder.parentId) {
         const [parent] = await ctx.db
@@ -46,13 +50,13 @@ export const restoreFromTrash = Workflow.name("drive.trash.restore")
       return updated;
     }
 
-    const [file] = await ctx.db
-      .select()
-      .from(driveFile)
-      .where(eq(driveFile.id, id))
-      .limit(1);
-    if (!file) throw new Error(`File with id "${id}" not found.`);
-    if (!file.isTrashed) throw new Error(`File "${id}" is not in trash.`);
+    const [file] = await ctx.db.select().from(driveFile).where(eq(driveFile.id, id)).limit(1);
+    if (!file) {
+      throw new Error(`File with id "${id}" not found.`);
+    }
+    if (!file.isTrashed) {
+      throw new Error(`File "${id}" is not in trash.`);
+    }
 
     if (file.folderId) {
       const [folder] = await ctx.db

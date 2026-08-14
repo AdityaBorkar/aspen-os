@@ -6,6 +6,4 @@ import { fetchCommentStep } from "./steps/fetch-comment";
 
 export const getComment = Workflow.name("comment.get")
   .input(object({ id: IdSchema }))
-  .handler(async ({ id }, ctx) => {
-    return ctx.step.run(fetchCommentStep, { id });
-  });
+  .handler(async ({ id }, ctx) => ctx.step.run(fetchCommentStep, { id }));

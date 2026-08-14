@@ -2,9 +2,9 @@ import { apiKeyClient } from "@better-auth/api-key/client";
 import { passkeyClient } from "@better-auth/passkey/client";
 import {
   adminClient,
-  // captchaClient,
+  // CaptchaClient,
   emailOTPClient,
-  // lastLoginMethodClient,
+  // LastLoginMethodClient,
   organizationClient,
   phoneNumberClient,
   twoFactorClient,
@@ -49,9 +49,9 @@ export class AuthUnit implements Unit<AuthConfig> {
         phoneNumberClient(),
         emailOTPClient(),
         apiKeyClient(),
-        // lastLoginMethodClient(),
+        // LastLoginMethodClient(),
         twoFactorClient(),
-        // captchaClient(),
+        // CaptchaClient(),
         passkeyClient(),
       ],
     });

@@ -9,9 +9,7 @@ const InputSchema = object({
   filters: optional(ExitInterviewFiltersSchema),
 });
 
-export const listExitInterviews = Workflow.name(
-  "hr.lifecycle.list-exit-interviews",
-)
+export const listExitInterviews = Workflow.name("hr.lifecycle.list-exit-interviews")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { filters } = input;

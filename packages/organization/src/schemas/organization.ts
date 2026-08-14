@@ -1,11 +1,4 @@
-import {
-  date,
-  type InferOutput,
-  nullable,
-  object,
-  optional,
-  string,
-} from "valibot";
+import { date, type InferOutput, nullable, object, optional, string } from "valibot";
 
 import { OrganizationStatusSchema } from "./enums";
 import { AccentColorSchema, NameSchema, SlugSchema } from "./utils";
@@ -27,9 +20,7 @@ export const CreateOrganizationSchema = object({
   website: optional(nullable(string())),
 });
 
-export type CreateOrganizationInput = InferOutput<
-  typeof CreateOrganizationSchema
->;
+export type CreateOrganizationInput = InferOutput<typeof CreateOrganizationSchema>;
 
 export const UpdateOrganizationSchema = object({
   accentColor: optional(AccentColorSchema),
@@ -50,9 +41,7 @@ export const UpdateOrganizationSchema = object({
   website: optional(nullable(string())),
 });
 
-export type UpdateOrganizationInput = InferOutput<
-  typeof UpdateOrganizationSchema
->;
+export type UpdateOrganizationInput = InferOutput<typeof UpdateOrganizationSchema>;
 
 export const UpdateBrandingSchema = object({
   accentColor: optional(AccentColorSchema),

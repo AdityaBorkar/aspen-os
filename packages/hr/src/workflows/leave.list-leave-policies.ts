@@ -7,6 +7,4 @@ const InputSchema = object({});
 
 export const listLeavePolicies = Workflow.name("hr.leave.list-leave-policies")
   .input(InputSchema)
-  .handler(async (_input, ctx) => {
-    return ctx.db.select().from(leavePolicy);
-  });
+  .handler(async (_input, ctx) => ctx.db.select().from(leavePolicy));

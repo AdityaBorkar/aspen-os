@@ -13,7 +13,9 @@ export async function assignRole(
     .where(eq(s.user.id, userId))
     .returning();
 
-  if (!row) throw new Error(`User "${userId}" not found`);
+  if (!row) {
+    throw new Error(`User "${userId}" not found`);
+  }
   await pubsub?.publish("role:assigned", { roleName, userId });
 }
 
@@ -41,7 +43,9 @@ export async function listRoles({ db }: AuthServiceDeps): Promise<RoleData[]> {
 
   const roles: RoleData[] = [];
   for (const r of rows) {
-    if (r.name === null) continue;
+    if (r.name === null) {
+      continue;
+    }
     roles.push({
       createdAt: new Date(),
       id: r.name,

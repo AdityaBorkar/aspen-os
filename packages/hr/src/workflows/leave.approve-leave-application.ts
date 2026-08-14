@@ -15,9 +15,7 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const approveLeaveApplication = Workflow.name(
-  "hr.leave.approve-leave-application",
-)
+export const approveLeaveApplication = Workflow.name("hr.leave.approve-leave-application")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, approvedBy } = input;
@@ -26,12 +24,8 @@ export const approveLeaveApplication = Workflow.name(
 
     // Update leave allocation
     if (application.leaveAllocation) {
-      const allocation = await fetchLeaveAllocationById(
-        ctx.db,
-        application.leaveAllocation,
-      );
-      const newUsedDays =
-        parseFloat(allocation.usedDays) + parseFloat(application.totalDays);
+      const allocation = await fetchLeaveAllocationById(ctx.db, application.leaveAllocation);
+      const newUsedDays = parseFloat(allocation.usedDays) + parseFloat(application.totalDays);
 
       await updateLeaveAllocation(ctx.db, allocation.id, {
         usedDays: newUsedDays.toString(),

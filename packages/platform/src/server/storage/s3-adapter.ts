@@ -37,8 +37,7 @@ export class S3Adapter {
     head: { contentLength: number; etag: string; lastModified: Date };
   }> {
     const key = this.getKey(input.key);
-    const body =
-      typeof input.body === "string" ? Buffer.from(input.body) : input.body;
+    const body = typeof input.body === "string" ? Buffer.from(input.body) : input.body;
 
     await this.s3.send(
       new PutObjectCommand({
@@ -51,9 +50,7 @@ export class S3Adapter {
       }),
     );
 
-    const head = await this.s3.send(
-      new HeadObjectCommand({ Bucket: this.bucket, Key: key }),
-    );
+    const head = await this.s3.send(new HeadObjectCommand({ Bucket: this.bucket, Key: key }));
 
     return {
       head: {
@@ -73,16 +70,15 @@ export class S3Adapter {
     const reader = stream.getReader();
     for (;;) {
       const { done, value } = await reader.read();
-      if (done) break;
+      if (done) {
+        break;
+      }
       chunks.push(value);
     }
     return Buffer.concat(chunks);
   }
 
-  async getSignedGetUrl(
-    key: string,
-    options?: SignedUrlOptions,
-  ): Promise<string> {
+  async getSignedGetUrl(key: string, options?: SignedUrlOptions): Promise<string> {
     const command = new GetObjectCommand({
       Bucket: this.bucket,
       Key: this.getKey(key),
@@ -94,10 +90,7 @@ export class S3Adapter {
     });
   }
 
-  async getSignedPutUrl(
-    key: string,
-    options?: SignedUrlOptions,
-  ): Promise<string> {
+  async getSignedPutUrl(key: string, options?: SignedUrlOptions): Promise<string> {
     const command = new PutObjectCommand({
       Bucket: this.bucket,
       ContentType: options?.responseContentType,
@@ -132,12 +125,7 @@ export class S3Adapter {
     );
 
     const files: FileObject[] = (result.Contents ?? []).map(
-      (obj: {
-        Key?: string;
-        Size?: number;
-        LastModified?: Date;
-        ETag?: string;
-      }) => ({
+      (obj: { Key?: string; Size?: number; LastModified?: Date; ETag?: string }) => ({
         etag: obj.ETag ?? "",
         key: (obj.Key ?? "").replace(prefix ? `${prefix}/` : "", ""),
         lastModified: obj.LastModified ?? new Date(),

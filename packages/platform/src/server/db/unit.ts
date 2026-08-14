@@ -13,13 +13,10 @@ import type {
   TenantProvisioningResult,
 } from "./types";
 
-export type DrizzleDB<
-  TSchemas extends Record<string, unknown> = Record<string, never>,
-> = NodePgDatabase<TSchemas>;
+export type DrizzleDB<TSchemas extends Record<string, unknown> = Record<string, never>> =
+  NodePgDatabase<TSchemas>;
 
-export class DatabaseUnit<
-  TSchemas extends Record<string, unknown> = Record<string, never>,
-> {
+export class DatabaseUnit<TSchemas extends Record<string, unknown> = Record<string, never>> {
   readonly $name = "db";
   readonly config: DatabaseConfig;
   readonly tenancyMode: TenancyMode;
@@ -41,10 +38,7 @@ export class DatabaseUnit<
   protected storedControlPlaneSchemas: Record<string, unknown> = {};
   protected storedTenantSchemas: Record<string, unknown> = {};
 
-  private readonly tenantPools: Map<
-    string,
-    { db: DrizzleDB<TSchemas>; pool: pg.Pool }
-  > = new Map();
+  private readonly tenantPools: Map<string, { db: DrizzleDB<TSchemas>; pool: pg.Pool }> = new Map();
   private dbWrapper: DrizzleDB<TSchemas>;
 
   constructor(
@@ -79,9 +73,7 @@ export class DatabaseUnit<
       ssl: config.ssl ? { rejectUnauthorized: false } : false,
       user: config.user,
     });
-    this.controlPlaneDbInstance = drizzle<TSchemas>(
-      this.controlPlanePool,
-    ) as DrizzleDB<TSchemas>;
+    this.controlPlaneDbInstance = drizzle<TSchemas>(this.controlPlanePool) as DrizzleDB<TSchemas>;
 
     this.dbWrapper = this.createDbWrapper();
   }
@@ -108,20 +100,17 @@ export class DatabaseUnit<
     await this.pushSchemasTo(this.controlPlaneDbInstance, schemas);
   }
 
-  async prepareWithModules<
-    TCP extends Record<string, unknown>,
-    TT extends Record<string, unknown>,
-  >(controlPlaneSchemas: TCP, tenantSchemas: TT): Promise<void> {
+  async prepareWithModules<TCP extends Record<string, unknown>, TT extends Record<string, unknown>>(
+    controlPlaneSchemas: TCP,
+    tenantSchemas: TT,
+  ): Promise<void> {
     this.storedControlPlaneSchemas = controlPlaneSchemas;
     this.storedTenantSchemas = tenantSchemas;
     const allControlPlaneSchemas = {
       ...this.getSchemas(),
       ...controlPlaneSchemas,
     };
-    await this.pushSchemasTo(
-      this.controlPlaneDbInstance,
-      allControlPlaneSchemas,
-    );
+    await this.pushSchemasTo(this.controlPlaneDbInstance, allControlPlaneSchemas);
   }
 
   async $cleanup() {
@@ -146,9 +135,7 @@ export class DatabaseUnit<
         password: this.tenantDbDefaults?.password ?? this.config.password,
         port: this.tenantDbDefaults?.port ?? this.config.port,
         ssl:
-          (this.tenantDbDefaults?.ssl ?? this.config.ssl)
-            ? { rejectUnauthorized: false }
-            : false,
+          (this.tenantDbDefaults?.ssl ?? this.config.ssl) ? { rejectUnauthorized: false } : false,
         user: this.tenantDbDefaults?.user ?? this.config.user,
       });
       const db = drizzle(pool) as DrizzleDB<TSchemas>;
@@ -193,16 +180,9 @@ export class DatabaseUnit<
       const dbConfig: IsolatedTenantDbConfig = {
         database,
         host: options?.host ?? this.tenantDbDefaults?.host ?? this.config.host,
-        password:
-          options?.password ??
-          this.tenantDbDefaults?.password ??
-          this.config.password,
+        password: options?.password ?? this.tenantDbDefaults?.password ?? this.config.password,
         port: options?.port ?? this.tenantDbDefaults?.port ?? this.config.port,
-        ssl:
-          options?.ssl ??
-          this.tenantDbDefaults?.ssl ??
-          this.config.ssl ??
-          false,
+        ssl: options?.ssl ?? this.tenantDbDefaults?.ssl ?? this.config.ssl ?? false,
         user: options?.user ?? this.tenantDbDefaults?.user ?? this.config.user,
       };
 
@@ -233,9 +213,7 @@ export class DatabaseUnit<
       } satisfies IsolatedTenantProvisioningResult;
     }
 
-    throw new Error(
-      `Tenant provisioning is not supported in ${this.tenancyMode} tenancy mode`,
-    );
+    throw new Error(`Tenant provisioning is not supported in ${this.tenancyMode} tenancy mode`);
   }
 
   async runWithTenant<T>(
@@ -248,9 +226,7 @@ export class DatabaseUnit<
     const client = await this.controlPlanePool.connect();
     try {
       await client.query("BEGIN");
-      await client.query("SELECT set_config('app.tenant_id', $1, true)", [
-        tenantId,
-      ]);
+      await client.query("SELECT set_config('app.tenant_id', $1, true)", [tenantId]);
       await client.query("SET LOCAL ROLE tenant_role");
       const db = drizzle(client) as DrizzleDB<TSchemas>;
       const result = await fn(db);
@@ -322,10 +298,7 @@ export class DatabaseUnit<
       user?: string;
     },
   ): Promise<IsolatedTenantDbConfig> {
-    return this.provisionTenant(
-      tenantId,
-      options,
-    ) as Promise<IsolatedTenantDbConfig>;
+    return this.provisionTenant(tenantId, options) as Promise<IsolatedTenantDbConfig>;
   }
 
   getSchemas() {
@@ -350,9 +323,7 @@ export class DatabaseUnit<
     return;
   }
 
-  private async createTenantDatabase(
-    dbConfig: IsolatedTenantDbConfig,
-  ): Promise<void> {
+  private async createTenantDatabase(dbConfig: IsolatedTenantDbConfig): Promise<void> {
     const adminPool = new pg.Pool({
       database: this.controlPlaneDbName ?? "postgres",
       host: this.config.host,
@@ -375,9 +346,7 @@ export class DatabaseUnit<
     }
   }
 
-  private async discoverTenantTables(
-    db: DrizzleDB<TSchemas>,
-  ): Promise<string[]> {
+  private async discoverTenantTables(db: DrizzleDB<TSchemas>): Promise<string[]> {
     const result = await db.execute(
       sql`
         SELECT table_name
@@ -387,9 +356,7 @@ export class DatabaseUnit<
       `,
     );
     const rows = result.rows as Array<{ table_name: string }>;
-    return rows
-      .map((r) => r.table_name)
-      .filter((name) => /^[a-z_][a-z0-9_]*$/.test(name));
+    return rows.map((r) => r.table_name).filter((name) => /^[a-z_][a-z0-9_]*$/.test(name));
   }
 
   private createDbWrapper(): DrizzleDB<TSchemas> {

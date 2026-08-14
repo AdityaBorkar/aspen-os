@@ -11,12 +11,13 @@ The `PubSubUnit` (`$name: "pubsub"`) provides a typed publish/subscribe messagin
 ```ts title="src/server/pubsub/types.ts"
 interface PubSubConfig {
   monitorStateIntervalSeconds?: number; // default: 30
-  schema?: string;                      // pg-boss schema (only when SSL)
+  schema?: string; // pg-boss schema (only when SSL)
 }
 ```
 
 <Callout type="info">
-  PubSub creates its own pg connection pool (via pg-boss) — it does not reuse `DatabaseUnit`'s pool. Connection details are copied from the DB unit config.
+  PubSub creates its own pg connection pool (via pg-boss) — it does not reuse `DatabaseUnit`'s pool.
+  Connection details are copied from the DB unit config.
 </Callout>
 
 ### Example
@@ -33,7 +34,7 @@ const pubsubConfig: PubSubConfig = {
 class PubSubUnit {
   readonly $name = "pubsub";
 
-  setAuth(auth: AuthUnit): void;   // wired once during createCore()
+  setAuth(auth: AuthUnit): void; // wired once during createCore()
 
   // Publishing
   async publish<T extends object>(
@@ -52,7 +53,12 @@ class PubSubUnit {
   async unsubscribe(topic: string): Promise<void>;
 
   // Scheduling
-  async schedule(topic: string, cron: string, data?: unknown, options?: ScheduleOptions): Promise<void>;
+  async schedule(
+    topic: string,
+    cron: string,
+    data?: unknown,
+    options?: ScheduleOptions,
+  ): Promise<void>;
   async unschedule(topic: string): Promise<void>;
   async getSchedules(): Promise<unknown[]>;
 
@@ -63,7 +69,7 @@ class PubSubUnit {
   // Diagnostics
   getUnsubscribedProducedTopics(): string[];
 
-  async $prepareInfra(): Promise<void>;  // no-op — boss starts lazily
+  async $prepareInfra(): Promise<void>; // no-op — boss starts lazily
   async $cleanup(): Promise<void>;
 }
 ```
@@ -94,7 +100,10 @@ await p.pubsub.publish(
 ```
 
 <Callout type="warn">
-  Publishing to a topic with no registered subscriber (no `subscribe()` call → no pg-boss worker) is **silently dropped** — `send()` returns `null` because the INSERT matches no queue row. `publish()` logs a warning and returns `undefined` in this case. `getUnsubscribedProducedTopics()` and `healthCheck().unsubscribedTopics` surface these for monitoring.
+  Publishing to a topic with no registered subscriber (no `subscribe()` call → no pg-boss worker) is
+  **silently dropped** — `send()` returns `null` because the INSERT matches no queue row.
+  `publish()` logs a warning and returns `undefined` in this case. `getUnsubscribedProducedTopics()`
+  and `healthCheck().unsubscribedTopics` surface these for monitoring.
 </Callout>
 
 ### Batch Publishing
@@ -109,14 +118,11 @@ await p.pubsub.publishBatch("notifications:send", [
 ### Subscribe to Topics
 
 ```ts
-await p.pubsub.subscribe(
-  "organization:created",
-  async (message) => {
-    console.log("Received:", message.data);
-    console.log("Job ID:", message.id);
-    console.log("Created:", message.createdOn);
-  },
-);
+await p.pubsub.subscribe("organization:created", async (message) => {
+  console.log("Received:", message.data);
+  console.log("Job ID:", message.id);
+  console.log("Created:", message.createdOn);
+});
 ```
 
 The handler's `ctx.db` (via `getContext()`) is the tenant DB when running in isolated mode with a per-tenant subscription; otherwise it is the control-plane DB.
@@ -148,16 +154,16 @@ await p.pubsub.purgeQueue("notifications:send");
 
 ```ts title="src/server/pubsub/types.ts"
 interface PublishOptions {
-  expireInMinutes?: number;   // job expiration
-  priority?: number;          // higher = processed first
-  retryBackoff?: boolean;     // exponential backoff on retry
-  retryDelay?: number;        // seconds between retries
-  retryLimit?: number;        // max retry attempts
+  expireInMinutes?: number; // job expiration
+  priority?: number; // higher = processed first
+  retryBackoff?: boolean; // exponential backoff on retry
+  retryDelay?: number; // seconds between retries
+  retryLimit?: number; // max retry attempts
   startAfter?: Date | string; // delayed execution
 }
 
 interface ScheduleOptions extends PublishOptions {
-  tz?: string;  // timezone for cron schedule
+  tz?: string; // timezone for cron schedule
 }
 ```
 
@@ -166,8 +172,8 @@ interface ScheduleOptions extends PublishOptions {
 ```ts title="src/server/pubsub/types.ts"
 interface Message<T = unknown> {
   id: string;
-  name: string;         // topic name
-  data: T;              // message payload
+  name: string; // topic name
+  data: T; // message payload
   createdOn: Date;
   completedOn?: Date;
 }

@@ -9,9 +9,7 @@ const InputSchema = object({
   input: CreateLeaveAllocationSchema,
 });
 
-export const createLeaveAllocation = Workflow.name(
-  "hr.leave.create-leave-allocation",
-)
+export const createLeaveAllocation = Workflow.name("hr.leave.create-leave-allocation")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateLeaveAllocationSchema, input);

@@ -204,35 +204,35 @@ Phase 3 completes the HRMS by adding the talent management and operational capab
 
 ## Data Model Summary (Phase 3 Doctypes)
 
-| Module | Key Doctypes |
-|---|---|
-| Performance | Goal, Appraisal Template, Appraisal Cycle, Appraisal, Employee Performance Feedback |
+| Module      | Key Doctypes                                                                                                                                                                             |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Performance | Goal, Appraisal Template, Appraisal Cycle, Appraisal, Employee Performance Feedback                                                                                                      |
 | Recruitment | Staffing Plan, Job Requisition, Job Opening, Job Portal, Job Applicant, Interview Type, Interview Round, Interview, Interview Feedback, Job Offer, Appointment Letter, Employee Referral |
-| Training | Training Program, Training Event, Training Result, Training Feedback |
-| Fleet | Vehicle, Vehicle Log |
+| Training    | Training Program, Training Event, Training Result, Training Feedback                                                                                                                     |
+| Fleet       | Vehicle, Vehicle Log                                                                                                                                                                     |
 
 ---
 
 ## Dependencies on Phase 1 & 2
 
-| Prior Phase Output | Phase 3 Usage |
-|---|---|
-| Employee Master | Referenced by goals, appraisals, training records, vehicle assignments. |
-| Department / Designation / Branch | Used in staffing plan, job opening, appraisal filters. |
-| Employee Onboarding | Triggered on Job Offer acceptance. |
-| Employee Skill Map | Informs training needs analysis. |
-| Salary Structure / Salary Slip | CTC data used in Job Offer salary configuration. |
-| Expense Claim | Used for vehicle expense and training cost claims. |
+| Prior Phase Output                | Phase 3 Usage                                                           |
+| --------------------------------- | ----------------------------------------------------------------------- |
+| Employee Master                   | Referenced by goals, appraisals, training records, vehicle assignments. |
+| Department / Designation / Branch | Used in staffing plan, job opening, appraisal filters.                  |
+| Employee Onboarding               | Triggered on Job Offer acceptance.                                      |
+| Employee Skill Map                | Informs training needs analysis.                                        |
+| Salary Structure / Salary Slip    | CTC data used in Job Offer salary configuration.                        |
+| Expense Claim                     | Used for vehicle expense and training cost claims.                      |
 
 ## Cross-Module Integrations
 
-| Integration | Flow |
-|---|---|
-| Recruitment → Lifecycle | Accepted Job Offer triggers Employee Onboarding workflow. |
-| Performance → Salary | Appraisal outcomes can inform salary revisions and promotions. |
-| Training → Skill Map | Training Results update employee skill proficiency. |
-| Fleet → Expense | Vehicle logs generate Expense Claims for reimbursement. |
-| Goals → Appraisal | Goal completion percentage feeds automated KRA evaluation. |
+| Integration             | Flow                                                           |
+| ----------------------- | -------------------------------------------------------------- |
+| Recruitment → Lifecycle | Accepted Job Offer triggers Employee Onboarding workflow.      |
+| Performance → Salary    | Appraisal outcomes can inform salary revisions and promotions. |
+| Training → Skill Map    | Training Results update employee skill proficiency.            |
+| Fleet → Expense         | Vehicle logs generate Expense Claims for reimbursement.        |
+| Goals → Appraisal       | Goal completion percentage feeds automated KRA evaluation.     |
 
 ---
 
@@ -248,12 +248,12 @@ Phase 3 modules can be developed independently of each other but share common de
 
 ### Estimated Effort (Relative)
 
-| Module | Complexity | Notes |
-|---|---|---|
-| Performance | High | Goal hierarchy, automated scoring, feedback aggregation, cycle management. |
-| Recruitment | High | Multi-stage pipeline, portal, interview scheduling, offer management. |
-| Training | Low | Straightforward CRUD with event invitations and feedback. |
-| Fleet | Low | Vehicle master + log + expense integration. |
+| Module      | Complexity | Notes                                                                      |
+| ----------- | ---------- | -------------------------------------------------------------------------- |
+| Performance | High       | Goal hierarchy, automated scoring, feedback aggregation, cycle management. |
+| Recruitment | High       | Multi-stage pipeline, portal, interview scheduling, offer management.      |
+| Training    | Low        | Straightforward CRUD with event invitations and feedback.                  |
+| Fleet       | Low        | Vehicle master + log + expense integration.                                |
 
 ### Testing Focus Areas
 

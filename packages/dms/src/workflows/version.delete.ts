@@ -20,19 +20,14 @@ export const deleteDocumentVersion = Workflow.name("dms.version.delete")
     const doc = await ctx.step.run(fetchDocumentStep, { documentId });
 
     if (version === doc.version) {
-      throw new Error(
-        "Cannot delete the current version. Revert to another version first.",
-      );
+      throw new Error("Cannot delete the current version. Revert to another version first.");
     }
 
     const [row] = await ctx.db
       .select()
       .from(dmsDocumentVersion)
       .where(
-        and(
-          eq(dmsDocumentVersion.documentId, documentId),
-          eq(dmsDocumentVersion.version, version),
-        ),
+        and(eq(dmsDocumentVersion.documentId, documentId), eq(dmsDocumentVersion.version, version)),
       )
       .limit(1);
 
@@ -43,12 +38,7 @@ export const deleteDocumentVersion = Workflow.name("dms.version.delete")
     const otherCount = await ctx.db
       .select({ id: dmsDocumentVersion.id })
       .from(dmsDocumentVersion)
-      .where(
-        and(
-          eq(dmsDocumentVersion.documentId, documentId),
-          ne(dmsDocumentVersion.id, row.id),
-        ),
-      )
+      .where(and(eq(dmsDocumentVersion.documentId, documentId), ne(dmsDocumentVersion.id, row.id)))
       .limit(1);
 
     if (otherCount.length === 0) {
@@ -62,9 +52,7 @@ export const deleteDocumentVersion = Workflow.name("dms.version.delete")
     });
 
     await ctx.step.run("delete-row", async () => {
-      await ctx.db
-        .delete(dmsDocumentVersion)
-        .where(eq(dmsDocumentVersion.id, row.id));
+      await ctx.db.delete(dmsDocumentVersion).where(eq(dmsDocumentVersion.id, row.id));
     });
 
     await ctx.step.run("audit-and-notify", async () => {

@@ -245,9 +245,7 @@ export type SystemEventMap = {
   [SYSTEM_EVENTS.WEEKLY_SUMMARY]: WeeklySummaryEvent;
 };
 
-export type ComplianceEventMap = DocumentEventMap &
-  ObligationEventMap &
-  SystemEventMap;
+export type ComplianceEventMap = DocumentEventMap & ObligationEventMap & SystemEventMap;
 
 export type VerificationStatusChangeEvent = {
   documentId: string;

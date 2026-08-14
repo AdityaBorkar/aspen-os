@@ -3,10 +3,7 @@ import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 import { dmsView } from "../db-schemas";
 
-export async function unsetDefaultView(
-  db: NodePgDatabase,
-  ownerId: string,
-): Promise<void> {
+export async function unsetDefaultView(db: NodePgDatabase, ownerId: string): Promise<void> {
   await db
     .update(dmsView)
     .set({ isDefault: false })

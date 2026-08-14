@@ -57,7 +57,9 @@ function columnSql(field: string): SQL | null {
 }
 
 function parseNumeric(value: unknown): number | null {
-  if (typeof value === "number") return value;
+  if (typeof value === "number") {
+    return value;
+  }
   if (typeof value === "string" && value.trim() !== "") {
     const n = Number(value);
     return Number.isFinite(n) ? n : null;
@@ -80,10 +82,7 @@ function parseDate(value: unknown): string | null {
  * Builds a drizzle SQL condition for a single view condition over document
  * columns, metadata keys, and tag conditions.
  */
-export function buildCondition(
-  cond: ViewCondition,
-  _ctx?: ConditionContext,
-): SQL | null {
+export function buildCondition(cond: ViewCondition, _ctx?: ConditionContext): SQL | null {
   const { field, operator, value } = cond;
 
   if (field === "tag" || field === "tags") {
@@ -105,7 +104,9 @@ export function buildCondition(
 
   if (field === "metadata" || field.startsWith("metadata.")) {
     const key = field === "metadata" ? "" : field.slice("metadata.".length);
-    if (!key) return null;
+    if (!key) {
+      return null;
+    }
     const path = sql`${dmsDocument.metadata}->>${key}`;
     return buildGenericCondition(path, operator, value, "string");
   }
@@ -115,7 +116,9 @@ export function buildCondition(
   }
 
   const col = columnSql(field);
-  if (!col) return null;
+  if (!col) {
+    return null;
+  }
 
   const type =
     field === "createdAt" || field === "updatedAt" || field === "expiryDate"
@@ -135,17 +138,25 @@ function buildGenericCondition(
 ): SQL | null {
   switch (operator) {
     case "eq":
-      if (value === null) return isNull(col);
+      if (value === null) {
+        return isNull(col);
+      }
       return eq(col, value as never);
     case "neq":
-      if (value === null) return isNotNull(col);
+      if (value === null) {
+        return isNotNull(col);
+      }
       return ne(col, value as never);
     case "contains": {
-      if (type === "date" || type === "number") return null;
+      if (type === "date" || type === "number") {
+        return null;
+      }
       return ilike(col, `%${String(value)}%`);
     }
     case "notContains": {
-      if (type === "date" || type === "number") return null;
+      if (type === "date" || type === "number") {
+        return null;
+      }
       return sql`NOT (${ilike(col, `%${String(value)}%`)})`;
     }
     case "in": {
@@ -158,29 +169,41 @@ function buildGenericCondition(
     }
     case "gt": {
       const num = parseNumeric(value);
-      if (num === null) return null;
+      if (num === null) {
+        return null;
+      }
       return gt(col, num);
     }
     case "gte": {
       const num = parseNumeric(value);
-      if (num === null) return null;
+      if (num === null) {
+        return null;
+      }
       return gte(col, num);
     }
     case "lt": {
       const num = parseNumeric(value);
-      if (num === null) return null;
+      if (num === null) {
+        return null;
+      }
       return lt(col, num);
     }
     case "lte": {
       const num = parseNumeric(value);
-      if (num === null) return null;
+      if (num === null) {
+        return null;
+      }
       return lte(col, num);
     }
     case "between": {
-      if (!Array.isArray(value) || value.length < 2) return null;
+      if (!Array.isArray(value) || value.length < 2) {
+        return null;
+      }
       const a = parseNumeric(value[0]);
       const b = parseNumeric(value[1]);
-      if (a === null || b === null) return null;
+      if (a === null || b === null) {
+        return null;
+      }
       return drizzleBetween(col, a, b);
     }
     case "isEmpty":
@@ -189,12 +212,16 @@ function buildGenericCondition(
       return isNotNull(col);
     case "dateBefore": {
       const d = parseDate(value);
-      if (!d) return null;
+      if (!d) {
+        return null;
+      }
       return lte(col, d);
     }
     case "dateAfter": {
       const d = parseDate(value);
-      if (!d) return null;
+      if (!d) {
+        return null;
+      }
       return gte(col, d);
     }
     default:
@@ -210,24 +237,24 @@ export function buildConditionsWhere(
   conditions: ViewCondition[] | undefined,
   ctx?: ConditionContext,
 ): SQL | undefined {
-  if (
-    (!conditions || conditions.length === 0) &&
-    !ctx?.classId &&
-    !ctx?.ownerId
-  ) {
+  if ((!conditions || conditions.length === 0) && !ctx?.classId && !ctx?.ownerId) {
     return undefined;
   }
 
   const parts: SQL[] = [];
   for (const cond of conditions ?? []) {
     const built = buildCondition(cond, ctx);
-    if (built) parts.push(built);
+    if (built) {
+      parts.push(built);
+    }
   }
 
-  if (ctx?.classId)
+  if (ctx?.classId) {
     parts.push(eq(dmsDocument.classId, ctx.classId) as unknown as SQL);
-  if (ctx?.ownerId)
+  }
+  if (ctx?.ownerId) {
     parts.push(eq(dmsDocument.ownerId, ctx.ownerId) as unknown as SQL);
+  }
 
   return parts.length > 0 ? and(...parts) : undefined;
 }
@@ -243,7 +270,9 @@ export function buildSortOrder<T extends SQL>(
   const clauses: T[] = [];
   for (const s of sort ?? []) {
     const col = resolve(s.field);
-    if (!col) continue;
+    if (!col) {
+      continue;
+    }
     clauses.push((s.direction === "desc" ? desc(col) : col) as unknown as T);
   }
   return clauses;

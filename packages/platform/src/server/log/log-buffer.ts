@@ -23,7 +23,9 @@ export function createLogBuffer(
   }
 
   async function flush(): Promise<void> {
-    if (buffer.length === 0 || flushing) return;
+    if (buffer.length === 0 || flushing) {
+      return;
+    }
     flushing = true;
     const entries = buffer.splice(0, bufferSize);
     try {
@@ -56,9 +58,7 @@ export function createEntryFactory(serviceName: string) {
     const ctx = context.getStore();
     return {
       duration: metadata?.duration as number | undefined,
-      error: error
-        ? { message: error.message, name: error.name, stack: error.stack }
-        : undefined,
+      error: error ? { message: error.message, name: error.name, stack: error.stack } : undefined,
       id: crypto.randomUUID(),
       level,
       message,

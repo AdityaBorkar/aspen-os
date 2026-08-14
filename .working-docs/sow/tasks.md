@@ -14,31 +14,32 @@ The Task Management Module provides a full-featured issue and project tracking s
 
 Central record for every work item.
 
-| Field | Type | Description |
-|---|---|---|
-| **ID** | text (auto) | System-generated unique identifier. |
-| **Task Number** | text (auto) | Human-readable sequential number per project (e.g., `PROJ-142`). |
-| **Title** | text | Short summary of the task. |
-| **Description** | text (markdown) | Full description with markdown formatting, code blocks, images, and links. |
-| **Status** | text (FK) | Current workflow status (see §4.1). |
-| **Priority** | enum | `urgent`, `high`, `medium`, `low`, `none`. |
-| **Type** | text (FK) | Task type (see §1.3). |
-| **Project** | text (FK) | Parent project (see §2.1). |
-| **Assignees** | text[] | Multiple users assigned to the task (see §1.4). |
-| **Reporter** | text (FK) | User who created the task. |
-| **Parent Task** | text (FK, nullable) | Self-referential link for sub-tasks (see §1.5). |
-| **Start Date** | timestamptz (nullable) | When work should begin. |
-| **Due Date** | timestamptz (nullable) | Deadline for completion. |
-| **Completed At** | timestamptz (nullable) | When status moved to a terminal state. |
-| **Estimated Hours** | numeric (nullable) | Time estimate for the task. |
-| **Logged Hours** | numeric (computed) | Sum of time entries (see §5.1). |
-| **Labels** | text[] | Tags for categorization (see §1.6). |
-| **Sprint** | text (FK, nullable) | Sprint/iteration reference (see §2.3). |
-| **Sort Order** | integer | Position within a view or column. |
-| **Created At** | timestamptz | Record creation timestamp. |
-| **Updated At** | timestamptz | Last modification timestamp. |
+| Field               | Type                   | Description                                                                |
+| ------------------- | ---------------------- | -------------------------------------------------------------------------- |
+| **ID**              | text (auto)            | System-generated unique identifier.                                        |
+| **Task Number**     | text (auto)            | Human-readable sequential number per project (e.g., `PROJ-142`).           |
+| **Title**           | text                   | Short summary of the task.                                                 |
+| **Description**     | text (markdown)        | Full description with markdown formatting, code blocks, images, and links. |
+| **Status**          | text (FK)              | Current workflow status (see §4.1).                                        |
+| **Priority**        | enum                   | `urgent`, `high`, `medium`, `low`, `none`.                                 |
+| **Type**            | text (FK)              | Task type (see §1.3).                                                      |
+| **Project**         | text (FK)              | Parent project (see §2.1).                                                 |
+| **Assignees**       | text[]                 | Multiple users assigned to the task (see §1.4).                            |
+| **Reporter**        | text (FK)              | User who created the task.                                                 |
+| **Parent Task**     | text (FK, nullable)    | Self-referential link for sub-tasks (see §1.5).                            |
+| **Start Date**      | timestamptz (nullable) | When work should begin.                                                    |
+| **Due Date**        | timestamptz (nullable) | Deadline for completion.                                                   |
+| **Completed At**    | timestamptz (nullable) | When status moved to a terminal state.                                     |
+| **Estimated Hours** | numeric (nullable)     | Time estimate for the task.                                                |
+| **Logged Hours**    | numeric (computed)     | Sum of time entries (see §5.1).                                            |
+| **Labels**          | text[]                 | Tags for categorization (see §1.6).                                        |
+| **Sprint**          | text (FK, nullable)    | Sprint/iteration reference (see §2.3).                                     |
+| **Sort Order**      | integer                | Position within a view or column.                                          |
+| **Created At**      | timestamptz            | Record creation timestamp.                                                 |
+| **Updated At**      | timestamptz            | Last modification timestamp.                                               |
 
 **Operations**:
+
 - `create(input)` — create a new task.
 - `update(id, patch)` — update any mutable field.
 - `delete(id)` — soft-delete (archive) or hard-delete.
@@ -49,23 +50,23 @@ Central record for every work item.
 
 Classify tasks by nature of work.
 
-| Field | Type | Description |
-|---|---|---|
-| **Name** | text | e.g., Bug, Feature, Improvement, Spike, Chore, Epic. |
-| **Icon** | text (nullable) | Icon identifier for UI display. |
-| **Color** | text (nullable) | Hex color for visual distinction. |
-| **Is Default** | boolean | Auto-selected when creating tasks. |
-| **Project** | text (FK, nullable) | Scoped to a project, or null for global types. |
+| Field          | Type                | Description                                          |
+| -------------- | ------------------- | ---------------------------------------------------- |
+| **Name**       | text                | e.g., Bug, Feature, Improvement, Spike, Chore, Epic. |
+| **Icon**       | text (nullable)     | Icon identifier for UI display.                      |
+| **Color**      | text (nullable)     | Hex color for visual distinction.                    |
+| **Is Default** | boolean             | Auto-selected when creating tasks.                   |
+| **Project**    | text (FK, nullable) | Scoped to a project, or null for global types.       |
 
 ### 1.3 Labels
 
 Flexible tagging system for cross-cutting categorization.
 
-| Field | Type | Description |
-|---|---|---|
-| **Name** | text | Label text (e.g., `backend`, `urgent`, `design-review`). |
-| **Color** | text | Hex color for UI display. |
-| **Project** | text (FK, nullable) | Scoped to a project, or null for global labels. |
+| Field       | Type                | Description                                              |
+| ----------- | ------------------- | -------------------------------------------------------- |
+| **Name**    | text                | Label text (e.g., `backend`, `urgent`, `design-review`). |
+| **Color**   | text                | Hex color for UI display.                                |
+| **Project** | text (FK, nullable) | Scoped to a project, or null for global labels.          |
 
 - Labels are stored as `text[]` on the Task record for query performance.
 - A separate `TaskLabel` join table enables label management (rename, delete with cascade updates).
@@ -74,12 +75,12 @@ Flexible tagging system for cross-cutting categorization.
 
 Tasks can be assigned to multiple people simultaneously.
 
-| Field | Type | Description |
-|---|---|---|
-| **Task** | text (FK) | Reference to task. |
-| **User** | text (FK) | Reference to user (Auth unit). |
-| **Assigned At** | timestamptz | When assignment was made. |
-| **Assigned By** | text (FK) | Who made the assignment. |
+| Field           | Type        | Description                    |
+| --------------- | ----------- | ------------------------------ |
+| **Task**        | text (FK)   | Reference to task.             |
+| **User**        | text (FK)   | Reference to user (Auth unit). |
+| **Assigned At** | timestamptz | When assignment was made.      |
+| **Assigned By** | text (FK)   | Who made the assignment.       |
 
 - One user is designated as **Lead Assignee** (primary owner); others are co-assignees.
 - Assignment changes are recorded in the task activity log (see §6.1).
@@ -102,14 +103,14 @@ Tasks can be decomposed into sub-tasks via a parent-child hierarchy.
 
 Tasks can be linked to other tasks with typed relationships.
 
-| Link Type | Description | Constraint |
-|---|---|---|
-| **Blocks** | This task blocks the target. | Target cannot be completed until this task is completed. |
-| **Blocked By** | This task is blocked by the target. | Inverse of Blocks. |
-| **Related To** | General association. | No constraint. |
-| **Duplicates** | This task is a duplicate of the target. | Soft constraint — warns on completion. |
-| **Caused By** | This bug was caused by the target task. | No constraint. |
-| **Split From** | This task was split from the target. | No constraint. |
+| Link Type      | Description                             | Constraint                                               |
+| -------------- | --------------------------------------- | -------------------------------------------------------- |
+| **Blocks**     | This task blocks the target.            | Target cannot be completed until this task is completed. |
+| **Blocked By** | This task is blocked by the target.     | Inverse of Blocks.                                       |
+| **Related To** | General association.                    | No constraint.                                           |
+| **Duplicates** | This task is a duplicate of the target. | Soft constraint — warns on completion.                   |
+| **Caused By**  | This bug was caused by the target task. | No constraint.                                           |
+| **Split From** | This task was split from the target.    | No constraint.                                           |
 
 - Links are bidirectional: creating "A blocks B" automatically creates "B blocked by A".
 - Link validation: prevents circular block chains.
@@ -131,19 +132,20 @@ Tasks can be linked to other tasks with typed relationships.
 
 Top-level container for organizing tasks.
 
-| Field | Type | Description |
-|---|---|---|
-| **Name** | text | Project name. |
-| **Key** | text (unique) | Short code for task numbering (e.g., `PROJ`, `ENG`, `OPS`). Max 10 chars, uppercase. |
-| **Description** | text (nullable) | Project summary. |
-| **Lead** | text (FK) | Project owner/lead. |
-| **Status** | enum | `active`, `archived`, `paused`. |
-| **Start Date** | timestamptz (nullable) | Project start. |
-| **Target Date** | timestamptz (nullable) | Project deadline. |
-| **Default Task Type** | text (FK, nullable) | Default type for new tasks in this project. |
-| **Task Counter** | integer (auto) | Auto-incrementing counter for task numbering. |
+| Field                 | Type                   | Description                                                                          |
+| --------------------- | ---------------------- | ------------------------------------------------------------------------------------ |
+| **Name**              | text                   | Project name.                                                                        |
+| **Key**               | text (unique)          | Short code for task numbering (e.g., `PROJ`, `ENG`, `OPS`). Max 10 chars, uppercase. |
+| **Description**       | text (nullable)        | Project summary.                                                                     |
+| **Lead**              | text (FK)              | Project owner/lead.                                                                  |
+| **Status**            | enum                   | `active`, `archived`, `paused`.                                                      |
+| **Start Date**        | timestamptz (nullable) | Project start.                                                                       |
+| **Target Date**       | timestamptz (nullable) | Project deadline.                                                                    |
+| **Default Task Type** | text (FK, nullable)    | Default type for new tasks in this project.                                          |
+| **Task Counter**      | integer (auto)         | Auto-incrementing counter for task numbering.                                        |
 
 **Operations**:
+
 - `create(input)` — create project, initializes task counter at 0.
 - `update(id, patch)` — update project settings.
 - `archive(id)` / `restore(id)` — soft-delete lifecycle.
@@ -153,12 +155,12 @@ Top-level container for organizing tasks.
 
 Controls who has access to a project.
 
-| Field | Type | Description |
-|---|---|---|
-| **Project** | text (FK) | Reference to project. |
-| **User** | text (FK) | Reference to user. |
-| **Role** | enum | `admin`, `member`, `viewer`. |
-| **Joined At** | timestamptz | When the user was added. |
+| Field         | Type        | Description                  |
+| ------------- | ----------- | ---------------------------- |
+| **Project**   | text (FK)   | Reference to project.        |
+| **User**      | text (FK)   | Reference to user.           |
+| **Role**      | enum        | `admin`, `member`, `viewer`. |
+| **Joined At** | timestamptz | When the user was added.     |
 
 - **Admin**: full project control (settings, members, delete tasks).
 - **Member**: create/edit/assign tasks, comment.
@@ -168,16 +170,17 @@ Controls who has access to a project.
 
 Time-boxed work periods for agile workflows.
 
-| Field | Type | Description |
-|---|---|---|
-| **Name** | text | Sprint name (e.g., `Sprint 1`, `2026-W28`). |
-| **Project** | text (FK) | Parent project. |
-| **Start Date** | timestamptz | Sprint start. |
-| **End Date** | timestamptz | Sprint end. |
-| **Goal** | text (nullable) | Sprint objective / description. |
-| **Status** | enum | `planned`, `active`, `completed`. |
+| Field          | Type            | Description                                 |
+| -------------- | --------------- | ------------------------------------------- |
+| **Name**       | text            | Sprint name (e.g., `Sprint 1`, `2026-W28`). |
+| **Project**    | text (FK)       | Parent project.                             |
+| **Start Date** | timestamptz     | Sprint start.                               |
+| **End Date**   | timestamptz     | Sprint end.                                 |
+| **Goal**       | text (nullable) | Sprint objective / description.             |
+| **Status**     | enum            | `planned`, `active`, `completed`.           |
 
 **Operations**:
+
 - `create(input)` — create sprint.
 - `start(id)` — activate sprint (sets status to active).
 - `complete(id)` — close sprint; incomplete tasks can be moved to next sprint or backlog.
@@ -198,17 +201,17 @@ Time-boxed work periods for agile workflows.
 
 Reusable filter/display configurations.
 
-| Field | Type | Description |
-|---|---|---|
-| **Name** | text | View name (e.g., "My Open Tasks", "Bugs This Sprint"). |
-| **Owner** | text (FK) | User who created the view. |
-| **Project** | text (FK, nullable) | Scoped to a project, or global. |
-| **Type** | enum | `list`, `board`, `calendar`, `timeline`. |
-| **Filters** | jsonb | Serialized filter criteria. |
-| **Sort** | jsonb | Serialized sort configuration. |
-| **Group By** | text | Field to group results by (status, assignee, priority, etc.). |
-| **Is Shared** | boolean | Visible to other project members. |
-| **Is Default** | boolean | Auto-loaded when entering the project. |
+| Field          | Type                | Description                                                   |
+| -------------- | ------------------- | ------------------------------------------------------------- |
+| **Name**       | text                | View name (e.g., "My Open Tasks", "Bugs This Sprint").        |
+| **Owner**      | text (FK)           | User who created the view.                                    |
+| **Project**    | text (FK, nullable) | Scoped to a project, or global.                               |
+| **Type**       | enum                | `list`, `board`, `calendar`, `timeline`.                      |
+| **Filters**    | jsonb               | Serialized filter criteria.                                   |
+| **Sort**       | jsonb               | Serialized sort configuration.                                |
+| **Group By**   | text                | Field to group results by (status, assignee, priority, etc.). |
+| **Is Shared**  | boolean             | Visible to other project members.                             |
+| **Is Default** | boolean             | Auto-loaded when entering the project.                        |
 
 ### 3.2 List View
 
@@ -246,15 +249,15 @@ Reusable filter/display configurations.
 
 Composable filter engine supporting:
 
-| Operator | Applies To | Example |
-|---|---|---|
-| `is` / `is not` | All fields | Status is "In Progress" |
-| `contains` | Text fields | Title contains "login" |
-| `in` / `not in` | Enums, FKs | Priority in [urgent, high] |
-| `before` / `after` | Dates | Due date before 2026-08-01 |
-| `between` | Dates | Created between date range |
-| `is empty` / `is not empty` | Nullable fields | Assignee is not empty |
-| `has any` / `has all` / `has none` | Arrays | Labels has any [backend, api] |
+| Operator                           | Applies To      | Example                       |
+| ---------------------------------- | --------------- | ----------------------------- |
+| `is` / `is not`                    | All fields      | Status is "In Progress"       |
+| `contains`                         | Text fields     | Title contains "login"        |
+| `in` / `not in`                    | Enums, FKs      | Priority in [urgent, high]    |
+| `before` / `after`                 | Dates           | Due date before 2026-08-01    |
+| `between`                          | Dates           | Created between date range    |
+| `is empty` / `is not empty`        | Nullable fields | Assignee is not empty         |
+| `has any` / `has all` / `has none` | Arrays          | Labels has any [backend, api] |
 
 - Filters combine with AND / OR logic.
 - Parenthetical grouping for complex expressions.
@@ -268,15 +271,15 @@ Composable filter engine supporting:
 
 Configurable workflow states for tasks.
 
-| Field | Type | Description |
-|---|---|---|
-| **Name** | text | Status name (e.g., Backlog, Todo, In Progress, In Review, Done). |
-| **Category** | enum | `backlog`, `unstarted`, `started`, `completed`, `cancelled`. |
-| **Color** | text | Hex color for UI. |
-| **Project** | text (FK, nullable) | Scoped to a project, or global. |
-| **Sort Order** | integer | Position in the workflow sequence. |
-| **Is Default** | boolean | Assigned to new tasks automatically. |
-| **Is Resolved** | boolean | Terminal state — task is considered done. |
+| Field           | Type                | Description                                                      |
+| --------------- | ------------------- | ---------------------------------------------------------------- |
+| **Name**        | text                | Status name (e.g., Backlog, Todo, In Progress, In Review, Done). |
+| **Category**    | enum                | `backlog`, `unstarted`, `started`, `completed`, `cancelled`.     |
+| **Color**       | text                | Hex color for UI.                                                |
+| **Project**     | text (FK, nullable) | Scoped to a project, or global.                                  |
+| **Sort Order**  | integer             | Position in the workflow sequence.                               |
+| **Is Default**  | boolean             | Assigned to new tasks automatically.                             |
+| **Is Resolved** | boolean             | Terminal state — task is considered done.                        |
 
 - Each project can define its own workflow (set of statuses).
 - Default workflow: Backlog → Todo → In Progress → In Review → Done → Cancelled.
@@ -285,13 +288,13 @@ Configurable workflow states for tasks.
 
 Defines allowed state changes (optional — if not configured, all transitions are allowed).
 
-| Field | Type | Description |
-|---|---|---|
-| **From Status** | text (FK) | Source status. |
-| **To Status** | text (FK) | Target status. |
-| **Project** | text (FK) | Scoped to a project. |
-| **Requires Comment** | boolean | Prompt for a comment on transition. |
-| **Requires Role** | text (nullable) | Only users with this role can perform the transition. |
+| Field                | Type            | Description                                           |
+| -------------------- | --------------- | ----------------------------------------------------- |
+| **From Status**      | text (FK)       | Source status.                                        |
+| **To Status**        | text (FK)       | Target status.                                        |
+| **Project**          | text (FK)       | Scoped to a project.                                  |
+| **Requires Comment** | boolean         | Prompt for a comment on transition.                   |
+| **Requires Role**    | text (nullable) | Only users with this role can perform the transition. |
 
 - Transition validation on status change.
 - Transition triggers (see §4.3).
@@ -300,16 +303,17 @@ Defines allowed state changes (optional — if not configured, all transitions a
 
 Configurable triggers and actions for workflow automation.
 
-| Field | Type | Description |
-|---|---|---|
-| **Name** | text | Rule name. |
-| **Project** | text (FK) | Scoped to a project. |
-| **Trigger** | enum | `status_change`, `assignment_change`, `due_date_passed`, `task_created`, `task_updated`. |
-| **Conditions** | jsonb | Filter criteria that must match for the rule to fire. |
-| **Actions** | jsonb | List of actions to execute. |
-| **Is Active** | boolean | Enable/disable the rule. |
+| Field          | Type      | Description                                                                              |
+| -------------- | --------- | ---------------------------------------------------------------------------------------- |
+| **Name**       | text      | Rule name.                                                                               |
+| **Project**    | text (FK) | Scoped to a project.                                                                     |
+| **Trigger**    | enum      | `status_change`, `assignment_change`, `due_date_passed`, `task_created`, `task_updated`. |
+| **Conditions** | jsonb     | Filter criteria that must match for the rule to fire.                                    |
+| **Actions**    | jsonb     | List of actions to execute.                                                              |
+| **Is Active**  | boolean   | Enable/disable the rule.                                                                 |
 
 **Supported Actions**:
+
 - Set field value (e.g., set `completed_at` when status becomes "Done").
 - Send notification to assignees / watchers.
 - Add/remove labels.
@@ -332,17 +336,18 @@ Configurable triggers and actions for workflow automation.
 
 Track time spent on tasks.
 
-| Field | Type | Description |
-|---|---|---|
-| **Task** | text (FK) | Reference to task. |
-| **User** | text (FK) | Who logged the time. |
-| **Duration** | integer | Minutes spent. |
-| **Description** | text (nullable) | What was worked on. |
-| **Date** | date | When the work happened. |
-| **Billable** | boolean | Whether this time is billable. |
-| **Created At** | timestamptz | Record creation. |
+| Field           | Type            | Description                    |
+| --------------- | --------------- | ------------------------------ |
+| **Task**        | text (FK)       | Reference to task.             |
+| **User**        | text (FK)       | Who logged the time.           |
+| **Duration**    | integer         | Minutes spent.                 |
+| **Description** | text (nullable) | What was worked on.            |
+| **Date**        | date            | When the work happened.        |
+| **Billable**    | boolean         | Whether this time is billable. |
+| **Created At**  | timestamptz     | Record creation.               |
 
 **Operations**:
+
 - `log(taskId, userId, duration, description?, date?)` — create time entry.
 - `start(taskId)` / `stop()` — timer-based tracking (stores start time, computes duration on stop).
 - `update(id, patch)` — edit a time entry.
@@ -353,18 +358,19 @@ Track time spent on tasks.
 
 Scheduled notifications for task-related events.
 
-| Field | Type | Description |
-|---|---|---|
-| **Task** | text (FK) | Reference to task. |
-| **User** | text (FK) | Who receives the reminder. |
-| **Type** | enum | `due_date`, `custom`, `overdue`. |
-| **Remind At** | timestamptz | When to fire the reminder. |
-| **Message** | text (nullable) | Custom reminder text. |
-| **Is Sent** | boolean | Whether the reminder has been delivered. |
-| **Recurring** | boolean | Repeat the reminder. |
-| **Recurrence Interval** | text (nullable) | e.g., `daily`, `every_2_hours`. |
+| Field                   | Type            | Description                              |
+| ----------------------- | --------------- | ---------------------------------------- |
+| **Task**                | text (FK)       | Reference to task.                       |
+| **User**                | text (FK)       | Who receives the reminder.               |
+| **Type**                | enum            | `due_date`, `custom`, `overdue`.         |
+| **Remind At**           | timestamptz     | When to fire the reminder.               |
+| **Message**             | text (nullable) | Custom reminder text.                    |
+| **Is Sent**             | boolean         | Whether the reminder has been delivered. |
+| **Recurring**           | boolean         | Repeat the reminder.                     |
+| **Recurrence Interval** | text (nullable) | e.g., `daily`, `every_2_hours`.          |
 
 **Reminder Types**:
+
 - **Due Date**: auto-created when a task has a due date. Default reminders at: 1 day before, 1 hour before, at due time.
 - **Custom**: user-defined reminder at any time.
 - **Overdue**: auto-created when a task passes its due date without completion.
@@ -385,14 +391,14 @@ Scheduled notifications for task-related events.
 
 Immutable audit trail of all changes to a task.
 
-| Field | Type | Description |
-|---|---|---|
-| **Task** | text (FK) | Reference to task. |
-| **User** | text (FK) | Who performed the action. |
-| **Action** | text | Type of change (e.g., `status_changed`, `assignee_added`, `comment_added`, `due_date_changed`). |
-| **Old Value** | jsonb (nullable) | Previous value. |
-| **New Value** | jsonb (nullable) | New value. |
-| **Created At** | timestamptz | When the action occurred. |
+| Field          | Type             | Description                                                                                     |
+| -------------- | ---------------- | ----------------------------------------------------------------------------------------------- |
+| **Task**       | text (FK)        | Reference to task.                                                                              |
+| **User**       | text (FK)        | Who performed the action.                                                                       |
+| **Action**     | text             | Type of change (e.g., `status_changed`, `assignee_added`, `comment_added`, `due_date_changed`). |
+| **Old Value**  | jsonb (nullable) | Previous value.                                                                                 |
+| **New Value**  | jsonb (nullable) | New value.                                                                                      |
+| **Created At** | timestamptz      | When the action occurred.                                                                       |
 
 - Activity log is append-only — no edits or deletes.
 - Displayed as a timeline on the task detail view.
@@ -402,16 +408,17 @@ Immutable audit trail of all changes to a task.
 
 Threaded discussions on tasks.
 
-| Field | Type | Description |
-|---|---|---|
-| **Task** | text (FK) | Reference to task. |
-| **User** | text (FK) | Comment author. |
-| **Body** | text (markdown) | Comment content with markdown support. |
-| **Parent Comment** | text (FK, nullable) | For threaded replies. |
-| **Edited At** | timestamptz (nullable) | Last edit timestamp. |
-| **Created At** | timestamptz | Creation timestamp. |
+| Field              | Type                   | Description                            |
+| ------------------ | ---------------------- | -------------------------------------- |
+| **Task**           | text (FK)              | Reference to task.                     |
+| **User**           | text (FK)              | Comment author.                        |
+| **Body**           | text (markdown)        | Comment content with markdown support. |
+| **Parent Comment** | text (FK, nullable)    | For threaded replies.                  |
+| **Edited At**      | timestamptz (nullable) | Last edit timestamp.                   |
+| **Created At**     | timestamptz            | Creation timestamp.                    |
 
 **Features**:
+
 - Markdown rendering (same engine as task description).
 - @mention users (triggers notification via PubSub).
 - Edit history tracked (body snapshots stored on edit).
@@ -421,13 +428,13 @@ Threaded discussions on tasks.
 
 Files attached to tasks or comments.
 
-| Field | Type | Description |
-|---|---|---|
-| **Task** | text (FK) | Reference to task. |
-| **Comment** | text (FK, nullable) | If attached to a specific comment. |
-| **File** | text (FK) | Reference to Storage unit's FileMetadata. |
-| **Uploaded By** | text (FK) | Who uploaded the file. |
-| **Created At** | timestamptz | Upload timestamp. |
+| Field           | Type                | Description                               |
+| --------------- | ------------------- | ----------------------------------------- |
+| **Task**        | text (FK)           | Reference to task.                        |
+| **Comment**     | text (FK, nullable) | If attached to a specific comment.        |
+| **File**        | text (FK)           | Reference to Storage unit's FileMetadata. |
+| **Uploaded By** | text (FK)           | Who uploaded the file.                    |
+| **Created At**  | timestamptz         | Upload timestamp.                         |
 
 - Files stored via the Storage unit (S3-compatible).
 - Max file size and allowed types configurable.
@@ -437,10 +444,10 @@ Files attached to tasks or comments.
 
 Users subscribed to task updates.
 
-| Field | Type | Description |
-|---|---|---|
-| **Task** | text (FK) | Reference to task. |
-| **User** | text (FK) | Who is watching. |
+| Field        | Type        | Description                 |
+| ------------ | ----------- | --------------------------- |
+| **Task**     | text (FK)   | Reference to task.          |
+| **User**     | text (FK)   | Who is watching.            |
 | **Added At** | timestamptz | When they started watching. |
 
 - Assignees are automatically added as watchers.
@@ -496,74 +503,74 @@ Users subscribed to task updates.
 
 ### 8.1 HR Module Integration
 
-| Integration | Flow |
-|---|---|
-| **Employee → Assignee** | Task assignees are sourced from the HR Employee master. Only active employees are eligible for assignment. |
-| **Employee → Reporter** | Task reporters are mapped to employees. |
-| **Department → Project** | Projects can be associated with departments for organizational alignment. |
-| **Holiday List → Due Date** | Due date calculations can skip holidays defined in the Holiday List. |
-| **Leave Management → Availability** | Task assignment suggestions can exclude employees on leave. |
-| **Shift Schedule → Working Hours** | Time estimates and due date calculations can factor in shift schedules. |
+| Integration                         | Flow                                                                                                       |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **Employee → Assignee**             | Task assignees are sourced from the HR Employee master. Only active employees are eligible for assignment. |
+| **Employee → Reporter**             | Task reporters are mapped to employees.                                                                    |
+| **Department → Project**            | Projects can be associated with departments for organizational alignment.                                  |
+| **Holiday List → Due Date**         | Due date calculations can skip holidays defined in the Holiday List.                                       |
+| **Leave Management → Availability** | Task assignment suggestions can exclude employees on leave.                                                |
+| **Shift Schedule → Working Hours**  | Time estimates and due date calculations can factor in shift schedules.                                    |
 
 ### 8.2 Auth Unit Integration
 
-| Integration | Flow |
-|---|---|
-| **User → Assignee/Reporter** | Tasks reference Auth users for assignment and reporting. |
+| Integration                     | Flow                                                                               |
+| ------------------------------- | ---------------------------------------------------------------------------------- |
+| **User → Assignee/Reporter**    | Tasks reference Auth users for assignment and reporting.                           |
 | **Roles → Project Permissions** | Project member roles (admin/member/viewer) are enforced via Auth's access control. |
-| **Session → Audit** | Activity log entries include the authenticated user from the current session. |
+| **Session → Audit**             | Activity log entries include the authenticated user from the current session.      |
 
 ### 8.3 Storage Unit Integration
 
-| Integration | Flow |
-|---|---|
-| **File Upload → Attachment** | Task and comment attachments are stored via the Storage unit. |
-| **Markdown Images** | Inline images in markdown content are uploaded to Storage and referenced by key. |
+| Integration                  | Flow                                                                             |
+| ---------------------------- | -------------------------------------------------------------------------------- |
+| **File Upload → Attachment** | Task and comment attachments are stored via the Storage unit.                    |
+| **Markdown Images**          | Inline images in markdown content are uploaded to Storage and referenced by key. |
 
 ### 8.4 PubSub Unit Integration
 
-| Integration | Flow |
-|---|---|
-| **Reminder → Notification** | Reminder events are published to PubSub for delivery by the notification system. |
-| **Task Activity → Watchers** | Task changes publish events that trigger watcher notifications. |
-| **Automation Rules → Actions** | Automation triggers publish events that execute configured actions. |
+| Integration                    | Flow                                                                             |
+| ------------------------------ | -------------------------------------------------------------------------------- |
+| **Reminder → Notification**    | Reminder events are published to PubSub for delivery by the notification system. |
+| **Task Activity → Watchers**   | Task changes publish events that trigger watcher notifications.                  |
+| **Automation Rules → Actions** | Automation triggers publish events that execute configured actions.              |
 
 ### 8.5 RPC Unit Integration
 
-| Integration | Flow |
-|---|---|
-| **API Exposure** | All task operations are exposed as oRPC procedures for client consumption. |
-| **Client Framework** | Task queries and mutations available via the client-side RPC unit. |
+| Integration          | Flow                                                                       |
+| -------------------- | -------------------------------------------------------------------------- |
+| **API Exposure**     | All task operations are exposed as oRPC procedures for client consumption. |
+| **Client Framework** | Task queries and mutations available via the client-side RPC unit.         |
 
 ---
 
 ## 9. Data Model Summary
 
-| Domain | Key Tables |
-|---|---|
-| **Core** | Task, TaskType, Label, TaskLabel |
-| **Hierarchy** | Sub-task relationships (self-referential FK on Task) |
-| **Linking** | TaskLink (source, target, link_type) |
-| **Project** | Project, ProjectMember |
-| **Sprint** | Sprint |
-| **Status** | Status, StatusTransition |
-| **Assignment** | TaskAssignee |
-| **Time** | TimeEntry |
-| **Reminders** | Reminder |
-| **Collaboration** | Comment, Attachment, Watcher, ActivityLog |
-| **Views** | SavedView |
-| **Automation** | AutomationRule |
+| Domain            | Key Tables                                           |
+| ----------------- | ---------------------------------------------------- |
+| **Core**          | Task, TaskType, Label, TaskLabel                     |
+| **Hierarchy**     | Sub-task relationships (self-referential FK on Task) |
+| **Linking**       | TaskLink (source, target, link_type)                 |
+| **Project**       | Project, ProjectMember                               |
+| **Sprint**        | Sprint                                               |
+| **Status**        | Status, StatusTransition                             |
+| **Assignment**    | TaskAssignee                                         |
+| **Time**          | TimeEntry                                            |
+| **Reminders**     | Reminder                                             |
+| **Collaboration** | Comment, Attachment, Watcher, ActivityLog            |
+| **Views**         | SavedView                                            |
+| **Automation**    | AutomationRule                                       |
 
 ---
 
 ## 10. Dependencies & Prerequisites
 
-| Dependency | Reason |
-|---|---|
-| **Auth Unit** | User identity, roles, access control for project permissions. |
-| **Storage Unit** | File attachments and inline images in markdown content. |
-| **PubSub Unit** | Reminder delivery, watcher notifications, automation events. |
-| **RPC Unit** | API exposure for client applications. |
+| Dependency               | Reason                                                                                         |
+| ------------------------ | ---------------------------------------------------------------------------------------------- |
+| **Auth Unit**            | User identity, roles, access control for project permissions.                                  |
+| **Storage Unit**         | File attachments and inline images in markdown content.                                        |
+| **PubSub Unit**          | Reminder delivery, watcher notifications, automation events.                                   |
+| **RPC Unit**             | API exposure for client applications.                                                          |
 | **HR Module** (optional) | Employee master for assignment, holiday lists for due date logic, leave data for availability. |
 
 **Without HR Module**: Tasks can still be created and managed. Assignee selection falls back to Auth users. Due date business-day logic is disabled.
@@ -611,41 +618,42 @@ packages/tasks/
 
 ### Domain Events
 
-| Event | Payload | Trigger |
-|---|---|---|
-| `task:created` | `{ task }` | Task created |
-| `task:updated` | `{ task, changes }` | Task fields modified |
-| `task:deleted` | `{ taskId }` | Task deleted |
-| `task:status_changed` | `{ task, fromStatus, toStatus }` | Status transition |
-| `task:assigned` | `{ taskId, userId, assignedBy }` | Assignee added |
-| `task:unassigned` | `{ taskId, userId }` | Assignee removed |
-| `task:linked` | `{ sourceId, targetId, linkType }` | Task link created |
-| `task:unlinked` | `{ sourceId, targetId }` | Task link removed |
-| `task:commented` | `{ taskId, comment }` | Comment added |
-| `task:time_logged` | `{ taskId, timeEntry }` | Time entry created |
-| `reminder:fired` | `{ reminder, taskId }` | Reminder triggered |
-| `sprint:started` | `{ sprint }` | Sprint activated |
-| `sprint:completed` | `{ sprint }` | Sprint closed |
+| Event                 | Payload                            | Trigger              |
+| --------------------- | ---------------------------------- | -------------------- |
+| `task:created`        | `{ task }`                         | Task created         |
+| `task:updated`        | `{ task, changes }`                | Task fields modified |
+| `task:deleted`        | `{ taskId }`                       | Task deleted         |
+| `task:status_changed` | `{ task, fromStatus, toStatus }`   | Status transition    |
+| `task:assigned`       | `{ taskId, userId, assignedBy }`   | Assignee added       |
+| `task:unassigned`     | `{ taskId, userId }`               | Assignee removed     |
+| `task:linked`         | `{ sourceId, targetId, linkType }` | Task link created    |
+| `task:unlinked`       | `{ sourceId, targetId }`           | Task link removed    |
+| `task:commented`      | `{ taskId, comment }`              | Comment added        |
+| `task:time_logged`    | `{ taskId, timeEntry }`            | Time entry created   |
+| `reminder:fired`      | `{ reminder, taskId }`             | Reminder triggered   |
+| `sprint:started`      | `{ sprint }`                       | Sprint activated     |
+| `sprint:completed`    | `{ sprint }`                       | Sprint closed        |
 
 ### Estimated Effort (Relative)
 
-| Area | Complexity | Notes |
-|---|---|---|
-| Core Task CRUD | Low | Standard CRUD with markdown support. |
-| Sub-tasks & Linking | Medium | Self-referential FK, DAG validation, cycle detection. |
-| Multi-assignee | Low | Join table with lead assignee designation. |
-| Workflow & Automation | Medium | Status transitions, rule engine, trigger evaluation. |
-| Views (List, Board) | Medium | Filter engine, drag-and-drop, real-time updates. |
-| Calendar & Timeline | High | Date-based rendering, Gantt with dependencies, critical path. |
-| Reminders | Medium | Scheduled job via PubSub, recurring reminders. |
-| Time Tracking | Low | Timer start/stop, duration aggregation. |
-| Collaboration | Medium | Comments with markdown, @mentions, activity log. |
-| Reporting | Medium | Aggregation queries, chart data preparation. |
-| HR Integration | Low | FK references to Employee, optional availability checks. |
+| Area                  | Complexity | Notes                                                         |
+| --------------------- | ---------- | ------------------------------------------------------------- |
+| Core Task CRUD        | Low        | Standard CRUD with markdown support.                          |
+| Sub-tasks & Linking   | Medium     | Self-referential FK, DAG validation, cycle detection.         |
+| Multi-assignee        | Low        | Join table with lead assignee designation.                    |
+| Workflow & Automation | Medium     | Status transitions, rule engine, trigger evaluation.          |
+| Views (List, Board)   | Medium     | Filter engine, drag-and-drop, real-time updates.              |
+| Calendar & Timeline   | High       | Date-based rendering, Gantt with dependencies, critical path. |
+| Reminders             | Medium     | Scheduled job via PubSub, recurring reminders.                |
+| Time Tracking         | Low        | Timer start/stop, duration aggregation.                       |
+| Collaboration         | Medium     | Comments with markdown, @mentions, activity log.              |
+| Reporting             | Medium     | Aggregation queries, chart data preparation.                  |
+| HR Integration        | Low        | FK references to Employee, optional availability checks.      |
 
 ### Phase Sequencing
 
 **Phase 1 — Core**:
+
 - Task CRUD with markdown content
 - Sub-tasks
 - Task types and labels
@@ -654,12 +662,14 @@ packages/tasks/
 - Multi-assignee
 
 **Phase 2 — Views & Workflow**:
+
 - List view, board view
 - Saved views and filter engine
 - Status transitions and validation
 - Activity log and comments
 
 **Phase 3 — Advanced**:
+
 - Task linking and dependency graph
 - Calendar and timeline views
 - Automation rules
@@ -667,6 +677,7 @@ packages/tasks/
 - Time tracking
 
 **Phase 4 — Reporting & Polish**:
+
 - All reports (summary, workload, velocity, burndown, time)
 - HR module integration
 - Performance optimization

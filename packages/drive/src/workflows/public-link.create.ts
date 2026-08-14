@@ -13,9 +13,7 @@ export const createPublicLink = Workflow.name("drive.public-link.create")
     const parsed = parse(CreatePublicLinkSchema, input);
 
     const token = generateToken();
-    const hashedPassword = parsed.password
-      ? await Bun.password.hash(parsed.password)
-      : null;
+    const hashedPassword = parsed.password ? await Bun.password.hash(parsed.password) : null;
 
     const [publicLink] = await ctx.db
       .insert(drivePublicLink)
@@ -51,8 +49,7 @@ export const createPublicLink = Workflow.name("drive.public-link.create")
 
 function generateToken(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(16));
-  const chars =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
   let token = "";
   for (const byte of bytes) {
     token += chars[byte % chars.length];

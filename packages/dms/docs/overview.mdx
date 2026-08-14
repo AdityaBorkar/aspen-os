@@ -15,7 +15,7 @@ All binary storage is delegated to the platform's `StorageUnit` under version-bo
 ```ts title="src/module.ts"
 export class Dms implements Module {
   static create(config?: DmsModuleConfig): Dms;
-  readonly $name = "dms";               // proxy key: p.dms
+  readonly $name = "dms"; // proxy key: p.dms
   readonly $dependencies: readonly string[] = [];
 }
 ```
@@ -42,32 +42,32 @@ TENANT DATABASE
 
 The module exposes workflow + service groups:
 
-| Getter | Methods |
-|---|---|
-| `activity` | `get`, `getClass`, `getDocument` |
-| `bin` | `deletePermanently`, `empty`, `list`, `restore` |
-| `classes` | `addField`, `archive`, `create`, `deactivateField`, `get`, `list`, `update`, `updateField` |
-| `contacts` | `create`, `get`, `list`, `remove`, `update` |
-| `documents` | `addMetadata`, `delete`, `download`, `get`, `removeMetadata`, `tag`, `untag`, `update`, `upload`, `uploadBulk` |
-| `documentShares` | `create`, `list`, `listByGrantee`, `remove`, `resolveToken`, `update` |
-| `holds` | `list`, `place`, `release` |
-| `pins` | `create`, `delete`, `list` |
-| `search` | `promoteToView`, `quick`, `search` |
-| `settings` | `get`, `set` |
-| `triage` | `classify`, `detail`, `list` |
-| `versions` | `delete`, `get`, `getCurrent`, `list`, `new`, `revert` |
-| `views` | `apply`, `create`, `delete`, `getDefault`, `list`, `listByOwner`, `pin`, `setDefault`, `unpin`, `update` |
-| `files` (Drive) | `copy`, `delete`, `download`, `get`, `getById`, `getDownloadLink`, `listVersions`, `move`, `purge`, `rename`, `restore`, `update`, `upload` |
-| `folders` (Drive) | `create`, `delete`, `get`, `getById`, `list`, `move`, `rename`, `restore`, `update` |
-| `labels` (Drive) | `apply`, `create`, `delete`, `list`, `listByLabel`, `remove` |
-| `publicLinks` (Drive) | `create`, `get`, `list`, `resolve`, `revoke`, `update` |
-| `shares` (Drive) | `create`, `get`, `list`, `listSharedWithMe`, `remove`, `update` |
-| `trash` (Drive) | `emptyTrash`, `list`, `purgeExpired`, `restore` |
-| `driveSearch` | `search` |
-| `access` | `checkPermission`, `getEffectivePermission`, `isOwner`, `logAccess` |
-| `archive` | `createArchive`, `processArchiveJob` |
-| `paths` | `checkNameUniqueness`, `computeFilePath`, `computeFolderPath`, `getBreadcrumbs`, `getDepth`, `getFilePath`, `getFolderPath`, `getSubtreeMaxDepth`, `resolvePath`, `wouldCreateCycle` |
-| `storage` | `computeArchiveKey`, `computeStorageKey`, `copy`, `exists`, `get`, `getSignedGetUrl`, `move`, `remove`, `upload` |
+| Getter                | Methods                                                                                                                                                                              |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `activity`            | `get`, `getClass`, `getDocument`                                                                                                                                                     |
+| `bin`                 | `deletePermanently`, `empty`, `list`, `restore`                                                                                                                                      |
+| `classes`             | `addField`, `archive`, `create`, `deactivateField`, `get`, `list`, `update`, `updateField`                                                                                           |
+| `contacts`            | `create`, `get`, `list`, `remove`, `update`                                                                                                                                          |
+| `documents`           | `addMetadata`, `delete`, `download`, `get`, `removeMetadata`, `tag`, `untag`, `update`, `upload`, `uploadBulk`                                                                       |
+| `documentShares`      | `create`, `list`, `listByGrantee`, `remove`, `resolveToken`, `update`                                                                                                                |
+| `holds`               | `list`, `place`, `release`                                                                                                                                                           |
+| `pins`                | `create`, `delete`, `list`                                                                                                                                                           |
+| `search`              | `promoteToView`, `quick`, `search`                                                                                                                                                   |
+| `settings`            | `get`, `set`                                                                                                                                                                         |
+| `triage`              | `classify`, `detail`, `list`                                                                                                                                                         |
+| `versions`            | `delete`, `get`, `getCurrent`, `list`, `new`, `revert`                                                                                                                               |
+| `views`               | `apply`, `create`, `delete`, `getDefault`, `list`, `listByOwner`, `pin`, `setDefault`, `unpin`, `update`                                                                             |
+| `files` (Drive)       | `copy`, `delete`, `download`, `get`, `getById`, `getDownloadLink`, `listVersions`, `move`, `purge`, `rename`, `restore`, `update`, `upload`                                          |
+| `folders` (Drive)     | `create`, `delete`, `get`, `getById`, `list`, `move`, `rename`, `restore`, `update`                                                                                                  |
+| `labels` (Drive)      | `apply`, `create`, `delete`, `list`, `listByLabel`, `remove`                                                                                                                         |
+| `publicLinks` (Drive) | `create`, `get`, `list`, `resolve`, `revoke`, `update`                                                                                                                               |
+| `shares` (Drive)      | `create`, `get`, `list`, `listSharedWithMe`, `remove`, `update`                                                                                                                      |
+| `trash` (Drive)       | `emptyTrash`, `list`, `purgeExpired`, `restore`                                                                                                                                      |
+| `driveSearch`         | `search`                                                                                                                                                                             |
+| `access`              | `checkPermission`, `getEffectivePermission`, `isOwner`, `logAccess`                                                                                                                  |
+| `archive`             | `createArchive`, `processArchiveJob`                                                                                                                                                 |
+| `paths`               | `checkNameUniqueness`, `computeFilePath`, `computeFolderPath`, `getBreadcrumbs`, `getDepth`, `getFilePath`, `getFolderPath`, `getSubtreeMaxDepth`, `resolvePath`, `wouldCreateCycle` |
+| `storage`             | `computeArchiveKey`, `computeStorageKey`, `copy`, `exists`, `get`, `getSignedGetUrl`, `move`, `remove`, `upload`                                                                     |
 
 ```ts
 // Access via the platform proxy ($name = "dms")
@@ -96,11 +96,11 @@ $initialize(units: {
 
 `$prepareRuntime()` registers three scheduled pg-boss jobs with `ctx.audit` + the running DB:
 
-| Job | Topic | Cron | Purpose |
-|---|---|---|---|
-| Expiry scanner | `dms:expiry-scan` | `5 0 * * *` | Promotes active documents past their `expiryDate` to `expired` |
-| Auto-purge | `dms:auto-purge` | `30 3 * * *` | Permanently deletes `deleted`/`expired` documents past retention, skipping legal holds |
-| Item auto-purge | `dms:item-auto-purge` | `0 3 * * *` | Permanently deletes trashed files/folders past `trashRetentionDays` (Drive superset) |
+| Job             | Topic                 | Cron         | Purpose                                                                                |
+| --------------- | --------------------- | ------------ | -------------------------------------------------------------------------------------- |
+| Expiry scanner  | `dms:expiry-scan`     | `5 0 * * *`  | Promotes active documents past their `expiryDate` to `expired`                         |
+| Auto-purge      | `dms:auto-purge`      | `30 3 * * *` | Permanently deletes `deleted`/`expired` documents past retention, skipping legal holds |
+| Item auto-purge | `dms:item-auto-purge` | `0 3 * * *`  | Permanently deletes trashed files/folders past `trashRetentionDays` (Drive superset)   |
 
 `$cleanup()` unsubscribes and unschedules all three.
 
@@ -110,16 +110,16 @@ $initialize(units: {
 
 ```ts
 type DmsModuleConfig = {
-  allowedContentTypes?: string[];   // [] = all types allowed
+  allowedContentTypes?: string[]; // [] = all types allowed
   defaultAutoPurgeEveryHours?: number; // 24
   defaultCompression?: CompressionOption; // { enabled: true, mode: "none" }
   defaultDownloadLinkExpiry?: number; // 3600 (s)
-  defaultRetentionDays?: number;     // 180
-  maxDownloadLinkExpiry?: number;    // 604800 (7d)
-  maxFileSize?: number;              // 5 GB
-  maxNestingDepth?: number;          // 20 (Drive folders)
-  maxVersions?: number;              // 10
-  trashRetentionDays?: number;       // 30 (Drive trash)
+  defaultRetentionDays?: number; // 180
+  maxDownloadLinkExpiry?: number; // 604800 (7d)
+  maxFileSize?: number; // 5 GB
+  maxNestingDepth?: number; // 20 (Drive folders)
+  maxVersions?: number; // 10
+  trashRetentionDays?: number; // 30 (Drive trash)
 };
 ```
 

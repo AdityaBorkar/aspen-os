@@ -7,8 +7,8 @@ import { ReminderFiltersSchema } from "../types";
 
 export const listReminders = Workflow.name("reminder.list")
   .input(object({ filters: optional(ReminderFiltersSchema) }))
-  .handler(async ({ filters }, ctx) => {
-    return ctx.step.run("query", async () => {
+  .handler(async ({ filters }, ctx) =>
+    ctx.step.run("query", async () => {
       const conditions = [];
 
       if (filters?.taskId) conditions.push(eq(reminder.taskId, filters.taskId));
@@ -18,9 +18,8 @@ export const listReminders = Workflow.name("reminder.list")
         conditions.push(eq(reminder.isSent, filters.isSent));
       }
 
-      const whereClause =
-        conditions.length > 0 ? and(...conditions) : undefined;
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
       return ctx.db.select().from(reminder).where(whereClause);
-    });
-  });
+    }),
+  );

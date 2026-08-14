@@ -24,12 +24,7 @@ export type {
   ScheduledJobExecutedEvent,
   WeeklySummaryEvent,
 } from "./pubsub";
-export {
-  COMPLIANCE_EVENTS,
-  DOCUMENT_EVENTS,
-  OBLIGATION_EVENTS,
-  SYSTEM_EVENTS,
-} from "./pubsub";
+export { COMPLIANCE_EVENTS, DOCUMENT_EVENTS, OBLIGATION_EVENTS, SYSTEM_EVENTS } from "./pubsub";
 export type {
   AuditTrailFilters,
   ComplianceDocumentFilters,

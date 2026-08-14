@@ -4,11 +4,7 @@ import { auditLog } from "./db-schema";
 import { AuditQueryService } from "./query-service";
 import type { AuditDatabase, AuditEntry, AuditQuery } from "./types";
 
-export {
-  type AuditLog,
-  auditLog,
-  type NewAuditLog,
-} from "./db-schema";
+export { type AuditLog, auditLog, type NewAuditLog } from "./db-schema";
 export { AuditQueryService } from "./query-service";
 export type { AuditEntry, AuditQuery, CrudAction } from "./types";
 
@@ -21,7 +17,7 @@ export class AuditUnit {
   constructor({
     db,
   }: {
-    // biome-ignore lint/suspicious/noExplicitAny: drizzle NodePgDatabase invariance forces any here
+    // Biome-ignore lint/suspicious/noExplicitAny: drizzle NodePgDatabase invariance forces any here
     db: DatabaseUnit<any>;
   }) {
     this.db = db.db as AuditDatabase;
@@ -41,7 +37,9 @@ export class AuditUnit {
     before?: Record<string, unknown> | null,
     after?: Record<string, unknown> | null,
   ): Record<string, { new: unknown; old: unknown }> | undefined {
-    if (!before && !after) return undefined;
+    if (!before && !after) {
+      return undefined;
+    }
     const beforeMap = before ?? {};
     const afterMap = after ?? {};
     const keys = new Set([...Object.keys(beforeMap), ...Object.keys(afterMap)]);
@@ -109,10 +107,7 @@ export class AuditUnit {
   }
 
   /** Reconstruct a record's current state by replaying its audited changes in seq order. */
-  reconstructState(
-    entityType: string,
-    entityId: string,
-  ): Promise<Record<string, unknown> | null> {
+  reconstructState(entityType: string, entityId: string): Promise<Record<string, unknown> | null> {
     return this.queryService.reconstructState(entityType, entityId);
   }
 

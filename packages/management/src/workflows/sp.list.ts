@@ -11,8 +11,8 @@ export const listSps = Workflow.name("sp.list")
       filters: optional(ServiceProviderFiltersSchema),
     }),
   )
-  .handler(async (input, ctx) => {
-    return ctx.step.run("query", async () => {
+  .handler(async (input, ctx) =>
+    ctx.step.run("query", async () => {
       const parsed = input.filters ?? {};
       const conditions: SQL[] = [];
 
@@ -27,16 +27,12 @@ export const listSps = Workflow.name("sp.list")
       if (parsed.search) {
         const term = `%${parsed.search}%`;
         conditions.push(
-          or(
-            ilike(serviceProvider.name, term),
-            ilike(serviceProvider.slug, term),
-          ) as SQL,
+          or(ilike(serviceProvider.name, term), ilike(serviceProvider.slug, term)) as SQL,
         );
       }
 
-      const whereClause =
-        conditions.length > 0 ? and(...conditions) : undefined;
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
       return ctx.db.select().from(serviceProvider).where(whereClause);
-    });
-  });
+    }),
+  );

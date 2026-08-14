@@ -13,10 +13,6 @@ export const getRoleById = Workflow.name("hr.access.get-role-by-id")
   .handler(async (input, ctx) => {
     const { id } = input;
 
-    const [record] = await ctx.db
-      .select()
-      .from(hrRole)
-      .where(eq(hrRole.id, id))
-      .limit(1);
+    const [record] = await ctx.db.select().from(hrRole).where(eq(hrRole.id, id)).limit(1);
     return record ?? null;
   });

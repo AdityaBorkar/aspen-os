@@ -17,7 +17,9 @@ export const createOverdueReminder = Workflow.name("reminder.create-overdue")
       .where(eq(task.id, taskId))
       .limit(1);
 
-    if (!taskRow?.dueDate) return;
+    if (!taskRow?.dueDate) {
+      return;
+    }
 
     await ctx.db.insert(reminder).values({
       interval: "daily",

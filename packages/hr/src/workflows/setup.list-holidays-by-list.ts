@@ -8,15 +8,10 @@ const InputSchema = object({
   holidayListId: pipe(string(), minLength(1, "holidayListId is required")),
 });
 
-export const listHolidaysByList = Workflow.name(
-  "hr.setup.list-holidays-by-list",
-)
+export const listHolidaysByList = Workflow.name("hr.setup.list-holidays-by-list")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { holidayListId } = input;
 
-    return ctx.db
-      .select()
-      .from(holiday)
-      .where(eq(holiday.holidayListId, holidayListId));
+    return ctx.db.select().from(holiday).where(eq(holiday.holidayListId, holidayListId));
   });

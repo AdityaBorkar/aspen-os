@@ -9,9 +9,7 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const approveAttendanceRequest = Workflow.name(
-  "hr.attendance.approve-attendance-request",
-)
+export const approveAttendanceRequest = Workflow.name("hr.attendance.approve-attendance-request")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, approvedBy } = input;

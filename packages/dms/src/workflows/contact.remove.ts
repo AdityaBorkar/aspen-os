@@ -14,7 +14,7 @@ export const removeContact = Workflow.name("dms.contact.remove")
   .input(RemoveInputSchema)
   .handler(async ({ id, input }, ctx) => {
     const contact = await ctx.step.run(fetchContactStep, { id });
-    const reason = input.reason;
+    const { reason } = input;
 
     if (!reason || reason.trim().length === 0) {
       throw new Error("Deletion reason is required to remove a contact.");

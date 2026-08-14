@@ -6,6 +6,4 @@ import { fetchAutomationRuleStep } from "./steps/fetch-automation-rule";
 
 export const getAutomationRule = Workflow.name("automation.get")
   .input(object({ id: IdSchema }))
-  .handler(async ({ id }, ctx) => {
-    return ctx.step.run(fetchAutomationRuleStep, { id });
-  });
+  .handler(async ({ id }, ctx) => ctx.step.run(fetchAutomationRuleStep, { id }));

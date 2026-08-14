@@ -7,8 +7,8 @@ import { ProjectFiltersSchema } from "../types";
 
 export const listProjects = Workflow.name("project.list")
   .input(object({ filters: optional(ProjectFiltersSchema) }))
-  .handler(async ({ filters }, ctx) => {
-    return ctx.step.run("query", async () => {
+  .handler(async ({ filters }, ctx) =>
+    ctx.step.run("query", async () => {
       const conditions = [];
 
       if (filters?.leadId) {
@@ -18,13 +18,8 @@ export const listProjects = Workflow.name("project.list")
         conditions.push(eq(project.status, filters.status));
       }
 
-      const whereClause =
-        conditions.length > 0 ? and(...conditions) : undefined;
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-      return ctx.db
-        .select()
-        .from(project)
-        .where(whereClause)
-        .orderBy(desc(project.createdAt));
-    });
-  });
+      return ctx.db.select().from(project).where(whereClause).orderBy(desc(project.createdAt));
+    }),
+  );

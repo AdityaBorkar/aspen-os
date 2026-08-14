@@ -7,7 +7,7 @@ import { type ObligationFilters, ObligationFiltersSchema } from "../types";
 
 const listObligations = Workflow.name("obligation.list").handler(
   async (input: { filters?: ObligationFilters }, ctx) => {
-    const filters = input.filters;
+    const { filters } = input;
     const parsed = filters ? parse(ObligationFiltersSchema, filters) : {};
     const conditions = [];
 
@@ -15,9 +15,7 @@ const listObligations = Workflow.name("obligation.list").handler(
       conditions.push(eq(complianceObligation.category, parsed.category));
     }
     if (parsed.sourceModule) {
-      conditions.push(
-        eq(complianceObligation.sourceModule, parsed.sourceModule),
-      );
+      conditions.push(eq(complianceObligation.sourceModule, parsed.sourceModule));
     }
     if (parsed.active !== undefined) {
       conditions.push(eq(complianceObligation.isActive, parsed.active));

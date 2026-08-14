@@ -63,17 +63,10 @@ export async function getWorkloadReport(projectId: string): Promise<
   return rows;
 }
 
-export async function getTimeReport(
-  projectId: string,
-  dateFrom?: Date,
-  dateTo?: Date,
-) {
+export async function getTimeReport(projectId: string, dateFrom?: Date, dateTo?: Date) {
   const { db } = getContext();
 
-  const conditions = [
-    eq(timeEntry.taskId, task.id),
-    eq(task.projectId, projectId),
-  ];
+  const conditions = [eq(timeEntry.taskId, task.id), eq(task.projectId, projectId)];
 
   if (dateFrom) {
     conditions.push(gte(timeEntry.date, dateFrom.toISOString().slice(0, 10)));

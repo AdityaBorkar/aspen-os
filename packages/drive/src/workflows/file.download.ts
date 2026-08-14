@@ -17,12 +17,10 @@ export const downloadFile = Workflow.name("drive.file.download")
   .input(DownloadInputSchema)
   .handler(async ({ id, options = {} }, ctx) => {
     const file = await ctx.step.run("fetch-file", async () => {
-      const [row] = await ctx.db
-        .select()
-        .from(driveFile)
-        .where(eq(driveFile.id, id))
-        .limit(1);
-      if (!row) throw new Error(`File with id "${id}" not found.`);
+      const [row] = await ctx.db.select().from(driveFile).where(eq(driveFile.id, id)).limit(1);
+      if (!row) {
+        throw new Error(`File with id "${id}" not found.`);
+      }
       return row;
     });
     const config = getDriveConfig();

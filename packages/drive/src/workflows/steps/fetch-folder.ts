@@ -12,6 +12,8 @@ export const fetchFolderStep = WorkflowStep.name("fetch-folder")
       .from(driveFolder)
       .where(eq(driveFolder.id, input.id))
       .limit(1);
-    if (!row) throw new Error(`Folder with id "${input.id}" not found.`);
+    if (!row) {
+      throw new Error(`Folder with id "${input.id}" not found.`);
+    }
     return row;
   });

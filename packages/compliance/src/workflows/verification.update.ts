@@ -3,10 +3,7 @@ import { eq } from "drizzle-orm";
 import { parse } from "valibot";
 
 import { complianceVerificationRule } from "../db-schemas";
-import {
-  type UpdateVerificationRuleInput,
-  UpdateVerificationRuleSchema,
-} from "../types";
+import { type UpdateVerificationRuleInput, UpdateVerificationRuleSchema } from "../types";
 import { fetchRuleStep } from "./steps/fetch-rule";
 
 const updateVerificationRule = Workflow.name("verification.update").handler(
@@ -17,18 +14,31 @@ const updateVerificationRule = Workflow.name("verification.update").handler(
 
     const updateData: Record<string, unknown> = {};
 
-    if (parsed.name !== undefined) updateData.name = parsed.name;
-    if (parsed.category !== undefined) updateData.category = parsed.category;
-    if (parsed.sourceModule !== undefined)
+    if (parsed.name !== undefined) {
+      updateData.name = parsed.name;
+    }
+    if (parsed.category !== undefined) {
+      updateData.category = parsed.category;
+    }
+    if (parsed.sourceModule !== undefined) {
       updateData.sourceModule = parsed.sourceModule;
-    if (parsed.assignedReviewer !== undefined)
+    }
+    if (parsed.assignedReviewer !== undefined) {
       updateData.assignedReviewer = parsed.assignedReviewer;
-    if (parsed.requiredReviewerRole !== undefined)
+    }
+    if (parsed.requiredReviewerRole !== undefined) {
       updateData.requiredReviewerRole = parsed.requiredReviewerRole;
-    if (parsed.isActive !== undefined) updateData.isActive = parsed.isActive;
-    if (parsed.priority !== undefined) updateData.priority = parsed.priority;
+    }
+    if (parsed.isActive !== undefined) {
+      updateData.isActive = parsed.isActive;
+    }
+    if (parsed.priority !== undefined) {
+      updateData.priority = parsed.priority;
+    }
 
-    if (Object.keys(updateData).length === 0) return current;
+    if (Object.keys(updateData).length === 0) {
+      return current;
+    }
 
     const [updated] = await ctx.db
       .update(complianceVerificationRule)
@@ -36,7 +46,9 @@ const updateVerificationRule = Workflow.name("verification.update").handler(
       .where(eq(complianceVerificationRule.id, id))
       .returning();
 
-    if (!updated) throw new Error("Database operation returned no result");
+    if (!updated) {
+      throw new Error("Database operation returned no result");
+    }
 
     await ctx.audit.write({
       action: "updated",

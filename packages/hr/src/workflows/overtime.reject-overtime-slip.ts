@@ -10,9 +10,7 @@ const InputSchema = object({
   rejectionReason: pipe(string(), minLength(1, "rejectionReason is required")),
 });
 
-export const rejectOvertimeSlip = Workflow.name(
-  "hr.overtime.reject-overtime-slip",
-)
+export const rejectOvertimeSlip = Workflow.name("hr.overtime.reject-overtime-slip")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, rejectedBy, rejectionReason } = input;

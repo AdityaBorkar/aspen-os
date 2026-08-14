@@ -17,17 +17,8 @@ import type { DatabaseUnit } from "../db";
 import type { Unit } from "../index";
 import type { PubSubUnit } from "../pubsub";
 import * as db_schema from "./db-schema";
-import {
-  assignRole,
-  deleteRole,
-  listRoles,
-  unassignRole,
-} from "./services/role";
-import {
-  authenticate,
-  invalidateSession,
-  validateSession,
-} from "./services/session";
+import { assignRole, deleteRole, listRoles, unassignRole } from "./services/role";
+import { authenticate, invalidateSession, validateSession } from "./services/session";
 import { createUser, deleteUser, getUser, updateUser } from "./services/user";
 
 export type { AclDeclaration } from "./utils/acl";
@@ -65,7 +56,7 @@ export class AuthUnit implements Unit {
 
   constructor(
     config: AuthConfig,
-    // biome-ignore lint/suspicious/noExplicitAny: drizzle NodePgDatabase invariance forces any here
+    // Biome-ignore lint/suspicious/noExplicitAny: drizzle NodePgDatabase invariance forces any here
     units: { db: DatabaseUnit<any>; pubsub: PubSubUnit },
   ) {
     this.#config = config;
@@ -103,31 +94,23 @@ export class AuthUnit implements Unit {
     return {
       role: {
         list: () => listRoles(deps),
-        remove: (input: Parameters<typeof deleteRole>[0]) =>
-          deleteRole(input, deps),
+        remove: (input: Parameters<typeof deleteRole>[0]) => deleteRole(input, deps),
       },
       session: {
-        create: (input: Parameters<typeof authenticate>[0]) =>
-          authenticate(input, deps),
+        create: (input: Parameters<typeof authenticate>[0]) => authenticate(input, deps),
         invalidate: (input: Parameters<typeof invalidateSession>[0]) =>
           invalidateSession(input, deps),
-        validate: (input: Parameters<typeof validateSession>[0]) =>
-          validateSession(input, deps),
+        validate: (input: Parameters<typeof validateSession>[0]) => validateSession(input, deps),
       },
       user: {
-        create: (input: Parameters<typeof createUser>[0]) =>
-          createUser(input, deps),
+        create: (input: Parameters<typeof createUser>[0]) => createUser(input, deps),
         get: (query: Parameters<typeof getUser>[0]) => getUser(query, deps),
-        remove: (input: Parameters<typeof deleteUser>[0]) =>
-          deleteUser(input, deps),
+        remove: (input: Parameters<typeof deleteUser>[0]) => deleteUser(input, deps),
         role: {
-          assign: (input: Parameters<typeof assignRole>[0]) =>
-            assignRole(input, deps),
-          unassign: (input: Parameters<typeof unassignRole>[0]) =>
-            unassignRole(input, deps),
+          assign: (input: Parameters<typeof assignRole>[0]) => assignRole(input, deps),
+          unassign: (input: Parameters<typeof unassignRole>[0]) => unassignRole(input, deps),
         },
-        update: (input: Parameters<typeof updateUser>[0]) =>
-          updateUser(input, deps),
+        update: (input: Parameters<typeof updateUser>[0]) => updateUser(input, deps),
       },
     };
   }
@@ -170,7 +153,7 @@ export function createBetterAuthService(
           timeWindow: 1000 * 60 * 60 * 24,
         },
       }),
-      // lastLoginMethod(),
+      // LastLoginMethod(),
       twoFactor(),
       passkey(),
     ],

@@ -1,11 +1,5 @@
 import { uuidv7 } from "@aspen-os/platform/server";
-import {
-  boolean,
-  index,
-  pgTable,
-  text,
-  uniqueIndex,
-} from "drizzle-orm/pg-core";
+import { boolean, index, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const statusTransition = pgTable(
   "task_status_transition",

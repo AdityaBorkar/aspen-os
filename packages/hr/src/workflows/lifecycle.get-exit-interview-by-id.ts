@@ -8,9 +8,7 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const getExitInterviewById = Workflow.name(
-  "hr.lifecycle.get-exit-interview-by-id",
-)
+export const getExitInterviewById = Workflow.name("hr.lifecycle.get-exit-interview-by-id")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id } = input;

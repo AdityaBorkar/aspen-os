@@ -1,13 +1,4 @@
-import {
-  date,
-  type InferOutput,
-  integer,
-  number,
-  object,
-  optional,
-  pipe,
-  string,
-} from "valibot";
+import { date, type InferOutput, integer, number, object, optional, pipe, string } from "valibot";
 
 export const TenantUsageFiltersSchema = object({
   status: optional(string()),
@@ -21,9 +12,7 @@ export const LifecycleReportFiltersSchema = object({
   to: optional(date()),
 });
 
-export type LifecycleReportFilters = InferOutput<
-  typeof LifecycleReportFiltersSchema
->;
+export type LifecycleReportFilters = InferOutput<typeof LifecycleReportFiltersSchema>;
 
 export const AuditReportFiltersSchema = object({
   action: optional(string()),

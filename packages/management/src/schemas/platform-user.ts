@@ -11,9 +11,7 @@ export const CreatePlatformUserSchema = object({
   spId: optional(nullable(string())),
 });
 
-export type CreatePlatformUserInput = InferOutput<
-  typeof CreatePlatformUserSchema
->;
+export type CreatePlatformUserInput = InferOutput<typeof CreatePlatformUserSchema>;
 
 export const UpdatePlatformUserSchema = object({
   name: optional(NameSchema),
@@ -21,9 +19,7 @@ export const UpdatePlatformUserSchema = object({
   spId: optional(nullable(string())),
 });
 
-export type UpdatePlatformUserInput = InferOutput<
-  typeof UpdatePlatformUserSchema
->;
+export type UpdatePlatformUserInput = InferOutput<typeof UpdatePlatformUserSchema>;
 
 export const PlatformUserFiltersSchema = object({
   role: optional(string()),

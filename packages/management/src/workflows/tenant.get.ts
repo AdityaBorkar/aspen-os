@@ -6,6 +6,4 @@ import { fetchTenantStep } from "./steps/fetch-tenant";
 
 export const getTenant = Workflow.name("tenant.get")
   .input(object({ id: IdSchema }))
-  .handler(async (input, ctx) => {
-    return ctx.step.run(fetchTenantStep, input);
-  });
+  .handler(async (input, ctx) => ctx.step.run(fetchTenantStep, input));

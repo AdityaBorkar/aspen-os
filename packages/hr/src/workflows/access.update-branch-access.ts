@@ -10,9 +10,7 @@ const InputSchema = object({
   patch: UpdateBranchAccessSchema,
 });
 
-export const updateBranchAccess = Workflow.name(
-  "hr.access.update-branch-access",
-)
+export const updateBranchAccess = Workflow.name("hr.access.update-branch-access")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, patch } = input;

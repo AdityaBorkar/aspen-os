@@ -8,18 +8,12 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const getLeavePolicyById = Workflow.name(
-  "hr.leave.get-leave-policy-by-id",
-)
+export const getLeavePolicyById = Workflow.name("hr.leave.get-leave-policy-by-id")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id } = input;
 
-    const [result] = await ctx.db
-      .select()
-      .from(leavePolicy)
-      .where(eq(leavePolicy.id, id))
-      .limit(1);
+    const [result] = await ctx.db.select().from(leavePolicy).where(eq(leavePolicy.id, id)).limit(1);
 
     if (!result) {
       throw new Error(`Leave policy with id "${id}" not found.`);

@@ -13,10 +13,7 @@ export const deleteShiftRequest = Workflow.name("hr.shift.delete-shift-request")
   .handler(async (input, ctx) => {
     const { id } = input;
 
-    const [deleted] = await ctx.db
-      .delete(shiftRequest)
-      .where(eq(shiftRequest.id, id))
-      .returning();
+    const [deleted] = await ctx.db.delete(shiftRequest).where(eq(shiftRequest.id, id)).returning();
 
     return deleted;
   });

@@ -4,12 +4,7 @@ import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { AuditUnit } from "./audit";
 import { type AuthConfig, AuthUnit } from "./auth";
 import type { DatabaseUnit } from "./db";
-import type {
-  Module,
-  PlatformUnits,
-  TenancyMode,
-  UnitAccessors,
-} from "./index";
+import type { Module, PlatformUnits, TenancyMode, UnitAccessors } from "./index";
 import { type KvStoreConfig, KvStoreUnit } from "./kv-store";
 import { type LogConfig, LogUnit } from "./log";
 import { type PubSubConfig, PubSubUnit } from "./pubsub";
@@ -21,16 +16,14 @@ export type ExtractModuleNames<M extends Module[]> = {
   [K in keyof M]: M[K] extends { $name: infer N extends string } ? N : never;
 };
 
-export type ModuleByName<
-  M extends Module[],
-  K extends M[number]["$name"],
-> = Extract<M[number], { $name: K }>;
+export type ModuleByName<M extends Module[], K extends M[number]["$name"]> = Extract<
+  M[number],
+  { $name: K }
+>;
 
-type UnionToIntersection<T> = (
-  T extends unknown
-    ? (x: T) => void
-    : never
-) extends (x: infer R) => void
+type UnionToIntersection<T> = (T extends unknown ? (x: T) => void : never) extends (
+  x: infer R,
+) => void
   ? R
   : never;
 
@@ -93,8 +86,7 @@ export type CommonConfig = {
 export abstract class BasePlatform<
   M extends Module[],
   S extends Record<string, unknown> = MergedSchemas<M>,
-> implements UnitAccessors<S>
-{
+> implements UnitAccessors<S> {
   declare readonly audit: PlatformUnits<S>["audit"];
   declare readonly auth: PlatformUnits<S>["auth"];
   declare readonly db: PlatformUnits<S>["db"];
@@ -108,14 +100,18 @@ export abstract class BasePlatform<
     protected readonly units: PlatformUnits<S>,
     protected readonly modules: M,
   ) {
-    // biome-ignore lint/correctness/noConstructorReturn: Exception
+    // Biome-ignore lint/correctness/noConstructorReturn: Exception
     return new Proxy(this, {
       get(target, prop, receiver) {
         if (typeof prop === "string") {
           const unit = target.units[prop as keyof PlatformUnits<S>];
-          if (unit) return unit;
+          if (unit) {
+            return unit;
+          }
           const mod = target.modules.find((m) => m.$name === prop);
-          if (mod) return mod;
+          if (mod) {
+            return mod;
+          }
         }
         return Reflect.get(target, prop, receiver);
       },
@@ -125,10 +121,7 @@ export abstract class BasePlatform<
       };
   }
 
-  protected static createCore<
-    M extends Module[],
-    S extends Record<string, unknown>,
-  >(
+  protected static createCore<M extends Module[], S extends Record<string, unknown>>(
     db: DatabaseUnit<S>,
     config: CommonConfig,
     modules: M,
@@ -148,9 +141,7 @@ export abstract class BasePlatform<
     for (const mod of modules) {
       for (const dep of mod.$dependencies) {
         if (!moduleNames.has(dep)) {
-          throw new Error(
-            `Module "${mod.$name}" depends on "${dep}", but it was not provided`,
-          );
+          throw new Error(`Module "${mod.$name}" depends on "${dep}", but it was not provided`);
         }
       }
       mod.$initialize?.(units);
@@ -183,10 +174,7 @@ export abstract class BasePlatform<
     for (const mod of this.modules) {
       const infra = mod.$prepareInfra?.();
       if (infra) {
-        Object.assign(
-          mergedControlPlaneSchemas,
-          infra.db.control_plane_schemas,
-        );
+        Object.assign(mergedControlPlaneSchemas, infra.db.control_plane_schemas);
         Object.assign(mergedTenantSchemas, infra.db.tenant_schemas);
         for (const [resource, actions] of Object.entries(infra.auth.acl)) {
           if (!mergedAcl[resource]) {
@@ -198,10 +186,7 @@ export abstract class BasePlatform<
     }
     console.log("Done merged schemas");
 
-    await this.units.db.prepareWithModules(
-      mergedControlPlaneSchemas,
-      mergedTenantSchemas,
-    );
+    await this.units.db.prepareWithModules(mergedControlPlaneSchemas, mergedTenantSchemas);
     this.units.auth.applyModuleAcl(mergedAcl);
     console.log("Done db prepare");
 
@@ -234,7 +219,9 @@ export abstract class BasePlatform<
 
   getModule<K extends M[number]["$name"]>(name: K): ModuleByName<M, K> {
     const mod = this.modules.find((m) => m.$name === name);
-    if (!mod) throw new Error(`Module "${String(name)}" not found`);
+    if (!mod) {
+      throw new Error(`Module "${String(name)}" not found`);
+    }
     return mod as ModuleByName<M, K>;
   }
 
@@ -252,9 +239,7 @@ export abstract class BasePlatform<
     const ctx = {
       audit: this.units.audit,
       auth: this.units.auth,
-      db: this.units.db.controlPlaneDb as unknown as NodePgDatabase<
-        Record<string, unknown>
-      >,
+      db: this.units.db.controlPlaneDb as unknown as NodePgDatabase<Record<string, unknown>>,
       pubsub: this.units.pubsub,
       ...overrides,
     };
@@ -280,13 +265,10 @@ export abstract class BasePlatform<
     const dbResult = await this.checkDbHealth();
     const pubsubResult = await this.checkPubSubHealth();
 
-    const unsubscribedTopics =
-      this.units.pubsub.getUnsubscribedProducedTopics();
+    const unsubscribedTopics = this.units.pubsub.getUnsubscribedProducedTopics();
 
     const overall: "ok" | "unhealthy" =
-      dbResult.status === "ok" &&
-      pubsubResult.status === "ok" &&
-      unsubscribedTopics.length === 0
+      dbResult.status === "ok" && pubsubResult.status === "ok" && unsubscribedTopics.length === 0
         ? "ok"
         : "unhealthy";
 
@@ -299,8 +281,8 @@ export abstract class BasePlatform<
 
     if (unsubscribedTopics.length > 0) {
       // Topics produced to but with no registered consumer: pg-boss silently
-      // drops these messages. Flag them and mark the whole report unhealthy so
-      // monitoring surfaces the wiring bug early.
+      // Drops these messages. Flag them and mark the whole report unhealthy so
+      // Monitoring surfaces the wiring bug early.
       report.unsubscribedTopics = unsubscribedTopics;
     }
 
@@ -324,8 +306,8 @@ export abstract class BasePlatform<
     const start = performance.now();
     try {
       // Lazily starts the control-plane pg-boss (proving it can connect to
-      // the database), then performs a live SQL round-trip against a queue.
-      // getQueueSize works on unregistered topics and has no side effects.
+      // The database), then performs a live SQL round-trip against a queue.
+      // GetQueueSize works on unregistered topics and has no side effects.
       await this.units.pubsub.getQueueSize(PUBSUB_HEALTH_PROBE_TOPIC);
       return { latencyMs: Math.round(performance.now() - start), status: "ok" };
     } catch (err) {

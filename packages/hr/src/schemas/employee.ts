@@ -134,9 +134,7 @@ export const CreateEmployeeGroupSchema = object({
   name: NameSchema,
 });
 
-export type CreateEmployeeGroupInput = InferOutput<
-  typeof CreateEmployeeGroupSchema
->;
+export type CreateEmployeeGroupInput = InferOutput<typeof CreateEmployeeGroupSchema>;
 
 export const UpdateEmployeeGroupSchema = object({
   description: optional(nullable(string())),
@@ -144,9 +142,7 @@ export const UpdateEmployeeGroupSchema = object({
   name: optional(NameSchema),
 });
 
-export type UpdateEmployeeGroupInput = InferOutput<
-  typeof UpdateEmployeeGroupSchema
->;
+export type UpdateEmployeeGroupInput = InferOutput<typeof UpdateEmployeeGroupSchema>;
 
 // Employee Group Member
 
@@ -170,9 +166,7 @@ export const CreateHealthInsuranceSchema = object({
   startDate: pipe(string(), minLength(1, "Start date is required")),
 });
 
-export type CreateHealthInsuranceInput = InferOutput<
-  typeof CreateHealthInsuranceSchema
->;
+export type CreateHealthInsuranceInput = InferOutput<typeof CreateHealthInsuranceSchema>;
 
 export const UpdateHealthInsuranceSchema = object({
   coverageDetails: optional(nullable(string())),
@@ -185,9 +179,7 @@ export const UpdateHealthInsuranceSchema = object({
   startDate: optional(string()),
 });
 
-export type UpdateHealthInsuranceInput = InferOutput<
-  typeof UpdateHealthInsuranceSchema
->;
+export type UpdateHealthInsuranceInput = InferOutput<typeof UpdateHealthInsuranceSchema>;
 
 // Employee Skill Map
 

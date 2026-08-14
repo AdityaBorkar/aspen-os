@@ -5,12 +5,10 @@ import { boolean, object, optional } from "valibot";
 import { timeEntry } from "../db-schemas/time-entry";
 import { IdSchema } from "../types";
 
-export const getTimeEntryTotalDuration = Workflow.name(
-  "time-entry.total-duration",
-)
+export const getTimeEntryTotalDuration = Workflow.name("time-entry.total-duration")
   .input(object({ billableOnly: optional(boolean()), taskId: IdSchema }))
-  .handler(async ({ taskId, billableOnly }, ctx) => {
-    return ctx.step.run("query", async () => {
+  .handler(async ({ taskId, billableOnly }, ctx) =>
+    ctx.step.run("query", async () => {
       const conditions = [eq(timeEntry.taskId, taskId)];
       if (billableOnly) {
         conditions.push(eq(timeEntry.billable, true));
@@ -22,5 +20,5 @@ export const getTimeEntryTotalDuration = Workflow.name(
         .where(and(...conditions));
 
       return result?.total ? Number.parseInt(result.total, 10) : 0;
-    });
-  });
+    }),
+  );

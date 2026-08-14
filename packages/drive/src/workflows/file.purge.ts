@@ -27,9 +27,7 @@ export const purgeFile = Workflow.name("drive.file.purge")
       });
     }
 
-    await ctx.db
-      .delete(driveFileVersion)
-      .where(eq(driveFileVersion.fileId, id));
+    await ctx.db.delete(driveFileVersion).where(eq(driveFileVersion.fileId, id));
 
     await ctx.db.delete(driveFile).where(eq(driveFile.id, id));
 

@@ -7,6 +7,4 @@ const InputSchema = object({});
 
 export const listShiftTypes = Workflow.name("hr.shift.list-shift-types")
   .input(InputSchema)
-  .handler(async (_input, ctx) => {
-    return ctx.db.select().from(shiftType);
-  });
+  .handler(async (_input, ctx) => ctx.db.select().from(shiftType));

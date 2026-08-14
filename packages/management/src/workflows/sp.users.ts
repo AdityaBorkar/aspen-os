@@ -11,8 +11,8 @@ export const getUsers = Workflow.name("sp.users")
   .handler(async (input, ctx) => {
     const { spId } = input;
 
-    return ctx.step.run("query", async () => {
-      return ctx.db
+    return ctx.step.run("query", async () =>
+      ctx.db
         .select({
           createdAt: user.createdAt,
           email: user.email,
@@ -24,6 +24,6 @@ export const getUsers = Workflow.name("sp.users")
         })
         .from(serviceProviderUser)
         .innerJoin(user, eq(serviceProviderUser.userId, user.id))
-        .where(eq(serviceProviderUser.serviceProviderId, spId));
-    });
+        .where(eq(serviceProviderUser.serviceProviderId, spId)),
+    );
   });

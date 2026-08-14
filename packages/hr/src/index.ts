@@ -26,8 +26,4 @@ export {
   SHIFT_EVENTS,
 } from "./pubsub";
 export * from "./types";
-export type {
-  AccessLevel,
-  HrPermissionModule,
-  PermissionAction,
-} from "./utils/constants";
+export type { AccessLevel, HrPermissionModule, PermissionAction } from "./utils/constants";

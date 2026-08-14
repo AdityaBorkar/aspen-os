@@ -1,13 +1,5 @@
-export type {
-  AddressFilters,
-  CreateAddressInput,
-  UpdateAddressInput,
-} from "./address";
-export {
-  AddressFiltersSchema,
-  CreateAddressSchema,
-  UpdateAddressSchema,
-} from "./address";
+export type { AddressFilters, CreateAddressInput, UpdateAddressInput } from "./address";
+export { AddressFiltersSchema, CreateAddressSchema, UpdateAddressSchema } from "./address";
 export type {
   BankAccountFilters,
   CreateBankAccountInput,
@@ -18,16 +10,8 @@ export {
   CreateBankAccountSchema,
   UpdateBankAccountSchema,
 } from "./bank-account";
-export type {
-  BranchFilters,
-  CreateBranchInput,
-  UpdateBranchInput,
-} from "./branch";
-export {
-  BranchFiltersSchema,
-  CreateBranchSchema,
-  UpdateBranchSchema,
-} from "./branch";
+export type { BranchFilters, CreateBranchInput, UpdateBranchInput } from "./branch";
+export { BranchFiltersSchema, CreateBranchSchema, UpdateBranchSchema } from "./branch";
 export type {
   ConnectionFilters,
   CreateConnectionContactInput,

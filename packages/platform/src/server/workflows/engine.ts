@@ -14,9 +14,8 @@ import type {
   WorkflowStepInstance,
 } from "./types";
 
-type DrizzleDB<
-  TSchemas extends Record<string, unknown> = Record<string, unknown>,
-> = NodePgDatabase<TSchemas>;
+type DrizzleDB<TSchemas extends Record<string, unknown> = Record<string, unknown>> =
+  NodePgDatabase<TSchemas>;
 
 function generateId(): string {
   return crypto.randomUUID();
@@ -33,10 +32,7 @@ function serializeError(error: unknown): Record<string, unknown> {
   return { message: String(error), name: "Error" };
 }
 
-async function validateInput(
-  schema: StandardSchema,
-  input: unknown,
-): Promise<unknown> {
+async function validateInput(schema: StandardSchema, input: unknown): Promise<unknown> {
   const result = await schema["~standard"].validate(input);
 
   if (result.issues) {
@@ -145,13 +141,7 @@ function createStepRunner<TSchemas extends Record<string, unknown>>(
       options?: StepOptions,
     ) => {
       if (typeof nameOrStep === "string") {
-        return executeStep(
-          db,
-          runId,
-          nameOrStep,
-          fnOrInput as () => unknown,
-          options,
-        );
+        return executeStep(db, runId, nameOrStep, fnOrInput as () => unknown, options);
       }
       const step = nameOrStep;
       const input = fnOrInput;
@@ -196,9 +186,7 @@ export async function executeWorkflow<
     );
   }
   if (!audit) {
-    throw new Error(
-      "Workflow requires audit — pass via RunOptions or ensure context is active",
-    );
+    throw new Error("Workflow requires audit — pass via RunOptions or ensure context is active");
   }
 
   if (config.schema) {

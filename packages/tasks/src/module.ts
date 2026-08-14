@@ -60,6 +60,14 @@ import { listStatuses } from "./workflows/status.list";
 import { listTransitions } from "./workflows/status.list-transitions";
 import { updateStatus } from "./workflows/status.update";
 import { validateTransition } from "./workflows/status.validate-transition";
+import { createTaskType } from "./workflows/task-type.create";
+import { createLabel } from "./workflows/task-type.create-label";
+import { deleteTaskType } from "./workflows/task-type.delete";
+import { deleteLabel } from "./workflows/task-type.delete-label";
+import { listTaskTypes } from "./workflows/task-type.list";
+import { listLabels } from "./workflows/task-type.list-labels";
+import { updateTaskType } from "./workflows/task-type.update";
+import { updateLabel } from "./workflows/task-type.update-label";
 import { archiveTask } from "./workflows/task.archive";
 import { assignTask } from "./workflows/task.assign";
 import { getTaskAssignees } from "./workflows/task.assignees";
@@ -74,14 +82,6 @@ import { restoreTask } from "./workflows/task.restore";
 import { getSubTasks } from "./workflows/task.sub-tasks";
 import { unassignTask } from "./workflows/task.unassign";
 import { updateTask } from "./workflows/task.update";
-import { createTaskType } from "./workflows/task-type.create";
-import { createLabel } from "./workflows/task-type.create-label";
-import { deleteTaskType } from "./workflows/task-type.delete";
-import { deleteLabel } from "./workflows/task-type.delete-label";
-import { listTaskTypes } from "./workflows/task-type.list";
-import { listLabels } from "./workflows/task-type.list-labels";
-import { updateTaskType } from "./workflows/task-type.update";
-import { updateLabel } from "./workflows/task-type.update-label";
 import { createTimeEntry } from "./workflows/time-entry.create";
 import { deleteTimeEntry } from "./workflows/time-entry.delete";
 import { getTimeEntry } from "./workflows/time-entry.get";
@@ -138,7 +138,7 @@ export class Tasks implements Module {
     getAssignees: getTaskAssignees,
     getCompletionSummary: getTaskCompletionSummary,
     getLoggedHours: getTaskLoggedHours,
-    getSubTasks: getSubTasks,
+    getSubTasks,
     list: listTasks,
     restore: restoreTask,
     unassign: unassignTask,

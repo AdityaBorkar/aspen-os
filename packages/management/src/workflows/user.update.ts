@@ -16,18 +16,16 @@ export const updateUser = Workflow.name("user.update")
     }),
   )
   .handler(async (input, ctx) => {
-    if (!ctx.auth) throw new Error("Auth is required for user update");
-    const auth = ctx.auth;
+    if (!ctx.auth) {
+      throw new Error("Auth is required for user update");
+    }
+    const { auth } = ctx;
     const { id, patch } = input;
 
     if (patch.role === ROLES.SP_USER && patch.spId === null) {
       throw new Error("spId is required when role is 'sp_user'.");
     }
-    if (
-      patch.role !== undefined &&
-      patch.role !== ROLES.SP_USER &&
-      patch.spId
-    ) {
+    if (patch.role !== undefined && patch.role !== ROLES.SP_USER && patch.spId) {
       throw new Error("spId must not be set when role is not 'sp_user'.");
     }
 
@@ -62,12 +60,12 @@ export const updateUser = Workflow.name("user.update")
     });
 
     await ctx.step.run("update-sp-assignment", async () => {
-      if (patch.spId === undefined) return;
+      if (patch.spId === undefined) {
+        return;
+      }
 
       if (patch.spId === null) {
-        await ctx.db
-          .delete(serviceProviderUser)
-          .where(eq(serviceProviderUser.userId, id));
+        await ctx.db.delete(serviceProviderUser).where(eq(serviceProviderUser.userId, id));
         changes.spId = null;
         return;
       }
@@ -93,7 +91,9 @@ export const updateUser = Workflow.name("user.update")
     });
 
     await ctx.step.run("audit-and-notify", async () => {
-      if (Object.keys(changes).length === 0) return;
+      if (Object.keys(changes).length === 0) {
+        return;
+      }
 
       await ctx.audit.write({
         action: AUDIT_ACTION.PLATFORM_USER_UPDATED,

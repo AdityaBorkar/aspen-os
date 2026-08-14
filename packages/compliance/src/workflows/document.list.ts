@@ -3,26 +3,19 @@ import { and, desc, eq, isNotNull, lte } from "drizzle-orm";
 import { parse } from "valibot";
 
 import { complianceDocument } from "../db-schemas";
-import {
-  type ComplianceDocumentFilters,
-  ComplianceDocumentFiltersSchema,
-} from "../types";
+import { type ComplianceDocumentFilters, ComplianceDocumentFiltersSchema } from "../types";
 
 const listDocuments = Workflow.name("document.list").handler(
   async (input: { filters?: ComplianceDocumentFilters }, ctx) => {
-    const filters = input.filters;
-    const parsed = filters
-      ? parse(ComplianceDocumentFiltersSchema, filters)
-      : {};
+    const { filters } = input;
+    const parsed = filters ? parse(ComplianceDocumentFiltersSchema, filters) : {};
     const conditions = [];
 
     if (parsed.category) {
       conditions.push(eq(complianceDocument.category, parsed.category));
     }
     if (parsed.verificationStatus) {
-      conditions.push(
-        eq(complianceDocument.verificationStatus, parsed.verificationStatus),
-      );
+      conditions.push(eq(complianceDocument.verificationStatus, parsed.verificationStatus));
     }
     if (parsed.branch) {
       conditions.push(eq(complianceDocument.branch, parsed.branch));
@@ -31,14 +24,10 @@ const listDocuments = Workflow.name("document.list").handler(
       conditions.push(eq(complianceDocument.sourceModule, parsed.sourceModule));
     }
     if (parsed.sourceEntityType) {
-      conditions.push(
-        eq(complianceDocument.sourceEntityType, parsed.sourceEntityType),
-      );
+      conditions.push(eq(complianceDocument.sourceEntityType, parsed.sourceEntityType));
     }
     if (parsed.sourceEntityId) {
-      conditions.push(
-        eq(complianceDocument.sourceEntityId, parsed.sourceEntityId),
-      );
+      conditions.push(eq(complianceDocument.sourceEntityId, parsed.sourceEntityId));
     }
     if (parsed.reviewer) {
       conditions.push(eq(complianceDocument.assignedReviewer, parsed.reviewer));
@@ -65,10 +54,7 @@ const listDocuments = Workflow.name("document.list").handler(
       futureDate.setDate(futureDate.getDate() + parsed.dueWithinDays);
       const futureDateStr = futureDate.toISOString().split("T")[0] as string;
       conditions.push(
-        and(
-          isNotNull(complianceDocument.dueDate),
-          lte(complianceDocument.dueDate, futureDateStr),
-        ),
+        and(isNotNull(complianceDocument.dueDate), lte(complianceDocument.dueDate, futureDateStr)),
       );
     }
 

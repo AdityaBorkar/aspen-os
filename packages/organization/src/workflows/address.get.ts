@@ -5,6 +5,4 @@ import { fetchAddressStep } from "./steps/fetch-address";
 
 export const getAddress = Workflow.name("address.get")
   .input(object({ id: string() }))
-  .handler(async (input, ctx) => {
-    return ctx.step.run(fetchAddressStep, { id: input.id });
-  });
+  .handler(async (input, ctx) => ctx.step.run(fetchAddressStep, { id: input.id }));

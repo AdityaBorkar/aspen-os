@@ -10,13 +10,8 @@ const submitDocument = Workflow.name("document.submit").handler(
     const { id } = input;
     const current = await ctx.step.run(fetchDocumentStep, { id });
 
-    if (
-      current.verificationStatus !== "draft" &&
-      current.verificationStatus !== "rejected"
-    ) {
-      throw new Error(
-        `Cannot submit document in status "${current.verificationStatus}"`,
-      );
+    if (current.verificationStatus !== "draft" && current.verificationStatus !== "rejected") {
+      throw new Error(`Cannot submit document in status "${current.verificationStatus}"`);
     }
 
     const [updated] = await ctx.db
@@ -25,7 +20,9 @@ const submitDocument = Workflow.name("document.submit").handler(
       .where(eq(complianceDocument.id, id))
       .returning();
 
-    if (!updated) throw new Error("Database operation returned no result");
+    if (!updated) {
+      throw new Error("Database operation returned no result");
+    }
 
     await ctx.audit.write({
       action: "submitted",

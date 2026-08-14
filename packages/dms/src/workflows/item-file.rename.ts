@@ -4,10 +4,7 @@ import { object, parse } from "valibot";
 
 import { dmsFile } from "../db-schemas";
 import { ITEM_EVENTS } from "../pubsub";
-import {
-  checkNameUniqueness,
-  computeFilePath,
-} from "../services/item-path-service";
+import { checkNameUniqueness, computeFilePath } from "../services/item-path-service";
 import { RenameItemFileSchema } from "../types";
 import { FileIdSchema } from "./item-utils";
 import { fetchItemFileStep } from "./steps/fetch-item-file";

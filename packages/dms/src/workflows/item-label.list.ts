@@ -18,12 +18,7 @@ export const listItemLabels = Workflow.name("dms.label.list")
 
     if (parsed.ownerId) {
       if (parsed.includeGlobal) {
-        conditions.push(
-          and(
-            eq(dmsLabel.isGlobal, true),
-            eq(dmsLabel.ownerId, parsed.ownerId),
-          ),
-        );
+        conditions.push(and(eq(dmsLabel.isGlobal, true), eq(dmsLabel.ownerId, parsed.ownerId)));
       } else {
         conditions.push(eq(dmsLabel.ownerId, parsed.ownerId));
       }

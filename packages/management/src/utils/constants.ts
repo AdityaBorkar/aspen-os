@@ -20,8 +20,7 @@ export const AUDIT_ENTITY_TYPE = {
   TENANT: "tenant",
 } as const;
 
-export type AuditEntityType =
-  (typeof AUDIT_ENTITY_TYPE)[keyof typeof AUDIT_ENTITY_TYPE];
+export type AuditEntityType = (typeof AUDIT_ENTITY_TYPE)[keyof typeof AUDIT_ENTITY_TYPE];
 
 export const AUDIT_ACTION = {
   PLATFORM_USER_CREATED: "platform_user_created",

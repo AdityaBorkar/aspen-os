@@ -39,11 +39,11 @@ $prepareInfra(): ModuleInfra {
 The module exposes five workflow groups as readonly objects:
 
 ```ts
-p.organization.organizations   // → OrganizationWorkflow
-p.organization.branches         // → BranchWorkflow
-p.organization.connections      // → ConnectionWorkflow
-p.organization.addresses        // → AddressWorkflow
-p.organization.bankAccounts     // → BankAccountWorkflow
+p.organization.organizations; // → OrganizationWorkflow
+p.organization.branches; // → BranchWorkflow
+p.organization.connections; // → ConnectionWorkflow
+p.organization.addresses; // → AddressWorkflow
+p.organization.bankAccounts; // → BankAccountWorkflow
 ```
 
 ## Module Structure
@@ -87,10 +87,10 @@ packages/organization/src/
 
 Organization-specific enums come from `@aspen-os/constants`:
 
-| Enum | Values |
-|---|---|
-| `OrganizationStatus` | `active`, `suspended`, `archived` |
-| `BranchType` | `headquarters`, `office`, `warehouse`, `store`, `factory`, `remote`, `other` |
-| `ConnectionType` | `client`, `vendor`, `partner`, `subsidiary`, `parent_company`, `investor`, `regulator`, `insurer`, `bank`, `other` |
-| `ConnectionStatus` | `active`, `inactive`, `prospect`, `former` |
-| `ConnectionNoteType` | `general`, `call`, `email`, `meeting`, `contract_renewal`, `issue` |
+| Enum                 | Values                                                                                                             |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `OrganizationStatus` | `active`, `suspended`, `archived`                                                                                  |
+| `BranchType`         | `headquarters`, `office`, `warehouse`, `store`, `factory`, `remote`, `other`                                       |
+| `ConnectionType`     | `client`, `vendor`, `partner`, `subsidiary`, `parent_company`, `investor`, `regulator`, `insurer`, `bank`, `other` |
+| `ConnectionStatus`   | `active`, `inactive`, `prospect`, `former`                                                                         |
+| `ConnectionNoteType` | `general`, `call`, `email`, `meeting`, `contract_renewal`, `issue`                                                 |

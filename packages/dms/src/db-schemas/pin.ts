@@ -1,13 +1,5 @@
 import { uuidv7 } from "@aspen-os/platform/server";
-import {
-  index,
-  integer,
-  pgEnum,
-  pgTable,
-  text,
-  timestamp,
-  uniqueIndex,
-} from "drizzle-orm/pg-core";
+import { index, integer, pgEnum, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 import { PIN_ITEM_TYPE } from "../utils/constants";
 
@@ -20,9 +12,7 @@ export const dmsPinItemTypeEnum = pgEnum("dms_pin_item_type", [
 export const dmsPin = pgTable(
   "dms_pin",
   {
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: text("id").primaryKey().$defaultFn(uuidv7),
     itemId: text("item_id").notNull(),
     itemType: dmsPinItemTypeEnum("item_type").notNull(),
@@ -31,11 +21,7 @@ export const dmsPin = pgTable(
   },
   (table) => [
     index("idx_dms_pin_user").on(table.userId),
-    uniqueIndex("idx_dms_pin_user_item").on(
-      table.userId,
-      table.itemType,
-      table.itemId,
-    ),
+    uniqueIndex("idx_dms_pin_user_item").on(table.userId, table.itemType, table.itemId),
   ],
 );
 

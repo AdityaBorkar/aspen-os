@@ -15,23 +15,17 @@ const listVerificationRules = Workflow.name("verification.list").handler(
     },
     ctx,
   ) => {
-    const filters = input.filters;
+    const { filters } = input;
     const conditions = [];
 
     if (filters?.category) {
-      conditions.push(
-        eq(complianceVerificationRule.category, filters.category),
-      );
+      conditions.push(eq(complianceVerificationRule.category, filters.category));
     }
     if (filters?.sourceModule) {
-      conditions.push(
-        eq(complianceVerificationRule.sourceModule, filters.sourceModule),
-      );
+      conditions.push(eq(complianceVerificationRule.sourceModule, filters.sourceModule));
     }
     if (filters?.isActive !== undefined) {
-      conditions.push(
-        eq(complianceVerificationRule.isActive, filters.isActive),
-      );
+      conditions.push(eq(complianceVerificationRule.isActive, filters.isActive));
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;

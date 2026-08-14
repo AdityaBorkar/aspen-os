@@ -13,10 +13,6 @@ export const getRoleByName = Workflow.name("hr.access.get-role-by-name")
   .handler(async (input, ctx) => {
     const { name } = input;
 
-    const [record] = await ctx.db
-      .select()
-      .from(hrRole)
-      .where(eq(hrRole.name, name))
-      .limit(1);
+    const [record] = await ctx.db.select().from(hrRole).where(eq(hrRole.name, name)).limit(1);
     return record ?? null;
   });

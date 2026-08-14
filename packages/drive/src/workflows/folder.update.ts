@@ -19,7 +19,9 @@ export const updateFolder = Workflow.name("drive.folder.update")
         .from(driveFolder)
         .where(eq(driveFolder.id, id))
         .limit(1);
-      if (!row) throw new Error(`Folder with id "${id}" not found.`);
+      if (!row) {
+        throw new Error(`Folder with id "${id}" not found.`);
+      }
       return row;
     });
     const parsed = parse(UpdateFolderSchema, input);
@@ -34,6 +36,8 @@ export const updateFolder = Workflow.name("drive.folder.update")
       .where(eq(driveFolder.id, id))
       .returning();
 
-    if (!updated) throw new Error(`Folder with id "${id}" not found.`);
+    if (!updated) {
+      throw new Error(`Folder with id "${id}" not found.`);
+    }
     return updated;
   });

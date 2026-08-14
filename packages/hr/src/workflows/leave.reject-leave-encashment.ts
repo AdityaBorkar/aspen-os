@@ -10,9 +10,7 @@ const InputSchema = object({
   rejectionReason: pipe(string(), minLength(1, "rejectionReason is required")),
 });
 
-export const rejectLeaveEncashment = Workflow.name(
-  "hr.leave.reject-leave-encashment",
-)
+export const rejectLeaveEncashment = Workflow.name("hr.leave.reject-leave-encashment")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, rejectedBy, rejectionReason } = input;

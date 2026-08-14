@@ -1,26 +1,40 @@
 {
+  "name": "@aspen-os/platform",
+  "version": "0.1.0",
   "bin": {
     "aspen": "./.output/cli/index.js"
   },
-  "build": {
-    "bin": {
-      "aspen": "./src/cli/index.ts"
+  "files": [
+    "./docs",
+    "package.json",
+    "README.md",
+    "./.output"
+  ],
+  "type": "module",
+  "exports": {
+    "./client": {
+      "default": "./.output/client/index.js",
+      "types": "./.output/client/index.d.ts"
     },
-    "exports": {
-      "./client": {
-        "path": "./src/client/index.ts",
-        "target": "browser"
-      },
-      "./server": {
-        "path": "./src/server/index.ts",
-        "target": "node"
-      },
-      "./server/db-schemas": {
-        "path": "./src/server/db-schemas.ts",
-        "target": "node"
-      }
+    "./server": {
+      "default": "./.output/server/index.js",
+      "types": "./.output/server/index.d.ts"
     },
-    "files": ["./docs", "package.json", "README.md"]
+    "./server/db-schemas": {
+      "default": "./.output/server/db-schemas.js",
+      "types": "./.output/server/db-schemas.d.ts"
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "bun run ../../scripts/build.ts",
+    "check:lint": "oxlint --fix . ; oxfmt .",
+    "check:types": "tsc -b",
+    "gen:auth-schema": "bunx auth generate --config ./src/server/auth/~config.ts --output ./src/server/auth/db-schema.ts",
+    "publish": "bun run build && bun publish"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1106.0",
@@ -51,33 +65,28 @@
     "deepmerge": "^4.3.1",
     "typescript": "catalog:"
   },
-  "exports": {
-    "./client": {
-      "default": "./.output/client/index.js",
-      "types": "./.output/client/index.d.ts"
+  "build": {
+    "bin": {
+      "aspen": "./src/cli/index.ts"
     },
-    "./server": {
-      "default": "./.output/server/index.js",
-      "types": "./.output/server/index.d.ts"
+    "exports": {
+      "./client": {
+        "path": "./src/client/index.ts",
+        "target": "browser"
+      },
+      "./server": {
+        "path": "./src/server/index.ts",
+        "target": "node"
+      },
+      "./server/db-schemas": {
+        "path": "./src/server/db-schemas.ts",
+        "target": "node"
+      }
     },
-    "./server/db-schemas": {
-      "default": "./.output/server/db-schemas.js",
-      "types": "./.output/server/db-schemas.d.ts"
-    }
-  },
-  "files": ["./docs", "package.json", "README.md", "./.output"],
-  "name": "@aspen-os/platform",
-  "publishConfig": {
-    "access": "public",
-    "provenance": true
-  },
-  "scripts": {
-    "build": "bun run ../../scripts/build.ts",
-    "check:lint": "biome check --fix .",
-    "check:types": "tsc -b",
-    "gen:auth-schema": "bunx auth generate --config ./src/server/auth/~config.ts --output ./src/server/auth/db-schema.ts",
-    "publish": "bun run build && bun publish"
-  },
-  "type": "module",
-  "version": "0.1.0"
+    "files": [
+      "./docs",
+      "package.json",
+      "README.md"
+    ]
+  }
 }

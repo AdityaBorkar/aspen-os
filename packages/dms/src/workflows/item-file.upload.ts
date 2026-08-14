@@ -3,15 +3,8 @@ import { object, parse } from "valibot";
 
 import { dmsFile } from "../db-schemas";
 import { ITEM_EVENTS } from "../pubsub";
-import {
-  checkNameUniqueness,
-  computeFilePath,
-  getFolderPath,
-} from "../services/item-path-service";
-import {
-  computeStorageKey,
-  upload as uploadStorage,
-} from "../services/item-storage-bridge";
+import { checkNameUniqueness, computeFilePath, getFolderPath } from "../services/item-path-service";
+import { computeStorageKey, upload as uploadStorage } from "../services/item-storage-bridge";
 import { UploadItemFileSchema } from "../types";
 
 const UploadInputSchema = object({ input: UploadItemFileSchema });
@@ -31,20 +24,18 @@ export const uploadItemFile = Workflow.name("dms.file.upload")
     });
 
     const folderPath = folderId
-      ? await ctx.step.run("get-folder-path", async () =>
-          getFolderPath({ folderId }),
-        )
+      ? await ctx.step.run("get-folder-path", async () => getFolderPath({ folderId }))
       : "";
 
     const storageKey = computeStorageKey({ fileName: parsed.name, folderPath });
 
-    const fileObject = await ctx.step.run("upload-storage", async () => {
-      return uploadStorage({
+    const fileObject = await ctx.step.run("upload-storage", async () =>
+      uploadStorage({
         body: parsed.body as Buffer | ReadableStream | string,
         contentType: parsed.contentType,
         key: storageKey,
-      });
-    });
+      }),
+    );
 
     const [file] = await ctx.db
       .insert(dmsFile)

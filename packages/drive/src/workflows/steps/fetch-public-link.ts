@@ -12,6 +12,8 @@ export const fetchPublicLinkStep = WorkflowStep.name("fetch-public-link")
       .from(drivePublicLink)
       .where(eq(drivePublicLink.id, input.id))
       .limit(1);
-    if (!row) throw new Error(`Public link with id "${input.id}" not found.`);
+    if (!row) {
+      throw new Error(`Public link with id "${input.id}" not found.`);
+    }
     return row;
   });

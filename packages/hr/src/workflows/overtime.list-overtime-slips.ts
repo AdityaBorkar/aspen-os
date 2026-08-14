@@ -9,9 +9,7 @@ const InputSchema = object({
   filters: optional(OvertimeSlipFiltersSchema),
 });
 
-export const listOvertimeSlips = Workflow.name(
-  "hr.overtime.list-overtime-slips",
-)
+export const listOvertimeSlips = Workflow.name("hr.overtime.list-overtime-slips")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { filters } = input;

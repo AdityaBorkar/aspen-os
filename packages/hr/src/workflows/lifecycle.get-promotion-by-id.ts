@@ -8,9 +8,7 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const getPromotionById = Workflow.name(
-  "hr.lifecycle.get-promotion-by-id",
-)
+export const getPromotionById = Workflow.name("hr.lifecycle.get-promotion-by-id")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id } = input;

@@ -5,18 +5,14 @@ import { dmsContact } from "../db-schemas";
 import { fetchContactStep } from "./steps/fetch-contact";
 
 export const getContact = Workflow.name("dms.contact.get").handler(
-  async (input: { id: string }, ctx) => {
-    return ctx.step.run(fetchContactStep, { id: input.id });
-  },
+  async (input: { id: string }, ctx) => ctx.step.run(fetchContactStep, { id: input.id }),
 );
 
 export const listContacts = Workflow.name("dms.contact.list").handler(
   async (input: { filters?: { isRemoved?: string; search?: string } }, ctx) => {
     const conditions: SQL[] = [];
     if (input.filters?.isRemoved !== undefined) {
-      conditions.push(
-        eq(dmsContact.isRemoved, input.filters.isRemoved === "true"),
-      );
+      conditions.push(eq(dmsContact.isRemoved, input.filters.isRemoved === "true"));
     } else {
       conditions.push(eq(dmsContact.isRemoved, false));
     }

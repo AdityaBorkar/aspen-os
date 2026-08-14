@@ -1,12 +1,23 @@
 {
-  "build": {
-    "exports": {
-      ".": {
-        "path": "./src/index.ts",
-        "target": "node"
-      }
-    },
-    "files": ["./docs", "package.json", "README.md"]
+  "name": "@aspen-os/organization",
+  "version": "0.1.0",
+  "files": [
+    "./docs",
+    "package.json",
+    "README.md",
+    "./.output"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./.output/index.js",
+      "types": "./.output/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "bun run ../../scripts/build.ts",
+    "check:lint": "oxlint --fix . ; oxfmt .",
+    "check:types": "tsc -b"
   },
   "dependencies": {
     "@aspen-os/constants": "workspace:*",
@@ -18,19 +29,17 @@
     "@types/bun": "catalog:",
     "typescript": "catalog:"
   },
-  "exports": {
-    ".": {
-      "default": "./.output/index.js",
-      "types": "./.output/index.d.ts"
-    }
-  },
-  "files": ["./docs", "package.json", "README.md", "./.output"],
-  "name": "@aspen-os/organization",
-  "scripts": {
-    "build": "bun run ../../scripts/build.ts",
-    "check:lint": "biome check --fix .",
-    "check:types": "tsc -b"
-  },
-  "type": "module",
-  "version": "0.1.0"
+  "build": {
+    "exports": {
+      ".": {
+        "path": "./src/index.ts",
+        "target": "node"
+      }
+    },
+    "files": [
+      "./docs",
+      "package.json",
+      "README.md"
+    ]
+  }
 }

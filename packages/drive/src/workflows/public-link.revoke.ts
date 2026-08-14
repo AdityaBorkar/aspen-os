@@ -21,10 +21,7 @@ export const revokePublicLink = Workflow.name("drive.public-link.revoke")
       throw new Error(`Public link with id "${id}" not found.`);
     }
 
-    await ctx.db
-      .update(drivePublicLink)
-      .set({ isActive: false })
-      .where(eq(drivePublicLink.id, id));
+    await ctx.db.update(drivePublicLink).set({ isActive: false }).where(eq(drivePublicLink.id, id));
 
     await ctx.pubsub.publish(DRIVE_EVENTS.PUBLIC_LINK_REVOKED, {
       itemId: link.itemId,

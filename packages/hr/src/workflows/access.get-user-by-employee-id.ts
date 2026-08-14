@@ -8,9 +8,7 @@ const InputSchema = object({
   employeeId: pipe(string(), minLength(1, "employeeId is required")),
 });
 
-export const getUserByEmployeeId = Workflow.name(
-  "hr.access.get-user-by-employee-id",
-)
+export const getUserByEmployeeId = Workflow.name("hr.access.get-user-by-employee-id")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { employeeId } = input;

@@ -8,9 +8,7 @@ const InputSchema = object({
   leavePolicyId: pipe(string(), minLength(1, "leavePolicyId is required")),
 });
 
-export const listLeavePolicyDetails = Workflow.name(
-  "hr.leave.list-leave-policy-details",
-)
+export const listLeavePolicyDetails = Workflow.name("hr.leave.list-leave-policy-details")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { leavePolicyId } = input;

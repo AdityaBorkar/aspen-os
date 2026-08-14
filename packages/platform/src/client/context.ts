@@ -22,6 +22,8 @@ export function setContext(ctx: ClientContext): void {
 }
 
 export function getContext(): ClientContext {
-  if (!context) throw new Error("Client context was not initialized");
+  if (!context) {
+    throw new Error("Client context was not initialized");
+  }
   return context;
 }

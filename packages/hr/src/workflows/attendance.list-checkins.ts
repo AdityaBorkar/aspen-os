@@ -33,14 +33,10 @@ export const listCheckins = Workflow.name("hr.attendance.list-checkins")
       conditions.push(eq(employeeCheckin.isOffShift, parsed.isOffShift));
     }
     if (parsed.startDate) {
-      conditions.push(
-        sql`${employeeCheckin.time} >= ${new Date(parsed.startDate)}`,
-      );
+      conditions.push(sql`${employeeCheckin.time} >= ${new Date(parsed.startDate)}`);
     }
     if (parsed.endDate) {
-      conditions.push(
-        sql`${employeeCheckin.time} <= ${new Date(parsed.endDate)}`,
-      );
+      conditions.push(sql`${employeeCheckin.time} <= ${new Date(parsed.endDate)}`);
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;

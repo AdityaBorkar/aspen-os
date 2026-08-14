@@ -8,9 +8,7 @@ const InputSchema = object({
   employeeId: pipe(string(), minLength(1, "employeeId is required")),
 });
 
-export const listSkillMapByEmployee = Workflow.name(
-  "hr.employee.list-skill-map-by-employee",
-)
+export const listSkillMapByEmployee = Workflow.name("hr.employee.list-skill-map-by-employee")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { employeeId } = input;

@@ -10,9 +10,7 @@ const InputSchema = object({
   patch: UpdateOnboardingTaskSchema,
 });
 
-export const updateOnboardingTask = Workflow.name(
-  "hr.lifecycle.update-onboarding-task",
-)
+export const updateOnboardingTask = Workflow.name("hr.lifecycle.update-onboarding-task")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, patch } = input;

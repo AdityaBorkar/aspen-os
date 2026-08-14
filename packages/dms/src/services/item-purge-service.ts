@@ -16,9 +16,7 @@ export interface ItemPurgeDeps {
 
 export const ITEM_AUTO_PURGE_CRON = "0 3 * * *";
 
-export async function registerItemPurgeSchedule(
-  pubsub: PubSubUnit,
-): Promise<string> {
+export async function registerItemPurgeSchedule(pubsub: PubSubUnit): Promise<string> {
   await pubsub.schedule(
     SCHEDULED_JOBS.ITEM_AUTO_PURGE,
     ITEM_AUTO_PURGE_CRON,
@@ -32,19 +30,18 @@ export async function unregisterItemPurgeSchedule(
   topic: string | null,
   { pubsub }: { pubsub: PubSubUnit },
 ): Promise<void> {
-  if (!topic) return;
+  if (!topic) {
+    return;
+  }
   try {
     await pubsub.unsubscribe(topic);
     await pubsub.unschedule(topic);
   } catch {
-    // best-effort
+    // Best-effort
   }
 }
 
-export async function registerItemPurgeHandler(
-  topic: string,
-  deps: ItemPurgeDeps,
-): Promise<void> {
+export async function registerItemPurgeHandler(topic: string, deps: ItemPurgeDeps): Promise<void> {
   await deps.pubsub.subscribe(topic, async () => {
     await purgeExpiredItemsInternal(deps);
   });
@@ -54,9 +51,7 @@ export async function registerItemPurgeHandler(
  * Permanently deletes trashed files and folders past the retention window.
  * Trashed files are removed from storage; folders are purged row-only.
  */
-export async function purgeExpiredItemsInternal(
-  deps: ItemPurgeDeps,
-): Promise<number> {
+export async function purgeExpiredItemsInternal(deps: ItemPurgeDeps): Promise<number> {
   const config = getDmsConfig();
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - config.trashRetentionDays);
@@ -79,9 +74,7 @@ export async function purgeExpiredItemsInternal(
   const expiredFolders = await deps.db
     .select({ id: dmsFolder.id })
     .from(dmsFolder)
-    .where(
-      and(eq(dmsFolder.isTrashed, true), lt(dmsFolder.trashedAt, cutoffDate)),
-    );
+    .where(and(eq(dmsFolder.isTrashed, true), lt(dmsFolder.trashedAt, cutoffDate)));
 
   for (const folder of expiredFolders) {
     await deps.db.delete(dmsFolder).where(eq(dmsFolder.id, folder.id));

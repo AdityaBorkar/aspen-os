@@ -7,8 +7,6 @@ export const kvStore = pgTable("kv_store", {
   tenantId: text("tenant_id")
     .notNull()
     .default(sql`COALESCE(current_setting('app.tenant_id', true), 'default')`),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   value: text("value").notNull(),
 });

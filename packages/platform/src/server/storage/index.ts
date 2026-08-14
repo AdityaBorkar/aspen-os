@@ -21,7 +21,7 @@ export class StorageUnit {
 
   constructor(
     config: StorageConfig,
-    // biome-ignore lint/suspicious/noExplicitAny: drizzle NodePgDatabase invariance forces any here
+    // Biome-ignore lint/suspicious/noExplicitAny: drizzle NodePgDatabase invariance forces any here
     { db }: { db: DatabaseUnit<any> },
   ) {
     this.config = config;
@@ -71,17 +71,11 @@ export class StorageUnit {
     return this.ops.getMetadata(key);
   }
 
-  async getSignedGetUrl(
-    key: string,
-    options?: SignedUrlOptions,
-  ): Promise<string> {
+  async getSignedGetUrl(key: string, options?: SignedUrlOptions): Promise<string> {
     return this.ops.getSignedGetUrl(key, options);
   }
 
-  async getSignedPutUrl(
-    key: string,
-    options?: SignedUrlOptions,
-  ): Promise<string> {
+  async getSignedPutUrl(key: string, options?: SignedUrlOptions): Promise<string> {
     return this.ops.getSignedPutUrl(key, options);
   }
 

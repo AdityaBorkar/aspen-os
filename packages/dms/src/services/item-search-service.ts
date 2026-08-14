@@ -4,9 +4,7 @@ import { and, eq, ilike, or, sql } from "drizzle-orm";
 import * as s from "../db-schemas";
 import type { DriveSearchOptions, SearchResult } from "../types";
 
-export async function searchItems(
-  opts: DriveSearchOptions,
-): Promise<SearchResult> {
+export async function searchItems(opts: DriveSearchOptions): Promise<SearchResult> {
   const { db } = getContext();
   const limit = opts.limit ?? 50;
   const offset = opts.offset ?? 0;
@@ -20,13 +18,17 @@ export async function searchItems(
       ilike(s.dmsFolder.name, searchTerm),
       ilike(s.dmsFolder.description, searchTerm),
     );
-    if (folderSearch) folderConditions.push(folderSearch);
+    if (folderSearch) {
+      folderConditions.push(folderSearch);
+    }
 
     const fileSearch = or(
       ilike(s.dmsFile.name, searchTerm),
       ilike(s.dmsFile.description, searchTerm),
     );
-    if (fileSearch) fileConditions.push(fileSearch);
+    if (fileSearch) {
+      fileConditions.push(fileSearch);
+    }
   }
 
   if (opts.ownerId) {
@@ -90,7 +92,9 @@ async function filterByLabels<T extends { id: string }>(
   itemType: "file" | "folder",
   labelIds: string[],
 ): Promise<T[]> {
-  if (items.length === 0) return items;
+  if (items.length === 0) {
+    return items;
+  }
 
   const { db } = getContext();
   const itemIds = items.map((i) => i.id);

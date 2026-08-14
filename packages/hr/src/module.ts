@@ -1,9 +1,4 @@
-import type {
-  DatabaseUnit,
-  Module,
-  ModuleInfra,
-  PubSubUnit,
-} from "@aspen-os/platform/server";
+import type { DatabaseUnit, Module, ModuleInfra, PubSubUnit } from "@aspen-os/platform/server";
 
 import { acl } from "./auth";
 import { control_plane_schemas, tenant_schemas } from "./db-schemas";
@@ -50,7 +45,9 @@ export class Hr implements Module {
   }
 
   async $prepareRuntime(): Promise<void> {
-    if (!this.#pubsub) return;
+    if (!this.#pubsub) {
+      return;
+    }
 
     await this.#pubsub.schedule(
       SCHEDULED_JOBS.DAILY_ATTENDANCE_SYNC,
@@ -254,11 +251,11 @@ export class Hr implements Module {
     getTransferById: lifecycle.getTransferById,
     listExitInterviews: lifecycle.listExitInterviews,
     listFullAndFinalStatements: lifecycle.listFullAndFinalStatements,
-    listOnboardings: lifecycle.listOnboardings,
     listOnboardingTasks: lifecycle.listOnboardingTasks,
+    listOnboardings: lifecycle.listOnboardings,
     listPromotions: lifecycle.listPromotions,
-    listSeparations: lifecycle.listSeparations,
     listSeparationTasks: lifecycle.listSeparationTasks,
+    listSeparations: lifecycle.listSeparations,
     listTransfers: lifecycle.listTransfers,
     markFullAndFinalPaid: lifecycle.markFullAndFinalPaid,
     rejectPromotion: lifecycle.rejectPromotion,

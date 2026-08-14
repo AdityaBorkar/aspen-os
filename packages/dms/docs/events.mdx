@@ -72,45 +72,45 @@ export const ITEM_EVENTS = {
 
 ### Document Events
 
-| Event | Payload | Trigger |
-|---|---|---|
-| `dms:document_uploaded` | `{ documentId, batchId?, version, size, contentType }` | Upload / bulk upload |
-| `dms:document_version_added` | `{ documentId, version }` | New version |
-| `dms:document_version_reverted` | `{ documentId, version }` | Version revert |
-| `dms:document_classified` | `{ documentId, classId, docNumber }` | Triage classify |
-| `dms:document_updated` | `{ documentId, changes }` | Update / tag / untag / metadata |
-| `dms:document_tagged` / `dms:document_untagged` | `{ documentId, tag }` | Tag apply / remove |
-| `dms:document_expired` | `{ documentId, expiryDate }` | Expiry scanner |
-| `dms:document_deleted` | `{ documentId, deletedBy }` | Soft delete |
-| `dms:document_restored` | `{ documentId }` | Recycle Bin restore |
-| `dms:document_purged` | `{ documentId, storageKey }` | Permanent delete / auto-purge |
-| `dms:document_hold_placed` / `dms:document_hold_released` | `{ documentId, reason }` | Legal hold mutations |
+| Event                                                     | Payload                                                | Trigger                         |
+| --------------------------------------------------------- | ------------------------------------------------------ | ------------------------------- |
+| `dms:document_uploaded`                                   | `{ documentId, batchId?, version, size, contentType }` | Upload / bulk upload            |
+| `dms:document_version_added`                              | `{ documentId, version }`                              | New version                     |
+| `dms:document_version_reverted`                           | `{ documentId, version }`                              | Version revert                  |
+| `dms:document_classified`                                 | `{ documentId, classId, docNumber }`                   | Triage classify                 |
+| `dms:document_updated`                                    | `{ documentId, changes }`                              | Update / tag / untag / metadata |
+| `dms:document_tagged` / `dms:document_untagged`           | `{ documentId, tag }`                                  | Tag apply / remove              |
+| `dms:document_expired`                                    | `{ documentId, expiryDate }`                           | Expiry scanner                  |
+| `dms:document_deleted`                                    | `{ documentId, deletedBy }`                            | Soft delete                     |
+| `dms:document_restored`                                   | `{ documentId }`                                       | Recycle Bin restore             |
+| `dms:document_purged`                                     | `{ documentId, storageKey }`                           | Permanent delete / auto-purge   |
+| `dms:document_hold_placed` / `dms:document_hold_released` | `{ documentId, reason }`                               | Legal hold mutations            |
 
 ### Class / Contact / Share / View Events
 
-| Event | Payload | Trigger |
-|---|---|---|
-| `dms:class_created` / `dms:class_updated` / `dms:class_archived` | `{ classId }` | Class mutations (incl. field changes) |
-| `dms:contact_created` / `dms:contact_updated` / `dms:contact_removed` | `{ contactId, reason? }` | Contact mutations |
-| `dms:share_created` / `dms:share_revoked` | `{ shareId, documentId, granteeType, granteeId }` | Share create / revoke |
-| `dms:view_created` / `dms:view_updated` / `dms:view_deleted` / `dms:view_pinned` / `dms:view_unpinned` | `{ viewId }` | View mutations |
+| Event                                                                                                  | Payload                                           | Trigger                               |
+| ------------------------------------------------------------------------------------------------------ | ------------------------------------------------- | ------------------------------------- |
+| `dms:class_created` / `dms:class_updated` / `dms:class_archived`                                       | `{ classId }`                                     | Class mutations (incl. field changes) |
+| `dms:contact_created` / `dms:contact_updated` / `dms:contact_removed`                                  | `{ contactId, reason? }`                          | Contact mutations                     |
+| `dms:share_created` / `dms:share_revoked`                                                              | `{ shareId, documentId, granteeType, granteeId }` | Share create / revoke                 |
+| `dms:view_created` / `dms:view_updated` / `dms:view_deleted` / `dms:view_pinned` / `dms:view_unpinned` | `{ viewId }`                                      | View mutations                        |
 
 ### Item Events (Drive superset — files, folders, shares, public links, trash)
 
-| Event | Payload | Trigger |
-|---|---|---|
-| `dms:item_folder_created` | `{ folder: { id, name, ownerId, parentId, path } }` | Folder created |
-| `dms:item_folder_renamed` | `{ folder: { id, name, path }, oldName }` | Folder renamed |
-| `dms:item_file_uploaded` | `{ file: { id, name, path, size, ... } }` | File uploaded |
-| `dms:item_file_updated` | `{ file: { ... }, previousVersion }` | File updated / new version |
-| `dms:item_file_downloaded` | `{ file: { id, name, ownerId }, userId }` | File downloaded |
-| `dms:item_moved` | `{ item: { id, name, path }, itemType, oldPath, newPath }` | File/folder moved or renamed |
-| `dms:item_shared` / `dms:item_unshared` | `{ share: { ... } }` / `{ itemId, shareId }` | Item share create / remove |
-| `dms:item_public_link_created` | `{ publicLink: { id, itemId, itemType, permission, token } }` | Public link created |
-| `dms:item_public_link_accessed` | `{ ip, userAgent, publicLink: { id, itemId, token } }` | Public link resolved |
-| `dms:item_public_link_revoked` | `{ itemId, publicLinkId }` | Public link revoked |
-| `dms:item_trashed` / `dms:item_restored` | `{ itemId, itemType }` | Item soft-deleted / restored |
-| `dms:item_purged` | `{ itemId, itemType, storageKey }` | Hard purge / auto-purge |
+| Event                                    | Payload                                                       | Trigger                      |
+| ---------------------------------------- | ------------------------------------------------------------- | ---------------------------- |
+| `dms:item_folder_created`                | `{ folder: { id, name, ownerId, parentId, path } }`           | Folder created               |
+| `dms:item_folder_renamed`                | `{ folder: { id, name, path }, oldName }`                     | Folder renamed               |
+| `dms:item_file_uploaded`                 | `{ file: { id, name, path, size, ... } }`                     | File uploaded                |
+| `dms:item_file_updated`                  | `{ file: { ... }, previousVersion }`                          | File updated / new version   |
+| `dms:item_file_downloaded`               | `{ file: { id, name, ownerId }, userId }`                     | File downloaded              |
+| `dms:item_moved`                         | `{ item: { id, name, path }, itemType, oldPath, newPath }`    | File/folder moved or renamed |
+| `dms:item_shared` / `dms:item_unshared`  | `{ share: { ... } }` / `{ itemId, shareId }`                  | Item share create / remove   |
+| `dms:item_public_link_created`           | `{ publicLink: { id, itemId, itemType, permission, token } }` | Public link created          |
+| `dms:item_public_link_accessed`          | `{ ip, userAgent, publicLink: { id, itemId, token } }`        | Public link resolved         |
+| `dms:item_public_link_revoked`           | `{ itemId, publicLinkId }`                                    | Public link revoked          |
+| `dms:item_trashed` / `dms:item_restored` | `{ itemId, itemType }`                                        | Item soft-deleted / restored |
+| `dms:item_purged`                        | `{ itemId, itemType, storageKey }`                            | Hard purge / auto-purge      |
 
 ## Usage
 
@@ -139,17 +139,17 @@ await p.pubsub.subscribe("dms:document_classified", async (message) => {
 ## Event Map Type
 
 ```ts title="src/pubsub.ts"
-export type DmsEventMap =
-  & DocumentEventMap
-  & ClassEventMap
-  & ContactEventMap
-  & ItemEventMap
-  & ShareEventMap
-  & ViewEventMap;
+export type DmsEventMap = DocumentEventMap &
+  ClassEventMap &
+  ContactEventMap &
+  ItemEventMap &
+  ShareEventMap &
+  ViewEventMap;
 ```
 
 <Callout type="info">
-  The event map is a type-level contract — it is not enforced at runtime. Workflows publish events as plain string topics.
+  The event map is a type-level contract — it is not enforced at runtime. Workflows publish events
+  as plain string topics.
 </Callout>
 
 ## Activity Feed vs Events

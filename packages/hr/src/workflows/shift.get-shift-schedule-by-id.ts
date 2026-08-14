@@ -8,9 +8,7 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const getShiftScheduleById = Workflow.name(
-  "hr.shift.get-shift-schedule-by-id",
-)
+export const getShiftScheduleById = Workflow.name("hr.shift.get-shift-schedule-by-id")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id } = input;

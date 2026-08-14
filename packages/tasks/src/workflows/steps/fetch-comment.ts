@@ -8,11 +8,7 @@ import { IdSchema } from "../../types";
 export const fetchCommentStep = WorkflowStep.name("fetch-comment")
   .input(object({ id: IdSchema }))
   .handler(async (input, ctx) => {
-    const [result] = await ctx.db
-      .select()
-      .from(comment)
-      .where(eq(comment.id, input.id))
-      .limit(1);
+    const [result] = await ctx.db.select().from(comment).where(eq(comment.id, input.id)).limit(1);
 
     if (!result) {
       throw new Error(`Comment with id "${input.id}" not found.`);

@@ -8,9 +8,7 @@ const GetSettingSchema = object({ key: string() });
 
 export const getSettingWorkflow = Workflow.name("dms.settings.get")
   .input(GetSettingSchema)
-  .handler(async ({ key }, ctx) => {
-    return getSetting(ctx.db, key);
-  });
+  .handler(async ({ key }, ctx) => getSetting(ctx.db, key));
 
 const SetSettingSchema = object({ key: string(), value: unknown() });
 

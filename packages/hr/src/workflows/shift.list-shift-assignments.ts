@@ -9,9 +9,7 @@ const InputSchema = object({
   filters: optional(ShiftAssignmentFiltersSchema),
 });
 
-export const listShiftAssignments = Workflow.name(
-  "hr.shift.list-shift-assignments",
-)
+export const listShiftAssignments = Workflow.name("hr.shift.list-shift-assignments")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { filters } = input;

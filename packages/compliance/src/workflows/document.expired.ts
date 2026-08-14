@@ -14,11 +14,7 @@ const getExpiredDocuments = Workflow.name("document.expired").handler(
         and(
           isNotNull(complianceDocument.expiryDate),
           lte(complianceDocument.expiryDate, todayStr),
-          inArray(complianceDocument.verificationStatus, [
-            "verified",
-            "submitted",
-            "under_review",
-          ]),
+          inArray(complianceDocument.verificationStatus, ["verified", "submitted", "under_review"]),
         ),
       );
   },

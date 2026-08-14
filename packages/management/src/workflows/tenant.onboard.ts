@@ -20,40 +20,37 @@ export function createOnboardTenant(dbUnit: DatabaseUnit) {
       }),
     )
     .handler(async (input, ctx) => {
-      if (!ctx.auth) throw new Error("Auth is required for provisioning");
-      const auth = ctx.auth;
+      if (!ctx.auth) {
+        throw new Error("Auth is required for provisioning");
+      }
+      const { auth } = ctx;
       const parsed = input.tenant;
 
-      const org = await ctx.step.run("create-organization", async () => {
-        return auth.service.api.createOrganization({
+      const org = await ctx.step.run("create-organization", async () =>
+        auth.service.api.createOrganization({
           body: {
             logo: parsed.logo ?? undefined,
             name: parsed.name,
             slug: parsed.slug,
             userId: input.userId,
           },
-        });
-      });
+        }),
+      );
 
       const tenantId = org.id;
 
-      let provisioningResult: Awaited<
-        ReturnType<DatabaseUnit["provisionTenant"]>
-      >;
+      let provisioningResult: Awaited<ReturnType<DatabaseUnit["provisionTenant"]>>;
 
       try {
-        provisioningResult = await ctx.step.run(
-          "provision-tenant",
-          async () => {
-            return dbUnit.provisionTenant(tenantId, {
-              databaseName: parsed.databaseName ?? undefined,
-              host: parsed.databaseHost ?? undefined,
-              password: parsed.databasePassword ?? undefined,
-              port: parsed.databasePort ?? undefined,
-              ssl: parsed.databaseSsl ?? undefined,
-              user: parsed.databaseUser ?? undefined,
-            });
-          },
+        provisioningResult = await ctx.step.run("provision-tenant", async () =>
+          dbUnit.provisionTenant(tenantId, {
+            databaseName: parsed.databaseName ?? undefined,
+            host: parsed.databaseHost ?? undefined,
+            password: parsed.databasePassword ?? undefined,
+            port: parsed.databasePort ?? undefined,
+            ssl: parsed.databaseSsl ?? undefined,
+            user: parsed.databaseUser ?? undefined,
+          }),
         );
       } catch (err) {
         console.error(
@@ -66,10 +63,7 @@ export function createOnboardTenant(dbUnit: DatabaseUnit) {
             headers: new Headers(),
           });
         } catch (cleanupErr) {
-          console.error(
-            `Failed to cleanup organization "${tenantId}"`,
-            cleanupErr,
-          );
+          console.error(`Failed to cleanup organization "${tenantId}"`, cleanupErr);
         }
         throw err;
       }
@@ -92,29 +86,17 @@ export function createOnboardTenant(dbUnit: DatabaseUnit) {
       await ctx.step.run("record-tenant", async () => {
         await ctx.db.insert(tenant).values({
           databaseHost:
-            provisioningResult.tenancyMode === "isolated"
-              ? provisioningResult.host
-              : null,
+            provisioningResult.tenancyMode === "isolated" ? provisioningResult.host : null,
           databaseName:
-            provisioningResult.tenancyMode === "isolated"
-              ? provisioningResult.database
-              : null,
+            provisioningResult.tenancyMode === "isolated" ? provisioningResult.database : null,
           databasePassword:
-            provisioningResult.tenancyMode === "isolated"
-              ? provisioningResult.password
-              : null,
+            provisioningResult.tenancyMode === "isolated" ? provisioningResult.password : null,
           databasePort:
-            provisioningResult.tenancyMode === "isolated"
-              ? provisioningResult.port
-              : null,
+            provisioningResult.tenancyMode === "isolated" ? provisioningResult.port : null,
           databaseSsl:
-            provisioningResult.tenancyMode === "isolated"
-              ? provisioningResult.ssl
-              : null,
+            provisioningResult.tenancyMode === "isolated" ? provisioningResult.ssl : null,
           databaseUser:
-            provisioningResult.tenancyMode === "isolated"
-              ? provisioningResult.user
-              : null,
+            provisioningResult.tenancyMode === "isolated" ? provisioningResult.user : null,
           id: tenantId,
           plan: parsed.plan ?? null,
           serviceProviderId: parsed.serviceProviderId ?? null,

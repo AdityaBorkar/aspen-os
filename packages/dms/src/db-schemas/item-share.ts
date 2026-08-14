@@ -1,18 +1,12 @@
 import { uuidv7 } from "@aspen-os/platform/server";
 import { index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
-import {
-  dmsItemGranteeTypeEnum,
-  dmsItemPermissionEnum,
-  dmsItemTypeEnum,
-} from "./enums";
+import { dmsItemGranteeTypeEnum, dmsItemPermissionEnum, dmsItemTypeEnum } from "./enums";
 
 export const dmsItemShare = pgTable(
   "dms_item_share",
   {
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     granteeId: text("grantee_id").notNull(),
     granteeType: dmsItemGranteeTypeEnum("grantee_type").notNull(),

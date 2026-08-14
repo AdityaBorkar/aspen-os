@@ -18,9 +18,7 @@ export const complianceObligation = pgTable(
     autoGenerate: boolean("auto_generate").notNull().default(true),
     branch: text("branch"),
     category: complianceCategoryEnum("category").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     createdBy: text("created_by").notNull(),
     customCron: text("custom_cron"),
     defaultAssignedReviewer: text("default_assigned_reviewer"),
@@ -45,9 +43,7 @@ export const complianceObligation = pgTable(
     sourceEntityType: text("source_entity_type"),
     sourceModule: text("source_module").notNull(),
     startDate: date("start_date").notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_compliance_obligation_active").on(table.isActive),

@@ -1,12 +1,4 @@
-import {
-  boolean,
-  type InferOutput,
-  minLength,
-  object,
-  optional,
-  pipe,
-  string,
-} from "valibot";
+import { boolean, type InferOutput, minLength, object, optional, pipe, string } from "valibot";
 
 import { AccessLevelSchema, PermissionActionSchema } from "./enums";
 import { EmployeeIdSchema, NameSchema, OptionalStringSchema } from "./utils";
@@ -69,9 +61,7 @@ export const CreateHrPermissionSchema = object({
   module: pipe(string(), minLength(1, "Module is required")),
 });
 
-export type CreateHrPermissionInput = InferOutput<
-  typeof CreateHrPermissionSchema
->;
+export type CreateHrPermissionInput = InferOutput<typeof CreateHrPermissionSchema>;
 
 export const HrPermissionFiltersSchema = object({
   action: optional(PermissionActionSchema),
@@ -107,14 +97,10 @@ export const GrantBranchAccessSchema = object({
   hrUserId: pipe(string(), minLength(1, "HR User ID is required")),
 });
 
-export type GrantBranchAccessInput = InferOutput<
-  typeof GrantBranchAccessSchema
->;
+export type GrantBranchAccessInput = InferOutput<typeof GrantBranchAccessSchema>;
 
 export const UpdateBranchAccessSchema = object({
   accessLevel: optional(AccessLevelSchema),
 });
 
-export type UpdateBranchAccessInput = InferOutput<
-  typeof UpdateBranchAccessSchema
->;
+export type UpdateBranchAccessInput = InferOutput<typeof UpdateBranchAccessSchema>;

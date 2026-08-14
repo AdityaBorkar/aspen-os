@@ -18,10 +18,7 @@ type ExtractModuleNames<M extends Module[]> = {
   [K in keyof M]: M[K] extends { $name: infer N extends string } ? N : never;
 };
 
-export type ModuleAccessors<
-  M extends Module[],
-  Names extends M[number]["$name"],
-> = {
+export type ModuleAccessors<M extends Module[], Names extends M[number]["$name"]> = {
   [K in Names]: Extract<M[number], { $name: K }>;
 };
 
@@ -60,27 +57,31 @@ export class Platform<M extends Module[]> implements UnitAccessors {
     private readonly units: PlatformUnits,
     private readonly modules: Record<string, Module>,
   ) {
-    // biome-ignore lint/correctness/noConstructorReturn: Exception
+    // Biome-ignore lint/correctness/noConstructorReturn: Exception
     return new Proxy(this, {
       get(target, prop, receiver) {
         if (typeof prop === "string") {
           const unit = target.units[prop as keyof PlatformUnits];
-          if (unit) return unit;
+          if (unit) {
+            return unit;
+          }
         }
         if (typeof prop === "string") {
           const mod = target.modules[prop];
-          if (mod) return mod;
+          if (mod) {
+            return mod;
+          }
         }
         return Reflect.get(target, prop, receiver);
       },
     });
   }
 
-  getModule<K extends M[number]["$name"]>(
-    name: K,
-  ): Extract<M[number], { $name: K }> {
+  getModule<K extends M[number]["$name"]>(name: K): Extract<M[number], { $name: K }> {
     const module = this.modules[name];
-    if (!module) throw new Error(`Module "${String(name)}" not found`);
+    if (!module) {
+      throw new Error(`Module "${String(name)}" not found`);
+    }
     return module as Extract<M[number], { $name: K }>;
   }
 
@@ -90,8 +91,8 @@ export class Platform<M extends Module[]> implements UnitAccessors {
 
   run<T>(fn: () => T): T {
     const auth = this.units.auth.client;
-    const logs = this.units.logs;
-    const rpc = this.units.rpc;
+    const { logs } = this.units;
+    const { rpc } = this.units;
     setContext({ auth, logs, rpc });
     return fn();
   }

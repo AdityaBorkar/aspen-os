@@ -26,9 +26,7 @@ export function computeStorageKey({
   fileName: string;
 }): string {
   const uuid = crypto.randomUUID();
-  const sanitized = folderPath.startsWith("/")
-    ? folderPath.slice(1)
-    : folderPath;
+  const sanitized = folderPath.startsWith("/") ? folderPath.slice(1) : folderPath;
   const cleanPath = sanitized || "_root";
   return `${cleanPath}/${fileName}-${uuid}`;
 }
@@ -42,9 +40,7 @@ function storage(): StorageUnit {
   return getDmsStorage();
 }
 
-export async function upload(
-  input: ItemUploadBridgeInput,
-): Promise<ItemFileObject> {
+export async function upload(input: ItemUploadBridgeInput): Promise<ItemFileObject> {
   return storage().upload(input);
 }
 

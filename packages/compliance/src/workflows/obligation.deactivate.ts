@@ -12,7 +12,9 @@ const deactivateObligation = Workflow.name("obligation.deactivate").handler(
       .where(eq(complianceObligation.id, input.id))
       .returning();
 
-    if (!updated) throw new Error("Database operation returned no result");
+    if (!updated) {
+      throw new Error("Database operation returned no result");
+    }
 
     await ctx.audit.write({
       action: "obligation_deactivated",

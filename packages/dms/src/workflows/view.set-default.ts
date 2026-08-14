@@ -18,7 +18,9 @@ export const setDefaultView = Workflow.name("dms.view.set-default")
       .where(eq(dmsView.id, id))
       .limit(1);
 
-    if (!view) throw new Error(`View "${id}" not found.`);
+    if (!view) {
+      throw new Error(`View "${id}" not found.`);
+    }
 
     await ctx.step.run("unset-previous", async () => {
       await unsetDefaultView(ctx.db, view.ownerId);

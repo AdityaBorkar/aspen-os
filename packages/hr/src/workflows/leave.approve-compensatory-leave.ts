@@ -3,20 +3,14 @@ import { eq } from "drizzle-orm";
 import { minLength, object, pipe, string } from "valibot";
 
 import { compensatoryLeaveRequest } from "../db-schemas";
-import {
-  createLeaveAllocation,
-  createLeaveLedgerEntry,
-  fetchCompensatoryLeaveById,
-} from "./utils";
+import { createLeaveAllocation, createLeaveLedgerEntry, fetchCompensatoryLeaveById } from "./utils";
 
 const InputSchema = object({
   approvedBy: pipe(string(), minLength(1, "approvedBy is required")),
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const approveCompensatoryLeave = Workflow.name(
-  "hr.leave.approve-compensatory-leave",
-)
+export const approveCompensatoryLeave = Workflow.name("hr.leave.approve-compensatory-leave")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, approvedBy } = input;

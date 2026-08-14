@@ -37,8 +37,8 @@ export const churnTenant = Workflow.name("tenant.churn")
       await ctx.db
         .update(tenant)
         .set({
-          churnedAt: new Date(),
           churnReason: reason ?? null,
+          churnedAt: new Date(),
           status: "churned",
           updatedAt: new Date(),
         })

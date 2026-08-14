@@ -13,11 +13,7 @@ export const getLeaveTypeById = Workflow.name("hr.leave.get-leave-type-by-id")
   .handler(async (input, ctx) => {
     const { id } = input;
 
-    const [result] = await ctx.db
-      .select()
-      .from(leaveType)
-      .where(eq(leaveType.id, id))
-      .limit(1);
+    const [result] = await ctx.db.select().from(leaveType).where(eq(leaveType.id, id)).limit(1);
 
     if (!result) {
       throw new Error(`Leave type with id "${id}" not found.`);

@@ -1,12 +1,5 @@
 import { uuidv7 } from "@aspen-os/platform/server";
-import {
-  boolean,
-  index,
-  jsonb,
-  pgTable,
-  text,
-  timestamp,
-} from "drizzle-orm/pg-core";
+import { boolean, index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const bankAccount = pgTable(
   "bank_account",
@@ -16,9 +9,7 @@ export const bankAccount = pgTable(
     accountType: text("account_type"),
     bankName: text("bank_name").notNull(),
     branchName: text("branch_name"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     currency: text("currency").notNull().default("USD"),
     id: text("id").primaryKey().$defaultFn(uuidv7),
     isActive: boolean("is_active").notNull().default(true),
@@ -26,9 +17,7 @@ export const bankAccount = pgTable(
     metadata: jsonb("metadata"),
     routingNumber: text("routing_number"),
     swiftCode: text("swift_code"),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_bank_account_is_active").on(table.isActive),

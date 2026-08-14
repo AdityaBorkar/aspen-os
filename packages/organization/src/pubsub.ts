@@ -112,6 +112,4 @@ export type ConnectionEventMap = {
   [CONNECTION_EVENTS.UPDATED]: ConnectionUpdatedEvent;
 };
 
-export type OrganizationDomainEventMap = OrganizationEventMap &
-  BranchEventMap &
-  ConnectionEventMap;
+export type OrganizationDomainEventMap = OrganizationEventMap & BranchEventMap & ConnectionEventMap;

@@ -14,7 +14,9 @@ export const deleteItemFile = Workflow.name("dms.file.delete")
         .from(dmsFile)
         .where(eq(dmsFile.id, id))
         .limit(1);
-      if (!row) throw new Error(`File with id "${id}" not found.`);
+      if (!row) {
+        throw new Error(`File with id "${id}" not found.`);
+      }
       return row;
     });
 

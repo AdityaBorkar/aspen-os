@@ -28,9 +28,7 @@ export const dmsDocument = pgTable(
     classId: text("class_id"),
     compression: jsonb("compression"),
     contentType: text("content_type").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     deletedBy: text("deleted_by"),
     docNumber: text("doc_number").notNull().unique(),
@@ -45,10 +43,11 @@ export const dmsDocument = pgTable(
     size: bigint("size", { mode: "number" }).notNull(),
     status: dmsDocumentStatusEnum("status").notNull().default("triaged"),
     storageKey: text("storage_key").notNull(),
-    tags: jsonb("tags").notNull().$type<string[]>().default(sql`'[]'::jsonb`),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
+    tags: jsonb("tags")
       .notNull()
-      .defaultNow(),
+      .$type<string[]>()
+      .default(sql`'[]'::jsonb`),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     uploadedBy: text("uploaded_by").notNull(),
     version: integer("version").notNull().default(1),
   },

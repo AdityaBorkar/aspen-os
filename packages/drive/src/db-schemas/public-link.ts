@@ -1,21 +1,12 @@
 import { uuidv7 } from "@aspen-os/platform/server";
-import {
-  boolean,
-  index,
-  integer,
-  pgTable,
-  text,
-  timestamp,
-} from "drizzle-orm/pg-core";
+import { boolean, index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 import { driveItemTypeEnum, drivePublicLinkPermissionEnum } from "./enums";
 
 export const drivePublicLink = pgTable(
   "drive_public_link",
   {
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     createdBy: text("created_by").notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     id: text("id").primaryKey().$defaultFn(uuidv7),
@@ -24,9 +15,7 @@ export const drivePublicLink = pgTable(
     itemType: driveItemTypeEnum("item_type").notNull(),
     maxViews: integer("max_views"),
     password: text("password"),
-    permission: drivePublicLinkPermissionEnum("permission")
-      .notNull()
-      .default("view"),
+    permission: drivePublicLinkPermissionEnum("permission").notNull().default("view"),
     token: text("token").notNull().unique(),
     viewCount: integer("view_count").notNull().default(0),
   },

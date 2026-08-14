@@ -18,12 +18,7 @@ export const listLabels = Workflow.name("drive.label.list")
 
     if (parsed.ownerId) {
       if (parsed.includeGlobal) {
-        conditions.push(
-          and(
-            eq(driveLabel.isGlobal, true),
-            eq(driveLabel.ownerId, parsed.ownerId),
-          ),
-        );
+        conditions.push(and(eq(driveLabel.isGlobal, true), eq(driveLabel.ownerId, parsed.ownerId)));
       } else {
         conditions.push(eq(driveLabel.ownerId, parsed.ownerId));
       }

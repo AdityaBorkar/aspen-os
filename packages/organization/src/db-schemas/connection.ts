@@ -1,8 +1,4 @@
-import {
-  CONNECTION_NOTE_TYPE,
-  CONNECTION_STATUS,
-  CONNECTION_TYPE,
-} from "@aspen-os/constants";
+import { CONNECTION_NOTE_TYPE, CONNECTION_STATUS, CONNECTION_TYPE } from "@aspen-os/constants";
 import { uuidv7 } from "@aspen-os/platform/server";
 import {
   boolean,
@@ -54,9 +50,7 @@ export const connection = pgTable(
     contactPerson: text("contact_person"),
     contactPhone: text("contact_phone"),
     contractValue: numeric("contract_value"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     createdBy: text("created_by").notNull(),
     id: text("id").primaryKey().$defaultFn(uuidv7),
     industry: text("industry"),
@@ -70,9 +64,7 @@ export const connection = pgTable(
     tags: text("tags").array().default([]),
     taxId: text("tax_id"),
     type: connectionTypeEnum("type").notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     website: text("website"),
   },
   (table) => [
@@ -85,9 +77,7 @@ export const connectionContact = pgTable(
   "connection_contact",
   {
     connectionId: text("connection_id").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     email: text("email"),
     id: text("id").primaryKey().$defaultFn(uuidv7),
     isPrimary: boolean("is_primary").notNull().default(false),
@@ -95,13 +85,9 @@ export const connectionContact = pgTable(
     notes: text("notes"),
     phone: text("phone"),
     title: text("title"),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [
-    index("idx_connection_contact_connection").on(table.connectionId),
-  ],
+  (table) => [index("idx_connection_contact_connection").on(table.connectionId)],
 );
 
 export const connectionNote = pgTable(
@@ -109,9 +95,7 @@ export const connectionNote = pgTable(
   {
     connectionId: text("connection_id").notNull(),
     content: text("content").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: text("id").primaryKey().$defaultFn(uuidv7),
     type: connectionNoteTypeEnum("type").notNull().default("general"),
     userId: text("user_id").notNull(),

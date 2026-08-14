@@ -10,13 +10,13 @@ The Drive module manages files and folders with versioning, sharing, public link
 
 ```ts
 export type DriveModuleConfig = {
-  allowedContentTypes?: string[];        // empty = all types allowed
-  defaultDownloadLinkExpiry?: number;    // seconds
-  maxDownloadLinkExpiry?: number;        // seconds
-  maxFileSize?: number;                  // bytes
-  maxNestingDepth?: number;              // folder hierarchy depth
-  maxVersions?: number;                 // retained file versions
-  trashRetentionDays?: number;          // auto-purge threshold
+  allowedContentTypes?: string[]; // empty = all types allowed
+  defaultDownloadLinkExpiry?: number; // seconds
+  maxDownloadLinkExpiry?: number; // seconds
+  maxFileSize?: number; // bytes
+  maxNestingDepth?: number; // folder hierarchy depth
+  maxVersions?: number; // retained file versions
+  trashRetentionDays?: number; // auto-purge threshold
 };
 ```
 
@@ -25,22 +25,22 @@ import { Drive } from "@aspen-os/drive";
 
 const drive = Drive.create({
   allowedContentTypes: ["image/png", "application/pdf"],
-  maxFileSize: 2 * 1024 * 1024 * 1024,  // 2 GB
+  maxFileSize: 2 * 1024 * 1024 * 1024, // 2 GB
   maxNestingDepth: 15,
   maxVersions: 5,
   trashRetentionDays: 14,
 });
 ```
 
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `allowedContentTypes` | `string[]?` | `[]` | MIME type allowlist; empty permits all |
-| `defaultDownloadLinkExpiry` | `number?` | `3600` | Default signed URL TTL in seconds |
-| `maxDownloadLinkExpiry` | `number?` | `604800` | Maximum signed URL TTL in seconds (7 days) |
-| `maxFileSize` | `number?` | `5368709120` | Maximum upload size in bytes (5 GB) |
-| `maxNestingDepth` | `number?` | `20` | Maximum folder hierarchy depth |
-| `maxVersions` | `number?` | `10` | Retained file versions before pruning |
-| `trashRetentionDays` | `number?` | `30` | Days before trashed items are auto-purged |
+| Option                      | Type        | Default      | Description                                |
+| --------------------------- | ----------- | ------------ | ------------------------------------------ |
+| `allowedContentTypes`       | `string[]?` | `[]`         | MIME type allowlist; empty permits all     |
+| `defaultDownloadLinkExpiry` | `number?`   | `3600`       | Default signed URL TTL in seconds          |
+| `maxDownloadLinkExpiry`     | `number?`   | `604800`     | Maximum signed URL TTL in seconds (7 days) |
+| `maxFileSize`               | `number?`   | `5368709120` | Maximum upload size in bytes (5 GB)        |
+| `maxNestingDepth`           | `number?`   | `20`         | Maximum folder hierarchy depth             |
+| `maxVersions`               | `number?`   | `10`         | Retained file versions before pruning      |
+| `trashRetentionDays`        | `number?`   | `30`         | Days before trashed items are auto-purged  |
 
 ## Initialization
 
@@ -95,24 +95,26 @@ packages/drive/src/
 ## Accessing Workflows
 
 ```ts
-p.drive.folders      // → folders (Workflow group)
-p.drive.files        // → files
-p.drive.labels       // → labels
-p.drive.shares       // → shares
-p.drive.publicLinks  // → publicLinks
-p.drive.trash        // → trash
+p.drive.folders; // → folders (Workflow group)
+p.drive.files; // → files
+p.drive.labels; // → labels
+p.drive.shares; // → shares
+p.drive.publicLinks; // → publicLinks
+p.drive.trash; // → trash
 ```
 
 ## Accessing Services
 
 ```ts
-p.drive.search       // → search
-p.drive.archive      // → archive
-p.drive.access       // → access
-p.drive.paths        // → paths
-p.drive.storage      // → storage
+p.drive.search; // → search
+p.drive.archive; // → archive
+p.drive.access; // → access
+p.drive.paths; // → paths
+p.drive.storage; // → storage
 ```
 
 <Callout type="info">
-  These accessors are plain module properties available immediately after construction — there is no initialization guard. Workflows and services are stateless modules using `getContext()` at runtime.
+  These accessors are plain module properties available immediately after construction — there is no
+  initialization guard. Workflows and services are stateless modules using `getContext()` at
+  runtime.
 </Callout>

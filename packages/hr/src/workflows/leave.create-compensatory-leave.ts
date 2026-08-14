@@ -8,9 +8,7 @@ const InputSchema = object({
   input: CreateCompensatoryLeaveSchema,
 });
 
-export const createCompensatoryLeave = Workflow.name(
-  "hr.leave.create-compensatory-leave",
-)
+export const createCompensatoryLeave = Workflow.name("hr.leave.create-compensatory-leave")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateCompensatoryLeaveSchema, input);

@@ -8,18 +8,12 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const getDesignationById = Workflow.name(
-  "hr.setup.get-designation-by-id",
-)
+export const getDesignationById = Workflow.name("hr.setup.get-designation-by-id")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id } = input;
 
-    const [result] = await ctx.db
-      .select()
-      .from(designation)
-      .where(eq(designation.id, id))
-      .limit(1);
+    const [result] = await ctx.db.select().from(designation).where(eq(designation.id, id)).limit(1);
 
     if (!result) {
       throw new Error(`Designation with id "${id}" not found.`);

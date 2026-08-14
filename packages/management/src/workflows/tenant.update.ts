@@ -5,11 +5,7 @@ import { object, optional } from "valibot";
 
 import { tenant } from "../db-schemas";
 import { TENANT_EVENTS } from "../pubsub";
-import {
-  IdSchema,
-  UpdateTenantCompanionSchema,
-  UpdateTenantProfileSchema,
-} from "../types";
+import { IdSchema, UpdateTenantCompanionSchema, UpdateTenantProfileSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../utils/constants";
 import { stripUndefined } from "../utils/strip-undefined";
 import { fetchTenantStep } from "./steps/fetch-tenant";
@@ -26,9 +22,13 @@ export const updateTenant = Workflow.name("tenant.update")
     const { id: tenantId, profile, companion } = input;
 
     await ctx.step.run("update-profile", async () => {
-      if (!profile) return;
+      if (!profile) {
+        return;
+      }
       const data = stripUndefined(profile);
-      if (Object.keys(data).length === 0) return;
+      if (Object.keys(data).length === 0) {
+        return;
+      }
 
       const [updated] = await ctx.db
         .update(organization)
@@ -42,9 +42,13 @@ export const updateTenant = Workflow.name("tenant.update")
     });
 
     await ctx.step.run("update-companion", async () => {
-      if (!companion) return;
+      if (!companion) {
+        return;
+      }
       const data = stripUndefined(companion);
-      if (Object.keys(data).length === 0) return;
+      if (Object.keys(data).length === 0) {
+        return;
+      }
 
       const [updated] = await ctx.db
         .update(tenant)
@@ -59,9 +63,15 @@ export const updateTenant = Workflow.name("tenant.update")
 
     await ctx.step.run("audit-and-notify", async () => {
       const changes: Record<string, unknown> = {};
-      if (profile) Object.assign(changes, stripUndefined(profile));
-      if (companion) Object.assign(changes, stripUndefined(companion));
-      if (Object.keys(changes).length === 0) return;
+      if (profile) {
+        Object.assign(changes, stripUndefined(profile));
+      }
+      if (companion) {
+        Object.assign(changes, stripUndefined(companion));
+      }
+      if (Object.keys(changes).length === 0) {
+        return;
+      }
 
       await ctx.audit.write({
         action: AUDIT_ACTION.TENANT_PROFILE_UPDATED,

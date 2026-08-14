@@ -25,13 +25,13 @@ Phase 1 establishes the foundational HR infrastructure: organizational structure
 
 ### 1.3 Organization Masters
 
-| Master | Purpose |
-|---|---|
+| Master              | Purpose                                                       |
+| ------------------- | ------------------------------------------------------------- |
 | **Employment Type** | Classify employees (Permanent, Contract, Intern, Temp, etc.). |
-| **Branch** | Physical office locations. |
-| **Department** | Organizational units (Accounting, Sales, Engineering, etc.). |
-| **Designation** | Job titles (CEO, Sales Manager, Engineer, etc.). |
-| **Employee Grade** | Seniority-based classification (A, B, C, etc.). |
+| **Branch**          | Physical office locations.                                    |
+| **Department**      | Organizational units (Accounting, Sales, Engineering, etc.).  |
+| **Designation**     | Job titles (CEO, Sales Manager, Engineer, etc.).              |
+| **Employee Grade**  | Seniority-based classification (A, B, C, etc.).               |
 
 ### 1.4 Holiday List
 
@@ -350,15 +350,15 @@ Define categories of leave:
 
 ## Data Model Summary (Phase 1 Doctypes)
 
-| Module | Key Doctypes |
-|---|---|
-| Setup | HR Settings, Payroll Settings, Employment Type, Branch, Department, Designation, Employee Grade, Holiday List |
-| Organization | Employee, Employee Group, Employee Health Insurance, Organizational Chart |
-| Attendance | Attendance, Employee Checkin, Attendance Request, Upload Attendance |
-| Shifts | Shift Type, Shift Location, Shift Assignment, Shift Request, Shift Schedule, Shift Schedule Assignment, Roster |
-| Leave | Leave Type, Leave Period, Leave Policy, Leave Policy Assignment, Leave Allocation, Leave Application, Compensatory Leave Request, Leave Encashment, Leave Block List, Leave Ledger Entry, Leave Adjustment |
-| Lifecycle | Employee Onboarding, Employee Promotion, Employee Transfer, Employee Separation, Employee Skill Map, Exit Interview, Full and Final Statement |
-| Overtime | Overtime Type, Overtime Slip |
+| Module       | Key Doctypes                                                                                                                                                                                               |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Setup        | HR Settings, Payroll Settings, Employment Type, Branch, Department, Designation, Employee Grade, Holiday List                                                                                              |
+| Organization | Employee, Employee Group, Employee Health Insurance, Organizational Chart                                                                                                                                  |
+| Attendance   | Attendance, Employee Checkin, Attendance Request, Upload Attendance                                                                                                                                        |
+| Shifts       | Shift Type, Shift Location, Shift Assignment, Shift Request, Shift Schedule, Shift Schedule Assignment, Roster                                                                                             |
+| Leave        | Leave Type, Leave Period, Leave Policy, Leave Policy Assignment, Leave Allocation, Leave Application, Compensatory Leave Request, Leave Encashment, Leave Block List, Leave Ledger Entry, Leave Adjustment |
+| Lifecycle    | Employee Onboarding, Employee Promotion, Employee Transfer, Employee Separation, Employee Skill Map, Exit Interview, Full and Final Statement                                                              |
+| Overtime     | Overtime Type, Overtime Slip                                                                                                                                                                               |
 
 ---
 

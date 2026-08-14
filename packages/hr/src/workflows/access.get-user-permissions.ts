@@ -9,9 +9,7 @@ const InputSchema = object({
   hrUserId: pipe(string(), minLength(1, "hrUserId is required")),
 });
 
-export const getUserPermissions = Workflow.name(
-  "hr.access.get-user-permissions",
-)
+export const getUserPermissions = Workflow.name("hr.access.get-user-permissions")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { hrUserId, branchId } = input;
@@ -22,14 +20,14 @@ export const getUserPermissions = Workflow.name(
       .where(
         and(
           eq(hrUserRole.hrUserId, hrUserId),
-          branchId
-            ? or(isNull(hrUserRole.branchId), eq(hrUserRole.branchId, branchId))
-            : undefined,
+          branchId ? or(isNull(hrUserRole.branchId), eq(hrUserRole.branchId, branchId)) : undefined,
         ),
       );
 
     const roleIds = userRoles.map((ur) => ur.roleId);
-    if (roleIds.length === 0) return [];
+    if (roleIds.length === 0) {
+      return [];
+    }
 
     const permissions = await ctx.db
       .select({
@@ -37,16 +35,15 @@ export const getUserPermissions = Workflow.name(
         module: hrPermission.module,
       })
       .from(hrRolePermission)
-      .innerJoin(
-        hrPermission,
-        eq(hrRolePermission.permissionId, hrPermission.id),
-      )
+      .innerJoin(hrPermission, eq(hrRolePermission.permissionId, hrPermission.id))
       .where(inArray(hrRolePermission.roleId, roleIds));
 
     const seen = new Set<string>();
     return permissions.filter((p) => {
       const key = `${p.module}:${p.action}`;
-      if (seen.has(key)) return false;
+      if (seen.has(key)) {
+        return false;
+      }
       seen.add(key);
       return true;
     });

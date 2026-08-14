@@ -7,8 +7,8 @@ import { BranchFiltersSchema } from "../types";
 
 export const listBranches = Workflow.name("branch.list")
   .input(object({ filters: optional(BranchFiltersSchema) }))
-  .handler(async (input, ctx) => {
-    return ctx.step.run("query", async () => {
+  .handler(async (input, ctx) =>
+    ctx.step.run("query", async () => {
       const parsed = input.filters ?? {};
       const conditions = [];
 
@@ -25,9 +25,8 @@ export const listBranches = Workflow.name("branch.list")
         conditions.push(eq(branch.parentBranch, parsed.parentBranch));
       }
 
-      const whereClause =
-        conditions.length > 0 ? and(...conditions) : undefined;
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
       return ctx.db.select().from(branch).where(whereClause);
-    });
-  });
+    }),
+  );

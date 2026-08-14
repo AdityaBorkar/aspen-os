@@ -27,30 +27,19 @@ export const auditLog = pgTable(
     idempotencyKey: text("idempotency_key"),
     metadata: jsonb("metadata"),
     newState: jsonb("new_state"),
-    performedAt: timestamp("performed_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    performedAt: timestamp("performed_at", { withTimezone: true }).notNull().defaultNow(),
     previousState: jsonb("previous_state"),
     requestId: text("request_id"),
     seq: bigserial("seq", { mode: "number" }),
     tenantId: text("tenant_id")
       .notNull()
-      .default(
-        sql`COALESCE(current_setting('app.tenant_id', true), 'default')`,
-      ),
+      .default(sql`COALESCE(current_setting('app.tenant_id', true), 'default')`),
     traceId: text("trace_id"),
     workflowRunId: text("workflow_run_id"),
   },
   (table) => [
-    uniqueIndex("idx_audit_log_idempotency").on(
-      table.tenantId,
-      table.idempotencyKey,
-    ),
-    index("idx_audit_log_entity_seq").on(
-      table.entityType,
-      table.entityId,
-      table.seq,
-    ),
+    uniqueIndex("idx_audit_log_idempotency").on(table.tenantId, table.idempotencyKey),
+    index("idx_audit_log_entity_seq").on(table.entityType, table.entityId, table.seq),
     index("idx_audit_log_workflow").on(table.workflowRunId),
     index("idx_audit_log_actor").on(table.actorId),
     index("idx_audit_log_action").on(table.action),

@@ -7,8 +7,8 @@ import { ConnectionFiltersSchema } from "../types";
 
 export const listConnections = Workflow.name("connection.list")
   .input(object({ filters: optional(ConnectionFiltersSchema) }))
-  .handler(async (input, ctx) => {
-    return ctx.step.run("query", async () => {
+  .handler(async (input, ctx) =>
+    ctx.step.run("query", async () => {
       const parsed = input.filters ?? {};
       const conditions = [];
 
@@ -28,9 +28,8 @@ export const listConnections = Workflow.name("connection.list")
         );
       }
 
-      const whereClause =
-        conditions.length > 0 ? and(...conditions) : undefined;
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
       return ctx.db.select().from(connection).where(whereClause);
-    });
-  });
+    }),
+  );

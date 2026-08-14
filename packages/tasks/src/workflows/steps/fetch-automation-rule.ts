@@ -5,9 +5,7 @@ import { object } from "valibot";
 import { automationRule } from "../../db-schemas/automation-rule";
 import { IdSchema } from "../../types";
 
-export const fetchAutomationRuleStep = WorkflowStep.name(
-  "fetch-automation-rule",
-)
+export const fetchAutomationRuleStep = WorkflowStep.name("fetch-automation-rule")
   .input(object({ id: IdSchema }))
   .handler(async (input, ctx) => {
     const [result] = await ctx.db

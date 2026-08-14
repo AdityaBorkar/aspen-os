@@ -112,6 +112,7 @@
 **Shared between**: All units and modules
 
 **Contents** (inline in `packages/platform/src/server/index.ts` and `packages/platform/src/client/index.ts`):
+
 - `Unit` interface — `{ readonly $name: string, $cleanup(): Promise<void>, $prepareInfra?(): Promise<void> }`
 - `Module` interface — `{ readonly $name: N, readonly $dependencies: readonly string[], $initialize(units: Record<string, Unit>): void, $prepareInfra(): ModuleInfra, $prepareRuntime(): void | Promise<void>, $prepareTenant?(tenantId: string): Promise<void>, $cleanup(): void | Promise<void> }`
 - `PlatformUnits` (server) — `{ audit, auth, db, kvStore, logs, pubsub, rpc, storage }` (8 units)
@@ -122,6 +123,7 @@ Both server and client use the `$` prefix for lifecycle methods and the name pro
 **Note**: On the server, the interfaces are defined inline at the top of `packages/platform/src/server/index.ts`. On the client, `Unit`/`Module` live in `packages/platform/src/client/types.ts` while `PlatformUnits`/`Platform` are in `client/index.ts`. `DatabaseConfig`, `AuthConfig`, `LogConfig`, etc. live in their respective unit directories.
 
 **Rules**:
+
 - Changes to the shared kernel require coordinated updates across all units
 - The shared kernel should remain minimal — only truly universal types
 - No implementation details leak through the shared kernel
@@ -151,6 +153,7 @@ IsolatedTenantPlatform.create(config, modules)
 ```
 
 **Dependency graph** (constructor injection):
+
 ```
 DatabaseUnit ← LogUnit
 DatabaseUnit ← AuditUnit
@@ -171,12 +174,14 @@ DatabaseUnit ← KvStoreUnit
 **Relationship**: AuthUnit conforms to better-auth's API surface. It adapts better-auth's plugin system (access control, admin, custom session, phone number, two-factor, passkey) into Aspen's domain model.
 
 **Adaptations**:
+
 - `createAccessControl` → re-exported from better-auth
 - `betterAuth()` → wrapped in AuthUnit constructor
 - `drizzleAdapter` → configures better-auth to use framework's drizzle instance
 - better-auth's session/user/role APIs → wrapped as workflow functions
 
 **Schema**: Auth tables follow better-auth's adapter pattern:
+
 - `user` table — core identity (id, email, name, role, phone, etc.)
 - `session` table — authentication tokens (token, userId, expiresAt)
 - `account` table — credentials and OAuth tokens (providerId, password, accessToken)
@@ -195,6 +200,7 @@ DatabaseUnit ← KvStoreUnit
 **Relationship**: LogUnit conforms to pino's logger API. The internal `logger` field is a pino instance with OpenTelemetry span injection.
 
 **Adaptations**:
+
 - Pino log levels → mapped to framework's `LogLevel` type
 - Pino child loggers → wrapped as `ChildLogger` interface
 - Log entries are buffered and flushed to Postgres (not just stdout)
@@ -204,6 +210,7 @@ DatabaseUnit ← KvStoreUnit
 **Relationship**: PubSubUnit conforms to pg-boss's job queue API.
 
 **Adaptations**:
+
 - pg-boss `publish()` → wrapped with type-safe `Message<T>` generic
 - pg-boss `subscribe()` / `unsubscribe()` → exposed as public API
 - pg-boss schema → configurable via `PubSubConfig.schema`
@@ -222,6 +229,7 @@ DatabaseUnit ← KvStoreUnit
 **Relationship**: StorageUnit is a partner context with S3-compatible storage. It defines its own interface (`StorageProvider`) that S3 must conform to.
 
 **Adaptations**:
+
 - AWS S3 SDK → wrapped by `S3Adapter` class
 - S3 operations → enriched with Postgres metadata tracking
 - Signed URLs → delegated to S3 SDK
@@ -231,6 +239,7 @@ DatabaseUnit ← KvStoreUnit
 **Relationship**: RpcUnit conforms to oRPC's router and procedure conventions.
 
 **Adaptations**:
+
 - oRPC `os` base → configured with `RpcContext` (`{ db, pubsub }`)
 - Procedures → defined as oRPC handlers with zod validation
 - Router → oRPC `Router` type
@@ -242,6 +251,7 @@ DatabaseUnit ← KvStoreUnit
 **Relationship**: KV Store adapts Postgres as a key-value store (Redis alternative).
 
 **Adaptations**:
+
 - Regular `pgTable` `kv_store` (NOT `UNLOGGED` — durable writes)
 - TTL → `expiresAt` column with lazy eviction on read
 - Redis-like API → implemented via SQL operations
@@ -255,6 +265,7 @@ DatabaseUnit ← KvStoreUnit
 **Public API**: `write(entry, tx?)` (with optional transaction handle for atomicity), `withTransaction(entry, fn)` (runs fn + audit write in one `db.transaction()`), `query(filters)`, `count(filters)`, `diff(before, after)` (field-level diff), `reconstructState(entityType, entityId)` (replays `audit_log` rows in `seq` order to reconstruct a record's current state).
 
 **Schema**: `audit_log` table (platform core schema, pushed by `DatabaseUnit.getSchemas()`):
+
 - `id` (uuid PK, `$defaultFn(() => uuidv7())` — the one exception to the `text + uuidv7()` convention), `tenant_id` (text, default `'default'`), `seq` (bigserial — deterministic replay order), `action` (text), `crud_action` (text, nullable — create/update/delete), `actor_id` (text), `entity_type` (text), `entity_id` (text), `previous_state` (jsonb), `new_state` (jsonb), `changes` (jsonb — `Record<string, {new, old}>`), `metadata` (jsonb), `idempotency_key` (text, with partial unique index `UNIQUE(tenant_id, idempotency_key) WHERE idempotency_key IS NOT NULL`), `workflow_run_id` (text, nullable — optional provenance), `request_id` (text), `trace_id` (text), `performed_at` (timestamptz).
 
 **Context integration**: Reads `actorId`, `tenantId`, `requestId`, `traceId` from `AsyncLocalStorage` context. Falls back to `actorId = "system"` when context has no actor.
@@ -268,6 +279,7 @@ DatabaseUnit ← KvStoreUnit
 **Relationship**: Recruiter app creates the platform via `SingleTenantPlatform.create(config, modules)` and passes domain modules.
 
 **Lifecycle**:
+
 ```
 SingleTenantPlatform.create(config, [organization, tasks])
     → p.$prepareInfra()  // unit.$prepareInfra() + collect mod.$prepareInfra() + db.prepareWithModules() + auth.applyModuleAcl() + mod.$prepareRuntime()
@@ -276,6 +288,7 @@ SingleTenantPlatform.create(config, [organization, tasks])
 ```
 
 **Adaptations**:
+
 - Domain resources mapped to auth statements
 - Roles defined for recruitment workflow
 - Environment variables mapped to framework config
@@ -286,6 +299,7 @@ SingleTenantPlatform.create(config, [organization, tasks])
 **Relationship**: Organization module implements the `Module` interface and receives unit dependencies via `$initialize(units)`.
 
 **Structure** (`packages/organization/`):
+
 - `Organization.create()` — factory that returns a Module instance
 - `$initialize()` — empty (newer pattern: workflows are readonly properties, no unit refs stored)
 - 5 workflows: `OrganizationWorkflow`, `BranchWorkflow`, `AddressWorkflow`, `BankAccountWorkflow`, `ConnectionWorkflow`
@@ -301,6 +315,7 @@ SingleTenantPlatform.create(config, [organization, tasks])
 **Relationship**: Compliance module implements the `Module` interface and receives `{ db, kvStore, pubsub }` via `$initialize(units)`.
 
 **Structure** (`packages/compliance/`):
+
 - `Compliance.create(config)` — factory that returns a Module instance
 - 5 workflows: `DocumentWorkflow`, `ObligationWorkflow`, `VerificationWorkflow`, `AuditWorkflow`, `DashboardWorkflow`
 - 3 services (lifecycle-managed): `EventBridge`, `ObligationGenerator`, `ReminderEngine` — registered in `$prepareRuntime()`, unregistered in `$cleanup()`. `StatusDerivation` is a utility (pure functions used internally by workflows and the reminder engine, not lifecycle-managed).
@@ -311,6 +326,7 @@ SingleTenantPlatform.create(config, [organization, tasks])
 - Audit entries written via the platform's `ctx.audit.write(...)` (the `AuditWorkflow` queries the platform `audit_log` via `ctx.audit.query(...)`)
 
 **Cross-context integration**: The `EventBridge` service subscribes to events from other modules:
+
 - `hr:employee_onboarded` → creates background check + ID verification documents
 - `hr:employee_separated` → creates exit documents + final settlement documents
 - `fleet:vehicle_registered` → creates pollution certificate + semi-annual obligation
@@ -325,6 +341,7 @@ SingleTenantPlatform.create(config, [organization, tasks])
 **Relationship**: Tasks module implements the `Module` interface and receives `{ db, pubsub }` via `$initialize(units)`.
 
 **Structure** (`packages/tasks/`):
+
 - `Tasks.create(config?)` — factory that returns a Module instance
 - `$initialize()` — empty (newer pattern)
 - 11 workflows: `TaskWorkflow`, `ProjectWorkflow`, `StatusWorkflow`, `TaskTypeWorkflow`, `CommentWorkflow`, `LinkWorkflow`, `TimeEntryWorkflow`, `ReminderWorkflow`, `ViewWorkflow`, `AutomationWorkflow`, `CollaborationWorkflow`
@@ -341,6 +358,7 @@ SingleTenantPlatform.create(config, [organization, tasks])
 **Relationship**: Drive module implements the `Module` interface and receives `{ db, storage, pubsub }` via `$initialize(units)`.
 
 **Structure** (`packages/drive/`):
+
 - `Drive.create(config?)` — factory that returns a Module instance
 - 6 workflows: `FileWorkflow`, `FolderWorkflow`, `LabelWorkflow`, `ShareWorkflow`, `PublicLinkWorkflow`, `TrashWorkflow`
 - 5 services: `AccessService`, `ArchiveService`, `PathService`, `SearchService`, `StorageBridge` — all wired as readonly grouped accessor objects on the module class
@@ -365,6 +383,7 @@ SingleTenantPlatform.create(config, [organization, tasks])
 **Relationship**: Management Plane module implements the `Module` interface. Uses a hybrid pattern — private `#db` field (older pattern), but `$prepareRuntime()` and `$cleanup()` are empty (newer pattern). Workflows are exposed as grouped accessor objects (getter for `tenants`, readonly for `serviceProviders` and `users`).
 
 **Structure** (`packages/management/`):
+
 - `ManagementPlane.create(config)` — factory that returns a Module instance
 - `$name = "management"`, `$dependencies = ["organization"]`
 - `$initialize({ db, auth, pubsub })` — stores `db` only; `auth` and `pubsub` accepted but unused
@@ -390,6 +409,7 @@ SingleTenantPlatform.create(config, [organization, tasks])
 **Exported as**: `@aspen-os/platform/client`
 
 **Relationship**: A separate client `Platform` class for browser-side use with 3 units:
+
 - `AuthUnit` — wraps better-auth React client (`createAuthClient`) with plugins: admin, username, organization, phoneNumber, emailOTP, apiKey, twoFactor, passkey (lastLoginMethod + captcha commented out)
 - `LogsUnit` — stub (stores config only, no logging methods)
 - `RpcUnit` — stub (no-op)
@@ -405,15 +425,16 @@ SingleTenantPlatform.create(config, [organization, tasks])
 All units are created and wired inside `Platform.create()`:
 
 ```typescript
-import { SingleTenantPlatform } from "@aspen-os/platform/server"
+import { SingleTenantPlatform } from "@aspen-os/platform/server";
 
 const p = SingleTenantPlatform.create(
-  { auth, db, kvStore, logs, pubsub, rpc, storage },  // SingleTenantConfig
-  [organization, tasks],                                // modules array
+  { auth, db, kvStore, logs, pubsub, rpc, storage }, // SingleTenantConfig
+  [organization, tasks], // modules array
 );
 ```
 
 This:
+
 1. Instantiates all 8 units in dependency order
 2. Wires pubsub↔auth (setAuth)
 3. Validates module `$dependencies`
@@ -452,6 +473,7 @@ DriveFileWorkflow → pubsub.publish("drive:file_uploaded", { file }) → pg-bos
 ```
 
 Event counts by module:
+
 - Auth: 8 events
 - Organization: 11 events
 - Compliance: 23 events
@@ -466,14 +488,14 @@ Event maps are type-level contracts (`*EventMap` types), not runtime type-safe b
 
 The Compliance module's `EventBridge` service actively subscribes to events from other modules to auto-create compliance documents and obligations. This is the primary cross-context integration mechanism:
 
-| Subscribed Topic | Source Module | Action |
-|---|---|---|
-| `hr:employee_onboarded` | HR | Creates background check + ID verification documents |
-| `hr:employee_separated` | HR | Creates exit documents + final settlement documents |
-| `fleet:vehicle_registered` | Fleet (stub) | Creates pollution certificate + semi-annual obligation |
-| `organization:branch_created` | Organization | Creates trade license + fire safety certificate + annual obligation |
-| `accounting:financial_year_started` | Accounting (stub) | Creates monthly GST return obligation |
-| `organization:connection_created` | Organization | Creates insurance policy document (if type is insurer) |
+| Subscribed Topic                    | Source Module     | Action                                                              |
+| ----------------------------------- | ----------------- | ------------------------------------------------------------------- |
+| `hr:employee_onboarded`             | HR                | Creates background check + ID verification documents                |
+| `hr:employee_separated`             | HR                | Creates exit documents + final settlement documents                 |
+| `fleet:vehicle_registered`          | Fleet (stub)      | Creates pollution certificate + semi-annual obligation              |
+| `organization:branch_created`       | Organization      | Creates trade license + fire safety certificate + annual obligation |
+| `accounting:financial_year_started` | Accounting (stub) | Creates monthly GST return obligation                               |
+| `organization:connection_created`   | Organization      | Creates insurance policy document (if type is insurer)              |
 
 ### Schema Management
 
@@ -498,16 +520,16 @@ Schemas collected by `DatabaseUnit.prepareWithModules()`: core schemas (`auditSc
 
 Three modules register scheduled cron jobs via PubSub:
 
-| Module | Topic | Cron | Action |
-|---|---|---|---|
-| Compliance | `compliance:daily-expiry-scan` | `0 8 * * *` | Scan expiring documents |
-| Compliance | `compliance:daily-status-transition` | `0 0 * * *` | Transition expired/overdue statuses |
-| Compliance | `compliance:daily-escalation` | `0 9 * * *` | Escalate past threshold |
-| Compliance | `compliance:weekly-summary` | `0 9 * * 1` | Generate weekly summary |
-| Compliance | `compliance:obligation-generate` | `0 6 * * *` | Generate documents from obligations |
-| Drive | `drive:auto-purge` | `0 3 * * *` | Purge trashed items older than retention |
-| HR | `hr:daily-attendance-sync` | `0 1 * * *` | Sync daily attendance records |
-| HR | `hr:daily-leave-accrual` | `0 0 * * *` | Accrue leave balances |
+| Module     | Topic                                | Cron        | Action                                   |
+| ---------- | ------------------------------------ | ----------- | ---------------------------------------- |
+| Compliance | `compliance:daily-expiry-scan`       | `0 8 * * *` | Scan expiring documents                  |
+| Compliance | `compliance:daily-status-transition` | `0 0 * * *` | Transition expired/overdue statuses      |
+| Compliance | `compliance:daily-escalation`        | `0 9 * * *` | Escalate past threshold                  |
+| Compliance | `compliance:weekly-summary`          | `0 9 * * 1` | Generate weekly summary                  |
+| Compliance | `compliance:obligation-generate`     | `0 6 * * *` | Generate documents from obligations      |
+| Drive      | `drive:auto-purge`                   | `0 3 * * *` | Purge trashed items older than retention |
+| HR         | `hr:daily-attendance-sync`           | `0 1 * * *` | Sync daily attendance records            |
+| HR         | `hr:daily-leave-accrual`             | `0 0 * * *` | Accrue leave balances                    |
 
 ### Health Check
 
@@ -533,73 +555,87 @@ Three modules register scheduled cron jobs via PubSub:
 
 ## Context Map Table
 
-| Context | Type | Upstream | Downstream | Relationship |
-|---|---|---|---|---|
-| Shared Kernel | Shared | — | All units/modules | Unit & Module interfaces (inline) |
-| Database | Shared Kernel | — | All units | Foundation |
-| Platform | Customer | — | Units, Modules | Creates & wires via `create()` — three server classes + one client class |
-| Auth | Conformist | better-auth | Modules | Adapts API |
-| Logs | Conformist | pino, OTel | — | Adapts API |
-| PubSub | Conformist | pg-boss | — | Adapts API |
-| Storage | Partner | S3 (AWS SDK) | Drive module | Defines interface |
-| RPC | Conformist | oRPC | — | Adapts API |
-| KV Store | Conformist | Postgres | Compliance module | Redis-like API (core) |
-| Audit | Core | — | All modules | Native platform unit — `audit_log` table, DB-record replayability |
-| Client Platform | — | — | — | Browser-side (3 units) |
-| Recruiter | Downstream | Platform | — | Uses `SingleTenantPlatform`, registers organization + tasks |
-| Organization | Downstream | Platform | Compliance, Management Plane | 5 workflows, 7 tables |
-| Compliance | Downstream | Platform, HR, Organization, Fleet, Accounting | — | 5 workflows, 3 tables, 3 services, subscribes to external events |
-| Tasks | Downstream | Platform | — | 11 workflows, 17 tables (6 control + 11 tenant) |
-| Drive | Downstream | Platform, Storage | — | 6 workflows, 8 tables, 5 services |
-| Management Plane | Downstream | Platform, Organization | — | 3 workflow groups, 3 owned tables, 0 shadow tables, 16 events, has build step |
-| HR | Downstream | Platform | Compliance | ~250 workflow methods, 50 tables (14 control + 36 tenant), 43 events, 2 crons, fully conformant |
-| Accounting | Stub | — | — | Package.json only |
-| CRM | Stub | — | — | Package.json only |
-| Fleet | Stub | — | — | Package.json only |
-| Inventory | Stub | — | — | Package.json only |
-| Reports | Stub | — | — | Package.json only |
-| Pharmacy | Stub | — | — | Package.json only |
+| Context          | Type          | Upstream                                      | Downstream                   | Relationship                                                                                    |
+| ---------------- | ------------- | --------------------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------- |
+| Shared Kernel    | Shared        | —                                             | All units/modules            | Unit & Module interfaces (inline)                                                               |
+| Database         | Shared Kernel | —                                             | All units                    | Foundation                                                                                      |
+| Platform         | Customer      | —                                             | Units, Modules               | Creates & wires via `create()` — three server classes + one client class                        |
+| Auth             | Conformist    | better-auth                                   | Modules                      | Adapts API                                                                                      |
+| Logs             | Conformist    | pino, OTel                                    | —                            | Adapts API                                                                                      |
+| PubSub           | Conformist    | pg-boss                                       | —                            | Adapts API                                                                                      |
+| Storage          | Partner       | S3 (AWS SDK)                                  | Drive module                 | Defines interface                                                                               |
+| RPC              | Conformist    | oRPC                                          | —                            | Adapts API                                                                                      |
+| KV Store         | Conformist    | Postgres                                      | Compliance module            | Redis-like API (core)                                                                           |
+| Audit            | Core          | —                                             | All modules                  | Native platform unit — `audit_log` table, DB-record replayability                               |
+| Client Platform  | —             | —                                             | —                            | Browser-side (3 units)                                                                          |
+| Recruiter        | Downstream    | Platform                                      | —                            | Uses `SingleTenantPlatform`, registers organization + tasks                                     |
+| Organization     | Downstream    | Platform                                      | Compliance, Management Plane | 5 workflows, 7 tables                                                                           |
+| Compliance       | Downstream    | Platform, HR, Organization, Fleet, Accounting | —                            | 5 workflows, 3 tables, 3 services, subscribes to external events                                |
+| Tasks            | Downstream    | Platform                                      | —                            | 11 workflows, 17 tables (6 control + 11 tenant)                                                 |
+| Drive            | Downstream    | Platform, Storage                             | —                            | 6 workflows, 8 tables, 5 services                                                               |
+| Management Plane | Downstream    | Platform, Organization                        | —                            | 3 workflow groups, 3 owned tables, 0 shadow tables, 16 events, has build step                   |
+| HR               | Downstream    | Platform                                      | Compliance                   | ~250 workflow methods, 50 tables (14 control + 36 tenant), 43 events, 2 crons, fully conformant |
+| Accounting       | Stub          | —                                             | —                            | Package.json only                                                                               |
+| CRM              | Stub          | —                                             | —                            | Package.json only                                                                               |
+| Fleet            | Stub          | —                                             | —                            | Package.json only                                                                               |
+| Inventory        | Stub          | —                                             | —                            | Package.json only                                                                               |
+| Reports          | Stub          | —                                             | —                            | Package.json only                                                                               |
+| Pharmacy         | Stub          | —                                             | —                            | Package.json only                                                                               |
 
 ## Language Boundaries
 
 ### Platform Kernel Language
+
 - Platform, Platform (client), Unit, Module, Create, PrepareInfra, Destroy, Run, GetUnit, GetModule, $dependencies, Workflow, WorkflowStep, WorkflowContext, StepRunner, RunOptions, StepOptions, Health Check
 
 ### Auth Language
+
 - User, Session, Account, Verification, Role, Access Control, Auth Event
 
 ### Logging Language
+
 - Log Entry, Level, Service, Span, Trace, Buffer, Flush, Drain, Query, Stats
 
 ### PubSub Language
+
 - Topic, Publish, Subscribe, Unsubscribe, Message, Handler, Retry, Priority, Queue, Schedule, Unsubscribed Produced Topic, Health Probe
 
 ### Storage Language
+
 - File, Bucket, Key, Upload, Download, Archive, Signed URL, ETag, Metadata
 
 ### RPC Language
+
 - Procedure, Router, Handler, Middleware, Context, Request, Response
 
 ### KV Store Language
+
 - Key, Value, TTL, Cache, Evict, Scan, Increment, Decrement
 
 ### Audit Language
+
 - Audit Entry, Audit Log, CrudAction, Idempotency Key, Workflow Run, Workflow Step, Reconstruct State, Diff, Write, Query, WithTransaction
 
 ### Organization Language
+
 - Organization, Branch, Connection, Connection Contact, Connection Note, Address, Bank Account, Workflow
 
 ### Compliance Language
+
 - Compliance Document, Compliance Obligation, Verification Rule, Audit Entry, Verification Status, Renewal Chain, Reminder Engine, Obligation Generator, Event Bridge
 
 ### Tasks Language
+
 - Project, Task, Task Status, Task Type, Task Link, Saved View, Automation Rule, Time Entry, Task Reminder, Watcher, Activity Log
 
 ### Drive Language
+
 - Drive Folder, Drive File, File Version, Label, Share, Public Link, Access Log, Trash, Storage Bridge, Path Service
 
 ### HR Language
+
 - Employee, Attendance, Employee Check-in, Leave, Lifecycle, Overtime, Shift, Department, Designation, Employment Type, Employee Grade, Holiday List, Payroll Settings
 
 ### Management Plane Language
+
 - Tenant, Tenant Status, Service Provider, Platform User, Audit Log, Provisioning, Tenant Resolver, Control Plane, Tenant Database, Platform Admin, Service Provider User, Report

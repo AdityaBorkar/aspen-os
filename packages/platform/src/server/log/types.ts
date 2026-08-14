@@ -42,22 +42,10 @@ export interface LogStats {
 
 export interface ChildLogger {
   debug(message: string, metadata?: Record<string, unknown>): void;
-  error(
-    message: string,
-    error?: Error,
-    metadata?: Record<string, unknown>,
-  ): void;
-  fatal(
-    message: string,
-    error?: Error,
-    metadata?: Record<string, unknown>,
-  ): void;
+  error(message: string, error?: Error, metadata?: Record<string, unknown>): void;
+  fatal(message: string, error?: Error, metadata?: Record<string, unknown>): void;
   info(message: string, metadata?: Record<string, unknown>): void;
-  log(
-    level: LogLevel,
-    message: string,
-    metadata?: Record<string, unknown>,
-  ): void;
+  log(level: LogLevel, message: string, metadata?: Record<string, unknown>): void;
   warn(message: string, metadata?: Record<string, unknown>): void;
 }
 
@@ -65,28 +53,12 @@ export interface LogUnit {
   child(context: Record<string, unknown>): ChildLogger;
   debug(message: string, metadata?: Record<string, unknown>): void;
   destroy(): Promise<void>;
-  error(
-    message: string,
-    error?: Error,
-    metadata?: Record<string, unknown>,
-  ): void;
-  fatal(
-    message: string,
-    error?: Error,
-    metadata?: Record<string, unknown>,
-  ): void;
-  getStats(
-    service?: string,
-    startTime?: Date,
-    endTime?: Date,
-  ): Promise<LogStats>;
+  error(message: string, error?: Error, metadata?: Record<string, unknown>): void;
+  fatal(message: string, error?: Error, metadata?: Record<string, unknown>): void;
+  getStats(service?: string, startTime?: Date, endTime?: Date): Promise<LogStats>;
   info(message: string, metadata?: Record<string, unknown>): void;
 
-  log(
-    level: LogLevel,
-    message: string,
-    metadata?: Record<string, unknown>,
-  ): void;
+  log(level: LogLevel, message: string, metadata?: Record<string, unknown>): void;
 
   readonly name: string;
   query(filter: LogQuery): Promise<LogEntry[]>;

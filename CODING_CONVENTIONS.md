@@ -122,11 +122,11 @@ Shared dependency versions are pinned in the root `package.json` `workspaces.cat
 
 Three server platform classes share an abstract `BasePlatform<M, S>` (`src/server/base-platform.ts`):
 
-| Class | `create()` config | `run()` | Tenant DB |
-| --- | --- | --- | --- |
-| `SingleTenantPlatform` | `SingleTenantConfig` (`db: DatabaseConfig`) | `run(fn)` | control-plane — no scoping |
-| `SharedTenantPlatform` | `SharedTenantConfig` (`db: DatabaseConfig`) | `run(tenantId, fn)` | RLS: transaction + `app.tenant_id` + `SET LOCAL ROLE tenant_role` |
-| `IsolatedTenantPlatform` | `IsolatedTenantConfig` (`db: IsolatedTenantDatabaseConfig`) | `run(tenantId, fn)` | DB-per-tenant via `TenantResolver` |
+| Class                    | `create()` config                                           | `run()`             | Tenant DB                                                         |
+| ------------------------ | ----------------------------------------------------------- | ------------------- | ----------------------------------------------------------------- |
+| `SingleTenantPlatform`   | `SingleTenantConfig` (`db: DatabaseConfig`)                 | `run(fn)`           | control-plane — no scoping                                        |
+| `SharedTenantPlatform`   | `SharedTenantConfig` (`db: DatabaseConfig`)                 | `run(tenantId, fn)` | RLS: transaction + `app.tenant_id` + `SET LOCAL ROLE tenant_role` |
+| `IsolatedTenantPlatform` | `IsolatedTenantConfig` (`db: IsolatedTenantDatabaseConfig`) | `run(tenantId, fn)` | DB-per-tenant via `TenantResolver`                                |
 
 - The three classes are statics with `static create(config, modules)` and no overloaded `run()` — the mode is enforced by the signature.
 - `PlatformInstance<M[]>` is a structural type for the CLI; use `SingleTenantPlatformInstance<M>` etc. for typed `run()`.
@@ -142,7 +142,9 @@ const platform = SingleTenantPlatform.create(config, [
 ]);
 
 await p.$prepareInfra();
-await p.run(async () => { /* inside AsyncLocalStorage */ });
+await p.run(async () => {
+  /* inside AsyncLocalStorage */
+});
 await p.$cleanup();
 ```
 
@@ -209,16 +211,16 @@ type ModuleInfra<TCP, TT> = {
 
 All units:
 
-| Unit | `$name` | Injected deps | Notes |
-| --- | --- | --- | --- |
-| `db` (DatabaseUnit) | `"db"` | — (owns `pg.Pool` + drizzle) | tenancy, RLS, `prepareWithModules`; the load-bearing unit |
-| `auth` (AuthUnit) | `"auth"` | `{ db, pubsub }` | better-auth service, `fetchHandler`, `_` getter, `applyModuleAcl` |
-| `audit` (AuditUnit) | `"audit"` | `{ db }` | `diff`/`write`/`query`/`reconstructState`/`count`; `audit_log` table |
-| `logs` (LogUnit) | `"logs"` | `{ db }` | buffered pino-style logger; `child()`, `query`, `getStats` |
-| `pubsub` (PubSubUnit) | `"pubsub"` | `{ db }` | single control-plane pg-boss, **lazily started** |
-| `storage` (StorageUnit) | `"storage"` | `{ db }` | S3 adapter (SeaweedFS-compatible) + file metadata, tenant-prefixed keys |
-| `rpc` (RpcUnit) | `"rpc"` | `{ auth, db, logs, pubsub }` | oRPC `RPCHandler`; built-in `echo` + `health.check` |
-| `kvStore` (KvStoreUnit) | `"kvStore"` | `{ db }` | Postgres-backed; `get`/`set`/`del`/`increment`/… |
+| Unit                    | `$name`     | Injected deps                | Notes                                                                   |
+| ----------------------- | ----------- | ---------------------------- | ----------------------------------------------------------------------- |
+| `db` (DatabaseUnit)     | `"db"`      | — (owns `pg.Pool` + drizzle) | tenancy, RLS, `prepareWithModules`; the load-bearing unit               |
+| `auth` (AuthUnit)       | `"auth"`    | `{ db, pubsub }`             | better-auth service, `fetchHandler`, `_` getter, `applyModuleAcl`       |
+| `audit` (AuditUnit)     | `"audit"`   | `{ db }`                     | `diff`/`write`/`query`/`reconstructState`/`count`; `audit_log` table    |
+| `logs` (LogUnit)        | `"logs"`    | `{ db }`                     | buffered pino-style logger; `child()`, `query`, `getStats`              |
+| `pubsub` (PubSubUnit)   | `"pubsub"`  | `{ db }`                     | single control-plane pg-boss, **lazily started**                        |
+| `storage` (StorageUnit) | `"storage"` | `{ db }`                     | S3 adapter (SeaweedFS-compatible) + file metadata, tenant-prefixed keys |
+| `rpc` (RpcUnit)         | `"rpc"`     | `{ auth, db, logs, pubsub }` | oRPC `RPCHandler`; built-in `echo` + `health.check`                     |
+| `kvStore` (KvStoreUnit) | `"kvStore"` | `{ db }`                     | Postgres-backed; `get`/`set`/`del`/`increment`/…                        |
 
 `PlatformUnits<S>` and accessors are `audit, auth, db, kvStore, logs, pubsub, rpc, storage`.
 
@@ -332,7 +334,7 @@ packages/<module>/
 - Package name: `@aspen-os/<module>`
 - `"type": "module"`; dependencies on other workspace packages via `"workspace:*"`, catalog versions via `catalog:`
 - `exports`: `"."` → `"./src/index.ts"` (raw TS) **except** `@aspen-os/platform`, `@aspen-os/organization`, `@aspen-os/management` which build to `.output/` via `scripts/build.ts`
-- Scripts: `check:lint` (`biome check --fix .`) and `check:types` (`tsc -b`)
+- Scripts: `check:lint` (`oxlint --fix . ; oxfmt .`) and `check:types` (`tsc -b`)
 
 ### Stub packages
 
@@ -449,19 +451,19 @@ export type DomainEventMap = EntityEventMap & OtherEntityEventMap;
 
 ## Naming summary
 
-| Scope | Convention | Example |
-| --- | --- | --- |
-| Files | `kebab-case` | `auth.ts`, `pubsub.ts`, `db-schemas/index.ts` |
-| Classes | `PascalCase` | `OrganizationWorkflow`, `DatabaseUnit` |
-| Constants | `UPPER_SNAKE_CASE` | `ORGANIZATION_STATUS`, `COMPLIANCE_EVENTS` |
-| DB tables | `snake_case` | `connection_contact`, `file_metadata` |
-| DB columns | `snake_case` (mapped to camelCase TS) | `created_at` → `createdAt` |
-| Event topics | `domain:event_name` | `organization:updated` |
-| Private fields | `#` prefix | `#documents`, `#db` |
-| Unit lifecycle (server) | `$` prefix | `$name`, `$prepareInfra`, `$cleanup` |
-| Module lifecycle | `$` prefix | `$initialize`, `$prepareInfra`, `$prepareRuntime` |
-| Package exports | `@aspen-os/<name>` | `@aspen-os/platform`, `@aspen-os/organization` |
-| Module `$name` property | `kebab-case` string | `"organization"`, `"compliance"` |
+| Scope                   | Convention                            | Example                                           |
+| ----------------------- | ------------------------------------- | ------------------------------------------------- |
+| Files                   | `kebab-case`                          | `auth.ts`, `pubsub.ts`, `db-schemas/index.ts`     |
+| Classes                 | `PascalCase`                          | `OrganizationWorkflow`, `DatabaseUnit`            |
+| Constants               | `UPPER_SNAKE_CASE`                    | `ORGANIZATION_STATUS`, `COMPLIANCE_EVENTS`        |
+| DB tables               | `snake_case`                          | `connection_contact`, `file_metadata`             |
+| DB columns              | `snake_case` (mapped to camelCase TS) | `created_at` → `createdAt`                        |
+| Event topics            | `domain:event_name`                   | `organization:updated`                            |
+| Private fields          | `#` prefix                            | `#documents`, `#db`                               |
+| Unit lifecycle (server) | `$` prefix                            | `$name`, `$prepareInfra`, `$cleanup`              |
+| Module lifecycle        | `$` prefix                            | `$initialize`, `$prepareInfra`, `$prepareRuntime` |
+| Package exports         | `@aspen-os/<name>`                    | `@aspen-os/platform`, `@aspen-os/organization`    |
+| Module `$name` property | `kebab-case` string                   | `"organization"`, `"compliance"`                  |
 
 ## Commands
 
@@ -469,7 +471,7 @@ Root (`/`):
 
 ```
 bun install            # install all workspace deps
-bun run check:lint     # biome check --fix .
+bun run check:lint     # oxlint --fix . ; oxfmt .
 bun run check:types    # tsc -b (root composite, all project references)
 bun run update:deps    # taze -rw --maturity-period 3
 bun run clean          # rimraf node_modules/.output/.local/bun.lockb

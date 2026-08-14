@@ -9,9 +9,7 @@ const InputSchema = object({
   input: CreateHealthInsuranceSchema,
 });
 
-export const createHealthInsurance = Workflow.name(
-  "hr.employee.create-health-insurance",
-)
+export const createHealthInsurance = Workflow.name("hr.employee.create-health-insurance")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateHealthInsuranceSchema, input);

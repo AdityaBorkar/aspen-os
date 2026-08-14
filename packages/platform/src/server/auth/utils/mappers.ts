@@ -34,8 +34,8 @@ type SessionInput = {
 export function toUser(user: UserInput): User {
   return {
     banExpires: user.banExpires ?? undefined,
-    banned: user.banned ?? false,
     banReason: user.banReason ?? undefined,
+    banned: user.banned ?? false,
     createdAt: user.createdAt,
     displayUsername: user.displayUsername ?? undefined,
     email: user.email,

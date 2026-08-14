@@ -15,7 +15,9 @@ const assignDocumentTo = Workflow.name("document.assign-to").handler(
       .where(eq(complianceDocument.id, id))
       .returning();
 
-    if (!updated) throw new Error("Database operation returned no result");
+    if (!updated) {
+      throw new Error("Database operation returned no result");
+    }
 
     await ctx.audit.write({
       action: "updated",

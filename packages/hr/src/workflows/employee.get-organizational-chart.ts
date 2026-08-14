@@ -9,9 +9,7 @@ const InputSchema = object({
   company: optional(pipe(string(), minLength(1, "company is required"))),
 });
 
-export const getOrganizationalChart = Workflow.name(
-  "hr.employee.get-organizational-chart",
-)
+export const getOrganizationalChart = Workflow.name("hr.employee.get-organizational-chart")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { company } = input;

@@ -8,11 +8,11 @@ The platform supports three tenancy architectures. The choice is made by **which
 
 ## Modes
 
-| Mode | Platform class | `run()` signature | Databases | Isolation |
-|---|---|---|---|---|
-| **Single Tenant** | `SingleTenantPlatform` | `run(fn)` | 1 | None needed |
-| **Shared DB + RLS** | `SharedTenantPlatform` | `run(tenantId, fn)` | 1 (shared) | Postgres RLS policies |
-| **Isolated DB** | `IsolatedTenantPlatform` | `run(tenantId, fn)` | N+1 (control + per-tenant) | Physical (separate DBs) |
+| Mode                | Platform class           | `run()` signature   | Databases                  | Isolation               |
+| ------------------- | ------------------------ | ------------------- | -------------------------- | ----------------------- |
+| **Single Tenant**   | `SingleTenantPlatform`   | `run(fn)`           | 1                          | None needed             |
+| **Shared DB + RLS** | `SharedTenantPlatform`   | `run(tenantId, fn)` | 1 (shared)                 | Postgres RLS policies   |
+| **Isolated DB**     | `IsolatedTenantPlatform` | `run(tenantId, fn)` | N+1 (control + per-tenant) | Physical (separate DBs) |
 
 ## Choosing a Platform Class
 
@@ -48,12 +48,12 @@ The `db` config is always the **control-plane** database. In single/RLS mode thi
 ```ts
 // Single-tenant
 await p.run(async () => {
-  const { db } = getContext();  // control-plane (app) DB
+  const { db } = getContext(); // control-plane (app) DB
 });
 
 // Shared or isolated
 await p.run(tenantId, async () => {
-  const { db, tenantId } = getContext();  // per-request/per-tenant drizzle instance
+  const { db, tenantId } = getContext(); // per-request/per-tenant drizzle instance
 });
 ```
 
@@ -74,8 +74,8 @@ The caller resolves the tenant ID (e.g. from the auth session's active organizat
 `DatabaseUnit` always holds a control-plane connection. `AuthUnit` always uses `controlPlaneDb` — auth tables are only on the control-plane DB and are exempt from RLS.
 
 ```ts
-p.db.controlPlaneDb   // drizzle instance for control-plane queries
-p.db.pool             // pg.Pool for the control-plane connection
+p.db.controlPlaneDb; // drizzle instance for control-plane queries
+p.db.pool; // pg.Pool for the control-plane connection
 ```
 
 ### Per-Tenant Operations (isolated)
@@ -83,9 +83,9 @@ p.db.pool             // pg.Pool for the control-plane connection
 The `DatabaseUnit` provides provisioning helpers:
 
 ```ts
-p.db.getTenantDb(tenantId);                          // lazily creates + caches per-tenant pool
+p.db.getTenantDb(tenantId); // lazily creates + caches per-tenant pool
 p.db.pushSchemasToTenant(tenantId, moduleSchemas);
-p.db.provisionTenant(tenantId, config);              // create + seed a tenant DB
+p.db.provisionTenant(tenantId, config); // create + seed a tenant DB
 p.db.createTenant(tenantId);
 p.db.seedTenantDb(tenantId);
 ```
@@ -93,7 +93,8 @@ p.db.seedTenantDb(tenantId);
 In isolated mode, `IsolatedTenantPlatform.$prepareInfra()` also calls each module's `$prepareTenant(tenantId)` for every tenant returned by the resolver.
 
 <Callout type="info">
-  The `IsolatedTenantDatabaseConfig.resolver` described in older docs does not exist as a config field. A dummy resolver is constructed internally in `IsolatedTenantPlatform.create()`.
+  The `IsolatedTenantDatabaseConfig.resolver` described in older docs does not exist as a config
+  field. A dummy resolver is constructed internally in `IsolatedTenantPlatform.create()`.
 </Callout>
 
 ### RLS Policies (shared mode)
@@ -117,7 +118,7 @@ Tables (except auth tables) gain a `tenant_id` column:
 ```ts
 tenantId: text("tenant_id")
   .notNull()
-  .default(sql`COALESCE(current_setting('app.tenant_id', true), 'default')`)
+  .default(sql`COALESCE(current_setting('app.tenant_id', true), 'default')`);
 ```
 
 - **Single-tenant**: always `"default"` (the GUC is never set).
@@ -129,7 +130,8 @@ tenantId: text("tenant_id")
 There is exactly **one** pg-boss — the control-plane boss — regardless of tenancy mode. `publish`/`subscribe`/`schedule` always target it. In isolated mode, a subscribing handler's `ctx.db` is the tenant DB (per-tenant subscription), but the boss itself is shared.
 
 <Callout type="warn">
-  There is no `publishControlPlane()` method — with a single boss, `publish()` covers both control-plane and tenant topics.
+  There is no `publishControlPlane()` method — with a single boss, `publish()` covers both
+  control-plane and tenant topics.
 </Callout>
 
 ### `$prepareTenant()` Lifecycle

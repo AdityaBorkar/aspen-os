@@ -14,11 +14,7 @@ export const createSavedView = Workflow.name("view.create")
   .input(CreateInputSchema)
   .handler(async ({ input }, ctx) => {
     if (input.isDefault) {
-      await unsetDefaultSavedView(
-        ctx.db,
-        input.ownerId,
-        input.projectId ?? null,
-      );
+      await unsetDefaultSavedView(ctx.db, input.ownerId, input.projectId ?? null);
     }
 
     const [result] = await ctx.db

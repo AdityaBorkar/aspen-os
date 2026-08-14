@@ -1,20 +1,11 @@
 import { uuidv7 } from "@aspen-os/platform/server";
 import { sql } from "drizzle-orm";
-import {
-  boolean,
-  index,
-  jsonb,
-  pgTable,
-  text,
-  timestamp,
-} from "drizzle-orm/pg-core";
+import { boolean, index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const dmsView = pgTable(
   "dms_view",
   {
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     filters: jsonb("filters")
       .notNull()
       .$type<Record<string, unknown>[]>()
@@ -29,9 +20,7 @@ export const dmsView = pgTable(
       .notNull()
       .$type<Record<string, unknown>[]>()
       .default(sql`'[]'::jsonb`),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_dms_view_owner").on(table.ownerId),

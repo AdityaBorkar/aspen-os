@@ -12,17 +12,14 @@ export const listTenants = Workflow.name("tenant.list")
       filters: optional(TenantFiltersSchema),
     }),
   )
-  .handler(async (input, ctx) => {
-    return ctx.step.run("query", async () => {
+  .handler(async (input, ctx) =>
+    ctx.step.run("query", async () => {
       const parsed = input.filters ?? {};
       const conditions: SQL[] = [];
 
       if (parsed.status) {
         conditions.push(
-          eq(
-            tenant.status,
-            parsed.status as (typeof tenant.status.enumValues)[number],
-          ),
+          eq(tenant.status, parsed.status as (typeof tenant.status.enumValues)[number]),
         );
       }
       if (parsed.plan) {
@@ -33,16 +30,10 @@ export const listTenants = Workflow.name("tenant.list")
       }
       if (parsed.search) {
         const term = `%${parsed.search}%`;
-        conditions.push(
-          or(
-            ilike(organization.name, term),
-            ilike(organization.slug, term),
-          ) as SQL,
-        );
+        conditions.push(or(ilike(organization.name, term), ilike(organization.slug, term)) as SQL);
       }
 
-      const whereClause =
-        conditions.length > 0 ? and(...conditions) : undefined;
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
       return ctx.db
         .select({
@@ -59,5 +50,5 @@ export const listTenants = Workflow.name("tenant.list")
         .from(tenant)
         .leftJoin(organization, eq(organization.id, tenant.id))
         .where(whereClause);
-    });
-  });
+    }),
+  );

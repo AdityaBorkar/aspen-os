@@ -9,9 +9,7 @@ const InputSchema = object({
   filters: optional(LeaveBlockListFiltersSchema),
 });
 
-export const listLeaveBlockLists = Workflow.name(
-  "hr.leave.list-leave-block-lists",
-)
+export const listLeaveBlockLists = Workflow.name("hr.leave.list-leave-block-lists")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { filters } = input;

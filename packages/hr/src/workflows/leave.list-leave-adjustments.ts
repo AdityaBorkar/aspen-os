@@ -8,15 +8,10 @@ const InputSchema = object({
   employeeId: pipe(string(), minLength(1, "employeeId is required")),
 });
 
-export const listLeaveAdjustments = Workflow.name(
-  "hr.leave.list-leave-adjustments",
-)
+export const listLeaveAdjustments = Workflow.name("hr.leave.list-leave-adjustments")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { employeeId } = input;
 
-    return ctx.db
-      .select()
-      .from(leaveAdjustment)
-      .where(eq(leaveAdjustment.employeeId, employeeId));
+    return ctx.db.select().from(leaveAdjustment).where(eq(leaveAdjustment.employeeId, employeeId));
   });

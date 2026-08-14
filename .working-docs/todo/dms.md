@@ -36,5 +36,5 @@
   - Feature Pages
 - Demo Orgs
   - aries.dms.adityab.tech -> Standalone Institute = Simple
-  - mtdc.dms.adityab.tech  -> A/B/C/D Cateogies of documents
-  - cpcb.dms.adityab.tech  -> Multiple Repository (Domain) Facility
+  - mtdc.dms.adityab.tech -> A/B/C/D Cateogies of documents
+  - cpcb.dms.adityab.tech -> Multiple Repository (Domain) Facility

@@ -53,8 +53,8 @@ export async function runCompression(
 
   try {
     // No-op implementation: DMS currently stores the original bytes for every
-    // mode. The mode/quality/format are recorded on the version for future
-    // pipeline integration (archive, image re-encode, pdf optimize).
+    // Mode. The mode/quality/format are recorded on the version for future
+    // Pipeline integration (archive, image re-encode, pdf optimize).
     return {
       content: body,
       option: {

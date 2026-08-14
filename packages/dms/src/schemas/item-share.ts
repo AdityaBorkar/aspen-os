@@ -10,11 +10,7 @@ import {
   string,
 } from "valibot";
 
-import {
-  ItemGranteeTypeSchema,
-  ItemPermissionSchema,
-  ItemTypeSchema,
-} from "./item-enums";
+import { ItemGranteeTypeSchema, ItemPermissionSchema, ItemTypeSchema } from "./item-enums";
 
 export const CreateItemShareSchema = object({
   expiresAt: optional(nullable(date())),
@@ -40,6 +36,4 @@ export const ListSharedWithMeOptionsSchema = object({
   offset: optional(number(), 0),
 });
 
-export type ListSharedWithMeOptions = InferOutput<
-  typeof ListSharedWithMeOptionsSchema
->;
+export type ListSharedWithMeOptions = InferOutput<typeof ListSharedWithMeOptionsSchema>;

@@ -27,7 +27,7 @@ await p.management.tenants.onboard({
 });
 
 // Status transitions
-await p.management.tenants.activate({ id: tenantId });       // onboarding → active
+await p.management.tenants.activate({ id: tenantId }); // onboarding → active
 await p.management.tenants.suspend({ id: tenantId, reason: "unpaid" });
 await p.management.tenants.reactivate({ id: tenantId });
 await p.management.tenants.churn({ id: tenantId, reason: "competitor" });
@@ -119,7 +119,8 @@ await p.management.users.assignToServiceProvider({ userId, spId: "sp-2" });
 ```
 
 <Callout type="warn">
-  `user.create` enforces the `spId` rule in its handler: `spId` is required when `role === "sp_user"` and must not be set otherwise. It also verifies the SP exists and is active.
+  `user.create` enforces the `spId` rule in its handler: `spId` is required when `role ===
+  "sp_user"` and must not be set otherwise. It also verifies the SP exists and is active.
 </Callout>
 
 ## Notes

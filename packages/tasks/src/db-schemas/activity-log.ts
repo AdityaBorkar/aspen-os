@@ -5,9 +5,7 @@ export const activityLog = pgTable(
   "task_activity_log",
   {
     action: text("action").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: text("id").primaryKey().$defaultFn(uuidv7),
     newValue: jsonb("new_value"),
     oldValue: jsonb("old_value"),

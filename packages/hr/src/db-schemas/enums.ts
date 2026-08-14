@@ -7,12 +7,7 @@ export const employeeStatusEnum = pgEnum("hr_employee_status", [
   "suspended",
 ]);
 
-export const genderEnum = pgEnum("hr_gender", [
-  "female",
-  "male",
-  "other",
-  "prefer_not_to_say",
-]);
+export const genderEnum = pgEnum("hr_gender", ["female", "male", "other", "prefer_not_to_say"]);
 
 export const employmentTypeEnum = pgEnum("hr_employment_type", [
   "contract",
@@ -33,10 +28,11 @@ export const attendanceStatusEnum = pgEnum("hr_attendance_status", [
 
 export const checkinLogTypeEnum = pgEnum("hr_checkin_log_type", ["in", "out"]);
 
-export const attendanceRequestStatusEnum = pgEnum(
-  "hr_attendance_request_status",
-  ["approved", "pending", "rejected"],
-);
+export const attendanceRequestStatusEnum = pgEnum("hr_attendance_request_status", [
+  "approved",
+  "pending",
+  "rejected",
+]);
 
 export const shiftRequestStatusEnum = pgEnum("hr_shift_request_status", [
   "approved",
@@ -50,10 +46,13 @@ export const shiftAssignmentStatusEnum = pgEnum("hr_shift_assignment_status", [
   "inactive",
 ]);
 
-export const leaveApplicationStatusEnum = pgEnum(
-  "hr_leave_application_status",
-  ["approved", "cancelled", "draft", "pending", "rejected"],
-);
+export const leaveApplicationStatusEnum = pgEnum("hr_leave_application_status", [
+  "approved",
+  "cancelled",
+  "draft",
+  "pending",
+  "rejected",
+]);
 
 export const leaveAllocationStatusEnum = pgEnum("hr_leave_allocation_status", [
   "active",
@@ -61,10 +60,11 @@ export const leaveAllocationStatusEnum = pgEnum("hr_leave_allocation_status", [
   "expired",
 ]);
 
-export const compensatoryLeaveStatusEnum = pgEnum(
-  "hr_compensatory_leave_status",
-  ["approved", "pending", "rejected"],
-);
+export const compensatoryLeaveStatusEnum = pgEnum("hr_compensatory_leave_status", [
+  "approved",
+  "pending",
+  "rejected",
+]);
 
 export const leaveEncashmentStatusEnum = pgEnum("hr_leave_encashment_status", [
   "approved",
@@ -115,11 +115,7 @@ export const skillProficiencyEnum = pgEnum("hr_skill_proficiency", [
   "intermediate",
 ]);
 
-export const overtimeStatusEnum = pgEnum("hr_overtime_status", [
-  "approved",
-  "pending",
-  "rejected",
-]);
+export const overtimeStatusEnum = pgEnum("hr_overtime_status", ["approved", "pending", "rejected"]);
 
 export const exitInterviewStatusEnum = pgEnum("hr_exit_interview_status", [
   "cancelled",
@@ -154,11 +150,7 @@ export const leaveBlockListScopeEnum = pgEnum("hr_leave_block_list_scope", [
   "department",
 ]);
 
-export const accessLevelEnum = pgEnum("hr_access_level", [
-  "full",
-  "manage",
-  "read_only",
-]);
+export const accessLevelEnum = pgEnum("hr_access_level", ["full", "manage", "read_only"]);
 
 export const permissionActionEnum = pgEnum("hr_permission_action", [
   "approve",

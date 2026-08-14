@@ -13,10 +13,7 @@ export const deleteHoliday = Workflow.name("hr.setup.delete-holiday")
   .handler(async (input, ctx) => {
     const { id } = input;
 
-    const [deleted] = await ctx.db
-      .delete(holiday)
-      .where(eq(holiday.id, id))
-      .returning();
+    const [deleted] = await ctx.db.delete(holiday).where(eq(holiday.id, id)).returning();
 
     return deleted;
   });

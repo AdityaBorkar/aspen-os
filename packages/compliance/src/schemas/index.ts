@@ -17,11 +17,7 @@ export {
   RenewalFrequencySchema,
   VerificationStatusSchema,
 } from "./enums";
-export type {
-  CreateObligationInput,
-  ObligationFilters,
-  UpdateObligationInput,
-} from "./obligation";
+export type { CreateObligationInput, ObligationFilters, UpdateObligationInput } from "./obligation";
 export {
   CreateObligationSchema,
   ObligationFiltersSchema,

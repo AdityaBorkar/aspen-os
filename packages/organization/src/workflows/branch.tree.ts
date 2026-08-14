@@ -7,8 +7,8 @@ import { buildTree } from "./utils";
 
 export const getBranchTree = Workflow.name("branch.tree")
   .input(object({}))
-  .handler(async (_input, ctx) => {
-    return ctx.step.run("query", async () => {
+  .handler(async (_input, ctx) =>
+    ctx.step.run("query", async () => {
       const allBranches = await ctx.db
         .select({
           id: branch.id,
@@ -19,5 +19,5 @@ export const getBranchTree = Workflow.name("branch.tree")
         .where(eq(branch.isActive, true));
 
       return buildTree(allBranches, null);
-    });
-  });
+    }),
+  );

@@ -8,9 +8,7 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const getAttendanceRequestById = Workflow.name(
-  "hr.attendance.get-attendance-request-by-id",
-)
+export const getAttendanceRequestById = Workflow.name("hr.attendance.get-attendance-request-by-id")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id } = input;

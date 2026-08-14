@@ -65,9 +65,7 @@ export const CreateLeavePeriodSchema = object({
   startDate: pipe(string(), minLength(1, "Start date is required")),
 });
 
-export type CreateLeavePeriodInput = InferOutput<
-  typeof CreateLeavePeriodSchema
->;
+export type CreateLeavePeriodInput = InferOutput<typeof CreateLeavePeriodSchema>;
 
 export const UpdateLeavePeriodSchema = object({
   company: optional(nullable(string())),
@@ -77,9 +75,7 @@ export const UpdateLeavePeriodSchema = object({
   startDate: optional(string()),
 });
 
-export type UpdateLeavePeriodInput = InferOutput<
-  typeof UpdateLeavePeriodSchema
->;
+export type UpdateLeavePeriodInput = InferOutput<typeof UpdateLeavePeriodSchema>;
 
 // Leave Policy
 
@@ -88,9 +84,7 @@ export const CreateLeavePolicySchema = object({
   name: pipe(string(), minLength(1, "Name is required")),
 });
 
-export type CreateLeavePolicyInput = InferOutput<
-  typeof CreateLeavePolicySchema
->;
+export type CreateLeavePolicyInput = InferOutput<typeof CreateLeavePolicySchema>;
 
 export const UpdateLeavePolicySchema = object({
   description: optional(nullable(string())),
@@ -98,9 +92,7 @@ export const UpdateLeavePolicySchema = object({
   name: optional(string()),
 });
 
-export type UpdateLeavePolicyInput = InferOutput<
-  typeof UpdateLeavePolicySchema
->;
+export type UpdateLeavePolicyInput = InferOutput<typeof UpdateLeavePolicySchema>;
 
 // Leave Policy Detail
 
@@ -111,17 +103,12 @@ export const CreateLeavePolicyDetailSchema = object({
   maxDays: number(),
 });
 
-export type CreateLeavePolicyDetailInput = InferOutput<
-  typeof CreateLeavePolicyDetailSchema
->;
+export type CreateLeavePolicyDetailInput = InferOutput<typeof CreateLeavePolicyDetailSchema>;
 
 // Leave Policy Assignment
 
 export const CreateLeavePolicyAssignmentSchema = object({
-  effectiveFrom: pipe(
-    string(),
-    minLength(1, "Effective from date is required"),
-  ),
+  effectiveFrom: pipe(string(), minLength(1, "Effective from date is required")),
   effectiveTo: optional(string()),
   employeeId: pipe(string(), minLength(1, "Employee ID is required")),
   leavePeriod: pipe(string(), minLength(1, "Leave period is required")),
@@ -150,9 +137,7 @@ export const LeavePolicyAssignmentFiltersSchema = object({
   leavePolicy: optional(string()),
 });
 
-export type LeavePolicyAssignmentFilters = InferOutput<
-  typeof LeavePolicyAssignmentFiltersSchema
->;
+export type LeavePolicyAssignmentFilters = InferOutput<typeof LeavePolicyAssignmentFiltersSchema>;
 
 // Leave Allocation
 
@@ -167,9 +152,7 @@ export const CreateLeaveAllocationSchema = object({
   usedDays: optional(string()),
 });
 
-export type CreateLeaveAllocationInput = InferOutput<
-  typeof CreateLeaveAllocationSchema
->;
+export type CreateLeaveAllocationInput = InferOutput<typeof CreateLeaveAllocationSchema>;
 
 export const UpdateLeaveAllocationSchema = object({
   carryForwardedDays: optional(string()),
@@ -180,9 +163,7 @@ export const UpdateLeaveAllocationSchema = object({
   usedDays: optional(string()),
 });
 
-export type UpdateLeaveAllocationInput = InferOutput<
-  typeof UpdateLeaveAllocationSchema
->;
+export type UpdateLeaveAllocationInput = InferOutput<typeof UpdateLeaveAllocationSchema>;
 
 export const LeaveAllocationFiltersSchema = object({
   employeeId: optional(string()),
@@ -191,9 +172,7 @@ export const LeaveAllocationFiltersSchema = object({
   status: optional(LeaveAllocationStatusSchema),
 });
 
-export type LeaveAllocationFilters = InferOutput<
-  typeof LeaveAllocationFiltersSchema
->;
+export type LeaveAllocationFilters = InferOutput<typeof LeaveAllocationFiltersSchema>;
 
 // Leave Application
 
@@ -209,9 +188,7 @@ export const CreateLeaveApplicationSchema = object({
   totalDays: pipe(string(), minLength(1, "Total days is required")),
 });
 
-export type CreateLeaveApplicationInput = InferOutput<
-  typeof CreateLeaveApplicationSchema
->;
+export type CreateLeaveApplicationInput = InferOutput<typeof CreateLeaveApplicationSchema>;
 
 export const UpdateLeaveApplicationSchema = object({
   fromDate: optional(string()),
@@ -224,9 +201,7 @@ export const UpdateLeaveApplicationSchema = object({
   totalDays: optional(string()),
 });
 
-export type UpdateLeaveApplicationInput = InferOutput<
-  typeof UpdateLeaveApplicationSchema
->;
+export type UpdateLeaveApplicationInput = InferOutput<typeof UpdateLeaveApplicationSchema>;
 
 export const LeaveApplicationFiltersSchema = object({
   employeeId: optional(string()),
@@ -234,9 +209,7 @@ export const LeaveApplicationFiltersSchema = object({
   status: optional(LeaveApplicationStatusSchema),
 });
 
-export type LeaveApplicationFilters = InferOutput<
-  typeof LeaveApplicationFiltersSchema
->;
+export type LeaveApplicationFilters = InferOutput<typeof LeaveApplicationFiltersSchema>;
 
 // Compensatory Leave Request
 
@@ -248,9 +221,7 @@ export const CreateCompensatoryLeaveSchema = object({
   workDate: pipe(string(), minLength(1, "Work date is required")),
 });
 
-export type CreateCompensatoryLeaveInput = InferOutput<
-  typeof CreateCompensatoryLeaveSchema
->;
+export type CreateCompensatoryLeaveInput = InferOutput<typeof CreateCompensatoryLeaveSchema>;
 
 export const UpdateCompensatoryLeaveSchema = object({
   leaveType: optional(string()),
@@ -259,18 +230,14 @@ export const UpdateCompensatoryLeaveSchema = object({
   workDate: optional(string()),
 });
 
-export type UpdateCompensatoryLeaveInput = InferOutput<
-  typeof UpdateCompensatoryLeaveSchema
->;
+export type UpdateCompensatoryLeaveInput = InferOutput<typeof UpdateCompensatoryLeaveSchema>;
 
 export const CompensatoryLeaveFiltersSchema = object({
   employeeId: optional(string()),
   status: optional(CompensatoryLeaveStatusSchema),
 });
 
-export type CompensatoryLeaveFilters = InferOutput<
-  typeof CompensatoryLeaveFiltersSchema
->;
+export type CompensatoryLeaveFilters = InferOutput<typeof CompensatoryLeaveFiltersSchema>;
 
 // Leave Encashment
 
@@ -282,9 +249,7 @@ export const CreateLeaveEncashmentSchema = object({
   leaveType: pipe(string(), minLength(1, "Leave type is required")),
 });
 
-export type CreateLeaveEncashmentInput = InferOutput<
-  typeof CreateLeaveEncashmentSchema
->;
+export type CreateLeaveEncashmentInput = InferOutput<typeof CreateLeaveEncashmentSchema>;
 
 export const UpdateLeaveEncashmentSchema = object({
   amount: optional(nullable(string())),
@@ -294,18 +259,14 @@ export const UpdateLeaveEncashmentSchema = object({
   leaveType: optional(string()),
 });
 
-export type UpdateLeaveEncashmentInput = InferOutput<
-  typeof UpdateLeaveEncashmentSchema
->;
+export type UpdateLeaveEncashmentInput = InferOutput<typeof UpdateLeaveEncashmentSchema>;
 
 export const LeaveEncashmentFiltersSchema = object({
   employeeId: optional(string()),
   status: optional(LeaveEncashmentStatusSchema),
 });
 
-export type LeaveEncashmentFilters = InferOutput<
-  typeof LeaveEncashmentFiltersSchema
->;
+export type LeaveEncashmentFilters = InferOutput<typeof LeaveEncashmentFiltersSchema>;
 
 // Leave Block List
 
@@ -319,9 +280,7 @@ export const CreateLeaveBlockListSchema = object({
   toDate: pipe(string(), minLength(1, "To date is required")),
 });
 
-export type CreateLeaveBlockListInput = InferOutput<
-  typeof CreateLeaveBlockListSchema
->;
+export type CreateLeaveBlockListInput = InferOutput<typeof CreateLeaveBlockListSchema>;
 
 export const UpdateLeaveBlockListSchema = object({
   company: optional(nullable(string())),
@@ -334,9 +293,7 @@ export const UpdateLeaveBlockListSchema = object({
   toDate: optional(string()),
 });
 
-export type UpdateLeaveBlockListInput = InferOutput<
-  typeof UpdateLeaveBlockListSchema
->;
+export type UpdateLeaveBlockListInput = InferOutput<typeof UpdateLeaveBlockListSchema>;
 
 export const LeaveBlockListFiltersSchema = object({
   company: optional(string()),
@@ -344,9 +301,7 @@ export const LeaveBlockListFiltersSchema = object({
   scope: optional(LeaveBlockListScopeSchema),
 });
 
-export type LeaveBlockListFilters = InferOutput<
-  typeof LeaveBlockListFiltersSchema
->;
+export type LeaveBlockListFilters = InferOutput<typeof LeaveBlockListFiltersSchema>;
 
 // Leave Adjustment
 
@@ -359,6 +314,4 @@ export const CreateLeaveAdjustmentSchema = object({
   reason: pipe(string(), minLength(1, "Reason is required")),
 });
 
-export type CreateLeaveAdjustmentInput = InferOutput<
-  typeof CreateLeaveAdjustmentSchema
->;
+export type CreateLeaveAdjustmentInput = InferOutput<typeof CreateLeaveAdjustmentSchema>;

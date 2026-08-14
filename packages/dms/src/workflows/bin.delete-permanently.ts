@@ -2,32 +2,23 @@ import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
 
 import { DOCUMENT_EVENTS } from "../pubsub";
-import {
-  deleteDocumentPermanently,
-  isDocumentHeld,
-} from "../services/purge-service";
+import { deleteDocumentPermanently, isDocumentHeld } from "../services/purge-service";
 import { IdSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../utils/constants";
 import { fetchDocumentStep } from "./steps/fetch-document";
 
 const DeleteInputSchema = object({ id: IdSchema });
 
-export const deleteDocumentPermanentlyWorkflow = Workflow.name(
-  "dms.bin.delete-permanently",
-)
+export const deleteDocumentPermanentlyWorkflow = Workflow.name("dms.bin.delete-permanently")
   .input(DeleteInputSchema)
   .handler(async ({ id }, ctx) => {
     const doc = await ctx.step.run(fetchDocumentStep, { documentId: id });
 
     if (doc.status !== "deleted" && doc.status !== "expired") {
-      throw new Error(
-        "Only documents in the recycle bin can be permanently deleted.",
-      );
+      throw new Error("Only documents in the recycle bin can be permanently deleted.");
     }
 
-    const held = await ctx.step.run("check-hold", async () => {
-      return isDocumentHeld(ctx.db, id);
-    });
+    const held = await ctx.step.run("check-hold", async () => isDocumentHeld(ctx.db, id));
 
     if (held) {
       throw new Error(
@@ -35,9 +26,9 @@ export const deleteDocumentPermanentlyWorkflow = Workflow.name(
       );
     }
 
-    const keys = await ctx.step.run("purge-document", async () => {
-      return deleteDocumentPermanently(ctx.db, id);
-    });
+    const keys = await ctx.step.run("purge-document", async () =>
+      deleteDocumentPermanently(ctx.db, id),
+    );
 
     await ctx.step.run("audit-and-notify", async () => {
       await ctx.audit.write({

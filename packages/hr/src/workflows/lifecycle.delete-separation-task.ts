@@ -8,9 +8,7 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const deleteSeparationTask = Workflow.name(
-  "hr.lifecycle.delete-separation-task",
-)
+export const deleteSeparationTask = Workflow.name("hr.lifecycle.delete-separation-task")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id } = input;

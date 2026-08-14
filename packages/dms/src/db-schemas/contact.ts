@@ -5,9 +5,7 @@ export const dmsContact = pgTable(
   "dms_contact",
   {
     companyName: text("company_name").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     createdBy: text("created_by").notNull(),
     deletionReason: text("deletion_reason"),
     designation: text("designation").notNull(),
@@ -19,9 +17,7 @@ export const dmsContact = pgTable(
     linkedUserId: text("linked_user_id"),
     phone: text("phone").notNull(),
     removedAt: timestamp("removed_at", { withTimezone: true }),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index("idx_dms_contact_email").on(table.email)],
 );

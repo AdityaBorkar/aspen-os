@@ -5,10 +5,7 @@ import { object, parse } from "valibot";
 import { driveFile, driveFileVersion } from "../db-schemas";
 import { DRIVE_EVENTS } from "../pubsub";
 import { getDriveConfig } from "../runtime";
-import {
-  computeStorageKey,
-  upload as uploadStorage,
-} from "../services/storage-bridge";
+import { computeStorageKey, upload as uploadStorage } from "../services/storage-bridge";
 import { UpdateFileSchema } from "../types";
 import { fetchFileStep } from "./steps/fetch-file";
 import { FileIdSchema, pruneOldVersions } from "./utils";
@@ -43,13 +40,13 @@ export const updateFile = Workflow.name("drive.file.update")
       folderPath: file.path.substring(0, file.path.lastIndexOf("/")) || "/",
     });
 
-    const fileObject = await ctx.step.run("upload-storage", async () => {
-      return uploadStorage({
+    const fileObject = await ctx.step.run("upload-storage", async () =>
+      uploadStorage({
         body: parsed.body as Buffer | ReadableStream | string,
         contentType,
         key: storageKey,
-      });
-    });
+      }),
+    );
 
     const [updated] = await ctx.db
       .update(driveFile)

@@ -19,7 +19,9 @@ export const deleteItemFolder = Workflow.name("dms.folder.delete")
         .from(dmsFolder)
         .where(eq(dmsFolder.id, id))
         .limit(1);
-      if (!row) throw new Error(`Folder with id "${id}" not found.`);
+      if (!row) {
+        throw new Error(`Folder with id "${id}" not found.`);
+      }
       return row;
     });
 
@@ -47,7 +49,9 @@ export const deleteItemFolder = Workflow.name("dms.folder.delete")
       .where(eq(dmsFolder.id, id))
       .returning();
 
-    if (!updated) throw new Error(`Folder with id "${id}" not found.`);
+    if (!updated) {
+      throw new Error(`Folder with id "${id}" not found.`);
+    }
 
     await ctx.pubsub.publish(ITEM_EVENTS.TRASHED, {
       itemId: id,

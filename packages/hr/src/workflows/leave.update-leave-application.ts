@@ -10,9 +10,7 @@ const InputSchema = object({
   patch: UpdateLeaveApplicationSchema,
 });
 
-export const updateLeaveApplication = Workflow.name(
-  "hr.leave.update-leave-application",
-)
+export const updateLeaveApplication = Workflow.name("hr.leave.update-leave-application")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, patch } = input;

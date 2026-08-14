@@ -72,9 +72,7 @@ export const CreateShiftLocationSchema = object({
   radius: optional(number()),
 });
 
-export type CreateShiftLocationInput = InferOutput<
-  typeof CreateShiftLocationSchema
->;
+export type CreateShiftLocationInput = InferOutput<typeof CreateShiftLocationSchema>;
 
 export const UpdateShiftLocationSchema = object({
   isActive: optional(boolean()),
@@ -84,9 +82,7 @@ export const UpdateShiftLocationSchema = object({
   radius: optional(number()),
 });
 
-export type UpdateShiftLocationInput = InferOutput<
-  typeof UpdateShiftLocationSchema
->;
+export type UpdateShiftLocationInput = InferOutput<typeof UpdateShiftLocationSchema>;
 
 // Shift Assignment
 
@@ -99,9 +95,7 @@ export const CreateShiftAssignmentSchema = object({
   startDate: pipe(string(), minLength(1, "Start date is required")),
 });
 
-export type CreateShiftAssignmentInput = InferOutput<
-  typeof CreateShiftAssignmentSchema
->;
+export type CreateShiftAssignmentInput = InferOutput<typeof CreateShiftAssignmentSchema>;
 
 export const UpdateShiftAssignmentSchema = object({
   endDate: optional(string()),
@@ -112,9 +106,7 @@ export const UpdateShiftAssignmentSchema = object({
   status: optional(ShiftAssignmentStatusSchema),
 });
 
-export type UpdateShiftAssignmentInput = InferOutput<
-  typeof UpdateShiftAssignmentSchema
->;
+export type UpdateShiftAssignmentInput = InferOutput<typeof UpdateShiftAssignmentSchema>;
 
 export const ShiftAssignmentFiltersSchema = object({
   employeeId: optional(string()),
@@ -124,9 +116,7 @@ export const ShiftAssignmentFiltersSchema = object({
   status: optional(ShiftAssignmentStatusSchema),
 });
 
-export type ShiftAssignmentFilters = InferOutput<
-  typeof ShiftAssignmentFiltersSchema
->;
+export type ShiftAssignmentFilters = InferOutput<typeof ShiftAssignmentFiltersSchema>;
 
 // Shift Request
 
@@ -138,9 +128,7 @@ export const CreateShiftRequestSchema = object({
   toDate: optional(string()),
 });
 
-export type CreateShiftRequestInput = InferOutput<
-  typeof CreateShiftRequestSchema
->;
+export type CreateShiftRequestInput = InferOutput<typeof CreateShiftRequestSchema>;
 
 export const UpdateShiftRequestSchema = object({
   fromDate: optional(string()),
@@ -149,9 +137,7 @@ export const UpdateShiftRequestSchema = object({
   toDate: optional(string()),
 });
 
-export type UpdateShiftRequestInput = InferOutput<
-  typeof UpdateShiftRequestSchema
->;
+export type UpdateShiftRequestInput = InferOutput<typeof UpdateShiftRequestSchema>;
 
 export const ShiftRequestFiltersSchema = object({
   employeeId: optional(string()),
@@ -175,9 +161,7 @@ export const CreateShiftScheduleSchema = object({
   wednesday: optional(boolean()),
 });
 
-export type CreateShiftScheduleInput = InferOutput<
-  typeof CreateShiftScheduleSchema
->;
+export type CreateShiftScheduleInput = InferOutput<typeof CreateShiftScheduleSchema>;
 
 export const UpdateShiftScheduleSchema = object({
   friday: optional(boolean()),
@@ -192,9 +176,7 @@ export const UpdateShiftScheduleSchema = object({
   wednesday: optional(boolean()),
 });
 
-export type UpdateShiftScheduleInput = InferOutput<
-  typeof UpdateShiftScheduleSchema
->;
+export type UpdateShiftScheduleInput = InferOutput<typeof UpdateShiftScheduleSchema>;
 
 // Shift Schedule Assignment
 

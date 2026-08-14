@@ -16,9 +16,7 @@ export const overtimeType = pgTable(
   "overtime_type",
   {
     amountCalculation: text("amount_calculation").notNull().default("fixed"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     description: text("description"),
     fixedHourlyRate: numeric("fixed_hourly_rate"),
     holidayMultiplier: numeric("holiday_multiplier").notNull().default("2"),
@@ -28,9 +26,7 @@ export const overtimeType = pgTable(
     name: text("name").notNull(),
     overtimeSalaryComponent: text("overtime_salary_component"),
     standardMultiplier: numeric("standard_multiplier").notNull().default("1.5"),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     weekendMultiplier: numeric("weekend_multiplier").notNull().default("2"),
   },
   (table) => [index("idx_overtime_type_is_active").on(table.isActive)],
@@ -42,9 +38,7 @@ export const overtimeSlip = pgTable(
     amount: numeric("amount"),
     approvedAt: timestamp("approved_at", { withTimezone: true }),
     approvedBy: text("approved_by"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     employeeId: text("employee_id").notNull(),
     fromDate: date("from_date").notNull(),
     holidayHours: numeric("holiday_hours").notNull().default("0"),
@@ -59,9 +53,7 @@ export const overtimeSlip = pgTable(
     status: overtimeStatusEnum("status").notNull().default("pending"),
     toDate: date("to_date").notNull(),
     totalOvertimeHours: numeric("total_overtime_hours").notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     weekendHours: numeric("weekend_hours").notNull().default("0"),
   },
   (table) => [

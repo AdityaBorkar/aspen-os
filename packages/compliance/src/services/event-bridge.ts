@@ -46,9 +46,7 @@ export interface EventBridgeDeps {
   pubsub: PubSubUnit;
 }
 
-export async function registerEventBridgeSubscriptions(
-  deps: EventBridgeDeps,
-): Promise<string[]> {
+export async function registerEventBridgeSubscriptions(deps: EventBridgeDeps): Promise<string[]> {
   const topics: string[] = [];
 
   await subscribeSafe(deps, "hr:employee_onboarded", async (data: unknown) => {
@@ -63,44 +61,28 @@ export async function registerEventBridgeSubscriptions(
   });
   topics.push("hr:employee_separated");
 
-  await subscribeSafe(
-    deps,
-    "fleet:vehicle_registered",
-    async (data: unknown) => {
-      const event = data as VehicleRegisteredEvent;
-      await handleVehicleRegistered(event, deps);
-    },
-  );
+  await subscribeSafe(deps, "fleet:vehicle_registered", async (data: unknown) => {
+    const event = data as VehicleRegisteredEvent;
+    await handleVehicleRegistered(event, deps);
+  });
   topics.push("fleet:vehicle_registered");
 
-  await subscribeSafe(
-    deps,
-    "organization:branch_created",
-    async (data: unknown) => {
-      const event = data as BranchCreatedEvent;
-      await handleBranchCreated(event, deps);
-    },
-  );
+  await subscribeSafe(deps, "organization:branch_created", async (data: unknown) => {
+    const event = data as BranchCreatedEvent;
+    await handleBranchCreated(event, deps);
+  });
   topics.push("organization:branch_created");
 
-  await subscribeSafe(
-    deps,
-    "accounting:financial_year_started",
-    async (data: unknown) => {
-      const event = data as FinancialYearStartedEvent;
-      await handleFinancialYearStarted(event, deps);
-    },
-  );
+  await subscribeSafe(deps, "accounting:financial_year_started", async (data: unknown) => {
+    const event = data as FinancialYearStartedEvent;
+    await handleFinancialYearStarted(event, deps);
+  });
   topics.push("accounting:financial_year_started");
 
-  await subscribeSafe(
-    deps,
-    "organization:connection_created",
-    async (data: unknown) => {
-      const event = data as ConnectionCreatedEvent;
-      await handleConnectionCreated(event, deps);
-    },
-  );
+  await subscribeSafe(deps, "organization:connection_created", async (data: unknown) => {
+    const event = data as ConnectionCreatedEvent;
+    await handleConnectionCreated(event, deps);
+  });
   topics.push("organization:connection_created");
 
   return topics;
@@ -114,7 +96,7 @@ export async function unregisterEventBridge(
     try {
       await pubsub.unsubscribe(topic);
     } catch {
-      // ignore
+      // Ignore
     }
   }
 }
@@ -329,7 +311,9 @@ async function handleConnectionCreated(
   event: ConnectionCreatedEvent,
   deps: EventBridgeDeps,
 ): Promise<void> {
-  if (event.connection.type !== "insurer") return;
+  if (event.connection.type !== "insurer") {
+    return;
+  }
 
   await createDocumentWorkflow(
     {
@@ -349,10 +333,7 @@ async function createDocumentWorkflow(
   input: CreateComplianceDocumentInput,
   deps: EventBridgeDeps,
 ): Promise<void> {
-  await documents.create.run(
-    { input },
-    { audit: deps.audit, db: deps.db, pubsub: deps.pubsub },
-  );
+  await documents.create.run({ input }, { audit: deps.audit, db: deps.db, pubsub: deps.pubsub });
 }
 
 async function createObligationWorkflow(
@@ -375,8 +356,5 @@ async function createObligationWorkflow(
   },
   deps: EventBridgeDeps,
 ): Promise<void> {
-  await obligations.create.run(
-    { input },
-    { audit: deps.audit, db: deps.db, pubsub: deps.pubsub },
-  );
+  await obligations.create.run({ input }, { audit: deps.audit, db: deps.db, pubsub: deps.pubsub });
 }

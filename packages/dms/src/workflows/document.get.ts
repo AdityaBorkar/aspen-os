@@ -8,6 +8,4 @@ const GetInputSchema = object({ id: IdSchema });
 
 export const getDocument = Workflow.name("dms.document.get")
   .input(GetInputSchema)
-  .handler(async ({ id }, ctx) => {
-    return ctx.step.run(fetchDocumentStep, { documentId: id });
-  });
+  .handler(async ({ id }, ctx) => ctx.step.run(fetchDocumentStep, { documentId: id }));

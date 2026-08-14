@@ -360,16 +360,19 @@
 **Identity**: `id` (text, generated via `crypto.randomUUID()`)
 
 **Invariants**:
+
 - Email must be unique
 - Phone number, if present, must be unique
 - Username, if present, must be unique
 
 **Lifecycle commands**:
+
 - `create(email, password, name?, metadata?)` → User
 - `update(id, { name?, metadata? })` → User
 - `delete(id)` → void (cascades to sessions, accounts)
 
 **Relationships**:
+
 - Has many `Session` (1:N, cascade delete)
 - Has many `Account` (1:N, cascade delete)
 - Has one `role` (text field on user table — not a separate entity)
@@ -379,6 +382,7 @@
 **Identity**: `id` (text, generated via `crypto.randomUUID()`)
 
 **Invariants**:
+
 - Belongs to exactly one User via `userId` FK
 - Password is stored here, not on the User table
 - Multiple accounts per user possible (OAuth providers)
@@ -388,11 +392,13 @@
 **Identity**: `id` (text, generated via `crypto.randomUUID()`)
 
 **Invariants**:
+
 - Token must be unique
 - Has expiration (`expiresAt`) — configured via `AuthConfig.session.expiresIn`, forwarded to better-auth
 - Cascades delete from User
 
 **Lifecycle commands**:
+
 - `create(email, password)` → `{ user, session }`
 - `validate(token)` → `{ user, session } | null`
 - `invalidate(id)` → void
@@ -402,6 +408,7 @@
 **Identity**: `id` (text, generated via `crypto.randomUUID()`)
 
 **Invariants**:
+
 - Has expiration (`expiresAt`)
 - Used for email verification, password reset, etc.
 
@@ -410,10 +417,12 @@
 **Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Invariants**:
+
 - Slug must be unique
 - Status must be one of: `active`, `suspended`, `archived`
 
 **Lifecycle commands**:
+
 - `create(input)` → Organization
 - `update(id, input)` → Organization
 - `updateBranding(id, { logo?, accentColor? })` → Organization
@@ -422,6 +431,7 @@
 - `delete(id)` → void
 
 **Relationships**:
+
 - Has many `Branch` (1:N)
 - Has many `Address` (1:N, reusable)
 - Has many `BankAccount` (1:N)
@@ -431,12 +441,14 @@
 **Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Invariants**:
+
 - Code must be unique
 - Exactly one headquarters branch per organization (enforced in workflow)
 - Hierarchical nesting max 5 levels deep
 - No circular parent references
 
 **Lifecycle commands**:
+
 - `create(input)` → Branch
 - `update(id, input)` → Branch
 - `activate(id)` / `deactivate(id)` → Branch
@@ -445,6 +457,7 @@
 - `getTree()` → BranchTreeNode[]
 
 **Relationships**:
+
 - Belongs to `Organization` (N:1)
 - Self-referential: `parentBranch` FK for hierarchy
 
@@ -453,9 +466,11 @@
 **Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Invariants**:
+
 - Status transitions are controlled (e.g., can't un-archive)
 
 **Lifecycle commands**:
+
 - `create(input)` → Connection
 - `update(id, input)` → Connection
 - `updateStatus(id, status)` → Connection
@@ -468,6 +483,7 @@
 - `listNotes(connectionId)` → ConnectionNote[]
 
 **Relationships**:
+
 - Has many `ConnectionContact` (1:N, cascade delete)
 - Has many `ConnectionNote` (1:N, cascade delete)
 
@@ -476,6 +492,7 @@
 **Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Lifecycle commands**:
+
 - `create(input)` → Address
 - `update(id, input)` → Address
 - `delete(id)` → void
@@ -488,6 +505,7 @@
 **Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Lifecycle commands**:
+
 - `create(input)` → BankAccount
 - `update(id, input)` → BankAccount
 - `delete(id)` → void
@@ -500,12 +518,14 @@
 **Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Value objects**:
+
 - `ComplianceCategory` — enum: tax, license, certificate, permit, insurance, regulatory, legal, hr, safety, environmental, data_privacy, financial, vehicle, property, audit, other
 - `VerificationStatus` — enum: draft, submitted, under_review, verified, rejected, expired, overdue, renewed, archived
 - `RenewalFrequency` — enum: monthly, quarterly, semi_annual, annual, biennial, triennial, one_time
 - `ReminderChannel` — enum: pubsub, email, both
 
 **Invariants**:
+
 - Verification status is derived from dates + renewal state by `StatusDerivation` service, not set directly (except by `updateStatus`)
 - Renewal chains: renewing archives the old document and creates a new one with `renewedFrom` FK
 - `reminderDays` array defines when expiry notifications fire (default: [90, 60, 30, 7])
@@ -513,6 +533,7 @@
 - Soft FKs: `branch` → organization branch, `connection` → organization connection, `obligationId` → compliance_obligation, `sourceEntityId` → external entity (via `sourceModule`/`sourceEntityType`)
 
 **Lifecycle commands**:
+
 - `create(input)` → ComplianceDocument
 - `update(id, patch)` → ComplianceDocument
 - `uploadAttachment(id, storageKey)` → ComplianceDocument
@@ -538,6 +559,7 @@
 - `getTimeline(days)` → TimelineEntry[]
 
 **Relationships**:
+
 - Optionally belongs to `ComplianceObligation` (soft FK: `obligationId`)
 - Self-referential: `renewedFrom` FK for renewal chains
 - Links to external entities via `{sourceModule, sourceEntityType, sourceEntityId}`
@@ -547,14 +569,17 @@
 **Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Value objects**:
+
 - `ObligationFrequency` — enum: monthly, quarterly, semi_annual, annual, biennial, triennial, custom
 
 **Invariants**:
+
 - `autoGenerate` flag controls whether documents are auto-created
 - `expiryBased` vs `periodBased` determines how due/expiry dates are computed
 - `isActive` can be toggled to pause generation
 
 **Lifecycle commands**:
+
 - `create(input)` → ComplianceObligation
 - `update(id, patch)` → ComplianceObligation
 - `activate(id)` → ComplianceObligation
@@ -565,6 +590,7 @@
 - `getUpcomingPeriods(obligation, count)` → PeriodPreview[]
 
 **Relationships**:
+
 - Has many `ComplianceDocument` (1:N, soft FK)
 - Links to external entities via `{sourceModule, sourceEntityType, sourceEntityId}`
 
@@ -573,11 +599,13 @@
 **Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Invariants**:
+
 - Matches documents by `category` and `sourceModule`
 - `priority` determines rule evaluation order (lower = higher priority)
 - `isActive` can be toggled
 
 **Lifecycle commands**:
+
 - `create(input)` → ComplianceVerificationRule
 - `update(id, patch)` → ComplianceVerificationRule
 - `delete(id)` → void
@@ -592,6 +620,7 @@
 **Note**: Compliance audit entries are written to the platform's `audit_log` table via `ctx.audit.write(...)` and queried via `ctx.audit.query(...)`. There is no module-local `compliance_audit_entry` table. The `AuditWorkflow` (`compliance/src/workflows/audit.ts`) provides `getAuditTrail`, `list`, and `export` by querying the platform audit log.
 
 **Invariants**:
+
 - Append-only (no updates/deletes)
 - Polymorphic: `entityType` + `entityId` references any compliance entity
 - `action` is one of 18 defined audit actions (module-local constants)
@@ -601,12 +630,14 @@
 **Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Invariants**:
+
 - `key` must be unique
 - `taskCounter` is incremented atomically per task creation
 - Cannot delete a project with existing tasks (must archive first)
 - Lead is automatically added as `admin` project member on creation
 
 **Lifecycle commands**:
+
 - `create(input)` → Project (also adds lead as admin member)
 - `update(id, patch)` → Project
 - `archive(id)` / `restore(id)` → Project
@@ -617,6 +648,7 @@
 - `listMembers(projectId)` → ProjectMember[]
 
 **Relationships**:
+
 - Has many `Task` (1:N)
 - Has many `ProjectMember` (1:N)
 - Has many `TaskStatus` (1:N, or global if projectId is null)
@@ -628,16 +660,19 @@
 **Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Value objects**:
+
 - `TaskPriority` — enum: urgent, high, medium, low, none
 - `TaskNumber` — display format `KEY-seq` (e.g., `PROJ-1`)
 
 **Invariants**:
+
 - `parentId` max nesting depth of 3 levels
 - No circular parent references (cycle detection in workflow)
 - `taskNumber` is sequential per project
 - `isArchived` is a soft-delete flag
 
 **Lifecycle commands**:
+
 - `create(input)` → Task (generates display number, increments project counter, logs activity)
 - `update(id, patch)` → Task (logs status-change + update activities)
 - `delete(id)` → void
@@ -651,6 +686,7 @@
 - `getLoggedHours(taskId)` → number
 
 **Relationships**:
+
 - Belongs to `Project` (N:1)
 - Has one `TaskStatus` (N:1)
 - Optionally has one `TaskType` (N:1)
@@ -669,6 +705,7 @@
 **Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Invariants**:
+
 - `path` must be unique (hierarchical, e.g., `/Projects/2024`)
 - Max nesting depth configurable (default 20)
 - No circular parent references (cycle detection via `PathService`)
@@ -676,6 +713,7 @@
 - `isTrashed` is a soft-delete flag
 
 **Lifecycle commands**:
+
 - `create(input)` → Folder
 - `rename(id, input)` → Folder (cascades path updates to descendants)
 - `move(id, input)` → Folder (cascades path updates)
@@ -686,6 +724,7 @@
 - `list(id?, opts?)` → `{ files, folders, sortBy, sortOrder }`
 
 **Relationships**:
+
 - Self-referential: `parentId` for hierarchy
 - Has many `DriveFile` (1:N)
 - Has many sub-folders (1:N)
@@ -695,6 +734,7 @@
 **Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Invariants**:
+
 - `path` must be unique
 - `version` increments on update (old version preserved as `FileVersion`)
 - `storageKey` references S3 object
@@ -702,6 +742,7 @@
 - Max versions retained (configurable, default 10; old versions pruned)
 
 **Lifecycle commands**:
+
 - `upload(input)` → File
 - `download(id, userId, options?)` → Buffer
 - `getById(id)` / `get(id)` → File
@@ -716,6 +757,7 @@
 - `purge(id)` → void (hard-delete: removes storage + DB rows)
 
 **Relationships**:
+
 - Belongs to `DriveFolder` (N:1, via `folderId`)
 - Has many `FileVersion` (1:N)
 - Has many `ItemLabel` (polymorphic)
@@ -728,10 +770,12 @@
 **Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Invariants**:
+
 - `isGlobal` labels have `ownerId = null`
 - Non-global labels are owned by a user
 
 **Lifecycle commands**:
+
 - `create(input)` / `delete(id)` (cascades item labels)
 - `apply(input)` / `remove(itemId, itemType, labelId)`
 - `list(opts?)` / `listByLabel(labelId, opts?)` → `{ files, folders }`
@@ -741,11 +785,13 @@
 **Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Invariants**:
+
 - `employeeId` must be unique
 - `status` controls lifecycle (active → inactive → left)
 - `reportsTo` forms an organizational chart (hierarchical)
 
 **Lifecycle commands** (via `EmployeeWorkflow`):
+
 - `create(input)` / `update(id, patch)` / `getById(id)` / `getByEmployeeId(id)` / `list(filters?)`
 - `deactivate(id)` / `activate(id)` / `markAsLeft(id)`
 - `getOrganizationalChart()` → EmployeeTreeNode[]
@@ -760,21 +806,25 @@
 **Identity**: `id` (text, PK — shares ID with better-auth Organization row)
 
 **Value objects**:
+
 - `TenantStatus` — enum: `onboarding`, `active`, `suspended`, `churned`
 
 **Invariants**:
+
 - Status transitions: `onboarding` → `active` → `suspended` ↔ `active` → `churned`
 - `suspendedAt`/`suspendedReason` set when suspended; `churnedAt`/`churnReason` set when churned
 - At most one active Service Provider assignment (`serviceProviderId`)
 - Database connection params (`databaseHost`, `databaseName`, `databasePort`, `databaseUser`, `databasePassword`, `databaseSsl`) record the per-tenant DB connection
 
 **Lifecycle commands** (via `TenantWorkflow`):
+
 - `onboard(input)` → provisions a new tenant (creates better-auth org, calls `dbUnit.provisionTenant()` which creates DB + pushes schemas, seeds profile via `dbUnit.seedTenantDb()`, records tenant row, writes audit entry, publishes event)
 - `get(id)` → Tenant (joins `organization` + `tenant` tables)
 - `list(filters?)` → Tenant[]
 - `update(id, { profile?, companion? })` → Tenant
 
 **Relationships**:
+
 - 1:1 with better-auth Organization (shares ID)
 - N:1 with ServiceProvider (`serviceProviderId`)
 
@@ -783,13 +833,16 @@
 **Identity**: `id` (text, PK, `default uuidv7()`)
 
 **Value objects**:
+
 - `SpStatus` — enum: `active`, `inactive`
 
 **Invariants**:
+
 - `slug` must be unique
 - Status can be toggled active/inactive
 
 **Lifecycle commands** (via `ServiceProviderWorkflow`):
+
 - `create(input)` → ServiceProvider
 - `get(id)` → ServiceProvider
 - `list(filters?)` → ServiceProvider[]
@@ -803,12 +856,14 @@
 **Identity**: `id` (text, PK — better-auth `user` table ID)
 
 **Invariants**:
+
 - SP membership is via a `service_provider_user` join row (1:1 user→SP), not an `spId` column on `user`
 - If `role = 'sp_user'`, a `service_provider_user` row must exist
 - If `role != 'sp_user'`, no `service_provider_user` row for that user
 - Created/deleted via `AuthUnit.user` API (better-auth); the SP link is managed on `service_provider_user` in the control-plane DB
 
 **Lifecycle commands** (via `PlatformUserWorkflow`):
+
 - `create(input)` → User (delegates to `auth.api.createUser()`, inserts `service_provider_user` row if SP user)
 - `get(id)` → User
 - `list(filters?)` → User[] (leftJoin `service_provider_user` to surface `spId` = `serviceProviderId`)
@@ -822,6 +877,7 @@
 **Identity**: `id` (uuid, PK, `$defaultFn(() => uuidv7())`) — note: this is the one exception to the `text + uuidv7()` convention
 
 **Invariants**:
+
 - Append-only (no updates/deletes)
 - `seq bigserial` provides deterministic replay order
 - `idempotency_key` with partial unique index `UNIQUE(tenant_id, idempotency_key) WHERE idempotency_key IS NOT NULL` — retries with the same key no-op
@@ -833,6 +889,7 @@
 - Written by the platform's `AuditUnit` via `ctx.audit.write(entry, tx?)` — the optional `tx` handle provides transactional atomicity with the mutation
 
 **Relationships**:
+
 - Optionally links to `WorkflowRun` via `workflowRunId` (provenance only)
 
 ### AuditLog (Entity — append-only, Management Plane)
@@ -840,6 +897,7 @@
 **Identity**: `id` (text, PK, `default uuidv7()`)
 
 **Invariants**:
+
 - Append-only (no updates/deletes)
 - Lives in the platform's `audit_log` table (NOT a management-owned table)
 - `entityType` is one of: `tenant`, `serviceProvider`, `platformUser`
@@ -852,11 +910,13 @@
 **Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Invariants**:
+
 - Key must be unique
 - `archived` boolean controls soft-delete
 - `archivedKey` set when archived (new S3 location)
 
 **Lifecycle commands**:
+
 - `upload(key, body, contentType?, metadata?)` → FileObject
 - `delete(key)` → void
 - `archive(key)` → void (moves to archive bucket/prefix)
@@ -867,6 +927,7 @@
 **Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Invariants**:
+
 - Append-only (no updates/deletes from application)
 - Level priority: debug(0) < info(1) < warn(2) < error(3) < fatal(4)
 
@@ -875,6 +936,7 @@
 **Identity**: `key` (text, PK)
 
 **Invariants**:
+
 - Expired entries are lazily evicted on read
 - Table is a regular `pgTable` (no UNLOGGED modifier — durability over performance)
 
@@ -882,142 +944,142 @@
 
 ### Auth Events — 8 events
 
-| Event | Payload | Trigger |
-|---|---|---|
-| `user:created` | `{ user: User }` | User created |
-| `user:updated` | `{ user: User }` | User updated |
-| `user:deleted` | `{ userId: string }` | User deleted |
-| `session:created` | `{ session: Session, user: User }` | Session authenticated |
-| `session:invalidated` | `{ sessionId: string }` | Session invalidated |
-| `role:assigned` | `{ roleName: string, userId: string }` | Role assigned to user |
-| `role:unassigned` | `{ userId: string }` | Role unassigned (note: missing `roleName` — known gap) |
-| `role:deleted` | `{ roleName: string }` | Role deleted |
+| Event                 | Payload                                | Trigger                                                |
+| --------------------- | -------------------------------------- | ------------------------------------------------------ |
+| `user:created`        | `{ user: User }`                       | User created                                           |
+| `user:updated`        | `{ user: User }`                       | User updated                                           |
+| `user:deleted`        | `{ userId: string }`                   | User deleted                                           |
+| `session:created`     | `{ session: Session, user: User }`     | Session authenticated                                  |
+| `session:invalidated` | `{ sessionId: string }`                | Session invalidated                                    |
+| `role:assigned`       | `{ roleName: string, userId: string }` | Role assigned to user                                  |
+| `role:unassigned`     | `{ userId: string }`                   | Role unassigned (note: missing `roleName` — known gap) |
+| `role:deleted`        | `{ roleName: string }`                 | Role deleted                                           |
 
 ### Organization Events (OrganizationDomainEventMap) — 11 events
 
-| Event | Payload | Trigger |
-|---|---|---|
-| `organization:updated` | `{ changes: Record<string, unknown>, organization: { id, name, slug } }` | Organization updated |
-| `organization:branding_updated` | `{ logo?: string, accentColor?: string, name?: string }` | Branding changed |
-| `branch:created` | `{ branch: { code, id, name, type } }` | Branch created |
-| `branch:updated` | `{ branch: { id, name }, changes: Record<string, unknown> }` | Branch updated |
-| `branch:activated` | `{ branchId: string }` | Branch activated |
-| `branch:deactivated` | `{ branchId: string }` | Branch deactivated |
-| `branch:closed` | `{ branchId: string, date: string }` | Branch closed |
-| `connection:created` | `{ connection: { id, name, type } }` | Connection created |
-| `connection:updated` | `{ connection: { id, name }, changes: Record<string, unknown> }` | Connection updated |
-| `connection:status_changed` | `{ connectionId, fromStatus, toStatus }` | Connection status changed |
-| `connection:note_added` | `{ connectionId, note: { content, id, type } }` | Note added to connection |
+| Event                           | Payload                                                                  | Trigger                   |
+| ------------------------------- | ------------------------------------------------------------------------ | ------------------------- |
+| `organization:updated`          | `{ changes: Record<string, unknown>, organization: { id, name, slug } }` | Organization updated      |
+| `organization:branding_updated` | `{ logo?: string, accentColor?: string, name?: string }`                 | Branding changed          |
+| `branch:created`                | `{ branch: { code, id, name, type } }`                                   | Branch created            |
+| `branch:updated`                | `{ branch: { id, name }, changes: Record<string, unknown> }`             | Branch updated            |
+| `branch:activated`              | `{ branchId: string }`                                                   | Branch activated          |
+| `branch:deactivated`            | `{ branchId: string }`                                                   | Branch deactivated        |
+| `branch:closed`                 | `{ branchId: string, date: string }`                                     | Branch closed             |
+| `connection:created`            | `{ connection: { id, name, type } }`                                     | Connection created        |
+| `connection:updated`            | `{ connection: { id, name }, changes: Record<string, unknown> }`         | Connection updated        |
+| `connection:status_changed`     | `{ connectionId, fromStatus, toStatus }`                                 | Connection status changed |
+| `connection:note_added`         | `{ connectionId, note: { content, id, type } }`                          | Note added to connection  |
 
 ### Compliance Events (ComplianceEventMap) — 23 events
 
-| Event | Payload | Trigger |
-|---|---|---|
-| `compliance:document_created` | `{ document: { category, id, name } }` | Document created |
-| `compliance:document_updated` | `{ changes, document: { id, name } }` | Document updated |
-| `compliance:document_submitted` | `{ documentId, submittedBy }` | Document submitted for review |
-| `compliance:document_verified` | `{ category, documentId, sourceEntityId, sourceModule, verifiedBy }` | Document verified |
-| `compliance:document_rejected` | `{ category, documentId, reason, rejectedBy, sourceEntityId, sourceModule }` | Document rejected |
-| `compliance:document_expiring` | `{ daysUntilExpiry, documentId, sourceEntityId, sourceModule }` | Expiry notification |
-| `compliance:document_due` | `{ daysUntilDue, documentId, sourceEntityId, sourceModule }` | Due date notification |
-| `compliance:document_expired` | `{ category, documentId, sourceEntityId, sourceModule }` | Document expired |
-| `compliance:document_overdue` | `{ category, daysOverdue, documentId, sourceEntityId, sourceModule }` | Document past due |
-| `compliance:document_completed` | `{ completedAt, documentId, referenceNumber, sourceEntityId, sourceModule }` | Document completed |
-| `compliance:document_escalated` | `{ daysSinceExpiry, documentId, escalationLevel }` | Escalation threshold reached |
-| `compliance:document_renewed` | `{ newDocumentId, oldDocumentId }` | Document renewed (old archived, new created) |
-| `compliance:document_archived` | `{ documentId }` | Document archived |
-| `compliance:document_reviewer_assigned` | `{ documentId, reviewerId }` | Reviewer assigned |
-| `compliance:document_attachment_uploaded` | `{ documentId, storageKey }` | Attachment uploaded |
-| `compliance:document_snoozed` | `{ documentId, snoozedBy, snoozedUntil }` | Document snoozed |
-| `compliance:document_generated` | `{ documentId, obligationId, sourceModule }` | Auto-generated from obligation |
-| `compliance:obligation_created` | `{ obligation: { category, id, name } }` | Obligation created |
-| `compliance:obligation_activated` | `{ obligationId }` | Obligation activated |
-| `compliance:obligation_deactivated` | `{ obligationId }` | Obligation deactivated |
-| `compliance:obligation_updated` | `{ changes, obligation: { id, name } }` | Obligation updated |
-| `compliance:weekly_summary` | `{ summary: { activeObligations, documentsGenerated30d, expired, expiringSoon, overdue, total, verified } }` | Weekly dashboard summary |
-| `compliance:scheduled_job_executed` | `{ errors, executionTime, jobName, recordsProcessed }` | Scheduled job completed |
+| Event                                     | Payload                                                                                                      | Trigger                                      |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
+| `compliance:document_created`             | `{ document: { category, id, name } }`                                                                       | Document created                             |
+| `compliance:document_updated`             | `{ changes, document: { id, name } }`                                                                        | Document updated                             |
+| `compliance:document_submitted`           | `{ documentId, submittedBy }`                                                                                | Document submitted for review                |
+| `compliance:document_verified`            | `{ category, documentId, sourceEntityId, sourceModule, verifiedBy }`                                         | Document verified                            |
+| `compliance:document_rejected`            | `{ category, documentId, reason, rejectedBy, sourceEntityId, sourceModule }`                                 | Document rejected                            |
+| `compliance:document_expiring`            | `{ daysUntilExpiry, documentId, sourceEntityId, sourceModule }`                                              | Expiry notification                          |
+| `compliance:document_due`                 | `{ daysUntilDue, documentId, sourceEntityId, sourceModule }`                                                 | Due date notification                        |
+| `compliance:document_expired`             | `{ category, documentId, sourceEntityId, sourceModule }`                                                     | Document expired                             |
+| `compliance:document_overdue`             | `{ category, daysOverdue, documentId, sourceEntityId, sourceModule }`                                        | Document past due                            |
+| `compliance:document_completed`           | `{ completedAt, documentId, referenceNumber, sourceEntityId, sourceModule }`                                 | Document completed                           |
+| `compliance:document_escalated`           | `{ daysSinceExpiry, documentId, escalationLevel }`                                                           | Escalation threshold reached                 |
+| `compliance:document_renewed`             | `{ newDocumentId, oldDocumentId }`                                                                           | Document renewed (old archived, new created) |
+| `compliance:document_archived`            | `{ documentId }`                                                                                             | Document archived                            |
+| `compliance:document_reviewer_assigned`   | `{ documentId, reviewerId }`                                                                                 | Reviewer assigned                            |
+| `compliance:document_attachment_uploaded` | `{ documentId, storageKey }`                                                                                 | Attachment uploaded                          |
+| `compliance:document_snoozed`             | `{ documentId, snoozedBy, snoozedUntil }`                                                                    | Document snoozed                             |
+| `compliance:document_generated`           | `{ documentId, obligationId, sourceModule }`                                                                 | Auto-generated from obligation               |
+| `compliance:obligation_created`           | `{ obligation: { category, id, name } }`                                                                     | Obligation created                           |
+| `compliance:obligation_activated`         | `{ obligationId }`                                                                                           | Obligation activated                         |
+| `compliance:obligation_deactivated`       | `{ obligationId }`                                                                                           | Obligation deactivated                       |
+| `compliance:obligation_updated`           | `{ changes, obligation: { id, name } }`                                                                      | Obligation updated                           |
+| `compliance:weekly_summary`               | `{ summary: { activeObligations, documentsGenerated30d, expired, expiringSoon, overdue, total, verified } }` | Weekly dashboard summary                     |
+| `compliance:scheduled_job_executed`       | `{ errors, executionTime, jobName, recordsProcessed }`                                                       | Scheduled job completed                      |
 
 ### Tasks Events (TaskDomainEventMap) — 10 events
 
-| Event | Payload | Trigger |
-|---|---|---|
-| `task:created` | `{ task: { id, number, projectId, title } }` | Task created |
-| `task:updated` | `{ task: { id, title }, changes: Record<string, unknown> }` | Task updated |
-| `task:deleted` | `{ taskId: string }` | Task deleted |
-| `task:status_changed` | `{ task: { id, title }, fromStatus, toStatus }` | Task status changed |
-| `task:assigned` | `{ taskId, userId, assignedBy }` | User assigned to task |
-| `task:unassigned` | `{ taskId, userId }` | User unassigned from task |
-| `task:linked` | `{ sourceId, targetId, linkType }` | Task link created |
-| `task:unlinked` | `{ sourceId, targetId }` | Task link removed |
-| `task:commented` | `{ taskId, comment: { id, body } }` | Comment added |
-| `reminder:fired` | `{ taskId, reminder: { id, type, userId } }` | Reminder fired |
+| Event                 | Payload                                                     | Trigger                   |
+| --------------------- | ----------------------------------------------------------- | ------------------------- |
+| `task:created`        | `{ task: { id, number, projectId, title } }`                | Task created              |
+| `task:updated`        | `{ task: { id, title }, changes: Record<string, unknown> }` | Task updated              |
+| `task:deleted`        | `{ taskId: string }`                                        | Task deleted              |
+| `task:status_changed` | `{ task: { id, title }, fromStatus, toStatus }`             | Task status changed       |
+| `task:assigned`       | `{ taskId, userId, assignedBy }`                            | User assigned to task     |
+| `task:unassigned`     | `{ taskId, userId }`                                        | User unassigned from task |
+| `task:linked`         | `{ sourceId, targetId, linkType }`                          | Task link created         |
+| `task:unlinked`       | `{ sourceId, targetId }`                                    | Task link removed         |
+| `task:commented`      | `{ taskId, comment: { id, body } }`                         | Comment added             |
+| `reminder:fired`      | `{ taskId, reminder: { id, type, userId } }`                | Reminder fired            |
 
 ### Drive Events (DriveEventMap) — 14 events
 
-| Event | Payload | Trigger |
-|---|---|---|
-| `drive:folder_created` | `{ folder: { id, name, ownerId, parentId, path } }` | Folder created |
-| `drive:folder_renamed` | `{ folder: { id, name, path }, oldName }` | Folder renamed |
-| `drive:moved` | `{ item: { id, name, path }, itemType, newPath, oldPath }` | File or folder moved |
-| `drive:file_uploaded` | `{ file: { contentType, etag, folderId, id, name, ownerId, path, size, storageKey, version } }` | File uploaded |
-| `drive:file_updated` | `{ file: { contentType, etag, id, name, ownerId, path, size, storageKey, version }, previousVersion }` | File updated (new version) |
-| `drive:file_downloaded` | `{ file: { id, name, ownerId }, userId }` | File downloaded |
-| `drive:shared` | `{ share: { createdAt, granteeId, granteeType, id, itemId, itemType, permission, sharedBy } }` | Item shared |
-| `drive:unshared` | `{ itemId, shareId }` | Share removed |
-| `drive:public_link_created` | `{ publicLink: { createdBy, id, itemId, itemType, permission, token } }` | Public link created |
-| `drive:public_link_accessed` | `{ ip, publicLink: { id, itemId, token }, userAgent }` | Public link accessed |
-| `drive:public_link_revoked` | `{ itemId, publicLinkId }` | Public link revoked |
-| `drive:trashed` | `{ itemId, itemType }` | Item moved to trash |
-| `drive:restored` | `{ itemId, itemType }` | Item restored from trash |
-| `drive:purged` | `{ itemId, itemType, storageKey }` | Item permanently deleted |
+| Event                        | Payload                                                                                                | Trigger                    |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------ | -------------------------- |
+| `drive:folder_created`       | `{ folder: { id, name, ownerId, parentId, path } }`                                                    | Folder created             |
+| `drive:folder_renamed`       | `{ folder: { id, name, path }, oldName }`                                                              | Folder renamed             |
+| `drive:moved`                | `{ item: { id, name, path }, itemType, newPath, oldPath }`                                             | File or folder moved       |
+| `drive:file_uploaded`        | `{ file: { contentType, etag, folderId, id, name, ownerId, path, size, storageKey, version } }`        | File uploaded              |
+| `drive:file_updated`         | `{ file: { contentType, etag, id, name, ownerId, path, size, storageKey, version }, previousVersion }` | File updated (new version) |
+| `drive:file_downloaded`      | `{ file: { id, name, ownerId }, userId }`                                                              | File downloaded            |
+| `drive:shared`               | `{ share: { createdAt, granteeId, granteeType, id, itemId, itemType, permission, sharedBy } }`         | Item shared                |
+| `drive:unshared`             | `{ itemId, shareId }`                                                                                  | Share removed              |
+| `drive:public_link_created`  | `{ publicLink: { createdBy, id, itemId, itemType, permission, token } }`                               | Public link created        |
+| `drive:public_link_accessed` | `{ ip, publicLink: { id, itemId, token }, userAgent }`                                                 | Public link accessed       |
+| `drive:public_link_revoked`  | `{ itemId, publicLinkId }`                                                                             | Public link revoked        |
+| `drive:trashed`              | `{ itemId, itemType }`                                                                                 | Item moved to trash        |
+| `drive:restored`             | `{ itemId, itemType }`                                                                                 | Item restored from trash   |
+| `drive:purged`               | `{ itemId, itemType, storageKey }`                                                                     | Item permanently deleted   |
 
 ### HR Events — 43 events
 
 The HR module defines 43 events across 8 event groups, combined into `HrEventMap`:
 
-| Group | Count | Events |
-|---|---|---|
-| Employee | 4 | `employee:created`, `employee:updated`, `employee:status_changed`, `employee:group_created` |
-| Attendance | 5 | `attendance:created`, `attendance:checkin_created`, `attendance:request_created`, `attendance:request_approved`, `attendance:request_rejected` |
-| Leave | 6 | `leave:application_submitted`, `leave:application_approved`, `leave:application_rejected`, `leave:application_cancelled`, `leave:allocation_created`, `leave:encashment_requested` |
-| Lifecycle | 9 | `lifecycle:onboarding_started`, `lifecycle:onboarding_completed`, `lifecycle:promotion_requested`, `lifecycle:promotion_approved`, `lifecycle:transfer_requested`, `lifecycle:transfer_approved`, `lifecycle:separation_initiated`, `lifecycle:separation_completed`, `lifecycle:exit_interview_scheduled` |
-| Overtime | 3 | `overtime:slip_created`, `overtime:slip_approved`, `overtime:slip_rejected` |
-| Setup | 4 | `setup:department_created`, `setup:designation_created`, `setup:holiday_list_created`, `setup:settings_updated` |
-| Shift | 4 | `shift:assignment_created`, `shift:request_created`, `shift:request_approved`, `shift:request_rejected` |
-| Access | 8 | `access:user_created`, `access:user_activated`, `access:user_deactivated`, `access:role_created`, `access:role_assigned`, `access:role_revoked`, `access:branch_access_granted`, `access:branch_access_revoked` |
+| Group      | Count | Events                                                                                                                                                                                                                                                                                                     |
+| ---------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Employee   | 4     | `employee:created`, `employee:updated`, `employee:status_changed`, `employee:group_created`                                                                                                                                                                                                                |
+| Attendance | 5     | `attendance:created`, `attendance:checkin_created`, `attendance:request_created`, `attendance:request_approved`, `attendance:request_rejected`                                                                                                                                                             |
+| Leave      | 6     | `leave:application_submitted`, `leave:application_approved`, `leave:application_rejected`, `leave:application_cancelled`, `leave:allocation_created`, `leave:encashment_requested`                                                                                                                         |
+| Lifecycle  | 9     | `lifecycle:onboarding_started`, `lifecycle:onboarding_completed`, `lifecycle:promotion_requested`, `lifecycle:promotion_approved`, `lifecycle:transfer_requested`, `lifecycle:transfer_approved`, `lifecycle:separation_initiated`, `lifecycle:separation_completed`, `lifecycle:exit_interview_scheduled` |
+| Overtime   | 3     | `overtime:slip_created`, `overtime:slip_approved`, `overtime:slip_rejected`                                                                                                                                                                                                                                |
+| Setup      | 4     | `setup:department_created`, `setup:designation_created`, `setup:holiday_list_created`, `setup:settings_updated`                                                                                                                                                                                            |
+| Shift      | 4     | `shift:assignment_created`, `shift:request_created`, `shift:request_approved`, `shift:request_rejected`                                                                                                                                                                                                    |
+| Access     | 8     | `access:user_created`, `access:user_activated`, `access:user_deactivated`, `access:role_created`, `access:role_assigned`, `access:role_revoked`, `access:branch_access_granted`, `access:branch_access_revoked`                                                                                            |
 
 ### Management Plane Events (ManagementPlaneEventMap) — 16 events
 
 #### Tenant Events (8)
 
-| Event | Payload | Trigger |
-|---|---|---|
-| `tenant:provisioned` | `{ tenantId, serviceProviderId? }` | Tenant provisioned (DB created, schemas pushed, profile seeded) |
-| `tenant:activated` | `{ tenantId }` | Tenant activated (from onboarding/suspended) |
-| `tenant:suspended` | `{ tenantId, reason }` | Tenant suspended |
-| `tenant:reactivated` | `{ tenantId }` | Tenant reactivated from suspended |
-| `tenant:churned` | `{ tenantId, reason }` | Tenant churned (offboarded) |
-| `tenant:profile_updated` | `{ tenantId, changes }` | Tenant profile updated |
-| `tenant:sp_assigned` | `{ tenantId, serviceProviderId }` | Service Provider assigned to tenant |
-| `tenant:sp_unassigned` | `{ tenantId }` | Service Provider unassigned from tenant |
+| Event                    | Payload                            | Trigger                                                         |
+| ------------------------ | ---------------------------------- | --------------------------------------------------------------- |
+| `tenant:provisioned`     | `{ tenantId, serviceProviderId? }` | Tenant provisioned (DB created, schemas pushed, profile seeded) |
+| `tenant:activated`       | `{ tenantId }`                     | Tenant activated (from onboarding/suspended)                    |
+| `tenant:suspended`       | `{ tenantId, reason }`             | Tenant suspended                                                |
+| `tenant:reactivated`     | `{ tenantId }`                     | Tenant reactivated from suspended                               |
+| `tenant:churned`         | `{ tenantId, reason }`             | Tenant churned (offboarded)                                     |
+| `tenant:profile_updated` | `{ tenantId, changes }`            | Tenant profile updated                                          |
+| `tenant:sp_assigned`     | `{ tenantId, serviceProviderId }`  | Service Provider assigned to tenant                             |
+| `tenant:sp_unassigned`   | `{ tenantId }`                     | Service Provider unassigned from tenant                         |
 
 #### Service Provider Events (4)
 
-| Event | Payload | Trigger |
-|---|---|---|
-| `service_provider:created` | `{ serviceProvider: { id, name, slug } }` | Service Provider created |
-| `service_provider:updated` | `{ serviceProvider: { id, name }, changes }` | Service Provider updated |
-| `service_provider:deactivated` | `{ serviceProviderId }` | Service Provider deactivated |
-| `service_provider:activated` | `{ serviceProviderId }` | Service Provider activated |
+| Event                          | Payload                                      | Trigger                      |
+| ------------------------------ | -------------------------------------------- | ---------------------------- |
+| `service_provider:created`     | `{ serviceProvider: { id, name, slug } }`    | Service Provider created     |
+| `service_provider:updated`     | `{ serviceProvider: { id, name }, changes }` | Service Provider updated     |
+| `service_provider:deactivated` | `{ serviceProviderId }`                      | Service Provider deactivated |
+| `service_provider:activated`   | `{ serviceProviderId }`                      | Service Provider activated   |
 
 #### Platform User Events (4)
 
-| Event | Payload | Trigger |
-|---|---|---|
-| `platform_user:created` | `{ user: { id, email, role } }` | Platform user created |
-| `platform_user:updated` | `{ userId, changes }` | Platform user updated |
-| `platform_user:deleted` | `{ userId }` | Platform user deleted |
-| `platform_user:role_assigned` | `{ userId, role }` | Role assigned to platform user |
+| Event                         | Payload                         | Trigger                        |
+| ----------------------------- | ------------------------------- | ------------------------------ |
+| `platform_user:created`       | `{ user: { id, email, role } }` | Platform user created          |
+| `platform_user:updated`       | `{ userId, changes }`           | Platform user updated          |
+| `platform_user:deleted`       | `{ userId }`                    | Platform user deleted          |
+| `platform_user:role_assigned` | `{ userId, role }`              | Role assigned to platform user |
 
 ### Not Yet Defined (Gaps)
 
@@ -1029,163 +1091,163 @@ The HR module defines 43 events across 8 event groups, combined into `HrEventMap
 
 ### Commands (Write Side)
 
-| Context | Command | Method |
-|---|---|---|
-| Auth | Create user | `auth.user.create()` |
-| Auth | Delete user | `auth.user.remove()` |
-| Auth | Update user | `auth.user.update()` |
-| Auth | Assign role | `auth.user.role.assign()` |
-| Auth | Unassign role | `auth.user.role.unassign()` |
-| Auth | Create session | `auth.session.create()` |
-| Auth | Invalidate session | `auth.session.invalidate()` |
-| Auth | Delete role | `auth.role.remove()` |
-| Storage | Upload file | `storage.upload()` |
-| Storage | Delete file | `storage.remove()` |
-| Storage | Archive file | `storage.archive()` |
-| PubSub | Publish message | `pubsub.publish()` |
-| PubSub | Subscribe | `pubsub.subscribe()` |
-| KV | Set key | `kv.set()` |
-| KV | Delete key | `kv.del()` |
-| Organization | Create org | `p.organization.organizations.create()` |
-| Organization | Update org | `p.organization.organizations.update()` |
-| Organization | Update branding | `p.organization.organizations.updateBranding()` |
-| Branch | Create branch | `p.organization.branches.create()` |
-| Branch | Archive branch | `p.organization.branches.archive()` |
-| Connection | Create connection | `p.organization.connections.create()` |
-| Connection | Add contact | `p.organization.connections.addContact()` |
-| Address | Create address | `p.organization.addresses.create()` |
-| Bank Account | Create account | `p.organization.bankAccounts.create()` |
-| Compliance | Create document | `p.compliance.documents.create()` |
-| Compliance | Submit document | `p.compliance.documents.submit()` |
-| Compliance | Verify document | `p.compliance.documents.verify()` |
-| Compliance | Reject document | `p.compliance.documents.reject()` |
-| Compliance | Renew document | `p.compliance.documents.renew()` |
-| Compliance | Archive document | `p.compliance.documents.archive()` |
-| Compliance | Snooze document | `p.compliance.documents.snooze()` |
-| Compliance | Create obligation | `p.compliance.obligations.create()` |
-| Compliance | Activate obligation | `p.compliance.obligations.activate()` |
-| Compliance | Create verification rule | `p.compliance.verification.create()` |
-| Tasks | Create task | `p.tasks.tasks.create()` |
-| Tasks | Update task | `p.tasks.tasks.update()` |
-| Tasks | Archive task | `p.tasks.tasks.archive()` |
-| Tasks | Assign task | `p.tasks.tasks.assign()` |
-| Tasks | Create project | `p.tasks.projects.create()` |
-| Tasks | Archive project | `p.tasks.projects.archive()` |
-| Tasks | Create comment | `p.tasks.comments.create()` |
-| Tasks | Create link | `p.tasks.links.create()` |
-| Tasks | Log time | `p.tasks.timeEntries.create()` |
-| Tasks | Create reminder | `p.tasks.reminders.create()` |
-| Tasks | Create automation rule | `p.tasks.automation.create()` |
-| Drive | Upload file | `p.drive.files.upload()` |
-| Drive | Update file | `p.drive.files.update()` |
-| Drive | Delete file | `p.drive.files.delete()` |
-| Drive | Create folder | `p.drive.folders.create()` |
-| Drive | Move item | `p.drive.files.move()` / `p.drive.folders.move()` |
-| Drive | Share item | `p.drive.shares.create()` |
-| Drive | Create public link | `p.drive.publicLinks.create()` |
-| Drive | Trash item | `p.drive.files.delete()` / `p.drive.folders.delete()` |
-| Drive | Restore item | `p.drive.trash.restore()` |
-| Drive | Empty trash | `p.drive.trash.emptyTrash()` |
-| Drive | Apply label | `p.drive.labels.apply()` |
-| Management Plane | Onboard tenant | `p.management.tenants.onboard()` |
-| Management Plane | Update tenant | `p.management.tenants.update()` |
-| Management Plane | Create SP | `p.management.serviceProviders.create()` |
-| Management Plane | Update SP | `p.management.serviceProviders.update()` |
-| Management Plane | Activate SP | `p.management.serviceProviders.activate()` |
-| Management Plane | Deactivate SP | `p.management.serviceProviders.deactivate()` |
-| Management Plane | Create platform user | `p.management.users.create()` |
-| Management Plane | Update platform user | `p.management.users.update()` |
-| Management Plane | Delete platform user | `p.management.users.delete()` |
-| Management Plane | Assign role | `p.management.users.assignRole()` |
-| Management Plane | Assign user to SP | `p.management.users.assignToServiceProvider()` |
-| HR | Create employee | `p.hr.employee.create()` |
-| HR | Update employee | `p.hr.employee.update()` |
-| HR | Create group | `p.hr.employee.createGroup()` |
-| HR | Create attendance | `p.hr.attendance.create()` |
-| HR | Create check-in | `p.hr.attendance.createCheckin()` |
-| HR | Create leave application | `p.hr.leave.createLeaveApplication()` |
-| HR | Approve leave application | `p.hr.leave.approveLeaveApplication()` |
-| HR | Create shift assignment | `p.hr.shift.createShiftAssignment()` |
-| HR | Create Overtime slip | `p.hr.overtime.createOvertimeSlip()` |
-| HR | Create department | `p.hr.setup.createDepartment()` |
-| HR | Create HR user | `p.hr.access.createUser()` |
-| HR | Grant branch access | `p.hr.access.grantBranchAccess()` |
+| Context          | Command                   | Method                                                |
+| ---------------- | ------------------------- | ----------------------------------------------------- |
+| Auth             | Create user               | `auth.user.create()`                                  |
+| Auth             | Delete user               | `auth.user.remove()`                                  |
+| Auth             | Update user               | `auth.user.update()`                                  |
+| Auth             | Assign role               | `auth.user.role.assign()`                             |
+| Auth             | Unassign role             | `auth.user.role.unassign()`                           |
+| Auth             | Create session            | `auth.session.create()`                               |
+| Auth             | Invalidate session        | `auth.session.invalidate()`                           |
+| Auth             | Delete role               | `auth.role.remove()`                                  |
+| Storage          | Upload file               | `storage.upload()`                                    |
+| Storage          | Delete file               | `storage.remove()`                                    |
+| Storage          | Archive file              | `storage.archive()`                                   |
+| PubSub           | Publish message           | `pubsub.publish()`                                    |
+| PubSub           | Subscribe                 | `pubsub.subscribe()`                                  |
+| KV               | Set key                   | `kv.set()`                                            |
+| KV               | Delete key                | `kv.del()`                                            |
+| Organization     | Create org                | `p.organization.organizations.create()`               |
+| Organization     | Update org                | `p.organization.organizations.update()`               |
+| Organization     | Update branding           | `p.organization.organizations.updateBranding()`       |
+| Branch           | Create branch             | `p.organization.branches.create()`                    |
+| Branch           | Archive branch            | `p.organization.branches.archive()`                   |
+| Connection       | Create connection         | `p.organization.connections.create()`                 |
+| Connection       | Add contact               | `p.organization.connections.addContact()`             |
+| Address          | Create address            | `p.organization.addresses.create()`                   |
+| Bank Account     | Create account            | `p.organization.bankAccounts.create()`                |
+| Compliance       | Create document           | `p.compliance.documents.create()`                     |
+| Compliance       | Submit document           | `p.compliance.documents.submit()`                     |
+| Compliance       | Verify document           | `p.compliance.documents.verify()`                     |
+| Compliance       | Reject document           | `p.compliance.documents.reject()`                     |
+| Compliance       | Renew document            | `p.compliance.documents.renew()`                      |
+| Compliance       | Archive document          | `p.compliance.documents.archive()`                    |
+| Compliance       | Snooze document           | `p.compliance.documents.snooze()`                     |
+| Compliance       | Create obligation         | `p.compliance.obligations.create()`                   |
+| Compliance       | Activate obligation       | `p.compliance.obligations.activate()`                 |
+| Compliance       | Create verification rule  | `p.compliance.verification.create()`                  |
+| Tasks            | Create task               | `p.tasks.tasks.create()`                              |
+| Tasks            | Update task               | `p.tasks.tasks.update()`                              |
+| Tasks            | Archive task              | `p.tasks.tasks.archive()`                             |
+| Tasks            | Assign task               | `p.tasks.tasks.assign()`                              |
+| Tasks            | Create project            | `p.tasks.projects.create()`                           |
+| Tasks            | Archive project           | `p.tasks.projects.archive()`                          |
+| Tasks            | Create comment            | `p.tasks.comments.create()`                           |
+| Tasks            | Create link               | `p.tasks.links.create()`                              |
+| Tasks            | Log time                  | `p.tasks.timeEntries.create()`                        |
+| Tasks            | Create reminder           | `p.tasks.reminders.create()`                          |
+| Tasks            | Create automation rule    | `p.tasks.automation.create()`                         |
+| Drive            | Upload file               | `p.drive.files.upload()`                              |
+| Drive            | Update file               | `p.drive.files.update()`                              |
+| Drive            | Delete file               | `p.drive.files.delete()`                              |
+| Drive            | Create folder             | `p.drive.folders.create()`                            |
+| Drive            | Move item                 | `p.drive.files.move()` / `p.drive.folders.move()`     |
+| Drive            | Share item                | `p.drive.shares.create()`                             |
+| Drive            | Create public link        | `p.drive.publicLinks.create()`                        |
+| Drive            | Trash item                | `p.drive.files.delete()` / `p.drive.folders.delete()` |
+| Drive            | Restore item              | `p.drive.trash.restore()`                             |
+| Drive            | Empty trash               | `p.drive.trash.emptyTrash()`                          |
+| Drive            | Apply label               | `p.drive.labels.apply()`                              |
+| Management Plane | Onboard tenant            | `p.management.tenants.onboard()`                      |
+| Management Plane | Update tenant             | `p.management.tenants.update()`                       |
+| Management Plane | Create SP                 | `p.management.serviceProviders.create()`              |
+| Management Plane | Update SP                 | `p.management.serviceProviders.update()`              |
+| Management Plane | Activate SP               | `p.management.serviceProviders.activate()`            |
+| Management Plane | Deactivate SP             | `p.management.serviceProviders.deactivate()`          |
+| Management Plane | Create platform user      | `p.management.users.create()`                         |
+| Management Plane | Update platform user      | `p.management.users.update()`                         |
+| Management Plane | Delete platform user      | `p.management.users.delete()`                         |
+| Management Plane | Assign role               | `p.management.users.assignRole()`                     |
+| Management Plane | Assign user to SP         | `p.management.users.assignToServiceProvider()`        |
+| HR               | Create employee           | `p.hr.employee.create()`                              |
+| HR               | Update employee           | `p.hr.employee.update()`                              |
+| HR               | Create group              | `p.hr.employee.createGroup()`                         |
+| HR               | Create attendance         | `p.hr.attendance.create()`                            |
+| HR               | Create check-in           | `p.hr.attendance.createCheckin()`                     |
+| HR               | Create leave application  | `p.hr.leave.createLeaveApplication()`                 |
+| HR               | Approve leave application | `p.hr.leave.approveLeaveApplication()`                |
+| HR               | Create shift assignment   | `p.hr.shift.createShiftAssignment()`                  |
+| HR               | Create Overtime slip      | `p.hr.overtime.createOvertimeSlip()`                  |
+| HR               | Create department         | `p.hr.setup.createDepartment()`                       |
+| HR               | Create HR user            | `p.hr.access.createUser()`                            |
+| HR               | Grant branch access       | `p.hr.access.grantBranchAccess()`                     |
 
 ### Queries (Read Side)
 
-| Context | Query | Method |
-|---|---|---|
-| Auth | Get user by ID | `auth.user.get({ id })` |
-| Auth | Get user by email | `auth.user.get({ email })` |
-| Auth | Validate session | `auth.session.validate()` |
-| Auth | List roles | `auth.role.list()` |
-| Storage | Get signed URL | `storage.getSignedGetUrl()` |
-| Storage | List files | `storage.list()` |
-| Storage | Get metadata | `storage.getMetadata()` |
-| Logs | Query logs | `logs.query()` |
-| Logs | Get stats | `logs.getStats()` |
-| KV | Get key | `kv.get()` |
-| KV | Check exists | `kv.exists()` |
-| PubSub | Get queue size | `pubsub.getQueueSize()` |
-| PubSub | List produced-but-unsubscribed topics | `pubsub.getUnsubscribedProducedTopics()` |
-| Platform | Health check | `p.healthCheck()` |
-| Organization | Get org | `p.organization.organizations.get()` |
-| Branch | List branches | `p.organization.branches.list()` |
-| Branch | Get tree | `p.organization.branches.getTree()` |
-| Connection | Search | `p.organization.connections.search()` |
-| Connection | List contacts | `p.organization.connections.listContacts()` |
-| Address | List addresses | `p.organization.addresses.list()` |
-| Bank Account | List accounts | `p.organization.bankAccounts.list()` |
-| Compliance | Get by ID | `p.compliance.documents.getById()` |
-| Compliance | List documents | `p.compliance.documents.list()` |
-| Compliance | Get expiring | `p.compliance.documents.getExpiring()` |
-| Compliance | Get due soon | `p.compliance.documents.getDueSoon()` |
-| Compliance | Get expired | `p.compliance.documents.getExpired()` |
-| Compliance | Get overdue | `p.compliance.documents.getOverdue()` |
-| Compliance | Get renewal chain | `p.compliance.documents.getRenewalChain()` |
-| Compliance | Get timeline | `p.compliance.documents.getTimeline()` |
-| Compliance | Get dashboard summary | `p.compliance.dashboard.getSummary()` |
-| Compliance | Get audit trail | `p.compliance.audit.getAuditTrail()` |
-| Compliance | List obligations | `p.compliance.obligations.list()` |
-| Compliance | List verification rules | `p.compliance.verification.list()` |
-| Tasks | Get task | `p.tasks.tasks.getById()` |
-| Tasks | List tasks | `p.tasks.tasks.list()` |
-| Tasks | Get sub-tasks | `p.tasks.tasks.getSubTasks()` |
-| Tasks | Get completion summary | `p.tasks.tasks.getCompletionSummary()` |
-| Tasks | List project members | `p.tasks.projects.listMembers()` |
-| Tasks | Get dependency graph | `p.tasks.links.getDependencyGraph()` |
-| Tasks | Get critical path | `p.tasks.links.getCriticalPath()` |
-| Tasks | Topological sort | `p.tasks.links.topologicalSort()` |
-| Tasks | Task summary report | `p.tasks.reports.getTaskSummary()` |
-| Tasks | Workload report | `p.tasks.reports.getWorkloadReport()` |
-| Tasks | Time report | `p.tasks.reports.getTimeReport()` |
-| Tasks | Cumulative flow | `p.tasks.reports.getCumulativeFlow()` |
-| Drive | Get file | `p.drive.files.getById()` |
-| Drive | List folder | `p.drive.folders.list()` |
-| Drive | Get folder metadata | `p.drive.folders.get()` |
-| Drive | List file versions | `p.drive.files.listVersions()` |
-| Drive | Get download link | `p.drive.files.getDownloadLink()` |
-| Drive | Search | `p.drive.search.search()` |
-| Drive | List shares | `p.drive.shares.list()` |
-| Drive | List shared with me | `p.drive.shares.listSharedWithMe()` |
-| Drive | List trash | `p.drive.trash.list()` |
-| Drive | List labels | `p.drive.labels.list()` |
-| Drive | Get breadcrumbs | `p.drive.paths.getBreadcrumbs()` |
-| Management Plane | Get tenant | `p.management.tenants.get()` |
-| Management Plane | List tenants | `p.management.tenants.list()` |
-| Management Plane | Get SP | `p.management.serviceProviders.get()` |
-| Management Plane | List SPs | `p.management.serviceProviders.list()` |
-| Management Plane | Get SP assigned tenants | `p.management.serviceProviders.getAssignedTenants()` |
-| Management Plane | Get SP users | `p.management.serviceProviders.getUsers()` |
-| Management Plane | Get platform user | `p.management.users.get()` |
-| Management Plane | List platform users | `p.management.users.list()` |
-| HR | Get employee | `p.hr.employee.getById()` |
-| HR | List employees | `p.hr.employee.list()` |
-| HR | Get organizational chart | `p.hr.employee.getOrganizationalChart()` |
-| HR | List leave applications | `p.hr.leave.listLeaveApplications()` |
-| HR | Get leave balance | `p.hr.leave.getLeaveBalance()` |
-| HR | List roles | `p.hr.access.listRoles()` |
-| HR | Get HR settings | `p.hr.setup.getHrSettings()` |
+| Context          | Query                                 | Method                                               |
+| ---------------- | ------------------------------------- | ---------------------------------------------------- |
+| Auth             | Get user by ID                        | `auth.user.get({ id })`                              |
+| Auth             | Get user by email                     | `auth.user.get({ email })`                           |
+| Auth             | Validate session                      | `auth.session.validate()`                            |
+| Auth             | List roles                            | `auth.role.list()`                                   |
+| Storage          | Get signed URL                        | `storage.getSignedGetUrl()`                          |
+| Storage          | List files                            | `storage.list()`                                     |
+| Storage          | Get metadata                          | `storage.getMetadata()`                              |
+| Logs             | Query logs                            | `logs.query()`                                       |
+| Logs             | Get stats                             | `logs.getStats()`                                    |
+| KV               | Get key                               | `kv.get()`                                           |
+| KV               | Check exists                          | `kv.exists()`                                        |
+| PubSub           | Get queue size                        | `pubsub.getQueueSize()`                              |
+| PubSub           | List produced-but-unsubscribed topics | `pubsub.getUnsubscribedProducedTopics()`             |
+| Platform         | Health check                          | `p.healthCheck()`                                    |
+| Organization     | Get org                               | `p.organization.organizations.get()`                 |
+| Branch           | List branches                         | `p.organization.branches.list()`                     |
+| Branch           | Get tree                              | `p.organization.branches.getTree()`                  |
+| Connection       | Search                                | `p.organization.connections.search()`                |
+| Connection       | List contacts                         | `p.organization.connections.listContacts()`          |
+| Address          | List addresses                        | `p.organization.addresses.list()`                    |
+| Bank Account     | List accounts                         | `p.organization.bankAccounts.list()`                 |
+| Compliance       | Get by ID                             | `p.compliance.documents.getById()`                   |
+| Compliance       | List documents                        | `p.compliance.documents.list()`                      |
+| Compliance       | Get expiring                          | `p.compliance.documents.getExpiring()`               |
+| Compliance       | Get due soon                          | `p.compliance.documents.getDueSoon()`                |
+| Compliance       | Get expired                           | `p.compliance.documents.getExpired()`                |
+| Compliance       | Get overdue                           | `p.compliance.documents.getOverdue()`                |
+| Compliance       | Get renewal chain                     | `p.compliance.documents.getRenewalChain()`           |
+| Compliance       | Get timeline                          | `p.compliance.documents.getTimeline()`               |
+| Compliance       | Get dashboard summary                 | `p.compliance.dashboard.getSummary()`                |
+| Compliance       | Get audit trail                       | `p.compliance.audit.getAuditTrail()`                 |
+| Compliance       | List obligations                      | `p.compliance.obligations.list()`                    |
+| Compliance       | List verification rules               | `p.compliance.verification.list()`                   |
+| Tasks            | Get task                              | `p.tasks.tasks.getById()`                            |
+| Tasks            | List tasks                            | `p.tasks.tasks.list()`                               |
+| Tasks            | Get sub-tasks                         | `p.tasks.tasks.getSubTasks()`                        |
+| Tasks            | Get completion summary                | `p.tasks.tasks.getCompletionSummary()`               |
+| Tasks            | List project members                  | `p.tasks.projects.listMembers()`                     |
+| Tasks            | Get dependency graph                  | `p.tasks.links.getDependencyGraph()`                 |
+| Tasks            | Get critical path                     | `p.tasks.links.getCriticalPath()`                    |
+| Tasks            | Topological sort                      | `p.tasks.links.topologicalSort()`                    |
+| Tasks            | Task summary report                   | `p.tasks.reports.getTaskSummary()`                   |
+| Tasks            | Workload report                       | `p.tasks.reports.getWorkloadReport()`                |
+| Tasks            | Time report                           | `p.tasks.reports.getTimeReport()`                    |
+| Tasks            | Cumulative flow                       | `p.tasks.reports.getCumulativeFlow()`                |
+| Drive            | Get file                              | `p.drive.files.getById()`                            |
+| Drive            | List folder                           | `p.drive.folders.list()`                             |
+| Drive            | Get folder metadata                   | `p.drive.folders.get()`                              |
+| Drive            | List file versions                    | `p.drive.files.listVersions()`                       |
+| Drive            | Get download link                     | `p.drive.files.getDownloadLink()`                    |
+| Drive            | Search                                | `p.drive.search.search()`                            |
+| Drive            | List shares                           | `p.drive.shares.list()`                              |
+| Drive            | List shared with me                   | `p.drive.shares.listSharedWithMe()`                  |
+| Drive            | List trash                            | `p.drive.trash.list()`                               |
+| Drive            | List labels                           | `p.drive.labels.list()`                              |
+| Drive            | Get breadcrumbs                       | `p.drive.paths.getBreadcrumbs()`                     |
+| Management Plane | Get tenant                            | `p.management.tenants.get()`                         |
+| Management Plane | List tenants                          | `p.management.tenants.list()`                        |
+| Management Plane | Get SP                                | `p.management.serviceProviders.get()`                |
+| Management Plane | List SPs                              | `p.management.serviceProviders.list()`               |
+| Management Plane | Get SP assigned tenants               | `p.management.serviceProviders.getAssignedTenants()` |
+| Management Plane | Get SP users                          | `p.management.serviceProviders.getUsers()`           |
+| Management Plane | Get platform user                     | `p.management.users.get()`                           |
+| Management Plane | List platform users                   | `p.management.users.list()`                          |
+| HR               | Get employee                          | `p.hr.employee.getById()`                            |
+| HR               | List employees                        | `p.hr.employee.list()`                               |
+| HR               | Get organizational chart              | `p.hr.employee.getOrganizationalChart()`             |
+| HR               | List leave applications               | `p.hr.leave.listLeaveApplications()`                 |
+| HR               | Get leave balance                     | `p.hr.leave.getLeaveBalance()`                       |
+| HR               | List roles                            | `p.hr.access.listRoles()`                            |
+| HR               | Get HR settings                       | `p.hr.setup.getHrSettings()`                         |
 
 ## Invariants & Business Rules
 

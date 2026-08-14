@@ -11,12 +11,12 @@ Documentation follows [Diátaxis](https://diataxis.fr) — four doc types, each 
 
 Read the source code, not existing docs. Determine the doc type:
 
-| Type | When | Structure |
-|---|---|---|
+| Type          | When                                                 | Structure                                  |
+| ------------- | ---------------------------------------------------- | ------------------------------------------ |
 | **Reference** | Documenting an API surface (unit, workflow, service) | [`DOC-TYPES.md`](DOC-TYPES.md) § Reference |
-| **Guide** | Step-by-step how-to | [`DOC-TYPES.md`](DOC-TYPES.md) § Guide |
-| **Overview** | Architecture, concepts, relationships | [`DOC-TYPES.md`](DOC-TYPES.md) § Overview |
-| **Schema** | Tables, events, enums | [`DOC-TYPES.md`](DOC-TYPES.md) § Schema |
+| **Guide**     | Step-by-step how-to                                  | [`DOC-TYPES.md`](DOC-TYPES.md) § Guide     |
+| **Overview**  | Architecture, concepts, relationships                | [`DOC-TYPES.md`](DOC-TYPES.md) § Overview  |
+| **Schema**    | Tables, events, enums                                | [`DOC-TYPES.md`](DOC-TYPES.md) § Schema    |
 
 Open the type's section in [`DOC-TYPES.md`](DOC-TYPES.md) and follow its structure.
 
@@ -32,11 +32,7 @@ Docs live in `packages/{package}/docs/` as `.mdx` files. Register new pages in t
 
 ```json
 {
-  "pages": [
-    "---Section Name---",
-    "page-name",
-    "subdir/page-name"
-  ],
+  "pages": ["---Section Name---", "page-name", "subdir/page-name"],
   "pagesIndex": "index",
   "root": true,
   "title": "Package Name",
@@ -52,18 +48,18 @@ Docs live in `packages/{package}/docs/` as `.mdx` files. Register new pages in t
 ---
 title: Short Name
 description: One sentence — what this documents and for whom.
-icon: IconName        # Tabler icon, camelCase (e.g. IconDatabase)
+icon: IconName # Tabler icon, camelCase (e.g. IconDatabase)
 display: Custom Label # optional, overrides sidebar label
 ---
 ```
 
 ### Components
 
-| Component | Use for |
-|---|---|
-| `<Callout type="info\|warn">` | Non-obvious caveats, gotchas |
-| `<Cards>` + `<Card>` | Navigation links on index pages |
-| Code blocks | Always — the source is the truth |
+| Component                     | Use for                          |
+| ----------------------------- | -------------------------------- |
+| `<Callout type="info\|warn">` | Non-obvious caveats, gotchas     |
+| `<Cards>` + `<Card>`          | Navigation links on index pages  |
+| Code blocks                   | Always — the source is the truth |
 
 ### Code blocks
 

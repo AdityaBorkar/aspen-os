@@ -9,7 +9,7 @@ const CACHE_KEY = "compliance:dashboard:summary";
 
 const getDashboardSummary = Workflow.name("dashboard.summary").handler(
   async (input: { branchFilter?: string }, ctx): Promise<DashboardSummary> => {
-    const branchFilter = input.branchFilter;
+    const { branchFilter } = input;
     const kvStore = ctx.config.kvStore as
       | {
           get<T>(key: string): Promise<T | null>;
@@ -21,12 +21,12 @@ const getDashboardSummary = Workflow.name("dashboard.summary").handler(
 
     const cacheKey = branchFilter ? `${CACHE_KEY}:${branchFilter}` : CACHE_KEY;
 
-    const cached = kvStore
-      ? await kvStore.get<DashboardSummary>(cacheKey)
-      : null;
-    if (cached) return cached;
+    const cached = kvStore ? await kvStore.get<DashboardSummary>(cacheKey) : null;
+    if (cached) {
+      return cached;
+    }
 
-    const db = ctx.db;
+    const { db } = ctx;
 
     const conditions = [];
     if (branchFilter) {

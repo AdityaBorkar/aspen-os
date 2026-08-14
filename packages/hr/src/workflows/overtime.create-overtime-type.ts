@@ -8,9 +8,7 @@ const InputSchema = object({
   input: CreateOvertimeTypeSchema,
 });
 
-export const createOvertimeType = Workflow.name(
-  "hr.overtime.create-overtime-type",
-)
+export const createOvertimeType = Workflow.name("hr.overtime.create-overtime-type")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateOvertimeTypeSchema, input);

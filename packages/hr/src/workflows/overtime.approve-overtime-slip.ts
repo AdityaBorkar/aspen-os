@@ -10,18 +10,13 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const approveOvertimeSlip = Workflow.name(
-  "hr.overtime.approve-overtime-slip",
-)
+export const approveOvertimeSlip = Workflow.name("hr.overtime.approve-overtime-slip")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, approvedBy } = input;
 
     const slip = await fetchOvertimeSlipById(ctx.db, id);
-    const overtimeTypeRecord = await fetchOvertimeTypeById(
-      ctx.db,
-      slip.overtimeType,
-    );
+    const overtimeTypeRecord = await fetchOvertimeTypeById(ctx.db, slip.overtimeType);
 
     // Calculate amount
     let amount = 0;
@@ -29,20 +24,11 @@ export const approveOvertimeSlip = Workflow.name(
     const holidayHours = parseFloat(slip.holidayHours);
     const weekendHours = parseFloat(slip.weekendHours);
 
-    if (
-      overtimeTypeRecord.amountCalculation === "fixed" &&
-      overtimeTypeRecord.fixedHourlyRate
-    ) {
+    if (overtimeTypeRecord.amountCalculation === "fixed" && overtimeTypeRecord.fixedHourlyRate) {
       const hourlyRate = parseFloat(overtimeTypeRecord.fixedHourlyRate);
-      const standardMultiplier = parseFloat(
-        overtimeTypeRecord.standardMultiplier,
-      );
-      const holidayMultiplier = parseFloat(
-        overtimeTypeRecord.holidayMultiplier,
-      );
-      const weekendMultiplier = parseFloat(
-        overtimeTypeRecord.weekendMultiplier,
-      );
+      const standardMultiplier = parseFloat(overtimeTypeRecord.standardMultiplier);
+      const holidayMultiplier = parseFloat(overtimeTypeRecord.holidayMultiplier);
+      const weekendMultiplier = parseFloat(overtimeTypeRecord.weekendMultiplier);
 
       amount =
         standardHours * hourlyRate * standardMultiplier +

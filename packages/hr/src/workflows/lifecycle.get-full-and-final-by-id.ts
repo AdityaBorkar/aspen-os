@@ -8,9 +8,7 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const getFullAndFinalById = Workflow.name(
-  "hr.lifecycle.get-full-and-final-by-id",
-)
+export const getFullAndFinalById = Workflow.name("hr.lifecycle.get-full-and-final-by-id")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id } = input;

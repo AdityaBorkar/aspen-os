@@ -20,7 +20,7 @@ interface AuthConfig extends BetterAuthOptions {}
 const authConfig: AuthConfig = {
   baseURL: "http://localhost:3000",
   secret: process.env.AUTH_SECRET!,
-  session: { expiresIn: 604800 },  // 7 days
+  session: { expiresIn: 604800 }, // 7 days
   socialProviders: {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -76,7 +76,7 @@ All programmatic auth operations go through the `_` getter, structured as `resou
 ```ts
 // Users
 await p.auth._.user.create({ email, password, name });
-await p.auth._.user.get({ email });          // or { id }
+await p.auth._.user.get({ email }); // or { id }
 await p.auth._.user.update({ id, data: { name } });
 await p.auth._.user.remove({ id });
 
@@ -115,43 +115,47 @@ const acl = defineAcl({
 ```
 
 <Callout type="info">
-  Access control declaration (`defineAcl`) is a type and runtime helper only. Permission *enforcement* (checking a principal's permissions before an operation) is not built into workflows — it must be done at the application layer (e.g. in RPC middleware).
+  Access control declaration (`defineAcl`) is a type and runtime helper only. Permission
+  *enforcement* (checking a principal's permissions before an operation) is not built into workflows
+  — it must be done at the application layer (e.g. in RPC middleware).
 </Callout>
 
 ## Auth Schema
 
 The auth tables follow better-auth's adapter pattern:
 
-| Table | Description |
-|---|---|
-| `user` | Core identity (id, email, name, role, phone, username, banned, image) |
-| `session` | Authentication tokens (token, userId, expiresAt, ipAddress, userAgent) |
-| `account` | Credentials and OAuth tokens (providerId, password, accessToken, refreshToken) |
-| `verification` | Email verification, password reset tokens (identifier, value, expiresAt) |
+| Table          | Description                                                                    |
+| -------------- | ------------------------------------------------------------------------------ |
+| `user`         | Core identity (id, email, name, role, phone, username, banned, image)          |
+| `session`      | Authentication tokens (token, userId, expiresAt, ipAddress, userAgent)         |
+| `account`      | Credentials and OAuth tokens (providerId, password, accessToken, refreshToken) |
+| `verification` | Email verification, password reset tokens (identifier, value, expiresAt)       |
 
 <Callout type="info">
-  Auth tables do **not** follow the `uuidv7()` ID convention — better-auth manages ID generation. Role is a plain `text("role")` column on the `user` table, not a separate entity.
+  Auth tables do **not** follow the `uuidv7()` ID convention — better-auth manages ID generation.
+  Role is a plain `text("role")` column on the `user` table, not a separate entity.
 </Callout>
 
 ## Plugins
 
 The `createBetterAuthService()` factory configures better-auth with:
 
-| Plugin | Purpose |
-|---|---|
-| `admin` | Access control (receives `ac` when ACL applied) |
-| `username` | Username support |
-| `organization` | Multi-organization support |
-| `phoneNumber` | Phone number authentication |
-| `emailOTP` | Email OTP sign-in, verification, password reset |
-| `apiKey` | API key authentication with rate limiting |
-| `lastLoginMethod` | Tracks last login method |
-| `twoFactor` | TOTP-based 2FA |
-| `passkey` | WebAuthn/passkey authentication |
+| Plugin            | Purpose                                         |
+| ----------------- | ----------------------------------------------- |
+| `admin`           | Access control (receives `ac` when ACL applied) |
+| `username`        | Username support                                |
+| `organization`    | Multi-organization support                      |
+| `phoneNumber`     | Phone number authentication                     |
+| `emailOTP`        | Email OTP sign-in, verification, password reset |
+| `apiKey`          | API key authentication with rate limiting       |
+| `lastLoginMethod` | Tracks last login method                        |
+| `twoFactor`       | TOTP-based 2FA                                  |
+| `passkey`         | WebAuthn/passkey authentication                 |
 
 ## Drizzle Adapter
 
 The factory configures better-auth's drizzle adapter with:
+
 - `camelCase: false`
 - `provider: "pg"`
 - `usePlural: false`

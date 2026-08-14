@@ -1,12 +1,5 @@
 import { sql } from "drizzle-orm";
-import {
-  index,
-  integer,
-  jsonb,
-  pgTable,
-  text,
-  timestamp,
-} from "drizzle-orm/pg-core";
+import { index, integer, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 import { uuidv7 } from "../utils/uuidv7";
 
@@ -20,9 +13,7 @@ export const workflowRuns = pgTable(
     input: jsonb("input"),
     metadata: jsonb("metadata").default({}),
     output: jsonb("output"),
-    startedAt: timestamp("started_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
     status: text("status").notNull().default("running"),
     tenantId: text("tenant_id").default(
       sql`COALESCE(current_setting('app.tenant_id', true), 'default')`,

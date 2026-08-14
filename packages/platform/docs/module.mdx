@@ -35,16 +35,17 @@ type ModuleInfra = {
 
 ### Lifecycle methods
 
-| Method | When it's called | What it does |
-|---|---|---|
-| `$initialize(units)` | Inside `create()`, after all units are instantiated | Receives the units. May store a unit reference. |
-| `$prepareInfra()` | During `$prepareInfra()` | Returns `ModuleInfra` — DB schemas + ACL + events |
-| `$prepareRuntime()` | During `$prepareInfra()`, after units prepared | Registers pubsub handlers/schedules |
-| `$prepareTenant(tenantId)` | During `$prepareInfra()` in isolated mode | Per-tenant cron/schedules |
-| `$cleanup()` | During `$cleanup()`, before units are destroyed | Releases resources |
+| Method                     | When it's called                                    | What it does                                      |
+| -------------------------- | --------------------------------------------------- | ------------------------------------------------- |
+| `$initialize(units)`       | Inside `create()`, after all units are instantiated | Receives the units. May store a unit reference.   |
+| `$prepareInfra()`          | During `$prepareInfra()`                            | Returns `ModuleInfra` — DB schemas + ACL + events |
+| `$prepareRuntime()`        | During `$prepareInfra()`, after units prepared      | Registers pubsub handlers/schedules               |
+| `$prepareTenant(tenantId)` | During `$prepareInfra()` in isolated mode           | Per-tenant cron/schedules                         |
+| `$cleanup()`               | During `$cleanup()`, before units are destroyed     | Releases resources                                |
 
 <Callout type="warn">
-  Required methods on `Module`: `$name`, `$dependencies`, `$initialize`, `$prepareInfra`, `$prepareRuntime`, `$cleanup`. Only `$prepareTenant` is optional.
+  Required methods on `Module`: `$name`, `$dependencies`, `$initialize`, `$prepareInfra`,
+  `$prepareRuntime`, `$cleanup`. Only `$prepareTenant` is optional.
 </Callout>
 
 ## How Modules Are Created
@@ -69,9 +70,9 @@ Inside `createCore()`, the platform iterates modules and calls `mod.$initialize?
 ### Proxy access (preferred)
 
 ```ts
-p.organization        // → Organization (module instance by $name)
-p.compliance          // → Compliance
-p.getModule("organization")  // → throws if not found
+p.organization; // → Organization (module instance by $name)
+p.compliance; // → Compliance
+p.getModule("organization"); // → throws if not found
 ```
 
 The proxy checks units first, then modules.
@@ -186,12 +187,14 @@ await this.pubsub.publish("organization:branch_created", { branch });
 ```
 
 <Callout type="info">
-  The event map is a type-level contract only. PubSub accepts plain strings — the `EventMap` type ensures type safety at the call site but does not constrain runtime publishing.
+  The event map is a type-level contract only. PubSub accepts plain strings — the `EventMap` type
+  ensures type safety at the call site but does not constrain runtime publishing.
 </Callout>
 
 ## Modules vs Units
 
 Prefer a **module** when unsure:
+
 - **Units** are fixed infrastructure, created by the platform; you cannot add new ones.
 - **Modules** are pluggable domain logic, created by you; add as many as you need.
 

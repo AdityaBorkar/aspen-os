@@ -8,13 +8,9 @@ import { buildTaskWhereClause } from "../utils/filter-engine";
 
 export const listTasks = Workflow.name("task.list")
   .input(object({ filters: optional(TaskFiltersSchema) }))
-  .handler(async ({ filters }, ctx) => {
-    return ctx.step.run("query", async () => {
+  .handler(async ({ filters }, ctx) =>
+    ctx.step.run("query", async () => {
       const whereClause = buildTaskWhereClause(filters);
-      return ctx.db
-        .select()
-        .from(task)
-        .where(whereClause)
-        .orderBy(desc(task.createdAt));
-    });
-  });
+      return ctx.db.select().from(task).where(whereClause).orderBy(desc(task.createdAt));
+    }),
+  );

@@ -22,12 +22,7 @@ export const updateTask = Workflow.name("task.update")
         if (input.patch.parentId === input.id) {
           throw new Error("A task cannot be its own parent.");
         }
-        await validateParentTask(
-          ctx.db,
-          input.patch.parentId,
-          current.projectId,
-          input.id,
-        );
+        await validateParentTask(ctx.db, input.patch.parentId, current.projectId, input.id);
       }
     }
 
@@ -67,14 +62,7 @@ export const updateTask = Workflow.name("task.update")
       changes.title = { from: current.title, to: input.patch.title };
     }
 
-    await addActivity(
-      ctx.db,
-      input.id,
-      current.reporterId,
-      "task_updated",
-      current,
-      changes,
-    );
+    await addActivity(ctx.db, input.id, current.reporterId, "task_updated", current, changes);
 
     return updated;
   });

@@ -24,10 +24,7 @@ export const EmailSchema = pipe(
 
 export const WebsiteSchema = pipe(
   string(),
-  regex(
-    /^https?:\/\/.+/,
-    "Must be a valid URL starting with http:// or https://",
-  ),
+  regex(/^https?:\/\/.+/, "Must be a valid URL starting with http:// or https://"),
 );
 
 export const LogoSchema = pipe(

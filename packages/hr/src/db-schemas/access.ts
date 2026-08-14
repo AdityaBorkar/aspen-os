@@ -6,15 +6,11 @@ import { accessLevelEnum, permissionActionEnum } from "./enums";
 export const hrUser = pgTable(
   "hr_user",
   {
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     employeeId: text("employee_id").notNull(),
     id: text("id").primaryKey().$defaultFn(uuidv7),
     isActive: boolean("is_active").notNull().default(true),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     userId: text("user_id").notNull(),
   },
   (table) => [
@@ -24,24 +20,18 @@ export const hrUser = pgTable(
 );
 
 export const hrRole = pgTable("hr_role", {
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   description: text("description"),
   id: text("id").primaryKey().$defaultFn(uuidv7),
   isActive: boolean("is_active").notNull().default(true),
   isSystem: boolean("is_system").notNull().default(false),
   name: text("name").notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const hrPermission = pgTable("hr_permission", {
   action: permissionActionEnum("action").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   description: text("description"),
   id: text("id").primaryKey().$defaultFn(uuidv7),
   module: text("module").notNull(),
@@ -50,9 +40,7 @@ export const hrPermission = pgTable("hr_permission", {
 export const hrRolePermission = pgTable(
   "hr_role_permission",
   {
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: text("id").primaryKey().$defaultFn(uuidv7),
     permissionId: text("permission_id").notNull(),
     roleId: text("role_id").notNull(),
@@ -67,15 +55,11 @@ export const hrUserRole = pgTable(
   "hr_user_role",
   {
     branchId: text("branch_id"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     hrUserId: text("hr_user_id").notNull(),
     id: text("id").primaryKey().$defaultFn(uuidv7),
     roleId: text("role_id").notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_hr_user_role_hr_user_id").on(table.hrUserId),
@@ -89,14 +73,10 @@ export const hrUserBranchAccess = pgTable(
   {
     accessLevel: accessLevelEnum("access_level").notNull().default("read_only"),
     branchId: text("branch_id").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     hrUserId: text("hr_user_id").notNull(),
     id: text("id").primaryKey().$defaultFn(uuidv7),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_hr_user_branch_access_hr_user_id").on(table.hrUserId),

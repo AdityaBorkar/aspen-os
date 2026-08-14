@@ -8,9 +8,7 @@ const InputSchema = object({
   input: CreateEmploymentTypeSchema,
 });
 
-export const createEmploymentType = Workflow.name(
-  "hr.setup.create-employment-type",
-)
+export const createEmploymentType = Workflow.name("hr.setup.create-employment-type")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateEmploymentTypeSchema, input);

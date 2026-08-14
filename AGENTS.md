@@ -24,10 +24,10 @@ packages/platform/src/
 
 Three server platform classes share an abstract `BasePlatform<M>` (`src/server/base-platform.ts`):
 
-| Class | Create file | `run()` | Config |
-|---|---|---|---|
-| `SingleTenantPlatform` | `create-single-tenant.ts` | `run(fn)` | `SingleTenantConfig` |
-| `SharedTenantPlatform` | `create-shared-tenant.ts` | `run(tenantId, fn)` | `SharedTenantConfig` |
+| Class                    | Create file                 | `run()`             | Config                 |
+| ------------------------ | --------------------------- | ------------------- | ---------------------- |
+| `SingleTenantPlatform`   | `create-single-tenant.ts`   | `run(fn)`           | `SingleTenantConfig`   |
+| `SharedTenantPlatform`   | `create-shared-tenant.ts`   | `run(tenantId, fn)` | `SharedTenantConfig`   |
 | `IsolatedTenantPlatform` | `create-isolated-tenant.ts` | `run(tenantId, fn)` | `IsolatedTenantConfig` |
 
 **Lifecycle & data flow:**
@@ -87,7 +87,7 @@ Root (`/`):
 
 ```
 bun install            # install all workspace deps
-bun run check:lint     # biome check --fix .
+bun run check:lint     # oxlint --fix . ; oxfmt .
 bun run check:types    # tsc -b (root composite)
 bun run update:deps    # taze -rw --maturity-period 3
 bun run clean          # rimraf node_modules/.output/.local/bun.lockb
@@ -98,7 +98,7 @@ Platform (`packages/platform`):
 
 ```
 cd packages/platform && bun run check:types   # tsc -b
-cd packages/platform && bun run check:lint    # biome check --fix .
+cd packages/platform && bun run check:lint    # oxlint --fix . ; oxfmt .
 cd packages/platform && bun run build         # scripts/build.ts → .output/
 ```
 
@@ -173,20 +173,20 @@ Root `tsconfig.json` (extended everywhere, `composite: true` project references)
 
 ## Important Files
 
-| File | Purpose |
-|---|---|
-| `packages/platform/src/server/index.ts` | Server barrel: `Unit`/`Module`/`ModuleInfra`/`PlatformInstance`, three platform classes, workflows, `getContext`, `defineAcl`, `isGlobalTenantId` |
-| `packages/platform/src/server/base-platform.ts` | `BasePlatform` (Proxy, `createCore`, `$prepareInfra`, `run`, `$cleanup`, `healthCheck`) |
-| `packages/platform/src/server/{create-single,create-shared,create-isolated}-tenant.ts` | The three platform classes |
-| `packages/platform/src/server/db/index.ts` + `unit.ts` | `DatabaseUnit` — pool, `db`/`controlPlaneDb`, tenancy, RLS, `prepareWithModules`, `getSchemas` |
-| `packages/platform/src/server/auth/index.ts` | `AuthUnit` — better-auth service, `fetchHandler`, `applyModuleAcl`, `_` getter, `defineAcl` |
-| `packages/platform/src/server/pubsub/index.ts` | `PubSubUnit` — single control-plane pg-boss (lazy-started); see pubsub pitfalls below |
-| `packages/platform/src/server/workflows/` | `Workflow` / `WorkflowStep` durable step runner (`workflow_runs`/`workflow_steps` tables) |
-| `packages/platform/src/cli/index.ts` | `aspen` CLI — `db-studio`, `tenants`; dynamically imports config (`platform` or `p` export) |
-| `scripts/build.ts` | Package builder: rewrites `exports`/`bin` → `.output/`, runs `Bun.build()` + `tsc` declarations |
-| `docs/src/routes/docs/$.tsx` | Docs catch-all route — Fumadocs layout, server fn loader |
-| `docs/source.config.ts` | Fumadocs docs sources — each package's `docs/` dir (`packages/*/docs`, e.g. `platform`, `organization`, `hr`) |
-| `biome.json`, `tsconfig.json`, `bunfig.toml`, `.commitlintrc.json` | Toolchain config |
+| File                                                                                   | Purpose                                                                                                                                           |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/platform/src/server/index.ts`                                                | Server barrel: `Unit`/`Module`/`ModuleInfra`/`PlatformInstance`, three platform classes, workflows, `getContext`, `defineAcl`, `isGlobalTenantId` |
+| `packages/platform/src/server/base-platform.ts`                                        | `BasePlatform` (Proxy, `createCore`, `$prepareInfra`, `run`, `$cleanup`, `healthCheck`)                                                           |
+| `packages/platform/src/server/{create-single,create-shared,create-isolated}-tenant.ts` | The three platform classes                                                                                                                        |
+| `packages/platform/src/server/db/index.ts` + `unit.ts`                                 | `DatabaseUnit` — pool, `db`/`controlPlaneDb`, tenancy, RLS, `prepareWithModules`, `getSchemas`                                                    |
+| `packages/platform/src/server/auth/index.ts`                                           | `AuthUnit` — better-auth service, `fetchHandler`, `applyModuleAcl`, `_` getter, `defineAcl`                                                       |
+| `packages/platform/src/server/pubsub/index.ts`                                         | `PubSubUnit` — single control-plane pg-boss (lazy-started); see pubsub pitfalls below                                                             |
+| `packages/platform/src/server/workflows/`                                              | `Workflow` / `WorkflowStep` durable step runner (`workflow_runs`/`workflow_steps` tables)                                                         |
+| `packages/platform/src/cli/index.ts`                                                   | `aspen` CLI — `db-studio`, `tenants`; dynamically imports config (`platform` or `p` export)                                                       |
+| `scripts/build.ts`                                                                     | Package builder: rewrites `exports`/`bin` → `.output/`, runs `Bun.build()` + `tsc` declarations                                                   |
+| `docs/src/routes/docs/$.tsx`                                                           | Docs catch-all route — Fumadocs layout, server fn loader                                                                                          |
+| `docs/source.config.ts`                                                                | Fumadocs docs sources — each package's `docs/` dir (`packages/*/docs`, e.g. `platform`, `organization`, `hr`)                                     |
+| `biome.json`, `tsconfig.json`, `bunfig.toml`, `.commitlintrc.json`                     | Toolchain config                                                                                                                                  |
 
 ### `_` getter (server AuthUnit)
 

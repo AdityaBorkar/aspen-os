@@ -9,9 +9,7 @@ const InputSchema = object({
   groupId: pipe(string(), minLength(1, "groupId is required")),
 });
 
-export const removeGroupMember = Workflow.name(
-  "hr.employee.remove-group-member",
-)
+export const removeGroupMember = Workflow.name("hr.employee.remove-group-member")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { groupId, employeeId } = input;

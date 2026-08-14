@@ -5,6 +5,4 @@ import { fetchOrganizationStep } from "./steps/fetch-organization";
 
 export const getOrganization = Workflow.name("org.get")
   .input(object({}))
-  .handler(async (_input, ctx) => {
-    return ctx.step.run(fetchOrganizationStep, {});
-  });
+  .handler(async (_input, ctx) => ctx.step.run(fetchOrganizationStep, {}));

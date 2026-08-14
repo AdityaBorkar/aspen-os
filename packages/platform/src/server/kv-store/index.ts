@@ -20,7 +20,7 @@ export class KvStoreUnit {
 
   constructor(
     config: KvStoreConfig,
-    // biome-ignore lint/suspicious/noExplicitAny: drizzle NodePgDatabase invariance forces any here
+    // Biome-ignore lint/suspicious/noExplicitAny: drizzle NodePgDatabase invariance forces any here
     { db }: { db: DatabaseUnit<any> },
   ) {
     this.db = db.db as DrizzleDB;
@@ -46,9 +46,13 @@ export class KvStoreUnit {
       .where(eq(db_schema.kvStore.key, this.getKeyName(key)))
       .limit(1);
 
-    if (rows.length === 0) return null;
+    if (rows.length === 0) {
+      return null;
+    }
     const row = rows[0];
-    if (!row) return null;
+    if (!row) {
+      return null;
+    }
     if (row.expiresAt && row.expiresAt.getTime() < Date.now()) {
       await this.del(key);
       return null;
@@ -61,8 +65,7 @@ export class KvStoreUnit {
   }
 
   async set(key: string, value: unknown, ttl?: number): Promise<void> {
-    const serialized =
-      typeof value === "string" ? value : JSON.stringify(value);
+    const serialized = typeof value === "string" ? value : JSON.stringify(value);
     const effectiveTtl = ttl ?? this.defaultTtl;
     let expiresAt: Date | null = null;
     if (effectiveTtl > 0) {
@@ -79,9 +82,7 @@ export class KvStoreUnit {
   }
 
   async del(key: string): Promise<void> {
-    await this.db
-      .delete(db_schema.kvStore)
-      .where(eq(db_schema.kvStore.key, this.getKeyName(key)));
+    await this.db.delete(db_schema.kvStore).where(eq(db_schema.kvStore.key, this.getKeyName(key)));
   }
 
   async exists(key: string): Promise<boolean> {
@@ -123,7 +124,9 @@ export class KvStoreUnit {
       .returning({ value: db_schema.kvStore.value });
 
     const row = result[0];
-    if (!row) throw new Error("Failed to increment key");
+    if (!row) {
+      throw new Error("Failed to increment key");
+    }
     return Number.parseInt(row.value, 10);
   }
 
@@ -131,13 +134,11 @@ export class KvStoreUnit {
     return this.increment(key, -amount);
   }
 
-  async getOrSet<T = unknown>(
-    key: string,
-    factory: () => Promise<T>,
-    ttl?: number,
-  ): Promise<T> {
+  async getOrSet<T = unknown>(key: string, factory: () => Promise<T>, ttl?: number): Promise<T> {
     const cached = await this.get<T>(key);
-    if (cached !== null) return cached;
+    if (cached !== null) {
+      return cached;
+    }
     const value = await factory();
     await this.set(key, value, ttl);
     return value;
@@ -146,27 +147,17 @@ export class KvStoreUnit {
   async clear(pattern?: string): Promise<void> {
     const tenantId = context.getStore()?.tenantId ?? "default";
     const tenantPrefix = this.getTenantPrefix(tenantId);
-    const searchPattern = pattern
-      ? this.getKeyName(pattern)
-      : `${tenantPrefix}*`;
+    const searchPattern = pattern ? this.getKeyName(pattern) : `${tenantPrefix}*`;
     const keys: string[] = [];
     let cursor = "0";
     do {
-      const [nextCursor, found] = await this.scan(
-        cursor,
-        "MATCH",
-        searchPattern,
-        "COUNT",
-        100,
-      );
+      const [nextCursor, found] = await this.scan(cursor, "MATCH", searchPattern, "COUNT", 100);
       cursor = nextCursor;
       keys.push(...found);
     } while (cursor !== "0");
 
     for (const key of keys) {
-      await this.db
-        .delete(db_schema.kvStore)
-        .where(eq(db_schema.kvStore.key, key));
+      await this.db.delete(db_schema.kvStore).where(eq(db_schema.kvStore.key, key));
     }
   }
 
@@ -179,18 +170,12 @@ export class KvStoreUnit {
     return `${this.getTenantPrefix(tenantId)}${key}`;
   }
 
-  private async scan(
-    cursor: string,
-    ...args: unknown[]
-  ): Promise<[string, string[]]> {
+  private async scan(cursor: string, ...args: unknown[]): Promise<[string, string[]]> {
     const pattern = args[1] as string | undefined;
     const count = (args[3] as number) || 100;
     const offset = Number.parseInt(cursor, 10) || 0;
 
-    let query = this.db
-      .select({ key: db_schema.kvStore.key })
-      .from(db_schema.kvStore)
-      .$dynamic();
+    let query = this.db.select({ key: db_schema.kvStore.key }).from(db_schema.kvStore).$dynamic();
 
     if (pattern) {
       const pgPattern = pattern.replace(/\*/g, "%").replace(/\?/g, "_");

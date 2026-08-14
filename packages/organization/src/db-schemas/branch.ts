@@ -32,9 +32,7 @@ export const branch = pgTable(
     closedDate: date("closed_date"),
     code: text("code").notNull().unique(),
     country: text("country").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     email: text("email"),
     id: text("id").primaryKey().$defaultFn(uuidv7),
     isActive: boolean("is_active").notNull().default(true),
@@ -49,9 +47,7 @@ export const branch = pgTable(
     state: text("state"),
     timezone: text("timezone"),
     type: branchTypeEnum("type").notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_branch_type").on(table.type),

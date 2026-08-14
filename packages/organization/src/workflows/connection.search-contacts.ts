@@ -11,14 +11,11 @@ export const searchContacts = Workflow.name("connection.search-contacts")
       query: string(),
     }),
   )
-  .handler(async (input, ctx) => {
-    return ctx.step.run("query", async () => {
+  .handler(async (input, ctx) =>
+    ctx.step.run("query", async () => {
       const searchTerm = `%${input.query}%`;
       const conditions = [
-        or(
-          ilike(connectionContact.name, searchTerm),
-          ilike(connectionContact.email, searchTerm),
-        ),
+        or(ilike(connectionContact.name, searchTerm), ilike(connectionContact.email, searchTerm)),
       ];
 
       if (input.connectionId) {
@@ -29,5 +26,5 @@ export const searchContacts = Workflow.name("connection.search-contacts")
         .select()
         .from(connectionContact)
         .where(and(...conditions));
-    });
-  });
+    }),
+  );

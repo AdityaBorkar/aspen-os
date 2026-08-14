@@ -85,13 +85,7 @@ export {
 } from "./schemas";
 
 export interface TaskLinkInfo {
-  linkType:
-    | "blocks"
-    | "blocked_by"
-    | "related_to"
-    | "duplicates"
-    | "caused_by"
-    | "split_from";
+  linkType: "blocks" | "blocked_by" | "related_to" | "duplicates" | "caused_by" | "split_from";
   sourceId: string;
   targetId: string;
 }

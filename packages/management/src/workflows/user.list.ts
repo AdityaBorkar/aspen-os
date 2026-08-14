@@ -12,8 +12,8 @@ export const listUsers = Workflow.name("user.list")
       filters: optional(PlatformUserFiltersSchema),
     }),
   )
-  .handler(async (input, ctx) => {
-    return ctx.step.run("query", async () => {
+  .handler(async (input, ctx) =>
+    ctx.step.run("query", async () => {
       const parsed = input.filters ?? {};
       const conditions: SQL[] = [];
 
@@ -24,8 +24,7 @@ export const listUsers = Workflow.name("user.list")
         conditions.push(eq(serviceProviderUser.serviceProviderId, parsed.spId));
       }
 
-      const whereClause =
-        conditions.length > 0 ? and(...conditions) : undefined;
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
       return ctx.db
         .select({
@@ -40,5 +39,5 @@ export const listUsers = Workflow.name("user.list")
         .from(user)
         .leftJoin(serviceProviderUser, eq(serviceProviderUser.userId, user.id))
         .where(whereClause);
-    });
-  });
+    }),
+  );

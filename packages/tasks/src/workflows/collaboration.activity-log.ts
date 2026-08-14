@@ -7,8 +7,8 @@ import { IdSchema } from "../types";
 
 export const getActivityLog = Workflow.name("collaboration.activity-log")
   .input(object({ action: optional(IdSchema), taskId: IdSchema }))
-  .handler(async ({ taskId, action }, ctx) => {
-    return ctx.step.run("query", async () => {
+  .handler(async ({ taskId, action }, ctx) =>
+    ctx.step.run("query", async () => {
       const conditions = [eq(activityLog.taskId, taskId)];
       if (action) {
         conditions.push(eq(activityLog.action, action));
@@ -19,5 +19,5 @@ export const getActivityLog = Workflow.name("collaboration.activity-log")
         .from(activityLog)
         .where(and(...conditions))
         .orderBy(desc(activityLog.createdAt));
-    });
-  });
+    }),
+  );

@@ -32,11 +32,9 @@ export const updateConnection = Workflow.name("connection.update")
         name: input.patch.name,
         notes: input.patch.notes,
         relationshipEndDate:
-          input.patch.relationshipEndDate?.toISOString().split("T")[0] ??
-          undefined,
+          input.patch.relationshipEndDate?.toISOString().split("T")[0] ?? undefined,
         relationshipStartDate:
-          input.patch.relationshipStartDate?.toISOString().split("T")[0] ??
-          undefined,
+          input.patch.relationshipStartDate?.toISOString().split("T")[0] ?? undefined,
         tags: input.patch.tags,
         taxId: input.patch.taxId,
         type: input.patch.type,

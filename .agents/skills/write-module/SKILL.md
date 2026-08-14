@@ -36,6 +36,7 @@ packages/<name>/
 ```
 
 **package.json** — mirror management's shape:
+
 ```json
 {
   "build": {
@@ -62,7 +63,7 @@ packages/<name>/
   "name": "@aspen-os/<name>",
   "scripts": {
     "build": "bun run ../../scripts/build.ts",
-    "check:lint": "biome check --fix .",
+    "check:lint": "oxlint --fix . ; oxfmt .",
     "check:types": "tsc -b"
   },
   "type": "module",
@@ -71,6 +72,7 @@ packages/<name>/
 ```
 
 **tsconfig.json** — extend root, mirrored from management:
+
 ```json
 {
   "compilerOptions": {
@@ -82,6 +84,7 @@ packages/<name>/
 ```
 
 **docs/index.mdx** — stub with module name:
+
 ```mdx
 ---
 title: <PascalName>
@@ -93,6 +96,7 @@ Module not yet implemented.
 ```
 
 **docs/meta.json** — mirrored from management:
+
 ```json
 {
   "icon": "Icon<Icon>",
@@ -256,9 +260,10 @@ Create `docs/overview.mdx`, `docs/workflows.mdx`, `docs/access-control.mdx`, `do
 ## Step 11 — Verify
 
 Run in order:
+
 ```bash
 cd /home/aditya/projects/aspen-os/packages/<name> && bun run check:types   # tsc -b must pass
-cd /home/aditya/projects/aspen-os/packages/<name> && bun run check:lint    # biome check --fix . must pass
+cd /home/aditya/projects/aspen-os/packages/<name> && bun run check:lint    # oxlint --fix . ; oxfmt . must pass
 cd /home/aditya/projects/aspen-os/packages/<name> && bun run build         # writes .output/ + rewrites exports (matches management)
 cd /home/aditya/projects/aspen-os && bun run check:types                   # root composite — your package must pass
 ```

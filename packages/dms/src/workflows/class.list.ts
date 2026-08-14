@@ -9,8 +9,8 @@ const ListInputSchema = object({ filters: ClassFiltersSchema });
 
 export const listClasses = Workflow.name("dms.class.list")
   .input(ListInputSchema)
-  .handler(async ({ filters }, ctx) => {
-    return ctx.step.run("query", async () => {
+  .handler(async ({ filters }, ctx) =>
+    ctx.step.run("query", async () => {
       const conditions: SQL[] = [];
       if (filters.activeOnly) {
         conditions.push(eq(dmsDocumentClass.isActive, true));
@@ -25,5 +25,5 @@ export const listClasses = Workflow.name("dms.class.list")
         .from(dmsDocumentClass)
         .where(and(...conditions))
         .orderBy(dmsDocumentClass.name);
-    });
-  });
+    }),
+  );

@@ -4,11 +4,7 @@ import { object, parse } from "valibot";
 import { driveFolder } from "../db-schemas";
 import { DRIVE_EVENTS } from "../pubsub";
 import { getDriveConfig } from "../runtime";
-import {
-  checkNameUniqueness,
-  computeFolderPath,
-  getDepth,
-} from "../services/path-service";
+import { checkNameUniqueness, computeFolderPath, getDepth } from "../services/path-service";
 import { CreateFolderSchema } from "../types";
 
 const CreateInputSchema = object({ input: CreateFolderSchema });
@@ -50,7 +46,9 @@ export const createFolder = Workflow.name("drive.folder.create")
       })
       .returning();
 
-    if (!folder) throw new Error("Failed to create folder.");
+    if (!folder) {
+      throw new Error("Failed to create folder.");
+    }
 
     await ctx.pubsub.publish(DRIVE_EVENTS.FOLDER_CREATED, {
       folder: {

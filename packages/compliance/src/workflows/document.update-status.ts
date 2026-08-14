@@ -24,14 +24,12 @@ const updateDocumentStatus = Workflow.name("document.update-status").handler(
       .where(eq(complianceDocument.id, id))
       .returning();
 
-    if (!updated) throw new Error("Database operation returned no result");
+    if (!updated) {
+      throw new Error("Database operation returned no result");
+    }
 
     const action: AuditAction =
-      status === "expired"
-        ? "expired"
-        : status === "overdue"
-          ? "overdue"
-          : "updated";
+      status === "expired" ? "expired" : status === "overdue" ? "overdue" : "updated";
 
     await ctx.audit.write({
       action,

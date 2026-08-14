@@ -35,18 +35,14 @@ export const UpdateTenantProfileSchema = object({
   slug: optional(SlugSchema),
 });
 
-export type UpdateTenantProfileInput = InferOutput<
-  typeof UpdateTenantProfileSchema
->;
+export type UpdateTenantProfileInput = InferOutput<typeof UpdateTenantProfileSchema>;
 
 export const UpdateTenantCompanionSchema = object({
   plan: optional(nullable(string())),
   status: optional(TenantStatusSchema),
 });
 
-export type UpdateTenantCompanionInput = InferOutput<
-  typeof UpdateTenantCompanionSchema
->;
+export type UpdateTenantCompanionInput = InferOutput<typeof UpdateTenantCompanionSchema>;
 
 export const UpdateTenantSchema = object({
   logo: optional(nullable(string())),

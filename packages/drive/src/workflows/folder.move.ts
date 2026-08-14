@@ -26,9 +26,7 @@ export const moveFolder = Workflow.name("drive.folder.move")
     const newParentId = parsed.newParentId ?? null;
 
     if (
-      await ctx.step.run("check-cycle", async () =>
-        wouldCreateCycle({ folderId: id, newParentId }),
-      )
+      await ctx.step.run("check-cycle", async () => wouldCreateCycle({ folderId: id, newParentId }))
     ) {
       throw new Error("Cannot move a folder into itself or its descendants.");
     }
@@ -56,9 +54,7 @@ export const moveFolder = Workflow.name("drive.folder.move")
 
     const oldPath = fetched.path;
     const parentPath = newParentId
-      ? await ctx.step.run("get-parent-path", async () =>
-          getFolderPath({ folderId: newParentId }),
-        )
+      ? await ctx.step.run("get-parent-path", async () => getFolderPath({ folderId: newParentId }))
       : "";
     const newPath = `${parentPath}/${fetched.name}`;
 
@@ -68,7 +64,9 @@ export const moveFolder = Workflow.name("drive.folder.move")
       .where(eq(driveFolder.id, id))
       .returning();
 
-    if (!updated) throw new Error(`Folder with id "${id}" not found.`);
+    if (!updated) {
+      throw new Error(`Folder with id "${id}" not found.`);
+    }
 
     await ctx.step.run("cascade-paths", async () => {
       await cascadePaths({ newPath, oldPath }, ctx.db);

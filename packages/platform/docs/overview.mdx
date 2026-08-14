@@ -37,11 +37,13 @@ The platform is organized around three concepts: **units** (infrastructure), **m
 ### Server (`@aspen-os/platform/server`)
 
 Exports three platform classes, all extending `BasePlatform`:
+
 - `SingleTenantPlatform` — single DB, `run(fn)`
 - `SharedTenantPlatform` — one DB with RLS, `run(tenantId, fn)`
 - `IsolatedTenantPlatform` — DB-per-tenant, `run(tenantId, fn)`
 
 Also exports:
+
 - `BasePlatform` (abstract), `CommonConfig` type
 - `getContext()` — access `AsyncLocalStorage` inside `run()`
 - `Workflow`, `WorkflowStep` — durable workflow builder
@@ -55,6 +57,7 @@ Also exports:
 ### Client (`@aspen-os/platform/client`)
 
 Exports a single `Platform` class (browser-side, 3 units):
+
 - `AuthUnit` — wraps better-auth React client
 - `LogUnit` — stub (throws on `$prepareInfra`/`$cleanup`)
 - `RpcUnit` — stub (no-op)
@@ -111,6 +114,7 @@ const p = SingleTenantPlatform.create(config, [organizationModule]);
 ```
 
 Inside `BasePlatform.createCore()`:
+
 1. Instantiates all 8 units in dependency order
 2. Cross-wires `pubsub.setAuth(auth)`
 3. Validates each module's `$dependencies` are present
@@ -128,6 +132,7 @@ Calls each unit's `$prepareInfra()`, collects `ModuleInfra` from modules (merged
 ### `run(fn)` / `run(tenantId, fn)`
 
 Executes `fn` inside `AsyncLocalStorage` providing `{ audit, auth, db, pubsub, tenantId? }`:
+
 - `auth` — the `AuthUnit` (not raw betterAuth)
 - `db` — control-plane `NodePgDatabase` (or per-tenant in multi-tenant modes)
 - `pubsub` — the `PubSubUnit`
@@ -161,16 +166,16 @@ Probes both the control-plane DB (`SELECT 1`) and pg-boss (`getQueueSize`). Repo
 
 Units are constructor-injected. `DatabaseUnit` is the root — every other unit depends on it directly or transitively.
 
-| Unit | Injected deps |
-|---|---|
-| `db` | — (owns `pg.Pool` + drizzle, plus tenancy state) |
-| `audit` | `{ db }` |
-| `logs` | `{ db }` |
-| `pubsub` | `{ db }` |
-| `auth` | `{ db, pubsub }` — wired after creation: `pubsub.setAuth(auth)` |
-| `storage` | `{ db }` |
-| `rpc` | `{ auth, db, logs, pubsub }` |
-| `kvStore` | `{ db }` |
+| Unit      | Injected deps                                                   |
+| --------- | --------------------------------------------------------------- |
+| `db`      | — (owns `pg.Pool` + drizzle, plus tenancy state)                |
+| `audit`   | `{ db }`                                                        |
+| `logs`    | `{ db }`                                                        |
+| `pubsub`  | `{ db }`                                                        |
+| `auth`    | `{ db, pubsub }` — wired after creation: `pubsub.setAuth(auth)` |
+| `storage` | `{ db }`                                                        |
+| `rpc`     | `{ auth, db, logs, pubsub }`                                    |
+| `kvStore` | `{ db }`                                                        |
 
 ## Accessing Units and Modules
 
@@ -178,14 +183,14 @@ The platform instance is a Proxy that intercepts property access:
 
 ```ts
 // Proxy access (preferred)
-p.db               // → DatabaseUnit
-p.auth              // → AuthUnit
-p.organization      // → Organization (module instance by $name)
-p.management        // → ManagementPlane module ($name = "management")
+p.db; // → DatabaseUnit
+p.auth; // → AuthUnit
+p.organization; // → Organization (module instance by $name)
+p.management; // → ManagementPlane module ($name = "management")
 
 // Typed accessors
-p.getUnit("db")         // → DatabaseUnit
-p.getModule("organization")  // throws if not found
+p.getUnit("db"); // → DatabaseUnit
+p.getModule("organization"); // throws if not found
 ```
 
 The Proxy checks units first, then modules. If a property matches a unit key, the unit is returned; otherwise it checks modules by `$name`; otherwise falls through to `BasePlatform` methods.

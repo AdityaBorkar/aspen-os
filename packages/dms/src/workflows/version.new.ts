@@ -6,10 +6,7 @@ import { dmsDocument, dmsDocumentVersion } from "../db-schemas";
 import { DOCUMENT_EVENTS } from "../pubsub";
 import { getDmsConfig } from "../runtime";
 import { pruneVersions } from "../services/purge-service";
-import {
-  computeStorageKey,
-  upload as uploadStorage,
-} from "../services/storage-bridge";
+import { computeStorageKey, upload as uploadStorage } from "../services/storage-bridge";
 import { IdSchema, NewVersionSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../utils/constants";
 import { fetchDocumentStep } from "./steps/fetch-document";
@@ -26,9 +23,7 @@ export const newDocumentVersion = Workflow.name("dms.version.new")
     const doc = await ctx.step.run(fetchDocumentStep, { documentId });
 
     if (doc.status === "deleted") {
-      throw new Error(
-        `Document "${documentId}" is deleted and cannot accept new versions.`,
-      );
+      throw new Error(`Document "${documentId}" is deleted and cannot accept new versions.`);
     }
     if (doc.status === "triaged") {
       throw new Error(
@@ -46,13 +41,13 @@ export const newDocumentVersion = Workflow.name("dms.version.new")
       version: newVersion,
     });
 
-    const fileObject = await ctx.step.run("upload-storage", async () => {
-      return uploadStorage({
+    const fileObject = await ctx.step.run("upload-storage", async () =>
+      uploadStorage({
         body: parsed.body as Buffer | ReadableStream | string,
         contentType: parsed.contentType ?? doc.contentType,
         key: storageKey,
-      });
-    });
+      }),
+    );
 
     await ctx.step.run("record-history", async () => {
       await ctx.db.insert(dmsDocumentVersion).values({
