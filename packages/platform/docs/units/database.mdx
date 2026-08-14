@@ -1,0 +1,139 @@
+---
+title: Database
+description: PostgreSQL connection pool and Drizzle ORM integration with tenancy and provisioning support.
+icon: IconDatabase
+---
+
+The `DatabaseUnit` (`$name: "db"`) is the foundational unit — all other units depend on it. It owns a control-plane `pg.Pool` and a Drizzle `NodePgDatabase` instance, plus per-tenant pools in isolated mode.
+
+## Configuration
+
+```ts title="src/server/db/types.ts"
+type DatabaseConfig = {
+  database: string;
+  host: string;
+  password: string;
+  port: number;
+  ssl?: boolean;
+  user: string;
+  maxConnections?: number;
+};
+```
+
+The `db` config is always the **control-plane** database connection. In single/RLS mode this IS the app DB. In isolated mode it is the control-plane DB (auth + platform tables); per-tenant DB config is derived from `IsolatedTenantDatabaseConfig`.
+
+The `DatabaseUnit` constructor also takes the tenancy mode and, in isolated mode, options:
+
+```ts
+new DatabaseUnit(config.db, "single");
+new DatabaseUnit(config.db, "shared");
+new DatabaseUnit(config.db, "isolated", {
+  controlPlaneDbName,
+  tenantDbPrefix,
+  tenantDbDefaults,
+  resolver,
+});
+```
+
+## Public API
+
+```ts title="src/server/db/unit.ts"
+class DatabaseUnit<TSchemas> {
+  readonly $name = "db";
+  readonly tenancyMode: TenancyMode;
+  readonly resolver?: TenantResolver;
+
+  get db(): DrizzleDB<TSchemas>;              // stable wrapper (Proxy) — resolves per-request
+  get controlPlaneDb(): DrizzleDB<TSchemas>;  // control-plane drizzle instance
+  get pool(): pg.Pool;                        // control-plane connection pool
+
+  getSchemas(): Record<string, unknown>;      // core schemas (auth, logs, storage, kvStore, audit, workflows)
+
+  async prepareWithModules(
+    controlPlaneSchemas: Record<string, unknown>,
+    tenantSchemas: Record<string, unknown>,
+  ): Promise<void>;                           // push all schemas
+
+  // Isolated-mode provisioning
+  async getTenantDb(tenantId: string): Promise<DrizzleDB<TSchemas>>;
+  async pushSchemasToTenant(tenantId: string, moduleSchemas: Record<string, unknown>): Promise<void>;
+  async provisionTenant(tenantId: string, config): Promise<...>;
+  async seedTenantDb(tenantId: string): Promise<void>;
+  async createTenant(tenantId: string): Promise<void>;
+
+  // Shared-mode RLS
+  async applyRlsPolicies(db: DrizzleDB<TSchemas>): Promise<void>;
+
+  async $prepareInfra(...): Promise<void>;
+  async $cleanup(): Promise<void>;
+}
+```
+
+## Stable DB Wrapper
+
+`db` is a getter returning a stable wrapper (a `Proxy`) that resolves the correct per-request drizzle instance via `AsyncLocalStorage` at query time. Workflows keep `this.db = units.db.db` — no workflow code changes:
+
+```ts
+p.db.db; // stable wrapper — resolves per-request via context
+p.db.controlPlaneDb; // direct control-plane drizzle instance
+p.db.pool; // pg.Pool — control-plane connection pool
+```
+
+## Schema Management
+
+During `$prepareInfra()`, the platform calls `prepareWithModules(controlPlaneSchemas, tenantSchemas)` with the merged schemas from all modules' `ModuleInfra`. `getSchemas()` returns the platform core schemas:
+
+| Unit      | Tables                                                        |
+| --------- | ------------------------------------------------------------- |
+| `auth`    | `user`, `session`, `account`, `verification` (no `tenant_id`) |
+| `logs`    | `logs`                                                        |
+| `storage` | `file_metadata`                                               |
+| `kvStore` | `kv_store`                                                    |
+| `audit`   | `audit_log`                                                   |
+| workflows | `workflow_runs`, `workflow_steps`                             |
+
+<Callout type="info">
+  In shared mode, RLS policies are applied to all tables with a `tenant_id` column after schemas are
+  pushed. Auth tables are exempt — no `tenant_id`, no RLS.
+</Callout>
+
+## Multi-Tenant Support
+
+See the [Tenancy guide](/docs/platform/tenancy) for full details.
+
+### Per-Tenant Pools (isolated mode)
+
+```ts
+await p.db.getTenantDb("tenant_123");
+// Lazily creates and caches a pg.Pool + drizzle instance for the tenant
+```
+
+### RLS Policies (shared mode)
+
+```ts
+await p.db.applyRlsPolicies(p.db.controlPlaneDb);
+// Discovers all tables with tenant_id, creates tenant_role, applies RLS policies
+```
+
+## Dependency Injection
+
+The `DatabaseUnit` is the only unit with no injected dependencies. All other units receive `{ db: DatabaseUnit }` (or more) via constructor injection.
+
+## Access in Request Context
+
+Inside `p.run()`, the Drizzle `db` is available via `getContext()`:
+
+```ts
+import { getContext } from "@aspen-os/platform/server";
+
+// Single-tenant
+await p.run(async () => {
+  const { db } = getContext();
+});
+
+// Multi-tenant
+await p.run(tenantId, async () => {
+  const { db, tenantId } = getContext();
+  // ctx also provides: auth (AuthUnit), pubsub (PubSubUnit), audit (AuditUnit)
+});
+```

@@ -1,0 +1,55 @@
+import type { UseChatHelpers } from "@ai-sdk/react";
+import type { UIMessage } from "ai";
+import { createContext, use, useEffect, useEffectEvent } from "react";
+
+export type ChatUIMessage = UIMessage<
+  never,
+  {
+    client: {
+      location: string;
+    };
+  }
+>;
+
+export const Context = createContext<{
+  open: boolean;
+  setOpen: (open: boolean) => void;
+  chat: UseChatHelpers<ChatUIMessage>;
+} | null>(null);
+
+export function useAISearchContext() {
+  const ctx = use(Context);
+  if (!ctx) {
+    throw new Error("useAISearchContext must be used within an AISearch");
+  }
+  return ctx;
+}
+
+export function useChatContext() {
+  const ctx = use(Context);
+  if (!ctx) {
+    throw new Error("useChatContext must be used within an AISearch");
+  }
+  return ctx.chat;
+}
+
+export function useHotKey() {
+  const { open, setOpen } = useAISearchContext();
+
+  const onKeyPress = useEffectEvent((event: KeyboardEvent) => {
+    if (event.key === "Escape" && open) {
+      setOpen(false);
+      event.preventDefault();
+    }
+
+    if (event.key === "/" && (event.metaKey || event.ctrlKey) && !open) {
+      setOpen(true);
+      event.preventDefault();
+    }
+  });
+
+  useEffect(() => {
+    window.addEventListener("keydown", onKeyPress);
+    return () => window.removeEventListener("keydown", onKeyPress);
+  }, []);
+}

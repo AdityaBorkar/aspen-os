@@ -1,0 +1,96 @@
+---
+title: Overview
+description: Architecture, initialization, and module structure of the Organization domain module.
+icon: IconInfoCircle
+---
+
+The Organization module manages organizational structure, branches, connections (clients/vendors/partners), addresses, and bank accounts. It is a fully implemented domain module following the platform's module pattern.
+
+## Module
+
+```ts title="src/index.ts"
+export class Organization implements Module {
+  static create(config: OrganizationConfig): Organization;
+  readonly $name = "organization";
+  readonly $dependencies: readonly string[] = [];
+}
+```
+
+`OrganizationConfig` is `{ country: "INDIA" }` — country-specific configuration for address validation.
+
+## Infrastructure
+
+`$prepareInfra()` declares the module's ACL, DB schemas, and events:
+
+```ts
+$prepareInfra(): ModuleInfra {
+  return {
+    auth: { acl },                              // connection, address, ...
+    db: { control_plane_schemas, tenant_schemas },
+    events,                                     // organization:*, branch:*, ...
+  };
+}
+```
+
+`$initialize()`, `$prepareRuntime()`, and `$cleanup()` are no-ops — the workflows are stateless objects.
+
+## Workflow Accessors
+
+The module exposes five workflow groups as readonly objects:
+
+```ts
+p.organization.organizations; // → OrganizationWorkflow
+p.organization.branches; // → BranchWorkflow
+p.organization.connections; // → ConnectionWorkflow
+p.organization.addresses; // → AddressWorkflow
+p.organization.bankAccounts; // → BankAccountWorkflow
+```
+
+## Module Structure
+
+```text
+packages/organization/src/
+  index.ts              # Module class re-exports
+  module.ts             # Module class (implements Module)
+  auth.ts               # defineAcl() ACL declaration
+  pubsub.ts             # Events across 3 event groups
+  db-schemas/           # Per-entity tables (organization, branch, connection, address, bank-account, ...)
+  types.ts              # Type re-exports
+  schemas/              # Valibot validation schemas
+    index.ts
+    enums.ts
+    connection.ts
+    address.ts
+    bank-account.ts
+  workflows/
+    <entity>.<action>.ts   # One file per workflow
+    steps/                 # Reusable WorkflowSteps (fetch-<entity>.ts)
+```
+
+## Package
+
+```json title="package.json"
+{
+  "name": "@aspen-os/organization",
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@aspen-os/platform": "workspace:*",
+    "@aspen-os/constants": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "valibot": "catalog:"
+  }
+}
+```
+
+## Constants & Enums
+
+Organization-specific enums come from `@aspen-os/constants`:
+
+| Enum                 | Values                                                                                                             |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `OrganizationStatus` | `active`, `suspended`, `archived`                                                                                  |
+| `BranchType`         | `headquarters`, `office`, `warehouse`, `store`, `factory`, `remote`, `other`                                       |
+| `ConnectionType`     | `client`, `vendor`, `partner`, `subsidiary`, `parent_company`, `investor`, `regulator`, `insurer`, `bank`, `other` |
+| `ConnectionStatus`   | `active`, `inactive`, `prospect`, `former`                                                                         |
+| `ConnectionNoteType` | `general`, `call`, `email`, `meeting`, `contract_renewal`, `issue`                                                 |

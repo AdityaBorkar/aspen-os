@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "declarationDir": "../../.local/types/inventory",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "extends": "../../tsconfig.json"
+}

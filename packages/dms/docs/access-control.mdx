@@ -1,0 +1,61 @@
+---
+title: Access Control
+description: ACL resources and operations declared by the DMS module.
+icon: IconShield
+---
+
+The DMS module declares its ACL via `defineAcl()`, which the platform merges from the module's `ModuleInfra.auth.acl` and applies to `AuthUnit` during `$prepareInfra()`.
+
+## Resources & Operations
+
+```ts title="src/auth.ts"
+import { defineAcl } from "@aspen-os/platform/server";
+
+export const acl = defineAcl({
+  classField: ["create", "deactivate", "read", "update"],
+  class: ["archive", "create", "read", "update"],
+  contact: ["create", "delete", "read", "update"],
+  file: ["classify", "create", "delete", "download", "read", "restore", "update"],
+  fileView: ["create", "delete", "read", "set_default", "update"],
+  folder: ["create", "delete", "read", "update"],
+  label: ["create", "delete", "read", "update"],
+  legalHold: ["create", "read"],
+  pin: ["create", "delete", "read"],
+  publicLink: ["create", "delete", "read", "update"],
+  setting: ["read", "update"],
+  share: ["create", "delete", "read", "update"],
+});
+```
+
+| Resource     | Operations                                                              |
+| ------------ | ----------------------------------------------------------------------- |
+| `file`       | `classify`, `create`, `delete`, `download`, `read`, `restore`, `update` |
+| `classField` | `create`, `deactivate`, `read`, `update`                                |
+| `class`      | `archive`, `create`, `read`, `update`                                   |
+| `contact`    | `create`, `delete`, `read`, `update`                                    |
+| `fileView`   | `create`, `delete`, `read`, `set_default`, `update`                     |
+| `folder`     | `create`, `delete`, `read`, `update`                                    |
+| `label`      | `create`, `delete`, `read`, `update`                                    |
+| `legalHold`  | `create`, `read`                                                        |
+| `pin`        | `create`, `delete`, `read`                                              |
+| `publicLink` | `create`, `delete`, `read`, `update`                                    |
+| `setting`    | `read`, `update`                                                        |
+| `share`      | `create`, `delete`, `read`, `update`                                    |
+
+## Admin-Only Authority
+
+The ACL is the _declaration_ of operations; role definitions and permission enforcement are application-level concerns. The following DMS semantics are **admin-only by design** and must be enforced by the host app's roles:
+
+- Manage classes and class fields (`classes.*`)
+- Publish shared file views (`fileViews.create` with `isShared: true`) and update/delete them
+- Read/write module settings (`settings.set`)
+- Place/release legal holds (`holds.place`, `holds.release`)
+- Permanently delete from the trash (`trash.deletePermanently`, `trash.empty`)
+
+Ordinary users may soft-delete their own files and folders, restore them, and pin triage/file-view/class items to their sidebar.
+
+<Callout type="info">
+  The ACL is the *declaration* of operations. Role definitions and permission enforcement are
+  application-level concerns — the module exposes the workflows that perform these operations; the
+  host app decides who may call them.
+</Callout>

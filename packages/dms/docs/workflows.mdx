@@ -1,0 +1,271 @@
+---
+title: Workflows
+description: API reference for the workflow groups exposed by the DMS module.
+icon: IconListCheck
+---
+
+The DMS module exposes workflows as flat `Workflow` objects grouped under accessors: `files`, `folders`, `classes`, `labels`, `shares`, `trash`, `fileViews`, `triage`, `pins`, `contacts`, `holds`, `settings`, `search`, `activity`, `versions`, plus the `access`/`archive`/`paths`/`storage` services. Access via the platform proxy key `p.dms`.
+
+## Lifecycle Flow
+
+```text
+upload into folder ──▶ active ──▶ trashed ── retention/auto-purge ──▶ purged
+upload (staged) ──▶ triaged ──classify──▶ active
+                           active ──expiry──▶ expired ──▶ trashed (restore reactivates)
+```
+
+A legal hold placed while `active`/`expired` blocks auto-purge and `deletePermanently`.
+
+## Files & Triage
+
+```ts
+// Upload into a folder lands active; upload without a folder lands in Triage
+const folder = await p.dms.folders.create({ input: { name: "Projects", ownerId } });
+const file = await p.dms.files.upload({
+  input: { name: "invoice.pdf", folderId: folder.id, body, contentType: "application/pdf", ownerId, labelIds: [] },
+});
+const staged = await p.dms.files.upload({
+  input: { name: "scan.pdf", body, contentType: "application/pdf", ownerId }, // triaged
+});
+const { batchId, files } = await p.dms.files.uploadBulk({ input: { inputs: [...] } });
+
+// Triage list + detail
+await p.dms.triage.list({ filters: {} });
+await p.dms.triage.detail({ id: staged.id }); // incl. missing required fields per candidate class
+
+// Classify — validates required fields, applies file-naming schema (metadata rename), assigns docNumber
+await p.dms.triage.classify({ id: staged.id, input: { classId, fieldValues: { invoiceNumber: "INV-1" } } });
+
+// Read / download
+await p.dms.files.get({ id });
+await p.dms.files.getById({ id });
+await p.dms.files.download({ id, options: { expiresIn } });
+await p.dms.files.getDownloadLink({ id, options: { expiresIn } });
+
+// Patch / rename / move / copy
+await p.dms.files.update({ id, input: { metadata: { ... } } });
+await p.dms.files.update({ id, input: { body, contentType, uploadedBy } }); // creates a new version
+await p.dms.files.rename({ id, input: { name } });
+await p.dms.files.move({ id, input: { newFolderId } });
+await p.dms.files.copy({ id, destFolderId });
+await p.dms.files.addMetadata({ id, input: { key, value } });
+await p.dms.files.removeMetadata({ id, input: { key } });
+
+// Soft delete → trash; restore; hard purge
+await p.dms.files.delete({ id });
+await p.dms.files.restore({ id, expiryDate });
+await p.dms.files.purge({ id });
+```
+
+## Versions
+
+```ts
+await p.dms.versions.new({ fileId, input: { body, name, contentType } });
+await p.dms.versions.list({ fileId }); // current + history
+await p.dms.versions.getCurrent({ fileId });
+await p.dms.versions.get({ fileId, version: 2 }); // presigned URL for a revision
+await p.dms.versions.revert({ fileId, version: 2 }); // promotes version 2 as a NEW current (counters keep incrementing)
+await p.dms.versions.delete({ fileId, version: 2 }); // cannot delete the current version
+```
+
+`new` saves the previous current into `dms_file_version`, bumps the counter, and prunes the oldest versions beyond `maxVersions` (a version under an active legal hold is never pruned). `revert` copies the target revision's bytes into a new current version.
+
+## Folders
+
+```ts
+// Folders — materialized paths, nesting depth, cycle-safe moves
+await p.dms.folders.create({ input: { name: "Projects", ownerId, parentId: null } });
+await p.dms.folders.rename({ id, input: { name: "Projects 2026" } });
+await p.dms.folders.move({ id, input: { newParentId } });
+await p.dms.folders.update({ id, input: { color: "#3B82F6" } });
+await p.dms.folders.delete({ id, force: false }); // soft-delete to trash
+await p.dms.folders.restore({ id });
+await p.dms.folders.get({ id }); // includes childCount + totalSize
+await p.dms.folders.getById({ id });
+await p.dms.folders.list({ id, opts: { search, sortBy, sortOrder } });
+```
+
+## Classes
+
+```ts
+const cls = await p.dms.classes.create({ input: { name: "Invoice", createdBy: adminId } });
+await p.dms.classes.addField({
+  input: {
+    classId: cls.id,
+    name: "invoiceNumber",
+    label: "Invoice Number",
+    type: "text",
+    isRequired: true,
+  },
+});
+
+await p.dms.classes.list({ filters: { activeOnly: true } });
+await p.dms.classes.get({ id: cls.id });
+
+await p.dms.classes.update({ id: cls.id, patch: { retentionDays: 90 } });
+await p.dms.classes.updateField({ id: fieldId, patch: { isRequired: false } });
+await p.dms.classes.deactivateField({ id: fieldId });
+
+await p.dms.classes.archive({ id: cls.id }); // blocked while triaged files reference it
+```
+
+File-naming schemas (e.g. `{class}_{docNumber}_{field:invoiceNumber}-{date:yyyy}.pdf`) are rendered at classify time as a metadata-only rename.
+
+## Labels
+
+```ts
+// Labels — global or user-owned, applied to files/folders
+await p.dms.labels.create({ input: { name: "Important", color: "#EF4444", isGlobal: true } });
+await p.dms.labels.update({ id, input: { name, color } });
+await p.dms.labels.list({ opts: { includeGlobal: true, ownerId } });
+await p.dms.labels.apply({ input: { labelId, entityId, entityType: "file", appliedBy } });
+await p.dms.labels.remove({ entityId, entityType, labelId });
+await p.dms.labels.listByLabel({ labelId });
+await p.dms.labels.delete({ id });
+```
+
+Labels replace the former tag system — a file or folder can carry multiple labels, and upload accepts `labelIds`.
+
+## Sharing (grants + public links)
+
+```ts
+// Grants — to user / group / contact, with folder inheritance
+await p.dms.shares.create({
+  input: {
+    entityId,
+    entityType: "file",
+    granteeId,
+    granteeType: "user",
+    permission: "viewer",
+    sharedBy,
+  },
+});
+await p.dms.shares.update({ id, patch: { permission: "editor" } });
+await p.dms.shares.remove({ id });
+await p.dms.shares.get({ id });
+await p.dms.shares.list({ entityId, entityType });
+await p.dms.shares.listByGrantee({ granteeId, granteeType });
+await p.dms.shares.resolveToken({ input: { token } }); // contact (token) download endpoint
+await p.dms.shares.listSharedWithMe({ userId });
+
+// Public links — token + optional password, view/edit, max views
+await p.dms.shares.createPublicLink({
+  input: { entityId, entityType, permission: "view", createdBy },
+});
+await p.dms.shares.updatePublicLink({ id, input: { maxViews, expiresAt } });
+await p.dms.shares.resolvePublicLink({ input: { token, password } });
+await p.dms.shares.listPublicLinks({ entityId, entityType });
+await p.dms.shares.getPublicLink({ id });
+await p.dms.shares.revokePublicLink({ id });
+```
+
+Sharing to a `contact` creates a `shareToken`; revoking the share or removing the contact invalidates it immediately. Sharing to a `user`/`group` enables access within normal authenticated visibility, and folder grants inherit down the folder tree. Only `active` files can be shared.
+
+## File Views & Search
+
+```ts
+await p.dms.fileViews.create({
+  input: { name: "Invoices due this month", ownerId: userId, filters: [...], sort: [] },
+});
+await p.dms.fileViews.setDefault({ id: viewId });
+await p.dms.fileViews.list({ ownerId: userId });
+await p.dms.fileViews.listByOwner({ ownerId: userId });
+await p.dms.fileViews.getDefault({ ownerId: userId });
+await p.dms.fileViews.update({ id, patch: { filters } });
+await p.dms.fileViews.delete({ id });
+await p.dms.fileViews.apply({ viewId: viewId }); // resolves to a file listing
+
+// Pins — item types: triage, file_view, class
+await p.dms.pins.create({ itemId: viewId, itemType: "file_view", userId });
+await p.dms.pins.list({ userId });
+
+// Search — records + filesystem search merged
+await p.dms.search.search({ query: "INV", options: { scope: "mine" } });
+await p.dms.search.quick({ input: { query: "INV" }, userId });
+await p.dms.search.promoteToView({ query: "INV", options: {}, name: "Search: INV", ownerId: userId });
+```
+
+File views never expose triaged/trashed files unless a condition explicitly targets `status = triaged|trashed`. Full-text search covers current-version `name`, description, metadata scalars, and class `fieldValues` (respecting `Include In Search`), scoped to the caller's visibility; filesystem search also returns folders by name.
+
+## Trash, Retention & Holds
+
+```ts
+await p.dms.trash.list({ filters: {} }); // trashed + expired files and trashed folders, with provenance + held flag
+await p.dms.trash.restore({ id, entityType: "file", expiryDate }); // file/folder → active
+await p.dms.trash.purgeExpired({}); // run the auto-purge inline
+
+// Admin only
+await p.dms.trash.deletePermanently({ id, entityType: "file" }); // rejects files under an active legal hold
+await p.dms.trash.empty({ opts: { ownerId } }); // bulk purge, skipped holders
+
+await p.dms.holds.place({ fileId, placedBy, reason });
+await p.dms.holds.release({ holdId, releasedBy });
+await p.dms.holds.list({ fileId });
+```
+
+Retention counts from `deletedAt`/`expiredAt`, resolved per class (`retentionDays`) falling back to the `defaultRetentionDays` setting; trashed folders are purged after `trashRetentionDays`. Auto-purge is a system job (no ACL) that skips held files and never touches triaged/active files.
+
+## Contacts
+
+```ts
+await p.dms.contacts.create({
+  input: {
+    firstName,
+    lastName,
+    email,
+    phone,
+    companyName,
+    designation,
+    createdBy,
+  }, // all 6 business fields mandatory
+});
+await p.dms.contacts.update({ id, patch: { phone } });
+await p.dms.contacts.list({ filters: {} });
+await p.dms.contacts.get({ id });
+
+await p.dms.contacts.remove({ id, input: { reason: "Left the project" } }); // reason required; revokes every grant
+```
+
+## Settings & Activity
+
+```ts
+await p.dms.settings.get({ key: "logDownloads" });
+await p.dms.settings.set({ key: "logDownloads", value: true }); // admin only
+
+await p.dms.activity.get({ entityId: fileId, entityType: "file" });
+await p.dms.activity.getFile({ fileId });
+await p.dms.activity.getClass({ classId });
+```
+
+Activity is a projection over the platform `AuditUnit` (entity types `dms:*`), ordered by `seq`, paged, over the caller's visible scope.
+
+## Services
+
+```ts
+// Access control — folder inheritance up the chain
+await p.dms.access.checkPermission({ entityId, entityType, userId, required: "editor" });
+await p.dms.access.getEffectivePermission({ entityId, entityType, userId });
+await p.dms.access.isOwner({ entityId, entityType, userId });
+await p.dms.access.logAccess({
+  entityId,
+  entityType,
+  action: "public_link_accessed",
+  publicLinkId,
+});
+
+// Folder paths
+await p.dms.paths.resolvePath({ path: "/Projects/2026" });
+await p.dms.paths.getBreadcrumbs({ folderId });
+await p.dms.paths.checkNameUniqueness({ name, parentId });
+
+// Archives + storage bridge
+await p.dms.archive.createArchive({ folderId, options: { includeSubfolders: true } });
+await p.dms.archive.processArchiveJob({ folderId, includeSubfolders: true });
+await p.dms.storage.getSignedGetUrl({ key, expiresIn: 3600 });
+```
+
+## Notes
+
+- All workflows are `Workflow.name(...)` objects (`dms.file.upload`, `dms.triage.classify`, `dms.version.new`, etc.), each with Valibot input validation.
+- Mutations write audit entries inline (`ctx.audit.write`) and publish `dms:*` domain events via `ctx.pubsub`.
+- Admin-only enforcement points (classes, settings, holds, shared file views, permanent trash deletes) are guarded by the caller's role at the application layer; the workflows receive the actor and the host app decides authorization.

@@ -1,0 +1,131 @@
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { createFileRoute } from "@tanstack/react-router";
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  stepCountIs,
+  streamText,
+  tool,
+  toUIMessageStream,
+} from "ai";
+import { Document, type DocumentData } from "flexsearch";
+import { z } from "zod";
+
+import type { ChatUIMessage, SearchTool } from "@/components/ai/search";
+import { source } from "@/lib/source";
+
+interface CustomDocument extends DocumentData {
+  content: string;
+  description: string;
+  title: string;
+  url: string;
+}
+const searchServer = createSearchServer();
+
+async function createSearchServer() {
+  const search = new Document<CustomDocument>({
+    document: {
+      id: "url",
+      index: ["title", "description", "content"],
+      store: true,
+    },
+  });
+
+  const docs = await chunkedAll(
+    source.getPages().map(async (page) => {
+      if (!("getText" in page.data)) {
+        return null;
+      }
+
+      return {
+        content: await page.data.getText("processed"),
+        description: page.data.description,
+        title: page.data.title,
+        url: page.url,
+      } as CustomDocument;
+    }),
+  );
+
+  for (const doc of docs) {
+    if (doc) {
+      search.add(doc);
+    }
+  }
+
+  return search;
+}
+
+async function chunkedAll<TOutput>(promises: Promise<TOutput>[]): Promise<TOutput[]> {
+  const SIZE = 50;
+  const out: TOutput[] = [];
+  // oxlint-disable eslint/no-await-in-loop
+  for (let index = 0; index < promises.length; index += SIZE) {
+    out.push(...(await Promise.all(promises.slice(index, index + SIZE))));
+  }
+  // oxlint-enable eslint/no-await-in-loop
+  return out;
+}
+
+const openrouter = createOpenRouter({
+  apiKey: process.env.OPENROUTER_API_KEY,
+});
+
+/** System prompt, you can update it to provide more specific information */
+const systemPrompt = [
+  "You are an AI assistant for a documentation site.",
+  "Use the `search` tool to retrieve relevant docs context before answering when needed.",
+  "The `search` tool returns raw JSON results from documentation. Use those results to ground your answer and cite sources as markdown links using the document `url` field when available.",
+  "If you cannot find the answer in search results, say you do not know and suggest a better search query.",
+].join("\n");
+
+export const Route = createFileRoute("/api/chat")({
+  server: {
+    handlers: {
+      POST: async (ctx) => {
+        const request = (await ctx.request.json()) as any;
+
+        const result = streamText({
+          messages: [
+            { content: systemPrompt, role: "system" },
+            ...(await convertToModelMessages<ChatUIMessage>(request?.messages ?? [], {
+              convertDataPart(part) {
+                if (part.type === "data-client") {
+                  return {
+                    text: `[Client Context: ${JSON.stringify(part.data)}]`,
+                    type: "text",
+                  };
+                }
+              },
+            })),
+          ],
+          model: openrouter.chat(process.env.OPENROUTER_MODEL ?? "anthropic/claude-3.5-sonnet"),
+          stopWhen: stepCountIs(5),
+          toolChoice: "auto",
+          tools: {
+            search: searchTool,
+          },
+        });
+
+        return createUIMessageStreamResponse({
+          stream: toUIMessageStream({ stream: result.stream }),
+        });
+      },
+    },
+  },
+});
+
+const searchTool = tool({
+  description: "Search the docs content and return raw JSON results.",
+  async execute({ query, limit }) {
+    const search = await searchServer;
+    return await search.searchAsync(query, {
+      enrich: true,
+      limit,
+      merge: true,
+    });
+  },
+  inputSchema: z.object({
+    limit: z.number().int().min(1).max(100).default(10),
+    query: z.string(),
+  }),
+}) satisfies SearchTool;

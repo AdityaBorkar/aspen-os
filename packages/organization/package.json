@@ -1,0 +1,45 @@
+{
+  "name": "@aspen-os/organization",
+  "version": "0.1.0",
+  "files": [
+    "./docs",
+    "package.json",
+    "README.md",
+    "./.output"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./.output/index.js",
+      "types": "./.output/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "bun run ../../scripts/build.ts",
+    "check:lint": "oxlint --fix . ; oxfmt .",
+    "check:types": "tsc -b"
+  },
+  "dependencies": {
+    "@aspen-os/constants": "workspace:*",
+    "@aspen-os/platform": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "valibot": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
+  },
+  "build": {
+    "exports": {
+      ".": {
+        "path": "./src/index.ts",
+        "target": "node"
+      }
+    },
+    "files": [
+      "./docs",
+      "package.json",
+      "README.md"
+    ]
+  }
+}

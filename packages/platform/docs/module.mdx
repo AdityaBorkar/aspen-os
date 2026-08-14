@@ -1,0 +1,201 @@
+---
+title: Module
+description: Domain logic packages — pluggable, application-managed, wired into the platform via initialize().
+icon: IconHexagons
+---
+
+A **Module** is a package of domain business logic. Modules are optional, pluggable, and created by the application — not the platform. You choose which modules to include, create them via their static `create()` factory, and pass them (as an array) to a platform `create()`.
+
+## The Module Interface
+
+```ts title="src/server/index.ts"
+interface Module<N extends string = string> {
+  readonly $name: N;
+  readonly $dependencies: readonly string[];
+  $initialize(units: Record<string, Unit>): void;
+  $prepareInfra(): ModuleInfra;
+  $prepareRuntime(): void | Promise<void>;
+  $prepareTenant?(tenantId: string): Promise<void>;
+  $cleanup(): void | Promise<void>;
+}
+```
+
+`ModuleInfra` declares the module's infrastructure needs:
+
+```ts
+type ModuleInfra = {
+  auth: { acl: Record<string, readonly string[]> };
+  db: {
+    control_plane_schemas: Record<string, unknown>;
+    tenant_schemas: Record<string, unknown>;
+  };
+  events: Record<string, Record<string, string>>;
+};
+```
+
+### Lifecycle methods
+
+| Method                     | When it's called                                    | What it does                                      |
+| -------------------------- | --------------------------------------------------- | ------------------------------------------------- |
+| `$initialize(units)`       | Inside `create()`, after all units are instantiated | Receives the units. May store a unit reference.   |
+| `$prepareInfra()`          | During `$prepareInfra()`                            | Returns `ModuleInfra` — DB schemas + ACL + events |
+| `$prepareRuntime()`        | During `$prepareInfra()`, after units prepared      | Registers pubsub handlers/schedules               |
+| `$prepareTenant(tenantId)` | During `$prepareInfra()` in isolated mode           | Per-tenant cron/schedules                         |
+| `$cleanup()`               | During `$cleanup()`, before units are destroyed     | Releases resources                                |
+
+<Callout type="warn">
+  Required methods on `Module`: `$name`, `$dependencies`, `$initialize`, `$prepareInfra`,
+  `$prepareRuntime`, `$cleanup`. Only `$prepareTenant` is optional.
+</Callout>
+
+## How Modules Are Created
+
+Modules are created by the application via a static `create()` factory, then passed as an **array** to the platform:
+
+```ts
+import { Organization } from "@aspen-os/organization"; // Module instance class
+import { Compliance } from "@aspen-os/compliance";
+const organization = Organization.create({ country: "INDIA" });
+const compliance = Compliance.create({ country: "INDIA" });
+
+const p = SingleTenantPlatform.create(config, [organization, compliance]);
+
+await p.$prepareInfra();
+```
+
+Inside `createCore()`, the platform iterates modules and calls `mod.$initialize?.(units)` on each, passing the fully-constructed `PlatformUnits`. Module `$name`s become proxy keys on the platform instance.
+
+## Accessing Modules
+
+### Proxy access (preferred)
+
+```ts
+p.organization; // → Organization (module instance by $name)
+p.compliance; // → Compliance
+p.getModule("organization"); // → throws if not found
+```
+
+The proxy checks units first, then modules.
+
+## Module Conventions
+
+Domain modules follow a consistent structure. Two patterns exist in the ecosystem.
+
+### Static `create()` factory
+
+Never use `new` directly. Expose a static factory:
+
+```ts title="src/index.ts"
+export class MyModule {
+  static create(config: MyModuleConfig): MyModule {
+    return new MyModule(config);
+  }
+  private constructor(private config: MyModuleConfig) {}
+}
+```
+
+### `$prepareInfra()` returns ModuleInfra
+
+```ts
+$prepareInfra(): ModuleInfra {
+  return {
+    auth: { acl: { connection: ["create", "update", "archive", "restore"] } },
+    db: { control_plane_schemas: cpTables, tenant_schemas: tenantTables },
+    events: { myModule: MY_EVENTS },
+  };
+}
+```
+
+Schema push happens in `DatabaseUnit.prepareWithModules()`, not the module's own method.
+
+### `db_schema` export
+
+The module's drizzle schema namespace is exported as `db_schema`:
+
+```ts
+import * as dbSchema from "./db-schemas";
+export { dbSchema };
+```
+
+### `$name` and `$dependencies`
+
+```ts
+readonly $name = "organization" as const;
+readonly $dependencies: readonly string[] = ["organization"];
+```
+
+`$dependencies` controls initialization ordering. `createCore()` throws if a listed dependency is missing.
+
+## File Structure
+
+```text
+packages/my-module/
+  src/
+    index.ts              # Module class re-exports
+    module.ts             # Module class (implements Module)
+    auth.ts               # defineAcl() ACL declaration
+    pubsub.ts             # Event constants + typed interfaces + EventMap type
+    db-schemas/           # Per-entity drizzle pgTable/pgEnum definitions
+    types.ts              # Type re-exports + domain interfaces
+    utils/
+      constants.ts        # Module-specific enums (as const objects)
+      strip-undefined.ts  # stripUndefined helper
+    schemas/
+      index.ts            # Re-exports all valibot schemas + types
+      enums.ts            # Valibot enum schemas mirroring constants
+      entity.ts           # Per-entity valibot schemas (create/update/filter)
+    workflows/
+      <entity>.<action>.ts  # One file per workflow (Workflow.name() builder)
+      steps/                # Reusable WorkflowSteps
+    services/             # Optional cross-cutting services
+  package.json
+  tsconfig.json
+```
+
+## Validation
+
+Use **Valibot** for input validation;
+
+```ts
+import { type InferOutput, object, pipe, string, minLength } from "valibot";
+
+export const CreateBranchSchema = object({
+  name: pipe(string(), minLength(1, "Name is required")),
+  code: pipe(string(), minLength(1, "Code is required")),
+});
+
+export type CreateBranchInput = InferOutput<typeof CreateBranchSchema>;
+```
+
+## Events
+
+Modules define events in the `"domain:event_name"` format, typed via an `EventMap` type — a compile-time contract, not a runtime bus. Published as plain string topics via PubSub:
+
+```ts title="src/pubsub.ts"
+export const ORG_EVENTS = {
+  BRANCH_CREATED: "organization:branch_created",
+  BRANCH_UPDATED: "organization:branch_updated",
+} as const;
+
+export type OrganizationEventMap = {
+  [ORG_EVENTS.BRANCH_CREATED]: { branch: { id: string; name: string } };
+};
+```
+
+```ts
+await this.pubsub.publish("organization:branch_created", { branch });
+```
+
+<Callout type="info">
+  The event map is a type-level contract only. PubSub accepts plain strings — the `EventMap` type
+  ensures type safety at the call site but does not constrain runtime publishing.
+</Callout>
+
+## Modules vs Units
+
+Prefer a **module** when unsure:
+
+- **Units** are fixed infrastructure, created by the platform; you cannot add new ones.
+- **Modules** are pluggable domain logic, created by you; add as many as you need.
+
+See [Unit vs Module](/docs/platform/unit-vs-module) for a detailed comparison.

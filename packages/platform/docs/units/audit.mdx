@@ -1,0 +1,138 @@
+---
+title: Audit
+description: Unit that writes field-level audit entries to the audit_log table with transaction support and state reconstruction.
+icon: IconHierarchy2
+---
+
+The `AuditUnit` (`$name: "audit"`) records an append-only audit trail of entity changes in the `audit_log` table. It is always present (takes no config, no constructor injection beyond the DB unit) and is the eighth server unit.
+
+## Public API
+
+```ts title="src/server/audit/index.ts"
+class AuditUnit implements Unit {
+  readonly $name = "audit";
+
+  diff(
+    before?: Record<string, unknown> | null,
+    after?: Record<string, unknown> | null,
+  ): Record<string, { new: unknown; old: unknown }> | undefined;
+
+  async write(entry: AuditEntry, db?: AuditDatabase): Promise<void>;
+
+  async withTransaction<T>(
+    entry: AuditEntry | ((result: T) => AuditEntry),
+    fn: () => Promise<T>,
+  ): Promise<T>;
+
+  async query(filter: AuditQuery): Promise<unknown[]>;
+  async count(filter: AuditQuery): Promise<number>;
+
+  reconstructState(entityType: string, entityId: string): Promise<Record<string, unknown> | null>;
+
+  async $prepareInfra(): Promise<void>; // no-op
+  async $cleanup(): Promise<void>;
+}
+```
+
+## Audit Entries
+
+```ts title="src/server/audit/types.ts"
+type CrudAction = "create" | "update" | "delete";
+
+interface AuditEntry {
+  action: string;
+  actorId?: string;
+  changes?: Record<string, unknown>;
+  crudAction?: CrudAction;
+  entityId: string;
+  entityType: string;
+  idempotencyKey?: string;
+  metadata?: Record<string, unknown>;
+  newState?: Record<string, unknown> | null;
+  previousState?: Record<string, unknown> | null;
+  requestId?: string;
+  traceId?: string;
+  workflowRunId?: string;
+}
+```
+
+## Usage
+
+Get the `AuditUnit` from request context inside `run()`:
+
+```ts
+import { getContext } from "@aspen-os/platform/server";
+
+await p.run(async () => {
+  const { audit } = getContext();
+
+  await audit.write({
+    action: "organization.updated",
+    crudAction: "update",
+    entityId: "org-1",
+    entityType: "organization",
+    previousState,
+    newState,
+    changes: audit.diff(previousState, newState),
+  });
+});
+```
+
+### Atomic write with the operation
+
+`withTransaction` runs `fn` and writes the audit entry in the **same DB transaction**:
+
+```ts
+await audit.withTransaction(
+  (result) => ({
+    action: "branch.created",
+    crudAction: "create",
+    entityId: result.id,
+    entityType: "branch",
+    newState: result,
+  }),
+  async () => {
+    return db.insert(branches).values({ name }).returning();
+  },
+);
+```
+
+### Querying and reconstruction
+
+```ts
+const entries = await audit.query({ entityType: "organization", entityId: "org-1" });
+const count = await audit.count({ action: "organization.updated" });
+
+// Replay audited changes to reconstruct a record's current state
+const current = await audit.reconstructState("organization", "org-1");
+```
+
+`diff(before, after)` computes a field-level diff — only keys whose value changed appear, as `{ new, old }`.
+
+## Schema
+
+The `audit_log` table:
+
+| Column                                        | Type                  | Description                                                                 |
+| --------------------------------------------- | --------------------- | --------------------------------------------------------------------------- |
+| `id`                                          | uuid (PK)             | `$defaultFn(() => uuidv7())`                                                |
+| `seq`                                         | bigserial             | Monotonic sequence for ordering                                             |
+| `tenant_id`                                   | text (notNull)        | Tenant scope; defaults to `current_setting('app.tenant_id')` or `"default"` |
+| `entity_type`                                 | text (notNull)        | Entity kind (e.g. `organization`)                                           |
+| `entity_id`                                   | text (notNull)        | The record's ID                                                             |
+| `action`                                      | text (notNull)        | Verb (e.g. `organization.updated`)                                          |
+| `crud_action`                                 | text                  | `create` / `update` / `delete`                                              |
+| `actor_id`                                    | text (notNull)        | Who performed the action                                                    |
+| `previous_state`                              | jsonb                 | Snapshot before the change                                                  |
+| `new_state`                                   | jsonb                 | Snapshot after the change                                                   |
+| `changes`                                     | jsonb                 | Field-level diff                                                            |
+| `metadata`                                    | jsonb                 | Arbitrary extra data                                                        |
+| `idempotency_key`                             | text                  | Unique per `(tenant_id, idempotency_key)` to dedupe                         |
+| `request_id` / `trace_id` / `workflow_run_id` | text                  | Correlation identifiers                                                     |
+| `performed_at`                                | timestamptz (notNull) | Default `now()`                                                             |
+
+Indexes cover entity ordering (`entity_type, entity_id, seq`), workflow run, actor, action, and performed_at.
+
+## Dependency
+
+Receives `{ db: DatabaseUnit }` and writes to the control-plane DB. Its `$prepareInfra()` is a no-op — the `audit_log` table is owned and pushed by `DatabaseUnit`.

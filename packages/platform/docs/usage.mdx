@@ -1,0 +1,166 @@
+---
+title: Usage
+description: How to create, prepare, run, and destroy a Platform instance.
+display: Usage
+icon: IconCode
+---
+
+## Creating a Platform Instance
+
+```ts
+import { SingleTenantPlatform } from "@aspen-os/platform/server";
+import { Organization } from "@aspen-os/organization";
+import { Compliance } from "@aspen-os/compliance";
+
+const organization = Organization.create({ country: "INDIA" });
+const compliance = Compliance.create({ country: "INDIA" });
+
+const p = SingleTenantPlatform.create(
+  {
+    auth: authConfig,
+    db: dbConfig,
+    kvStore: kvConfig,
+    logs: logConfig,
+    pubsub: pubsubConfig,
+    rpc: rpcConfig,
+    storage: storageConfig,
+  },
+  [organization, compliance],
+);
+
+await p.$prepareInfra();
+```
+
+`CommonConfig` (all server configs except `db`) plus `db` make up each platform's config type. There is no `tenancy` field — the platform class you choose implies the tenancy mode.
+
+## Running in Request Context
+
+`run()` provides request-scoped context via `AsyncLocalStorage`:
+
+```ts
+import { getContext } from "@aspen-os/platform/server";
+
+await p.run(async () => {
+  const { audit, auth, db, pubsub } = getContext();
+  // db: NodePgDatabase (drizzle)
+  // pubsub: PubSubUnit
+  // auth: AuthUnit (not raw betterAuth)
+  // audit: AuditUnit
+
+  const result = await db.select().from(organizations);
+  await pubsub.publish("organization:created", { organization });
+});
+```
+
+## Using the Auth Unit
+
+Auth operations go through the `_` getter, structured as `resource.action`:
+
+```ts
+// Create a user
+await p.auth.rest.user.create({
+  email: "user@example.com",
+  password: "secure-password",
+  name: "John Doe",
+});
+
+// Create a session
+await p.auth.rest.session.create({ email: "user@example.com", password: "..." });
+
+// Validate a session
+await p.auth.rest.session.validate({ token });
+
+// Assign/remove a role
+await p.auth.rest.user.role.assign({ userId, roleName: "admin" });
+await p.auth.rest.user.role.unassign({ userId, roleName: "admin" });
+
+// List roles
+await p.auth.rest.role.list();
+```
+
+`p.auth.service` is the raw better-auth instance; `p.auth.fetchHandler(request)` serves HTTP auth requests.
+
+## Using the Storage Unit
+
+```ts
+// Upload a file
+const file = await p.storage.upload({
+  key: "documents/report.pdf",
+  body: buffer,
+  contentType: "application/pdf",
+  metadata: { uploadedBy: userId },
+});
+
+// Get a signed URL
+const url = await p.storage.getSignedGetUrl("documents/report.pdf", {
+  expiresIn: 3600,
+});
+
+// Archive a file
+await p.storage.archive("documents/report.pdf");
+```
+
+<Callout type="info">
+  Confirm the exact `StorageUnit` method names against the installed version — consult the [Storage
+  unit reference](/docs/platform/units/storage) for the current API surface.
+</Callout>
+
+## Using the KV Store
+
+```ts
+// Set with TTL
+await p.kvStore.set("cache:key", { data: "value" }, 1800);
+
+// Get (returns null if expired)
+const value = await p.kvStore.get("cache:key");
+
+// Get or set (cache-aside pattern)
+const result = await p.kvStore.getOrSet(
+  "expensive:query",
+  async () => await runExpensiveQuery(),
+  3600,
+);
+
+// Increment/decrement counters
+await p.kvStore.increment("visits");
+await p.kvStore.decrement("remaining");
+```
+
+## Using PubSub
+
+```ts
+// Publish a message
+await p.pubsub.publish("organization:created", { organization });
+
+// Subscribe to a topic
+await p.pubsub.subscribe("organization:created", async (message) => {
+  console.log("Received:", message.data);
+});
+
+// Schedule a recurring job
+await p.pubsub.schedule(
+  "compliance:weekly-summary",
+  "0 9 * * 1", // every Monday at 9am
+  {},
+  { tz: "Asia/Kolkata" },
+);
+```
+
+<Callout type="warn">
+  Publishing to a topic with no registered subscriber is silently dropped by pg-boss.
+  `p.healthCheck()` reports these unsubscribed topics. Always `subscribe()` (register a worker)
+  before `publish()` to the same topic.
+</Callout>
+
+## Health Check
+
+```ts
+const report = await p.healthCheck();
+// { status, checks: { db, pubsub }, unsubscribedTopics?, tenancyMode, at }
+```
+
+## Cleanup
+
+```ts
+await p.$cleanup();
+```

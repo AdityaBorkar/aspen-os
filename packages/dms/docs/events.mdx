@@ -1,0 +1,150 @@
+---
+title: Events
+description: Domain event map for the DMS module — domain events across 7 event groups.
+icon: IconBell
+---
+
+The DMS module defines domain events across 7 event groups. Events are type-level contracts published as plain string topics via PubSub, for cross-module consumers — the per-file activity feed reads the platform `AuditUnit`, not these topics.
+
+## Event Constants
+
+```ts title="src/pubsub.ts"
+export const FILE_EVENTS = {
+  CLASSIFIED: "dms:file_classified",
+  DOWNLOADED: "dms:file_downloaded",
+  EXPIRED: "dms:file_expired",
+  HOLD_PLACED: "dms:file_hold_placed",
+  HOLD_RELEASED: "dms:file_hold_released",
+  MOVED: "dms:file_moved",
+  PURGED: "dms:file_purged",
+  RESTORED: "dms:file_restored",
+  TRASHED: "dms:file_trashed",
+  UPDATED: "dms:file_updated",
+  UPLOADED: "dms:file_uploaded",
+  VERSION_ADDED: "dms:file_version_added",
+  VERSION_REVERTED: "dms:file_version_reverted",
+} as const;
+
+export const FOLDER_EVENTS = {
+  CREATED: "dms:folder_created",
+  MOVED: "dms:folder_moved",
+  PURGED: "dms:folder_purged",
+  RENAMED: "dms:folder_renamed",
+  RESTORED: "dms:folder_restored",
+  TRASHED: "dms:folder_trashed",
+} as const;
+
+export const CLASS_EVENTS = {
+  ARCHIVED: "dms:class_archived",
+  CREATED: "dms:class_created",
+  UPDATED: "dms:class_updated",
+} as const;
+
+export const CONTACT_EVENTS = {
+  CREATED: "dms:contact_created",
+  REMOVED: "dms:contact_removed",
+  UPDATED: "dms:contact_updated",
+} as const;
+
+export const SHARE_EVENTS = {
+  CREATED: "dms:share_created",
+  REVOKED: "dms:share_revoked",
+} as const;
+
+export const PUBLIC_LINK_EVENTS = {
+  ACCESSED: "dms:public_link_accessed",
+  CREATED: "dms:public_link_created",
+  REVOKED: "dms:public_link_revoked",
+} as const;
+
+export const FILE_VIEW_EVENTS = {
+  CREATED: "dms:file_view_created",
+  DELETED: "dms:file_view_deleted",
+  UPDATED: "dms:file_view_updated",
+} as const;
+```
+
+## Event Map
+
+### File Events
+
+| Event                                             | Payload                                            | Trigger                       |
+| ------------------------------------------------- | -------------------------------------------------- | ----------------------------- |
+| `dms:file_uploaded`                               | `{ fileId, batchId?, version, size, contentType }` | Upload / bulk upload          |
+| `dms:file_version_added`                          | `{ fileId, version }`                              | New version                   |
+| `dms:file_version_reverted`                       | `{ fileId, version }`                              | Version revert                |
+| `dms:file_classified`                             | `{ fileId, classId, docNumber }`                   | Triage classify               |
+| `dms:file_updated`                                | `{ fileId, changes }`                              | Update / metadata mutations   |
+| `dms:file_moved`                                  | `{ file: { id, name, path }, oldPath, newPath }`   | File moved or renamed         |
+| `dms:file_downloaded`                             | `{ file: { id, name, ownerId }, userId }`          | File downloaded               |
+| `dms:file_expired`                                | `{ fileId, expiryDate }`                           | Expiry scanner                |
+| `dms:file_trashed`                                | `{ fileId, deletedBy }`                            | Soft delete                   |
+| `dms:file_restored`                               | `{ fileId }`                                       | Trash restore                 |
+| `dms:file_purged`                                 | `{ fileId, storageKey }`                           | Permanent delete / auto-purge |
+| `dms:file_hold_placed` / `dms:file_hold_released` | `{ fileId, reason }`                               | Legal hold mutations          |
+
+### Folder / Class / Contact Events
+
+| Event                                                                 | Payload                                             | Trigger                        |
+| --------------------------------------------------------------------- | --------------------------------------------------- | ------------------------------ |
+| `dms:folder_created`                                                  | `{ folder: { id, name, ownerId, parentId, path } }` | Folder created                 |
+| `dms:folder_renamed`                                                  | `{ folder: { id, name, path }, oldName }`           | Folder renamed                 |
+| `dms:folder_moved`                                                    | `{ folder: { id, name, path }, oldPath, newPath }`  | Folder moved                   |
+| `dms:folder_trashed` / `dms:folder_restored` / `dms:folder_purged`    | `{ folderId }`                                      | Folder trash / restore / purge |
+| `dms:class_created` / `dms:class_updated` / `dms:class_archived`      | `{ classId }`                                       | Class mutations                |
+| `dms:contact_created` / `dms:contact_updated` / `dms:contact_removed` | `{ contactId, reason? }`                            | Contact mutations              |
+
+### Share / Public Link / File View Events
+
+| Event                                                                       | Payload                                                     | Trigger                                               |
+| --------------------------------------------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------- |
+| `dms:share_created` / `dms:share_revoked`                                   | `{ shareId, entityId, entityType, granteeType, granteeId }` | Share create / revoke (any grantee type, incl. group) |
+| `dms:public_link_created`                                                   | `{ id, entityId, entityType, permission, token }`           | Public link created                                   |
+| `dms:public_link_accessed`                                                  | `{ id, entityId, entityType, token, ip, userAgent }`        | Public link resolved                                  |
+| `dms:public_link_revoked`                                                   | `{ publicLinkId, entityId, entityType }`                    | Public link revoked                                   |
+| `dms:file_view_created` / `dms:file_view_updated` / `dms:file_view_deleted` | `{ fileViewId }`                                            | File view mutations                                   |
+
+## Usage
+
+### Publishing Events
+
+Events are published via `PubSubUnit.publish()`:
+
+```ts
+await p.pubsub.publish("dms:file_classified", {
+  fileId: "file-1",
+  classId: "cls-1",
+  docNumber: "DOC-000001",
+});
+```
+
+### Subscribing to Events
+
+```ts
+// e.g. react to newly classified files
+await p.pubsub.subscribe("dms:file_classified", async (message) => {
+  const { classId, fileId } = message.data;
+  // notify downstream systems
+});
+```
+
+## Event Map Type
+
+```ts title="src/pubsub.ts"
+export type DmsEventMap = FileEventMap &
+  FolderEventMap &
+  ClassEventMap &
+  ContactEventMap &
+  ShareEventMap &
+  PublicLinkEventMap &
+  FileViewEventMap;
+```
+
+<Callout type="info">
+  The event map is a type-level contract — it is not enforced at runtime. Workflows publish events
+  as plain string topics.
+</Callout>
+
+## Activity Feed vs Events
+
+DMS writes every action to the platform `AuditUnit` (`entityType` `dms:file`, `dms:folder`, `dms:contact`, `dms:class`, `dms:share`, `dms:file_view`) inline in each workflow. The per-file / per-class activity feed (`p.dms.activity.*`) is a projection over those entries, ordered by `seq`. PubSub events are published separately for cross-module integration and are not the source of the activity feed.

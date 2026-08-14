@@ -1,0 +1,25 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "ignorePatterns": [".output", ".wrangler", ".tanstack", "*.gen.ts"],
+  "sortImports": {
+    "customGroups": [
+      { "elementNamePattern": ["https://*", "http://*"], "groupName": "url" },
+      {
+        "elementNamePattern": ["bun:*", "npm:*", "deno:*", "jsr:*"],
+        "groupName": "protocol"
+      }
+    ],
+    "groups": [
+      "url",
+      ["builtin", "protocol", "subpath"],
+      "external",
+      ["internal", "parent", "sibling", "index", "style"],
+      "unknown"
+    ]
+  },
+  "sortTailwindcss": {
+    "attributes": ["classList"],
+    "functions": ["clsx", "cva", "tw", "cn"],
+    "stylesheet": "./src/styles.css"
+  }
+}

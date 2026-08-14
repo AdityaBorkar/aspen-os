@@ -1,0 +1,105 @@
+---
+title: Overview
+description: Architecture, multi-tenancy model, initialization, and config of the Management Plane module.
+icon: IconInfoCircle
+---
+
+The Management Plane is the control-plane module of a multi-tenant SaaS. It manages tenants (SaaS customer accounts), service providers (implementation partners), and platform users, operating against the **control-plane** database and its per-tenant provisioning.
+
+## Module
+
+```ts title="src/module.ts"
+export class ManagementPlane implements Module {
+  static create(config: ManagementPlaneConfig): ManagementPlane;
+  readonly $name = "management"; // proxy key: p.management
+  readonly $dependencies = ["organization"];
+}
+```
+
+`ManagementPlaneConfig` is `undefined` — the module takes no external config. Its DB/ACL/events are declared via `$prepareInfra()`.
+
+## Architecture
+
+The module runs against the control-plane DB:
+
+```text
+CONTROL-PLANE DATABASE
+  Management Plane tables:
+    tenant, service_provider
+  better-auth tables (single realm):
+    user, session, account, verification
+    organization, member, invitation   ← Organization plugin
+  tenant schemas (pushed to each tenant DB):
+    organization, user
+```
+
+Domain data (branches, tasks, drive, HR, compliance) lives in per-tenant databases managed by their own modules. The Management Plane never queries them directly.
+
+## What It Exposes
+
+The module exposes three workflow groups:
+
+| Getter             | Methods                                                                                                                              |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `tenants` (getter) | `activate`, `assignServiceProvider`, `churn`, `get`, `list`, `onboard`, `reactivate`, `suspend`, `unassignServiceProvider`, `update` |
+| `serviceProviders` | `activate`, `create`, `deactivate`, `get`, `getAssignedTenants`, `getUsers`, `list`, `update`                                        |
+| `users`            | `assignRole`, `assignToServiceProvider`, `create`, `delete`, `get`, `list`, `update`                                                 |
+
+```ts
+// Access via the platform proxy ($name = "management")
+const p = IsolatedTenantPlatform.create(config, [managementPlane]);
+
+await p.management.tenants.list();
+await p.management.users.create({ email, password, role });
+await p.management.serviceProviders.create({ name, slug });
+```
+
+`tenants` is a getter that throws if accessed before `$initialize()` (it is bound to the DB unit). `serviceProviders` and `users` are stateless readonly objects.
+
+## Initialization
+
+`$initialize()` receives `db`, `auth`, and `pubsub` units and stores a reference to `db`:
+
+```ts
+$initialize(units: { db: DatabaseUnit; auth: AuthUnit; pubsub: PubSubUnit }): void {
+  this.#db = units.db;
+}
+```
+
+`$prepareRuntime()` and `$cleanup()` are no-ops.
+
+## Infrastructure
+
+`$prepareInfra()` returns:
+
+```ts
+$prepareInfra(): ModuleInfra {
+  return {
+    auth: { acl },                        // platformUser, serviceProvider, tenant
+    db: { control_plane_schemas, tenant_schemas },  // tenant, service_provider | organization, user
+    events,                               // tenant:, service_provider:, platform_user: topics
+  };
+}
+```
+
+## Package
+
+```json title="package.json"
+{
+  "name": "@aspen-os/management",
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@aspen-os/platform": "workspace:*",
+    "@aspen-os/constants": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "valibot": "catalog:"
+  }
+}
+```
+
+## Tenant Lifecycle
+
+The `tenants` group drives the full lifecycle: `onboard` (provisions the tenant), `activate`, `suspend`, `reactivate`, `churn`. Service-provider assignment is `assignServiceProvider` / `unassignServiceProvider`.
+
+The module audits each operation via the platform's `AuditUnit` (`ctx.audit.write()`), using `AUDIT_ACTION` constants (e.g. `tenant_activated`, `sp_created`, `platform_user_created`).

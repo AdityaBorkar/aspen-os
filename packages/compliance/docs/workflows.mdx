@@ -1,0 +1,157 @@
+---
+title: Workflows
+description: API reference for the workflow groups exposed by the Compliance module.
+icon: IconListCheck
+---
+
+The Compliance module exposes five workflow groups as flat `Workflow` objects: `documents`, `obligations`, `verification`, `audit`, and `dashboard`. Access via the platform proxy key `p.compliance`.
+
+## Documents
+
+Access: `p.compliance.documents`
+
+Manages compliance documents through their full lifecycle.
+
+```ts
+// Create
+const doc = await p.compliance.documents.create({
+  name: "GST Registration Certificate",
+  category: "tax",
+  sourceModule: "organization",
+  createdBy: "user-1",
+  expiryDate: new Date("2025-03-31"),
+  renewalFrequency: "annual",
+  reminderDays: [90, 60, 30, 7],
+  escalationDays: [1, 7, 30],
+});
+
+await p.compliance.documents.submit({ id });
+await p.compliance.documents.verify({ id, reviewerId });
+await p.compliance.documents.reject({ id, reviewerId, reason });
+await p.compliance.documents.complete({ id, data: { referenceNumber } });
+await p.compliance.documents.renew({ id, newData });
+// Renew (archives old, creates new)
+
+await p.compliance.documents.archive({ id, archivedBy, reason });
+await p.compliance.documents.snooze({ id, snoozedBy, snoozedUntil });
+await p.compliance.documents.assignReviewer({ id, reviewerId });
+await p.compliance.documents.assignTo({ id, assigneeId });
+await p.compliance.documents.uploadAttachment({ id, storageKey });
+await p.compliance.documents.updateStatus({ id, status, performedBy });
+
+// Queries
+const doc = await p.compliance.documents.get({ id });
+const list = await p.compliance.documents.list({ filters });
+const bySource = await p.compliance.documents.getBySource({ sourceModule, sourceEntityId });
+const byObligation = await p.compliance.documents.getByObligation({ obligationId });
+const chain = await p.compliance.documents.getRenewalChain({ id });
+const timeline = await p.compliance.documents.getTimeline({ limit });
+```
+
+### Verification Status Flow
+
+```text
+draft → submitted → under_review → verified
+                         ↓
+                     rejected → (resubmit) → submitted
+
+verified/expired/overdue → renewed → (new document, draft)
+```
+
+### Reminder/query helpers
+
+The `documents` group also exposes reminder-driven queries: `getActiveDocumentsForReminders`, `getExpiredAndOverdueDocuments`, `getEscalatableDocuments`, `getExpiringDocuments`, `getDueSoonDocuments`, `getExpiredDocuments`, `getOverdueDocuments`, `markRenewalInProgress`, `updateNotifiedAt`, `updateEscalatedAt`.
+
+## Obligations
+
+Access: `p.compliance.obligations`
+
+Recurring compliance obligation templates that auto-generate documents.
+
+```ts
+const obligation = await p.compliance.obligations.create({
+  name: "Annual GST Return",
+  category: "tax",
+  frequency: "annual",
+  sourceModule: "organization",
+  createdBy: "user-1",
+  startDate: new Date("2024-04-01"),
+  expiryBased: false,
+  periodBased: true,
+  dueDay: 31,
+  dueMonthOffset: 0,
+  autoGenerate: true,
+  defaultReminderDays: [30, 15, 7, 1],
+  defaultEscalationDays: [1, 7, 30],
+});
+
+await p.compliance.obligations.update({ id, patch });
+await p.compliance.obligations.activate({ id });
+await p.compliance.obligations.deactivate({ id });
+
+const obligation = await p.compliance.obligations.get({ id });
+const list = await p.compliance.obligations.list({ filters });
+const active = await p.compliance.obligations.getActive();
+const periods = await p.compliance.obligations.getUpcomingPeriods({ id });
+```
+
+### Obligation Frequencies
+
+`monthly`, `quarterly`, `semi_annual`, `annual`, `biennial`, `triennial`, `custom`
+
+## Verification
+
+Access: `p.compliance.verification`
+
+Verification rules that auto-assign reviewers based on category and source module.
+
+```ts
+await p.compliance.verification.create({
+  name: "Tax documents require finance reviewer",
+  category: "tax",
+  sourceModule: "organization",
+  assignedReviewer: "user-finance-1",
+  requiredReviewerRole: "finance_manager",
+  priority: 1,
+  isActive: true,
+});
+
+await p.compliance.verification.update({ id, patch });
+await p.compliance.verification.delete({ id });
+const rules = await p.compliance.verification.list({ filters });
+const match = await p.compliance.verification.match({ category, sourceModule, ... });
+```
+
+## Audit
+
+Access: `p.compliance.audit`
+
+Audit-trail workflows over the platform's `AuditUnit` entries.
+
+```ts
+const trail = await p.compliance.audit.getAuditTrail({ entityType, entityId, ... });
+const entries = await p.compliance.audit.list({ filters });
+const exported = await p.compliance.audit.export({ filters });
+```
+
+<Callout type="info">
+  Entries are written by workflows via the platform's `AuditUnit` (`ctx.audit.write()`); there is no
+  module-owned audit table.
+</Callout>
+
+## Dashboard
+
+Access: `p.compliance.dashboard`
+
+Cached compliance summary data (backed by `KvStoreUnit`).
+
+```ts
+const summary = await p.compliance.dashboard.getSummary();
+await p.compliance.dashboard.invalidateCache();
+```
+
+The summary aggregates counts by status, category, branch, and source module, plus expiring/expired/overdue/pending counts and a health score, cached for `dashboardCacheTtl` seconds.
+
+## Notes
+
+All workflow methods are `Workflow.name(...)` instances with Valibot input validation and platform workflow persistence. Create-style methods take `{ input: CreateXxxSchema }`; update takes `{ id, patch }`. Each operation writes audit entries and publishes domain events via the platform context.

@@ -1,0 +1,94 @@
+---
+title: Overview
+description: Architecture, initialization, and module structure of the Tasks domain module.
+icon: IconInfoCircle
+---
+
+The Tasks module manages projects, tasks, statuses, time tracking, comments, attachments, reminders, automation rules, saved views, and dependency graphs.
+
+## Module Configuration
+
+```ts
+import { Tasks } from "@aspen-os/tasks";
+
+const tasks = Tasks.create({
+  enableNotifications: true,
+});
+```
+
+| `enableNotifications` | `boolean?` | `false` | Configures reminder-based pubsub event publishing |
+
+## Initialization
+
+```ts title="src/index.ts"
+$initialize(): void
+```
+
+The `$initialize()` method is empty. Workflows are flat imported `Workflow` objects aggregated on the class — they are not instantiated per-call. The `enableNotifications` config key is accepted, and the `NotificationBridge` defined in `services/` is not wired into any workflow.
+
+## Module Structure
+
+```text
+packages/tasks/src/
+  index.ts              # Tasks class + type re-exports
+  db-schema.ts          # 17 tables + 8 enums
+  types.ts              # Re-exports from schemas/ + domain interfaces
+  pubsub.ts             # 9 task events + 1 reminder event + event maps
+  schemas/              # Valibot input/filter schemas
+    index.ts
+    enums.ts
+    utils.ts
+    project.ts
+    task.ts
+    status.ts
+    task-type.ts
+    time-entry.ts
+    comment.ts
+    link.ts
+    collaboration.ts
+    reminder.ts
+    automation.ts
+  workflows/            # 11 workflow groups
+    project.ts
+    task.ts
+    status.ts
+    task-type.ts
+    time-entry.ts
+    comment.ts
+    link.ts
+    collaboration.ts
+    reminder.ts
+    automation.ts
+    view.ts
+  services/             # 3 service modules
+    report-service.ts
+    notification-bridge.ts
+    dependency-graph.ts
+  utils/
+    filter-engine.ts      # Drizzle query builder used by TaskWorkflow.list()
+```
+
+## Accessing Workflows
+
+```ts
+p.tasks.projects; // → projects (Workflow group)
+p.tasks.tasks; // → tasks
+p.tasks.statuses; // → statuses
+p.tasks.taskTypes; // → taskTypes
+p.tasks.timeEntries; // → timeEntries
+p.tasks.comments; // → comments
+p.tasks.links; // → links
+p.tasks.collaboration; // → collaboration
+p.tasks.reminders; // → reminders
+p.tasks.automations; // → automations
+p.tasks.views; // → views
+```
+
+## Accessing Services
+
+The `Tasks` module exposes no public service accessors. The internal service modules (`report-service`, `dependency-graph`, `notification-bridge`) and the `filter-engine` utility are consumed directly by workflow code, not surfaced as module properties.
+
+<Callout type="info">
+  Workflow accessors are plain module properties — no initialization guard. Workflows are stateless
+  `Workflow` objects that use `getContext()` at runtime.
+</Callout>

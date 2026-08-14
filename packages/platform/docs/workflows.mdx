@@ -1,0 +1,133 @@
+---
+title: Workflows
+description: Durable, step-based workflow builder provided by the platform server package.
+icon: IconGitBranch
+---
+
+The platform provides a `Workflow` builder for durable, step-based workflows on the server. Define reusable steps with `WorkflowStep`, then call them via `ctx.step.run(stepInstance, input)`. Inline steps use `ctx.step.run("name", fn)`.
+
+## Public API
+
+```ts title="src/server/workflows/index.ts"
+import { Workflow, WorkflowStep } from "@aspen-os/platform/server";
+
+// Build a workflow
+Workflow.name(name): {
+  handler(fn): WorkflowInstance;
+  input(schema).handler(fn): WorkflowInstance;   // schema is a Standard Schema
+}
+
+// Build a reusable step
+WorkflowStep.name(name): {
+  handler(fn): WorkflowStepInstance;
+  input(schema).handler(fn): WorkflowStepInstance;
+}
+```
+
+```ts title="src/server/workflows/types.ts"
+interface WorkflowInstance<TInput, TOutput> {
+  readonly name: string;
+  run(input: TInput, options?: RunOptions): Promise<TOutput>;
+}
+
+type WorkflowRunStatus = "running" | "completed" | "failed";
+type WorkflowStepStatus = "pending" | "running" | "completed" | "failed" | "skipped";
+
+interface StepOptions {
+  retries?: number;
+}
+
+interface StepRunner {
+  run<T>(name: string, fn: () => T | Promise<T>, options?: StepOptions): Promise<T>;
+  run<TInput, TOutput>(
+    step: WorkflowStepInstance<TInput, TOutput>,
+    input: TInput,
+    options?: StepOptions,
+  ): Promise<TOutput>;
+  sleep(ms: number): Promise<void>;
+}
+
+interface RunOptions {
+  actorId?: string;
+  audit?: AuditUnit;
+  auth?: AuthUnit;
+  config?: Record<string, unknown>;
+  db?: DrizzleDB;
+  pubsub?: PubSubUnit;
+}
+```
+
+## Workflow Context
+
+```ts title="src/server/workflows/types.ts"
+interface WorkflowContext<TSchemas = Record<string, never>> {
+  actorId?: string;
+  audit: AuditUnit;
+  auth?: AuthUnit;
+  config: Record<string, unknown>;
+  db: DrizzleDB<TSchemas>;
+  pubsub: PubSubUnit;
+  runId: string;
+  step: StepRunner;
+}
+```
+
+The context is built from `RunOptions` — if omitted, defaults come from `getContext()`. It throws if `db`, `pubsub`, or `audit` are missing.
+
+## Usage
+
+```ts
+import { Workflow, WorkflowStep } from "@aspen-os/platform/server";
+
+const fetchStep = WorkflowStep.name("fetch").handler(async (input, ctx) => {
+  return ctx.db.select().from(table).limit(1);
+});
+
+const myWorkflow = Workflow.name("my-workflow")
+  .input(MySchema)
+  .handler(async (input, ctx) => {
+    const result = await ctx.step.run(fetchStep, { id: input.id });
+    // inline step:
+    const count = await ctx.step.run("count", async () => 42);
+    return result;
+  });
+
+// run:
+await myWorkflow.run(input, { actorId });
+```
+
+Steps run inside `WorkflowContext` with step-level retry (`StepOptions.retries`) and status tracking. Workflow runs and steps are persisted to the `workflow_runs` and `workflow_steps` tables, owned by `DatabaseUnit`.
+
+## Scenarios
+
+### Durable Steps
+
+`WorkflowStep.name(name).handler(fn)` (optionally `.input(schema)`) produces a `WorkflowStepInstance`. Pass it to `ctx.step.run(step, input)`:
+
+```ts
+const step = WorkflowStep.name("send-notification")
+  .input(NotificationSchema)
+  .handler(async (input, ctx) => {
+    return ctx.pubsub.publish("notify", input);
+  });
+
+await ctx.step.run(step, { userId, message }, { retries: 3 });
+```
+
+### Inline Steps
+
+```ts
+const value = await ctx.step.run("compute", async () => {
+  return expensiveCalculation();
+});
+```
+
+### Sleeping
+
+```ts
+await ctx.step.sleep(5_000); // pause the workflow
+```
+
+## Dependency
+
+`Workflow`, `WorkflowStep`, and all workflow types are re-exported from `@aspen-os/platform/server`. Runs/steps persist via `DatabaseUnit`'s `workflow_runs` and `workflow_steps` tables.

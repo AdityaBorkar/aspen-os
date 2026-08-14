@@ -1,0 +1,24 @@
+{
+  "name": "@aspen-os/constants",
+  "version": "0.1.0",
+  "files": [
+    "./.output"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "bun run ../../scripts/build.ts",
+    "check:lint": "oxlint --fix . ; oxfmt .",
+    "check:types": "tsc -b"
+  },
+  "dependencies": {
+    "@aspen-os/platform": "workspace:*",
+    "drizzle-orm": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
+  }
+}

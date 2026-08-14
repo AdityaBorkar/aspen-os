@@ -1,0 +1,23 @@
+{
+  "name": "@aspen-os/compliance",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "check:lint": "oxlint --fix . ; oxfmt .",
+    "check:types": "tsc -b"
+  },
+  "dependencies": {
+    "@aspen-os/constants": "workspace:*",
+    "@aspen-os/platform": "workspace:*",
+    "drizzle-kit": "^0.31.10",
+    "drizzle-orm": "catalog:",
+    "valibot": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
+  }
+}

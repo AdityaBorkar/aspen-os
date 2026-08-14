@@ -1,0 +1,7 @@
+{
+  "icon": "IconUsers",
+  "pages": ["overview", "workflows", "enums"],
+  "pagesIndex": "index",
+  "root": true,
+  "title": "HR"
+}

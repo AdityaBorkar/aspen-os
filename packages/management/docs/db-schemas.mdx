@@ -1,0 +1,75 @@
+---
+title: DB Schemas
+description: Control-plane and tenant tables declared by the Management Plane module.
+icon: IconDatabase
+---
+
+The Management Plane declares 4 tables across two schema groups. Control-plane schemas (`tenant`, `service_provider`) are pushed to the control-plane DB; tenant schemas (`organization`, `user`) mirror columns used by the module's tenant-scoped workflows.
+
+## Enums
+
+| Enum                      | Table Column              | Values                                         |
+| ------------------------- | ------------------------- | ---------------------------------------------- |
+| `tenant_status`           | `tenant.status`           | `onboarding`, `active`, `suspended`, `churned` |
+| `service_provider_status` | `service_provider.status` | `active`, `inactive`                           |
+
+## Control-Plane Tables
+
+### `tenant`
+
+Companion to the better-auth `organization` row. Holds lifecycle, plan, SP assignment, and per-tenant DB connection params.
+
+| Column                                                                                                       | Type                     | Description                      |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------ | -------------------------------- |
+| `id`                                                                                                         | text (PK)                | Shares the better-auth org ID.   |
+| `status`                                                                                                     | tenant_status            | Default `onboarding`.            |
+| `plan`                                                                                                       | text                     | Subscription plan identifier.    |
+| `service_provider_id`                                                                                        | text                     | Active SP assignment.            |
+| `signup_at`                                                                                                  | timestamptz (notNull)    | When the tenant signed up.       |
+| `suspended_at`                                                                                               | timestamptz              | Last suspension timestamp.       |
+| `suspended_reason`                                                                                           | text                     | Suspension reason.               |
+| `churned_at`                                                                                                 | timestamptz              | Churn timestamp.                 |
+| `churn_reason`                                                                                               | text                     | Churn reason.                    |
+| `database_host` / `database_name` / `database_user` / `database_password` / `database_port` / `database_ssl` | text / integer / boolean | Per-tenant DB connection params. |
+| `created_at`                                                                                                 | timestamptz (notNull)    | Default `now()`.                 |
+| `updated_at`                                                                                                 | timestamptz (notNull)    | Default `now()`.                 |
+
+Indexed on `status`, `service_provider_id`, and `plan`.
+
+### `service_provider`
+
+An implementation/integration partner that does physical-world onboarding work.
+
+| Column        | Type                    | Description                        |
+| ------------- | ----------------------- | ---------------------------------- |
+| `id`          | text (PK)               | Default `$defaultFn(uuidv7)`.      |
+| `name`        | text (notNull)          | Display name.                      |
+| `slug`        | text (notNull, unique)  | URL-safe identifier.               |
+| `logo`        | text                    | Logo URL or Storage reference.     |
+| `description` | text                    | Free-text description of services. |
+| `email`       | text                    | Primary contact email.             |
+| `phone`       | text                    | Primary contact phone.             |
+| `website`     | text                    | Website URL.                       |
+| `address`     | text                    | Address (single text field).       |
+| `status`      | service_provider_status | Default `active`.                  |
+| `created_at`  | timestamptz (notNull)   | Default `now()`.                   |
+| `updated_at`  | timestamptz (notNull)   | Default `now()`.                   |
+
+Indexed on `status`.
+
+## Tenant Schemas
+
+The `organization` and `user` mirrors are declared as tenant schemas (pushed to each tenant DB alongside other modules' tenant tables).
+
+## Relationships
+
+```text
+tenant ──N:1──→ service_provider (active SP assignment)
+user ──N:1──→ service_provider (sp_user, via sp_id)
+organization (better-auth) ──1:1──→ tenant (companion)
+```
+
+<Callout type="info">
+  Per-tenant domain tables (organization, branch, task, dms_file, employee, HR tables, etc.) are NOT
+  defined here — they live in each tenant's own database and are managed by their own modules.
+</Callout>

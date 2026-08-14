@@ -1,0 +1,176 @@
+# TODO
+
+Create recommendations for oxlint rules
+
+Ask questions on certain file names
+Reorder/arrange certain workflows properly
+
+---
+
+.list() workflows must contain a standardized list of filters and view statements for fetching the list.
+
+---
+
+Create a scope of work for the "organization" module to add the following features:
+
+- orgs
+- contacts
+- drafts
+- Branches
+- Contacts
+- Addresses
+- Bank Accounts
+- Filter Views
+- Personal Drafts & Drafts
+- Personal Dashboard & Dashboards
+
+---
+
+Create a scope of work for the "hr" module to add the following features:
+
+- Canvas like Users
+- Custom Roles and RBAC Permissions
+- Users with Branch-wise access controls
+- announcements
+
+---
+
+Create a scope of work for the "tasks" module to add the following features:
+
+- tasks
+- notes
+
+---
+
+Create a scope of work for the "comms" module to add the following features:
+
+- Link custom emails, whatsapp, etc to the application
+
+---
+
+Create a scope of work for the "notifications" module to add the following features:
+
+---
+
+Create a scope of work for the "scheduler" module to add the following features:
+
+---
+
+Create a scope of work for the "discussions" module to add the following features:
+
+- Creating rooms for discussions between certain user groups
+- Creating a forum where anyone can post a question/topic and a thread opens up for discussion
+- Support replies and reactions for all messages
+- Every message recieves a unique link that can be shared with others
+- Support different types of attachments (images, videos, etc.)
+- Support for polls (like discord)
+- Support for search functionality within the room/forum
+- Support to show indicator for unread messages (do not show count)
+
+All content and messages are stored in MDX.
+
+---
+
+Create a scope of work for the "crm" module
+
+- deals
+- crm
+
+---
+
+Create a scope of work for the "dms" module
+
+- templates
+- new files (document only for now)
+  doc_issuance / file-management in DMS
+
+---
+
+Create a scope of work for the "inventory" module
+
+- goods
+- services
+
+---
+
+Create a scope of work for the "reports" module
+
+---
+
+Create a scope of work for the "compliance" module
+
+- India DPDP
+- India Compliance
+- GDPR
+- HIPAA
+- RTO
+
+---
+
+Create a scope of work for the "fleet" module
+
+---
+
+Create a scope of work for the "accounting" module
+
+- Ledger
+- Transactions
+- Accounts
+- Banking???
+- Sales???
+- Purchase???
+- Vouchers???
+
+---
+
+Create a scope of work for the "pharmacy" module
+
+---
+
+## Bugs
+
+- DB Schemas
+  - Drizzle Migrations could not be performed (using pushSchema instead — see ADR-0004)
+  - How to handle migrations?
+  - Export utility functions like lastUpdatedAt(), uuidv7()
+- ACL List
+  - How to handle migrations?
+- PubSub Events
+  - How to handle migrations?
+- Replace zod with valibot entirely everywhere
+- Create a OXC rule to make index.ts module files like @management/src/index.ts
+- Merging ./working-docs with ./docs to ensure a single source of truth
+- CONTEXT.md lists Prospect, Client, Job Mandate, Draft, Filter View, Reminder, Task, Team Member, Contract under "Recruiter Domain."
+- Dynamic Loading of Modules
+  - /settings/features = Enable/Disable each module and their feature flags
+
+---
+
+## Not a Priority Modules
+
+### Support Module
+
+Support = No Account Code. Grant Access. -> Download Screen Control Module and then show the screen to the operator.
+
+First, Partner Support: Name, Role=Account Manager, Phone Number
+Second, Application Support: Name, Role=Account Manager, Phone Number
+Second, Raise Ticket, Request Callback
+
+Show a Notification - Account Manager is requesting access to the application. YES / NO.
+If you have not requested for support, press NO.
+If you press YES, the account manager shall access the application and respond accordingly.
+
+### org_chat Module
+
+- Messenging between users of the application within the same organization
+- WhatsApp like functionality for internal chatting
+
+### analytics Module
+
+-
+
+### ai Module
+
+- Chatbot
+- AI agents
+- Automation

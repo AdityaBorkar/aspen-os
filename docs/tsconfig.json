@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "declarationDir": "../.local/types/docs",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "paths": {
+      "@/*": ["./src/*"],
+      "collections/*": ["./.source/*"]
+    },
+    "types": ["vite/client", "node"]
+  },
+  "extends": "../tsconfig.json",
+  "include": [".source/**/*", "**/*.ts", "**/*.tsx"]
+}

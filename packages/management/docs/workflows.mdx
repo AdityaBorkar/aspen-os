@@ -1,0 +1,129 @@
+---
+title: Workflows
+description: API reference for the workflow groups exposed by the Management Plane module.
+icon: IconListCheck
+---
+
+The Management Plane exposes workflows as flat `Workflow` objects grouped under three accessors: `tenants`, `serviceProviders`, and `users`. All operate on the control-plane DB. Access via the platform proxy key `p.management` ($name is `"management"`).
+
+## Tenants
+
+Access: `p.management.tenants` (a getter, throws if accessed before `$initialize`).
+
+### Lifecycle
+
+```ts
+// Provision a new tenant — creates the org + provisions the tenant DB
+await p.management.tenants.onboard({
+  tenant: {
+    name: "Acme Corp",
+    slug: "acme-corp",
+    logo: "logos/acme.png",
+    plan: "pro",
+    serviceProviderId: "sp-1",
+    // optional per-tenant DB overrides: databaseHost, databaseName, ...
+  },
+  userId: "user-1",
+});
+
+// Status transitions
+await p.management.tenants.activate({ id: tenantId }); // onboarding → active
+await p.management.tenants.suspend({ id: tenantId, reason: "unpaid" });
+await p.management.tenants.reactivate({ id: tenantId });
+await p.management.tenants.churn({ id: tenantId, reason: "competitor" });
+
+// Service provider assignment
+await p.management.tenants.assignServiceProvider({ tenantId, serviceProviderId });
+await p.management.tenants.unassignServiceProvider({ tenantId });
+```
+
+### Reads & updates
+
+```ts
+const tenant = await p.management.tenants.get({ id: tenantId });
+const tenants = await p.management.tenants.list({ status, plan, serviceProviderId, search });
+await p.management.tenants.update({ id: tenantId, name, slug, logo, plan, status });
+```
+
+`onboard` runs as a durable workflow with internal steps (`create-organization`, `record-tenant`, `audit-and-notify`) and calls `DatabaseUnit.provisionTenant()` for isolated-mode DB creation. It emits `tenant:provisioned` and requires `ctx.auth`.
+
+### Validation Schemas
+
+- `ProvisionTenantSchema` — `name`, `slug`, optional `logo`, `plan`, `serviceProviderId`, and per-tenant DB overrides (`databaseHost`, `databaseName`, `databasePassword`, `databasePort`, `databaseSsl`, `databaseUser`)
+- `UpdateTenantSchema` — `name?`, `slug?`, `logo?`, `plan?`, `status?`
+- `TenantFiltersSchema` — `status?`, `plan?`, `serviceProviderId?`, `search?`
+
+## ServiceProviders
+
+Access: `p.management.serviceProviders` (stateless readonly object).
+
+```ts
+// Create
+const sp = await p.management.serviceProviders.create({
+  name: "Acme Integrators",
+  slug: "acme-integrators",
+  description: "Field installation and training services",
+  email: "ops@acme-integrators.com",
+  phone: "+91-9876543210",
+  website: "https://acme-integrators.com",
+  address: "Mumbai, IN",
+});
+
+// List / get
+const sps = await p.management.serviceProviders.list({ status: "active" });
+const sp = await p.management.serviceProviders.get({ id: spId });
+
+// Update
+await p.management.serviceProviders.update({ id: spId, phone: "+91-9999999999" });
+
+// Status — inactive SPs shouldn't be assigned to new tenants
+await p.management.serviceProviders.deactivate({ id: spId });
+await p.management.serviceProviders.activate({ id: spId });
+
+// Assigned tenants and users
+const tenants = await p.management.serviceProviders.getAssignedTenants({ spId });
+const users = await p.management.serviceProviders.getUsers({ spId });
+```
+
+## Users
+
+Access: `p.management.users` (stateless readonly object).
+
+```ts
+// Create a platform user (password required)
+await p.management.users.create({
+  email: "admin@aspen-os.com",
+  name: "Platform Admin",
+  password: "secret",
+  role: "platform_admin",
+});
+
+// SP user — spId required
+await p.management.users.create({
+  email: "field@acme-integrators.com",
+  name: "Field Agent",
+  password: "secret",
+  role: "sp_user",
+  spId: "sp-1",
+});
+
+// List / get / update / delete
+const users = await p.management.users.list({ role: "sp_user", spId: "sp-1" });
+const user = await p.management.users.get({ id: userId });
+await p.management.users.update({ id: userId, name, role, spId });
+await p.management.users.delete({ id: userId });
+
+// Role / SP assignment
+await p.management.users.assignRole({ userId, role: "platform_admin" });
+await p.management.users.assignToServiceProvider({ userId, spId: "sp-2" });
+```
+
+<Callout type="warn">
+  `user.create` enforces the `spId` rule in its handler: `spId` is required when `role ===
+  "sp_user"` and must not be set otherwise. It also verifies the SP exists and is active.
+</Callout>
+
+## Notes
+
+- All workflows are `Workflow.name(...)` objects (`tenant.activate`, `sp.create`, `user.assign-role`, etc.), each with Valibot input validation and status persistence via the platform's `Workflow` engine.
+- Lifecycle and CRUD operations write audit entries (`ctx.audit.write`) and publish domain events via `ctx.pubsub`.

@@ -1,0 +1,7 @@
+{
+  "icon": "IconBuilding",
+  "pages": ["overview", "workflows", "events", "db-schemas"],
+  "pagesIndex": "index",
+  "root": true,
+  "title": "Organization"
+}

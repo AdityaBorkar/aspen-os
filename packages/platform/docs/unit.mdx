@@ -1,0 +1,178 @@
+---
+title: Unit
+description: Infrastructure services — the eight building blocks the platform creates and manages.
+icon: IconBox
+---
+
+A **Unit** is an infrastructure service managed by the platform. There are exactly eight on the server and three on the client. You never instantiate units yourself — you provide config and the platform wires them together with dependency injection.
+
+## The Unit Interface
+
+```ts title="src/server/index.ts"
+interface Unit {
+  readonly $name: string;
+  $cleanup(): Promise<void>;
+  $prepareInfra?(...args: unknown[]): Promise<void>;
+}
+```
+
+Server units use a `$` prefix on lifecycle methods (`$name`, `$prepareInfra`, `$cleanup`). This separates framework lifecycle calls from the unit's own public API — for example, `DatabaseUnit.$cleanup()` shuts down the connection pool, while `DatabaseUnit.db` is the drizzle instance you use day-to-day.
+
+## The Eight Server Units
+
+All eight are constructed inside `BasePlatform.createCore()`. `audit` takes no config — it is always present:
+
+| Key       | Unit class     | `$name`     | Depends on                   | Purpose                                             |
+| --------- | -------------- | ----------- | ---------------------------- | --------------------------------------------------- |
+| `db`      | `DatabaseUnit` | `"db"`      | —                            | PostgreSQL pool + Drizzle ORM, tenancy state        |
+| `audit`   | `AuditUnit`    | `"audit"`   | `{ db }`                     | Field-level audit log with transaction support      |
+| `logs`    | `LogUnit`      | `"logs"`    | `{ db }`                     | Structured logging to the database                  |
+| `pubsub`  | `PubSubUnit`   | `"pubsub"`  | `{ db }`                     | Pub/sub, subscriptions, scheduled jobs              |
+| `auth`    | `AuthUnit`     | `"auth"`    | `{ db, pubsub }`             | better-auth (sessions, users, roles, 2FA, passkeys) |
+| `storage` | `StorageUnit`  | `"storage"` | `{ db }`                     | S3-compatible file storage with signed URLs         |
+| `rpc`     | `RpcUnit`      | `"rpc"`     | `{ auth, db, logs, pubsub }` | oRPC procedure registry and HTTP handler            |
+| `kvStore` | `KvStoreUnit`  | `"kvStore"` | `{ db }`                     | Key-value cache with TTL, counters, getOrSet        |
+
+<Callout type="info">
+  Each unit has a reference page under the **Units** section:
+  [Database](/docs/platform/units/database), [Auth](/docs/platform/units/auth),
+  [PubSub](/docs/platform/units/pubsub), [Storage](/docs/platform/units/storage), [KV
+  Store](/docs/platform/units/kv-store), [Logs](/docs/platform/units/logs),
+  [RPC](/docs/platform/units/rpc), and the [Audit](/docs/platform/units/audit) unit.
+</Callout>
+
+### Dependency Graph
+
+```text
+db ← audit
+db ← logs
+db ← pubsub ← auth (pubsub.setAuth)
+db ← storage
+db ← auth
+db ← rpc (also ← logs, pubsub, auth)
+db ← kvStore
+```
+
+`DatabaseUnit` is the root — every other unit depends on it, directly or transitively. `RpcUnit` is the most connected, pulling in four other units.
+
+## The Three Client Units
+
+`@aspen-os/platform/client` instantiates only three units:
+
+| Key    | Unit class | Purpose                                       |
+| ------ | ---------- | --------------------------------------------- |
+| `auth` | `AuthUnit` | Wraps the better-auth React client            |
+| `logs` | `LogUnit`  | Stub — throws on `$prepareInfra` / `$cleanup` |
+| `rpc`  | `RpcUnit`  | Stub — no-op                                  |
+
+Client units receive no constructor-injected dependencies. The client `AuthUnit` takes only `AuthConfig` (better-auth `baseURL`).
+
+## How Units Are Created
+
+You never call `new DatabaseUnit(...)` yourself. You pass a config object to the platform's `create()`:
+
+```ts
+const p = SingleTenantPlatform.create(
+  {
+    db: { host, port, user, password, database },
+    auth: { baseURL, secret },  // AuthConfig = BetterAuthOptions
+    logs: { defaultLevel: "info", serviceName: "my-app" },
+    pubsub: {},
+    storage: { bucket, prefix, provider: { ... } },
+    rpc: { prefix: "/api/rpc" },
+    kvStore: { defaultTtl: 3600, keyPrefix: "app" },
+  },
+  [organization],
+);
+```
+
+Inside `createCore()`, each unit is instantiated with `new` in dependency order, passing previously-created units as constructor args. The resulting `PlatformUnits` object is passed to each module's `$initialize(units)`.
+
+<Callout type="warn">
+  The unit set is fixed. You cannot add, remove, or replace units. `audit` takes no config and is
+  always instantiated.
+</Callout>
+
+## Unit Lifecycle
+
+Units participate in the platform's `$prepareInfra()` and `$cleanup()` phases:
+
+```text
+p.$prepareInfra()
+  → for each unit: unit.$prepareInfra?.()   // catches + logs per-unit errors
+  → collect ModuleInfra from modules (ACL + schemas)
+  → db.prepareWithModules(controlSchemas, tenantSchemas)
+  → auth.applyModuleAcl(acl)
+  → for each module: mod.$prepareRuntime?.()
+
+p.$cleanup()
+  → for each module: mod.$cleanup()    // catches + logs per-module errors
+  → for each unit: unit.$cleanup()     // catches + logs per-unit errors
+```
+
+### `$prepareInfra()`
+
+Called during `$prepareInfra()`. `DatabaseUnit.$prepareInfra()` pushes domain schemas (it receives merged module schemas). `PubSubUnit.$prepareInfra()` is a **no-op** — the single control-plane pg-boss starts lazily on first use. `AuthUnit.$prepareInfra()` reapplies the module ACL.
+
+### `$cleanup()`
+
+Called during `$cleanup()`, after all modules are cleaned up. `DatabaseUnit.$cleanup()` ends the `pg.Pool`; `PubSubUnit.$cleanup()` unregisters listeners and stops the boss.
+
+## Schema Ownership
+
+Each server unit that needs persistence owns its own database schema, pushed via `DatabaseUnit`:
+
+| Unit      | Tables                                                          |
+| --------- | --------------------------------------------------------------- |
+| `auth`    | `user`, `session`, `account`, `verification`, ... (better-auth) |
+| `logs`    | `logs`                                                          |
+| `storage` | `file_metadata`                                                 |
+| `kvStore` | `kv_store`                                                      |
+| `audit`   | `audit_log`                                                     |
+| workflows | `workflow_runs`, `workflow_steps`                               |
+
+Domain modules push their own schemas via `ModuleInfra.db` — merged and applied by `DatabaseUnit.prepareWithModules()`.
+
+## Accessing Units
+
+### Proxy access (preferred)
+
+```ts
+p.db; // → DatabaseUnit
+p.audit; // → AuditUnit
+p.pubsub; // → PubSubUnit
+p.storage; // → StorageUnit
+p.kvStore; // → KvStoreUnit
+p.logs; // → LogUnit
+p.rpc; // → RpcUnit
+p.auth; // → AuthUnit
+```
+
+### Typed accessor
+
+```ts
+p.getUnit("db"); // → DatabaseUnit
+p.getUnit("auth"); // → AuthUnit
+```
+
+The proxy checks units first, then modules.
+
+### Inside request context
+
+Within `p.run(fn)`, the drizzle `db`, `pubsub`, `auth` (AuthUnit), `audit`, and `tenantId` are available via `AsyncLocalStorage`:
+
+```ts
+import { getContext } from "@aspen-os/platform/server";
+
+await p.run(async () => {
+  const { audit, auth, db, pubsub } = getContext();
+  // db: NodePgDatabase
+  // pubsub: PubSubUnit
+  // auth: AuthUnit (not raw betterAuth)
+  // audit: AuditUnit
+});
+```
+
+## Why You Can't Create Custom Units
+
+Units represent fixed infrastructure — database, auth, storage, pubsub. The set is closed by design because instantiation order, lifecycle, and contracts are known at compile time. If you need new functionality, create a **module** instead — modules are pluggable, receive all units via `$initialize()`, and follow their own lifecycle. See [Modules](/docs/platform/module) and [Custom Module](/docs/platform/custom-module).

@@ -1,0 +1,147 @@
+---
+title: Tenancy
+description: Three selectable tenancy architectures — Single Tenant, Shared DB + RLS, and Isolated DB — chosen by platform class.
+icon: IconBuildingFactory
+---
+
+The platform supports three tenancy architectures. The choice is made by **which platform class you instantiate** — there is no `tenancy` config field. The same module code (workflows, services, schemas) works across all three modes.
+
+## Modes
+
+| Mode                | Platform class           | `run()` signature   | Databases                  | Isolation               |
+| ------------------- | ------------------------ | ------------------- | -------------------------- | ----------------------- |
+| **Single Tenant**   | `SingleTenantPlatform`   | `run(fn)`           | 1                          | None needed             |
+| **Shared DB + RLS** | `SharedTenantPlatform`   | `run(tenantId, fn)` | 1 (shared)                 | Postgres RLS policies   |
+| **Isolated DB**     | `IsolatedTenantPlatform` | `run(tenantId, fn)` | N+1 (control + per-tenant) | Physical (separate DBs) |
+
+## Choosing a Platform Class
+
+```ts
+import {
+  SingleTenantPlatform,
+  SharedTenantPlatform,
+  IsolatedTenantPlatform,
+} from "@aspen-os/platform/server";
+
+// Single tenant: run(fn)
+const p = SingleTenantPlatform.create(config, [modules]);
+
+// Shared DB + RLS: run(tenantId, fn)
+const p = SharedTenantPlatform.create(config, [modules]);
+
+// Isolated DB per tenant: run(tenantId, fn)
+const p = IsolatedTenantPlatform.create(config, [modules]);
+```
+
+The config type differs per class:
+
+```ts
+// SingleTenantConfig = CommonConfig & { db: DatabaseConfig }
+// SharedTenantConfig   = CommonConfig & { db: DatabaseConfig }
+// IsolatedTenantConfig = CommonConfig & { db: IsolatedTenantDatabaseConfig }
+```
+
+The `db` config is always the **control-plane** database. In single/RLS mode this IS the app DB. In isolated mode it is the control-plane DB (auth + platform tables); per-tenant DB configuration is derived from `IsolatedTenantDatabaseConfig` (`controlDbName`, `tenantDbPrefix`, `tenantDbDefaults`, `connection`).
+
+## `run()` Signatures
+
+```ts
+// Single-tenant
+await p.run(async () => {
+  const { db } = getContext(); // control-plane (app) DB
+});
+
+// Shared or isolated
+await p.run(tenantId, async () => {
+  const { db, tenantId } = getContext(); // per-request/per-tenant drizzle instance
+});
+```
+
+The caller resolves the tenant ID (e.g. from the auth session's active organization) and passes it to `run()`.
+
+## How It Works
+
+### Stable DB Wrapper
+
+`DatabaseUnit.db` is a getter returning a stable wrapper (a `Proxy`) that resolves the correct per-request drizzle instance via `AsyncLocalStorage` at query time. Workflows keep `this.db = units.db.db` — no workflow code changes.
+
+- **Single-tenant**: context db is the control-plane db.
+- **Shared**: `run(tenantId, fn)` acquires a dedicated client, starts a transaction, sets `SET LOCAL app.tenant_id`, applies `SET LOCAL ROLE tenant_role`, and creates a drizzle instance wrapping that client.
+- **Isolated**: `run(tenantId, fn)` resolves and connects to the tenant DB (global tenant IDs use the control-plane DB).
+
+### Control-Plane Connection
+
+`DatabaseUnit` always holds a control-plane connection. `AuthUnit` always uses `controlPlaneDb` — auth tables are only on the control-plane DB and are exempt from RLS.
+
+```ts
+p.db.controlPlaneDb; // drizzle instance for control-plane queries
+p.db.pool; // pg.Pool for the control-plane connection
+```
+
+### Per-Tenant Operations (isolated)
+
+The `DatabaseUnit` provides provisioning helpers:
+
+```ts
+p.db.getTenantDb(tenantId); // lazily creates + caches per-tenant pool
+p.db.pushSchemasToTenant(tenantId, moduleSchemas);
+p.db.provisionTenant(tenantId, config); // create + seed a tenant DB
+p.db.createTenant(tenantId);
+p.db.seedTenantDb(tenantId);
+```
+
+In isolated mode, `IsolatedTenantPlatform.$prepareInfra()` also calls each module's `$prepareTenant(tenantId)` for every tenant returned by the resolver.
+
+<Callout type="info">
+  The `IsolatedTenantDatabaseConfig.resolver` described in older docs does not exist as a config
+  field. A dummy resolver is constructed internally in `IsolatedTenantPlatform.create()`.
+</Callout>
+
+### RLS Policies (shared mode)
+
+After schemas are pushed during `$prepareInfra()`, `SharedTenantPlatform` applies standard RLS policies to tables with a `tenant_id` column:
+
+```sql
+ALTER TABLE <table> ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON <table>
+  FOR ALL TO tenant_role
+  USING (tenant_id = current_setting('app.tenant_id', true))
+  WITH CHECK (tenant_id = current_setting('app.tenant_id', true));
+```
+
+RLS is applied in `$prepareInfra()` after the base `$prepareInfra()` completes.
+
+### `tenant_id` Column
+
+Tables (except auth tables) gain a `tenant_id` column:
+
+```ts
+tenantId: text("tenant_id")
+  .notNull()
+  .default(sql`COALESCE(current_setting('app.tenant_id', true), 'default')`);
+```
+
+- **Single-tenant**: always `"default"` (the GUC is never set).
+- **Shared**: set per-request via `SET LOCAL app.tenant_id`.
+- **Isolated**: `"default"` (redundant but harmless — isolation is physical).
+
+### PubSub
+
+There is exactly **one** pg-boss — the control-plane boss — regardless of tenancy mode. `publish`/`subscribe`/`schedule` always target it. In isolated mode, a subscribing handler's `ctx.db` is the tenant DB (per-tenant subscription), but the boss itself is shared.
+
+<Callout type="warn">
+  There is no `publishControlPlane()` method — with a single boss, `publish()` covers both
+  control-plane and tenant topics.
+</Callout>
+
+### `$prepareTenant()` Lifecycle
+
+`Module` has an optional `$prepareTenant(tenantId: string): Promise<void>`. In isolated mode the platform calls it for each tenant during `$prepareInfra()`. Modules register per-tenant schedules/subscriptions here.
+
+## CLI
+
+The `aspen` CLI launches Drizzle Kit Studio against the control-plane DB:
+
+```bash
+aspen db-studio --config=src/aspen/server.ts
+```

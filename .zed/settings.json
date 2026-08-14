@@ -1,0 +1,32 @@
+{
+  "file_scan_exclusions": [
+    "**/.git",
+    "**/.coverage",
+    "**/.output",
+    "**/node_modules",
+    "codedb.snapshot",
+    "tsconfig.tsbuildinfo"
+  ],
+  "format_on_save": "on",
+  "formatter": {
+    "language_server": {
+      "name": "oxfmt"
+    }
+  },
+  "language_servers": [
+    "!typescript-language-server",
+    "!markdownlint",
+    "!eslint",
+    "!vtsls",
+    "!biome",
+    "..."
+  ],
+  "lsp": {
+    "vtsls": {
+      "binary": {
+        "arguments": ["--lsp", "--stdio"],
+        "path": "node_modules/.bin/tsc"
+      }
+    }
+  }
+}

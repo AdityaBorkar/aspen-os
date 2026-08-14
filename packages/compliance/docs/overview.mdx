@@ -1,0 +1,105 @@
+---
+title: Overview
+description: Architecture, initialization, and module structure of the Compliance domain module.
+icon: IconInfoCircle
+---
+
+The Compliance module manages compliance documents through their full lifecycle — creation, submission, verification, expiry, renewal, and archival — with obligation templates, automated reminders, and audit trails.
+
+## Module
+
+```ts title="src/index.ts"
+export class Compliance implements Module {
+  static create(config: ComplianceModuleConfig): Compliance;
+  readonly $name = "compliance";
+  readonly $dependencies: readonly string[] = [];
+}
+```
+
+`ComplianceModuleConfig`:
+
+| Option                  | Type        | Default | Description                              |
+| ----------------------- | ----------- | ------- | ---------------------------------------- |
+| `country`               | `"INDIA"`   | —       | Country-specific configuration           |
+| `dashboardCacheTtl`     | `number?`   | `300`   | KV cache TTL for dashboard summary       |
+| `defaultReminderDays`   | `number[]?` | —       | Days before expiry/due to send reminders |
+| `defaultEscalationDays` | `number[]?` | —       | Days after expiry to escalate            |
+
+## Initialization
+
+```ts
+$initialize(units: { db: DatabaseUnit; kvStore: KvStoreUnit; pubsub: PubSubUnit }): void {
+  this.#db = units.db;
+  this.#pubsub = units.pubsub;
+  this.#kvStore = units.kvStore;
+}
+```
+
+## Runtime
+
+`$prepareRuntime()` registers the module's schedules and handlers:
+
+1. Reminder schedules via `registerReminderSchedules()`
+2. Reminder handlers (`registerReminderHandlers`) — needs `ctx.audit`
+3. Obligation generator handler (`registerObligationGenerator`)
+4. Event-bridge subscriptions (`registerEventBridgeSubscriptions`) — listens to organization events
+
+`$cleanup()` unregisters all of them. `$prepareInfra()` declares the module's ACL, DB schemas, and events.
+
+## Module Structure
+
+```text
+packages/compliance/src/
+  index.ts              # Module class + type re-exports
+  db-schemas/           # tables + enums (control-plane + tenant)
+  types.ts              # Valibot schemas + domain interfaces
+  constants.ts          # Enums, defaults, cron schedules, scheduled job names
+  pubsub.ts             # events + event interfaces + ComplianceEventMap
+  workflows/
+    document.ts
+    obligation.ts
+    verification.ts
+    audit.ts
+    dashboard.ts
+  services/
+    reminder-engine.ts
+    obligation-generator.ts
+    event-bridge.ts
+    status-derivation.ts
+  utils/
+    acl.ts
+```
+
+## Workflow Accessors
+
+```ts
+p.compliance.documents; // → DocumentWorkflow
+p.compliance.obligations; // → ObligationWorkflow
+p.compliance.verification; // → VerificationWorkflow
+p.compliance.audit; // → AuditWorkflow
+p.compliance.dashboard; // → DashboardWorkflow
+```
+
+## Scheduled Jobs
+
+| Job Name                                                                                                           | Cron                              | Description                              |
+| ------------------------------------------------------------------------------------------------------------------ | --------------------------------- | ---------------------------------------- |
+| `compliance:*` (daily expiry scan, daily escalation, daily status transition, obligation generate, weekly summary) | via `registerReminderSchedules()` | Automated compliance scans and summaries |
+
+The exact job names and crons are defined in `src/constants.ts` and registered in `$prepareRuntime()`.
+
+## Package
+
+```json title="package.json"
+{
+  "name": "@aspen-os/compliance",
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@aspen-os/platform": "workspace:*",
+    "@aspen-os/constants": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "valibot": "catalog:"
+  }
+}
+```
