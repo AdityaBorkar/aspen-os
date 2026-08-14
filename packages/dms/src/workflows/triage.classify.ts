@@ -47,7 +47,7 @@ export const classifyDocument = Workflow.name("dms.triage.classify")
     const validation = validateFieldValues(fields, input.fieldValues);
     if (validation.errors.length > 0) {
       throw new Error(
-        `Classification failed: ${validation.errors.map((e) => e.message).join(" ")}`,
+        `Classification failed: ${validation.errors.map((error) => error.message).join(" ")}`,
       );
     }
 

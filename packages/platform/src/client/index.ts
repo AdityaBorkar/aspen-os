@@ -11,34 +11,36 @@ export type PlatformUnits = {
 };
 
 export type UnitAccessors = {
-  [K in keyof PlatformUnits]: PlatformUnits[K];
+  [TKey in keyof PlatformUnits]: PlatformUnits[TKey];
 };
 
-type ExtractModuleNames<M extends Module[]> = {
-  [K in keyof M]: M[K] extends { $name: infer N extends string } ? N : never;
+type ExtractModuleNames<TModules extends Module[]> = {
+  [TKey in keyof TModules]: TModules[TKey] extends { $name: infer TName extends string }
+    ? TName
+    : never;
 };
 
-export type ModuleAccessors<M extends Module[], Names extends M[number]["$name"]> = {
-  [K in Names]: Extract<M[number], { $name: K }>;
+export type ModuleAccessors<TModules extends Module[], Names extends TModules[number]["$name"]> = {
+  [TKey in Names]: Extract<TModules[number], { $name: TKey }>;
 };
 
-export type PlatformInstance<M extends Module[]> = Platform<M> &
+export type PlatformInstance<TModules extends Module[]> = Platform<TModules> &
   UnitAccessors &
-  ModuleAccessors<M, ExtractModuleNames<M>[number]>;
+  ModuleAccessors<TModules, ExtractModuleNames<TModules>[number]>;
 
-export class Platform<M extends Module[]> implements UnitAccessors {
+export class Platform<TModules extends Module[]> implements UnitAccessors {
   declare readonly auth: PlatformUnits["auth"];
   declare readonly logs: PlatformUnits["logs"];
   declare readonly rpc: PlatformUnits["rpc"];
 
-  static create<M extends Module[]>(
+  static create<TModules extends Module[]>(
     config: {
       auth: AuthConfig;
       logs: LogsConfig;
       rpc: RpcConfig;
     },
-    modules: M,
-  ): PlatformInstance<M> {
+    modules: TModules,
+  ): PlatformInstance<TModules> {
     const auth = new AuthUnit(config.auth);
     const logs = new LogsUnit(config.logs);
     const rpc = new RpcUnit(config.rpc);
@@ -50,7 +52,7 @@ export class Platform<M extends Module[]> implements UnitAccessors {
       modulesRecord[mod.$name] = mod;
     }
 
-    return new Platform(units, modulesRecord) as PlatformInstance<M>;
+    return new Platform(units, modulesRecord) as PlatformInstance<TModules>;
   }
 
   constructor(
@@ -77,19 +79,21 @@ export class Platform<M extends Module[]> implements UnitAccessors {
     });
   }
 
-  getModule<K extends M[number]["$name"]>(name: K): Extract<M[number], { $name: K }> {
+  getModule<TKey extends TModules[number]["$name"]>(
+    name: TKey,
+  ): Extract<TModules[number], { $name: TKey }> {
     const module = this.modules[name];
     if (!module) {
       throw new Error(`Module "${String(name)}" not found`);
     }
-    return module as Extract<M[number], { $name: K }>;
+    return module as Extract<TModules[number], { $name: TKey }>;
   }
 
-  getUnit<K extends keyof PlatformUnits>(name: K): PlatformUnits[K] {
+  getUnit<TKey extends keyof PlatformUnits>(name: TKey): PlatformUnits[TKey] {
     return this.units[name];
   }
 
-  run<T>(fn: () => T): T {
+  run<TValue>(fn: () => TValue): TValue {
     const auth = this.units.auth.client;
     const { logs } = this.units;
     const { rpc } = this.units;

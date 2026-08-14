@@ -36,7 +36,7 @@ export class KvStoreUnit {
     // Cleanup if needed
   }
 
-  async get<T = unknown>(key: string): Promise<T | null> {
+  async get<TValue = unknown>(key: string): Promise<TValue | null> {
     const rows = await this.db
       .select({
         expiresAt: db_schema.kvStore.expiresAt,
@@ -49,7 +49,7 @@ export class KvStoreUnit {
     if (rows.length === 0) {
       return null;
     }
-    const row = rows[0];
+    const [row] = rows;
     if (!row) {
       return null;
     }
@@ -58,9 +58,9 @@ export class KvStoreUnit {
       return null;
     }
     try {
-      return JSON.parse(row.value) as T;
+      return JSON.parse(row.value) as TValue;
     } catch {
-      return row.value as T;
+      return row.value as TValue;
     }
   }
 
@@ -123,7 +123,7 @@ export class KvStoreUnit {
       })
       .returning({ value: db_schema.kvStore.value });
 
-    const row = result[0];
+    const [row] = result;
     if (!row) {
       throw new Error("Failed to increment key");
     }
@@ -134,8 +134,12 @@ export class KvStoreUnit {
     return this.increment(key, -amount);
   }
 
-  async getOrSet<T = unknown>(key: string, factory: () => Promise<T>, ttl?: number): Promise<T> {
-    const cached = await this.get<T>(key);
+  async getOrSet<TValue = unknown>(
+    key: string,
+    factory: () => Promise<TValue>,
+    ttl?: number,
+  ): Promise<TValue> {
+    const cached = await this.get<TValue>(key);
     if (cached !== null) {
       return cached;
     }
@@ -150,15 +154,19 @@ export class KvStoreUnit {
     const searchPattern = pattern ? this.getKeyName(pattern) : `${tenantPrefix}*`;
     const keys: string[] = [];
     let cursor = "0";
+    // oxlint-disable eslint/no-await-in-loop
     do {
       const [nextCursor, found] = await this.scan(cursor, "MATCH", searchPattern, "COUNT", 100);
       cursor = nextCursor;
       keys.push(...found);
     } while (cursor !== "0");
+    // oxlint-enable eslint/no-await-in-loop
 
-    for (const key of keys) {
-      await this.db.delete(db_schema.kvStore).where(eq(db_schema.kvStore.key, key));
-    }
+    await Promise.all(
+      keys.map(async (key) => {
+        await this.db.delete(db_schema.kvStore).where(eq(db_schema.kvStore.key, key));
+      }),
+    );
   }
 
   private getTenantPrefix(tenantId: string): string {
@@ -183,7 +191,7 @@ export class KvStoreUnit {
     }
 
     const rows = await query.limit(count).offset(offset);
-    const keys = rows.map((r: { key: string }) => r.key);
+    const keys = rows.map((row: { key: string }) => row.key);
     const nextCursor = rows.length < count ? "0" : String(offset + rows.length);
 
     return [nextCursor, keys];

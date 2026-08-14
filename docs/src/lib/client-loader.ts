@@ -18,6 +18,9 @@ function prefixEntries(
 ): Record<string, DocEntry> {
   const out: Record<string, DocEntry> = {};
   for (const key in entries) {
+    if (!Object.hasOwn(entries, key)) {
+      continue;
+    }
     const path = key.startsWith("./") ? key.slice(2) : key;
     const entry = entries[key];
     if (entry !== undefined) {

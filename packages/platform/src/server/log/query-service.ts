@@ -73,12 +73,13 @@ export class LogQueryService {
     }));
   }
 
-  async getStats(
-    service?: string,
-    startTime?: Date,
-    endTime?: Date,
-    tenantId?: string,
-  ): Promise<LogStats> {
+  async getStats(input: {
+    service?: string;
+    startTime?: Date;
+    endTime?: Date;
+    tenantId?: string;
+  }): Promise<LogStats> {
+    const { service, startTime, endTime, tenantId } = input;
     const conditions = [];
     if (service) {
       conditions.push(eq(logs.service, service));

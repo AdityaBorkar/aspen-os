@@ -55,12 +55,14 @@ async function createSearchServer() {
   return search;
 }
 
-async function chunkedAll<O>(promises: Promise<O>[]): Promise<O[]> {
+async function chunkedAll<TOutput>(promises: Promise<TOutput>[]): Promise<TOutput[]> {
   const SIZE = 50;
-  const out: O[] = [];
-  for (let i = 0; i < promises.length; i += SIZE) {
-    out.push(...(await Promise.all(promises.slice(i, i + SIZE))));
+  const out: TOutput[] = [];
+  // oxlint-disable eslint/no-await-in-loop
+  for (let index = 0; index < promises.length; index += SIZE) {
+    out.push(...(await Promise.all(promises.slice(index, index + SIZE))));
   }
+  // oxlint-enable eslint/no-await-in-loop
   return out;
 }
 

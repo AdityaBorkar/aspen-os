@@ -28,8 +28,10 @@ export async function pruneOldVersions(db: DB, fileId: string, maxVersions: numb
 
   const toPrune = versions.slice(maxVersions);
 
-  for (const v of toPrune) {
-    await removeStorage({ key: v.storageKey });
-    await db.delete(dmsFileVersion).where(eq(dmsFileVersion.id, v.id));
-  }
+  await Promise.all(
+    toPrune.map(async (version) => {
+      await removeStorage({ key: version.storageKey });
+      await db.delete(dmsFileVersion).where(eq(dmsFileVersion.id, version.id));
+    }),
+  );
 }

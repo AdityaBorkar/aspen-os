@@ -9,8 +9,8 @@ import type { AutomationTrigger } from "../utils/constants";
 export const getActiveAutomationRules = Workflow.name("automation.get-active")
   .input(object({ projectId: IdSchema, trigger: string() }))
   .handler(async ({ projectId, trigger }, ctx) =>
-    ctx.step.run("query", async () => {
-      return ctx.db
+    ctx.step.run("query", async () =>
+      ctx.db
         .select()
         .from(automationRule)
         .where(
@@ -19,6 +19,6 @@ export const getActiveAutomationRules = Workflow.name("automation.get-active")
             eq(automationRule.trigger, trigger as AutomationTrigger),
             eq(automationRule.isActive, true),
           ),
-        );
-    }),
+        ),
+    ),
   );

@@ -179,7 +179,7 @@ Root `tsconfig.json` (extended everywhere, `composite: true` project references)
 | `packages/platform/src/server/base-platform.ts`                                        | `BasePlatform` (Proxy, `createCore`, `$prepareInfra`, `run`, `$cleanup`, `healthCheck`)                                                           |
 | `packages/platform/src/server/{create-single,create-shared,create-isolated}-tenant.ts` | The three platform classes                                                                                                                        |
 | `packages/platform/src/server/db/index.ts` + `unit.ts`                                 | `DatabaseUnit` — pool, `db`/`controlPlaneDb`, tenancy, RLS, `prepareWithModules`, `getSchemas`                                                    |
-| `packages/platform/src/server/auth/index.ts`                                           | `AuthUnit` — better-auth service, `fetchHandler`, `applyModuleAcl`, `_` getter, `defineAcl`                                                       |
+| `packages/platform/src/server/auth/index.ts`                                           | `AuthUnit` — better-auth service, `fetchHandler`, `applyModuleAcl`, `rest` getter, `defineAcl`                                                    |
 | `packages/platform/src/server/pubsub/index.ts`                                         | `PubSubUnit` — single control-plane pg-boss (lazy-started); see pubsub pitfalls below                                                             |
 | `packages/platform/src/server/workflows/`                                              | `Workflow` / `WorkflowStep` durable step runner (`workflow_runs`/`workflow_steps` tables)                                                         |
 | `packages/platform/src/cli/index.ts`                                                   | `aspen` CLI — `db-studio`, `tenants`; dynamically imports config (`platform` or `p` export)                                                       |
@@ -188,9 +188,9 @@ Root `tsconfig.json` (extended everywhere, `composite: true` project references)
 | `docs/source.config.ts`                                                                | Fumadocs docs sources — each package's `docs/` dir (`packages/*/docs`, e.g. `platform`, `organization`, `hr`)                                     |
 | `biome.json`, `tsconfig.json`, `bunfig.toml`, `.commitlintrc.json`                     | Toolchain config                                                                                                                                  |
 
-### `_` getter (server AuthUnit)
+### `rest` getter (server AuthUnit)
 
-`AuthUnit._` exposes a REST `resource.action` API: `user.{create, get, remove, update, role.{assign, unassign}}`, `session.{create, invalidate, validate}`, `role.{list, remove}`. The `service` getter returns the full better-auth `AuthService` (`betterAuth` instance with `.api` for admin/organization plugin endpoints). Use `remove`, not `delete`. `applyModuleAcl(acl)` re-creates the service with `admin({ ac: createAccessControl(acl) })` during `prepareInfra()`.
+`AuthUnit.rest` exposes a REST `resource.action` API: `user.{create, get, remove, update, role.{assign, unassign}}`, `session.{create, invalidate, validate}`, `role.{list, remove}`. The `service` getter returns the full better-auth `AuthService` (`betterAuth` instance with `.api` for admin/organization plugin endpoints). Use `remove`, not `delete`. `applyModuleAcl(acl)` re-creates the service with `admin({ ac: createAccessControl(acl) })` during `prepareInfra()`.
 
 ### Workflows
 

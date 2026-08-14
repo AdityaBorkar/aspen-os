@@ -55,7 +55,7 @@ export interface LogUnit {
   destroy(): Promise<void>;
   error(message: string, error?: Error, metadata?: Record<string, unknown>): void;
   fatal(message: string, error?: Error, metadata?: Record<string, unknown>): void;
-  getStats(service?: string, startTime?: Date, endTime?: Date): Promise<LogStats>;
+  getStats(filter?: { service?: string; startTime?: Date; endTime?: Date }): Promise<LogStats>;
   info(message: string, metadata?: Record<string, unknown>): void;
 
   log(level: LogLevel, message: string, metadata?: Record<string, unknown>): void;

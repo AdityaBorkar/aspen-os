@@ -39,7 +39,8 @@ export function createOnboardTenant(dbUnit: DatabaseUnit) {
 
       const tenantId = org.id;
 
-      let provisioningResult: Awaited<ReturnType<DatabaseUnit["provisionTenant"]>>;
+      let provisioningResult: Awaited<ReturnType<DatabaseUnit["provisionTenant"]>> | undefined =
+        undefined;
 
       try {
         provisioningResult = await ctx.step.run("provision-tenant", async () =>

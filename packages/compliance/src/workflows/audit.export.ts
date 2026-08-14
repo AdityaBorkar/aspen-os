@@ -1,8 +1,7 @@
 import { Workflow } from "@aspen-os/platform/server";
 import { parse } from "valibot";
 
-import type { AuditTrailFilters } from "../types";
-import { AuditTrailFiltersSchema } from "../types";
+import { type AuditTrailFilters, AuditTrailFiltersSchema } from "../types";
 import { type AuditLogRow, type ComplianceAuditEntry, normalize, toFilter } from "./utils";
 
 const exportAuditEntries = Workflow.name("audit.export").handler(

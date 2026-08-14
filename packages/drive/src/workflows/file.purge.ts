@@ -21,11 +21,13 @@ export const purgeFile = Workflow.name("drive.file.purge")
       .from(driveFileVersion)
       .where(eq(driveFileVersion.fileId, id));
 
-    for (const v of versions) {
+    // oxlint-disable eslint/no-await-in-loop
+    for (const version of versions) {
       await ctx.step.run("remove-version-storage", async () => {
-        await removeStorage({ key: v.storageKey });
+        await removeStorage({ key: version.storageKey });
       });
     }
+    // oxlint-enable eslint/no-await-in-loop
 
     await ctx.db.delete(driveFileVersion).where(eq(driveFileVersion.fileId, id));
 

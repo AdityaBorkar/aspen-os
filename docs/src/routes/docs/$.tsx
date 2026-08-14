@@ -27,7 +27,7 @@ import { STAGE } from "@/lib/stage";
 export const Route = createFileRoute("/docs/$")({
   component: Page,
   loader: async ({ params }) => {
-    const slugs = params._splat?.split("/") ?? [];
+    const slugs = params["_splat"]?.split("/") ?? [];
     if (slugs.length === 0 || (slugs.length === 1 && slugs[0] === "")) {
       throw redirect({ params: { _splat: "platform" }, to: "/docs/$" });
     }
@@ -58,7 +58,7 @@ const serverLoader = createServerFn({
 
 const clientLoader = createClientLoader(mergedEntries, {
   component(
-    { toc, frontmatter, default: MDX },
+    { toc, frontmatter, default: MDXContent },
     { markdownUrl, path }: { markdownUrl: string; path: string },
   ) {
     // Biome-ignore lint/correctness/useHookAtTopLevel: framework component function
@@ -75,7 +75,7 @@ const clientLoader = createClientLoader(mergedEntries, {
           />
         </div>
         <DocsBody>
-          <MDX components={components} />
+          <MDXContent components={components} />
         </DocsBody>
       </DocsPage>
     );
@@ -113,18 +113,19 @@ function Page() {
         : option.icon,
       urls: collectFolderUrls(node),
     }),
-  }).sort((a, b) => {
-    if (a.url === platformUrl) {
+  }).sort((left, right) => {
+    if (left.url === platformUrl) {
       return -1;
     }
-    if (b.url === platformUrl) {
+    if (right.url === platformUrl) {
       return 1;
     }
-    return a.url.localeCompare(b.url);
+    return left.url.localeCompare(right.url);
   });
 
   return (
     <DocsLayout
+      // oxlint-disable-next-line react/jsx-props-no-spreading
       {...LAYOUT_BASE_OPTIONS}
       nav={{
         ...LAYOUT_BASE_OPTIONS.nav,

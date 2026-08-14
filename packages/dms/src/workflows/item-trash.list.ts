@@ -2,8 +2,7 @@ import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 
 import { dmsFile, dmsFolder } from "../db-schemas";
-import type { ListTrashOptions } from "../types";
-import { ListTrashOptionsSchema } from "../types";
+import { type ListTrashOptions, ListTrashOptionsSchema } from "../types";
 
 const ListTrashSchema = ListTrashOptionsSchema;
 

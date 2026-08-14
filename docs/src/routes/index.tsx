@@ -9,6 +9,7 @@ export const Route = createFileRoute("/")({
 
 function Home() {
   return (
+    // oxlint-disable-next-line react/jsx-props-no-spreading
     <HomeLayout {...LAYOUT_BASE_OPTIONS}>
       <div className="flex flex-1 flex-col items-center justify-center gap-8 px-4 py-8 text-center">
         <div className="flex flex-col items-center gap-4">

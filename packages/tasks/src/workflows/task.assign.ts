@@ -30,8 +30,14 @@ export const assignTask = Workflow.name("task.assign")
       .returning();
 
     await ensureWatcher(ctx.db, input.taskId, input.userId);
-    await addActivity(ctx.db, input.taskId, input.assignedBy, "assignee_added", null, {
-      userId: input.userId,
+    await addActivity(ctx.db, {
+      action: "assignee_added",
+      newValue: {
+        userId: input.userId,
+      },
+      oldValue: null,
+      taskId: input.taskId,
+      userId: input.assignedBy,
     });
 
     return result;

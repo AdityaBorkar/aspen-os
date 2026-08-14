@@ -42,7 +42,7 @@ class AuthUnit implements Unit {
 
   applyModuleAcl(acl: Record<string, readonly string[]>): void;
 
-  get _(): {
+  get rest(): {
     role: {
       list(): Promise<RoleData[]>;
       remove(input: DeleteRoleInput): Promise<...>;
@@ -75,20 +75,20 @@ All programmatic auth operations go through the `_` getter, structured as `resou
 
 ```ts
 // Users
-await p.auth._.user.create({ email, password, name });
-await p.auth._.user.get({ email }); // or { id }
-await p.auth._.user.update({ id, data: { name } });
-await p.auth._.user.remove({ id });
+await p.auth.rest.user.create({ email, password, name });
+await p.auth.rest.user.get({ email }); // or { id }
+await p.auth.rest.user.update({ id, data: { name } });
+await p.auth.rest.user.remove({ id });
 
 // Roles
-await p.auth._.user.role.assign({ userId, roleName });
-await p.auth._.user.role.unassign({ userId, roleName });
-await p.auth._.role.list();
+await p.auth.rest.user.role.assign({ userId, roleName });
+await p.auth.rest.user.role.unassign({ userId, roleName });
+await p.auth.rest.role.list();
 
 // Sessions
-await p.auth._.session.create({ email, password });
-await p.auth._.session.validate({ token });
-await p.auth._.session.invalidate({ sessionId });
+await p.auth.rest.session.create({ email, password });
+await p.auth.rest.session.validate({ token });
+await p.auth.rest.session.invalidate({ sessionId });
 ```
 
 ## HTTP Handler

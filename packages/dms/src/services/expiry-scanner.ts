@@ -15,12 +15,12 @@ export interface ExpiryScannerDeps {
 export const EXPIRY_SCAN_CRON = "5 0 * * *";
 
 export async function registerExpiryScanner(pubsub: PubSubUnit): Promise<string> {
-  await pubsub.schedule(
-    SCHEDULED_JOBS.EXPIRY_SCAN,
-    EXPIRY_SCAN_CRON,
-    {},
-    { retryBackoff: true, retryDelay: 60, retryLimit: 3 },
-  );
+  await pubsub.schedule({
+    cron: EXPIRY_SCAN_CRON,
+    data: {},
+    options: { retryBackoff: true, retryDelay: 60, retryLimit: 3 },
+    topic: SCHEDULED_JOBS.EXPIRY_SCAN,
+  });
   return SCHEDULED_JOBS.EXPIRY_SCAN;
 }
 
@@ -50,7 +50,7 @@ export async function registerExpiryScanHandler(
 
 export async function scanExpiredDocuments(deps: ExpiryScannerDeps): Promise<number> {
   const now = new Date();
-  const today = now.toISOString().split("T")[0];
+  const [today] = now.toISOString().split("T");
 
   const rows = await deps.db
     .select({ expiryDate: dmsDocument.expiryDate, id: dmsDocument.id })
@@ -62,32 +62,33 @@ export async function scanExpiredDocuments(deps: ExpiryScannerDeps): Promise<num
       ),
     );
 
-  let processed = 0;
-  for (const row of rows) {
-    const updated = await deps.db
-      .update(dmsDocument)
-      .set({ expiredAt: now, status: "expired", updatedAt: now })
-      .where(and(eq(dmsDocument.id, row.id), eq(dmsDocument.status, "active")))
-      .returning();
+  const results = await Promise.all(
+    rows.map(async (row) => {
+      const updated = await deps.db
+        .update(dmsDocument)
+        .set({ expiredAt: now, status: "expired", updatedAt: now })
+        .where(and(eq(dmsDocument.id, row.id), eq(dmsDocument.status, "active")))
+        .returning();
 
-    if (updated.length === 0) {
-      continue;
-    }
+      if (updated.length === 0) {
+        return false;
+      }
 
-    await deps.audit.write({
-      action: "expired",
-      entityId: row.id,
-      entityType: "dms:document",
-      metadata: { expiryDate: row.expiryDate },
-    });
+      await deps.audit.write({
+        action: "expired",
+        entityId: row.id,
+        entityType: "dms:document",
+        metadata: { expiryDate: row.expiryDate },
+      });
 
-    await deps.pubsub.publish(DOCUMENT_EVENTS.EXPIRED, {
-      documentId: row.id,
-      expiryDate: row.expiryDate,
-    });
+      await deps.pubsub.publish(DOCUMENT_EVENTS.EXPIRED, {
+        documentId: row.id,
+        expiryDate: row.expiryDate,
+      });
 
-    processed++;
-  }
+      return true;
+    }),
+  );
 
-  return processed;
+  return results.filter(Boolean).length;
 }

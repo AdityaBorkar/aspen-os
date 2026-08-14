@@ -8,7 +8,7 @@ import { IdSchema } from "../types";
 export const listProjectMembers = Workflow.name("project.list-members")
   .input(object({ projectId: IdSchema }))
   .handler(async ({ projectId }, ctx) =>
-    ctx.step.run("query", async () => {
-      return ctx.db.select().from(projectMember).where(eq(projectMember.projectId, projectId));
-    }),
+    ctx.step.run("query", async () =>
+      ctx.db.select().from(projectMember).where(eq(projectMember.projectId, projectId)),
+    ),
   );

@@ -186,14 +186,14 @@ export async function quickSearch(
     .from(dmsDocumentClass)
     .where(ilike(dmsDocumentClass.name, `%${query}%`))
     .limit(5);
-  const classes = classRows.map((r) => r.name);
+  const classes = classRows.map((row) => row.name);
 
   const tagRows = await db
     .select({ name: dmsTag.name })
     .from(dmsTag)
     .where(ilike(dmsTag.name, `%${query}%`))
     .limit(5);
-  const tags = tagRows.map((r) => r.name);
+  const tags = tagRows.map((row) => row.name);
 
   return { classes, documents, tags };
 }
@@ -202,14 +202,14 @@ function findMatchInDocument(
   doc: DmsDocument,
   query: string,
 ): { field: string; value: string } | null {
-  const q = query.toLowerCase();
-  if (doc.name.toLowerCase().includes(q)) {
+  const normalized = query.toLowerCase();
+  if (doc.name.toLowerCase().includes(normalized)) {
     return { field: "name", value: doc.name };
   }
 
   const tags = doc.tags ?? [];
   for (const tag of tags) {
-    if (tag.toLowerCase().includes(q)) {
+    if (tag.toLowerCase().includes(normalized)) {
       return { field: "tag", value: tag };
     }
   }
@@ -218,7 +218,7 @@ function findMatchInDocument(
   if (metadata) {
     for (const [key, raw] of Object.entries(metadata)) {
       const value = String(raw ?? "");
-      if (value.toLowerCase().includes(q)) {
+      if (value.toLowerCase().includes(normalized)) {
         return { field: `metadata.${key}`, value };
       }
     }
@@ -228,7 +228,7 @@ function findMatchInDocument(
   if (fields) {
     for (const [key, raw] of Object.entries(fields)) {
       const value = String(raw ?? "");
-      if (value.toLowerCase().includes(q)) {
+      if (value.toLowerCase().includes(normalized)) {
         return { field: `classField.${key}`, value };
       }
     }

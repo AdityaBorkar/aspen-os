@@ -1,6 +1,6 @@
 import { eq, sql } from "drizzle-orm";
 
-import * as s from "../db-schema";
+import * as schema from "../db-schema";
 import type { AuthServiceDeps, RoleData } from "../index";
 
 export async function assignRole(
@@ -8,9 +8,9 @@ export async function assignRole(
   { db, pubsub }: AuthServiceDeps,
 ): Promise<void> {
   const [row] = await db
-    .update(s.user)
+    .update(schema.user)
     .set({ role: roleName })
-    .where(eq(s.user.id, userId))
+    .where(eq(schema.user.id, userId))
     .returning();
 
   if (!row) {
@@ -23,7 +23,7 @@ export async function unassignRole(
   { userId }: { userId: string },
   { db, pubsub }: AuthServiceDeps,
 ): Promise<void> {
-  await db.update(s.user).set({ role: null }).where(eq(s.user.id, userId));
+  await db.update(schema.user).set({ role: null }).where(eq(schema.user.id, userId));
   await pubsub?.publish("role:unassigned", { userId });
 }
 
@@ -31,25 +31,25 @@ export async function deleteRole(
   { name }: { name: string },
   { db, pubsub }: AuthServiceDeps,
 ): Promise<void> {
-  await db.update(s.user).set({ role: null }).where(eq(s.user.role, name));
+  await db.update(schema.user).set({ role: null }).where(eq(schema.user.role, name));
   await pubsub?.publish("role:deleted", { roleName: name });
 }
 
 export async function listRoles({ db }: AuthServiceDeps): Promise<RoleData[]> {
   const rows = await db
-    .selectDistinct({ name: s.user.role })
-    .from(s.user)
-    .where(sql`${s.user.role} IS NOT NULL`);
+    .selectDistinct({ name: schema.user.role })
+    .from(schema.user)
+    .where(sql`${schema.user.role} IS NOT NULL`);
 
   const roles: RoleData[] = [];
-  for (const r of rows) {
-    if (r.name === null) {
+  for (const roleRow of rows) {
+    if (roleRow.name === null) {
       continue;
     }
     roles.push({
       createdAt: new Date(),
-      id: r.name,
-      name: r.name,
+      id: roleRow.name,
+      name: roleRow.name,
       permissions: [],
       updatedAt: new Date(),
     });

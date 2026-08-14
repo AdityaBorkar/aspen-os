@@ -50,7 +50,7 @@ export const assignToServiceProvider = Workflow.name("user.assign-sp")
     });
 
     await ctx.step.run("assign-auth-role", async () => {
-      await ctx.auth?._.user.role.assign({
+      await ctx.auth?.rest.user.role.assign({
         roleName: ROLES.SP_USER,
         userId,
       });

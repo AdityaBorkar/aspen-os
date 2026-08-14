@@ -45,13 +45,15 @@ export class PubSubUnit {
   }
 
   async $cleanup(): Promise<void> {
-    for (const topic of this.subscriptions.keys()) {
-      try {
-        await this.boss.offWork(topic);
-      } catch {
-        // Ignore — topic may not be registered on the control-plane boss
-      }
-    }
+    await Promise.all(
+      [...this.subscriptions.keys()].map(async (topic) => {
+        try {
+          await this.boss.offWork(topic);
+        } catch {
+          // Ignore — topic may not be registered on the control-plane boss
+        }
+      }),
+    );
     this.subscriptions.clear();
     await this.boss.stop();
   }
@@ -61,7 +63,7 @@ export class PubSubUnit {
     return this.boss.getQueueSize(topic);
   }
 
-  async publish<T extends object>(topic: string, data: T, options?: PublishOptions) {
+  async publish<TMessage extends object>(topic: string, data: TMessage, options?: PublishOptions) {
     await this.ensureStarted();
     try {
       const opts = this.toBossOptions(options);
@@ -82,9 +84,9 @@ export class PubSubUnit {
     }
   }
 
-  async publishBatch<T = unknown>(
+  async publishBatch<TMessage = unknown>(
     topic: string,
-    messages: { data: T; options?: PublishOptions }[],
+    messages: { data: TMessage; options?: PublishOptions }[],
   ): Promise<string[]> {
     await this.ensureStarted();
     const jobs = messages.map((msg) => ({
@@ -112,7 +114,10 @@ export class PubSubUnit {
     await this.boss.deleteQueue(topic);
   }
 
-  async subscribe<T = unknown>(topic: string, handler: MessageHandler<T>): Promise<void> {
+  async subscribe<TMessage = unknown>(
+    topic: string,
+    handler: MessageHandler<TMessage>,
+  ): Promise<void> {
     const tenantId = context.getStore()?.tenantId;
     const wrappedHandler = await this.wrapHandler(handler, tenantId);
     this.subscriptions.set(topic, wrappedHandler);
@@ -127,12 +132,13 @@ export class PubSubUnit {
     this.subscriptions.delete(topic);
   }
 
-  async schedule(
-    topic: string,
-    cron: string,
-    data?: unknown,
-    options?: ScheduleOptions,
-  ): Promise<void> {
+  async schedule(input: {
+    topic: string;
+    cron: string;
+    data?: unknown;
+    options?: ScheduleOptions;
+  }): Promise<void> {
+    const { topic, cron, data, options } = input;
     await this.ensureStarted();
     await this.boss.schedule(topic, cron, data as object | undefined, {
       ...this.toBossOptions(options),
@@ -179,11 +185,12 @@ export class PubSubUnit {
     }
   }
 
-  private async wrapHandler<T>(
-    handler: MessageHandler<T>,
+  private async wrapHandler<TMessage>(
+    handler: MessageHandler<TMessage>,
     tenantId: string | undefined,
   ): Promise<PgBoss.WorkHandler<object>> {
     const workHandler: PgBoss.WorkHandler<object> = async (jobs) => {
+      // oxlint-disable eslint/no-await-in-loop
       for (const job of jobs) {
         const handlerDb =
           this.tenancyMode === "isolated" && tenantId && !isGlobalTenantId(tenantId)
@@ -200,13 +207,14 @@ export class PubSubUnit {
           async () => {
             await handler({
               createdOn: new Date(),
-              data: job.data as T,
+              data: job.data as TMessage,
               id: job.id,
               name: job.name,
             });
           },
         );
       }
+      // oxlint-enable eslint/no-await-in-loop
     };
     return workHandler;
   }

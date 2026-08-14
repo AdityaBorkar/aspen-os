@@ -3,6 +3,6 @@ export interface Unit<Config> {
   readonly $name: string;
 }
 
-export interface Module<N extends string = string> {
-  readonly $name: N;
+export interface Module<TName extends string = string> {
+  readonly $name: TName;
 }

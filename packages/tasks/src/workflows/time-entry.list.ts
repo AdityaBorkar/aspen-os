@@ -11,8 +11,12 @@ export const listTimeEntries = Workflow.name("time-entry.list")
     ctx.step.run("query", async () => {
       const conditions = [];
 
-      if (filters?.taskId) conditions.push(eq(timeEntry.taskId, filters.taskId));
-      if (filters?.userId) conditions.push(eq(timeEntry.userId, filters.userId));
+      if (filters?.taskId) {
+        conditions.push(eq(timeEntry.taskId, filters.taskId));
+      }
+      if (filters?.userId) {
+        conditions.push(eq(timeEntry.userId, filters.userId));
+      }
       if (filters?.billable !== undefined) {
         conditions.push(eq(timeEntry.billable, filters.billable));
       }

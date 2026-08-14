@@ -18,24 +18,18 @@ export const getTriageDetail = Workflow.name("dms.triage.detail")
       { db: ctx.db, pubsub: ctx.pubsub },
     );
 
-    const candidateReport = await ctx.step.run("missing-required-fields", async () => {
-      const report: {
-        classId: string;
-        className: string;
-        missing: string[];
-      }[] = [];
-
-      for (const cls of classes) {
-        const fields = await getActiveFields(ctx.db, cls.id);
-        const { missing } = validateFieldValues(
-          fields,
-          (doc.fieldValues as Record<string, unknown> | undefined) ?? {},
-        );
-        report.push({ classId: cls.id, className: cls.name, missing });
-      }
-
-      return report;
-    });
+    const candidateReport = await ctx.step.run("missing-required-fields", async () =>
+      Promise.all(
+        classes.map(async (cls) => {
+          const fields = await getActiveFields(ctx.db, cls.id);
+          const { missing } = validateFieldValues(
+            fields,
+            (doc.fieldValues as Record<string, unknown> | undefined) ?? {},
+          );
+          return { classId: cls.id, className: cls.name, missing };
+        }),
+      ),
+    );
 
     return { document: doc, missingRequiredFields: candidateReport };
   });

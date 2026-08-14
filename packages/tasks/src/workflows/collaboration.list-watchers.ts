@@ -8,7 +8,7 @@ import { IdSchema } from "../types";
 export const listWatchers = Workflow.name("collaboration.list-watchers")
   .input(object({ taskId: IdSchema }))
   .handler(async ({ taskId }, ctx) =>
-    ctx.step.run("query", async () => {
-      return ctx.db.select().from(watcher).where(eq(watcher.taskId, taskId));
-    }),
+    ctx.step.run("query", async () =>
+      ctx.db.select().from(watcher).where(eq(watcher.taskId, taskId)),
+    ),
   );

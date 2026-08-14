@@ -1,6 +1,13 @@
 import { context } from "../utils/context";
 import type { LogEntry, LogLevel } from "./types";
 
+export interface CreateEntryInput {
+  error?: Error;
+  level: LogLevel;
+  message: string;
+  metadata?: Record<string, unknown>;
+}
+
 export interface LogBuffer {
   drain(): Promise<void>;
   flush(): Promise<void>;
@@ -49,12 +56,8 @@ export function createLogBuffer(
 }
 
 export function createEntryFactory(serviceName: string) {
-  return function createEntry(
-    level: LogLevel,
-    message: string,
-    metadata?: Record<string, unknown>,
-    error?: Error,
-  ): LogEntry {
+  return function createEntry(input: CreateEntryInput): LogEntry {
+    const { error, level, message, metadata } = input;
     const ctx = context.getStore();
     return {
       duration: metadata?.duration as number | undefined,

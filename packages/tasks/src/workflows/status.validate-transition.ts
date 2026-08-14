@@ -27,7 +27,9 @@ export const validateTransition = Workflow.name("status.validate-transition")
         )
         .limit(1);
 
-      if (transition) return true;
+      if (transition) {
+        return true;
+      }
 
       const anyTransition = await ctx.db
         .select({ id: statusTransition.id })

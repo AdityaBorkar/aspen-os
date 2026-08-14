@@ -12,31 +12,34 @@ export type SingleTenantConfig = CommonConfig & {
 };
 
 export type SingleTenantPlatformInstance<
-  M extends Module[],
-  S extends Record<string, unknown> = MergedSchemas<M>,
-> = SingleTenantPlatform<M, S> &
-  UnitAccessors<S> &
-  ArrayModuleAccessors<M, ExtractModuleNames<M>[number]>;
+  TModules extends Module[],
+  TSchemas extends Record<string, unknown> = MergedSchemas<TModules>,
+> = SingleTenantPlatform<TModules, TSchemas> &
+  UnitAccessors<TSchemas> &
+  ArrayModuleAccessors<TModules, ExtractModuleNames<TModules>[number]>;
 
 export class SingleTenantPlatform<
-  M extends Module[],
-  S extends Record<string, unknown> = MergedSchemas<M>,
-> extends Base<M, S> {
-  constructor(units: PlatformUnits<S>, modules: M) {
+  TModules extends Module[],
+  TSchemas extends Record<string, unknown> = MergedSchemas<TModules>,
+> extends Base<TModules, TSchemas> {
+  constructor(units: PlatformUnits<TSchemas>, modules: TModules) {
     console.warn("Single Tenant Architecture is currently EXPERIMENTAL");
     super(units, modules);
   }
 
-  static create<M extends Module[]>(
+  static create<TModules extends Module[]>(
     config: SingleTenantConfig,
-    modules: M,
-  ): SingleTenantPlatformInstance<M> {
-    const db = new DatabaseUnit<MergedSchemas<M>>(config.db, "single");
-    const core = Base.createCore<M, MergedSchemas<M>>(db, config, modules);
-    return new SingleTenantPlatform<M>(core.units, core.modules) as SingleTenantPlatformInstance<M>;
+    modules: TModules,
+  ): SingleTenantPlatformInstance<TModules> {
+    const db = new DatabaseUnit<MergedSchemas<TModules>>(config.db, "single");
+    const core = Base.createCore<TModules, MergedSchemas<TModules>>(db, config, modules);
+    return new SingleTenantPlatform<TModules>(
+      core.units,
+      core.modules,
+    ) as SingleTenantPlatformInstance<TModules>;
   }
 
-  async run<T>(fn: () => T | Promise<T>): Promise<T> {
+  async run<TValue>(fn: () => TValue | Promise<TValue>): Promise<TValue> {
     return this.runInContext(fn);
   }
 }

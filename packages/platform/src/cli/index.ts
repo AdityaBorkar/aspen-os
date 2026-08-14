@@ -15,12 +15,12 @@ async function loadPlatform(configPath: string): Promise<PlatformInstance<Module
   const resolvedPath = resolve(process.cwd(), configPath);
   try {
     const mod = await import(resolvedPath);
-    const f = mod.platform || mod.p;
-    if (!f) {
+    const platformInstance = mod.platform || mod.p;
+    if (!platformInstance) {
       console.error(`Error: No 'platform' export found in ${resolvedPath}`);
       process.exit(1);
     }
-    return f;
+    return platformInstance;
   } catch (err) {
     console.error(`Error: Failed to load config from ${resolvedPath}`);
     console.error(err);
@@ -39,20 +39,20 @@ program
     "Tenant ID (isolated mode) — launches Studio against that tenant's database",
   )
   .action(async (options: { config: string; host: string; port: string; tenant?: string }) => {
-    const f = await loadPlatform(options.config);
+    const platformInstance = await loadPlatform(options.config);
 
-    if (options.tenant && f.db.resolver) {
-      const tenantConfig = await f.db.resolver.resolve(options.tenant);
-      await startStudioPostgresServer(f.db.getSchemas(), tenantConfig);
+    if (options.tenant && platformInstance.db.resolver) {
+      const tenantConfig = await platformInstance.db.resolver.resolve(options.tenant);
+      await startStudioPostgresServer(platformInstance.db.getSchemas(), tenantConfig);
       return;
     }
 
-    if (!f.db.config) {
+    if (!platformInstance.db.config) {
       console.error("Error: Could not get database configuration from platform");
       process.exit(1);
     }
 
-    await startStudioPostgresServer(f.db.getSchemas(), f.db.config);
+    await startStudioPostgresServer(platformInstance.db.getSchemas(), platformInstance.db.config);
   });
 
 program
@@ -60,14 +60,14 @@ program
   .description("List all tenants (isolated mode)")
   .requiredOption("-c, --config <path>", "Path to the Aspen config file")
   .action(async (options: { config: string }) => {
-    const f = await loadPlatform(options.config);
+    const platformInstance = await loadPlatform(options.config);
 
-    if (!f.db.resolver) {
+    if (!platformInstance.db.resolver) {
       console.error("Error: Tenants command is only available in isolated mode");
       process.exit(1);
     }
 
-    const tenantIds = await f.db.resolver.list();
+    const tenantIds = await platformInstance.db.resolver.list();
     console.log(`Found ${tenantIds.length} tenant(s):`);
     for (const id of tenantIds) {
       console.log(`  - ${id}`);

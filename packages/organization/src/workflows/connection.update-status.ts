@@ -4,8 +4,7 @@ import { object, string } from "valibot";
 
 import { connection } from "../db-schemas";
 import { CONNECTION_EVENTS } from "../pubsub";
-import type { ConnectionStatus } from "../types";
-import { ConnectionStatusSchema } from "../types";
+import { type ConnectionStatus, ConnectionStatusSchema } from "../types";
 import { fetchConnectionStep } from "./steps/fetch-connection";
 
 export const updateStatus = Workflow.name("connection.update-status")

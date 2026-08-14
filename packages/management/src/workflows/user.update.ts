@@ -55,7 +55,7 @@ export const updateUser = Workflow.name("user.update")
           changes.role = patch.role;
         }
 
-        await auth._.user.update({ data: updateData, id });
+        await auth.rest.user.update({ data: updateData, id });
       }
     });
 

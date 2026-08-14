@@ -8,11 +8,7 @@ import { IdSchema } from "../types";
 export const getSubTasks = Workflow.name("task.sub-tasks")
   .input(object({ parentId: IdSchema }))
   .handler(async ({ parentId }, ctx) =>
-    ctx.step.run("query", async () => {
-      return ctx.db
-        .select()
-        .from(task)
-        .where(eq(task.parentId, parentId))
-        .orderBy(desc(task.createdAt));
-    }),
+    ctx.step.run("query", async () =>
+      ctx.db.select().from(task).where(eq(task.parentId, parentId)).orderBy(desc(task.createdAt)),
+    ),
   );

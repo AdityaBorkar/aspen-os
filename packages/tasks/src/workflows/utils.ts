@@ -33,28 +33,30 @@ export async function generateTaskNumber(
 
 export async function validateParentTask(
   db: DrizzleDB,
-  parentId: string,
-  projectId: string,
-  currentTaskId: string | undefined,
+  options: {
+    parentId: string;
+    projectId: string;
+    currentTaskId: string | undefined;
+  },
 ): Promise<void> {
-  const [parent] = await db.select().from(task).where(eq(task.id, parentId)).limit(1);
+  const [parent] = await db.select().from(task).where(eq(task.id, options.parentId)).limit(1);
 
   if (!parent) {
-    throw new Error(`Parent task with id "${parentId}" not found.`);
+    throw new Error(`Parent task with id "${options.parentId}" not found.`);
   }
 
-  if (parent.projectId !== projectId) {
+  if (parent.projectId !== options.projectId) {
     throw new Error("Parent task must belong to the same project.");
   }
 
-  if (currentTaskId) {
-    const wouldCycle = await wouldCreateParentCycle(db, parentId, currentTaskId);
+  if (options.currentTaskId) {
+    const wouldCycle = await wouldCreateParentCycle(db, options.parentId, options.currentTaskId);
     if (wouldCycle) {
       throw new Error("Setting this parent would create a circular reference.");
     }
   }
 
-  const depth = await getParentDepth(db, parentId);
+  const depth = await getParentDepth(db, options.parentId);
   if (depth >= MAX_NESTING_DEPTH - 1) {
     throw new Error(`Maximum nesting depth of ${MAX_NESTING_DEPTH} levels would be exceeded.`);
   }
@@ -68,6 +70,7 @@ export async function wouldCreateParentCycle(
   let currentId: string | null = parentId;
   let depth = 0;
 
+  // oxlint-disable eslint/no-await-in-loop
   while (currentId !== null) {
     if (currentId === taskId) {
       return true;
@@ -88,6 +91,7 @@ export async function wouldCreateParentCycle(
     currentId = parent.parentId;
     depth++;
   }
+  // oxlint-enable eslint/no-await-in-loop
 
   return false;
 }
@@ -96,6 +100,7 @@ export async function getParentDepth(db: DrizzleDB, taskId: string): Promise<num
   let depth = 0;
   let currentId: string | null = taskId;
 
+  // oxlint-disable eslint/no-await-in-loop
   while (currentId !== null) {
     const [parent] = await db
       .select({ parentId: task.parentId })
@@ -113,6 +118,7 @@ export async function getParentDepth(db: DrizzleDB, taskId: string): Promise<num
       throw new Error(`Task hierarchy exceeds maximum depth of ${MAX_NESTING_DEPTH}.`);
     }
   }
+  // oxlint-enable eslint/no-await-in-loop
 
   return depth;
 }
@@ -138,18 +144,20 @@ export async function ensureWatcher(db: DrizzleDB, taskId: string, userId: strin
 
 export async function addActivity(
   db: DrizzleDB,
-  taskId: string,
-  userId: string,
-  action: string,
-  oldValue: unknown,
-  newValue: unknown,
+  options: {
+    taskId: string;
+    userId: string;
+    action: string;
+    oldValue: unknown;
+    newValue: unknown;
+  },
 ): Promise<void> {
   await db.insert(activityLog).values({
-    action,
-    newValue: newValue ? JSON.stringify(newValue) : null,
-    oldValue: oldValue ? JSON.stringify(oldValue) : null,
-    taskId,
-    userId,
+    action: options.action,
+    newValue: options.newValue ? JSON.stringify(options.newValue) : null,
+    oldValue: options.oldValue ? JSON.stringify(options.oldValue) : null,
+    taskId: options.taskId,
+    userId: options.userId,
   });
 }
 

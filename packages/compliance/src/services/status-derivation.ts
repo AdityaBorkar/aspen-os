@@ -85,7 +85,7 @@ export function shouldNotify(
   lastNotifiedAt: Date | null,
   daysUntilTarget: number,
 ): boolean {
-  const sorted = [...reminderDays].sort((a, b) => b - a);
+  const sorted = [...reminderDays].sort((left, right) => right - left);
   for (const threshold of sorted) {
     if (daysUntilTarget <= threshold) {
       if (!lastNotifiedAt) {
@@ -94,7 +94,7 @@ export function shouldNotify(
       const lastNotifiedDays = Math.ceil(
         (Date.now() - lastNotifiedAt.getTime()) / (1000 * 60 * 60 * 24),
       );
-      const nextThreshold = sorted.find((t) => t < threshold);
+      const nextThreshold = sorted.find((candidate) => candidate < threshold);
       if (nextThreshold === undefined) {
         return lastNotifiedDays > 0;
       }
@@ -116,25 +116,25 @@ export function shouldEscalate(
     return null;
   }
 
-  const sorted = [...escalationDays].sort((a, b) => a - b);
-  for (let i = 0; i < sorted.length; i++) {
-    const threshold = sorted[i];
+  const sorted = [...escalationDays].sort((left, right) => left - right);
+  for (let index = 0; index < sorted.length; index++) {
+    const threshold = sorted[index];
     if (threshold === undefined) {
       continue;
     }
     if (daysSinceTarget >= threshold) {
       if (!lastEscalatedAt) {
-        return i + 1;
+        return index + 1;
       }
       const lastEscalatedDays = Math.ceil(
         (Date.now() - lastEscalatedAt.getTime()) / (1000 * 60 * 60 * 24),
       );
-      const nextThreshold = sorted[i + 1];
+      const nextThreshold = sorted[index + 1];
       if (nextThreshold !== undefined && daysSinceTarget >= nextThreshold) {
         continue;
       }
       if (lastEscalatedDays > 0) {
-        return i + 1;
+        return index + 1;
       }
     }
   }

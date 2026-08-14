@@ -11,9 +11,15 @@ export const listReminders = Workflow.name("reminder.list")
     ctx.step.run("query", async () => {
       const conditions = [];
 
-      if (filters?.taskId) conditions.push(eq(reminder.taskId, filters.taskId));
-      if (filters?.userId) conditions.push(eq(reminder.userId, filters.userId));
-      if (filters?.type) conditions.push(eq(reminder.type, filters.type));
+      if (filters?.taskId) {
+        conditions.push(eq(reminder.taskId, filters.taskId));
+      }
+      if (filters?.userId) {
+        conditions.push(eq(reminder.userId, filters.userId));
+      }
+      if (filters?.type) {
+        conditions.push(eq(reminder.type, filters.type));
+      }
       if (filters?.isSent !== undefined) {
         conditions.push(eq(reminder.isSent, filters.isSent));
       }

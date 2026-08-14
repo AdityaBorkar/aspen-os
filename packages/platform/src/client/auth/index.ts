@@ -10,8 +10,7 @@ import {
   twoFactorClient,
   usernameClient,
 } from "better-auth/client/plugins";
-import type { ReactAuthClient } from "better-auth/react";
-import { createAuthClient } from "better-auth/react";
+import { type ReactAuthClient, createAuthClient } from "better-auth/react";
 
 import type { Unit } from "../types";
 

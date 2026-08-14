@@ -25,12 +25,12 @@ export interface PurgeDeps {
 export const AUTO_PURGE_CRON = "30 3 * * *";
 
 export async function registerPurgeSchedule(pubsub: PubSubUnit): Promise<string> {
-  await pubsub.schedule(
-    SCHEDULED_JOBS.AUTO_PURGE,
-    AUTO_PURGE_CRON,
-    {},
-    { retryBackoff: true, retryDelay: 60, retryLimit: 3 },
-  );
+  await pubsub.schedule({
+    cron: AUTO_PURGE_CRON,
+    data: {},
+    options: { retryBackoff: true, retryDelay: 60, retryLimit: 3 },
+    topic: SCHEDULED_JOBS.AUTO_PURGE,
+  });
   return SCHEDULED_JOBS.AUTO_PURGE;
 }
 
@@ -93,14 +93,16 @@ export async function deleteDocumentPermanently(
     .from(dmsDocumentVersion)
     .where(eq(dmsDocumentVersion.documentId, documentId));
 
-  const keys = versionKeys.map((v) => v.storageKey);
-  for (const key of keys) {
-    try {
-      await removeStorage({ key });
-    } catch {
-      // Best-effort — object may already be gone
-    }
-  }
+  const keys = versionKeys.map((version) => version.storageKey);
+  await Promise.all(
+    keys.map(async (key) => {
+      try {
+        await removeStorage({ key });
+      } catch {
+        // Best-effort — object may already be gone
+      }
+    }),
+  );
 
   await db.delete(dmsDocumentTag).where(eq(dmsDocumentTag.documentId, documentId));
   await db.delete(dmsShare).where(eq(dmsShare.documentId, documentId));
@@ -125,42 +127,43 @@ async function runAutoPurge(deps: PurgeDeps): Promise<number> {
     .from(dmsDocument)
     .where(or(eq(dmsDocument.status, "deleted"), eq(dmsDocument.status, "expired")));
 
-  let processed = 0;
-  for (const doc of docs) {
-    if (await isDocumentHeld(deps.db, doc.id)) {
-      continue;
-    }
+  const results = await Promise.all(
+    docs.map(async (doc) => {
+      if (await isDocumentHeld(deps.db, doc.id)) {
+        return false;
+      }
 
-    const retentionDays = await resolveRetentionDays(deps.db, doc.classId);
-    const anchor = doc.status === "deleted" ? doc.deletedAt : doc.expiredAt;
-    if (!anchor) {
-      continue;
-    }
+      const retentionDays = await resolveRetentionDays(deps.db, doc.classId);
+      const anchor = doc.status === "deleted" ? doc.deletedAt : doc.expiredAt;
+      if (!anchor) {
+        return false;
+      }
 
-    const cutoff = new Date(anchor.getTime() + retentionDays * 24 * 60 * 60 * 1000);
-    if (cutoff > new Date()) {
-      continue;
-    }
+      const cutoff = new Date(anchor.getTime() + retentionDays * 24 * 60 * 60 * 1000);
+      if (cutoff > new Date()) {
+        return false;
+      }
 
-    const keys = await deleteDocumentPermanently(deps.db, doc.id);
+      const keys = await deleteDocumentPermanently(deps.db, doc.id);
 
-    await deps.audit.write({
-      action: "purged",
-      crudAction: "delete",
-      entityId: doc.id,
-      entityType: "dms:document",
-      metadata: { storageKey: keys[0] ?? null },
-    });
+      await deps.audit.write({
+        action: "purged",
+        crudAction: "delete",
+        entityId: doc.id,
+        entityType: "dms:document",
+        metadata: { storageKey: keys[0] ?? null },
+      });
 
-    await deps.pubsub.publish(DOCUMENT_EVENTS.PURGED, {
-      documentId: doc.id,
-      storageKey: keys[0] ?? "",
-    });
+      await deps.pubsub.publish(DOCUMENT_EVENTS.PURGED, {
+        documentId: doc.id,
+        storageKey: keys[0] ?? "",
+      });
 
-    processed++;
-  }
+      return true;
+    }),
+  );
 
-  return processed;
+  return results.filter(Boolean).length;
 }
 
 /**
@@ -192,16 +195,18 @@ export async function pruneVersions(
   }
 
   const toPrune = versions.slice(maxVersions);
-  const ids = toPrune.map((v) => v.id);
-  for (const v of toPrune) {
-    try {
-      await removeStorage({ key: v.storageKey });
-    } catch {
-      // Best-effort
-    }
-  }
+  const ids = toPrune.map((version) => version.id);
+  await Promise.all(
+    toPrune.map(async (version) => {
+      try {
+        await removeStorage({ key: version.storageKey });
+      } catch {
+        // Best-effort
+      }
+    }),
+  );
   await db.delete(dmsDocumentVersion).where(inArray(dmsDocumentVersion.id, ids));
-  return toPrune.map((v) => v.storageKey);
+  return toPrune.map((version) => version.storageKey);
 }
 
 export { runAutoPurge };

@@ -25,7 +25,6 @@ export class RpcUnit {
   };
 
   constructor(
-    config: RpcConfig = {},
     _deps: {
       auth: AuthUnit;
       // Biome-ignore lint/suspicious/noExplicitAny: drizzle NodePgDatabase invariance forces any here
@@ -33,6 +32,7 @@ export class RpcUnit {
       logs: LogUnit;
       pubsub: PubSubUnit;
     },
+    config: RpcConfig = {},
   ) {
     this.prefix = (config.prefix ?? "/api/rpc") as `/${string}`;
     this.rpcHandler = new RPCHandler(router);

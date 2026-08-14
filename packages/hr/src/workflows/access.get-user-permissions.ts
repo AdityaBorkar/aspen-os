@@ -39,8 +39,8 @@ export const getUserPermissions = Workflow.name("hr.access.get-user-permissions"
       .where(inArray(hrRolePermission.roleId, roleIds));
 
     const seen = new Set<string>();
-    return permissions.filter((p) => {
-      const key = `${p.module}:${p.action}`;
+    return permissions.filter((permission) => {
+      const key = `${permission.module}:${permission.action}`;
       if (seen.has(key)) {
         return false;
       }

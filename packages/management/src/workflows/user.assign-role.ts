@@ -20,7 +20,7 @@ export const assignRole = Workflow.name("user.assign-role")
     const { id, role } = input;
 
     await ctx.step.run("assign-auth-role", async () => {
-      await auth._.user.role.assign({
+      await auth.rest.user.role.assign({
         roleName: String(role),
         userId: id,
       });

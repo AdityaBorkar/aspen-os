@@ -1,8 +1,7 @@
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 
-import type { ComplianceDocument } from "../db-schemas";
-import { complianceDocument } from "../db-schemas";
+import { complianceDocument, type ComplianceDocument } from "../db-schemas";
 import { COMPLIANCE_EVENTS } from "../pubsub";
 import type { CreateComplianceDocumentInput } from "../types";
 import { fetchDocumentStep } from "./steps/fetch-document";

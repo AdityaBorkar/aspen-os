@@ -70,7 +70,8 @@ const updateObligation = Workflow.name("obligation.update").handler(
       updateData.branch = parsed.branch;
     }
     if (parsed.startDate !== undefined) {
-      updateData.startDate = parsed.startDate.toISOString().split("T")[0];
+      const [date] = parsed.startDate.toISOString().split("T");
+      updateData.startDate = date;
     }
     if (parsed.endDate !== undefined) {
       updateData.endDate = parsed.endDate ? parsed.endDate.toISOString().split("T")[0] : null;

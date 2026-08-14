@@ -142,7 +142,7 @@ export class Drive implements Module {
       await purgeExpiredInternal();
     });
 
-    await this.#pubsub.schedule(PURGE_TOPIC, PURGE_CRON);
+    await this.#pubsub.schedule({ cron: PURGE_CRON, topic: PURGE_TOPIC });
   }
 
   async $cleanup(): Promise<void> {

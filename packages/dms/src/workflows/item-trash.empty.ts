@@ -4,8 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { dmsFile, dmsFolder } from "../db-schemas";
 import { ITEM_EVENTS } from "../pubsub";
 import { remove as removeStorage } from "../services/item-storage-bridge";
-import type { EmptyTrashOptions } from "../types";
-import { EmptyTrashOptionsSchema } from "../types";
+import { type EmptyTrashOptions, EmptyTrashOptionsSchema } from "../types";
 
 const EmptyTrashSchema = EmptyTrashOptionsSchema;
 
@@ -27,6 +26,7 @@ export const emptyItemTrash = Workflow.name("dms.trash.empty")
       .from(dmsFile)
       .where(and(...fileConditions));
 
+    // oxlint-disable eslint/no-await-in-loop
     for (const file of trashedFiles) {
       await ctx.step.run("remove-storage", async () => {
         await removeStorage({ key: file.storageKey });
@@ -38,20 +38,23 @@ export const emptyItemTrash = Workflow.name("dms.trash.empty")
         storageKey: file.storageKey,
       });
     }
+    // oxlint-enable eslint/no-await-in-loop
 
     const trashedFolders = await ctx.db
       .select({ id: dmsFolder.id })
       .from(dmsFolder)
       .where(and(...folderConditions));
 
-    for (const folder of trashedFolders) {
-      await ctx.db.delete(dmsFolder).where(eq(dmsFolder.id, folder.id));
-      await ctx.pubsub.publish(ITEM_EVENTS.PURGED, {
-        itemId: folder.id,
-        itemType: "folder",
-        storageKey: null,
-      });
-    }
+    await Promise.all(
+      trashedFolders.map(async (folder) => {
+        await ctx.db.delete(dmsFolder).where(eq(dmsFolder.id, folder.id));
+        await ctx.pubsub.publish(ITEM_EVENTS.PURGED, {
+          itemId: folder.id,
+          itemType: "folder",
+          storageKey: null,
+        });
+      }),
+    );
 
     return {
       filesPurged: trashedFiles.length,

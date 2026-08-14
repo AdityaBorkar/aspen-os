@@ -13,7 +13,11 @@ export const createTask = Workflow.name("task.create")
   .input(CreateInputSchema)
   .handler(async ({ input }, ctx) => {
     if (input.parentId) {
-      await validateParentTask(ctx.db, input.parentId, input.projectId, undefined);
+      await validateParentTask(ctx.db, {
+        currentTaskId: undefined,
+        parentId: input.parentId,
+        projectId: input.projectId,
+      });
     }
 
     const { displayNumber, taskSeq } = await generateTaskNumber(ctx.db, input.projectId);
@@ -42,9 +46,15 @@ export const createTask = Workflow.name("task.create")
       throw new Error("Failed to create task.");
     }
 
-    await addActivity(ctx.db, result.id, result.reporterId, "task_created", null, {
-      id: result.id,
-      title: result.title,
+    await addActivity(ctx.db, {
+      action: "task_created",
+      newValue: {
+        id: result.id,
+        title: result.title,
+      },
+      oldValue: null,
+      taskId: result.id,
+      userId: result.reporterId,
     });
 
     return result;

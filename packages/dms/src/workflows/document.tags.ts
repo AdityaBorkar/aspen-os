@@ -49,7 +49,7 @@ export const untagDocument = Workflow.name("dms.document.untag")
     const doc = await ctx.step.run(fetchDocumentStep, { documentId: id });
     const { tag } = input;
 
-    const tags = (doc.tags ?? []).filter((t) => t !== tag);
+    const tags = (doc.tags ?? []).filter((existingTag) => existingTag !== tag);
 
     const [updated] = await ctx.db
       .update(dmsDocument)

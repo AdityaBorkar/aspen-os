@@ -9,6 +9,7 @@ const getRenewalChain = Workflow.name("document.renewal-chain").handler(
     const chain: RenewalChainEntry[] = [];
     let currentId: string | null = input.id;
 
+    // oxlint-disable eslint/no-await-in-loop
     while (currentId) {
       const [doc] = await ctx.db
         .select({
@@ -36,6 +37,7 @@ const getRenewalChain = Workflow.name("document.renewal-chain").handler(
 
       currentId = doc.renewedFrom;
     }
+    // oxlint-enable eslint/no-await-in-loop
 
     return chain;
   },

@@ -24,12 +24,12 @@ export const getAccessibleBranches = Workflow.name("hr.access.get-accessible-bra
       .where(and(eq(hrUserRole.hrUserId, hrUserId), isNotNull(hrUserRole.branchId)));
 
     const branchIds = new Set<string>();
-    for (const d of direct) {
-      branchIds.add(d.branchId);
+    for (const directRow of direct) {
+      branchIds.add(directRow.branchId);
     }
-    for (const r of roleBased) {
-      if (r.branchId) {
-        branchIds.add(r.branchId);
+    for (const roleRow of roleBased) {
+      if (roleRow.branchId) {
+        branchIds.add(roleRow.branchId);
       }
     }
     return [...branchIds];

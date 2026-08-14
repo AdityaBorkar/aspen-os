@@ -1,8 +1,7 @@
 import { Workflow } from "@aspen-os/platform/server";
 import { asc, eq } from "drizzle-orm";
 
-import type { ComplianceVerificationRule } from "../db-schemas";
-import { complianceVerificationRule } from "../db-schemas";
+import { complianceVerificationRule, type ComplianceVerificationRule } from "../db-schemas";
 import type { ComplianceCategory } from "../utils/constants";
 
 const matchVerificationRule = Workflow.name("verification.match").handler(

@@ -115,9 +115,11 @@ export class DatabaseUnit<TSchemas extends Record<string, unknown> = Record<stri
 
   async $cleanup() {
     await this.controlPlanePool.end();
-    for (const { pool } of this.tenantPools.values()) {
-      await pool.end();
-    }
+    await Promise.all(
+      [...this.tenantPools.values()].map(async ({ pool }) => {
+        await pool.end();
+      }),
+    );
     this.tenantPools.clear();
   }
 
@@ -216,10 +218,10 @@ export class DatabaseUnit<TSchemas extends Record<string, unknown> = Record<stri
     throw new Error(`Tenant provisioning is not supported in ${this.tenancyMode} tenancy mode`);
   }
 
-  async runWithTenant<T>(
+  async runWithTenant<TValue>(
     tenantId: string,
-    fn: (db: DrizzleDB<TSchemas>) => T | Promise<T>,
-  ): Promise<T> {
+    fn: (db: DrizzleDB<TSchemas>) => TValue | Promise<TValue>,
+  ): Promise<TValue> {
     if (this.tenancyMode !== "shared") {
       throw new Error("runWithTenant is only available in shared tenancy mode");
     }
@@ -274,16 +276,18 @@ export class DatabaseUnit<TSchemas extends Record<string, unknown> = Record<stri
     );
 
     const tableNames = await this.discoverTenantTables(db);
-    for (const tableName of tableNames) {
-      await db.execute(sql`
-        ALTER TABLE ${sql.identifier(tableName)} ENABLE ROW LEVEL SECURITY;
-        DROP POLICY IF EXISTS tenant_isolation ON ${sql.identifier(tableName)};
-        CREATE POLICY tenant_isolation ON ${sql.identifier(tableName)}
-          FOR ALL TO tenant_role
-          USING (tenant_id = current_setting('app.tenant_id', true))
-          WITH CHECK (tenant_id = current_setting('app.tenant_id', true));
-      `);
-    }
+    await Promise.all(
+      tableNames.map(async (tableName) => {
+        await db.execute(sql`
+          ALTER TABLE ${sql.identifier(tableName)} ENABLE ROW LEVEL SECURITY;
+          DROP POLICY IF EXISTS tenant_isolation ON ${sql.identifier(tableName)};
+          CREATE POLICY tenant_isolation ON ${sql.identifier(tableName)}
+            FOR ALL TO tenant_role
+            USING (tenant_id = current_setting('app.tenant_id', true))
+            WITH CHECK (tenant_id = current_setting('app.tenant_id', true));
+        `);
+      }),
+    );
   }
 
   /** @deprecated Use provisionTenant instead */
@@ -356,7 +360,7 @@ export class DatabaseUnit<TSchemas extends Record<string, unknown> = Record<stri
       `,
     );
     const rows = result.rows as Array<{ table_name: string }>;
-    return rows.map((r) => r.table_name).filter((name) => /^[a-z_][a-z0-9_]*$/.test(name));
+    return rows.map((row) => row.table_name).filter((name) => /^[a-z_][a-z0-9_]*$/.test(name));
   }
 
   private createDbWrapper(): DrizzleDB<TSchemas> {

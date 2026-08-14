@@ -18,16 +18,15 @@ export const createLeaveApplication = Workflow.name("hr.leave.create-leave-appli
     const leaveTypeRecord = await fetchLeaveTypeById(ctx.db, parsed.leaveType);
 
     // Check if leave is blocked
-    await checkLeaveBlockList(ctx.db, parsed.employeeId, parsed.fromDate, parsed.toDate);
+    await checkLeaveBlockList(ctx.db, { fromDate: parsed.fromDate, toDate: parsed.toDate });
 
     // Check leave balance
     if (!leaveTypeRecord.isLeaveWithoutPay) {
-      await checkLeaveBalance(
-        ctx.db,
-        parsed.employeeId,
-        parsed.leaveType,
-        parseFloat(parsed.totalDays),
-      );
+      await checkLeaveBalance(ctx.db, {
+        days: parseFloat(parsed.totalDays),
+        employeeId: parsed.employeeId,
+        leaveType: parsed.leaveType,
+      });
     }
 
     const [result] = await ctx.db

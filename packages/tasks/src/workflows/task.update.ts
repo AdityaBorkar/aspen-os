@@ -22,7 +22,11 @@ export const updateTask = Workflow.name("task.update")
         if (input.patch.parentId === input.id) {
           throw new Error("A task cannot be its own parent.");
         }
-        await validateParentTask(ctx.db, input.patch.parentId, current.projectId, input.id);
+        await validateParentTask(ctx.db, {
+          currentTaskId: input.id,
+          parentId: input.patch.parentId,
+          projectId: current.projectId,
+        });
       }
     }
 
@@ -48,21 +52,26 @@ export const updateTask = Workflow.name("task.update")
 
     if (input.patch.statusId && input.patch.statusId !== current.statusId) {
       changes.statusId = { from: current.statusId, to: input.patch.statusId };
-      await addActivity(
-        ctx.db,
-        input.id,
-        current.reporterId,
-        "status_changed",
-        { from: current.statusId },
-        { to: input.patch.statusId },
-      );
+      await addActivity(ctx.db, {
+        action: "status_changed",
+        newValue: { to: input.patch.statusId },
+        oldValue: { from: current.statusId },
+        taskId: input.id,
+        userId: current.reporterId,
+      });
     }
 
     if (input.patch.title && input.patch.title !== current.title) {
       changes.title = { from: current.title, to: input.patch.title };
     }
 
-    await addActivity(ctx.db, input.id, current.reporterId, "task_updated", current, changes);
+    await addActivity(ctx.db, {
+      action: "task_updated",
+      newValue: changes,
+      oldValue: current,
+      taskId: input.id,
+      userId: current.reporterId,
+    });
 
     return updated;
   });

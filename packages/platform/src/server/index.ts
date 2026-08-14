@@ -53,10 +53,10 @@ export type TenantResolver = {
   list: () => Promise<string[]>;
 };
 
-export type PlatformUnits<S extends Record<string, unknown> = Record<string, never>> = {
+export type PlatformUnits<TSchemas extends Record<string, unknown> = Record<string, never>> = {
   audit: AuditUnit;
   auth: AuthUnit;
-  db: DatabaseUnit<S>;
+  db: DatabaseUnit<TSchemas>;
   kvStore: KvStoreUnit;
   logs: LogUnit;
   pubsub: PubSubUnit;
@@ -85,40 +85,45 @@ export interface Unit {
 }
 
 export interface Module<
-  N extends string = string,
+  TName extends string = string,
   TCP extends Record<string, unknown> = Record<string, unknown>,
   TT extends Record<string, unknown> = Record<string, unknown>,
 > {
   $cleanup(): void | Promise<void>;
   readonly $dependencies: readonly string[];
   $initialize(units: Record<string, Unit>): void;
-  readonly $name: N;
+  readonly $name: TName;
   $prepareInfra(): ModuleInfra<TCP, TT>;
   $prepareRuntime(): void | Promise<void>;
   $prepareTenant?(tenantId: string): Promise<void>;
 }
 
-export type UnitAccessors<S extends Record<string, unknown> = Record<string, never>> = {
-  [K in keyof PlatformUnits<S>]: PlatformUnits<S>[K];
+export type UnitAccessors<TSchemas extends Record<string, unknown> = Record<string, never>> = {
+  [TKey in keyof PlatformUnits<TSchemas>]: PlatformUnits<TSchemas>[TKey];
 };
-export type ModuleAccessors<M extends Record<string, Module>> = {
-  [K in keyof M]: M[K];
+export type ModuleAccessors<TModules extends Record<string, Module>> = {
+  [TKey in keyof TModules]: TModules[TKey];
 };
 
 import type { ExtractModuleNames } from "./base-platform";
 
-export type ArrayModuleAccessors<M extends Module[], Names extends M[number]["$name"]> = {
-  [K in Names]: Extract<M[number], { $name: K }>;
+export type ArrayModuleAccessors<
+  TModules extends Module[],
+  Names extends TModules[number]["$name"],
+> = {
+  [TKey in Names]: Extract<TModules[number], { $name: TKey }>;
 };
 
-export type PlatformInstance<M extends Module[]> = {
+export type PlatformInstance<TModules extends Module[]> = {
   tenancyMode: TenancyMode;
   $prepareInfra(): Promise<void>;
   $cleanup(): Promise<void>;
-  getModule<K extends M[number]["$name"]>(name: K): Extract<M[number], { $name: K }>;
-  getUnit<K extends keyof PlatformUnits>(name: K): PlatformUnits[K];
+  getModule<TKey extends TModules[number]["$name"]>(
+    name: TKey,
+  ): Extract<TModules[number], { $name: TKey }>;
+  getUnit<TKey extends keyof PlatformUnits>(name: TKey): PlatformUnits[TKey];
 } & UnitAccessors &
-  ArrayModuleAccessors<M, ExtractModuleNames<M>[number]>;
+  ArrayModuleAccessors<TModules, ExtractModuleNames<TModules>[number]>;
 
 export { BasePlatform, type CommonConfig } from "./base-platform";
 export {
