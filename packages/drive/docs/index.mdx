@@ -1,8 +1,10 @@
 ---
 title: Drive
-description: Domain module for file and folder management with sharing, public links, labels, trash, versioning, and search.
+description: Deprecated — superseded by the DMS module, which now provides the full Drive feature surface.
 icon: IconFolderShare
 ---
+
+> **DEPRECATED — superseded by `@aspen-os/dms`.** The DMS module now provides the full Drive feature surface (folders, files, labels, public links, item shares, trash, and services) under `p.dms.files`, `p.dms.folders`, `p.dms.labels`, `p.dms.publicLinks`, `p.dms.shares`, `p.dms.trash`, and `p.dms.driveSearch` (tables `dms_folder`, `dms_file`, `dms_label`, `dms_item_share`, `dms_public_link`, `dms_access_log`, …). New development should target `@aspen-os/dms`; existing Drive data and callers should migrate to DMS. This package is retained for migration only.
 
 The Drive module manages files and folders through their full lifecycle — upload, versioning, sharing, public links, labeling, trash, and search.
 

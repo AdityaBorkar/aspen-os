@@ -1,10 +1,10 @@
 ---
 title: DB Schemas
-description: All tenant tables declared by the DMS module — 12 tables + 7 enums across the tenant database.
+description: All tenant tables declared by the DMS module — 20 tables + 11 enums across the tenant database.
 icon: IconDatabase
 ---
 
-The DMS module declares 12 tables, all in tenant schemas (no control-plane tables). Every table uses `text("id")` with `.primaryKey().$defaultFn(uuidv7)`. Timestamps use `TIMESTAMPTZ` (`withTimezone: true`).
+The DMS module declares 20 tables, all in tenant schemas (no control-plane tables). Every table uses `text("id")` with `.primaryKey().$defaultFn(uuidv7)`. Timestamps use `TIMESTAMPTZ` (`withTimezone: true`).
 
 ## Enums
 
@@ -15,6 +15,10 @@ The DMS module declares 12 tables, all in tenant schemas (no control-plane table
 | `dms_grantee_type` | `dms_share.grantee_type` | `contact`, `user` |
 | `dms_share_permission` | `dms_share.permission` | `viewer`, `editor` |
 | `dms_pin_item_type` | `dms_pin.item_type` | `triage`, `view`, `class` |
+| `dms_item_type` | item tables | `file`, `folder` |
+| `dms_item_grantee_type` | `dms_item_share.grantee_type` | `user`, `group` |
+| `dms_item_permission` | `dms_item_share.permission` | `viewer`, `editor`, `owner` |
+| `dms_public_link_permission` | `dms_public_link.permission` | `view`, `edit` |
 
 ## Tables
 
@@ -202,4 +206,116 @@ dms_document ──1:N──→ dms_share (grants)
 dms_contact ──1:N──→ dms_share (contact grants)
 dms_document ──1:N──→ dms_legal_hold (legal holds)
 dms_view ──1:N──→ dms_pin (sidebar pins by owner)
+
+dms_folder ──1:N──→ dms_folder (parent/child, self-referential)
+dms_folder ──1:N──→ dms_file (folder contents)
+dms_file ──1:N──→ dms_file_version (version history)
+dms_label ──N:M──→ dms_file / dms_folder (via dms_item_label)
+dms_file / dms_folder ──1:N──→ dms_item_share (grants, inherited up the folder chain)
+dms_file / dms_folder ──1:N──→ dms_public_link (shareable links)
+dms_file / dms_folder ──1:N──→ dms_access_log (access tracking)
 ```
+
+## Item Tables (Drive superset)
+
+### `dms_folder`
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | Auto UUIDv7 |
+| `name` | text | Folder name |
+| `path` | text (unique) | Materialized hierarchical path (`/Projects/2026`) |
+| `parent_id` | text | Parent folder; `null` = root |
+| `owner_id` | text | Creator |
+| `color` / `description` | text | UI hints |
+| `is_trashed` / `trashed_at` | boolean / timestamptz | Soft-delete (trash) |
+| `created_at` / `updated_at` | timestamptz | Record timestamps |
+
+Indexed on `parent_id`, `owner_id`, `path`, `is_trashed`.
+
+### `dms_file`
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | Auto UUIDv7 |
+| `name` | text | File name |
+| `path` | text (unique) | Materialized path |
+| `folder_id` | text | Containing folder; `null` = root |
+| `owner_id` | text | Uploader |
+| `storage_key` | text | S3 object key |
+| `content_type` | text | MIME type |
+| `size` | bigint | Bytes |
+| `etag` | text | S3 ETag |
+| `version` | integer | Current version (starts at 1) |
+| `description` | text | Optional |
+| `is_trashed` / `trashed_at` | boolean / timestamptz | Soft-delete (trash) |
+| `created_at` / `updated_at` | timestamptz | Record timestamps |
+
+Indexed on `folder_id`, `owner_id`, `path`, `is_trashed`.
+
+### `dms_file_version`
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | Auto UUIDv7 |
+| `file_id` | text | Owning file |
+| `version` | integer | 1-based |
+| `storage_key` | text | S3 key of this revision |
+| `content_type` | text | MIME |
+| `size` | bigint | Bytes |
+| `etag` | text | S3 ETag |
+| `uploaded_by` | text | Who created the version |
+| `created_at` | timestamptz | Version creation |
+
+Indexed on `file_id`, unique `(file_id, version)`.
+
+### `dms_label` & `dms_item_label`
+
+`dms_label` defines color-coded labels (`name`, `color`, `is_global`, `owner_id`; global labels have `owner_id` null). `dms_item_label` is a polymorphic join (`item_id`, `item_type` file/folder, `label_id`, `applied_by`, `applied_at`) with a unique constraint on `(item_id, item_type, label_id)`.
+
+### `dms_item_share`
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | Auto UUIDv7 |
+| `item_id` / `item_type` | text / enum | Shared file or folder |
+| `grantee_type` | enum | `user` or `group` |
+| `grantee_id` | text | Grantee ID |
+| `permission` | enum | `viewer`, `editor`, `owner` |
+| `message` | text | Optional note |
+| `shared_by` | text | Who created |
+| `expires_at` | timestamptz | Optional expiry |
+| `created_at` | timestamptz | Share creation |
+
+Indexed on `(item_id, item_type)` and `(grantee_id, grantee_type)`. Permissions inherit up the folder chain (`dms_folder.parent_id`).
+
+### `dms_public_link`
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | Auto UUIDv7 |
+| `item_id` / `item_type` | text / enum | Shared file or folder |
+| `token` | text (unique) | Shareable token |
+| `permission` | enum | `view` or `edit` |
+| `password` | text | bcrypt-hashed optional password |
+| `max_views` / `view_count` | integer | Access limits |
+| `expires_at` | timestamptz | Optional expiry |
+| `is_active` | boolean | Revoked links are deactivated |
+| `created_by` | text | Creator |
+| `created_at` | timestamptz | Creation |
+
+Indexed on `(item_id, item_type)`, `is_active`.
+
+### `dms_access_log`
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | text (PK) | Auto UUIDv7 |
+| `item_id` / `item_type` | text / enum | Accessed item |
+| `action` | text | e.g. `public_link_accessed` |
+| `accessed_by` | text | User ID (null for anonymous) |
+| `ip` / `user_agent` | text | Client metadata |
+| `public_link_id` | text | Link used, if any |
+| `created_at` | timestamptz | Access timestamp |
+
+Indexed on `(item_id, item_type)`, `public_link_id`, `created_at`.

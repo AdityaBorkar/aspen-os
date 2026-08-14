@@ -6,6 +6,8 @@ icon: IconInfoCircle
 
 The DMS module is a records-oriented document management system built on `@aspen-os/platform`. Unlike the Drive module (a free-form filesystem with folders and paths), DMS is **class-first**: every upload lands in a **Triage** stage and becomes an active **Document** only after it is assigned to a **Document Class** whose mandatory fields have been filled.
 
+DMS is also a **superset of `@aspen-os/drive`**: the full Drive feature surface — folders, files, labels, public links, item shares, trash, path/access/archive/search/storage services — is ported into the module under `p.dms.files`, `p.dms.folders`, `p.dms.labels`, `p.dms.publicLinks`, `p.dms.shares`, `p.dms.trash` (and `p.dms.driveSearch`). `@aspen-os/drive` is deprecated; existing Drive data and callers migrate to the DMS item tables (`dms_folder`, `dms_file`, `dms_label`, `dms_item_share`, `dms_public_link`, …).
+
 All binary storage is delegated to the platform's `StorageUnit` under version-bound keys (`dms/{tenant}/{documentId}/v{n}/{name}`); DMS owns the indexing semantics — classes, fields, tags, metadata, versions, views, contacts, sharing, search, retention, and the recycle bin.
 
 ## Module
@@ -18,11 +20,11 @@ export class Dms implements Module {
 }
 ```
 
-The module declares no platform-module dependencies. It is deliberately independent of `@aspen-os/drive` — it owns its own `dms_*` tables, storage-key scheme, and lifecycle.
+The module declares no platform-module dependencies. It is deliberately independent of `@aspen-os/drive` as a package — but it absorbs Drive's feature surface and `dms_*` tables (`dms_folder`, `dms_file`, …), so Drive itself can be deprecated in favor of DMS.
 
 ## Architecture
 
-The module operates against the **tenant** database (all 12 tables are tenant schemas; there are no control-plane tables):
+The module operates against the **tenant** database (all 20 tables are tenant schemas; there are no control-plane tables):
 
 ```text
 TENANT DATABASE
@@ -31,11 +33,14 @@ TENANT DATABASE
   dms_tag, dms_document_tag
   dms_view, dms_pin, dms_share, dms_contact
   dms_legal_hold, dms_setting
+  dms_folder, dms_file, dms_file_version
+  dms_label, dms_item_label, dms_item_share
+  dms_public_link, dms_access_log
 ```
 
 ## What It Exposes
 
-The module exposes 13 workflow groups:
+The module exposes workflow + service groups:
 
 | Getter | Methods |
 |---|---|
@@ -44,14 +49,25 @@ The module exposes 13 workflow groups:
 | `classes` | `addField`, `archive`, `create`, `deactivateField`, `get`, `list`, `update`, `updateField` |
 | `contacts` | `create`, `get`, `list`, `remove`, `update` |
 | `documents` | `addMetadata`, `delete`, `download`, `get`, `removeMetadata`, `tag`, `untag`, `update`, `upload`, `uploadBulk` |
+| `documentShares` | `create`, `list`, `listByGrantee`, `remove`, `resolveToken`, `update` |
 | `holds` | `list`, `place`, `release` |
 | `pins` | `create`, `delete`, `list` |
 | `search` | `promoteToView`, `quick`, `search` |
 | `settings` | `get`, `set` |
-| `shares` | `create`, `list`, `listByGrantee`, `remove`, `resolveToken`, `update` |
 | `triage` | `classify`, `detail`, `list` |
 | `versions` | `delete`, `get`, `getCurrent`, `list`, `new`, `revert` |
 | `views` | `apply`, `create`, `delete`, `getDefault`, `list`, `listByOwner`, `pin`, `setDefault`, `unpin`, `update` |
+| `files` (Drive) | `copy`, `delete`, `download`, `get`, `getById`, `getDownloadLink`, `listVersions`, `move`, `purge`, `rename`, `restore`, `update`, `upload` |
+| `folders` (Drive) | `create`, `delete`, `get`, `getById`, `list`, `move`, `rename`, `restore`, `update` |
+| `labels` (Drive) | `apply`, `create`, `delete`, `list`, `listByLabel`, `remove` |
+| `publicLinks` (Drive) | `create`, `get`, `list`, `resolve`, `revoke`, `update` |
+| `shares` (Drive) | `create`, `get`, `list`, `listSharedWithMe`, `remove`, `update` |
+| `trash` (Drive) | `emptyTrash`, `list`, `purgeExpired`, `restore` |
+| `driveSearch` | `search` |
+| `access` | `checkPermission`, `getEffectivePermission`, `isOwner`, `logAccess` |
+| `archive` | `createArchive`, `processArchiveJob` |
+| `paths` | `checkNameUniqueness`, `computeFilePath`, `computeFolderPath`, `getBreadcrumbs`, `getDepth`, `getFilePath`, `getFolderPath`, `getSubtreeMaxDepth`, `resolvePath`, `wouldCreateCycle` |
+| `storage` | `computeArchiveKey`, `computeStorageKey`, `copy`, `exists`, `get`, `getSignedGetUrl`, `move`, `remove`, `upload` |
 
 ```ts
 // Access via the platform proxy ($name = "dms")
@@ -62,6 +78,7 @@ await p.dms.documents.upload({
 });
 await p.dms.triage.classify({ id: docId, input: { classId, fieldValues } });
 await p.dms.views.create({ input: { name: "Invoices", ownerId: userId, filters: [...] } });
+await p.dms.folders.create({ input: { name: "Projects", ownerId: userId } }); // Drive superset
 ```
 
 ## Initialization
@@ -77,14 +94,15 @@ $initialize(units: {
 }): void;
 ```
 
-`$prepareRuntime()` registers two scheduled pg-boss jobs with `ctx.audit` + the running DB:
+`$prepareRuntime()` registers three scheduled pg-boss jobs with `ctx.audit` + the running DB:
 
 | Job | Topic | Cron | Purpose |
 |---|---|---|---|
 | Expiry scanner | `dms:expiry-scan` | `5 0 * * *` | Promotes active documents past their `expiryDate` to `expired` |
 | Auto-purge | `dms:auto-purge` | `30 3 * * *` | Permanently deletes `deleted`/`expired` documents past retention, skipping legal holds |
+| Item auto-purge | `dms:item-auto-purge` | `0 3 * * *` | Permanently deletes trashed files/folders past `trashRetentionDays` (Drive superset) |
 
-`$cleanup()` unsubscribes and unschedules both.
+`$cleanup()` unsubscribes and unschedules all three.
 
 ## Config
 
@@ -99,7 +117,9 @@ type DmsModuleConfig = {
   defaultRetentionDays?: number;     // 180
   maxDownloadLinkExpiry?: number;    // 604800 (7d)
   maxFileSize?: number;              // 5 GB
+  maxNestingDepth?: number;          // 20 (Drive folders)
   maxVersions?: number;              // 10
+  trashRetentionDays?: number;       // 30 (Drive trash)
 };
 ```
 
@@ -110,8 +130,8 @@ type DmsModuleConfig = {
 ```ts
 $prepareInfra(): ModuleInfra {
   return {
-    auth: { acl },                      // document, class, contact, share, view, ...
-    db: { control_plane_schemas: {}, tenant_schemas: dmsTables }, // 12 tenant tables
+    auth: { acl },                      // document, class, contact, share, view, file, folder, ...
+    db: { control_plane_schemas: {}, tenant_schemas: dmsTables }, // 20 tenant tables
     events,                             // dms:* topics
   };
 }

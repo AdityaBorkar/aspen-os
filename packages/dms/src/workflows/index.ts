@@ -29,6 +29,19 @@ import { uploadDocument } from "./document.upload";
 import { uploadBulkDocuments } from "./document.upload-bulk";
 import { placeLegalHold, releaseLegalHold } from "./hold";
 import { listHolds } from "./hold.list";
+import {
+  access,
+  archive,
+  driveSearch,
+  files,
+  folders,
+  labels,
+  paths,
+  publicLinks,
+  shares,
+  storage,
+  trash,
+} from "./items";
 import { listPins, pinItem, unpinItem } from "./pin.create";
 import {
   promoteSearchToView,
@@ -124,7 +137,7 @@ export const settings = {
   set: setSettingWorkflow,
 } as const;
 
-export const shares = {
+export const documentShares = {
   create: createShare,
   list: listShares,
   listByGrantee: listSharesByGrantee,
@@ -160,3 +173,17 @@ export const views = {
   unpin: unpinView,
   update: updateView,
 } as const;
+
+export {
+  access,
+  archive,
+  driveSearch,
+  files,
+  folders,
+  labels,
+  paths,
+  publicLinks,
+  shares,
+  storage,
+  trash,
+};

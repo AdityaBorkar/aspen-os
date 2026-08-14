@@ -39,10 +39,49 @@ export const VIEW_EVENTS = {
   UPDATED: "dms:view_updated",
 } as const;
 
+import {
+  ITEM_EVENTS,
+  type ItemEventMap,
+  type ItemFileDownloadedEvent,
+  type ItemFileUpdatedEvent,
+  type ItemFileUploadedEvent,
+  type ItemFolderCreatedEvent,
+  type ItemFolderRenamedEvent,
+  type ItemMovedEvent,
+  type ItemPublicLinkAccessedEvent,
+  type ItemPublicLinkCreatedEvent,
+  type ItemPublicLinkRevokedEvent,
+  type ItemPurgedEvent,
+  type ItemRestoredEvent,
+  type ItemSharedEvent,
+  type ItemTrashedEvent,
+  type ItemUnsharedEvent,
+} from "./item-pubsub";
+
+export {
+  ITEM_EVENTS,
+  type ItemEventMap,
+  type ItemFileDownloadedEvent,
+  type ItemFileUpdatedEvent,
+  type ItemFileUploadedEvent,
+  type ItemFolderCreatedEvent,
+  type ItemFolderRenamedEvent,
+  type ItemMovedEvent,
+  type ItemPublicLinkAccessedEvent,
+  type ItemPublicLinkCreatedEvent,
+  type ItemPublicLinkRevokedEvent,
+  type ItemPurgedEvent,
+  type ItemRestoredEvent,
+  type ItemSharedEvent,
+  type ItemTrashedEvent,
+  type ItemUnsharedEvent,
+};
+
 export const events = {
   CLASS_EVENTS,
   CONTACT_EVENTS,
   DOCUMENT_EVENTS,
+  ITEM_EVENTS,
   SHARE_EVENTS,
   VIEW_EVENTS,
 };
@@ -218,5 +257,6 @@ export type ViewEventMap = {
 export type DmsEventMap = DocumentEventMap &
   ClassEventMap &
   ContactEventMap &
+  ItemEventMap &
   ShareEventMap &
   ViewEventMap;

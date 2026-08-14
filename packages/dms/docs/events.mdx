@@ -1,10 +1,10 @@
 ---
 title: Events
-description: Domain event map for the DMS module — 25 events across 5 event groups.
+description: Domain event map for the DMS module — 39 events across 6 event groups.
 icon: IconBell
 ---
 
-The DMS module defines domain events across 5 event groups. Events are type-level contracts published as plain string topics via PubSub, for cross-module consumers — the per-document activity feed reads the platform `AuditUnit`, not these topics.
+The DMS module defines domain events across 6 event groups. Events are type-level contracts published as plain string topics via PubSub, for cross-module consumers — the per-document activity feed reads the platform `AuditUnit`, not these topics.
 
 ## Event Constants
 
@@ -49,6 +49,23 @@ export const VIEW_EVENTS = {
   UNPINNED: "dms:view_unpinned",
   UPDATED: "dms:view_updated",
 } as const;
+
+export const ITEM_EVENTS = {
+  FILE_DOWNLOADED: "dms:item_file_downloaded",
+  FILE_UPDATED: "dms:item_file_updated",
+  FILE_UPLOADED: "dms:item_file_uploaded",
+  FOLDER_CREATED: "dms:item_folder_created",
+  FOLDER_RENAMED: "dms:item_folder_renamed",
+  MOVED: "dms:item_moved",
+  PUBLIC_LINK_ACCESSED: "dms:item_public_link_accessed",
+  PUBLIC_LINK_CREATED: "dms:item_public_link_created",
+  PUBLIC_LINK_REVOKED: "dms:item_public_link_revoked",
+  PURGED: "dms:item_purged",
+  RESTORED: "dms:item_restored",
+  SHARED: "dms:item_shared",
+  TRASHED: "dms:item_trashed",
+  UNSHARED: "dms:item_unshared",
+} as const;
 ```
 
 ## Event Map
@@ -77,6 +94,23 @@ export const VIEW_EVENTS = {
 | `dms:contact_created` / `dms:contact_updated` / `dms:contact_removed` | `{ contactId, reason? }` | Contact mutations |
 | `dms:share_created` / `dms:share_revoked` | `{ shareId, documentId, granteeType, granteeId }` | Share create / revoke |
 | `dms:view_created` / `dms:view_updated` / `dms:view_deleted` / `dms:view_pinned` / `dms:view_unpinned` | `{ viewId }` | View mutations |
+
+### Item Events (Drive superset — files, folders, shares, public links, trash)
+
+| Event | Payload | Trigger |
+|---|---|---|
+| `dms:item_folder_created` | `{ folder: { id, name, ownerId, parentId, path } }` | Folder created |
+| `dms:item_folder_renamed` | `{ folder: { id, name, path }, oldName }` | Folder renamed |
+| `dms:item_file_uploaded` | `{ file: { id, name, path, size, ... } }` | File uploaded |
+| `dms:item_file_updated` | `{ file: { ... }, previousVersion }` | File updated / new version |
+| `dms:item_file_downloaded` | `{ file: { id, name, ownerId }, userId }` | File downloaded |
+| `dms:item_moved` | `{ item: { id, name, path }, itemType, oldPath, newPath }` | File/folder moved or renamed |
+| `dms:item_shared` / `dms:item_unshared` | `{ share: { ... } }` / `{ itemId, shareId }` | Item share create / remove |
+| `dms:item_public_link_created` | `{ publicLink: { id, itemId, itemType, permission, token } }` | Public link created |
+| `dms:item_public_link_accessed` | `{ ip, userAgent, publicLink: { id, itemId, token } }` | Public link resolved |
+| `dms:item_public_link_revoked` | `{ itemId, publicLinkId }` | Public link revoked |
+| `dms:item_trashed` / `dms:item_restored` | `{ itemId, itemType }` | Item soft-deleted / restored |
+| `dms:item_purged` | `{ itemId, itemType, storageKey }` | Hard purge / auto-purge |
 
 ## Usage
 
@@ -109,6 +143,7 @@ export type DmsEventMap =
   & DocumentEventMap
   & ClassEventMap
   & ContactEventMap
+  & ItemEventMap
   & ShareEventMap
   & ViewEventMap;
 ```

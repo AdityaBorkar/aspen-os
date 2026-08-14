@@ -4,7 +4,7 @@ description: API reference for the workflow groups exposed by the DMS module.
 icon: IconListCheck
 ---
 
-The DMS module exposes workflows as flat `Workflow` objects grouped under 13 accessors: `activity`, `bin`, `classes`, `contacts`, `documents`, `holds`, `pins`, `search`, `settings`, `shares`, `triage`, `versions`, and `views`. Access via the platform proxy key `p.dms`.
+The DMS module exposes workflows as flat `Workflow` objects grouped under accessors: `activity`, `bin`, `classes`, `contacts`, `documents`, `holds`, `pins`, `search`, `settings`, `documentShares`, `triage`, `versions`, `views`, plus the Drive-superset item groups `files`, `folders`, `labels`, `publicLinks`, `shares`, `trash`, and the `driveSearch`/`access`/`archive`/`paths`/`storage` services. Access via the platform proxy key `p.dms`.
 
 ## Lifecycle Flow
 
@@ -104,16 +104,85 @@ await p.dms.contacts.get({ id });
 
 await p.dms.contacts.remove({ id, input: { reason: "Left the project" } }); // reason required; revokes every share
 
-await p.dms.shares.create({
+await p.dms.documentShares.create({
   input: { documentId, granteeType: "user", granteeId: userId, permission: "viewer", sharedBy: userId },
 });
-await p.dms.shares.update({ id, patch: { permission: "editor" } });
-await p.dms.shares.remove({ id });
-await p.dms.shares.list({ documentId });
-await p.dms.shares.resolveToken({ input: { token } }); // contact (token) download endpoint
+await p.dms.documentShares.update({ id, patch: { permission: "editor" } });
+await p.dms.documentShares.remove({ id });
+await p.dms.documentShares.list({ documentId });
+await p.dms.documentShares.resolveToken({ input: { token } }); // contact (token) download endpoint
 ```
 
 Sharing to a `contact` creates a `shareToken`; revoking the share or removing the contact invalidates it immediately. Sharing to a `user` enables access within normal authenticated visibility. Only `active` documents can be shared.
+
+## Files & Folders (Drive superset)
+
+```ts
+// Folders — materialized paths, nesting depth, cycle-safe moves
+await p.dms.folders.create({ input: { name: "Projects", ownerId, parentId: null } });
+await p.dms.folders.rename({ id, input: { name: "Projects 2026" } });
+await p.dms.folders.move({ id, input: { newParentId } });
+await p.dms.folders.update({ id, input: { color: "#3B82F6" } });
+await p.dms.folders.delete({ id, force: false }); // soft-delete to trash
+await p.dms.folders.restore({ id });
+await p.dms.folders.get({ id });        // includes childCount + totalSize
+await p.dms.folders.list({ id, opts: { search, sortBy, sortOrder } });
+
+// Files — S3-backed with versioning
+await p.dms.files.upload({ input: { name, folderId, ownerId, contentType, body } });
+await p.dms.files.download({ id });
+await p.dms.files.getDownloadLink({ id, options: { expiresIn } });
+await p.dms.files.get({ id });
+await p.dms.files.getById({ id });
+await p.dms.files.update({ id, input: { body, contentType, uploadedBy } });
+await p.dms.files.rename({ id, input: { name } });
+await p.dms.files.move({ id, input: { newFolderId } });
+await p.dms.files.copy({ id, destFolderId });
+await p.dms.files.listVersions({ id });
+await p.dms.files.delete({ id });   // soft-delete
+await p.dms.files.restore({ id });
+await p.dms.files.purge({ id });    // hard-delete + storage removal
+```
+
+## Labels, Public Links & Item Shares
+
+```ts
+// Labels — global or user-owned, applied to files/folders
+await p.dms.labels.create({ input: { name: "Important", color: "#EF4444", isGlobal: true } });
+await p.dms.labels.list({ opts: { includeGlobal: true, ownerId } });
+await p.dms.labels.apply({ input: { labelId, itemId, itemType: "file", appliedBy } });
+await p.dms.labels.remove({ itemId, itemType, labelId });
+await p.dms.labels.listByLabel({ labelId });
+await p.dms.labels.delete({ id });
+
+// Public links — token + optional password, view/edit
+await p.dms.publicLinks.create({ input: { itemId, itemType, permission: "view", createdBy } });
+await p.dms.publicLinks.update({ id, input: { maxViews, expiresAt } });
+await p.dms.publicLinks.resolve({ input: { token, password } });
+await p.dms.publicLinks.list({ itemId, itemType });
+await p.dms.publicLinks.get({ id });
+await p.dms.publicLinks.revoke({ id });
+
+// Item shares — file/folder grants to users/groups with inheritance
+await p.dms.shares.create({ input: { itemId, itemType, granteeId, granteeType, permission, sharedBy } });
+await p.dms.shares.update({ id, input: { permission } });
+await p.dms.shares.remove({ id });
+await p.dms.shares.list({ itemId, itemType });
+await p.dms.shares.listSharedWithMe({ userId });
+
+// Trash — auto-purged after trashRetentionDays (cron `0 3 * * *`)
+await p.dms.trash.list({ opts: { ownerId } });
+await p.dms.trash.restore({ id, itemType: "file" });
+await p.dms.trash.emptyTrash({ opts: { ownerId } });
+await p.dms.trash.purgeExpired({});
+
+// Item search + services
+await p.dms.driveSearch.search({ query: "report", type: "file", labels: [labelId] });
+await p.dms.access.checkPermission({ itemId, itemType, userId, required: "editor" });
+await p.dms.paths.resolvePath({ path: "/Projects/2026" });
+await p.dms.archive.createArchive({ folderId, options: { includeSubfolders: true } });
+await p.dms.storage.getSignedGetUrl({ key, expiresIn: 3600 });
+```
 
 ## Recycle Bin, Retention & Holds
 

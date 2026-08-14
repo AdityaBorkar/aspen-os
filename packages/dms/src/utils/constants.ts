@@ -100,9 +100,42 @@ export const AUDIT_ACTION = {
 
 export type AuditAction = (typeof AUDIT_ACTION)[keyof typeof AUDIT_ACTION];
 
+export const ITEM_TYPE = {
+  FILE: "file",
+  FOLDER: "folder",
+} as const;
+
+export type ItemType = (typeof ITEM_TYPE)[keyof typeof ITEM_TYPE];
+
+export const ITEM_GRANTEE_TYPE = {
+  GROUP: "group",
+  USER: "user",
+} as const;
+
+export type ItemGranteeType =
+  (typeof ITEM_GRANTEE_TYPE)[keyof typeof ITEM_GRANTEE_TYPE];
+
+export const ITEM_PERMISSION = {
+  EDITOR: "editor",
+  OWNER: "owner",
+  VIEWER: "viewer",
+} as const;
+
+export type ItemPermission =
+  (typeof ITEM_PERMISSION)[keyof typeof ITEM_PERMISSION];
+
+export const PUBLIC_LINK_PERMISSION = {
+  EDIT: "edit",
+  VIEW: "view",
+} as const;
+
+export type PublicLinkPermission =
+  (typeof PUBLIC_LINK_PERMISSION)[keyof typeof PUBLIC_LINK_PERMISSION];
+
 export const SCHEDULED_JOBS = {
   AUTO_PURGE: "dms:auto-purge",
   EXPIRY_SCAN: "dms:expiry-scan",
+  ITEM_AUTO_PURGE: "dms:item-auto-purge",
 } as const;
 
 export type ScheduledJob = (typeof SCHEDULED_JOBS)[keyof typeof SCHEDULED_JOBS];

@@ -1,5 +1,7 @@
 # @aspen-os/drive
 
+> **DEPRECATED — superseded by `@aspen-os/dms`.** The DMS module now provides the full Drive feature surface (folders, files, labels, public links, item shares, trash, and the path/access/archive/search/storage services) under `p.dms.files`, `p.dms.folders`, `p.dms.labels`, `p.dms.publicLinks`, `p.dms.shares`, `p.dms.trash` (tables `dms_folder`, `dms_file`, `dms_label`, `dms_item_share`, `dms_public_link`, `dms_access_log`, …). New development should target `@aspen-os/dms`; existing Drive data and callers should migrate to DMS. This package is retained for migration only.
+
 A domain module for the Aspen OS framework that provides Google Drive-style file management: virtual folders with materialized paths, S3-backed file storage with versioning, labels, sharing with inheritance, public links, trash with auto-purge, and full-text search.
 
 ## Table of Contents
