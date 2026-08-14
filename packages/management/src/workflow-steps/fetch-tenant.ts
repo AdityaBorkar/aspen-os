@@ -3,8 +3,8 @@ import { organization } from "@aspen-os/platform/server/db-schemas";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
 
-import { tenant } from "../../db-schemas";
-import { IdSchema } from "../../types";
+import { tenant } from "../db-schemas";
+import { IdSchema } from "../types";
 
 export const fetchTenantStep = WorkflowStep.name("fetch-tenant")
   .input(object({ id: IdSchema }))

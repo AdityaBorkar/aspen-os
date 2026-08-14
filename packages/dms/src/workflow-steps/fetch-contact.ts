@@ -2,8 +2,8 @@ import { WorkflowStep } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
 
-import { dmsContact } from "../../db-schemas";
-import { IdSchema } from "../../types";
+import { dmsContact } from "../db-schemas";
+import { IdSchema } from "../types";
 
 export const fetchContactStep = WorkflowStep.name("dms-fetch-contact")
   .input(object({ id: IdSchema }))

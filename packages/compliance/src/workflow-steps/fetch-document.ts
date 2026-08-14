@@ -1,7 +1,7 @@
 import { WorkflowStep } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 
-import { complianceDocument } from "../../db-schemas";
+import { complianceDocument } from "../db-schemas";
 
 export const fetchDocumentStep = WorkflowStep.name("fetch-document").handler(
   async (input: { id: string }, ctx) => {

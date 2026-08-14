@@ -6,11 +6,11 @@ import { dmsLegalHold } from "../db-schemas";
 import { IdSchema } from "../types";
 
 export const listHolds = Workflow.name("dms.hold.list")
-  .input(object({ documentId: IdSchema }))
-  .handler(async ({ documentId }, ctx) =>
+  .input(object({ fileId: IdSchema }))
+  .handler(async ({ fileId }, ctx) =>
     ctx.db
       .select()
       .from(dmsLegalHold)
-      .where(eq(dmsLegalHold.documentId, documentId))
+      .where(eq(dmsLegalHold.fileId, fileId))
       .orderBy(dmsLegalHold.placedAt),
   );

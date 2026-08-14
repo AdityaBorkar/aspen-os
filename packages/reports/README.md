@@ -39,7 +39,7 @@ Reporting functionality is currently implemented as **per-module services** rath
 | **Tasks**                | `TaskModule` -> `ReportService` (`packages/tasks/src/services/report-service.ts`) | Task summary, workload, velocity, burndown, cumulative flow, time report                                                                                                               |
 | **Organization**         | (planned via SOW)                                                                 | No dedicated report service yet                                                                                                                                                        |
 | **HR** (Phase 2 planned) | (per SOW)                                                                         | Monthly attendance, leave balance/ledger, salary register/slips, tax exemption proofs, loan repayment/ledger, gratuity, overtime summary, employee CTC break-up, project profitability |
-| **Drive**                | `SearchService` (`packages/drive/src/services/search-service.ts`)                 | Full-text search with scope/type/label/date/size filters (not a report service per se, but provides query capabilities)                                                                |
+| **DMS**                  | `search-service` (`packages/dms/src/services/search-service.ts`)                  | Full-text search with scope/label/date/size filters (not a report service per se, but provides query capabilities)                                                                     |
 
 ### Accessing existing reports
 

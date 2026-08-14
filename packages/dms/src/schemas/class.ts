@@ -33,7 +33,7 @@ export const LabelSchema = pipe(
   check((val) => val.length > 0, "Label is required"),
 );
 
-export const CreateDocumentClassSchema = object({
+export const CreateClassSchema = object({
   color: optional(nullable(string())),
   createdBy: string(),
   description: optional(nullable(string())),
@@ -43,9 +43,9 @@ export const CreateDocumentClassSchema = object({
   retentionDays: optional(nullable(pipe(valibotNumber(), integer()))),
 });
 
-export type CreateDocumentClassInput = InferOutput<typeof CreateDocumentClassSchema>;
+export type CreateClassInput = InferOutput<typeof CreateClassSchema>;
 
-export const UpdateDocumentClassSchema = object({
+export const UpdateClassSchema = object({
   color: optional(nullable(string())),
   description: optional(nullable(string())),
   fileNamingSchema: optional(nullable(FileNamingSchema)),
@@ -54,7 +54,7 @@ export const UpdateDocumentClassSchema = object({
   retentionDays: optional(nullable(pipe(valibotNumber(), integer()))),
 });
 
-export type UpdateDocumentClassInput = InferOutput<typeof UpdateDocumentClassSchema>;
+export type UpdateClassInput = InferOutput<typeof UpdateClassSchema>;
 
 export const ClassFiltersSchema = object({
   activeOnly: optional(boolean()),

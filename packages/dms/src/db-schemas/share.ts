@@ -1,36 +1,29 @@
 import { uuidv7 } from "@aspen-os/platform/server";
-import { index, pgEnum, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
-import { GRANTEE_TYPE, SHARE_PERMISSION } from "../utils/constants";
-
-export const dmsGranteeTypeEnum = pgEnum("dms_grantee_type", [
-  GRANTEE_TYPE.CONTACT,
-  GRANTEE_TYPE.USER,
-]);
-
-export const dmsSharePermissionEnum = pgEnum("dms_share_permission", [
-  SHARE_PERMISSION.VIEWER,
-  SHARE_PERMISSION.EDITOR,
-]);
+import { dmsEntityTypeEnum, dmsGranteeTypeEnum, dmsSharePermissionEnum } from "./enums";
 
 export const dmsShare = pgTable(
   "dms_share",
   {
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    documentId: text("document_id").notNull(),
+    entityId: text("entity_id").notNull(),
+    entityType: dmsEntityTypeEnum("entity_type").notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     granteeId: text("grantee_id").notNull(),
     granteeType: dmsGranteeTypeEnum("grantee_type").notNull(),
     id: text("id").primaryKey().$defaultFn(uuidv7),
+    message: text("message"),
     permission: dmsSharePermissionEnum("permission").notNull().default("viewer"),
     shareToken: text("share_token"),
     sharedBy: text("shared_by").notNull(),
   },
   (table) => [
-    index("idx_dms_share_document").on(table.documentId),
-    index("idx_dms_share_grantee").on(table.granteeId),
-    uniqueIndex("idx_dms_share_doc_grantee").on(
-      table.documentId,
+    index("idx_dms_share_entity").on(table.entityId, table.entityType),
+    index("idx_dms_share_grantee").on(table.granteeId, table.granteeType),
+    uniqueIndex("idx_dms_share_entity_grantee").on(
+      table.entityType,
+      table.entityId,
       table.granteeType,
       table.granteeId,
     ),

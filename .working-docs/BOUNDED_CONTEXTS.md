@@ -361,16 +361,16 @@ SingleTenantPlatform.create(config, [organization, tasks])
 
 - `Dms.create(config?)` — factory that returns a Module instance; `$config: Required<DmsModuleConfig>` (10 settings with defaults: `allowedContentTypes`, `defaultAutoPurgeEveryHours`, `defaultCompression`, `defaultDownloadLinkExpiry`, `defaultRetentionDays`, `maxDownloadLinkExpiry`, `maxFileSize`, `maxNestingDepth`, `maxVersions`, `trashRetentionDays`)
 - `$name = "dms"`, `$dependencies = []` — no module deps
-- 24 workflow groups (~136 members): `activity`, `archive`, `bin`, `classes`, `contacts`, `documentShares`, `documents`, `driveSearch`, `files`, `folders`, `holds`, `labels`, `paths`, `pins`, `publicLinks`, `search`, `settings`, `shares`, `storage`, `trash`, `triage`, `versions`, `views`, `access`
-- 14 services: `classify-service`, `compression-service`, `condition-service`, `expiry-scanner`, `item-access-service`, `item-archive-service`, `item-path-service`, `item-purge-service`, `item-search-service`, `item-storage-bridge`, `purge-service`, `search-service`, `settings-service`, `storage-bridge`; 9 workflow-steps (`fetch-*`)
-- 20 database tables (all tenant_schemas): `dms_folder`, `dms_file`, `dms_file_version`, `dms_label`, `dms_item_label`, `dms_item_share`, `dms_public_link`, `dms_access_log`, `dms_document`, `dms_document_class`, `dms_class_field`, `dms_document_version`, `dms_contact`, `dms_share`, `dms_legal_hold`, `dms_tag`, `dms_document_tag`, `dms_view`, `dms_pin`, `dms_setting`
-- 40 domain events across 6 maps (`CLASS_EVENTS`, `CONTACT_EVENTS`, `DOCUMENT_EVENTS`, `ITEM_EVENTS`, `SHARE_EVENTS`, `VIEW_EVENTS`) published via PubSub
-- 13 ACL resources: `classField`, `contact`, `document`, `file`, `folder`, `itemShare`, `label`, `legalHold`, `pin`, `publicLink`, `setting`, `share`, `view`
+- 19 workflow groups: `activity`, `archive`, `classes`, `contacts`, `fileViews`, `files`, `folders`, `holds`, `labels`, `paths`, `pins`, `search`, `settings`, `shares`, `storage`, `trash`, `triage`, `versions`, `access`
+- 11 services: `access-service`, `archive-service`, `classify-service`, `compression-service`, `condition-service`, `expiry-scanner`, `path-service`, `purge-service`, `search-service`, `settings-service`, `storage-bridge`; 8 workflow-steps (`fetch-*`)
+- 15 database tables (all tenant_schemas): `dms_folder`, `dms_file`, `dms_file_version`, `dms_class`, `dms_class_field`, `dms_entity_label`, `dms_label`, `dms_file_view`, `dms_contact`, `dms_share`, `dms_legal_hold`, `dms_public_link`, `dms_access_log`, `dms_pin`, `dms_setting`
+- 33 domain events across 7 maps (`CLASS_EVENTS`, `CONTACT_EVENTS`, `FILE_EVENTS`, `FILE_VIEW_EVENTS`, `FOLDER_EVENTS`, `PUBLIC_LINK_EVENTS`, `SHARE_EVENTS`) published via PubSub
+- 12 ACL resources: `class`, `classField`, `contact`, `file`, `fileView`, `folder`, `label`, `legalHold`, `pin`, `publicLink`, `setting`, `share`
 - `$prepareInfra()` — returns declarative infra (db schemas, acl, events)
-- `$prepareRuntime()` — registers 3 cron schedules + handlers: `dms:expiry-scan` (`5 0 * * *`), `dms:auto-purge` (`30 3 * * *`), `dms:item-auto-purge` (`0 3 * * *`); `$cleanup()` unregisters them
-- Audit-driven Activity Feed: document/item activity is written inline to the platform's `AuditUnit` (`audit_log`), queried via `ctx.audit.query()`
+- `$prepareRuntime()` — registers 2 cron schedules + handlers: `dms:expiry-scan` (`5 0 * * *`), `dms:auto-purge` (`30 3 * * *`); `$cleanup()` unregisters them
+- Audit-driven Activity Feed: file/folder activity is written inline to the platform's `AuditUnit` (`audit_log`), queried via `ctx.audit.query()`
 
-**Lineage**: DMS is the sole document-management module. The `@aspen-os/drive` package was **removed** (Phase 1 of `sow/dms-consolidation.md`); its free-form filesystem surface lives on inside DMS as the item groups (`p.dms.files/.folders/.labels/.publicLinks/.shares/.trash` + `driveSearch`/`access`/`archive`/`paths`/`storage`). The consolidation's Phases 2–7 (unified `file` entity, labels replacing tags, unified sharing/trash, term consolidation) are still pending — the module still carries the dual `document`/`item-file` surface.
+**Lineage**: DMS is the sole document-management module. The `@aspen-os/drive` package was **removed** and its free-form filesystem surface consolidated with the records system (`.working-docs/sow/dms-consolidation.md`, Phases 1–7 complete): one `file` entity (`dms_file` carries folder/path + class/triage/lifecycle), one label mechanism (`dms_label` + `dms_entity_label`), one sharing group (`p.dms.shares`), one trash module, and `fileViews` terminology — no `document`/`item-`/`tag`/`view`/`drive` leftovers.
 
 **Config**: `DmsModuleConfig` (all optional; defaults above)
 

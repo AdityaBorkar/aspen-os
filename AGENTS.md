@@ -6,7 +6,7 @@
 
 Workspace state:
 
-- **Fully implemented**: `platform`, `organization`, `compliance`, `tasks`, `dms`, `management`, `hr` (modules), `constants` (shared enums). `drive` was **removed from the repo** — its file/folder/label/share/trash surface now lives inside `dms` (see Current State).
+- **Fully implemented**: `platform`, `organization`, `compliance`, `tasks`, `dms`, `management`, `hr` (modules), `constants` (shared enums). `drive` was **removed from the repo** and its file/folder/label/share/trash surface consolidated into `dms` (see Current State).
 - **Pure stubs**: `accounting`, `crm`, `fleet`, `inventory`, `pharmacy`, `reports` (package.json is just `{ "name": "..." }`).
 
 Read `CODING_CONVENTIONS.md`, `CONTEXT.md`, and the domain docs in `.working-docs/` (`DOMAIN_MODEL.md`, `BOUNDED_CONTEXTS.md`, `TODO.md`, `adr/`, `plans/`, `sow/`, `todo/`) before modeling domain changes. `CONTEXT.md` documents known gaps. `docs/` is the built documentation site, not the source of truth for domain docs.
@@ -69,10 +69,10 @@ packages/
                        # workflows/<entity>.<action>.ts + steps/
   compliance/          # Domain module — module.ts auth.ts pubsub.ts + services/ utils/constants.ts
   tasks/               # Domain module — module.ts auth.ts pubsub.ts + services/ utils/filter-engine.ts (17 tables)
-  dms/                 # Domain module (build step) — class-first document management (Triage → Classify → active,
-                       # classes, contacts/shares, legal holds, retention + purge) plus the item filesystem under
-                       # p.dms.{files,folders,labels,publicLinks,shares,trash} + driveSearch (20 dms_* tables,
-                       # expiry/auto-purge/item-purge crons)
+  dms/                 # Domain module (build step) — unified document/files management on one `file` entity
+                       # (Triage → Classify → active, classes, contacts/shares + public links, legal holds,
+                       # retention + purge) plus folders/labels/fileViews/trash (15 dms_* tables,
+                       # expiry-scan + auto-purge crons)
   management/          # Control-plane module (build step) — module.ts auth.ts pubsub.ts
                        # workflows/steps/ (3 owned tables: service_provider, service_provider_user,
                        # tenant; no shadow/tenant tables)
@@ -143,7 +143,7 @@ Every implemented module (management, organization, compliance, tasks, dms, hr) 
 - `src/auth.ts` holds the ACL (`defineAcl(...)`); `src/pubsub.ts` holds events; `src/types.ts` re-exports constants + events + schemas; `db-schemas/` is directory form (one file per table + `enums.ts`); workflows are one file per action under `workflows/<entity>.<action>.ts` with reusable steps in `workflows/steps/`.
 - Workflow groups: stateless `readonly` properties composed from imported per-workflow consts; a `#db` getter (management hybrid) only when a workflow is bound to a unit at construction time (`createX(this.#db)`).
 
-Modules with non-empty runtime wiring (compliance schedules/handlers, hr scheduled jobs, management tenant onboarding, dms expiry/auto-purge/item-purge) keep `#private` unit refs set in `$initialize(units)` plus `async $prepareRuntime()` / `async $cleanup()` that register/unregister pubsub schedules; their workflow groups stay `readonly`.
+Modules with non-empty runtime wiring (compliance schedules/handlers, hr scheduled jobs, management tenant onboarding, dms expiry-scan/auto-purge) keep `#private` unit refs set in `$initialize(units)` plus `async $prepareRuntime()` / `async $cleanup()` that register/unregister pubsub schedules; their workflow groups stay `readonly`.
 
 `$initialize()` signatures vary by module — each types its own unit subset: organization/tasks take none; compliance takes `{ db, kvStore, pubsub }`; management `{ db, auth, pubsub }`; hr `{ db, pubsub }`; dms `{ db, auth, pubsub, storage }`. management's `$name` is `"management"` (proxy `p.management`), `$dependencies: ["organization"]`.
 
@@ -237,4 +237,4 @@ await myWorkflow.run(input, { actorId });
 
 `organization`, `compliance`, `tasks`, `dms`, `management`, `hr` fully implemented and aligned to the management module structure (module.ts/auth.ts/pubsub.ts, db-schemas/, one workflow per file + steps/). `accounting`/`crm`/`fleet`/`inventory`/`pharmacy`/`reports` are stubs. No tests, no CI, no platform Docker/deployment config.
 
-`@aspen-os/drive` was **deleted** (Phase 1 of `.working-docs/sow/dms-consolidation.md`): its filesystem surface now lives inside `dms` as the item groups (`p.dms.files/.folders/.labels/.publicLinks/.shares/.trash`, `p.dms.driveSearch`). DMS still carries the dual `document`/`item-file` surface — consolidation Phases 2–7 remain open (see CONTEXT.md Known Gaps and the SOW).
+`@aspen-os/dms` is the single document-management module (the removed `@aspen-os/drive` was consolidated into it — see `.working-docs/sow/dms-consolidation.md`, Phases 1–7 complete). One `file` entity (folders/paths + class/triage/lifecycle on a single `dms_file` row), one label mechanism (`dms_label` + `dms_entity_label`), one sharing group (`p.dms.shares`), one trash module (`p.dms.trash` over `status`), and `fileViews` terminology — no `document`/`item-`/`tag`/`view`/`drive` leftovers.

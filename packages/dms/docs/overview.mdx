@@ -4,11 +4,9 @@ description: Architecture, tenancy model, initialization, config, and module str
 icon: IconInfoCircle
 ---
 
-The DMS module is a records-oriented document management system built on `@aspen-os/platform`. Unlike the Drive module (a free-form filesystem with folders and paths), DMS is **class-first**: every upload lands in a **Triage** stage and becomes an active **Document** only after it is assigned to a **Document Class** whose mandatory fields have been filled.
+The DMS module is a unified document/files management system built on `@aspen-os/platform`. The class-first records system (triage, classes, versions) and the free-form filesystem (folders, paths) are consolidated onto **one `file` entity**: `dms_file` carries both the folder/path attributes of the filesystem and the class/triage/lifecycle attributes of the records system. `file` is the primary term.
 
-DMS is also a **superset of `@aspen-os/drive`**: the full Drive feature surface — folders, files, labels, public links, item shares, trash, path/access/archive/search/storage services — is ported into the module under `p.dms.files`, `p.dms.folders`, `p.dms.labels`, `p.dms.publicLinks`, `p.dms.shares`, `p.dms.trash` (and `p.dms.driveSearch`). `@aspen-os/drive` is deprecated; existing Drive data and callers migrate to the DMS item tables (`dms_folder`, `dms_file`, `dms_label`, `dms_item_share`, `dms_public_link`, …).
-
-All binary storage is delegated to the platform's `StorageUnit` under version-bound keys (`dms/{tenant}/{documentId}/v{n}/{name}`); DMS owns the indexing semantics — classes, fields, tags, metadata, versions, views, contacts, sharing, search, retention, and the recycle bin.
+All binary storage is delegated to the platform's `StorageUnit` under version-bound keys (`dms/{tenant}/{fileId}/v{n}/{name}`); DMS owns the indexing semantics — classes, fields, labels, metadata, versions, file views, contacts, sharing, search, retention, and the trash.
 
 ## Module
 
@@ -20,70 +18,79 @@ export class Dms implements Module {
 }
 ```
 
-The module declares no platform-module dependencies. It is deliberately independent of `@aspen-os/drive` as a package — but it absorbs Drive's feature surface and `dms_*` tables (`dms_folder`, `dms_file`, …), so Drive itself can be deprecated in favor of DMS.
+The module declares no platform-module dependencies.
 
 ## Architecture
 
-The module operates against the **tenant** database (all 20 tables are tenant schemas; there are no control-plane tables):
+The module operates against the **tenant** database (all 15 tables are tenant schemas; there are no control-plane tables):
 
 ```text
 TENANT DATABASE
-  dms_document, dms_document_version
-  dms_document_class, dms_class_field
-  dms_tag, dms_document_tag
-  dms_view, dms_pin, dms_share, dms_contact
-  dms_legal_hold, dms_setting
-  dms_folder, dms_file, dms_file_version
-  dms_label, dms_item_label, dms_item_share
-  dms_public_link, dms_access_log
+  dms_file, dms_file_version, dms_folder
+  dms_class, dms_class_field
+  dms_label, dms_entity_label
+  dms_file_view, dms_pin, dms_share, dms_public_link
+  dms_contact, dms_legal_hold, dms_setting, dms_access_log
 ```
+
+## Lifecycle
+
+```
+upload into folder ──────▶ active ───────────▶ trashed ──── retention/auto-purge ──▶ purged
+upload to triage ──▶ triaged ──classify──▶ active           (legal hold blocks purge)
+                                     active ──expiry──▶ expired ──▶ trashed  (restore reactivates)
+```
+
+- **Upload into a folder** → `active` immediately. **Upload without a folder (staged for classification)** → `triaged`; `classify` validates required class fields, applies the file-naming schema (metadata-only rename), assigns `docNumber`, and sets `active`.
+- **Soft delete** (records delete or filesystem trash) → `status = trashed`, `deletedAt`/`deletedBy` set. Restore → `active`.
+- **Expiry scanner** promotes past-due files to `expired` (retains class, fields, versions).
+- **Purge** (auto-purge or admin `deletePermanently`) removes all version objects and rows, cascading labels, shares, public links, pins, and holds. Legal holds block purge.
 
 ## What It Exposes
 
 The module exposes workflow + service groups:
 
-| Getter                | Methods                                                                                                                                                                              |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `activity`            | `get`, `getClass`, `getDocument`                                                                                                                                                     |
-| `bin`                 | `deletePermanently`, `empty`, `list`, `restore`                                                                                                                                      |
-| `classes`             | `addField`, `archive`, `create`, `deactivateField`, `get`, `list`, `update`, `updateField`                                                                                           |
-| `contacts`            | `create`, `get`, `list`, `remove`, `update`                                                                                                                                          |
-| `documents`           | `addMetadata`, `delete`, `download`, `get`, `removeMetadata`, `tag`, `untag`, `update`, `upload`, `uploadBulk`                                                                       |
-| `documentShares`      | `create`, `list`, `listByGrantee`, `remove`, `resolveToken`, `update`                                                                                                                |
-| `holds`               | `list`, `place`, `release`                                                                                                                                                           |
-| `pins`                | `create`, `delete`, `list`                                                                                                                                                           |
-| `search`              | `promoteToView`, `quick`, `search`                                                                                                                                                   |
-| `settings`            | `get`, `set`                                                                                                                                                                         |
-| `triage`              | `classify`, `detail`, `list`                                                                                                                                                         |
-| `versions`            | `delete`, `get`, `getCurrent`, `list`, `new`, `revert`                                                                                                                               |
-| `views`               | `apply`, `create`, `delete`, `getDefault`, `list`, `listByOwner`, `pin`, `setDefault`, `unpin`, `update`                                                                             |
-| `files` (Drive)       | `copy`, `delete`, `download`, `get`, `getById`, `getDownloadLink`, `listVersions`, `move`, `purge`, `rename`, `restore`, `update`, `upload`                                          |
-| `folders` (Drive)     | `create`, `delete`, `get`, `getById`, `list`, `move`, `rename`, `restore`, `update`                                                                                                  |
-| `labels` (Drive)      | `apply`, `create`, `delete`, `list`, `listByLabel`, `remove`                                                                                                                         |
-| `publicLinks` (Drive) | `create`, `get`, `list`, `resolve`, `revoke`, `update`                                                                                                                               |
-| `shares` (Drive)      | `create`, `get`, `list`, `listSharedWithMe`, `remove`, `update`                                                                                                                      |
-| `trash` (Drive)       | `emptyTrash`, `list`, `purgeExpired`, `restore`                                                                                                                                      |
-| `driveSearch`         | `search`                                                                                                                                                                             |
-| `access`              | `checkPermission`, `getEffectivePermission`, `isOwner`, `logAccess`                                                                                                                  |
-| `archive`             | `createArchive`, `processArchiveJob`                                                                                                                                                 |
-| `paths`               | `checkNameUniqueness`, `computeFilePath`, `computeFolderPath`, `getBreadcrumbs`, `getDepth`, `getFilePath`, `getFolderPath`, `getSubtreeMaxDepth`, `resolvePath`, `wouldCreateCycle` |
-| `storage`             | `computeArchiveKey`, `computeStorageKey`, `copy`, `exists`, `get`, `getSignedGetUrl`, `move`, `remove`, `upload`                                                                     |
+| Getter      | Methods                                                                                                                                                                                                                                         |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `files`     | `upload`, `uploadBulk`, `get`, `getById`, `download`, `update`, `rename`, `move`, `copy`, `getDownloadLink`, `listVersions`, `newVersion`, `revert`, `deleteVersion`, `classify`, `delete`, `restore`, `purge`, `addMetadata`, `removeMetadata` |
+| `folders`   | `create`, `get`, `getById`, `list`, `rename`, `move`, `update`, `delete`, `restore`                                                                                                                                                             |
+| `classes`   | `create`, `get`, `list`, `update`, `archive`, `addField`, `updateField`, `deactivateField`                                                                                                                                                      |
+| `labels`    | `create`, `update`, `delete`, `list`, `apply`, `remove`, `listByLabel`                                                                                                                                                                          |
+| `shares`    | grants: `create`, `get`, `update`, `remove`, `list`, `listByGrantee`, `resolveToken`, `listSharedWithMe` · public links: `createPublicLink`, `getPublicLink`, `updatePublicLink`, `revokePublicLink`, `listPublicLinks`, `resolvePublicLink`    |
+| `trash`     | `list`, `restore`, `deletePermanently`, `empty`, `purgeExpired`                                                                                                                                                                                 |
+| `fileViews` | `apply`, `create`, `update`, `delete`, `list`, `listByOwner`, `getDefault`, `setDefault`                                                                                                                                                        |
+| `triage`    | `list`, `detail`, `classify`                                                                                                                                                                                                                    |
+| `pins`      | `create`, `delete`, `list` (item types: `triage`, `file_view`, `class`)                                                                                                                                                                         |
+| `contacts`  | `create`, `get`, `list`, `update`, `remove`                                                                                                                                                                                                     |
+| `holds`     | `list`, `place`, `release`                                                                                                                                                                                                                      |
+| `settings`  | `get`, `set`                                                                                                                                                                                                                                    |
+| `search`    | `search`, `quick`, `promoteToView` (records + filesystem search merged)                                                                                                                                                                         |
+| `activity`  | `get`, `getClass`, `getFile`                                                                                                                                                                                                                    |
+| `versions`  | `get`, `list`, `getCurrent`, `new`, `revert`, `delete`                                                                                                                                                                                          |
+| `access`    | `checkPermission`, `getEffectivePermission`, `isOwner`, `logAccess`                                                                                                                                                                             |
+| `archive`   | `createArchive`, `processArchiveJob`                                                                                                                                                                                                            |
+| `paths`     | `checkNameUniqueness`, `computeFilePath`, `computeFolderPath`, `getBreadcrumbs`, `getDepth`, `getFilePath`, `getFolderPath`, `getSubtreeMaxDepth`, `resolvePath`, `wouldCreateCycle`                                                            |
+| `storage`   | `computeArchiveKey`, `computeStorageKey`, `copy`, `exists`, `get`, `getSignedGetUrl`, `move`, `remove`, `upload`                                                                                                                                |
 
 ```ts
 // Access via the platform proxy ($name = "dms")
 const p = IsolatedTenantPlatform.create(config, [dms]);
 
-await p.dms.documents.upload({
-  input: { name: "invoice.pdf", body, contentType: "application/pdf", ownerId: userId },
+// Filesystem upload lands active; triage upload is staged
+await p.dms.folders.create({ input: { name: "Projects", ownerId: userId } });
+await p.dms.files.upload({
+  input: { name: "invoice.pdf", folderId, body, contentType: "application/pdf", ownerId: userId },
 });
-await p.dms.triage.classify({ id: docId, input: { classId, fieldValues } });
-await p.dms.views.create({ input: { name: "Invoices", ownerId: userId, filters: [...] } });
-await p.dms.folders.create({ input: { name: "Projects", ownerId: userId } }); // Drive superset
+
+await p.dms.files.upload({ input: { name: "scan.pdf", body, contentType: "application/pdf", ownerId: userId } });
+await p.dms.triage.classify({ id: fileId, input: { classId, fieldValues } });
+
+await p.dms.fileViews.create({ input: { name: "Invoices", ownerId: userId, filters: [...] } });
 ```
 
 ## Initialization
 
-`$initialize()` receives `db`, `auth`, `pubsub`, and `storage` units, stores `db`/`pubsub`, and binds the `StorageUnit` into the storage bridge (module-level runtime, mirroring Drive):
+`$initialize()` receives `db`, `auth`, `pubsub`, and `storage` units, stores `db`/`pubsub`, and binds the `StorageUnit` into the storage bridge:
 
 ```ts
 $initialize(units: {
@@ -94,15 +101,14 @@ $initialize(units: {
 }): void;
 ```
 
-`$prepareRuntime()` registers three scheduled pg-boss jobs with `ctx.audit` + the running DB:
+`$prepareRuntime()` registers two scheduled pg-boss jobs with `ctx.audit` + the running DB:
 
-| Job             | Topic                 | Cron         | Purpose                                                                                |
-| --------------- | --------------------- | ------------ | -------------------------------------------------------------------------------------- |
-| Expiry scanner  | `dms:expiry-scan`     | `5 0 * * *`  | Promotes active documents past their `expiryDate` to `expired`                         |
-| Auto-purge      | `dms:auto-purge`      | `30 3 * * *` | Permanently deletes `deleted`/`expired` documents past retention, skipping legal holds |
-| Item auto-purge | `dms:item-auto-purge` | `0 3 * * *`  | Permanently deletes trashed files/folders past `trashRetentionDays` (Drive superset)   |
+| Job            | Topic             | Cron         | Purpose                                                                                                                          |
+| -------------- | ----------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| Expiry scanner | `dms:expiry-scan` | `5 0 * * *`  | Promotes active files past their `expiryDate` to `expired`                                                                       |
+| Auto-purge     | `dms:auto-purge`  | `30 3 * * *` | Permanently deletes `trashed`/`expired` files past retention and trashed folders past `trashRetentionDays`, skipping legal holds |
 
-`$cleanup()` unsubscribes and unschedules all three.
+`$cleanup()` unsubscribes and unschedules both.
 
 ## Config
 
@@ -117,9 +123,9 @@ type DmsModuleConfig = {
   defaultRetentionDays?: number; // 180
   maxDownloadLinkExpiry?: number; // 604800 (7d)
   maxFileSize?: number; // 5 GB
-  maxNestingDepth?: number; // 20 (Drive folders)
+  maxNestingDepth?: number; // 20 (folders)
   maxVersions?: number; // 10
-  trashRetentionDays?: number; // 30 (Drive trash)
+  trashRetentionDays?: number; // 30 (folder trash)
 };
 ```
 
@@ -130,8 +136,8 @@ type DmsModuleConfig = {
 ```ts
 $prepareInfra(): ModuleInfra {
   return {
-    auth: { acl },                      // document, class, contact, share, view, file, folder, ...
-    db: { control_plane_schemas: {}, tenant_schemas: dmsTables }, // 20 tenant tables
+    auth: { acl },                      // file, class, contact, share, file_view, folder, label, ...
+    db: { control_plane_schemas: {}, tenant_schemas: dmsTables }, // 15 tenant tables
     events,                             // dms:* topics
   };
 }
@@ -139,8 +145,8 @@ $prepareInfra(): ModuleInfra {
 
 ## Key Invariants
 
-- **Triage gate** — no direct uploads into the active store; classification is the only transition out of Triage (§1).
-- **Version-scoped keys** — renames and naming-schema application are metadata-only; no S3 object moves (§2.4).
-- **Expiry is a lifecycle state** — the expiry scanner promotes documents to `expired`; restore reactivates (§6.1).
-- **Retention is class-based; legal hold overrides** — auto-purge skips held documents; `deletePermanently` rejects them (§6.3).
-- **Admin-only destructive authority** — classes, settings, holds, shared views, permanent deletes and `emptyBin` are admin-managed.
+- **Triage gate** — uploads without a folder are staged in Triage; classification is the only transition out of Triage. Uploads into a folder are active immediately.
+- **Version-scoped keys** — storage keys embed `{fileId}/v{n}`, so renames, moves, and naming-schema application are metadata-only; no S3 object moves.
+- **Expiry is a lifecycle state** — the expiry scanner promotes files to `expired`; restore reactivates.
+- **Retention is class-based; legal hold overrides** — auto-purge skips held files; `deletePermanently` rejects them.
+- **Admin-only destructive authority** — classes, settings, holds, shared file views, and permanent trash deletes are admin-managed.

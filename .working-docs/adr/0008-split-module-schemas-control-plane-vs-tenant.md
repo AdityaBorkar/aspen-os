@@ -8,7 +8,7 @@ Accepted — 2026-07-25
 
 Currently `ModuleInfra.db` has a single `schemas` field — a flat `Record<string, unknown>` of Drizzle table definitions. During `prepareInfra()`, the platform merges all module schemas and pushes them to the control-plane database. In isolated-tenant mode, the same merged set is also pushed to each tenant database via `createTenant()`.
 
-This means **all module tables exist in both the control-plane DB and every tenant DB**, even when tables like `tenant`, `service_provider`, and `audit_log` (from the management module) are clearly control-plane-only, and tables like `task`, `employee`, `drive_file` are clearly tenant-only.
+This means **all module tables exist in both the control-plane DB and every tenant DB**, even when tables like `tenant`, `service_provider`, and `audit_log` (from the management module) are clearly control-plane-only, and tables like `task`, `employee`, `dms_file` are clearly tenant-only.
 
 In isolated-tenant mode this is a correctness issue: tenant management data should not be duplicated into tenant databases, and tenant business data should not exist in the control-plane database.
 

@@ -4,7 +4,7 @@ import { index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 export const dmsLegalHold = pgTable(
   "dms_legal_hold",
   {
-    documentId: text("document_id").notNull(),
+    fileId: text("file_id").notNull(),
     id: text("id").primaryKey().$defaultFn(uuidv7),
     placedAt: timestamp("placed_at", { withTimezone: true }).notNull().defaultNow(),
     placedBy: text("placed_by").notNull(),
@@ -13,7 +13,7 @@ export const dmsLegalHold = pgTable(
     releasedBy: text("released_by"),
   },
   (table) => [
-    index("idx_dms_legal_hold_document").on(table.documentId),
+    index("idx_dms_legal_hold_file").on(table.fileId),
     index("idx_dms_legal_hold_released").on(table.releasedAt),
   ],
 );

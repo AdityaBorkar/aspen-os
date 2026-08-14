@@ -2,7 +2,7 @@ import { WorkflowStep } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object, string } from "valibot";
 
-import { connection } from "../../db-schemas";
+import { connection } from "../db-schemas";
 
 export const fetchConnectionStep = WorkflowStep.name("fetch-connection")
   .input(object({ id: string() }))

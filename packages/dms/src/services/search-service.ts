@@ -1,20 +1,21 @@
-import { and, desc, eq, gte, ilike, lte, type SQL, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, ilike, lte, type SQL, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-import { dmsDocument, dmsDocumentClass, dmsTag } from "../db-schemas";
+import { dmsClass, dmsFile, dmsFolder, dmsLabel } from "../db-schemas";
 import type {
-  DmsDocument,
+  DmsFile,
+  DmsFolder,
+  FileViewCondition,
+  FileViewSort,
   QuickSearchInput,
   SearchOptions,
-  ViewCondition,
-  ViewSort,
 } from "../types";
 import { buildSortOrder } from "./condition-service";
 
 type DB = NodePgDatabase<Record<string, never>>;
 
 export interface QuickSearchHit {
-  document: DmsDocument;
+  file: DmsFile;
   matched: {
     field: string;
     value: string;
@@ -23,15 +24,37 @@ export interface QuickSearchHit {
 
 export interface QuickSearchResult {
   classes: string[];
-  documents: QuickSearchHit[];
-  tags: string[];
+  files: QuickSearchHit[];
+  labels: string[];
+}
+
+export interface FileSearchResult {
+  files: DmsFile[];
+  folders: DmsFolder[];
+}
+
+export async function searchFolders(
+  db: DB,
+  input: {
+    limit: number;
+    offset: number;
+    query: string;
+  },
+): Promise<DmsFolder[]> {
+  return db
+    .select()
+    .from(dmsFolder)
+    .where(and(eq(dmsFolder.isTrashed, false), ilike(dmsFolder.name, `%${input.query}%`)))
+    .orderBy(asc(dmsFolder.name))
+    .limit(input.limit)
+    .offset(input.offset);
 }
 
 /**
  * Appends security-scoped visibility conditions for a caller: owner or grants
  * to the caller, plus org-wide access for admins (admin flag passed by the
- * caller). Triage/deleted/expired documents are normalized out unless the
- * caller explicitly overrides status.
+ * caller). Triage/expired/trashed files are normalized out unless the caller
+ * explicitly overrides status.
  */
 export function buildVisibilityScope(input: { admin?: boolean; userId: string }): SQL[] {
   if (input.admin) {
@@ -39,9 +62,10 @@ export function buildVisibilityScope(input: { admin?: boolean; userId: string })
   }
   const { userId } = input;
   return [
-    sql`(${dmsDocument.ownerId} = ${userId} OR EXISTS (
+    sql`(${dmsFile.ownerId} = ${userId} OR EXISTS (
       SELECT 1 FROM dms_share s
-      WHERE s.document_id = ${dmsDocument.id}
+      WHERE s.entity_id = ${dmsFile.id}
+        AND s.entity_type = 'file'
         AND s.grantee_id = ${userId}
         AND s.grantee_type = 'user'
         AND (s.expires_at IS NULL OR s.expires_at > now())
@@ -52,101 +76,111 @@ export function buildVisibilityScope(input: { admin?: boolean; userId: string })
 function buildSearchVector(query: string): SQL {
   return sql`(
     to_tsvector('simple', name)
-    || to_tsvector('simple', coalesce(array_to_string(tags::text[], ' '), ''))
+    || to_tsvector('simple', coalesce(description, ''))
     || to_tsvector('simple', coalesce(metadata::text, ''))
     || to_tsvector('simple', coalesce(field_values::text, ''))
   ) @@ plainto_tsquery('simple', ${query})`;
 }
 
+function buildLabelCondition(labelIds: string[]): SQL {
+  return sql`EXISTS (
+    SELECT 1 FROM dms_entity_label el
+    WHERE el.entity_id = ${dmsFile.id}
+      AND el.entity_type = 'file'
+      AND el.label_id IN (${sql.join(
+        labelIds.map((id) => sql`${id}`),
+        sql`, `,
+      )})
+  )`;
+}
+
 function resolveSortField(field: string): SQL | null {
   switch (field) {
     case "createdAt":
-      return dmsDocument.createdAt as unknown as SQL;
+      return dmsFile.createdAt as unknown as SQL;
     case "size":
-      return dmsDocument.size as unknown as SQL;
+      return dmsFile.size as unknown as SQL;
     case "updatedAt":
-      return dmsDocument.updatedAt as unknown as SQL;
+      return dmsFile.updatedAt as unknown as SQL;
     case "name":
-      return dmsDocument.name as unknown as SQL;
+      return dmsFile.name as unknown as SQL;
     default:
       return null;
   }
 }
 
 /**
- * Full-text search over catalogued document fields (name, tags, metadata,
- * class field values), scoped to the caller's visibility.
+ * Full-text search over file fields (name, description, metadata, class field
+ * values), scoped to the caller's visibility and the given status.
  */
-export async function searchDocuments(
+export async function searchFiles(
   db: DB,
   input: {
+    admin?: boolean;
     classId?: string;
     contentType?: string;
     dateRange?: { end?: string | null; start?: string };
+    labels?: string[];
     limit: number;
     offset: number;
     query: string;
     scope: string;
     sizeRange?: { max?: number; min?: number };
-    sort?: ViewSort[];
+    sort?: FileViewSort[];
     status?: string;
-    tags?: string[];
     userId: string;
-    admin?: boolean;
   },
-): Promise<DmsDocument[]> {
+): Promise<DmsFile[]> {
   void db;
   const conditions: SQL[] = [];
   conditions.push(buildSearchVector(input.query));
 
   if (input.status) {
-    conditions.push(eq(dmsDocument.status, input.status as never));
+    conditions.push(eq(dmsFile.status, input.status as never));
   } else {
-    conditions.push(eq(dmsDocument.status, "active"));
+    conditions.push(eq(dmsFile.status, "active"));
   }
 
   if (!input.admin && input.scope === "mine") {
-    conditions.push(eq(dmsDocument.ownerId, input.userId));
+    conditions.push(eq(dmsFile.ownerId, input.userId));
   } else if (!input.admin && input.scope !== "mine") {
     conditions.push(...buildVisibilityScope({ admin: false, userId: input.userId }));
   }
 
   if (input.admin && input.scope === "mine") {
-    conditions.push(eq(dmsDocument.ownerId, input.userId));
+    conditions.push(eq(dmsFile.ownerId, input.userId));
   }
 
   if (input.classId) {
-    conditions.push(eq(dmsDocument.classId, input.classId));
+    conditions.push(eq(dmsFile.classId, input.classId));
   }
   if (input.contentType) {
-    conditions.push(eq(dmsDocument.contentType, input.contentType));
+    conditions.push(eq(dmsFile.contentType, input.contentType));
   }
-  if (input.tags && input.tags.length > 0) {
-    for (const tag of input.tags) {
-      conditions.push(sql`${dmsDocument.tags} ? ${tag}`);
-    }
+  if (input.labels && input.labels.length > 0) {
+    conditions.push(buildLabelCondition(input.labels));
   }
   if (input.dateRange?.start) {
-    conditions.push(gte(dmsDocument.createdAt, new Date(input.dateRange.start)));
+    conditions.push(gte(dmsFile.createdAt, new Date(input.dateRange.start)));
   }
   if (input.dateRange?.end) {
-    conditions.push(lte(dmsDocument.createdAt, new Date(input.dateRange.end)));
+    conditions.push(lte(dmsFile.createdAt, new Date(input.dateRange.end)));
   }
   if (input.sizeRange?.min !== undefined) {
-    conditions.push(gte(dmsDocument.size, input.sizeRange.min));
+    conditions.push(gte(dmsFile.size, input.sizeRange.min));
   }
   if (input.sizeRange?.max !== undefined) {
-    conditions.push(lte(dmsDocument.size, input.sizeRange.max));
+    conditions.push(lte(dmsFile.size, input.sizeRange.max));
   }
 
   const orderBy = buildSortOrder(input.sort, resolveSortField);
   if (orderBy.length === 0) {
-    orderBy.push(desc(dmsDocument.createdAt) as unknown as SQL);
+    orderBy.push(desc(dmsFile.createdAt) as unknown as SQL);
   }
 
   return db
     .select()
-    .from(dmsDocument)
+    .from(dmsFile)
     .where(and(...conditions))
     .orderBy(...orderBy)
     .limit(input.limit)
@@ -154,8 +188,60 @@ export async function searchDocuments(
 }
 
 /**
- * Type-ahead quick search returning up to N documents with the matched field
- * highlighted, plus matching class names and tag names for completion.
+ * Name-based filesystem search over folders and loose files.
+ */
+export async function searchItems(
+  db: DB,
+  input: {
+    folderId?: string | null;
+    limit: number;
+    offset: number;
+    query: string;
+    type?: "file" | "folder";
+    userId: string;
+  },
+): Promise<FileSearchResult> {
+  const folders: DmsFolder[] = [];
+  const files: DmsFile[] = [];
+
+  if (input.type !== "file") {
+    const folderConditions = [
+      eq(dmsFolder.isTrashed, false),
+      ilike(dmsFolder.name, `%${input.query}%`),
+    ];
+    folders.push(
+      ...(await db
+        .select()
+        .from(dmsFolder)
+        .where(and(...folderConditions))
+        .orderBy(asc(dmsFolder.name))
+        .limit(input.limit)
+        .offset(input.offset)),
+    );
+  }
+
+  if (input.type !== "folder") {
+    const fileConditions = [
+      eq(dmsFile.status, "active"),
+      sql`(${dmsFile.name} ilike ${`%${input.query}%`} OR coalesce(${dmsFile.description}, '') ilike ${`%${input.query}%`})`,
+    ];
+    files.push(
+      ...(await db
+        .select()
+        .from(dmsFile)
+        .where(and(...fileConditions))
+        .orderBy(asc(dmsFile.name))
+        .limit(input.limit)
+        .offset(input.offset)),
+    );
+  }
+
+  return { files, folders };
+}
+
+/**
+ * Type-ahead quick search returning up to N files with the matched field
+ * highlighted, plus matching class names and label names for completion.
  */
 export async function quickSearch(
   db: DB,
@@ -164,7 +250,7 @@ export async function quickSearch(
   const { query } = input;
   const limit = input.limit ?? 10;
 
-  const docs = await searchDocuments(db, {
+  const docs = await searchFiles(db, {
     admin: input.admin,
     limit,
     offset: 0,
@@ -173,48 +259,42 @@ export async function quickSearch(
     userId: input.userId,
   });
 
-  const documents: QuickSearchHit[] = docs.map((doc) => {
-    const found = findMatchInDocument(doc, query);
+  const files: QuickSearchHit[] = docs.map((file) => {
+    const found = findMatchInFile(file, query);
     return {
-      document: doc,
-      matched: found ?? { field: "name", value: doc.name },
+      file,
+      matched: found ?? { field: "name", value: file.name },
     };
   });
 
   const classRows = await db
-    .select({ name: dmsDocumentClass.name })
-    .from(dmsDocumentClass)
-    .where(ilike(dmsDocumentClass.name, `%${query}%`))
+    .select({ name: dmsClass.name })
+    .from(dmsClass)
+    .where(ilike(dmsClass.name, `%${query}%`))
     .limit(5);
   const classes = classRows.map((row) => row.name);
 
-  const tagRows = await db
-    .select({ name: dmsTag.name })
-    .from(dmsTag)
-    .where(ilike(dmsTag.name, `%${query}%`))
+  const labelRows = await db
+    .select({ name: dmsLabel.name })
+    .from(dmsLabel)
+    .where(ilike(dmsLabel.name, `%${query}%`))
     .limit(5);
-  const tags = tagRows.map((row) => row.name);
+  const labels = labelRows.map((row) => row.name);
 
-  return { classes, documents, tags };
+  return { classes, files, labels };
 }
 
-function findMatchInDocument(
-  doc: DmsDocument,
-  query: string,
-): { field: string; value: string } | null {
+function findMatchInFile(file: DmsFile, query: string): { field: string; value: string } | null {
   const normalized = query.toLowerCase();
-  if (doc.name.toLowerCase().includes(normalized)) {
-    return { field: "name", value: doc.name };
+  if (file.name.toLowerCase().includes(normalized)) {
+    return { field: "name", value: file.name };
   }
 
-  const tags = doc.tags ?? [];
-  for (const tag of tags) {
-    if (tag.toLowerCase().includes(normalized)) {
-      return { field: "tag", value: tag };
-    }
+  if (file.description?.toLowerCase().includes(normalized)) {
+    return { field: "description", value: file.description };
   }
 
-  const metadata = doc.metadata as Record<string, unknown> | null;
+  const metadata = file.metadata as Record<string, unknown> | null;
   if (metadata) {
     for (const [key, raw] of Object.entries(metadata)) {
       const value = String(raw ?? "");
@@ -224,7 +304,7 @@ function findMatchInDocument(
     }
   }
 
-  const fields = doc.fieldValues as Record<string, unknown> | null;
+  const fields = file.fieldValues as Record<string, unknown> | null;
   if (fields) {
     for (const [key, raw] of Object.entries(fields)) {
       const value = String(raw ?? "");
@@ -241,11 +321,13 @@ function findMatchInDocument(
  * Converts a search's query + options into view filter/sort conditions so the
  * result can be promoted to a persisted view in one step.
  */
-export function searchToViewConditions(input: { query: string; options: SearchOptions }): {
-  filters: ViewCondition[];
-  sort: ViewSort[];
+export function searchToFileViewConditions(input: { query: string; options: SearchOptions }): {
+  filters: FileViewCondition[];
+  sort: FileViewSort[];
 } {
-  const filters: ViewCondition[] = [{ field: "search", operator: "search", value: input.query }];
+  const filters: FileViewCondition[] = [
+    { field: "search", operator: "search", value: input.query },
+  ];
   if (input.options.classId) {
     filters.push({
       field: "class",
@@ -260,8 +342,8 @@ export function searchToViewConditions(input: { query: string; options: SearchOp
       value: input.options.contentType,
     });
   }
-  for (const tag of input.options.tags ?? []) {
-    filters.push({ field: "tag", operator: "eq", value: tag });
+  for (const label of input.options.labels ?? []) {
+    filters.push({ field: "label", operator: "eq", value: label });
   }
   if (input.options.status && input.options.status !== "active") {
     filters.push({

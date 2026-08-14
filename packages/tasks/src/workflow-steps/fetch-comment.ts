@@ -2,8 +2,8 @@ import { WorkflowStep } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
 
-import { comment } from "../../db-schemas/comment";
-import { IdSchema } from "../../types";
+import { comment } from "../db-schemas/comment";
+import { IdSchema } from "../types";
 
 export const fetchCommentStep = WorkflowStep.name("fetch-comment")
   .input(object({ id: IdSchema }))

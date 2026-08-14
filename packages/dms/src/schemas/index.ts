@@ -2,20 +2,20 @@ export type {
   ArchiveClassInput,
   ClassFilters,
   CreateClassFieldInput,
-  CreateDocumentClassInput,
+  CreateClassInput,
   UpdateClassFieldInput,
-  UpdateDocumentClassInput,
+  UpdateClassInput,
 } from "./class";
 export {
   ArchiveClassSchema,
   ClassFiltersSchema,
   CreateClassFieldSchema,
-  CreateDocumentClassSchema,
+  CreateClassSchema,
   FieldKeySchema,
   FileNamingSchema,
   LabelSchema,
   UpdateClassFieldSchema,
-  UpdateDocumentClassSchema,
+  UpdateClassSchema,
 } from "./class";
 export type {
   ContactFilters,
@@ -29,160 +29,135 @@ export {
   RemoveContactSchema,
   UpdateContactSchema,
 } from "./contact";
-export type {
-  AddMetadataInput,
-  ClassifyDocumentInput,
-  CompressionOption,
-  DownloadOptions,
-  NewVersionInput,
-  RemoveMetadataInput,
-  TagDocumentInput,
-  TriageFilters,
-  UpdateDocumentInput,
-  UploadBulkInput,
-  UploadDocumentInput,
-} from "./document";
-export {
-  AddMetadataSchema,
-  ClassifyDocumentSchema,
-  CompressionOptionSchema,
-  DownloadOptionsSchema,
-  MetadataSchema,
-  NewVersionSchema,
-  RemoveMetadataSchema,
-  TagDocumentSchema,
-  TagInputSchema,
-  TriageFiltersSchema,
-  UpdateDocumentSchema,
-  UploadBulkSchema,
-  UploadDocumentSchema,
-} from "./document";
 export {
   COMPRESSION_MODE,
   CompressionModeSchema,
-  DOCUMENT_STATUS,
-  DocumentStatusSchema,
-  FIELD_TYPE,
-  FieldTypeSchema,
+  ENTITY_TYPE,
+  EntityTypeSchema,
+  FILE_STATUS,
+  FileStatusSchema,
   GRANTEE_TYPE,
   GranteeTypeSchema,
   PIN_ITEM_TYPE,
   PinItemTypeSchema,
+  PUBLIC_LINK_PERMISSION,
+  PublicLinkPermissionSchema,
   SHARE_PERMISSION,
   SharePermissionSchema,
 } from "./enums";
-export {
-  DriveSearchScopeSchema,
-  DriveSortOrderSchema,
-  ITEM_GRANTEE_TYPE,
-  ITEM_PERMISSION,
-  ITEM_TYPE,
-  ItemGranteeTypeSchema,
-  ItemPermissionSchema,
-  ItemTypeSchema,
-  PUBLIC_LINK_PERMISSION,
-  PublicLinkPermissionSchema,
-} from "./item-enums";
 export type {
-  DownloadLinkOptions,
+  AddMetadataInput,
+  ClassifyFileInput,
+  CompressionOption,
+  DownloadOptions,
   FolderDownloadLinkOptions,
-  MoveItemFileInput,
-  RenameItemFileInput,
-  UpdateItemFileInput,
-  UploadItemFileInput,
-} from "./item-file";
+  MoveFileInput,
+  NewVersionInput,
+  RemoveMetadataInput,
+  RenameFileInput,
+  TriageFilters,
+  UpdateFileInput,
+  UploadBulkInput,
+  UploadFileInput,
+} from "./file";
 export {
-  DownloadLinkOptionsSchema,
+  AddMetadataSchema,
+  ClassifyFileSchema,
+  CompressionOptionSchema,
+  DownloadOptionsSchema,
   FolderDownloadLinkOptionsSchema,
-  MoveItemFileSchema,
-  RenameItemFileSchema,
-  UpdateItemFileSchema,
-  UploadItemFileSchema,
-} from "./item-file";
+  MetadataSchema,
+  MoveFileSchema,
+  NewVersionSchema,
+  RemoveMetadataSchema,
+  RenameFileSchema,
+  TriageFiltersSchema,
+  UpdateFileSchema,
+  UploadBulkSchema,
+  UploadFileSchema,
+} from "./file";
+export type {
+  ApplyFileViewInput,
+  CreateFileViewInput,
+  FileViewCondition,
+  FileViewSort,
+  UpdateFileViewInput,
+} from "./file-view";
+export {
+  ApplyFileViewSchema,
+  CreateFileViewSchema,
+  FileViewConditionSchema,
+  FileViewSortSchema,
+  UpdateFileViewSchema,
+} from "./file-view";
 export type {
   CreateFolderInput,
   ListFolderOptions,
   MoveFolderInput,
   RenameFolderInput,
   UpdateFolderInput,
-} from "./item-folder";
+} from "./folder";
 export {
   CreateFolderSchema,
   ListFolderOptionsSchema,
   MoveFolderSchema,
   RenameFolderSchema,
   UpdateFolderSchema,
-} from "./item-folder";
+} from "./folder";
 export type {
   ApplyLabelInput,
   CreateLabelInput,
   ListByLabelOptions,
   ListLabelsOptions,
-} from "./item-label";
+  UpdateLabelInput,
+} from "./label";
 export {
   ApplyLabelSchema,
   CreateLabelSchema,
   ListByLabelOptionsSchema,
   ListLabelsOptionsSchema,
-} from "./item-label";
+  UpdateLabelSchema,
+} from "./label";
 export type {
   CreatePublicLinkInput,
   ResolvePublicLinkInput,
   UpdatePublicLinkInput,
-} from "./item-public-link";
+} from "./public-link";
 export {
   CreatePublicLinkSchema,
   ResolvePublicLinkSchema,
   UpdatePublicLinkSchema,
-} from "./item-public-link";
-export type { DriveSearchOptions } from "./item-search";
-export { DriveSearchOptionsSchema } from "./item-search";
-export type {
-  CreateItemShareInput,
-  ListSharedWithMeOptions,
-  UpdateItemShareInput,
-} from "./item-share";
+} from "./public-link";
 export {
-  CreateItemShareSchema,
-  ListSharedWithMeOptionsSchema,
-  UpdateItemShareSchema,
-} from "./item-share";
-export type { EmptyTrashOptions, ListTrashOptions } from "./item-trash";
-export { EmptyTrashOptionsSchema, ListTrashOptionsSchema } from "./item-trash";
-export { HexColorSchema, ItemNameSchema, LabelNameSchema } from "./item-utils";
+  DateRangeSchema,
+  SearchScopeSchema,
+  SearchSortOrderSchema,
+  SizeRangeSchema,
+} from "./search";
+export type { QuickSearchInput, SearchOptions } from "./search";
+export { QuickSearchSchema, SearchOptionsSchema } from "./search";
 export type {
   CreateShareInput,
-  RemoveShareInput,
+  ListSharedWithMeOptions,
   ResolveShareTokenInput,
   UpdateShareInput,
 } from "./share";
 export {
   CreateShareSchema,
-  RemoveShareSchema,
+  ListSharedWithMeOptionsSchema,
   ResolveShareTokenSchema,
   UpdateShareSchema,
 } from "./share";
-export { EmailSchema, FileNameSchema, IdSchema, NameSchema } from "./utils";
-export type {
-  ApplyViewInput,
-  CreateViewInput,
-  QuickSearchInput,
-  SearchOptions,
-  SetDefaultViewInput,
-  UpdateViewInput,
-  ViewCondition,
-  ViewSort,
-} from "./view";
+export type { EmptyTrashOptions, ListTrashOptions } from "./trash";
+export { EmptyTrashOptionsSchema, ListTrashOptionsSchema } from "./trash";
 export {
-  ApplyViewSchema,
-  CreateViewSchema,
-  DateRangeSchema,
-  PinViewSchema,
-  QuickSearchSchema,
-  SearchOptionsSchema,
-  SetDefaultViewSchema,
-  SizeRangeSchema,
-  UpdateViewSchema,
-  ViewConditionSchema,
-  ViewSortSchema,
-} from "./view";
+  EmailSchema,
+  FileIdSchema,
+  FileNameSchema,
+  HexColorSchema,
+  IdSchema,
+  LabelNameSchema,
+  NameSchema,
+  WithFileIdSchema,
+  WithIdSchema,
+} from "./utils";

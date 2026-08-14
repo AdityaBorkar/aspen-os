@@ -2,22 +2,22 @@ import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
 
-import { dmsDocumentClass } from "../db-schemas";
+import { dmsClass } from "../db-schemas";
 import { CLASS_EVENTS } from "../pubsub";
-import { IdSchema, UpdateDocumentClassSchema } from "../types";
+import { IdSchema, UpdateClassSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../utils/constants";
 import { stripUndefined } from "../utils/strip-undefined";
-import { fetchDocumentClassStep } from "../workflow-steps/fetch-document-class";
+import { fetchClassStep } from "../workflow-steps/fetch-class";
 
 const UpdateInputSchema = object({
   id: IdSchema,
-  patch: UpdateDocumentClassSchema,
+  patch: UpdateClassSchema,
 });
 
-export const updateDocumentClass = Workflow.name("dms.class.update")
+export const updateClass = Workflow.name("dms.class.update")
   .input(UpdateInputSchema)
   .handler(async ({ id, patch }, ctx) => {
-    const current = await ctx.step.run(fetchDocumentClassStep, { id });
+    const current = await ctx.step.run(fetchClassStep, { id });
 
     const updates = stripUndefined({
       color: patch.color,
@@ -29,13 +29,13 @@ export const updateDocumentClass = Workflow.name("dms.class.update")
     });
 
     const [updated] = await ctx.db
-      .update(dmsDocumentClass)
+      .update(dmsClass)
       .set({ ...updates, updatedAt: new Date() })
-      .where(eq(dmsDocumentClass.id, id))
+      .where(eq(dmsClass.id, id))
       .returning();
 
     if (!updated) {
-      throw new Error(`Document class "${id}" not found.`);
+      throw new Error(`Class "${id}" not found.`);
     }
 
     await ctx.step.run("audit-and-notify", async () => {

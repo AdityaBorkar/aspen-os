@@ -111,7 +111,7 @@ function formatDateToken(token: string, date: Date): string {
 
 /**
  * Renders a class file-naming schema from the class field values, the current
- * document name, class name, doc number, and date. Unresolved placeholders
+ * file name, class name, doc number, and date. Unresolved placeholders
  * resolve to a safe fallback (`_`) and the result strips path separators and
  * null bytes.
  *

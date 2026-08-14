@@ -31,7 +31,7 @@ export const updateShare = Workflow.name("dms.share.update")
     await ctx.audit.write({
       action: AUDIT_ACTION.SHARED,
       crudAction: "update",
-      entityId: updated.documentId,
+      entityId: updated.entityId,
       entityType: AUDIT_ENTITY_TYPE.SHARE,
       metadata: { permission: updated.permission, shareId: id },
     });
@@ -54,9 +54,10 @@ export const removeShare = Workflow.name("dms.share.remove")
       await ctx.audit.write({
         action: AUDIT_ACTION.SHARE_REVOKED,
         crudAction: "delete",
-        entityId: share.documentId,
+        entityId: share.entityId,
         entityType: AUDIT_ENTITY_TYPE.SHARE,
         metadata: {
+          entityType: share.entityType,
           granteeId: share.granteeId,
           granteeType: share.granteeType,
           shareId: id,
@@ -64,7 +65,8 @@ export const removeShare = Workflow.name("dms.share.remove")
       });
 
       await ctx.pubsub.publish(SHARE_EVENTS.REVOKED, {
-        documentId: share.documentId,
+        entityId: share.entityId,
+        entityType: share.entityType,
         granteeId: share.granteeId,
         granteeType: share.granteeType,
         shareId: id,

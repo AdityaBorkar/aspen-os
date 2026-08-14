@@ -3,7 +3,7 @@ import { object } from "valibot";
 
 import { getActiveFields, validateFieldValues } from "../services/classify-service";
 import { IdSchema } from "../types";
-import { fetchDocumentStep } from "../workflow-steps/fetch-document";
+import { fetchFileStep } from "../workflow-steps/fetch-file";
 import { listClasses } from "./class.list";
 
 const DetailInputSchema = object({ id: IdSchema });
@@ -11,7 +11,7 @@ const DetailInputSchema = object({ id: IdSchema });
 export const getTriageDetail = Workflow.name("dms.triage.detail")
   .input(DetailInputSchema)
   .handler(async ({ id }, ctx) => {
-    const doc = await ctx.step.run(fetchDocumentStep, { documentId: id });
+    const file = await ctx.step.run(fetchFileStep, { id });
 
     const classes = await listClasses.run(
       { filters: { activeOnly: true } },
@@ -24,12 +24,12 @@ export const getTriageDetail = Workflow.name("dms.triage.detail")
           const fields = await getActiveFields(ctx.db, cls.id);
           const { missing } = validateFieldValues(
             fields,
-            (doc.fieldValues as Record<string, unknown> | undefined) ?? {},
+            (file.fieldValues as Record<string, unknown> | undefined) ?? {},
           );
           return { classId: cls.id, className: cls.name, missing };
         }),
       ),
     );
 
-    return { document: doc, missingRequiredFields: candidateReport };
+    return { file, missingRequiredFields: candidateReport };
   });

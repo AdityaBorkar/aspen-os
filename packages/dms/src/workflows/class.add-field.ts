@@ -2,7 +2,7 @@ import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object, parse } from "valibot";
 
-import { dmsClassField, dmsDocumentClass } from "../db-schemas";
+import { dmsClass, dmsClassField } from "../db-schemas";
 import { CLASS_EVENTS } from "../pubsub";
 import { CreateClassFieldSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../utils/constants";
@@ -15,16 +15,16 @@ export const addClassField = Workflow.name("dms.class.add-field")
     const parsed = parse(CreateClassFieldSchema, input);
 
     const [cls] = await ctx.db
-      .select({ id: dmsDocumentClass.id, isActive: dmsDocumentClass.isActive })
-      .from(dmsDocumentClass)
-      .where(eq(dmsDocumentClass.id, parsed.classId))
+      .select({ id: dmsClass.id, isActive: dmsClass.isActive })
+      .from(dmsClass)
+      .where(eq(dmsClass.id, parsed.classId))
       .limit(1);
 
     if (!cls) {
-      throw new Error(`Document class "${parsed.classId}" not found.`);
+      throw new Error(`Class "${parsed.classId}" not found.`);
     }
     if (!cls.isActive) {
-      throw new Error(`Document class "${parsed.classId}" is archived.`);
+      throw new Error(`Class "${parsed.classId}" is archived.`);
     }
 
     const [field] = await ctx.db

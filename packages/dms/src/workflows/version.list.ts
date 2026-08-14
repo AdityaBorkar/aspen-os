@@ -2,37 +2,37 @@ import { Workflow } from "@aspen-os/platform/server";
 import { desc, eq } from "drizzle-orm";
 import { object } from "valibot";
 
-import { dmsDocumentVersion } from "../db-schemas";
+import { dmsFileVersion } from "../db-schemas";
 import { IdSchema } from "../types";
-import { fetchDocumentStep } from "../workflow-steps/fetch-document";
+import { fetchFileStep } from "../workflow-steps/fetch-file";
 
-const ListVersionsInputSchema = object({ documentId: IdSchema });
+const ListVersionsInputSchema = object({ fileId: IdSchema });
 
-export const listDocumentVersions = Workflow.name("dms.version.list")
+export const listFileVersions = Workflow.name("dms.version.list")
   .input(ListVersionsInputSchema)
-  .handler(async ({ documentId }, ctx) => {
-    const doc = await ctx.step.run(fetchDocumentStep, { documentId });
+  .handler(async ({ fileId }, ctx) => {
+    const file = await ctx.step.run(fetchFileStep, { id: fileId });
 
     const versions = await ctx.db
       .select()
-      .from(dmsDocumentVersion)
-      .where(eq(dmsDocumentVersion.documentId, documentId))
-      .orderBy(desc(dmsDocumentVersion.version));
+      .from(dmsFileVersion)
+      .where(eq(dmsFileVersion.fileId, fileId))
+      .orderBy(desc(dmsFileVersion.version));
 
     return {
       current: {
-        contentType: doc.contentType,
-        etag: doc.etag,
-        name: doc.name,
-        size: doc.size,
-        storageKey: doc.storageKey,
-        version: doc.version,
+        contentType: file.contentType,
+        etag: file.etag,
+        name: file.name,
+        size: file.size,
+        storageKey: file.storageKey,
+        version: file.version,
       },
-      currentVersion: doc.version,
+      currentVersion: file.version,
       history: versions,
     };
   });
 
 export const getCurrentVersion = Workflow.name("dms.version.current")
   .input(ListVersionsInputSchema)
-  .handler(async ({ documentId }, ctx) => ctx.step.run(fetchDocumentStep, { documentId }));
+  .handler(async ({ fileId }, ctx) => ctx.step.run(fetchFileStep, { id: fileId }));

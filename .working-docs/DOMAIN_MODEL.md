@@ -201,23 +201,27 @@
 ┌──────────────────────────────────────────────────────────────────────┐
 │                       DMS DOMAIN                                     │
 │                                                                      │
-│  Records system — Triage → Classify → active:                        │
+│  Single `file` entity — filesystem + records consolidated:           │
 │                                                                      │
 │  ┌─────────────────┐   1:N    ┌─────────────────────┐                │
-│  │    Document     │─────────→│   DocumentVersion   │                │
+│  │      File       │─────────→│    FileVersion      │                │
 │  │ id              │          │ id                  │                │
-│  │ status (enum)   │          │ documentId (FK)     │                │
-│  │ version         │          │ version             │                │
-│  │ classId (soft   │          │ storageKey          │                │
-│  │  FK → Class)    │          │ size / etag         │                │
-│  │ fieldValues     │          └─────────────────────┘                │
+│  │ status (enum:   │          │ fileId (FK)         │                │
+│  │  triaged/active/│          │ version             │                │
+│  │  expired/trashed)│         │ storageKey          │                │
+│  │ version         │          │ size / etag         │                │
+│  │ folderId / path │          └─────────────────────┘                │
+│  │ classId (soft   │                                                 │
+│  │  FK → Class)    │                                                 │
+│  │ fieldValues     │                                                 │
 │  │ expiryDate      │                                                 │
 │  │ storageKey      │                                                 │
+│  │ docNumber       │                                                 │
 │  └───────┬─────────┘                                                 │
 │          │ N:1                                                       │
 │          ▼                                                           │
 │  ┌─────────────────┐   1:N    ┌─────────────────────┐                │
-│  │  DocumentClass  │─────────→│    ClassField       │                │
+│  │      Class      │─────────→│    ClassField       │                │
 │  │ id              │          │ id                  │                │
 │  │ name            │          │ classId (FK)        │                │
 │  │ retentionDays   │          │ type (enum)         │                │
@@ -227,55 +231,51 @@
 │  └─────────────────┘                                                 │
 │                                                                      │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                │
-│  │     Tag      │  │   Contact    │  │  LegalHold   │                │
+│  │   Label      │  │   Contact    │  │  LegalHold   │                │
 │  │ id           │  │ id           │  │ id           │                │
-│  │ name         │  │ name / email │  │ documentId   │                │
-│  │ (dms_tag +   │  │ phone/design.│  │ reason       │                │
-│  │  document_tag)│  └──────────────┘  └──────────────┘               │
+│  │ name/color   │  │ name / email │  │ fileId       │                │
+│  │ isGlobal     │  │ phone/design.│  │ reason       │                │
+│  │ ownerId      │  └──────────────┘  └──────────────┘                │
 │  └──────────────┘                                                    │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                │
-│  │  DocumentView│  │   Pin        │  │   Setting    │                │
+│  │  FileView    │  │   Pin        │  │   Setting    │                │
 │  │ id           │  │ id           │  │ key / value  │                │
 │  │ name/filters │  │ itemType     │  └──────────────┘                │
-│  │ isShared     │  └──────────────┘                                  │
-│  └──────────────┘                                                    │
+│  │ isShared     │  │ (triage/     │                                  │
+│  │ isDefault    │  │  file_view/  │                                  │
+│  └──────────────┘  │  class)      │                                  │
+│                    └──────────────┘                                  │
 │                                                                      │
-│  Item filesystem — ported from the removed @aspen-os/drive:          │
+│  Folder tree — containers with materialized paths:                   │
 │                                                                      │
 │  ┌──────────────┐──self──┐                                           │
 │  │   Folder     │        │ parentId                                  │
 │  │ id           │        ▼                                           │
 │  │ name         │  (path materialized, depth ≤ 20)                   │
 │  │ path (uniq)  │──1:N──┌──────────────┐                             │
-│  │ ownerId      │       │   File       │──1:N──┌──────────────┐      │
-│  │ isTrashed    │       │ id           │       │ FileVersion  │      │
-│  └──────────────┘       │ name         │       │ fileId (FK)  │      │
-│  ┌──────────────┐       │ path (uniq)  │       │ version      │      │
-│  │   Label      │       │ storageKey   │       │ storageKey   │      │
-│  │ id           │       │ contentType  │       └──────────────┘      │
-│  │ name         │       │ size         │                             │
-│  │ color        │       │ version      │                             │
-│  │ isGlobal     │       │ etag         │                             │
-│  │ ownerId      │       │ folderId(FK) │                             │
-│  └──────────────┘       │ ownerId      │                             │
-│         │               │ isTrashed    │                             │
-│         │  ┌──────────────┐           │                              │
-│         └──│ ItemLabel    │──polymorphic (itemId, itemType)          │
-│            │ labelId (FK) │           │                              │
-│            └──────────────┘           │                              │
-│                                       │                              │
-│  ┌──────────────┐    ┌──────────────┐  │                             │
-│  │ ItemShare    │    │ PublicLink   │  │                             │
-│  │ itemId       │    │ itemId       │  │                             │
-│  │ itemType     │    │ itemType     │  │                             │
-│  │ granteeId    │    │ token (uniq)  │  │                            │
-│  │ permission   │    │ permission   │  │                             │
-│  │ sharedBy     │    │ password     │  │                             │
-│  │ expiresAt    │    │ maxViews     │  │                             │
-│  └──────────────┘    │ viewCount    │  │                             │
-│                      │              │  │                             │
-│  ┌──────────────┐    └──────────────┘  │                             │
-│  │ AccessLog    │──polymorphic (itemId, itemType)                    │
+│  │ ownerId      │       │    File      │                             │
+│  │ isTrashed    │       │ (folderId,   │                             │
+│  └──────────────┘       │  path, in a  │                             │
+│  ┌──────────────┐       │  folder ⇒    │                             │
+│  │ EntityLabel  │       │  active)     │                             │
+│  │ entityId     │       └──────────────┘                             │
+│  │ entityType   │       (labels apply to file or folder)             │
+│  │ labelId (FK) │                                                    │
+│  └──────────────┘                                                    │
+│  ┌──────────────┐    ┌──────────────┐                                │
+│  │    Share     │    │ PublicLink   │  (file or folder entity)       │
+│  │ entityId     │    │ entityId     │                                │
+│  │ entityType   │    │ entityType   │                                │
+│  │ granteeId    │    │ token (uniq)  │                               │
+│  │ granteeType  │    │ permission   │                                │
+│  │  (user/group/│    │ password     │                                │
+│  │   contact)   │    │ maxViews     │                                │
+│  │ permission   │    │ viewCount    │                                │
+│  │ sharedBy     │    └──────────────┘                                │
+│  │ expiresAt    │                                                    │
+│  └──────────────┘                                                    │
+│  ┌──────────────┐    (file or folder entity)                         │
+│  │ AccessLog    │──polymorphic (entityId, entityType)                │
 │  │ accessedBy   │                                                    │
 │  │ action       │                                                    │
 │  │ ip           │                                                    │

@@ -2,39 +2,37 @@ import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object } from "valibot";
 
-import { dmsDocument, dmsDocumentClass } from "../db-schemas";
+import { dmsClass, dmsFile } from "../db-schemas";
 import { CLASS_EVENTS } from "../pubsub";
 import { IdSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../utils/constants";
-import { fetchDocumentClassStep } from "../workflow-steps/fetch-document-class";
+import { fetchClassStep } from "../workflow-steps/fetch-class";
 
 const ArchiveInputSchema = object({ id: IdSchema });
 
-export const archiveDocumentClass = Workflow.name("dms.class.archive")
+export const archiveClass = Workflow.name("dms.class.archive")
   .input(ArchiveInputSchema)
   .handler(async ({ id }, ctx) => {
-    const cls = await ctx.step.run(fetchDocumentClassStep, { id });
+    const cls = await ctx.step.run(fetchClassStep, { id });
 
     if (!cls.isActive) {
-      throw new Error(`Document class "${id}" is already archived.`);
+      throw new Error(`Class "${id}" is already archived.`);
     }
 
     const [triaged] = await ctx.db
-      .select({ id: dmsDocument.id })
-      .from(dmsDocument)
-      .where(and(eq(dmsDocument.classId, id), eq(dmsDocument.status, "triaged")))
+      .select({ id: dmsFile.id })
+      .from(dmsFile)
+      .where(and(eq(dmsFile.classId, id), eq(dmsFile.status, "triaged")))
       .limit(1);
 
     if (triaged) {
-      throw new Error(
-        `Document class "${id}" cannot be archived while triaged documents reference it.`,
-      );
+      throw new Error(`Class "${id}" cannot be archived while triaged files reference it.`);
     }
 
     const [updated] = await ctx.db
-      .update(dmsDocumentClass)
+      .update(dmsClass)
       .set({ isActive: false, updatedAt: new Date() })
-      .where(eq(dmsDocumentClass.id, id))
+      .where(eq(dmsClass.id, id))
       .returning();
 
     await ctx.step.run("audit-and-notify", async () => {

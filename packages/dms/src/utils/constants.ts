@@ -1,11 +1,11 @@
-export const DOCUMENT_STATUS = {
+export const FILE_STATUS = {
   ACTIVE: "active",
-  DELETED: "deleted",
   EXPIRED: "expired",
+  TRASHED: "trashed",
   TRIAGED: "triaged",
 } as const;
 
-export type DocumentStatus = (typeof DOCUMENT_STATUS)[keyof typeof DOCUMENT_STATUS];
+export type FileStatus = (typeof FILE_STATUS)[keyof typeof FILE_STATUS];
 
 export const FIELD_TYPE = {
   BOOLEAN: "boolean",
@@ -23,8 +23,16 @@ export const FIELD_TYPE = {
 
 export type FieldType = (typeof FIELD_TYPE)[keyof typeof FIELD_TYPE];
 
+export const ENTITY_TYPE = {
+  FILE: "file",
+  FOLDER: "folder",
+} as const;
+
+export type EntityType = (typeof ENTITY_TYPE)[keyof typeof ENTITY_TYPE];
+
 export const GRANTEE_TYPE = {
   CONTACT: "contact",
+  GROUP: "group",
   USER: "user",
 } as const;
 
@@ -32,15 +40,24 @@ export type GranteeType = (typeof GRANTEE_TYPE)[keyof typeof GRANTEE_TYPE];
 
 export const SHARE_PERMISSION = {
   EDITOR: "editor",
+  OWNER: "owner",
   VIEWER: "viewer",
 } as const;
 
 export type SharePermission = (typeof SHARE_PERMISSION)[keyof typeof SHARE_PERMISSION];
 
+export const PUBLIC_LINK_PERMISSION = {
+  EDIT: "edit",
+  VIEW: "view",
+} as const;
+
+export type PublicLinkPermission =
+  (typeof PUBLIC_LINK_PERMISSION)[keyof typeof PUBLIC_LINK_PERMISSION];
+
 export const PIN_ITEM_TYPE = {
   CLASS: "class",
+  FILE_VIEW: "file_view",
   TRIAGE: "triage",
-  VIEW: "view",
 } as const;
 
 export type PinItemType = (typeof PIN_ITEM_TYPE)[keyof typeof PIN_ITEM_TYPE];
@@ -68,10 +85,13 @@ export type SettingKey = (typeof SETTING_KEYS)[keyof typeof SETTING_KEYS];
 export const AUDIT_ENTITY_TYPE = {
   CLASS: "dms:class",
   CONTACT: "dms:contact",
-  DOCUMENT: "dms:document",
+  FILE: "dms:file",
+  FILE_VIEW: "dms:file_view",
+  FOLDER: "dms:folder",
+  LABEL: "dms:label",
+  PUBLIC_LINK: "dms:public_link",
   SETTING: "dms:setting",
   SHARE: "dms:share",
-  VIEW: "dms:view",
 } as const;
 
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPE)[keyof typeof AUDIT_ENTITY_TYPE];
@@ -96,40 +116,9 @@ export const AUDIT_ACTION = {
 
 export type AuditAction = (typeof AUDIT_ACTION)[keyof typeof AUDIT_ACTION];
 
-export const ITEM_TYPE = {
-  FILE: "file",
-  FOLDER: "folder",
-} as const;
-
-export type ItemType = (typeof ITEM_TYPE)[keyof typeof ITEM_TYPE];
-
-export const ITEM_GRANTEE_TYPE = {
-  GROUP: "group",
-  USER: "user",
-} as const;
-
-export type ItemGranteeType = (typeof ITEM_GRANTEE_TYPE)[keyof typeof ITEM_GRANTEE_TYPE];
-
-export const ITEM_PERMISSION = {
-  EDITOR: "editor",
-  OWNER: "owner",
-  VIEWER: "viewer",
-} as const;
-
-export type ItemPermission = (typeof ITEM_PERMISSION)[keyof typeof ITEM_PERMISSION];
-
-export const PUBLIC_LINK_PERMISSION = {
-  EDIT: "edit",
-  VIEW: "view",
-} as const;
-
-export type PublicLinkPermission =
-  (typeof PUBLIC_LINK_PERMISSION)[keyof typeof PUBLIC_LINK_PERMISSION];
-
 export const SCHEDULED_JOBS = {
   AUTO_PURGE: "dms:auto-purge",
   EXPIRY_SCAN: "dms:expiry-scan",
-  ITEM_AUTO_PURGE: "dms:item-auto-purge",
 } as const;
 
 export type ScheduledJob = (typeof SCHEDULED_JOBS)[keyof typeof SCHEDULED_JOBS];

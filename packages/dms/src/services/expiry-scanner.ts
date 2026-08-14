@@ -2,8 +2,8 @@ import type { AuditUnit, PubSubUnit } from "@aspen-os/platform/server";
 import { and, eq, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-import { dmsDocument } from "../db-schemas";
-import { DOCUMENT_EVENTS } from "../pubsub";
+import { dmsFile } from "../db-schemas";
+import { FILE_EVENTS } from "../pubsub";
 import { SCHEDULED_JOBS } from "../utils/constants";
 
 export interface ExpiryScannerDeps {
@@ -44,30 +44,30 @@ export async function registerExpiryScanHandler(
   deps: ExpiryScannerDeps,
 ): Promise<void> {
   await deps.pubsub.subscribe(topic, async () => {
-    await scanExpiredDocuments(deps);
+    await scanExpiredFiles(deps);
   });
 }
 
-export async function scanExpiredDocuments(deps: ExpiryScannerDeps): Promise<number> {
+export async function scanExpiredFiles(deps: ExpiryScannerDeps): Promise<number> {
   const now = new Date();
   const [today] = now.toISOString().split("T");
 
   const rows = await deps.db
-    .select({ expiryDate: dmsDocument.expiryDate, id: dmsDocument.id })
-    .from(dmsDocument)
+    .select({ expiryDate: dmsFile.expiryDate, id: dmsFile.id })
+    .from(dmsFile)
     .where(
       and(
-        eq(dmsDocument.status, "active"),
-        sql`${dmsDocument.expiryDate} IS NOT NULL AND ${dmsDocument.expiryDate} <= ${today}`,
+        eq(dmsFile.status, "active"),
+        sql`${dmsFile.expiryDate} IS NOT NULL AND ${dmsFile.expiryDate} <= ${today}`,
       ),
     );
 
   const results = await Promise.all(
     rows.map(async (row) => {
       const updated = await deps.db
-        .update(dmsDocument)
+        .update(dmsFile)
         .set({ expiredAt: now, status: "expired", updatedAt: now })
-        .where(and(eq(dmsDocument.id, row.id), eq(dmsDocument.status, "active")))
+        .where(and(eq(dmsFile.id, row.id), eq(dmsFile.status, "active")))
         .returning();
 
       if (updated.length === 0) {
@@ -77,13 +77,13 @@ export async function scanExpiredDocuments(deps: ExpiryScannerDeps): Promise<num
       await deps.audit.write({
         action: "expired",
         entityId: row.id,
-        entityType: "dms:document",
+        entityType: "dms:file",
         metadata: { expiryDate: row.expiryDate },
       });
 
-      await deps.pubsub.publish(DOCUMENT_EVENTS.EXPIRED, {
-        documentId: row.id,
+      await deps.pubsub.publish(FILE_EVENTS.EXPIRED, {
         expiryDate: row.expiryDate,
+        fileId: row.id,
       });
 
       return true;

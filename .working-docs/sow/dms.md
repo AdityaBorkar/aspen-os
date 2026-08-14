@@ -4,9 +4,9 @@
 
 ## Overview
 
-The DMS module provides records-oriented document management for organizations that must index every document before it becomes usable. DMS is **class-first**: every upload lands in a **Triage** stage and becomes an active **Document** only after it is assigned to a **Document Class** whose mandatory fields have been filled. All binary storage is delegated to the platform's StorageUnit; DMS owns the indexing semantics — classes, fields, tags, metadata, versions, custom views, contacts, sharing, search, retention, and the recycle bin. (DMS also carries the free-form item filesystem — folders, files, labels, public links, shares, trash — ported from the removed `@aspen-os/drive` module; see §13.)
+The DMS module provides unified document/files management built on a **single `file` entity** (per `sow/dms-consolidation.md`): the class-first records system (Triage → Classify → active; classes, fields, versions, contacts, holds, retention, trash, file views, activity) and the free-form filesystem (folders, paths, labels, public links, shares) are consolidated onto one `dms_file` table. Every upload into a folder is **active** immediately; uploads staged for classification land in **Triage** and become active only after they are assigned to a **Class** whose mandatory fields have been filled. All binary storage is delegated to the platform's StorageUnit; DMS owns the indexing semantics — classes, fields, labels, metadata, versions, file views, contacts, sharing, search, retention, and the trash.
 
-The module is the sole document-management module in the repository. It shares the StorageUnit and AuthUnit with the platform but owns its own tables, lifecycle, and semantics (see §13 — the former `@aspen-os/drive` module has been removed; its filesystem surface now lives inside DMS as the item groups).
+The module is the sole document-management module in the repository. It shares the StorageUnit and AuthUnit with the platform but owns its own tables, lifecycle, and semantics — the former `@aspen-os/drive` filesystem was consolidated into the single `file` entity per `sow/dms-consolidation.md` (§13).
 
 ### Key Architectural Decisions
 
@@ -507,11 +507,11 @@ Audited action trail, per document (and, optionally, per contact/class).
 
 ## 13. Relationship to the Drive Module
 
-> **Drive no longer exists.** `@aspen-os/drive` was **removed from the repository** in Aug 2026 (Phase 1 of `sow/dms-consolidation.md`). This section is retained as a historical record.
+> **Drive no longer exists.** `@aspen-os/drive` was **removed from the repository** in Aug 2026 (Phase 1 of `sow/dms-consolidation.md`); Phases 2–7 then consolidated the filesystem and records system onto a single `file` entity. This section is retained as a historical record.
 
-- **The Drive feature surface now lives inside DMS.** Drive's free-form filesystem (folders, files, labels, public links, item shares, trash, path/access/archive/search/storage services) was ported into DMS as the **item groups** — `p.dms.files`, `p.dms.folders`, `p.dms.labels`, `p.dms.publicLinks`, `p.dms.shares`, `p.dms.trash`, `p.dms.driveSearch`, plus `p.dms.access`/`archive`/`paths`/`storage` — backed by the `dms_folder`, `dms_file`, `dms_file_version`, `dms_label`, `dms_item_label`, `dms_item_share`, `dms_public_link`, and `dms_access_log` tables.
-- **DMS is the single document-management module.** The class-first records system (Triage → Classify → active; classes, versions, contacts, holds, retention, bin, views, activity) and the ported filesystem coexist under `@aspen-os/dms`. The redundancy this creates (`document` vs `item-file`, three sharing surfaces, two trash surfaces, tags vs labels) is the subject of `sow/dms-consolidation.md` (Phases 2–7, still open).
-- **Shared platform, distinct tables.** Both surfaces use StorageUnit (distinct key prefixes — `dms/...` for records, `dms/...` item keys), AuthUnit, PubSub, DB, and Audit units.
+- **The Drive feature surface now lives inside DMS.** Drive's free-form filesystem (folders, files, labels, public links, shares, trash, path/access/archive/search/storage services) was ported into DMS and consolidated with the records system (per `sow/dms-consolidation.md`): one `dms_file` entity, one label mechanism (`dms_label` + `dms_entity_label`), one sharing group (`p.dms.shares` — grants + public links over `dms_share`/`dms_public_link`), one trash module (`p.dms.trash` over `status`), `fileViews` terminology, and single `pubsub.ts`/`enums.ts` surfaces.
+- **DMS is the single document-management module.** There is no `document` entity, no `item-` prefix, no tags, no `view` term, and no `dms:item_*`/`dms:view_*` events — the consolidation is complete.
+- **Shared platform, distinct tables.** Both surfaces use StorageUnit (unified `dms/{tenant}/{fileId}/v{n}/{name}` keys), AuthUnit, PubSub, DB, and Audit units.
 
 ---
 

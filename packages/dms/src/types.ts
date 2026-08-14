@@ -2,41 +2,20 @@ import type { DmsAccessLog, NewDmsAccessLog } from "./db-schemas/access-log";
 import type { DmsFile, NewDmsFile } from "./db-schemas/file";
 import type { DmsFileVersion, NewDmsFileVersion } from "./db-schemas/file-version";
 import type { DmsFolder, NewDmsFolder } from "./db-schemas/folder";
-import type { DmsItemShare, NewDmsItemShare } from "./db-schemas/item-share";
 import type { DmsLabel, NewDmsLabel } from "./db-schemas/label";
 import type { DmsPublicLink, NewDmsPublicLink } from "./db-schemas/public-link";
 import type { CompressionOption } from "./schemas";
-import type { ItemType } from "./utils/constants";
+import type { EntityType } from "./utils/constants";
 
+export type { DmsClass, NewDmsClass } from "./db-schemas/class";
 export type { DmsClassField, NewDmsClassField } from "./db-schemas/class-field";
 export type { DmsContact, NewDmsContact } from "./db-schemas/contact";
-export type { DmsDocument, NewDmsDocument } from "./db-schemas/document";
-export type { DmsDocumentClass } from "./db-schemas/document-class";
-export type { DmsDocumentTag, NewDmsDocumentTag } from "./db-schemas/document-tag";
-export type { DmsDocumentVersion, NewDmsDocumentVersion } from "./db-schemas/document-version";
-export type { DmsItemLabel, NewDmsItemLabel } from "./db-schemas/item-label";
+export type { DmsEntityLabel, NewDmsEntityLabel } from "./db-schemas/entity-label";
+export type { DmsFileView, NewDmsFileView } from "./db-schemas/file-view";
 export type { DmsLegalHold, NewDmsLegalHold } from "./db-schemas/legal-hold";
 export type { DmsPin, NewDmsPin } from "./db-schemas/pin";
 export type { DmsSetting, NewDmsSetting } from "./db-schemas/setting";
 export type { DmsShare, NewDmsShare } from "./db-schemas/share";
-export type { DmsTag, NewDmsTag } from "./db-schemas/tag";
-export type { DmsView, NewDmsView } from "./db-schemas/view";
-export type {
-  ItemFileDownloadedEvent,
-  ItemFileUpdatedEvent,
-  ItemFileUploadedEvent,
-  ItemFolderCreatedEvent,
-  ItemFolderRenamedEvent,
-  ItemMovedEvent,
-  ItemPublicLinkAccessedEvent,
-  ItemPublicLinkCreatedEvent,
-  ItemPublicLinkRevokedEvent,
-  ItemPurgedEvent,
-  ItemRestoredEvent,
-  ItemSharedEvent,
-  ItemTrashedEvent,
-  ItemUnsharedEvent,
-} from "./item-pubsub";
 export type {
   ClassArchivedEvent,
   ClassCreatedEvent,
@@ -45,180 +24,176 @@ export type {
   ContactRemovedEvent,
   ContactUpdatedEvent,
   DmsEventMap,
-  DocumentClassifiedEvent,
-  DocumentDeletedEvent,
-  DocumentExpiredEvent,
-  DocumentHoldPlacedEvent,
-  DocumentHoldReleasedEvent,
-  DocumentPurgedEvent,
-  DocumentRestoredEvent,
-  DocumentTaggedEvent,
-  DocumentUntaggedEvent,
-  DocumentUpdatedEvent,
-  DocumentUploadedEvent,
-  DocumentVersionAddedEvent,
-  DocumentVersionRevertedEvent,
+  FileClassifiedEvent,
+  FileDownloadedEvent,
+  FileExpiredEvent,
+  FileHoldPlacedEvent,
+  FileHoldReleasedEvent,
+  FileMovedEvent,
+  FilePurgedEvent,
+  FileRestoredEvent,
+  FileTrashedEvent,
+  FileUpdatedEvent,
+  FileUploadedEvent,
+  FileVersionAddedEvent,
+  FileVersionRevertedEvent,
+  FileViewCreatedEvent,
+  FileViewDeletedEvent,
+  FileViewUpdatedEvent,
+  FolderCreatedEvent,
+  FolderMovedEvent,
+  FolderPurgedEvent,
+  FolderRenamedEvent,
+  FolderRestoredEvent,
+  FolderTrashedEvent,
+  PublicLinkAccessedEvent,
+  PublicLinkCreatedEvent,
+  PublicLinkRevokedEvent,
   ShareCreatedEvent,
   ShareRevokedEvent,
-  ViewCreatedEvent,
-  ViewDeletedEvent,
-  ViewPinnedEvent,
-  ViewUnpinnedEvent,
-  ViewUpdatedEvent,
 } from "./pubsub";
 export {
   CLASS_EVENTS,
   CONTACT_EVENTS,
-  DOCUMENT_EVENTS,
   events,
-  ITEM_EVENTS,
+  FILE_EVENTS,
+  FILE_VIEW_EVENTS,
+  FOLDER_EVENTS,
+  PUBLIC_LINK_EVENTS,
   SHARE_EVENTS,
-  VIEW_EVENTS,
 } from "./pubsub";
 export type {
+  AddMetadataInput,
+  ApplyFileViewInput,
   ApplyLabelInput,
-  ApplyViewInput,
-  ClassifyDocumentInput,
+  ClassifyFileInput,
+  CompressionOption,
   ContactFilters,
   CreateClassFieldInput,
   CreateContactInput,
-  CreateDocumentClassInput,
+  CreateFileViewInput,
   CreateFolderInput,
-  CreateItemShareInput,
   CreateLabelInput,
   CreatePublicLinkInput,
   CreateShareInput,
-  CreateViewInput,
-  DownloadLinkOptions,
-  DriveSearchOptions,
+  DownloadOptions,
   EmptyTrashOptions,
+  FileViewCondition,
+  FileViewSort,
   FolderDownloadLinkOptions,
   ListByLabelOptions,
   ListFolderOptions,
   ListLabelsOptions,
   ListSharedWithMeOptions,
   ListTrashOptions,
+  MoveFileInput,
   MoveFolderInput,
-  MoveItemFileInput,
+  NewVersionInput,
   QuickSearchInput,
   RemoveContactInput,
-  RemoveShareInput,
+  RemoveMetadataInput,
+  RenameFileInput,
   RenameFolderInput,
-  RenameItemFileInput,
   ResolvePublicLinkInput,
   ResolveShareTokenInput,
   SearchOptions,
-  SetDefaultViewInput,
   TriageFilters,
   UpdateClassFieldInput,
   UpdateContactInput,
-  UpdateDocumentClassInput,
-  UpdateDocumentInput,
+  UpdateFileInput,
+  UpdateFileViewInput,
   UpdateFolderInput,
-  UpdateItemFileInput,
-  UpdateItemShareInput,
+  UpdateLabelInput,
   UpdatePublicLinkInput,
   UpdateShareInput,
-  UpdateViewInput,
-  UploadItemFileInput,
-  ViewCondition,
-  ViewSort,
+  UploadBulkInput,
+  UploadFileInput,
 } from "./schemas";
 export {
   AddMetadataSchema,
+  ApplyFileViewSchema,
   ApplyLabelSchema,
-  ApplyViewSchema,
   ArchiveClassSchema,
   ClassFiltersSchema,
-  ClassifyDocumentSchema,
+  ClassifyFileSchema,
   CompressionModeSchema,
   CompressionOptionSchema,
   ContactFiltersSchema,
   CreateClassFieldSchema,
+  CreateClassSchema,
   CreateContactSchema,
-  CreateDocumentClassSchema,
+  CreateFileViewSchema,
   CreateFolderSchema,
-  CreateItemShareSchema,
   CreateLabelSchema,
   CreatePublicLinkSchema,
   CreateShareSchema,
-  CreateViewSchema,
   DateRangeSchema,
-  DocumentStatusSchema,
-  DownloadLinkOptionsSchema,
   DownloadOptionsSchema,
-  DriveSearchOptionsSchema,
-  DriveSearchScopeSchema,
-  DriveSortOrderSchema,
   EmailSchema,
   EmptyTrashOptionsSchema,
-  FieldTypeSchema,
+  EntityTypeSchema,
+  FieldKeySchema,
+  FileIdSchema,
   FileNameSchema,
   FileNamingSchema,
+  FileStatusSchema,
+  FileViewConditionSchema,
+  FileViewSortSchema,
   FolderDownloadLinkOptionsSchema,
   GranteeTypeSchema,
   HexColorSchema,
   IdSchema,
-  ItemGranteeTypeSchema,
-  ItemNameSchema,
-  ItemPermissionSchema,
-  ItemTypeSchema,
   LabelNameSchema,
+  LabelSchema,
   ListByLabelOptionsSchema,
   ListFolderOptionsSchema,
   ListLabelsOptionsSchema,
   ListSharedWithMeOptionsSchema,
   ListTrashOptionsSchema,
   MetadataSchema,
+  MoveFileSchema,
   MoveFolderSchema,
-  MoveItemFileSchema,
   NameSchema,
   NewVersionSchema,
   PinItemTypeSchema,
-  PinViewSchema,
   PublicLinkPermissionSchema,
   QuickSearchSchema,
   RemoveContactSchema,
   RemoveMetadataSchema,
-  RemoveShareSchema,
+  RenameFileSchema,
   RenameFolderSchema,
-  RenameItemFileSchema,
   ResolvePublicLinkSchema,
   ResolveShareTokenSchema,
+  SearchScopeSchema,
+  SearchSortOrderSchema,
   SearchOptionsSchema,
-  SetDefaultViewSchema,
   SharePermissionSchema,
   SizeRangeSchema,
-  TagDocumentSchema,
-  TagInputSchema,
   TriageFiltersSchema,
   UpdateClassFieldSchema,
+  UpdateClassSchema,
   UpdateContactSchema,
-  UpdateDocumentClassSchema,
-  UpdateDocumentSchema,
+  UpdateFileSchema,
+  UpdateFileViewSchema,
   UpdateFolderSchema,
-  UpdateItemFileSchema,
-  UpdateItemShareSchema,
+  UpdateLabelSchema,
   UpdatePublicLinkSchema,
   UpdateShareSchema,
-  UpdateViewSchema,
   UploadBulkSchema,
-  UploadDocumentSchema,
-  UploadItemFileSchema,
-  ViewConditionSchema,
-  ViewSortSchema,
+  UploadFileSchema,
+  WithFileIdSchema,
+  WithIdSchema,
 } from "./schemas";
-export type { ArchiveJobData, ArchiveResult } from "./services/item-archive-service";
-export { ArchiveTooLargeError } from "./services/item-archive-service";
+export type { ArchiveJobData, ArchiveResult } from "./services/archive-service";
+export { ArchiveTooLargeError } from "./services/archive-service";
 export type {
   AuditAction,
   AuditEntityType,
   CompressionMode,
-  DocumentStatus,
+  EntityType,
   FieldType,
+  FileStatus,
   GranteeType,
-  ItemGranteeType,
-  ItemPermission,
   PinItemType,
   PublicLinkPermission,
   ScheduledJob,
@@ -229,33 +204,28 @@ export {
   AUDIT_ACTION,
   AUDIT_ENTITY_TYPE,
   COMPRESSION_MODE,
-  DOCUMENT_STATUS,
+  ENTITY_TYPE,
+  FILE_STATUS,
   FIELD_TYPE,
   GRANTEE_TYPE,
-  ITEM_GRANTEE_TYPE,
-  ITEM_PERMISSION,
-  ITEM_TYPE,
   PIN_ITEM_TYPE,
   PUBLIC_LINK_PERMISSION,
   SCHEDULED_JOBS,
   SETTING_KEYS,
   SHARE_PERMISSION,
 } from "./utils/constants";
-export type { ResolvedPublicLink } from "./workflows/item-public-link.resolve";
+export type { ResolvedPublicLink } from "./workflows/public-link.resolve";
 export type {
   DmsAccessLog,
   DmsFile,
   DmsFileVersion,
   DmsFolder,
-  DmsItemShare,
   DmsLabel,
   DmsPublicLink,
-  ItemType,
   NewDmsAccessLog,
   NewDmsFile,
   NewDmsFileVersion,
   NewDmsFolder,
-  NewDmsItemShare,
   NewDmsLabel,
   NewDmsPublicLink,
 };
@@ -264,7 +234,6 @@ export type DmsFileRow = DmsFile;
 export type DmsFolderRow = DmsFolder;
 export type DmsFileVersionRow = DmsFileVersion;
 export type DmsLabelRow = DmsLabel;
-export type DmsItemShareRow = DmsItemShare;
 export type DmsPublicLinkRow = DmsPublicLink;
 export type DmsAccessLogRow = DmsAccessLog;
 
@@ -277,8 +246,8 @@ export interface BreadcrumbItem {
 export interface PathResolution {
   id: string;
   name: string;
-  path: string;
-  type: ItemType;
+  path: string | null;
+  type: EntityType;
 }
 
 export interface FolderWithMetadata {
@@ -302,7 +271,7 @@ export interface SearchResult {
   folders: DmsFolderRow[];
 }
 
-export type DriveSearchScope = "all" | "my_files" | "shared_with_me";
+export type SearchScope = "all" | "my_files" | "shared_with_me";
 
 export type DmsModuleConfig = {
   allowedContentTypes?: string[];

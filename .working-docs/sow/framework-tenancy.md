@@ -478,9 +478,9 @@ that logic to `$prepareTenant()`:
 - **Compliance**: `ReminderEngine.registerSchedules()`, `ReminderEngine.registerHandlers()`,
   `ObligationGenerator.registerHandler()`, `EventBridge.registerSubscriptions()` — all move to
   `$prepareTenant()`.
-- **DMS**: The expiry-scan, auto-purge, and item-auto-purge cron subscriptions move to
-  `$prepareTenant()` (DMS replaced the removed `@aspen-os/drive` module; its trash-purge cron
-  is now `dms:item-auto-purge`).
+- **DMS**: The expiry-scan and auto-purge cron subscriptions move to
+  `$prepareTenant()` (the module consolidated the former Drive trash-purge into the single
+  auto-purge job `dms:auto-purge`).
 - **Other modules**: If they have no `$prepare()` cron/subscriptions, they don't need
   `$prepareTenant()`.
 

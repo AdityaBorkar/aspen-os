@@ -2,8 +2,8 @@ import { WorkflowStep } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
 
-import { taskType } from "../../db-schemas/task-type";
-import { IdSchema } from "../../types";
+import { taskType } from "../db-schemas/task-type";
+import { IdSchema } from "../types";
 
 export const fetchTaskTypeStep = WorkflowStep.name("fetch-task-type")
   .input(object({ id: IdSchema }))

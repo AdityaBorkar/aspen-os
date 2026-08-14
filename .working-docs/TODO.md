@@ -1,7 +1,8 @@
 # TODO
 
-Refactor all workflows to use a REST like naming convention and use folders as well for the modules.
-Example: class.add-field.ts => class/field/add.ts
+RESTART ZED
+
+.list() workflows must contain a standardized list of filters and view statements for fetching the list.
 
 ---
 
@@ -19,9 +20,31 @@ comms-*
 
 - Link custom emails, whatsapp, etc to the application
 
-Create a scope of work for the "chat" module to add the following features:
+---
 
-chat
+Create a scope of work for the "discussions" module to add the following features:
+
+- Creating rooms for discussions between certain user groups
+- Creating a forum where anyone can post a question/topic and a thread opens up for discussion
+- Support replies and reactions for all messages
+- Every message recieves a unique link that can be shared with others
+- Support different types of attachments (images, videos, etc.)
+- Support for polls (like discord)
+- Support for search functionality within the room/forum
+- Support to show indicator for unread messages (do not show count)
+
+All content and messages are stored in MDX.
+
+---
+
+Create a scope of work for the "org_chat" module to add the following features:
+
+- Messenging between users of the application within the same organization
+- WhatsApp like functionality for internal chatting
+
+---
+
+org_chat
 discussions
 
 inventory

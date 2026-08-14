@@ -1,7 +1,7 @@
 import {
   and,
-  desc,
   between as drizzleBetween,
+  desc,
   eq,
   gt,
   gte,
@@ -17,8 +17,8 @@ import {
   sql,
 } from "drizzle-orm";
 
-import { dmsDocument } from "../db-schemas";
-import type { ViewCondition, ViewSort } from "../types";
+import { dmsFile } from "../db-schemas";
+import type { FileViewCondition, FileViewSort } from "../types";
 
 export interface ConditionContext {
   classId?: string | null;
@@ -29,28 +29,28 @@ function columnSql(field: string): SQL | null {
   switch (field) {
     case "class":
     case "classId":
-      return dmsDocument.classId as unknown as SQL;
+      return dmsFile.classId as unknown as SQL;
     case "contentType":
-      return dmsDocument.contentType as unknown as SQL;
+      return dmsFile.contentType as unknown as SQL;
     case "createdAt":
-      return dmsDocument.createdAt as unknown as SQL;
+      return dmsFile.createdAt as unknown as SQL;
     case "expiryDate":
-      return dmsDocument.expiryDate as unknown as SQL;
+      return dmsFile.expiryDate as unknown as SQL;
     case "id":
-      return dmsDocument.id as unknown as SQL;
+      return dmsFile.id as unknown as SQL;
     case "name":
-      return dmsDocument.name as unknown as SQL;
+      return dmsFile.name as unknown as SQL;
     case "owner":
     case "ownerId":
-      return dmsDocument.ownerId as unknown as SQL;
+      return dmsFile.ownerId as unknown as SQL;
     case "size":
-      return dmsDocument.size as unknown as SQL;
+      return dmsFile.size as unknown as SQL;
     case "status":
-      return dmsDocument.status as unknown as SQL;
+      return dmsFile.status as unknown as SQL;
     case "updatedAt":
-      return dmsDocument.updatedAt as unknown as SQL;
+      return dmsFile.updatedAt as unknown as SQL;
     case "uploadedBy":
-      return dmsDocument.uploadedBy as unknown as SQL;
+      return dmsFile.uploadedBy as unknown as SQL;
     default:
       return null;
   }
@@ -79,25 +79,46 @@ function parseDate(value: unknown): string | null {
 }
 
 /**
- * Builds a drizzle SQL condition for a single view condition over document
- * columns, metadata keys, and tag conditions.
+ * Builds a drizzle SQL condition for a single view condition over file
+ * columns, metadata keys, and label conditions.
  */
-export function buildCondition(cond: ViewCondition, _ctx?: ConditionContext): SQL | null {
+export function buildCondition(cond: FileViewCondition, _ctx?: ConditionContext): SQL | null {
   const { field, operator, value } = cond;
 
-  if (field === "tag" || field === "tags") {
-    const tag = typeof value === "string" ? value : "";
-    if ((operator === "eq" || operator === "contains") && tag) {
-      return sql`(${dmsDocument.tags} ? ${tag})`;
+  if (field === "label" || field === "labels") {
+    const label = typeof value === "string" ? value : "";
+    if (!label) {
+      return null;
+    }
+    if (operator === "eq" || operator === "contains") {
+      return sql`EXISTS (
+        SELECT 1 FROM dms_entity_label el
+        JOIN dms_label lbl ON lbl.id = el.label_id
+        WHERE el.entity_id = ${dmsFile.id}
+          AND el.entity_type = 'file'
+          AND lbl.name = ${label}
+      )`;
     }
     if (operator === "notContains") {
-      return sql`NOT (${dmsDocument.tags} ? ${tag})`;
+      return sql`NOT EXISTS (
+        SELECT 1 FROM dms_entity_label el
+        JOIN dms_label lbl ON lbl.id = el.label_id
+        WHERE el.entity_id = ${dmsFile.id}
+          AND el.entity_type = 'file'
+          AND lbl.name = ${label}
+      )`;
     }
     if (operator === "isEmpty") {
-      return sql`${dmsDocument.tags} = '[]'::jsonb`;
+      return sql`NOT EXISTS (
+        SELECT 1 FROM dms_entity_label el
+        WHERE el.entity_id = ${dmsFile.id} AND el.entity_type = 'file'
+      )`;
     }
     if (operator === "isNotEmpty") {
-      return sql`${dmsDocument.tags} <> '[]'::jsonb`;
+      return sql`EXISTS (
+        SELECT 1 FROM dms_entity_label el
+        WHERE el.entity_id = ${dmsFile.id} AND el.entity_type = 'file'
+      )`;
     }
     return null;
   }
@@ -107,7 +128,7 @@ export function buildCondition(cond: ViewCondition, _ctx?: ConditionContext): SQ
     if (!key) {
       return null;
     }
-    const path = sql`${dmsDocument.metadata}->>${key}`;
+    const path = sql`${dmsFile.metadata}->>${key}`;
     return buildGenericCondition({ col: path, operator, type: "string", value });
   }
 
@@ -235,7 +256,7 @@ function buildGenericCondition(input: {
  * Unsupported conditions are silently skipped.
  */
 export function buildConditionsWhere(
-  conditions: ViewCondition[] | undefined,
+  conditions: FileViewCondition[] | undefined,
   ctx?: ConditionContext,
 ): SQL | undefined {
   if ((!conditions || conditions.length === 0) && !ctx?.classId && !ctx?.ownerId) {
@@ -251,10 +272,10 @@ export function buildConditionsWhere(
   }
 
   if (ctx?.classId) {
-    parts.push(eq(dmsDocument.classId, ctx.classId) as unknown as SQL);
+    parts.push(eq(dmsFile.classId, ctx.classId) as unknown as SQL);
   }
   if (ctx?.ownerId) {
-    parts.push(eq(dmsDocument.ownerId, ctx.ownerId) as unknown as SQL);
+    parts.push(eq(dmsFile.ownerId, ctx.ownerId) as unknown as SQL);
   }
 
   return parts.length > 0 ? and(...parts) : undefined;
@@ -265,7 +286,7 @@ export function buildConditionsWhere(
  * are skipped; `resolve` maps a field name to a column.
  */
 export function buildSortOrder<TSQL extends SQL>(
-  sort: ViewSort[] | undefined,
+  sort: FileViewSort[] | undefined,
   resolve: (field: string) => TSQL | null,
 ): TSQL[] {
   const clauses: TSQL[] = [];

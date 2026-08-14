@@ -1,8 +1,8 @@
 import { Workflow } from "@aspen-os/platform/server";
-import { and, desc, eq, ilike, or, type SQL, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, or, type SQL } from "drizzle-orm";
 import { object } from "valibot";
 
-import { dmsDocument } from "../db-schemas";
+import { dmsFile } from "../db-schemas";
 import { TriageFiltersSchema } from "../types";
 
 const TriageListInputSchema = object({
@@ -13,25 +13,20 @@ export const listTriage = Workflow.name("dms.triage.list")
   .input(TriageListInputSchema)
   .handler(async ({ filters }, ctx) =>
     ctx.step.run("query", async () => {
-      const conditions: SQL[] = [eq(dmsDocument.status, "triaged")];
+      const conditions: SQL[] = [eq(dmsFile.status, "triaged")];
 
       if (filters.ownerId) {
-        conditions.push(eq(dmsDocument.ownerId, filters.ownerId));
+        conditions.push(eq(dmsFile.ownerId, filters.ownerId));
       }
       if (filters.batchId) {
-        conditions.push(eq(dmsDocument.batchId, filters.batchId));
+        conditions.push(eq(dmsFile.batchId, filters.batchId));
       }
       if (filters.classId) {
-        conditions.push(eq(dmsDocument.classId, filters.classId));
-      }
-      if (filters.tag) {
-        conditions.push(sql`${dmsDocument.tags} ? ${filters.tag}`);
+        conditions.push(eq(dmsFile.classId, filters.classId));
       }
       if (filters.search) {
         const term = `%${filters.search}%`;
-        conditions.push(
-          or(ilike(dmsDocument.name, term), ilike(dmsDocument.docNumber, term)) as SQL,
-        );
+        conditions.push(or(ilike(dmsFile.name, term), ilike(dmsFile.docNumber, term)) as SQL);
       }
 
       const limit = filters.limit ?? 50;
@@ -39,9 +34,9 @@ export const listTriage = Workflow.name("dms.triage.list")
 
       return ctx.db
         .select()
-        .from(dmsDocument)
+        .from(dmsFile)
         .where(and(...conditions))
-        .orderBy(desc(dmsDocument.createdAt))
+        .orderBy(desc(dmsFile.createdAt))
         .limit(limit)
         .offset(offset);
     }),

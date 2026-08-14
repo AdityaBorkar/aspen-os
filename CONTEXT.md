@@ -353,36 +353,36 @@ _Avoid_: Contract Type, Employment Status
 
 ### DMS Domain
 
-**Document**:
-The central record of the DMS module — one uploaded file. Has `status` (`triaged`/`active`/`expired`/`deleted`), `version` (current), `tags`, `metadata` (jsonb), `fieldValues` (per-class, jsonb), optional `compression` override, optional `expiryDate`, `owner`, `uploadedBy`, `storageKey`. Never uploaded directly into the active set — always enters as `triaged`.
-_Avoid_: File, Asset
+**File**:
+The single central entity of the DMS module — one uploaded binary, carrying both the filesystem attributes (`folderId`, `path`, `description`) and the records attributes (`classId`, `docNumber`, `fieldValues`, `expiryDate`, `batchId`, `compression`). Has `status` (`triaged`/`active`/`expired`/`trashed`), `version` (current), `metadata` (jsonb), `owner`, `uploadedBy`, `storageKey`. Uploads into a folder are `active` immediately; uploads without a folder are staged as `triaged`.
+_Avoid_: Document, Asset, Drive File
 
 **Triage**:
-The mandatory first-class stage every Document passes through. Uploads land here regardless of captured fields; a document is not searchable, normally listable, or shareable until classified. The only exit is `classify()` (→ `active`). Can be pinned to the sidebar.
+The staging stage for files uploaded without a folder. A triaged file is not searchable, normally listable, or shareable until classified. The only exit is `classify()` (→ `active`). Can be pinned to the sidebar.
 _Avoid_: Inbox, Draft Folder, Pending Queue
 
 **Classify**:
-The validation-enforced transition that assigns a triaged Document to a Document Class, validates its required fields, optionally applies the class's file-naming schema, and sets status to `active`. The one and only way out of Triage.
+The validation-enforced transition that assigns a triaged File to a Class, validates its required fields, optionally applies the class's file-naming schema, assigns the `docNumber`, and sets status to `active`. The one and only way out of Triage.
 _Avoid_: File Into, Assign Class, Register
 
-**Document Class**:
-An admin-defined template with typed fields (some required) that a Document must satisfy to become active in that class. Optionally defines a file-naming schema with field/date/sequence placeholders and a per-class retention period. Archived (not hard-deleted) when superseded.
+**Class**:
+An admin-defined template with typed fields (some required) that a File must satisfy to become active in that class. Optionally defines a file-naming schema with field/date/sequence placeholders and a per-class retention period. Archived (not hard-deleted) when superseded.
 _Avoid_: Document Type, Category, Template
 
 **Class Field**:
-A typed column of a Document Class (`text`/`number`/`date`/`select`/`multi-select`/`boolean`/`user`/`contact`/`url`/`email`/`phone`) with required/default/options/order. Field values are stored as jsonb on the Document and optionally indexed for search.
+A typed column of a Class (`text`/`number`/`date`/`select`/`multi-select`/`boolean`/`user`/`contact`/`url`/`email`/`phone`) with required/default/options/order. Field values are stored as jsonb on the File and optionally indexed for search.
 _Avoid_: Column, Attribute, Metadata Key
 
-**Document Version**:
-A stored revision of a Document. Storage keys are version-bound (`dms/{tenant}/{documentId}/v{n}/{name}`), so `newVersion` writes a fresh object and prune retains `maxVersions` (skipped under a legal hold). Renames are metadata-only — never an S3 move.
+**File Version**:
+A stored revision of a File. Storage keys are version-bound (`dms/{tenant}/{fileId}/v{n}/{name}`), so `newVersion` writes a fresh object and prune retains `maxVersions` (skipped under a legal hold). Renames and moves are metadata-only — never an S3 move.
 _Avoid_: Revision (allowed informally), Snapshot, Copy
 
-**Document View**:
-A saved, reusable filter+sort configuration over active documents. Conditions cover document-level columns, classes, class fields (`classField:<name>`), and a free-text `search` term. Personal views are user-owned; admins publish shared views. Can be pinned to the sidebar.
-_Avoid_: Saved Filter, Dashboard, Query
+**File View**:
+A saved, reusable filter+sort configuration over active files. Conditions cover file-level columns, classes, class fields (`classField:<name>`), labels, and a free-text `search` term. Personal views are user-owned; admins publish shared views. Pinned via `dms_pin` with item type `file_view`.
+_Avoid_: Saved Filter, Dashboard, Query, View
 
 **Full-Text Search**:
-Search over current-version name, tags, metadata, and class field values (an indexed `tsvector`, not file contents). Quick search offers type-ahead results and a search can be promoted into a persisted Document View.
+Search over current-version name, description, metadata, and class field values (an indexed `tsvector`, not file contents). Quick search offers type-ahead results over files, classes, and labels, and a search can be promoted into a persisted File View.
 _Avoid_: Content Search, Semantic Search (AI — deferred)
 
 **Contact**:
@@ -390,24 +390,28 @@ An org-wide address-book entry (first name, last name, email, phone, company nam
 _Avoid_: Sharee, External Recipient, Address Book Entry
 
 **Share (DMS)**:
-A permission grant (`viewer`/`editor`) on a Document to a grantee — either a Contact (token-based access, no login required) or an internal User. Revoking, or removing the contact, invalidates access immediately.
-_Avoid_: External Link, Access Grant (item groups have their own `itemShare`/`publicLink` grants)
+A permission grant (`viewer`/`editor`/`owner`) on a File or Folder to a grantee — a Contact (token-based access, no login required), an internal User, or a Group. Revoking, or removing the contact, invalidates access immediately. Folder grants inherit down the folder tree.
+_Avoid_: External Link, Access Grant
+
+**Public Link (DMS)**:
+A token-based shareable link (optional password, `view`/`edit` permission, optional `maxViews`/`expiresAt`) for a File or Folder, managed by the same `shares` group as grants.
+_Avoid_: External Link, Share Link
 
 **Legal Hold**:
-An admin-placed flag (with mandatory reason) that blocks permanent deletion and auto-purge of a Document and stops version pruning. Released only by an admin.
+An admin-placed flag (with mandatory reason) that blocks permanent deletion and auto-purge of a File and stops version pruning. Released only by an admin.
 _Avoid_: Freeze, Guard, Retention Lock
 
 **Retention**:
-A per-class (or settings-default) period after which `deleted`/`expired` Documents are auto-purged. Purge is skipped for documents on an active Legal Hold. Distinct from the item groups' Trash auto-purge (folder-aware, no holds).
+A per-class (or settings-default) period after which `trashed`/`expired` Files are auto-purged; trashed folders are purged after `trashRetentionDays`. Purge is skipped for files on an active Legal Hold.
 _Avoid_: Retention Policy (informal), Archival Window, Deletion Schedule
 
-**Recycle Bin**:
-A read-mostly view over Documents with status `deleted` or `expired`. Restore (owner/admin) reactivates; permanent deletion is **admin-only** and blocked by an active Legal Hold. Distinct from the item groups' Trash (auto-purge, no holds).
-_Avoid_: Trash, Deleted Items, Bin
+**Trash (DMS)**:
+A read-mostly view over Files with status `trashed` or `expired` plus trashed Folders. Restore (owner/admin) reactivates; permanent deletion is **admin-only** and blocked by an active Legal Hold.
+_Avoid_: Recycle Bin, Deleted Items, Bin
 
-**Item (DMS)**:
-A file or folder managed by the DMS item groups (`p.dms.files`, `p.dms.folders`). Folders carry materialized paths with depth limits and cycle-safe moves; files are S3-backed with versioning. Labels, public links, and item shares apply polymorphically to `file`/`folder` items. This surface was originally ported from the `@aspen-os/drive` module — which has since been **removed from the repository** — into `dms_*` tables (`dms_folder`, `dms_file`, `dms_file_version`, `dms_label`, `dms_item_label`, `dms_item_share`, `dms_public_link`, `dms_access_log`). The associated services (`p.dms.access`, `p.dms.archive`, `p.dms.paths`, `p.dms.storage`, `p.dms.driveSearch`) are DMS-owned. See `sow/dms-consolidation.md`.
-_Avoid_: File/Folder as synonyms (the records entity is a `Document`), Drive
+**Label (DMS)**:
+A color-coded tag (`name`, `color`, global or owner-scoped) that can be applied to Files and Folders through the polymorphic `dms_entity_label` join. A file or folder can carry multiple labels; upload accepts `labelIds`.
+_Avoid_: Tag, Category, Custom Field
 
 **Activity Feed**:
 A per-entity chronological trail of DMS actions (upload, classify, version, share, delete, expire, restore, purge, hold), projected from the platform AuditUnit's `audit_log` — not a DMS-owned table, not PubSub events.
@@ -521,29 +525,30 @@ _Avoid_: Onboarding (that's the Tenant Status stage AFTER provisioning), Setup, 
 │Organizat.│ │   Compliance     │ │    Tasks     │ │     DMS      │ │     HR       │ │ Management Plane │
 │  Module  │ │    Module        │ │   Module     │ │   Module     │ │   Module     │ │     Module       │
 │          │ │                  │ │              │ │              │ │ (conformant) │ │                  │
-│5 workflows│ │ 5 workflows     │ │ 11 workflows│ │ 24 wf groups │ │ ~250 methods │ │ 3 wf groups     │
-│7 tables  │ │ 3 services       │ │ 3 services   │ │ 20 tables    │ │ 50 tables    │ │ 3 owned tables   │
-│11 events │ │ 3 tables         │ │ 17 tables    │ │ 40 events    │ │ 43 events    │ │ 0 shadow tables  │
-│units:    │ │ 23 events        │ │ 10 events    │ │ 13 ACL res.  │ │ 2 crons      │ │ 16 events        │
+│5 workflows│ │ 5 workflows     │ │ 11 workflows│ │ 19 wf groups │ │ ~250 methods │ │ 3 wf groups     │
+│7 tables  │ │ 3 services       │ │ 3 services   │ │ 15 tables    │ │ 50 tables    │ │ 3 owned tables   │
+│11 events │ │ 3 tables         │ │ 17 tables    │ │ 33 events    │ │ 43 events    │ │ 0 shadow tables  │
+│units:    │ │ 23 events        │ │ 10 events    │ │ 12 ACL res.  │ │ 2 crons      │ │ 16 events        │
 │db, pubsub│ │ units:           │ │ units:       │ │ units:       │ │ units:       │ │ deps: organization│
 │          │ │ db, kvStore,     │ │ db, pubsub  │ │ db, auth,    │ │ db, pubsub  │ │ units:           │
 │          │ │ pubsub           │ │              │ │ pubsub,      │ │              │ │ db, auth, pubsub │
 │          │ │                  │ │              │ │ storage      │ │              │ │                  │
-│          │ │ prepareInfra():  │ │              │ │ 3 crons in   │ │ prepareInfra │ │ prepareInfra():  │
+│          │ │ prepareInfra():  │ │              │ │ 2 crons in   │ │ prepareInfra │ │ prepareInfra():  │
 │          │ │ schema push,     │ │              │ │ $prepareInfra│ │ 2 crons      │ │ schema push      │
 │          │ │ crons, handlers  │ │              │ │              │ │              │ │                  │
 └──────────┘ └──────────────────┘ └──────────────┘ └──────────────┘ └──────────────┘ └──────────────────┘
 
-Implemented: DMS (Document Management System) module — class-first records system
-  plus the free-form item filesystem: Triage → Classify → active; classes →
-  required-field validation + naming schema; org-wide Contacts sharing (contact +
-  user grantees), versioned documents, full-text/quick search, Recycle Bin with
-  retention + admin-only permanent delete + legal holds + expiry scanner, Activity
-  Feed via AuditUnit; plus the item surface (folders, files, labels, public links,
-  item shares, trash) under `p.dms.files/.folders/.labels/.publicLinks/.shares/.trash`
-  and `p.dms.driveSearch`. Reuses StorageUnit (own key prefix `dms/...`), AuthUnit,
-  PubSub (expiry-scan / auto-purge / item-auto-purge crons), AuditUnit. 20 `dms_*`
-  tables, all tenant schemas. No module deps. 24 workflow groups, 40 events.
+Implemented: DMS module — unified document/files management on a single `file`
+  entity: Triage → Classify → active (uploads into folders are active immediately);
+  classes → required-field validation + naming schema + `docNumber`; org-wide
+  Contacts + unified sharing (user/group/contact grants + public links) under
+  `p.dms.shares`; versioned files, full-text/quick search (records + filesystem
+  merged), one trash module over `status` with retention + admin-only permanent
+  delete + legal holds + expiry scanner, Activity Feed via AuditUnit; folders,
+  labels (`dms_label` + `dms_entity_label`), file views, pins. Reuses StorageUnit
+  (unified `dms/{tenant}/{fileId}/v{n}/{name}` keys), AuthUnit, PubSub
+  (expiry-scan + auto-purge crons), AuditUnit. 15 `dms_*` tables, all tenant
+  schemas. No module deps. 19 workflow groups, 33 events.
 
 Stubs (package.json only — no source): accounting, crm, fleet, inventory, reports, pharmacy
 ```
@@ -552,7 +557,7 @@ Stubs (package.json only — no source): accounting, crm, fleet, inventory, repo
 
 1. **`RoleUnassignedEvent` missing `roleName`** — unlike `RoleAssignedEvent` which has `{ roleName, userId }`, the unassigned event only has `{ userId }`.
 2. **No DB-level foreign key constraints in domain modules** — all cross-table references in compliance, tasks, organization, management, and hr are logical (soft FKs by naming convention), not enforced by the database.
-3. **`@aspen-os/drive` has been removed from the repository** — the package, its docs source, and its workspace reference are deleted. Its file/folder/label/public-link/share/trash surface lives on inside `@aspen-os/dms` as the item groups (`p.dms.files/.folders/.labels/.publicLinks/.shares/.trash`, `p.dms.driveSearch`, plus the `access`/`archive`/`paths`/`storage` services). This was Phase 1 of `sow/dms-consolidation.md`; Phases 2–7 (unified `file` entity, labels replacing tags, unified sharing/trash, term consolidation, docs) remain unimplemented — the DMS still carries the dual `document`/`item-file` surface and the `item-`/`tag`/`view` terminology.
+3. **DMS consolidation (`.working-docs/sow/dms-consolidation.md`) is complete** — the removed `@aspen-os/drive` filesystem was consolidated into `@aspen-os/dms` as one `file` entity, one label mechanism, one sharing group (`p.dms.shares`), one trash module, and `fileViews` terminology. The `dms_document*`/`dms_tag`/`dms_view`/`dms_item_*` tables no longer exist; host deployments must run the §8 migration to drop the merged-away tables and rename enums/tables.
 4. **`SingleTenantPlatform` and `SharedTenantPlatform` are EXPERIMENTAL** — both constructors emit `console.warn("... Architecture is currently EXPERIMENTAL")`. `IsolatedTenantPlatform` does not warn.
 5. **`IsolatedTenantConfig` has no `resolver` field** — a dummy resolver (`list: async () => []`, `resolve: async (id) => id`) is constructed inline in `IsolatedTenantPlatform.create()` instead of accepting a real `TenantResolver` via config.
 6. **`ManagementPlaneConfig` is `undefined`** — the provisioning workflow expects a richer config (`tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`) but the type hasn't been defined yet.

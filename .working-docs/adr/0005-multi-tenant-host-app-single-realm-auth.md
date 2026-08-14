@@ -20,7 +20,7 @@ We also explicitly rejected **multi-realm auth** (extending the platform `AuthUn
 
 This is a platform rewrite, not a module addition:
 
-- Every existing module table (`organization`, `branch`, `task`, `drive_file`, all 50 HR tables, etc.) gains a `tenant_id` column. Per ADR-0007, this column is always present with `DEFAULT 'default'` — not added per-query. In `isolated` mode, it's redundant per database. In `shared` mode, RLS policies filter by it.
+- Every existing module table (`organization`, `branch`, `task`, `dms_file`, all 50 HR tables, etc.) gains a `tenant_id` column. Per ADR-0007, this column is always present with `DEFAULT 'default'` — not added per-query. In `isolated` mode, it's redundant per database. In `shared` mode, RLS policies filter by it.
 - Workflow queries do NOT need explicit `.where(tenantId)` scoping — isolation is handled by the platform (RLS policies or database-per-tenant), not by app-level filtering.
 - The platform `run()` context gains `tenantId` (resolved from the authenticated user's active organization, or from a platform admin's selected/impersonated tenant). See ADR-0007 for the `run(tenantId, fn)` signature.
 - The `user` table does NOT gain a `tenant_id` column. Tenant membership is via better-auth's `member` table. See ADR-0006 for the membership model.

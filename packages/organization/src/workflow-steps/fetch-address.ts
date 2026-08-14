@@ -2,7 +2,7 @@ import { WorkflowStep } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object, string } from "valibot";
 
-import { address } from "../../db-schemas";
+import { address } from "../db-schemas";
 
 export const fetchAddressStep = WorkflowStep.name("fetch-address")
   .input(object({ id: string() }))

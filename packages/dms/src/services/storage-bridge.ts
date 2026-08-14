@@ -17,14 +17,19 @@ export interface DmsUploadInput {
 }
 
 export function computeStorageKey(input: {
-  documentId: string;
+  fileId: string;
   name: string;
   tenantId?: string;
   version: number;
 }): string {
   const safeName = input.name.replace(/[\\/]+/g, "_").replace(/\0/g, "");
   const tenant = input.tenantId ?? "default";
-  return `dms/${tenant}/${input.documentId}/v${input.version}/${safeName}`;
+  return `dms/${tenant}/${input.fileId}/v${input.version}/${safeName}`;
+}
+
+export function computeArchiveKey({ folderId }: { folderId: string }): string {
+  const uuid = crypto.randomUUID();
+  return `archives/${folderId}/${uuid}.zip`;
 }
 
 export async function upload(input: DmsUploadInput): Promise<DmsFileObject> {
@@ -47,4 +52,28 @@ export async function get({ key }: { key: string }): Promise<Buffer> {
 
 export async function remove({ key }: { key: string }): Promise<void> {
   await getDmsStorage().remove(key);
+}
+
+export async function copy({
+  sourceKey,
+  destKey,
+}: {
+  sourceKey: string;
+  destKey: string;
+}): Promise<DmsFileObject> {
+  return getDmsStorage().copy(sourceKey, destKey);
+}
+
+export async function move({
+  sourceKey,
+  destKey,
+}: {
+  sourceKey: string;
+  destKey: string;
+}): Promise<DmsFileObject> {
+  return getDmsStorage().move(sourceKey, destKey);
+}
+
+export async function exists({ key }: { key: string }): Promise<boolean> {
+  return getDmsStorage().exists(key);
 }

@@ -1,24 +1,30 @@
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse, string } from "valibot";
 
-import { quickSearch, searchDocuments, searchToViewConditions } from "../services/search-service";
+import {
+  quickSearch,
+  searchFiles,
+  searchFolders,
+  searchToFileViewConditions,
+} from "../services/search-service";
 import { QuickSearchSchema, SearchOptionsSchema } from "../types";
-import { createView } from "./view.create";
+import { createFileView } from "./file-view.create";
 
 const SearchInputSchema = object({
   options: SearchOptionsSchema,
   query: string(),
 });
 
-export const searchDocumentsWorkflow = Workflow.name("dms.search.full-text")
+export const searchFilesWorkflow = Workflow.name("dms.search.full-text")
   .input(SearchInputSchema)
   .handler(async ({ options, query }, ctx) => {
     const actorId = ctx.actorId ?? "dms:system";
-    const result = await searchDocuments(ctx.db, {
+    const files = await searchFiles(ctx.db, {
       admin: actorId === "dms:admin",
       classId: options.classId,
       contentType: options.contentType,
       dateRange: options.dateRange,
+      labels: options.labels,
       limit: options.limit ?? 50,
       offset: options.offset ?? 0,
       query,
@@ -26,10 +32,16 @@ export const searchDocumentsWorkflow = Workflow.name("dms.search.full-text")
       sizeRange: options.sizeRange,
       sort: options.sort,
       status: options.status,
-      tags: options.tags,
       userId: actorId,
     });
-    return result;
+
+    const folders = await searchFolders(ctx.db, {
+      limit: options.limit ?? 50,
+      offset: options.offset ?? 0,
+      query,
+    });
+
+    return { files, folders };
   });
 
 export const quickSearchWorkflow = Workflow.name("dms.search.quick")
@@ -54,8 +66,8 @@ export const promoteSearchToView = Workflow.name("dms.search.promote-to-view")
     }),
   )
   .handler(async ({ query, options, name, ownerId }, ctx) => {
-    const { filters, sort } = searchToViewConditions({ options, query });
-    return createView.run(
+    const { filters, sort } = searchToFileViewConditions({ options, query });
+    return createFileView.run(
       {
         input: {
           filters,

@@ -1,23 +1,32 @@
 import { pgEnum } from "drizzle-orm/pg-core";
 
 import {
-  ITEM_GRANTEE_TYPE,
-  ITEM_PERMISSION,
-  ITEM_TYPE,
+  ENTITY_TYPE,
+  FILE_STATUS,
+  GRANTEE_TYPE,
   PUBLIC_LINK_PERMISSION,
+  SHARE_PERMISSION,
 } from "../utils/constants";
 
-export const dmsItemTypeEnum = pgEnum("dms_item_type", [ITEM_TYPE.FILE, ITEM_TYPE.FOLDER]);
+export const dmsEntityTypeEnum = pgEnum("dms_entity_type", [ENTITY_TYPE.FILE, ENTITY_TYPE.FOLDER]);
 
-export const dmsItemGranteeTypeEnum = pgEnum("dms_item_grantee_type", [
-  ITEM_GRANTEE_TYPE.USER,
-  ITEM_GRANTEE_TYPE.GROUP,
+export const dmsFileStatusEnum = pgEnum("dms_file_status", [
+  FILE_STATUS.TRIAGED,
+  FILE_STATUS.ACTIVE,
+  FILE_STATUS.EXPIRED,
+  FILE_STATUS.TRASHED,
 ]);
 
-export const dmsItemPermissionEnum = pgEnum("dms_item_permission", [
-  ITEM_PERMISSION.VIEWER,
-  ITEM_PERMISSION.EDITOR,
-  ITEM_PERMISSION.OWNER,
+export const dmsGranteeTypeEnum = pgEnum("dms_grantee_type", [
+  GRANTEE_TYPE.USER,
+  GRANTEE_TYPE.GROUP,
+  GRANTEE_TYPE.CONTACT,
+]);
+
+export const dmsSharePermissionEnum = pgEnum("dms_share_permission", [
+  SHARE_PERMISSION.VIEWER,
+  SHARE_PERMISSION.EDITOR,
+  SHARE_PERMISSION.OWNER,
 ]);
 
 export const dmsPublicLinkPermissionEnum = pgEnum("dms_public_link_permission", [

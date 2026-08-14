@@ -5,7 +5,7 @@ import { AUDIT_ENTITY_TYPE } from "../utils/constants";
 
 const ActivityInputSchema = object({
   entityId: string(),
-  entityType: optional(string(), "document"),
+  entityType: optional(string(), "file"),
   limit: optional(pipe(number(), integer()), 100),
   offset: optional(pipe(number(), integer()), 0),
 });
@@ -30,12 +30,22 @@ function mapEntityType(type: string): string {
       return AUDIT_ENTITY_TYPE.CLASS;
     case "contact":
       return AUDIT_ENTITY_TYPE.CONTACT;
-    case "document":
-      return AUDIT_ENTITY_TYPE.DOCUMENT;
+    case "file":
+      return AUDIT_ENTITY_TYPE.FILE;
+    case "file_view":
+    case "fileView":
+      return AUDIT_ENTITY_TYPE.FILE_VIEW;
+    case "folder":
+      return AUDIT_ENTITY_TYPE.FOLDER;
+    case "label":
+      return AUDIT_ENTITY_TYPE.LABEL;
+    case "public_link":
+    case "publicLink":
+      return AUDIT_ENTITY_TYPE.PUBLIC_LINK;
+    case "setting":
+      return AUDIT_ENTITY_TYPE.SETTING;
     case "share":
       return AUDIT_ENTITY_TYPE.SHARE;
-    case "view":
-      return AUDIT_ENTITY_TYPE.VIEW;
     default:
       return type;
   }
@@ -70,18 +80,18 @@ export const getActivity = Workflow.name("dms.activity.get")
     return rows.map(normalize);
   });
 
-export const getDocumentActivity = Workflow.name("dms.activity.document")
+export const getFileActivity = Workflow.name("dms.activity.file")
   .input(
     object({
-      documentId: string(),
+      fileId: string(),
       limit: optional(pipe(number(), integer()), 100),
       offset: optional(pipe(number(), integer()), 0),
     }),
   )
-  .handler(async ({ documentId, limit, offset }, ctx) => {
+  .handler(async ({ fileId, limit, offset }, ctx) => {
     const rows = (await ctx.audit.query({
-      entityId: documentId,
-      entityType: AUDIT_ENTITY_TYPE.DOCUMENT,
+      entityId: fileId,
+      entityType: AUDIT_ENTITY_TYPE.FILE,
       limit,
       offset,
     })) as unknown as AuditRow[];

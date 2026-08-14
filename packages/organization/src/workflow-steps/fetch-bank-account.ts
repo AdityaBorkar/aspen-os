@@ -2,7 +2,7 @@ import { WorkflowStep } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object, string } from "valibot";
 
-import { bankAccount } from "../../db-schemas";
+import { bankAccount } from "../db-schemas";
 
 export const fetchBankAccountStep = WorkflowStep.name("fetch-bank-account")
   .input(object({ id: string() }))

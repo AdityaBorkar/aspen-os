@@ -1,91 +1,97 @@
-import { getActivity, getClassActivity, getDocumentActivity } from "./activity";
-import { deleteDocumentPermanentlyWorkflow } from "./bin.delete-permanently";
-import { emptyBin } from "./bin.empty";
-import { listBin } from "./bin.list";
-import { restoreDocument } from "./bin.restore";
+import { getActivity, getClassActivity, getFileActivity } from "./activity";
 import { addClassField } from "./class.add-field";
-import { archiveDocumentClass } from "./class.archive";
-import { createDocumentClass } from "./class.create";
+import { archiveClass } from "./class.archive";
+import { createClass } from "./class.create";
 import { deactivateClassField } from "./class.deactivate-field";
-import { getDocumentClass } from "./class.get";
+import { getClass } from "./class.get";
 import { listClasses } from "./class.list";
-import { updateDocumentClass } from "./class.update";
+import { updateClass } from "./class.update";
 import { updateClassField } from "./class.update-field";
 import { createContact } from "./contact.create";
 import { getContact, listContacts } from "./contact.list";
 import { removeContact } from "./contact.remove";
 import { updateContact } from "./contact.update";
-import { deleteDocument } from "./document.delete";
-import { downloadDocument } from "./document.download";
-import { getDocument } from "./document.get";
-import {
-  addDocumentMetadata,
-  removeDocumentMetadata,
-  tagDocument,
-  untagDocument,
-} from "./document.tags";
-import { updateDocument } from "./document.update";
-import { uploadDocument } from "./document.upload";
-import { uploadBulkDocuments } from "./document.upload-bulk";
+import { applyFileView } from "./file-view.apply";
+import { createFileView } from "./file-view.create";
+import { deleteFileView } from "./file-view.delete";
+import { getDefaultFileView, listFileViews, listFileViewsByOwner } from "./file-view.list";
+import { setDefaultFileView } from "./file-view.set-default";
+import { updateFileView } from "./file-view.update";
+import { classifyFile } from "./file.classify";
+import { copyFile } from "./file.copy";
+import { deleteFile } from "./file.delete";
+import { downloadFile } from "./file.download";
+import { getFileDownloadLink } from "./file.download-link";
+import { getFile, getFileById } from "./file.get";
+import { addFileMetadata, removeFileMetadata } from "./file.metadata";
+import { moveFile } from "./file.move";
+import { purgeFile } from "./file.purge";
+import { renameFile } from "./file.rename";
+import { restoreFile } from "./file.restore";
+import { updateFile } from "./file.update";
+import { uploadFile } from "./file.upload";
+import { uploadBulkFiles } from "./file.upload-bulk";
+import { createFolder } from "./folder.create";
+import { deleteFolder } from "./folder.delete";
+import { getFolder } from "./folder.get";
+import { getFolderById } from "./folder.get-by-id";
+import { listFolders } from "./folder.list";
+import { moveFolder } from "./folder.move";
+import { renameFolder } from "./folder.rename";
+import { restoreFolder } from "./folder.restore";
+import { updateFolder } from "./folder.update";
 import { placeLegalHold, releaseLegalHold } from "./hold";
 import { listHolds } from "./hold.list";
-import {
-  access,
-  archive,
-  driveSearch,
-  files,
-  folders,
-  labels,
-  paths,
-  publicLinks,
-  shares,
-  storage,
-  trash,
-} from "./items";
-import { listPins, pinItem, unpinItem } from "./pin.create";
-import { promoteSearchToView, quickSearchWorkflow, searchDocumentsWorkflow } from "./search";
+import { applyLabel } from "./label.apply";
+import { createLabel } from "./label.create";
+import { deleteLabel } from "./label.delete";
+import { listLabels } from "./label.list";
+import { listEntitiesByLabel } from "./label.list-by-label";
+import { removeLabel } from "./label.remove";
+import { updateLabel } from "./label.update";
+import { listPins, pinItem, unpinItem } from "./pin";
+import { createPublicLink } from "./public-link.create";
+import { getPublicLinkById } from "./public-link.get";
+import { listPublicLinks } from "./public-link.list";
+import { resolvePublicLink } from "./public-link.resolve";
+import { revokePublicLink } from "./public-link.revoke";
+import { updatePublicLink } from "./public-link.update";
+import { promoteSearchToView, quickSearchWorkflow, searchFilesWorkflow } from "./search";
+import { access, archive, paths, storage } from "./services";
 import { getSettingWorkflow, setSettingWorkflow } from "./settings";
 import { createShare } from "./share.create";
+import { getShareById } from "./share.get";
 import { listShares, listSharesByGrantee } from "./share.list";
+import { listSharedWithMe } from "./share.list-shared-with-me";
 import { resolveShareToken } from "./share.resolve";
 import { removeShare, updateShare } from "./share.update";
-import { classifyDocument } from "./triage.classify";
+import { deletePermanently } from "./trash.delete-permanently";
+import { emptyTrash } from "./trash.empty";
+import { listTrash } from "./trash.list";
+import { purgeExpiredTrash } from "./trash.purge-expired";
+import { restoreFromTrash } from "./trash.restore";
 import { getTriageDetail } from "./triage.detail";
 import { listTriage } from "./triage.list";
-import { deleteDocumentVersion } from "./version.delete";
-import { getDocumentVersion } from "./version.get";
-import { getCurrentVersion, listDocumentVersions } from "./version.list";
-import { newDocumentVersion } from "./version.new";
+import { deleteFileVersion } from "./version.delete";
+import { getFileVersion } from "./version.get";
+import { getCurrentVersion, listFileVersions } from "./version.list";
+import { newFileVersion } from "./version.new";
 import { revertToVersion } from "./version.revert";
-import { applyView } from "./view.apply";
-import { createView } from "./view.create";
-import { deleteView } from "./view.delete";
-import { getDefaultView, listViews, listViewsByOwner } from "./view.list";
-import { pinView, unpinView } from "./view.pin";
-import { setDefaultView } from "./view.set-default";
-import { updateView } from "./view.update";
 
 export const activity = {
   get: getActivity,
   getClass: getClassActivity,
-  getDocument: getDocumentActivity,
-} as const;
-
-export const bin = {
-  deletePermanently: deleteDocumentPermanentlyWorkflow,
-  empty: emptyBin,
-  list: listBin,
-  restore: restoreDocument,
+  getFile: getFileActivity,
 } as const;
 
 export const classes = {
   addField: addClassField,
-  archive: archiveDocumentClass,
-  create: createDocumentClass,
+  archive: archiveClass,
+  create: createClass,
   deactivateField: deactivateClassField,
-  get: getDocumentClass,
+  get: getClass,
   list: listClasses,
-  update: updateDocumentClass,
+  update: updateClass,
   updateField: updateClassField,
 } as const;
 
@@ -97,23 +103,66 @@ export const contacts = {
   update: updateContact,
 } as const;
 
-export const documents = {
-  addMetadata: addDocumentMetadata,
-  delete: deleteDocument,
-  download: downloadDocument,
-  get: getDocument,
-  removeMetadata: removeDocumentMetadata,
-  tag: tagDocument,
-  untag: untagDocument,
-  update: updateDocument,
-  upload: uploadDocument,
-  uploadBulk: uploadBulkDocuments,
+export const fileViews = {
+  apply: applyFileView,
+  create: createFileView,
+  delete: deleteFileView,
+  getDefault: getDefaultFileView,
+  list: listFileViews,
+  listByOwner: listFileViewsByOwner,
+  setDefault: setDefaultFileView,
+  update: updateFileView,
+} as const;
+
+export const files = {
+  addMetadata: addFileMetadata,
+  classify: classifyFile,
+  copy: copyFile,
+  delete: deleteFile,
+  deleteVersion: deleteFileVersion,
+  download: downloadFile,
+  get: getFile,
+  getById: getFileById,
+  getDownloadLink: getFileDownloadLink,
+  listVersions: listFileVersions,
+  move: moveFile,
+  newVersion: newFileVersion,
+  purge: purgeFile,
+  removeMetadata: removeFileMetadata,
+  rename: renameFile,
+  restore: restoreFile,
+  revert: revertToVersion,
+  update: updateFile,
+  upload: uploadFile,
+  uploadBulk: uploadBulkFiles,
+} as const;
+
+export const folders = {
+  create: createFolder,
+  delete: deleteFolder,
+  get: getFolder,
+  getById: getFolderById,
+  list: listFolders,
+  move: moveFolder,
+  rename: renameFolder,
+  restore: restoreFolder,
+  update: updateFolder,
 } as const;
 
 export const holds = {
   list: listHolds,
   place: placeLegalHold,
   release: releaseLegalHold,
+} as const;
+
+export const labels = {
+  apply: applyLabel,
+  create: createLabel,
+  delete: deleteLabel,
+  list: listLabels,
+  listByLabel: listEntitiesByLabel,
+  remove: removeLabel,
+  update: updateLabel,
 } as const;
 
 export const pins = {
@@ -125,7 +174,7 @@ export const pins = {
 export const search = {
   promoteToView: promoteSearchToView,
   quick: quickSearchWorkflow,
-  search: searchDocumentsWorkflow,
+  search: searchFilesWorkflow,
 } as const;
 
 export const settings = {
@@ -133,53 +182,44 @@ export const settings = {
   set: setSettingWorkflow,
 } as const;
 
-export const documentShares = {
+export const shares = {
   create: createShare,
+  createPublicLink,
+  get: getShareById,
+  getPublicLink: getPublicLinkById,
   list: listShares,
   listByGrantee: listSharesByGrantee,
+  listPublicLinks,
+  listSharedWithMe,
   remove: removeShare,
+  resolvePublicLink,
   resolveToken: resolveShareToken,
+  revokePublicLink,
   update: updateShare,
+  updatePublicLink,
+} as const;
+
+export const trash = {
+  deletePermanently,
+  empty: emptyTrash,
+  list: listTrash,
+  purgeExpired: purgeExpiredTrash,
+  restore: restoreFromTrash,
 } as const;
 
 export const triage = {
-  classify: classifyDocument,
+  classify: classifyFile,
   detail: getTriageDetail,
   list: listTriage,
 } as const;
 
 export const versions = {
-  delete: deleteDocumentVersion,
-  get: getDocumentVersion,
+  delete: deleteFileVersion,
+  get: getFileVersion,
   getCurrent: getCurrentVersion,
-  list: listDocumentVersions,
-  new: newDocumentVersion,
+  list: listFileVersions,
+  new: newFileVersion,
   revert: revertToVersion,
 } as const;
 
-export const views = {
-  apply: applyView,
-  create: createView,
-  delete: deleteView,
-  getDefault: getDefaultView,
-  list: listViews,
-  listByOwner: listViewsByOwner,
-  pin: pinView,
-  setDefault: setDefaultView,
-  unpin: unpinView,
-  update: updateView,
-} as const;
-
-export {
-  access,
-  archive,
-  driveSearch,
-  files,
-  folders,
-  labels,
-  paths,
-  publicLinks,
-  shares,
-  storage,
-  trash,
-};
+export { access, archive, paths, storage };

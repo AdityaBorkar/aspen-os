@@ -1,7 +1,7 @@
 import { WorkflowStep } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 
-import { complianceVerificationRule } from "../../db-schemas";
+import { complianceVerificationRule } from "../db-schemas";
 
 export const fetchRuleStep = WorkflowStep.name("fetch-rule").handler(
   async (input: { id: string }, ctx) => {

@@ -1,20 +1,20 @@
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
 
-import { dmsDocumentClass } from "../db-schemas";
+import { dmsClass } from "../db-schemas";
 import { CLASS_EVENTS } from "../pubsub";
-import { CreateDocumentClassSchema } from "../types";
+import { CreateClassSchema } from "../types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../utils/constants";
 
-const CreateInputSchema = object({ input: CreateDocumentClassSchema });
+const CreateInputSchema = object({ input: CreateClassSchema });
 
-export const createDocumentClass = Workflow.name("dms.class.create")
+export const createClass = Workflow.name("dms.class.create")
   .input(CreateInputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(CreateDocumentClassSchema, input);
+    const parsed = parse(CreateClassSchema, input);
 
     const [cls] = await ctx.db
-      .insert(dmsDocumentClass)
+      .insert(dmsClass)
       .values({
         color: parsed.color ?? null,
         createdBy: parsed.createdBy,
@@ -27,7 +27,7 @@ export const createDocumentClass = Workflow.name("dms.class.create")
       .returning();
 
     if (!cls) {
-      throw new Error("Failed to create document class.");
+      throw new Error("Failed to create class.");
     }
 
     await ctx.audit.write({
