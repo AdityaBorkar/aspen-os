@@ -214,7 +214,7 @@ export {
   SETTING_KEYS,
   SHARE_PERMISSION,
 } from "./utils/constants";
-export type { ResolvedPublicLink } from "./workflows/public-link.resolve";
+export type { ResolvedPublicLink } from "./workflows/public-link/resolve";
 export type {
   DmsAccessLog,
   DmsFile,

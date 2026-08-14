@@ -66,7 +66,7 @@ packages/
     src/cli/           # commander CLI (db-studio, tenants)
   constants/           # Shared enums (build step) — country-codes.ts / languages.ts are empty; enums live in index.ts
   organization/        # Domain module (build step) — module.ts auth.ts pubsub.ts db-schemas/ schemas/
-                       # workflows/<entity>.<action>.ts + steps/
+                       # workflows/<entity>/<verb>.ts (REST-style folders) + workflow-steps/
   compliance/          # Domain module — module.ts auth.ts pubsub.ts + services/ utils/constants.ts
   tasks/               # Domain module — module.ts auth.ts pubsub.ts + services/ utils/filter-engine.ts (17 tables)
   dms/                 # Domain module (build step) — unified document/files management on one `file` entity
@@ -140,7 +140,7 @@ type ModuleInfra = {
 Every implemented module (management, organization, compliance, tasks, dms, hr) follows the same shape:
 
 - `src/module.ts` holds the class (implements `Module`, static `create`, `readonly $name`/`$dependencies`/`$config`, `$prepareInfra()` returning `{ auth: { acl }, db: { control_plane_schemas, tenant_schemas }, events }`); `src/index.ts` just re-exports.
-- `src/auth.ts` holds the ACL (`defineAcl(...)`); `src/pubsub.ts` holds events; `src/types.ts` re-exports constants + events + schemas; `db-schemas/` is directory form (one file per table + `enums.ts`); workflows are one file per action under `workflows/<entity>.<action>.ts` with reusable steps in `workflows/steps/`.
+- `src/auth.ts` holds the ACL (`defineAcl(...)`); `src/pubsub.ts` holds events; `src/types.ts` re-exports constants + events + schemas; `db-schemas/` is directory form (one file per table + `enums.ts`); workflows are one file per action under REST-style folders `workflows/<entity>/<verb>.ts` (subresources nest, e.g. `class/field/add.ts`; scoped queries use `by-<qualifier>`, e.g. `comment/by-task/list.ts`) with reusable `WorkflowStep`s in `workflow-steps/`.
 - Workflow groups: stateless `readonly` properties composed from imported per-workflow consts; a `#db` getter (management hybrid) only when a workflow is bound to a unit at construction time (`createX(this.#db)`).
 
 Modules with non-empty runtime wiring (compliance schedules/handlers, hr scheduled jobs, management tenant onboarding, dms expiry-scan/auto-purge) keep `#private` unit refs set in `$initialize(units)` plus `async $prepareRuntime()` / `async $cleanup()` that register/unregister pubsub schedules; their workflow groups stay `readonly`.

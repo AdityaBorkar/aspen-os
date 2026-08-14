@@ -288,7 +288,7 @@ export class Organization implements Module {
 
 **Hybrid** (management): `#private` `#db` field set in `$initialize({ db, auth, pubsub })` (stores `units.db` only); `$prepareRuntime()` / `$cleanup()` are empty; the `tenants` getter throws if `#db` is null, while `serviceProviders` / `users` are `readonly`.
 
-**Conforming modules** (management, organization, tasks, compliance, drive, hr): every module follows the management shape — `src/module.ts` holds the class, `src/auth.ts` holds the ACL, `src/pubsub.ts` holds events, `db-schemas/` is directory form, and workflows are one file per action under `workflows/<entity>.<action>.ts` with reusable steps in `workflows/steps/`. Modules that bind workflows to a unit at construction time (`createX(this.#db)`) use a `#db` getter; stateless workflow groups are `readonly` properties composed from imported per-workflow consts. HR additionally provides per-group `barrel-<entity>.ts` files that aggregate its many per-action workflow files.
+**Conforming modules** (management, organization, tasks, compliance, dms, hr): every module follows the management shape — `src/module.ts` holds the class, `src/auth.ts` holds the ACL, `src/pubsub.ts` holds events, `db-schemas/` is directory form, and workflows are one file per action under REST-style folders `workflows/<entity>/<verb>.ts` (subresources nest, e.g. `class/field/add.ts`; scoped queries use `by-<qualifier>`, e.g. `comment/by-task/list.ts`), with reusable `WorkflowStep`s in `workflow-steps/`. Modules that bind workflows to a unit at construction time (`createX(this.#db)`) use a `#db` getter; stateless workflow groups are `readonly` properties composed from imported per-workflow consts. HR additionally provides per-group `barrel-<entity>.ts` files that aggregate its many per-action workflow files.
 
 Key conventions:
 
@@ -321,9 +321,11 @@ packages/<module>/
       utils.ts          # Shared valibot schema utilities (regex, lengths)
       <entity>.ts       # Per-entity valibot schemas
     workflows/
-      <entity>.<action>.ts  # One Workflow.name("...").input(...).handler(...) per file
-      steps/                # Reusable WorkflowStep.name("fetch-<entity>") steps
-    services/           # Cross-cutting services [optional]
+      <entity>/
+        <verb>.ts           # One Workflow.name("...").input(...).handler(...) per file
+        <subresource>/<verb>.ts
+      utils.ts              # Shared workflow helpers
+  services/           # Cross-cutting services [optional]
       <service>.ts
   package.json
   tsconfig.json
@@ -410,7 +412,7 @@ export type DomainEventMap = EntityEventMap & OtherEntityEventMap;
 ## Workflows
 
 - Builder API (platform-level, durable): `Workflow.name("domain.action").input(Schema).handler(fn)` → `WorkflowInstance.run(input, options?)`; `WorkflowStep.name(name).handler(fn)` for reusable steps, run via `ctx.step.run(step, input, options?)`, `ctx.step.run("name", fn, options?)`, or `ctx.step.sleep(ms)`.
-- Module workflows are exported as per-action consts under `workflows/<entity>.<action>.ts`, composed into per-entity group objects in `module.ts` (`readonly serviceProviders = { create: createSp, ... }`); reusable steps in `workflows/steps/`; `services/` facade objects may wrap them with `Parameters<typeof x>[0]` typing.
+- Module workflows are exported as per-action consts under REST-style folders `workflows/<entity>/<verb>.ts` (subresources nest, e.g. `class/field/add.ts`), composed into per-entity group objects in `module.ts` (`readonly serviceProviders = { create: createSp, ... }`); reusable `WorkflowStep`s in `workflow-steps/`; `services/` facade objects may wrap them with `Parameters<typeof x>[0]` typing.
 - `ctx.step.run` is **idempotent/durable**: completed step rows (`workflow_steps`) are replayed from cache; steps retry up to `options.retries`.
 - Persisted in `workflow_runs` / `workflow_steps` tables (`status`: `running|completed|failed`; steps add `pending|skipped`).
 - `WorkflowContext` is `{ actorId?, audit, auth?, config, db, pubsub, runId, step }`; `RunOptions` (`actorId?`, `audit?`, `auth?`, `config?`, `db?`, `pubsub?`) overrides `getContext()` defaults.

@@ -4,7 +4,7 @@ description: Scaffold a new `@aspen-os/{name}` domain module from scratch — pa
 disable-model-invocation: true
 ---
 
-A **template** in the CODING_CONVENTIONS.md `packages/<module>/` skeleton. Every file you create follows the management module's shape — hybrid `$initialize({ db, auth, pubsub })` pattern with `#private` stored references for getters that need them, flat `readonly` properties for stateless workflow groups. Read the corresponding file in `packages/management/src/` (e.g. `module.ts`, `db-schemas/service-provider.ts`, `schemas/service-provider.ts`, `workflows/sp.create.ts`) before writing each one, so your file matches the exact shape, not just the summary here. Walk the steps in order; each ends on a file listing that must exist before you move on.
+A **template** in the CODING_CONVENTIONS.md `packages/<module>/` skeleton. Every file you create follows the management module's shape — hybrid `$initialize({ db, auth, pubsub })` pattern with `#private` stored references for getters that need them, flat `readonly` properties for stateless workflow groups. Read the corresponding file in `packages/management/src/` (e.g. `module.ts`, `db-schemas/service-provider.ts`, `schemas/service-provider.ts`, `workflows/sp/create.ts`) before writing each one, so your file matches the exact shape, not just the summary here. Walk the steps in order; each ends on a file listing that must exist before you move on.
 
 ## Step 1 — Name and scaffold
 
@@ -30,10 +30,16 @@ packages/<name>/
       enums.ts
       utils.ts
     workflows/
-      steps/
+      <entity>/
+        <verb>.ts
+        <subresource>/
+          <verb>.ts
+      utils.ts
     utils/
       strip-undefined.ts
 ```
+
+The `workflows/` tree uses REST-style folders: `workflows/<entity>/<verb>.ts` for CRUD (`task/get.ts`), `workflows/<entity>/<subresource>/<verb>.ts` for subresource actions (`class/field/add.ts` for the old `class.add-field`), and `workflows/<entity>/by-<qualifier>/<verb>.ts` for scoped queries (`comment/by-task/list.ts`). Reusable `WorkflowStep`s live in `src/workflow-steps/`, not inside `workflows/`.
 
 **package.json** — mirror management's shape:
 
@@ -186,9 +192,10 @@ export const tenant_schemas = {} as const;
 
 ## Step 8 — Workflows
 
-**`src/workflows/<entity>.<action>.ts`** — one file per workflow. Builder API:
+**`src/workflows/`** — one file per workflow in REST-style folders: `workflows/<entity>/<verb>.ts` for CRUD verbs (`create`, `get`, `list`, `update`, `delete`), `workflows/<entity>/<subresource>/<verb>.ts` for nested actions (`class/field/add.ts` from `class.add-field`), and `workflows/<entity>/by-<qualifier>/<verb>.ts` for scoped queries (`comment/by-task/list.ts` from `comment.list-by-task`). Builder API:
 
 ```ts
+// src/workflows/<entity>/<verb>.ts
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
 
@@ -203,7 +210,7 @@ export const <action> = Workflow.name("<entity>.<action>")
   });
 ```
 
-**`src/workflows/steps/fetch-<entity>.ts`** — reusable `WorkflowStep.name("fetch-<entity>")` for DB lookups. Throw on not-found.
+**`src/workflow-steps/fetch-<entity>.ts`** — reusable `WorkflowStep.name("fetch-<entity>")` for DB lookups. Throw on not-found.
 
 **Grouping**: compose per-entity named objects in module.ts. Management's rule: a group needs a **getter** only when its workflows are bound to a unit at construction time (e.g. `createOnboardTenant(this.#db)` injects the DB unit into `tenants.onboard`). When every workflow resolves its own deps from `ctx.db` at runtime, the group is a stateless `readonly` property. Default to `readonly`; use a getter only when you actually inject a stored unit reference.
 
