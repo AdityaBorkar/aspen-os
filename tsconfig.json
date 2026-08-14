@@ -32,7 +32,6 @@
     { "path": "./packages/constants" },
     { "path": "./packages/crm" },
     { "path": "./packages/dms" },
-    { "path": "./packages/drive" },
     { "path": "./packages/fleet" },
     { "path": "./packages/platform" },
     { "path": "./packages/hr" },

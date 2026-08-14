@@ -305,50 +305,6 @@ _Avoid_: Subscriber, Follower
 An append-only record of task actions: `task_created`, `task_updated`, `status_changed`, `assignee_added`, `assignee_removed`. Has `oldValue`, `newValue` (jsonb), `userId`, `taskId`.
 _Avoid_: Audit Trail, Change History
 
-### Drive Domain
-
-**Drive Folder**:
-A container for files and sub-folders with `name`, `path` (unique, hierarchical), `ownerId`, `parentId` (self-referential), `color`, `description`, `isTrashed`. Supports nesting up to a configurable max depth (default 20).
-_Avoid_: Directory, Container
-
-**Drive File**:
-A tracked file with `name`, `path` (unique), `storageKey` (S3 object key), `contentType`, `size`, `etag`, `version` (integer), `ownerId`, `folderId`, `isTrashed`. Supports versioning and soft-delete (trash).
-_Avoid_: Document, Asset
-
-**File Version**:
-A historical version of a Drive File with `version` number, `storageKey`, `contentType`, `size`, `etag`, `uploadedBy`. Old versions are pruned based on `maxVersions` config.
-_Avoid_: Revision, Snapshot
-
-**Label**:
-A color-coded tag with `name`, `color`, `isGlobal`, `ownerId`. Applied to files and folders via `DriveItemLabel` (polymorphic on `itemId`/`itemType`).
-_Avoid_: Tag, Category
-
-**Share**:
-A permission grant on a file or folder to a grantee (user or group) with `permission` (viewer/editor/owner), `granteeId`, `granteeType`, `sharedBy`, `expiresAt`. Permissions are inherited up the folder chain.
-_Avoid_: Permission, Access Grant
-
-**Public Link**:
-A shareable URL with a unique `token`, `permission` (view/edit), `password` (bcrypt-hashed), `maxViews`, `expiresAt`, `isActive`, `viewCount`. Access is logged.
-_Avoid_: Share Link, External URL
-
-**Access Log**:
-An append-only record of drive item access: `itemId`, `itemType`, `accessedBy`, `action`, `ip`, `userAgent`, `publicLinkId`.
-_Avoid_: Audit Log, Access Record
-
-**Trash**:
-A soft-delete state for files and folders. Trashed items retain their data but are excluded from normal listings. A scheduled cron (`0 3 * * *`) purges items older than `trashRetentionDays` (default 30).
-_Avoid_: Recycle Bin, Deleted Items
-
-> **Deprecated — superseded by DMS.** The Drive module's feature surface (folders, files, labels, public links, item shares, trash, and the path/access/archive/search/storage services) has been ported into `@aspen-os/dms` as the DMS item groups (`p.dms.files`, `p.dms.folders`, `p.dms.labels`, `p.dms.publicLinks`, `p.dms.shares`, `p.dms.trash`, `p.dms.driveSearch`) with `dms_*` tables (`dms_folder`, `dms_file`, `dms_label`, `dms_item_share`, `dms_public_link`, `dms_access_log`, `dms_file_version`). DMS is a superset of Drive; Drive is retained for migration only.
-
-**Storage Bridge**:
-A service that wraps the platform's `StorageUnit` to compute storage keys, upload/download objects, and manage signed URLs for drive files.
-_Avoid_: File Adapter, Storage Handler
-
-**Path Service**:
-A service that manages hierarchical folder/file paths, computes paths for new items, resolves paths, generates breadcrumbs, detects cycles, and cascades path updates on move/rename.
-_Avoid_: Path Resolver, Route Service
-
 ### HR Domain
 
 **Employee**:
@@ -399,7 +355,7 @@ _Avoid_: Contract Type, Employment Status
 
 **Document**:
 The central record of the DMS module — one uploaded file. Has `status` (`triaged`/`active`/`expired`/`deleted`), `version` (current), `tags`, `metadata` (jsonb), `fieldValues` (per-class, jsonb), optional `compression` override, optional `expiryDate`, `owner`, `uploadedBy`, `storageKey`. Never uploaded directly into the active set — always enters as `triaged`.
-_Avoid_: File, Asset, Drive File
+_Avoid_: File, Asset
 
 **Triage**:
 The mandatory first-class stage every Document passes through. Uploads land here regardless of captured fields; a document is not searchable, normally listable, or shareable until classified. The only exit is `classify()` (→ `active`). Can be pinned to the sidebar.
@@ -435,23 +391,23 @@ _Avoid_: Sharee, External Recipient, Address Book Entry
 
 **Share (DMS)**:
 A permission grant (`viewer`/`editor`) on a Document to a grantee — either a Contact (token-based access, no login required) or an internal User. Revoking, or removing the contact, invalidates access immediately.
-_Avoid_: External Link, Public Link (Drive), Access Grant
+_Avoid_: External Link, Access Grant (item groups have their own `itemShare`/`publicLink` grants)
 
 **Legal Hold**:
 An admin-placed flag (with mandatory reason) that blocks permanent deletion and auto-purge of a Document and stops version pruning. Released only by an admin.
 _Avoid_: Freeze, Guard, Retention Lock
 
 **Retention**:
-A per-class (or settings-default) period after which `deleted`/`expired` Documents are auto-purged. Purge is skipped for documents on an active Legal Hold. Distinct from Drive's Trash auto-purge (folder-aware, no holds).
+A per-class (or settings-default) period after which `deleted`/`expired` Documents are auto-purged. Purge is skipped for documents on an active Legal Hold. Distinct from the item groups' Trash auto-purge (folder-aware, no holds).
 _Avoid_: Retention Policy (informal), Archival Window, Deletion Schedule
 
 **Recycle Bin**:
-A read-mostly view over Documents with status `deleted` or `expired`. Restore (owner/admin) reactivates; permanent deletion is **admin-only** and blocked by an active Legal Hold. Distinct from Drive's Trash (auto-purge, no holds).
+A read-mostly view over Documents with status `deleted` or `expired`. Restore (owner/admin) reactivates; permanent deletion is **admin-only** and blocked by an active Legal Hold. Distinct from the item groups' Trash (auto-purge, no holds).
 _Avoid_: Trash, Deleted Items, Bin
 
-**Item (DMS — Drive superset)**:
-A file or folder managed by the DMS item groups (`p.dms.files`, `p.dms.folders`). Folders carry materialized paths with depth limits and cycle-safe moves; files are S3-backed with versioning. Labels, public links, and item shares apply polymorphically to `file`/`folder` items. Ported from the now-deprecated `@aspen-os/drive` module into `dms_*` tables (`dms_folder`, `dms_file`, `dms_file_version`, `dms_label`, `dms_item_label`, `dms_item_share`, `dms_public_link`, `dms_access_log`).
-_Avoid_: Drive Item, Drive File/Folder
+**Item (DMS)**:
+A file or folder managed by the DMS item groups (`p.dms.files`, `p.dms.folders`). Folders carry materialized paths with depth limits and cycle-safe moves; files are S3-backed with versioning. Labels, public links, and item shares apply polymorphically to `file`/`folder` items. This surface was originally ported from the `@aspen-os/drive` module — which has since been **removed from the repository** — into `dms_*` tables (`dms_folder`, `dms_file`, `dms_file_version`, `dms_label`, `dms_item_label`, `dms_item_share`, `dms_public_link`, `dms_access_log`). The associated services (`p.dms.access`, `p.dms.archive`, `p.dms.paths`, `p.dms.storage`, `p.dms.driveSearch`) are DMS-owned. See `sow/dms-consolidation.md`.
+_Avoid_: File/Folder as synonyms (the records entity is a `Document`), Drive
 
 **Activity Feed**:
 A per-entity chronological trail of DMS actions (upload, classify, version, share, delete, expire, restore, purge, hold), projected from the platform AuditUnit's `audit_log` — not a DMS-owned table, not PubSub events.
@@ -562,32 +518,32 @@ _Avoid_: Onboarding (that's the Tenant Status stage AFTER provisioning), Setup, 
       ├──────────────┬─────────────────────┬──────────────────────┬──────────────────────┬─────────────────┐
       ▼              ▼                     ▼                      ▼                      ▼                 ▼
 ┌──────────┐ ┌──────────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────────┐
-│Organizat.│ │   Compliance     │ │    Tasks     │ │    Drive     │ │     HR       │ │ Management Plane │
+│Organizat.│ │   Compliance     │ │    Tasks     │ │     DMS      │ │     HR       │ │ Management Plane │
 │  Module  │ │    Module        │ │   Module     │ │   Module     │ │   Module     │ │     Module       │
 │          │ │                  │ │              │ │              │ │ (conformant) │ │                  │
-│5 workflows│ │ 5 workflows     │ │ 11 workflows│ │ 6 workflows  │ │ ~250 methods │ │ 3 wf groups     │
-│7 tables  │ │ 3 services       │ │ 3 services   │ │ 5 services   │ │ 50 tables    │ │ 3 owned tables   │
-│11 events │ │ 3 tables         │ │ 17 tables    │ │ 8 tables     │ │ 43 events    │ │ 0 shadow tables  │
-│units:    │ │ 23 events        │ │ 10 events    │ │ 14 events    │ │ 2 crons      │ │ 16 events        │
+│5 workflows│ │ 5 workflows     │ │ 11 workflows│ │ 24 wf groups │ │ ~250 methods │ │ 3 wf groups     │
+│7 tables  │ │ 3 services       │ │ 3 services   │ │ 20 tables    │ │ 50 tables    │ │ 3 owned tables   │
+│11 events │ │ 3 tables         │ │ 17 tables    │ │ 40 events    │ │ 43 events    │ │ 0 shadow tables  │
+│units:    │ │ 23 events        │ │ 10 events    │ │ 13 ACL res.  │ │ 2 crons      │ │ 16 events        │
 │db, pubsub│ │ units:           │ │ units:       │ │ units:       │ │ units:       │ │ deps: organization│
-│          │ │ db, kvStore,     │ │ db, pubsub  │ │ db, storage, │ │ db, pubsub  │ │ units:           │
-│          │ │ pubsub           │ │              │ │ pubsub       │ │              │ │ db, auth, pubsub │
-│          │ │                  │ │              │ │              │ │              │ │                  │
-│          │ │ prepareInfra():  │ │              │ │ prepareInfra│ │ prepareInfra │ │ prepareInfra():  │
-│          │ │ schema push,     │ │              │ │ trash purge  │ │ 2 crons      │ │ schema push      │
-│          │ │ crons, handlers  │ │              │ │ cron (3 AM)  │ │              │ │                  │
+│          │ │ db, kvStore,     │ │ db, pubsub  │ │ db, auth,    │ │ db, pubsub  │ │ units:           │
+│          │ │ pubsub           │ │              │ │ pubsub,      │ │              │ │ db, auth, pubsub │
+│          │ │                  │ │              │ │ storage      │ │              │ │                  │
+│          │ │ prepareInfra():  │ │              │ │ 3 crons in   │ │ prepareInfra │ │ prepareInfra():  │
+│          │ │ schema push,     │ │              │ │ $prepareInfra│ │ 2 crons      │ │ schema push      │
+│          │ │ crons, handlers  │ │              │ │              │ │              │ │                  │
 └──────────┘ └──────────────────┘ └──────────────┘ └──────────────┘ └──────────────┘ └──────────────────┘
 
-Implemented: DMS (Document Management System) module — class-first records system,
-  now a superset of Drive: Triage → Classify → active; classes → required-field
-  validation + naming schema; org-wide Contacts sharing (contact + user grantees),
-  versioned documents, full-text/quick search, Recycle Bin with retention +
-  admin-only permanent delete + legal holds + expiry scanner, Activity Feed via
-  AuditUnit; plus the Drive feature surface (folders, files, labels, public links,
+Implemented: DMS (Document Management System) module — class-first records system
+  plus the free-form item filesystem: Triage → Classify → active; classes →
+  required-field validation + naming schema; org-wide Contacts sharing (contact +
+  user grantees), versioned documents, full-text/quick search, Recycle Bin with
+  retention + admin-only permanent delete + legal holds + expiry scanner, Activity
+  Feed via AuditUnit; plus the item surface (folders, files, labels, public links,
   item shares, trash) under `p.dms.files/.folders/.labels/.publicLinks/.shares/.trash`
   and `p.dms.driveSearch`. Reuses StorageUnit (own key prefix `dms/...`), AuthUnit,
-  PubSub (expiry/auto-purge/item-purge crons), AuditUnit. 20 `dms_*` tables, all
-  tenant schemas. No module deps. `@aspen-os/drive` is deprecated for migration.
+  PubSub (expiry-scan / auto-purge / item-auto-purge crons), AuditUnit. 20 `dms_*`
+  tables, all tenant schemas. No module deps. 24 workflow groups, 40 events.
 
 Stubs (package.json only — no source): accounting, crm, fleet, inventory, reports, pharmacy
 ```
@@ -595,8 +551,8 @@ Stubs (package.json only — no source): accounting, crm, fleet, inventory, repo
 ## Known Gaps
 
 1. **`RoleUnassignedEvent` missing `roleName`** — unlike `RoleAssignedEvent` which has `{ roleName, userId }`, the unassigned event only has `{ userId }`.
-2. **No DB-level foreign key constraints in domain modules** — all cross-table references in compliance, tasks, drive, organization, management, and hr are logical (soft FKs by naming convention), not enforced by the database.
-3. **DMS is fully implemented and is a superset of Drive** — the `@aspen-os/dms` module (see `sow/dms.md`) provides class-first document management plus the full Drive feature surface (folders, files, labels, public links, item shares, trash) under `p.dms.files/.folders/.labels/.publicLinks/.shares/.trash` and `p.dms.driveSearch`. `@aspen-os/drive` is deprecated and retained only for data migration.
+2. **No DB-level foreign key constraints in domain modules** — all cross-table references in compliance, tasks, organization, management, and hr are logical (soft FKs by naming convention), not enforced by the database.
+3. **`@aspen-os/drive` has been removed from the repository** — the package, its docs source, and its workspace reference are deleted. Its file/folder/label/public-link/share/trash surface lives on inside `@aspen-os/dms` as the item groups (`p.dms.files/.folders/.labels/.publicLinks/.shares/.trash`, `p.dms.driveSearch`, plus the `access`/`archive`/`paths`/`storage` services). This was Phase 1 of `sow/dms-consolidation.md`; Phases 2–7 (unified `file` entity, labels replacing tags, unified sharing/trash, term consolidation, docs) remain unimplemented — the DMS still carries the dual `document`/`item-file` surface and the `item-`/`tag`/`view` terminology.
 4. **`SingleTenantPlatform` and `SharedTenantPlatform` are EXPERIMENTAL** — both constructors emit `console.warn("... Architecture is currently EXPERIMENTAL")`. `IsolatedTenantPlatform` does not warn.
 5. **`IsolatedTenantConfig` has no `resolver` field** — a dummy resolver (`list: async () => []`, `resolve: async (id) => id`) is constructed inline in `IsolatedTenantPlatform.create()` instead of accepting a real `TenantResolver` via config.
 6. **`ManagementPlaneConfig` is `undefined`** — the provisioning workflow expects a richer config (`tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`) but the type hasn't been defined yet.

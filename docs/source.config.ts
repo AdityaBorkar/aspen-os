@@ -29,11 +29,6 @@ export const hr = defineDocs({
   docs,
 });
 
-export const drive = defineDocs({
-  dir: `../packages/drive/docs`,
-  docs,
-});
-
 export const dms = defineDocs({
   dir: `../packages/dms/docs`,
   docs,

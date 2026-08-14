@@ -478,7 +478,9 @@ that logic to `$prepareTenant()`:
 - **Compliance**: `ReminderEngine.registerSchedules()`, `ReminderEngine.registerHandlers()`,
   `ObligationGenerator.registerHandler()`, `EventBridge.registerSubscriptions()` — all move to
   `$prepareTenant()`.
-- **Drive**: The trash purge cron subscription moves to `$prepareTenant()`.
+- **DMS**: The expiry-scan, auto-purge, and item-auto-purge cron subscriptions move to
+  `$prepareTenant()` (DMS replaced the removed `@aspen-os/drive` module; its trash-purge cron
+  is now `dms:item-auto-purge`).
 - **Other modules**: If they have no `$prepare()` cron/subscriptions, they don't need
   `$prepareTenant()`.
 
@@ -531,7 +533,7 @@ export class PubSubUnit {
 - **Control-plane pg-boss**: Created from `db.config` (the control-plane DB). Used for
   platform-level events (e.g., `tenant:provisioned`). Always present.
 - **Per-tenant pg-boss**: Lazily created from `resolver.resolve(tenantId)`. Used for
-  tenant-level events (e.g., `task:created`, `drive:folder_created`).
+  tenant-level events (e.g., `task:created`, `dms:item_folder_created`).
 
 ### 5.5 Routing
 
@@ -666,7 +668,7 @@ This includes:
 
 - **Platform tables**: `user`, `session`, `account`, `verification` (auth), `logs`,
   `file_metadata` (storage), `kv_store`.
-- **Domain module tables**: all tables in organization, compliance, tasks, drive, hr.
+- **Domain module tables**: all tables in organization, compliance, tasks, dms, hr.
 
 Exception: better-auth's internal tables (`user`, `session`, `account`, `verification`) may not
 accept a custom `tenant_id` column easily. In isolated mode, auth tables live only in the
@@ -714,7 +716,7 @@ export const task = pgTable("task", {
 
 ### 7.5 Unique Constraints
 
-Tables with unique constraints (e.g., `driveFolder.path`, `organization.slug`,
+Tables with unique constraints (e.g., `dmsFolder.path`, `organization.slug`,
 `project.key`) need composite uniques that include `tenant_id`:
 
 ```ts
@@ -724,7 +726,7 @@ path: text().unique();
 // After
 path: (text(),
   // In table options:
-  uniqueIndex("drive_folder_path_unique").on(t.path, t.tenantId));
+  uniqueIndex("dms_folder_path_unique").on(t.path, t.tenantId));
 ```
 
 In single-tenant mode, this is equivalent to the old unique constraint (all rows have the same
@@ -896,12 +898,12 @@ The Recruiter app is single-tenant today. To migrate:
 
 ### 14.2 Existing Domain Modules
 
-Each domain module (organization, compliance, tasks, drive, hr) needs:
+Each domain module (organization, compliance, tasks, dms, hr) needs:
 
 1. Add `tenant_id` column to every table in `db-schema.ts`.
 2. Update unique constraints to include `tenant_id`.
 3. Move cron/subscription registration from `$prepare()` to `$prepareTenant()` (for modules
-   that have them: compliance, drive).
+   that have them: compliance, dms).
 4. No workflow code changes — the stable wrapper handles per-request db resolution.
 
 ### 14.3 New Multi-Tenant Apps
@@ -965,7 +967,7 @@ A new multi-tenant app:
 
 ### Phase 7: Domain Module Migration
 
-- Add `tenant_id` column to all tables in organization, compliance, tasks, drive, hr.
+- Add `tenant_id` column to all tables in organization, compliance, tasks, dms, hr.
 - Update unique constraints.
 - Move cron/subscription registration to `$prepareTenant()` (compliance, drive).
 

@@ -2,6 +2,8 @@
 
 > Scope of Work to reduce redundancy in `@aspen-os/dms` and consolidate the module into a single, simple document/files surface. The free-form filesystem (folders, paths) and the class-first records system (triage, classes, versions) collapse onto **one `file` entity**; Drive is removed; tags, dual pins, split events/enums, and duplicated sharing/trash/search surfaces are eliminated. **No existing feature is dropped** — features are merged and renamed, not deleted.
 
+> **Status — as of Aug 2026:** **Phase 1 (remove `@aspen-os/drive`) is DONE.** The `packages/drive` package, its docs source, and its workspace reference are deleted; `CONTEXT.md`, `BOUNDED_CONTEXTS.md`, `DOMAIN_MODEL.md`, and `sow/dms.md` §13 have been rewritten DMS-only; `packages/inventory/tsconfig.json` no longer points at drive's types dir. (Remaining reference sweep: `AGENTS.md` and `packages/dms/docs/` still use drive/superset framing — see §1.3.) **Phases 2–7 are still OPEN** — the module still carries the dual `document`/`item-file` surface, `item-`/`tag`/`view` terminology, split sharing/trash surfaces, and split pubsub/enum files. The "current state" facts below (workflow groups, tables, events) are accurate as of that date.
+
 ## Overview
 
 `@aspen-os/dms` today carries **two overlapping subsystems**:
@@ -15,19 +17,19 @@ This consolidation removes the repetition: one `file`, one label mechanism, one 
 
 ### Confirmed Decisions
 
-| #   | Decision                  | Outcome                                                                                                                                                                                                                                                           |
-| --- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Drive package             | **Delete `@aspen-os/drive`.** Its surface stays in DMS; DMS is the single module.                                                                                                                                                                                 |
-| 2   | `item-file` == `document` | They are the same thing. **One unified `dms_file` table** (folder/path + class/triage/versions + lifecycle on a single row). `file` is the primary term; `document` disappears.                                                                                   |
-| 3   | File lifecycle            | **Single `status` enum** on `dms_file`: `triaged` / `active` / `expired` / `trashed`. Trash covers both the records recycle bin and the filesystem trash — powering the merged trash module. Folders keep their own `isTrashed` (they are containers, not files). |
-| 4   | Triage gate               | Files uploaded **into a folder are `active` immediately**; the triage gate applies only when a file is uploaded for classification into a class. The filesystem stays free-form.                                                                                  |
-| 5   | `item-` prefix            | **Removed from the entire module.** Polymorphic joins (`dms_item_label`, `dms_item_share`) target file **or** folder, so the generic term **`entity`** replaces `item` (`dms_entity_label`, `dms_entity_share`, `dms_entity_type` enum).                          |
-| 6   | Tags vs labels            | **Tags are removed; labels stay.** A file can carry multiple labels (`dms_label` + polymorphic `dms_entity_label`). `dms_tag`, `dms_document_tag`, and `dms_file.tags` (jsonb) are dropped.                                                                       |
-| 7   | Sharing                   | **`share` + `item-share` + `public-link` merge** into one sharing module (`dms_share` grants to `user`/`group`/`contact` + `dms_public_link`), surfaced as a single `shares` group.                                                                               |
-| 8   | Trash                     | **`bin` + `item-trash` merge** into one `trash` module over `status = trashed                                                                                                                                                                                     | expired` files, trashed folders, retention auto-purge, and admin-only permanent delete (hold-aware). |
-| 9   | Views                     | **`view` is renamed `file_views`** everywhere (table `dms_file_view`, group `fileViews`, schemas, events, pin item type).                                                                                                                                         |
-| 10  | Pins                      | One mechanism: the generic `dms_pin` table. `dms_view.isPinned` and `view.pin`/`view.unpin` are dropped; view pins route through `p.dms.pins` with item type `file_view`.                                                                                         |
-| 11  | SOW location              | This new file `sow/dms-consolidation.md`; the original `sow/dms.md` stays as the historical design record.                                                                                                                                                        |
+| #   | Decision                  | Outcome                                                                                                                                                                                                                                                           | Status                                                                                               |
+| --- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| 1   | Drive package             | **Delete `@aspen-os/drive`.** Its surface stays in DMS; DMS is the single module.                                                                                                                                                                                 | ✅ Done (Phase 1)                                                                                    |
+| 2   | `item-file` == `document` | They are the same thing. **One unified `dms_file` table** (folder/path + class/triage/versions + lifecycle on a single row). `file` is the primary term; `document` disappears.                                                                                   | ⏳ Open                                                                                              |
+| 3   | File lifecycle            | **Single `status` enum** on `dms_file`: `triaged` / `active` / `expired` / `trashed`. Trash covers both the records recycle bin and the filesystem trash — powering the merged trash module. Folders keep their own `isTrashed` (they are containers, not files). | ⏳ Open                                                                                              |
+| 4   | Triage gate               | Files uploaded **into a folder are `active` immediately**; the triage gate applies only when a file is uploaded for classification into a class. The filesystem stays free-form.                                                                                  | ⏳ Open                                                                                              |
+| 5   | `item-` prefix            | **Removed from the entire module.** Polymorphic joins (`dms_item_label`, `dms_item_share`) target file **or** folder, so the generic term **`entity`** replaces `item` (`dms_entity_label`, `dms_entity_share`, `dms_entity_type` enum).                          | ⏳ Open                                                                                              |
+| 6   | Tags vs labels            | **Tags are removed; labels stay.** A file can carry multiple labels (`dms_label` + polymorphic `dms_entity_label`). `dms_tag`, `dms_document_tag`, and `dms_file.tags` (jsonb) are dropped.                                                                       | ⏳ Open                                                                                              |
+| 7   | Sharing                   | **`share` + `item-share` + `public-link` merge** into one sharing module (`dms_share` grants to `user`/`group`/`contact` + `dms_public_link`), surfaced as a single `shares` group.                                                                               | ⏳ Open                                                                                              |
+| 8   | Trash                     | **`bin` + `item-trash` merge** into one `trash` module over `status = trashed                                                                                                                                                                                     | expired` files, trashed folders, retention auto-purge, and admin-only permanent delete (hold-aware). | ⏳ Open |
+| 9   | Views                     | **`view` is renamed `file_views`** everywhere (table `dms_file_view`, group `fileViews`, schemas, events, pin item type).                                                                                                                                         | ⏳ Open                                                                                              |
+| 10  | Pins                      | One mechanism: the generic `dms_pin` table. `dms_view.isPinned` and `view.pin`/`view.unpin` are dropped; view pins route through `p.dms.pins` with item type `file_view`.                                                                                         | ⏳ Open                                                                                              |
+| 11  | SOW location              | This new file `sow/dms-consolidation.md`; the original `sow/dms.md` stays as the historical design record.                                                                                                                                                        | ⏳ Open                                                                                              |
 
 ---
 
@@ -61,17 +63,19 @@ Roughly **40%** of DMS by volume (~2,300 of ~5,600 workflow LOC, ~1,000 of ~2,30
 
 ### 1.3 Cross-repo references to `@aspen-os/drive`
 
-| Location                                                                                                     | Change needed                                                                |
-| ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| `packages/drive/` (whole package: `src/`, `docs/`, `README.md`, `package.json`, `tsconfig.json`, `.output/`) | Delete                                                                       |
-| Root `tsconfig.json` line 35 (`{ "path": "./packages/drive" }`)                                              | Remove reference                                                             |
-| `docs/source.config.ts` lines 32–33 (`defineDocs({ dir: "../packages/drive/docs" })`)                        | Remove docs source                                                           |
-| `packages/inventory/tsconfig.json` line 3 (`declarationDir: "../../.local/types/drive"`)                     | **Copy-paste bug** — points at drive's types dir; fix to inventory's own dir |
-| `CONTEXT.md` (Drive Domain §~308–350, deprecation note §342, DMS superset notes §452, §565, §582–590, §599)  | Rewrite to DMS-only                                                          |
-| `AGENTS.md` (fully-implemented list §9, key dirs §72, module pattern §137/§143/§145, current state §234)     | Remove drive mentions                                                        |
-| `.working-docs/sow/dms.md` §13 (Relationship to Drive)                                                       | Rewrite — Drive no longer exists                                             |
-| `packages/dms/docs/overview.mdx` (deprecation/superset narrative, `(Drive)` group labels)                    | Rewrite DMS-only                                                             |
-| DMS docs (`access-control.mdx`, `db-schemas.mdx`, `events.mdx`, `workflows.mdx`)                             | Align to the consolidated model (§4)                                         |
+> **All rows in this table are DONE** (Phase 1, executed Aug 2026). Retained as the checklist record.
+
+| Location                                                                                                     | Change needed                                                                | Status                                           |
+| ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- | ------------------------------------------------ |
+| `packages/drive/` (whole package: `src/`, `docs/`, `README.md`, `package.json`, `tsconfig.json`, `.output/`) | Delete                                                                       | ✅ Done                                          |
+| Root `tsconfig.json` line 35 (`{ "path": "./packages/drive" }`)                                              | Remove reference                                                             | ✅ Done                                          |
+| `docs/source.config.ts` lines 32–33 (`defineDocs({ dir: "../packages/drive/docs" })`)                        | Remove docs source                                                           | ✅ Done                                          |
+| `packages/inventory/tsconfig.json` line 3 (`declarationDir: "../../.local/types/drive"`)                     | **Copy-paste bug** — points at drive's types dir; fix to inventory's own dir | ✅ Done                                          |
+| `CONTEXT.md` (Drive Domain §~308–350, deprecation note §342, DMS superset notes §452, §565, §582–590, §599)  | Rewrite to DMS-only                                                          | ✅ Done                                          |
+| `AGENTS.md` (fully-implemented list §9, key dirs §72, module pattern §137/§143/§145, current state §234)     | Remove drive mentions                                                        | ⏳ Open — still references drive as "deprecated" |
+| `.working-docs/sow/dms.md` §13 (Relationship to Drive)                                                       | Rewrite — Drive no longer exists                                             | ✅ Done                                          |
+| `packages/dms/docs/overview.mdx` (deprecation/superset narrative, `(Drive)` group labels)                    | Rewrite DMS-only                                                             | ⏳ Open — still frames DMS as a Drive superset   |
+| DMS docs (`access-control.mdx`, `db-schemas.mdx`, `events.mdx`, `workflows.mdx`)                             | Align to the consolidated model (§4)                                         | ⏳ Open (Phase 7)                                |
 
 No code outside `packages/dms` imports `@aspen-os/dms` or `@aspen-os/drive`; `scripts/build.ts` auto-discovers packages (no hardcoded list). The refactor is confined to `packages/dms` plus the reference cleanup above.
 
@@ -139,14 +143,16 @@ p.dms.archive     createArchive, processArchiveJob
 
 ---
 
-## 3. Phase 1 — Remove `@aspen-os/drive`
+## 3. Phase 1 — Remove `@aspen-os/drive` ✅ COMPLETE
 
-1. `rm -rf packages/drive` (source, docs, `README.md`, `package.json`, `tsconfig.json`, `.output/`, stale `.local/types/drive`).
-2. Root `tsconfig.json` — remove `{ "path": "./packages/drive" }` from `references`.
-3. `docs/source.config.ts` — remove the `drive` docs source.
-4. `packages/inventory/tsconfig.json` — fix `declarationDir` (currently `../../.local/types/drive`) to the inventory package's own dir.
-5. `bun install` to refresh the workspace graph / lockfile.
-6. Documentation — rewrite `CONTEXT.md`, `AGENTS.md`, `.working-docs/sow/dms.md` §13, and `packages/dms/docs/overview.mdx` so DMS is described as the single module with **no** Drive/deprecation framing.
+> Executed Aug 2026. All six steps below are done.
+
+1. ~~`rm -rf packages/drive` (source, docs, `README.md`, `package.json`, `tsconfig.json`, `.output/`, stale `.local/types/drive`).~~
+2. ~~Root `tsconfig.json` — remove `{ "path": "./packages/drive" }` from `references`.~~
+3. ~~`docs/source.config.ts` — remove the `drive` docs source.~~
+4. ~~`packages/inventory/tsconfig.json` — fix `declarationDir` (currently `../../.local/types/drive`) to the inventory package's own dir.~~
+5. ~~`bun install` to refresh the workspace graph / lockfile.~~
+6. ~~Documentation — rewrite `CONTEXT.md`, `AGENTS.md`, `.working-docs/sow/dms.md` §13, and `packages/dms/docs/overview.mdx` so DMS is described as the single module with **no** Drive/deprecation framing.~~
 
 ---
 
@@ -259,15 +265,15 @@ Mechanical rename pass across `packages/dms` after the functional merges:
 
 ## 10. Effort Estimate (Relative)
 
-| Area                                                                             | Complexity  | Notes                                                              |
-| -------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------ |
-| Remove `@aspen-os/drive` + reference sweep                                       | Low         | Deletion + `inventory/tsconfig.json` fix; docs rewrites.           |
-| Unified `file` entity (schema, status, versions, storage keys, triage semantics) | **High**    | The core merge; touches most workflows/services/schemas.           |
-| Labels replace tags                                                              | Low–Medium  | Drop tag tables/columns/events; route label apply; search updates. |
-| Unified sharing (+ public links)                                                 | Medium–High | One share table + grantee union; permission model gains `owner`.   |
-| Unified trash (bin + item-trash)                                                 | Medium      | Status-based listing; folder subtrees; one purge service/cron.     |
-| Term consolidation (`item-` removal, `file_views`, `entity`, surface merges)     | Medium      | Mechanical but wide; mechanical renames are the risk-free bulk.    |
-| Docs + verification                                                              | Medium      | All DMS docs rewritten; grep sweeps + build gates.                 |
+| Area                                                                             | Complexity  | Notes                                                                           |
+| -------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------- |
+| Remove `@aspen-os/drive` + reference sweep                                       | Low         | Deletion + `inventory/tsconfig.json` fix; docs rewrites. **✅ Done (Phase 1).** |
+| Unified `file` entity (schema, status, versions, storage keys, triage semantics) | **High**    | The core merge; touches most workflows/services/schemas.                        |
+| Labels replace tags                                                              | Low–Medium  | Drop tag tables/columns/events; route label apply; search updates.              |
+| Unified sharing (+ public links)                                                 | Medium–High | One share table + grantee union; permission model gains `owner`.                |
+| Unified trash (bin + item-trash)                                                 | Medium      | Status-based listing; folder subtrees; one purge service/cron.                  |
+| Term consolidation (`item-` removal, `file_views`, `entity`, surface merges)     | Medium      | Mechanical but wide; mechanical renames are the risk-free bulk.                 |
+| Docs + verification                                                              | Medium      | All DMS docs rewritten; grep sweeps + build gates.                              |
 
 ---
 

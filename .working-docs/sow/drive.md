@@ -1,5 +1,7 @@
 # Drive Module — Scope of Work
 
+> **OBSOLETE — module removed.** `@aspen-os/drive` was deleted from the repository in Aug 2026 (Phase 1 of `sow/dms-consolidation.md`). This SOW is retained only as a historical design record of the module that was built and then ported into `@aspen-os/dms`. The feature surface described here (folders, files, labels, public links, shares, trash, path/access/archive/search/storage services) now lives inside DMS as the item groups (`p.dms.files/.folders/.labels/.publicLinks/.shares/.trash`, `p.dms.driveSearch`, `p.dms.access/.archive/.paths/.storage`) over the `dms_*` tables. See `sow/dms.md` and `sow/dms-consolidation.md`.
+
 > Scope of Work for a Google Drive-style file management module built on the `@aspen-os/platform`.
 
 ## Overview

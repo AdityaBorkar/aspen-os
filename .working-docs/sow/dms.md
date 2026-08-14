@@ -4,9 +4,9 @@
 
 ## Overview
 
-The DMS module provides records-oriented document management for organizations that must index every document before it becomes usable. Whereas the Drive module is a free-form filesystem (folders, paths, versions), DMS is **class-first**: every upload lands in a **Triage** stage and becomes an active **Document** only after it is assigned to a **Document Class** whose mandatory fields have been filled. All binary storage is delegated to the platform's StorageUnit; DMS owns the indexing semantics — classes, fields, tags, metadata, versions, custom views, contacts, sharing, search, retention, and the recycle bin.
+The DMS module provides records-oriented document management for organizations that must index every document before it becomes usable. DMS is **class-first**: every upload lands in a **Triage** stage and becomes an active **Document** only after it is assigned to a **Document Class** whose mandatory fields have been filled. All binary storage is delegated to the platform's StorageUnit; DMS owns the indexing semantics — classes, fields, tags, metadata, versions, custom views, contacts, sharing, search, retention, and the recycle bin. (DMS also carries the free-form item filesystem — folders, files, labels, public links, shares, trash — ported from the removed `@aspen-os/drive` module; see §13.)
 
-The module is implemented **separately from `@aspen-os/drive`**. It shares the StorageUnit and AuthUnit but owns its own tables, lifecycle, and semantics (see §13).
+The module is the sole document-management module in the repository. It shares the StorageUnit and AuthUnit with the platform but owns its own tables, lifecycle, and semantics (see §13 — the former `@aspen-os/drive` module has been removed; its filesystem surface now lives inside DMS as the item groups).
 
 ### Key Architectural Decisions
 
@@ -255,7 +255,7 @@ Smart search over document metadata and class fields, scoped to the caller's vis
 - **Promote to view**: `createView` accepts the query + options from a search as its initial filters (including a `search` condition), so a good search becomes a persisted sidebar view in one step.
 - **Scope & visibility**: search only returns documents the caller may access — owner, grants to the caller, org-wide for `dms:admin`, plus any `active` document shared to a contact the caller manages (match by `linkedUser`).
 
-**Implementation**: a `tsvector` on the Document row (name + tags + metadata + fieldValues of the current version) with a GIN index, generated/maintained by the search service. Content (OCR) is explicitly out of scope (§14.4) — the index covers catalogued fields only, kept distinct from the Drive module's own search.
+**Implementation**: a `tsvector` on the Document row (name + tags + metadata + fieldValues of the current version) with a GIN index, generated/maintained by the search service. Content (OCR) is explicitly out of scope (§14.4) — the index covers catalogued fields only, distinct from the item filesystem's own search (`p.dms.driveSearch`).
 
 ---
 
@@ -501,15 +501,17 @@ Audited action trail, per document (and, optionally, per contact/class).
 | **DB Unit**      | Drizzle ORM for all metadata tables.                                              |
 | **Audit Unit**   | Activity feed (§10), hold/reason audit entries (§6.3), deletion provenance.       |
 
-**No module dependencies.** Deliberately independent of `@aspen-os/drive` (see §13). Optional future integration points: `@aspen-os/organization` sharing contacts-by-link, `@aspen-os/compliance` for expiry-driven verification.
+**No module dependencies.** Deliberately independent of any other module. Optional future integration points: `@aspen-os/organization` sharing contacts-by-link, `@aspen-os/compliance` for expiry-driven verification.
 
 ---
 
 ## 13. Relationship to the Drive Module
 
-- **Separate implementation.** DMS owns its own tables (`dms_*`), storage-key scheme, and lifecycle. It does not import or extend Drive entities/folders/paths.
-- **Rationale.** Drive is a free-form explorer with folders, versions, labels, and public links. DMS is a records system: schema-enforced indexing (classes → required fields), a mandatory triage gate, contacts as sharing handles, retention/legal holds, and an expiry-driven recycle bin. Intertwining them would couple the explorer's loose semantics to the records system's invariants, and would drag DMS behind Drive's path-cascade machinery.
-- **Shared platform, not shared tables.** Both use StorageUnit (distinct key prefixes — `dms/...` vs Drive), AuthUnit, PubSub, DB, and Audit units. If a future need emerges (e.g., Drive-style previews inside DMS, or DMS documents exposed in Drive), that is an explicit integration feature, not accidental coupling.
+> **Drive no longer exists.** `@aspen-os/drive` was **removed from the repository** in Aug 2026 (Phase 1 of `sow/dms-consolidation.md`). This section is retained as a historical record.
+
+- **The Drive feature surface now lives inside DMS.** Drive's free-form filesystem (folders, files, labels, public links, item shares, trash, path/access/archive/search/storage services) was ported into DMS as the **item groups** — `p.dms.files`, `p.dms.folders`, `p.dms.labels`, `p.dms.publicLinks`, `p.dms.shares`, `p.dms.trash`, `p.dms.driveSearch`, plus `p.dms.access`/`archive`/`paths`/`storage` — backed by the `dms_folder`, `dms_file`, `dms_file_version`, `dms_label`, `dms_item_label`, `dms_item_share`, `dms_public_link`, and `dms_access_log` tables.
+- **DMS is the single document-management module.** The class-first records system (Triage → Classify → active; classes, versions, contacts, holds, retention, bin, views, activity) and the ported filesystem coexist under `@aspen-os/dms`. The redundancy this creates (`document` vs `item-file`, three sharing surfaces, two trash surfaces, tags vs labels) is the subject of `sow/dms-consolidation.md` (Phases 2–7, still open).
+- **Shared platform, distinct tables.** Both surfaces use StorageUnit (distinct key prefixes — `dms/...` for records, `dms/...` item keys), AuthUnit, PubSub, DB, and Audit units.
 
 ---
 

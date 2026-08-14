@@ -64,15 +64,15 @@
 │  └───────────────┘  └───────────────────┘  │ units: db,     │   │
 │                                            │ kvStore, pubsub│   │
 │  ┌───────────────┐  ┌───────────────┐     └───────────────┘   │
-│  │ Tasks         │  │ Drive         │     ┌───────────────┐   │
-│  │ Module        │  │ Module        │     │ HR Module     │   │
-│  │ 11 workflows  │  │ 6 workflows   │     │ (conformant)  │   │
-│  │ 3 services    │  │ 5 services    │     │ ~250 methods  │   │
-│  │ 17 tables     │  │ 8 tables      │     │ 50 tables     │   │
-│  │ 10 events     │  │ 14 events     │     │ 43 events     │   │
-│  │ units:        │  │ units:        │     │ 2 crons       │   │
-│  │  db, pubsub   │  │  db, storage, │     │ units:        │   │
-│  │               │  │  pubsub       │     │  db, pubsub   │   │
+│  │ Tasks         │  │ DMS Module    │     ┌───────────────┐   │
+│  │ Module        │  │ 24 wf groups  │     │ HR Module     │   │
+│  │ 11 workflows  │  │ 20 tables     │     │ (conformant)  │   │
+│  │ 3 services    │  │ 40 events     │     │ ~250 methods  │   │
+│  │ 17 tables     │  │ 13 ACL res.   │     │ 50 tables     │   │
+│  │ 10 events     │  │ units:        │     │ 43 events     │   │
+│  │ units:        │  │ db, auth,     │     │ 2 crons       │   │
+│  │  db, pubsub   │  │ pubsub+storage│     │ units:        │   │
+│  │               │  │               │     │  db, pubsub   │   │
 │  └───────────────┘  └───────────────┘     └───────────────┘   │
 │  ┌───────────────────────────┐                                   │
 │  │ Management Plane          │                                   │
@@ -91,11 +91,11 @@
 │  (package.json only — no source)                                 │
 └─────────────────────────────────────────────────────────────────┘
 
-> Workflow counts: figures like "11 workflows" (tasks) / "6 workflows" (drive)
-> / "5 workflows" (organization, compliance) reflect legacy grouped-workflow
-> counts; the modules now follow the one-file-per-action layout
-> (`workflows/<entity>.<action>.ts`), so per-action file counts are much higher.
-> HR (fully conformant) exposes ~250 workflow methods.
+> Workflow counts: figures like "11 workflows" (tasks) / "5 workflows" (organization,
+> compliance) reflect legacy grouped-workflow counts; the modules now follow the
+> one-file-per-action layout (`workflows/<entity>.<action>.ts`), so per-action file
+> counts are much higher. HR (fully conformant) exposes ~250 workflow methods;
+> DMS exposes 24 workflow groups (~136 members).
 
 ┌─────────────────────────────────────────────────────────────────┐
 │                     CLIENT FRAMEWORK                             │
@@ -353,22 +353,26 @@ SingleTenantPlatform.create(config, [organization, tasks])
 
 **Config**: `TaskModuleConfig = { enableNotifications?: boolean }`
 
-### 14. Downstream: Drive Module → Platform
+### 14. Downstream: DMS Module → Platform
 
-**Relationship**: Drive module implements the `Module` interface and receives `{ db, storage, pubsub }` via `$initialize(units)`.
+**Relationship**: DMS module implements the `Module` interface and receives `{ db, auth, pubsub, storage }` via `$initialize(units)` (stores `#db` + `#pubsub`, wires storage via `setDmsStorage()`; `auth` is type-required but unused).
 
-**Structure** (`packages/drive/`):
+**Structure** (`packages/dms/`):
 
-- `Drive.create(config?)` — factory that returns a Module instance
-- 6 workflows: `FileWorkflow`, `FolderWorkflow`, `LabelWorkflow`, `ShareWorkflow`, `PublicLinkWorkflow`, `TrashWorkflow`
-- 5 services: `AccessService`, `ArchiveService`, `PathService`, `SearchService`, `StorageBridge` — all wired as readonly grouped accessor objects on the module class
-- 8 database tables (all tenant_schemas): `drive_folder`, `drive_file`, `drive_file_version`, `drive_label`, `drive_item_label`, `drive_share`, `drive_public_link`, `drive_access_log`
-- 14 domain events published via PubSub
-- `$prepareInfra()` — returns declarative infra (db schemas, events)
-- `$prepareRuntime()` — registers trash purge cron (`0 3 * * *`) on topic `drive:auto-purge`
-- ACL is empty (`defineAcl({})`)
+- `Dms.create(config?)` — factory that returns a Module instance; `$config: Required<DmsModuleConfig>` (10 settings with defaults: `allowedContentTypes`, `defaultAutoPurgeEveryHours`, `defaultCompression`, `defaultDownloadLinkExpiry`, `defaultRetentionDays`, `maxDownloadLinkExpiry`, `maxFileSize`, `maxNestingDepth`, `maxVersions`, `trashRetentionDays`)
+- `$name = "dms"`, `$dependencies = []` — no module deps
+- 24 workflow groups (~136 members): `activity`, `archive`, `bin`, `classes`, `contacts`, `documentShares`, `documents`, `driveSearch`, `files`, `folders`, `holds`, `labels`, `paths`, `pins`, `publicLinks`, `search`, `settings`, `shares`, `storage`, `trash`, `triage`, `versions`, `views`, `access`
+- 14 services: `classify-service`, `compression-service`, `condition-service`, `expiry-scanner`, `item-access-service`, `item-archive-service`, `item-path-service`, `item-purge-service`, `item-search-service`, `item-storage-bridge`, `purge-service`, `search-service`, `settings-service`, `storage-bridge`; 9 workflow-steps (`fetch-*`)
+- 20 database tables (all tenant_schemas): `dms_folder`, `dms_file`, `dms_file_version`, `dms_label`, `dms_item_label`, `dms_item_share`, `dms_public_link`, `dms_access_log`, `dms_document`, `dms_document_class`, `dms_class_field`, `dms_document_version`, `dms_contact`, `dms_share`, `dms_legal_hold`, `dms_tag`, `dms_document_tag`, `dms_view`, `dms_pin`, `dms_setting`
+- 40 domain events across 6 maps (`CLASS_EVENTS`, `CONTACT_EVENTS`, `DOCUMENT_EVENTS`, `ITEM_EVENTS`, `SHARE_EVENTS`, `VIEW_EVENTS`) published via PubSub
+- 13 ACL resources: `classField`, `contact`, `document`, `file`, `folder`, `itemShare`, `label`, `legalHold`, `pin`, `publicLink`, `setting`, `share`, `view`
+- `$prepareInfra()` — returns declarative infra (db schemas, acl, events)
+- `$prepareRuntime()` — registers 3 cron schedules + handlers: `dms:expiry-scan` (`5 0 * * *`), `dms:auto-purge` (`30 3 * * *`), `dms:item-auto-purge` (`0 3 * * *`); `$cleanup()` unregisters them
+- Audit-driven Activity Feed: document/item activity is written inline to the platform's `AuditUnit` (`audit_log`), queried via `ctx.audit.query()`
 
-**Config**: `DriveModuleConfig = { allowedContentTypes?, maxFileSize?, maxNestingDepth?, maxVersions?, trashRetentionDays?, ... }`
+**Lineage**: DMS is the sole document-management module. The `@aspen-os/drive` package was **removed** (Phase 1 of `sow/dms-consolidation.md`); its free-form filesystem surface lives on inside DMS as the item groups (`p.dms.files/.folders/.labels/.publicLinks/.shares/.trash` + `driveSearch`/`access`/`archive`/`paths`/`storage`). The consolidation's Phases 2–7 (unified `file` entity, labels replacing tags, unified sharing/trash, term consolidation) are still pending — the module still carries the dual `document`/`item-file` surface.
+
+**Config**: `DmsModuleConfig` (all optional; defaults above)
 
 ### 15. Downstream: HR Module → Platform (fully conformant)
 
@@ -469,7 +473,7 @@ AuthWorkflow → pubsub.publish("user:created", { user }) → pg-boss topic
 OrganizationWorkflow → pubsub.publish("branch:created", { branch }) → pg-boss topic
 ComplianceDocumentWorkflow → pubsub.publish("compliance:document_created", { document }) → pg-boss topic
 TaskWorkflow → pubsub.publish("task:created", { task }) → pg-boss topic
-DriveFileWorkflow → pubsub.publish("drive:file_uploaded", { file }) → pg-boss topic
+DmsDocumentWorkflow → pubsub.publish("dms:document_uploaded", { document }) → pg-boss topic
 ```
 
 Event counts by module:
@@ -478,7 +482,7 @@ Event counts by module:
 - Organization: 11 events
 - Compliance: 23 events
 - Tasks: 10 events
-- Drive: 14 events
+- DMS: 40 events (13 document + 3 class + 3 contact + 2 share + 5 view + 14 item)
 - Management Plane: 16 events (8 tenant + 4 service_provider + 4 platform_user)
 - HR: 43 events (8 event groups across employee, attendance, leave, lifecycle, overtime, setup, shift, access)
 
@@ -520,16 +524,18 @@ Schemas collected by `DatabaseUnit.prepareWithModules()`: core schemas (`auditSc
 
 Three modules register scheduled cron jobs via PubSub:
 
-| Module     | Topic                                | Cron        | Action                                   |
-| ---------- | ------------------------------------ | ----------- | ---------------------------------------- |
-| Compliance | `compliance:daily-expiry-scan`       | `0 8 * * *` | Scan expiring documents                  |
-| Compliance | `compliance:daily-status-transition` | `0 0 * * *` | Transition expired/overdue statuses      |
-| Compliance | `compliance:daily-escalation`        | `0 9 * * *` | Escalate past threshold                  |
-| Compliance | `compliance:weekly-summary`          | `0 9 * * 1` | Generate weekly summary                  |
-| Compliance | `compliance:obligation-generate`     | `0 6 * * *` | Generate documents from obligations      |
-| Drive      | `drive:auto-purge`                   | `0 3 * * *` | Purge trashed items older than retention |
-| HR         | `hr:daily-attendance-sync`           | `0 1 * * *` | Sync daily attendance records            |
-| HR         | `hr:daily-leave-accrual`             | `0 0 * * *` | Accrue leave balances                    |
+| Module     | Topic                                | Cron         | Action                                         |
+| ---------- | ------------------------------------ | ------------ | ---------------------------------------------- |
+| Compliance | `compliance:daily-expiry-scan`       | `0 8 * * *`  | Scan expiring documents                        |
+| Compliance | `compliance:daily-status-transition` | `0 0 * * *`  | Transition expired/overdue statuses            |
+| Compliance | `compliance:daily-escalation`        | `0 9 * * *`  | Escalate past threshold                        |
+| Compliance | `compliance:weekly-summary`          | `0 9 * * 1`  | Generate weekly summary                        |
+| Compliance | `compliance:obligation-generate`     | `0 6 * * *`  | Generate documents from obligations            |
+| DMS        | `dms:expiry-scan`                    | `5 0 * * *`  | Promote past-due documents to expired          |
+| DMS        | `dms:auto-purge`                     | `30 3 * * *` | Purge deleted/expired documents past retention |
+| DMS        | `dms:item-auto-purge`                | `0 3 * * *`  | Purge trashed files/folders past retention     |
+| HR         | `hr:daily-attendance-sync`           | `0 1 * * *`  | Sync daily attendance records                  |
+| HR         | `hr:daily-leave-accrual`             | `0 0 * * *`  | Accrue leave balances                          |
 
 ### Health Check
 
@@ -563,7 +569,7 @@ Three modules register scheduled cron jobs via PubSub:
 | Auth             | Conformist    | better-auth                                   | Modules                      | Adapts API                                                                                      |
 | Logs             | Conformist    | pino, OTel                                    | —                            | Adapts API                                                                                      |
 | PubSub           | Conformist    | pg-boss                                       | —                            | Adapts API                                                                                      |
-| Storage          | Partner       | S3 (AWS SDK)                                  | Drive module                 | Defines interface                                                                               |
+| Storage          | Partner       | S3 (AWS SDK)                                  | DMS module                   | Defines interface                                                                               |
 | RPC              | Conformist    | oRPC                                          | —                            | Adapts API                                                                                      |
 | KV Store         | Conformist    | Postgres                                      | Compliance module            | Redis-like API (core)                                                                           |
 | Audit            | Core          | —                                             | All modules                  | Native platform unit — `audit_log` table, DB-record replayability                               |
@@ -572,7 +578,7 @@ Three modules register scheduled cron jobs via PubSub:
 | Organization     | Downstream    | Platform                                      | Compliance, Management Plane | 5 workflows, 7 tables                                                                           |
 | Compliance       | Downstream    | Platform, HR, Organization, Fleet, Accounting | —                            | 5 workflows, 3 tables, 3 services, subscribes to external events                                |
 | Tasks            | Downstream    | Platform                                      | —                            | 11 workflows, 17 tables (6 control + 11 tenant)                                                 |
-| Drive            | Downstream    | Platform, Storage                             | —                            | 6 workflows, 8 tables, 5 services                                                               |
+| DMS              | Downstream    | Platform, Storage                             | —                            | 24 workflow groups, 20 tables, 40 events, 13 ACL resources, 3 crons                             |
 | Management Plane | Downstream    | Platform, Organization                        | —                            | 3 workflow groups, 3 owned tables, 0 shadow tables, 16 events, has build step                   |
 | HR               | Downstream    | Platform                                      | Compliance                   | ~250 workflow methods, 50 tables (14 control + 36 tenant), 43 events, 2 crons, fully conformant |
 | Accounting       | Stub          | —                                             | —                            | Package.json only                                                                               |
@@ -628,9 +634,9 @@ Three modules register scheduled cron jobs via PubSub:
 
 - Project, Task, Task Status, Task Type, Task Link, Saved View, Automation Rule, Time Entry, Task Reminder, Watcher, Activity Log
 
-### Drive Language
+### DMS Language
 
-- Drive Folder, Drive File, File Version, Label, Share, Public Link, Access Log, Trash, Storage Bridge, Path Service
+- Document, Triage, Classify, Document Class, Class Field, Document Version, Document View, Full-Text Search, Contact, Share (DMS), Legal Hold, Retention, Recycle Bin, Item, File, Folder, Label, Public Link, Item Share, Item Trash, Activity Feed
 
 ### HR Language
 

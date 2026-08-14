@@ -198,54 +198,91 @@
 │         └──────────────────────────────────────────────────────────  │
 └─────────────────────────────────────────────────────────────────────┘
 
-┌─────────────────────────────────────────────────────────────────────┐
-│                        DRIVE DOMAIN                                  │
-│                                                                     │
-│  ┌──────────────┐                                                    │
-│  │ DriveFolder  │──self──┐                                           │
-│  │ id           │        │ parentId                                  │
-│  │ name         │        │                                           │
-│  │ path (uniq)  │        ▼                                           │
-│  │ ownerId      │  (hierarchical, max depth 20)                      │
-│  │ parentId     │                                                    │
-│  │ isTrashed    │──1:N──┌──────────────┐                            │
-│  │ color        │       │  DriveFile   │──1:N──┌──────────────┐     │
-│  └──────────────┘       │ id           │       │FileVersion   │     │
-│                          │ name         │       │ fileId (FK)  │     │
-│  ┌──────────────┐       │ path (uniq)  │       │ version      │     │
-│  │   Label      │       │ storageKey   │       │ storageKey   │     │
-│  │ id           │       │ contentType  │       │ size         │     │
-│  │ name         │       │ size         │       │ etag         │     │
-│  │ color        │       │ version      │       │ uploadedBy   │     │
-│  │ isGlobal     │       │ etag         │       └──────────────┘     │
-│  │ ownerId      │       │ folderId(FK)│                             │
+┌──────────────────────────────────────────────────────────────────────┐
+│                       DMS DOMAIN                                     │
+│                                                                      │
+│  Records system — Triage → Classify → active:                        │
+│                                                                      │
+│  ┌─────────────────┐   1:N    ┌─────────────────────┐                │
+│  │    Document     │─────────→│   DocumentVersion   │                │
+│  │ id              │          │ id                  │                │
+│  │ status (enum)   │          │ documentId (FK)     │                │
+│  │ version         │          │ version             │                │
+│  │ classId (soft   │          │ storageKey          │                │
+│  │  FK → Class)    │          │ size / etag         │                │
+│  │ fieldValues     │          └─────────────────────┘                │
+│  │ expiryDate      │                                                 │
+│  │ storageKey      │                                                 │
+│  └───────┬─────────┘                                                 │
+│          │ N:1                                                       │
+│          ▼                                                           │
+│  ┌─────────────────┐   1:N    ┌─────────────────────┐                │
+│  │  DocumentClass  │─────────→│    ClassField       │                │
+│  │ id              │          │ id                  │                │
+│  │ name            │          │ classId (FK)        │                │
+│  │ retentionDays   │          │ type (enum)         │                │
+│  │ namingSchema    │          │ required / default  │                │
+│  │ (archived, not  │          └─────────────────────┘                │
+│  │  hard-deleted)  │                                                 │
+│  └─────────────────┘                                                 │
+│                                                                      │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                │
+│  │     Tag      │  │   Contact    │  │  LegalHold   │                │
+│  │ id           │  │ id           │  │ id           │                │
+│  │ name         │  │ name / email │  │ documentId   │                │
+│  │ (dms_tag +   │  │ phone/design.│  │ reason       │                │
+│  │  document_tag)│  └──────────────┘  └──────────────┘               │
+│  └──────────────┘                                                    │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                │
+│  │  DocumentView│  │   Pin        │  │   Setting    │                │
+│  │ id           │  │ id           │  │ key / value  │                │
+│  │ name/filters │  │ itemType     │  └──────────────┘                │
+│  │ isShared     │  └──────────────┘                                  │
+│  └──────────────┘                                                    │
+│                                                                      │
+│  Item filesystem — ported from the removed @aspen-os/drive:          │
+│                                                                      │
+│  ┌──────────────┐──self──┐                                           │
+│  │   Folder     │        │ parentId                                  │
+│  │ id           │        ▼                                           │
+│  │ name         │  (path materialized, depth ≤ 20)                   │
+│  │ path (uniq)  │──1:N──┌──────────────┐                             │
+│  │ ownerId      │       │   File       │──1:N──┌──────────────┐      │
+│  │ isTrashed    │       │ id           │       │ FileVersion  │      │
+│  └──────────────┘       │ name         │       │ fileId (FK)  │      │
+│  ┌──────────────┐       │ path (uniq)  │       │ version      │      │
+│  │   Label      │       │ storageKey   │       │ storageKey   │      │
+│  │ id           │       │ contentType  │       └──────────────┘      │
+│  │ name         │       │ size         │                             │
+│  │ color        │       │ version      │                             │
+│  │ isGlobal     │       │ etag         │                             │
+│  │ ownerId      │       │ folderId(FK) │                             │
 │  └──────────────┘       │ ownerId      │                             │
-│         │               │ isTrashed   │                             │
-│         │  ┌──────────────┐           │                             │
+│         │               │ isTrashed    │                             │
+│         │  ┌──────────────┐           │                              │
 │         └──│ ItemLabel    │──polymorphic (itemId, itemType)          │
-│            │ labelId (FK) │           │                             │
-│            └──────────────┘           │                             │
-│                                       │                             │
+│            │ labelId (FK) │           │                              │
+│            └──────────────┘           │                              │
+│                                       │                              │
 │  ┌──────────────┐    ┌──────────────┐  │                             │
-│  │   Share       │    │ PublicLink   │  │                             │
+│  │ ItemShare    │    │ PublicLink   │  │                             │
 │  │ itemId       │    │ itemId       │  │                             │
 │  │ itemType     │    │ itemType     │  │                             │
-│  │ granteeId    │    │ token (uniq)  │  │                             │
-│  │ granteeType  │    │ permission   │  │                             │
-│  │ permission   │    │ password     │  │                             │
-│  │ sharedBy     │    │ maxViews     │  │                             │
-│  │ expiresAt    │    │ viewCount    │  │                             │
-│  └──────────────┘    └──────────────┘  │                             │
-│                                        │                             │
-│  ┌──────────────┐                     │                             │
-│  │ AccessLog     │──polymorphic (itemId, itemType)                  │
-│  │ accessedBy    │                                                   │
-│  │ action        │                                                   │
-│  │ ip            │                                                   │
-│  │ userAgent     │                                                   │
-│  │ publicLinkId  │                                                   │
-│  └──────────────┘                                                   │
-└─────────────────────────────────────────────────────────────────────┘
+│  │ granteeId    │    │ token (uniq)  │  │                            │
+│  │ permission   │    │ permission   │  │                             │
+│  │ sharedBy     │    │ password     │  │                             │
+│  │ expiresAt    │    │ maxViews     │  │                             │
+│  └──────────────┘    │ viewCount    │  │                             │
+│                      │              │  │                             │
+│  ┌──────────────┐    └──────────────┘  │                             │
+│  │ AccessLog    │──polymorphic (itemId, itemType)                    │
+│  │ accessedBy   │                                                    │
+│  │ action       │                                                    │
+│  │ ip           │                                                    │
+│  │ userAgent    │                                                    │
+│  │ publicLinkId │                                                    │
+│  └──────────────┘                                                    │
+└──────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
 │                     STORAGE DOMAIN                                    │
@@ -700,72 +737,100 @@
 - Has many `ActivityLog` (1:N)
 - Has many `TaskAttachment` (1:N)
 
-### Drive Folder (Aggregate Root)
+### Document (Aggregate Root — DMS)
+
+**Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
+
+**Value objects**:
+
+- `DocumentStatus` — enum: `triaged`, `active`, `expired`, `deleted`
+- `FieldType` — enum: text, number, date, select, multi-select, boolean, user, contact, url, email, phone
+- `GranteeType` — enum: contact, user
+- `SharePermission` — enum: viewer, editor
+
+**Invariants**:
+
+- A Document never enters the active set directly — it always lands in `triaged` and exits only via `classify()` (→ `active`)
+- `classify` validates the class's required fields and may apply the class file-naming schema (metadata-only rename, never an S3 move)
+- Storage keys are version-bound: `dms/{tenant}/{documentId}/v{n}/{name}`
+- Pruning retains `maxVersions` (default 10); skipped while a Legal Hold is active
+- Permanent deletion (Recycle Bin) is **admin-only** and blocked by an active Legal Hold
+
+**Lifecycle commands** (via `p.dms.documents`, `p.dms.triage`, `p.dms.versions`):
+
+- `upload(input)` / `uploadBulk(input)` → Document (status `triaged`)
+- `triage.classify(id, { classId, fieldValues })` → Document (→ `active`)
+- `update(id, patch)` / `delete(id)` (soft) / `restore(id)` / `download(id)`
+- `addMetadata` / `removeMetadata` / `tag` / `untag`
+- `version.new(id, input)` → DocumentVersion / `version.revert(id, versionId)` / `version.delete` / `version.getCurrent` / `version.list`
+- `bin.list` / `bin.restore` / `bin.empty` / `bin.deletePermanently` (admin-only, hold-aware)
+- `holds.place(id, { reason })` / `holds.release(id)` / `holds.list`
+- `share.create(id, { grantee, permission })` / `share.resolveToken` / `share.update` / `share.remove` / `share.list` / `share.listByGrantee`
+- `view.apply` / `view.create` / `view.setDefault` / `view.pin` / `search.quick` / `search.search` / `search.promoteToView`
+
+**Relationships**:
+
+- Optionally belongs to `DocumentClass` (N:1, via `classId` — soft FK)
+- Has many `DocumentVersion` (1:N)
+- Has many `Tag` (N:M via `dms_document_tag`)
+- Has many `Share` (1:N)
+- Optionally has one `LegalHold` (1:1)
+- Activity projected from platform `audit_log` (not a DMS-owned table)
+
+### Document Class (Aggregate Root — DMS)
 
 **Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
 **Invariants**:
 
-- `path` must be unique (hierarchical, e.g., `/Projects/2024`)
-- Max nesting depth configurable (default 20)
-- No circular parent references (cycle detection via `PathService`)
+- Superseded classes are archived, not hard-deleted
+- Class Fields carry typed validation; required fields must be satisfied before a Document can become active in the class
+- Optional file-naming schema with field/date/sequence placeholders
+- Optional per-class retention period (`retentionDays`)
+
+**Lifecycle commands** (via `p.dms.classes`):
+
+- `create(input)` / `get(id)` / `list(filters?)` / `update(id, patch)` / `archive(id)`
+- `addField(input)` / `updateField(id, patch)` / `deactivateField(id)`
+
+**Relationships**:
+
+- Has many `ClassField` (1:N)
+- Has many `Document` (1:N, soft FK)
+
+### Item File / Folder (Aggregate Roots — DMS item filesystem)
+
+**Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
+
+**Invariants**:
+
+- `path` must be unique (hierarchical, e.g., `/Projects/2024`); folders materialize paths with depth limits (default 20) and cycle-safe moves
+- Files are S3-backed with versioning (`dms_file_version`); old versions pruned by `maxVersions`
+- `isTrashed` is a soft-delete flag; item trash auto-purges after `trashRetentionDays` (default 30) via the `dms:item-auto-purge` cron
 - Name uniqueness within parent (case-insensitive)
-- `isTrashed` is a soft-delete flag
 
-**Lifecycle commands**:
+**Lifecycle commands** (via `p.dms.files`, `p.dms.folders`, `p.dms.trash`, `p.dms.labels`, `p.dms.publicLinks`, `p.dms.shares`, `p.dms.paths`, `p.dms.access`, `p.dms.archive`, `p.dms.storage`):
 
-- `create(input)` → Folder
-- `rename(id, input)` → Folder (cascades path updates to descendants)
-- `move(id, input)` → Folder (cascades path updates)
-- `update(id, input)` → Folder
-- `delete(id, force?)` → void (soft-delete; refuses non-empty unless `force`)
-- `restore(id)` → Folder
-- `getById(id)` / `get(id)` → Folder (with metadata)
-- `list(id?, opts?)` → `{ files, folders, sortBy, sortOrder }`
-
-**Relationships**:
-
-- Self-referential: `parentId` for hierarchy
-- Has many `DriveFile` (1:N)
-- Has many sub-folders (1:N)
-
-### Drive File (Aggregate Root)
-
-**Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
-
-**Invariants**:
-
-- `path` must be unique
-- `version` increments on update (old version preserved as `FileVersion`)
-- `storageKey` references S3 object
-- `isTrashed` is a soft-delete flag
-- Max versions retained (configurable, default 10; old versions pruned)
-
-**Lifecycle commands**:
-
-- `upload(input)` → File
-- `download(id, userId, options?)` → Buffer
-- `getById(id)` / `get(id)` → File
-- `update(id, input)` → File (creates new version)
-- `delete(id)` → void (soft-delete)
-- `restore(id)` → File
-- `move(id, input)` → File
-- `rename(id, input)` → File
-- `listVersions(id)` → FileVersion[]
-- `getDownloadLink(id, options?)` → string (signed URL)
-- `copy(id, destFolderId?)` → File
-- `purge(id)` → void (hard-delete: removes storage + DB rows)
+- `files.upload` / `copy` / `move` / `rename` / `update` / `get` / `getById` / `download` / `getDownloadLink` / `listVersions` / `purge` / `restore` / `delete`
+- `folders.create` / `rename` / `move` / `update` / `get` / `getById` / `list` / `restore` / `delete`
+- `trash.list` / `restore` / `purgeExpired` / `emptyTrash`
+- `labels.apply` / `remove` / `list` / `listByLabel` / `create` / `delete`
+- `publicLinks.create` / `update` / `revoke` / `resolve` / `get` / `list`
+- `shares.create` / `update` / `remove` / `list` / `listSharedWithMe` / `get`
+- `paths.getBreadcrumbs` / `computeFilePath` / `computeFolderPath` / `resolvePath` / `wouldCreateCycle` / `getSubtreeMaxDepth` / `checkNameUniqueness` / `getDepth` / `getFilePath` / `getFolderPath`
+- `access.checkPermission` / `getEffectivePermission` / `isOwner` / `logAccess`
+- `archive.createArchive` / `processArchiveJob`; `storage.upload` / `get` / `exists` / `copy` / `move` / `remove` / `getSignedGetUrl` / `computeStorageKey` / `computeArchiveKey`
+- `driveSearch.search` (scope: all / my_files / shared_with_me)
 
 **Relationships**:
 
-- Belongs to `DriveFolder` (N:1, via `folderId`)
-- Has many `FileVersion` (1:N)
-- Has many `ItemLabel` (polymorphic)
-- Has many `Share` (polymorphic)
-- Has many `PublicLink` (polymorphic)
-- Has many `AccessLog` (polymorphic)
+- Folder is self-referential (`parentId`) for hierarchy; has many `File` (1:N)
+- File belongs to `Folder` (N:1, via `folderId` — soft FK); has many `FileVersion` (1:N)
+- Labels: `ItemLabel` polymorphic join (`itemId`/`itemType` file|folder)
+- Shares / Public Links: polymorphic on `itemId`/`itemType`
+- `AccessLog`: polymorphic access/download logging (public-link access, `logDownloads`)
 
-### Label (Aggregate Root)
+### Label (Aggregate Root — DMS)
 
 **Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
 
@@ -773,6 +838,7 @@
 
 - `isGlobal` labels have `ownerId = null`
 - Non-global labels are owned by a user
+- Distinct from `Tag` (records system): labels apply to item files/folders via the polymorphic `ItemLabel` join
 
 **Lifecycle commands**:
 
@@ -1014,24 +1080,77 @@
 | `task:commented`      | `{ taskId, comment: { id, body } }`                         | Comment added             |
 | `reminder:fired`      | `{ taskId, reminder: { id, type, userId } }`                | Reminder fired            |
 
-### Drive Events (DriveEventMap) — 14 events
+### DMS Events (DmsEventMap) — 40 events (6 maps)
 
-| Event                        | Payload                                                                                                | Trigger                    |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------ | -------------------------- |
-| `drive:folder_created`       | `{ folder: { id, name, ownerId, parentId, path } }`                                                    | Folder created             |
-| `drive:folder_renamed`       | `{ folder: { id, name, path }, oldName }`                                                              | Folder renamed             |
-| `drive:moved`                | `{ item: { id, name, path }, itemType, newPath, oldPath }`                                             | File or folder moved       |
-| `drive:file_uploaded`        | `{ file: { contentType, etag, folderId, id, name, ownerId, path, size, storageKey, version } }`        | File uploaded              |
-| `drive:file_updated`         | `{ file: { contentType, etag, id, name, ownerId, path, size, storageKey, version }, previousVersion }` | File updated (new version) |
-| `drive:file_downloaded`      | `{ file: { id, name, ownerId }, userId }`                                                              | File downloaded            |
-| `drive:shared`               | `{ share: { createdAt, granteeId, granteeType, id, itemId, itemType, permission, sharedBy } }`         | Item shared                |
-| `drive:unshared`             | `{ itemId, shareId }`                                                                                  | Share removed              |
-| `drive:public_link_created`  | `{ publicLink: { createdBy, id, itemId, itemType, permission, token } }`                               | Public link created        |
-| `drive:public_link_accessed` | `{ ip, publicLink: { id, itemId, token }, userAgent }`                                                 | Public link accessed       |
-| `drive:public_link_revoked`  | `{ itemId, publicLinkId }`                                                                             | Public link revoked        |
-| `drive:trashed`              | `{ itemId, itemType }`                                                                                 | Item moved to trash        |
-| `drive:restored`             | `{ itemId, itemType }`                                                                                 | Item restored from trash   |
-| `drive:purged`               | `{ itemId, itemType, storageKey }`                                                                     | Item permanently deleted   |
+#### Document Events (`DOCUMENT_EVENTS`) — 13
+
+| Event                           | Payload                         | Trigger                            |
+| ------------------------------- | ------------------------------- | ---------------------------------- |
+| `dms:document_uploaded`         | `{ document: { id, name } }`    | Document uploaded (into Triage)    |
+| `dms:document_classified`       | `{ documentId, classId }`       | Document classified (→ active)     |
+| `dms:document_updated`          | `{ document: { id }, changes }` | Document updated                   |
+| `dms:document_tagged`           | `{ documentId, tag }`           | Tag applied                        |
+| `dms:document_untagged`         | `{ documentId, tag }`           | Tag removed                        |
+| `dms:document_deleted`          | `{ documentId }`                | Document soft-deleted (→ deleted)  |
+| `dms:document_restored`         | `{ documentId }`                | Document restored from bin         |
+| `dms:document_expired`          | `{ documentId }`                | Expiry scanner promoted to expired |
+| `dms:document_purged`           | `{ documentId }`                | Document permanently purged        |
+| `dms:document_version_added`    | `{ documentId, version }`       | New version written                |
+| `dms:document_version_reverted` | `{ documentId, version }`       | Version reverted                   |
+| `dms:document_hold_placed`      | `{ documentId, holdId }`        | Legal hold placed                  |
+| `dms:document_hold_released`    | `{ documentId }`                | Legal hold released                |
+
+#### Class Events (`CLASS_EVENTS`) — 3
+
+| Event                | Payload       | Trigger        |
+| -------------------- | ------------- | -------------- |
+| `dms:class_created`  | `{ classId }` | Class created  |
+| `dms:class_updated`  | `{ classId }` | Class updated  |
+| `dms:class_archived` | `{ classId }` | Class archived |
+
+#### Contact Events (`CONTACT_EVENTS`) — 3
+
+| Event                 | Payload         | Trigger         |
+| --------------------- | --------------- | --------------- |
+| `dms:contact_created` | `{ contactId }` | Contact created |
+| `dms:contact_updated` | `{ contactId }` | Contact updated |
+| `dms:contact_removed` | `{ contactId }` | Contact removed |
+
+#### Share Events (`SHARE_EVENTS`) — 2
+
+| Event               | Payload       | Trigger                |
+| ------------------- | ------------- | ---------------------- |
+| `dms:share_created` | `{ shareId }` | Document share created |
+| `dms:share_revoked` | `{ shareId }` | Document share revoked |
+
+#### View Events (`VIEW_EVENTS`) — 5
+
+| Event               | Payload      | Trigger       |
+| ------------------- | ------------ | ------------- |
+| `dms:view_created`  | `{ viewId }` | View created  |
+| `dms:view_updated`  | `{ viewId }` | View updated  |
+| `dms:view_deleted`  | `{ viewId }` | View deleted  |
+| `dms:view_pinned`   | `{ viewId }` | View pinned   |
+| `dms:view_unpinned` | `{ viewId }` | View unpinned |
+
+#### Item Events (`ITEM_EVENTS`) — 14 (files/folders surface)
+
+| Event                           | Payload                | Trigger                  |
+| ------------------------------- | ---------------------- | ------------------------ |
+| `dms:item_file_uploaded`        | `{ fileId }`           | Item file uploaded       |
+| `dms:item_file_updated`         | `{ fileId }`           | Item file updated        |
+| `dms:item_file_downloaded`      | `{ fileId }`           | Item file downloaded     |
+| `dms:item_folder_created`       | `{ folderId }`         | Item folder created      |
+| `dms:item_folder_renamed`       | `{ folderId }`         | Item folder renamed      |
+| `dms:item_moved`                | `{ itemId, itemType }` | Item file/folder moved   |
+| `dms:item_trashed`              | `{ itemId, itemType }` | Item moved to trash      |
+| `dms:item_restored`             | `{ itemId, itemType }` | Item restored from trash |
+| `dms:item_purged`               | `{ itemId, itemType }` | Item permanently deleted |
+| `dms:item_shared`               | `{ shareId }`          | Item share created       |
+| `dms:item_unshared`             | `{ shareId }`          | Item share removed       |
+| `dms:item_public_link_created`  | `{ linkId }`           | Public link created      |
+| `dms:item_public_link_revoked`  | `{ linkId }`           | Public link revoked      |
+| `dms:item_public_link_accessed` | `{ linkId }`           | Public link accessed     |
 
 ### HR Events — 43 events
 
@@ -1091,87 +1210,97 @@ The HR module defines 43 events across 8 event groups, combined into `HrEventMap
 
 ### Commands (Write Side)
 
-| Context          | Command                   | Method                                                |
-| ---------------- | ------------------------- | ----------------------------------------------------- |
-| Auth             | Create user               | `auth.user.create()`                                  |
-| Auth             | Delete user               | `auth.user.remove()`                                  |
-| Auth             | Update user               | `auth.user.update()`                                  |
-| Auth             | Assign role               | `auth.user.role.assign()`                             |
-| Auth             | Unassign role             | `auth.user.role.unassign()`                           |
-| Auth             | Create session            | `auth.session.create()`                               |
-| Auth             | Invalidate session        | `auth.session.invalidate()`                           |
-| Auth             | Delete role               | `auth.role.remove()`                                  |
-| Storage          | Upload file               | `storage.upload()`                                    |
-| Storage          | Delete file               | `storage.remove()`                                    |
-| Storage          | Archive file              | `storage.archive()`                                   |
-| PubSub           | Publish message           | `pubsub.publish()`                                    |
-| PubSub           | Subscribe                 | `pubsub.subscribe()`                                  |
-| KV               | Set key                   | `kv.set()`                                            |
-| KV               | Delete key                | `kv.del()`                                            |
-| Organization     | Create org                | `p.organization.organizations.create()`               |
-| Organization     | Update org                | `p.organization.organizations.update()`               |
-| Organization     | Update branding           | `p.organization.organizations.updateBranding()`       |
-| Branch           | Create branch             | `p.organization.branches.create()`                    |
-| Branch           | Archive branch            | `p.organization.branches.archive()`                   |
-| Connection       | Create connection         | `p.organization.connections.create()`                 |
-| Connection       | Add contact               | `p.organization.connections.addContact()`             |
-| Address          | Create address            | `p.organization.addresses.create()`                   |
-| Bank Account     | Create account            | `p.organization.bankAccounts.create()`                |
-| Compliance       | Create document           | `p.compliance.documents.create()`                     |
-| Compliance       | Submit document           | `p.compliance.documents.submit()`                     |
-| Compliance       | Verify document           | `p.compliance.documents.verify()`                     |
-| Compliance       | Reject document           | `p.compliance.documents.reject()`                     |
-| Compliance       | Renew document            | `p.compliance.documents.renew()`                      |
-| Compliance       | Archive document          | `p.compliance.documents.archive()`                    |
-| Compliance       | Snooze document           | `p.compliance.documents.snooze()`                     |
-| Compliance       | Create obligation         | `p.compliance.obligations.create()`                   |
-| Compliance       | Activate obligation       | `p.compliance.obligations.activate()`                 |
-| Compliance       | Create verification rule  | `p.compliance.verification.create()`                  |
-| Tasks            | Create task               | `p.tasks.tasks.create()`                              |
-| Tasks            | Update task               | `p.tasks.tasks.update()`                              |
-| Tasks            | Archive task              | `p.tasks.tasks.archive()`                             |
-| Tasks            | Assign task               | `p.tasks.tasks.assign()`                              |
-| Tasks            | Create project            | `p.tasks.projects.create()`                           |
-| Tasks            | Archive project           | `p.tasks.projects.archive()`                          |
-| Tasks            | Create comment            | `p.tasks.comments.create()`                           |
-| Tasks            | Create link               | `p.tasks.links.create()`                              |
-| Tasks            | Log time                  | `p.tasks.timeEntries.create()`                        |
-| Tasks            | Create reminder           | `p.tasks.reminders.create()`                          |
-| Tasks            | Create automation rule    | `p.tasks.automation.create()`                         |
-| Drive            | Upload file               | `p.drive.files.upload()`                              |
-| Drive            | Update file               | `p.drive.files.update()`                              |
-| Drive            | Delete file               | `p.drive.files.delete()`                              |
-| Drive            | Create folder             | `p.drive.folders.create()`                            |
-| Drive            | Move item                 | `p.drive.files.move()` / `p.drive.folders.move()`     |
-| Drive            | Share item                | `p.drive.shares.create()`                             |
-| Drive            | Create public link        | `p.drive.publicLinks.create()`                        |
-| Drive            | Trash item                | `p.drive.files.delete()` / `p.drive.folders.delete()` |
-| Drive            | Restore item              | `p.drive.trash.restore()`                             |
-| Drive            | Empty trash               | `p.drive.trash.emptyTrash()`                          |
-| Drive            | Apply label               | `p.drive.labels.apply()`                              |
-| Management Plane | Onboard tenant            | `p.management.tenants.onboard()`                      |
-| Management Plane | Update tenant             | `p.management.tenants.update()`                       |
-| Management Plane | Create SP                 | `p.management.serviceProviders.create()`              |
-| Management Plane | Update SP                 | `p.management.serviceProviders.update()`              |
-| Management Plane | Activate SP               | `p.management.serviceProviders.activate()`            |
-| Management Plane | Deactivate SP             | `p.management.serviceProviders.deactivate()`          |
-| Management Plane | Create platform user      | `p.management.users.create()`                         |
-| Management Plane | Update platform user      | `p.management.users.update()`                         |
-| Management Plane | Delete platform user      | `p.management.users.delete()`                         |
-| Management Plane | Assign role               | `p.management.users.assignRole()`                     |
-| Management Plane | Assign user to SP         | `p.management.users.assignToServiceProvider()`        |
-| HR               | Create employee           | `p.hr.employee.create()`                              |
-| HR               | Update employee           | `p.hr.employee.update()`                              |
-| HR               | Create group              | `p.hr.employee.createGroup()`                         |
-| HR               | Create attendance         | `p.hr.attendance.create()`                            |
-| HR               | Create check-in           | `p.hr.attendance.createCheckin()`                     |
-| HR               | Create leave application  | `p.hr.leave.createLeaveApplication()`                 |
-| HR               | Approve leave application | `p.hr.leave.approveLeaveApplication()`                |
-| HR               | Create shift assignment   | `p.hr.shift.createShiftAssignment()`                  |
-| HR               | Create Overtime slip      | `p.hr.overtime.createOvertimeSlip()`                  |
-| HR               | Create department         | `p.hr.setup.createDepartment()`                       |
-| HR               | Create HR user            | `p.hr.access.createUser()`                            |
-| HR               | Grant branch access       | `p.hr.access.grantBranchAccess()`                     |
+| Context          | Command                   | Method                                            |
+| ---------------- | ------------------------- | ------------------------------------------------- |
+| Auth             | Create user               | `auth.user.create()`                              |
+| Auth             | Delete user               | `auth.user.remove()`                              |
+| Auth             | Update user               | `auth.user.update()`                              |
+| Auth             | Assign role               | `auth.user.role.assign()`                         |
+| Auth             | Unassign role             | `auth.user.role.unassign()`                       |
+| Auth             | Create session            | `auth.session.create()`                           |
+| Auth             | Invalidate session        | `auth.session.invalidate()`                       |
+| Auth             | Delete role               | `auth.role.remove()`                              |
+| Storage          | Upload file               | `storage.upload()`                                |
+| Storage          | Delete file               | `storage.remove()`                                |
+| Storage          | Archive file              | `storage.archive()`                               |
+| PubSub           | Publish message           | `pubsub.publish()`                                |
+| PubSub           | Subscribe                 | `pubsub.subscribe()`                              |
+| KV               | Set key                   | `kv.set()`                                        |
+| KV               | Delete key                | `kv.del()`                                        |
+| Organization     | Create org                | `p.organization.organizations.create()`           |
+| Organization     | Update org                | `p.organization.organizations.update()`           |
+| Organization     | Update branding           | `p.organization.organizations.updateBranding()`   |
+| Branch           | Create branch             | `p.organization.branches.create()`                |
+| Branch           | Archive branch            | `p.organization.branches.archive()`               |
+| Connection       | Create connection         | `p.organization.connections.create()`             |
+| Connection       | Add contact               | `p.organization.connections.addContact()`         |
+| Address          | Create address            | `p.organization.addresses.create()`               |
+| Bank Account     | Create account            | `p.organization.bankAccounts.create()`            |
+| Compliance       | Create document           | `p.compliance.documents.create()`                 |
+| Compliance       | Submit document           | `p.compliance.documents.submit()`                 |
+| Compliance       | Verify document           | `p.compliance.documents.verify()`                 |
+| Compliance       | Reject document           | `p.compliance.documents.reject()`                 |
+| Compliance       | Renew document            | `p.compliance.documents.renew()`                  |
+| Compliance       | Archive document          | `p.compliance.documents.archive()`                |
+| Compliance       | Snooze document           | `p.compliance.documents.snooze()`                 |
+| Compliance       | Create obligation         | `p.compliance.obligations.create()`               |
+| Compliance       | Activate obligation       | `p.compliance.obligations.activate()`             |
+| Compliance       | Create verification rule  | `p.compliance.verification.create()`              |
+| Tasks            | Create task               | `p.tasks.tasks.create()`                          |
+| Tasks            | Update task               | `p.tasks.tasks.update()`                          |
+| Tasks            | Archive task              | `p.tasks.tasks.archive()`                         |
+| Tasks            | Assign task               | `p.tasks.tasks.assign()`                          |
+| Tasks            | Create project            | `p.tasks.projects.create()`                       |
+| Tasks            | Archive project           | `p.tasks.projects.archive()`                      |
+| Tasks            | Create comment            | `p.tasks.comments.create()`                       |
+| Tasks            | Create link               | `p.tasks.links.create()`                          |
+| Tasks            | Log time                  | `p.tasks.timeEntries.create()`                    |
+| Tasks            | Create reminder           | `p.tasks.reminders.create()`                      |
+| Tasks            | Create automation rule    | `p.tasks.automation.create()`                     |
+| DMS (records)    | Upload document           | `p.dms.documents.upload()`                        |
+| DMS (records)    | Classify document         | `p.dms.triage.classify()`                         |
+| DMS (records)    | Update document           | `p.dms.documents.update()`                        |
+| DMS (records)    | Soft-delete document      | `p.dms.documents.delete()`                        |
+| DMS (records)    | Add version               | `p.dms.versions.new()`                            |
+| DMS (records)    | Revert version            | `p.dms.versions.revert()`                         |
+| DMS (records)    | Place legal hold          | `p.dms.holds.place()`                             |
+| DMS (records)    | Share document            | `p.dms.share.create()`                            |
+| DMS (records)    | Permanently delete        | `p.dms.bin.deletePermanently()`                   |
+| DMS (records)    | Create document class     | `p.dms.classes.create()`                          |
+| DMS (items)      | Upload file               | `p.dms.files.upload()`                            |
+| DMS (items)      | Update file               | `p.dms.files.update()`                            |
+| DMS (items)      | Delete file               | `p.dms.files.delete()`                            |
+| DMS (items)      | Create folder             | `p.dms.folders.create()`                          |
+| DMS (items)      | Move item                 | `p.dms.files.move()` / `p.dms.folders.move()`     |
+| DMS (items)      | Share item                | `p.dms.shares.create()`                           |
+| DMS (items)      | Create public link        | `p.dms.publicLinks.create()`                      |
+| DMS (items)      | Trash item                | `p.dms.files.delete()` / `p.dms.folders.delete()` |
+| DMS (items)      | Restore item              | `p.dms.trash.restore()`                           |
+| DMS (items)      | Empty trash               | `p.dms.trash.emptyTrash()`                        |
+| DMS (items)      | Apply label               | `p.dms.labels.apply()`                            |
+| Management Plane | Onboard tenant            | `p.management.tenants.onboard()`                  |
+| Management Plane | Update tenant             | `p.management.tenants.update()`                   |
+| Management Plane | Create SP                 | `p.management.serviceProviders.create()`          |
+| Management Plane | Update SP                 | `p.management.serviceProviders.update()`          |
+| Management Plane | Activate SP               | `p.management.serviceProviders.activate()`        |
+| Management Plane | Deactivate SP             | `p.management.serviceProviders.deactivate()`      |
+| Management Plane | Create platform user      | `p.management.users.create()`                     |
+| Management Plane | Update platform user      | `p.management.users.update()`                     |
+| Management Plane | Delete platform user      | `p.management.users.delete()`                     |
+| Management Plane | Assign role               | `p.management.users.assignRole()`                 |
+| Management Plane | Assign user to SP         | `p.management.users.assignToServiceProvider()`    |
+| HR               | Create employee           | `p.hr.employee.create()`                          |
+| HR               | Update employee           | `p.hr.employee.update()`                          |
+| HR               | Create group              | `p.hr.employee.createGroup()`                     |
+| HR               | Create attendance         | `p.hr.attendance.create()`                        |
+| HR               | Create check-in           | `p.hr.attendance.createCheckin()`                 |
+| HR               | Create leave application  | `p.hr.leave.createLeaveApplication()`             |
+| HR               | Approve leave application | `p.hr.leave.approveLeaveApplication()`            |
+| HR               | Create shift assignment   | `p.hr.shift.createShiftAssignment()`              |
+| HR               | Create Overtime slip      | `p.hr.overtime.createOvertimeSlip()`              |
+| HR               | Create department         | `p.hr.setup.createDepartment()`                   |
+| HR               | Create HR user            | `p.hr.access.createUser()`                        |
+| HR               | Grant branch access       | `p.hr.access.grantBranchAccess()`                 |
 
 ### Queries (Read Side)
 
@@ -1222,17 +1351,23 @@ The HR module defines 43 events across 8 event groups, combined into `HrEventMap
 | Tasks            | Workload report                       | `p.tasks.reports.getWorkloadReport()`                |
 | Tasks            | Time report                           | `p.tasks.reports.getTimeReport()`                    |
 | Tasks            | Cumulative flow                       | `p.tasks.reports.getCumulativeFlow()`                |
-| Drive            | Get file                              | `p.drive.files.getById()`                            |
-| Drive            | List folder                           | `p.drive.folders.list()`                             |
-| Drive            | Get folder metadata                   | `p.drive.folders.get()`                              |
-| Drive            | List file versions                    | `p.drive.files.listVersions()`                       |
-| Drive            | Get download link                     | `p.drive.files.getDownloadLink()`                    |
-| Drive            | Search                                | `p.drive.search.search()`                            |
-| Drive            | List shares                           | `p.drive.shares.list()`                              |
-| Drive            | List shared with me                   | `p.drive.shares.listSharedWithMe()`                  |
-| Drive            | List trash                            | `p.drive.trash.list()`                               |
-| Drive            | List labels                           | `p.drive.labels.list()`                              |
-| Drive            | Get breadcrumbs                       | `p.drive.paths.getBreadcrumbs()`                     |
+| DMS (items)      | Get file                              | `p.dms.files.getById()`                              |
+| DMS (items)      | List folder                           | `p.dms.folders.list()`                               |
+| DMS (items)      | Get folder metadata                   | `p.dms.folders.get()`                                |
+| DMS (items)      | List file versions                    | `p.dms.files.listVersions()`                         |
+| DMS (items)      | Get download link                     | `p.dms.files.getDownloadLink()`                      |
+| DMS (items)      | Search (files/folders)                | `p.dms.driveSearch.search()`                         |
+| DMS (items)      | List shares                           | `p.dms.shares.list()`                                |
+| DMS (items)      | List shared with me                   | `p.dms.shares.listSharedWithMe()`                    |
+| DMS (items)      | List trash                            | `p.dms.trash.list()`                                 |
+| DMS (items)      | List labels                           | `p.dms.labels.list()`                                |
+| DMS (items)      | Get breadcrumbs                       | `p.dms.paths.getBreadcrumbs()`                       |
+| DMS (records)    | List triaged documents                | `p.dms.triage.list()`                                |
+| DMS (records)    | Search documents                      | `p.dms.search.quick()` / `p.dms.search.search()`     |
+| DMS (records)    | List document versions                | `p.dms.versions.list()`                              |
+| DMS (records)    | List document shares                  | `p.dms.documentShares.list()`                        |
+| DMS (records)    | Get document activity feed            | `p.dms.activity.getDocument()`                       |
+| DMS (records)    | List views                            | `p.dms.views.list()`                                 |
 | Management Plane | Get tenant                            | `p.management.tenants.get()`                         |
 | Management Plane | List tenants                          | `p.management.tenants.list()`                        |
 | Management Plane | Get SP                                | `p.management.serviceProviders.get()`                |
@@ -1257,7 +1392,7 @@ The HR module defines 43 events across 8 event groups, combined into `HrEventMap
 2. **All timestamps are TIMESTAMPTZ** — `withTimezone: true` on all timestamp columns
 3. **Cascade deletes** — User deletion cascades to sessions and accounts
 4. **No barrel files** — explicit convention in CODING_CONVENTIONS.md
-5. **No DB-level foreign keys in domain modules** — compliance, tasks, drive, organization, management, and hr all use soft FKs (logical references by naming convention, not enforced by the database)
+5. **No DB-level foreign keys in domain modules** — compliance, tasks, organization, management, and hr all use soft FKs (logical references by naming convention, not enforced by the database)
 
 ### Auth
 
@@ -1294,17 +1429,20 @@ The HR module defines 43 events across 8 event groups, combined into `HrEventMap
 27. **Status transition rules** — `TaskStatusTransition` can constrain which status changes are allowed (optionally requiring a comment or role)
 28. **Project deletion guard** — projects with existing tasks cannot be deleted (must archive first)
 
-### Drive
+### DMS
 
-29. **Path uniqueness** — folder and file paths must be unique (enforced by DB unique constraint)
-30. **Path cascade** — moving/renaming a folder updates all descendant paths
-31. **Max nesting depth** — configurable (default 20); enforced by `PathService`
+29. **Path uniqueness** — item folder and file paths must be unique (enforced by DB unique constraint)
+30. **Path cascade** — moving/renaming a folder updates all descendant paths (`p.dms.paths`)
+31. **Max nesting depth** — configurable (default 20)
 32. **Name uniqueness within parent** — case-insensitive uniqueness check
-33. **No circular folder parents** — cycle detection via `PathService.wouldCreateCycle()`
-34. **Version pruning** — old file versions pruned based on `maxVersions` (default 10)
-35. **Permission inheritance** — `AccessService.getEffectivePermission()` walks up the parent folder chain for inherited permissions
-36. **Trash retention** — trashed items are purged after `trashRetentionDays` (default 30) via scheduled cron
+33. **No circular folder parents** — cycle detection via `paths.wouldCreateCycle()`
+34. **Version pruning** — old versions pruned based on `maxVersions` (default 10); skipped under an active Legal Hold
+35. **Permission inheritance** — `access.getEffectivePermission()` walks up the parent folder chain for inherited permissions
+36. **Item trash retention** — trashed files/folders are purged after `trashRetentionDays` (default 30) via the `dms:item-auto-purge` cron
 37. **Public link validation** — token, expiry, maxViews, and password (bcrypt) are checked on access
+38. **Mandatory Triage gate** — uploads always land in `triaged`; the only exit is `triage.classify()` (→ `active`)
+39. **Hold-aware purge** — permanent deletion and auto-purge of Documents are blocked while an active Legal Hold exists; `bin.deletePermanently` is admin-only
+40. **Retention** — class-level `retentionDays` overrides the settings default; purged via the `dms:auto-purge` cron
 
 ### Storage
 

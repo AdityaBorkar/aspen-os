@@ -1,6 +1,10 @@
 # TODO
 
-REST like Workflow Names
+Refactor all workflows to use a REST like naming convention and use folders as well for the modules.
+Example: class.add-field.ts => class/field/add.ts
+
+---
+
 Ask questions on certain file names
 
 tasks
