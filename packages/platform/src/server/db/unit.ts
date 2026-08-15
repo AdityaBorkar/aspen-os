@@ -12,7 +12,7 @@ import { context } from "#/server/utils/context";
 import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import pg from "pg";
+import { Pool } from "pg";
 
 export type DrizzleDB<TSchemas extends Record<string, unknown> = Record<string, never>> =
   NodePgDatabase<TSchemas>;
@@ -34,13 +34,13 @@ export class DatabaseUnit<TSchemas extends Record<string, unknown> = Record<stri
       }
     | undefined;
 
-  protected controlPlanePool: pg.Pool;
+  protected controlPlanePool: Pool;
   protected controlPlaneDbInstance: DrizzleDB<TSchemas>;
   protected storedControlPlaneSchemas: Record<string, unknown> = {};
   protected storedTenantSchemas: Record<string, unknown> = {};
 
-  private readonly tenantPools: Map<string, { db: DrizzleDB<TSchemas>; pool: pg.Pool }> = new Map();
-  private dbWrapper: DrizzleDB<TSchemas>;
+  private readonly tenantPools = new Map<string, { db: DrizzleDB<TSchemas>; pool: Pool }>();
+  private readonly dbWrapper: DrizzleDB<TSchemas>;
 
   constructor(
     config: DatabaseConfig,
@@ -65,7 +65,7 @@ export class DatabaseUnit<TSchemas extends Record<string, unknown> = Record<stri
     this.tenantDbPrefix = options?.tenantDbPrefix;
     this.tenantDbDefaults = options?.tenantDbDefaults;
 
-    this.controlPlanePool = new pg.Pool({
+    this.controlPlanePool = new Pool({
       database: config.database,
       host: config.host,
       max: config.maxConnections ?? 20,
@@ -74,7 +74,7 @@ export class DatabaseUnit<TSchemas extends Record<string, unknown> = Record<stri
       ssl: config.ssl ? { rejectUnauthorized: false } : false,
       user: config.user,
     });
-    this.controlPlaneDbInstance = drizzle<TSchemas>(this.controlPlanePool) as DrizzleDB<TSchemas>;
+    this.controlPlaneDbInstance = drizzle<TSchemas>(this.controlPlanePool);
 
     this.dbWrapper = this.createDbWrapper();
   }
@@ -87,7 +87,7 @@ export class DatabaseUnit<TSchemas extends Record<string, unknown> = Record<stri
     return this.controlPlaneDbInstance;
   }
 
-  get pool(): pg.Pool {
+  get pool(): Pool {
     return this.controlPlanePool;
   }
 
@@ -132,7 +132,7 @@ export class DatabaseUnit<TSchemas extends Record<string, unknown> = Record<stri
     let entry = this.tenantPools.get(tenantId);
     if (!entry) {
       const database = await this.resolver?.resolve(tenantId);
-      const pool = new pg.Pool({
+      const pool = new Pool({
         database,
         host: this.tenantDbDefaults?.host ?? this.config.host,
         password: this.tenantDbDefaults?.password ?? this.config.password,
@@ -191,7 +191,7 @@ export class DatabaseUnit<TSchemas extends Record<string, unknown> = Record<stri
 
       await this.createTenantDatabase(dbConfig);
 
-      const pool = new pg.Pool({
+      const pool = new Pool({
         database: dbConfig.database,
         host: dbConfig.host,
         password: dbConfig.password,
@@ -235,9 +235,9 @@ export class DatabaseUnit<TSchemas extends Record<string, unknown> = Record<stri
       const result = await fn(db);
       await client.query("COMMIT");
       return result;
-    } catch (err) {
+    } catch (error) {
       await client.query("ROLLBACK").catch(() => {});
-      throw err;
+      throw error;
     } finally {
       client.release();
     }
@@ -247,7 +247,7 @@ export class DatabaseUnit<TSchemas extends Record<string, unknown> = Record<stri
     dbConfig: IsolatedTenantDbConfig,
     fn: (db: DrizzleDB<TSchemas>) => Promise<void>,
   ): Promise<void> {
-    const pool = new pg.Pool({
+    const pool = new Pool({
       database: dbConfig.database,
       host: dbConfig.host,
       password: dbConfig.password,
@@ -325,11 +325,10 @@ export class DatabaseUnit<TSchemas extends Record<string, unknown> = Record<stri
       }
       await result.apply();
     }
-    return;
   }
 
   private async createTenantDatabase(dbConfig: IsolatedTenantDbConfig): Promise<void> {
-    const adminPool = new pg.Pool({
+    const adminPool = new Pool({
       database: this.controlPlaneDbName ?? "postgres",
       host: this.config.host,
       password: this.config.password,
@@ -341,11 +340,11 @@ export class DatabaseUnit<TSchemas extends Record<string, unknown> = Record<stri
     try {
       const escapedName = `"${dbConfig.database.replace(/"/g, '""')}"`;
       await adminPool.query(`CREATE DATABASE ${escapedName}`);
-    } catch (err) {
-      if (err instanceof Error && err.message.includes("already exists")) {
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("already exists")) {
         return;
       }
-      throw err;
+      throw error;
     } finally {
       await adminPool.end();
     }
@@ -360,16 +359,15 @@ export class DatabaseUnit<TSchemas extends Record<string, unknown> = Record<stri
           AND table_schema = 'public'
       `,
     );
-    const rows = result.rows as Array<{ table_name: string }>;
+    const rows = result.rows as { table_name: string }[];
     return rows.map((row) => row.table_name).filter((name) => /^[a-z_][a-z0-9_]*$/.test(name));
   }
 
   private createDbWrapper(): DrizzleDB<TSchemas> {
-    const self = this;
     return new Proxy({} as DrizzleDB<TSchemas>, {
-      get(_target, prop) {
+      get: (_target, prop) => {
         const ctx = context.getStore();
-        const realDb = ctx?.db ?? self.controlPlaneDbInstance;
+        const realDb = ctx?.db ?? this.controlPlaneDbInstance;
         const value = Reflect.get(realDb, prop);
         if (typeof value === "function") {
           return value.bind(realDb);

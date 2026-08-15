@@ -134,8 +134,8 @@ const updateDocument = Workflow.name("document.update").handler(
       crudAction: "update",
       entityId: id,
       entityType: "compliance_document",
-      newState: updated as unknown as Record<string, unknown>,
-      previousState: current as unknown as Record<string, unknown>,
+      newState: updated,
+      previousState: current,
     });
 
     await ctx.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_UPDATED, {

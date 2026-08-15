@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
-import { mkdir, rm } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { dirname, join, relative, resolve } from "node:path";
 
 import { $, build, file } from "bun";
 import deepmerge from "deepmerge";
@@ -71,6 +71,37 @@ interface RevisedPkg {
 
 const relToSrc = (srcPath: string) => srcPath.replace(/^\.\/src\//, "");
 const subdirFor = (srcPath: string) => dirname(relToSrc(srcPath));
+
+async function rewriteAliasImports(outputDir: string): Promise<void> {
+  const declarationFiles: string[] = [];
+
+  async function collect(dir: string): Promise<void> {
+    const directories: string[] = [];
+    for (const entry of await readdir(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        directories.push(full);
+      } else if (entry.name.endsWith(".d.ts")) {
+        declarationFiles.push(full);
+      }
+    }
+    await Promise.all(directories.map((directory) => collect(directory)));
+  }
+
+  await collect(outputDir);
+
+  await Promise.all(
+    declarationFiles.map(async (declarationFile) => {
+      const prefix = relative(dirname(declarationFile), outputDir).replaceAll("\\", "/") || ".";
+      const source = await readFile(declarationFile, "utf8");
+      if (!source.includes('"#/')) {
+        return;
+      }
+      const rewritten = source.replaceAll('"#/', `"${prefix}/`);
+      await writeFile(declarationFile, rewritten);
+    }),
+  );
+}
 
 async function parsePackageJson() {
   const outputDirname = $dev ? "src" : OUTPUT_DIRNAME;
@@ -165,6 +196,8 @@ async function main() {
   } finally {
     await rm(tsconfigPath, { force: true });
   }
+
+  await rewriteAliasImports(join(ROOT, OUTPUT_DIRNAME));
 }
 
 await main();

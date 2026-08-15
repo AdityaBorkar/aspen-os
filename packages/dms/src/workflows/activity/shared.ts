@@ -1,6 +1,6 @@
 import { AUDIT_ENTITY_TYPE } from "#/utils/constants";
 
-export type AuditRow = {
+export interface AuditRow {
   action: string;
   actorId: string | null;
   changes: Record<string, unknown> | null;
@@ -12,32 +12,42 @@ export type AuditRow = {
   performedAt: Date;
   previousState: Record<string, unknown> | null;
   seq?: number;
-};
+}
 
 export function mapEntityType(type: string): string {
   switch (type) {
-    case "class":
+    case "class": {
       return AUDIT_ENTITY_TYPE.CLASS;
-    case "contact":
+    }
+    case "contact": {
       return AUDIT_ENTITY_TYPE.CONTACT;
-    case "file":
+    }
+    case "file": {
       return AUDIT_ENTITY_TYPE.FILE;
+    }
     case "file_view":
-    case "fileView":
+    case "fileView": {
       return AUDIT_ENTITY_TYPE.FILE_VIEW;
-    case "folder":
+    }
+    case "folder": {
       return AUDIT_ENTITY_TYPE.FOLDER;
-    case "label":
+    }
+    case "label": {
       return AUDIT_ENTITY_TYPE.LABEL;
+    }
     case "public_link":
-    case "publicLink":
+    case "publicLink": {
       return AUDIT_ENTITY_TYPE.PUBLIC_LINK;
-    case "setting":
+    }
+    case "setting": {
       return AUDIT_ENTITY_TYPE.SETTING;
-    case "share":
+    }
+    case "share": {
       return AUDIT_ENTITY_TYPE.SHARE;
-    default:
+    }
+    default: {
       return type;
+    }
   }
 }
 

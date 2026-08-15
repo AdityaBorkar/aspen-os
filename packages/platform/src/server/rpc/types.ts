@@ -4,7 +4,7 @@ import type { RpcRouter } from "#/server/rpc/router";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 export interface RpcContext {
-  db: NodePgDatabase<Record<string, never>>;
+  db: NodePgDatabase;
   pubsub: PubSubUnit;
   tenantId?: string;
 }
@@ -18,10 +18,10 @@ export interface RpcUnit {
   readonly router: RpcRouter;
 
   server: {
-    handle(
+    handle: (
       request: Request,
       context: RpcContext,
-    ): Promise<{ matched: boolean; response: Response | undefined }>;
+    ) => Promise<{ matched: boolean; response: Response | undefined }>;
     router: RpcRouter;
   };
 }

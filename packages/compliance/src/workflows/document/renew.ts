@@ -18,9 +18,8 @@ const renewDocument = Workflow.name("document.renew").handler(
       .set({ updatedAt: new Date(), verificationStatus: "renewed" })
       .where(eq(complianceDocument.id, id));
 
-    const reminderDays =
-      newData.reminderDays ?? (current.reminderDays as number[] | null) ?? DEFAULT_REMINDER_DAYS;
-    const escalationDays = newData.escalationDays ?? (current.escalationDays as number[] | null);
+    const reminderDays = newData.reminderDays ?? current.reminderDays ?? DEFAULT_REMINDER_DAYS;
+    const escalationDays = newData.escalationDays ?? current.escalationDays;
 
     const [newDoc] = await ctx.db
       .insert(complianceDocument)

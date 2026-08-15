@@ -12,7 +12,7 @@ import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 export const MAX_NESTING_DEPTH = 3;
 
-type DrizzleDB = NodePgDatabase<Record<string, never>>;
+type DrizzleDB = NodePgDatabase;
 
 export async function generateTaskNumber(
   db: DrizzleDB,

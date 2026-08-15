@@ -11,21 +11,17 @@ export type { AuditEntry, AuditQuery, CrudAction } from "#/server/audit/types";
 export class AuditUnit {
   readonly $name = "audit";
 
-  private db: AuditDatabase;
-  private queryService: AuditQueryService;
+  private readonly db: AuditDatabase;
+  private readonly queryService: AuditQueryService;
 
   constructor({ db }: { db: DatabaseUnit<any> }) {
     this.db = db.db as AuditDatabase;
     this.queryService = new AuditQueryService(this.db);
   }
 
-  async $prepareInfra(): Promise<void> {
-    return;
-  }
+  async $prepareInfra(): Promise<void> {}
 
-  async $cleanup(): Promise<void> {
-    return;
-  }
+  async $cleanup(): Promise<void> {}
 
   /** Compute a field-level diff between two states. */
   diff(
@@ -88,7 +84,7 @@ export class AuditUnit {
     return this.db.transaction(async (tx) => {
       const result = await fn();
       const resolved = typeof entry === "function" ? entry(result) : entry;
-      await this.write(resolved, tx as unknown as AuditDatabase);
+      await this.write(resolved, tx);
       return result;
     });
   }

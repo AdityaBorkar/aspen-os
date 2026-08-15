@@ -15,9 +15,9 @@ import type { AuditUnit, PubSubUnit } from "@aspen-os/platform/server";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 interface KvStoreLike {
-  del(key: string): Promise<void>;
-  get<TValue>(key: string): Promise<TValue | null>;
-  set<TValue>(key: string, value: TValue, ttl?: number): Promise<void>;
+  del: (key: string) => Promise<void>;
+  get: <TValue>(key: string) => Promise<TValue | null>;
+  set: <TValue>(key: string, value: TValue, ttl?: number) => Promise<void>;
 }
 
 export interface ReminderEngineDeps {
@@ -110,7 +110,7 @@ export async function scanExpiringAndDueDocuments(deps: ReminderEngineDeps): Pro
           return 0;
         }
 
-        const reminderDays = (doc.reminderDays as number[] | null) ?? [90, 60, 30, 7];
+        const reminderDays = doc.reminderDays ?? [90, 60, 30, 7];
         let processedPerDoc = 0;
 
         if (doc.expiryDate) {
@@ -172,7 +172,7 @@ export async function scanExpiringAndDueDocuments(deps: ReminderEngineDeps): Pro
         return processedPerDoc;
       }),
     );
-    recordsProcessed += processed.reduce((sum, count) => sum + count, 0 as number);
+    recordsProcessed += processed.reduce<number>((sum, count) => sum + count, 0);
   } catch {
     errors++;
   }
@@ -252,7 +252,7 @@ export async function transitionExpiredAndOverdueDocuments(
         return 0;
       }),
     );
-    recordsProcessed += processed.reduce((sum, count) => sum + count, 0 as number);
+    recordsProcessed += processed.reduce<number>((sum, count) => sum + count, 0);
   } catch {
     errors++;
   }
@@ -280,7 +280,7 @@ export async function scanEscalations(deps: ReminderEngineDeps): Promise<number>
 
     const processed = await Promise.all(
       docs.map(async (doc) => {
-        const escalationDays = (doc.escalationDays as number[] | null) ?? DEFAULT_ESCALATION_DAYS;
+        const escalationDays = doc.escalationDays ?? DEFAULT_ESCALATION_DAYS;
 
         const targetDate = doc.expiryDate ?? doc.dueDate;
         if (!targetDate) {
@@ -323,7 +323,7 @@ export async function scanEscalations(deps: ReminderEngineDeps): Promise<number>
         return 0;
       }),
     );
-    recordsProcessed += processed.reduce((sum, count) => sum + count, 0 as number);
+    recordsProcessed += processed.reduce<number>((sum, count) => sum + count, 0);
   } catch {
     errors++;
   }

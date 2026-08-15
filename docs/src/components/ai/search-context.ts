@@ -49,7 +49,7 @@ export function useHotKey() {
   });
 
   useEffect(() => {
-    window.addEventListener("keydown", onKeyPress);
-    return () => window.removeEventListener("keydown", onKeyPress);
+    globalThis.addEventListener("keydown", onKeyPress);
+    return () => globalThis.removeEventListener("keydown", onKeyPress);
   }, []);
 }

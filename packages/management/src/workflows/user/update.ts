@@ -76,17 +76,15 @@ export const updateUser = Workflow.name("user.update")
         .where(eq(serviceProviderUser.userId, id))
         .limit(1);
 
-      if (existing) {
-        await ctx.db
-          .update(serviceProviderUser)
-          .set({ serviceProviderId: patch.spId, updatedAt: new Date() })
-          .where(eq(serviceProviderUser.id, existing.id));
-      } else {
-        await ctx.db.insert(serviceProviderUser).values({
-          serviceProviderId: patch.spId,
-          userId: id,
-        });
-      }
+      await (existing
+        ? ctx.db
+            .update(serviceProviderUser)
+            .set({ serviceProviderId: patch.spId, updatedAt: new Date() })
+            .where(eq(serviceProviderUser.id, existing.id))
+        : ctx.db.insert(serviceProviderUser).values({
+            serviceProviderId: patch.spId,
+            userId: id,
+          }));
       changes.spId = patch.spId;
     });
 

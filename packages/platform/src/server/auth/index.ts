@@ -26,7 +26,7 @@ export type { AclDeclaration } from "#/server/auth/utils/acl";
 export { defineAcl } from "#/server/auth/utils/acl";
 export { toSession, toUser } from "#/server/auth/utils/mappers";
 
-type DrizzleDB = NodePgDatabase<Record<string, never>>;
+type DrizzleDB = NodePgDatabase;
 export type AuthService = ReturnType<typeof createBetterAuthService>;
 export interface AuthServiceDeps {
   auth: AuthService;
@@ -36,7 +36,7 @@ export interface AuthServiceDeps {
 export type Session = AuthService["$Infer"]["Session"]["session"];
 export type User = AuthService["$Infer"]["Session"]["user"];
 
-export interface AuthConfig extends BetterAuthOptions {}
+export type AuthConfig = BetterAuthOptions;
 
 export interface RoleData {
   createdAt: Date;
@@ -50,9 +50,9 @@ export interface RoleData {
 export class AuthUnit implements Unit {
   readonly $name = "auth" as const;
   readonly $db_schema = db_schema;
-  #config: AuthConfig;
-  #db: DrizzleDB;
-  #pubsub: PubSubUnit;
+  readonly #config: AuthConfig;
+  readonly #db: DrizzleDB;
+  readonly #pubsub: PubSubUnit;
   #betterAuth: AuthService;
 
   constructor(config: AuthConfig, units: { db: DatabaseUnit<any>; pubsub: PubSubUnit }) {
@@ -77,7 +77,6 @@ export class AuthUnit implements Unit {
   }
 
   applyModuleAcl(acl: Record<string, readonly string[]>): void {
-    // TODO: WORK ON THIS LOGIC
     const ac = createAccessControl(acl);
     this.#betterAuth = createBetterAuthService(this.#config, this.#db, ac);
   }

@@ -24,7 +24,7 @@ export class IsolatedTenantPlatform<
 
   constructor(units: PlatformUnits<TSchemas>, modules: TModules) {
     super(units, modules);
-    this.dbUnit = units.db as DatabaseUnit<TSchemas>;
+    this.dbUnit = units.db;
   }
 
   static create<TModules extends Module[]>(
@@ -79,7 +79,7 @@ export class IsolatedTenantPlatform<
     }
 
     // Preparing Unit Methods
-    const prepareUnits: Array<() => Promise<void>> = [
+    const prepareUnits: (() => Promise<void>)[] = [
       () => this.units.db.$prepareInfra(controlSchemas, tenantSchemas),
       () => this.units.auth.$prepareInfra(acl),
     ];
@@ -91,8 +91,8 @@ export class IsolatedTenantPlatform<
 
     // Preparing Units
     for await (const prepare of prepareUnits) {
-      await prepare().catch((err) => {
-        console.error(`Failed to prepare unit`, err);
+      await prepare().catch((error) => {
+        console.error(`Failed to prepare unit`, error);
       });
     }
 
@@ -101,8 +101,8 @@ export class IsolatedTenantPlatform<
     for (const mod of this.modules) {
       try {
         await this.runInContext(() => mod.$prepareRuntime?.());
-      } catch (err) {
-        console.error(`Failed to prepare module "${mod.$name}"`, err);
+      } catch (error) {
+        console.error(`Failed to prepare module "${mod.$name}"`, error);
       }
     }
     // oxlint-enable eslint/no-await-in-loop
@@ -113,8 +113,11 @@ export class IsolatedTenantPlatform<
     for (const tenantId of tenantIds) {
       await this.run(tenantId, async () => {
         for await (const mod of this.modules) {
-          await mod.$prepareTenant?.(tenantId).catch((err) => {
-            console.error(`Failed to prepare tenant "${tenantId}" for module "${mod.$name}"`, err);
+          await mod.$prepareTenant?.(tenantId).catch((error) => {
+            console.error(
+              `Failed to prepare tenant "${tenantId}" for module "${mod.$name}"`,
+              error,
+            );
           });
         }
       });
@@ -126,6 +129,6 @@ export class IsolatedTenantPlatform<
     const db = isGlobalTenantId(tenantId)
       ? this.dbUnit.controlPlaneDb
       : await this.dbUnit.getTenantDb(tenantId);
-    return this.runInContext(fn, { db, tenantId }) as TValue;
+    return this.runInContext(fn, { db, tenantId });
   }
 }

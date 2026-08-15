@@ -6,7 +6,7 @@ import { getContext } from "@aspen-os/platform/server";
 import { and, eq, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-export type DB = NodePgDatabase<Record<string, never>>;
+export type DB = NodePgDatabase;
 
 function maxDepth(): number {
   return getDmsConfig().maxNestingDepth;

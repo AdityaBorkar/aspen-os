@@ -6,7 +6,7 @@ import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-type DrizzleDB = NodePgDatabase<Record<string, never>>;
+type DrizzleDB = NodePgDatabase;
 
 type ReminderType = "due_date" | "custom" | "overdue";
 
@@ -67,19 +67,24 @@ function computeNextOccurrence(current: Date, interval: string): Date | null {
   const next = new Date(current);
 
   switch (interval) {
-    case "daily":
+    case "daily": {
       next.setDate(next.getDate() + 1);
       return next;
-    case "weekly":
+    }
+    case "weekly": {
       next.setDate(next.getDate() + 7);
       return next;
-    case "monthly":
+    }
+    case "monthly": {
       next.setMonth(next.getMonth() + 1);
       return next;
-    case "every_2_hours":
+    }
+    case "every_2_hours": {
       next.setHours(next.getHours() + 2);
       return next;
-    default:
+    }
+    default: {
       return null;
+    }
   }
 }

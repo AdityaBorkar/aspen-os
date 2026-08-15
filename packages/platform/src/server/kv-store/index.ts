@@ -8,15 +8,15 @@ import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 export type { KvStoreConfig } from "#/server/kv-store/types";
 
-type DrizzleDB = NodePgDatabase<Record<string, never>>;
+type DrizzleDB = NodePgDatabase;
 
 export class KvStoreUnit {
   readonly $name = "kvStore" as const;
   readonly db_schema = db_schema;
 
-  private db: DrizzleDB;
-  private defaultTtl: number;
-  private prefix: string;
+  private readonly db: DrizzleDB;
+  private readonly defaultTtl: number;
+  private readonly prefix: string;
 
   constructor(config: KvStoreConfig, { db }: { db: DatabaseUnit<any> }) {
     this.db = db.db as DrizzleDB;
@@ -24,9 +24,7 @@ export class KvStoreUnit {
     this.prefix = config.keyPrefix ?? "";
   }
 
-  async $prepareInfra(): Promise<void> {
-    return;
-  }
+  async $prepareInfra(): Promise<void> {}
 
   async $cleanup(): Promise<void> {
     // Cleanup if needed

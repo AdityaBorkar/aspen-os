@@ -75,7 +75,7 @@ export interface ReminderFiredEvent {
   taskId: string;
 }
 
-export type TaskEventMap = {
+export interface TaskEventMap {
   [TASK_EVENTS.ASSIGNED]: TaskAssignedEvent;
   [TASK_EVENTS.COMMENTED]: TaskCommentedEvent;
   [TASK_EVENTS.CREATED]: TaskCreatedEvent;
@@ -85,10 +85,10 @@ export type TaskEventMap = {
   [TASK_EVENTS.UNASSIGNED]: TaskUnassignedEvent;
   [TASK_EVENTS.UNLINKED]: TaskUnlinkedEvent;
   [TASK_EVENTS.UPDATED]: TaskUpdatedEvent;
-};
+}
 
-export type ReminderEventMap = {
+export interface ReminderEventMap {
   [REMINDER_EVENTS.FIRED]: ReminderFiredEvent;
-};
+}
 
 export type TaskDomainEventMap = TaskEventMap & ReminderEventMap;

@@ -28,31 +28,43 @@ export interface ConditionContext {
 function columnSql(field: string): SQL | null {
   switch (field) {
     case "class":
-    case "classId":
+    case "classId": {
       return dmsFile.classId as unknown as SQL;
-    case "contentType":
+    }
+    case "contentType": {
       return dmsFile.contentType as unknown as SQL;
-    case "createdAt":
+    }
+    case "createdAt": {
       return dmsFile.createdAt as unknown as SQL;
-    case "expiryDate":
+    }
+    case "expiryDate": {
       return dmsFile.expiryDate as unknown as SQL;
-    case "id":
+    }
+    case "id": {
       return dmsFile.id as unknown as SQL;
-    case "name":
+    }
+    case "name": {
       return dmsFile.name as unknown as SQL;
+    }
     case "owner":
-    case "ownerId":
+    case "ownerId": {
       return dmsFile.ownerId as unknown as SQL;
-    case "size":
+    }
+    case "size": {
       return dmsFile.size as unknown as SQL;
-    case "status":
+    }
+    case "status": {
       return dmsFile.status as unknown as SQL;
-    case "updatedAt":
+    }
+    case "updatedAt": {
       return dmsFile.updatedAt as unknown as SQL;
-    case "uploadedBy":
+    }
+    case "uploadedBy": {
       return dmsFile.uploadedBy as unknown as SQL;
-    default:
+    }
+    default: {
       return null;
+    }
   }
 }
 
@@ -159,16 +171,18 @@ function buildGenericCondition(input: {
 }): SQL | null {
   const { col, operator, type, value } = input;
   switch (operator) {
-    case "eq":
+    case "eq": {
       if (value === null) {
         return isNull(col);
       }
       return eq(col, value as never);
-    case "neq":
+    }
+    case "neq": {
       if (value === null) {
         return isNotNull(col);
       }
       return ne(col, value as never);
+    }
     case "contains": {
       if (type === "date" || type === "number") {
         return null;
@@ -228,10 +242,12 @@ function buildGenericCondition(input: {
       }
       return drizzleBetween(col, lower, upper);
     }
-    case "isEmpty":
+    case "isEmpty": {
       return isNull(col);
-    case "isNotEmpty":
+    }
+    case "isNotEmpty": {
       return isNotNull(col);
+    }
     case "dateBefore": {
       const date = parseDate(value);
       if (!date) {
@@ -246,8 +262,9 @@ function buildGenericCondition(input: {
       }
       return gte(col, date);
     }
-    default:
+    default: {
       return null;
+    }
   }
 }
 
@@ -272,10 +289,10 @@ export function buildConditionsWhere(
   }
 
   if (ctx?.classId) {
-    parts.push(eq(dmsFile.classId, ctx.classId) as unknown as SQL);
+    parts.push(eq(dmsFile.classId, ctx.classId));
   }
   if (ctx?.ownerId) {
-    parts.push(eq(dmsFile.ownerId, ctx.ownerId) as unknown as SQL);
+    parts.push(eq(dmsFile.ownerId, ctx.ownerId));
   }
 
   return parts.length > 0 ? and(...parts) : undefined;

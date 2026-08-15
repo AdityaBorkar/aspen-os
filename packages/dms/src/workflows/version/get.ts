@@ -36,13 +36,13 @@ export const getFileVersion = Workflow.name("dms.version.get")
           return row.storageKey;
         });
 
-    const defaultExpiry = (await ctx.step.run("resolve-expiry", async () => {
+    const defaultExpiry = await ctx.step.run("resolve-expiry", async () => {
       const setting = (await getSetting(ctx.db, SETTING_KEYS.PRESIGNED_URL_DEFAULT_EXPIRY)) as
         | number
         | null;
       return setting ?? config.defaultDownloadLinkExpiry;
-    })) as number;
-    const maxExpiry = 604800;
+    });
+    const maxExpiry = 604_800;
 
     const url = await ctx.step.run("get-signed-url", async () =>
       getSignedGetUrl({

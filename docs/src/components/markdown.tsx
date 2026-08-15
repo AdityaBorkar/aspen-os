@@ -64,6 +64,7 @@ export function Markdown({ text }: { text: string }) {
   const deferredText = useDeferredValue(text);
 
   return (
+    // oxlint-disable-next-line react-perf/jsx-no-jsx-as-prop
     <Suspense fallback={<p className="invisible">{text}</p>}>
       <Renderer text={deferredText} />
     </Suspense>

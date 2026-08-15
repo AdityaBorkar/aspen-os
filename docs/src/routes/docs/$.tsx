@@ -28,7 +28,7 @@ import { cloneElement, isValidElement, Suspense } from "react";
 export const Route = createFileRoute("/docs/$")({
   component: Page,
   loader: async ({ params }) => {
-    const slugs = params["_splat"]?.split("/") ?? [];
+    const slugs = params._splat?.split("/") ?? []; // oxlint-disable-line
     if (slugs.length === 0 || (slugs.length === 1 && slugs[0] === "")) {
       throw redirect({ params: { _splat: "platform" }, to: "/docs/$" });
     }
@@ -99,6 +99,16 @@ function collectFolderUrls(folder: PageTree.Folder): Set<string> {
   return urls;
 }
 
+const nav = {
+  ...LAYOUT_BASE_OPTIONS.nav,
+  title: (
+    <>
+      <img alt="" className="size-5" src={`/icon${STAGE && `.${STAGE}`}.png`} />
+      {APP_NAME}
+    </>
+  ),
+};
+
 function Page() {
   const { path, pageTree, markdownUrl } = useFumadocsLoader(Route.useLoaderData());
   const platformUrl = `${DOCS_ROUTE}/platform`;
@@ -113,7 +123,7 @@ function Page() {
         : option.icon,
       urls: collectFolderUrls(node),
     }),
-  }).sort((left, right) => {
+  }).toSorted((left, right) => {
     if (left.url === platformUrl) {
       return -1;
     }
@@ -127,15 +137,7 @@ function Page() {
     <DocsLayout
       // oxlint-disable-next-line react/jsx-props-no-spreading
       {...LAYOUT_BASE_OPTIONS}
-      nav={{
-        ...LAYOUT_BASE_OPTIONS.nav,
-        title: (
-          <>
-            <img alt="" className="size-5" src={`/icon${STAGE && `.${STAGE}`}.png`} />
-            {APP_NAME}
-          </>
-        ),
-      }}
+      nav={nav}
       tabs={tabs}
       tree={pageTree}
     >

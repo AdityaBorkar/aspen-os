@@ -52,8 +52,8 @@ export const listFolders = Workflow.name("dms.folder.list").handler(async (input
   };
 
   return {
-    files: files.sort(sortFn),
-    folders: folders.sort(sortFn),
+    files: files.toSorted(sortFn),
+    folders: folders.toSorted(sortFn),
     sortBy,
     sortOrder,
   };

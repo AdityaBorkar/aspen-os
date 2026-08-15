@@ -78,7 +78,7 @@ export const updateBranch = Workflow.name("branch.update")
 
     await ctx.pubsub.publish(BRANCH_EVENTS.UPDATED, {
       branch: { id: updated.id, name: updated.name },
-      changes: input.patch as Record<string, unknown>,
+      changes: input.patch,
     });
 
     return updated;

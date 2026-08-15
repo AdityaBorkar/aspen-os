@@ -8,14 +8,12 @@ import { parse } from "valibot";
 
 const exportAuditEntries = Workflow.name("audit.export").handler(
   async (input: { filters?: AuditTrailFilters }, ctx) => {
-    const rows = (await ctx.step.run("query", async () => {
+    const rows = await ctx.step.run("query", async () => {
       const { filters } = input;
       const parsed = filters ? parse(AuditTrailFiltersSchema, filters) : {};
-      const result = (await ctx.audit.query(
-        toFilter(parsed as AuditTrailFilters | undefined),
-      )) as AuditLogRow[];
+      const result = (await ctx.audit.query(toFilter(parsed))) as AuditLogRow[];
       return result.map(normalize);
-    })) as ComplianceAuditEntry[];
+    });
 
     return rows.map((entry) => ({
       action: entry.action,

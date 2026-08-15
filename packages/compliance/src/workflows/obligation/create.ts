@@ -57,7 +57,7 @@ const createObligation = Workflow.name("obligation.create")
       crudAction: "create",
       entityId: result.id,
       entityType: "compliance_obligation",
-      newState: result as unknown as Record<string, unknown>,
+      newState: result,
     });
 
     await ctx.pubsub.publish(COMPLIANCE_EVENTS.OBLIGATION_CREATED, {

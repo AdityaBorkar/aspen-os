@@ -273,7 +273,7 @@ export interface SearchResult {
 
 export type SearchScope = "all" | "my_files" | "shared_with_me";
 
-export type DmsModuleConfig = {
+export interface DmsModuleConfig {
   allowedContentTypes?: string[];
   defaultAutoPurgeEveryHours?: number;
   defaultCompression?: CompressionOption;
@@ -284,4 +284,4 @@ export type DmsModuleConfig = {
   maxNestingDepth?: number;
   maxVersions?: number;
   trashRetentionDays?: number;
-};
+}

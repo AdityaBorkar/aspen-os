@@ -1,4 +1,4 @@
-export type DatabaseConfig = {
+export interface DatabaseConfig {
   database: string;
   host: string;
   maxConnections?: number;
@@ -6,20 +6,20 @@ export type DatabaseConfig = {
   port: number;
   ssl?: boolean;
   user: string;
-};
+}
 
-export type IsolatedTenantDbConfig = {
+export interface IsolatedTenantDbConfig {
   database: string;
   host: string;
   password: string;
   port: number;
   ssl: boolean;
   user: string;
-};
+}
 
-export type SharedTenantDbConfig = {
+export interface SharedTenantDbConfig {
   tenantId: string;
-};
+}
 
 export type SingleTenantDbConfig = Record<string, never>;
 
@@ -38,7 +38,7 @@ export type TenantProvisioningResult =
   | IsolatedTenantProvisioningResult
   | SharedTenantProvisioningResult;
 
-export type IsolatedTenantDatabaseConfig = {
+export interface IsolatedTenantDatabaseConfig {
   controlPlaneDbName?: string;
   connection: {
     host: string;
@@ -59,4 +59,4 @@ export type IsolatedTenantDatabaseConfig = {
     user?: string;
   };
   tenantDbPrefix: string;
-};
+}

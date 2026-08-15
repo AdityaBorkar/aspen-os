@@ -256,7 +256,7 @@ export interface FileViewDeletedEvent {
   fileViewId: string;
 }
 
-export type FileEventMap = {
+export interface FileEventMap {
   [FILE_EVENTS.CLASSIFIED]: FileClassifiedEvent;
   [FILE_EVENTS.DOWNLOADED]: FileDownloadedEvent;
   [FILE_EVENTS.EXPIRED]: FileExpiredEvent;
@@ -270,45 +270,45 @@ export type FileEventMap = {
   [FILE_EVENTS.UPLOADED]: FileUploadedEvent;
   [FILE_EVENTS.VERSION_ADDED]: FileVersionAddedEvent;
   [FILE_EVENTS.VERSION_REVERTED]: FileVersionRevertedEvent;
-};
+}
 
-export type FolderEventMap = {
+export interface FolderEventMap {
   [FOLDER_EVENTS.CREATED]: FolderCreatedEvent;
   [FOLDER_EVENTS.MOVED]: FolderMovedEvent;
   [FOLDER_EVENTS.PURGED]: FolderPurgedEvent;
   [FOLDER_EVENTS.RENAMED]: FolderRenamedEvent;
   [FOLDER_EVENTS.RESTORED]: FolderRestoredEvent;
   [FOLDER_EVENTS.TRASHED]: FolderTrashedEvent;
-};
+}
 
-export type ClassEventMap = {
+export interface ClassEventMap {
   [CLASS_EVENTS.ARCHIVED]: ClassArchivedEvent;
   [CLASS_EVENTS.CREATED]: ClassCreatedEvent;
   [CLASS_EVENTS.UPDATED]: ClassUpdatedEvent;
-};
+}
 
-export type ContactEventMap = {
+export interface ContactEventMap {
   [CONTACT_EVENTS.CREATED]: ContactCreatedEvent;
   [CONTACT_EVENTS.REMOVED]: ContactRemovedEvent;
   [CONTACT_EVENTS.UPDATED]: ContactUpdatedEvent;
-};
+}
 
-export type ShareEventMap = {
+export interface ShareEventMap {
   [SHARE_EVENTS.CREATED]: ShareCreatedEvent;
   [SHARE_EVENTS.REVOKED]: ShareRevokedEvent;
-};
+}
 
-export type PublicLinkEventMap = {
+export interface PublicLinkEventMap {
   [PUBLIC_LINK_EVENTS.ACCESSED]: PublicLinkAccessedEvent;
   [PUBLIC_LINK_EVENTS.CREATED]: PublicLinkCreatedEvent;
   [PUBLIC_LINK_EVENTS.REVOKED]: PublicLinkRevokedEvent;
-};
+}
 
-export type FileViewEventMap = {
+export interface FileViewEventMap {
   [FILE_VIEW_EVENTS.CREATED]: FileViewCreatedEvent;
   [FILE_VIEW_EVENTS.DELETED]: FileViewDeletedEvent;
   [FILE_VIEW_EVENTS.UPDATED]: FileViewUpdatedEvent;
-};
+}
 
 export type DmsEventMap = ClassEventMap &
   ContactEventMap &

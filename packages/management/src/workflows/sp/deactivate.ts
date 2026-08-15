@@ -31,7 +31,7 @@ export const deactivateSp = Workflow.name("sp.deactivate")
       entityId: id,
       entityType: AUDIT_ENTITY_TYPE.SERVICE_PROVIDER,
       newState: { status: SP_STATUS.INACTIVE },
-      previousState: previous as Record<string, unknown>,
+      previousState: previous,
     });
 
     await ctx.pubsub.publish(SERVICE_PROVIDER_EVENTS.DEACTIVATED, {

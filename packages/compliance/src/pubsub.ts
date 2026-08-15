@@ -213,7 +213,7 @@ export interface ScheduledJobExecutedEvent {
   recordsProcessed: number;
 }
 
-export type DocumentEventMap = {
+export interface DocumentEventMap {
   [DOCUMENT_EVENTS.ARCHIVED]: DocumentArchivedEvent;
   [DOCUMENT_EVENTS.ATTACHMENT_UPLOADED]: DocumentAttachmentUploadedEvent;
   [DOCUMENT_EVENTS.COMPLETED]: DocumentCompletedEvent;
@@ -231,24 +231,24 @@ export type DocumentEventMap = {
   [DOCUMENT_EVENTS.SUBMITTED]: DocumentSubmittedEvent;
   [DOCUMENT_EVENTS.UPDATED]: DocumentUpdatedEvent;
   [DOCUMENT_EVENTS.VERIFIED]: DocumentVerifiedEvent;
-};
+}
 
-export type ObligationEventMap = {
+export interface ObligationEventMap {
   [OBLIGATION_EVENTS.ACTIVATED]: ObligationActivatedEvent;
   [OBLIGATION_EVENTS.CREATED]: ObligationCreatedEvent;
   [OBLIGATION_EVENTS.DEACTIVATED]: ObligationDeactivatedEvent;
   [OBLIGATION_EVENTS.UPDATED]: ObligationUpdatedEvent;
-};
+}
 
-export type SystemEventMap = {
+export interface SystemEventMap {
   [SYSTEM_EVENTS.SCHEDULED_JOB_EXECUTED]: ScheduledJobExecutedEvent;
   [SYSTEM_EVENTS.WEEKLY_SUMMARY]: WeeklySummaryEvent;
-};
+}
 
 export type ComplianceEventMap = DocumentEventMap & ObligationEventMap & SystemEventMap;
 
-export type VerificationStatusChangeEvent = {
+export interface VerificationStatusChangeEvent {
   documentId: string;
   fromStatus: VerificationStatus;
   toStatus: VerificationStatus;
-};
+}

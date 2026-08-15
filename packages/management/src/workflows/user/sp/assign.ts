@@ -36,17 +36,15 @@ export const assignToServiceProvider = Workflow.name("user.assign-sp")
         .where(eq(serviceProviderUser.userId, userId))
         .limit(1);
 
-      if (existing) {
-        await ctx.db
-          .update(serviceProviderUser)
-          .set({ serviceProviderId: spId, updatedAt: new Date() })
-          .where(eq(serviceProviderUser.id, existing.id));
-      } else {
-        await ctx.db.insert(serviceProviderUser).values({
-          serviceProviderId: spId,
-          userId,
-        });
-      }
+      await (existing
+        ? ctx.db
+            .update(serviceProviderUser)
+            .set({ serviceProviderId: spId, updatedAt: new Date() })
+            .where(eq(serviceProviderUser.id, existing.id))
+        : ctx.db.insert(serviceProviderUser).values({
+            serviceProviderId: spId,
+            userId,
+          }));
     });
 
     await ctx.step.run("assign-auth-role", async () => {

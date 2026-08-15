@@ -39,7 +39,7 @@ export const emptyTrash = Workflow.name("dms.trash.empty")
         .where(
           and(
             eq(dmsLegalHold.releasedAt, null as never),
-            or(...(trashedFiles.map((row) => eq(dmsLegalHold.fileId, row.id)) as SQL[])),
+            or(...trashedFiles.map((row) => eq(dmsLegalHold.fileId, row.id))),
           ),
         );
       for (const hold of heldRows) {

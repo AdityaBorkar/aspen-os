@@ -85,7 +85,7 @@ export function shouldNotify(
   lastNotifiedAt: Date | null,
   daysUntilTarget: number,
 ): boolean {
-  const sorted = [...reminderDays].sort((left, right) => right - left);
+  const sorted = reminderDays.toSorted((left, right) => right - left);
   for (const threshold of sorted) {
     if (daysUntilTarget <= threshold) {
       if (!lastNotifiedAt) {
@@ -116,7 +116,7 @@ export function shouldEscalate(
     return null;
   }
 
-  const sorted = [...escalationDays].sort((left, right) => left - right);
+  const sorted = escalationDays.toSorted((left, right) => left - right);
   for (let index = 0; index < sorted.length; index++) {
     const threshold = sorted[index];
     if (threshold === undefined) {

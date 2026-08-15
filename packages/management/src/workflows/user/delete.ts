@@ -32,7 +32,7 @@ export const deleteUser = Workflow.name("user.delete")
       crudAction: "delete",
       entityId: id,
       entityType: AUDIT_ENTITY_TYPE.PLATFORM_USER,
-      previousState: previousState as Record<string, unknown>,
+      previousState: previousState,
     });
 
     await ctx.pubsub.publish(PLATFORM_USER_EVENTS.DELETED, {

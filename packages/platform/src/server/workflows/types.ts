@@ -30,17 +30,19 @@ export interface WorkflowStepInstance<
 }
 
 export interface StepRunner {
-  run<TValue>(
-    name: string,
-    fn: () => TValue | Promise<TValue>,
-    options?: StepOptions,
-  ): Promise<TValue>;
-  run<TInput, TOutput>(
-    step: WorkflowStepInstance<TInput, TOutput>,
-    input: TInput,
-    options?: StepOptions,
-  ): Promise<TOutput>;
-  sleep(ms: number): Promise<void>;
+  run: {
+    <TValue>(
+      name: string,
+      fn: () => TValue | Promise<TValue>,
+      options?: StepOptions,
+    ): Promise<TValue>;
+    <TInput, TOutput>(
+      step: WorkflowStepInstance<TInput, TOutput>,
+      input: TInput,
+      options?: StepOptions,
+    ): Promise<TOutput>;
+  };
+  sleep: (ms: number) => Promise<void>;
 }
 
 export interface WorkflowContext<TSchemas extends Record<string, unknown> = Record<string, never>> {
@@ -75,7 +77,7 @@ export interface RunOptions {
 
 export interface WorkflowInstance<TInput, TOutput> {
   readonly name: string;
-  run(input: TInput, options?: RunOptions): Promise<TOutput>;
+  run: (input: TInput, options?: RunOptions) => Promise<TOutput>;
 }
 
 export type WorkflowRunStatus = "running" | "completed" | "failed";

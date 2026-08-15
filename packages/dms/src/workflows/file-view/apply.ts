@@ -1,7 +1,7 @@
 import { dmsFile } from "#/db-schemas";
 import { buildConditionsWhere, buildSortOrder } from "#/services/condition-service";
-import { ApplyFileViewSchema } from "#/types";
 import type { FileViewCondition, FileViewSort } from "#/types";
+import { ApplyFileViewSchema } from "#/types";
 import { fetchFileViewStep } from "#/workflow-steps/fetch-file-view";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -12,18 +12,24 @@ const ApplyInputSchema = ApplyFileViewSchema;
 
 function resolveFileSortField(field: string): SQL | null {
   switch (field) {
-    case "createdAt":
+    case "createdAt": {
       return dmsFile.createdAt as unknown as SQL;
-    case "name":
+    }
+    case "name": {
       return dmsFile.name as unknown as SQL;
-    case "size":
+    }
+    case "size": {
       return dmsFile.size as unknown as SQL;
-    case "updatedAt":
+    }
+    case "updatedAt": {
       return dmsFile.updatedAt as unknown as SQL;
-    case "expiryDate":
+    }
+    case "expiryDate": {
       return dmsFile.expiryDate as unknown as SQL;
-    default:
+    }
+    default: {
       return null;
+    }
   }
 }
 
@@ -35,8 +41,8 @@ export const applyFileView = Workflow.name("dms.file-view.apply")
 
     if (input.viewId) {
       const view = await ctx.step.run(fetchFileViewStep, { id: input.viewId });
-      filters = (view.filters as unknown as FileViewCondition[]) ?? [];
-      sort = (view.sort as unknown as FileViewSort[]) ?? [];
+      filters = (view.filters ?? []) as FileViewCondition[];
+      sort = (view.sort ?? []) as FileViewSort[];
     }
 
     return ctx.step.run("query", async () => {
@@ -63,7 +69,7 @@ export const applyFileView = Workflow.name("dms.file-view.apply")
 
       const orderBy = buildSortOrder(sort, resolveFileSortField);
       if (orderBy.length === 0) {
-        orderBy.push(desc(dmsFile.createdAt) as unknown as SQL);
+        orderBy.push(desc(dmsFile.createdAt));
       }
 
       return ctx.db

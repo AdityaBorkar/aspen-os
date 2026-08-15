@@ -50,24 +50,24 @@ export function createOnboardTenant(dbUnit: DatabaseUnit) {
             user: parsed.databaseUser ?? undefined,
           }),
         );
-      } catch (err) {
+      } catch (error) {
         console.error(
           `Provisioning failed for tenant "${tenantId}", cleaning up organization`,
-          err,
+          error,
         );
         try {
           await auth.service.api.deleteOrganization({
             body: { organizationId: tenantId },
             headers: new Headers(),
           });
-        } catch (cleanupErr) {
-          console.error(`Failed to cleanup organization "${tenantId}"`, cleanupErr);
+        } catch (cleanupError) {
+          console.error(`Failed to cleanup organization "${tenantId}"`, cleanupError);
         }
-        throw err;
+        throw error;
       }
 
       if (provisioningResult.tenancyMode === "isolated") {
-        const dbConfig = provisioningResult as IsolatedTenantProvisioningResult;
+        const dbConfig = provisioningResult;
         await ctx.step.run("seed-profile", async () => {
           await dbUnit.seedTenantDb(dbConfig, async (tenantDb) => {
             await tenantDb.insert(organization).values({

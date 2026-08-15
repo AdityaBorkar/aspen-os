@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "declarationDir": "../.local/types/docs",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "paths": {
       "#/*": ["./src/*"],
       "collections/*": ["./.source/*"]

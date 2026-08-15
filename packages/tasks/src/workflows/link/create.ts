@@ -10,7 +10,7 @@ import { object } from "valibot";
 
 const BLOCKS_LINK_TYPE = "blocks";
 
-type DrizzleDB = NodePgDatabase<Record<string, never>>;
+type DrizzleDB = NodePgDatabase;
 
 type LinkTypeValue =
   | "blocks"

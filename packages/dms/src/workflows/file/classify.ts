@@ -16,7 +16,7 @@ import { object, parse } from "valibot";
 
 const ClassifyInputSchema = object({ id: IdSchema, input: ClassifyFileSchema });
 
-const MAX_SEQ = 999999;
+const MAX_SEQ = 999_999;
 
 async function nextDocNumber(db: NodePgDatabase): Promise<string> {
   const rows = await db

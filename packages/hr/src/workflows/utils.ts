@@ -44,14 +44,14 @@ export const OptionalSchema = optional(string());
 
 // Org-chart structure: rows come from a drizzle select projection, so fields are
 // Conservatively typed (`unknown`) to be robust regardless of drizzle typing
-type OrgChartEmployee = {
+interface OrgChartEmployee {
   designation: unknown;
   firstName: unknown;
   id: unknown;
   image: unknown;
   lastName: unknown;
   reportsTo: unknown;
-};
+}
 
 // ─── Attendance ────────────────────────────────────────────────────────────
 

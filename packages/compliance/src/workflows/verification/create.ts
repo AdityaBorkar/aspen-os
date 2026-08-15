@@ -33,7 +33,7 @@ const createVerificationRule = Workflow.name("verification.create")
       crudAction: "create",
       entityId: result.id,
       entityType: "verification_rule",
-      newState: result as unknown as Record<string, unknown>,
+      newState: result,
     });
 
     return result;

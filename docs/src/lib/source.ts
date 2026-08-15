@@ -7,23 +7,24 @@ import type { ReactElement } from "react";
 
 import { DOCS_ROUTE } from "./constants";
 
-function tablerIconPlugin(): LoaderPlugin {
-  function resolveIcon(icon: string | undefined) {
-    if (!icon) {
-      return;
-    }
-    const Icon = (TablerIcons as Record<string, unknown>)[icon] as
-      | ((props: { size?: number }) => ReactElement)
-      | undefined;
-    if (!Icon) {
-      console.warn(`[tabler-icons] Unknown icon: ${icon}`);
-      return;
-    }
-    return createElement(Icon);
+function resolveIcon(icon: string | undefined) {
+  if (!icon) {
+    return;
   }
+  const Icon = (TablerIcons as Record<string, unknown>)[icon] as
+    | ((props: { size?: number }) => ReactElement)
+    | undefined;
+  if (!Icon) {
+    console.warn(`[tabler-icons] Unknown icon: ${icon}`);
+    return;
+  }
+  return createElement(Icon);
+}
+
+function tablerIconPlugin(): LoaderPlugin {
   function replaceIcon<TNode extends { icon?: unknown }>(node: TNode): TNode {
     if (node.icon === undefined || typeof node.icon === "string") {
-      node.icon = resolveIcon(node.icon as string | undefined);
+      node.icon = resolveIcon(node.icon);
     }
     return node;
   }

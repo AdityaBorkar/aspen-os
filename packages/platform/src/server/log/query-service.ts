@@ -4,10 +4,10 @@ import type { LogEntry, LogLevel, LogQuery, LogStats } from "#/server/log/types"
 import { and, desc, eq, gte, ilike, lte, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-type DrizzleDB = NodePgDatabase<Record<string, never>>;
+type DrizzleDB = NodePgDatabase;
 
 export class LogQueryService {
-  private db: DrizzleDB;
+  private readonly db: DrizzleDB;
 
   constructor(db: DrizzleDB) {
     this.db = db;

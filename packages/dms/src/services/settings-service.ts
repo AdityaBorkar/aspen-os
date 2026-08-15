@@ -5,7 +5,7 @@ import { SETTING_KEYS } from "#/utils/constants";
 import { eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-type DB = NodePgDatabase<Record<string, never>>;
+type DB = NodePgDatabase;
 
 export interface DmsSettingsValues {
   autoPurgeEveryHours: number;
@@ -33,14 +33,12 @@ export async function setSetting(db: DB, key: string, value: unknown): Promise<v
     .where(eq(dmsSetting.key, key))
     .limit(1);
 
-  if (existing[0]) {
-    await db
-      .update(dmsSetting)
-      .set({ updatedAt: new Date(), value })
-      .where(eq(dmsSetting.id, existing[0].id));
-  } else {
-    await db.insert(dmsSetting).values({ key, value });
-  }
+  await (existing[0]
+    ? db
+        .update(dmsSetting)
+        .set({ updatedAt: new Date(), value })
+        .where(eq(dmsSetting.id, existing[0].id))
+    : db.insert(dmsSetting).values({ key, value }));
 }
 
 const DEFAULT_VALUES: Record<string, unknown> = {
@@ -49,7 +47,7 @@ const DEFAULT_VALUES: Record<string, unknown> = {
   [SETTING_KEYS.DEFAULT_RETENTION_DAYS]: 180,
   [SETTING_KEYS.LOG_DOWNLOADS]: false,
   [SETTING_KEYS.PRESIGNED_URL_DEFAULT_EXPIRY]: 3600,
-  [SETTING_KEYS.PRESIGNED_URL_MAX_EXPIRY]: 604800,
+  [SETTING_KEYS.PRESIGNED_URL_MAX_EXPIRY]: 604_800,
 };
 
 export async function getDefaultSetting(key: string): Promise<unknown> {

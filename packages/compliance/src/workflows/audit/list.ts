@@ -11,9 +11,7 @@ const listAuditEntries = Workflow.name("audit.list").handler(
     const { filters } = input;
     const parsed = filters ? parse(AuditTrailFiltersSchema, filters) : {};
 
-    const rows = (await ctx.audit.query(
-      toFilter(parsed as AuditTrailFilters | undefined),
-    )) as AuditLogRow[];
+    const rows = (await ctx.audit.query(toFilter(parsed))) as AuditLogRow[];
 
     return rows.map(normalize);
   },

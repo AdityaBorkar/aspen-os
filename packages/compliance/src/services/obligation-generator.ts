@@ -61,11 +61,10 @@ export async function generatePendingDocuments(deps: ObligationGeneratorDeps): P
     {},
     { db: deps.db, pubsub: deps.pubsub },
   );
-  const generatedIds = (
-    await Promise.all(
-      activeObligations.map((obligation) => generateForObligation(obligation, undefined, deps)),
-    )
-  ).flat();
+  const results = await Promise.all(
+    activeObligations.map((obligation) => generateForObligation(obligation, undefined, deps)),
+  );
+  const generatedIds = results.flat();
 
   return generatedIds;
 }
@@ -84,68 +83,67 @@ export async function generateForObligation(
 
   const periods = computePeriodsUpTo(obligation, now);
 
-  const generatedIds = (
-    await Promise.all(
-      periods.map(async (period) => {
-        const idempotencyKey = buildIdempotencyKey(obligation.id, period);
+  const docIds = await Promise.all(
+    periods.map(async (period) => {
+      const idempotencyKey = buildIdempotencyKey(obligation.id, period);
 
-        const existing = await checkDocumentExists({
-          db: deps.db,
-          obligationId: obligation.id,
-          periodEnd: period.periodEnd,
-          periodStart: period.periodStart,
-        });
+      const existing = await checkDocumentExists({
+        db: deps.db,
+        obligationId: obligation.id,
+        periodEnd: period.periodEnd,
+        periodStart: period.periodStart,
+      });
 
-        if (existing) {
-          return null;
-        }
+      if (existing) {
+        return null;
+      }
 
-        const docName = generateDocumentName(obligation, period);
-        const reminderDays =
-          (obligation.defaultReminderDays as number[] | null) ??
-          (obligation.expiryBased ? [90, 60, 30, 7] : [30, 15, 7, 1]);
+      const docName = generateDocumentName(obligation, period);
+      const reminderDays =
+        obligation.defaultReminderDays ??
+        (obligation.expiryBased ? [90, 60, 30, 7] : [30, 15, 7, 1]);
 
-        const doc = await documents.create.run(
-          {
-            input: {
-              assignedReviewer: obligation.defaultAssignedReviewer ?? undefined,
-              assignedTo: obligation.defaultAssignedTo ?? undefined,
-              branch: obligation.branch ?? undefined,
-              category: obligation.category,
-              createdBy: obligation.createdBy,
-              documentType: obligation.documentType ?? undefined,
-              dueDate: period.dueDate ? new Date(period.dueDate) : undefined,
-              escalationDays: obligation.defaultEscalationDays ?? undefined,
-              expiryDate: period.expiryDate ? new Date(period.expiryDate) : undefined,
-              issuingAuthority: obligation.defaultIssuingAuthority ?? undefined,
-              jurisdiction: obligation.defaultJurisdiction ?? undefined,
-              metadata: {
-                ...(obligation.defaultMetadata as Record<string, unknown>),
-                idempotencyKey,
-              },
-              name: docName,
-              obligationId: obligation.id,
-              periodEnd: period.periodEnd ? new Date(period.periodEnd) : undefined,
-              periodStart: period.periodStart ? new Date(period.periodStart) : undefined,
-              reminderDays,
-              sourceEntityId: obligation.sourceEntityId ?? undefined,
-              sourceEntityType: obligation.sourceEntityType ?? undefined,
-              sourceModule: obligation.sourceModule,
+      const doc = await documents.create.run(
+        {
+          input: {
+            assignedReviewer: obligation.defaultAssignedReviewer ?? undefined,
+            assignedTo: obligation.defaultAssignedTo ?? undefined,
+            branch: obligation.branch ?? undefined,
+            category: obligation.category,
+            createdBy: obligation.createdBy,
+            documentType: obligation.documentType ?? undefined,
+            dueDate: period.dueDate ? new Date(period.dueDate) : undefined,
+            escalationDays: obligation.defaultEscalationDays ?? undefined,
+            expiryDate: period.expiryDate ? new Date(period.expiryDate) : undefined,
+            issuingAuthority: obligation.defaultIssuingAuthority ?? undefined,
+            jurisdiction: obligation.defaultJurisdiction ?? undefined,
+            metadata: {
+              ...(obligation.defaultMetadata as Record<string, unknown>),
+              idempotencyKey,
             },
+            name: docName,
+            obligationId: obligation.id,
+            periodEnd: period.periodEnd ? new Date(period.periodEnd) : undefined,
+            periodStart: period.periodStart ? new Date(period.periodStart) : undefined,
+            reminderDays,
+            sourceEntityId: obligation.sourceEntityId ?? undefined,
+            sourceEntityType: obligation.sourceEntityType ?? undefined,
+            sourceModule: obligation.sourceModule,
           },
-          { audit: deps.audit, db: deps.db, pubsub: deps.pubsub },
-        );
+        },
+        { audit: deps.audit, db: deps.db, pubsub: deps.pubsub },
+      );
 
-        await deps.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_GENERATED, {
-          documentId: doc.id,
-          obligationId: obligation.id,
-          sourceModule: obligation.sourceModule,
-        });
+      await deps.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_GENERATED, {
+        documentId: doc.id,
+        obligationId: obligation.id,
+        sourceModule: obligation.sourceModule,
+      });
 
-        return doc.id;
-      }),
-    )
-  ).filter((id): id is string => id !== null);
+      return doc.id;
+    }),
+  );
+  const generatedIds = docIds.filter((id): id is string => id !== null);
 
   return generatedIds;
 }

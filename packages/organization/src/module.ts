@@ -50,9 +50,9 @@ import { updateOrganization } from "#/workflows/org/update";
 
 import type { Module, ModuleInfra } from "@aspen-os/platform/server";
 
-export type OrganizationConfig = {
+export interface OrganizationConfig {
   country: "INDIA";
-};
+}
 
 export class Organization implements Module {
   static create(config: OrganizationConfig): Organization {

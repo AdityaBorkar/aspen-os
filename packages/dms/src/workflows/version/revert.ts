@@ -65,7 +65,7 @@ export const revertToVersion = Workflow.name("dms.version.revert")
 
     await ctx.step.run("record-history", async () => {
       await ctx.db.insert(dmsFileVersion).values({
-        compression: target.compression as never,
+        compression: target.compression,
         contentType: target.contentType,
         etag: target.etag,
         fileId,

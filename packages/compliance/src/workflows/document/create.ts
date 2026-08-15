@@ -64,7 +64,7 @@ const createDocument = Workflow.name("document.create")
       crudAction: "create",
       entityId: result.id,
       entityType: "compliance_document",
-      newState: result as unknown as Record<string, unknown>,
+      newState: result,
     });
 
     await ctx.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_CREATED, {

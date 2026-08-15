@@ -31,7 +31,7 @@ const DEFAULT_CONFIG: Required<DmsModuleConfig> = {
   defaultCompression: { enabled: true, mode: "none" },
   defaultDownloadLinkExpiry: 3600,
   defaultRetentionDays: 180,
-  maxDownloadLinkExpiry: 604800,
+  maxDownloadLinkExpiry: 604_800,
   maxFileSize: 5 * 1024 * 1024 * 1024,
   maxNestingDepth: 20,
   maxVersions: 10,

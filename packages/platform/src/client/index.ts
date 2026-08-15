@@ -7,11 +7,11 @@ import { RpcUnit } from "#/client/rpc";
 import type { RpcConfig } from "#/client/rpc";
 import type { Module } from "#/client/types";
 
-export type PlatformUnits = {
+export interface PlatformUnits {
   auth: AuthUnit;
   logs: LogsUnit;
   rpc: RpcUnit;
-};
+}
 
 export type UnitAccessors = {
   [TKey in keyof PlatformUnits]: PlatformUnits[TKey];
@@ -36,6 +36,9 @@ export class Platform<TModules extends Module[]> implements UnitAccessors {
   declare readonly logs: PlatformUnits["logs"];
   declare readonly rpc: PlatformUnits["rpc"];
 
+  private readonly modules: Record<string, Module>;
+  private readonly units: PlatformUnits;
+
   static create<TModules extends Module[]>(
     config: {
       auth: AuthConfig;
@@ -58,10 +61,9 @@ export class Platform<TModules extends Module[]> implements UnitAccessors {
     return new Platform(units, modulesRecord) as PlatformInstance<TModules>;
   }
 
-  constructor(
-    private readonly units: PlatformUnits,
-    private readonly modules: Record<string, Module>,
-  ) {
+  constructor(units: PlatformUnits, modules: Record<string, Module>) {
+    this.units = units;
+    this.modules = modules;
     return new Proxy(this, {
       get(target, prop, receiver) {
         if (typeof prop === "string") {

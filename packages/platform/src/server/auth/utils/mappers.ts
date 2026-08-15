@@ -1,6 +1,6 @@
 import type { Session, User } from "..";
 
-type UserInput = {
+interface UserInput {
   banExpires?: Date | null;
   banned?: boolean | null;
   banReason?: string | null;
@@ -17,9 +17,9 @@ type UserInput = {
   twoFactorEnabled?: boolean | null;
   updatedAt: Date;
   username?: string | null;
-};
+}
 
-type SessionInput = {
+interface SessionInput {
   createdAt: Date;
   expiresAt: Date;
   id: string;
@@ -29,7 +29,7 @@ type SessionInput = {
   updatedAt: Date;
   userAgent?: string | null;
   userId: string;
-};
+}
 
 export function toUser(user: UserInput): User {
   return {

@@ -1,6 +1,21 @@
 # TODO
 
+no-explicit-any (+allowGeneric), no-import-type-side-effects
+
+## Linting Rules
+
 Analyze the repository and suggest new oxlint rules that can be made to ensure following of Coding Conventions and better code guidelines for contributors. DO NOT WRITE CODE. Make a report suggesting the new rules.
+
+- Enable no-console with allowlist + CLI override (fix the docs as any first).
+- eslint/no-restricted-imports (0 hits) — still worth adding to enforce two conventions going forward:
+  - zod only in RPC/env code
+  - uuid from drizzle-orm/pg-core only in audit/db-schema.ts (the one sanctioned native-UUID column).
+
+CHECK TYPES
+
+CHECK BUILDS
+
+---
 
 Ask questions on certain file names
 Reorder/arrange certain workflows properly

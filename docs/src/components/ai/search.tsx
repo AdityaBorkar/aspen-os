@@ -215,7 +215,7 @@ function List(props: Omit<ComponentProps<"div">, "dir">) {
     if (!containerRef.current) {
       return;
     }
-    function callback() {
+    function scrollToBottom() {
       const container = containerRef.current;
       if (!container) {
         return;
@@ -227,8 +227,8 @@ function List(props: Omit<ComponentProps<"div">, "dir">) {
       });
     }
 
-    const observer = new ResizeObserver(callback);
-    callback();
+    const observer = new ResizeObserver(scrollToBottom);
+    scrollToBottom();
 
     const element = containerRef.current?.firstElementChild;
 
@@ -356,6 +356,7 @@ export function AISearchTrigger({
 
   return (
     <button
+      type="button"
       className={cn(
         position === "float" && [
           "fixed inset-e-[calc(--spacing(4)+var(--removed-body-scroll-bar-size,0px))] bottom-4 z-20 w-24 gap-3 shadow-lg transition-[translate,opacity]",
@@ -380,6 +381,7 @@ export function AISearchPanel() {
 
   const handleAnimationEnd = useCallback(() => {
     if (!open) {
+      // oxlint-disable-next-line node/no-sync
       flushSync(() => setActualOpen(false));
     }
   }, [open]);
@@ -465,14 +467,19 @@ export function AISearchPanelList({ className, style, ...props }: ComponentProps
   const chat = useChatContext();
   const messages = chat.messages.filter((msg) => msg.role !== "system");
 
+  const mergedStyle = useMemo(
+    () => ({
+      maskImage:
+        "linear-gradient(to bottom, transparent, white 1rem, white calc(100% - 1rem), transparent 100%)",
+      ...style,
+    }),
+    [style],
+  );
+
   return (
     <List
       className={cn("overscroll-contain py-4", className)}
-      style={{
-        maskImage:
-          "linear-gradient(to bottom, transparent, white 1rem, white calc(100% - 1rem), transparent 100%)",
-        ...style,
-      }}
+      style={mergedStyle}
       // oxlint-disable-next-line react/jsx-props-no-spreading
       {...props}
     >

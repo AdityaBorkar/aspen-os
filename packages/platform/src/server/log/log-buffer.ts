@@ -9,10 +9,10 @@ export interface CreateEntryInput {
 }
 
 export interface LogBuffer {
-  drain(): Promise<void>;
-  flush(): Promise<void>;
-  push(entry: LogEntry): void;
-  size(): number;
+  drain: () => Promise<void>;
+  flush: () => Promise<void>;
+  push: (entry: LogEntry) => void;
+  size: () => number;
 }
 
 export function createLogBuffer(

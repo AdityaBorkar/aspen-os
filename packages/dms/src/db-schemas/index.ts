@@ -1,3 +1,19 @@
+import { dmsAccessLog } from "#/db-schemas/access-log";
+import { dmsClass } from "#/db-schemas/class";
+import { dmsClassField } from "#/db-schemas/class-field";
+import { dmsContact } from "#/db-schemas/contact";
+import { dmsEntityLabel } from "#/db-schemas/entity-label";
+import { dmsFile } from "#/db-schemas/file";
+import { dmsFileVersion } from "#/db-schemas/file-version";
+import { dmsFileView } from "#/db-schemas/file-view";
+import { dmsFolder } from "#/db-schemas/folder";
+import { dmsLabel } from "#/db-schemas/label";
+import { dmsLegalHold } from "#/db-schemas/legal-hold";
+import { dmsPin } from "#/db-schemas/pin";
+import { dmsPublicLink } from "#/db-schemas/public-link";
+import { dmsSetting } from "#/db-schemas/setting";
+import { dmsShare } from "#/db-schemas/share";
+
 export { dmsAccessLog } from "#/db-schemas/access-log";
 export { dmsClass } from "#/db-schemas/class";
 export { dmsClassField, dmsFieldTypeEnum } from "#/db-schemas/class-field";
@@ -20,22 +36,6 @@ export { dmsPin, dmsPinItemTypeEnum } from "#/db-schemas/pin";
 export { dmsPublicLink } from "#/db-schemas/public-link";
 export { dmsSetting } from "#/db-schemas/setting";
 export { dmsShare } from "#/db-schemas/share";
-
-import { dmsAccessLog } from "#/db-schemas/access-log";
-import { dmsClass } from "#/db-schemas/class";
-import { dmsClassField } from "#/db-schemas/class-field";
-import { dmsContact } from "#/db-schemas/contact";
-import { dmsEntityLabel } from "#/db-schemas/entity-label";
-import { dmsFile } from "#/db-schemas/file";
-import { dmsFileVersion } from "#/db-schemas/file-version";
-import { dmsFileView } from "#/db-schemas/file-view";
-import { dmsFolder } from "#/db-schemas/folder";
-import { dmsLabel } from "#/db-schemas/label";
-import { dmsLegalHold } from "#/db-schemas/legal-hold";
-import { dmsPin } from "#/db-schemas/pin";
-import { dmsPublicLink } from "#/db-schemas/public-link";
-import { dmsSetting } from "#/db-schemas/setting";
-import { dmsShare } from "#/db-schemas/share";
 
 export const dmsTables = {
   dmsAccessLog,

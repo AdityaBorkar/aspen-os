@@ -11,15 +11,25 @@
     "es2022": true,
     "node": true
   },
-  // "options": {
-  //   "typeAware": true,
-  //   "typeCheck": true
-  // },
+  "options": {
+    "typeAware": true,
+    "typeCheck": true
+  },
   "globals": {
     "Bun": "readonly"
   },
-  "ignorePatterns": [],
-  "plugins": ["jsdoc", "jsx-a11y", "node", "promise", "react", "react-perf", "vitest"],
+  "plugins": [
+    "import",
+    "jsdoc",
+    "jsx-a11y",
+    "node",
+    "promise",
+    "react",
+    "react-perf",
+    "typescript",
+    "oxc",
+    "unicorn"
+  ],
   "rules": {
     "eslint/func-style": "off",
     "eslint/max-statements": "off",
@@ -29,7 +39,26 @@
     "eslint/no-ternary": "off",
     "eslint/one-var": "off",
     "eslint/sort-imports": "off",
+    // "typescript/no-import-type-side-effects": "error",
+    "eslint/no-warning-comments": "error",
+    "eslint/no-useless-return": "error",
+    "eslint/no-duplicate-imports": "off",
     "react/jsx-max-depth": "off",
-    "react/react-in-jsx-scope": "off"
+    "react/react-in-jsx-scope": "off",
+    "react/self-closing-comp": "error",
+    "react/button-has-type": "error",
+    "import/no-nodejs-modules": "off",
+    "import/no-named-export": "off",
+    "import/prefer-default-export": "off",
+    "import/no-namespace": "off",
+    "import/group-exports": "off",
+    "import/exports-last": "off",
+    "unicorn/no-null": "off",
+    "unicorn/prefer-export-from": "off",
+    "unicorn/no-empty-file": "off",
+    "unicorn/filename-case": "error",
+    "unicorn/max-nested-calls": "off",
+    "unicorn/no-nested-ternary": "off",
+    "unicorn/number-literal-case": "off"
   }
 }

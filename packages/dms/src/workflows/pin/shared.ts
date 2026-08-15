@@ -11,11 +11,14 @@ export const PinItemInputSchema = object({
 
 export function auditEntityType(itemType: string): AuditEntityType {
   switch (itemType) {
-    case "triage":
+    case "triage": {
       return "dms:file";
-    case "class":
+    }
+    case "class": {
       return "dms:class";
-    default:
+    }
+    default: {
       return "dms:file_view";
+    }
   }
 }

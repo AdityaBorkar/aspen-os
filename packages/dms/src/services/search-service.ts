@@ -13,7 +13,7 @@ import { and, asc, desc, eq, gte, ilike, lte, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-type DB = NodePgDatabase<Record<string, never>>;
+type DB = NodePgDatabase;
 
 export interface QuickSearchHit {
   file: DmsFile;
@@ -97,16 +97,21 @@ function buildLabelCondition(labelIds: string[]): SQL {
 
 function resolveSortField(field: string): SQL | null {
   switch (field) {
-    case "createdAt":
+    case "createdAt": {
       return dmsFile.createdAt as unknown as SQL;
-    case "size":
+    }
+    case "size": {
       return dmsFile.size as unknown as SQL;
-    case "updatedAt":
+    }
+    case "updatedAt": {
       return dmsFile.updatedAt as unknown as SQL;
-    case "name":
+    }
+    case "name": {
       return dmsFile.name as unknown as SQL;
-    default:
+    }
+    default: {
       return null;
+    }
   }
 }
 
@@ -176,7 +181,7 @@ export async function searchFiles(
 
   const orderBy = buildSortOrder(input.sort, resolveSortField);
   if (orderBy.length === 0) {
-    orderBy.push(desc(dmsFile.createdAt) as unknown as SQL);
+    orderBy.push(desc(dmsFile.createdAt));
   }
 
   return db

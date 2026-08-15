@@ -1,6 +1,7 @@
 import * as schemas from "#/db-schemas";
 import { computeArchiveKey, get, getSignedGetUrl, upload } from "#/services/storage-bridge";
 import type { FolderDownloadLinkOptions } from "#/types";
+import { promisify } from "node:util";
 
 import { getContext } from "@aspen-os/platform/server";
 import { eq, sql } from "drizzle-orm";
@@ -116,7 +117,8 @@ async function generateZip({
   folderName: string;
   folderPath: string;
 }): Promise<ArchiveResult> {
-  const { zipSync, strToU8 } = await import("fflate");
+  const { zip, strToU8 } = await import("fflate");
+  const zipAsync = promisify(zip) as (data: Record<string, Uint8Array>) => Promise<Uint8Array>;
 
   const zipEntries: Record<string, Uint8Array> = {};
   const basePathLength = folderPath.length;
@@ -142,7 +144,7 @@ async function generateZip({
   );
   zipEntries["_manifest.json"] = manifest;
 
-  const zipData = zipSync(zipEntries);
+  const zipData = await zipAsync(zipEntries);
   const archiveKey = computeArchiveKey({ folderId: folderName });
   await upload({
     body: Buffer.from(zipData),
@@ -156,15 +158,18 @@ async function generateZip({
 }
 
 export class ArchiveTooLargeError extends Error {
-  constructor(
-    public folderId: string,
-    public fileCount: number,
-    public totalSize: number,
-  ) {
+  readonly fileCount: number;
+  readonly folderId: string;
+  readonly totalSize: number;
+
+  constructor(folderId: string, fileCount: number, totalSize: number) {
     super(
       `Folder "${folderId}" is too large for synchronous archive: ` +
         `${fileCount} files, ${totalSize} bytes. Use async job instead.`,
     );
     this.name = "ArchiveTooLargeError";
+    this.fileCount = fileCount;
+    this.folderId = folderId;
+    this.totalSize = totalSize;
   }
 }

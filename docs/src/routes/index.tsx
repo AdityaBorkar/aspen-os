@@ -7,6 +7,8 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
+const docsLinkParams = { _splat: "platform" } as const;
+
 function Home() {
   return (
     // oxlint-disable-next-line react/jsx-props-no-spreading
@@ -20,9 +22,7 @@ function Home() {
         </div>
         <Link
           className="rounded-lg bg-fd-primary px-6 py-3 font-medium text-fd-primary-foreground text-sm"
-          params={{
-            _splat: "platform",
-          }}
+          params={docsLinkParams}
           to="/docs/$"
         >
           Read the Docs

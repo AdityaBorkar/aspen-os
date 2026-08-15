@@ -13,7 +13,7 @@ const getAuditTrail = Workflow.name("audit.trail").handler(
 
     return rows
       .map(normalize)
-      .sort((left, right) => left.performedAt.getTime() - right.performedAt.getTime());
+      .toSorted((left, right) => left.performedAt.getTime() - right.performedAt.getTime());
   },
 );
 

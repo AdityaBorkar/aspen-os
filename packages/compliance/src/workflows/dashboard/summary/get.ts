@@ -12,9 +12,9 @@ const getDashboardSummary = Workflow.name("dashboard.summary").handler(
     const { branchFilter } = input;
     const kvStore = ctx.config.kvStore as
       | {
-          get<TValue>(key: string): Promise<TValue | null>;
-          set<TValue>(key: string, value: TValue, ttl?: number): Promise<void>;
-          del(key: string): Promise<void>;
+          del: (key: string) => Promise<void>;
+          get: <TValue>(key: string) => Promise<TValue | null>;
+          set: <TValue>(key: string, value: TValue, ttl?: number) => Promise<void>;
         }
       | undefined;
     const cacheTtl = (ctx.config.cacheTtl as number | undefined) ?? 300;

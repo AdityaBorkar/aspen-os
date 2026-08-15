@@ -41,18 +41,22 @@ export const getSummary = Workflow.name("hr.attendance.get-summary")
     for (const record of records) {
       const status = record.status as string;
       switch (status) {
-        case "present":
+        case "present": {
           summary.present++;
           break;
-        case "absent":
+        }
+        case "absent": {
           summary.absent++;
           break;
-        case "half_day":
+        }
+        case "half_day": {
           summary.halfDay++;
           break;
-        case "work_from_home":
+        }
+        case "work_from_home": {
           summary.workFromHome++;
           break;
+        }
       }
     }
 

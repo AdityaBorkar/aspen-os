@@ -13,9 +13,9 @@ import * as shift from "#/workflows/barrel-shift";
 
 import type { DatabaseUnit, Module, ModuleInfra, PubSubUnit } from "@aspen-os/platform/server";
 
-export type HrModuleConfig = {
+export interface HrModuleConfig {
   country: "INDIA";
-};
+}
 
 export class Hr implements Module {
   static create(config: HrModuleConfig): Hr {

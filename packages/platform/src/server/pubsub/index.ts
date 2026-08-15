@@ -18,14 +18,14 @@ export type { PubSubConfig, ScheduleOptions } from "#/server/pubsub/types";
 export class PubSubUnit {
   readonly $name = "pubsub" as const;
 
-  private dbUnit: DatabaseUnit<any>;
-  private tenancyMode: TenancyMode;
+  private readonly dbUnit: DatabaseUnit<any>;
+  private readonly tenancyMode: TenancyMode;
   private authInstance: AuthUnit | null = null;
-  private monitorStateIntervalSeconds: number;
+  private readonly monitorStateIntervalSeconds: number;
 
   private readonly boss: PgBoss;
-  private subscriptions = new Map<string, PgBoss.WorkHandler<object>>();
-  private producedTopics = new Map<string, number>();
+  private readonly subscriptions = new Map<string, PgBoss.WorkHandler<object>>();
+  private readonly producedTopics = new Map<string, number>();
   private bossStarted: Promise<void> | null = null;
 
   constructor(config: PubSubConfig, { db }: { db: DatabaseUnit<any> }) {
@@ -75,11 +75,11 @@ export class PubSubUnit {
         );
       }
       return id;
-    } catch (err) {
+    } catch (error) {
       const msg = `Failed to publish message to topic "${topic}"`;
-      console.error(msg, err);
-      throw new Error(`${msg}: ${err instanceof Error ? err.message : String(err)}`, {
-        cause: err,
+      console.error(msg, error);
+      throw new Error(`${msg}: ${error instanceof Error ? error.message : String(error)}`, {
+        cause: error,
       });
     }
   }
@@ -100,11 +100,11 @@ export class PubSubUnit {
         this.recordProduced(job.name);
       }
       return result ?? [];
-    } catch (err) {
+    } catch (error) {
       const msg = `Failed to publish batch of ${messages.length} message(s) to topic "${topic}"`;
-      console.error(msg, err);
-      throw new Error(`${msg}: ${err instanceof Error ? err.message : String(err)}`, {
-        cause: err,
+      console.error(msg, error);
+      throw new Error(`${msg}: ${error instanceof Error ? error.message : String(error)}`, {
+        cause: error,
       });
     }
   }
@@ -179,9 +179,9 @@ export class PubSubUnit {
   private async startBoss(): Promise<void> {
     try {
       await this.boss.start();
-    } catch (err) {
+    } catch (error) {
       this.bossStarted = null;
-      throw err;
+      throw error;
     }
   }
 

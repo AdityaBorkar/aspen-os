@@ -25,7 +25,7 @@ export class SharedTenantPlatform<
   constructor(units: PlatformUnits<TSchemas>, modules: TModules) {
     console.warn("Shared Tenant Architecture is currently EXPERIMENTAL");
     super(units, modules);
-    this.dbUnit = units.db as DatabaseUnit<TSchemas>;
+    this.dbUnit = units.db;
   }
 
   static create<TModules extends Module[]>(
@@ -45,8 +45,8 @@ export class SharedTenantPlatform<
 
     try {
       await this.dbUnit.applyRlsPolicies(this.units.db.controlPlaneDb);
-    } catch (err) {
-      console.error("Failed to apply RLS policies", err);
+    } catch (error) {
+      console.error("Failed to apply RLS policies", error);
     }
   }
 

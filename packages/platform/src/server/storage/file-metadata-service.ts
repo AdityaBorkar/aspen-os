@@ -3,10 +3,14 @@ import { fileMetadata } from "#/server/storage/db-schema";
 import { eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-type DrizzleDB = NodePgDatabase<Record<string, never>>;
+type DrizzleDB = NodePgDatabase;
 
 export class FileMetadataService {
-  constructor(private readonly db: DrizzleDB) {}
+  readonly #db: DrizzleDB;
+
+  constructor(db: DrizzleDB) {
+    this.#db = db;
+  }
 
   async upsertMetadata(input: {
     bucket: string;
@@ -16,7 +20,7 @@ export class FileMetadataService {
     metadata?: Record<string, string>;
     size: number;
   }): Promise<void> {
-    await this.db
+    await this.#db
       .insert(fileMetadata)
       .values({
         bucket: input.bucket,
@@ -39,11 +43,11 @@ export class FileMetadataService {
   }
 
   async deleteMetadata(key: string): Promise<void> {
-    await this.db.delete(fileMetadata).where(eq(fileMetadata.key, key));
+    await this.#db.delete(fileMetadata).where(eq(fileMetadata.key, key));
   }
 
   async markArchived(key: string, archivedKey: string): Promise<void> {
-    await this.db
+    await this.#db
       .update(fileMetadata)
       .set({ archived: true, archivedKey, updatedAt: new Date() })
       .where(eq(fileMetadata.key, key));

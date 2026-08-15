@@ -49,7 +49,7 @@ export const updateConnection = Workflow.name("connection.update")
     }
 
     await ctx.pubsub.publish(CONNECTION_EVENTS.UPDATED, {
-      changes: input.patch as Record<string, unknown>,
+      changes: input.patch,
       connection: { id: updated.id, name: updated.name },
     });
 

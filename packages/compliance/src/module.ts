@@ -22,12 +22,12 @@ import type {
   PubSubUnit,
 } from "@aspen-os/platform/server";
 
-export type ComplianceModuleConfig = {
+export interface ComplianceModuleConfig {
   country: "INDIA";
   dashboardCacheTtl?: number;
   defaultEscalationDays?: number[];
   defaultReminderDays?: number[];
-};
+}
 
 export class Compliance implements Module {
   static create(config: ComplianceModuleConfig): Compliance {

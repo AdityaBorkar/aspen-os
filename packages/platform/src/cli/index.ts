@@ -20,9 +20,9 @@ async function loadPlatform(configPath: string): Promise<PlatformInstance<Module
       process.exit(1);
     }
     return platformInstance;
-  } catch (err) {
+  } catch (error) {
     console.error(`Error: Failed to load config from ${resolvedPath}`);
-    console.error(err);
+    console.error(error);
     process.exit(1);
   }
 }

@@ -1,3 +1,5 @@
+import type { ComplianceCategory, VerificationStatus } from "#/utils/constants";
+
 export type {
   ComplianceEventMap,
   DocumentArchivedEvent,
@@ -77,8 +79,6 @@ export {
   SCHEDULED_JOBS,
   VERIFICATION_STATUS,
 } from "#/utils/constants";
-
-import type { ComplianceCategory, VerificationStatus } from "#/utils/constants";
 
 export interface DashboardSummary {
   activeObligations: number;

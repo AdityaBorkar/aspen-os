@@ -92,24 +92,24 @@ export interface ConnectionNoteAddedEvent {
   };
 }
 
-export type OrganizationEventMap = {
+export interface OrganizationEventMap {
   [ORGANIZATION_EVENTS.UPDATED]: OrganizationUpdatedEvent;
   [ORGANIZATION_EVENTS.BRANDING_UPDATED]: OrganizationBrandingUpdatedEvent;
-};
+}
 
-export type BranchEventMap = {
+export interface BranchEventMap {
   [BRANCH_EVENTS.ACTIVATED]: BranchActivatedEvent;
   [BRANCH_EVENTS.CLOSED]: BranchClosedEvent;
   [BRANCH_EVENTS.CREATED]: BranchCreatedEvent;
   [BRANCH_EVENTS.DEACTIVATED]: BranchDeactivatedEvent;
   [BRANCH_EVENTS.UPDATED]: BranchUpdatedEvent;
-};
+}
 
-export type ConnectionEventMap = {
+export interface ConnectionEventMap {
   [CONNECTION_EVENTS.CREATED]: ConnectionCreatedEvent;
   [CONNECTION_EVENTS.NOTE_ADDED]: ConnectionNoteAddedEvent;
   [CONNECTION_EVENTS.STATUS_CHANGED]: ConnectionStatusChangedEvent;
   [CONNECTION_EVENTS.UPDATED]: ConnectionUpdatedEvent;
-};
+}
 
 export type OrganizationDomainEventMap = OrganizationEventMap & BranchEventMap & ConnectionEventMap;

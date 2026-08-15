@@ -14,14 +14,14 @@ export class RpcUnit {
   readonly $name = "rpc";
   readonly router = router;
 
-  private prefix: `/${string}`;
-  private rpcHandler: InstanceType<typeof RPCHandler>;
+  private readonly prefix: `/${string}`;
+  private readonly rpcHandler: InstanceType<typeof RPCHandler>;
 
   readonly server: {
-    handle(
+    handle: (
       request: Request,
       context: RpcContext,
-    ): Promise<{ matched: boolean; response: Response | undefined }>;
+    ) => Promise<{ matched: boolean; response: Response | undefined }>;
     router: RpcRouter;
   };
 
@@ -43,9 +43,7 @@ export class RpcUnit {
     };
   }
 
-  async $prepareInfra(): Promise<void> {
-    return;
-  }
+  async $prepareInfra(): Promise<void> {}
 
   async $cleanup(): Promise<void> {
     // Cleanup if needed

@@ -113,7 +113,7 @@ export async function getCumulativeFlow(
     ORDER BY DATE(t.created_at) ASC
   `);
 
-  return (result.rows as Record<string, unknown>[]).map((row) => ({
+  return result.rows.map((row) => ({
     count: Number(row.count),
     date: row.date as string,
     statusId: row.status_id as string,

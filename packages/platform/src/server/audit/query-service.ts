@@ -4,7 +4,7 @@ import type { AuditDatabase, AuditQuery } from "#/server/audit/types";
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 
 export class AuditQueryService {
-  private db: AuditDatabase;
+  private readonly db: AuditDatabase;
 
   constructor(db: AuditDatabase) {
     this.db = db;

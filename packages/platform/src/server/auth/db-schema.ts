@@ -151,7 +151,7 @@ export const apikey = pgTable(
     prefix: text("prefix"),
     rateLimitEnabled: boolean("rate_limit_enabled").default(true),
     rateLimitMax: integer("rate_limit_max").default(10),
-    rateLimitTimeWindow: integer("rate_limit_time_window").default(86400000),
+    rateLimitTimeWindow: integer("rate_limit_time_window").default(86_400_000),
     referenceId: text("reference_id").notNull(),
     refillAmount: integer("refill_amount"),
     refillInterval: integer("refill_interval"),

@@ -359,31 +359,31 @@ export interface AccessBranchAccessRevokedEvent {
 
 // ─── Event Maps ───────────────────────────────────────────────────────────
 
-export type EmployeeEventMap = {
+export interface EmployeeEventMap {
   [EMPLOYEE_EVENTS.CREATED]: EmployeeCreatedEvent;
   [EMPLOYEE_EVENTS.GROUP_CREATED]: EmployeeGroupCreatedEvent;
   [EMPLOYEE_EVENTS.STATUS_CHANGED]: EmployeeStatusChangedEvent;
   [EMPLOYEE_EVENTS.UPDATED]: EmployeeUpdatedEvent;
-};
+}
 
-export type AttendanceEventMap = {
+export interface AttendanceEventMap {
   [ATTENDANCE_EVENTS.CHECKIN_CREATED]: AttendanceCheckinCreatedEvent;
   [ATTENDANCE_EVENTS.CREATED]: AttendanceCreatedEvent;
   [ATTENDANCE_EVENTS.REQUEST_APPROVED]: AttendanceRequestApprovedEvent;
   [ATTENDANCE_EVENTS.REQUEST_CREATED]: AttendanceRequestCreatedEvent;
   [ATTENDANCE_EVENTS.REQUEST_REJECTED]: AttendanceRequestRejectedEvent;
-};
+}
 
-export type LeaveEventMap = {
+export interface LeaveEventMap {
   [LEAVE_EVENTS.ALLOCATION_CREATED]: LeaveAllocationCreatedEvent;
   [LEAVE_EVENTS.APPLICATION_APPROVED]: LeaveApplicationApprovedEvent;
   [LEAVE_EVENTS.APPLICATION_CANCELLED]: LeaveApplicationCancelledEvent;
   [LEAVE_EVENTS.APPLICATION_REJECTED]: LeaveApplicationRejectedEvent;
   [LEAVE_EVENTS.APPLICATION_SUBMITTED]: LeaveApplicationSubmittedEvent;
   [LEAVE_EVENTS.ENCASHMENT_REQUESTED]: LeaveEncashmentRequestedEvent;
-};
+}
 
-export type LifecycleEventMap = {
+export interface LifecycleEventMap {
   [LIFECYCLE_EVENTS.EXIT_INTERVIEW_SCHEDULED]: ExitInterviewScheduledEvent;
   [LIFECYCLE_EVENTS.ONBOARDING_COMPLETED]: OnboardingCompletedEvent;
   [LIFECYCLE_EVENTS.ONBOARDING_STARTED]: OnboardingStartedEvent;
@@ -393,29 +393,29 @@ export type LifecycleEventMap = {
   [LIFECYCLE_EVENTS.SEPARATION_INITIATED]: SeparationInitiatedEvent;
   [LIFECYCLE_EVENTS.TRANSFER_APPROVED]: TransferApprovedEvent;
   [LIFECYCLE_EVENTS.TRANSFER_REQUESTED]: TransferRequestedEvent;
-};
+}
 
-export type OvertimeEventMap = {
+export interface OvertimeEventMap {
   [OVERTIME_EVENTS.SLIP_APPROVED]: OvertimeSlipApprovedEvent;
   [OVERTIME_EVENTS.SLIP_CREATED]: OvertimeSlipCreatedEvent;
   [OVERTIME_EVENTS.SLIP_REJECTED]: OvertimeSlipRejectedEvent;
-};
+}
 
-export type SetupEventMap = {
+export interface SetupEventMap {
   [SETUP_EVENTS.DEPARTMENT_CREATED]: DepartmentCreatedEvent;
   [SETUP_EVENTS.DESIGNATION_CREATED]: DesignationCreatedEvent;
   [SETUP_EVENTS.HOLIDAY_LIST_CREATED]: HolidayListCreatedEvent;
   [SETUP_EVENTS.SETTINGS_UPDATED]: HrSettingsUpdatedEvent;
-};
+}
 
-export type ShiftEventMap = {
+export interface ShiftEventMap {
   [SHIFT_EVENTS.ASSIGNMENT_CREATED]: ShiftAssignmentCreatedEvent;
   [SHIFT_EVENTS.REQUEST_APPROVED]: ShiftRequestApprovedEvent;
   [SHIFT_EVENTS.REQUEST_CREATED]: ShiftRequestCreatedEvent;
   [SHIFT_EVENTS.REQUEST_REJECTED]: ShiftRequestRejectedEvent;
-};
+}
 
-export type AccessEventMap = {
+export interface AccessEventMap {
   [ACCESS_EVENTS.BRANCH_ACCESS_GRANTED]: AccessBranchAccessGrantedEvent;
   [ACCESS_EVENTS.BRANCH_ACCESS_REVOKED]: AccessBranchAccessRevokedEvent;
   [ACCESS_EVENTS.ROLE_ASSIGNED]: AccessRoleAssignedEvent;
@@ -424,7 +424,7 @@ export type AccessEventMap = {
   [ACCESS_EVENTS.USER_ACTIVATED]: AccessUserActivatedEvent;
   [ACCESS_EVENTS.USER_CREATED]: AccessUserCreatedEvent;
   [ACCESS_EVENTS.USER_DEACTIVATED]: AccessUserDeactivatedEvent;
-};
+}
 
 export type HrEventMap = EmployeeEventMap &
   AttendanceEventMap &

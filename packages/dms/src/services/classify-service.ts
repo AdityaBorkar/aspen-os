@@ -67,9 +67,7 @@ export function validateFieldValues(
       field.options !== null &&
       field.options !== undefined
     ) {
-      const optionList = Array.isArray(field.options)
-        ? field.options
-        : Object.keys(field.options as Record<string, unknown>);
+      const optionList = Array.isArray(field.options) ? field.options : Object.keys(field.options);
       if (optionList.length > 0) {
         const allowed = new Set(optionList.map(String));
         const selected =
@@ -140,19 +138,24 @@ export function renderFileNamingSchema(input: {
       return value === undefined || value === null || value === "" ? "_" : safePart(value);
     }
     switch (key) {
-      case "class":
+      case "class": {
         return safePart(input.className ?? "_");
-      case "docNumber":
+      }
+      case "docNumber": {
         return safePart(input.docNumber);
-      case "date":
+      }
+      case "date": {
         return date.toISOString().slice(0, 10);
-      case "seq":
+      }
+      case "seq": {
         return padZero(input.seq ?? 0, 4);
-      default:
+      }
+      default: {
         if (key.startsWith("date:")) {
           return formatDateToken(key.slice("date:".length), date);
         }
         return "_";
+      }
     }
   });
 

@@ -49,13 +49,10 @@ const enc = encoding_for_model("gpt-5");
 const gitignoreContent = await readFile(".gitignore", "utf8");
 const ig = ignore().add(gitignoreContent);
 
-const resolvedDirs = (
-  await Promise.all(
-    DIRECTORIES.map(async (dir) =>
-      dir.includes("*") ? fg(dir, { onlyDirectories: true }) : [dir],
-    ),
-  )
-).flat();
+const dirLists = await Promise.all(
+  DIRECTORIES.map(async (dir) => (dir.includes("*") ? fg(dir, { onlyDirectories: true }) : [dir])),
+);
+const resolvedDirs = dirLists.flat();
 
 const counts = new Map<string, number>();
 

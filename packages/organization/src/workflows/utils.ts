@@ -4,7 +4,7 @@ import type { BranchTreeNode } from "#/types";
 import { and, eq, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-type DrizzleDB = NodePgDatabase<Record<string, never>>;
+type DrizzleDB = NodePgDatabase;
 
 const MAX_HIERARCHY_DEPTH = 5;
 

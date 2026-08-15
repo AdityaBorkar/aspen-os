@@ -50,19 +50,19 @@ export type MergedSchemas<TModules extends Module[]> = InferControlPlaneSchemas<
 /**
  * A single connectivity probe result.
  */
-export type HealthCheckResult = {
+export interface HealthCheckResult {
   /** "ok" when the dependency answered the probe, otherwise "unhealthy". */
   status: "ok" | "unhealthy";
   /** Round-trip latency of the probe in milliseconds, when it succeeded. */
   latencyMs?: number;
   /** Reason for failure, when the probe did not succeed. */
   error?: string;
-};
+}
 
 /**
  * Aggregate health report returned by {@link BasePlatform.healthCheck}.
  */
-export type HealthReport = {
+export interface HealthReport {
   /** "ok" only when every check passed, otherwise "unhealthy". */
   status: "ok" | "unhealthy";
   checks: {
@@ -78,18 +78,18 @@ export type HealthReport = {
   tenancyMode: TenancyMode;
   /** ISO timestamp of when the check ran. */
   at: string;
-};
+}
 
 const PUBSUB_HEALTH_PROBE_TOPIC = "__platform_health_check";
 
-export type CommonConfig = {
+export interface CommonConfig {
   auth: AuthConfig;
   kvStore: KvStoreConfig;
   logs: LogConfig;
   pubsub: PubSubConfig;
   rpc: RpcConfig;
   storage: StorageConfig;
-};
+}
 
 export abstract class BasePlatform<
   TModules extends Module[],
@@ -104,10 +104,12 @@ export abstract class BasePlatform<
   declare readonly rpc: PlatformUnits<TSchemas>["rpc"];
   declare readonly storage: PlatformUnits<TSchemas>["storage"];
 
-  constructor(
-    protected readonly units: PlatformUnits<TSchemas>,
-    protected readonly modules: TModules,
-  ) {
+  protected readonly modules: TModules;
+  protected readonly units: PlatformUnits<TSchemas>;
+
+  constructor(units: PlatformUnits<TSchemas>, modules: TModules) {
+    this.units = units;
+    this.modules = modules;
     return new Proxy(this, {
       get(target, prop, receiver) {
         if (typeof prop === "string") {
@@ -122,10 +124,7 @@ export abstract class BasePlatform<
         }
         return Reflect.get(target, prop, receiver);
       },
-    }) as this &
-      PlatformUnits<TSchemas> & {
-        [TKey in TModules[number]["$name"]]: Extract<TModules[number], { $name: TKey }>;
-      };
+    });
   }
 
   protected static createCore<TModules extends Module[], TSchemas extends Record<string, unknown>>(
@@ -165,11 +164,11 @@ export abstract class BasePlatform<
     console.log("Preparing INFRA");
     for await (const unit of Object.values(this.units)) {
       try {
-        console.log("PROCESSING: ", unit.$name);
+        console.log("PROCESSING:", unit.$name);
         await unit.$prepareInfra?.();
-        console.log("DONE: ", unit.$name);
-      } catch (err) {
-        console.error(`Failed to prepare unit "${unit.$name}"`, err);
+        console.log("DONE:", unit.$name);
+      } catch (error) {
+        console.error(`Failed to prepare unit "${unit.$name}"`, error);
       }
     }
     console.log("Done unit infra");
@@ -200,8 +199,8 @@ export abstract class BasePlatform<
     for await (const mod of this.modules) {
       try {
         await this.runInContext(() => mod.$prepareRuntime?.());
-      } catch (err) {
-        console.error(`Failed to prepare module "${mod.$name}"`, err);
+      } catch (error) {
+        console.error(`Failed to prepare module "${mod.$name}"`, error);
       }
     }
     console.log("Done module prepare");
@@ -305,9 +304,9 @@ export abstract class BasePlatform<
     try {
       await this.units.db.controlPlaneDb.execute(sql`SELECT 1`);
       return { latencyMs: Math.round(performance.now() - start), status: "ok" };
-    } catch (err) {
+    } catch (error) {
       return {
-        error: err instanceof Error ? err.message : String(err),
+        error: error instanceof Error ? error.message : String(error),
         status: "unhealthy",
       };
     }
@@ -321,9 +320,9 @@ export abstract class BasePlatform<
       // GetQueueSize works on unregistered topics and has no side effects.
       await this.units.pubsub.getQueueSize(PUBSUB_HEALTH_PROBE_TOPIC);
       return { latencyMs: Math.round(performance.now() - start), status: "ok" };
-    } catch (err) {
+    } catch (error) {
       return {
-        error: err instanceof Error ? err.message : String(err),
+        error: error instanceof Error ? error.message : String(error),
         status: "unhealthy",
       };
     }

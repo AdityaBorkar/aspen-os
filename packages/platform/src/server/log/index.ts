@@ -26,18 +26,18 @@ export type {
   LogStats,
 } from "#/server/log/types";
 
-type DrizzleDB = NodePgDatabase<Record<string, never>>;
+type DrizzleDB = NodePgDatabase;
 
 export class LogUnit {
   readonly $name = "logs";
 
-  private serviceName: string;
-  private defaultLevel: LogLevel;
-  private db: DrizzleDB;
-  private queryService: LogQueryService;
-  private buffer: ReturnType<typeof createLogBuffer>;
-  private flushTimer: ReturnType<typeof setInterval>;
-  private createEntry: (input: CreateEntryInput) => LogEntry;
+  private readonly serviceName: string;
+  private readonly defaultLevel: LogLevel;
+  private readonly db: DrizzleDB;
+  private readonly queryService: LogQueryService;
+  private readonly buffer: ReturnType<typeof createLogBuffer>;
+  private readonly flushTimer: ReturnType<typeof setInterval>;
+  private readonly createEntry: (input: CreateEntryInput) => LogEntry;
 
   constructor(config: LogConfig, { db }: { db: DatabaseUnit<any> }) {
     this.serviceName = config.serviceName ?? "app";
@@ -70,9 +70,7 @@ export class LogUnit {
     this.flushTimer = setInterval(() => this.buffer?.flush(), 5000);
   }
 
-  async $prepareInfra(): Promise<void> {
-    return;
-  }
+  async $prepareInfra(): Promise<void> {}
 
   async $cleanup(): Promise<void> {
     if (this.flushTimer) {

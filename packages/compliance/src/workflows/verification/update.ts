@@ -56,8 +56,8 @@ const updateVerificationRule = Workflow.name("verification.update").handler(
       crudAction: "update",
       entityId: id,
       entityType: "verification_rule",
-      newState: updated as unknown as Record<string, unknown>,
-      previousState: current as unknown as Record<string, unknown>,
+      newState: updated,
+      previousState: current,
     });
 
     return updated;

@@ -1,6 +1,6 @@
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-export type AuditDatabase = NodePgDatabase<Record<string, never>>;
+export type AuditDatabase = NodePgDatabase;
 
 export type CrudAction = "create" | "update" | "delete";
 

@@ -1,5 +1,6 @@
 import type { AuditUnit } from "#/server/audit";
 import type { AuthConfig, AuthUnit } from "#/server/auth";
+import type { ExtractModuleNames } from "#/server/base-platform";
 import type {
   DatabaseConfig,
   DatabaseUnit,
@@ -48,12 +49,12 @@ export type {
   TenantProvisioningResult,
 };
 export type TenancyMode = "single" | "shared" | "isolated";
-export type TenantResolver = {
+export interface TenantResolver {
   resolve: (tenantId: string) => Promise<string>;
   list: () => Promise<string[]>;
-};
+}
 
-export type PlatformUnits<TSchemas extends Record<string, unknown> = Record<string, never>> = {
+export interface PlatformUnits<TSchemas extends Record<string, unknown> = Record<string, never>> {
   audit: AuditUnit;
   auth: AuthUnit;
   db: DatabaseUnit<TSchemas>;
@@ -62,12 +63,12 @@ export type PlatformUnits<TSchemas extends Record<string, unknown> = Record<stri
   pubsub: PubSubUnit;
   rpc: RpcUnit;
   storage: StorageUnit;
-};
+}
 
-export type ModuleInfra<
+export interface ModuleInfra<
   TCP extends Record<string, unknown> = Record<string, unknown>,
   TT extends Record<string, unknown> = Record<string, unknown>,
-> = {
+> {
   auth: {
     acl: Record<string, readonly string[]>;
   };
@@ -76,12 +77,12 @@ export type ModuleInfra<
     tenant_schemas: TT;
   };
   events: Record<string, Record<string, string>>;
-};
+}
 
 export interface Unit {
-  $cleanup(): Promise<void>;
+  $cleanup: () => Promise<void>;
   readonly $name: string;
-  $prepareInfra?(...args: unknown[]): Promise<void>;
+  $prepareInfra?: () => Promise<void>;
 }
 
 export interface Module<
@@ -89,13 +90,13 @@ export interface Module<
   TCP extends Record<string, unknown> = Record<string, unknown>,
   TT extends Record<string, unknown> = Record<string, unknown>,
 > {
-  $cleanup(): void | Promise<void>;
+  $cleanup: () => void | Promise<void>;
   readonly $dependencies: readonly string[];
-  $initialize(units: Record<string, Unit>): void;
+  $initialize: (units: Record<string, Unit>) => void;
   readonly $name: TName;
-  $prepareInfra(): ModuleInfra<TCP, TT>;
-  $prepareRuntime(): void | Promise<void>;
-  $prepareTenant?(tenantId: string): Promise<void>;
+  $prepareInfra: () => ModuleInfra<TCP, TT>;
+  $prepareRuntime: () => void | Promise<void>;
+  $prepareTenant?: (tenantId: string) => Promise<void>;
 }
 
 export type UnitAccessors<TSchemas extends Record<string, unknown> = Record<string, never>> = {
@@ -104,8 +105,6 @@ export type UnitAccessors<TSchemas extends Record<string, unknown> = Record<stri
 export type ModuleAccessors<TModules extends Record<string, Module>> = {
   [TKey in keyof TModules]: TModules[TKey];
 };
-
-import type { ExtractModuleNames } from "#/server/base-platform";
 
 export type ArrayModuleAccessors<
   TModules extends Module[],
@@ -116,12 +115,12 @@ export type ArrayModuleAccessors<
 
 export type PlatformInstance<TModules extends Module[]> = {
   tenancyMode: TenancyMode;
-  $prepareInfra(): Promise<void>;
-  $cleanup(): Promise<void>;
-  getModule<TKey extends TModules[number]["$name"]>(
+  $prepareInfra: () => Promise<void>;
+  $cleanup: () => Promise<void>;
+  getModule: <TKey extends TModules[number]["$name"]>(
     name: TKey,
-  ): Extract<TModules[number], { $name: TKey }>;
-  getUnit<TKey extends keyof PlatformUnits>(name: TKey): PlatformUnits[TKey];
+  ) => Extract<TModules[number], { $name: TKey }>;
+  getUnit: <TKey extends keyof PlatformUnits>(name: TKey) => PlatformUnits[TKey];
 } & UnitAccessors &
   ArrayModuleAccessors<TModules, ExtractModuleNames<TModules>[number]>;
 

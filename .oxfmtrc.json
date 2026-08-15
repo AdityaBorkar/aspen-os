@@ -1,6 +1,5 @@
 {
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
-  "ignorePatterns": [".output", ".wrangler", ".tanstack", "*.gen.ts"],
   "sortImports": {
     "customGroups": [
       { "elementNamePattern": ["https://**", "http://**"], "groupName": "url" },

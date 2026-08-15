@@ -9,6 +9,7 @@ import type {
   WorkflowContext,
   WorkflowStepInstance,
 } from "#/server/workflows/types";
+import { setTimeout as sleep } from "node:timers/promises";
 
 import { SchemaError } from "@standard-schema/utils";
 import { and, eq } from "drizzle-orm";
@@ -169,7 +170,7 @@ function createStepRunner<TSchemas extends Record<string, unknown>>(
       });
     }) as StepRunner["run"],
     async sleep(ms: number): Promise<void> {
-      await new Promise((resolve) => setTimeout(resolve, ms));
+      await sleep(ms);
     },
   };
 }

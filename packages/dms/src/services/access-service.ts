@@ -5,7 +5,7 @@ import { getContext } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-type DB = NodePgDatabase<Record<string, never>>;
+type DB = NodePgDatabase;
 
 const PERMISSION_RANK: Record<SharePermission, number> = {
   editor: 2,

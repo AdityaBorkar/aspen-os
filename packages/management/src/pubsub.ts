@@ -112,7 +112,7 @@ export interface PlatformUserRoleAssignedEvent {
   userId: string;
 }
 
-export type TenantEventMap = {
+export interface TenantEventMap {
   [TENANT_EVENTS.PROVISIONED]: TenantProvisionedEvent;
   [TENANT_EVENTS.ACTIVATED]: TenantActivatedEvent;
   [TENANT_EVENTS.SUSPENDED]: TenantSuspendedEvent;
@@ -121,21 +121,21 @@ export type TenantEventMap = {
   [TENANT_EVENTS.PROFILE_UPDATED]: TenantProfileUpdatedEvent;
   [TENANT_EVENTS.SP_ASSIGNED]: TenantSpAssignedEvent;
   [TENANT_EVENTS.SP_UNASSIGNED]: TenantSpUnassignedEvent;
-};
+}
 
-export type ServiceProviderEventMap = {
+export interface ServiceProviderEventMap {
   [SERVICE_PROVIDER_EVENTS.CREATED]: ServiceProviderCreatedEvent;
   [SERVICE_PROVIDER_EVENTS.UPDATED]: ServiceProviderUpdatedEvent;
   [SERVICE_PROVIDER_EVENTS.DEACTIVATED]: ServiceProviderDeactivatedEvent;
   [SERVICE_PROVIDER_EVENTS.ACTIVATED]: ServiceProviderActivatedEvent;
-};
+}
 
-export type PlatformUserEventMap = {
+export interface PlatformUserEventMap {
   [PLATFORM_USER_EVENTS.CREATED]: PlatformUserCreatedEvent;
   [PLATFORM_USER_EVENTS.UPDATED]: PlatformUserUpdatedEvent;
   [PLATFORM_USER_EVENTS.DELETED]: PlatformUserDeletedEvent;
   [PLATFORM_USER_EVENTS.ROLE_ASSIGNED]: PlatformUserRoleAssignedEvent;
-};
+}
 
 export type ManagementPlaneEventMap = TenantEventMap &
   ServiceProviderEventMap &
