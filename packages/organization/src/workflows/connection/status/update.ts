@@ -31,7 +31,7 @@ export const updateStatus = Workflow.name("connection.update-status")
 
     await ctx.pubsub.publish(CONNECTION_EVENTS.STATUS_CHANGED, {
       connectionId: input.id,
-      fromStatus: fromStatus,
+      fromStatus,
       toStatus: input.status,
     });
 
