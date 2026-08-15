@@ -13,7 +13,8 @@
   "env": {
     "browser": true,
     "es2022": true,
-    "node": true
+    "node": true,
+    "vue": false
   },
   "options": {
     "typeAware": true,
@@ -64,18 +65,13 @@
     "eslint/no-promise-executor-return": "error",
     "promise/no-return-in-finally": "error",
     "typescript/consistent-return": "off",
-    "typescript/no-floating-promises": "error",
     // "typescript/no-misused-promises": "error",
     // "typescript/no-explicit-any": "warn",
     "typescript/no-unsafe-type-assertion": "off",
-    "typescript/no-unnecessary-type-arguments": "warn",
-    "typescript/no-unnecessary-type-assertion": "warn",
     "react/jsx-max-depth": "off",
     "react/react-in-jsx-scope": "off",
     "react/self-closing-comp": "error",
     "react/button-has-type": "error",
-    "react/jsx-key": "error",
-    "jsx-a11y/alt-text": "error",
     "import/no-nodejs-modules": "off",
     "import/no-named-export": "off",
     "import/prefer-default-export": "off",

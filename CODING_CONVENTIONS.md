@@ -7,7 +7,7 @@ Conventions extracted from the codebase as it exists today. Every item below is 
 - **Bun monorepo** (`@aspen-os`) with a business framework (`@aspen-os/platform`) plus pluggable **units** (infrastructure) and **modules** (domain logic), first-class multi-tenancy, and a Fumadocs docs site (`docs`).
 - **No host/example app** in the repo yet (the intended first app is called "Recruiter"). There is no `examples/` directory.
 - **Workspace state**: `platform`, `organization`, `compliance`, `tasks`, `dms`, `management`, `hr` fully implemented (all six modules conform to the `Module` interface), plus `constants` (shared enums). `drive` was **removed from the repo** and its file/folder/label/share/trash surface was consolidated into `dms` (see `.working-docs/sow/dms-consolidation.md`). `accounting`, `crm`, `fleet`, `inventory`, `pharmacy`, `reports` are stubs (`package.json` is exactly `{ "name": "@aspen-os/<module>" }`).
-- The domain model lives in `.working-docs/` (`DOMAIN_MODEL.md`, `BOUNDED_CONTEXTS.md`, `TODO.md`, `adr/`, `plans/`, `sow/`, `todo/`). `docs/` is the built Fumadocs site — **not** the source of truth for domain docs.
+- The domain model lives in `.working-docs/` (`DOMAIN_MODEL.md` + `domain-model/<package>.md`, `BOUNDED_CONTEXTS.md` + `bounded-contexts/<package>.md`, `TODO.md`, `adr/`, `sow/`, `todo/`). `docs/` is the built Fumadocs site — **not** the source of truth for domain docs.
 
 ## General
 

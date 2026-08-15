@@ -1,0 +1,199 @@
+# Compliance Domain Model
+
+> Package: `@aspen-os/compliance`. Documents, obligations, and verification rules. All 3 tables are tenant schemas. Compliance audit entries are written to the platform's `audit_log` — there is no module-local audit table.
+
+## Entity-Relationship Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                     COMPLIANCE DOMAIN                                │
+│                                                                     │
+│  ┌──────────────────────┐                                           │
+│  │ ComplianceDocument   │                                           │
+│  │  id                  │                                           │
+│  │  name                │                                           │
+│  │  category (enum)     │── soft FK ──┐                             │
+│  │  verificationStatus  │             │                             │
+│  │  sourceModule        │             │                             │
+│  │  sourceEntityType    │             │  soft FK to external        │
+│  │  sourceEntityId      │             │  entities (organization,    │
+│  │  branch (soft FK)    │             │  hr, fleet, accounting)     │
+│  │  connection (soft FK)│             │                             │
+│  │  obligationId(soft FK)│──┐         │                             │
+│  │  renewedFrom(self FK)│  │          │                             │
+│  │  expiryDate          │  │          │                             │
+│  │  dueDate             │  │          │                             │
+│  │  reminderDays[]      │  │          │                             │
+│  │  escalationDays[]    │  │          │                             │
+│  │  renewalFrequency    │  │          │                             │
+│  │  assignedReviewer    │  │          │                             │
+│  │  assignedTo          │  │          │                             │
+│  │  createdBy           │  │          │                             │
+│  └──────────────────────┘  │          │                             │
+│         ↑                  │          │                             │
+│         │ renewedFrom      │          │                             │
+│         │ (renewal chain)  │          │                             │
+│                            ▼          │                             │
+│  ┌──────────────────────┐             │                             │
+│  │ ComplianceObligation │             │                             │
+│  │  id                  │             │                             │
+│  │  name                │             │                             │
+│  │  category (enum)     │             │                             │
+│  │  frequency (enum)    │             │                             │
+│  │  startDate           │             │                             │
+│  │  endDate             │             │                             │
+│  │  isActive            │             │                             │
+│  │  autoGenerate        │             │                             │
+│  │  expiryBased         │             │                             │
+│  │  sourceModule        │             │                             │
+│  │  sourceEntityId      │─────────────┘                             │
+│  └──────────────────────┘                                           │
+│                                                                     │
+│  ┌──────────────────────┐                                           │
+│  │ VerificationRule     │                                           │
+│  │  id                  │                                           │
+│  │  name                │                                           │
+│  │  category            │                                           │
+│  │  priority            │                                           │
+│  │  requiredReviewerRole│                                           │
+│  │  assignedReviewer    │                                           │
+│  │  isActive            │                                           │
+│  └──────────────────────┘                                           │
+│                                                                     │
+│  (Audit entries for compliance entities are written to the          │
+│   platform's audit_log via ctx.audit.write(...) — no module-local   │
+│   audit table. Queries go through ctx.audit.query())                │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+## Aggregates
+
+### Compliance Document (Aggregate Root)
+
+**Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)` — the `uuidv7` JS function)
+
+**Value objects**:
+
+- `ComplianceCategory` — enum: tax, license, certificate, permit, insurance, regulatory, legal, hr, safety, environmental, data_privacy, financial, vehicle, property, audit, other
+- `VerificationStatus` — enum: draft, submitted, under_review, verified, rejected, expired, overdue, renewed, archived
+- `RenewalFrequency` — enum: monthly, quarterly, semi_annual, annual, biennial, triennial, one_time
+- `ReminderChannel` — enum: pubsub, email, both
+
+**Invariants**:
+
+- Verification status is derived from dates + renewal state by the `StatusDerivation` service, not set directly (except by explicit `updateStatus`)
+- Renewal chains: renewing archives the old document and creates a new one with `renewedFrom` FK
+- `reminderDays` array defines when expiry notifications fire (default: [90, 60, 30, 7])
+- `escalationDays` array defines escalation thresholds (default: [1, 7, 30])
+- Soft FKs: `branch` → organization branch, `connection` → organization connection, `obligationId` → compliance_obligation, `{sourceModule, sourceEntityType, sourceEntityId}` → external entity
+
+**Lifecycle commands** (via `p.compliance.documents`): `create(input)`, `update(id, patch)`, `uploadAttachment(id, storageKey)`, `submit(id)`, `assignReviewer(id, userId)`, `assignTo(id, userId)`, `verify(id, reviewerId)`, `reject(id, reviewerId, reason)`, `complete(id, { completedAt?, referenceNumber?, attachmentKey? })`, `markRenewalInProgress(id)`, `renew(id, newData)` → `{ oldDocument, newDocument }`, `archive(id)`, `snooze(id, days, snoozedBy)`, `getById(id)`, `list(filters?)`, `getExpiring(days)`, `getDueSoon(days)`, `getExpired()`, `getOverdue()`, `getRenewalChain(id)`, `getBySource(sourceModule, sourceEntityType?, sourceEntityId?)`, `getByObligation(obligationId)`, `getTimeline(days)`.
+
+**Relationships**: Optionally belongs to `ComplianceObligation` (soft FK `obligationId`); self-referential `renewedFrom` FK for renewal chains; links to external entities via `{sourceModule, sourceEntityType, sourceEntityId}`.
+
+### Compliance Obligation (Aggregate Root)
+
+**Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)`)
+
+**Value objects**: `ObligationFrequency` — enum: monthly, quarterly, semi_annual, annual, biennial, triennial, custom.
+
+**Invariants**:
+
+- `autoGenerate` flag controls whether documents are auto-created
+- `expiryBased` vs `periodBased` determines how due/expiry dates are computed
+- `isActive` can be toggled to pause generation
+
+**Lifecycle commands** (via `p.compliance.obligations`): `create(input)`, `update(id, patch)`, `activate(id)`, `deactivate(id)`, `getById(id)`, `list(filters?)`, `getActiveObligations()`, `getUpcomingPeriods(obligation, count)`.
+
+**Relationships**: Has many `ComplianceDocument` (1:N, soft FK); links to external entities via `{sourceModule, sourceEntityType, sourceEntityId}`.
+
+### Verification Rule (Aggregate Root)
+
+**Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)`)
+
+**Invariants**:
+
+- Matches documents by `category` and `sourceModule`
+- `priority` determines rule evaluation order (lower = higher priority)
+- `isActive` can be toggled
+
+**Lifecycle commands** (via `p.compliance.verification`): `create(input)`, `update(id, patch)`, `delete(id)`, `getById(id)`, `list(filters?)`, `match(document)`.
+
+### Audit Entry (Entity — append-only, via platform AuditUnit)
+
+**Identity**: `id` (uuid, PK, `$defaultFn(() => uuidv7())`)
+
+**Note**: Compliance audit entries are written to the platform's `audit_log` table via `ctx.audit.write(...)` and queried via `ctx.audit.query(...)`. The `audit` workflow group (`p.compliance.audit`) provides `getAuditTrail`, `list`, and `export` by querying the platform audit log.
+
+**Invariants**: Append-only (no updates/deletes); polymorphic (`entityType` + `entityId` references any compliance entity); `action` is one of 18 defined audit actions (module-local constants).
+
+## Domain Events — 23
+
+| Event                                     | Payload                                                                                                      | Trigger                                      |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
+| `compliance:document_created`             | `{ document: { category, id, name } }`                                                                       | Document created                             |
+| `compliance:document_updated`             | `{ changes, document: { id, name } }`                                                                        | Document updated                             |
+| `compliance:document_submitted`           | `{ documentId, submittedBy }`                                                                                | Document submitted for review                |
+| `compliance:document_verified`            | `{ category, documentId, sourceEntityId, sourceModule, verifiedBy }`                                         | Document verified                            |
+| `compliance:document_rejected`            | `{ category, documentId, reason, rejectedBy, sourceEntityId, sourceModule }`                                 | Document rejected                            |
+| `compliance:document_expiring`            | `{ daysUntilExpiry, documentId, sourceEntityId, sourceModule }`                                              | Expiry notification                          |
+| `compliance:document_due`                 | `{ daysUntilDue, documentId, sourceEntityId, sourceModule }`                                                 | Due date notification                        |
+| `compliance:document_expired`             | `{ category, documentId, sourceEntityId, sourceModule }`                                                     | Document expired                             |
+| `compliance:document_overdue`             | `{ category, daysOverdue, documentId, sourceEntityId, sourceModule }`                                        | Document past due                            |
+| `compliance:document_completed`           | `{ completedAt, documentId, referenceNumber, sourceEntityId, sourceModule }`                                 | Document completed                           |
+| `compliance:document_escalated`           | `{ daysSinceExpiry, documentId, escalationLevel }`                                                           | Escalation threshold reached                 |
+| `compliance:document_renewed`             | `{ newDocumentId, oldDocumentId }`                                                                           | Document renewed (old archived, new created) |
+| `compliance:document_archived`            | `{ documentId }`                                                                                             | Document archived                            |
+| `compliance:document_reviewer_assigned`   | `{ documentId, reviewerId }`                                                                                 | Reviewer assigned                            |
+| `compliance:document_attachment_uploaded` | `{ documentId, storageKey }`                                                                                 | Attachment uploaded                          |
+| `compliance:document_snoozed`             | `{ documentId, snoozedBy, snoozedUntil }`                                                                    | Document snoozed                             |
+| `compliance:document_generated`           | `{ documentId, obligationId, sourceModule }`                                                                 | Auto-generated from obligation               |
+| `compliance:obligation_created`           | `{ obligation: { category, id, name } }`                                                                     | Obligation created                           |
+| `compliance:obligation_activated`         | `{ obligationId }`                                                                                           | Obligation activated                         |
+| `compliance:obligation_deactivated`       | `{ obligationId }`                                                                                           | Obligation deactivated                       |
+| `compliance:obligation_updated`           | `{ changes, obligation: { id, name } }`                                                                      | Obligation updated                           |
+| `compliance:weekly_summary`               | `{ summary: { activeObligations, documentsGenerated30d, expired, expiringSoon, overdue, total, verified } }` | Weekly dashboard summary                     |
+| `compliance:scheduled_job_executed`       | `{ errors, executionTime, jobName, recordsProcessed }`                                                       | Scheduled job completed                      |
+
+## Command-Query Separation
+
+### Commands (Write Side)
+
+| Context    | Command                  | Method                                |
+| ---------- | ------------------------ | ------------------------------------- |
+| Compliance | Create document          | `p.compliance.documents.create()`     |
+| Compliance | Submit document          | `p.compliance.documents.submit()`     |
+| Compliance | Verify document          | `p.compliance.documents.verify()`     |
+| Compliance | Reject document          | `p.compliance.documents.reject()`     |
+| Compliance | Renew document           | `p.compliance.documents.renew()`      |
+| Compliance | Archive document         | `p.compliance.documents.archive()`    |
+| Compliance | Snooze document          | `p.compliance.documents.snooze()`     |
+| Compliance | Create obligation        | `p.compliance.obligations.create()`   |
+| Compliance | Activate obligation      | `p.compliance.obligations.activate()` |
+| Compliance | Create verification rule | `p.compliance.verification.create()`  |
+
+### Queries (Read Side)
+
+| Context    | Query                   | Method                                     |
+| ---------- | ----------------------- | ------------------------------------------ |
+| Compliance | Get by ID               | `p.compliance.documents.getById()`         |
+| Compliance | List documents          | `p.compliance.documents.list()`            |
+| Compliance | Get expiring            | `p.compliance.documents.getExpiring()`     |
+| Compliance | Get due soon            | `p.compliance.documents.getDueSoon()`      |
+| Compliance | Get expired             | `p.compliance.documents.getExpired()`      |
+| Compliance | Get overdue             | `p.compliance.documents.getOverdue()`      |
+| Compliance | Get renewal chain       | `p.compliance.documents.getRenewalChain()` |
+| Compliance | Get timeline            | `p.compliance.documents.getTimeline()`     |
+| Compliance | Get dashboard summary   | `p.compliance.dashboard.getSummary()`      |
+| Compliance | Get audit trail         | `p.compliance.audit.getAuditTrail()`       |
+| Compliance | List obligations        | `p.compliance.obligations.list()`          |
+| Compliance | List verification rules | `p.compliance.verification.list()`         |
+
+## Invariants & Business Rules
+
+16. **Verification status derivation** — status is derived from dates + renewal state by `StatusDerivation`, not set directly (except by explicit `updateStatus`).
+17. **Renewal chain integrity** — renewing archives the old document and creates a new one linked via `renewedFrom`.
+18. **Reminder thresholds** — `reminderDays` array (default [90, 60, 30, 7]) controls when expiry notifications fire.
+19. **Escalation thresholds** — `escalationDays` array (default [1, 7, 30]) controls when escalations fire.
+20. **Obligation auto-generation** — active obligations with `autoGenerate=true` produce documents on their frequency schedule.
+21. **Idempotent document generation** — `ObligationGenerator` uses idempotency keys to prevent duplicate documents.

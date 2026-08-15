@@ -7,9 +7,9 @@
 Workspace state:
 
 - **Fully implemented**: `platform`, `organization`, `compliance`, `tasks`, `dms`, `management`, `hr` (modules), `constants` (shared enums). `drive` was **removed from the repo** and its file/folder/label/share/trash surface consolidated into `dms` (see Current State).
-- **Pure stubs**: `accounting`, `crm`, `fleet`, `inventory`, `pharmacy`, `reports` (package.json is just `{ "name": "..." }`).
+- **Pure stubs**: `accounting`, `crm`, `fleet`, `inventory`, `pharmacy`, `reports` (package.json holds only `name` + the `#/*` import alias).
 
-Read `CODING_CONVENTIONS.md`, `CONTEXT.md`, and the domain docs in `.working-docs/` (`DOMAIN_MODEL.md`, `BOUNDED_CONTEXTS.md`, `TODO.md`, `adr/`, `plans/`, `sow/`, `todo/`) before modeling domain changes. `CONTEXT.md` documents known gaps. `docs/` is the built documentation site, not the source of truth for domain docs.
+Read `CODING_CONVENTIONS.md`, `CONTEXT.md`, and the domain docs in `.working-docs/` (`DOMAIN_MODEL.md` + `domain-model/<package>.md`, `BOUNDED_CONTEXTS.md` + `bounded-contexts/<package>.md`, `TODO.md`, `adr/`, `sow/`, `todo/`) before modeling domain changes. `CONTEXT.md` documents known gaps. `docs/` is the built documentation site, not the source of truth for domain docs.
 
 ## Architecture & Data Flow
 
@@ -75,7 +75,7 @@ packages/
                        # retention + purge) plus folders/labels/fileViews/trash (15 dms_* tables,
                        # expiry-scan + auto-purge crons)
   management/          # Control-plane module (build step) — module.ts auth.ts pubsub.ts
-                       # workflows/steps/ (3 owned tables: service_provider, service_provider_user,
+                       # workflow-steps/ (3 owned tables: service_provider, service_provider_user,
                        # tenant; no shadow/tenant tables)
   hr/                  # Domain module — module.ts auth.ts pubsub.ts db-schemas/ (50 tables: 14 control-plane + 36 tenant)
                        # workflows/ (one file per action → barrel-<group>.ts)
@@ -96,7 +96,7 @@ bun install            # install all workspace deps
 bun run check:lint     # oxlint --fix . ; oxfmt .
 bun run check:types    # tsc -b (root composite)
 bun run update:deps    # taze -rw --maturity-period 3
-bun run clean          # rimraf node_modules/.output/.local/bun.lockb
+bun run clean          # bunx rimraf --glob "**/{node_modules,.output,.local,bun.lockb}"
 bun run prepare        # husky
 ```
 
@@ -108,7 +108,7 @@ cd packages/platform && bun run check:lint    # oxlint --fix . ; oxfmt .
 cd packages/platform && bun run build         # scripts/build.ts → .output/
 ```
 
-**Build gotcha**: platform, organization, management, `constants`, and `dms` have `build` configs in their `package.json`; `bun run build` (their `build` script runs `../../scripts/build.ts`) **rewrites the package's `package.json` in place** — `exports`/`bin` are re-pointed at `.output/` (which is gitignored). `git status` will show that package.json as modified afterward; commit or discard deliberately. `bun run build --dev` rewrites them back to `./src/*` (un-builds without emitting). Both Bun and `tsc` resolve through `exports`, so on a fresh clone — or after `bun run clean`, which wipes `.output/` — downstream packages can't resolve `@aspen-os/platform` types until the five build-step packages are built. Run `bun run build` **before** typechecking downstream packages (raw-src packages like `tasks`/`compliance`/`hr` import `@aspen-os/platform/server` via its `.output/` types, so editing platform source requires a rebuild to be seen anywhere).
+**Build gotcha**: `platform`, `organization`, `management`, `constants`, and `dms` have a `build` script (`bun run ../../scripts/build.ts`), but only `platform`, `organization`, `management`, and `dms` carry a `build` config block. `bun run build` **rewrites the package's `package.json` in place** — for packages with a `build` config, `exports`/`bin` are re-pointed at `.output/` (gitignored); `constants` only emits declarations to `.output/` and its `exports` stay at `./src/index.ts`. `git status` will show that package.json as modified afterward; commit or discard deliberately. `bun run build --dev` rewrites them back to `./src/*` (un-builds without emitting). Both Bun and `tsc` resolve through `exports`, so on a fresh clone — or after `bun run clean`, which wipes `.output/` — downstream packages can't resolve `@aspen-os/platform` types until the build-step packages are built. Run `bun run build` **before** typechecking downstream packages (raw-src packages like `tasks`/`compliance`/`hr` import `@aspen-os/platform/server` via its `.output/` types, so editing platform source requires a rebuild to be seen anywhere).
 
 docs (`bun run dev` → 3005):
 
@@ -148,7 +148,7 @@ Every implemented module (management, organization, compliance, tasks, dms, hr) 
 
 Modules with non-empty runtime wiring (compliance schedules/handlers, hr scheduled jobs, management tenant onboarding, dms expiry-scan/auto-purge) keep `#private` unit refs set in `$initialize(units)` plus `async $prepareRuntime()` / `async $cleanup()` that register/unregister pubsub schedules; their workflow groups stay `readonly`.
 
-`$initialize()` signatures vary by module — each types its own unit subset: organization/tasks take none; compliance takes `{ db, kvStore, pubsub }`; management `{ db, auth, pubsub }`; hr `{ db, pubsub }`; dms `{ db, auth, pubsub, storage }`. management's `$name` is `"management"` (proxy `p.management`), `$dependencies: ["organization"]`.
+`$initialize()` signatures vary by module — each types its own unit subset: organization/tasks take none; compliance takes `{ db, kvStore, pubsub }`; management `{ db, auth, pubsub }`; hr `{ db, pubsub }`; dms types it as `Record<string, Unit>` and pulls out `db`, `pubsub`, `storage` via type guards (no auth). management's `$name` is `"management"` (proxy `p.management`), `$dependencies: ["organization"]`.
 
 ### Database (Drizzle)
 
@@ -171,7 +171,7 @@ Root `tsconfig.json` (extended everywhere, `composite: true` project references)
 
 - **Path-alias gotcha**: each package maps `#/*` to its own `./src/*` (via `paths` in tsconfig + the `imports` field in package.json). Root tsconfig has no `paths`. Run `tsc -b` in the package whose alias you mean.
 - **Linter/formatter is oxlint + oxfmt** (`.oxlintrc.json`, `.oxfmtrc.json`). `check:lint` runs `oxlint --fix` then `oxfmt` (both auto-fix). oxfmt sorts imports (URL → protocol/builtin → external → relative) and Tailwind classes (`clsx`/`cva`/`tw`/`cn`). `.zed/settings.json` sets oxfmt as the formatter and excludes `codedb.snapshot`/`.output`/`.coverage`.
-- **Custom `anti-slop` oxlint plugin**: `tools/oxlint/anti-slop` (loaded via `.oxlintrc.json` `jsPlugins`, with type-aware linting on — `options.typeCheck: true`). Its rules are all `error`: `no-module-mocking` (no `vi.mock`/`jest.mock` — code should be testable via real instances), `no-object-parameters`, `no-reflect-get`/`no-reflect-apply`, `no-unsafe-dictionary-type`, `require-safety-comment-for-type-assertion`, `no-widen-then-assert`, etc. Other enforced gotchas: `eslint/no-warning-comments: "error"` (TODO/FIXME comments fail lint), `unicorn/filename-case: "error"`. `tools/` is excluded from both `tsc -b` and oxlint — if you edit the plugin, its `rules/*.test.ts` are the repo's only tests (run `bun test` from `tools/oxlint/anti-slop`).
+- **Custom `anti-slop` oxlint plugin**: `tools/oxlint/anti-slop` (loaded via `.oxlintrc.json` `jsPlugins`, with type-aware linting on — `options.typeCheck: true`). Its rules are all `error`: `no-module-mocking` (no `vi.mock`/`jest.mock` — code should be testable via real instances), `no-object-parameters`, `no-reflect-get`/`no-reflect-apply`, `no-unsafe-dictionary-type`, `require-safety-comment-for-type-assertion`, `no-widen-then-assert`, etc. Other enforced gotchas: `eslint/no-warning-comments: "error"` (TODO/FIXME comments fail lint), `unicorn/filename-case: "error"`. `tools/` is excluded from both `tsc -b` and oxlint (oxlint also ignores `.agents/**`) — if you edit the plugin, its `rules/*.test.ts` are the repo's only tests (run `bun test` from `tools/oxlint/anti-slop`).
 
 ### Git hooks (Husky, active)
 

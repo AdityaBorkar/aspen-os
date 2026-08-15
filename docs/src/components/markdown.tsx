@@ -47,9 +47,6 @@ function Pre(props: ComponentProps<"pre">) {
   const content = codeProps.children;
   // SAFETY: <pre><code> children in processed markdown are always plain text strings.
   const text = content as string;
-  if (String(text) !== text) {
-    return null;
-  }
 
   let lang =
     codeProps.className

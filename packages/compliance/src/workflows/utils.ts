@@ -93,9 +93,7 @@ function toChangeRecord(
   return result;
 }
 
-export function toRecord<TValue extends Record<string, JsonValue>>(
-  value: TValue,
-): Record<string, JsonValue> {
+export function toRecord(value: Record<string, JsonValue>): Record<string, JsonValue> {
   return Object.fromEntries(Object.entries(value));
 }
 

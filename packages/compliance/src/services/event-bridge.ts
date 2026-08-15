@@ -1,9 +1,14 @@
 import type { CreateComplianceDocumentInput } from "#/types";
 import { documents, obligations } from "#/workflows";
 
-import type { AuditUnit, PubSubUnit } from "@aspen-os/platform/server";
+import type {
+  AuditUnit,
+  InferSchemaOutput,
+  PubSubUnit,
+  StandardSchema,
+} from "@aspen-os/platform/server";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { object, safeParse, string } from "valibot";
+import { object, string } from "valibot";
 
 interface EmployeeOnboardedEvent {
   employeeId: string;
@@ -85,61 +90,40 @@ export interface EventBridgeDeps {
 
 export async function registerEventBridgeSubscriptions(deps: EventBridgeDeps): Promise<string[]> {
   const topics: string[] = [];
+  const subscribe = subscribeSafe(deps);
 
-  await subscribeSafe(deps, "hr:employee_onboarded", async (data: EmployeeOnboardedEvent) => {
-    const parsed = safeParse(EmployeeOnboardedEventSchema, data);
-    if (parsed.success) {
-      await handleEmployeeOnboarded(parsed.output, deps);
-    }
+  await subscribe("hr:employee_onboarded", EmployeeOnboardedEventSchema, async (data) => {
+    await handleEmployeeOnboarded(data, deps);
   });
   topics.push("hr:employee_onboarded");
 
-  await subscribeSafe(deps, "hr:employee_separated", async (data: EmployeeSeparatedEvent) => {
-    const parsed = safeParse(EmployeeSeparatedEventSchema, data);
-    if (parsed.success) {
-      await handleEmployeeSeparated(parsed.output, deps);
-    }
+  await subscribe("hr:employee_separated", EmployeeSeparatedEventSchema, async (data) => {
+    await handleEmployeeSeparated(data, deps);
   });
   topics.push("hr:employee_separated");
 
-  await subscribeSafe(deps, "fleet:vehicle_registered", async (data: VehicleRegisteredEvent) => {
-    const parsed = safeParse(VehicleRegisteredEventSchema, data);
-    if (parsed.success) {
-      await handleVehicleRegistered(parsed.output, deps);
-    }
+  await subscribe("fleet:vehicle_registered", VehicleRegisteredEventSchema, async (data) => {
+    await handleVehicleRegistered(data, deps);
   });
   topics.push("fleet:vehicle_registered");
 
-  await subscribeSafe(deps, "organization:branch_created", async (data: BranchCreatedEvent) => {
-    const parsed = safeParse(BranchCreatedEventSchema, data);
-    if (parsed.success) {
-      await handleBranchCreated(parsed.output, deps);
-    }
+  await subscribe("organization:branch_created", BranchCreatedEventSchema, async (data) => {
+    await handleBranchCreated(data, deps);
   });
   topics.push("organization:branch_created");
 
-  await subscribeSafe(
-    deps,
+  await subscribe(
     "accounting:financial_year_started",
-    async (data: FinancialYearStartedEvent) => {
-      const parsed = safeParse(FinancialYearStartedEventSchema, data);
-      if (parsed.success) {
-        await handleFinancialYearStarted(parsed.output, deps);
-      }
+    FinancialYearStartedEventSchema,
+    async (data) => {
+      await handleFinancialYearStarted(data, deps);
     },
   );
   topics.push("accounting:financial_year_started");
 
-  await subscribeSafe(
-    deps,
-    "organization:connection_created",
-    async (data: ConnectionCreatedEvent) => {
-      const parsed = safeParse(ConnectionCreatedEventSchema, data);
-      if (parsed.success) {
-        await handleConnectionCreated(parsed.output, deps);
-      }
-    },
-  );
+  await subscribe("organization:connection_created", ConnectionCreatedEventSchema, async (data) => {
+    await handleConnectionCreated(data, deps);
+  });
   topics.push("organization:connection_created");
 
   return topics;
@@ -160,19 +144,23 @@ export async function unregisterEventBridge(
   );
 }
 
-async function subscribeSafe<TData>(
-  deps: EventBridgeDeps,
-  topic: string,
-  handler: (data: TData) => Promise<void>,
-): Promise<void> {
-  try {
-    await deps.pubsub.subscribe(topic, async (message) => {
-      // SAFETY: every handler parses the payload with a valibot schema before using it, so the cast only narrows the statically-unknown message data.
-      await handler(message.data as TData);
-    });
-  } catch {
-    // Source module not installed — silently no-op
-  }
+function subscribeSafe(deps: EventBridgeDeps) {
+  return async function subscribe<TSchema extends StandardSchema>(
+    topic: string,
+    schema: TSchema,
+    handler: (data: InferSchemaOutput<TSchema>) => Promise<void>,
+  ): Promise<void> {
+    try {
+      await deps.pubsub.subscribe(topic, async (message) => {
+        const result = await schema["~standard"].validate(message.data);
+        if (!result.issues) {
+          await handler(result.value);
+        }
+      });
+    } catch {
+      // Source module not installed — silently no-op
+    }
+  };
 }
 
 async function handleEmployeeOnboarded(

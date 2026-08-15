@@ -12,7 +12,7 @@ type ReminderType = "due_date" | "custom" | "overdue";
 
 export const processPendingReminders = Workflow.name("reminder.process-pending").handler(
   async (_input: undefined, ctx) => {
-    const pending = await getPendingReminders.run();
+    const pending = await getPendingReminders.run(undefined);
 
     await Promise.all(
       pending.map(async (row) => {
