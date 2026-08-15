@@ -2,7 +2,7 @@
   "compilerOptions": {
     "declarationDir": "../../.local/types/organization",
     "paths": {
-      "@/*": ["./src/*"]
+      "#/*": ["./src/*"]
     }
   },
   "extends": "../../tsconfig.json"

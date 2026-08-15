@@ -1,3 +1,6 @@
+import type { ChatUIMessage, SearchTool } from "#/components/ai/search";
+import { source } from "#/lib/source";
+
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { createFileRoute } from "@tanstack/react-router";
 import {
@@ -10,9 +13,6 @@ import {
 } from "ai";
 import { Document, type DocumentData } from "flexsearch";
 import { z } from "zod";
-
-import type { ChatUIMessage, SearchTool } from "@/components/ai/search";
-import { source } from "@/lib/source";
 
 interface CustomDocument extends DocumentData {
   content: string;

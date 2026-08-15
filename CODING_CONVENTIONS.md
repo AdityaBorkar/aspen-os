@@ -6,59 +6,56 @@ Conventions extracted from the codebase as it exists today. Every item below is 
 
 - **Bun monorepo** (`@aspen-os`) with a business framework (`@aspen-os/platform`) plus pluggable **units** (infrastructure) and **modules** (domain logic), first-class multi-tenancy, and a Fumadocs docs site (`docs`).
 - **No host/example app** in the repo yet (the intended first app is called "Recruiter"). There is no `examples/` directory.
-- **Workspace state**: `platform`, `organization`, `compliance`, `tasks`, `drive`, `management`, `hr` fully implemented (all six modules conform to the `Module` interface); `accounting`, `crm`, `fleet`, `inventory`, `pharmacy`, `reports` are stubs (`package.json` is just `{ "name": "..." }`). DMS has a written SOW (`sow/dms.md`) and CONTEXT.md terms but is not yet scaffolded as a package.
-- The domain model lives in `.working-docs/` (`DOMAIN_MODEL.md`, `BOUNDED_CONTEXTS.md`, `TODO.md`, `adr/`). `docs/` is the built Fumadocs site — **not** the source of truth for domain docs.
+- **Workspace state**: `platform`, `organization`, `compliance`, `tasks`, `dms`, `management`, `hr` fully implemented (all six modules conform to the `Module` interface), plus `constants` (shared enums). `drive` was **removed from the repo** and its file/folder/label/share/trash surface was consolidated into `dms` (see `.working-docs/sow/dms-consolidation.md`). `accounting`, `crm`, `fleet`, `inventory`, `pharmacy`, `reports` are stubs (`package.json` is exactly `{ "name": "@aspen-os/<module>" }`).
+- The domain model lives in `.working-docs/` (`DOMAIN_MODEL.md`, `BOUNDED_CONTEXTS.md`, `TODO.md`, `adr/`, `plans/`, `sow/`, `todo/`). `docs/` is the built Fumadocs site — **not** the source of truth for domain docs.
 
 ## General
 
 - **Runtime**: Bun (not Node.js)
 - **Package manager**: Bun workspaces (`bun install`)
 - **Language**: TypeScript, ESM only (`"type": "module"`)
-- **Linter/formatter**: double quotes, 2-space indent, LF, `lineWidth: 80`, organized imports
-- **No barrel files** unless explicitly told. There is no root/`src` barrel for the platform — import via subpaths (`@aspen-os/platform/server`, `@aspen-os/platform/client`).
-- **`*.gen.ts`** files are gitignored (codegen output, e.g. the generated auth db-schema)
-- Only `platform`, `organization`, and `management` have a **build step** (`bun run build` → `scripts/build.ts` → `.output/`). All other packages export raw `.ts` source.
+- **Linter/formatter**: oxlint (`.oxlintrc.json`) + oxfmt (`.oxfmtrc.json`) — style rules are auto-enforced by the tools, not by convention.
+- **No barrel files** unless explicitly told. There is no root/`src` barrel for the platform — import via subpaths (`@aspen-os/platform/server`, `@aspen-os/platform/client`). Module-internal aggregates are intentional (dms `workflows/index.ts`, hr `workflows/barrel-*.ts`).
+- **Gitignore**: `node_modules`, `.output`, `.tanstack`, `.source`, `.wrangler`, `.nitro`, `.local`, `.cache`, `*.tsbuildinfo`, `*.gen.ts`, `worker-configuration.d.ts`, `codedb.snapshot`, `.env*` (except `.env.example`).
+- **Build step**: `platform`, `organization`, `management`, `dms`, and `constants` have a `build` script (`bun run build` → `scripts/build.ts` → `.output/`). Of those, `platform`, `organization`, `management`, and `dms` carry a `build` config block that rewrites `exports`/`bin` to `.output/`; `constants` emits declarations to `.output/` but its `exports` stay at `./src/index.ts`. All other packages export raw `.ts` source.
+
+### Toolchain (oxlint + oxfmt)
+
+- `.oxlintrc.json`: categories `correctness` (error), `perf`/`style`/`suspicious` (warn); envs `browser`/`es2022`/`node`; global `Bun` readonly; plugins `react` + `jsx-a11y`; `src/components/ui/**` is lint-ignored (shadcn/ui generated code).
+- `.oxfmtrc.json`: skips `.output`, `.wrangler`, `.tanstack`, and `*.gen.ts`; sorts imports by group and Tailwind classes (via `clsx`, `cva`, `tw`, `cn`) automatically.
 
 ### TypeScript configuration
 
 Root `tsconfig.json` (extended by all packages):
 
-- `strict: true`, `noUncheckedIndexedAccess: true`
+- `strict: true`, `noUncheckedIndexedAccess: true`, `noUncheckedSideEffectImports: true`
 - `verbatimModuleSyntax: true` — use `import type` for type-only imports
-- `moduleResolution: "bundler"`, `module: "ESNext"`, `target: "ESNext"`, `lib: ["ESNext"]`
+- `moduleResolution: "bundler"`, `module: "ESNext"`, `target: "ESNext"`, `lib: ["ESNext"]`, `moduleDetection: "force"`, `jsx: "react-jsx"`
 - `composite: true` with project references to every workspace package (plus `docs`)
 - `declaration: true`, `declarationMap: true`, `emitDeclarationOnly: true`, `declarationDir: "./.local/types/root"`
 - `noFallthroughCasesInSwitch: true`, `noImplicitOverride: true`, `noUnusedLocals: true`
 - `noUnusedParameters: false`, `noPropertyAccessFromIndexSignature: false`
 - `skipLibCheck: true`, `types: ["bun", "@types/bun"]`, `allowJs: true`
+- Excludes `**/node_modules`, `**/.output`, `**/.tanstack`
 
-**Path-alias gotcha**: each package maps `@/*` to its own `./src/*` (root tsconfig has no `paths`). Run `tsc -b` in the package whose alias you mean.
-
-### Biome configuration
-
-- Import groups (in order): URL imports → blank → Node/Bun/package-with-protocol → blank → bare packages → blank → aliases/paths
-- `sortBareImports: true`
-- `useSortedClasses: error` for Tailwind class sorting via `clsx`, `cva`, `tw` (with `attributes: ["classList"]`, `functions: ["clsx", "cva", "tw", "tw.*"]`)
-- Linter domains enabled: `react: all`, `tailwind: all`, `types: all`; preset `recommended`, plus the nursery `useSortedClasses`
-- `src/components/ui/**` has linting disabled (shadcn/ui generated code)
-- Git-aware: `vcs.clientKind: "git"`, `useIgnoreFile: true` (respects `.gitignore`)
+**Path-alias gotcha**: each package maps `#/*` to its own `./src/*` (root tsconfig has no `paths`). Run `tsc -b` in the package whose alias you mean.
 
 ### bunfig.toml
 
-- `ignore-scripts=true` — install scripts disabled
-- `minimumReleaseAge=259200` (3-day minimum release age)
-- `saveTextLockfile=false` (binary lockfile `bun.lockb`)
-- `telemetry=false`, `logLevel="warn"`, `[run] bun=true`
+- `telemetry=false`, `logLevel="warn"`
+- `[console] depth = 10`
+- `[run] bun=true`, `silent=false`
+- `[install] ignore-scripts=true` (install scripts disabled), `minimumReleaseAge=259200` (3-day minimum release age), `saveTextLockfile=false` (binary lockfile `bun.lockb`)
 
 ### Workspace catalog
 
-Shared dependency versions are pinned in the root `package.json` `workspaces.catalog` and referenced as `catalog:` in workspace packages. Current catalog: `@standard-schema/spec`, `@standard-schema/utils`, `@types/bun`, `bun`, `drizzle-orm`, `typescript`, `valibot`.
+Shared dependency versions are pinned in the root `package.json` `workspaces.catalog` and referenced as `catalog:` in workspace packages. Current catalog: `@standard-schema/spec`, `@standard-schema/utils`, `@types/bun`, `bun`, `drizzle-kit`, `drizzle-orm`, `typescript`, `valibot`.
 
 ### Dependencies
 
 - Workspace packages depend on each other via `"workspace:*"` (`@aspen-os/constants`, `@aspen-os/platform`, …).
 - Toolchain/ORM/validation deps from the catalog via `catalog:`.
-- Infra-level deps are pinned concretely with caret ranges (e.g. `pg ^8.22.0`, `drizzle-kit ^0.31.10`, `pg-boss ^10.4.2`, `better-auth ^1.6.25`, `fflate ^0.8.3`).
+- Infra-level deps are pinned concretely with caret ranges (e.g. `pg ^8.23.0`, `pg-boss ^10.4.2`, `better-auth ^1.6.26` + `@better-auth/api-key`/`@better-auth/passkey`, `@aws-sdk/client-s3`, `fflate ^0.8.3`).
 - No package declares a `packageManager` field; `bun` itself is only a catalog dependency of `@aspen-os/platform`.
 
 ## Database
@@ -66,7 +63,7 @@ Shared dependency versions are pinned in the root `package.json` `workspaces.cat
 ### IDs
 
 - Always `text` with `.primaryKey().$defaultFn(uuidv7)` — never native UUID columns. `uuidv7` is the `crypto.getRandomValues()`-based function exported from `@aspen-os/platform/server`; using `.$defaultFn` sets the default at insert time in JS, avoiding DB-side `sql\`uuidv7()\`` magic.
-- Exception 1: better-auth tables (`user`, `session`, `account`, `verification`, `organization`, `member`, `invitation`, `apikey`, `twoFactor`, `passkey`) use `text("id").primaryKey()` without a default (better-auth manages ID generation; generated via `bunx auth generate`, i.e. `gen:auth-schema`).
+- Exception 1: better-auth tables (`user`, `session`, `account`, `verification`, `organization`, `member`, `invitation`, `apikey`, `twoFactor`, `passkey`) use `text("id").primaryKey()` without a default (better-auth manages ID generation; generated via `bun run gen:auth-schema`).
 - Exception 2: `audit_log.id` uses `uuid().primaryKey().$defaultFn(() => uuidv7())` (a native uuid — the one platform schema deviating from `text + uuidv7()`).
 
 ### Timestamps
@@ -74,17 +71,17 @@ Shared dependency versions are pinned in the root `package.json` `workspaces.cat
 - Always `timestamp("...", { withTimezone: true })` — never `timestamp without time zone`.
 - `createdAt`: `.notNull().defaultNow()`
 - `updatedAt`: `.notNull().defaultNow().$onUpdate(() => new Date())`
-- `date` columns (e.g., `foundedDate`, `openedDate`) use drizzle's `date()` type, converted from `Date` objects via `.toISOString().split("T")[0]`.
+- `date` columns (e.g., `foundedDate`, `openedDate`, `expiryDate`) use drizzle's `date()` type, converted from `Date` objects via `.toISOString().split("T")[0]`.
 
 ### Table and column naming
 
-- Table names: `snake_case` (e.g., `connection_contact`, `file_metadata`, `kv_store`, `workflow_runs`).
+- Table names: `snake_case` (e.g., `connection_contact`, `dms_file`, `kv_store`, `workflow_runs`). DMS tables carry a `dms_` prefix (`dms_file`, `dms_label`, `dms_share`, …).
 - Column names: `snake_case` in Postgres, `camelCase` in TypeScript (drizzle maps between them).
 - Table definitions sort columns alphabetically by their TS property name.
 
 ### Enums
 
-- Use `pgEnum("snake_case_name", [...values])`.
+- Use `pgEnum("snake_case_name", [...values])` (DMS enum names also carry the `dms_` prefix: `dms_entity_type`, `dms_file_status`, …).
 - Enum values reference constants objects when available: `pgEnum("compliance_category", [COMPLIANCE_CATEGORY.TAX, ...])`.
 - Enum values are lowercase strings.
 
@@ -92,6 +89,7 @@ Shared dependency versions are pinned in the root `package.json` `workspaces.cat
 
 - Naming: `idx_<table>_<column>` (e.g., `idx_address_country`).
 - Indexes defined in the table's third argument as an array of `index()` calls or an object map.
+- DMS adds GIN full-text indexes named `idx_<table>_search` built over `to_tsvector` expressions (name + description + metadata + field values).
 
 ### Other column types
 
@@ -132,6 +130,8 @@ Three server platform classes share an abstract `BasePlatform<M, S>` (`src/serve
 - `PlatformInstance<M[]>` is a structural type for the CLI; use `SingleTenantPlatformInstance<M>` etc. for typed `run()`.
 - `isGlobalTenantId(tenantId)` returns true for `"$global"` — global tenant IDs route to the control-plane DB in shared/isolated modes.
 - Single and shared tenants are both flagged "currently EXPERIMENTAL" via `console.warn` at construction.
+- `SharedTenantPlatform` overrides `$prepareInfra()` to call `DatabaseUnit.applyRlsPolicies()` after the base flow; `IsolatedTenantPlatform` overrides `$prepareInfra()` entirely (db first, then auth, then the remaining units, then `$prepareRuntime`, then `mod.$prepareTenant(tenantId)` for each tenant from `resolver.list()` — a dummy `{ list: [], resolve: identity }` resolver is constructed inline).
+- `BasePlatform.healthCheck()` probes DB (`SELECT 1`) and pubsub (`getQueueSize`) and flags `"unhealthy"` when a produced topic has no subscriber.
 
 ### Example
 
@@ -180,7 +180,7 @@ interface Module<
 ```
 
 - All methods are required except `$prepareTenant` (optional; isolated-mode only).
-- `$initialize` receives the full unit map; modules that need narrower deps type their own subset (e.g. `{ db, pubsub }`).
+- `$initialize` receives the full unit map; modules that need narrower deps type their own subset (e.g. `{ db, auth, pubsub }`).
 - `$prepareInfra()` is synchronous and returns:
 
 ```ts
@@ -214,7 +214,7 @@ All units:
 | Unit                    | `$name`     | Injected deps                | Notes                                                                   |
 | ----------------------- | ----------- | ---------------------------- | ----------------------------------------------------------------------- |
 | `db` (DatabaseUnit)     | `"db"`      | — (owns `pg.Pool` + drizzle) | tenancy, RLS, `prepareWithModules`; the load-bearing unit               |
-| `auth` (AuthUnit)       | `"auth"`    | `{ db, pubsub }`             | better-auth service, `fetchHandler`, `_` getter, `applyModuleAcl`       |
+| `auth` (AuthUnit)       | `"auth"`    | `{ db, pubsub }`             | better-auth service, `fetchHandler`, `rest` getter, `applyModuleAcl`    |
 | `audit` (AuditUnit)     | `"audit"`   | `{ db }`                     | `diff`/`write`/`query`/`reconstructState`/`count`; `audit_log` table    |
 | `logs` (LogUnit)        | `"logs"`    | `{ db }`                     | buffered pino-style logger; `child()`, `query`, `getStats`              |
 | `pubsub` (PubSubUnit)   | `"pubsub"`  | `{ db }`                     | single control-plane pg-boss, **lazily started**                        |
@@ -248,9 +248,9 @@ All units:
 
 ## Domain modules
 
-### Three module-class patterns
+### Conforming-module shape
 
-**Newer** (organization, tasks): workflows are `readonly` properties; `$initialize()` / `$prepareRuntime()` / `$cleanup()` are empty. They still `implements Module` and return a full `ModuleInfra` from `$prepareInfra()`.
+Every implemented module (organization, compliance, tasks, dms, management, hr) follows the same shape — `src/module.ts` holds the class, `src/auth.ts` holds the ACL, `src/pubsub.ts` holds events, `db-schemas/` is directory form, and workflows are one file per action under REST-style folders `workflows/<entity>/<verb>.ts` (subresources nest, e.g. `class/field/add.ts`; scoped queries use `by-<qualifier>`, e.g. `comment/by-task/list.ts`), with reusable `WorkflowStep`s in `workflow-steps/`. Workflow groups are `readonly` properties composed from imported per-workflow consts; a `#db` getter is only used when a workflow is bound to a unit at construction time (management's `createX(this.#db)`).
 
 ```ts
 export class Organization implements Module {
@@ -284,18 +284,21 @@ export class Organization implements Module {
 }
 ```
 
-**Older** (compliance, drive; hr historically leaned this way): `#private` stored unit references set in `$initialize(units)`; non-empty `$prepareRuntime()` (pubsub schedules/handlers) and `$cleanup()` (unregister + null out). AGENTS.md documents this pattern; note that in practice current modules keep workflow groups as `readonly` properties rather than throwing getters. HR's current rewrite follows this node-based wiring pattern (stores `#pubsub`, schedules/unschedules two crons) but exposes all workflow groups as `readonly` objects.
+### Stateless vs runtime-wired modules
 
-**Hybrid** (management): `#private` `#db` field set in `$initialize({ db, auth, pubsub })` (stores `units.db` only); `$prepareRuntime()` / `$cleanup()` are empty; the `tenants` getter throws if `#db` is null, while `serviceProviders` / `users` are `readonly`.
-
-**Conforming modules** (management, organization, tasks, compliance, dms, hr): every module follows the management shape — `src/module.ts` holds the class, `src/auth.ts` holds the ACL, `src/pubsub.ts` holds events, `db-schemas/` is directory form, and workflows are one file per action under REST-style folders `workflows/<entity>/<verb>.ts` (subresources nest, e.g. `class/field/add.ts`; scoped queries use `by-<qualifier>`, e.g. `comment/by-task/list.ts`), with reusable `WorkflowStep`s in `workflow-steps/`. Modules that bind workflows to a unit at construction time (`createX(this.#db)`) use a `#db` getter; stateless workflow groups are `readonly` properties composed from imported per-workflow consts. HR additionally provides per-group `barrel-<entity>.ts` files that aggregate its many per-action workflow files.
+- **Stateless** (organization, tasks): `$initialize()` / `$prepareRuntime()` / `$cleanup()` are empty; workflow groups are `readonly` properties.
+- **Runtime-wired** (compliance, dms, hr, management): keep `#private` unit refs set in `$initialize(units)` plus `async $prepareRuntime()` / `$cleanup()` that register/unregister pubsub schedules and handlers; their workflow groups stay `readonly`.
+  - `compliance` — `{ db, kvStore, pubsub }`; registers reminder schedules + handlers in `$prepareRuntime()`, unregisters and nulls refs in `$cleanup()`.
+  - `dms` — `{ db, auth, pubsub, storage }`; registers the expiry-scan and auto-purge schedules/handlers; module-scope runtime state lives in `runtime.ts` (`setDmsConfig`/`setDmsStorage`/`getDmsConfig`/`getDmsStorage`).
+  - `hr` — `{ db, pubsub }`; schedules daily attendance-sync and leave-accrual crons; per-group `workflows/barrel-<entity>.ts` files aggregate its many per-action workflow files.
+  - `management` — `{ db, auth, pubsub }` but stores only `#db`; `$prepareRuntime()`/`$cleanup()` are empty; the `tenants` getter throws if `#db` is null, while `serviceProviders`/`users` are `readonly`; `$dependencies: ["organization"]`.
 
 Key conventions:
 
 - Class `implements Module`; static `create(config)` factory; `readonly $config`.
 - `$name` as kebab-case readonly string; `$dependencies` as `readonly string[]` (typed as `[]` when empty).
 - `$prepareInfra()` returns `{ auth: { acl }, db: { control_plane_schemas, tenant_schemas }, events }`.
-- Workflow groups exposed as `readonly <entity>= <workflows>` properties (composition over a getter where possible).
+- Workflow groups exposed as `readonly <entity> = <workflows>` properties (composition over a getter where possible).
 
 ### File structure
 
@@ -306,12 +309,13 @@ packages/<module>/
     index.ts            # Module class + type re-exports (re-exports from module.ts + types.ts)
     module.ts           # Module class (implements Module, static create, lifecycle methods)
     auth.ts             # defineAcl({ ... }) (flat file; NOT utils/acl.ts)
-    pubsub.ts           # Event constants + typed event interfaces + EventMap (a.k.a. event-map.ts)
-    types.ts            # Type re-exports from schemas + module-specific interfaces
+    pubsub.ts           # Event constants + typed event interfaces + EventMap
+    types.ts            # Type re-exports from schemas + module-specific interfaces (e.g. DmsModuleConfig)
     constants.ts        # Module-specific enums (as const objects) — or utils/constants.ts [optional]
+    runtime.ts          # Module-scope runtime state (dms only): set/get storage + config
     utils/
       strip-undefined.ts  # stripUndefined helper
-    db-schemas/         # directory form (management, tasks, compliance, drive, organization):
+    db-schemas/         # directory form (management, organization, tasks, compliance, dms, hr):
       index.ts          #   exports control_plane_schemas + tenant_schemas
       enums.ts          #   shared pgEnum definitions referencing utils/constants
       <entity>.ts       #   per-entity drizzle pgTable definitions
@@ -324,7 +328,9 @@ packages/<module>/
       <entity>/
         <verb>.ts           # One Workflow.name("...").input(...).handler(...) per file
         <subresource>/<verb>.ts
+      index.ts / barrel-<entity>.ts  # Module-internal aggregates (dms, hr)
       utils.ts              # Shared workflow helpers
+    workflow-steps/       # Reusable WorkflowStep.name(...).handler(...) consts (fetch-<entity>.ts)
   services/           # Cross-cutting services [optional]
       <service>.ts
   package.json
@@ -335,7 +341,7 @@ packages/<module>/
 
 - Package name: `@aspen-os/<module>`
 - `"type": "module"`; dependencies on other workspace packages via `"workspace:*"`, catalog versions via `catalog:`
-- `exports`: `"."` → `"./src/index.ts"` (raw TS) **except** `@aspen-os/platform`, `@aspen-os/organization`, `@aspen-os/management` which build to `.output/` via `scripts/build.ts`
+- `exports`: `"."` → `"./src/index.ts"` (raw TS) **except** `@aspen-os/platform`, `@aspen-os/organization`, `@aspen-os/management`, `@aspen-os/dms` which build to `.output/` via `scripts/build.ts`
 - Scripts: `check:lint` (`oxlint --fix . ; oxfmt .`) and `check:types` (`tsc -b`)
 
 ### Stub packages
@@ -366,8 +372,8 @@ Used in two specific contexts:
 
 - Constants as `as const` objects with `UPPER_SNAKE` keys and lowercase string values.
 - Types derived via indexed access: `type X = (typeof OBJ)[keyof typeof OBJ]`.
-- Shared constants live in `@aspen-os/constants` (single `index.ts` exporting e.g. `ORGANIZATION_STATUS`, `COMPLIANCE_CATEGORY`, `COUNTRY_CODES` + `isValidCountryCode` guard).
-- Module-specific constants live in the module's `constants.ts`.
+- Shared constants live in `@aspen-os/constants` — `src/index.ts` holds the shared enums (`ORGANIZATION_STATUS`, `BRANCH_TYPE`, `COMPLIANCE_CATEGORY`, `COUNTRY_CODES` + `isValidCountryCode` guard, …); `src/country-codes.ts` / `src/languages.ts` are empty stubs.
+- Module-specific constants live in the module's `constants.ts` (or `utils/constants.ts`).
 - Valibot `enum_()` schemas in `schemas/enums.ts` mirror the constant objects.
 - `pgEnum` values reference the constant objects.
 - No `Result<T, E>` / `PaginatedResult` types — don't create them.
@@ -421,14 +427,14 @@ export type DomainEventMap = EntityEventMap & OtherEntityEventMap;
 
 ## Auth
 
-- **better-auth** with plugins: `admin`, `username`, `organization`, `phoneNumber`, `emailOTP`, `apiKey`, `twoFactor`, `passkey`. `lastLoginMethod`/`lastLoginMethodClient` and `captcha` are commented out on both surfaces.
+- **better-auth** with plugins: `admin`, `username`, `organization`, `phoneNumber`, `emailOTP`, `apiKey`, `twoFactor`, `passkey`. `LastLoginMethod()` is commented out on the server surface; `LastLoginMethodClient` and `CaptchaClient` are commented out on the client surface.
 - `createAccessControl` defines the permission matrix (`{ resource: [actions...] }`) via `defineAcl` in `utils/acl.ts`.
 - `AuthUnit.applyModuleAcl(acl)` re-creates the better-auth service with `admin({ ac: createAccessControl(acl) })` during `$prepareInfra()`.
 - Drizzle adapter: `camelCase: false`, `provider: "pg"`, `usePlural: false`, `transaction: true`.
 - Drizzle adapter binds `db.controlPlaneDb` — auth is control-plane only.
 - Role is a plain `text("role")` column on `user` — not a separate table.
-- Auth DB tables (`auth/db-schema.ts`, 10 tables) do **not** follow the `uuidv7()` ID convention (better-auth manages IDs); the file is generated via `gen:auth-schema`.
-- The `_` getter exposes a REST `resource.action` API: `user.{create, get, update, remove, role.assign, role.unassign}`, `session.{create, invalidate, validate}`, `role.{list, remove}`. Use `remove`, not `delete`.
+- Auth DB tables (`auth/db-schema.ts`, 10 tables) do **not** follow the `uuidv7()` ID convention (better-auth manages IDs); the file is generated via `bun run gen:auth-schema` (`bunx auth generate --config ./src/server/auth/~config.ts --output ./src/server/auth/db-schema.ts`).
+- The `rest` getter exposes a REST `resource.action` API: `user.{create, get, remove, role.assign, role.unassign, update}`, `session.{create, invalidate, validate}`, `role.{list, remove}`. Use `remove`, not `delete`.
 
 ## PubSub
 
@@ -447,7 +453,7 @@ export type DomainEventMap = EntityEventMap & OtherEntityEventMap;
 
 ## Git hooks (Husky)
 
-- **pre-commit**: `bunx lint-staged` → runs `oxfmt --fix --no-errors-on-unmatched` on staged files
+- **pre-commit**: `bunx lint-staged` → runs `oxfmt` on staged files (root `lint-staged` config is `"*": "oxfmt"`)
 - **commit-msg**: `bunx commitlint --edit $1` → enforces conventional commits
 - Allowed commit types: `build chore ci docs feat fix perf refactor revert test wip`
 
@@ -458,10 +464,10 @@ export type DomainEventMap = EntityEventMap & OtherEntityEventMap;
 | Files                   | `kebab-case`                          | `auth.ts`, `pubsub.ts`, `db-schemas/index.ts`     |
 | Classes                 | `PascalCase`                          | `OrganizationWorkflow`, `DatabaseUnit`            |
 | Constants               | `UPPER_SNAKE_CASE`                    | `ORGANIZATION_STATUS`, `COMPLIANCE_EVENTS`        |
-| DB tables               | `snake_case`                          | `connection_contact`, `file_metadata`             |
+| DB tables               | `snake_case`                          | `connection_contact`, `dms_file`                  |
 | DB columns              | `snake_case` (mapped to camelCase TS) | `created_at` → `createdAt`                        |
 | Event topics            | `domain:event_name`                   | `organization:updated`                            |
-| Private fields          | `#` prefix                            | `#documents`, `#db`                               |
+| Private fields          | `#` prefix                            | `#documents`, `#db`, `#pubsub`                    |
 | Unit lifecycle (server) | `$` prefix                            | `$name`, `$prepareInfra`, `$cleanup`              |
 | Module lifecycle        | `$` prefix                            | `$initialize`, `$prepareInfra`, `$prepareRuntime` |
 | Package exports         | `@aspen-os/<name>`                    | `@aspen-os/platform`, `@aspen-os/organization`    |
@@ -476,7 +482,7 @@ bun install            # install all workspace deps
 bun run check:lint     # oxlint --fix . ; oxfmt .
 bun run check:types    # tsc -b (root composite, all project references)
 bun run update:deps    # taze -rw --maturity-period 3
-bun run clean          # rimraf node_modules/.output/.local/bun.lockb
+bun run clean          # bunx rimraf --glob "**/{node_modules,.output,.local,bun.lockb}"
 bun run prepare        # husky
 ```
 
@@ -488,7 +494,7 @@ cd packages/platform && bun run check:lint
 cd packages/platform && bun run build          # scripts/build.ts → .output/
 ```
 
-**Build gotcha**: `platform`, `organization`, and `management` publish `exports`/`bin` pointing at `.output/`. TypeScript resolves types from `.output/`, not source. After changing exports, run `bun run build` **before** typechecking downstream packages (raw-src packages like `tasks`/`compliance` resolve platform/types through `.output/`).
+**Build gotcha**: `platform`, `organization`, `management`, and `dms` publish `exports`/`bin` pointing at `.output/` (the build rewrites each package's `package.json` in place; `git status` shows it modified). TypeScript resolves types from `.output/`, not source. After changing exports, run `bun run build` **before** typechecking downstream packages (raw-src packages like `tasks`/`compliance`/`hr` resolve platform/types through `.output/`). `bun run build --dev` rewrites `exports`/`bin` back to `./src/*` (un-builds without emitting). A fresh clone or `bun run clean` wipes `.output/` — the four `.output`-exporting packages must be rebuilt before downstream typechecking.
 
 Docs (`bun run dev` → 3005):
 
@@ -499,8 +505,10 @@ cd docs && bun run build          # bun gen:cf-types && vite build
 cd docs && bun run deploy         # wrangler deploy (Cloudflare Workers)
 ```
 
+**Docs gotchas**: `ignore-scripts=true` (bunfig) blocks the `postinstall` that generates the MDX source (`fumadocs-mdx`) — run `bunx fumadocs-mdx` manually if `.source/` is missing before build/typecheck. `gen:cf-types` writes `worker-configuration.d.ts` (gitignored). Docs runs on `@tanstack/react-start` + Vite; `wrangler.jsonc` defines `preview`/`production` environments with custom domains.
+
 There is no test infrastructure anywhere in the repo — no test files, no vitest/jest/playwright config, no test scripts. Quality gates are only `check:lint` and `check:types` per package.
 
 ### Per-package typecheck
 
-Always run `tsc -b` in the package whose path alias you mean — the `@/*` alias resolves differently per tsconfig (each package maps it to its own `./src/*`).
+Always run `tsc -b` in the package whose path alias you mean — the `#/*` alias resolves differently per tsconfig (each package maps it to its own `./src/*`).

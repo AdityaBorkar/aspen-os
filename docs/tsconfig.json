@@ -3,7 +3,7 @@
     "declarationDir": "../.local/types/docs",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "paths": {
-      "@/*": ["./src/*"],
+      "#/*": ["./src/*"],
       "collections/*": ["./.source/*"]
     },
     "types": ["vite/client", "node"]

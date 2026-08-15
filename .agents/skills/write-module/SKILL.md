@@ -88,7 +88,7 @@ The `workflows/` tree uses REST-style folders: `workflows/<entity>/<verb>.ts` fo
 {
   "compilerOptions": {
     "declarationDir": "../../.local/types/<name>",
-    "paths": { "@/*": ["./src/*"] }
+    "paths": { "#/*": ["./src/*"] }
   },
   "extends": "../../tsconfig.json"
 }

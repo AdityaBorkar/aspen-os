@@ -11,6 +11,9 @@
     "./.output"
   ],
   "type": "module",
+  "imports": {
+    "#/*": "./src/*"
+  },
   "exports": {
     "./client": {
       "default": "./.output/client/index.js",

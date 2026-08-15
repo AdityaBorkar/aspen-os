@@ -3,6 +3,9 @@
   "private": true,
   "type": "module",
   "sideEffects": false,
+  "imports": {
+    "#/*": "./src/*"
+  },
   "scripts": {
     "build": "bun gen:cf-types && vite build",
     "check:lint": "oxlint --fix . ; oxfmt .",

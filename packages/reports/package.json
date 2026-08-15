@@ -1,3 +1,6 @@
 {
-  "name": "@aspen-os/reports"
+  "name": "@aspen-os/reports",
+  "imports": {
+    "#/*": "./src/*"
+  }
 }

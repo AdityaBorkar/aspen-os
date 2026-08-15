@@ -1,3 +1,11 @@
+import { AISearch, AISearchPanel, AISearchTrigger } from "#/components/ai/search";
+import { useMDXComponents } from "#/components/mdx";
+import { createClientLoader, mergedEntries } from "#/lib/client-loader";
+import { cn } from "#/lib/cn";
+import { APP_NAME, DOCS_ROUTE, GIT_CONFIG, LAYOUT_BASE_OPTIONS } from "#/lib/constants";
+import { resolveContentPath } from "#/lib/paths";
+import { STAGE } from "#/lib/stage";
+
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import type * as PageTree from "fumadocs-core/page-tree";
@@ -15,14 +23,6 @@ import {
 import { getLayoutTabs, type LayoutTab } from "fumadocs-ui/layouts/shared";
 import { MessageCircleIcon } from "lucide-react";
 import { cloneElement, isValidElement, Suspense } from "react";
-
-import { AISearch, AISearchPanel, AISearchTrigger } from "@/components/ai/search";
-import { useMDXComponents } from "@/components/mdx";
-import { createClientLoader, mergedEntries } from "@/lib/client-loader";
-import { cn } from "@/lib/cn";
-import { APP_NAME, DOCS_ROUTE, GIT_CONFIG, LAYOUT_BASE_OPTIONS } from "@/lib/constants";
-import { resolveContentPath } from "@/lib/paths";
-import { STAGE } from "@/lib/stage";
 
 export const Route = createFileRoute("/docs/$")({
   component: Page,
@@ -42,8 +42,8 @@ const serverLoader = createServerFn({
 })
   .validator((slugs: string[]) => slugs)
   .handler(async ({ data: slugs }) => {
-    const { source } = await import("@/lib/source");
-    const { slugsToMarkdownPath } = await import("@/lib/paths");
+    const { source } = await import("#/lib/source");
+    const { slugsToMarkdownPath } = await import("#/lib/paths");
     const page = source.getPage(slugs);
     if (!page) {
       throw notFound();

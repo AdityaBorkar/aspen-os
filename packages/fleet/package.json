@@ -1,3 +1,6 @@
 {
-  "name": "@aspen-os/fleet"
+  "name": "@aspen-os/fleet",
+  "imports": {
+    "#/*": "./src/*"
+  }
 }

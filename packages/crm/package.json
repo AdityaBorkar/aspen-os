@@ -1,3 +1,6 @@
 {
-  "name": "@aspen-os/crm"
+  "name": "@aspen-os/crm",
+  "imports": {
+    "#/*": "./src/*"
+  }
 }

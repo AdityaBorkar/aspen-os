@@ -3,9 +3,18 @@
   "ignorePatterns": [".output", ".wrangler", ".tanstack", "*.gen.ts"],
   "sortImports": {
     "customGroups": [
-      { "elementNamePattern": ["https://*", "http://*"], "groupName": "url" },
+      { "elementNamePattern": ["https://**", "http://**"], "groupName": "url" },
       {
-        "elementNamePattern": ["bun:*", "npm:*", "deno:*", "jsr:*"],
+        "elementNamePattern": [
+          "bun:*",
+          "bun:*/*",
+          "npm:*",
+          "npm:*/*",
+          "deno:*",
+          "deno:*/*",
+          "jsr:*",
+          "jsr:*/*"
+        ],
         "groupName": "protocol"
       }
     ],

@@ -2,7 +2,7 @@
   "compilerOptions": {
     "declarationDir": "../../.local/types/reports",
     "paths": {
-      "@/*": ["./src/*"]
+      "#/*": ["./src/*"]
     }
   },
   "extends": "../../tsconfig.json"

@@ -2,7 +2,7 @@
   "compilerOptions": {
     "declarationDir": "../../.local/types/tasks",
     "paths": {
-      "@/*": ["./src/*"]
+      "#/*": ["./src/*"]
     }
   },
   "extends": "../../tsconfig.json"

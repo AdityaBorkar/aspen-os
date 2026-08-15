@@ -1,3 +1,6 @@
 {
-  "name": "@aspen-os/inventory"
+  "name": "@aspen-os/inventory",
+  "imports": {
+    "#/*": "./src/*"
+  }
 }

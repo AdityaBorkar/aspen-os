@@ -5,6 +5,9 @@
     "./.output"
   ],
   "type": "module",
+  "imports": {
+    "#/*": "./src/*"
+  },
   "exports": {
     ".": "./src/index.ts"
   },

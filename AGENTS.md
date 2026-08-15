@@ -166,7 +166,7 @@ Modules with non-empty runtime wiring (compliance schedules/handlers, hr schedul
 
 Root `tsconfig.json` (extended everywhere, `composite: true` project references): `strict`, `verbatimModuleSyntax` (use `import type`), `noUncheckedIndexedAccess`, `noUnusedLocals` (params allowed), `moduleResolution: "bundler"`, `module/target: ESNext`, `types: ["bun", "@types/bun"]`.
 
-- **Path-alias gotcha**: each package maps `@/*` to its own `./src/*`. Root tsconfig has no `paths`. Run `tsc -b` in the package whose alias you mean.
+- **Path-alias gotcha**: each package maps `#/*` to its own `./src/*` (via `paths` in tsconfig + the `imports` field in package.json). Root tsconfig has no `paths`. Run `tsc -b` in the package whose alias you mean.
 - **Linter/formatter is oxlint + oxfmt** (`.oxlintrc.json`, `.oxfmtrc.json`). `check:lint` runs `oxlint --fix` then `oxfmt` (both auto-fix). oxfmt sorts imports (URL → protocol/builtin → external → relative) and Tailwind classes (`clsx`/`cva`/`tw`/`cn`); it skips `.output`, `.wrangler`, `.tanstack`, `*.gen.ts`. oxlint ignores `src/components/ui/**` (shadcn). `.zed/settings.json` sets oxfmt as the formatter and excludes `codedb.snapshot`/`.output`/`.coverage`.
 
 ### Git hooks (Husky, active)

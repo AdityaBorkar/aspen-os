@@ -9,9 +9,7 @@
   ],
   "format_on_save": "on",
   "formatter": {
-    "language_server": {
-      "name": "oxfmt"
-    }
+    "language_server": "oxfmt"
   },
   "language_servers": [
     "!typescript-language-server",
@@ -19,14 +17,9 @@
     "!eslint",
     "!vtsls",
     "!biome",
-    "..."
-  ],
-  "lsp": {
-    "vtsls": {
-      "binary": {
-        "arguments": ["--lsp", "--stdio"],
-        "path": "node_modules/.bin/tsc"
-      }
-    }
-  }
+    "oxlint",
+    "oxfmt",
+    "typescript-ls"
+    // "..."
+  ]
 }

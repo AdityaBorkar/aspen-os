@@ -1,6 +1,9 @@
 # TODO
 
+Using "#/_" alias for imports instead of relative paths. Update all tsconfig.json and package.json to use "#/_" aliases for imports for "./src/*" files.
+
 Create recommendations for oxlint rules
+Analyze the repository and suggest new oxlint rules that can be made to ensure
 
 Ask questions on certain file names
 Reorder/arrange certain workflows properly
@@ -174,3 +177,28 @@ If you press YES, the account manager shall access the application and respond a
 - Chatbot
 - AI agents
 - Automation
+  \=======
+
+## Compliance Module
+
+- India DPDP
+- India Compliance
+- GDPR
+- HIPAA
+
+---
+
+## Phase 2
+
+- Merging ./docs with ./docs to ensure a single source of truth
+- Create a Biome GritQL rule to make index.ts module files like @management/src/index.ts
+- CONTEXT.md lists Prospect, Client, Job Mandate, Draft, Filter View, Reminder, Task, Team Member, Contract under "Recruiter Domain."
+- Dynamic Loading of Modules
+  - /settings/features = Enable/Disable each module and their feature flags
+
+## Not a Priority
+
+- Analytics
+- Chatbot
+- Agents
+- Automations

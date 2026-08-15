@@ -1,8 +1,9 @@
+import { STAGE } from "#/lib/stage";
+
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { RootProvider } from "fumadocs-ui/provider/tanstack";
 
-import { STAGE } from "@/lib/stage";
-import css from "@/styles/app.css?url";
+import css from "#/styles/app.css?url";
 
 export const Route = createRootRoute({
   component: RootComponent,

@@ -1,7 +1,7 @@
+import { LAYOUT_BASE_OPTIONS } from "#/lib/constants";
+
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { HomeLayout } from "fumadocs-ui/layouts/home";
-
-import { LAYOUT_BASE_OPTIONS } from "@/lib/constants";
 
 export const Route = createFileRoute("/")({
   component: Home,
