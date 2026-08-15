@@ -40,6 +40,7 @@
     { "path": "./packages/pharmacy" },
     { "path": "./packages/reports" },
     { "path": "./packages/management" },
+    { "path": "./packages/masters" },
     { "path": "./packages/tasks" }
   ]
 }

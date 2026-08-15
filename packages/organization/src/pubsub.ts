@@ -1,5 +1,3 @@
-import type { BranchType, ConnectionNoteType, ConnectionStatus } from "#/types";
-
 import type { JsonValue } from "@aspen-os/platform/server";
 
 export const ORGANIZATION_EVENTS = {
@@ -15,16 +13,8 @@ export const BRANCH_EVENTS = {
   UPDATED: "branch:updated",
 } as const;
 
-export const CONNECTION_EVENTS = {
-  CREATED: "connection:created",
-  NOTE_ADDED: "connection:note_added",
-  STATUS_CHANGED: "connection:status_changed",
-  UPDATED: "connection:updated",
-} as const;
-
 export const events = {
   BRANCH_EVENTS,
-  CONNECTION_EVENTS,
   ORGANIZATION_EVENTS,
 };
 
@@ -44,7 +34,7 @@ export interface BranchCreatedEvent {
     code: string;
     id: string;
     name: string;
-    type: BranchType;
+    type: string;
   };
 }
 
@@ -66,34 +56,6 @@ export interface BranchClosedEvent {
   date: string;
 }
 
-export interface ConnectionCreatedEvent {
-  connection: {
-    id: string;
-    name: string;
-    type: string;
-  };
-}
-
-export interface ConnectionUpdatedEvent {
-  changes: Record<string, JsonValue>;
-  connection: { id: string; name: string };
-}
-
-export interface ConnectionStatusChangedEvent {
-  connectionId: string;
-  fromStatus: ConnectionStatus;
-  toStatus: ConnectionStatus;
-}
-
-export interface ConnectionNoteAddedEvent {
-  connectionId: string;
-  note: {
-    content: string;
-    id: string;
-    type: ConnectionNoteType;
-  };
-}
-
 export interface OrganizationEventMap {
   [ORGANIZATION_EVENTS.UPDATED]: OrganizationUpdatedEvent;
   [ORGANIZATION_EVENTS.BRANDING_UPDATED]: OrganizationBrandingUpdatedEvent;
@@ -107,11 +69,4 @@ export interface BranchEventMap {
   [BRANCH_EVENTS.UPDATED]: BranchUpdatedEvent;
 }
 
-export interface ConnectionEventMap {
-  [CONNECTION_EVENTS.CREATED]: ConnectionCreatedEvent;
-  [CONNECTION_EVENTS.NOTE_ADDED]: ConnectionNoteAddedEvent;
-  [CONNECTION_EVENTS.STATUS_CHANGED]: ConnectionStatusChangedEvent;
-  [CONNECTION_EVENTS.UPDATED]: ConnectionUpdatedEvent;
-}
-
-export type OrganizationDomainEventMap = OrganizationEventMap & BranchEventMap & ConnectionEventMap;
+export type OrganizationDomainEventMap = OrganizationEventMap & BranchEventMap;

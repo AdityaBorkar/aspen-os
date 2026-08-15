@@ -1,0 +1,45 @@
+---
+title: Access Control
+description: ACL resources and operations declared by the Masters module.
+icon: IconShield
+---
+
+The Masters module declares its ACL via `defineAcl()`, which the platform merges from the module's `ModuleInfra.auth.acl` and applies to `AuthUnit` during `$prepareInfra()`.
+
+## Resources & Operations
+
+```ts title="src/auth.ts"
+import { defineAcl } from "@aspen-os/platform/server";
+
+export const acl = defineAcl({
+  address: ["create", "delete", "read", "set_primary", "update"],
+  bankAccount: ["activate", "create", "deactivate", "delete", "read", "set_primary", "update"],
+  connection: [
+    "activate",
+    "create",
+    "deactivate",
+    "delete",
+    "read",
+    "rotate_credential",
+    "test",
+    "update",
+  ],
+  contact: ["create", "delete", "read", "set_primary", "update"],
+  note: ["create", "delete", "read"],
+});
+```
+
+| Resource      | Operations                                                                                  |
+| ------------- | ------------------------------------------------------------------------------------------- |
+| `address`     | `create`, `delete`, `read`, `set_primary`, `update`                                         |
+| `bankAccount` | `activate`, `create`, `deactivate`, `delete`, `read`, `set_primary`, `update`               |
+| `connection`  | `activate`, `create`, `deactivate`, `delete`, `read`, `rotate_credential`, `test`, `update` |
+| `contact`     | `create`, `delete`, `read`, `set_primary`, `update`                                         |
+| `note`        | `create`, `delete`, `read`                                                                  |
+
+<Callout type="info">
+  The ACL is the *declaration* of operations. Role definitions and permission enforcement are
+  application-level concerns — the module exposes the workflows that perform these operations; the
+  host app decides who may call them. In particular, credential management (`rotate_credential`) and
+  `test` are sensitive operations that should be restricted to privileged roles.
+</Callout>

@@ -1,10 +1,10 @@
 ---
 title: Events
-description: Domain event map for the Organization module — 11 events across 3 event groups.
+description: Domain event map for the Organization module — 7 events across 2 event groups.
 icon: IconBell
 ---
 
-The Organization module defines 11 domain events across 3 event groups. Events are type-level contracts published as plain string topics via PubSub.
+The Organization module defines 7 domain events across 2 event groups. Events are type-level contracts published as plain string topics via PubSub.
 
 ## Event Constants
 
@@ -20,13 +20,6 @@ export const BRANCH_EVENTS = {
   ACTIVATED: "branch:activated",
   DEACTIVATED: "branch:deactivated",
   CLOSED: "branch:closed",
-} as const;
-
-export const CONNECTION_EVENTS = {
-  CREATED: "connection:created",
-  UPDATED: "connection:updated",
-  STATUS_CHANGED: "connection:status_changed",
-  NOTE_ADDED: "connection:note_added",
 } as const;
 ```
 
@@ -49,15 +42,6 @@ export const CONNECTION_EVENTS = {
 | `branch:deactivated` | `{ branchId }`                         | Branch deactivated |
 | `branch:closed`      | `{ branchId, date }`                   | Branch closed      |
 
-### Connection Events
-
-| Event                       | Payload                                         | Trigger            |
-| --------------------------- | ----------------------------------------------- | ------------------ |
-| `connection:created`        | `{ connection: { id, name, type } }`            | Connection created |
-| `connection:updated`        | `{ connection: { id, name }, changes }`         | Connection updated |
-| `connection:status_changed` | `{ connectionId, fromStatus, toStatus }`        | Status changed     |
-| `connection:note_added`     | `{ connectionId, note: { content, id, type } }` | Note added         |
-
 ## Usage
 
 ### Publishing Events
@@ -76,19 +60,15 @@ await p.pubsub.publish("branch:created", {
 await p.pubsub.subscribe("branch:created", async (message) => {
   console.log("Branch created:", message.data.branch);
 });
-
-await p.pubsub.subscribe("connection:status_changed", async (message) => {
-  const { connectionId, fromStatus, toStatus } = message.data;
-  // React to status change
-});
 ```
 
 ## Event Map Type
 
 ```ts title="src/pubsub.ts"
-export type OrganizationDomainEventMap = OrganizationEventMap & BranchEventMap & ConnectionEventMap;
+export type OrganizationDomainEventMap = OrganizationEventMap & BranchEventMap;
 ```
 
 <Callout type="info">
-  The event map is a type-level contract — it is not enforced at runtime. Workflows publish events as plain string topics. The type map ensures type safety when subscribing if you use the typed `Message<T>` generic.
+  The event map is a type-level contract — it is not enforced at runtime. Workflows publish events
+  as plain string topics.
 </Callout>

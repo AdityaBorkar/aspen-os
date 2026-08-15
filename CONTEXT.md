@@ -201,28 +201,39 @@ _Avoid_: Company, Tenant
 A physical or logical location belonging to an Organization. Has `name`, `code` (unique), `type` (headquarters/office/warehouse/store/factory/remote/other), and supports hierarchical nesting up to 5 levels deep. Exactly one headquarters branch per organization.
 _Avoid_: Location, Site, Office
 
+**Organization Workflow**:
+A domain operation within the Organization module, built on the platform's `Workflow` builder. Two workflows: `OrganizationWorkflow`, `BranchWorkflow`. Exposed as readonly properties on the module instance: `p.organization.organizations`, `p.organization.branches`.
+_Avoid_: Service, Handler
+
+> The former Connection, Connection Contact, Connection Note, Address, and Bank Account entities now live in the **Masters** module as polymorphic master data (see "Masters Domain" below).
+
+### Masters Domain
+
+**Contact**:
+A standalone business relationship record (vendor/client/insurer/…) with `name`, `email`, `phone`, `title`, `company`, `type` (`CONTACT_TYPE`), and a per-scope `isPrimary` flag. Scoped to an owner via `(entityType, entityId)`.
+_Avoid_: Connection (business relationship)
+
 **Connection**:
-An external business relationship — a client, vendor, partner, or other entity the Organization interacts with. Has `name`, `type` (client/vendor/partner/subsidiary/etc.), `status` (active/inactive/prospect/former), and supports contacts and notes.
-_Avoid_: Contact, Relationship, Entity
-
-**Connection Contact**:
-A person associated with a Connection. Has `name`, `email`, `phone`, `title`, and a `isPrimary` flag.
-_Avoid_: Contact Person, Representative
-
-**Connection Note**:
-An interaction log entry on a Connection. Has `type` (general/call/email/meeting/contract_renewal/issue) and `content`.
-_Avoid_: Activity, Log Entry
+An **integration connection** to an external API/entity — `type` (`INTEGRATION_TYPE`: api_key/oauth2/webhook/basic_auth/database/other), `status` (active/inactive/expired/revoked), `baseUrl`, `description`, and a `credentialRef` referencing an encrypted secret in the platform `kvStore`. Credential material is never stored in plaintext; `test` validates the endpoint and `rotateCredential` writes a new kvStore secret and bumps `credentialRef`.
+_Avoid_: Vendor, Client, Partner (those are `Contact` records)
 
 **Address**:
-A postal address with `line1`, `line2`, `city`, `state`, `postalCode`, `country`, optional `label` and `isPrimary` flag. Reusable across entities.
+A postal address with `line1`, `line2`, `city`, `state`, `postalCode`, `country`, optional `label` and a per-scope `isPrimary` flag. Scoped via `(entityType, entityId)`.
 _Avoid_: Location, Street Address
 
 **Bank Account**:
-A financial account record with `accountHolderName`, `accountNumber`, `bankName`, `routingNumber`, `swiftCode`, `currency`, and `isPrimary` flag.
+A financial account record with `accountHolderName`, `accountNumber`, `bankName`, `routingNumber`, `swiftCode`, `currency`, and per-scope `isActive`/`isPrimary` flags. Scoped via `(entityType, entityId)`.
 _Avoid_: Payment Method, Financial Account
 
-**Organization Workflow**:
-A domain operation within the Organization module, built on the platform's `Workflow` builder. Five workflows: `OrganizationWorkflow`, `BranchWorkflow`, `AddressWorkflow`, `BankAccountWorkflow`, `ConnectionWorkflow`. Exposed as readonly properties on the module instance: `p.organization.organizations`, `p.organization.branches`, `p.organization.addresses`, `p.organization.bankAccounts`, `p.organization.connections`.
+**Note**:
+A typed interaction/annotation entry with `content`, `type` (`NOTE_TYPE`), and `userId`. Polymorphic — scoped via `(entityType, entityId)`.
+_Avoid_: Activity, Log Entry
+
+**Master Entity Scope**:
+Every masters row is owned by a `(entityType, entityId)` pair where `entityType ∈ { organization, branch, connection, contact }` (`master_entity_type`). All list queries filter on the pair; primary flags are scoped to it.
+
+**Masters Workflow**:
+A domain operation within the Masters module, built on the platform's `Workflow` builder. Five groups exposed on the module instance: `p.masters.contacts`, `p.masters.addresses`, `p.masters.bankAccounts`, `p.masters.connections`, `p.masters.notes`. The `connections` group is bound to the platform `kvStore` unit for secret storage.
 _Avoid_: Service, Handler
 
 ### Compliance Domain
@@ -260,7 +271,7 @@ A service that auto-generates Compliance Documents from active Obligations based
 _Avoid_: Document Factory, Auto-Generator
 
 **Event Bridge**:
-A service that subscribes to external module events (e.g., `hr:employee_onboarded`, `organization:branch_created`) and auto-creates relevant Compliance Documents and Obligations based on the event type.
+A service that subscribes to external module events (e.g., `hr:employee_onboarded`, `organization:branch_created`, `masters:contact_created`) and auto-creates relevant Compliance Documents and Obligations based on the event type.
 _Avoid_: Event Listener, Integration Hub
 
 ### Tasks Domain
@@ -519,24 +530,24 @@ _Avoid_: Onboarding (that's the Tenant Status stage AFTER provisioning), Setup, 
       │
       │  registers modules via SingleTenantPlatform.create(config, [organization, tasks])
       │
-      ├──────────────┬─────────────────────┬──────────────────────┬──────────────────────┬─────────────────┐
-      ▼              ▼                     ▼                      ▼                      ▼                 ▼
-┌──────────┐ ┌──────────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────────┐
-│Organizat.│ │   Compliance     │ │    Tasks     │ │     DMS      │ │     HR       │ │ Management Plane │
-│  Module  │ │    Module        │ │   Module     │ │   Module     │ │   Module     │ │     Module       │
-│          │ │                  │ │              │ │              │ │ (conformant) │ │                  │
-│5 workflows│ │ 5 workflows     │ │ 11 workflows│ │ 19 wf groups │ │ ~250 methods │ │ 3 wf groups     │
-│7 tables  │ │ 3 services       │ │ 3 services   │ │ 15 tables    │ │ 50 tables    │ │ 3 owned tables   │
-│11 events │ │ 3 tables         │ │ 17 tables    │ │ 33 events    │ │ 43 events    │ │ 0 shadow tables  │
-│units:    │ │ 23 events        │ │ 10 events    │ │ 12 ACL res.  │ │ 2 crons      │ │ 16 events        │
-│db, pubsub│ │ units:           │ │ units:       │ │ units:       │ │ units:       │ │ deps: organization│
-│          │ │ db, kvStore,     │ │ db, pubsub  │ │ db, auth,    │ │ db, pubsub  │ │ units:           │
-│          │ │ pubsub           │ │              │ │ pubsub,      │ │              │ │ db, auth, pubsub │
-│          │ │                  │ │              │ │ storage      │ │              │ │                  │
-│          │ │ prepareInfra():  │ │              │ │ 2 crons in   │ │ prepareInfra │ │ prepareInfra():  │
-│          │ │ schema push,     │ │              │ │ $prepareInfra│ │ 2 crons      │ │ schema push      │
-│          │ │ crons, handlers  │ │              │ │              │ │              │ │                  │
-└──────────┘ └──────────────────┘ └──────────────┘ └──────────────┘ └──────────────┘ └──────────────────┘
+      ├──────────────┬─────────────────────┬──────────────────────┬──────────────────────┬─────────────────┬─────────────┐
+      ▼              ▼                     ▼                      ▼                      ▼                 ▼             ▼
+┌──────────┐ ┌──────────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────────┐ ┌─────────────┐
+│Organizat.│ │   Compliance     │ │    Tasks     │ │     DMS      │ │     HR       │ │ Management Plane │ │   Masters   │
+│  Module  │ │    Module        │ │   Module     │ │   Module     │ │   Module     │ │     Module       │ │   Module    │
+│          │ │                  │ │              │ │              │ │ (conformant) │ │                  │ │             │
+│2 workflows│ │ 5 workflows     │ │ 11 workflows│ │ 19 wf groups │ │ ~250 methods │ │ 3 wf groups     │ │ 5 wf groups │
+│2 tables  │ │ 3 services       │ │ 3 services   │ │ 15 tables    │ │ 50 tables    │ │ 3 owned tables   │ │ 5 tables    │
+│7 events  │ │ 3 tables         │ │ 17 tables    │ │ 33 events    │ │ 43 events    │ │ 0 shadow tables  │ │ 16 events   │
+│deps:     │ │ 23 events        │ │ 10 events    │ │ 12 ACL res.  │ │ 2 crons      │ │ 16 events        │ │ 5 ACL res.  │
+│masters   │ │ units:           │ │ units:       │ │ units:       │ │ units:       │ │ deps: organization│ │ units:      │
+│units:    │ │ db, kvStore,     │ │ db, pubsub  │ │ db, auth,    │ │ db, pubsub  │ │ units:           │ │ db, kvStore│
+│none      │ │ pubsub           │ │              │ │ pubsub,      │ │              │ │ db, auth, pubsub │ │ (conns)    │
+│          │ │                  │ │              │ │ storage      │ │              │ │                  │ │             │
+│          │ │ prepareInfra():  │ │              │ │ 2 crons in   │ │ prepareInfra │ │ prepareInfra():  │ │             │
+│          │ │ schema push,     │ │              │ │ $prepareInfra│ │ 2 crons      │ │ schema push      │ │             │
+│          │ │ crons, handlers  │ │              │ │              │ │              │ │                  │ │             │
+└──────────┘ └──────────────────┘ └──────────────┘ └──────────────┘ └──────────────┘ └──────────────────┘ └─────────────┘
 
 Implemented: DMS module — unified document/files management on a single `file`
   entity: Triage → Classify → active (uploads into folders are active immediately);
@@ -556,7 +567,7 @@ Stubs (package.json only — no source): accounting, crm, fleet, inventory, repo
 ## Known Gaps
 
 1. **`RoleUnassignedEvent` missing `roleName`** — unlike `RoleAssignedEvent` which has `{ roleName, userId }`, the unassigned event only has `{ userId }`.
-2. **No DB-level foreign key constraints in domain modules** — all cross-table references in compliance, tasks, organization, management, and hr are logical (soft FKs by naming convention), not enforced by the database.
+2. **No DB-level foreign key constraints in domain modules** — all cross-table references in compliance, tasks, organization, masters, management, and hr are logical (soft FKs by naming convention), not enforced by the database.
 3. **DMS consolidation (`.working-docs/sow/dms-consolidation.md`) is complete** — the removed `@aspen-os/drive` filesystem was consolidated into `@aspen-os/dms` as one `file` entity, one label mechanism, one sharing group (`p.dms.shares`), one trash module, and `fileViews` terminology. The `dms_document*`/`dms_tag`/`dms_view`/`dms_item_*` tables no longer exist; host deployments must run the §8 migration to drop the merged-away tables and rename enums/tables.
 4. **`SingleTenantPlatform` and `SharedTenantPlatform` are EXPERIMENTAL** — both constructors emit `console.warn("... Architecture is currently EXPERIMENTAL")`. `IsolatedTenantPlatform` does not warn.
 5. **`IsolatedTenantConfig` has no `resolver` field** — a dummy resolver (`list: async () => []`, `resolve: async (id) => id`) is constructed inline in `IsolatedTenantPlatform.create()` instead of accepting a real `TenantResolver` via config.
@@ -566,6 +577,7 @@ Stubs (package.json only — no source): accounting, crm, fleet, inventory, repo
 9. **ADR-0009 has been accepted for Layer 1** — the `AuditUnit` and `audit_log` table described in ADR-0009's Layer 1 are built and shipped; the ADR status is now "Accepted (Layer 1)". Layer 2 (trigger-based blind-write capture, ADR-0010) remains proposed/unimplemented.
 10. **`audit_log.id` uses `uuid()` + `$defaultFn(() => uuidv7())`** — the one table that deviates from `text` columns (it's a native `uuid` column), but it still uses the same JS `uuidv7` function.
 11. **HR module is fully conformant** — `Hr implements Module`, has `$prepareRuntime()`, and follows the one-file-per-action workflow layout. (Earlier docs marked HR "partial/not conformant"; that is no longer the case.)
+12. **Masters extraction (`.working-docs/sow/masters.md`) is complete** — `@aspen-os/masters` owns contacts, addresses, bank accounts, integration connections, and notes as polymorphic tenant master data; the organization module holds only `organization` + `branch` and depends on `masters`. `connection` was redesigned from a business-relationship model to integration connections (credentials stored in the platform `kvStore`, referenced by `credentialRef`). Host deployments must run the §9 migration: `DROP TABLE` `address`, `bank_account`, `connection`, `connection_contact`, `connection_note` (after mapping data to masters) and remove the old `organization:connection_created` compliance subscription.
 
 ## Anti-Patterns
 

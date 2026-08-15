@@ -6,7 +6,7 @@
 
 Workspace state:
 
-- **Fully implemented**: `platform`, `organization`, `compliance`, `tasks`, `dms`, `management`, `hr` (modules), `constants` (shared enums). `drive` was **removed from the repo** and its file/folder/label/share/trash surface consolidated into `dms` (see Current State).
+- **Fully implemented**: `platform`, `masters`, `organization`, `compliance`, `tasks`, `dms`, `management`, `hr` (modules), `constants` (shared enums). `drive` was **removed from the repo** and its file/folder/label/share/trash surface consolidated into `dms` (see Current State). `masters` owns the polymorphic master data (contacts/addresses/bank accounts/connections/notes) extracted from `organization` (see Current State).
 - **Pure stubs**: `accounting`, `crm`, `fleet`, `inventory`, `pharmacy`, `reports` (package.json holds only `name` + the `#/*` import alias).
 
 Read `CODING_CONVENTIONS.md`, `CONTEXT.md`, and the domain docs in `.working-docs/` (`DOMAIN_MODEL.md` + `domain-model/<package>.md`, `BOUNDED_CONTEXTS.md` + `bounded-contexts/<package>.md`, `TODO.md`, `adr/`, `sow/`, `todo/`) before modeling domain changes. `CONTEXT.md` documents known gaps. `docs/` is the built documentation site, not the source of truth for domain docs.
@@ -66,8 +66,12 @@ packages/
     src/client/        # Platform class + auth/ logs/ rpc + context.ts, types.ts
     src/cli/           # commander CLI (db-studio, tenants)
   constants/           # Shared enums (build step) — country-codes.ts / languages.ts are empty; enums live in index.ts
-  organization/        # Domain module (build step) — module.ts auth.ts pubsub.ts db-schemas/ schemas/
-                       # workflows/<entity>/<verb>.ts (REST-style folders) + workflow-steps/
+  organization/        # Domain module (build step) — org profile + branches only (module.ts auth.ts
+                       # pubsub.ts db-schemas/ schemas/ workflows/<entity>/<verb>.ts + workflow-steps/)
+  masters/             # Domain module (build step) — polymorphic tenant master data: contact/address/
+                       # bank_account/connection/note (5 master_* tables). connection = integration
+                       # credentials (kvStore credentialRef, test/rotate workflows, management-hybrid
+                       # getter bound to kvStore); contacts = business relationships (CONTACT_TYPE)
   compliance/          # Domain module — module.ts auth.ts pubsub.ts + services/ utils/constants.ts
   tasks/               # Domain module — module.ts auth.ts pubsub.ts + services/ utils/filter-engine.ts (17 tables)
   dms/                 # Domain module (build step) — unified document/files management on one `file` entity
@@ -140,7 +144,7 @@ type ModuleInfra = {
 
 ### Domain-module pattern (management-aligned)
 
-Every implemented module (management, organization, compliance, tasks, dms, hr) follows the same shape. **To scaffold a new module, load the `write-module` skill** (`.agents/skills/write-module/SKILL.md`) — it walks the exact dms-module template (flat `readonly` workflow groups in `workflows/index.ts`, `utils/constants.ts` enums, `db-schemas/enums.ts` `pgEnum`s, module-level `runtime.ts`, optional `services/` layer):
+Every implemented module (management, masters, organization, compliance, tasks, dms, hr) follows the same shape. **To scaffold a new module, load the `write-module` skill** (`.agents/skills/write-module/SKILL.md`) — it walks the exact dms-module template (flat `readonly` workflow groups in `workflows/index.ts`, `utils/constants.ts` enums, `db-schemas/enums.ts` `pgEnum`s, module-level `runtime.ts`, optional `services/` layer):
 
 - `src/module.ts` holds the class (implements `Module`, static `create`, `readonly $name`/`$dependencies`/`$config`, `$prepareInfra()` returning `{ auth: { acl }, db: { control_plane_schemas, tenant_schemas }, events }`); `src/index.ts` just re-exports.
 - `src/auth.ts` holds the ACL (`defineAcl(...)`); `src/pubsub.ts` holds events; `src/types.ts` re-exports constants + events + schemas; `db-schemas/` is directory form (one file per table + `enums.ts`); workflows are one file per action under REST-style folders `workflows/<entity>/<verb>.ts` (subresources nest, e.g. `class/field/add.ts`; scoped queries use `by-<qualifier>`, e.g. `comment/by-task/list.ts`) with reusable `WorkflowStep`s in `workflow-steps/`.
@@ -239,6 +243,8 @@ await myWorkflow.run(input, { actorId });
 
 ## Current State
 
-`organization`, `compliance`, `tasks`, `dms`, `management`, `hr` fully implemented and aligned to the management module structure (module.ts/auth.ts/pubsub.ts, db-schemas/, one workflow per file + steps/). `accounting`/`crm`/`fleet`/`inventory`/`pharmacy`/`reports` are stubs. No tests, no CI, no platform Docker/deployment config.
+`masters`, `organization`, `compliance`, `tasks`, `dms`, `management`, `hr` fully implemented and aligned to the management module structure (module.ts/auth.ts/pubsub.ts, db-schemas/, one workflow per file + steps/). `accounting`/`crm`/`fleet`/`inventory`/`pharmacy`/`reports` are stubs. No tests, no CI, no platform Docker/deployment config.
+
+`@aspen-os/masters` owns five **polymorphic** tenant master-data entities (`master_` prefix, `entityType`+`entityId` per `master_entity_type`): `contact` (business relationships — `CONTACT_TYPE`), `address`, `bank_account`, `connection` (integration connections — `INTEGRATION_TYPE`, status `CONNECTION_STATUS`, credentials stored in the platform `kvStore` referenced by `credentialRef`, with `test`/`rotateCredential` workflows), and `note` (`NOTE_TYPE`). Extracted from `organization` per `.working-docs/sow/masters.md`; the `connections` workflow group is bound to the kvStore unit via a getter (management hybrid). `organization` now holds only `organization` + `branch` and depends on `["masters"]`; compliance's insurer flow subscribes to `masters:contact_created` (contact type `insurer`, entity `organization`).
 
 `@aspen-os/dms` is the single document-management module (the removed `@aspen-os/drive` was consolidated into it — see `.working-docs/sow/dms-consolidation.md`, Phases 1–7 complete). One `file` entity (folders/paths + class/triage/lifecycle on a single `dms_file` row), one label mechanism (`dms_label` + `dms_entity_label`), one sharing group (`p.dms.shares`), one trash module (`p.dms.trash` over `status`), and `fileViews` terminology — no `document`/`item-`/`tag`/`view`/`drive` leftovers.

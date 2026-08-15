@@ -1,0 +1,38 @@
+---
+title: Masters
+description: Polymorphic tenant master data module — contacts, addresses, bank accounts, integration connections, and notes.
+icon: IconDatabase
+---
+
+The Masters module owns five polymorphic tenant master-data entities: `contact`, `address`, `bankAccount`, `connection`, and `note`. Every entity is scoped to an owner via `(entityType, entityId)` where the owner type is one of `organization`, `branch`, `connection`, or `contact`.
+
+## Documentation
+
+<Cards>
+  <Card
+    title="Overview"
+    href="/docs/masters/overview"
+    description="Architecture, initialization, and module structure"
+  />
+  <Card
+    title="Workflows"
+    href="/docs/masters/workflows"
+    description="Domain workflows and operations"
+  />
+</Cards>
+
+## Reference
+
+<Cards>
+  <Card
+    title="Access Control"
+    href="/docs/masters/access-control"
+    description="Resources, operations, and permission matrix"
+  />
+  <Card title="Events" href="/docs/masters/events" description="Domain events and pubsub topics" />
+  <Card
+    title="Database Schema"
+    href="/docs/masters/db-schemas"
+    description="Tables, enums, and relationships"
+  />
+</Cards>

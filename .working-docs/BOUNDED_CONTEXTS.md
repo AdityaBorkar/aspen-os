@@ -9,6 +9,7 @@ This document is the **overview** of the system's bounded contexts. Each context
 | `@aspen-os/platform`     | [`bounded-contexts/platform.md`](bounded-contexts/platform.md)         |
 | `@aspen-os/constants`    | [`bounded-contexts/constants.md`](bounded-contexts/constants.md)       |
 | `@aspen-os/organization` | [`bounded-contexts/organization.md`](bounded-contexts/organization.md) |
+| `@aspen-os/masters`      | [`bounded-contexts/masters.md`](bounded-contexts/masters.md)           |
 | `@aspen-os/compliance`   | [`bounded-contexts/compliance.md`](bounded-contexts/compliance.md)     |
 | `@aspen-os/tasks`        | [`bounded-contexts/tasks.md`](bounded-contexts/tasks.md)               |
 | `@aspen-os/dms`          | [`bounded-contexts/dms.md`](bounded-contexts/dms.md)                   |
@@ -70,22 +71,23 @@ Domain detail for each context lives in [`domain-model/`](domain-model/) (also s
 │  ┌───────────────┐  ┌───────────────────┐  ┌───────────────┐   │
 │  │ Recruiter App │  │ Organization      │  │ Compliance    │   │
 │  │ (not in repo) │  │ Module            │  │ Module        │   │
-│  │ uses          │  │ 5 wf groups       │  │ 5 wf groups   │   │
-│  │ SingleTenant  │  │ 7 tables          │  │ 3 services    │   │
-│  │ Platform      │  │ 11 events         │  │ 3 tables      │   │
-│  │ .create()     │  │ units: none       │  │ 23 events     │   │
-│  └───────────────┘  └───────────────────┘  │ units: db,     │   │
-│                                            │ kvStore, pubsub│   │
-│  ┌───────────────┐  ┌───────────────┐     └───────────────┘   │
-│  │ Tasks         │  │ DMS Module    │     ┌───────────────┐   │
-│  │ Module        │  │ 19 wf groups  │     │ HR Module     │   │
-│  │ 11 wf groups  │  │ 15 tables     │     │ 8 wf groups   │   │
-│  │ 17 tables     │  │ 33 events     │     │ 50 tables     │   │
-│  │ 10 events     │  │ 12 ACL res.   │     │ 43 events     │   │
-│  │ units: none   │  │ units:        │     │ 2 crons       │   │
-│  │               │  │ db, auth,     │     │ units:        │   │
-│  │               │  │ pubsub+storage│     │  db, pubsub   │   │
-│  └───────────────┘  └───────────────┘     └───────────────┘   │
+│  │ uses          │  │ 2 wf groups       │  │ 5 wf groups   │   │
+│  │ SingleTenant  │  │ 2 tables          │  │ 3 services    │   │
+│  │ Platform      │  │ 7 events          │  │ 3 tables      │   │
+│  │ .create()     │  │ deps: masters     │  │ 23 events     │   │
+│  └───────────────┘  │ units: none       │  │ units: db,     │   │
+│                     └───────────────────┘  │ kvStore, pubsub│   │
+│  ┌───────────────────┐                     └───────────────┘   │
+│  │ Masters Module    │  ┌───────────────┐  ┌───────────────┐   │
+│  │ 5 wf groups       │  │ Tasks         │  │ DMS Module    │   │
+│  │ 5 tables          │  │ Module        │  │ 19 wf groups  │   │
+│  │ 16 events         │  │ 11 wf groups  │  │ 15 tables     │   │
+│  │ 5 ACL res.        │  │ 17 tables     │  │ 33 events     │   │
+│  │ units: kvStore    │  │ 10 events     │  │ 12 ACL res.   │   │
+│  │ (connections)     │  │ units: none   │  │ units:        │   │
+│  └───────────────────┘  │               │  │ db, auth,     │   │
+│                         └───────────────┘  │ pubsub+storage│   │
+│  ┌───────────────┐                         └───────────────┘   │
 │  ┌───────────────────────────┐                                   │
 │  │ Management Plane          │                                   │
 │  │ Module                    │                                   │
@@ -160,7 +162,8 @@ await p.run(tenantId, async () => {
 Domain events are published via PubSub as plain string topics. Event counts by module (type-level `*EventMap` contracts, not a runtime type-safe bus):
 
 - Auth: 8 events
-- Organization: 11 events
+- Organization: 7 events
+- Masters: 16 events
 - Compliance: 23 events
 - Tasks: 10 events
 - DMS: 33 events (13 file + 6 folder + 3 class + 3 contact + 2 share + 3 public_link + 3 file_view)
@@ -173,14 +176,14 @@ Per-context event tables live in `domain-model/<package>.md`.
 
 The Compliance module's `EventBridge` service actively subscribes to events from other modules to auto-create compliance documents and obligations. This is the primary cross-context integration mechanism:
 
-| Subscribed Topic                    | Source Module     | Action                                                              |
-| ----------------------------------- | ----------------- | ------------------------------------------------------------------- |
-| `hr:employee_onboarded`             | HR                | Creates background check + ID verification documents                |
-| `hr:employee_separated`             | HR                | Creates exit documents + final settlement documents                 |
-| `fleet:vehicle_registered`          | Fleet (stub)      | Creates pollution certificate + semi-annual obligation              |
-| `organization:branch_created`       | Organization      | Creates trade license + fire safety certificate + annual obligation |
-| `accounting:financial_year_started` | Accounting (stub) | Creates monthly GST return obligation                               |
-| `organization:connection_created`   | Organization      | Creates insurance policy document (if type is insurer)              |
+| Subscribed Topic                    | Source Module     | Action                                                                                    |
+| ----------------------------------- | ----------------- | ----------------------------------------------------------------------------------------- |
+| `hr:employee_onboarded`             | HR                | Creates background check + ID verification documents                                      |
+| `hr:employee_separated`             | HR                | Creates exit documents + final settlement documents                                       |
+| `fleet:vehicle_registered`          | Fleet (stub)      | Creates pollution certificate + semi-annual obligation                                    |
+| `organization:branch_created`       | Organization      | Creates trade license + fire safety certificate + annual obligation                       |
+| `accounting:financial_year_started` | Accounting (stub) | Creates monthly GST return obligation                                                     |
+| `masters:contact_created`           | Masters           | Creates insurance policy document (if contact type is insurer and entity is organization) |
 
 ### Schema Management
 
@@ -251,12 +254,13 @@ Three modules register scheduled cron jobs via PubSub:
 | PubSub           | Conformist    | pg-boss                                       | —                            | Adapts API                                                                                |
 | Storage          | Partner       | S3 (AWS SDK)                                  | DMS module                   | Defines interface                                                                         |
 | RPC              | Conformist    | oRPC                                          | —                            | Adapts API                                                                                |
-| KV Store         | Conformist    | Postgres                                      | Compliance module            | Redis-like API (core)                                                                     |
+| KV Store         | Conformist    | Postgres                                      | Compliance, Masters modules  | Redis-like API (core)                                                                     |
 | Audit            | Core          | —                                             | All modules                  | Native platform unit — `audit_log` table, DB-record replayability                         |
 | Workflow         | Core          | —                                             | All modules                  | Durable step runner (`workflow_runs`/`workflow_steps`)                                    |
 | Client Platform  | —             | —                                             | —                            | Browser-side (3 units)                                                                    |
 | Recruiter        | Downstream    | Platform                                      | —                            | Uses `SingleTenantPlatform`, registers organization + tasks (not yet in repo)             |
-| Organization     | Downstream    | Platform                                      | Compliance, Management Plane | 5 workflow groups, 7 tables                                                               |
+| Organization     | Downstream    | Platform                                      | Compliance, Management Plane | 2 workflow groups, 2 tables, depends on Masters                                           |
+| Masters          | Downstream    | Platform, KV Store                            | Compliance, Organization     | 5 workflow groups, 5 tables, 16 events, 5 ACL resources                                   |
 | Compliance       | Downstream    | Platform, HR, Organization, Fleet, Accounting | —                            | 5 workflow groups, 3 tables, 3 services, subscribes to external events                    |
 | Tasks            | Downstream    | Platform                                      | —                            | 11 workflow groups, 17 tables (6 control + 11 tenant), empty ACL                          |
 | DMS              | Downstream    | Platform, Storage                             | —                            | 19 workflow groups, 15 tables, 33 events, 12 ACL resources, 2 crons                       |

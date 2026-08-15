@@ -49,6 +49,11 @@ export const management = defineDocs({
   docs,
 });
 
+export const masters = defineDocs({
+  dir: `../packages/masters/docs`,
+  docs,
+});
+
 export const accounting = defineDocs({
   dir: `../packages/accounting/docs`,
   docs,

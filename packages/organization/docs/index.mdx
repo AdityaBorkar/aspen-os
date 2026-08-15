@@ -1,10 +1,16 @@
 ---
 title: Organization
-description: Domain module for org structure, branches, connections, and bank accounts.
+description: Domain module for the organization profile and its hierarchical branches.
 icon: IconBuilding
 ---
 
-The Organization module manages organizational structure, branches, connections (clients/vendors/partners), addresses, and bank accounts.
+The Organization module manages the organization profile (the root business entity) and its hierarchical branches.
+
+<Callout type="info">
+  Contacts, addresses, bank accounts, integration connections, and notes now live in the **Masters**
+  module (`@aspen-os/masters`) as polymorphic tenant master data. This module depends on `masters`
+  and owns only the org profile and branches.
+</Callout>
 
 ## Documentation
 

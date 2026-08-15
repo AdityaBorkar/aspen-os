@@ -1,0 +1,104 @@
+---
+title: Workflows
+description: API reference for the workflow groups exposed by the Masters module.
+icon: IconListCheck
+---
+
+The Masters module exposes five workflow groups as flat `Workflow` objects: `contacts`, `addresses`, `bankAccounts`, `connections`, and `notes`. Access via the platform proxy key `p.masters`.
+
+Every entity is polymorphic: create/list operations require `entityType` and `entityId` (the owning `organization`, `branch`, `connection`, or `contact`). List queries filter on the `(entityType, entityId)` pair.
+
+## Contacts
+
+Access: `p.masters.contacts`
+
+Standalone contact records (business relationships — `vendor`, `client`, `insurer`, …). Primary contact is scoped per `(entityType, entityId)`.
+
+```ts
+await p.masters.contacts.create({ entityType: "organization", entityId, name, type: "insurer", email, isPrimary });
+await p.masters.contacts.get({ id });
+await p.masters.contacts.update({ id, patch });
+await p.masters.contacts.delete({ id });
+await p.masters.contacts.setPrimary({ id });
+
+const contacts = await p.masters.contacts.list({ entityType: "organization", entityId, filters? });
+```
+
+## Addresses
+
+Access: `p.masters.addresses`
+
+Address records with a primary flag, scoped per `(entityType, entityId)`.
+
+```ts
+await p.masters.addresses.create({ entityType: "organization", entityId, line1, city, state, postalCode, country, label });
+await p.masters.addresses.get({ id });
+await p.masters.addresses.update({ id, patch });
+await p.masters.addresses.delete({ id });
+await p.masters.addresses.setPrimary({ id });
+
+const addresses = await p.masters.addresses.list({ entityType: "organization", entityId, filters? });
+```
+
+## Bank Accounts
+
+Access: `p.masters.bankAccounts`
+
+Bank account records with a primary flag and active toggle, scoped per `(entityType, entityId)`.
+
+```ts
+await p.masters.bankAccounts.create({ entityType, entityId, accountHolderName, accountNumber, bankName, ... });
+await p.masters.bankAccounts.get({ id });
+await p.masters.bankAccounts.update({ id, patch });
+await p.masters.bankAccounts.delete({ id });
+await p.masters.bankAccounts.setPrimary({ id });
+await p.masters.bankAccounts.activate({ id });
+await p.masters.bankAccounts.deactivate({ id });
+
+const accounts = await p.masters.bankAccounts.list({ entityType, entityId, filters? });
+```
+
+## Connections
+
+Access: `p.masters.connections`
+
+Integration connections to external APIs/entities. Credentials are stored in the platform `kvStore` (referenced by `credentialRef`); the module holds no plaintext secret material.
+
+```ts
+await p.masters.connections.create({
+  entityType, entityId,
+  name, type: "api_key", baseUrl: "https://api.example.com",
+  credential: { apiKey: "..." },
+});
+await p.masters.connections.get({ id });
+await p.masters.connections.update({ id, patch });
+await p.masters.connections.delete({ id });
+await p.masters.connections.activate({ id });
+await p.masters.connections.deactivate({ id });
+
+// Endpoint validation — issues a GET to baseUrl (10s timeout) and records lastTestedAt
+const result = await p.masters.connections.test({ id });
+// { ok, status, testedAt, error? }
+
+// Credential rotation — writes a new kvStore secret and bumps credentialRef
+await p.masters.connections.rotateCredential({ id, credential: { apiKey: "..." } });
+
+const connections = await p.masters.connections.list({ entityType, entityId, filters? });
+```
+
+## Notes
+
+Access: `p.masters.notes`
+
+Polymorphic typed notes scoped per `(entityType, entityId)`.
+
+```ts
+await p.masters.notes.add({ entityType, entityId, userId, type: "general", content: "..." });
+await p.masters.notes.remove({ id });
+
+const notes = await p.masters.notes.list({ entityType, entityId, type? });
+```
+
+## Conventions
+
+All workflow methods are `Workflow.name(...)` instances with Valibot input validation and platform workflow persistence. Create-style methods take `{ input: CreateXxxSchema }`; update takes `{ id, patch: UpdateXxxSchema }`. Each operation writes audit entries (via `ctx.audit`) and publishes domain events via the platform context.

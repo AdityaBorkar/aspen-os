@@ -1,0 +1,53 @@
+import {
+  CONTACT_TYPE,
+  CONNECTION_STATUS,
+  INTEGRATION_TYPE,
+  MASTER_ENTITY_TYPE,
+  NOTE_TYPE,
+} from "@aspen-os/constants";
+import { pgEnum } from "drizzle-orm/pg-core";
+
+export const masterEntityTypeEnum = pgEnum("master_entity_type", [
+  MASTER_ENTITY_TYPE.ORGANIZATION,
+  MASTER_ENTITY_TYPE.BRANCH,
+  MASTER_ENTITY_TYPE.CONNECTION,
+  MASTER_ENTITY_TYPE.CONTACT,
+]);
+
+export const masterContactTypeEnum = pgEnum("master_contact_type", [
+  CONTACT_TYPE.BANK,
+  CONTACT_TYPE.CLIENT,
+  CONTACT_TYPE.INSURER,
+  CONTACT_TYPE.INVESTOR,
+  CONTACT_TYPE.OTHER,
+  CONTACT_TYPE.PARENT_COMPANY,
+  CONTACT_TYPE.PARTNER,
+  CONTACT_TYPE.REGULATOR,
+  CONTACT_TYPE.SUBSIDIARY,
+  CONTACT_TYPE.VENDOR,
+]);
+
+export const masterIntegrationTypeEnum = pgEnum("master_integration_type", [
+  INTEGRATION_TYPE.API_KEY,
+  INTEGRATION_TYPE.OAUTH2,
+  INTEGRATION_TYPE.WEBHOOK,
+  INTEGRATION_TYPE.BASIC_AUTH,
+  INTEGRATION_TYPE.DATABASE,
+  INTEGRATION_TYPE.OTHER,
+]);
+
+export const masterConnectionStatusEnum = pgEnum("master_connection_status", [
+  CONNECTION_STATUS.ACTIVE,
+  CONNECTION_STATUS.INACTIVE,
+  CONNECTION_STATUS.EXPIRED,
+  CONNECTION_STATUS.REVOKED,
+]);
+
+export const masterNoteTypeEnum = pgEnum("master_note_type", [
+  NOTE_TYPE.GENERAL,
+  NOTE_TYPE.CALL,
+  NOTE_TYPE.EMAIL,
+  NOTE_TYPE.MEETING,
+  NOTE_TYPE.CONTRACT_RENEWAL,
+  NOTE_TYPE.ISSUE,
+]);

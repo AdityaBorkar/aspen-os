@@ -4,7 +4,7 @@ description: API reference for the workflow groups exposed by the Organization m
 icon: IconListCheck
 ---
 
-The Organization module exposes five workflow groups as flat `Workflow` objects: `organizations`, `branches`, `connections`, `addresses`, and `bankAccounts`. Access via the platform proxy key `p.organization`.
+The Organization module exposes two workflow groups as flat `Workflow` objects: `organizations` and `branches`. Access via the platform proxy key `p.organization`.
 
 ## Organizations
 
@@ -51,71 +51,6 @@ const branches = await p.organization.branches.list({ organizationId });
 - **No circular parents** — detected via recursive traversal
 - **Code uniqueness** — branch codes must be unique
 
-## Connections
-
-Access: `p.organization.connections`
-
-Manages external entities (clients, vendors, partners) with contacts and notes.
-
-```ts
-await p.organization.connections.create({ organizationId, name, type, ... });
-await p.organization.connections.get({ id });
-await p.organization.connections.list({ filters? });
-await p.organization.connections.update({ id, patch });
-await p.organization.connections.updateStatus({ id, status });
-await p.organization.connections.archive({ id });
-await p.organization.connections.restore({ id });
-
-// Search across connections / contacts
-await p.organization.connections.search({ query, filters? });
-await p.organization.connections.searchContacts({ query, connectionId? });
-
-// Contacts (1:N)
-await p.organization.connections.createContact({ connectionId, name, email, isPrimary });
-await p.organization.connections.listContacts({ connectionId });
-await p.organization.connections.updateContact({ id, patch });
-await p.organization.connections.deleteContact({ id });
-await p.organization.connections.setPrimaryContact({ id });
-
-// Notes (1:N)
-await p.organization.connections.addNote({ connectionId, userId, type, content });
-await p.organization.connections.listNotes({ connectionId, type? });
-```
-
-## Addresses
-
-Access: `p.organization.addresses`
-
-Reusable address records with a primary flag.
-
-```ts
-await p.organization.addresses.create({ line1, city, state, postalCode, country, label });
-await p.organization.addresses.get({ id });
-await p.organization.addresses.update({ id, patch });
-await p.organization.addresses.delete({ id });
-await p.organization.addresses.setPrimary({ id });
-
-const addresses = await p.organization.addresses.list({ country: "IN" });
-```
-
-## Bank Accounts
-
-Access: `p.organization.bankAccounts`
-
-Bank account records with a primary flag and active toggle.
-
-```ts
-await p.organization.bankAccounts.create({ accountHolder, accountNumber, bankName, ... });
-await p.organization.bankAccounts.get({ id });
-await p.organization.bankAccounts.update({ id, patch });
-await p.organization.bankAccounts.delete({ id });
-await p.organization.bankAccounts.setPrimary({ id });
-await p.organization.bankAccounts.activate({ id });
-await p.organization.bankAccounts.deactivate({ id });
-
-const accounts = await p.organization.bankAccounts.list();
-```
-
 ## Notes
 
-All workflow methods are `Workflow.name(...)` instances with Valibot input validation and platform workflow persistence. Create-style methods take `{ input: CreateXxxSchema }`; update takes `{ id, patch: UpdateXxxSchema }`. Each operation writes audit entries and publishes domain events via the platform context.
+All workflow methods are `Workflow.name(...)` instances with Valibot input validation and platform workflow persistence. Create-style methods take `{ input: CreateXxxSchema }`; update takes `{ id, patch: UpdateXxxSchema }`.

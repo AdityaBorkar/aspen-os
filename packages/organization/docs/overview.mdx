@@ -4,15 +4,15 @@ description: Architecture, initialization, and module structure of the Organizat
 icon: IconInfoCircle
 ---
 
-The Organization module manages organizational structure, branches, connections (clients/vendors/partners), addresses, and bank accounts. It is a fully implemented domain module following the platform's module pattern.
+The Organization module manages the organization profile — the root business entity — and its hierarchical branches. It is a fully implemented domain module following the platform's module pattern. Contacts, addresses, bank accounts, integration connections, and notes were extracted into the **Masters** module (`@aspen-os/masters`).
 
 ## Module
 
-```ts title="src/index.ts"
+```ts title="src/module.ts"
 export class Organization implements Module {
   static create(config: OrganizationConfig): Organization;
   readonly $name = "organization";
-  readonly $dependencies: readonly string[] = [];
+  readonly $dependencies = ["masters"] as const;
 }
 ```
 
@@ -25,9 +25,9 @@ export class Organization implements Module {
 ```ts
 $prepareInfra(): ModuleInfra {
   return {
-    auth: { acl },                              // connection, address, ...
+    auth: { acl },                              // organization, branch
     db: { control_plane_schemas, tenant_schemas },
-    events,                                     // organization:*, branch:*, ...
+    events,                                     // organization:*, branch:*
   };
 }
 ```
@@ -36,14 +36,11 @@ $prepareInfra(): ModuleInfra {
 
 ## Workflow Accessors
 
-The module exposes five workflow groups as readonly objects:
+The module exposes two workflow groups as readonly objects:
 
 ```ts
 p.organization.organizations; // → OrganizationWorkflow
 p.organization.branches; // → BranchWorkflow
-p.organization.connections; // → ConnectionWorkflow
-p.organization.addresses; // → AddressWorkflow
-p.organization.bankAccounts; // → BankAccountWorkflow
 ```
 
 ## Module Structure
@@ -53,18 +50,15 @@ packages/organization/src/
   index.ts              # Module class re-exports
   module.ts             # Module class (implements Module)
   auth.ts               # defineAcl() ACL declaration
-  pubsub.ts             # Events across 3 event groups
-  db-schemas/           # Per-entity tables (organization, branch, connection, address, bank-account, ...)
+  pubsub.ts             # Events across 2 event groups
+  db-schemas/           # Per-entity tables (organization, branch)
   types.ts              # Type re-exports
   schemas/              # Valibot validation schemas
     index.ts
     enums.ts
-    connection.ts
-    address.ts
-    bank-account.ts
   workflows/
-    <entity>.<action>.ts   # One file per workflow
-    steps/                 # Reusable WorkflowSteps (fetch-<entity>.ts)
+    org/                # org CRUD, branding, logo
+    branch/             # branch CRUD, tree, lifecycle
 ```
 
 ## Package
@@ -73,7 +67,7 @@ packages/organization/src/
 {
   "name": "@aspen-os/organization",
   "type": "module",
-  "exports": { ".": "./src/index.ts" },
+  "exports": { ".": "./.output/index.js" },
   "dependencies": {
     "@aspen-os/platform": "workspace:*",
     "@aspen-os/constants": "workspace:*",
@@ -87,10 +81,7 @@ packages/organization/src/
 
 Organization-specific enums come from `@aspen-os/constants`:
 
-| Enum                 | Values                                                                                                             |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `OrganizationStatus` | `active`, `suspended`, `archived`                                                                                  |
-| `BranchType`         | `headquarters`, `office`, `warehouse`, `store`, `factory`, `remote`, `other`                                       |
-| `ConnectionType`     | `client`, `vendor`, `partner`, `subsidiary`, `parent_company`, `investor`, `regulator`, `insurer`, `bank`, `other` |
-| `ConnectionStatus`   | `active`, `inactive`, `prospect`, `former`                                                                         |
-| `ConnectionNoteType` | `general`, `call`, `email`, `meeting`, `contract_renewal`, `issue`                                                 |
+| Enum                 | Values                                                                       |
+| -------------------- | ---------------------------------------------------------------------------- |
+| `OrganizationStatus` | `active`, `suspended`, `archived`                                            |
+| `BranchType`         | `headquarters`, `office`, `warehouse`, `store`, `factory`, `remote`, `other` |

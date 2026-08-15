@@ -38,12 +38,13 @@ interface FinancialYearStartedEvent {
   financialYear: string;
 }
 
-interface ConnectionCreatedEvent {
-  connection: {
+interface ContactCreatedEvent {
+  contact: {
     id: string;
     name: string;
     type: string;
   };
+  entityType: string;
 }
 
 const EmployeeOnboardedEventSchema = object({
@@ -74,12 +75,13 @@ const FinancialYearStartedEventSchema = object({
   financialYear: string(),
 });
 
-const ConnectionCreatedEventSchema = object({
-  connection: object({
+const ContactCreatedEventSchema = object({
+  contact: object({
     id: string(),
     name: string(),
     type: string(),
   }),
+  entityType: string(),
 });
 
 export interface EventBridgeDeps {
@@ -121,10 +123,10 @@ export async function registerEventBridgeSubscriptions(deps: EventBridgeDeps): P
   );
   topics.push("accounting:financial_year_started");
 
-  await subscribe("organization:connection_created", ConnectionCreatedEventSchema, async (data) => {
-    await handleConnectionCreated(data, deps);
+  await subscribe("masters:contact_created", ContactCreatedEventSchema, async (data) => {
+    await handleContactCreated(data, deps);
   });
-  topics.push("organization:connection_created");
+  topics.push("masters:contact_created");
 
   return topics;
 }
@@ -351,23 +353,23 @@ async function handleFinancialYearStarted(
   );
 }
 
-async function handleConnectionCreated(
-  event: ConnectionCreatedEvent,
+async function handleContactCreated(
+  event: ContactCreatedEvent,
   deps: EventBridgeDeps,
 ): Promise<void> {
-  if (event.connection.type !== "insurer") {
+  if (event.contact.type !== "insurer" || event.entityType !== "organization") {
     return;
   }
 
   await createDocumentWorkflow(
     {
       category: "insurance",
-      connection: event.connection.id,
+      connection: event.contact.id,
       createdBy: "system",
       documentType: "insurance_policy",
       metadata: { policyNumber: null },
-      name: `Insurance Policy — ${event.connection.name}`,
-      sourceModule: "organization",
+      name: `Insurance Policy — ${event.contact.name}`,
+      sourceModule: "masters",
     },
     deps,
   );

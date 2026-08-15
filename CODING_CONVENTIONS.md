@@ -341,7 +341,7 @@ packages/<module>/
 
 - Package name: `@aspen-os/<module>`
 - `"type": "module"`; dependencies on other workspace packages via `"workspace:*"`, catalog versions via `catalog:`
-- `exports`: `"."` → `"./src/index.ts"` (raw TS) **except** `@aspen-os/platform`, `@aspen-os/organization`, `@aspen-os/management`, `@aspen-os/dms` which build to `.output/` via `scripts/build.ts`
+- `exports`: `"."` → `"./src/index.ts"` (raw TS) **except** `@aspen-os/platform`, `@aspen-os/organization`, `@aspen-os/masters`, `@aspen-os/management`, `@aspen-os/dms` which build to `.output/` via `scripts/build.ts`
 - Scripts: `check:lint` (`oxlint --fix . ; oxfmt .`) and `check:types` (`tsc -b`)
 
 ### Stub packages
@@ -459,19 +459,19 @@ export type DomainEventMap = EntityEventMap & OtherEntityEventMap;
 
 ## Naming summary
 
-| Scope                   | Convention                            | Example                                           |
-| ----------------------- | ------------------------------------- | ------------------------------------------------- |
-| Files                   | `kebab-case`                          | `auth.ts`, `pubsub.ts`, `db-schemas/index.ts`     |
-| Classes                 | `PascalCase`                          | `OrganizationWorkflow`, `DatabaseUnit`            |
-| Constants               | `UPPER_SNAKE_CASE`                    | `ORGANIZATION_STATUS`, `COMPLIANCE_EVENTS`        |
-| DB tables               | `snake_case`                          | `connection_contact`, `dms_file`                  |
-| DB columns              | `snake_case` (mapped to camelCase TS) | `created_at` → `createdAt`                        |
-| Event topics            | `domain:event_name`                   | `organization:updated`                            |
-| Private fields          | `#` prefix                            | `#documents`, `#db`, `#pubsub`                    |
-| Unit lifecycle (server) | `$` prefix                            | `$name`, `$prepareInfra`, `$cleanup`              |
-| Module lifecycle        | `$` prefix                            | `$initialize`, `$prepareInfra`, `$prepareRuntime` |
-| Package exports         | `@aspen-os/<name>`                    | `@aspen-os/platform`, `@aspen-os/organization`    |
-| Module `$name` property | `kebab-case` string                   | `"organization"`, `"compliance"`                  |
+| Scope                   | Convention                            | Example                                                             |
+| ----------------------- | ------------------------------------- | ------------------------------------------------------------------- |
+| Files                   | `kebab-case`                          | `auth.ts`, `pubsub.ts`, `db-schemas/index.ts`                       |
+| Classes                 | `PascalCase`                          | `OrganizationWorkflow`, `DatabaseUnit`                              |
+| Constants               | `UPPER_SNAKE_CASE`                    | `ORGANIZATION_STATUS`, `COMPLIANCE_EVENTS`                          |
+| DB tables               | `snake_case`                          | `connection_contact`, `dms_file`                                    |
+| DB columns              | `snake_case` (mapped to camelCase TS) | `created_at` → `createdAt`                                          |
+| Event topics            | `domain:event_name`                   | `organization:updated`                                              |
+| Private fields          | `#` prefix                            | `#documents`, `#db`, `#pubsub`                                      |
+| Unit lifecycle (server) | `$` prefix                            | `$name`, `$prepareInfra`, `$cleanup`                                |
+| Module lifecycle        | `$` prefix                            | `$initialize`, `$prepareInfra`, `$prepareRuntime`                   |
+| Package exports         | `@aspen-os/<name>`                    | `@aspen-os/platform`, `@aspen-os/organization`, `@aspen-os/masters` |
+| Module `$name` property | `kebab-case` string                   | `"organization"`, `"compliance"`                                    |
 
 ## Commands
 

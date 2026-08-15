@@ -18,7 +18,7 @@ export const BRANCH_TYPE = {
 
 export type BranchType = (typeof BRANCH_TYPE)[keyof typeof BRANCH_TYPE];
 
-export const CONNECTION_TYPE = {
+export const CONTACT_TYPE = {
   BANK: "bank",
   CLIENT: "client",
   INSURER: "insurer",
@@ -31,18 +31,29 @@ export const CONNECTION_TYPE = {
   VENDOR: "vendor",
 } as const;
 
-export type ConnectionType = (typeof CONNECTION_TYPE)[keyof typeof CONNECTION_TYPE];
+export type ContactType = (typeof CONTACT_TYPE)[keyof typeof CONTACT_TYPE];
+
+export const INTEGRATION_TYPE = {
+  API_KEY: "api_key",
+  BASIC_AUTH: "basic_auth",
+  DATABASE: "database",
+  OAUTH2: "oauth2",
+  OTHER: "other",
+  WEBHOOK: "webhook",
+} as const;
+
+export type IntegrationType = (typeof INTEGRATION_TYPE)[keyof typeof INTEGRATION_TYPE];
 
 export const CONNECTION_STATUS = {
   ACTIVE: "active",
-  FORMER: "former",
+  EXPIRED: "expired",
   INACTIVE: "inactive",
-  PROSPECT: "prospect",
+  REVOKED: "revoked",
 } as const;
 
 export type ConnectionStatus = (typeof CONNECTION_STATUS)[keyof typeof CONNECTION_STATUS];
 
-export const CONNECTION_NOTE_TYPE = {
+export const NOTE_TYPE = {
   CALL: "call",
   CONTRACT_RENEWAL: "contract_renewal",
   EMAIL: "email",
@@ -51,7 +62,16 @@ export const CONNECTION_NOTE_TYPE = {
   MEETING: "meeting",
 } as const;
 
-export type ConnectionNoteType = (typeof CONNECTION_NOTE_TYPE)[keyof typeof CONNECTION_NOTE_TYPE];
+export type NoteType = (typeof NOTE_TYPE)[keyof typeof NOTE_TYPE];
+
+export const MASTER_ENTITY_TYPE = {
+  BRANCH: "branch",
+  CONNECTION: "connection",
+  CONTACT: "contact",
+  ORGANIZATION: "organization",
+} as const;
+
+export type MasterEntityType = (typeof MASTER_ENTITY_TYPE)[keyof typeof MASTER_ENTITY_TYPE];
 
 export const COMPLIANCE_CATEGORY = {
   CERTIFICATE: "certificate",

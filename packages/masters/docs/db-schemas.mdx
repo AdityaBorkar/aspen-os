@@ -1,0 +1,109 @@
+---
+title: DB Schemas
+description: Database tables, enums, and relationships for the Masters module.
+icon: IconDatabase
+---
+
+The Masters module defines 5 tables and 5 enums using Drizzle ORM. All tables are tenant schemas with the `master_` prefix.
+
+## Enums
+
+| Enum                       | Tables/Columns             | Values                                                                                                             |
+| -------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `master_entity_type`       | all `entity_type` columns  | `organization`, `branch`, `connection`, `contact`                                                                  |
+| `master_contact_type`      | `master_contact.type`      | `client`, `vendor`, `partner`, `subsidiary`, `parent_company`, `investor`, `regulator`, `insurer`, `bank`, `other` |
+| `master_integration_type`  | `master_connection.type`   | `api_key`, `oauth2`, `webhook`, `basic_auth`, `database`, `other`                                                  |
+| `master_connection_status` | `master_connection.status` | `active`, `inactive`, `expired`, `revoked`                                                                         |
+| `master_note_type`         | `master_note.type`         | `general`, `call`, `email`, `meeting`, `contract_renewal`, `issue`                                                 |
+
+## Tables
+
+All tables share the polymorphic `entity_type` (pgEnum) + `entity_id` (text) pair and the standard `id` (text PK, UUIDv7 via `$defaultFn`), `created_at`, `updated_at` (timestamptz) columns.
+
+### `master_contact`
+
+Standalone contact record (business relationship). `is_primary` is scoped per `(entity_type, entity_id)`.
+
+| Column       | Type                | Description              |
+| ------------ | ------------------- | ------------------------ |
+| `name`       | text                | Contact name             |
+| `email`      | text                | Contact email            |
+| `phone`      | text                | Contact phone            |
+| `title`      | text                | Job title                |
+| `company`    | text                | Company name             |
+| `type`       | master_contact_type | Contact type             |
+| `is_primary` | boolean             | Primary flag (per scope) |
+| `metadata`   | jsonb               | Flexible metadata        |
+
+### `master_address`
+
+Address record. `is_primary` is scoped per `(entity_type, entity_id)`.
+
+| Column        | Type    | Description              |
+| ------------- | ------- | ------------------------ |
+| `label`       | text    | Address label            |
+| `line1`       | text    | Address line 1           |
+| `line2`       | text    | Address line 2           |
+| `city`        | text    | City                     |
+| `state`       | text    | State/Province           |
+| `postal_code` | text    | Postal code              |
+| `country`     | text    | ISO 3166-1 alpha-2       |
+| `is_primary`  | boolean | Primary flag (per scope) |
+| `metadata`    | jsonb   | Flexible metadata        |
+
+### `master_bank_account`
+
+Bank account record. `is_primary` and `is_active` are scoped per `(entity_type, entity_id)`.
+
+| Column                | Type    | Description                   |
+| --------------------- | ------- | ----------------------------- |
+| `account_holder_name` | text    | Account holder name           |
+| `account_number`      | text    | Account number                |
+| `account_type`        | text    | Account type                  |
+| `bank_name`           | text    | Bank name                     |
+| `branch_name`         | text    | Branch name                   |
+| `routing_number`      | text    | Routing number                |
+| `swift_code`          | text    | SWIFT code                    |
+| `currency`            | text    | Currency code (default `USD`) |
+| `is_active`           | boolean | Active flag                   |
+| `is_primary`          | boolean | Primary flag                  |
+| `metadata`            | jsonb   | Flexible metadata             |
+
+### `master_connection`
+
+Integration connection to an external API/entity. **No plaintext credentials** — `credential_ref` references the encrypted secret in the platform `kvStore`.
+
+| Column           | Type                     | Description                                   |
+| ---------------- | ------------------------ | --------------------------------------------- |
+| `name`           | text                     | Connection name                               |
+| `type`           | master_integration_type  | Integration type                              |
+| `status`         | master_connection_status | `active` / `inactive` / `expired` / `revoked` |
+| `base_url`       | text                     | Endpoint URL                                  |
+| `description`    | text                     | Description                                   |
+| `credential_ref` | text                     | kvStore secret reference                      |
+| `last_tested_at` | timestamptz              | Last successful test timestamp                |
+| `last_used_at`   | timestamptz              | Last use timestamp                            |
+| `metadata`       | jsonb                    | Flexible metadata                             |
+
+### `master_note`
+
+Polymorphic typed note scoped per `(entity_type, entity_id)`.
+
+| Column    | Type             | Description    |
+| --------- | ---------------- | -------------- |
+| `content` | text             | Note content   |
+| `type`    | master_note_type | Note type      |
+| `user_id` | text             | Author user ID |
+
+## Relationships
+
+```text
+organization ──┐
+branch       ──┼──(entityType, entityId)──▶ master_contact
+connection   ──┤                            master_address
+contact      ──┘                            master_bank_account
+                                            master_connection
+                                            master_note
+```
+
+Relationships are **soft** — `entity_id` is a logical reference by naming convention (no DB-level foreign keys), matching the platform's domain-module convention. Primary flags are enforced at the workflow level per `(entityType, entityId)`.

@@ -8,6 +8,7 @@ This document is the **overview** of the domain model. Each package's domain has
 | ------------------------ | -------------------------------------------------------------- |
 | `@aspen-os/platform`     | [`domain-model/platform.md`](domain-model/platform.md)         |
 | `@aspen-os/organization` | [`domain-model/organization.md`](domain-model/organization.md) |
+| `@aspen-os/masters`      | [`domain-model/masters.md`](domain-model/masters.md)           |
 | `@aspen-os/compliance`   | [`domain-model/compliance.md`](domain-model/compliance.md)     |
 | `@aspen-os/tasks`        | [`domain-model/tasks.md`](domain-model/tasks.md)               |
 | `@aspen-os/dms`          | [`domain-model/dms.md`](domain-model/dms.md)                   |
@@ -21,7 +22,8 @@ Bounded-context detail (relationships, structure, language) for each package liv
 | Package         | Tables | Split                                                                                          |
 | --------------- | ------ | ---------------------------------------------------------------------------------------------- |
 | Platform (core) | 16     | audit_log, auth (10 better-auth), kv_store, logs, file_metadata, workflow_runs, workflow_steps |
-| Organization    | 7      | all tenant                                                                                     |
+| Organization    | 2      | all tenant                                                                                     |
+| Masters         | 5      | all tenant (`master_` prefix)                                                                  |
 | Compliance      | 3      | all tenant                                                                                     |
 | Tasks           | 17     | 6 control-plane + 11 tenant                                                                    |
 | DMS             | 15     | all tenant (`dms_` prefix)                                                                     |
@@ -62,7 +64,7 @@ Bounded-context detail (relationships, structure, language) for each package liv
 2. **All timestamps are TIMESTAMPTZ** — `withTimezone: true` on all timestamp columns.
 3. **Cascade deletes** — User deletion cascades to sessions and accounts.
 4. **No barrel files** — explicit convention in `CODING_CONVENTIONS.md`.
-5. **No DB-level foreign keys in domain modules** — compliance, tasks, organization, management, and hr all use soft FKs.
+5. **No DB-level foreign keys in domain modules** — compliance, tasks, organization, masters, management, and hr all use soft FKs.
 
 Per-context invariants are numbered continuously from 6 onward in each `domain-model/<package>.md` file.
 

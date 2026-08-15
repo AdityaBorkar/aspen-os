@@ -1,4 +1,4 @@
-import { address, bankAccount, branch, connectionContact } from "#/db-schemas";
+import { branch } from "#/db-schemas";
 import type { BranchTreeNode } from "#/types";
 
 import { and, eq, sql } from "drizzle-orm";
@@ -19,14 +19,6 @@ export function generateSlug(name: string): string {
     .replaceAll(/^-|-$/g, "");
 
   return slug.slice(0, SLUG_MAX_LENGTH);
-}
-
-export async function unsetPrimaryAddress(db: DrizzleDB): Promise<void> {
-  await db.update(address).set({ isPrimary: false }).where(eq(address.isPrimary, true));
-}
-
-export async function unsetPrimaryBankAccount(db: DrizzleDB): Promise<void> {
-  await db.update(bankAccount).set({ isPrimary: false }).where(eq(bankAccount.isPrimary, true));
 }
 
 export async function ensureCodeUnique(
@@ -147,15 +139,6 @@ export async function validateParentBranch(
       `Cannot add a child to this branch. Maximum hierarchy depth of ${MAX_HIERARCHY_DEPTH} levels would be exceeded.`,
     );
   }
-}
-
-export async function unsetPrimaryContacts(db: DrizzleDB, connectionId: string): Promise<void> {
-  await db
-    .update(connectionContact)
-    .set({ isPrimary: false })
-    .where(
-      and(eq(connectionContact.connectionId, connectionId), eq(connectionContact.isPrimary, true)),
-    );
 }
 
 export function buildTree(

@@ -1,6 +1,8 @@
 # @aspen-os/organization
 
-A domain module for the Aspen OS framework that manages organizational structure: organizations, branches, connections (clients/vendors/partners), addresses, bank accounts, and compliance documents.
+A domain module for the Aspen OS framework that manages the **organization profile** and its hierarchical **branches**.
+
+> Contacts, addresses, bank accounts, integration connections, and notes were extracted into the **Masters** module (`@aspen-os/masters`) as polymorphic tenant master data. This module depends on `masters` and owns only the org profile and branches.
 
 ## Table of Contents
 
@@ -12,21 +14,18 @@ A domain module for the Aspen OS framework that manages organizational structure
 - [Workflows](#workflows)
   - [OrganizationWorkflow](#organizationworkflow)
   - [BranchWorkflow](#branchworkflow)
-  - [ConnectionWorkflow](#connectionworkflow)
-  - [AddressWorkflow](#addressworkflow)
-  - [BankAccountWorkflow](#bankaccountworkflow)
 - [Validation Schemas](#validation-schemas)
 - [Events](#events)
 - [Constants](#constants)
 
 ## Overview
 
-The organization module is one of two fully implemented domain modules. It provides five workflows accessible on the platform instance via `platform.organization.<getter>`.
+The organization module provides two workflow groups accessible on the platform instance via `platform.organization.<getter>`.
 
 **Package**: `@aspen-os/organization`  
-**Dependencies**: `@aspen-os/platform`, `@aspen-os/constants`, `drizzle-orm`, `valibot`  
+**Dependencies**: `@aspen-os/platform`, `@aspen-os/constants`, `@aspen-os/masters` (module dependency), `drizzle-orm`, `valibot`  
 **Module name**: `"organization"`  
-**Tables**: 7 tables, 5 pg enums  
+**Tables**: 2 tables, 2 pg enums  
 **Validation**: Valibot for all input schemas
 
 ## Installation
@@ -38,44 +37,37 @@ bun install  # workspace package, no separate install needed
 ## Quick Start
 
 ```ts
-import { Platform } from "@aspen-os/platform/server";
-import { OrganizationModule } from "@aspen-os/organization";
+import { SingleTenantPlatform } from "@aspen-os/platform/server";
+import { Organization } from "@aspen-os/organization";
 
-const organization = OrganizationModule.create({ country: "INDIA" });
+const organization = Organization.create({ country: "INDIA" });
 
-const platform = Platform.create(config, { organization });
-
-await platform.prepare();
+const platform = SingleTenantPlatform.create(config, [masters, organization]);
 
 // Access workflows via the module proxy
-platform.organization.organization; // OrganizationWorkflow
+platform.organization.organizations; // OrganizationWorkflow
 platform.organization.branches; // BranchWorkflow
-platform.organization.connections; // ConnectionWorkflow
-platform.organization.addresses; // AddressWorkflow
-platform.organization.bankAccounts; // BankAccountWorkflow
 ```
 
 ## Module API
 
 ```ts
-type OrganizationModuleConfig = {
+type OrganizationConfig = {
   country: "INDIA";
 };
 
-class OrganizationModule {
-  static create(config: OrganizationModuleConfig): OrganizationModule;
-  readonly name: "organization";
-  readonly db_schema: typeof dbSchema;
+class Organization {
+  static create(config: OrganizationConfig): Organization;
+  readonly $name = "organization";
+  readonly $dependencies = ["masters"] as const;
 
-  initialize(units: { db: DatabaseUnit; pubsub: PubSubUnit }): void;
-  destroy(): Promise<void>;
+  $initialize(units): void;
+  $prepareRuntime(): Promise<void>;
+  $cleanup(): Promise<void>;
 
-  // Workflow getters (throw if accessed before initialize())
-  get organization(): OrganizationWorkflow;
-  get branches(): BranchWorkflow;
-  get connections(): ConnectionWorkflow;
-  get addresses(): AddressWorkflow;
-  get bankAccounts(): BankAccountWorkflow;
+  // Workflow groups (readonly properties)
+  readonly organizations: OrganizationWorkflow;
+  readonly branches: BranchWorkflow;
 }
 ```
 
@@ -83,27 +75,19 @@ class OrganizationModule {
 
 ### Enums
 
-| Enum                   | Values                                                                                                             |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `organization_status`  | `active`, `suspended`, `archived`                                                                                  |
-| `branch_type`          | `headquarters`, `office`, `warehouse`, `store`, `factory`, `remote`, `other`                                       |
-| `connection_type`      | `client`, `vendor`, `partner`, `subsidiary`, `parent_company`, `investor`, `regulator`, `insurer`, `bank`, `other` |
-| `connection_status`    | `active`, `inactive`, `prospect`, `former`                                                                         |
-| `connection_note_type` | `general`, `call`, `email`, `meeting`, `contract_renewal`, `issue`                                                 |
+| Enum                  | Values                                                                       |
+| --------------------- | ---------------------------------------------------------------------------- |
+| `organization_status` | `active`, `suspended`, `archived`                                            |
+| `branch_type`         | `headquarters`, `office`, `warehouse`, `store`, `factory`, `remote`, `other` |
 
 ### Tables
 
-| Table                | Description                                            | Key Columns                                                                                 |
-| -------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
-| `organization`       | Root entity                                            | `id`, `name`, `slug` (unique), `status`, `accentColor`, `locale`, `timezone`                |
-| `branch`             | Physical/logical location (hierarchical, max 5 levels) | `id`, `name`, `code` (unique), `type`, `parentBranch`, `isActive`, `capacity`               |
-| `connection`         | External business relationship                         | `id`, `name`, `type`, `status`, `createdBy`, `tags[]`, `annualRevenue` (numeric)            |
-| `connection_contact` | Person associated with a connection                    | `id`, `connectionId`, `name`, `email`, `phone`, `isPrimary`                                 |
-| `connection_note`    | Interaction log entry on a connection                  | `id`, `connectionId`, `userId`, `type`, `content` (immutable, no `updatedAt`)               |
-| `address`            | Postal address (reusable across entities)              | `id`, `line1`, `country`, `isPrimary`, `label`                                              |
-| `bank_account`       | Financial account record                               | `id`, `accountHolderName`, `accountNumber`, `bankName`, `currency`, `isPrimary`, `isActive` |
+| Table          | Description                                            | Key Columns                                                                   |
+| -------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| `organization` | Root entity                                            | `id`, `name`, `slug` (unique), `status`, `accentColor`, `locale`, `timezone`  |
+| `branch`       | Physical/logical location (hierarchical, max 5 levels) | `id`, `name`, `code` (unique), `type`, `parentBranch`, `isActive`, `capacity` |
 
-All IDs are `text` with `.primaryKey().$defaultFn(uuidv7)` (the `uuidv7` function, imported from `@aspen-os/platform/server`). All timestamps are `TIMESTAMPTZ` with `withTimezone: true`. No foreign keys are declared -- relations are implicit via `text` columns. The `updatedAt` column is manually set in workflows (no `$onUpdate` hook).
+All IDs are `text` with `.primaryKey().$defaultFn(uuidv7)` (the `uuidv7` function, imported from `@aspen-os/platform/server`). All timestamps are `TIMESTAMPTZ` with `withTimezone: true`.
 
 ## Workflows
 
@@ -111,15 +95,15 @@ All workflow methods are synchronous DB operations that `parse()` input with Val
 
 ### OrganizationWorkflow
 
-Manages a **single** organization record (singleton-style). `get()` returns the first row by `LIMIT 1`. Methods take no `id` argument.
+Manages a **single** organization record (singleton-style). `get()` returns the first row by `LIMIT 1`.
 
 ```ts
-platform.organization.organization.get(): Promise<Organization | null>
-platform.organization.organization.create(input: CreateOrganizationInput): Promise<Organization>
-platform.organization.organization.update(patch: UpdateOrganizationInput): Promise<Organization>
-platform.organization.organization.updateBranding(patch: UpdateBrandingInput): Promise<Organization>
-platform.organization.organization.uploadLogo(storageKey: string): Promise<Organization>
-platform.organization.organization.deleteLogo(): Promise<Organization>
+platform.organization.organizations.get(): Promise<Organization | null>
+platform.organization.organizations.create(input: CreateOrganizationInput): Promise<Organization>
+platform.organization.organizations.update(patch: UpdateOrganizationInput): Promise<Organization>
+platform.organization.organizations.updateBranding(patch: UpdateBrandingInput): Promise<Organization>
+platform.organization.organizations.uploadLogo(storageKey: string): Promise<Organization>
+platform.organization.organizations.deleteLogo(): Promise<Organization>
 ```
 
 - `create()` auto-generates a slug from `name` if not provided (lowercase, hyphenated, max 63 chars).
@@ -139,8 +123,8 @@ platform.organization.branches.close(id: string, date: Date): Promise<Branch>
 platform.organization.branches.archive(id: string): Promise<Branch>
 platform.organization.branches.restore(id: string): Promise<Branch>
 platform.organization.branches.list(filters?: BranchFilters): Promise<Branch[]>
-platform.organization.branches.getById(id: string): Promise<Branch>
-platform.organization.branches.getTree(): Promise<BranchTreeNode[]>
+platform.organization.branches.get(id: string): Promise<Branch>
+platform.organization.branches.tree(): Promise<BranchTreeNode[]>
 ```
 
 **Business rules enforced**:
@@ -151,74 +135,7 @@ platform.organization.branches.getTree(): Promise<BranchTreeNode[]>
 - No circular parent references (detected via recursive traversal).
 - Unique branch codes (case-insensitive, uppercased on insert).
 - Country code validated via `isValidCountryCode()` from `@aspen-os/constants`.
-- `getTree()` returns only active branches (inactive/archived/closed excluded).
-
-### ConnectionWorkflow
-
-Manages connections plus nested contacts (1:N) and notes (1:N, immutable).
-
-```ts
-// Connection CRUD
-platform.organization.connections.create(input: CreateConnectionInput): Promise<Connection>
-platform.organization.connections.update(id: string, patch: UpdateConnectionInput): Promise<Connection>
-platform.organization.connections.updateStatus(id: string, status: ConnectionStatus): Promise<{ connection, fromStatus, toStatus }>
-platform.organization.connections.archive(id: string): Promise<Connection>
-platform.organization.connections.restore(id: string): Promise<Connection>
-platform.organization.connections.list(filters?: ConnectionFilters): Promise<Connection[]>
-platform.organization.connections.getById(id: string): Promise<Connection>
-platform.organization.connections.search(query: string, filters?): Promise<Connection[]>
-
-// Contacts (1:N per connection)
-platform.organization.connections.createContact(input: CreateConnectionContactInput): Promise<ConnectionContact>
-platform.organization.connections.updateContact(id: string, patch: UpdateConnectionContactInput): Promise<ConnectionContact>
-platform.organization.connections.deleteContact(id: string): Promise<void>
-platform.organization.connections.setPrimaryContact(id: string): Promise<ConnectionContact>
-platform.organization.connections.listContacts(connectionId: string): Promise<ConnectionContact[]>
-platform.organization.connections.searchContacts(query: string, connectionId?: string): Promise<ConnectionContact[]>
-
-// Notes (1:N per connection, immutable)
-platform.organization.connections.addNote(input: CreateConnectionNoteInput): Promise<ConnectionNote>
-platform.organization.connections.listNotes(connectionId: string, type?: string): Promise<ConnectionNote[]>
-```
-
-**Notable behaviors**:
-
-- Primary contact unsetting is **scoped per connection** (correctly).
-- `annualRevenue` and `contractValue` are `numeric` PG columns -- workflows convert JS `number` to string via `.toString()`.
-- `listNotes` accepts `type?: string` (no Valibot validation on this path).
-- Notes are immutable (no update method, no `updatedAt` column).
-
-### AddressWorkflow
-
-CRUD over the `address` table with a primary-address singleton invariant.
-
-```ts
-platform.organization.addresses.create(input: CreateAddressInput): Promise<Address>
-platform.organization.addresses.update(id: string, patch: UpdateAddressInput): Promise<Address>
-platform.organization.addresses.delete(id: string): Promise<void>
-platform.organization.addresses.getById(id: string): Promise<Address>
-platform.organization.addresses.list(filters?: AddressFilters): Promise<Address[]>
-platform.organization.addresses.setPrimary(id: string): Promise<Address>
-```
-
-**Note**: `unsetPrimary()` is global (sets `is_primary=false` across **all** rows -- no scoping column exists on the `address` table).
-
-### BankAccountWorkflow
-
-Same shape as Address, plus activate/deactivate toggles.
-
-```ts
-platform.organization.bankAccounts.create(input: CreateBankAccountInput): Promise<BankAccount>
-platform.organization.bankAccounts.update(id: string, patch: UpdateBankAccountInput): Promise<BankAccount>
-platform.organization.bankAccounts.delete(id: string): Promise<void>
-platform.organization.bankAccounts.getById(id: string): Promise<BankAccount>
-platform.organization.bankAccounts.list(filters?: BankAccountFilters): Promise<BankAccount[]>
-platform.organization.bankAccounts.setPrimary(id: string): Promise<BankAccount>
-platform.organization.bankAccounts.activate(id: string): Promise<BankAccount>
-platform.organization.bankAccounts.deactivate(id: string): Promise<BankAccount>
-```
-
-**Note**: Same global `unsetPrimary()` behavior as Address.
+- `tree()` returns only active branches (inactive/archived/closed excluded).
 
 ## Validation Schemas
 
@@ -244,7 +161,7 @@ import { CreateOrganizationSchema, UpdateOrganizationSchema } from "@aspen-os/or
 
 ## Events
 
-The event map defines 11 events across 3 groups. These are **type-level contracts only** -- workflows do not currently publish events at runtime. The event map is available for consumers to subscribe to expected topics.
+The event map defines 7 events across 2 groups. These are **type-level contracts**; workflows publish events at runtime via PubSub.
 
 ### Organization Events
 
@@ -263,26 +180,14 @@ The event map defines 11 events across 3 groups. These are **type-level contract
 | `branch:deactivated` | `{ branchId }`                                               |
 | `branch:closed`      | `{ branchId, date }`                                         |
 
-### Connection Events
-
-| Event                       | Payload                                                          |
-| --------------------------- | ---------------------------------------------------------------- |
-| `connection:created`        | `{ connection: { id, name, type } }`                             |
-| `connection:updated`        | `{ changes: Record<string, unknown>; connection: { id, name } }` |
-| `connection:status_changed` | `{ connectionId, fromStatus, toStatus }`                         |
-| `connection:note_added`     | `{ connectionId, note: { content, id, type } }`                  |
-
 ## Constants
 
 Shared constants live in `@aspen-os/constants` (not in this package):
 
-| Constant               | Type              | Values                                                                                                             |
-| ---------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `ORGANIZATION_STATUS`  | `as const` object | `ACTIVE`, `ARCHIVED`, `SUSPENDED`                                                                                  |
-| `BRANCH_TYPE`          | `as const` object | `FACTORY`, `HEADQUARTERS`, `OFFICE`, `OTHER`, `REMOTE`, `STORE`, `WAREHOUSE`                                       |
-| `CONNECTION_TYPE`      | `as const` object | `CLIENT`, `VENDOR`, `PARTNER`, `SUBSIDIARY`, `PARENT_COMPANY`, `INVESTOR`, `REGULATOR`, `INSURER`, `BANK`, `OTHER` |
-| `CONNECTION_STATUS`    | `as const` object | `ACTIVE`, `INACTIVE`, `PROSPECT`, `FORMER`                                                                         |
-| `CONNECTION_NOTE_TYPE` | `as const` object | `GENERAL`, `CALL`, `EMAIL`, `MEETING`, `CONTRACT_RENEWAL`, `ISSUE`                                                 |
+| Constant              | Type              | Values                                                                       |
+| --------------------- | ----------------- | ---------------------------------------------------------------------------- |
+| `ORGANIZATION_STATUS` | `as const` object | `ACTIVE`, `ARCHIVED`, `SUSPENDED`                                            |
+| `BRANCH_TYPE`         | `as const` object | `FACTORY`, `HEADQUARTERS`, `OFFICE`, `OTHER`, `REMOTE`, `STORE`, `WAREHOUSE` |
 
 All constant keys are `UPPER_SNAKE`, values are lowercase strings. Types are derived via indexed access: `type OrganizationStatus = (typeof ORGANIZATION_STATUS)[keyof typeof ORGANIZATION_STATUS]`.
 
@@ -291,24 +196,20 @@ All constant keys are `UPPER_SNAKE`, values are lowercase strings. Types are der
 ```
 packages/organization/
   src/
-    index.ts              # OrganizationModule class + type re-exports
-    db-schema.ts          # 7 tables + 5 pg enums
+    index.ts              # Organization class + type re-exports
+    module.ts             # Module class (implements Module)
+    auth.ts               # defineAcl() ACL declaration
+    pubsub.ts             # Event constants + typed event interfaces + EventMap type
     types.ts              # Type re-exports + BranchTreeNode interface
-    event-map.ts          # Event constants + typed event interfaces + EventMap type
+    db-schemas/           # organization.ts, branch.ts + index.ts
     schemas/
       index.ts            # Barrel re-exports
-      enums.ts            # 5 valibot enum schemas
+      enums.ts            # Valibot enum schemas (status, branch type)
       utils.ts            # Shared validators (slug, name, code, etc.)
       organization.ts     # Create/Update/Branding schemas
       branch.ts           # Create/Update/Filters schemas
-      connection.ts       # Connection + Contact + Note schemas
-      address.ts          # Create/Update/Filters schemas
-      bank-account.ts     # Create/Update/Filters schemas
-      branding.ts         # (empty -- branding schema lives in organization.ts)
     workflows/
-      organization.ts     # OrganizationWorkflow
-      branch.ts           # BranchWorkflow (most complex -- hierarchy enforcement)
-      connection.ts       # ConnectionWorkflow (largest surface)
-      address.ts          # AddressWorkflow
-      bank-account.ts     # BankAccountWorkflow
+      org/                # OrganizationWorkflow (create, get, update, branding, logo)
+      branch/             # BranchWorkflow (hierarchy enforcement, tree)
+      utils.ts            # Branch hierarchy helpers
 ```

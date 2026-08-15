@@ -1,0 +1,124 @@
+---
+title: Events
+description: Domain event map for the Masters module — 16 events across 5 event groups.
+icon: IconBell
+---
+
+The Masters module defines 16 domain events across 5 event groups. Events are type-level contracts published as plain string topics via PubSub. The `masters:contact_created` event replaces the old `organization:connection_created` for the compliance insurer flow.
+
+## Event Constants
+
+```ts title="src/pubsub.ts"
+export const CONTACT_EVENTS = {
+  CREATED: "masters:contact_created",
+  REMOVED: "masters:contact_removed",
+  UPDATED: "masters:contact_updated",
+} as const;
+
+export const ADDRESS_EVENTS = {
+  CREATED: "masters:address_created",
+  REMOVED: "masters:address_removed",
+  UPDATED: "masters:address_updated",
+} as const;
+
+export const BANK_ACCOUNT_EVENTS = {
+  ACTIVATED: "masters:bank_account_activated",
+  CREATED: "masters:bank_account_created",
+  DEACTIVATED: "masters:bank_account_deactivated",
+  UPDATED: "masters:bank_account_updated",
+} as const;
+
+export const CONNECTION_EVENTS = {
+  CREDENTIAL_ROTATED: "masters:connection_credential_rotated",
+  CREATED: "masters:connection_created",
+  REMOVED: "masters:connection_removed",
+  STATUS_CHANGED: "masters:connection_status_changed",
+  UPDATED: "masters:connection_updated",
+} as const;
+
+export const NOTE_EVENTS = {
+  ADDED: "masters:note_added",
+  REMOVED: "masters:note_removed",
+} as const;
+```
+
+## Event Map
+
+### Contact Events
+
+| Event                     | Payload                                          | Trigger         |
+| ------------------------- | ------------------------------------------------ | --------------- |
+| `masters:contact_created` | `{ contact: { id, name, type }, entityType }`    | Contact created |
+| `masters:contact_updated` | `{ contact: { id, name }, changes, entityType }` | Contact updated |
+| `masters:contact_removed` | `{ contactId, entityId, entityType }`            | Contact removed |
+
+### Address Events
+
+| Event                     | Payload                                                     | Trigger         |
+| ------------------------- | ----------------------------------------------------------- | --------------- |
+| `masters:address_created` | `{ address: { id, country, label }, entityId, entityType }` | Address created |
+| `masters:address_updated` | `{ address: { id }, changes, entityId, entityType }`        | Address updated |
+| `masters:address_removed` | `{ addressId }`                                             | Address removed |
+
+### Bank Account Events
+
+| Event                              | Payload                                                             | Trigger             |
+| ---------------------------------- | ------------------------------------------------------------------- | ------------------- |
+| `masters:bank_account_created`     | `{ bankAccount: { id, bankName, currency }, entityId, entityType }` | Account created     |
+| `masters:bank_account_updated`     | `{ bankAccount: { id }, changes, entityId, entityType }`            | Account updated     |
+| `masters:bank_account_activated`   | `{ bankAccountId }`                                                 | Account activated   |
+| `masters:bank_account_deactivated` | `{ bankAccountId }`                                                 | Account deactivated |
+
+### Connection Events
+
+| Event                                   | Payload                                                    | Trigger            |
+| --------------------------------------- | ---------------------------------------------------------- | ------------------ |
+| `masters:connection_created`            | `{ connection: { id, name, type }, entityId, entityType }` | Connection created |
+| `masters:connection_updated`            | `{ connection: { id, name }, changes }`                    | Connection updated |
+| `masters:connection_status_changed`     | `{ connectionId, fromStatus, toStatus }`                   | Status changed     |
+| `masters:connection_credential_rotated` | `{ connectionId }`                                         | Credential rotated |
+| `masters:connection_removed`            | `{ connectionId, entityId, entityType }`                   | Connection removed |
+
+### Note Events
+
+| Event                  | Payload                                                 | Trigger      |
+| ---------------------- | ------------------------------------------------------- | ------------ |
+| `masters:note_added`   | `{ entityId, entityType, note: { id, content, type } }` | Note added   |
+| `masters:note_removed` | `{ entityId, entityType, noteId }`                      | Note removed |
+
+## Usage
+
+### Publishing Events
+
+Events are published via `PubSubUnit.publish()`:
+
+```ts
+await p.pubsub.publish("masters:contact_created", {
+  contact: { id: "ct-1", name: "ICICI Lombard", type: "insurer" },
+  entityType: "organization",
+});
+```
+
+### Subscribing to Events
+
+```ts
+await p.pubsub.subscribe("masters:connection_status_changed", async (message) => {
+  const { connectionId, fromStatus, toStatus } = message.data;
+  // React to status change
+});
+```
+
+## Event Map Type
+
+```ts title="src/pubsub.ts"
+export type MastersEventMap = AddressEventMap &
+  BankAccountEventMap &
+  ConnectionEventMap &
+  ContactEventMap &
+  NoteEventMap;
+```
+
+<Callout type="info">
+  The event map is a type-level contract — it is not enforced at runtime. Workflows publish events
+  as plain string topics.
+</Callout>
