@@ -9,8 +9,9 @@ import { stripUndefined } from "#/utils/strip-undefined";
 import { fetchFileStep } from "#/workflow-steps/fetch-file";
 
 import { Workflow } from "@aspen-os/platform/server";
+import type { JsonValue } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-import { object, parse } from "valibot";
+import { is, object, parse, string } from "valibot";
 
 const UpdateInputSchema = object({ id: FileIdSchema, input: UpdateFileSchema });
 
@@ -26,6 +27,11 @@ export const updateFile = Workflow.name("dms.file.update")
     let versionAdded = false;
 
     if (parsed.body !== undefined) {
+      const { body } = parsed;
+      if (!(body instanceof Buffer) && !(body instanceof ReadableStream) && !is(string(), body)) {
+        throw new Error("Invalid file body: expected a string, Buffer, or ReadableStream.");
+      }
+
       const newVersion = file.version + 1;
       const storageKey = computeStorageKey({
         fileId: id,
@@ -35,7 +41,7 @@ export const updateFile = Workflow.name("dms.file.update")
 
       const fileObject = await ctx.step.run("upload-storage", async () =>
         uploadStorage({
-          body: parsed.body as Buffer | ReadableStream | string,
+          body,
           contentType: parsed.contentType ?? file.contentType,
           key: storageKey,
         }),
@@ -101,6 +107,8 @@ export const updateFile = Workflow.name("dms.file.update")
     }
 
     await ctx.step.run("audit-and-notify", async () => {
+      // SAFETY: diff() compares JsonValue-typed state snapshots.
+      // New/old values are JSON-safe and fit both the audit entry and event contracts.
       const changes = ctx.audit.diff(
         {
           compression: file.compression,
@@ -118,7 +126,7 @@ export const updateFile = Workflow.name("dms.file.update")
           size: current.size,
           version: current.version,
         },
-      );
+      ) as Record<string, JsonValue> | undefined;
 
       await ctx.audit.write({
         action: versionAdded ? AUDIT_ACTION.VERSION_ADDED : AUDIT_ACTION.UPDATED,

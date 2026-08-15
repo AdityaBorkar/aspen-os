@@ -1,3 +1,4 @@
+import { JsonValueSchema } from "#/schemas/json";
 import { NameSchema } from "#/schemas/utils";
 
 import {
@@ -11,7 +12,6 @@ import {
   optional,
   pipe,
   string,
-  unknown,
 } from "valibot";
 import type { InferOutput } from "valibot";
 
@@ -35,7 +35,7 @@ const DirectionSchema = pipe(
 export const FileViewConditionSchema = object({
   field: FieldSchema,
   operator: OperatorSchema,
-  value: optional(unknown()),
+  value: optional(JsonValueSchema),
 });
 
 export type FileViewCondition = InferOutput<typeof FileViewConditionSchema>;

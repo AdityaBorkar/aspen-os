@@ -15,15 +15,15 @@ async function loadPlatform(configPath: string): Promise<PlatformInstance<Module
   try {
     const mod = await import(resolvedPath);
     const platformInstance = mod.platform || mod.p;
-    if (!platformInstance) {
-      console.error(`Error: No 'platform' export found in ${resolvedPath}`);
-      process.exit(1);
+    if (platformInstance) {
+      return platformInstance;
     }
-    return platformInstance;
+    console.error(`Error: No 'platform' export found in ${resolvedPath}`);
+    return process.exit(1);
   } catch (error) {
     console.error(`Error: Failed to load config from ${resolvedPath}`);
     console.error(error);
-    process.exit(1);
+    return process.exit(1);
   }
 }
 

@@ -3,6 +3,7 @@ import { BasePlatform as Base } from "#/server/base-platform";
 import type { CommonConfig, ExtractModuleNames, MergedSchemas } from "#/server/base-platform";
 import { DatabaseUnit } from "#/server/db";
 import type { DatabaseConfig, IsolatedTenantDatabaseConfig } from "#/server/db";
+import type { SchemaMap } from "#/server/types";
 import { isGlobalTenantId } from "#/server/utils/is-global-tenant-id";
 
 export type IsolatedTenantConfig = CommonConfig & {
@@ -11,14 +12,14 @@ export type IsolatedTenantConfig = CommonConfig & {
 
 export type IsolatedTenantPlatformInstance<
   TModules extends Module[],
-  TSchemas extends Record<string, unknown> = MergedSchemas<TModules>,
+  TSchemas extends SchemaMap = MergedSchemas<TModules>,
 > = IsolatedTenantPlatform<TModules, TSchemas> &
   UnitAccessors<TSchemas> &
   ArrayModuleAccessors<TModules, ExtractModuleNames<TModules>[number]>;
 
 export class IsolatedTenantPlatform<
   TModules extends Module[],
-  TSchemas extends Record<string, unknown> = MergedSchemas<TModules>,
+  TSchemas extends SchemaMap = MergedSchemas<TModules>,
 > extends Base<TModules, TSchemas> {
   private readonly dbUnit: DatabaseUnit<TSchemas>;
 
@@ -41,6 +42,7 @@ export class IsolatedTenantPlatform<
       user: config.db.connection.user,
     };
     const resolver = {
+      // SAFETY: the inline resolver is a placeholder; provisionTenant routes global tenant IDs to the control plane.
       list: async () => [] as string[],
       resolve: async (tenantId: string) => tenantId,
     };
@@ -51,6 +53,7 @@ export class IsolatedTenantPlatform<
       tenantDbPrefix: config.db.tenantDbPrefix,
     });
     const core = Base.createCore<TModules, MergedSchemas<TModules>>(db, config, modules);
+    // SAFETY: create() returned an instance whose units/modules match the merged schema type.
     return new IsolatedTenantPlatform<TModules>(
       core.units,
       core.modules,
@@ -59,8 +62,8 @@ export class IsolatedTenantPlatform<
 
   override async $prepareInfra(): Promise<void> {
     // Commons
-    const controlSchemas: Record<string, unknown> = {};
-    const tenantSchemas: Record<string, unknown> = {};
+    const controlSchemas: SchemaMap = {};
+    const tenantSchemas: SchemaMap = {};
     const acl: Record<string, string[]> = {};
 
     // Preparing Modules
@@ -73,15 +76,15 @@ export class IsolatedTenantPlatform<
           if (!acl[resource]) {
             acl[resource] = [];
           }
-          acl[resource].push(...(actions as string[]));
+          acl[resource] = [...acl[resource], ...actions];
         }
       }
     }
 
     // Preparing Unit Methods
     const prepareUnits: (() => Promise<void>)[] = [
-      () => this.units.db.$prepareInfra(controlSchemas, tenantSchemas),
-      () => this.units.auth.$prepareInfra(acl),
+      async () => this.units.db.$prepareInfra(controlSchemas, tenantSchemas),
+      async () => this.units.auth.$prepareInfra(acl),
     ];
     for (const unit of Object.values(this.units)) {
       if (unit.$name !== "db" && unit.$name !== "auth") {
@@ -90,11 +93,13 @@ export class IsolatedTenantPlatform<
     }
 
     // Preparing Units
-    for await (const prepare of prepareUnits) {
+    // oxlint-disable eslint/no-await-in-loop
+    for (const prepare of prepareUnits) {
       await prepare().catch((error) => {
         console.error(`Failed to prepare unit`, error);
       });
     }
+    // oxlint-enable eslint/no-await-in-loop
 
     // Preparing Runtime Modules
     // oxlint-disable eslint/no-await-in-loop
@@ -112,7 +117,7 @@ export class IsolatedTenantPlatform<
     // oxlint-disable eslint/no-await-in-loop
     for (const tenantId of tenantIds) {
       await this.run(tenantId, async () => {
-        for await (const mod of this.modules) {
+        for (const mod of this.modules) {
           await mod.$prepareTenant?.(tenantId).catch((error) => {
             console.error(
               `Failed to prepare tenant "${tenantId}" for module "${mod.$name}"`,

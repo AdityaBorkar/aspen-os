@@ -1,6 +1,5 @@
 import { AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { normalize } from "#/workflows/activity/shared";
-import type { AuditRow } from "#/workflows/activity/shared";
+import { isAuditRow, normalize } from "#/workflows/activity/shared";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { integer, number, object, optional, pipe, string } from "valibot";
@@ -14,12 +13,12 @@ export const getClassActivity = Workflow.name("dms.activity.class")
     }),
   )
   .handler(async ({ classId, limit, offset }, ctx) => {
-    const rows = (await ctx.audit.query({
+    const rows = await ctx.audit.query({
       entityId: classId,
       entityType: AUDIT_ENTITY_TYPE.CLASS,
       limit,
       offset,
-    })) as unknown as AuditRow[];
+    });
 
-    return rows.map(normalize);
+    return rows.filter(isAuditRow).map(normalize);
   });

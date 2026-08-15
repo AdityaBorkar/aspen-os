@@ -1,5 +1,7 @@
 import type { BranchType, ConnectionNoteType, ConnectionStatus } from "#/types";
 
+import type { JsonValue } from "@aspen-os/platform/server";
+
 export const ORGANIZATION_EVENTS = {
   BRANDING_UPDATED: "organization:branding_updated",
   UPDATED: "organization:updated",
@@ -27,7 +29,7 @@ export const events = {
 };
 
 export interface OrganizationUpdatedEvent {
-  changes: Record<string, unknown>;
+  changes: Record<string, JsonValue>;
   organization: { id: string; name: string; slug: string };
 }
 
@@ -48,7 +50,7 @@ export interface BranchCreatedEvent {
 
 export interface BranchUpdatedEvent {
   branch: { id: string; name: string };
-  changes: Record<string, unknown>;
+  changes: Record<string, JsonValue>;
 }
 
 export interface BranchActivatedEvent {
@@ -73,7 +75,7 @@ export interface ConnectionCreatedEvent {
 }
 
 export interface ConnectionUpdatedEvent {
-  changes: Record<string, unknown>;
+  changes: Record<string, JsonValue>;
   connection: { id: string; name: string };
 }
 

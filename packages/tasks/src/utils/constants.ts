@@ -71,3 +71,19 @@ export const AUTOMATION_TRIGGER = {
 } as const;
 
 export type AutomationTrigger = (typeof AUTOMATION_TRIGGER)[keyof typeof AUTOMATION_TRIGGER];
+
+const AUTOMATION_TRIGGERS = new Set<string>(Object.values(AUTOMATION_TRIGGER));
+const TASK_PRIORITIES = new Set<string>(Object.values(TASK_PRIORITY));
+const SAVED_VIEW_TYPES = new Set<string>(Object.values(SAVED_VIEW_TYPE));
+
+export function isAutomationTrigger(value: string): value is AutomationTrigger {
+  return AUTOMATION_TRIGGERS.has(value);
+}
+
+export function isTaskPriority(value: string): value is TaskPriority {
+  return TASK_PRIORITIES.has(value);
+}
+
+export function isSavedViewType(value: string): value is SavedViewType {
+  return SAVED_VIEW_TYPES.has(value);
+}

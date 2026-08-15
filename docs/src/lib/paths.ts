@@ -6,7 +6,7 @@ export function markdownPathToSlugs(segs: string[]) {
   }
 
   const out = [...segs];
-  const last = out[out.length - 1];
+  const last = out.at(-1);
   if (last !== undefined) {
     out[out.length - 1] = last.replace(/\.md$/, "");
   }

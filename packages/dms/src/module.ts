@@ -17,12 +17,12 @@ import * as wf from "#/workflows";
 
 import { getContext } from "@aspen-os/platform/server";
 import type {
-  AuthUnit,
   DatabaseUnit,
   Module,
   ModuleInfra,
   PubSubUnit,
   StorageUnit,
+  Unit,
 } from "@aspen-os/platform/server";
 
 const DEFAULT_CONFIG: Required<DmsModuleConfig> = {
@@ -39,6 +39,18 @@ const DEFAULT_CONFIG: Required<DmsModuleConfig> = {
 };
 
 export type { DmsModuleConfig };
+
+function isDatabaseUnit(unit: Unit | undefined): unit is DatabaseUnit {
+  return unit?.$name === "db";
+}
+
+function isPubSubUnit(unit: Unit | undefined): unit is PubSubUnit {
+  return unit?.$name === "pubsub";
+}
+
+function isStorageUnit(unit: Unit | undefined): unit is StorageUnit {
+  return unit?.$name === "storage";
+}
 
 export class Dms implements Module {
   static create(config?: DmsModuleConfig): Dms {
@@ -67,15 +79,17 @@ export class Dms implements Module {
     };
   }
 
-  $initialize(units: {
-    db: DatabaseUnit;
-    auth: AuthUnit;
-    pubsub: PubSubUnit;
-    storage: StorageUnit;
-  }): void {
-    this.#db = units.db;
-    this.#pubsub = units.pubsub;
-    setDmsStorage(units.storage);
+  $initialize(units: Record<string, Unit>): void {
+    const { db, pubsub, storage } = units;
+    if (isDatabaseUnit(db)) {
+      this.#db = db;
+    }
+    if (isPubSubUnit(pubsub)) {
+      this.#pubsub = pubsub;
+    }
+    if (isStorageUnit(storage)) {
+      setDmsStorage(storage);
+    }
   }
 
   async $prepareRuntime(): Promise<void> {

@@ -1,3 +1,4 @@
+import type { JsonValue } from "@aspen-os/platform/server";
 import { uuidv7 } from "@aspen-os/platform/server";
 import {
   bigint,
@@ -14,7 +15,7 @@ import {
 export const dmsFileVersion = pgTable(
   "dms_file_version",
   {
-    compression: jsonb("compression"),
+    compression: jsonb("compression").$type<JsonValue | null>(),
     contentType: text("content_type").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     etag: text("etag"),

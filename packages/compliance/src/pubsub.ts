@@ -1,5 +1,7 @@
 import type { ComplianceCategory, VerificationStatus } from "#/utils/constants";
 
+import type { JsonValue } from "@aspen-os/platform/server";
+
 export const COMPLIANCE_EVENTS = {
   DOCUMENT_ARCHIVED: "compliance:document_archived",
   DOCUMENT_ATTACHMENT_UPLOADED: "compliance:document_attachment_uploaded",
@@ -73,7 +75,7 @@ export interface DocumentCreatedEvent {
 }
 
 export interface DocumentUpdatedEvent {
-  changes: Record<string, unknown>;
+  changes: Record<string, JsonValue>;
   document: { id: string; name: string };
 }
 
@@ -190,7 +192,7 @@ export interface ObligationDeactivatedEvent {
 }
 
 export interface ObligationUpdatedEvent {
-  changes: Record<string, unknown>;
+  changes: Record<string, JsonValue>;
   obligation: { id: string; name: string };
 }
 

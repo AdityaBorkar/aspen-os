@@ -1,3 +1,4 @@
+import type { employee } from "#/db-schemas";
 import { employeePromotion } from "#/db-schemas";
 import { fetchPromotionById } from "#/workflows/utils";
 
@@ -17,7 +18,7 @@ export const completePromotion = Workflow.name("hr.lifecycle.complete-promotion"
     const promotion = await fetchPromotionById(ctx.db, id);
 
     // Update employee record
-    const updateData: Record<string, unknown> = {
+    const updateData: Partial<typeof employee.$inferInsert> = {
       designation: promotion.newDesignation,
       updatedAt: new Date(),
     };

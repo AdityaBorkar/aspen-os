@@ -12,10 +12,10 @@ export const getContact = Workflow.name("dms.contact.get").handler(
 export const listContacts = Workflow.name("dms.contact.list").handler(
   async (input: { filters?: { isRemoved?: string; search?: string } }, ctx) => {
     const conditions: SQL[] = [];
-    if (input.filters?.isRemoved !== undefined) {
-      conditions.push(eq(dmsContact.isRemoved, input.filters.isRemoved === "true"));
-    } else {
+    if (input.filters?.isRemoved === undefined) {
       conditions.push(eq(dmsContact.isRemoved, false));
+    } else {
+      conditions.push(eq(dmsContact.isRemoved, input.filters.isRemoved === "true"));
     }
     if (input.filters?.search) {
       const term = `%${input.filters.search}%`;
@@ -25,7 +25,7 @@ export const listContacts = Workflow.name("dms.contact.list").handler(
           ilike(dmsContact.lastName, term),
           ilike(dmsContact.email, term),
           ilike(dmsContact.companyName, term),
-        ) as SQL,
+        )!,
       );
     }
 

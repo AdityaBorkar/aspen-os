@@ -7,6 +7,12 @@ import { and, eq, ilike, or } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import { object, optional } from "valibot";
 
+function isTenantStatus(value: string): value is (typeof tenant.status.enumValues)[number] {
+  // SAFETY: drizzle's pgEnum column exposes enumValues as a tuple of the declared enum
+  // Literals; widening to readonly string[] is safe because includes() only reads.
+  return (tenant.status.enumValues as readonly string[]).includes(value);
+}
+
 export const listTenants = Workflow.name("tenant.list")
   .input(
     object({
@@ -18,10 +24,8 @@ export const listTenants = Workflow.name("tenant.list")
       const parsed = input.filters ?? {};
       const conditions: SQL[] = [];
 
-      if (parsed.status) {
-        conditions.push(
-          eq(tenant.status, parsed.status as (typeof tenant.status.enumValues)[number]),
-        );
+      if (parsed.status && isTenantStatus(parsed.status)) {
+        conditions.push(eq(tenant.status, parsed.status));
       }
       if (parsed.plan) {
         conditions.push(eq(tenant.plan, parsed.plan));
@@ -31,7 +35,7 @@ export const listTenants = Workflow.name("tenant.list")
       }
       if (parsed.search) {
         const term = `%${parsed.search}%`;
-        conditions.push(or(ilike(organization.name, term), ilike(organization.slug, term)) as SQL);
+        conditions.push(or(ilike(organization.name, term), ilike(organization.slug, term))!);
       }
 
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined;

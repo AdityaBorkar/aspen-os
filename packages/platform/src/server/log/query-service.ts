@@ -1,5 +1,5 @@
 import { logs } from "#/server/log/db-schema";
-import type { LogEntry, LogLevel, LogQuery, LogStats } from "#/server/log/types";
+import type { LogEntry, LogQuery, LogStats } from "#/server/log/types";
 
 import { and, desc, eq, gte, ilike, lte, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
@@ -60,9 +60,9 @@ export class LogQueryService {
           }
         : undefined,
       id: row.id,
-      level: row.level as LogLevel,
+      level: row.level,
       message: row.message,
-      metadata: row.metadata as Record<string, unknown>,
+      metadata: row.metadata ?? undefined,
       requestId: row.requestId ?? undefined,
       service: row.service,
       spanId: row.spanId ?? undefined,
@@ -105,7 +105,7 @@ export class LogQueryService {
       .where(where)
       .groupBy(logs.level);
 
-    const byLevel: Record<LogLevel, number> = {
+    const byLevel = {
       debug: 0,
       error: 0,
       fatal: 0,
@@ -114,7 +114,7 @@ export class LogQueryService {
     };
     let total = 0;
     for (const row of rows) {
-      byLevel[row.level as LogLevel] = row.count;
+      byLevel[row.level] = row.count;
       total += row.count;
     }
 

@@ -4,6 +4,7 @@ import { fetchTaskStep } from "#/workflow-steps/fetch-task";
 import { addActivity, validateParentTask } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
+import type { JsonValue } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
 
@@ -30,7 +31,7 @@ export const updateTask = Workflow.name("task.update")
       }
     }
 
-    const changes: Record<string, unknown> = {};
+    const changes: Record<string, JsonValue> = {};
 
     const [updated] = await ctx.db
       .update(task)

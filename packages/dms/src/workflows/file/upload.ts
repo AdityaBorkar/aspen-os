@@ -2,14 +2,14 @@ import { dmsEntityLabel, dmsFile, dmsLabel } from "#/db-schemas";
 import { FILE_EVENTS } from "#/pubsub";
 import { getDmsConfig } from "#/runtime";
 import { checkNameUniqueness, computeFilePath } from "#/services/path-service";
-import { getSetting } from "#/services/settings-service";
+import { getSetting, isCompressionOption } from "#/services/settings-service";
 import { computeStorageKey, upload as uploadStorage } from "#/services/storage-bridge";
 import { UploadFileSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, SETTING_KEYS } from "#/utils/constants";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { inArray } from "drizzle-orm";
-import { object, parse } from "valibot";
+import { is, object, parse, string } from "valibot";
 
 const UploadInputSchema = object({ input: UploadFileSchema });
 
@@ -27,12 +27,10 @@ export const uploadFile = Workflow.name("dms.file.upload")
 
     const folderId = parsed.folderId ?? null;
 
-    const defaultCompression = (await ctx.step.run("resolve-compression", async () => {
-      const setting = (await getSetting(ctx.db, SETTING_KEYS.DEFAULT_COMPRESSION)) as
-        | typeof config.defaultCompression
-        | null;
-      return setting ?? config.defaultCompression;
-    })) ?? { enabled: true, mode: "none" };
+    const defaultCompression = await ctx.step.run("resolve-compression", async () => {
+      const setting = await getSetting(ctx.db, SETTING_KEYS.DEFAULT_COMPRESSION);
+      return isCompressionOption(setting) ? setting : config.defaultCompression;
+    });
 
     const compression = parsed.compression ?? defaultCompression;
     const actorId = ctx.actorId ?? parsed.uploadedBy ?? parsed.ownerId;
@@ -52,9 +50,14 @@ export const uploadFile = Workflow.name("dms.file.upload")
     const fileId = crypto.randomUUID();
     const storageKey = computeStorageKey({ fileId, name: parsed.name, version: 1 });
 
+    const { body } = parsed;
+    if (!(body instanceof Buffer) && !(body instanceof ReadableStream) && !is(string(), body)) {
+      throw new Error("Invalid file body: expected a string, Buffer, or ReadableStream.");
+    }
+
     const fileObject = await ctx.step.run("upload-storage", async () =>
       uploadStorage({
-        body: parsed.body as Buffer | ReadableStream | string,
+        body,
         contentType: parsed.contentType,
         key: storageKey,
       }),

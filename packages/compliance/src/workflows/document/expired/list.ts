@@ -5,7 +5,7 @@ import { and, inArray, isNotNull, lte } from "drizzle-orm";
 
 const getExpiredDocuments = Workflow.name("document.expired").handler(
   async (_input: Record<string, never>, ctx) => {
-    const todayStr = new Date().toISOString().split("T")[0] as string;
+    const todayStr = new Date().toISOString().split("T")[0]!;
 
     return ctx.db
       .select()

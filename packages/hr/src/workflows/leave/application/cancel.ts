@@ -24,7 +24,8 @@ export const cancelLeaveApplication = Workflow.name("hr.leave.cancel-leave-appli
     // Revert leave allocation
     if (application.leaveAllocation) {
       const allocation = await fetchLeaveAllocationById(ctx.db, application.leaveAllocation);
-      const newUsedDays = parseFloat(allocation.usedDays) - parseFloat(application.totalDays);
+      const newUsedDays =
+        Number.parseFloat(allocation.usedDays) - Number.parseFloat(application.totalDays);
 
       await updateLeaveAllocation(ctx.db, allocation.id, {
         usedDays: Math.max(0, newUsedDays).toString(),

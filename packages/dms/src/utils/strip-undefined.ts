@@ -1,11 +1,13 @@
-export function stripUndefined<TValue extends Record<string, unknown>>(
+import type { JsonValue } from "@aspen-os/platform/server";
+
+export function stripUndefined<TValue extends Record<string, JsonValue>>(
   obj: TValue,
 ): Partial<TValue> {
-  const result = {} as Record<string, unknown>;
-  for (const key of Object.keys(obj)) {
-    if (obj[key] !== undefined) {
-      result[key] = obj[key];
+  const result = { ...obj };
+  for (const [key, value] of Object.entries(result)) {
+    if (value === undefined) {
+      Reflect.deleteProperty(result, key);
     }
   }
-  return result as Partial<TValue>;
+  return result;
 }

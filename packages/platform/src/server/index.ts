@@ -17,7 +17,9 @@ import type { LogConfig, LogUnit } from "#/server/log";
 import type { PubSubConfig, PubSubUnit } from "#/server/pubsub";
 import type { RpcConfig, RpcUnit } from "#/server/rpc";
 import type { StorageConfig, StorageUnit } from "#/server/storage";
+import type { SchemaMap } from "#/server/types";
 
+export type { JsonValue, SchemaMap } from "#/server/types";
 export type { AuditEntry, AuditQuery, AuditUnit, CrudAction } from "#/server/audit";
 export type { AclDeclaration } from "#/server/auth";
 export { defineAcl } from "#/server/auth";
@@ -54,7 +56,7 @@ export interface TenantResolver {
   list: () => Promise<string[]>;
 }
 
-export interface PlatformUnits<TSchemas extends Record<string, unknown> = Record<string, never>> {
+export interface PlatformUnits<TSchemas extends SchemaMap = Record<string, never>> {
   audit: AuditUnit;
   auth: AuthUnit;
   db: DatabaseUnit<TSchemas>;
@@ -65,10 +67,7 @@ export interface PlatformUnits<TSchemas extends Record<string, unknown> = Record
   storage: StorageUnit;
 }
 
-export interface ModuleInfra<
-  TCP extends Record<string, unknown> = Record<string, unknown>,
-  TT extends Record<string, unknown> = Record<string, unknown>,
-> {
+export interface ModuleInfra<TCP extends SchemaMap = SchemaMap, TT extends SchemaMap = SchemaMap> {
   auth: {
     acl: Record<string, readonly string[]>;
   };
@@ -87,19 +86,20 @@ export interface Unit {
 
 export interface Module<
   TName extends string = string,
-  TCP extends Record<string, unknown> = Record<string, unknown>,
-  TT extends Record<string, unknown> = Record<string, unknown>,
+  TCP extends SchemaMap = SchemaMap,
+  TT extends SchemaMap = SchemaMap,
 > {
   $cleanup: () => void | Promise<void>;
   readonly $dependencies: readonly string[];
-  $initialize: (units: Record<string, Unit>) => void;
+  /** Each module types the subset of units it depends on (see $dependencies). */
+  $initialize: (units: any) => void;
   readonly $name: TName;
   $prepareInfra: () => ModuleInfra<TCP, TT>;
   $prepareRuntime: () => void | Promise<void>;
   $prepareTenant?: (tenantId: string) => Promise<void>;
 }
 
-export type UnitAccessors<TSchemas extends Record<string, unknown> = Record<string, never>> = {
+export type UnitAccessors<TSchemas extends SchemaMap = Record<string, never>> = {
   [TKey in keyof PlatformUnits<TSchemas>]: PlatformUnits<TSchemas>[TKey];
 };
 export type ModuleAccessors<TModules extends Record<string, Module>> = {

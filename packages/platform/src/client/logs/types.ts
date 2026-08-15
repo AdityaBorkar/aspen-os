@@ -1,3 +1,14 @@
+/** A value that survives JSON serialization (Dates become ISO strings; undefined fields are dropped). */
+export type JsonValue =
+  | boolean
+  | number
+  | string
+  | null
+  | undefined
+  | Date
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
 export type LogLevel = "debug" | "info" | "warn" | "error" | "fatal";
 
 export interface LogEntry {
@@ -6,7 +17,7 @@ export interface LogEntry {
   id: string;
   level: LogLevel;
   message: string;
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, JsonValue>;
   requestId?: string;
   service: string;
   spanId?: string;
@@ -34,31 +45,31 @@ export interface LogStats {
 }
 
 export interface ChildLogger {
-  debug: (message: string, metadata?: Record<string, unknown>) => void;
-  error: (message: string, error?: Error, metadata?: Record<string, unknown>) => void;
-  fatal: (message: string, error?: Error, metadata?: Record<string, unknown>) => void;
-  info: (message: string, metadata?: Record<string, unknown>) => void;
-  log: (level: LogLevel, message: string, metadata?: Record<string, unknown>) => void;
-  warn: (message: string, metadata?: Record<string, unknown>) => void;
+  debug: (message: string, metadata?: Record<string, JsonValue>) => void;
+  error: (message: string, error?: Error, metadata?: Record<string, JsonValue>) => void;
+  fatal: (message: string, error?: Error, metadata?: Record<string, JsonValue>) => void;
+  info: (message: string, metadata?: Record<string, JsonValue>) => void;
+  log: (level: LogLevel, message: string, metadata?: Record<string, JsonValue>) => void;
+  warn: (message: string, metadata?: Record<string, JsonValue>) => void;
 }
 
 export interface LogUnit {
-  child: (context: Record<string, unknown>) => ChildLogger;
-  debug: (message: string, metadata?: Record<string, unknown>) => void;
+  child: (context: Record<string, JsonValue>) => ChildLogger;
+  debug: (message: string, metadata?: Record<string, JsonValue>) => void;
   destroy: () => Promise<void>;
-  error: (message: string, error?: Error, metadata?: Record<string, unknown>) => void;
-  fatal: (message: string, error?: Error, metadata?: Record<string, unknown>) => void;
+  error: (message: string, error?: Error, metadata?: Record<string, JsonValue>) => void;
+  fatal: (message: string, error?: Error, metadata?: Record<string, JsonValue>) => void;
   getStats: (service?: string, startTime?: Date, endTime?: Date) => Promise<LogStats>;
-  info: (message: string, metadata?: Record<string, unknown>) => void;
+  info: (message: string, metadata?: Record<string, JsonValue>) => void;
 
-  log: (level: LogLevel, message: string, metadata?: Record<string, unknown>) => void;
+  log: (level: LogLevel, message: string, metadata?: Record<string, JsonValue>) => void;
 
   readonly name: string;
   query: (filter: LogQuery) => Promise<LogEntry[]>;
-  warn: (message: string, metadata?: Record<string, unknown>) => void;
+  warn: (message: string, metadata?: Record<string, JsonValue>) => void;
 }
 
-export const LEVEL_PRIORITY: Record<LogLevel, number> = {
+export const LEVEL_PRIORITY = {
   debug: 0,
   error: 3,
   fatal: 4,

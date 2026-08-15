@@ -1,3 +1,5 @@
+import type { JsonValue } from "#/server/types";
+
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 export type AuditDatabase = NodePgDatabase;
@@ -7,14 +9,14 @@ export type CrudAction = "create" | "update" | "delete";
 export interface AuditEntry {
   action: string;
   actorId?: string;
-  changes?: Record<string, unknown>;
+  changes?: Record<string, JsonValue>;
   crudAction?: CrudAction;
   entityId: string;
   entityType: string;
   idempotencyKey?: string;
-  metadata?: Record<string, unknown>;
-  newState?: Record<string, unknown> | null;
-  previousState?: Record<string, unknown> | null;
+  metadata?: Record<string, JsonValue>;
+  newState?: Record<string, JsonValue> | null;
+  previousState?: Record<string, JsonValue> | null;
   requestId?: string;
   traceId?: string;
   workflowRunId?: string;

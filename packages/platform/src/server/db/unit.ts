@@ -7,6 +7,7 @@ import type {
   SharedTenantProvisioningResult,
   TenantProvisioningResult,
 } from "#/server/db/types";
+import type { SchemaMap } from "#/server/types";
 import { context } from "#/server/utils/context";
 
 import { sql } from "drizzle-orm";
@@ -14,10 +15,10 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 
-export type DrizzleDB<TSchemas extends Record<string, unknown> = Record<string, never>> =
+export type DrizzleDB<TSchemas extends SchemaMap = Record<string, never>> =
   NodePgDatabase<TSchemas>;
 
-export class DatabaseUnit<TSchemas extends Record<string, unknown> = Record<string, never>> {
+export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
   readonly $name = "db";
   readonly config: DatabaseConfig;
   readonly tenancyMode: TenancyMode;
@@ -36,8 +37,8 @@ export class DatabaseUnit<TSchemas extends Record<string, unknown> = Record<stri
 
   protected controlPlanePool: Pool;
   protected controlPlaneDbInstance: DrizzleDB<TSchemas>;
-  protected storedControlPlaneSchemas: Record<string, unknown> = {};
-  protected storedTenantSchemas: Record<string, unknown> = {};
+  protected storedControlPlaneSchemas: SchemaMap = {};
+  protected storedTenantSchemas: SchemaMap = {};
 
   private readonly tenantPools = new Map<string, { db: DrizzleDB<TSchemas>; pool: Pool }>();
   private readonly dbWrapper: DrizzleDB<TSchemas>;
@@ -91,19 +92,16 @@ export class DatabaseUnit<TSchemas extends Record<string, unknown> = Record<stri
     return this.controlPlanePool;
   }
 
-  async $prepareInfra(
-    controlPlaneSchemas: Record<string, unknown> = {},
-    tenantSchemas: Record<string, unknown> = {},
-  ) {
+  async $prepareInfra(controlPlaneSchemas: SchemaMap = {}, tenantSchemas: SchemaMap = {}) {
     this.storedControlPlaneSchemas = controlPlaneSchemas;
     this.storedTenantSchemas = tenantSchemas;
     const schemas = { ...this.getSchemas(), ...controlPlaneSchemas };
     await this.pushSchemasTo(this.controlPlaneDbInstance, schemas);
   }
 
-  async prepareWithModules<TCP extends Record<string, unknown>, TT extends Record<string, unknown>>(
-    controlPlaneSchemas: TCP,
-    tenantSchemas: TT,
+  async prepareWithModules(
+    controlPlaneSchemas: SchemaMap = {},
+    tenantSchemas: SchemaMap = {},
   ): Promise<void> {
     this.storedControlPlaneSchemas = controlPlaneSchemas;
     this.storedTenantSchemas = tenantSchemas;
@@ -141,17 +139,14 @@ export class DatabaseUnit<TSchemas extends Record<string, unknown> = Record<stri
           (this.tenantDbDefaults?.ssl ?? this.config.ssl) ? { rejectUnauthorized: false } : false,
         user: this.tenantDbDefaults?.user ?? this.config.user,
       });
-      const db = drizzle(pool) as DrizzleDB<TSchemas>;
+      const db = drizzle<TSchemas>(pool);
       entry = { db, pool };
       this.tenantPools.set(tenantId, entry);
     }
     return entry.db;
   }
 
-  async pushSchemasToTenant(
-    tenantId: string,
-    tenantSchemas: Record<string, unknown>,
-  ): Promise<void> {
+  async pushSchemasToTenant(tenantId: string, tenantSchemas: SchemaMap): Promise<void> {
     const db = await this.getTenantDb(tenantId);
     const allTenantSchemas = { ...this.getSchemas(), ...tenantSchemas };
     await this.pushSchemasTo(db, allTenantSchemas);
@@ -199,7 +194,7 @@ export class DatabaseUnit<TSchemas extends Record<string, unknown> = Record<stri
         ssl: dbConfig.ssl ? { rejectUnauthorized: false } : false,
         user: dbConfig.user,
       });
-      const tenantDb = drizzle(pool) as DrizzleDB<TSchemas>;
+      const tenantDb = drizzle<TSchemas>(pool);
       try {
         const allTenantSchemas = {
           ...this.getSchemas(),
@@ -231,6 +226,7 @@ export class DatabaseUnit<TSchemas extends Record<string, unknown> = Record<stri
       await client.query("BEGIN");
       await client.query("SELECT set_config('app.tenant_id', $1, true)", [tenantId]);
       await client.query("SET LOCAL ROLE tenant_role");
+      // SAFETY: the client is a connected pg Client which is a valid drizzle node-postgres session source.
       const db = drizzle(client) as DrizzleDB<TSchemas>;
       const result = await fn(db);
       await client.query("COMMIT");
@@ -256,7 +252,7 @@ export class DatabaseUnit<TSchemas extends Record<string, unknown> = Record<stri
       user: dbConfig.user,
     });
     try {
-      const db = drizzle(pool) as DrizzleDB<TSchemas>;
+      const db = drizzle<TSchemas>(pool);
       await fn(db);
     } finally {
       await pool.end();
@@ -303,17 +299,19 @@ export class DatabaseUnit<TSchemas extends Record<string, unknown> = Record<stri
       user?: string;
     },
   ): Promise<IsolatedTenantDbConfig> {
-    return this.provisionTenant(tenantId, options) as Promise<IsolatedTenantDbConfig>;
+    const result = await this.provisionTenant(tenantId, options);
+    if (result.tenancyMode !== "isolated") {
+      throw new Error("createTenant requires isolated tenancy mode");
+    }
+    const { tenancyMode: _tenancyMode, ...dbConfig } = result;
+    return dbConfig;
   }
 
   getSchemas() {
     return db_schemas;
   }
 
-  protected async pushSchemasTo(
-    db: DrizzleDB<TSchemas>,
-    schemas: Record<string, unknown>,
-  ): Promise<void> {
+  protected async pushSchemasTo(db: DrizzleDB<TSchemas>, schemas: SchemaMap): Promise<void> {
     const { pushSchema } = await import("drizzle-kit/api");
 
     // @ts-expect-error DB Type Mismatch
@@ -338,7 +336,7 @@ export class DatabaseUnit<TSchemas extends Record<string, unknown> = Record<stri
     });
 
     try {
-      const escapedName = `"${dbConfig.database.replace(/"/g, '""')}"`;
+      const escapedName = `"${dbConfig.database.replaceAll('"', '""')}"`;
       await adminPool.query(`CREATE DATABASE ${escapedName}`);
     } catch (error) {
       if (error instanceof Error && error.message.includes("already exists")) {
@@ -359,21 +357,24 @@ export class DatabaseUnit<TSchemas extends Record<string, unknown> = Record<stri
           AND table_schema = 'public'
       `,
     );
-    const rows = result.rows as { table_name: string }[];
-    return rows.map((row) => row.table_name).filter((name) => /^[a-z_][a-z0-9_]*$/.test(name));
+    const tableNames = result.rows.map(
+      (row) =>
+        // SAFETY: information_schema.columns.table_name is always text per the SQL standard.
+        row?.table_name as string,
+    );
+    return tableNames.filter((name) => /^[a-z_][a-z0-9_]*$/.test(name));
   }
 
   private createDbWrapper(): DrizzleDB<TSchemas> {
-    return new Proxy({} as DrizzleDB<TSchemas>, {
+    const handler: ProxyHandler<DrizzleDB<TSchemas>> = {
       get: (_target, prop) => {
         const ctx = context.getStore();
         const realDb = ctx?.db ?? this.controlPlaneDbInstance;
-        const value = Reflect.get(realDb, prop);
-        if (typeof value === "function") {
-          return value.bind(realDb);
-        }
-        return value;
+        // SAFETY: proxy trap keys resolve to members of the wrapped db instance.
+        const value = realDb[prop as keyof typeof realDb];
+        return value instanceof Function ? value.bind(realDb) : value;
       },
-    });
+    };
+    return new Proxy(this.controlPlaneDbInstance, handler);
   }
 }

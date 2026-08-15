@@ -25,7 +25,8 @@ export const approveLeaveApplication = Workflow.name("hr.leave.approve-leave-app
     // Update leave allocation
     if (application.leaveAllocation) {
       const allocation = await fetchLeaveAllocationById(ctx.db, application.leaveAllocation);
-      const newUsedDays = parseFloat(allocation.usedDays) + parseFloat(application.totalDays);
+      const newUsedDays =
+        Number.parseFloat(allocation.usedDays) + Number.parseFloat(application.totalDays);
 
       await updateLeaveAllocation(ctx.db, allocation.id, {
         usedDays: newUsedDays.toString(),

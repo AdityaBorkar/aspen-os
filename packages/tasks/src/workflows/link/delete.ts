@@ -6,14 +6,6 @@ import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object } from "valibot";
 
-type LinkTypeValue =
-  | "blocks"
-  | "blocked_by"
-  | "related_to"
-  | "duplicates"
-  | "caused_by"
-  | "split_from";
-
 export const deleteTaskLink = Workflow.name("link.delete")
   .input(object({ sourceId: IdSchema, targetId: IdSchema }))
   .handler(async ({ sourceId, targetId }, ctx) => {
@@ -37,7 +29,7 @@ export const deleteTaskLink = Workflow.name("link.delete")
           and(
             eq(taskLink.sourceId, targetId),
             eq(taskLink.targetId, sourceId),
-            eq(taskLink.linkType, inverseType as LinkTypeValue),
+            eq(taskLink.linkType, inverseType),
           ),
         );
     }

@@ -10,21 +10,16 @@ import {
 } from "#/services/status-derivation";
 import { CRON_SCHEDULES, DEFAULT_ESCALATION_DAYS, SCHEDULED_JOBS } from "#/utils/constants";
 import { dashboard, documents } from "#/workflows";
+import type { WorkflowKvStore } from "#/workflows/utils";
 
-import type { AuditUnit, PubSubUnit } from "@aspen-os/platform/server";
+import type { AuditUnit, JsonValue, PubSubUnit } from "@aspen-os/platform/server";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-
-interface KvStoreLike {
-  del: (key: string) => Promise<void>;
-  get: <TValue>(key: string) => Promise<TValue | null>;
-  set: <TValue>(key: string, value: TValue, ttl?: number) => Promise<void>;
-}
 
 export interface ReminderEngineDeps {
   audit: AuditUnit;
   cacheTtl: number;
   db: NodePgDatabase;
-  kvStore: KvStoreLike | null;
+  kvStore: WorkflowKvStore | null;
   pubsub: PubSubUnit;
 }
 
@@ -90,7 +85,7 @@ export async function unregisterReminderEngine(
   topics: string[],
   { pubsub }: Pick<ReminderEngineDeps, "pubsub">,
 ): Promise<void> {
-  await Promise.all(topics.map((topic) => pubsub.unsubscribe(topic)));
+  await Promise.all(topics.map(async (topic) => pubsub.unsubscribe(topic)));
 }
 
 export async function scanExpiringAndDueDocuments(deps: ReminderEngineDeps): Promise<number> {
@@ -218,12 +213,12 @@ export async function transitionExpiredAndOverdueDocuments(
           newStatus = overdueStatus;
         }
 
-        if (newStatus) {
+        if (newStatus === "expired" || newStatus === "overdue") {
           await documents.updateStatus.run(
             {
               id: doc.id,
               performedBy: null,
-              status: newStatus as "expired" | "overdue",
+              status: newStatus,
             },
             { audit: deps.audit, db: deps.db, pubsub: deps.pubsub },
           );
@@ -340,20 +335,16 @@ export async function scanEscalations(deps: ReminderEngineDeps): Promise<number>
 
 export async function generateWeeklySummary(deps: ReminderEngineDeps): Promise<void> {
   const startTime = Date.now();
-  const { kvStore } = deps;
+
+  // SAFETY: the summary workflow re-validates this value with isWorkflowKvStore before use; RunOptions.config is typed as JsonValue because the platform serializes it.
+  const kvStoreValue: JsonValue = deps.kvStore as JsonValue;
 
   const summary = await dashboard.getSummary.run(
     {},
     {
       config: {
         cacheTtl: deps.cacheTtl,
-        kvStore: kvStore
-          ? {
-              del: (key: string) => kvStore.del(key),
-              get: (key: string) => kvStore.get<unknown>(key),
-              set: (key: string, value: unknown, ttl?: number) => kvStore.set(key, value, ttl),
-            }
-          : undefined,
+        kvStore: kvStoreValue,
       },
       db: deps.db,
       pubsub: deps.pubsub,

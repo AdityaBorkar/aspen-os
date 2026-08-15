@@ -6,6 +6,7 @@ import { task } from "#/db-schemas/task";
 import { taskAssignee } from "#/db-schemas/task-assignee";
 import { taskType } from "#/db-schemas/task-type";
 import { watcher } from "#/db-schemas/watcher";
+import type { TaskLinkType } from "#/utils/constants";
 
 import { and, eq, isNull, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
@@ -164,7 +165,7 @@ export async function addActivity(
 export async function ensureKeyUnique(
   db: DrizzleDB,
   key: string,
-  excludeId: string | undefined,
+  excludeId?: string,
 ): Promise<void> {
   const conditions = [eq(project.key, key)];
   if (excludeId) {
@@ -213,14 +214,16 @@ export async function unsetDefaultSavedView(
     .where(and(...conditions));
 }
 
-export function linkTypeInverse(linkType: string): string | undefined {
-  const INVERSE_LINK_TYPES: Record<string, string> = {
+export function linkTypeInverse(linkType: string): TaskLinkType | undefined {
+  const INVERSE_LINK_TYPES = {
     blocked_by: "blocks",
     blocks: "blocked_by",
     caused_by: "caused_by",
     duplicates: "duplicates",
     related_to: "related_to",
     split_from: "split_from",
-  };
-  return INVERSE_LINK_TYPES[linkType];
+  } as const satisfies Record<string, TaskLinkType>;
+  // SAFETY: a key not present in the map yields `undefined`, matching the previous
+  // `Record<string, TaskLinkType>` lookup semantics for unknown link types.
+  return INVERSE_LINK_TYPES[linkType as keyof typeof INVERSE_LINK_TYPES];
 }

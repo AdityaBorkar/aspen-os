@@ -1,3 +1,4 @@
+import type { SchemaMap } from "#/server/types";
 import { getContext } from "#/server/utils/context";
 import { workflowRuns, workflowSteps } from "#/server/workflows/db-schema";
 import type {
@@ -15,25 +16,31 @@ import { SchemaError } from "@standard-schema/utils";
 import { and, eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-type DrizzleDB<TSchemas extends Record<string, unknown> = Record<string, unknown>> =
-  NodePgDatabase<TSchemas>;
+type DrizzleDB<TSchemas extends SchemaMap = Record<string, never>> = NodePgDatabase<TSchemas>;
 
 function generateId(): string {
   return crypto.randomUUID();
 }
 
-function serializeError(error: unknown): Record<string, unknown> {
-  if (error instanceof Error) {
-    return {
-      message: error.message,
-      name: error.name,
-      stack: error.stack,
-    };
-  }
-  return { message: String(error), name: "Error" };
+/** The JSON-serializable error envelope stored on workflow step/run rows. */
+export interface SerializedError {
+  message: string;
+  name: string;
+  stack?: string;
 }
 
-async function validateInput(schema: StandardSchema, input: unknown): Promise<unknown> {
+function serializeError(error: Error): SerializedError {
+  return {
+    message: error.message,
+    name: error.name,
+    stack: error.stack,
+  };
+}
+
+async function validateInput<TInput, TOutput>(
+  schema: StandardSchema<TInput, TOutput>,
+  input: TInput,
+): Promise<TOutput> {
   const result = await schema["~standard"].validate(input);
 
   if (result.issues) {
@@ -43,7 +50,7 @@ async function validateInput(schema: StandardSchema, input: unknown): Promise<un
   return result.value;
 }
 
-async function executeStep<TSchemas extends Record<string, unknown>, TResult>(input: {
+async function executeStep<TSchemas extends SchemaMap, TResult>(input: {
   db: DrizzleDB<TSchemas>;
   runId: string;
   name: string;
@@ -66,6 +73,7 @@ async function executeStep<TSchemas extends Record<string, unknown>, TResult>(in
     .limit(1);
 
   if (existing) {
+    // SAFETY: a completed step row's output was produced by this step's own handler in a prior run.
     return existing.output as TResult;
   }
 
@@ -80,7 +88,7 @@ async function executeStep<TSchemas extends Record<string, unknown>, TResult>(in
     stepName: name,
   });
 
-  let lastError: unknown = undefined;
+  let lastError = new Error("workflow step failed");
 
   // oxlint-disable eslint/no-await-in-loop
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -101,14 +109,14 @@ async function executeStep<TSchemas extends Record<string, unknown>, TResult>(in
 
       return result;
     } catch (error) {
-      lastError = error;
+      lastError = error instanceof Error ? error : new Error(String(error));
 
       if (attempt < maxAttempts) {
         await db
           .update(workflowSteps)
           .set({
             attempt,
-            error: serializeError(error),
+            error: serializeError(error instanceof Error ? error : new Error(String(error))),
             status: "running",
           })
           .where(eq(workflowSteps.id, stepId));
@@ -133,41 +141,47 @@ async function executeStep<TSchemas extends Record<string, unknown>, TResult>(in
   throw lastError;
 }
 
-function createStepRunner<TSchemas extends Record<string, unknown>>(
+function createStepRunner<TSchemas extends SchemaMap>(
   db: DrizzleDB<TSchemas>,
   getCtx: () => WorkflowContext<TSchemas>,
   runId: string,
 ): StepRunner {
   return {
-    run: ((
+    // SAFETY: the generic implementation below is shaped exactly like StepRunner.run's two overloads.
+    run: (async <TValue>(
       nameOrStep: string | WorkflowStepInstance<unknown, unknown, TSchemas>,
-      fnOrInput: (() => unknown) | unknown,
+      fnOrInput: (() => TValue | Promise<TValue>) | TValue,
       options?: StepOptions,
     ) => {
-      if (typeof nameOrStep === "string") {
+      if (nameOrStep instanceof Object && "handler" in nameOrStep) {
+        const step = nameOrStep;
+        const input = fnOrInput;
         return executeStep({
           db,
-          fn: fnOrInput as () => unknown,
-          name: nameOrStep,
+          fn: async () => {
+            if (!step.schema) {
+              return step.handler(input, getCtx());
+            }
+            const validated = await validateInput(step.schema, input);
+            return step.handler(validated, getCtx());
+          },
+          name: step.name,
           options,
           runId,
         });
       }
-      const step = nameOrStep;
-      const input = fnOrInput;
+      if (!(fnOrInput instanceof Function)) {
+        throw new Error(`Step "${nameOrStep}" requires a function handler`);
+      }
+      // SAFETY: the instanceof Function check above establishes the handler contract.
       return executeStep({
         db,
-        fn: async () => {
-          let validated = input;
-          if (step.schema) {
-            validated = await validateInput(step.schema, input);
-          }
-          return step.handler(validated, getCtx());
-        },
-        name: step.name,
+        fn: fnOrInput,
+        name: nameOrStep,
         options,
         runId,
       });
+      // SAFETY: the dispatch branches cover both overload shapes of StepRunner.run.
     }) as StepRunner["run"],
     async sleep(ms: number): Promise<void> {
       await sleep(ms);
@@ -178,7 +192,7 @@ function createStepRunner<TSchemas extends Record<string, unknown>>(
 export async function executeWorkflow<
   TInput,
   TOutput,
-  TSchemas extends Record<string, unknown> = Record<string, never>,
+  TSchemas extends SchemaMap = Record<string, never>,
 >(
   config: WorkflowConfig<TInput, TOutput, TSchemas>,
   input: TInput,
@@ -200,7 +214,7 @@ export async function executeWorkflow<
   }
 
   if (config.schema) {
-    input = (await validateInput(config.schema, input)) as TInput;
+    input = await validateInput(config.schema, input);
   }
 
   const runId = generateId();
@@ -219,9 +233,11 @@ export async function executeWorkflow<
     audit,
     auth,
     config: options?.config ?? {},
+    // SAFETY: the resolved db is a valid node-postgres drizzle instance for the merged schemas.
     db: db as DrizzleDB<TSchemas>,
     pubsub,
     runId,
+    // SAFETY: the step runner resolves the same context and db for every step invocation.
     step: createStepRunner(db as DrizzleDB<TSchemas>, () => ctx, runId),
   };
 
@@ -248,7 +264,7 @@ export async function executeWorkflow<
       .set({
         completedAt,
         durationMs: completedAt.getTime() - startedAt.getTime(),
-        error: serializeError(error),
+        error: serializeError(error instanceof Error ? error : new Error(String(error))),
         status: "failed",
       })
       .where(eq(workflowRuns.id, runId));

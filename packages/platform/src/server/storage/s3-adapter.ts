@@ -37,7 +37,7 @@ export class S3Adapter {
     head: { contentLength: number; etag: string; lastModified: Date };
   }> {
     const key = this.getKey(input.key);
-    const body = typeof input.body === "string" ? Buffer.from(input.body) : input.body;
+    const body = input.body instanceof ReadableStream ? input.body : Buffer.from(input.body);
 
     await this.s3.send(
       new PutObjectCommand({
@@ -65,19 +65,28 @@ export class S3Adapter {
     const result = await this.s3.send(
       new GetObjectCommand({ Bucket: this.bucket, Key: this.getKey(key) }),
     );
-    const chunks: Uint8Array[] = [];
-    const stream = result.Body as ReadableStream;
-    const reader = stream.getReader();
-    // oxlint-disable eslint/no-await-in-loop
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) {
-        break;
-      }
-      chunks.push(value);
+    const body = result.Body;
+    if (!body) {
+      throw new Error("Failed to read object: no response body returned");
     }
-    // oxlint-enable eslint/no-await-in-loop
-    return Buffer.concat(chunks);
+    if (body instanceof Blob) {
+      return Buffer.from(await body.arrayBuffer());
+    }
+    if (body instanceof ReadableStream) {
+      const chunks: Uint8Array[] = [];
+      const reader = body.getReader();
+      // oxlint-disable eslint/no-await-in-loop
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) {
+          break;
+        }
+        chunks.push(value);
+      }
+      // oxlint-enable eslint/no-await-in-loop
+      return Buffer.concat(chunks);
+    }
+    throw new Error("Failed to read object: unsupported response body type");
   }
 
   async getSignedGetUrl(key: string, options?: SignedUrlOptions): Promise<string> {

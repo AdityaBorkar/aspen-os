@@ -6,6 +6,7 @@ import {
 } from "#/db-schemas/enums";
 
 import { uuidv7 } from "@aspen-os/platform/server";
+import type { JsonValue } from "@aspen-os/platform/server";
 import {
   boolean,
   date,
@@ -41,7 +42,7 @@ export const complianceDocument = pgTable(
     jurisdiction: text("jurisdiction"),
     lastEscalatedAt: timestamp("last_escalated_at", { withTimezone: true }),
     lastNotifiedAt: timestamp("last_notified_at", { withTimezone: true }),
-    metadata: jsonb("metadata"),
+    metadata: jsonb("metadata").$type<Record<string, JsonValue> | null>(),
     name: text("name").notNull(),
     notes: text("notes"),
     obligationId: text("obligation_id"),

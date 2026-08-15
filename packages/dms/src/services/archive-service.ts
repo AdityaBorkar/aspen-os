@@ -118,6 +118,8 @@ async function generateZip({
   folderPath: string;
 }): Promise<ArchiveResult> {
   const { zip, strToU8 } = await import("fflate");
+  // SAFETY: fflate's zip() matches the Node-style (data, callback) signature.
+  // Promisify wraps it, so the promoted type is (data) => Promise<data>.
   const zipAsync = promisify(zip) as (data: Record<string, Uint8Array>) => Promise<Uint8Array>;
 
   const zipEntries: Record<string, Uint8Array> = {};

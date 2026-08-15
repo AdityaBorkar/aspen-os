@@ -32,9 +32,10 @@ import {
 } from "#/db-schemas";
 import type { EmployeeTreeNode, ResolvedPermission } from "#/types";
 
+import type { JsonValue } from "@aspen-os/platform/server";
 import { and, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { minLength, optional, pipe, string } from "valibot";
+import { minLength, optional, pipe, safeParse, string } from "valibot";
 
 export const IdSchema = pipe(string(), minLength(1, "ID is required"));
 
@@ -42,15 +43,26 @@ export const RequiredSchema = pipe(string(), minLength(1, "Value is required"));
 
 export const OptionalSchema = optional(string());
 
+function toText(value: JsonValue): string {
+  const parsed = safeParse(string(), value);
+  if (parsed.success) {
+    return parsed.output;
+  }
+  if (value === null || value === undefined) {
+    return "";
+  }
+  return JSON.stringify(value);
+}
+
 // Org-chart structure: rows come from a drizzle select projection, so fields are
-// Conservatively typed (`unknown`) to be robust regardless of drizzle typing
+// Conservatively typed (`JsonValue`) to be robust regardless of drizzle typing
 interface OrgChartEmployee {
-  designation: unknown;
-  firstName: unknown;
-  id: unknown;
-  image: unknown;
-  lastName: unknown;
-  reportsTo: unknown;
+  designation: JsonValue;
+  firstName: JsonValue;
+  id: JsonValue;
+  image: JsonValue;
+  lastName: JsonValue;
+  reportsTo: JsonValue;
 }
 
 // ─── Attendance ────────────────────────────────────────────────────────────
@@ -121,14 +133,14 @@ export function buildEmployeeTree(
   return employees
     .filter((employeeItem) => employeeItem.reportsTo === parentId)
     .map((employeeItem) => ({
-      children: buildEmployeeTree(employees, String(employeeItem.id)),
-      designation: String(employeeItem.designation),
-      id: String(employeeItem.id),
+      children: buildEmployeeTree(employees, toText(employeeItem.id)),
+      designation: toText(employeeItem.designation),
+      id: toText(employeeItem.id),
       image:
         employeeItem.image === null || employeeItem.image === undefined
           ? null
-          : String(employeeItem.image),
-      name: `${String(employeeItem.firstName)} ${String(employeeItem.lastName)}`.trim(),
+          : toText(employeeItem.image),
+      name: `${toText(employeeItem.firstName)} ${toText(employeeItem.lastName)}`.trim(),
     }));
 }
 
@@ -343,10 +355,10 @@ export async function checkLeaveBalance(
   }
 
   const available =
-    parseFloat(allocation.totalDays) +
-    parseFloat(allocation.carryForwardedDays) +
-    parseFloat(allocation.earnedDays) -
-    parseFloat(allocation.usedDays);
+    Number.parseFloat(allocation.totalDays) +
+    Number.parseFloat(allocation.carryForwardedDays) +
+    Number.parseFloat(allocation.earnedDays) -
+    Number.parseFloat(allocation.usedDays);
 
   if (days > available && !leaveTypeRecord.allowNegativeBalance) {
     throw new Error(

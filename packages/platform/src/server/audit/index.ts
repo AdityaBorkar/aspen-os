@@ -1,7 +1,9 @@
 import { auditLog } from "#/server/audit/db-schema";
+import type { AuditLog } from "#/server/audit/db-schema";
 import { AuditQueryService } from "#/server/audit/query-service";
 import type { AuditDatabase, AuditEntry, AuditQuery } from "#/server/audit/types";
 import type { DatabaseUnit } from "#/server/db";
+import type { JsonValue } from "#/server/types";
 import { context } from "#/server/utils/context";
 
 export { type AuditLog, auditLog, type NewAuditLog } from "#/server/audit/db-schema";
@@ -15,6 +17,7 @@ export class AuditUnit {
   private readonly queryService: AuditQueryService;
 
   constructor({ db }: { db: DatabaseUnit<any> }) {
+    // SAFETY: the DatabaseUnit db is a valid node-postgres drizzle instance.
     this.db = db.db as AuditDatabase;
     this.queryService = new AuditQueryService(this.db);
   }
@@ -25,8 +28,8 @@ export class AuditUnit {
 
   /** Compute a field-level diff between two states. */
   diff(
-    before?: Record<string, unknown> | null,
-    after?: Record<string, unknown> | null,
+    before?: Record<string, JsonValue> | null,
+    after?: Record<string, JsonValue> | null,
   ): Record<string, { new: unknown; old: unknown }> | undefined {
     if (!before && !after) {
       return undefined;
@@ -50,8 +53,8 @@ export class AuditUnit {
     return {
       ...entry,
       actorId: entry.actorId ?? store?.actorId ?? "system",
-      requestId: entry.requestId ?? (store as { requestId?: string }).requestId,
-      traceId: entry.traceId ?? (store as { traceId?: string }).traceId,
+      requestId: entry.requestId ?? store?.requestId,
+      traceId: entry.traceId ?? store?.traceId,
     };
   }
 
@@ -83,13 +86,13 @@ export class AuditUnit {
   ): Promise<TResult> {
     return this.db.transaction(async (tx) => {
       const result = await fn();
-      const resolved = typeof entry === "function" ? entry(result) : entry;
+      const resolved = entry instanceof Function ? entry(result) : entry;
       await this.write(resolved, tx);
       return result;
     });
   }
 
-  async query(filter: AuditQuery): Promise<unknown[]> {
+  async query(filter: AuditQuery): Promise<AuditLog[]> {
     const store = context.getStore();
     return this.queryService.query({
       ...filter,
@@ -98,7 +101,10 @@ export class AuditUnit {
   }
 
   /** Reconstruct a record's current state by replaying its audited changes in seq order. */
-  reconstructState(entityType: string, entityId: string): Promise<Record<string, unknown> | null> {
+  async reconstructState(
+    entityType: string,
+    entityId: string,
+  ): Promise<Record<string, JsonValue> | null> {
     return this.queryService.reconstructState(entityType, entityId);
   }
 

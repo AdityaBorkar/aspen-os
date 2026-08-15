@@ -69,6 +69,13 @@ interface RevisedPkg {
   files?: string[];
 }
 
+type JsonValue = boolean | number | string | null | JsonValue[] | { [key: string]: JsonValue };
+
+interface PackageJson {
+  build?: BuildConfig;
+  [key: string]: JsonValue | BuildConfig | undefined;
+}
+
 const relToSrc = (srcPath: string) => srcPath.replace(/^\.\/src\//, "");
 const subdirFor = (srcPath: string) => dirname(relToSrc(srcPath));
 
@@ -85,7 +92,7 @@ async function rewriteAliasImports(outputDir: string): Promise<void> {
         declarationFiles.push(full);
       }
     }
-    await Promise.all(directories.map((directory) => collect(directory)));
+    await Promise.all(directories.map(async (directory) => collect(directory)));
   }
 
   await collect(outputDir);
@@ -109,9 +116,11 @@ async function parsePackageJson() {
   const outputFile = (srcPath: string, ext: ".js" | ".d.ts") =>
     `./${outputDirname}/${relToSrc(srcPath).replace(/(?:\.d\.ts|\.[^.]+)$/, ext)}`;
 
-  const pkg = JSON.parse(await file(join(ROOT, "package.json")).text()) as Record<string, unknown>;
+  const pkg: PackageJson = JSON.parse(await file(join(ROOT, "package.json")).text());
 
-  const buildConfig = (pkg.build ?? {}) as BuildConfig;
+  // SAFETY: the build field is optional in package.json; when absent, {} is a valid
+  // BuildConfig because every member of BuildConfig is optional.
+  const buildConfig = pkg.build ?? {};
   const binConfig = buildConfig.bin ?? {};
   const exportsConfig = buildConfig.exports ?? {};
   const filesConfig = buildConfig.files ?? [];

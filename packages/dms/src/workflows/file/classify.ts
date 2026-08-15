@@ -10,6 +10,7 @@ import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchFileStep } from "#/workflow-steps/fetch-file";
 
 import { Workflow } from "@aspen-os/platform/server";
+import type { JsonValue } from "@aspen-os/platform/server";
 import { count, eq, isNotNull } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { object, parse } from "valibot";
@@ -57,7 +58,7 @@ export const classifyFile = Workflow.name("dms.file.classify")
     const fields = await ctx.step.run("get-fields", async () => getActiveFields(ctx.db, cls.id));
 
     const resolvedValues = await ctx.step.run("resolve-field-values", async () => {
-      const values: Record<string, unknown> = {};
+      const values: Record<string, JsonValue> = {};
       for (const field of fields) {
         values[field.name] = parsed.fieldValues?.[field.name] ?? field.defaultValue ?? null;
       }
@@ -102,12 +103,14 @@ export const classifyFile = Workflow.name("dms.file.classify")
     }
 
     await ctx.step.run("audit-and-notify", async () => {
+      // SAFETY: diff() compares JsonValue-typed state snapshots.
+      // New/old values are JSON-safe and fit the audit entry's changes contract.
       await ctx.audit.write({
         action: AUDIT_ACTION.CLASSIFIED,
         changes: ctx.audit.diff(
           { className: null, name: file.name },
           { className: cls.name, name: newName },
-        ),
+        ) as Record<string, JsonValue> | undefined,
         crudAction: "update",
         entityId: id,
         entityType: AUDIT_ENTITY_TYPE.FILE,

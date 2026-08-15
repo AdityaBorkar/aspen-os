@@ -18,13 +18,15 @@ export const updateFullAndFinal = Workflow.name("hr.lifecycle.update-full-and-fi
     const parsed = parse(UpdateFullAndFinalSchema, patch);
 
     // Calculate totals if provided
-    const updateData: Record<string, unknown> = {
-      ...parsed,
+    const { paidAt, ...rest } = parsed;
+
+    const updateData: Partial<typeof fullAndFinalStatement.$inferInsert> = {
+      ...rest,
       updatedAt: new Date(),
     };
 
-    if (parsed.paidAt) {
-      updateData.paidAt = new Date(parsed.paidAt);
+    if (paidAt) {
+      updateData.paidAt = new Date(paidAt);
     }
 
     const [updated] = await ctx.db

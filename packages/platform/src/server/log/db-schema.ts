@@ -1,3 +1,5 @@
+import type { LogLevel } from "#/server/log/types";
+import type { JsonValue } from "#/server/types";
 import { uuidv7 } from "#/server/utils/uuidv7";
 
 import { sql } from "drizzle-orm";
@@ -11,9 +13,9 @@ export const logs = pgTable(
     errorName: text("error_name"),
     errorStack: text("error_stack"),
     id: text("id").primaryKey().$defaultFn(uuidv7),
-    level: text("level").notNull(),
+    level: text("level").$type<LogLevel>().notNull(),
     message: text("message").notNull(),
-    metadata: jsonb("metadata").default({}),
+    metadata: jsonb("metadata").$type<Record<string, JsonValue> | null>().default({}),
     requestId: text("request_id"),
     service: text("service").notNull(),
     spanId: text("span_id"),

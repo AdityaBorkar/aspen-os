@@ -12,6 +12,7 @@ import type {
   LogQuery,
   LogStats,
 } from "#/server/log/types";
+import type { JsonValue } from "#/server/types";
 import { context } from "#/server/utils/context";
 
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
@@ -43,6 +44,7 @@ export class LogUnit {
     this.serviceName = config.serviceName ?? "app";
     this.defaultLevel = config.defaultLevel ?? "info";
     this.createEntry = createEntryFactory(this.serviceName);
+    // SAFETY: the DatabaseUnit db is a valid node-postgres drizzle instance.
     this.db = db.db as DrizzleDB;
     this.queryService = new LogQueryService(this.db);
 
@@ -67,7 +69,7 @@ export class LogUnit {
         })),
       );
     });
-    this.flushTimer = setInterval(() => this.buffer?.flush(), 5000);
+    this.flushTimer = setInterval(async () => this.buffer?.flush(), 5000);
   }
 
   async $prepareInfra(): Promise<void> {}
@@ -104,14 +106,15 @@ export class LogUnit {
     this.requireBuffer().push(this.createEntry({ error, level, message, metadata }));
   }
 
-  child(contextData: Record<string, unknown>): ChildLogger {
-    const mergeMeta = (meta?: Record<string, unknown>) => ({
+  child(contextData: Record<string, JsonValue>): ChildLogger {
+    const mergeMeta = (meta?: Record<string, JsonValue>) => ({
       ...contextData,
       ...meta,
     });
     return {
-      debug: (message, metadata) =>
-        this.enqueue({ level: "debug", message, metadata: mergeMeta(metadata) }),
+      debug: (message, metadata) => {
+        this.enqueue({ level: "debug", message, metadata: mergeMeta(metadata) });
+      },
       error: (message, err, metadata) => {
         if (this.shouldLog("error")) {
           this.requireBuffer().push(
@@ -124,42 +127,46 @@ export class LogUnit {
           );
         }
       },
-      fatal: (message, err, metadata) =>
+      fatal: (message, err, metadata) => {
         this.requireBuffer().push(
           this.createEntry({ error: err, level: "fatal", message, metadata: mergeMeta(metadata) }),
-        ),
-      info: (message, metadata) =>
-        this.enqueue({ level: "info", message, metadata: mergeMeta(metadata) }),
-      log: (level, message, metadata) =>
-        this.enqueue({ level, message, metadata: mergeMeta(metadata) }),
-      warn: (message, metadata) =>
-        this.enqueue({ level: "warn", message, metadata: mergeMeta(metadata) }),
+        );
+      },
+      info: (message, metadata) => {
+        this.enqueue({ level: "info", message, metadata: mergeMeta(metadata) });
+      },
+      log: (level, message, metadata) => {
+        this.enqueue({ level, message, metadata: mergeMeta(metadata) });
+      },
+      warn: (message, metadata) => {
+        this.enqueue({ level: "warn", message, metadata: mergeMeta(metadata) });
+      },
     };
   }
 
-  debug(message: string, metadata?: Record<string, unknown>): void {
+  debug(message: string, metadata?: Record<string, JsonValue>): void {
     this.enqueue({ level: "debug", message, metadata });
   }
 
-  info(message: string, metadata?: Record<string, unknown>): void {
+  info(message: string, metadata?: Record<string, JsonValue>): void {
     this.enqueue({ level: "info", message, metadata });
   }
 
-  warn(message: string, metadata?: Record<string, unknown>): void {
+  warn(message: string, metadata?: Record<string, JsonValue>): void {
     this.enqueue({ level: "warn", message, metadata });
   }
 
-  error(message: string, error?: Error, metadata?: Record<string, unknown>): void {
+  error(message: string, error?: Error, metadata?: Record<string, JsonValue>): void {
     if (this.shouldLog("error")) {
       this.requireBuffer().push(this.createEntry({ error, level: "error", message, metadata }));
     }
   }
 
-  fatal(message: string, error?: Error, metadata?: Record<string, unknown>): void {
+  fatal(message: string, error?: Error, metadata?: Record<string, JsonValue>): void {
     this.requireBuffer().push(this.createEntry({ error, level: "fatal", message, metadata }));
   }
 
-  log(level: LogLevel, message: string, metadata?: Record<string, unknown>): void {
+  log(level: LogLevel, message: string, metadata?: Record<string, JsonValue>): void {
     this.enqueue({ level, message, metadata });
   }
 

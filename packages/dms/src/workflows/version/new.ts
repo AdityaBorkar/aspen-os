@@ -9,7 +9,7 @@ import { fetchFileStep } from "#/workflow-steps/fetch-file";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-import { object, parse } from "valibot";
+import { is, object, parse, string } from "valibot";
 
 const NewVersionInputSchema = object({
   fileId: IdSchema,
@@ -41,9 +41,14 @@ export const newFileVersion = Workflow.name("dms.version.new")
       version: newVersion,
     });
 
+    const { body } = parsed;
+    if (!(body instanceof Buffer) && !(body instanceof ReadableStream) && !is(string(), body)) {
+      throw new Error("Invalid file body: expected a string, Buffer, or ReadableStream.");
+    }
+
     const fileObject = await ctx.step.run("upload-storage", async () =>
       uploadStorage({
-        body: parsed.body as Buffer | ReadableStream | string,
+        body,
         contentType: parsed.contentType ?? file.contentType,
         key: storageKey,
       }),

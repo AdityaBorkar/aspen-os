@@ -27,11 +27,11 @@ export type {
 function createWorkflow<TInput, TOutput>(config: {
   name: string;
   handler: (input: TInput, ctx: WorkflowContext) => Promise<TOutput>;
-  schema?: StandardSchema;
+  schema?: StandardSchema<unknown, TInput>;
 }): WorkflowInstance<TInput, TOutput> {
   return {
     name: config.name,
-    run(input: TInput, options?: RunOptions): Promise<TOutput> {
+    async run(input: TInput, options?: RunOptions): Promise<TOutput> {
       return executeWorkflow(config, input, options);
     },
   };

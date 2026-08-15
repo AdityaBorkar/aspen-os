@@ -1,7 +1,9 @@
 import { randomBytes, scrypt as scryptCb, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 
-const scrypt = promisify(scryptCb) as (
+// SAFETY: node:crypto's scrypt is callback-based; promisify wraps it and the overloaded
+// Signature must be narrowed to the (password, salt, keylen) arity used below.
+const scryptAsync = promisify(scryptCb) as (
   password: string,
   salt: Buffer,
   keylen: number,
@@ -9,7 +11,7 @@ const scrypt = promisify(scryptCb) as (
 
 async function hash(password: string): Promise<string> {
   const salt = randomBytes(16);
-  const key = await scrypt(password, salt, 64);
+  const key = await scryptAsync(password, salt, 64);
   return `scrypt:${salt.toString("base64")}:${key.toString("base64")}`;
 }
 
@@ -21,7 +23,7 @@ async function verify(password: string, storedHash: string): Promise<boolean> {
 
   const salt = Buffer.from(saltB64, "base64");
   const storedKey = Buffer.from(keyB64, "base64");
-  const derivedKey = await scrypt(password, salt, storedKey.length);
+  const derivedKey = await scryptAsync(password, salt, storedKey.length);
   return timingSafeEqual(derivedKey, storedKey);
 }
 

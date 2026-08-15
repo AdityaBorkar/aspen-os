@@ -15,7 +15,7 @@ export const updateOrganization = Workflow.name("org.update")
       throw new Error("Organization not found. Create one first.");
     }
 
-    const data = stripUndefined(input as Record<string, unknown>);
+    const data = stripUndefined(input);
 
     if (Object.keys(data).length === 0) {
       return current;

@@ -50,6 +50,8 @@ export function useHotKey() {
 
   useEffect(() => {
     globalThis.addEventListener("keydown", onKeyPress);
-    return () => globalThis.removeEventListener("keydown", onKeyPress);
+    return () => {
+      globalThis.removeEventListener("keydown", onKeyPress);
+    };
   }, []);
 }

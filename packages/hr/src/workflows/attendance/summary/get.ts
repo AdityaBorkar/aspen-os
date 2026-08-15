@@ -39,6 +39,8 @@ export const getSummary = Workflow.name("hr.attendance.get-summary")
     };
 
     for (const record of records) {
+      // SAFETY: `attendance.status` is an enum column whose stored value is always one of
+      // The string statuses handled by the switch below.
       const status = record.status as string;
       switch (status) {
         case "present": {

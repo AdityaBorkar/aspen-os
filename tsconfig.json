@@ -24,7 +24,7 @@
     "types": ["bun", "@types/bun"],
     "verbatimModuleSyntax": true
   },
-  "exclude": ["**/node_modules", "**/.output", "**/.tanstack"],
+  "exclude": ["**/node_modules", "**/.output", "**/.tanstack", "tools/**"],
   "references": [
     { "path": "./docs" },
     { "path": "./packages/accounting" },

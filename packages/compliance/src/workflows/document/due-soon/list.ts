@@ -7,8 +7,8 @@ const getDueSoonDocuments = Workflow.name("document.due-soon").handler(
   async (input: { days: number }, ctx) => {
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + input.days);
-    const futureDateStr = futureDate.toISOString().split("T")[0] as string;
-    const todayStr = new Date().toISOString().split("T")[0] as string;
+    const futureDateStr = futureDate.toISOString().split("T")[0]!;
+    const todayStr = new Date().toISOString().split("T")[0]!;
 
     return ctx.db
       .select()

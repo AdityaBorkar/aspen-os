@@ -1,5 +1,7 @@
 import { auditLog } from "#/server/audit/db-schema";
+import type { AuditLog } from "#/server/audit/db-schema";
 import type { AuditDatabase, AuditQuery } from "#/server/audit/types";
+import type { JsonValue } from "#/server/types";
 
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 
@@ -10,7 +12,7 @@ export class AuditQueryService {
     this.db = db;
   }
 
-  async query(filter: AuditQuery): Promise<unknown[]> {
+  async query(filter: AuditQuery): Promise<AuditLog[]> {
     const conditions = [];
     if (filter.action) {
       conditions.push(eq(auditLog.action, filter.action));
@@ -55,7 +57,7 @@ export class AuditQueryService {
   async reconstructState(
     entityType: string,
     entityId: string,
-  ): Promise<Record<string, unknown> | null> {
+  ): Promise<Record<string, JsonValue> | null> {
     const rows = await this.db
       .select({
         crudAction: auditLog.crudAction,
@@ -69,12 +71,12 @@ export class AuditQueryService {
       return null;
     }
 
-    let state: Record<string, unknown> | null = null;
+    let state: Record<string, JsonValue> | null = null;
     for (const row of rows) {
       if (row.crudAction === "delete") {
         state = null;
       } else if (row.newState) {
-        state = row.newState as Record<string, unknown>;
+        state = row.newState;
       }
     }
     return state;

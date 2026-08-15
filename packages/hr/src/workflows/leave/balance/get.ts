@@ -25,15 +25,15 @@ export const getLeaveBalance = Workflow.name("hr.leave.get-leave-balance")
       );
 
     return allocations.map((alloc) => ({
-      allocated: parseFloat(alloc.totalDays),
-      carryForwarded: parseFloat(alloc.carryForwardedDays),
-      earned: parseFloat(alloc.earnedDays),
+      allocated: Number.parseFloat(alloc.totalDays),
+      carryForwarded: Number.parseFloat(alloc.carryForwardedDays),
+      earned: Number.parseFloat(alloc.earnedDays),
       leaveType: alloc.leaveType,
       remaining:
-        parseFloat(alloc.totalDays) +
-        parseFloat(alloc.carryForwardedDays) +
-        parseFloat(alloc.earnedDays) -
-        parseFloat(alloc.usedDays),
-      used: parseFloat(alloc.usedDays),
+        Number.parseFloat(alloc.totalDays) +
+        Number.parseFloat(alloc.carryForwardedDays) +
+        Number.parseFloat(alloc.earnedDays) -
+        Number.parseFloat(alloc.usedDays),
+      used: Number.parseFloat(alloc.usedDays),
     }));
   });

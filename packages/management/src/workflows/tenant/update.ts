@@ -6,6 +6,7 @@ import { stripUndefined } from "#/utils/strip-undefined";
 import { fetchTenantStep } from "#/workflow-steps/fetch-tenant";
 
 import { Workflow } from "@aspen-os/platform/server";
+import type { JsonValue } from "@aspen-os/platform/server";
 import { organization } from "@aspen-os/platform/server/db-schemas";
 import { eq } from "drizzle-orm";
 import { object, optional } from "valibot";
@@ -62,7 +63,7 @@ export const updateTenant = Workflow.name("tenant.update")
     });
 
     await ctx.step.run("audit-and-notify", async () => {
-      const changes: Record<string, unknown> = {};
+      const changes: Record<string, JsonValue> = {};
       if (profile) {
         Object.assign(changes, stripUndefined(profile));
       }

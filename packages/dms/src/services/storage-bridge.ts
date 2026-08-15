@@ -22,7 +22,7 @@ export function computeStorageKey(input: {
   tenantId?: string;
   version: number;
 }): string {
-  const safeName = input.name.replace(/[\\/]+/g, "_").replace(/\0/g, "");
+  const safeName = input.name.replaceAll(/[\\/]+/g, "_").replaceAll("\0", "");
   const tenant = input.tenantId ?? "default";
   return `dms/${tenant}/${input.fileId}/v${input.version}/${safeName}`;
 }

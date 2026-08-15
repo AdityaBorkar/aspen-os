@@ -1,29 +1,44 @@
 import { complianceDocument, complianceObligation } from "#/db-schemas";
 import type { DashboardSummary } from "#/types";
-import { computeHealthScore } from "#/workflows/utils";
+import { computeHealthScore, isWorkflowKvStore } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, gte, isNotNull, sql } from "drizzle-orm";
+import { number, object, record, safeParse, string } from "valibot";
 
 const CACHE_KEY = "compliance:dashboard:summary";
+
+const DashboardSummarySchema = object({
+  activeObligations: number(),
+  byBranch: record(string(), number()),
+  byCategory: record(string(), number()),
+  bySourceModule: record(string(), number()),
+  byStatus: record(string(), number()),
+  documentsGenerated30d: number(),
+  dueSoon: number(),
+  expired: number(),
+  expiringSoon: number(),
+  healthScore: number(),
+  overdue: number(),
+  pendingReview: number(),
+  rejected: number(),
+  total: number(),
+  verified: number(),
+});
 
 const getDashboardSummary = Workflow.name("dashboard.summary").handler(
   async (input: { branchFilter?: string }, ctx): Promise<DashboardSummary> => {
     const { branchFilter } = input;
-    const kvStore = ctx.config.kvStore as
-      | {
-          del: (key: string) => Promise<void>;
-          get: <TValue>(key: string) => Promise<TValue | null>;
-          set: <TValue>(key: string, value: TValue, ttl?: number) => Promise<void>;
-        }
-      | undefined;
-    const cacheTtl = (ctx.config.cacheTtl as number | undefined) ?? 300;
+    const kvStore = isWorkflowKvStore(ctx.config.kvStore) ? ctx.config.kvStore : undefined;
+    const cacheTtlResult = safeParse(number(), ctx.config.cacheTtl);
+    const cacheTtl = cacheTtlResult.success ? cacheTtlResult.output : 300;
 
     const cacheKey = branchFilter ? `${CACHE_KEY}:${branchFilter}` : CACHE_KEY;
 
-    const cached = kvStore ? await kvStore.get<DashboardSummary>(cacheKey) : null;
-    if (cached) {
-      return cached;
+    const cached = kvStore ? await kvStore.get(cacheKey) : null;
+    const cachedSummary = safeParse(DashboardSummarySchema, cached);
+    if (cachedSummary.success) {
+      return cachedSummary.output;
     }
 
     const { db } = ctx;
@@ -49,8 +64,8 @@ const getDashboardSummary = Workflow.name("dashboard.summary").handler(
     const now = new Date();
     const thirtyDaysLater = new Date();
     thirtyDaysLater.setDate(thirtyDaysLater.getDate() + 30);
-    const nowStr = now.toISOString().split("T")[0] as string;
-    const futureStr = thirtyDaysLater.toISOString().split("T")[0] as string;
+    const nowStr = now.toISOString().split("T")[0]!;
+    const futureStr = thirtyDaysLater.toISOString().split("T")[0]!;
 
     const [dateCounts] = await db
       .select({
@@ -154,7 +169,7 @@ const getDashboardSummary = Workflow.name("dashboard.summary").handler(
       verified,
     });
 
-    const summary: DashboardSummary = {
+    const summary = {
       activeObligations: obligationCount?.count ?? 0,
       byBranch,
       byCategory,

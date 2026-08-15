@@ -1,4 +1,5 @@
 import { CompressionModeSchema } from "#/schemas/enums";
+import { JsonValueSchema } from "#/schemas/json";
 import { FileNameSchema } from "#/schemas/utils";
 
 import {
@@ -26,7 +27,7 @@ export const CompressionOptionSchema = object({
 
 export type CompressionOption = InferOutput<typeof CompressionOptionSchema>;
 
-export const MetadataSchema = record(string(), unknown());
+export const MetadataSchema = record(string(), JsonValueSchema);
 
 export const UploadFileSchema = object({
   batchId: optional(string()),
@@ -36,7 +37,7 @@ export const UploadFileSchema = object({
   description: optional(nullable(string())),
   folderId: optional(nullable(string())),
   labelIds: optional(array(pipe(string(), minLength(1, "labelId is required")))),
-  metadata: optional(record(string(), unknown())),
+  metadata: optional(MetadataSchema),
   name: FileNameSchema,
   ownerId: string(),
   uploadedBy: optional(string()),
@@ -55,7 +56,7 @@ export const UpdateFileSchema = object({
   compression: optional(CompressionOptionSchema),
   contentType: optional(string()),
   description: optional(nullable(string())),
-  metadata: optional(record(string(), unknown())),
+  metadata: optional(MetadataSchema),
   name: optional(FileNameSchema),
   uploadedBy: optional(string()),
 });
@@ -64,7 +65,7 @@ export type UpdateFileInput = InferOutput<typeof UpdateFileSchema>;
 
 export const AddMetadataSchema = object({
   key: pipe(string(), minLength(1, "Metadata key is required")),
-  value: unknown(),
+  value: JsonValueSchema,
 });
 
 export type AddMetadataInput = InferOutput<typeof AddMetadataSchema>;
@@ -89,7 +90,7 @@ export type MoveFileInput = InferOutput<typeof MoveFileSchema>;
 
 export const ClassifyFileSchema = object({
   classId: pipe(string(), minLength(1, "classId is required")),
-  fieldValues: optional(record(string(), unknown())),
+  fieldValues: optional(record(string(), JsonValueSchema)),
 });
 
 export type ClassifyFileInput = InferOutput<typeof ClassifyFileSchema>;

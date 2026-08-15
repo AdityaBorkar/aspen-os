@@ -1,3 +1,4 @@
+import type { employee } from "#/db-schemas";
 import { employeeTransfer } from "#/db-schemas";
 import { fetchTransferById } from "#/workflows/utils";
 
@@ -17,7 +18,7 @@ export const completeTransfer = Workflow.name("hr.lifecycle.complete-transfer")
     const transfer = await fetchTransferById(ctx.db, id);
 
     // Update employee record
-    const updateData: Record<string, unknown> = { updatedAt: new Date() };
+    const updateData: Partial<typeof employee.$inferInsert> = { updatedAt: new Date() };
     if (transfer.toBranch) {
       updateData.branch = transfer.toBranch;
     }

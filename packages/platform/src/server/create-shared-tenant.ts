@@ -3,6 +3,7 @@ import { BasePlatform as Base } from "#/server/base-platform";
 import type { CommonConfig, ExtractModuleNames, MergedSchemas } from "#/server/base-platform";
 import { DatabaseUnit } from "#/server/db";
 import type { DatabaseConfig } from "#/server/db";
+import type { SchemaMap } from "#/server/types";
 import { isGlobalTenantId } from "#/server/utils/is-global-tenant-id";
 
 export type SharedTenantConfig = CommonConfig & {
@@ -11,14 +12,14 @@ export type SharedTenantConfig = CommonConfig & {
 
 export type SharedTenantPlatformInstance<
   TModules extends Module[],
-  TSchemas extends Record<string, unknown> = MergedSchemas<TModules>,
+  TSchemas extends SchemaMap = MergedSchemas<TModules>,
 > = SharedTenantPlatform<TModules, TSchemas> &
   UnitAccessors<TSchemas> &
   ArrayModuleAccessors<TModules, ExtractModuleNames<TModules>[number]>;
 
 export class SharedTenantPlatform<
   TModules extends Module[],
-  TSchemas extends Record<string, unknown> = MergedSchemas<TModules>,
+  TSchemas extends SchemaMap = MergedSchemas<TModules>,
 > extends Base<TModules, TSchemas> {
   private readonly dbUnit: DatabaseUnit<TSchemas>;
 
@@ -34,6 +35,7 @@ export class SharedTenantPlatform<
   ): SharedTenantPlatformInstance<TModules> {
     const db = new DatabaseUnit<MergedSchemas<TModules>>(config.db, "shared");
     const core = Base.createCore<TModules, MergedSchemas<TModules>>(db, config, modules);
+    // SAFETY: create() returned an instance whose units/modules match the merged schema type.
     return new SharedTenantPlatform<TModules>(
       core.units,
       core.modules,

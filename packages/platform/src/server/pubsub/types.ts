@@ -1,7 +1,12 @@
+import type { JsonValue } from "#/server/types";
+
 export interface PubSubConfig {
   monitorStateIntervalSeconds?: number;
   schema?: string;
 }
+
+/** JSON-serializable object payload for published messages. */
+export type MessageData = Record<string, JsonValue>;
 
 export interface PublishOptions {
   expireInMinutes?: number;

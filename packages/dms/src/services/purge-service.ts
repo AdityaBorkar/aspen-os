@@ -18,6 +18,7 @@ import { SCHEDULED_JOBS, SETTING_KEYS } from "#/utils/constants";
 import type { AuditUnit, PubSubUnit } from "@aspen-os/platform/server";
 import { and, desc, eq, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import { number, safeParse } from "valibot";
 
 export interface PurgeDeps {
   audit: AuditUnit;
@@ -69,8 +70,9 @@ async function resolveRetentionDays(db: NodePgDatabase, classId: string | null):
       return cls.retentionDays;
     }
   }
-  const val = (await getSetting(db, SETTING_KEYS.DEFAULT_RETENTION_DAYS)) as number | null;
-  return val ?? 180;
+  const val = await getSetting(db, SETTING_KEYS.DEFAULT_RETENTION_DAYS);
+  const parsed = safeParse(number(), val);
+  return parsed.success ? parsed.output : 180;
 }
 
 export async function isFileHeld(db: NodePgDatabase, fileId: string): Promise<boolean> {

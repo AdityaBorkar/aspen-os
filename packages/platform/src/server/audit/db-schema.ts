@@ -1,3 +1,4 @@
+import type { JsonValue } from "#/server/types";
 import { uuidv7 } from "#/server/utils/uuidv7";
 
 import { sql } from "drizzle-orm";
@@ -17,7 +18,7 @@ export const auditLog = pgTable(
   {
     action: text("action").notNull(),
     actorId: text("actor_id").notNull(),
-    changes: jsonb("changes"),
+    changes: jsonb("changes").$type<Record<string, JsonValue> | null>(),
     crudAction: text("crud_action"),
     entityId: text("entity_id").notNull(),
     entityType: text("entity_type").notNull(),
@@ -25,10 +26,10 @@ export const auditLog = pgTable(
       .primaryKey()
       .$defaultFn(() => uuidv7()),
     idempotencyKey: text("idempotency_key"),
-    metadata: jsonb("metadata"),
-    newState: jsonb("new_state"),
+    metadata: jsonb("metadata").$type<Record<string, JsonValue> | null>(),
+    newState: jsonb("new_state").$type<Record<string, JsonValue> | null>(),
     performedAt: timestamp("performed_at", { withTimezone: true }).notNull().defaultNow(),
-    previousState: jsonb("previous_state"),
+    previousState: jsonb("previous_state").$type<Record<string, JsonValue> | null>(),
     requestId: text("request_id"),
     seq: bigserial("seq", { mode: "number" }),
     tenantId: text("tenant_id")

@@ -17,9 +17,7 @@ export interface TrashFilters {
 export const listTrash = Workflow.name("dms.trash.list").handler(
   async (input: { filters?: TrashFilters; userId: string; admin?: boolean }, ctx) => {
     const filters = input.filters ?? {};
-    const conditions: SQL[] = [
-      or(eq(dmsFile.status, "trashed"), eq(dmsFile.status, "expired")) as SQL,
-    ];
+    const conditions: SQL[] = [or(eq(dmsFile.status, "trashed"), eq(dmsFile.status, "expired"))!];
 
     if (!input.admin) {
       conditions.push(eq(dmsFile.ownerId, input.userId));
@@ -48,9 +46,10 @@ export const listTrash = Workflow.name("dms.trash.list").handler(
       .offset(filters.offset ?? 0);
 
     const ids = rows.map((row) => row.id);
-    const holds = ids.length
-      ? await ctx.db.select().from(dmsLegalHold).where(inArray(dmsLegalHold.fileId, ids))
-      : [];
+    const holds =
+      ids.length > 0
+        ? await ctx.db.select().from(dmsLegalHold).where(inArray(dmsLegalHold.fileId, ids))
+        : [];
 
     const holdMap = new Map<string, (typeof holds)[number][]>();
     for (const hold of holds) {
@@ -59,10 +58,13 @@ export const listTrash = Workflow.name("dms.trash.list").handler(
       holdMap.set(hold.fileId, list);
     }
 
-    const classIds = [...new Set(rows.map((row) => row.classId).filter(Boolean))] as string[];
-    const classes = classIds.length
-      ? await ctx.db.select().from(dmsClass).where(inArray(dmsClass.id, classIds))
-      : [];
+    const classIds = [
+      ...new Set(rows.map((row) => row.classId).filter((value): value is string => Boolean(value))),
+    ];
+    const classes =
+      classIds.length > 0
+        ? await ctx.db.select().from(dmsClass).where(inArray(dmsClass.id, classIds))
+        : [];
     const classMap = new Map(classes.map((cls) => [cls.id, cls]));
 
     const folderConditions: SQL[] = [eq(dmsFolder.isTrashed, true)];

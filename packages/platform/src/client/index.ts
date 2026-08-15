@@ -53,11 +53,12 @@ export class Platform<TModules extends Module[]> implements UnitAccessors {
 
     const units = { auth, logs, rpc };
 
-    const modulesRecord = {} as Record<string, Module>;
+    const modulesRecord: Record<string, Module> = {};
     for (const mod of modules) {
       modulesRecord[mod.$name] = mod;
     }
 
+    // SAFETY: modules is a typed Module[] whose $name keys map 1:1 into the record.
     return new Platform(units, modulesRecord) as PlatformInstance<TModules>;
   }
 
@@ -65,20 +66,17 @@ export class Platform<TModules extends Module[]> implements UnitAccessors {
     this.units = units;
     this.modules = modules;
     return new Proxy(this, {
-      get(target, prop, receiver) {
-        if (typeof prop === "string") {
-          const unit = target.units[prop as keyof PlatformUnits];
-          if (unit) {
-            return unit;
-          }
+      get(target, prop, _receiver) {
+        if (prop in target.units) {
+          // SAFETY: proxy access for a unit name resolves to the matching unit.
+          return target.units[prop as keyof PlatformUnits];
         }
-        if (typeof prop === "string") {
-          const mod = target.modules[prop];
-          if (mod) {
-            return mod;
-          }
+        if (prop in target.modules) {
+          // SAFETY: module names are string keys on the modules record.
+          return target.modules[prop as string];
         }
-        return Reflect.get(target, prop, receiver);
+        // SAFETY: fall through to the wrapped platform instance's own members.
+        return target[prop as keyof typeof target];
       },
     });
   }
@@ -86,11 +84,13 @@ export class Platform<TModules extends Module[]> implements UnitAccessors {
   getModule<TKey extends TModules[number]["$name"]>(
     name: TKey,
   ): Extract<TModules[number], { $name: TKey }> {
-    const module = this.modules[name];
+    const module = Object.values(this.modules).find(
+      (mod): mod is Extract<TModules[number], { $name: TKey }> => mod.$name === name,
+    );
     if (!module) {
-      throw new Error(`Module "${String(name)}" not found`);
+      throw new Error(`Module "${name}" not found`);
     }
-    return module as Extract<TModules[number], { $name: TKey }>;
+    return module;
   }
 
   getUnit<TKey extends keyof PlatformUnits>(name: TKey): PlatformUnits[TKey] {

@@ -1,6 +1,7 @@
 import { complianceCategoryEnum, obligationFrequencyEnum } from "#/db-schemas/enums";
 
 import { uuidv7 } from "@aspen-os/platform/server";
+import type { JsonValue } from "@aspen-os/platform/server";
 import {
   boolean,
   date,
@@ -26,7 +27,7 @@ export const complianceObligation = pgTable(
     defaultEscalationDays: integer("default_escalation_days").array(),
     defaultIssuingAuthority: text("default_issuing_authority"),
     defaultJurisdiction: text("default_jurisdiction"),
-    defaultMetadata: jsonb("default_metadata"),
+    defaultMetadata: jsonb("default_metadata").$type<Record<string, JsonValue> | null>(),
     defaultReminderDays: integer("default_reminder_days").array(),
     documentType: text("document_type"),
     dueDay: integer("due_day"),

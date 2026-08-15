@@ -5,7 +5,7 @@ import { and, inArray, isNotNull, isNull, lte } from "drizzle-orm";
 
 const getOverdueDocuments = Workflow.name("document.overdue").handler(
   async (_input: Record<string, never>, ctx) => {
-    const todayStr = new Date().toISOString().split("T")[0] as string;
+    const todayStr = new Date().toISOString().split("T")[0]!;
 
     return ctx.db
       .select()

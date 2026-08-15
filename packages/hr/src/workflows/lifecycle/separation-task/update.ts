@@ -17,7 +17,7 @@ export const updateSeparationTask = Workflow.name("hr.lifecycle.update-separatio
 
     const parsed = parse(UpdateSeparationTaskSchema, patch);
 
-    const updateData: Record<string, unknown> = {
+    const updateData: Partial<typeof separationTask.$inferInsert> = {
       ...parsed,
       updatedAt: new Date(),
     };

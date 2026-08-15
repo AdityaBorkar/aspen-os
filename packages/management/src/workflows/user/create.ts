@@ -33,6 +33,9 @@ export const createUser = Workflow.name("user.create")
       }
     }
 
+    // SAFETY: input.role was validated by CreatePlatformUserSchema (RoleSchema picklist)
+    // As one of the platform's known roles; better-auth's admin createUser endpoint
+    // Accepts a role literal from its adminRoles union, and "admin" is a member of it.
     const response = await auth.service.api.createUser({
       body: {
         email: input.email,

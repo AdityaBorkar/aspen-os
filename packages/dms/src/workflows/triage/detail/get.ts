@@ -22,10 +22,7 @@ export const getTriageDetail = Workflow.name("dms.triage.detail")
       Promise.all(
         classes.map(async (cls) => {
           const fields = await getActiveFields(ctx.db, cls.id);
-          const { missing } = validateFieldValues(
-            fields,
-            (file.fieldValues as Record<string, unknown> | undefined) ?? {},
-          );
+          const { missing } = validateFieldValues(fields, file.fieldValues ?? {});
           return { classId: cls.id, className: cls.name, missing };
         }),
       ),

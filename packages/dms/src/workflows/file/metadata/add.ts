@@ -17,7 +17,7 @@ export const addFileMetadata = Workflow.name("dms.file.add-metadata")
     const parsed = parse(AddMetadataSchema, input);
 
     const metadata = {
-      ...(file.metadata as Record<string, unknown> | null),
+      ...file.metadata,
       [parsed.key]: parsed.value,
     };
 

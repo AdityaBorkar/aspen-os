@@ -16,9 +16,7 @@ let context: ClientContext | null = null;
 
 export function setContext(ctx: ClientContext): void {
   context = ctx;
-  if (typeof globalThis !== "undefined") {
-    globalThis.aspen = ctx;
-  }
+  globalThis.aspen = ctx;
 }
 
 export function getContext(): ClientContext {

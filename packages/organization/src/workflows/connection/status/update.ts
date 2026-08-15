@@ -1,7 +1,6 @@
 import { connection } from "#/db-schemas";
 import { CONNECTION_EVENTS } from "#/pubsub";
 import { ConnectionStatusSchema } from "#/types";
-import type { ConnectionStatus } from "#/types";
 import { fetchConnectionStep } from "#/workflow-steps/fetch-connection";
 
 import { Workflow } from "@aspen-os/platform/server";

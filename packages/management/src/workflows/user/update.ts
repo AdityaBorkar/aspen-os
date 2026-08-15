@@ -1,10 +1,12 @@
 import { serviceProvider, serviceProviderUser } from "#/db-schemas";
 import { PLATFORM_USER_EVENTS } from "#/pubsub";
 import { IdSchema, UpdatePlatformUserSchema } from "#/types";
+import type { UpdatePlatformUserInput } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, ROLES } from "#/utils/constants";
 import { fetchUserStep } from "#/workflow-steps/fetch-user";
 
 import { Workflow } from "@aspen-os/platform/server";
+import type { JsonValue } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
 
@@ -41,17 +43,17 @@ export const updateUser = Workflow.name("user.update")
       }
     }
 
-    const changes: Record<string, unknown> = {};
+    const changes: Record<string, JsonValue> = {};
 
     await ctx.step.run("update-auth-user", async () => {
       if (patch.name !== undefined || patch.role !== undefined) {
-        const updateData: { name?: string; role?: string } = {};
+        const updateData: Partial<Pick<UpdatePlatformUserInput, "name" | "role">> = {};
         if (patch.name !== undefined) {
           updateData.name = patch.name;
           changes.name = patch.name;
         }
         if (patch.role !== undefined) {
-          updateData.role = String(patch.role);
+          updateData.role = patch.role;
           changes.role = patch.role;
         }
 

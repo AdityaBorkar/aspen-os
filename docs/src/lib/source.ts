@@ -3,28 +3,30 @@ import * as serverCollections from "collections/server";
 import { loader } from "fumadocs-core/source";
 import type { LoaderPlugin } from "fumadocs-core/source";
 import { createElement } from "react";
-import type { ReactElement } from "react";
+import type { ElementType, ReactElement } from "react";
 
 import { DOCS_ROUTE } from "./constants";
 
-function resolveIcon(icon: string | undefined) {
+function resolveIcon(icon: string | undefined): ReactElement | undefined {
   if (!icon) {
-    return;
+    return undefined;
   }
-  const Icon = (TablerIcons as Record<string, unknown>)[icon] as
-    | ((props: { size?: number }) => ReactElement)
-    | undefined;
-  if (!Icon) {
+  const iconMap = TablerIcons;
+  // SAFETY: tabler icons exports only components, keyed by their icon names.
+  const iconEntry = iconMap[icon as keyof typeof iconMap];
+  if (!(iconEntry instanceof Function)) {
     console.warn(`[tabler-icons] Unknown icon: ${icon}`);
-    return;
+    return undefined;
   }
-  return createElement(Icon);
+  // SAFETY: a callable tabler icons export is a renderable React component.
+  return createElement(iconEntry as ElementType);
 }
 
 function tablerIconPlugin(): LoaderPlugin {
   function replaceIcon<TNode extends { icon?: unknown }>(node: TNode): TNode {
-    if (node.icon === undefined || typeof node.icon === "string") {
-      node.icon = resolveIcon(node.icon);
+    if (node.icon === undefined || !(node.icon instanceof Function)) {
+      // SAFETY: the icon field is an icon-name string or absent; component icons are left untouched.
+      node.icon = resolveIcon(node.icon as string | undefined);
     }
     return node;
   }
@@ -47,12 +49,9 @@ function displayTitlePlugin(): LoaderPlugin {
           return node;
         }
         const file = this.storage.read(filePath);
-        if (
-          file?.format === "page" &&
-          "display" in file.data &&
-          typeof file.data.display === "string"
-        ) {
-          node.name = file.data.display;
+        if (file?.format === "page" && "display" in file.data && file.data.display !== undefined) {
+          // SAFETY: the display frontmatter field, when present, is a string.
+          node.name = file.data.display as string;
         }
         return node;
       },

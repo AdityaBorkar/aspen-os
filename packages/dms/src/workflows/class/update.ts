@@ -6,6 +6,7 @@ import { stripUndefined } from "#/utils/strip-undefined";
 import { fetchClassStep } from "#/workflow-steps/fetch-class";
 
 import { Workflow } from "@aspen-os/platform/server";
+import type { JsonValue } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
 
@@ -39,12 +40,14 @@ export const updateClass = Workflow.name("dms.class.update")
     }
 
     await ctx.step.run("audit-and-notify", async () => {
+      // SAFETY: diff() compares JsonValue-typed state snapshots.
+      // New/old values are JSON-safe and fit the audit entry's changes contract.
       await ctx.audit.write({
         action: AUDIT_ACTION.UPDATED,
         changes: ctx.audit.diff(
           { name: current.name, retentionDays: current.retentionDays },
           { name: updated.name, retentionDays: updated.retentionDays },
-        ),
+        ) as Record<string, JsonValue> | undefined,
         crudAction: "update",
         entityId: id,
         entityType: AUDIT_ENTITY_TYPE.CLASS,

@@ -1,8 +1,8 @@
 import { DynamicCodeBlock } from "fumadocs-ui/components/dynamic-codeblock";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import { toJsxRuntime } from "hast-util-to-jsx-runtime";
-import { Children, Suspense, use, useDeferredValue } from "react";
-import type { ComponentProps, ReactElement, ReactNode } from "react";
+import { Children, isValidElement, Suspense, use, useDeferredValue } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 import { remark } from "remark";
 import remarkGfm from "remark-gfm";
@@ -38,10 +38,16 @@ function createProcessor(): Processor {
 }
 
 function Pre(props: ComponentProps<"pre">) {
-  const code = Children.only(props.children) as ReactElement;
-  const codeProps = code.props as ComponentProps<"code">;
+  const child = Children.only(props.children);
+  if (!isValidElement(child)) {
+    return null;
+  }
+  // SAFETY: the single child of a <pre> block is the <code> element.
+  const codeProps = child.props as ComponentProps<"code">;
   const content = codeProps.children;
-  if (typeof content !== "string") {
+  // SAFETY: <pre><code> children in processed markdown are always plain text strings.
+  const text = content as string;
+  if (String(text) !== text) {
     return null;
   }
 
@@ -55,7 +61,7 @@ function Pre(props: ComponentProps<"pre">) {
     lang = "md";
   }
 
-  return <DynamicCodeBlock code={content.trimEnd()} lang={lang} />;
+  return <DynamicCodeBlock code={text.trimEnd()} lang={lang} />;
 }
 
 const processor = createProcessor();

@@ -161,3 +161,4 @@ export {
   WithFileIdSchema,
   WithIdSchema,
 } from "#/schemas/utils";
+export { JsonValueSchema } from "#/schemas/json";

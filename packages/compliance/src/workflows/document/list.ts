@@ -42,7 +42,7 @@ const listDocuments = Workflow.name("document.list").handler(
     if (parsed.expiringWithinDays) {
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + parsed.expiringWithinDays);
-      const futureDateStr = futureDate.toISOString().split("T")[0] as string;
+      const futureDateStr = futureDate.toISOString().split("T")[0]!;
       conditions.push(
         and(
           isNotNull(complianceDocument.expiryDate),
@@ -53,7 +53,7 @@ const listDocuments = Workflow.name("document.list").handler(
     if (parsed.dueWithinDays) {
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + parsed.dueWithinDays);
-      const futureDateStr = futureDate.toISOString().split("T")[0] as string;
+      const futureDateStr = futureDate.toISOString().split("T")[0]!;
       conditions.push(
         and(isNotNull(complianceDocument.dueDate), lte(complianceDocument.dueDate, futureDateStr)),
       );

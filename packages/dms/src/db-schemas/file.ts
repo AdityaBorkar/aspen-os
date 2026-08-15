@@ -1,5 +1,6 @@
 import { dmsFileStatusEnum } from "#/db-schemas/enums";
 
+import type { JsonValue } from "@aspen-os/platform/server";
 import { uuidv7 } from "@aspen-os/platform/server";
 import { sql } from "drizzle-orm";
 import { bigint, date, index, integer, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
@@ -9,7 +10,7 @@ export const dmsFile = pgTable(
   {
     batchId: text("batch_id"),
     classId: text("class_id"),
-    compression: jsonb("compression"),
+    compression: jsonb("compression").$type<JsonValue | null>(),
     contentType: text("content_type").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -19,10 +20,10 @@ export const dmsFile = pgTable(
     etag: text("etag"),
     expiredAt: timestamp("expired_at", { withTimezone: true }),
     expiryDate: date("expiry_date"),
-    fieldValues: jsonb("field_values"),
+    fieldValues: jsonb("field_values").$type<Record<string, JsonValue> | null>(),
     folderId: text("folder_id"),
     id: text("id").primaryKey().$defaultFn(uuidv7),
-    metadata: jsonb("metadata"),
+    metadata: jsonb("metadata").$type<Record<string, JsonValue> | null>(),
     name: text("name").notNull(),
     ownerId: text("owner_id").notNull(),
     path: text("path"),

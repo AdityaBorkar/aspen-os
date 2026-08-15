@@ -23,7 +23,7 @@ export const createLeaveApplication = Workflow.name("hr.leave.create-leave-appli
     // Check leave balance
     if (!leaveTypeRecord.isLeaveWithoutPay) {
       await checkLeaveBalance(ctx.db, {
-        days: parseFloat(parsed.totalDays),
+        days: Number.parseFloat(parsed.totalDays),
         employeeId: parsed.employeeId,
         leaveType: parsed.leaveType,
       });

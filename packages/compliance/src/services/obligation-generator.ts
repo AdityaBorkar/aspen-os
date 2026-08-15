@@ -3,20 +3,12 @@ import type { ComplianceObligation } from "#/db-schemas";
 import { COMPLIANCE_EVENTS } from "#/pubsub";
 import { SCHEDULED_JOBS } from "#/utils/constants";
 import { documents, obligations } from "#/workflows";
+import { MONTHS_PER_FREQUENCY } from "#/workflows/utils";
 
 import { getContext } from "@aspen-os/platform/server";
-import type { AuditUnit, PubSubUnit } from "@aspen-os/platform/server";
+import type { AuditUnit, JsonValue, PubSubUnit } from "@aspen-os/platform/server";
 import { and, eq, isNull } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-
-const MONTHS_PER_FREQUENCY: Record<string, number> = {
-  annual: 12,
-  biennial: 24,
-  monthly: 1,
-  quarterly: 3,
-  semi_annual: 6,
-  triennial: 36,
-};
 
 interface ComputedPeriod {
   dueDate: string | null;
@@ -38,6 +30,7 @@ function buildDepsFromContext(): ObligationGeneratorDeps {
   }
   return {
     audit: ctx.audit,
+    // SAFETY: ContextDb exposes the select/execute/update surface these workflows rely on; the NodePgDatabase members it omits are never accessed through the generator.
     db: ctx.db as NodePgDatabase,
     pubsub: ctx.pubsub,
   };
@@ -62,7 +55,7 @@ export async function generatePendingDocuments(deps: ObligationGeneratorDeps): P
     { db: deps.db, pubsub: deps.pubsub },
   );
   const results = await Promise.all(
-    activeObligations.map((obligation) => generateForObligation(obligation, undefined, deps)),
+    activeObligations.map(async (obligation) => generateForObligation(obligation, undefined, deps)),
   );
   const generatedIds = results.flat();
 
@@ -103,6 +96,12 @@ export async function generateForObligation(
         obligation.defaultReminderDays ??
         (obligation.expiryBased ? [90, 60, 30, 7] : [30, 15, 7, 1]);
 
+      const metadata: Record<string, JsonValue> = {};
+      metadata.idempotencyKey = idempotencyKey;
+      if (obligation.defaultMetadata) {
+        Object.assign(metadata, obligation.defaultMetadata);
+      }
+
       const doc = await documents.create.run(
         {
           input: {
@@ -117,10 +116,7 @@ export async function generateForObligation(
             expiryDate: period.expiryDate ? new Date(period.expiryDate) : undefined,
             issuingAuthority: obligation.defaultIssuingAuthority ?? undefined,
             jurisdiction: obligation.defaultJurisdiction ?? undefined,
-            metadata: {
-              ...(obligation.defaultMetadata as Record<string, unknown>),
-              idempotencyKey,
-            },
+            metadata,
             name: docName,
             obligationId: obligation.id,
             periodEnd: period.periodEnd ? new Date(period.periodEnd) : undefined,

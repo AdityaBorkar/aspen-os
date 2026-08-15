@@ -1,19 +1,10 @@
 # TODO
 
-no-explicit-any (+allowGeneric), no-import-type-side-effects
-
-## Linting Rules
-
-Analyze the repository and suggest new oxlint rules that can be made to ensure following of Coding Conventions and better code guidelines for contributors. DO NOT WRITE CODE. Make a report suggesting the new rules.
-
-- Enable no-console with allowlist + CLI override (fix the docs as any first).
-- eslint/no-restricted-imports (0 hits) — still worth adding to enforce two conventions going forward:
-  - zod only in RPC/env code
-  - uuid from drizzle-orm/pg-core only in audit/db-schema.ts (the one sanctioned native-UUID column).
-
 CHECK TYPES
 
 CHECK BUILDS
+
+Check Code Quality
 
 ---
 
@@ -153,11 +144,8 @@ Create a scope of work for the "pharmacy" module
 - PubSub Events
   - How to handle migrations?
 - Replace zod with valibot entirely everywhere
-- Create a OXC rule to make index.ts module files like @management/src/index.ts
 - Merging ./working-docs with ./docs to ensure a single source of truth
-- CONTEXT.md lists Prospect, Client, Job Mandate, Draft, Filter View, Reminder, Task, Team Member, Contract under "Recruiter Domain."
-- Dynamic Loading of Modules
-  - /settings/features = Enable/Disable each module and their feature flags
+- Dynamic Loading of Modules (/settings/features) = Enable/Disable each module and their feature flags
 
 ---
 
@@ -189,9 +177,8 @@ If you press YES, the account manager shall access the application and respond a
 - Chatbot
 - AI agents
 - Automation
-  \=======
 
-## Compliance Module
+### Compliance Module
 
 - India DPDP
 - India Compliance
@@ -200,13 +187,15 @@ If you press YES, the account manager shall access the application and respond a
 
 ---
 
-## Phase 2
+## Linting Rules
 
-- Merging ./docs with ./docs to ensure a single source of truth
-- Create a Biome GritQL rule to make index.ts module files like @management/src/index.ts
-- CONTEXT.md lists Prospect, Client, Job Mandate, Draft, Filter View, Reminder, Task, Team Member, Contract under "Recruiter Domain."
-- Dynamic Loading of Modules
-  - /settings/features = Enable/Disable each module and their feature flags
+Analyze the repository and suggest new oxlint rules that can be made to ensure following of Coding Conventions and better code guidelines for contributors. DO NOT WRITE CODE. Make a report suggesting the new rules.
+
+- Enable no-console with allowlist + CLI override (fix the docs as any first).
+- eslint/no-restricted-imports (0 hits) — still worth adding to enforce two conventions going forward:
+  - zod only in RPC/env code
+  - uuid from drizzle-orm/pg-core only in audit/db-schema.ts (the one sanctioned native-UUID column).
+- Create a set of rules to make index.ts module files like @management/src/index.ts for module structuring and code organization.
 
 ## Not a Priority
 

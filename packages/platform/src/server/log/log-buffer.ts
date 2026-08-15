@@ -1,11 +1,14 @@
 import type { LogEntry, LogLevel } from "#/server/log/types";
+import type { JsonValue } from "#/server/types";
 import { context } from "#/server/utils/context";
+
+import { number, safeParse, string } from "valibot";
 
 export interface CreateEntryInput {
   error?: Error;
   level: LogLevel;
   message: string;
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, JsonValue>;
 }
 
 export interface LogBuffer {
@@ -25,7 +28,7 @@ export function createLogBuffer(
   function push(entry: LogEntry): void {
     buffer.push(entry);
     if (buffer.length >= bufferSize && !flushing) {
-      flush();
+      void flush();
     }
   }
 
@@ -60,19 +63,29 @@ export function createEntryFactory(serviceName: string) {
     const { error, level, message, metadata } = input;
     const ctx = context.getStore();
     return {
-      duration: metadata?.duration as number | undefined,
+      duration: toOptionalNumber(metadata?.duration),
       error: error ? { message: error.message, name: error.name, stack: error.stack } : undefined,
       id: crypto.randomUUID(),
       level,
       message,
       metadata,
-      requestId: metadata?.requestId as string | undefined,
+      requestId: toOptionalString(metadata?.requestId),
       service: serviceName,
-      spanId: metadata?.spanId as string | undefined,
+      spanId: toOptionalString(metadata?.spanId),
       tenantId: ctx?.tenantId,
       timestamp: new Date(),
-      traceId: metadata?.traceId as string | undefined,
-      userId: metadata?.userId as string | undefined,
+      traceId: toOptionalString(metadata?.traceId),
+      userId: toOptionalString(metadata?.userId),
     };
   };
+}
+
+function toOptionalNumber(value: JsonValue | undefined): number | undefined {
+  const result = safeParse(number(), value);
+  return result.success ? result.output : undefined;
+}
+
+function toOptionalString(value: JsonValue | undefined): string | undefined {
+  const result = safeParse(string(), value);
+  return result.success ? result.output : undefined;
 }

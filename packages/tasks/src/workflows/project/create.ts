@@ -13,7 +13,7 @@ const CreateInputSchema = object({
 export const createProject = Workflow.name("project.create")
   .input(CreateInputSchema)
   .handler(async ({ input }, ctx) => {
-    await ensureKeyUnique(ctx.db, input.key, undefined);
+    await ensureKeyUnique(ctx.db, input.key);
 
     const [result] = await ctx.db
       .insert(project)

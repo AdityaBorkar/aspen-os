@@ -1,6 +1,6 @@
 import { savedView } from "#/db-schemas/saved-view";
 import { IdSchema, UpdateSavedViewSchema } from "#/types";
-import type { SavedViewType } from "#/utils/constants";
+import { isSavedViewType } from "#/utils/constants";
 import { fetchSavedViewStep } from "#/workflow-steps/fetch-saved-view";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -17,6 +17,13 @@ export const updateSavedView = Workflow.name("view.update")
   .handler(async ({ id, patch }, ctx) => {
     await ctx.step.run(fetchSavedViewStep, { id });
 
+    const { type } = patch;
+    if (type !== undefined) {
+      if (!isSavedViewType(type)) {
+        throw new Error(`Invalid saved view type: ${type}`);
+      }
+    }
+
     const [updated] = await ctx.db
       .update(savedView)
       .set({
@@ -26,7 +33,7 @@ export const updateSavedView = Workflow.name("view.update")
         isShared: patch.isShared,
         name: patch.name,
         sort: patch.sort,
-        type: patch.type as SavedViewType | undefined,
+        type,
       })
       .where(eq(savedView.id, id))
       .returning();

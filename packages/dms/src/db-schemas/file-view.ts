@@ -1,3 +1,5 @@
+import type { FileViewCondition, FileViewSort } from "#/schemas/file-view";
+
 import { uuidv7 } from "@aspen-os/platform/server";
 import { sql } from "drizzle-orm";
 import { boolean, index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
@@ -8,7 +10,7 @@ export const dmsFileView = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     filters: jsonb("filters")
       .notNull()
-      .$type<Record<string, unknown>[]>()
+      .$type<FileViewCondition[]>()
       .default(sql`'[]'::jsonb`),
     id: text("id").primaryKey().$defaultFn(uuidv7),
     isDefault: boolean("is_default").notNull().default(false),
@@ -17,7 +19,7 @@ export const dmsFileView = pgTable(
     ownerId: text("owner_id").notNull(),
     sort: jsonb("sort")
       .notNull()
-      .$type<Record<string, unknown>[]>()
+      .$type<FileViewSort[]>()
       .default(sql`'[]'::jsonb`),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

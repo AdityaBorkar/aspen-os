@@ -1,6 +1,7 @@
 import type { DatabaseUnit } from "#/server/db";
 import * as db_schema from "#/server/kv-store/db-schema";
 import type { KvStoreConfig } from "#/server/kv-store/types";
+import type { JsonValue } from "#/server/types";
 import { context } from "#/server/utils/context";
 
 import { eq, like, sql } from "drizzle-orm";
@@ -19,6 +20,7 @@ export class KvStoreUnit {
   private readonly prefix: string;
 
   constructor(config: KvStoreConfig, { db }: { db: DatabaseUnit<any> }) {
+    // SAFETY: the DatabaseUnit db is a valid node-postgres drizzle instance.
     this.db = db.db as DrizzleDB;
     this.defaultTtl = config.defaultTtl ?? 3600;
     this.prefix = config.keyPrefix ?? "";
@@ -30,7 +32,7 @@ export class KvStoreUnit {
     // Cleanup if needed
   }
 
-  async get<TValue = unknown>(key: string): Promise<TValue | null> {
+  async get(key: string): Promise<JsonValue | null> {
     const rows = await this.db
       .select({
         expiresAt: db_schema.kvStore.expiresAt,
@@ -51,15 +53,11 @@ export class KvStoreUnit {
       await this.del(key);
       return null;
     }
-    try {
-      return JSON.parse(row.value) as TValue;
-    } catch {
-      return row.value as TValue;
-    }
+    return this.parseStoredValue(row.value);
   }
 
-  async set(key: string, value: unknown, ttl?: number): Promise<void> {
-    const serialized = typeof value === "string" ? value : JSON.stringify(value);
+  async set(key: string, value: JsonValue, ttl?: number): Promise<void> {
+    const serialized = JSON.stringify(value);
     const effectiveTtl = ttl ?? this.defaultTtl;
     let expiresAt: Date | null = null;
     if (effectiveTtl > 0) {
@@ -128,12 +126,8 @@ export class KvStoreUnit {
     return this.increment(key, -amount);
   }
 
-  async getOrSet<TValue = unknown>(
-    key: string,
-    factory: () => Promise<TValue>,
-    ttl?: number,
-  ): Promise<TValue> {
-    const cached = await this.get<TValue>(key);
+  async getOrSet(key: string, factory: () => Promise<JsonValue>, ttl?: number): Promise<JsonValue> {
+    const cached = await this.get(key);
     if (cached !== null) {
       return cached;
     }
@@ -150,7 +144,7 @@ export class KvStoreUnit {
     let cursor = "0";
     // oxlint-disable eslint/no-await-in-loop
     do {
-      const [nextCursor, found] = await this.scan(cursor, "MATCH", searchPattern, "COUNT", 100);
+      const [nextCursor, found] = await this.scan(cursor, searchPattern, 100);
       cursor = nextCursor;
       keys.push(...found);
     } while (cursor !== "0");
@@ -172,15 +166,13 @@ export class KvStoreUnit {
     return `${this.getTenantPrefix(tenantId)}${key}`;
   }
 
-  private async scan(cursor: string, ...args: unknown[]): Promise<[string, string[]]> {
-    const pattern = args[1] as string | undefined;
-    const count = (args[3] as number) || 100;
+  private async scan(cursor: string, pattern: string, count: number): Promise<[string, string[]]> {
     const offset = Number.parseInt(cursor, 10) || 0;
 
     let query = this.db.select({ key: db_schema.kvStore.key }).from(db_schema.kvStore).$dynamic();
 
     if (pattern) {
-      const pgPattern = pattern.replace(/\*/g, "%").replace(/\?/g, "_");
+      const pgPattern = pattern.replaceAll("*", "%").replaceAll("?", "_");
       query = query.where(like(db_schema.kvStore.key, pgPattern));
     }
 
@@ -189,5 +181,13 @@ export class KvStoreUnit {
     const nextCursor = rows.length < count ? "0" : String(offset + rows.length);
 
     return [nextCursor, keys];
+  }
+
+  private parseStoredValue(raw: string): JsonValue {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return raw;
+    }
   }
 }

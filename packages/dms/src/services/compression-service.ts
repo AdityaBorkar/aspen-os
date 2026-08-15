@@ -5,6 +5,14 @@ export interface CompressionResult {
   option: { enabled: boolean; reason?: string };
 }
 
+export interface ResolvedCompression {
+  enabled: boolean;
+  mode: string;
+  quality?: number;
+  format?: string;
+  reason?: string;
+}
+
 /**
  * Resolves the effective compression option for an upload/version.
  * Override wins; otherwise the org default is used.
@@ -12,23 +20,17 @@ export interface CompressionResult {
 export function resolveCompression(
   override: CompressionOption | null | undefined,
   orgDefault: CompressionOption,
-): {
-  enabled: boolean;
-  mode: string;
-  quality?: number;
-  format?: string;
-  reason?: string;
-} {
+): ResolvedCompression {
   if (!override) {
     return {
-      enabled: Boolean(orgDefault.enabled),
+      enabled: orgDefault.enabled,
       format: orgDefault.format,
       mode: orgDefault.mode,
       quality: orgDefault.quality,
     };
   }
   return {
-    enabled: Boolean(override.enabled),
+    enabled: override.enabled,
     format: override.format,
     mode: override.mode,
     quality: override.quality,

@@ -346,5 +346,7 @@ export const COUNTRY_CODES = [
 export type CountryCode = (typeof COUNTRY_CODES)[number];
 
 export function isValidCountryCode(code: string): code is CountryCode {
+  // SAFETY: COUNTRY_CODES is a readonly tuple of the declared country-code literals;
+  // Widening to readonly string[] is safe because includes() only reads.
   return (COUNTRY_CODES as readonly string[]).includes(code.toUpperCase());
 }

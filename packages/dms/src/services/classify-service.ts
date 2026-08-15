@@ -1,15 +1,17 @@
 import { dmsClassField } from "#/db-schemas";
+import { toText } from "#/utils/to-text";
 
+import type { JsonValue } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 export interface ClassFieldRow {
-  defaultValue: unknown;
+  defaultValue: JsonValue | null;
   isActive: boolean;
   isRequired: boolean;
   label: string;
   name: string;
-  options: string[] | unknown;
+  options: JsonValue | null;
   type: string;
 }
 
@@ -17,8 +19,6 @@ export interface FieldValidationResult {
   errors: { message: string; name: string }[];
   missing: string[];
 }
-
-const FIELD_VALUE_EMPTY = new Set(["", null, undefined]);
 
 export async function getActiveFields(
   db: NodePgDatabase,
@@ -35,19 +35,19 @@ export async function getActiveFields(
  */
 export function validateFieldValues(
   fields: ClassFieldRow[],
-  fieldValues: Record<string, unknown> | undefined,
+  fieldValues: Record<string, JsonValue> | undefined,
 ): FieldValidationResult {
   const missing: string[] = [];
   const errors: { message: string; name: string }[] = [];
   const values = fieldValues ?? {};
 
   for (const field of fields) {
-    let value: unknown = values[field.name];
+    let value = values[field.name];
     if (value === undefined && field.defaultValue !== null && field.defaultValue !== undefined) {
       value = field.defaultValue;
     }
 
-    const isEmpty = value === undefined || FIELD_VALUE_EMPTY.has(value as never);
+    const isEmpty = value === undefined || value === null || value === "";
 
     if (field.isRequired && isEmpty) {
       missing.push(field.name);
@@ -67,15 +67,18 @@ export function validateFieldValues(
       field.options !== null &&
       field.options !== undefined
     ) {
-      const optionList = Array.isArray(field.options) ? field.options : Object.keys(field.options);
+      const optionList = Array.isArray(field.options)
+        ? field.options
+        : field.options instanceof Object
+          ? Object.keys(field.options)
+          : [];
       if (optionList.length > 0) {
         const allowed = new Set(optionList.map(String));
-        const selected =
-          field.type === "multi-select" && Array.isArray(value) ? (value as unknown[]) : [value];
+        const selected = field.type === "multi-select" && Array.isArray(value) ? value : [value];
         for (const item of selected) {
-          if (item !== null && item !== undefined && !allowed.has(String(item))) {
+          if (item !== null && item !== undefined && !allowed.has(toText(item))) {
             errors.push({
-              message: `"${String(item)}" is not an allowed option for "${field.label}".`,
+              message: `"${toText(item)}" is not an allowed option for "${field.label}".`,
               name: field.name,
             });
           }
@@ -93,18 +96,27 @@ function padZero(value: number | string, width: number): string {
   return String(value).padStart(width, "0");
 }
 
-function safePart(value: unknown): string {
-  const str = value === null || value === undefined ? "" : String(value);
-  return str.replace(/[\\/]+/g, "_").replace(/\0/g, "");
+function safePart(value: JsonValue): string {
+  return toText(value)
+    .replaceAll(/[\\/]+/g, "_")
+    .replaceAll("\0", "");
 }
 
 function formatDateToken(token: string, date: Date): string {
-  const parts: Record<string, string> = {
-    MM: padZero(date.getMonth() + 1, 2),
-    dd: padZero(date.getDate(), 2),
-    yyyy: String(date.getFullYear()),
-  };
-  return parts[token] ?? "";
+  switch (token) {
+    case "MM": {
+      return padZero(date.getMonth() + 1, 2);
+    }
+    case "dd": {
+      return padZero(date.getDate(), 2);
+    }
+    case "yyyy": {
+      return String(date.getFullYear());
+    }
+    default: {
+      return "";
+    }
+  }
 }
 
 /**
@@ -120,7 +132,7 @@ export function renderFileNamingSchema(input: {
   className: string | null;
   date?: Date;
   docNumber: string;
-  fieldValues?: Record<string, unknown> | null;
+  fieldValues?: Record<string, JsonValue> | null;
   originalName: string;
   schema: string | null;
   seq?: number;
@@ -160,8 +172,8 @@ export function renderFileNamingSchema(input: {
   });
 
   const cleaned = rendered
-    .replace(/[\\/]+/g, "_")
-    .replace(/\0/g, "")
+    .replaceAll(/[\\/]+/g, "_")
+    .replaceAll("\0", "")
     .trim();
   return cleaned.length > 0 ? cleaned : input.originalName;
 }

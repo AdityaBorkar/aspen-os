@@ -29,6 +29,7 @@ const renewDocument = Workflow.name("document.renew").handler(
         attachment: newData.attachment ?? current.attachment,
         autoRenewal: newData.autoRenewal ?? current.autoRenewal,
         branch: newData.branch ?? current.branch,
+        // SAFETY: newData.category is validated by the CreateComplianceDocumentSchema valibot schema and current.category is already a stored value, so their union only ever yields valid categories.
         category: (newData.category ?? current.category) as ComplianceDocument["category"],
         connection: newData.connection ?? current.connection,
         createdBy: newData.createdBy ?? current.createdBy,

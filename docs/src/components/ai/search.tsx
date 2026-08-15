@@ -19,7 +19,9 @@ export type SearchTool = Tool<{ query: string; limit: number }>;
 
 export function AISearchPanelHeader({ className, ...props }: ComponentProps<"div">) {
   const { setOpen } = useAISearchContext();
-  const handleClose = useCallback(() => setOpen(false), [setOpen]);
+  const handleClose = useCallback(() => {
+    setOpen(false);
+  }, [setOpen]);
 
   return (
     <div
@@ -60,8 +62,10 @@ export function AISearchInputActions() {
   const { messages, status, setMessages, regenerate } = useChatContext();
   const isLoading = status === "streaming";
 
-  const handleRegenerate = useCallback(() => regenerate(), [regenerate]);
-  const handleClear = useCallback(() => setMessages([]), [setMessages]);
+  const handleRegenerate = useCallback(async () => regenerate(), [regenerate]);
+  const handleClear = useCallback(() => {
+    setMessages([]);
+  }, [setMessages]);
 
   if (messages.length === 0) {
     return null;
@@ -153,12 +157,12 @@ export function AISearchInput(props: ComponentProps<"form">) {
   );
 
   useEffect(() => {
-    document.getElementById(inputId)?.focus();
+    document.querySelector<HTMLElement>(`#${inputId}`)?.focus();
   }, [inputId]);
 
   useEffect(() => {
     if (isLoading) {
-      document.getElementById(inputId)?.focus();
+      document.querySelector<HTMLElement>(`#${inputId}`)?.focus();
     }
   }, [inputId, isLoading]);
 
@@ -274,10 +278,10 @@ function Input(props: ComponentProps<"textarea">) {
   );
 }
 
-const roleName: Record<string, string> = {
+const roleName = {
   assistant: "fumadocs",
   user: "you",
-};
+} satisfies Record<"assistant" | "user", string>;
 
 function Message({ message, ...props }: { message: ChatUIMessage } & ComponentProps<"div">) {
   let markdown = "";
@@ -291,14 +295,20 @@ function Message({ message, ...props }: { message: ChatUIMessage } & ComponentPr
 
     if (part.type.startsWith("tool-")) {
       const toolName = part.type.slice("tool-".length);
-      const toolInvocation = part as UIToolInvocation<Tool>;
-
-      if (toolName !== "search" || !toolInvocation.toolCallId) {
+      if (toolName !== "search") {
+        continue;
+      }
+      // SAFETY: the part type starts with "tool-" and its tool name is "search".
+      const toolInvocation = part as UIToolInvocation<SearchTool>;
+      if (!toolInvocation.toolCallId) {
         continue;
       }
       searchCalls.push(toolInvocation);
     }
   }
+
+  // SAFETY: the role display map only defines user/assistant; other roles fall back to "unknown".
+  const roleLabel = roleName[message.role as keyof typeof roleName] ?? "unknown";
 
   return (
     // oxlint-disable-next-line react/jsx-props-no-spreading
@@ -309,7 +319,7 @@ function Message({ message, ...props }: { message: ChatUIMessage } & ComponentPr
           message.role === "assistant" && "text-fd-primary",
         )}
       >
-        {roleName[message.role] ?? "unknown"}
+        {roleLabel}
       </p>
       <div className="prose text-sm">
         <Markdown text={markdown} />
@@ -324,7 +334,7 @@ function Message({ message, ...props }: { message: ChatUIMessage } & ComponentPr
           {call.state === "output-error" || call.state === "output-denied" ? (
             <p className="text-fd-error">{call.errorText ?? "Failed to search"}</p>
           ) : (
-            <p>{!call.output ? "Searching…" : `${call.output.length} search results`}</p>
+            <p>{call.output ? `${call.output.length} search results` : "Searching…"}</p>
           )}
         </div>
       ))}
@@ -352,7 +362,9 @@ export function AISearchTrigger({
   ...props
 }: ComponentProps<"button"> & { position?: "default" | "float" }) {
   const { open, setOpen } = useAISearchContext();
-  const handleToggle = useCallback(() => setOpen(!open), [open, setOpen]);
+  const handleToggle = useCallback(() => {
+    setOpen(!open);
+  }, [open, setOpen]);
 
   return (
     <button
@@ -382,11 +394,15 @@ export function AISearchPanel() {
   const handleAnimationEnd = useCallback(() => {
     if (!open) {
       // oxlint-disable-next-line node/no-sync
-      flushSync(() => setActualOpen(false));
+      flushSync(() => {
+        setActualOpen(false);
+      });
     }
   }, [open]);
 
-  const handleOverlayClick = useCallback(() => setOpen(false), [setOpen]);
+  const handleOverlayClick = useCallback(() => {
+    setOpen(false);
+  }, [setOpen]);
   const handleOverlayKeyDown = useCallback(
     (event: KeyboardEvent<HTMLButtonElement>) => {
       if (event.key === "Escape") {

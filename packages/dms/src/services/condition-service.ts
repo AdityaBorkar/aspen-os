@@ -1,6 +1,8 @@
 import { dmsFile } from "#/db-schemas";
 import type { FileViewCondition, FileViewSort } from "#/types";
+import { toText } from "#/utils/to-text";
 
+import type { JsonValue } from "@aspen-os/platform/server";
 import {
   and,
   between as drizzleBetween,
@@ -19,6 +21,7 @@ import {
   sql,
 } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
+import { check, number, pipe, safeParse, string, transform, union } from "valibot";
 
 export interface ConditionContext {
   classId?: string | null;
@@ -29,38 +32,38 @@ function columnSql(field: string): SQL | null {
   switch (field) {
     case "class":
     case "classId": {
-      return dmsFile.classId as unknown as SQL;
+      return sql`${dmsFile.classId}`;
     }
     case "contentType": {
-      return dmsFile.contentType as unknown as SQL;
+      return sql`${dmsFile.contentType}`;
     }
     case "createdAt": {
-      return dmsFile.createdAt as unknown as SQL;
+      return sql`${dmsFile.createdAt}`;
     }
     case "expiryDate": {
-      return dmsFile.expiryDate as unknown as SQL;
+      return sql`${dmsFile.expiryDate}`;
     }
     case "id": {
-      return dmsFile.id as unknown as SQL;
+      return sql`${dmsFile.id}`;
     }
     case "name": {
-      return dmsFile.name as unknown as SQL;
+      return sql`${dmsFile.name}`;
     }
     case "owner":
     case "ownerId": {
-      return dmsFile.ownerId as unknown as SQL;
+      return sql`${dmsFile.ownerId}`;
     }
     case "size": {
-      return dmsFile.size as unknown as SQL;
+      return sql`${dmsFile.size}`;
     }
     case "status": {
-      return dmsFile.status as unknown as SQL;
+      return sql`${dmsFile.status}`;
     }
     case "updatedAt": {
-      return dmsFile.updatedAt as unknown as SQL;
+      return sql`${dmsFile.updatedAt}`;
     }
     case "uploadedBy": {
-      return dmsFile.uploadedBy as unknown as SQL;
+      return sql`${dmsFile.uploadedBy}`;
     }
     default: {
       return null;
@@ -68,26 +71,31 @@ function columnSql(field: string): SQL | null {
   }
 }
 
-function parseNumeric(value: unknown): number | null {
-  if (typeof value === "number") {
-    return value;
-  }
-  if (typeof value === "string" && value.trim() !== "") {
-    const number = Number(value);
-    return Number.isFinite(number) ? number : null;
-  }
-  return null;
+const NumericStringSchema = pipe(
+  string(),
+  check((val) => val.trim() !== ""),
+  transform((val) => Number(val)),
+  check((val) => Number.isFinite(val)),
+);
+
+const DateStringSchema = pipe(
+  string(),
+  check((val) => val.trim() !== ""),
+  transform((val) => new Date(val)),
+  check((val) => !Number.isNaN(val.getTime())),
+);
+
+function parseNumeric(value: JsonValue): number | null {
+  const parsed = safeParse(union([number(), NumericStringSchema]), value);
+  return parsed.success ? parsed.output : null;
 }
 
-function parseDate(value: unknown): string | null {
+function parseDate(value: JsonValue): string | null {
   if (value instanceof Date) {
     return value.toISOString();
   }
-  if (typeof value === "string" && value.trim() !== "") {
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? null : date.toISOString();
-  }
-  return null;
+  const parsed = safeParse(DateStringSchema, value);
+  return parsed.success ? parsed.output.toISOString() : null;
 }
 
 /**
@@ -98,7 +106,8 @@ export function buildCondition(cond: FileViewCondition, _ctx?: ConditionContext)
   const { field, operator, value } = cond;
 
   if (field === "label" || field === "labels") {
-    const label = typeof value === "string" ? value : "";
+    const parsedLabel = safeParse(string(), value);
+    const label = parsedLabel.success ? parsedLabel.output : "";
     if (!label) {
       return null;
     }
@@ -167,7 +176,7 @@ function buildGenericCondition(input: {
   col: SQL;
   operator: string;
   type: "date" | "number" | "string";
-  value: unknown;
+  value: JsonValue;
 }): SQL | null {
   const { col, operator, type, value } = input;
   switch (operator) {
@@ -175,33 +184,33 @@ function buildGenericCondition(input: {
       if (value === null) {
         return isNull(col);
       }
-      return eq(col, value as never);
+      return eq(col, value);
     }
     case "neq": {
       if (value === null) {
         return isNotNull(col);
       }
-      return ne(col, value as never);
+      return ne(col, value);
     }
     case "contains": {
       if (type === "date" || type === "number") {
         return null;
       }
-      return ilike(col, `%${String(value)}%`);
+      return ilike(col, `%${toText(value)}%`);
     }
     case "notContains": {
       if (type === "date" || type === "number") {
         return null;
       }
-      return sql`NOT (${ilike(col, `%${String(value)}%`)})`;
+      return sql`NOT (${ilike(col, `%${toText(value)}%`)})`;
     }
     case "in": {
       const values = Array.isArray(value) ? value : [value];
-      return inArray(col, values as never[]);
+      return inArray(col, values);
     }
     case "notIn": {
       const values = Array.isArray(value) ? value : [value];
-      return notInArray(col, values as never[]);
+      return notInArray(col, values);
     }
     case "gt": {
       const num = parseNumeric(value);
@@ -302,17 +311,17 @@ export function buildConditionsWhere(
  * Resolves a sort list into drizzle order-by expressions. Unsupported fields
  * are skipped; `resolve` maps a field name to a column.
  */
-export function buildSortOrder<TSQL extends SQL>(
+export function buildSortOrder(
   sort: FileViewSort[] | undefined,
-  resolve: (field: string) => TSQL | null,
-): TSQL[] {
-  const clauses: TSQL[] = [];
+  resolve: (field: string) => SQL | null,
+): SQL[] {
+  const clauses: SQL[] = [];
   for (const sortItem of sort ?? []) {
     const col = resolve(sortItem.field);
     if (!col) {
       continue;
     }
-    clauses.push((sortItem.direction === "desc" ? desc(col) : col) as unknown as TSQL);
+    clauses.push(sortItem.direction === "desc" ? desc(col) : col);
   }
   return clauses;
 }

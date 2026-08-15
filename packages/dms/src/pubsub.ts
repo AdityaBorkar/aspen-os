@@ -1,3 +1,5 @@
+import type { JsonValue } from "@aspen-os/platform/server";
+
 export const FILE_EVENTS = {
   CLASSIFIED: "dms:file_classified",
   DOWNLOADED: "dms:file_downloaded",
@@ -87,7 +89,7 @@ export interface FileClassifiedEvent {
 }
 
 export interface FileUpdatedEvent {
-  changes: Record<string, unknown>;
+  changes: Record<string, JsonValue>;
   fileId: string;
 }
 

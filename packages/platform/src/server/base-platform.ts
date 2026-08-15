@@ -13,6 +13,7 @@ import { RpcUnit } from "#/server/rpc";
 import type { RpcConfig } from "#/server/rpc";
 import { StorageUnit } from "#/server/storage";
 import type { StorageConfig } from "#/server/storage";
+import type { SchemaMap } from "#/server/types";
 import { context } from "#/server/utils/context";
 
 import { sql } from "drizzle-orm";
@@ -45,7 +46,7 @@ export type InferTenantSchemas<TModules extends Module[]> = UnionToIntersection<
 
 export type MergedSchemas<TModules extends Module[]> = InferControlPlaneSchemas<TModules> &
   InferTenantSchemas<TModules> &
-  Record<string, unknown>;
+  Record<string, never>;
 
 /**
  * A single connectivity probe result.
@@ -82,6 +83,12 @@ export interface HealthReport {
 
 const PUBSUB_HEALTH_PROBE_TOPIC = "__platform_health_check";
 
+/** Units + modules assembled by {@link BasePlatform.createCore}. */
+export interface CoreUnits<TModules extends Module[], TSchemas extends SchemaMap> {
+  modules: TModules;
+  units: PlatformUnits<TSchemas>;
+}
+
 export interface CommonConfig {
   auth: AuthConfig;
   kvStore: KvStoreConfig;
@@ -93,7 +100,7 @@ export interface CommonConfig {
 
 export abstract class BasePlatform<
   TModules extends Module[],
-  TSchemas extends Record<string, unknown> = MergedSchemas<TModules>,
+  TSchemas extends SchemaMap = MergedSchemas<TModules>,
 > implements UnitAccessors<TSchemas> {
   declare readonly audit: PlatformUnits<TSchemas>["audit"];
   declare readonly auth: PlatformUnits<TSchemas>["auth"];
@@ -111,27 +118,26 @@ export abstract class BasePlatform<
     this.units = units;
     this.modules = modules;
     return new Proxy(this, {
-      get(target, prop, receiver) {
-        if (typeof prop === "string") {
-          const unit = target.units[prop as keyof PlatformUnits<TSchemas>];
-          if (unit) {
-            return unit;
-          }
-          const mod = target.modules.find((module) => module.$name === prop);
-          if (mod) {
-            return mod;
-          }
+      get(target, prop, _receiver) {
+        if (prop in target.units) {
+          // SAFETY: proxy access for a unit name resolves to the matching unit.
+          return target.units[prop as keyof PlatformUnits<TSchemas>];
         }
-        return Reflect.get(target, prop, receiver);
+        const mod = target.modules.find((module) => module.$name === prop);
+        if (mod) {
+          return mod;
+        }
+        // SAFETY: fall through to the wrapped platform instance's own members.
+        return target[prop as keyof typeof target];
       },
     });
   }
 
-  protected static createCore<TModules extends Module[], TSchemas extends Record<string, unknown>>(
+  protected static createCore<TModules extends Module[], TSchemas extends SchemaMap>(
     db: DatabaseUnit<TSchemas>,
     config: CommonConfig,
     modules: TModules,
-  ): { units: PlatformUnits<TSchemas>; modules: TModules } {
+  ): CoreUnits<TModules, TSchemas> {
     const logs = new LogUnit(config.logs, { db });
     const audit = new AuditUnit({ db });
     const pubsub = new PubSubUnit(config.pubsub, { db });
@@ -162,7 +168,8 @@ export abstract class BasePlatform<
 
   async $prepareInfra(): Promise<void> {
     console.log("Preparing INFRA");
-    for await (const unit of Object.values(this.units)) {
+    // oxlint-disable eslint/no-await-in-loop
+    for (const unit of Object.values(this.units)) {
       try {
         console.log("PROCESSING:", unit.$name);
         await unit.$prepareInfra?.();
@@ -171,10 +178,11 @@ export abstract class BasePlatform<
         console.error(`Failed to prepare unit "${unit.$name}"`, error);
       }
     }
+    // oxlint-enable eslint/no-await-in-loop
     console.log("Done unit infra");
 
-    const mergedControlPlaneSchemas: Record<string, unknown> = {};
-    const mergedTenantSchemas: Record<string, unknown> = {};
+    const mergedControlPlaneSchemas: SchemaMap = {};
+    const mergedTenantSchemas: SchemaMap = {};
     const mergedAcl: Record<string, string[]> = {};
 
     for (const mod of this.modules) {
@@ -186,7 +194,7 @@ export abstract class BasePlatform<
           if (!mergedAcl[resource]) {
             mergedAcl[resource] = [];
           }
-          mergedAcl[resource].push(...(actions as string[]));
+          mergedAcl[resource] = [...mergedAcl[resource], ...actions];
         }
       }
     }
@@ -196,13 +204,15 @@ export abstract class BasePlatform<
     this.units.auth.applyModuleAcl(mergedAcl);
     console.log("Done db prepare");
 
-    for await (const mod of this.modules) {
+    // oxlint-disable eslint/no-await-in-loop
+    for (const mod of this.modules) {
       try {
         await this.runInContext(() => mod.$prepareRuntime?.());
       } catch (error) {
         console.error(`Failed to prepare module "${mod.$name}"`, error);
       }
     }
+    // oxlint-enable eslint/no-await-in-loop
     console.log("Done module prepare");
   }
 
@@ -228,11 +238,13 @@ export abstract class BasePlatform<
   }
 
   getModule<TKey extends TModules[number]["$name"]>(name: TKey): ModuleByName<TModules, TKey> {
-    const mod = this.modules.find((module) => module.$name === name);
+    const mod = this.modules.find(
+      (module): module is ModuleByName<TModules, TKey> => module.$name === name,
+    );
     if (!mod) {
-      throw new Error(`Module "${String(name)}" not found`);
+      throw new Error(`Module "${name}" not found`);
     }
-    return mod as ModuleByName<TModules, TKey>;
+    return mod;
   }
 
   getUnit<TKey extends keyof PlatformUnits<TSchemas>>(name: TKey): PlatformUnits<TSchemas>[TKey] {
@@ -249,7 +261,7 @@ export abstract class BasePlatform<
     const ctx = {
       audit: this.units.audit,
       auth: this.units.auth,
-      db: this.units.db.controlPlaneDb as unknown as NodePgDatabase<Record<string, unknown>>,
+      db: this.units.db.controlPlaneDb,
       pubsub: this.units.pubsub,
       ...overrides,
     };

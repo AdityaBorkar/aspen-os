@@ -1,5 +1,6 @@
 import { FIELD_TYPE } from "#/utils/constants";
 
+import type { JsonValue } from "@aspen-os/platform/server";
 import { uuidv7 } from "@aspen-os/platform/server";
 import {
   boolean,
@@ -32,14 +33,14 @@ export const dmsClassField = pgTable(
   {
     classId: text("class_id").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    defaultValue: jsonb("default_value"),
+    defaultValue: jsonb("default_value").$type<JsonValue | null>(),
     id: text("id").primaryKey().$defaultFn(uuidv7),
     includeInSearch: boolean("include_in_search").notNull().default(true),
     isActive: boolean("is_active").notNull().default(true),
     isRequired: boolean("is_required").notNull().default(false),
     label: text("label").notNull(),
     name: text("name").notNull(),
-    options: jsonb("options"),
+    options: jsonb("options").$type<JsonValue | null>(),
     sortOrder: integer("sort_order").notNull().default(0),
     type: dmsFieldTypeEnum("type").notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

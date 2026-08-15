@@ -1,5 +1,4 @@
-import { mapEntityType, normalize } from "#/workflows/activity/shared";
-import type { AuditRow } from "#/workflows/activity/shared";
+import { isAuditRow, mapEntityType, normalize } from "#/workflows/activity/shared";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { integer, number, object, optional, pipe, string } from "valibot";
@@ -14,12 +13,12 @@ const ActivityInputSchema = object({
 export const getActivity = Workflow.name("dms.activity.get")
   .input(ActivityInputSchema)
   .handler(async ({ entityId, entityType, limit, offset }, ctx) => {
-    const rows = (await ctx.audit.query({
+    const rows = await ctx.audit.query({
       entityId,
       entityType: mapEntityType(entityType),
       limit,
       offset,
-    })) as unknown as AuditRow[];
+    });
 
-    return rows.map(normalize);
+    return rows.filter(isAuditRow).map(normalize);
   });

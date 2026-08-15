@@ -1,17 +1,33 @@
 import { AUDIT_ENTITY_TYPE } from "#/utils/constants";
 
+import type { JsonValue } from "@aspen-os/platform/server";
+import { instance, object, safeParse, string } from "valibot";
+
 export interface AuditRow {
   action: string;
   actorId: string | null;
-  changes: Record<string, unknown> | null;
+  changes: Record<string, JsonValue> | null;
   entityId: string;
   entityType: string;
   id: string;
-  metadata: Record<string, unknown> | null;
-  newState: Record<string, unknown> | null;
+  metadata: Record<string, JsonValue> | null;
+  newState: Record<string, JsonValue> | null;
   performedAt: Date;
-  previousState: Record<string, unknown> | null;
+  previousState: Record<string, JsonValue> | null;
   seq?: number;
+  [key: string]: JsonValue;
+}
+
+const AuditRowSchema = object({
+  action: string(),
+  entityId: string(),
+  entityType: string(),
+  id: string(),
+  performedAt: instance(Date),
+});
+
+export function isAuditRow(value: JsonValue): value is AuditRow {
+  return safeParse(AuditRowSchema, value).success;
 }
 
 export function mapEntityType(type: string): string {

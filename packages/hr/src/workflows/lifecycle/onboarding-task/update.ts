@@ -17,7 +17,7 @@ export const updateOnboardingTask = Workflow.name("hr.lifecycle.update-onboardin
 
     const parsed = parse(UpdateOnboardingTaskSchema, patch);
 
-    const updateData: Record<string, unknown> = {
+    const updateData: Partial<typeof onboardingTask.$inferInsert> = {
       ...parsed,
       updatedAt: new Date(),
     };

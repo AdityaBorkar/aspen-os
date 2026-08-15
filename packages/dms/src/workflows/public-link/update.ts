@@ -1,4 +1,5 @@
 import { dmsPublicLink } from "#/db-schemas";
+import type { NewDmsPublicLink } from "#/db-schemas/public-link";
 import { UpdatePublicLinkSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -15,7 +16,7 @@ export const updatePublicLink = Workflow.name("dms.public-link.update")
   .handler(async ({ id, input }, ctx) => {
     const parsed = parse(UpdatePublicLinkSchema, input);
 
-    const updates: Record<string, unknown> = {};
+    const updates: Partial<NewDmsPublicLink> = {};
 
     if (parsed.permission !== undefined) {
       updates.permission = parsed.permission;

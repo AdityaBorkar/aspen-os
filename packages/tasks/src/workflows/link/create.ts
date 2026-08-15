@@ -1,6 +1,7 @@
 import { taskLink } from "#/db-schemas/task-link";
 import { wouldCreateCycle } from "#/services/dependency-graph";
 import { CreateTaskLinkSchema } from "#/types";
+import type { TaskLinkType } from "#/utils/constants";
 import { linkTypeInverse } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -12,14 +13,6 @@ const BLOCKS_LINK_TYPE = "blocks";
 
 type DrizzleDB = NodePgDatabase;
 
-type LinkTypeValue =
-  | "blocks"
-  | "blocked_by"
-  | "related_to"
-  | "duplicates"
-  | "caused_by"
-  | "split_from";
-
 const CreateInputSchema = object({
   input: CreateTaskLinkSchema,
 });
@@ -29,7 +22,7 @@ async function createInverseLink(
   options: {
     sourceId: string;
     targetId: string;
-    linkType: string;
+    linkType: TaskLinkType;
   },
 ): Promise<void> {
   const [existing] = await db
@@ -39,14 +32,14 @@ async function createInverseLink(
       and(
         eq(taskLink.sourceId, options.sourceId),
         eq(taskLink.targetId, options.targetId),
-        eq(taskLink.linkType, options.linkType as LinkTypeValue),
+        eq(taskLink.linkType, options.linkType),
       ),
     )
     .limit(1);
 
   if (!existing) {
     await db.insert(taskLink).values({
-      linkType: options.linkType as LinkTypeValue,
+      linkType: options.linkType,
       sourceId: options.sourceId,
       targetId: options.targetId,
     });

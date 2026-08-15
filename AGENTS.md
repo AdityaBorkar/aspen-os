@@ -17,9 +17,10 @@ Three platform **surfaces** (no root `src/index.ts` barrel; import via subpaths)
 
 ```
 packages/platform/src/
-  server/   # Node/Bun runtime — platform classes, units, workflows     → @aspen-os/platform/server
-  client/   # browser Platform (auth, logs, rpc units; no DB/tenancy)   → @aspen-os/platform/client
-  cli/      # commander CLI, exposed as `aspen` bin                      → bin
+  server/              # Node/Bun runtime — platform classes, units, workflows → @aspen-os/platform/server
+  server/db-schemas.ts # shared schema-map barrel                              → @aspen-os/platform/server/db-schemas
+  client/              # browser Platform (auth, logs, rpc units; no DB/tenancy) → @aspen-os/platform/client
+  cli/                 # commander CLI, exposed as `aspen` bin                  → bin
 ```
 
 Three server platform classes share an abstract `BasePlatform<M>` (`src/server/base-platform.ts`):
@@ -81,6 +82,8 @@ packages/
   accounting/ crm/ fleet/ inventory/ pharmacy/ reports/   # stubs
 docs/              # Fumadocs site (port 3005) → Cloudflare Workers (wrangler.jsonc)
 .working-docs/         # Canonical domain model + ADRs + SOWs (source of truth for domain docs)
+.agents/skills/        # Repo-local skills: write-module (module scaffolding template), write-docs, writing-great-skills
+tools/oxlint/anti-slop # Custom anti-slop oxlint plugin (see Lint & Format) — excluded from tsc + oxlint
 scripts/               # build.ts (package builds), token-count.ts
 ```
 
@@ -137,7 +140,7 @@ type ModuleInfra = {
 
 ### Domain-module pattern (management-aligned)
 
-Every implemented module (management, organization, compliance, tasks, dms, hr) follows the same shape:
+Every implemented module (management, organization, compliance, tasks, dms, hr) follows the same shape. **To scaffold a new module, load the `write-module` skill** (`.agents/skills/write-module/SKILL.md`) — it walks the exact dms-module template (flat `readonly` workflow groups in `workflows/index.ts`, `utils/constants.ts` enums, `db-schemas/enums.ts` `pgEnum`s, module-level `runtime.ts`, optional `services/` layer):
 
 - `src/module.ts` holds the class (implements `Module`, static `create`, `readonly $name`/`$dependencies`/`$config`, `$prepareInfra()` returning `{ auth: { acl }, db: { control_plane_schemas, tenant_schemas }, events }`); `src/index.ts` just re-exports.
 - `src/auth.ts` holds the ACL (`defineAcl(...)`); `src/pubsub.ts` holds events; `src/types.ts` re-exports constants + events + schemas; `db-schemas/` is directory form (one file per table + `enums.ts`); workflows are one file per action under REST-style folders `workflows/<entity>/<verb>.ts` (subresources nest, e.g. `class/field/add.ts`; scoped queries use `by-<qualifier>`, e.g. `comment/by-task/list.ts`) with reusable `WorkflowStep`s in `workflow-steps/`.
@@ -167,7 +170,8 @@ Modules with non-empty runtime wiring (compliance schedules/handlers, hr schedul
 Root `tsconfig.json` (extended everywhere, `composite: true` project references): `strict`, `verbatimModuleSyntax` (use `import type`), `noUncheckedIndexedAccess`, `noUnusedLocals` (params allowed), `moduleResolution: "bundler"`, `module/target: ESNext`, `types: ["bun", "@types/bun"]`.
 
 - **Path-alias gotcha**: each package maps `#/*` to its own `./src/*` (via `paths` in tsconfig + the `imports` field in package.json). Root tsconfig has no `paths`. Run `tsc -b` in the package whose alias you mean.
-- **Linter/formatter is oxlint + oxfmt** (`.oxlintrc.json`, `.oxfmtrc.json`). `check:lint` runs `oxlint --fix` then `oxfmt` (both auto-fix). oxfmt sorts imports (URL → protocol/builtin → external → relative) and Tailwind classes (`clsx`/`cva`/`tw`/`cn`); it skips `.output`, `.wrangler`, `.tanstack`, `*.gen.ts`. oxlint ignores `src/components/ui/**` (shadcn). `.zed/settings.json` sets oxfmt as the formatter and excludes `codedb.snapshot`/`.output`/`.coverage`.
+- **Linter/formatter is oxlint + oxfmt** (`.oxlintrc.json`, `.oxfmtrc.json`). `check:lint` runs `oxlint --fix` then `oxfmt` (both auto-fix). oxfmt sorts imports (URL → protocol/builtin → external → relative) and Tailwind classes (`clsx`/`cva`/`tw`/`cn`). `.zed/settings.json` sets oxfmt as the formatter and excludes `codedb.snapshot`/`.output`/`.coverage`.
+- **Custom `anti-slop` oxlint plugin**: `tools/oxlint/anti-slop` (loaded via `.oxlintrc.json` `jsPlugins`, with type-aware linting on — `options.typeCheck: true`). Its rules are all `error`: `no-module-mocking` (no `vi.mock`/`jest.mock` — code should be testable via real instances), `no-object-parameters`, `no-reflect-get`/`no-reflect-apply`, `no-unsafe-dictionary-type`, `require-safety-comment-for-type-assertion`, `no-widen-then-assert`, etc. Other enforced gotchas: `eslint/no-warning-comments: "error"` (TODO/FIXME comments fail lint), `unicorn/filename-case: "error"`. `tools/` is excluded from both `tsc -b` and oxlint — if you edit the plugin, its `rules/*.test.ts` are the repo's only tests (run `bun test` from `tools/oxlint/anti-slop`).
 
 ### Git hooks (Husky, active)
 
@@ -225,7 +229,7 @@ await myWorkflow.run(input, { actorId });
 
 ## Testing & QA
 
-- **Status: effectively no test infrastructure.** No test files, no test config (`vitest.config.*` / `jest.config.*` / `playwright.config.*`), no `__tests__`/`fixtures`/`mocks` directories anywhere in the repo.
+- **Status: effectively no test infrastructure in packages.** No test config (`vitest.config.*` / `jest.config.*` / `playwright.config.*`), no `__tests__`/`fixtures`/`mocks` dirs, no test scripts in any package. The only tests in the repo are the `tools/oxlint/anti-slop/rules/*.test.ts` rule tests (run with `bun test` from `tools/oxlint/anti-slop`; note `no-module-mocking` bans `vi.mock`/`jest.mock`).
 - No test scripts in any package. No coverage config; `.zed/settings.json` pre-excludes `**/.coverage`.
 - No dedicated type-check/test gate in CI (there is no CI). Quality checks are `check:lint` (oxlint/oxfmt) and `check:types` (`tsc -b`) per package.
 

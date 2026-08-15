@@ -37,29 +37,11 @@
   //       },
   //     },
   //   },
-  // },
-  // "vtsls": {
-  //   "binary": {
-  //     "arguments": ["--lsp", "--stdio"],
-  //     "path": "node_modules/.bin/tsc"
-  //   }
-  // },
-  // // "oxlint": {
-  // //       "initialization_options": {
-  // //         "settings": {
-  // //           "disableNestedConfig": false,
-  // //           "fixKind": "safe_fix",
-  // //           "run": "onType",
-  // //           "unusedDisableDirectives": "deny",
-  // //         },
-  // //       },
-  // //     },
-  // //
-  // "oxfmt": {
-  //   "initialization_options": {
-  //     "settings": {
-  //       "fmt.configPath": null
+  //   "vtsls": {
+  //     "binary": {
+  //       "arguments": ["--lsp", "--stdio"],
+  //       "path": "node_modules/.bin/tsc"
   //     }
-  //   }
-  // }
+  //   },
+  // },
 }

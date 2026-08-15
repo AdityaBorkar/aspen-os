@@ -1,3 +1,5 @@
+import type { JsonValue } from "@aspen-os/platform/server";
+
 export const TENANT_EVENTS = {
   ACTIVATED: "tenant:activated",
   CHURNED: "tenant:churned",
@@ -53,7 +55,7 @@ export interface TenantChurnedEvent {
 }
 
 export interface TenantProfileUpdatedEvent {
-  changes: Record<string, unknown>;
+  changes: Record<string, JsonValue>;
   tenantId: string;
 }
 
@@ -75,7 +77,7 @@ export interface ServiceProviderCreatedEvent {
 }
 
 export interface ServiceProviderUpdatedEvent {
-  changes: Record<string, unknown>;
+  changes: Record<string, JsonValue>;
   serviceProvider: {
     id: string;
     name: string;
@@ -99,7 +101,7 @@ export interface PlatformUserCreatedEvent {
 }
 
 export interface PlatformUserUpdatedEvent {
-  changes: Record<string, unknown>;
+  changes: Record<string, JsonValue>;
   userId: string;
 }
 

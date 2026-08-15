@@ -9,7 +9,7 @@ const getDocumentTimeline = Workflow.name("document.timeline").handler(
   async (input: { days: number }, ctx): Promise<TimelineEntry[]> => {
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + input.days);
-    const futureDateStr = futureDate.toISOString().split("T")[0] as string;
+    const futureDateStr = futureDate.toISOString().split("T")[0]!;
 
     const docs = await ctx.db
       .select()

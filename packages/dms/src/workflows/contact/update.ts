@@ -6,6 +6,7 @@ import { stripUndefined } from "#/utils/strip-undefined";
 import { fetchContactStep } from "#/workflow-steps/fetch-contact";
 
 import { Workflow } from "@aspen-os/platform/server";
+import type { JsonValue } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
 
@@ -33,6 +34,8 @@ export const updateContact = Workflow.name("dms.contact.update")
       .returning();
 
     await ctx.step.run("audit-and-notify", async () => {
+      // SAFETY: diff() compares JsonValue-typed state snapshots.
+      // New/old values are JSON-safe and fit the audit entry's changes contract.
       await ctx.audit.write({
         action: AUDIT_ACTION.UPDATED,
         changes: ctx.audit.diff(
@@ -48,7 +51,7 @@ export const updateContact = Workflow.name("dms.contact.update")
             email: updated?.email,
             phone: updated?.phone,
           },
-        ),
+        ) as Record<string, JsonValue> | undefined,
         crudAction: "update",
         entityId: id,
         entityType: AUDIT_ENTITY_TYPE.CONTACT,

@@ -33,17 +33,17 @@ async function createSearchServer() {
   });
 
   const docs = await chunkedAll(
-    source.getPages().map(async (page) => {
+    source.getPages().map(async (page): Promise<CustomDocument | null> => {
       if (!("getText" in page.data)) {
         return null;
       }
 
       return {
-        content: await page.data.getText("processed"),
-        description: page.data.description,
+        content: (await page.data.getText("processed")) ?? "",
+        description: page.data.description ?? "",
         title: page.data.title,
         url: page.url,
-      } as CustomDocument;
+      };
     }),
   );
 
@@ -83,12 +83,19 @@ export const Route = createFileRoute("/api/chat")({
   server: {
     handlers: {
       POST: async (ctx) => {
-        const request = (await ctx.request.json()) as any;
+        const requestBody: unknown = await ctx.request.json();
+        // SAFETY: the request body is a parsed JSON object that may carry a messages array.
+        const rawMessages =
+          requestBody instanceof Object && "messages" in requestBody
+            ? (requestBody as { messages?: unknown }).messages
+            : undefined;
+        // SAFETY: array-shaped message payloads are parsed by convertToModelMessages below.
+        const messages = Array.isArray(rawMessages) ? (rawMessages as ChatUIMessage[]) : [];
 
         const result = streamText({
           messages: [
             { content: systemPrompt, role: "system" },
-            ...(await convertToModelMessages<ChatUIMessage>(request?.messages ?? [], {
+            ...(await convertToModelMessages<ChatUIMessage>(messages, {
               convertDataPart(part) {
                 if (part.type === "data-client") {
                   return {
@@ -119,7 +126,7 @@ const searchTool = tool({
   description: "Search the docs content and return raw JSON results.",
   async execute({ query, limit }) {
     const search = await searchServer;
-    return await search.searchAsync(query, {
+    return search.searchAsync(query, {
       enrich: true,
       limit,
       merge: true,

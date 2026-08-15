@@ -25,10 +25,9 @@ export const renameFolder = Workflow.name("dms.folder.rename")
     });
 
     const oldPath = fetched.path;
-    const parentPath = fetched.parentId
-      ? await ctx.step.run("get-parent-path", async () =>
-          getFolderPath({ folderId: fetched.parentId as string }),
-        )
+    const { parentId } = fetched;
+    const parentPath = parentId
+      ? await ctx.step.run("get-parent-path", async () => getFolderPath({ folderId: parentId }))
       : "";
     const newPath = `${parentPath}/${parsed.name}`;
 

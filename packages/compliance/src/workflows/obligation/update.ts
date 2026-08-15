@@ -1,10 +1,13 @@
 import { complianceObligation } from "#/db-schemas";
+import type { NewComplianceObligation } from "#/db-schemas";
 import { COMPLIANCE_EVENTS } from "#/pubsub";
 import { UpdateObligationSchema } from "#/types";
 import type { UpdateObligationInput } from "#/types";
 import { fetchObligationStep } from "#/workflow-steps/fetch-obligation";
+import { toRecord } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
+import type { JsonValue } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { parse } from "valibot";
 
@@ -14,7 +17,7 @@ const updateObligation = Workflow.name("obligation.update").handler(
     const current = await ctx.step.run(fetchObligationStep, { id });
     const parsed = parse(UpdateObligationSchema, patch);
 
-    const updateData: Record<string, unknown> = { updatedAt: new Date() };
+    const updateData: Partial<NewComplianceObligation> = { updatedAt: new Date() };
 
     if (parsed.name !== undefined) {
       updateData.name = parsed.name;
@@ -94,9 +97,9 @@ const updateObligation = Workflow.name("obligation.update").handler(
       throw new Error("Database operation returned no result");
     }
 
-    const changes: Record<string, { new: unknown; old: unknown }> = {};
-    const oldRecord = current as unknown as Record<string, unknown>;
-    const newRecord = updated as unknown as Record<string, unknown>;
+    const changes: Record<string, { new: JsonValue; old: JsonValue }> = {};
+    const oldRecord = toRecord(current);
+    const newRecord = toRecord(updated);
     for (const key of Object.keys(updateData)) {
       if (key === "updatedAt") {
         continue;

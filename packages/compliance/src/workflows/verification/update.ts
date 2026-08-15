@@ -1,4 +1,5 @@
 import { complianceVerificationRule } from "#/db-schemas";
+import type { NewComplianceVerificationRule } from "#/db-schemas";
 import { UpdateVerificationRuleSchema } from "#/types";
 import type { UpdateVerificationRuleInput } from "#/types";
 import { fetchRuleStep } from "#/workflow-steps/fetch-rule";
@@ -13,7 +14,7 @@ const updateVerificationRule = Workflow.name("verification.update").handler(
     const current = await ctx.step.run(fetchRuleStep, { id });
     const parsed = parse(UpdateVerificationRuleSchema, patch);
 
-    const updateData: Record<string, unknown> = {};
+    const updateData: Partial<NewComplianceVerificationRule> = {};
 
     if (parsed.name !== undefined) {
       updateData.name = parsed.name;

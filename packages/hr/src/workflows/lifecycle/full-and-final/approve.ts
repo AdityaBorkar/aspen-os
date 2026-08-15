@@ -19,12 +19,13 @@ export const approveFullAndFinal = Workflow.name("hr.lifecycle.approve-full-and-
 
     // Calculate totals
     const totalEarnings =
-      parseFloat(statement.pendingSalary) +
-      parseFloat(statement.leaveEncashment) +
-      parseFloat(statement.bonus) +
-      parseFloat(statement.gratuity);
+      Number.parseFloat(statement.pendingSalary) +
+      Number.parseFloat(statement.leaveEncashment) +
+      Number.parseFloat(statement.bonus) +
+      Number.parseFloat(statement.gratuity);
 
-    const totalDeductions = parseFloat(statement.loanRecovery) + parseFloat(statement.deductions);
+    const totalDeductions =
+      Number.parseFloat(statement.loanRecovery) + Number.parseFloat(statement.deductions);
 
     const netPayable = totalEarnings - totalDeductions;
 

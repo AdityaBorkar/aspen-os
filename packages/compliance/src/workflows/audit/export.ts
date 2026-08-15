@@ -1,7 +1,6 @@
 import { AuditTrailFiltersSchema } from "#/types";
 import type { AuditTrailFilters } from "#/types";
 import { normalize, toFilter } from "#/workflows/utils";
-import type { AuditLogRow, ComplianceAuditEntry } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { parse } from "valibot";
@@ -11,7 +10,7 @@ const exportAuditEntries = Workflow.name("audit.export").handler(
     const rows = await ctx.step.run("query", async () => {
       const { filters } = input;
       const parsed = filters ? parse(AuditTrailFiltersSchema, filters) : {};
-      const result = (await ctx.audit.query(toFilter(parsed))) as AuditLogRow[];
+      const result = await ctx.audit.query(toFilter(parsed));
       return result.map(normalize);
     });
 

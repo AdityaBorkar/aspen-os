@@ -1,3 +1,5 @@
+import type { JsonValue } from "@aspen-os/platform/server";
+
 // ─── Employee Events ──────────────────────────────────────────────────────
 
 export const EMPLOYEE_EVENTS = {
@@ -17,7 +19,7 @@ export interface EmployeeCreatedEvent {
 }
 
 export interface EmployeeUpdatedEvent {
-  changes: Record<string, unknown>;
+  changes: Record<string, JsonValue>;
   employee: { id: string; name: string };
 }
 
@@ -257,7 +259,7 @@ export interface HolidayListCreatedEvent {
 }
 
 export interface HrSettingsUpdatedEvent {
-  changes: Record<string, unknown>;
+  changes: Record<string, JsonValue>;
 }
 
 // ─── Shift Events ─────────────────────────────────────────────────────────

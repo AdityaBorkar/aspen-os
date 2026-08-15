@@ -13,10 +13,10 @@ export function generateSlug(name: string): string {
   const slug = name
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/[\s_]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
+    .replaceAll(/[^a-z0-9\s-]/g, "")
+    .replaceAll(/[\s_]+/g, "-")
+    .replaceAll(/-+/g, "-")
+    .replaceAll(/^-|-$/g, "");
 
   return slug.slice(0, SLUG_MAX_LENGTH);
 }

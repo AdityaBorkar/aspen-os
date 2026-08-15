@@ -36,10 +36,10 @@ export const getOvertimeSummary = Workflow.name("hr.overtime.get-overtime-summar
     };
 
     for (const slip of slips) {
-      summary.standardHours += parseFloat(slip.standardHours);
-      summary.holidayHours += parseFloat(slip.holidayHours);
-      summary.weekendHours += parseFloat(slip.weekendHours);
-      summary.totalHours += parseFloat(slip.totalOvertimeHours);
+      summary.standardHours += Number.parseFloat(slip.standardHours);
+      summary.holidayHours += Number.parseFloat(slip.holidayHours);
+      summary.weekendHours += Number.parseFloat(slip.weekendHours);
+      summary.totalHours += Number.parseFloat(slip.totalOvertimeHours);
     }
 
     return summary;

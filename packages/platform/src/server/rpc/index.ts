@@ -34,7 +34,8 @@ export class RpcUnit {
     },
     config: RpcConfig = {},
   ) {
-    this.prefix = (config.prefix ?? "/api/rpc") as `/${string}`;
+    const configuredPrefix = config.prefix ?? "/api/rpc";
+    this.prefix = isSlashPrefixed(configuredPrefix) ? configuredPrefix : `/${configuredPrefix}`;
     this.rpcHandler = new RPCHandler(router);
 
     this.server = {
@@ -61,4 +62,8 @@ export class RpcUnit {
       prefix: this.prefix,
     });
   }
+}
+
+function isSlashPrefixed(value: string): value is `/${string}` {
+  return value.startsWith("/");
 }

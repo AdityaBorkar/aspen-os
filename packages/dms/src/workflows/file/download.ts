@@ -7,7 +7,7 @@ import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, SETTING_KEYS } from "#/utils/constants
 import { fetchFileStep } from "#/workflow-steps/fetch-file";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, optional } from "valibot";
+import { number, object, optional, safeParse } from "valibot";
 
 const DownloadInputSchema = object({ id: FileIdSchema, options: optional(DownloadOptionsSchema) });
 
@@ -17,12 +17,19 @@ export const downloadFile = Workflow.name("dms.file.download")
     const file = await ctx.step.run(fetchFileStep, { id });
     const config = getDmsConfig();
 
-    const defaultExpiry =
-      ((await getSetting(ctx.db, SETTING_KEYS.PRESIGNED_URL_DEFAULT_EXPIRY)) as number | null) ??
-      config.defaultDownloadLinkExpiry;
-    const maxExpiry =
-      ((await getSetting(ctx.db, SETTING_KEYS.PRESIGNED_URL_MAX_EXPIRY)) as number | null) ??
-      config.maxDownloadLinkExpiry;
+    const defaultExpirySetting = await getSetting(
+      ctx.db,
+      SETTING_KEYS.PRESIGNED_URL_DEFAULT_EXPIRY,
+    );
+    const maxExpirySetting = await getSetting(ctx.db, SETTING_KEYS.PRESIGNED_URL_MAX_EXPIRY);
+    const defaultExpiryParsed = safeParse(number(), defaultExpirySetting);
+    const maxExpiryParsed = safeParse(number(), maxExpirySetting);
+    const defaultExpiry = defaultExpiryParsed.success
+      ? defaultExpiryParsed.output
+      : config.defaultDownloadLinkExpiry;
+    const maxExpiry = maxExpiryParsed.success
+      ? maxExpiryParsed.output
+      : config.maxDownloadLinkExpiry;
 
     const expiresIn = Math.min(options?.expiresIn ?? defaultExpiry, maxExpiry);
 
@@ -30,7 +37,7 @@ export const downloadFile = Workflow.name("dms.file.download")
       getSignedGetUrl({ expiresIn, key: file.storageKey }),
     );
 
-    const logDownloads = (await getSetting(ctx.db, SETTING_KEYS.LOG_DOWNLOADS)) as boolean | null;
+    const logDownloads = await getSetting(ctx.db, SETTING_KEYS.LOG_DOWNLOADS);
     if (logDownloads) {
       await ctx.audit.write({
         action: AUDIT_ACTION.DOWNLOADED,

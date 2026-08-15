@@ -4,7 +4,7 @@ import { IdSchema, ProvisionTenantSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 
 import { Workflow } from "@aspen-os/platform/server";
-import type { DatabaseUnit, IsolatedTenantProvisioningResult } from "@aspen-os/platform/server";
+import type { DatabaseUnit } from "@aspen-os/platform/server";
 import { organization } from "@aspen-os/platform/server/db-schemas";
 import { object } from "valibot";
 
@@ -36,34 +36,35 @@ export function createOnboardTenant(dbUnit: DatabaseUnit) {
 
       const tenantId = org.id;
 
-      let provisioningResult: Awaited<ReturnType<DatabaseUnit["provisionTenant"]>> | undefined =
-        undefined;
+      const provisioningResult = await provisionTenant();
 
-      try {
-        provisioningResult = await ctx.step.run("provision-tenant", async () =>
-          dbUnit.provisionTenant(tenantId, {
-            databaseName: parsed.databaseName ?? undefined,
-            host: parsed.databaseHost ?? undefined,
-            password: parsed.databasePassword ?? undefined,
-            port: parsed.databasePort ?? undefined,
-            ssl: parsed.databaseSsl ?? undefined,
-            user: parsed.databaseUser ?? undefined,
-          }),
-        );
-      } catch (error) {
-        console.error(
-          `Provisioning failed for tenant "${tenantId}", cleaning up organization`,
-          error,
-        );
+      async function provisionTenant() {
         try {
-          await auth.service.api.deleteOrganization({
-            body: { organizationId: tenantId },
-            headers: new Headers(),
-          });
-        } catch (cleanupError) {
-          console.error(`Failed to cleanup organization "${tenantId}"`, cleanupError);
+          return await ctx.step.run("provision-tenant", async () =>
+            dbUnit.provisionTenant(tenantId, {
+              databaseName: parsed.databaseName ?? undefined,
+              host: parsed.databaseHost ?? undefined,
+              password: parsed.databasePassword ?? undefined,
+              port: parsed.databasePort ?? undefined,
+              ssl: parsed.databaseSsl ?? undefined,
+              user: parsed.databaseUser ?? undefined,
+            }),
+          );
+        } catch (error) {
+          console.error(
+            `Provisioning failed for tenant "${tenantId}", cleaning up organization`,
+            error,
+          );
+          try {
+            await auth.service.api.deleteOrganization({
+              body: { organizationId: tenantId },
+              headers: new Headers(),
+            });
+          } catch (cleanupError) {
+            console.error(`Failed to cleanup organization "${tenantId}"`, cleanupError);
+          }
+          throw error;
         }
-        throw error;
       }
 
       if (provisioningResult.tenancyMode === "isolated") {

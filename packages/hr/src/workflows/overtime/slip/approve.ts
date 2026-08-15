@@ -20,15 +20,15 @@ export const approveOvertimeSlip = Workflow.name("hr.overtime.approve-overtime-s
 
     // Calculate amount
     let amount = 0;
-    const standardHours = parseFloat(slip.standardHours);
-    const holidayHours = parseFloat(slip.holidayHours);
-    const weekendHours = parseFloat(slip.weekendHours);
+    const standardHours = Number.parseFloat(slip.standardHours);
+    const holidayHours = Number.parseFloat(slip.holidayHours);
+    const weekendHours = Number.parseFloat(slip.weekendHours);
 
     if (overtimeTypeRecord.amountCalculation === "fixed" && overtimeTypeRecord.fixedHourlyRate) {
-      const hourlyRate = parseFloat(overtimeTypeRecord.fixedHourlyRate);
-      const standardMultiplier = parseFloat(overtimeTypeRecord.standardMultiplier);
-      const holidayMultiplier = parseFloat(overtimeTypeRecord.holidayMultiplier);
-      const weekendMultiplier = parseFloat(overtimeTypeRecord.weekendMultiplier);
+      const hourlyRate = Number.parseFloat(overtimeTypeRecord.fixedHourlyRate);
+      const standardMultiplier = Number.parseFloat(overtimeTypeRecord.standardMultiplier);
+      const holidayMultiplier = Number.parseFloat(overtimeTypeRecord.holidayMultiplier);
+      const weekendMultiplier = Number.parseFloat(overtimeTypeRecord.weekendMultiplier);
 
       amount =
         standardHours * hourlyRate * standardMultiplier +

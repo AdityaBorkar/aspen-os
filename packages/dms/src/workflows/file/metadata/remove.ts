@@ -16,7 +16,7 @@ export const removeFileMetadata = Workflow.name("dms.file.remove-metadata")
     const file = await ctx.step.run(fetchFileStep, { id });
     const parsed = parse(RemoveMetadataSchema, input);
 
-    const metadata = { ...(file.metadata as Record<string, unknown> | null) };
+    const metadata = { ...file.metadata };
     delete metadata[parsed.key];
 
     const [updated] = await ctx.db

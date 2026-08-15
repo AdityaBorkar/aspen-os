@@ -70,7 +70,7 @@ export async function updateUser(
   },
   { db, pubsub }: AuthServiceDeps,
 ): Promise<User> {
-  const updateData: Record<string, unknown> = {};
+  const updateData: Partial<Pick<User, "image" | "name" | "role">> = {};
   if (data.name !== undefined) {
     updateData.name = data.name;
   }

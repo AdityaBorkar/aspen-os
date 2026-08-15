@@ -1,15 +1,14 @@
 import type { AuditEntityType } from "#/utils/constants";
 import { normalize } from "#/workflows/utils";
-import type { AuditLogRow } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 
 const getAuditTrail = Workflow.name("audit.trail").handler(
   async (input: { entityType: AuditEntityType; entityId: string }, ctx) => {
-    const rows = (await ctx.audit.query({
+    const rows = await ctx.audit.query({
       entityId: input.entityId,
       entityType: input.entityType,
-    })) as AuditLogRow[];
+    });
 
     return rows
       .map(normalize)

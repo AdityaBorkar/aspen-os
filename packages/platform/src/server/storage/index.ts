@@ -21,6 +21,7 @@ export class StorageUnit {
 
   constructor(config: StorageConfig, { db }: { db: DatabaseUnit<any> }) {
     this.config = config;
+    // SAFETY: the DatabaseUnit db is a valid node-postgres drizzle instance.
     this.metadata = new FileMetadataService(db.db as DrizzleDB);
     this.ops = new S3Adapter({
       ...config,

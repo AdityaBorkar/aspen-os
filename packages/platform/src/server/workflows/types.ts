@@ -1,12 +1,12 @@
 import type { AuditUnit } from "#/server/audit";
 import type { AuthUnit } from "#/server/auth";
 import type { PubSubUnit } from "#/server/pubsub";
+import type { JsonValue, SchemaMap } from "#/server/types";
 
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-type DrizzleDB<TSchemas extends Record<string, unknown> = Record<string, never>> =
-  NodePgDatabase<TSchemas>;
+type DrizzleDB<TSchemas extends SchemaMap = Record<string, never>> = NodePgDatabase<TSchemas>;
 
 /** A Standard Schema v1 compatible schema. */
 export type StandardSchema<Input = unknown, Output = Input> = StandardSchemaV1<Input, Output>;
@@ -22,7 +22,7 @@ export interface StepOptions {
 export interface WorkflowStepInstance<
   TInput,
   TOutput,
-  TSchemas extends Record<string, unknown> = Record<string, never>,
+  TSchemas extends SchemaMap = Record<string, never>,
 > {
   readonly handler: (input: TInput, ctx: WorkflowContext<TSchemas>) => Promise<TOutput>;
   readonly name: string;
@@ -45,11 +45,11 @@ export interface StepRunner {
   sleep: (ms: number) => Promise<void>;
 }
 
-export interface WorkflowContext<TSchemas extends Record<string, unknown> = Record<string, never>> {
+export interface WorkflowContext<TSchemas extends SchemaMap = Record<string, never>> {
   actorId?: string;
   audit: AuditUnit;
   auth?: AuthUnit;
-  config: Record<string, unknown>;
+  config: Record<string, JsonValue>;
   db: DrizzleDB<TSchemas>;
   pubsub: PubSubUnit;
   runId: string;
@@ -59,19 +59,19 @@ export interface WorkflowContext<TSchemas extends Record<string, unknown> = Reco
 export interface WorkflowConfig<
   TInput,
   TOutput,
-  TSchemas extends Record<string, unknown> = Record<string, never>,
+  TSchemas extends SchemaMap = Record<string, never>,
 > {
   handler: (input: TInput, ctx: WorkflowContext<TSchemas>) => Promise<TOutput>;
   name: string;
-  schema?: StandardSchema;
+  schema?: StandardSchema<unknown, TInput>;
 }
 
 export interface RunOptions {
   actorId?: string;
   audit?: AuditUnit;
   auth?: AuthUnit;
-  config?: Record<string, unknown>;
-  db?: DrizzleDB;
+  config?: Record<string, JsonValue>;
+  db?: DrizzleDB<SchemaMap>;
   pubsub?: PubSubUnit;
 }
 

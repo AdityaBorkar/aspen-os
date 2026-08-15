@@ -8,7 +8,7 @@ import { fetchFileStep } from "#/workflow-steps/fetch-file";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
-import { integer, object, pipe, number as valibotNumber } from "valibot";
+import { integer, object, pipe, number as valibotNumber, safeParse } from "valibot";
 
 const GetVersionInputSchema = object({
   fileId: IdSchema,
@@ -37,10 +37,9 @@ export const getFileVersion = Workflow.name("dms.version.get")
         });
 
     const defaultExpiry = await ctx.step.run("resolve-expiry", async () => {
-      const setting = (await getSetting(ctx.db, SETTING_KEYS.PRESIGNED_URL_DEFAULT_EXPIRY)) as
-        | number
-        | null;
-      return setting ?? config.defaultDownloadLinkExpiry;
+      const setting = await getSetting(ctx.db, SETTING_KEYS.PRESIGNED_URL_DEFAULT_EXPIRY);
+      const parsed = safeParse(valibotNumber(), setting);
+      return parsed.success ? parsed.output : config.defaultDownloadLinkExpiry;
     });
     const maxExpiry = 604_800;
 

@@ -3,6 +3,7 @@ import type { AuthUnit } from "#/server/auth";
 import type { DatabaseUnit } from "#/server/db";
 import type { DatabaseConfig } from "#/server/db/types";
 import type {
+  MessageData,
   MessageHandler,
   PublishOptions,
   PubSubConfig,
@@ -63,7 +64,7 @@ export class PubSubUnit {
     return this.boss.getQueueSize(topic);
   }
 
-  async publish<TMessage extends object>(topic: string, data: TMessage, options?: PublishOptions) {
+  async publish(topic: string, data: MessageData, options?: PublishOptions) {
     await this.ensureStarted();
     try {
       const opts = this.toBossOptions(options);
@@ -84,13 +85,13 @@ export class PubSubUnit {
     }
   }
 
-  async publishBatch<TMessage = unknown>(
+  async publishBatch(
     topic: string,
-    messages: { data: TMessage; options?: PublishOptions }[],
+    messages: { data: MessageData; options?: PublishOptions }[],
   ): Promise<string[]> {
     await this.ensureStarted();
     const jobs = messages.map((msg) => ({
-      data: msg.data as object,
+      data: msg.data,
       name: topic,
       options: this.toBossOptions(msg.options),
     }));
@@ -114,10 +115,7 @@ export class PubSubUnit {
     await this.boss.deleteQueue(topic);
   }
 
-  async subscribe<TMessage = unknown>(
-    topic: string,
-    handler: MessageHandler<TMessage>,
-  ): Promise<void> {
+  async subscribe(topic: string, handler: MessageHandler): Promise<void> {
     const tenantId = context.getStore()?.tenantId;
     const wrappedHandler = await this.wrapHandler(handler, tenantId);
     this.subscriptions.set(topic, wrappedHandler);
@@ -135,12 +133,12 @@ export class PubSubUnit {
   async schedule(input: {
     topic: string;
     cron: string;
-    data?: unknown;
+    data?: MessageData;
     options?: ScheduleOptions;
   }): Promise<void> {
     const { topic, cron, data, options } = input;
     await this.ensureStarted();
-    await this.boss.schedule(topic, cron, data as object | undefined, {
+    await this.boss.schedule(topic, cron, data, {
       ...this.toBossOptions(options),
       tz: options?.tz,
     });
@@ -185,8 +183,8 @@ export class PubSubUnit {
     }
   }
 
-  private async wrapHandler<TMessage>(
-    handler: MessageHandler<TMessage>,
+  private async wrapHandler(
+    handler: MessageHandler,
     tenantId: string | undefined,
   ): Promise<PgBoss.WorkHandler<object>> {
     const workHandler: PgBoss.WorkHandler<object> = async (jobs) => {
@@ -207,7 +205,7 @@ export class PubSubUnit {
           async () => {
             await handler({
               createdOn: new Date(),
-              data: job.data as TMessage,
+              data: job.data,
               id: job.id,
               name: job.name,
             });
@@ -237,7 +235,7 @@ export class PubSubUnit {
     return [...this.producedTopics.keys()].filter((topic) => !this.subscriptions.has(topic));
   }
 
-  private toBossOptions(options?: PublishOptions): Record<string, unknown> {
+  private toBossOptions(options?: PublishOptions): PublishOptions {
     if (!options) {
       return {};
     }

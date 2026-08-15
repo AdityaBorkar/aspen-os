@@ -12,7 +12,7 @@ type ReminderType = "due_date" | "custom" | "overdue";
 
 export const processPendingReminders = Workflow.name("reminder.process-pending").handler(
   async (_input: undefined, ctx) => {
-    const pending = await getPendingReminders.run(undefined);
+    const pending = await getPendingReminders.run();
 
     await Promise.all(
       pending.map(async (row) => {
@@ -40,7 +40,7 @@ async function scheduleNextOccurrence(
     interval: string | null;
     remindAt: Date;
     taskId: string;
-    type: string;
+    type: ReminderType;
     userId: string;
   },
 ): Promise<void> {
@@ -58,7 +58,7 @@ async function scheduleNextOccurrence(
     isRecurring: true,
     remindAt: nextDate,
     taskId: row.taskId,
-    type: row.type as ReminderType,
+    type: row.type,
     userId: row.userId,
   });
 }

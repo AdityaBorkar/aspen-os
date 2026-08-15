@@ -89,24 +89,25 @@ export class AuthUnit implements Unit {
     };
     return {
       role: {
-        list: () => listRoles(deps),
-        remove: (input: Parameters<typeof deleteRole>[0]) => deleteRole(input, deps),
+        list: async () => listRoles(deps),
+        remove: async (input: Parameters<typeof deleteRole>[0]) => deleteRole(input, deps),
       },
       session: {
-        create: (input: Parameters<typeof authenticate>[0]) => authenticate(input, deps),
-        invalidate: (input: Parameters<typeof invalidateSession>[0]) =>
+        create: async (input: Parameters<typeof authenticate>[0]) => authenticate(input, deps),
+        invalidate: async (input: Parameters<typeof invalidateSession>[0]) =>
           invalidateSession(input, deps),
-        validate: (input: Parameters<typeof validateSession>[0]) => validateSession(input, deps),
+        validate: async (input: Parameters<typeof validateSession>[0]) =>
+          validateSession(input, deps),
       },
       user: {
-        create: (input: Parameters<typeof createUser>[0]) => createUser(input, deps),
-        get: (query: Parameters<typeof getUser>[0]) => getUser(query, deps),
-        remove: (input: Parameters<typeof deleteUser>[0]) => deleteUser(input, deps),
+        create: async (input: Parameters<typeof createUser>[0]) => createUser(input, deps),
+        get: async (query: Parameters<typeof getUser>[0]) => getUser(query, deps),
+        remove: async (input: Parameters<typeof deleteUser>[0]) => deleteUser(input, deps),
         role: {
-          assign: (input: Parameters<typeof assignRole>[0]) => assignRole(input, deps),
-          unassign: (input: Parameters<typeof unassignRole>[0]) => unassignRole(input, deps),
+          assign: async (input: Parameters<typeof assignRole>[0]) => assignRole(input, deps),
+          unassign: async (input: Parameters<typeof unassignRole>[0]) => unassignRole(input, deps),
         },
-        update: (input: Parameters<typeof updateUser>[0]) => updateUser(input, deps),
+        update: async (input: Parameters<typeof updateUser>[0]) => updateUser(input, deps),
       },
     };
   }

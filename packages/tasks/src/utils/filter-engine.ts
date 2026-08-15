@@ -1,5 +1,6 @@
 import { task } from "#/db-schemas/task";
 import type { TaskFilters } from "#/types";
+import { isTaskPriority } from "#/utils/constants";
 
 import { and, eq, gte, ilike, inArray, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
@@ -41,7 +42,7 @@ export function buildTaskWhereClause(filters: TaskFilters | undefined): SQL | un
   }
   if (filters.search) {
     const term = `%${filters.search}%`;
-    conditions.push(or(ilike(task.title, term), ilike(task.description, term)) as SQL);
+    conditions.push(or(ilike(task.title, term), ilike(task.description, term))!);
   }
   if (filters.assigneeId) {
     conditions.push(
@@ -85,5 +86,6 @@ export function buildInClause(column: typeof task.priority, values: string[]): S
   if (values.length === 0) {
     return sql`1=1`;
   }
-  return inArray(column, values as never[]);
+  const priorities = values.filter(isTaskPriority);
+  return inArray(column, priorities);
 }

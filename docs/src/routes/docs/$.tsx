@@ -24,6 +24,7 @@ import { getLayoutTabs } from "fumadocs-ui/layouts/shared";
 import type { LayoutTab } from "fumadocs-ui/layouts/shared";
 import { MessageCircleIcon } from "lucide-react";
 import { cloneElement, isValidElement, Suspense } from "react";
+import type { ReactElement, ReactNode } from "react";
 
 export const Route = createFileRoute("/docs/$")({
   component: Page,
@@ -116,8 +117,8 @@ function Page() {
     transform: (option, node): LayoutTab | null => ({
       ...option,
       $folder: undefined,
-      icon: isValidElement(option.icon)
-        ? cloneElement(option.icon as React.ReactElement<{ className?: string }>, {
+      icon: isClassNamableElement(option.icon)
+        ? cloneElement(option.icon, {
             className: "*:size-5",
           })
         : option.icon,
@@ -160,4 +161,8 @@ function Page() {
       <Suspense>{clientLoader.useContent(path, { markdownUrl, path })}</Suspense>
     </DocsLayout>
   );
+}
+
+function isClassNamableElement(value: ReactNode): value is ReactElement<{ className?: string }> {
+  return isValidElement(value);
 }

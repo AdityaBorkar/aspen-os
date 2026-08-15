@@ -7,6 +7,8 @@ import { and, eq, sql } from "drizzle-orm";
 import { parse } from "valibot";
 
 export const listFolders = Workflow.name("dms.folder.list").handler(async (input, ctx) => {
+  // SAFETY: the handler input is the unvalidated workflow payload.
+  // Only the optional id/opts are read here; opts is validated below.
   const { id, opts } = (input ?? {}) as {
     id?: string | null;
     opts?: ListFolderOptions;

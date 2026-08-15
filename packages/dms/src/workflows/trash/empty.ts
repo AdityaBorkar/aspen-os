@@ -6,7 +6,7 @@ import type { EmptyTrashOptions } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { and, eq, or } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 
 const EmptyTrashSchema = EmptyTrashOptionsSchema;
@@ -14,10 +14,12 @@ const EmptyTrashSchema = EmptyTrashOptionsSchema;
 export const emptyTrash = Workflow.name("dms.trash.empty")
   .input(EmptyTrashSchema)
   .handler(async (input, ctx) => {
+    // SAFETY: input was validated against EmptyTrashSchema by the workflow runner.
+    // The assertion only marks it optional for the options access below.
     const validated = input as EmptyTrashOptions | undefined;
 
     const fileConditions: SQL[] = [
-      or(eq(dmsFile.status, "trashed"), eq(dmsFile.status, "expired")) as SQL,
+      or(eq(dmsFile.status, "trashed"), eq(dmsFile.status, "expired"))!,
     ];
     const folderConditions: SQL[] = [eq(dmsFolder.isTrashed, true)];
 
@@ -38,7 +40,7 @@ export const emptyTrash = Workflow.name("dms.trash.empty")
         .from(dmsLegalHold)
         .where(
           and(
-            eq(dmsLegalHold.releasedAt, null as never),
+            isNull(dmsLegalHold.releasedAt),
             or(...trashedFiles.map((row) => eq(dmsLegalHold.fileId, row.id))),
           ),
         );

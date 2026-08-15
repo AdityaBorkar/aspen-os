@@ -3,7 +3,17 @@ import { taskAssignee } from "#/db-schemas/task-assignee";
 import { timeEntry } from "#/db-schemas/time-entry";
 
 import { getContext } from "@aspen-os/platform/server";
+import type { JsonValue } from "@aspen-os/platform/server";
 import { and, count, eq, gte, lte, sql, sum } from "drizzle-orm";
+import { safeParse, string } from "valibot";
+
+function asString(value: JsonValue): string {
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  const parsed = safeParse(string(), value);
+  return parsed.success ? parsed.output : "";
+}
 
 export async function getTaskSummary(projectId: string): Promise<{
   byPriority: Record<string, number>;
@@ -113,9 +123,11 @@ export async function getCumulativeFlow(
     ORDER BY DATE(t.created_at) ASC
   `);
 
+  // SAFETY: the raw SQL selects DATE(...)/status_id columns, which pg returns as
+  // `Date | string` values; both are valid JsonValue members.
   return result.rows.map((row) => ({
     count: Number(row.count),
-    date: row.date as string,
-    statusId: row.status_id as string,
+    date: asString(row.date as JsonValue),
+    statusId: asString(row.status_id as JsonValue),
   }));
 }

@@ -8,6 +8,7 @@ import type {
   QuickSearchInput,
   SearchOptions,
 } from "#/types";
+import { toText } from "#/utils/to-text";
 
 import { and, asc, desc, eq, gte, ilike, lte, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
@@ -32,6 +33,11 @@ export interface QuickSearchResult {
 export interface FileSearchResult {
   files: DmsFile[];
   folders: DmsFolder[];
+}
+
+export interface SearchToFileViewConditions {
+  filters: FileViewCondition[];
+  sort: FileViewSort[];
 }
 
 export async function searchFolders(
@@ -98,16 +104,16 @@ function buildLabelCondition(labelIds: string[]): SQL {
 function resolveSortField(field: string): SQL | null {
   switch (field) {
     case "createdAt": {
-      return dmsFile.createdAt as unknown as SQL;
+      return sql`${dmsFile.createdAt}`;
     }
     case "size": {
-      return dmsFile.size as unknown as SQL;
+      return sql`${dmsFile.size}`;
     }
     case "updatedAt": {
-      return dmsFile.updatedAt as unknown as SQL;
+      return sql`${dmsFile.updatedAt}`;
     }
     case "name": {
-      return dmsFile.name as unknown as SQL;
+      return sql`${dmsFile.name}`;
     }
     default: {
       return null;
@@ -142,7 +148,7 @@ export async function searchFiles(
   conditions.push(buildSearchVector(input.query));
 
   if (input.status) {
-    conditions.push(eq(dmsFile.status, input.status as never));
+    conditions.push(eq(sql`${dmsFile.status}`, input.status));
   } else {
     conditions.push(eq(dmsFile.status, "active"));
   }
@@ -300,20 +306,20 @@ function findMatchInFile(file: DmsFile, query: string): { field: string; value: 
     return { field: "description", value: file.description };
   }
 
-  const metadata = file.metadata as Record<string, unknown> | null;
+  const { metadata } = file;
   if (metadata) {
     for (const [key, raw] of Object.entries(metadata)) {
-      const value = String(raw ?? "");
+      const value = toText(raw);
       if (value.toLowerCase().includes(normalized)) {
         return { field: `metadata.${key}`, value };
       }
     }
   }
 
-  const fields = file.fieldValues as Record<string, unknown> | null;
+  const { fieldValues: fields } = file;
   if (fields) {
     for (const [key, raw] of Object.entries(fields)) {
-      const value = String(raw ?? "");
+      const value = toText(raw);
       if (value.toLowerCase().includes(normalized)) {
         return { field: `classField.${key}`, value };
       }
@@ -327,10 +333,10 @@ function findMatchInFile(file: DmsFile, query: string): { field: string; value: 
  * Converts a search's query + options into view filter/sort conditions so the
  * result can be promoted to a persisted view in one step.
  */
-export function searchToFileViewConditions(input: { query: string; options: SearchOptions }): {
-  filters: FileViewCondition[];
-  sort: FileViewSort[];
-} {
+export function searchToFileViewConditions(input: {
+  query: string;
+  options: SearchOptions;
+}): SearchToFileViewConditions {
   const filters: FileViewCondition[] = [
     { field: "search", operator: "search", value: input.query },
   ];

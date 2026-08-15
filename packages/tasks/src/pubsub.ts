@@ -1,3 +1,5 @@
+import type { JsonValue } from "@aspen-os/platform/server";
+
 export const TASK_EVENTS = {
   ASSIGNED: "task:assigned",
   COMMENTED: "task:commented",
@@ -24,7 +26,7 @@ export interface TaskCreatedEvent {
 }
 
 export interface TaskUpdatedEvent {
-  changes: Record<string, unknown>;
+  changes: Record<string, JsonValue>;
   task: { id: string; title: string };
 }
 

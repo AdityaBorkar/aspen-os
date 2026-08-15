@@ -7,7 +7,7 @@ import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 type DB = NodePgDatabase;
 
-const PERMISSION_RANK: Record<SharePermission, number> = {
+const PERMISSION_RANK = {
   editor: 2,
   owner: 3,
   viewer: 1,
