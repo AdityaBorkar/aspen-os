@@ -1,8 +1,8 @@
+import { leavePeriod } from "#/db-schemas";
+import { CreateLeavePeriodSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { leavePeriod } from "../../../db-schemas";
-import { CreateLeavePeriodSchema } from "../../../types";
 
 const InputSchema = object({
   input: CreateLeavePeriodSchema,

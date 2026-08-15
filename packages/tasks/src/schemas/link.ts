@@ -1,6 +1,7 @@
-import { type InferOutput, minLength, object, pipe, string } from "valibot";
+import { TaskLinkTypeSchema } from "#/schemas/enums";
 
-import { TaskLinkTypeSchema } from "./enums";
+import { minLength, object, pipe, string } from "valibot";
+import type { InferOutput } from "valibot";
 
 export const CreateTaskLinkSchema = object({
   linkType: TaskLinkTypeSchema,

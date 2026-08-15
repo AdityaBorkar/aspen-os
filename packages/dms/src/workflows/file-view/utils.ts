@@ -1,7 +1,7 @@
+import { dmsFileView } from "#/db-schemas";
+
 import { and, eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-
-import { dmsFileView } from "../../db-schemas";
 
 export async function unsetDefaultFileView(db: NodePgDatabase, ownerId: string): Promise<void> {
   await db

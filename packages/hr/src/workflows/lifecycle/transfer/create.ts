@@ -1,8 +1,8 @@
+import { employeeTransfer } from "#/db-schemas";
+import { CreateTransferSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { employeeTransfer } from "../../../db-schemas";
-import { CreateTransferSchema } from "../../../types";
 
 const InputSchema = object({
   input: CreateTransferSchema,

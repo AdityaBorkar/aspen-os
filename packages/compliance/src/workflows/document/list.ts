@@ -1,9 +1,10 @@
+import { complianceDocument } from "#/db-schemas";
+import { ComplianceDocumentFiltersSchema } from "#/types";
+import type { ComplianceDocumentFilters } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, desc, eq, isNotNull, lte } from "drizzle-orm";
 import { parse } from "valibot";
-
-import { complianceDocument } from "../../db-schemas";
-import { type ComplianceDocumentFilters, ComplianceDocumentFiltersSchema } from "../../types";
 
 const listDocuments = Workflow.name("document.list").handler(
   async (input: { filters?: ComplianceDocumentFilters }, ctx) => {

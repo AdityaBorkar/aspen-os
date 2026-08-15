@@ -1,9 +1,9 @@
+import type { AuditUnit } from "#/server/audit";
+import type { AuthUnit } from "#/server/auth";
+import type { PubSubUnit } from "#/server/pubsub";
+
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-
-import type { AuditUnit } from "../audit";
-import type { AuthUnit } from "../auth";
-import type { PubSubUnit } from "../pubsub";
 
 type DrizzleDB<TSchemas extends Record<string, unknown> = Record<string, never>> =
   NodePgDatabase<TSchemas>;

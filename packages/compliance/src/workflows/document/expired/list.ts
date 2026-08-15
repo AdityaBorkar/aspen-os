@@ -1,7 +1,7 @@
+import { complianceDocument } from "#/db-schemas";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, inArray, isNotNull, lte } from "drizzle-orm";
-
-import { complianceDocument } from "../../../db-schemas";
 
 const getExpiredDocuments = Workflow.name("document.expired").handler(
   async (_input: Record<string, never>, ctx) => {

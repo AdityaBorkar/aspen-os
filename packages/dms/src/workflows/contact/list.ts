@@ -1,8 +1,9 @@
-import { Workflow } from "@aspen-os/platform/server";
-import { and, eq, ilike, or, type SQL } from "drizzle-orm";
+import { dmsContact } from "#/db-schemas";
+import { fetchContactStep } from "#/workflow-steps/fetch-contact";
 
-import { dmsContact } from "../../db-schemas";
-import { fetchContactStep } from "../../workflow-steps/fetch-contact";
+import { Workflow } from "@aspen-os/platform/server";
+import { and, eq, ilike, or } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 
 export const getContact = Workflow.name("dms.contact.get").handler(
   async (input: { id: string }, ctx) => ctx.step.run(fetchContactStep, { id: input.id }),

@@ -1,9 +1,9 @@
+import { overtimeSlip } from "#/db-schemas";
+import { CreateOvertimeSlipSchema } from "#/types";
+import { fetchOvertimeTypeById } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { overtimeSlip } from "../../../db-schemas";
-import { CreateOvertimeSlipSchema } from "../../../types";
-import { fetchOvertimeTypeById } from "../../utils";
 
 const InputSchema = object({
   input: CreateOvertimeSlipSchema,

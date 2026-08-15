@@ -1,10 +1,11 @@
+import { tenant } from "#/db-schemas";
+import { TenantFiltersSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { organization } from "@aspen-os/platform/server/db-schemas";
-import { and, eq, ilike, or, type SQL } from "drizzle-orm";
+import { and, eq, ilike, or } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 import { object, optional } from "valibot";
-
-import { tenant } from "../../db-schemas";
-import { TenantFiltersSchema } from "../../types";
 
 export const listTenants = Workflow.name("tenant.list")
   .input(

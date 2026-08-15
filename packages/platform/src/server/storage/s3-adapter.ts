@@ -1,3 +1,11 @@
+import type {
+  FileObject,
+  FileUploadInput,
+  ListOptions,
+  SignedUrlOptions,
+  StorageConfig,
+} from "#/server/storage/types";
+
 import {
   CopyObjectCommand,
   DeleteObjectCommand,
@@ -8,14 +16,6 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-
-import type {
-  FileObject,
-  FileUploadInput,
-  ListOptions,
-  SignedUrlOptions,
-  StorageConfig,
-} from "./types";
 
 export interface S3AdapterConfig extends StorageConfig {
   getKey: (key: string) => string;

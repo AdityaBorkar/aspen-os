@@ -1,10 +1,10 @@
+import { dmsFolder } from "#/db-schemas";
+import { FOLDER_EVENTS } from "#/pubsub";
+import { WithIdSchema } from "#/types";
+import { fetchFolderStep } from "#/workflow-steps/fetch-folder";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-
-import { dmsFolder } from "../../db-schemas";
-import { FOLDER_EVENTS } from "../../pubsub";
-import { WithIdSchema } from "../../types";
-import { fetchFolderStep } from "../../workflow-steps/fetch-folder";
 
 export const restoreFolder = Workflow.name("dms.folder.restore")
   .input(WithIdSchema)

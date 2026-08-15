@@ -1,10 +1,10 @@
+import { address } from "#/db-schemas";
+import { fetchAddressStep } from "#/workflow-steps/fetch-address";
+import { unsetPrimaryAddress } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object, string } from "valibot";
-
-import { address } from "../../../db-schemas";
-import { fetchAddressStep } from "../../../workflow-steps/fetch-address";
-import { unsetPrimaryAddress } from "../../utils";
 
 export const setPrimary = Workflow.name("address.set-primary")
   .input(object({ id: string() }))

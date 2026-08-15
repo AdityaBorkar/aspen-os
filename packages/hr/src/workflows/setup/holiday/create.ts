@@ -1,9 +1,9 @@
+import { holiday } from "#/db-schemas";
+import { CreateHolidaySchema } from "#/types";
+import { fetchHolidayListById } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { holiday } from "../../../db-schemas";
-import { CreateHolidaySchema } from "../../../types";
-import { fetchHolidayListById } from "../../utils";
 
 const InputSchema = object({
   input: CreateHolidaySchema,

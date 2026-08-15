@@ -1,9 +1,9 @@
+import { tenant } from "#/db-schemas";
+import { IdSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { tenant } from "../../../db-schemas";
-import { IdSchema } from "../../../types";
 
 export const getAssignedTenants = Workflow.name("sp.assigned-tenants")
   .input(object({ spId: IdSchema }))

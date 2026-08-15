@@ -1,10 +1,10 @@
+import { taskAssignee } from "#/db-schemas/task-assignee";
+import { IdSchema } from "#/types";
+import { addActivity } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { taskAssignee } from "../../db-schemas/task-assignee";
-import { IdSchema } from "../../types";
-import { addActivity } from "../utils";
 
 export const unassignTask = Workflow.name("task.unassign")
   .input(object({ taskId: IdSchema, userId: IdSchema }))

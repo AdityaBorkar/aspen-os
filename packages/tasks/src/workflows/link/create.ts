@@ -1,12 +1,12 @@
+import { taskLink } from "#/db-schemas/task-link";
+import { wouldCreateCycle } from "#/services/dependency-graph";
+import { CreateTaskLinkSchema } from "#/types";
+import { linkTypeInverse } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { object } from "valibot";
-
-import { taskLink } from "../../db-schemas/task-link";
-import { wouldCreateCycle } from "../../services/dependency-graph";
-import { CreateTaskLinkSchema } from "../../types";
-import { linkTypeInverse } from "../utils";
 
 const BLOCKS_LINK_TYPE = "blocks";
 

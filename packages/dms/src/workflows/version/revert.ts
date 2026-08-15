@@ -1,19 +1,19 @@
-import { Workflow } from "@aspen-os/platform/server";
-import { and, eq } from "drizzle-orm";
-import { integer, object, pipe, number as valibotNumber } from "valibot";
-
-import { dmsFile, dmsFileVersion } from "../../db-schemas";
-import { FILE_EVENTS } from "../../pubsub";
-import { getDmsConfig } from "../../runtime";
-import { pruneVersions } from "../../services/purge-service";
+import { dmsFile, dmsFileVersion } from "#/db-schemas";
+import { FILE_EVENTS } from "#/pubsub";
+import { getDmsConfig } from "#/runtime";
+import { pruneVersions } from "#/services/purge-service";
 import {
   computeStorageKey,
   get as getStorage,
   upload as uploadStorage,
-} from "../../services/storage-bridge";
-import { IdSchema } from "../../types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../../utils/constants";
-import { fetchFileStep } from "../../workflow-steps/fetch-file";
+} from "#/services/storage-bridge";
+import { IdSchema } from "#/types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { fetchFileStep } from "#/workflow-steps/fetch-file";
+
+import { Workflow } from "@aspen-os/platform/server";
+import { and, eq } from "drizzle-orm";
+import { integer, object, pipe, number as valibotNumber } from "valibot";
 
 const RevertInputSchema = object({
   fileId: IdSchema,

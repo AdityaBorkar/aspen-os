@@ -1,11 +1,11 @@
+import { taskType } from "#/db-schemas/task-type";
+import { IdSchema, UpdateTaskTypeSchema } from "#/types";
+import { fetchTaskTypeStep } from "#/workflow-steps/fetch-task-type";
+import { unsetDefaultTaskType } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { taskType } from "../../db-schemas/task-type";
-import { IdSchema, UpdateTaskTypeSchema } from "../../types";
-import { fetchTaskTypeStep } from "../../workflow-steps/fetch-task-type";
-import { unsetDefaultTaskType } from "../utils";
 
 const UpdateInputSchema = object({
   id: IdSchema,

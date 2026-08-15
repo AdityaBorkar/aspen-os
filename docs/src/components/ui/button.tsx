@@ -1,4 +1,5 @@
-import { cva, type VariantProps } from "class-variance-authority";
+import { cva } from "class-variance-authority";
+import type { VariantProps } from "class-variance-authority";
 
 const variants = {
   ghost: "hover:bg-fd-accent hover:text-fd-accent-foreground",

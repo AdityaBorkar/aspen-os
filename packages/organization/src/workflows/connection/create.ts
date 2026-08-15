@@ -1,9 +1,9 @@
+import { connection } from "#/db-schemas";
+import { CONNECTION_EVENTS } from "#/pubsub";
+import { CreateConnectionSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { connection } from "../../db-schemas";
-import { CONNECTION_EVENTS } from "../../pubsub";
-import { CreateConnectionSchema } from "../../types";
 
 const CreateInputSchema = object({ input: CreateConnectionSchema });
 

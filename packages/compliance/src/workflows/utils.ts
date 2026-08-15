@@ -1,4 +1,4 @@
-import type { AuditTrailFilters } from "../types";
+import type { AuditTrailFilters } from "#/types";
 
 export const MONTHS_PER_FREQUENCY: Record<string, number> = {
   annual: 12,

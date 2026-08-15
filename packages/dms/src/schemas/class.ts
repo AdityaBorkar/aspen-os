@@ -1,8 +1,10 @@
+import { FieldTypeSchema } from "#/schemas/enums";
+import { NameSchema } from "#/schemas/utils";
+
 import {
   array,
   boolean,
   check,
-  type InferOutput,
   integer,
   maxLength,
   nullable,
@@ -12,9 +14,7 @@ import {
   string,
   number as valibotNumber,
 } from "valibot";
-
-import { FieldTypeSchema } from "./enums";
-import { NameSchema } from "./utils";
+import type { InferOutput } from "valibot";
 
 export const FileNamingSchema = pipe(
   string(),

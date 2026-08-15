@@ -1,9 +1,9 @@
+import { employeeTransfer } from "#/db-schemas";
+import { fetchTransferById } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { minLength, object, pipe, string } from "valibot";
-
-import { employeeTransfer } from "../../../db-schemas";
-import { fetchTransferById } from "../../utils";
 
 const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),

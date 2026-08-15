@@ -1,15 +1,7 @@
-import {
-  check,
-  type InferOutput,
-  maxLength,
-  nullish,
-  object,
-  optional,
-  pipe,
-  string,
-} from "valibot";
+import { EmailSchema } from "#/schemas/utils";
 
-import { EmailSchema } from "./utils";
+import { check, maxLength, nullish, object, optional, pipe, string } from "valibot";
+import type { InferOutput } from "valibot";
 
 export const ContactNameSchema = pipe(
   string(),

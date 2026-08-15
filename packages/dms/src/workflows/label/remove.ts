@@ -1,9 +1,9 @@
+import { dmsEntityLabel } from "#/db-schemas";
+import { EntityTypeSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object, string } from "valibot";
-
-import { dmsEntityLabel } from "../../db-schemas";
-import { EntityTypeSchema } from "../../types";
 
 const RemoveLabelSchema = object({
   entityId: string(),

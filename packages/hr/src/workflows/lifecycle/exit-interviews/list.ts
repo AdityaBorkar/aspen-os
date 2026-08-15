@@ -1,9 +1,9 @@
+import { exitInterview } from "#/db-schemas";
+import { ExitInterviewFiltersSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object, optional, parse } from "valibot";
-
-import { exitInterview } from "../../../db-schemas";
-import { ExitInterviewFiltersSchema } from "../../../types";
 
 const InputSchema = object({
   filters: optional(ExitInterviewFiltersSchema),

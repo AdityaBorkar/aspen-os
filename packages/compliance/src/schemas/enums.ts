@@ -1,5 +1,3 @@
-import { enum_ } from "valibot";
-
 import {
   AUDIT_ACTION,
   AUDIT_ENTITY_TYPE,
@@ -8,7 +6,9 @@ import {
   REMINDER_CHANNEL,
   RENEWAL_FREQUENCY,
   VERIFICATION_STATUS,
-} from "../utils/constants";
+} from "#/utils/constants";
+
+import { enum_ } from "valibot";
 
 export const ComplianceCategorySchema = enum_(COMPLIANCE_CATEGORY);
 

@@ -1,7 +1,8 @@
+import { EntityTypeSchema, PublicLinkPermissionSchema } from "#/schemas/enums";
+
 import {
   boolean,
   date,
-  type InferOutput,
   minLength,
   nullable,
   number,
@@ -10,8 +11,7 @@ import {
   pipe,
   string,
 } from "valibot";
-
-import { EntityTypeSchema, PublicLinkPermissionSchema } from "./enums";
+import type { InferOutput } from "valibot";
 
 export const CreatePublicLinkSchema = object({
   createdBy: pipe(string(), minLength(1, "createdBy is required")),

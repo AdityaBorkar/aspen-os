@@ -1,8 +1,8 @@
+import { employeeCheckin } from "#/db-schemas";
+import { CreateCheckinSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { employeeCheckin } from "../../../db-schemas";
-import { CreateCheckinSchema } from "../../../types";
 
 const InputSchema = object({
   input: CreateCheckinSchema,

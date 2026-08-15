@@ -1,10 +1,10 @@
+import { dmsContact } from "#/db-schemas";
+import { CONTACT_EVENTS } from "#/pubsub";
+import { CreateContactSchema } from "#/types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { dmsContact } from "../../db-schemas";
-import { CONTACT_EVENTS } from "../../pubsub";
-import { CreateContactSchema } from "../../types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../../utils/constants";
 
 const CreateInputSchema = object({ input: CreateContactSchema });
 

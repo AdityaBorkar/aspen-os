@@ -1,13 +1,13 @@
+import { dmsFileVersion } from "#/db-schemas";
+import { FILE_EVENTS } from "#/pubsub";
+import { remove as removeStorage } from "#/services/storage-bridge";
+import { IdSchema } from "#/types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { fetchFileStep } from "#/workflow-steps/fetch-file";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, ne } from "drizzle-orm";
 import { integer, object, pipe, number as valibotNumber } from "valibot";
-
-import { dmsFileVersion } from "../../db-schemas";
-import { FILE_EVENTS } from "../../pubsub";
-import { remove as removeStorage } from "../../services/storage-bridge";
-import { IdSchema } from "../../types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../../utils/constants";
-import { fetchFileStep } from "../../workflow-steps/fetch-file";
 
 const DeleteVersionInputSchema = object({
   fileId: IdSchema,

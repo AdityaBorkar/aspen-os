@@ -1,14 +1,5 @@
-import {
-  boolean,
-  type InferOutput,
-  maxLength,
-  minLength,
-  nullable,
-  object,
-  optional,
-  pipe,
-  string,
-} from "valibot";
+import { boolean, maxLength, minLength, nullable, object, optional, pipe, string } from "valibot";
+import type { InferOutput } from "valibot";
 
 export const CreateBankAccountSchema = object({
   accountHolderName: pipe(string(), minLength(1, "Account holder name is required")),

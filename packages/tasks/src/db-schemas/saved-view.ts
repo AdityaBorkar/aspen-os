@@ -1,7 +1,7 @@
+import { savedViewTypeEnum } from "#/db-schemas/enums";
+
 import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, index, jsonb, pgTable, text } from "drizzle-orm/pg-core";
-
-import { savedViewTypeEnum } from "./enums";
 
 export const savedView = pgTable(
   "task_saved_view",

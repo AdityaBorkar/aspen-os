@@ -1,7 +1,7 @@
+import { statusCategoryEnum } from "#/db-schemas/enums";
+
 import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, index, integer, pgTable, text } from "drizzle-orm/pg-core";
-
-import { statusCategoryEnum } from "./enums";
 
 export const status = pgTable(
   "task_status",

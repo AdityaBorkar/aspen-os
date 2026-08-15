@@ -1,9 +1,9 @@
+import { shiftScheduleAssignment } from "#/db-schemas";
+import { UpdateShiftScheduleAssignmentSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { minLength, object, parse, pipe, string } from "valibot";
-
-import { shiftScheduleAssignment } from "../../../db-schemas";
-import { UpdateShiftScheduleAssignmentSchema } from "../../../types";
 
 const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),

@@ -1,9 +1,9 @@
+import { status } from "#/db-schemas/status";
+import { CreateStatusSchema } from "#/types";
+import { unsetDefaultProjectStatus } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { status } from "../../db-schemas/status";
-import { CreateStatusSchema } from "../../types";
-import { unsetDefaultProjectStatus } from "../utils";
 
 const CreateInputSchema = object({
   input: CreateStatusSchema,

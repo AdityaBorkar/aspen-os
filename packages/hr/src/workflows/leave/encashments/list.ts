@@ -1,9 +1,9 @@
+import { leaveEncashment } from "#/db-schemas";
+import { LeaveEncashmentFiltersSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object, optional, parse } from "valibot";
-
-import { leaveEncashment } from "../../../db-schemas";
-import { LeaveEncashmentFiltersSchema } from "../../../types";
 
 const InputSchema = object({
   filters: optional(LeaveEncashmentFiltersSchema),

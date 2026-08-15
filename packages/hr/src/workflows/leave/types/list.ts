@@ -1,7 +1,7 @@
+import { leaveType } from "#/db-schemas";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { leaveType } from "../../../db-schemas";
 
 const InputSchema = object({});
 

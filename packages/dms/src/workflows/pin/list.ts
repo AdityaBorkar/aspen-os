@@ -1,7 +1,7 @@
+import { dmsPin } from "#/db-schemas";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-
-import { dmsPin } from "../../db-schemas";
 
 export const listPins = Workflow.name("dms.pin.list").handler(
   async (input: { userId: string }, ctx) => {

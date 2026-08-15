@@ -1,9 +1,9 @@
+import { employee } from "#/db-schemas";
+import { buildEmployeeTree } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { minLength, object, optional, pipe, string } from "valibot";
-
-import { employee } from "../../../db-schemas";
-import { buildEmployeeTree } from "../../utils";
 
 const InputSchema = object({
   company: optional(pipe(string(), minLength(1, "company is required"))),

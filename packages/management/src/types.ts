@@ -16,8 +16,8 @@ export type {
   TenantSpAssignedEvent,
   TenantSpUnassignedEvent,
   TenantSuspendedEvent,
-} from "./pubsub";
-export { PLATFORM_USER_EVENTS, SERVICE_PROVIDER_EVENTS, TENANT_EVENTS } from "./pubsub";
+} from "#/pubsub";
+export { PLATFORM_USER_EVENTS, SERVICE_PROVIDER_EVENTS, TENANT_EVENTS } from "#/pubsub";
 export type {
   AuditReportFilters,
   CreatePlatformUserInput,
@@ -33,7 +33,7 @@ export type {
   UpdateTenantCompanionInput,
   UpdateTenantInput,
   UpdateTenantProfileInput,
-} from "./schemas";
+} from "#/schemas";
 export {
   AuditActionSchema,
   AuditEntityTypeSchema,
@@ -59,5 +59,5 @@ export {
   UpdateTenantProfileSchema,
   UpdateTenantSchema,
   WebsiteSchema,
-} from "./schemas";
-export type { AuditAction, AuditEntityType, Role, SpStatus, TenantStatus } from "./utils/constants";
+} from "#/schemas";
+export type { AuditAction, AuditEntityType, Role, SpStatus, TenantStatus } from "#/utils/constants";

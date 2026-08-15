@@ -1,7 +1,7 @@
+import { fileMetadata } from "#/server/storage/db-schema";
+
 import { eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-
-import { fileMetadata } from "./db-schema";
 
 type DrizzleDB = NodePgDatabase<Record<string, never>>;
 

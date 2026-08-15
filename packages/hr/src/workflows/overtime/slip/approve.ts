@@ -1,9 +1,9 @@
+import { overtimeSlip } from "#/db-schemas";
+import { fetchOvertimeSlipById, fetchOvertimeTypeById } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { minLength, object, pipe, string } from "valibot";
-
-import { overtimeSlip } from "../../../db-schemas";
-import { fetchOvertimeSlipById, fetchOvertimeTypeById } from "../../utils";
 
 const InputSchema = object({
   approvedBy: pipe(string(), minLength(1, "approvedBy is required")),

@@ -1,9 +1,9 @@
+import { hrUser } from "#/db-schemas";
+import { HrUserFiltersSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object, optional, parse } from "valibot";
-
-import { hrUser } from "../../../db-schemas";
-import { HrUserFiltersSchema } from "../../../types";
 
 const InputSchema = object({
   filters: optional(HrUserFiltersSchema),

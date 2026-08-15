@@ -1,9 +1,9 @@
+import { taskType } from "#/db-schemas/task-type";
+import { IdSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object, optional } from "valibot";
-
-import { taskType } from "../../db-schemas/task-type";
-import { IdSchema } from "../../types";
 
 export const listTaskTypes = Workflow.name("task-type.list")
   .input(object({ projectId: optional(IdSchema) }))

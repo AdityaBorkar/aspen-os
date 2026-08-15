@@ -1,6 +1,6 @@
-import type { AuthClient } from "./auth";
-import type { LogsUnit } from "./logs";
-import type { RpcUnit } from "./rpc";
+import type { AuthClient } from "#/client/auth";
+import type { LogsUnit } from "#/client/logs";
+import type { RpcUnit } from "#/client/rpc";
 
 declare global {
   var aspen: ClientContext | undefined;

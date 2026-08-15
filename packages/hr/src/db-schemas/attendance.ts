@@ -1,3 +1,9 @@
+import {
+  attendanceRequestStatusEnum,
+  attendanceStatusEnum,
+  compensatoryLeaveStatusEnum,
+} from "#/db-schemas/enums";
+
 import { uuidv7 } from "@aspen-os/platform/server";
 import {
   boolean,
@@ -10,12 +16,6 @@ import {
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
-
-import {
-  attendanceRequestStatusEnum,
-  attendanceStatusEnum,
-  compensatoryLeaveStatusEnum,
-} from "./enums";
 
 export const attendance = pgTable(
   "attendance",

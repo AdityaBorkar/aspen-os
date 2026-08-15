@@ -1,13 +1,13 @@
+import { dmsContact } from "#/db-schemas";
+import { CONTACT_EVENTS } from "#/pubsub";
+import { IdSchema, UpdateContactSchema } from "#/types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { stripUndefined } from "#/utils/strip-undefined";
+import { fetchContactStep } from "#/workflow-steps/fetch-contact";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { dmsContact } from "../../db-schemas";
-import { CONTACT_EVENTS } from "../../pubsub";
-import { IdSchema, UpdateContactSchema } from "../../types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../../utils/constants";
-import { stripUndefined } from "../../utils/strip-undefined";
-import { fetchContactStep } from "../../workflow-steps/fetch-contact";
 
 const UpdateInputSchema = object({ id: IdSchema, patch: UpdateContactSchema });
 

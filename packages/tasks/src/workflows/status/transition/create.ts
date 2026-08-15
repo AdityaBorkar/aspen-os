@@ -1,8 +1,8 @@
+import { statusTransition } from "#/db-schemas/status-transition";
+import { CreateStatusTransitionSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { statusTransition } from "../../../db-schemas/status-transition";
-import { CreateStatusTransitionSchema } from "../../../types";
 
 const CreateInputSchema = object({
   input: CreateStatusTransitionSchema,

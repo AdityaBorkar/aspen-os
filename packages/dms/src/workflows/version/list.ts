@@ -1,10 +1,10 @@
+import { dmsFileVersion } from "#/db-schemas";
+import { IdSchema } from "#/types";
+import { fetchFileStep } from "#/workflow-steps/fetch-file";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { desc, eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { dmsFileVersion } from "../../db-schemas";
-import { IdSchema } from "../../types";
-import { fetchFileStep } from "../../workflow-steps/fetch-file";
 
 const ListVersionsInputSchema = object({ fileId: IdSchema });
 

@@ -1,9 +1,6 @@
 # TODO
 
-Using "#/_" alias for imports instead of relative paths. Update all tsconfig.json and package.json to use "#/_" aliases for imports for "./src/*" files.
-
-Create recommendations for oxlint rules
-Analyze the repository and suggest new oxlint rules that can be made to ensure
+Analyze the repository and suggest new oxlint rules that can be made to ensure following of Coding Conventions and better code guidelines for contributors. DO NOT WRITE CODE. Make a report suggesting the new rules.
 
 Ask questions on certain file names
 Reorder/arrange certain workflows properly

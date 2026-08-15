@@ -1,8 +1,8 @@
+import { leaveAllocation } from "#/db-schemas";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { minLength, object, pipe, string } from "valibot";
-
-import { leaveAllocation } from "../../../db-schemas";
 
 const InputSchema = object({
   employeeId: pipe(string(), minLength(1, "employeeId is required")),

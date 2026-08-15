@@ -1,9 +1,9 @@
+import { attendanceRequest } from "#/db-schemas";
+import { AttendanceRequestFiltersSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object, optional, parse } from "valibot";
-
-import { attendanceRequest } from "../../../db-schemas";
-import { AttendanceRequestFiltersSchema } from "../../../types";
 
 const InputSchema = object({
   filters: optional(AttendanceRequestFiltersSchema),

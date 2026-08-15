@@ -1,10 +1,9 @@
+import type { AuthServiceDeps, Session, User } from "#/server/auth";
+import * as schema from "#/server/auth/db-schema";
+import { toSession, toUser } from "#/server/auth/utils/mappers";
 import { createHmac } from "node:crypto";
 
 import { eq } from "drizzle-orm";
-
-import * as schema from "../db-schema";
-import type { AuthServiceDeps, Session, User } from "../index";
-import { toSession, toUser } from "../utils/mappers";
 
 async function createHeadersFromToken(
   token: string,

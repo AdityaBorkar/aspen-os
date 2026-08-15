@@ -1,16 +1,16 @@
-import { Workflow } from "@aspen-os/platform/server";
-import { object, picklist } from "valibot";
-
-import { FILE_EVENTS, FOLDER_EVENTS } from "../../pubsub";
+import { FILE_EVENTS, FOLDER_EVENTS } from "#/pubsub";
 import {
   deleteFilePermanently,
   deleteFolderPermanently,
   isFileHeld,
-} from "../../services/purge-service";
-import { IdSchema } from "../../types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../../utils/constants";
-import { fetchFileStep } from "../../workflow-steps/fetch-file";
-import { fetchFolderStep } from "../../workflow-steps/fetch-folder";
+} from "#/services/purge-service";
+import { IdSchema } from "#/types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { fetchFileStep } from "#/workflow-steps/fetch-file";
+import { fetchFolderStep } from "#/workflow-steps/fetch-folder";
+
+import { Workflow } from "@aspen-os/platform/server";
+import { object, picklist } from "valibot";
 
 const DeleteInputSchema = object({
   entityType: picklist(["file", "folder"]),

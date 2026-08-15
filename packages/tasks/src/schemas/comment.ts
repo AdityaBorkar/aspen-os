@@ -1,4 +1,5 @@
-import { type InferOutput, minLength, nullable, object, optional, pipe, string } from "valibot";
+import { minLength, nullable, object, optional, pipe, string } from "valibot";
+import type { InferOutput } from "valibot";
 
 export const CreateCommentSchema = object({
   body: pipe(string(), minLength(1, "Comment body is required")),

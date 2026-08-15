@@ -1,8 +1,8 @@
+import { connectionNote } from "#/db-schemas";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, desc, eq } from "drizzle-orm";
 import { object, optional, string } from "valibot";
-
-import { connectionNote } from "../../../db-schemas";
 
 export const listNotes = Workflow.name("connection.list-notes")
   .input(

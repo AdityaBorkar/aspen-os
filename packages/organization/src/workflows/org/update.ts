@@ -1,11 +1,11 @@
+import { organization } from "#/db-schemas";
+import { ORGANIZATION_EVENTS } from "#/pubsub";
+import { UpdateOrganizationSchema } from "#/types";
+import { stripUndefined } from "#/utils/strip-undefined";
+import { fetchOrganizationStep } from "#/workflow-steps/fetch-organization";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-
-import { organization } from "../../db-schemas";
-import { ORGANIZATION_EVENTS } from "../../pubsub";
-import { UpdateOrganizationSchema } from "../../types";
-import { stripUndefined } from "../../utils/strip-undefined";
-import { fetchOrganizationStep } from "../../workflow-steps/fetch-organization";
 
 export const updateOrganization = Workflow.name("org.update")
   .input(UpdateOrganizationSchema)

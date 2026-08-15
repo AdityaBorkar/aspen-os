@@ -1,9 +1,9 @@
+import { taskType } from "#/db-schemas/task-type";
+import { CreateTaskTypeSchema } from "#/types";
+import { unsetDefaultTaskType } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { taskType } from "../../db-schemas/task-type";
-import { CreateTaskTypeSchema } from "../../types";
-import { unsetDefaultTaskType } from "../utils";
 
 const CreateInputSchema = object({
   input: CreateTaskTypeSchema,

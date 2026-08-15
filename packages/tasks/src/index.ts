@@ -1,2 +1,2 @@
-export { type TaskModuleConfig, Tasks } from "./module";
-export * from "./types";
+export { type TaskModuleConfig, Tasks } from "#/module";
+export * from "#/types";

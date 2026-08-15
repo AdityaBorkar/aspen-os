@@ -1,7 +1,7 @@
+import { complianceDocument } from "#/db-schemas";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, inArray, isNotNull, or } from "drizzle-orm";
-
-import { complianceDocument } from "../../../db-schemas";
 
 const getActiveDocumentsForReminders = Workflow.name("document.active-for-reminders").handler(
   async (_input: Record<string, never>, ctx) =>

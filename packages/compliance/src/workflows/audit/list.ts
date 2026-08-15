@@ -1,8 +1,10 @@
+import { AuditTrailFiltersSchema } from "#/types";
+import type { AuditTrailFilters } from "#/types";
+import { normalize, toFilter } from "#/workflows/utils";
+import type { AuditLogRow } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { parse } from "valibot";
-
-import { type AuditTrailFilters, AuditTrailFiltersSchema } from "../../types";
-import { type AuditLogRow, normalize, toFilter } from "../utils";
 
 const listAuditEntries = Workflow.name("audit.list").handler(
   async (input: { filters?: AuditTrailFilters }, ctx) => {

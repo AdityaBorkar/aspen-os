@@ -1,7 +1,9 @@
+import { HolidayTypeSchema } from "#/schemas/enums";
+import { NameSchema } from "#/schemas/utils";
+
 import {
   array,
   boolean,
-  type InferOutput,
   minLength,
   nullable,
   number,
@@ -10,9 +12,7 @@ import {
   pipe,
   string,
 } from "valibot";
-
-import { HolidayTypeSchema } from "./enums";
-import { NameSchema } from "./utils";
+import type { InferOutput } from "valibot";
 
 // HR Settings
 

@@ -1,7 +1,7 @@
+import { employeeGrade } from "#/db-schemas";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { employeeGrade } from "../../../db-schemas";
 
 const InputSchema = object({});
 

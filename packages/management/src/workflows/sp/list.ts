@@ -1,9 +1,10 @@
-import { Workflow } from "@aspen-os/platform/server";
-import { and, eq, ilike, or, type SQL } from "drizzle-orm";
-import { object, optional } from "valibot";
+import { serviceProvider } from "#/db-schemas";
+import { ServiceProviderFiltersSchema } from "#/types";
 
-import { serviceProvider } from "../../db-schemas";
-import { ServiceProviderFiltersSchema } from "../../types";
+import { Workflow } from "@aspen-os/platform/server";
+import { and, eq, ilike, or } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
+import { object, optional } from "valibot";
 
 export const listSps = Workflow.name("sp.list")
   .input(

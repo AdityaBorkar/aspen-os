@@ -1,7 +1,7 @@
+import { complianceCategoryEnum } from "#/db-schemas/enums";
+
 import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
-
-import { complianceCategoryEnum } from "./enums";
 
 export const complianceVerificationRule = pgTable(
   "compliance_verification_rule",

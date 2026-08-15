@@ -1,11 +1,11 @@
+import { bankAccount } from "#/db-schemas";
+import { UpdateBankAccountSchema } from "#/types";
+import { fetchBankAccountStep } from "#/workflow-steps/fetch-bank-account";
+import { unsetPrimaryBankAccount } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object, string } from "valibot";
-
-import { bankAccount } from "../../db-schemas";
-import { UpdateBankAccountSchema } from "../../types";
-import { fetchBankAccountStep } from "../../workflow-steps/fetch-bank-account";
-import { unsetPrimaryBankAccount } from "../utils";
 
 const UpdateInputSchema = object({
   id: string(),

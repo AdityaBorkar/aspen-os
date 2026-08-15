@@ -1,12 +1,12 @@
-import { pgEnum } from "drizzle-orm/pg-core";
-
 import {
   ENTITY_TYPE,
   FILE_STATUS,
   GRANTEE_TYPE,
   PUBLIC_LINK_PERMISSION,
   SHARE_PERMISSION,
-} from "../utils/constants";
+} from "#/utils/constants";
+
+import { pgEnum } from "drizzle-orm/pg-core";
 
 export const dmsEntityTypeEnum = pgEnum("dms_entity_type", [ENTITY_TYPE.FILE, ENTITY_TYPE.FOLDER]);
 

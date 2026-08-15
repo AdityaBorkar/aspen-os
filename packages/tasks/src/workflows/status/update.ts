@@ -1,11 +1,11 @@
+import { status } from "#/db-schemas/status";
+import { IdSchema, UpdateStatusSchema } from "#/types";
+import { fetchStatusStep } from "#/workflow-steps/fetch-status";
+import { unsetDefaultProjectStatus } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { status } from "../../db-schemas/status";
-import { IdSchema, UpdateStatusSchema } from "../../types";
-import { fetchStatusStep } from "../../workflow-steps/fetch-status";
-import { unsetDefaultProjectStatus } from "../utils";
 
 const UpdateInputSchema = object({
   id: IdSchema,

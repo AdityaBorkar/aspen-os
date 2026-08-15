@@ -1,9 +1,9 @@
-import { eq } from "drizzle-orm";
+import type { AuthServiceDeps, User } from "#/server/auth";
+import { account, user } from "#/server/auth/db-schema";
+import { toUser } from "#/server/auth/utils/mappers";
+import { password as Password } from "#/server/utils/bun-compat";
 
-import { password as Password } from "../../utils/bun-compat";
-import { account, user } from "../db-schema";
-import type { AuthServiceDeps, User } from "../index";
-import { toUser } from "../utils/mappers";
+import { eq } from "drizzle-orm";
 
 export async function createUser(
   { email, name, password }: { email: string; name?: string; password: string },

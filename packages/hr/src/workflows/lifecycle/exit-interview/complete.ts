@@ -1,8 +1,8 @@
+import { exitInterview } from "#/db-schemas";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { minLength, object, pipe, record, string, unknown } from "valibot";
-
-import { exitInterview } from "../../../db-schemas";
 
 const InputSchema = object({
   feedback: pipe(string(), minLength(1, "feedback is required")),

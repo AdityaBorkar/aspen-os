@@ -1,9 +1,9 @@
+import { bankAccount } from "#/db-schemas";
+import { BankAccountFiltersSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object, optional } from "valibot";
-
-import { bankAccount } from "../../db-schemas";
-import { BankAccountFiltersSchema } from "../../types";
 
 export const listBankAccounts = Workflow.name("bank-account.list")
   .input(object({ filters: optional(BankAccountFiltersSchema) }))

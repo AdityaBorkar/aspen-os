@@ -1,8 +1,8 @@
+import { employeeGrade } from "#/db-schemas";
+import { CreateEmployeeGradeSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { employeeGrade } from "../../../db-schemas";
-import { CreateEmployeeGradeSchema } from "../../../types";
 
 const InputSchema = object({
   input: CreateEmployeeGradeSchema,

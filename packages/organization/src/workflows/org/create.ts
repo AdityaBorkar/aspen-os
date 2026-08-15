@@ -1,10 +1,10 @@
+import { organization } from "#/db-schemas";
+import { CreateOrganizationSchema, SlugSchema } from "#/types";
+import { generateSlug } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { parse } from "valibot";
-
-import { organization } from "../../db-schemas";
-import { CreateOrganizationSchema, SlugSchema } from "../../types";
-import { generateSlug } from "../utils";
 
 export const createOrganization = Workflow.name("org.create")
   .input(CreateOrganizationSchema)

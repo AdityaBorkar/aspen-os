@@ -1,8 +1,8 @@
+import { IdSchema } from "#/types";
+import { fetchServiceProviderStep } from "#/workflow-steps/fetch-sp";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { IdSchema } from "../../types";
-import { fetchServiceProviderStep } from "../../workflow-steps/fetch-sp";
 
 export const getSp = Workflow.name("sp.get")
   .input(object({ id: IdSchema }))

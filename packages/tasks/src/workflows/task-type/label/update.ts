@@ -1,9 +1,9 @@
+import { label } from "#/db-schemas/label";
+import { IdSchema, UpdateLabelSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { label } from "../../../db-schemas/label";
-import { IdSchema, UpdateLabelSchema } from "../../../types";
 
 const UpdateInputSchema = object({
   id: IdSchema,

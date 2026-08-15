@@ -1,9 +1,9 @@
+import { task } from "#/db-schemas/task";
+import { CreateTaskSchema } from "#/types";
+import { addActivity, generateTaskNumber, validateParentTask } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { task } from "../../db-schemas/task";
-import { CreateTaskSchema } from "../../types";
-import { addActivity, generateTaskNumber, validateParentTask } from "../utils";
 
 const CreateInputSchema = object({
   input: CreateTaskSchema,

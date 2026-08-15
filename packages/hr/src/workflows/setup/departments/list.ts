@@ -1,9 +1,9 @@
+import { department } from "#/db-schemas";
+import { DepartmentFiltersSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object, optional, parse } from "valibot";
-
-import { department } from "../../../db-schemas";
-import { DepartmentFiltersSchema } from "../../../types";
 
 const InputSchema = object({
   filters: optional(DepartmentFiltersSchema),

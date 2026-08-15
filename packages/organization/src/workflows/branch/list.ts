@@ -1,9 +1,9 @@
+import { branch } from "#/db-schemas";
+import { BranchFiltersSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object, optional } from "valibot";
-
-import { branch } from "../../db-schemas";
-import { BranchFiltersSchema } from "../../types";
 
 export const listBranches = Workflow.name("branch.list")
   .input(object({ filters: optional(BranchFiltersSchema) }))

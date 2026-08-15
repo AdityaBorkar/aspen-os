@@ -1,10 +1,10 @@
+import { reminder } from "#/db-schemas/reminder";
+import { task } from "#/db-schemas/task";
+import { IdSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { reminder } from "../../../db-schemas/reminder";
-import { task } from "../../../db-schemas/task";
-import { IdSchema } from "../../../types";
 
 const OVERDUE_REMINDER_TYPE = "overdue";
 

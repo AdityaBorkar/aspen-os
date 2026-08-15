@@ -1,6 +1,6 @@
-import { index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { projectMemberRoleEnum } from "#/db-schemas/enums";
 
-import { projectMemberRoleEnum } from "./enums";
+import { index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const projectMember = pgTable(
   "task_project_member",

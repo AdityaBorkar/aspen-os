@@ -1,11 +1,11 @@
+import { task } from "#/db-schemas/task";
+import { IdSchema, UpdateTaskSchema } from "#/types";
+import { fetchTaskStep } from "#/workflow-steps/fetch-task";
+import { addActivity, validateParentTask } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { task } from "../../db-schemas/task";
-import { IdSchema, UpdateTaskSchema } from "../../types";
-import { fetchTaskStep } from "../../workflow-steps/fetch-task";
-import { addActivity, validateParentTask } from "../utils";
 
 const UpdateInputSchema = object({
   id: IdSchema,

@@ -1,8 +1,9 @@
+import { ComplianceCategorySchema, ObligationFrequencySchema } from "#/schemas/enums";
+
 import {
   array,
   boolean,
   date,
-  type InferOutput,
   integer,
   minLength,
   nullable,
@@ -12,8 +13,7 @@ import {
   pipe,
   string,
 } from "valibot";
-
-import { ComplianceCategorySchema, ObligationFrequencySchema } from "./enums";
+import type { InferOutput } from "valibot";
 
 export const CreateObligationSchema = object({
   autoGenerate: optional(boolean()),

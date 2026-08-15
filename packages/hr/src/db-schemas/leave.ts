@@ -1,3 +1,11 @@
+import {
+  earnedLeaveFrequencyEnum,
+  leaveAllocationStatusEnum,
+  leaveApplicationStatusEnum,
+  leaveBlockListScopeEnum,
+  leaveEncashmentStatusEnum,
+} from "#/db-schemas/enums";
+
 import { uuidv7 } from "@aspen-os/platform/server";
 import {
   boolean,
@@ -9,14 +17,6 @@ import {
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
-
-import {
-  earnedLeaveFrequencyEnum,
-  leaveAllocationStatusEnum,
-  leaveApplicationStatusEnum,
-  leaveBlockListScopeEnum,
-  leaveEncashmentStatusEnum,
-} from "./enums";
 
 export const leaveType = pgTable(
   "leave_type",

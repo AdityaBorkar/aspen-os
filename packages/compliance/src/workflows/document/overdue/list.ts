@@ -1,7 +1,7 @@
+import { complianceDocument } from "#/db-schemas";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, inArray, isNotNull, isNull, lte } from "drizzle-orm";
-
-import { complianceDocument } from "../../../db-schemas";
 
 const getOverdueDocuments = Workflow.name("document.overdue").handler(
   async (_input: Record<string, never>, ctx) => {

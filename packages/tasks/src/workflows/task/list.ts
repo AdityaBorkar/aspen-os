@@ -1,10 +1,10 @@
+import { task } from "#/db-schemas/task";
+import { TaskFiltersSchema } from "#/types";
+import { buildTaskWhereClause } from "#/utils/filter-engine";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { desc } from "drizzle-orm";
 import { object, optional } from "valibot";
-
-import { task } from "../../db-schemas/task";
-import { TaskFiltersSchema } from "../../types";
-import { buildTaskWhereClause } from "../../utils/filter-engine";
 
 export const listTasks = Workflow.name("task.list")
   .input(object({ filters: optional(TaskFiltersSchema) }))

@@ -1,20 +1,11 @@
 import {
-  boolean,
-  type InferOutput,
-  minLength,
-  nullable,
-  number,
-  object,
-  optional,
-  pipe,
-  string,
-} from "valibot";
-
-import {
   AttendanceRequestStatusSchema,
   AttendanceStatusSchema,
   CheckinLogTypeSchema,
-} from "./enums";
+} from "#/schemas/enums";
+
+import { boolean, minLength, nullable, number, object, optional, pipe, string } from "valibot";
+import type { InferOutput } from "valibot";
 
 // Attendance
 

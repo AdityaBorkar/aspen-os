@@ -1,10 +1,10 @@
+import { department } from "#/db-schemas";
+import { UpdateDepartmentSchema } from "#/types";
+import { ensureDepartmentCodeUnique, validateParentDepartment } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { minLength, object, parse, pipe, string } from "valibot";
-
-import { department } from "../../../db-schemas";
-import { UpdateDepartmentSchema } from "../../../types";
-import { ensureDepartmentCodeUnique, validateParentDepartment } from "../../utils";
 
 const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),

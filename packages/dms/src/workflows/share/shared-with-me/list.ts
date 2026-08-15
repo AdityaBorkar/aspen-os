@@ -1,8 +1,8 @@
+import { dmsPublicLink, dmsShare } from "#/db-schemas";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object, optional, string } from "valibot";
-
-import { dmsPublicLink, dmsShare } from "../../../db-schemas";
 
 const ListSharedWithMeSchema = object({
   opts: optional(object({})),

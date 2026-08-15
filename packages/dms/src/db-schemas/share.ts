@@ -1,7 +1,7 @@
+import { dmsEntityTypeEnum, dmsGranteeTypeEnum, dmsSharePermissionEnum } from "#/db-schemas/enums";
+
 import { uuidv7 } from "@aspen-os/platform/server";
 import { index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
-
-import { dmsEntityTypeEnum, dmsGranteeTypeEnum, dmsSharePermissionEnum } from "./enums";
 
 export const dmsShare = pgTable(
   "dms_share",

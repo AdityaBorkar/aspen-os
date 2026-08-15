@@ -1,6 +1,6 @@
-import { object, string } from "valibot";
+import { SearchOptionsSchema } from "#/types";
 
-import { SearchOptionsSchema } from "../../types";
+import { object, string } from "valibot";
 
 export const SearchInputSchema = object({
   options: SearchOptionsSchema,

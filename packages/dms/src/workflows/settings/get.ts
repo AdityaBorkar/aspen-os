@@ -1,7 +1,7 @@
+import { getSetting } from "#/services/settings-service";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, string } from "valibot";
-
-import { getSetting } from "../../services/settings-service";
 
 const GetSettingSchema = object({ key: string() });
 

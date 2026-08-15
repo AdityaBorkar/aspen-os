@@ -1,8 +1,8 @@
+import { dmsFileStatusEnum } from "#/db-schemas/enums";
+
 import { uuidv7 } from "@aspen-os/platform/server";
 import { sql } from "drizzle-orm";
 import { bigint, date, index, integer, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
-
-import { dmsFileStatusEnum } from "./enums";
 
 export const dmsFile = pgTable(
   "dms_file",

@@ -1,11 +1,13 @@
-import { Workflow } from "@aspen-os/platform/server";
-import { and, eq, or, type SQL } from "drizzle-orm";
+import { dmsFile, dmsFolder, dmsLegalHold } from "#/db-schemas";
+import { FILE_EVENTS, FOLDER_EVENTS } from "#/pubsub";
+import { deleteFilePermanently, deleteFolderPermanently } from "#/services/purge-service";
+import { EmptyTrashOptionsSchema } from "#/types";
+import type { EmptyTrashOptions } from "#/types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 
-import { dmsFile, dmsFolder, dmsLegalHold } from "../../db-schemas";
-import { FILE_EVENTS, FOLDER_EVENTS } from "../../pubsub";
-import { deleteFilePermanently, deleteFolderPermanently } from "../../services/purge-service";
-import { type EmptyTrashOptions, EmptyTrashOptionsSchema } from "../../types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../../utils/constants";
+import { Workflow } from "@aspen-os/platform/server";
+import { and, eq, or } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 
 const EmptyTrashSchema = EmptyTrashOptionsSchema;
 

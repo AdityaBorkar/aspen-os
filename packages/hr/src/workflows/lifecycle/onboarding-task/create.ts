@@ -1,9 +1,9 @@
+import { onboardingTask } from "#/db-schemas";
+import { CreateOnboardingTaskSchema } from "#/types";
+import { fetchOnboardingById } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { onboardingTask } from "../../../db-schemas";
-import { CreateOnboardingTaskSchema } from "../../../types";
-import { fetchOnboardingById } from "../../utils";
 
 const InputSchema = object({
   input: CreateOnboardingTaskSchema,

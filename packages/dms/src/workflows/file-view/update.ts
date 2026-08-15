@@ -1,12 +1,12 @@
+import { dmsFileView } from "#/db-schemas";
+import { FILE_VIEW_EVENTS } from "#/pubsub";
+import { IdSchema, UpdateFileViewSchema } from "#/types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { stripUndefined } from "#/utils/strip-undefined";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { dmsFileView } from "../../db-schemas";
-import { FILE_VIEW_EVENTS } from "../../pubsub";
-import { IdSchema, UpdateFileViewSchema } from "../../types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../../utils/constants";
-import { stripUndefined } from "../../utils/strip-undefined";
 
 const UpdateInputSchema = object({ id: IdSchema, patch: UpdateFileViewSchema });
 

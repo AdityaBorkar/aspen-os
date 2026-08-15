@@ -1,7 +1,7 @@
+import { automationTriggerEnum } from "#/db-schemas/enums";
+
 import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
-
-import { automationTriggerEnum } from "./enums";
 
 export const automationRule = pgTable(
   "task_automation_rule",

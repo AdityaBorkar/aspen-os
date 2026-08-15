@@ -1,10 +1,10 @@
+import { serviceProvider, serviceProviderUser } from "#/db-schemas";
+import { PLATFORM_USER_EVENTS } from "#/pubsub";
+import { CreatePlatformUserSchema } from "#/types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, ROLES } from "#/utils/constants";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-
-import { serviceProvider, serviceProviderUser } from "../../db-schemas";
-import { PLATFORM_USER_EVENTS } from "../../pubsub";
-import { CreatePlatformUserSchema } from "../../types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, ROLES } from "../../utils/constants";
 
 export const createUser = Workflow.name("user.create")
   .input(CreatePlatformUserSchema)

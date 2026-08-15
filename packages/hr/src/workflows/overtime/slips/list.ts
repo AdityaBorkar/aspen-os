@@ -1,9 +1,9 @@
+import { overtimeSlip } from "#/db-schemas";
+import { OvertimeSlipFiltersSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object, optional, parse } from "valibot";
-
-import { overtimeSlip } from "../../../db-schemas";
-import { OvertimeSlipFiltersSchema } from "../../../types";
 
 const InputSchema = object({
   filters: optional(OvertimeSlipFiltersSchema),

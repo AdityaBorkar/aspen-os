@@ -1,8 +1,8 @@
+import { FileIdSchema } from "#/types";
+import { fetchFileStep } from "#/workflow-steps/fetch-file";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { FileIdSchema } from "../../types";
-import { fetchFileStep } from "../../workflow-steps/fetch-file";
 
 const GetInputSchema = object({ id: FileIdSchema });
 

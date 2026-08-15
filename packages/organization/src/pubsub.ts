@@ -1,4 +1,4 @@
-import type { BranchType, ConnectionNoteType, ConnectionStatus } from "./types";
+import type { BranchType, ConnectionNoteType, ConnectionStatus } from "#/types";
 
 export const ORGANIZATION_EVENTS = {
   BRANDING_UPDATED: "organization:branding_updated",

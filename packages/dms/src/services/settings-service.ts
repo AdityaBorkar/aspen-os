@@ -1,9 +1,9 @@
+import { dmsSetting } from "#/db-schemas";
+import { getDmsConfig } from "#/runtime";
+import { SETTING_KEYS } from "#/utils/constants";
+
 import { eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-
-import { dmsSetting } from "../db-schemas";
-import { getDmsConfig } from "../runtime";
-import { SETTING_KEYS } from "../utils/constants";
 
 type DB = NodePgDatabase<Record<string, never>>;
 

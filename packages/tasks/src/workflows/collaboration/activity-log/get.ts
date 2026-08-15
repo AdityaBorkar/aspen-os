@@ -1,9 +1,9 @@
+import { activityLog } from "#/db-schemas/activity-log";
+import { IdSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, desc, eq } from "drizzle-orm";
 import { object, optional } from "valibot";
-
-import { activityLog } from "../../../db-schemas/activity-log";
-import { IdSchema } from "../../../types";
 
 export const getActivityLog = Workflow.name("collaboration.activity-log")
   .input(object({ action: optional(IdSchema), taskId: IdSchema }))

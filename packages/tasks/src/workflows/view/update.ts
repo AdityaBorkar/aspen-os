@@ -1,11 +1,11 @@
+import { savedView } from "#/db-schemas/saved-view";
+import { IdSchema, UpdateSavedViewSchema } from "#/types";
+import type { SavedViewType } from "#/utils/constants";
+import { fetchSavedViewStep } from "#/workflow-steps/fetch-saved-view";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { savedView } from "../../db-schemas/saved-view";
-import { IdSchema, UpdateSavedViewSchema } from "../../types";
-import type { SavedViewType } from "../../utils/constants";
-import { fetchSavedViewStep } from "../../workflow-steps/fetch-saved-view";
 
 const UpdateInputSchema = object({
   id: IdSchema,

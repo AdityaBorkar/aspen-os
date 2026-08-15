@@ -1,9 +1,9 @@
+import { shiftRequest } from "#/db-schemas";
+import { createShiftAssignment, fetchShiftRequestById } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { minLength, object, pipe, string } from "valibot";
-
-import { shiftRequest } from "../../../db-schemas";
-import { createShiftAssignment, fetchShiftRequestById } from "../../utils";
 
 const InputSchema = object({
   approvedBy: pipe(string(), minLength(1, "approvedBy is required")),

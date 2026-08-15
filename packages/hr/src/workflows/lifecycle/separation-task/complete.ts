@@ -1,8 +1,8 @@
+import { separationTask } from "#/db-schemas";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { minLength, object, pipe, string } from "valibot";
-
-import { separationTask } from "../../../db-schemas";
 
 const InputSchema = object({
   completedBy: pipe(string(), minLength(1, "completedBy is required")),

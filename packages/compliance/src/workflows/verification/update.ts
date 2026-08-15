@@ -1,10 +1,11 @@
+import { complianceVerificationRule } from "#/db-schemas";
+import { UpdateVerificationRuleSchema } from "#/types";
+import type { UpdateVerificationRuleInput } from "#/types";
+import { fetchRuleStep } from "#/workflow-steps/fetch-rule";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { parse } from "valibot";
-
-import { complianceVerificationRule } from "../../db-schemas";
-import { type UpdateVerificationRuleInput, UpdateVerificationRuleSchema } from "../../types";
-import { fetchRuleStep } from "../../workflow-steps/fetch-rule";
 
 const updateVerificationRule = Workflow.name("verification.update").handler(
   async (input: { id: string; patch: UpdateVerificationRuleInput }, ctx) => {

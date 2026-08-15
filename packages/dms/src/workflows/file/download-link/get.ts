@@ -1,10 +1,10 @@
+import { getDmsConfig } from "#/runtime";
+import { getSignedGetUrl } from "#/services/storage-bridge";
+import { DownloadOptionsSchema, FileIdSchema } from "#/types";
+import { fetchFileStep } from "#/workflow-steps/fetch-file";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, optional } from "valibot";
-
-import { getDmsConfig } from "../../../runtime";
-import { getSignedGetUrl } from "../../../services/storage-bridge";
-import { DownloadOptionsSchema, FileIdSchema } from "../../../types";
-import { fetchFileStep } from "../../../workflow-steps/fetch-file";
 
 const DownloadLinkInputSchema = object({
   id: FileIdSchema,

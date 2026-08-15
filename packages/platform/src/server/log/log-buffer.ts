@@ -1,5 +1,5 @@
-import { context } from "../utils/context";
-import type { LogEntry, LogLevel } from "./types";
+import type { LogEntry, LogLevel } from "#/server/log/types";
+import { context } from "#/server/utils/context";
 
 export interface CreateEntryInput {
   error?: Error;

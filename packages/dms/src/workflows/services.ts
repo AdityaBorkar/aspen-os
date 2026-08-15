@@ -3,8 +3,8 @@ import {
   getEffectivePermission,
   isOwner,
   logAccess,
-} from "../services/access-service";
-import { createArchive, processArchiveJob } from "../services/archive-service";
+} from "#/services/access-service";
+import { createArchive, processArchiveJob } from "#/services/archive-service";
 import {
   checkNameUniqueness,
   computeFilePath,
@@ -16,7 +16,7 @@ import {
   getSubtreeMaxDepth,
   resolvePath,
   wouldCreateCycle,
-} from "../services/path-service";
+} from "#/services/path-service";
 import {
   computeArchiveKey,
   computeStorageKey,
@@ -27,7 +27,7 @@ import {
   move as moveStorage,
   remove as removeStorage,
   upload as uploadStorage,
-} from "../services/storage-bridge";
+} from "#/services/storage-bridge";
 
 export const access = {
   checkPermission: (input: Parameters<typeof checkPermission>[0]) => checkPermission(input),

@@ -1,6 +1,15 @@
+import type { Unit } from "#/server";
+import * as db_schema from "#/server/auth/db-schema";
+import { assignRole, deleteRole, listRoles, unassignRole } from "#/server/auth/services/role";
+import { authenticate, invalidateSession, validateSession } from "#/server/auth/services/session";
+import { createUser, deleteUser, getUser, updateUser } from "#/server/auth/services/user";
+import type { DatabaseUnit } from "#/server/db";
+import type { PubSubUnit } from "#/server/pubsub";
+
 import { apiKey } from "@better-auth/api-key";
 import { passkey } from "@better-auth/passkey";
-import { type BetterAuthOptions, betterAuth } from "better-auth";
+import { betterAuth } from "better-auth";
+import type { BetterAuthOptions } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import {
   admin,
@@ -13,17 +22,9 @@ import {
 } from "better-auth/plugins";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-import type { DatabaseUnit } from "../db";
-import type { Unit } from "../index";
-import type { PubSubUnit } from "../pubsub";
-import * as db_schema from "./db-schema";
-import { assignRole, deleteRole, listRoles, unassignRole } from "./services/role";
-import { authenticate, invalidateSession, validateSession } from "./services/session";
-import { createUser, deleteUser, getUser, updateUser } from "./services/user";
-
-export type { AclDeclaration } from "./utils/acl";
-export { defineAcl } from "./utils/acl";
-export { toSession, toUser } from "./utils/mappers";
+export type { AclDeclaration } from "#/server/auth/utils/acl";
+export { defineAcl } from "#/server/auth/utils/acl";
+export { toSession, toUser } from "#/server/auth/utils/mappers";
 
 type DrizzleDB = NodePgDatabase<Record<string, never>>;
 export type AuthService = ReturnType<typeof createBetterAuthService>;

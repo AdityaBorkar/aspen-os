@@ -1,8 +1,8 @@
+import { automationRule } from "#/db-schemas/automation-rule";
+import { CreateAutomationRuleSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { automationRule } from "../../db-schemas/automation-rule";
-import { CreateAutomationRuleSchema } from "../../types";
 
 const CreateInputSchema = object({
   input: CreateAutomationRuleSchema,

@@ -1,9 +1,9 @@
+import { label } from "#/db-schemas/label";
+import { IdSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object, optional } from "valibot";
-
-import { label } from "../../../db-schemas/label";
-import { IdSchema } from "../../../types";
 
 export const listLabels = Workflow.name("task-type.list-labels")
   .input(object({ projectId: optional(IdSchema) }))

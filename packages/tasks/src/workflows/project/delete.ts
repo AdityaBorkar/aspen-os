@@ -1,11 +1,11 @@
+import { project } from "#/db-schemas/project";
+import { projectMember } from "#/db-schemas/project-member";
+import { task } from "#/db-schemas/task";
+import { IdSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { project } from "../../db-schemas/project";
-import { projectMember } from "../../db-schemas/project-member";
-import { task } from "../../db-schemas/task";
-import { IdSchema } from "../../types";
 
 export const deleteProject = Workflow.name("project.delete")
   .input(object({ id: IdSchema }))

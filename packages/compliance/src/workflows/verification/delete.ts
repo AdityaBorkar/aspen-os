@@ -1,8 +1,8 @@
+import { complianceVerificationRule } from "#/db-schemas";
+import { fetchRuleStep } from "#/workflow-steps/fetch-rule";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-
-import { complianceVerificationRule } from "../../db-schemas";
-import { fetchRuleStep } from "../../workflow-steps/fetch-rule";
 
 const deleteVerificationRule = Workflow.name("verification.delete").handler(
   async (input: { id: string }, ctx) => {

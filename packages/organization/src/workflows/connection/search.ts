@@ -1,9 +1,9 @@
+import { connection } from "#/db-schemas";
+import { ConnectionFiltersSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, ilike, or, sql } from "drizzle-orm";
 import { object, optional, string } from "valibot";
-
-import { connection } from "../../db-schemas";
-import { ConnectionFiltersSchema } from "../../types";
 
 export const searchConnections = Workflow.name("connection.search")
   .input(

@@ -1,8 +1,8 @@
+import { shiftLocation } from "#/db-schemas";
+import { CreateShiftLocationSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { shiftLocation } from "../../../db-schemas";
-import { CreateShiftLocationSchema } from "../../../types";
 
 const InputSchema = object({
   input: CreateShiftLocationSchema,

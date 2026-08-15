@@ -1,12 +1,12 @@
+import { dmsClass, dmsFile } from "#/db-schemas";
+import { CLASS_EVENTS } from "#/pubsub";
+import { IdSchema } from "#/types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { fetchClassStep } from "#/workflow-steps/fetch-class";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { dmsClass, dmsFile } from "../../db-schemas";
-import { CLASS_EVENTS } from "../../pubsub";
-import { IdSchema } from "../../types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../../utils/constants";
-import { fetchClassStep } from "../../workflow-steps/fetch-class";
 
 const ArchiveInputSchema = object({ id: IdSchema });
 

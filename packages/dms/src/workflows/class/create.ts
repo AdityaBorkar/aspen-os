@@ -1,10 +1,10 @@
+import { dmsClass } from "#/db-schemas";
+import { CLASS_EVENTS } from "#/pubsub";
+import { CreateClassSchema } from "#/types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { dmsClass } from "../../db-schemas";
-import { CLASS_EVENTS } from "../../pubsub";
-import { CreateClassSchema } from "../../types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../../utils/constants";
 
 const CreateInputSchema = object({ input: CreateClassSchema });
 

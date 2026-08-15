@@ -1,9 +1,10 @@
-import { Workflow } from "@aspen-os/platform/server";
-import { and, eq, ilike, type SQL } from "drizzle-orm";
-import { object } from "valibot";
+import { dmsClass } from "#/db-schemas";
+import { ClassFiltersSchema } from "#/types";
 
-import { dmsClass } from "../../db-schemas";
-import { ClassFiltersSchema } from "../../types";
+import { Workflow } from "@aspen-os/platform/server";
+import { and, eq, ilike } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
+import { object } from "valibot";
 
 const ListInputSchema = object({ filters: ClassFiltersSchema });
 

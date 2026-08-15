@@ -23,8 +23,8 @@ export type {
   ObligationUpdatedEvent,
   ScheduledJobExecutedEvent,
   WeeklySummaryEvent,
-} from "./pubsub";
-export { COMPLIANCE_EVENTS, DOCUMENT_EVENTS, OBLIGATION_EVENTS, SYSTEM_EVENTS } from "./pubsub";
+} from "#/pubsub";
+export { COMPLIANCE_EVENTS, DOCUMENT_EVENTS, OBLIGATION_EVENTS, SYSTEM_EVENTS } from "#/pubsub";
 export type {
   AuditTrailFilters,
   ComplianceDocumentFilters,
@@ -35,7 +35,7 @@ export type {
   UpdateComplianceDocumentInput,
   UpdateObligationInput,
   UpdateVerificationRuleInput,
-} from "./schemas";
+} from "#/schemas";
 export {
   AuditActionSchema,
   AuditEntityTypeSchema,
@@ -53,7 +53,7 @@ export {
   UpdateObligationSchema,
   UpdateVerificationRuleSchema,
   VerificationStatusSchema,
-} from "./schemas";
+} from "#/schemas";
 export type {
   AuditAction,
   AuditEntityType,
@@ -62,7 +62,7 @@ export type {
   ReminderChannel,
   RenewalFrequency,
   VerificationStatus,
-} from "./utils/constants";
+} from "#/utils/constants";
 export {
   AUDIT_ACTION,
   AUDIT_ENTITY_TYPE,
@@ -76,9 +76,9 @@ export {
   RENEWAL_FREQUENCY,
   SCHEDULED_JOBS,
   VERIFICATION_STATUS,
-} from "./utils/constants";
+} from "#/utils/constants";
 
-import type { ComplianceCategory, VerificationStatus } from "./utils/constants";
+import type { ComplianceCategory, VerificationStatus } from "#/utils/constants";
 
 export interface DashboardSummary {
   activeObligations: number;

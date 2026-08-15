@@ -1,7 +1,7 @@
+import { complianceObligation } from "#/db-schemas";
+
 import { WorkflowStep } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-
-import { complianceObligation } from "../db-schemas";
 
 export const fetchObligationStep = WorkflowStep.name("fetch-obligation").handler(
   async (input: { id: string }, ctx) => {

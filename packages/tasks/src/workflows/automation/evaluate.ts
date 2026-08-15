@@ -1,9 +1,9 @@
+import { automationRule } from "#/db-schemas/automation-rule";
+import type { AutomationTrigger } from "#/utils/constants";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object, record, string, unknown } from "valibot";
-
-import { automationRule } from "../../db-schemas/automation-rule";
-import type { AutomationTrigger } from "../../utils/constants";
 
 export interface AutomationContext {
   taskId: string;

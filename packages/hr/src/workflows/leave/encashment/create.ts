@@ -1,8 +1,8 @@
+import { leaveEncashment } from "#/db-schemas";
+import { CreateLeaveEncashmentSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { leaveEncashment } from "../../../db-schemas";
-import { CreateLeaveEncashmentSchema } from "../../../types";
 
 const InputSchema = object({
   input: CreateLeaveEncashmentSchema,

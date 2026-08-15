@@ -1,9 +1,9 @@
+import { dmsFile } from "#/db-schemas";
+import { FileIdSchema } from "#/types";
+
 import { WorkflowStep } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { dmsFile } from "../db-schemas";
-import { FileIdSchema } from "../types";
 
 export const fetchFileStep = WorkflowStep.name("dms-fetch-file")
   .input(object({ id: FileIdSchema }))

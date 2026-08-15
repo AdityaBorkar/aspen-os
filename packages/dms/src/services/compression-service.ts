@@ -1,4 +1,4 @@
-import type { CompressionOption } from "../schemas";
+import type { CompressionOption } from "#/schemas";
 
 export interface CompressionResult {
   content: Buffer | undefined;

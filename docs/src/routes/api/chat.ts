@@ -11,7 +11,8 @@ import {
   tool,
   toUIMessageStream,
 } from "ai";
-import { Document, type DocumentData } from "flexsearch";
+import { Document } from "flexsearch";
+import type { DocumentData } from "flexsearch";
 import { z } from "zod";
 
 interface CustomDocument extends DocumentData {

@@ -1,8 +1,8 @@
+import { label } from "#/db-schemas/label";
+import { CreateLabelSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { label } from "../../../db-schemas/label";
-import { CreateLabelSchema } from "../../../types";
 
 const CreateInputSchema = object({
   input: CreateLabelSchema,

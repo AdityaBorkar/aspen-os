@@ -1,5 +1,3 @@
-import { type InferOutput, minLength, nullable, object, optional, pipe, string } from "valibot";
-
 import {
   ExitInterviewStatusSchema,
   FullAndFinalStatusSchema,
@@ -8,7 +6,10 @@ import {
   PromotionStatusSchema,
   SeparationStatusSchema,
   TransferStatusSchema,
-} from "./enums";
+} from "#/schemas/enums";
+
+import { minLength, nullable, object, optional, pipe, string } from "valibot";
+import type { InferOutput } from "valibot";
 
 // Employee Onboarding
 

@@ -1,9 +1,9 @@
+import { shiftRequest } from "#/db-schemas";
+import { CreateShiftRequestSchema } from "#/types";
+import { fetchShiftTypeById } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { shiftRequest } from "../../../db-schemas";
-import { CreateShiftRequestSchema } from "../../../types";
-import { fetchShiftTypeById } from "../../utils";
 
 const InputSchema = object({
   input: CreateShiftRequestSchema,

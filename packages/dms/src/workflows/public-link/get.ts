@@ -1,8 +1,8 @@
+import { dmsPublicLink } from "#/db-schemas";
+import { WithIdSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-
-import { dmsPublicLink } from "../../db-schemas";
-import { WithIdSchema } from "../../types";
 
 export const getPublicLinkById = Workflow.name("dms.public-link.get-by-id")
   .input(WithIdSchema)

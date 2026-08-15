@@ -1,7 +1,7 @@
+import { reminder } from "#/db-schemas/reminder";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, lte } from "drizzle-orm";
-
-import { reminder } from "../../../db-schemas/reminder";
 
 export const getPendingReminders = Workflow.name("reminder.get-pending").handler(
   async (_input: undefined, ctx) =>

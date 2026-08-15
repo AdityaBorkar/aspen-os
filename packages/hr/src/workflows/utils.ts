@@ -1,7 +1,3 @@
-import { and, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { minLength, optional, pipe, string } from "valibot";
-
 import {
   attendance,
   compensatoryLeaveRequest,
@@ -33,8 +29,12 @@ import {
   shiftRequest,
   shiftSchedule,
   shiftType,
-} from "../db-schemas";
-import type { EmployeeTreeNode, ResolvedPermission } from "../types";
+} from "#/db-schemas";
+import type { EmployeeTreeNode, ResolvedPermission } from "#/types";
+
+import { and, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import { minLength, optional, pipe, string } from "valibot";
 
 export const IdSchema = pipe(string(), minLength(1, "ID is required"));
 

@@ -1,11 +1,11 @@
+import { dmsClass, dmsClassField } from "#/db-schemas";
+import { CLASS_EVENTS } from "#/pubsub";
+import { CreateClassFieldSchema } from "#/types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object, parse } from "valibot";
-
-import { dmsClass, dmsClassField } from "../../../db-schemas";
-import { CLASS_EVENTS } from "../../../pubsub";
-import { CreateClassFieldSchema } from "../../../types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../../../utils/constants";
 
 const AddFieldInputSchema = object({ input: CreateClassFieldSchema });
 

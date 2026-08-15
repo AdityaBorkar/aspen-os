@@ -1,15 +1,12 @@
-import {
-  type DatabaseUnit,
-  type IsolatedTenantProvisioningResult,
-  Workflow,
-} from "@aspen-os/platform/server";
+import { tenant } from "#/db-schemas";
+import { TENANT_EVENTS } from "#/pubsub";
+import { IdSchema, ProvisionTenantSchema } from "#/types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+
+import { Workflow } from "@aspen-os/platform/server";
+import type { DatabaseUnit, IsolatedTenantProvisioningResult } from "@aspen-os/platform/server";
 import { organization } from "@aspen-os/platform/server/db-schemas";
 import { object } from "valibot";
-
-import { tenant } from "../../db-schemas";
-import { TENANT_EVENTS } from "../../pubsub";
-import { IdSchema, ProvisionTenantSchema } from "../../types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../../utils/constants";
 
 export function createOnboardTenant(dbUnit: DatabaseUnit) {
   return Workflow.name("tenant.onboard")

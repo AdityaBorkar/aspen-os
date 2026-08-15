@@ -1,6 +1,6 @@
-import { boolean, index, integer, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { TENANT_STATUS } from "#/utils/constants";
 
-import { TENANT_STATUS } from "../utils/constants";
+import { boolean, index, integer, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const tenantStatusEnum = pgEnum("tenant_status", [
   TENANT_STATUS.ACTIVE,

@@ -1,8 +1,8 @@
+import { onboardingTask } from "#/db-schemas";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { minLength, object, pipe, string } from "valibot";
-
-import { onboardingTask } from "../../../db-schemas";
 
 const InputSchema = object({
   onboardingId: pipe(string(), minLength(1, "onboardingId is required")),

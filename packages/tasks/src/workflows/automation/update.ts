@@ -1,10 +1,10 @@
+import { automationRule } from "#/db-schemas/automation-rule";
+import { IdSchema, UpdateAutomationRuleSchema } from "#/types";
+import { fetchAutomationRuleStep } from "#/workflow-steps/fetch-automation-rule";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { automationRule } from "../../db-schemas/automation-rule";
-import { IdSchema, UpdateAutomationRuleSchema } from "../../types";
-import { fetchAutomationRuleStep } from "../../workflow-steps/fetch-automation-rule";
 
 const UpdateInputSchema = object({
   id: IdSchema,

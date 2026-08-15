@@ -1,9 +1,9 @@
+import { address } from "#/db-schemas";
+import { CreateAddressSchema } from "#/types";
+import { unsetPrimaryAddress } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { address } from "../../db-schemas";
-import { CreateAddressSchema } from "../../types";
-import { unsetPrimaryAddress } from "../utils";
 
 const CreateInputSchema = object({ input: CreateAddressSchema });
 

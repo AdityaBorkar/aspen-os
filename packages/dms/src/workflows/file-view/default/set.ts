@@ -1,11 +1,11 @@
+import { dmsFileView } from "#/db-schemas";
+import { FILE_VIEW_EVENTS } from "#/pubsub";
+import { IdSchema } from "#/types";
+import { unsetDefaultFileView } from "#/workflows/file-view/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { dmsFileView } from "../../../db-schemas";
-import { FILE_VIEW_EVENTS } from "../../../pubsub";
-import { IdSchema } from "../../../types";
-import { unsetDefaultFileView } from "../utils";
 
 const SetDefaultInputSchema = object({ id: IdSchema });
 

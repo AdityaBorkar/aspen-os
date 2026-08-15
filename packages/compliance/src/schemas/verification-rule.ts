@@ -1,7 +1,12 @@
 import {
+  AuditActionSchema,
+  AuditEntityTypeSchema,
+  ComplianceCategorySchema,
+} from "#/schemas/enums";
+
+import {
   boolean,
   date,
-  type InferOutput,
   integer,
   minLength,
   nullable,
@@ -11,8 +16,7 @@ import {
   pipe,
   string,
 } from "valibot";
-
-import { AuditActionSchema, AuditEntityTypeSchema, ComplianceCategorySchema } from "./enums";
+import type { InferOutput } from "valibot";
 
 export const CreateVerificationRuleSchema = object({
   assignedReviewer: optional(nullable(string())),

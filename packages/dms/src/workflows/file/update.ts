@@ -1,16 +1,16 @@
+import { dmsFile, dmsFileVersion } from "#/db-schemas";
+import { FILE_EVENTS } from "#/pubsub";
+import { getDmsConfig } from "#/runtime";
+import { pruneVersions } from "#/services/purge-service";
+import { computeStorageKey, upload as uploadStorage } from "#/services/storage-bridge";
+import { FileIdSchema, UpdateFileSchema } from "#/types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { stripUndefined } from "#/utils/strip-undefined";
+import { fetchFileStep } from "#/workflow-steps/fetch-file";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object, parse } from "valibot";
-
-import { dmsFile, dmsFileVersion } from "../../db-schemas";
-import { FILE_EVENTS } from "../../pubsub";
-import { getDmsConfig } from "../../runtime";
-import { pruneVersions } from "../../services/purge-service";
-import { computeStorageKey, upload as uploadStorage } from "../../services/storage-bridge";
-import { FileIdSchema, UpdateFileSchema } from "../../types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../../utils/constants";
-import { stripUndefined } from "../../utils/strip-undefined";
-import { fetchFileStep } from "../../workflow-steps/fetch-file";
 
 const UpdateInputSchema = object({ id: FileIdSchema, input: UpdateFileSchema });
 

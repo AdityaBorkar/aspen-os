@@ -1,12 +1,12 @@
+import { serviceProvider, serviceProviderUser } from "#/db-schemas";
+import { PLATFORM_USER_EVENTS } from "#/pubsub";
+import { IdSchema, UpdatePlatformUserSchema } from "#/types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, ROLES } from "#/utils/constants";
+import { fetchUserStep } from "#/workflow-steps/fetch-user";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { serviceProvider, serviceProviderUser } from "../../db-schemas";
-import { PLATFORM_USER_EVENTS } from "../../pubsub";
-import { IdSchema, UpdatePlatformUserSchema } from "../../types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, ROLES } from "../../utils/constants";
-import { fetchUserStep } from "../../workflow-steps/fetch-user";
 
 export const updateUser = Workflow.name("user.update")
   .input(

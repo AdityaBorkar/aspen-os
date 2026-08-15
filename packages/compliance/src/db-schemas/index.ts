@@ -1,25 +1,25 @@
-import { sql } from "drizzle-orm";
+import { complianceDocument } from "#/db-schemas/compliance-document";
+import { complianceObligation } from "#/db-schemas/compliance-obligation";
+import { complianceVerificationRule } from "#/db-schemas/compliance-verification-rule";
 
-import { complianceDocument } from "./compliance-document";
-import { complianceObligation } from "./compliance-obligation";
-import { complianceVerificationRule } from "./compliance-verification-rule";
+import { sql } from "drizzle-orm";
 
 export {
   type ComplianceDocument,
   complianceDocument,
   type NewComplianceDocument,
-} from "./compliance-document";
+} from "#/db-schemas/compliance-document";
 export {
   type ComplianceObligation,
   complianceObligation,
   type NewComplianceObligation,
-} from "./compliance-obligation";
+} from "#/db-schemas/compliance-obligation";
 export {
   type ComplianceVerificationRule,
   complianceVerificationRule,
   type NewComplianceVerificationRule,
-} from "./compliance-verification-rule";
-export { complianceCategoryEnum, verificationStatusEnum } from "./enums";
+} from "#/db-schemas/compliance-verification-rule";
+export { complianceCategoryEnum, verificationStatusEnum } from "#/db-schemas/enums";
 export { sql };
 
 export const complianceTables = {

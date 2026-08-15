@@ -1,7 +1,7 @@
+import { SP_STATUS } from "#/utils/constants";
+
 import { uuidv7 } from "@aspen-os/platform/server";
 import { index, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
-
-import { SP_STATUS } from "../utils/constants";
 
 export const serviceProviderStatusEnum = pgEnum("service_provider_status", [
   SP_STATUS.ACTIVE,

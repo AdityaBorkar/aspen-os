@@ -1,8 +1,8 @@
+import { UploadBulkSchema } from "#/types";
+import { uploadFile } from "#/workflows/file/upload";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { UploadBulkSchema } from "../../../types";
-import { uploadFile } from "../upload";
 
 const UploadBulkInputSchema = object({ input: UploadBulkSchema });
 

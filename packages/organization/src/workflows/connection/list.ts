@@ -1,9 +1,9 @@
+import { connection } from "#/db-schemas";
+import { ConnectionFiltersSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, sql } from "drizzle-orm";
 import { object, optional } from "valibot";
-
-import { connection } from "../../db-schemas";
-import { ConnectionFiltersSchema } from "../../types";
 
 export const listConnections = Workflow.name("connection.list")
   .input(object({ filters: optional(ConnectionFiltersSchema) }))

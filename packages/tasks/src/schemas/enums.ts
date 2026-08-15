@@ -1,5 +1,3 @@
-import { picklist } from "valibot";
-
 import {
   AUTOMATION_TRIGGER,
   PROJECT_MEMBER_ROLE,
@@ -9,7 +7,9 @@ import {
   STATUS_CATEGORY,
   TASK_LINK_TYPE,
   TASK_PRIORITY,
-} from "../utils/constants";
+} from "#/utils/constants";
+
+import { picklist } from "valibot";
 
 export const TaskPrioritySchema = picklist(Object.values(TASK_PRIORITY));
 

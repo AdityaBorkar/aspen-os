@@ -1,7 +1,7 @@
+import { dmsShare } from "#/db-schemas";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
-
-import { dmsShare } from "../../db-schemas";
 
 export const listShares = Workflow.name("dms.share.list").handler(
   async (input: { entityId: string; entityType: "file" | "folder" }, ctx) =>

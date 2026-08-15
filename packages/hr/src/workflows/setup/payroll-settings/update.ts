@@ -1,10 +1,10 @@
+import { payrollSettings } from "#/db-schemas";
+import { UpdatePayrollSettingsSchema } from "#/types";
+import { fetchPayrollSettings } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object, parse } from "valibot";
-
-import { payrollSettings } from "../../../db-schemas";
-import { UpdatePayrollSettingsSchema } from "../../../types";
-import { fetchPayrollSettings } from "../../utils";
 
 const InputSchema = object({
   patch: UpdatePayrollSettingsSchema,

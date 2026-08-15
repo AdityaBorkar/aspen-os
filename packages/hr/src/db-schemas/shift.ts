@@ -1,7 +1,7 @@
+import { shiftAssignmentStatusEnum, shiftRequestStatusEnum } from "#/db-schemas/enums";
+
 import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, date, index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
-
-import { shiftAssignmentStatusEnum, shiftRequestStatusEnum } from "./enums";
 
 export const shiftType = pgTable(
   "shift_type",

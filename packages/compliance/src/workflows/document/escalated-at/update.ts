@@ -1,7 +1,7 @@
+import { complianceDocument } from "#/db-schemas";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-
-import { complianceDocument } from "../../../db-schemas";
 
 const updateDocumentEscalatedAt = Workflow.name("document.update-escalated-at").handler(
   async (input: { id: string }, ctx): Promise<void> => {

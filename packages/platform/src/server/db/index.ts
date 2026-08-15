@@ -8,6 +8,6 @@ export type {
   SingleTenantDbConfig,
   TenantDbConfig,
   TenantProvisioningResult,
-} from "./types";
-export type { DrizzleDB } from "./unit";
-export { DatabaseUnit } from "./unit";
+} from "#/server/db/types";
+export type { DrizzleDB } from "#/server/db/unit";
+export { DatabaseUnit } from "#/server/db/unit";

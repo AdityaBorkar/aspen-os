@@ -1,3 +1,5 @@
+import { complianceCategoryEnum, obligationFrequencyEnum } from "#/db-schemas/enums";
+
 import { uuidv7 } from "@aspen-os/platform/server";
 import {
   boolean,
@@ -9,8 +11,6 @@ import {
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
-
-import { complianceCategoryEnum, obligationFrequencyEnum } from "./enums";
 
 export const complianceObligation = pgTable(
   "compliance_obligation",

@@ -1,10 +1,10 @@
+import { complianceDocument } from "#/db-schemas";
+import { COMPLIANCE_EVENTS } from "#/pubsub";
+import { CreateComplianceDocumentSchema } from "#/types";
+import { DEFAULT_REMINDER_DAYS } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { complianceDocument } from "../../db-schemas";
-import { COMPLIANCE_EVENTS } from "../../pubsub";
-import { CreateComplianceDocumentSchema } from "../../types";
-import { DEFAULT_REMINDER_DAYS } from "../utils";
 
 const CreateInputSchema = object({ input: CreateComplianceDocumentSchema });
 

@@ -1,7 +1,7 @@
-import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
+import { auditLog } from "#/server/audit/db-schema";
+import type { AuditDatabase, AuditQuery } from "#/server/audit/types";
 
-import { auditLog } from "./db-schema";
-import type { AuditDatabase, AuditQuery } from "./types";
+import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 
 export class AuditQueryService {
   private db: AuditDatabase;

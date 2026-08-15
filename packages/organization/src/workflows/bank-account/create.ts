@@ -1,9 +1,9 @@
+import { bankAccount } from "#/db-schemas";
+import { CreateBankAccountSchema } from "#/types";
+import { unsetPrimaryBankAccount } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { bankAccount } from "../../db-schemas";
-import { CreateBankAccountSchema } from "../../types";
-import { unsetPrimaryBankAccount } from "../utils";
 
 const CreateInputSchema = object({ input: CreateBankAccountSchema });
 

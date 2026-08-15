@@ -1,8 +1,8 @@
+import { complianceDocument } from "#/db-schemas";
+import type { RenewalChainEntry } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-
-import { complianceDocument } from "../../../db-schemas";
-import type { RenewalChainEntry } from "../../../types";
 
 const getRenewalChain = Workflow.name("document.renewal-chain").handler(
   async (input: { id: string }, ctx): Promise<RenewalChainEntry[]> => {

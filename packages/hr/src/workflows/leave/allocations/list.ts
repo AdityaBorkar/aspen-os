@@ -1,9 +1,9 @@
+import { leaveAllocation } from "#/db-schemas";
+import { LeaveAllocationFiltersSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object, optional, parse } from "valibot";
-
-import { leaveAllocation } from "../../../db-schemas";
-import { LeaveAllocationFiltersSchema } from "../../../types";
 
 const InputSchema = object({
   filters: optional(LeaveAllocationFiltersSchema),

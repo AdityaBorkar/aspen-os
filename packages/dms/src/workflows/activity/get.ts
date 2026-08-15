@@ -1,7 +1,8 @@
+import { mapEntityType, normalize } from "#/workflows/activity/shared";
+import type { AuditRow } from "#/workflows/activity/shared";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { integer, number, object, optional, pipe, string } from "valibot";
-
-import { mapEntityType, normalize, type AuditRow } from "./shared";
 
 const ActivityInputSchema = object({
   entityId: string(),

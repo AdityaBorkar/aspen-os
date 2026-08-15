@@ -1,3 +1,5 @@
+import { holidayTypeEnum } from "#/db-schemas/enums";
+
 import { uuidv7 } from "@aspen-os/platform/server";
 import {
   boolean,
@@ -9,8 +11,6 @@ import {
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
-
-import { holidayTypeEnum } from "./enums";
 
 export const hrSettings = pgTable("hr_settings", {
   allowMultipleShiftAssignments: boolean("allow_multiple_shift_assignments"),

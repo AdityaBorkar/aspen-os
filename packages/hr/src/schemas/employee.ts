@@ -1,21 +1,13 @@
 import {
-  boolean,
-  type InferOutput,
-  minLength,
-  nullable,
-  object,
-  optional,
-  pipe,
-  string,
-} from "valibot";
-
-import {
   EmployeeStatusSchema,
   EmploymentTypeSchema,
   GenderSchema,
   SkillProficiencySchema,
-} from "./enums";
-import { EmployeeIdSchema, NameSchema } from "./utils";
+} from "#/schemas/enums";
+import { EmployeeIdSchema, NameSchema } from "#/schemas/utils";
+
+import { boolean, minLength, nullable, object, optional, pipe, string } from "valibot";
+import type { InferOutput } from "valibot";
 
 // Employee
 

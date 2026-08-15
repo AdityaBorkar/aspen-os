@@ -5,7 +5,7 @@ export type {
   CreateClassInput,
   UpdateClassFieldInput,
   UpdateClassInput,
-} from "./class";
+} from "#/schemas/class";
 export {
   ArchiveClassSchema,
   ClassFiltersSchema,
@@ -16,19 +16,19 @@ export {
   LabelSchema,
   UpdateClassFieldSchema,
   UpdateClassSchema,
-} from "./class";
+} from "#/schemas/class";
 export type {
   ContactFilters,
   CreateContactInput,
   RemoveContactInput,
   UpdateContactInput,
-} from "./contact";
+} from "#/schemas/contact";
 export {
   ContactFiltersSchema,
   CreateContactSchema,
   RemoveContactSchema,
   UpdateContactSchema,
-} from "./contact";
+} from "#/schemas/contact";
 export {
   COMPRESSION_MODE,
   CompressionModeSchema,
@@ -44,7 +44,7 @@ export {
   PublicLinkPermissionSchema,
   SHARE_PERMISSION,
   SharePermissionSchema,
-} from "./enums";
+} from "#/schemas/enums";
 export type {
   AddMetadataInput,
   ClassifyFileInput,
@@ -59,7 +59,7 @@ export type {
   UpdateFileInput,
   UploadBulkInput,
   UploadFileInput,
-} from "./file";
+} from "#/schemas/file";
 export {
   AddMetadataSchema,
   ClassifyFileSchema,
@@ -75,81 +75,81 @@ export {
   UpdateFileSchema,
   UploadBulkSchema,
   UploadFileSchema,
-} from "./file";
+} from "#/schemas/file";
 export type {
   ApplyFileViewInput,
   CreateFileViewInput,
   FileViewCondition,
   FileViewSort,
   UpdateFileViewInput,
-} from "./file-view";
+} from "#/schemas/file-view";
 export {
   ApplyFileViewSchema,
   CreateFileViewSchema,
   FileViewConditionSchema,
   FileViewSortSchema,
   UpdateFileViewSchema,
-} from "./file-view";
+} from "#/schemas/file-view";
 export type {
   CreateFolderInput,
   ListFolderOptions,
   MoveFolderInput,
   RenameFolderInput,
   UpdateFolderInput,
-} from "./folder";
+} from "#/schemas/folder";
 export {
   CreateFolderSchema,
   ListFolderOptionsSchema,
   MoveFolderSchema,
   RenameFolderSchema,
   UpdateFolderSchema,
-} from "./folder";
+} from "#/schemas/folder";
 export type {
   ApplyLabelInput,
   CreateLabelInput,
   ListByLabelOptions,
   ListLabelsOptions,
   UpdateLabelInput,
-} from "./label";
+} from "#/schemas/label";
 export {
   ApplyLabelSchema,
   CreateLabelSchema,
   ListByLabelOptionsSchema,
   ListLabelsOptionsSchema,
   UpdateLabelSchema,
-} from "./label";
+} from "#/schemas/label";
 export type {
   CreatePublicLinkInput,
   ResolvePublicLinkInput,
   UpdatePublicLinkInput,
-} from "./public-link";
+} from "#/schemas/public-link";
 export {
   CreatePublicLinkSchema,
   ResolvePublicLinkSchema,
   UpdatePublicLinkSchema,
-} from "./public-link";
+} from "#/schemas/public-link";
 export {
   DateRangeSchema,
   SearchScopeSchema,
   SearchSortOrderSchema,
   SizeRangeSchema,
-} from "./search";
-export type { QuickSearchInput, SearchOptions } from "./search";
-export { QuickSearchSchema, SearchOptionsSchema } from "./search";
+} from "#/schemas/search";
+export type { QuickSearchInput, SearchOptions } from "#/schemas/search";
+export { QuickSearchSchema, SearchOptionsSchema } from "#/schemas/search";
 export type {
   CreateShareInput,
   ListSharedWithMeOptions,
   ResolveShareTokenInput,
   UpdateShareInput,
-} from "./share";
+} from "#/schemas/share";
 export {
   CreateShareSchema,
   ListSharedWithMeOptionsSchema,
   ResolveShareTokenSchema,
   UpdateShareSchema,
-} from "./share";
-export type { EmptyTrashOptions, ListTrashOptions } from "./trash";
-export { EmptyTrashOptionsSchema, ListTrashOptionsSchema } from "./trash";
+} from "#/schemas/share";
+export type { EmptyTrashOptions, ListTrashOptions } from "#/schemas/trash";
+export { EmptyTrashOptionsSchema, ListTrashOptionsSchema } from "#/schemas/trash";
 export {
   EmailSchema,
   FileIdSchema,
@@ -160,4 +160,4 @@ export {
   NameSchema,
   WithFileIdSchema,
   WithIdSchema,
-} from "./utils";
+} from "#/schemas/utils";

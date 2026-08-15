@@ -1,41 +1,41 @@
-export { dmsAccessLog } from "./access-log";
-export { dmsClass } from "./class";
-export { dmsClassField, dmsFieldTypeEnum } from "./class-field";
-export { dmsContact } from "./contact";
-export { dmsEntityLabel } from "./entity-label";
+export { dmsAccessLog } from "#/db-schemas/access-log";
+export { dmsClass } from "#/db-schemas/class";
+export { dmsClassField, dmsFieldTypeEnum } from "#/db-schemas/class-field";
+export { dmsContact } from "#/db-schemas/contact";
+export { dmsEntityLabel } from "#/db-schemas/entity-label";
 export {
   dmsEntityTypeEnum,
   dmsFileStatusEnum,
   dmsGranteeTypeEnum,
   dmsPublicLinkPermissionEnum,
   dmsSharePermissionEnum,
-} from "./enums";
-export { dmsFile } from "./file";
-export { dmsFileVersion } from "./file-version";
-export { dmsFileView } from "./file-view";
-export { dmsFolder } from "./folder";
-export { dmsLabel } from "./label";
-export { dmsLegalHold } from "./legal-hold";
-export { dmsPin, dmsPinItemTypeEnum } from "./pin";
-export { dmsPublicLink } from "./public-link";
-export { dmsSetting } from "./setting";
-export { dmsShare } from "./share";
+} from "#/db-schemas/enums";
+export { dmsFile } from "#/db-schemas/file";
+export { dmsFileVersion } from "#/db-schemas/file-version";
+export { dmsFileView } from "#/db-schemas/file-view";
+export { dmsFolder } from "#/db-schemas/folder";
+export { dmsLabel } from "#/db-schemas/label";
+export { dmsLegalHold } from "#/db-schemas/legal-hold";
+export { dmsPin, dmsPinItemTypeEnum } from "#/db-schemas/pin";
+export { dmsPublicLink } from "#/db-schemas/public-link";
+export { dmsSetting } from "#/db-schemas/setting";
+export { dmsShare } from "#/db-schemas/share";
 
-import { dmsAccessLog } from "./access-log";
-import { dmsClass } from "./class";
-import { dmsClassField } from "./class-field";
-import { dmsContact } from "./contact";
-import { dmsEntityLabel } from "./entity-label";
-import { dmsFile } from "./file";
-import { dmsFileVersion } from "./file-version";
-import { dmsFileView } from "./file-view";
-import { dmsFolder } from "./folder";
-import { dmsLabel } from "./label";
-import { dmsLegalHold } from "./legal-hold";
-import { dmsPin } from "./pin";
-import { dmsPublicLink } from "./public-link";
-import { dmsSetting } from "./setting";
-import { dmsShare } from "./share";
+import { dmsAccessLog } from "#/db-schemas/access-log";
+import { dmsClass } from "#/db-schemas/class";
+import { dmsClassField } from "#/db-schemas/class-field";
+import { dmsContact } from "#/db-schemas/contact";
+import { dmsEntityLabel } from "#/db-schemas/entity-label";
+import { dmsFile } from "#/db-schemas/file";
+import { dmsFileVersion } from "#/db-schemas/file-version";
+import { dmsFileView } from "#/db-schemas/file-view";
+import { dmsFolder } from "#/db-schemas/folder";
+import { dmsLabel } from "#/db-schemas/label";
+import { dmsLegalHold } from "#/db-schemas/legal-hold";
+import { dmsPin } from "#/db-schemas/pin";
+import { dmsPublicLink } from "#/db-schemas/public-link";
+import { dmsSetting } from "#/db-schemas/setting";
+import { dmsShare } from "#/db-schemas/share";
 
 export const dmsTables = {
   dmsAccessLog,

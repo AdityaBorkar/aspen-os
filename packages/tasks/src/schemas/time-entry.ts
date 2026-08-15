@@ -1,7 +1,6 @@
 import {
   boolean,
   date,
-  type InferOutput,
   integer,
   minLength,
   nullable,
@@ -11,6 +10,7 @@ import {
   pipe,
   string,
 } from "valibot";
+import type { InferOutput } from "valibot";
 
 export const CreateTimeEntrySchema = object({
   billable: optional(boolean()),

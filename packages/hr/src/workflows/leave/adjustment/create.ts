@@ -1,9 +1,9 @@
+import { leaveAdjustment } from "#/db-schemas";
+import { CreateLeaveAdjustmentSchema } from "#/types";
+import { createLeaveLedgerEntry } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { leaveAdjustment } from "../../../db-schemas";
-import { CreateLeaveAdjustmentSchema } from "../../../types";
-import { createLeaveLedgerEntry } from "../../utils";
 
 const InputSchema = object({
   input: CreateLeaveAdjustmentSchema,

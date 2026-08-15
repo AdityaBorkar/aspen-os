@@ -1,8 +1,8 @@
+import { timeEntry } from "#/db-schemas/time-entry";
+import { CreateTimeEntrySchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { timeEntry } from "../../db-schemas/time-entry";
-import { CreateTimeEntrySchema } from "../../types";
 
 const CreateInputSchema = object({
   input: CreateTimeEntrySchema,

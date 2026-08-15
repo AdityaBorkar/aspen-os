@@ -1,11 +1,11 @@
+import { dmsFile } from "#/db-schemas";
+import { FILE_EVENTS } from "#/pubsub";
+import { FileIdSchema } from "#/types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { dmsFile } from "../../db-schemas";
-import { FILE_EVENTS } from "../../pubsub";
-import { FileIdSchema } from "../../types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../../utils/constants";
 
 const DeleteInputSchema = object({ id: FileIdSchema });
 

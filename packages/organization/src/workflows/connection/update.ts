@@ -1,11 +1,11 @@
+import { connection } from "#/db-schemas";
+import { CONNECTION_EVENTS } from "#/pubsub";
+import { UpdateConnectionSchema } from "#/types";
+import { fetchConnectionStep } from "#/workflow-steps/fetch-connection";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object, string } from "valibot";
-
-import { connection } from "../../db-schemas";
-import { CONNECTION_EVENTS } from "../../pubsub";
-import { UpdateConnectionSchema } from "../../types";
-import { fetchConnectionStep } from "../../workflow-steps/fetch-connection";
 
 const UpdateInputSchema = object({
   id: string(),

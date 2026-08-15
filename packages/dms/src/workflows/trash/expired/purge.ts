@@ -1,7 +1,8 @@
+import { runAutoPurge } from "#/services/purge-service";
+import type { PurgeDeps } from "#/services/purge-service";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { type PurgeDeps, runAutoPurge } from "../../../services/purge-service";
 
 const PurgeInputSchema = object({});
 

@@ -1,4 +1,5 @@
-import { type InferOutput, number, object, optional, string } from "valibot";
+import { number, object, optional, string } from "valibot";
+import type { InferOutput } from "valibot";
 
 export const ListTrashOptionsSchema = object({
   limit: optional(number(), 50),

@@ -5,8 +5,8 @@ import {
   hrUser,
   hrUserBranchAccess,
   hrUserRole,
-} from "./access";
-import { attendance, attendanceRequest, compensatoryLeaveRequest } from "./attendance";
+} from "#/db-schemas/access";
+import { attendance, attendanceRequest, compensatoryLeaveRequest } from "#/db-schemas/attendance";
 import {
   employee,
   employeeCheckin,
@@ -18,7 +18,7 @@ import {
   employeeSeparation,
   employeeSkillMap,
   employeeTransfer,
-} from "./employee";
+} from "#/db-schemas/employee";
 import {
   leaveAdjustment,
   leaveAllocation,
@@ -31,9 +31,14 @@ import {
   leavePolicyAssignment,
   leavePolicyDetail,
   leaveType,
-} from "./leave";
-import { exitInterview, fullAndFinalStatement, onboardingTask, separationTask } from "./lifecycle";
-import { overtimeSlip, overtimeType } from "./overtime";
+} from "#/db-schemas/leave";
+import {
+  exitInterview,
+  fullAndFinalStatement,
+  onboardingTask,
+  separationTask,
+} from "#/db-schemas/lifecycle";
+import { overtimeSlip, overtimeType } from "#/db-schemas/overtime";
 import {
   department,
   designation,
@@ -43,7 +48,7 @@ import {
   holidayList,
   hrSettings,
   payrollSettings,
-} from "./setup";
+} from "#/db-schemas/setup";
 import {
   shiftAssignment,
   shiftLocation,
@@ -51,7 +56,7 @@ import {
   shiftSchedule,
   shiftScheduleAssignment,
   shiftType,
-} from "./shift";
+} from "#/db-schemas/shift";
 
 export {
   hrPermission,
@@ -60,8 +65,8 @@ export {
   hrUser,
   hrUserBranchAccess,
   hrUserRole,
-} from "./access";
-export { attendance, attendanceRequest, compensatoryLeaveRequest } from "./attendance";
+} from "#/db-schemas/access";
+export { attendance, attendanceRequest, compensatoryLeaveRequest } from "#/db-schemas/attendance";
 export {
   employee,
   employeeCheckin,
@@ -73,8 +78,8 @@ export {
   employeeSeparation,
   employeeSkillMap,
   employeeTransfer,
-} from "./employee";
-export * from "./enums";
+} from "#/db-schemas/employee";
+export * from "#/db-schemas/enums";
 export {
   leaveAdjustment,
   leaveAllocation,
@@ -87,9 +92,14 @@ export {
   leavePolicyAssignment,
   leavePolicyDetail,
   leaveType,
-} from "./leave";
-export { exitInterview, fullAndFinalStatement, onboardingTask, separationTask } from "./lifecycle";
-export { overtimeSlip, overtimeType } from "./overtime";
+} from "#/db-schemas/leave";
+export {
+  exitInterview,
+  fullAndFinalStatement,
+  onboardingTask,
+  separationTask,
+} from "#/db-schemas/lifecycle";
+export { overtimeSlip, overtimeType } from "#/db-schemas/overtime";
 export {
   department,
   designation,
@@ -99,7 +109,7 @@ export {
   holidayList,
   hrSettings,
   payrollSettings,
-} from "./setup";
+} from "#/db-schemas/setup";
 export {
   shiftAssignment,
   shiftLocation,
@@ -107,7 +117,7 @@ export {
   shiftSchedule,
   shiftScheduleAssignment,
   shiftType,
-} from "./shift";
+} from "#/db-schemas/shift";
 
 export type HrUser = typeof hrUser.$inferSelect;
 export type HrRole = typeof hrRole.$inferSelect;

@@ -1,11 +1,11 @@
+import { dmsShare } from "#/db-schemas";
+import { SHARE_EVENTS } from "#/pubsub";
+import { IdSchema } from "#/types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { dmsShare } from "../../db-schemas";
-import { SHARE_EVENTS } from "../../pubsub";
-import { IdSchema } from "../../types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../../utils/constants";
 
 export const removeShare = Workflow.name("dms.share.remove")
   .input(object({ id: IdSchema }))

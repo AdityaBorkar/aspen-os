@@ -1,7 +1,7 @@
+import { projectStatusEnum } from "#/db-schemas/enums";
+
 import { uuidv7 } from "@aspen-os/platform/server";
 import { index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
-
-import { projectStatusEnum } from "./enums";
 
 export const project = pgTable(
   "task_project",

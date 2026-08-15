@@ -1,9 +1,9 @@
+import { employeeSkillMap } from "#/db-schemas";
+import { CreateSkillMapSchema } from "#/types";
+import { fetchEmployeeById } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { employeeSkillMap } from "../../../db-schemas";
-import { CreateSkillMapSchema } from "../../../types";
-import { fetchEmployeeById } from "../../utils";
 
 const InputSchema = object({
   input: CreateSkillMapSchema,

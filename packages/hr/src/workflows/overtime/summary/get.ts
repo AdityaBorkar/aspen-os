@@ -1,9 +1,9 @@
+import { overtimeSlip } from "#/db-schemas";
+import type { OvertimeSummary } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, sql } from "drizzle-orm";
 import { minLength, object, pipe, string } from "valibot";
-
-import { overtimeSlip } from "../../../db-schemas";
-import type { OvertimeSummary } from "../../../types";
 
 const InputSchema = object({
   employeeId: pipe(string(), minLength(1, "employeeId is required")),

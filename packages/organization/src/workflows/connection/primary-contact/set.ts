@@ -1,9 +1,9 @@
+import { connectionContact } from "#/db-schemas";
+import { unsetPrimaryContacts } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object, string } from "valibot";
-
-import { connectionContact } from "../../../db-schemas";
-import { unsetPrimaryContacts } from "../../utils";
 
 export const setPrimaryContact = Workflow.name("connection.set-primary-contact")
   .input(object({ id: string() }))

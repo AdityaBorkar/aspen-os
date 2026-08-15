@@ -1,8 +1,8 @@
+import { hrPermission, hrRolePermission } from "#/db-schemas";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { minLength, object, pipe, string } from "valibot";
-
-import { hrPermission, hrRolePermission } from "../../../db-schemas";
 
 const InputSchema = object({
   roleId: pipe(string(), minLength(1, "roleId is required")),

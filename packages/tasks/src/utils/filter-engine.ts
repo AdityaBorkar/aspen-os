@@ -1,19 +1,8 @@
-import {
-  and,
-  eq,
-  gte,
-  ilike,
-  inArray,
-  isNotNull,
-  isNull,
-  lte,
-  or,
-  type SQL,
-  sql,
-} from "drizzle-orm";
+import { task } from "#/db-schemas/task";
+import type { TaskFilters } from "#/types";
 
-import { task } from "../db-schemas/task";
-import type { TaskFilters } from "../types";
+import { and, eq, gte, ilike, inArray, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 
 export function buildTaskWhereClause(filters: TaskFilters | undefined): SQL | undefined {
   if (!filters) {

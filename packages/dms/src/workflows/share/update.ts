@@ -1,11 +1,11 @@
+import { dmsShare } from "#/db-schemas";
+import { IdSchema, UpdateShareSchema } from "#/types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { stripUndefined } from "#/utils/strip-undefined";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { dmsShare } from "../../db-schemas";
-import { IdSchema, UpdateShareSchema } from "../../types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../../utils/constants";
-import { stripUndefined } from "../../utils/strip-undefined";
 
 const UpdateInputSchema = object({ id: IdSchema, patch: UpdateShareSchema });
 

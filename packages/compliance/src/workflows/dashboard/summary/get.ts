@@ -1,9 +1,9 @@
+import { complianceDocument, complianceObligation } from "#/db-schemas";
+import type { DashboardSummary } from "#/types";
+import { computeHealthScore } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, gte, isNotNull, sql } from "drizzle-orm";
-
-import { complianceDocument, complianceObligation } from "../../../db-schemas";
-import type { DashboardSummary } from "../../../types";
-import { computeHealthScore } from "../../utils";
 
 const CACHE_KEY = "compliance:dashboard:summary";
 

@@ -1,7 +1,7 @@
+import { complianceDocument } from "#/db-schemas";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, desc, eq } from "drizzle-orm";
-
-import { complianceDocument } from "../../../db-schemas";
 
 const getDocumentsBySource = Workflow.name("document.by-source").handler(
   async (

@@ -1,4 +1,4 @@
-import type { Unit } from "../types";
+import type { Unit } from "#/client/types";
 
 export interface RpcConfig {
   prefix?: string;

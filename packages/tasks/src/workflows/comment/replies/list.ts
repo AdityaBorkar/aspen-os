@@ -1,9 +1,9 @@
+import { comment } from "#/db-schemas/comment";
+import { IdSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { desc, eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { comment } from "../../../db-schemas/comment";
-import { IdSchema } from "../../../types";
 
 export const listCommentReplies = Workflow.name("comment.list-replies")
   .input(object({ parentId: IdSchema }))

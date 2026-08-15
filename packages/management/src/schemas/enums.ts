@@ -1,12 +1,12 @@
-import { picklist } from "valibot";
-
 import {
   AUDIT_ACTION,
   AUDIT_ENTITY_TYPE,
   ROLES,
   SP_STATUS,
   TENANT_STATUS,
-} from "../utils/constants";
+} from "#/utils/constants";
+
+import { picklist } from "valibot";
 
 export const TenantStatusSchema = picklist(Object.values(TENANT_STATUS));
 

@@ -1,10 +1,10 @@
+import { reminder } from "#/db-schemas/reminder";
+import { IdSchema, UpdateReminderSchema } from "#/types";
+import { fetchReminderStep } from "#/workflow-steps/fetch-reminder";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { reminder } from "../../db-schemas/reminder";
-import { IdSchema, UpdateReminderSchema } from "../../types";
-import { fetchReminderStep } from "../../workflow-steps/fetch-reminder";
 
 const UpdateInputSchema = object({
   id: IdSchema,

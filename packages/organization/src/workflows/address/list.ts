@@ -1,9 +1,9 @@
+import { address } from "#/db-schemas";
+import { AddressFiltersSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object, optional } from "valibot";
-
-import { address } from "../../db-schemas";
-import { AddressFiltersSchema } from "../../types";
 
 export const listAddresses = Workflow.name("address.list")
   .input(object({ filters: optional(AddressFiltersSchema) }))

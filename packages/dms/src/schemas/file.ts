@@ -1,7 +1,9 @@
+import { CompressionModeSchema } from "#/schemas/enums";
+import { FileNameSchema } from "#/schemas/utils";
+
 import {
   array,
   boolean,
-  type InferOutput,
   integer,
   minLength,
   nullable,
@@ -13,9 +15,7 @@ import {
   string,
   unknown,
 } from "valibot";
-
-import { CompressionModeSchema } from "./enums";
-import { FileNameSchema } from "./utils";
+import type { InferOutput } from "valibot";
 
 export const CompressionOptionSchema = object({
   enabled: optional(boolean(), true),

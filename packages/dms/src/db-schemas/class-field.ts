@@ -1,3 +1,5 @@
+import { FIELD_TYPE } from "#/utils/constants";
+
 import { uuidv7 } from "@aspen-os/platform/server";
 import {
   boolean,
@@ -10,8 +12,6 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
-
-import { FIELD_TYPE } from "../utils/constants";
 
 export const dmsFieldTypeEnum = pgEnum("dms_field_type", [
   FIELD_TYPE.TEXT,

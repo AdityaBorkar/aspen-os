@@ -1,8 +1,8 @@
+import { exitInterview } from "#/db-schemas";
+import { CreateExitInterviewSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { exitInterview } from "../../../db-schemas";
-import { CreateExitInterviewSchema } from "../../../types";
 
 const InputSchema = object({
   input: CreateExitInterviewSchema,

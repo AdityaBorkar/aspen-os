@@ -1,9 +1,9 @@
+import { attendance } from "#/db-schemas";
+import { UpdateAttendanceSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { minLength, object, parse, pipe, string } from "valibot";
-
-import { attendance } from "../../db-schemas";
-import { UpdateAttendanceSchema } from "../../types";
 
 const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),

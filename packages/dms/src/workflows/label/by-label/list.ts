@@ -1,8 +1,8 @@
+import { dmsEntityLabel, dmsFile, dmsFolder } from "#/db-schemas";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, sql } from "drizzle-orm";
 import { object, optional, string } from "valibot";
-
-import { dmsEntityLabel, dmsFile, dmsFolder } from "../../../db-schemas";
 
 const ListByLabelSchema = object({
   labelId: string(),

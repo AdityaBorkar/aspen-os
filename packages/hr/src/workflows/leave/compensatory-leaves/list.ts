@@ -1,9 +1,9 @@
+import { compensatoryLeaveRequest } from "#/db-schemas";
+import { CompensatoryLeaveFiltersSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object, optional, parse } from "valibot";
-
-import { compensatoryLeaveRequest } from "../../../db-schemas";
-import { CompensatoryLeaveFiltersSchema } from "../../../types";
 
 const InputSchema = object({
   filters: optional(CompensatoryLeaveFiltersSchema),

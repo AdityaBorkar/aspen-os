@@ -1,12 +1,12 @@
-import type { DatabaseUnit } from "../db";
-import { context } from "../utils/context";
-import { auditLog } from "./db-schema";
-import { AuditQueryService } from "./query-service";
-import type { AuditDatabase, AuditEntry, AuditQuery } from "./types";
+import { auditLog } from "#/server/audit/db-schema";
+import { AuditQueryService } from "#/server/audit/query-service";
+import type { AuditDatabase, AuditEntry, AuditQuery } from "#/server/audit/types";
+import type { DatabaseUnit } from "#/server/db";
+import { context } from "#/server/utils/context";
 
-export { type AuditLog, auditLog, type NewAuditLog } from "./db-schema";
-export { AuditQueryService } from "./query-service";
-export type { AuditEntry, AuditQuery, CrudAction } from "./types";
+export { type AuditLog, auditLog, type NewAuditLog } from "#/server/audit/db-schema";
+export { AuditQueryService } from "#/server/audit/query-service";
+export type { AuditEntry, AuditQuery, CrudAction } from "#/server/audit/types";
 
 export class AuditUnit {
   readonly $name = "audit";

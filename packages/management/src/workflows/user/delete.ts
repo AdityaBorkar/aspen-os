@@ -1,12 +1,12 @@
+import { serviceProviderUser } from "#/db-schemas";
+import { PLATFORM_USER_EVENTS } from "#/pubsub";
+import { IdSchema } from "#/types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { fetchUserStep } from "#/workflow-steps/fetch-user";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { serviceProviderUser } from "../../db-schemas";
-import { PLATFORM_USER_EVENTS } from "../../pubsub";
-import { IdSchema } from "../../types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../../utils/constants";
-import { fetchUserStep } from "../../workflow-steps/fetch-user";
 
 export const deleteUser = Workflow.name("user.delete")
   .input(object({ id: IdSchema }))

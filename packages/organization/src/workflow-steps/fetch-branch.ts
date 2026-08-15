@@ -1,8 +1,8 @@
+import { branch } from "#/db-schemas";
+
 import { WorkflowStep } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object, string } from "valibot";
-
-import { branch } from "../db-schemas";
 
 export const fetchBranchStep = WorkflowStep.name("fetch-branch")
   .input(object({ id: string() }))

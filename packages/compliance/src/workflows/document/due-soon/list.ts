@@ -1,7 +1,7 @@
+import { complianceDocument } from "#/db-schemas";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, gte, isNotNull, isNull, lte } from "drizzle-orm";
-
-import { complianceDocument } from "../../../db-schemas";
 
 const getDueSoonDocuments = Workflow.name("document.due-soon").handler(
   async (input: { days: number }, ctx) => {

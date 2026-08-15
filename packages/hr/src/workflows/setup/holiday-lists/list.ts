@@ -1,7 +1,7 @@
+import { holidayList } from "#/db-schemas";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { holidayList } from "../../../db-schemas";
 
 const InputSchema = object({});
 

@@ -1,4 +1,4 @@
-import type { VerificationStatus } from "../utils/constants";
+import type { VerificationStatus } from "#/utils/constants";
 
 export function daysUntil(dateStr: string | null): number | null {
   if (!dateStr) {

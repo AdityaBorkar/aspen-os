@@ -1,17 +1,8 @@
-import {
-  boolean,
-  type InferOutput,
-  minLength,
-  nullable,
-  number,
-  object,
-  optional,
-  pipe,
-  string,
-} from "valibot";
+import { EntityTypeSchema } from "#/schemas/enums";
+import { HexColorSchema, LabelNameSchema } from "#/schemas/utils";
 
-import { EntityTypeSchema } from "./enums";
-import { HexColorSchema, LabelNameSchema } from "./utils";
+import { boolean, minLength, nullable, number, object, optional, pipe, string } from "valibot";
+import type { InferOutput } from "valibot";
 
 export const CreateLabelSchema = object({
   color: HexColorSchema,

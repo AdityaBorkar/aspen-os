@@ -1,10 +1,10 @@
+import { comment } from "#/db-schemas/comment";
+import { IdSchema, UpdateCommentSchema } from "#/types";
+import { fetchCommentStep } from "#/workflow-steps/fetch-comment";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { comment } from "../../db-schemas/comment";
-import { IdSchema, UpdateCommentSchema } from "../../types";
-import { fetchCommentStep } from "../../workflow-steps/fetch-comment";
 
 const UpdateInputSchema = object({
   id: IdSchema,

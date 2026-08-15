@@ -1,9 +1,9 @@
+import * as schemas from "#/db-schemas";
+import type { SharePermission } from "#/types";
+
 import { getContext } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-
-import * as schemas from "../db-schemas";
-import type { SharePermission } from "../types";
 
 type DB = NodePgDatabase<Record<string, never>>;
 

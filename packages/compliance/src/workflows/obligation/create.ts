@@ -1,9 +1,9 @@
+import { complianceObligation } from "#/db-schemas";
+import { COMPLIANCE_EVENTS } from "#/pubsub";
+import { CreateObligationSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { complianceObligation } from "../../db-schemas";
-import { COMPLIANCE_EVENTS } from "../../pubsub";
-import { CreateObligationSchema } from "../../types";
 
 const CreateInputSchema = object({ input: CreateObligationSchema });
 

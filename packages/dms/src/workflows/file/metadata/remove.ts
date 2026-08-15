@@ -1,12 +1,12 @@
+import { dmsFile } from "#/db-schemas";
+import { FILE_EVENTS } from "#/pubsub";
+import { IdSchema, RemoveMetadataSchema } from "#/types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { fetchFileStep } from "#/workflow-steps/fetch-file";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object, parse } from "valibot";
-
-import { dmsFile } from "../../../db-schemas";
-import { FILE_EVENTS } from "../../../pubsub";
-import { IdSchema, RemoveMetadataSchema } from "../../../types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../../../utils/constants";
-import { fetchFileStep } from "../../../workflow-steps/fetch-file";
 
 const RemoveMetadataInputSchema = object({ id: IdSchema, input: RemoveMetadataSchema });
 

@@ -1,8 +1,8 @@
+import { reminder } from "#/db-schemas/reminder";
+import { IdSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { date, object } from "valibot";
-
-import { reminder } from "../../../db-schemas/reminder";
-import { IdSchema } from "../../../types";
 
 const DUE_DATE_REMINDER_TYPE = "due_date";
 

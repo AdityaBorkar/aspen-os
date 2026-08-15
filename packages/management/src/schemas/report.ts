@@ -1,4 +1,5 @@
-import { date, type InferOutput, integer, number, object, optional, pipe, string } from "valibot";
+import { date, integer, number, object, optional, pipe, string } from "valibot";
+import type { InferOutput } from "valibot";
 
 export const TenantUsageFiltersSchema = object({
   status: optional(string()),

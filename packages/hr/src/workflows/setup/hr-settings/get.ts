@@ -1,7 +1,7 @@
+import { hrSettings } from "#/db-schemas";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { hrSettings } from "../../../db-schemas";
 
 const InputSchema = object({});
 

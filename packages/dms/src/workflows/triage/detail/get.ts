@@ -1,10 +1,10 @@
+import { getActiveFields, validateFieldValues } from "#/services/classify-service";
+import { IdSchema } from "#/types";
+import { fetchFileStep } from "#/workflow-steps/fetch-file";
+import { listClasses } from "#/workflows/class/list";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { getActiveFields, validateFieldValues } from "../../../services/classify-service";
-import { IdSchema } from "../../../types";
-import { fetchFileStep } from "../../../workflow-steps/fetch-file";
-import { listClasses } from "../../class/list";
 
 const DetailInputSchema = object({ id: IdSchema });
 

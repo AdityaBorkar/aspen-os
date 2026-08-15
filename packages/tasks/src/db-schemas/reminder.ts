@@ -1,7 +1,7 @@
+import { reminderTypeEnum } from "#/db-schemas/enums";
+
 import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
-
-import { reminderTypeEnum } from "./enums";
 
 export const reminder = pgTable(
   "task_reminder",

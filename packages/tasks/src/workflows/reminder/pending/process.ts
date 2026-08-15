@@ -1,10 +1,10 @@
+import { reminder } from "#/db-schemas/reminder";
+import { REMINDER_EVENTS } from "#/pubsub";
+import { getPendingReminders } from "#/workflows/reminder/pending/get";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-
-import { reminder } from "../../../db-schemas/reminder";
-import { REMINDER_EVENTS } from "../../../pubsub";
-import { getPendingReminders } from "./get";
 
 type DrizzleDB = NodePgDatabase<Record<string, never>>;
 

@@ -1,11 +1,11 @@
+import { project } from "#/db-schemas/project";
+import { IdSchema, UpdateProjectSchema } from "#/types";
+import { fetchProjectStep } from "#/workflow-steps/fetch-project";
+import { ensureKeyUnique } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { project } from "../../db-schemas/project";
-import { IdSchema, UpdateProjectSchema } from "../../types";
-import { fetchProjectStep } from "../../workflow-steps/fetch-project";
-import { ensureKeyUnique } from "../utils";
 
 const UpdateInputSchema = object({
   id: IdSchema,

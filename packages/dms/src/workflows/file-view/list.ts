@@ -1,7 +1,7 @@
+import { dmsFileView } from "#/db-schemas";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, or } from "drizzle-orm";
-
-import { dmsFileView } from "../../db-schemas";
 
 export const listFileViews = Workflow.name("dms.file-view.list").handler(
   async (input: { ownerId: string }, ctx) =>

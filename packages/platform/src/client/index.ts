@@ -1,8 +1,11 @@
-import { type AuthConfig, AuthUnit } from "./auth";
-import { setContext } from "./context";
-import { type LogsConfig, LogsUnit } from "./logs";
-import { type RpcConfig, RpcUnit } from "./rpc";
-import type { Module } from "./types";
+import { AuthUnit } from "#/client/auth";
+import type { AuthConfig } from "#/client/auth";
+import { setContext } from "#/client/context";
+import { LogsUnit } from "#/client/logs";
+import type { LogsConfig } from "#/client/logs";
+import { RpcUnit } from "#/client/rpc";
+import type { RpcConfig } from "#/client/rpc";
+import type { Module } from "#/client/types";
 
 export type PlatformUnits = {
   auth: AuthUnit;

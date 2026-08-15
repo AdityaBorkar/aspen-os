@@ -1,8 +1,9 @@
+import { AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { normalize } from "#/workflows/activity/shared";
+import type { AuditRow } from "#/workflows/activity/shared";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { integer, number, object, optional, pipe, string } from "valibot";
-
-import { AUDIT_ENTITY_TYPE } from "../../utils/constants";
-import { normalize, type AuditRow } from "./shared";
 
 export const getFileActivity = Workflow.name("dms.activity.file")
   .input(

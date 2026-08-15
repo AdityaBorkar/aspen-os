@@ -1,10 +1,10 @@
+import { serviceProvider } from "#/db-schemas";
+import { SERVICE_PROVIDER_EVENTS } from "#/pubsub";
+import { CreateServiceProviderSchema } from "#/types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { serviceProvider } from "../../db-schemas";
-import { SERVICE_PROVIDER_EVENTS } from "../../pubsub";
-import { CreateServiceProviderSchema } from "../../types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../../utils/constants";
 
 const CreateInputSchema = object({
   input: CreateServiceProviderSchema,

@@ -1,9 +1,9 @@
+import { separationTask } from "#/db-schemas";
+import { CreateSeparationTaskSchema } from "#/types";
+import { fetchSeparationById } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { separationTask } from "../../../db-schemas";
-import { CreateSeparationTaskSchema } from "../../../types";
-import { fetchSeparationById } from "../../utils";
 
 const InputSchema = object({
   input: CreateSeparationTaskSchema,

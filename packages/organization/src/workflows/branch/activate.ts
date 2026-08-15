@@ -1,9 +1,9 @@
+import { branch } from "#/db-schemas";
+import { BRANCH_EVENTS } from "#/pubsub";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object, string } from "valibot";
-
-import { branch } from "../../db-schemas";
-import { BRANCH_EVENTS } from "../../pubsub";
 
 export const activateBranch = Workflow.name("branch.activate")
   .input(object({ id: string() }))

@@ -1,8 +1,8 @@
+import { bankAccount } from "#/db-schemas";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object, string } from "valibot";
-
-import { bankAccount } from "../../db-schemas";
 
 export const activateBankAccount = Workflow.name("bank-account.activate")
   .input(object({ id: string() }))

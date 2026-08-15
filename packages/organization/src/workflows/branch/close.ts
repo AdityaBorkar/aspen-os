@@ -1,9 +1,9 @@
+import { branch } from "#/db-schemas";
+import { BRANCH_EVENTS } from "#/pubsub";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { date, object, string } from "valibot";
-
-import { branch } from "../../db-schemas";
-import { BRANCH_EVENTS } from "../../pubsub";
 
 export const closeBranch = Workflow.name("branch.close")
   .input(object({ date: date(), id: string() }))

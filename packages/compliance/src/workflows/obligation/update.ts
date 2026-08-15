@@ -1,11 +1,12 @@
+import { complianceObligation } from "#/db-schemas";
+import { COMPLIANCE_EVENTS } from "#/pubsub";
+import { UpdateObligationSchema } from "#/types";
+import type { UpdateObligationInput } from "#/types";
+import { fetchObligationStep } from "#/workflow-steps/fetch-obligation";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { parse } from "valibot";
-
-import { complianceObligation } from "../../db-schemas";
-import { COMPLIANCE_EVENTS } from "../../pubsub";
-import { type UpdateObligationInput, UpdateObligationSchema } from "../../types";
-import { fetchObligationStep } from "../../workflow-steps/fetch-obligation";
 
 const updateObligation = Workflow.name("obligation.update").handler(
   async (input: { id: string; patch: UpdateObligationInput }, ctx) => {

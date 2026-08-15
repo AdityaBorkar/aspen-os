@@ -1,9 +1,9 @@
+import { employee } from "#/db-schemas";
+import { CreateEmployeeSchema } from "#/types";
+import { ensureEmployeeIdUnique } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { employee } from "../../db-schemas";
-import { CreateEmployeeSchema } from "../../types";
-import { ensureEmployeeIdUnique } from "../utils";
 
 const InputSchema = object({
   input: CreateEmployeeSchema,

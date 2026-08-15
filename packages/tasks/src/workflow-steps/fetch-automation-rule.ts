@@ -1,9 +1,9 @@
+import { automationRule } from "#/db-schemas/automation-rule";
+import { IdSchema } from "#/types";
+
 import { WorkflowStep } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { automationRule } from "../db-schemas/automation-rule";
-import { IdSchema } from "../types";
 
 export const fetchAutomationRuleStep = WorkflowStep.name("fetch-automation-rule")
   .input(object({ id: IdSchema }))

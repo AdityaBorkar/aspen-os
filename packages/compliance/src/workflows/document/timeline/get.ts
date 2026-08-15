@@ -1,9 +1,9 @@
+import { complianceDocument } from "#/db-schemas";
+import { daysUntil } from "#/services/status-derivation";
+import type { TimelineEntry } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, asc, inArray, isNotNull, lte, or } from "drizzle-orm";
-
-import { complianceDocument } from "../../../db-schemas";
-import { daysUntil } from "../../../services/status-derivation";
-import type { TimelineEntry } from "../../../types";
 
 const getDocumentTimeline = Workflow.name("document.timeline").handler(
   async (input: { days: number }, ctx): Promise<TimelineEntry[]> => {

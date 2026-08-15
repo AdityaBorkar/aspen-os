@@ -1,10 +1,6 @@
-import { Workflow } from "@aspen-os/platform/server";
-import { eq } from "drizzle-orm";
-import { object, parse, string } from "valibot";
-
-import { dmsFolder } from "../../db-schemas";
-import { FOLDER_EVENTS } from "../../pubsub";
-import { getDmsConfig } from "../../runtime";
+import { dmsFolder } from "#/db-schemas";
+import { FOLDER_EVENTS } from "#/pubsub";
+import { getDmsConfig } from "#/runtime";
 import {
   cascadePaths,
   checkNameUniqueness,
@@ -12,9 +8,13 @@ import {
   getFolderPath,
   getSubtreeMaxDepth,
   wouldCreateCycle,
-} from "../../services/path-service";
-import { MoveFolderSchema } from "../../types";
-import { fetchFolderStep } from "../../workflow-steps/fetch-folder";
+} from "#/services/path-service";
+import { MoveFolderSchema } from "#/types";
+import { fetchFolderStep } from "#/workflow-steps/fetch-folder";
+
+import { Workflow } from "@aspen-os/platform/server";
+import { eq } from "drizzle-orm";
+import { object, parse, string } from "valibot";
 
 const MoveInputSchema = object({ id: string(), input: MoveFolderSchema });
 

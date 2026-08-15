@@ -1,5 +1,5 @@
-import type { Unit } from "../types";
-import type { LogLevel } from "./types";
+import type { LogLevel } from "#/client/logs/types";
+import type { Unit } from "#/client/types";
 
 export interface LogsConfig {
   defaultLevel?: LogLevel;

@@ -1,5 +1,3 @@
-import { pgEnum } from "drizzle-orm/pg-core";
-
 import {
   AUDIT_ACTION,
   AUDIT_ENTITY_TYPE,
@@ -8,7 +6,9 @@ import {
   REMINDER_CHANNEL,
   RENEWAL_FREQUENCY,
   VERIFICATION_STATUS,
-} from "../utils/constants";
+} from "#/utils/constants";
+
+import { pgEnum } from "drizzle-orm/pg-core";
 
 export const complianceCategoryEnum = pgEnum("compliance_category", [
   COMPLIANCE_CATEGORY.TAX,

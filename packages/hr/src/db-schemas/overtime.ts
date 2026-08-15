@@ -1,3 +1,5 @@
+import { overtimeStatusEnum } from "#/db-schemas/enums";
+
 import { uuidv7 } from "@aspen-os/platform/server";
 import {
   boolean,
@@ -9,8 +11,6 @@ import {
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
-
-import { overtimeStatusEnum } from "./enums";
 
 export const overtimeType = pgTable(
   "overtime_type",

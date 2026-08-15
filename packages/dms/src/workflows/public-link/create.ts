@@ -1,9 +1,9 @@
+import { dmsPublicLink } from "#/db-schemas";
+import { PUBLIC_LINK_EVENTS } from "#/pubsub";
+import { CreatePublicLinkSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { dmsPublicLink } from "../../db-schemas";
-import { PUBLIC_LINK_EVENTS } from "../../pubsub";
-import { CreatePublicLinkSchema } from "../../types";
 
 const CreateInputSchema = object({ input: CreatePublicLinkSchema });
 

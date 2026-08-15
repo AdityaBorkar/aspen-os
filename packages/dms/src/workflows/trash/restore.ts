@@ -1,8 +1,8 @@
+import { restoreFile } from "#/workflows/file/restore";
+import { restoreFolder } from "#/workflows/folder/restore";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, optional, picklist, string } from "valibot";
-
-import { restoreFile } from "../file/restore";
-import { restoreFolder } from "../folder/restore";
 
 const RestoreSchema = object({
   entityType: picklist(["file", "folder"]),

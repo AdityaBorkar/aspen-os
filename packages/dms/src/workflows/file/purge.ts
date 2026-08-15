@@ -1,11 +1,11 @@
+import { FILE_EVENTS } from "#/pubsub";
+import { deleteFilePermanently, isFileHeld } from "#/services/purge-service";
+import { FileIdSchema } from "#/types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { fetchFileStep } from "#/workflow-steps/fetch-file";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { FILE_EVENTS } from "../../pubsub";
-import { deleteFilePermanently, isFileHeld } from "../../services/purge-service";
-import { FileIdSchema } from "../../types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../../utils/constants";
-import { fetchFileStep } from "../../workflow-steps/fetch-file";
 
 const PurgeInputSchema = object({ id: FileIdSchema });
 

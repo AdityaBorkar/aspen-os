@@ -1,7 +1,8 @@
-import { Workflow } from "@aspen-os/platform/server";
+import type { AuditEntityType } from "#/utils/constants";
+import { normalize } from "#/workflows/utils";
+import type { AuditLogRow } from "#/workflows/utils";
 
-import type { AuditEntityType } from "../../../utils/constants";
-import { type AuditLogRow, normalize } from "../../utils";
+import { Workflow } from "@aspen-os/platform/server";
 
 const getAuditTrail = Workflow.name("audit.trail").handler(
   async (input: { entityType: AuditEntityType; entityId: string }, ctx) => {

@@ -1,3 +1,5 @@
+import { uuidv7 } from "#/server/utils/uuidv7";
+
 import { sql } from "drizzle-orm";
 import {
   bigint,
@@ -9,8 +11,6 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
-
-import { uuidv7 } from "../utils/uuidv7";
 
 export const fileMetadata = pgTable(
   "file_metadata",

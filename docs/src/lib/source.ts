@@ -1,7 +1,9 @@
 import * as TablerIcons from "@tabler/icons-react";
 import * as serverCollections from "collections/server";
-import { type LoaderPlugin, loader } from "fumadocs-core/source";
-import { createElement, type ReactElement } from "react";
+import { loader } from "fumadocs-core/source";
+import type { LoaderPlugin } from "fumadocs-core/source";
+import { createElement } from "react";
+import type { ReactElement } from "react";
 
 import { DOCS_ROUTE } from "./constants";
 

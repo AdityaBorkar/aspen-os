@@ -1,7 +1,7 @@
+import { dmsEntityTypeEnum } from "#/db-schemas/enums";
+
 import { uuidv7 } from "@aspen-os/platform/server";
 import { index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
-
-import { dmsEntityTypeEnum } from "./enums";
 
 export const dmsEntityLabel = pgTable(
   "dms_entity_label",

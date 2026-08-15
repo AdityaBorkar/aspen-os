@@ -1,8 +1,8 @@
+import { comment } from "#/db-schemas/comment";
+import { CreateCommentSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { comment } from "../../db-schemas/comment";
-import { CreateCommentSchema } from "../../types";
 
 const CreateInputSchema = object({
   input: CreateCommentSchema,

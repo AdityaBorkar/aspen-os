@@ -1,8 +1,8 @@
+import { employee } from "#/db-schemas";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { minLength, object, pipe, string } from "valibot";
-
-import { employee } from "../../../db-schemas";
 
 const InputSchema = object({
   dateOfLeaving: pipe(string(), minLength(1, "dateOfLeaving is required")),

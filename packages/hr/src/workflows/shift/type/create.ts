@@ -1,8 +1,8 @@
+import { shiftType } from "#/db-schemas";
+import { CreateShiftTypeSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { shiftType } from "../../../db-schemas";
-import { CreateShiftTypeSchema } from "../../../types";
 
 const InputSchema = object({
   input: CreateShiftTypeSchema,

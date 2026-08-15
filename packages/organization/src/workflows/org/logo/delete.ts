@@ -1,9 +1,9 @@
+import { organization } from "#/db-schemas";
+import { fetchOrganizationStep } from "#/workflow-steps/fetch-organization";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { organization } from "../../../db-schemas";
-import { fetchOrganizationStep } from "../../../workflow-steps/fetch-organization";
 
 export const deleteLogo = Workflow.name("org.delete-logo")
   .input(object({}))

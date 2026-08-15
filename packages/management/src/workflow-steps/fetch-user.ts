@@ -1,10 +1,10 @@
+import { serviceProviderUser } from "#/db-schemas";
+import { IdSchema } from "#/types";
+
 import { WorkflowStep } from "@aspen-os/platform/server";
 import { user } from "@aspen-os/platform/server/db-schemas";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { serviceProviderUser } from "../db-schemas";
-import { IdSchema } from "../types";
 
 export const fetchUserStep = WorkflowStep.name("fetch-user")
   .input(object({ id: IdSchema }))

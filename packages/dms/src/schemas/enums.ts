@@ -1,5 +1,3 @@
-import { picklist } from "valibot";
-
 import {
   COMPRESSION_MODE,
   ENTITY_TYPE,
@@ -9,7 +7,9 @@ import {
   PIN_ITEM_TYPE,
   PUBLIC_LINK_PERMISSION,
   SHARE_PERMISSION,
-} from "../utils/constants";
+} from "#/utils/constants";
+
+import { picklist } from "valibot";
 
 export const FileStatusSchema = picklist(Object.values(FILE_STATUS));
 

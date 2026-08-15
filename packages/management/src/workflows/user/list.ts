@@ -1,10 +1,11 @@
+import { serviceProviderUser } from "#/db-schemas";
+import { PlatformUserFiltersSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { user } from "@aspen-os/platform/server/db-schemas";
-import { and, eq, type SQL } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 import { object, optional } from "valibot";
-
-import { serviceProviderUser } from "../../db-schemas";
-import { PlatformUserFiltersSchema } from "../../types";
 
 export const listUsers = Workflow.name("user.list")
   .input(

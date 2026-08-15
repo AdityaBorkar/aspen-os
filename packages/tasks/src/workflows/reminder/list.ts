@@ -1,9 +1,9 @@
+import { reminder } from "#/db-schemas/reminder";
+import { ReminderFiltersSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object, optional } from "valibot";
-
-import { reminder } from "../../db-schemas/reminder";
-import { ReminderFiltersSchema } from "../../types";
 
 export const listReminders = Workflow.name("reminder.list")
   .input(object({ filters: optional(ReminderFiltersSchema) }))

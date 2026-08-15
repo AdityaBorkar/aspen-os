@@ -1,9 +1,9 @@
+import { leaveApplication } from "#/db-schemas";
+import { CreateLeaveApplicationSchema } from "#/types";
+import { checkLeaveBalance, checkLeaveBlockList, fetchLeaveTypeById } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { leaveApplication } from "../../../db-schemas";
-import { CreateLeaveApplicationSchema } from "../../../types";
-import { checkLeaveBalance, checkLeaveBlockList, fetchLeaveTypeById } from "../../utils";
 
 const InputSchema = object({
   input: CreateLeaveApplicationSchema,

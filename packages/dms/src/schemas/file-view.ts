@@ -1,8 +1,9 @@
+import { NameSchema } from "#/schemas/utils";
+
 import {
   array,
   boolean,
   check,
-  type InferOutput,
   maxLength,
   nullable,
   number,
@@ -12,8 +13,7 @@ import {
   string,
   unknown,
 } from "valibot";
-
-import { NameSchema } from "./utils";
+import type { InferOutput } from "valibot";
 
 const FieldSchema = pipe(
   string(),

@@ -1,9 +1,9 @@
+import { attendance } from "#/db-schemas";
+import { AttendanceFiltersSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, sql } from "drizzle-orm";
 import { object, optional, parse } from "valibot";
-
-import { attendance } from "../../db-schemas";
-import { AttendanceFiltersSchema } from "../../types";
 
 const InputSchema = object({
   filters: optional(AttendanceFiltersSchema),

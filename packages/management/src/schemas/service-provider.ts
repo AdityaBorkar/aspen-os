@@ -1,6 +1,7 @@
-import { type InferOutput, nullable, object, optional, string } from "valibot";
+import { EmailSchema, NameSchema, SlugSchema, WebsiteSchema } from "#/schemas/utils";
 
-import { EmailSchema, NameSchema, SlugSchema, WebsiteSchema } from "./utils";
+import { nullable, object, optional, string } from "valibot";
+import type { InferOutput } from "valibot";
 
 export const CreateServiceProviderSchema = object({
   address: optional(nullable(string())),

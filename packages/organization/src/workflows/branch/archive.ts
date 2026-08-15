@@ -1,8 +1,8 @@
+import { branch } from "#/db-schemas";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object, string } from "valibot";
-
-import { branch } from "../../db-schemas";
 
 export const archiveBranch = Workflow.name("branch.archive")
   .input(object({ id: string() }))

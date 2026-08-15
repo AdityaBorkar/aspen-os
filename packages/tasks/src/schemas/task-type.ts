@@ -1,15 +1,7 @@
-import {
-  boolean,
-  type InferOutput,
-  minLength,
-  nullable,
-  object,
-  optional,
-  pipe,
-  string,
-} from "valibot";
+import { HexColorSchema, NameSchema } from "#/schemas/utils";
 
-import { HexColorSchema, NameSchema } from "./utils";
+import { boolean, minLength, nullable, object, optional, pipe, string } from "valibot";
+import type { InferOutput } from "valibot";
 
 export const CreateTaskTypeSchema = object({
   color: optional(nullable(HexColorSchema)),

@@ -1,9 +1,9 @@
+import { PLATFORM_USER_EVENTS } from "#/pubsub";
+import { IdSchema, RoleSchema } from "#/types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { PLATFORM_USER_EVENTS } from "../../../pubsub";
-import { IdSchema, RoleSchema } from "../../../types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../../../utils/constants";
 
 export const assignRole = Workflow.name("user.assign-role")
   .input(

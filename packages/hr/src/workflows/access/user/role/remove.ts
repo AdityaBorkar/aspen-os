@@ -1,8 +1,8 @@
+import { hrUserRole } from "#/db-schemas";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { minLength, object, optional, pipe, string } from "valibot";
-
-import { hrUserRole } from "../../../../db-schemas";
 
 const InputSchema = object({
   branchId: optional(pipe(string(), minLength(1, "branchId is required"))),

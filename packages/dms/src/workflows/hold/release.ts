@@ -1,11 +1,11 @@
+import { dmsLegalHold } from "#/db-schemas";
+import { FILE_EVENTS } from "#/pubsub";
+import { IdSchema } from "#/types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { dmsLegalHold } from "../../db-schemas";
-import { FILE_EVENTS } from "../../pubsub";
-import { IdSchema } from "../../types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../../utils/constants";
 
 export const releaseLegalHold = Workflow.name("dms.hold.release")
   .input(object({ holdId: IdSchema, releasedBy: IdSchema }))

@@ -1,15 +1,7 @@
-import {
-  boolean,
-  type InferOutput,
-  minLength,
-  nullable,
-  object,
-  optional,
-  pipe,
-  string,
-} from "valibot";
+import { OvertimeStatusSchema } from "#/schemas/enums";
 
-import { OvertimeStatusSchema } from "./enums";
+import { boolean, minLength, nullable, object, optional, pipe, string } from "valibot";
+import type { InferOutput } from "valibot";
 
 // Overtime Type
 

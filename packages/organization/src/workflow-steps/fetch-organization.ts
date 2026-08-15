@@ -1,7 +1,7 @@
+import { organization } from "#/db-schemas";
+
 import { WorkflowStep } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { organization } from "../db-schemas";
 
 export const fetchOrganizationStep = WorkflowStep.name("fetch-organization")
   .input(object({}))

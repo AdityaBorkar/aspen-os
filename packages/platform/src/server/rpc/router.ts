@@ -1,5 +1,5 @@
-import { echo } from "./procedures/echo";
-import { healthCheck } from "./procedures/health-check";
+import { echo } from "#/server/rpc/procedures/echo";
+import { healthCheck } from "#/server/rpc/procedures/health-check";
 
 export type RpcRouter = typeof router;
 

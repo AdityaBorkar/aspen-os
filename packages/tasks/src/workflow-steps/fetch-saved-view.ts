@@ -1,9 +1,9 @@
+import { savedView } from "#/db-schemas/saved-view";
+import { IdSchema } from "#/types";
+
 import { WorkflowStep } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { savedView } from "../db-schemas/saved-view";
-import { IdSchema } from "../types";
 
 export const fetchSavedViewStep = WorkflowStep.name("fetch-saved-view")
   .input(object({ id: IdSchema }))

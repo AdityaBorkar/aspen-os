@@ -1,11 +1,10 @@
 #!/usr/bin/env bun
 
+import type { Module, PlatformInstance } from "#/server";
 import { resolve } from "node:path";
 
 import { Command } from "commander";
 import { startStudioPostgresServer } from "drizzle-kit/api";
-
-import type { Module, PlatformInstance } from "../server/index";
 
 const program = new Command();
 

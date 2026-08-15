@@ -1,3 +1,5 @@
+import { uuidv7 } from "#/server/utils/uuidv7";
+
 import { sql } from "drizzle-orm";
 import {
   bigserial,
@@ -9,8 +11,6 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
-
-import { uuidv7 } from "../utils/uuidv7";
 
 export const auditLog = pgTable(
   "audit_log",

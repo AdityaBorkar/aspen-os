@@ -1,9 +1,9 @@
+import { employeeTransfer } from "#/db-schemas";
+import { TransferFiltersSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object, optional, parse } from "valibot";
-
-import { employeeTransfer } from "../../../db-schemas";
-import { TransferFiltersSchema } from "../../../types";
 
 const InputSchema = object({
   filters: optional(TransferFiltersSchema),

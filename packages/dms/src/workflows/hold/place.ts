@@ -1,12 +1,12 @@
+import { dmsLegalHold } from "#/db-schemas";
+import { FILE_EVENTS } from "#/pubsub";
+import { IdSchema } from "#/types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { fetchFileStep } from "#/workflow-steps/fetch-file";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, isNull } from "drizzle-orm";
 import { object, string } from "valibot";
-
-import { dmsLegalHold } from "../../db-schemas";
-import { FILE_EVENTS } from "../../pubsub";
-import { IdSchema } from "../../types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../../utils/constants";
-import { fetchFileStep } from "../../workflow-steps/fetch-file";
 
 const PlaceHoldInputSchema = object({
   fileId: IdSchema,

@@ -1,8 +1,8 @@
+import { designation } from "#/db-schemas";
+import { CreateDesignationSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { designation } from "../../../db-schemas";
-import { CreateDesignationSchema } from "../../../types";
 
 const InputSchema = object({
   input: CreateDesignationSchema,

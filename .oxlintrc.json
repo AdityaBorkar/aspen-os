@@ -11,11 +11,15 @@
     "es2022": true,
     "node": true
   },
+  // "options": {
+  //   "typeAware": true,
+  //   "typeCheck": true
+  // },
   "globals": {
     "Bun": "readonly"
   },
-  "ignorePatterns": ["src/components/ui/**"],
-  "plugins": ["react", "jsx-a11y"],
+  "ignorePatterns": [],
+  "plugins": ["jsdoc", "jsx-a11y", "node", "promise", "react", "react-perf", "vitest"],
   "rules": {
     "eslint/func-style": "off",
     "eslint/max-statements": "off",

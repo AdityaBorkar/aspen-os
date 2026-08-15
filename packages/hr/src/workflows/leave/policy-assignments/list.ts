@@ -1,9 +1,9 @@
+import { leavePolicyAssignment } from "#/db-schemas";
+import { LeavePolicyAssignmentFiltersSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object, optional, parse } from "valibot";
-
-import { leavePolicyAssignment } from "../../../db-schemas";
-import { LeavePolicyAssignmentFiltersSchema } from "../../../types";
 
 const InputSchema = object({
   filters: optional(LeavePolicyAssignmentFiltersSchema),

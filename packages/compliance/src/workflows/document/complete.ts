@@ -1,9 +1,9 @@
+import { complianceDocument } from "#/db-schemas";
+import { COMPLIANCE_EVENTS } from "#/pubsub";
+import { fetchDocumentStep } from "#/workflow-steps/fetch-document";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-
-import { complianceDocument } from "../../db-schemas";
-import { COMPLIANCE_EVENTS } from "../../pubsub";
-import { fetchDocumentStep } from "../../workflow-steps/fetch-document";
 
 const completeDocument = Workflow.name("document.complete").handler(
   async (

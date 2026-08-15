@@ -1,7 +1,7 @@
+import { PIN_ITEM_TYPE } from "#/utils/constants";
+
 import { uuidv7 } from "@aspen-os/platform/server";
 import { index, integer, pgEnum, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
-
-import { PIN_ITEM_TYPE } from "../utils/constants";
 
 export const dmsPinItemTypeEnum = pgEnum("dms_pin_item_type", [
   PIN_ITEM_TYPE.TRIAGE,

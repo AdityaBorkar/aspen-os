@@ -1,7 +1,7 @@
+import { dmsEntityTypeEnum, dmsPublicLinkPermissionEnum } from "#/db-schemas/enums";
+
 import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
-
-import { dmsEntityTypeEnum, dmsPublicLinkPermissionEnum } from "./enums";
 
 export const dmsPublicLink = pgTable(
   "dms_public_link",

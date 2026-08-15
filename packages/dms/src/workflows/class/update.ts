@@ -1,13 +1,13 @@
+import { dmsClass } from "#/db-schemas";
+import { CLASS_EVENTS } from "#/pubsub";
+import { IdSchema, UpdateClassSchema } from "#/types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { stripUndefined } from "#/utils/strip-undefined";
+import { fetchClassStep } from "#/workflow-steps/fetch-class";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { dmsClass } from "../../db-schemas";
-import { CLASS_EVENTS } from "../../pubsub";
-import { IdSchema, UpdateClassSchema } from "../../types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../../utils/constants";
-import { stripUndefined } from "../../utils/strip-undefined";
-import { fetchClassStep } from "../../workflow-steps/fetch-class";
 
 const UpdateInputSchema = object({
   id: IdSchema,

@@ -1,3 +1,5 @@
+import type { Unit } from "#/client/types";
+
 import { apiKeyClient } from "@better-auth/api-key/client";
 import { passkeyClient } from "@better-auth/passkey/client";
 import {
@@ -10,9 +12,8 @@ import {
   twoFactorClient,
   usernameClient,
 } from "better-auth/client/plugins";
-import { type ReactAuthClient, createAuthClient } from "better-auth/react";
-
-import type { Unit } from "../types";
+import { createAuthClient } from "better-auth/react";
+import type { ReactAuthClient } from "better-auth/react";
 
 export type AuthConfig = Parameters<typeof createAuthClient>[0];
 

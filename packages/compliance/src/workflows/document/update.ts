@@ -1,11 +1,12 @@
+import { complianceDocument } from "#/db-schemas";
+import { COMPLIANCE_EVENTS } from "#/pubsub";
+import { UpdateComplianceDocumentSchema } from "#/types";
+import type { UpdateComplianceDocumentInput } from "#/types";
+import { fetchDocumentStep } from "#/workflow-steps/fetch-document";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { parse } from "valibot";
-
-import { complianceDocument } from "../../db-schemas";
-import { COMPLIANCE_EVENTS } from "../../pubsub";
-import { type UpdateComplianceDocumentInput, UpdateComplianceDocumentSchema } from "../../types";
-import { fetchDocumentStep } from "../../workflow-steps/fetch-document";
 
 const updateDocument = Workflow.name("document.update").handler(
   async (input: { id: string; patch: UpdateComplianceDocumentInput }, ctx) => {

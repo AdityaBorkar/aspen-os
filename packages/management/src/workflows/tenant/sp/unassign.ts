@@ -1,12 +1,12 @@
+import { tenant } from "#/db-schemas";
+import { TENANT_EVENTS } from "#/pubsub";
+import { IdSchema } from "#/types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { fetchTenantStep } from "#/workflow-steps/fetch-tenant";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { tenant } from "../../../db-schemas";
-import { TENANT_EVENTS } from "../../../pubsub";
-import { IdSchema } from "../../../types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../../../utils/constants";
-import { fetchTenantStep } from "../../../workflow-steps/fetch-tenant";
 
 export const unassignServiceProvider = Workflow.name("tenant.unassign-sp")
   .input(object({ tenantId: IdSchema }))

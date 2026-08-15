@@ -1,9 +1,9 @@
+import { shiftRequest } from "#/db-schemas";
+import { ShiftRequestFiltersSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object, optional, parse } from "valibot";
-
-import { shiftRequest } from "../../../db-schemas";
-import { ShiftRequestFiltersSchema } from "../../../types";
 
 const InputSchema = object({
   filters: optional(ShiftRequestFiltersSchema),

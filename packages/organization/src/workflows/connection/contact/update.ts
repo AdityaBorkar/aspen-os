@@ -1,10 +1,10 @@
+import { connectionContact } from "#/db-schemas";
+import { UpdateConnectionContactSchema } from "#/types";
+import { unsetPrimaryContacts } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object, string } from "valibot";
-
-import { connectionContact } from "../../../db-schemas";
-import { UpdateConnectionContactSchema } from "../../../types";
-import { unsetPrimaryContacts } from "../../utils";
 
 const UpdateInputSchema = object({
   id: string(),

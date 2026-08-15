@@ -1,9 +1,9 @@
+import { leavePolicyAssignment } from "#/db-schemas";
+import { CreateLeavePolicyAssignmentSchema } from "#/types";
+import { fetchLeavePeriodById, fetchLeavePolicyById } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { leavePolicyAssignment } from "../../../db-schemas";
-import { CreateLeavePolicyAssignmentSchema } from "../../../types";
-import { fetchLeavePeriodById, fetchLeavePolicyById } from "../../utils";
 
 const InputSchema = object({
   input: CreateLeavePolicyAssignmentSchema,

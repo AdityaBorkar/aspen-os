@@ -2,12 +2,12 @@ export type {
   ComplianceDocumentFilters,
   CreateComplianceDocumentInput,
   UpdateComplianceDocumentInput,
-} from "./document";
+} from "#/schemas/document";
 export {
   ComplianceDocumentFiltersSchema,
   CreateComplianceDocumentSchema,
   UpdateComplianceDocumentSchema,
-} from "./document";
+} from "#/schemas/document";
 export {
   AuditActionSchema,
   AuditEntityTypeSchema,
@@ -16,20 +16,24 @@ export {
   ReminderChannelSchema,
   RenewalFrequencySchema,
   VerificationStatusSchema,
-} from "./enums";
-export type { CreateObligationInput, ObligationFilters, UpdateObligationInput } from "./obligation";
+} from "#/schemas/enums";
+export type {
+  CreateObligationInput,
+  ObligationFilters,
+  UpdateObligationInput,
+} from "#/schemas/obligation";
 export {
   CreateObligationSchema,
   ObligationFiltersSchema,
   UpdateObligationSchema,
-} from "./obligation";
+} from "#/schemas/obligation";
 export type {
   AuditTrailFilters,
   CreateVerificationRuleInput,
   UpdateVerificationRuleInput,
-} from "./verification-rule";
+} from "#/schemas/verification-rule";
 export {
   AuditTrailFiltersSchema,
   CreateVerificationRuleSchema,
   UpdateVerificationRuleSchema,
-} from "./verification-rule";
+} from "#/schemas/verification-rule";

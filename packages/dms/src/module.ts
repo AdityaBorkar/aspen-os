@@ -1,29 +1,29 @@
-import {
-  type AuthUnit,
-  type DatabaseUnit,
-  type Module,
-  type ModuleInfra,
-  type PubSubUnit,
-  type StorageUnit,
-  getContext,
-} from "@aspen-os/platform/server";
-
-import { acl } from "./auth";
-import { control_plane_schemas, tenant_schemas } from "./db-schemas";
-import { events } from "./pubsub";
-import { setDmsConfig, setDmsStorage } from "./runtime";
+import { acl } from "#/auth";
+import { control_plane_schemas, tenant_schemas } from "#/db-schemas";
+import { events } from "#/pubsub";
+import { setDmsConfig, setDmsStorage } from "#/runtime";
 import {
   registerExpiryScanHandler,
   registerExpiryScanner,
   unregisterExpiryScanner,
-} from "./services/expiry-scanner";
+} from "#/services/expiry-scanner";
 import {
   registerPurgeHandler,
   registerPurgeSchedule,
   unregisterPurgeSchedule,
-} from "./services/purge-service";
-import type { DmsModuleConfig } from "./types";
-import * as wf from "./workflows";
+} from "#/services/purge-service";
+import type { DmsModuleConfig } from "#/types";
+import * as wf from "#/workflows";
+
+import { getContext } from "@aspen-os/platform/server";
+import type {
+  AuthUnit,
+  DatabaseUnit,
+  Module,
+  ModuleInfra,
+  PubSubUnit,
+  StorageUnit,
+} from "@aspen-os/platform/server";
 
 const DEFAULT_CONFIG: Required<DmsModuleConfig> = {
   allowedContentTypes: [],

@@ -1,9 +1,9 @@
+import { savedView } from "#/db-schemas/saved-view";
+import { IdSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object, optional } from "valibot";
-
-import { savedView } from "../../../db-schemas/saved-view";
-import { IdSchema } from "../../../types";
 
 export const getDefaultSavedView = Workflow.name("view.get-default")
   .input(object({ ownerId: IdSchema, projectId: optional(IdSchema) }))

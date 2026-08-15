@@ -1,10 +1,10 @@
+import { taskLink } from "#/db-schemas/task-link";
+import { IdSchema } from "#/types";
+import { linkTypeInverse } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { taskLink } from "../../db-schemas/task-link";
-import { IdSchema } from "../../types";
-import { linkTypeInverse } from "../utils";
 
 type LinkTypeValue =
   | "blocks"

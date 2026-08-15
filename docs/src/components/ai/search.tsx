@@ -1,32 +1,17 @@
 "use client";
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type Tool, type UIToolInvocation } from "ai";
+import { DefaultChatTransport } from "ai";
+import type { Tool, UIToolInvocation } from "ai";
 import { Loader2, MessageCircleIcon, RefreshCw, SearchIcon, Send, X } from "lucide-react";
-import {
-  type ChangeEvent,
-  type ComponentProps,
-  type KeyboardEvent,
-  type ReactNode,
-  type SyntheticEvent,
-  useCallback,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import type { ChangeEvent, ComponentProps, KeyboardEvent, ReactNode, SyntheticEvent } from "react";
 import { flushSync } from "react-dom";
 
 import { cn } from "../../lib/cn";
 import { Markdown } from "../markdown";
 import { buttonVariants } from "../ui/button";
-import {
-  type ChatUIMessage,
-  Context,
-  useAISearchContext,
-  useChatContext,
-  useHotKey,
-} from "./search-context";
+import { Context, useAISearchContext, useChatContext, useHotKey } from "./search-context";
+import type { ChatUIMessage } from "./search-context";
 
 export type { ChatUIMessage } from "./search-context";
 

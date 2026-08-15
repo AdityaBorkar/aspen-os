@@ -1,17 +1,8 @@
-import {
-  boolean,
-  type InferOutput,
-  integer,
-  nullable,
-  number,
-  object,
-  optional,
-  pipe,
-  string,
-} from "valibot";
+import { TenantStatusSchema } from "#/schemas/enums";
+import { NameSchema, SlugSchema } from "#/schemas/utils";
 
-import { TenantStatusSchema } from "./enums";
-import { NameSchema, SlugSchema } from "./utils";
+import { boolean, integer, nullable, number, object, optional, pipe, string } from "valibot";
+import type { InferOutput } from "valibot";
 
 export const ProvisionTenantSchema = object({
   databaseHost: optional(nullable(string())),

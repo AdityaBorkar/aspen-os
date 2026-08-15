@@ -1,7 +1,7 @@
-import { Workflow } from "@aspen-os/platform/server";
+import { searchFiles, searchFolders } from "#/services/search-service";
+import { SearchInputSchema } from "#/workflows/search/shared";
 
-import { searchFiles, searchFolders } from "../../services/search-service";
-import { SearchInputSchema } from "./shared";
+import { Workflow } from "@aspen-os/platform/server";
 
 export const searchFilesWorkflow = Workflow.name("dms.search.full-text")
   .input(SearchInputSchema)

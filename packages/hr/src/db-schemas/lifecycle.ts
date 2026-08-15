@@ -1,7 +1,11 @@
+import {
+  exitInterviewStatusEnum,
+  fullAndFinalStatusEnum,
+  lifecycleTaskStatusEnum,
+} from "#/db-schemas/enums";
+
 import { uuidv7 } from "@aspen-os/platform/server";
 import { date, index, jsonb, numeric, pgTable, text, timestamp } from "drizzle-orm/pg-core";
-
-import { exitInterviewStatusEnum, fullAndFinalStatusEnum, lifecycleTaskStatusEnum } from "./enums";
 
 export const onboardingTask = pgTable(
   "onboarding_task",

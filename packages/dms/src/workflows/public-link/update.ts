@@ -1,9 +1,9 @@
+import { dmsPublicLink } from "#/db-schemas";
+import { UpdatePublicLinkSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object, parse, string } from "valibot";
-
-import { dmsPublicLink } from "../../db-schemas";
-import { UpdatePublicLinkSchema } from "../../types";
 
 const UpdateInputSchema = object({
   id: string(),

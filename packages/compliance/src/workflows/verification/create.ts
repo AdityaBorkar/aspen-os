@@ -1,8 +1,8 @@
+import { complianceVerificationRule } from "#/db-schemas";
+import { CreateVerificationRuleSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { complianceVerificationRule } from "../../db-schemas";
-import { CreateVerificationRuleSchema } from "../../types";
 
 const CreateInputSchema = object({ input: CreateVerificationRuleSchema });
 

@@ -1,4 +1,4 @@
-import { getDmsStorage } from "../runtime";
+import { getDmsStorage } from "#/runtime";
 
 export interface DmsFileObject {
   contentType?: string;

@@ -1,10 +1,10 @@
+import { dmsLabel } from "#/db-schemas";
+import { IdSchema, UpdateLabelSchema } from "#/types";
+import { stripUndefined } from "#/utils/strip-undefined";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object, parse } from "valibot";
-
-import { dmsLabel } from "../../db-schemas";
-import { IdSchema, UpdateLabelSchema } from "../../types";
-import { stripUndefined } from "../../utils/strip-undefined";
 
 const UpdateInputSchema = object({ id: IdSchema, input: UpdateLabelSchema });
 

@@ -1,9 +1,9 @@
+import { timeEntry } from "#/db-schemas/time-entry";
+import { IdSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, sql } from "drizzle-orm";
 import { boolean, object, optional } from "valibot";
-
-import { timeEntry } from "../../db-schemas/time-entry";
-import { IdSchema } from "../../types";
 
 export const getTimeEntryTotalDuration = Workflow.name("time-entry.total-duration")
   .input(object({ billableOnly: optional(boolean()), taskId: IdSchema }))

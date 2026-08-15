@@ -1,7 +1,8 @@
-import { type InferOutput, nullable, object, optional, string } from "valibot";
+import { RoleSchema } from "#/schemas/enums";
+import { NameSchema } from "#/schemas/utils";
 
-import { RoleSchema } from "./enums";
-import { NameSchema } from "./utils";
+import { nullable, object, optional, string } from "valibot";
+import type { InferOutput } from "valibot";
 
 export const CreatePlatformUserSchema = object({
   email: string(),

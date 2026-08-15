@@ -1,8 +1,8 @@
+import { dmsEntityLabel, dmsLabel } from "#/db-schemas";
+import { WithIdSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-
-import { dmsEntityLabel, dmsLabel } from "../../db-schemas";
-import { WithIdSchema } from "../../types";
 
 export const deleteLabel = Workflow.name("dms.label.delete")
   .input(WithIdSchema)

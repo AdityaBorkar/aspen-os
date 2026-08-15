@@ -1,9 +1,9 @@
+import { task } from "#/db-schemas/task";
+import { BulkUpdateTaskSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { inArray } from "drizzle-orm";
 import { object } from "valibot";
-
-import { task } from "../../db-schemas/task";
-import { BulkUpdateTaskSchema } from "../../types";
 
 const BulkUpdateInputSchema = object({
   input: BulkUpdateTaskSchema,

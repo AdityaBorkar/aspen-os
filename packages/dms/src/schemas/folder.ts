@@ -1,16 +1,8 @@
-import {
-  type InferOutput,
-  minLength,
-  nullable,
-  number,
-  object,
-  optional,
-  pipe,
-  string,
-} from "valibot";
+import { SearchSortOrderSchema } from "#/schemas/search";
+import { HexColorSchema, FileNameSchema } from "#/schemas/utils";
 
-import { SearchSortOrderSchema } from "./search";
-import { HexColorSchema, FileNameSchema } from "./utils";
+import { minLength, nullable, number, object, optional, pipe, string } from "valibot";
+import type { InferOutput } from "valibot";
 
 export const CreateFolderSchema = object({
   color: optional(nullable(HexColorSchema)),

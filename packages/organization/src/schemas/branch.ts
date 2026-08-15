@@ -1,7 +1,9 @@
+import { BranchTypeSchema } from "#/schemas/enums";
+import { BranchCodeSchema, CountryCodeSchema, NameSchema } from "#/schemas/utils";
+
 import {
   boolean,
   date,
-  type InferOutput,
   minLength,
   nullable,
   number,
@@ -10,9 +12,7 @@ import {
   pipe,
   string,
 } from "valibot";
-
-import { BranchTypeSchema } from "./enums";
-import { BranchCodeSchema, CountryCodeSchema, NameSchema } from "./utils";
+import type { InferOutput } from "valibot";
 
 export const CreateBranchSchema = object({
   addressLine1: pipe(string(), minLength(1, "Address is required")),

@@ -1,8 +1,13 @@
 import {
+  ConnectionNoteTypeSchema,
+  ConnectionStatusSchema,
+  ConnectionTypeSchema,
+} from "#/schemas/enums";
+
+import {
   array,
   boolean,
   date,
-  type InferOutput,
   minLength,
   nullable,
   number,
@@ -11,8 +16,7 @@ import {
   pipe,
   string,
 } from "valibot";
-
-import { ConnectionNoteTypeSchema, ConnectionStatusSchema, ConnectionTypeSchema } from "./enums";
+import type { InferOutput } from "valibot";
 
 export const CreateConnectionSchema = object({
   address: optional(nullable(string())),

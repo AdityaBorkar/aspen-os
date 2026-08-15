@@ -1,16 +1,7 @@
-import {
-  boolean,
-  type InferOutput,
-  maxLength,
-  minLength,
-  nullable,
-  object,
-  optional,
-  pipe,
-  string,
-} from "valibot";
+import { CountryCodeSchema } from "#/schemas/utils";
 
-import { CountryCodeSchema } from "./utils";
+import { boolean, maxLength, minLength, nullable, object, optional, pipe, string } from "valibot";
+import type { InferOutput } from "valibot";
 
 export const CreateAddressSchema = object({
   city: optional(nullable(string())),

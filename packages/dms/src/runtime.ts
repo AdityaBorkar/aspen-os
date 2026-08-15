@@ -1,6 +1,6 @@
-import type { StorageUnit } from "@aspen-os/platform/server";
+import type { DmsModuleConfig } from "#/types";
 
-import type { DmsModuleConfig } from "./types";
+import type { StorageUnit } from "@aspen-os/platform/server";
 
 export type DmsRuntimeConfig = Required<DmsModuleConfig>;
 

@@ -1,7 +1,8 @@
-import { date, type InferOutput, nullable, object, optional, string } from "valibot";
+import { OrganizationStatusSchema } from "#/schemas/enums";
+import { AccentColorSchema, NameSchema, SlugSchema } from "#/schemas/utils";
 
-import { OrganizationStatusSchema } from "./enums";
-import { AccentColorSchema, NameSchema, SlugSchema } from "./utils";
+import { date, nullable, object, optional, string } from "valibot";
+import type { InferOutput } from "valibot";
 
 export const CreateOrganizationSchema = object({
   accentColor: AccentColorSchema,

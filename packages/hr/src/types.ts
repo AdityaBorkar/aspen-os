@@ -111,7 +111,7 @@ export type {
   UpdateShiftTypeInput,
   UpdateSkillMapInput,
   UpdateTransferInput,
-} from "./schemas";
+} from "#/schemas";
 export {
   AccessLevelSchema,
   AddGroupMemberSchema,
@@ -227,7 +227,7 @@ export {
   UpdateShiftTypeSchema,
   UpdateSkillMapSchema,
   UpdateTransferSchema,
-} from "./schemas";
+} from "#/schemas";
 
 export interface AttendanceSummary {
   absent: number;

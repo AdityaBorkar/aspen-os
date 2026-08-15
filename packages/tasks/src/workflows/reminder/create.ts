@@ -1,8 +1,8 @@
+import { reminder } from "#/db-schemas/reminder";
+import { CreateReminderSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { reminder } from "../../db-schemas/reminder";
-import { CreateReminderSchema } from "../../types";
 
 const CreateInputSchema = object({
   input: CreateReminderSchema,

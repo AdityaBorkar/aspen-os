@@ -1,8 +1,8 @@
+import { complianceDocument } from "#/db-schemas";
+import { fetchDocumentStep } from "#/workflow-steps/fetch-document";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-
-import { complianceDocument } from "../../db-schemas";
-import { fetchDocumentStep } from "../../workflow-steps/fetch-document";
 
 const assignDocumentTo = Workflow.name("document.assign-to").handler(
   async (input: { id: string; userId: string }, ctx) => {

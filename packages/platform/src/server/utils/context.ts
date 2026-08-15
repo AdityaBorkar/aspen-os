@@ -1,10 +1,9 @@
+import type { AuditUnit } from "#/server/audit";
+import type { AuthUnit } from "#/server/auth";
+import type { PubSubUnit } from "#/server/pubsub";
 import { AsyncLocalStorage } from "node:async_hooks";
 
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-
-import type { AuditUnit } from "../audit";
-import type { AuthUnit } from "../auth";
-import type { PubSubUnit } from "../pubsub";
 
 export const context = new AsyncLocalStorage<{
   actorId?: string;

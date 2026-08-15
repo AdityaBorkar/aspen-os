@@ -1,8 +1,8 @@
+import { hrUserRole } from "#/db-schemas";
+import { AssignRoleSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { hrUserRole } from "../../../../db-schemas";
-import { AssignRoleSchema } from "../../../../types";
 
 const InputSchema = object({
   input: AssignRoleSchema,

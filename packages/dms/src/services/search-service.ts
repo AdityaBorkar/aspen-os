@@ -1,7 +1,5 @@
-import { and, asc, desc, eq, gte, ilike, lte, type SQL, sql } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-
-import { dmsClass, dmsFile, dmsFolder, dmsLabel } from "../db-schemas";
+import { dmsClass, dmsFile, dmsFolder, dmsLabel } from "#/db-schemas";
+import { buildSortOrder } from "#/services/condition-service";
 import type {
   DmsFile,
   DmsFolder,
@@ -9,8 +7,11 @@ import type {
   FileViewSort,
   QuickSearchInput,
   SearchOptions,
-} from "../types";
-import { buildSortOrder } from "./condition-service";
+} from "#/types";
+
+import { and, asc, desc, eq, gte, ilike, lte, sql } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 type DB = NodePgDatabase<Record<string, never>>;
 

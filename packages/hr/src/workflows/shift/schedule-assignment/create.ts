@@ -1,9 +1,9 @@
+import { shiftScheduleAssignment } from "#/db-schemas";
+import { CreateShiftScheduleAssignmentSchema } from "#/types";
+import { fetchShiftScheduleById } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { shiftScheduleAssignment } from "../../../db-schemas";
-import { CreateShiftScheduleAssignmentSchema } from "../../../types";
-import { fetchShiftScheduleById } from "../../utils";
 
 const InputSchema = object({
   input: CreateShiftScheduleAssignmentSchema,

@@ -1,9 +1,9 @@
+import { leaveApplication } from "#/db-schemas";
+import { LeaveApplicationFiltersSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object, optional, parse } from "valibot";
-
-import { leaveApplication } from "../../../db-schemas";
-import { LeaveApplicationFiltersSchema } from "../../../types";
 
 const InputSchema = object({
   filters: optional(LeaveApplicationFiltersSchema),

@@ -1,5 +1,3 @@
-import { pgEnum } from "drizzle-orm/pg-core";
-
 import {
   AUTOMATION_TRIGGER,
   PROJECT_MEMBER_ROLE,
@@ -9,7 +7,9 @@ import {
   STATUS_CATEGORY,
   TASK_LINK_TYPE,
   TASK_PRIORITY,
-} from "../utils/constants";
+} from "#/utils/constants";
+
+import { pgEnum } from "drizzle-orm/pg-core";
 
 export const taskPriorityEnum = pgEnum("task_priority", [
   TASK_PRIORITY.URGENT,

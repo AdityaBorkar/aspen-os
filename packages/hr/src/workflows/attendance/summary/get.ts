@@ -1,9 +1,9 @@
+import { attendance } from "#/db-schemas";
+import type { AttendanceSummary } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, sql } from "drizzle-orm";
 import { minLength, object, pipe, string } from "valibot";
-
-import { attendance } from "../../../db-schemas";
-import type { AttendanceSummary } from "../../../types";
 
 const InputSchema = object({
   employeeId: pipe(string(), minLength(1, "employeeId is required")),

@@ -1,8 +1,8 @@
+import { dmsShare } from "#/db-schemas";
+import { WithIdSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-
-import { dmsShare } from "../../db-schemas";
-import { WithIdSchema } from "../../types";
 
 export const getShareById = Workflow.name("dms.share.get-by-id")
   .input(WithIdSchema)

@@ -1,10 +1,10 @@
+import { savedView } from "#/db-schemas/saved-view";
+import { CreateSavedViewSchema } from "#/types";
+import type { SavedViewType } from "#/utils/constants";
+import { unsetDefaultSavedView } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { savedView } from "../../db-schemas/saved-view";
-import { CreateSavedViewSchema } from "../../types";
-import type { SavedViewType } from "../../utils/constants";
-import { unsetDefaultSavedView } from "../utils";
 
 const CreateInputSchema = object({
   input: CreateSavedViewSchema,

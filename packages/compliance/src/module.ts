@@ -1,26 +1,26 @@
-import {
-  getContext,
-  type DatabaseUnit,
-  type KvStoreUnit,
-  type Module,
-  type ModuleInfra,
-  type PubSubUnit,
-} from "@aspen-os/platform/server";
-
-import { acl } from "./auth";
-import { control_plane_schemas, tenant_schemas } from "./db-schemas";
-import { events } from "./pubsub";
-import { registerEventBridgeSubscriptions, unregisterEventBridge } from "./services/event-bridge";
+import { acl } from "#/auth";
+import { control_plane_schemas, tenant_schemas } from "#/db-schemas";
+import { events } from "#/pubsub";
+import { registerEventBridgeSubscriptions, unregisterEventBridge } from "#/services/event-bridge";
 import {
   registerObligationGenerator,
   unregisterObligationGenerator,
-} from "./services/obligation-generator";
+} from "#/services/obligation-generator";
 import {
   registerReminderHandlers,
   registerReminderSchedules,
   unregisterReminderEngine,
-} from "./services/reminder-engine";
-import { audit, dashboard, documents, obligations, verification } from "./workflows";
+} from "#/services/reminder-engine";
+import { audit, dashboard, documents, obligations, verification } from "#/workflows";
+
+import { getContext } from "@aspen-os/platform/server";
+import type {
+  DatabaseUnit,
+  KvStoreUnit,
+  Module,
+  ModuleInfra,
+  PubSubUnit,
+} from "@aspen-os/platform/server";
 
 export type ComplianceModuleConfig = {
   country: "INDIA";

@@ -1,10 +1,10 @@
+import { employeeGroupMember } from "#/db-schemas";
+import { AddGroupMemberSchema } from "#/types";
+import { fetchEmployeeById, fetchEmployeeGroupById } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object, parse } from "valibot";
-
-import { employeeGroupMember } from "../../../db-schemas";
-import { AddGroupMemberSchema } from "../../../types";
-import { fetchEmployeeById, fetchEmployeeGroupById } from "../../utils";
 
 const InputSchema = object({
   input: AddGroupMemberSchema,

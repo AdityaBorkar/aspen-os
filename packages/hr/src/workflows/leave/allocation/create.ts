@@ -1,9 +1,9 @@
+import { leaveAllocation } from "#/db-schemas";
+import { CreateLeaveAllocationSchema } from "#/types";
+import { fetchLeavePeriodById, fetchLeaveTypeById } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { leaveAllocation } from "../../../db-schemas";
-import { CreateLeaveAllocationSchema } from "../../../types";
-import { fetchLeavePeriodById, fetchLeaveTypeById } from "../../utils";
 
 const InputSchema = object({
   input: CreateLeaveAllocationSchema,

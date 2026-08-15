@@ -1,8 +1,8 @@
+import { dmsLabel } from "#/db-schemas";
+import { CreateLabelSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { dmsLabel } from "../../db-schemas";
-import { CreateLabelSchema } from "../../types";
 
 const CreateInputSchema = object({ input: CreateLabelSchema });
 

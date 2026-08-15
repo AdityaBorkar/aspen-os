@@ -1,10 +1,10 @@
+import { taskAssignee } from "#/db-schemas/task-assignee";
+import { AssignTaskSchema } from "#/types";
+import { fetchTaskStep } from "#/workflow-steps/fetch-task";
+import { addActivity, ensureWatcher, unsetLeadAssignee } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { taskAssignee } from "../../db-schemas/task-assignee";
-import { AssignTaskSchema } from "../../types";
-import { fetchTaskStep } from "../../workflow-steps/fetch-task";
-import { addActivity, ensureWatcher, unsetLeadAssignee } from "../utils";
 
 const AssignInputSchema = object({
   input: AssignTaskSchema,

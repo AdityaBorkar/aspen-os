@@ -1,6 +1,8 @@
+import { StatusCategorySchema } from "#/schemas/enums";
+import { HexColorSchema, NameSchema } from "#/schemas/utils";
+
 import {
   boolean,
-  type InferOutput,
   integer,
   minLength,
   nullable,
@@ -10,9 +12,7 @@ import {
   pipe,
   string,
 } from "valibot";
-
-import { StatusCategorySchema } from "./enums";
-import { HexColorSchema, NameSchema } from "./utils";
+import type { InferOutput } from "valibot";
 
 export const CreateStatusSchema = object({
   category: StatusCategorySchema,

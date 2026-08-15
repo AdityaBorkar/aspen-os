@@ -1,9 +1,9 @@
+import { shiftAssignment } from "#/db-schemas";
+import { ShiftAssignmentFiltersSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, sql } from "drizzle-orm";
 import { object, optional, parse } from "valibot";
-
-import { shiftAssignment } from "../../../db-schemas";
-import { ShiftAssignmentFiltersSchema } from "../../../types";
 
 const InputSchema = object({
   filters: optional(ShiftAssignmentFiltersSchema),

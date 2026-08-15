@@ -1,16 +1,7 @@
-import {
-  boolean,
-  date,
-  type InferOutput,
-  minLength,
-  nullable,
-  object,
-  optional,
-  pipe,
-  string,
-} from "valibot";
+import { ReminderTypeSchema } from "#/schemas/enums";
 
-import { ReminderTypeSchema } from "./enums";
+import { boolean, date, minLength, nullable, object, optional, pipe, string } from "valibot";
+import type { InferOutput } from "valibot";
 
 export const CreateReminderSchema = object({
   interval: optional(nullable(string())),

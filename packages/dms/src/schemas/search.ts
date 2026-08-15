@@ -1,6 +1,7 @@
-import { array, date, type InferOutput, number, object, optional, picklist, string } from "valibot";
+import { FileViewSortSchema } from "#/schemas/file-view";
 
-import { FileViewSortSchema } from "./file-view";
+import { array, date, number, object, optional, picklist, string } from "valibot";
+import type { InferOutput } from "valibot";
 
 export const SearchScopeSchema = picklist(["all", "my_files", "shared_with_me"]);
 

@@ -1,8 +1,8 @@
+import { connection } from "#/db-schemas";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object, string } from "valibot";
-
-import { connection } from "../../db-schemas";
 
 export const restoreConnection = Workflow.name("connection.restore")
   .input(object({ id: string() }))

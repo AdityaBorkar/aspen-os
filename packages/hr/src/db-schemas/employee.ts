@@ -1,6 +1,3 @@
-import { uuidv7 } from "@aspen-os/platform/server";
-import { boolean, date, index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
-
 import {
   checkinLogTypeEnum,
   employeeStatusEnum,
@@ -11,7 +8,10 @@ import {
   separationStatusEnum,
   skillProficiencyEnum,
   transferStatusEnum,
-} from "./enums";
+} from "#/db-schemas/enums";
+
+import { uuidv7 } from "@aspen-os/platform/server";
+import { boolean, date, index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const employee = pgTable(
   "employee",

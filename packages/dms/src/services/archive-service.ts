@@ -1,9 +1,9 @@
+import * as schemas from "#/db-schemas";
+import { computeArchiveKey, get, getSignedGetUrl, upload } from "#/services/storage-bridge";
+import type { FolderDownloadLinkOptions } from "#/types";
+
 import { getContext } from "@aspen-os/platform/server";
 import { eq, sql } from "drizzle-orm";
-
-import * as schemas from "../db-schemas";
-import type { FolderDownloadLinkOptions } from "../types";
-import { computeArchiveKey, get, getSignedGetUrl, upload } from "./storage-bridge";
 
 const LARGE_FOLDER_FILE_THRESHOLD = 1000;
 const LARGE_FOLDER_SIZE_THRESHOLD = 1024 * 1024 * 1024;

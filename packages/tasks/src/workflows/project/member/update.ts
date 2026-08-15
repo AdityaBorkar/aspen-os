@@ -1,9 +1,9 @@
+import { projectMember } from "#/db-schemas/project-member";
+import { IdSchema, UpdateProjectMemberSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { projectMember } from "../../../db-schemas/project-member";
-import { IdSchema, UpdateProjectMemberSchema } from "../../../types";
 
 const UpdateInputSchema = object({
   patch: UpdateProjectMemberSchema,

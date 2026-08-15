@@ -1,9 +1,9 @@
+import { complianceDocument } from "#/db-schemas";
+import { COMPLIANCE_EVENTS } from "#/pubsub";
+import { fetchDocumentStep } from "#/workflow-steps/fetch-document";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-
-import { complianceDocument } from "../../../db-schemas";
-import { COMPLIANCE_EVENTS } from "../../../pubsub";
-import { fetchDocumentStep } from "../../../workflow-steps/fetch-document";
 
 const uploadDocumentAttachment = Workflow.name("document.upload-attachment").handler(
   async (input: { id: string; storageKey: string }, ctx) => {

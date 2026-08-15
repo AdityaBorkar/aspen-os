@@ -1,7 +1,7 @@
+import { accessLevelEnum, permissionActionEnum } from "#/db-schemas/enums";
+
 import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
-
-import { accessLevelEnum, permissionActionEnum } from "./enums";
 
 export const hrUser = pgTable(
   "hr_user",

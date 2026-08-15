@@ -1,8 +1,9 @@
+import { IdSchema } from "#/types";
+import type { TaskCompletionSummary } from "#/types";
+import { getSubTasks } from "#/workflows/task/sub-task/list";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { type TaskCompletionSummary, IdSchema } from "../../types";
-import { getSubTasks } from "./sub-task/list";
 
 export const getTaskCompletionSummary = Workflow.name("task.completion-summary")
   .input(object({ parentId: IdSchema }))

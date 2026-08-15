@@ -1,9 +1,9 @@
+import { dmsClass } from "#/db-schemas";
+import { IdSchema } from "#/types";
+
 import { WorkflowStep } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { dmsClass } from "../db-schemas";
-import { IdSchema } from "../types";
 
 export const fetchClassStep = WorkflowStep.name("dms-fetch-class")
   .input(object({ id: IdSchema }))

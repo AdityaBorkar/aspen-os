@@ -1,10 +1,10 @@
+import { hrSettings } from "#/db-schemas";
+import { UpdateHrSettingsSchema } from "#/types";
+import { fetchHrSettings } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object, parse } from "valibot";
-
-import { hrSettings } from "../../../db-schemas";
-import { UpdateHrSettingsSchema } from "../../../types";
-import { fetchHrSettings } from "../../utils";
 
 const InputSchema = object({
   patch: UpdateHrSettingsSchema,

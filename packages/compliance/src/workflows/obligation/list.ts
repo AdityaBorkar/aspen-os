@@ -1,9 +1,10 @@
+import { complianceObligation } from "#/db-schemas";
+import { ObligationFiltersSchema } from "#/types";
+import type { ObligationFilters } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, desc, eq } from "drizzle-orm";
 import { parse } from "valibot";
-
-import { complianceObligation } from "../../db-schemas";
-import { type ObligationFilters, ObligationFiltersSchema } from "../../types";
 
 const listObligations = Workflow.name("obligation.list").handler(
   async (input: { filters?: ObligationFilters }, ctx) => {

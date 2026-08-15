@@ -1,6 +1,7 @@
+import { EntityTypeSchema, GranteeTypeSchema, SharePermissionSchema } from "#/schemas/enums";
+
 import {
   check,
-  type InferOutput,
   minLength,
   nullable,
   nullish,
@@ -10,8 +11,7 @@ import {
   pipe,
   string,
 } from "valibot";
-
-import { EntityTypeSchema, GranteeTypeSchema, SharePermissionSchema } from "./enums";
+import type { InferOutput } from "valibot";
 
 export const CreateShareSchema = object({
   entityId: pipe(string(), minLength(1, "entityId is required")),

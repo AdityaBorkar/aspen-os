@@ -1,9 +1,9 @@
+import { dmsFile, dmsFolder } from "#/db-schemas";
+import { FOLDER_EVENTS } from "#/pubsub";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { boolean, object, optional, string } from "valibot";
-
-import { dmsFile, dmsFolder } from "../../db-schemas";
-import { FOLDER_EVENTS } from "../../pubsub";
 
 const DeleteInputSchema = object({
   force: optional(boolean()),

@@ -1,4 +1,4 @@
-import type { ComplianceCategory, VerificationStatus } from "./utils/constants";
+import type { ComplianceCategory, VerificationStatus } from "#/utils/constants";
 
 export const COMPLIANCE_EVENTS = {
   DOCUMENT_ARCHIVED: "compliance:document_archived",

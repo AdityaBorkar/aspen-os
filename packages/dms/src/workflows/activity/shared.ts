@@ -1,4 +1,4 @@
-import { AUDIT_ENTITY_TYPE } from "../../utils/constants";
+import { AUDIT_ENTITY_TYPE } from "#/utils/constants";
 
 export type AuditRow = {
   action: string;

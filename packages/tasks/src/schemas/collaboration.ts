@@ -1,15 +1,7 @@
-import {
-  boolean,
-  type InferOutput,
-  minLength,
-  nullable,
-  object,
-  optional,
-  pipe,
-  string,
-} from "valibot";
+import { NameSchema } from "#/schemas/utils";
 
-import { NameSchema } from "./utils";
+import { boolean, minLength, nullable, object, optional, pipe, string } from "valibot";
+import type { InferOutput } from "valibot";
 
 export const CreateAttachmentSchema = object({
   commentId: optional(nullable(string())),

@@ -1,8 +1,8 @@
+import { compensatoryLeaveRequest } from "#/db-schemas";
+import { CreateCompensatoryLeaveSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { compensatoryLeaveRequest } from "../../../db-schemas";
-import { CreateCompensatoryLeaveSchema } from "../../../types";
 
 const InputSchema = object({
   input: CreateCompensatoryLeaveSchema,

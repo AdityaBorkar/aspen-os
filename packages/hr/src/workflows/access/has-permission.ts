@@ -1,7 +1,7 @@
+import { getUserPermissionsUtil } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { minLength, object, optional, pipe, string } from "valibot";
-
-import { getUserPermissionsUtil } from "../utils";
 
 const InputSchema = object({
   action: pipe(string(), minLength(1, "action is required")),

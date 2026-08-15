@@ -1,9 +1,9 @@
+import { department } from "#/db-schemas";
+import { CreateDepartmentSchema } from "#/types";
+import { validateParentDepartment } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { department } from "../../../db-schemas";
-import { CreateDepartmentSchema } from "../../../types";
-import { validateParentDepartment } from "../../utils";
 
 const InputSchema = object({
   input: CreateDepartmentSchema,

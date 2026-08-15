@@ -1,8 +1,8 @@
-import { Workflow } from "@aspen-os/platform/server";
+import type { ComplianceObligation } from "#/db-schemas";
+import type { PeriodPreview } from "#/types";
+import { MONTHS_PER_FREQUENCY } from "#/workflows/utils";
 
-import type { ComplianceObligation } from "../../../db-schemas";
-import type { PeriodPreview } from "../../../types";
-import { MONTHS_PER_FREQUENCY } from "../../utils";
+import { Workflow } from "@aspen-os/platform/server";
 
 const getUpcomingPeriods = Workflow.name("obligation.upcoming-periods").handler(
   async (input: { obligation: ComplianceObligation; count: number }, _ctx) => {

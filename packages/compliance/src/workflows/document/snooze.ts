@@ -1,8 +1,8 @@
+import { complianceDocument } from "#/db-schemas";
+import { COMPLIANCE_EVENTS } from "#/pubsub";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-
-import { complianceDocument } from "../../db-schemas";
-import { COMPLIANCE_EVENTS } from "../../pubsub";
 
 const snoozeDocument = Workflow.name("document.snooze").handler(
   async (input: { id: string; days: number; snoozedBy: string }, ctx) => {

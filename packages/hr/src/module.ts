@@ -1,17 +1,17 @@
-import type { DatabaseUnit, Module, ModuleInfra, PubSubUnit } from "@aspen-os/platform/server";
+import { acl } from "#/auth";
+import { control_plane_schemas, tenant_schemas } from "#/db-schemas";
+import { events } from "#/pubsub";
+import { CRON_SCHEDULES, SCHEDULED_JOBS } from "#/utils/constants";
+import * as access from "#/workflows/barrel-access";
+import * as attendance from "#/workflows/barrel-attendance";
+import * as employee from "#/workflows/barrel-employee";
+import * as leave from "#/workflows/barrel-leave";
+import * as lifecycle from "#/workflows/barrel-lifecycle";
+import * as overtime from "#/workflows/barrel-overtime";
+import * as setup from "#/workflows/barrel-setup";
+import * as shift from "#/workflows/barrel-shift";
 
-import { acl } from "./auth";
-import { control_plane_schemas, tenant_schemas } from "./db-schemas";
-import { events } from "./pubsub";
-import { CRON_SCHEDULES, SCHEDULED_JOBS } from "./utils/constants";
-import * as access from "./workflows/barrel-access";
-import * as attendance from "./workflows/barrel-attendance";
-import * as employee from "./workflows/barrel-employee";
-import * as leave from "./workflows/barrel-leave";
-import * as lifecycle from "./workflows/barrel-lifecycle";
-import * as overtime from "./workflows/barrel-overtime";
-import * as setup from "./workflows/barrel-setup";
-import * as shift from "./workflows/barrel-shift";
+import type { DatabaseUnit, Module, ModuleInfra, PubSubUnit } from "@aspen-os/platform/server";
 
 export type HrModuleConfig = {
   country: "INDIA";

@@ -1,11 +1,12 @@
+import { complianceDocument } from "#/db-schemas";
+import type { ComplianceDocument } from "#/db-schemas";
+import { COMPLIANCE_EVENTS } from "#/pubsub";
+import type { CreateComplianceDocumentInput } from "#/types";
+import { fetchDocumentStep } from "#/workflow-steps/fetch-document";
+import { DEFAULT_REMINDER_DAYS } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-
-import { complianceDocument, type ComplianceDocument } from "../../db-schemas";
-import { COMPLIANCE_EVENTS } from "../../pubsub";
-import type { CreateComplianceDocumentInput } from "../../types";
-import { fetchDocumentStep } from "../../workflow-steps/fetch-document";
-import { DEFAULT_REMINDER_DAYS } from "../utils";
 
 const renewDocument = Workflow.name("document.renew").handler(
   async (input: { id: string; newData: Partial<CreateComplianceDocumentInput> }, ctx) => {

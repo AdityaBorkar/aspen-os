@@ -1,9 +1,9 @@
+import { connectionContact } from "#/db-schemas";
+import { CreateConnectionContactSchema } from "#/types";
+import { unsetPrimaryContacts } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { connectionContact } from "../../../db-schemas";
-import { CreateConnectionContactSchema } from "../../../types";
-import { unsetPrimaryContacts } from "../../utils";
 
 const CreateInputSchema = object({ input: CreateConnectionContactSchema });
 

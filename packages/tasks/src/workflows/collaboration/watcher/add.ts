@@ -1,9 +1,9 @@
+import { watcher } from "#/db-schemas/watcher";
+import { CreateWatcherSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { watcher } from "../../../db-schemas/watcher";
-import { CreateWatcherSchema } from "../../../types";
 
 const CreateInputSchema = object({
   input: CreateWatcherSchema,

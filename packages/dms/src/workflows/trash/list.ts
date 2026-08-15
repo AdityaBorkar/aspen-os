@@ -1,7 +1,8 @@
-import { Workflow } from "@aspen-os/platform/server";
-import { and, eq, inArray, or, type SQL, sql } from "drizzle-orm";
+import { dmsClass, dmsFile, dmsFolder, dmsLegalHold } from "#/db-schemas";
 
-import { dmsClass, dmsFile, dmsFolder, dmsLegalHold } from "../../db-schemas";
+import { Workflow } from "@aspen-os/platform/server";
+import { and, eq, inArray, or, sql } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 
 export interface TrashFilters {
   classId?: string;

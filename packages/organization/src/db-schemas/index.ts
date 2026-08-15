@@ -1,6 +1,6 @@
-export { address } from "./address";
-export { bankAccount } from "./bank-account";
-export { branch, branchTypeEnum } from "./branch";
+export { address } from "#/db-schemas/address";
+export { bankAccount } from "#/db-schemas/bank-account";
+export { branch, branchTypeEnum } from "#/db-schemas/branch";
 export {
   connection,
   connectionContact,
@@ -8,14 +8,14 @@ export {
   connectionNoteTypeEnum,
   connectionStatusEnum,
   connectionTypeEnum,
-} from "./connection";
-export { organization, organizationStatusEnum } from "./organization";
+} from "#/db-schemas/connection";
+export { organization, organizationStatusEnum } from "#/db-schemas/organization";
 
-import { address } from "./address";
-import { bankAccount } from "./bank-account";
-import { branch } from "./branch";
-import { connection, connectionContact, connectionNote } from "./connection";
-import { organization } from "./organization";
+import { address } from "#/db-schemas/address";
+import { bankAccount } from "#/db-schemas/bank-account";
+import { branch } from "#/db-schemas/branch";
+import { connection, connectionContact, connectionNote } from "#/db-schemas/connection";
+import { organization } from "#/db-schemas/organization";
 
 export const control_plane_schemas = {} as const;
 

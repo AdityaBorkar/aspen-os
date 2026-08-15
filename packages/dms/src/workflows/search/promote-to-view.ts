@@ -1,9 +1,9 @@
+import { searchToFileViewConditions } from "#/services/search-service";
+import { SearchOptionsSchema } from "#/types";
+import { createFileView } from "#/workflows/file-view/create";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, string } from "valibot";
-
-import { searchToFileViewConditions } from "../../services/search-service";
-import { SearchOptionsSchema } from "../../types";
-import { createFileView } from "../file-view/create";
 
 export const promoteSearchToView = Workflow.name("dms.search.promote-to-view")
   .input(

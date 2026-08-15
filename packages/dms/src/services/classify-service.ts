@@ -1,7 +1,7 @@
+import { dmsClassField } from "#/db-schemas";
+
 import { eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-
-import { dmsClassField } from "../db-schemas";
 
 export interface ClassFieldRow {
   defaultValue: unknown;

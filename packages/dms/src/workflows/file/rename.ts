@@ -1,12 +1,12 @@
+import { dmsFile } from "#/db-schemas";
+import { FILE_EVENTS } from "#/pubsub";
+import { checkNameUniqueness, computeFilePath } from "#/services/path-service";
+import { FileIdSchema, RenameFileSchema } from "#/types";
+import { fetchFileStep } from "#/workflow-steps/fetch-file";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object, parse } from "valibot";
-
-import { dmsFile } from "../../db-schemas";
-import { FILE_EVENTS } from "../../pubsub";
-import { checkNameUniqueness, computeFilePath } from "../../services/path-service";
-import { FileIdSchema, RenameFileSchema } from "../../types";
-import { fetchFileStep } from "../../workflow-steps/fetch-file";
 
 const RenameInputSchema = object({ id: FileIdSchema, input: RenameFileSchema });
 

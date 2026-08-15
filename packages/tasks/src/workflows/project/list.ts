@@ -1,9 +1,9 @@
+import { project } from "#/db-schemas/project";
+import { ProjectFiltersSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, desc, eq } from "drizzle-orm";
 import { object, optional } from "valibot";
-
-import { project } from "../../db-schemas/project";
-import { ProjectFiltersSchema } from "../../types";
 
 export const listProjects = Workflow.name("project.list")
   .input(object({ filters: optional(ProjectFiltersSchema) }))

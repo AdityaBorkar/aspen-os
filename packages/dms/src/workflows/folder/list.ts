@@ -1,9 +1,10 @@
+import { dmsFile, dmsFolder } from "#/db-schemas";
+import { ListFolderOptionsSchema } from "#/types";
+import type { DmsFile, ListFolderOptions } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, sql } from "drizzle-orm";
 import { parse } from "valibot";
-
-import { dmsFile, dmsFolder } from "../../db-schemas";
-import { type DmsFile, type ListFolderOptions, ListFolderOptionsSchema } from "../../types";
 
 export const listFolders = Workflow.name("dms.folder.list").handler(async (input, ctx) => {
   const { id, opts } = (input ?? {}) as {

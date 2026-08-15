@@ -19,8 +19,8 @@ export type {
   OrganizationBrandingUpdatedEvent,
   OrganizationDomainEventMap,
   OrganizationUpdatedEvent,
-} from "./pubsub";
-export { BRANCH_EVENTS, CONNECTION_EVENTS, ORGANIZATION_EVENTS } from "./pubsub";
+} from "#/pubsub";
+export { BRANCH_EVENTS, CONNECTION_EVENTS, ORGANIZATION_EVENTS } from "#/pubsub";
 export type {
   AddressFilters,
   BankAccountFilters,
@@ -40,7 +40,7 @@ export type {
   UpdateConnectionContactInput,
   UpdateConnectionInput,
   UpdateOrganizationInput,
-} from "./schemas";
+} from "#/schemas";
 export {
   AddressFiltersSchema,
   BankAccountFiltersSchema,
@@ -67,7 +67,7 @@ export {
   UpdateConnectionContactSchema,
   UpdateConnectionSchema,
   UpdateOrganizationSchema,
-} from "./schemas";
+} from "#/schemas";
 
 export interface BranchTreeNode {
   children: BranchTreeNode[];

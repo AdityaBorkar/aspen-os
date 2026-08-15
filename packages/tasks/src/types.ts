@@ -12,8 +12,8 @@ export type {
   TaskUnassignedEvent,
   TaskUnlinkedEvent,
   TaskUpdatedEvent,
-} from "./pubsub";
-export { REMINDER_EVENTS, TASK_EVENTS } from "./pubsub";
+} from "#/pubsub";
+export { REMINDER_EVENTS, TASK_EVENTS } from "#/pubsub";
 export type {
   AssignTaskInput,
   BulkUpdateTaskInput,
@@ -47,7 +47,7 @@ export type {
   UpdateTaskInput,
   UpdateTaskTypeInput,
   UpdateTimeEntryInput,
-} from "./schemas";
+} from "#/schemas";
 export {
   AssignTaskSchema,
   BulkUpdateTaskSchema,
@@ -82,7 +82,7 @@ export {
   UpdateTaskSchema,
   UpdateTaskTypeSchema,
   UpdateTimeEntrySchema,
-} from "./schemas";
+} from "#/schemas";
 
 export interface TaskLinkInfo {
   linkType: "blocks" | "blocked_by" | "related_to" | "duplicates" | "caused_by" | "split_from";

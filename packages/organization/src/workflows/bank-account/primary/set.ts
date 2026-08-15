@@ -1,10 +1,10 @@
+import { bankAccount } from "#/db-schemas";
+import { fetchBankAccountStep } from "#/workflow-steps/fetch-bank-account";
+import { unsetPrimaryBankAccount } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object, string } from "valibot";
-
-import { bankAccount } from "../../../db-schemas";
-import { fetchBankAccountStep } from "../../../workflow-steps/fetch-bank-account";
-import { unsetPrimaryBankAccount } from "../../utils";
 
 export const setPrimary = Workflow.name("bank-account.set-primary")
   .input(object({ id: string() }))

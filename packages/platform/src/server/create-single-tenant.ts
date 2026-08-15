@@ -1,11 +1,8 @@
-import {
-  BasePlatform as Base,
-  type CommonConfig,
-  type ExtractModuleNames,
-  type MergedSchemas,
-} from "./base-platform";
-import { type DatabaseConfig, DatabaseUnit } from "./db";
-import type { ArrayModuleAccessors, Module, PlatformUnits, UnitAccessors } from "./index";
+import type { ArrayModuleAccessors, Module, PlatformUnits, UnitAccessors } from "#/server";
+import { BasePlatform as Base } from "#/server/base-platform";
+import type { CommonConfig, ExtractModuleNames, MergedSchemas } from "#/server/base-platform";
+import { DatabaseUnit } from "#/server/db";
+import type { DatabaseConfig } from "#/server/db";
 
 export type SingleTenantConfig = CommonConfig & {
   db: DatabaseConfig;

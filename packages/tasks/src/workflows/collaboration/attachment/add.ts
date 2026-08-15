@@ -1,8 +1,8 @@
+import { attachment } from "#/db-schemas/attachment";
+import { CreateAttachmentSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { attachment } from "../../../db-schemas/attachment";
-import { CreateAttachmentSchema } from "../../../types";
 
 const CreateInputSchema = object({
   input: CreateAttachmentSchema,

@@ -1,9 +1,9 @@
+import { timeEntry } from "#/db-schemas/time-entry";
+import { TimeEntryFiltersSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, desc, eq } from "drizzle-orm";
 import { object, optional } from "valibot";
-
-import { timeEntry } from "../../db-schemas/time-entry";
-import { TimeEntryFiltersSchema } from "../../types";
 
 export const listTimeEntries = Workflow.name("time-entry.list")
   .input(object({ filters: optional(TimeEntryFiltersSchema) }))

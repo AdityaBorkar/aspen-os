@@ -1,9 +1,9 @@
+import { dmsPin } from "#/db-schemas";
+import { AUDIT_ACTION } from "#/utils/constants";
+import { auditEntityType, PinItemInputSchema } from "#/workflows/pin/shared";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
-
-import { dmsPin } from "../../db-schemas";
-import { AUDIT_ACTION } from "../../utils/constants";
-import { auditEntityType, PinItemInputSchema } from "./shared";
 
 export const pinItem = Workflow.name("dms.pin.create")
   .input(PinItemInputSchema)

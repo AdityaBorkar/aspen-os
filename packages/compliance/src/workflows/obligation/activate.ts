@@ -1,8 +1,8 @@
+import { complianceObligation } from "#/db-schemas";
+import { COMPLIANCE_EVENTS } from "#/pubsub";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-
-import { complianceObligation } from "../../db-schemas";
-import { COMPLIANCE_EVENTS } from "../../pubsub";
 
 const activateObligation = Workflow.name("obligation.activate").handler(
   async (input: { id: string }, ctx) => {

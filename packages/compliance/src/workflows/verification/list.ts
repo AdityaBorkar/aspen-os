@@ -1,8 +1,8 @@
+import { complianceVerificationRule } from "#/db-schemas";
+import type { ComplianceCategory } from "#/utils/constants";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, asc, eq } from "drizzle-orm";
-
-import { complianceVerificationRule } from "../../db-schemas";
-import type { ComplianceCategory } from "../../utils/constants";
 
 const listVerificationRules = Workflow.name("verification.list").handler(
   async (

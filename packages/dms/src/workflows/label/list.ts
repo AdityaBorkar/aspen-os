@@ -1,9 +1,9 @@
+import { dmsLabel } from "#/db-schemas";
+import { ListLabelsOptionsSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object, optional, parse } from "valibot";
-
-import { dmsLabel } from "../../db-schemas";
-import { ListLabelsOptionsSchema } from "../../types";
 
 const ListLabelsSchema = object({
   opts: optional(object({})),

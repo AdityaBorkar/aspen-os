@@ -1,8 +1,10 @@
+import { TaskPrioritySchema } from "#/schemas/enums";
+import { TitleSchema } from "#/schemas/utils";
+
 import {
   array,
   boolean,
   date,
-  type InferOutput,
   minLength,
   nullable,
   number,
@@ -11,9 +13,7 @@ import {
   pipe,
   string,
 } from "valibot";
-
-import { TaskPrioritySchema } from "./enums";
-import { TitleSchema } from "./utils";
+import type { InferOutput } from "valibot";
 
 export const CreateTaskSchema = object({
   description: optional(nullable(string())),

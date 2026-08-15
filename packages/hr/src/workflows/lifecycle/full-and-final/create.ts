@@ -1,8 +1,8 @@
+import { fullAndFinalStatement } from "#/db-schemas";
+import { CreateFullAndFinalSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { fullAndFinalStatement } from "../../../db-schemas";
-import { CreateFullAndFinalSchema } from "../../../types";
 
 const InputSchema = object({
   input: CreateFullAndFinalSchema,

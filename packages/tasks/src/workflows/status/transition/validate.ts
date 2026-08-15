@@ -1,9 +1,9 @@
+import { statusTransition } from "#/db-schemas/status-transition";
+import { IdSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { statusTransition } from "../../../db-schemas/status-transition";
-import { IdSchema } from "../../../types";
 
 export const validateTransition = Workflow.name("status.validate-transition")
   .input(

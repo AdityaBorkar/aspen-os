@@ -1,8 +1,14 @@
 import {
+  ComplianceCategorySchema,
+  ReminderChannelSchema,
+  RenewalFrequencySchema,
+  VerificationStatusSchema,
+} from "#/schemas/enums";
+
+import {
   array,
   boolean,
   date,
-  type InferOutput,
   minLength,
   nullable,
   number,
@@ -11,13 +17,7 @@ import {
   pipe,
   string,
 } from "valibot";
-
-import {
-  ComplianceCategorySchema,
-  ReminderChannelSchema,
-  RenewalFrequencySchema,
-  VerificationStatusSchema,
-} from "./enums";
+import type { InferOutput } from "valibot";
 
 export const CreateComplianceDocumentSchema = object({
   assignedReviewer: optional(nullable(string())),

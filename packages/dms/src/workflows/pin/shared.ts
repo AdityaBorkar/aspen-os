@@ -1,7 +1,7 @@
-import { object } from "valibot";
+import { IdSchema, PinItemTypeSchema } from "#/types";
+import type { AuditEntityType } from "#/utils/constants";
 
-import { IdSchema, PinItemTypeSchema } from "../../types";
-import type { AuditEntityType } from "../../utils/constants";
+import { object } from "valibot";
 
 export const PinItemInputSchema = object({
   itemId: IdSchema,

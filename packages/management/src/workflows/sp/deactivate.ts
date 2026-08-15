@@ -1,12 +1,12 @@
+import { serviceProvider } from "#/db-schemas";
+import { SERVICE_PROVIDER_EVENTS } from "#/pubsub";
+import { IdSchema } from "#/types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, SP_STATUS } from "#/utils/constants";
+import { fetchServiceProviderStep } from "#/workflow-steps/fetch-sp";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { serviceProvider } from "../../db-schemas";
-import { SERVICE_PROVIDER_EVENTS } from "../../pubsub";
-import { IdSchema } from "../../types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, SP_STATUS } from "../../utils/constants";
-import { fetchServiceProviderStep } from "../../workflow-steps/fetch-sp";
 
 export const deactivateSp = Workflow.name("sp.deactivate")
   .input(object({ id: IdSchema }))

@@ -1,8 +1,8 @@
+import { leaveBlockList } from "#/db-schemas";
+import { CreateLeaveBlockListSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { leaveBlockList } from "../../../db-schemas";
-import { CreateLeaveBlockListSchema } from "../../../types";
 
 const InputSchema = object({
   input: CreateLeaveBlockListSchema,

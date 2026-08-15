@@ -1,17 +1,18 @@
-import { sql } from "drizzle-orm";
-import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
-import pg from "pg";
-
-import { db_schemas } from "../db-schemas";
-import type { TenancyMode, TenantResolver } from "../index";
-import { context } from "../utils/context";
+import type { TenancyMode, TenantResolver } from "#/server";
+import { db_schemas } from "#/server/db-schemas";
 import type {
   DatabaseConfig,
   IsolatedTenantDbConfig,
   IsolatedTenantProvisioningResult,
   SharedTenantProvisioningResult,
   TenantProvisioningResult,
-} from "./types";
+} from "#/server/db/types";
+import { context } from "#/server/utils/context";
+
+import { sql } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/node-postgres";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import pg from "pg";
 
 export type DrizzleDB<TSchemas extends Record<string, unknown> = Record<string, never>> =
   NodePgDatabase<TSchemas>;

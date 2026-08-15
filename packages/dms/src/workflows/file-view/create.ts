@@ -1,11 +1,11 @@
+import { dmsFileView } from "#/db-schemas";
+import { FILE_VIEW_EVENTS } from "#/pubsub";
+import { CreateFileViewSchema } from "#/types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { unsetDefaultFileView } from "#/workflows/file-view/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { dmsFileView } from "../../db-schemas";
-import { FILE_VIEW_EVENTS } from "../../pubsub";
-import { CreateFileViewSchema } from "../../types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "../../utils/constants";
-import { unsetDefaultFileView } from "./utils";
 
 const CreateInputSchema = object({ input: CreateFileViewSchema });
 

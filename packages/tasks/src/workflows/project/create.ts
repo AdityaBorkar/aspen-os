@@ -1,10 +1,10 @@
+import { project } from "#/db-schemas/project";
+import { projectMember } from "#/db-schemas/project-member";
+import { CreateProjectSchema } from "#/types";
+import { ensureKeyUnique } from "#/workflows/utils";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
-
-import { project } from "../../db-schemas/project";
-import { projectMember } from "../../db-schemas/project-member";
-import { CreateProjectSchema } from "../../types";
-import { ensureKeyUnique } from "../utils";
 
 const CreateInputSchema = object({
   input: CreateProjectSchema,

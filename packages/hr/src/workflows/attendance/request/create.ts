@@ -1,8 +1,8 @@
+import { attendanceRequest } from "#/db-schemas";
+import { CreateAttendanceRequestSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
-
-import { attendanceRequest } from "../../../db-schemas";
-import { CreateAttendanceRequestSchema } from "../../../types";
 
 const InputSchema = object({
   input: CreateAttendanceRequestSchema,

@@ -20,7 +20,8 @@ import {
   MarkdownCopyButton,
   ViewOptionsPopover,
 } from "fumadocs-ui/layouts/docs/page";
-import { getLayoutTabs, type LayoutTab } from "fumadocs-ui/layouts/shared";
+import { getLayoutTabs } from "fumadocs-ui/layouts/shared";
+import type { LayoutTab } from "fumadocs-ui/layouts/shared";
 import { MessageCircleIcon } from "lucide-react";
 import { cloneElement, isValidElement, Suspense } from "react";
 

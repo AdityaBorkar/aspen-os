@@ -1,9 +1,9 @@
+import { dmsPublicLink } from "#/db-schemas";
+import { PUBLIC_LINK_EVENTS } from "#/pubsub";
+import { WithIdSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-
-import { dmsPublicLink } from "../../db-schemas";
-import { PUBLIC_LINK_EVENTS } from "../../pubsub";
-import { WithIdSchema } from "../../types";
 
 export const revokePublicLink = Workflow.name("dms.public-link.revoke")
   .input(WithIdSchema)

@@ -1,9 +1,9 @@
+import { taskLink } from "#/db-schemas/task-link";
+import { IdSchema } from "#/types";
+
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-import { taskLink } from "../../../db-schemas/task-link";
-import { IdSchema } from "../../../types";
 
 export const listLinksByTask = Workflow.name("link.list-by-task")
   .input(object({ taskId: IdSchema }))
