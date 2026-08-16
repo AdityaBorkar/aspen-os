@@ -440,6 +440,54 @@ _Avoid_: Tag, Category, Custom Field
 A per-entity chronological trail of DMS actions (upload, classify, version, share, delete, expire, restore, purge, hold), projected from the platform AuditUnit's `audit_log` — not a DMS-owned table, not PubSub events.
 _Avoid_: Audit Trail (that's the platform unit), Event Log, Change History
 
+### Workspace Domain
+
+> The `@aspen-os/workspace` module. The term **Workspace** here means the **personal-workspace surface** — drafts, filter views, dashboards, and utilities — deliberately NOT Tenancy, and NOT the tasks Project/Board (both of which list "Workspace" as an avoid term). See `.working-docs/domain-model/workspace.md`.
+
+**Draft**:
+A saved, unpublished piece of content — `title`, `body` (markdown/text), `notes`, `metadata` (opaque) — with an optional approval lifecycle (`draft → submitted → approved → published`, `reject` → `reopened` to `draft`), soft-delete trash, duplicate, and threaded comments (`workspace_draft_comment`). A first-class persistable entity — NOT the "draft" status value used by other modules (compliance documents, hr contracts).
+_Avoid_: Draft Status, Staging Content
+
+**Approval**:
+The optional `submit → approve` gate on a Draft; hosts without a review step call `publish` directly from `draft` (approval is not mandatory).
+_Avoid_: Review, Sign-off (informal)
+
+**Filter View**:
+A cross-domain saved filter/sort/group configuration: `domain` (free-form `<module>:<entity>` key), `conditions` (dms `FileViewCondition` shape `{ field, operator, value }`), `sort` (`{ field, direction }`), `groupBy`, `isDefault` per `(ownerId, domain)`. `apply(id)` resolves conditions through a **host-registered resolver** in the module's runtime registry — the module never queries other modules' tables. Built-in domains: `workspace:draft`, `tasks:task`, `dms:file`, `compliance:document`, `hr:employee`; app-defined domains are allowed.
+_Avoid_: Saved Filter, Saved Search, List View (that's tasks' `task_saved_view`)
+
+**Dashboard (workspace)**:
+A named collection of Widgets plus a jsonb grid `layout` (`{ widgetId, x, y, w, h }[]` stored on the dashboard row). Supports `duplicate`, `export` (JSON snapshot incl. widgets), `import`, and per-dashboard Schedules. No widget-overlap validation in v1. NOT compliance's module-local summary metrics.
+_Avoid_: Board, Analytics Page
+
+**Widget**:
+A declarative datasource config on a Dashboard — `metric` (count/sum/avg/min/max over a domain + filter + date range), `breakdown` (group-by + range), `list` (first-N + range), `embed` (markdown/url/iframe). The module stores and serves configs and tracks `lastRefreshedAt`/`lastError`; it does **not** render or execute analytics. Datasource = `{ domain }` + exactly one of an inline `filter` or a `viewId` soft-FK to a saved Filter View.
+_Avoid_: Chart, KPI Card (implementation terms)
+
+**Schedule (workspace)**:
+A per-Dashboard cron delivery configuration (`{ recipients, format: export|pdf|url, subject? }`). `create`/`resume` register a pg-boss cron on `workspace:schedule:<id>`; the module's handler publishes `workspace:schedule_due` (full schedule + dashboard payload) and the **host renders/delivers**. `markRun` records completion. Distinct from dms's module-level cron jobs (expiry scan, auto-purge).
+_Avoid_: Recurring Delivery, Notification Job
+
+**Pin (workspace)**:
+A per-user sidebar shortcut to any workspace entity (`draft`/`view`/`dashboard`); unique `(userId, itemType, itemId)`.
+_Avoid_: Bookmark, Favorite
+
+**Recent**:
+A per-user bounded history of touched workspace entities; `touch` upserts + bumps `lastAccessedAt` and trims to the configured cap (default 50).
+_Avoid_: History, Recently Viewed
+
+**Watch (workspace)**:
+A per-user follow-subscription on a view/dashboard. `watches.subscribe`/`unsubscribe` are follow-subscriptions (tasks-watcher vocabulary) — **distinct from `PubSubUnit.subscribe`/`unsubscribe`** (pg-boss topics). Workspace persists subscriptions and emits `watch_subscribed`/`watch_unsubscribed`; a future `notifications` module consumes them.
+_Avoid_: Subscriber, Follower
+
+**Setting (workspace)**:
+A per-user workspace preference (`key`, `value` jsonb). Keys: `home_dashboard`, `default_view.<domain>`, `default_range`, `timezone`; values validated per key.
+_Avoid_: Preference (informal)
+
+**Personal / Global Access**:
+The first-class `access` enum on Drafts, Filter Views, and Dashboards, set by the user at create/update time. `personal` = visible only to `ownerId`; `global` = org-wide within the tenant. Widgets and schedules **inherit** their parent Dashboard's access. Replaces the ad-hoc `isShared`/`isGlobal` booleans of dms/tasks **in this module** (those are not retrofitted).
+_Avoid_: Sharing Flag, Visibility Scope
+
 ### Management Plane Domain
 
 **Tenancy Mode**:
@@ -542,24 +590,24 @@ _Avoid_: Onboarding (that's the Tenant Status stage AFTER provisioning), Setup, 
       │
       │  registers modules via SingleTenantPlatform.create(config, [organization, tasks])
       │
-      ├──────────────┬─────────────────────┬──────────────────────┬──────────────────────┬─────────────────┬─────────────┐
-      ▼              ▼                     ▼                      ▼                      ▼                 ▼             ▼
-┌──────────┐ ┌──────────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────────┐ ┌─────────────┐
-│Organizat.│ │   Compliance     │ │    Tasks     │ │     DMS      │ │     HR       │ │ Management Plane │ │   Masters   │
-│  Module  │ │    Module        │ │   Module     │ │   Module     │ │   Module     │ │     Module       │ │   Module    │
-│          │ │                  │ │              │ │              │ │ (conformant) │ │                  │ │             │
-│2 workflows│ │ 5 workflows     │ │ 11 workflows│ │ 19 wf groups │ │ ~250 methods │ │ 3 wf groups     │ │ 8 wf groups │
-│2 tables  │ │ 3 services       │ │ 3 services   │ │ 15 tables    │ │ 50 tables    │ │ 3 owned tables   │ │ 8 tables    │
-│7 events  │ │ 3 tables         │ │ 17 tables    │ │ 33 events    │ │ 43 events    │ │ 0 shadow tables  │ │ 31 events   │
-│deps:     │ │ 23 events        │ │ 10 events    │ │ 12 ACL res.  │ │ 2 crons      │ │ 16 events        │ │ 8 ACL res.  │
-│masters   │ │ units:           │ │ units:       │ │ units:       │ │ units:       │ │ deps: organization│ │ units:      │
-│units:    │ │ db, kvStore,     │ │ db, pubsub  │ │ db, auth,    │ │ db, pubsub  │ │ units:           │ │ db, kvStore│
-│none      │ │ pubsub           │ │              │ │ pubsub,      │ │              │ │ db, auth, pubsub │ │ (conns)    │
-│          │ │                  │ │              │ │ storage      │ │              │ │                  │ │             │
-│          │ │ prepareInfra():  │ │              │ │ 2 crons in   │ │ prepareInfra │ │ prepareInfra():  │ │             │
-│          │ │ schema push,     │ │              │ │ $prepareInfra│ │ 2 crons      │ │ schema push      │ │             │
-│          │ │ crons, handlers  │ │              │ │              │ │              │ │                  │ │             │
-└──────────┘ └──────────────────┘ └──────────────┘ └──────────────┘ └──────────────┘ └──────────────────┘ └─────────────┘
+      ├──────────────┬─────────────────────┬──────────────────────┬──────────────────────┬─────────────────┬─────────────┬──────────────┐
+      ▼              ▼                     ▼                      ▼                      ▼                 ▼             ▼              ▼
+┌──────────┐ ┌──────────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────────┐ ┌─────────────┐ ┌──────────────┐
+│Organizat.│ │   Compliance     │ │    Tasks     │ │     DMS      │ │     HR       │ │ Management Plane │ │   Masters   │ │  Workspace   │
+│  Module  │ │    Module        │ │   Module     │ │   Module     │ │   Module     │ │     Module       │ │   Module    │ │   Module     │
+│          │ │                  │ │              │ │              │ │ (conformant) │ │                  │ │             │ │              │
+│2 workflows│ │ 5 workflows     │ │ 11 workflows│ │ 19 wf groups │ │ ~250 methods │ │ 3 wf groups     │ │ 8 wf groups │ │ 10 wf groups │
+│2 tables  │ │ 3 services       │ │ 3 services   │ │ 15 tables    │ │ 50 tables    │ │ 3 owned tables   │ │ 8 tables    │ │ 10 tables    │
+│7 events  │ │ 3 tables         │ │ 17 tables    │ │ 33 events    │ │ 43 events    │ │ 0 shadow tables  │ │ 31 events   │ │ 40 events    │
+│deps:     │ │ 23 events        │ │ 10 events    │ │ 12 ACL res.  │ │ 2 crons      │ │ 16 events        │ │ 8 ACL res.  │ │ 12 ACL res.  │
+│masters   │ │ units:           │ │ units:       │ │ units:       │ │ units:       │ │ deps: organization│ │ units:      │ │ units:       │
+│units:    │ │ db, kvStore,     │ │ db, pubsub  │ │ db, auth,    │ │ db, pubsub  │ │ units:           │ │ db, kvStore│ │ db, pubsub   │
+│none      │ │ pubsub           │ │              │ │ pubsub,      │ │              │ │ db, auth, pubsub │ │ (conns)    │ │              │
+│          │ │                  │ │              │ │ storage      │ │              │ │                  │ │             │ │              │
+│          │ │ prepareInfra():  │ │              │ │ 2 crons in   │ │ prepareInfra │ │ prepareInfra():  │ │             │ │ schedules in │
+│          │ │ schema push,     │ │              │ │ $prepareInfra│ │ 2 crons      │ │ schema push      │ │             │ │ $prepareRun- │
+│          │ │ crons, handlers  │ │              │ │              │ │              │ │                  │ │             │ │ time         │
+└──────────┘ └──────────────────┘ └──────────────┘ └──────────────┘ └──────────────┘ └──────────────────┘ └─────────────┘ └──────────────┘
 
 Implemented: DMS module — unified document/files management on a single `file`
   entity: Triage → Classify → active (uploads into folders are active immediately);
@@ -572,6 +620,19 @@ Implemented: DMS module — unified document/files management on a single `file`
   (unified `dms/{tenant}/{fileId}/v{n}/{name}` keys), AuthUnit, PubSub
   (expiry-scan + auto-purge crons), AuditUnit. 15 `dms_*` tables, all tenant
   schemas. No module deps. 19 workflow groups, 33 events.
+
+Implemented: Workspace module — dependency-free personal-workspace surface:
+  drafts (draft → submitted → approved → published, optional approval, reject →
+  reopened, trash/restore, duplicate, threaded comments), filter views
+  (cross-domain saved conditions/sort, applied via host-registered resolvers in
+  `runtime.ts` — never touches other modules' tables), dashboards (widgets +
+  jsonb grid layout, duplicate/export/import), declarative widgets (metric/
+  breakdown/list/embed with date ranges + refresh metadata), event-driven
+  schedules (per-schedule pg-boss crons → `workspace:schedule_due`, host
+  delivers), and user-scoped utilities (pins, recent, quick search, settings,
+  watches). Access is a first-class user-set enum — `personal` (owner-only) /
+  `global` (org-wide). 10 `workspace_*` tables, all tenant schemas, 4 pgEnums,
+  40 events, 12 ACL resources. No module deps. Units: db, pubsub.
 
 Stubs (package.json only — no source): accounting, crm, fleet, inventory, reports, pharmacy
 ```
@@ -591,6 +652,7 @@ Stubs (package.json only — no source): accounting, crm, fleet, inventory, repo
 11. **HR module is fully conformant** — `Hr implements Module`, has `$prepareRuntime()`, and follows the one-file-per-action workflow layout. (Earlier docs marked HR "partial/not conformant"; that is no longer the case.)
 12. **Masters extraction (`.working-docs/sow/masters.md`) is complete** — `@aspen-os/masters` owns contacts, addresses, bank accounts, integration connections, and notes as polymorphic tenant master data; the organization module holds only `organization` + `branch` and depends on `masters`. `connection` was redesigned from a business-relationship model to integration connections (credentials stored in the platform `kvStore`, referenced by `credentialRef`). Host deployments must run the §9 migration: `DROP TABLE` `address`, `bank_account`, `connection`, `connection_contact`, `connection_note` (after mapping data to masters) and remove the old `organization:connection_created` compliance subscription.
 13. **Masters Phase 2 (`.working-docs/sow/masters-phase-2.md`) is complete** — `@aspen-os/masters` now also owns `master_entity`, `master_unit_of_measure`, and `master_payment_method` (8 tables, 8 workflow groups, 31 events, 8 ACL resources). `entity` is a new `master_entity_type` owner value; `unitOfMeasure` is tenant-wide reference data (one base unit per category); `paymentMethod` is owner-scoped with masked-only card data and primary per `(entityType, entityId, direction)`. All additions are additive — the Phase 1 surface is unchanged.
+14. **Workspace module (`.working-docs/sow/workspace.md`) is implemented** — `@aspen-os/workspace` provides drafts, filter views, dashboards, widgets, schedules, and utilities (10 tenant tables, 4 pgEnums, 40 events, 12 ACL resources). Host apps must register view resolvers (`registerViewResolver`) for every domain they serve and subscribe to `workspace:schedule_due` / `workspace:draft_published` — both are silently dropped by pg-boss when unsubscribed (health check flags them). `context.actorId` (gap 8) feeds the module's access scoping: `create` falls back to an explicit `ownerId`/`userId` input when the context actor is unset.
 
 ## Anti-Patterns
 

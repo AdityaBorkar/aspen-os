@@ -1,0 +1,57 @@
+---
+title: Access Control
+description: ACL resources, actions, and the runtime personal/global scoping model.
+icon: IconShieldLock
+---
+
+Access control has two layers, split exactly as dms splits them:
+
+1. **ACL** — the module's capability matrix, applied via `AuthUnit.applyModuleAcl()` at prepare time (the RPC/authorization layer).
+2. **Runtime scoping** — `personal` vs `global` visibility enforced in workflow code via `services/access-service.ts`. `personal` = `ownerId` only; `global` = any user in the tenant. Widgets and schedules inherit their parent dashboard's access (no own access column).
+
+```ts title="src/auth.ts"
+defineAcl({
+  dashboard: ["create", "read", "update", "delete", "duplicate", "export", "import"],
+  draft: [
+    "create",
+    "read",
+    "update",
+    "delete",
+    "trash",
+    "restore",
+    "publish",
+    "submit",
+    "approve",
+    "reject",
+    "reopen",
+    "duplicate",
+    "comment",
+  ],
+  draftComment: ["create", "read", "delete"],
+  filterView: ["create", "read", "update", "delete", "set_default", "apply", "duplicate"],
+  widget: ["create", "read", "update", "delete", "refresh"],
+  schedule: ["create", "read", "update", "delete", "pause", "resume", "mark_run"],
+  pin: ["create", "read", "delete"],
+  recent: ["read", "touch"],
+  watch: ["create", "read", "delete"],
+  setting: ["read", "update"],
+  search: ["read"],
+});
+```
+
+## Runtime rules
+
+| Helper                     | Applies to                   | Rule                                                                                  |
+| -------------------------- | ---------------------------- | ------------------------------------------------------------------------------------- |
+| `assertCanAccess(row, id)` | reads (`get`/`list`/`apply`) | `access = 'global' OR ownerId = actorId`; throws if neither                           |
+| `assertCanMutate(row, id)` | all mutations                | `ownerId === actorId`, **or** tenant admin (`user.role = 'admin'`, best-effort check) |
+
+`list()`/`get()` apply the access predicate at the SQL level (`global OR owner = actorId`) rather than fetching and filtering in JS.
+
+## User-scoped resources
+
+Pins, recent, settings, and watches carry **no access column** — they are always scoped to `userId = actorId`, enforced in every workflow. There is no `access-service` call for them.
+
+## Tenancy
+
+All ten rows are **tenant schemas** — `personal`/`global` scoping operates within the tenant, and tenant isolation (RLS in shared mode, DB-per-tenant in isolated mode) is enforced by the platform database layer on top of it.

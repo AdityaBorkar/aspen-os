@@ -1,0 +1,70 @@
+---
+title: Events
+description: Domain events and pubsub topics published by the Workspace module.
+icon: IconBell
+---
+
+All events are published as plain string topics on `PubSubUnit` (`ctx.pubsub.publish(topic, payload)`), typed via `WorkspaceEventMap`.
+
+## Drafts
+
+| Event                             | Payload                                                       |
+| --------------------------------- | ------------------------------------------------------------- |
+| `workspace:draft_created`         | `{ draftId, ownerId, access }`                                |
+| `workspace:draft_updated`         | `{ draftId, changes }`                                        |
+| `workspace:draft_submitted`       | `{ draftId, submittedBy }`                                    |
+| `workspace:draft_approved`        | `{ draftId, approvedBy }`                                     |
+| `workspace:draft_rejected`        | `{ draftId, rejectedBy, rejectionReason }`                    |
+| `workspace:draft_published`       | **full draft row** — hosts create the target entity from this |
+| `workspace:draft_reopened`        | `{ draftId }`                                                 |
+| `workspace:draft_trashed`         | `{ draftId }`                                                 |
+| `workspace:draft_restored`        | `{ draftId }`                                                 |
+| `workspace:draft_duplicated`      | `{ draftId, duplicateId }`                                    |
+| `workspace:draft_commented`       | `{ draftId, commentId, authorId }`                            |
+| `workspace:draft_comment_removed` | `{ draftId, commentId }`                                      |
+| `workspace:draft_deleted`         | `{ draftId }`                                                 |
+
+## Views
+
+| Event                       | Payload                               |
+| --------------------------- | ------------------------------------- |
+| `workspace:view_created`    | `{ viewId, ownerId, domain, access }` |
+| `workspace:view_updated`    | `{ viewId }`                          |
+| `workspace:view_duplicated` | `{ viewId, duplicateId }`             |
+| `workspace:view_deleted`    | `{ viewId }`                          |
+
+## Dashboards
+
+| Event                             | Payload                            |
+| --------------------------------- | ---------------------------------- |
+| `workspace:dashboard_created`     | `{ dashboardId, ownerId, access }` |
+| `workspace:dashboard_updated`     | `{ dashboardId }`                  |
+| `workspace:dashboard_duplicated`  | `{ dashboardId, duplicateId }`     |
+| `workspace:dashboard_scheduled`   | `{ dashboardId, scheduleId }`      |
+| `workspace:dashboard_unscheduled` | `{ dashboardId, scheduleId }`      |
+| `workspace:dashboard_deleted`     | `{ dashboardId }`                  |
+
+## Widgets
+
+| Event                        | Payload                     |
+| ---------------------------- | --------------------------- |
+| `workspace:widget_added`     | `{ dashboardId, widgetId }` |
+| `workspace:widget_updated`   | `{ dashboardId, widgetId }` |
+| `workspace:widget_refreshed` | `{ widgetId, error }`       |
+| `workspace:widget_removed`   | `{ dashboardId, widgetId }` |
+
+## Utilities
+
+| Event                          | Payload                                                                                   |
+| ------------------------------ | ----------------------------------------------------------------------------------------- |
+| `workspace:pin_created`        | `{ userId, itemType, itemId }`                                                            |
+| `workspace:pin_removed`        | `{ userId, itemType, itemId }`                                                            |
+| `workspace:watch_subscribed`   | `{ userId, itemType, itemId }`                                                            |
+| `workspace:watch_unsubscribed` | `{ userId, itemType, itemId }`                                                            |
+| `workspace:schedule_due`       | `{ schedule, dashboard, at }` — full payload so hosts can deliver without follow-up reads |
+
+## Consumer guidance
+
+- **`workspace:draft_published`** — the host subscribes to create the target entity (`targetDomain`/`targetEntityType` on the row) and backfill `targetEntityId`.
+- **`workspace:schedule_due`** — the host subscribes to render and deliver (email/PDF/export). If no consumer is registered, pg-boss **silently drops** the message — the platform health check flags produced-but-unsubscribed topics.
+- **`workspace:watch_*`** — workspace only persists subscriptions and emits the events; a future `notifications` module consumes them.

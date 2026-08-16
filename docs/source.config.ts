@@ -84,4 +84,9 @@ export const reports = defineDocs({
   docs,
 });
 
+export const workspace = defineDocs({
+  dir: `../packages/workspace/docs`,
+  docs,
+});
+
 export default defineConfig();

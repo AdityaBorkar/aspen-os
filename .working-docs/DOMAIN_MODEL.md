@@ -14,6 +14,7 @@ This document is the **overview** of the domain model. Each package's domain has
 | `@aspen-os/dms`          | [`domain-model/dms.md`](domain-model/dms.md)                   |
 | `@aspen-os/hr`           | [`domain-model/hr.md`](domain-model/hr.md)                     |
 | `@aspen-os/management`   | [`domain-model/management.md`](domain-model/management.md)     |
+| `@aspen-os/workspace`    | [`domain-model/workspace.md`](domain-model/workspace.md)       |
 
 Bounded-context detail (relationships, structure, language) for each package lives in [`bounded-contexts/`](bounded-contexts/).
 
@@ -29,6 +30,7 @@ Bounded-context detail (relationships, structure, language) for each package liv
 | DMS             | 15     | all tenant (`dms_` prefix)                                                                     |
 | HR              | 50     | 14 control-plane + 36 tenant                                                                   |
 | Management      | 3      | all control-plane (0 shadow tables)                                                            |
+| Workspace       | 10     | all tenant (`workspace_` prefix)                                                               |
 
 ## Cross-Cutting Conventions
 

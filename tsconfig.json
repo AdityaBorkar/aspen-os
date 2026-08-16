@@ -41,6 +41,7 @@
     { "path": "./packages/reports" },
     { "path": "./packages/management" },
     { "path": "./packages/masters" },
-    { "path": "./packages/tasks" }
+    { "path": "./packages/tasks" },
+    { "path": "./packages/workspace" }
   ]
 }

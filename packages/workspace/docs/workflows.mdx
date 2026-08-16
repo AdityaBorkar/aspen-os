@@ -1,0 +1,129 @@
+---
+title: Workflows
+description: Every domain workflow and operation exposed by the Workspace module.
+icon: IconWorkflow
+---
+
+All workflows are module-prefixed (`workspace.<entity>.<verb>`), one file per action under `src/workflows/<entity>/`. Workflow groups are composed `as const` in `workflows/index.ts`.
+
+## Drafts
+
+### Lifecycle
+
+```
+draft ──submit──▶ submitted ──approve──▶ approved ──publish──▶ published
+                     │                        ▲
+                     └──reject (reason)──▶ rejected ──reopen──┘
+draft ───────────────────────publish (approval optional)──▶ published
+published ──reopen──▶ draft   ·   trashed (deletedAt set) ──restore──▶ draft
+```
+
+`transitionDraft()` (in `workflows/draft/utils.ts`) is an atomic `UPDATE … WHERE status IN (from)` guard — concurrent transitions can't double-apply. Each transition writes an audit entry and publishes the matching `workspace:draft_*` event; `publish` carries the **full draft row** in its payload so hosts can act without a follow-up read.
+
+| Workflow                                        | Guard / notes                                                                                                  |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `create`                                        | `ownerId` from `actorId` (fallback: explicit input); defaults `access = personal`                              |
+| `update`                                        | patch semantics — `undefined` fields are unchanged; lifecycle fields are not editable here                     |
+| `submit`                                        | `draft → submitted`; records `submittedBy`/`submittedAt`                                                       |
+| `approve`                                       | `submitted → approved`; records `approvedBy`/`approvedAt`                                                      |
+| `reject`                                        | `submitted → rejected`; `rejectionReason` required                                                             |
+| `publish`                                       | `approved` **or** `draft` → `published`; optionally records `targetDomain`/`targetEntityId`/`targetEntityType` |
+| `reopen`                                        | `published                                                                                                     | rejected → draft`; clears lifecycle timestamps (history retained via audit) |
+| `trash` / `restore`                             | soft-delete via `deletedAt` (idempotent)                                                                       |
+| `duplicate`                                     | new `draft` copy, `access = personal`, new owner                                                               |
+| `delete`                                        | hard delete — removes the row and its comments                                                                 |
+| `addComment` / `listComments` / `removeComment` | threaded comments; access on the draft; author, draft owner, or tenant admin may remove                        |
+
+Draft `.list()` filters: `status`, `targetDomain`, `includeTrashed` (excludes `deletedAt`-set rows by default), `search` (title/body `ilike`), `limit`/`offset`. Always access-scoped.
+
+```ts
+await p.workspace.drafts.submit.run({ id }, { actorId });
+await p.workspace.drafts.approve.run({ id }, { actorId });
+await p.workspace.drafts.publish.run(
+  { input: { id, targetDomain: "dms:file", targetEntityType: "file" } },
+  { actorId },
+);
+```
+
+## Filter Views
+
+| Workflow     | Notes                                                                                                                                                            |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `create`     | `domain` validated against the `<module>:<entity>` convention (free-form, not whitelisted); `isDefault` clears the owner's prior default for `(ownerId, domain)` |
+| `update`     | patch semantics; re-clears prior defaults when `isDefault` is set                                                                                                |
+| `apply`      | resolves `conditions`/`sort` through `getViewResolver(domain)` — **throws** if no resolver is registered                                                         |
+| `setDefault` | clears the owner's other defaults for the same `domain`, then sets                                                                                               |
+| `duplicate`  | new id, `access = personal`, `isDefault = false`                                                                                                                 |
+| `list`       | filters: `domain`, `access`, `isDefault`, `search` (name), `limit`/`offset`; access-scoped                                                                       |
+
+```ts
+await p.workspace.views.create.run(
+  {
+    input: {
+      name: "Open roles",
+      domain: "recruiter:requisition",
+      conditions: [{ field: "status", operator: "eq", value: "open" }],
+      sort: [{ field: "updatedAt", direction: "desc" }],
+    },
+  },
+  { actorId },
+);
+
+const rows = await p.workspace.views.apply.run({ id: viewId, limit: 25 }, { actorId });
+```
+
+## Dashboards
+
+| Workflow          | Notes                                                                                                                             |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `create`/`update` | `layout` is a jsonb array of `{ widgetId, x, y, w, h }`; no overlap validation in v1                                              |
+| `duplicate`       | copies the dashboard **and its widgets**, remapping `layout` widgetIds to the new widget ids                                      |
+| `export`          | returns `{ dashboard, layout, widgets }` — a re-importable JSON snapshot (widgets include their source `id` for layout remapping) |
+| `import`          | recreates from a snapshot; new ids; `access` defaults to `personal` unless the snapshot specifies `global`                        |
+
+```ts
+const snapshot = await p.workspace.dashboards.export.run({ id }, { actorId });
+const clone = await p.workspace.dashboards.import.run({ input: snapshot }, { actorId });
+```
+
+## Widgets
+
+Four types, each with a type-specific `config` (validated against the matching valibot schema) and a datasource rule:
+
+| Type        | Config shape                                                 | Datasource rule                                      |
+| ----------- | ------------------------------------------------------------ | ---------------------------------------------------- |
+| `metric`    | `{ aggregation: count\|sum\|avg\|min\|max, field?, range? }` | requires `domain` + exactly one of `filter`/`viewId` |
+| `breakdown` | `{ field, limit?, order?, range? }`                          | requires `domain` + exactly one of `filter`/`viewId` |
+| `list`      | `{ columns?, limit?, range? }`                               | requires `domain` + exactly one of `filter`/`viewId` |
+| `embed`     | `{ kind: markdown\|url\|iframe, content, height? }`          | no datasource                                        |
+
+`WidgetRange = { preset: today|yesterday|this_week|last_7_days|this_month|this_quarter|this_year|all_time|custom, from?, to? }`.
+
+`add`/`update`/`move`/`remove` require mutation access on the parent dashboard; `get`/`list` require read access (widgets inherit dashboard access). `refresh(id, { error? })` sets `lastRefreshedAt` (and `lastError` on failure) — hosts call it after re-resolving a widget's datasource.
+
+## Schedules
+
+Schedules are per-dashboard cron deliveries (config: `{ recipients, format: export|pdf|url, subject? }`). Access inherits from the parent dashboard.
+
+| Workflow  | Notes                                                                                       |
+| --------- | ------------------------------------------------------------------------------------------- |
+| `create`  | registers a pg-boss cron on topic `workspace:schedule:<id>` + the module's delivery handler |
+| `update`  | re-registers the cron when `cron` changes and the schedule is active                        |
+| `pause`   | `isActive = false`; unregisters the cron topic                                              |
+| `resume`  | `isActive = true`; re-registers the cron topic                                              |
+| `markRun` | records `lastRunAt` (`at` or now) and `lastError`; hosts call after delivering              |
+| `delete`  | unregisters the cron and deletes the row                                                    |
+
+When a cron fires, the handler reads the schedule + dashboard and publishes `workspace:schedule_due` with the full `{ schedule, dashboard, at }` payload. **Delivery is the host's job** — the module never renders or sends. If the host doesn't subscribe to `workspace:schedule_due`, pg-boss silently drops it (the platform health check flags produced-but-unsubscribed topics).
+
+## Utilities
+
+| Group      | Workflows                          | Notes                                                                                                  |
+| ---------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `pins`     | `create`, `delete`, `list`         | sidebar shortcuts; unique `(userId, itemType, itemId)`                                                 |
+| `recent`   | `touch`, `list`                    | `touch` upserts + bumps `lastAccessedAt`; trims to `maxRecentItems`                                    |
+| `search`   | `quick`                            | access-scoped `ilike` over drafts/views/dashboards, merged result                                      |
+| `settings` | `get`, `set`                       | keys: `home_dashboard`, `default_view.<domain>`, `default_range`, `timezone`; values validated per key |
+| `watches`  | `subscribe`, `unsubscribe`, `list` | follow-subscriptions on views/dashboards (not pg-boss subscribe)                                       |
+
+All utilities are strictly user-scoped (`userId = actorId`) — no access column, no `access-service` involvement.

@@ -1,0 +1,136 @@
+---
+title: Overview
+description: Architecture, access model, initialization, config, and module structure of the Workspace module.
+icon: IconInfoCircle
+---
+
+The Workspace module is a dependency-free personal-workspace surface built on `@aspen-os/platform`: **drafts**, **filter views**, **dashboards** (with widgets and schedules), and per-user **utilities** (pins, recent, quick search, settings, watches). It stores and serves configuration; rendering, analytics execution, and scheduled delivery are the host application's responsibility.
+
+## Module
+
+```ts title="src/module.ts"
+export class Workspace implements Module {
+  static create(config?: WorkspaceModuleConfig): Workspace;
+  readonly $name = "workspace"; // proxy key: p.workspace
+  readonly $dependencies: readonly string[] = []; // no domain-module deps
+}
+```
+
+## Access Model
+
+Every data entity carries a user-set `access` enum — `personal` (visible only to `ownerId`) or `global` (org-wide within the tenant). Widgets and schedules inherit their parent dashboard's access. Runtime scoping lives in workflow code via `services/access-service.ts`:
+
+| Helper                     | Rule                                                             |
+| -------------------------- | ---------------------------------------------------------------- |
+| `assertCanAccess(row, id)` | `access = 'global' OR ownerId = actorId`                         |
+| `assertCanMutate(row, id)` | ownership of the row, **or** `user.role = 'admin'` (best-effort) |
+
+`list()`/`get()` filter at SQL level (`global OR owner = actorId`); mutations go through `assertCanMutate`. Pins, recent, settings, and watches are always user-scoped (`userId = actorId`) and carry no access column.
+
+## Architecture
+
+```text
+TENANT DATABASE (10 tables, workspace_ prefix)
+  workspace_draft, workspace_draft_comment
+  workspace_view
+  workspace_dashboard, workspace_widget, workspace_schedule
+  workspace_pin, workspace_recent, workspace_watch, workspace_setting
+```
+
+```text
+Host app                Workspace module                    Platform units
+──────────              ────────────────                    ──────────────
+registerViewResolver ──▶ runtime.ts registry
+  (per domain)              │
+                            │ apply(viewId) ──► resolver(conditions, sort, opts)
+create draft ── publish ──▶ workspace:draft_published ──► host creates target entity
+schedule due  ── cron ────▶ workspace:schedule_due ──────► host renders/delivers
+```
+
+## What It Exposes
+
+| Getter       | Methods                                                                                                                                                                         |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `drafts`     | `create`, `get`, `update`, `list`, `delete`, `submit`, `approve`, `reject`, `publish`, `reopen`, `trash`, `restore`, `duplicate`, `addComment`, `listComments`, `removeComment` |
+| `views`      | `create`, `get`, `update`, `list`, `delete`, `duplicate`, `apply`, `setDefault`                                                                                                 |
+| `dashboards` | `create`, `get`, `update`, `list`, `delete`, `duplicate`, `export`, `import`                                                                                                    |
+| `widgets`    | `add`, `get`, `list`, `update`, `move`, `refresh`, `remove` (top-level group; workflows live under `dashboard/widget/`)                                                         |
+| `schedules`  | `create`, `get`, `update`, `list`, `delete`, `pause`, `resume`, `markRun`                                                                                                       |
+| `pins`       | `create`, `delete`, `list`                                                                                                                                                      |
+| `recent`     | `touch`, `list` (bounded — trimmed to `maxRecentItems` per user)                                                                                                                |
+| `search`     | `quick` (access-scoped over drafts, views, dashboards)                                                                                                                          |
+| `settings`   | `get`, `set` (per user; keys validated against `SETTING_KEYS`)                                                                                                                  |
+| `watches`    | `subscribe`, `unsubscribe`, `list` (follow-subscriptions on views/dashboards — distinct from `PubSubUnit` subscribe)                                                            |
+
+```ts
+// Access via the platform proxy ($name = "workspace")
+const p = IsolatedTenantPlatform.create(config, [workspace]);
+
+await p.workspace.drafts.create({
+  input: { title: "Q3 offer letter", body: "…", targetDomain: "recruiter:contract" },
+});
+await p.workspace.views.create({
+  input: { name: "My open requisitions", domain: "recruiter:requisition", conditions: [...] },
+});
+await p.workspace.dashboards.create({
+  input: { name: "Pipeline", layout: [{ widgetId, x: 0, y: 0, w: 6, h: 2 }] },
+});
+```
+
+## View Resolver Registry
+
+`runtime.ts` holds a host-registered registry of resolvers, keyed by `domain`:
+
+```ts
+registerViewResolver(domain: string, resolver: ViewResolver): void;
+
+type ViewResolver = (
+  conditions: ViewCondition[], // [{ field, operator, value }]
+  sort: ViewSort[],            // [{ field, direction }]
+  opts: { limit?, offset? },
+) => Promise<{ rows: unknown[]; total?: number }>;
+```
+
+`views.apply(id)` fetches the view and calls the resolver for its `domain`; it **throws** if no resolver is registered for that domain. This is how the module stays dependency-free — it never queries another module's tables. Built-in domains are documented in `VIEW_DOMAIN` (`workspace:draft`, `tasks:task`, `dms:file`, `compliance:document`, `hr:employee`); `domain` itself stays free-form text (`<module>:<entity>`), so app-defined domains like `recruiter:candidate` work without a platform change.
+
+## Initialization
+
+`$initialize()` receives the `db` and `pubsub` units and stores them for `$prepareRuntime()` / `$cleanup()`:
+
+```ts
+$initialize(units: { db: DatabaseUnit; pubsub: PubSubUnit }): void;
+```
+
+`$prepareRuntime()` runs `registerScheduleRunner()` — it enumerates every **active** schedule row and registers a pg-boss cron per schedule (topic `workspace:schedule:<id>`), plus the module's own delivery handler. `$cleanup()` unregisters all of them.
+
+## Config
+
+`WorkspaceModuleConfig` (all optional):
+
+```ts
+type WorkspaceModuleConfig = {
+  maxRecentItems?: number; // 50 — recent-item cap per user
+  quickSearchLimit?: number; // 10 — per-surface quick-search cap
+};
+```
+
+## Infrastructure
+
+`$prepareInfra()` returns:
+
+```ts
+$prepareInfra(): ModuleInfra {
+  return {
+    auth: { acl },                      // draft, filterView, dashboard, widget, schedule, …
+    db: { control_plane_schemas: {}, tenant_schemas: workspaceTables }, // 10 tenant tables
+    events,                             // workspace:* topics
+  };
+}
+```
+
+## Key Invariants
+
+- **Dependency-free** — workspace never creates entities in other modules; `domain` is opaque. Hosts subscribe to `workspace:draft_published` to create target entities and register view resolvers to apply views.
+- **Approval is optional** — `publish` accepts both `approved` and `draft` states; hosts without a review step skip `submit`/`approve`.
+- **Widgets are declarative** — `metric`/`breakdown`/`list` widgets require a `domain` and exactly one of an inline `filter` or a `viewId` soft-FK; `embed` widgets forbid a datasource. The module stores configs and tracks `lastRefreshedAt`/`lastError`; it never computes aggregations.
+- **Scheduled delivery is event-driven** — the module only emits `workspace:schedule_due`; rendering and sending are the host's job.
