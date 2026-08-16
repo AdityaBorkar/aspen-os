@@ -1,0 +1,36 @@
+---
+title: Access Control
+description: ACL resources and operations declared by the Notes module.
+icon: IconShield
+---
+
+The Notes module declares its ACL via `defineAcl()`, which the platform merges from the module's `ModuleInfra.auth.acl` and applies to `AuthUnit` during `$prepareInfra()`.
+
+## Resources & Operations
+
+```ts title="src/auth.ts"
+import { defineAcl } from "@aspen-os/platform/server";
+
+export const acl = defineAcl({
+  note: ["create", "read", "update", "delete"],
+});
+```
+
+| Resource | Operations                           |
+| -------- | ------------------------------------ |
+| `note`   | `create`, `read`, `update`, `delete` |
+
+## Row-Level Enforcement
+
+The ACL declares operations; row-level access is enforced in the workflows via `services/access-service.ts`:
+
+| Function          | Rule                                  | Applied in         |
+| ----------------- | ------------------------------------- | ------------------ |
+| `assertCanAccess` | `global` OR `ownerId === actorId`     | `get`, `list`      |
+| `assertCanMutate` | `ownerId === actorId` OR tenant admin | `update`, `delete` |
+
+<Callout type="info">
+  The ACL is the *declaration* of operations. Role definitions and permission enforcement are
+  application-level concerns — the module exposes the workflows that perform these operations; the
+  host app decides who may call them.
+</Callout>

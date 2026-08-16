@@ -10,6 +10,7 @@ This document is the **overview** of the system's bounded contexts. Each context
 | `@aspen-os/constants`    | [`bounded-contexts/constants.md`](bounded-contexts/constants.md)       |
 | `@aspen-os/organization` | [`bounded-contexts/organization.md`](bounded-contexts/organization.md) |
 | `@aspen-os/masters`      | [`bounded-contexts/masters.md`](bounded-contexts/masters.md)           |
+| `@aspen-os/notes`        | [`bounded-contexts/notes.md`](bounded-contexts/notes.md)               |
 | `@aspen-os/compliance`   | [`bounded-contexts/compliance.md`](bounded-contexts/compliance.md)     |
 | `@aspen-os/tasks`        | [`bounded-contexts/tasks.md`](bounded-contexts/tasks.md)               |
 | `@aspen-os/dms`          | [`bounded-contexts/dms.md`](bounded-contexts/dms.md)                   |
@@ -79,15 +80,22 @@ Domain detail for each context lives in [`domain-model/`](domain-model/) (also s
 │                     └───────────────────┘  │ kvStore, pubsub│   │
 │  ┌───────────────────┐                     └───────────────┘   │
 │  │ Masters Module    │  ┌───────────────┐  ┌───────────────┐   │
-│  │ 5 wf groups       │  │ Tasks         │  │ DMS Module    │   │
-│  │ 5 tables          │  │ Module        │  │ 19 wf groups  │   │
-│  │ 16 events         │  │ 11 wf groups  │  │ 15 tables     │   │
-│  │ 5 ACL res.        │  │ 17 tables     │  │ 33 events     │   │
+│  │ 7 wf groups       │  │ Tasks         │  │ DMS Module    │   │
+│  │ 7 tables          │  │ Module        │  │ 19 wf groups  │   │
+│  │ 29 events         │  │ 11 wf groups  │  │ 15 tables     │   │
+│  │ 7 ACL res.        │  │ 17 tables     │  │ 33 events     │   │
 │  │ units: kvStore    │  │ 10 events     │  │ 12 ACL res.   │   │
 │  │ (connections)     │  │ units: none   │  │ units:        │   │
 │  └───────────────────┘  │               │  │ db, auth,     │   │
 │                         └───────────────┘  │ pubsub+storage│   │
 │  ┌───────────────┐                         └───────────────┘   │
+│  │ Notes Module  │                                              │
+│  │ 1 wf group    │                                              │
+│  │ 1 table       │                                              │
+│  │ 3 events      │                                              │
+│  │ 1 ACL res.    │                                              │
+│  │ units: none   │                                              │
+│  └───────────────┘                                              │
 │  ┌───────────────────────────┐                                   │
 │  │ Management Plane          │                                   │
 │  │ Module                    │                                   │
@@ -163,7 +171,8 @@ Domain events are published via PubSub as plain string topics. Event counts by m
 
 - Auth: 8 events
 - Organization: 7 events
-- Masters: 16 events
+- Masters: 29 events
+- Notes: 3 events
 - Compliance: 23 events
 - Tasks: 10 events
 - DMS: 33 events (13 file + 6 folder + 3 class + 3 contact + 2 share + 3 public_link + 3 file_view)
@@ -260,7 +269,8 @@ Three modules register scheduled cron jobs via PubSub:
 | Client Platform  | —             | —                                             | —                            | Browser-side (3 units)                                                                    |
 | Recruiter        | Downstream    | Platform                                      | —                            | Uses `SingleTenantPlatform`, registers organization + tasks (not yet in repo)             |
 | Organization     | Downstream    | Platform                                      | Compliance, Management Plane | 2 workflow groups, 2 tables, depends on Masters                                           |
-| Masters          | Downstream    | Platform, KV Store                            | Compliance, Organization     | 5 workflow groups, 5 tables, 16 events, 5 ACL resources                                   |
+| Masters          | Downstream    | Platform, KV Store                            | Compliance, Organization     | 7 workflow groups, 7 tables, 29 events, 7 ACL resources                                   |
+| Notes            | Downstream    | Platform                                      | —                            | 1 workflow group, 1 table, 3 events, 1 ACL resource                                       |
 | Compliance       | Downstream    | Platform, HR, Organization, Fleet, Accounting | —                            | 5 workflow groups, 3 tables, 3 services, subscribes to external events                    |
 | Tasks            | Downstream    | Platform                                      | —                            | 11 workflow groups, 17 tables (6 control + 11 tenant), empty ACL                          |
 | DMS              | Downstream    | Platform, Storage                             | —                            | 19 workflow groups, 15 tables, 33 events, 12 ACL resources, 2 crons                       |

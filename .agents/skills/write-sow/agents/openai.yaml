@@ -1,0 +1,6 @@
+---
+interface:
+  display_name: "Write SOW"
+  short_description: "Write a scope of work in .working-docs/sow/"
+policy:
+  allow_implicit_invocation: false

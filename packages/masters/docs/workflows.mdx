@@ -4,7 +4,7 @@ description: API reference for the workflow groups exposed by the Masters module
 icon: IconListCheck
 ---
 
-The Masters module exposes eight workflow groups as flat `Workflow` objects: `contacts`, `addresses`, `bankAccounts`, `connections`, `entities`, `notes`, `paymentMethods`, and `unitsOfMeasure`. Access via the platform proxy key `p.masters`.
+The Masters module exposes seven workflow groups as flat `Workflow` objects: `contacts`, `addresses`, `bankAccounts`, `connections`, `entities`, `paymentMethods`, and `unitsOfMeasure`. Access via the platform proxy key `p.masters`.
 
 Polymorphic entities (`contacts`, `addresses`, `bankAccounts`, `connections`, `paymentMethods`) require `entityType` and `entityId` (the owning `organization`, `branch`, `connection`, `contact`, or `entity`) on create/list; list queries filter on the `(entityType, entityId)` pair. `entities` and `unitsOfMeasure` are tenant-level — no scope pair.
 
@@ -113,19 +113,6 @@ const entities = await p.masters.entities.list({
 ```
 
 `setStatus` enforces `ENTITY_STATUS` transitions: `active` ↔ `inactive`, and both → `archived` (terminal).
-
-## Notes
-
-Access: `p.masters.notes`
-
-Polymorphic typed notes scoped per `(entityType, entityId)`.
-
-```ts
-await p.masters.notes.add({ entityType, entityId, userId, type: "general", content: "..." });
-await p.masters.notes.remove({ id });
-
-const notes = await p.masters.notes.list({ entityType, entityId, type? });
-```
 
 ## Payment Methods
 

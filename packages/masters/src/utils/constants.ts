@@ -4,7 +4,6 @@ export const AUDIT_ENTITY_TYPE = {
   CONNECTION: "masters:connection",
   CONTACT: "masters:contact",
   ENTITY: "masters:entity",
-  NOTE: "masters:note",
   PAYMENT_METHOD: "masters:payment_method",
   UNIT_OF_MEASURE: "masters:unit_of_measure",
 } as const;

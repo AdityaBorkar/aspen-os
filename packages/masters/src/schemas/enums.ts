@@ -6,7 +6,6 @@ import {
   ENTITY_TYPE,
   INTEGRATION_TYPE,
   MASTER_ENTITY_TYPE,
-  NOTE_TYPE,
   PAYMENT_METHOD_DIRECTION,
   PAYMENT_METHOD_STATUS,
   PAYMENT_METHOD_TYPE,
@@ -36,8 +35,6 @@ export const IntegrationTypeSchema = picklist(Object.values(INTEGRATION_TYPE));
 
 export const ConnectionStatusSchema = picklist(Object.values(CONNECTION_STATUS));
 
-export const NoteTypeSchema = picklist(Object.values(NOTE_TYPE));
-
 export {
   CARD_BRAND,
   CONTACT_TYPE,
@@ -46,7 +43,6 @@ export {
   ENTITY_TYPE,
   INTEGRATION_TYPE,
   MASTER_ENTITY_TYPE,
-  NOTE_TYPE,
   PAYMENT_METHOD_DIRECTION,
   PAYMENT_METHOD_STATUS,
   PAYMENT_METHOD_TYPE,

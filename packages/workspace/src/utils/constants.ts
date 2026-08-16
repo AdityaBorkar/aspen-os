@@ -85,6 +85,7 @@ export const VIEW_DOMAIN = {
   COMPLIANCE_DOCUMENT: "compliance:document",
   DMS_FILE: "dms:file",
   HR_EMPLOYEE: "hr:employee",
+  NOTES_NOTE: "notes:note",
   TASKS_TASK: "tasks:task",
   WORKSPACE_DRAFT: "workspace:draft",
 } as const;

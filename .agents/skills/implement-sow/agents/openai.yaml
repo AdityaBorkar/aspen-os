@@ -1,0 +1,6 @@
+---
+interface:
+  display_name: "Implement SOW"
+  short_description: "Execute a scope of work phase by phase"
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,93 @@
+---
+title: Overview
+description: Architecture, access model, and module structure of the Notes module.
+icon: IconInfoCircle
+---
+
+The Notes module owns the first-class `note` entity: optional `title`/`body`, `personal`/`global` access, `tags`, and an optional polymorphic `(scopeType, scopeId)` scope with a `type` (`NOTE_TYPE`). The polymorphic scope preserves the masters annotation use-case (contact/entity/connection notes) — removing masters notes was not a domain regression.
+
+`scopeType` is a free-form `<module>:<entity>` registry value (e.g. `masters:contact`, `tasks:task`, `calendar:event`); `scopeId` is the owning row's UUIDv7 id. Notes with a scope are annotation notes; unscoped notes are standalone quick-capture entries.
+
+## Module
+
+```ts title="src/module.ts"
+export class Notes implements Module {
+  static create(config?: NotesModuleConfig): Notes;
+  readonly $name = "notes"; // proxy key: p.notes
+  readonly $dependencies: readonly string[] = [];
+}
+```
+
+The module declares no platform-module dependencies. It is stateless — `$initialize`/`$prepareRuntime`/`$cleanup` are empty.
+
+## Access Model
+
+Every note has an `access` value — `personal` (default) or `global` — plus an `ownerId` derived from `actorId` at create time. Access is enforced at runtime via `services/access-service.ts`:
+
+```text
+assertCanAccess  = global OR ownerId === actorId        (read paths)
+assertCanMutate  = ownerId === actorId OR tenant admin  (update/delete paths)
+```
+
+A `global` note is readable by anyone in the tenant; only the owner or a tenant admin can modify or delete it. This is the same access/ACL split as dms/workspace/calendar.
+
+## Lifecycle
+
+```
+create ──▶ note (personal | global, optional scopeType/scopeId, type, tags)
+             │
+             ├── get    ──▶ assertCanAccess
+             ├── list   ──▶ access-scoped filter + scope/type/tags/search
+             ├── update ──▶ assertCanMutate; publishes note_updated
+             └── delete ──▶ assertCanMutate; publishes note_deleted
+```
+
+## What It Exposes
+
+| Getter  | Methods                                     |
+| ------- | ------------------------------------------- |
+| `notes` | `create`, `get`, `list`, `update`, `delete` |
+
+`create` derives `ownerId` from `actorId` (explicit `ownerId` input wins), defaults `access = personal`, validates `type` and the `scopeType` `<module>:<entity>` format.
+
+## Module Structure
+
+```text
+packages/notes/src/
+  index.ts              # Module class re-exports + dbSchema namespace
+  module.ts             # Module class (implements Module)
+  auth.ts               # defineAcl() ACL declaration
+  pubsub.ts             # notes:note_* events
+  db-schemas/           # note table + enums
+  types.ts              # Type re-exports
+  schemas/              # Valibot validation schemas
+  services/             # access-service (assertCanAccess/assertCanMutate)
+  workflow-steps/       # fetch-note step
+  workflows/            # One file per action under workflows/note/<verb>.ts
+  utils/                # Audit + access constants, strip-undefined
+```
+
+## Package
+
+```json title="package.json"
+{
+  "name": "@aspen-os/notes",
+  "type": "module",
+  "exports": { ".": "./.output/index.js" },
+  "dependencies": {
+    "@aspen-os/platform": "workspace:*",
+    "@aspen-os/constants": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "valibot": "catalog:"
+  }
+}
+```
+
+## Constants & Enums
+
+| Enum          | Values                                                             |
+| ------------- | ------------------------------------------------------------------ |
+| `NotesAccess` | `personal`, `global`                                               |
+| `NoteType`    | `general`, `call`, `email`, `meeting`, `contract_renewal`, `issue` |
+
+`NoteType` comes from the shared `@aspen-os/constants` (`NOTE_TYPE`); `NotesAccess` is module-local (workspace vocabulary, not promoted to a shared enum).

@@ -6,7 +6,6 @@ import {
   ENTITY_TYPE,
   INTEGRATION_TYPE,
   MASTER_ENTITY_TYPE,
-  NOTE_TYPE,
   PAYMENT_METHOD_DIRECTION,
   PAYMENT_METHOD_STATUS,
   PAYMENT_METHOD_TYPE,
@@ -72,15 +71,6 @@ export const masterConnectionStatusEnum = pgEnum("master_connection_status", [
   CONNECTION_STATUS.INACTIVE,
   CONNECTION_STATUS.EXPIRED,
   CONNECTION_STATUS.REVOKED,
-]);
-
-export const masterNoteTypeEnum = pgEnum("master_note_type", [
-  NOTE_TYPE.GENERAL,
-  NOTE_TYPE.CALL,
-  NOTE_TYPE.EMAIL,
-  NOTE_TYPE.MEETING,
-  NOTE_TYPE.CONTRACT_RENEWAL,
-  NOTE_TYPE.ISSUE,
 ]);
 
 export const masterUomCategoryEnum = pgEnum("master_uom_category_enum", [

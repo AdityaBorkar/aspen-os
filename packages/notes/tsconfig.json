@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "declarationDir": "../../.local/types/notes",
+    "paths": {
+      "#/*": ["./src/*"]
+    }
+  },
+  "extends": "../../tsconfig.json"
+}

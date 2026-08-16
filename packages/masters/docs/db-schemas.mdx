@@ -4,7 +4,7 @@ description: Database tables, enums, and relationships for the Masters module.
 icon: IconDatabase
 ---
 
-The Masters module defines 8 tables and 12 enums using Drizzle ORM. All tables are tenant schemas with the `master_` prefix.
+The Masters module defines 7 tables and 11 enums using Drizzle ORM. All tables are tenant schemas with the `master_` prefix.
 
 ## Enums
 
@@ -14,7 +14,6 @@ The Masters module defines 8 tables and 12 enums using Drizzle ORM. All tables a
 | `master_contact_type`                  | `master_contact.type`              | `client`, `vendor`, `partner`, `subsidiary`, `parent_company`, `investor`, `regulator`, `insurer`, `bank`, `other`                                                              |
 | `master_integration_type`              | `master_connection.type`           | `api_key`, `oauth2`, `webhook`, `basic_auth`, `database`, `other`                                                                                                               |
 | `master_connection_status`             | `master_connection.status`         | `active`, `inactive`, `expired`, `revoked`                                                                                                                                      |
-| `master_note_type`                     | `master_note.type`                 | `general`, `call`, `email`, `meeting`, `contract_renewal`, `issue`                                                                                                              |
 | `master_entity_type_enum`              | `master_entity.type`               | `customer`, `vendor`, `partner`, `hospital`, `clinic`, `laboratory`, `pharmacy`, `insurer`, `regulator`, `bank`, `staffing_agency`, `training_institute`, `government`, `other` |
 | `master_entity_status_enum`            | `master_entity.status`             | `active`, `inactive`, `archived`                                                                                                                                                |
 | `master_uom_category_enum`             | `master_unit_of_measure.category`  | `length`, `mass`, `volume`, `count`, `time`, `area`, `temperature`, `data`, `other`                                                                                             |
@@ -91,16 +90,6 @@ Integration connection to an external API/entity. **No plaintext credentials** �
 | `last_tested_at` | timestamptz              | Last successful test timestamp                |
 | `last_used_at`   | timestamptz              | Last use timestamp                            |
 | `metadata`       | jsonb                    | Flexible metadata                             |
-
-### `master_note`
-
-Polymorphic typed note scoped per `(entity_type, entity_id)`.
-
-| Column    | Type             | Description    |
-| --------- | ---------------- | -------------- |
-| `content` | text             | Note content   |
-| `type`    | master_note_type | Note type      |
-| `user_id` | text             | Author user ID |
 
 ### `master_entity`
 
@@ -181,7 +170,6 @@ branch       ──┼──(entityType, entityId)──▶ master_contact
 connection   ──┤                            master_address
 contact      ──┤                            master_bank_account
 entity       ──┘                            master_connection
-                                            master_note
                                             master_payment_method
 
 master_entity.organization_id ──▶ organization (optional parent)

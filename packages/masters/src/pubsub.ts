@@ -37,11 +37,6 @@ export const CONNECTION_EVENTS = {
   UPDATED: "masters:connection_updated",
 } as const;
 
-export const NOTE_EVENTS = {
-  ADDED: "masters:note_added",
-  REMOVED: "masters:note_removed",
-} as const;
-
 export const ENTITY_EVENTS = {
   CREATED: "masters:entity_created",
   REMOVED: "masters:entity_removed",
@@ -71,7 +66,6 @@ export const events = {
   CONNECTION_EVENTS,
   CONTACT_EVENTS,
   ENTITY_EVENTS,
-  NOTE_EVENTS,
   PAYMENT_METHOD_EVENTS,
   UNIT_OF_MEASURE_EVENTS,
 };
@@ -164,22 +158,6 @@ export interface ConnectionRemovedEvent {
   connectionId: string;
   entityId: string;
   entityType: MasterEntityType;
-}
-
-export interface NoteAddedEvent {
-  entityId: string;
-  entityType: MasterEntityType;
-  note: {
-    content: string;
-    id: string;
-    type: string;
-  };
-}
-
-export interface NoteRemovedEvent {
-  entityId: string;
-  entityType: MasterEntityType;
-  noteId: string;
 }
 
 export interface EntityCreatedEvent {
@@ -317,11 +295,6 @@ export interface ConnectionEventMap {
   [CONNECTION_EVENTS.UPDATED]: ConnectionUpdatedEvent;
 }
 
-export interface NoteEventMap {
-  [NOTE_EVENTS.ADDED]: NoteAddedEvent;
-  [NOTE_EVENTS.REMOVED]: NoteRemovedEvent;
-}
-
 export interface EntityEventMap {
   [ENTITY_EVENTS.CREATED]: EntityCreatedEvent;
   [ENTITY_EVENTS.REMOVED]: EntityRemovedEvent;
@@ -350,6 +323,5 @@ export type MastersEventMap = AddressEventMap &
   ConnectionEventMap &
   ContactEventMap &
   EntityEventMap &
-  NoteEventMap &
   PaymentMethodEventMap &
   UnitOfMeasureEventMap;

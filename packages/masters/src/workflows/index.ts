@@ -31,9 +31,6 @@ import { getEntity } from "#/workflows/entity/get";
 import { listEntities } from "#/workflows/entity/list";
 import { setEntityStatus } from "#/workflows/entity/status/set";
 import { updateEntity } from "#/workflows/entity/update";
-import { addNote } from "#/workflows/note/add";
-import { listNotes } from "#/workflows/note/list";
-import { removeNote } from "#/workflows/note/remove";
 import { activatePaymentMethod } from "#/workflows/payment-method/activate";
 import { createPaymentMethod } from "#/workflows/payment-method/create";
 import { deactivatePaymentMethod } from "#/workflows/payment-method/deactivate";
@@ -86,12 +83,6 @@ export const entities = {
   list: listEntities,
   setStatus: setEntityStatus,
   update: updateEntity,
-} as const;
-
-export const notes = {
-  add: addNote,
-  list: listNotes,
-  remove: removeNote,
 } as const;
 
 export const paymentMethods = {

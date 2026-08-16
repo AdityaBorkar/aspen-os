@@ -4,7 +4,7 @@ description: Domain event map for the Masters module — 31 events across 8 even
 icon: IconBell
 ---
 
-The Masters module defines 31 domain events across 8 event groups. Events are type-level contracts published as plain string topics via PubSub. The `masters:contact_created` event replaces the old `organization:connection_created` for the compliance insurer flow.
+The Masters module defines 29 domain events across 7 event groups. Events are type-level contracts published as plain string topics via PubSub. The `masters:contact_created` event replaces the old `organization:connection_created` for the compliance insurer flow.
 
 ## Event Constants
 
@@ -34,11 +34,6 @@ export const CONNECTION_EVENTS = {
   REMOVED: "masters:connection_removed",
   STATUS_CHANGED: "masters:connection_status_changed",
   UPDATED: "masters:connection_updated",
-} as const;
-
-export const NOTE_EVENTS = {
-  ADDED: "masters:note_added",
-  REMOVED: "masters:note_removed",
 } as const;
 
 export const ENTITY_EVENTS = {
@@ -102,13 +97,6 @@ export const PAYMENT_METHOD_EVENTS = {
 | `masters:connection_credential_rotated` | `{ connectionId }`                                         | Credential rotated |
 | `masters:connection_removed`            | `{ connectionId, entityId, entityType }`                   | Connection removed |
 
-### Note Events
-
-| Event                  | Payload                                                 | Trigger      |
-| ---------------------- | ------------------------------------------------------- | ------------ |
-| `masters:note_added`   | `{ entityId, entityType, note: { id, content, type } }` | Note added   |
-| `masters:note_removed` | `{ entityId, entityType, noteId }`                      | Note removed |
-
 ### Entity Events
 
 | Event                    | Payload                                   | Trigger        |
@@ -168,7 +156,6 @@ export type MastersEventMap = AddressEventMap &
   ConnectionEventMap &
   ContactEventMap &
   EntityEventMap &
-  NoteEventMap &
   PaymentMethodEventMap &
   UnitOfMeasureEventMap;
 ```

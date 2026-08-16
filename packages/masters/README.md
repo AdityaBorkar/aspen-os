@@ -1,16 +1,16 @@
 # @aspen-os/masters
 
-A domain module for the Aspen OS framework that owns **polymorphic tenant master data**: contacts, addresses, bank accounts, integration connections, and notes.
+A domain module for the Aspen OS framework that owns **polymorphic tenant master data**: contacts, addresses, bank accounts, integration connections, entities, payment methods, and tenant-wide units of measure.
 
 ## Overview
 
-Every masters entity is scoped to an owner via a `(entityType, entityId)` pair (`master_entity_type`: `organization` | `branch` | `connection` | `contact`). This surface was extracted from `@aspen-os/organization`.
+Every masters entity is scoped to an owner via a `(entityType, entityId)` pair (`master_entity_type`: `organization` | `branch` | `connection` | `contact` | `entity`). This surface was extracted from `@aspen-os/organization`.
 
 `connection` is an **integration connection** to an external API/entity (not a business relationship). Credentials are stored in the platform `kvStore` and referenced by `credentialRef`; workflows support endpoint `test` and credential `rotateCredential`. Business relationships are `contact` records with a `CONTACT_TYPE`.
 
 **Package**: `@aspen-os/masters`  
 **Module name**: `"masters"`  
-**Tables**: 5 tenant tables (`master_` prefix)  
+**Tables**: 7 tenant tables (`master_` prefix)  
 **Validation**: Valibot for all input schemas
 
 ## Workflow groups
@@ -20,7 +20,9 @@ platform.masters.addresses; // create, delete, get, list, setPrimary, update
 platform.masters.bankAccounts; // activate, create, deactivate, delete, get, list, setPrimary, update
 platform.masters.connections; // activate, create, deactivate, delete, get, list, rotateCredential, test, update
 platform.masters.contacts; // create, delete, get, list, setPrimary, update
-platform.masters.notes; // add, list, remove
+platform.masters.entities; // create, delete, get, list, setStatus, update
+platform.masters.paymentMethods; // activate, create, deactivate, delete, get, list, setPrimary, update
+platform.masters.unitsOfMeasure; // activate, create, deactivate, delete, get, list, update
 ```
 
 All create/list operations take `entityType` + `entityId` for the polymorphic scope. The `connections` group is bound to the platform `kvStore` unit (management-hybrid getter).

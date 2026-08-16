@@ -3,7 +3,6 @@ import { masterBankAccount } from "#/db-schemas/bank-account";
 import { masterConnection } from "#/db-schemas/connection";
 import { masterContact } from "#/db-schemas/contact";
 import { masterEntity } from "#/db-schemas/entity";
-import { masterNote } from "#/db-schemas/note";
 import { masterPaymentMethod } from "#/db-schemas/payment-method";
 import { masterUnitOfMeasure } from "#/db-schemas/unit-of-measure";
 
@@ -20,13 +19,11 @@ export {
   masterEntityStatusEnum,
   masterEntityTypeEnum,
   masterIntegrationTypeEnum,
-  masterNoteTypeEnum,
   masterPaymentMethodDirectionEnum,
   masterPaymentMethodStatusEnum,
   masterPaymentMethodTypeEnum,
   masterUomCategoryEnum,
 } from "#/db-schemas/enums";
-export { masterNote } from "#/db-schemas/note";
 export { masterPaymentMethod } from "#/db-schemas/payment-method";
 export { masterUnitOfMeasure } from "#/db-schemas/unit-of-measure";
 
@@ -36,7 +33,6 @@ export const mastersTables = {
   masterConnection,
   masterContact,
   masterEntity,
-  masterNote,
   masterPaymentMethod,
   masterUnitOfMeasure,
 } as const;

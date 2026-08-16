@@ -1,0 +1,68 @@
+---
+title: Events
+description: Domain event map for the Notes module — 3 events across 1 event group.
+icon: IconBell
+---
+
+The Notes module defines 3 domain events in a single group. Events are type-level contracts published as plain string topics via PubSub. They replace the removed `masters:note_added`/`masters:note_removed` events.
+
+## Event Constants
+
+```ts title="src/pubsub.ts"
+export const NOTE_EVENTS = {
+  CREATED: "notes:note_created",
+  UPDATED: "notes:note_updated",
+  DELETED: "notes:note_deleted",
+} as const;
+```
+
+## Event Map
+
+| Event                | Payload                                                                    | Trigger      |
+| -------------------- | -------------------------------------------------------------------------- | ------------ |
+| `notes:note_created` | `{ note: { id, title, body, type, access, scopeType, scopeId } }`          | Note created |
+| `notes:note_updated` | `{ note: { id, title, body, type, access, scopeType, scopeId }, changes }` | Note updated |
+| `notes:note_deleted` | `{ note: { id, title, body, type, access, scopeType, scopeId } }`          | Note deleted |
+
+`scopeType`/`scopeId` are `null` for unscoped notes.
+
+## Usage
+
+### Publishing Events
+
+Events are published via `PubSubUnit.publish()`:
+
+```ts
+await p.pubsub.publish("notes:note_created", {
+  note: {
+    id,
+    title: "Call notes",
+    body: "…",
+    type: "call",
+    access: "personal",
+    scopeType: null,
+    scopeId: null,
+  },
+});
+```
+
+### Subscribing to Events
+
+```ts
+await p.pubsub.subscribe("notes:note_updated", async (message) => {
+  const { note, changes } = message.data;
+  // React to note change
+});
+```
+
+## Event Map Type
+
+```ts title="src/pubsub.ts"
+export type NotesEventMap = NoteEventMap;
+```
+
+<Callout type="info">
+  The event map is a type-level contract — it is not enforced at runtime. Workflows publish events
+  as plain string topics. Unsubscribed topics are silently dropped by pg-boss; the health check
+  flags only topics actually published.
+</Callout>

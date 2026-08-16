@@ -3,7 +3,6 @@ export type { MasterBankAccount, NewMasterBankAccount } from "#/db-schemas/bank-
 export type { MasterConnection, NewMasterConnection } from "#/db-schemas/connection";
 export type { MasterContact, NewMasterContact } from "#/db-schemas/contact";
 export type { MasterEntity, NewMasterEntity } from "#/db-schemas/entity";
-export type { MasterNote, NewMasterNote } from "#/db-schemas/note";
 export type { MasterPaymentMethod, NewMasterPaymentMethod } from "#/db-schemas/payment-method";
 export type { MasterUnitOfMeasure, NewMasterUnitOfMeasure } from "#/db-schemas/unit-of-measure";
 export type {
@@ -31,9 +30,6 @@ export type {
   EntityRemovedEvent,
   EntityUpdatedEvent,
   MastersEventMap,
-  NoteAddedEvent,
-  NoteEventMap,
-  NoteRemovedEvent,
   PaymentMethodActivatedEvent,
   PaymentMethodCreatedEvent,
   PaymentMethodDeactivatedEvent,
@@ -55,7 +51,6 @@ export {
   CONTACT_EVENTS,
   ENTITY_EVENTS,
   events,
-  NOTE_EVENTS,
   PAYMENT_METHOD_EVENTS,
   UNIT_OF_MEASURE_EVENTS,
 } from "#/pubsub";
@@ -70,7 +65,6 @@ export type {
   CreateConnectionInput,
   CreateContactInput,
   CreateEntityInput,
-  CreateNoteInput,
   CreatePaymentMethodInput,
   CreateUnitOfMeasureInput,
   EntityFilters,
@@ -80,7 +74,6 @@ export type {
   ListConnectionsInput,
   ListContactsInput,
   ListEntitiesInput,
-  ListNotesInput,
   ListPaymentMethodsInput,
   ListUnitsOfMeasureInput,
   PaymentMethodFilters,
@@ -110,7 +103,6 @@ export {
   CreateConnectionSchema,
   CreateContactSchema,
   CreateEntitySchema,
-  CreateNoteSchema,
   CreatePaymentMethodSchema,
   CreateUnitOfMeasureSchema,
   EmailSchema,
@@ -125,12 +117,10 @@ export {
   ListConnectionsSchema,
   ListContactsSchema,
   ListEntitiesSchema,
-  ListNotesSchema,
   ListPaymentMethodsSchema,
   ListUnitsOfMeasureSchema,
   MasterEntityTypeSchema,
   NameSchema,
-  NoteTypeSchema,
   PaymentMethodDirectionSchema,
   PaymentMethodFiltersSchema,
   PaymentMethodStatusSchema,
@@ -157,7 +147,6 @@ export type {
   EntityType,
   IntegrationType,
   MasterEntityType,
-  NoteType,
   PaymentMethodDirection,
   PaymentMethodStatus,
   PaymentMethodType,
@@ -171,7 +160,6 @@ export {
   ENTITY_TYPE,
   INTEGRATION_TYPE,
   MASTER_ENTITY_TYPE,
-  NOTE_TYPE,
   PAYMENT_METHOD_DIRECTION,
   PAYMENT_METHOD_STATUS,
   PAYMENT_METHOD_TYPE,

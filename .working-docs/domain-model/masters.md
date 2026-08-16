@@ -1,6 +1,6 @@
 # Masters Domain Model
 
-> Package: `@aspen-os/masters`. Polymorphic tenant master data — contacts, addresses, bank accounts, integration connections, notes, entities, payment methods — plus tenant-wide units of measure. All 8 tables are tenant schemas (`master_` prefix).
+> Package: `@aspen-os/masters`. Polymorphic tenant master data — contacts, addresses, bank accounts, integration connections, entities, payment methods — plus tenant-wide units of measure. All 7 tables are tenant schemas (`master_` prefix).
 
 ## Entity-Relationship Diagram
 
@@ -25,21 +25,24 @@
 │  └────────────────┘     │  metadata      │     │  metadata           │      │
 │                         └────────────────┘     └─────────────────────┘      │
 │                                                                             │
-│  ┌────────────────┐     ┌────────────────┐     ┌─────────────────────┐      │
-│  │MasterConnection│     │   MasterNote   │     │   MasterEntity      │      │
-│  │  id            │     │  id            │     │  id                 │      │
-│  │  name          │     │  content       │     │  name, code (uniq)  │      │
-│  │  type          │     │  type          │     │  type (ENTITY_TYPE) │      │
-│  │  status        │     │  userId        │     │  status             │      │
-│  │  baseUrl       │     │  entityType    │     │  industry, website  │      │
-│  │  description   │     │  entityId      │     │  phone, email       │      │
-│  │  credentialRef │     └────────────────┘     │  taxId              │      │
-│  │  lastTestedAt  │                            │  registrationNumber │      │
-│  │  lastUsedAt    │     credentialRef →        │  foundedDate        │      │
-│  │  entityType    │     kvStore secret         │  timezone, locale   │      │
-│  │  entityId      │     (encrypted)            │  organizationId (FK)│      │
-│  │  metadata      │                            │  metadata           │      │
-│  └────────────────┘                            └─────────────────────┘      │
+│  ┌────────────────┐     ┌─────────────────────┐                            │
+│  │MasterConnection│     │   MasterEntity      │                            │
+│  │  id            │     │  id                 │                            │
+│  │  name          │     │  name, code (uniq)  │                            │
+│  │  type          │     │  type (ENTITY_TYPE) │                            │
+│  │  status        │     │  status             │                            │
+│  │  baseUrl       │     │  industry, website  │                            │
+│  │  description   │     │  phone, email       │                            │
+│  │  credentialRef │     │  taxId              │                            │
+│  │  lastTestedAt  │     │  registrationNumber │                            │
+│  │  lastUsedAt    │     │  foundedDate        │                            │
+│  │  entityType    │     │  timezone, locale   │                            │
+│  │  entityId      │     │  organizationId (FK)│                            │
+│  │  metadata      │     │  metadata           │                            │
+│  └────────────────┘     └─────────────────────┘                            │
+│       credentialRef →                                                      │
+│       kvStore secret                                                       │
+│       (encrypted)                                                          │
 │                                                                             │
 │  ┌─────────────────────┐     ┌────────────────────────────────────────┐     │
 │  │ MasterPaymentMethod │     │       MasterUnitOfMeasure             │     │
@@ -114,15 +117,9 @@
 - `type` is an `ENTITY_TYPE` value (`customer`/`vendor`/`partner`/`hospital`/`clinic`/`laboratory`/`pharmacy`/`insurer`/`regulator`/`bank`/`staffing_agency`/`training_institute`/`government`/`other`).
 - `status` is an `ENTITY_STATUS` value (`active`/`inactive`/`archived`) with transitions `active` ↔ `inactive`, and both → `archived` (terminal).
 - `code`, when set, is unique per tenant.
-- A tenant-level **owner**: it becomes a `master_entity_type` value (`entity`) so existing masters (contact/address/bank_account/note/payment_method) can scope to it. The optional `organizationId` links it to an `organization` profile row.
+- A tenant-level **owner**: it becomes a `master_entity_type` value (`entity`) so existing masters (contact/address/bank_account/payment_method) can scope to it. The optional `organizationId` links it to an `organization` profile row.
 
 **Lifecycle commands**: `create(input)`, `update(id, patch)`, `delete(id)`, `setStatus(id, status)`, `list(filters?)`.
-
-### Note (Aggregate Root)
-
-**Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)`)
-
-**Lifecycle commands**: `add(input)`, `remove(id)`, `list(entityType, entityId, type?)`.
 
 ### Payment Method (Aggregate Root)
 
@@ -152,35 +149,34 @@
 
 **Lifecycle commands**: `create(input)`, `update(id, patch)`, `delete(id)`, `activate(id)` / `deactivate(id)`, `list(filters?)`.
 
-## Domain Events — 31
+## Domain Events — 29
 
-| Event                                                | Payload                                                                                      | Trigger                                |
-| ---------------------------------------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------- |
-| `masters:contact_created`                            | `{ contact: { id, name, type }, entityType }`                                                | Contact created                        |
-| `masters:contact_updated`                            | `{ contact: { id, name }, changes, entityType }`                                             | Contact updated                        |
-| `masters:contact_removed`                            | `{ contactId, entityId, entityType }`                                                        | Contact removed                        |
-| `masters:address_created`                            | `{ address: { id, country, label }, entityId, entityType }`                                  | Address created                        |
-| `masters:address_updated`                            | `{ address: { id }, changes, entityId, entityType }`                                         | Address updated                        |
-| `masters:address_removed`                            | `{ addressId }`                                                                              | Address removed                        |
-| `masters:bank_account_created`                       | `{ bankAccount: { id, bankName, currency }, entityId, entityType }`                          | Bank account created                   |
-| `masters:bank_account_updated`                       | `{ bankAccount: { id }, changes, entityId, entityType }`                                     | Bank account updated                   |
-| `masters:bank_account_activated`                     | `{ bankAccountId }`                                                                          | Bank account activated                 |
-| `masters:bank_account_deactivated`                   | `{ bankAccountId }`                                                                          | Bank account deactivated               |
-| `masters:connection_created`                         | `{ connection: { id, name, type }, entityId, entityType }`                                   | Connection created                     |
-| `masters:connection_updated`                         | `{ connection: { id, name }, changes }`                                                      | Connection updated                     |
-| `masters:connection_status_changed`                  | `{ connectionId, fromStatus, toStatus }`                                                     | Connection status changed              |
-| `masters:connection_credential_rotated`              | `{ connectionId }`                                                                           | Connection credential rotated          |
-| `masters:connection_removed`                         | `{ connectionId, entityId, entityType }`                                                     | Connection removed                     |
-| `masters:note_added` / `masters:note_removed`        | `{ entityId, entityType, note: { id, content, type } }` / `{ entityId, entityType, noteId }` | Note added / removed                   |
-| `masters:entity_created` / `_removed`                | `{ entity: { id, name, type } }`                                                             | Entity created / removed               |
-| `masters:entity_updated`                             | `{ entity: { id, name, type }, changes }`                                                    | Entity updated                         |
-| `masters:unit_of_measure_created` / `_removed`       | `{ unitOfMeasure: { id, code, category } }`                                                  | UOM created / removed                  |
-| `masters:unit_of_measure_updated`                    | `{ unitOfMeasure: { id, code, category }, changes }`                                         | UOM updated                            |
-| `masters:unit_of_measure_activated` / `_deactivated` | `{ unitOfMeasureId }`                                                                        | UOM activated / deactivated            |
-| `masters:payment_method_created` / `_removed`        | `{ paymentMethod: { id, name, type }, entityType, entityId }`                                | Payment method created / removed       |
-| `masters:payment_method_updated`                     | `{ paymentMethod: { id, name, type }, entityType, entityId, changes }`                       | Payment method updated                 |
-| `masters:payment_method_activated` / `_deactivated`  | `{ paymentMethodId, entityType, entityId }`                                                  | Payment method activated / deactivated |
-| `masters:payment_method_primary_set`                 | `{ paymentMethodId, entityType, entityId, direction }`                                       | Payment method primary set             |
+| Event                                                | Payload                                                                | Trigger                                |
+| ---------------------------------------------------- | ---------------------------------------------------------------------- | -------------------------------------- |
+| `masters:contact_created`                            | `{ contact: { id, name, type }, entityType }`                          | Contact created                        |
+| `masters:contact_updated`                            | `{ contact: { id, name }, changes, entityType }`                       | Contact updated                        |
+| `masters:contact_removed`                            | `{ contactId, entityId, entityType }`                                  | Contact removed                        |
+| `masters:address_created`                            | `{ address: { id, country, label }, entityId, entityType }`            | Address created                        |
+| `masters:address_updated`                            | `{ address: { id }, changes, entityId, entityType }`                   | Address updated                        |
+| `masters:address_removed`                            | `{ addressId }`                                                        | Address removed                        |
+| `masters:bank_account_created`                       | `{ bankAccount: { id, bankName, currency }, entityId, entityType }`    | Bank account created                   |
+| `masters:bank_account_updated`                       | `{ bankAccount: { id }, changes, entityId, entityType }`               | Bank account updated                   |
+| `masters:bank_account_activated`                     | `{ bankAccountId }`                                                    | Bank account activated                 |
+| `masters:bank_account_deactivated`                   | `{ bankAccountId }`                                                    | Bank account deactivated               |
+| `masters:connection_created`                         | `{ connection: { id, name, type }, entityId, entityType }`             | Connection created                     |
+| `masters:connection_updated`                         | `{ connection: { id, name }, changes }`                                | Connection updated                     |
+| `masters:connection_status_changed`                  | `{ connectionId, fromStatus, toStatus }`                               | Connection status changed              |
+| `masters:connection_credential_rotated`              | `{ connectionId }`                                                     | Connection credential rotated          |
+| `masters:connection_removed`                         | `{ connectionId, entityId, entityType }`                               | Connection removed                     |
+| `masters:entity_created` / `_removed`                | `{ entity: { id, name, type } }`                                       | Entity created / removed               |
+| `masters:entity_updated`                             | `{ entity: { id, name, type }, changes }`                              | Entity updated                         |
+| `masters:unit_of_measure_created` / `_removed`       | `{ unitOfMeasure: { id, code, category } }`                            | UOM created / removed                  |
+| `masters:unit_of_measure_updated`                    | `{ unitOfMeasure: { id, code, category }, changes }`                   | UOM updated                            |
+| `masters:unit_of_measure_activated` / `_deactivated` | `{ unitOfMeasureId }`                                                  | UOM activated / deactivated            |
+| `masters:payment_method_created` / `_removed`        | `{ paymentMethod: { id, name, type }, entityType, entityId }`          | Payment method created / removed       |
+| `masters:payment_method_updated`                     | `{ paymentMethod: { id, name, type }, entityType, entityId, changes }` | Payment method updated                 |
+| `masters:payment_method_activated` / `_deactivated`  | `{ paymentMethodId, entityType, entityId }`                            | Payment method activated / deactivated |
+| `masters:payment_method_primary_set`                 | `{ paymentMethodId, entityType, entityId, direction }`                 | Payment method primary set             |
 
 ## Command-Query Separation
 
@@ -197,7 +193,6 @@
 | Connection      | Rotate credential      | `p.masters.connections.rotateCredential()`         |
 | Entity          | Create entity          | `p.masters.entities.create()`                      |
 | Entity          | Set status             | `p.masters.entities.setStatus()`                   |
-| Note            | Add note               | `p.masters.notes.add()`                            |
 | Payment Method  | Create payment method  | `p.masters.paymentMethods.create()`                |
 | Payment Method  | Set primary            | `p.masters.paymentMethods.setPrimary()`            |
 | Unit of Measure | Create unit of measure | `p.masters.unitsOfMeasure.create()`                |
@@ -212,7 +207,6 @@
 | Bank Account    | List accounts         | `p.masters.bankAccounts.list(entityType, entityId, filters?)`   |
 | Connection      | List connections      | `p.masters.connections.list(entityType, entityId, filters?)`    |
 | Entity          | List entities         | `p.masters.entities.list(filters?)`                             |
-| Note            | List notes            | `p.masters.notes.list(entityType, entityId, type?)`             |
 | Payment Method  | List payment methods  | `p.masters.paymentMethods.list(entityType, entityId, filters?)` |
 | Unit of Measure | List units of measure | `p.masters.unitsOfMeasure.list(filters?)`                       |
 

@@ -1,0 +1,55 @@
+---
+title: Workflows
+description: API reference for the note workflows exposed by the Notes module.
+icon: IconListCheck
+---
+
+The Notes module exposes one workflow group — `notes` — as a flat `Workflow` object, accessed via the platform proxy key `p.notes`.
+
+## Notes
+
+Access: `p.notes.notes`
+
+```ts
+await p.notes.notes.create({
+  body: "Follow up on pricing",
+  title: "Call notes",
+  type: "call",
+  access: "personal",
+  tags: ["sales"],
+  scopeType: "masters:contact",
+  scopeId: contactId,
+});
+await p.notes.notes.get({ id });
+await p.notes.notes.update({
+  id,
+  input: { body: "…", access: "global", tags: ["sales", "urgent"] },
+});
+await p.notes.notes.delete({ id });
+```
+
+`create` derives `ownerId` from `actorId`; pass an explicit `ownerId` to override. `access` defaults to `personal`. `update` and `delete` are owner/admin-only (`assertCanMutate`).
+
+## Listing
+
+`list` filters by an access-scoped default (`access = 'global' OR ownerId = actorId`) plus optional filters:
+
+```ts
+const notes = await p.notes.notes.list({
+  filters: {
+    scopeType: "masters:contact",
+    scopeId: contactId,
+    type: "call",
+    tags: ["sales"], // any-match
+    search: "pricing", // ilike on title/body
+    limit: 50,
+    offset: 0,
+  },
+});
+```
+
+Results are ordered by `createdAt` descending.
+
+## Conventions
+
+All workflow methods are `Workflow.name(...)` instances with Valibot input validation. `create` takes `{ input: CreateNoteSchema }`; `update` takes `{ id, input: UpdateNoteSchema }`; `get`/`delete` take `{ id }`. Every action writes an audit entry (via `ctx.audit`) and publishes a `notes:note_*` event.

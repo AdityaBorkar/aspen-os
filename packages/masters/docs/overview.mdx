@@ -4,7 +4,7 @@ description: Architecture, polymorphic ownership model, initialization, and modu
 icon: IconInfoCircle
 ---
 
-The Masters module owns **polymorphic tenant master data**: `contact`, `address`, `bankAccount`, `connection`, `note`, `entity`, and `paymentMethod` — plus **tenant-wide reference data**: `unitOfMeasure`. Every polymorphic entity is scoped to an owner via a `(entityType, entityId)` pair, where the owner type is one of `organization`, `branch`, `connection`, `contact`, or `entity` (`master_entity_type`).
+The Masters module owns **polymorphic tenant master data**: `contact`, `address`, `bankAccount`, `connection`, `entity`, and `paymentMethod` — plus **tenant-wide reference data**: `unitOfMeasure`. Every polymorphic entity is scoped to an owner via a `(entityType, entityId)` pair, where the owner type is one of `organization`, `branch`, `connection`, `contact`, or `entity` (`master_entity_type`).
 
 `connection` is an integration connection to an external API/entity — it stores `type`, `status`, `baseUrl`, and a `credentialRef` pointing at an encrypted secret in the platform `kvStore`. Credential material is never stored in plaintext; workflows support credential rotation and endpoint testing. Business relationships are modeled as `contact` records with a `type` (`vendor`, `client`, `insurer`, …).
 
@@ -24,12 +24,12 @@ The module declares no platform-module dependencies.
 
 ## Architecture
 
-All eight tables are **tenant schemas** (`master_` prefix); there are no control-plane tables:
+All seven tables are **tenant schemas** (`master_` prefix); there are no control-plane tables:
 
 ```text
 TENANT DATABASE
   master_contact, master_address, master_bank_account
-  master_connection, master_note, master_entity
+  master_connection, master_entity
   master_unit_of_measure, master_payment_method
 ```
 
@@ -43,7 +43,6 @@ connections: create (stores credential in kvStore, keeps credentialRef) ──�
             activate / deactivate ──▶ status (active | inactive | expired | revoked)
 
 contacts/addresses/bankAccounts: setPrimary enforces one primary per (entityType, entityId)
-notes: add / list / remove (polymorphic, typed)
 
 entities: create / update / delete / setStatus (active ↔ inactive, → archived terminal)
 
@@ -63,7 +62,6 @@ paymentMethods: setPrimary enforces one primary per (entityType, entityId, direc
 | `connections`    | `create`, `get`, `list`, `update`, `delete`, `activate`, `deactivate`, `test`, `rotateCredential` |
 | `contacts`       | `create`, `get`, `list`, `update`, `delete`, `setPrimary`                                         |
 | `entities`       | `create`, `get`, `list`, `update`, `delete`, `setStatus`                                          |
-| `notes`          | `add`, `list`, `remove`                                                                           |
 | `paymentMethods` | `create`, `get`, `list`, `update`, `delete`, `activate`, `deactivate`, `setPrimary`               |
 | `unitsOfMeasure` | `create`, `get`, `list`, `update`, `delete`, `activate`, `deactivate`                             |
 
@@ -76,7 +74,7 @@ packages/masters/src/
   index.ts              # Module class re-exports + dbSchema namespace
   module.ts             # Module class (implements Module)
   auth.ts               # defineAcl() ACL declaration
-  pubsub.ts             # Events across 8 event groups
+  pubsub.ts             # Events across 7 event groups
   db-schemas/           # Per-entity tables + enums
   types.ts              # Type re-exports
   schemas/              # Valibot validation schemas
@@ -111,7 +109,6 @@ Entity enums come from `@aspen-os/constants`:
 | `ContactType`            | `client`, `vendor`, `partner`, `subsidiary`, `parent_company`, `investor`, `regulator`, `insurer`, `bank`, `other`                                                              |
 | `IntegrationType`        | `api_key`, `oauth2`, `webhook`, `basic_auth`, `database`, `other`                                                                                                               |
 | `ConnectionStatus`       | `active`, `inactive`, `expired`, `revoked`                                                                                                                                      |
-| `NoteType`               | `general`, `call`, `email`, `meeting`, `contract_renewal`, `issue`                                                                                                              |
 | `EntityType`             | `customer`, `vendor`, `partner`, `hospital`, `clinic`, `laboratory`, `pharmacy`, `insurer`, `regulator`, `bank`, `staffing_agency`, `training_institute`, `government`, `other` |
 | `EntityStatus`           | `active`, `inactive`, `archived`                                                                                                                                                |
 | `UomCategory`            | `length`, `mass`, `volume`, `count`, `time`, `area`, `temperature`, `data`, `other`                                                                                             |

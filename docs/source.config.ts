@@ -89,4 +89,9 @@ export const workspace = defineDocs({
   docs,
 });
 
+export const notes = defineDocs({
+  dir: `../packages/notes/docs`,
+  docs,
+});
+
 export default defineConfig();

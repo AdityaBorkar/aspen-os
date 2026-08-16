@@ -225,10 +225,6 @@ _Avoid_: Location, Street Address
 A financial account record with `accountHolderName`, `accountNumber`, `bankName`, `routingNumber`, `swiftCode`, `currency`, and per-scope `isActive`/`isPrimary` flags. Scoped via `(entityType, entityId)`.
 _Avoid_: Payment Method, Financial Account
 
-**Note**:
-A typed interaction/annotation entry with `content`, `type` (`NOTE_TYPE`), and `userId`. Polymorphic — scoped via `(entityType, entityId)`.
-_Avoid_: Activity, Log Entry
-
 **Entity**:
 A tenant-level business party (company/institution) with rich metadata — `name`, optional unique `code`, `type` (`ENTITY_TYPE`: customer/vendor/partner/hospital/clinic/laboratory/pharmacy/insurer/regulator/bank/staffing_agency/training_institute/government/other), `status` (`ENTITY_STATUS`: active/inactive/archived), `industry`, `website`, `phone`, `email`, `taxId`, `registrationNumber`, `foundedDate`, `timezone`, `locale`, and an optional `organizationId` link. It is an **owner** (a `master_entity_type` value) so existing masters can scope to it; `setStatus` enforces `active` ↔ `inactive`, → `archived` (terminal).
 _Avoid_: "Entity" for any polymorphic row owner; Vendors/Clients/Insurers (those are `Contact` records)
@@ -245,7 +241,17 @@ _Avoid_: Payment, Transaction, Ledger (this is method _configuration_, not payme
 Every polymorphic masters row is owned by a `(entityType, entityId)` pair where `entityType ∈ { organization, branch, connection, contact, entity }` (`master_entity_type`). All list queries filter on the pair; primary flags are scoped to it — for payment methods per `(entityType, entityId, direction)`. `unitOfMeasure` is tenant-wide (no scope pair).
 
 **Masters Workflow**:
-A domain operation within the Masters module, built on the platform's `Workflow` builder. Eight groups exposed on the module instance: `p.masters.contacts`, `p.masters.addresses`, `p.masters.bankAccounts`, `p.masters.connections`, `p.masters.entities`, `p.masters.notes`, `p.masters.paymentMethods`, `p.masters.unitsOfMeasure`. The `connections` group is bound to the platform `kvStore` unit for secret storage.
+A domain operation within the Masters module, built on the platform's `Workflow` builder. Seven groups exposed on the module instance: `p.masters.contacts`, `p.masters.addresses`, `p.masters.bankAccounts`, `p.masters.connections`, `p.masters.entities`, `p.masters.paymentMethods`, `p.masters.unitsOfMeasure`. The `connections` group is bound to the platform `kvStore` unit for secret storage.
+_Avoid_: Service, Handler
+
+### Notes Domain
+
+**Note**:
+A first-class note with optional `title` (quick-capture allowed) and required `body`, `type` (`NOTE_TYPE`: general/call/email/meeting/contract_renewal/issue), `access` (`personal`/`global`, default `personal`), `ownerId` (soft FK to the better-auth user), `tags` (`text[]`), and an optional polymorphic `(scopeType, scopeId)` scope where `scopeType` is a documented `<module>:<entity>` registry value (e.g. `masters:contact`, `tasks:task`, `calendar:event`). Access is enforced via `services/access-service.ts`: read = `global` OR owner; mutate = owner or tenant admin.
+_Avoid_: Draft (that is workspace — approval-lifecycle content), Activity, Log Entry
+
+**Notes Workflow**:
+A domain operation within the Notes module, built on the platform's `Workflow` builder. One group exposed on the module instance: `p.notes.notes` (`create`, `get`, `list`, `update`, `delete`). `create` derives `ownerId` from `actorId`; `list` is access-scoped with `scopeType`/`scopeId`, `type`, `tags`, and `search` filters.
 _Avoid_: Service, Handler
 
 ### Compliance Domain
@@ -651,8 +657,9 @@ Stubs (package.json only — no source): accounting, crm, fleet, inventory, repo
 10. **`audit_log.id` uses `uuid()` + `$defaultFn(() => uuidv7())`** — the one table that deviates from `text` columns (it's a native `uuid` column), but it still uses the same JS `uuidv7` function.
 11. **HR module is fully conformant** — `Hr implements Module`, has `$prepareRuntime()`, and follows the one-file-per-action workflow layout. (Earlier docs marked HR "partial/not conformant"; that is no longer the case.)
 12. **Masters extraction (`.working-docs/sow/masters.md`) is complete** — `@aspen-os/masters` owns contacts, addresses, bank accounts, integration connections, and notes as polymorphic tenant master data; the organization module holds only `organization` + `branch` and depends on `masters`. `connection` was redesigned from a business-relationship model to integration connections (credentials stored in the platform `kvStore`, referenced by `credentialRef`). Host deployments must run the §9 migration: `DROP TABLE` `address`, `bank_account`, `connection`, `connection_contact`, `connection_note` (after mapping data to masters) and remove the old `organization:connection_created` compliance subscription.
-13. **Masters Phase 2 (`.working-docs/sow/masters-phase-2.md`) is complete** — `@aspen-os/masters` now also owns `master_entity`, `master_unit_of_measure`, and `master_payment_method` (8 tables, 8 workflow groups, 31 events, 8 ACL resources). `entity` is a new `master_entity_type` owner value; `unitOfMeasure` is tenant-wide reference data (one base unit per category); `paymentMethod` is owner-scoped with masked-only card data and primary per `(entityType, entityId, direction)`. All additions are additive — the Phase 1 surface is unchanged.
+13. **Masters Phase 2 (`.working-docs/sow/masters-phase-2.md`) is complete** — `@aspen-os/masters` also owns `master_entity`, `master_unit_of_measure`, and `master_payment_method` (8 tables, 8 workflow groups, 31 events, 8 ACL resources at Phase 2 completion). `entity` is a `master_entity_type` owner value; `unitOfMeasure` is tenant-wide reference data (one base unit per category); `paymentMethod` is owner-scoped with masked-only card data and primary per `(entityType, entityId, direction)`. All Phase 2 additions are additive — the Phase 1 surface is unchanged.
 14. **Workspace module (`.working-docs/sow/workspace.md`) is implemented** — `@aspen-os/workspace` provides drafts, filter views, dashboards, widgets, schedules, and utilities (10 tenant tables, 4 pgEnums, 40 events, 12 ACL resources). Host apps must register view resolvers (`registerViewResolver`) for every domain they serve and subscribe to `workspace:schedule_due` / `workspace:draft_published` — both are silently dropped by pg-boss when unsubscribed (health check flags them). `context.actorId` (gap 8) feeds the module's access scoping: `create` falls back to an explicit `ownerId`/`userId` input when the context actor is unset.
+15. **Notes module (`.working-docs/sow/notes.md`) is implemented** — `@aspen-os/notes` owns the first-class `note` entity (`personal`/`global` access, optional `(scopeType, scopeId)` scope, `NOTE_TYPE`, tags; 1 tenant table, 3 events, 1 ACL resource). The note concept was removed from `@aspen-os/masters` (`master_note`, `p.masters.notes`, `masters:note_added`/`note_removed`, the `note` ACL resource, and note schemas) — masters is back to 7 tables / 7 groups / 29 events / 7 ACL resources. Host deployments must migrate `master_note` rows to `note` (map `entityType → scopeType = masters:<entityType>`, `entityId → scopeId`, `content → body`, `userId → ownerId`) and `DROP TABLE master_note` afterward; `pushSchema` never drops it.
 
 ## Anti-Patterns
 

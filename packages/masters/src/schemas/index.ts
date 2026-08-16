@@ -73,14 +73,11 @@ export {
   EntityTypeSchema,
   IntegrationTypeSchema,
   MasterEntityTypeSchema,
-  NoteTypeSchema,
   PaymentMethodDirectionSchema,
   PaymentMethodStatusSchema,
   PaymentMethodTypeSchema,
   UomCategorySchema,
 } from "#/schemas/enums";
-export type { CreateNoteInput, ListNotesInput } from "#/schemas/note";
-export { CreateNoteSchema, ListNotesSchema } from "#/schemas/note";
 export type {
   CreateUnitOfMeasureInput,
   ListUnitsOfMeasureInput,

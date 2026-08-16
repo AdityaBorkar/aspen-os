@@ -1,0 +1,78 @@
+# Notes Domain Model
+
+> Package: `@aspen-os/notes`. The first-class **note** entity — `personal`/`global` access, optional polymorphic scope and type. One tenant table (`note`, no prefix). Replaces the masters note concept (`master_note`, `p.masters.notes`, `masters:note_added/removed`) without losing the annotation use-case.
+
+## Entity-Relationship Diagram
+
+```
+┌───────────────────────────────────────────────────────────┐
+│                      NOTES DOMAIN                          │
+│                                                            │
+│  ┌────────────────────────────────────────────────┐        │
+│  │                   Note                          │        │
+│  │  id (text PK, UUIDv7)                          │        │
+│  │  title (nullable — quick-capture)              │        │
+│  │  body (text, notNull)                          │        │
+│  │  type (notes_note_type ← shared NOTE_TYPE)     │        │
+│  │  access (notes_access: personal/global)        │        │
+│  │  ownerId (text → better-auth user, soft)       │        │
+│  │  scopeType (text, nullable: "<module>:<entity>")│        │
+│  │  scopeId (text, nullable)                      │        │
+│  │  tags (text[])                                 │        │
+│  │  metadata (jsonb)                              │        │
+│  └───────────────────────┬────────────────────────┘        │
+│                          │                                 │
+│  scopeType/scopeId ──────┼──▶ any module entity (soft)     │
+│  ownerId ────────────────┘──▶ better-auth user (soft)      │
+└───────────────────────────────────────────────────────────┘
+```
+
+## Aggregates
+
+### Note (Aggregate Root)
+
+**Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)`)
+
+**Invariants**:
+
+- `access` is a `NOTES_ACCESS` value (`personal`/`global`, default `personal`); `type` is a shared `NOTE_TYPE` value (`general`/`call`/`email`/`meeting`/`contract_renewal`/`issue`, default `general`).
+- `ownerId` defaults from `actorId` at create time; explicit input wins.
+- `scopeType` is a documented `<module>:<entity>` registry value (e.g. `masters:contact`, `tasks:task`, `calendar:event`, `dms:file`) — free-form text, not a pgEnum, so notes outlive the scoped module.
+- Access enforcement (services/access-service): read = `global` OR `ownerId === actorId`; mutate = owner or tenant admin.
+- No separate tag entity in v1 — `tags text[]` only.
+
+**Lifecycle commands**: `create(input)`, `update(id, patch)`, `delete(id)`, `get(id)`, `list(filters?)`.
+
+## Domain Events — 3
+
+| Event                | Payload                                                                    | Trigger      |
+| -------------------- | -------------------------------------------------------------------------- | ------------ |
+| `notes:note_created` | `{ note: { id, title, body, type, access, scopeType, scopeId } }`          | Note created |
+| `notes:note_updated` | `{ note: { id, title, body, type, access, scopeType, scopeId }, changes }` | Note updated |
+| `notes:note_deleted` | `{ note: { id, title, body, type, access, scopeType, scopeId } }`          | Note deleted |
+
+## Command-Query Separation
+
+### Commands (Write Side)
+
+| Context | Command     | Method                   |
+| ------- | ----------- | ------------------------ |
+| Note    | Create note | `p.notes.notes.create()` |
+| Note    | Update note | `p.notes.notes.update()` |
+| Note    | Delete note | `p.notes.notes.delete()` |
+
+### Queries (Read Side)
+
+| Context | Query      | Method                            |
+| ------- | ---------- | --------------------------------- |
+| Note    | Get note   | `p.notes.notes.get({ id })`       |
+| Note    | List notes | `p.notes.notes.list({ filters })` |
+
+`.list()` applies an access-scoped default (`access = 'global' OR ownerId = actorId`) plus optional `scopeType`/`scopeId`, `type`, `tags` (any-match), `search` (title/body `ilike`), `limit`/`offset`.
+
+## Invariants & Business Rules
+
+1. **Access scoping** — `personal` notes are owner-only; `global` notes are tenant-readable. Mutations (update/delete) are owner- or tenant-admin-only.
+2. **Scope is free-form** — `scopeType` is documented `<module>:<entity>` text, not a pgEnum; `scopeId` is the scoped row's UUIDv7 id.
+3. **Title optional** — quick-capture allows untitled notes; `body` is required.
+4. **Distinct from Draft** — a workspace `Draft` is approval-lifecycle content, not a note. Notes are first-class standalone annotations.

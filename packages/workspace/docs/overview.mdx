@@ -91,7 +91,7 @@ type ViewResolver = (
 ) => Promise<{ rows: unknown[]; total?: number }>;
 ```
 
-`views.apply(id)` fetches the view and calls the resolver for its `domain`; it **throws** if no resolver is registered for that domain. This is how the module stays dependency-free — it never queries another module's tables. Built-in domains are documented in `VIEW_DOMAIN` (`workspace:draft`, `tasks:task`, `dms:file`, `compliance:document`, `hr:employee`); `domain` itself stays free-form text (`<module>:<entity>`), so app-defined domains like `recruiter:candidate` work without a platform change.
+`views.apply(id)` fetches the view and calls the resolver for its `domain`; it **throws** if no resolver is registered for that domain. This is how the module stays dependency-free — it never queries another module's tables. Built-in domains are documented in `VIEW_DOMAIN` (`workspace:draft`, `tasks:task`, `dms:file`, `compliance:document`, `hr:employee`, `notes:note`); `domain` itself stays free-form text (`<module>:<entity>`), so app-defined domains like `recruiter:candidate` work without a platform change.
 
 ## Initialization
 

@@ -1,0 +1,51 @@
+---
+title: DB Schemas
+description: Database tables, enums, and relationships for the Notes module.
+icon: IconDatabase
+---
+
+The Notes module defines 1 table and 2 enums using Drizzle ORM. The table is a tenant schema (no `notes_` prefix — the table is the domain entity itself).
+
+## Enums
+
+| Enum              | Tables/Columns | Values                                                             |
+| ----------------- | -------------- | ------------------------------------------------------------------ |
+| `notes_access`    | `note.access`  | `personal`, `global`                                               |
+| `notes_note_type` | `note.type`    | `general`, `call`, `email`, `meeting`, `contract_renewal`, `issue` |
+
+## Tables
+
+### `note`
+
+A first-class note: quick-capture (`title` optional) or a scoped annotation via `scope_type`/`scope_id`. `access` defaults to `personal`; `owner_id` defaults from the creating actor.
+
+| Column       | Type                   | Description                                                 |
+| ------------ | ---------------------- | ----------------------------------------------------------- |
+| `id`         | text (PK, UUIDv7)      |                                                             |
+| `title`      | text                   | Optional — untitled quick-capture allowed                   |
+| `body`       | text (not null)        | Markdown/text content                                       |
+| `type`       | notes_note_type        | `NOTE_TYPE`, default `general`                              |
+| `access`     | notes_access           | `personal` / `global`, default `personal`                   |
+| `owner_id`   | text (not null)        | Soft FK → better-auth `user` (creating actor)               |
+| `scope_type` | text                   | `<module>:<entity>` registry value (e.g. `masters:contact`) |
+| `scope_id`   | text                   | Owning row's UUIDv7 id                                      |
+| `tags`       | text[] (not null)      | Default `[]` — no separate tag entity in v1                 |
+| `metadata`   | jsonb (not null)       | Opaque — attachment refs, structured fields; default `{}`   |
+| `created_at` | timestamptz (not null) | Default `now()`                                             |
+| `updated_at` | timestamptz (not null) | Default `now()`, `$onUpdate`                                |
+
+Indexes: `idx_note_owner` (`owner_id`), `idx_note_access` (`access`), `idx_note_scope` (`scope_type`, `scope_id`).
+
+## Relationships
+
+```text
+user (better-auth) ──◀── note.owner_id
+                          (soft — no DB-level FK)
+
+note.scope_type / note.scope_id ──▶ any module entity
+  "masters:contact"   → masters contact/entity/connection rows
+  "tasks:task"        → tasks task rows
+  "calendar:event"    → calendar event rows
+```
+
+The polymorphic scope is intentionally free-form text (no FK, no pgEnum) so notes outlive the scoped entity's module — a note stays readable even if the source module is removed.
