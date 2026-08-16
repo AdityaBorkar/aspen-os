@@ -68,6 +68,7 @@ export const MASTER_ENTITY_TYPE = {
   BRANCH: "branch",
   CONNECTION: "connection",
   CONTACT: "contact",
+  ENTITY: "entity",
   ORGANIZATION: "organization",
 } as const;
 
@@ -110,6 +111,85 @@ export const RENEWAL_FREQUENCY = {
 } as const;
 
 export type RenewalFrequency = (typeof RENEWAL_FREQUENCY)[keyof typeof RENEWAL_FREQUENCY];
+
+export const ENTITY_TYPE = {
+  BANK: "bank",
+  CLINIC: "clinic",
+  CUSTOMER: "customer",
+  GOVERNMENT: "government",
+  HOSPITAL: "hospital",
+  INSURER: "insurer",
+  LABORATORY: "laboratory",
+  OTHER: "other",
+  PARTNER: "partner",
+  PHARMACY: "pharmacy",
+  REGULATOR: "regulator",
+  STAFFING_AGENCY: "staffing_agency",
+  TRAINING_INSTITUTE: "training_institute",
+  VENDOR: "vendor",
+} as const;
+
+export type EntityType = (typeof ENTITY_TYPE)[keyof typeof ENTITY_TYPE];
+
+export const ENTITY_STATUS = {
+  ACTIVE: "active",
+  ARCHIVED: "archived",
+  INACTIVE: "inactive",
+} as const;
+
+export type EntityStatus = (typeof ENTITY_STATUS)[keyof typeof ENTITY_STATUS];
+
+export const UOM_CATEGORY = {
+  AREA: "area",
+  COUNT: "count",
+  DATA: "data",
+  LENGTH: "length",
+  MASS: "mass",
+  OTHER: "other",
+  TEMPERATURE: "temperature",
+  TIME: "time",
+  VOLUME: "volume",
+} as const;
+
+export type UomCategory = (typeof UOM_CATEGORY)[keyof typeof UOM_CATEGORY];
+
+export const PAYMENT_METHOD_TYPE = {
+  BANK_ACCOUNT: "bank_account",
+  CARD: "card",
+  CHEQUE: "cheque",
+  IMPS: "imps",
+  UPI: "upi",
+} as const;
+
+export type PaymentMethodType = (typeof PAYMENT_METHOD_TYPE)[keyof typeof PAYMENT_METHOD_TYPE];
+
+export const PAYMENT_METHOD_STATUS = {
+  ACTIVE: "active",
+  ARCHIVED: "archived",
+  INACTIVE: "inactive",
+} as const;
+
+export type PaymentMethodStatus =
+  (typeof PAYMENT_METHOD_STATUS)[keyof typeof PAYMENT_METHOD_STATUS];
+
+export const PAYMENT_METHOD_DIRECTION = {
+  BOTH: "both",
+  INBOUND: "inbound",
+  OUTBOUND: "outbound",
+} as const;
+
+export type PaymentMethodDirection =
+  (typeof PAYMENT_METHOD_DIRECTION)[keyof typeof PAYMENT_METHOD_DIRECTION];
+
+export const CARD_BRAND = {
+  AMEX: "amex",
+  MASTERCARD: "mastercard",
+  OTHER: "other",
+  RUPAY: "rupay",
+  VISA: "visa",
+} as const;
+
+export type CardBrand = (typeof CARD_BRAND)[keyof typeof CARD_BRAND];
 
 export const COUNTRY_CODES = [
   "AD",

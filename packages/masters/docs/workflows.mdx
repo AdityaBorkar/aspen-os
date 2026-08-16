@@ -4,9 +4,9 @@ description: API reference for the workflow groups exposed by the Masters module
 icon: IconListCheck
 ---
 
-The Masters module exposes five workflow groups as flat `Workflow` objects: `contacts`, `addresses`, `bankAccounts`, `connections`, and `notes`. Access via the platform proxy key `p.masters`.
+The Masters module exposes eight workflow groups as flat `Workflow` objects: `contacts`, `addresses`, `bankAccounts`, `connections`, `entities`, `notes`, `paymentMethods`, and `unitsOfMeasure`. Access via the platform proxy key `p.masters`.
 
-Every entity is polymorphic: create/list operations require `entityType` and `entityId` (the owning `organization`, `branch`, `connection`, or `contact`). List queries filter on the `(entityType, entityId)` pair.
+Polymorphic entities (`contacts`, `addresses`, `bankAccounts`, `connections`, `paymentMethods`) require `entityType` and `entityId` (the owning `organization`, `branch`, `connection`, `contact`, or `entity`) on create/list; list queries filter on the `(entityType, entityId)` pair. `entities` and `unitsOfMeasure` are tenant-level — no scope pair.
 
 ## Contacts
 
@@ -86,6 +86,34 @@ await p.masters.connections.rotateCredential({ id, credential: { apiKey: "..." }
 const connections = await p.masters.connections.list({ entityType, entityId, filters? });
 ```
 
+## Entities
+
+Access: `p.masters.entities`
+
+Tenant-level business parties (company/institution) with rich metadata (`ENTITY_TYPE`, `ENTITY_STATUS`, taxId, registrationNumber, …). Optional `organizationId` links an entity to an `organization` profile. `code` is unique per tenant.
+
+```ts
+await p.masters.entities.create({
+  name,
+  type: "hospital",
+  industry: "Healthcare",
+  taxId,
+  registrationNumber,
+  foundedDate,
+  timezone: "Asia/Kolkata",
+});
+await p.masters.entities.get({ id });
+await p.masters.entities.update({ id, patch });
+await p.masters.entities.delete({ id });
+await p.masters.entities.setStatus({ id, status: "inactive" });
+
+const entities = await p.masters.entities.list({
+  filters: { type, status, organizationId, search, limit, offset },
+});
+```
+
+`setStatus` enforces `ENTITY_STATUS` transitions: `active` ↔ `inactive`, and both → `archived` (terminal).
+
 ## Notes
 
 Access: `p.masters.notes`
@@ -97,6 +125,66 @@ await p.masters.notes.add({ entityType, entityId, userId, type: "general", conte
 await p.masters.notes.remove({ id });
 
 const notes = await p.masters.notes.list({ entityType, entityId, type? });
+```
+
+## Payment Methods
+
+Access: `p.masters.paymentMethods`
+
+Modes of payment scoped per `(entityType, entityId)`. Type-specific fields are validated: `card` requires `cardBrand`/`cardLast4`/`cardExpiryMonth`/`cardExpiryYear` (masked only); `upi` requires `upiId`; `bank_account`/`imps`/`cheque` require `bankAccountId`. `setPrimary` enforces one primary per `(entityType, entityId, direction)`.
+
+```ts
+await p.masters.paymentMethods.create({
+  entityType: "entity",
+  entityId,
+  name: "Business UPI",
+  type: "upi",
+  upiId: "business@okhdfcbank",
+  direction: "both",
+});
+await p.masters.paymentMethods.get({ id });
+await p.masters.paymentMethods.update({ id, patch });
+await p.masters.paymentMethods.delete({ id });
+await p.masters.paymentMethods.setPrimary({ id });
+await p.masters.paymentMethods.activate({ id });
+await p.masters.paymentMethods.deactivate({ id });
+
+const methods = await p.masters.paymentMethods.list({
+  entityType,
+  entityId,
+  filters: { type, direction, status },
+});
+```
+
+## Units of Measure
+
+Access: `p.masters.unitsOfMeasure`
+
+Tenant-wide reference data. Exactly one base unit per `category`; derived units reference the category's base with a `conversionFactor`. A UOM referenced as another's `baseUnitId` cannot be deleted.
+
+```ts
+await p.masters.unitsOfMeasure.create({
+  name: "Kilogram",
+  code: "kg",
+  category: "mass",
+  symbol: "kg",
+  isBaseUnit: true,
+});
+await p.masters.unitsOfMeasure.create({
+  name: "Gram",
+  code: "g",
+  category: "mass",
+  isBaseUnit: false,
+  baseUnitId: kgId,
+  conversionFactor: 0.001,
+});
+await p.masters.unitsOfMeasure.get({ id });
+await p.masters.unitsOfMeasure.update({ id, patch });
+await p.masters.unitsOfMeasure.delete({ id });
+await p.masters.unitsOfMeasure.activate({ id });
+await p.masters.unitsOfMeasure.deactivate({ id });
+
+const units = await p.masters.unitsOfMeasure.list({ filters: { category, isActive } });
 ```
 
 ## Conventions

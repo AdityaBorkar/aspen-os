@@ -14,5 +14,8 @@ export const acl = defineAcl({
     "update",
   ],
   contact: ["create", "delete", "read", "set_primary", "update"],
+  entity: ["create", "delete", "read", "set_status", "update"],
   note: ["create", "delete", "read"],
+  paymentMethod: ["activate", "create", "deactivate", "delete", "read", "set_primary", "update"],
+  unitOfMeasure: ["activate", "create", "deactivate", "delete", "read", "update"],
 });

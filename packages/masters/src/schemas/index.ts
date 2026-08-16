@@ -51,15 +51,60 @@ export {
   ListContactsSchema,
   UpdateContactSchema,
 } from "#/schemas/contact";
+export type {
+  CreateEntityInput,
+  EntityFilters,
+  EntitySetStatusInput,
+  ListEntitiesInput,
+  UpdateEntityInput,
+} from "#/schemas/entity";
 export {
+  CreateEntitySchema,
+  EntityFiltersSchema,
+  EntitySetStatusSchema,
+  ListEntitiesSchema,
+  UpdateEntitySchema,
+} from "#/schemas/entity";
+export {
+  CardBrandSchema,
   ConnectionStatusSchema,
   ContactTypeSchema,
+  EntityStatusSchema,
+  EntityTypeSchema,
   IntegrationTypeSchema,
   MasterEntityTypeSchema,
   NoteTypeSchema,
+  PaymentMethodDirectionSchema,
+  PaymentMethodStatusSchema,
+  PaymentMethodTypeSchema,
+  UomCategorySchema,
 } from "#/schemas/enums";
 export type { CreateNoteInput, ListNotesInput } from "#/schemas/note";
 export { CreateNoteSchema, ListNotesSchema } from "#/schemas/note";
+export type {
+  CreateUnitOfMeasureInput,
+  ListUnitsOfMeasureInput,
+  UnitOfMeasureFilters,
+  UpdateUnitOfMeasureInput,
+} from "#/schemas/unit-of-measure";
+export {
+  CreateUnitOfMeasureSchema,
+  ListUnitsOfMeasureSchema,
+  UnitOfMeasureFiltersSchema,
+  UpdateUnitOfMeasureSchema,
+} from "#/schemas/unit-of-measure";
+export type {
+  CreatePaymentMethodInput,
+  ListPaymentMethodsInput,
+  PaymentMethodFilters,
+  UpdatePaymentMethodInput,
+} from "#/schemas/payment-method";
+export {
+  CreatePaymentMethodSchema,
+  ListPaymentMethodsSchema,
+  PaymentMethodFiltersSchema,
+  UpdatePaymentMethodSchema,
+} from "#/schemas/payment-method";
 export {
   CountryCodeSchema,
   EmailSchema,

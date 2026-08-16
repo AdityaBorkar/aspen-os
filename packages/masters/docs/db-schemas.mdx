@@ -4,21 +4,28 @@ description: Database tables, enums, and relationships for the Masters module.
 icon: IconDatabase
 ---
 
-The Masters module defines 5 tables and 5 enums using Drizzle ORM. All tables are tenant schemas with the `master_` prefix.
+The Masters module defines 8 tables and 12 enums using Drizzle ORM. All tables are tenant schemas with the `master_` prefix.
 
 ## Enums
 
-| Enum                       | Tables/Columns             | Values                                                                                                             |
-| -------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `master_entity_type`       | all `entity_type` columns  | `organization`, `branch`, `connection`, `contact`                                                                  |
-| `master_contact_type`      | `master_contact.type`      | `client`, `vendor`, `partner`, `subsidiary`, `parent_company`, `investor`, `regulator`, `insurer`, `bank`, `other` |
-| `master_integration_type`  | `master_connection.type`   | `api_key`, `oauth2`, `webhook`, `basic_auth`, `database`, `other`                                                  |
-| `master_connection_status` | `master_connection.status` | `active`, `inactive`, `expired`, `revoked`                                                                         |
-| `master_note_type`         | `master_note.type`         | `general`, `call`, `email`, `meeting`, `contract_renewal`, `issue`                                                 |
+| Enum                                   | Tables/Columns                     | Values                                                                                                                                                                          |
+| -------------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `master_entity_type`                   | all `entity_type` columns          | `organization`, `branch`, `connection`, `contact`, `entity`                                                                                                                     |
+| `master_contact_type`                  | `master_contact.type`              | `client`, `vendor`, `partner`, `subsidiary`, `parent_company`, `investor`, `regulator`, `insurer`, `bank`, `other`                                                              |
+| `master_integration_type`              | `master_connection.type`           | `api_key`, `oauth2`, `webhook`, `basic_auth`, `database`, `other`                                                                                                               |
+| `master_connection_status`             | `master_connection.status`         | `active`, `inactive`, `expired`, `revoked`                                                                                                                                      |
+| `master_note_type`                     | `master_note.type`                 | `general`, `call`, `email`, `meeting`, `contract_renewal`, `issue`                                                                                                              |
+| `master_entity_type_enum`              | `master_entity.type`               | `customer`, `vendor`, `partner`, `hospital`, `clinic`, `laboratory`, `pharmacy`, `insurer`, `regulator`, `bank`, `staffing_agency`, `training_institute`, `government`, `other` |
+| `master_entity_status_enum`            | `master_entity.status`             | `active`, `inactive`, `archived`                                                                                                                                                |
+| `master_uom_category_enum`             | `master_unit_of_measure.category`  | `length`, `mass`, `volume`, `count`, `time`, `area`, `temperature`, `data`, `other`                                                                                             |
+| `master_payment_method_type_enum`      | `master_payment_method.type`       | `bank_account`, `card`, `upi`, `imps`, `cheque`                                                                                                                                 |
+| `master_payment_method_status_enum`    | `master_payment_method.status`     | `active`, `inactive`, `archived`                                                                                                                                                |
+| `master_payment_method_direction_enum` | `master_payment_method.direction`  | `inbound`, `outbound`, `both`                                                                                                                                                   |
+| `master_card_brand_enum`               | `master_payment_method.card_brand` | `visa`, `mastercard`, `amex`, `rupay`, `other`                                                                                                                                  |
 
 ## Tables
 
-All tables share the polymorphic `entity_type` (pgEnum) + `entity_id` (text) pair and the standard `id` (text PK, UUIDv7 via `$defaultFn`), `created_at`, `updated_at` (timestamptz) columns.
+All polymorphic tables share the `entity_type` (pgEnum) + `entity_id` (text) pair and the standard `id` (text PK, UUIDv7 via `$defaultFn`), `created_at`, `updated_at` (timestamptz) columns. `master_unit_of_measure` is tenant-wide and has no scope pair.
 
 ### `master_contact`
 
@@ -95,15 +102,93 @@ Polymorphic typed note scoped per `(entity_type, entity_id)`.
 | `type`    | master_note_type | Note type      |
 | `user_id` | text             | Author user ID |
 
+### `master_entity`
+
+A tenant-level business party (company/institution). Not scoped by `entityType`/`entityId` — it _is_ an owner (`master_entity_type` value `entity`); the optional `organization_id` links it to an `organization` profile row.
+
+| Column                | Type                      | Description                                           |
+| --------------------- | ------------------------- | ----------------------------------------------------- |
+| `name`                | text (not null)           | Legal/trade name                                      |
+| `code`                | text (unique index)       | Optional, unique per tenant                           |
+| `type`                | master_entity_type_enum   | `ENTITY_TYPE`                                         |
+| `status`              | master_entity_status_enum | `active` / `inactive` / `archived` (default `active`) |
+| `industry`            | text                      | Industry                                              |
+| `website`             | text                      | Website                                               |
+| `phone`               | text                      | Phone                                                 |
+| `email`               | text                      | Email                                                 |
+| `tax_id`              | text                      | VAT/GST/tax registration                              |
+| `registration_number` | text                      | Company registration number                           |
+| `founded_date`        | date                      | Founded date                                          |
+| `timezone`            | text                      | IANA timezone                                         |
+| `locale`              | text                      | BCP-47 locale                                         |
+| `organization_id`     | text (FK → organization)  | Optional parent organization row                      |
+| `metadata`            | jsonb                     | Flexible metadata                                     |
+
+Indexes: `idx_master_entity_type`, `idx_master_entity_status`, `idx_master_entity_organization`, unique `idx_master_entity_code`.
+
+### `master_unit_of_measure`
+
+Tenant-wide reference data (not polymorphic): units of measurement across `UOM_CATEGORY` categories. Exactly one base unit per category (workflow-enforced); derived units reference the category's base via `base_unit_id` with a `conversion_factor`.
+
+| Column              | Type                     | Description                                          |
+| ------------------- | ------------------------ | ---------------------------------------------------- |
+| `name`              | text (not null)          | e.g. "Kilogram"                                      |
+| `code`              | text (not null, unique)  | e.g. `kg`                                            |
+| `category`          | master_uom_category_enum | `UOM_CATEGORY`                                       |
+| `symbol`            | text                     | e.g. `kg`                                            |
+| `decimal_places`    | integer                  | Default `2`                                          |
+| `is_base_unit`      | boolean                  | Default `false` — the reference unit of its category |
+| `base_unit_id`      | text (FK → this table)   | The category's base UOM; `null` for base units       |
+| `conversion_factor` | numeric                  | Multiplier to `base_unit_id`; `null` for base units  |
+| `is_active`         | boolean                  | Default `true`                                       |
+| `metadata`          | jsonb                    | Flexible metadata                                    |
+
+Indexes: unique `idx_master_uom_code`, `idx_master_uom_category`, `idx_master_uom_is_active`. Invariant (workflow-enforced): exactly one base unit per category; base units have `base_unit_id`/`conversion_factor` `null`; derived units must reference the base unit of their own category.
+
+### `master_payment_method`
+
+A mode of payment scoped per `(entity_type, entity_id)`. `is_primary` is scoped per `(entity_type, entity_id, direction)`. **Security invariant:** card data is masked-only — `card_brand`/`card_last4`/expiry; no PAN, no CVV, no full card numbers anywhere.
+
+| Column              | Type                                 | Description                                                     |
+| ------------------- | ------------------------------------ | --------------------------------------------------------------- |
+| `type`              | master_payment_method_type_enum      | `bank_account` / `card` / `upi` / `imps` / `cheque`             |
+| `name`              | text (not null)                      | Display name                                                    |
+| `code`              | text                                 | Optional code                                                   |
+| `direction`         | master_payment_method_direction_enum | `inbound` / `outbound` / `both`                                 |
+| `status`            | master_payment_method_status_enum    | `active` / `inactive` / `archived` (default `active`)           |
+| `bank_account_id`   | text (FK → master_bank_account)      | Logical FK for `bank_account`/`imps`/`cheque` types             |
+| `bank_name`         | text                                 | Denormalized display for bank-backed types                      |
+| `card_brand`        | master_card_brand_enum               | `visa` / `mastercard` / `amex` / `rupay` / `other`              |
+| `card_last4`        | text                                 | Masked only — never a full PAN                                  |
+| `card_expiry_month` | integer                              | 1–12                                                            |
+| `card_expiry_year`  | integer                              | 4-digit                                                         |
+| `upi_id`            | text                                 | VPA, e.g. `business@okhdfcbank`                                 |
+| `cheque_series`     | text                                 | Cheque prefix/leaf range                                        |
+| `details`           | jsonb                                | Type-specific extension (IMPS details, notes)                   |
+| `is_primary`        | boolean                              | Default `false` — one per `(entity_type, entity_id, direction)` |
+| `entity_type`       | master_entity_type                   | Owner type                                                      |
+| `entity_id`         | text (not null)                      | Owner row id                                                    |
+| `is_active`         | boolean                              | Default `true`                                                  |
+| `metadata`          | jsonb                                | Flexible metadata                                               |
+
+Indexes: `idx_master_payment_method_entity`, `idx_master_payment_method_type`, `idx_master_payment_method_is_primary`, `idx_master_payment_method_is_active`.
+
 ## Relationships
 
 ```text
 organization ──┐
 branch       ──┼──(entityType, entityId)──▶ master_contact
 connection   ──┤                            master_address
-contact      ──┘                            master_bank_account
-                                            master_connection
+contact      ──┤                            master_bank_account
+entity       ──┘                            master_connection
                                             master_note
+                                            master_payment_method
+
+master_entity.organization_id ──▶ organization (optional parent)
+
+master_payment_method.bank_account_id ──▶ master_bank_account (logical)
+
+master_unit_of_measure.base_unit_id ──▶ master_unit_of_measure (self, same category)
 ```
 
-Relationships are **soft** — `entity_id` is a logical reference by naming convention (no DB-level foreign keys), matching the platform's domain-module convention. Primary flags are enforced at the workflow level per `(entityType, entityId)`.
+Relationships are **soft** — references are logical by naming convention (no DB-level foreign keys), matching the platform's domain-module convention. Primary flags and the UOM base-unit invariant are enforced at the workflow level.

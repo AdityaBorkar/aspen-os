@@ -25,21 +25,28 @@ export const acl = defineAcl({
     "update",
   ],
   contact: ["create", "delete", "read", "set_primary", "update"],
+  entity: ["create", "delete", "read", "set_status", "update"],
   note: ["create", "delete", "read"],
+  paymentMethod: ["activate", "create", "deactivate", "delete", "read", "set_primary", "update"],
+  unitOfMeasure: ["activate", "create", "deactivate", "delete", "read", "update"],
 });
 ```
 
-| Resource      | Operations                                                                                  |
-| ------------- | ------------------------------------------------------------------------------------------- |
-| `address`     | `create`, `delete`, `read`, `set_primary`, `update`                                         |
-| `bankAccount` | `activate`, `create`, `deactivate`, `delete`, `read`, `set_primary`, `update`               |
-| `connection`  | `activate`, `create`, `deactivate`, `delete`, `read`, `rotate_credential`, `test`, `update` |
-| `contact`     | `create`, `delete`, `read`, `set_primary`, `update`                                         |
-| `note`        | `create`, `delete`, `read`                                                                  |
+| Resource        | Operations                                                                                  |
+| --------------- | ------------------------------------------------------------------------------------------- |
+| `address`       | `create`, `delete`, `read`, `set_primary`, `update`                                         |
+| `bankAccount`   | `activate`, `create`, `deactivate`, `delete`, `read`, `set_primary`, `update`               |
+| `connection`    | `activate`, `create`, `deactivate`, `delete`, `read`, `rotate_credential`, `test`, `update` |
+| `contact`       | `create`, `delete`, `read`, `set_primary`, `update`                                         |
+| `entity`        | `create`, `delete`, `read`, `set_status`, `update`                                          |
+| `note`          | `create`, `delete`, `read`                                                                  |
+| `paymentMethod` | `activate`, `create`, `deactivate`, `delete`, `read`, `set_primary`, `update`               |
+| `unitOfMeasure` | `activate`, `create`, `deactivate`, `delete`, `read`, `update`                              |
 
 <Callout type="info">
   The ACL is the *declaration* of operations. Role definitions and permission enforcement are
   application-level concerns — the module exposes the workflows that perform these operations; the
-  host app decides who may call them. In particular, credential management (`rotate_credential`) and
-  `test` are sensitive operations that should be restricted to privileged roles.
+  host app decides who may call them. In particular, credential management (`rotate_credential`),
+  `test`, `set_status` (entity), `set_primary` (payment method), and `activate`/`deactivate` are
+  sensitive operations that should be restricted to privileged roles.
 </Callout>

@@ -25,9 +25,30 @@ import { getContact } from "#/workflows/contact/get";
 import { listContacts } from "#/workflows/contact/list";
 import { setPrimaryContact } from "#/workflows/contact/primary/set";
 import { updateContact } from "#/workflows/contact/update";
+import { createEntity } from "#/workflows/entity/create";
+import { deleteEntity } from "#/workflows/entity/delete";
+import { getEntity } from "#/workflows/entity/get";
+import { listEntities } from "#/workflows/entity/list";
+import { setEntityStatus } from "#/workflows/entity/status/set";
+import { updateEntity } from "#/workflows/entity/update";
 import { addNote } from "#/workflows/note/add";
 import { listNotes } from "#/workflows/note/list";
 import { removeNote } from "#/workflows/note/remove";
+import { activatePaymentMethod } from "#/workflows/payment-method/activate";
+import { createPaymentMethod } from "#/workflows/payment-method/create";
+import { deactivatePaymentMethod } from "#/workflows/payment-method/deactivate";
+import { deletePaymentMethod } from "#/workflows/payment-method/delete";
+import { getPaymentMethod } from "#/workflows/payment-method/get";
+import { listPaymentMethods } from "#/workflows/payment-method/list";
+import { setPrimaryPaymentMethod } from "#/workflows/payment-method/primary/set";
+import { updatePaymentMethod } from "#/workflows/payment-method/update";
+import { activateUnitOfMeasure } from "#/workflows/unit-of-measure/activate";
+import { createUnitOfMeasure } from "#/workflows/unit-of-measure/create";
+import { deactivateUnitOfMeasure } from "#/workflows/unit-of-measure/deactivate";
+import { deleteUnitOfMeasure } from "#/workflows/unit-of-measure/delete";
+import { getUnitOfMeasure } from "#/workflows/unit-of-measure/get";
+import { listUnitsOfMeasure } from "#/workflows/unit-of-measure/list";
+import { updateUnitOfMeasure } from "#/workflows/unit-of-measure/update";
 
 export const addresses = {
   create: createAddress,
@@ -58,10 +79,40 @@ export const contacts = {
   update: updateContact,
 } as const;
 
+export const entities = {
+  create: createEntity,
+  delete: deleteEntity,
+  get: getEntity,
+  list: listEntities,
+  setStatus: setEntityStatus,
+  update: updateEntity,
+} as const;
+
 export const notes = {
   add: addNote,
   list: listNotes,
   remove: removeNote,
+} as const;
+
+export const paymentMethods = {
+  activate: activatePaymentMethod,
+  create: createPaymentMethod,
+  deactivate: deactivatePaymentMethod,
+  delete: deletePaymentMethod,
+  get: getPaymentMethod,
+  list: listPaymentMethods,
+  setPrimary: setPrimaryPaymentMethod,
+  update: updatePaymentMethod,
+} as const;
+
+export const unitsOfMeasure = {
+  activate: activateUnitOfMeasure,
+  create: createUnitOfMeasure,
+  deactivate: deactivateUnitOfMeasure,
+  delete: deleteUnitOfMeasure,
+  get: getUnitOfMeasure,
+  list: listUnitsOfMeasure,
+  update: updateUnitOfMeasure,
 } as const;
 
 export const connectionActions = {

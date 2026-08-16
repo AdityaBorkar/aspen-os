@@ -1,7 +1,11 @@
-import { masterAddress, masterBankAccount, masterContact } from "#/db-schemas";
+import { masterAddress, masterBankAccount, masterContact, masterPaymentMethod } from "#/db-schemas";
 
-import type { MasterEntityType } from "@aspen-os/constants";
-import { and, eq } from "drizzle-orm";
+import type {
+  MasterEntityType,
+  PaymentMethodDirection,
+  PaymentMethodType,
+} from "@aspen-os/constants";
+import { and, eq, inArray } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 type DrizzleDB = NodePgDatabase;
@@ -55,4 +59,80 @@ export async function unsetPrimaryBankAccounts(
         eq(masterBankAccount.isPrimary, true),
       ),
     );
+}
+
+export interface UnsetPrimaryPaymentMethodsInput {
+  db: DrizzleDB;
+  direction: PaymentMethodDirection;
+  entityId: string;
+  entityType: MasterEntityType;
+}
+
+export async function unsetPrimaryPaymentMethods(
+  input: UnsetPrimaryPaymentMethodsInput,
+): Promise<void> {
+  const { db, direction, entityId, entityType } = input;
+  const overlappingDirections: readonly PaymentMethodDirection[] =
+    direction === "both"
+      ? ["both", "inbound", "outbound"]
+      : direction === "inbound"
+        ? ["both", "inbound"]
+        : ["both", "outbound"];
+
+  await db
+    .update(masterPaymentMethod)
+    .set({ isPrimary: false })
+    .where(
+      and(
+        eq(masterPaymentMethod.entityType, entityType),
+        eq(masterPaymentMethod.entityId, entityId),
+        eq(masterPaymentMethod.isPrimary, true),
+        inArray(masterPaymentMethod.direction, [...overlappingDirections]),
+      ),
+    );
+}
+
+export interface PaymentMethodTypeFields {
+  bankAccountId: string | null | undefined;
+  cardBrand: string | null | undefined;
+  cardExpiryMonth: number | null | undefined;
+  cardExpiryYear: number | null | undefined;
+  cardLast4: string | null | undefined;
+  type: PaymentMethodType;
+  upiId: string | null | undefined;
+}
+
+export function assertPaymentMethodTypeFields(method: PaymentMethodTypeFields): void {
+  switch (method.type) {
+    case "card": {
+      if (
+        !method.cardBrand ||
+        !method.cardLast4 ||
+        method.cardExpiryMonth === null ||
+        method.cardExpiryMonth === undefined ||
+        method.cardExpiryYear === null ||
+        method.cardExpiryYear === undefined
+      ) {
+        throw new Error(
+          "A card payment method requires cardBrand, cardLast4, cardExpiryMonth and cardExpiryYear.",
+        );
+      }
+      return;
+    }
+    case "upi": {
+      if (!method.upiId) {
+        throw new Error("A UPI payment method requires upiId.");
+      }
+      return;
+    }
+    case "bank_account":
+    case "imps":
+    case "cheque": {
+      if (!method.bankAccountId) {
+        throw new Error(
+          "A bank-backed payment method (bank_account/imps/cheque) requires bankAccountId.",
+        );
+      }
+    }
+  }
 }

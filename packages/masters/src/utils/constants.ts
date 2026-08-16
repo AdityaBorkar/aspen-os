@@ -3,7 +3,10 @@ export const AUDIT_ENTITY_TYPE = {
   BANK_ACCOUNT: "masters:bank_account",
   CONNECTION: "masters:connection",
   CONTACT: "masters:contact",
+  ENTITY: "masters:entity",
   NOTE: "masters:note",
+  PAYMENT_METHOD: "masters:payment_method",
+  UNIT_OF_MEASURE: "masters:unit_of_measure",
 } as const;
 
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPE)[keyof typeof AUDIT_ENTITY_TYPE];

@@ -43,7 +43,10 @@ export class Masters implements Module {
   readonly addresses = wf.addresses;
   readonly bankAccounts = wf.bankAccounts;
   readonly contacts = wf.contacts;
+  readonly entities = wf.entities;
   readonly notes = wf.notes;
+  readonly paymentMethods = wf.paymentMethods;
+  readonly unitsOfMeasure = wf.unitsOfMeasure;
 
   get connections() {
     if (!this.#kvStore) {

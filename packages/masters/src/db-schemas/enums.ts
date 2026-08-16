@@ -1,17 +1,48 @@
 import {
+  CARD_BRAND,
   CONTACT_TYPE,
   CONNECTION_STATUS,
+  ENTITY_STATUS,
+  ENTITY_TYPE,
   INTEGRATION_TYPE,
   MASTER_ENTITY_TYPE,
   NOTE_TYPE,
+  PAYMENT_METHOD_DIRECTION,
+  PAYMENT_METHOD_STATUS,
+  PAYMENT_METHOD_TYPE,
+  UOM_CATEGORY,
 } from "@aspen-os/constants";
 import { pgEnum } from "drizzle-orm/pg-core";
 
 export const masterEntityTypeEnum = pgEnum("master_entity_type", [
-  MASTER_ENTITY_TYPE.ORGANIZATION,
   MASTER_ENTITY_TYPE.BRANCH,
   MASTER_ENTITY_TYPE.CONNECTION,
   MASTER_ENTITY_TYPE.CONTACT,
+  MASTER_ENTITY_TYPE.ENTITY,
+  MASTER_ENTITY_TYPE.ORGANIZATION,
+]);
+
+export const masterEntityKindEnum = pgEnum("master_entity_type_enum", [
+  ENTITY_TYPE.BANK,
+  ENTITY_TYPE.CLINIC,
+  ENTITY_TYPE.CUSTOMER,
+  ENTITY_TYPE.GOVERNMENT,
+  ENTITY_TYPE.HOSPITAL,
+  ENTITY_TYPE.INSURER,
+  ENTITY_TYPE.LABORATORY,
+  ENTITY_TYPE.OTHER,
+  ENTITY_TYPE.PARTNER,
+  ENTITY_TYPE.PHARMACY,
+  ENTITY_TYPE.REGULATOR,
+  ENTITY_TYPE.STAFFING_AGENCY,
+  ENTITY_TYPE.TRAINING_INSTITUTE,
+  ENTITY_TYPE.VENDOR,
+]);
+
+export const masterEntityStatusEnum = pgEnum("master_entity_status_enum", [
+  ENTITY_STATUS.ACTIVE,
+  ENTITY_STATUS.ARCHIVED,
+  ENTITY_STATUS.INACTIVE,
 ]);
 
 export const masterContactTypeEnum = pgEnum("master_contact_type", [
@@ -50,4 +81,44 @@ export const masterNoteTypeEnum = pgEnum("master_note_type", [
   NOTE_TYPE.MEETING,
   NOTE_TYPE.CONTRACT_RENEWAL,
   NOTE_TYPE.ISSUE,
+]);
+
+export const masterUomCategoryEnum = pgEnum("master_uom_category_enum", [
+  UOM_CATEGORY.AREA,
+  UOM_CATEGORY.COUNT,
+  UOM_CATEGORY.DATA,
+  UOM_CATEGORY.LENGTH,
+  UOM_CATEGORY.MASS,
+  UOM_CATEGORY.OTHER,
+  UOM_CATEGORY.TEMPERATURE,
+  UOM_CATEGORY.TIME,
+  UOM_CATEGORY.VOLUME,
+]);
+
+export const masterPaymentMethodTypeEnum = pgEnum("master_payment_method_type_enum", [
+  PAYMENT_METHOD_TYPE.BANK_ACCOUNT,
+  PAYMENT_METHOD_TYPE.CARD,
+  PAYMENT_METHOD_TYPE.CHEQUE,
+  PAYMENT_METHOD_TYPE.IMPS,
+  PAYMENT_METHOD_TYPE.UPI,
+]);
+
+export const masterPaymentMethodStatusEnum = pgEnum("master_payment_method_status_enum", [
+  PAYMENT_METHOD_STATUS.ACTIVE,
+  PAYMENT_METHOD_STATUS.ARCHIVED,
+  PAYMENT_METHOD_STATUS.INACTIVE,
+]);
+
+export const masterPaymentMethodDirectionEnum = pgEnum("master_payment_method_direction_enum", [
+  PAYMENT_METHOD_DIRECTION.BOTH,
+  PAYMENT_METHOD_DIRECTION.INBOUND,
+  PAYMENT_METHOD_DIRECTION.OUTBOUND,
+]);
+
+export const masterCardBrandEnum = pgEnum("master_card_brand_enum", [
+  CARD_BRAND.AMEX,
+  CARD_BRAND.MASTERCARD,
+  CARD_BRAND.OTHER,
+  CARD_BRAND.RUPAY,
+  CARD_BRAND.VISA,
 ]);

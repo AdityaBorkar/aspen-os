@@ -1,8 +1,12 @@
 import type {
   ContactType,
   ConnectionStatus,
+  EntityType,
   IntegrationType,
   MasterEntityType,
+  PaymentMethodDirection,
+  PaymentMethodType,
+  UomCategory,
 } from "@aspen-os/constants";
 import type { JsonValue } from "@aspen-os/platform/server";
 
@@ -38,12 +42,38 @@ export const NOTE_EVENTS = {
   REMOVED: "masters:note_removed",
 } as const;
 
+export const ENTITY_EVENTS = {
+  CREATED: "masters:entity_created",
+  REMOVED: "masters:entity_removed",
+  UPDATED: "masters:entity_updated",
+} as const;
+
+export const UNIT_OF_MEASURE_EVENTS = {
+  ACTIVATED: "masters:unit_of_measure_activated",
+  CREATED: "masters:unit_of_measure_created",
+  DEACTIVATED: "masters:unit_of_measure_deactivated",
+  REMOVED: "masters:unit_of_measure_removed",
+  UPDATED: "masters:unit_of_measure_updated",
+} as const;
+
+export const PAYMENT_METHOD_EVENTS = {
+  ACTIVATED: "masters:payment_method_activated",
+  CREATED: "masters:payment_method_created",
+  DEACTIVATED: "masters:payment_method_deactivated",
+  PRIMARY_SET: "masters:payment_method_primary_set",
+  REMOVED: "masters:payment_method_removed",
+  UPDATED: "masters:payment_method_updated",
+} as const;
+
 export const events = {
   ADDRESS_EVENTS,
   BANK_ACCOUNT_EVENTS,
   CONNECTION_EVENTS,
   CONTACT_EVENTS,
+  ENTITY_EVENTS,
   NOTE_EVENTS,
+  PAYMENT_METHOD_EVENTS,
+  UNIT_OF_MEASURE_EVENTS,
 };
 
 export interface ContactCreatedEvent {
@@ -152,6 +182,114 @@ export interface NoteRemovedEvent {
   noteId: string;
 }
 
+export interface EntityCreatedEvent {
+  entity: {
+    id: string;
+    name: string;
+    type: EntityType;
+  };
+}
+
+export interface EntityUpdatedEvent {
+  changes: Record<string, JsonValue>;
+  entity: {
+    id: string;
+    name: string;
+    type: EntityType;
+  };
+}
+
+export interface EntityRemovedEvent {
+  entity: {
+    id: string;
+    name: string;
+    type: EntityType;
+  };
+}
+
+export interface UnitOfMeasureCreatedEvent {
+  unitOfMeasure: {
+    category: UomCategory;
+    code: string;
+    id: string;
+  };
+}
+
+export interface UnitOfMeasureUpdatedEvent {
+  changes: Record<string, JsonValue>;
+  unitOfMeasure: {
+    category: UomCategory;
+    code: string;
+    id: string;
+  };
+}
+
+export interface UnitOfMeasureRemovedEvent {
+  unitOfMeasure: {
+    category: UomCategory;
+    code: string;
+    id: string;
+  };
+}
+
+export interface UnitOfMeasureActivatedEvent {
+  unitOfMeasureId: string;
+}
+
+export interface UnitOfMeasureDeactivatedEvent {
+  unitOfMeasureId: string;
+}
+
+export interface PaymentMethodCreatedEvent {
+  entityId: string;
+  entityType: MasterEntityType;
+  paymentMethod: {
+    id: string;
+    name: string;
+    type: PaymentMethodType;
+  };
+}
+
+export interface PaymentMethodUpdatedEvent {
+  changes: Record<string, JsonValue>;
+  entityId: string;
+  entityType: MasterEntityType;
+  paymentMethod: {
+    id: string;
+    name: string;
+    type: PaymentMethodType;
+  };
+}
+
+export interface PaymentMethodRemovedEvent {
+  entityId: string;
+  entityType: MasterEntityType;
+  paymentMethod: {
+    id: string;
+    name: string;
+    type: PaymentMethodType;
+  };
+}
+
+export interface PaymentMethodActivatedEvent {
+  entityId: string;
+  entityType: MasterEntityType;
+  paymentMethodId: string;
+}
+
+export interface PaymentMethodDeactivatedEvent {
+  entityId: string;
+  entityType: MasterEntityType;
+  paymentMethodId: string;
+}
+
+export interface PaymentMethodPrimarySetEvent {
+  direction: PaymentMethodDirection;
+  entityId: string;
+  entityType: MasterEntityType;
+  paymentMethodId: string;
+}
+
 export interface ContactEventMap {
   [CONTACT_EVENTS.CREATED]: ContactCreatedEvent;
   [CONTACT_EVENTS.REMOVED]: ContactRemovedEvent;
@@ -184,8 +322,34 @@ export interface NoteEventMap {
   [NOTE_EVENTS.REMOVED]: NoteRemovedEvent;
 }
 
+export interface EntityEventMap {
+  [ENTITY_EVENTS.CREATED]: EntityCreatedEvent;
+  [ENTITY_EVENTS.REMOVED]: EntityRemovedEvent;
+  [ENTITY_EVENTS.UPDATED]: EntityUpdatedEvent;
+}
+
+export interface UnitOfMeasureEventMap {
+  [UNIT_OF_MEASURE_EVENTS.ACTIVATED]: UnitOfMeasureActivatedEvent;
+  [UNIT_OF_MEASURE_EVENTS.CREATED]: UnitOfMeasureCreatedEvent;
+  [UNIT_OF_MEASURE_EVENTS.DEACTIVATED]: UnitOfMeasureDeactivatedEvent;
+  [UNIT_OF_MEASURE_EVENTS.REMOVED]: UnitOfMeasureRemovedEvent;
+  [UNIT_OF_MEASURE_EVENTS.UPDATED]: UnitOfMeasureUpdatedEvent;
+}
+
+export interface PaymentMethodEventMap {
+  [PAYMENT_METHOD_EVENTS.ACTIVATED]: PaymentMethodActivatedEvent;
+  [PAYMENT_METHOD_EVENTS.CREATED]: PaymentMethodCreatedEvent;
+  [PAYMENT_METHOD_EVENTS.DEACTIVATED]: PaymentMethodDeactivatedEvent;
+  [PAYMENT_METHOD_EVENTS.PRIMARY_SET]: PaymentMethodPrimarySetEvent;
+  [PAYMENT_METHOD_EVENTS.REMOVED]: PaymentMethodRemovedEvent;
+  [PAYMENT_METHOD_EVENTS.UPDATED]: PaymentMethodUpdatedEvent;
+}
+
 export type MastersEventMap = AddressEventMap &
   BankAccountEventMap &
   ConnectionEventMap &
   ContactEventMap &
-  NoteEventMap;
+  EntityEventMap &
+  NoteEventMap &
+  PaymentMethodEventMap &
+  UnitOfMeasureEventMap;

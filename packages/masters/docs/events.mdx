@@ -1,10 +1,10 @@
 ---
 title: Events
-description: Domain event map for the Masters module — 16 events across 5 event groups.
+description: Domain event map for the Masters module — 31 events across 8 event groups.
 icon: IconBell
 ---
 
-The Masters module defines 16 domain events across 5 event groups. Events are type-level contracts published as plain string topics via PubSub. The `masters:contact_created` event replaces the old `organization:connection_created` for the compliance insurer flow.
+The Masters module defines 31 domain events across 8 event groups. Events are type-level contracts published as plain string topics via PubSub. The `masters:contact_created` event replaces the old `organization:connection_created` for the compliance insurer flow.
 
 ## Event Constants
 
@@ -39,6 +39,29 @@ export const CONNECTION_EVENTS = {
 export const NOTE_EVENTS = {
   ADDED: "masters:note_added",
   REMOVED: "masters:note_removed",
+} as const;
+
+export const ENTITY_EVENTS = {
+  CREATED: "masters:entity_created",
+  REMOVED: "masters:entity_removed",
+  UPDATED: "masters:entity_updated",
+} as const;
+
+export const UNIT_OF_MEASURE_EVENTS = {
+  ACTIVATED: "masters:unit_of_measure_activated",
+  CREATED: "masters:unit_of_measure_created",
+  DEACTIVATED: "masters:unit_of_measure_deactivated",
+  REMOVED: "masters:unit_of_measure_removed",
+  UPDATED: "masters:unit_of_measure_updated",
+} as const;
+
+export const PAYMENT_METHOD_EVENTS = {
+  ACTIVATED: "masters:payment_method_activated",
+  CREATED: "masters:payment_method_created",
+  DEACTIVATED: "masters:payment_method_deactivated",
+  PRIMARY_SET: "masters:payment_method_primary_set",
+  REMOVED: "masters:payment_method_removed",
+  UPDATED: "masters:payment_method_updated",
 } as const;
 ```
 
@@ -86,6 +109,35 @@ export const NOTE_EVENTS = {
 | `masters:note_added`   | `{ entityId, entityType, note: { id, content, type } }` | Note added   |
 | `masters:note_removed` | `{ entityId, entityType, noteId }`                      | Note removed |
 
+### Entity Events
+
+| Event                    | Payload                                   | Trigger        |
+| ------------------------ | ----------------------------------------- | -------------- |
+| `masters:entity_created` | `{ entity: { id, name, type } }`          | Entity created |
+| `masters:entity_updated` | `{ entity: { id, name, type }, changes }` | Entity updated |
+| `masters:entity_removed` | `{ entity: { id, name, type } }`          | Entity removed |
+
+### Unit of Measure Events
+
+| Event                                 | Payload                                              | Trigger         |
+| ------------------------------------- | ---------------------------------------------------- | --------------- |
+| `masters:unit_of_measure_created`     | `{ unitOfMeasure: { id, code, category } }`          | UOM created     |
+| `masters:unit_of_measure_updated`     | `{ unitOfMeasure: { id, code, category }, changes }` | UOM updated     |
+| `masters:unit_of_measure_removed`     | `{ unitOfMeasure: { id, code, category } }`          | UOM removed     |
+| `masters:unit_of_measure_activated`   | `{ unitOfMeasureId }`                                | UOM activated   |
+| `masters:unit_of_measure_deactivated` | `{ unitOfMeasureId }`                                | UOM deactivated |
+
+### Payment Method Events
+
+| Event                                | Payload                                                                | Trigger                    |
+| ------------------------------------ | ---------------------------------------------------------------------- | -------------------------- |
+| `masters:payment_method_created`     | `{ paymentMethod: { id, name, type }, entityType, entityId }`          | Payment method created     |
+| `masters:payment_method_updated`     | `{ paymentMethod: { id, name, type }, entityType, entityId, changes }` | Payment method updated     |
+| `masters:payment_method_removed`     | `{ paymentMethod: { id, name, type }, entityType, entityId }`          | Payment method removed     |
+| `masters:payment_method_activated`   | `{ paymentMethodId, entityType, entityId }`                            | Payment method activated   |
+| `masters:payment_method_deactivated` | `{ paymentMethodId, entityType, entityId }`                            | Payment method deactivated |
+| `masters:payment_method_primary_set` | `{ paymentMethodId, entityType, entityId, direction }`                 | Primary set                |
+
 ## Usage
 
 ### Publishing Events
@@ -115,7 +167,10 @@ export type MastersEventMap = AddressEventMap &
   BankAccountEventMap &
   ConnectionEventMap &
   ContactEventMap &
-  NoteEventMap;
+  EntityEventMap &
+  NoteEventMap &
+  PaymentMethodEventMap &
+  UnitOfMeasureEventMap;
 ```
 
 <Callout type="info">
