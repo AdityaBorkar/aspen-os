@@ -57,9 +57,6 @@ import { deleteLabel } from "#/workflows/label/delete";
 import { listLabels } from "#/workflows/label/list";
 import { removeLabel } from "#/workflows/label/remove";
 import { updateLabel } from "#/workflows/label/update";
-import { pinItem } from "#/workflows/pin/create";
-import { unpinItem } from "#/workflows/pin/delete";
-import { listPins } from "#/workflows/pin/list";
 import { createPublicLink } from "#/workflows/public-link/create";
 import { getPublicLinkById } from "#/workflows/public-link/get";
 import { listPublicLinks } from "#/workflows/public-link/list";
@@ -177,12 +174,6 @@ export const labels = {
   listByLabel: listEntitiesByLabel,
   remove: removeLabel,
   update: updateLabel,
-} as const;
-
-export const pins = {
-  create: pinItem,
-  delete: unpinItem,
-  list: listPins,
 } as const;
 
 export const search = {

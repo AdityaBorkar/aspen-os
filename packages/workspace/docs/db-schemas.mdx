@@ -8,12 +8,12 @@ The module owns **10 tenant tables** and **4 pgEnums**. All are `tenant_schemas`
 
 ## Enums
 
-| Enum                     | Column(s)                                                                            | Values                                                    |
-| ------------------------ | ------------------------------------------------------------------------------------ | --------------------------------------------------------- |
-| `workspace_access`       | `workspace_draft.access`, `workspace_view.access`, `workspace_dashboard.access`      | `personal`, `global`                                      |
-| `workspace_draft_status` | `workspace_draft.status`                                                             | `draft`, `submitted`, `approved`, `rejected`, `published` |
-| `workspace_widget_type`  | `workspace_widget.type`                                                              | `metric`, `breakdown`, `list`, `embed`                    |
-| `workspace_item_type`    | `workspace_pin.item_type`, `workspace_recent.item_type`, `workspace_watch.item_type` | `draft`, `view`, `dashboard`                              |
+| Enum                     | Column(s)                                                                       | Values                                                    |
+| ------------------------ | ------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `workspace_access`       | `workspace_draft.access`, `workspace_view.access`, `workspace_dashboard.access` | `personal`, `global`                                      |
+| `workspace_draft_status` | `workspace_draft.status`                                                        | `draft`, `submitted`, `approved`, `rejected`, `published` |
+| `workspace_widget_type`  | `workspace_widget.type`                                                         | `metric`, `breakdown`, `list`, `embed`                    |
+| `workspace_item_type`    | `workspace_recent.item_type`, `workspace_watch.item_type`                       | `draft`, `view`, `dashboard`                              |
 
 ## Tables
 
@@ -145,16 +145,16 @@ Indexes: `idx_workspace_schedule_dashboard`.
 
 ### `workspace_pin`
 
-Per-user sidebar shortcut.
+Per-user sidebar shortcut. `item_type` is free-form text drawn from the documented `PIN_ITEM_TYPE` registry (`draft`/`view`/`dashboard` for workspace entities; `triage`/`file_view`/`class` for dms items) — pins soft-reference any tenant item by `(itemType, itemId)` with no module dependency.
 
-| Column       | Type                       | Description                  |
-| ------------ | -------------------------- | ---------------------------- |
-| `created_at` | timestamptz                |                              |
-| `id`         | text PK (`uuidv7`)         |                              |
-| `item_id`    | text                       |                              |
-| `item_type`  | enum `workspace_item_type` | `draft`, `view`, `dashboard` |
-| `sort_order` | integer                    | default `0`                  |
-| `user_id`    | text                       |                              |
+| Column       | Type               | Description                                                                   |
+| ------------ | ------------------ | ----------------------------------------------------------------------------- |
+| `created_at` | timestamptz        |                                                                               |
+| `id`         | text PK (`uuidv7`) |                                                                               |
+| `item_id`    | text               |                                                                               |
+| `item_type`  | text               | registry value (`draft`, `view`, `dashboard`, `triage`, `file_view`, `class`) |
+| `sort_order` | integer            | default `0`                                                                   |
+| `user_id`    | text               |                                                                               |
 
 Unique `(user_id, item_type, item_id)`; index `idx_workspace_pin_user`.
 
@@ -209,7 +209,8 @@ workspace_draft 1:N workspace_draft_comment (draft_id)
 workspace_dashboard 1:N workspace_widget (dashboard_id)
 workspace_dashboard 1:N workspace_schedule (dashboard_id)
 workspace_widget N:1 workspace_view (view_id — datasource reuse, soft FK)
-pin / recent / watch  ── item_type + item_id ──▶ any workspace entity (draft/view/dashboard)
+pin ── item_type + item_id ──▶ any registry item (workspace entities + dms items)
+recent / watch ── item_type + item_id ──▶ workspace entity (draft/view/dashboard)
 ```
 
 ## Usage

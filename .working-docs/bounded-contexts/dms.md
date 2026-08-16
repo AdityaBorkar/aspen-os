@@ -10,11 +10,11 @@ Downstream of the Platform (Customer–Supplier). Runtime-wired — receives `{ 
 
 - `Dms.create(config?)` — factory returning a Module instance; `$config: Required<DmsModuleConfig>` (10 settings with defaults: `allowedContentTypes`, `defaultAutoPurgeEveryHours` (24), `defaultCompression`, `defaultDownloadLinkExpiry` (3600), `defaultRetentionDays` (180), `maxDownloadLinkExpiry` (604800), `maxFileSize` (5 GiB), `maxNestingDepth` (20), `maxVersions` (10), `trashRetentionDays` (30))
 - `$name = "dms"`, `$dependencies = []` — no module deps
-- 19 workflow groups exposed as `readonly` properties: `access`, `activity`, `archive`, `classes`, `contacts`, `fileViews`, `files`, `folders`, `holds`, `labels`, `paths`, `pins`, `search`, `settings`, `shares`, `storage`, `trash`, `triage`, `versions`
+- 18 workflow groups exposed as `readonly` properties: `access`, `activity`, `archive`, `classes`, `contacts`, `fileViews`, `files`, `folders`, `holds`, `labels`, `paths`, `search`, `settings`, `shares`, `storage`, `trash`, `triage`, `versions`
 - 11 services: `access-service`, `archive-service`, `classify-service`, `compression-service`, `condition-service`, `expiry-scanner`, `path-service`, `purge-service`, `search-service`, `settings-service`, `storage-bridge`; 8 reusable `WorkflowStep`s (`fetch-*`) in `workflow-steps/`
-- 15 database tables (all `tenant_schemas`, `dms_` prefix): `dms_folder`, `dms_file`, `dms_file_version`, `dms_class`, `dms_class_field`, `dms_entity_label`, `dms_label`, `dms_file_view`, `dms_contact`, `dms_share`, `dms_public_link`, `dms_legal_hold`, `dms_access_log`, `dms_pin`, `dms_setting`
+- 14 database tables (all `tenant_schemas`, `dms_` prefix): `dms_folder`, `dms_file`, `dms_file_version`, `dms_class`, `dms_class_field`, `dms_entity_label`, `dms_label`, `dms_file_view`, `dms_contact`, `dms_share`, `dms_public_link`, `dms_legal_hold`, `dms_access_log`, `dms_setting`
 - 33 domain events across 7 maps (`CLASS_EVENTS` 3, `CONTACT_EVENTS` 3, `FILE_EVENTS` 13, `FILE_VIEW_EVENTS` 3, `FOLDER_EVENTS` 6, `PUBLIC_LINK_EVENTS` 3, `SHARE_EVENTS` 2) → `DmsEventMap`
-- 12 ACL resources: `class`, `classField`, `contact`, `file`, `fileView`, `folder`, `label`, `legalHold`, `pin`, `publicLink`, `setting`, `share`
+- 11 ACL resources: `class`, `classField`, `contact`, `file`, `fileView`, `folder`, `label`, `legalHold`, `publicLink`, `setting`, `share`
 - `$prepareRuntime()` — registers 2 cron schedules + handlers: `dms:expiry-scan` (`5 0 * * *`), `dms:auto-purge` (`30 3 * * *`); `$cleanup()` unregisters them
 - Audit-driven **Activity Feed**: file/folder activity is written inline to the platform's `AuditUnit` (`audit_log`), queried via `ctx.audit.query()` — not a DMS-owned table, not PubSub events
 - Module-scope runtime state in `runtime.ts` (`setDmsConfig`/`setDmsStorage`/`getDmsConfig`/`getDmsStorage`)
@@ -33,7 +33,7 @@ p.dms.files        { addMetadata, classify, copy, delete, deleteVersion, downloa
 p.dms.folders      { create, delete, get, getById, list, move, rename, restore, update }
 p.dms.holds        { list, place, release }
 p.dms.labels       { apply, create, delete, list, listByLabel, remove, update }
-p.dms.paths        (service facade)   p.dms.pins   { create, delete, list }
+p.dms.paths        (service facade)
 p.dms.search       { promoteToView, quick, search }
 p.dms.settings     { get, set }
 p.dms.shares       { create, createPublicLink, get, getPublicLink, list, listByGrantee,

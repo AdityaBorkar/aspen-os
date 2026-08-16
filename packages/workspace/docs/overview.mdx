@@ -56,7 +56,7 @@ schedule due  ── cron ────▶ workspace:schedule_due ─────
 | `dashboards` | `create`, `get`, `update`, `list`, `delete`, `duplicate`, `export`, `import`                                                                                                    |
 | `widgets`    | `add`, `get`, `list`, `update`, `move`, `refresh`, `remove` (top-level group; workflows live under `dashboard/widget/`)                                                         |
 | `schedules`  | `create`, `get`, `update`, `list`, `delete`, `pause`, `resume`, `markRun`                                                                                                       |
-| `pins`       | `create`, `delete`, `list`                                                                                                                                                      |
+| `pins`       | `create`, `delete`, `list` (cross-module item-type registry — workspace entities + dms items pinnable)                                                                          |
 | `recent`     | `touch`, `list` (bounded — trimmed to `maxRecentItems` per user)                                                                                                                |
 | `search`     | `quick` (access-scoped over drafts, views, dashboards)                                                                                                                          |
 | `settings`   | `get`, `set` (per user; keys validated against `SETTING_KEYS`)                                                                                                                  |

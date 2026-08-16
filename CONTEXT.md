@@ -1,6 +1,6 @@
 # Aspen OS
 
-Aspen OS is a business application framework built on Bun/TypeScript. The platform kernel provides composable infrastructure (database, auth, logging, pub/sub, RPC, storage, KV store) so domain-specific modules can be built on top without reinventing plumbing. The first concrete application is **Recruiter** — a recruitment management system.
+Aspen OS is a business application framework built on Bun/TypeScript. The platform kernel provides composable infrastructure (database, auth, logging, pub/sub, RPC, storage, KV store) so domain-specific modules can be built on top without reinventing plumbing.
 
 ## Language
 
@@ -413,7 +413,7 @@ The single central entity of the DMS module — one uploaded binary, carrying bo
 _Avoid_: Document, Asset, Drive File
 
 **Triage**:
-The staging stage for files uploaded without a folder. A triaged file is not searchable, normally listable, or shareable until classified. The only exit is `classify()` (→ `active`). Can be pinned to the sidebar.
+The staging stage for files uploaded without a folder. A triaged file is not searchable, normally listable, or shareable until classified. The only exit is `classify()` (→ `active`). Can be pinned via the workspace module.
 _Avoid_: Inbox, Draft Folder, Pending Queue
 
 **Classify**:
@@ -433,7 +433,7 @@ A stored revision of a File. Storage keys are version-bound (`dms/{tenant}/{file
 _Avoid_: Revision (allowed informally), Snapshot, Copy
 
 **File View**:
-A saved, reusable filter+sort configuration over active files. Conditions cover file-level columns, classes, class fields (`classField:<name>`), labels, and a free-text `search` term. Personal views are user-owned; admins publish shared views. Pinned via `dms_pin` with item type `file_view`.
+A saved, reusable filter+sort configuration over active files. Conditions cover file-level columns, classes, class fields (`classField:<name>`), labels, and a free-text `search` term. Personal views are user-owned; admins publish shared views. Pinned via `workspace_pin`, item type `file_view`.
 _Avoid_: Saved Filter, Dashboard, Query, View
 
 **Full-Text Search**:
@@ -501,7 +501,7 @@ A per-Dashboard cron delivery configuration (`{ recipients, format: export|pdf|u
 _Avoid_: Recurring Delivery, Notification Job
 
 **Pin (workspace)**:
-A per-user sidebar shortcut to any workspace entity (`draft`/`view`/`dashboard`); unique `(userId, itemType, itemId)`.
+A per-user sidebar shortcut to any tenant item via the `PIN_ITEM_TYPE` registry — workspace entities (`draft`/`view`/`dashboard`) plus dms items (`triage`/`file_view`/`class`), soft-referenced by `(itemType, itemId)` with no module dependency; unique `(userId, itemType, itemId)`. The dms module's pin surface is consolidated here.
 _Avoid_: Bookmark, Favorite
 
 **Recent**:
@@ -648,10 +648,10 @@ Implemented: DMS module — unified document/files management on a single `file`
   `p.dms.shares`; versioned files, full-text/quick search (records + filesystem
   merged), one trash module over `status` with retention + admin-only permanent
   delete + legal holds + expiry scanner, Activity Feed via AuditUnit; folders,
-  labels (`dms_label` + `dms_entity_label`), file views, pins. Reuses StorageUnit
+  labels (`dms_label` + `dms_entity_label`), file views. Reuses StorageUnit
   (unified `dms/{tenant}/{fileId}/v{n}/{name}` keys), AuthUnit, PubSub
-  (expiry-scan + auto-purge crons), AuditUnit. 15 `dms_*` tables, all tenant
-  schemas. No module deps. 19 workflow groups, 33 events.
+  (expiry-scan + auto-purge crons), AuditUnit. 14 `dms_*` tables, all tenant
+  schemas. No module deps. 18 workflow groups, 33 events.
 
 Implemented: Workspace module — dependency-free personal-workspace surface:
   drafts (draft → submitted → approved → published, optional approval, reject →

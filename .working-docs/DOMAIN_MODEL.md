@@ -31,7 +31,7 @@ Bounded-context detail (relationships, structure, language) for each package liv
 | Compliance      | 3      | all tenant                                                                                     |
 | Tasks           | 16     | 6 control-plane + 10 tenant                                                                    |
 | Calendar        | 4      | all tenant (`calendar_` prefix)                                                                |
-| DMS             | 15     | all tenant (`dms_` prefix)                                                                     |
+| DMS             | 14     | all tenant (`dms_` prefix)                                                                     |
 | HR              | 50     | 14 control-plane + 36 tenant                                                                   |
 | Management      | 3      | all control-plane (0 shadow tables)                                                            |
 | Workspace       | 10     | all tenant (`workspace_` prefix)                                                               |

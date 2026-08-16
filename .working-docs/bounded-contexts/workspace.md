@@ -39,7 +39,7 @@ p.workspace.widgets    { add, get, list, move, refresh, remove, update }
 
 ## Lineage
 
-New module — no prior package. `dms`/`tasks` saved views (`dms_file_view`, `task_saved_view`) and `isShared`/`isGlobal` booleans are precedents for the access model but are **not retrofitted**; workspace introduces the first-class `personal`/`global` `access` enum. `dms_pin`/`dms_setting` are the precedents for the user-scoped utilities. Compliance's `dashboard` is module-local summary metrics, not a generic dashboard entity.
+New module — no prior package. `dms`/`tasks` saved views (`dms_file_view`, `task_saved_view`) and `isShared`/`isGlobal` booleans are precedents for the access model but are **not retrofitted**; workspace introduces the first-class `personal`/`global` `access` enum. `dms_setting` is a precedent for the user-scoped utilities, and the former `dms_pin` surface (sidebar pins for triage/file-view/class items) is **consolidated here** — workspace pins are the single pin concept (`.working-docs/sow/dms-pins-removal.md`). Compliance's `dashboard` is module-local summary metrics, not a generic dashboard entity.
 
 ## Language
 

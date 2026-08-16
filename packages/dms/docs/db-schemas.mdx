@@ -1,10 +1,10 @@
 ---
 title: DB Schemas
-description: All tenant tables declared by the DMS module — 15 tables + 6 enums across the tenant database.
+description: All tenant tables declared by the DMS module — 14 tables + 6 enums across the tenant database.
 icon: IconDatabase
 ---
 
-The DMS module declares 15 tables, all in tenant schemas (no control-plane tables). Every table uses `text("id")` with `.primaryKey().$defaultFn(uuidv7)`. Timestamps use `TIMESTAMPTZ` (`withTimezone: true`).
+The DMS module declares 14 tables, all in tenant schemas (no control-plane tables). Every table uses `text("id")` with `.primaryKey().$defaultFn(uuidv7)`. Timestamps use `TIMESTAMPTZ` (`withTimezone: true`).
 
 ## Enums
 
@@ -14,7 +14,6 @@ The DMS module declares 15 tables, all in tenant schemas (no control-plane table
 | `dms_field_type`             | `dms_class_field.type`       | `text`, `number`, `date`, `select`, `multi-select`, `boolean`, `user`, `contact`, `url`, `email`, `phone` |
 | `dms_grantee_type`           | `dms_share.grantee_type`     | `user`, `group`, `contact`                                                                                |
 | `dms_share_permission`       | `dms_share.permission`       | `viewer`, `editor`, `owner`                                                                               |
-| `dms_pin_item_type`          | `dms_pin.item_type`          | `triage`, `file_view`, `class`                                                                            |
 | `dms_public_link_permission` | `dms_public_link.permission` | `view`, `edit`                                                                                            |
 
 The polymorphic `entity_type` columns (`dms_entity_label`, `dms_share`, `dms_public_link`, `dms_access_log`) use the `dms_entity_type` enum (`file`, `folder`).
@@ -138,7 +137,7 @@ Indexed on `class_id`, unique on `(class_id, name)`.
 | `is_shared`                 | boolean     | Admin-published, visible to all users            |
 | `created_at` / `updated_at` | timestamptz | Record timestamps                                |
 
-Indexed on `owner_id`, `is_shared`. (View pins are routed through `dms_pin` with item type `file_view`; the former `is_pinned` column is gone.)
+Indexed on `owner_id`, `is_shared`. (Sidebar pinning of views is the workspace module's surface — `p.workspace.pins` with item type `file_view`.)
 
 ### `dms_contact`
 
@@ -208,19 +207,6 @@ Managed by the same `shares` group as grants. Indexed on `(entity_id, entity_typ
 
 One active hold per file. Indexed on `file_id`, `released_at`.
 
-### `dms_pin`
-
-| Column       | Type        | Description                    |
-| ------------ | ----------- | ------------------------------ |
-| `id`         | text (PK)   | Auto UUIDv7                    |
-| `user_id`    | text        | Pin owner                      |
-| `item_type`  | enum        | `triage`, `file_view`, `class` |
-| `item_id`    | text        | Referenced item                |
-| `sort_order` | integer     | Render order                   |
-| `created_at` | timestamptz | Pin creation                   |
-
-Unique on `(user_id, item_type, item_id)`.
-
 ### `dms_setting`
 
 | Column                      | Type          | Description       |
@@ -260,5 +246,4 @@ dms_file / dms_folder ──1:N──→ dms_public_link (shareable links)
 dms_file / dms_folder ──1:N──→ dms_access_log (access tracking)
 dms_contact ──1:N──→ dms_share (contact grants)
 dms_file ──1:N──→ dms_legal_hold (legal holds)
-dms_file_view ──1:N──→ dms_pin (sidebar pins by owner, item type file_view)
 ```

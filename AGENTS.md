@@ -85,7 +85,7 @@ packages/
                        # (access-service, event-service, recurrence, reminder-dispatcher, task-bridge)
   dms/                 # Domain module (build step) — unified document/files management on one `file` entity
                        # (Triage → Classify → active, classes, contacts/shares + public links, legal holds,
-                       # retention + purge) plus folders/labels/fileViews/trash (15 dms_* tables,
+                       # retention + purge) plus folders/labels/fileViews/trash (14 dms_* tables,
                        # expiry-scan + auto-purge crons)
   management/          # Control-plane module (build step) — module.ts auth.ts pubsub.ts
                        # workflow-steps/ (3 owned tables: service_provider, service_provider_user,

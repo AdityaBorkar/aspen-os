@@ -20,7 +20,6 @@ export const acl = defineAcl({
   folder: ["create", "delete", "read", "update"],
   label: ["create", "delete", "read", "update"],
   legalHold: ["create", "read"],
-  pin: ["create", "delete", "read"],
   publicLink: ["create", "delete", "read", "update"],
   setting: ["read", "update"],
   share: ["create", "delete", "read", "update"],
@@ -37,7 +36,6 @@ export const acl = defineAcl({
 | `folder`     | `create`, `delete`, `read`, `update`                                    |
 | `label`      | `create`, `delete`, `read`, `update`                                    |
 | `legalHold`  | `create`, `read`                                                        |
-| `pin`        | `create`, `delete`, `read`                                              |
 | `publicLink` | `create`, `delete`, `read`, `update`                                    |
 | `setting`    | `read`, `update`                                                        |
 | `share`      | `create`, `delete`, `read`, `update`                                    |
@@ -52,7 +50,7 @@ The ACL is the _declaration_ of operations; role definitions and permission enfo
 - Place/release legal holds (`holds.place`, `holds.release`)
 - Permanently delete from the trash (`trash.deletePermanently`, `trash.empty`)
 
-Ordinary users may soft-delete their own files and folders, restore them, and pin triage/file-view/class items to their sidebar.
+Ordinary users may soft-delete their own files and folders and restore them.
 
 <Callout type="info">
   The ACL is the *declaration* of operations. Role definitions and permission enforcement are

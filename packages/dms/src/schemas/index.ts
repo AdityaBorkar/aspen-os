@@ -38,8 +38,6 @@ export {
   FileStatusSchema,
   GRANTEE_TYPE,
   GranteeTypeSchema,
-  PIN_ITEM_TYPE,
-  PinItemTypeSchema,
   PUBLIC_LINK_PERMISSION,
   PublicLinkPermissionSchema,
   SHARE_PERMISSION,

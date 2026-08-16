@@ -50,6 +50,17 @@ export const WORKSPACE_ITEM_TYPE = {
 
 export type WorkspaceItemType = (typeof WORKSPACE_ITEM_TYPE)[keyof typeof WORKSPACE_ITEM_TYPE];
 
+export const PIN_ITEM_TYPE = {
+  CLASS: "class",
+  DASHBOARD: "dashboard",
+  DRAFT: "draft",
+  FILE_VIEW: "file_view",
+  TRIAGE: "triage",
+  VIEW: "view",
+} as const;
+
+export type PinItemType = (typeof PIN_ITEM_TYPE)[keyof typeof PIN_ITEM_TYPE];
+
 export const RANGE_PRESET = {
   ALL_TIME: "all_time",
   CUSTOM: "custom",
@@ -96,6 +107,9 @@ export const SCHEDULE_CRON_TOPIC_PREFIX = "workspace:schedule:";
 
 export const AUDIT_ENTITY_TYPE = {
   DASHBOARD: "workspace:dashboard",
+  DMS_CLASS: "dms:class",
+  DMS_FILE: "dms:file",
+  DMS_FILE_VIEW: "dms:file_view",
   DRAFT: "workspace:draft",
   DRAFT_COMMENT: "workspace:draft_comment",
   PIN: "workspace:pin",

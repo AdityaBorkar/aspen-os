@@ -54,14 +54,6 @@ export const PUBLIC_LINK_PERMISSION = {
 export type PublicLinkPermission =
   (typeof PUBLIC_LINK_PERMISSION)[keyof typeof PUBLIC_LINK_PERMISSION];
 
-export const PIN_ITEM_TYPE = {
-  CLASS: "class",
-  FILE_VIEW: "file_view",
-  TRIAGE: "triage",
-} as const;
-
-export type PinItemType = (typeof PIN_ITEM_TYPE)[keyof typeof PIN_ITEM_TYPE];
-
 export const COMPRESSION_MODE = {
   ARCHIVE: "archive",
   IMAGE: "image",

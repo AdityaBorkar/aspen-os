@@ -1,6 +1,6 @@
 # DMS Domain Model
 
-> Package: `@aspen-os/dms`. Unified document management on a **single `file` entity** that carries both filesystem attributes (`folderId`, `path`, `description`) and records attributes (`classId`, `docNumber`, `fieldValues`, `expiryDate`, `batchId`, `compression`). All 15 tables are tenant schemas with the `dms_` prefix.
+> Package: `@aspen-os/dms`. Unified document management on a **single `file` entity** that carries both filesystem attributes (`folderId`, `path`, `description`) and records attributes (`classId`, `docNumber`, `fieldValues`, `expiryDate`, `batchId`, `compression`). All 14 tables are tenant schemas with the `dms_` prefix.
 
 ## Entity-Relationship Diagram
 
@@ -59,13 +59,14 @@
 │  │ ownerId      │                        │ linkedUserId │                │
 │  └──────────────┘                        └──────────────┘                │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                     │
-│  │   Pin        │  │   Setting    │  │  LegalHold   │                     │
-│  │ userId       │  │ key (uniq)   │  │ fileId       │                     │
-│  │ itemType     │  │ value (jsonb)│  │ reason       │                     │
-│  │ (triage/     │  └──────────────┘  │ placedBy / releasedBy              │
-│  │  file_view/  │                    └──────────────┘                     │
-│  │  class)      │                                                         │
-│  └──────────────┘                                                         │
+│  │   Setting    │  │  LegalHold   │  │              │                     │
+│  │ key (uniq)   │  │ fileId       │  │              │                     │
+│  │ value (jsonb)│  │ reason       │  │              │                     │
+│  │              │  │ placedBy /   │  │              │                     │
+│  │              │  │ releasedBy   │  │              │                     │
+│  │              │  └──────────────┘  │              │                     │
+│  └──────────────┘                    │              │                     │
+│                                      └──────────────┘                     │
 │                                                                          │
 │  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐                 │
 │  │    Share     │    │ PublicLink   │    │ AccessLog    │  (file or       │
@@ -202,7 +203,6 @@
 
 ### Supporting entities
 
-- **Pin**: `{ userId, itemType (triage/file_view/class), itemId, sortOrder }` — unique per `(userId, itemType, itemId)`; pins triage queues, file views, and classes to the sidebar.
 - **Setting**: `{ key (unique), value (jsonb) }` — DMS-wide settings (e.g. default retention).
 - **Access Log**: append-only `{ entityId, entityType, accessedBy?, action, ip?, userAgent?, publicLinkId? }` — public-link access and download tracking.
 - **Contact**: org-wide address-book entry (`firstName`, `lastName`, `email`, `phone`, `companyName`, `designation` — all mandatory) used as a sharing handle for external parties; may be linked to an internal AuthUnit user (`linkedUserId`). Removal requires a mandatory reason (`deletionReason`) and revokes all shares granted to the contact.
@@ -327,7 +327,6 @@
 | DMS     | Get path breadcrumbs     | `p.dms.paths.getBreadcrumbs()`                      |
 | DMS     | List labels              | `p.dms.labels.list()` / `listByLabel()`             |
 | DMS     | List file views          | `p.dms.fileViews.list()` / `listByOwner()`          |
-| DMS     | List pins                | `p.dms.pins.list()`                                 |
 
 ## Invariants & Business Rules
 

@@ -9,7 +9,6 @@ import { dmsFileView } from "#/db-schemas/file-view";
 import { dmsFolder } from "#/db-schemas/folder";
 import { dmsLabel } from "#/db-schemas/label";
 import { dmsLegalHold } from "#/db-schemas/legal-hold";
-import { dmsPin } from "#/db-schemas/pin";
 import { dmsPublicLink } from "#/db-schemas/public-link";
 import { dmsSetting } from "#/db-schemas/setting";
 import { dmsShare } from "#/db-schemas/share";
@@ -32,7 +31,6 @@ export { dmsFileView } from "#/db-schemas/file-view";
 export { dmsFolder } from "#/db-schemas/folder";
 export { dmsLabel } from "#/db-schemas/label";
 export { dmsLegalHold } from "#/db-schemas/legal-hold";
-export { dmsPin, dmsPinItemTypeEnum } from "#/db-schemas/pin";
 export { dmsPublicLink } from "#/db-schemas/public-link";
 export { dmsSetting } from "#/db-schemas/setting";
 export { dmsShare } from "#/db-schemas/share";
@@ -49,7 +47,6 @@ export const dmsTables = {
   dmsFolder,
   dmsLabel,
   dmsLegalHold,
-  dmsPin,
   dmsPublicLink,
   dmsSetting,
   dmsShare,

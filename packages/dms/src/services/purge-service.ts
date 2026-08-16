@@ -5,7 +5,6 @@ import {
   dmsFileVersion,
   dmsFolder,
   dmsLegalHold,
-  dmsPin,
   dmsPublicLink,
   dmsShare,
 } from "#/db-schemas";
@@ -86,7 +85,7 @@ export async function isFileHeld(db: NodePgDatabase, fileId: string): Promise<bo
 
 /**
  * Permanently deletes a file: removes the current and every version object and
- * cascades version rows, labels, shares, public links, pins, and legal holds.
+ * cascades version rows, labels, shares, public links, and legal holds.
  * Returns an array of storage keys that were freed.
  */
 export async function deleteFilePermanently(db: NodePgDatabase, fileId: string): Promise<string[]> {
@@ -123,7 +122,6 @@ export async function deleteFilePermanently(db: NodePgDatabase, fileId: string):
   await db
     .delete(dmsPublicLink)
     .where(and(eq(dmsPublicLink.entityType, "file"), eq(dmsPublicLink.entityId, fileId)));
-  await db.delete(dmsPin).where(eq(dmsPin.itemId, fileId));
   await db.delete(dmsFileVersion).where(eq(dmsFileVersion.fileId, fileId));
   await db.delete(dmsLegalHold).where(eq(dmsLegalHold.fileId, fileId));
   await db.delete(dmsFile).where(eq(dmsFile.id, fileId));

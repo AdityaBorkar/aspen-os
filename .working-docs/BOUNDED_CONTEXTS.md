@@ -81,10 +81,10 @@ Domain detail for each context lives in [`domain-model/`](domain-model/) (also s
 │  ┌───────────────────┐                     └───────────────┘   │
 │  │ Masters Module    │  ┌───────────────┐  ┌───────────────┐   │
 │  │ 7 wf groups       │  │ Tasks         │  │ DMS Module    │   │
-│  │ 7 tables          │  │ Module        │  │ 19 wf groups  │   │
-│  │ 29 events         │  │ 11 wf groups  │  │ 15 tables     │   │
+│  │ 7 tables          │  │ Module        │  │ 18 wf groups  │   │
+│  │ 29 events         │  │ 11 wf groups  │  │ 14 tables     │   │
 │  │ 7 ACL res.        │  │ 17 tables     │  │ 33 events     │   │
-│  │ units: kvStore    │  │ 10 events     │  │ 12 ACL res.   │   │
+│  │ units: kvStore    │  │ 10 events     │  │ 11 ACL res.   │   │
 │  │ (connections)     │  │ units: none   │  │ units:        │   │
 │  └───────────────────┘  │               │  │ db, auth,     │   │
 │                         └───────────────┘  │ pubsub+storage│   │
@@ -279,7 +279,7 @@ Four modules register scheduled cron jobs via PubSub:
 | Compliance       | Downstream    | Platform, HR, Organization, Fleet, Accounting | —                            | 5 workflow groups, 3 tables, 3 services, subscribes to external events                    |
 | Tasks            | Downstream    | Platform                                      | Calendar                     | 10 workflow groups, 16 tables (6 control + 10 tenant), empty ACL                          |
 | Calendar         | Downstream    | Platform                                      | —                            | 4 workflow groups, 4 tables, 13 events, 4 ACL resources, 1 cron + task bridge             |
-| DMS              | Downstream    | Platform, Storage                             | —                            | 19 workflow groups, 15 tables, 33 events, 12 ACL resources, 2 crons                       |
+| DMS              | Downstream    | Platform, Storage                             | —                            | 18 workflow groups, 14 tables, 33 events, 11 ACL resources, 2 crons                       |
 | Management Plane | Downstream    | Platform, Organization                        | —                            | 3 workflow groups, 3 owned tables, 0 shadow tables, 16 events, has build step             |
 | HR               | Downstream    | Platform                                      | Compliance                   | ~250 workflow methods in 8 groups, 50 tables (14 control + 36 tenant), 43 events, 2 crons |
 | Accounting       | Stub          | —                                             | —                            | Package.json only                                                                         |

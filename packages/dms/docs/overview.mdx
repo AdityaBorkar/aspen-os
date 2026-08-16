@@ -22,14 +22,14 @@ The module declares no platform-module dependencies.
 
 ## Architecture
 
-The module operates against the **tenant** database (all 15 tables are tenant schemas; there are no control-plane tables):
+The module operates against the **tenant** database (all 14 tables are tenant schemas; there are no control-plane tables):
 
 ```text
 TENANT DATABASE
   dms_file, dms_file_version, dms_folder
   dms_class, dms_class_field
   dms_label, dms_entity_label
-  dms_file_view, dms_pin, dms_share, dms_public_link
+  dms_file_view, dms_share, dms_public_link
   dms_contact, dms_legal_hold, dms_setting, dms_access_log
 ```
 
@@ -44,7 +44,7 @@ upload to triage ──▶ triaged ──classify──▶ active           (leg
 - **Upload into a folder** → `active` immediately. **Upload without a folder (staged for classification)** → `triaged`; `classify` validates required class fields, applies the file-naming schema (metadata-only rename), assigns `docNumber`, and sets `active`.
 - **Soft delete** (records delete or filesystem trash) → `status = trashed`, `deletedAt`/`deletedBy` set. Restore → `active`.
 - **Expiry scanner** promotes past-due files to `expired` (retains class, fields, versions).
-- **Purge** (auto-purge or admin `deletePermanently`) removes all version objects and rows, cascading labels, shares, public links, pins, and holds. Legal holds block purge.
+- **Purge** (auto-purge or admin `deletePermanently`) removes all version objects and rows, cascading labels, shares, public links, and holds. Legal holds block purge.
 
 ## What It Exposes
 
@@ -60,7 +60,6 @@ The module exposes workflow + service groups:
 | `trash`     | `list`, `restore`, `deletePermanently`, `empty`, `purgeExpired`                                                                                                                                                                                 |
 | `fileViews` | `apply`, `create`, `update`, `delete`, `list`, `listByOwner`, `getDefault`, `setDefault`                                                                                                                                                        |
 | `triage`    | `list`, `detail`, `classify`                                                                                                                                                                                                                    |
-| `pins`      | `create`, `delete`, `list` (item types: `triage`, `file_view`, `class`)                                                                                                                                                                         |
 | `contacts`  | `create`, `get`, `list`, `update`, `remove`                                                                                                                                                                                                     |
 | `holds`     | `list`, `place`, `release`                                                                                                                                                                                                                      |
 | `settings`  | `get`, `set`                                                                                                                                                                                                                                    |
@@ -137,7 +136,7 @@ type DmsModuleConfig = {
 $prepareInfra(): ModuleInfra {
   return {
     auth: { acl },                      // file, class, contact, share, file_view, folder, label, ...
-    db: { control_plane_schemas: {}, tenant_schemas: dmsTables }, // 15 tenant tables
+    db: { control_plane_schemas: {}, tenant_schemas: dmsTables }, // 14 tenant tables
     events,                             // dms:* topics
   };
 }

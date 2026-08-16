@@ -13,7 +13,6 @@ export type { DmsContact, NewDmsContact } from "#/db-schemas/contact";
 export type { DmsEntityLabel, NewDmsEntityLabel } from "#/db-schemas/entity-label";
 export type { DmsFileView, NewDmsFileView } from "#/db-schemas/file-view";
 export type { DmsLegalHold, NewDmsLegalHold } from "#/db-schemas/legal-hold";
-export type { DmsPin, NewDmsPin } from "#/db-schemas/pin";
 export type { DmsSetting, NewDmsSetting } from "#/db-schemas/setting";
 export type { DmsShare, NewDmsShare } from "#/db-schemas/share";
 export type {
@@ -155,7 +154,6 @@ export {
   MoveFolderSchema,
   NameSchema,
   NewVersionSchema,
-  PinItemTypeSchema,
   PublicLinkPermissionSchema,
   QuickSearchSchema,
   RemoveContactSchema,
@@ -194,7 +192,6 @@ export type {
   FieldType,
   FileStatus,
   GranteeType,
-  PinItemType,
   PublicLinkPermission,
   ScheduledJob,
   SettingKey,
@@ -208,7 +205,6 @@ export {
   FILE_STATUS,
   FIELD_TYPE,
   GRANTEE_TYPE,
-  PIN_ITEM_TYPE,
   PUBLIC_LINK_PERMISSION,
   SCHEDULED_JOBS,
   SETTING_KEYS,

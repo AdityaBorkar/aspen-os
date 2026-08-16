@@ -9,7 +9,6 @@ export const acl = defineAcl({
   folder: ["create", "delete", "read", "update"],
   label: ["create", "delete", "read", "update"],
   legalHold: ["create", "read"],
-  pin: ["create", "delete", "read"],
   publicLink: ["create", "delete", "read", "update"],
   setting: ["read", "update"],
   share: ["create", "delete", "read", "update"],

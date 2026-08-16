@@ -1,19 +1,18 @@
-import { WorkspaceItemTypeSchema } from "#/schemas/enums";
 import { IdSchema } from "#/schemas/utils";
 
-import { object, optional } from "valibot";
+import { object, optional, string } from "valibot";
 import type { InferOutput } from "valibot";
 
 export const PinItemInputSchema = object({
   itemId: IdSchema,
-  itemType: WorkspaceItemTypeSchema,
+  itemType: string(),
   userId: optional(IdSchema),
 });
 
 export type PinItemInput = InferOutput<typeof PinItemInputSchema>;
 
 export const ListPinsSchema = object({
-  itemType: optional(WorkspaceItemTypeSchema),
+  itemType: optional(string()),
 });
 
 export type ListPinsInput = InferOutput<typeof ListPinsSchema>;

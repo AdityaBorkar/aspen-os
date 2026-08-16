@@ -141,7 +141,6 @@ export class Dms implements Module {
   readonly holds = wf.holds;
   readonly labels = wf.labels;
   readonly paths = wf.paths;
-  readonly pins = wf.pins;
   readonly search = wf.search;
   readonly settings = wf.settings;
   readonly shares = wf.shares;

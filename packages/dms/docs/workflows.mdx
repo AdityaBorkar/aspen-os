@@ -4,7 +4,7 @@ description: API reference for the workflow groups exposed by the DMS module.
 icon: IconListCheck
 ---
 
-The DMS module exposes workflows as flat `Workflow` objects grouped under accessors: `files`, `folders`, `classes`, `labels`, `shares`, `trash`, `fileViews`, `triage`, `pins`, `contacts`, `holds`, `settings`, `search`, `activity`, `versions`, plus the `access`/`archive`/`paths`/`storage` services. Access via the platform proxy key `p.dms`.
+The DMS module exposes workflows as flat `Workflow` objects grouped under accessors: `files`, `folders`, `classes`, `labels`, `shares`, `trash`, `fileViews`, `triage`, `contacts`, `holds`, `settings`, `search`, `activity`, `versions`, plus the `access`/`archive`/`paths`/`storage` services. Access via the platform proxy key `p.dms`.
 
 ## Lifecycle Flow
 
@@ -174,10 +174,6 @@ await p.dms.fileViews.getDefault({ ownerId: userId });
 await p.dms.fileViews.update({ id, patch: { filters } });
 await p.dms.fileViews.delete({ id });
 await p.dms.fileViews.apply({ viewId: viewId }); // resolves to a file listing
-
-// Pins — item types: triage, file_view, class
-await p.dms.pins.create({ itemId: viewId, itemType: "file_view", userId });
-await p.dms.pins.list({ userId });
 
 // Search — records + filesystem search merged
 await p.dms.search.search({ query: "INV", options: { scope: "mine" } });
