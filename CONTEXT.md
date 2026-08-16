@@ -1,37 +1,37 @@
 # Aspen OS
 
-Aspen OS is a business application framework built on Bun/TypeScript. The platform kernel provides composable infrastructure (database, auth, logging, pub/sub, RPC, storage, KV store) so domain-specific modules can be built on top without reinventing plumbing.
+Aspen OS = business application framework on Bun/TypeScript. Platform kernel provides composable infrastructure (database, auth, logging, pub/sub, RPC, storage, KV store) so domain modules build on top without reinventing plumbing.
 
 ## Language
 
 ### Platform Kernel
 
 **Platform**:
-A server-side orchestrator class. The platform exports three self-contained classes — `SingleTenantPlatform`, `SharedTenantPlatform`, `IsolatedTenantPlatform` — one per tenancy architecture. Each has its own `create()` static factory, config type, and `run()` signature. Created via `Platform.create(config, modules)`, which instantiates all Units, validates module `$dependencies`, calls `module.$initialize(units)` on each module, and returns a proxy-wrapped instance. Lifecycle: `create()` → `$prepareInfra()` → `run()` → `$cleanup()`.
-_Avoid_: Framework (on the server — that name is reserved for the client class), App, Container, DI Container
+Server-side orchestrator class. Exports three self-contained classes — `SingleTenantPlatform`, `SharedTenantPlatform`, `IsolatedTenantPlatform` — one per tenancy architecture. Each has own `create()` static factory, config type, `run()` signature. Created via `Platform.create(config, modules)`, which instantiates all Units, validates module `$dependencies`, calls `module.$initialize(units)` on each module, returns proxy-wrapped instance. Lifecycle: `create()` → `$prepareInfra()` → `run()` → `$cleanup()`.
+_Avoid_: Framework (on server — that name reserved for client class), App, Container, DI Container
 
 **Platform** (client only):
-The client-side orchestrator class. Created via `Platform.create(config, modules)` with 3 units (auth, logs, rpc). No database, no tenancy. Has a `run(fn)` method that sets client-side context (module-level variable, not `AsyncLocalStorage`) with `{ auth, logs, rpc }` and invokes `fn`. The server has no `Framework` class — use a Platform class instead.
-_Avoid_: Framework (on the client — the class was renamed to `Platform`), App, Container, DI Container
+Client-side orchestrator class. Created via `Platform.create(config, modules)` w/ 3 units (auth, logs, rpc). No database, no tenancy. Has `run(fn)` method that sets client-side context (module-level variable, not `AsyncLocalStorage`) w/ `{ auth, logs, rpc }`, invokes `fn`. Server has no `Framework` class — use a Platform class.
+_Avoid_: Framework (on client — class renamed to `Platform`), App, Container, DI Container
 
 **Unit**:
-An infrastructure building block with a `$name`, a `$cleanup()` method, and an optional `$prepareInfra()` method. Eight core server units: `db`, `auth`, `logs`, `pubsub`, `rpc`, `storage`, `kvStore`, `audit`. Three client units: `auth`, `logs`, `rpc`. Both server and client Unit interfaces use the `$` prefix for lifecycle methods and the name property.
+Infrastructure building block w/ `$name`, `$cleanup()` method, optional `$prepareInfra()` method. Eight core server units: `db`, `auth`, `logs`, `pubsub`, `rpc`, `storage`, `kvStore`, `audit`. Three client units: `auth`, `logs`, `rpc`. Both server + client Unit interfaces use `$` prefix for lifecycle methods + name property.
 _Avoid_: Service, Provider
 
 **Module**:
-A business logic plugin passed to `Platform.create()`. Receives unit dependencies via `$initialize(units)`. Declares infra needs via `$prepareInfra()` (returns `ModuleInfra`), runtime setup via `$prepareRuntime()`, and optional per-tenant setup via `$prepareTenant?(tenantId)`. Declares module dependencies via `$dependencies: readonly string[]` (validated at `create()` time — throws if a dependency isn't provided). Accessed on the platform instance via proxy — e.g., `p.organization`. Both server and client Module interfaces use the `$` prefix.
+Business logic plugin passed to `Platform.create()`. Receives unit dependencies via `$initialize(units)`. Declares infra needs via `$prepareInfra()` (returns `ModuleInfra`), runtime setup via `$prepareRuntime()`, optional per-tenant setup via `$prepareTenant?(tenantId)`. Declares module dependencies via `$dependencies: readonly string[]` (validated at `create()` time — throws if dependency not provided). Accessed on platform instance via proxy — e.g. `p.organization`. Both server + client Module interfaces use `$` prefix.
 _Avoid_: Plugin, Extension
 
 **Create**:
-The static factory `Platform.create(config, modules)`. Instantiates all Units from config, validates module `$dependencies`, calls `module.$initialize(units)` on each module, and returns a proxy-wrapped platform instance. This is the only way to construct a Platform — the constructor is internal.
+Static factory `Platform.create(config, modules)`. Instantiates all Units from config, validates module `$dependencies`, calls `module.$initialize(units)` on each module, returns proxy-wrapped platform instance. Only way to construct a Platform — constructor internal.
 _Avoid_: Register, Mount, Attach
 
 **PrepareInfra**:
-Post-creation infrastructure setup on all Units and Modules. Called after `create()`. Calls `unit.$prepareInfra()` on each unit, collects `mod.$prepareInfra()` declarations (schemas, ACL, events) from modules, merges them, calls `db.prepareWithModules()` (schema push) and `auth.applyModuleAcl()`, then calls `mod.$prepareRuntime()` on each module. In isolated mode, also iterates tenants from `resolver.list()` and calls `mod.$prepareTenant(tenantId)` per tenant. In shared mode, applies RLS policies via `db.applyRlsPolicies()`.
+Post-creation infrastructure setup on all Units + Modules. Called after `create()`. Calls `unit.$prepareInfra()` on each unit, collects `mod.$prepareInfra()` declarations (schemas, ACL, events) from modules, merges them, calls `db.prepareWithModules()` (schema push) + `auth.applyModuleAcl()`, then `mod.$prepareRuntime()` on each module. In isolated mode, also iterates tenants from `resolver.list()` + calls `mod.$prepareTenant(tenantId)` per tenant. In shared mode, applies RLS policies via `db.applyRlsPolicies()`.
 _Avoid_: Migrate, Setup, Prepare
 
 **Run**:
-Executing a function within `AsyncLocalStorage` context that provides `auth`, `db` (drizzle instance), and `pubsub` (the full PubSubUnit). Signature varies by platform: `SingleTenantPlatform.run(fn)` takes no tenant ID; `SharedTenantPlatform.run(tenantId, fn)` and `IsolatedTenantPlatform.run(tenantId, fn)` require one. In shared mode, opens a transaction, sets `app.tenant_id` and `SET LOCAL ROLE tenant_role`, creates a per-call drizzle instance. In isolated mode, resolves and connects to the tenant DB.
+Executing a function within `AsyncLocalStorage` context providing `auth`, `db` (drizzle instance), `pubsub` (full PubSubUnit). Signature varies by platform: `SingleTenantPlatform.run(fn)` takes no tenant ID; `SharedTenantPlatform.run(tenantId, fn)` + `IsolatedTenantPlatform.run(tenantId, fn)` require one. In shared mode, opens transaction, sets `app.tenant_id` + `SET LOCAL ROLE tenant_role`, creates per-call drizzle instance. In isolated mode, resolves + connects to tenant DB.
 _Avoid_: Execute, Dispatch
 
 **Destroy**:
@@ -47,13 +47,13 @@ Typed accessor to retrieve a Module by name. Requires a name — throws if not f
 _Avoid_: Resolve, Get
 
 **Health Check**:
-A liveness probe on the platform exposed via `BasePlatform.healthCheck()`. Returns a `HealthReport` `{ status, checks: { db, pubsub }, unsubscribedTopics?, tenancyMode, at }`. Probes the control-plane DB (`SELECT 1`) and pub/sub (`getQueueSize` on a probe topic — lazily starting the control-plane pg-boss, proving it can connect). Also reports topics produced to but with no registered subscriber (`unsubscribedTopics`) — pg-boss silently drops these, so they flag a producer/consumer wiring bug. `status` is `"ok"` only when every check passes AND no unsubscribed produced topics exist. `checkDbHealth`/`checkPubSubHealth` are protected hooks derived classes may override.
+Liveness probe on platform via `BasePlatform.healthCheck()`. Returns `HealthReport` `{ status, checks: { db, pubsub }, unsubscribedTopics?, tenancyMode, at }`. Probes control-plane DB (`SELECT 1`) + pub/sub (`getQueueSize` on probe topic — lazily starting control-plane pg-boss, proving it can connect). Also reports topics produced to but w/ no registered subscriber (`unsubscribedTopics`) — pg-boss silently drops these, so they flag producer/consumer wiring bug. `status` = `"ok"` only when every check passes AND no unsubscribed produced topics exist. `checkDbHealth`/`checkPubSubHealth` = protected hooks derived classes may override.
 _Avoid_: Ping, Health Probe, Heartbeat
 
 ### Database
 
 **DatabaseUnit**:
-Core unit owning a `pg.Pool` and drizzle `NodePgDatabase`. `$name` is `"db"`. Exposes `$prepareInfra()` which runs `pushSchema()` from drizzle-kit to apply schema migrations. Also exposes `tenancyMode`, `controlPlaneDb`, `resolver`, `pool`, `applyRlsPolicies()`, and `prepareWithModules()`.
+Core unit owning `pg.Pool` + drizzle `NodePgDatabase`. `$name` = `"db"`. Exposes `$prepareInfra()` which runs `pushSchema()` from drizzle-kit to apply schema migrations. Also exposes `tenancyMode`, `controlPlaneDb`, `resolver`, `pool`, `applyRlsPolicies()`, `prepareWithModules()`.
 _Avoid_: DbUnit, ConnectionPool
 
 **DatabaseConfig**:
@@ -62,41 +62,41 @@ Connection parameters: `host`, `port`, `user`, `password`, `database`, `ssl?`, `
 ### Authentication
 
 **AuthUnit**:
-Core unit wrapping better-auth. Exposes a `service` getter (the better-auth instance, including `.api` admin/organization endpoints), an HTTP handler (`fetchHandler(request)`), and a `_` getter with REST-style `resource.action` workflow methods for user, session, and role management. (The browser-side `AuthUnit` in `@aspen-os/platform/client` wraps the better-auth React client instead.) ACL is NOT part of `AuthConfig` — it is applied later during `prepareInfra()` via `AuthUnit.applyModuleAcl(mergedAcl)`, which creates an `AccessControl` from the merged module ACL declarations and rebuilds the better-auth instance with the `admin({ ac: accessControl })` plugin. The initial construction includes `admin()` without an `ac` — AC is only applied after module infra is collected.
+Core unit wrapping better-auth. Exposes `service` getter (better-auth instance, incl. `.api` admin/organization endpoints), HTTP handler (`fetchHandler(request)`), `_` getter w/ REST-style `resource.action` workflow methods for user, session, role management. (Browser-side `AuthUnit` in `@aspen-os/platform/client` wraps better-auth React client instead.) ACL **not** part of `AuthConfig` — applied later during `prepareInfra()` via `AuthUnit.applyModuleAcl(mergedAcl)`, which creates `AccessControl` from merged module ACL declarations + rebuilds better-auth instance w/ `admin({ ac: accessControl })` plugin. Initial construction includes `admin()` without `ac` — AC only applied after module infra collected.
 _Avoid_: Auth, AuthProvider
 
 **User**:
-An authenticated identity with `id`, `email`, `name`, optional `phoneNumber`, `image`, `role` (text field), and metadata. Passwords are stored in the separate `account` table, not on the user record.
+Authenticated identity w/ `id`, `email`, `name`, optional `phoneNumber`, `image`, `role` (text field), metadata. Passwords stored in separate `account` table, not on user record.
 _Avoid_: Account, Profile
 
 **Session**:
-A time-bounded authentication token tied to a User. Has `id`, `token`, `userId`, `expiresAt`. Cascades delete from User. `AuthConfig` extends `BetterAuthOptions`, so session expiry is configured via `AuthConfig.session.expiresIn` and forwarded directly into `betterAuth({ ...config, ... })`; better-auth handles expiry internally.
+Time-bounded authentication token tied to a User. Has `id`, `token`, `userId`, `expiresAt`. Cascades delete from User. `AuthConfig` extends `BetterAuthOptions`, so session expiry configured via `AuthConfig.session.expiresIn` + forwarded into `betterAuth({ ...config, ... })`; better-auth handles expiry internally.
 _Avoid_: Token, Login
 
 **Account**:
-A credential record linking a User to an authentication provider (email/password, OAuth, etc.). Stores `password`, `accessToken`, `refreshToken`, and provider metadata. Not the same as User.
+Credential record linking a User to an authentication provider (email/password, OAuth, etc.). Stores `password`, `accessToken`, `refreshToken`, provider metadata. Not same as User.
 _Avoid_: Credential, AuthMethod
 
 **Role**:
-A plain text field on the User table. In the Recruiter app, values are `admin`, `bd`, `caller`, `qc`, `rm`, `sc`, `tl`. Not a separate entity — no dedicated role table exists.
+Plain text field on the User table. In Recruiter app, values `admin`, `bd`, `caller`, `qc`, `rm`, `sc`, `tl`. Not separate entity — no dedicated role table exists.
 _Avoid_: Permission Group, Access Level
 
 **Access Control**:
-A declarative statement matrix defining `{ resource: [actions...] }`. Modules declare their ACL via `defineAcl()` (a type-helper from `@aspen-os/platform/server`) returning an `AclDeclaration`. During `prepareInfra()`, the platform merges all module ACLs and calls `AuthUnit.applyModuleAcl(mergedAcl)`, which creates an `AccessControl` via `createAccessControl` (from better-auth) and rebuilds the better-auth instance with the `admin({ ac: accessControl })` plugin. The initial `AuthUnit` construction includes `admin({})` without an `ac` — the AC is applied only after module infra is collected.
+Declarative statement matrix defining `{ resource: [actions...] }`. Modules declare ACL via `defineAcl()` (type-helper from `@aspen-os/platform/server`) returning `AclDeclaration`. During `prepareInfra()`, platform merges all module ACLs + calls `AuthUnit.applyModuleAcl(mergedAcl)`, which creates `AccessControl` via `createAccessControl` (from better-auth) + rebuilds better-auth instance w/ `admin({ ac: accessControl })` plugin. Initial `AuthUnit` construction includes `admin({})` without `ac` — AC applied only after module infra collected.
 _Avoid_: Permission Matrix, ACL
 
 **Auth Event**:
-A typed domain event contract defined in the auth services (`services/{role,session,user}.ts`). Events: `user:created`, `user:updated`, `user:deleted`, `session:created`, `session:invalidated`, `role:assigned`, `role:unassigned`, `role:deleted`. Published via PubSub as plain string topics — a type-level contract, not a runtime bus.
+Typed domain event contract defined in auth services (`services/{role,session,user}.ts`). Events: `user:created`, `user:updated`, `user:deleted`, `session:created`, `session:invalidated`, `role:assigned`, `role:unassigned`, `role:deleted`. Published via PubSub as plain string topics — type-level contract, not runtime bus.
 _Avoid_: Auth Signal, Auth Hook
 
 ### Logging
 
 **LogUnit**:
-Core unit providing pino-based structured logging with buffered writes to a Postgres `logs` table. Integrates OpenTelemetry span context.
+Core unit providing pino-based structured logging w/ buffered writes to Postgres `logs` table. Integrates OpenTelemetry span context.
 _Avoid_: Logger, LoggingService
 
 **LogEntry**:
-An append-only record: `id`, `level`, `message`, `service`, `timestamp`, `metadata`, `error`, `traceId`, `spanId`, `userId`, `requestId`, `duration`.
+Append-only record: `id`, `level`, `message`, `service`, `timestamp`, `metadata`, `error`, `traceId`, `spanId`, `userId`, `requestId`, `duration`.
 _Avoid_: Log Record, Log Line
 
 **LogLevel**:
@@ -106,51 +106,51 @@ _Avoid_: Severity, Priority
 ### Pub/Sub
 
 **PubSubUnit**:
-Core unit backed by pg-boss. Provides topic-based publish/subscribe over Postgres job queue. Exposes `publish`, `publishBatch`, `subscribe`, `unsubscribe`, `getQueueSize`, `purgeQueue`, `schedule`, and `getUnsubscribedProducedTopics`. Uses a single control-plane pg-boss started lazily on first use (not in `$prepareInfra()`). Tracks produced topics so the Health Check can flag topics published to with no registered subscriber — pg-boss silently drops these (its `send()` returns no job id). On such a no-id result, `publish()` warns but does not throw.
+Core unit backed by pg-boss. Topic-based publish/subscribe over Postgres job queue. Exposes `publish`, `publishBatch`, `subscribe`, `unsubscribe`, `getQueueSize`, `purgeQueue`, `schedule`, `getUnsubscribedProducedTopics`. Uses single control-plane pg-boss started lazily on first use (not in `$prepareInfra()`). Tracks produced topics so Health Check can flag topics published to w/ no registered subscriber — pg-boss silently drops these (its `send()` returns no job id). On such no-id result, `publish()` warns but does not throw.
 _Avoid_: EventBus, MessageBroker
 
 **Topic**:
-A named message channel. Messages are published to topics and consumed by subscribers.
+Named message channel. Messages published to topics, consumed by subscribers.
 _Avoid_: Queue, Channel, Subject
 
 **Message**:
-A typed payload with `id`, `name`, `data`, `createdOn`. Generic over `T`.
+Typed payload w/ `id`, `name`, `data`, `createdOn`. Generic over `T`.
 _Avoid_: Event, Payload
 
 **PublishOptions**:
-Retry and delivery configuration: `retryLimit`, `retryDelay`, `retryBackoff`, `priority`, `expireInMinutes`, `startAfter`.
+Retry + delivery configuration: `retryLimit`, `retryDelay`, `retryBackoff`, `priority`, `expireInMinutes`, `startAfter`.
 _Avoid_: DeliveryConfig, SendOptions
 
 ### File Storage
 
 **StorageUnit**:
-Core unit providing S3-compatible object storage with Postgres metadata tracking.
+Core unit providing S3-compatible object storage w/ Postgres metadata tracking.
 _Avoid_: FileUnit, ObjectStore
 
 **FileMetadata**:
-A Postgres record tracking S3 objects: `id`, `key`, `bucket`, `contentType`, `size`, `etag`, `metadata`, `archived`, `archivedKey`, `createdAt`, `updatedAt`.
+Postgres record tracking S3 objects: `id`, `key`, `bucket`, `contentType`, `size`, `etag`, `metadata`, `archived`, `archivedKey`, `createdAt`, `updatedAt`.
 _Avoid_: FileRecord, FileInfo
 
 **Key**:
-A unique S3 object identifier stored in `file_metadata.key`.
+Unique S3 object identifier stored in `file_metadata.key`.
 _Avoid_: Path, Filename
 
 **Archive**:
-Soft-delete that moves a file to a new key and marks the original as archived.
+Soft-delete that moves a file to a new key + marks original as archived.
 _Avoid_: SoftDelete, Trash
 
 **Signed URL**:
-A time-limited presigned URL for direct S3 upload or download.
+Time-limited presigned URL for direct S3 upload or download.
 _Avoid_: PresignedLink, TempUrl
 
 ### RPC
 
 **RpcUnit**:
-Core unit providing a type-safe API layer via oRPC. Exposes a router with middleware support.
+Core unit providing type-safe API layer via oRPC. Exposes router w/ middleware support.
 _Avoid_: ApiUnit, EndpointUnit
 
 **Procedure**:
-A named RPC handler with typed input/output. Built-in: `echo`, `health.check`.
+Named RPC handler w/ typed input/output. Built-in: `echo`, `health.check`.
 _Avoid_: Endpoint, Action
 
 **RpcContext**:
@@ -160,434 +160,434 @@ _Avoid_: RequestContext, HandlerContext
 ### Workflow (framework-level)
 
 **Workflow**:
-A framework-level builder for durable, step-based workflows persisted to `workflow_runs` and `workflow_steps` tables. `Workflow.name(name).handler(fn)` or `Workflow.name(name).input(schema).handler(fn)` returns a `WorkflowInstance` with `.run(input, options?)`. The handler receives a `WorkflowContext` (`{ actorId, audit, auth?, config, db, pubsub, runId, step }`) and may call `ctx.step.run(stepInstance, input)` or `ctx.step.run("name", fn)` for sub-steps (persisted, deduped by `(runId, stepName)`, retried per `StepOptions.retries`). `ctx.step.sleep(ms)` is also available. `RunOptions` (`{ actorId?, audit?, auth?, config?, db?, pubsub? }`) overrides context defaults; if omitted, uses `getContext()`. Throws if `db`/`pubsub`/`audit` are missing. Steps defined with `WorkflowStep.name(name).handler(fn)` or `.input(schema).handler(fn)` return a `WorkflowStepInstance` — reusable across workflows.
+Framework-level builder for durable, step-based workflows persisted to `workflow_runs` + `workflow_steps` tables. `Workflow.name(name).handler(fn)` or `Workflow.name(name).input(schema).handler(fn)` returns `WorkflowInstance` w/ `.run(input, options?)`. Handler receives `WorkflowContext` (`{ actorId, audit, auth?, config, db, pubsub, runId, step }`), may call `ctx.step.run(stepInstance, input)` or `ctx.step.run("name", fn)` for sub-steps (persisted, deduped by `(runId, stepName)`, retried per `StepOptions.retries`). `ctx.step.sleep(ms)` also available. `RunOptions` (`{ actorId?, audit?, auth?, config?, db?, pubsub? }`) overrides context defaults; if omitted, uses `getContext()`. Throws if `db`/`pubsub`/`audit` missing. Steps defined w/ `WorkflowStep.name(name).handler(fn)` or `.input(schema).handler(fn)` return `WorkflowStepInstance` — reusable across workflows.
 _Avoid_: Job, Task (collides with Tasks domain), Pipeline
 
 **Workflow Run**:
-A persisted execution record in `workflow_runs`: `id`, `workflowName`, `status` (running/completed/failed), `input`, `output`, `error`, `startedAt`, `completedAt`, `durationMs`, `tenantId`, `metadata`. One per `.run()` call.
+Persisted execution record in `workflow_runs`: `id`, `workflowName`, `status` (running/completed/failed), `input`, `output`, `error`, `startedAt`, `completedAt`, `durationMs`, `tenantId`, `metadata`. One per `.run()` call.
 _Avoid_: Execution, Run Record
 
 **Workflow Step**:
-A persisted sub-step record in `workflow_steps`: `id`, `runId`, `stepName`, `status` (pending/running/completed/failed/skipped), `attempt`, `output`, `error`, `startedAt`, `completedAt`, `durationMs`. Deduped by `(runId, stepName)` — a completed step is skipped on retry.
+Persisted sub-step record in `workflow_steps`: `id`, `runId`, `stepName`, `status` (pending/running/completed/failed/skipped), `attempt`, `output`, `error`, `startedAt`, `completedAt`, `durationMs`. Deduped by `(runId, stepName)` — completed step skipped on retry.
 _Avoid_: Stage, Phase
 
 ### KV Store
 
 **KvStoreUnit**:
-Core unit providing a Redis-like key-value API over a Postgres `kv_store` table (a regular `pgTable`, not UNLOGGED) with TTL support. `$name` is `"kvStore"`.
+Core unit providing Redis-like key-value API over Postgres `kv_store` table (regular `pgTable`, not UNLOGGED) w/ TTL support. `$name` = `"kvStore"`.
 _Avoid_: CacheUnit, RedisUnit
 
 **KVEntry**:
-A key-value pair: `key` (PK), `value` (text, JSON-serialized), `expiresAt` (nullable TTL), `updatedAt`.
+Key-value pair: `key` (PK), `value` (text, JSON-serialized), `expiresAt` (nullable TTL), `updatedAt`.
 _Avoid_: CacheEntry, KVPair
 
 **TTL**:
-Time-to-live on a KV entry. Expired entries are lazily evicted on read, not by a background job.
+Time-to-live on a KV entry. Expired entries lazily evicted on read, not by background job.
 _Avoid_: Expiration, TTL
 
 ### Audit
 
 **Audit**:
-A core server unit (`AuditUnit`, `$name = "audit"`) providing a cross-module, platform-level audit log with DB-record replayability. Writes to an `audit_log` table (platform schema) with `seq bigserial` for deterministic ordering, `idempotency_key` for dedup, `crud_action` (create/update/delete), `previous_state`/`new_state`/`changes` for full-state capture, and `workflow_run_id` for optional workflow provenance. Exposes `write(entry, tx?)` (with optional transaction handle for atomicity), `withTransaction(entry, fn)` (convenience wrapper), `query(filters)`, `diff(before, after)`, `reconstructState(entityType, entityId)` (replays `audit_log` rows in `seq` order to reconstruct a record's current state), and `count(filters)`. Reads `actorId` and `tenantId` from `AsyncLocalStorage` context. Layer 1 of ADR-0009 (deliberate, application-level capture); Layer 2 (trigger-based blind-write capture, ADR-0010) is not yet implemented.
+Core server unit (`AuditUnit`, `$name = "audit"`) providing cross-module, platform-level audit log w/ DB-record replayability. Writes to `audit_log` table (platform schema) w/ `seq bigserial` for deterministic ordering, `idempotency_key` for dedup, `crud_action` (create/update/delete), `previous_state`/`new_state`/`changes` for full-state capture, `workflow_run_id` for optional workflow provenance. Exposes `write(entry, tx?)` (optional transaction handle for atomicity), `withTransaction(entry, fn)` (convenience wrapper), `query(filters)`, `diff(before, after)`, `reconstructState(entityType, entityId)` (replays `audit_log` rows in `seq` order to reconstruct record's current state), `count(filters)`. Reads `actorId` + `tenantId` from `AsyncLocalStorage` context. Layer 1 of ADR-0009 (deliberate, application-level capture); Layer 2 (trigger-based blind-write capture, ADR-0010) not yet implemented.
 _Avoid_: Audit Trail, Change Log, Audit Service
 
 ### Organization Domain
 
 **Organization**:
-A business entity with `name`, `slug` (unique), `status` (active/suspended/archived), contact info, branding (logo, accent color), and locale settings. The root entity of the organization context.
+Business entity w/ `name`, `slug` (unique), `status` (active/suspended/archived), contact info, branding (logo, accent color), locale settings. Root entity of organization context.
 _Avoid_: Company, Tenant
 
 **Branch**:
-A physical or logical location belonging to an Organization. Has `name`, `code` (unique), `type` (headquarters/office/warehouse/store/factory/remote/other), and supports hierarchical nesting up to 5 levels deep. Exactly one headquarters branch per organization.
+Physical or logical location belonging to an Organization. Has `name`, `code` (unique), `type` (headquarters/office/warehouse/store/factory/remote/other), supports hierarchical nesting up to 5 levels deep. Exactly one headquarters branch per organization.
 _Avoid_: Location, Site, Office
 
 **Organization Workflow**:
-A domain operation within the Organization module, built on the platform's `Workflow` builder. Two workflows: `OrganizationWorkflow`, `BranchWorkflow`. Exposed as readonly properties on the module instance: `p.organization.organizations`, `p.organization.branches`.
+Domain operation within Organization module, built on platform `Workflow` builder. Two workflows: `OrganizationWorkflow`, `BranchWorkflow`. Exposed as readonly properties on module instance: `p.organization.organizations`, `p.organization.branches`.
 _Avoid_: Service, Handler
 
-> The former Connection, Connection Contact, Connection Note, Address, and Bank Account entities now live in the **Masters** module as polymorphic master data (see "Masters Domain" below).
+> Former Connection, Connection Contact, Connection Note, Address, + Bank Account entities now live in **Masters** module as polymorphic master data (see "Masters Domain" below).
 
 ### Masters Domain
 
 **Contact**:
-A standalone business relationship record (vendor/client/insurer/…) with `name`, `email`, `phone`, `title`, `company`, `type` (`CONTACT_TYPE`), and a per-scope `isPrimary` flag. Scoped to an owner via `(entityType, entityId)`.
+Standalone business relationship record (vendor/client/insurer/…) w/ `name`, `email`, `phone`, `title`, `company`, `type` (`CONTACT_TYPE`), per-scope `isPrimary` flag. Scoped to owner via `(entityType, entityId)`.
 _Avoid_: Connection (business relationship)
 
 **Connection**:
-An **integration connection** to an external API/entity — `type` (`INTEGRATION_TYPE`: api_key/oauth2/webhook/basic_auth/database/other), `status` (active/inactive/expired/revoked), `baseUrl`, `description`, and a `credentialRef` referencing an encrypted secret in the platform `kvStore`. Credential material is never stored in plaintext; `test` validates the endpoint and `rotateCredential` writes a new kvStore secret and bumps `credentialRef`.
+**Integration connection** to external API/entity — `type` (`INTEGRATION_TYPE`: api_key/oauth2/webhook/basic_auth/database/other), `status` (active/inactive/expired/revoked), `baseUrl`, `description`, `credentialRef` referencing encrypted secret in platform `kvStore`. Credential material never stored in plaintext; `test` validates endpoint, `rotateCredential` writes new kvStore secret + bumps `credentialRef`.
 _Avoid_: Vendor, Client, Partner (those are `Contact` records)
 
 **Address**:
-A postal address with `line1`, `line2`, `city`, `state`, `postalCode`, `country`, optional `label` and a per-scope `isPrimary` flag. Scoped via `(entityType, entityId)`.
+Postal address w/ `line1`, `line2`, `city`, `state`, `postalCode`, `country`, optional `label`, per-scope `isPrimary` flag. Scoped via `(entityType, entityId)`.
 _Avoid_: Location, Street Address
 
 **Bank Account**:
-A financial account record with `accountHolderName`, `accountNumber`, `bankName`, `routingNumber`, `swiftCode`, `currency`, and per-scope `isActive`/`isPrimary` flags. Scoped via `(entityType, entityId)`.
+Financial account record w/ `accountHolderName`, `accountNumber`, `bankName`, `routingNumber`, `swiftCode`, `currency`, per-scope `isActive`/`isPrimary` flags. Scoped via `(entityType, entityId)`.
 _Avoid_: Payment Method, Financial Account
 
 **Entity**:
-A tenant-level business party (company/institution) with rich metadata — `name`, optional unique `code`, `type` (`ENTITY_TYPE`: customer/vendor/partner/hospital/clinic/laboratory/pharmacy/insurer/regulator/bank/staffing_agency/training_institute/government/other), `status` (`ENTITY_STATUS`: active/inactive/archived), `industry`, `website`, `phone`, `email`, `taxId`, `registrationNumber`, `foundedDate`, `timezone`, `locale`, and an optional `organizationId` link. It is an **owner** (a `master_entity_type` value) so existing masters can scope to it; `setStatus` enforces `active` ↔ `inactive`, → `archived` (terminal).
+Tenant-level business party (company/institution) w/ rich metadata — `name`, optional unique `code`, `type` (`ENTITY_TYPE`: customer/vendor/partner/hospital/clinic/laboratory/pharmacy/insurer/regulator/bank/staffing_agency/training_institute/government/other), `status` (`ENTITY_STATUS`: active/inactive/archived), `industry`, `website`, `phone`, `email`, `taxId`, `registrationNumber`, `foundedDate`, `timezone`, `locale`, optional `organizationId` link. It is an **owner** (a `master_entity_type` value) so existing masters can scope to it; `setStatus` enforces `active` ↔ `inactive`, → `archived` (terminal).
 _Avoid_: "Entity" for any polymorphic row owner; Vendors/Clients/Insurers (those are `Contact` records)
 
 **Unit of Measure**:
-Tenant-wide reference data (not polymorphic) — units across `UOM_CATEGORY` (length/mass/volume/count/time/area/temperature/data/other) with `name`, unique `code`, `symbol`, `decimalPlaces`, `isBaseUnit`, `baseUnitId` (self-reference), `conversionFactor`, and `isActive`. Exactly one base unit per category; derived units reference the category's base; a unit referenced as another's `baseUnitId` cannot be deleted.
+Tenant-wide reference data (not polymorphic) — units across `UOM_CATEGORY` (length/mass/volume/count/time/area/temperature/data/other) w/ `name`, unique `code`, `symbol`, `decimalPlaces`, `isBaseUnit`, `baseUnitId` (self-reference), `conversionFactor`, `isActive`. Exactly one base unit per category; derived units reference category's base; unit referenced as another's `baseUnitId` cannot be deleted.
 _Avoid_: Per-owner UOM sets; "measurement unit" synonyms
 
 **Payment Method**:
-A mode of payment with `type` (`PAYMENT_METHOD_TYPE`: bank_account/card/upi/imps/cheque), `direction` (`inbound`/`outbound`/`both`), `status` (`active`/`inactive`/`archived`), type-specific detail fields, and a per-`(entityType, entityId, direction)` `isPrimary` flag. `bankAccountId` is a logical FK to `master_bank_account` for bank-backed types. **Card data is masked-only** (`cardBrand`/`cardLast4`/expiry) — no PAN, no CVV, no token refs.
+Mode of payment w/ `type` (`PAYMENT_METHOD_TYPE`: bank_account/card/upi/imps/cheque), `direction` (`inbound`/`outbound`/`both`), `status` (`active`/`inactive`/`archived`), type-specific detail fields, per-`(entityType, entityId, direction)` `isPrimary` flag. `bankAccountId` = logical FK to `master_bank_account` for bank-backed types. **Card data masked-only** (`cardBrand`/`cardLast4`/expiry) — no PAN, no CVV, no token refs.
 _Avoid_: Payment, Transaction, Ledger (this is method _configuration_, not payment execution)
 
 **Master Entity Scope**:
-Every polymorphic masters row is owned by a `(entityType, entityId)` pair where `entityType ∈ { organization, branch, connection, contact, entity }` (`master_entity_type`). All list queries filter on the pair; primary flags are scoped to it — for payment methods per `(entityType, entityId, direction)`. `unitOfMeasure` is tenant-wide (no scope pair).
+Every polymorphic masters row owned by `(entityType, entityId)` pair where `entityType ∈ { organization, branch, connection, contact, entity }` (`master_entity_type`). All list queries filter on pair; primary flags scoped to it — for payment methods per `(entityType, entityId, direction)`. `unitOfMeasure` tenant-wide (no scope pair).
 
 **Masters Workflow**:
-A domain operation within the Masters module, built on the platform's `Workflow` builder. Seven groups exposed on the module instance: `p.masters.contacts`, `p.masters.addresses`, `p.masters.bankAccounts`, `p.masters.connections`, `p.masters.entities`, `p.masters.paymentMethods`, `p.masters.unitsOfMeasure`. The `connections` group is bound to the platform `kvStore` unit for secret storage.
+Domain operation within Masters module, built on platform `Workflow` builder. Seven groups exposed on module instance: `p.masters.contacts`, `p.masters.addresses`, `p.masters.bankAccounts`, `p.masters.connections`, `p.masters.entities`, `p.masters.paymentMethods`, `p.masters.unitsOfMeasure`. `connections` group bound to platform `kvStore` unit for secret storage.
 _Avoid_: Service, Handler
 
 ### Notes Domain
 
 **Note**:
-A first-class note with optional `title` (quick-capture allowed) and required `body`, `type` (`NOTE_TYPE`: general/call/email/meeting/contract_renewal/issue), `access` (`personal`/`global`, default `personal`), `ownerId` (soft FK to the better-auth user), `tags` (`text[]`), and an optional polymorphic `(scopeType, scopeId)` scope where `scopeType` is a documented `<module>:<entity>` registry value (e.g. `masters:contact`, `tasks:task`, `calendar:event`). Access is enforced via `services/access-service.ts`: read = `global` OR owner; mutate = owner or tenant admin.
+First-class note w/ optional `title` (quick-capture allowed), required `body`, `type` (`NOTE_TYPE`: general/call/email/meeting/contract_renewal/issue), `access` (`personal`/`global`, default `personal`), `ownerId` (soft FK to better-auth user), `tags` (`text[]`), optional polymorphic `(scopeType, scopeId)` scope where `scopeType` = documented `<module>:<entity>` registry value (e.g. `masters:contact`, `tasks:task`, `calendar:event`). Access enforced via `services/access-service.ts`: read = `global` OR owner; mutate = owner or tenant admin.
 _Avoid_: Draft (that is workspace — approval-lifecycle content), Activity, Log Entry
 
 **Notes Workflow**:
-A domain operation within the Notes module, built on the platform's `Workflow` builder. One group exposed on the module instance: `p.notes.notes` (`create`, `get`, `list`, `update`, `delete`). `create` derives `ownerId` from `actorId`; `list` is access-scoped with `scopeType`/`scopeId`, `type`, `tags`, and `search` filters.
+Domain operation within Notes module, built on platform `Workflow` builder. One group exposed: `p.notes.notes` (`create`, `get`, `list`, `update`, `delete`). `create` derives `ownerId` from `actorId`; `list` access-scoped w/ `scopeType`/`scopeId`, `type`, `tags`, `search` filters.
 _Avoid_: Service, Handler
 
 ### Compliance Domain
 
 **Compliance Document**:
-A regulatory or legal document tracked through a verification lifecycle. Has `name`, `category` (tax/license/certificate/permit/insurance/regulatory/legal/hr/safety/environmental + module-local: data_privacy/financial/vehicle/property/audit/other), `verificationStatus` (draft/submitted/under_review/verified/rejected/expired/overdue/renewed/archived), `expiryDate`, `dueDate`, `reminderDays`, `escalationDays`, and optional `renewalFrequency`. Supports renewal chains (archived old + created new via `renewedFrom`). Linked to external entities via `{sourceModule, sourceEntityType, sourceEntityId}`.
+Regulatory or legal document tracked through verification lifecycle. Has `name`, `category` (tax/license/certificate/permit/insurance/regulatory/legal/hr/safety/environmental + module-local: data_privacy/financial/vehicle/property/audit/other), `verificationStatus` (draft/submitted/under_review/verified/rejected/expired/overdue/renewed/archived), `expiryDate`, `dueDate`, `reminderDays`, `escalationDays`, optional `renewalFrequency`. Supports renewal chains (archived old + created new via `renewedFrom`). Linked to external entities via `{sourceModule, sourceEntityType, sourceEntityId}`.
 _Avoid_: Certificate, Permit, Regulatory Record
 
 **Compliance Obligation**:
-A recurring schedule that auto-generates Compliance Documents on a frequency basis (monthly/quarterly/semi_annual/annual/biennial/triennial/custom). Has `startDate`, `endDate`, `frequency`, `isActive`, and default document configuration. Obligations can be expiry-based or period-based.
+Recurring schedule that auto-generates Compliance Documents on frequency basis (monthly/quarterly/semi_annual/annual/biennial/triennial/custom). Has `startDate`, `endDate`, `frequency`, `isActive`, default document configuration. Obligations expiry-based or period-based.
 _Avoid_: Recurring Task, Schedule
 
 **Verification Rule**:
-A rule that matches documents by category and source module to determine required reviewer role and priority. Has `name`, `category`, `priority`, `assignedReviewer`, `requiredReviewerRole`, `isActive`.
+Rule that matches documents by category + source module to determine required reviewer role + priority. Has `name`, `category`, `priority`, `assignedReviewer`, `requiredReviewerRole`, `isActive`.
 _Avoid_: Review Policy, Approval Rule
 
 **Audit Entry**:
-An append-only record of actions taken on compliance entities (documents, obligations, verification rules). Has `entityType`, `entityId`, `action` (created/updated/submitted/verified/rejected/expired/overdue/renewed/archived/completed/escalated/reminder_sent/snoozed/attachment_uploaded/reviewer_assigned/obligation_activated/obligation_deactivated/document_generated), `performedBy`, `performedAt`, `previousState`, `newState`, `changes`.
+Append-only record of actions taken on compliance entities (documents, obligations, verification rules). Has `entityType`, `entityId`, `action` (created/updated/submitted/verified/rejected/expired/overdue/renewed/archived/completed/escalated/reminder_sent/snoozed/attachment_uploaded/reviewer_assigned/obligation_activated/obligation_deactivated/document_generated), `performedBy`, `performedAt`, `previousState`, `newState`, `changes`.
 _Avoid_: Audit Log, Change Record
 
 **Verification Status**:
-The lifecycle state of a Compliance Document: `draft` → `submitted` → `under_review` → `verified`/`rejected` → `expired`/`overdue` → `renewed`/`archived`. Status is derived from dates and renewal state by the `StatusDerivation` service, not set directly.
+Lifecycle state of a Compliance Document: `draft` → `submitted` → `under_review` → `verified`/`rejected` → `expired`/`overdue` → `renewed`/`archived`. Status derived from dates + renewal state by `StatusDerivation` service, not set directly.
 _Avoid_: Document State, Approval Status
 
 **Renewal Chain**:
-A linked sequence of Compliance Documents where each new document archives the previous one via the `renewedFrom` FK. The chain preserves the history of renewals for a given obligation or entity.
+Linked sequence of Compliance Documents where each new document archives previous via `renewedFrom` FK. Chain preserves renewal history for a given obligation or entity.
 _Avoid_: Renewal History, Version Chain
 
 **Reminder Engine**:
-A service that scans documents for upcoming expirations and due dates, transitions expired/overdue statuses, escalates past escalation thresholds, and generates weekly summaries. Registers scheduled cron jobs for daily and weekly scans.
+Service that scans documents for upcoming expirations + due dates, transitions expired/overdue statuses, escalates past escalation thresholds, generates weekly summaries. Registers scheduled cron jobs for daily + weekly scans.
 _Avoid_: Notification Service, Alert System
 
 **Obligation Generator**:
-A service that auto-generates Compliance Documents from active Obligations based on their frequency schedule. Subscribes to a scheduled job topic and publishes `document_generated` events.
+Service that auto-generates Compliance Documents from active Obligations based on frequency schedule. Subscribes to scheduled job topic, publishes `document_generated` events.
 _Avoid_: Document Factory, Auto-Generator
 
 **Event Bridge**:
-A service that subscribes to external module events (e.g., `hr:employee_onboarded`, `organization:branch_created`, `masters:contact_created`) and auto-creates relevant Compliance Documents and Obligations based on the event type.
+Service that subscribes to external module events (e.g. `hr:employee_onboarded`, `organization:branch_created`, `masters:contact_created`) + auto-creates relevant Compliance Documents + Obligations based on event type.
 _Avoid_: Event Listener, Integration Hub
 
 ### Tasks Domain
 
 **Project**:
-A container for tasks with a unique `key` (e.g., `PROJ`), `name`, `status` (active/archived/paused), `leadId`, `taskCounter` for sequential task numbering, and optional `defaultTaskTypeId`. Members can be added with roles (admin/member/viewer).
+Container for tasks w/ unique `key` (e.g. `PROJ`), `name`, `status` (active/archived/paused), `leadId`, `taskCounter` for sequential task numbering, optional `defaultTaskTypeId`. Members added w/ roles (admin/member/viewer).
 _Avoid_: Board, Workspace
 
 **Task**:
-A unit of work within a Project. Has `title`, `description`, `priority` (urgent/high/medium/low/none), `statusId`, `projectId`, `reporterId`, `assignees`, `labels`, `parentId` (max 3 levels of nesting), `dueDate`, `estimatedHours`, `taskNumber` (display: `KEY-seq`). Supports archiving and soft-delete.
+Unit of work within a Project. Has `title`, `description`, `priority` (urgent/high/medium/low/none), `statusId`, `projectId`, `reporterId`, `assignees`, `labels`, `parentId` (max 3 levels nesting), `dueDate`, `estimatedHours`, `taskNumber` (display: `KEY-seq`). Supports archiving + soft-delete.
 _Avoid_: Issue, Ticket, Item
 
 **Task Status**:
-A workflow state with `name`, `category` (backlog/unstarted/started/completed/cancelled), `color`, `sortOrder`, `isDefault`, `isResolved`. Can be project-scoped or global. Status transitions can be constrained via `TaskStatusTransition` rules.
+Workflow state w/ `name`, `category` (backlog/unstarted/started/completed/cancelled), `color`, `sortOrder`, `isDefault`, `isResolved`. Project-scoped or global. Status transitions constrained via `TaskStatusTransition` rules.
 _Avoid_: Column, Stage
 
 **Task Link**:
-A typed relationship between two tasks: `blocks`, `blocked_by`, `related_to`, `duplicates`, `caused_by`, `split_from`. Creating a link automatically creates its inverse. Cycle detection prevents circular dependencies.
+Typed relationship between two tasks: `blocks`, `blocked_by`, `related_to`, `duplicates`, `caused_by`, `split_from`. Creating a link auto-creates its inverse. Cycle detection prevents circular dependencies.
 _Avoid_: Task Relation, Dependency
 
 **Saved View**:
-A reusable filter/sort/group configuration with `name`, `type` (list/board/calendar/timeline), `filters` (jsonb), `sort` (jsonb), `groupBy`, `isShared`, `isDefault`. Owned by a user, optionally scoped to a project.
+Reusable filter/sort/group configuration w/ `name`, `type` (list/board/calendar/timeline), `filters` (jsonb), `sort` (jsonb), `groupBy`, `isShared`, `isDefault`. Owned by a user, optionally scoped to a project.
 _Avoid_: Filter, Dashboard
 
 **Automation Rule**:
-A trigger-action rule with `trigger` (status_change/assignment_change/due_date_passed/task_created/task_updated), `conditions` (jsonb), `actions` (jsonb), `isActive`. Evaluated by the `AutomationWorkflow` when triggers fire.
+Trigger-action rule w/ `trigger` (status_change/assignment_change/due_date_passed/task_created/task_updated), `conditions` (jsonb), `actions` (jsonb), `isActive`. Evaluated by `AutomationWorkflow` when triggers fire.
 _Avoid_: Workflow Rule, Trigger
 
 **Time Entry**:
-A logged time record on a task with `duration` (minutes), `date`, `description`, `billable` flag, `userId`, `taskId`.
+Logged time record on a task w/ `duration` (minutes), `date`, `description`, `billable` flag, `userId`, `taskId`.
 _Avoid_: Timesheet, Time Log
 
 **Task Reminder**:
-A time-bound follow-up on a task with `type` (due_date/custom/overdue), `remindAt`, `isRecurring`, `interval` (daily/weekly/monthly/every_2_hours), `isSent`, `userId`. **Moved to `@aspen-os/calendar`** — task reminders are now `calendar_reminder` rows with `targetType = task`, materialized by the calendar task bridge from `task:due_date_changed`.
+Time-bound follow-up on a task w/ `type` (due_date/custom/overdue), `remindAt`, `isRecurring`, `interval` (daily/weekly/monthly/every_2_hours), `isSent`, `userId`. **Moved to `@aspen-os/calendar`** — task reminders now `calendar_reminder` rows w/ `targetType = task`, materialized by calendar task bridge from `task:due_date_changed`.
 _Avoid_: Alert, Notification
 
 **Watcher**:
-A user subscribed to updates on a task. Watchers receive notifications when the task is updated, commented on, or status-changed.
+User subscribed to updates on a task. Watchers receive notifications when task updated, commented on, or status-changed.
 _Avoid_: Subscriber, Follower
 
 **Activity Log**:
-An append-only record of task actions: `task_created`, `task_updated`, `status_changed`, `assignee_added`, `assignee_removed`. Has `oldValue`, `newValue` (jsonb), `userId`, `taskId`.
+Append-only record of task actions: `task_created`, `task_updated`, `status_changed`, `assignee_added`, `assignee_removed`. Has `oldValue`, `newValue` (jsonb), `userId`, `taskId`.
 _Avoid_: Audit Trail, Change History
 
 ### Calendar Domain
 
 **Calendar**:
-A named, colored collection of events with `access` (`personal`/`global`, workspace vocabulary), `ownerId`, `timezone`, and a per-owner `isDefault` flag. The first calendar a user creates auto-defaults; `setDefault` clears the owner's other defaults. Events, attendees, and reminders inherit their calendar's access.
-_Avoid_: "Calendar" as a render mode (tasks' `savedViewTypeEnum` value `calendar` is a view type, unrelated); Agenda
+Named, colored collection of events w/ `access` (`personal`/`global`, workspace vocabulary), `ownerId`, `timezone`, per-owner `isDefault` flag. First calendar user creates auto-defaults; `setDefault` clears owner's other defaults. Events, attendees, reminders inherit their calendar's access.
+_Avoid_: "Calendar" as render mode (tasks' `savedViewTypeEnum` value `calendar` = view type, unrelated); Agenda
 
 **Event**:
-A time-boxed calendar entry — `title`, `startsAt`/`endsAt` (timestamptz; `startsAt < endsAt` unless `allDay`), `status` (`confirmed`/`tentative`/`cancelled`), optional `location`/`description`/`color`/`timezone`, an optional `recurrence` config, and an optional polymorphic `(sourceType, sourceEntityId)` link (`<module>:<entity>` registry, workspace `domain` convention). Recurrence is structured jsonb expanded on read by `services/recurrence.ts` — occurrences are never materialized, and there are no per-occurrence exceptions in v1.
+Time-boxed calendar entry — `title`, `startsAt`/`endsAt` (timestamptz; `startsAt < endsAt` unless `allDay`), `status` (`confirmed`/`tentative`/`cancelled`), optional `location`/`description`/`color`/`timezone`, optional `recurrence` config, optional polymorphic `(sourceType, sourceEntityId)` link (`<module>:<entity>` registry, workspace `domain` convention). Recurrence = structured jsonb expanded on read by `services/recurrence.ts` — occurrences never materialized, no per-occurrence exceptions in v1.
 _Avoid_: Appointment, Meeting (implementation terms)
 
 **Occurrence**:
-A computed-on-read expansion of an event's recurrence within a `[from, to]` range: `{ id, eventId, startsAt, endsAt, title, location, status, calendarId }`. Non-recurring events yield their single occurrence. `count`/`until` bound the series; unbounded series are capped by the query `limit`.
+Computed-on-read expansion of an event's recurrence within `[from, to]` range: `{ id, eventId, startsAt, endsAt, title, location, status, calendarId }`. Non-recurring events yield their single occurrence. `count`/`until` bound series; unbounded series capped by query `limit`.
 _Avoid_: Instance, Exception (v1 has no per-occurrence divergence)
 
 **Attendee**:
-An invitee on an event — `email` + optional `name`/`attendeeId`/`attendeeType` (`user`/`contact`), `optional`, and a `status` (`invited`/`accepted`/`declined`/`tentative`). `add` publishes `calendar:attendee_invited`.
+Invitee on an event — `email` + optional `name`/`attendeeId`/`attendeeType` (`user`/`contact`), `optional`, `status` (`invited`/`accepted`/`declined`/`tentative`). `add` publishes `calendar:attendee_invited`.
 _Avoid_: Participant, Guest (implementation terms)
 
 **Reminder**:
-The platform's single polymorphic reminder surface — `calendar_reminder` rows with `targetType` (`event`/`task`/`note`/`file`/`custom`) and `targetId`. `type` is `offset` (resolved against the target's start/due anchor), `custom`/`due_date`/`overdue` (absolute `remindAt`). Recipient-scoped via `userId`; delivered by the module's dispatcher cron, which publishes `calendar:reminder_due` (full payload) and marks `isSent`. Task reminders are `targetType = task` rows created by the task bridge.
-_Avoid_: Alert, Notification, "Reminder Engine" (compliance's document-expiry scanner is a separate, out-of-scope surface)
+Platform's single polymorphic reminder surface — `calendar_reminder` rows w/ `targetType` (`event`/`task`/`note`/`file`/`custom`) + `targetId`. `type` = `offset` (resolved against target's start/due anchor), `custom`/`due_date`/`overdue` (absolute `remindAt`). Recipient-scoped via `userId`; delivered by module's dispatcher cron, which publishes `calendar:reminder_due` (full payload) + marks `isSent`. Task reminders = `targetType = task` rows created by task bridge.
+_Avoid_: Alert, Notification, "Reminder Engine" (compliance's document-expiry scanner = separate, out-of-scope surface)
 
 **Task Bridge**:
-A calendar-side service (`services/task-bridge.ts`) that subscribes to `task:due_date_changed`/`task:deleted`/`task:status_changed` and materializes/cancels task due-date reminders — three `due_date` rows per recipient (due − 1d, due − 1h, due; `userIds` = assignees ∪ reporter), deletion on task delete, suppression on completion/cancellation. Event-driven, so both modules stay `$dependencies = []`.
-_Avoid_: Event Listener (compliance's EventBridge is the general pattern; Task Bridge is the calendar-specific consumer)
+Calendar-side service (`services/task-bridge.ts`) that subscribes to `task:due_date_changed`/`task:deleted`/`task:status_changed` + materializes/cancels task due-date reminders — three `due_date` rows per recipient (due − 1d, due − 1h, due; `userIds` = assignees ∪ reporter), deletion on task delete, suppression on completion/cancellation. Event-driven, so both modules stay `$dependencies = []`.
+_Avoid_: Event Listener (compliance's EventBridge = general pattern; Task Bridge = calendar-specific consumer)
 
 ### HR Domain
 
 **Employee**:
-A person record with `employeeId`, `firstName`, `lastName`, `email`, `phone`, `dateOfBirth`, `dateOfJoining`, `dateOfLeaving`, `department`, `designation`, `grade`, `employmentType`, `branch`, `reportsTo`, `status`. Supports health insurance, skill maps, and employee groups.
+Person record w/ `employeeId`, `firstName`, `lastName`, `email`, `phone`, `dateOfBirth`, `dateOfJoining`, `dateOfLeaving`, `department`, `designation`, `grade`, `employmentType`, `branch`, `reportsTo`, `status`. Supports health insurance, skill maps, employee groups.
 _Avoid_: Staff, Worker, Personnel
 
 **Attendance**:
-A daily attendance record with `date`, `employeeId`, `status`, `checkInTime`, `checkOutTime`, `workingHours`, `lateEntry`/`earlyExit` minutes, `isHalfDay`, `shift`. Supports attendance requests (correction workflow).
+Daily attendance record w/ `date`, `employeeId`, `status`, `checkInTime`, `checkOutTime`, `workingHours`, `lateEntry`/`earlyExit` minutes, `isHalfDay`, `shift`. Supports attendance requests (correction workflow).
 _Avoid_: Timesheet, Presence Record
 
 **Employee Check-in**:
-A geolocation-tagged check-in/out event with `time`, `logType`, `latitude`, `longitude`, `deviceId`, `isOffShift`.
+Geolocation-tagged check-in/out event w/ `time`, `logType`, `latitude`, `longitude`, `deviceId`, `isOffShift`.
 _Avoid_: Punch, Clock Event
 
 **Leave**:
-The leave management sub-domain covering leave types, periods, policies, allocations, applications, compensatory leave, encashment, block lists, adjustments, and ledger entries. Leave applications follow an approval workflow (pending → approved/rejected → cancelled).
+Leave management sub-domain covering leave types, periods, policies, allocations, applications, compensatory leave, encashment, block lists, adjustments, ledger entries. Leave applications follow approval workflow (pending → approved/rejected → cancelled).
 _Avoid_: PTO, Time Off
 
 **Lifecycle**:
-The employee lifecycle sub-domain covering onboarding (tasks, completion tracking), promotions (with salary revision), transfers (between departments/branches/companies), and separation (exit interviews, full & final settlement).
+Employee lifecycle sub-domain covering onboarding (tasks, completion tracking), promotions (w/ salary revision), transfers (between departments/branches/companies), separation (exit interviews, full & final settlement).
 _Avoid_: Employee Journey, HR Lifecycle
 
 **Overtime**:
-An overtime tracking sub-domain with configurable overtime types (rates, multipliers for holidays/weekends) and overtime slips following an approval workflow.
+Overtime tracking sub-domain w/ configurable overtime types (rates, multipliers for holidays/weekends) + overtime slips following approval workflow.
 _Avoid_: Extra Hours, Overtime Log
 
 **Shift**:
-The shift management sub-domain covering shift types (start/end times, grace periods, auto-attendance), shift locations (geofencing), shift assignments, shift requests (approval workflow), and shift schedules (weekly day-of-week assignments).
+Shift management sub-domain covering shift types (start/end times, grace periods, auto-attendance), shift locations (geofencing), shift assignments, shift requests (approval workflow), shift schedules (weekly day-of-week assignments).
 _Avoid_: Roster, Schedule
 
 **HR Access**:
-Role-based access control within the HR module, with permissions, roles, and branch-wise access controls for HR users.
+Role-based access control within HR module, w/ permissions, roles, branch-wise access controls for HR users.
 _Avoid_: HR Permissions, HR Auth
 
 **Department**:
-An organizational unit with `name`, `code`, `manager`, `parentDepartment` (hierarchical), `isActive`.
+Organizational unit w/ `name`, `code`, `manager`, `parentDepartment` (hierarchical), `isActive`.
 _Avoid_: Team, Unit
 
 **Designation**:
-A job title with `name`, `description`, `isActive`.
+Job title w/ `name`, `description`, `isActive`.
 _Avoid_: Title, Position
 
 **Employment Type**:
-A classification of employment (e.g., full-time, part-time, contract) with `name`, `description`, `isActive`.
+Classification of employment (e.g. full-time, part-time, contract) w/ `name`, `description`, `isActive`.
 _Avoid_: Contract Type, Employment Status
 
 ### DMS Domain
 
 **File**:
-The single central entity of the DMS module — one uploaded binary, carrying both the filesystem attributes (`folderId`, `path`, `description`) and the records attributes (`classId`, `docNumber`, `fieldValues`, `expiryDate`, `batchId`, `compression`). Has `status` (`triaged`/`active`/`expired`/`trashed`), `version` (current), `metadata` (jsonb), `owner`, `uploadedBy`, `storageKey`. Uploads into a folder are `active` immediately; uploads without a folder are staged as `triaged`.
+Single central entity of DMS module — one uploaded binary carrying both filesystem attributes (`folderId`, `path`, `description`) + records attributes (`classId`, `docNumber`, `fieldValues`, `expiryDate`, `batchId`, `compression`). Has `status` (`triaged`/`active`/`expired`/`trashed`), `version` (current), `metadata` (jsonb), `owner`, `uploadedBy`, `storageKey`. Uploads into folder `active` immediately; uploads without folder staged as `triaged`.
 _Avoid_: Document, Asset, Drive File
 
 **Triage**:
-The staging stage for files uploaded without a folder. A triaged file is not searchable, normally listable, or shareable until classified. The only exit is `classify()` (→ `active`). Can be pinned via the workspace module.
+Staging stage for files uploaded without a folder. Triaged file not searchable, normally listable, or shareable until classified. Only exit = `classify()` (→ `active`). Can be pinned via workspace module.
 _Avoid_: Inbox, Draft Folder, Pending Queue
 
 **Classify**:
-The validation-enforced transition that assigns a triaged File to a Class, validates its required fields, optionally applies the class's file-naming schema, assigns the `docNumber`, and sets status to `active`. The one and only way out of Triage.
+Validation-enforced transition that assigns triaged File to a Class, validates required fields, optionally applies class's file-naming schema, assigns `docNumber`, sets status `active`. One and only way out of Triage.
 _Avoid_: File Into, Assign Class, Register
 
 **Class**:
-An admin-defined template with typed fields (some required) that a File must satisfy to become active in that class. Optionally defines a file-naming schema with field/date/sequence placeholders and a per-class retention period. Archived (not hard-deleted) when superseded.
+Admin-defined template w/ typed fields (some required) that a File must satisfy to become active in that class. Optionally defines file-naming schema w/ field/date/sequence placeholders + per-class retention period. Archived (not hard-deleted) when superseded.
 _Avoid_: Document Type, Category, Template
 
 **Class Field**:
-A typed column of a Class (`text`/`number`/`date`/`select`/`multi-select`/`boolean`/`user`/`contact`/`url`/`email`/`phone`) with required/default/options/order. Field values are stored as jsonb on the File and optionally indexed for search.
+Typed column of a Class (`text`/`number`/`date`/`select`/`multi-select`/`boolean`/`user`/`contact`/`url`/`email`/`phone`) w/ required/default/options/order. Field values stored as jsonb on the File, optionally indexed for search.
 _Avoid_: Column, Attribute, Metadata Key
 
 **File Version**:
-A stored revision of a File. Storage keys are version-bound (`dms/{tenant}/{fileId}/v{n}/{name}`), so `newVersion` writes a fresh object and prune retains `maxVersions` (skipped under a legal hold). Renames and moves are metadata-only — never an S3 move.
+Stored revision of a File. Storage keys version-bound (`dms/{tenant}/{fileId}/v{n}/{name}`), so `newVersion` writes fresh object + prune retains `maxVersions` (skipped under legal hold). Renames + moves metadata-only — never an S3 move.
 _Avoid_: Revision (allowed informally), Snapshot, Copy
 
 **File View**:
-A saved, reusable filter+sort configuration over active files. Conditions cover file-level columns, classes, class fields (`classField:<name>`), labels, and a free-text `search` term. Personal views are user-owned; admins publish shared views. Pinned via `workspace_pin`, item type `file_view`.
+Saved, reusable filter+sort configuration over active files. Conditions cover file-level columns, classes, class fields (`classField:<name>`), labels, free-text `search` term. Personal views user-owned; admins publish shared views. Pinned via `workspace_pin`, item type `file_view`.
 _Avoid_: Saved Filter, Dashboard, Query, View
 
 **Full-Text Search**:
-Search over current-version name, description, metadata, and class field values (an indexed `tsvector`, not file contents). Quick search offers type-ahead results over files, classes, and labels, and a search can be promoted into a persisted File View.
+Search over current-version name, description, metadata, class field values (indexed `tsvector`, not file contents). Quick search offers type-ahead results over files, classes, labels; search can be promoted into persisted File View.
 _Avoid_: Content Search, Semantic Search (AI — deferred)
 
 **Contact**:
-An org-wide address-book entry (first name, last name, email, phone, company name, designation — all mandatory) used as a sharing handle for external parties; may be linked to an internal AuthUnit user. Removal requires a mandatory reason and revokes all shares granted to the contact.
+Org-wide address-book entry (first name, last name, email, phone, company name, designation — all mandatory) used as sharing handle for external parties; may be linked to internal AuthUnit user. Removal requires mandatory reason + revokes all shares granted to contact.
 _Avoid_: Sharee, External Recipient, Address Book Entry
 
 **Share (DMS)**:
-A permission grant (`viewer`/`editor`/`owner`) on a File or Folder to a grantee — a Contact (token-based access, no login required), an internal User, or a Group. Revoking, or removing the contact, invalidates access immediately. Folder grants inherit down the folder tree.
+Permission grant (`viewer`/`editor`/`owner`) on a File or Folder to a grantee — a Contact (token-based access, no login required), internal User, or Group. Revoking, or removing the contact, invalidates access immediately. Folder grants inherit down the folder tree.
 _Avoid_: External Link, Access Grant
 
 **Public Link (DMS)**:
-A token-based shareable link (optional password, `view`/`edit` permission, optional `maxViews`/`expiresAt`) for a File or Folder, managed by the same `shares` group as grants.
+Token-based shareable link (optional password, `view`/`edit` permission, optional `maxViews`/`expiresAt`) for a File or Folder, managed by same `shares` group as grants.
 _Avoid_: External Link, Share Link
 
 **Legal Hold**:
-An admin-placed flag (with mandatory reason) that blocks permanent deletion and auto-purge of a File and stops version pruning. Released only by an admin.
+Admin-placed flag (w/ mandatory reason) that blocks permanent deletion + auto-purge of a File + stops version pruning. Released only by an admin.
 _Avoid_: Freeze, Guard, Retention Lock
 
 **Retention**:
-A per-class (or settings-default) period after which `trashed`/`expired` Files are auto-purged; trashed folders are purged after `trashRetentionDays`. Purge is skipped for files on an active Legal Hold.
+Per-class (or settings-default) period after which `trashed`/`expired` Files auto-purged; trashed folders purged after `trashRetentionDays`. Purge skipped for files on active Legal Hold.
 _Avoid_: Retention Policy (informal), Archival Window, Deletion Schedule
 
 **Trash (DMS)**:
-A read-mostly view over Files with status `trashed` or `expired` plus trashed Folders. Restore (owner/admin) reactivates; permanent deletion is **admin-only** and blocked by an active Legal Hold.
+Read-mostly view over Files w/ status `trashed` or `expired` + trashed Folders. Restore (owner/admin) reactivates; permanent deletion **admin-only** + blocked by active Legal Hold.
 _Avoid_: Recycle Bin, Deleted Items, Bin
 
 **Label (DMS)**:
-A color-coded tag (`name`, `color`, global or owner-scoped) that can be applied to Files and Folders through the polymorphic `dms_entity_label` join. A file or folder can carry multiple labels; upload accepts `labelIds`.
+Color-coded tag (`name`, `color`, global or owner-scoped) applied to Files + Folders through polymorphic `dms_entity_label` join. File/folder can carry multiple labels; upload accepts `labelIds`.
 _Avoid_: Tag, Category, Custom Field
 
 **Activity Feed**:
-A per-entity chronological trail of DMS actions (upload, classify, version, share, delete, expire, restore, purge, hold), projected from the platform AuditUnit's `audit_log` — not a DMS-owned table, not PubSub events.
+Per-entity chronological trail of DMS actions (upload, classify, version, share, delete, expire, restore, purge, hold), projected from platform AuditUnit's `audit_log` — not DMS-owned table, not PubSub events.
 _Avoid_: Audit Trail (that's the platform unit), Event Log, Change History
 
 ### Workspace Domain
 
-> The `@aspen-os/workspace` module. The term **Workspace** here means the **personal-workspace surface** — drafts, filter views, dashboards, and utilities — deliberately NOT Tenancy, and NOT the tasks Project/Board (both of which list "Workspace" as an avoid term). See `.working-docs/domain-model/workspace.md`.
+> The `@aspen-os/workspace` module. Term **Workspace** here = **personal-workspace surface** — drafts, filter views, dashboards, utilities — deliberately NOT Tenancy, NOT tasks Project/Board (both list "Workspace" as avoid term). See `.working-docs/domain-model/workspace.md`.
 
 **Draft**:
-A saved, unpublished piece of content — `title`, `body` (markdown/text), `notes`, `metadata` (opaque) — with an optional approval lifecycle (`draft → submitted → approved → published`, `reject` → `reopened` to `draft`), soft-delete trash, duplicate, and threaded comments (`workspace_draft_comment`). A first-class persistable entity — NOT the "draft" status value used by other modules (compliance documents, hr contracts).
+Saved, unpublished piece of content — `title`, `body` (markdown/text), `notes`, `metadata` (opaque) — w/ optional approval lifecycle (`draft → submitted → approved → published`, `reject` → `reopened` to `draft`), soft-delete trash, duplicate, threaded comments (`workspace_draft_comment`). First-class persistable entity — NOT the "draft" status value used by other modules (compliance documents, hr contracts).
 _Avoid_: Draft Status, Staging Content
 
 **Approval**:
-The optional `submit → approve` gate on a Draft; hosts without a review step call `publish` directly from `draft` (approval is not mandatory).
+Optional `submit → approve` gate on a Draft; hosts without a review step call `publish` directly from `draft` (approval not mandatory).
 _Avoid_: Review, Sign-off (informal)
 
 **Filter View**:
-A cross-domain saved filter/sort/group configuration: `domain` (free-form `<module>:<entity>` key), `conditions` (dms `FileViewCondition` shape `{ field, operator, value }`), `sort` (`{ field, direction }`), `groupBy`, `isDefault` per `(ownerId, domain)`. `apply(id)` resolves conditions through a **host-registered resolver** in the module's runtime registry — the module never queries other modules' tables. Built-in domains: `workspace:draft`, `tasks:task`, `dms:file`, `compliance:document`, `hr:employee`; app-defined domains are allowed.
+Cross-domain saved filter/sort/group configuration: `domain` (free-form `<module>:<entity>` key), `conditions` (dms `FileViewCondition` shape `{ field, operator, value }`), `sort` (`{ field, direction }`), `groupBy`, `isDefault` per `(ownerId, domain)`. `apply(id)` resolves conditions through **host-registered resolver** in module's runtime registry — module never queries other modules' tables. Built-in domains: `workspace:draft`, `tasks:task`, `dms:file`, `compliance:document`, `hr:employee`; app-defined domains allowed.
 _Avoid_: Saved Filter, Saved Search, List View (that's tasks' `task_saved_view`)
 
 **Dashboard (workspace)**:
-A named collection of Widgets plus a jsonb grid `layout` (`{ widgetId, x, y, w, h }[]` stored on the dashboard row). Supports `duplicate`, `export` (JSON snapshot incl. widgets), `import`, and per-dashboard Schedules. No widget-overlap validation in v1. NOT compliance's module-local summary metrics.
+Named collection of Widgets + jsonb grid `layout` (`{ widgetId, x, y, w, h }[]` stored on dashboard row). Supports `duplicate`, `export` (JSON snapshot incl. widgets), `import`, per-dashboard Schedules. No widget-overlap validation in v1. NOT compliance's module-local summary metrics.
 _Avoid_: Board, Analytics Page
 
 **Widget**:
-A declarative datasource config on a Dashboard — `metric` (count/sum/avg/min/max over a domain + filter + date range), `breakdown` (group-by + range), `list` (first-N + range), `embed` (markdown/url/iframe). The module stores and serves configs and tracks `lastRefreshedAt`/`lastError`; it does **not** render or execute analytics. Datasource = `{ domain }` + exactly one of an inline `filter` or a `viewId` soft-FK to a saved Filter View.
+Declarative datasource config on a Dashboard — `metric` (count/sum/avg/min/max over domain + filter + date range), `breakdown` (group-by + range), `list` (first-N + range), `embed` (markdown/url/iframe). Module stores + serves configs, tracks `lastRefreshedAt`/`lastError`; does **not** render or execute analytics. Datasource = `{ domain }` + exactly one of inline `filter` or `viewId` soft-FK to saved Filter View.
 _Avoid_: Chart, KPI Card (implementation terms)
 
 **Schedule (workspace)**:
-A per-Dashboard cron delivery configuration (`{ recipients, format: export|pdf|url, subject? }`). `create`/`resume` register a pg-boss cron on `workspace:schedule:<id>`; the module's handler publishes `workspace:schedule_due` (full schedule + dashboard payload) and the **host renders/delivers**. `markRun` records completion. Distinct from dms's module-level cron jobs (expiry scan, auto-purge).
+Per-Dashboard cron delivery configuration (`{ recipients, format: export|pdf|url, subject? }`). `create`/`resume` register pg-boss cron on `workspace:schedule:<id>`; module's handler publishes `workspace:schedule_due` (full schedule + dashboard payload) + **host renders/delivers**. `markRun` records completion. Distinct from dms's module-level cron jobs (expiry scan, auto-purge).
 _Avoid_: Recurring Delivery, Notification Job
 
 **Pin (workspace)**:
-A per-user sidebar shortcut to any tenant item via the `PIN_ITEM_TYPE` registry — workspace entities (`draft`/`view`/`dashboard`) plus dms items (`triage`/`file_view`/`class`), soft-referenced by `(itemType, itemId)` with no module dependency; unique `(userId, itemType, itemId)`. The dms module's pin surface is consolidated here.
+Per-user sidebar shortcut to any tenant item via `PIN_ITEM_TYPE` registry — workspace entities (`draft`/`view`/`dashboard`) + dms items (`triage`/`file_view`/`class`), soft-referenced by `(itemType, itemId)` w/ no module dependency; unique `(userId, itemType, itemId)`. Dms module's pin surface consolidated here.
 _Avoid_: Bookmark, Favorite
 
 **Recent**:
-A per-user bounded history of touched workspace entities; `touch` upserts + bumps `lastAccessedAt` and trims to the configured cap (default 50).
+Per-user bounded history of touched workspace entities; `touch` upserts + bumps `lastAccessedAt` + trims to configured cap (default 50).
 _Avoid_: History, Recently Viewed
 
 **Watch (workspace)**:
-A per-user follow-subscription on a view/dashboard. `watches.subscribe`/`unsubscribe` are follow-subscriptions (tasks-watcher vocabulary) — **distinct from `PubSubUnit.subscribe`/`unsubscribe`** (pg-boss topics). Workspace persists subscriptions and emits `watch_subscribed`/`watch_unsubscribed`; a future `notifications` module consumes them.
+Per-user follow-subscription on a view/dashboard. `watches.subscribe`/`unsubscribe` = follow-subscriptions (tasks-watcher vocabulary) — **distinct from `PubSubUnit.subscribe`/`unsubscribe`** (pg-boss topics). Workspace persists subscriptions + emits `watch_subscribed`/`watch_unsubscribed`; future `notifications` module consumes them.
 _Avoid_: Subscriber, Follower
 
 **Setting (workspace)**:
-A per-user workspace preference (`key`, `value` jsonb). Keys: `home_dashboard`, `default_view.<domain>`, `default_range`, `timezone`; values validated per key.
+Per-user workspace preference (`key`, `value` jsonb). Keys: `home_dashboard`, `default_view.<domain>`, `default_range`, `timezone`; values validated per key.
 _Avoid_: Preference (informal)
 
 **Personal / Global Access**:
-The first-class `access` enum on Drafts, Filter Views, and Dashboards, set by the user at create/update time. `personal` = visible only to `ownerId`; `global` = org-wide within the tenant. Widgets and schedules **inherit** their parent Dashboard's access. Replaces the ad-hoc `isShared`/`isGlobal` booleans of dms/tasks **in this module** (those are not retrofitted).
+First-class `access` enum on Drafts, Filter Views, Dashboards, set by user at create/update time. `personal` = visible only to `ownerId`; `global` = org-wide within tenant. Widgets + schedules **inherit** parent Dashboard's access. Replaces ad-hoc `isShared`/`isGlobal` booleans of dms/tasks **in this module** (those not retrofitted).
 _Avoid_: Sharing Flag, Visibility Scope
 
 ### Management Plane Domain
 
 **Tenancy Mode**:
-A class-time choice — the developer selects one of three platform classes at application startup: `SingleTenantPlatform` (one database, no isolation, `run(fn)` — currently EXPERIMENTAL), `SharedTenantPlatform` (one shared database, Postgres RLS policies enforce isolation, `run(tenantId, fn)`), or `IsolatedTenantPlatform` (control-plane DB + per-tenant DBs, physical isolation, `run(tenantId, fn)`). Once a class is chosen, the mode cannot be changed. The same module code works in all three modes. The config type (`SingleTenantConfig`, `SharedTenantConfig`, `IsolatedTenantConfig`) does not include a `tenancy` field — the class IS the mode.
+Class-time choice — developer selects one of three platform classes at startup: `SingleTenantPlatform` (one database, no isolation, `run(fn)` — currently EXPERIMENTAL), `SharedTenantPlatform` (one shared database, Postgres RLS policies enforce isolation, `run(tenantId, fn)`), `IsolatedTenantPlatform` (control-plane DB + per-tenant DBs, physical isolation, `run(tenantId, fn)`). Once class chosen, mode cannot change. Same module code works in all three modes. Config type (`SingleTenantConfig`, `SharedTenantConfig`, `IsolatedTenantConfig`) does not include `tenancy` field — the class IS the mode.
 _Avoid_: Tenancy Strategy, Isolation Mode, Deployment Mode
 
 **Tenant ID**:
-A string identifier for the tenant context of a request. In `single` mode, always `"default"`. In `shared` and `isolated` modes, resolved from the authenticated session (e.g., better-auth's `session.activeOrganizationId`) and passed to `platform.run(tenantId, fn)`. Stored in `AsyncLocalStorage` context. Used by the stable DB wrapper to route queries, by `PubSubUnit` to route messages, and by `StorageUnit`/`KvStoreUnit` to prefix keys.
+String identifier for tenant context of a request. In `single` mode, always `"default"`. In `shared` + `isolated` modes, resolved from authenticated session (e.g. better-auth's `session.activeOrganizationId`) + passed to `platform.run(tenantId, fn)`. Stored in `AsyncLocalStorage` context. Used by stable DB wrapper to route queries, `PubSubUnit` to route messages, `StorageUnit`/`KvStoreUnit` to prefix keys.
 _Avoid_: Org ID, Workspace ID, Customer ID
 
 **Tenant Resolver**:
-A function pair provided by the app in `isolated` mode: `resolve(tenantId)` returns the per-tenant database name, `list()` returns all tenant IDs. Used by `DatabaseUnit` to lazily create per-tenant connection pools and by `prepareInfra()` to call `$prepareTenant()` for each tenant at startup. Note: `IsolatedTenantConfig` does NOT include a `resolver` field — a dummy resolver (`list: async () => []`, `resolve: async (id) => id`) is constructed inline in `IsolatedTenantPlatform.create()`. This is a known WIP gap.
+Function pair provided by app in `isolated` mode: `resolve(tenantId)` returns per-tenant database name, `list()` returns all tenant IDs. Used by `DatabaseUnit` to lazily create per-tenant connection pools + by `prepareInfra()` to call `$prepareTenant()` for each tenant at startup. Note: `IsolatedTenantConfig` does NOT include `resolver` field — dummy resolver (`list: async () => []`, `resolve: async (id) => id`) constructed inline in `IsolatedTenantPlatform.create()`. Known WIP gap.
 _Avoid_: Tenant Registry, Connection Provider
 
 **Control Plane**:
-The management/administration database connection. In `single` and `shared` modes, this IS the app database. In `isolated` mode, this is the shared control-plane database holding auth tables and platform-level tables. `DatabaseUnit` always holds a control-plane pool. `AuthUnit` always uses `controlPlaneDb`. Auth tables are exempt from `tenant_id` columns and RLS policies.
+Management/administration database connection. In `single` + `shared` modes, this IS the app database. In `isolated` mode, shared control-plane database holding auth tables + platform-level tables. `DatabaseUnit` always holds control-plane pool. `AuthUnit` always uses `controlPlaneDb`. Auth tables exempt from `tenant_id` columns + RLS policies.
 _Avoid_: Management DB, Admin DB
 
 **Tenant Database**:
-A per-tenant Postgres database in `isolated` mode. Holds that tenant's data-plane data (all module tables). No auth tables live here. `DatabaseUnit` lazily creates a pool per tenant database. Isolation is physical — a tenant cannot reach another tenant's database.
+Per-tenant Postgres database in `isolated` mode. Holds that tenant's data-plane data (all module tables). No auth tables live here. `DatabaseUnit` lazily creates pool per tenant database. Isolation physical — tenant cannot reach another tenant's database.
 _Avoid_: Tenant Schema, Data Plane DB
 
 **Stable DB Wrapper**:
-A JavaScript `Proxy` returned by `DatabaseUnit.db` (a getter). Created once at init time and stored by workflows as `this.db`. When any property is accessed (e.g., `this.db.select()`), the wrapper reads the per-request drizzle instance from `AsyncLocalStorage` and delegates to it. In `single` mode, falls back to the control-plane drizzle instance if no context is set. Transparent to workflows — no workflow code changes.
+JavaScript `Proxy` returned by `DatabaseUnit.db` (a getter). Created once at init time, stored by workflows as `this.db`. When any property accessed (e.g. `this.db.select()`), wrapper reads per-request drizzle instance from `AsyncLocalStorage` + delegates to it. In `single` mode, falls back to control-plane drizzle instance if no context set. Transparent to workflows — no workflow code changes.
 _Avoid_: DB Proxy, Drizzle Router, Connection Resolver
 
 **Prepare Tenant**:
-An optional lifecycle method on the `Module` interface: `$prepareTenant(tenantId)`. Called at startup for each existing tenant (in `isolated` mode) during `prepareInfra()` and during tenant provisioning. Modules register per-tenant cron schedules and subscriptions here. The platform sets up `AsyncLocalStorage` context with the `tenantId` before calling each module's `$prepareTenant()`. Not called in `single` or `shared` modes.
+Optional lifecycle method on `Module` interface: `$prepareTenant(tenantId)`. Called at startup for each existing tenant (in `isolated` mode) during `prepareInfra()` + during tenant provisioning. Modules register per-tenant cron schedules + subscriptions here. Platform sets up `AsyncLocalStorage` context w/ `tenantId` before calling each module's `$prepareTenant()`. Not called in `single` or `shared` modes.
 _Avoid_: Per-Tenant Init, Tenant Setup
 
 **Tenant**:
-A SaaS customer account at the platform layer. Implemented as a better-auth **Organization** (via better-auth's Organization plugin) — the Tenant IS the better-auth `organization` row in the control-plane DB, with a companion `tenant` table for extra domain fields (status, plan, SP assignment, database connection params). Carries `name`, `slug`, `logo` (on the better-auth org row) plus account-level fields (signup date, lifecycle status, plan, SP assignment). Does NOT hold rich profile fields (accentColor, website, industry, taxId, etc.) — those live on the aspen-os Organization companion. The "List of Organizations" UI in the SOW is a projection over Tenants.
-_Avoid_: Organization (when meaning the SaaS customer — collides with the aspen-os Organization module entity), Customer Account, Subscription, Workspace
+SaaS customer account at platform layer. Implemented as a better-auth **Organization** (via better-auth's Organization plugin) — the Tenant IS the better-auth `organization` row in control-plane DB, w/ companion `tenant` table for extra domain fields (status, plan, SP assignment, database connection params). Carries `name`, `slug`, `logo` (on better-auth org row) + account-level fields (signup date, lifecycle status, plan, SP assignment). Does NOT hold rich profile fields (accentColor, website, industry, taxId, etc.) — those live on aspen-os Organization companion. "List of Organizations" UI in SOW = projection over Tenants.
+_Avoid_: Organization (when meaning SaaS customer — collides with aspen-os Organization module entity), Customer Account, Subscription, Workspace
 
 **Tenant Status**:
-The lifecycle state of a Tenant: `onboarding` (pre-go-live, SP doing physical-world work) → `active` (live) → `suspended` (voluntarily or involuntarily paused) → `churned` (offboarded). Coarse by design — `onboarding` is an opaque single stage; internal install/training/handoff sub-steps are NOT tracked by the platform. Distinct from any better-auth org status and from the aspen-os Organization module's `status` (active/suspended/archived) — that one is the rich-profile companion's operational state.
+Lifecycle state of a Tenant: `onboarding` (pre-go-live, SP doing physical-world work) → `active` (live) → `suspended` (voluntarily or involuntarily paused) → `churned` (offboarded). Coarse by design — `onboarding` opaque single stage; internal install/training/handoff sub-steps NOT tracked by platform. Distinct from any better-auth org status + from aspen-os Organization module's `status` (active/suspended/archived) — that one = rich-profile companion's operational state.
 _Avoid_: Tenant State, Account State, Lifecycle Stage
 
 **Organization (aspen-os module)**:
-The rich-profile companion entity in the aspen-os `organization` module. 1:1 with a Tenant (shares the better-auth org ID). Lives in the per-tenant database. Holds all company-profile fields: `name`, `slug`, `logo`, `accentColor`, `website`, `industry`, `phone`, `email`, `address`, `taxId`, `registrationNumber`, `foundedDate`, `timezone`, `locale`, `metadata`, `status`. Branches, Connections, Addresses, BankAccounts hang off this entity. Renamed conceptually to "Organization Profile" in the Management Plane context to avoid collision with the better-auth Organization/Tenant. Note: `name`/`slug`/`logo` are duplicated between the better-auth org row (control-plane) and this table (per-tenant) — the provisioning workflow seeds both.
+Rich-profile companion entity in aspen-os `organization` module. 1:1 with a Tenant (shares better-auth org ID). Lives in per-tenant database. Holds all company-profile fields: `name`, `slug`, `logo`, `accentColor`, `website`, `industry`, `phone`, `email`, `address`, `taxId`, `registrationNumber`, `foundedDate`, `timezone`, `locale`, `metadata`, `status`. Branches, Connections, Addresses, BankAccounts hang off this entity. Renamed conceptually to "Organization Profile" in Management Plane context to avoid collision with better-auth Organization/Tenant. Note: `name`/`slug`/`logo` duplicated between better-auth org row (control-plane) + this table (per-tenant) — provisioning workflow seeds both.
 _Avoid_: Tenant (different concept), Company, better-auth Organization
 
 **Service Provider**:
-A first-class platform entity — an implementation/integration partner that does physical-world onboarding work for a Tenant (site setup, install, training). Each Tenant has at most one active Service Provider at a time (1:1 active assignment); an SP may serve many Tenants. The SP's staged work happens during the Tenant's `onboarding` stage. Lives in its own table in the control-plane DB; not a Tenant subtype, not a reuse of the aspen-os `organization` module's `Connection`.
+First-class platform entity — implementation/integration partner that does physical-world onboarding work for a Tenant (site setup, install, training). Each Tenant has at most one active Service Provider at a time (1:1 active assignment); an SP may serve many Tenants. SP's staged work happens during Tenant's `onboarding` stage. Lives in own table in control-plane DB; not a Tenant subtype, not reuse of aspen-os `organization` module's `Connection`.
 _Avoid_: Integrator, Vendor, Partner, Connection, Reseller
 
 **Platform Admin**:
-A user with `user.role = 'platform_admin'` and zero `member` rows. Operates the management portal — CRUD over Tenants, Service Providers, platform users, and reports. Works ONLY against the control-plane DB; never touches tenant data-plane data directly. If a platform admin needs to inspect a tenant's data, they use better-auth's admin-impersonation (`signInAsUser`) to act as a tenant admin. Has cross-tenant visibility on control-plane entities.
+User w/ `user.role = 'platform_admin'` + zero `member` rows. Operates management portal — CRUD over Tenants, Service Providers, platform users, reports. Works ONLY against control-plane DB; never touches tenant data-plane data directly. If platform admin needs to inspect tenant's data, uses better-auth admin-impersonation (`signInAsUser`) to act as tenant admin. Has cross-tenant visibility on control-plane entities.
 _Avoid_: Super Admin, Root, Operator
 
 **Service Provider User**:
-A user with `user.role = 'sp_user'` and a `service_provider_user` join row pointing to their Service Provider. Zero tenant `member` rows. Field staff working for an SP — can view assigned Tenants, update onboarding status, upload install/training artifacts. Scope is the SP they belong to, not a tenant.
+User w/ `user.role = 'sp_user'` + `service_provider_user` join row pointing to their Service Provider. Zero tenant `member` rows. Field staff working for an SP — can view assigned Tenants, update onboarding status, upload install/training artifacts. Scope = SP they belong to, not a tenant.
 _Avoid_: Integrator User, Field Agent
 
 **Audit Log**:
-An append-only record of management actions, written via the platform's `AuditUnit` (`ctx.audit.write(...)`) inline in each workflow. Has `entityType` (tenant/serviceProvider/platformUser), `entityId`, `action` (one of 17 defined audit actions), `actorId`, `performedAt`, `previousState`, `newState`, `changes`, `metadata`. Lives in the platform's `audit_log` table (pushed as a platform core schema). The management plane does NOT own a separate `audit_log` table or `logAuditStep` — it uses the platform unit directly.
+Append-only record of management actions, written via platform's `AuditUnit` (`ctx.audit.write(...)`) inline in each workflow. Has `entityType` (tenant/serviceProvider/platformUser), `entityId`, `action` (one of 17 defined audit actions), `actorId`, `performedAt`, `previousState`, `newState`, `changes`, `metadata`. Lives in platform's `audit_log` table (pushed as platform core schema). Management plane does NOT own separate `audit_log` table or `logAuditStep` — uses platform unit directly.
 _Avoid_: Audit Trail, Change Record
 
 **Platform User**:
-A user managed by the Management Plane module — distinct from tenant end-users. Platform users include platform admins and service provider users. Created/updated/deleted via the `users` workflow, which delegates to `AuthUnit.user` for better-auth operations. SP membership is modelled by a `service_provider_user` join row (1:1 user→SP), not an `spId` column on `user`.
+User managed by Management Plane module — distinct from tenant end-users. Includes platform admins + service provider users. Created/updated/deleted via `users` workflow, which delegates to `AuthUnit.user` for better-auth operations. SP membership modelled by `service_provider_user` join row (1:1 user→SP), not `spId` column on `user`.
 _Avoid_: Admin User, Management User
 
 **Report**:
-A read-only view produced by the Management Plane over the control-plane DB. Four categories: (1) tenant usage metrics (users, modules, storage, API calls per tenant), (2) provisioning & lifecycle reports (tenants by lifecycle stage, assigned SP, time-in-onboarding, churn reasons), (3) audit & activity reports (who created/suspended/churned a tenant, SP assignments, role changes, platform admin actions), (4) SP performance reports (tenants per SP, avg onboarding duration, completion rates). All reports are control-plane queries; they never cross into per-tenant DBs.
+Read-only view produced by Management Plane over control-plane DB. Four categories: (1) tenant usage metrics (users, modules, storage, API calls per tenant), (2) provisioning & lifecycle reports (tenants by lifecycle stage, assigned SP, time-in-onboarding, churn reasons), (3) audit & activity reports (who created/suspended/churned a tenant, SP assignments, role changes, platform admin actions), (4) SP performance reports (tenants per SP, avg onboarding duration, completion rates). All reports control-plane queries; never cross into per-tenant DBs.
 _Avoid_: Dashboard, Analytics, Metric
 
 **Provisioning**:
-The workflow that creates a new Tenant end-to-end, run by the Management Plane module via `Workflow.name("tenant.onboard")`. Steps: (1) create the better-auth Organization (the Tenant) via `ctx.auth.service.api.createOrganization()`, (2) call `dbUnit.provisionTenant(tenantId, dbOptions)` — in isolated mode this issues `CREATE DATABASE` against the Postgres server via an admin connection, runs `pushSchema()` against the new tenant DB with all platform + module schemas, and returns connection params; in shared mode it's a no-op, (3) seed the aspen-os Organization profile row in the new tenant DB via `dbUnit.seedTenantDb()` (isolated only), (4) record connection params + status in the control-plane `tenant` table, (5) write an audit entry via `ctx.audit.write(...)`, (6) publish `tenant:provisioned` event. Sets Tenant status to `onboarding`. Exposed via `p.management.tenants.onboard()`. Note: `ManagementPlaneConfig` is currently `undefined` — the provisioning workflow expects a richer config (`tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`) but the type hasn't been defined yet. This is a known WIP gap.
+Workflow that creates a new Tenant end-to-end, run by Management Plane module via `Workflow.name("tenant.onboard")`. Steps: (1) create better-auth Organization (the Tenant) via `ctx.auth.service.api.createOrganization()`, (2) call `dbUnit.provisionTenant(tenantId, dbOptions)` — in isolated mode issues `CREATE DATABASE` against Postgres server via admin connection, runs `pushSchema()` against new tenant DB w/ all platform + module schemas, returns connection params; in shared mode no-op, (3) seed aspen-os Organization profile row in new tenant DB via `dbUnit.seedTenantDb()` (isolated only), (4) record connection params + status in control-plane `tenant` table, (5) write audit entry via `ctx.audit.write(...)`, (6) publish `tenant:provisioned` event. Sets Tenant status to `onboarding`. Exposed via `p.management.tenants.onboard()`. Note: `ManagementPlaneConfig` currently `undefined` — provisioning workflow expects richer config (`tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`) but type not defined yet. Known WIP gap.
 _Avoid_: Onboarding (that's the Tenant Status stage AFTER provisioning), Setup, Initialization
 
 ## Context Relationships
@@ -624,29 +624,29 @@ _Avoid_: Onboarding (that's the Tenant Status stage AFTER provisioning), Setup, 
       │
       ├──────────────┬─────────────────────┬──────────────────────┬──────────────────────┬─────────────────┬─────────────┬──────────────┐
       ▼              ▼                     ▼                      ▼                      ▼                 ▼             ▼              ▼
-┌──────────┐ ┌──────────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────────┐ ┌─────────────┐ ┌──────────────┐
-│Organizat.│ │   Compliance     │ │    Tasks     │ │     DMS      │ │     HR       │ │ Management Plane │ │   Masters   │ │  Workspace   │
-│  Module  │ │    Module        │ │   Module     │ │   Module     │ │   Module     │ │     Module       │ │   Module    │ │   Module     │
-│          │ │                  │ │              │ │              │ │ (conformant) │ │                  │ │             │ │              │
-│2 workflows│ │ 5 workflows     │ │ 11 workflows│ │ 19 wf groups │ │ ~250 methods │ │ 3 wf groups     │ │ 8 wf groups │ │ 10 wf groups │
-│2 tables  │ │ 3 services       │ │ 3 services   │ │ 15 tables    │ │ 50 tables    │ │ 3 owned tables   │ │ 8 tables    │ │ 10 tables    │
-│7 events  │ │ 3 tables         │ │ 17 tables    │ │ 33 events    │ │ 43 events    │ │ 0 shadow tables  │ │ 31 events   │ │ 40 events    │
-│deps:     │ │ 23 events        │ │ 10 events    │ │ 12 ACL res.  │ │ 2 crons      │ │ 16 events        │ │ 8 ACL res.  │ │ 12 ACL res.  │
-│masters   │ │ units:           │ │ units:       │ │ units:       │ │ units:       │ │ deps: organization│ │ units:      │ │ units:       │
-│units:    │ │ db, kvStore,     │ │ db, pubsub  │ │ db, auth,    │ │ db, pubsub  │ │ units:           │ │ db, kvStore│ │ db, pubsub   │
-│none      │ │ pubsub           │ │              │ │ pubsub,      │ │              │ │ db, auth, pubsub │ │ (conns)    │ │              │
-│          │ │                  │ │              │ │ storage      │ │              │ │                  │ │             │ │              │
-│          │ │ prepareInfra():  │ │              │ │ 2 crons in   │ │ prepareInfra │ │ prepareInfra():  │ │             │ │ schedules in │
-│          │ │ schema push,     │ │              │ │ $prepareInfra│ │ 2 crons      │ │ schema push      │ │             │ │ $prepareRun- │
-│          │ │ crons, handlers  │ │              │ │              │ │              │ │                  │ │             │ │ time         │
-└──────────┘ └──────────────────┘ └──────────────┘ └──────────────┘ └──────────────┘ └──────────────────┘ └─────────────┘ └──────────────┘
+┌──────────┐ ┌──────────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────────┐ ┌─────────────┐ ┌──────────────┐ ┌──────────────┐
+│Organizat.│ │   Compliance     │ │    Tasks     │ │     DMS      │ │     HR       │ │    Notes     │ │ Management Plane │ │   Masters   │ │  Calendar   │ │  Workspace   │
+│  Module  │ │    Module        │ │   Module     │ │   Module     │ │   Module     │ │    Module    │ │     Module       │ │   Module    │ │   Module    │ │   Module     │
+│          │ │                  │ │              │ │              │ │ (conformant) │ │  (stateless) │ │                  │ │             │ │             │ │              │
+│2 workflows│ │ 5 wf groups     │ │ 10 wf groups │ │ 18 wf groups │ │ ~250 methods │ │ 1 wf group   │ │ 3 wf groups     │ │ 7 wf groups │ │ 4 wf groups │ │ 10 wf groups │
+│2 tables  │ │ 3 services       │ │ 16 tables    │ │ 14 tables    │ │ 50 tables    │ │ 1 table      │ │ 3 owned tables   │ │ 7 tables    │ │ 4 tables    │ │ 10 tables    │
+│7 events  │ │ 3 tables         │ │ 10 events    │ │ 33 events    │ │ 43 events    │ │ 3 events     │ │ 0 shadow tables  │ │ 29 events   │ │ 14 events   │ │ 32 events    │
+│deps:     │ │ 23 events        │ │ units:       │ │ 11 ACL res.  │ │ 2 crons      │ │ 1 ACL res.   │ │ 16 events        │ │ 7 ACL res.  │ │ 4 ACL res.  │ │ 11 ACL res.  │
+│masters   │ │ units:           │ │ db, pubsub  │ │ units:       │ │ units:       │ │ units:       │ │ deps: organization│ │ units:      │ │ units:      │ │ units:       │
+│units:    │ │ db, kvStore,     │ │              │ │ db, pubsub,  │ │ db, pubsub  │ │ none         │ │ units:           │ │ db, kvStore│ │ db, pubsub │ │ db, pubsub   │
+│none      │ │ pubsub           │ │              │ │ storage      │ │              │ │              │ │ db, auth, pubsub │ │ (conns)    │ │             │ │              │
+│          │ │                  │ │              │ │ 2 crons in   │ │ prepareInfra │ │              │ │                  │ │             │ │ schedules in│ │ schedules in │
+│          │ │ prepareInfra():  │ │              │ │ $prepareRun- │ │ 2 crons      │ │              │ │ prepareInfra():  │ │             │ │ $prepareRun-│ │ $prepareRun- │
+│          │ │ schema push,     │ │              │ │ time         │ │              │ │              │ │ schema push      │ │             │ │ time        │ │ time        │
+│          │ │ crons, handlers  │ │              │ │              │ │              │ │              │ │                  │ │             │ │             │ │              │
+└──────────┘ └──────────────────┘ └──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘ └──────────────────┘ └─────────────┘ └──────────────┘ └──────────────┘
 
 Implemented: DMS module — unified document/files management on a single `file`
-  entity: Triage → Classify → active (uploads into folders are active immediately);
+  entity: Triage → Classify → active (uploads into folders active immediately);
   classes → required-field validation + naming schema + `docNumber`; org-wide
   Contacts + unified sharing (user/group/contact grants + public links) under
   `p.dms.shares`; versioned files, full-text/quick search (records + filesystem
-  merged), one trash module over `status` with retention + admin-only permanent
+  merged), one trash module over `status` w/ retention + admin-only permanent
   delete + legal holds + expiry scanner, Activity Feed via AuditUnit; folders,
   labels (`dms_label` + `dms_entity_label`), file views. Reuses StorageUnit
   (unified `dms/{tenant}/{fileId}/v{n}/{name}` keys), AuthUnit, PubSub
@@ -659,38 +659,38 @@ Implemented: Workspace module — dependency-free personal-workspace surface:
   (cross-domain saved conditions/sort, applied via host-registered resolvers in
   `runtime.ts` — never touches other modules' tables), dashboards (widgets +
   jsonb grid layout, duplicate/export/import), declarative widgets (metric/
-  breakdown/list/embed with date ranges + refresh metadata), event-driven
+  breakdown/list/embed w/ date ranges + refresh metadata), event-driven
   schedules (per-schedule pg-boss crons → `workspace:schedule_due`, host
-  delivers), and user-scoped utilities (pins, recent, quick search, settings,
-  watches). Access is a first-class user-set enum — `personal` (owner-only) /
+  delivers), user-scoped utilities (pins, recent, quick search, settings,
+  watches). Access = first-class user-set enum — `personal` (owner-only) /
   `global` (org-wide). 10 `workspace_*` tables, all tenant schemas, 4 pgEnums,
-  40 events, 12 ACL resources. No module deps. Units: db, pubsub.
+  32 events, 11 ACL resources. No module deps. Units: db, pubsub.
 
 Stubs (package.json only — no source): accounting, crm, fleet, inventory, reports, pharmacy
 ```
 
 ## Known Gaps
 
-1. **`RoleUnassignedEvent` missing `roleName`** — unlike `RoleAssignedEvent` which has `{ roleName, userId }`, the unassigned event only has `{ userId }`.
-2. **No DB-level foreign key constraints in domain modules** — all cross-table references in compliance, tasks, organization, masters, management, and hr are logical (soft FKs by naming convention), not enforced by the database.
-3. **DMS consolidation (`.working-docs/sow/dms-consolidation.md`) is complete** — the removed `@aspen-os/drive` filesystem was consolidated into `@aspen-os/dms` as one `file` entity, one label mechanism, one sharing group (`p.dms.shares`), one trash module, and `fileViews` terminology. The `dms_document*`/`dms_tag`/`dms_view`/`dms_item_*` tables no longer exist; host deployments must run the §8 migration to drop the merged-away tables and rename enums/tables.
-4. **`SingleTenantPlatform` and `SharedTenantPlatform` are EXPERIMENTAL** — both constructors emit `console.warn("... Architecture is currently EXPERIMENTAL")`. `IsolatedTenantPlatform` does not warn.
-5. **`IsolatedTenantConfig` has no `resolver` field** — a dummy resolver (`list: async () => []`, `resolve: async (id) => id`) is constructed inline in `IsolatedTenantPlatform.create()` instead of accepting a real `TenantResolver` via config.
-6. **`ManagementPlaneConfig` is `undefined`** — the provisioning workflow expects a richer config (`tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`) but the type hasn't been defined yet.
-7. **Management module `$name` = `"management"`** — matches the `@aspen-os/management` package name (renamed from `management-plane`). Proxy accessor is `p.management`.
-8. **`context.actorId` is typed but never populated by the framework** — the `AsyncLocalStorage` context declares `actorId?: string` but the platform never sets it from the authenticated session. Audit entries fall back to `"system"` until app code or middleware populates it.
-9. **ADR-0009 has been accepted for Layer 1** — the `AuditUnit` and `audit_log` table described in ADR-0009's Layer 1 are built and shipped; the ADR status is now "Accepted (Layer 1)". Layer 2 (trigger-based blind-write capture, ADR-0010) remains proposed/unimplemented.
-10. **`audit_log.id` uses `uuid()` + `$defaultFn(() => uuidv7())`** — the one table that deviates from `text` columns (it's a native `uuid` column), but it still uses the same JS `uuidv7` function.
-11. **HR module is fully conformant** — `Hr implements Module`, has `$prepareRuntime()`, and follows the one-file-per-action workflow layout. (Earlier docs marked HR "partial/not conformant"; that is no longer the case.)
-12. **Masters extraction (`.working-docs/sow/masters.md`) is complete** — `@aspen-os/masters` owns contacts, addresses, bank accounts, integration connections, and notes as polymorphic tenant master data; the organization module holds only `organization` + `branch` and depends on `masters`. `connection` was redesigned from a business-relationship model to integration connections (credentials stored in the platform `kvStore`, referenced by `credentialRef`). Host deployments must run the §9 migration: `DROP TABLE` `address`, `bank_account`, `connection`, `connection_contact`, `connection_note` (after mapping data to masters) and remove the old `organization:connection_created` compliance subscription.
-13. **Masters Phase 2 (`.working-docs/sow/masters-phase-2.md`) is complete** — `@aspen-os/masters` also owns `master_entity`, `master_unit_of_measure`, and `master_payment_method` (8 tables, 8 workflow groups, 31 events, 8 ACL resources at Phase 2 completion). `entity` is a `master_entity_type` owner value; `unitOfMeasure` is tenant-wide reference data (one base unit per category); `paymentMethod` is owner-scoped with masked-only card data and primary per `(entityType, entityId, direction)`. All Phase 2 additions are additive — the Phase 1 surface is unchanged.
-14. **Workspace module (`.working-docs/sow/workspace.md`) is implemented** — `@aspen-os/workspace` provides drafts, filter views, dashboards, widgets, schedules, and utilities (10 tenant tables, 4 pgEnums, 40 events, 12 ACL resources). Host apps must register view resolvers (`registerViewResolver`) for every domain they serve and subscribe to `workspace:schedule_due` / `workspace:draft_published` — both are silently dropped by pg-boss when unsubscribed (health check flags them). `context.actorId` (gap 8) feeds the module's access scoping: `create` falls back to an explicit `ownerId`/`userId` input when the context actor is unset.
-15. **Notes module (`.working-docs/sow/notes.md`) is implemented** — `@aspen-os/notes` owns the first-class `note` entity (`personal`/`global` access, optional `(scopeType, scopeId)` scope, `NOTE_TYPE`, tags; 1 tenant table, 3 events, 1 ACL resource). The note concept was removed from `@aspen-os/masters` (`master_note`, `p.masters.notes`, `masters:note_added`/`note_removed`, the `note` ACL resource, and note schemas) — masters is back to 7 tables / 7 groups / 29 events / 7 ACL resources. Host deployments must migrate `master_note` rows to `note` (map `entityType → scopeType = masters:<entityType>`, `entityId → scopeId`, `content → body`, `userId → ownerId`) and `DROP TABLE master_note` afterward; `pushSchema` never drops it.
+1. **`RoleUnassignedEvent` missing `roleName`** — unlike `RoleAssignedEvent` which has `{ roleName, userId }`, unassigned event only has `{ userId }`.
+2. **No DB-level FK constraints in domain modules** — all cross-table references in compliance, tasks, organization, masters, management, hr logical (soft FKs by naming convention), not DB-enforced.
+3. **DMS consolidation (`.working-docs/sow/dms-consolidation.md`) complete** — removed `@aspen-os/drive` filesystem consolidated into `@aspen-os/dms` as one `file` entity, one label mechanism, one sharing group (`p.dms.shares`), one trash module, `fileViews` terminology. `dms_document*`/`dms_tag`/`dms_view`/`dms_item_*` tables no longer exist; host deployments must run §8 migration to drop merged-away tables + rename enums/tables.
+4. **`SingleTenantPlatform` + `SharedTenantPlatform` EXPERIMENTAL** — both constructors emit `console.warn("... Architecture is currently EXPERIMENTAL")`. `IsolatedTenantPlatform` does not warn.
+5. **`IsolatedTenantConfig` has no `resolver` field** — dummy resolver (`list: async () => []`, `resolve: async (id) => id`) constructed inline in `IsolatedTenantPlatform.create()` instead of accepting real `TenantResolver` via config.
+6. **`ManagementPlaneConfig` = `undefined`** — provisioning workflow expects richer config (`tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`) but type not defined yet.
+7. **Management module `$name` = `"management"`** — matches `@aspen-os/management` package name (renamed from `management-plane`). Proxy accessor = `p.management`.
+8. **`context.actorId` typed but never populated by framework** — `AsyncLocalStorage` context declares `actorId?: string` but platform never sets it from authenticated session. Audit entries fall back to `"system"` until app code or middleware populates it.
+9. **ADR-0009 accepted for Layer 1** — `AuditUnit` + `audit_log` table described in ADR-0009's Layer 1 built + shipped; ADR status now "Accepted (Layer 1)". Layer 2 (trigger-based blind-write capture, ADR-0010) remains proposed/unimplemented.
+10. **`audit_log.id` uses `uuid()` + `$defaultFn(() => uuidv7())`** — one table deviating from `text` columns (native `uuid` column), but still uses same JS `uuidv7` function.
+11. **HR module fully conformant** — `Hr implements Module`, has `$prepareRuntime()`, follows one-file-per-action workflow layout. (Earlier docs marked HR "partial/not conformant"; no longer the case.)
+12. **Masters extraction (`.working-docs/sow/masters.md`) complete** — `@aspen-os/masters` owns contacts, addresses, bank accounts, integration connections, + notes as polymorphic tenant master data; organization module holds only `organization` + `branch`, depends on `masters`. `connection` redesigned from business-relationship model to integration connections (credentials in platform `kvStore`, referenced by `credentialRef`). Host deployments must run §9 migration: `DROP TABLE` `address`, `bank_account`, `connection`, `connection_contact`, `connection_note` (after mapping data to masters) + remove old `organization:connection_created` compliance subscription.
+13. **Masters Phase 2 (`.working-docs/sow/masters-phase-2.md`) complete** — `@aspen-os/masters` also owns `master_entity`, `master_unit_of_measure`, `master_payment_method` (8 tables, 8 workflow groups, 31 events, 8 ACL resources at Phase 2 completion). `entity` = `master_entity_type` owner value; `unitOfMeasure` tenant-wide reference data (one base unit per category); `paymentMethod` owner-scoped w/ masked-only card data + primary per `(entityType, entityId, direction)`. All Phase 2 additions additive — Phase 1 surface unchanged. (After notes module removed `master_note`, masters back to 7 tables / 7 groups / 29 events / 7 ACL resources — see gap 15.)
+14. **Workspace module (`.working-docs/sow/workspace.md`) implemented** — `@aspen-os/workspace` provides drafts, filter views, dashboards, widgets, schedules, utilities (10 tenant tables, 4 pgEnums, 32 events, 11 ACL resources). Host apps must register view resolvers (`registerViewResolver`) for every domain they serve + subscribe to `workspace:schedule_due` / `workspace:draft_published` — both silently dropped by pg-boss when unsubscribed (health check flags them). `context.actorId` (gap 8) feeds module's access scoping: `create` falls back to explicit `ownerId`/`userId` input when context actor unset.
+15. **Notes module (`.working-docs/sow/notes.md`) implemented** — `@aspen-os/notes` owns first-class `note` entity (`personal`/`global` access, optional `(scopeType, scopeId)` scope, `NOTE_TYPE`, tags; 1 tenant table, 3 events, 1 ACL resource). Note concept removed from `@aspen-os/masters` (`master_note`, `p.masters.notes`, `masters:note_added`/`note_removed`, `note` ACL resource, note schemas) — masters back to 7 tables / 7 groups / 29 events / 7 ACL resources. Host deployments must migrate `master_note` rows to `note` (map `entityType → scopeType = masters:<entityType>`, `entityId → scopeId`, `content → body`, `userId → ownerId`) + `DROP TABLE master_note` afterward; `pushSchema` never drops it.
 
 ## Anti-Patterns
 
-- Don't register modules after `create()` — pass them to `Platform.create()` as the second arg (an array)
-- Don't use native UUID columns — always `text` with `.$defaultFn(uuidv7)` (exception: `audit_log.id` uses `uuid().$defaultFn(() => uuidv7())` as the one native uuid column)
+- Don't register modules after `create()` — pass them to `Platform.create()` as second arg (an array)
+- Don't use native UUID columns — always `text` w/ `.$defaultFn(uuidv7)` (exception: `audit_log.id` uses `uuid().$defaultFn(() => uuidv7())` as one native uuid column)
 - Don't use `timestamp without time zone` — always `withTimezone: true`
 - Don't create barrel files unless explicitly told
 - Don't import bare `@aspen-os/platform` — use `/server` or `/client` subpath explicitly

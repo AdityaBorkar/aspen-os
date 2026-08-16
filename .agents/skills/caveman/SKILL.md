@@ -91,4 +91,4 @@ Example — destructive op:
 
 ## Boundaries
 
-Persisted outside chat: write normal prose — code, comments, commits, docs, issue/PR/MR text, memory files, third-party messages (/caveman-compress exempt). "stop caveman" or "normal mode": revert. Level persist until changed or session end.
+Persisted outside chat: write normal prose — code, comments, commits, docs, issue/PR/MR text, memory files, third-party messages (/caveman exempt). "stop caveman" or "normal mode": revert. Level persist until changed or session end.

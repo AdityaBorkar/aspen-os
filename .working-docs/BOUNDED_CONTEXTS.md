@@ -1,6 +1,6 @@
 # Bounded Contexts & Context Map
 
-This document is the **overview** of the system's bounded contexts. Each context has been split into its own file (one per package) under `bounded-contexts/`. The context map, cross-cutting integration patterns, and the context-map table live here.
+**Overview** of system bounded contexts. Each context split into own file (one per package) under `bounded-contexts/`. Context map, cross-cutting integration patterns, + context-map table live here.
 
 ## Per-Context Files
 
@@ -18,7 +18,7 @@ This document is the **overview** of the system's bounded contexts. Each context
 | `@aspen-os/management`   | [`bounded-contexts/management.md`](bounded-contexts/management.md)     |
 | Stubs                    | [`bounded-contexts/stubs.md`](bounded-contexts/stubs.md)               |
 
-Domain detail for each context lives in [`domain-model/`](domain-model/) (also split per package).
+Domain detail per context in [`domain-model/`](domain-model/) (also split per package).
 
 ## Context Map Overview
 
@@ -82,20 +82,22 @@ Domain detail for each context lives in [`domain-model/`](domain-model/) (also s
 │  │ Masters Module    │  ┌───────────────┐  ┌───────────────┐   │
 │  │ 7 wf groups       │  │ Tasks         │  │ DMS Module    │   │
 │  │ 7 tables          │  │ Module        │  │ 18 wf groups  │   │
-│  │ 29 events         │  │ 11 wf groups  │  │ 14 tables     │   │
-│  │ 7 ACL res.        │  │ 17 tables     │  │ 33 events     │   │
+│  │ 29 events         │  │ 10 wf groups  │  │ 14 tables     │   │
+│  │ 7 ACL res.        │  │ 16 tables     │  │ 33 events     │   │
 │  │ units: kvStore    │  │ 10 events     │  │ 11 ACL res.   │   │
 │  │ (connections)     │  │ units: none   │  │ units:        │   │
-│  └───────────────────┘  │               │  │ db, auth,     │   │
-│                         └───────────────┘  │ pubsub+storage│   │
-│  ┌───────────────┐                         └───────────────┘   │
-│  │ Notes Module  │                                              │
-│  │ 1 wf group    │                                              │
-│  │ 1 table       │                                              │
-│  │ 3 events      │                                              │
-│  │ 1 ACL res.    │                                              │
-│  │ units: none   │                                              │
-│  └───────────────┘                                              │
+│  └───────────────────┘  │               │  │ db, pubsub,   │   │
+│                         └───────────────┘  │ storage       │   │
+│  ┌───────────────┐  ┌───────────────┐  ┌───────────────────┐   │
+│  │ Notes Module  │  │ Calendar      │  │ Workspace         │   │
+│  │ 1 wf group    │  │ Module        │  │ Module            │   │
+│  │ 1 table       │  │ 4 wf groups   │  │ 10 wf groups      │   │
+│  │ 3 events      │  │ 4 tables      │  │ 10 tables         │   │
+│  │ 1 ACL res.    │  │ 14 events     │  │ 32 events         │   │
+│  │ units: none   │  │ 4 ACL res.    │  │ 11 ACL res.       │   │
+│  └───────────────┘  │ units:        │  │ units:            │   │
+│                     │ db, pubsub    │  │ db, pubsub        │   │
+│                     └───────────────┘  └───────────────────┘   │
 │  ┌───────────────────────────┐                                   │
 │  │ Management Plane          │                                   │
 │  │ Module                    │                                   │
@@ -121,13 +123,13 @@ Domain detail for each context lives in [`domain-model/`](domain-model/) (also s
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-> Workflow counts above are **workflow groups** (readonly properties on the module instance), not files. The modules follow the one-file-per-action layout (`workflows/<entity>/<verb>.ts`), so per-action file counts are much higher (e.g. HR exposes ~250 methods across 8 groups).
+> Workflow counts above = **workflow groups** (readonly properties on module instance), not files. Modules follow one-file-per-action layout (`workflows/<entity>/<verb>.ts`), so per-action file counts much higher (e.g. HR ~250 methods across 8 groups).
 
 ## Integration Patterns
 
 ### Platform.create() (Static Factory)
 
-All units are created and wired inside `Platform.create()`:
+All units created + wired inside `Platform.create()`:
 
 ```typescript
 import { SingleTenantPlatform } from "@aspen-os/platform/server";
@@ -144,11 +146,11 @@ This:
 2. Wires pubsub↔auth (`setAuth`)
 3. Validates module `$dependencies`
 4. Calls `mod.$initialize(units)` on each module
-5. Returns a proxy-wrapped platform instance that allows `p.organization` syntax
+5. Returns proxy-wrapped platform instance allowing `p.organization` syntax
 
 ### AsyncLocalStorage Context
 
-The `run()` method provides request-scoped context. Signature varies by platform class:
+`run()` provides request-scoped context. Signature varies by platform class:
 
 ```typescript
 // SingleTenantPlatform — no tenantId
@@ -167,7 +169,7 @@ await p.run(tenantId, async () => {
 
 ### Event-Driven (Active)
 
-Domain events are published via PubSub as plain string topics. Event counts by module (type-level `*EventMap` contracts, not a runtime type-safe bus):
+Domain events published via PubSub as plain string topics. Event counts by module (type-level `*EventMap` contracts, not runtime type-safe bus):
 
 - Auth: 8 events
 - Organization: 7 events
@@ -175,16 +177,17 @@ Domain events are published via PubSub as plain string topics. Event counts by m
 - Notes: 3 events
 - Compliance: 23 events
 - Tasks: 10 events (incl. `task:due_date_changed`)
-- Calendar: 13 events (3 calendar + 4 event + 3 attendee + 4 reminder, incl. `calendar:reminder_due`)
+- Calendar: 14 events (3 calendar + 4 event + 3 attendee + 4 reminder, incl. `calendar:reminder_due`)
+- Workspace: 32 events (13 draft + 4 view + 6 dashboard + 4 widget + 2 pin + 2 watch + 1 schedule)
 - DMS: 33 events (13 file + 6 folder + 3 class + 3 contact + 2 share + 3 public_link + 3 file_view)
 - Management Plane: 16 events (8 tenant + 4 service_provider + 4 platform_user)
 - HR: 43 events (8 event groups across employee, attendance, leave, lifecycle, overtime, setup, shift, access)
 
-Per-context event tables live in `domain-model/<package>.md`.
+Per-context event tables in `domain-model/<package>.md`.
 
 ### Cross-Context Event Subscriptions
 
-The Compliance module's `EventBridge` service actively subscribes to events from other modules to auto-create compliance documents and obligations. This is the primary cross-context integration mechanism:
+Compliance module's `EventBridge` service actively subscribes to other modules' events to auto-create compliance documents + obligations. Primary cross-context integration mechanism:
 
 | Subscribed Topic                    | Source Module     | Action                                                                                    |
 | ----------------------------------- | ----------------- | ----------------------------------------------------------------------------------------- |
@@ -200,7 +203,7 @@ The Compliance module's `EventBridge` service actively subscribes to events from
 
 ### Schema Management
 
-Modules declare their DB schemas via `$prepareInfra()` (returns `{ db: { control_plane_schemas, tenant_schemas } }`). The platform collects all module schemas and applies them centrally via `DatabaseUnit.prepareWithModules()`:
+Modules declare DB schemas via `$prepareInfra()` (returns `{ db: { control_plane_schemas, tenant_schemas } }`). Platform collects all module schemas, applies centrally via `DatabaseUnit.prepareWithModules()`:
 
 ```
 Platform.prepareInfra()
@@ -213,9 +216,9 @@ Platform.prepareInfra()
     → [shared only] db.applyRlsPolicies()
 ```
 
-Schemas collected by `DatabaseUnit.prepareWithModules()`: core schemas (`auditSchema`, `authSchema`, `logSchema`, `storageSchema`, `kvStoreSchema`, `workflowSchema`) merged with module `db.control_plane_schemas` and `db.tenant_schemas` from `$prepareInfra()`. Domain module table counts by context live in `domain-model/<package>.md`.
+Schemas collected by `DatabaseUnit.prepareWithModules()`: core schemas (`auditSchema`, `authSchema`, `logSchema`, `storageSchema`, `kvStoreSchema`, `workflowSchema`) merged with module `db.control_plane_schemas` + `db.tenant_schemas` from `$prepareInfra()`. Domain module table counts per context in `domain-model/<package>.md`.
 
-`$prepareInfra()` on a **Unit** is per-unit and optional. Most units perform their infra setup here; PubSubUnit's is a no-op because its single control-plane pg-boss is started lazily on first use at runtime, not at deploy time.
+`$prepareInfra()` on a **Unit** per-unit + optional. Most units do infra setup here; PubSubUnit's is a no-op — single control-plane pg-boss started lazily on first use at runtime, not deploy time.
 
 ### Scheduled Jobs
 
@@ -236,7 +239,7 @@ Four modules register scheduled cron jobs via PubSub:
 
 ### Health Check
 
-`BasePlatform.healthCheck()` returns a `HealthReport`:
+`BasePlatform.healthCheck()` returns `HealthReport`:
 
 ```typescript
 {
@@ -251,10 +254,10 @@ Four modules register scheduled cron jobs via PubSub:
 }
 ```
 
-- **DB probe**: `controlPlaneDb.execute(sql`SELECT 1`)` (always the real control plane, not the context-routed wrapper).
-- **PubSub probe**: `getQueueSize("__platform_health_check")` — lazily starts the boss and does a live SQL round-trip; safe on unregistered topics.
-- **Unsubscribed topics**: `pubsub.getUnsubscribedProducedTopics()` lists topics published to with no registered subscriber; pg-boss silently drops these, so their presence flips the report to `unhealthy` to surface the wiring bug early. Present only when non-empty.
-- `checkDbHealth` / `checkPubSubHealth` are protected hooks derived classes may override.
+- **DB probe**: `controlPlaneDb.execute(sql`SELECT 1`)` (always real control plane, not context-routed wrapper).
+- **PubSub probe**: `getQueueSize("__platform_health_check")` — lazily starts boss, live SQL round-trip; safe on unregistered topics.
+- **Unsubscribed topics**: `pubsub.getUnsubscribedProducedTopics()` lists topics published to w/ no registered subscriber; pg-boss silently drops these, so presence flips report to `unhealthy` to surface wiring bug early. Present only when non-empty.
+- `checkDbHealth` / `checkPubSubHealth` = protected hooks derived classes may override.
 
 ## Context Map Table
 
@@ -278,7 +281,8 @@ Four modules register scheduled cron jobs via PubSub:
 | Notes            | Downstream    | Platform                                      | —                            | 1 workflow group, 1 table, 3 events, 1 ACL resource                                       |
 | Compliance       | Downstream    | Platform, HR, Organization, Fleet, Accounting | —                            | 5 workflow groups, 3 tables, 3 services, subscribes to external events                    |
 | Tasks            | Downstream    | Platform                                      | Calendar                     | 10 workflow groups, 16 tables (6 control + 10 tenant), empty ACL                          |
-| Calendar         | Downstream    | Platform                                      | —                            | 4 workflow groups, 4 tables, 13 events, 4 ACL resources, 1 cron + task bridge             |
+| Calendar         | Downstream    | Platform                                      | —                            | 4 workflow groups, 4 tables, 14 events, 4 ACL resources, 1 cron + task bridge             |
+| Workspace        | Downstream    | Platform                                      | —                            | 10 workflow groups, 10 tables, 32 events, 11 ACL resources, per-schedule crons            |
 | DMS              | Downstream    | Platform, Storage                             | —                            | 18 workflow groups, 14 tables, 33 events, 11 ACL resources, 2 crons                       |
 | Management Plane | Downstream    | Platform, Organization                        | —                            | 3 workflow groups, 3 owned tables, 0 shadow tables, 16 events, has build step             |
 | HR               | Downstream    | Platform                                      | Compliance                   | ~250 workflow methods in 8 groups, 50 tables (14 control + 36 tenant), 43 events, 2 crons |

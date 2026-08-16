@@ -1,6 +1,6 @@
 # Calendar Domain Model
 
-> Package: `@aspen-os/calendar`. Calendars, events, and reminders — the three time-domain surfaces. **Calendars** (named, colored collections), **events** (time-boxed entries with recurrence, attendees, timezone, and a polymorphic source link), and **reminders** (the platform's single polymorphic reminder surface). 4 tables — all tenant schemas with the `calendar_` prefix. Task reminders live here as `targetType = task` rows, driven by an event-driven task bridge.
+> Package: `@aspen-os/calendar`. Calendars, events, + reminders — three time-domain surfaces. **Calendars** (named, colored collections), **events** (time-boxed, recurrence, attendees, timezone, polymorphic source link), **reminders** (platform single polymorphic reminder surface). 4 tables — all tenant schemas, `calendar_` prefix. Task reminders live here as `targetType = task` rows, driven by event-driven task bridge.
 
 ## Entity-Relationship Diagram
 
@@ -60,12 +60,12 @@
 
 **Invariants**:
 
-- `isDefault` is unique per `ownerId` — `setDefault` clears the owner's other defaults; the first calendar a user creates auto-defaults
-- Access is a user-set enum `personal` (owner-only) / `global` (org-wide within the tenant)
+- `isDefault` unique per `ownerId` — `setDefault` clears owner's other defaults; first calendar auto-defaults
+- Access user-set enum `personal` (owner-only) / `global` (org-wide within tenant)
 
 **Lifecycle commands** (via `p.calendar.calendars`): `create(input)`, `update(id, patch)`, `delete(id)` (cascades events/attendees/reminders), `get(id)`, `list(filters?)`, `setDefault(id)`.
 
-**Relationships**: Has many `Event` (1:N). Deleting a calendar deletes its events, their attendees, and event-targeted reminders.
+**Relationships**: Has many `Event` (1:N). Deleting calendar deletes events, attendees, event-targeted reminders.
 
 ### Event (Aggregate Root)
 
@@ -74,32 +74,32 @@
 **Value objects**:
 
 - `EventRecurrence` — `{ frequency (daily/weekly/monthly/yearly), interval ≥ 1, count?, until?, byDay? }`; `count`/`until` mutually exclusive, `byDay` weekly-only
-- `Occurrence` — a computed-on-read expansion (`id`, `eventId`, `startsAt`, `endsAt`, `title`, `location`, `status`, `calendarId`)
+- `Occurrence` — computed-on-read expansion (`id`, `eventId`, `startsAt`, `endsAt`, `title`, `location`, `status`, `calendarId`)
 
 **Invariants**:
 
-- `startsAt < endsAt` unless `allDay` (all-day stores 00:00 in the calendar tz; `endsAt` exclusive next-day)
-- `sourceType` is a `<module>:<entity>` registry value; setting it requires `sourceEntityId`
-- `status` transitions to `cancelled` are monotonic (soft cancel)
+- `startsAt < endsAt` unless `allDay` (all-day stores 00:00 in calendar tz; `endsAt` exclusive next-day)
+- `sourceType` is `<module>:<entity>` registry value; setting requires `sourceEntityId`
+- `status` → `cancelled` monotonic (soft cancel)
 
 **Lifecycle commands** (via `p.calendar.events`): `create(input)`, `update(id, patch)`, `delete(id)`, `cancel(id)`, `get(id)`, `list(filters?)`, `getOccurrences(id, query?)`, `listOccurrences(filters?, query?)`.
 
-**Relationships**: Belongs to `Calendar` (N:1, access inherited); has many `Attendee` (1:N); reminders reference the event via `targetType = 'event'`.
+**Relationships**: Belongs to `Calendar` (N:1, access inherited); has many `Attendee` (1:N); reminders reference event via `targetType = 'event'`.
 
 ### Attendee (Supporting entity)
 
-`{ eventId, email, name?, attendeeId?, attendeeType (user/contact), optional, status (invited/accepted/declined/tentative) }`. Soft-references a user or masters contact; carries a denormalized email/name snapshot. `add` publishes `calendar:attendee_invited`.
+`{ eventId, email, name?, attendeeId?, attendeeType (user/contact), optional, status (invited/accepted/declined/tentative) }`. Soft-references user or masters contact; carries denormalized email/name snapshot. `add` publishes `calendar:attendee_invited`.
 
 ### Reminder (Supporting entity, polymorphic)
 
-The platform's single reminder surface. `{ targetType (event/task/note/file/custom), targetId, type (offset/custom/due_date/overdue), channel (pubsub), remindAt, offsetMinutes?, userId (recipient), message?, isRecurring, interval?, isSent, sentAt? }`.
+Platform single reminder surface. `{ targetType (event/task/note/file/custom), targetId, type (offset/custom/due_date/overdue), channel (pubsub), remindAt, offsetMinutes?, userId (recipient), message?, isRecurring, interval?, isSent, sentAt? }`.
 
-- `offset` reminders resolve `remindAt` from the target's anchor (event start) or a caller-supplied value
-- `custom`/`due_date`/`overdue` require an explicit `remindAt`
-- Task reminders (`targetType = task`) are materialized by the calendar-side **task bridge** from `task:due_date_changed`: three rows per recipient (due − 1d, due − 1h, due); deleted on `task:deleted` and on completion/cancellation
-- The **reminder dispatcher** cron (`calendar:reminder-scan`) runs `processPending` — publishes `calendar:reminder_due` (full payload), marks `isSent`/`sentAt`, inserts the next occurrence for recurring reminders
+- `offset` reminders resolve `remindAt` from target anchor (event start) or caller-supplied value
+- `custom`/`due_date`/`overdue` require explicit `remindAt`
+- Task reminders (`targetType = task`) materialized by calendar-side **task bridge** from `task:due_date_changed`: three rows per recipient (due − 1d, due − 1h, due); deleted on `task:deleted` and on completion/cancellation
+- **Reminder dispatcher** cron (`calendar:reminder-scan`) runs `processPending` — publishes `calendar:reminder_due` (full payload), marks `isSent`/`sentAt`, inserts next occurrence for recurring reminders
 
-## Domain Events — 13
+## Domain Events — 14
 
 | Event                       | Payload                                                                                             | Trigger                       |
 | --------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------- |
@@ -144,10 +144,10 @@ The platform's single reminder surface. `{ targetType (event/task/note/file/cust
 
 ## Invariants & Business Rules
 
-1. **Access inheritance** — events, attendees, and reminders inherit their calendar's access; reminders are additionally recipient-scoped via `userId`. Read = `global` OR owner; mutate = owner or tenant admin.
+1. **Access inheritance** — events, attendees, reminders inherit calendar access; reminders additionally recipient-scoped via `userId`. Read = `global` OR owner; mutate = owner or tenant admin.
 2. **Default calendar** — `isDefault` unique per owner; first-created auto-defaults.
 3. **Event window** — `startsAt < endsAt` unless `allDay`; `endsAt` required for timed events.
 4. **Recurrence config** — `count`/`until` mutually exclusive; `byDay` weekly-only; interval ≥ 1.
 5. **Offset re-anchoring** — event `update` re-anchors `type = offset` reminders (`remindAt = startsAt − offsetMinutes`).
-6. **Task bridge** — task due-date changes materialize the 3-point bundle per recipient (assignees ∪ reporter); task delete removes all task reminders; completion/cancellation removes pending ones.
-7. **Dispatcher idempotence** — `processPending` fires `isSent = false AND remindAt <= now` rows, marking `isSent` so the next scan skips them.
+6. **Task bridge** — task due-date changes materialize 3-point bundle per recipient (assignees ∪ reporter); task delete removes all task reminders; completion/cancellation removes pending ones.
+7. **Dispatcher idempotence** — `processPending` fires `isSent = false AND remindAt <= now` rows, marking `isSent` so next scan skips them.
