@@ -2,13 +2,34 @@
 
 > Scope of Work for the **Announcements** capability of the `@aspen-os/hr` module. Implements internal communications so HR can announce/notify **all or a subset of HR users** (employees and HR users) in the organization.
 
+> **Status — as of August 2026:** Not started. This SOW is the design record; no code exists yet.
+
 ## Overview
 
-The Announcements capability gives the HR module a first-class channel for broadcasting internal communications — policy updates, office closures, event invites, onboarding reminders, and acknowledgable notices. Announcements are authored by HR users, targeted at the whole organization or a specific audience (branch, department, designation, employee group, HR role, or named employees/users), and delivered through an in-app inbox with optional acknowledgement tracking.
+The Announcements capability gives the HR module a first-class channel for broadcasting internal communications — policy updates, office closures, event invites, onboarding reminders, and acknowledgable notices. Announcements are authored by HR users, targeted at the whole organization or a specific audience (branch, department, designation, employee group, HR role, or named employees/users), and delivered into the **in-app inbox owned by `@aspen-os/comms`**, with optional acknowledgement tracking.
 
-The capability is implemented **inside the existing `@aspen-os/hr` module** — no new package. It follows the module's established patterns: one table file per entity under `db-schemas/`, one workflow file per action under `workflows/announcement.*.ts` behind a `barrel-announcement.ts`, valibot `Create*Schema`/`Update*Schema`/`*FiltersSchema` in `schemas/`, ACL entries in `auth.ts`, and event groups in `pubsub.ts`. The `Hr` class exposes a new `announcement` workflow group (e.g. `p.hr.announcement.create()`).
+The capability is implemented **inside the existing `@aspen-os/hr` module** — no new package. It follows the module's established patterns: one table file per sub-domain group under `db-schemas/` (not one per entity), per-action workflow files under `workflows/announcement/` aggregated by `barrel-announcement.ts` (the REST-style folder layout — `workflows/<group>/<entity>/<verb>.ts` — not the older flat `announcement.*.ts` layout), valibot `Create*Schema`/`Update*Schema`/`*FiltersSchema` in `schemas/`, ACL entries in `auth.ts`, event groups in `pubsub.ts`, and scheduled-job constants in `utils/constants.ts`. The `Hr` class exposes a new `announcement` workflow group (`p.hr.announcement.create()`) alongside the existing 8 groups (`access`, `attendance`, `employee`, `leave`, `lifecycle`, `overtime`, `setup`, `shift`).
 
-Announcements are **tenant-scoped operational data** — all announcement tables live in tenant schemas (per ADR-0008 and the existing 36-table tenant split). Audience resolution references control-plane tables (`department`, `designation`, `hr_role`) and tenant tables (`employee`, `employee_group`, `hr_user`) by soft FK only — no DB-level foreign key constraints (repo convention).
+Announcements are **tenant-scoped operational data** — `hr_announcement` and `hr_announcement_recipient` live in tenant schemas (per ADR-0008 and the module's existing 36-table tenant split). Audience resolution references control-plane tables (`department`, `designation`, `hr_role`, `hr_permission`, `hr_user`) and tenant tables (`employee`, `employee_group`, `employee_group_member`) by soft FK only — no DB-level foreign key constraints (repo convention).
+
+**Delivery is `@aspen-os/comms`'s job, not this capability's.** comms is the single notification/inbox and out-of-band delivery surface (bounded-contexts/comms.md). Its event bridge already subscribes to `announcement:published` (`packages/comms/src/services/event-bridge.ts:108`), materializing one `comms_notification` per recipient (`sourceModule: "hr"`, `sourceEntity.type: "announcement"`, `type: "announcement"`). This SOW produces the announcement and the recipient snapshot; the inbox, read receipts, and out-of-band delivery all belong to comms. The earlier draft's "future Notification unit" seam is obsolete — it is the live comms module, and its consumer contract for `announcement:published` is the integration seam this SOW must satisfy.
+
+**Lineage**: derived from the HR SOW list in `.working-docs/todo/.md` (announcements); cross-referenced by `sow/hr-organization-structure.md` §8 (positions become a first-class audience type once that capability lands). The term **Announcement** is new to the HR ubiquitous language — it will be defined in `domain-model/hr.md` and `bounded-contexts/hr.md` (not a collision; "Notification" stays a comms term).
+
+---
+
+## Confirmed Decisions
+
+| #   | Decision                          | Outcome                                                                                                                                                                                                                                       |
+| --- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Inbox ownership                   | `p.comms.notifications` (`comms_notification`) is the inbox. hr builds **no** second inbox — `getInbox`/`markRead`/`markUnread`/`dismiss` are not part of this capability.                                                                    |
+| 2   | Recipient table role              | `hr_announcement_recipient` is a **delivery snapshot**: audit of who was notified, delivery totals, and ack correlation. It does not carry read state.                                                                                        |
+| 3   | Read / acknowledgement state      | Lives on `comms_notification` (`status` unread/read/dismissed, `readAt`). hr emits no `announcement:read` event — comms already publishes `comms:notification_read`.                                                                          |
+| 4   | `announcement:published` contract | Payload pinned to comms' `AnnouncementPublishedEventSchema`: `{ announcement: { id, title }, recipientUserIds: string[] }`. `recipientUserIds` are **auth user IDs** (`hr_user.userId`, resolved via the Auth unit) — **not** `hr_user.id`.   |
+| 5   | Employee-only recipients          | Employees with no linked HR user (no auth user) get a snapshot row but no comms notification; `recipientUserIds` contains only recipients with an auth user.                                                                                  |
+| 6   | Permission actions                | `publish` and `archive` are added to `PERMISSION_ACTION` and `permissionActionEnum("hr_permission_action")`; `HR_PERMISSION_MODULE` gains `ANNOUNCEMENT: "announcement"`.                                                                     |
+| 7   | Priority vs comms severity        | Announcement `priority` (`normal`/`important`/`urgent`) matches `NOTIFICATION_SEVERITY` in `@aspen-os/constants`. The comms bridge currently notifies with default severity; propagating priority is a comms-side follow-up (Open Decisions). |
+| 8   | Pinning                           | `isPinned` surfaces at the top of **hr-side announcement lists** only. The comms inbox has no pinned concept (severity → `createdAt` ordering).                                                                                               |
 
 ---
 
@@ -25,12 +46,12 @@ The core record describing a single broadcast.
 | **Channel**                 | enum                   | `general` (all), `hr` (HR users only), or `custom` (explicit audience). |
 | **Audience**                | jsonb                  | Audience definition — see §2. `null` when `channel = "general"`.        |
 | **Status**                  | enum                   | `draft`, `scheduled`, `published`, `archived`.                          |
-| **Priority**                | enum                   | `normal`, `important`, `urgent`.                                        |
-| **Require Acknowledgement** | boolean                | If `true`, recipients must acknowledge (read receipt); stats tracked.   |
+| **Priority**                | enum                   | `normal`, `important`, `urgent` (mirrors `NOTIFICATION_SEVERITY`).      |
+| **Require Acknowledgement** | boolean                | If `true`, acknowledgement is tracked (via comms read receipts).        |
 | **Scheduled For**           | timestamptz (nullable) | Publish time for `scheduled` announcements.                             |
 | **Published At**            | timestamptz (nullable) | When the announcement was actually published.                           |
 | **Archived At**             | timestamptz (nullable) | When the announcement was archived.                                     |
-| **Is Pinned**               | boolean                | Pinned announcements surface at the top of the inbox.                   |
+| **Is Pinned**               | boolean                | Pinned announcements surface first in HR-side announcement lists.       |
 | **Pinned By**               | text (nullable)        | HR user who pinned/unpinned.                                            |
 | **Created At**              | timestamptz            | Record creation timestamp.                                              |
 | **Updated At**              | timestamptz            | Last modification timestamp.                                            |
@@ -39,22 +60,24 @@ The core record describing a single broadcast.
 
 - `create(input)` — create in `draft` status; `input` may include `channel`, `audience`, and `scheduleAt` to publish directly or schedule.
 - `update(id, patch)` — edit title/body/audience/schedule. Only `draft`/`scheduled` announcements are editable; `published` is immutable except pin/archive.
-- `publish(id)` — transition `draft`/`scheduled` → `published`. Resolves the audience, materializes recipient rows (§4), sets `publishedAt`, publishes `announcement:published`.
-- `schedule(id, scheduledAt)` — transition `draft` → `scheduled`. A scheduled job (see §6) publishes due announcements.
+- `delete(id)` — hard-delete a `draft`/`scheduled` announcement (never a `published` one).
+- `publish(id)` — transition `draft`/`scheduled` → `published`. Resolves the audience, materializes recipient snapshot rows (§3), sets `publishedAt`, publishes `announcement:published` (§11) with the comms contract.
+- `schedule(id, scheduledAt)` — transition `draft` → `scheduled`. A scheduled job (see §4) publishes due announcements.
 - `cancelSchedule(id)` — `scheduled` → `draft`; clears `scheduledFor`.
-- `archive(id)` — `published` → `archived`; hides from inbox.
+- `archive(id)` — `published` → `archived`; hides from HR-side lists.
 - `restore(id)` — `archived` → `published`.
 - `pin(id)` / `unpin(id)` — toggle `isPinned`.
-- `getById(id)` — fetch with resolved audience summary and stats.
+- `getById(id)` — fetch with resolved audience summary and delivery stats.
 - `list(filters?)` — filter by status, channel, author, priority, date range, pinned-only.
 
 **Constraints**:
 
 - Only `draft` and `scheduled` announcements can be edited or deleted.
 - `published` announcements are immutable — corrections go through a new announcement or a re-publish.
-- Publish is idempotent — re-publishing a `published` announcement is a no-op.
+- Publish is idempotent — re-publishing a `published` announcement is a no-op and does not re-emit `announcement:published`.
 - Scheduling requires `scheduledFor` in the future.
 - `requireAcknowledgement = true` implies the announcement is not editable after publishing.
+- Archive/restore do **not** retract already-delivered comms notifications — comms notifications are immutable by design (out of scope to recall).
 
 ---
 
@@ -82,95 +105,93 @@ Announcements reach the whole organization or a resolvable subset. The **audienc
 | `roles`        | HR users holding the named HR roles (any branch scope).                                  | `hr_role`, `hr_user_role` |
 | `individuals`  | Named HR users directly.                                                                 | `hr_user.id`              |
 
-**Recipient resolution** (`resolveRecipients(audience)`): a single deterministic query/fetch that returns a distinct set of `(hrUserId?, employeeId?)` recipients. Used at publish time to materialize the recipient table and at inbox-read time to check membership dynamically.
+**Recipient resolution** (`resolveRecipients(audience)`): a single deterministic query/fetch that returns a distinct set of `(hrUserId?, employeeId?, userId?)` recipients — `userId` is the linked **auth user ID** (`hr_user.userId`) for recipients that have an HR user, and is what feeds `recipientUserIds` in the `announcement:published` event. Used at publish time to materialize the recipient snapshot and to build the event payload.
 
 **Constraints**:
 
 - `ids` are required for every type except `all`; unknown IDs fail validation at create time for `employees`, `groups`, `roles`, `individuals` (strong refs) and are ignored at publish time for `branches`, `departments`, `designations` (weak refs — audience drifts as employees move).
 - Combined audiences (e.g., two departments) are supported by passing multiple IDs of one type. Cross-type unions are modeled as separate announcements.
-- `departments` resolution includes the department subtree (children of children), matching the department-tree semantics of the Organization Structure capability.
-- Audience is resolved **at publish time and snapshot to recipients** — later employee/group changes do not retroactively alter who already received an announcement.
+- `departments` resolution includes the department subtree (children of children), matching the existing `department.parentDepartment` tree semantics (`wouldCreateCircular`/`validateParentDepartment` in `workflows/utils.ts`).
+- Audience is resolved **at publish time and snapshotted to recipients** — later employee/group changes do not retroactively alter who already received an announcement.
+- `recipientUserIds` (auth users) is a subset of the snapshot — employees without an HR user are recorded in the snapshot only.
 
 ---
 
-## 3. Inbox & Read Receipts
+## 3. Delivery Snapshot, Inbox & Read Receipts
 
-Per-user delivery and acknowledgement tracking.
+Per-user delivery is recorded at publish time; the inbox and read receipts live in comms.
 
-| Field               | Type                     | Description                                             |
-| ------------------- | ------------------------ | ------------------------------------------------------- |
-| **ID**              | text (auto)              | System-generated unique identifier (UUID v7).           |
-| **Announcement ID** | text (FK, soft)          | Owning announcement.                                    |
-| **Employee ID**     | text (soft FK, nullable) | Target employee; one of `employeeId`/`hrUserId` is set. |
-| **HR User ID**      | text (soft FK, nullable) | Target HR user; one of `employeeId`/`hrUserId` is set.  |
-| **Read At**         | timestamptz (nullable)   | When the recipient marked it read / acknowledged.       |
-| **Read By**         | text (nullable)          | HR user ID that recorded the read.                      |
-| **Created At**      | timestamptz              | Delivery record creation timestamp.                     |
+| Field               | Type                     | Description                                                                            |
+| ------------------- | ------------------------ | -------------------------------------------------------------------------------------- |
+| **ID**              | text (auto)              | System-generated unique identifier (UUID v7).                                          |
+| **Announcement ID** | text (FK, soft)          | Owning announcement.                                                                   |
+| **Employee ID**     | text (soft FK, nullable) | Target employee; one of `employeeId`/`hrUserId` is set.                                |
+| **HR User ID**      | text (soft FK, nullable) | Target HR user; one of `employeeId`/`hrUserId` is set.                                 |
+| **User ID**         | text (nullable)          | Auth user ID (`hr_user.userId`) for recipients with an HR user; comms correlation key. |
+| **Created At**      | timestamptz              | Delivery record creation timestamp.                                                    |
 
 **Operations**:
 
-- `getInbox(hrUserId?, employeeId?, filters?)` — announcements targeted at the caller, ordered pinned → priority → `publishedAt` desc. Inbox membership can be resolved dynamically from the audience OR from materialized recipient rows (see note below).
-- `markRead(announcementId, userId)` — upsert the read receipt; publishes `announcement:read`.
-- `markUnread(announcementId, userId)` — clear the read receipt.
-- `getStats(announcementId)` — `{ totalRecipients, readCount, unreadCount, acknowledgedPercentage }`.
-- `listRecipients(announcementId, filters?)` — paginated recipients with read status (HR-facing).
+- `listRecipients(announcementId, filters?)` — paginated delivery snapshot (HR-facing).
+- `getStats(announcementId)` — `{ totalRecipients, deliveredUserCount, employeeOnlyCount }` from the snapshot; read/acknowledgement counts come from comms notifications (`sourceModule: "hr"`, `sourceEntity.type: "announcement"`) — see Open Decisions.
 
-**Note on materialized vs dynamic membership**: materializing recipients at publish time is preferred — it gives exact stats and an audit trail of who was notified. The inbox query joins the recipient table. Dynamic membership (re-resolving the audience) is only used for `channel = "general"` (implicit "everyone") or as a fallback when recipient rows are missing.
+**Inbox & read receipts (owned by comms)**: recipients see the announcement through `p.comms.notifications.getInbox` / `markRead` / `markUnread` / `dismiss` / `unreadCount`; the notification rows carry `title`, `severity`, `sourceModule: "hr"`, `sourceEntity: { id: announcementId, type: "announcement" }`. Acknowledgement of a `requireAcknowledgement` announcement is exactly a read comms notification. hr does **not** build inbox, read, or unread surfaces.
 
 ---
 
 ## 4. Scheduled Publishing
 
-Delivering `scheduled` announcements is a **PubSub cron job** on the existing control-plane boss, matching the module's `DAILY_ATTENDANCE_SYNC` / `DAILY_LEAVE_ACCRUAL` pattern:
+Delivering `scheduled` announcements is a **PubSub cron job** on the existing control-plane boss, following the module's `DAILY_ATTENDANCE_SYNC` / `DAILY_LEAVE_ACCRUAL` pattern (`utils/constants.ts`, `$prepareRuntime()`/`$cleanup()` in `module.ts`):
 
-- New scheduled job key `ANNOUNCEMENT_SCHEDULER` → cron `hr:announcement-scheduler` running **every minute** (`* * * * *`).
+- New scheduled job key `ANNOUNCEMENT_SCHEDULER` → `SCHEDULED_JOBS.ANNOUNCEMENT_SCHEDULER = "hr:announcement-scheduler"`, `CRON_SCHEDULES.ANNOUNCEMENT_SCHEDULER = "* * * * *"` (the module's first minute-cadence cron; the two existing crons are daily — and comms' `message-sweeper` also runs `* * * * *`).
 - Registered in `$prepareRuntime()` via `pubsub.schedule(...)` and unregistered in `$cleanup()`.
-- Job query: select `scheduled` announcements where `scheduledFor <= now()`, publish each, and emit `announcement:published`.
+- Job query: select `scheduled` announcements where `scheduledFor <= now()`, publish each through the same path as manual publish, and emit `announcement:published` with the identical contract.
 
 ---
 
 ## 5. Search & Filters
 
 - `listAnnouncements` filters: `status`, `channel`, `author`, `priority`, `isPinned`, `fromDate`, `toDate`, `q` (title/body substring).
-- `getInbox` filters: `unreadOnly`, `acknowledgementPending`, `priority`, `channel`.
+- Inbox filters live on `p.comms.notifications.getInbox` (`unreadOnly`, `type`, `severity`, date range) — not in hr.
 - Pagination and ordering follow existing HR `list*` workflow conventions.
 
 ---
 
 ## 6. Data Model Summary
 
-| Schema | Table                       | Purpose                                                      |
-| ------ | --------------------------- | ------------------------------------------------------------ |
-| tenant | `hr_announcement`           | Announcement record (audience, status, scheduling, pinning). |
-| tenant | `hr_announcement_recipient` | Materialized per-user delivery + read receipt.               |
+| Schema | Table                       | Purpose                                                           |
+| ------ | --------------------------- | ----------------------------------------------------------------- |
+| tenant | `hr_announcement`           | Announcement record (audience, status, scheduling, pinning).      |
+| tenant | `hr_announcement_recipient` | Delivery snapshot — audit + delivery totals; read state is comms. |
 
-The `audience` lives as `jsonb` on the announcement — no separate target table. The tenant placement keeps announcements inside the tenant DB alongside the employees they reference (ADR-0008).
+The `audience` lives as `jsonb` on the announcement — no separate target table. Both tables are added to `tenant_schemas` in `db-schemas/index.ts`, keeping announcements in the tenant DB alongside the employees they reference (ADR-0008).
 
 ---
 
 ## 7. Dependencies & Prerequisites
 
-| Dependency                                    | Reason                                                                                                                      |
-| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| **Employee master**                           | Audience resolution (`all`, `employees`, `branches`, `departments`, `designations`, `groups`) targets the `employee` table. |
-| **HR users & access**                         | Authors and `hr_users`/`roles` audiences come from the `access` group tables (`hr_user`, `hr_role`, `hr_user_role`).        |
-| **Employee groups**                           | `groups` audience joins `employee_group_member`.                                                                            |
-| **Department tree**                           | `departments` audience walks `department.parent_department` descendants.                                                    |
-| **PubSub Unit**                               | `announcement-scheduler` cron job (same boss as the existing HR crons).                                                     |
-| **Organization Structure** (see separate SoW) | Optional: positions become a first-class audience type once the `position` entity exists.                                   |
+| Dependency                                                                | Reason                                                                                                                                                          |
+| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Employee master**                                                       | Audience resolution (`all`, `employees`, `branches`, `departments`, `designations`, `groups`) targets the `employee` table.                                     |
+| **HR users & access**                                                     | Authors and `hr_users`/`roles` audiences come from the `access` group tables (`hr_user`, `hr_role`, `hr_user_role`); `hr_user.userId` feeds `recipientUserIds`. |
+| **Employee groups**                                                       | `groups` audience joins `employee_group_member`.                                                                                                                |
+| **Department tree**                                                       | `departments` audience walks `department.parent_department` descendants.                                                                                        |
+| **PubSub Unit**                                                           | `announcement-scheduler` cron job (same boss as the existing HR crons).                                                                                         |
+| **`@aspen-os/comms`** (live)                                              | The inbox + read receipts + out-of-band delivery surface; its event bridge already consumes `announcement:published`.                                           |
+| **Organization Structure** (`sow/hr-organization-structure.md`, separate) | Optional: positions become a first-class audience type once the `position` entity exists (currently not implemented).                                           |
 
 ---
 
 ## 8. Cross-Module Integrations
 
-| Integration                                  | Flow                                                                                                                       |
-| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **HR `access`**                              | Authors write via `announcement` ACL resource; author display name resolved from `hr_user`/`employee`.                     |
-| **HR `employee`**                            | Recipients, `employees`/`branches`/`departments`/`designations`/`groups` audiences.                                        |
-| **HR `setup`**                               | `department`, `designation` weak refs in audience definitions.                                                             |
-| **PubSub**                                   | `announcement:*` events (§11) for UI refresh and optional downstream delivery (email/push via a future Notification unit). |
-| **Platform Auth**                            | `getContext().actorId` author identity; per-request ACL enforcement via `defineAcl`.                                       |
-| **Notification unit** (future, out of scope) | Downstream consumers subscribe to `announcement:published` and deliver out-of-band channels.                               |
+| Integration           | Flow                                                                                                                                                                                                     |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **HR `access`**       | Authors write via the `announcement` ACL resource; author display name resolved from `hr_user`/`employee`; `hr_user.userId` maps recipients to auth users.                                               |
+| **HR `employee`**     | Recipients, `employees`/`branches`/`departments`/`designations`/`groups` audiences.                                                                                                                      |
+| **HR `setup`**        | `department`, `designation` weak refs in audience definitions; department-subtree walk.                                                                                                                  |
+| **`@aspen-os/comms`** | **Primary consumer.** `announcement:published` → event bridge → one `comms_notification` per auth-user recipient (`sourceModule "hr"`, `sourceEntity.type "announcement"`); inbox + read tracking there. |
+| **PubSub**            | `announcement:*` events (§11) for UI refresh.                                                                                                                                                            |
+| **Platform Auth**     | `getContext().actorId` author identity; per-request ACL enforcement via `defineAcl`; auth-user lookup for recipient resolution.                                                                          |
 
 ---
 
@@ -186,25 +207,27 @@ announcement: ["archive", "create", "delete", "publish", "read", "update"],
 
 ### Roles
 
-| Role                    | Access                                                                              |
-| ----------------------- | ----------------------------------------------------------------------------------- |
-| **HR Admin**            | Full lifecycle — create, edit, schedule, publish, archive, delete, pin, view stats. |
-| **HR Manager / HR Ops** | Create, edit, schedule, publish, archive; view stats and recipients; cannot delete. |
-| **Employee / HR user**  | Read inbox, mark read/unread, acknowledge. No authoring.                            |
+| Role                    | Access                                                                                                                |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **HR Admin**            | Full lifecycle — create, edit, schedule, publish, archive, delete, pin, view stats.                                   |
+| **HR Manager / HR Ops** | Create, edit, schedule, publish, archive; view stats and recipients; cannot delete.                                   |
+| **Employee / HR user**  | No `announcement` ACL — they read in the comms inbox (gated by comms' `notification` resource) and mark read/dismiss. |
 
-These map onto the module's existing role-permission tables (`hr_role`, `hr_permission`, `hr_role_permission`); seeds should register `module = "announcement"` permissions (`create`, `read`, `update`, `delete`, `publish`, `archive`) for the admin/system roles.
+Seeds register `module = "announcement"` permissions (`create`, `read`, `update`, `delete`, `publish`, `archive`) via the existing `hr_permission`/`hr_role_permission` tables. This requires (a) `HR_PERMISSION_MODULE.ANNOUNCEMENT = "announcement"` in `utils/constants.ts`, and (b) `publish`/`archive` added to `PERMISSION_ACTION` and `permissionActionEnum("hr_permission_action")` — the enum today only allows `approve`/`create`/`delete`/`manage`/`reject`/`update`/`view`.
 
 ---
 
 ## 10. Out of Scope
 
-- **Out-of-band delivery** (email, push, SMS) — no Notification unit exists yet; `announcement:published` events are the integration seam.
+- **In-app inbox & read receipts** — owned by `@aspen-os/comms`; hr produces `announcement:published` only and never reads/writes inbox state itself.
+- **Out-of-band delivery** (email, push, SMS) — delivered by comms from `announcement:published`; no channel logic in hr.
 - **Comments / reactions** on announcements.
 - **Approval workflow** for announcements (a "draft → review → publish" gate can be layered later on top of `status`).
 - **Expiry / auto-archive** after a retention window.
 - **Read-receipt enforcement** (blocking work until acknowledged) — receipts are informational only.
-- **Recipient opt-out / notification preferences**.
+- **Recipient opt-out / notification preferences** — comms preferences already cover per-channel opt-outs.
 - **Cross-tenant broadcasting** — announcements never cross tenant boundaries.
+- **Recalling/retracting delivered notifications** on archive — comms notifications are immutable once materialized.
 
 ---
 
@@ -216,79 +239,99 @@ These map onto the module's existing role-permission tables (`hr_role`, `hr_perm
 packages/hr/src/
 ├── db-schemas/
 │   ├── announcement.ts        # hr_announcement + hr_announcement_recipient
+│   └── index.ts               # + both tables in tenant_schemas; enums (status, channel, priority) in enums.ts
 ├── schemas/
-│   └── announcement.ts        # CreateAnnouncementSchema, UpdateAnnouncementSchema,
-│                              #   AnnouncementFiltersSchema, InboxFiltersSchema,
-│                              #   audience enums/valibot schemas (InferOutput types)
+│   ├── announcement.ts        # CreateAnnouncementSchema, UpdateAnnouncementSchema, AnnouncementFiltersSchema,
+│   │                          #   audience enums/valibot schemas (InferOutput types)
+│   └── index.ts               # + re-export announcement schemas/types
 ├── workflows/
-│   ├── announcement.create.ts
-│   ├── announcement.update.ts
-│   ├── announcement.publish.ts
-│   ├── announcement.schedule.ts
-│   ├── announcement.cancel-schedule.ts
-│   ├── announcement.archive.ts
-│   ├── announcement.restore.ts
-│   ├── announcement.pin.ts
-│   ├── announcement.unpin.ts
-│   ├── announcement.get-by-id.ts
-│   ├── announcement.list.ts
-│   ├── announcement.get-inbox.ts
-│   ├── announcement.mark-read.ts
-│   ├── announcement.mark-unread.ts
-│   ├── announcement.get-stats.ts
-│   ├── announcement.list-recipients.ts
-│   ├── announcement.resolve-recipients.ts   # audience → recipient resolution step
+│   ├── announcement/create.ts
+│   ├── announcement/update.ts
+│   ├── announcement/delete.ts
+│   ├── announcement/publish.ts
+│   ├── announcement/schedule.ts
+│   ├── announcement/cancel-schedule.ts
+│   ├── announcement/archive.ts
+│   ├── announcement/restore.ts
+│   ├── announcement/pin.ts
+│   ├── announcement/unpin.ts
+│   ├── announcement/by-id/get.ts
+│   ├── announcement/recipients/list.ts
+│   ├── announcement/stats/get.ts
+│   ├── announcements/list.ts
 │   └── barrel-announcement.ts
 ├── utils/
-│   ├── audience-resolver.ts   # resolveRecipients() — audience → (hrUserId?, employeeId?)
-│   └── constants.ts           # + ANNOUNCEMENT_SCHEDULER / CRON_SCHEDULES.ANNOUNCEMENT_SCHEDULER
+│   ├── announcement-utils.ts  # resolveRecipients() — audience → (hrUserId?, employeeId?, userId?)
+│   └── constants.ts           # + SCHEDULED_JOBS.ANNOUNCEMENT_SCHEDULER, CRON_SCHEDULES.ANNOUNCEMENT_SCHEDULER,
+│                              #   HR_PERMISSION_MODULE.ANNOUNCEMENT, PERMISSION_ACTION + publish/archive
 ├── auth.ts                    # + announcement ACL resource
-├── pubsub.ts                  # + AnnouncementEventMap + ANNOUNCEMENT_EVENTS
+├── pubsub.ts                  # + ANNOUNCEMENT_EVENTS + AnnouncementEventMap (merged into HrEventMap) + events map
 ├── types.ts                   # + re-export announcement schemas/types
-└── module.ts                  # + readonly announcement = { ... } workflow group
+└── module.ts                  # + readonly announcement = { ... } workflow group; $prepareRuntime()/$cleanup()
+                               #   schedule/unschedule ANNOUNCEMENT_SCHEDULER
 ```
 
-`Hr.$prepareRuntime()` / `$cleanup()` additionally schedule/unschedule the `ANNOUNCEMENT_SCHEDULER` cron.
+Workflow names follow the house pattern (`Workflow.name("hr.announcement.create")`, matching `hr.leave.create-leave-application`). Domain-doc updates land in the final phase: `domain-model/hr.md` (9th sub-domain "Announcement", new invariant numbering), `bounded-contexts/hr.md` (new group, events, ACL resource, cron, comms cross-context row), and `packages/hr/docs/*.mdx` via the `write-docs` skill.
 
 ### Domain Events
 
-| Event                    | Payload                                                                                                | Trigger                                                                |
-| ------------------------ | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
-| `announcement:created`   | `{ announcement: { id, title, channel, status } }`                                                     | Announcement created.                                                  |
-| `announcement:updated`   | `{ announcement: { id }, changes }`                                                                    | Draft/scheduled announcement edited.                                   |
-| `announcement:scheduled` | `{ announcementId, scheduledFor }`                                                                     | Announcement scheduled.                                                |
-| `announcement:published` | `{ announcement: { id, title, channel }, recipientUserIds: string[], recipientEmployeeIds: string[] }` | Announcement published (manual or cron). Downstream notification seam. |
-| `announcement:archived`  | `{ announcementId }`                                                                                   | Announcement archived/restored.                                        |
-| `announcement:read`      | `{ announcementId, userId, readAt }`                                                                   | Recipient marked read.                                                 |
-| `announcement:pinned`    | `{ announcementId, pinnedBy, isPinned }`                                                               | Announcement pinned/unpinned.                                          |
+| Event                    | Payload                                                       | Trigger                                                                                                                          |
+| ------------------------ | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `announcement:created`   | `{ announcement: { id, title, channel, status } }`            | Announcement created.                                                                                                            |
+| `announcement:updated`   | `{ announcement: { id }, changes }`                           | Draft/scheduled announcement edited.                                                                                             |
+| `announcement:scheduled` | `{ announcementId, scheduledFor }`                            | Announcement scheduled.                                                                                                          |
+| `announcement:published` | `{ announcement: { id, title }, recipientUserIds: string[] }` | Published (manual or cron). **Shape pinned to comms' `AnnouncementPublishedEventSchema`**; `recipientUserIds` are auth user IDs. |
+| `announcement:archived`  | `{ announcementId }`                                          | Announcement archived/restored.                                                                                                  |
+| `announcement:pinned`    | `{ announcementId, pinnedBy, isPinned }`                      | Announcement pinned/unpinned.                                                                                                    |
 
-> **PubSub pitfall**: `announcement:published` has only a producer unless a consumer subscribes. Per platform guidance, `publish()` must throw (not silently drop) when no queue row exists for the topic — flag this in the pubsub wiring tests.
+No `announcement:read` event — read state is comms' (`comms:notification_read` already exists there).
+
+> **PubSub pitfall**: `announcement:published` is consumed by comms' event bridge when comms is installed; if the host runs hr without comms, the topic is producer-only and publishing **silently drops** (pg-boss). Wiring tests must assert the topic is subscribed when comms is present.
 
 ### Phase Sequencing
 
-**Phase 1 — Authoring & publishing**: announcement CRUD, status model (draft/published/archive), general + custom audiences, manual publish with recipient materialization.
+**Phase 1 — Authoring & publishing**: tables + enums, announcement CRUD + delete, status model (draft/published/archive), general + custom audiences, manual publish with recipient snapshot materialization, `announcement:published` emitting the comms contract; verify comms inbox integration end-to-end.
 
-**Phase 2 — Scheduling & inbox**: `announcement-scheduler` cron, scheduled/cancel-schedule, `getInbox`, read/unread receipts, stats.
+**Phase 2 — Scheduling & delivery stats**: `announcement-scheduler` cron, schedule/cancel-schedule, `listRecipients`, `getStats` (delivery totals from the snapshot; acknowledgement from comms notifications).
 
-**Phase 3 — Targeting depth & polish**: `hr_users`/`roles`/`groups` audiences, department-subtree resolution, pinning, priority flags, filters/search, recipient listing.
+**Phase 3 — Targeting depth & polish**: `hr_users`/`roles`/`groups` audiences, department-subtree resolution, pinning, priority flags, filters/search.
 
 ### Estimated Effort (Relative)
 
-| Area                      | Complexity | Notes                                                                 |
-| ------------------------- | ---------- | --------------------------------------------------------------------- |
-| Announcement CRUD         | Low        | Standard lifecycle with status transitions.                           |
-| Audience model + resolver | Medium     | Nine target types; subtree walk for departments; strong vs weak refs. |
-| Recipient materialization | Low        | Snapshot insert at publish time.                                      |
-| Read receipts + stats     | Low        | Upsert on recipient rows, aggregation query.                          |
-| Scheduled publishing      | Low        | Minute cron following existing HR job pattern.                        |
-| Inbox + filters           | Medium     | Membership join + pin/priority ordering.                              |
-| RBAC                      | Low        | One new ACL resource + permission seeds.                              |
+| Area                        | Complexity | Notes                                                                                                                 |
+| --------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------- |
+| Announcement CRUD           | Low        | Standard lifecycle with status transitions.                                                                           |
+| Audience model + resolver   | Medium     | Nine target types; subtree walk for departments; strong vs weak refs; auth-user mapping for `recipientUserIds`.       |
+| Recipient snapshot          | Low        | Snapshot insert at publish time; event payload derivation.                                                            |
+| Delivery stats + comms read | Medium     | Delivery totals in hr; acknowledgement counts from comms notifications (directed cross-module read — Open Decisions). |
+| Scheduled publishing        | Low        | Minute cron following the existing HR job pattern.                                                                    |
+| comms integration           | Low        | Consumer already wired in the event bridge; pin payload + verify.                                                     |
+| RBAC                        | Low        | One ACL resource + `HR_PERMISSION_MODULE`/`permissionActionEnum` extensions + seeds.                                  |
 
 ### Testing Focus Areas
 
-- **Audience resolution**: each of the nine target types; department-subtree inclusion; unknown/weak IDs; distinctness of combined IDs.
-- **Status transitions**: draft→published→archived, schedule→cancel, immutability of published, idempotent publish.
+- **Audience resolution**: each of the nine target types; department-subtree inclusion; unknown/weak IDs; distinctness of combined IDs; `userId` populated only where an HR user exists.
+- **Status transitions**: draft→published→archived, schedule→cancel, immutability of published, idempotent publish (no duplicate event).
 - **Scheduler**: cron publishes due announcements exactly once; `scheduledFor` in the future stays `scheduled`.
-- **Read receipts**: mark read/unread, stats accuracy, recipient pagination.
-- **PubSub**: `announcement:published` payload correctness; producer-without-consumer throws (no silent drop).
-- **Inbox**: pin/priority ordering, unread-only filter, recipient membership drift after publish.
+- **Event contract**: `announcement:published` payload validates against comms' `AnnouncementPublishedEventSchema`; `recipientUserIds` are auth user IDs; snapshot count = `deliveredUserCount` + `employeeOnlyCount`.
+- **comms integration**: one `comms_notification` per auth-user recipient with `sourceModule: "hr"`, `sourceEntity.type: "announcement"`; `markRead` reflects in acknowledgement stats.
+- **PubSub**: topic consumed when comms present (no silent drop).
+- **RBAC**: permission seeds respect the extended `hr_permission_action` enum.
+
+---
+
+## Open Decisions
+
+1. **Acknowledgement stats source** — _Recommended:_ hr's `getStats` computes delivery totals from its own snapshot and reads read/acknowledgement counts from `comms_notification` rows (`sourceModule: "hr"`, `sourceEntity.type: "announcement"`) — a narrow, directed cross-module read for stats only. _Alternative:_ comms exposes a count-by-status aggregate and hr delegates entirely; or the host app composes stats from both surfaces.
+2. **Priority → severity propagation** — _Recommended:_ extend comms' `handleAnnouncementPublished` (event-bridge) to read announcement `priority` and set notification `severity`; today it notifies with default severity, so priority currently does not affect inbox ordering. _Alternative:_ leave `priority` as an hr-authoring-only field.
+3. **Pinning** — _Recommended:_ `isPinned` orders hr-side announcement lists only; the comms inbox ordering stays severity → `createdAt`. _Alternative:_ add a pinned flag to `comms_notification` (deferred unless an inbox need appears).
+4. **`channel = "general"` recipients without an HR user** — _Recommended:_ accept and document — they exist in the delivery snapshot but can never reach the comms inbox (no auth user). _Alternative:_ require HR users for all employees before announcement delivery (a data-quality gate, out of scope).
+
+---
+
+## Deployment Notes
+
+- `hr_announcement` and `hr_announcement_recipient` are **new tenant tables** — `pushSchema` (ADR-0004) creates them; no columns are dropped or renamed, so no host `DROP`/mapping burden.
+- `announcement:published` needs a subscriber: comms' event bridge subscribes when comms is installed (comms is a live package, not optional design). A host that runs hr without comms will **silently drop** publishes — install comms or accept the drop.
+- The `announcement-scheduler` cron is registered/`unregistered` by `$prepareRuntime()`/`$cleanup()` like the existing HR crons — no host action.
+- Domain-doc churn is additive (new sub-domain, new events, new ACL resource); `bounded-contexts/comms.md` needs no change (its `announcement:published` row is already listed as "hr, planned").

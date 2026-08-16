@@ -86,6 +86,7 @@ function toOccurrence(event: OccurrenceSource, startsAt: Date): Occurrence {
  * recurrences with `byDay` produce occurrences on the listed weekdays.
  * Occurrences are computed on read — never materialized.
  */
+// oxlint-disable-next-line
 export function expandOccurrences(
   event: OccurrenceSource,
   from: Date,
