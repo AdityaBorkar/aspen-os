@@ -1,5 +1,6 @@
 export type {
   AddGroupMemberInput,
+  AssignEmployeeInput,
   AssignPermissionInput,
   AssignRoleInput,
   AttendanceFilters,
@@ -39,6 +40,7 @@ export type {
   CreateOvertimeSlipInput,
   CreateOvertimeTypeInput,
   CreatePromotionInput,
+  CreatePositionInput,
   CreateSeparationInput,
   CreateSeparationTaskInput,
   CreateShiftAssignmentInput,
@@ -62,13 +64,17 @@ export type {
   LeaveBlockListFilters,
   LeaveEncashmentFilters,
   LeavePolicyAssignmentFilters,
+  MoveDepartmentInput,
   OnboardingFilters,
   OvertimeSlipFilters,
   PromotionFilters,
+  PositionFilters,
   SeparationFilters,
+  SetDepartmentHeadInput,
   ShiftAssignmentFilters,
   ShiftRequestFilters,
   TransferFilters,
+  TransferAssignmentInput,
   UpdateAttendanceInput,
   UpdateAttendanceRequestInput,
   UpdateBranchAccessInput,
@@ -100,6 +106,7 @@ export type {
   UpdateOvertimeSlipInput,
   UpdateOvertimeTypeInput,
   UpdatePayrollSettingsInput,
+  UpdatePositionInput,
   UpdatePromotionInput,
   UpdateSeparationInput,
   UpdateSeparationTaskInput,
@@ -182,9 +189,16 @@ export {
   PermissionActionSchema,
   PromotionFiltersSchema,
   SeparationFiltersSchema,
+  PositionFiltersSchema,
+  MoveDepartmentSchema,
+  SetDepartmentHeadSchema,
   ShiftAssignmentFiltersSchema,
   ShiftRequestFiltersSchema,
   TransferFiltersSchema,
+  AssignEmployeeSchema,
+  TransferAssignmentSchema,
+  CreatePositionSchema,
+  UpdatePositionSchema,
   UpdateAttendanceRequestSchema,
   UpdateAttendanceSchema,
   UpdateBranchAccessSchema,
@@ -244,6 +258,42 @@ export interface EmployeeTreeNode {
   id: string;
   image: string | null;
   name: string;
+}
+
+export interface OrgTreeNode {
+  children: OrgTreeNode[];
+  department: string;
+  designation: string;
+  id: string;
+  image: string | null;
+  name: string;
+  position: string | null;
+}
+
+export interface PositionIncumbent {
+  designation: string;
+  employeeId: string;
+  image: string | null;
+  name: string;
+}
+
+export interface PositionTreeNode {
+  branch: string | null;
+  children: PositionTreeNode[];
+  department: string;
+  id: string;
+  incumbents: PositionIncumbent[];
+  name: string;
+}
+
+export interface DepartmentTreeNode {
+  children: DepartmentTreeNode[];
+  code: string;
+  employeeCount: number;
+  headEmployeeId: string | null;
+  id: string;
+  name: string;
+  positionCount: number;
 }
 
 export interface LeaveBalance {

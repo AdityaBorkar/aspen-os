@@ -4,38 +4,37 @@ description: Module structure, workflows, and schema layout of the HR domain mod
 icon: IconInfoCircle
 ---
 
-The HR module is a domain module for human resources management covering access control (HR users, RBAC roles), employees, attendance, leave, lifecycle, overtime, shifts, and HR setup.
+The HR module is a domain module for human resources management covering access control (HR users, RBAC roles), employees, attendance, leave, lifecycle, overtime, shifts, positions, and HR setup.
 
 ## Module Structure
 
 ```text
 packages/hr/src/
-  index.ts              # HrModule class: $initialize, $prepareInfra, $cleanup, workflow getters
-  db-schema.ts          # Drizzle table definitions (control-plane + tenant schemas)
-  types.ts              # Public input/output types and shared pipes, re-exported from schemas/
-  event-map.ts          # Per-workflow event constants (8 groups)
-  schemas/              # Valibot validation schemas
-    index.ts            # Re-exports all schemas, types, and enums
-    enums.ts            # 26 enum schemas
-    utils.ts            # Shared pipes (NameSchema, EmployeeIdSchema, etc.)
-    access.ts
-    employee.ts
-    attendance.ts
-    leave.ts
-    lifecycle.ts
-    overtime.ts
-    setup.ts
-    shift.ts
-  workflows/            # 8 workflow classes
-    index.ts
-    access.ts
-    employee.ts
-    attendance.ts
-    leave.ts
-    lifecycle.ts
-    overtime.ts
-    setup.ts
-    shift.ts
+  module.ts             # HrModule class: $initialize, $prepareInfra, $prepareRuntime, $cleanup, workflow groups
+  index.ts              # Public exports: module class, types, events
+  auth.ts               # defineAcl permission matrix (11 resources)
+  pubsub.ts             # Per-group event constants + typed event maps (9 groups → HrEventMap)
+  types.ts              # Public types re-exported from schemas/ + tree node interfaces
+  db-schemas/           # Drizzle table definitions (control-plane + tenant schemas)
+    index.ts            # control_plane_schemas + tenant_schemas
+    position.ts         # hr_position, hr_position_assignment (tenant)
+  schemas/              # Valibot validation schemas (per entity file + index.ts)
+  utils/
+    constants.ts        # HR_PERMISSION_MODULE, PERMISSION_ACTION, schedules
+    position-utils.ts   # Position hierarchy/assignment helpers, manager resolver, tree builders
+  workflows/            # Per-action workflow files aggregated by barrel-<group>.ts
+    barrel-access.ts
+    barrel-attendance.ts
+    barrel-employee.ts
+    barrel-leave.ts
+    barrel-lifecycle.ts
+    barrel-overtime.ts
+    barrel-position.ts
+    barrel-setup.ts
+    barrel-shift.ts
+    utils.ts            # Shared workflow helpers (org chart tree, department tree, cycles)
+  services/
+    reconciliation.ts   # Lifecycle reconciliation bridge (separation auto-close, transfer guidance)
 ```
 
 ## Workflows
@@ -43,12 +42,13 @@ packages/hr/src/
 | Workflow             | Access Path       | Manages                                                                                                 |
 | -------------------- | ----------------- | ------------------------------------------------------------------------------------------------------- |
 | `AccessWorkflow`     | `p.hr.access`     | HR users, RBAC roles, permissions, role-permission and user-role mappings, branch-wise access           |
-| `EmployeeWorkflow`   | `p.hr.employee`   | Employee records, groups, health insurance, skill maps                                                  |
+| `EmployeeWorkflow`   | `p.hr.employee`   | Employee records, groups, health insurance, skill maps, org chart                                       |
 | `AttendanceWorkflow` | `p.hr.attendance` | Attendance, check-ins, attendance requests                                                              |
 | `LeaveWorkflow`      | `p.hr.leave`      | Leave types, periods, policies, allocations, applications, encashment, block lists, adjustments, ledger |
 | `LifecycleWorkflow`  | `p.hr.lifecycle`  | Onboarding, promotions, transfers, separations, exit interviews, full and final statements              |
 | `OvertimeWorkflow`   | `p.hr.overtime`   | Overtime types and overtime slips                                                                       |
-| `SetupWorkflow`      | `p.hr.setup`      | HR/payroll settings, employment types, departments, designations, grades, holiday lists, holidays       |
+| `PositionWorkflow`   | `p.hr.position`   | Job positions, position assignments/history, org/position trees, team/direct reports/peers              |
+| `SetupWorkflow`      | `p.hr.setup`      | HR/payroll settings, employment types, departments (tree ops), designations, grades, holiday lists      |
 | `ShiftWorkflow`      | `p.hr.shift`      | Shift types, locations, assignments, requests, schedules, schedule assignments                          |
 
 ## Schemas
@@ -56,9 +56,6 @@ packages/hr/src/
 Validation schemas live in `src/schemas/` and are re-exported from `src/schemas/index.ts`. Each domain file defines `Create*Schema`, `Update*Schema`, and `*FiltersSchema` objects with corresponding `InferOutput` types. Shared pipes (`NameSchema`, `EmployeeIdSchema`, `EmailSchema`, `PhoneSchema`) are in `utils.ts`.
 
 <Callout type="info">
-  The module is implemented: `$initialize()` instantiates the 8 workflows from the DB unit,
-  `$prepareInfra()` returns a full `ModuleInfra` with control-plane and tenant schemas, ACL, and
-  per-workflow event groups, and `$cleanup()` resets the workflow fields. Workflow getters throw
-  until `$initialize()` has run. Two gaps remain: `HrModule` does not declare `implements Module`,
-  and it lacks `$prepareRuntime()`.
+  The module is conformant: `Hr implements Module`, `$prepareRuntime()` registers the two cron
+  schedules and the lifecycle reconciliation subscriptions, and `$cleanup()` unregisters them.
 </Callout>

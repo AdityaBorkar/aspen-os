@@ -390,6 +390,10 @@ _Avoid_: Extra Hours, Overtime Log
 Shift management sub-domain covering shift types (start/end times, grace periods, auto-attendance), shift locations (geofencing), shift assignments, shift requests (approval workflow), shift schedules (weekly day-of-week assignments).
 _Avoid_: Roster, Schedule
 
+**Position**:
+Structural sub-domain — stable job slots (`hr_position`: `name`, `department`, `branch`, `designation`, `reportsToPosition`, `employmentType`, `headcount`, `jobDescription`, `isActive`) with employee assignments (`hr_position_assignment`: `positionId`, `employeeId`, `fromDate`, `toDate`, `isPrimary`). Positions outlive incumbents; assignments retain history. Manager resolution walks the `reportsToPosition` chain, falling back to `employee.reportsTo`. Structure views: org tree, position tree, direct reports, subordinates, peers, team.
+_Avoid_: Job, Role Slot
+
 **HR Access**:
 Role-based access control within HR module, w/ permissions, roles, branch-wise access controls for HR users.
 _Avoid_: HR Permissions, HR Auth
@@ -400,7 +404,7 @@ _Avoid_: Team, Unit
 
 **Designation**:
 Job title w/ `name`, `description`, `isActive`.
-_Avoid_: Title, Position
+_Avoid_: Title, Grade (distinct from Position — a designation tiers a position/employee)
 
 **Employment Type**:
 Classification of employment (e.g. full-time, part-time, contract) w/ `name`, `description`, `isActive`.
@@ -628,9 +632,9 @@ _Avoid_: Onboarding (that's the Tenant Status stage AFTER provisioning), Setup, 
 │Organizat.│ │   Compliance     │ │    Tasks     │ │     DMS      │ │     HR       │ │    Notes     │ │ Management Plane │ │   Masters   │ │  Calendar   │ │  Workspace   │
 │  Module  │ │    Module        │ │   Module     │ │   Module     │ │   Module     │ │    Module    │ │     Module       │ │   Module    │ │   Module    │ │   Module     │
 │          │ │                  │ │              │ │              │ │ (conformant) │ │  (stateless) │ │                  │ │             │ │             │ │              │
-│2 workflows│ │ 5 wf groups     │ │ 10 wf groups │ │ 18 wf groups │ │ ~250 methods │ │ 1 wf group   │ │ 3 wf groups     │ │ 7 wf groups │ │ 4 wf groups │ │ 10 wf groups │
-│2 tables  │ │ 3 services       │ │ 16 tables    │ │ 14 tables    │ │ 50 tables    │ │ 1 table      │ │ 3 owned tables   │ │ 7 tables    │ │ 4 tables    │ │ 10 tables    │
-│7 events  │ │ 3 tables         │ │ 10 events    │ │ 33 events    │ │ 43 events    │ │ 3 events     │ │ 0 shadow tables  │ │ 29 events   │ │ 14 events   │ │ 32 events    │
+│2 workflows│ │ 5 wf groups     │ │ 10 wf groups │ │ 18 wf groups │ │ ~270 methods│ │ 1 wf group   │ │ 3 wf groups     │ │ 7 wf groups │ │ 4 wf groups │ │ 10 wf groups │
+│2 tables  │ │ 3 services       │ │ 16 tables    │ │ 14 tables    │ │ 52 tables    │ │ 1 table      │ │ 3 owned tables   │ │ 7 tables    │ │ 4 tables    │ │ 10 tables    │
+│7 events  │ │ 3 tables         │ │ 10 events    │ │ 33 events    │ │ 52 events    │ │ 3 events     │ │ 0 shadow tables  │ │ 29 events   │ │ 14 events   │ │ 32 events    │
 │deps:     │ │ 23 events        │ │ units:       │ │ 11 ACL res.  │ │ 2 crons      │ │ 1 ACL res.   │ │ 16 events        │ │ 7 ACL res.  │ │ 4 ACL res.  │ │ 11 ACL res.  │
 │masters   │ │ units:           │ │ db, pubsub  │ │ units:       │ │ units:       │ │ units:       │ │ deps: organization│ │ units:      │ │ units:      │ │ units:       │
 │units:    │ │ db, kvStore,     │ │              │ │ db, pubsub,  │ │ db, pubsub  │ │ none         │ │ units:           │ │ db, kvStore│ │ db, pubsub │ │ db, pubsub   │

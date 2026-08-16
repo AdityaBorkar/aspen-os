@@ -1,6 +1,7 @@
 import { acl } from "#/auth";
 import { control_plane_schemas, tenant_schemas } from "#/db-schemas";
 import { events } from "#/pubsub";
+import { registerReconciliation, unregisterReconciliation } from "#/services/reconciliation";
 import { CRON_SCHEDULES, SCHEDULED_JOBS } from "#/utils/constants";
 import * as access from "#/workflows/barrel-access";
 import * as attendance from "#/workflows/barrel-attendance";
@@ -8,6 +9,7 @@ import * as employee from "#/workflows/barrel-employee";
 import * as leave from "#/workflows/barrel-leave";
 import * as lifecycle from "#/workflows/barrel-lifecycle";
 import * as overtime from "#/workflows/barrel-overtime";
+import * as position from "#/workflows/barrel-position";
 import * as setup from "#/workflows/barrel-setup";
 import * as shift from "#/workflows/barrel-shift";
 
@@ -26,7 +28,9 @@ export class Hr implements Module {
   readonly $dependencies = [] as const;
   readonly $config: HrModuleConfig;
 
+  #db: DatabaseUnit | null = null;
   #pubsub: PubSubUnit | null = null;
+  #reconciliationTopics: string[] = [];
 
   constructor(config: HrModuleConfig) {
     this.$config = config;
@@ -41,11 +45,12 @@ export class Hr implements Module {
   }
 
   $initialize(units: { db: DatabaseUnit; pubsub: PubSubUnit }): void {
+    this.#db = units.db;
     this.#pubsub = units.pubsub;
   }
 
   async $prepareRuntime(): Promise<void> {
-    if (!this.#pubsub) {
+    if (!this.#pubsub || !this.#db) {
       return;
     }
 
@@ -57,13 +62,23 @@ export class Hr implements Module {
       cron: CRON_SCHEDULES.DAILY_LEAVE_ACCRUAL,
       topic: SCHEDULED_JOBS.DAILY_LEAVE_ACCRUAL,
     });
+
+    this.#reconciliationTopics = await registerReconciliation({
+      db: this.#db.db,
+      pubsub: this.#pubsub,
+    });
   }
 
   async $cleanup(): Promise<void> {
     if (this.#pubsub) {
       await this.#pubsub.unschedule(SCHEDULED_JOBS.DAILY_ATTENDANCE_SYNC);
       await this.#pubsub.unschedule(SCHEDULED_JOBS.DAILY_LEAVE_ACCRUAL);
+      await unregisterReconciliation(this.#reconciliationTopics, {
+        pubsub: this.#pubsub,
+      });
     }
+    this.#reconciliationTopics = [];
+    this.#db = null;
     this.#pubsub = null;
   }
 
@@ -286,6 +301,29 @@ export class Hr implements Module {
     updateOvertimeType: overtime.updateOvertimeType,
   };
 
+  readonly position = {
+    activate: position.activatePosition,
+    assignEmployee: position.assignEmployee,
+    create: position.createPosition,
+    deactivate: position.deactivatePosition,
+    delete: position.deletePosition,
+    getById: position.getPositionById,
+    getCurrentAssignment: position.getCurrentAssignment,
+    getCurrentPositions: position.getCurrentPositions,
+    getDirectReports: position.getDirectReports,
+    getEmployeePositionHistory: position.getEmployeePositionHistory,
+    getOrgTree: position.getOrgTree,
+    getPeers: position.getPeers,
+    getPositionHistory: position.getPositionHistory,
+    getPositionTree: position.getPositionTree,
+    getSubordinates: position.getSubordinates,
+    getTeam: position.getTeam,
+    list: position.listPositions,
+    transferAssignment: position.transferAssignment,
+    unassignEmployee: position.unassignEmployee,
+    update: position.updatePosition,
+  };
+
   readonly setup = {
     createDepartment: setup.createDepartment,
     createDesignation: setup.createDesignation,
@@ -300,6 +338,8 @@ export class Hr implements Module {
     deleteHoliday: setup.deleteHoliday,
     deleteHolidayList: setup.deleteHolidayList,
     getDepartmentById: setup.getDepartmentById,
+    getDepartmentSubtree: setup.getDepartmentSubtree,
+    getDepartmentTree: setup.getDepartmentTree,
     getDesignationById: setup.getDesignationById,
     getEmployeeGradeById: setup.getEmployeeGradeById,
     getEmploymentTypeById: setup.getEmploymentTypeById,
@@ -313,6 +353,9 @@ export class Hr implements Module {
     listEmploymentTypes: setup.listEmploymentTypes,
     listHolidayLists: setup.listHolidayLists,
     listHolidaysByList: setup.listHolidaysByList,
+    listPositionsByDepartment: setup.listPositionsByDepartment,
+    moveDepartment: setup.moveDepartment,
+    setDepartmentHead: setup.setDepartmentHead,
     updateDepartment: setup.updateDepartment,
     updateDesignation: setup.updateDesignation,
     updateEmployeeGrade: setup.updateEmployeeGrade,

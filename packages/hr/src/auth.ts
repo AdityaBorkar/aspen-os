@@ -9,6 +9,7 @@ export const acl = defineAcl({
   leave: ["approve", "create", "read", "reject", "update"],
   lifecycle: ["approve", "create", "read", "reject", "update"],
   overtime: ["approve", "create", "read", "reject", "update"],
+  position: ["create", "delete", "read", "update"],
   setup: ["create", "delete", "read", "update"],
   shift: ["approve", "create", "read", "reject", "update"],
 });

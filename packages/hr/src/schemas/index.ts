@@ -224,6 +224,21 @@ export {
   UpdateOvertimeSlipSchema,
   UpdateOvertimeTypeSchema,
 } from "#/schemas/overtime";
+// Position schemas
+export type {
+  AssignEmployeeInput,
+  CreatePositionInput,
+  PositionFilters,
+  TransferAssignmentInput,
+  UpdatePositionInput,
+} from "#/schemas/position";
+export {
+  AssignEmployeeSchema,
+  CreatePositionSchema,
+  PositionFiltersSchema,
+  TransferAssignmentSchema,
+  UpdatePositionSchema,
+} from "#/schemas/position";
 // Setup schemas
 export type {
   CreateDepartmentInput,
@@ -233,6 +248,8 @@ export type {
   CreateHolidayInput,
   CreateHolidayListInput,
   DepartmentFilters,
+  MoveDepartmentInput,
+  SetDepartmentHeadInput,
   UpdateDepartmentInput,
   UpdateDesignationInput,
   UpdateEmployeeGradeInput,
@@ -250,6 +267,8 @@ export {
   CreateHolidayListSchema,
   CreateHolidaySchema,
   DepartmentFiltersSchema,
+  MoveDepartmentSchema,
+  SetDepartmentHeadSchema,
   UpdateDepartmentSchema,
   UpdateDesignationSchema,
   UpdateEmployeeGradeSchema,

@@ -2,6 +2,15 @@
 
 > Scope of Work for the **Organization Structure** feature of the `@aspen-os/hr` module. Adds a first-class structural layer — job positions, position assignments, department hierarchy management, and structure views — on top of the existing employee `reportsTo` chart.
 
+## Status
+
+> **Complete** — all four phases executed, gated green, and recorded below.
+
+- **Phase 1 — Positions**: ✅ Done — `hr_position` table, position CRUD + deactivate/activate, `reportsToPosition` cycle guard, list filters; department `costCenter`/`headcount` columns; `HR_PERMISSION_MODULE.POSITION` + `position` ACL resource. Gate green (package `check:lint` + `check:types`; HR has no `build` script).
+- **Phase 2 — Assignments**: ✅ Done — `hr_position_assignment`, assign/unassign/transfer with headcount + unique-primary enforcement, delete/deactivate active-assignment guard, history + current reads, `getById` incumbents, list fill state. Gate green.
+- **Phase 3 — Department tree ops & structure views**: ✅ Done — `moveDepartment`, `setDepartmentHead`, department tree/subtree, `listPositionsByDepartment`, tightened `deleteDepartment` guard; org tree, position tree, direct reports / subordinates / peers / team, enhanced `getOrgChart`; lifecycle reconciliation subscription (separation auto-close, transfer guidance) + lifecycle event publishing. Gate green (package + root checks).
+- **Phase 4 — Docs & verification**: ✅ Done — package docs updated (`overview`, `workflows`, `index`), domain docs updated (`domain-model/hr.md`, `bounded-contexts/hr.md`, `DOMAIN_MODEL.md`, `CONTEXT.md`), promotion approval now syncs `employee.designation`, sweep greps clean. Gate green (docs `check:types` + build; root `check:lint` + `check:types`).
+
 ## Overview
 
 The HR module already models the two primitive dimensions of an organization: the **employee reporting hierarchy** (`employee.reportsTo`, exposed as `p.hr.employee.getOrganizationalChart(company?)`) and the **department tree** (`department.parentDepartment`, managed through `p.hr.setup.createDepartment` / `updateDepartment` / `deleteDepartment`). The Organization Structure feature makes structure an explicit, managed domain: **positions** become stable job slots that employees are assigned to, **department hierarchy** gains tree management and head-of-department assignment, and a family of **structure queries** (org tree, department tree, direct reports, team, peers) gives HR and employees a single source of truth for "who sits where and reports to whom."
@@ -13,6 +22,8 @@ New tables are **tenant-scoped operational data** — they live in tenant schema
 ---
 
 ## 1. Position
+
+> ✅ **Phase 1 done** — table, CRUD, cycle guard, list filters, RBAC vocabulary implemented.
 
 A position is a stable job slot in the organization's structure. Positions exist independent of any single employee (an employee occupies a position; a position outlives an employee).
 
@@ -52,6 +63,8 @@ A position is a stable job slot in the organization's structure. Positions exist
 
 ## 2. Position Assignment
 
+> ✅ **Phase 2 done** — table, assign/unassign/transfer, constraints, history queries implemented.
+
 Links employees to positions, with full history. A position has a _current_ incumbent set; past assignments are retained as history.
 
 | Field           | Type            | Description                                              |
@@ -85,6 +98,8 @@ Links employees to positions, with full history. A position has a _current_ incu
 
 ## 3. Department Hierarchy Management
 
+> ✅ **Phase 3 done** — tree ops, head assignment, delete guard, structure views, reconciliation subscription implemented.
+
 Builds on the existing `department` table — no new table. **Current state**: the control-plane `department` table (`db-schemas/setup.ts`) carries `code` (unique, uppercased on write), `name`, `manager`, `parentDepartment`, `isActive`, `metadata` (jsonb), `createdAt`, `updatedAt`. `updateDepartment` already re-parents safely (self-parent guard + `validateParentDepartment`, which walks ancestors via `wouldCreateCircular` with a max depth of 10). `deleteDepartment` is today an **unguarded soft delete** (`isActive = false`). This SOW adds tree-management workflows, head assignment, and two optional columns — and tightens the delete guard.
 
 **Schema additions to `department`**:
@@ -109,6 +124,8 @@ Builds on the existing `department` table — no new table. **Current state**: t
 ---
 
 ## 4. Structure Reconciliation with Employee Lifecycle
+
+> ✅ **Phase 4 note** — `approvePromotion` now syncs `employee.designation` (plus `grade`/`department` when set); separation auto-close and transfer guidance subscribe in `$prepareRuntime()`.
 
 Structure must stay consistent as employees change. The lifecycle group already emits `lifecycle:promotion_approved`, `lifecycle:transfer_approved`, and `lifecycle:separation_completed` (part of the 43-event `HrEventMap`). The reconciliation steps below subscribe to these existing events — the position feature becomes their first consumer:
 

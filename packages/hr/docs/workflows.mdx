@@ -4,7 +4,7 @@ description: API reference for the 8 workflow classes exposed by the HR module.
 icon: IconListCheck
 ---
 
-The HR module exposes 8 workflow classes, each managing a distinct HR domain aggregate.
+The HR module exposes 9 workflow classes, each managing a distinct HR domain aggregate.
 
 ## AccessWorkflow
 
@@ -104,7 +104,7 @@ list(filters?: EmployeeFilters)
 deactivate(id: string)
 activate(id: string)
 markAsLeft(id: string, dateOfLeaving: string)
-getOrganizationalChart(company?: string): Promise<EmployeeTreeNode[]>
+getOrganizationalChart(company?: string, filters?: { department?: string; branch?: string; position?: string }): Promise<OrgTreeNode[]>
 ```
 
 ### Employee Group
@@ -434,6 +434,8 @@ deleteFullAndFinal(id: string)
 - `updateOnboardingTask` and `updateSeparationTask` auto-set `completedAt` when status becomes `"completed"`
 - `approveFullAndFinal` calculates `totalEarnings`, `totalDeductions`, and `netPayable` from component amounts
 - `completePromotion` and `completeTransfer` mark status as `"completed"` — the employee record update is not yet wired to `EmployeeWorkflow`
+- `approvePromotion` syncs `employee.designation` (plus `grade` and `department` when the promotion sets them)
+- `approveTransfer` publishes `lifecycle:transfer_approved`; `updateSeparation` publishes `lifecycle:separation_completed` when status transitions to `"completed"`
 
 ## OvertimeWorkflow
 
@@ -470,6 +472,58 @@ deleteOvertimeSlip(id: string)
 - `getOvertimeSummary` aggregates only approved slips within the date range
 - `deleteOvertimeType` is a soft delete (`isActive: false`)
 - `createOvertimeSlip` verifies the overtime type exists
+
+## PositionWorkflow
+
+Access: `p.hr.position`
+
+Manages job positions (stable job slots), employee position assignments with history, and structure views (org tree, position tree, direct reports, subordinates, peers, team).
+
+### Position
+
+```ts
+create(input: CreatePositionInput)
+update(id: string, patch: UpdatePositionInput)
+delete(id: string)
+deactivate(id: string)
+activate(id: string)
+getById(id: string)            // + directSubPositionCount, incumbents
+list(filters?: PositionFilters)  // + filledCount per position
+```
+
+### Position Assignment
+
+```ts
+assignEmployee(positionId: string, employeeId: string, input?: AssignEmployeeInput)
+unassignEmployee(assignmentId: string, toDate?: string | null)
+transferAssignment(assignmentId: string, input: TransferAssignmentInput)
+getPositionHistory(positionId: string)
+getEmployeePositionHistory(employeeId: string)
+getCurrentAssignment(positionId: string)
+getCurrentPositions(employeeId: string)
+```
+
+### Structure Views
+
+```ts
+getOrgTree(company?: string): Promise<PositionTreeNode[]>
+getPositionTree(positionId?: string): Promise<PositionTreeNode[]>
+getDirectReports(managerId: string)
+getSubordinates(managerId: string, depth?: number)
+getPeers(employeeId: string)
+getTeam(employeeId: string)
+```
+
+### Business Rules
+
+- Position names are unique within a department
+- `reportsToPosition` cannot create a cycle (ancestor walk, max depth 10); a position cannot be its own parent
+- Assignments cannot exceed the position's `headcount`
+- An employee has at most one open-ended assignment per position; `isPrimary` is unique per employee among current assignments
+- `delete` and `deactivate` are blocked while the position has active assignments
+- Assigning an employee closes a conflicting open-ended assignment to the same position; assigning a primary clears the employee's other current primaries
+- `transferAssignment` closes the source assignment and opens one at the target, preserving the primary flag
+- Direct reports / subordinates / peers resolve the manager through the position `reportsToPosition` chain, falling back to `employee.reportsTo`
 
 ## SetupWorkflow
 
@@ -509,6 +563,11 @@ updateDepartment(id: string, patch: UpdateDepartmentInput)
 getDepartmentById(id: string)
 listDepartments(filters?: DepartmentFilters)
 deleteDepartment(id: string)
+moveDepartment(id: string, newParentId?: string | null)
+setDepartmentHead(id: string, employeeId?: string | null)
+getDepartmentTree(): Promise<DepartmentTreeNode[]>
+getDepartmentSubtree(id: string, depth?: number): Promise<DepartmentTreeNode[]>
+listPositionsByDepartment(departmentId: string, includeSubtree?: boolean)
 ```
 
 ### Designation
@@ -559,7 +618,11 @@ deleteHoliday(id: string)
 - `updateDepartment` prevents circular references by walking the parent chain (max depth 10)
 - A department cannot be set as its own parent
 - `updateDepartment` enforces department code uniqueness on update
-- `deleteEmploymentType`, `deleteDepartment`, `deleteDesignation`, `deleteEmployeeGrade`, `deleteHolidayList` are soft deletes (`isActive: false`)
+- `moveDepartment` re-parents a department and rejects cycles
+- `setDepartmentHead` sets/clears `department.manager`
+- `deleteDepartment` is a soft delete that is blocked while the department has child departments, active positions, or active employees
+- Departments carry optional `costCenter` and `headcount` (sanctioned headcount for reporting)
+- `deleteEmploymentType`, `deleteDesignation`, `deleteEmployeeGrade`, `deleteHolidayList` are soft deletes (`isActive: false`)
 - `deleteHoliday` is a hard delete
 - `createHoliday` verifies the holiday list exists
 

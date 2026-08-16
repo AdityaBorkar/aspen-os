@@ -1,14 +1,18 @@
 # HR Domain Model
 
-> Package: `@aspen-os/hr`. Human resources — 8 sub-domains across 50 tables (14 control-plane setup/access + 36 tenant operational/transactional). Fully conformant module.
+> Package: `@aspen-os/hr`. Human resources — 9 sub-domains across 52 tables (14 control-plane setup/access + 38 tenant operational/transactional). Fully conformant module.
 
 ## Sub-domain Overview
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                        HR DOMAIN (50 tables, 8 sub-domains)         │
+│                        HR DOMAIN (52 tables, 9 sub-domains)         │
 │                                                                     │
 │  Employee ←─ 1:N ─→ Attendance, Leave, Lifecycle, Overtime, Shift   │
+│                                                                     │
+│  Position (structural): hr_position, hr_position_assignment;        │
+│    positions are stable job slots with hierarchy (reportsToPosition)│
+│    and employee assignments (current + history).                    │
 │                                                                     │
 │  Setup (control plane): Department, Designation, EmployeeGrade,     │
 │    EmploymentType, Holiday(+HolidayList), HrSettings,               │
@@ -21,13 +25,15 @@
 │    employeeHealthInsurance, employeeSkillMap,                       │
 │    employeeOnboarding(+Task), employeePromotion, employeeTransfer,  │
 │    employeeSeparation(+Task), exitInterview, fullAndFinalStatement, │
+│    hr_position(+hr_position_assignment),                            │
 │    leave{Type,Period,Policy,PolicyAssignment,PolicyDetail,          │
 │    Allocation,Application,Adjustment,BlockList,Encashment,          │
 │    LedgerEntry}, overtime{Type,Slip}, shift{Type,Location,          │
 │    Assignment,Request,Schedule,ScheduleAssignment}                  │
 │                                                                     │
 │  (Module fully conformant — `implements Module`, `$prepareRuntime()`│
-│   schedules DAILY_ATTENDANCE_SYNC + DAILY_LEAVE_ACCRUAL crons)      │
+│   schedules DAILY_ATTENDANCE_SYNC + DAILY_LEAVE_ACCRUAL crons and   │
+│   registers lifecycle reconciliation subscriptions)                 │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -93,13 +99,21 @@
 
 **Lifecycle commands** (via `p.hr.access`): users (create/update/delete/get/list), roles (create/update/delete/assign-to-user/remove-from-user/list), permissions (create/delete/assign-to-role/remove-from-role/list), branch access (grant/revoke/update/check/list), permission checks (`hasPermission`, `getUserPermissions`, `getAccessibleBranches`, `getUserRolesForBranch`).
 
+### Position (organization structure sub-domain)
+
+**Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)`) on both `hr_position` and `hr_position_assignment`
+
+**Invariants**: Positions are stable job slots — a position outlives its incumbents. Position names are unique within a department; `reportsToPosition` cannot create a cycle (max depth 10). Assignments link employees to positions with history; open-ended (`toDate` null) assignments are current. Headcount caps current assignments per position; `isPrimary` is unique per employee among current assignments. Delete/deactivate are blocked while active assignments exist. The reporting hierarchy is derived from position chains, falling back to `employee.reportsTo`.
+
+**Lifecycle commands** (via `p.hr.position`): positions (create/update/delete/deactivate/activate/get/list), assignments (assign/unassign/transfer, history by position and employee, current reads), structure views (`getOrgTree`, `getPositionTree`, `getDirectReports`, `getSubordinates`, `getPeers`, `getTeam`). Lifecycle events reconcile assignments: separation completion auto-closes open assignments; transfer approval surfaces guidance; department head/position changes emit `setup:department_head_changed` / `setup:department_moved` / `position:*` events.
+
 ### Setup (org structure sub-domain)
 
 **Invariants**: Department (hierarchical via `parentDepartment`, `manager`), Designation, EmployeeGrade, EmploymentType, Holiday + HolidayList, HrSettings, PayrollSettings — all control-plane (shared across tenants).
 
 **Lifecycle commands** (via `p.hr.setup`): create/update/delete/get/list for departments, designations, grades, employment types, holidays, holiday lists; get/update `hrSettings` and `payrollSettings`.
 
-## Domain Events — 43 (8 groups → `HrEventMap`)
+## Domain Events — 52 (9 groups → `HrEventMap`)
 
 | Group      | Count | Events                                                                                                                                                                                                                                                                                                     |
 | ---------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -108,7 +122,8 @@
 | Leave      | 6     | `leave:application_submitted`, `leave:application_approved`, `leave:application_rejected`, `leave:application_cancelled`, `leave:allocation_created`, `leave:encashment_requested`                                                                                                                         |
 | Lifecycle  | 9     | `lifecycle:onboarding_started`, `lifecycle:onboarding_completed`, `lifecycle:promotion_requested`, `lifecycle:promotion_approved`, `lifecycle:transfer_requested`, `lifecycle:transfer_approved`, `lifecycle:separation_initiated`, `lifecycle:separation_completed`, `lifecycle:exit_interview_scheduled` |
 | Overtime   | 3     | `overtime:slip_created`, `overtime:slip_approved`, `overtime:slip_rejected`                                                                                                                                                                                                                                |
-| Setup      | 4     | `setup:department_created`, `setup:designation_created`, `setup:holiday_list_created`, `setup:settings_updated`                                                                                                                                                                                            |
+| Position   | 7     | `position:created`, `position:updated`, `position:deactivated`, `position:activated`, `position:assigned`, `position:unassigned`, `position:reassigned`                                                                                                                                                    |
+| Setup      | 6     | `setup:department_created`, `setup:department_moved`, `setup:department_head_changed`, `setup:designation_created`, `setup:holiday_list_created`, `setup:settings_updated`                                                                                                                                 |
 | Shift      | 4     | `shift:assignment_created`, `shift:request_created`, `shift:request_approved`, `shift:request_rejected`                                                                                                                                                                                                    |
 | Access     | 8     | `access:user_created`, `access:user_activated`, `access:user_deactivated`, `access:role_created`, `access:role_assigned`, `access:role_revoked`, `access:branch_access_granted`, `access:branch_access_revoked`                                                                                            |
 
@@ -128,6 +143,8 @@
 | HR      | Create shift assignment   | `p.hr.shift.createShiftAssignment()`   |
 | HR      | Create overtime slip      | `p.hr.overtime.createOvertimeSlip()`   |
 | HR      | Create department         | `p.hr.setup.createDepartment()`        |
+| HR      | Create position           | `p.hr.position.create()`               |
+| HR      | Assign employee to role   | `p.hr.position.assignEmployee()`       |
 | HR      | Create HR user            | `p.hr.access.createUser()`             |
 | HR      | Grant branch access       | `p.hr.access.grantBranchAccess()`      |
 
@@ -138,6 +155,8 @@
 | HR      | Get employee             | `p.hr.employee.getById()`                |
 | HR      | List employees           | `p.hr.employee.list()`                   |
 | HR      | Get organizational chart | `p.hr.employee.getOrganizationalChart()` |
+| HR      | Get org tree             | `p.hr.position.getOrgTree()`             |
+| HR      | Get position history     | `p.hr.position.getPositionHistory()`     |
 | HR      | List leave applications  | `p.hr.leave.listLeaveApplications()`     |
 | HR      | Get leave balance        | `p.hr.leave.getLeaveBalance()`           |
 | HR      | List roles               | `p.hr.access.listRoles()`                |
@@ -146,5 +165,8 @@
 ## Invariants & Business Rules
 
 1. **Scheduled cron jobs** — `hr:daily-attendance-sync` (`0 1 * * *`) and `hr:daily-leave-accrual` (`0 0 * * *`) are registered in `$prepareRuntime()` and unregistered in `$cleanup()`.
-2. **Schema placement** — 14 setup/access tables live in the control plane (shared across tenants); the 36 operational/transactional tables live in tenant schemas.
+2. **Schema placement** — 14 setup/access tables live in the control plane (shared across tenants); the 38 operational/transactional tables live in tenant schemas.
 3. **Approval workflows** — leave applications, attendance requests, overtime slips, shift requests, promotions, transfers, and separations all follow pending → approved/rejected transitions enforced in workflow.
+4. **Position constraints** — position names unique per department; `reportsToPosition` cycles rejected (max depth 10); assignments capped by `headcount`; one open-ended assignment per (employee, position); unique `isPrimary` among current assignments; delete/deactivate blocked with active assignments.
+5. **Lifecycle reconciliation** — `lifecycle:separation_completed` auto-closes the employee's open-ended position assignments (`toDate = exitDate`) and emits `position:unassigned`; `lifecycle:transfer_approved` surfaces transfer guidance; `lifecycle:promotion_approved` (via `approvePromotion`) syncs `employee.designation`.
+6. **Structure views** — direct reports, subordinates, and peers resolve managers through the position `reportsToPosition` chain (falling back to `employee.reportsTo`); the org chart is a position tree with incumbents.

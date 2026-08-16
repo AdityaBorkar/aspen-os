@@ -237,10 +237,65 @@ export interface OvertimeSlipRejectedEvent {
   slipId: string;
 }
 
+// ─── Position Events ────────────────────────────────────────────────────
+
+export const POSITION_EVENTS = {
+  ACTIVATED: "position:activated",
+  ASSIGNED: "position:assigned",
+  CREATED: "position:created",
+  DEACTIVATED: "position:deactivated",
+  REASSIGNED: "position:reassigned",
+  UNASSIGNED: "position:unassigned",
+  UPDATED: "position:updated",
+} as const;
+
+export interface PositionCreatedEvent {
+  position: {
+    department: string;
+    id: string;
+    name: string;
+  };
+}
+
+export interface PositionUpdatedEvent {
+  changes: Record<string, JsonValue>;
+  position: { id: string };
+}
+
+export interface PositionDeactivatedEvent {
+  positionId: string;
+}
+
+export interface PositionActivatedEvent {
+  positionId: string;
+}
+
+export interface PositionAssignedEvent {
+  assignment: {
+    employeeId: string;
+    fromDate: string;
+    positionId: string;
+  };
+}
+
+export interface PositionUnassignedEvent {
+  employeeId: string;
+  positionId: string;
+  toDate: string;
+}
+
+export interface PositionReassignedEvent {
+  employeeId: string;
+  fromPositionId: string;
+  toPositionId: string;
+}
+
 // ─── Setup Events ─────────────────────────────────────────────────────────
 
 export const SETUP_EVENTS = {
   DEPARTMENT_CREATED: "setup:department_created",
+  DEPARTMENT_HEAD_CHANGED: "setup:department_head_changed",
+  DEPARTMENT_MOVED: "setup:department_moved",
   DESIGNATION_CREATED: "setup:designation_created",
   HOLIDAY_LIST_CREATED: "setup:holiday_list_created",
   SETTINGS_UPDATED: "setup:settings_updated",
@@ -248,6 +303,17 @@ export const SETUP_EVENTS = {
 
 export interface DepartmentCreatedEvent {
   department: { code: string; id: string; name: string };
+}
+
+export interface DepartmentHeadChangedEvent {
+  departmentId: string;
+  headEmployeeId: string | null;
+}
+
+export interface DepartmentMovedEvent {
+  departmentId: string;
+  fromParentId: string | null;
+  toParentId: string | null;
 }
 
 export interface DesignationCreatedEvent {
@@ -403,8 +469,20 @@ export interface OvertimeEventMap {
   [OVERTIME_EVENTS.SLIP_REJECTED]: OvertimeSlipRejectedEvent;
 }
 
+export interface PositionEventMap {
+  [POSITION_EVENTS.ACTIVATED]: PositionActivatedEvent;
+  [POSITION_EVENTS.ASSIGNED]: PositionAssignedEvent;
+  [POSITION_EVENTS.CREATED]: PositionCreatedEvent;
+  [POSITION_EVENTS.DEACTIVATED]: PositionDeactivatedEvent;
+  [POSITION_EVENTS.REASSIGNED]: PositionReassignedEvent;
+  [POSITION_EVENTS.UNASSIGNED]: PositionUnassignedEvent;
+  [POSITION_EVENTS.UPDATED]: PositionUpdatedEvent;
+}
+
 export interface SetupEventMap {
   [SETUP_EVENTS.DEPARTMENT_CREATED]: DepartmentCreatedEvent;
+  [SETUP_EVENTS.DEPARTMENT_HEAD_CHANGED]: DepartmentHeadChangedEvent;
+  [SETUP_EVENTS.DEPARTMENT_MOVED]: DepartmentMovedEvent;
   [SETUP_EVENTS.DESIGNATION_CREATED]: DesignationCreatedEvent;
   [SETUP_EVENTS.HOLIDAY_LIST_CREATED]: HolidayListCreatedEvent;
   [SETUP_EVENTS.SETTINGS_UPDATED]: HrSettingsUpdatedEvent;
@@ -433,6 +511,7 @@ export type HrEventMap = EmployeeEventMap &
   LeaveEventMap &
   LifecycleEventMap &
   OvertimeEventMap &
+  PositionEventMap &
   SetupEventMap &
   ShiftEventMap &
   AccessEventMap;
@@ -444,6 +523,7 @@ export const events = {
   leave: LEAVE_EVENTS,
   lifecycle: LIFECYCLE_EVENTS,
   overtime: OVERTIME_EVENTS,
+  position: POSITION_EVENTS,
   setup: SETUP_EVENTS,
   shift: SHIFT_EVENTS,
 };

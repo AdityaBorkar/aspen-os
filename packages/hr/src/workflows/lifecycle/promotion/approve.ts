@@ -1,4 +1,5 @@
-import { employeePromotion } from "#/db-schemas";
+import { employee, employeePromotion } from "#/db-schemas";
+import { fetchPromotionById } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -14,6 +15,8 @@ export const approvePromotion = Workflow.name("hr.lifecycle.approve-promotion")
   .handler(async (input, ctx) => {
     const { id, approvedBy } = input;
 
+    const existing = await fetchPromotionById(ctx.db, id);
+
     const [updated] = await ctx.db
       .update(employeePromotion)
       .set({
@@ -24,6 +27,21 @@ export const approvePromotion = Workflow.name("hr.lifecycle.approve-promotion")
       })
       .where(eq(employeePromotion.id, id))
       .returning();
+
+    if (updated) {
+      const employeePatch: Partial<typeof employee.$inferInsert> = {
+        designation: existing.newDesignation,
+        updatedAt: new Date(),
+      };
+      if (existing.newGrade) {
+        employeePatch.grade = existing.newGrade;
+      }
+      if (existing.newDepartment) {
+        employeePatch.department = existing.newDepartment;
+      }
+
+      await ctx.db.update(employee).set(employeePatch).where(eq(employee.id, existing.employeeId));
+    }
 
     return updated;
   });

@@ -5,6 +5,7 @@ export const HR_PERMISSION_MODULE = {
   LEAVE: "leave",
   LIFECYCLE: "lifecycle",
   OVERTIME: "overtime",
+  POSITION: "position",
   SETUP: "setup",
   SHIFT: "shift",
 } as const;

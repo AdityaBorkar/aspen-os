@@ -39,6 +39,7 @@ import {
   separationTask,
 } from "#/db-schemas/lifecycle";
 import { overtimeSlip, overtimeType } from "#/db-schemas/overtime";
+import { hrPosition, hrPositionAssignment } from "#/db-schemas/position";
 import {
   department,
   designation,
@@ -100,6 +101,7 @@ export {
   separationTask,
 } from "#/db-schemas/lifecycle";
 export { overtimeSlip, overtimeType } from "#/db-schemas/overtime";
+export { hrPosition, hrPositionAssignment } from "#/db-schemas/position";
 export {
   department,
   designation,
@@ -156,6 +158,8 @@ export const dbSchema = {
   holiday,
   holidayList,
   hrPermission,
+  hrPosition,
+  hrPositionAssignment,
   hrRole,
   hrRolePermission,
   hrSettings,
@@ -221,6 +225,8 @@ export const tenant_schemas = {
   employeeTransfer,
   exitInterview,
   fullAndFinalStatement,
+  hrPosition,
+  hrPositionAssignment,
   leaveAdjustment,
   leaveAllocation,
   leaveApplication,

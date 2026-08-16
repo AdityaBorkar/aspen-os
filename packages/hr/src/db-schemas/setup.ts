@@ -57,7 +57,9 @@ export const department = pgTable(
   "department",
   {
     code: text("code").notNull(),
+    costCenter: text("cost_center"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    headcount: integer("headcount"),
     id: text("id").primaryKey().$defaultFn(uuidv7),
     isActive: boolean("is_active").notNull().default(true),
     manager: text("manager"),

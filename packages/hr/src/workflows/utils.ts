@@ -30,7 +30,7 @@ import {
   shiftSchedule,
   shiftType,
 } from "#/db-schemas";
-import type { EmployeeTreeNode, ResolvedPermission } from "#/types";
+import type { DepartmentTreeNode, OrgTreeNode, ResolvedPermission } from "#/types";
 
 import type { JsonValue } from "@aspen-os/platform/server";
 import { and, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
@@ -57,11 +57,13 @@ function toText(value: JsonValue): string {
 // Org-chart structure: rows come from a drizzle select projection, so fields are
 // Conservatively typed (`JsonValue`) to be robust regardless of drizzle typing
 interface OrgChartEmployee {
+  department: JsonValue;
   designation: JsonValue;
   firstName: JsonValue;
   id: JsonValue;
   image: JsonValue;
   lastName: JsonValue;
+  position: JsonValue | null;
   reportsTo: JsonValue;
 }
 
@@ -129,11 +131,12 @@ export async function ensureEmployeeIdUnique(
 export function buildEmployeeTree(
   employees: OrgChartEmployee[],
   parentId: string | null,
-): EmployeeTreeNode[] {
+): OrgTreeNode[] {
   return employees
     .filter((employeeItem) => employeeItem.reportsTo === parentId)
     .map((employeeItem) => ({
       children: buildEmployeeTree(employees, toText(employeeItem.id)),
+      department: toText(employeeItem.department),
       designation: toText(employeeItem.designation),
       id: toText(employeeItem.id),
       image:
@@ -141,6 +144,10 @@ export function buildEmployeeTree(
           ? null
           : toText(employeeItem.image),
       name: `${toText(employeeItem.firstName)} ${toText(employeeItem.lastName)}`.trim(),
+      position:
+        employeeItem.position === null || employeeItem.position === undefined
+          ? null
+          : toText(employeeItem.position),
     }));
 }
 
@@ -561,6 +568,64 @@ export async function validateParentDepartment(
       throw new Error("Setting this parent would create a circular reference.");
     }
   }
+}
+
+export interface DepartmentCounts {
+  employeeCountByDepartment: Map<string, number>;
+  positionCountByDepartment: Map<string, number>;
+}
+
+export function buildDepartmentTree(
+  departments: {
+    code: string;
+    id: string;
+    manager: string | null;
+    name: string;
+    parentDepartment: string | null;
+  }[],
+  counts: DepartmentCounts,
+  options?: { depth?: number; rootIds?: Set<string> },
+): DepartmentTreeNode[] {
+  const departmentById = new Map(
+    departments.map((departmentItem) => [departmentItem.id, departmentItem]),
+  );
+  const childrenByParent = new Map<string | null, string[]>();
+  for (const departmentItem of departments) {
+    const parent =
+      departmentItem.parentDepartment !== null &&
+      departmentById.has(departmentItem.parentDepartment)
+        ? departmentItem.parentDepartment
+        : null;
+    const siblings = childrenByParent.get(parent) ?? [];
+    siblings.push(departmentItem.id);
+    childrenByParent.set(parent, siblings);
+  }
+
+  const build = (departmentId: string, remainingDepth: number | undefined): DepartmentTreeNode => {
+    const departmentItem = departmentById.get(departmentId);
+    const childIds = childrenByParent.get(departmentId) ?? [];
+    const children =
+      remainingDepth === undefined || remainingDepth > 0
+        ? childIds.map((childId) =>
+            build(childId, remainingDepth === undefined ? undefined : remainingDepth - 1),
+          )
+        : [];
+
+    return {
+      children,
+      code: departmentItem?.code ?? "",
+      employeeCount: counts.employeeCountByDepartment.get(departmentId) ?? 0,
+      headEmployeeId: departmentItem?.manager ?? null,
+      id: departmentId,
+      name: departmentItem?.name ?? "",
+      positionCount: counts.positionCountByDepartment.get(departmentId) ?? 0,
+    };
+  };
+
+  if (options?.rootIds) {
+    return [...options.rootIds].map((rootId) => build(rootId, options.depth));
+  }
+  return (childrenByParent.get(null) ?? []).map((rootId) => build(rootId, options?.depth));
 }
 
 // ─── Shift ─────────────────────────────────────────────────────────────────

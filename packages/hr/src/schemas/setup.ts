@@ -65,6 +65,8 @@ export type UpdateEmploymentTypeInput = InferOutput<typeof UpdateEmploymentTypeS
 
 export const CreateDepartmentSchema = object({
   code: pipe(string(), minLength(2, "Code must be at least 2 characters")),
+  costCenter: optional(nullable(string())),
+  headcount: optional(nullable(number())),
   manager: optional(nullable(string())),
   metadata: optional(nullable(object({}))),
   name: NameSchema,
@@ -75,6 +77,8 @@ export type CreateDepartmentInput = InferOutput<typeof CreateDepartmentSchema>;
 
 export const UpdateDepartmentSchema = object({
   code: optional(pipe(string(), minLength(2, "Code must be at least 2 characters"))),
+  costCenter: optional(nullable(string())),
+  headcount: optional(nullable(number())),
   isActive: optional(boolean()),
   manager: optional(nullable(string())),
   metadata: optional(nullable(object({}))),
@@ -83,6 +87,18 @@ export const UpdateDepartmentSchema = object({
 });
 
 export type UpdateDepartmentInput = InferOutput<typeof UpdateDepartmentSchema>;
+
+export const MoveDepartmentSchema = object({
+  newParentId: optional(nullable(string())),
+});
+
+export type MoveDepartmentInput = InferOutput<typeof MoveDepartmentSchema>;
+
+export const SetDepartmentHeadSchema = object({
+  employeeId: optional(nullable(string())),
+});
+
+export type SetDepartmentHeadInput = InferOutput<typeof SetDepartmentHeadSchema>;
 
 export const DepartmentFiltersSchema = object({
   isActive: optional(boolean()),

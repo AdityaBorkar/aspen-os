@@ -1,4 +1,6 @@
 import { employeeTransfer } from "#/db-schemas";
+import { LIFECYCLE_EVENTS } from "#/pubsub";
+import { fetchTransferById } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -14,6 +16,8 @@ export const approveTransfer = Workflow.name("hr.lifecycle.approve-transfer")
   .handler(async (input, ctx) => {
     const { id, approvedBy } = input;
 
+    const existing = await fetchTransferById(ctx.db, id);
+
     const [updated] = await ctx.db
       .update(employeeTransfer)
       .set({
@@ -24,6 +28,14 @@ export const approveTransfer = Workflow.name("hr.lifecycle.approve-transfer")
       })
       .where(eq(employeeTransfer.id, id))
       .returning();
+
+    if (updated) {
+      await ctx.pubsub.publish(LIFECYCLE_EVENTS.TRANSFER_APPROVED, {
+        approvedBy,
+        employeeId: existing.employeeId,
+        transferId: id,
+      });
+    }
 
     return updated;
   });
