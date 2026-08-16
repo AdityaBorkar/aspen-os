@@ -29,6 +29,21 @@ export {
   UpdateHrRoleSchema,
   UpdateHrUserSchema,
 } from "#/schemas/access";
+// Announcement schemas
+export type {
+  AnnouncementAudienceInput,
+  AnnouncementFilters,
+  CreateAnnouncementInput,
+  RecipientListFilters,
+  UpdateAnnouncementInput,
+} from "#/schemas/announcement";
+export {
+  AnnouncementAudienceSchema,
+  AnnouncementFiltersSchema,
+  CreateAnnouncementSchema,
+  RecipientListFiltersSchema,
+  UpdateAnnouncementSchema,
+} from "#/schemas/announcement";
 export type {
   AttendanceFilters,
   AttendanceRequestFilters,
@@ -77,6 +92,9 @@ export {
 // Enum schemas
 export {
   AccessLevelSchema,
+  AnnouncementChannelSchema,
+  AnnouncementPrioritySchema,
+  AnnouncementStatusSchema,
   AttendanceRequestStatusSchema,
   AttendanceStatusSchema,
   CheckinLogTypeSchema,

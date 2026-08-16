@@ -1,14 +1,19 @@
 # HR Domain Model
 
-> Package: `@aspen-os/hr`. Human resources — 9 sub-domains across 52 tables (14 control-plane setup/access + 38 tenant operational/transactional). Fully conformant module.
+> Package: `@aspen-os/hr`. Human resources — 10 sub-domains across 54 tables (14 control-plane setup/access + 40 tenant operational/transactional). Fully conformant module.
 
 ## Sub-domain Overview
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                        HR DOMAIN (52 tables, 9 sub-domains)         │
+│                        HR DOMAIN (54 tables, 10 sub-domains)        │
 │                                                                     │
 │  Employee ←─ 1:N ─→ Attendance, Leave, Lifecycle, Overtime, Shift   │
+│                                                                     │
+│  Announcement: hr_announcement, hr_announcement_recipient;          │
+│    internal broadcasts with audience targeting and delivery         │
+│    snapshots; delivered into the comms inbox via announcement:      │
+│    published.                                                       │
 │                                                                     │
 │  Position (structural): hr_position, hr_position_assignment;        │
 │    positions are stable job slots with hierarchy (reportsToPosition)│
@@ -25,6 +30,7 @@
 │    employeeHealthInsurance, employeeSkillMap,                       │
 │    employeeOnboarding(+Task), employeePromotion, employeeTransfer,  │
 │    employeeSeparation(+Task), exitInterview, fullAndFinalStatement, │
+│    hr_announcement(+hr_announcement_recipient),                     │
 │    hr_position(+hr_position_assignment),                            │
 │    leave{Type,Period,Policy,PolicyAssignment,PolicyDetail,          │
 │    Allocation,Application,Adjustment,BlockList,Encashment,          │
@@ -113,19 +119,28 @@
 
 **Lifecycle commands** (via `p.hr.setup`): create/update/delete/get/list for departments, designations, grades, employment types, holidays, holiday lists; get/update `hrSettings` and `payrollSettings`.
 
-## Domain Events — 52 (9 groups → `HrEventMap`)
+### Announcement (internal communications sub-domain)
 
-| Group      | Count | Events                                                                                                                                                                                                                                                                                                     |
-| ---------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Employee   | 4     | `employee:created`, `employee:updated`, `employee:status_changed`, `employee:group_created`                                                                                                                                                                                                                |
-| Attendance | 5     | `attendance:created`, `attendance:checkin_created`, `attendance:request_created`, `attendance:request_approved`, `attendance:request_rejected`                                                                                                                                                             |
-| Leave      | 6     | `leave:application_submitted`, `leave:application_approved`, `leave:application_rejected`, `leave:application_cancelled`, `leave:allocation_created`, `leave:encashment_requested`                                                                                                                         |
-| Lifecycle  | 9     | `lifecycle:onboarding_started`, `lifecycle:onboarding_completed`, `lifecycle:promotion_requested`, `lifecycle:promotion_approved`, `lifecycle:transfer_requested`, `lifecycle:transfer_approved`, `lifecycle:separation_initiated`, `lifecycle:separation_completed`, `lifecycle:exit_interview_scheduled` |
-| Overtime   | 3     | `overtime:slip_created`, `overtime:slip_approved`, `overtime:slip_rejected`                                                                                                                                                                                                                                |
-| Position   | 7     | `position:created`, `position:updated`, `position:deactivated`, `position:activated`, `position:assigned`, `position:unassigned`, `position:reassigned`                                                                                                                                                    |
-| Setup      | 6     | `setup:department_created`, `setup:department_moved`, `setup:department_head_changed`, `setup:designation_created`, `setup:holiday_list_created`, `setup:settings_updated`                                                                                                                                 |
-| Shift      | 4     | `shift:assignment_created`, `shift:request_created`, `shift:request_approved`, `shift:request_rejected`                                                                                                                                                                                                    |
-| Access     | 8     | `access:user_created`, `access:user_activated`, `access:user_deactivated`, `access:role_created`, `access:role_assigned`, `access:role_revoked`, `access:branch_access_granted`, `access:branch_access_revoked`                                                                                            |
+**Identity**: `id` (text, UUID, default `$defaultFn(uuidv7)`) on both `hr_announcement` and `hr_announcement_recipient`
+
+**Invariants**: Announcements are tenant-scoped broadcasts authored by HR users and delivered into the `@aspen-os/comms` inbox. The status model is `draft → published → archived`, with `scheduled` between draft and published; only `draft`/`scheduled` records are editable or deletable, `published` records are immutable except pin/archive, and publish is idempotent (no duplicate event). Audiences resolve at publish time and are snapshotted to `hr_announcement_recipient`; the snapshot carries `userId` only for recipients with a linked HR user. Scheduling requires a future `scheduledFor`; the `hr:announcement-scheduler` minute cron delivers due announcements.
+
+**Lifecycle commands** (via `p.hr.announcement`): create/update/delete, publish/archive/restore, schedule/cancel-schedule, pin/unpin, get-by-id, list with filters/search, listRecipients (delivery snapshot), getStats (delivery totals from the snapshot + read/acknowledgement counts from comms notifications).
+
+## Domain Events — 58 (10 groups → `HrEventMap`)
+
+| Group        | Count | Events                                                                                                                                                                                                                                                                                                     |
+| ------------ | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Employee     | 4     | `employee:created`, `employee:updated`, `employee:status_changed`, `employee:group_created`                                                                                                                                                                                                                |
+| Attendance   | 5     | `attendance:created`, `attendance:checkin_created`, `attendance:request_created`, `attendance:request_approved`, `attendance:request_rejected`                                                                                                                                                             |
+| Leave        | 6     | `leave:application_submitted`, `leave:application_approved`, `leave:application_rejected`, `leave:application_cancelled`, `leave:allocation_created`, `leave:encashment_requested`                                                                                                                         |
+| Lifecycle    | 9     | `lifecycle:onboarding_started`, `lifecycle:onboarding_completed`, `lifecycle:promotion_requested`, `lifecycle:promotion_approved`, `lifecycle:transfer_requested`, `lifecycle:transfer_approved`, `lifecycle:separation_initiated`, `lifecycle:separation_completed`, `lifecycle:exit_interview_scheduled` |
+| Overtime     | 3     | `overtime:slip_created`, `overtime:slip_approved`, `overtime:slip_rejected`                                                                                                                                                                                                                                |
+| Position     | 7     | `position:created`, `position:updated`, `position:deactivated`, `position:activated`, `position:assigned`, `position:unassigned`, `position:reassigned`                                                                                                                                                    |
+| Setup        | 6     | `setup:department_created`, `setup:department_moved`, `setup:department_head_changed`, `setup:designation_created`, `setup:holiday_list_created`, `setup:settings_updated`                                                                                                                                 |
+| Shift        | 4     | `shift:assignment_created`, `shift:request_created`, `shift:request_approved`, `shift:request_rejected`                                                                                                                                                                                                    |
+| Access       | 8     | `access:user_created`, `access:user_activated`, `access:user_deactivated`, `access:role_created`, `access:role_assigned`, `access:role_revoked`, `access:branch_access_granted`, `access:branch_access_revoked`                                                                                            |
+| Announcement | 6     | `announcement:created`, `announcement:updated`, `announcement:scheduled`, `announcement:published`, `announcement:archived`, `announcement:pinned`                                                                                                                                                         |
 
 ## Command-Query Separation (representative)
 
@@ -147,26 +162,33 @@
 | HR      | Assign employee to role   | `p.hr.position.assignEmployee()`       |
 | HR      | Create HR user            | `p.hr.access.createUser()`             |
 | HR      | Grant branch access       | `p.hr.access.grantBranchAccess()`      |
+| HR      | Create announcement       | `p.hr.announcement.create()`           |
+| HR      | Publish announcement      | `p.hr.announcement.publish()`          |
 
 ### Queries
 
-| Context | Query                    | Method                                   |
-| ------- | ------------------------ | ---------------------------------------- |
-| HR      | Get employee             | `p.hr.employee.getById()`                |
-| HR      | List employees           | `p.hr.employee.list()`                   |
-| HR      | Get organizational chart | `p.hr.employee.getOrganizationalChart()` |
-| HR      | Get org tree             | `p.hr.position.getOrgTree()`             |
-| HR      | Get position history     | `p.hr.position.getPositionHistory()`     |
-| HR      | List leave applications  | `p.hr.leave.listLeaveApplications()`     |
-| HR      | Get leave balance        | `p.hr.leave.getLeaveBalance()`           |
-| HR      | List roles               | `p.hr.access.listRoles()`                |
-| HR      | Get HR settings          | `p.hr.setup.getHrSettings()`             |
+| Context | Query                        | Method                                   |
+| ------- | ---------------------------- | ---------------------------------------- |
+| HR      | Get employee                 | `p.hr.employee.getById()`                |
+| HR      | List employees               | `p.hr.employee.list()`                   |
+| HR      | Get organizational chart     | `p.hr.employee.getOrganizationalChart()` |
+| HR      | Get org tree                 | `p.hr.position.getOrgTree()`             |
+| HR      | Get position history         | `p.hr.position.getPositionHistory()`     |
+| HR      | List leave applications      | `p.hr.leave.listLeaveApplications()`     |
+| HR      | Get leave balance            | `p.hr.leave.getLeaveBalance()`           |
+| HR      | List roles                   | `p.hr.access.listRoles()`                |
+| HR      | Get HR settings              | `p.hr.setup.getHrSettings()`             |
+| HR      | Get announcement stats       | `p.hr.announcement.getStats()`           |
+| HR      | List announcement recipients | `p.hr.announcement.listRecipients()`     |
 
 ## Invariants & Business Rules
 
-1. **Scheduled cron jobs** — `hr:daily-attendance-sync` (`0 1 * * *`) and `hr:daily-leave-accrual` (`0 0 * * *`) are registered in `$prepareRuntime()` and unregistered in `$cleanup()`.
-2. **Schema placement** — 14 setup/access tables live in the control plane (shared across tenants); the 38 operational/transactional tables live in tenant schemas.
+1. **Scheduled cron jobs** — `hr:daily-attendance-sync` (`0 1 * * *`), `hr:daily-leave-accrual` (`0 0 * * *`), and `hr:announcement-scheduler` (`* * * * *`) are registered in `$prepareRuntime()` and unregistered in `$cleanup()`.
+2. **Schema placement** — 14 setup/access tables live in the control plane (shared across tenants); the 40 operational/transactional tables (including `hr_announcement`, `hr_announcement_recipient`) live in tenant schemas.
 3. **Approval workflows** — leave applications, attendance requests, overtime slips, shift requests, promotions, transfers, and separations all follow pending → approved/rejected transitions enforced in workflow.
 4. **Position constraints** — position names unique per department; `reportsToPosition` cycles rejected (max depth 10); assignments capped by `headcount`; one open-ended assignment per (employee, position); unique `isPrimary` among current assignments; delete/deactivate blocked with active assignments.
 5. **Lifecycle reconciliation** — `lifecycle:separation_completed` auto-closes the employee's open-ended position assignments (`toDate = exitDate`) and emits `position:unassigned`; `lifecycle:transfer_approved` surfaces transfer guidance; `lifecycle:promotion_approved` (via `approvePromotion`) syncs `employee.designation`.
 6. **Structure views** — direct reports, subordinates, and peers resolve managers through the position `reportsToPosition` chain (falling back to `employee.reportsTo`); the org chart is a position tree with incumbents.
+7. **Announcement lifecycle** — only `draft`/`scheduled` announcements are editable or deletable; `published` is immutable except pin/archive; publish is idempotent (no duplicate `announcement:published`); scheduling requires `scheduledFor` in the future; archive/restore do not retract delivered comms notifications.
+8. **Announcement delivery** — audiences resolve at publish time and snapshot to `hr_announcement_recipient`; `recipientUserIds` on `announcement:published` are auth user IDs (`hr_user.userId`); employees without an HR user appear in the snapshot only. `departments` targeting includes the department subtree; strong-ref audiences (`employees`, `groups`, `roles`, `individuals`) validate at create time, weak refs (`branches`, `departments`, `designations`) are ignored at publish time.
+9. **Announcement delivery surface** — the in-app inbox, read receipts, and out-of-band delivery are owned by `@aspen-os/comms`; hr produces `announcement:published` only and never reads/writes inbox state (read/acknowledgement stats read `comms_notification` rows directly).

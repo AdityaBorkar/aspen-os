@@ -4,7 +4,15 @@ description: Valibot enum schemas defined in the HR module, grouped by domain.
 icon: IconNumber123
 ---
 
-The HR module defines 26 Valibot enum schemas in `src/schemas/enums.ts`.
+The HR module defines 29 Valibot enum schemas in `src/schemas/enums.ts`.
+
+## Announcement
+
+| Enum                         | Values                                        |
+| ---------------------------- | --------------------------------------------- |
+| `AnnouncementStatusSchema`   | `archived`, `draft`, `published`, `scheduled` |
+| `AnnouncementChannelSchema`  | `custom`, `general`, `hr`                     |
+| `AnnouncementPrioritySchema` | `important`, `normal`, `urgent`               |
 
 ## Employee
 
@@ -67,7 +75,7 @@ The HR module defines 26 Valibot enum schemas in `src/schemas/enums.ts`.
 
 ## Access
 
-| Enum                     | Values                                                              |
-| ------------------------ | ------------------------------------------------------------------- |
-| `AccessLevelSchema`      | `full`, `manage`, `read_only`                                       |
-| `PermissionActionSchema` | `approve`, `create`, `delete`, `manage`, `reject`, `update`, `view` |
+| Enum                     | Values                                                                                    |
+| ------------------------ | ----------------------------------------------------------------------------------------- |
+| `AccessLevelSchema`      | `full`, `manage`, `read_only`                                                             |
+| `PermissionActionSchema` | `approve`, `archive`, `create`, `delete`, `manage`, `publish`, `reject`, `update`, `view` |

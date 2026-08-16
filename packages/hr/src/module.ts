@@ -4,6 +4,7 @@ import { events } from "#/pubsub";
 import { registerReconciliation, unregisterReconciliation } from "#/services/reconciliation";
 import { CRON_SCHEDULES, SCHEDULED_JOBS } from "#/utils/constants";
 import * as access from "#/workflows/barrel-access";
+import * as announcement from "#/workflows/barrel-announcement";
 import * as attendance from "#/workflows/barrel-attendance";
 import * as employee from "#/workflows/barrel-employee";
 import * as leave from "#/workflows/barrel-leave";
@@ -55,6 +56,10 @@ export class Hr implements Module {
     }
 
     await this.#pubsub.schedule({
+      cron: CRON_SCHEDULES.ANNOUNCEMENT_SCHEDULER,
+      topic: SCHEDULED_JOBS.ANNOUNCEMENT_SCHEDULER,
+    });
+    await this.#pubsub.schedule({
       cron: CRON_SCHEDULES.DAILY_ATTENDANCE_SYNC,
       topic: SCHEDULED_JOBS.DAILY_ATTENDANCE_SYNC,
     });
@@ -71,6 +76,7 @@ export class Hr implements Module {
 
   async $cleanup(): Promise<void> {
     if (this.#pubsub) {
+      await this.#pubsub.unschedule(SCHEDULED_JOBS.ANNOUNCEMENT_SCHEDULER);
       await this.#pubsub.unschedule(SCHEDULED_JOBS.DAILY_ATTENDANCE_SYNC);
       await this.#pubsub.unschedule(SCHEDULED_JOBS.DAILY_LEAVE_ACCRUAL);
       await unregisterReconciliation(this.#reconciliationTopics, {
@@ -116,6 +122,23 @@ export class Hr implements Module {
     updateBranchAccess: access.updateBranchAccess,
     updateRole: access.updateRole,
     updateUser: access.updateUser,
+  };
+
+  readonly announcement = {
+    archive: announcement.archiveAnnouncement,
+    cancelSchedule: announcement.cancelScheduleAnnouncement,
+    create: announcement.createAnnouncement,
+    delete: announcement.deleteAnnouncement,
+    getById: announcement.getAnnouncementById,
+    getStats: announcement.getAnnouncementStats,
+    list: announcement.listAnnouncements,
+    listRecipients: announcement.listRecipients,
+    pin: announcement.pinAnnouncement,
+    publish: announcement.publishAnnouncement,
+    restore: announcement.restoreAnnouncement,
+    schedule: announcement.scheduleAnnouncement,
+    unpin: announcement.unpinAnnouncement,
+    update: announcement.updateAnnouncement,
   };
 
   readonly attendance = {

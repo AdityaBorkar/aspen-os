@@ -1,5 +1,6 @@
 export const HR_PERMISSION_MODULE = {
   ACCESS: "access",
+  ANNOUNCEMENT: "announcement",
   ATTENDANCE: "attendance",
   EMPLOYEE: "employee",
   LEAVE: "leave",
@@ -22,9 +23,11 @@ export type AccessLevel = (typeof ACCESS_LEVEL)[keyof typeof ACCESS_LEVEL];
 
 export const PERMISSION_ACTION = {
   APPROVE: "approve",
+  ARCHIVE: "archive",
   CREATE: "create",
   DELETE: "delete",
   MANAGE: "manage",
+  PUBLISH: "publish",
   REJECT: "reject",
   UPDATE: "update",
   VIEW: "view",
@@ -33,11 +36,13 @@ export const PERMISSION_ACTION = {
 export type PermissionAction = (typeof PERMISSION_ACTION)[keyof typeof PERMISSION_ACTION];
 
 export const SCHEDULED_JOBS = {
+  ANNOUNCEMENT_SCHEDULER: "hr:announcement-scheduler",
   DAILY_ATTENDANCE_SYNC: "hr:daily-attendance-sync",
   DAILY_LEAVE_ACCRUAL: "hr:daily-leave-accrual",
 } as const;
 
 export const CRON_SCHEDULES = {
+  ANNOUNCEMENT_SCHEDULER: "* * * * *",
   DAILY_ATTENDANCE_SYNC: "0 1 * * *",
   DAILY_LEAVE_ACCRUAL: "0 0 * * *",
 } as const;

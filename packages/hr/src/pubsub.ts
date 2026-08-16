@@ -425,6 +425,51 @@ export interface AccessBranchAccessRevokedEvent {
   hrUserId: string;
 }
 
+// ─── Announcement Events ─────────────────────────────────────────────────
+
+export const ANNOUNCEMENT_EVENTS = {
+  ARCHIVED: "announcement:archived",
+  CREATED: "announcement:created",
+  PINNED: "announcement:pinned",
+  PUBLISHED: "announcement:published",
+  SCHEDULED: "announcement:scheduled",
+  UPDATED: "announcement:updated",
+} as const;
+
+export interface AnnouncementCreatedEvent {
+  announcement: {
+    channel: string;
+    id: string;
+    status: string;
+    title: string;
+  };
+}
+
+export interface AnnouncementUpdatedEvent {
+  announcement: { id: string };
+  changes: Record<string, JsonValue>;
+}
+
+export interface AnnouncementScheduledEvent {
+  announcementId: string;
+  scheduledFor: string;
+}
+
+export interface AnnouncementPublishedEvent {
+  announcement: { id: string; title: string };
+  recipientUserIds: string[];
+}
+
+export interface AnnouncementArchivedEvent {
+  announcementId: string;
+}
+
+export interface AnnouncementPinnedEvent {
+  announcementId: string;
+  isPinned: boolean;
+  pinnedBy: string;
+}
+
 // ─── Event Maps ───────────────────────────────────────────────────────────
 
 export interface EmployeeEventMap {
@@ -506,6 +551,15 @@ export interface AccessEventMap {
   [ACCESS_EVENTS.USER_DEACTIVATED]: AccessUserDeactivatedEvent;
 }
 
+export interface AnnouncementEventMap {
+  [ANNOUNCEMENT_EVENTS.ARCHIVED]: AnnouncementArchivedEvent;
+  [ANNOUNCEMENT_EVENTS.CREATED]: AnnouncementCreatedEvent;
+  [ANNOUNCEMENT_EVENTS.PINNED]: AnnouncementPinnedEvent;
+  [ANNOUNCEMENT_EVENTS.PUBLISHED]: AnnouncementPublishedEvent;
+  [ANNOUNCEMENT_EVENTS.SCHEDULED]: AnnouncementScheduledEvent;
+  [ANNOUNCEMENT_EVENTS.UPDATED]: AnnouncementUpdatedEvent;
+}
+
 export type HrEventMap = EmployeeEventMap &
   AttendanceEventMap &
   LeaveEventMap &
@@ -514,10 +568,12 @@ export type HrEventMap = EmployeeEventMap &
   PositionEventMap &
   SetupEventMap &
   ShiftEventMap &
-  AccessEventMap;
+  AccessEventMap &
+  AnnouncementEventMap;
 
 export const events = {
   access: ACCESS_EVENTS,
+  announcement: ANNOUNCEMENT_EVENTS,
   attendance: ATTENDANCE_EVENTS,
   employee: EMPLOYEE_EVENTS,
   leave: LEAVE_EVENTS,

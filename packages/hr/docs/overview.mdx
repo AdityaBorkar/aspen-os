@@ -4,7 +4,7 @@ description: Module structure, workflows, and schema layout of the HR domain mod
 icon: IconInfoCircle
 ---
 
-The HR module is a domain module for human resources management covering access control (HR users, RBAC roles), employees, attendance, leave, lifecycle, overtime, shifts, positions, and HR setup.
+The HR module is a domain module for human resources management covering access control (HR users, RBAC roles), employees, attendance, leave, lifecycle, overtime, shifts, positions, announcements, and HR setup.
 
 ## Module Structure
 
@@ -12,18 +12,21 @@ The HR module is a domain module for human resources management covering access 
 packages/hr/src/
   module.ts             # HrModule class: $initialize, $prepareInfra, $prepareRuntime, $cleanup, workflow groups
   index.ts              # Public exports: module class, types, events
-  auth.ts               # defineAcl permission matrix (11 resources)
-  pubsub.ts             # Per-group event constants + typed event maps (9 groups → HrEventMap)
+  auth.ts               # defineAcl permission matrix (12 resources)
+  pubsub.ts             # Per-group event constants + typed event maps (10 groups → HrEventMap)
   types.ts              # Public types re-exported from schemas/ + tree node interfaces
   db-schemas/           # Drizzle table definitions (control-plane + tenant schemas)
     index.ts            # control_plane_schemas + tenant_schemas
+    announcement.ts     # hr_announcement, hr_announcement_recipient (tenant)
     position.ts         # hr_position, hr_position_assignment (tenant)
   schemas/              # Valibot validation schemas (per entity file + index.ts)
   utils/
     constants.ts        # HR_PERMISSION_MODULE, PERMISSION_ACTION, schedules
+    announcement-utils.ts # Audience resolution + recipient snapshot helpers
     position-utils.ts   # Position hierarchy/assignment helpers, manager resolver, tree builders
   workflows/            # Per-action workflow files aggregated by barrel-<group>.ts
     barrel-access.ts
+    barrel-announcement.ts
     barrel-attendance.ts
     barrel-employee.ts
     barrel-leave.ts
@@ -39,23 +42,24 @@ packages/hr/src/
 
 ## Workflows
 
-| Workflow             | Access Path       | Manages                                                                                                 |
-| -------------------- | ----------------- | ------------------------------------------------------------------------------------------------------- |
-| `AccessWorkflow`     | `p.hr.access`     | HR users, RBAC roles, permissions, role-permission and user-role mappings, branch-wise access           |
-| `EmployeeWorkflow`   | `p.hr.employee`   | Employee records, groups, health insurance, skill maps, org chart                                       |
-| `AttendanceWorkflow` | `p.hr.attendance` | Attendance, check-ins, attendance requests                                                              |
-| `LeaveWorkflow`      | `p.hr.leave`      | Leave types, periods, policies, allocations, applications, encashment, block lists, adjustments, ledger |
-| `LifecycleWorkflow`  | `p.hr.lifecycle`  | Onboarding, promotions, transfers, separations, exit interviews, full and final statements              |
-| `OvertimeWorkflow`   | `p.hr.overtime`   | Overtime types and overtime slips                                                                       |
-| `PositionWorkflow`   | `p.hr.position`   | Job positions, position assignments/history, org/position trees, team/direct reports/peers              |
-| `SetupWorkflow`      | `p.hr.setup`      | HR/payroll settings, employment types, departments (tree ops), designations, grades, holiday lists      |
-| `ShiftWorkflow`      | `p.hr.shift`      | Shift types, locations, assignments, requests, schedules, schedule assignments                          |
+| Workflow               | Access Path         | Manages                                                                                                 |
+| ---------------------- | ------------------- | ------------------------------------------------------------------------------------------------------- |
+| `AccessWorkflow`       | `p.hr.access`       | HR users, RBAC roles, permissions, role-permission and user-role mappings, branch-wise access           |
+| `AnnouncementWorkflow` | `p.hr.announcement` | Announcements, audience targeting, scheduling, publishing, pinning, delivery snapshot + stats           |
+| `EmployeeWorkflow`     | `p.hr.employee`     | Employee records, groups, health insurance, skill maps, org chart                                       |
+| `AttendanceWorkflow`   | `p.hr.attendance`   | Attendance, check-ins, attendance requests                                                              |
+| `LeaveWorkflow`        | `p.hr.leave`        | Leave types, periods, policies, allocations, applications, encashment, block lists, adjustments, ledger |
+| `LifecycleWorkflow`    | `p.hr.lifecycle`    | Onboarding, promotions, transfers, separations, exit interviews, full and final statements              |
+| `OvertimeWorkflow`     | `p.hr.overtime`     | Overtime types and overtime slips                                                                       |
+| `PositionWorkflow`     | `p.hr.position`     | Job positions, position assignments/history, org/position trees, team/direct reports/peers              |
+| `SetupWorkflow`        | `p.hr.setup`        | HR/payroll settings, employment types, departments (tree ops), designations, grades, holiday lists      |
+| `ShiftWorkflow`        | `p.hr.shift`        | Shift types, locations, assignments, requests, schedules, schedule assignments                          |
 
 ## Schemas
 
 Validation schemas live in `src/schemas/` and are re-exported from `src/schemas/index.ts`. Each domain file defines `Create*Schema`, `Update*Schema`, and `*FiltersSchema` objects with corresponding `InferOutput` types. Shared pipes (`NameSchema`, `EmployeeIdSchema`, `EmailSchema`, `PhoneSchema`) are in `utils.ts`.
 
 <Callout type="info">
-  The module is conformant: `Hr implements Module`, `$prepareRuntime()` registers the two cron
+  The module is conformant: `Hr implements Module`, `$prepareRuntime()` registers the three cron
   schedules and the lifecycle reconciliation subscriptions, and `$cleanup()` unregisters them.
 </Callout>

@@ -1,10 +1,10 @@
 ---
 title: Workflows
-description: API reference for the 8 workflow classes exposed by the HR module.
+description: API reference for the 10 workflow classes exposed by the HR module.
 icon: IconListCheck
 ---
 
-The HR module exposes 9 workflow classes, each managing a distinct HR domain aggregate.
+The HR module exposes 10 workflow classes, each managing a distinct HR domain aggregate.
 
 ## AccessWorkflow
 
@@ -86,6 +86,48 @@ hasPermission(hrUserId: string, module: string, action: string, branchId?: strin
 - `removeRoleFromUser` optionally scopes removal to a branch
 - `getAccessibleBranches` merges direct branch access with role-based branch grants
 - `getUserPermissions` returns de-duplicated `module:action` pairs from the user's resolved roles
+
+## AnnouncementWorkflow
+
+Access: `p.hr.announcement`
+
+Manages internal-communications announcements: authoring, audience targeting, scheduling, publishing, pinning, and the delivery snapshot.
+
+### Announcement
+
+```ts
+create(input: CreateAnnouncementInput)   // draft, or scheduled when scheduleAt is set
+update(id: string, patch: UpdateAnnouncementInput)
+delete(id: string)
+getById(id: string)                      // + recipientCount
+list(filters?: AnnouncementFilters)      // pinned-first, then newest first
+publish(id: string)                      // idempotent; materializes recipient snapshot, emits announcement:published
+schedule(id: string, scheduledFor: string)
+cancelSchedule(id: string)
+archive(id: string)
+restore(id: string)
+pin(id: string)
+unpin(id: string)
+```
+
+### Delivery Snapshot & Stats
+
+```ts
+listRecipients(announcementId: string, filters?: RecipientListFilters)
+getStats(announcementId: string)
+```
+
+`getStats` returns `{ totalRecipients, deliveredUserCount, employeeOnlyCount, readCount, unreadCount, dismissedCount, acknowledgementCount }` — delivery totals from `hr_announcement_recipient`, read/acknowledgement counts from `comms_notification` rows (`sourceModule: "hr"`, `sourceEntity.type: "announcement"`).
+
+### Business Rules
+
+- Only `draft`/`scheduled` announcements can be edited or deleted; `published` is immutable except pin/archive
+- Publish is idempotent — re-publishing a published announcement returns it without re-emitting `announcement:published`
+- Scheduling requires `scheduledFor` in the future
+- Audiences resolve at publish time and snapshot to `hr_announcement_recipient`; `departments` targeting includes the department subtree
+- Strong-ref audiences (`employees`, `groups`, `roles`, `individuals`) validate unknown IDs at create/update; weak refs (`branches`, `departments`, `designations`) are ignored at publish time
+- `recipientUserIds` on `announcement:published` are auth user IDs (`hr_user.userId`); employees without an HR user appear in the snapshot only
+- The inbox, read receipts, and out-of-band delivery live in `@aspen-os/comms` — hr only produces `announcement:published`
 
 ## EmployeeWorkflow
 

@@ -12,6 +12,7 @@
     "check:types": "tsc -b"
   },
   "dependencies": {
+    "@aspen-os/comms": "workspace:*",
     "@aspen-os/constants": "workspace:*",
     "@aspen-os/platform": "workspace:*",
     "drizzle-kit": "^0.31.10",

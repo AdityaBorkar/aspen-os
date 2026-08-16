@@ -2,7 +2,7 @@
 
 > Scope of Work for the **Announcements** capability of the `@aspen-os/hr` module. Implements internal communications so HR can announce/notify **all or a subset of HR users** (employees and HR users) in the organization.
 
-> **Status — as of August 2026:** Not started. This SOW is the design record; no code exists yet.
+> **Status — as of August 2026:** **Complete.** All four phases executed, gated green, and recorded below.
 
 ## Overview
 
@@ -20,16 +20,16 @@ Announcements are **tenant-scoped operational data** — `hr_announcement` and `
 
 ## Confirmed Decisions
 
-| #   | Decision                          | Outcome                                                                                                                                                                                                                                       |
-| --- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Inbox ownership                   | `p.comms.notifications` (`comms_notification`) is the inbox. hr builds **no** second inbox — `getInbox`/`markRead`/`markUnread`/`dismiss` are not part of this capability.                                                                    |
-| 2   | Recipient table role              | `hr_announcement_recipient` is a **delivery snapshot**: audit of who was notified, delivery totals, and ack correlation. It does not carry read state.                                                                                        |
-| 3   | Read / acknowledgement state      | Lives on `comms_notification` (`status` unread/read/dismissed, `readAt`). hr emits no `announcement:read` event — comms already publishes `comms:notification_read`.                                                                          |
-| 4   | `announcement:published` contract | Payload pinned to comms' `AnnouncementPublishedEventSchema`: `{ announcement: { id, title }, recipientUserIds: string[] }`. `recipientUserIds` are **auth user IDs** (`hr_user.userId`, resolved via the Auth unit) — **not** `hr_user.id`.   |
-| 5   | Employee-only recipients          | Employees with no linked HR user (no auth user) get a snapshot row but no comms notification; `recipientUserIds` contains only recipients with an auth user.                                                                                  |
-| 6   | Permission actions                | `publish` and `archive` are added to `PERMISSION_ACTION` and `permissionActionEnum("hr_permission_action")`; `HR_PERMISSION_MODULE` gains `ANNOUNCEMENT: "announcement"`.                                                                     |
-| 7   | Priority vs comms severity        | Announcement `priority` (`normal`/`important`/`urgent`) matches `NOTIFICATION_SEVERITY` in `@aspen-os/constants`. The comms bridge currently notifies with default severity; propagating priority is a comms-side follow-up (Open Decisions). |
-| 8   | Pinning                           | `isPinned` surfaces at the top of **hr-side announcement lists** only. The comms inbox has no pinned concept (severity → `createdAt` ordering).                                                                                               |
+| #   | Decision                          | Outcome                                                                                                                                                                                                                                                                                                                                                                                            |
+| --- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Inbox ownership                   | ✅ Done — `p.comms.notifications` (`comms_notification`) is the inbox. hr builds **no** second inbox — `getInbox`/`markRead`/`markUnread`/`dismiss` are not part of this capability.                                                                                                                                                                                                               |
+| 2   | Recipient table role              | ✅ Done — `hr_announcement_recipient` is a **delivery snapshot**: audit of who was notified, delivery totals, and ack correlation. It does not carry read state.                                                                                                                                                                                                                                   |
+| 3   | Read / acknowledgement state      | ✅ Done — Lives on `comms_notification` (`status` unread/read/dismissed, `readAt`). hr emits no `announcement:read` event — comms already publishes `comms:notification_read`.                                                                                                                                                                                                                     |
+| 4   | `announcement:published` contract | ✅ Done — Payload pinned to comms' `AnnouncementPublishedEventSchema`: `{ announcement: { id, title }, recipientUserIds: string[] }`. `recipientUserIds` are **auth user IDs** (`hr_user.userId`, resolved via the Auth unit) — **not** `hr_user.id`.                                                                                                                                              |
+| 5   | Employee-only recipients          | ✅ Done — Employees with no linked HR user (no auth user) get a snapshot row but no comms notification; `recipientUserIds` contains only recipients with an auth user.                                                                                                                                                                                                                             |
+| 6   | Permission actions                | ✅ Done — `publish` and `archive` are added to `PERMISSION_ACTION` and `permissionActionEnum("hr_permission_action")`; `HR_PERMISSION_MODULE` gains `ANNOUNCEMENT: "announcement"`.                                                                                                                                                                                                                |
+| 7   | Priority vs comms severity        | ✅ Done — Announcement `priority` (`normal`/`important`/`urgent`) matches `NOTIFICATION_SEVERITY` in `@aspen-os/constants` and is authorable + filterable. Severity propagation stays hr-authoring-only: the `announcement:published` payload is pinned to comms' schema (no priority field), so comms would need to read `hr_announcement` to propagate — deferred (Open Decision 2 alternative). |
+| 8   | Pinning                           | ✅ Done — `isPinned` orders **hr-side announcement lists** first (then `createdAt` desc); pin/unpin workflows record `pinnedBy`. The comms inbox has no pinned concept (severity → `createdAt` ordering).                                                                                                                                                                                          |
 
 ---
 
@@ -290,11 +290,13 @@ No `announcement:read` event — read state is comms' (`comms:notification_read`
 
 ### Phase Sequencing
 
-**Phase 1 — Authoring & publishing**: tables + enums, announcement CRUD + delete, status model (draft/published/archive), general + custom audiences, manual publish with recipient snapshot materialization, `announcement:published` emitting the comms contract; verify comms inbox integration end-to-end.
+**Phase 1 — Authoring & publishing** ✅ **Complete** (gate green: package + root `check:lint`/`check:types`): tables + enums, announcement CRUD + delete, status model (draft/published/archive), general + custom audiences, manual publish with recipient snapshot materialization, `announcement:published` emitting the comms contract; verified the payload validates against comms' `AnnouncementPublishedEventSchema` (end-to-end inbox run deferred — no host app in repo).
 
-**Phase 2 — Scheduling & delivery stats**: `announcement-scheduler` cron, schedule/cancel-schedule, `listRecipients`, `getStats` (delivery totals from the snapshot; acknowledgement from comms notifications).
+**Phase 2 — Scheduling & delivery stats** ✅ **Complete** (gate green: package + root `check:lint`/`check:types`): `hr:announcement-scheduler` (`* * * * *`) scheduled/unscheduled in `$prepareRuntime()`/`$cleanup()` following the existing HR cron pattern, `schedule`/`cancel-schedule`, `listRecipients`, `getStats` (delivery totals from the snapshot; read/acknowledgement counts read from `comms_notification` rows via `@aspen-os/comms` — Open Decision 1 default), and `create(scheduleAt)` support. The publish-due handler is a host obligation (same as the existing daily crons).
 
-**Phase 3 — Targeting depth & polish**: `hr_users`/`roles`/`groups` audiences, department-subtree resolution, pinning, priority flags, filters/search.
+**Phase 3 — Targeting depth & polish** ✅ **Complete** (gate green: package + root `check:lint`/`check:types`): `hr_users`/`roles`/`groups` audiences + strong-ref validation, department-subtree resolution (`expandDepartmentIds` walks `parentDepartment` descendants), pin/unpin workflows + pinned-first list ordering, priority filter, and search/filters (`q`, `isPinned`, `fromDate`, `toDate`, `priority`).
+
+**Phase 4 — Documentation** ✅ **Complete** (gate green: docs `check:types` — fumadocs-mdx + tsc): `domain-model/hr.md` (10th sub-domain "Announcement", new invariants 7–9, event/table/command counts updated), `bounded-contexts/hr.md` (announcement group, `AnnouncementEventMap`, 12th ACL resource, `hr:announcement-scheduler` cron row, comms cross-context row, language), and `packages/hr/docs/*.mdx` (`overview`, `workflows` — `AnnouncementWorkflow` section, `enums`, `index`) via the `write-docs` skill.
 
 ### Estimated Effort (Relative)
 

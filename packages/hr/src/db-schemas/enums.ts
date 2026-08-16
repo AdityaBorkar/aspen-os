@@ -1,3 +1,4 @@
+import { NOTIFICATION_SEVERITY } from "@aspen-os/constants";
 import { pgEnum } from "drizzle-orm/pg-core";
 
 export const employeeStatusEnum = pgEnum("hr_employee_status", [
@@ -154,10 +155,31 @@ export const accessLevelEnum = pgEnum("hr_access_level", ["full", "manage", "rea
 
 export const permissionActionEnum = pgEnum("hr_permission_action", [
   "approve",
+  "archive",
   "create",
   "delete",
   "manage",
+  "publish",
   "reject",
   "update",
   "view",
+]);
+
+export const announcementStatusEnum = pgEnum("hr_announcement_status", [
+  "archived",
+  "draft",
+  "published",
+  "scheduled",
+]);
+
+export const announcementChannelEnum = pgEnum("hr_announcement_channel", [
+  "custom",
+  "general",
+  "hr",
+]);
+
+export const announcementPriorityEnum = pgEnum("hr_announcement_priority", [
+  NOTIFICATION_SEVERITY.IMPORTANT,
+  NOTIFICATION_SEVERITY.NORMAL,
+  NOTIFICATION_SEVERITY.URGENT,
 ]);
