@@ -18,7 +18,6 @@ export {
   AutomationTriggerSchema,
   ProjectMemberRoleSchema,
   ProjectStatusSchema,
-  ReminderTypeSchema,
   SavedViewTypeSchema,
   StatusCategorySchema,
   TaskLinkTypeSchema,
@@ -40,12 +39,6 @@ export {
   UpdateProjectMemberSchema,
   UpdateProjectSchema,
 } from "#/schemas/project";
-export type { CreateReminderInput, ReminderFilters, UpdateReminderInput } from "#/schemas/reminder";
-export {
-  CreateReminderSchema,
-  ReminderFiltersSchema,
-  UpdateReminderSchema,
-} from "#/schemas/reminder";
 export type {
   CreateStatusInput,
   CreateStatusTransitionInput,

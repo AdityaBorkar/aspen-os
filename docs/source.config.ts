@@ -54,11 +54,6 @@ export const masters = defineDocs({
   docs,
 });
 
-export const accounting = defineDocs({
-  dir: `../packages/accounting/docs`,
-  docs,
-});
-
 export const crm = defineDocs({
   dir: `../packages/crm/docs`,
   docs,
@@ -74,11 +69,6 @@ export const inventory = defineDocs({
   docs,
 });
 
-export const pharmacy = defineDocs({
-  dir: `../packages/pharmacy/docs`,
-  docs,
-});
-
 export const reports = defineDocs({
   dir: `../packages/reports/docs`,
   docs,
@@ -91,6 +81,11 @@ export const workspace = defineDocs({
 
 export const notes = defineDocs({
   dir: `../packages/notes/docs`,
+  docs,
+});
+
+export const calendar = defineDocs({
+  dir: `../packages/calendar/docs`,
   docs,
 });
 

@@ -4,7 +4,9 @@ description: Architecture, initialization, and module structure of the Tasks dom
 icon: IconInfoCircle
 ---
 
-The Tasks module manages projects, tasks, statuses, time tracking, comments, attachments, reminders, automation rules, saved views, and dependency graphs.
+The Tasks module manages projects, tasks, statuses, time tracking, comments, attachments, automation rules, saved views, and dependency graphs.
+
+> Task reminders moved to `@aspen-os/calendar` — they are `calendar_reminder` rows with `targetType = task`, materialized by the calendar task bridge from `task:due_date_changed`. This module no longer owns any reminder surface.
 
 ## Module Configuration
 
@@ -16,7 +18,7 @@ const tasks = Tasks.create({
 });
 ```
 
-| `enableNotifications` | `boolean?` | `false` | Configures reminder-based pubsub event publishing |
+| `enableNotifications` | `boolean?` | `false` | Configures `task:*` event publishing via the notification bridge |
 
 ## Initialization
 
@@ -24,48 +26,22 @@ const tasks = Tasks.create({
 $initialize(): void
 ```
 
-The `$initialize()` method is empty. Workflows are flat imported `Workflow` objects aggregated on the class — they are not instantiated per-call. The `enableNotifications` config key is accepted, and the `NotificationBridge` defined in `services/` is not wired into any workflow.
+The `$initialize()` method is empty. Workflows are flat imported `Workflow` objects aggregated on the class — they are not instantiated per-call. The notification bridge in `services/` is wired into the create/update/delete/assign/unassign/comment/link workflows and the status-change path, so `task:*` events actually fire.
 
 ## Module Structure
 
 ```text
 packages/tasks/src/
   index.ts              # Tasks class + type re-exports
-  db-schema.ts          # 17 tables + 8 enums
   types.ts              # Re-exports from schemas/ + domain interfaces
-  pubsub.ts             # 9 task events + 1 reminder event + event maps
-  schemas/              # Valibot input/filter schemas
-    index.ts
-    enums.ts
-    utils.ts
-    project.ts
-    task.ts
-    status.ts
-    task-type.ts
-    time-entry.ts
-    comment.ts
-    link.ts
-    collaboration.ts
-    reminder.ts
-    automation.ts
-  workflows/            # 11 workflow groups
-    project.ts
-    task.ts
-    status.ts
-    task-type.ts
-    time-entry.ts
-    comment.ts
-    link.ts
-    collaboration.ts
-    reminder.ts
-    automation.ts
-    view.ts
-  services/             # 3 service modules
-    report-service.ts
-    notification-bridge.ts
-    dependency-graph.ts
-  utils/
-    filter-engine.ts      # Drizzle query builder used by TaskWorkflow.list()
+  pubsub.ts             # 10 task events + event maps
+  auth.ts               # Empty ACL (defineAcl({}))
+  db-schemas/           # 16 tables + 7 enums (6 control + 10 tenant)
+  schemas/              # Valibot input/filter schemas (one file per entity)
+  workflows/            # One file per action (10 workflow groups)
+  workflow-steps/       # Reusable fetch-* steps
+  services/             # notification-bridge, dependency-graph, report-service
+  utils/                # filter-engine, constants
 ```
 
 ## Accessing Workflows
@@ -79,7 +55,6 @@ p.tasks.timeEntries; // → timeEntries
 p.tasks.comments; // → comments
 p.tasks.links; // → links
 p.tasks.collaboration; // → collaboration
-p.tasks.reminders; // → reminders
 p.tasks.automations; // → automations
 p.tasks.views; // → views
 ```

@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "declarationDir": "../../.local/types/calendar",
+    "paths": {
+      "#/*": ["./src/*"]
+    }
+  },
+  "extends": "../../tsconfig.json"
+}

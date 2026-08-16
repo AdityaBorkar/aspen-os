@@ -1,4 +1,5 @@
 import { taskLink } from "#/db-schemas/task-link";
+import { publishTaskUnlinked } from "#/services/notification-bridge";
 import { IdSchema } from "#/types";
 import { linkTypeInverse } from "#/workflows/utils";
 
@@ -33,4 +34,8 @@ export const deleteTaskLink = Workflow.name("link.delete")
           ),
         );
     }
+
+    await ctx.step.run("notify", async () => {
+      await publishTaskUnlinked({ sourceId, targetId }, { pubsub: ctx.pubsub });
+    });
   });

@@ -1,9 +1,0 @@
-{
-  "compilerOptions": {
-    "declarationDir": "../../.local/types/pharmacy",
-    "paths": {
-      "#/*": ["./src/*"]
-    }
-  },
-  "extends": "../../tsconfig.json"
-}

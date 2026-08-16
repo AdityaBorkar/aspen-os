@@ -54,14 +54,6 @@ export const SAVED_VIEW_TYPE = {
 
 export type SavedViewType = (typeof SAVED_VIEW_TYPE)[keyof typeof SAVED_VIEW_TYPE];
 
-export const REMINDER_TYPE = {
-  CUSTOM: "custom",
-  DUE_DATE: "due_date",
-  OVERDUE: "overdue",
-} as const;
-
-export type ReminderType = (typeof REMINDER_TYPE)[keyof typeof REMINDER_TYPE];
-
 export const AUTOMATION_TRIGGER = {
   ASSIGNMENT_CHANGE: "assignment_change",
   DUE_DATE_PASSED: "due_date_passed",

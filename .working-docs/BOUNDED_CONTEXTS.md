@@ -174,7 +174,8 @@ Domain events are published via PubSub as plain string topics. Event counts by m
 - Masters: 29 events
 - Notes: 3 events
 - Compliance: 23 events
-- Tasks: 10 events
+- Tasks: 10 events (incl. `task:due_date_changed`)
+- Calendar: 13 events (3 calendar + 4 event + 3 attendee + 4 reminder, incl. `calendar:reminder_due`)
 - DMS: 33 events (13 file + 6 folder + 3 class + 3 contact + 2 share + 3 public_link + 3 file_view)
 - Management Plane: 16 events (8 tenant + 4 service_provider + 4 platform_user)
 - HR: 43 events (8 event groups across employee, attendance, leave, lifecycle, overtime, setup, shift, access)
@@ -193,6 +194,9 @@ The Compliance module's `EventBridge` service actively subscribes to events from
 | `organization:branch_created`       | Organization      | Creates trade license + fire safety certificate + annual obligation                       |
 | `accounting:financial_year_started` | Accounting (stub) | Creates monthly GST return obligation                                                     |
 | `masters:contact_created`           | Masters           | Creates insurance policy document (if contact type is insurer and entity is organization) |
+| `task:due_date_changed`             | Tasks             | Calendar task bridge — materializes/cancels the task due-date reminder bundle             |
+| `task:deleted`                      | Tasks             | Calendar task bridge — deletes all task reminders for the task                            |
+| `task:status_changed`               | Tasks             | Calendar task bridge — suppresses pending task reminders on completion/cancellation       |
 
 ### Schema Management
 
@@ -215,19 +219,20 @@ Schemas collected by `DatabaseUnit.prepareWithModules()`: core schemas (`auditSc
 
 ### Scheduled Jobs
 
-Three modules register scheduled cron jobs via PubSub:
+Four modules register scheduled cron jobs via PubSub:
 
-| Module     | Topic                                | Cron         | Action                                               |
-| ---------- | ------------------------------------ | ------------ | ---------------------------------------------------- |
-| Compliance | `compliance:daily-expiry-scan`       | `0 8 * * *`  | Scan expiring documents                              |
-| Compliance | `compliance:daily-status-transition` | `0 0 * * *`  | Transition expired/overdue statuses                  |
-| Compliance | `compliance:daily-escalation`        | `0 9 * * *`  | Escalate past threshold                              |
-| Compliance | `compliance:weekly-summary`          | `0 9 * * 1`  | Generate weekly summary                              |
-| Compliance | `compliance:obligation-generate`     | `0 6 * * *`  | Generate documents from obligations                  |
-| DMS        | `dms:expiry-scan`                    | `5 0 * * *`  | Promote past-due files to expired                    |
-| DMS        | `dms:auto-purge`                     | `30 3 * * *` | Purge trashed/expired files + folders past retention |
-| HR         | `hr:daily-attendance-sync`           | `0 1 * * *`  | Sync daily attendance records                        |
-| HR         | `hr:daily-leave-accrual`             | `0 0 * * *`  | Accrue leave balances                                |
+| Module     | Topic                                | Cron         | Action                                                                                |
+| ---------- | ------------------------------------ | ------------ | ------------------------------------------------------------------------------------- |
+| Compliance | `compliance:daily-expiry-scan`       | `0 8 * * *`  | Scan expiring documents                                                               |
+| Compliance | `compliance:daily-status-transition` | `0 0 * * *`  | Transition expired/overdue statuses                                                   |
+| Compliance | `compliance:daily-escalation`        | `0 9 * * *`  | Escalate past threshold                                                               |
+| Compliance | `compliance:weekly-summary`          | `0 9 * * 1`  | Generate weekly summary                                                               |
+| Compliance | `compliance:obligation-generate`     | `0 6 * * *`  | Generate documents from obligations                                                   |
+| DMS        | `dms:expiry-scan`                    | `5 0 * * *`  | Promote past-due files to expired                                                     |
+| DMS        | `dms:auto-purge`                     | `30 3 * * *` | Purge trashed/expired files + folders past retention                                  |
+| HR         | `hr:daily-attendance-sync`           | `0 1 * * *`  | Sync daily attendance records                                                         |
+| HR         | `hr:daily-leave-accrual`             | `0 0 * * *`  | Accrue leave balances                                                                 |
+| Calendar   | `calendar:reminder-scan`             | `* * * * *`  | Process pending reminders (publish `calendar:reminder_due`, mark sent, schedule next) |
 
 ### Health Check
 
@@ -272,7 +277,8 @@ Three modules register scheduled cron jobs via PubSub:
 | Masters          | Downstream    | Platform, KV Store                            | Compliance, Organization     | 7 workflow groups, 7 tables, 29 events, 7 ACL resources                                   |
 | Notes            | Downstream    | Platform                                      | —                            | 1 workflow group, 1 table, 3 events, 1 ACL resource                                       |
 | Compliance       | Downstream    | Platform, HR, Organization, Fleet, Accounting | —                            | 5 workflow groups, 3 tables, 3 services, subscribes to external events                    |
-| Tasks            | Downstream    | Platform                                      | —                            | 11 workflow groups, 17 tables (6 control + 11 tenant), empty ACL                          |
+| Tasks            | Downstream    | Platform                                      | Calendar                     | 10 workflow groups, 16 tables (6 control + 10 tenant), empty ACL                          |
+| Calendar         | Downstream    | Platform                                      | —                            | 4 workflow groups, 4 tables, 13 events, 4 ACL resources, 1 cron + task bridge             |
 | DMS              | Downstream    | Platform, Storage                             | —                            | 19 workflow groups, 15 tables, 33 events, 12 ACL resources, 2 crons                       |
 | Management Plane | Downstream    | Platform, Organization                        | —                            | 3 workflow groups, 3 owned tables, 0 shadow tables, 16 events, has build step             |
 | HR               | Downstream    | Platform                                      | Compliance                   | ~250 workflow methods in 8 groups, 50 tables (14 control + 36 tenant), 43 events, 2 crons |

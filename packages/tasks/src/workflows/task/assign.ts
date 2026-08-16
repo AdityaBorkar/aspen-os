@@ -1,4 +1,5 @@
 import { taskAssignee } from "#/db-schemas/task-assignee";
+import { publishTaskAssigned } from "#/services/notification-bridge";
 import { AssignTaskSchema } from "#/types";
 import { fetchTaskStep } from "#/workflow-steps/fetch-task";
 import { addActivity, ensureWatcher, unsetLeadAssignee } from "#/workflows/utils";
@@ -38,6 +39,17 @@ export const assignTask = Workflow.name("task.assign")
       oldValue: null,
       taskId: input.taskId,
       userId: input.assignedBy,
+    });
+
+    await ctx.step.run("notify", async () => {
+      await publishTaskAssigned(
+        {
+          assignedBy: input.assignedBy,
+          taskId: input.taskId,
+          userId: input.userId,
+        },
+        { pubsub: ctx.pubsub },
+      );
     });
 
     return result;

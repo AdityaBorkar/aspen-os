@@ -1,10 +1,10 @@
 export type {
-  ReminderFiredEvent,
   TaskAssignedEvent,
   TaskCommentedEvent,
   TaskCreatedEvent,
   TaskDeletedEvent,
   TaskDomainEventMap,
+  TaskDueDateChangedEvent,
   TaskEventMap,
   TaskLinkedEvent,
   TaskStatusChangedEvent,
@@ -13,7 +13,7 @@ export type {
   TaskUnlinkedEvent,
   TaskUpdatedEvent,
 } from "#/pubsub";
-export { REMINDER_EVENTS, TASK_EVENTS } from "#/pubsub";
+export { TASK_EVENTS } from "#/pubsub";
 export type {
   AssignTaskInput,
   BulkUpdateTaskInput,
@@ -23,7 +23,6 @@ export type {
   CreateLabelInput,
   CreateProjectInput,
   CreateProjectMemberInput,
-  CreateReminderInput,
   CreateSavedViewInput,
   CreateStatusInput,
   CreateStatusTransitionInput,
@@ -33,7 +32,6 @@ export type {
   CreateTimeEntryInput,
   CreateWatcherInput,
   ProjectFilters,
-  ReminderFilters,
   TaskFilters,
   TimeEntryFilters,
   UpdateAutomationRuleInput,
@@ -41,7 +39,6 @@ export type {
   UpdateLabelInput,
   UpdateProjectInput,
   UpdateProjectMemberInput,
-  UpdateReminderInput,
   UpdateSavedViewInput,
   UpdateStatusInput,
   UpdateTaskInput,
@@ -57,7 +54,6 @@ export {
   CreateLabelSchema,
   CreateProjectMemberSchema,
   CreateProjectSchema,
-  CreateReminderSchema,
   CreateSavedViewSchema,
   CreateStatusSchema,
   CreateStatusTransitionSchema,
@@ -68,7 +64,6 @@ export {
   CreateWatcherSchema,
   IdSchema,
   ProjectFiltersSchema,
-  ReminderFiltersSchema,
   TaskFiltersSchema,
   TimeEntryFiltersSchema,
   UpdateAutomationRuleSchema,
@@ -76,7 +71,6 @@ export {
   UpdateLabelSchema,
   UpdateProjectMemberSchema,
   UpdateProjectSchema,
-  UpdateReminderSchema,
   UpdateSavedViewSchema,
   UpdateStatusSchema,
   UpdateTaskSchema,

@@ -39,15 +39,6 @@ import { updateProjectMember } from "#/workflows/project/member/update";
 import { listProjectMembers } from "#/workflows/project/members/list";
 import { restoreProject } from "#/workflows/project/restore";
 import { updateProject } from "#/workflows/project/update";
-import { createReminder } from "#/workflows/reminder/create";
-import { deleteReminder } from "#/workflows/reminder/delete";
-import { createDueDateReminders } from "#/workflows/reminder/due-date/create";
-import { getReminder } from "#/workflows/reminder/get";
-import { listReminders } from "#/workflows/reminder/list";
-import { createOverdueReminder } from "#/workflows/reminder/overdue/create";
-import { getPendingReminders } from "#/workflows/reminder/pending/get";
-import { processPendingReminders } from "#/workflows/reminder/pending/process";
-import { updateReminder } from "#/workflows/reminder/update";
 import { createStatus } from "#/workflows/status/create";
 import { deleteStatus } from "#/workflows/status/delete";
 import { getStatus } from "#/workflows/status/get";
@@ -208,18 +199,6 @@ export class Tasks implements Module {
     listTaskTypes,
     updateLabel,
     updateTaskType,
-  };
-
-  readonly reminders = {
-    create: createReminder,
-    createDueDateReminders,
-    createOverdueReminder,
-    delete: deleteReminder,
-    get: getReminder,
-    getPending: getPendingReminders,
-    list: listReminders,
-    processPending: processPendingReminders,
-    update: updateReminder,
   };
 
   readonly automations = {

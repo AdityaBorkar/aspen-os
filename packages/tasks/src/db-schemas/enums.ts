@@ -2,7 +2,6 @@ import {
   AUTOMATION_TRIGGER,
   PROJECT_MEMBER_ROLE,
   PROJECT_STATUS,
-  REMINDER_TYPE,
   SAVED_VIEW_TYPE,
   STATUS_CATEGORY,
   TASK_LINK_TYPE,
@@ -53,12 +52,6 @@ export const savedViewTypeEnum = pgEnum("saved_view_type", [
   SAVED_VIEW_TYPE.BOARD,
   SAVED_VIEW_TYPE.CALENDAR,
   SAVED_VIEW_TYPE.TIMELINE,
-]);
-
-export const reminderTypeEnum = pgEnum("reminder_type", [
-  REMINDER_TYPE.DUE_DATE,
-  REMINDER_TYPE.CUSTOM,
-  REMINDER_TYPE.OVERDUE,
 ]);
 
 export const automationTriggerEnum = pgEnum("automation_trigger", [

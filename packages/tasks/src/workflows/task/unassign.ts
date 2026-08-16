@@ -1,4 +1,5 @@
 import { taskAssignee } from "#/db-schemas/task-assignee";
+import { publishTaskUnassigned } from "#/services/notification-bridge";
 import { IdSchema } from "#/types";
 import { addActivity } from "#/workflows/utils";
 
@@ -19,5 +20,9 @@ export const unassignTask = Workflow.name("task.unassign")
       oldValue: { userId },
       taskId,
       userId,
+    });
+
+    await ctx.step.run("notify", async () => {
+      await publishTaskUnassigned({ taskId, userId }, { pubsub: ctx.pubsub });
     });
   });

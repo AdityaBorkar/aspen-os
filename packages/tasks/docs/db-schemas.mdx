@@ -4,7 +4,7 @@ description: Database tables, enums, and relationships for the Tasks module.
 icon: IconDatabase
 ---
 
-The Tasks module defines 17 tables and 8 enums using Drizzle ORM.
+The Tasks module defines 16 tables and 7 enums using Drizzle ORM.
 
 ## Enums
 
@@ -16,7 +16,6 @@ The Tasks module defines 17 tables and 8 enums using Drizzle ORM.
 | `project_member_role` | `admin`, `member`, `viewer`                                                             |
 | `status_category`     | `backlog`, `unstarted`, `started`, `completed`, `cancelled`                             |
 | `saved_view_type`     | `list`, `board`, `calendar`, `timeline`                                                 |
-| `reminder_type`       | `due_date`, `custom`, `overdue`                                                         |
 | `automation_trigger`  | `status_change`, `assignment_change`, `due_date_passed`, `task_created`, `task_updated` |
 
 ## Tables
@@ -179,22 +178,6 @@ Time tracking entries on tasks.
 | `billable`    | boolean          | Defaults to `false`    |
 | `created_at`  | timestamptz      | Creation timestamp     |
 
-### `task_reminder`
-
-Task reminders with recurring scheduling.
-
-| Column         | Type             | Description                                                                   |
-| -------------- | ---------------- | ----------------------------------------------------------------------------- |
-| `id`           | text (PK)        | UUID                                                                          |
-| `task_id`      | text (FK → task) | Task ID                                                                       |
-| `user_id`      | text             | User ID                                                                       |
-| `type`         | reminder_type    | Reminder type                                                                 |
-| `remind_at`    | timestamptz      | When to fire                                                                  |
-| `message`      | text             | Custom message (nullable)                                                     |
-| `interval`     | text             | Recurrence interval: `daily`, `weekly`, `monthly`, `every_2_hours` (nullable) |
-| `is_recurring` | boolean          | Defaults to `false`                                                           |
-| `is_sent`      | boolean          | Defaults to `false`                                                           |
-
 ### `task_activity_log`
 
 Append-only audit trail for task actions.
@@ -306,7 +289,6 @@ task ──1:N──→ task_assignee
 task ──1:N──→ task_link (source_id)
 task ──1:N──→ task_link (target_id)
 task ──1:N──→ task_time_entry
-task ──1:N──→ task_reminder
 task ──1:N──→ task_activity_log
 task ──1:N──→ task_comment
 task ──1:N──→ task_attachment

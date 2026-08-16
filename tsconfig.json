@@ -27,7 +27,7 @@
   "exclude": ["**/node_modules", "**/.output", "**/.tanstack", "tools/**"],
   "references": [
     { "path": "./docs" },
-    { "path": "./packages/accounting" },
+    { "path": "./packages/calendar" },
     { "path": "./packages/compliance" },
     { "path": "./packages/constants" },
     { "path": "./packages/crm" },
@@ -37,7 +37,6 @@
     { "path": "./packages/hr" },
     { "path": "./packages/inventory" },
     { "path": "./packages/organization" },
-    { "path": "./packages/pharmacy" },
     { "path": "./packages/reports" },
     { "path": "./packages/management" },
     { "path": "./packages/masters" },

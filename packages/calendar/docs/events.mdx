@@ -1,0 +1,100 @@
+---
+title: Events
+description: Domain event map for the Calendar module — 13 events across 4 event groups.
+icon: IconBell
+---
+
+The Calendar module defines 13 domain events in 4 groups. Events are type-level contracts published as plain string topics via PubSub.
+
+## Event Constants
+
+```ts title="src/pubsub.ts"
+export const CALENDAR_EVENTS = {
+  CREATED: "calendar:calendar_created",
+  UPDATED: "calendar:calendar_updated",
+  DELETED: "calendar:calendar_deleted",
+} as const;
+
+export const EVENT_EVENTS = {
+  CREATED: "calendar:event_created",
+  UPDATED: "calendar:event_updated",
+  CANCELLED: "calendar:event_cancelled",
+  DELETED: "calendar:event_deleted",
+} as const;
+
+export const ATTENDEE_EVENTS = {
+  INVITED: "calendar:attendee_invited",
+  UPDATED: "calendar:attendee_updated",
+  REMOVED: "calendar:attendee_removed",
+} as const;
+
+export const REMINDER_EVENTS = {
+  CREATED: "calendar:reminder_created",
+  UPDATED: "calendar:reminder_updated",
+  DELETED: "calendar:reminder_deleted",
+  DUE: "calendar:reminder_due",
+} as const;
+```
+
+## Event Map
+
+### Calendars
+
+| Event                       | Payload                                       | Trigger          |
+| --------------------------- | --------------------------------------------- | ---------------- |
+| `calendar:calendar_created` | `{ calendar: { id, name, access, ownerId } }` | Calendar created |
+| `calendar:calendar_updated` | `{ calendar: { id, name, access, ownerId } }` | Calendar updated |
+| `calendar:calendar_deleted` | `{ calendarId }`                              | Calendar deleted |
+
+### Events
+
+| Event                      | Payload                                                                                            | Trigger         |
+| -------------------------- | -------------------------------------------------------------------------------------------------- | --------------- |
+| `calendar:event_created`   | `{ calendarId, event: { id, title, startsAt, endsAt, calendarId }, sourceType?, sourceEntityId? }` | Event created   |
+| `calendar:event_updated`   | `{ calendarId, event: { id, title, startsAt, endsAt, calendarId }, sourceType?, sourceEntityId? }` | Event updated   |
+| `calendar:event_cancelled` | `{ calendarId, event: { id, title, startsAt, endsAt, calendarId } }`                               | Event cancelled |
+| `calendar:event_deleted`   | `{ calendarId, eventId }`                                                                          | Event deleted   |
+
+`startsAt`/`endsAt` are ISO strings. `sourceType`/`sourceEntityId` are `null` for standalone events.
+
+### Attendees
+
+| Event                       | Payload                                                          | Trigger          |
+| --------------------------- | ---------------------------------------------------------------- | ---------------- |
+| `calendar:attendee_invited` | `{ calendarId, eventId, attendee: { id, email, name, status } }` | Attendee added   |
+| `calendar:attendee_updated` | `{ calendarId, eventId, attendee: { id, email, name, status } }` | Attendee updated |
+| `calendar:attendee_removed` | `{ calendarId, eventId, attendeeId }`                            | Attendee removed |
+
+### Reminders
+
+| Event                       | Payload                                                                                             | Trigger                      |
+| --------------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------- |
+| `calendar:reminder_created` | `{ reminder: { id, type, targetType, targetId, message, channel, userId, isRecurring } }`           | Reminder created             |
+| `calendar:reminder_updated` | `{ reminder: { id, type, targetType, targetId, message, channel, userId, isRecurring }, changes }`  | Reminder updated             |
+| `calendar:reminder_deleted` | `{ reminderId }`                                                                                    | Reminder deleted             |
+| `calendar:reminder_due`     | `{ remindAt, reminder: { id, type, targetType, targetId, message, channel, userId, isRecurring } }` | Reminder dispatcher fired it |
+
+`calendar:reminder_due` carries the **full reminder payload** so hosts can deliver without a follow-up read.
+
+## Usage
+
+### Subscribing to Events
+
+```ts
+await p.pubsub.subscribe("calendar:reminder_due", async (message) => {
+  const { remindAt, reminder } = message.data;
+  // Deliver to reminder.userId (push/email/SMS is a host concern)
+});
+```
+
+<Callout type="warn">
+  The task bridge also subscribes to `task:due_date_changed`, `task:deleted`, and
+  `task:status_changed` (published by `@aspen-os/tasks`) — it materializes and cancels task
+  reminders. If tasks is not installed, those subscriptions silently no-op.
+</Callout>
+
+<Callout type="info">
+  The event map is a type-level contract — it is not enforced at runtime. Workflows publish events
+  as plain string topics. Unsubscribed topics are silently dropped by pg-boss; the health check
+  flags only topics actually published.
+</Callout>

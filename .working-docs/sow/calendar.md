@@ -2,24 +2,24 @@
 
 > Scope of Work to create a new `calendar` module owning the three time-domain surfaces — **calendars** (named, colored collections), **events** (time-boxed entries with recurrence, attendees, timezone, and a polymorphic source link), and **reminders** (the platform's single polymorphic reminder surface) — and to **refactor `@aspen-os/tasks` to stop owning task reminders**, driving task due-date/overdue reminders through `calendar_reminder` rows (`targetType = task`) via an event-driven task bridge.
 
-> **Status — as of Aug 2026:** Not started. This SOW is the design record; no code exists yet.
+> **Status — as of Aug 2026:** **Complete.** Phases 0–7 done. `@aspen-os/calendar` is implemented (calendars/events/attendees/reminders + dispatcher cron + task bridge), the tasks reminder surface was removed and its notification bridge wired, docs + domain records updated, and all gates green.
 
 ## Confirmed Decisions
 
-| #   | Decision               | Outcome                                                                                                                                                                                                                                                                                                                                                                                                |
-| --- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1   | Module identity        | `@aspen-os/calendar`, module `$name = "calendar"` (proxy `p.calendar`), build-step package with a `build` config block, root `tsconfig.json` reference, `docs/source.config.ts` entry. `$dependencies = []`. **Stateful** (workspace schedule-service pattern): `$initialize({ db, pubsub })`; `$prepareRuntime()` registers the reminder dispatcher cron + the task bridge; `$cleanup()` unregisters. |
-| 2   | Reminders are the home | `calendar_reminder` is **polymorphic** (`targetType`/`targetId`). The tasks `task_reminder` table and its reminder workflows/events are **removed**; task reminders become `targetType = task` rows owned by calendar. Compliance's document-expiry scans and workspace's dashboard-delivery crons are **not** touched.                                                                                |
-| 3   | Task integration       | **Event-driven** (compliance EventBridge precedent). Tasks publishes `task:due_date_changed` / `task:deleted` / `task:status_changed`; a calendar-side `services/task-bridge.ts` materializes and cancels due-date reminders. No direct cross-module calls — both modules stay `$dependencies = []` (`$initialize` receives units, not modules).                                                       |
-| 4   | Access model           | `calendar_access` enum `personal`/`global` (workspace vocabulary) on calendars. **Events, attendees, and reminders inherit their calendar's access** (no own access column). Reminders are additionally **recipient-scoped** via `userId`.                                                                                                                                                             |
-| 5   | Recurrence             | Structured jsonb `{ frequency, interval, count?, until?, byDay? }` + a module-local expander (`services/recurrence.ts`); occurrences are **computed on read** (`getOccurrences`/`listOccurrences`), not materialized. No external iCalendar/RRULE dependency in v1. **No per-occurrence exceptions** in v1.                                                                                            |
-| 6   | Reminder dispatcher    | One pg-boss cron topic `calendar:reminder-scan` (e.g. `* * * * *`), registered in `$prepareRuntime()`, running `reminders.processPending`. Replaces today's **host-driven** `p.tasks.reminders.processPending`. Publishes `calendar:reminder_due`, marks `isSent`/`sentAt`, schedules the next occurrence for recurring reminders.                                                                     |
-| 7   | Event source links     | Events carry `sourceType`/`sourceEntityId` (documented `<module>:<entity>` registry, workspace `domain` convention) so tasks/compliance/notes/dms rows can surface as calendar entries without coupling.                                                                                                                                                                                               |
-| 8   | Groups + ACL           | `p.calendar.{calendars, events, attendees, reminders}` — top-level groups, each its own ACL resource; reminder workflows live under `workflows/reminder/*`.                                                                                                                                                                                                                                            |
-| 9   | Tables                 | 4 tenant tables: `calendar_calendar`, `calendar_event`, `calendar_attendee`, `calendar_reminder` (+ 8 pgEnums). `calendar_` prefix, `uuidv7` PKs, timestamptz, conventions per DOMAIN_MODEL.md.                                                                                                                                                                                                        |
-| 10  | Module-local pgEnums   | `calendar_access`, `calendar_event_status`, `calendar_recurrence_frequency`, `calendar_reminder_target`, `calendar_reminder_type`, `calendar_reminder_channel`, `calendar_attendee_type`, `calendar_attendee_status`. No shared-enum promotion in v1.                                                                                                                                                  |
-| 11  | Workspace integration  | Docs-level only: `calendar:event` (and `calendar:reminder`) become documented built-in view domains; calendar entities are linkable from workspace pins/recent. No code coupling.                                                                                                                                                                                                                      |
-| 12  | Tasks event wiring     | Tasks' `services/notification-bridge.ts` is **dead code today** (no workflow calls it; only `reminder:fired` is ever published). The refactor wires task event publication into the task/comment/link/assign workflows (fixing the gap) and adds `task:due_date_changed`.                                                                                                                              |
+| #   | Decision               | Outcome                                                                                                                                                                                                                                                                                                                                                                                                        |
+| --- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Module identity        | `@aspen-os/calendar`, module `$name = "calendar"` (proxy `p.calendar`), build-step package with a `build` config block, root `tsconfig.json` reference, `docs/source.config.ts` entry. `$dependencies = []`. **Stateful** (workspace schedule-service pattern): `$initialize({ db, pubsub })`; `$prepareRuntime()` registers the reminder dispatcher cron + the task bridge; `$cleanup()` unregisters. ✅ Done |
+| 2   | Reminders are the home | `calendar_reminder` is **polymorphic** (`targetType`/`targetId`). The tasks `task_reminder` table and its reminder workflows/events are **removed**; task reminders become `targetType = task` rows owned by calendar. Compliance's document-expiry scans and workspace's dashboard-delivery crons are **not** touched. ✅ Done                                                                                |
+| 3   | Task integration       | **Event-driven** (compliance EventBridge precedent). Tasks publishes `task:due_date_changed` / `task:deleted` / `task:status_changed`; a calendar-side `services/task-bridge.ts` materializes and cancels due-date reminders. No direct cross-module calls — both modules stay `$dependencies = []` (`$initialize` receives units, not modules). ✅ Done                                                       |
+| 4   | Access model           | `calendar_access` enum `personal`/`global` (workspace vocabulary) on calendars. **Events, attendees, and reminders inherit their calendar's access** (no own access column). Reminders are additionally **recipient-scoped** via `userId`. ✅ Done                                                                                                                                                             |
+| 5   | Recurrence             | Structured jsonb `{ frequency, interval, count?, until?, byDay? }` + a module-local expander (`services/recurrence.ts`); occurrences are **computed on read** (`getOccurrences`/`listOccurrences`), not materialized. No external iCalendar/RRULE dependency in v1. **No per-occurrence exceptions** in v1. ✅ Done                                                                                            |
+| 6   | Reminder dispatcher    | One pg-boss cron topic `calendar:reminder-scan` (e.g. `* * * * *`), registered in `$prepareRuntime()`, running `reminders.processPending`. Replaces today's **host-driven** `p.tasks.reminders.processPending`. Publishes `calendar:reminder_due`, marks `isSent`/`sentAt`, schedules the next occurrence for recurring reminders. ✅ Done                                                                     |
+| 7   | Event source links     | Events carry `sourceType`/`sourceEntityId` (documented `<module>:<entity>` registry, workspace `domain` convention) so tasks/compliance/notes/dms rows can surface as calendar entries without coupling. ✅ Done                                                                                                                                                                                               |
+| 8   | Groups + ACL           | `p.calendar.{calendars, events, attendees, reminders}` — top-level groups, each its own ACL resource; reminder workflows live under `workflows/reminder/*`. ✅ Done                                                                                                                                                                                                                                            |
+| 9   | Tables                 | 4 tenant tables: `calendar_calendar`, `calendar_event`, `calendar_attendee`, `calendar_reminder` (+ 8 pgEnums). `calendar_` prefix, `uuidv7` PKs, timestamptz, conventions per DOMAIN_MODEL.md. ✅ Done                                                                                                                                                                                                        |
+| 10  | Module-local pgEnums   | `calendar_access`, `calendar_event_status`, `calendar_recurrence_frequency`, `calendar_reminder_target`, `calendar_reminder_type`, `calendar_reminder_channel`, `calendar_attendee_type`, `calendar_attendee_status`. No shared-enum promotion in v1. ✅ Done                                                                                                                                                  |
+| 11  | Workspace integration  | Docs-level only: `calendar:event` (and `calendar:reminder`) become documented built-in view domains; calendar entities are linkable from workspace pins/recent. No code coupling. ✅ Done                                                                                                                                                                                                                      |
+| 12  | Tasks event wiring     | Tasks' `services/notification-bridge.ts` is **dead code today** (no workflow calls it; only `reminder:fired` is ever published). The refactor wires task event publication into the task/comment/link/assign workflows (fixing the gap) and adds `task:due_date_changed`. ✅ Done                                                                                                                              |
 
 ---
 
@@ -211,28 +211,28 @@ Overdue behavior is folded into the at-due reminder (decision §4): the dispatch
 
 ## 3. Phases
 
-### Phase 0 — Constants & Enums
+### Phase 0 — ✅ Done Constants & Enums
 
 1. `utils/constants.ts`: `CALENDAR_ACCESS`, `EVENT_STATUS`, `RECURRENCE_FREQUENCY`, `REMINDER_TARGET`, `REMINDER_TYPE`, `REMINDER_CHANNEL`, `ATTENDEE_TYPE`, `ATTENDEE_STATUS`, `REMINDER_INTERVAL`, plus `AUDIT_ACTION`/`AUDIT_ENTITY_TYPE` literals (`"calendar:calendar"`-style) for `ctx.audit.write(...)`.
 2. `db-schemas/enums.ts`: the 8 pgEnums from §2.1 (values referencing the constant objects).
 3. Re-run the §1.4 baseline greps — confirm `calendar_*`, `calendar:*`, `p.calendar` clean.
 4. Gate: package `check:types` + `check:lint` (Phase 0 files land in the Phase 1 scaffold).
 
-### Phase 1 — Scaffold `packages/calendar`
+### Phase 1 — ✅ Done Scaffold `packages/calendar`
 
 1. Load the `write-module` skill; scaffold `packages/calendar` on the workspace template (build step + `build` config block, stateful runtime).
 2. Add to root `tsconfig.json` references and `docs/source.config.ts` (calendar docs source).
 3. Implement the four tables, `db-schemas/index.ts` (all `tenant_schemas`, empty `control_plane_schemas`), `schemas/` (valibot `CreateCalendarSchema`/`UpdateCalendarSchema`, `CreateEventSchema`/`UpdateEventSchema` incl. `EventRecurrenceSchema`, `ReminderCreateSchema`/`UpdateReminderSchema`/`ReminderFiltersSchema`, `AttendeeCreateSchema`/`UpdateAttendeeSchema`), `auth.ts`, `pubsub.ts`, `types.ts`, `runtime.ts` (config singleton).
 4. Gate: `bun install`; package `check:lint` + `check:types` + `build`.
 
-### Phase 2 — Calendars
+### Phase 2 — ✅ Done Calendars
 
 1. Workflows: `workflows/calendar/{create,update,get,list,delete,set-default}.ts`.
 2. `services/access-service.ts` — `assertCanAccess(row, actorId)` (`global OR owner`) and `assertCanMutate(row, actorId)` (owner or tenant admin), used by all data groups.
 3. `setDefault` clears prior default per owner; first created calendar auto-defaults.
 4. Gate: package `check:lint` + `check:types`.
 
-### Phase 3 — Events & recurrence
+### Phase 3 — ✅ Done Events & recurrence
 
 1. Workflows: `workflows/event/{create,update,get,list,delete,cancel}.ts`, `workflows/event/{get-occurrences,list-occurrences}.ts`.
 2. `services/recurrence.ts` — `expandOccurrences(event, from, to, limit)` for daily/weekly/monthly/yearly with interval/count/until/byDay.
@@ -240,13 +240,13 @@ Overdue behavior is folded into the at-due reminder (decision §4): the dispatch
 4. `.list()` filters: `calendarId`, `from`/`to` range, `status`, `sourceType`/`sourceEntityId`, `search` (title), access-scoped via the parent calendar.
 5. Gate: package `check:lint` + `check:types`.
 
-### Phase 4 — Attendees
+### Phase 4 — ✅ Done Attendees
 
 1. Workflows: `workflows/attendee/{add,get,list,remove,update}.ts`.
 2. `add` publishes `calendar:attendee_invited`; status transitions per §2.2.
 3. Gate: package `check:lint` + `check:types`.
 
-### Phase 5 — Reminders + dispatcher
+### Phase 5 — ✅ Done Reminders + dispatcher
 
 1. Workflows: `workflows/reminder/{create,update,get,list,delete}.ts`, `workflows/reminder/{get-pending,process-pending}.ts`.
 2. `create` rules per §2.2; `getPending` = `isSent = false AND remindAt <= now` (mirrors the current tasks `pending/get.ts`).
@@ -254,13 +254,13 @@ Overdue behavior is folded into the at-due reminder (decision §4): the dispatch
 4. `module.ts`: `$initialize({ db, pubsub })` stores `#pubsub`/`#db`; `$prepareRuntime()` registers the dispatcher; `$cleanup()` unregisters.
 5. Gate: package `check:lint` + `check:types`.
 
-### Phase 6 — Tasks refactor (both sides)
+### Phase 6 — ✅ Done Tasks refactor (both sides)
 
 1. **Tasks side**: remove the §2.6 surfaces. Add `dueDate` to `TaskCreatedEvent`; add `task:due_date_changed` to `pubsub.ts` + `TaskEventMap`; publish it from `createTask`/`updateTask`; wire the notification-bridge publishers into the task/comment/link/assign workflows.
 2. **Calendar side**: `services/task-bridge.ts` — `registerTaskBridge(deps)` subscribes to `task:due_date_changed`/`task:deleted`/`task:status_changed`; `unregisterTaskBridge` in `$cleanup()`. Due-date bundle upsert per §2.6.
 3. Gate: root `bun run check:lint` && `check:types`; `cd packages/tasks && check:lint && check:types`; `cd packages/calendar && check:lint && check:types && build`.
 
-### Phase 7 — Documentation & Verification
+### Phase 7 — ✅ Done Documentation & Verification
 
 1. Write `packages/calendar/docs/` (overview, workflows, access-control, events, db-schemas) via the `write-docs` skill.
 2. `.working-docs/`: new `domain-model/calendar.md` + `bounded-contexts/calendar.md`; update `domain-model/tasks.md` + `bounded-contexts/tasks.md` (reminders → calendar, 17 → 16 tables, event table gains `task:due_date_changed`, drops `reminder:fired`); `BOUNDED_CONTEXTS.md` context-map table (Tasks row + new Calendar row); `CONTEXT.md` language entries (Calendar, Event, Occurrence, Reminder, Task Bridge — disambiguate from tasks' `calendar` view type and compliance's Reminder Engine); `AGENTS.md` (fully-implemented list, key dirs, current state).

@@ -1,0 +1,136 @@
+---
+title: DB Schemas
+description: Database tables, enums, and relationships for the Calendar module.
+icon: IconDatabase
+---
+
+The Calendar module defines 4 tables and 8 enums using Drizzle ORM. All tables are tenant schemas with the `calendar_` prefix, `uuidv7` primary keys, and timestamptz `created_at`/`updated_at`.
+
+## Enums
+
+| Enum                            | Tables/Columns                        | Values                                         |
+| ------------------------------- | ------------------------------------- | ---------------------------------------------- |
+| `calendar_access`               | `calendar_calendar.access`            | `personal`, `global`                           |
+| `calendar_event_status`         | `calendar_event.status`               | `confirmed`, `tentative`, `cancelled`          |
+| `calendar_recurrence_frequency` | `calendar_event.recurrence.frequency` | `daily`, `weekly`, `monthly`, `yearly`         |
+| `calendar_reminder_target`      | `calendar_reminder.target_type`       | `event`, `task`, `note`, `file`, `custom`      |
+| `calendar_reminder_type`        | `calendar_reminder.type`              | `offset`, `custom`, `due_date`, `overdue`      |
+| `calendar_reminder_channel`     | `calendar_reminder.channel`           | `pubsub`                                       |
+| `calendar_attendee_type`        | `calendar_attendee.attendee_type`     | `user`, `contact`                              |
+| `calendar_attendee_status`      | `calendar_attendee.status`            | `invited`, `accepted`, `declined`, `tentative` |
+
+## Tables
+
+### `calendar_calendar`
+
+A named, colored collection of events. `access` defaults to `personal`; the first calendar a user creates auto-defaults (`is_default`), and `setDefault` clears the owner's other defaults.
+
+| Column        | Type                   | Description                               |
+| ------------- | ---------------------- | ----------------------------------------- |
+| `id`          | text (PK, UUIDv7)      |                                           |
+| `name`        | text (not null)        |                                           |
+| `description` | text                   |                                           |
+| `color`       | text                   | Hex color hint                            |
+| `access`      | calendar_access        | `personal` / `global`, default `personal` |
+| `owner_id`    | text (not null)        | Soft FK → better-auth `user`              |
+| `created_by`  | text (not null)        | Creating actor                            |
+| `updated_by`  | text                   | Last mutating actor                       |
+| `is_default`  | boolean (not null)     | Per `owner_id`, default `false`           |
+| `timezone`    | text (not null)        | IANA tz, default `"UTC"`                  |
+| `created_at`  | timestamptz (not null) | Default `now()`                           |
+| `updated_at`  | timestamptz (not null) | Default `now()`, `$onUpdate`              |
+
+Indexes: `idx_calendar_owner` (`owner_id`), `idx_calendar_access` (`access`).
+
+### `calendar_event`
+
+A time-boxed entry on a calendar. Access is inherited from the parent calendar. Recurrence is a structured jsonb (`EventRecurrenceRow`); occurrences are computed on read, never materialized.
+
+| Column             | Type                   | Description                                                                              |
+| ------------------ | ---------------------- | ---------------------------------------------------------------------------------------- |
+| `id`               | text (PK, UUIDv7)      |                                                                                          |
+| `calendar_id`      | text (not null)        | Soft FK → `calendar_calendar.id`; access inherited                                       |
+| `title`            | text (not null)        |                                                                                          |
+| `description`      | text                   |                                                                                          |
+| `location`         | text                   |                                                                                          |
+| `starts_at`        | timestamptz (not null) |                                                                                          |
+| `ends_at`          | timestamptz            | Required unless `all_day`                                                                |
+| `all_day`          | boolean (not null)     | Default `false`; all-day stores 00:00 in the calendar tz, `ends_at` exclusive next-day   |
+| `status`           | calendar_event_status  | `confirmed` (default) / `tentative` / `cancelled`                                        |
+| `recurrence`       | jsonb                  | `{ frequency, interval, count?, until?, byDay? }` — validated by `EventRecurrenceSchema` |
+| `timezone`         | text                   | IANA; falls back to the calendar tz                                                      |
+| `color`            | text                   | Overrides the calendar color                                                             |
+| `source_type`      | text                   | `<module>:<entity>` registry value (e.g. `tasks:task`)                                   |
+| `source_entity_id` | text                   | Owning row's UUIDv7 id                                                                   |
+| `created_by`       | text (not null)        | Creating actor                                                                           |
+| `created_at`       | timestamptz (not null) | Default `now()`                                                                          |
+| `updated_at`       | timestamptz (not null) | Default `now()`, `$onUpdate`                                                             |
+
+Indexes: `idx_calendar_event_calendar` (`calendar_id`), `idx_calendar_event_starts` (`starts_at`), `idx_calendar_event_source` (`source_type`, `source_entity_id`), `idx_calendar_event_status` (`status`).
+
+### `calendar_attendee`
+
+An invitee on an event. Soft-references a user or masters contact via `attendee_id`, with a denormalized `email`/`name` snapshot.
+
+| Column          | Type                     | Description                                                 |
+| --------------- | ------------------------ | ----------------------------------------------------------- |
+| `id`            | text (PK, UUIDv7)        |                                                             |
+| `event_id`      | text (not null)          | Soft FK → `calendar_event.id`                               |
+| `email`         | text (not null)          |                                                             |
+| `name`          | text                     |                                                             |
+| `attendee_id`   | text                     | Soft ref (user id or masters contact id)                    |
+| `attendee_type` | calendar_attendee_type   | `user` (default) / `contact`                                |
+| `optional`      | boolean (not null)       | Default `false`                                             |
+| `status`        | calendar_attendee_status | `invited` (default) / `accepted` / `declined` / `tentative` |
+| `created_at`    | timestamptz (not null)   | Default `now()`                                             |
+| `updated_at`    | timestamptz (not null)   | Default `now()`, `$onUpdate`                                |
+
+Indexes: `idx_calendar_attendee_event` (`event_id`), `idx_calendar_attendee_email` (`email`).
+
+### `calendar_reminder`
+
+The platform's single polymorphic reminder surface — `target_type`/`target_id` point at any module entity (`event`, `task`, `note`, `file`, or `custom`). Task reminders are `target_type = task` rows created by the task bridge.
+
+| Column           | Type                      | Description                                                     |
+| ---------------- | ------------------------- | --------------------------------------------------------------- |
+| `id`             | text (PK, UUIDv7)         |                                                                 |
+| `target_type`    | calendar_reminder_target  | `event` / `task` / `note` / `file` / `custom`                   |
+| `target_id`      | text (not null)           | Soft ref; free-form or empty for `custom`                       |
+| `type`           | calendar_reminder_type    | `offset` / `custom` / `due_date` / `overdue`                    |
+| `channel`        | calendar_reminder_channel | `pubsub` (the only real channel in v1)                          |
+| `remind_at`      | timestamptz               | Absolute; null until an offset anchor resolves                  |
+| `offset_minutes` | integer                   | For `type = offset`; anchor = target's start/due                |
+| `user_id`        | text (not null)           | Recipient (soft FK → user); access scoping                      |
+| `message`        | text                      |                                                                 |
+| `is_recurring`   | boolean (not null)        | Default `false`                                                 |
+| `interval`       | text                      | `daily` / `weekly` / `monthly` / `every_2_hours` (tasks parity) |
+| `is_sent`        | boolean (not null)        | Default `false`                                                 |
+| `sent_at`        | timestamptz               | Set by the dispatcher                                           |
+| `created_by`     | text (not null)           | Creating actor (or `task-bridge` for bridge-created rows)       |
+| `created_at`     | timestamptz (not null)    | Default `now()`                                                 |
+| `updated_at`     | timestamptz (not null)    | Default `now()`, `$onUpdate`                                    |
+
+Indexes: `idx_calendar_reminder_target` (`target_type`, `target_id`), `idx_calendar_reminder_user` (`user_id`), `idx_calendar_reminder_sent` (`is_sent`), `idx_calendar_reminder_at` (`remind_at`).
+
+## Relationships
+
+```text
+user (better-auth) ──◀── calendar_calendar.owner_id
+                            (soft — no DB-level FK)
+
+calendar_calendar ──1:N──▶ calendar_event.calendar_id
+calendar_event ────1:N──▶ calendar_attendee.event_id
+calendar_event ────1:N──▶ calendar_reminder (target_type = 'event', target_id = event.id)
+
+calendar_reminder.target_type / target_id ──▶ any module entity
+  "task"   → tasks task rows (created by the task bridge)
+  "note"   → notes note rows
+  "file"   → dms file rows
+  "custom" → free-form
+```
+
+<Callout type="info">
+  The task bridge materializes task due-date reminders from `task:due_date_changed` — three rows per
+  recipient (`due − 1d`, `due − 1h`, `due`), all `type = due_date`, `target_type = task`. It deletes
+  pending task reminders on `task:deleted` and on completion/cancellation (`task:status_changed`).
+</Callout>

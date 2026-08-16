@@ -1,6 +1,0 @@
-{
-  "name": "@aspen-os/pharmacy",
-  "imports": {
-    "#/*": "./src/*"
-  }
-}

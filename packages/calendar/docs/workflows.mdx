@@ -1,0 +1,167 @@
+---
+title: Workflows
+description: API reference for the calendar, event, attendee, and reminder workflows.
+icon: IconListCheck
+---
+
+The Calendar module exposes four workflow groups — `calendars`, `events`, `attendees`, `reminders` — as flat `Workflow` objects, accessed via the platform proxy key `p.calendar`.
+
+## Calendars
+
+Access: `p.calendar.calendars`
+
+```ts
+await p.calendar.calendars.create({
+  name: "Personal",
+  access: "personal",
+  timezone: "Asia/Kolkata",
+  color: "#3B82F6",
+});
+await p.calendar.calendars.setDefault({ id });
+await p.calendar.calendars.get({ id });
+await p.calendar.calendars.update({
+  id,
+  input: { name: "Work", access: "global", isDefault: true },
+});
+await p.calendar.calendars.delete({ id });
+const calendars = await p.calendar.calendars.list({
+  filters: { access: "global", search: "Personal", limit: 50, offset: 0 },
+});
+```
+
+The first calendar a user creates auto-defaults; `setDefault` (or `update` with `isDefault: true`) clears `isDefault` on the owner's other calendars. All reads are access-scoped (`access = 'global' OR ownerId = actorId`); mutation requires the owner or a tenant admin.
+
+## Events
+
+Access: `p.calendar.events`
+
+```ts
+await p.calendar.events.create({
+  calendarId,
+  title: "Sync",
+  startsAt: new Date("2026-09-01T10:00:00Z"),
+  endsAt: new Date("2026-09-01T11:00:00Z"),
+  location: "HQ",
+  recurrence: { frequency: "weekly", interval: 1, byDay: ["MO", "WE"] },
+  sourceType: "tasks:task",
+  sourceEntityId: taskId,
+});
+await p.calendar.events.get({ id });
+await p.calendar.events.cancel({ id });
+await p.calendar.events.update({
+  id,
+  input: { startsAt: new Date("2026-09-01T11:00:00Z") },
+});
+await p.calendar.events.delete({ id });
+```
+
+### Recurrence & Occurrences
+
+Recurrence is validated by `EventRecurrenceSchema` — `count`/`until` are mutually exclusive, `byDay` is weekly-only. Occurrences are computed on read:
+
+```ts
+const occurrences = await p.calendar.events.getOccurrences({
+  id,
+  query: { from: new Date("2026-09-01"), to: new Date("2026-10-01"), limit: 100 },
+});
+const all = await p.calendar.events.listOccurrences({
+  filters: { calendarId },
+  query: { from, to },
+});
+```
+
+### Listing
+
+`list` filters by an access-scoped default (events whose calendar is `global` or owned by the actor) plus optional filters:
+
+```ts
+const events = await p.calendar.events.list({
+  filters: {
+    calendarId,
+    from, // startsAt >= from
+    to, // startsAt <= to
+    status: "confirmed",
+    sourceType: "tasks:task",
+    sourceEntityId: taskId,
+    search: "Sync", // ilike on title
+    limit: 50,
+    offset: 0,
+  },
+});
+```
+
+### Rules
+
+- `create`/`update` enforce `startsAt < endsAt` unless `allDay` (all-day events store midnight in the calendar timezone; `endsAt` is the exclusive next-day boundary).
+- `sourceType` must match `<module>:<entity>`; setting it requires `sourceEntityId`.
+- `update` **re-anchors** `type = offset` reminders on the event (`remindAt = startsAt − offsetMinutes`).
+- `cancel` soft-sets status `cancelled`. Events inherit their calendar's access.
+
+## Attendees
+
+Access: `p.calendar.attendees`
+
+```ts
+await p.calendar.attendees.add({
+  eventId,
+  email: "candidate@example.com",
+  name: "Jane",
+  attendeeType: "contact",
+  optional: false,
+  status: "invited",
+});
+await p.calendar.attendees.get({ id });
+await p.calendar.attendees.update({ id, input: { status: "accepted" } });
+await p.calendar.attendees.remove({ id });
+const attendees = await p.calendar.attendees.list({
+  filters: { eventId, status: "accepted", limit: 50, offset: 0 },
+});
+```
+
+`add` publishes `calendar:attendee_invited`; status transitions follow `invited → accepted/declined/tentative`. Attendees inherit the event's calendar access.
+
+## Reminders
+
+Access: `p.calendar.reminders`
+
+```ts
+await p.calendar.reminders.create({
+  targetType: "event",
+  targetId: eventId,
+  type: "offset",
+  offsetMinutes: 30, // remindAt = event.startsAt − 30min
+  userId,
+});
+await p.calendar.reminders.create({
+  targetType: "task",
+  targetId: taskId,
+  type: "due_date",
+  remindAt: dueDate,
+  userId,
+});
+await p.calendar.reminders.get({ id });
+await p.calendar.reminders.update({ id, input: { remindAt, message: "…" } });
+await p.calendar.reminders.delete({ id });
+const reminders = await p.calendar.reminders.list({
+  filters: { targetType: "task", targetId: taskId, isSent: false },
+});
+```
+
+### Type rules
+
+| Type       | Requirements                                                                                                                                      |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `offset`   | `offsetMinutes` required. For `targetType = event`, `remindAt` resolves from the event start; otherwise a caller-supplied `remindAt` is required. |
+| `custom`   | `remindAt` required                                                                                                                               |
+| `due_date` | `remindAt` required (the task bridge creates these from `task:due_date_changed`)                                                                  |
+| `overdue`  | `remindAt` required (hosts check task state on delivery — the dispatcher fires it regardless)                                                     |
+
+`targetId` is required unless `targetType = custom`. Reminders are visible to the recipient or (for event-targeted reminders) to anyone with calendar access.
+
+### Dispatcher
+
+`getPending` returns `isSent = false AND remindAt <= now`. `processPending` publishes `calendar:reminder_due` (full reminder payload), marks `isSent`/`sentAt`, and schedules the next occurrence for `isRecurring` reminders (intervals `daily`/`weekly`/`monthly`/`yearly`/`every_2_hours`). The module's `$prepareRuntime()` registers the `calendar:reminder-scan` cron (`* * * * *` by default) which runs `processPending` — no host cron needed.
+
+## Conventions
+
+All workflow methods are `Workflow.name(...)` instances with Valibot input validation. `create` takes `{ input: <Create>Schema }`; `update` takes `{ id, input: <Update>Schema }`; `get`/`delete`/`cancel`/`setDefault` take `{ id }` (occurrences add an optional `query`). Every action writes an audit entry (via `ctx.audit`) and publishes a `calendar:*` event.

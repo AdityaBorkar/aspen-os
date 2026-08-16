@@ -1,4 +1,5 @@
 import { task } from "#/db-schemas/task";
+import { publishTaskCreated, publishTaskDueDateChanged } from "#/services/notification-bridge";
 import { CreateTaskSchema } from "#/types";
 import { addActivity, generateTaskNumber, validateParentTask } from "#/workflows/utils";
 
@@ -55,6 +56,32 @@ export const createTask = Workflow.name("task.create")
       oldValue: null,
       taskId: result.id,
       userId: result.reporterId,
+    });
+
+    await ctx.step.run("notify", async () => {
+      await publishTaskCreated(
+        {
+          dueDate: result.dueDate ? result.dueDate.toISOString() : null,
+          task: {
+            id: result.id,
+            number: result.number,
+            projectId: result.projectId,
+            title: result.title,
+          },
+        },
+        { pubsub: ctx.pubsub },
+      );
+
+      if (result.dueDate) {
+        await publishTaskDueDateChanged(
+          {
+            dueDate: result.dueDate.toISOString(),
+            taskId: result.id,
+            userIds: [result.reporterId],
+          },
+          { pubsub: ctx.pubsub },
+        );
+      }
     });
 
     return result;

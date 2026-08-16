@@ -1,9 +1,0 @@
-{
-  "compilerOptions": {
-    "declarationDir": "../../.local/types/accounting",
-    "paths": {
-      "#/*": ["./src/*"]
-    }
-  },
-  "extends": "../../tsconfig.json"
-}

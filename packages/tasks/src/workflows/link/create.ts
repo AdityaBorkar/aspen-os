@@ -1,5 +1,6 @@
 import { taskLink } from "#/db-schemas/task-link";
 import { wouldCreateCycle } from "#/services/dependency-graph";
+import { publishTaskLinked } from "#/services/notification-bridge";
 import { CreateTaskLinkSchema } from "#/types";
 import type { TaskLinkType } from "#/utils/constants";
 import { linkTypeInverse } from "#/workflows/utils";
@@ -93,6 +94,17 @@ export const createTaskLink = Workflow.name("link.create")
         targetId: input.sourceId,
       });
     }
+
+    await ctx.step.run("notify", async () => {
+      await publishTaskLinked(
+        {
+          linkType: input.linkType,
+          sourceId: input.sourceId,
+          targetId: input.targetId,
+        },
+        { pubsub: ctx.pubsub },
+      );
+    });
 
     return result;
   });

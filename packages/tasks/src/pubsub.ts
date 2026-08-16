@@ -5,6 +5,7 @@ export const TASK_EVENTS = {
   COMMENTED: "task:commented",
   CREATED: "task:created",
   DELETED: "task:deleted",
+  DUE_DATE_CHANGED: "task:due_date_changed",
   LINKED: "task:linked",
   STATUS_CHANGED: "task:status_changed",
   UNASSIGNED: "task:unassigned",
@@ -12,16 +13,12 @@ export const TASK_EVENTS = {
   UPDATED: "task:updated",
 } as const;
 
-export const REMINDER_EVENTS = {
-  FIRED: "reminder:fired",
-} as const;
-
 export const events = {
-  REMINDER_EVENTS,
   TASK_EVENTS,
 };
 
 export interface TaskCreatedEvent {
+  dueDate: string | null;
   task: { id: string; number: string | null; projectId: string; title: string };
 }
 
@@ -72,9 +69,10 @@ export interface TaskTimeLoggedEvent {
   timeEntry: { duration: number; id: string; userId: string };
 }
 
-export interface ReminderFiredEvent {
-  reminder: { id: string; type: string; userId: string };
+export interface TaskDueDateChangedEvent {
+  dueDate: string | null;
   taskId: string;
+  userIds: string[];
 }
 
 export interface TaskEventMap {
@@ -82,6 +80,7 @@ export interface TaskEventMap {
   [TASK_EVENTS.COMMENTED]: TaskCommentedEvent;
   [TASK_EVENTS.CREATED]: TaskCreatedEvent;
   [TASK_EVENTS.DELETED]: TaskDeletedEvent;
+  [TASK_EVENTS.DUE_DATE_CHANGED]: TaskDueDateChangedEvent;
   [TASK_EVENTS.LINKED]: TaskLinkedEvent;
   [TASK_EVENTS.STATUS_CHANGED]: TaskStatusChangedEvent;
   [TASK_EVENTS.UNASSIGNED]: TaskUnassignedEvent;
@@ -89,8 +88,4 @@ export interface TaskEventMap {
   [TASK_EVENTS.UPDATED]: TaskUpdatedEvent;
 }
 
-export interface ReminderEventMap {
-  [REMINDER_EVENTS.FIRED]: ReminderFiredEvent;
-}
-
-export type TaskDomainEventMap = TaskEventMap & ReminderEventMap;
+export type TaskDomainEventMap = TaskEventMap;

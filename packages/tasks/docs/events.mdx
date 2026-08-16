@@ -1,10 +1,10 @@
 ---
 title: Events
-description: Domain event map for the Tasks module — 9 task events and 1 reminder event.
+description: Domain event map for the Tasks module — 10 task events.
 icon: IconBell
 ---
 
-The Tasks module defines 9 task events and 1 reminder event published as plain string topics via PubSub.
+The Tasks module defines 10 task events published as plain string topics via PubSub.
 
 ## Event Constants
 
@@ -14,32 +14,31 @@ export const TASK_EVENTS = {
   COMMENTED: "task:commented",
   CREATED: "task:created",
   DELETED: "task:deleted",
+  DUE_DATE_CHANGED: "task:due_date_changed",
   LINKED: "task:linked",
   STATUS_CHANGED: "task:status_changed",
   UNASSIGNED: "task:unassigned",
   UNLINKED: "task:unlinked",
   UPDATED: "task:updated",
 } as const;
-
-export const REMINDER_EVENTS = {
-  FIRED: "reminder:fired",
-} as const;
 ```
 
 ## Event Map
 
-| Event                 | Payload                                                     | Trigger                                           |
-| --------------------- | ----------------------------------------------------------- | ------------------------------------------------- |
-| `task:created`        | `{ task: { id, number, projectId, title } }`                | Task created                                      |
-| `task:updated`        | `{ task: { id, title }, changes: Record<string, unknown> }` | Task updated                                      |
-| `task:deleted`        | `{ taskId }`                                                | Task deleted                                      |
-| `task:status_changed` | `{ task: { id, title }, fromStatus, toStatus }`             | Task status changed                               |
-| `task:assigned`       | `{ taskId, userId, assignedBy }`                            | User assigned to task                             |
-| `task:unassigned`     | `{ taskId, userId }`                                        | User unassigned from task                         |
-| `task:linked`         | `{ sourceId, targetId, linkType }`                          | Task link created                                 |
-| `task:unlinked`       | `{ sourceId, targetId }`                                    | Task link deleted                                 |
-| `task:commented`      | `{ taskId, comment: { id, body } }`                         | Comment added to task                             |
-| `reminder:fired`      | `{ taskId, reminder: { id, type, userId } }`                | Reminder processed by `processPendingReminders()` |
+| Event                   | Payload                                                     | Trigger                           |
+| ----------------------- | ----------------------------------------------------------- | --------------------------------- |
+| `task:created`          | `{ task: { id, number, projectId, title }, dueDate }`       | Task created                      |
+| `task:updated`          | `{ task: { id, title }, changes: Record<string, unknown> }` | Task updated                      |
+| `task:deleted`          | `{ taskId }`                                                | Task deleted                      |
+| `task:status_changed`   | `{ task: { id, title }, fromStatus, toStatus }`             | Task status changed               |
+| `task:assigned`         | `{ taskId, userId, assignedBy }`                            | User assigned to task             |
+| `task:unassigned`       | `{ taskId, userId }`                                        | User unassigned from task         |
+| `task:linked`           | `{ sourceId, targetId, linkType }`                          | Task link created                 |
+| `task:unlinked`         | `{ sourceId, targetId }`                                    | Task link deleted                 |
+| `task:commented`        | `{ taskId, comment: { id, body } }`                         | Comment added to task             |
+| `task:due_date_changed` | `{ taskId, dueDate, userIds }`                              | Task due date set/changed/cleared |
+
+`task:due_date_changed` (`userIds` = assignees ∪ reporter) is consumed by the `@aspen-os/calendar` task bridge to materialize/cancel task reminders. The former `reminder:fired` event was removed with the reminder surface — reminders now fire `calendar:reminder_due` from the calendar dispatcher.
 
 ## Usage
 
@@ -50,16 +49,16 @@ await p.pubsub.subscribe("task:created", async (message) => {
   // React to new task
 });
 
-// Subscribe to reminder firing
-await p.pubsub.subscribe("reminder:fired", async (message) => {
-  const { taskId, reminder } = message.data;
-  // Send notification to reminder.userId
+// Subscribe to due date changes
+await p.pubsub.subscribe("task:due_date_changed", async (message) => {
+  const { taskId, dueDate, userIds } = message.data;
+  // Calendar's task bridge materializes reminders here
 });
 ```
 
 <Callout type="info">
   The event map (`TaskDomainEventMap`) is a type-level contract. Events are published as plain
   string topics via PubSub — the map provides TypeScript inference for subscribers but does not
-  enforce topics at runtime. The reminder workflow publishes `reminder:fired` directly via
-  `ctx.pubsub.publish()`.
+  enforce topics at runtime. Unsubscribed topics are silently dropped by pg-boss; the health check
+  flags only topics actually published.
 </Callout>

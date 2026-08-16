@@ -1,10 +1,10 @@
-import { REMINDER_EVENTS, TASK_EVENTS } from "#/pubsub";
+import { TASK_EVENTS } from "#/pubsub";
 import type {
-  ReminderFiredEvent,
   TaskAssignedEvent,
   TaskCommentedEvent,
   TaskCreatedEvent,
   TaskDeletedEvent,
+  TaskDueDateChangedEvent,
   TaskLinkedEvent,
   TaskStatusChangedEvent,
   TaskUnassignedEvent,
@@ -81,9 +81,9 @@ export async function publishTaskCommented(
   await pubsub.publish(TASK_EVENTS.COMMENTED, { ...event });
 }
 
-export async function publishReminderFired(
-  event: ReminderFiredEvent,
+export async function publishTaskDueDateChanged(
+  event: TaskDueDateChangedEvent,
   { pubsub }: NotificationBridgeDeps,
 ): Promise<void> {
-  await pubsub.publish(REMINDER_EVENTS.FIRED, { ...event });
+  await pubsub.publish(TASK_EVENTS.DUE_DATE_CHANGED, { ...event });
 }

@@ -323,7 +323,7 @@ A logged time record on a task with `duration` (minutes), `date`, `description`,
 _Avoid_: Timesheet, Time Log
 
 **Task Reminder**:
-A time-bound follow-up on a task with `type` (due_date/custom/overdue), `remindAt`, `isRecurring`, `interval` (daily/weekly/monthly/every_2_hours), `isSent`, `userId`.
+A time-bound follow-up on a task with `type` (due_date/custom/overdue), `remindAt`, `isRecurring`, `interval` (daily/weekly/monthly/every_2_hours), `isSent`, `userId`. **Moved to `@aspen-os/calendar`** — task reminders are now `calendar_reminder` rows with `targetType = task`, materialized by the calendar task bridge from `task:due_date_changed`.
 _Avoid_: Alert, Notification
 
 **Watcher**:
@@ -333,6 +333,32 @@ _Avoid_: Subscriber, Follower
 **Activity Log**:
 An append-only record of task actions: `task_created`, `task_updated`, `status_changed`, `assignee_added`, `assignee_removed`. Has `oldValue`, `newValue` (jsonb), `userId`, `taskId`.
 _Avoid_: Audit Trail, Change History
+
+### Calendar Domain
+
+**Calendar**:
+A named, colored collection of events with `access` (`personal`/`global`, workspace vocabulary), `ownerId`, `timezone`, and a per-owner `isDefault` flag. The first calendar a user creates auto-defaults; `setDefault` clears the owner's other defaults. Events, attendees, and reminders inherit their calendar's access.
+_Avoid_: "Calendar" as a render mode (tasks' `savedViewTypeEnum` value `calendar` is a view type, unrelated); Agenda
+
+**Event**:
+A time-boxed calendar entry — `title`, `startsAt`/`endsAt` (timestamptz; `startsAt < endsAt` unless `allDay`), `status` (`confirmed`/`tentative`/`cancelled`), optional `location`/`description`/`color`/`timezone`, an optional `recurrence` config, and an optional polymorphic `(sourceType, sourceEntityId)` link (`<module>:<entity>` registry, workspace `domain` convention). Recurrence is structured jsonb expanded on read by `services/recurrence.ts` — occurrences are never materialized, and there are no per-occurrence exceptions in v1.
+_Avoid_: Appointment, Meeting (implementation terms)
+
+**Occurrence**:
+A computed-on-read expansion of an event's recurrence within a `[from, to]` range: `{ id, eventId, startsAt, endsAt, title, location, status, calendarId }`. Non-recurring events yield their single occurrence. `count`/`until` bound the series; unbounded series are capped by the query `limit`.
+_Avoid_: Instance, Exception (v1 has no per-occurrence divergence)
+
+**Attendee**:
+An invitee on an event — `email` + optional `name`/`attendeeId`/`attendeeType` (`user`/`contact`), `optional`, and a `status` (`invited`/`accepted`/`declined`/`tentative`). `add` publishes `calendar:attendee_invited`.
+_Avoid_: Participant, Guest (implementation terms)
+
+**Reminder**:
+The platform's single polymorphic reminder surface — `calendar_reminder` rows with `targetType` (`event`/`task`/`note`/`file`/`custom`) and `targetId`. `type` is `offset` (resolved against the target's start/due anchor), `custom`/`due_date`/`overdue` (absolute `remindAt`). Recipient-scoped via `userId`; delivered by the module's dispatcher cron, which publishes `calendar:reminder_due` (full payload) and marks `isSent`. Task reminders are `targetType = task` rows created by the task bridge.
+_Avoid_: Alert, Notification, "Reminder Engine" (compliance's document-expiry scanner is a separate, out-of-scope surface)
+
+**Task Bridge**:
+A calendar-side service (`services/task-bridge.ts`) that subscribes to `task:due_date_changed`/`task:deleted`/`task:status_changed` and materializes/cancels task due-date reminders — three `due_date` rows per recipient (due − 1d, due − 1h, due; `userIds` = assignees ∪ reporter), deletion on task delete, suppression on completion/cancellation. Event-driven, so both modules stay `$dependencies = []`.
+_Avoid_: Event Listener (compliance's EventBridge is the general pattern; Task Bridge is the calendar-specific consumer)
 
 ### HR Domain
 

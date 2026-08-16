@@ -1,6 +1,6 @@
 # Tasks Domain Model
 
-> Package: `@aspen-os/tasks`. Projects, tasks, statuses, comments, links, time entries, reminders, saved views, and automation rules. 17 tables — 6 control-plane (global config) + 11 tenant (operational).
+> Package: `@aspen-os/tasks`. Projects, tasks, statuses, comments, links, time entries, saved views, and automation rules. 16 tables — 6 control-plane (global config) + 10 tenant (operational). Task reminders now live in `@aspen-os/calendar` (`targetType = task`), driven by `task:due_date_changed`.
 
 ## Entity-Relationship Diagram
 
@@ -49,16 +49,14 @@
 │         │                    └──────────────┘  │ sort/groupBy  │     │
 │         │                                      └──────────────┘     │
 │         │                                                           │
-│         │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│         │  │ AutomationRule│  │ Reminder     │  │ Watcher      │     │
-│         │  │ projectId    │  │ taskId (FK)  │  │ taskId (FK)  │     │
-│         │  │ trigger      │  │ userId       │  │ userId       │     │
-│         │  │ conditions   │  │ remindAt     │  └──────────────┘     │
-│         │  │ actions      │  │ type         │                       │
-│         │  │ isActive     │  └──────────────┘                       │
-│         │  └──────────────┘  ┌──────────────┐                       │
-│         │                    │ Attachment   │  ┌──────────────┐     │
-│         │                    │ taskId (FK)  │  │ ActivityLog  │     │
+│         │  ┌──────────────┐  ┌──────────────┐                      │
+│         │  │ AutomationRule│  │ Watcher      │                      │
+│         │  │ projectId    │  │ taskId (FK)  │                      │
+│         │  │ trigger      │  │ userId       │                      │
+│         │  │ conditions   │  └──────────────┘                      │
+│         │  │ actions      │  ┌──────────────┐                      │
+│         │  │ isActive     │  │ Attachment   │  ┌──────────────┐     │
+│         │  └──────────────┘  │ taskId (FK)  │  │ ActivityLog  │     │
 │         │                    └──────────────┘  │ taskId (FK)  │     │
 │         │                                      └──────────────┘     │
 │         └──────────────────────────────────────────────────────────  │
@@ -100,7 +98,7 @@
 
 **Lifecycle commands** (via `p.tasks.tasks`): `create(input)`, `update(id, patch)`, `delete(id)`, `archive(id)` / `restore(id)`, `bulkUpdate(input)`, `get(id)`, `list(filters?)`, `getSubTasks(parentId)`, `getCompletionSummary(parentId)`, `assign(input)`, `unassign(taskId, userId)`, `getAssignees(taskId)`, `getLoggedHours(taskId)`.
 
-**Relationships**: Belongs to `Project` (N:1); has one `TaskStatus` (N:1); optionally has one `TaskType` (N:1); self-referential `parentId` for sub-tasks (max 3 levels); has many `TaskAssignee`, `Comment`, `TaskLink`, `TimeEntry`, `Reminder`, `Watcher`, `ActivityLog`, `Attachment` (1:N each).
+**Relationships**: Belongs to `Project` (N:1); has one `TaskStatus` (N:1); optionally has one `TaskType` (N:1); self-referential `parentId` for sub-tasks (max 3 levels); has many `TaskAssignee`, `Comment`, `TaskLink`, `TimeEntry`, `Watcher`, `ActivityLog`, `Attachment` (1:N each). Task reminders live in `@aspen-os/calendar` (`targetType = task`).
 
 ### Supporting entities
 
@@ -109,7 +107,6 @@
 - **Saved View**: reusable `{ name, type (list/board/calendar/timeline), filters (jsonb), sort (jsonb), groupBy, isShared, isDefault }`, owned by a user, optionally project-scoped.
 - **Automation Rule**: trigger-action rule `{ trigger (status_change/assignment_change/due_date_passed/task_created/task_updated), conditions (jsonb), actions (jsonb), isActive }`, evaluated by the automation workflows.
 - **Time Entry**: `{ taskId, userId, duration (minutes), date, description, billable }`.
-- **Reminder**: `{ taskId, userId, type (due_date/custom/overdue), remindAt, isRecurring, interval, isSent }`.
 - **Watcher**: user subscribed to task updates.
 - **Activity Log**: append-only `{ taskId, userId, action, oldValue (jsonb), newValue (jsonb) }`.
 - **Comment**: threaded via `parentId`; supports attachments.
@@ -117,18 +114,20 @@
 
 ## Domain Events — 10
 
-| Event                 | Payload                                         | Trigger                   |
-| --------------------- | ----------------------------------------------- | ------------------------- |
-| `task:created`        | `{ task: { id, number, projectId, title } }`    | Task created              |
-| `task:updated`        | `{ task: { id, title }, changes }`              | Task updated              |
-| `task:deleted`        | `{ taskId }`                                    | Task deleted              |
-| `task:status_changed` | `{ task: { id, title }, fromStatus, toStatus }` | Task status changed       |
-| `task:assigned`       | `{ taskId, userId, assignedBy }`                | User assigned to task     |
-| `task:unassigned`     | `{ taskId, userId }`                            | User unassigned from task |
-| `task:linked`         | `{ sourceId, targetId, linkType }`              | Task link created         |
-| `task:unlinked`       | `{ sourceId, targetId }`                        | Task link removed         |
-| `task:commented`      | `{ taskId, comment: { id, body } }`             | Comment added             |
-| `reminder:fired`      | `{ taskId, reminder: { id, type, userId } }`    | Reminder fired            |
+| Event                   | Payload                                               | Trigger                           |
+| ----------------------- | ----------------------------------------------------- | --------------------------------- |
+| `task:created`          | `{ task: { id, number, projectId, title }, dueDate }` | Task created                      |
+| `task:updated`          | `{ task: { id, title }, changes }`                    | Task updated                      |
+| `task:deleted`          | `{ taskId }`                                          | Task deleted                      |
+| `task:status_changed`   | `{ task: { id, title }, fromStatus, toStatus }`       | Task status changed               |
+| `task:assigned`         | `{ taskId, userId, assignedBy }`                      | User assigned to task             |
+| `task:unassigned`       | `{ taskId, userId }`                                  | User unassigned from task         |
+| `task:linked`           | `{ sourceId, targetId, linkType }`                    | Task link created                 |
+| `task:unlinked`         | `{ sourceId, targetId }`                              | Task link removed                 |
+| `task:commented`        | `{ taskId, comment: { id, body } }`                   | Comment added                     |
+| `task:due_date_changed` | `{ taskId, dueDate, userIds }`                        | Task due date set/changed/cleared |
+
+`task:due_date_changed` (`userIds` = assignees ∪ reporter) is consumed by the `@aspen-os/calendar` task bridge to materialize/cancel task reminders. The former `reminder:fired` event was removed with the reminder surface — reminders now fire `calendar:reminder_due` from the calendar dispatcher.
 
 ## Command-Query Separation
 
@@ -145,7 +144,6 @@
 | Tasks   | Create comment         | `p.tasks.comments.create()`    |
 | Tasks   | Create link            | `p.tasks.links.create()`       |
 | Tasks   | Log time               | `p.tasks.timeEntries.create()` |
-| Tasks   | Create reminder        | `p.tasks.reminders.create()`   |
 | Tasks   | Create automation rule | `p.tasks.automations.create()` |
 
 ### Queries (Read Side)

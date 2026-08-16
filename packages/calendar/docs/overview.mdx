@@ -1,0 +1,111 @@
+---
+title: Overview
+description: Architecture, access model, and module structure of the Calendar module.
+icon: IconInfoCircle
+---
+
+The Calendar module owns the three time-domain surfaces — **calendars** (named, colored collections), **events** (time-boxed entries with recurrence, attendees, timezone, and a polymorphic source link), and **reminders** (the platform's single polymorphic reminder surface). Task reminders now live here as `targetType = task` rows, driven by an event-driven task bridge.
+
+## Module
+
+```ts title="src/module.ts"
+export class Calendar implements Module {
+  static create(config?: CalendarModuleConfig): Calendar;
+  readonly $name = "calendar"; // proxy key: p.calendar
+  readonly $dependencies: readonly string[] = [];
+}
+```
+
+The module is **stateful** (workspace schedule-service pattern). `$initialize({ db, pubsub })` stores unit refs; `$prepareRuntime()` registers the reminder-dispatcher cron (`calendar:reminder-scan`) and the task bridge; `$cleanup()` unregisters both.
+
+| Config key         | Default     | Notes                              |
+| ------------------ | ----------- | ---------------------------------- |
+| `reminderScanCron` | `* * * * *` | pg-boss cron for the reminder scan |
+
+## Access Model
+
+Calendars carry an `access` value — `personal` (default) or `global` — plus an `ownerId`. **Events, attendees, and reminders inherit their calendar's access** (no own access column); reminders are additionally **recipient-scoped** via `userId`. Enforcement lives in `services/access-service.ts`:
+
+```text
+assertCanAccess          = global OR ownerId === actorId            (read paths)
+assertCanMutate          = ownerId === actorId OR tenant admin      (write paths)
+assertCanAccessReminder  = userId === actorId
+                           OR (targetType = event AND event's calendar readable)
+```
+
+## Lifecycle
+
+```text
+calendar ──▶ create/get/list/update/delete/setDefault
+                │  first calendar auto-defaults; setDefault clears the owner's other defaults
+event ──────▶ create/update/get/list/delete/cancel + getOccurrences/listOccurrences
+                │  recurrence expanded on read; offset reminders re-anchored on update
+attendee ──▶ add/get/list/update/remove
+reminder ──▶ create/update/get/list/delete + getPending/processPending
+                │  processPending runs on the calendar:reminder-scan cron
+                ▼
+task:due_date_changed ──▶ task bridge ──▶ due-date reminder bundle (targetType = task)
+```
+
+## What It Exposes
+
+| Getter      | Methods                                                                                    |
+| ----------- | ------------------------------------------------------------------------------------------ |
+| `calendars` | `create`, `delete`, `get`, `list`, `setDefault`, `update`                                  |
+| `events`    | `cancel`, `create`, `delete`, `get`, `getOccurrences`, `list`, `listOccurrences`, `update` |
+| `attendees` | `add`, `get`, `list`, `remove`, `update`                                                   |
+| `reminders` | `create`, `delete`, `get`, `getPending`, `list`, `processPending`, `update`                |
+
+## Recurrence
+
+Recurrence is a structured jsonb config validated by `EventRecurrenceSchema`: `{ frequency, interval, count?, until?, byDay? }`. Occurrences are computed **on read** by `services/recurrence.ts` — never materialized. `count` and `until` are mutually exclusive; `byDay` is weekly-only.
+
+## Task Integration
+
+The module stays `$dependencies = []`. Tasks publishes `task:due_date_changed` / `task:deleted` / `task:status_changed`; the calendar-side `services/task-bridge.ts` subscribes and materializes/cancels task due-date reminders (`targetType = task`). No direct cross-module calls.
+
+## Module Structure
+
+```text
+packages/calendar/src/
+  index.ts              # Module class re-exports + dbSchema namespace
+  module.ts             # Module class (implements Module, stateful)
+  auth.ts               # defineAcl() ACL declaration
+  pubsub.ts             # calendar:* events (4 groups)
+  db-schemas/           # 4 tables + 8 enums
+  types.ts              # Type re-exports
+  schemas/              # Valibot validation schemas
+  services/             # access-service, event-service, recurrence, reminder-dispatcher, task-bridge
+  workflow-steps/       # fetch-calendar/event/attendee/reminder + fetch-event-calendar
+  workflows/            # One file per action under workflows/<entity>/<verb>.ts
+  utils/                # Enums, audit constants, strip-undefined
+```
+
+## Package
+
+```json title="package.json"
+{
+  "name": "@aspen-os/calendar",
+  "type": "module",
+  "exports": { ".": "./.output/index.js" },
+  "dependencies": {
+    "@aspen-os/platform": "workspace:*",
+    "@aspen-os/constants": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "valibot": "catalog:"
+  }
+}
+```
+
+## Enums
+
+| Enum                  | Values                                         |
+| --------------------- | ---------------------------------------------- |
+| `CalendarAccess`      | `personal`, `global`                           |
+| `EventStatus`         | `confirmed`, `tentative`, `cancelled`          |
+| `RecurrenceFrequency` | `daily`, `weekly`, `monthly`, `yearly`         |
+| `ReminderTarget`      | `event`, `task`, `note`, `file`, `custom`      |
+| `ReminderType`        | `offset`, `custom`, `due_date`, `overdue`      |
+| `ReminderChannel`     | `pubsub`                                       |
+| `AttendeeType`        | `user`, `contact`                              |
+| `AttendeeStatus`      | `invited`, `accepted`, `declined`, `tentative` |

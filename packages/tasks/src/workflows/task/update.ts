@@ -1,4 +1,10 @@
 import { task } from "#/db-schemas/task";
+import { taskAssignee } from "#/db-schemas/task-assignee";
+import {
+  publishTaskDueDateChanged,
+  publishTaskStatusChanged,
+  publishTaskUpdated,
+} from "#/services/notification-bridge";
 import { IdSchema, UpdateTaskSchema } from "#/types";
 import { fetchTaskStep } from "#/workflow-steps/fetch-task";
 import { addActivity, validateParentTask } from "#/workflows/utils";
@@ -51,7 +57,14 @@ export const updateTask = Workflow.name("task.update")
       .where(eq(task.id, input.id))
       .returning();
 
-    if (input.patch.statusId && input.patch.statusId !== current.statusId) {
+    if (!updated) {
+      throw new Error(`Task with id "${input.id}" not found.`);
+    }
+
+    const statusChanged =
+      input.patch.statusId !== undefined && input.patch.statusId !== current.statusId;
+
+    if (statusChanged) {
       changes.statusId = { from: current.statusId, to: input.patch.statusId };
       await addActivity(ctx.db, {
         action: "status_changed",
@@ -72,6 +85,57 @@ export const updateTask = Workflow.name("task.update")
       oldValue: current,
       taskId: input.id,
       userId: current.reporterId,
+    });
+
+    await ctx.step.run("notify", async () => {
+      await publishTaskUpdated(
+        {
+          changes,
+          task: {
+            id: updated.id,
+            title: updated.title,
+          },
+        },
+        { pubsub: ctx.pubsub },
+      );
+
+      if (statusChanged && input.patch.statusId) {
+        await publishTaskStatusChanged(
+          {
+            fromStatus: current.statusId,
+            task: {
+              id: updated.id,
+              title: updated.title,
+            },
+            toStatus: input.patch.statusId,
+          },
+          { pubsub: ctx.pubsub },
+        );
+      }
+
+      const dueDateChanged =
+        input.patch.dueDate !== undefined &&
+        (input.patch.dueDate?.getTime() ?? null) !== (current.dueDate?.getTime() ?? null);
+
+      if (dueDateChanged) {
+        const assignees = await ctx.db
+          .select({ userId: taskAssignee.userId })
+          .from(taskAssignee)
+          .where(eq(taskAssignee.taskId, input.id));
+
+        const userIds = [
+          ...new Set([current.reporterId, ...assignees.map((assignee) => assignee.userId)]),
+        ];
+
+        await publishTaskDueDateChanged(
+          {
+            dueDate: input.patch.dueDate ? input.patch.dueDate.toISOString() : null,
+            taskId: updated.id,
+            userIds,
+          },
+          { pubsub: ctx.pubsub },
+        );
+      }
     });
 
     return updated;

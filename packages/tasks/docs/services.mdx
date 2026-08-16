@@ -47,7 +47,7 @@ getCumulativeFlow(projectId: string, dateFrom: Date, dateTo: Date): Promise<{
 
 ## NotificationBridge
 
-Defines `publish*` helper functions that wrap `pubsub.publish(topic, event)` for each task/reminder event. Defined in `services/notification-bridge.ts`; not currently wired into any workflow.
+Defines `publish*` helper functions that wrap `pubsub.publish(topic, event)` for each `task:*` event. Defined in `services/notification-bridge.ts`; wired into the create/update/delete/assign/unassign/comment/link workflows and the status-change path.
 
 ```ts
 publishTaskCreated(event: TaskCreatedEvent): Promise<void>
@@ -59,10 +59,10 @@ publishTaskUnassigned(event: TaskUnassignedEvent): Promise<void>
 publishTaskLinked(event: TaskLinkedEvent): Promise<void>
 publishTaskUnlinked(event: TaskUnlinkedEvent): Promise<void>
 publishTaskCommented(event: TaskCommentedEvent): Promise<void>
-publishReminderFired(event: ReminderFiredEvent): Promise<void>
+publishTaskDueDateChanged(event: TaskDueDateChangedEvent): Promise<void>
 ```
 
-Each function publishes to the corresponding event constant. The reminder workflow, however, publishes `reminder:fired` directly via `ctx.pubsub.publish(REMINDER_EVENTS.FIRED, …)`.
+Each function publishes to the corresponding event constant. `publishTaskDueDateChanged` feeds the `@aspen-os/calendar` task bridge, which materializes/cancels task reminders. The former `publishReminderFired` was removed with the reminder surface.
 
 ## DependencyGraphService
 

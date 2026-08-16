@@ -1,6 +1,0 @@
-{
-  "name": "@aspen-os/accounting",
-  "imports": {
-    "#/*": "./src/*"
-  }
-}
