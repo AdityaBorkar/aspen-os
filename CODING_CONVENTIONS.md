@@ -32,7 +32,7 @@ Section order: navigation; contiguous write bundle (`Domain modules` → `Databa
 - **Package manager**: Bun workspaces (`bun install`)
 - **Language**: TypeScript, ESM only (`"type": "module"`)
 - **Linter/formatter**: oxlint (`.oxlintrc.json`) + oxfmt (`.oxfmtrc.json`) — tools enforce style.
-- **No barrel files** unless explicitly told. Platform has no root export — import via subpaths (`@aspen-os/platform/server`, `@aspen-os/platform/client`, `@aspen-os/platform/server/db-schemas`). Module-internal workflow aggregates exist in `dms`, `notes`, `masters`, `calendar`, `compliance`, and `workspace` (`workflows/index.ts`), plus HR (`workflows/barrel-*.ts`).
+- **No barrel files** unless explicitly told. Platform has no root export — import via subpaths (`@aspen-os/platform/server`, `@aspen-os/platform/client`, `@aspen-os/platform/server/db-schemas`). Module-internal workflow aggregates exist as `workflows/index.ts` routers in `dms`, `notes`, `masters`, `calendar`, `compliance`, `workspace`, and `hr`.
 - **Gitignore**: `node_modules`, `.output`, `.build`, `.tanstack`, `.source`, `.wrangler`, `.nitro`, `.local`, `.cache`, `*.tsbuildinfo`, `.DS_Store`, `*.gen.ts`, `worker-configuration.d.ts`, `codedb.snapshot`, `.env*` except `.env.example`.
 - **Build step**: `platform`, `organization`, `masters`, `notes`, `calendar`, `management`, `dms`, `workspace`, `constants` have `build` script (`bun run build` → `scripts/build.ts` → `.output/`). All except `constants` carry `build` config rewriting `exports`/`bin` to `.output/`; `constants` emits declarations to `.output/` but keeps `exports` at `./src/index.ts`. Raw-src packages (`compliance`, `tasks`, `hr`) export raw `.ts`.
 
@@ -252,7 +252,7 @@ export class Organization implements Module {
   - `calendar` — `Record<string, Unit>` → `{ db, pubsub }` (type guards); reminder-dispatcher cron (`calendar:reminder-scan`) + task bridge; config in `runtime.ts` (`setCalendarConfig`/`getCalendarConfig`).
   - `dms` — `Record<string, Unit>` → `{ db, pubsub, storage }` (type guards, no auth); expiry-scan + auto-purge schedules/handlers; module runtime state in `runtime.ts` (`setDmsConfig`/`setDmsStorage`/`getDmsConfig`/`getDmsStorage`).
   - `workspace` — `Record<string, Unit>` → `{ db, pubsub }` (type guards); per-schedule pg-boss crons `workspace:schedule:<id>`; `runtime.ts` holds config + view-resolver registry (`registerViewResolver`/`getViewResolver`).
-  - `hr` — `{ db, pubsub }`; schedules/unschedules daily attendance-sync + leave-accrual crons, no handlers; `workflows/barrel-<entity>.ts` aggregates per-action files.
+  - `hr` — `{ db, pubsub }`; schedules/unschedules daily attendance-sync + leave-accrual crons, no handlers; `workflows/index.ts` composes per-entity workflow groups.
   - `management` — `{ db, auth, pubsub }`, stores only `#db`; empty `$prepareRuntime()`/`$cleanup()`; `tenants` getter throws if `#db` null, `serviceProviders`/`users` `readonly`; `$dependencies: ["organization"]`.
   - `masters` — hybrid `{ db, kvStore }`; stateless `readonly` groups + `connections` getter binding `createConnection`/`rotateConnectionCredential` to `#kvStore` (throws if uninitialized); empty `$prepareRuntime()`/`$cleanup()`.
 
@@ -291,7 +291,7 @@ packages/<module>/
       <entity>/
         <verb>.ts           # Usually one or more Workflow definitions; input schema is optional
         <subresource>/<verb>.ts
-      index.ts / barrel-<entity>.ts  # Module-internal aggregates
+      index.ts              # Module-internal workflow router
       utils.ts              # Shared workflow helpers
     workflow-steps/       # Reusable WorkflowStep.name(...).handler(...) consts (fetch-<entity>.ts)
   services/           # Cross-cutting services [optional]

@@ -10,7 +10,7 @@ Downstream of the Platform (Customer–Supplier). Fully conformant — `implemen
 
 - `Hr.create(config)` — factory returning a Module instance; `$config: HrModuleConfig = { country: "INDIA" }`
 - `$name = "hr"`, `$dependencies = []`
-- 10 workflow groups exposed as `readonly` properties: `access`, `announcement`, `attendance`, `employee`, `leave`, `lifecycle`, `overtime`, `position`, `setup`, `shift` — ~290 public methods across per-action workflow files aggregated by per-group `barrel-<entity>.ts` barrels
+- 10 workflow groups exposed as `readonly` properties: `access`, `announcement`, `attendance`, `employee`, `leave`, `lifecycle`, `overtime`, `position`, `setup`, `shift` — ~290 public methods across per-action workflow files composed into a `workflows/index.ts` router
 - 54 database tables:
   - **14 control-plane** (setup/access): `department`, `designation`, `employee_grade`, `employment_type`, `holiday`, `holiday_list`, `hr_permission`, `hr_role`, `hr_role_permission`, `hr_settings`, `hr_user`, `hr_user_branch_access`, `hr_user_role`, `payroll_settings`
   - **40 tenant** (operational/transactional): employee, attendance, leave, lifecycle, overtime, shift, position (+assignment), announcement (+recipient), employee check-in, groups, health insurance, skill maps, etc.

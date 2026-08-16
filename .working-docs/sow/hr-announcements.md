@@ -8,7 +8,7 @@
 
 The Announcements capability gives the HR module a first-class channel for broadcasting internal communications — policy updates, office closures, event invites, onboarding reminders, and acknowledgable notices. Announcements are authored by HR users, targeted at the whole organization or a specific audience (branch, department, designation, employee group, HR role, or named employees/users), and delivered into the **in-app inbox owned by `@aspen-os/comms`**, with optional acknowledgement tracking.
 
-The capability is implemented **inside the existing `@aspen-os/hr` module** — no new package. It follows the module's established patterns: one table file per sub-domain group under `db-schemas/` (not one per entity), per-action workflow files under `workflows/announcement/` aggregated by `barrel-announcement.ts` (the REST-style folder layout — `workflows/<group>/<entity>/<verb>.ts` — not the older flat `announcement.*.ts` layout), valibot `Create*Schema`/`Update*Schema`/`*FiltersSchema` in `schemas/`, ACL entries in `auth.ts`, event groups in `pubsub.ts`, and scheduled-job constants in `utils/constants.ts`. The `Hr` class exposes a new `announcement` workflow group (`p.hr.announcement.create()`) alongside the existing 8 groups (`access`, `attendance`, `employee`, `leave`, `lifecycle`, `overtime`, `setup`, `shift`).
+The capability is implemented **inside the existing `@aspen-os/hr` module** — no new package. It follows the module's established patterns: one table file per sub-domain group under `db-schemas/` (not one per entity), per-action workflow files under `workflows/announcement/` composed into the `workflows/index.ts` router (the REST-style folder layout — `workflows/<group>/<entity>/<verb>.ts` — not the older flat `announcement.*.ts` layout), valibot `Create*Schema`/`Update*Schema`/`*FiltersSchema` in `schemas/`, ACL entries in `auth.ts`, event groups in `pubsub.ts`, and scheduled-job constants in `utils/constants.ts`. The `Hr` class exposes a new `announcement` workflow group (`p.hr.announcement.create()`) alongside the existing 8 groups (`access`, `attendance`, `employee`, `leave`, `lifecycle`, `overtime`, `setup`, `shift`).
 
 Announcements are **tenant-scoped operational data** — `hr_announcement` and `hr_announcement_recipient` live in tenant schemas (per ADR-0008 and the module's existing 36-table tenant split). Audience resolution references control-plane tables (`department`, `designation`, `hr_role`, `hr_permission`, `hr_user`) and tenant tables (`employee`, `employee_group`, `employee_group_member`) by soft FK only — no DB-level foreign key constraints (repo convention).
 
@@ -259,7 +259,7 @@ packages/hr/src/
 │   ├── announcement/recipients/list.ts
 │   ├── announcement/stats/get.ts
 │   ├── announcements/list.ts
-│   └── barrel-announcement.ts
+│   └── index.ts                  # workflow router
 ├── utils/
 │   ├── announcement-utils.ts  # resolveRecipients() — audience → (hrUserId?, employeeId?, userId?)
 │   └── constants.ts           # + SCHEDULED_JOBS.ANNOUNCEMENT_SCHEDULER, CRON_SCHEDULES.ANNOUNCEMENT_SCHEDULER,

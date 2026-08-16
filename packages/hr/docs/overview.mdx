@@ -24,17 +24,8 @@ packages/hr/src/
     constants.ts        # HR_PERMISSION_MODULE, PERMISSION_ACTION, schedules
     announcement-utils.ts # Audience resolution + recipient snapshot helpers
     position-utils.ts   # Position hierarchy/assignment helpers, manager resolver, tree builders
-  workflows/            # Per-action workflow files aggregated by barrel-<group>.ts
-    barrel-access.ts
-    barrel-announcement.ts
-    barrel-attendance.ts
-    barrel-employee.ts
-    barrel-leave.ts
-    barrel-lifecycle.ts
-    barrel-overtime.ts
-    barrel-position.ts
-    barrel-setup.ts
-    barrel-shift.ts
+  workflows/            # Per-action workflow files composed into a router in index.ts
+    index.ts            # Workflow router (per-entity as-const groups)
     utils.ts            # Shared workflow helpers (org chart tree, department tree, cycles)
   services/
     reconciliation.ts   # Lifecycle reconciliation bridge (separation auto-close, transfer guidance)

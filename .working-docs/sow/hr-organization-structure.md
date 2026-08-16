@@ -260,7 +260,7 @@ packages/hr/src/
 │   │   │   positions-by-department/list.ts
 │   ├── employee/
 │   │   └── organizational-chart/get.ts   # enhanced: + department/position, filters
-│   └── barrel-position.ts
+│   └── index.ts                # workflow router
 ├── utils/
 │   ├── position-utils.ts      # manager resolver (position chain → reportsTo fallback),
 │   │                          #   cycle detection, headcount enforcement, close-assignment
