@@ -1,0 +1,99 @@
+---
+title: Overview
+description: Architecture, lifecycle, runtime wiring, and module structure of the Comms module.
+icon: IconInfoCircle
+---
+
+The Comms module is the notification + out-of-band delivery surface built on `@aspen-os/platform`. It owns **channels** (sender endpoints), **host providers**, the **in-app notification inbox**, and the **delivery outbox** for email, SMS, and WhatsApp. It consumes the per-module pubsub domain events every implemented module already publishes (`compliance:document_expiring`, `calendar:reminder_due`, `dms:file_expired`, `management:tenant_*`, `auth:email_otp_requested`) and completes the notify half of each producer's `"audit-and-notify"` step.
+
+## Module
+
+```ts title="src/module.ts"
+export class Comms implements Module {
+  static create(config?: CommsModuleConfig): Comms;
+  readonly $name = "comms"; // proxy key: p.comms
+  readonly $dependencies: readonly string[] = [];
+}
+```
+
+The module declares no platform-module dependencies. It receives `{ db, kvStore, pubsub, auth }` in `$initialize()`.
+
+## Three-layer model
+
+The recipient (`to`) is deliberately separate from the channel (`from`). Internal recipients (users) resolve through the Auth unit; external recipients (contacts) are carried in producer payloads — comms reads no other module's tables.
+
+```text
+PROVIDER (control-plane)
+  comms_provider                     host delivery capability + credentialRef → host kvStore
+
+CHANNEL (tenant)                     sender endpoint
+  comms_channel                      tenant BYOC (credentialRef → tenant kvStore) or
+                                     materialized host default (providerId → comms_provider)
+
+NOTIFICATION (tenant)                intent + inbox row
+  comms_notification                 the in-app inbox — unread/read/dismissed
+
+MESSAGE (tenant)                     delivery outbox
+  comms_message                      one row per outbound send; queued → sending → sent → delivered/failed
+```
+
+## Lifecycle
+
+```
+producer event (bridge) ──or── host app (p.comms.notifications.notify)
+   → resolveRecipient (Auth unit / payload address)
+   → routeNotification (requested channel types → preference opt-outs → suppressOutOfBand)
+   → comms_notification row (in-app is zero-delivery)   [always materialized unless inapp opted out]
+   → comms_message rows for surviving out-of-band channels (queued)
+   → comms:message-sweeper cron (every minute) → adapter send → sent
+   → provider receipt webhook → delivered / failed (terminal after 5 attempts)
+```
+
+Host default channels are materialized lazily: the resolver inserts a deterministic host-owned default channel (per channel type) the first time a delivery needs one and none is active. WhatsApp delivery requires a template with a Meta `providerTemplateId`; business-initiated WhatsApp uses pre-approved templates only.
+
+## Runtime wiring
+
+`$prepareRuntime()` registers the `comms:message-sweeper` cron (`* * * * *`) and the event-bridge subscriptions before server traffic. `$cleanup()` unregisters both.
+
+| Wiring          | Topic                              | Purpose                                                         |
+| --------------- | ---------------------------------- | --------------------------------------------------------------- |
+| Message sweeper | `comms:message-sweeper`            | Scans `queued` messages; per-message tenant context, retries    |
+| Event bridge    | 8 subscriptions (see `events.mdx`) | Notify half for compliance, calendar, dms, hr, management, auth |
+
+Provider receipt webhooks (SES SNS, Twilio status callback, Meta delivery status) route to `handleProviderReceipt`, which correlates by `providerMessageId` and promotes the message to `delivered`/`failed`.
+
+## Initialization
+
+```ts
+$initialize(units: {
+  auth: AuthUnit;      // recipient address resolution
+  db: DatabaseUnit;    // control-plane provider reads + tenant rows
+  kvStore: KvStoreUnit; // credentials (never stored on rows)
+  pubsub: PubSubUnit;   // sweeper cron + bridge subscriptions
+}): void;
+```
+
+`$initialize()` stores the units in a module singleton (`runtime.ts`) so stateless workflows can resolve recipients and construct the default-channel resolver.
+
+## Infrastructure
+
+```ts
+$prepareInfra(): ModuleInfra {
+  return {
+    auth: { acl },                       // channel, provider, notification, preference, template, setting, message
+    db: {
+      control_plane_schemas: { commsProvider }, // 1 host registry table
+      tenant_schemas: commsTables,              // 6 tenant tables
+    },
+    events,                              // comms:* topics
+  };
+}
+```
+
+## Key Invariants
+
+- **Credentials live only in kvStore** — tenant BYOC under `comms:channel:<id>:credential` (tenant scope), host providers under `comms:provider:<id>:credential` (control-plane scope). Rows carry a `credentialRef`, never material.
+- **A default must be active and verified** — `channels.setDefault` requires `active` + `verifiedAt`; `channels.activate` requires `verifiedAt`; host defaults are pre-verified at materialization.
+- **In-app is zero-delivery** — the `comms_notification` row _is_ the inbox; only non-`inapp` channel types produce `comms_message` rows.
+- **OTP never persists** — the Auth unit stores the OTP in a short-lived token store, publishes only `{ email, tokenRef, type }`, and the bridge delivers inline via the host default email provider.
+- **No producer-without-consumer drop** — the sweeper uses a cron, not a publish/subscribe topic; every bridge topic is subscribed in `$prepareRuntime()`.

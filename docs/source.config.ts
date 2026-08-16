@@ -39,6 +39,11 @@ export const constants = defineDocs({
   docs,
 });
 
+export const comms = defineDocs({
+  dir: `../packages/comms/docs`,
+  docs,
+});
+
 export const tasks = defineDocs({
   dir: `../packages/tasks/docs`,
   docs,

@@ -30,6 +30,7 @@
     { "path": "./packages/calendar" },
     { "path": "./packages/compliance" },
     { "path": "./packages/constants" },
+    { "path": "./packages/comms" },
     { "path": "./packages/crm" },
     { "path": "./packages/dms" },
     { "path": "./packages/fleet" },

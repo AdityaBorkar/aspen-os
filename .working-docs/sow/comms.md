@@ -2,6 +2,23 @@
 
 > Scope of Work to create a single **`@aspen-os/comms`** module that merges the two planned surfaces from `.working-docs/todo/.md` — **comms** ("Link custom emails, whatsapp, etc to the application") and **notifications** (the notification/inbox surface used throughout the application) — into **one package**. Two channel sources are supported: **tenant-owned channels** (requirement 1 — the user brings their own WhatsApp number / custom email / SMS account through the dashboard) and **host-owned default channels** (requirement 2 — the platform provides default email/SMS delivery capability). Notifications are used throughout the application; the module's consumption seam is the **existing per-module PubSub domain events** that every implemented module already publishes.
 
+## Status
+
+**Status**: **Complete** — all phases done (Phase 0–6).
+
+- Phase 0 — Constants & Enums ✅
+- Phase 1 — Scaffold `packages/comms` ✅
+- Phase 2 — Providers + Channels ✅
+- Phase 3 — Notifications Core ✅
+- Phase 4 — Delivery Engine ✅
+- Phase 5 — Domain Event Bridge + Producer Wiring ✅
+- Phase 6 — Documentation & Verification ✅
+- Phase 2 — Providers + Channels ⏳
+- Phase 3 — Notifications Core ⏳
+- Phase 4 — Delivery Engine ⏳
+- Phase 5 — Domain Event Bridge + Producer Wiring ⏳
+- Phase 6 — Documentation & Verification ⏳
+
 ## Overview
 
 The module is built on a **three-layer model**:
@@ -29,7 +46,7 @@ The existing ecosystem is already the producer side: compliance publishes `compl
 | 9   | Routing                 | `notify()` resolution: recipient address → requested channel types → active default channel (tenant BYOC preferred over host default, per `isDefault`) → preference opt-outs → materialize notification + messages. In-app is always materialized unless the user disabled it.                                                                                           |
 | 10  | WhatsApp                | Business-initiated WhatsApp messages require **pre-approved templates** — `comms_template.providerTemplateId` (Meta WhatsApp Business Platform). A WhatsApp channel must pass `channels.test` (sender verification) before it can be the default; templates carry provider-template metadata.                                                                            |
 | 11  | Consent                 | `comms_preference` rows per `(userId, channelType)` and `(userId, type, channelType)` opt-outs, plus a tenant `suppressOutOfBand` setting. The DPDP/HIPAA-relevant suppression is applied at delivery resolution, not at materialization.                                                                                                                                |
-| 12  | Constants               | comms enums live in `@aspen-os/constants` (shared-enum precedent from masters): `CHANNEL_TYPE`, `CHANNEL_SOURCE`, `CHANNEL_STATUS`, `PROVIDER_KIND`, `RECIPIENT_TYPE`, `NOTIFICATION_STATUS`, `NOTIFICATION_SEVERITY`, `MESSAGE_STATUS`.                                                                                                                                 |
+| 12  | Constants               | comms enums live in `@aspen-os/constants` (shared-enum precedent from masters): `CHANNEL_TYPE`, `CHANNEL_SOURCE`, `CHANNEL_STATUS`, `PROVIDER_KIND`, `RECIPIENT_TYPE`, `NOTIFICATION_STATUS`, `NOTIFICATION_SEVERITY`, `MESSAGE_STATUS`. ✅ Done                                                                                                                         |
 | 13  | Module dependencies     | `$dependencies = []`. Units: `{ db, kvStore, pubsub, auth }`. `$initialize` holds `#private` unit refs (management-hybrid getters for `channels` bound to kvStore); `$prepareRuntime()` registers the message sweeper + bridge subscriptions; `$cleanup()` unregisters both.                                                                                             |
 | 14  | SOW location            | `.working-docs/sow/comms.md` (this file). The TODO items for "comms" and "notifications" SOWs are covered by this document.                                                                                                                                                                                                                                              |
 
@@ -373,22 +390,22 @@ No module-to-module dependencies — `$dependencies = []`.
 
 ## 15. Phases
 
-### Phase 0 — Constants & Enums (`@aspen-os/constants`)
+### Phase 0 — Constants & Enums (`@aspen-os/constants`) ✅ done
 
-1. Add `CHANNEL_TYPE` (`email`/`sms`/`whatsapp`/`push`/`other`), `CHANNEL_SOURCE` (`tenant`/`host`), `CHANNEL_STATUS` (`active`/`inactive`/`revoked`/`expired`), `PROVIDER_KIND` (`smtp`/`ses`/`resend`/`postmark`/`twilio`/`whatsapp_business_api`/`other`), `RECIPIENT_TYPE` (`user`/`contact`), `NOTIFICATION_STATUS` (`unread`/`read`/`dismissed`), `NOTIFICATION_SEVERITY` (`normal`/`important`/`urgent`), `MESSAGE_STATUS` (`queued`/`sending`/`sent`/`delivered`/`failed`).
+1. Added `CHANNEL_TYPE`, `CHANNEL_SOURCE`, `CHANNEL_STATUS`, `PROVIDER_KIND`, `RECIPIENT_TYPE`, `NOTIFICATION_STATUS`, `NOTIFICATION_SEVERITY`, `MESSAGE_STATUS` to `packages/constants/src/index.ts`.
 2. Grep sweep for name collisions (`NOTIFICATION_STATUS`, `CHANNEL_STATUS`, …).
 3. Gate: `cd packages/constants && bun run check:types && bun run check:lint && bun run build`.
 
-### Phase 1 — Scaffold `packages/comms`
+### Phase 1 — Scaffold `packages/comms` ✅ done
 
-1. Load the `write-module` skill; scaffold `packages/comms` on the dms template (build script + build `config` block, `#/*` alias).
+1. Scaffolded `packages/comms` on the dms/workspace template (build script + `build` config block, `#/*` alias, docs stubs).
 2. Root `tsconfig.json` reference + `docs/source.config.ts` comms docs source.
 3. Implement the seven tables + `db-schemas/index.ts` (`control_plane_schemas: { commsProvider }`, `tenant_schemas: { commsChannel, commsNotification, commsMessage, commsPreference, commsTemplate, commsSetting }`), `db-schemas/enums.ts` pgEnums.
 4. `schemas/` valibot (`Create/Update/Filters` for each entity), `auth.ts` ACL (§10), `pubsub.ts` events (§9), `types.ts`.
 5. `module.ts`: class + `$dependencies = []` + empty workflow groups (stateless) + `#private` unit refs; `channels` getter stub.
 6. Gate: `bun install`; `cd packages/comms && bun run check:lint && bun run check:types && bun run build`.
 
-### Phase 2 — Providers + Channels (requirements 1 & 2)
+### Phase 2 — Providers + Channels (requirements 1 & 2) ✅ done
 
 1. **Providers**: `workflows/provider/*` CRUD + activate/deactivate; kvStore credential writes in host context (`comms:provider:<id>:credential`). Host-admin ACL.
 2. **Channels**: `workflows/channel/{create,update,get,list,activate,deactivate,test,setDefault,rotateCredential,delete}`; kvStore credential pattern copied from `masters/workflows/connection/create.ts` + `rotate-credential.ts` (`comms:channel:<id>:credential`).
@@ -396,7 +413,7 @@ No module-to-module dependencies — `$dependencies = []`.
 4. `channels.test` verification semantics (§1 invariants); WhatsApp number verification flow.
 5. Gate: lint/types/build per package conventions; sweep greps (`comms_channel`, `channels.` group) clean.
 
-### Phase 3 — Notifications Core (in-app)
+### Phase 3 — Notifications Core (in-app) ✅ done
 
 1. `services/recipient-resolver.ts`: user → Auth unit (`rest.user.get`) address snapshot; contact → payload-provided address.
 2. `services/notification-router.ts`: routing per §3 `notify` (channel selection → preference opt-outs → materialize).
@@ -404,7 +421,7 @@ No module-to-module dependencies — `$dependencies = []`.
 4. **In-app is fully functional with no adapter** — this is the phase where the module first works end-to-end inside the app.
 5. Gate: types/lint/build.
 
-### Phase 4 — Delivery Engine
+### Phase 4 — Delivery Engine ✅ done
 
 1. `services/template-renderer.ts` + `workflows/template/*`.
 2. `services/adapters/`: `index.ts` (interface + factory), `email.ts` (SES/Resend/SMTP), `sms.ts` (Twilio), `whatsapp.ts` (Meta, template-mandatory), `push.ts` stub.
@@ -414,14 +431,14 @@ No module-to-module dependencies — `$dependencies = []`.
 6. `workflows/notification/notify.ts` now enqueues `comms_message` rows for out-of-band channels that survive routing.
 7. Gate: types/lint/build; manual sweep with a fake provider adapter (no external network in gates).
 
-### Phase 5 — Domain Event Bridge + Producer Wiring
+### Phase 5 — Domain Event Bridge + Producer Wiring ✅ done
 
-1. `services/event-bridge.ts`: `subscribeSafe` subscriptions for the §11 table (compliance, tasks, hr, dms, management); each handler → `notification-router`.
+1. `services/event-bridge.ts`: `subscribeSafe` subscriptions for the §11 table (compliance, calendar reminders, hr announcements, dms, management tenant lifecycle, auth OTP); each handler → the notification router.
 2. **Producer edits** (§12): compliance payload extensions (`reminder-engine.ts:115`,`:143`); auth unit `auth:email_otp_requested` publish replacing the OTP `console.log` (`auth/index.ts:136-138`).
 3. Tenant lifecycle seeding (optional): subscribe `tenant_provisioned`/`tenant_activated` → `channels.ensureDefaults` per tenant.
 4. Gate: rebuild platform + affected packages; `getUnsubscribedProducedTopics()` shows no comms topics unsubscribed; run a full lint/types/build sweep across `compliance`, `tasks`, `hr`, `dms`, `auth`, `comms`.
 
-### Phase 6 — Documentation & Verification
+### Phase 6 — Documentation & Verification ✅ done
 
 1. `packages/comms/docs/` (`overview.mdx`, `access-control.mdx`, `db-schemas.mdx`, `events.mdx`, `workflows.mdx`).
 2. `.working-docs/`: new `domain-model/comms.md` + `bounded-contexts/comms.md`; update `CONTEXT.md` + `AGENTS.md` (fully-implemented list, key dirs, module pattern, current state); mark the TODO comms/notifications SOW items as covered by `sow/comms.md`.

@@ -1,0 +1,35 @@
+---
+title: Comms
+description: Channels, providers, notifications, and out-of-band message delivery.
+icon: IconMessageSquareShare
+---
+
+The Comms module owns **channels** (sender endpoints), **host providers**, the **in-app notification inbox**, and the **out-of-band delivery outbox** for email, SMS, and WhatsApp. Tenant BYOC channels store credentials in the platform kvStore; host default channels materialize lazily from `comms_provider`.
+
+<Cards>
+  <Card
+    title="Overview"
+    href="/docs/comms/overview"
+    description="Architecture, lifecycle, runtime wiring, and module structure"
+  />
+  <Card
+    title="Workflows"
+    href="/docs/comms/workflows"
+    description="Every workflow group and method exposed by p.comms"
+  />
+  <Card
+    title="Access Control"
+    href="/docs/comms/access-control"
+    description="ACL resources and role model"
+  />
+  <Card
+    title="Events"
+    href="/docs/comms/events"
+    description="Topics the module publishes and consumes"
+  />
+  <Card
+    title="DB Schemas"
+    href="/docs/comms/db-schemas"
+    description="All tables and enums declared by the module"
+  />
+</Cards>

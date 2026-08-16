@@ -1,0 +1,138 @@
+---
+title: DB Schemas
+description: All tables declared by the Comms module — 1 control-plane + 6 tenant tables and 9 enums.
+icon: IconDatabase
+---
+
+The Comms module declares 7 tables: one control-plane table (`comms_provider`) and six tenant tables. Every table uses `text("id")` with `.primaryKey().$defaultFn(uuidv7)` and timestamptz columns (`withTimezone: true`). `comms_channel.entityType` reuses the `MASTER_ENTITY_TYPE` constant values (constants-only; no masters dependency).
+
+## Enums
+
+| Enum                            | Column                                             | Values                                                                          |
+| ------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `comms_channel_type`            | `comms_channel.type`, `comms_message.channel_type` | `email`, `sms`, `whatsapp`, `push`, `other`                                     |
+| `comms_channel_source`          | `comms_channel.source`                             | `tenant`, `host`                                                                |
+| `comms_channel_status`          | `comms_channel.status`                             | `active`, `inactive`, `revoked`, `expired`                                      |
+| `comms_provider_kind`           | `comms_provider.kind`                              | `smtp`, `ses`, `resend`, `postmark`, `twilio`, `whatsapp_business_api`, `other` |
+| `comms_recipient_type`          | `comms_notification.recipient_type`                | `user`, `contact`                                                               |
+| `comms_notification_status`     | `comms_notification.status`                        | `unread`, `read`, `dismissed`                                                   |
+| `comms_notification_severity`   | `comms_notification.severity`                      | `normal`, `important`, `urgent`                                                 |
+| `comms_message_status`          | `comms_message.status`                             | `queued`, `sending`, `sent`, `delivered`, `failed`                              |
+| `comms_preference_channel_type` | `comms_preference.channel_type`                    | the 5 channel types + `inapp`                                                   |
+
+The enum values come from `@aspen-os/constants` (`CHANNEL_TYPE`, `CHANNEL_SOURCE`, …). `inapp` is a notification-routing-only pseudo channel type — it exists on preferences and notification `channelTypes`, never on channels.
+
+## Tables
+
+### `comms_provider` (control-plane)
+
+Host delivery capability registry. Credentials live in the host/control-plane kvStore under `comms:provider:<id>:credential`; the row stores only `credentialRef`.
+
+| Column                      | Type            | Description                                              |
+| --------------------------- | --------------- | -------------------------------------------------------- |
+| `id`                        | text (PK)       | Auto UUIDv7                                              |
+| `name`                      | text            | e.g. `Host SES`, `Twilio`                                |
+| `kind`                      | enum            | `comms_provider_kind`                                    |
+| `credential_ref`            | text (not null) | Host kvStore key holding provider secrets                |
+| `default_sender_address`    | text            | Fallback `from` for materialized host default channels   |
+| `is_active`                 | boolean         | Deactivated providers are excluded from `ensureDefaults` |
+| `metadata`                  | jsonb           | Account ids, verified domains/numbers, rate limits       |
+| `created_at` / `updated_at` | timestamptz     | Record timestamps                                        |
+
+### `comms_channel` (tenant)
+
+Sender endpoint. Host defaults are materialized lazily by `ensureDefaults` (`source = host`, `provider_id` set, no `credential_ref`); BYOC channels carry `credential_ref`.
+
+| Column                                            | Type           | Description                                    |
+| ------------------------------------------------- | -------------- | ---------------------------------------------- |
+| `id`                                              | text (PK)      | Auto UUIDv7                                    |
+| `name`                                            | text           | Human label                                    |
+| `type`                                            | enum           | `comms_channel_type`                           |
+| `source`                                          | enum           | `tenant` (BYOC) or `host` (default)            |
+| `provider_id`                                     | text (soft FK) | `comms_provider.id` when `source = host`       |
+| `sender_address`                                  | text           | The `from` address/number/sender ID            |
+| `credential_ref`                                  | text           | BYOC kvStore key; null for host channels       |
+| `status`                                          | enum           | `comms_channel_status`                         |
+| `is_default`                                      | boolean        | At most one per `(type, entityType, entityId)` |
+| `entity_type` / `entity_id`                       | text           | Polymorphic scope (MASTER_ENTITY_TYPE values)  |
+| `verified_at` / `last_tested_at` / `last_used_at` | timestamptz    | Verification + usage lifecycle                 |
+| `metadata`                                        | jsonb          | Provider config, WhatsApp template ids         |
+| `created_at` / `updated_at`                       | timestamptz    | Record timestamps                              |
+
+### `comms_notification` (tenant)
+
+The in-app inbox row + notification intent.
+
+| Column                            | Type        | Description                                              |
+| --------------------------------- | ----------- | -------------------------------------------------------- |
+| `id`                              | text (PK)   | Auto UUIDv7                                              |
+| `type`                            | text        | `document_expiring`, `reminder_fired`, `announcement`, … |
+| `title`                           | text        | Short headline                                           |
+| `body`                            | text        | Full content (plain markdown)                            |
+| `severity`                        | enum        | `comms_notification_severity`                            |
+| `source_module`                   | text        | Producing module                                         |
+| `source_entity`                   | jsonb       | `{ type, id }` source reference                          |
+| `recipient_type` / `recipient_id` | enum / text | `user` (auth id) or `contact` (producer payload id)      |
+| `to`                              | jsonb       | Resolved address snapshot `{ email?, phone?, name? }`    |
+| `channel_types`                   | text[]      | Requested channel types incl. `inapp`                    |
+| `status`                          | enum        | `comms_notification_status`                              |
+| `read_at`                         | timestamptz | When marked read                                         |
+| `metadata`                        | jsonb       | Producer payload extras                                  |
+| `created_at` / `updated_at`       | timestamptz | Record timestamps                                        |
+
+### `comms_message` (tenant)
+
+Delivery outbox. One row per outbound send.
+
+| Column                                   | Type           | Description                                                     |
+| ---------------------------------------- | -------------- | --------------------------------------------------------------- |
+| `id`                                     | text (PK)      | Auto UUIDv7                                                     |
+| `notification_id`                        | text (soft FK) | Owning notification; null for standalone sends (channel `test`) |
+| `channel_id`                             | text (soft FK) | Channel used (nulled when the channel is deleted)               |
+| `channel_type`                           | enum           | `email`, `sms`, `whatsapp` (never `inapp`)                      |
+| `provider_id`                            | text (soft FK) | Resolved provider at send time                                  |
+| `to`                                     | text           | Recipient address                                               |
+| `subject`                                | text           | Email subject                                                   |
+| `body`                                   | text           | Rendered body (or template ref)                                 |
+| `template_id`                            | text (soft FK) | `comms_template` used; WhatsApp requires a provider template    |
+| `status`                                 | enum           | `comms_message_status`                                          |
+| `attempts`                               | integer        | Delivery attempts so far                                        |
+| `last_error`                             | text           | Last failure message                                            |
+| `provider_message_id`                    | text           | Provider receipt correlation id                                 |
+| `queued_at` / `sent_at` / `delivered_at` | timestamptz    | Lifecycle timestamps                                            |
+| `metadata`                               | jsonb          | `tenantId` (delivery tenant context), template params           |
+| `created_at`                             | timestamptz    | Creation timestamp                                              |
+
+### `comms_preference` (tenant)
+
+Per-user routing + consent. `type = null` is the default row (applies to all types); exact `(userId, type, channelType)` wins over it. Uniqueness is enforced in the `set` workflow.
+
+| Column                      | Type        | Description                                                         |
+| --------------------------- | ----------- | ------------------------------------------------------------------- |
+| `id`                        | text (PK)   | Auto UUIDv7                                                         |
+| `user_id`                   | text        | Auth user id                                                        |
+| `type`                      | text        | Notification type; `null` = default                                 |
+| `channel_type`              | enum        | `comms_preference_channel_type` (incl. `inapp`)                     |
+| `enabled`                   | boolean     | Opt-out hook (DPDP/HIPAA consent)                                   |
+| `priority`                  | integer     | Routing order (default `inapp` 1, `email` 2, `sms` 3, `whatsapp` 4) |
+| `created_at` / `updated_at` | timestamptz | Record timestamps                                                   |
+
+### `comms_template` (tenant)
+
+Email/SMS/WhatsApp bodies with `{var}` placeholders.
+
+| Column                      | Type        | Description                                       |
+| --------------------------- | ----------- | ------------------------------------------------- |
+| `id`                        | text (PK)   | Auto UUIDv7                                       |
+| `name`                      | text        | Stable key (`document-expiring`, `otp-email`)     |
+| `channel_type`              | enum        | `email`, `sms`, `whatsapp`                        |
+| `subject`                   | text        | Email subject with placeholders                   |
+| `body`                      | text        | Body template with placeholders                   |
+| `provider_template_id`      | text        | Meta WhatsApp template id (required for WhatsApp) |
+| `is_active`                 | boolean     | Inactive templates reject at `notify` time        |
+| `metadata`                  | jsonb       | Provider language/category, params schema         |
+| `created_at` / `updated_at` | timestamptz | Record timestamps                                 |
+
+### `comms_setting` (tenant)
+
+Tenant defaults (dms `settings` pattern). Keys: `defaultChannels` (jsonb), `suppressOutOfBand` (boolean), `hostDefaultSenderAddressOverride` (text).

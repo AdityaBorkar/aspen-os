@@ -24,6 +24,19 @@ The package exports eight `as const` objects with derived union types, plus a co
 | `COMPLIANCE_STATUS`   | `ComplianceStatus`   | `active`, `archived`, `expired`, `expiring_soon`, `renewal_in_progress`                                                 |
 | `RENEWAL_FREQUENCY`   | `RenewalFrequency`   | `annual`, `biennial`, `monthly`, `one_time`, `quarterly`, `semi_annual`, `triennial`                                    |
 
+## Comms Constants
+
+| Constant                | Type                   | Values                                                                          |
+| ----------------------- | ---------------------- | ------------------------------------------------------------------------------- |
+| `CHANNEL_TYPE`          | `ChannelType`          | `email`, `sms`, `whatsapp`, `push`, `other`                                     |
+| `CHANNEL_SOURCE`        | `ChannelSource`        | `tenant`, `host`                                                                |
+| `CHANNEL_STATUS`        | `ChannelStatus`        | `active`, `inactive`, `revoked`, `expired`                                      |
+| `PROVIDER_KIND`         | `ProviderKind`         | `smtp`, `ses`, `resend`, `postmark`, `twilio`, `whatsapp_business_api`, `other` |
+| `RECIPIENT_TYPE`        | `RecipientType`        | `user`, `contact`                                                               |
+| `NOTIFICATION_STATUS`   | `NotificationStatus`   | `unread`, `read`, `dismissed`                                                   |
+| `NOTIFICATION_SEVERITY` | `NotificationSeverity` | `normal`, `important`, `urgent`                                                 |
+| `MESSAGE_STATUS`        | `MessageStatus`        | `queued`, `sending`, `sent`, `delivered`, `failed`                              |
+
 ## Country Codes
 
 ```ts

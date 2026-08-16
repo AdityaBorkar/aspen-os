@@ -13,7 +13,7 @@
 - Install with `bun install`. `bunfig.toml` sets `ignore-scripts = true`, so install does not run package postinstall hooks.
 - Run repository checks with `bun run check:lint` and `bun run check:types`. Lint is intentionally mutating: it runs `oxlint --fix . ; oxfmt .`.
 - Run focused package checks with `cd packages/<name> && bun run check:lint` or `bun run check:types`.
-- Build a build-step package from its directory with `bun run build`. The build-step packages are `platform`, `organization`, `masters`, `notes`, `calendar`, `management`, `dms`, `workspace`, and `constants`.
+- Build a build-step package from its directory with `bun run build`. The build-step packages are `platform`, `organization`, `masters`, `notes`, `calendar`, `management`, `comms`, `dms`, `workspace`, and `constants`.
 - `scripts/build.ts` deletes/recreates `.output`. For every build-step package except `constants`, it also rewrites `package.json` exports/bin to `.output` paths; `constants` keeps its source export and only emits declarations. `bun run build --dev` rewrites configured exports/bin back to `./src/*` without emitting. After a clean checkout, or after changing `platform`, build the required build-step packages before typechecking raw-source consumers (`compliance`, `tasks`, and `hr`).
 - `bun run clean` also deletes `bun.lockb`; use it only when intentionally removing the lockfile and generated artifacts.
 - The generated better-auth schema is committed at `packages/platform/src/server/auth/db-schema.ts`; regenerate it from `packages/platform` with `bun run gen:auth-schema`, not by hand.
@@ -34,6 +34,7 @@
 - Database changes use Drizzle `pushSchema()` during platform preparation, not migration files. Follow `CODING_CONVENTIONS.md` for schema details; domain IDs are text UUID v7 values, timestamps are timezone-aware, and PostgreSQL names are snake_case mapped to camelCase TypeScript properties.
 - pg-boss pub/sub starts lazily. Publishing to a topic with no `subscribe()` consumer silently drops the message (`send()` returns no job id); every produced topic needs a subscriber, and `healthCheck()` reports unsubscribed produced topics.
 - `@aspen-os/dms` is the single document/file surface; the former drive surface is consolidated there. Do not recreate a `drive` package or parallel file/tag/share/trash model.
+- `@aspen-os/comms` is the single notification/inbox and out-of-band delivery surface (channels, host providers, messages). Do not recreate a `notifications` package or a parallel `comms:deliver` topic — delivery is the cron-scan `comms:message-sweeper` outbox worker.
 - `@aspen-os/notes` owns notes. `@aspen-os/masters` no longer owns notes or `master_note`.
 - `@aspen-os/calendar` owns the single reminder surface, including task reminders. `@aspen-os/tasks` publishes task events consumed by calendar's task bridge; do not add a second `task_reminder` surface or direct cross-module task/calendar calls.
 

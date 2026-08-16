@@ -1,4 +1,5 @@
 import { COMPLIANCE_EVENTS } from "#/pubsub";
+import type { RecipientRef } from "#/pubsub";
 import {
   daysSince,
   daysUntil,
@@ -115,6 +116,7 @@ export async function scanExpiringAndDueDocuments(deps: ReminderEngineDeps): Pro
               await deps.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_EXPIRING, {
                 daysUntilExpiry,
                 documentId: doc.id,
+                recipient: recipientFor(doc),
                 sourceEntityId: doc.sourceEntityId,
                 sourceModule: doc.sourceModule,
               });
@@ -143,6 +145,7 @@ export async function scanExpiringAndDueDocuments(deps: ReminderEngineDeps): Pro
               await deps.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_DUE, {
                 daysUntilDue,
                 documentId: doc.id,
+                recipient: recipientFor(doc),
                 sourceEntityId: doc.sourceEntityId,
                 sourceModule: doc.sourceModule,
               });
@@ -369,4 +372,9 @@ export async function generateWeeklySummary(deps: ReminderEngineDeps): Promise<v
     jobName: SCHEDULED_JOBS.WEEKLY_SUMMARY,
     recordsProcessed: 1,
   });
+}
+
+function recipientFor(doc: { assignedTo: string | null; createdBy: string }): RecipientRef | null {
+  const id = doc.assignedTo ?? doc.createdBy;
+  return id ? { id, type: "user" } : null;
 }

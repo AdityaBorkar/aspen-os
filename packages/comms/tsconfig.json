@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "declarationDir": "../../.local/types/comms",
+    "paths": {
+      "#/*": ["./src/*"]
+    }
+  },
+  "extends": "../../tsconfig.json"
+}

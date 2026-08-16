@@ -1,0 +1,43 @@
+---
+title: Access Control
+description: ACL resources and role model for the Comms module.
+icon: IconShieldLock
+---
+
+The module's ACL is declared with `defineAcl` in `src/auth.ts`.
+
+```ts title="src/auth.ts"
+defineAcl({
+  channel: [
+    "activate",
+    "create",
+    "deactivate",
+    "delete",
+    "read",
+    "rotateCredential",
+    "setDefault",
+    "test",
+    "update",
+  ],
+  provider: ["activate", "create", "deactivate", "read", "update"], // host-admin only (control-plane)
+  notification: ["create", "read", "update", "delete"],
+  preference: ["read", "update"],
+  template: ["activate", "create", "deactivate", "read", "update"],
+  setting: ["read", "update"],
+  message: ["read", "update"], // update = retry, admin
+});
+```
+
+## Roles
+
+| Role             | Access                                                                                             |
+| ---------------- | -------------------------------------------------------------------------------------------------- |
+| **Host Admin**   | Full `provider` + `channel` lifecycle, `message` read/retry, all settings                          |
+| **Tenant Admin** | Channels (create/test/activate/setDefault/rotate), templates, settings, message read/retry         |
+| **Tenant User**  | Notifications (inbox, markRead, dismiss), own preferences. No channel/template/settings access     |
+| **System**       | `notification.create` (event bridge / host app), `channel.ensureDefaults`, worker `message.update` |
+
+## Credential isolation
+
+- `provider` rows (and their kvStore credentials) are host-admin only. `channels.list` exposes only the provider `name`/`kind`/`defaultSenderAddress`.
+- Tenant BYOC credentials live in the tenant kvStore namespace; host provider credentials live in the control-plane namespace and are never returned by any workflow.

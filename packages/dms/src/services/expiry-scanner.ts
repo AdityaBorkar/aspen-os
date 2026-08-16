@@ -53,7 +53,7 @@ export async function scanExpiredFiles(deps: ExpiryScannerDeps): Promise<number>
   const [today] = now.toISOString().split("T");
 
   const rows = await deps.db
-    .select({ expiryDate: dmsFile.expiryDate, id: dmsFile.id })
+    .select({ expiryDate: dmsFile.expiryDate, id: dmsFile.id, ownerId: dmsFile.ownerId })
     .from(dmsFile)
     .where(
       and(
@@ -84,6 +84,7 @@ export async function scanExpiredFiles(deps: ExpiryScannerDeps): Promise<number>
       await deps.pubsub.publish(FILE_EVENTS.EXPIRED, {
         expiryDate: row.expiryDate,
         fileId: row.id,
+        ownerId: row.ownerId,
       });
 
       return true;

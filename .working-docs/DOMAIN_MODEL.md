@@ -13,6 +13,7 @@ This document is the **overview** of the domain model. Each package's domain has
 | `@aspen-os/compliance`   | [`domain-model/compliance.md`](domain-model/compliance.md)     |
 | `@aspen-os/tasks`        | [`domain-model/tasks.md`](domain-model/tasks.md)               |
 | `@aspen-os/calendar`     | [`domain-model/calendar.md`](domain-model/calendar.md)         |
+| `@aspen-os/comms`        | [`domain-model/comms.md`](domain-model/comms.md)               |
 | `@aspen-os/dms`          | [`domain-model/dms.md`](domain-model/dms.md)                   |
 | `@aspen-os/hr`           | [`domain-model/hr.md`](domain-model/hr.md)                     |
 | `@aspen-os/management`   | [`domain-model/management.md`](domain-model/management.md)     |
@@ -31,6 +32,7 @@ Bounded-context detail (relationships, structure, language) for each package liv
 | Compliance      | 3      | all tenant                                                                                     |
 | Tasks           | 16     | 6 control-plane + 10 tenant                                                                    |
 | Calendar        | 4      | all tenant (`calendar_` prefix)                                                                |
+| Comms           | 7      | 1 control-plane (`comms_provider`) + 6 tenant (`comms_` prefix)                                |
 | DMS             | 14     | all tenant (`dms_` prefix)                                                                     |
 | HR              | 50     | 14 control-plane + 36 tenant                                                                   |
 | Management      | 3      | all control-plane (0 shadow tables)                                                            |

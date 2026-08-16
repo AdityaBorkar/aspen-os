@@ -96,6 +96,7 @@ export interface FileUpdatedEvent {
 export interface FileExpiredEvent {
   expiryDate: string | null;
   fileId: string;
+  ownerId: string;
 }
 
 export interface FileTrashedEvent {

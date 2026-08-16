@@ -1,5 +1,6 @@
 import type { Unit } from "#/server";
 import * as db_schema from "#/server/auth/db-schema";
+import { getOtp, storeOtp } from "#/server/auth/services/otp";
 import { assignRole, deleteRole, listRoles, unassignRole } from "#/server/auth/services/role";
 import { authenticate, invalidateSession, validateSession } from "#/server/auth/services/session";
 import { createUser, deleteUser, getUser, updateUser } from "#/server/auth/services/user";
@@ -59,7 +60,9 @@ export class AuthUnit implements Unit {
     this.#config = config;
     this.#db = units.db.controlPlaneDb;
     this.#pubsub = units.pubsub;
-    this.#betterAuth = createBetterAuthService(config, units.db.controlPlaneDb);
+    this.#betterAuth = createBetterAuthService(config, units.db.controlPlaneDb, {
+      pubsub: units.pubsub,
+    });
   }
 
   async $prepareInfra(acl: Record<string, readonly string[]> = {}) {
@@ -78,7 +81,10 @@ export class AuthUnit implements Unit {
 
   applyModuleAcl(acl: Record<string, readonly string[]>): void {
     const ac = createAccessControl(acl);
-    this.#betterAuth = createBetterAuthService(this.#config, this.#db, ac);
+    this.#betterAuth = createBetterAuthService(this.#config, this.#db, {
+      ac,
+      pubsub: this.#pubsub,
+    });
   }
 
   get rest() {
@@ -88,6 +94,9 @@ export class AuthUnit implements Unit {
       pubsub: this.#pubsub,
     };
     return {
+      otp: {
+        get: async (tokenRef: string) => getOtp(tokenRef),
+      },
       role: {
         list: async () => listRoles(deps),
         remove: async (input: Parameters<typeof deleteRole>[0]) => deleteRole(input, deps),
@@ -116,8 +125,10 @@ export class AuthUnit implements Unit {
 export function createBetterAuthService(
   config: AuthConfig,
   db: DrizzleDB,
-  ac?: ReturnType<typeof createAccessControl>,
+  options?: { ac?: ReturnType<typeof createAccessControl>; pubsub?: PubSubUnit | null },
 ) {
+  const ac = options?.ac;
+  const pubsub = options?.pubsub;
   return betterAuth({
     ...config,
     database: drizzleAdapter(db, {
@@ -135,7 +146,12 @@ export function createBetterAuthService(
       phoneNumber(),
       emailOTP({
         async sendVerificationOTP({ email, otp, type }) {
-          console.log({ email, otp, type });
+          const tokenRef = storeOtp({ email, otp, type });
+          await pubsub?.publish("auth:email_otp_requested", {
+            email,
+            tokenRef,
+            type,
+          });
         },
       }),
       apiKey({

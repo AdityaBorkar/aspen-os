@@ -101,9 +101,16 @@ export interface DocumentRejectedEvent {
   sourceModule: string;
 }
 
+export interface RecipientRef {
+  id: string;
+  type: "user";
+  [key: string]: JsonValue;
+}
+
 export interface DocumentExpiringEvent {
   daysUntilExpiry: number;
   documentId: string;
+  recipient?: RecipientRef;
   sourceEntityId: string | null;
   sourceModule: string;
 }
@@ -111,6 +118,7 @@ export interface DocumentExpiringEvent {
 export interface DocumentDueEvent {
   daysUntilDue: number;
   documentId: string;
+  recipient?: RecipientRef;
   sourceEntityId: string | null;
   sourceModule: string;
 }

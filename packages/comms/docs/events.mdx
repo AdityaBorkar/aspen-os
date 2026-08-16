@@ -1,0 +1,48 @@
+---
+title: Events
+description: Topics the Comms module publishes and consumes.
+icon: IconBell
+---
+
+Events are typed via the `CommsEventMap` in `src/pubsub.ts`; topics publish as plain strings (convention). **Produced** topics are outbound contracts (host app / future consumers). **Consumed** topics are the producer side of the domain event ecosystem.
+
+## Consumed (event bridge subscriptions)
+
+| Topic                                                | Producer                     | comms handler                                                          |
+| ---------------------------------------------------- | ---------------------------- | ---------------------------------------------------------------------- |
+| `compliance:document_expiring`                       | compliance `reminder-engine` | `notify` `type: document_expiring`, severity by `daysUntilExpiry`      |
+| `compliance:document_due`                            | compliance `reminder-engine` | `notify` `type: document_due`, severity by `daysUntilDue`              |
+| `calendar:reminder_due`                              | calendar reminder dispatcher | `notify` to `reminder.userId` (`type: reminder_fired`)                 |
+| `dms:file_expired`                                   | dms `expiry-scanner`         | `notify` to the file `ownerId` (`type: file_expired`)                  |
+| `announcement:published`                             | hr (planned)                 | one in-app notification per `recipientUserIds` (`type: announcement`)  |
+| `management:tenant_provisioned` / `tenant_activated` | management                   | warm host default channels (`ensureDefaults`) per tenant               |
+| `auth:email_otp_requested`                           | platform auth                | inline OTP email via the host default email provider — never persisted |
+
+Subscriptions register in `$prepareRuntime()` (before server traffic) with the compliance `subscribeSafe` pattern: payloads parse with valibot, unknown topics no-op so optional producers never crash comms.
+
+## Produced (`comms:*`)
+
+| Event                                                                 | Payload                                                              | Trigger                         |
+| --------------------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------- |
+| `comms:channel_created`                                               | `{ channel: { id, name, type, source, status } }`                    | BYOC channel created            |
+| `comms:channel_updated`                                               | `{ channelId, changes }`                                             | Channel edited                  |
+| `comms:channel_status_changed`                                        | `{ channelId, from, to }`                                            | Activate/deactivate             |
+| `comms:channel_credential_rotated`                                    | `{ channelId }`                                                      | `rotateCredential`              |
+| `comms:channel_tested`                                                | `{ channelId, ok, at }`                                              | `channels.test` result          |
+| `comms:channel_default_changed`                                       | `{ channelId, type, isDefault }`                                     | `setDefault` / `ensureDefaults` |
+| `comms:provider_created`                                              | `{ provider: { id, name, kind } }`                                   | Host provider created           |
+| `comms:provider_status_changed`                                       | `{ providerId, isActive }`                                           | Provider activated/deactivated  |
+| `comms:notification_created`                                          | `{ notificationId, type, recipientType, recipientId, channelTypes }` | `notify`                        |
+| `comms:notification_read`                                             | `{ notificationId, userId, at }`                                     | `markRead`                      |
+| `comms:notification_dismissed`                                        | `{ notificationId, userId, at }`                                     | `dismiss`                       |
+| `comms:message_queued`                                                | `{ messageId, channelType, to }`                                     | Out-of-band send enqueued       |
+| `comms:message_sent`                                                  | `{ messageId, providerMessageId }`                                   | Provider accepted               |
+| `comms:message_delivered`                                             | `{ messageId, at }`                                                  | Provider receipt (webhook)      |
+| `comms:message_failed`                                                | `{ messageId, attempts, error }`                                     | Terminal failure                |
+| `comms:preference_updated`                                            | `{ userId, type?, channelType, enabled }`                            | `preferences.set`               |
+| `comms:template_created` / `_updated` / `_activated` / `_deactivated` | `{ templateId, name, isActive? }`                                    | Template lifecycle              |
+| `comms:settings_updated`                                              | `{ changes }`                                                        | `settings.set`                  |
+
+## OTP delivery
+
+The platform auth unit no longer logs the OTP. `sendVerificationOTP` stores the OTP in a short-lived token store and publishes `{ email, tokenRef, type }` on `auth:email_otp_requested`. The bridge fetches the OTP by `tokenRef` at send time, renders the email, and delivers inline — the OTP never appears on a queue, in a row, or in a log.
