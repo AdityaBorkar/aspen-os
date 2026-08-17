@@ -24,10 +24,5 @@
       ["internal", "parent", "sibling", "index", "style"],
       "unknown"
     ]
-  },
-  "sortTailwindcss": {
-    "attributes": ["classList"],
-    "functions": ["clsx", "cva", "tw", "cn"],
-    "stylesheet": "./src/styles.css"
   }
 }

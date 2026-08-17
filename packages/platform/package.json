@@ -11,9 +11,6 @@
     "./.output"
   ],
   "type": "module",
-  "imports": {
-    "#/*": "./src/*"
-  },
   "exports": {
     "./client": {
       "default": "./.output/client/index.js",
@@ -63,9 +60,16 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@aws-sdk/client-rds-data": "^3.1109.0",
+    "@electric-sql/pglite": "^0.5.5",
+    "@libsql/client": "^0.17.4",
+    "@neondatabase/serverless": "^1.1.0",
+    "@planetscale/database": "^1.20.1",
     "@types/bun": "catalog:",
     "@types/pg": "^8.21.0",
-    "deepmerge": "^4.3.1",
+    "@vercel/postgres": "^0.10.0",
+    "better-sqlite3": "^13.0.3",
+    "mysql2": "^3.23.3",
     "typescript": "catalog:"
   },
   "build": {

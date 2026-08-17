@@ -1,36 +1,13 @@
 #!/usr/bin/env bun
 
-import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
-import { dirname, join, relative, resolve } from "node:path";
+import { mkdir, rm } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
 
 import { $, build, file } from "bun";
 import deepmerge from "deepmerge";
 
 const $dev = process.argv.includes("--dev");
 const OUTPUT_DIRNAME = ".output";
-
-const DB_ADAPTERS = [
-  "@aws-sdk/client-rds-data",
-  "@electric-sql/pglite",
-  "@libsql/client",
-  "@libsql/client-wasm",
-  "@libsql/client/http",
-  "@libsql/client/node",
-  "@libsql/client/sqlite3",
-  "@libsql/client/web",
-  "@libsql/client/ws",
-  "@neondatabase/serverless",
-  "@planetscale/database",
-  "@prisma/client",
-  "@tidbcloud/serverless",
-  "@upstash/redis",
-  "@vercel/postgres",
-  "better-sqlite3",
-  "expo-sqlite",
-  "gel",
-  "mysql2",
-  "mysql2/promise",
-];
 
 const ROOT = resolve(process.cwd());
 const TSCONFIG_BUILD = {
@@ -78,37 +55,6 @@ interface PackageJson {
 
 const relToSrc = (srcPath: string) => srcPath.replace(/^\.\/src\//, "");
 const subdirFor = (srcPath: string) => dirname(relToSrc(srcPath));
-
-async function rewriteAliasImports(outputDir: string): Promise<void> {
-  const declarationFiles: string[] = [];
-
-  async function collect(dir: string): Promise<void> {
-    const directories: string[] = [];
-    for (const entry of await readdir(dir, { withFileTypes: true })) {
-      const full = join(dir, entry.name);
-      if (entry.isDirectory()) {
-        directories.push(full);
-      } else if (entry.name.endsWith(".d.ts")) {
-        declarationFiles.push(full);
-      }
-    }
-    await Promise.all(directories.map(async (directory) => collect(directory)));
-  }
-
-  await collect(outputDir);
-
-  await Promise.all(
-    declarationFiles.map(async (declarationFile) => {
-      const prefix = relative(dirname(declarationFile), outputDir).replaceAll("\\", "/") || ".";
-      const source = await readFile(declarationFile, "utf8");
-      if (!source.includes('"#/')) {
-        return;
-      }
-      const rewritten = source.replaceAll('"#/', `"${prefix}/`);
-      await writeFile(declarationFile, rewritten);
-    }),
-  );
-}
 
 async function parsePackageJson() {
   const outputDirname = $dev ? "src" : OUTPUT_DIRNAME;
@@ -178,25 +124,25 @@ async function main() {
     return;
   }
 
-  // oxlint-disable eslint/no-await-in-loop
-  for (const { name, src, outdir, target } of entries) {
-    const result = await build({
-      entrypoints: [src],
-      external: DB_ADAPTERS,
-      format: "esm",
-      minify: false, // True,
-      outdir,
-      sourcemap: "inline", // "none",
-      target,
-    });
-    if (!result.success) {
-      for (const log of result.logs) {
-        console.error(log);
+  await Promise.all(
+    entries.map(async ({ name, src, outdir, target }) => {
+      const result = await build({
+        entrypoints: [src],
+        format: "esm",
+        minify: false, // True,
+        outdir,
+        sourcemap: "external", // "none",
+        splitting: false, // "true",
+        target,
+      });
+      if (!result.success) {
+        for (const log of result.logs) {
+          console.error(log);
+        }
+        throw new Error(`Build failed for ${name}`);
       }
-      throw new Error(`Build failed for ${name}`);
-    }
-  }
-  // oxlint-enable eslint/no-await-in-loop
+    }),
+  );
 
   const tsconfigPath = join(ROOT, "tsconfig.build.json");
   try {
@@ -205,8 +151,6 @@ async function main() {
   } finally {
     await rm(tsconfigPath, { force: true });
   }
-
-  await rewriteAliasImports(join(ROOT, OUTPUT_DIRNAME));
 }
 
 await main();

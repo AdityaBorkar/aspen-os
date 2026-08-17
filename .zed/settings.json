@@ -2,7 +2,7 @@
   "file_scan_exclusions": [
     "**/.git",
     "**/.coverage",
-    "**/.output",
+    // "**/.output",
     "**/node_modules",
     "codedb.snapshot",
     "tsconfig.tsbuildinfo"

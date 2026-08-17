@@ -2,9 +2,6 @@
   "name": "@aspen-os/compliance",
   "version": "0.1.0",
   "type": "module",
-  "imports": {
-    "#/*": "./src/*"
-  },
   "exports": {
     ".": "./src/index.ts"
   },
