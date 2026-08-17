@@ -22,7 +22,7 @@
   "dependencies": {
     "@aspen-os/constants": "workspace:*",
     "@aspen-os/platform": "workspace:*",
-    "@aws-sdk/client-ses": "^3.1106.0",
+    "@aws-sdk/client-ses": "^3.1110.0",
     "drizzle-kit": "^0.31.10",
     "drizzle-orm": "catalog:",
     "pg": "^8.23.0",

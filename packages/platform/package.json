@@ -37,15 +37,15 @@
     "publish": "bun run build && bun publish"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1106.0",
-    "@aws-sdk/s3-request-presigner": "^3.1106.0",
-    "@better-auth/api-key": "^1.6.26",
-    "@better-auth/passkey": "^1.6.26",
+    "@aws-sdk/client-s3": "^3.1110.0",
+    "@aws-sdk/s3-request-presigner": "^3.1110.0",
+    "@better-auth/api-key": "^1.6.28",
+    "@better-auth/passkey": "^1.6.28",
     "@opentelemetry/api": "^1.9.1",
     "@orpc/server": "^1.15.0",
     "@standard-schema/spec": "catalog:",
     "@standard-schema/utils": "catalog:",
-    "better-auth": "^1.6.26",
+    "better-auth": "^1.6.28",
     "bun": "catalog:",
     "commander": "^13.1.0",
     "drizzle-kit": "catalog:",
@@ -60,7 +60,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@aws-sdk/client-rds-data": "^3.1109.0",
+    "@aws-sdk/client-rds-data": "^3.1110.0",
     "@electric-sql/pglite": "^0.5.5",
     "@libsql/client": "^0.17.4",
     "@neondatabase/serverless": "^1.1.0",

@@ -7,6 +7,12 @@ node_modules
 .source
 .local
 .cache
+.nx/cache
+.nx/migrate-runs
+.nx/polygraph
+.nx/workspace-data
+
+vite.config.*.timestamp*
 *.tsbuildinfo
 .DS_Store
 
