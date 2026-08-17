@@ -9,7 +9,7 @@ export const timeEntry = pgTable(
     date: date("date").notNull(),
     description: text("description"),
     duration: integer("duration").notNull(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     taskId: text("task_id").notNull(),
     userId: text("user_id").notNull(),
   },

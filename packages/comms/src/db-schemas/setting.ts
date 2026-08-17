@@ -6,7 +6,7 @@ export const commsSetting = pgTable(
   "comms_setting",
   {
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     key: text("key").notNull().unique(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     value: jsonb("value").notNull().$type<JsonValue>(),

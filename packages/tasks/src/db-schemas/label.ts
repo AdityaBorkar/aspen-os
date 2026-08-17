@@ -5,7 +5,7 @@ export const label = pgTable(
   "task_label_def",
   {
     color: text("color"),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     name: text("name").notNull(),
     projectId: text("project_id"),
   },

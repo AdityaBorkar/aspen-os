@@ -12,7 +12,7 @@ export const task = pgTable(
     description: text("description"),
     dueDate: timestamp("due_date", { withTimezone: true }),
     estimatedHours: numeric("estimated_hours"),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     isArchived: boolean("is_archived").notNull().default(false),
     labels: text("labels").array().default([]),
     number: text("number"),

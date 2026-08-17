@@ -40,20 +40,20 @@ Indexed on `status`, `service_provider_id`, and `plan`.
 
 An implementation/integration partner that does physical-world onboarding work.
 
-| Column        | Type                    | Description                        |
-| ------------- | ----------------------- | ---------------------------------- |
-| `id`          | text (PK)               | Default `$defaultFn(uuidv7)`.      |
-| `name`        | text (notNull)          | Display name.                      |
-| `slug`        | text (notNull, unique)  | URL-safe identifier.               |
-| `logo`        | text                    | Logo URL or Storage reference.     |
-| `description` | text                    | Free-text description of services. |
-| `email`       | text                    | Primary contact email.             |
-| `phone`       | text                    | Primary contact phone.             |
-| `website`     | text                    | Website URL.                       |
-| `address`     | text                    | Address (single text field).       |
-| `status`      | service_provider_status | Default `active`.                  |
-| `created_at`  | timestamptz (notNull)   | Default `now()`.                   |
-| `updated_at`  | timestamptz (notNull)   | Default `now()`.                   |
+| Column        | Type                    | Description                                        |
+| ------------- | ----------------------- | -------------------------------------------------- |
+| `id`          | text (PK)               | `uuidv7("id").primaryKey()` — generated at insert. |
+| `name`        | text (notNull)          | Display name.                                      |
+| `slug`        | text (notNull, unique)  | URL-safe identifier.                               |
+| `logo`        | text                    | Logo URL or Storage reference.                     |
+| `description` | text                    | Free-text description of services.                 |
+| `email`       | text                    | Primary contact email.                             |
+| `phone`       | text                    | Primary contact phone.                             |
+| `website`     | text                    | Website URL.                                       |
+| `address`     | text                    | Address (single text field).                       |
+| `status`      | service_provider_status | Default `active`.                                  |
+| `created_at`  | timestamptz (notNull)   | Default `now()`.                                   |
+| `updated_at`  | timestamptz (notNull)   | Default `now()`.                                   |
 
 Indexed on `status`.
 

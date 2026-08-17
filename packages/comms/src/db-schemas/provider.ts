@@ -10,7 +10,7 @@ export const commsProvider = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     credentialRef: text("credential_ref").notNull(),
     defaultSenderAddress: text("default_sender_address"),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     isActive: boolean("is_active").notNull().default(true),
     kind: commsProviderKindEnum("kind").notNull(),
     metadata: jsonb("metadata").$type<Record<string, JsonValue> | null>(),

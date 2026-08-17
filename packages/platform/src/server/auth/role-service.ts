@@ -1,7 +1,8 @@
-import type { AuthServiceDeps, RoleData } from "#/server/auth";
-import * as schema from "#/server/auth/db-schema";
+import * as schema from "#/server/db/schema";
 
 import { eq, sql } from "drizzle-orm";
+
+import type { AuthServiceDeps, RoleData } from "./types";
 
 export async function assignRole(
   { roleName, userId }: { roleName: string; userId: string },

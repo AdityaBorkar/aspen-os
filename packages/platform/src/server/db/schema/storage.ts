@@ -1,4 +1,4 @@
-import { uuidv7 } from "#/server/utils/uuidv7";
+import { uuidv7 } from "#/server/db/schema/data-types";
 
 import { sql } from "drizzle-orm";
 import {
@@ -21,7 +21,7 @@ export const fileMetadata = pgTable(
     contentType: text("content_type"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     etag: text("etag"),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     key: text("key").notNull(),
     metadata: jsonb("metadata").default({}),
     size: bigint("size", { mode: "number" }).notNull().default(0),

@@ -6,7 +6,7 @@ export const dmsLabel = pgTable(
   {
     color: text("color").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     isGlobal: boolean("is_global").notNull().default(false),
     name: text("name").notNull(),
     ownerId: text("owner_id"),

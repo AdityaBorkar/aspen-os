@@ -5,7 +5,7 @@ export const serviceProviderUser = pgTable(
   "service_provider_user",
   {
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     serviceProviderId: text("service_provider_id").notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     userId: text("user_id").notNull(),

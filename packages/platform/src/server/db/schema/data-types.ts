@@ -1,4 +1,6 @@
-export function uuidv7(): string {
+import { customType } from "drizzle-orm/pg-core";
+
+export function generateUuidv7(): string {
   const timestamp = Date.now();
   const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes);
@@ -14,4 +16,20 @@ export function uuidv7(): string {
 
   const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+/**
+ * Drizzle `text` column that generates a UUIDv7 at insert time in JS.
+ *
+ * Drop-in replacement for the previous
+ * `text("id").primaryKey().$defaultFn(uuidv7)` incantation:
+ * the generated default is baked into the type, so schemas write
+ * `id: uuidv7("id").primaryKey()` directly.
+ */
+const uuidv7Builder = customType<{ data: string; driverData: string; default: true }>({
+  dataType: () => "text",
+});
+
+export function uuidv7<TName extends string>(name: TName) {
+  return uuidv7Builder<TName>(name).$defaultFn(generateUuidv7);
 }

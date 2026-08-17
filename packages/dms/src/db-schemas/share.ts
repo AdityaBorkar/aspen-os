@@ -12,7 +12,7 @@ export const dmsShare = pgTable(
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     granteeId: text("grantee_id").notNull(),
     granteeType: dmsGranteeTypeEnum("grantee_type").notNull(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     message: text("message"),
     permission: dmsSharePermissionEnum("permission").notNull().default("viewer"),
     shareToken: text("share_token"),

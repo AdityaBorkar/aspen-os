@@ -22,7 +22,7 @@ export const calendarEvent = pgTable(
     createdBy: text("created_by").notNull(),
     description: text("description"),
     endsAt: timestamp("ends_at", { withTimezone: true }),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     location: text("location"),
     recurrence: jsonb("recurrence").$type<EventRecurrenceRow | null>(),
     sourceEntityId: text("source_entity_id"),

@@ -7,7 +7,7 @@ export const workspaceWatch = pgTable(
   "workspace_watch",
   {
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     itemId: text("item_id").notNull(),
     itemType: workspaceItemTypeEnum("item_type").notNull(),
     userId: text("user_id").notNull(),

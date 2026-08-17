@@ -11,7 +11,7 @@ export const dmsAccessLog = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     entityId: text("entity_id").notNull(),
     entityType: dmsEntityTypeEnum("entity_type").notNull(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     ip: text("ip"),
     publicLinkId: text("public_link_id"),
     userAgent: text("user_agent"),

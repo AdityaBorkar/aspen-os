@@ -14,7 +14,7 @@ export const workspaceWidget = pgTable(
     dashboardId: text("dashboard_id").notNull(),
     domain: text("domain"),
     filter: jsonb("filter").$type<ViewCondition[]>(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     lastError: text("last_error"),
     lastRefreshedAt: timestamp("last_refreshed_at", { withTimezone: true }),
     title: text("title").notNull(),

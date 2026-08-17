@@ -5,7 +5,7 @@ export const workspacePin = pgTable(
   "workspace_pin",
   {
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     itemId: text("item_id").notNull(),
     itemType: text("item_type").notNull(),
     sortOrder: integer("sort_order").notNull().default(0),

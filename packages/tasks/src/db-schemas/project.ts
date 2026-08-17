@@ -9,7 +9,7 @@ export const project = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     defaultTaskTypeId: text("default_task_type_id"),
     description: text("description"),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     key: text("key").notNull().unique(),
     leadId: text("lead_id").notNull(),
     name: text("name").notNull(),

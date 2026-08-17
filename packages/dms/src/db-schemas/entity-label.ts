@@ -10,7 +10,7 @@ export const dmsEntityLabel = pgTable(
     appliedBy: text("applied_by").notNull(),
     entityId: text("entity_id").notNull(),
     entityType: dmsEntityTypeEnum("entity_type").notNull(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     labelId: text("label_id").notNull(),
   },
   (table) => [

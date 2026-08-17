@@ -22,7 +22,7 @@ export const masterUnitOfMeasure = pgTable(
     conversionFactor: numeric("conversion_factor", { mode: "number" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     decimalPlaces: integer("decimal_places").notNull().default(2),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     isActive: boolean("is_active").notNull().default(true),
     isBaseUnit: boolean("is_base_unit").notNull().default(false),
     metadata: jsonb("metadata"),

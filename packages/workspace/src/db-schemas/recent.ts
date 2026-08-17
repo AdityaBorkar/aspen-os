@@ -7,7 +7,7 @@ export const workspaceRecent = pgTable(
   "workspace_recent",
   {
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     itemId: text("item_id").notNull(),
     itemType: workspaceItemTypeEnum("item_type").notNull(),
     lastAccessedAt: timestamp("last_accessed_at", { withTimezone: true }).notNull().defaultNow(),

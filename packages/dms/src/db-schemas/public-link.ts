@@ -11,7 +11,7 @@ export const dmsPublicLink = pgTable(
     entityId: text("entity_id").notNull(),
     entityType: dmsEntityTypeEnum("entity_type").notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     isActive: boolean("is_active").notNull().default(true),
     maxViews: integer("max_views"),
     password: text("password"),

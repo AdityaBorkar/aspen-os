@@ -1,5 +1,4 @@
-import type { TenancyMode, TenantResolver } from "#/server";
-import { db_schemas } from "#/server/db-schemas";
+import * as db_schemas from "#/server/db/schema";
 import type {
   DatabaseConfig,
   IsolatedTenantDbConfig,
@@ -7,8 +6,8 @@ import type {
   SharedTenantProvisioningResult,
   TenantProvisioningResult,
 } from "#/server/db/types";
-import type { SchemaMap } from "#/server/types";
-import { context } from "#/server/utils/context";
+import type { TenancyMode, TenantResolver, SchemaMap } from "#/server/types";
+import { context } from "#/server/utils";
 
 import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -43,28 +42,13 @@ export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
   private readonly tenantPools = new Map<string, { db: DrizzleDB<TSchemas>; pool: Pool }>();
   private readonly dbWrapper: DrizzleDB<TSchemas>;
 
-  constructor(
-    config: DatabaseConfig,
-    tenancyMode: TenancyMode,
-    options?: {
-      resolver?: TenantResolver;
-      controlPlaneDbName?: string;
-      tenantDbPrefix?: string;
-      tenantDbDefaults?: {
-        host?: string;
-        password?: string;
-        port?: number;
-        ssl?: boolean;
-        user?: string;
-      };
-    },
-  ) {
+  constructor(config: DatabaseConfig, tenancyMode: TenancyMode) {
     this.config = config;
     this.tenancyMode = tenancyMode;
-    this.resolver = options?.resolver;
-    this.controlPlaneDbName = options?.controlPlaneDbName;
-    this.tenantDbPrefix = options?.tenantDbPrefix;
-    this.tenantDbDefaults = options?.tenantDbDefaults;
+    this.resolver = config.resolver;
+    this.controlPlaneDbName = config.controlPlaneDbName;
+    this.tenantDbPrefix = config.tenantDbPrefix;
+    this.tenantDbDefaults = config.tenantDbDefaults;
 
     this.controlPlanePool = new Pool({
       database: config.database,

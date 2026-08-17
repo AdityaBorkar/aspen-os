@@ -34,7 +34,7 @@ export const dmsClassField = pgTable(
     classId: text("class_id").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     defaultValue: jsonb("default_value").$type<JsonValue | null>(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     includeInSearch: boolean("include_in_search").notNull().default(true),
     isActive: boolean("is_active").notNull().default(true),
     isRequired: boolean("is_required").notNull().default(false),

@@ -36,7 +36,7 @@ export const complianceDocument = pgTable(
     effectiveDate: date("effective_date"),
     escalationDays: integer("escalation_days").array(),
     expiryDate: date("expiry_date"),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     issueDate: date("issue_date"),
     issuingAuthority: text("issuing_authority"),
     jurisdiction: text("jurisdiction"),

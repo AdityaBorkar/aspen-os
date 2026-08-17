@@ -9,7 +9,7 @@ export const commsPreference = pgTable(
     channelType: commsPreferenceChannelTypeEnum("channel_type").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     enabled: boolean("enabled").notNull().default(true),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     priority: integer("priority").notNull().default(0),
     type: text("type"),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

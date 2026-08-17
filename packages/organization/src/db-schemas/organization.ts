@@ -16,7 +16,7 @@ export const organization = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     email: text("email"),
     foundedDate: date("founded_date"),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     industry: text("industry"),
     locale: text("locale").notNull().default("en-US"),
     logo: text("logo"),

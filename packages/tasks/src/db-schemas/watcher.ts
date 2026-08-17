@@ -5,7 +5,7 @@ export const watcher = pgTable(
   "task_watcher",
   {
     addedAt: timestamp("added_at", { withTimezone: true }).notNull().defaultNow(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     taskId: text("task_id").notNull(),
     userId: text("user_id").notNull(),
   },

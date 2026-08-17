@@ -281,7 +281,7 @@ set.
 
 ```
 audit_log
-  id              uuid        PK $defaultFn(() => uuidv7())  -- note: deviates from the text+uuidv7() convention; runtime default via JS function
+  id              text        PK uuidv7("id")  -- generated at insert via the uuidv7 column type
   tenant_id       text        notNull default 'default'   -- ADR-0007
   seq             bigserial                                 -- deterministic replay order (R2)
   action          text        notNull                      -- module-specific verb

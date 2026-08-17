@@ -13,7 +13,7 @@ export const calendarReminder = pgTable(
     channel: calendarReminderChannelEnum("channel").notNull().default("pubsub"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     createdBy: text("created_by").notNull(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     interval: text("interval"),
     isRecurring: boolean("is_recurring").notNull().default(false),
     isSent: boolean("is_sent").notNull().default(false),

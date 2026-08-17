@@ -1,4 +1,3 @@
-import type { Module, PlatformUnits, TenancyMode, UnitAccessors } from "#/server";
 import { AuditUnit } from "#/server/audit";
 import { AuthUnit } from "#/server/auth";
 import type { AuthConfig } from "#/server/auth";
@@ -13,11 +12,8 @@ import { RpcUnit } from "#/server/rpc";
 import type { RpcConfig } from "#/server/rpc";
 import { StorageUnit } from "#/server/storage";
 import type { StorageConfig } from "#/server/storage";
-import type { SchemaMap } from "#/server/types";
-import { context } from "#/server/utils/context";
-
-import { sql } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { Module, PlatformUnits, UnitAccessors, SchemaMap } from "#/server/types";
+import { context, isGlobalTenantId } from "#/server/utils";
 
 export type ExtractModuleNames<TModules extends Module[]> = {
   [TKey in keyof TModules]: TModules[TKey] extends { $name: infer TName extends string }
@@ -47,41 +43,6 @@ export type InferTenantSchemas<TModules extends Module[]> = UnionToIntersection<
 export type MergedSchemas<TModules extends Module[]> = InferControlPlaneSchemas<TModules> &
   InferTenantSchemas<TModules> &
   Record<string, never>;
-
-/**
- * A single connectivity probe result.
- */
-export interface HealthCheckResult {
-  /** "ok" when the dependency answered the probe, otherwise "unhealthy". */
-  status: "ok" | "unhealthy";
-  /** Round-trip latency of the probe in milliseconds, when it succeeded. */
-  latencyMs?: number;
-  /** Reason for failure, when the probe did not succeed. */
-  error?: string;
-}
-
-/**
- * Aggregate health report returned by {@link BasePlatform.healthCheck}.
- */
-export interface HealthReport {
-  /** "ok" only when every check passed, otherwise "unhealthy". */
-  status: "ok" | "unhealthy";
-  checks: {
-    db: HealthCheckResult;
-    pubsub: HealthCheckResult;
-  };
-  /**
-   * Topics that have been produced to (via publish/publishBatch) but have no
-   * registered subscriber. pg-boss silently drops these, so they flag a likely
-   * producer/consumer wiring bug. Present only when there are any.
-   */
-  unsubscribedTopics?: string[];
-  tenancyMode: TenancyMode;
-  /** ISO timestamp of when the check ran. */
-  at: string;
-}
-
-const PUBSUB_HEALTH_PROBE_TOPIC = "__platform_health_check";
 
 /** Units + modules assembled by {@link BasePlatform.createCore}. */
 export interface CoreUnits<TModules extends Module[], TSchemas extends SchemaMap> {
@@ -162,24 +123,14 @@ export abstract class BasePlatform<
     return { modules, units };
   }
 
-  get tenancyMode(): TenancyMode {
-    return this.units.db.tenancyMode;
-  }
-
   async $prepareInfra(): Promise<void> {
-    console.log("Preparing INFRA");
-    // oxlint-disable eslint/no-await-in-loop
-    for (const unit of Object.values(this.units)) {
-      try {
-        console.log("PROCESSING:", unit.$name);
-        await unit.$prepareInfra?.();
-        console.log("DONE:", unit.$name);
-      } catch (error) {
-        console.error(`Failed to prepare unit "${unit.$name}"`, error);
-      }
-    }
-    // oxlint-enable eslint/no-await-in-loop
-    console.log("Done unit infra");
+    await Promise.all(
+      Object.values(this.units).map((unit) =>
+        this.run("$global", () => unit.$prepareInfra?.()).catch((error) => {
+          console.error(`Failed to prepare unit "${unit.$name}"`, error);
+        }),
+      ),
+    );
 
     const mergedControlPlaneSchemas: SchemaMap = {};
     const mergedTenantSchemas: SchemaMap = {};
@@ -198,43 +149,36 @@ export abstract class BasePlatform<
         }
       }
     }
-    console.log("Done merged schemas");
 
     await this.units.db.prepareWithModules(mergedControlPlaneSchemas, mergedTenantSchemas);
     this.units.auth.applyModuleAcl(mergedAcl);
-    console.log("Done db prepare");
 
-    // oxlint-disable eslint/no-await-in-loop
-    for (const mod of this.modules) {
-      try {
-        await this.runInContext(() => mod.$prepareRuntime?.());
-      } catch (error) {
-        console.error(`Failed to prepare module "${mod.$name}"`, error);
-      }
-    }
-    // oxlint-enable eslint/no-await-in-loop
-    console.log("Done module prepare");
+    await Promise.all(
+      this.modules.map((module) =>
+        this.run("$global", () => module.$prepareRuntime?.()).catch((error) => {
+          console.error(`Failed to prepare module "${module.$name}"`, error);
+        }),
+      ),
+    );
   }
 
   async $cleanup(): Promise<void> {
-    // oxlint-disable eslint/no-await-in-loop
-    for (const mod of this.modules) {
-      try {
-        await this.runInContext(() => mod.$cleanup());
-      } catch {
-        console.error(`Failed to destroy module "${mod.$name}"`);
-      }
-    }
-    // oxlint-enable eslint/no-await-in-loop
-    // oxlint-disable eslint/no-await-in-loop
-    for (const unit of Object.values(this.units)) {
-      try {
-        await unit.$cleanup();
-      } catch {
-        console.error(`Failed to destroy unit "${unit.$name}"`);
-      }
-    }
-    // oxlint-enable eslint/no-await-in-loop
+    await Promise.all(
+      this.modules.map((module) =>
+        this.run("$global", () => module.$cleanup()).catch((error) => {
+          console.error(`Failed to destroy module "${module.$name}"`, error);
+        }),
+      ),
+    );
+    await Promise.all(
+      Object.values(this.units).map(async (unit) => {
+        try {
+          await unit.$cleanup();
+        } catch (error) {
+          console.error(`Failed to destroy unit "${unit.$name}"`, error);
+        }
+      }),
+    );
   }
 
   getModule<TKey extends TModules[number]["$name"]>(name: TKey): ModuleByName<TModules, TKey> {
@@ -251,92 +195,15 @@ export abstract class BasePlatform<
     return this.units[name];
   }
 
-  protected runInContext<TValue>(
-    fn: () => TValue | Promise<TValue>,
-    overrides?: {
-      db?: NodePgDatabase<TSchemas>;
-      tenantId?: string;
-    },
-  ): TValue | Promise<TValue> {
+  async run<TValue>(tenantId: string, fn: () => TValue | Promise<TValue>): Promise<TValue> {
     const ctx = {
       audit: this.units.audit,
       auth: this.units.auth,
-      db: this.units.db.controlPlaneDb,
+      db: isGlobalTenantId(tenantId)
+        ? this.units.db.controlPlaneDb
+        : await this.units.db.getTenantDb(tenantId),
       pubsub: this.units.pubsub,
-      ...overrides,
     };
-
     return context.run(ctx, fn);
-  }
-
-  /**
-   * Probe the DB and PubSub units for connectivity and report their status.
-   *
-   * The check is best-effort: a failure in one dependency does not prevent
-   * the other from being probed. Returns an aggregate {@link HealthReport}.
-   */
-  /**
-   * Probe the DB and PubSub units for connectivity and report their status.
-   *
-   * The check is best-effort: a failure in one dependency does not prevent
-   * the other from being probed. Returns an aggregate {@link HealthReport}.
-   * Derived platform classes may override {@link checkDbHealth} or
-   * {@link checkPubSubHealth} to add mode-specific probes.
-   */
-  async healthCheck(): Promise<HealthReport> {
-    const dbResult = await this.checkDbHealth();
-    const pubsubResult = await this.checkPubSubHealth();
-
-    const unsubscribedTopics = this.units.pubsub.getUnsubscribedProducedTopics();
-
-    const overall: "ok" | "unhealthy" =
-      dbResult.status === "ok" && pubsubResult.status === "ok" && unsubscribedTopics.length === 0
-        ? "ok"
-        : "unhealthy";
-
-    const report: HealthReport = {
-      at: new Date().toISOString(),
-      checks: { db: dbResult, pubsub: pubsubResult },
-      status: overall,
-      tenancyMode: this.tenancyMode,
-    };
-
-    if (unsubscribedTopics.length > 0) {
-      // Topics produced to but with no registered consumer: pg-boss silently
-      // Drops these messages. Flag them and mark the whole report unhealthy so
-      // Monitoring surfaces the wiring bug early.
-      report.unsubscribedTopics = unsubscribedTopics;
-    }
-
-    return report;
-  }
-
-  protected async checkDbHealth(): Promise<HealthCheckResult> {
-    const start = performance.now();
-    try {
-      await this.units.db.controlPlaneDb.execute(sql`SELECT 1`);
-      return { latencyMs: Math.round(performance.now() - start), status: "ok" };
-    } catch (error) {
-      return {
-        error: error instanceof Error ? error.message : String(error),
-        status: "unhealthy",
-      };
-    }
-  }
-
-  protected async checkPubSubHealth(): Promise<HealthCheckResult> {
-    const start = performance.now();
-    try {
-      // Lazily starts the control-plane pg-boss (proving it can connect to
-      // The database), then performs a live SQL round-trip against a queue.
-      // GetQueueSize works on unregistered topics and has no side effects.
-      await this.units.pubsub.getQueueSize(PUBSUB_HEALTH_PROBE_TOPIC);
-      return { latencyMs: Math.round(performance.now() - start), status: "ok" };
-    } catch (error) {
-      return {
-        error: error instanceof Error ? error.message : String(error),
-        status: "unhealthy",
-      };
-    }
   }
 }

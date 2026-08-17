@@ -22,17 +22,21 @@ type DatabaseConfig = {
 
 The `db` config is always the **control-plane** database connection. In single/RLS mode this IS the app DB. In isolated mode it is the control-plane DB (auth + platform tables); per-tenant DB config is derived from `IsolatedTenantDatabaseConfig`.
 
-The `DatabaseUnit` constructor also takes the tenancy mode and, in isolated mode, options:
+The `DatabaseUnit` constructor also takes the tenancy mode. In isolated mode, tenant settings are part of the config object:
 
 ```ts
 new DatabaseUnit(config.db, "single");
 new DatabaseUnit(config.db, "shared");
-new DatabaseUnit(config.db, "isolated", {
-  controlPlaneDbName,
-  tenantDbPrefix,
-  tenantDbDefaults,
-  resolver,
-});
+new DatabaseUnit(
+  {
+    ...config.db,
+    controlPlaneDbName,
+    tenantDbPrefix,
+    tenantDbDefaults,
+    resolver,
+  },
+  "isolated",
+);
 ```
 
 ## Public API

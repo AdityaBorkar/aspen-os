@@ -25,7 +25,7 @@ export const masterPaymentMethod = pgTable(
     direction: masterPaymentMethodDirectionEnum("direction").notNull(),
     entityId: text("entity_id").notNull(),
     entityType: masterEntityTypeEnum("entity_type").notNull(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     isActive: boolean("is_active").notNull().default(true),
     isPrimary: boolean("is_primary").notNull().default(false),
     metadata: jsonb("metadata"),

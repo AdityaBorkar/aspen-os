@@ -13,7 +13,7 @@ export const commsMessage = pgTable(
     channelType: commsChannelTypeEnum("channel_type").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     deliveredAt: timestamp("delivered_at", { withTimezone: true }),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     lastError: text("last_error"),
     metadata: jsonb("metadata").$type<Record<string, JsonValue> | null>(),
     notificationId: text("notification_id"),

@@ -6,7 +6,7 @@ export const taskAssignee = pgTable(
   {
     assignedAt: timestamp("assigned_at", { withTimezone: true }).notNull().defaultNow(),
     assignedBy: text("assigned_by").notNull(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     isLead: boolean("is_lead").notNull().default(false),
     taskId: text("task_id").notNull(),
     userId: text("user_id").notNull(),

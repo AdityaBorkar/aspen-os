@@ -15,7 +15,7 @@ export const serviceProvider = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     description: text("description"),
     email: text("email"),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     logo: text("logo"),
     name: text("name").notNull(),
     phone: text("phone"),

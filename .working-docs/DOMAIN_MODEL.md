@@ -42,9 +42,8 @@ Bounded-context detail (relationships, structure, language) for each package liv
 
 ### IDs
 
-- Always `text` with `.primaryKey().$defaultFn(uuidv7)` — never native UUID columns. `uuidv7` is the `crypto.getRandomValues()`-based function exported from `@aspen-os/platform/server`; `.$defaultFn` sets the default at insert time in JS.
+- Always `id: uuidv7("id").primaryKey()` — never native UUID columns. `uuidv7` is the Drizzle column type exported from `@aspen-os/platform/server` (SQL `text`), and it generates the `crypto.getRandomValues()`-based UUIDv7 at insert time in JS.
 - **Exception 1**: better-auth tables (`user`, `session`, `account`, `verification`, `organization`, `member`, `invitation`, `apikey`, `twoFactor`, `passkey`) use `text("id").primaryKey()` without a default.
-- **Exception 2**: `audit_log.id` uses `uuid().primaryKey().$defaultFn(() => uuidv7())` — the sole native uuid column.
 
 ### Timestamps
 
@@ -68,7 +67,7 @@ Bounded-context detail (relationships, structure, language) for each package liv
 
 ## Cross-Cutting Invariants & Business Rules
 
-1. **All IDs are text** — app-generated via the JS `uuidv7()` function (inserted via drizzle's `$defaultFn`), except better-auth tables and `audit_log.id`.
+1. **All IDs are text** — app-generated via the `uuidv7("id")` column type (bakes in the insert-time JS `generateUuidv7()` default), except better-auth tables.
 2. **All timestamps are TIMESTAMPTZ** — `withTimezone: true` on all timestamp columns.
 3. **Cascade deletes** — User deletion cascades to sessions and accounts.
 4. **No barrel files** — explicit convention in `CODING_CONVENTIONS.md`.

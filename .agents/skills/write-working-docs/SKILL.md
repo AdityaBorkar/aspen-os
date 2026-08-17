@@ -21,7 +21,7 @@ Grep the actual code and config — `.oxlintrc.json`, `.oxfmtrc.json`, `tsconfig
 
 Follow [`CONVENTIONS-FORMAT.md`](CONVENTIONS-FORMAT.md) section by section. Apply the language laws:
 
-- Imperatives: "Use `text` w/ `.$defaultFn(uuidv7)`, never native UUID columns." "Always timestamptz." "Never create `Result<T, E>` types."
+- Imperatives: "Use `id: uuidv7(\"id\").primaryKey()`, never native UUID columns." "Always timestamptz." "Never create `Result<T, E>` types."
 - Negative rules: state the forbidden pattern explicitly and name the replacement in the same sentence.
 - Strip hedges: "Prefer" → "Use", "Should" → "Must", "Consider" → "Always"/"Never", or delete the sentence.
 - Keep every convention true to the code — if the code doesn't do it, delete it.

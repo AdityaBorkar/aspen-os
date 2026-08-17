@@ -20,7 +20,7 @@ export const dmsFileVersion = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     etag: text("etag"),
     fileId: text("file_id").notNull(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     isCurrent: boolean("is_current").notNull().default(false),
     name: text("name"),
     size: bigint("size", { mode: "number" }).notNull(),

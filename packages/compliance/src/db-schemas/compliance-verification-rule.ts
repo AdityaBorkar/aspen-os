@@ -9,7 +9,7 @@ export const complianceVerificationRule = pgTable(
     assignedReviewer: text("assigned_reviewer"),
     category: complianceCategoryEnum("category"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     isActive: boolean("is_active").notNull().default(true),
     name: text("name").notNull(),
     priority: integer("priority").notNull().default(0),

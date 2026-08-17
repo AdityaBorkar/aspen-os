@@ -1,10 +1,14 @@
-import type { ArrayModuleAccessors, Module, PlatformUnits, UnitAccessors } from "#/server";
 import { BasePlatform as Base } from "#/server/base-platform";
 import type { CommonConfig, ExtractModuleNames, MergedSchemas } from "#/server/base-platform";
 import { DatabaseUnit } from "#/server/db";
-import type { DatabaseConfig, IsolatedTenantDatabaseConfig } from "#/server/db";
-import type { SchemaMap } from "#/server/types";
-import { isGlobalTenantId } from "#/server/utils/is-global-tenant-id";
+import type { IsolatedTenantDatabaseConfig } from "#/server/db";
+import type {
+  Module,
+  ArrayModuleAccessors,
+  PlatformUnits,
+  UnitAccessors,
+  SchemaMap,
+} from "#/server/types";
 
 export type IsolatedTenantConfig = CommonConfig & {
   db: IsolatedTenantDatabaseConfig;
@@ -32,26 +36,26 @@ export class IsolatedTenantPlatform<
     config: IsolatedTenantConfig,
     modules: TModules,
   ): IsolatedTenantPlatformInstance<TModules> {
-    const dbConfig: DatabaseConfig = {
-      database: config.db.controlDbName,
-      host: config.db.connection.host,
-      maxConnections: config.db.pool?.maxConnections,
-      password: config.db.connection.password,
-      port: config.db.connection.port,
-      ssl: config.db.connection.ssl,
-      user: config.db.connection.user,
-    };
-    const resolver = {
-      // SAFETY: the inline resolver is a placeholder; provisionTenant routes global tenant IDs to the control plane.
-      list: async () => [] as string[],
-      resolve: async (tenantId: string) => tenantId,
-    };
-    const db = new DatabaseUnit<MergedSchemas<TModules>>(dbConfig, "isolated", {
-      controlPlaneDbName: config.db.controlPlaneDbName,
-      resolver,
-      tenantDbDefaults: config.db.tenantDbDefaults,
-      tenantDbPrefix: config.db.tenantDbPrefix,
-    });
+    const db = new DatabaseUnit<MergedSchemas<TModules>>(
+      {
+        controlPlaneDbName: config.db.controlPlaneDbName,
+        database: config.db.controlDbName,
+        host: config.db.connection.host,
+        maxConnections: config.db.pool?.maxConnections,
+        password: config.db.connection.password,
+        port: config.db.connection.port,
+        resolver: {
+          // SAFETY: the inline resolver is a placeholder; provisionTenant routes global tenant IDs to the control plane.
+          list: async () => [] as string[],
+          resolve: async (tenantId: string) => tenantId,
+        },
+        ssl: config.db.connection.ssl,
+        tenantDbDefaults: config.db.tenantDbDefaults,
+        tenantDbPrefix: config.db.tenantDbPrefix,
+        user: config.db.connection.user,
+      },
+      "isolated",
+    );
     const core = Base.createCore<TModules, MergedSchemas<TModules>>(db, config, modules);
     // SAFETY: create() returned an instance whose units/modules match the merged schema type.
     return new IsolatedTenantPlatform<TModules>(
@@ -81,23 +85,27 @@ export class IsolatedTenantPlatform<
       }
     }
 
-    // Preparing Unit Methods
-    const prepareUnits: (() => Promise<void>)[] = [
-      async () => this.units.db.$prepareInfra(controlSchemas, tenantSchemas),
-      async () => this.units.auth.$prepareInfra(acl),
-    ];
-    for (const unit of Object.values(this.units)) {
-      if (unit.$name !== "db" && unit.$name !== "auth") {
-        prepareUnits.push(() => unit.$prepareInfra?.());
-      }
-    }
-
     // Preparing Units
+    try {
+      await this.units.db.$prepareInfra(controlSchemas, tenantSchemas);
+    } catch (error) {
+      console.error(`Failed to prepare unit "${this.units.db.$name}"`, error);
+    }
+    try {
+      await this.units.auth.$prepareInfra(acl);
+    } catch (error) {
+      console.error(`Failed to prepare unit "${this.units.auth.$name}"`, error);
+    }
     // oxlint-disable eslint/no-await-in-loop
-    for (const prepare of prepareUnits) {
-      await prepare().catch((error) => {
-        console.error(`Failed to prepare unit`, error);
-      });
+    for (const unit of Object.values(this.units)) {
+      if (unit.$name === "db" || unit.$name === "auth") {
+        continue;
+      }
+      try {
+        await unit.$prepareInfra?.();
+      } catch (error) {
+        console.error(`Failed to prepare unit "${unit.$name}"`, error);
+      }
     }
     // oxlint-enable eslint/no-await-in-loop
 
@@ -105,7 +113,7 @@ export class IsolatedTenantPlatform<
     // oxlint-disable eslint/no-await-in-loop
     for (const mod of this.modules) {
       try {
-        await this.runInContext(() => mod.$prepareRuntime?.());
+        await this.run("$global", () => mod.$prepareRuntime?.());
       } catch (error) {
         console.error(`Failed to prepare module "${mod.$name}"`, error);
       }
@@ -128,12 +136,5 @@ export class IsolatedTenantPlatform<
       });
     }
     // oxlint-enable eslint/no-await-in-loop
-  }
-
-  async run<TValue>(tenantId: string, fn: () => TValue | Promise<TValue>): Promise<TValue> {
-    const db = isGlobalTenantId(tenantId)
-      ? this.dbUnit.controlPlaneDb
-      : await this.dbUnit.getTenantDb(tenantId);
-    return this.runInContext(fn, { db, tenantId });
   }
 }

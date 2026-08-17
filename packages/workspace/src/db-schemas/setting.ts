@@ -6,7 +6,7 @@ export const workspaceSetting = pgTable(
   "workspace_setting",
   {
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     key: text("key").notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()

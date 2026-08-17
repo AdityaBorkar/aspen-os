@@ -7,7 +7,7 @@ export const taskLink = pgTable(
   "task_link",
   {
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     linkType: taskLinkTypeEnum("link_type").notNull(),
     sourceId: text("source_id").notNull(),
     targetId: text("target_id").notNull(),

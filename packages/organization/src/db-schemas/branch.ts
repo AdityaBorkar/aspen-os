@@ -34,7 +34,7 @@ export const branch = pgTable(
     country: text("country").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     email: text("email"),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     isActive: boolean("is_active").notNull().default(true),
     manager: text("manager"),
     metadata: jsonb("metadata"),

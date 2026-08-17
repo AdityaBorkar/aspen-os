@@ -1,9 +1,10 @@
-import { auditLog } from "#/server/audit/db-schema";
-import type { AuditLog } from "#/server/audit/db-schema";
-import type { AuditDatabase, AuditQuery } from "#/server/audit/types";
+import { auditLog } from "#/server/db/schema";
+import type { AuditLog } from "#/server/db/schema";
 import type { JsonValue } from "#/server/types";
 
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
+
+import type { AuditDatabase, AuditQuery } from "./types";
 
 export class AuditQueryService {
   private readonly db: AuditDatabase;

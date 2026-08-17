@@ -684,7 +684,7 @@ Stubs (package.json only — no source): accounting, crm, fleet, inventory, repo
 7. **Management module `$name` = `"management"`** — matches `@aspen-os/management` package name (renamed from `management-plane`). Proxy accessor = `p.management`.
 8. **`context.actorId` typed but never populated by framework** — `AsyncLocalStorage` context declares `actorId?: string` but platform never sets it from authenticated session. Audit entries fall back to `"system"` until app code or middleware populates it.
 9. **ADR-0009 accepted for Layer 1** — `AuditUnit` + `audit_log` table described in ADR-0009's Layer 1 built + shipped; ADR status now "Accepted (Layer 1)". Layer 2 (trigger-based blind-write capture, ADR-0010) remains proposed/unimplemented.
-10. **`audit_log.id` uses `uuid()` + `$defaultFn(() => uuidv7())`** — one table deviating from `text` columns (native `uuid` column), but still uses same JS `uuidv7` function.
+10. **`audit_log.id` now conforms** — previously `uuid()` + `$defaultFn(() => uuidv7())` (the sole native uuid column); now uses `uuidv7("id").primaryKey()` (text), matching every other table.
 11. **HR module fully conformant** — `Hr implements Module`, has `$prepareRuntime()`, follows one-file-per-action workflow layout. (Earlier docs marked HR "partial/not conformant"; no longer the case.)
 12. **Masters extraction (`.working-docs/sow/masters.md`) complete** — `@aspen-os/masters` owns contacts, addresses, bank accounts, integration connections, + notes as polymorphic tenant master data; organization module holds only `organization` + `branch`, depends on `masters`. `connection` redesigned from business-relationship model to integration connections (credentials in platform `kvStore`, referenced by `credentialRef`). Host deployments must run §9 migration: `DROP TABLE` `address`, `bank_account`, `connection`, `connection_contact`, `connection_note` (after mapping data to masters) + remove old `organization:connection_created` compliance subscription.
 13. **Masters Phase 2 (`.working-docs/sow/masters-phase-2.md`) complete** — `@aspen-os/masters` also owns `master_entity`, `master_unit_of_measure`, `master_payment_method` (8 tables, 8 workflow groups, 31 events, 8 ACL resources at Phase 2 completion). `entity` = `master_entity_type` owner value; `unitOfMeasure` tenant-wide reference data (one base unit per category); `paymentMethod` owner-scoped w/ masked-only card data + primary per `(entityType, entityId, direction)`. All Phase 2 additions additive — Phase 1 surface unchanged. (After notes module removed `master_note`, masters back to 7 tables / 7 groups / 29 events / 7 ACL resources — see gap 15.)
@@ -694,7 +694,7 @@ Stubs (package.json only — no source): accounting, crm, fleet, inventory, repo
 ## Anti-Patterns
 
 - Don't register modules after `create()` — pass them to `Platform.create()` as second arg (an array)
-- Don't use native UUID columns — always `text` w/ `.$defaultFn(uuidv7)` (exception: `audit_log.id` uses `uuid().$defaultFn(() => uuidv7())` as one native uuid column)
+- Don't use native UUID columns — always `id: uuidv7("id").primaryKey()` (SQL `text`; the `uuidv7` type generates the UUIDv7 default at insert time in JS)
 - Don't use `timestamp without time zone` — always `withTimezone: true`
 - Don't create barrel files unless explicitly told
 - Don't import bare `@aspen-os/platform` — use `/server` or `/client` subpath explicitly

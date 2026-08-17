@@ -21,8 +21,8 @@
       "types": "./.output/server/index.d.ts"
     },
     "./server/db-schemas": {
-      "default": "./.output/server/db-schemas.js",
-      "types": "./.output/server/db-schemas.d.ts"
+      "default": "./.output/server/db/schema/index.js",
+      "types": "./.output/server/db/schema/index.d.ts"
     }
   },
   "publishConfig": {
@@ -33,7 +33,7 @@
     "build": "bun run ../../scripts/build.ts",
     "check:lint": "oxlint --fix . ; oxfmt .",
     "check:types": "tsc -b",
-    "gen:auth-schema": "bunx auth generate --config ./src/server/auth/~config.ts --output ./src/server/auth/db-schema.ts",
+    "gen:auth-schema": "bunx auth generate --config ./src/server/auth/~config.ts --output ./src/server/db/schema/auth.ts",
     "publish": "bun run build && bun publish"
   },
   "dependencies": {
@@ -86,7 +86,7 @@
         "target": "node"
       },
       "./server/db-schemas": {
-        "path": "./src/server/db-schemas.ts",
+        "path": "./src/server/db/schema/index.ts",
         "target": "node"
       }
     },

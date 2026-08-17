@@ -11,7 +11,7 @@ export const masterContact = pgTable(
     email: text("email"),
     entityId: text("entity_id").notNull(),
     entityType: masterEntityTypeEnum("entity_type").notNull(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     isPrimary: boolean("is_primary").notNull().default(false),
     metadata: jsonb("metadata"),
     name: text("name").notNull(),

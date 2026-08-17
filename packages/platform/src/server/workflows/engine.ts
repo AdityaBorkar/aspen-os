@@ -1,6 +1,12 @@
+import { workflowRuns, workflowSteps } from "#/server/db/schema";
 import type { SchemaMap } from "#/server/types";
-import { getContext } from "#/server/utils/context";
-import { workflowRuns, workflowSteps } from "#/server/workflows/db-schema";
+import { getContext } from "#/server/utils";
+import { setTimeout as sleep } from "node:timers/promises";
+
+import { SchemaError } from "@standard-schema/utils";
+import { and, eq } from "drizzle-orm";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+
 import type {
   RunOptions,
   StandardSchema,
@@ -9,12 +15,7 @@ import type {
   WorkflowConfig,
   WorkflowContext,
   WorkflowStepInstance,
-} from "#/server/workflows/types";
-import { setTimeout as sleep } from "node:timers/promises";
-
-import { SchemaError } from "@standard-schema/utils";
-import { and, eq } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+} from "./types";
 
 type DrizzleDB<TSchemas extends SchemaMap = Record<string, never>> = NodePgDatabase<TSchemas>;
 

@@ -13,7 +13,7 @@ export const workspaceDashboard = pgTable(
     access: workspaceAccessEnum("access").notNull().default("personal"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     description: text("description"),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     layout: jsonb("layout")
       .notNull()
       .$type<WidgetPlacement[]>()

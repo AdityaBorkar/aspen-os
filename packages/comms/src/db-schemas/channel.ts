@@ -15,7 +15,7 @@ export const commsChannel = pgTable(
     credentialRef: text("credential_ref"),
     entityId: text("entity_id").notNull(),
     entityType: text("entity_type").notNull(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     isDefault: boolean("is_default").notNull().default(false),
     lastTestedAt: timestamp("last_tested_at", { withTimezone: true }),
     lastUsedAt: timestamp("last_used_at", { withTimezone: true }),

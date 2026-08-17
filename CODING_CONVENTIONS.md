@@ -315,11 +315,11 @@ packages/<module>/
 
 ### IDs
 
-- Domain/platform core IDs use `text` w/ `.primaryKey().$defaultFn(uuidv7)` — no native UUID columns. `uuidv7` = `crypto.getRandomValues()`-based function exported from `@aspen-os/platform/server`; `.$defaultFn` sets insert-time JS defaults, avoiding DB-side `sql\`uuidv7()\`` magic.
+- Domain/platform core IDs use the `uuidv7` Drizzle column type exported from `@aspen-os/platform/server` (defined in `src/server/db/schema/data-types.ts`): `id: uuidv7("id").primaryKey()`. It maps to SQL `text` and bakes in the insert-time JS `generateUuidv7()` default, avoiding DB-side `sql\`uuidv7()\`` magic.
 - Exception 1: better-auth tables (`user`, `session`, `account`, `verification`, `organization`, `member`, `invitation`, `apikey`, `twoFactor`, `passkey`) use `text("id").primaryKey()` without default; better-auth manages IDs (`bun run gen:auth-schema`).
-- Exception 2: `audit_log.id` uses `uuid().primaryKey().$defaultFn(() => uuidv7())` (native uuid; one platform schema deviating from `text + uuidv7()`).
-- Exception 3: `management.tenant.id` uses `text("id").primaryKey()` without default; onboarding supplies the ID.
-- Workflow run/step schemas have UUIDv7 defaults, but engine supplies `crypto.randomUUID()` IDs.
+- Exception 2: `management.tenant.id` uses `text("id").primaryKey()` without default; onboarding supplies the ID.
+- The raw generator stays available as `generateUuidv7()` from `@aspen-os/platform/server` for places that need a UUIDv7 string outside a column default.
+- Workflow run/step schemas use `uuidv7("id")` defaults, but the engine supplies `crypto.randomUUID()` IDs.
 
 ### Timestamps
 

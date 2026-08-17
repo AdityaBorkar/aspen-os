@@ -8,7 +8,7 @@ export const dmsClass = pgTable("dms_class", {
   description: text("description"),
   fileNamingSchema: text("file_naming_schema"),
   icon: text("icon"),
-  id: text("id").primaryKey().$defaultFn(uuidv7),
+  id: uuidv7("id").primaryKey(),
   isActive: boolean("is_active").notNull().default(true),
   name: text("name").notNull(),
   retentionDays: integer("retention_days"),

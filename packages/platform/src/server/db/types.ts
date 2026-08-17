@@ -1,3 +1,5 @@
+import type { TenantResolver } from "#/server/types";
+
 export interface DatabaseConfig {
   database: string;
   host: string;
@@ -6,6 +8,16 @@ export interface DatabaseConfig {
   port: number;
   ssl?: boolean;
   user: string;
+  controlPlaneDbName?: string;
+  resolver?: TenantResolver;
+  tenantDbDefaults?: {
+    host?: string;
+    password?: string;
+    port?: number;
+    ssl?: boolean;
+    user?: string;
+  };
+  tenantDbPrefix?: string;
 }
 
 export interface IsolatedTenantDbConfig {

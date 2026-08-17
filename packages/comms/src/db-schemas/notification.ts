@@ -14,7 +14,7 @@ export const commsNotification = pgTable(
     body: text("body"),
     channelTypes: text("channel_types").array().notNull().default([]),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     metadata: jsonb("metadata").$type<Record<string, JsonValue> | null>(),
     readAt: timestamp("read_at", { withTimezone: true }),
     recipientId: text("recipient_id").notNull(),

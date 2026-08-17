@@ -14,7 +14,7 @@ export const workspaceDraft = pgTable(
     body: text("body").notNull().default(""),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     metadata: jsonb("metadata")
       .notNull()
       .$type<Record<string, JsonValue>>()

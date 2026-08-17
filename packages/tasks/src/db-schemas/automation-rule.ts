@@ -9,7 +9,7 @@ export const automationRule = pgTable(
     actions: jsonb("actions").notNull(),
     conditions: jsonb("conditions"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     isActive: boolean("is_active").notNull().default(true),
     name: text("name").notNull(),
     projectId: text("project_id").notNull(),

@@ -10,7 +10,7 @@ export const commsTemplate = pgTable(
     body: text("body").notNull(),
     channelType: commsChannelTypeEnum("channel_type").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     isActive: boolean("is_active").notNull().default(true),
     metadata: jsonb("metadata").$type<Record<string, JsonValue> | null>(),
     name: text("name").notNull(),

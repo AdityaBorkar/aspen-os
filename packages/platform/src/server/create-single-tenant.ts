@@ -1,9 +1,14 @@
-import type { ArrayModuleAccessors, Module, PlatformUnits, UnitAccessors } from "#/server";
 import { BasePlatform as Base } from "#/server/base-platform";
 import type { CommonConfig, ExtractModuleNames, MergedSchemas } from "#/server/base-platform";
 import { DatabaseUnit } from "#/server/db";
 import type { DatabaseConfig } from "#/server/db";
-import type { SchemaMap } from "#/server/types";
+import type {
+  Module,
+  ArrayModuleAccessors,
+  PlatformUnits,
+  UnitAccessors,
+  SchemaMap,
+} from "#/server/types";
 
 export type SingleTenantConfig = CommonConfig & {
   db: DatabaseConfig;
@@ -36,9 +41,5 @@ export class SingleTenantPlatform<
       core.units,
       core.modules,
     ) as SingleTenantPlatformInstance<TModules>;
-  }
-
-  async run<TValue>(fn: () => TValue | Promise<TValue>): Promise<TValue> {
-    return this.runInContext(fn);
   }
 }

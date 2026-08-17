@@ -90,7 +90,7 @@ import { myEntityStatusEnum } from "./enums";
 export const myEntity = pgTable(
   "my_entity",
   {
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     name: text("name").notNull(),
     status: myEntityStatusEnum("status").notNull().default("active"),
     metadata: jsonb("metadata"),
@@ -119,9 +119,10 @@ export const tenant_schemas = {
 ```
 
 <Callout type="warn">
-  IDs are always `text` with `.primaryKey().$defaultFn(uuidv7)` — never native UUID columns.
-  Timestamps use `TIMESTAMPTZ` / `withTimezone: true`. `uuidv7` is exported from
-  `@aspen-os/platform/server` (no `sql\`uuidv7()\`` needed in schema files).
+  IDs use the `uuidv7` Drizzle column type — `id: uuidv7("id").primaryKey()` — never native UUID
+  columns. The type maps to `text` and bakes in the insert-time JS default, so no `$defaultFn` or
+  `sql\`uuidv7()\`` is needed in schema files. `uuidv7` is exported from
+  `@aspen-os/platform/server`; timestamps use `TIMESTAMPTZ` / `withTimezone: true`.
 </Callout>
 
 ## Step 3: Constants & Enums

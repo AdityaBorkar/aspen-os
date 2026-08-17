@@ -5,7 +5,7 @@ export const dmsLegalHold = pgTable(
   "dms_legal_hold",
   {
     fileId: text("file_id").notNull(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     placedAt: timestamp("placed_at", { withTimezone: true }).notNull().defaultNow(),
     placedBy: text("placed_by").notNull(),
     reason: text("reason").notNull(),

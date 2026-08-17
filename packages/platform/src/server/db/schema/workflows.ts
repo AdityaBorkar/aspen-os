@@ -1,4 +1,4 @@
-import { uuidv7 } from "#/server/utils/uuidv7";
+import { uuidv7 } from "#/server/db/schema/data-types";
 
 import { sql } from "drizzle-orm";
 import { index, integer, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
@@ -9,7 +9,7 @@ export const workflowRuns = pgTable(
     completedAt: timestamp("completed_at", { withTimezone: true }),
     durationMs: integer("duration_ms"),
     error: jsonb("error"),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     input: jsonb("input"),
     metadata: jsonb("metadata").default({}),
     output: jsonb("output"),
@@ -34,7 +34,7 @@ export const workflowSteps = pgTable(
     completedAt: timestamp("completed_at", { withTimezone: true }),
     durationMs: integer("duration_ms"),
     error: jsonb("error"),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     metadata: jsonb("metadata").default({}),
     output: jsonb("output"),
     runId: text("run_id").notNull(),

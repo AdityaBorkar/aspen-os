@@ -11,7 +11,7 @@ export const dmsContact = pgTable(
     designation: text("designation").notNull(),
     email: text("email").notNull(),
     firstName: text("first_name").notNull(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     isRemoved: boolean("is_removed").notNull().default(false),
     lastName: text("last_name").notNull(),
     linkedUserId: text("linked_user_id"),

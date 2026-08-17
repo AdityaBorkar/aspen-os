@@ -36,7 +36,7 @@ export const complianceObligation = pgTable(
     expiryBased: boolean("expiry_based").notNull().default(false),
     expiryDurationMonths: integer("expiry_duration_months"),
     frequency: obligationFrequencyEnum("frequency").notNull(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     isActive: boolean("is_active").notNull().default(true),
     name: text("name").notNull(),
     periodBased: boolean("period_based").notNull().default(false),

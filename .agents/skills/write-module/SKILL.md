@@ -169,7 +169,7 @@ export const dmsFileStatusEnum = pgEnum("dms_file_status", [
 **`src/db-schemas/<entity>.ts`** — one file per table. Conventions from AGENTS.md:
 
 - `pgTable("snake_case_name", { … }, (t) => [indexes])`
-- `id: text("id").primaryKey().$defaultFn(uuidv7)` — `import { uuidv7 } from "@aspen-os/platform/server"` (do **not** use `sql\`uuidv7()\``) (exception: better-auth tables use plain `text("id").primaryKey()`)
+- `id: uuidv7("id").primaryKey()` — `import { uuidv7 } from "@aspen-os/platform/server"` (do **not** use `sql\`uuidv7()\``) (exception: better-auth tables use plain `text("id").primaryKey()`) — the `uuidv7`column type bakes in the insert-time JS`generateUuidv7()` default
 - `createdAt` / `updatedAt` with timestamptz, `notNull().defaultNow()`, `$onUpdate(() => new Date())` on updatedAt only
 - Columns sorted alphabetically by TS property name
 - `pgEnum` from `./enums`, `date("expiry_date")` for plain dates, `bigint("size", { mode: "number" })` for sizes, `jsonb` for metadata

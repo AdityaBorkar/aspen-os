@@ -16,7 +16,7 @@ export const masterConnection = pgTable(
     description: text("description"),
     entityId: text("entity_id").notNull(),
     entityType: masterEntityTypeEnum("entity_type").notNull(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     lastTestedAt: timestamp("last_tested_at", { withTimezone: true }),
     lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
     metadata: jsonb("metadata"),

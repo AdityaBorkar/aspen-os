@@ -111,7 +111,7 @@
 
 ### Audit Log (Entity — append-only, Platform Core)
 
-**Identity**: `id` (uuid, PK, `$defaultFn(() => uuidv7())`)
+**Identity**: `id` (text, PK, `uuidv7("id")` — generated at insert)
 
 **Invariants**:
 

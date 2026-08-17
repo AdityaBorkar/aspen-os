@@ -1,8 +1,12 @@
-import type { LogEntry, LogLevel } from "#/server/log/types";
 import type { JsonValue } from "#/server/types";
-import { context } from "#/server/utils/context";
+import { context } from "#/server/utils";
 
+import { context as otelContext, trace } from "@opentelemetry/api";
+import pino from "pino";
+import pretty from "pino-pretty";
 import { number, safeParse, string } from "valibot";
+
+import type { LogEntry, LogLevel } from "./types";
 
 export interface CreateEntryInput {
   error?: Error;
@@ -89,3 +93,38 @@ function toOptionalString(value: JsonValue | undefined): string | undefined {
   const result = safeParse(string(), value);
   return result.success ? result.output : undefined;
 }
+
+const baseEnv = process.env.NODE_ENV;
+if (!baseEnv) {
+  throw new Error("NODE_ENV is not set");
+}
+
+const serviceName = process.env.OTEL_SERVICE_NAME;
+if (!serviceName) {
+  throw new Error("OTEL_SERVICE_NAME is not set");
+}
+
+export const logger = pino(
+  {
+    base: {
+      env: baseEnv,
+      service: serviceName,
+    },
+    level: process.env.LOG_LEVEL || "info",
+    mixin() {
+      const span = trace.getSpan(otelContext.active());
+      if (!span) {
+        return {};
+      }
+      const { traceId, spanId } = span.spanContext();
+      return { span_id: spanId, trace_id: traceId };
+    },
+  },
+  baseEnv === "development"
+    ? pretty({
+        colorize: true,
+        ignore: "pid,hostname",
+        translateTime: "SYS:HH:MM:ss",
+      })
+    : undefined,
+);

@@ -6,7 +6,7 @@ export const taskType = pgTable(
   {
     color: text("color"),
     icon: text("icon"),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     isDefault: boolean("is_default").notNull().default(false),
     name: text("name").notNull(),
     projectId: text("project_id"),

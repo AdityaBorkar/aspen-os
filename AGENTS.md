@@ -2,7 +2,7 @@
 
 ## Repository Shape
 
-- This is a Bun/TypeScript ESM monorepo. Workspaces are `packages/*`, `examples/*`, and `docs`; there is currently no host/example application.
+- This is a Bun/TypeScript ESM monorepo. Workspace globs are `packages/*`, `examples/*`, and `docs`; however `examples/*` currently contains only `examples/recruiter` (an empty SeaweedFS/S3 config stub with no `package.json`), so there is no host/example application.
 - `packages/platform` is the framework kernel. Import its server, browser, and CLI surfaces from `@aspen-os/platform/server`, `@aspen-os/platform/client`, and the `aspen` binary; there is no root platform export.
 - Domain modules live in `packages/*` and are passed as an array to a platform. `crm`, `fleet`, `inventory`, and `reports` are placeholder packages with no implementation; do not infer an API from their README files.
 - `.working-docs/` is the domain source of truth. Before domain/schema changes, read `CODING_CONVENTIONS.md` and the relevant `.working-docs/domain-model/`, `bounded-contexts/`, ADR, or SOW file. `docs/` is the generated Fumadocs site, not the domain source of truth.

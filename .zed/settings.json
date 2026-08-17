@@ -2,46 +2,33 @@
   "file_scan_exclusions": [
     "**/.git",
     "**/.coverage",
-    // "**/.output",
+    "**/.local",
+    "**/.output",
     "**/node_modules",
     "codedb.snapshot",
     "tsconfig.tsbuildinfo"
   ],
   "formatter": [{ "language_server": { "name": "oxfmt" } }, { "code_action": "source.fixAll.oxc" }],
-  "language_servers": [
-    "!markdownlint",
-    "!eslint",
-    "!vtsls",
-    "!biome",
-    "oxlint",
-    "oxfmt",
-    "typescript-ls"
-  ]
-  // "lsp": {
-  //   "oxlint": {
-  //     "initialization_options": {
-  //       "settings": {
-  //         "configPath": null,
-  //         "run": "onType",
-  //         "disableNestedConfig": false,
-  //         "fixKind": "safe_fix",
-  //         "unusedDisableDirectives": "deny",
-  //       },
-  //     },
-  //   },
-  //   "oxfmt": {
-  //     "initialization_options": {
-  //       "settings": {
-  //         "fmt.configPath": null,
-  //         "run": "onSave",
-  //       },
-  //     },
-  //   },
-  //   "vtsls": {
-  //     "binary": {
-  //       "arguments": ["--lsp", "--stdio"],
-  //       "path": "node_modules/.bin/tsc"
-  //     }
-  //   },
-  // },
+  "language_servers": ["!markdownlint", "..."],
+  "lsp": {
+    "oxlint": {
+      "initialization_options": {
+        "settings": {
+          "configPath": null,
+          "run": "onType",
+          "disableNestedConfig": false,
+          "fixKind": "safe_fix",
+          "unusedDisableDirectives": "deny"
+        }
+      }
+    },
+    "oxfmt": {
+      "initialization_options": {
+        "settings": {
+          "fmt.configPath": null,
+          "run": "onSave"
+        }
+      }
+    }
+  }
 }

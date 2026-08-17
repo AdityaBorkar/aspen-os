@@ -32,7 +32,7 @@ export const hrAnnouncement = pgTable(
     body: text("body").notNull(),
     channel: announcementChannelEnum("channel").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     isPinned: boolean("is_pinned").notNull().default(false),
     pinnedBy: text("pinned_by"),
     priority: announcementPriorityEnum("priority").notNull().default("normal"),
@@ -57,7 +57,7 @@ export const hrAnnouncementRecipient = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     employeeId: text("employee_id"),
     hrUserId: text("hr_user_id"),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     userId: text("user_id"),
   },
   (table) => [

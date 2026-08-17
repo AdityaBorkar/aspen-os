@@ -22,7 +22,7 @@ export const dmsFile = pgTable(
     expiryDate: date("expiry_date"),
     fieldValues: jsonb("field_values").$type<Record<string, JsonValue> | null>(),
     folderId: text("folder_id"),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     metadata: jsonb("metadata").$type<Record<string, JsonValue> | null>(),
     name: text("name").notNull(),
     ownerId: text("owner_id").notNull(),

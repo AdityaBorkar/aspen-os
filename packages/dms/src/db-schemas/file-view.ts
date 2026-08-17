@@ -12,7 +12,7 @@ export const dmsFileView = pgTable(
       .notNull()
       .$type<FileViewCondition[]>()
       .default(sql`'[]'::jsonb`),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     isDefault: boolean("is_default").notNull().default(false),
     isShared: boolean("is_shared").notNull().default(false),
     name: text("name").notNull(),

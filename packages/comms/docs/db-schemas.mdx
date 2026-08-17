@@ -4,7 +4,7 @@ description: All tables declared by the Comms module — 1 control-plane + 6 ten
 icon: IconDatabase
 ---
 
-The Comms module declares 7 tables: one control-plane table (`comms_provider`) and six tenant tables. Every table uses `text("id")` with `.primaryKey().$defaultFn(uuidv7)` and timestamptz columns (`withTimezone: true`). `comms_channel.entityType` reuses the `MASTER_ENTITY_TYPE` constant values (constants-only; no masters dependency).
+The Comms module declares 7 tables: one control-plane table (`comms_provider`) and six tenant tables. Every table uses `id: uuidv7("id").primaryKey()` and timestamptz columns (`withTimezone: true`). `comms_channel.entityType` reuses the `MASTER_ENTITY_TYPE` constant values (constants-only; no masters dependency).
 
 ## Enums
 

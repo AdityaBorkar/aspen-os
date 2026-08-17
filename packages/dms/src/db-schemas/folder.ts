@@ -7,7 +7,7 @@ export const dmsFolder = pgTable(
     color: text("color"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     description: text("description"),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     isTrashed: boolean("is_trashed").notNull().default(false),
     name: text("name").notNull(),
     ownerId: text("owner_id").notNull(),

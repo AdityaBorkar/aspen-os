@@ -1,5 +1,5 @@
+import { uuidv7 } from "#/server/db/schema/data-types";
 import type { JsonValue } from "#/server/types";
-import { uuidv7 } from "#/server/utils/uuidv7";
 
 import { sql } from "drizzle-orm";
 import {
@@ -10,7 +10,6 @@ import {
   text,
   timestamp,
   uniqueIndex,
-  uuid,
 } from "drizzle-orm/pg-core";
 
 export const auditLog = pgTable(
@@ -22,9 +21,7 @@ export const auditLog = pgTable(
     crudAction: text("crud_action"),
     entityId: text("entity_id").notNull(),
     entityType: text("entity_type").notNull(),
-    id: uuid()
-      .primaryKey()
-      .$defaultFn(() => uuidv7()),
+    id: uuidv7("id").primaryKey(),
     idempotencyKey: text("idempotency_key"),
     metadata: jsonb("metadata").$type<Record<string, JsonValue> | null>(),
     newState: jsonb("new_state").$type<Record<string, JsonValue> | null>(),

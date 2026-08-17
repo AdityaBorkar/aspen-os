@@ -18,7 +18,7 @@ export const workspaceView = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     domain: text("domain").notNull(),
     groupBy: text("group_by"),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     isDefault: boolean("is_default").notNull().default(false),
     metadata: jsonb("metadata").$type<Record<string, JsonValue>>(),
     name: text("name").notNull(),

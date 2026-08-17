@@ -9,7 +9,7 @@ export const note = pgTable(
     access: notesAccessEnum("access").notNull().default("personal"),
     body: text("body").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     metadata: jsonb("metadata").notNull().default({}),
     ownerId: text("owner_id").notNull(),
     scopeId: text("scope_id"),

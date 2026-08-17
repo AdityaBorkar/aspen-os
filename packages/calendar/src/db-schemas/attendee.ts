@@ -11,7 +11,7 @@ export const calendarAttendee = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     email: text("email").notNull(),
     eventId: text("event_id").notNull(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     name: text("name"),
     optional: boolean("optional").notNull().default(false),
     status: calendarAttendeeStatusEnum("status").notNull().default("invited"),

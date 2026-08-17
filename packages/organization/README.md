@@ -87,7 +87,7 @@ class Organization {
 | `organization` | Root entity                                            | `id`, `name`, `slug` (unique), `status`, `accentColor`, `locale`, `timezone`  |
 | `branch`       | Physical/logical location (hierarchical, max 5 levels) | `id`, `name`, `code` (unique), `type`, `parentBranch`, `isActive`, `capacity` |
 
-All IDs are `text` with `.primaryKey().$defaultFn(uuidv7)` (the `uuidv7` function, imported from `@aspen-os/platform/server`). All timestamps are `TIMESTAMPTZ` with `withTimezone: true`.
+All IDs use `id: uuidv7("id").primaryKey()` (the `uuidv7` Drizzle column type imported from `@aspen-os/platform/server`, which generates the UUIDv7 at insert). All timestamps are `TIMESTAMPTZ` with `withTimezone: true`.
 
 ## Workflows
 

@@ -1,4 +1,4 @@
-import { fileMetadata } from "#/server/storage/db-schema";
+import { fileMetadata } from "#/server/db/schema";
 
 import { eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";

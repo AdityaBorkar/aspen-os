@@ -11,7 +11,7 @@ export const calendar = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     createdBy: text("created_by").notNull(),
     description: text("description"),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     isDefault: boolean("is_default").notNull().default(false),
     name: text("name").notNull(),
     ownerId: text("owner_id").notNull(),

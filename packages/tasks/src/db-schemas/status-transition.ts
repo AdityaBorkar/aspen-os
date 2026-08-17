@@ -5,7 +5,7 @@ export const statusTransition = pgTable(
   "task_status_transition",
   {
     fromStatusId: text("from_status_id").notNull(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     projectId: text("project_id").notNull(),
     requiresComment: boolean("requires_comment").notNull().default(false),
     requiresRole: text("requires_role"),

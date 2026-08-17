@@ -11,7 +11,7 @@ export const workspaceSchedule = pgTable(
     createdBy: text("created_by").notNull(),
     cron: text("cron").notNull(),
     dashboardId: text("dashboard_id").notNull(),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     isActive: boolean("is_active").notNull().default(true),
     lastError: text("last_error"),
     lastRunAt: timestamp("last_run_at", { withTimezone: true }),

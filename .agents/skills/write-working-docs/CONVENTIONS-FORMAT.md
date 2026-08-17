@@ -46,7 +46,7 @@ Contents (each written as prescriptive rules):
 
 State forbidden patterns by name. In this repo the banned set includes:
 
-- Never use native UUID columns — use `text` + `.$defaultFn(uuidv7)`.
+- Never use native UUID columns — use `id: uuidv7("id").primaryKey()`, never native UUID columns.
 - Never use `sql\`uuidv7()\``— use the exported`uuidv7` function.
 - Never use migration files — use `pushSchema()`.
 - Never create `Result<T, E>` / `PaginatedResult` types.
@@ -56,7 +56,7 @@ State forbidden patterns by name. In this repo the banned set includes:
 - Do not add a second `task_reminder` surface — `calendar` owns reminders.
 - Do not add an overloaded `run()` signature.
 
-Pair each prohibition with the positive alternative in the same sentence: "Never use native UUID columns — use `text` w/ `.$defaultFn(uuidv7)`."
+Pair each prohibition with the positive alternative in the same sentence: "Never use native UUID columns — use `id: uuidv7("id").primaryKey()`."
 
 ### Maintenance
 

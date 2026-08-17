@@ -8,7 +8,7 @@ export const savedView = pgTable(
   {
     filters: jsonb("filters"),
     groupBy: text("group_by"),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     isDefault: boolean("is_default").notNull().default(false),
     isShared: boolean("is_shared").notNull().default(false),
     name: text("name").notNull(),

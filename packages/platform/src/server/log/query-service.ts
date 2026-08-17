@@ -1,8 +1,9 @@
-import { logs } from "#/server/log/db-schema";
-import type { LogEntry, LogQuery, LogStats } from "#/server/log/types";
+import { logs } from "#/server/db/schema";
 
 import { and, desc, eq, gte, ilike, lte, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+
+import type { LogEntry, LogQuery, LogStats } from "./types";
 
 type DrizzleDB = NodePgDatabase;
 

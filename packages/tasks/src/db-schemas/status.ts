@@ -8,7 +8,7 @@ export const status = pgTable(
   {
     category: statusCategoryEnum("category").notNull(),
     color: text("color"),
-    id: text("id").primaryKey().$defaultFn(uuidv7),
+    id: uuidv7("id").primaryKey(),
     isDefault: boolean("is_default").notNull().default(false),
     isResolved: boolean("is_resolved").notNull().default(false),
     name: text("name").notNull(),
