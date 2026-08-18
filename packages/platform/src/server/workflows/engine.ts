@@ -200,6 +200,7 @@ export async function executeWorkflow<
   options?: RunOptions,
 ): Promise<TOutput> {
   const store = options?.db ? null : getContext();
+  console.log({ store });
   const db = options?.db ?? store?.db;
   const audit = options?.audit ?? store?.audit;
   const auth = options?.auth ?? store?.auth;

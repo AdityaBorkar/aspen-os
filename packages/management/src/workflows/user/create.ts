@@ -9,6 +9,7 @@ import { eq } from "drizzle-orm";
 export const createUser = Workflow.name("user.create")
   .input(CreatePlatformUserSchema)
   .handler(async (input, ctx) => {
+    console.log({ ctx });
     if (!ctx.auth) {
       throw new Error("Auth is required for user creation");
     }

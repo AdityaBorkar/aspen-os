@@ -3,11 +3,12 @@
     "**/.git",
     "**/.coverage",
     "**/.local",
-    // "**/.output",
+    "**/.output",
     "**/node_modules",
     "codedb.snapshot",
     "tsconfig.tsbuildinfo"
   ],
+  "format_on_save": "on",
   "formatter": [{ "language_server": { "name": "oxfmt" } }, { "code_action": "source.fixAll.oxc" }],
   "language_servers": ["!markdownlint", "..."],
   "lsp": {
