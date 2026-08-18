@@ -9,13 +9,15 @@ import type {
 import type { TenancyMode, TenantResolver, SchemaMap } from "#/server/types";
 import { context } from "#/server/utils";
 
+// import { pushSchema } from "drizzle-kit/api";
 import { sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/node-postgres";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
+import { drizzle } from "drizzle-orm/postgres-js";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+import type { Sql } from "postgres";
 
 export type DrizzleDB<TSchemas extends SchemaMap = Record<string, never>> =
-  NodePgDatabase<TSchemas>;
+  PostgresJsDatabase<TSchemas>;
 
 export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
   readonly $name = "db";
@@ -34,12 +36,12 @@ export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
       }
     | undefined;
 
-  protected controlPlanePool: Pool;
+  protected controlPlanePool: Sql;
   protected controlPlaneDbInstance: DrizzleDB<TSchemas>;
   protected storedControlPlaneSchemas: SchemaMap = {};
   protected storedTenantSchemas: SchemaMap = {};
 
-  private readonly tenantPools = new Map<string, { db: DrizzleDB<TSchemas>; pool: Pool }>();
+  private readonly tenantPools = new Map<string, { db: DrizzleDB<TSchemas>; pool: Sql }>();
   private readonly dbWrapper: DrizzleDB<TSchemas>;
 
   constructor(config: DatabaseConfig, tenancyMode: TenancyMode) {
@@ -50,14 +52,14 @@ export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
     this.tenantDbPrefix = config.tenantDbPrefix;
     this.tenantDbDefaults = config.tenantDbDefaults;
 
-    this.controlPlanePool = new Pool({
+    this.controlPlanePool = postgres({
       database: config.database,
       host: config.host,
       max: config.maxConnections ?? 20,
       password: config.password,
       port: config.port,
       ssl: config.ssl ? { rejectUnauthorized: false } : false,
-      user: config.user,
+      username: config.user,
     });
     this.controlPlaneDbInstance = drizzle<TSchemas>(this.controlPlanePool);
 
@@ -72,7 +74,7 @@ export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
     return this.controlPlaneDbInstance;
   }
 
-  get pool(): Pool {
+  get pool(): Sql {
     return this.controlPlanePool;
   }
 
@@ -114,14 +116,14 @@ export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
     let entry = this.tenantPools.get(tenantId);
     if (!entry) {
       const database = await this.resolver?.resolve(tenantId);
-      const pool = new Pool({
+      const pool = postgres({
         database,
         host: this.tenantDbDefaults?.host ?? this.config.host,
         password: this.tenantDbDefaults?.password ?? this.config.password,
         port: this.tenantDbDefaults?.port ?? this.config.port,
         ssl:
           (this.tenantDbDefaults?.ssl ?? this.config.ssl) ? { rejectUnauthorized: false } : false,
-        user: this.tenantDbDefaults?.user ?? this.config.user,
+        username: this.tenantDbDefaults?.user ?? this.config.user,
       });
       const db = drizzle<TSchemas>(pool);
       entry = { db, pool };
@@ -170,13 +172,13 @@ export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
 
       await this.createTenantDatabase(dbConfig);
 
-      const pool = new Pool({
+      const pool = postgres({
         database: dbConfig.database,
         host: dbConfig.host,
         password: dbConfig.password,
         port: dbConfig.port,
         ssl: dbConfig.ssl ? { rejectUnauthorized: false } : false,
-        user: dbConfig.user,
+        username: dbConfig.user,
       });
       const tenantDb = drizzle<TSchemas>(pool);
       try {
@@ -205,35 +207,25 @@ export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
     if (this.tenancyMode !== "shared") {
       throw new Error("runWithTenant is only available in shared tenancy mode");
     }
-    const client = await this.controlPlanePool.connect();
-    try {
-      await client.query("BEGIN");
-      await client.query("SELECT set_config('app.tenant_id', $1, true)", [tenantId]);
-      await client.query("SET LOCAL ROLE tenant_role");
-      // SAFETY: the client is a connected pg Client which is a valid drizzle node-postgres session source.
-      const db = drizzle(client) as DrizzleDB<TSchemas>;
-      const result = await fn(db);
-      await client.query("COMMIT");
-      return result;
-    } catch (error) {
-      await client.query("ROLLBACK").catch(() => {});
-      throw error;
-    } finally {
-      client.release();
-    }
+    return this.controlPlaneDbInstance.transaction(async (tx) => {
+      await tx.execute(sql`SELECT set_config('app.tenant_id', ${tenantId}, true)`);
+      await tx.execute(sql`SET LOCAL ROLE tenant_role`);
+      // The transaction tx shares the RLS session scope established above, so fn's queries are tenant-isolated.
+      return fn(tx);
+    });
   }
 
   async seedTenantDb(
     dbConfig: IsolatedTenantDbConfig,
     fn: (db: DrizzleDB<TSchemas>) => Promise<void>,
   ): Promise<void> {
-    const pool = new Pool({
+    const pool = postgres({
       database: dbConfig.database,
       host: dbConfig.host,
       password: dbConfig.password,
       port: dbConfig.port,
       ssl: dbConfig.ssl ? { rejectUnauthorized: false } : false,
-      user: dbConfig.user,
+      username: dbConfig.user,
     });
     try {
       const db = drizzle<TSchemas>(pool);
@@ -296,44 +288,43 @@ export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
   }
 
   protected async pushSchemasTo(db: DrizzleDB<TSchemas>, schemas: SchemaMap): Promise<void> {
-    const { pushSchema } = await import("drizzle-kit/api");
-
-    // @ts-expect-error DB Type Mismatch
-    const result = await pushSchema(schemas, db);
-    if (result.statementsToExecute.length > 0) {
-      console.log(`Applying ${result.statementsToExecute.length} Statements`);
-      if (result.hasDataLoss) {
-        console.warn("Schema push has data loss warnings:", result.warnings);
-      }
-      await result.apply();
-    }
+    console.log({ db, schemas });
+    // // @ts-expect-error DB Type Mismatch
+    // const result = await pushSchema(schemas, db);
+    // if (result.statementsToExecute.length > 0) {
+    //   console.log(`Applying ${result.statementsToExecute.length} Statements`);
+    //   if (result.hasDataLoss) {
+    //     console.warn("Schema push has data loss warnings:", result.warnings);
+    //   }
+    //   await result.apply();
+    // }
   }
 
   private async createTenantDatabase(dbConfig: IsolatedTenantDbConfig): Promise<void> {
-    const adminPool = new Pool({
+    const admin = postgres({
       database: this.controlPlaneDbName ?? "postgres",
       host: this.config.host,
       password: this.config.password,
       port: this.config.port,
       ssl: this.config.ssl ? { rejectUnauthorized: false } : false,
-      user: this.config.user,
+      username: this.config.user,
     });
 
     try {
       const escapedName = `"${dbConfig.database.replaceAll('"', '""')}"`;
-      await adminPool.query(`CREATE DATABASE ${escapedName}`);
+      await admin.unsafe(`CREATE DATABASE ${escapedName}`);
     } catch (error) {
       if (error instanceof Error && error.message.includes("already exists")) {
         return;
       }
       throw error;
     } finally {
-      await adminPool.end();
+      await admin.end();
     }
   }
 
   private async discoverTenantTables(db: DrizzleDB<TSchemas>): Promise<string[]> {
-    const result = await db.execute(
+    const rows = await db.execute(
       sql`
         SELECT table_name
         FROM information_schema.columns
@@ -341,7 +332,7 @@ export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
           AND table_schema = 'public'
       `,
     );
-    const tableNames = result.rows.map(
+    const tableNames = rows.map(
       (row) =>
         // SAFETY: information_schema.columns.table_name is always text per the SQL standard.
         row?.table_name as string,

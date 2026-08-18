@@ -12,14 +12,14 @@ import { fetchFileStep } from "#/workflow-steps/fetch-file";
 import { Workflow } from "@aspen-os/platform/server";
 import type { JsonValue } from "@aspen-os/platform/server";
 import { count, eq, isNotNull } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { object, parse } from "valibot";
 
 const ClassifyInputSchema = object({ id: IdSchema, input: ClassifyFileSchema });
 
 const MAX_SEQ = 999_999;
 
-async function nextDocNumber(db: NodePgDatabase): Promise<string> {
+async function nextDocNumber(db: PostgresJsDatabase): Promise<string> {
   const rows = await db
     .select({ value: count(dmsFile.id) })
     .from(dmsFile)

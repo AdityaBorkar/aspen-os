@@ -1,11 +1,11 @@
 import { logs } from "#/server/db/schema";
 
 import { and, desc, eq, gte, ilike, lte, sql } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 import type { LogEntry, LogQuery, LogStats } from "./types";
 
-type DrizzleDB = NodePgDatabase;
+type DrizzleDB = PostgresJsDatabase;
 
 export class LogQueryService {
   private readonly db: DrizzleDB;

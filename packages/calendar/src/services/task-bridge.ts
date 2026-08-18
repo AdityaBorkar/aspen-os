@@ -3,11 +3,11 @@ import { REMINDER_TARGET, REMINDER_TYPE } from "#/utils/constants";
 
 import type { InferSchemaOutput, PubSubUnit, StandardSchema } from "@aspen-os/platform/server";
 import { and, eq, sql } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { nullable, object, string, array } from "valibot";
 
 export interface TaskBridgeDeps {
-  db: NodePgDatabase;
+  db: PostgresJsDatabase;
   pubsub: PubSubUnit;
 }
 
@@ -34,7 +34,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
 const DUE_DATE_OFFSETS_MS = [DAY_MS, HOUR_MS, 0];
 
-async function deletePendingTaskReminders(db: NodePgDatabase, taskId: string): Promise<void> {
+async function deletePendingTaskReminders(db: PostgresJsDatabase, taskId: string): Promise<void> {
   await db
     .delete(calendarReminder)
     .where(
@@ -88,10 +88,9 @@ async function handleTaskStatusChanged(
   event: { task: { id: string }; toStatus: string },
   { db }: TaskBridgeDeps,
 ): Promise<void> {
-  const result = await db.execute<{ category: string | null }>(
+  const [row] = await db.execute<{ category: string | null }>(
     sql`SELECT category FROM "status" WHERE id = ${event.toStatus}`,
   );
-  const [row] = result.rows;
   if (!row) {
     return;
   }

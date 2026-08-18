@@ -11,7 +11,7 @@ import {
 import type { AnnouncementAudience, AnnouncementAudienceType } from "#/db-schemas/announcement";
 
 import { eq, inArray } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 export type AnnouncementChannel = "custom" | "general" | "hr";
 
@@ -45,7 +45,7 @@ export function resolveAudienceDefinition(input: {
   return { ids: input.audience.ids ?? [], type: input.audience.type };
 }
 
-export async function fetchAnnouncementById(db: NodePgDatabase, id: string) {
+export async function fetchAnnouncementById(db: PostgresJsDatabase, id: string) {
   const [result] = await db.select().from(hrAnnouncement).where(eq(hrAnnouncement.id, id)).limit(1);
 
   if (!result) {
@@ -56,7 +56,7 @@ export async function fetchAnnouncementById(db: NodePgDatabase, id: string) {
 }
 
 async function resolveEmployees(
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
   employeeIds: string[],
 ): Promise<ResolvedRecipient[]> {
   if (employeeIds.length === 0) {
@@ -110,7 +110,10 @@ function dedupeRecipients(recipients: ResolvedRecipient[]): ResolvedRecipient[] 
   return result;
 }
 
-async function expandDepartmentIds(db: NodePgDatabase, departmentIds: string[]): Promise<string[]> {
+async function expandDepartmentIds(
+  db: PostgresJsDatabase,
+  departmentIds: string[],
+): Promise<string[]> {
   const result = new Set<string>(departmentIds);
   let frontier = [...departmentIds];
 
@@ -132,7 +135,7 @@ async function expandDepartmentIds(db: NodePgDatabase, departmentIds: string[]):
 }
 
 async function resolveHrUsers(
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
   hrUserIds: string[],
 ): Promise<ResolvedRecipient[]> {
   if (hrUserIds.length === 0) {
@@ -148,7 +151,7 @@ async function resolveHrUsers(
 }
 
 export async function resolveRecipients(
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
   input: { audience: AnnouncementAudience | null; channel: AnnouncementChannel },
 ): Promise<ResolvedRecipient[]> {
   const { ids, type } = resolveAudienceDefinition(input);
@@ -239,7 +242,7 @@ function missingIds(ids: string[], foundIds: Set<string>): string[] {
 }
 
 export async function validateAudienceStrongRefs(
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
   type: AnnouncementAudienceType,
   ids: string[],
 ): Promise<void> {

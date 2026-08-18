@@ -3,7 +3,7 @@ import type { CalendarAccess } from "#/utils/constants";
 
 import { getContext } from "@aspen-os/platform/server";
 import { eq, sql } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 export interface AccessScopedRow {
   access: CalendarAccess;
@@ -50,10 +50,9 @@ export function resolveActorId(actorId: string | undefined, explicit?: string): 
 export async function isTenantAdmin(actorId: string): Promise<boolean> {
   const { db } = getContext();
   try {
-    const result = await db.execute<{ role: string | null }>(
+    const [row] = await db.execute<{ role: string | null }>(
       sql`SELECT role FROM "user" WHERE id = ${actorId}`,
     );
-    const [row] = result.rows;
     return row?.role === ADMIN_ROLE;
   } catch {
     return false;
@@ -69,7 +68,7 @@ export interface ReminderAccessRow {
 export async function assertCanAccessReminder(
   reminder: ReminderAccessRow,
   actorId: string | undefined,
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
 ): Promise<void> {
   if (!actorId) {
     throw new Error("Authentication required");

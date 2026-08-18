@@ -1,7 +1,7 @@
 import type { JsonValue } from "#/server/types";
 
 export interface PubSubConfig {
-  monitorStateIntervalSeconds?: number;
+  monitorIntervalSeconds?: number;
   schema?: string;
 }
 

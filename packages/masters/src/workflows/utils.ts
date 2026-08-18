@@ -6,9 +6,9 @@ import type {
   PaymentMethodType,
 } from "@aspen-os/constants";
 import { and, eq, inArray } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
-type DrizzleDB = NodePgDatabase;
+type DrizzleDB = PostgresJsDatabase;
 
 export async function unsetPrimaryContacts(
   db: DrizzleDB,

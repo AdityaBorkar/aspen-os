@@ -48,10 +48,9 @@ export function resolveActorId(actorId: string | undefined, explicit?: string): 
 export async function isTenantAdmin(actorId: string): Promise<boolean> {
   const { db } = getContext();
   try {
-    const result = await db.execute<{ role: string | null }>(
+    const [row] = await db.execute<{ role: string | null }>(
       sql`SELECT role FROM "user" WHERE id = ${actorId}`,
     );
-    const [row] = result.rows;
     return row?.role === ADMIN_ROLE;
   } catch {
     return false;

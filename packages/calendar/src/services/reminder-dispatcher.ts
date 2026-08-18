@@ -3,11 +3,11 @@ import { SCHEDULED_JOBS } from "#/utils/constants";
 import { processPendingReminders } from "#/workflows/reminder/process-pending";
 
 import type { AuditUnit, PubSubUnit } from "@aspen-os/platform/server";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 export interface ReminderDispatcherDeps {
   audit: AuditUnit;
-  db: NodePgDatabase;
+  db: PostgresJsDatabase;
   pubsub: PubSubUnit;
 }
 

@@ -10,7 +10,7 @@ The `PubSubUnit` (`$name: "pubsub"`) provides a typed publish/subscribe messagin
 
 ```ts title="src/server/pubsub/types.ts"
 interface PubSubConfig {
-  monitorStateIntervalSeconds?: number; // default: 30
+  monitorIntervalSeconds?: number; // default: 30
   schema?: string; // pg-boss schema (only when SSL)
 }
 ```
@@ -24,7 +24,7 @@ interface PubSubConfig {
 
 ```ts
 const pubsubConfig: PubSubConfig = {
-  monitorStateIntervalSeconds: 30,
+  monitorIntervalSeconds: 30,
 };
 ```
 

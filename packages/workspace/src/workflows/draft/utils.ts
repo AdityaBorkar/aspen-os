@@ -3,10 +3,10 @@ import type { WorkspaceDraft } from "#/db-schemas/draft";
 import type { DraftStatus } from "#/utils/constants";
 
 import { and, eq, inArray } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 export async function transitionDraft(
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
   input: {
     fromStatuses: DraftStatus[];
     id: string;

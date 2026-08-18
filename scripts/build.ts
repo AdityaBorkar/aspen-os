@@ -46,6 +46,9 @@ const TSCONFIG_BUILD = {
     emitDeclarationOnly: true,
     incremental: false,
     outDir: OUTPUT_DIRNAME,
+    paths: {
+      "#/*": ["./src/*"],
+    },
     rootDir: "src",
   },
   exclude: ["node_modules", OUTPUT_DIRNAME],
@@ -184,6 +187,7 @@ async function main() {
       const result = await build({
         entrypoints: [src],
         format: "esm",
+        // metafile: true,
         minify: false, // True,
         outdir,
         sourcemap: "external", // "none",
@@ -196,6 +200,7 @@ async function main() {
         }
         throw new Error(`Build failed for ${name}`);
       }
+      // await Bun.write(`./meta-${name.replace(/\//g, "-")}.json`, JSON.stringify(result.metafile));
     }),
   );
   console.log("Build Successful");
@@ -208,7 +213,7 @@ async function main() {
   } finally {
     await rm(tsconfigPath, { force: true });
   }
-  // rewriteDeclarationAliases(join(ROOT, OUTPUT_DIRNAME));
+  rewriteDeclarationAliases(join(ROOT, OUTPUT_DIRNAME));
   console.log("Type Generation Successful");
 }
 

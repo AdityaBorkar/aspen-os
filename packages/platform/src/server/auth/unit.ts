@@ -16,7 +16,7 @@ import {
   twoFactor,
   username,
 } from "better-auth/plugins";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 import { getOtp, storeOtp } from "./otp-service";
 import { assignRole, deleteRole, listRoles, unassignRole } from "./role-service";
@@ -29,7 +29,7 @@ export { defineAcl } from "./utils";
 export { toSession, toUser } from "./utils";
 export type { AuthConfig, AuthService, AuthServiceDeps, RoleData, Session, User } from "./types";
 
-type DrizzleDB = NodePgDatabase;
+type DrizzleDB = PostgresJsDatabase;
 
 export class AuthUnit implements Unit {
   readonly $name = "auth" as const;

@@ -11,7 +11,7 @@ import type { ChannelType } from "@aspen-os/constants";
 import { MASTER_ENTITY_TYPE } from "@aspen-os/constants";
 import { getContext } from "@aspen-os/platform/server";
 import { and, eq, isNull, or } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { boolean, safeParse } from "valibot";
 
 export interface RoutedOutOfBand {
@@ -25,7 +25,7 @@ export interface RoutingResult {
 }
 
 export interface NotificationRouterDeps {
-  db: NodePgDatabase;
+  db: PostgresJsDatabase;
   ensureDefaults: {
     run: (input: { input: EnsureDefaultsInput }) => Promise<{ materialized: number }>;
   };
@@ -87,7 +87,7 @@ interface PreferenceRule {
 async function loadPreferenceRules(
   resolved: ResolvedRecipient,
   type: string,
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
 ): Promise<Map<string, PreferenceRule>> {
   const rules = new Map<string, PreferenceRule>();
   if (resolved.recipientType !== "user") {
@@ -134,7 +134,7 @@ function tenantScope(): ChannelScope {
   };
 }
 
-async function readSuppressOutOfBand(db: NodePgDatabase): Promise<boolean> {
+async function readSuppressOutOfBand(db: PostgresJsDatabase): Promise<boolean> {
   const value = await getSetting(db, SETTING_KEYS.SUPPRESS_OUT_OF_BAND);
   if (value === null) {
     return false;

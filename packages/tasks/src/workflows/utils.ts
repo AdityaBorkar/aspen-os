@@ -9,11 +9,11 @@ import { watcher } from "#/db-schemas/watcher";
 import type { TaskLinkType } from "#/utils/constants";
 
 import { and, eq, isNull, sql } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 export const MAX_NESTING_DEPTH = 3;
 
-type DrizzleDB = NodePgDatabase;
+type DrizzleDB = PostgresJsDatabase;
 
 export async function generateTaskNumber(
   db: DrizzleDB,

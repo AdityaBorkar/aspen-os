@@ -1,9 +1,9 @@
 import { fileMetadata } from "#/server/db/schema";
 
 import { eq } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
-type DrizzleDB = NodePgDatabase;
+type DrizzleDB = PostgresJsDatabase;
 
 export class FileMetadataService {
   readonly #db: DrizzleDB;

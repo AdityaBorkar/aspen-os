@@ -16,7 +16,7 @@ import type { ChannelType } from "@aspen-os/constants";
 import { getContext, Workflow } from "@aspen-os/platform/server";
 import type { JsonValue, PubSubUnit } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { object, parse, record, safeParse, string } from "valibot";
 
 const NotifyInputSchema = object({ input: NotifySchema });
@@ -96,7 +96,7 @@ export const notify = Workflow.name("comms.notification.notify")
   });
 
 interface EnqueueContext {
-  db: NodePgDatabase;
+  db: PostgresJsDatabase;
   notificationId: string;
   parsed: NotifyInput;
   pubsub: PubSubUnit;

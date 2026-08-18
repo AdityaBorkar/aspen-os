@@ -3,9 +3,9 @@ import type { SharePermission } from "#/types";
 
 import { getContext } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
-type DB = NodePgDatabase;
+type DB = PostgresJsDatabase;
 
 const PERMISSION_RANK = {
   editor: 2,

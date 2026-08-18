@@ -2,9 +2,9 @@ import { branch } from "#/db-schemas";
 import type { BranchTreeNode } from "#/types";
 
 import { and, eq, sql } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
-type DrizzleDB = NodePgDatabase;
+type DrizzleDB = PostgresJsDatabase;
 
 const MAX_HIERARCHY_DEPTH = 5;
 

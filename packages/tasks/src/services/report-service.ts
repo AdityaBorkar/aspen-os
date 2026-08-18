@@ -111,7 +111,7 @@ export async function getCumulativeFlow(
 > {
   const { db } = getContext();
 
-  const result = await db.execute(sql`
+  const rows = await db.execute(sql`
     SELECT
       DATE(t.created_at) AS date,
       t.status_id AS status_id,
@@ -125,7 +125,7 @@ export async function getCumulativeFlow(
 
   // SAFETY: the raw SQL selects DATE(...)/status_id columns, which pg returns as
   // `Date | string` values; both are valid JsonValue members.
-  return result.rows.map((row) => ({
+  return rows.map((row) => ({
     count: Number(row.count),
     date: asString(row.date as JsonValue),
     statusId: asString(row.status_id as JsonValue),

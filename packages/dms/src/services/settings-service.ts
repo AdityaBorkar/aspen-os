@@ -5,10 +5,10 @@ import { SETTING_KEYS } from "#/utils/constants";
 
 import type { JsonValue } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { boolean, number, object, safeParse, string } from "valibot";
 
-type DB = NodePgDatabase;
+type DB = PostgresJsDatabase;
 
 export interface DmsSettingsValues {
   autoPurgeEveryHours: number;

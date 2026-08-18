@@ -1,8 +1,8 @@
 import type { JsonValue } from "#/server/types";
 
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
-export type AuditDatabase = NodePgDatabase;
+export type AuditDatabase = PostgresJsDatabase;
 
 export type CrudAction = "create" | "update" | "delete";
 

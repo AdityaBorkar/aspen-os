@@ -3,7 +3,7 @@ import { logs } from "#/server/db/schema";
 import type { JsonValue } from "#/server/types";
 import { context } from "#/server/utils";
 
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 import { LogQueryService } from "./query-service";
 import { LEVEL_PRIORITY as levelPriority } from "./types";
@@ -11,7 +11,7 @@ import type { ChildLogger, LogConfig, LogEntry, LogLevel, LogQuery, LogStats } f
 import { createEntryFactory, createLogBuffer } from "./utils";
 import type { CreateEntryInput } from "./utils";
 
-type DrizzleDB = NodePgDatabase;
+type DrizzleDB = PostgresJsDatabase;
 
 export class LogUnit {
   readonly $name = "logs";
@@ -28,7 +28,7 @@ export class LogUnit {
     this.serviceName = config.serviceName ?? "app";
     this.defaultLevel = config.defaultLevel ?? "info";
     this.createEntry = createEntryFactory(this.serviceName);
-    // SAFETY: the DatabaseUnit db is a valid node-postgres drizzle instance.
+    // SAFETY: the DatabaseUnit db is a valid postgres-js drizzle instance.
     this.db = db.db as DrizzleDB;
     this.queryService = new LogQueryService(this.db);
 

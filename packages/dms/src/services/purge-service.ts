@@ -16,12 +16,12 @@ import { SCHEDULED_JOBS, SETTING_KEYS } from "#/utils/constants";
 
 import type { AuditUnit, PubSubUnit } from "@aspen-os/platform/server";
 import { and, desc, eq, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { number, safeParse } from "valibot";
 
 export interface PurgeDeps {
   audit: AuditUnit;
-  db: NodePgDatabase;
+  db: PostgresJsDatabase;
   pubsub: PubSubUnit;
 }
 
@@ -58,7 +58,10 @@ export async function registerPurgeHandler(topic: string, deps: PurgeDeps): Prom
   });
 }
 
-async function resolveRetentionDays(db: NodePgDatabase, classId: string | null): Promise<number> {
+async function resolveRetentionDays(
+  db: PostgresJsDatabase,
+  classId: string | null,
+): Promise<number> {
   if (classId) {
     const [cls] = await db
       .select({ retentionDays: dmsClass.retentionDays })
@@ -74,7 +77,7 @@ async function resolveRetentionDays(db: NodePgDatabase, classId: string | null):
   return parsed.success ? parsed.output : 180;
 }
 
-export async function isFileHeld(db: NodePgDatabase, fileId: string): Promise<boolean> {
+export async function isFileHeld(db: PostgresJsDatabase, fileId: string): Promise<boolean> {
   const [hold] = await db
     .select({ id: dmsLegalHold.id })
     .from(dmsLegalHold)
@@ -88,7 +91,10 @@ export async function isFileHeld(db: NodePgDatabase, fileId: string): Promise<bo
  * cascades version rows, labels, shares, public links, and legal holds.
  * Returns an array of storage keys that were freed.
  */
-export async function deleteFilePermanently(db: NodePgDatabase, fileId: string): Promise<string[]> {
+export async function deleteFilePermanently(
+  db: PostgresJsDatabase,
+  fileId: string,
+): Promise<string[]> {
   const [current] = await db
     .select({ storageKey: dmsFile.storageKey })
     .from(dmsFile)
@@ -135,7 +141,7 @@ export async function deleteFilePermanently(db: NodePgDatabase, fileId: string):
  * active legal hold are skipped and left in place.
  */
 export async function deleteFolderPermanently(
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
   folderId: string,
 ): Promise<{ folders: string[]; files: string[] }> {
   const [folder] = await db
@@ -262,7 +268,7 @@ export async function runAutoPurge(deps: PurgeDeps): Promise<number> {
  * active legal hold are never pruned.
  */
 export async function pruneVersions(
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
   fileId: string,
   maxVersions: number,
 ): Promise<string[]> {

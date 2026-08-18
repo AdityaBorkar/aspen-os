@@ -5,7 +5,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 
 import { SchemaError } from "@standard-schema/utils";
 import { and, eq } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 import type {
   RunOptions,
@@ -17,7 +17,7 @@ import type {
   WorkflowStepInstance,
 } from "./types";
 
-type DrizzleDB<TSchemas extends SchemaMap = Record<string, never>> = NodePgDatabase<TSchemas>;
+type DrizzleDB<TSchemas extends SchemaMap = Record<string, never>> = PostgresJsDatabase<TSchemas>;
 
 function generateId(): string {
   return crypto.randomUUID();
@@ -234,7 +234,7 @@ export async function executeWorkflow<
     audit,
     auth,
     config: options?.config ?? {},
-    // SAFETY: the resolved db is a valid node-postgres drizzle instance for the merged schemas.
+    // SAFETY: the resolved db is a valid postgres-js drizzle instance for the merged schemas.
     db: db as DrizzleDB<TSchemas>,
     pubsub,
     runId,

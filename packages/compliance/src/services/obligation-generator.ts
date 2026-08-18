@@ -8,7 +8,7 @@ import { MONTHS_PER_FREQUENCY } from "#/workflows/utils";
 import { getContext } from "@aspen-os/platform/server";
 import type { AuditUnit, JsonValue, PubSubUnit } from "@aspen-os/platform/server";
 import { and, eq, isNull } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 interface ComputedPeriod {
   dueDate: string | null;
@@ -19,7 +19,7 @@ interface ComputedPeriod {
 
 export interface ObligationGeneratorDeps {
   audit: AuditUnit;
-  db: NodePgDatabase;
+  db: PostgresJsDatabase;
   pubsub: PubSubUnit;
 }
 
@@ -30,8 +30,8 @@ function buildDepsFromContext(): ObligationGeneratorDeps {
   }
   return {
     audit: ctx.audit,
-    // SAFETY: ContextDb exposes the select/execute/update surface these workflows rely on; the NodePgDatabase members it omits are never accessed through the generator.
-    db: ctx.db as NodePgDatabase,
+    // SAFETY: ContextDb exposes the select/execute/update surface these workflows rely on; the PostgresJsDatabase members it omits are never accessed through the generator.
+    db: ctx.db as PostgresJsDatabase,
     pubsub: ctx.pubsub,
   };
 }
@@ -248,7 +248,7 @@ function buildIdempotencyKey(obligationId: string, period: ComputedPeriod): stri
 }
 
 async function checkDocumentExists(options: {
-  db: NodePgDatabase;
+  db: PostgresJsDatabase;
   obligationId: string;
   periodEnd: string | null;
   periodStart: string | null;

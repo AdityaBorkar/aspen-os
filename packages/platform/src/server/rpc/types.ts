@@ -1,10 +1,10 @@
 import type { PubSubUnit } from "#/server/pubsub";
 import type { RpcRouter } from "#/server/rpc/router";
 
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 export interface RpcContext {
-  db: NodePgDatabase;
+  db: PostgresJsDatabase;
   pubsub: PubSubUnit;
   tenantId?: string;
 }

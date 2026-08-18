@@ -11,7 +11,7 @@ import { SCHEDULED_JOBS } from "#/utils/constants";
 import type { DatabaseUnit, KvStoreUnit, PubSubUnit } from "@aspen-os/platform/server";
 import { isGlobalTenantId } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { object, optional, safeParse, string } from "valibot";
 
 export const MESSAGE_SWEEPER_CRON = "* * * * *";
@@ -207,7 +207,7 @@ async function recordFailure({
   error,
   message,
 }: {
-  db: NodePgDatabase;
+  db: PostgresJsDatabase;
   deps: DeliveryWorkerDeps;
   error: string;
   message: typeof commsMessage.$inferSelect;
@@ -229,7 +229,7 @@ async function failMessage({
   error,
   message,
 }: {
-  db: NodePgDatabase;
+  db: PostgresJsDatabase;
   deps: DeliveryWorkerDeps;
   error: string;
   message: typeof commsMessage.$inferSelect;
@@ -255,7 +255,7 @@ function tenantIdFor(message: typeof commsMessage.$inferSelect): string {
 async function runInTenantContext<TValue>(
   dbUnit: DatabaseUnit,
   tenantId: string,
-  fn: (db: NodePgDatabase) => Promise<TValue>,
+  fn: (db: PostgresJsDatabase) => Promise<TValue>,
 ): Promise<TValue> {
   if (isGlobalTenantId(tenantId)) {
     return fn(dbUnit.controlPlaneDb);
@@ -265,6 +265,6 @@ async function runInTenantContext<TValue>(
     return fn(db);
   }
   // SAFETY: runWithTenant hands the callback a session-scoped drizzle instance
-  // Whose surface is a NodePgDatabase; the generic schema parameter is erased.
+  // Whose surface is a PostgresJsDatabase; the generic schema parameter is erased.
   return dbUnit.runWithTenant(tenantId, (db) => fn(db));
 }

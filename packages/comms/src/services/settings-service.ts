@@ -3,9 +3,9 @@ import { SETTING_KEYS } from "#/utils/constants";
 
 import type { JsonValue } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
-type DB = NodePgDatabase;
+type DB = PostgresJsDatabase;
 
 export async function getSetting(db: DB, key: string): Promise<JsonValue | null> {
   const [row] = await db

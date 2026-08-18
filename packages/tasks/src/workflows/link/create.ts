@@ -7,12 +7,12 @@ import { linkTypeInverse } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { object } from "valibot";
 
 const BLOCKS_LINK_TYPE = "blocks";
 
-type DrizzleDB = NodePgDatabase;
+type DrizzleDB = PostgresJsDatabase;
 
 const CreateInputSchema = object({
   input: CreateTaskLinkSchema,

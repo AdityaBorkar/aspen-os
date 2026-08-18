@@ -12,9 +12,9 @@ import { toText } from "#/utils/to-text";
 
 import { and, asc, desc, eq, gte, ilike, lte, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
-type DB = NodePgDatabase;
+type DB = PostgresJsDatabase;
 
 export interface QuickSearchHit {
   file: DmsFile;

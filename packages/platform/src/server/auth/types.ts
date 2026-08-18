@@ -1,11 +1,11 @@
 import type { PubSubUnit } from "#/server/pubsub";
 
 import type { BetterAuthOptions } from "better-auth";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 import type { createBetterAuthService } from "./unit";
 
-type DrizzleDB = NodePgDatabase;
+type DrizzleDB = PostgresJsDatabase;
 
 export type AuthConfig = BetterAuthOptions;
 

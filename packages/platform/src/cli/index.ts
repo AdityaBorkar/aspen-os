@@ -4,7 +4,7 @@ import type { Module, PlatformInstance } from "#/server";
 import { resolve } from "node:path";
 
 import { Command } from "commander";
-import { startStudioPostgresServer } from "drizzle-kit/api";
+// import { startStudioPostgresServer } from "drizzle-kit/api";
 
 const program = new Command();
 
@@ -41,8 +41,8 @@ program
     const platformInstance = await loadPlatform(options.config);
 
     if (options.tenant && platformInstance.db.resolver) {
-      const tenantConfig = await platformInstance.db.resolver.resolve(options.tenant);
-      await startStudioPostgresServer(platformInstance.db.getSchemas(), tenantConfig);
+      // const tenantConfig = await platformInstance.db.resolver.resolve(options.tenant);
+      // await startStudioPostgresServer(platformInstance.db.getSchemas(), tenantConfig);
       return;
     }
 
@@ -51,7 +51,7 @@ program
       process.exit(1);
     }
 
-    await startStudioPostgresServer(platformInstance.db.getSchemas(), platformInstance.db.config);
+    // await startStudioPostgresServer(platformInstance.db.getSchemas(), platformInstance.db.config);
   });
 
 program

@@ -6,9 +6,9 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { randomBytes, scrypt as scryptCb, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
-type SchemaAgnosticDb = NodePgDatabase<SchemaMap>;
+type SchemaAgnosticDb = PostgresJsDatabase<SchemaMap>;
 
 /**
  * The schema-agnostic db surface exposed through the execution context. The

@@ -3,7 +3,7 @@ import type { CommsChannel, CommsProvider, ProviderCredential } from "#/types";
 
 import type { KvStoreUnit } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { record, safeParse, string } from "valibot";
 
 export async function resolveChannelCredential(
@@ -27,7 +27,7 @@ export async function resolveProviderCredential(
 
 export async function resolveChannelProvider(
   channel: CommsChannel,
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
 ): Promise<CommsProvider | null> {
   if (!channel.providerId) {
     return null;

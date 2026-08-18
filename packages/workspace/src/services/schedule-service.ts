@@ -4,11 +4,11 @@ import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, SCHEDULE_CRON_TOPIC_PREFIX } from "#/u
 
 import type { AuditUnit, PubSubUnit } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 export interface ScheduleDeps {
   audit: AuditUnit;
-  db: NodePgDatabase;
+  db: PostgresJsDatabase;
   pubsub: PubSubUnit;
 }
 

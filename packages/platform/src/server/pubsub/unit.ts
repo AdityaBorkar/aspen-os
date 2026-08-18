@@ -4,7 +4,8 @@ import type { DatabaseConfig } from "#/server/db/types";
 import type { TenancyMode } from "#/server/types";
 import { context, isGlobalTenantId } from "#/server/utils";
 
-import PgBoss from "pg-boss";
+import { PgBoss } from "pg-boss";
+import type { WorkHandler } from "pg-boss";
 
 import type {
   MessageData,
@@ -20,17 +21,17 @@ export class PubSubUnit {
   private readonly dbUnit: DatabaseUnit<any>;
   private readonly tenancyMode: TenancyMode;
   private authInstance: AuthUnit | null = null;
-  private readonly monitorStateIntervalSeconds: number;
+  private readonly monitorIntervalSeconds: number;
 
   private readonly boss: PgBoss;
-  private readonly subscriptions = new Map<string, PgBoss.WorkHandler<object>>();
+  private readonly subscriptions = new Map<string, WorkHandler<object>>();
   private readonly producedTopics = new Map<string, number>();
   private bossStarted: Promise<void> | null = null;
 
   constructor(config: PubSubConfig, { db }: { db: DatabaseUnit<any> }) {
     this.dbUnit = db;
     this.tenancyMode = db.tenancyMode;
-    this.monitorStateIntervalSeconds = config.monitorStateIntervalSeconds ?? 30;
+    this.monitorIntervalSeconds = config.monitorIntervalSeconds ?? 30;
     this.boss = this.createBoss(db.config);
   }
 
@@ -59,7 +60,8 @@ export class PubSubUnit {
 
   async getQueueSize(topic: string): Promise<number> {
     await this.ensureStarted();
-    return this.boss.getQueueSize(topic);
+    const queue = await this.boss.getQueue(topic);
+    return queue?.readyCount ?? 0;
   }
 
   async publish(topic: string, data: MessageData, options?: PublishOptions) {
@@ -90,14 +92,11 @@ export class PubSubUnit {
     await this.ensureStarted();
     const jobs = messages.map((msg) => ({
       data: msg.data,
-      name: topic,
-      options: this.toBossOptions(msg.options),
+      ...this.toBossOptions(msg.options),
     }));
     try {
-      const result = await this.boss.insert(jobs);
-      for (const job of jobs) {
-        this.recordProduced(job.name);
-      }
+      const result = await this.boss.insert(topic, jobs);
+      this.recordProduced(topic, jobs.length);
       return result ?? [];
     } catch (error) {
       const msg = `Failed to publish batch of ${messages.length} message(s) to topic "${topic}"`;
@@ -157,7 +156,7 @@ export class PubSubUnit {
     return new PgBoss({
       database: dbConfig.database,
       host: dbConfig.host,
-      monitorStateIntervalSeconds: this.monitorStateIntervalSeconds,
+      monitorIntervalSeconds: this.monitorIntervalSeconds,
       password: dbConfig.password,
       port: dbConfig.port,
       schema: dbConfig.ssl ? "pgboss" : undefined,
@@ -184,8 +183,8 @@ export class PubSubUnit {
   private async wrapHandler(
     handler: MessageHandler,
     tenantId: string | undefined,
-  ): Promise<PgBoss.WorkHandler<object>> {
-    const workHandler: PgBoss.WorkHandler<object> = async (jobs) => {
+  ): Promise<WorkHandler<object>> {
+    const workHandler: WorkHandler<object> = async (jobs) => {
       // oxlint-disable eslint/no-await-in-loop
       for (const job of jobs) {
         const handlerDb =
@@ -220,8 +219,8 @@ export class PubSubUnit {
    * detect topics that were produced to but have no registered consumer (which
    * pg-boss silently drops).
    */
-  private recordProduced(topic: string): void {
-    this.producedTopics.set(topic, (this.producedTopics.get(topic) ?? 0) + 1);
+  private recordProduced(topic: string, count = 1): void {
+    this.producedTopics.set(topic, (this.producedTopics.get(topic) ?? 0) + count);
   }
 
   /**
@@ -233,12 +232,13 @@ export class PubSubUnit {
     return [...this.producedTopics.keys()].filter((topic) => !this.subscriptions.has(topic));
   }
 
-  private toBossOptions(options?: PublishOptions): PublishOptions {
+  private toBossOptions(options?: PublishOptions) {
     if (!options) {
       return {};
     }
     return {
-      expireInMinutes: options.expireInMinutes,
+      expireInSeconds:
+        options.expireInMinutes !== undefined ? options.expireInMinutes * 60 : undefined,
       priority: options.priority,
       retryBackoff: options.retryBackoff,
       retryDelay: options.retryDelay,

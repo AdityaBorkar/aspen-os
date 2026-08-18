@@ -770,7 +770,7 @@ Backed by [pg-boss](https://github.com/timgit/pg-boss) for topic-based publish/s
 
 ```ts
 interface PubSubConfig {
-  monitorStateIntervalSeconds?: number; // default: 30
+  monitorIntervalSeconds?: number; // default: 30
   schema?: string; // pg-boss schema
 }
 ```
@@ -1804,7 +1804,7 @@ Backed by [pg-boss](https://github.com/timgit/pg-boss) for topic-based publish/s
 
 ```ts
 interface PubSubConfig {
-  monitorStateIntervalSeconds?: number; // default: 30
+  monitorIntervalSeconds?: number; // default: 30
   schema?: string; // pg-boss schema
 }
 ```

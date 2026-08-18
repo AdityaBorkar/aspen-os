@@ -34,7 +34,7 @@ import type { DepartmentTreeNode, OrgTreeNode, ResolvedPermission } from "#/type
 
 import type { JsonValue } from "@aspen-os/platform/server";
 import { and, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { minLength, optional, pipe, safeParse, string } from "valibot";
 
 export const IdSchema = pipe(string(), minLength(1, "ID is required"));
@@ -70,7 +70,7 @@ interface OrgChartEmployee {
 // ─── Attendance ────────────────────────────────────────────────────────────
 
 export async function ensureNoDuplicateAttendance(
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
   employeeId: string,
   date: string,
 ): Promise<void> {
@@ -87,7 +87,7 @@ export async function ensureNoDuplicateAttendance(
 
 // ─── Employee ──────────────────────────────────────────────────────────────
 
-export async function fetchEmployeeById(db: NodePgDatabase, id: string) {
+export async function fetchEmployeeById(db: PostgresJsDatabase, id: string) {
   const [result] = await db.select().from(employee).where(eq(employee.id, id)).limit(1);
 
   if (!result) {
@@ -97,7 +97,7 @@ export async function fetchEmployeeById(db: NodePgDatabase, id: string) {
   return result;
 }
 
-export async function fetchEmployeeGroupById(db: NodePgDatabase, id: string) {
+export async function fetchEmployeeGroupById(db: PostgresJsDatabase, id: string) {
   const [result] = await db.select().from(employeeGroup).where(eq(employeeGroup.id, id)).limit(1);
 
   if (!result) {
@@ -108,7 +108,7 @@ export async function fetchEmployeeGroupById(db: NodePgDatabase, id: string) {
 }
 
 export async function ensureEmployeeIdUnique(
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
   employeeId: string,
   excludeId?: string,
 ): Promise<void> {
@@ -153,7 +153,7 @@ export function buildEmployeeTree(
 
 // ─── Leave ─────────────────────────────────────────────────────────────────
 
-export async function fetchLeaveTypeById(db: NodePgDatabase, id: string) {
+export async function fetchLeaveTypeById(db: PostgresJsDatabase, id: string) {
   const [result] = await db.select().from(leaveType).where(eq(leaveType.id, id)).limit(1);
 
   if (!result) {
@@ -163,7 +163,7 @@ export async function fetchLeaveTypeById(db: NodePgDatabase, id: string) {
   return result;
 }
 
-export async function fetchLeavePeriodById(db: NodePgDatabase, id: string) {
+export async function fetchLeavePeriodById(db: PostgresJsDatabase, id: string) {
   const [result] = await db.select().from(leavePeriod).where(eq(leavePeriod.id, id)).limit(1);
 
   if (!result) {
@@ -173,7 +173,7 @@ export async function fetchLeavePeriodById(db: NodePgDatabase, id: string) {
   return result;
 }
 
-export async function fetchLeavePolicyById(db: NodePgDatabase, id: string) {
+export async function fetchLeavePolicyById(db: PostgresJsDatabase, id: string) {
   const [result] = await db.select().from(leavePolicy).where(eq(leavePolicy.id, id)).limit(1);
 
   if (!result) {
@@ -183,7 +183,7 @@ export async function fetchLeavePolicyById(db: NodePgDatabase, id: string) {
   return result;
 }
 
-export async function fetchLeaveAllocationById(db: NodePgDatabase, id: string) {
+export async function fetchLeaveAllocationById(db: PostgresJsDatabase, id: string) {
   const [result] = await db
     .select()
     .from(leaveAllocation)
@@ -197,7 +197,7 @@ export async function fetchLeaveAllocationById(db: NodePgDatabase, id: string) {
   return result;
 }
 
-export async function fetchLeaveApplicationById(db: NodePgDatabase, id: string) {
+export async function fetchLeaveApplicationById(db: PostgresJsDatabase, id: string) {
   const [result] = await db
     .select()
     .from(leaveApplication)
@@ -211,7 +211,7 @@ export async function fetchLeaveApplicationById(db: NodePgDatabase, id: string) 
   return result;
 }
 
-export async function fetchCompensatoryLeaveById(db: NodePgDatabase, id: string) {
+export async function fetchCompensatoryLeaveById(db: PostgresJsDatabase, id: string) {
   const [result] = await db
     .select()
     .from(compensatoryLeaveRequest)
@@ -226,7 +226,7 @@ export async function fetchCompensatoryLeaveById(db: NodePgDatabase, id: string)
 }
 
 export async function createLeaveAllocation(
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
   input: {
     carryForwardedDays: string;
     employeeId: string;
@@ -259,7 +259,7 @@ export async function createLeaveAllocation(
 }
 
 export async function updateLeaveAllocation(
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
   id: string,
   patch: { usedDays: string },
 ) {
@@ -273,7 +273,7 @@ export async function updateLeaveAllocation(
 }
 
 export async function createLeaveLedgerEntry(
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
   input: {
     days: string;
     description: string;
@@ -303,7 +303,7 @@ export async function createLeaveLedgerEntry(
 }
 
 export async function checkLeaveBlockList(
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
   options: { fromDate: string; toDate: string },
 ): Promise<void> {
   const { fromDate, toDate } = options;
@@ -328,7 +328,7 @@ export async function checkLeaveBlockList(
 }
 
 export async function checkLeaveBalance(
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
   options: {
     days: number;
     employeeId: string;
@@ -376,7 +376,7 @@ export async function checkLeaveBalance(
 
 // ─── Lifecycle ─────────────────────────────────────────────────────────────
 
-export async function fetchOnboardingById(db: NodePgDatabase, id: string) {
+export async function fetchOnboardingById(db: PostgresJsDatabase, id: string) {
   const [result] = await db
     .select()
     .from(employeeOnboarding)
@@ -390,7 +390,7 @@ export async function fetchOnboardingById(db: NodePgDatabase, id: string) {
   return result;
 }
 
-export async function fetchPromotionById(db: NodePgDatabase, id: string) {
+export async function fetchPromotionById(db: PostgresJsDatabase, id: string) {
   const [result] = await db
     .select()
     .from(employeePromotion)
@@ -404,7 +404,7 @@ export async function fetchPromotionById(db: NodePgDatabase, id: string) {
   return result;
 }
 
-export async function fetchTransferById(db: NodePgDatabase, id: string) {
+export async function fetchTransferById(db: PostgresJsDatabase, id: string) {
   const [result] = await db
     .select()
     .from(employeeTransfer)
@@ -418,7 +418,7 @@ export async function fetchTransferById(db: NodePgDatabase, id: string) {
   return result;
 }
 
-export async function fetchSeparationById(db: NodePgDatabase, id: string) {
+export async function fetchSeparationById(db: PostgresJsDatabase, id: string) {
   const [result] = await db
     .select()
     .from(employeeSeparation)
@@ -432,7 +432,7 @@ export async function fetchSeparationById(db: NodePgDatabase, id: string) {
   return result;
 }
 
-export async function fetchFullAndFinalById(db: NodePgDatabase, id: string) {
+export async function fetchFullAndFinalById(db: PostgresJsDatabase, id: string) {
   const [result] = await db
     .select()
     .from(fullAndFinalStatement)
@@ -448,7 +448,7 @@ export async function fetchFullAndFinalById(db: NodePgDatabase, id: string) {
 
 // ─── Overtime ──────────────────────────────────────────────────────────────
 
-export async function fetchOvertimeTypeById(db: NodePgDatabase, id: string) {
+export async function fetchOvertimeTypeById(db: PostgresJsDatabase, id: string) {
   const [result] = await db.select().from(overtimeType).where(eq(overtimeType.id, id)).limit(1);
 
   if (!result) {
@@ -458,7 +458,7 @@ export async function fetchOvertimeTypeById(db: NodePgDatabase, id: string) {
   return result;
 }
 
-export async function fetchOvertimeSlipById(db: NodePgDatabase, id: string) {
+export async function fetchOvertimeSlipById(db: PostgresJsDatabase, id: string) {
   const [result] = await db.select().from(overtimeSlip).where(eq(overtimeSlip.id, id)).limit(1);
 
   if (!result) {
@@ -470,17 +470,17 @@ export async function fetchOvertimeSlipById(db: NodePgDatabase, id: string) {
 
 // ─── Setup ─────────────────────────────────────────────────────────────────
 
-export async function fetchHrSettings(db: NodePgDatabase) {
+export async function fetchHrSettings(db: PostgresJsDatabase) {
   const [settings] = await db.select().from(hrSettings).limit(1);
   return settings ?? null;
 }
 
-export async function fetchPayrollSettings(db: NodePgDatabase) {
+export async function fetchPayrollSettings(db: PostgresJsDatabase) {
   const [settings] = await db.select().from(payrollSettings).limit(1);
   return settings ?? null;
 }
 
-export async function fetchHolidayListById(db: NodePgDatabase, id: string) {
+export async function fetchHolidayListById(db: PostgresJsDatabase, id: string) {
   const [result] = await db.select().from(holidayList).where(eq(holidayList.id, id)).limit(1);
 
   if (!result) {
@@ -490,7 +490,7 @@ export async function fetchHolidayListById(db: NodePgDatabase, id: string) {
   return result;
 }
 
-export async function fetchDepartmentById(db: NodePgDatabase, id: string) {
+export async function fetchDepartmentById(db: PostgresJsDatabase, id: string) {
   const [result] = await db.select().from(department).where(eq(department.id, id)).limit(1);
 
   if (!result) {
@@ -501,7 +501,7 @@ export async function fetchDepartmentById(db: NodePgDatabase, id: string) {
 }
 
 export async function ensureDepartmentCodeUnique(
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
   code: string,
   excludeId?: string,
 ): Promise<void> {
@@ -523,7 +523,7 @@ export async function ensureDepartmentCodeUnique(
 }
 
 export async function wouldCreateCircular(
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
   deptId: string,
   newParentId: string,
 ): Promise<boolean> {
@@ -558,7 +558,7 @@ export async function wouldCreateCircular(
 }
 
 export async function validateParentDepartment(
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
   parentId: string,
   childId?: string,
 ): Promise<void> {
@@ -630,7 +630,7 @@ export function buildDepartmentTree(
 
 // ─── Shift ─────────────────────────────────────────────────────────────────
 
-export async function fetchShiftTypeById(db: NodePgDatabase, id: string) {
+export async function fetchShiftTypeById(db: PostgresJsDatabase, id: string) {
   const [result] = await db.select().from(shiftType).where(eq(shiftType.id, id)).limit(1);
 
   if (!result) {
@@ -640,7 +640,7 @@ export async function fetchShiftTypeById(db: NodePgDatabase, id: string) {
   return result;
 }
 
-export async function fetchShiftRequestById(db: NodePgDatabase, id: string) {
+export async function fetchShiftRequestById(db: PostgresJsDatabase, id: string) {
   const [result] = await db.select().from(shiftRequest).where(eq(shiftRequest.id, id)).limit(1);
 
   if (!result) {
@@ -650,7 +650,7 @@ export async function fetchShiftRequestById(db: NodePgDatabase, id: string) {
   return result;
 }
 
-export async function fetchShiftScheduleById(db: NodePgDatabase, id: string) {
+export async function fetchShiftScheduleById(db: PostgresJsDatabase, id: string) {
   const [result] = await db.select().from(shiftSchedule).where(eq(shiftSchedule.id, id)).limit(1);
 
   if (!result) {
@@ -660,7 +660,11 @@ export async function fetchShiftScheduleById(db: NodePgDatabase, id: string) {
   return result;
 }
 
-export async function hasBranchAccessUtil(db: NodePgDatabase, hrUserId: string, branchId: string) {
+export async function hasBranchAccessUtil(
+  db: PostgresJsDatabase,
+  hrUserId: string,
+  branchId: string,
+) {
   const [direct] = await db
     .select({ id: hrUserBranchAccess.id })
     .from(hrUserBranchAccess)
@@ -681,7 +685,7 @@ export async function hasBranchAccessUtil(db: NodePgDatabase, hrUserId: string, 
 }
 
 export async function getUserPermissionsUtil(
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
   hrUserId: string,
   branchId?: string,
 ): Promise<ResolvedPermission[]> {
@@ -721,7 +725,7 @@ export async function getUserPermissionsUtil(
 }
 
 export async function getUserRolesForBranchUtil(
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
   hrUserId: string,
   branchId: string,
 ) {
@@ -742,7 +746,7 @@ export async function getUserRolesForBranchUtil(
 }
 
 export async function getAccessibleBranchesUtil(
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
   hrUserId: string,
 ): Promise<string[]> {
   const direct = await db
@@ -768,7 +772,7 @@ export async function getAccessibleBranchesUtil(
 }
 
 export async function createShiftAssignment(
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
   input: {
     employeeId: string;
     endDate?: string;

@@ -4,9 +4,9 @@ import type { PubSubUnit } from "#/server/pubsub";
 import type { JsonValue, SchemaMap } from "#/server/types";
 
 import type { StandardSchemaV1 } from "@standard-schema/spec";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
-type DrizzleDB<TSchemas extends SchemaMap = Record<string, never>> = NodePgDatabase<TSchemas>;
+type DrizzleDB<TSchemas extends SchemaMap = Record<string, never>> = PostgresJsDatabase<TSchemas>;
 
 /** A Standard Schema v1 compatible schema. */
 export type StandardSchema<Input = unknown, Output = Input> = StandardSchemaV1<Input, Output>;

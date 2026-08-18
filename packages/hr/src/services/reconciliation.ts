@@ -4,11 +4,11 @@ import { fetchSeparationById, fetchTransferById } from "#/workflows/utils";
 
 import type { PubSubUnit } from "@aspen-os/platform/server";
 import { and, eq, isNull } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { object, safeParse, string } from "valibot";
 
 export interface ReconciliationDeps {
-  db: NodePgDatabase;
+  db: PostgresJsDatabase;
   pubsub: PubSubUnit;
 }
 

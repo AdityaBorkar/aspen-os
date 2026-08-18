@@ -4,9 +4,9 @@ import type { BreadcrumbItem, PathResolution } from "#/types";
 
 import { getContext } from "@aspen-os/platform/server";
 import { and, eq, sql } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
-export type DB = NodePgDatabase;
+export type DB = PostgresJsDatabase;
 
 function maxDepth(): number {
   return getDmsConfig().maxNestingDepth;

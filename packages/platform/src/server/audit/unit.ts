@@ -14,7 +14,7 @@ export class AuditUnit {
   private readonly queryService: AuditQueryService;
 
   constructor({ db }: { db: DatabaseUnit<any> }) {
-    // SAFETY: the DatabaseUnit db is a valid node-postgres drizzle instance.
+    // SAFETY: the DatabaseUnit db is a valid postgres-js drizzle instance.
     this.db = db.db as AuditDatabase;
     this.queryService = new AuditQueryService(this.db);
   }

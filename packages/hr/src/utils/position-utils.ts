@@ -2,7 +2,7 @@ import { hrPosition, hrPositionAssignment } from "#/db-schemas";
 import type { PositionTreeNode } from "#/types";
 
 import { and, eq, isNull, sql } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 const MAX_POSITION_DEPTH = 10;
 
@@ -10,7 +10,7 @@ export function todayString(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export async function fetchPositionById(db: NodePgDatabase, id: string) {
+export async function fetchPositionById(db: PostgresJsDatabase, id: string) {
   const [result] = await db.select().from(hrPosition).where(eq(hrPosition.id, id)).limit(1);
 
   if (!result) {
@@ -21,7 +21,7 @@ export async function fetchPositionById(db: NodePgDatabase, id: string) {
 }
 
 export async function ensurePositionNameUnique(
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
   input: { department: string; excludeId?: string; name: string },
 ): Promise<void> {
   const conditions = [eq(hrPosition.name, input.name), eq(hrPosition.department, input.department)];
@@ -41,7 +41,7 @@ export async function ensurePositionNameUnique(
 }
 
 export async function wouldCreatePositionCircular(
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
   positionId: string,
   newReportsToId: string,
 ): Promise<boolean> {
@@ -75,7 +75,7 @@ export async function wouldCreatePositionCircular(
 }
 
 export async function validatePositionReportsTo(
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
   reportsToId: string,
   childId?: string,
 ): Promise<void> {
@@ -92,7 +92,7 @@ export async function validatePositionReportsTo(
 
 // ─── Assignments ─────────────────────────────────────────────────────────
 
-export async function fetchPositionAssignmentById(db: NodePgDatabase, id: string) {
+export async function fetchPositionAssignmentById(db: PostgresJsDatabase, id: string) {
   const [result] = await db
     .select()
     .from(hrPositionAssignment)
@@ -106,7 +106,7 @@ export async function fetchPositionAssignmentById(db: NodePgDatabase, id: string
   return result;
 }
 
-export async function listOpenAssignmentsForPosition(db: NodePgDatabase, positionId: string) {
+export async function listOpenAssignmentsForPosition(db: PostgresJsDatabase, positionId: string) {
   return db
     .select()
     .from(hrPositionAssignment)
@@ -116,7 +116,7 @@ export async function listOpenAssignmentsForPosition(db: NodePgDatabase, positio
 }
 
 export async function ensurePositionHasCapacity(
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
   positionId: string,
   excludingAssignmentId?: string,
 ): Promise<void> {
@@ -142,7 +142,7 @@ export async function ensurePositionHasCapacity(
 }
 
 export async function ensureNoOpenAssignmentForEmployeeInPosition(
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
   employeeId: string,
   positionId: string,
 ): Promise<void> {
@@ -164,7 +164,7 @@ export async function ensureNoOpenAssignmentForEmployeeInPosition(
 }
 
 export async function clearOtherCurrentPrimaryAssignments(
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
   employeeId: string,
 ): Promise<void> {
   await db
@@ -179,7 +179,10 @@ export async function clearOtherCurrentPrimaryAssignments(
     );
 }
 
-export async function ensurePositionActive(db: NodePgDatabase, positionId: string): Promise<void> {
+export async function ensurePositionActive(
+  db: PostgresJsDatabase,
+  positionId: string,
+): Promise<void> {
   const position = await fetchPositionById(db, positionId);
   if (!position.isActive) {
     throw new Error(`Position "${position.name}" is not active.`);
@@ -187,7 +190,7 @@ export async function ensurePositionActive(db: NodePgDatabase, positionId: strin
 }
 
 export async function assertNoActiveAssignments(
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
   positionId: string,
 ): Promise<void> {
   const openAssignments = await db
@@ -260,7 +263,7 @@ export function resolveManagerFromChain(
 }
 
 export async function resolveManagerIdMap(
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
   employees: { id: string; reportsTo: string | null }[],
 ): Promise<Map<string, string | null>> {
   if (employees.length === 0) {

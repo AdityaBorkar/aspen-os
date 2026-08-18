@@ -7,7 +7,7 @@ import type {
   PubSubUnit,
   StandardSchema,
 } from "@aspen-os/platform/server";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { object, string } from "valibot";
 
 interface EmployeeOnboardedEvent {
@@ -86,7 +86,7 @@ const ContactCreatedEventSchema = object({
 
 export interface EventBridgeDeps {
   audit: AuditUnit;
-  db: NodePgDatabase;
+  db: PostgresJsDatabase;
   pubsub: PubSubUnit;
 }
 

@@ -15,7 +15,7 @@ import type {
 } from "@aspen-os/platform/server";
 import { isGlobalTenantId } from "@aspen-os/platform/server";
 import { and, eq, inArray } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { array, nullish, number, object, optional, string } from "valibot";
 
 const EMAIL_PROVIDER_KINDS = ["ses", "resend", "postmark", "smtp"] as const;
@@ -76,7 +76,7 @@ const OtpRequestedEventSchema = object({
 
 export interface EventBridgeDeps {
   audit: AuditUnit;
-  db: NodePgDatabase;
+  db: PostgresJsDatabase;
   dbUnit: DatabaseUnit;
   pubsub: PubSubUnit;
 }
@@ -285,7 +285,7 @@ async function handleTenantLifecycle(tenantId: string, deps: EventBridgeDeps): P
   }
 
   // SAFETY: runWithTenant hands the callback a session-scoped drizzle instance
-  // Whose surface is a NodePgDatabase; the generic schema parameter is erased.
+  // Whose surface is a PostgresJsDatabase; the generic schema parameter is erased.
   await deps.dbUnit.runWithTenant(tenantId, (db) =>
     ensure.run(
       { input: { entityId: tenantId, entityType: "organization" } },

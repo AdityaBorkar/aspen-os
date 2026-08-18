@@ -14,12 +14,12 @@ import { dashboard, documents } from "#/workflows";
 import type { WorkflowKvStore } from "#/workflows/utils";
 
 import type { AuditUnit, JsonValue, PubSubUnit } from "@aspen-os/platform/server";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 export interface ReminderEngineDeps {
   audit: AuditUnit;
   cacheTtl: number;
-  db: NodePgDatabase;
+  db: PostgresJsDatabase;
   kvStore: WorkflowKvStore | null;
   pubsub: PubSubUnit;
 }

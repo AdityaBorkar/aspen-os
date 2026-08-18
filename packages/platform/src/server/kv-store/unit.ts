@@ -4,11 +4,11 @@ import type { JsonValue } from "#/server/types";
 import { context } from "#/server/utils";
 
 import { eq, like, sql } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 import type { KvStoreConfig } from "./types";
 
-type DrizzleDB = NodePgDatabase;
+type DrizzleDB = PostgresJsDatabase;
 
 export class KvStoreUnit {
   readonly $name = "kvStore" as const;
@@ -19,7 +19,7 @@ export class KvStoreUnit {
   private readonly prefix: string;
 
   constructor(config: KvStoreConfig, { db }: { db: DatabaseUnit<any> }) {
-    // SAFETY: the DatabaseUnit db is a valid node-postgres drizzle instance.
+    // SAFETY: the DatabaseUnit db is a valid postgres-js drizzle instance.
     this.db = db.db as DrizzleDB;
     this.defaultTtl = config.defaultTtl ?? 3600;
     this.prefix = config.keyPrefix ?? "";

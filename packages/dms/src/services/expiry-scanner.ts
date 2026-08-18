@@ -4,11 +4,11 @@ import { SCHEDULED_JOBS } from "#/utils/constants";
 
 import type { AuditUnit, PubSubUnit } from "@aspen-os/platform/server";
 import { and, eq, sql } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 export interface ExpiryScannerDeps {
   audit: AuditUnit;
-  db: NodePgDatabase;
+  db: PostgresJsDatabase;
   pubsub: PubSubUnit;
 }
 

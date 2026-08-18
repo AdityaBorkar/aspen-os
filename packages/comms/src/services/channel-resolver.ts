@@ -5,7 +5,7 @@ import { SETTING_KEYS } from "#/utils/constants";
 
 import type { ChannelType, MasterEntityType } from "@aspen-os/constants";
 import { and, eq } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { record, safeParse, string } from "valibot";
 
 export interface ChannelScope {
@@ -14,7 +14,7 @@ export interface ChannelScope {
 }
 
 export interface ChannelResolverDeps {
-  db: NodePgDatabase;
+  db: PostgresJsDatabase;
   ensureDefaults: {
     run: (input: { input: EnsureDefaultsInput }) => Promise<{ materialized: number }>;
   };
@@ -49,7 +49,10 @@ export async function resolveDefaultChannel(
   return fetchActiveDefault(type, scope, deps.db);
 }
 
-async function resolveOverrideId(type: ChannelType, db: NodePgDatabase): Promise<string | null> {
+async function resolveOverrideId(
+  type: ChannelType,
+  db: PostgresJsDatabase,
+): Promise<string | null> {
   const value = await getSetting(db, SETTING_KEYS.DEFAULT_CHANNELS);
   if (value === null) {
     return null;
@@ -64,7 +67,7 @@ async function resolveOverrideId(type: ChannelType, db: NodePgDatabase): Promise
 async function fetchActiveById(
   id: string,
   scope: ChannelScope,
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
 ): Promise<CommsChannel | null> {
   const [row] = await db
     .select()
@@ -84,7 +87,7 @@ async function fetchActiveById(
 async function fetchActiveDefault(
   type: ChannelType,
   scope: ChannelScope,
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
 ): Promise<CommsChannel | null> {
   const [row] = await db
     .select()

@@ -2,7 +2,7 @@ import { calendar, calendarEvent } from "#/db-schemas";
 import type { EventFilters } from "#/schemas";
 
 import { and, asc, eq, gte, ilike, inArray, lte, or } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 export interface EventWindowInput {
   allDay?: boolean;
@@ -32,7 +32,7 @@ export function validateSourceLink(
 }
 
 export async function queryEvents(
-  db: NodePgDatabase,
+  db: PostgresJsDatabase,
   actorId: string,
   filters: EventFilters,
 ): Promise<(typeof calendarEvent.$inferSelect)[]> {
