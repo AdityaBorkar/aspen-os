@@ -43,9 +43,10 @@
     "nx": "23.1.1",
     "oxfmt": "^0.63.0",
     "oxlint": "^1.78.0",
+    "oxlint-tsgolint": "^7.0.2001",
     "taze": "^19.17.2",
     "tiktoken": "^1.0.22",
-    "typescript": "npm:typescript@^6.0.2",
+    "typescript": "npm:typescript@^6.0.3",
     "typescript-coverage-report": "^1.1.1",
     "vite": "^8.2.1"
   },

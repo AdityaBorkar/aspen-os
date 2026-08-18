@@ -3,7 +3,7 @@
     "**/.git",
     "**/.coverage",
     "**/.local",
-    "**/.output",
+    // "**/.output",
     "**/node_modules",
     "codedb.snapshot",
     "tsconfig.tsbuildinfo"

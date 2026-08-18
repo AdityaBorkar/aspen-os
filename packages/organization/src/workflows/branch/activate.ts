@@ -3,10 +3,10 @@ import { BRANCH_EVENTS } from "#/pubsub";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-import { object, string } from "valibot";
+import * as vb from "valibot";
 
 export const activateBranch = Workflow.name("branch.activate")
-  .input(object({ id: string() }))
+  .input(vb.object({ id: vb.string() }))
   .handler(async (input, ctx) => {
     const [updated] = await ctx.db
       .update(branch)

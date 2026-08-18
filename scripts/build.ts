@@ -1,30 +1,11 @@
 #!/usr/bin/env bun
 
-import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { mkdir, rm } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 
 import { $, build, file } from "bun";
 import deepmerge from "deepmerge";
-
-const $dev = process.argv.includes("--dev");
-const OUTPUT_DIRNAME = ".output";
-
-const ROOT = resolve(process.cwd());
-const TSCONFIG_BUILD = {
-  compilerOptions: {
-    composite: false,
-    declaration: true,
-    declarationDir: OUTPUT_DIRNAME,
-    declarationMap: false,
-    emitDeclarationOnly: true,
-    incremental: false,
-    outDir: OUTPUT_DIRNAME,
-    rootDir: "src",
-  },
-  exclude: ["node_modules", OUTPUT_DIRNAME],
-  extends: "./tsconfig.json",
-  include: ["src/**/*.ts", "src/**/*.tsx"],
-};
 
 interface Entry {
   bin: boolean;
@@ -53,42 +34,81 @@ interface PackageJson {
   [key: string]: JsonValue | BuildConfig | undefined;
 }
 
-// Restores `#/*` path aliases in emitted declarations to relative imports so
-// Consumers can resolve the published .output types (the JS bundle is inlined
-// By bun and has no aliases to rewrite).
-async function rewriteAliasImports(outputDir: string): Promise<void> {
-  const declarationFiles: string[] = [];
-
-  async function collect(dir: string): Promise<void> {
-    const directories: string[] = [];
-    for (const entry of await readdir(dir, { withFileTypes: true })) {
-      const full = join(dir, entry.name);
-      if (entry.isDirectory()) {
-        directories.push(full);
-      } else if (entry.name.endsWith(".d.ts")) {
-        declarationFiles.push(full);
-      }
-    }
-    await Promise.all(directories.map(async (directory) => collect(directory)));
-  }
-
-  await collect(outputDir);
-
-  await Promise.all(
-    declarationFiles.map(async (declarationFile) => {
-      const prefix = relative(dirname(declarationFile), outputDir).replaceAll("\\", "/") || ".";
-      const source = await readFile(declarationFile, "utf8");
-      if (!source.includes('"#/')) {
-        return;
-      }
-      const rewritten = source.replaceAll('"#/', `"${prefix}/`);
-      await writeFile(declarationFile, rewritten);
-    }),
-  );
-}
-
+const $dev = process.argv.includes("--dev");
+const OUTPUT_DIRNAME = ".output";
+const ROOT = resolve(process.cwd());
+const TSCONFIG_BUILD = {
+  compilerOptions: {
+    composite: false,
+    declaration: true,
+    declarationDir: OUTPUT_DIRNAME,
+    declarationMap: false,
+    emitDeclarationOnly: true,
+    incremental: false,
+    outDir: OUTPUT_DIRNAME,
+    rootDir: "src",
+  },
+  exclude: ["node_modules", OUTPUT_DIRNAME],
+  extends: "./tsconfig.json",
+  include: ["src/**/*.ts", "src/**/*.tsx"],
+};
 const relToSrc = (srcPath: string) => srcPath.replace(/^\.\/src\//, "");
 const subdirFor = (srcPath: string) => dirname(relToSrc(srcPath));
+
+/**
+ * Resolve the emitted declaration entry for a module specifier like
+ * `#/server/workflows` (resolvable via `<root>/src/<rest>` in source) inside the
+ * build output. Returns the concrete `.d.ts` file when it exists, else null.
+ */
+function resolveModuleDeclaration(outputDir: string, rest: string): string | null {
+  const base = join(outputDir, rest);
+  if (existsSync(`${base}.d.ts`)) {
+    return `${base}.d.ts`;
+  }
+  if (existsSync(join(base, "index.d.ts"))) {
+    return join(base, "index.d.ts");
+  }
+  return null;
+}
+
+/**
+ * Rewrite `#/*` package-local import specifiers in emitted declaration files to
+ * relative paths. The build output mirrors `src`, so `#/server/x` refers to
+ * `<output>/server/x`. Consumers resolve these files directly, so a bare `#/...`
+ * specifier (which only the owning package's tsconfig maps) would otherwise be
+ * unresolvable and typecheck as `any`.
+ */
+function rewriteDeclarationAliases(outputDir: string) {
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir)) {
+      const full = join(dir, entry);
+      if (statSync(full).isDirectory()) {
+        walk(full);
+      } else if (entry.endsWith(".d.ts")) {
+        rewriteFile(full, outputDir);
+      }
+    }
+  };
+  walk(outputDir);
+}
+
+function rewriteFile(filePath: string, outputDir: string) {
+  const source = readFileSync(filePath, "utf8");
+  const rewritten = source.replace(/from\s+["']#\/([^"']+)["']/g, (_match, rest: string) => {
+    const target = resolveModuleDeclaration(outputDir, rest);
+    if (!target) {
+      return _match;
+    }
+    let specifier = relative(dirname(filePath), target).replace(/\.d\.ts$/, "");
+    if (!specifier.startsWith(".")) {
+      specifier = `./${specifier}`;
+    }
+    return `from "${specifier}"`;
+  });
+  if (rewritten !== source) {
+    writeFileSync(filePath, rewritten);
+  }
+}
 
 async function parsePackageJson() {
   const outputDirname = $dev ? "src" : OUTPUT_DIRNAME;
@@ -158,6 +178,7 @@ async function main() {
     return;
   }
 
+  console.log("Building...");
   await Promise.all(
     entries.map(async ({ name, src, outdir, target }) => {
       const result = await build({
@@ -177,7 +198,9 @@ async function main() {
       }
     }),
   );
+  console.log("Build Successful");
 
+  console.log("Generating types...");
   const tsconfigPath = join(ROOT, "tsconfig.build.json");
   try {
     await file(tsconfigPath).write(`${JSON.stringify(TSCONFIG_BUILD, null, 2)}\n`);
@@ -185,8 +208,8 @@ async function main() {
   } finally {
     await rm(tsconfigPath, { force: true });
   }
-
-  await rewriteAliasImports(join(ROOT, OUTPUT_DIRNAME));
+  // rewriteDeclarationAliases(join(ROOT, OUTPUT_DIRNAME));
+  console.log("Type Generation Successful");
 }
 
 await main();

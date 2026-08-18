@@ -8,6 +8,9 @@
     "./.output"
   ],
   "type": "module",
+  "imports": {
+    "#/*": "./src/*"
+  },
   "exports": {
     ".": {
       "default": "./.output/index.js",

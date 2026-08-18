@@ -11,6 +11,9 @@
     "./.output"
   ],
   "type": "module",
+  "imports": {
+    "#/*": "./src/*"
+  },
   "exports": {
     "./client": {
       "default": "./.output/client/index.js",
@@ -37,19 +40,27 @@
     "publish": "bun run build && bun publish"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1110.0",
-    "@aws-sdk/s3-request-presigner": "^3.1110.0",
-    "@better-auth/api-key": "^1.6.28",
-    "@better-auth/passkey": "^1.6.28",
+    "@aws-sdk/client-rds-data": "^3.1111.0",
+    "@aws-sdk/client-s3": "^3.1111.0",
+    "@aws-sdk/s3-request-presigner": "^3.1111.0",
+    "@better-auth/api-key": "^1.6.29",
+    "@better-auth/passkey": "^1.6.29",
+    "@electric-sql/pglite": "^0.5.5",
+    "@libsql/client": "^0.17.4",
+    "@neondatabase/serverless": "^1.1.0",
     "@opentelemetry/api": "^1.9.1",
     "@orpc/server": "^1.15.0",
+    "@planetscale/database": "^1.20.1",
     "@standard-schema/spec": "catalog:",
     "@standard-schema/utils": "catalog:",
-    "better-auth": "^1.6.28",
+    "@vercel/postgres": "^0.10.0",
+    "better-auth": "^1.6.29",
+    "better-sqlite3": "^13.0.3",
     "bun": "catalog:",
     "commander": "^13.1.0",
     "drizzle-kit": "catalog:",
     "drizzle-orm": "catalog:",
+    "mysql2": "^3.23.3",
     "nanoid": "^5.1.16",
     "pg": "^8.23.0",
     "pg-boss": "^10.4.2",
@@ -60,16 +71,8 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@aws-sdk/client-rds-data": "^3.1110.0",
-    "@electric-sql/pglite": "^0.5.5",
-    "@libsql/client": "^0.17.4",
-    "@neondatabase/serverless": "^1.1.0",
-    "@planetscale/database": "^1.20.1",
     "@types/bun": "catalog:",
     "@types/pg": "^8.21.0",
-    "@vercel/postgres": "^0.10.0",
-    "better-sqlite3": "^13.0.3",
-    "mysql2": "^3.23.3",
     "typescript": "catalog:"
   },
   "build": {
