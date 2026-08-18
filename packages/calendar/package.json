@@ -26,12 +26,10 @@
     "@aspen-os/constants": "workspace:*",
     "@aspen-os/platform": "workspace:*",
     "drizzle-orm": "catalog:",
-    "pg": "catalog:",
     "valibot": "catalog:"
   },
   "devDependencies": {
     "@types/bun": "catalog:",
-    "@types/pg": "catalog:",
     "typescript": "catalog:"
   },
   "build": {

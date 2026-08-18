@@ -10,8 +10,6 @@
       "drizzle-kit": "^0.31.10",
       "drizzle-orm": "^0.45.2",
       "fflate": "^0.8.3",
-      "pg": "^8.23.0",
-      "@types/pg": "^8.21.0",
       "typescript": "^7.0.2",
       "valibot": "^1.4.2"
     },
@@ -25,8 +23,8 @@
   "scripts": {
     "check:lint": "oxlint --fix . ; oxfmt .",
     "check:types": "tsc -b",
-    "build": "nx run-many -t build",
-    "clean": "bunx rimraf --glob \"**/{node_modules,.output,.local,bun.lockb}\"",
+    "build": "nx run-many -t build --no-tui",
+    "clean": "bunx rimraf --glob \"**/{node_modules,.nx,.output,.local,bun.lockb}\"",
     "prepare": "husky",
     "update:deps": "taze -rw --maturity-period 3"
   },

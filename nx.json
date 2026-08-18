@@ -1,21 +1,40 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "defaultBase": "main",
+  "parallel": 1,
+  "namedInputs": {
+    "sharedGlobals": [
+      "{workspaceRoot}/tsconfig.json",
+      "{workspaceRoot}/package.json",
+      "{workspaceRoot}/bun.lockb",
+      "{workspaceRoot}/bunfig.toml"
+    ],
+    "lintGlobals": [
+      "{workspaceRoot}/.oxlintrc.json",
+      "{workspaceRoot}/.oxfmtrc.json",
+      "{workspaceRoot}/tsconfig.json"
+    ],
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "production": ["default", "!{projectRoot}/**/*.spec.ts", "!{projectRoot}/**/*.test.ts"]
+  },
   "targetDefaults": {
     "build": {
       "dependsOn": ["^build"],
+      "inputs": ["production", "^production"],
       "outputs": ["{projectRoot}/.output"],
       "cache": true
     },
     "check:lint": {
       "dependsOn": ["^check:lint"],
+      "inputs": ["default", "lintGlobals"],
       "cache": true
     },
     "check:types": {
-      "dependsOn": ["^check:types"],
+      "dependsOn": ["^check:types", "^build"],
+      "inputs": ["default", "^production"],
       "cache": true
     }
   },
-  "analytics": false,
   "plugins": [
     {
       "plugin": "@nx/vite/plugin",
@@ -25,10 +44,11 @@
         "devTargetName": "vite:dev",
         "previewTargetName": "vite:preview",
         "serveStaticTargetName": "serve-static",
-        "typecheckTargetName": "typecheck",
+        "typecheckTargetName": "check:types",
         "buildDepsTargetName": "build-deps",
         "watchDepsTargetName": "watch-deps"
       }
     }
-  ]
+  ],
+  "analytics": false
 }

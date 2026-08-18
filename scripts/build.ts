@@ -113,6 +113,38 @@ function rewriteFile(filePath: string, outputDir: string) {
   }
 }
 
+/**
+ * Fix dynamic `import(nodeSqlite)` calls in emitted JS by adding `@vite-ignore`.
+ * Walking the whole output directory (rather than a single hard-coded file) means
+ * the fix applies to every build entry that pulls in the nodeSqlite module, not
+ * just `server/index.js`. `@vite-ignore` tells Vite not to analyse the specifier,
+ * keeping node-sqlite external at runtime.
+ */
+function fixNodeSqliteDynamicImports(outputDir: string) {
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir)) {
+      const full = join(dir, entry);
+      if (statSync(full).isDirectory()) {
+        walk(full);
+      } else if (entry.endsWith(".js")) {
+        const source = readFileSync(full, "utf8");
+        if (!source.includes("import(nodeSqlite)")) {
+          continue;
+        }
+        const fixed = source.replace(
+          /import\(nodeSqlite\)/g,
+          "import(/* @vite-ignore */nodeSqlite)",
+        );
+        if (fixed !== source) {
+          writeFileSync(full, fixed);
+          console.log(`build: added @vite-ignore to nodeSqlite import in ${relative(ROOT, full)}`);
+        }
+      }
+    }
+  };
+  walk(outputDir);
+}
+
 async function parsePackageJson() {
   const outputDirname = $dev ? "src" : OUTPUT_DIRNAME;
   const OUTPUT_DIR = join(ROOT, outputDirname);
@@ -204,6 +236,8 @@ async function main() {
     }),
   );
   console.log("Build Successful");
+
+  fixNodeSqliteDynamicImports(join(ROOT, OUTPUT_DIRNAME));
 
   console.log("Generating types...");
   const tsconfigPath = join(ROOT, "tsconfig.build.json");

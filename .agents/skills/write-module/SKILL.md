@@ -59,12 +59,10 @@ The `workflows/` tree uses REST-style folders: `workflows/<entity>/<verb>.ts` fo
     "@aspen-os/platform": "workspace:*",
     "drizzle-kit": "^0.31.10",
     "drizzle-orm": "catalog:",
-    "pg": "^8.23.0",
     "valibot": "catalog:"
   },
   "devDependencies": {
     "@types/bun": "catalog:",
-    "@types/pg": "^8.21.0",
     "typescript": "catalog:"
   },
   "exports": {
