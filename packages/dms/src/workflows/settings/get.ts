@@ -1,4 +1,4 @@
-import { getSetting } from "#/services/settings-service";
+import { getSetting } from "#/workflow-steps/settings-service";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, string } from "valibot";

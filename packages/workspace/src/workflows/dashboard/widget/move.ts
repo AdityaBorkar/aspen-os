@@ -1,7 +1,7 @@
 import { workspaceDashboard } from "#/db-schemas";
-import { assertCanMutate } from "#/services/access-service";
 import { MoveWidgetSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { assertCanMutate } from "#/workflow-steps/access-service";
 import { fetchDashboardStep } from "#/workflow-steps/fetch-dashboard";
 import { fetchWidgetStep } from "#/workflow-steps/fetch-widget";
 

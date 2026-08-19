@@ -1,7 +1,7 @@
 import { task } from "#/db-schemas/task";
-import { publishTaskDeleted } from "#/services/notification-bridge";
 import { IdSchema } from "#/types";
 import { fetchTaskStep } from "#/workflow-steps/fetch-task";
+import { publishTaskDeleted } from "#/workflow-steps/notification-bridge";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";

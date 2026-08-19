@@ -1,8 +1,8 @@
 import { calendarEvent, calendarReminder } from "#/db-schemas";
 import { REMINDER_EVENTS } from "#/pubsub";
-import { resolveActorId } from "#/services/access-service";
 import { CreateReminderSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { resolveActorId } from "#/workflow-steps/access-service";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";

@@ -2,7 +2,7 @@ import { commsProvider } from "#/db-schemas";
 import { getCommsRuntime } from "#/runtime";
 import { createAdapter } from "#/services/adapters/index";
 import { resolveProviderCredential } from "#/services/credential-service";
-import { renderTemplate } from "#/services/template-renderer";
+import { renderTemplate } from "#/workflow-steps/template-renderer";
 import { ensureDefaults } from "#/workflows/channel/ensure-defaults";
 import { notify } from "#/workflows/notification/notify";
 

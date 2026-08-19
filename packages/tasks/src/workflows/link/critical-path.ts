@@ -1,6 +1,6 @@
-import { getCriticalPath } from "#/services/dependency-graph";
 import { IdSchema } from "#/types";
 import type { CriticalPathResult } from "#/types";
+import { getCriticalPath } from "#/workflow-steps/dependency-graph";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";

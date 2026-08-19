@@ -1,8 +1,8 @@
 import { calendar } from "#/db-schemas";
 import { CALENDAR_EVENTS } from "#/pubsub";
-import { resolveActorId } from "#/services/access-service";
 import { CreateCalendarSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { resolveActorId } from "#/workflow-steps/access-service";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";

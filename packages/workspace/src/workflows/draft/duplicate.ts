@@ -1,8 +1,8 @@
 import { workspaceDraft } from "#/db-schemas";
 import { DRAFT_EVENTS } from "#/pubsub";
-import { assertCanAccess, resolveActorId } from "#/services/access-service";
 import { IdSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, WORKSPACE_ACCESS } from "#/utils/constants";
+import { assertCanAccess, resolveActorId } from "#/workflow-steps/access-service";
 import { fetchDraftStep } from "#/workflow-steps/fetch-draft";
 
 import { Workflow } from "@aspen-os/platform/server";

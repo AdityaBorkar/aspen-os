@@ -1,6 +1,6 @@
-import { queryEvents } from "#/services/event-service";
-import { expandOccurrences } from "#/services/recurrence";
 import { EventFiltersSchema, OccurrencesQuerySchema } from "#/types";
+import { queryEvents } from "#/workflow-steps/event-service";
+import { expandOccurrences } from "#/workflow-steps/recurrence";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, optional, parse } from "valibot";

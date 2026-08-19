@@ -1,11 +1,11 @@
 import { dmsEntityLabel, dmsFile, dmsLabel } from "#/db-schemas";
 import { FILE_EVENTS } from "#/pubsub";
 import { getDmsConfig } from "#/runtime";
-import { checkNameUniqueness, computeFilePath } from "#/services/path-service";
-import { getSetting, isCompressionOption } from "#/services/settings-service";
 import { computeStorageKey, upload as uploadStorage } from "#/services/storage-bridge";
 import { UploadFileSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, SETTING_KEYS } from "#/utils/constants";
+import { checkNameUniqueness, computeFilePath } from "#/workflow-steps/path-service";
+import { getSetting, isCompressionOption } from "#/workflow-steps/settings-service";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { inArray } from "drizzle-orm";

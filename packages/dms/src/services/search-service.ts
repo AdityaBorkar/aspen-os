@@ -1,5 +1,4 @@
 import { dmsClass, dmsFile, dmsFolder, dmsLabel } from "#/db-schemas";
-import { buildSortOrder } from "#/services/condition-service";
 import type {
   DmsFile,
   DmsFolder,
@@ -9,6 +8,7 @@ import type {
   SearchOptions,
 } from "#/types";
 import { toText } from "#/utils/to-text";
+import { buildSortOrder } from "#/workflow-steps/condition-service";
 
 import { and, asc, desc, eq, gte, ilike, lte, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";

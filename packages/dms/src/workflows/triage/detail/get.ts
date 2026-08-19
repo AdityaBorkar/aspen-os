@@ -1,5 +1,5 @@
-import { getActiveFields, validateFieldValues } from "#/services/classify-service";
 import { IdSchema } from "#/types";
+import { getActiveFields, validateFieldValues } from "#/workflow-steps/classify-service";
 import { fetchFileStep } from "#/workflow-steps/fetch-file";
 import { listClasses } from "#/workflows/class/list";
 

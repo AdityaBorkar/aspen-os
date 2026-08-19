@@ -1,6 +1,6 @@
 import { dmsFile } from "#/db-schemas";
-import { buildConditionsWhere, buildSortOrder } from "#/services/condition-service";
 import { ApplyFileViewSchema } from "#/types";
+import { buildConditionsWhere, buildSortOrder } from "#/workflow-steps/condition-service";
 import { fetchFileViewStep } from "#/workflow-steps/fetch-file-view";
 
 import { Workflow } from "@aspen-os/platform/server";

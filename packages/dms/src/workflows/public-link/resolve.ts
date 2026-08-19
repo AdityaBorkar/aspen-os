@@ -1,7 +1,7 @@
 import { dmsPublicLink } from "#/db-schemas";
 import { PUBLIC_LINK_EVENTS } from "#/pubsub";
-import { logAccess } from "#/services/access-service";
 import { ResolvePublicLinkSchema } from "#/types";
+import { logAccess } from "#/workflow-steps/access-service";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq, sql } from "drizzle-orm";

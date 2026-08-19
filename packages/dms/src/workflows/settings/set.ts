@@ -1,6 +1,6 @@
 import { JsonValueSchema } from "#/schemas/json";
-import { setSetting } from "#/services/settings-service";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { setSetting } from "#/workflow-steps/settings-service";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, string } from "valibot";

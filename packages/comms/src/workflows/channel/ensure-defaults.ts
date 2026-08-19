@@ -1,6 +1,5 @@
 import { commsChannel, commsProvider } from "#/db-schemas";
 import { CHANNEL_EVENTS } from "#/pubsub";
-import { getSetting } from "#/services/settings-service";
 import { EnsureDefaultsSchema } from "#/types";
 import {
   AUDIT_ENTITY_TYPE,
@@ -8,6 +7,7 @@ import {
   DEFAULT_CHANNEL_TYPES,
   PROVIDER_KINDS_BY_CHANNEL_TYPE,
 } from "#/utils/constants";
+import { getSetting } from "#/workflow-steps/settings-service";
 
 import type { ChannelType } from "@aspen-os/constants";
 import { getContext, Workflow } from "@aspen-os/platform/server";

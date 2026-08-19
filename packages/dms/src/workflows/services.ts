@@ -1,10 +1,21 @@
 import {
+  computeArchiveKey,
+  computeStorageKey,
+  copy as copyStorage,
+  exists as existsStorage,
+  getSignedGetUrl,
+  get as getStorage,
+  move as moveStorage,
+  remove as removeStorage,
+  upload as uploadStorage,
+} from "#/services/storage-bridge";
+import {
   checkPermission,
   getEffectivePermission,
   isOwner,
   logAccess,
-} from "#/services/access-service";
-import { createArchive, processArchiveJob } from "#/services/archive-service";
+} from "#/workflow-steps/access-service";
+import { createArchive, processArchiveJob } from "#/workflow-steps/archive-service";
 import {
   checkNameUniqueness,
   computeFilePath,
@@ -16,18 +27,7 @@ import {
   getSubtreeMaxDepth,
   resolvePath,
   wouldCreateCycle,
-} from "#/services/path-service";
-import {
-  computeArchiveKey,
-  computeStorageKey,
-  copy as copyStorage,
-  exists as existsStorage,
-  getSignedGetUrl,
-  get as getStorage,
-  move as moveStorage,
-  remove as removeStorage,
-  upload as uploadStorage,
-} from "#/services/storage-bridge";
+} from "#/workflow-steps/path-service";
 
 export const access = {
   checkPermission: async (input: Parameters<typeof checkPermission>[0]) => checkPermission(input),

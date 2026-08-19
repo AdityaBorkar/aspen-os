@@ -1,10 +1,13 @@
 import type { AuditUnit } from "#/server/audit";
 import type { AuthUnit } from "#/server/auth";
+import type { ChildLogger, LogUnit } from "#/server/log";
 import type { PubSubUnit } from "#/server/pubsub";
 import type { JsonValue, SchemaMap } from "#/server/types";
 
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
+
+import type { Context } from "../utils";
 
 type DrizzleDB<TSchemas extends SchemaMap = Record<string, never>> = PostgresJsDatabase<TSchemas>;
 
@@ -51,6 +54,7 @@ export interface WorkflowContext<TSchemas extends SchemaMap = Record<string, nev
   auth?: AuthUnit;
   config: Record<string, JsonValue>;
   db: DrizzleDB<TSchemas>;
+  log: ChildLogger;
   pubsub: PubSubUnit;
   runId: string;
   step: StepRunner;
@@ -72,12 +76,13 @@ export interface RunOptions {
   auth?: AuthUnit;
   config?: Record<string, JsonValue>;
   db?: DrizzleDB<SchemaMap>;
+  log?: LogUnit;
   pubsub?: PubSubUnit;
 }
 
 export interface WorkflowInstance<TInput, TOutput> {
   readonly name: string;
-  run: (input: TInput, options?: RunOptions) => Promise<TOutput>;
+  run: (input: TInput, options?: Context) => Promise<TOutput>;
 }
 
 export type WorkflowRunStatus = "running" | "completed" | "failed";

@@ -1,12 +1,12 @@
 import { task } from "#/db-schemas/task";
 import { taskAssignee } from "#/db-schemas/task-assignee";
+import { IdSchema, UpdateTaskSchema } from "#/types";
+import { fetchTaskStep } from "#/workflow-steps/fetch-task";
 import {
   publishTaskDueDateChanged,
   publishTaskStatusChanged,
   publishTaskUpdated,
-} from "#/services/notification-bridge";
-import { IdSchema, UpdateTaskSchema } from "#/types";
-import { fetchTaskStep } from "#/workflow-steps/fetch-task";
+} from "#/workflow-steps/notification-bridge";
 import { addActivity, validateParentTask } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";

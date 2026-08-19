@@ -1,4 +1,4 @@
-import { assertCanAccess } from "#/services/access-service";
+import { assertCanAccess } from "#/workflow-steps/access-service";
 import { fetchDashboardStep } from "#/workflow-steps/fetch-dashboard";
 
 import { Workflow } from "@aspen-os/platform/server";

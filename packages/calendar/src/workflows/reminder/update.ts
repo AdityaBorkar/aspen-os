@@ -1,9 +1,9 @@
 import { calendarReminder } from "#/db-schemas";
 import { REMINDER_EVENTS } from "#/pubsub";
-import { assertCanAccessReminder } from "#/services/access-service";
 import { IdSchema, UpdateReminderSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { stripUndefined } from "#/utils/strip-undefined";
+import { assertCanAccessReminder } from "#/workflow-steps/access-service";
 import { fetchReminderStep } from "#/workflow-steps/fetch-reminder";
 
 import { Workflow } from "@aspen-os/platform/server";

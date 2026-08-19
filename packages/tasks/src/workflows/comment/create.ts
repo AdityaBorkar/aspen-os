@@ -1,6 +1,6 @@
 import { comment } from "#/db-schemas/comment";
-import { publishTaskCommented } from "#/services/notification-bridge";
 import { CreateCommentSchema } from "#/types";
+import { publishTaskCommented } from "#/workflow-steps/notification-bridge";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";

@@ -1,7 +1,7 @@
 import { taskAssignee } from "#/db-schemas/task-assignee";
-import { publishTaskAssigned } from "#/services/notification-bridge";
 import { AssignTaskSchema } from "#/types";
 import { fetchTaskStep } from "#/workflow-steps/fetch-task";
+import { publishTaskAssigned } from "#/workflow-steps/notification-bridge";
 import { addActivity, ensureWatcher, unsetLeadAssignee } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";

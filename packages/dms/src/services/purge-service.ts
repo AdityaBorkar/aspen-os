@@ -10,9 +10,9 @@ import {
 } from "#/db-schemas";
 import { FILE_EVENTS, FOLDER_EVENTS } from "#/pubsub";
 import { getDmsConfig } from "#/runtime";
-import { getSetting } from "#/services/settings-service";
 import { remove as removeStorage } from "#/services/storage-bridge";
 import { SCHEDULED_JOBS, SETTING_KEYS } from "#/utils/constants";
+import { getSetting } from "#/workflow-steps/settings-service";
 
 import type { AuditUnit, PubSubUnit } from "@aspen-os/platform/server";
 import { and, desc, eq, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm";

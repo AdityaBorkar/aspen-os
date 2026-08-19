@@ -1,8 +1,8 @@
 import { workspaceWatch } from "#/db-schemas";
 import { WATCH_EVENTS } from "#/pubsub";
-import { resolveActorId } from "#/services/access-service";
 import { SubscribeWatchSchema } from "#/types";
 import { AUDIT_ACTION } from "#/utils/constants";
+import { resolveActorId } from "#/workflow-steps/access-service";
 import { auditEntityType } from "#/workflows/pin/shared";
 
 import { Workflow } from "@aspen-os/platform/server";

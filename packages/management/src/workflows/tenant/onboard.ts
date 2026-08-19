@@ -51,9 +51,10 @@ export function createOnboardTenant(dbUnit: DatabaseUnit) {
             }),
           );
         } catch (error) {
-          console.error(
+          ctx.log.error(
             `Provisioning failed for tenant "${tenantId}", cleaning up organization`,
-            error,
+            error instanceof Error ? error : new Error(String(error)),
+            { phase: "provision-tenant", tenantId },
           );
           try {
             await auth.service.api.deleteOrganization({
@@ -61,7 +62,11 @@ export function createOnboardTenant(dbUnit: DatabaseUnit) {
               headers: new Headers(),
             });
           } catch (cleanupError) {
-            console.error(`Failed to cleanup organization "${tenantId}"`, cleanupError);
+            ctx.log.error(
+              `Failed to cleanup organization "${tenantId}"`,
+              cleanupError instanceof Error ? cleanupError : new Error(String(cleanupError)),
+              { phase: "cleanup-organization", tenantId },
+            );
           }
           throw error;
         }

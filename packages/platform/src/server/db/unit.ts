@@ -287,8 +287,7 @@ export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
     return db_schemas;
   }
 
-  protected async pushSchemasTo(db: DrizzleDB<TSchemas>, schemas: SchemaMap): Promise<void> {
-    console.log({ db, schemas });
+  protected async pushSchemasTo(_db: DrizzleDB<TSchemas>, _schemas: SchemaMap): Promise<void> {
     // // @ts-expect-error DB Type Mismatch
     // const result = await pushSchema(schemas, db);
     // if (result.statementsToExecute.length > 0) {

@@ -1,6 +1,8 @@
+import type { AuditUnit } from "#/server/audit";
 import type { AuthUnit } from "#/server/auth";
 import type { DatabaseUnit } from "#/server/db";
 import type { DatabaseConfig } from "#/server/db/types";
+import type { LogUnit } from "#/server/log";
 import type { TenancyMode } from "#/server/types";
 import { context, isGlobalTenantId } from "#/server/utils";
 
@@ -21,6 +23,8 @@ export class PubSubUnit {
   private readonly dbUnit: DatabaseUnit<any>;
   private readonly tenancyMode: TenancyMode;
   private authInstance: AuthUnit | null = null;
+  private readonly auditInstance: AuditUnit;
+  private readonly logInstance: LogUnit;
   private readonly monitorIntervalSeconds: number;
 
   private readonly boss: PgBoss;
@@ -28,11 +32,16 @@ export class PubSubUnit {
   private readonly producedTopics = new Map<string, number>();
   private bossStarted: Promise<void> | null = null;
 
-  constructor(config: PubSubConfig, { db }: { db: DatabaseUnit<any> }) {
+  constructor(
+    config: PubSubConfig,
+    { audit, db, log }: { audit: AuditUnit; db: DatabaseUnit<any>; log: LogUnit },
+  ) {
     this.dbUnit = db;
     this.tenancyMode = db.tenancyMode;
+    this.auditInstance = audit;
     this.monitorIntervalSeconds = config.monitorIntervalSeconds ?? 30;
     this.boss = this.createBoss(db.config);
+    this.logInstance = log;
   }
 
   setAuth(auth: AuthUnit): void {
@@ -184,6 +193,12 @@ export class PubSubUnit {
     handler: MessageHandler,
     tenantId: string | undefined,
   ): Promise<WorkHandler<object>> {
+    const auth = this.authInstance;
+    if (!auth) {
+      throw new Error(
+        "PubSubUnit is not initialized with auth; call setAuth() before subscribing.",
+      );
+    }
     const workHandler: WorkHandler<object> = async (jobs) => {
       // oxlint-disable eslint/no-await-in-loop
       for (const job of jobs) {
@@ -194,8 +209,10 @@ export class PubSubUnit {
 
         await context.run(
           {
-            auth: this.authInstance ?? undefined,
+            audit: this.auditInstance,
+            auth,
             db: handlerDb,
+            log: this.logInstance,
             pubsub: this,
             tenantId,
           },

@@ -155,16 +155,16 @@ export {
   SETTING_KEYS,
 } from "#/utils/constants";
 
-export type { ChannelScope, ChannelResolverDeps } from "#/services/channel-resolver";
+export type { ChannelScope, ChannelResolverDeps } from "#/workflow-steps/channel-resolver";
 export type {
   NotificationRouterDeps,
   RoutedOutOfBand,
   RoutingResult,
-} from "#/services/notification-router";
-export type { ResolvedRecipient } from "#/services/recipient-resolver";
+} from "#/workflow-steps/notification-router";
+export type { ResolvedRecipient } from "#/workflow-steps/recipient-resolver";
 export type { DeliveryAdapter, DeliveryMessage, SendInput, TestInput } from "#/services/adapters";
 export { createAdapter, inferEmailKind, providerKindForChannel } from "#/services/adapters";
-export type { ProviderReceiptInput, ReceiptDeps } from "#/services/receipts";
-export { handleProviderReceipt } from "#/services/receipts";
-export { renderTemplate } from "#/services/template-renderer";
+export type { ProviderReceiptInput, ReceiptDeps } from "#/workflow-steps/receipts";
+export { handleProviderReceipt } from "#/workflow-steps/receipts";
+export { renderTemplate } from "#/workflow-steps/template-renderer";
 export { MAX_DELIVERY_ATTEMPTS, MESSAGE_SWEEPER_CRON } from "#/services/delivery-worker";

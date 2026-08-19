@@ -1,9 +1,9 @@
 import { calendarEvent } from "#/db-schemas";
 import { EVENT_EVENTS } from "#/pubsub";
-import { assertCanMutate } from "#/services/access-service";
-import { validateEventWindow, validateSourceLink } from "#/services/event-service";
 import { CreateEventSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { assertCanMutate } from "#/workflow-steps/access-service";
+import { validateEventWindow, validateSourceLink } from "#/workflow-steps/event-service";
 import { fetchCalendarStep } from "#/workflow-steps/fetch-calendar";
 
 import { Workflow } from "@aspen-os/platform/server";

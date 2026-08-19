@@ -1,5 +1,5 @@
-import { assertCanAccess } from "#/services/access-service";
 import { WithIdSchema } from "#/types";
+import { assertCanAccess } from "#/workflow-steps/access-service";
 import { fetchNoteStep } from "#/workflow-steps/fetch-note";
 
 import { Workflow } from "@aspen-os/platform/server";

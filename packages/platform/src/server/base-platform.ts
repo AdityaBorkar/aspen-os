@@ -14,6 +14,7 @@ import { StorageUnit } from "#/server/storage";
 import type { StorageConfig } from "#/server/storage";
 import type { Module, PlatformUnits, UnitAccessors, SchemaMap } from "#/server/types";
 import { context, isGlobalTenantId } from "#/server/utils";
+import type { Context } from "#/server/utils";
 
 export type ExtractModuleNames<TModules extends Module[]> = {
   [TKey in keyof TModules]: TModules[TKey] extends { $name: infer TName extends string }
@@ -101,7 +102,7 @@ export abstract class BasePlatform<
   ): CoreUnits<TModules, TSchemas> {
     const logs = new LogUnit(config.logs, { db });
     const audit = new AuditUnit({ db });
-    const pubsub = new PubSubUnit(config.pubsub, { db });
+    const pubsub = new PubSubUnit(config.pubsub, { audit, db, log: logs });
     const auth = new AuthUnit(config.auth, { db, pubsub });
     pubsub.setAuth(auth);
     const storage = new StorageUnit(config.storage, { db });
@@ -196,12 +197,16 @@ export abstract class BasePlatform<
   }
 
   async run<TValue>(tenantId: string, fn: () => TValue | Promise<TValue>): Promise<TValue> {
-    const ctx = {
+    const ctx: Context = {
       audit: this.units.audit,
       auth: this.units.auth,
-      db: isGlobalTenantId(tenantId)
+      // SAFETY: the Context db surface is schema-agnostic; the platform's merged-schema
+      // drizzle instances share the same runtime query/select surface, so this cast only
+      // narrows/loosens the static schema type without changing behaviour.
+      db: (isGlobalTenantId(tenantId)
         ? this.units.db.controlPlaneDb
-        : await this.units.db.getTenantDb(tenantId),
+        : await this.units.db.getTenantDb(tenantId)) as Context["db"],
+      log: this.units.logs,
       pubsub: this.units.pubsub,
     };
     return context.run(ctx, fn);

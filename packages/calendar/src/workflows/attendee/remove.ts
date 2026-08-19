@@ -1,8 +1,8 @@
 import { calendarAttendee } from "#/db-schemas";
 import { ATTENDEE_EVENTS } from "#/pubsub";
-import { assertCanMutate } from "#/services/access-service";
 import { WithIdSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { assertCanMutate } from "#/workflow-steps/access-service";
 import { fetchAttendeeStep } from "#/workflow-steps/fetch-attendee";
 import { fetchEventCalendarStep } from "#/workflow-steps/fetch-event-calendar";
 

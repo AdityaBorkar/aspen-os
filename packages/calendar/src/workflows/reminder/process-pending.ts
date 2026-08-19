@@ -1,6 +1,6 @@
 import { calendarReminder } from "#/db-schemas";
 import { REMINDER_EVENTS } from "#/pubsub";
-import { computeNextOccurrence } from "#/services/recurrence";
+import { computeNextOccurrence } from "#/workflow-steps/recurrence";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, lte } from "drizzle-orm";

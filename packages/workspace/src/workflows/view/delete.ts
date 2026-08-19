@@ -1,7 +1,7 @@
 import { workspaceView } from "#/db-schemas";
 import { VIEW_EVENTS } from "#/pubsub";
-import { assertCanMutate } from "#/services/access-service";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { assertCanMutate } from "#/workflow-steps/access-service";
 import { fetchViewStep } from "#/workflow-steps/fetch-view";
 
 import { Workflow } from "@aspen-os/platform/server";

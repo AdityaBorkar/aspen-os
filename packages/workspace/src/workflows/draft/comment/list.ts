@@ -1,6 +1,6 @@
 import { workspaceDraftComment } from "#/db-schemas";
-import { assertCanAccess } from "#/services/access-service";
 import { ListDraftCommentsSchema } from "#/types";
+import { assertCanAccess } from "#/workflow-steps/access-service";
 import { fetchDraftStep } from "#/workflow-steps/fetch-draft";
 
 import { Workflow } from "@aspen-os/platform/server";

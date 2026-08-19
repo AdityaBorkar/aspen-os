@@ -1,7 +1,7 @@
 import { SETTING_EVENTS } from "#/pubsub";
-import { setSetting } from "#/services/settings-service";
 import { SetSettingSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { setSetting } from "#/workflow-steps/settings-service";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";

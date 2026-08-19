@@ -1,8 +1,8 @@
 import { workspaceDraft } from "#/db-schemas";
 import { DRAFT_EVENTS } from "#/pubsub";
-import { resolveActorId } from "#/services/access-service";
 import { CreateDraftSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { resolveActorId } from "#/workflow-steps/access-service";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";

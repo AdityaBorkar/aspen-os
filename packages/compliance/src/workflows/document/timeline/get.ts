@@ -1,6 +1,6 @@
 import { complianceDocument } from "#/db-schemas";
-import { daysUntil } from "#/services/status-derivation";
 import type { TimelineEntry } from "#/types";
+import { daysUntil } from "#/workflow-steps/status-derivation";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, asc, inArray, isNotNull, lte, or } from "drizzle-orm";

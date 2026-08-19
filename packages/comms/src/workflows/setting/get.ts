@@ -1,5 +1,5 @@
-import { getSetting } from "#/services/settings-service";
 import { GetSettingSchema } from "#/types";
+import { getSetting } from "#/workflow-steps/settings-service";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";

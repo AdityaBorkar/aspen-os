@@ -1,5 +1,5 @@
-import { queryEvents } from "#/services/event-service";
 import { EventFiltersSchema } from "#/types";
+import { queryEvents } from "#/workflow-steps/event-service";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, optional, parse } from "valibot";

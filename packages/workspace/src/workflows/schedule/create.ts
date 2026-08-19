@@ -1,9 +1,9 @@
 import { workspaceSchedule } from "#/db-schemas";
 import { DASHBOARD_EVENTS } from "#/pubsub";
-import { assertCanMutate, resolveActorId } from "#/services/access-service";
 import { registerScheduleDelivery } from "#/services/schedule-service";
 import { CreateScheduleSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { assertCanMutate, resolveActorId } from "#/workflow-steps/access-service";
 import { fetchDashboardStep } from "#/workflow-steps/fetch-dashboard";
 
 import { Workflow } from "@aspen-os/platform/server";

@@ -1,6 +1,9 @@
 import { task } from "#/db-schemas/task";
-import { publishTaskCreated, publishTaskDueDateChanged } from "#/services/notification-bridge";
 import { CreateTaskSchema } from "#/types";
+import {
+  publishTaskCreated,
+  publishTaskDueDateChanged,
+} from "#/workflow-steps/notification-bridge";
 import { addActivity, generateTaskNumber, validateParentTask } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";

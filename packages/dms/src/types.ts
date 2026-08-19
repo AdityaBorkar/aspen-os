@@ -182,8 +182,8 @@ export {
   WithFileIdSchema,
   WithIdSchema,
 } from "#/schemas";
-export type { ArchiveJobData, ArchiveResult } from "#/services/archive-service";
-export { ArchiveTooLargeError } from "#/services/archive-service";
+export type { ArchiveJobData, ArchiveResult } from "#/workflow-steps/archive-service";
+export { ArchiveTooLargeError } from "#/workflow-steps/archive-service";
 export type {
   AuditAction,
   AuditEntityType,

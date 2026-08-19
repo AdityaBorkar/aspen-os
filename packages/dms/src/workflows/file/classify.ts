@@ -1,12 +1,12 @@
 import { dmsClass, dmsFile } from "#/db-schemas";
 import { FILE_EVENTS } from "#/pubsub";
+import { ClassifyFileSchema, IdSchema } from "#/types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import {
   getActiveFields,
   renderFileNamingSchema,
   validateFieldValues,
-} from "#/services/classify-service";
-import { ClassifyFileSchema, IdSchema } from "#/types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+} from "#/workflow-steps/classify-service";
 import { fetchFileStep } from "#/workflow-steps/fetch-file";
 
 import { Workflow } from "@aspen-os/platform/server";

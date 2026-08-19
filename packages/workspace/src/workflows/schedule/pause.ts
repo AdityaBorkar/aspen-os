@@ -1,9 +1,9 @@
 import { workspaceSchedule } from "#/db-schemas";
 import { DASHBOARD_EVENTS } from "#/pubsub";
-import { assertCanMutate } from "#/services/access-service";
 import { scheduleCronTopic, unregisterScheduleHandler } from "#/services/schedule-service";
 import { IdSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { assertCanMutate } from "#/workflow-steps/access-service";
 import { fetchDashboardStep } from "#/workflow-steps/fetch-dashboard";
 import { fetchScheduleStep } from "#/workflow-steps/fetch-schedule";
 

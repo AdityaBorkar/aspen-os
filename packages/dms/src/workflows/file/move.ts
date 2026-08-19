@@ -1,8 +1,8 @@
 import { dmsFile } from "#/db-schemas";
 import { FILE_EVENTS } from "#/pubsub";
-import { checkNameUniqueness, computeFilePath } from "#/services/path-service";
 import { FileIdSchema, MoveFileSchema } from "#/types";
 import { fetchFileStep } from "#/workflow-steps/fetch-file";
+import { checkNameUniqueness, computeFilePath } from "#/workflow-steps/path-service";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";

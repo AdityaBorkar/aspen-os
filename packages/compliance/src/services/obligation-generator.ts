@@ -31,7 +31,7 @@ function buildDepsFromContext(): ObligationGeneratorDeps {
   return {
     audit: ctx.audit,
     // SAFETY: ContextDb exposes the select/execute/update surface these workflows rely on; the PostgresJsDatabase members it omits are never accessed through the generator.
-    db: ctx.db as PostgresJsDatabase,
+    db: ctx.db,
     pubsub: ctx.pubsub,
   };
 }

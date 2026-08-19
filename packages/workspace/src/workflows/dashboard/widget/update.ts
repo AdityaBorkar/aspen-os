@@ -1,9 +1,9 @@
 import { workspaceWidget } from "#/db-schemas";
 import { WIDGET_EVENTS } from "#/pubsub";
-import { assertCanMutate } from "#/services/access-service";
 import { UpdateWidgetSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { stripUndefined } from "#/utils/strip-undefined";
+import { assertCanMutate } from "#/workflow-steps/access-service";
 import { fetchDashboardStep } from "#/workflow-steps/fetch-dashboard";
 import { fetchWidgetStep } from "#/workflow-steps/fetch-widget";
 import { assertWidgetDatasource, parseWidgetConfig } from "#/workflows/dashboard/widget/utils";

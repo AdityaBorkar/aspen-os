@@ -1,10 +1,10 @@
 import { dmsFileVersion } from "#/db-schemas";
 import { getDmsConfig } from "#/runtime";
-import { getSetting } from "#/services/settings-service";
 import { getSignedGetUrl } from "#/services/storage-bridge";
 import { IdSchema } from "#/types";
 import { SETTING_KEYS } from "#/utils/constants";
 import { fetchFileStep } from "#/workflow-steps/fetch-file";
+import { getSetting } from "#/workflow-steps/settings-service";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";

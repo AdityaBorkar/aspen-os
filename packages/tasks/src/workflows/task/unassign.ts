@@ -1,6 +1,6 @@
 import { taskAssignee } from "#/db-schemas/task-assignee";
-import { publishTaskUnassigned } from "#/services/notification-bridge";
 import { IdSchema } from "#/types";
+import { publishTaskUnassigned } from "#/workflow-steps/notification-bridge";
 import { addActivity } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";

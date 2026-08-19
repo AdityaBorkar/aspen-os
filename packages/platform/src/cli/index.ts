@@ -14,7 +14,7 @@ async function loadPlatform(configPath: string): Promise<PlatformInstance<Module
   const resolvedPath = resolve(process.cwd(), configPath);
   try {
     const mod = await import(resolvedPath);
-    const platformInstance = mod.platform || mod.p;
+    const platformInstance = mod.platform || mod.p || mod.pm;
     if (platformInstance) {
       return platformInstance;
     }

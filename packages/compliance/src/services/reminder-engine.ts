@@ -1,5 +1,6 @@
 import { COMPLIANCE_EVENTS } from "#/pubsub";
 import type { RecipientRef } from "#/pubsub";
+import { CRON_SCHEDULES, DEFAULT_ESCALATION_DAYS, SCHEDULED_JOBS } from "#/utils/constants";
 import {
   daysSince,
   daysUntil,
@@ -8,8 +9,7 @@ import {
   isSnoozed,
   shouldEscalate,
   shouldNotify,
-} from "#/services/status-derivation";
-import { CRON_SCHEDULES, DEFAULT_ESCALATION_DAYS, SCHEDULED_JOBS } from "#/utils/constants";
+} from "#/workflow-steps/status-derivation";
 import { dashboard, documents } from "#/workflows";
 import type { WorkflowKvStore } from "#/workflows/utils";
 

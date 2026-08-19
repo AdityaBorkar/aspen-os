@@ -1,8 +1,8 @@
 import { calendarEvent } from "#/db-schemas";
 import { EVENT_EVENTS } from "#/pubsub";
-import { assertCanMutate } from "#/services/access-service";
 import { WithIdSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { assertCanMutate } from "#/workflow-steps/access-service";
 import { fetchEventStep } from "#/workflow-steps/fetch-event";
 import { fetchEventCalendarStep } from "#/workflow-steps/fetch-event-calendar";
 

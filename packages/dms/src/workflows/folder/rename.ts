@@ -1,8 +1,8 @@
 import { dmsFolder } from "#/db-schemas";
 import { FOLDER_EVENTS } from "#/pubsub";
-import { cascadePaths, checkNameUniqueness, getFolderPath } from "#/services/path-service";
 import { RenameFolderSchema } from "#/types";
 import { fetchFolderStep } from "#/workflow-steps/fetch-folder";
+import { cascadePaths, checkNameUniqueness, getFolderPath } from "#/workflow-steps/path-service";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";

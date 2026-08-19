@@ -1,8 +1,8 @@
 import { taskLink } from "#/db-schemas/task-link";
-import { wouldCreateCycle } from "#/services/dependency-graph";
-import { publishTaskLinked } from "#/services/notification-bridge";
 import { CreateTaskLinkSchema } from "#/types";
 import type { TaskLinkType } from "#/utils/constants";
+import { wouldCreateCycle } from "#/workflow-steps/dependency-graph";
+import { publishTaskLinked } from "#/workflow-steps/notification-bridge";
 import { linkTypeInverse } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";

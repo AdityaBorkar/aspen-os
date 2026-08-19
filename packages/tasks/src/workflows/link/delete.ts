@@ -1,6 +1,6 @@
 import { taskLink } from "#/db-schemas/task-link";
-import { publishTaskUnlinked } from "#/services/notification-bridge";
 import { IdSchema } from "#/types";
+import { publishTaskUnlinked } from "#/workflow-steps/notification-bridge";
 import { linkTypeInverse } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";

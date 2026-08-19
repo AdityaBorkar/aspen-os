@@ -1,7 +1,7 @@
 import { workspaceDraftComment } from "#/db-schemas";
 import { DRAFT_EVENTS } from "#/pubsub";
-import { isTenantAdmin } from "#/services/access-service";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { isTenantAdmin } from "#/workflow-steps/access-service";
 import { fetchDraftStep } from "#/workflow-steps/fetch-draft";
 
 import { Workflow } from "@aspen-os/platform/server";

@@ -1,8 +1,8 @@
 import { note } from "#/db-schemas";
 import { NOTE_EVENTS } from "#/pubsub";
-import { assertCanMutate } from "#/services/access-service";
 import { WithIdSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { assertCanMutate } from "#/workflow-steps/access-service";
 import { fetchNoteStep } from "#/workflow-steps/fetch-note";
 
 import { Workflow } from "@aspen-os/platform/server";

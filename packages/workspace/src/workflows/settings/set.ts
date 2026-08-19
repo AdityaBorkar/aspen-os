@@ -1,9 +1,9 @@
 import { workspaceSetting } from "#/db-schemas";
 import { RangePresetSchema } from "#/schemas/enums";
 import { TimezoneSchema } from "#/schemas/utils";
-import { resolveActorId } from "#/services/access-service";
 import { SetSettingSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, SETTING_KEYS } from "#/utils/constants";
+import { resolveActorId } from "#/workflow-steps/access-service";
 
 import { Workflow } from "@aspen-os/platform/server";
 import type { JsonValue } from "@aspen-os/platform/server";

@@ -1,7 +1,7 @@
 import { DRAFT_EVENTS } from "#/pubsub";
-import { assertCanMutate, resolveActorId } from "#/services/access-service";
 import { PublishDraftSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, DRAFT_STATUS } from "#/utils/constants";
+import { assertCanMutate, resolveActorId } from "#/workflow-steps/access-service";
 import { fetchDraftStep } from "#/workflow-steps/fetch-draft";
 import { transitionDraft } from "#/workflows/draft/utils";
 

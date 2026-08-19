@@ -1,8 +1,8 @@
-import { assertCanAccess } from "#/services/access-service";
-import { expandOccurrences } from "#/services/recurrence";
 import { IdSchema, OccurrencesQuerySchema } from "#/types";
+import { assertCanAccess } from "#/workflow-steps/access-service";
 import { fetchEventStep } from "#/workflow-steps/fetch-event";
 import { fetchEventCalendarStep } from "#/workflow-steps/fetch-event-calendar";
+import { expandOccurrences } from "#/workflow-steps/recurrence";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, optional, parse } from "valibot";

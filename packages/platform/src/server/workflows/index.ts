@@ -1,5 +1,4 @@
-export { Workflow, WorkflowStep } from "./unit";
-export { executeWorkflow } from "./engine";
+export { Workflow, WorkflowEngine, WorkflowStep, executeWorkflow } from "./engine";
 export { workflowRuns, workflowSteps } from "#/server/db/schema";
 export type {
   InferSchemaOutput,

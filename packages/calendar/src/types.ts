@@ -76,7 +76,7 @@ export {
   WeekdaySchema,
   WithIdSchema,
 } from "#/schemas";
-export type { Occurrence } from "#/services/recurrence";
+export type { Occurrence } from "#/workflow-steps/recurrence";
 export type {
   AuditAction,
   AttendeeStatus,

@@ -1,7 +1,7 @@
 import { commsChannel } from "#/db-schemas";
-import { getSetting } from "#/services/settings-service";
 import type { EnsureDefaultsInput, CommsChannel } from "#/types";
 import { SETTING_KEYS } from "#/utils/constants";
+import { getSetting } from "#/workflow-steps/settings-service";
 
 import type { ChannelType, MasterEntityType } from "@aspen-os/constants";
 import { and, eq } from "drizzle-orm";

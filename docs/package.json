@@ -4,7 +4,7 @@
   "type": "module",
   "sideEffects": false,
   "scripts": {
-    "build": "bun gen:cf-types && nx vite:build",
+    "build": "bun gen:cf-types && vite build",
     "check:lint": "oxlint --fix . ; oxfmt .",
     "check:types": "fumadocs-mdx && tsc --noEmit",
     "deploy": "wrangler deploy",

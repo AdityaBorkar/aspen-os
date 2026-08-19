@@ -1,5 +1,5 @@
-import { assertCanAccess } from "#/services/access-service";
 import { WithIdSchema } from "#/types";
+import { assertCanAccess } from "#/workflow-steps/access-service";
 import { fetchEventStep } from "#/workflow-steps/fetch-event";
 import { fetchEventCalendarStep } from "#/workflow-steps/fetch-event-calendar";
 

@@ -1,8 +1,8 @@
 import { dmsFolder } from "#/db-schemas";
 import { FOLDER_EVENTS } from "#/pubsub";
 import { getDmsConfig } from "#/runtime";
-import { checkNameUniqueness, computeFolderPath, getDepth } from "#/services/path-service";
 import { CreateFolderSchema } from "#/types";
+import { checkNameUniqueness, computeFolderPath, getDepth } from "#/workflow-steps/path-service";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";

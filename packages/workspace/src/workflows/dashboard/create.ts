@@ -1,8 +1,8 @@
 import { workspaceDashboard } from "#/db-schemas";
 import { DASHBOARD_EVENTS } from "#/pubsub";
-import { resolveActorId } from "#/services/access-service";
 import { CreateDashboardSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, WORKSPACE_ACCESS } from "#/utils/constants";
+import { resolveActorId } from "#/workflow-steps/access-service";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";

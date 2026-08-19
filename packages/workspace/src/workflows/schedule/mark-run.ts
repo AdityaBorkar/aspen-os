@@ -1,7 +1,7 @@
 import { workspaceSchedule } from "#/db-schemas";
-import { assertCanAccess } from "#/services/access-service";
 import { MarkRunScheduleSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { assertCanAccess } from "#/workflow-steps/access-service";
 import { fetchDashboardStep } from "#/workflow-steps/fetch-dashboard";
 import { fetchScheduleStep } from "#/workflow-steps/fetch-schedule";
 

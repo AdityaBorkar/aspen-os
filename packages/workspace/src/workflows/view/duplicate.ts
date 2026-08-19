@@ -1,8 +1,8 @@
 import { workspaceView } from "#/db-schemas";
 import { VIEW_EVENTS } from "#/pubsub";
-import { assertCanAccess, resolveActorId } from "#/services/access-service";
 import { IdSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, WORKSPACE_ACCESS } from "#/utils/constants";
+import { assertCanAccess, resolveActorId } from "#/workflow-steps/access-service";
 import { fetchViewStep } from "#/workflow-steps/fetch-view";
 
 import { Workflow } from "@aspen-os/platform/server";

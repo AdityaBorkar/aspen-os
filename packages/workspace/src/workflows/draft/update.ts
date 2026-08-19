@@ -1,9 +1,9 @@
 import { workspaceDraft } from "#/db-schemas";
 import { DRAFT_EVENTS } from "#/pubsub";
-import { assertCanMutate } from "#/services/access-service";
 import { UpdateDraftSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { stripUndefined } from "#/utils/strip-undefined";
+import { assertCanMutate } from "#/workflow-steps/access-service";
 import { fetchDraftStep } from "#/workflow-steps/fetch-draft";
 
 import { Workflow } from "@aspen-os/platform/server";

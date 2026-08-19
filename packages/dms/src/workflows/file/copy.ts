@@ -1,8 +1,8 @@
 import { dmsFile } from "#/db-schemas";
-import { checkNameUniqueness, computeFilePath } from "#/services/path-service";
 import { computeStorageKey, copy as copyStorage } from "#/services/storage-bridge";
 import { FileIdSchema } from "#/types";
 import { fetchFileStep } from "#/workflow-steps/fetch-file";
+import { checkNameUniqueness, computeFilePath } from "#/workflow-steps/path-service";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, optional, string } from "valibot";

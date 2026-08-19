@@ -1,10 +1,10 @@
 import { calendarEvent, calendarReminder } from "#/db-schemas";
 import { EVENT_EVENTS } from "#/pubsub";
-import { assertCanAccess, assertCanMutate } from "#/services/access-service";
-import { validateEventWindow, validateSourceLink } from "#/services/event-service";
 import { IdSchema, UpdateEventSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { stripUndefined } from "#/utils/strip-undefined";
+import { assertCanAccess, assertCanMutate } from "#/workflow-steps/access-service";
+import { validateEventWindow, validateSourceLink } from "#/workflow-steps/event-service";
 import { fetchCalendarStep } from "#/workflow-steps/fetch-calendar";
 import { fetchEventStep } from "#/workflow-steps/fetch-event";
 import { fetchEventCalendarStep } from "#/workflow-steps/fetch-event-calendar";

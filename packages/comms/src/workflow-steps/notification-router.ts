@@ -1,11 +1,11 @@
 import { commsPreference } from "#/db-schemas";
-import { resolveDefaultChannel } from "#/services/channel-resolver";
-import type { ChannelScope } from "#/services/channel-resolver";
-import type { ResolvedRecipient } from "#/services/recipient-resolver";
-import { getSetting } from "#/services/settings-service";
 import type { CommsChannel, EnsureDefaultsInput, NotifyInput } from "#/types";
 import { SETTING_KEYS, NOTIFICATION_CHANNEL_TYPE } from "#/utils/constants";
 import type { NotificationChannelType } from "#/utils/constants";
+import { resolveDefaultChannel } from "#/workflow-steps/channel-resolver";
+import type { ChannelScope } from "#/workflow-steps/channel-resolver";
+import type { ResolvedRecipient } from "#/workflow-steps/recipient-resolver";
+import { getSetting } from "#/workflow-steps/settings-service";
 
 import type { ChannelType } from "@aspen-os/constants";
 import { MASTER_ENTITY_TYPE } from "@aspen-os/constants";

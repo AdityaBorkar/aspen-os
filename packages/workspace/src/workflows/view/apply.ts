@@ -1,6 +1,6 @@
 import { getViewResolver } from "#/runtime";
-import { assertCanAccess } from "#/services/access-service";
 import { ApplyViewSchema } from "#/types";
+import { assertCanAccess } from "#/workflow-steps/access-service";
 import { fetchViewStep } from "#/workflow-steps/fetch-view";
 
 import { Workflow } from "@aspen-os/platform/server";

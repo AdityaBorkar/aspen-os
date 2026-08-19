@@ -1,53 +1,51 @@
 import type { AuditUnit } from "#/server/audit";
 import type { AuthUnit } from "#/server/auth";
+import type { LogUnit } from "#/server/log";
 import type { PubSubUnit } from "#/server/pubsub";
-import type { SchemaMap } from "#/server/types";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { randomBytes, scrypt as scryptCb, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 
-import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
-
-type SchemaAgnosticDb = PostgresJsDatabase<SchemaMap>;
+import type { DrizzleDB } from "./db";
 
 /**
- * The schema-agnostic db surface exposed through the execution context. The
- * relational `query` surface is intentionally not exposed; callers access
- * tables via `select().from(...)`.
+ * The execution surface exposed to `getContext()` callers. The core units
+ * (`db`, `audit`, `auth`, `pubsub`, `log`) are strictly defined — they are always
+ * populated by the platform when a context scope is entered. Only the
+ * request-scoped metadata identifiers are optional, because they genuinely may
+ * be absent (background jobs, system-initiated work, etc.).
  */
-export interface ContextDb {
-  delete: SchemaAgnosticDb["delete"];
-  execute: SchemaAgnosticDb["execute"];
-  insert: SchemaAgnosticDb["insert"];
-  query: unknown;
-  refreshMaterializedView: SchemaAgnosticDb["refreshMaterializedView"];
-  select: SchemaAgnosticDb["select"];
-  selectDistinct: SchemaAgnosticDb["selectDistinct"];
-  transaction: SchemaAgnosticDb["transaction"];
-  update: SchemaAgnosticDb["update"];
-  with: SchemaAgnosticDb["with"];
-}
-
-export const context = new AsyncLocalStorage<{
-  actorId?: string;
-  audit?: AuditUnit;
-  auth?: AuthUnit;
-  db: ContextDb;
+export interface Context {
+  db: DrizzleDB;
+  audit: AuditUnit;
+  auth: AuthUnit;
   pubsub: PubSubUnit;
-  log?: null;
-  rpc?: null;
-  kvStore?: null;
-  storage?: null;
-  workflows?: null;
+  log: LogUnit;
+  actorId?: string;
   tenantId?: string;
   requestId?: string;
   traceId?: string;
-}>();
+}
 
+export const context = new AsyncLocalStorage<Context>();
+
+/**
+ * Returns the active execution context, or throws a self-describing error when
+ * none is established. Code must run within a `context.run(...)` scope created
+ * by `Platform.run()`, a pg-boss `wrapHandler`, or an explicit `RunOptions`.
+ */
 export function getContext() {
+  console.log("GET CONTEXT", context);
+  console.log("CONTEXT", context.getStore());
   const ctx = context.getStore();
+  console.log("ctx", ctx);
   if (!ctx) {
-    throw new Error("Context was not initialized");
+    const caller =
+      new Error("capture context caller").stack?.split("\n")[1]?.trim() ?? "unknown caller";
+    throw new Error(
+      `Context was not initialized; ${caller} ran outside an execution scope. ` +
+        `Ensure the call happens inside Platform.run().`,
+    );
   }
   return ctx;
 }

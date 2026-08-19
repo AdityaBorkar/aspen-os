@@ -1,6 +1,6 @@
-import { buildDependencyGraph } from "#/services/dependency-graph";
 import { IdSchema } from "#/types";
 import type { TaskDependencyNode } from "#/types";
+import { buildDependencyGraph } from "#/workflow-steps/dependency-graph";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { array, object } from "valibot";
