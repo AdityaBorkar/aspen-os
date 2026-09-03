@@ -35,10 +35,7 @@ export const context = new AsyncLocalStorage<Context>();
  * by `Platform.run()`, a pg-boss `wrapHandler`, or an explicit `RunOptions`.
  */
 export function getContext() {
-  console.log("GET CONTEXT", context);
-  console.log("CONTEXT", context.getStore());
   const ctx = context.getStore();
-  console.log("ctx", ctx);
   if (!ctx) {
     const caller =
       new Error("capture context caller").stack?.split("\n")[1]?.trim() ?? "unknown caller";

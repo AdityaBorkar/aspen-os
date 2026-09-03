@@ -7,8 +7,6 @@ import type { JsonValue, SchemaMap } from "#/server/types";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
-import type { Context } from "../utils";
-
 type DrizzleDB<TSchemas extends SchemaMap = Record<string, never>> = PostgresJsDatabase<TSchemas>;
 
 /** A Standard Schema v1 compatible schema. */
@@ -32,7 +30,7 @@ export interface WorkflowStepInstance<
   readonly schema?: StandardSchema;
 }
 
-export interface StepRunner {
+export interface StepRunner<TSchemas extends SchemaMap = SchemaMap> {
   run: {
     <TValue>(
       name: string,
@@ -40,7 +38,7 @@ export interface StepRunner {
       options?: StepOptions,
     ): Promise<TValue>;
     <TInput, TOutput>(
-      step: WorkflowStepInstance<TInput, TOutput>,
+      step: WorkflowStepInstance<TInput, TOutput, TSchemas>,
       input: TInput,
       options?: StepOptions,
     ): Promise<TOutput>;
@@ -57,7 +55,7 @@ export interface WorkflowContext<TSchemas extends SchemaMap = Record<string, nev
   log: ChildLogger;
   pubsub: PubSubUnit;
   runId: string;
-  step: StepRunner;
+  step: StepRunner<TSchemas>;
 }
 
 export interface WorkflowConfig<
@@ -82,7 +80,7 @@ export interface RunOptions {
 
 export interface WorkflowInstance<TInput, TOutput> {
   readonly name: string;
-  run: (input: TInput, options?: Context) => Promise<TOutput>;
+  run: (input: TInput, options?: RunOptions) => Promise<TOutput>;
 }
 
 export type WorkflowRunStatus = "running" | "completed" | "failed";

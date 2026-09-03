@@ -1,7 +1,7 @@
 import { workflowRuns, workflowSteps } from "#/server/db/schema";
 import type { ChildLogger } from "#/server/log";
 import type { SchemaMap } from "#/server/types";
-import { getContext } from "#/server/utils";
+import { context, getContext } from "#/server/utils";
 import type { Context } from "#/server/utils";
 import { setTimeout as sleep } from "node:timers/promises";
 
@@ -11,6 +11,7 @@ import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 import type {
   InferSchemaOutput,
+  RunOptions,
   StandardSchema,
   StepOptions,
   StepRunner,
@@ -22,8 +23,18 @@ import type {
 
 type DrizzleDB<TSchemas extends SchemaMap = Record<string, never>> = PostgresJsDatabase<TSchemas>;
 
-function generateId(): string {
-  return crypto.randomUUID();
+function durationMs(startedAt: Date, completedAt: Date): number {
+  return completedAt.getTime() - startedAt.getTime();
+}
+
+function normalizeError(cause: unknown): Error {
+  return cause instanceof Error ? cause : new Error(String(cause));
+}
+
+function isWorkflowStep<TSchemas extends SchemaMap>(
+  value: string | WorkflowStepInstance<any, any, TSchemas>,
+): value is WorkflowStepInstance<any, any, TSchemas> {
+  return value instanceof Object && "handler" in value;
 }
 
 /** The JSON-serializable error envelope stored on workflow step/run rows. */
@@ -63,6 +74,35 @@ async function validateInput<TInput, TOutput>(
   return result.value;
 }
 
+function resolveRunStore(options?: RunOptions): Context {
+  const ambient = context.getStore();
+  if (!options) {
+    return getContext();
+  }
+  const audit = options.audit ?? ambient?.audit;
+  const auth = options.auth ?? ambient?.auth;
+  // SAFETY: RunOptions.db uses the broad SchemaMap generic while Context.db uses the default schema; both are postgres-js drizzle instances sharing the same runtime surface.
+  const db = (options.db ?? ambient?.db) as Context["db"] | undefined;
+  const log = options.log ?? ambient?.log;
+  const pubsub = options.pubsub ?? ambient?.pubsub;
+  if (!audit || !auth || !db || !log || !pubsub) {
+    throw new Error(
+      "Workflow.run() requires audit, auth, db, log, and pubsub; provide them in RunOptions or call inside Platform.run().",
+    );
+  }
+  return {
+    actorId: options.actorId ?? ambient?.actorId,
+    audit,
+    auth,
+    db,
+    log,
+    pubsub,
+    requestId: ambient?.requestId,
+    tenantId: ambient?.tenantId,
+    traceId: ambient?.traceId,
+  };
+}
+
 /**
  * A workflow definition.
  *
@@ -82,11 +122,11 @@ export class Workflow<TInput, TOutput> implements WorkflowInstance<TInput, TOutp
   }
 
   /** Executes this workflow against the ambient context (or the supplied one). */
-  run(input: TInput, context?: Context): Promise<TOutput> {
+  run(input: TInput, options?: RunOptions): Promise<TOutput> {
     return executeWorkflow(
       { handler: this.handler, name: this.name, schema: this.schema },
       input,
-      context,
+      options,
     );
   }
 
@@ -199,7 +239,7 @@ export class WorkflowEngine {
       return existing.output as TResult;
     }
 
-    const stepId = generateId();
+    const stepId = crypto.randomUUID();
     const startedAt = new Date();
 
     await this.db.insert(workflowSteps).values({
@@ -210,94 +250,102 @@ export class WorkflowEngine {
       stepName: name,
     });
 
-    let firstError: unknown = undefined;
-    let lastError = new Error("workflow step failed");
-
     // oxlint-disable eslint/no-await-in-loop
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         const result = await fn();
-        const completedAt = new Date();
-
-        await this.db
-          .update(workflowSteps)
-          .set({
-            attempt,
-            completedAt,
-            durationMs: completedAt.getTime() - startedAt.getTime(),
-            output: result ?? null,
-            status: "completed",
-          })
-          .where(eq(workflowSteps.id, stepId));
-
+        await this.markStepCompleted(stepId, { attempt, result, startedAt });
         return result;
       } catch (error) {
-        if (!firstError) {
-          firstError = error;
-        }
-        lastError = error instanceof Error ? error : new Error(String(error));
+        const normalized = normalizeError(error);
 
         if (attempt < maxAttempts) {
-          await this.db
-            .update(workflowSteps)
-            .set({
-              attempt,
-              error: serializeError(error instanceof Error ? error : new Error(String(error))),
-              status: "running",
-            })
-            .where(eq(workflowSteps.id, stepId));
+          await this.markStepRetrying(stepId, { attempt, error: normalized });
+        } else {
+          await this.markStepFailed(stepId, {
+            attempts: maxAttempts,
+            error: normalized,
+            startedAt,
+          });
+          log?.error(`Workflow step "${name}" failed after ${maxAttempts} attempt(s)`, normalized, {
+            attempts: maxAttempts,
+            runId,
+            stepName: name,
+          });
+          throw normalized;
         }
       }
     }
     // oxlint-enable eslint/no-await-in-loop
 
+    throw new Error(`Workflow step "${name}" exhausted all ${maxAttempts} attempt(s)`);
+  }
+
+  private async markStepCompleted(
+    stepId: string,
+    outcome: {
+      attempt: number;
+      result: typeof workflowSteps.$inferInsert.output;
+      startedAt: Date;
+    },
+  ): Promise<void> {
+    const { attempt, result, startedAt } = outcome;
     const completedAt = new Date();
+    await this.db
+      .update(workflowSteps)
+      .set({
+        attempt,
+        completedAt,
+        durationMs: durationMs(startedAt, completedAt),
+        output: result ?? null,
+        status: "completed",
+      })
+      .where(eq(workflowSteps.id, stepId));
+  }
 
-    // Preserve the root cause from the first attempt so the persisted chain
-    // explains why retries did not recover, when retries were configured.
-    const rootCause =
-      maxAttempts > 1 && firstError && firstError !== lastError ? firstError : undefined;
-    if (rootCause !== undefined && lastError.cause === undefined) {
-      lastError.cause = rootCause;
-    }
+  private async markStepRetrying(
+    stepId: string,
+    outcome: { attempt: number; error: Error },
+  ): Promise<void> {
+    await this.db
+      .update(workflowSteps)
+      .set({ attempt: outcome.attempt, error: serializeError(outcome.error), status: "running" })
+      .where(eq(workflowSteps.id, stepId));
+  }
 
-    const serialized = serializeError(lastError);
+  private async markStepFailed(
+    stepId: string,
+    outcome: { attempts: number; error: Error; startedAt: Date },
+  ): Promise<void> {
+    const { attempts: maxAttempts, error, startedAt } = outcome;
+    const completedAt = new Date();
+    const serialized = serializeError(error);
     serialized.attempts = maxAttempts;
-
     await this.db
       .update(workflowSteps)
       .set({
         attempt: maxAttempts,
         completedAt,
-        durationMs: completedAt.getTime() - startedAt.getTime(),
+        durationMs: durationMs(startedAt, completedAt),
         error: serialized,
         status: "failed",
       })
       .where(eq(workflowSteps.id, stepId));
-
-    log?.error(`Workflow step "${name}" failed after ${maxAttempts} attempt(s)`, lastError, {
-      attempts: maxAttempts,
-      runId,
-      stepName: name,
-    });
-
-    throw lastError;
   }
 
   /** Executes a workflow from start to (completed or failed) persistence. */
   public async run<TInput, TOutput, TSchemas extends SchemaMap = Record<string, never>>(
     config: WorkflowConfig<TInput, TOutput, TSchemas>,
     input: TInput,
-    context?: Context,
+    options?: RunOptions,
   ): Promise<TOutput> {
-    console.log("Workflow Step", { context });
-    const store = context ?? getContext();
+    const store = resolveRunStore(options);
     const { actorId, audit, db, pubsub, auth } = store;
 
     if (config.schema) {
       input = await validateInput(config.schema, input);
     }
-    const runId = generateId();
+    const runId = crypto.randomUUID();
     const startedAt = new Date();
     const log = store.log.child({ runId, workflowName: config.name });
     log.info(`Workflow "${config.name}" started`, { runId });
@@ -314,8 +362,7 @@ export class WorkflowEngine {
       actorId,
       audit,
       auth,
-      // @ts-expect-error
-      config,
+      config: options?.config ?? {},
       // SAFETY: the resolved db is a valid postgres-js drizzle instance for the merged schemas.
       db: store.db as DrizzleDB<TSchemas>,
       log,
@@ -330,7 +377,7 @@ export class WorkflowEngine {
       const completedAt = new Date();
 
       log.info(`Workflow "${config.name}" completed`, {
-        durationMs: completedAt.getTime() - startedAt.getTime(),
+        durationMs: durationMs(startedAt, completedAt),
         runId,
       });
 
@@ -338,7 +385,7 @@ export class WorkflowEngine {
         .update(workflowRuns)
         .set({
           completedAt,
-          durationMs: completedAt.getTime() - startedAt.getTime(),
+          durationMs: durationMs(startedAt, completedAt),
           output: output ?? null,
           status: "completed",
         })
@@ -347,80 +394,79 @@ export class WorkflowEngine {
       return output;
     } catch (error) {
       const completedAt = new Date();
+      const normalized = normalizeError(error);
 
-      log.error(
-        `Workflow "${config.name}" failed`,
-        error instanceof Error ? error : new Error(String(error)),
-        {
-          durationMs: completedAt.getTime() - startedAt.getTime(),
-          runId,
-        },
-      );
+      log.error(`Workflow "${config.name}" failed`, normalized, {
+        durationMs: durationMs(startedAt, completedAt),
+        runId,
+      });
 
       await db
         .update(workflowRuns)
         .set({
           completedAt,
-          durationMs: completedAt.getTime() - startedAt.getTime(),
-          error: serializeError(error instanceof Error ? error : new Error(String(error))),
+          durationMs: durationMs(startedAt, completedAt),
+          error: serializeError(normalized),
           status: "failed",
         })
         .where(eq(workflowRuns.id, runId));
 
-      throw error;
+      throw normalized;
     }
   }
 }
 
 /** Per-run step runner: dispatches named or structured steps onto the engine, plus `sleep`. */
-class WorkflowRunner<TSchemas extends SchemaMap> implements StepRunner {
+class WorkflowRunner<TSchemas extends SchemaMap> implements StepRunner<TSchemas> {
   private readonly engine: WorkflowEngine;
   private readonly getCtx: () => WorkflowContext<TSchemas>;
   private readonly runId: string;
-
-  readonly run: StepRunner["run"];
 
   constructor(engine: WorkflowEngine, getCtx: () => WorkflowContext<TSchemas>, runId: string) {
     this.engine = engine;
     this.getCtx = getCtx;
     this.runId = runId;
+  }
 
-    // SAFETY: the generic arrow below is shaped exactly like StepRunner.run's two overloads.
-    this.run = async <TValue>(
-      nameOrStep: string | WorkflowStepInstance<unknown, unknown, TSchemas>,
-      fnOrInput: (() => TValue | Promise<TValue>) | TValue,
-      options?: StepOptions,
-    ) => {
-      if (nameOrStep instanceof Object && "handler" in nameOrStep) {
-        const step = nameOrStep;
-        const input = fnOrInput;
-        return this.engine.executeStep({
-          fn: async () => {
-            if (!step.schema) {
-              return step.handler(input, this.getCtx());
-            }
-            const validated = await validateInput(step.schema, input);
-            return step.handler(validated, this.getCtx());
-          },
-          log: this.getCtx().log,
-          name: step.name,
-          options,
-          runId: this.runId,
-        });
-      }
-      if (!(fnOrInput instanceof Function)) {
-        throw new Error(`Step "${nameOrStep}" requires a function handler`);
-      }
-      // SAFETY: the instanceof Function check above establishes the handler contract.
+  async run<TValue>(
+    name: string,
+    fn: () => TValue | Promise<TValue>,
+    options?: StepOptions,
+  ): Promise<TValue>;
+  async run<TInput, TOutput>(
+    step: WorkflowStepInstance<TInput, TOutput, TSchemas>,
+    input: TInput,
+    options?: StepOptions,
+  ): Promise<TOutput>;
+  async run<TValue>(
+    nameOrStep: string | WorkflowStepInstance<any, any, TSchemas>,
+    fnOrInput: (() => TValue | Promise<TValue>) | TValue,
+    options?: StepOptions,
+  ): Promise<TValue> {
+    if (isWorkflowStep(nameOrStep)) {
+      const step = nameOrStep;
+      const input = fnOrInput;
       return this.engine.executeStep({
-        fn: fnOrInput,
+        fn: async () => {
+          const validated = step.schema ? await validateInput(step.schema, input) : input;
+          return step.handler(validated, this.getCtx());
+        },
         log: this.getCtx().log,
-        name: nameOrStep,
+        name: step.name,
         options,
         runId: this.runId,
       });
-      // SAFETY: the branching above covers both overload shapes of StepRunner.run.
-    };
+    }
+    if (!(fnOrInput instanceof Function)) {
+      throw new Error(`Step "${nameOrStep}" requires a function handler`);
+    }
+    return this.engine.executeStep({
+      fn: fnOrInput,
+      log: this.getCtx().log,
+      name: nameOrStep,
+      options,
+      runId: this.runId,
+    });
   }
 
   async sleep(ms: number): Promise<void> {
@@ -435,10 +481,9 @@ export async function executeWorkflow<
 >(
   config: WorkflowConfig<TInput, TOutput, TSchemas>,
   input: TInput,
-  context?: Context,
+  options?: RunOptions,
 ): Promise<TOutput> {
-  console.log("Workflow", { context });
   // Resolve the store once and hand it to the engine so run persistence uses the same db.
-  const store = context ?? getContext();
-  return new WorkflowEngine(store.db).run(config, input, store);
+  const store = resolveRunStore(options);
+  return new WorkflowEngine(store.db).run(config, input, options);
 }

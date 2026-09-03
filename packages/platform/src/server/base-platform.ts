@@ -128,7 +128,10 @@ export abstract class BasePlatform<
     await Promise.all(
       Object.values(this.units).map((unit) =>
         this.run("$global", () => unit.$prepareInfra?.()).catch((error) => {
-          console.error(`Failed to prepare unit "${unit.$name}"`, error);
+          throw new Error(
+            `Failed to prepare unit "${unit.$name}": ${error instanceof Error ? error.message : String(error)}`,
+            { cause: error },
+          );
         }),
       ),
     );
@@ -140,13 +143,14 @@ export abstract class BasePlatform<
     for (const mod of this.modules) {
       const infra = mod.$prepareInfra?.();
       if (infra) {
-        Object.assign(mergedControlPlaneSchemas, infra.db.control_plane_schemas);
-        Object.assign(mergedTenantSchemas, infra.db.tenant_schemas);
+        mergeSchemas(
+          mergedControlPlaneSchemas,
+          infra.db.control_plane_schemas,
+          `module "${mod.$name}" control-plane`,
+        );
+        mergeSchemas(mergedTenantSchemas, infra.db.tenant_schemas, `module "${mod.$name}" tenant`);
         for (const [resource, actions] of Object.entries(infra.auth.acl)) {
-          if (!mergedAcl[resource]) {
-            mergedAcl[resource] = [];
-          }
-          mergedAcl[resource] = [...mergedAcl[resource], ...actions];
+          mergedAcl[resource] = [...new Set([...(mergedAcl[resource] ?? []), ...actions])];
         }
       }
     }
@@ -157,29 +161,28 @@ export abstract class BasePlatform<
     await Promise.all(
       this.modules.map((module) =>
         this.run("$global", () => module.$prepareRuntime?.()).catch((error) => {
-          console.error(`Failed to prepare module "${module.$name}"`, error);
+          throw new Error(
+            `Failed to prepare module "${module.$name}": ${error instanceof Error ? error.message : String(error)}`,
+            { cause: error },
+          );
         }),
       ),
     );
   }
 
   async $cleanup(): Promise<void> {
-    await Promise.all(
-      this.modules.map((module) =>
-        this.run("$global", () => module.$cleanup()).catch((error) => {
-          console.error(`Failed to destroy module "${module.$name}"`, error);
-        }),
-      ),
+    const moduleResults = await Promise.allSettled(
+      this.modules.map((module) => this.run("$global", () => module.$cleanup())),
     );
-    await Promise.all(
-      Object.values(this.units).map(async (unit) => {
-        try {
-          await unit.$cleanup();
-        } catch (error) {
-          console.error(`Failed to destroy unit "${unit.$name}"`, error);
-        }
-      }),
+    const unitResults = await Promise.allSettled(
+      Object.values(this.units).map((unit) => unit.$cleanup()),
     );
+    const failures = [...moduleResults, ...unitResults].flatMap((result) =>
+      result.status === "rejected" ? [result.reason] : [],
+    );
+    if (failures.length > 0) {
+      throw new AggregateError(failures, `Failed to clean up ${failures.length} unit(s)/module(s)`);
+    }
   }
 
   getModule<TKey extends TModules[number]["$name"]>(name: TKey): ModuleByName<TModules, TKey> {
@@ -210,5 +213,16 @@ export abstract class BasePlatform<
       pubsub: this.units.pubsub,
     };
     return context.run(ctx, fn);
+  }
+}
+
+function mergeSchemas(target: SchemaMap, source: SchemaMap, origin: string): void {
+  for (const [key, schema] of Object.entries(source)) {
+    if (key in target && target[key] !== schema) {
+      throw new Error(
+        `Schema collision: ${origin} schema "${key}" is already provided by another module`,
+      );
+    }
+    target[key] = schema;
   }
 }

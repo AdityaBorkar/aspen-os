@@ -1,4 +1,4 @@
-import type { DatabaseUnit, DrizzleDB } from "#/server/db";
+import type { DatabaseUnit } from "#/server/db";
 import { context } from "#/server/utils";
 
 import { FileMetadataService } from "./file-metadata-service";
@@ -20,7 +20,6 @@ export class StorageUnit {
 
   constructor(config: StorageConfig, { db }: { db: DatabaseUnit<any> }) {
     this.config = config;
-    // SAFETY: the DatabaseUnit db is a valid postgres-js drizzle instance.
     this.metadata = new FileMetadataService(db.db);
     this.ops = new S3Adapter({
       ...config,
@@ -32,25 +31,23 @@ export class StorageUnit {
     });
   }
 
-  async $prepareInfra(): Promise<void> {}
-
-  async $cleanup(): Promise<void> {
-    // Cleanup if needed
-  }
-
-  // -------------------------------------------------
+  async $cleanup(): Promise<void> {}
 
   async archive(key: string, archiveKey?: string): Promise<FileObject> {
     const destKey = archiveKey ?? `archive/${key}`;
-    const file = await this.copy(key, destKey);
-    await this.remove(key);
+    await this.ops.copy(key, destKey);
+    const file = await this.ops.getMetadata(destKey);
+    await this.syncDestMetadata(destKey, file);
     await this.metadata.markArchived(key, destKey);
-    return { ...file, key: destKey };
+    await this.ops.remove(key);
+    return file;
   }
 
   async copy(sourceKey: string, destinationKey: string): Promise<FileObject> {
     await this.ops.copy(sourceKey, destinationKey);
-    return this.ops.getMetadata(destinationKey);
+    const file = await this.ops.getMetadata(destinationKey);
+    await this.syncDestMetadata(destinationKey, file);
+    return file;
   }
 
   async exists(key: string): Promise<boolean> {
@@ -63,6 +60,10 @@ export class StorageUnit {
 
   async getMetadata(key: string): Promise<FileObject> {
     return this.ops.getMetadata(key);
+  }
+
+  async getMetadataRow(key: string) {
+    return this.metadata.getMetadata(key);
   }
 
   async getSignedGetUrl(key: string, options?: SignedUrlOptions): Promise<string> {
@@ -89,6 +90,17 @@ export class StorageUnit {
   async remove(key: string): Promise<void> {
     await this.ops.remove(key);
     await this.metadata.deleteMetadata(key);
+  }
+
+  private async syncDestMetadata(key: string, file: FileObject): Promise<void> {
+    await this.metadata.upsertMetadata({
+      bucket: this.config.bucket,
+      contentType: file.contentType,
+      etag: file.etag,
+      key,
+      metadata: file.metadata,
+      size: file.size,
+    });
   }
 
   async upload(input: FileUploadInput): Promise<FileObject> {

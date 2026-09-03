@@ -1,7 +1,6 @@
 #!/usr/bin/env bun
 
-import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { mkdir, rm } from "node:fs/promises";
+import { access, mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 
 import { $, build, file } from "bun";
@@ -63,15 +62,24 @@ const subdirFor = (srcPath: string) => dirname(relToSrc(srcPath));
  * `#/server/workflows` (resolvable via `<root>/src/<rest>` in source) inside the
  * build output. Returns the concrete `.d.ts` file when it exists, else null.
  */
-function resolveModuleDeclaration(outputDir: string, rest: string): string | null {
+async function resolveModuleDeclaration(outputDir: string, rest: string): Promise<string | null> {
   const base = join(outputDir, rest);
-  if (existsSync(`${base}.d.ts`)) {
+  if (await pathExists(`${base}.d.ts`)) {
     return `${base}.d.ts`;
   }
-  if (existsSync(join(base, "index.d.ts"))) {
+  if (await pathExists(join(base, "index.d.ts"))) {
     return join(base, "index.d.ts");
   }
   return null;
+}
+
+async function pathExists(path: string): Promise<boolean> {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -81,35 +89,66 @@ function resolveModuleDeclaration(outputDir: string, rest: string): string | nul
  * specifier (which only the owning package's tsconfig maps) would otherwise be
  * unresolvable and typecheck as `any`.
  */
-function rewriteDeclarationAliases(outputDir: string) {
-  const walk = (dir: string) => {
-    for (const entry of readdirSync(dir)) {
-      const full = join(dir, entry);
-      if (statSync(full).isDirectory()) {
-        walk(full);
-      } else if (entry.endsWith(".d.ts")) {
-        rewriteFile(full, outputDir);
-      }
-    }
-  };
-  walk(outputDir);
+async function rewriteDeclarationAliases(outputDir: string): Promise<void> {
+  const files = await collectFiles(outputDir, ".d.ts");
+  await Promise.all(files.map(async (filePath) => rewriteFile(filePath, outputDir)));
 }
 
-function rewriteFile(filePath: string, outputDir: string) {
-  const source = readFileSync(filePath, "utf8");
-  const rewritten = source.replace(/from\s+["']#\/([^"']+)["']/g, (_match, rest: string) => {
-    const target = resolveModuleDeclaration(outputDir, rest);
-    if (!target) {
-      return _match;
+async function collectFiles(dir: string, suffix: string): Promise<string[]> {
+  const entries = await readdir(dir);
+  const nested = await Promise.all(
+    entries.map(async (entry) => {
+      const full = join(dir, entry);
+      const entryStat = await stat(full);
+      if (entryStat.isDirectory()) {
+        return collectFiles(full, suffix);
+      }
+      return entry.endsWith(suffix) ? [full] : [];
+    }),
+  );
+  return nested.flat();
+}
+
+async function rewriteFile(filePath: string, outputDir: string): Promise<void> {
+  const source = await readFile(filePath, "utf8");
+  const pattern = /from\s+["']#\/(?<rest>[^"']+)["']/g;
+  const matches = [...source.matchAll(pattern)];
+  if (matches.length === 0) {
+    return;
+  }
+  const rests = [
+    ...new Set(matches.map((match) => match.groups?.rest).filter((rest) => rest !== undefined)),
+  ];
+  const replacements = await Promise.all(
+    rests.map(async (rest) => {
+      const target = await resolveModuleDeclaration(outputDir, rest);
+      if (!target) {
+        return null;
+      }
+      let specifier = relative(dirname(filePath), target).replace(/\.d\.ts$/, "");
+      if (!specifier.startsWith(".")) {
+        specifier = `./${specifier}`;
+      }
+      return { replacement: `from "${specifier}"`, rest };
+    }),
+  );
+  const replacementByRest = new Map<string, string>();
+  for (const entry of replacements) {
+    if (entry) {
+      replacementByRest.set(entry.rest, entry.replacement);
     }
-    let specifier = relative(dirname(filePath), target).replace(/\.d\.ts$/, "");
-    if (!specifier.startsWith(".")) {
-      specifier = `./${specifier}`;
-    }
-    return `from "${specifier}"`;
+  }
+  if (replacementByRest.size === 0) {
+    return;
+  }
+  const rewritten = source.replace(pattern, (match, ...args: unknown[]) => {
+    // SAFETY: String.replace passes captured groups as the last argument; the pattern defines a single named group `rest`, so the cast only narrows the runtime shape.
+    const groups = args.at(-1) as { rest?: string } | undefined;
+    const rest = groups?.rest;
+    return (rest && replacementByRest.get(rest)) ?? match;
   });
   if (rewritten !== source) {
-    writeFileSync(filePath, rewritten);
+    await writeFile(filePath, rewritten);
   }
 }
 
@@ -120,29 +159,21 @@ function rewriteFile(filePath: string, outputDir: string) {
  * just `server/index.js`. `@vite-ignore` tells Vite not to analyse the specifier,
  * keeping node-sqlite external at runtime.
  */
-function fixNodeSqliteDynamicImports(outputDir: string) {
-  const walk = (dir: string) => {
-    for (const entry of readdirSync(dir)) {
-      const full = join(dir, entry);
-      if (statSync(full).isDirectory()) {
-        walk(full);
-      } else if (entry.endsWith(".js")) {
-        const source = readFileSync(full, "utf8");
-        if (!source.includes("import(nodeSqlite)")) {
-          continue;
-        }
-        const fixed = source.replace(
-          /import\(nodeSqlite\)/g,
-          "import(/* @vite-ignore */nodeSqlite)",
-        );
-        if (fixed !== source) {
-          writeFileSync(full, fixed);
-          console.log(`build: added @vite-ignore to nodeSqlite import in ${relative(ROOT, full)}`);
-        }
+async function fixNodeSqliteDynamicImports(outputDir: string): Promise<void> {
+  const files = await collectFiles(outputDir, ".js");
+  await Promise.all(
+    files.map(async (full) => {
+      const source = await readFile(full, "utf8");
+      if (!source.includes("import(nodeSqlite)")) {
+        return;
       }
-    }
-  };
-  walk(outputDir);
+      const fixed = source.replace(/import\(nodeSqlite\)/g, "import(/* @vite-ignore */nodeSqlite)");
+      if (fixed !== source) {
+        await writeFile(full, fixed);
+        console.log(`build: added @vite-ignore to nodeSqlite import in ${relative(ROOT, full)}`);
+      }
+    }),
+  );
 }
 
 async function parsePackageJson() {
@@ -237,7 +268,7 @@ async function main() {
   );
   console.log("Build Successful");
 
-  fixNodeSqliteDynamicImports(join(ROOT, OUTPUT_DIRNAME));
+  await fixNodeSqliteDynamicImports(join(ROOT, OUTPUT_DIRNAME));
 
   console.log("Generating types...");
   const tsconfigPath = join(ROOT, "tsconfig.build.json");
@@ -247,7 +278,7 @@ async function main() {
   } finally {
     await rm(tsconfigPath, { force: true });
   }
-  rewriteDeclarationAliases(join(ROOT, OUTPUT_DIRNAME));
+  await rewriteDeclarationAliases(join(ROOT, OUTPUT_DIRNAME));
   console.log("Type Generation Successful");
 }
 

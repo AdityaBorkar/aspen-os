@@ -1,5 +1,4 @@
 import { complianceDocument } from "#/db-schemas";
-import type { ComplianceDocument } from "#/db-schemas";
 import { COMPLIANCE_EVENTS } from "#/pubsub";
 import type { CreateComplianceDocumentInput } from "#/types";
 import { fetchDocumentStep } from "#/workflow-steps/fetch-document";

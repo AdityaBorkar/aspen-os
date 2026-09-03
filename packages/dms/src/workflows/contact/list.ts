@@ -19,14 +19,15 @@ export const listContacts = Workflow.name("dms.contact.list").handler(
     }
     if (input.filters?.search) {
       const term = `%${input.filters.search}%`;
-      conditions.push(
-        or(
-          ilike(dmsContact.firstName, term),
-          ilike(dmsContact.lastName, term),
-          ilike(dmsContact.email, term),
-          ilike(dmsContact.companyName, term),
-        ),
+      const searchCondition = or(
+        ilike(dmsContact.firstName, term),
+        ilike(dmsContact.lastName, term),
+        ilike(dmsContact.email, term),
+        ilike(dmsContact.companyName, term),
       );
+      if (searchCondition) {
+        conditions.push(searchCondition);
+      }
     }
 
     return ctx.db
