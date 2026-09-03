@@ -386,7 +386,7 @@ class WorkflowRunner<TSchemas extends SchemaMap> implements StepRunner {
     this.runId = runId;
 
     // SAFETY: the generic arrow below is shaped exactly like StepRunner.run's two overloads.
-    this.run = (async <TValue>(
+    this.run = async <TValue>(
       nameOrStep: string | WorkflowStepInstance<unknown, unknown, TSchemas>,
       fnOrInput: (() => TValue | Promise<TValue>) | TValue,
       options?: StepOptions,
@@ -420,7 +420,7 @@ class WorkflowRunner<TSchemas extends SchemaMap> implements StepRunner {
         runId: this.runId,
       });
       // SAFETY: the branching above covers both overload shapes of StepRunner.run.
-    }) as StepRunner["run"];
+    };
   }
 
   async sleep(ms: number): Promise<void> {

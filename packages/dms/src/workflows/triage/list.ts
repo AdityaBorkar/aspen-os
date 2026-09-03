@@ -27,7 +27,7 @@ export const listTriage = Workflow.name("dms.triage.list")
       }
       if (filters.search) {
         const term = `%${filters.search}%`;
-        conditions.push(or(ilike(dmsFile.name, term), ilike(dmsFile.docNumber, term))!);
+        conditions.push(or(ilike(dmsFile.name, term), ilike(dmsFile.docNumber, term)));
       }
 
       const limit = filters.limit ?? 50;

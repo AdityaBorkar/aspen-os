@@ -30,7 +30,7 @@ export const listSps = Workflow.name("sp.list")
       }
       if (parsed.search) {
         const term = `%${parsed.search}%`;
-        conditions.push(or(ilike(serviceProvider.name, term), ilike(serviceProvider.slug, term))!);
+        conditions.push(or(ilike(serviceProvider.name, term), ilike(serviceProvider.slug, term)));
       }
 
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined;

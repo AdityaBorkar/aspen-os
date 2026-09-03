@@ -42,7 +42,7 @@ export function buildTaskWhereClause(filters: TaskFilters | undefined): SQL | un
   }
   if (filters.search) {
     const term = `%${filters.search}%`;
-    conditions.push(or(ilike(task.title, term), ilike(task.description, term))!);
+    conditions.push(or(ilike(task.title, term), ilike(task.description, term)));
   }
   if (filters.assigneeId) {
     conditions.push(

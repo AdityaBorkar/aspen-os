@@ -25,7 +25,7 @@ export const listContacts = Workflow.name("dms.contact.list").handler(
           ilike(dmsContact.lastName, term),
           ilike(dmsContact.email, term),
           ilike(dmsContact.companyName, term),
-        )!,
+        ),
       );
     }
 

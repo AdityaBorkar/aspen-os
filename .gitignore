@@ -12,12 +12,11 @@ node_modules
 .nx/polygraph
 .nx/workspace-data
 
-vite.config.*.timestamp*
 *.tsbuildinfo
 .DS_Store
 
 .env*
-!.env.example
+*.env
 *.gen.ts
 worker-configuration.d.ts
 

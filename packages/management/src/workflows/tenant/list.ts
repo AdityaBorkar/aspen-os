@@ -35,7 +35,7 @@ export const listTenants = Workflow.name("tenant.list")
       }
       if (parsed.search) {
         const term = `%${parsed.search}%`;
-        conditions.push(or(ilike(organization.name, term), ilike(organization.slug, term))!);
+        conditions.push(or(ilike(organization.name, term), ilike(organization.slug, term)));
       }
 
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
