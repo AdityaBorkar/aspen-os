@@ -168,10 +168,7 @@ export interface DashboardScheduledEvent {
   scheduleId: string;
 }
 
-export interface DashboardUnscheduledEvent {
-  dashboardId: string;
-  scheduleId: string;
-}
+export type DashboardUnscheduledEvent = DashboardScheduledEvent;
 
 export interface DashboardDeletedEvent {
   dashboardId: string;
@@ -182,20 +179,14 @@ export interface WidgetAddedEvent {
   widgetId: string;
 }
 
-export interface WidgetUpdatedEvent {
-  dashboardId: string;
-  widgetId: string;
-}
+export type WidgetUpdatedEvent = WidgetAddedEvent;
 
 export interface WidgetRefreshedEvent {
   error: string | null;
   widgetId: string;
 }
 
-export interface WidgetRemovedEvent {
-  dashboardId: string;
-  widgetId: string;
-}
+export type WidgetRemovedEvent = WidgetAddedEvent;
 
 export interface PinCreatedEvent {
   itemId: string;
@@ -203,23 +194,11 @@ export interface PinCreatedEvent {
   userId: string;
 }
 
-export interface PinRemovedEvent {
-  itemId: string;
-  itemType: string;
-  userId: string;
-}
+export type PinRemovedEvent = PinCreatedEvent;
 
-export interface WatchSubscribedEvent {
-  itemId: string;
-  itemType: string;
-  userId: string;
-}
+export type WatchSubscribedEvent = PinCreatedEvent;
 
-export interface WatchUnsubscribedEvent {
-  itemId: string;
-  itemType: string;
-  userId: string;
-}
+export type WatchUnsubscribedEvent = PinCreatedEvent;
 
 export interface ScheduleDueEvent {
   at: string;

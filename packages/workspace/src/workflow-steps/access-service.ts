@@ -1,3 +1,4 @@
+import { WORKSPACE_ACCESS } from "#/utils/constants";
 import type { WorkspaceAccess } from "#/utils/constants";
 
 import { getContext } from "@aspen-os/platform/server";
@@ -10,11 +11,16 @@ export interface AccessScopedRow {
 
 const ADMIN_ROLE = "admin";
 
-export function assertCanAccess(row: AccessScopedRow, actorId: string | undefined): void {
+export function requireActorId(actorId: string | undefined): string {
   if (!actorId) {
     throw new Error("Authentication required");
   }
-  if (row.access !== "global" && row.ownerId !== actorId) {
+  return actorId;
+}
+
+export function assertCanAccess(row: AccessScopedRow, actorId: string | undefined): void {
+  const actor = requireActorId(actorId);
+  if (row.access !== WORKSPACE_ACCESS.GLOBAL && row.ownerId !== actor) {
     throw new Error("You do not have access to this item");
   }
 }
@@ -23,13 +29,11 @@ export async function assertCanMutate(
   row: AccessScopedRow,
   actorId: string | undefined,
 ): Promise<void> {
-  if (!actorId) {
-    throw new Error("Authentication required");
-  }
-  if (row.ownerId === actorId) {
+  const actor = requireActorId(actorId);
+  if (row.ownerId === actor) {
     return;
   }
-  if (await isTenantAdmin(actorId)) {
+  if (await isTenantAdmin(actor)) {
     return;
   }
   throw new Error("Only the owner or a tenant admin can modify this item");
@@ -39,10 +43,7 @@ export function resolveActorId(actorId: string | undefined, explicit?: string): 
   if (explicit) {
     return explicit;
   }
-  if (!actorId) {
-    throw new Error("Authentication required");
-  }
-  return actorId;
+  return requireActorId(actorId);
 }
 
 export async function isTenantAdmin(actorId: string): Promise<boolean> {

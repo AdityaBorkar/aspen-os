@@ -1,3 +1,4 @@
+import { DOMAIN_REGEX } from "#/schemas/utils";
 import {
   BreakdownConfigSchema,
   EmbedConfigSchema,
@@ -9,23 +10,15 @@ import { WIDGET_TYPE } from "#/utils/constants";
 
 import { parse } from "valibot";
 
-const DOMAIN_REGEX = /^[a-z][a-z0-9_-]*:[a-z][a-z0-9_-]*$/;
+const WIDGET_CONFIG_SCHEMAS = {
+  [WIDGET_TYPE.BREAKDOWN]: BreakdownConfigSchema,
+  [WIDGET_TYPE.EMBED]: EmbedConfigSchema,
+  [WIDGET_TYPE.LIST]: ListConfigSchema,
+  [WIDGET_TYPE.METRIC]: MetricConfigSchema,
+} as const;
 
 export function parseWidgetConfig(type: WidgetType, config: WidgetConfig): WidgetConfig {
-  switch (type) {
-    case WIDGET_TYPE.METRIC: {
-      return parse(MetricConfigSchema, config);
-    }
-    case WIDGET_TYPE.BREAKDOWN: {
-      return parse(BreakdownConfigSchema, config);
-    }
-    case WIDGET_TYPE.LIST: {
-      return parse(ListConfigSchema, config);
-    }
-    case WIDGET_TYPE.EMBED: {
-      return parse(EmbedConfigSchema, config);
-    }
-  }
+  return parse(WIDGET_CONFIG_SCHEMAS[type], config);
 }
 
 export function assertWidgetDatasource(
@@ -48,7 +41,11 @@ export function assertWidgetDatasource(
 
   const hasFilter = input.filter != null;
   const hasView = Boolean(input.viewId);
-  if (hasFilter === hasView) {
-    throw new Error("A widget datasource requires exactly one of filter or viewId");
+  const datasourceMessage = "A widget datasource requires exactly one of filter or viewId";
+  if (!hasFilter && !hasView) {
+    throw new Error(datasourceMessage);
+  }
+  if (hasFilter && hasView) {
+    throw new Error(datasourceMessage);
   }
 }

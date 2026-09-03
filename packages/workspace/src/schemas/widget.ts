@@ -1,4 +1,9 @@
-import { EmbedKindSchema, WidgetAggregationSchema, WidgetTypeSchema } from "#/schemas/enums";
+import {
+  EmbedKindSchema,
+  RangePresetSchema,
+  WidgetAggregationSchema,
+  WidgetTypeSchema,
+} from "#/schemas/enums";
 import { NameSchema } from "#/schemas/utils";
 import { ViewConditionSchema } from "#/schemas/view";
 
@@ -18,17 +23,7 @@ import type { InferOutput } from "valibot";
 
 export const WidgetRangeSchema = object({
   from: optional(nullable(string())),
-  preset: picklist([
-    "today",
-    "yesterday",
-    "this_week",
-    "last_7_days",
-    "this_month",
-    "this_quarter",
-    "this_year",
-    "all_time",
-    "custom",
-  ]),
+  preset: RangePresetSchema,
   to: optional(nullable(string())),
 });
 

@@ -12,7 +12,7 @@ import {
 
 export { IdSchema, NameSchema, WithIdSchema } from "@aspen-os/platform/server";
 
-const DOMAIN_REGEX = /^[a-z][a-z0-9_-]*:[a-z][a-z0-9_-]*$/;
+export const DOMAIN_REGEX = /^[a-z][a-z0-9_-]*:[a-z][a-z0-9_-]*$/;
 const IANA_TZ_REGEX = /^[A-Za-z_]+(?:\/[A-Za-z_+-]+)*$/;
 
 export const TitleSchema = pipe(

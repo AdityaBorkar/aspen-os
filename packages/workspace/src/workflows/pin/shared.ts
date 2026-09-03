@@ -1,25 +1,25 @@
 import type { AuditEntityType } from "#/utils/constants";
-import { PIN_ITEM_TYPE, WORKSPACE_ITEM_TYPE } from "#/utils/constants";
+import { AUDIT_ENTITY_TYPE, PIN_ITEM_TYPE, WORKSPACE_ITEM_TYPE } from "#/utils/constants";
 
 export function auditEntityType(itemType: string): AuditEntityType {
   switch (itemType) {
     case WORKSPACE_ITEM_TYPE.DRAFT: {
-      return "workspace:draft";
+      return AUDIT_ENTITY_TYPE.DRAFT;
     }
     case WORKSPACE_ITEM_TYPE.VIEW: {
-      return "workspace:view";
+      return AUDIT_ENTITY_TYPE.VIEW;
     }
     case PIN_ITEM_TYPE.TRIAGE: {
-      return "dms:file";
+      return AUDIT_ENTITY_TYPE.DMS_FILE;
     }
     case PIN_ITEM_TYPE.FILE_VIEW: {
-      return "dms:file_view";
+      return AUDIT_ENTITY_TYPE.DMS_FILE_VIEW;
     }
     case PIN_ITEM_TYPE.CLASS: {
-      return "dms:class";
+      return AUDIT_ENTITY_TYPE.DMS_CLASS;
     }
     default: {
-      return "workspace:dashboard";
+      return AUDIT_ENTITY_TYPE.DASHBOARD;
     }
   }
 }

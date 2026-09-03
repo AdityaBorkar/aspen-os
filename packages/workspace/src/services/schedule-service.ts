@@ -86,9 +86,8 @@ export async function deliverDueSchedule(deps: ScheduleDeps, scheduleId: string)
     return;
   }
 
-  const at = new Date();
   await deps.pubsub.publish(SCHEDULE_EVENTS.DUE, {
-    at: at.toISOString(),
+    at: new Date().toISOString(),
     dashboard,
     schedule,
   });
