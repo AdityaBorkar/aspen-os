@@ -4,23 +4,16 @@ import {
   minLength,
   minValue,
   number,
-  object,
   optional,
   pipe,
   regex,
   string,
 } from "valibot";
 
+export { IdSchema, NameSchema, WithIdSchema } from "@aspen-os/platform/server";
+
 const DOMAIN_REGEX = /^[a-z][a-z0-9_-]*:[a-z][a-z0-9_-]*$/;
 const IANA_TZ_REGEX = /^[A-Za-z_]+(?:\/[A-Za-z_+-]+)*$/;
-
-export const IdSchema = pipe(string(), minLength(1, "id is required"));
-
-export const NameSchema = pipe(
-  string(),
-  minLength(1, "Name is required"),
-  maxLength(255, "Must be at most 255 characters"),
-);
 
 export const TitleSchema = pipe(
   string(),
@@ -44,5 +37,3 @@ export const TimezoneSchema = pipe(
 export const LimitSchema = optional(pipe(number(), integer(), minValue(0)), 50);
 
 export const OffsetSchema = optional(pipe(number(), integer(), minValue(0)), 0);
-
-export const WithIdSchema = object({ id: string() });

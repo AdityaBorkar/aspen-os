@@ -1,10 +1,6 @@
 import { maxLength, minLength, nullable, optional, pipe, string } from "valibot";
 
-export const NameSchema = pipe(
-  string(),
-  minLength(1, "Name is required"),
-  maxLength(255, "Must be at most 255 characters"),
-);
+export { NameSchema } from "@aspen-os/platform/server";
 
 export const EmployeeIdSchema = pipe(
   string(),

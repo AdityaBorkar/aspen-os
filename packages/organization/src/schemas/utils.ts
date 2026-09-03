@@ -1,26 +1,14 @@
 import { check, maxLength, minLength, number, object, pipe, regex, string } from "valibot";
 
+export { NameSchema, SlugSchema } from "@aspen-os/platform/server";
+
 const HEX_COLOR_REGEX = /^#[0-9A-Fa-f]{6}$/;
-const SLUG_REGEX = /^[a-z0-9]+(?<suffix>-[a-z0-9]+)*$/;
 const BRANCH_CODE_REGEX = /^[A-Z0-9]+(?<suffix>-[A-Z0-9]+)*$/;
 const ISO_COUNTRY_CODE_REGEX = /^[A-Z]{2}$/;
 
 export const AccentColorSchema = pipe(
   string(),
   regex(HEX_COLOR_REGEX, "Must be a valid 6-digit hex color (e.g., #3B82F6)"),
-);
-
-export const SlugSchema = pipe(
-  string(),
-  minLength(3, "Must be at least 3 characters"),
-  maxLength(63, "Must be at most 63 characters"),
-  regex(SLUG_REGEX, "Must be URL-safe alphanumeric with hyphens"),
-);
-
-export const NameSchema = pipe(
-  string(),
-  minLength(1, "Name is required"),
-  maxLength(255, "Must be at most 255 characters"),
 );
 
 export const BranchCodeSchema = pipe(

@@ -1,25 +1,13 @@
 import { maxLength, minLength, pipe, regex, string } from "valibot";
 
-const HEX_COLOR_REGEX = /^#[0-9A-Fa-f]{6}$/;
+export { HexColorSchema, IdSchema, NameSchema } from "@aspen-os/platform/server";
+
 const PROJECT_KEY_REGEX = /^[A-Z]{2,10}$/;
-
-export const IdSchema = pipe(string(), minLength(1, "ID is required"));
-
-export const HexColorSchema = pipe(
-  string(),
-  regex(HEX_COLOR_REGEX, "Must be a valid 6-digit hex color (e.g., #3B82F6)"),
-);
 
 export const TitleSchema = pipe(
   string(),
   minLength(1, "Title is required"),
   maxLength(500, "Must be at most 500 characters"),
-);
-
-export const NameSchema = pipe(
-  string(),
-  minLength(1, "Name is required"),
-  maxLength(255, "Must be at most 255 characters"),
 );
 
 export const ProjectKeySchema = pipe(

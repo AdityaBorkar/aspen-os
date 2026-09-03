@@ -33,11 +33,12 @@ import {
 import type { DepartmentTreeNode, OrgTreeNode, ResolvedPermission } from "#/types";
 
 import type { JsonValue } from "@aspen-os/platform/server";
+import { IdSchema } from "@aspen-os/platform/server";
 import { and, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { minLength, optional, pipe, safeParse, string } from "valibot";
 
-export const IdSchema = pipe(string(), minLength(1, "ID is required"));
+export { IdSchema };
 
 export const RequiredSchema = pipe(string(), minLength(1, "Value is required"));
 

@@ -1,16 +1,14 @@
 import { check, maxLength, minLength, object, pipe, regex, string } from "valibot";
 
-const HEX_COLOR_REGEX = /^#[0-9A-Fa-f]{6}$/;
+export {
+  EmailSchema,
+  HexColorSchema,
+  IdSchema,
+  NameSchema,
+  WithIdSchema,
+} from "@aspen-os/platform/server";
+
 const NAME_NO_SLASH_REGEX = /^[^/]+$/;
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-export const IdSchema = pipe(string(), minLength(1, "id is required"));
-
-export const NameSchema = pipe(
-  string(),
-  minLength(1, "Name is required"),
-  maxLength(255, "Must be at most 255 characters"),
-);
 
 export const FileNameSchema = pipe(
   string(),
@@ -26,15 +24,6 @@ export const LabelNameSchema = pipe(
   maxLength(100, "Must be at most 100 characters"),
 );
 
-export const HexColorSchema = pipe(
-  string(),
-  regex(HEX_COLOR_REGEX, "Must be a valid 6-digit hex color (e.g., #3B82F6)"),
-);
-
-export const EmailSchema = pipe(string(), regex(EMAIL_REGEX, "Must be a valid email address"));
-
 export const FileIdSchema = string();
 
 export const WithFileIdSchema = object({ id: FileIdSchema });
-
-export const WithIdSchema = object({ id: string() });
