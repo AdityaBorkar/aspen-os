@@ -1,7 +1,7 @@
 import { task } from "#/db-schemas/task";
+import { TASK_EVENTS } from "#/pubsub";
 import { IdSchema } from "#/types";
 import { fetchTaskStep } from "#/workflow-steps/fetch-task";
-import { publishTaskDeleted } from "#/workflow-steps/notification-bridge";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -14,6 +14,6 @@ export const deleteTask = Workflow.name("task.delete")
     await ctx.db.delete(task).where(eq(task.id, id));
 
     await ctx.step.run("notify", async () => {
-      await publishTaskDeleted({ taskId: id }, { pubsub: ctx.pubsub });
+      await ctx.pubsub.publish(TASK_EVENTS.DELETED, { taskId: id });
     });
   });

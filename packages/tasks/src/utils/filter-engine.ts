@@ -1,8 +1,8 @@
 import { task } from "#/db-schemas/task";
+import { taskAssignee } from "#/db-schemas/task-assignee";
 import type { TaskFilters } from "#/types";
-import { isTaskPriority } from "#/utils/constants";
 
-import { and, eq, gte, ilike, inArray, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
+import { and, eq, exists, ilike, isNull, or, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 
 export function buildTaskWhereClause(filters: TaskFilters | undefined): SQL | undefined {
@@ -49,46 +49,11 @@ export function buildTaskWhereClause(filters: TaskFilters | undefined): SQL | un
   }
   if (filters.assigneeId) {
     conditions.push(
-      sql`${task.id} IN (
-        SELECT ta.task_id FROM task_assignee ta WHERE ta.user_id = ${filters.assigneeId}
-      )`,
+      exists(
+        sql`select 1 from ${taskAssignee} where ${taskAssignee.taskId} = ${task.id} and ${taskAssignee.userId} = ${filters.assigneeId}`,
+      ),
     );
   }
 
   return conditions.length > 0 ? and(...conditions) : undefined;
-}
-
-export function buildDateRangeClause(
-  column: typeof task.dueDate,
-  before?: Date,
-  after?: Date,
-): SQL | undefined {
-  const conditions: SQL[] = [];
-  if (before) {
-    conditions.push(lte(column, before));
-  }
-  if (after) {
-    conditions.push(gte(column, after));
-  }
-  return conditions.length > 0 ? and(...conditions) : undefined;
-}
-
-export function buildArrayAnyClause(column: typeof task.labels, values: string[]): SQL {
-  return sql`${column} && ${values}`;
-}
-
-export function buildArrayAllClause(column: typeof task.labels, values: string[]): SQL {
-  return sql`${column} @> ${values}`;
-}
-
-export function buildEmptyClause(column: typeof task.dueDate, isEmpty: boolean): SQL {
-  return isEmpty ? isNull(column) : isNotNull(column);
-}
-
-export function buildInClause(column: typeof task.priority, values: string[]): SQL {
-  if (values.length === 0) {
-    return sql`1=1`;
-  }
-  const priorities = values.filter(isTaskPriority);
-  return inArray(column, priorities);
 }

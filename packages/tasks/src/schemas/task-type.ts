@@ -1,6 +1,6 @@
-import { HexColorSchema, NameSchema } from "#/schemas/utils";
+import { HexColorSchema, IdSchema, NameSchema } from "#/schemas/utils";
 
-import { boolean, minLength, nullable, object, optional, pipe, string } from "valibot";
+import { boolean, nullable, object, omit, optional, partial, string } from "valibot";
 import type { InferOutput } from "valibot";
 
 export const CreateTaskTypeSchema = object({
@@ -8,31 +8,23 @@ export const CreateTaskTypeSchema = object({
   icon: optional(nullable(string())),
   isDefault: optional(boolean()),
   name: NameSchema,
-  projectId: optional(nullable(string())),
+  projectId: optional(nullable(IdSchema)),
 });
 
 export type CreateTaskTypeInput = InferOutput<typeof CreateTaskTypeSchema>;
 
-export const UpdateTaskTypeSchema = object({
-  color: optional(nullable(HexColorSchema)),
-  icon: optional(nullable(string())),
-  isDefault: optional(boolean()),
-  name: optional(NameSchema),
-});
+export const UpdateTaskTypeSchema = partial(omit(CreateTaskTypeSchema, ["projectId"]));
 
 export type UpdateTaskTypeInput = InferOutput<typeof UpdateTaskTypeSchema>;
 
 export const CreateLabelSchema = object({
   color: optional(nullable(HexColorSchema)),
-  name: pipe(string(), minLength(1, "Label name is required")),
-  projectId: optional(nullable(string())),
+  name: NameSchema,
+  projectId: optional(nullable(IdSchema)),
 });
 
 export type CreateLabelInput = InferOutput<typeof CreateLabelSchema>;
 
-export const UpdateLabelSchema = object({
-  color: optional(nullable(HexColorSchema)),
-  name: optional(string()),
-});
+export const UpdateLabelSchema = partial(omit(CreateLabelSchema, ["projectId"]));
 
 export type UpdateLabelInput = InferOutput<typeof UpdateLabelSchema>;

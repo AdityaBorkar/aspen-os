@@ -1,12 +1,13 @@
 import { automationRule } from "#/db-schemas/automation-rule";
-import { isAutomationTrigger } from "#/utils/constants";
+import { AutomationTriggerSchema } from "#/schemas/enums";
 
+import { JsonValueSchema, Workflow } from "@aspen-os/platform/server";
 import type { JsonValue } from "@aspen-os/platform/server";
-import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
-import { array, custom, object, optional, record, safeParse, string, unknown } from "valibot";
+import { array, object, optional, record, safeParse, string } from "valibot";
 
 export interface AutomationContext {
+  projectId: string;
   taskId: string;
   trigger: string;
   values: Record<string, JsonValue>;
@@ -15,15 +16,13 @@ export interface AutomationContext {
 export interface AutomationAction {
   field?: string;
   type: string;
-  value?: unknown;
+  value?: JsonValue;
 }
-
-const JsonValueSchema = custom<JsonValue>(() => true);
 
 const AutomationActionSchema = object({
   field: optional(string()),
   type: string(),
-  value: optional(unknown()),
+  value: optional(JsonValueSchema),
 });
 
 const AutomationActionArraySchema = array(AutomationActionSchema);
@@ -34,6 +33,7 @@ export const evaluateAutomationRules = Workflow.name("automation.evaluate")
   .input(
     object({
       context: object({
+        projectId: string(),
         taskId: string(),
         trigger: string(),
         values: record(string(), JsonValueSchema),
@@ -41,10 +41,11 @@ export const evaluateAutomationRules = Workflow.name("automation.evaluate")
     }),
   )
   .handler(async ({ context }, ctx) => {
-    const { trigger } = context;
-    if (!isAutomationTrigger(trigger)) {
+    const parsedTrigger = safeParse(AutomationTriggerSchema, context.trigger);
+    if (!parsedTrigger.success) {
       return [];
     }
+    const trigger = parsedTrigger.output;
 
     const rules = await ctx.step.run("query", async () =>
       ctx.db
@@ -52,7 +53,7 @@ export const evaluateAutomationRules = Workflow.name("automation.evaluate")
         .from(automationRule)
         .where(
           and(
-            eq(automationRule.projectId, context.taskId),
+            eq(automationRule.projectId, context.projectId),
             eq(automationRule.trigger, trigger),
             eq(automationRule.isActive, true),
           ),
@@ -65,7 +66,7 @@ export const evaluateAutomationRules = Workflow.name("automation.evaluate")
       const parsedConditions = safeParse(ConditionMapSchema, rule.conditions);
       const conditionsMatch = parsedConditions.success
         ? matchesConditions(parsedConditions.output, context.values)
-        : true;
+        : false;
       if (conditionsMatch) {
         const parsedActions = safeParse(AutomationActionArraySchema, rule.actions);
         if (parsedActions.success) {

@@ -1,3 +1,5 @@
+import type { TaskLinkType } from "#/utils/constants";
+
 export type {
   TaskAssignedEvent,
   TaskCommentedEvent,
@@ -79,7 +81,7 @@ export {
 } from "#/schemas";
 
 export interface TaskLinkInfo {
-  linkType: "blocks" | "blocked_by" | "related_to" | "duplicates" | "caused_by" | "split_from";
+  linkType: TaskLinkType;
   sourceId: string;
   targetId: string;
 }

@@ -13,12 +13,10 @@ The Tasks module manages projects, tasks, statuses, time tracking, comments, att
 ```ts
 import { Tasks } from "@aspen-os/tasks";
 
-const tasks = Tasks.create({
-  enableNotifications: true,
-});
+const tasks = Tasks.create();
 ```
 
-| `enableNotifications` | `boolean?` | `false` | Configures `task:*` event publishing via the notification bridge |
+The module takes no configuration. Workflows publish `task:*` events directly via `ctx.pubsub.publish`.
 
 ## Initialization
 
@@ -26,7 +24,7 @@ const tasks = Tasks.create({
 $initialize(): void
 ```
 
-The `$initialize()` method is empty. Workflows are flat imported `Workflow` objects aggregated on the class — they are not instantiated per-call. The notification bridge in `services/` is wired into the create/update/delete/assign/unassign/comment/link workflows and the status-change path, so `task:*` events actually fire.
+The `$initialize()` method is empty. Workflows are flat imported `Workflow` objects aggregated on the class — they are not instantiated per-call. Workflows publish `task:*` events directly via `ctx.pubsub.publish`, so `task:*` events actually fire.
 
 ## Module Structure
 
@@ -34,13 +32,12 @@ The `$initialize()` method is empty. Workflows are flat imported `Workflow` obje
 packages/tasks/src/
   index.ts              # Tasks class + type re-exports
   types.ts              # Re-exports from schemas/ + domain interfaces
-  pubsub.ts             # 10 task events + event maps
+  pubsub.ts             # 11 task events + event maps
   auth.ts               # Empty ACL (defineAcl({}))
   db-schemas/           # 16 tables + 7 enums (6 control + 10 tenant)
   schemas/              # Valibot input/filter schemas (one file per entity)
   workflows/            # One file per action (10 workflow groups)
-  workflow-steps/       # Reusable fetch-* steps
-  services/             # notification-bridge, dependency-graph, report-service
+  workflow-steps/       # Reusable fetch-* steps + dependency-graph helpers
   utils/                # filter-engine, constants
 ```
 
@@ -61,7 +58,7 @@ p.tasks.views; // → views
 
 ## Accessing Services
 
-The `Tasks` module exposes no public service accessors. The internal service modules (`report-service`, `dependency-graph`, `notification-bridge`) and the `filter-engine` utility are consumed directly by workflow code, not surfaced as module properties.
+The `Tasks` module exposes no public service accessors. The `dependency-graph` helpers under `workflow-steps/` (called with an explicit `db` handle) and the `filter-engine` utility are consumed directly by workflow code, not surfaced as module properties.
 
 <Callout type="info">
   Workflow accessors are plain module properties — no initialization guard. Workflows are stateless

@@ -1,5 +1,5 @@
 import { TaskPrioritySchema } from "#/schemas/enums";
-import { TitleSchema } from "#/schemas/utils";
+import { IdSchema, TitleSchema } from "#/schemas/utils";
 
 import {
   array,
@@ -9,7 +9,9 @@ import {
   nullable,
   number,
   object,
+  omit,
   optional,
+  partial,
   pipe,
   string,
 } from "valibot";
@@ -20,60 +22,49 @@ export const CreateTaskSchema = object({
   dueDate: optional(date()),
   estimatedHours: optional(nullable(number())),
   labels: optional(array(string())),
-  parentId: optional(nullable(string())),
+  parentId: optional(nullable(IdSchema)),
   priority: optional(TaskPrioritySchema),
-  projectId: pipe(string(), minLength(1, "projectId is required")),
-  reporterId: pipe(string(), minLength(1, "reporterId is required")),
+  projectId: IdSchema,
+  reporterId: IdSchema,
   startDate: optional(date()),
-  statusId: pipe(string(), minLength(1, "statusId is required")),
+  statusId: IdSchema,
   title: TitleSchema,
-  typeId: optional(nullable(string())),
+  typeId: optional(nullable(IdSchema)),
 });
 
 export type CreateTaskInput = InferOutput<typeof CreateTaskSchema>;
 
-export const UpdateTaskSchema = object({
-  description: optional(nullable(string())),
-  dueDate: optional(date()),
-  estimatedHours: optional(nullable(number())),
-  labels: optional(array(string())),
-  parentId: optional(nullable(string())),
-  priority: optional(TaskPrioritySchema),
-  startDate: optional(date()),
-  statusId: optional(string()),
-  title: optional(TitleSchema),
-  typeId: optional(nullable(string())),
-});
+export const UpdateTaskSchema = partial(omit(CreateTaskSchema, ["projectId", "reporterId"]));
 
 export type UpdateTaskInput = InferOutput<typeof UpdateTaskSchema>;
 
 export const TaskFiltersSchema = object({
-  assigneeId: optional(string()),
+  assigneeId: optional(IdSchema),
   isArchived: optional(boolean()),
   label: optional(string()),
-  parentId: optional(nullable(string())),
+  parentId: optional(nullable(IdSchema)),
   priority: optional(TaskPrioritySchema),
-  projectId: optional(string()),
-  reporterId: optional(string()),
+  projectId: optional(IdSchema),
+  reporterId: optional(IdSchema),
   search: optional(string()),
-  statusId: optional(string()),
-  typeId: optional(string()),
+  statusId: optional(IdSchema),
+  typeId: optional(IdSchema),
 });
 
 export type TaskFilters = InferOutput<typeof TaskFiltersSchema>;
 
 export const BulkUpdateTaskSchema = object({
-  ids: pipe(array(string()), minLength(1, "At least one id is required")),
+  ids: pipe(array(IdSchema), minLength(1, "At least one id is required")),
   patch: UpdateTaskSchema,
 });
 
 export type BulkUpdateTaskInput = InferOutput<typeof BulkUpdateTaskSchema>;
 
 export const AssignTaskSchema = object({
-  assignedBy: pipe(string(), minLength(1, "assignedBy is required")),
+  assignedBy: IdSchema,
   isLead: optional(boolean()),
-  taskId: pipe(string(), minLength(1, "taskId is required")),
-  userId: pipe(string(), minLength(1, "userId is required")),
+  taskId: IdSchema,
+  userId: IdSchema,
 });
 
 export type AssignTaskInput = InferOutput<typeof AssignTaskSchema>;

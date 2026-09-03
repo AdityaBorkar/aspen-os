@@ -1,6 +1,6 @@
 import { taskAssignee } from "#/db-schemas/task-assignee";
+import { TASK_EVENTS } from "#/pubsub";
 import { IdSchema } from "#/types";
-import { publishTaskUnassigned } from "#/workflow-steps/notification-bridge";
 import { addActivity } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -23,6 +23,6 @@ export const unassignTask = Workflow.name("task.unassign")
     });
 
     await ctx.step.run("notify", async () => {
-      await publishTaskUnassigned({ taskId, userId }, { pubsub: ctx.pubsub });
+      await ctx.pubsub.publish(TASK_EVENTS.UNASSIGNED, { taskId, userId });
     });
   });

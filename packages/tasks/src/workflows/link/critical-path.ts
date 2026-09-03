@@ -8,5 +8,5 @@ import { object } from "valibot";
 export const getTaskLinkCriticalPath = Workflow.name("link.critical-path")
   .input(object({ projectId: IdSchema }))
   .handler(async ({ projectId }, ctx): Promise<CriticalPathResult> =>
-    ctx.step.run("query", async () => getCriticalPath(projectId)),
+    ctx.step.run("query", async () => getCriticalPath(ctx.db, projectId)),
   );

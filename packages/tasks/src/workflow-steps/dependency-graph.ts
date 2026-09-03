@@ -1,26 +1,33 @@
 import { task } from "#/db-schemas/task";
 import { taskLink } from "#/db-schemas/task-link";
 import type { CriticalPathResult, TaskDependencyNode } from "#/types";
+import { TASK_LINK_TYPE } from "#/utils/constants";
 
-import { getContext } from "@aspen-os/platform/server";
-import { and, eq, or } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
-export async function wouldCreateCycle(sourceId: string, targetId: string): Promise<boolean> {
-  const { db } = getContext();
+type DrizzleDB = PostgresJsDatabase;
 
+export async function wouldCreateCycle(
+  db: DrizzleDB,
+  sourceId: string,
+  targetId: string,
+): Promise<boolean> {
   if (sourceId === targetId) {
     return true;
   }
 
   const visited = new Set<string>();
   const queue = [targetId];
+  let head = 0;
 
   // oxlint-disable eslint/no-await-in-loop
-  while (queue.length > 0) {
-    const current = queue.shift();
-    if (!current) {
+  while (head < queue.length) {
+    const current = queue[head];
+    if (current === undefined) {
       break;
     }
+    head += 1;
 
     if (current === sourceId) {
       return true;
@@ -33,7 +40,7 @@ export async function wouldCreateCycle(sourceId: string, targetId: string): Prom
     const blockingLinks = await db
       .select({ targetId: taskLink.targetId })
       .from(taskLink)
-      .where(and(eq(taskLink.sourceId, current), eq(taskLink.linkType, "blocks")));
+      .where(and(eq(taskLink.sourceId, current), eq(taskLink.linkType, TASK_LINK_TYPE.BLOCKS)));
 
     for (const link of blockingLinks) {
       queue.push(link.targetId);
@@ -44,30 +51,28 @@ export async function wouldCreateCycle(sourceId: string, targetId: string): Prom
   return false;
 }
 
-export async function getDependencies(taskId: string): Promise<string[]> {
-  const { db } = getContext();
-
+export async function getDependencies(db: DrizzleDB, taskId: string): Promise<string[]> {
   const links = await db
     .select({ targetId: taskLink.targetId })
     .from(taskLink)
-    .where(and(eq(taskLink.sourceId, taskId), eq(taskLink.linkType, "blocks")));
+    .where(and(eq(taskLink.sourceId, taskId), eq(taskLink.linkType, TASK_LINK_TYPE.BLOCKS)));
 
   return links.map((link) => link.targetId);
 }
 
-export async function getDependents(taskId: string): Promise<string[]> {
-  const { db } = getContext();
-
+export async function getDependents(db: DrizzleDB, taskId: string): Promise<string[]> {
   const links = await db
     .select({ sourceId: taskLink.sourceId })
     .from(taskLink)
-    .where(and(eq(taskLink.targetId, taskId), eq(taskLink.linkType, "blocks")));
+    .where(and(eq(taskLink.targetId, taskId), eq(taskLink.linkType, TASK_LINK_TYPE.BLOCKS)));
 
   return links.map((link) => link.sourceId);
 }
 
-export async function topologicalSort(taskIds: string[]): Promise<string[]> {
-  const { db } = getContext();
+export async function topologicalSort(db: DrizzleDB, taskIds: string[]): Promise<string[]> {
+  if (taskIds.length === 0) {
+    return [];
+  }
 
   const adj = new Map<string, string[]>();
   const inDegree = new Map<string, number>();
@@ -86,8 +91,9 @@ export async function topologicalSort(taskIds: string[]): Promise<string[]> {
     .from(taskLink)
     .where(
       and(
-        eq(taskLink.linkType, "blocks"),
-        or(...taskIds.flatMap((id) => [eq(taskLink.sourceId, id), eq(taskLink.targetId, id)])),
+        eq(taskLink.linkType, TASK_LINK_TYPE.BLOCKS),
+        inArray(taskLink.sourceId, taskIds),
+        inArray(taskLink.targetId, taskIds),
       ),
     );
 
@@ -106,11 +112,13 @@ export async function topologicalSort(taskIds: string[]): Promise<string[]> {
   }
 
   const sorted: string[] = [];
-  while (queue.length > 0) {
-    const current = queue.shift();
-    if (!current) {
+  let head = 0;
+  while (head < queue.length) {
+    const current = queue[head];
+    if (current === undefined) {
       break;
     }
+    head += 1;
     sorted.push(current);
 
     for (const neighbor of adj.get(current) ?? []) {
@@ -129,9 +137,10 @@ export async function topologicalSort(taskIds: string[]): Promise<string[]> {
   return sorted;
 }
 
-export async function getCriticalPath(projectId: string): Promise<CriticalPathResult> {
-  const { db } = getContext();
-
+export async function getCriticalPath(
+  db: DrizzleDB,
+  projectId: string,
+): Promise<CriticalPathResult> {
   const tasks = await db
     .select({
       estimatedHours: task.estimatedHours,
@@ -146,6 +155,7 @@ export async function getCriticalPath(projectId: string): Promise<CriticalPathRe
   }
 
   const taskMap = new Map(tasks.map((taskRow) => [taskRow.id, taskRow]));
+  const taskIds = tasks.map((taskRow) => taskRow.id);
   const adj = new Map<string, string[]>();
   const inDegree = new Map<string, number>();
 
@@ -162,8 +172,9 @@ export async function getCriticalPath(projectId: string): Promise<CriticalPathRe
     .from(taskLink)
     .where(
       and(
-        eq(taskLink.linkType, "blocks"),
-        or(...tasks.map((taskRow) => eq(taskLink.sourceId, taskRow.id))),
+        eq(taskLink.linkType, TASK_LINK_TYPE.BLOCKS),
+        inArray(taskLink.sourceId, taskIds),
+        inArray(taskLink.targetId, taskIds),
       ),
     );
 
@@ -186,11 +197,13 @@ export async function getCriticalPath(projectId: string): Promise<CriticalPathRe
     }
   }
 
-  while (queue.length > 0) {
-    const current = queue.shift();
-    if (!current) {
+  let head = 0;
+  while (head < queue.length) {
+    const current = queue[head];
+    if (current === undefined) {
       break;
     }
+    head += 1;
     const currentDuration = maxDuration.get(current) ?? 0;
 
     for (const neighbor of adj.get(current) ?? []) {
@@ -233,8 +246,13 @@ export async function getCriticalPath(projectId: string): Promise<CriticalPathRe
   return { duration: maxPath, path };
 }
 
-export async function buildDependencyGraph(taskIds: string[]): Promise<TaskDependencyNode[]> {
-  const { db } = getContext();
+export async function buildDependencyGraph(
+  db: DrizzleDB,
+  taskIds: string[],
+): Promise<TaskDependencyNode[]> {
+  if (taskIds.length === 0) {
+    return [];
+  }
 
   const tasks = await db
     .select({
@@ -242,16 +260,32 @@ export async function buildDependencyGraph(taskIds: string[]): Promise<TaskDepen
       title: task.title,
     })
     .from(task)
-    .where(or(...taskIds.map((id) => eq(task.id, id))));
+    .where(inArray(task.id, taskIds));
 
-  const nodes = await Promise.all(
-    tasks.map(async (taskRow) => {
-      const deps = await getDependencies(taskRow.id);
-      return { dependsOn: deps, id: taskRow.id, title: taskRow.title };
-    }),
-  );
+  const links = await db
+    .select({ sourceId: taskLink.sourceId, targetId: taskLink.targetId })
+    .from(taskLink)
+    .where(
+      and(
+        eq(taskLink.linkType, TASK_LINK_TYPE.BLOCKS),
+        inArray(taskLink.sourceId, taskIds),
+        inArray(taskLink.targetId, taskIds),
+      ),
+    );
 
-  return nodes;
+  const depsByTask = new Map<string, string[]>();
+  for (const taskRow of tasks) {
+    depsByTask.set(taskRow.id, []);
+  }
+  for (const link of links) {
+    depsByTask.get(link.sourceId)?.push(link.targetId);
+  }
+
+  return tasks.map((taskRow) => ({
+    dependsOn: depsByTask.get(taskRow.id) ?? [],
+    id: taskRow.id,
+    title: taskRow.title,
+  }));
 }
 
 function parseHours(value: string | null | undefined): number {

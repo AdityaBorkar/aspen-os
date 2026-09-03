@@ -1,6 +1,6 @@
 import { comment } from "#/db-schemas/comment";
+import { TASK_EVENTS } from "#/pubsub";
 import { CreateCommentSchema } from "#/types";
-import { publishTaskCommented } from "#/workflow-steps/notification-bridge";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
@@ -27,16 +27,13 @@ export const createComment = Workflow.name("comment.create")
     }
 
     await ctx.step.run("notify", async () => {
-      await publishTaskCommented(
-        {
-          comment: {
-            body: result.body,
-            id: result.id,
-          },
-          taskId: result.taskId,
+      await ctx.pubsub.publish(TASK_EVENTS.COMMENTED, {
+        comment: {
+          body: result.body,
+          id: result.id,
         },
-        { pubsub: ctx.pubsub },
-      );
+        taskId: result.taskId,
+      });
     });
 
     return result;

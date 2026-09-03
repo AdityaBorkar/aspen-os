@@ -1,9 +1,6 @@
 import { task } from "#/db-schemas/task";
+import { TASK_EVENTS } from "#/pubsub";
 import { CreateTaskSchema } from "#/types";
-import {
-  publishTaskCreated,
-  publishTaskDueDateChanged,
-} from "#/workflow-steps/notification-bridge";
 import { addActivity, generateTaskNumber, validateParentTask } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -62,8 +59,8 @@ export const createTask = Workflow.name("task.create")
     });
 
     await ctx.step.run("notify", async () => {
-      await publishTaskCreated(
-        {
+      const notifications: Promise<unknown>[] = [
+        ctx.pubsub.publish(TASK_EVENTS.CREATED, {
           dueDate: result.dueDate ? result.dueDate.toISOString() : null,
           task: {
             id: result.id,
@@ -71,20 +68,20 @@ export const createTask = Workflow.name("task.create")
             projectId: result.projectId,
             title: result.title,
           },
-        },
-        { pubsub: ctx.pubsub },
-      );
+        }),
+      ];
 
       if (result.dueDate) {
-        await publishTaskDueDateChanged(
-          {
+        notifications.push(
+          ctx.pubsub.publish(TASK_EVENTS.DUE_DATE_CHANGED, {
             dueDate: result.dueDate.toISOString(),
             taskId: result.id,
             userIds: [result.reporterId],
-          },
-          { pubsub: ctx.pubsub },
+          }),
         );
       }
+
+      await Promise.all(notifications);
     });
 
     return result;

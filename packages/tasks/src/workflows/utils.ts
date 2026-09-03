@@ -7,7 +7,9 @@ import { taskAssignee } from "#/db-schemas/task-assignee";
 import { taskType } from "#/db-schemas/task-type";
 import { watcher } from "#/db-schemas/watcher";
 import type { TaskLinkType } from "#/utils/constants";
+import { TASK_LINK_TYPE } from "#/utils/constants";
 
+import type { JsonValue } from "@aspen-os/platform/server";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
@@ -15,21 +17,29 @@ export const MAX_NESTING_DEPTH = 3;
 
 type DrizzleDB = PostgresJsDatabase;
 
+export function requireRow<TRow>(rows: TRow[], label: string, id: string): TRow {
+  const [result] = rows;
+  if (!result) {
+    throw new Error(`${label} with id "${id}" not found.`);
+  }
+  return result;
+}
+
 export async function generateTaskNumber(
   db: DrizzleDB,
   projectId: string,
 ): Promise<{ displayNumber: string; taskSeq: number }> {
-  const [proj] = await db.select().from(project).where(eq(project.id, projectId)).limit(1);
+  const [proj] = await db
+    .update(project)
+    .set({ taskCounter: sql`${project.taskCounter} + 1` })
+    .where(eq(project.id, projectId))
+    .returning({ key: project.key, taskCounter: project.taskCounter });
 
   if (!proj) {
     throw new Error(`Project with id "${projectId}" not found.`);
   }
 
-  const taskSeq = proj.taskCounter + 1;
-
-  await db.update(project).set({ taskCounter: taskSeq }).where(eq(project.id, projectId));
-
-  return { displayNumber: `${proj.key}-${taskSeq}`, taskSeq };
+  return { displayNumber: `${proj.key}-${proj.taskCounter}`, taskSeq: proj.taskCounter };
 }
 
 export async function validateParentTask(
@@ -69,14 +79,10 @@ export async function wouldCreateParentCycle(
   taskId: string,
 ): Promise<boolean> {
   let currentId: string | null = parentId;
-  let depth = 0;
 
   // oxlint-disable eslint/no-await-in-loop
   while (currentId !== null) {
     if (currentId === taskId) {
-      return true;
-    }
-    if (depth >= MAX_NESTING_DEPTH) {
       return true;
     }
 
@@ -90,7 +96,6 @@ export async function wouldCreateParentCycle(
       break;
     }
     currentId = parent.parentId;
-    depth++;
   }
   // oxlint-enable eslint/no-await-in-loop
 
@@ -149,14 +154,14 @@ export async function addActivity(
     taskId: string;
     userId: string;
     action: string;
-    oldValue: unknown;
-    newValue: unknown;
+    oldValue: JsonValue | null;
+    newValue: JsonValue | null;
   },
 ): Promise<void> {
   await db.insert(activityLog).values({
     action: options.action,
-    newValue: options.newValue ? JSON.stringify(options.newValue) : null,
-    oldValue: options.oldValue ? JSON.stringify(options.oldValue) : null,
+    newValue: options.newValue ?? null,
+    oldValue: options.oldValue ?? null,
     taskId: options.taskId,
     userId: options.userId,
   });
@@ -214,16 +219,15 @@ export async function unsetDefaultSavedView(
     .where(and(...conditions));
 }
 
-export function linkTypeInverse(linkType: string): TaskLinkType | undefined {
-  const INVERSE_LINK_TYPES = {
-    blocked_by: "blocks",
-    blocks: "blocked_by",
-    caused_by: "caused_by",
-    duplicates: "duplicates",
-    related_to: "related_to",
-    split_from: "split_from",
-  } as const satisfies Record<string, TaskLinkType>;
-  // SAFETY: a key not present in the map yields `undefined`, matching the previous
-  // `Record<string, TaskLinkType>` lookup semantics for unknown link types.
-  return INVERSE_LINK_TYPES[linkType as keyof typeof INVERSE_LINK_TYPES];
+const INVERSE_LINK_TYPES = {
+  [TASK_LINK_TYPE.BLOCKED_BY]: TASK_LINK_TYPE.BLOCKS,
+  [TASK_LINK_TYPE.BLOCKS]: TASK_LINK_TYPE.BLOCKED_BY,
+  [TASK_LINK_TYPE.CAUSED_BY]: TASK_LINK_TYPE.CAUSED_BY,
+  [TASK_LINK_TYPE.DUPLICATES]: TASK_LINK_TYPE.DUPLICATES,
+  [TASK_LINK_TYPE.RELATED_TO]: TASK_LINK_TYPE.RELATED_TO,
+  [TASK_LINK_TYPE.SPLIT_FROM]: TASK_LINK_TYPE.SPLIT_FROM,
+} as const satisfies Record<TaskLinkType, TaskLinkType>;
+
+export function linkTypeInverse(linkType: TaskLinkType): TaskLinkType {
+  return INVERSE_LINK_TYPES[linkType];
 }

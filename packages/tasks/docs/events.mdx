@@ -1,10 +1,10 @@
 ---
 title: Events
-description: Domain event map for the Tasks module — 10 task events.
+description: Domain event map for the Tasks module — 11 task events.
 icon: IconBell
 ---
 
-The Tasks module defines 10 task events published as plain string topics via PubSub.
+The Tasks module defines 11 task events published as plain string topics via PubSub.
 
 ## Event Constants
 
@@ -17,6 +17,7 @@ export const TASK_EVENTS = {
   DUE_DATE_CHANGED: "task:due_date_changed",
   LINKED: "task:linked",
   STATUS_CHANGED: "task:status_changed",
+  TIME_LOGGED: "task:time_logged",
   UNASSIGNED: "task:unassigned",
   UNLINKED: "task:unlinked",
   UPDATED: "task:updated",
@@ -37,6 +38,7 @@ export const TASK_EVENTS = {
 | `task:unlinked`         | `{ sourceId, targetId }`                                    | Task link deleted                 |
 | `task:commented`        | `{ taskId, comment: { id, body } }`                         | Comment added to task             |
 | `task:due_date_changed` | `{ taskId, dueDate, userIds }`                              | Task due date set/changed/cleared |
+| `task:time_logged`      | `{ taskId, timeEntry: { id, duration, userId } }`           | Time logged on task (reserved)    |
 
 `task:due_date_changed` (`userIds` = assignees ∪ reporter) is consumed by the `@aspen-os/calendar` task bridge to materialize/cancel task reminders. The former `reminder:fired` event was removed with the reminder surface — reminders now fire `calendar:reminder_due` from the calendar dispatcher.
 

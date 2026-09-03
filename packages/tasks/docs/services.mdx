@@ -1,10 +1,10 @@
 ---
 title: Services
-description: Internal services powering the Tasks module — reports, notifications, dependency graph, and filter engine.
+description: Internal helpers powering the Tasks module — reports, events, dependency graph, and filter engine.
 icon: IconDeviceGamepad3
 ---
 
-The Tasks module ships 3 internal service modules under `services/` (`report-service`, `notification-bridge`, `dependency-graph`) plus a query-building utility under `utils/filter-engine.ts`. None are exposed as module accessors — workflow code consumes them directly via `getContext()`.
+The Tasks module ships `dependency-graph` helpers under `workflow-steps/` (called with an explicit `db` handle) plus a query-building utility under `utils/filter-engine.ts`. None are exposed as module accessors — workflow code consumes them directly.
 
 ## ReportService
 
@@ -45,36 +45,36 @@ getCumulativeFlow(projectId: string, dateFrom: Date, dateTo: Date): Promise<{
 - `getTimeReport` joins `task_time_entry` with `task` to filter by project, grouping by user, task, and billable flag.
 - `getCumulativeFlow` executes raw SQL to bucket tasks by `DATE(created_at)` and `status_id`.
 
-## NotificationBridge
+## Task Events
 
-Defines `publish*` helper functions that wrap `pubsub.publish(topic, event)` for each `task:*` event. Defined in `services/notification-bridge.ts`; wired into the create/update/delete/assign/unassign/comment/link workflows and the status-change path.
+Workflows publish `task:*` events directly via `ctx.pubsub.publish(TASK_EVENTS.*, event)` — there is no bridge layer. Publishing happens in the create/update/delete/assign/unassign/comment/link workflows and the status-change path.
 
 ```ts
-publishTaskCreated(event: TaskCreatedEvent): Promise<void>
-publishTaskUpdated(event: TaskUpdatedEvent): Promise<void>
-publishTaskDeleted(event: TaskDeletedEvent): Promise<void>
-publishTaskStatusChanged(event: TaskStatusChangedEvent): Promise<void>
-publishTaskAssigned(event: TaskAssignedEvent): Promise<void>
-publishTaskUnassigned(event: TaskUnassignedEvent): Promise<void>
-publishTaskLinked(event: TaskLinkedEvent): Promise<void>
-publishTaskUnlinked(event: TaskUnlinkedEvent): Promise<void>
-publishTaskCommented(event: TaskCommentedEvent): Promise<void>
-publishTaskDueDateChanged(event: TaskDueDateChangedEvent): Promise<void>
+ctx.pubsub.publish(TASK_EVENTS.CREATED, event);
+ctx.pubsub.publish(TASK_EVENTS.UPDATED, event);
+ctx.pubsub.publish(TASK_EVENTS.DELETED, event);
+ctx.pubsub.publish(TASK_EVENTS.STATUS_CHANGED, event);
+ctx.pubsub.publish(TASK_EVENTS.ASSIGNED, event);
+ctx.pubsub.publish(TASK_EVENTS.UNASSIGNED, event);
+ctx.pubsub.publish(TASK_EVENTS.LINKED, event);
+ctx.pubsub.publish(TASK_EVENTS.UNLINKED, event);
+ctx.pubsub.publish(TASK_EVENTS.COMMENTED, event);
+ctx.pubsub.publish(TASK_EVENTS.DUE_DATE_CHANGED, event);
 ```
 
-Each function publishes to the corresponding event constant. `publishTaskDueDateChanged` feeds the `@aspen-os/calendar` task bridge, which materializes/cancels task reminders. The former `publishReminderFired` was removed with the reminder surface.
+`TASK_EVENTS.DUE_DATE_CHANGED` feeds the `@aspen-os/calendar` task bridge, which materializes/cancels task reminders.
 
 ## DependencyGraphService
 
 Used by `LinkWorkflow` for cycle detection and graph algorithms.
 
 ```ts
-wouldCreateCycle(sourceId: string, targetId: string): Promise<boolean>
-getDependencies(taskId: string): Promise<string[]>
-getDependents(taskId: string): Promise<string[]>
-topologicalSort(taskIds: string[]): Promise<string[]>
-getCriticalPath(projectId: string): Promise<CriticalPathResult>
-buildDependencyGraph(taskIds: string[]): Promise<TaskDependencyNode[]>
+wouldCreateCycle(db, sourceId: string, targetId: string): Promise<boolean>
+getDependencies(db, taskId: string): Promise<string[]>
+getDependents(db, taskId: string): Promise<string[]>
+topologicalSort(db, taskIds: string[]): Promise<string[]>
+getCriticalPath(db, projectId: string): Promise<CriticalPathResult>
+buildDependencyGraph(db, taskIds: string[]): Promise<TaskDependencyNode[]>
 ```
 
 - `wouldCreateCycle` performs BFS from `targetId` following `blocks` links, returning `true` if `sourceId` is reachable.
@@ -89,13 +89,6 @@ Lives under `utils/filter-engine.ts`. Used by `TaskWorkflow.list()` to build Dri
 
 ```ts
 buildTaskWhereClause(filters: TaskFilters | undefined): SQL | undefined
-buildDateRangeClause(column: typeof task.dueDate, before?: Date, after?: Date): SQL | undefined
-buildArrayAnyClause(column: typeof task.labels, values: string[]): SQL
-buildArrayAllClause(column: typeof task.labels, values: string[]): SQL
-buildEmptyClause(column: typeof task.dueDate, isEmpty: boolean): SQL
-buildInClause(column: typeof task.priority, values: string[]): SQL
 ```
 
-- `buildTaskWhereClause` supports: `projectId`, `statusId`, `typeId`, `priority`, `reporterId`, `parentId` (null = top-level), `isArchived`, `label` (array contains), `search` (ilike on title + description), `assigneeId` (subquery on `task_assignee`).
-- `buildArrayAnyClause` uses the `&&` operator (overlap). `buildArrayAllClause` uses `@>` (contains).
-- `buildInClause` returns `1=1` for empty value arrays (no-op).
+- `buildTaskWhereClause` supports: `projectId`, `statusId`, `typeId`, `priority`, `reporterId`, `parentId` (null = top-level), `isArchived`, `label` (array contains), `search` (ilike on title + description), `assigneeId` (correlated `exists` on `task_assignee`).

@@ -1,12 +1,15 @@
+import { IdSchema } from "#/schemas/utils";
+
 import {
   boolean,
   date,
   integer,
-  minLength,
   nullable,
   number,
   object,
+  omit,
   optional,
+  partial,
   pipe,
   string,
 } from "valibot";
@@ -17,25 +20,20 @@ export const CreateTimeEntrySchema = object({
   date: optional(date()),
   description: optional(nullable(string())),
   duration: pipe(number(), integer()),
-  taskId: pipe(string(), minLength(1, "taskId is required")),
-  userId: pipe(string(), minLength(1, "userId is required")),
+  taskId: IdSchema,
+  userId: IdSchema,
 });
 
 export type CreateTimeEntryInput = InferOutput<typeof CreateTimeEntrySchema>;
 
-export const UpdateTimeEntrySchema = object({
-  billable: optional(boolean()),
-  date: optional(date()),
-  description: optional(nullable(string())),
-  duration: optional(pipe(number(), integer())),
-});
+export const UpdateTimeEntrySchema = partial(omit(CreateTimeEntrySchema, ["taskId", "userId"]));
 
 export type UpdateTimeEntryInput = InferOutput<typeof UpdateTimeEntrySchema>;
 
 export const TimeEntryFiltersSchema = object({
   billable: optional(boolean()),
-  taskId: optional(string()),
-  userId: optional(string()),
+  taskId: optional(IdSchema),
+  userId: optional(IdSchema),
 });
 
 export type TimeEntryFilters = InferOutput<typeof TimeEntryFiltersSchema>;

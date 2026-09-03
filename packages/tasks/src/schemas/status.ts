@@ -1,17 +1,7 @@
-import { StatusCategorySchema } from "#/schemas/enums";
-import { HexColorSchema, NameSchema } from "#/schemas/utils";
+import { ProjectMemberRoleSchema, StatusCategorySchema } from "#/schemas/enums";
+import { HexColorSchema, IdSchema, NameSchema } from "#/schemas/utils";
 
-import {
-  boolean,
-  integer,
-  minLength,
-  nullable,
-  number,
-  object,
-  optional,
-  pipe,
-  string,
-} from "valibot";
+import { boolean, integer, nullable, number, object, omit, optional, partial, pipe } from "valibot";
 import type { InferOutput } from "valibot";
 
 export const CreateStatusSchema = object({
@@ -20,29 +10,22 @@ export const CreateStatusSchema = object({
   isDefault: optional(boolean()),
   isResolved: optional(boolean()),
   name: NameSchema,
-  projectId: optional(nullable(string())),
+  projectId: optional(nullable(IdSchema)),
   sortOrder: optional(pipe(number(), integer())),
 });
 
 export type CreateStatusInput = InferOutput<typeof CreateStatusSchema>;
 
-export const UpdateStatusSchema = object({
-  category: optional(StatusCategorySchema),
-  color: optional(nullable(HexColorSchema)),
-  isDefault: optional(boolean()),
-  isResolved: optional(boolean()),
-  name: optional(NameSchema),
-  sortOrder: optional(pipe(number(), integer())),
-});
+export const UpdateStatusSchema = partial(omit(CreateStatusSchema, ["projectId"]));
 
 export type UpdateStatusInput = InferOutput<typeof UpdateStatusSchema>;
 
 export const CreateStatusTransitionSchema = object({
-  fromStatusId: pipe(string(), minLength(1, "fromStatusId is required")),
-  projectId: pipe(string(), minLength(1, "projectId is required")),
+  fromStatusId: IdSchema,
+  projectId: IdSchema,
   requiresComment: optional(boolean()),
-  requiresRole: optional(nullable(string())),
-  toStatusId: pipe(string(), minLength(1, "toStatusId is required")),
+  requiresRole: optional(nullable(ProjectMemberRoleSchema)),
+  toStatusId: IdSchema,
 });
 
 export type CreateStatusTransitionInput = InferOutput<typeof CreateStatusTransitionSchema>;

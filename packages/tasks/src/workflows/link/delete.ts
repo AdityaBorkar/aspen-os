@@ -1,11 +1,12 @@
 import { taskLink } from "#/db-schemas/task-link";
+import { TASK_EVENTS } from "#/pubsub";
+import { TaskLinkTypeSchema } from "#/schemas/enums";
 import { IdSchema } from "#/types";
-import { publishTaskUnlinked } from "#/workflow-steps/notification-bridge";
 import { linkTypeInverse } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
-import { object } from "valibot";
+import { object, safeParse } from "valibot";
 
 export const deleteTaskLink = Workflow.name("link.delete")
   .input(object({ sourceId: IdSchema, targetId: IdSchema }))
@@ -20,22 +21,24 @@ export const deleteTaskLink = Workflow.name("link.delete")
       throw new Error("Task link not found.");
     }
 
-    await ctx.db.delete(taskLink).where(eq(taskLink.id, link.id));
-
-    const inverseType = linkTypeInverse(link.linkType);
-    if (inverseType) {
-      await ctx.db
-        .delete(taskLink)
-        .where(
-          and(
-            eq(taskLink.sourceId, targetId),
-            eq(taskLink.targetId, sourceId),
-            eq(taskLink.linkType, inverseType),
-          ),
-        );
+    const parsedLinkType = safeParse(TaskLinkTypeSchema, link.linkType);
+    if (!parsedLinkType.success) {
+      throw new Error(`Unknown task link type "${link.linkType}".`);
     }
 
+    await ctx.db.delete(taskLink).where(eq(taskLink.id, link.id));
+
+    await ctx.db
+      .delete(taskLink)
+      .where(
+        and(
+          eq(taskLink.sourceId, targetId),
+          eq(taskLink.targetId, sourceId),
+          eq(taskLink.linkType, linkTypeInverse(parsedLinkType.output)),
+        ),
+      );
+
     await ctx.step.run("notify", async () => {
-      await publishTaskUnlinked({ sourceId, targetId }, { pubsub: ctx.pubsub });
+      await ctx.pubsub.publish(TASK_EVENTS.UNLINKED, { sourceId, targetId });
     });
   });

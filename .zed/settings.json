@@ -1,9 +1,13 @@
 {
   "file_scan_exclusions": [
+    "**/.nx",
     "**/.git",
-    "**/.coverage",
     "**/.local",
     "**/.output",
+    "**/.source",
+    "**/.coverage",
+    "**/.wrangler",
+    "**/.tanstack",
     "**/node_modules",
     "codedb.snapshot",
     "tsconfig.tsbuildinfo"

@@ -1,6 +1,5 @@
 import { savedView } from "#/db-schemas/saved-view";
 import { CreateSavedViewSchema } from "#/types";
-import { isSavedViewType } from "#/utils/constants";
 import { unsetDefaultSavedView } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -17,11 +16,6 @@ export const createSavedView = Workflow.name("view.create")
       await unsetDefaultSavedView(ctx.db, input.ownerId, input.projectId ?? null);
     }
 
-    const type = input.type ?? "list";
-    if (!isSavedViewType(type)) {
-      throw new Error(`Invalid saved view type: ${type}`);
-    }
-
     const [result] = await ctx.db
       .insert(savedView)
       .values({
@@ -33,7 +27,7 @@ export const createSavedView = Workflow.name("view.create")
         ownerId: input.ownerId,
         projectId: input.projectId ?? null,
         sort: input.sort ?? null,
-        type,
+        type: input.type ?? "list",
       })
       .returning();
 

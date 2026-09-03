@@ -8,5 +8,5 @@ import { array, object } from "valibot";
 export const getTaskLinkDependencyGraph = Workflow.name("link.dependency-graph")
   .input(object({ taskIds: array(IdSchema) }))
   .handler(async ({ taskIds }, ctx): Promise<TaskDependencyNode[]> =>
-    ctx.step.run("query", async () => buildDependencyGraph(taskIds)),
+    ctx.step.run("query", async () => buildDependencyGraph(ctx.db, taskIds)),
   );

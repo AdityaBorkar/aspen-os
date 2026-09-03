@@ -1,7 +1,7 @@
 import { taskAssignee } from "#/db-schemas/task-assignee";
+import { TASK_EVENTS } from "#/pubsub";
 import { AssignTaskSchema } from "#/types";
 import { fetchTaskStep } from "#/workflow-steps/fetch-task";
-import { publishTaskAssigned } from "#/workflow-steps/notification-bridge";
 import { addActivity, ensureWatcher, unsetLeadAssignee } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -42,14 +42,11 @@ export const assignTask = Workflow.name("task.assign")
     });
 
     await ctx.step.run("notify", async () => {
-      await publishTaskAssigned(
-        {
-          assignedBy: input.assignedBy,
-          taskId: input.taskId,
-          userId: input.userId,
-        },
-        { pubsub: ctx.pubsub },
-      );
+      await ctx.pubsub.publish(TASK_EVENTS.ASSIGNED, {
+        assignedBy: input.assignedBy,
+        taskId: input.taskId,
+        userId: input.userId,
+      });
     });
 
     return result;

@@ -53,7 +53,7 @@ update(id: string, patch: UpdateTaskInput): Promise<task>
 delete(id: string): Promise<void>
 archive(id: string): Promise<task>
 restore(id: string): Promise<task>
-bulkUpdate(input: BulkUpdateTaskInput): Promise<task>
+bulkUpdate(input: BulkUpdateTaskInput): Promise<task[]>
 getById(id: string): Promise<task>
 list(filters?: TaskFilters): Promise<task[]>
 ```
@@ -246,11 +246,11 @@ delete(id: string): Promise<void>
 getById(id: string): Promise<automationRule>
 listByProject(projectId: string): Promise<automationRule[]>
 getActiveRules(projectId: string, trigger: string): Promise<automationRule[]>
-evaluateRules(context: { taskId: string; trigger: string; values: Record<string, unknown> }): Promise<AutomationAction[]>
+evaluateRules(context: { projectId: string; taskId: string; trigger: string; values: Record<string, unknown> }): Promise<AutomationAction[]>
 ```
 
-- `evaluateRules` fetches active rules matching the trigger, checks each rule's `conditions` against the context `values`, and returns the `actions` array from all matching rules.
-- Condition matching is exact equality per key. Empty or null conditions match everything.
+- `evaluateRules` fetches active rules for the project matching the trigger, checks each rule's `conditions` against the context `values`, and returns the `actions` array from all matching rules.
+- Condition matching is exact equality per key. Rules with unparseable conditions never match.
 - Triggers: `status_change`, `assignment_change`, `due_date_passed`, `task_created`, `task_updated`.
 
 ## ViewWorkflow

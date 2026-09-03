@@ -10,54 +10,39 @@ import {
 
 import { pgEnum } from "drizzle-orm/pg-core";
 
-export const taskPriorityEnum = pgEnum("task_priority", [
-  TASK_PRIORITY.URGENT,
-  TASK_PRIORITY.HIGH,
-  TASK_PRIORITY.MEDIUM,
-  TASK_PRIORITY.LOW,
-  TASK_PRIORITY.NONE,
-]);
+function enumValues<TValue extends string>(values: readonly TValue[]): [TValue, ...TValue[]] {
+  const [first, ...rest] = values;
+  if (first === undefined) {
+    throw new Error("Enum must declare at least one value.");
+  }
+  return [first, ...rest];
+}
 
-export const taskLinkTypeEnum = pgEnum("task_link_type", [
-  TASK_LINK_TYPE.BLOCKS,
-  TASK_LINK_TYPE.BLOCKED_BY,
-  TASK_LINK_TYPE.RELATED_TO,
-  TASK_LINK_TYPE.DUPLICATES,
-  TASK_LINK_TYPE.CAUSED_BY,
-  TASK_LINK_TYPE.SPLIT_FROM,
-]);
+export const taskPriorityEnum = pgEnum("task_priority", enumValues(Object.values(TASK_PRIORITY)));
 
-export const projectStatusEnum = pgEnum("project_status", [
-  PROJECT_STATUS.ACTIVE,
-  PROJECT_STATUS.ARCHIVED,
-  PROJECT_STATUS.PAUSED,
-]);
+export const taskLinkTypeEnum = pgEnum("task_link_type", enumValues(Object.values(TASK_LINK_TYPE)));
 
-export const projectMemberRoleEnum = pgEnum("project_member_role", [
-  PROJECT_MEMBER_ROLE.ADMIN,
-  PROJECT_MEMBER_ROLE.MEMBER,
-  PROJECT_MEMBER_ROLE.VIEWER,
-]);
+export const projectStatusEnum = pgEnum(
+  "project_status",
+  enumValues(Object.values(PROJECT_STATUS)),
+);
 
-export const statusCategoryEnum = pgEnum("status_category", [
-  STATUS_CATEGORY.BACKLOG,
-  STATUS_CATEGORY.UNSTARTED,
-  STATUS_CATEGORY.STARTED,
-  STATUS_CATEGORY.COMPLETED,
-  STATUS_CATEGORY.CANCELLED,
-]);
+export const projectMemberRoleEnum = pgEnum(
+  "project_member_role",
+  enumValues(Object.values(PROJECT_MEMBER_ROLE)),
+);
 
-export const savedViewTypeEnum = pgEnum("saved_view_type", [
-  SAVED_VIEW_TYPE.LIST,
-  SAVED_VIEW_TYPE.BOARD,
-  SAVED_VIEW_TYPE.CALENDAR,
-  SAVED_VIEW_TYPE.TIMELINE,
-]);
+export const statusCategoryEnum = pgEnum(
+  "status_category",
+  enumValues(Object.values(STATUS_CATEGORY)),
+);
 
-export const automationTriggerEnum = pgEnum("automation_trigger", [
-  AUTOMATION_TRIGGER.STATUS_CHANGE,
-  AUTOMATION_TRIGGER.ASSIGNMENT_CHANGE,
-  AUTOMATION_TRIGGER.DUE_DATE_PASSED,
-  AUTOMATION_TRIGGER.TASK_CREATED,
-  AUTOMATION_TRIGGER.TASK_UPDATED,
-]);
+export const savedViewTypeEnum = pgEnum(
+  "saved_view_type",
+  enumValues(Object.values(SAVED_VIEW_TYPE)),
+);
+
+export const automationTriggerEnum = pgEnum(
+  "automation_trigger",
+  enumValues(Object.values(AUTOMATION_TRIGGER)),
+);

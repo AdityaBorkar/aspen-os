@@ -8,6 +8,7 @@ export const TASK_EVENTS = {
   DUE_DATE_CHANGED: "task:due_date_changed",
   LINKED: "task:linked",
   STATUS_CHANGED: "task:status_changed",
+  TIME_LOGGED: "task:time_logged",
   UNASSIGNED: "task:unassigned",
   UNLINKED: "task:unlinked",
   UPDATED: "task:updated",
@@ -83,6 +84,7 @@ export interface TaskEventMap {
   [TASK_EVENTS.DUE_DATE_CHANGED]: TaskDueDateChangedEvent;
   [TASK_EVENTS.LINKED]: TaskLinkedEvent;
   [TASK_EVENTS.STATUS_CHANGED]: TaskStatusChangedEvent;
+  [TASK_EVENTS.TIME_LOGGED]: TaskTimeLoggedEvent;
   [TASK_EVENTS.UNASSIGNED]: TaskUnassignedEvent;
   [TASK_EVENTS.UNLINKED]: TaskUnlinkedEvent;
   [TASK_EVENTS.UPDATED]: TaskUpdatedEvent;

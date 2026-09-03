@@ -1,11 +1,13 @@
-import { minLength, nullable, object, optional, pipe, string } from "valibot";
+import { IdSchema } from "#/schemas/utils";
+
+import { nullable, object, optional, pipe, string, minLength } from "valibot";
 import type { InferOutput } from "valibot";
 
 export const CreateCommentSchema = object({
   body: pipe(string(), minLength(1, "Comment body is required")),
-  parentId: optional(nullable(string())),
-  taskId: pipe(string(), minLength(1, "taskId is required")),
-  userId: pipe(string(), minLength(1, "userId is required")),
+  parentId: optional(nullable(IdSchema)),
+  taskId: IdSchema,
+  userId: IdSchema,
 });
 
 export type CreateCommentInput = InferOutput<typeof CreateCommentSchema>;

@@ -1,46 +1,40 @@
-import { NameSchema } from "#/schemas/utils";
+import { SavedViewTypeSchema } from "#/schemas/enums";
+import { IdSchema, NameSchema } from "#/schemas/utils";
 
-import { boolean, minLength, nullable, object, optional, pipe, string } from "valibot";
+import { JsonValueSchema } from "@aspen-os/platform/server";
+import { boolean, nullable, object, omit, optional, partial, string } from "valibot";
 import type { InferOutput } from "valibot";
 
 export const CreateAttachmentSchema = object({
-  commentId: optional(nullable(string())),
-  fileId: pipe(string(), minLength(1, "fileId is required")),
-  taskId: pipe(string(), minLength(1, "taskId is required")),
-  uploadedBy: pipe(string(), minLength(1, "uploadedBy is required")),
+  commentId: optional(nullable(IdSchema)),
+  fileId: IdSchema,
+  taskId: IdSchema,
+  uploadedBy: IdSchema,
 });
 
 export type CreateAttachmentInput = InferOutput<typeof CreateAttachmentSchema>;
 
 export const CreateWatcherSchema = object({
-  taskId: pipe(string(), minLength(1, "taskId is required")),
-  userId: pipe(string(), minLength(1, "userId is required")),
+  taskId: IdSchema,
+  userId: IdSchema,
 });
 
 export type CreateWatcherInput = InferOutput<typeof CreateWatcherSchema>;
 
 export const CreateSavedViewSchema = object({
-  filters: optional(nullable(object({}))),
+  filters: optional(nullable(JsonValueSchema)),
   groupBy: optional(nullable(string())),
   isDefault: optional(boolean()),
   isShared: optional(boolean()),
   name: NameSchema,
-  ownerId: pipe(string(), minLength(1, "ownerId is required")),
-  projectId: optional(nullable(string())),
-  sort: optional(nullable(object({}))),
-  type: optional(string()),
+  ownerId: IdSchema,
+  projectId: optional(nullable(IdSchema)),
+  sort: optional(nullable(JsonValueSchema)),
+  type: optional(SavedViewTypeSchema),
 });
 
 export type CreateSavedViewInput = InferOutput<typeof CreateSavedViewSchema>;
 
-export const UpdateSavedViewSchema = object({
-  filters: optional(nullable(object({}))),
-  groupBy: optional(nullable(string())),
-  isDefault: optional(boolean()),
-  isShared: optional(boolean()),
-  name: optional(NameSchema),
-  sort: optional(nullable(object({}))),
-  type: optional(string()),
-});
+export const UpdateSavedViewSchema = partial(omit(CreateSavedViewSchema, ["ownerId", "projectId"]));
 
 export type UpdateSavedViewInput = InferOutput<typeof UpdateSavedViewSchema>;

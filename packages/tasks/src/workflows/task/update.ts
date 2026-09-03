@@ -1,12 +1,9 @@
 import { task } from "#/db-schemas/task";
 import { taskAssignee } from "#/db-schemas/task-assignee";
+import { TASK_EVENTS } from "#/pubsub";
 import { IdSchema, UpdateTaskSchema } from "#/types";
 import { fetchTaskStep } from "#/workflow-steps/fetch-task";
-import {
-  publishTaskDueDateChanged,
-  publishTaskStatusChanged,
-  publishTaskUpdated,
-} from "#/workflow-steps/notification-bridge";
+import { validateTransition } from "#/workflows/status/transition/validate";
 import { addActivity, validateParentTask } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -39,6 +36,38 @@ export const updateTask = Workflow.name("task.update")
 
     const changes: Record<string, JsonValue> = {};
 
+    const statusChanged =
+      input.patch.statusId !== undefined && input.patch.statusId !== current.statusId;
+
+    if (statusChanged && input.patch.statusId) {
+      const allowed = await validateTransition.run({
+        fromStatusId: current.statusId,
+        projectId: current.projectId,
+        toStatusId: input.patch.statusId,
+      });
+      if (!allowed) {
+        throw new Error(
+          `Transition from "${current.statusId}" to "${input.patch.statusId}" is not allowed.`,
+        );
+      }
+      changes.statusId = { from: current.statusId, to: input.patch.statusId };
+    }
+
+    if (input.patch.title !== undefined && input.patch.title !== current.title) {
+      changes.title = { from: current.title, to: input.patch.title };
+    }
+
+    const dueDateChanged =
+      input.patch.dueDate !== undefined &&
+      (input.patch.dueDate?.getTime() ?? null) !== (current.dueDate?.getTime() ?? null);
+
+    if (dueDateChanged) {
+      changes.dueDate = {
+        from: current.dueDate ? current.dueDate.toISOString() : null,
+        to: input.patch.dueDate ? input.patch.dueDate.toISOString() : null,
+      };
+    }
+
     const [updated] = await ctx.db
       .update(task)
       .set({
@@ -61,81 +90,54 @@ export const updateTask = Workflow.name("task.update")
       throw new Error(`Task with id "${input.id}" not found.`);
     }
 
-    const statusChanged =
-      input.patch.statusId !== undefined && input.patch.statusId !== current.statusId;
-
-    if (statusChanged) {
-      changes.statusId = { from: current.statusId, to: input.patch.statusId };
-      await addActivity(ctx.db, {
-        action: "status_changed",
-        newValue: { to: input.patch.statusId },
-        oldValue: { from: current.statusId },
-        taskId: input.id,
-        userId: current.reporterId,
-      });
-    }
-
-    if (input.patch.title && input.patch.title !== current.title) {
-      changes.title = { from: current.title, to: input.patch.title };
-    }
-
     await addActivity(ctx.db, {
-      action: "task_updated",
+      action: statusChanged ? "status_changed" : "task_updated",
       newValue: changes,
-      oldValue: current,
+      oldValue: null,
       taskId: input.id,
       userId: current.reporterId,
     });
 
     await ctx.step.run("notify", async () => {
-      await publishTaskUpdated(
-        {
+      const notifications: Promise<unknown>[] = [
+        ctx.pubsub.publish(TASK_EVENTS.UPDATED, {
           changes,
-          task: {
-            id: updated.id,
-            title: updated.title,
-          },
-        },
-        { pubsub: ctx.pubsub },
-      );
+          task: { id: updated.id, title: updated.title },
+        }),
+      ];
 
       if (statusChanged && input.patch.statusId) {
-        await publishTaskStatusChanged(
-          {
+        notifications.push(
+          ctx.pubsub.publish(TASK_EVENTS.STATUS_CHANGED, {
             fromStatus: current.statusId,
-            task: {
-              id: updated.id,
-              title: updated.title,
-            },
+            task: { id: updated.id, title: updated.title },
             toStatus: input.patch.statusId,
-          },
-          { pubsub: ctx.pubsub },
+          }),
         );
       }
-
-      const dueDateChanged =
-        input.patch.dueDate !== undefined &&
-        (input.patch.dueDate?.getTime() ?? null) !== (current.dueDate?.getTime() ?? null);
 
       if (dueDateChanged) {
-        const assignees = await ctx.db
-          .select({ userId: taskAssignee.userId })
-          .from(taskAssignee)
-          .where(eq(taskAssignee.taskId, input.id));
+        notifications.push(
+          (async () => {
+            const assignees = await ctx.db
+              .select({ userId: taskAssignee.userId })
+              .from(taskAssignee)
+              .where(eq(taskAssignee.taskId, input.id));
 
-        const userIds = [
-          ...new Set([current.reporterId, ...assignees.map((assignee) => assignee.userId)]),
-        ];
+            const userIds = [
+              ...new Set([current.reporterId, ...assignees.map((assignee) => assignee.userId)]),
+            ];
 
-        await publishTaskDueDateChanged(
-          {
-            dueDate: input.patch.dueDate ? input.patch.dueDate.toISOString() : null,
-            taskId: updated.id,
-            userIds,
-          },
-          { pubsub: ctx.pubsub },
+            await ctx.pubsub.publish(TASK_EVENTS.DUE_DATE_CHANGED, {
+              dueDate: input.patch.dueDate ? input.patch.dueDate.toISOString() : null,
+              taskId: updated.id,
+              userIds,
+            });
+          })(),
         );
       }
+
+      await Promise.all(notifications);
     });
 
     return updated;

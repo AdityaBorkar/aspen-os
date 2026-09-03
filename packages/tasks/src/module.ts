@@ -88,13 +88,11 @@ import { updateSavedView } from "#/workflows/view/update";
 
 import type { Module, ModuleInfra } from "@aspen-os/platform/server";
 
-export interface TaskModuleConfig {
-  enableNotifications?: boolean;
-}
+export type TaskModuleConfig = undefined;
 
 export class Tasks implements Module {
-  static create(config?: TaskModuleConfig): Tasks {
-    return new Tasks(config ?? {});
+  static create(): Tasks {
+    return new Tasks(undefined);
   }
 
   readonly $name = "tasks";
