@@ -6,7 +6,7 @@ export function stripUndefined<TValue extends Record<string, JsonValue>>(
   const result = { ...obj };
   for (const [key, value] of Object.entries(result)) {
     if (value === undefined) {
-      Reflect.deleteProperty(result, key);
+      delete result[key];
     }
   }
   return result;

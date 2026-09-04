@@ -109,4 +109,4 @@ export {
   NameSchema,
   WithIdSchema,
 } from "#/schemas/utils";
-export { JsonValueSchema } from "#/schemas/json";
+export { JsonValueSchema } from "@aspen-os/platform/server";

@@ -1,3 +1,3 @@
 export function toDateOnly(value: Date): string {
-  return value.toISOString().split("T")[0] ?? "";
+  return value.toISOString().slice(0, 10);
 }

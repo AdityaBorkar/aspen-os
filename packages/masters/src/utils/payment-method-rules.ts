@@ -13,27 +13,29 @@ export interface PaymentMethodTypeFields {
   upiId?: string | null | undefined;
 }
 
+type PaymentMethodDetail = string | number | null | undefined;
+
+function isPresent(value: PaymentMethodDetail): boolean {
+  return value !== null && value !== undefined;
+}
+
 export function isPaymentMethodTypeComplete(method: PaymentMethodTypeFields): boolean {
   switch (method.type) {
     case "card": {
       return (
-        method.cardBrand !== null &&
-        method.cardBrand !== undefined &&
-        method.cardLast4 !== null &&
-        method.cardLast4 !== undefined &&
-        method.cardExpiryMonth !== null &&
-        method.cardExpiryMonth !== undefined &&
-        method.cardExpiryYear !== null &&
-        method.cardExpiryYear !== undefined
+        isPresent(method.cardBrand) &&
+        isPresent(method.cardLast4) &&
+        isPresent(method.cardExpiryMonth) &&
+        isPresent(method.cardExpiryYear)
       );
     }
     case "upi": {
-      return method.upiId !== null && method.upiId !== undefined;
+      return isPresent(method.upiId);
     }
     case "bank_account":
     case "imps":
     case "cheque": {
-      return method.bankAccountId !== null && method.bankAccountId !== undefined;
+      return isPresent(method.bankAccountId);
     }
   }
 }

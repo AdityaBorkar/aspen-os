@@ -82,11 +82,10 @@ export interface AssertCodeUniqueInput {
 
 export async function assertCodeUnique(input: AssertCodeUniqueInput): Promise<void> {
   const { code, db, excludeId, label, table } = input;
-  const conditions = [eq(table.code, code), excludeId ? ne(table.id, excludeId) : undefined];
   const [existing] = await db
     .select({ id: table.id })
     .from(table)
-    .where(and(...conditions))
+    .where(and(eq(table.code, code), excludeId ? ne(table.id, excludeId) : undefined))
     .limit(1);
 
   if (existing) {

@@ -1,5 +1,4 @@
-import { JsonValueSchema } from "#/schemas/json";
-
+import { JsonValueSchema } from "@aspen-os/platform/server";
 import { pipe, record, regex, string } from "valibot";
 
 export { EmailSchema, IdSchema, NameSchema, WithIdSchema } from "@aspen-os/platform/server";

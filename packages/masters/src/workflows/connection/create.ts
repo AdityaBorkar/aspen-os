@@ -21,28 +21,26 @@ export function createConnection(kvStore: KvStoreUnit) {
         kvStore.set(credentialRef, parsed.credential, CREDENTIAL_NO_EXPIRY),
       );
 
-      const connectionRow = await (async () => {
-        try {
-          const [row] = await ctx.db
-            .insert(masterConnection)
-            .values({
-              baseUrl: parsed.baseUrl ?? null,
-              credentialRef,
-              description: parsed.description ?? null,
-              entityId: parsed.entityId,
-              entityType: parsed.entityType,
-              metadata: parsed.metadata ?? null,
-              name: parsed.name,
-              status: parsed.status,
-              type: parsed.type,
-            })
-            .returning();
-          return row;
-        } catch (error) {
-          await ctx.step.run("delete-orphaned-credential", () => kvStore.del(credentialRef));
-          throw error;
-        }
-      })();
+      let connectionRow: typeof masterConnection.$inferSelect | undefined = undefined;
+      try {
+        [connectionRow] = await ctx.db
+          .insert(masterConnection)
+          .values({
+            baseUrl: parsed.baseUrl ?? null,
+            credentialRef,
+            description: parsed.description ?? null,
+            entityId: parsed.entityId,
+            entityType: parsed.entityType,
+            metadata: parsed.metadata ?? null,
+            name: parsed.name,
+            status: parsed.status,
+            type: parsed.type,
+          })
+          .returning();
+      } catch (error) {
+        await ctx.step.run("delete-orphaned-credential", () => kvStore.del(credentialRef));
+        throw error;
+      }
 
       if (!connectionRow) {
         await ctx.step.run("delete-orphaned-credential", () => kvStore.del(credentialRef));

@@ -49,7 +49,7 @@ export const updatePaymentMethod = Workflow.name("masters.payment-method.update"
       );
     }
 
-    const updates = stripUndefined({ ...input.patch });
+    const updates = stripUndefined(input.patch);
 
     const [updated] = await ctx.db
       .update(masterPaymentMethod)

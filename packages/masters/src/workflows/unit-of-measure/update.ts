@@ -70,7 +70,7 @@ export const updateUnitOfMeasure = Workflow.name("masters.unit-of-measure.update
       symbol: input.patch.symbol,
     });
 
-    const patchChanges = stripUndefined({ ...input.patch });
+    const patchChanges = stripUndefined(input.patch);
 
     const [updated] = await ctx.db
       .update(masterUnitOfMeasure)

@@ -13,6 +13,7 @@ export interface EndpointTestResult {
 }
 
 export async function testEndpoint(baseUrl: string): Promise<EndpointTestResult> {
+  const testedAt = new Date().toISOString();
   try {
     const url = new URL(baseUrl);
     const response = await fetch(url, {
@@ -22,14 +23,14 @@ export async function testEndpoint(baseUrl: string): Promise<EndpointTestResult>
     return {
       ok: response.ok,
       status: response.status,
-      testedAt: new Date().toISOString(),
+      testedAt,
     };
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : String(error),
       ok: false,
       status: null,
-      testedAt: new Date().toISOString(),
+      testedAt,
     };
   }
 }

@@ -20,19 +20,17 @@ export function rotateConnectionCredential(kvStore: KvStoreUnit) {
         kvStore.set(newRef, input.credential, CREDENTIAL_NO_EXPIRY),
       );
 
-      const updated = await (async () => {
-        try {
-          const [row] = await ctx.db
-            .update(masterConnection)
-            .set({ credentialRef: newRef, updatedAt: new Date() })
-            .where(eq(masterConnection.id, input.id))
-            .returning();
-          return row;
-        } catch (error) {
-          await ctx.step.run("delete-orphaned-credential", () => kvStore.del(newRef));
-          throw error;
-        }
-      })();
+      let updated: typeof masterConnection.$inferSelect | undefined = undefined;
+      try {
+        [updated] = await ctx.db
+          .update(masterConnection)
+          .set({ credentialRef: newRef, updatedAt: new Date() })
+          .where(eq(masterConnection.id, input.id))
+          .returning();
+      } catch (error) {
+        await ctx.step.run("delete-orphaned-credential", () => kvStore.del(newRef));
+        throw error;
+      }
 
       if (!updated) {
         await ctx.step.run("delete-orphaned-credential", () => kvStore.del(newRef));
