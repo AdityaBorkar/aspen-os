@@ -1,5 +1,15 @@
 import { isValidCountryCode } from "@aspen-os/constants";
-import { check, maxLength, minLength, number, object, pipe, regex, string } from "valibot";
+import {
+  check,
+  maxLength,
+  minLength,
+  number,
+  object,
+  pipe,
+  regex,
+  string,
+  transform,
+} from "valibot";
 
 export { NameSchema, SlugSchema } from "@aspen-os/platform/server";
 
@@ -22,6 +32,7 @@ export const BranchCodeSchema = pipe(
 export const CountryCodeSchema = pipe(
   string(),
   regex(ISO_COUNTRY_CODE_REGEX, "Must be a valid ISO 3166-1 alpha-2 code"),
+  transform((value) => value.toUpperCase()),
   check((value) => isValidCountryCode(value), "Must be a valid ISO 3166-1 alpha-2 code"),
 );
 

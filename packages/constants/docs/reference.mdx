@@ -4,27 +4,45 @@ description: Every constant, type, and utility exported by @aspen-os/constants.
 icon: IconNumber123
 ---
 
-The package exports eight `as const` objects with derived union types, plus a country code array, type, and type guard.
+The package has no dependencies. Each domain lives in its own module re-exported by `src/index.ts`: `organization`, `masters`, `notes`, `compliance`, `comms`, `country-codes`.
 
-## Organization Constants
+## Organization Constants (`src/organization.ts`)
 
-| Constant               | Type                 | Values                                                                                                             |
-| ---------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `ORGANIZATION_STATUS`  | `OrganizationStatus` | `active`, `archived`, `suspended`                                                                                  |
-| `BRANCH_TYPE`          | `BranchType`         | `factory`, `headquarters`, `office`, `other`, `remote`, `store`, `warehouse`                                       |
-| `CONNECTION_TYPE`      | `ConnectionType`     | `bank`, `client`, `insurer`, `investor`, `other`, `parent_company`, `partner`, `regulator`, `subsidiary`, `vendor` |
-| `CONNECTION_STATUS`    | `ConnectionStatus`   | `active`, `former`, `inactive`, `prospect`                                                                         |
-| `CONNECTION_NOTE_TYPE` | `ConnectionNoteType` | `call`, `contract_renewal`, `email`, `general`, `issue`, `meeting`                                                 |
+| Constant              | Type                 | Values                                                                       |
+| --------------------- | -------------------- | ---------------------------------------------------------------------------- |
+| `ORGANIZATION_STATUS` | `OrganizationStatus` | `active`, `archived`, `suspended`                                            |
+| `BRANCH_TYPE`         | `BranchType`         | `factory`, `headquarters`, `office`, `other`, `remote`, `store`, `warehouse` |
 
-## Compliance Constants
+## Masters Constants (`src/masters.ts`)
 
-| Constant              | Type                 | Values                                                                                                                  |
-| --------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `COMPLIANCE_CATEGORY` | `ComplianceCategory` | `certificate`, `environmental`, `hr`, `insurance`, `legal`, `license`, `other`, `permit`, `regulatory`, `safety`, `tax` |
-| `COMPLIANCE_STATUS`   | `ComplianceStatus`   | `active`, `archived`, `expired`, `expiring_soon`, `renewal_in_progress`                                                 |
-| `RENEWAL_FREQUENCY`   | `RenewalFrequency`   | `annual`, `biennial`, `monthly`, `one_time`, `quarterly`, `semi_annual`, `triennial`                                    |
+| Constant                   | Type                     | Values                                                                                                                                                                          |
+| -------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CONTACT_TYPE`             | `ContactType`            | `bank`, `client`, `insurer`, `investor`, `other`, `parent_company`, `partner`, `regulator`, `subsidiary`, `vendor`                                                              |
+| `INTEGRATION_TYPE`         | `IntegrationType`        | `api_key`, `basic_auth`, `database`, `oauth2`, `other`, `webhook`                                                                                                               |
+| `CONNECTION_STATUS`        | `ConnectionStatus`       | `active`, `expired`, `inactive`, `revoked`                                                                                                                                      |
+| `MASTER_ENTITY_TYPE`       | `MasterEntityType`       | `branch`, `connection`, `contact`, `entity`, `organization`                                                                                                                     |
+| `MASTER_ENTITY_KIND`       | `MasterEntityKind`       | `bank`, `clinic`, `customer`, `government`, `hospital`, `insurer`, `laboratory`, `other`, `partner`, `pharmacy`, `regulator`, `staffing_agency`, `training_institute`, `vendor` |
+| `ENTITY_STATUS`            | `EntityStatus`           | `active`, `archived`, `inactive`                                                                                                                                                |
+| `UOM_CATEGORY`             | `UomCategory`            | `area`, `count`, `data`, `length`, `mass`, `other`, `temperature`, `time`, `volume`                                                                                             |
+| `PAYMENT_METHOD_TYPE`      | `PaymentMethodType`      | `bank_account`, `card`, `cheque`, `imps`, `upi`                                                                                                                                 |
+| `PAYMENT_METHOD_STATUS`    | `PaymentMethodStatus`    | `active`, `archived`, `inactive`                                                                                                                                                |
+| `PAYMENT_METHOD_DIRECTION` | `PaymentMethodDirection` | `both`, `inbound`, `outbound`                                                                                                                                                   |
+| `CARD_BRAND`               | `CardBrand`              | `amex`, `mastercard`, `other`, `rupay`, `visa`                                                                                                                                  |
 
-## Comms Constants
+## Notes Constants (`src/notes.ts`)
+
+| Constant    | Type       | Values                                                             |
+| ----------- | ---------- | ------------------------------------------------------------------ |
+| `NOTE_TYPE` | `NoteType` | `call`, `contract_renewal`, `email`, `general`, `issue`, `meeting` |
+
+## Compliance Constants (`src/compliance.ts`)
+
+| Constant              | Type                 | Values                                                                                                                                                                               |
+| --------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `COMPLIANCE_CATEGORY` | `ComplianceCategory` | `audit`, `certificate`, `data_privacy`, `environmental`, `financial`, `hr`, `insurance`, `legal`, `license`, `other`, `permit`, `property`, `regulatory`, `safety`, `tax`, `vehicle` |
+| `RENEWAL_FREQUENCY`   | `RenewalFrequency`   | `annual`, `biennial`, `monthly`, `one_time`, `quarterly`, `semi_annual`, `triennial`                                                                                                 |
+
+## Comms Constants (`src/comms.ts`)
 
 | Constant                | Type                   | Values                                                                          |
 | ----------------------- | ---------------------- | ------------------------------------------------------------------------------- |
@@ -37,24 +55,29 @@ The package exports eight `as const` objects with derived union types, plus a co
 | `NOTIFICATION_SEVERITY` | `NotificationSeverity` | `normal`, `important`, `urgent`                                                 |
 | `MESSAGE_STATUS`        | `MessageStatus`        | `queued`, `sending`, `sent`, `delivered`, `failed`                              |
 
-## Country Codes
+## Country Codes (`src/country-codes.ts`)
 
 ```ts
-import { COUNTRY_CODES, type CountryCode, isValidCountryCode } from "@aspen-os/constants";
+import {
+  COUNTRY_CODES,
+  type CountryCode,
+  isValidCountryCode,
+  parseCountryCode,
+} from "@aspen-os/constants";
 
 const code: CountryCode = "US";
 
 function setCountry(input: string): CountryCode {
-  if (!isValidCountryCode(input)) {
+  const parsed = parseCountryCode(input);
+  if (parsed === undefined) {
     throw new Error(`Unknown country code: ${input}`);
   }
-  return input; // narrowed to CountryCode
+  return parsed; // normalized to uppercase CountryCode
+}
+
+function isCountry(input: string): input is CountryCode {
+  return isValidCountryCode(input); // strict: only uppercase codes narrow
 }
 
 COUNTRY_CODES; // readonly ["AD", "AE", ..., "ZW"] — 249 ISO 3166-1 alpha-2 codes
 ```
-
-<Callout type="info">
-  `src/country-codes.ts` and `src/languages.ts` are empty placeholder files reserved for future
-  expansion of country and language data beyond the alpha-2 codes in `COUNTRY_CODES`.
-</Callout>

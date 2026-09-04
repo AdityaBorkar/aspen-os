@@ -1,8 +1,8 @@
 import type {
   ContactType,
   ConnectionStatus,
-  EntityType,
   IntegrationType,
+  MasterEntityKind,
   MasterEntityType,
   PaymentMethodDirection,
   PaymentMethodType,
@@ -169,7 +169,7 @@ export interface EntityCreatedEvent {
   entity: {
     id: string;
     name: string;
-    type: EntityType;
+    type: MasterEntityKind;
   };
 }
 
@@ -178,7 +178,7 @@ export interface EntityUpdatedEvent {
   entity: {
     id: string;
     name: string;
-    type: EntityType;
+    type: MasterEntityKind;
   };
 }
 
@@ -186,7 +186,7 @@ export interface EntityRemovedEvent {
   entity: {
     id: string;
     name: string;
-    type: EntityType;
+    type: MasterEntityKind;
   };
 }
 

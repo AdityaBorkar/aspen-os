@@ -3,8 +3,8 @@ import {
   CONTACT_TYPE,
   CONNECTION_STATUS,
   ENTITY_STATUS,
-  ENTITY_TYPE,
   INTEGRATION_TYPE,
+  MASTER_ENTITY_KIND,
   MASTER_ENTITY_TYPE,
   PAYMENT_METHOD_DIRECTION,
   PAYMENT_METHOD_STATUS,
@@ -15,7 +15,7 @@ import { picklist } from "valibot";
 
 export const MasterEntityTypeSchema = picklist(Object.values(MASTER_ENTITY_TYPE));
 
-export const EntityTypeSchema = picklist(Object.values(ENTITY_TYPE));
+export const EntityTypeSchema = picklist(Object.values(MASTER_ENTITY_KIND));
 
 export const EntityStatusSchema = picklist(Object.values(ENTITY_STATUS));
 
@@ -40,8 +40,8 @@ export {
   CONTACT_TYPE,
   CONNECTION_STATUS,
   ENTITY_STATUS,
-  ENTITY_TYPE,
   INTEGRATION_TYPE,
+  MASTER_ENTITY_KIND,
   MASTER_ENTITY_TYPE,
   PAYMENT_METHOD_DIRECTION,
   PAYMENT_METHOD_STATUS,

@@ -1,23 +1,5 @@
-export const COMPLIANCE_CATEGORY = {
-  AUDIT: "audit",
-  CERTIFICATE: "certificate",
-  DATA_PRIVACY: "data_privacy",
-  ENVIRONMENTAL: "environmental",
-  FINANCIAL: "financial",
-  HR: "hr",
-  INSURANCE: "insurance",
-  LEGAL: "legal",
-  LICENSE: "license",
-  OTHER: "other",
-  PERMIT: "permit",
-  PROPERTY: "property",
-  REGULATORY: "regulatory",
-  SAFETY: "safety",
-  TAX: "tax",
-  VEHICLE: "vehicle",
-} as const;
-
-export type ComplianceCategory = (typeof COMPLIANCE_CATEGORY)[keyof typeof COMPLIANCE_CATEGORY];
+export { COMPLIANCE_CATEGORY, RENEWAL_FREQUENCY } from "@aspen-os/constants";
+export type { ComplianceCategory, RenewalFrequency } from "@aspen-os/constants";
 
 export const VERIFICATION_STATUS = {
   ARCHIVED: "archived",
@@ -32,18 +14,6 @@ export const VERIFICATION_STATUS = {
 } as const;
 
 export type VerificationStatus = (typeof VERIFICATION_STATUS)[keyof typeof VERIFICATION_STATUS];
-
-export const RENEWAL_FREQUENCY = {
-  ANNUAL: "annual",
-  BIENNIAL: "biennial",
-  MONTHLY: "monthly",
-  ONE_TIME: "one_time",
-  QUARTERLY: "quarterly",
-  SEMI_ANNUAL: "semi_annual",
-  TRIENNIAL: "triennial",
-} as const;
-
-export type RenewalFrequency = (typeof RENEWAL_FREQUENCY)[keyof typeof RENEWAL_FREQUENCY];
 
 export const OBLIGATION_FREQUENCY = {
   ANNUAL: "annual",

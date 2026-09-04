@@ -391,7 +391,7 @@ Platform declares `zod` and RPC docs show `z.object({ ... })`, but RPC source ha
 
 - Constants as `as const` objects w/ `UPPER_SNAKE` keys + lowercase string values.
 - Types derived via indexed access: `type X = (typeof OBJ)[keyof typeof OBJ]`.
-- Shared constants in `@aspen-os/constants` — `src/index.ts` holds shared enums (`ORGANIZATION_STATUS`, `BRANCH_TYPE`, `COMPLIANCE_CATEGORY`, `COUNTRY_CODES` + `isValidCountryCode` guard, …); `src/country-codes.ts` / `src/languages.ts` empty stubs.
+- Shared constants in `@aspen-os/constants` — per-domain modules re-exported by `src/index.ts` (`organization.ts`, `masters.ts`, `notes.ts`, `compliance.ts`, `comms.ts`, `country-codes.ts` with `COUNTRY_CODES` + `isValidCountryCode`/`parseCountryCode`); zero dependencies.
 - Module-specific constants in module's `constants.ts` (or `utils/constants.ts`).
 - Valibot `enum_()` schemas in `schemas/enums.ts` mirror constant objects.
 - `pgEnum` values reference constant objects.
