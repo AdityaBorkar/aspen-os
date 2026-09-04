@@ -2,11 +2,14 @@ export type { BranchType, OrganizationStatus } from "@aspen-os/constants";
 
 export type {
   BranchActivatedEvent,
+  BranchArchivedEvent,
   BranchClosedEvent,
   BranchCreatedEvent,
   BranchDeactivatedEvent,
+  BranchRestoredEvent,
   BranchUpdatedEvent,
   OrganizationBrandingUpdatedEvent,
+  OrganizationCreatedEvent,
   OrganizationDomainEventMap,
   OrganizationUpdatedEvent,
 } from "#/pubsub";

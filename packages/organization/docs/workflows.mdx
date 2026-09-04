@@ -10,47 +10,48 @@ The Organization module exposes two workflow groups as flat `Workflow` objects: 
 
 Access: `p.organization.organizations`
 
-Manages the organization entity itself — branding, logo, profile.
+Manages the organization entity itself — branding, logo, profile. All mutations share one writer, so fetching, updating, and not-found handling behave identically. Every mutation publishes an event (`organization:created`, `organization:updated`, or `organization:branding_updated`).
 
 ```ts
 await p.organization.organizations.create({ name, slug, ... });
-const org = await p.organization.organizations.get({ id });
-await p.organization.organizations.update({ id, name });
-await p.organization.organizations.updateBranding({ id, accentColor, logo });
-await p.organization.organizations.uploadLogo({ id, file });
-await p.organization.organizations.deleteLogo({ id });
+const org = await p.organization.organizations.get({});
+await p.organization.organizations.update({ name });
+await p.organization.organizations.updateBranding({ accentColor, logo });
+await p.organization.organizations.uploadLogo({ storageKey });
+await p.organization.organizations.deleteLogo({});
 ```
 
 ## Branches
 
 Access: `p.organization.branches`
 
-Manages hierarchical branch structures.
+Manages hierarchical branch structures. `activate` / `deactivate` / `archive` / `restore` share one active-flag transition with distinct events; `close` additionally stamps `closedDate`.
 
 ```ts
-await p.organization.branches.create({ organizationId, name, code, type, parentId });
-await p.organization.branches.update({ id, name });
+await p.organization.branches.create({ name, code, type, ... });
+await p.organization.branches.update({ id, patch: { name } });
 await p.organization.branches.activate({ id });
 await p.organization.branches.deactivate({ id });
-await p.organization.branches.close({ id });
+await p.organization.branches.close({ id, date });
 await p.organization.branches.archive({ id });
 await p.organization.branches.restore({ id });
 await p.organization.branches.get({ id });
 
-// Hierarchical view
-const tree = await p.organization.branches.tree({ organizationId });
+// Hierarchical view (active branches; orphans promoted to roots)
+const tree = await p.organization.branches.tree({});
 // [{ id, name, children: [...] }]
 
-const branches = await p.organization.branches.list({ organizationId });
+const branches = await p.organization.branches.list({ filters: { type: "office" } });
 ```
 
 ### Business Rules
 
 - **Single headquarters** — exactly one branch of type `headquarters` per organization
-- **Max 5 levels** — hierarchy depth enforced in the workflow
-- **No circular parents** — detected via recursive traversal
-- **Code uniqueness** — branch codes must be unique
+- **Max 5 levels** — hierarchy depth enforced in the workflow (single ancestor walk)
+- **No circular parents** — detected in the same ancestor walk; unknown parents rejected
+- **Code uniqueness** — branch codes unique (case-insensitive, uppercased on insert)
+- **Country codes** — validated against ISO 3166-1 alpha-2 at the schema boundary
 
 ## Notes
 
-All workflow methods are `Workflow.name(...)` instances with Valibot input validation and platform workflow persistence. Create-style methods take `{ input: CreateXxxSchema }`; update takes `{ id, patch: UpdateXxxSchema }`.
+All workflow methods are `Workflow.name(...)` instances with Valibot input validation and platform workflow persistence. `create` takes its entity schema directly; `update` takes `{ id, patch }`.

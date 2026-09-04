@@ -1,54 +1,47 @@
-import { organization } from "#/db-schemas";
 import { ORGANIZATION_EVENTS } from "#/pubsub";
 import { UpdateOrganizationSchema } from "#/types";
-import { stripUndefined } from "#/utils/strip-undefined";
-import { fetchOrganizationStep } from "#/workflow-steps/fetch-organization";
+import { toDateOnly } from "#/utils/dates";
+import { applyOrganizationUpdate, requireCurrentOrganization } from "#/workflows/org/utils";
+import { collectChanges, ensureSlugAvailable } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { eq } from "drizzle-orm";
 
 export const updateOrganization = Workflow.name("org.update")
   .input(UpdateOrganizationSchema)
   .handler(async (input, ctx) => {
-    const current = await ctx.step.run(fetchOrganizationStep, {});
-    if (!current) {
-      throw new Error("Organization not found. Create one first.");
+    const current = await requireCurrentOrganization(ctx.step);
+
+    if (input.slug !== undefined && input.slug !== current.slug) {
+      await ensureSlugAvailable(ctx.db, input.slug, current.id);
     }
 
-    const data = stripUndefined(input);
+    const values = {
+      accentColor: input.accentColor,
+      address: input.address,
+      email: input.email,
+      foundedDate: input.foundedDate ? toDateOnly(input.foundedDate) : undefined,
+      industry: input.industry,
+      locale: input.locale,
+      logo: input.logo,
+      metadata: input.metadata,
+      name: input.name,
+      phone: input.phone,
+      registrationNumber: input.registrationNumber,
+      slug: input.slug,
+      status: input.status,
+      taxId: input.taxId,
+      timezone: input.timezone,
+      website: input.website,
+    };
 
-    if (Object.keys(data).length === 0) {
+    if (Object.values(values).every((value) => value === undefined)) {
       return current;
     }
 
-    if (input.slug !== undefined) {
-      const [conflict] = await ctx.db
-        .select({ id: organization.id })
-        .from(organization)
-        .where(eq(organization.slug, input.slug))
-        .limit(1);
-
-      if (conflict && conflict.id !== current.id) {
-        throw new Error(`Organization with slug "${input.slug}" already exists.`);
-      }
-    }
-
-    const [updated] = await ctx.db
-      .update(organization)
-      .set({
-        ...data,
-        foundedDate: input.foundedDate?.toISOString().split("T")[0] ?? undefined,
-        updatedAt: new Date(),
-      })
-      .where(eq(organization.id, current.id))
-      .returning();
-
-    if (!updated) {
-      throw new Error("Failed to update organization.");
-    }
+    const updated = await applyOrganizationUpdate(ctx, values);
 
     await ctx.pubsub.publish(ORGANIZATION_EVENTS.UPDATED, {
-      changes: data,
+      changes: collectChanges(values),
       organization: { id: updated.id, name: updated.name, slug: updated.slug },
     });
 

@@ -5,7 +5,7 @@ import { date, nullable, object, optional, string } from "valibot";
 import type { InferOutput } from "valibot";
 
 export const CreateOrganizationSchema = object({
-  accentColor: AccentColorSchema,
+  accentColor: optional(AccentColorSchema, "#3B82F6"),
   address: optional(nullable(string())),
   email: optional(nullable(string())),
   foundedDate: optional(date()),

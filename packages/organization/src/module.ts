@@ -25,12 +25,13 @@ export interface OrganizationConfig {
 }
 
 export class Organization implements Module {
-  static create(config: OrganizationConfig): Organization {
+  static create(config: OrganizationConfig = { country: "INDIA" }): Organization {
     return new Organization(config);
   }
 
   readonly $name = "organization";
-  readonly $dependencies = ["masters"] as const;
+  readonly $dependencies: readonly string[] = [];
+  /** Reserved for future country-specific validation. Currently unused. */
   readonly $config: OrganizationConfig;
 
   constructor(config: OrganizationConfig) {

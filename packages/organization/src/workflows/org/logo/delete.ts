@@ -1,27 +1,15 @@
-import { organization } from "#/db-schemas";
-import { fetchOrganizationStep } from "#/workflow-steps/fetch-organization";
+import { ORGANIZATION_EVENTS } from "#/pubsub";
+import { applyOrganizationUpdate } from "#/workflows/org/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { eq } from "drizzle-orm";
 import { object } from "valibot";
 
 export const deleteLogo = Workflow.name("org.delete-logo")
   .input(object({}))
   .handler(async (_input, ctx) => {
-    const current = await ctx.step.run(fetchOrganizationStep, {});
-    if (!current) {
-      throw new Error("Organization not found. Create one first.");
-    }
+    const updated = await applyOrganizationUpdate(ctx, { logo: null });
 
-    const [updated] = await ctx.db
-      .update(organization)
-      .set({ logo: null, updatedAt: new Date() })
-      .where(eq(organization.id, current.id))
-      .returning();
-
-    if (!updated) {
-      throw new Error("Failed to delete logo.");
-    }
+    await ctx.pubsub.publish(ORGANIZATION_EVENTS.BRANDING_UPDATED, { logo: null });
 
     return updated;
   });

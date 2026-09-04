@@ -18,6 +18,6 @@ export const getBranchTree = Workflow.name("branch.tree")
         .from(branch)
         .where(eq(branch.isActive, true));
 
-      return buildTree(allBranches, null);
+      return buildTree(allBranches);
     }),
   );

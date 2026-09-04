@@ -10,13 +10,13 @@ The Organization module manages the organization profile — the root business e
 
 ```ts title="src/module.ts"
 export class Organization implements Module {
-  static create(config: OrganizationConfig): Organization;
+  static create(config?: OrganizationConfig): Organization;
   readonly $name = "organization";
-  readonly $dependencies = ["masters"] as const;
+  readonly $dependencies: readonly string[] = [];
 }
 ```
 
-`OrganizationConfig` is `{ country: "INDIA" }` — country-specific configuration for address validation.
+`OrganizationConfig` is `{ country: "INDIA" }`, reserved for future country-specific validation and currently unused. It defaults when omitted, so `Organization.create()` works on its own.
 
 ## Infrastructure
 

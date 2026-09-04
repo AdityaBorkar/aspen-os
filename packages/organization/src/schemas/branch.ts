@@ -64,7 +64,7 @@ export const UpdateBranchSchema = object({
 export type UpdateBranchInput = InferOutput<typeof UpdateBranchSchema>;
 
 export const BranchFiltersSchema = object({
-  country: optional(string()),
+  country: optional(CountryCodeSchema),
   isActive: optional(boolean()),
   parentBranch: optional(string()),
   type: optional(BranchTypeSchema),

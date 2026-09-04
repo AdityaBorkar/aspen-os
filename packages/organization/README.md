@@ -2,7 +2,7 @@
 
 A domain module for the Aspen OS framework that manages the **organization profile** and its hierarchical **branches**.
 
-> Contacts, addresses, bank accounts, integration connections, and notes were extracted into the **Masters** module (`@aspen-os/masters`) as polymorphic tenant master data. This module depends on `masters` and owns only the org profile and branches.
+> Contacts, addresses, bank accounts, integration connections, and notes were extracted into the **Masters** module (`@aspen-os/masters`) as polymorphic tenant master data. This module owns only the org profile and branches and has no module dependencies.
 
 ## Table of Contents
 
@@ -22,10 +22,10 @@ A domain module for the Aspen OS framework that manages the **organization profi
 
 The organization module provides two workflow groups accessible on the platform instance via `platform.organization.<getter>`.
 
-**Package**: `@aspen-os/organization`  
-**Dependencies**: `@aspen-os/platform`, `@aspen-os/constants`, `@aspen-os/masters` (module dependency), `drizzle-orm`, `valibot`  
-**Module name**: `"organization"`  
-**Tables**: 2 tables, 2 pg enums  
+**Package**: `@aspen-os/organization`
+**Dependencies**: `@aspen-os/platform`, `@aspen-os/constants`, `drizzle-orm`, `valibot`
+**Module name**: `"organization"`
+**Tables**: 2 tables, 2 pg enums
 **Validation**: Valibot for all input schemas
 
 ## Installation
@@ -40,9 +40,9 @@ bun install  # workspace package, no separate install needed
 import { SingleTenantPlatform } from "@aspen-os/platform/server";
 import { Organization } from "@aspen-os/organization";
 
-const organization = Organization.create({ country: "INDIA" });
+const organization = Organization.create();
 
-const platform = SingleTenantPlatform.create(config, [masters, organization]);
+const platform = SingleTenantPlatform.create(config, [organization]);
 
 // Access workflows via the module proxy
 platform.organization.organizations; // OrganizationWorkflow
@@ -57,9 +57,9 @@ type OrganizationConfig = {
 };
 
 class Organization {
-  static create(config: OrganizationConfig): Organization;
+  static create(config?: OrganizationConfig): Organization;
   readonly $name = "organization";
-  readonly $dependencies = ["masters"] as const;
+  readonly $dependencies: readonly string[] = [];
 
   $initialize(units): void;
   $prepareRuntime(): Promise<void>;
@@ -102,13 +102,13 @@ platform.organization.organizations.get(): Promise<Organization | null>
 platform.organization.organizations.create(input: CreateOrganizationInput): Promise<Organization>
 platform.organization.organizations.update(patch: UpdateOrganizationInput): Promise<Organization>
 platform.organization.organizations.updateBranding(patch: UpdateBrandingInput): Promise<Organization>
-platform.organization.organizations.uploadLogo(storageKey: string): Promise<Organization>
+platform.organization.organizations.uploadLogo(input: { storageKey: string }): Promise<Organization>
 platform.organization.organizations.deleteLogo(): Promise<Organization>
 ```
 
-- `create()` auto-generates a slug from `name` if not provided (lowercase, hyphenated, max 63 chars).
-- `update()` checks slug uniqueness if changing.
-- `updateBranding()` updates `accentColor`, `logo`, and/or `name`.
+- `create()` auto-generates a unique slug from `name` if not provided (lowercase, hyphenated, max 63 chars, `-2`/`-3` suffix on conflict) and publishes `organization:created`.
+- `update()` throws on slug conflict; empty patches return the current row without writing.
+- `updateBranding()` updates `accentColor`, `logo`, and/or `name`; logo mutations publish `organization:branding_updated`.
 
 ### BranchWorkflow
 
@@ -130,12 +130,12 @@ platform.organization.branches.tree(): Promise<BranchTreeNode[]>
 **Business rules enforced**:
 
 - Single headquarters per organization (workflow-level check).
-- Max 5-level hierarchy depth (workflow-level check via parent-chain traversal).
-- No self-parent (rejected with error).
-- No circular parent references (detected via recursive traversal).
+- Max 5-level hierarchy depth (single ancestor walk).
+- Unknown parents rejected; no self-parent; no circular parent references.
 - Unique branch codes (case-insensitive, uppercased on insert).
-- Country code validated via `isValidCountryCode()` from `@aspen-os/constants`.
-- `tree()` returns only active branches (inactive/archived/closed excluded).
+- Country codes validated against ISO 3166-1 alpha-2 at the schema boundary.
+- `activate`/`deactivate`/`archive`/`restore` share one active-flag transition with distinct events (`branch:activated`, `branch:deactivated`, `branch:archived`, `branch:restored`).
+- `tree()` returns active branches; orphaned subtrees are promoted to roots instead of dropped.
 
 ## Validation Schemas
 
@@ -143,14 +143,14 @@ All input validation uses **Valibot**. Each entity has `Create*Schema`, `Update*
 
 Shared validators in `schemas/utils.ts`:
 
-| Validator           | Rules                                                 |
-| ------------------- | ----------------------------------------------------- |
-| `NameSchema`        | String, 1-255 chars                                   |
-| `SlugSchema`        | String, 3-63 chars, `^[a-z0-9]+(-[a-z0-9]+)*$`        |
-| `BranchCodeSchema`  | String, 2-20 chars, uppercase alphanumeric + hyphens  |
-| `CountryCodeSchema` | String matching `^[A-Z]{2}$` (ISO alpha-2 format)     |
-| `AccentColorSchema` | String matching 6-digit hex (`#RRGGBB`)               |
-| `LogoFileSchema`    | `{ contentType, size }` -- png/jpeg/svg/webp, max 5MB |
+| Validator           | Rules                                                          |
+| ------------------- | -------------------------------------------------------------- |
+| `NameSchema`        | String, 1-255 chars                                            |
+| `SlugSchema`        | String, 3-63 chars, `^[a-z0-9]+(-[a-z0-9]+)*$`                 |
+| `BranchCodeSchema`  | String, 2-20 chars, alphanumeric + hyphens (stored uppercase)  |
+| `CountryCodeSchema` | String, ISO 3166-1 alpha-2 membership via `isValidCountryCode` |
+| `AccentColorSchema` | String matching 6-digit hex (`#RRGGBB`)                        |
+| `LogoFileSchema`    | `{ contentType, size }` -- png/jpeg/svg/webp, max 5MB          |
 
 Schemas are co-exported with their inferred types:
 
@@ -161,12 +161,13 @@ import { CreateOrganizationSchema, UpdateOrganizationSchema } from "@aspen-os/or
 
 ## Events
 
-The event map defines 7 events across 2 groups. These are **type-level contracts**; workflows publish events at runtime via PubSub.
+The event map defines 10 events across 2 groups. These are **type-level contracts**; every command workflow publishes exactly one event.
 
 ### Organization Events
 
 | Event                           | Payload                                                                  |
 | ------------------------------- | ------------------------------------------------------------------------ |
+| `organization:created`          | `{ organization: { id, name, slug } }`                                   |
 | `organization:updated`          | `{ changes: Record<string, unknown>; organization: { id, name, slug } }` |
 | `organization:branding_updated` | `{ accentColor?, logo?, name? }`                                         |
 
@@ -178,6 +179,8 @@ The event map defines 7 events across 2 groups. These are **type-level contracts
 | `branch:updated`     | `{ branch: { id, name }; changes: Record<string, unknown> }` |
 | `branch:activated`   | `{ branchId }`                                               |
 | `branch:deactivated` | `{ branchId }`                                               |
+| `branch:archived`    | `{ branchId }`                                               |
+| `branch:restored`    | `{ branchId }`                                               |
 | `branch:closed`      | `{ branchId, date }`                                         |
 
 ## Constants
@@ -209,7 +212,7 @@ packages/organization/
       organization.ts     # Create/Update/Branding schemas
       branch.ts           # Create/Update/Filters schemas
     workflows/
-      org/                # OrganizationWorkflow (create, get, update, branding, logo)
-      branch/             # BranchWorkflow (hierarchy enforcement, tree)
-      utils.ts            # Branch hierarchy helpers
+      org/                # Organization workflows (create, get, update, branding, logo) + shared writer
+      branch/             # Branch workflows (hierarchy enforcement, tree, lifecycle)
+      utils.ts            # Shared helpers (slug, hierarchy walk, active-flag transition, tree)
 ```

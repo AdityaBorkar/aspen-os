@@ -1,15 +1,16 @@
 ---
 title: Events
-description: Domain event map for the Organization module — 7 events across 2 event groups.
+description: Domain event map for the Organization module — 10 events across 2 event groups.
 icon: IconBell
 ---
 
-The Organization module defines 7 domain events across 2 event groups. Events are type-level contracts published as plain string topics via PubSub.
+The Organization module defines 10 domain events across 2 event groups. Events are type-level contracts published as plain string topics via PubSub. Every command workflow publishes exactly one event.
 
 ## Event Constants
 
 ```ts title="src/pubsub.ts"
 export const ORGANIZATION_EVENTS = {
+  CREATED: "organization:created",
   UPDATED: "organization:updated",
   BRANDING_UPDATED: "organization:branding_updated",
 } as const;
@@ -19,6 +20,8 @@ export const BRANCH_EVENTS = {
   UPDATED: "branch:updated",
   ACTIVATED: "branch:activated",
   DEACTIVATED: "branch:deactivated",
+  ARCHIVED: "branch:archived",
+  RESTORED: "branch:restored",
   CLOSED: "branch:closed",
 } as const;
 ```
@@ -29,6 +32,7 @@ export const BRANCH_EVENTS = {
 
 | Event                           | Payload                                         | Trigger              |
 | ------------------------------- | ----------------------------------------------- | -------------------- |
+| `organization:created`          | `{ organization: { id, name, slug } }`          | Organization created |
 | `organization:updated`          | `{ changes, organization: { id, name, slug } }` | Organization updated |
 | `organization:branding_updated` | `{ name?, logo?, accentColor? }`                | Branding changed     |
 
@@ -40,6 +44,8 @@ export const BRANCH_EVENTS = {
 | `branch:updated`     | `{ branch: { id, name }, changes }`    | Branch updated     |
 | `branch:activated`   | `{ branchId }`                         | Branch activated   |
 | `branch:deactivated` | `{ branchId }`                         | Branch deactivated |
+| `branch:archived`    | `{ branchId }`                         | Branch archived    |
+| `branch:restored`    | `{ branchId }`                         | Branch restored    |
 | `branch:closed`      | `{ branchId, date }`                   | Branch closed      |
 
 ## Usage

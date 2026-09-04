@@ -1,5 +1,6 @@
 import { branch } from "#/db-schemas";
 import { BRANCH_EVENTS } from "#/pubsub";
+import { toDateOnly } from "#/utils/dates";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -8,13 +9,10 @@ import { date, object, string } from "valibot";
 export const closeBranch = Workflow.name("branch.close")
   .input(object({ date: date(), id: string() }))
   .handler(async (input, ctx) => {
+    const closedDate = toDateOnly(input.date);
     const [updated] = await ctx.db
       .update(branch)
-      .set({
-        closedDate: input.date.toISOString().split("T")[0],
-        isActive: false,
-        updatedAt: new Date(),
-      })
+      .set({ closedDate, isActive: false, updatedAt: new Date() })
       .where(eq(branch.id, input.id))
       .returning();
 
@@ -24,7 +22,7 @@ export const closeBranch = Workflow.name("branch.close")
 
     await ctx.pubsub.publish(BRANCH_EVENTS.CLOSED, {
       branchId: input.id,
-      date: input.date.toISOString().split("T")[0],
+      date: closedDate,
     });
 
     return updated;

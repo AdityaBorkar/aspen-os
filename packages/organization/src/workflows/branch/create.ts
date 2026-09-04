@@ -1,20 +1,19 @@
 import { branch } from "#/db-schemas";
 import { BRANCH_EVENTS } from "#/pubsub";
 import { CreateBranchSchema } from "#/types";
-import { ensureNoHeadquartersExists, validateParentBranch } from "#/workflows/utils";
+import { toDateOnly } from "#/utils/dates";
+import {
+  ensureCodeUnique,
+  ensureNoHeadquartersExists,
+  validateParentBranch,
+} from "#/workflows/utils";
 
-import { isValidCountryCode } from "@aspen-os/constants";
 import { Workflow } from "@aspen-os/platform/server";
-import { object } from "valibot";
-
-const CreateInputSchema = object({ input: CreateBranchSchema });
 
 export const createBranch = Workflow.name("branch.create")
-  .input(CreateInputSchema)
-  .handler(async ({ input }, ctx) => {
-    if (!isValidCountryCode(input.country)) {
-      throw new Error(`Invalid country code: "${input.country}". Must be ISO 3166-1 alpha-2.`);
-    }
+  .input(CreateBranchSchema)
+  .handler(async (input, ctx) => {
+    await ensureCodeUnique(ctx.db, input.code);
 
     if (input.type === "headquarters") {
       await ensureNoHeadquartersExists(ctx.db);
@@ -31,7 +30,7 @@ export const createBranch = Workflow.name("branch.create")
         addressLine2: input.addressLine2 ?? null,
         capacity: input.capacity ?? null,
         city: input.city,
-        closedDate: input.closedDate?.toISOString().split("T")[0] ?? null,
+        closedDate: input.closedDate ? toDateOnly(input.closedDate) : null,
         code: input.code.toUpperCase(),
         country: input.country.toUpperCase(),
         email: input.email ?? null,
@@ -39,7 +38,7 @@ export const createBranch = Workflow.name("branch.create")
         metadata: input.metadata ?? null,
         name: input.name,
         notes: input.notes ?? null,
-        openedDate: input.openedDate?.toISOString().split("T")[0] ?? null,
+        openedDate: input.openedDate ? toDateOnly(input.openedDate) : null,
         parentBranch: input.parentBranch ?? null,
         phone: input.phone ?? null,
         postalCode: input.postalCode ?? null,
