@@ -15,7 +15,7 @@ Downstream of the Platform (Customer–Supplier). Hybrid pattern — private `#d
 - 3 workflow-step files: `fetch-tenant`, `fetch-sp`, `fetch-user`
 - 3 owned database tables (pushed via `$prepareInfra()` `control_plane_schemas`): `service_provider`, `service_provider_user`, `tenant`
 - No shadow tables — `tenant_schemas` is empty (the `organization`/`user` better-auth mirrors are imported but not pushed to tenant DBs)
-- 16 domain events: 8 tenant + 4 service_provider + 4 platform_user
+- 17 domain events: 8 tenant + 4 service_provider + 5 platform_user
 - 3 ACL resources: `platformUser`, `serviceProvider`, `tenant`
 - Audit entries written via the platform's `ctx.audit.write(...)` inline in each workflow (NOT via a shared `logAuditStep`) — the management plane does not own a separate `audit_log` table
 - Has a build step (build script + `build` field in package.json)
@@ -25,8 +25,8 @@ Downstream of the Platform (Customer–Supplier). Hybrid pattern — private `#d
 ```
 p.management.tenants           { activate, assignServiceProvider, churn, get, list, onboard,
                                  reactivate, suspend, unassignServiceProvider, update }
-p.management.serviceProviders  { activate, create, deactivate, get, getAssignedTenants,
-                                 getUsers, list, update }
+p.management.serviceProviders  { activate, create, deactivate, get, listAssignedTenants,
+                                 listUsers, list, update }
 p.management.users             { assignRole, assignToServiceProvider, create, delete, get,
                                  list, update }
 ```

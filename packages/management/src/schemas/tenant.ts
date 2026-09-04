@@ -1,5 +1,5 @@
 import { TenantStatusSchema } from "#/schemas/enums";
-import { NameSchema, SlugSchema } from "#/schemas/utils";
+import { LimitSchema, NameSchema, OffsetSchema, SlugSchema } from "#/schemas/utils";
 
 import { boolean, integer, nullable, number, object, optional, pipe, string } from "valibot";
 import type { InferOutput } from "valibot";
@@ -30,26 +30,17 @@ export type UpdateTenantProfileInput = InferOutput<typeof UpdateTenantProfileSch
 
 export const UpdateTenantCompanionSchema = object({
   plan: optional(nullable(string())),
-  status: optional(TenantStatusSchema),
 });
 
 export type UpdateTenantCompanionInput = InferOutput<typeof UpdateTenantCompanionSchema>;
 
-export const UpdateTenantSchema = object({
-  logo: optional(nullable(string())),
-  name: optional(NameSchema),
-  plan: optional(nullable(string())),
-  slug: optional(SlugSchema),
-  status: optional(TenantStatusSchema),
-});
-
-export type UpdateTenantInput = InferOutput<typeof UpdateTenantSchema>;
-
 export const TenantFiltersSchema = object({
+  limit: LimitSchema,
+  offset: OffsetSchema,
   plan: optional(string()),
   search: optional(string()),
   serviceProviderId: optional(string()),
-  status: optional(string()),
+  status: optional(TenantStatusSchema),
 });
 
 export type TenantFilters = InferOutput<typeof TenantFiltersSchema>;

@@ -1,4 +1,12 @@
-import { EmailSchema, NameSchema, SlugSchema, WebsiteSchema } from "#/schemas/utils";
+import { SpStatusSchema } from "#/schemas/enums";
+import {
+  EmailSchema,
+  LimitSchema,
+  NameSchema,
+  OffsetSchema,
+  SlugSchema,
+  WebsiteSchema,
+} from "#/schemas/utils";
 
 import { nullable, object, optional, string } from "valibot";
 import type { InferOutput } from "valibot";
@@ -30,8 +38,10 @@ export const UpdateServiceProviderSchema = object({
 export type UpdateServiceProviderInput = InferOutput<typeof UpdateServiceProviderSchema>;
 
 export const ServiceProviderFiltersSchema = object({
+  limit: LimitSchema,
+  offset: OffsetSchema,
   search: optional(string()),
-  status: optional(string()),
+  status: optional(SpStatusSchema),
 });
 
 export type ServiceProviderFilters = InferOutput<typeof ServiceProviderFiltersSchema>;

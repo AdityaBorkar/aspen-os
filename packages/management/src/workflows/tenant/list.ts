@@ -1,17 +1,12 @@
 import { tenant } from "#/db-schemas";
 import { TenantFiltersSchema } from "#/types";
+import { escapeLikeTerm } from "#/utils/escape-like";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { organization } from "@aspen-os/platform/server/db-schemas";
-import { and, eq, ilike, or } from "drizzle-orm";
+import { and, asc, eq, ilike, or } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import { object, optional } from "valibot";
-
-function isTenantStatus(value: string): value is (typeof tenant.status.enumValues)[number] {
-  // SAFETY: drizzle's pgEnum column exposes enumValues as a tuple of the declared enum
-  // Literals; widening to readonly string[] is safe because includes() only reads.
-  return (tenant.status.enumValues as readonly string[]).includes(value);
-}
 
 export const listTenants = Workflow.name("tenant.list")
   .input(
@@ -24,7 +19,7 @@ export const listTenants = Workflow.name("tenant.list")
       const parsed = input.filters ?? {};
       const conditions: SQL[] = [];
 
-      if (parsed.status && isTenantStatus(parsed.status)) {
+      if (parsed.status) {
         conditions.push(eq(tenant.status, parsed.status));
       }
       if (parsed.plan) {
@@ -34,7 +29,7 @@ export const listTenants = Workflow.name("tenant.list")
         conditions.push(eq(tenant.serviceProviderId, parsed.serviceProviderId));
       }
       if (parsed.search) {
-        const term = `%${parsed.search}%`;
+        const term = `%${escapeLikeTerm(parsed.search)}%`;
         const searchCondition = or(ilike(organization.name, term), ilike(organization.slug, term));
         if (searchCondition) {
           conditions.push(searchCondition);
@@ -56,7 +51,10 @@ export const listTenants = Workflow.name("tenant.list")
           status: tenant.status,
         })
         .from(tenant)
-        .leftJoin(organization, eq(organization.id, tenant.id))
-        .where(whereClause);
+        .innerJoin(organization, eq(organization.id, tenant.id))
+        .where(whereClause)
+        .orderBy(asc(organization.name))
+        .limit(parsed.limit ?? 50)
+        .offset(parsed.offset ?? 0);
     }),
   );

@@ -1,5 +1,5 @@
 import { RoleSchema } from "#/schemas/enums";
-import { NameSchema } from "#/schemas/utils";
+import { LimitSchema, NameSchema, OffsetSchema } from "#/schemas/utils";
 
 import { nullable, object, optional, string } from "valibot";
 import type { InferOutput } from "valibot";
@@ -23,7 +23,9 @@ export const UpdatePlatformUserSchema = object({
 export type UpdatePlatformUserInput = InferOutput<typeof UpdatePlatformUserSchema>;
 
 export const PlatformUserFiltersSchema = object({
-  role: optional(string()),
+  limit: LimitSchema,
+  offset: OffsetSchema,
+  role: optional(RoleSchema),
   spId: optional(string()),
 });
 

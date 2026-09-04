@@ -13,6 +13,12 @@ export const unassignServiceProvider = Workflow.name("tenant.unassign-sp")
   .handler(async (input, ctx) => {
     const { tenantId } = input;
 
+    const current = await ctx.step.run(fetchTenantStep, { id: tenantId });
+
+    if (current.serviceProviderId === null) {
+      return current;
+    }
+
     await ctx.step.run("unassign", async () => {
       await ctx.db
         .update(tenant)

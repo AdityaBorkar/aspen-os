@@ -3,6 +3,7 @@ export type {
   PlatformUserCreatedEvent,
   PlatformUserDeletedEvent,
   PlatformUserRoleAssignedEvent,
+  PlatformUserSpAssignedEvent,
   PlatformUserUpdatedEvent,
   ServiceProviderActivatedEvent,
   ServiceProviderCreatedEvent,
@@ -31,7 +32,6 @@ export type {
   UpdatePlatformUserInput,
   UpdateServiceProviderInput,
   UpdateTenantCompanionInput,
-  UpdateTenantInput,
   UpdateTenantProfileInput,
 } from "#/schemas";
 export {
@@ -43,7 +43,9 @@ export {
   EmailSchema,
   IdSchema,
   LifecycleReportFiltersSchema,
+  LimitSchema,
   NameSchema,
+  OffsetSchema,
   PlatformUserFiltersSchema,
   ProvisionTenantSchema,
   RoleSchema,
@@ -57,7 +59,6 @@ export {
   UpdateServiceProviderSchema,
   UpdateTenantCompanionSchema,
   UpdateTenantProfileSchema,
-  UpdateTenantSchema,
   WebsiteSchema,
 } from "#/schemas";
 export type { AuditAction, AuditEntityType, Role, SpStatus, TenantStatus } from "#/utils/constants";

@@ -41,21 +41,30 @@ await p.management.tenants.unassignServiceProvider({ tenantId });
 
 ```ts
 const tenant = await p.management.tenants.get({ id: tenantId });
-const tenants = await p.management.tenants.list({ status, plan, serviceProviderId, search });
-await p.management.tenants.update({ id: tenantId, name, slug, logo, plan, status });
+const tenants = await p.management.tenants.list({
+  filters: { status: "active", plan, serviceProviderId, search, limit: 50, offset: 0 },
+});
+await p.management.tenants.update({
+  id: tenantId,
+  profile: { name, slug, logo },
+  companion: { plan },
+});
 ```
+
+Status changes go only through the lifecycle transitions above — `update` cannot change `status`.
 
 `onboard` runs as a durable workflow with internal steps (`create-organization`, `record-tenant`, `audit-and-notify`) and calls `DatabaseUnit.provisionTenant()` for isolated-mode DB creation. It emits `tenant:provisioned` and requires `ctx.auth`.
 
 ### Validation Schemas
 
 - `ProvisionTenantSchema` — `name`, `slug`, optional `logo`, `plan`, `serviceProviderId`, and per-tenant DB overrides (`databaseHost`, `databaseName`, `databasePassword`, `databasePort`, `databaseSsl`, `databaseUser`)
-- `UpdateTenantSchema` — `name?`, `slug?`, `logo?`, `plan?`, `status?`
-- `TenantFiltersSchema` — `status?`, `plan?`, `serviceProviderId?`, `search?`
+- `UpdateTenantProfileSchema` — `name?`, `slug?`, `logo?` (writes the `organization` row)
+- `UpdateTenantCompanionSchema` — `plan?` (writes the `tenant` companion row; `status` is not accepted — use the lifecycle transitions)
+- `TenantFiltersSchema` — `status?` (enum), `plan?`, `serviceProviderId?`, `search?`, `limit?`, `offset?`
 
 ## ServiceProviders
 
-Access: `p.management.serviceProviders` (stateless readonly object).
+Access: `p.management.serviceProviders` (a getter, throws if accessed before `$initialize`).
 
 ```ts
 // Create
@@ -70,24 +79,24 @@ const sp = await p.management.serviceProviders.create({
 });
 
 // List / get
-const sps = await p.management.serviceProviders.list({ status: "active" });
+const sps = await p.management.serviceProviders.list({ filters: { status: "active" } });
 const sp = await p.management.serviceProviders.get({ id: spId });
 
 // Update
-await p.management.serviceProviders.update({ id: spId, phone: "+91-9999999999" });
+await p.management.serviceProviders.update({ id: spId, patch: { phone: "+91-9999999999" } });
 
 // Status — inactive SPs shouldn't be assigned to new tenants
 await p.management.serviceProviders.deactivate({ id: spId });
 await p.management.serviceProviders.activate({ id: spId });
 
 // Assigned tenants and users
-const tenants = await p.management.serviceProviders.getAssignedTenants({ spId });
-const users = await p.management.serviceProviders.getUsers({ spId });
+const tenants = await p.management.serviceProviders.listAssignedTenants({ spId });
+const users = await p.management.serviceProviders.listUsers({ spId });
 ```
 
 ## Users
 
-Access: `p.management.users` (stateless readonly object).
+Access: `p.management.users` (a getter, throws if accessed before `$initialize`).
 
 ```ts
 // Create a platform user (password required)
@@ -108,19 +117,21 @@ await p.management.users.create({
 });
 
 // List / get / update / delete
-const users = await p.management.users.list({ role: "sp_user", spId: "sp-1" });
+const users = await p.management.users.list({ filters: { role: "sp_user", spId: "sp-1" } });
 const user = await p.management.users.get({ id: userId });
-await p.management.users.update({ id: userId, name, role, spId });
+await p.management.users.update({ id: userId, patch: { name, role, spId } });
 await p.management.users.delete({ id: userId });
 
 // Role / SP assignment
-await p.management.users.assignRole({ userId, role: "platform_admin" });
-await p.management.users.assignToServiceProvider({ userId, spId: "sp-2" });
+await p.management.users.assignRole({ id: userId, role: "platform_admin" });
+await p.management.users.assignToServiceProvider({ id: userId, spId: "sp-2" });
 ```
 
 <Callout type="warn">
-  `user.create` enforces the `spId` rule in its handler: `spId` is required when `role ===
-  "sp_user"` and must not be set otherwise. It also verifies the SP exists and is active.
+  `user.create` and `user.update` enforce the `spId` rule against the effective role: `spId` is
+  required when the resulting role is `"sp_user"` and must not be set otherwise. Both verify the SP
+  exists. `assignRole` to a non-SP role clears a stale SP assignment, and assigning `"sp_user"`
+  requires an existing SP assignment.
 </Callout>
 
 ## Notes

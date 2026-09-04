@@ -2,13 +2,13 @@ import { acl } from "#/auth";
 import { control_plane_schemas, tenant_schemas } from "#/db-schemas";
 import { events } from "#/pubsub";
 import { activateSp } from "#/workflows/sp/activate";
-import { getAssignedTenants } from "#/workflows/sp/assigned-tenant/list";
+import { listAssignedTenants } from "#/workflows/sp/assigned-tenant/list";
 import { createSp } from "#/workflows/sp/create";
 import { deactivateSp } from "#/workflows/sp/deactivate";
 import { getSp } from "#/workflows/sp/get";
 import { listSps } from "#/workflows/sp/list";
 import { updateSp } from "#/workflows/sp/update";
-import { getUsers } from "#/workflows/sp/user/list";
+import { listSpUsers } from "#/workflows/sp/user/list";
 import { activateTenant } from "#/workflows/tenant/activate";
 import { churnTenant } from "#/workflows/tenant/churn";
 import { getTenant } from "#/workflows/tenant/get";
@@ -68,17 +68,21 @@ export class ManagementPlane implements Module {
 
   $cleanup() {}
 
-  get tenants() {
+  #requireDb(): DatabaseUnit {
     if (!this.#db) {
       throw new Error("ManagementPlane not initialized");
     }
+    return this.#db;
+  }
+
+  get tenants() {
     return {
       activate: activateTenant,
       assignServiceProvider,
       churn: churnTenant,
       get: getTenant,
       list: listTenants,
-      onboard: createOnboardTenant(this.#db),
+      onboard: createOnboardTenant(this.#requireDb()),
       reactivate: reactivateTenant,
       suspend: suspendTenant,
       unassignServiceProvider,
@@ -91,9 +95,9 @@ export class ManagementPlane implements Module {
     create: createSp,
     deactivate: deactivateSp,
     get: getSp,
-    getAssignedTenants,
-    getUsers,
     list: listSps,
+    listAssignedTenants,
+    listUsers: listSpUsers,
     update: updateSp,
   };
 

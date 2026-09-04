@@ -39,7 +39,6 @@ export type {
   ProvisionTenantInput,
   TenantFilters,
   UpdateTenantCompanionInput,
-  UpdateTenantInput,
   UpdateTenantProfileInput,
 } from "#/schemas/tenant";
 export {
@@ -47,6 +46,13 @@ export {
   TenantFiltersSchema,
   UpdateTenantCompanionSchema,
   UpdateTenantProfileSchema,
-  UpdateTenantSchema,
 } from "#/schemas/tenant";
-export { EmailSchema, IdSchema, NameSchema, SlugSchema, WebsiteSchema } from "#/schemas/utils";
+export {
+  EmailSchema,
+  IdSchema,
+  LimitSchema,
+  NameSchema,
+  OffsetSchema,
+  SlugSchema,
+  WebsiteSchema,
+} from "#/schemas/utils";

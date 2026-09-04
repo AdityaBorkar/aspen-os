@@ -1,78 +1,66 @@
-import { serviceProvider, serviceProviderUser } from "#/db-schemas";
 import { PLATFORM_USER_EVENTS } from "#/pubsub";
 import { CreatePlatformUserSchema } from "#/types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, ROLES } from "#/utils/constants";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { requireAuth } from "#/utils/require-auth";
+import { requireServiceProvider } from "#/utils/require-sp";
+import { upsertSpAssignment, validateRoleAssignment } from "#/utils/sp-assignment";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { eq } from "drizzle-orm";
 
 export const createUser = Workflow.name("user.create")
   .input(CreatePlatformUserSchema)
   .handler(async (input, ctx) => {
-    console.log({ ctx });
-    if (!ctx.auth) {
-      throw new Error("Auth is required for user creation");
-    }
-    const { auth } = ctx;
+    const auth = requireAuth(ctx);
 
-    if (input.role === ROLES.SP_USER && !input.spId) {
-      throw new Error("spId is required when role is 'sp_user'.");
-    }
-    if (input.role !== ROLES.SP_USER && input.spId) {
-      throw new Error("spId must not be set when role is not 'sp_user'.");
-    }
+    validateRoleAssignment(input.role, input.spId);
 
     if (input.spId) {
-      const [sp] = await ctx.db
-        .select({ status: serviceProvider.status })
-        .from(serviceProvider)
-        .where(eq(serviceProvider.id, input.spId))
-        .limit(1);
-
-      if (!sp) {
-        throw new Error(`Service Provider with id "${input.spId}" not found.`);
-      }
+      await requireServiceProvider(ctx, input.spId);
     }
 
-    // SAFETY: input.role was validated by CreatePlatformUserSchema (RoleSchema picklist)
-    // As one of the platform's known roles; better-auth's admin createUser endpoint
-    // Accepts a role literal from its adminRoles union, and "admin" is a member of it.
-    const response = await auth.service.api.createUser({
-      body: {
+    const createdUser = await ctx.step.run("create-auth-user", async () =>
+      auth.rest.user.create({
         email: input.email,
         name: input.name,
         password: input.password,
-        role: input.role as "admin",
-      },
+      }),
+    );
+
+    await ctx.step.run("assign-role", async () => {
+      await auth.rest.user.role.assign({
+        roleName: input.role,
+        userId: createdUser.id,
+      });
     });
-    const createdUser = response.user;
 
     if (input.spId) {
-      await ctx.db.insert(serviceProviderUser).values({
-        serviceProviderId: input.spId,
-        userId: createdUser.id,
+      const { spId } = input;
+      await ctx.step.run("create-sp-assignment", async () => {
+        await upsertSpAssignment(ctx, createdUser.id, spId);
       });
     }
 
-    await ctx.audit.write({
-      action: AUDIT_ACTION.PLATFORM_USER_CREATED,
-      crudAction: "create",
-      entityId: createdUser.id,
-      entityType: AUDIT_ENTITY_TYPE.PLATFORM_USER,
-      newState: {
-        email: createdUser.email,
-        role: input.role,
-        spId: input.spId ?? null,
-      },
+    await ctx.step.run("audit-and-notify", async () => {
+      await ctx.audit.write({
+        action: AUDIT_ACTION.PLATFORM_USER_CREATED,
+        crudAction: "create",
+        entityId: createdUser.id,
+        entityType: AUDIT_ENTITY_TYPE.PLATFORM_USER,
+        newState: {
+          email: createdUser.email,
+          role: input.role,
+          spId: input.spId ?? null,
+        },
+      });
+
+      await ctx.pubsub.publish(PLATFORM_USER_EVENTS.CREATED, {
+        user: {
+          email: createdUser.email,
+          id: createdUser.id,
+          role: input.role,
+        },
+      });
     });
 
-    await ctx.pubsub.publish(PLATFORM_USER_EVENTS.CREATED, {
-      user: {
-        email: createdUser.email,
-        id: createdUser.id,
-        role: input.role,
-      },
-    });
-
-    return { ...createdUser, spId: input.spId ?? null };
+    return { ...createdUser, role: input.role, spId: input.spId ?? null };
   });

@@ -75,7 +75,7 @@
 
 **Invariants**:
 
-- Status transitions: `onboarding` → `active` → `suspended` ↔ `active` → `churned` (enforced in workflow)
+- Status transitions: `onboarding` → `active` → `suspended` ↔ `active` → `churned` (enforced by the shared `defineTenantTransition` factory; `update` cannot set `status`)
 - `suspendedAt`/`suspendedReason` set when suspended; `churnedAt`/`churnReason` set when churned
 - At most one active Service Provider assignment (`serviceProviderId`)
 - Database connection params (`databaseHost`, `databaseName`, `databasePort`, `databaseUser`, `databasePassword`, `databaseSsl`) record the per-tenant DB connection
@@ -93,7 +93,7 @@
 
 **Invariants**: `slug` must be unique; status can be toggled active/inactive; at most one active SP per tenant; an SP may serve many Tenants.
 
-**Lifecycle commands** (via `p.management.serviceProviders`): `create(input)`, `get(id)`, `list(filters?)`, `update(id, patch)`, `activate(id)`, `deactivate(id)`, `getAssignedTenants(spId)`, `getUsers(spId)`.
+**Lifecycle commands** (via `p.management.serviceProviders`): `create(input)`, `get(id)`, `list(filters?)`, `update(id, patch)`, `activate(id)`, `deactivate(id)` (no-op when already in the target status), `listAssignedTenants(spId, limit?, offset?)`, `listUsers(spId, limit?, offset?)`.
 
 **Relationships**: Has many `ServiceProviderUser` (1:N); has many `Tenant` (1:N).
 
@@ -107,7 +107,7 @@
 - If `role = 'sp_user'`, a `service_provider_user` row must exist; if `role != 'sp_user'`, none
 - Created/deleted via `AuthUnit.user` API (better-auth); the SP link is managed on `service_provider_user` in the control-plane DB
 
-**Lifecycle commands** (via `p.management.users`): `create(input)` (delegates to `auth.user.create()`, inserts a `service_provider_user` row if SP user), `get(id)`, `list(filters?)` (leftJoin `service_provider_user` to surface `spId` = `serviceProviderId`), `update(id, patch)`, `delete(id)` (delegates to `auth.user.remove()`, cascades the `service_provider_user` row), `assignRole(id, role)` (delegates to `auth.user.role.assign()`), `assignToServiceProvider(userId, spId)` (sets `role='sp_user'` + inserts the join row).
+**Lifecycle commands** (via `p.management.users`): `create(input)` (delegates to `auth.rest.user.create()` + `auth.rest.user.role.assign()`, inserts a `service_provider_user` row if SP user), `get(id)`, `list(filters?)` (leftJoin `service_provider_user` to surface `spId` = `serviceProviderId`), `update(id, patch)` (validates the `sp_user ⟺ spId` invariant against the effective role), `delete(id)` (deletes the `service_provider_user` row first, then delegates to `auth.rest.user.remove()`), `assignRole(id, role)` (delegates to `auth.rest.user.role.assign()`; clears a stale SP assignment for non-SP roles), `assignToServiceProvider(id, spId)` (upserts the join row + sets `role='sp_user'`).
 
 ### Audit Log (Entity — append-only, Platform Core)
 
@@ -178,16 +178,16 @@
 
 ### Queries (Read Side)
 
-| Context          | Query                   | Method                                               |
-| ---------------- | ----------------------- | ---------------------------------------------------- |
-| Management Plane | Get tenant              | `p.management.tenants.get()`                         |
-| Management Plane | List tenants            | `p.management.tenants.list()`                        |
-| Management Plane | Get SP                  | `p.management.serviceProviders.get()`                |
-| Management Plane | List SPs                | `p.management.serviceProviders.list()`               |
-| Management Plane | Get SP assigned tenants | `p.management.serviceProviders.getAssignedTenants()` |
-| Management Plane | Get SP users            | `p.management.serviceProviders.getUsers()`           |
-| Management Plane | Get platform user       | `p.management.users.get()`                           |
-| Management Plane | List platform users     | `p.management.users.list()`                          |
+| Context          | Query                   | Method                                                |
+| ---------------- | ----------------------- | ----------------------------------------------------- |
+| Management Plane | Get tenant              | `p.management.tenants.get()`                          |
+| Management Plane | List tenants            | `p.management.tenants.list()`                         |
+| Management Plane | Get SP                  | `p.management.serviceProviders.get()`                 |
+| Management Plane | List SPs                | `p.management.serviceProviders.list()`                |
+| Management Plane | Get SP assigned tenants | `p.management.serviceProviders.listAssignedTenants()` |
+| Management Plane | Get SP users            | `p.management.serviceProviders.listUsers()`           |
+| Management Plane | Get platform user       | `p.management.users.get()`                            |
+| Management Plane | List platform users     | `p.management.users.list()`                           |
 
 ## Invariants & Business Rules
 

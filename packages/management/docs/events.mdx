@@ -32,6 +32,7 @@ export const PLATFORM_USER_EVENTS = {
   UPDATED: "platform_user:updated",
   DELETED: "platform_user:deleted",
   ROLE_ASSIGNED: "platform_user:role_assigned",
+  SP_ASSIGNED: "platform_user:sp_assigned",
 } as const;
 ```
 
@@ -52,21 +53,22 @@ export const PLATFORM_USER_EVENTS = {
 
 ### Service Provider Events
 
-| Event                          | Payload                                   | Trigger        |
-| ------------------------------ | ----------------------------------------- | -------------- |
-| `service_provider:created`     | `{ serviceProvider: { id, name, slug } }` | SP created     |
-| `service_provider:updated`     | `{ serviceProvider: { id }, changes }`    | SP updated     |
-| `service_provider:deactivated` | `{ serviceProviderId }`                   | SP deactivated |
-| `service_provider:activated`   | `{ serviceProviderId }`                   | SP activated   |
+| Event                          | Payload                                      | Trigger        |
+| ------------------------------ | -------------------------------------------- | -------------- |
+| `service_provider:created`     | `{ serviceProvider: { id, name, slug } }`    | SP created     |
+| `service_provider:updated`     | `{ serviceProvider: { id, name }, changes }` | SP updated     |
+| `service_provider:deactivated` | `{ serviceProviderId }`                      | SP deactivated |
+| `service_provider:activated`   | `{ serviceProviderId }`                      | SP activated   |
 
 ### Platform User Events
 
-| Event                         | Payload                         | Trigger               |
-| ----------------------------- | ------------------------------- | --------------------- |
-| `platform_user:created`       | `{ user: { id, email, role } }` | Platform user created |
-| `platform_user:updated`       | `{ userId, changes }`           | Platform user updated |
-| `platform_user:deleted`       | `{ userId }`                    | Platform user deleted |
-| `platform_user:role_assigned` | `{ userId, role }`              | `assignRole()`        |
+| Event                         | Payload                         | Trigger                     |
+| ----------------------------- | ------------------------------- | --------------------------- |
+| `platform_user:created`       | `{ user: { id, email, role } }` | Platform user created       |
+| `platform_user:updated`       | `{ userId, changes }`           | Platform user updated       |
+| `platform_user:deleted`       | `{ userId }`                    | Platform user deleted       |
+| `platform_user:role_assigned` | `{ userId, role }`              | `assignRole()`              |
+| `platform_user:sp_assigned`   | `{ userId, role, spId }`        | `assignToServiceProvider()` |
 
 ## Usage
 

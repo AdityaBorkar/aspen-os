@@ -39,11 +39,11 @@ Domain data (branches, tasks, drive, HR, compliance) lives in per-tenant databas
 
 The module exposes three workflow groups:
 
-| Getter             | Methods                                                                                                                              |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `tenants` (getter) | `activate`, `assignServiceProvider`, `churn`, `get`, `list`, `onboard`, `reactivate`, `suspend`, `unassignServiceProvider`, `update` |
-| `serviceProviders` | `activate`, `create`, `deactivate`, `get`, `getAssignedTenants`, `getUsers`, `list`, `update`                                        |
-| `users`            | `assignRole`, `assignToServiceProvider`, `create`, `delete`, `get`, `list`, `update`                                                 |
+| Getter                      | Methods                                                                                                                              |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `tenants` (getter)          | `activate`, `assignServiceProvider`, `churn`, `get`, `list`, `onboard`, `reactivate`, `suspend`, `unassignServiceProvider`, `update` |
+| `serviceProviders` (getter) | `activate`, `create`, `deactivate`, `get`, `listAssignedTenants`, `listUsers`, `list`, `update`                                      |
+| `users` (getter)            | `assignRole`, `assignToServiceProvider`, `create`, `delete`, `get`, `list`, `update`                                                 |
 
 ```ts
 // Access via the platform proxy ($name = "management")

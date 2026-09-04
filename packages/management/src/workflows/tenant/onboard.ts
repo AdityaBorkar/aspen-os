@@ -1,12 +1,37 @@
 import { tenant } from "#/db-schemas";
+import type { NewTenant } from "#/db-schemas/tenant";
 import { TENANT_EVENTS } from "#/pubsub";
 import { IdSchema, ProvisionTenantSchema } from "#/types";
+import type { ProvisionTenantInput } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { requireAuth } from "#/utils/require-auth";
 
 import { Workflow } from "@aspen-os/platform/server";
-import type { DatabaseUnit } from "@aspen-os/platform/server";
+import type { DatabaseUnit, TenantProvisioningResult } from "@aspen-os/platform/server";
 import { organization } from "@aspen-os/platform/server/db-schemas";
+import { eq } from "drizzle-orm";
 import { object } from "valibot";
+
+function tenantRecordColumns(
+  tenantId: string,
+  parsed: ProvisionTenantInput,
+  provisioning: TenantProvisioningResult,
+): NewTenant {
+  const isolated = provisioning.tenancyMode === "isolated" ? provisioning : null;
+  return {
+    databaseHost: isolated?.host ?? null,
+    databaseName: isolated?.database ?? null,
+    databasePassword: isolated?.password ?? null,
+    databasePort: isolated?.port ?? null,
+    databaseSsl: isolated?.ssl ?? null,
+    databaseUser: isolated?.user ?? null,
+    id: tenantId,
+    plan: parsed.plan ?? null,
+    serviceProviderId: parsed.serviceProviderId ?? null,
+    signupAt: new Date(),
+    status: "onboarding",
+  };
+}
 
 export function createOnboardTenant(dbUnit: DatabaseUnit) {
   return Workflow.name("tenant.onboard")
@@ -17,10 +42,7 @@ export function createOnboardTenant(dbUnit: DatabaseUnit) {
       }),
     )
     .handler(async (input, ctx) => {
-      if (!ctx.auth) {
-        throw new Error("Auth is required for provisioning");
-      }
-      const { auth } = ctx;
+      const auth = requireAuth(ctx);
       const parsed = input.tenant;
 
       const org = await ctx.step.run("create-organization", async () =>
@@ -36,31 +58,25 @@ export function createOnboardTenant(dbUnit: DatabaseUnit) {
 
       const tenantId = org.id;
 
-      const provisioningResult = await provisionTenant();
-
-      async function provisionTenant() {
-        try {
-          return await ctx.step.run("provision-tenant", async () =>
-            dbUnit.provisionTenant(tenantId, {
-              databaseName: parsed.databaseName ?? undefined,
-              host: parsed.databaseHost ?? undefined,
-              password: parsed.databasePassword ?? undefined,
-              port: parsed.databasePort ?? undefined,
-              ssl: parsed.databaseSsl ?? undefined,
-              user: parsed.databaseUser ?? undefined,
-            }),
-          );
-        } catch (error) {
+      const provisioning = await ctx.step
+        .run("provision-tenant", async () =>
+          dbUnit.provisionTenant(tenantId, {
+            databaseName: parsed.databaseName ?? undefined,
+            host: parsed.databaseHost ?? undefined,
+            password: parsed.databasePassword ?? undefined,
+            port: parsed.databasePort ?? undefined,
+            ssl: parsed.databaseSsl ?? undefined,
+            user: parsed.databaseUser ?? undefined,
+          }),
+        )
+        .catch(async (error) => {
           ctx.log.error(
             `Provisioning failed for tenant "${tenantId}", cleaning up organization`,
             error instanceof Error ? error : new Error(String(error)),
             { phase: "provision-tenant", tenantId },
           );
           try {
-            await auth.service.api.deleteOrganization({
-              body: { organizationId: tenantId },
-              headers: new Headers(),
-            });
+            await dbUnit.controlPlaneDb.delete(organization).where(eq(organization.id, tenantId));
           } catch (cleanupError) {
             ctx.log.error(
               `Failed to cleanup organization "${tenantId}"`,
@@ -69,13 +85,11 @@ export function createOnboardTenant(dbUnit: DatabaseUnit) {
             );
           }
           throw error;
-        }
-      }
+        });
 
-      if (provisioningResult.tenancyMode === "isolated") {
-        const dbConfig = provisioningResult;
+      if (provisioning.tenancyMode === "isolated") {
         await ctx.step.run("seed-profile", async () => {
-          await dbUnit.seedTenantDb(dbConfig, async (tenantDb) => {
+          await dbUnit.seedTenantDb(provisioning, async (tenantDb) => {
             await tenantDb.insert(organization).values({
               createdAt: new Date(),
               id: tenantId,
@@ -88,25 +102,7 @@ export function createOnboardTenant(dbUnit: DatabaseUnit) {
       }
 
       await ctx.step.run("record-tenant", async () => {
-        await ctx.db.insert(tenant).values({
-          databaseHost:
-            provisioningResult.tenancyMode === "isolated" ? provisioningResult.host : null,
-          databaseName:
-            provisioningResult.tenancyMode === "isolated" ? provisioningResult.database : null,
-          databasePassword:
-            provisioningResult.tenancyMode === "isolated" ? provisioningResult.password : null,
-          databasePort:
-            provisioningResult.tenancyMode === "isolated" ? provisioningResult.port : null,
-          databaseSsl:
-            provisioningResult.tenancyMode === "isolated" ? provisioningResult.ssl : null,
-          databaseUser:
-            provisioningResult.tenancyMode === "isolated" ? provisioningResult.user : null,
-          id: tenantId,
-          plan: parsed.plan ?? null,
-          serviceProviderId: parsed.serviceProviderId ?? null,
-          signupAt: new Date(),
-          status: "onboarding",
-        });
+        await ctx.db.insert(tenant).values(tenantRecordColumns(tenantId, parsed, provisioning));
       });
 
       await ctx.step.run("audit-and-notify", async () => {

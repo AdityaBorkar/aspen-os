@@ -1,7 +1,8 @@
-import { serviceProvider, tenant } from "#/db-schemas";
+import { tenant } from "#/db-schemas";
 import { TENANT_EVENTS } from "#/pubsub";
 import { IdSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { requireServiceProvider } from "#/utils/require-sp";
 import { fetchTenantStep } from "#/workflow-steps/fetch-tenant";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -18,21 +19,19 @@ export const assignServiceProvider = Workflow.name("tenant.assign-sp")
   .handler(async (input, ctx) => {
     const { tenantId, serviceProviderId } = input;
 
-    const [sp] = await ctx.db
-      .select({ id: serviceProvider.id })
-      .from(serviceProvider)
-      .where(eq(serviceProvider.id, serviceProviderId))
-      .limit(1);
-
-    if (!sp) {
-      throw new Error(`Service Provider with id "${serviceProviderId}" not found.`);
-    }
+    await ctx.step.run(fetchTenantStep, { id: tenantId });
+    await requireServiceProvider(ctx, serviceProviderId);
 
     await ctx.step.run("assign", async () => {
-      await ctx.db
+      const [updated] = await ctx.db
         .update(tenant)
         .set({ serviceProviderId, updatedAt: new Date() })
-        .where(eq(tenant.id, tenantId));
+        .where(eq(tenant.id, tenantId))
+        .returning();
+
+      if (!updated) {
+        throw new Error(`Tenant with id "${tenantId}" not found.`);
+      }
     });
 
     await ctx.step.run("audit-and-notify", async () => {

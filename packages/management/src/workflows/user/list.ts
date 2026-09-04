@@ -3,7 +3,7 @@ import { PlatformUserFiltersSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { user } from "@aspen-os/platform/server/db-schemas";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import { object, optional } from "valibot";
 
@@ -39,6 +39,9 @@ export const listUsers = Workflow.name("user.list")
         })
         .from(user)
         .leftJoin(serviceProviderUser, eq(serviceProviderUser.userId, user.id))
-        .where(whereClause);
+        .where(whereClause)
+        .orderBy(asc(user.name))
+        .limit(parsed.limit ?? 50)
+        .offset(parsed.offset ?? 0);
     }),
   );

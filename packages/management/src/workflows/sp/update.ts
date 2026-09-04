@@ -32,18 +32,22 @@ export const updateSp = Workflow.name("sp.update")
         .where(eq(serviceProvider.id, id));
     });
 
-    await ctx.audit.write({
-      action: AUDIT_ACTION.SP_UPDATED,
-      changes: data,
-      crudAction: "update",
-      entityId: id,
-      entityType: AUDIT_ENTITY_TYPE.SERVICE_PROVIDER,
+    const updated = await ctx.step.run(fetchServiceProviderStep, { id });
+
+    await ctx.step.run("audit-and-notify", async () => {
+      await ctx.audit.write({
+        action: AUDIT_ACTION.SP_UPDATED,
+        changes: data,
+        crudAction: "update",
+        entityId: id,
+        entityType: AUDIT_ENTITY_TYPE.SERVICE_PROVIDER,
+      });
+
+      await ctx.pubsub.publish(SERVICE_PROVIDER_EVENTS.UPDATED, {
+        changes: data,
+        serviceProvider: { id, name: updated.name },
+      });
     });
 
-    await ctx.pubsub.publish(SERVICE_PROVIDER_EVENTS.UPDATED, {
-      changes: data,
-      serviceProvider: { id, name: data.name ?? "" },
-    });
-
-    return ctx.step.run(fetchServiceProviderStep, { id });
+    return updated;
   });

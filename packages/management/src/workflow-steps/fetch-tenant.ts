@@ -21,5 +21,27 @@ export const fetchTenantStep = WorkflowStep.name("fetch-tenant")
 
     const [companion] = await ctx.db.select().from(tenant).where(eq(tenant.id, input.id)).limit(1);
 
-    return { ...org, ...companion };
+    return {
+      churnReason: companion?.churnReason ?? null,
+      churnedAt: companion?.churnedAt ?? null,
+      createdAt: org.createdAt,
+      databaseHost: companion?.databaseHost ?? null,
+      databaseName: companion?.databaseName ?? null,
+      databasePassword: companion?.databasePassword ?? null,
+      databasePort: companion?.databasePort ?? null,
+      databaseSsl: companion?.databaseSsl ?? null,
+      databaseUser: companion?.databaseUser ?? null,
+      id: org.id,
+      logo: org.logo,
+      metadata: org.metadata,
+      name: org.name,
+      plan: companion?.plan ?? null,
+      serviceProviderId: companion?.serviceProviderId ?? null,
+      signupAt: companion?.signupAt ?? null,
+      slug: org.slug,
+      status: companion?.status ?? null,
+      suspendedAt: companion?.suspendedAt ?? null,
+      suspendedReason: companion?.suspendedReason ?? null,
+      updatedAt: companion?.updatedAt ?? null,
+    };
   });

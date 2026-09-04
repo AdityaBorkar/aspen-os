@@ -22,6 +22,7 @@ export const PLATFORM_USER_EVENTS = {
   CREATED: "platform_user:created",
   DELETED: "platform_user:deleted",
   ROLE_ASSIGNED: "platform_user:role_assigned",
+  SP_ASSIGNED: "platform_user:sp_assigned",
   UPDATED: "platform_user:updated",
 } as const;
 
@@ -114,6 +115,12 @@ export interface PlatformUserRoleAssignedEvent {
   userId: string;
 }
 
+export interface PlatformUserSpAssignedEvent {
+  role: string;
+  spId: string;
+  userId: string;
+}
+
 export interface TenantEventMap {
   [TENANT_EVENTS.PROVISIONED]: TenantProvisionedEvent;
   [TENANT_EVENTS.ACTIVATED]: TenantActivatedEvent;
@@ -137,6 +144,7 @@ export interface PlatformUserEventMap {
   [PLATFORM_USER_EVENTS.UPDATED]: PlatformUserUpdatedEvent;
   [PLATFORM_USER_EVENTS.DELETED]: PlatformUserDeletedEvent;
   [PLATFORM_USER_EVENTS.ROLE_ASSIGNED]: PlatformUserRoleAssignedEvent;
+  [PLATFORM_USER_EVENTS.SP_ASSIGNED]: PlatformUserSpAssignedEvent;
 }
 
 export type ManagementPlaneEventMap = TenantEventMap &

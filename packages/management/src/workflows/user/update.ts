@@ -1,13 +1,18 @@
-import { serviceProvider, serviceProviderUser } from "#/db-schemas";
 import { PLATFORM_USER_EVENTS } from "#/pubsub";
 import { IdSchema, UpdatePlatformUserSchema } from "#/types";
 import type { UpdatePlatformUserInput } from "#/types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, ROLES } from "#/utils/constants";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { requireAuth } from "#/utils/require-auth";
+import { requireServiceProvider } from "#/utils/require-sp";
+import {
+  clearSpAssignment,
+  upsertSpAssignment,
+  validateRoleAssignment,
+} from "#/utils/sp-assignment";
 import { fetchUserStep } from "#/workflow-steps/fetch-user";
 
 import { Workflow } from "@aspen-os/platform/server";
 import type { JsonValue } from "@aspen-os/platform/server";
-import { eq } from "drizzle-orm";
 import { object } from "valibot";
 
 export const updateUser = Workflow.name("user.update")
@@ -18,47 +23,38 @@ export const updateUser = Workflow.name("user.update")
     }),
   )
   .handler(async (input, ctx) => {
-    if (!ctx.auth) {
-      throw new Error("Auth is required for user update");
-    }
-    const { auth } = ctx;
+    const auth = requireAuth(ctx);
     const { id, patch } = input;
 
-    if (patch.role === ROLES.SP_USER && patch.spId === null) {
-      throw new Error("spId is required when role is 'sp_user'.");
-    }
-    if (patch.role !== undefined && patch.role !== ROLES.SP_USER && patch.spId) {
-      throw new Error("spId must not be set when role is not 'sp_user'.");
+    const current = await ctx.step.run(fetchUserStep, { id });
+
+    const effectiveRole = patch.role ?? current.role;
+    const effectiveSpId = patch.spId !== undefined ? patch.spId : current.spId;
+    if (patch.role !== undefined || patch.spId !== undefined) {
+      validateRoleAssignment(effectiveRole, effectiveSpId);
     }
 
     if (patch.spId) {
-      const [sp] = await ctx.db
-        .select({ status: serviceProvider.status })
-        .from(serviceProvider)
-        .where(eq(serviceProvider.id, patch.spId))
-        .limit(1);
-
-      if (!sp) {
-        throw new Error(`Service Provider with id "${patch.spId}" not found.`);
-      }
+      await requireServiceProvider(ctx, patch.spId);
     }
 
     const changes: Record<string, JsonValue> = {};
 
     await ctx.step.run("update-auth-user", async () => {
-      if (patch.name !== undefined || patch.role !== undefined) {
-        const updateData: Partial<Pick<UpdatePlatformUserInput, "name" | "role">> = {};
-        if (patch.name !== undefined) {
-          updateData.name = patch.name;
-          changes.name = patch.name;
-        }
-        if (patch.role !== undefined) {
-          updateData.role = patch.role;
-          changes.role = patch.role;
-        }
-
-        await auth.rest.user.update({ data: updateData, id });
+      if (patch.name === undefined && patch.role === undefined) {
+        return;
       }
+      const updateData: Pick<UpdatePlatformUserInput, "name" | "role"> = {};
+      if (patch.name !== undefined) {
+        updateData.name = patch.name;
+        changes.name = patch.name;
+      }
+      if (patch.role !== undefined) {
+        updateData.role = patch.role;
+        changes.role = patch.role;
+      }
+
+      await auth.rest.user.update({ data: updateData, id });
     });
 
     await ctx.step.run("update-sp-assignment", async () => {
@@ -67,26 +63,12 @@ export const updateUser = Workflow.name("user.update")
       }
 
       if (patch.spId === null) {
-        await ctx.db.delete(serviceProviderUser).where(eq(serviceProviderUser.userId, id));
+        await clearSpAssignment(ctx, id);
         changes.spId = null;
         return;
       }
 
-      const [existing] = await ctx.db
-        .select({ id: serviceProviderUser.id })
-        .from(serviceProviderUser)
-        .where(eq(serviceProviderUser.userId, id))
-        .limit(1);
-
-      await (existing
-        ? ctx.db
-            .update(serviceProviderUser)
-            .set({ serviceProviderId: patch.spId, updatedAt: new Date() })
-            .where(eq(serviceProviderUser.id, existing.id))
-        : ctx.db.insert(serviceProviderUser).values({
-            serviceProviderId: patch.spId,
-            userId: id,
-          }));
+      await upsertSpAssignment(ctx, id, patch.spId);
       changes.spId = patch.spId;
     });
 

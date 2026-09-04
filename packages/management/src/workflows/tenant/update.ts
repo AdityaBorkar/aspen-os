@@ -6,7 +6,6 @@ import { stripUndefined } from "#/utils/strip-undefined";
 import { fetchTenantStep } from "#/workflow-steps/fetch-tenant";
 
 import { Workflow } from "@aspen-os/platform/server";
-import type { JsonValue } from "@aspen-os/platform/server";
 import { organization } from "@aspen-os/platform/server/db-schemas";
 import { eq } from "drizzle-orm";
 import { object, optional } from "valibot";
@@ -22,58 +21,46 @@ export const updateTenant = Workflow.name("tenant.update")
   .handler(async (input, ctx) => {
     const { id: tenantId, profile, companion } = input;
 
-    await ctx.step.run("update-profile", async () => {
-      if (!profile) {
-        return;
-      }
-      const data = stripUndefined(profile);
-      if (Object.keys(data).length === 0) {
-        return;
-      }
+    const profileData = profile ? stripUndefined(profile) : {};
+    const companionData = companion ? stripUndefined(companion) : {};
 
-      const [updated] = await ctx.db
-        .update(organization)
-        .set(data)
-        .where(eq(organization.id, tenantId))
-        .returning();
+    if (Object.keys(profileData).length === 0 && Object.keys(companionData).length === 0) {
+      return ctx.step.run(fetchTenantStep, { id: tenantId });
+    }
 
-      if (!updated) {
-        throw new Error(`Tenant with id "${tenantId}" not found.`);
-      }
-    });
+    await ctx.step.run(fetchTenantStep, { id: tenantId });
 
-    await ctx.step.run("update-companion", async () => {
-      if (!companion) {
-        return;
-      }
-      const data = stripUndefined(companion);
-      if (Object.keys(data).length === 0) {
-        return;
-      }
+    if (Object.keys(companionData).length > 0) {
+      await ctx.step.run("update-companion", async () => {
+        const [updated] = await ctx.db
+          .update(tenant)
+          .set({ ...companionData, updatedAt: new Date() })
+          .where(eq(tenant.id, tenantId))
+          .returning();
 
-      const [updated] = await ctx.db
-        .update(tenant)
-        .set({ ...data, updatedAt: new Date() })
-        .where(eq(tenant.id, tenantId))
-        .returning();
+        if (!updated) {
+          throw new Error(`Tenant with id "${tenantId}" not found.`);
+        }
+      });
+    }
 
-      if (!updated) {
-        throw new Error(`Tenant with id "${tenantId}" not found.`);
-      }
-    });
+    if (Object.keys(profileData).length > 0) {
+      await ctx.step.run("update-profile", async () => {
+        const [updated] = await ctx.db
+          .update(organization)
+          .set(profileData)
+          .where(eq(organization.id, tenantId))
+          .returning();
+
+        if (!updated) {
+          throw new Error(`Tenant with id "${tenantId}" not found.`);
+        }
+      });
+    }
+
+    const changes = { ...profileData, ...companionData };
 
     await ctx.step.run("audit-and-notify", async () => {
-      const changes: Record<string, JsonValue> = {};
-      if (profile) {
-        Object.assign(changes, stripUndefined(profile));
-      }
-      if (companion) {
-        Object.assign(changes, stripUndefined(companion));
-      }
-      if (Object.keys(changes).length === 0) {
-        return;
-      }
-
       await ctx.audit.write({
         action: AUDIT_ACTION.TENANT_PROFILE_UPDATED,
         changes,
