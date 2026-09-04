@@ -2,7 +2,7 @@ import { masterBankAccount } from "#/db-schemas";
 import { WithIdSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchBankAccountStep } from "#/workflow-steps/fetch-bank-account";
-import { unsetPrimaryBankAccounts } from "#/workflows/utils";
+import { unsetPrimaryForOwner } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -13,7 +13,12 @@ export const setPrimaryBankAccount = Workflow.name("masters.bank-account.set-pri
     const bankAccount = await ctx.step.run(fetchBankAccountStep, { id: input.id });
 
     await ctx.step.run("unset-primary", () =>
-      unsetPrimaryBankAccounts(ctx.db, bankAccount.entityType, bankAccount.entityId),
+      unsetPrimaryForOwner({
+        db: ctx.db,
+        entityId: bankAccount.entityId,
+        entityType: bankAccount.entityType,
+        table: masterBankAccount,
+      }),
     );
 
     const [updated] = await ctx.db

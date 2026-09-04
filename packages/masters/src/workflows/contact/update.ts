@@ -2,8 +2,9 @@ import { masterContact } from "#/db-schemas";
 import { CONTACT_EVENTS } from "#/pubsub";
 import { UpdateContactSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { stripUndefined } from "#/utils/strip-undefined";
 import { fetchContactStep } from "#/workflow-steps/fetch-contact";
-import { unsetPrimaryContacts } from "#/workflows/utils";
+import { unsetPrimaryForOwner } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -21,23 +22,29 @@ export const updateContact = Workflow.name("masters.contact.update")
 
     if (input.patch.isPrimary === true) {
       await ctx.step.run("unset-primary", () =>
-        unsetPrimaryContacts(ctx.db, current.entityType, current.entityId),
+        unsetPrimaryForOwner({
+          db: ctx.db,
+          entityId: current.entityId,
+          entityType: current.entityType,
+          table: masterContact,
+        }),
       );
     }
 
+    const updates = stripUndefined({
+      company: input.patch.company,
+      email: input.patch.email,
+      isPrimary: input.patch.isPrimary,
+      metadata: input.patch.metadata,
+      name: input.patch.name,
+      phone: input.patch.phone,
+      title: input.patch.title,
+      type: input.patch.type,
+    });
+
     const [updated] = await ctx.db
       .update(masterContact)
-      .set({
-        company: input.patch.company,
-        email: input.patch.email,
-        isPrimary: input.patch.isPrimary,
-        metadata: input.patch.metadata,
-        name: input.patch.name,
-        phone: input.patch.phone,
-        title: input.patch.title,
-        type: input.patch.type,
-        updatedAt: new Date(),
-      })
+      .set({ ...updates, updatedAt: new Date() })
       .where(eq(masterContact.id, input.id))
       .returning();
 
@@ -48,14 +55,14 @@ export const updateContact = Workflow.name("masters.contact.update")
     await ctx.step.run("audit-and-notify", async () => {
       await ctx.audit.write({
         action: AUDIT_ACTION.UPDATED,
-        changes: input.patch,
+        changes: updates,
         crudAction: "update",
         entityId: updated.id,
         entityType: AUDIT_ENTITY_TYPE.CONTACT,
       });
 
       await ctx.pubsub.publish(CONTACT_EVENTS.UPDATED, {
-        changes: input.patch,
+        changes: updates,
         contact: { id: updated.id, name: updated.name },
         entityType: updated.entityType,
       });

@@ -70,6 +70,11 @@ export const events = {
   UNIT_OF_MEASURE_EVENTS,
 };
 
+export interface OwnedResourceEvent {
+  entityId: string;
+  entityType: MasterEntityType;
+}
+
 export interface ContactCreatedEvent {
   contact: {
     id: string;
@@ -104,7 +109,7 @@ export interface AddressUpdatedEvent {
   entityType: MasterEntityType;
 }
 
-export interface AddressRemovedEvent {
+export interface AddressRemovedEvent extends OwnedResourceEvent {
   addressId: string;
 }
 
@@ -139,7 +144,7 @@ export interface ConnectionCreatedEvent {
   entityType: MasterEntityType;
 }
 
-export interface ConnectionUpdatedEvent {
+export interface ConnectionUpdatedEvent extends OwnedResourceEvent {
   changes: Record<string, JsonValue>;
   connection: { id: string; name: string };
 }

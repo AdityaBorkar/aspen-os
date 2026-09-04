@@ -1,5 +1,5 @@
 import { MasterEntityTypeSchema } from "#/schemas/enums";
-import { CountryCodeSchema, IdSchema } from "#/schemas/utils";
+import { CountryCodeSchema, IdSchema, MetadataSchema } from "#/schemas/utils";
 
 import { boolean, maxLength, minLength, nullable, object, optional, pipe, string } from "valibot";
 import type { InferOutput } from "valibot";
@@ -13,7 +13,7 @@ export const CreateAddressSchema = object({
   label: optional(nullable(pipe(string(), maxLength(100, "Label must be at most 100 characters")))),
   line1: pipe(string(), minLength(1, "Address line 1 is required")),
   line2: optional(nullable(string())),
-  metadata: optional(nullable(object({}))),
+  metadata: optional(nullable(MetadataSchema)),
   postalCode: optional(nullable(string())),
   state: optional(nullable(string())),
 });
@@ -27,7 +27,7 @@ export const UpdateAddressSchema = object({
   label: optional(nullable(pipe(string(), maxLength(100, "Label must be at most 100 characters")))),
   line1: optional(string()),
   line2: optional(nullable(string())),
-  metadata: optional(nullable(object({}))),
+  metadata: optional(nullable(MetadataSchema)),
   postalCode: optional(nullable(string())),
   state: optional(nullable(string())),
 });

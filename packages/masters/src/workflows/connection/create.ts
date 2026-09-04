@@ -1,5 +1,6 @@
 import { masterConnection } from "#/db-schemas";
 import { CONNECTION_EVENTS } from "#/pubsub";
+import { buildCredentialRef, CREDENTIAL_NO_EXPIRY } from "#/services/connection-service";
 import { CreateConnectionSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 
@@ -15,27 +16,36 @@ export function createConnection(kvStore: KvStoreUnit) {
     .handler(async ({ input }, ctx) => {
       const parsed = parse(CreateConnectionSchema, input);
 
-      const credentialRef = `masters:connection:${crypto.randomUUID()}:credential`;
+      const credentialRef = buildCredentialRef();
       await ctx.step.run("store-credential", () =>
-        kvStore.set(credentialRef, parsed.credential, 0),
+        kvStore.set(credentialRef, parsed.credential, CREDENTIAL_NO_EXPIRY),
       );
 
-      const [connectionRow] = await ctx.db
-        .insert(masterConnection)
-        .values({
-          baseUrl: parsed.baseUrl ?? null,
-          credentialRef,
-          description: parsed.description ?? null,
-          entityId: parsed.entityId,
-          entityType: parsed.entityType,
-          metadata: parsed.metadata ?? null,
-          name: parsed.name,
-          status: parsed.status,
-          type: parsed.type,
-        })
-        .returning();
+      const connectionRow = await (async () => {
+        try {
+          const [row] = await ctx.db
+            .insert(masterConnection)
+            .values({
+              baseUrl: parsed.baseUrl ?? null,
+              credentialRef,
+              description: parsed.description ?? null,
+              entityId: parsed.entityId,
+              entityType: parsed.entityType,
+              metadata: parsed.metadata ?? null,
+              name: parsed.name,
+              status: parsed.status,
+              type: parsed.type,
+            })
+            .returning();
+          return row;
+        } catch (error) {
+          await ctx.step.run("delete-orphaned-credential", () => kvStore.del(credentialRef));
+          throw error;
+        }
+      })();
 
       if (!connectionRow) {
+        await ctx.step.run("delete-orphaned-credential", () => kvStore.del(credentialRef));
         throw new Error("Failed to create connection.");
       }
 

@@ -25,6 +25,8 @@ export const deleteAddress = Workflow.name("masters.address.delete")
 
       await ctx.pubsub.publish(ADDRESS_EVENTS.REMOVED, {
         addressId: current.id,
+        entityId: current.entityId,
+        entityType: current.entityType,
       });
     });
 

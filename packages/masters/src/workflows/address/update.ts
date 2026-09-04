@@ -2,8 +2,9 @@ import { masterAddress } from "#/db-schemas";
 import { ADDRESS_EVENTS } from "#/pubsub";
 import { UpdateAddressSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { stripUndefined } from "#/utils/strip-undefined";
 import { fetchAddressStep } from "#/workflow-steps/fetch-address";
-import { unsetPrimaryAddresses } from "#/workflows/utils";
+import { unsetPrimaryForOwner } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -21,24 +22,30 @@ export const updateAddress = Workflow.name("masters.address.update")
 
     if (input.patch.isPrimary === true) {
       await ctx.step.run("unset-primary", () =>
-        unsetPrimaryAddresses(ctx.db, current.entityType, current.entityId),
+        unsetPrimaryForOwner({
+          db: ctx.db,
+          entityId: current.entityId,
+          entityType: current.entityType,
+          table: masterAddress,
+        }),
       );
     }
 
+    const updates = stripUndefined({
+      city: input.patch.city,
+      country: input.patch.country,
+      isPrimary: input.patch.isPrimary,
+      label: input.patch.label,
+      line1: input.patch.line1,
+      line2: input.patch.line2,
+      metadata: input.patch.metadata,
+      postalCode: input.patch.postalCode,
+      state: input.patch.state,
+    });
+
     const [updated] = await ctx.db
       .update(masterAddress)
-      .set({
-        city: input.patch.city,
-        country: input.patch.country,
-        isPrimary: input.patch.isPrimary,
-        label: input.patch.label,
-        line1: input.patch.line1,
-        line2: input.patch.line2,
-        metadata: input.patch.metadata,
-        postalCode: input.patch.postalCode,
-        state: input.patch.state,
-        updatedAt: new Date(),
-      })
+      .set({ ...updates, updatedAt: new Date() })
       .where(eq(masterAddress.id, input.id))
       .returning();
 
@@ -49,7 +56,7 @@ export const updateAddress = Workflow.name("masters.address.update")
     await ctx.step.run("audit-and-notify", async () => {
       await ctx.audit.write({
         action: AUDIT_ACTION.UPDATED,
-        changes: input.patch,
+        changes: updates,
         crudAction: "update",
         entityId: updated.id,
         entityType: AUDIT_ENTITY_TYPE.ADDRESS,
@@ -57,7 +64,7 @@ export const updateAddress = Workflow.name("masters.address.update")
 
       await ctx.pubsub.publish(ADDRESS_EVENTS.UPDATED, {
         address: { id: updated.id },
-        changes: input.patch,
+        changes: updates,
         entityId: updated.entityId,
         entityType: updated.entityType,
       });

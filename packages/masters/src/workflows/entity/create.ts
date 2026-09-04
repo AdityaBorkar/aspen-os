@@ -2,9 +2,10 @@ import { masterEntity } from "#/db-schemas";
 import { ENTITY_EVENTS } from "#/pubsub";
 import { CreateEntitySchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { toDateOnly } from "#/utils/dates";
+import { assertCodeUnique } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { eq } from "drizzle-orm";
 import { object, parse } from "valibot";
 
 const CreateInputSchema = object({ input: CreateEntitySchema });
@@ -16,17 +17,9 @@ export const createEntity = Workflow.name("masters.entity.create")
 
     const { code } = parsed;
     if (code) {
-      await ctx.step.run("assert-code-unique", async () => {
-        const [existing] = await ctx.db
-          .select({ id: masterEntity.id })
-          .from(masterEntity)
-          .where(eq(masterEntity.code, code))
-          .limit(1);
-
-        if (existing) {
-          throw new Error(`Entity with code "${code}" already exists.`);
-        }
-      });
+      await ctx.step.run("assert-code-unique", () =>
+        assertCodeUnique({ code, db: ctx.db, label: "Entity", table: masterEntity }),
+      );
     }
 
     const [entity] = await ctx.db
@@ -34,7 +27,7 @@ export const createEntity = Workflow.name("masters.entity.create")
       .values({
         code: parsed.code ?? null,
         email: parsed.email ?? null,
-        foundedDate: parsed.foundedDate?.toISOString().split("T")[0] ?? null,
+        foundedDate: parsed.foundedDate ? toDateOnly(parsed.foundedDate) : null,
         industry: parsed.industry ?? null,
         locale: parsed.locale ?? null,
         metadata: parsed.metadata ?? null,

@@ -1,5 +1,5 @@
 import { EntityStatusSchema, EntityTypeSchema } from "#/schemas/enums";
-import { EmailSchema, IdSchema, NameSchema } from "#/schemas/utils";
+import { EmailSchema, IdSchema, MetadataSchema, NameSchema } from "#/schemas/utils";
 
 import { date, integer, nullable, number, object, optional, pipe, string } from "valibot";
 import type { InferOutput } from "valibot";
@@ -10,7 +10,7 @@ export const CreateEntitySchema = object({
   foundedDate: optional(nullable(date())),
   industry: optional(nullable(string())),
   locale: optional(nullable(string())),
-  metadata: optional(nullable(object({}))),
+  metadata: optional(nullable(MetadataSchema)),
   name: NameSchema,
   organizationId: optional(nullable(IdSchema)),
   phone: optional(nullable(string())),
@@ -30,7 +30,7 @@ export const UpdateEntitySchema = object({
   foundedDate: optional(date()),
   industry: optional(string()),
   locale: optional(string()),
-  metadata: optional(object({})),
+  metadata: optional(nullable(MetadataSchema)),
   name: optional(NameSchema),
   organizationId: optional(IdSchema),
   phone: optional(string()),

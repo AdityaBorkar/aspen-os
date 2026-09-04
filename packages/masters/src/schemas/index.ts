@@ -46,7 +46,6 @@ export type {
 } from "#/schemas/contact";
 export {
   ContactFiltersSchema,
-  ContactIdSchema,
   CreateContactSchema,
   ListContactsSchema,
   UpdateContactSchema,
@@ -106,6 +105,8 @@ export {
   CountryCodeSchema,
   EmailSchema,
   IdSchema,
+  MetadataSchema,
   NameSchema,
   WithIdSchema,
 } from "#/schemas/utils";
+export { JsonValueSchema } from "#/schemas/json";

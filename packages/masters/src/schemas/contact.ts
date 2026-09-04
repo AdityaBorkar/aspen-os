@@ -1,7 +1,7 @@
 import { MasterEntityTypeSchema, ContactTypeSchema } from "#/schemas/enums";
-import { EmailSchema, IdSchema, NameSchema } from "#/schemas/utils";
+import { EmailSchema, IdSchema, MetadataSchema, NameSchema } from "#/schemas/utils";
 
-import { boolean, maxLength, minLength, nullable, object, optional, pipe, string } from "valibot";
+import { boolean, maxLength, nullable, object, optional, pipe, string } from "valibot";
 import type { InferOutput } from "valibot";
 
 export const CreateContactSchema = object({
@@ -10,7 +10,7 @@ export const CreateContactSchema = object({
   entityId: IdSchema,
   entityType: MasterEntityTypeSchema,
   isPrimary: optional(boolean(), false),
-  metadata: optional(nullable(object({}))),
+  metadata: optional(nullable(MetadataSchema)),
   name: NameSchema,
   phone: optional(nullable(string())),
   title: optional(nullable(pipe(string(), maxLength(255, "Must be at most 255 characters")))),
@@ -23,7 +23,7 @@ export const UpdateContactSchema = object({
   company: optional(nullable(string())),
   email: optional(nullable(EmailSchema)),
   isPrimary: optional(boolean()),
-  metadata: optional(nullable(object({}))),
+  metadata: optional(nullable(MetadataSchema)),
   name: optional(NameSchema),
   phone: optional(nullable(string())),
   title: optional(nullable(string())),
@@ -47,5 +47,3 @@ export const ListContactsSchema = object({
 });
 
 export type ListContactsInput = InferOutput<typeof ListContactsSchema>;
-
-export const ContactIdSchema = pipe(string(), minLength(1, "Contact id is required"));

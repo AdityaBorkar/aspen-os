@@ -2,6 +2,7 @@ import { masterConnection } from "#/db-schemas";
 import { CONNECTION_EVENTS } from "#/pubsub";
 import { UpdateConnectionSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { stripUndefined } from "#/utils/strip-undefined";
 import { fetchConnectionStep } from "#/workflow-steps/fetch-connection";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -18,17 +19,18 @@ export const updateConnection = Workflow.name("masters.connection.update")
   .handler(async (input, ctx) => {
     const current = await ctx.step.run(fetchConnectionStep, { id: input.id });
 
+    const updates = stripUndefined({
+      baseUrl: input.patch.baseUrl,
+      description: input.patch.description,
+      metadata: input.patch.metadata,
+      name: input.patch.name,
+      status: input.patch.status,
+      type: input.patch.type,
+    });
+
     const [updated] = await ctx.db
       .update(masterConnection)
-      .set({
-        baseUrl: input.patch.baseUrl,
-        description: input.patch.description,
-        metadata: input.patch.metadata,
-        name: input.patch.name,
-        status: input.patch.status,
-        type: input.patch.type,
-        updatedAt: new Date(),
-      })
+      .set({ ...updates, updatedAt: new Date() })
       .where(eq(masterConnection.id, input.id))
       .returning();
 
@@ -39,7 +41,7 @@ export const updateConnection = Workflow.name("masters.connection.update")
     await ctx.step.run("audit-and-notify", async () => {
       await ctx.audit.write({
         action: AUDIT_ACTION.UPDATED,
-        changes: input.patch,
+        changes: updates,
         crudAction: "update",
         entityId: updated.id,
         entityType: AUDIT_ENTITY_TYPE.CONNECTION,
@@ -54,8 +56,10 @@ export const updateConnection = Workflow.name("masters.connection.update")
       }
 
       await ctx.pubsub.publish(CONNECTION_EVENTS.UPDATED, {
-        changes: input.patch,
+        changes: updates,
         connection: { id: updated.id, name: updated.name },
+        entityId: updated.entityId,
+        entityType: updated.entityType,
       });
     });
 

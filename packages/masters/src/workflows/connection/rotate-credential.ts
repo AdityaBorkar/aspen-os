@@ -1,5 +1,6 @@
 import { masterConnection } from "#/db-schemas";
 import { CONNECTION_EVENTS } from "#/pubsub";
+import { buildCredentialRef, CREDENTIAL_NO_EXPIRY } from "#/services/connection-service";
 import { RotateConnectionCredentialSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchConnectionStep } from "#/workflow-steps/fetch-connection";
@@ -14,20 +15,32 @@ export function rotateConnectionCredential(kvStore: KvStoreUnit) {
     .handler(async (input, ctx) => {
       const current = await ctx.step.run(fetchConnectionStep, { id: input.id });
 
-      const newRef = `masters:connection:${crypto.randomUUID()}:credential`;
-      await ctx.step.run("store-credential", () => kvStore.set(newRef, input.credential, 0));
-      if (current.credentialRef) {
-        await ctx.step.run("delete-old-credential", () => kvStore.del(current.credentialRef));
-      }
+      const newRef = buildCredentialRef();
+      await ctx.step.run("store-credential", () =>
+        kvStore.set(newRef, input.credential, CREDENTIAL_NO_EXPIRY),
+      );
 
-      const [updated] = await ctx.db
-        .update(masterConnection)
-        .set({ credentialRef: newRef, updatedAt: new Date() })
-        .where(eq(masterConnection.id, input.id))
-        .returning();
+      const updated = await (async () => {
+        try {
+          const [row] = await ctx.db
+            .update(masterConnection)
+            .set({ credentialRef: newRef, updatedAt: new Date() })
+            .where(eq(masterConnection.id, input.id))
+            .returning();
+          return row;
+        } catch (error) {
+          await ctx.step.run("delete-orphaned-credential", () => kvStore.del(newRef));
+          throw error;
+        }
+      })();
 
       if (!updated) {
+        await ctx.step.run("delete-orphaned-credential", () => kvStore.del(newRef));
         throw new Error(`Connection with id "${input.id}" not found.`);
+      }
+
+      if (current.credentialRef) {
+        await ctx.step.run("delete-old-credential", () => kvStore.del(current.credentialRef));
       }
 
       await ctx.step.run("audit-and-notify", async () => {

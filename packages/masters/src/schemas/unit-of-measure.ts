@@ -1,5 +1,5 @@
 import { UomCategorySchema } from "#/schemas/enums";
-import { IdSchema, NameSchema } from "#/schemas/utils";
+import { IdSchema, MetadataSchema, NameSchema } from "#/schemas/utils";
 
 import {
   boolean,
@@ -28,7 +28,7 @@ export const CreateUnitOfMeasureSchema = object({
   decimalPlaces: optional(pipe(number(), integer()), 2),
   isActive: optional(boolean(), true),
   isBaseUnit: optional(boolean(), false),
-  metadata: optional(nullable(object({}))),
+  metadata: optional(nullable(MetadataSchema)),
   name: NameSchema,
   symbol: optional(nullable(string())),
 });
@@ -49,7 +49,7 @@ export const UpdateUnitOfMeasureSchema = object({
   decimalPlaces: optional(pipe(number(), integer())),
   isActive: optional(boolean()),
   isBaseUnit: optional(boolean()),
-  metadata: optional(object({})),
+  metadata: optional(nullable(MetadataSchema)),
   name: optional(NameSchema),
   symbol: optional(nullable(string())),
 });

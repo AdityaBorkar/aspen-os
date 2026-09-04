@@ -1,6 +1,10 @@
-import { pipe, regex, string } from "valibot";
+import { JsonValueSchema } from "#/schemas/json";
+
+import { pipe, record, regex, string } from "valibot";
 
 export { EmailSchema, IdSchema, NameSchema, WithIdSchema } from "@aspen-os/platform/server";
+
+export const MetadataSchema = record(string(), JsonValueSchema);
 
 const ISO_COUNTRY_CODE_REGEX = /^[A-Z]{2}$/;
 

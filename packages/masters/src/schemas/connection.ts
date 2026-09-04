@@ -3,7 +3,7 @@ import {
   IntegrationTypeSchema,
   MasterEntityTypeSchema,
 } from "#/schemas/enums";
-import { IdSchema, NameSchema } from "#/schemas/utils";
+import { IdSchema, MetadataSchema, NameSchema } from "#/schemas/utils";
 
 import { nullable, object, optional, record, string } from "valibot";
 import type { InferOutput } from "valibot";
@@ -18,7 +18,7 @@ export const CreateConnectionSchema = object({
   description: optional(nullable(string())),
   entityId: IdSchema,
   entityType: MasterEntityTypeSchema,
-  metadata: optional(nullable(object({}))),
+  metadata: optional(nullable(MetadataSchema)),
   name: NameSchema,
   status: optional(ConnectionStatusSchema, "active"),
   type: IntegrationTypeSchema,
@@ -29,7 +29,7 @@ export type CreateConnectionInput = InferOutput<typeof CreateConnectionSchema>;
 export const UpdateConnectionSchema = object({
   baseUrl: optional(nullable(string())),
   description: optional(nullable(string())),
-  metadata: optional(nullable(object({}))),
+  metadata: optional(nullable(MetadataSchema)),
   name: optional(NameSchema),
   status: optional(ConnectionStatusSchema),
   type: optional(IntegrationTypeSchema),

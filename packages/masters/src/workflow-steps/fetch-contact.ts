@@ -1,21 +1,10 @@
 import { masterContact } from "#/db-schemas";
+import type { MasterContact } from "#/db-schemas/contact";
+import { defineFetchByIdStep } from "#/workflow-steps/fetch-by-id";
 
-import { WorkflowStep } from "@aspen-os/platform/server";
-import { eq } from "drizzle-orm";
-import { object, string } from "valibot";
-
-export const fetchContactStep = WorkflowStep.name("masters-fetch-contact")
-  .input(object({ id: string() }))
-  .handler(async (input, ctx) => {
-    const [result] = await ctx.db
-      .select()
-      .from(masterContact)
-      .where(eq(masterContact.id, input.id))
-      .limit(1);
-
-    if (!result) {
-      throw new Error(`Contact with id "${input.id}" not found.`);
-    }
-
-    return result;
-  });
+export const fetchContactStep = defineFetchByIdStep<MasterContact>({
+  idColumn: masterContact.id,
+  label: "Contact",
+  stepName: "masters-fetch-contact",
+  table: masterContact,
+});

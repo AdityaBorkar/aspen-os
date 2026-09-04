@@ -2,7 +2,7 @@ import { masterAddress } from "#/db-schemas";
 import { WithIdSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchAddressStep } from "#/workflow-steps/fetch-address";
-import { unsetPrimaryAddresses } from "#/workflows/utils";
+import { unsetPrimaryForOwner } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -13,7 +13,12 @@ export const setPrimaryAddress = Workflow.name("masters.address.set-primary")
     const address = await ctx.step.run(fetchAddressStep, { id: input.id });
 
     await ctx.step.run("unset-primary", () =>
-      unsetPrimaryAddresses(ctx.db, address.entityType, address.entityId),
+      unsetPrimaryForOwner({
+        db: ctx.db,
+        entityId: address.entityId,
+        entityType: address.entityType,
+        table: masterAddress,
+      }),
     );
 
     const [updated] = await ctx.db

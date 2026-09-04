@@ -1,65 +1,49 @@
-import { masterAddress, masterBankAccount, masterContact, masterPaymentMethod } from "#/db-schemas";
-
 import type {
-  MasterEntityType,
-  PaymentMethodDirection,
-  PaymentMethodType,
-} from "@aspen-os/constants";
-import { and, eq, inArray } from "drizzle-orm";
+  masterAddress,
+  masterBankAccount,
+  masterContact,
+  masterEntity,
+  masterUnitOfMeasure,
+} from "#/db-schemas";
+import { masterPaymentMethod } from "#/db-schemas";
+import { assertPaymentMethodTypeFields } from "#/utils/payment-method-rules";
+
+import type { MasterEntityType, PaymentMethodDirection } from "@aspen-os/constants";
+import { and, eq, inArray, ne } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
+
+export { assertPaymentMethodTypeFields };
 
 type DrizzleDB = PostgresJsDatabase;
 
-export async function unsetPrimaryContacts(
-  db: DrizzleDB,
-  entityType: MasterEntityType,
-  entityId: string,
-): Promise<void> {
+type PrimaryOwnedTable = typeof masterAddress | typeof masterBankAccount | typeof masterContact;
+
+export interface UnsetPrimaryForOwnerInput {
+  db: DrizzleDB;
+  entityId: string;
+  entityType: MasterEntityType;
+  table: PrimaryOwnedTable;
+}
+
+export async function unsetPrimaryForOwner(input: UnsetPrimaryForOwnerInput): Promise<void> {
+  const { db, entityId, entityType, table } = input;
   await db
-    .update(masterContact)
+    .update(table)
     .set({ isPrimary: false })
     .where(
       and(
-        eq(masterContact.entityType, entityType),
-        eq(masterContact.entityId, entityId),
-        eq(masterContact.isPrimary, true),
+        eq(table.entityType, entityType),
+        eq(table.entityId, entityId),
+        eq(table.isPrimary, true),
       ),
     );
 }
 
-export async function unsetPrimaryAddresses(
-  db: DrizzleDB,
-  entityType: MasterEntityType,
-  entityId: string,
-): Promise<void> {
-  await db
-    .update(masterAddress)
-    .set({ isPrimary: false })
-    .where(
-      and(
-        eq(masterAddress.entityType, entityType),
-        eq(masterAddress.entityId, entityId),
-        eq(masterAddress.isPrimary, true),
-      ),
-    );
-}
-
-export async function unsetPrimaryBankAccounts(
-  db: DrizzleDB,
-  entityType: MasterEntityType,
-  entityId: string,
-): Promise<void> {
-  await db
-    .update(masterBankAccount)
-    .set({ isPrimary: false })
-    .where(
-      and(
-        eq(masterBankAccount.entityType, entityType),
-        eq(masterBankAccount.entityId, entityId),
-        eq(masterBankAccount.isPrimary, true),
-      ),
-    );
-}
+const OVERLAPPING_DIRECTIONS = {
+  both: ["both", "inbound", "outbound"],
+  inbound: ["both", "inbound"],
+  outbound: ["both", "outbound"],
+} as const satisfies Record<PaymentMethodDirection, readonly PaymentMethodDirection[]>;
 
 export interface UnsetPrimaryPaymentMethodsInput {
   db: DrizzleDB;
@@ -72,12 +56,6 @@ export async function unsetPrimaryPaymentMethods(
   input: UnsetPrimaryPaymentMethodsInput,
 ): Promise<void> {
   const { db, direction, entityId, entityType } = input;
-  const overlappingDirections: readonly PaymentMethodDirection[] =
-    direction === "both"
-      ? ["both", "inbound", "outbound"]
-      : direction === "inbound"
-        ? ["both", "inbound"]
-        : ["both", "outbound"];
 
   await db
     .update(masterPaymentMethod)
@@ -87,52 +65,31 @@ export async function unsetPrimaryPaymentMethods(
         eq(masterPaymentMethod.entityType, entityType),
         eq(masterPaymentMethod.entityId, entityId),
         eq(masterPaymentMethod.isPrimary, true),
-        inArray(masterPaymentMethod.direction, [...overlappingDirections]),
+        inArray(masterPaymentMethod.direction, [...OVERLAPPING_DIRECTIONS[direction]]),
       ),
     );
 }
 
-export interface PaymentMethodTypeFields {
-  bankAccountId: string | null | undefined;
-  cardBrand: string | null | undefined;
-  cardExpiryMonth: number | null | undefined;
-  cardExpiryYear: number | null | undefined;
-  cardLast4: string | null | undefined;
-  type: PaymentMethodType;
-  upiId: string | null | undefined;
+type CodedTable = typeof masterEntity | typeof masterUnitOfMeasure;
+
+export interface AssertCodeUniqueInput {
+  code: string;
+  db: DrizzleDB;
+  excludeId?: string;
+  label: string;
+  table: CodedTable;
 }
 
-export function assertPaymentMethodTypeFields(method: PaymentMethodTypeFields): void {
-  switch (method.type) {
-    case "card": {
-      if (
-        !method.cardBrand ||
-        !method.cardLast4 ||
-        method.cardExpiryMonth === null ||
-        method.cardExpiryMonth === undefined ||
-        method.cardExpiryYear === null ||
-        method.cardExpiryYear === undefined
-      ) {
-        throw new Error(
-          "A card payment method requires cardBrand, cardLast4, cardExpiryMonth and cardExpiryYear.",
-        );
-      }
-      return;
-    }
-    case "upi": {
-      if (!method.upiId) {
-        throw new Error("A UPI payment method requires upiId.");
-      }
-      return;
-    }
-    case "bank_account":
-    case "imps":
-    case "cheque": {
-      if (!method.bankAccountId) {
-        throw new Error(
-          "A bank-backed payment method (bank_account/imps/cheque) requires bankAccountId.",
-        );
-      }
-    }
+export async function assertCodeUnique(input: AssertCodeUniqueInput): Promise<void> {
+  const { code, db, excludeId, label, table } = input;
+  const conditions = [eq(table.code, code), excludeId ? ne(table.id, excludeId) : undefined];
+  const [existing] = await db
+    .select({ id: table.id })
+    .from(table)
+    .where(and(...conditions))
+    .limit(1);
+
+  if (existing) {
+    throw new Error(`${label} with code "${code}" already exists.`);
   }
 }

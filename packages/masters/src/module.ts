@@ -18,10 +18,18 @@ export class Masters implements Module {
   readonly $dependencies: readonly string[] = [];
   readonly $config: MastersModuleConfig;
 
-  #kvStore: KvStoreUnit | null = null;
+  #connections: ReturnType<typeof Masters.buildConnections> | null = null;
 
   constructor(config: MastersModuleConfig) {
     this.$config = config;
+  }
+
+  private static buildConnections(kvStore: KvStoreUnit) {
+    return {
+      ...wf.connectionActions,
+      create: createConnection(kvStore),
+      rotateCredential: rotateConnectionCredential(kvStore),
+    };
   }
 
   $prepareInfra(): ModuleInfra {
@@ -33,7 +41,7 @@ export class Masters implements Module {
   }
 
   $initialize(units: { db: DatabaseUnit; kvStore: KvStoreUnit }): void {
-    this.#kvStore = units.kvStore;
+    this.#connections = Masters.buildConnections(units.kvStore);
   }
 
   $prepareRuntime() {}
@@ -48,13 +56,9 @@ export class Masters implements Module {
   readonly unitsOfMeasure = wf.unitsOfMeasure;
 
   get connections() {
-    if (!this.#kvStore) {
+    if (!this.#connections) {
       throw new Error("Masters not initialized");
     }
-    return {
-      ...wf.connectionActions,
-      create: createConnection(this.#kvStore),
-      rotateCredential: rotateConnectionCredential(this.#kvStore),
-    };
+    return this.#connections;
   }
 }

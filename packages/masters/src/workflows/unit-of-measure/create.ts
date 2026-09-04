@@ -3,9 +3,9 @@ import { UNIT_OF_MEASURE_EVENTS } from "#/pubsub";
 import { CreateUnitOfMeasureSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { assertBaseUnitInvariantStep } from "#/workflow-steps/assert-base-unit-invariant";
+import { assertCodeUnique } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { eq } from "drizzle-orm";
 import { object, parse } from "valibot";
 
 const CreateInputSchema = object({ input: CreateUnitOfMeasureSchema });
@@ -15,17 +15,14 @@ export const createUnitOfMeasure = Workflow.name("masters.unit-of-measure.create
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateUnitOfMeasureSchema, input);
 
-    await ctx.step.run("assert-code-unique", async () => {
-      const [existing] = await ctx.db
-        .select({ id: masterUnitOfMeasure.id })
-        .from(masterUnitOfMeasure)
-        .where(eq(masterUnitOfMeasure.code, parsed.code))
-        .limit(1);
-
-      if (existing) {
-        throw new Error(`Unit of measure with code "${parsed.code}" already exists.`);
-      }
-    });
+    await ctx.step.run("assert-code-unique", () =>
+      assertCodeUnique({
+        code: parsed.code,
+        db: ctx.db,
+        label: "Unit of measure",
+        table: masterUnitOfMeasure,
+      }),
+    );
 
     await ctx.step.run(assertBaseUnitInvariantStep, {
       baseUnitId: parsed.baseUnitId ?? null,

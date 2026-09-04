@@ -26,8 +26,7 @@
     "@aspen-os/constants": "workspace:*",
     "@aspen-os/platform": "workspace:*",
     "drizzle-orm": "catalog:",
-    "valibot": "catalog:",
-    "ws": "^8.21.3"
+    "valibot": "catalog:"
   },
   "devDependencies": {
     "@types/bun": "catalog:",

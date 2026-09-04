@@ -2,7 +2,7 @@ import { masterContact } from "#/db-schemas";
 import { CONTACT_EVENTS } from "#/pubsub";
 import { CreateContactSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { unsetPrimaryContacts } from "#/workflows/utils";
+import { unsetPrimaryForOwner } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
@@ -16,7 +16,12 @@ export const createContact = Workflow.name("masters.contact.create")
 
     if (parsed.isPrimary) {
       await ctx.step.run("unset-primary", () =>
-        unsetPrimaryContacts(ctx.db, parsed.entityType, parsed.entityId),
+        unsetPrimaryForOwner({
+          db: ctx.db,
+          entityId: parsed.entityId,
+          entityType: parsed.entityType,
+          table: masterContact,
+        }),
       );
     }
 

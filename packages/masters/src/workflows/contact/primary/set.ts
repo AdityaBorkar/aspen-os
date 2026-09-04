@@ -2,7 +2,7 @@ import { masterContact } from "#/db-schemas";
 import { WithIdSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchContactStep } from "#/workflow-steps/fetch-contact";
-import { unsetPrimaryContacts } from "#/workflows/utils";
+import { unsetPrimaryForOwner } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -13,7 +13,12 @@ export const setPrimaryContact = Workflow.name("masters.contact.set-primary")
     const contact = await ctx.step.run(fetchContactStep, { id: input.id });
 
     await ctx.step.run("unset-primary", () =>
-      unsetPrimaryContacts(ctx.db, contact.entityType, contact.entityId),
+      unsetPrimaryForOwner({
+        db: ctx.db,
+        entityId: contact.entityId,
+        entityType: contact.entityType,
+        table: masterContact,
+      }),
     );
 
     const [updated] = await ctx.db

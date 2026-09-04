@@ -1,5 +1,5 @@
 import { MasterEntityTypeSchema } from "#/schemas/enums";
-import { IdSchema } from "#/schemas/utils";
+import { IdSchema, MetadataSchema } from "#/schemas/utils";
 
 import { boolean, maxLength, minLength, nullable, object, optional, pipe, string } from "valibot";
 import type { InferOutput } from "valibot";
@@ -12,12 +12,12 @@ export const CreateBankAccountSchema = object({
   ),
   bankName: pipe(string(), minLength(1, "Bank name is required")),
   branchName: optional(nullable(string())),
-  currency: optional(string(), "USD"),
+  currency: optional(pipe(string(), minLength(1, "Currency is required")), "USD"),
   entityId: IdSchema,
   entityType: MasterEntityTypeSchema,
   isActive: optional(boolean(), true),
   isPrimary: optional(boolean(), false),
-  metadata: optional(nullable(object({}))),
+  metadata: optional(nullable(MetadataSchema)),
   routingNumber: optional(nullable(string())),
   swiftCode: optional(
     nullable(pipe(string(), maxLength(11, "SWIFT code must be at most 11 characters"))),
@@ -37,7 +37,7 @@ export const UpdateBankAccountSchema = object({
   currency: optional(string()),
   isActive: optional(boolean()),
   isPrimary: optional(boolean()),
-  metadata: optional(nullable(object({}))),
+  metadata: optional(nullable(MetadataSchema)),
   routingNumber: optional(nullable(string())),
   swiftCode: optional(
     nullable(pipe(string(), maxLength(11, "SWIFT code must be at most 11 characters"))),

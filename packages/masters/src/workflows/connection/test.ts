@@ -1,4 +1,5 @@
 import { masterConnection } from "#/db-schemas";
+import { testEndpoint } from "#/services/connection-service";
 import { WithIdSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchConnectionStep } from "#/workflow-steps/fetch-connection";
@@ -16,43 +17,27 @@ export const testConnection = Workflow.name("masters.connection.test")
       throw new Error(`Connection with id "${input.id}" has no base URL.`);
     }
 
-    const result = await ctx.step.run("test-endpoint", async () => {
-      try {
-        const url = new URL(baseUrl);
-        const response = await fetch(url, {
-          method: "GET",
-          signal: AbortSignal.timeout(10_000),
-        });
-        return {
-          ok: response.ok,
-          status: response.status,
-          testedAt: new Date().toISOString(),
-        };
-      } catch (error) {
-        return {
-          error: error instanceof Error ? error.message : String(error),
-          ok: false,
-          status: null,
-          testedAt: new Date().toISOString(),
-        };
-      }
-    });
+    const result = await ctx.step.run("test-endpoint", () => testEndpoint(baseUrl));
 
-    await ctx.db
-      .update(masterConnection)
-      .set({
-        lastTestedAt: new Date(),
-        lastUsedAt: result.ok ? new Date() : current.lastUsedAt,
-        updatedAt: new Date(),
-      })
-      .where(eq(masterConnection.id, input.id));
+    await ctx.step.run("record-test", () =>
+      ctx.db
+        .update(masterConnection)
+        .set({
+          lastTestedAt: new Date(),
+          lastUsedAt: result.ok ? new Date() : current.lastUsedAt,
+          updatedAt: new Date(),
+        })
+        .where(eq(masterConnection.id, input.id)),
+    );
 
-    await ctx.audit.write({
-      action: AUDIT_ACTION.TESTED,
-      entityId: current.id,
-      entityType: AUDIT_ENTITY_TYPE.CONNECTION,
-      metadata: { ok: result.ok },
-    });
+    await ctx.step.run("audit", () =>
+      ctx.audit.write({
+        action: AUDIT_ACTION.TESTED,
+        entityId: current.id,
+        entityType: AUDIT_ENTITY_TYPE.CONNECTION,
+        metadata: { ok: result.ok },
+      }),
+    );
 
     return result;
   });
