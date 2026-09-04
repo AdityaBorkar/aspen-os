@@ -7,7 +7,19 @@ import {
   LeaveEncashmentStatusSchema,
 } from "#/schemas/enums";
 
-import { boolean, minLength, nullable, number, object, optional, pipe, string } from "valibot";
+import {
+  boolean,
+  minLength,
+  nullable,
+  number,
+  object,
+  omit,
+  optional,
+  partial,
+  pick,
+  pipe,
+  string,
+} from "valibot";
 import type { InferOutput } from "valibot";
 
 // Leave Type
@@ -30,19 +42,8 @@ export const CreateLeaveTypeSchema = object({
 export type CreateLeaveTypeInput = InferOutput<typeof CreateLeaveTypeSchema>;
 
 export const UpdateLeaveTypeSchema = object({
-  allowNegativeBalance: optional(boolean()),
-  applicableAfterWorkingDays: optional(number()),
-  earnedLeaveFrequency: optional(EarnedLeaveFrequencySchema),
-  includeHolidaysWithinLeaves: optional(boolean()),
+  ...partial(CreateLeaveTypeSchema).entries,
   isActive: optional(boolean()),
-  isCarryForward: optional(boolean()),
-  isEarnedLeave: optional(boolean()),
-  isLeaveWithoutPay: optional(boolean()),
-  isPartiallyPaid: optional(boolean()),
-  maxCarryForwardDays: optional(number()),
-  maxContinuousDaysAllowed: optional(number()),
-  maxDaysAllowed: optional(number()),
-  name: optional(string()),
 });
 
 export type UpdateLeaveTypeInput = InferOutput<typeof UpdateLeaveTypeSchema>;
@@ -59,11 +60,8 @@ export const CreateLeavePeriodSchema = object({
 export type CreateLeavePeriodInput = InferOutput<typeof CreateLeavePeriodSchema>;
 
 export const UpdateLeavePeriodSchema = object({
-  company: optional(nullable(string())),
-  endDate: optional(string()),
+  ...partial(CreateLeavePeriodSchema).entries,
   isActive: optional(boolean()),
-  name: optional(string()),
-  startDate: optional(string()),
 });
 
 export type UpdateLeavePeriodInput = InferOutput<typeof UpdateLeavePeriodSchema>;
@@ -78,9 +76,8 @@ export const CreateLeavePolicySchema = object({
 export type CreateLeavePolicyInput = InferOutput<typeof CreateLeavePolicySchema>;
 
 export const UpdateLeavePolicySchema = object({
-  description: optional(nullable(string())),
+  ...partial(CreateLeavePolicySchema).entries,
   isActive: optional(boolean()),
-  name: optional(string()),
 });
 
 export type UpdateLeavePolicyInput = InferOutput<typeof UpdateLeavePolicySchema>;
@@ -111,11 +108,8 @@ export type CreateLeavePolicyAssignmentInput = InferOutput<
 >;
 
 export const UpdateLeavePolicyAssignmentSchema = object({
-  effectiveFrom: optional(string()),
-  effectiveTo: optional(string()),
+  ...partial(omit(CreateLeavePolicyAssignmentSchema, ["employeeId"])).entries,
   isActive: optional(boolean()),
-  leavePeriod: optional(string()),
-  leavePolicy: optional(string()),
 });
 
 export type UpdateLeavePolicyAssignmentInput = InferOutput<
@@ -123,9 +117,8 @@ export type UpdateLeavePolicyAssignmentInput = InferOutput<
 >;
 
 export const LeavePolicyAssignmentFiltersSchema = object({
-  employeeId: optional(string()),
-  leavePeriod: optional(string()),
-  leavePolicy: optional(string()),
+  ...partial(pick(CreateLeavePolicyAssignmentSchema, ["employeeId", "leavePeriod", "leavePolicy"]))
+    .entries,
 });
 
 export type LeavePolicyAssignmentFilters = InferOutput<typeof LeavePolicyAssignmentFiltersSchema>;
@@ -146,20 +139,14 @@ export const CreateLeaveAllocationSchema = object({
 export type CreateLeaveAllocationInput = InferOutput<typeof CreateLeaveAllocationSchema>;
 
 export const UpdateLeaveAllocationSchema = object({
-  carryForwardedDays: optional(string()),
-  earnedDays: optional(string()),
-  leavePolicyAssignment: optional(nullable(string())),
+  ...partial(omit(CreateLeaveAllocationSchema, ["employeeId", "leavePeriod", "leaveType"])).entries,
   status: optional(LeaveAllocationStatusSchema),
-  totalDays: optional(string()),
-  usedDays: optional(string()),
 });
 
 export type UpdateLeaveAllocationInput = InferOutput<typeof UpdateLeaveAllocationSchema>;
 
 export const LeaveAllocationFiltersSchema = object({
-  employeeId: optional(string()),
-  leavePeriod: optional(string()),
-  leaveType: optional(string()),
+  ...partial(pick(CreateLeaveAllocationSchema, ["employeeId", "leavePeriod", "leaveType"])).entries,
   status: optional(LeaveAllocationStatusSchema),
 });
 
@@ -181,22 +168,14 @@ export const CreateLeaveApplicationSchema = object({
 
 export type CreateLeaveApplicationInput = InferOutput<typeof CreateLeaveApplicationSchema>;
 
-export const UpdateLeaveApplicationSchema = object({
-  fromDate: optional(string()),
-  halfDayDate: optional(string()),
-  isHalfDay: optional(boolean()),
-  leaveAllocation: optional(nullable(string())),
-  leaveType: optional(string()),
-  reason: optional(nullable(string())),
-  toDate: optional(string()),
-  totalDays: optional(string()),
-});
+export const UpdateLeaveApplicationSchema = partial(
+  omit(CreateLeaveApplicationSchema, ["employeeId"]),
+);
 
 export type UpdateLeaveApplicationInput = InferOutput<typeof UpdateLeaveApplicationSchema>;
 
 export const LeaveApplicationFiltersSchema = object({
-  employeeId: optional(string()),
-  leaveType: optional(string()),
+  ...partial(pick(CreateLeaveApplicationSchema, ["employeeId", "leaveType"])).entries,
   status: optional(LeaveApplicationStatusSchema),
 });
 
@@ -214,17 +193,14 @@ export const CreateCompensatoryLeaveSchema = object({
 
 export type CreateCompensatoryLeaveInput = InferOutput<typeof CreateCompensatoryLeaveSchema>;
 
-export const UpdateCompensatoryLeaveSchema = object({
-  leaveType: optional(string()),
-  numberOfDays: optional(string()),
-  reason: optional(string()),
-  workDate: optional(string()),
-});
+export const UpdateCompensatoryLeaveSchema = partial(
+  omit(CreateCompensatoryLeaveSchema, ["employeeId"]),
+);
 
 export type UpdateCompensatoryLeaveInput = InferOutput<typeof UpdateCompensatoryLeaveSchema>;
 
 export const CompensatoryLeaveFiltersSchema = object({
-  employeeId: optional(string()),
+  ...partial(pick(CreateCompensatoryLeaveSchema, ["employeeId"])).entries,
   status: optional(CompensatoryLeaveStatusSchema),
 });
 
@@ -243,17 +219,14 @@ export const CreateLeaveEncashmentSchema = object({
 export type CreateLeaveEncashmentInput = InferOutput<typeof CreateLeaveEncashmentSchema>;
 
 export const UpdateLeaveEncashmentSchema = object({
+  ...partial(omit(CreateLeaveEncashmentSchema, ["employeeId"])).entries,
   amount: optional(nullable(string())),
-  encashableDays: optional(string()),
-  encashedDays: optional(string()),
-  leavePeriod: optional(string()),
-  leaveType: optional(string()),
 });
 
 export type UpdateLeaveEncashmentInput = InferOutput<typeof UpdateLeaveEncashmentSchema>;
 
 export const LeaveEncashmentFiltersSchema = object({
-  employeeId: optional(string()),
+  ...partial(pick(CreateLeaveEncashmentSchema, ["employeeId"])).entries,
   status: optional(LeaveEncashmentStatusSchema),
 });
 
@@ -274,22 +247,14 @@ export const CreateLeaveBlockListSchema = object({
 export type CreateLeaveBlockListInput = InferOutput<typeof CreateLeaveBlockListSchema>;
 
 export const UpdateLeaveBlockListSchema = object({
-  company: optional(nullable(string())),
-  department: optional(nullable(string())),
-  fromDate: optional(string()),
+  ...partial(CreateLeaveBlockListSchema).entries,
   isActive: optional(boolean()),
-  name: optional(string()),
-  reason: optional(nullable(string())),
-  scope: optional(LeaveBlockListScopeSchema),
-  toDate: optional(string()),
 });
 
 export type UpdateLeaveBlockListInput = InferOutput<typeof UpdateLeaveBlockListSchema>;
 
 export const LeaveBlockListFiltersSchema = object({
-  company: optional(string()),
-  department: optional(string()),
-  scope: optional(LeaveBlockListScopeSchema),
+  ...partial(pick(CreateLeaveBlockListSchema, ["company", "department", "scope"])).entries,
 });
 
 export type LeaveBlockListFilters = InferOutput<typeof LeaveBlockListFiltersSchema>;

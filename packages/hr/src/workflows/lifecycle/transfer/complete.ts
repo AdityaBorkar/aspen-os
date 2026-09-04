@@ -1,6 +1,5 @@
-import type { employee } from "#/db-schemas";
-import { employeeTransfer } from "#/db-schemas";
-import { fetchTransferById } from "#/workflows/utils";
+import { employee, employeeTransfer } from "#/db-schemas";
+import { assertUpdated, fetchTransferById, requireStatus } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -16,29 +15,32 @@ export const completeTransfer = Workflow.name("hr.lifecycle.complete-transfer")
     const { id } = input;
 
     const transfer = await fetchTransferById(ctx.db, id);
+    requireStatus(transfer, "approved", `Transfer "${id}"`);
 
-    // Update employee record
-    const updateData: Partial<typeof employee.$inferInsert> = { updatedAt: new Date() };
-    if (transfer.toBranch) {
-      updateData.branch = transfer.toBranch;
-    }
-    if (transfer.toDepartment) {
-      updateData.department = transfer.toDepartment;
-    }
-    if (transfer.toCompany) {
-      updateData.company = transfer.toCompany;
-    }
+    const updated = await ctx.db.transaction(async (tx) => {
+      const updateData: Partial<typeof employee.$inferInsert> = { updatedAt: new Date() };
+      if (transfer.toBranch) {
+        updateData.branch = transfer.toBranch;
+      }
+      if (transfer.toDepartment) {
+        updateData.department = transfer.toDepartment;
+      }
+      if (transfer.toCompany) {
+        updateData.company = transfer.toCompany;
+      }
+      await tx.update(employee).set(updateData).where(eq(employee.id, transfer.employeeId));
 
-    // This would require access to employee workflow
-    // For now, just mark as completed
-    const [updated] = await ctx.db
-      .update(employeeTransfer)
-      .set({
-        status: "completed",
-        updatedAt: new Date(),
-      })
-      .where(eq(employeeTransfer.id, id))
-      .returning();
+      const [row] = await tx
+        .update(employeeTransfer)
+        .set({
+          status: "completed",
+          updatedAt: new Date(),
+        })
+        .where(eq(employeeTransfer.id, id))
+        .returning();
+
+      return assertUpdated(row, `Transfer "${id}"`);
+    });
 
     return updated;
   });

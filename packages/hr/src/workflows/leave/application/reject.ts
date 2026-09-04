@@ -1,4 +1,5 @@
 import { leaveApplication } from "#/db-schemas";
+import { assertUpdated, fetchLeaveApplicationById, requireStatus } from "#/workflows/fetch";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -15,6 +16,9 @@ export const rejectLeaveApplication = Workflow.name("hr.leave.reject-leave-appli
   .handler(async (input, ctx) => {
     const { id, rejectedBy, rejectionReason } = input;
 
+    const application = await fetchLeaveApplicationById(ctx.db, id);
+    requireStatus(application, ["draft", "pending"], `Leave application "${id}"`);
+
     const [updated] = await ctx.db
       .update(leaveApplication)
       .set({
@@ -27,5 +31,5 @@ export const rejectLeaveApplication = Workflow.name("hr.leave.reject-leave-appli
       .where(eq(leaveApplication.id, id))
       .returning();
 
-    return updated;
+    return assertUpdated(updated, `Leave application "${id}"`);
   });

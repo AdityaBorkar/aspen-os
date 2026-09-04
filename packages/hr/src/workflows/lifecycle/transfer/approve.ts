@@ -1,6 +1,6 @@
 import { employeeTransfer } from "#/db-schemas";
 import { LIFECYCLE_EVENTS } from "#/pubsub";
-import { fetchTransferById } from "#/workflows/utils";
+import { assertUpdated, fetchTransferById, requireStatus } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -17,6 +17,7 @@ export const approveTransfer = Workflow.name("hr.lifecycle.approve-transfer")
     const { id, approvedBy } = input;
 
     const existing = await fetchTransferById(ctx.db, id);
+    requireStatus(existing, "pending", `Transfer "${id}"`);
 
     const [updated] = await ctx.db
       .update(employeeTransfer)
@@ -29,13 +30,13 @@ export const approveTransfer = Workflow.name("hr.lifecycle.approve-transfer")
       .where(eq(employeeTransfer.id, id))
       .returning();
 
-    if (updated) {
-      await ctx.pubsub.publish(LIFECYCLE_EVENTS.TRANSFER_APPROVED, {
-        approvedBy,
-        employeeId: existing.employeeId,
-        transferId: id,
-      });
-    }
+    const transfer = assertUpdated(updated, `Transfer "${id}"`);
 
-    return updated;
+    await ctx.pubsub.publish(LIFECYCLE_EVENTS.TRANSFER_APPROVED, {
+      approvedBy,
+      employeeId: existing.employeeId,
+      transferId: id,
+    });
+
+    return transfer;
   });

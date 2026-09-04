@@ -1,5 +1,6 @@
 import { shiftRequest } from "#/db-schemas";
-import { createShiftAssignment, fetchShiftRequestById } from "#/workflows/utils";
+import { insertShiftAssignment } from "#/workflows/shift-records";
+import { assertUpdated, fetchShiftRequestById, requireStatus } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -16,31 +17,30 @@ export const approveShiftRequest = Workflow.name("hr.shift.approve-shift-request
     const { id, approvedBy } = input;
 
     const request = await fetchShiftRequestById(ctx.db, id);
+    requireStatus(request, "pending", `Shift request "${id}"`);
 
-    // Create shift assignment
-    const assignment = await createShiftAssignment(ctx.db, {
-      employeeId: request.employeeId,
-      endDate: request.toDate ?? undefined,
-      shiftType: request.shiftType,
-      startDate: request.fromDate,
+    const updated = await ctx.db.transaction(async (tx) => {
+      const assignment = await insertShiftAssignment(tx, {
+        employeeId: request.employeeId,
+        endDate: request.toDate ?? undefined,
+        shiftType: request.shiftType,
+        startDate: request.fromDate,
+      });
+
+      const [row] = await tx
+        .update(shiftRequest)
+        .set({
+          approvedAt: new Date(),
+          approvedBy,
+          shiftAssignment: assignment.id,
+          status: "approved",
+          updatedAt: new Date(),
+        })
+        .where(eq(shiftRequest.id, id))
+        .returning();
+
+      return assertUpdated(row, `Shift request "${id}"`);
     });
-
-    if (!assignment) {
-      throw new Error("Failed to create shift assignment.");
-    }
-
-    // Update request status
-    const [updated] = await ctx.db
-      .update(shiftRequest)
-      .set({
-        approvedAt: new Date(),
-        approvedBy,
-        shiftAssignment: assignment.id,
-        status: "approved",
-        updatedAt: new Date(),
-      })
-      .where(eq(shiftRequest.id, id))
-      .returning();
 
     return updated;
   });

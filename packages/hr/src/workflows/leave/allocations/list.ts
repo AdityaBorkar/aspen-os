@@ -3,10 +3,10 @@ import { LeaveAllocationFiltersSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
-import { object, optional, parse } from "valibot";
+import { object, optional } from "valibot";
 
 const InputSchema = object({
-  filters: optional(LeaveAllocationFiltersSchema),
+  filters: optional(LeaveAllocationFiltersSchema, {}),
 });
 
 export const listLeaveAllocations = Workflow.name("hr.leave.list-leave-allocations")
@@ -14,7 +14,7 @@ export const listLeaveAllocations = Workflow.name("hr.leave.list-leave-allocatio
   .handler(async (input, ctx) => {
     const { filters } = input;
 
-    const parsed = filters ? parse(LeaveAllocationFiltersSchema, filters) : {};
+    const parsed = filters;
     const conditions = [];
 
     if (parsed.employeeId) {

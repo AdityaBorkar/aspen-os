@@ -2,7 +2,7 @@ import { compensatoryLeaveRequest } from "#/db-schemas";
 import { CreateCompensatoryLeaveSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const InputSchema = object({
   input: CreateCompensatoryLeaveSchema,
@@ -11,7 +11,7 @@ const InputSchema = object({
 export const createCompensatoryLeave = Workflow.name("hr.leave.create-compensatory-leave")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(CreateCompensatoryLeaveSchema, input);
+    const parsed = input;
 
     const [result] = await ctx.db
       .insert(compensatoryLeaveRequest)

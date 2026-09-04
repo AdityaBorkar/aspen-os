@@ -2,7 +2,7 @@ import { attendanceRequest } from "#/db-schemas";
 import { CreateAttendanceRequestSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const InputSchema = object({
   input: CreateAttendanceRequestSchema,
@@ -11,7 +11,7 @@ const InputSchema = object({
 export const createAttendanceRequest = Workflow.name("hr.attendance.create-attendance-request")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(CreateAttendanceRequestSchema, input);
+    const parsed = input;
 
     const [result] = await ctx.db
       .insert(attendanceRequest)

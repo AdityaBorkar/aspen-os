@@ -3,10 +3,10 @@ import { HrPermissionFiltersSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
-import { object, optional, parse } from "valibot";
+import { object, optional } from "valibot";
 
 const InputSchema = object({
-  filters: optional(HrPermissionFiltersSchema),
+  filters: optional(HrPermissionFiltersSchema, {}),
 });
 
 export const listPermissions = Workflow.name("hr.access.list-permissions")
@@ -14,7 +14,7 @@ export const listPermissions = Workflow.name("hr.access.list-permissions")
   .handler(async (input, ctx) => {
     const { filters } = input;
 
-    const parsed = filters ? parse(HrPermissionFiltersSchema, filters) : {};
+    const parsed = filters;
     const conditions = [];
 
     if (parsed.action) {

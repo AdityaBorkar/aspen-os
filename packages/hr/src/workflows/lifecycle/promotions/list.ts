@@ -3,10 +3,10 @@ import { PromotionFiltersSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
-import { object, optional, parse } from "valibot";
+import { object, optional } from "valibot";
 
 const InputSchema = object({
-  filters: optional(PromotionFiltersSchema),
+  filters: optional(PromotionFiltersSchema, {}),
 });
 
 export const listPromotions = Workflow.name("hr.lifecycle.list-promotions")
@@ -14,7 +14,7 @@ export const listPromotions = Workflow.name("hr.lifecycle.list-promotions")
   .handler(async (input, ctx) => {
     const { filters } = input;
 
-    const parsed = filters ? parse(PromotionFiltersSchema, filters) : {};
+    const parsed = filters;
     const conditions = [];
 
     if (parsed.employeeId) {

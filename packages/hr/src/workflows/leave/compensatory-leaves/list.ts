@@ -3,10 +3,10 @@ import { CompensatoryLeaveFiltersSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
-import { object, optional, parse } from "valibot";
+import { object, optional } from "valibot";
 
 const InputSchema = object({
-  filters: optional(CompensatoryLeaveFiltersSchema),
+  filters: optional(CompensatoryLeaveFiltersSchema, {}),
 });
 
 export const listCompensatoryLeaves = Workflow.name("hr.leave.list-compensatory-leaves")
@@ -14,7 +14,7 @@ export const listCompensatoryLeaves = Workflow.name("hr.leave.list-compensatory-
   .handler(async (input, ctx) => {
     const { filters } = input;
 
-    const parsed = filters ? parse(CompensatoryLeaveFiltersSchema, filters) : {};
+    const parsed = filters;
     const conditions = [];
 
     if (parsed.employeeId) {

@@ -4,7 +4,7 @@ import { CreateAnnouncementSchema } from "#/types";
 import { resolveAudienceDefinition, validateAudienceStrongRefs } from "#/utils/announcement-utils";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const InputSchema = object({
   input: CreateAnnouncementSchema,
@@ -13,7 +13,7 @@ const InputSchema = object({
 export const createAnnouncement = Workflow.name("hr.announcement.create")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(CreateAnnouncementSchema, input);
+    const parsed = input;
 
     let scheduledAt: Date | null = null;
     if (parsed.scheduleAt) {

@@ -1,6 +1,17 @@
 import { OvertimeStatusSchema } from "#/schemas/enums";
 
-import { boolean, minLength, nullable, object, optional, pipe, string } from "valibot";
+import {
+  boolean,
+  minLength,
+  nullable,
+  object,
+  omit,
+  optional,
+  partial,
+  pick,
+  pipe,
+  string,
+} from "valibot";
 import type { InferOutput } from "valibot";
 
 // Overtime Type
@@ -20,16 +31,8 @@ export const CreateOvertimeTypeSchema = object({
 export type CreateOvertimeTypeInput = InferOutput<typeof CreateOvertimeTypeSchema>;
 
 export const UpdateOvertimeTypeSchema = object({
-  amountCalculation: optional(string()),
-  description: optional(nullable(string())),
-  fixedHourlyRate: optional(nullable(string())),
-  holidayMultiplier: optional(string()),
+  ...partial(CreateOvertimeTypeSchema).entries,
   isActive: optional(boolean()),
-  maxOvertimeHoursPerDay: optional(nullable(string())),
-  name: optional(string()),
-  overtimeSalaryComponent: optional(nullable(string())),
-  standardMultiplier: optional(string()),
-  weekendMultiplier: optional(string()),
 });
 
 export type UpdateOvertimeTypeInput = InferOutput<typeof UpdateOvertimeTypeSchema>;
@@ -52,23 +55,14 @@ export const CreateOvertimeSlipSchema = object({
 export type CreateOvertimeSlipInput = InferOutput<typeof CreateOvertimeSlipSchema>;
 
 export const UpdateOvertimeSlipSchema = object({
+  ...partial(omit(CreateOvertimeSlipSchema, ["employeeId"])).entries,
   amount: optional(nullable(string())),
-  fromDate: optional(string()),
-  holidayHours: optional(string()),
-  metadata: optional(nullable(object({}))),
-  notes: optional(nullable(string())),
-  overtimeType: optional(string()),
-  standardHours: optional(string()),
-  toDate: optional(string()),
-  totalOvertimeHours: optional(string()),
-  weekendHours: optional(string()),
 });
 
 export type UpdateOvertimeSlipInput = InferOutput<typeof UpdateOvertimeSlipSchema>;
 
 export const OvertimeSlipFiltersSchema = object({
-  employeeId: optional(string()),
-  overtimeType: optional(string()),
+  ...partial(pick(CreateOvertimeSlipSchema, ["employeeId", "overtimeType"])).entries,
   status: optional(OvertimeStatusSchema),
 });
 

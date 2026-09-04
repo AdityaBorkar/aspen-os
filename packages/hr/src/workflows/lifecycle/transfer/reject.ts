@@ -1,4 +1,5 @@
 import { employeeTransfer } from "#/db-schemas";
+import { assertUpdated, fetchTransferById, requireStatus } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -15,6 +16,9 @@ export const rejectTransfer = Workflow.name("hr.lifecycle.reject-transfer")
   .handler(async (input, ctx) => {
     const { id, rejectedBy, rejectionReason } = input;
 
+    const transfer = await fetchTransferById(ctx.db, id);
+    requireStatus(transfer, "pending", `Transfer "${id}"`);
+
     const [updated] = await ctx.db
       .update(employeeTransfer)
       .set({
@@ -27,5 +31,5 @@ export const rejectTransfer = Workflow.name("hr.lifecycle.reject-transfer")
       .where(eq(employeeTransfer.id, id))
       .returning();
 
-    return updated;
+    return assertUpdated(updated, `Transfer "${id}"`);
   });

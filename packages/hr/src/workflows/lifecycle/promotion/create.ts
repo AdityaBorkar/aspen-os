@@ -2,7 +2,7 @@ import { employeePromotion } from "#/db-schemas";
 import { CreatePromotionSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const InputSchema = object({
   input: CreatePromotionSchema,
@@ -11,7 +11,7 @@ const InputSchema = object({
 export const createPromotion = Workflow.name("hr.lifecycle.create-promotion")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(CreatePromotionSchema, input);
+    const parsed = input;
 
     const [result] = await ctx.db
       .insert(employeePromotion)

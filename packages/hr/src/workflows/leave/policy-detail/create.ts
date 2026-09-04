@@ -3,7 +3,7 @@ import { CreateLeavePolicyDetailSchema } from "#/types";
 import { fetchLeavePolicyById, fetchLeaveTypeById } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const InputSchema = object({
   input: CreateLeavePolicyDetailSchema,
@@ -12,7 +12,7 @@ const InputSchema = object({
 export const createLeavePolicyDetail = Workflow.name("hr.leave.create-leave-policy-detail")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(CreateLeavePolicyDetailSchema, input);
+    const parsed = input;
 
     // Verify leave policy exists
     await fetchLeavePolicyById(ctx.db, parsed.leavePolicyId);

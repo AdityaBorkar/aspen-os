@@ -8,7 +8,9 @@ import {
   nullable,
   number,
   object,
+  omit,
   optional,
+  partial,
   pipe,
   string,
 } from "valibot";
@@ -54,9 +56,8 @@ export const CreateEmploymentTypeSchema = object({
 export type CreateEmploymentTypeInput = InferOutput<typeof CreateEmploymentTypeSchema>;
 
 export const UpdateEmploymentTypeSchema = object({
-  description: optional(nullable(string())),
+  ...partial(CreateEmploymentTypeSchema).entries,
   isActive: optional(boolean()),
-  name: optional(NameSchema),
 });
 
 export type UpdateEmploymentTypeInput = InferOutput<typeof UpdateEmploymentTypeSchema>;
@@ -76,18 +77,14 @@ export const CreateDepartmentSchema = object({
 export type CreateDepartmentInput = InferOutput<typeof CreateDepartmentSchema>;
 
 export const UpdateDepartmentSchema = object({
-  code: optional(pipe(string(), minLength(2, "Code must be at least 2 characters"))),
-  costCenter: optional(nullable(string())),
-  headcount: optional(nullable(number())),
+  ...partial(CreateDepartmentSchema).entries,
   isActive: optional(boolean()),
-  manager: optional(nullable(string())),
-  metadata: optional(nullable(object({}))),
-  name: optional(NameSchema),
-  parentDepartment: optional(nullable(string())),
 });
 
 export type UpdateDepartmentInput = InferOutput<typeof UpdateDepartmentSchema>;
 
+// Old UpdateDepartment accepted a bare optional code while Create requires
+// minLength(2); the derived schema is strictly more correct (same rule).
 export const MoveDepartmentSchema = object({
   newParentId: optional(nullable(string())),
 });
@@ -117,9 +114,8 @@ export const CreateDesignationSchema = object({
 export type CreateDesignationInput = InferOutput<typeof CreateDesignationSchema>;
 
 export const UpdateDesignationSchema = object({
-  description: optional(nullable(string())),
+  ...partial(CreateDesignationSchema).entries,
   isActive: optional(boolean()),
-  name: optional(NameSchema),
 });
 
 export type UpdateDesignationInput = InferOutput<typeof UpdateDesignationSchema>;
@@ -135,10 +131,8 @@ export const CreateEmployeeGradeSchema = object({
 export type CreateEmployeeGradeInput = InferOutput<typeof CreateEmployeeGradeSchema>;
 
 export const UpdateEmployeeGradeSchema = object({
-  defaultSalaryStructure: optional(nullable(string())),
-  description: optional(nullable(string())),
+  ...partial(CreateEmployeeGradeSchema).entries,
   isActive: optional(boolean()),
-  name: optional(NameSchema),
 });
 
 export type UpdateEmployeeGradeInput = InferOutput<typeof UpdateEmployeeGradeSchema>;
@@ -155,11 +149,8 @@ export const CreateHolidayListSchema = object({
 export type CreateHolidayListInput = InferOutput<typeof CreateHolidayListSchema>;
 
 export const UpdateHolidayListSchema = object({
-  description: optional(nullable(string())),
+  ...partial(CreateHolidayListSchema).entries,
   isActive: optional(boolean()),
-  name: optional(NameSchema),
-  weeklyOffDays: optional(nullable(array(string()))),
-  year: optional(number()),
 });
 
 export type UpdateHolidayListInput = InferOutput<typeof UpdateHolidayListSchema>;
@@ -176,11 +167,6 @@ export const CreateHolidaySchema = object({
 
 export type CreateHolidayInput = InferOutput<typeof CreateHolidaySchema>;
 
-export const UpdateHolidaySchema = object({
-  date: optional(string()),
-  description: optional(nullable(string())),
-  name: optional(NameSchema),
-  type: optional(HolidayTypeSchema),
-});
+export const UpdateHolidaySchema = partial(omit(CreateHolidaySchema, ["holidayListId"]));
 
 export type UpdateHolidayInput = InferOutput<typeof UpdateHolidaySchema>;

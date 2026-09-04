@@ -1,9 +1,11 @@
 import { compensatoryLeaveRequest } from "#/db-schemas";
 import {
-  createLeaveAllocation,
-  createLeaveLedgerEntry,
+  assertUpdated,
   fetchCompensatoryLeaveById,
-} from "#/workflows/utils";
+  fetchLeavePeriodById,
+  requireStatus,
+} from "#/workflows/fetch";
+import { insertLeaveAllocation, insertLeaveLedgerEntry } from "#/workflows/leave-accounts";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -12,44 +14,49 @@ import { minLength, object, pipe, string } from "valibot";
 const InputSchema = object({
   approvedBy: pipe(string(), minLength(1, "approvedBy is required")),
   id: pipe(string(), minLength(1, "id is required")),
+  leavePeriod: pipe(string(), minLength(1, "leavePeriod is required")),
 });
 
 export const approveCompensatoryLeave = Workflow.name("hr.leave.approve-compensatory-leave")
   .input(InputSchema)
   .handler(async (input, ctx) => {
-    const { id, approvedBy } = input;
+    const { id, approvedBy, leavePeriod } = input;
 
     const request = await fetchCompensatoryLeaveById(ctx.db, id);
+    requireStatus(request, "pending", `Compensatory leave request "${id}"`);
+    await fetchLeavePeriodById(ctx.db, leavePeriod);
 
-    // Create leave allocation for compensatory leave
-    const allocation = await createLeaveAllocation(ctx.db, {
-      carryForwardedDays: "0",
-      employeeId: request.employeeId,
-      leavePeriod: "", // Will need to be provided
-      leaveType: request.leaveType,
-      totalDays: request.numberOfDays,
+    const updated = await ctx.db.transaction(async (tx) => {
+      const allocation = await insertLeaveAllocation(tx, {
+        carryForwardedDays: "0",
+        employeeId: request.employeeId,
+        leavePeriod,
+        leaveType: request.leaveType,
+        totalDays: request.numberOfDays,
+      });
+
+      await insertLeaveLedgerEntry(tx, {
+        days: request.numberOfDays,
+        description: `Compensatory leave approved for work on ${request.workDate}`,
+        employeeId: request.employeeId,
+        leaveType: request.leaveType,
+        transactionType: "compensatory",
+      });
+
+      const [row] = await tx
+        .update(compensatoryLeaveRequest)
+        .set({
+          approvedAt: new Date(),
+          approvedBy,
+          leaveAllocation: allocation.id,
+          status: "approved",
+          updatedAt: new Date(),
+        })
+        .where(eq(compensatoryLeaveRequest.id, id))
+        .returning();
+
+      return assertUpdated(row, `Compensatory leave request "${id}"`);
     });
-
-    // Create ledger entry
-    await createLeaveLedgerEntry(ctx.db, {
-      days: request.numberOfDays,
-      description: `Compensatory leave approved for work on ${request.workDate}`,
-      employeeId: request.employeeId,
-      leaveType: request.leaveType,
-      transactionType: "compensatory",
-    });
-
-    const [updated] = await ctx.db
-      .update(compensatoryLeaveRequest)
-      .set({
-        approvedAt: new Date(),
-        approvedBy,
-        leaveAllocation: allocation.id,
-        status: "approved",
-        updatedAt: new Date(),
-      })
-      .where(eq(compensatoryLeaveRequest.id, id))
-      .returning();
 
     return updated;
   });

@@ -3,7 +3,7 @@ import { CreateDepartmentSchema } from "#/types";
 import { validateParentDepartment } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const InputSchema = object({
   input: CreateDepartmentSchema,
@@ -12,7 +12,7 @@ const InputSchema = object({
 export const createDepartment = Workflow.name("hr.setup.create-department")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(CreateDepartmentSchema, input);
+    const parsed = input;
 
     if (parsed.parentDepartment) {
       await validateParentDepartment(ctx.db, parsed.parentDepartment);

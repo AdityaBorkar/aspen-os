@@ -1,4 +1,5 @@
 import { department, hrPosition } from "#/db-schemas";
+import { collectSubtreeIds } from "#/workflows/trees";
 import { fetchDepartmentById } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -23,28 +24,13 @@ export const listPositionsByDepartment = Workflow.name("hr.setup.list-positions-
         .select()
         .from(department)
         .where(eq(department.isActive, true));
-      const childrenByParent = new Map<string | null, string[]>();
-      for (const departmentItem of departments) {
-        const siblings = childrenByParent.get(departmentItem.parentDepartment) ?? [];
-        siblings.push(departmentItem.id);
-        childrenByParent.set(departmentItem.parentDepartment, siblings);
-      }
-
-      const subtree = new Set<string>([departmentId]);
-      const stack = [departmentId];
-      while (stack.length > 0) {
-        const current = stack.pop();
-        if (current === undefined) {
-          continue;
-        }
-        for (const childId of childrenByParent.get(current) ?? []) {
-          if (!subtree.has(childId)) {
-            subtree.add(childId);
-            stack.push(childId);
-          }
-        }
-      }
-      departmentIds = [...subtree];
+      departmentIds = collectSubtreeIds(
+        departments.map((departmentItem) => ({
+          id: departmentItem.id,
+          parentId: departmentItem.parentDepartment,
+        })),
+        [departmentId],
+      );
     }
 
     return ctx.db

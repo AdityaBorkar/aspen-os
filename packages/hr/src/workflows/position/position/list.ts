@@ -3,10 +3,10 @@ import { PositionFiltersSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, inArray, isNull } from "drizzle-orm";
-import { object, optional, parse } from "valibot";
+import { object, optional } from "valibot";
 
 const InputSchema = object({
-  filters: optional(PositionFiltersSchema),
+  filters: optional(PositionFiltersSchema, {}),
 });
 
 export const listPositions = Workflow.name("hr.position.list")
@@ -14,7 +14,7 @@ export const listPositions = Workflow.name("hr.position.list")
   .handler(async (input, ctx) => {
     const { filters } = input;
 
-    const parsed = filters ? parse(PositionFiltersSchema, filters) : {};
+    const parsed = filters;
     const conditions = [];
 
     if (parsed.department) {

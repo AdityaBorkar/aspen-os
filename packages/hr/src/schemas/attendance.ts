@@ -4,7 +4,19 @@ import {
   CheckinLogTypeSchema,
 } from "#/schemas/enums";
 
-import { boolean, minLength, nullable, number, object, optional, pipe, string } from "valibot";
+import {
+  boolean,
+  minLength,
+  nullable,
+  number,
+  object,
+  omit,
+  optional,
+  partial,
+  pick,
+  pipe,
+  string,
+} from "valibot";
 import type { InferOutput } from "valibot";
 
 // Attendance
@@ -30,30 +42,13 @@ export const CreateAttendanceSchema = object({
 
 export type CreateAttendanceInput = InferOutput<typeof CreateAttendanceSchema>;
 
-export const UpdateAttendanceSchema = object({
-  attendanceRequest: optional(nullable(string())),
-  checkInTime: optional(string()),
-  checkOutTime: optional(string()),
-  earlyExit: optional(boolean()),
-  earlyExitMinutes: optional(number()),
-  halfDayType: optional(nullable(string())),
-  isHalfDay: optional(boolean()),
-  lateEntry: optional(boolean()),
-  lateEntryMinutes: optional(number()),
-  metadata: optional(nullable(object({}))),
-  notes: optional(nullable(string())),
-  shift: optional(nullable(string())),
-  status: optional(AttendanceStatusSchema),
-  workingHours: optional(nullable(string())),
-});
+export const UpdateAttendanceSchema = partial(omit(CreateAttendanceSchema, ["date", "employeeId"]));
 
 export type UpdateAttendanceInput = InferOutput<typeof UpdateAttendanceSchema>;
 
 export const AttendanceFiltersSchema = object({
-  date: optional(string()),
-  employeeId: optional(string()),
+  ...partial(pick(CreateAttendanceSchema, ["date", "employeeId", "shift"])).entries,
   endDate: optional(string()),
-  shift: optional(string()),
   startDate: optional(string()),
   status: optional(AttendanceStatusSchema),
 });
@@ -77,12 +72,10 @@ export const CreateCheckinSchema = object({
 export type CreateCheckinInput = InferOutput<typeof CreateCheckinSchema>;
 
 export const CheckinFiltersSchema = object({
-  deviceId: optional(string()),
-  employeeId: optional(string()),
+  ...partial(
+    pick(CreateCheckinSchema, ["deviceId", "employeeId", "isOffShift", "logType", "shift"]),
+  ).entries,
   endDate: optional(string()),
-  isOffShift: optional(boolean()),
-  logType: optional(CheckinLogTypeSchema),
-  shift: optional(string()),
   startDate: optional(string()),
 });
 
@@ -99,16 +92,14 @@ export const CreateAttendanceRequestSchema = object({
 
 export type CreateAttendanceRequestInput = InferOutput<typeof CreateAttendanceRequestSchema>;
 
-export const UpdateAttendanceRequestSchema = object({
-  fromDate: optional(string()),
-  reason: optional(string()),
-  toDate: optional(string()),
-});
+export const UpdateAttendanceRequestSchema = partial(
+  omit(CreateAttendanceRequestSchema, ["employeeId"]),
+);
 
 export type UpdateAttendanceRequestInput = InferOutput<typeof UpdateAttendanceRequestSchema>;
 
 export const AttendanceRequestFiltersSchema = object({
-  employeeId: optional(string()),
+  ...partial(pick(CreateAttendanceRequestSchema, ["employeeId"])).entries,
   status: optional(AttendanceRequestStatusSchema),
 });
 

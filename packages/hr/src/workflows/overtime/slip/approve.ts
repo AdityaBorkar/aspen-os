@@ -1,5 +1,11 @@
 import { overtimeSlip } from "#/db-schemas";
-import { fetchOvertimeSlipById, fetchOvertimeTypeById } from "#/workflows/utils";
+import { toDays } from "#/workflows/leave-accounts";
+import {
+  assertUpdated,
+  fetchOvertimeSlipById,
+  fetchOvertimeTypeById,
+  requireStatus,
+} from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -16,19 +22,23 @@ export const approveOvertimeSlip = Workflow.name("hr.overtime.approve-overtime-s
     const { id, approvedBy } = input;
 
     const slip = await fetchOvertimeSlipById(ctx.db, id);
+    requireStatus(slip, "pending", `Overtime slip "${id}"`);
     const overtimeTypeRecord = await fetchOvertimeTypeById(ctx.db, slip.overtimeType);
 
     // Calculate amount
     let amount = 0;
-    const standardHours = Number.parseFloat(slip.standardHours);
-    const holidayHours = Number.parseFloat(slip.holidayHours);
-    const weekendHours = Number.parseFloat(slip.weekendHours);
+    const standardHours = toDays(slip.standardHours, "standardHours");
+    const holidayHours = toDays(slip.holidayHours, "holidayHours");
+    const weekendHours = toDays(slip.weekendHours, "weekendHours");
 
     if (overtimeTypeRecord.amountCalculation === "fixed" && overtimeTypeRecord.fixedHourlyRate) {
-      const hourlyRate = Number.parseFloat(overtimeTypeRecord.fixedHourlyRate);
-      const standardMultiplier = Number.parseFloat(overtimeTypeRecord.standardMultiplier);
-      const holidayMultiplier = Number.parseFloat(overtimeTypeRecord.holidayMultiplier);
-      const weekendMultiplier = Number.parseFloat(overtimeTypeRecord.weekendMultiplier);
+      const hourlyRate = toDays(overtimeTypeRecord.fixedHourlyRate, "fixedHourlyRate");
+      const standardMultiplier = toDays(
+        overtimeTypeRecord.standardMultiplier,
+        "standardMultiplier",
+      );
+      const holidayMultiplier = toDays(overtimeTypeRecord.holidayMultiplier, "holidayMultiplier");
+      const weekendMultiplier = toDays(overtimeTypeRecord.weekendMultiplier, "weekendMultiplier");
 
       amount =
         standardHours * hourlyRate * standardMultiplier +
@@ -48,5 +58,5 @@ export const approveOvertimeSlip = Workflow.name("hr.overtime.approve-overtime-s
       .where(eq(overtimeSlip.id, id))
       .returning();
 
-    return updated;
+    return assertUpdated(updated, `Overtime slip "${id}"`);
   });

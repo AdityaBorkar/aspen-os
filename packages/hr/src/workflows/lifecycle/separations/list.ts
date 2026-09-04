@@ -3,10 +3,10 @@ import { SeparationFiltersSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
-import { object, optional, parse } from "valibot";
+import { object, optional } from "valibot";
 
 const InputSchema = object({
-  filters: optional(SeparationFiltersSchema),
+  filters: optional(SeparationFiltersSchema, {}),
 });
 
 export const listSeparations = Workflow.name("hr.lifecycle.list-separations")
@@ -14,7 +14,7 @@ export const listSeparations = Workflow.name("hr.lifecycle.list-separations")
   .handler(async (input, ctx) => {
     const { filters } = input;
 
-    const parsed = filters ? parse(SeparationFiltersSchema, filters) : {};
+    const parsed = filters;
     const conditions = [];
 
     if (parsed.employeeId) {

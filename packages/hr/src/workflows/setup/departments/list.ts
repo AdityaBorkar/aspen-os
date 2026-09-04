@@ -3,10 +3,10 @@ import { DepartmentFiltersSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
-import { object, optional, parse } from "valibot";
+import { object, optional } from "valibot";
 
 const InputSchema = object({
-  filters: optional(DepartmentFiltersSchema),
+  filters: optional(DepartmentFiltersSchema, {}),
 });
 
 export const listDepartments = Workflow.name("hr.setup.list-departments")
@@ -14,7 +14,7 @@ export const listDepartments = Workflow.name("hr.setup.list-departments")
   .handler(async (input, ctx) => {
     const { filters } = input;
 
-    const parsed = filters ? parse(DepartmentFiltersSchema, filters) : {};
+    const parsed = filters;
     const conditions = [];
 
     if (parsed.isActive !== undefined) {

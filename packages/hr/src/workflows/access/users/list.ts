@@ -3,10 +3,10 @@ import { HrUserFiltersSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
-import { object, optional, parse } from "valibot";
+import { object, optional } from "valibot";
 
 const InputSchema = object({
-  filters: optional(HrUserFiltersSchema),
+  filters: optional(HrUserFiltersSchema, {}),
 });
 
 export const listUsers = Workflow.name("hr.access.list-users")
@@ -14,7 +14,7 @@ export const listUsers = Workflow.name("hr.access.list-users")
   .handler(async (input, ctx) => {
     const { filters } = input;
 
-    const parsed = filters ? parse(HrUserFiltersSchema, filters) : {};
+    const parsed = filters;
     const conditions = [];
 
     if (parsed.employeeId) {

@@ -3,7 +3,7 @@ import { UpdateEmploymentTypeSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-import { minLength, object, parse, pipe, string } from "valibot";
+import { minLength, object, pipe, string } from "valibot";
 
 const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
@@ -15,7 +15,7 @@ export const updateEmploymentType = Workflow.name("hr.setup.update-employment-ty
   .handler(async (input, ctx) => {
     const { id, patch } = input;
 
-    const parsed = parse(UpdateEmploymentTypeSchema, patch);
+    const parsed = patch;
 
     const [updated] = await ctx.db
       .update(employmentType)

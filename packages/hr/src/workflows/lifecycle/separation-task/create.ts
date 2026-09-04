@@ -3,7 +3,7 @@ import { CreateSeparationTaskSchema } from "#/types";
 import { fetchSeparationById } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const InputSchema = object({
   input: CreateSeparationTaskSchema,
@@ -12,7 +12,7 @@ const InputSchema = object({
 export const createSeparationTask = Workflow.name("hr.lifecycle.create-separation-task")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(CreateSeparationTaskSchema, input);
+    const parsed = input;
 
     // Verify separation exists
     await fetchSeparationById(ctx.db, parsed.separationId);

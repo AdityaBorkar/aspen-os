@@ -12,7 +12,9 @@ import {
   nullable,
   number,
   object,
+  omit,
   optional,
+  partial,
   pipe,
   string,
 } from "valibot";
@@ -48,12 +50,9 @@ export const CreateAnnouncementSchema = object({
 export type CreateAnnouncementInput = InferOutput<typeof CreateAnnouncementSchema>;
 
 export const UpdateAnnouncementSchema = object({
-  audience: optional(nullable(AnnouncementAudienceSchema)),
-  body: optional(string()),
-  channel: optional(AnnouncementChannelSchema),
+  ...partial(omit(CreateAnnouncementSchema, ["scheduleAt"])).entries,
   priority: optional(AnnouncementPrioritySchema),
   requireAcknowledgement: optional(boolean()),
-  title: optional(string()),
 });
 
 export type UpdateAnnouncementInput = InferOutput<typeof UpdateAnnouncementSchema>;

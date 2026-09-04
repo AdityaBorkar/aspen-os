@@ -3,10 +3,10 @@ import { CheckinFiltersSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, sql } from "drizzle-orm";
-import { object, optional, parse } from "valibot";
+import { object, optional } from "valibot";
 
 const InputSchema = object({
-  filters: optional(CheckinFiltersSchema),
+  filters: optional(CheckinFiltersSchema, {}),
 });
 
 export const listCheckins = Workflow.name("hr.attendance.list-checkins")
@@ -14,7 +14,7 @@ export const listCheckins = Workflow.name("hr.attendance.list-checkins")
   .handler(async (input, ctx) => {
     const { filters } = input;
 
-    const parsed = filters ? parse(CheckinFiltersSchema, filters) : {};
+    const parsed = filters;
     const conditions = [];
 
     if (parsed.employeeId) {

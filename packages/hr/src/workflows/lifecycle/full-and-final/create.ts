@@ -2,7 +2,7 @@ import { fullAndFinalStatement } from "#/db-schemas";
 import { CreateFullAndFinalSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const InputSchema = object({
   input: CreateFullAndFinalSchema,
@@ -11,7 +11,7 @@ const InputSchema = object({
 export const createFullAndFinal = Workflow.name("hr.lifecycle.create-full-and-final")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(CreateFullAndFinalSchema, input);
+    const parsed = input;
 
     const [result] = await ctx.db
       .insert(fullAndFinalStatement)

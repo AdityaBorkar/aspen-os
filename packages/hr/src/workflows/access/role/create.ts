@@ -2,7 +2,7 @@ import { hrRole } from "#/db-schemas";
 import { CreateHrRoleSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const InputSchema = object({
   input: CreateHrRoleSchema,
@@ -11,7 +11,7 @@ const InputSchema = object({
 export const createRole = Workflow.name("hr.access.create-role")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(CreateHrRoleSchema, input);
+    const parsed = input;
 
     const [result] = await ctx.db
       .insert(hrRole)

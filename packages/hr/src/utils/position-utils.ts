@@ -1,8 +1,8 @@
 import { hrPosition, hrPositionAssignment } from "#/db-schemas";
 import type { PositionTreeNode } from "#/types";
+import type { Db } from "#/workflows/db";
 
 import { and, eq, isNull, sql } from "drizzle-orm";
-import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 const MAX_POSITION_DEPTH = 10;
 
@@ -10,7 +10,7 @@ export function todayString(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export async function fetchPositionById(db: PostgresJsDatabase, id: string) {
+export async function fetchPositionById(db: Db, id: string) {
   const [result] = await db.select().from(hrPosition).where(eq(hrPosition.id, id)).limit(1);
 
   if (!result) {
@@ -21,7 +21,7 @@ export async function fetchPositionById(db: PostgresJsDatabase, id: string) {
 }
 
 export async function ensurePositionNameUnique(
-  db: PostgresJsDatabase,
+  db: Db,
   input: { department: string; excludeId?: string; name: string },
 ): Promise<void> {
   const conditions = [eq(hrPosition.name, input.name), eq(hrPosition.department, input.department)];
@@ -41,7 +41,7 @@ export async function ensurePositionNameUnique(
 }
 
 export async function wouldCreatePositionCircular(
-  db: PostgresJsDatabase,
+  db: Db,
   positionId: string,
   newReportsToId: string,
 ): Promise<boolean> {
@@ -75,7 +75,7 @@ export async function wouldCreatePositionCircular(
 }
 
 export async function validatePositionReportsTo(
-  db: PostgresJsDatabase,
+  db: Db,
   reportsToId: string,
   childId?: string,
 ): Promise<void> {
@@ -92,7 +92,7 @@ export async function validatePositionReportsTo(
 
 // ─── Assignments ─────────────────────────────────────────────────────────
 
-export async function fetchPositionAssignmentById(db: PostgresJsDatabase, id: string) {
+export async function fetchPositionAssignmentById(db: Db, id: string) {
   const [result] = await db
     .select()
     .from(hrPositionAssignment)
@@ -106,7 +106,7 @@ export async function fetchPositionAssignmentById(db: PostgresJsDatabase, id: st
   return result;
 }
 
-export async function listOpenAssignmentsForPosition(db: PostgresJsDatabase, positionId: string) {
+export async function listOpenAssignmentsForPosition(db: Db, positionId: string) {
   return db
     .select()
     .from(hrPositionAssignment)
@@ -116,7 +116,7 @@ export async function listOpenAssignmentsForPosition(db: PostgresJsDatabase, pos
 }
 
 export async function ensurePositionHasCapacity(
-  db: PostgresJsDatabase,
+  db: Db,
   positionId: string,
   excludingAssignmentId?: string,
 ): Promise<void> {
@@ -142,7 +142,7 @@ export async function ensurePositionHasCapacity(
 }
 
 export async function ensureNoOpenAssignmentForEmployeeInPosition(
-  db: PostgresJsDatabase,
+  db: Db,
   employeeId: string,
   positionId: string,
 ): Promise<void> {
@@ -164,7 +164,7 @@ export async function ensureNoOpenAssignmentForEmployeeInPosition(
 }
 
 export async function clearOtherCurrentPrimaryAssignments(
-  db: PostgresJsDatabase,
+  db: Db,
   employeeId: string,
 ): Promise<void> {
   await db
@@ -179,20 +179,50 @@ export async function clearOtherCurrentPrimaryAssignments(
     );
 }
 
-export async function ensurePositionActive(
-  db: PostgresJsDatabase,
-  positionId: string,
+// ─── Assignment core ─────────────────────────────────────────────────────────
+// Shared by assign / transfer / reconciliation so the conflict-close → clear
+// primary → capacity-check sequence lives in exactly one place.
+
+export async function closeConflictingAssignment(
+  db: Db,
+  assignment: { employeeId: string; positionId: string; toDate: string },
 ): Promise<void> {
+  await db
+    .update(hrPositionAssignment)
+    .set({ toDate: assignment.toDate, updatedAt: new Date() })
+    .where(
+      and(
+        eq(hrPositionAssignment.employeeId, assignment.employeeId),
+        eq(hrPositionAssignment.positionId, assignment.positionId),
+        isNull(hrPositionAssignment.toDate),
+      ),
+    );
+}
+
+export async function ensureAssignable(
+  db: Db,
+  assignment: { employeeId: string; isPrimary?: boolean; positionId: string },
+): Promise<void> {
+  if (assignment.isPrimary) {
+    await clearOtherCurrentPrimaryAssignments(db, assignment.employeeId);
+  }
+  await ensurePositionHasCapacity(db, assignment.positionId);
+  await ensureNoOpenAssignmentForEmployeeInPosition(
+    db,
+    assignment.employeeId,
+    assignment.positionId,
+  );
+}
+
+export async function ensurePositionActive(db: Db, positionId: string) {
   const position = await fetchPositionById(db, positionId);
   if (!position.isActive) {
     throw new Error(`Position "${position.name}" is not active.`);
   }
+  return position;
 }
 
-export async function assertNoActiveAssignments(
-  db: PostgresJsDatabase,
-  positionId: string,
-): Promise<void> {
+export async function assertNoActiveAssignments(db: Db, positionId: string): Promise<void> {
   const openAssignments = await db
     .select({ id: hrPositionAssignment.id })
     .from(hrPositionAssignment)
@@ -263,7 +293,7 @@ export function resolveManagerFromChain(
 }
 
 export async function resolveManagerIdMap(
-  db: PostgresJsDatabase,
+  db: Db,
   employees: { id: string; reportsTo: string | null }[],
 ): Promise<Map<string, string | null>> {
   if (employees.length === 0) {
@@ -313,36 +343,33 @@ export function buildPositionTree(
 ): PositionTreeNode[] {
   const positionById = new Map(positions.map((position) => [position.id, position]));
   const included = new Set(positions.map((position) => position.id));
-  const childrenByParent = new Map<string, string[]>();
+  const childrenByParent = new Map<string | null, string[]>();
 
   for (const position of positions) {
     const parent =
       position.reportsToPosition !== null && included.has(position.reportsToPosition)
         ? position.reportsToPosition
         : null;
-    const key = parent ?? "__root__";
-    const siblings = childrenByParent.get(key) ?? [];
+    const siblings = childrenByParent.get(parent) ?? [];
     siblings.push(position.id);
-    childrenByParent.set(key, siblings);
+    childrenByParent.set(parent, siblings);
   }
 
   const build = (positionId: string): PositionTreeNode => {
     const position = positionById.get(positionId);
     const childIds = childrenByParent.get(positionId) ?? [];
-    const incumbents = (incumbentsByPosition.get(positionId) ?? []).flatMap((employeeId) => {
+    const incumbents: PositionTreeNode["incumbents"] = [];
+    for (const employeeId of incumbentsByPosition.get(positionId) ?? []) {
       const employee = employeeById.get(employeeId);
-      if (!employee) {
-        return [];
-      }
-      return [
-        {
+      if (employee) {
+        incumbents.push({
           designation: employee.designation,
           employeeId,
           image: employee.image,
           name: employee.name,
-        },
-      ];
-    });
+        });
+      }
+    }
 
     return {
       branch: position?.branch ?? null,
@@ -354,5 +381,5 @@ export function buildPositionTree(
     };
   };
 
-  return (childrenByParent.get("__root__") ?? []).map(build);
+  return (childrenByParent.get(null) ?? []).map(build);
 }

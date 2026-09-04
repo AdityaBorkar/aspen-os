@@ -3,7 +3,7 @@ import { CreateSkillMapSchema } from "#/types";
 import { fetchEmployeeById } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const InputSchema = object({
   input: CreateSkillMapSchema,
@@ -12,7 +12,7 @@ const InputSchema = object({
 export const createSkillMap = Workflow.name("hr.employee.create-skill-map")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(CreateSkillMapSchema, input);
+    const parsed = input;
 
     // Verify employee exists
     await fetchEmployeeById(ctx.db, parsed.employeeId);

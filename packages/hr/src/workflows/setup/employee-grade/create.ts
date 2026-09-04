@@ -2,7 +2,7 @@ import { employeeGrade } from "#/db-schemas";
 import { CreateEmployeeGradeSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const InputSchema = object({
   input: CreateEmployeeGradeSchema,
@@ -11,7 +11,7 @@ const InputSchema = object({
 export const createEmployeeGrade = Workflow.name("hr.setup.create-employee-grade")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(CreateEmployeeGradeSchema, input);
+    const parsed = input;
 
     const [result] = await ctx.db
       .insert(employeeGrade)

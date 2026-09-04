@@ -4,7 +4,7 @@ import { fetchAnnouncementById } from "#/utils/announcement-utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, desc, eq, isNotNull } from "drizzle-orm";
-import { minLength, object, optional, parse, pipe, string } from "valibot";
+import { minLength, object, optional, pipe, string } from "valibot";
 
 const InputSchema = object({
   announcementId: pipe(string(), minLength(1, "announcementId is required")),
@@ -18,7 +18,9 @@ export const listRecipients = Workflow.name("hr.announcement.recipients.list")
 
     await fetchAnnouncementById(ctx.db, announcementId);
 
-    const parsed = parse(RecipientListFiltersSchema, filters ?? {});
+    // Workflow validation applies the schema defaults when filters are
+    // present; only the absent-filters case needs the literal defaults.
+    const parsed = filters ?? { deliveredOnly: undefined, limit: 50, offset: 0 };
     const conditions = [eq(hrAnnouncementRecipient.announcementId, announcementId)];
 
     if (parsed.deliveredOnly) {

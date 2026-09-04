@@ -1,9 +1,9 @@
-import { shiftAssignment } from "#/db-schemas";
 import { CreateShiftAssignmentSchema } from "#/types";
+import { insertShiftAssignment } from "#/workflows/shift-records";
 import { fetchShiftTypeById } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const InputSchema = object({
   input: CreateShiftAssignmentSchema,
@@ -12,22 +12,14 @@ const InputSchema = object({
 export const createShiftAssignment = Workflow.name("hr.shift.create-shift-assignment")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(CreateShiftAssignmentSchema, input);
+    await fetchShiftTypeById(ctx.db, input.shiftType);
 
-    // Verify shift type exists
-    await fetchShiftTypeById(ctx.db, parsed.shiftType);
-
-    const [result] = await ctx.db
-      .insert(shiftAssignment)
-      .values({
-        employeeId: parsed.employeeId,
-        endDate: parsed.endDate ?? null,
-        notes: parsed.notes ?? null,
-        shiftLocation: parsed.shiftLocation ?? null,
-        shiftType: parsed.shiftType,
-        startDate: parsed.startDate,
-      })
-      .returning();
-
-    return result;
+    return insertShiftAssignment(ctx.db, {
+      employeeId: input.employeeId,
+      endDate: input.endDate ?? undefined,
+      notes: input.notes ?? undefined,
+      shiftLocation: input.shiftLocation ?? undefined,
+      shiftType: input.shiftType,
+      startDate: input.startDate,
+    });
   });

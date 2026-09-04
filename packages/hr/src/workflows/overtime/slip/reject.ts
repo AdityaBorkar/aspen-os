@@ -1,4 +1,5 @@
 import { overtimeSlip } from "#/db-schemas";
+import { assertUpdated, fetchOvertimeSlipById, requireStatus } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -15,6 +16,9 @@ export const rejectOvertimeSlip = Workflow.name("hr.overtime.reject-overtime-sli
   .handler(async (input, ctx) => {
     const { id, rejectedBy, rejectionReason } = input;
 
+    const slip = await fetchOvertimeSlipById(ctx.db, id);
+    requireStatus(slip, "pending", `Overtime slip "${id}"`);
+
     const [updated] = await ctx.db
       .update(overtimeSlip)
       .set({
@@ -27,5 +31,5 @@ export const rejectOvertimeSlip = Workflow.name("hr.overtime.reject-overtime-sli
       .where(eq(overtimeSlip.id, id))
       .returning();
 
-    return updated;
+    return assertUpdated(updated, `Overtime slip "${id}"`);
   });

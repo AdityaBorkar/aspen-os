@@ -3,7 +3,7 @@ import { CreateHolidaySchema } from "#/types";
 import { fetchHolidayListById } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const InputSchema = object({
   input: CreateHolidaySchema,
@@ -12,7 +12,7 @@ const InputSchema = object({
 export const createHoliday = Workflow.name("hr.setup.create-holiday")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(CreateHolidaySchema, input);
+    const parsed = input;
 
     // Verify holiday list exists
     await fetchHolidayListById(ctx.db, parsed.holidayListId);

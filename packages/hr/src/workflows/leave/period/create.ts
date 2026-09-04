@@ -2,7 +2,7 @@ import { leavePeriod } from "#/db-schemas";
 import { CreateLeavePeriodSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const InputSchema = object({
   input: CreateLeavePeriodSchema,
@@ -11,7 +11,7 @@ const InputSchema = object({
 export const createLeavePeriod = Workflow.name("hr.leave.create-leave-period")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(CreateLeavePeriodSchema, input);
+    const parsed = input;
 
     const [result] = await ctx.db
       .insert(leavePeriod)

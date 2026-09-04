@@ -3,7 +3,7 @@ import { CreateAttendanceSchema } from "#/types";
 import { ensureNoDuplicateAttendance } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const InputSchema = object({
   input: CreateAttendanceSchema,
@@ -12,7 +12,7 @@ const InputSchema = object({
 export const create = Workflow.name("hr.attendance.create")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(CreateAttendanceSchema, input);
+    const parsed = input;
 
     // Check for future dates
     const attendanceDate = new Date(parsed.date);

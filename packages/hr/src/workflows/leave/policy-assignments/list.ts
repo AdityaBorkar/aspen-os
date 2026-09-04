@@ -3,10 +3,10 @@ import { LeavePolicyAssignmentFiltersSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
-import { object, optional, parse } from "valibot";
+import { object, optional } from "valibot";
 
 const InputSchema = object({
-  filters: optional(LeavePolicyAssignmentFiltersSchema),
+  filters: optional(LeavePolicyAssignmentFiltersSchema, {}),
 });
 
 export const listLeavePolicyAssignments = Workflow.name("hr.leave.list-leave-policy-assignments")
@@ -14,7 +14,7 @@ export const listLeavePolicyAssignments = Workflow.name("hr.leave.list-leave-pol
   .handler(async (input, ctx) => {
     const { filters } = input;
 
-    const parsed = filters ? parse(LeavePolicyAssignmentFiltersSchema, filters) : {};
+    const parsed = filters;
     const conditions = [];
 
     if (parsed.employeeId) {

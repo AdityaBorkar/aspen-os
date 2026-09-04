@@ -2,7 +2,7 @@ import { employeeSeparation } from "#/db-schemas";
 import { CreateSeparationSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const InputSchema = object({
   input: CreateSeparationSchema,
@@ -11,7 +11,7 @@ const InputSchema = object({
 export const createSeparation = Workflow.name("hr.lifecycle.create-separation")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(CreateSeparationSchema, input);
+    const parsed = input;
 
     const [result] = await ctx.db
       .insert(employeeSeparation)

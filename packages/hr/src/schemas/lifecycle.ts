@@ -8,7 +8,7 @@ import {
   TransferStatusSchema,
 } from "#/schemas/enums";
 
-import { minLength, nullable, object, optional, pipe, string } from "valibot";
+import { minLength, nullable, object, omit, optional, partial, pick, pipe, string } from "valibot";
 import type { InferOutput } from "valibot";
 
 // Employee Onboarding
@@ -24,18 +24,15 @@ export const CreateOnboardingSchema = object({
 export type CreateOnboardingInput = InferOutput<typeof CreateOnboardingSchema>;
 
 export const UpdateOnboardingSchema = object({
+  ...partial(omit(CreateOnboardingSchema, ["employeeId"])).entries,
   actualCompletionDate: optional(string()),
-  expectedCompletionDate: optional(string()),
-  metadata: optional(nullable(object({}))),
-  notes: optional(nullable(string())),
-  startDate: optional(string()),
   status: optional(OnboardingStatusSchema),
 });
 
 export type UpdateOnboardingInput = InferOutput<typeof UpdateOnboardingSchema>;
 
 export const OnboardingFiltersSchema = object({
-  employeeId: optional(string()),
+  ...partial(pick(CreateOnboardingSchema, ["employeeId"])).entries,
   status: optional(OnboardingStatusSchema),
 });
 
@@ -56,13 +53,8 @@ export const CreateOnboardingTaskSchema = object({
 export type CreateOnboardingTaskInput = InferOutput<typeof CreateOnboardingTaskSchema>;
 
 export const UpdateOnboardingTaskSchema = object({
-  assignedTo: optional(nullable(string())),
-  department: optional(nullable(string())),
-  description: optional(nullable(string())),
-  dueDate: optional(string()),
-  notes: optional(nullable(string())),
+  ...partial(omit(CreateOnboardingTaskSchema, ["onboardingId"])).entries,
   status: optional(LifecycleTaskStatusSchema),
-  title: optional(string()),
 });
 
 export type UpdateOnboardingTaskInput = InferOutput<typeof UpdateOnboardingTaskSchema>;
@@ -84,22 +76,12 @@ export const CreatePromotionSchema = object({
 
 export type CreatePromotionInput = InferOutput<typeof CreatePromotionSchema>;
 
-export const UpdatePromotionSchema = object({
-  currentDepartment: optional(nullable(string())),
-  currentDesignation: optional(string()),
-  currentGrade: optional(nullable(string())),
-  effectiveDate: optional(string()),
-  newDepartment: optional(nullable(string())),
-  newDesignation: optional(string()),
-  newGrade: optional(nullable(string())),
-  reason: optional(nullable(string())),
-  salaryRevision: optional(nullable(string())),
-});
+export const UpdatePromotionSchema = partial(omit(CreatePromotionSchema, ["employeeId"]));
 
 export type UpdatePromotionInput = InferOutput<typeof UpdatePromotionSchema>;
 
 export const PromotionFiltersSchema = object({
-  employeeId: optional(string()),
+  ...partial(pick(CreatePromotionSchema, ["employeeId"])).entries,
   status: optional(PromotionStatusSchema),
 });
 
@@ -121,21 +103,12 @@ export const CreateTransferSchema = object({
 
 export type CreateTransferInput = InferOutput<typeof CreateTransferSchema>;
 
-export const UpdateTransferSchema = object({
-  effectiveDate: optional(string()),
-  fromBranch: optional(nullable(string())),
-  fromCompany: optional(nullable(string())),
-  fromDepartment: optional(nullable(string())),
-  reason: optional(nullable(string())),
-  toBranch: optional(nullable(string())),
-  toCompany: optional(nullable(string())),
-  toDepartment: optional(nullable(string())),
-});
+export const UpdateTransferSchema = partial(omit(CreateTransferSchema, ["employeeId"]));
 
 export type UpdateTransferInput = InferOutput<typeof UpdateTransferSchema>;
 
 export const TransferFiltersSchema = object({
-  employeeId: optional(string()),
+  ...partial(pick(CreateTransferSchema, ["employeeId"])).entries,
   status: optional(TransferStatusSchema),
 });
 
@@ -155,18 +128,14 @@ export const CreateSeparationSchema = object({
 export type CreateSeparationInput = InferOutput<typeof CreateSeparationSchema>;
 
 export const UpdateSeparationSchema = object({
-  exitDate: optional(string()),
-  metadata: optional(nullable(object({}))),
-  notes: optional(nullable(string())),
-  reason: optional(nullable(string())),
-  resignationDate: optional(string()),
+  ...partial(omit(CreateSeparationSchema, ["employeeId"])).entries,
   status: optional(SeparationStatusSchema),
 });
 
 export type UpdateSeparationInput = InferOutput<typeof UpdateSeparationSchema>;
 
 export const SeparationFiltersSchema = object({
-  employeeId: optional(string()),
+  ...partial(pick(CreateSeparationSchema, ["employeeId"])).entries,
   status: optional(SeparationStatusSchema),
 });
 
@@ -187,13 +156,8 @@ export const CreateSeparationTaskSchema = object({
 export type CreateSeparationTaskInput = InferOutput<typeof CreateSeparationTaskSchema>;
 
 export const UpdateSeparationTaskSchema = object({
-  assignedTo: optional(nullable(string())),
-  department: optional(nullable(string())),
-  description: optional(nullable(string())),
-  dueDate: optional(string()),
-  notes: optional(nullable(string())),
+  ...partial(omit(CreateSeparationTaskSchema, ["separationId"])).entries,
   status: optional(LifecycleTaskStatusSchema),
-  title: optional(string()),
 });
 
 export type UpdateSeparationTaskInput = InferOutput<typeof UpdateSeparationTaskSchema>;
@@ -211,19 +175,17 @@ export const CreateExitInterviewSchema = object({
 export type CreateExitInterviewInput = InferOutput<typeof CreateExitInterviewSchema>;
 
 export const UpdateExitInterviewSchema = object({
+  ...partial(omit(CreateExitInterviewSchema, ["employeeId", "separationId"])).entries,
   completedDate: optional(string()),
   feedback: optional(nullable(string())),
-  interviewer: optional(nullable(string())),
-  questionnaireTemplate: optional(nullable(string())),
   responses: optional(nullable(object({}))),
-  scheduledDate: optional(string()),
   status: optional(ExitInterviewStatusSchema),
 });
 
 export type UpdateExitInterviewInput = InferOutput<typeof UpdateExitInterviewSchema>;
 
 export const ExitInterviewFiltersSchema = object({
-  employeeId: optional(string()),
+  ...partial(pick(CreateExitInterviewSchema, ["employeeId"])).entries,
   status: optional(ExitInterviewStatusSchema),
 });
 
@@ -247,18 +209,11 @@ export const CreateFullAndFinalSchema = object({
 export type CreateFullAndFinalInput = InferOutput<typeof CreateFullAndFinalSchema>;
 
 export const UpdateFullAndFinalSchema = object({
+  ...partial(omit(CreateFullAndFinalSchema, ["employeeId", "separationId"])).entries,
   approvedBy: optional(nullable(string())),
-  bonus: optional(string()),
-  deductions: optional(string()),
-  gratuity: optional(string()),
-  leaveEncashment: optional(string()),
-  loanRecovery: optional(string()),
-  metadata: optional(nullable(object({}))),
   netPayable: optional(string()),
-  notes: optional(nullable(string())),
   paidAt: optional(string()),
   paymentEntry: optional(nullable(string())),
-  pendingSalary: optional(string()),
   status: optional(FullAndFinalStatusSchema),
   totalDeductions: optional(string()),
   totalEarnings: optional(string()),
@@ -267,7 +222,7 @@ export const UpdateFullAndFinalSchema = object({
 export type UpdateFullAndFinalInput = InferOutput<typeof UpdateFullAndFinalSchema>;
 
 export const FullAndFinalFiltersSchema = object({
-  employeeId: optional(string()),
+  ...partial(pick(CreateFullAndFinalSchema, ["employeeId"])).entries,
   status: optional(FullAndFinalStatusSchema),
 });
 

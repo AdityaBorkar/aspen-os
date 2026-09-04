@@ -3,10 +3,10 @@ import { OnboardingFiltersSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
-import { object, optional, parse } from "valibot";
+import { object, optional } from "valibot";
 
 const InputSchema = object({
-  filters: optional(OnboardingFiltersSchema),
+  filters: optional(OnboardingFiltersSchema, {}),
 });
 
 export const listOnboardings = Workflow.name("hr.lifecycle.list-onboardings")
@@ -14,7 +14,7 @@ export const listOnboardings = Workflow.name("hr.lifecycle.list-onboardings")
   .handler(async (input, ctx) => {
     const { filters } = input;
 
-    const parsed = filters ? parse(OnboardingFiltersSchema, filters) : {};
+    const parsed = filters;
     const conditions = [];
 
     if (parsed.employeeId) {

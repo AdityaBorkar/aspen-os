@@ -3,7 +3,7 @@ import { UpdateHrRoleSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-import { minLength, object, parse, pipe, string } from "valibot";
+import { minLength, object, pipe, string } from "valibot";
 
 const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
@@ -15,7 +15,7 @@ export const updateRole = Workflow.name("hr.access.update-role")
   .handler(async (input, ctx) => {
     const { id, patch } = input;
 
-    const parsed = parse(UpdateHrRoleSchema, patch);
+    const parsed = patch;
 
     const [result] = await ctx.db
       .update(hrRole)

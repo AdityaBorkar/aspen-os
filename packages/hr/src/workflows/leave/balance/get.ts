@@ -1,4 +1,6 @@
 import { leaveAllocation } from "#/db-schemas";
+import { allocationDays } from "#/workflows/leave-accounts";
+import type { AllocationDays } from "#/workflows/leave-accounts";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
@@ -24,16 +26,9 @@ export const getLeaveBalance = Workflow.name("hr.leave.get-leave-balance")
         ),
       );
 
-    return allocations.map((alloc) => ({
-      allocated: Number.parseFloat(alloc.totalDays),
-      carryForwarded: Number.parseFloat(alloc.carryForwardedDays),
-      earned: Number.parseFloat(alloc.earnedDays),
-      leaveType: alloc.leaveType,
-      remaining:
-        Number.parseFloat(alloc.totalDays) +
-        Number.parseFloat(alloc.carryForwardedDays) +
-        Number.parseFloat(alloc.earnedDays) -
-        Number.parseFloat(alloc.usedDays),
-      used: Number.parseFloat(alloc.usedDays),
-    }));
+    const balances: (AllocationDays & { leaveType: string })[] = [];
+    for (const alloc of allocations) {
+      balances.push({ ...allocationDays(alloc), leaveType: alloc.leaveType });
+    }
+    return balances;
   });

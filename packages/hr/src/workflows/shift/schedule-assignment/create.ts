@@ -3,7 +3,7 @@ import { CreateShiftScheduleAssignmentSchema } from "#/types";
 import { fetchShiftScheduleById } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const InputSchema = object({
   input: CreateShiftScheduleAssignmentSchema,
@@ -14,7 +14,7 @@ export const createShiftScheduleAssignment = Workflow.name(
 )
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(CreateShiftScheduleAssignmentSchema, input);
+    const parsed = input;
 
     // Verify shift schedule exists
     await fetchShiftScheduleById(ctx.db, parsed.shiftSchedule);

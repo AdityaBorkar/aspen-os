@@ -4,7 +4,7 @@ import { ensureDepartmentCodeUnique, validateParentDepartment } from "#/workflow
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-import { minLength, object, parse, pipe, string } from "valibot";
+import { minLength, object, pipe, string } from "valibot";
 
 const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
@@ -16,7 +16,7 @@ export const updateDepartment = Workflow.name("hr.setup.update-department")
   .handler(async (input, ctx) => {
     const { id, patch } = input;
 
-    const parsed = parse(UpdateDepartmentSchema, patch);
+    const parsed = patch;
 
     if (parsed.code !== undefined) {
       await ensureDepartmentCodeUnique(ctx.db, parsed.code, id);

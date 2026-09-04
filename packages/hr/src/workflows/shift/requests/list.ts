@@ -3,10 +3,10 @@ import { ShiftRequestFiltersSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
-import { object, optional, parse } from "valibot";
+import { object, optional } from "valibot";
 
 const InputSchema = object({
-  filters: optional(ShiftRequestFiltersSchema),
+  filters: optional(ShiftRequestFiltersSchema, {}),
 });
 
 export const listShiftRequests = Workflow.name("hr.shift.list-shift-requests")
@@ -14,7 +14,7 @@ export const listShiftRequests = Workflow.name("hr.shift.list-shift-requests")
   .handler(async (input, ctx) => {
     const { filters } = input;
 
-    const parsed = filters ? parse(ShiftRequestFiltersSchema, filters) : {};
+    const parsed = filters;
     const conditions = [];
 
     if (parsed.employeeId) {

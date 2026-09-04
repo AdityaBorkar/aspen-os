@@ -3,7 +3,7 @@ import { UpdateExitInterviewSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-import { minLength, object, parse, pipe, string } from "valibot";
+import { minLength, object, pipe, string } from "valibot";
 
 const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
@@ -15,7 +15,7 @@ export const updateExitInterview = Workflow.name("hr.lifecycle.update-exit-inter
   .handler(async (input, ctx) => {
     const { id, patch } = input;
 
-    const parsed = parse(UpdateExitInterviewSchema, patch);
+    const parsed = patch;
 
     const { completedDate, scheduledDate, ...rest } = parsed;
 

@@ -3,7 +3,7 @@ import { CreateEmployeeSchema } from "#/types";
 import { ensureEmployeeIdUnique } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const InputSchema = object({
   input: CreateEmployeeSchema,
@@ -12,7 +12,7 @@ const InputSchema = object({
 export const create = Workflow.name("hr.employee.create")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(CreateEmployeeSchema, input);
+    const parsed = input;
 
     // Check for unique employee ID
     await ensureEmployeeIdUnique(ctx.db, parsed.employeeId);

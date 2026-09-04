@@ -4,7 +4,7 @@ import { fetchHrSettings } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const InputSchema = object({
   patch: UpdateHrSettingsSchema,
@@ -16,7 +16,7 @@ export const updateHrSettings = Workflow.name("hr.setup.update-hr-settings")
     const { patch } = input;
 
     const current = await fetchHrSettings(ctx.db);
-    const parsed = parse(UpdateHrSettingsSchema, patch);
+    const parsed = patch;
 
     if (!current) {
       const [created] = await ctx.db.insert(hrSettings).values(parsed).returning();

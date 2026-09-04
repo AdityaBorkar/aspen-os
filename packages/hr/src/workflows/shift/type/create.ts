@@ -2,7 +2,7 @@ import { shiftType } from "#/db-schemas";
 import { CreateShiftTypeSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const InputSchema = object({
   input: CreateShiftTypeSchema,
@@ -11,7 +11,7 @@ const InputSchema = object({
 export const createShiftType = Workflow.name("hr.shift.create-shift-type")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(CreateShiftTypeSchema, input);
+    const parsed = input;
 
     const [result] = await ctx.db
       .insert(shiftType)

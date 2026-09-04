@@ -5,7 +5,7 @@ import { fetchSeparationById } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-import { minLength, object, parse, pipe, string } from "valibot";
+import { minLength, object, pipe, string } from "valibot";
 
 const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
@@ -17,7 +17,7 @@ export const updateSeparation = Workflow.name("hr.lifecycle.update-separation")
   .handler(async (input, ctx) => {
     const { id, patch } = input;
 
-    const parsed = parse(UpdateSeparationSchema, patch);
+    const parsed = patch;
     const existing = await fetchSeparationById(ctx.db, id);
 
     const [updated] = await ctx.db

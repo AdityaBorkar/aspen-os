@@ -2,7 +2,7 @@ import { shiftLocation } from "#/db-schemas";
 import { CreateShiftLocationSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const InputSchema = object({
   input: CreateShiftLocationSchema,
@@ -11,7 +11,7 @@ const InputSchema = object({
 export const createShiftLocation = Workflow.name("hr.shift.create-shift-location")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(CreateShiftLocationSchema, input);
+    const parsed = input;
 
     const [result] = await ctx.db
       .insert(shiftLocation)

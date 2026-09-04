@@ -4,7 +4,7 @@ import { fetchPayrollSettings } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const InputSchema = object({
   patch: UpdatePayrollSettingsSchema,
@@ -16,7 +16,7 @@ export const updatePayrollSettings = Workflow.name("hr.setup.update-payroll-sett
     const { patch } = input;
 
     const current = await fetchPayrollSettings(ctx.db);
-    const parsed = parse(UpdatePayrollSettingsSchema, patch);
+    const parsed = patch;
 
     if (!current) {
       const [created] = await ctx.db.insert(payrollSettings).values(parsed).returning();

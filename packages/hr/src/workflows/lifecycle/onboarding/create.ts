@@ -2,7 +2,7 @@ import { employeeOnboarding } from "#/db-schemas";
 import { CreateOnboardingSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const InputSchema = object({
   input: CreateOnboardingSchema,
@@ -11,7 +11,7 @@ const InputSchema = object({
 export const createOnboarding = Workflow.name("hr.lifecycle.create-onboarding")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(CreateOnboardingSchema, input);
+    const parsed = input;
 
     const [result] = await ctx.db
       .insert(employeeOnboarding)

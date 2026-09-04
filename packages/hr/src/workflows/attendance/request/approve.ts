@@ -1,4 +1,5 @@
 import { attendanceRequest } from "#/db-schemas";
+import { assertUpdated, fetchAttendanceRequestById, requireStatus } from "#/workflows/fetch";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -14,6 +15,9 @@ export const approveAttendanceRequest = Workflow.name("hr.attendance.approve-att
   .handler(async (input, ctx) => {
     const { id, approvedBy } = input;
 
+    const request = await fetchAttendanceRequestById(ctx.db, id);
+    requireStatus(request, "pending", `Attendance request "${id}"`);
+
     const [updated] = await ctx.db
       .update(attendanceRequest)
       .set({
@@ -25,5 +29,5 @@ export const approveAttendanceRequest = Workflow.name("hr.attendance.approve-att
       .where(eq(attendanceRequest.id, id))
       .returning();
 
-    return updated;
+    return assertUpdated(updated, `Attendance request "${id}"`);
   });

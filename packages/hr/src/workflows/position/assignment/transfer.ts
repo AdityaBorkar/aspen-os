@@ -2,10 +2,9 @@ import { hrPositionAssignment } from "#/db-schemas";
 import { POSITION_EVENTS } from "#/pubsub";
 import { TransferAssignmentSchema } from "#/types";
 import {
-  clearOtherCurrentPrimaryAssignments,
-  ensureNoOpenAssignmentForEmployeeInPosition,
+  closeConflictingAssignment,
+  ensureAssignable,
   ensurePositionActive,
-  ensurePositionHasCapacity,
   fetchPositionAssignmentById,
   todayString,
 } from "#/utils/position-utils";
@@ -13,7 +12,7 @@ import { fetchEmployeeById } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, isNull } from "drizzle-orm";
-import { minLength, object, parse, pipe, string } from "valibot";
+import { minLength, object, pipe, string } from "valibot";
 
 const InputSchema = object({
   assignmentId: pipe(string(), minLength(1, "assignmentId is required")),
@@ -24,7 +23,6 @@ export const transferAssignment = Workflow.name("hr.position.transfer")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { assignmentId, input: transferInput } = input;
-    const parsed = parse(TransferAssignmentSchema, transferInput);
 
     const source = await fetchPositionAssignmentById(ctx.db, assignmentId);
 
@@ -32,59 +30,51 @@ export const transferAssignment = Workflow.name("hr.position.transfer")
       throw new Error(`Assignment "${assignmentId}" is already closed.`);
     }
 
-    await ensurePositionActive(ctx.db, parsed.newPositionId);
-    await fetchEmployeeById(ctx.db, source.employeeId);
+    await Promise.all([
+      ensurePositionActive(ctx.db, transferInput.newPositionId),
+      fetchEmployeeById(ctx.db, source.employeeId),
+    ]);
 
-    const toDate = parsed.toDate ?? todayString();
+    const toDate = transferInput.toDate ?? todayString();
     const fromDate = todayString();
 
-    // Close the source assignment.
-    const [closed] = await ctx.db
-      .update(hrPositionAssignment)
-      .set({ toDate, updatedAt: new Date() })
-      .where(and(eq(hrPositionAssignment.id, assignmentId), isNull(hrPositionAssignment.toDate)))
-      .returning();
+    const { closed, created } = await ctx.db.transaction(async (tx) => {
+      const [closedSource] = await tx
+        .update(hrPositionAssignment)
+        .set({ toDate, updatedAt: new Date() })
+        .where(and(eq(hrPositionAssignment.id, assignmentId), isNull(hrPositionAssignment.toDate)))
+        .returning();
 
-    if (!closed) {
-      throw new Error("Failed to close source position assignment.");
-    }
+      if (!closedSource) {
+        throw new Error("Failed to close source position assignment.");
+      }
 
-    // Close a conflicting open-ended assignment of the same employee to the target position.
-    await ctx.db
-      .update(hrPositionAssignment)
-      .set({ toDate: fromDate, updatedAt: new Date() })
-      .where(
-        and(
-          eq(hrPositionAssignment.employeeId, source.employeeId),
-          eq(hrPositionAssignment.positionId, parsed.newPositionId),
-          isNull(hrPositionAssignment.toDate),
-        ),
-      );
-
-    if (source.isPrimary) {
-      await clearOtherCurrentPrimaryAssignments(ctx.db, source.employeeId);
-    }
-
-    await ensurePositionHasCapacity(ctx.db, parsed.newPositionId);
-    await ensureNoOpenAssignmentForEmployeeInPosition(
-      ctx.db,
-      source.employeeId,
-      parsed.newPositionId,
-    );
-
-    const [created] = await ctx.db
-      .insert(hrPositionAssignment)
-      .values({
+      await closeConflictingAssignment(tx, {
         employeeId: source.employeeId,
-        fromDate,
+        positionId: transferInput.newPositionId,
+        toDate: fromDate,
+      });
+      await ensureAssignable(tx, {
+        employeeId: source.employeeId,
         isPrimary: source.isPrimary,
-        positionId: parsed.newPositionId,
-      })
-      .returning();
+        positionId: transferInput.newPositionId,
+      });
 
-    if (!created) {
-      throw new Error("Failed to create target position assignment.");
-    }
+      const [createdTarget] = await tx
+        .insert(hrPositionAssignment)
+        .values({
+          employeeId: source.employeeId,
+          fromDate,
+          isPrimary: source.isPrimary,
+          positionId: transferInput.newPositionId,
+        })
+        .returning();
+
+      if (!createdTarget) {
+        throw new Error("Failed to create target position assignment.");
+      }
+      return { closed: closedSource, created: createdTarget };
+    });
 
     await ctx.pubsub.publish(POSITION_EVENTS.UNASSIGNED, {
       employeeId: source.employeeId,
@@ -94,7 +84,7 @@ export const transferAssignment = Workflow.name("hr.position.transfer")
     await ctx.pubsub.publish(POSITION_EVENTS.REASSIGNED, {
       employeeId: source.employeeId,
       fromPositionId: source.positionId,
-      toPositionId: parsed.newPositionId,
+      toPositionId: transferInput.newPositionId,
     });
 
     return { from: closed, to: created };

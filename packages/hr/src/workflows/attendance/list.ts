@@ -3,10 +3,10 @@ import { AttendanceFiltersSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, sql } from "drizzle-orm";
-import { object, optional, parse } from "valibot";
+import { object, optional } from "valibot";
 
 const InputSchema = object({
-  filters: optional(AttendanceFiltersSchema),
+  filters: optional(AttendanceFiltersSchema, {}),
 });
 
 export const list = Workflow.name("hr.attendance.list")
@@ -14,7 +14,7 @@ export const list = Workflow.name("hr.attendance.list")
   .handler(async (input, ctx) => {
     const { filters } = input;
 
-    const parsed = filters ? parse(AttendanceFiltersSchema, filters) : {};
+    const parsed = filters;
     const conditions = [];
 
     if (parsed.employeeId) {

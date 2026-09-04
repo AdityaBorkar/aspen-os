@@ -1,9 +1,9 @@
-import { leaveAllocation } from "#/db-schemas";
 import { CreateLeaveAllocationSchema } from "#/types";
+import { insertLeaveAllocation } from "#/workflows/leave-accounts";
 import { fetchLeavePeriodById, fetchLeaveTypeById } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const InputSchema = object({
   input: CreateLeaveAllocationSchema,
@@ -12,31 +12,19 @@ const InputSchema = object({
 export const createLeaveAllocation = Workflow.name("hr.leave.create-leave-allocation")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(CreateLeaveAllocationSchema, input);
+    await Promise.all([
+      fetchLeaveTypeById(ctx.db, input.leaveType),
+      fetchLeavePeriodById(ctx.db, input.leavePeriod),
+    ]);
 
-    // Verify leave type exists
-    await fetchLeaveTypeById(ctx.db, parsed.leaveType);
-
-    // Verify leave period exists
-    await fetchLeavePeriodById(ctx.db, parsed.leavePeriod);
-
-    const [result] = await ctx.db
-      .insert(leaveAllocation)
-      .values({
-        carryForwardedDays: parsed.carryForwardedDays ?? "0",
-        earnedDays: parsed.earnedDays ?? "0",
-        employeeId: parsed.employeeId,
-        leavePeriod: parsed.leavePeriod,
-        leavePolicyAssignment: parsed.leavePolicyAssignment ?? null,
-        leaveType: parsed.leaveType,
-        totalDays: parsed.totalDays,
-        usedDays: parsed.usedDays ?? "0",
-      })
-      .returning();
-
-    if (!result) {
-      throw new Error("Failed to create leave allocation.");
-    }
-
-    return result;
+    return insertLeaveAllocation(ctx.db, {
+      carryForwardedDays: input.carryForwardedDays ?? "0",
+      earnedDays: input.earnedDays ?? "0",
+      employeeId: input.employeeId,
+      leavePeriod: input.leavePeriod,
+      leavePolicyAssignment: input.leavePolicyAssignment ?? null,
+      leaveType: input.leaveType,
+      totalDays: input.totalDays,
+      usedDays: input.usedDays ?? "0",
+    });
   });

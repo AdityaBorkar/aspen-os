@@ -2,7 +2,7 @@ import { employeeCheckin } from "#/db-schemas";
 import { CreateCheckinSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const InputSchema = object({
   input: CreateCheckinSchema,
@@ -11,7 +11,7 @@ const InputSchema = object({
 export const createCheckin = Workflow.name("hr.attendance.create-checkin")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(CreateCheckinSchema, input);
+    const parsed = input;
 
     const [result] = await ctx.db
       .insert(employeeCheckin)

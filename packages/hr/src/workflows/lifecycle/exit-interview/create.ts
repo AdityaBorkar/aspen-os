@@ -2,7 +2,7 @@ import { exitInterview } from "#/db-schemas";
 import { CreateExitInterviewSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const InputSchema = object({
   input: CreateExitInterviewSchema,
@@ -11,7 +11,7 @@ const InputSchema = object({
 export const createExitInterview = Workflow.name("hr.lifecycle.create-exit-interview")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(CreateExitInterviewSchema, input);
+    const parsed = input;
 
     const [result] = await ctx.db
       .insert(exitInterview)

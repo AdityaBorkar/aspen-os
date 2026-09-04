@@ -9,9 +9,10 @@ import {
   hrUserRole,
 } from "#/db-schemas";
 import type { AnnouncementAudience, AnnouncementAudienceType } from "#/db-schemas/announcement";
+import type { Db } from "#/workflows/db";
+import { collectSubtreeIds } from "#/workflows/trees";
 
 import { eq, inArray } from "drizzle-orm";
-import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 export type AnnouncementChannel = "custom" | "general" | "hr";
 
@@ -45,7 +46,7 @@ export function resolveAudienceDefinition(input: {
   return { ids: input.audience.ids ?? [], type: input.audience.type };
 }
 
-export async function fetchAnnouncementById(db: PostgresJsDatabase, id: string) {
+export async function fetchAnnouncementById(db: Db, id: string) {
   const [result] = await db.select().from(hrAnnouncement).where(eq(hrAnnouncement.id, id)).limit(1);
 
   if (!result) {
@@ -55,10 +56,7 @@ export async function fetchAnnouncementById(db: PostgresJsDatabase, id: string) 
   return result;
 }
 
-async function resolveEmployees(
-  db: PostgresJsDatabase,
-  employeeIds: string[],
-): Promise<ResolvedRecipient[]> {
+async function resolveEmployees(db: Db, employeeIds: string[]): Promise<ResolvedRecipient[]> {
   if (employeeIds.length === 0) {
     return [];
   }
@@ -110,34 +108,14 @@ function dedupeRecipients(recipients: ResolvedRecipient[]): ResolvedRecipient[] 
   return result;
 }
 
-async function expandDepartmentIds(
-  db: PostgresJsDatabase,
-  departmentIds: string[],
-): Promise<string[]> {
-  const result = new Set<string>(departmentIds);
-  let frontier = [...departmentIds];
-
-  // oxlint-disable eslint/no-await-in-loop
-  while (frontier.length > 0) {
-    const rows = await db
-      .select({ id: department.id })
-      .from(department)
-      .where(inArray(department.parentDepartment, frontier));
-    const next = rows.map((row) => row.id).filter((id) => !result.has(id));
-    for (const id of next) {
-      result.add(id);
-    }
-    frontier = next;
-  }
-  // oxlint-enable eslint/no-await-in-loop
-
-  return [...result];
+async function expandDepartmentIds(db: Db, departmentIds: string[]): Promise<string[]> {
+  const all = await db
+    .select({ id: department.id, parentId: department.parentDepartment })
+    .from(department);
+  return collectSubtreeIds(all, departmentIds);
 }
 
-async function resolveHrUsers(
-  db: PostgresJsDatabase,
-  hrUserIds: string[],
-): Promise<ResolvedRecipient[]> {
+async function resolveHrUsers(db: Db, hrUserIds: string[]): Promise<ResolvedRecipient[]> {
   if (hrUserIds.length === 0) {
     return [];
   }
@@ -151,66 +129,49 @@ async function resolveHrUsers(
 }
 
 export async function resolveRecipients(
-  db: PostgresJsDatabase,
+  db: Db,
   input: { audience: AnnouncementAudience | null; channel: AnnouncementChannel },
 ): Promise<ResolvedRecipient[]> {
   const { ids, type } = resolveAudienceDefinition(input);
   const recipients: ResolvedRecipient[] = [];
+  const pushEmployees = async (employeeIds: string[]): Promise<void> => {
+    recipients.push(...(await resolveEmployees(db, employeeIds)));
+  };
 
   if (type === "all") {
     const activeEmployees = await db
       .select({ id: employee.id })
       .from(employee)
       .where(eq(employee.status, "active"));
-    recipients.push(
-      ...(await resolveEmployees(
-        db,
-        activeEmployees.map((row) => row.id),
-      )),
-    );
+    await pushEmployees(activeEmployees.map((row) => row.id));
   } else if (type === "employees") {
-    recipients.push(...(await resolveEmployees(db, ids)));
+    await pushEmployees(ids);
   } else if (type === "branches") {
     const rows = await db
       .select({ id: employee.id })
       .from(employee)
       .where(inArray(employee.branch, ids));
-    recipients.push(
-      ...(await resolveEmployees(
-        db,
-        rows.map((row) => row.id),
-      )),
-    );
+    await pushEmployees(rows.map((row) => row.id));
   } else if (type === "departments") {
     const expandedIds = await expandDepartmentIds(db, ids);
     const rows = await db
       .select({ id: employee.id })
       .from(employee)
       .where(inArray(employee.department, expandedIds));
-    recipients.push(
-      ...(await resolveEmployees(
-        db,
-        rows.map((row) => row.id),
-      )),
-    );
+    await pushEmployees(rows.map((row) => row.id));
   } else if (type === "designations") {
     const rows = await db
       .select({ id: employee.id })
       .from(employee)
       .where(inArray(employee.designation, ids));
-    recipients.push(
-      ...(await resolveEmployees(
-        db,
-        rows.map((row) => row.id),
-      )),
-    );
+    await pushEmployees(rows.map((row) => row.id));
   } else if (type === "groups") {
     const memberRows = await db
       .select({ employeeId: employeeGroupMember.employeeId })
       .from(employeeGroupMember)
       .where(inArray(employeeGroupMember.groupId, ids));
     const employeeIds = [...new Set(memberRows.map((row) => row.employeeId))];
-    recipients.push(...(await resolveEmployees(db, employeeIds)));
+    await pushEmployees(employeeIds);
   } else if (type === "hr_users") {
     const activeHrUsers = await db
       .select({ hrUserId: hrUser.id, userId: hrUser.userId })
@@ -241,8 +202,15 @@ function missingIds(ids: string[], foundIds: Set<string>): string[] {
   return ids.filter((id) => !foundIds.has(id));
 }
 
+function throwOnMissing(ids: string[], foundIds: Set<string>, label: string): void {
+  const missing = missingIds(ids, foundIds);
+  if (missing.length > 0) {
+    throw new Error(`${label}: ${missing.join(", ")}`);
+  }
+}
+
 export async function validateAudienceStrongRefs(
-  db: PostgresJsDatabase,
+  db: Db,
   type: AnnouncementAudienceType,
   ids: string[],
 ): Promise<void> {
@@ -255,30 +223,18 @@ export async function validateAudienceStrongRefs(
       .select({ id: employee.id })
       .from(employee)
       .where(inArray(employee.id, ids));
-    const missing = missingIds(ids, new Set(rows.map((row) => row.id)));
-    if (missing.length > 0) {
-      throw new Error(`Unknown employee ids: ${missing.join(", ")}`);
-    }
+    throwOnMissing(ids, new Set(rows.map((row) => row.id)), "Unknown employee ids");
   } else if (type === "individuals") {
     const rows = await db.select({ id: hrUser.id }).from(hrUser).where(inArray(hrUser.id, ids));
-    const missing = missingIds(ids, new Set(rows.map((row) => row.id)));
-    if (missing.length > 0) {
-      throw new Error(`Unknown HR user ids: ${missing.join(", ")}`);
-    }
+    throwOnMissing(ids, new Set(rows.map((row) => row.id)), "Unknown HR user ids");
   } else if (type === "groups") {
     const rows = await db
       .select({ id: employeeGroup.id })
       .from(employeeGroup)
       .where(inArray(employeeGroup.id, ids));
-    const missing = missingIds(ids, new Set(rows.map((row) => row.id)));
-    if (missing.length > 0) {
-      throw new Error(`Unknown employee group ids: ${missing.join(", ")}`);
-    }
+    throwOnMissing(ids, new Set(rows.map((row) => row.id)), "Unknown employee group ids");
   } else if (type === "roles") {
     const rows = await db.select({ id: hrRole.id }).from(hrRole).where(inArray(hrRole.id, ids));
-    const missing = missingIds(ids, new Set(rows.map((row) => row.id)));
-    if (missing.length > 0) {
-      throw new Error(`Unknown HR role ids: ${missing.join(", ")}`);
-    }
+    throwOnMissing(ids, new Set(rows.map((row) => row.id)), "Unknown HR role ids");
   }
 }

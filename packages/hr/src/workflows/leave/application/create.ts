@@ -1,9 +1,10 @@
 import { leaveApplication } from "#/db-schemas";
 import { CreateLeaveApplicationSchema } from "#/types";
-import { checkLeaveBalance, checkLeaveBlockList, fetchLeaveTypeById } from "#/workflows/utils";
+import { assertUpdated, fetchLeaveTypeById } from "#/workflows/fetch";
+import { checkLeaveBalance, checkLeaveBlockList, toDays } from "#/workflows/leave-accounts";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const InputSchema = object({
   input: CreateLeaveApplicationSchema,
@@ -12,37 +13,33 @@ const InputSchema = object({
 export const createLeaveApplication = Workflow.name("hr.leave.create-leave-application")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(CreateLeaveApplicationSchema, input);
+    const [leaveTypeRecord] = await Promise.all([
+      fetchLeaveTypeById(ctx.db, input.leaveType),
+      checkLeaveBlockList(ctx.db, { fromDate: input.fromDate, toDate: input.toDate }),
+    ]);
 
-    // Verify leave type exists
-    const leaveTypeRecord = await fetchLeaveTypeById(ctx.db, parsed.leaveType);
-
-    // Check if leave is blocked
-    await checkLeaveBlockList(ctx.db, { fromDate: parsed.fromDate, toDate: parsed.toDate });
-
-    // Check leave balance
     if (!leaveTypeRecord.isLeaveWithoutPay) {
       await checkLeaveBalance(ctx.db, {
-        days: Number.parseFloat(parsed.totalDays),
-        employeeId: parsed.employeeId,
-        leaveType: parsed.leaveType,
+        days: toDays(input.totalDays, "totalDays"),
+        employeeId: input.employeeId,
+        leaveType: input.leaveType,
       });
     }
 
     const [result] = await ctx.db
       .insert(leaveApplication)
       .values({
-        employeeId: parsed.employeeId,
-        fromDate: parsed.fromDate,
-        halfDayDate: parsed.halfDayDate ?? null,
-        isHalfDay: parsed.isHalfDay ?? false,
-        leaveAllocation: parsed.leaveAllocation ?? null,
-        leaveType: parsed.leaveType,
-        reason: parsed.reason ?? null,
-        toDate: parsed.toDate,
-        totalDays: parsed.totalDays,
+        employeeId: input.employeeId,
+        fromDate: input.fromDate,
+        halfDayDate: input.halfDayDate ?? null,
+        isHalfDay: input.isHalfDay ?? false,
+        leaveAllocation: input.leaveAllocation ?? null,
+        leaveType: input.leaveType,
+        reason: input.reason ?? null,
+        toDate: input.toDate,
+        totalDays: input.totalDays,
       })
       .returning();
 
-    return result;
+    return assertUpdated(result, "Leave application");
   });

@@ -3,7 +3,7 @@ import { UpdateShiftTypeSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-import { minLength, object, parse, pipe, string } from "valibot";
+import { minLength, object, pipe, string } from "valibot";
 
 const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
@@ -15,7 +15,7 @@ export const updateShiftType = Workflow.name("hr.shift.update-shift-type")
   .handler(async (input, ctx) => {
     const { id, patch } = input;
 
-    const parsed = parse(UpdateShiftTypeSchema, patch);
+    const parsed = patch;
 
     const [updated] = await ctx.db
       .update(shiftType)

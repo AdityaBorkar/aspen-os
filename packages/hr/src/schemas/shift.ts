@@ -1,6 +1,18 @@
 import { ShiftAssignmentStatusSchema, ShiftRequestStatusSchema } from "#/schemas/enums";
 
-import { boolean, minLength, nullable, number, object, optional, pipe, string } from "valibot";
+import {
+  boolean,
+  minLength,
+  nullable,
+  number,
+  object,
+  omit,
+  optional,
+  partial,
+  pick,
+  pipe,
+  string,
+} from "valibot";
 import type { InferOutput } from "valibot";
 
 // Shift Type
@@ -29,27 +41,7 @@ export const CreateShiftTypeSchema = object({
 
 export type CreateShiftTypeInput = InferOutput<typeof CreateShiftTypeSchema>;
 
-export const UpdateShiftTypeSchema = object({
-  allowCheckOutAfterEnd: optional(number()),
-  allowOvertime: optional(boolean()),
-  beginCheckInBeforeStart: optional(number()),
-  determineCheckInBy: optional(nullable(string())),
-  earlyExitGraceMinutes: optional(number()),
-  enableAutoAttendance: optional(boolean()),
-  enableAutoUpdateSync: optional(boolean()),
-  endTime: optional(string()),
-  holidayList: optional(nullable(string())),
-  isActive: optional(boolean()),
-  lateEntryGraceMinutes: optional(number()),
-  markAttendanceOnHolidays: optional(boolean()),
-  name: optional(string()),
-  overtimeType: optional(nullable(string())),
-  processAttendanceAfter: optional(string()),
-  startTime: optional(string()),
-  workingHoursCalculation: optional(nullable(string())),
-  workingHoursThresholdForAbsent: optional(nullable(string())),
-  workingHoursThresholdForHalfDay: optional(nullable(string())),
-});
+export const UpdateShiftTypeSchema = partial(CreateShiftTypeSchema);
 
 export type UpdateShiftTypeInput = InferOutput<typeof UpdateShiftTypeSchema>;
 
@@ -65,13 +57,7 @@ export const CreateShiftLocationSchema = object({
 
 export type CreateShiftLocationInput = InferOutput<typeof CreateShiftLocationSchema>;
 
-export const UpdateShiftLocationSchema = object({
-  isActive: optional(boolean()),
-  latitude: optional(string()),
-  longitude: optional(string()),
-  name: optional(string()),
-  radius: optional(number()),
-});
+export const UpdateShiftLocationSchema = partial(CreateShiftLocationSchema);
 
 export type UpdateShiftLocationInput = InferOutput<typeof UpdateShiftLocationSchema>;
 
@@ -89,21 +75,15 @@ export const CreateShiftAssignmentSchema = object({
 export type CreateShiftAssignmentInput = InferOutput<typeof CreateShiftAssignmentSchema>;
 
 export const UpdateShiftAssignmentSchema = object({
-  endDate: optional(string()),
-  notes: optional(nullable(string())),
-  shiftLocation: optional(nullable(string())),
-  shiftType: optional(string()),
-  startDate: optional(string()),
+  ...partial(omit(CreateShiftAssignmentSchema, ["employeeId"])).entries,
   status: optional(ShiftAssignmentStatusSchema),
 });
 
 export type UpdateShiftAssignmentInput = InferOutput<typeof UpdateShiftAssignmentSchema>;
 
 export const ShiftAssignmentFiltersSchema = object({
-  employeeId: optional(string()),
-  endDate: optional(string()),
-  shiftType: optional(string()),
-  startDate: optional(string()),
+  ...partial(pick(CreateShiftAssignmentSchema, ["employeeId", "endDate", "shiftType", "startDate"]))
+    .entries,
   status: optional(ShiftAssignmentStatusSchema),
 });
 
@@ -121,17 +101,12 @@ export const CreateShiftRequestSchema = object({
 
 export type CreateShiftRequestInput = InferOutput<typeof CreateShiftRequestSchema>;
 
-export const UpdateShiftRequestSchema = object({
-  fromDate: optional(string()),
-  reason: optional(nullable(string())),
-  shiftType: optional(string()),
-  toDate: optional(string()),
-});
+export const UpdateShiftRequestSchema = partial(omit(CreateShiftRequestSchema, ["employeeId"]));
 
 export type UpdateShiftRequestInput = InferOutput<typeof UpdateShiftRequestSchema>;
 
 export const ShiftRequestFiltersSchema = object({
-  employeeId: optional(string()),
+  ...partial(pick(CreateShiftRequestSchema, ["employeeId"])).entries,
   status: optional(ShiftRequestStatusSchema),
 });
 
@@ -154,18 +129,7 @@ export const CreateShiftScheduleSchema = object({
 
 export type CreateShiftScheduleInput = InferOutput<typeof CreateShiftScheduleSchema>;
 
-export const UpdateShiftScheduleSchema = object({
-  friday: optional(boolean()),
-  isActive: optional(boolean()),
-  monday: optional(boolean()),
-  name: optional(string()),
-  saturday: optional(boolean()),
-  shiftType: optional(string()),
-  sunday: optional(boolean()),
-  thursday: optional(boolean()),
-  tuesday: optional(boolean()),
-  wednesday: optional(boolean()),
-});
+export const UpdateShiftScheduleSchema = partial(CreateShiftScheduleSchema);
 
 export type UpdateShiftScheduleInput = InferOutput<typeof UpdateShiftScheduleSchema>;
 
@@ -183,12 +147,9 @@ export type CreateShiftScheduleAssignmentInput = InferOutput<
   typeof CreateShiftScheduleAssignmentSchema
 >;
 
-export const UpdateShiftScheduleAssignmentSchema = object({
-  endDate: optional(string()),
-  isActive: optional(boolean()),
-  shiftSchedule: optional(string()),
-  startDate: optional(string()),
-});
+export const UpdateShiftScheduleAssignmentSchema = partial(
+  omit(CreateShiftScheduleAssignmentSchema, ["employeeId"]),
+);
 
 export type UpdateShiftScheduleAssignmentInput = InferOutput<
   typeof UpdateShiftScheduleAssignmentSchema

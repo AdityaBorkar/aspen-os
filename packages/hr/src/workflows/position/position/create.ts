@@ -8,7 +8,7 @@ import {
 } from "#/utils/position-utils";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const InputSchema = object({
   input: CreatePositionSchema,
@@ -17,7 +17,7 @@ const InputSchema = object({
 export const createPosition = Workflow.name("hr.position.create")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(CreatePositionSchema, input);
+    const parsed = input;
 
     await ensurePositionNameUnique(ctx.db, {
       department: parsed.department,

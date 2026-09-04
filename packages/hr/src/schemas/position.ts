@@ -1,6 +1,17 @@
 import { DateStringSchema, NameSchema } from "#/schemas/utils";
 
-import { boolean, minLength, nullable, number, object, optional, pipe, string } from "valibot";
+import {
+  boolean,
+  minLength,
+  nullable,
+  number,
+  object,
+  optional,
+  partial,
+  pick,
+  pipe,
+  string,
+} from "valibot";
 import type { InferOutput } from "valibot";
 
 // Position
@@ -19,23 +30,15 @@ export const CreatePositionSchema = object({
 export type CreatePositionInput = InferOutput<typeof CreatePositionSchema>;
 
 export const UpdatePositionSchema = object({
-  branch: optional(nullable(string())),
-  department: optional(string()),
-  designation: optional(nullable(string())),
-  employmentType: optional(nullable(string())),
+  ...partial(CreatePositionSchema).entries,
   headcount: optional(number()),
   isActive: optional(boolean()),
-  jobDescription: optional(nullable(string())),
-  name: optional(NameSchema),
-  reportsToPosition: optional(nullable(string())),
 });
 
 export type UpdatePositionInput = InferOutput<typeof UpdatePositionSchema>;
 
 export const PositionFiltersSchema = object({
-  branch: optional(string()),
-  department: optional(string()),
-  designation: optional(string()),
+  ...partial(pick(CreatePositionSchema, ["branch", "department", "designation"])).entries,
   isActive: optional(boolean()),
 });
 

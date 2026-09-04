@@ -6,7 +6,18 @@ import {
 } from "#/schemas/enums";
 import { EmployeeIdSchema, NameSchema } from "#/schemas/utils";
 
-import { boolean, minLength, nullable, object, optional, pipe, string } from "valibot";
+import {
+  boolean,
+  minLength,
+  nullable,
+  object,
+  omit,
+  optional,
+  partial,
+  pick,
+  pipe,
+  string,
+} from "valibot";
 import type { InferOutput } from "valibot";
 
 // Employee
@@ -59,61 +70,24 @@ export const CreateEmployeeSchema = object({
 export type CreateEmployeeInput = InferOutput<typeof CreateEmployeeSchema>;
 
 export const UpdateEmployeeSchema = object({
-  bankAccountNumber: optional(nullable(string())),
-  bankBranch: optional(nullable(string())),
-  bankName: optional(nullable(string())),
-  bloodGroup: optional(nullable(string())),
-  branch: optional(nullable(string())),
-  city: optional(nullable(string())),
-  company: optional(string()),
-  country: optional(nullable(string())),
-  currentAddress: optional(nullable(string())),
-  dateOfBirth: optional(string()),
-  dateOfJoining: optional(string()),
-  dateOfLeaving: optional(string()),
-  department: optional(string()),
-  designation: optional(string()),
-  email: optional(nullable(string())),
-  emergencyContactName: optional(nullable(string())),
-  emergencyContactPhone: optional(nullable(string())),
-  emergencyContactRelation: optional(nullable(string())),
-  employeeId: optional(EmployeeIdSchema),
-  employmentType: optional(EmploymentTypeSchema),
-  firstName: optional(NameSchema),
-  gender: optional(GenderSchema),
-  grade: optional(nullable(string())),
-  holidayList: optional(nullable(string())),
-  ifscCode: optional(nullable(string())),
-  image: optional(nullable(string())),
-  lastName: optional(NameSchema),
-  maritalStatus: optional(nullable(string())),
-  metadata: optional(nullable(object({}))),
-  middleName: optional(nullable(string())),
-  permanentAddress: optional(nullable(string())),
-  personalEmail: optional(nullable(string())),
-  personalPhone: optional(nullable(string())),
-  phone: optional(nullable(string())),
-  postalCode: optional(nullable(string())),
-  reportsTo: optional(nullable(string())),
-  salaryStructureAssignment: optional(nullable(string())),
-  socialSecurityNumber: optional(nullable(string())),
-  state: optional(nullable(string())),
+  ...partial(CreateEmployeeSchema).entries,
   status: optional(EmployeeStatusSchema),
-  taxId: optional(nullable(string())),
-  workEmail: optional(nullable(string())),
-  workPhone: optional(nullable(string())),
 });
 
 export type UpdateEmployeeInput = InferOutput<typeof UpdateEmployeeSchema>;
 
 export const EmployeeFiltersSchema = object({
-  branch: optional(string()),
-  company: optional(string()),
-  department: optional(string()),
-  designation: optional(string()),
-  employmentType: optional(EmploymentTypeSchema),
-  grade: optional(string()),
-  reportsTo: optional(string()),
+  ...partial(
+    pick(CreateEmployeeSchema, [
+      "branch",
+      "company",
+      "department",
+      "designation",
+      "employmentType",
+      "grade",
+      "reportsTo",
+    ]),
+  ).entries,
   status: optional(EmployeeStatusSchema),
 });
 
@@ -129,9 +103,8 @@ export const CreateEmployeeGroupSchema = object({
 export type CreateEmployeeGroupInput = InferOutput<typeof CreateEmployeeGroupSchema>;
 
 export const UpdateEmployeeGroupSchema = object({
-  description: optional(nullable(string())),
+  ...partial(CreateEmployeeGroupSchema).entries,
   isActive: optional(boolean()),
-  name: optional(NameSchema),
 });
 
 export type UpdateEmployeeGroupInput = InferOutput<typeof UpdateEmployeeGroupSchema>;
@@ -161,14 +134,8 @@ export const CreateHealthInsuranceSchema = object({
 export type CreateHealthInsuranceInput = InferOutput<typeof CreateHealthInsuranceSchema>;
 
 export const UpdateHealthInsuranceSchema = object({
-  coverageDetails: optional(nullable(string())),
-  endDate: optional(string()),
-  insurer: optional(string()),
+  ...partial(omit(CreateHealthInsuranceSchema, ["employeeId"])).entries,
   isActive: optional(boolean()),
-  metadata: optional(nullable(object({}))),
-  policyNumber: optional(string()),
-  premiumAmount: optional(nullable(string())),
-  startDate: optional(string()),
 });
 
 export type UpdateHealthInsuranceInput = InferOutput<typeof UpdateHealthInsuranceSchema>;
@@ -189,15 +156,6 @@ export const CreateSkillMapSchema = object({
 
 export type CreateSkillMapInput = InferOutput<typeof CreateSkillMapSchema>;
 
-export const UpdateSkillMapSchema = object({
-  assessedBy: optional(nullable(string())),
-  assessmentDate: optional(string()),
-  certificationDate: optional(string()),
-  certificationName: optional(nullable(string())),
-  expiryDate: optional(string()),
-  notes: optional(nullable(string())),
-  proficiency: optional(SkillProficiencySchema),
-  skill: optional(string()),
-});
+export const UpdateSkillMapSchema = partial(omit(CreateSkillMapSchema, ["employeeId"]));
 
 export type UpdateSkillMapInput = InferOutput<typeof UpdateSkillMapSchema>;

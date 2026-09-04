@@ -1,7 +1,7 @@
 import { AccessLevelSchema, PermissionActionSchema } from "#/schemas/enums";
 import { EmployeeIdSchema, NameSchema, OptionalStringSchema } from "#/schemas/utils";
 
-import { boolean, minLength, object, optional, pipe, string } from "valibot";
+import { boolean, minLength, object, omit, optional, partial, pick, pipe, string } from "valibot";
 import type { InferOutput } from "valibot";
 
 // HR User
@@ -15,13 +15,14 @@ export const CreateHrUserSchema = object({
 export type CreateHrUserInput = InferOutput<typeof CreateHrUserSchema>;
 
 export const UpdateHrUserSchema = object({
+  ...partial(omit(CreateHrUserSchema, ["employeeId", "userId"])).entries,
   isActive: optional(boolean()),
 });
 
 export type UpdateHrUserInput = InferOutput<typeof UpdateHrUserSchema>;
 
 export const HrUserFiltersSchema = object({
-  employeeId: optional(string()),
+  ...partial(pick(CreateHrUserSchema, ["employeeId"])).entries,
   isActive: optional(boolean()),
   userId: optional(string()),
 });
@@ -40,12 +41,14 @@ export const CreateHrRoleSchema = object({
 export type CreateHrRoleInput = InferOutput<typeof CreateHrRoleSchema>;
 
 export const UpdateHrRoleSchema = object({
-  description: OptionalStringSchema,
+  ...partial(omit(CreateHrRoleSchema, ["isSystem", "name"])).entries,
   isActive: optional(boolean()),
 });
 
 export type UpdateHrRoleInput = InferOutput<typeof UpdateHrRoleSchema>;
 
+// Kept explicit: picking the defaulted isActive/isSystem flags would inherit
+// their create-time defaults into filter semantics.
 export const HrRoleFiltersSchema = object({
   isActive: optional(boolean()),
   isSystem: optional(boolean()),
@@ -65,8 +68,7 @@ export const CreateHrPermissionSchema = object({
 export type CreateHrPermissionInput = InferOutput<typeof CreateHrPermissionSchema>;
 
 export const HrPermissionFiltersSchema = object({
-  action: optional(PermissionActionSchema),
-  module: optional(string()),
+  ...partial(pick(CreateHrPermissionSchema, ["action", "module"])).entries,
 });
 
 export type HrPermissionFilters = InferOutput<typeof HrPermissionFiltersSchema>;

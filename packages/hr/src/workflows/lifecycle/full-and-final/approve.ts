@@ -1,5 +1,6 @@
 import { fullAndFinalStatement } from "#/db-schemas";
-import { fetchFullAndFinalById } from "#/workflows/utils";
+import { toDays } from "#/workflows/leave-accounts";
+import { assertUpdated, fetchFullAndFinalById, requireStatus } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -16,16 +17,17 @@ export const approveFullAndFinal = Workflow.name("hr.lifecycle.approve-full-and-
     const { id, approvedBy } = input;
 
     const statement = await fetchFullAndFinalById(ctx.db, id);
+    requireStatus(statement, ["draft", "pending"], `Full and final statement "${id}"`);
 
     // Calculate totals
     const totalEarnings =
-      Number.parseFloat(statement.pendingSalary) +
-      Number.parseFloat(statement.leaveEncashment) +
-      Number.parseFloat(statement.bonus) +
-      Number.parseFloat(statement.gratuity);
+      toDays(statement.pendingSalary, "pendingSalary") +
+      toDays(statement.leaveEncashment, "leaveEncashment") +
+      toDays(statement.bonus, "bonus") +
+      toDays(statement.gratuity, "gratuity");
 
     const totalDeductions =
-      Number.parseFloat(statement.loanRecovery) + Number.parseFloat(statement.deductions);
+      toDays(statement.loanRecovery, "loanRecovery") + toDays(statement.deductions, "deductions");
 
     const netPayable = totalEarnings - totalDeductions;
 
@@ -43,5 +45,5 @@ export const approveFullAndFinal = Workflow.name("hr.lifecycle.approve-full-and-
       .where(eq(fullAndFinalStatement.id, id))
       .returning();
 
-    return updated;
+    return assertUpdated(updated, `Full and final statement "${id}"`);
   });

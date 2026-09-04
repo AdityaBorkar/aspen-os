@@ -3,7 +3,7 @@ import { UpdateOnboardingTaskSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-import { minLength, object, parse, pipe, string } from "valibot";
+import { minLength, object, pipe, string } from "valibot";
 
 const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
@@ -15,7 +15,7 @@ export const updateOnboardingTask = Workflow.name("hr.lifecycle.update-onboardin
   .handler(async (input, ctx) => {
     const { id, patch } = input;
 
-    const parsed = parse(UpdateOnboardingTaskSchema, patch);
+    const parsed = patch;
 
     const updateData: Partial<typeof onboardingTask.$inferInsert> = {
       ...parsed,

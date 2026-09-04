@@ -1,4 +1,5 @@
 import { employeePromotion } from "#/db-schemas";
+import { assertUpdated, fetchPromotionById, requireStatus } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -15,6 +16,9 @@ export const rejectPromotion = Workflow.name("hr.lifecycle.reject-promotion")
   .handler(async (input, ctx) => {
     const { id, rejectedBy, rejectionReason } = input;
 
+    const promotion = await fetchPromotionById(ctx.db, id);
+    requireStatus(promotion, "pending", `Promotion "${id}"`);
+
     const [updated] = await ctx.db
       .update(employeePromotion)
       .set({
@@ -27,5 +31,5 @@ export const rejectPromotion = Workflow.name("hr.lifecycle.reject-promotion")
       .where(eq(employeePromotion.id, id))
       .returning();
 
-    return updated;
+    return assertUpdated(updated, `Promotion "${id}"`);
   });

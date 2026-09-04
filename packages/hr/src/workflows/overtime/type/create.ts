@@ -2,7 +2,7 @@ import { overtimeType } from "#/db-schemas";
 import { CreateOvertimeTypeSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const InputSchema = object({
   input: CreateOvertimeTypeSchema,
@@ -11,7 +11,7 @@ const InputSchema = object({
 export const createOvertimeType = Workflow.name("hr.overtime.create-overtime-type")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(CreateOvertimeTypeSchema, input);
+    const parsed = input;
 
     const [result] = await ctx.db
       .insert(overtimeType)

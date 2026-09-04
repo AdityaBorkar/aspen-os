@@ -3,10 +3,10 @@ import { TransferFiltersSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
-import { object, optional, parse } from "valibot";
+import { object, optional } from "valibot";
 
 const InputSchema = object({
-  filters: optional(TransferFiltersSchema),
+  filters: optional(TransferFiltersSchema, {}),
 });
 
 export const listTransfers = Workflow.name("hr.lifecycle.list-transfers")
@@ -14,7 +14,7 @@ export const listTransfers = Workflow.name("hr.lifecycle.list-transfers")
   .handler(async (input, ctx) => {
     const { filters } = input;
 
-    const parsed = filters ? parse(TransferFiltersSchema, filters) : {};
+    const parsed = filters;
     const conditions = [];
 
     if (parsed.employeeId) {

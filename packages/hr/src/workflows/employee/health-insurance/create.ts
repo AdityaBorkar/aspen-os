@@ -3,7 +3,7 @@ import { CreateHealthInsuranceSchema } from "#/types";
 import { fetchEmployeeById } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const InputSchema = object({
   input: CreateHealthInsuranceSchema,
@@ -12,7 +12,7 @@ const InputSchema = object({
 export const createHealthInsurance = Workflow.name("hr.employee.create-health-insurance")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(CreateHealthInsuranceSchema, input);
+    const parsed = input;
 
     // Verify employee exists
     await fetchEmployeeById(ctx.db, parsed.employeeId);

@@ -1,4 +1,5 @@
 import { fullAndFinalStatement } from "#/db-schemas";
+import { assertUpdated, fetchFullAndFinalById, requireStatus } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -14,6 +15,9 @@ export const markFullAndFinalPaid = Workflow.name("hr.lifecycle.mark-full-and-fi
   .handler(async (input, ctx) => {
     const { id, paymentEntry } = input;
 
+    const statement = await fetchFullAndFinalById(ctx.db, id);
+    requireStatus(statement, "approved", `Full and final statement "${id}"`);
+
     const [updated] = await ctx.db
       .update(fullAndFinalStatement)
       .set({
@@ -25,5 +29,5 @@ export const markFullAndFinalPaid = Workflow.name("hr.lifecycle.mark-full-and-fi
       .where(eq(fullAndFinalStatement.id, id))
       .returning();
 
-    return updated;
+    return assertUpdated(updated, `Full and final statement "${id}"`);
   });
