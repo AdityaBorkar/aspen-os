@@ -23,7 +23,7 @@ const DATE_KEYS = new Set([
 const updateDocument = Workflow.name("document.update").handler(
   async (input: { id: string; patch: UpdateComplianceDocumentInput }, ctx) => {
     const { id, patch } = input;
-    if (Object.keys(patch).includes("verificationStatus")) {
+    if ("verificationStatus" in patch) {
       throw new Error(
         "verificationStatus cannot be updated via document.update; use a status workflow",
       );

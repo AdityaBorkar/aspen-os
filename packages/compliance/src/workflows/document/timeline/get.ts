@@ -35,8 +35,7 @@ const getDocumentTimeline = Workflow.name("document.timeline").handler(
 
     return docs.map((doc) => {
       const targetDate = doc.expiryDate ?? doc.dueDate;
-      const raw = targetDate ? daysUntil(targetDate) : null;
-      const daysRemaining = raw === null || Number.isNaN(raw) ? 0 : raw;
+      const daysRemaining = targetDate ? (daysUntil(targetDate) ?? 0) : 0;
       return {
         assignedReviewer: doc.assignedReviewer,
         assignedTo: doc.assignedTo,

@@ -1,5 +1,6 @@
 import { complianceVerificationRule } from "#/db-schemas";
 import type { ComplianceCategory } from "#/utils/constants";
+import { assertNonNegativeInt } from "#/workflows/document/shared";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, asc, eq } from "drizzle-orm";
@@ -32,6 +33,9 @@ const listVerificationRules = Workflow.name("verification.list").handler(
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
+    assertNonNegativeInt("limit", limit);
+    assertNonNegativeInt("offset", offset);
+
     let query = ctx.db
       .select()
       .from(complianceVerificationRule)
@@ -40,15 +44,9 @@ const listVerificationRules = Workflow.name("verification.list").handler(
       .$dynamic();
 
     if (limit !== undefined) {
-      if (!Number.isInteger(limit) || limit < 0) {
-        throw new Error("limit must be an integer >= 0");
-      }
       query = query.limit(limit);
     }
     if (offset !== undefined) {
-      if (!Number.isInteger(offset) || offset < 0) {
-        throw new Error("offset must be an integer >= 0");
-      }
       query = query.offset(offset);
     }
 

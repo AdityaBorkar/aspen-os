@@ -36,10 +36,6 @@ function buildDepsFromContext(): ObligationGeneratorDeps {
   };
 }
 
-function valueOrUndefined<Value>(value: Value | null | undefined): Value | undefined {
-  return value ?? undefined;
-}
-
 export async function registerObligationGenerator(): Promise<string> {
   const deps = buildDepsFromContext();
   await deps.pubsub.subscribe(SCHEDULED_JOBS.OBLIGATION_GENERATE, async () => {
@@ -117,25 +113,25 @@ export async function generateForObligation(
     const doc = await documents.create.run(
       {
         input: {
-          assignedReviewer: valueOrUndefined(obligation.defaultAssignedReviewer),
-          assignedTo: valueOrUndefined(obligation.defaultAssignedTo),
-          branch: valueOrUndefined(obligation.branch),
+          assignedReviewer: obligation.defaultAssignedReviewer ?? undefined,
+          assignedTo: obligation.defaultAssignedTo ?? undefined,
+          branch: obligation.branch ?? undefined,
           category: obligation.category,
           createdBy: obligation.createdBy,
-          documentType: valueOrUndefined(obligation.documentType),
+          documentType: obligation.documentType ?? undefined,
           dueDate: period.dueDate ? new Date(period.dueDate) : undefined,
-          escalationDays: valueOrUndefined(obligation.defaultEscalationDays),
+          escalationDays: obligation.defaultEscalationDays ?? undefined,
           expiryDate: period.expiryDate ? new Date(period.expiryDate) : undefined,
-          issuingAuthority: valueOrUndefined(obligation.defaultIssuingAuthority),
-          jurisdiction: valueOrUndefined(obligation.defaultJurisdiction),
+          issuingAuthority: obligation.defaultIssuingAuthority ?? undefined,
+          jurisdiction: obligation.defaultJurisdiction ?? undefined,
           metadata,
           name: docName,
           obligationId: obligation.id,
           periodEnd: period.periodEnd ? new Date(period.periodEnd) : undefined,
           periodStart: period.periodStart ? new Date(period.periodStart) : undefined,
           reminderDays,
-          sourceEntityId: valueOrUndefined(obligation.sourceEntityId),
-          sourceEntityType: valueOrUndefined(obligation.sourceEntityType),
+          sourceEntityId: obligation.sourceEntityId ?? undefined,
+          sourceEntityType: obligation.sourceEntityType ?? undefined,
           sourceModule: obligation.sourceModule,
         },
       },
@@ -264,31 +260,21 @@ async function checkDocumentExists(options: {
   periodEnd: string | null;
   periodStart: string | null;
 }): Promise<boolean> {
-  const conditions = [eq(complianceDocument.obligationId, options.obligationId)];
-
-  if (options.periodStart) {
-    conditions.push(eq(complianceDocument.periodStart, options.periodStart));
-  } else {
-    conditions.push(isNull(complianceDocument.periodStart));
-  }
-
-  if (options.periodEnd) {
-    conditions.push(eq(complianceDocument.periodEnd, options.periodEnd));
-  } else {
-    conditions.push(isNull(complianceDocument.periodEnd));
-  }
-
-  if (options.dueDate) {
-    conditions.push(eq(complianceDocument.dueDate, options.dueDate));
-  } else {
-    conditions.push(isNull(complianceDocument.dueDate));
-  }
-
-  if (options.expiryDate) {
-    conditions.push(eq(complianceDocument.expiryDate, options.expiryDate));
-  } else {
-    conditions.push(isNull(complianceDocument.expiryDate));
-  }
+  const conditions = [
+    eq(complianceDocument.obligationId, options.obligationId),
+    options.periodStart
+      ? eq(complianceDocument.periodStart, options.periodStart)
+      : isNull(complianceDocument.periodStart),
+    options.periodEnd
+      ? eq(complianceDocument.periodEnd, options.periodEnd)
+      : isNull(complianceDocument.periodEnd),
+    options.dueDate
+      ? eq(complianceDocument.dueDate, options.dueDate)
+      : isNull(complianceDocument.dueDate),
+    options.expiryDate
+      ? eq(complianceDocument.expiryDate, options.expiryDate)
+      : isNull(complianceDocument.expiryDate),
+  ];
 
   const existing = await options.db
     .select({ id: complianceDocument.id })

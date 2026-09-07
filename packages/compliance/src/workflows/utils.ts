@@ -1,15 +1,9 @@
 import type { AuditTrailFilters } from "#/schemas";
 import type { ObligationFrequency } from "#/utils/constants";
-import {
-  DEFAULT_REMINDER_DAYS_DUE,
-  DEFAULT_REMINDER_DAYS_EXPIRY,
-  HEALTH_SCORE_WEIGHTS,
-} from "#/utils/constants";
+import { HEALTH_SCORE_WEIGHTS } from "#/utils/constants";
 
 import type { JsonValue } from "@aspen-os/platform/server";
 import { function_, is, number, object, safeParse, string } from "valibot";
-
-export { DEFAULT_REMINDER_DAYS_DUE, DEFAULT_REMINDER_DAYS_EXPIRY };
 
 export const MONTHS_PER_FREQUENCY = {
   annual: 12,
@@ -40,8 +34,6 @@ const kvStoreSchema = object({
   set: function_(),
 });
 
-type WorkflowKvStoreCandidate = WorkflowKvStore | JsonValue;
-
 export function getKvStore(config: Record<string, JsonValue>): WorkflowKvStore | undefined {
   const candidate = config.kvStore;
   if (is(kvStoreSchema, candidate)) {
@@ -49,10 +41,6 @@ export function getKvStore(config: Record<string, JsonValue>): WorkflowKvStore |
     return candidate as WorkflowKvStore;
   }
   return undefined;
-}
-
-export function isWorkflowKvStore(value: WorkflowKvStoreCandidate): value is WorkflowKvStore {
-  return is(kvStoreSchema, value);
 }
 
 export function getCacheTtl(config: Record<string, JsonValue>, fallback = 300): number {

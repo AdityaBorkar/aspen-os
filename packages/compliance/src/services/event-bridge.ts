@@ -184,11 +184,9 @@ async function createObligation(
 
 function parseFinancialYearStart(financialYear: string, fallback: Date): Date {
   const match = /(?<year>20\d{2})/.exec(financialYear);
-  if (match?.groups?.year) {
-    const year = Number.parseInt(match.groups.year, 10);
-    if (Number.isFinite(year)) {
-      return new Date(Date.UTC(year, 3, 1));
-    }
+  const year = match?.groups?.year ? Number(match.groups.year) : Number.NaN;
+  if (Number.isInteger(year)) {
+    return new Date(Date.UTC(year, 3, 1));
   }
   return fallback;
 }

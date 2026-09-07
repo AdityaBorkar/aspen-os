@@ -2,28 +2,20 @@ import { complianceDocument } from "#/db-schemas";
 import { ComplianceDocumentFiltersSchema } from "#/schemas";
 import type { ComplianceDocumentFilters } from "#/schemas";
 import { futureDateOnly } from "#/utils/dates";
-import { requireValidDays } from "#/workflows/document/shared";
+import { assertNonNegativeInt, requireValidDays } from "#/workflows/document/shared";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, asc, desc, eq, inArray, isNotNull, isNull, lte } from "drizzle-orm";
 import { parse } from "valibot";
 
-function nonNegative(field: string, value: number | undefined): void {
-  requireValidDays(field, value);
-}
-
 const listDocuments = Workflow.name("document.list").handler(
   async (input: { filters?: ComplianceDocumentFilters; limit?: number; offset?: number }, ctx) => {
     const { filters, limit, offset } = input;
     const parsed = filters ? parse(ComplianceDocumentFiltersSchema, filters) : {};
-    nonNegative("expiringWithinDays", parsed.expiringWithinDays);
-    nonNegative("dueWithinDays", parsed.dueWithinDays);
-    if (limit !== undefined && (!Number.isInteger(limit) || limit < 0)) {
-      throw new Error("limit must be an integer >= 0");
-    }
-    if (offset !== undefined && (!Number.isInteger(offset) || offset < 0)) {
-      throw new Error("offset must be an integer >= 0");
-    }
+    requireValidDays("expiringWithinDays", parsed.expiringWithinDays);
+    requireValidDays("dueWithinDays", parsed.dueWithinDays);
+    assertNonNegativeInt("limit", limit);
+    assertNonNegativeInt("offset", offset);
     const conditions = [];
 
     if (parsed.category) {
@@ -78,12 +70,12 @@ const listDocuments = Workflow.name("document.list").handler(
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const orderBy =
-      parsed.orderBy === "periodStartAsc"
-        ? asc(complianceDocument.periodStart)
-        : parsed.orderBy === "expiryAsc"
-          ? asc(complianceDocument.expiryDate)
-          : desc(complianceDocument.updatedAt);
+    let orderBy = desc(complianceDocument.updatedAt);
+    if (parsed.orderBy === "periodStartAsc") {
+      orderBy = asc(complianceDocument.periodStart);
+    } else if (parsed.orderBy === "expiryAsc") {
+      orderBy = asc(complianceDocument.expiryDate);
+    }
 
     let query = ctx.db
       .select()

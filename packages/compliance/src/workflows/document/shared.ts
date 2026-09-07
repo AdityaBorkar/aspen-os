@@ -107,3 +107,12 @@ export function requireValidDays(field: string, days: number | undefined): void 
     throw new Error(`${field} must be a finite number >= 0`);
   }
 }
+
+export function assertNonNegativeInt(field: string, value: number | undefined): void {
+  if (value === undefined) {
+    return;
+  }
+  if (!Number.isInteger(value) || value < 0) {
+    throw new Error(`${field} must be an integer >= 0`);
+  }
+}

@@ -1,6 +1,7 @@
 import { complianceDocument } from "#/db-schemas";
 import { COMPLIANCE_EVENTS } from "#/pubsub";
 import { CreateComplianceDocumentSchema } from "#/schemas";
+import type { CreateComplianceDocumentInput } from "#/schemas";
 import { DEFAULT_REMINDER_DAYS_EXPIRY, VERIFICATION_STATUS } from "#/utils/constants";
 import { toDbDate } from "#/workflows/document/shared";
 
@@ -9,38 +10,9 @@ import { object } from "valibot";
 
 const CreateInputSchema = object({ input: CreateComplianceDocumentSchema });
 
-export function toDocumentInsertRow(parsed: {
-  assignedReviewer?: string | null;
-  assignedTo?: string | null;
-  attachment?: string | null;
-  autoRenewal?: boolean;
-  branch?: string | null;
-  category: (typeof complianceDocument.$inferInsert)["category"];
-  connection?: string | null;
-  createdBy: string;
-  documentType?: string | null;
-  dueDate?: Date | null;
-  effectiveDate?: Date | null;
-  escalationDays?: number[] | null;
-  expiryDate?: Date | null;
-  issueDate?: Date | null;
-  issuingAuthority?: string | null;
-  jurisdiction?: string | null;
-  metadata?: (typeof complianceDocument.$inferInsert)["metadata"];
-  name: string;
-  notes?: string | null;
-  obligationId?: string | null;
-  periodEnd?: Date | null;
-  periodStart?: Date | null;
-  referenceNumber?: string | null;
-  reminderChannel?: (typeof complianceDocument.$inferInsert)["reminderChannel"];
-  reminderDays?: number[] | null;
-  renewalDate?: Date | null;
-  renewalFrequency?: (typeof complianceDocument.$inferInsert)["renewalFrequency"];
-  sourceEntityId?: string | null;
-  sourceEntityType?: string | null;
-  sourceModule: string;
-}): typeof complianceDocument.$inferInsert {
+export function toDocumentInsertRow(
+  parsed: CreateComplianceDocumentInput,
+): typeof complianceDocument.$inferInsert {
   return {
     assignedReviewer: parsed.assignedReviewer ?? null,
     assignedTo: parsed.assignedTo ?? null,
@@ -79,11 +51,9 @@ export function toDocumentInsertRow(parsed: {
 const createDocument = Workflow.name("document.create")
   .input(CreateInputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = input;
-
     const [result] = await ctx.db
       .insert(complianceDocument)
-      .values(toDocumentInsertRow(parsed))
+      .values(toDocumentInsertRow(input))
       .returning();
 
     if (!result) {
@@ -92,7 +62,7 @@ const createDocument = Workflow.name("document.create")
 
     await ctx.audit.write({
       action: "created",
-      actorId: parsed.createdBy,
+      actorId: input.createdBy,
       crudAction: "create",
       entityId: result.id,
       entityType: "compliance_document",

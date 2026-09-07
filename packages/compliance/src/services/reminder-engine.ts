@@ -144,37 +144,48 @@ async function notifyDoc(input: {
   kind: "expiry" | "due";
 }): Promise<void> {
   const { days, deps, doc, kind } = input;
-  if (kind === "expiry") {
-    await deps.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_EXPIRING, {
-      daysUntilExpiry: days,
-      documentId: doc.id,
-      recipient: recipientFor(doc) ?? undefined,
-      sourceEntityId: doc.sourceEntityId,
-      sourceModule: doc.sourceModule,
-    });
-    await documents.updateNotifiedAt.run({ id: doc.id }, { db: deps.db, pubsub: deps.pubsub });
-    await deps.audit.write({
-      action: "reminder_sent",
-      entityId: doc.id,
-      entityType: "compliance_document",
-      metadata: { daysUntilExpiry: days, threshold: "expiry" },
-    });
-  } else {
-    await deps.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_DUE, {
-      daysUntilDue: days,
-      documentId: doc.id,
-      recipient: recipientFor(doc) ?? undefined,
-      sourceEntityId: doc.sourceEntityId,
-      sourceModule: doc.sourceModule,
-    });
-    await documents.updateNotifiedAt.run({ id: doc.id }, { db: deps.db, pubsub: deps.pubsub });
-    await deps.audit.write({
-      action: "reminder_sent",
-      entityId: doc.id,
-      entityType: "compliance_document",
-      metadata: { daysUntilDue: days, threshold: "due" },
-    });
+  const isExpiry = kind === "expiry";
+  const recipient = recipientFor(doc) ?? undefined;
+  const base = {
+    documentId: doc.id,
+    recipient,
+    sourceEntityId: doc.sourceEntityId,
+    sourceModule: doc.sourceModule,
+  };
+  await (isExpiry
+    ? deps.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_EXPIRING, {
+        ...base,
+        daysUntilExpiry: days,
+      })
+    : deps.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_DUE, {
+        ...base,
+        daysUntilDue: days,
+      }));
+  await documents.updateNotifiedAt.run({ id: doc.id }, { db: deps.db, pubsub: deps.pubsub });
+  await deps.audit.write({
+    action: "reminder_sent",
+    entityId: doc.id,
+    entityType: "compliance_document",
+    metadata: isExpiry
+      ? { daysUntilExpiry: days, threshold: "expiry" }
+      : { daysUntilDue: days, threshold: "due" },
+  });
+}
+
+function throwOnFailures(settled: PromiseSettledResult<number>[], unit: string): number {
+  let processed = 0;
+  let failures = 0;
+  for (const result of settled) {
+    if (result.status === "fulfilled") {
+      processed += result.value;
+    } else {
+      failures++;
+    }
   }
+  if (failures > 0) {
+    throw Object.assign(new Error(`${failures} ${unit} failed`), { failures, processed });
+  }
+  return processed;
 }
 
 export async function scanExpiringAndDueDocuments(deps: ReminderEngineDeps): Promise<number> {
@@ -229,22 +240,7 @@ export async function scanExpiringAndDueDocuments(deps: ReminderEngineDeps): Pro
         return 0;
       }),
     );
-    let processed = 0;
-    let failures = 0;
-    for (const result of settled) {
-      if (result.status === "fulfilled") {
-        processed += result.value;
-      } else {
-        failures++;
-      }
-    }
-    if (failures > 0) {
-      throw Object.assign(new Error(`${failures} reminder notification(s) failed`), {
-        failures,
-        processed,
-      });
-    }
-    return processed;
+    return throwOnFailures(settled, "reminder notification(s)");
   });
 }
 
@@ -297,20 +293,7 @@ export async function transitionExpiredAndOverdueDocuments(
         return 1;
       }),
     );
-    let processed = 0;
-    for (const result of settled) {
-      if (result.status === "fulfilled") {
-        processed += result.value;
-      }
-    }
-    const failures = settled.filter((outcome) => outcome.status === "rejected").length;
-    if (failures > 0) {
-      throw Object.assign(new Error(`${failures} status transition(s) failed`), {
-        failures,
-        processed,
-      });
-    }
-    return processed;
+    return throwOnFailures(settled, "status transition(s)");
   });
 }
 
@@ -366,20 +349,7 @@ export async function scanEscalations(deps: ReminderEngineDeps): Promise<number>
         return 0;
       }),
     );
-    let processed = 0;
-    for (const result of settled) {
-      if (result.status === "fulfilled") {
-        processed += result.value;
-      }
-    }
-    const failures = settled.filter((outcome) => outcome.status === "rejected").length;
-    if (failures > 0) {
-      throw Object.assign(new Error(`${failures} escalation(s) failed`), {
-        failures,
-        processed,
-      });
-    }
-    return processed;
+    return throwOnFailures(settled, "escalation(s)");
   });
 }
 

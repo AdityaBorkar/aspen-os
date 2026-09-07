@@ -34,6 +34,15 @@ const getDashboardSummary = Workflow.name("dashboard.summary").handler(
 
     const nowStr = todayDateOnly();
     const futureStr = futureDateOnly(30);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const generatedConditions = [
+      isNotNull(complianceDocument.obligationId),
+      gte(complianceDocument.createdAt, thirtyDaysAgo),
+    ];
+    if (branchFilter) {
+      generatedConditions.push(eq(complianceDocument.branch, branchFilter));
+    }
 
     const [
       countsRows,
@@ -101,23 +110,12 @@ const getDashboardSummary = Workflow.name("dashboard.summary").handler(
         })
         .from(complianceObligation)
         .where(eq(complianceObligation.isActive, true)),
-      (() => {
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        const generatedConditions = [
-          isNotNull(complianceDocument.obligationId),
-          gte(complianceDocument.createdAt, thirtyDaysAgo),
-        ];
-        if (branchFilter) {
-          generatedConditions.push(eq(complianceDocument.branch, branchFilter));
-        }
-        return db
-          .select({
-            count: sql<number>`count(*)::int`,
-          })
-          .from(complianceDocument)
-          .where(and(...generatedConditions));
-      })(),
+      db
+        .select({
+          count: sql<number>`count(*)::int`,
+        })
+        .from(complianceDocument)
+        .where(and(...generatedConditions)),
     ]);
 
     const [counts] = countsRows;
@@ -125,26 +123,21 @@ const getDashboardSummary = Workflow.name("dashboard.summary").handler(
     const [obligationCount] = obligationCountRows;
     const [generatedCount] = generatedCountRows;
 
-    const byCategory: DashboardSummary["byCategory"] = {};
-    for (const row of categoryRows) {
-      byCategory[row.category] = row.count;
-    }
-
-    const bySourceModule: DashboardSummary["bySourceModule"] = {};
-    for (const row of sourceRows) {
-      bySourceModule[row.sourceModule] = row.count;
-    }
+    const byCategory: DashboardSummary["byCategory"] = toCountMap(
+      categoryRows,
+      (row) => row.category,
+    );
+    const bySourceModule: DashboardSummary["bySourceModule"] = toCountMap(
+      sourceRows,
+      (row) => row.sourceModule,
+    );
+    const byStatus: DashboardSummary["byStatus"] = toCountMap(statusRows, (row) => row.status);
 
     const byBranch: DashboardSummary["byBranch"] = {};
     for (const row of branchRows) {
       if (row.branch) {
         byBranch[row.branch] = row.count;
       }
-    }
-
-    const byStatus: DashboardSummary["byStatus"] = {};
-    for (const row of statusRows) {
-      byStatus[row.status] = row.count;
     }
 
     const total = counts?.total ?? 0;
@@ -190,5 +183,14 @@ const getDashboardSummary = Workflow.name("dashboard.summary").handler(
     return summary;
   },
 );
+
+function toCountMap<Row extends { count: number }>(
+  rows: Row[],
+  pickKey: (row: Row) => PropertyKey,
+) {
+  return Object.fromEntries(
+    rows.map((row): readonly [PropertyKey, number] => [pickKey(row), row.count]),
+  );
+}
 
 export { getDashboardSummary };

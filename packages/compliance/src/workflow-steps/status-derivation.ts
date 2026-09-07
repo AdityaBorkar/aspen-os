@@ -1,32 +1,29 @@
 import type { VerificationStatus } from "#/utils/constants";
 import { VERIFICATION_STATUS } from "#/utils/constants";
+import { MS_PER_DAY } from "#/utils/dates";
 
-const MS_PER_DAY = 86_400_000;
-
-export function daysUntil(dateStr: string | null): number | null {
+function parseDateOnly(dateStr: string | null): number | null {
   if (!dateStr) {
     return null;
   }
-  const target = new Date(dateStr);
-  if (!Number.isFinite(target.getTime())) {
+  const time = new Date(dateStr).getTime();
+  return Number.isFinite(time) ? time : null;
+}
+
+export function daysUntil(dateStr: string | null): number | null {
+  const target = parseDateOnly(dateStr);
+  if (target === null) {
     return null;
   }
-  const now = new Date();
-  const diff = target.getTime() - now.getTime();
-  return Math.ceil(diff / MS_PER_DAY);
+  return Math.ceil((target - Date.now()) / MS_PER_DAY);
 }
 
 export function daysSince(dateStr: string | null): number | null {
-  if (!dateStr) {
+  const target = parseDateOnly(dateStr);
+  if (target === null) {
     return null;
   }
-  const target = new Date(dateStr);
-  if (!Number.isFinite(target.getTime())) {
-    return null;
-  }
-  const now = new Date();
-  const diff = now.getTime() - target.getTime();
-  return Math.ceil(diff / MS_PER_DAY);
+  return Math.ceil((Date.now() - target) / MS_PER_DAY);
 }
 
 export function isTerminal(status: VerificationStatus): boolean {
