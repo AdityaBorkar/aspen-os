@@ -1,5 +1,6 @@
 import { project } from "#/db-schemas/project";
 import { IdSchema } from "#/types";
+import { PROJECT_STATUS } from "#/utils/constants";
 import { fetchProjectStep } from "#/workflow-steps/fetch-project";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -12,7 +13,7 @@ export const restoreProject = Workflow.name("project.restore")
     await ctx.step.run(fetchProjectStep, { id });
     const [updated] = await ctx.db
       .update(project)
-      .set({ status: "active", updatedAt: new Date() })
+      .set({ status: PROJECT_STATUS.ACTIVE, updatedAt: new Date() })
       .where(eq(project.id, id))
       .returning();
     return updated;

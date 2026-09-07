@@ -15,17 +15,10 @@ const UpdateInputSchema = object({
 export const updateTaskType = Workflow.name("task-type.update")
   .input(UpdateInputSchema)
   .handler(async ({ id, patch }, ctx) => {
-    await ctx.step.run(fetchTaskTypeStep, { id });
+    const current = await ctx.step.run(fetchTaskTypeStep, { id });
 
-    if (patch.isDefault) {
-      const [current] = await ctx.db
-        .select({ projectId: taskType.projectId })
-        .from(taskType)
-        .where(eq(taskType.id, id))
-        .limit(1);
-      if (current?.projectId) {
-        await unsetDefaultTaskType(ctx.db, current.projectId);
-      }
+    if (patch.isDefault && current.projectId) {
+      await unsetDefaultTaskType(ctx.db, current.projectId);
     }
 
     const [updated] = await ctx.db

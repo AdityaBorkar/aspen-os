@@ -11,8 +11,6 @@ import type { WorkflowContext } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object } from "valibot";
 
-const BLOCKS_LINK_TYPE = TASK_LINK_TYPE.BLOCKS;
-
 type Db = WorkflowContext["db"];
 
 const CreateInputSchema = object({
@@ -64,7 +62,7 @@ export const createTaskLink = Workflow.name("link.create")
     }
 
     const [wouldCycle, exists] = await Promise.all([
-      input.linkType === BLOCKS_LINK_TYPE
+      input.linkType === TASK_LINK_TYPE.BLOCKS
         ? wouldCreateCycle(ctx.db, input.sourceId, input.targetId)
         : Promise.resolve(false),
       linkExists(ctx.db, {

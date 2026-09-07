@@ -15,17 +15,10 @@ const UpdateInputSchema = object({
 export const updateStatus = Workflow.name("status.update")
   .input(UpdateInputSchema)
   .handler(async ({ id, patch }, ctx) => {
-    await ctx.step.run(fetchStatusStep, { id });
+    const current = await ctx.step.run(fetchStatusStep, { id });
 
     if (patch.isDefault) {
-      const [current] = await ctx.db
-        .select({ projectId: status.projectId })
-        .from(status)
-        .where(eq(status.id, id))
-        .limit(1);
-      if (current) {
-        await unsetDefaultProjectStatus(ctx.db, current.projectId);
-      }
+      await unsetDefaultProjectStatus(ctx.db, current.projectId);
     }
 
     const [updated] = await ctx.db

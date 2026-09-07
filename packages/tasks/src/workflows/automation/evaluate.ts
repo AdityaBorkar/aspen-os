@@ -97,9 +97,6 @@ function stableStringify(value: JsonValue): string {
   if (Array.isArray(value)) {
     return `[${value.map((entry) => stableStringify(entry)).join(",")}]`;
   }
-  if (value instanceof Date) {
-    return JSON.stringify(value.toISOString());
-  }
   if (value instanceof Object) {
     // SAFETY: instanceof Object excludes null here, so value is a JSON object
     // whose entries are JSON values by the JsonValue contract.

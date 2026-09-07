@@ -27,12 +27,12 @@ export const validateTransition = Workflow.name("status.validate-transition")
         )
         .limit(1);
 
+      // Projects with no configured transitions allow every transition.
+      // Once at least one transition exists, only configured ones are allowed.
       if (transition) {
         return true;
       }
 
-      // Projects with no configured transitions allow every transition.
-      // Once at least one transition exists, only configured ones are allowed.
       const configuredTransitions = await ctx.db
         .select({ id: statusTransition.id })
         .from(statusTransition)
