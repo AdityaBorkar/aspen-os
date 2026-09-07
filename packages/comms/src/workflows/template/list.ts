@@ -25,14 +25,8 @@ export const listTemplates = Workflow.name("comms.template.list")
     }
 
     const { limit, offset } = listPagination(filters ?? undefined);
-    if (where.length === 0) {
-      return ctx.db
-        .select()
-        .from(commsTemplate)
-        .orderBy(desc(commsTemplate.createdAt))
-        .limit(limit)
-        .offset(offset);
-    }
+    // `and()` with no conditions returns undefined, and `.where(undefined)`
+    // is a no-op — one chain covers the filtered and unfiltered cases.
     return ctx.db
       .select()
       .from(commsTemplate)

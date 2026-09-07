@@ -1,3 +1,5 @@
+import type { CommsProvider } from "#/db-schemas/provider";
+import type { ProviderCredential } from "#/schemas/channel";
 import { createAdapter } from "#/services/adapters/index";
 import { resolveProviderCredential } from "#/services/credential-service";
 import { findFirstActiveProvider } from "#/services/providers";
@@ -186,7 +188,6 @@ interface DocumentNotification {
   documentId: string;
   kind: "document_due" | "document_expiring";
   recipientId: string;
-  title: string;
 }
 
 async function notifyDocument(input: DocumentNotification, deps: EventBridgeDeps): Promise<void> {
@@ -198,7 +199,7 @@ async function notifyDocument(input: DocumentNotification, deps: EventBridgeDeps
         severity: severityForDays(input.days),
         sourceEntity: { id: input.documentId, type: "compliance_document" },
         sourceModule: "compliance",
-        title: input.title,
+        title: `Compliance document ${input.kind === "document_due" ? "due" : "expiring"} in ${input.days} day${input.days === 1 ? "" : "s"}`,
         type: input.kind,
       },
     },
@@ -220,7 +221,6 @@ async function handleDocumentExpiring(
       documentId: event.documentId,
       kind: "document_expiring",
       recipientId: event.recipient.id,
-      title: `Compliance document expiring in ${event.daysUntilExpiry} day${event.daysUntilExpiry === 1 ? "" : "s"}`,
     },
     deps,
   );
@@ -240,7 +240,6 @@ async function handleDocumentDue(
       documentId: event.documentId,
       kind: "document_due",
       recipientId: event.recipient.id,
-      title: `Compliance document due in ${event.daysUntilDue} day${event.daysUntilDue === 1 ? "" : "s"}`,
     },
     deps,
   );
@@ -328,23 +327,21 @@ async function handleTenantLifecycle(tenantId: string, deps: EventBridgeDeps): P
     return;
   }
 
-  if (deps.dbUnit.tenancyMode === "isolated") {
-    const db = await deps.dbUnit.getTenantDb(tenantId);
-    await ensureDefaults(deps.dbUnit).run(
+  const ensure = ensureDefaults(deps.dbUnit);
+  const run = (db: PostgresJsDatabase) =>
+    ensure.run(
       { input: { entityId: tenantId, entityType: "organization" } },
       { audit: deps.audit, db, log: deps.log, pubsub: deps.pubsub },
     );
+
+  if (deps.dbUnit.tenancyMode === "isolated") {
+    await run(await deps.dbUnit.getTenantDb(tenantId));
     return;
   }
 
   // SAFETY: runWithTenant hands the callback a session-scoped drizzle instance
   // whose surface matches the workflow db type; the generic parameter is erased.
-  await deps.dbUnit.runWithTenant(tenantId, (db) =>
-    ensureDefaults(deps.dbUnit).run(
-      { input: { entityId: tenantId, entityType: "organization" } },
-      { audit: deps.audit, db, log: deps.log, pubsub: deps.pubsub },
-    ),
-  );
+  await deps.dbUnit.runWithTenant(tenantId, (db) => run(db));
 }
 
 async function handleOtpRequested(
@@ -361,17 +358,7 @@ async function handleOtpRequested(
     throw new Error("Cannot send OTP email: no active email provider.");
   }
 
-  const credential: Awaited<ReturnType<typeof resolveProviderCredential>> =
-    await resolveProviderCredential(provider, deps.kvStore).catch((credentialError): never => {
-      const detail =
-        credentialError instanceof Error ? credentialError.message : String(credentialError);
-      deps.log?.error(
-        `Dropping OTP email: credential failed for provider "${provider.id}".`,
-        credentialError instanceof Error ? credentialError : new Error(detail),
-        { providerId: provider.id },
-      );
-      throw new Error(`Cannot send OTP email: ${detail}`, { cause: credentialError });
-    });
+  const credential = await resolveOtpCredential(provider, deps);
 
   const stored = await deps.auth.rest.otp.get(event.tokenRef);
   if (!stored) {
@@ -395,6 +382,24 @@ async function handleOtpRequested(
       to: event.email,
     },
   });
+}
+
+async function resolveOtpCredential(
+  provider: CommsProvider,
+  deps: EventBridgeDeps,
+): Promise<ProviderCredential> {
+  try {
+    return await resolveProviderCredential(provider, deps.kvStore);
+  } catch (credentialError) {
+    const detail =
+      credentialError instanceof Error ? credentialError.message : String(credentialError);
+    deps.log?.error(
+      `Dropping OTP email: credential failed for provider "${provider.id}".`,
+      credentialError instanceof Error ? credentialError : new Error(detail),
+      { providerId: provider.id },
+    );
+    throw new Error(`Cannot send OTP email: ${detail}`, { cause: credentialError });
+  }
 }
 
 function runOptions(deps: EventBridgeDeps) {

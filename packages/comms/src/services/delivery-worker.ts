@@ -67,12 +67,15 @@ export async function sweepQueuedMessages(deps: DeliveryWorkerDeps): Promise<num
   if (deps.db.tenancyMode === "isolated") {
     return sweepIsolatedTenants(deps);
   }
-  const rows = await deps.db.controlPlaneDb
-    .select()
-    .from(commsMessage)
-    .where(eq(commsMessage.status, "queued"))
-    .limit(deps.batchSize);
+  const rows = await fetchQueuedMessages(deps.db.controlPlaneDb, deps.batchSize);
   return processBatch(rows, deps);
+}
+
+async function fetchQueuedMessages(
+  db: PostgresJsDatabase,
+  batchSize: number,
+): Promise<(typeof commsMessage.$inferSelect)[]> {
+  return db.select().from(commsMessage).where(eq(commsMessage.status, "queued")).limit(batchSize);
 }
 
 async function sweepIsolatedTenants(deps: DeliveryWorkerDeps): Promise<number> {
@@ -83,11 +86,7 @@ async function sweepIsolatedTenants(deps: DeliveryWorkerDeps): Promise<number> {
   for (const tenantId of scopes) {
     const db =
       tenantId === "$global" ? deps.db.controlPlaneDb : await deps.db.getTenantDb(tenantId);
-    const rows = await db
-      .select()
-      .from(commsMessage)
-      .where(eq(commsMessage.status, "queued"))
-      .limit(deps.batchSize);
+    const rows = await fetchQueuedMessages(db, deps.batchSize);
     processed += await processBatch(rows, deps);
   }
   // oxlint-enable eslint/no-await-in-loop
@@ -243,6 +242,30 @@ async function processMessage(
   });
 }
 
+interface ResolveContext {
+  db: PostgresJsDatabase;
+  deps: DeliveryWorkerDeps;
+  message: typeof commsMessage.$inferSelect;
+}
+
+/**
+ * Runs a delivery resolver, recording a retryable outcome instead of throwing
+ * when resolution fails. Returns null when the message was recorded and the
+ * caller should stop.
+ */
+async function resolveOrRecord<TValue>(
+  ctx: ResolveContext,
+  resolve: () => Promise<TValue>,
+): Promise<TValue | null> {
+  try {
+    return await resolve();
+  } catch (error) {
+    const errorText = error instanceof Error ? error.message : String(error);
+    await recordOutcome({ db: ctx.db, deps: ctx.deps, error: errorText, message: ctx.message });
+    return null;
+  }
+}
+
 /**
  * Resolves the delivery adapter, recording a retryable outcome instead of
  * throwing when the channel type has no sender. Returns null when the message
@@ -259,13 +282,7 @@ async function deliveryAdapterOrRecord({
   deps: DeliveryWorkerDeps;
   message: typeof commsMessage.$inferSelect;
 }): Promise<DeliveryAdapter | null> {
-  try {
-    return createAdapter(channel.type);
-  } catch (error) {
-    const errorText = error instanceof Error ? error.message : String(error);
-    await recordOutcome({ db, deps, error: errorText, message });
-    return null;
-  }
+  return resolveOrRecord({ db, deps, message }, async () => createAdapter(channel.type));
 }
 
 /**
@@ -286,17 +303,9 @@ async function deliveryCredentialOrRecord({
   message: typeof commsMessage.$inferSelect;
   provider: CommsProvider | null;
 }): Promise<ProviderCredential | null> {
-  try {
-    return await resolveDeliveryCredential({
-      channel,
-      kvStore: deps.kvStore,
-      provider,
-    });
-  } catch (error) {
-    const errorText = error instanceof Error ? error.message : String(error);
-    await recordOutcome({ db, deps, error: errorText, message });
-    return null;
-  }
+  return resolveOrRecord({ db, deps, message }, () =>
+    resolveDeliveryCredential({ channel, kvStore: deps.kvStore, provider }),
+  );
 }
 
 /**

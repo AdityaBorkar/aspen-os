@@ -34,14 +34,8 @@ export const listChannels = Workflow.name("comms.channel.list")
     }
 
     const { limit, offset } = listPagination(filters ?? undefined);
-    if (where.length === 0) {
-      return ctx.db
-        .select()
-        .from(commsChannel)
-        .orderBy(desc(commsChannel.createdAt))
-        .limit(limit)
-        .offset(offset);
-    }
+    // `and()` with no conditions returns undefined, and `.where(undefined)`
+    // is a no-op — one chain covers the filtered and unfiltered cases.
     return ctx.db
       .select()
       .from(commsChannel)

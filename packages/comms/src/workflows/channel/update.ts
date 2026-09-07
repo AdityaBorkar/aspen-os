@@ -1,51 +1,17 @@
 import { commsChannel } from "#/db-schemas";
 import { CHANNEL_EVENTS } from "#/pubsub";
 import { UpdateChannelSchema } from "#/schemas/channel";
-import { JsonValueSchema } from "#/schemas/json";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { metadataEqual } from "#/utils/metadata";
 import { auditAndPublish } from "#/workflow-steps/audit";
 import { fetchChannelStep } from "#/workflow-steps/fetch-channel";
 
 import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-import { object, record, safeParse, string } from "valibot";
+import { object } from "valibot";
 
 const UpdateInputSchema = object({ input: UpdateChannelSchema });
-
-function isRecord(value: JsonValue | null | undefined): value is Record<string, JsonValue> {
-  if (Array.isArray(value)) {
-    return false;
-  }
-  return safeParse(record(string(), JsonValueSchema), value).success;
-}
-
-function sortKeys(value: JsonValue | null | undefined): JsonValue | null {
-  if (value === null || value === undefined) {
-    return null;
-  }
-  if (Array.isArray(value)) {
-    return value.map((entry) => sortKeys(entry));
-  }
-  if (!isRecord(value)) {
-    return value;
-  }
-  const sorted: Record<string, JsonValue> = {};
-  for (const key of Object.keys(value).toSorted()) {
-    const entry = value[key];
-    if (entry !== undefined) {
-      sorted[key] = sortKeys(entry);
-    }
-  }
-  return sorted;
-}
-
-function metadataEqual(
-  left: Record<string, JsonValue> | null | undefined,
-  right: Record<string, JsonValue> | null | undefined,
-): boolean {
-  return JSON.stringify(sortKeys(left)) === JSON.stringify(sortKeys(right));
-}
 
 export const updateChannel = Workflow.name("comms.channel.update")
   .input(UpdateInputSchema)

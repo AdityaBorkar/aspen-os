@@ -47,12 +47,9 @@ export function inferEmailKind(credential: ProviderCredential): ProviderKind {
   if (credential.serverToken) {
     matches.push(PROVIDER_KIND.POSTMARK);
   }
-  if (matches.length === 1) {
-    const [kind] = matches;
-    if (!kind) {
-      throw new Error("Email credential matched no known provider shape.");
-    }
-    return kind;
+  const [only] = matches;
+  if (matches.length === 1 && only) {
+    return only;
   }
   if (matches.length > 1) {
     throw new Error(

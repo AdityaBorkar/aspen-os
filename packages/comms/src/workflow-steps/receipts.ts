@@ -43,6 +43,7 @@ export async function handleProviderReceipt(
     return false;
   }
   await runInTenantContext(deps.db, tenantId, async (db) => {
+    const failure = input.error ?? "Provider reported a delivery failure.";
     if (input.status === "delivered") {
       await markDelivered(db, message);
       await deps.pubsub.publish(MESSAGE_EVENTS.DELIVERED, {
@@ -50,10 +51,10 @@ export async function handleProviderReceipt(
         messageId: message.id,
       });
     } else {
-      await markFailed(db, message, input.error ?? "Provider reported a delivery failure.");
+      await markFailed(db, message, failure);
       await deps.pubsub.publish(MESSAGE_EVENTS.FAILED, {
         attempts: message.attempts + 1,
-        error: input.error ?? "Provider reported a delivery failure.",
+        error: failure,
         messageId: message.id,
       });
     }

@@ -25,7 +25,7 @@ export function ensureDefaults(dbUnit: DatabaseUnit) {
     .handler(async ({ input }, ctx) => {
       const entityType = input.entityType ?? "organization";
       const entityId = input.entityId ?? getContext().tenantId ?? "default";
-      const types = input.channelTypes ?? [...DEFAULT_CHANNEL_TYPES];
+      const types = input.channelTypes ?? DEFAULT_CHANNEL_TYPES;
 
       const senderOverride = await getSetting(
         ctx.db,

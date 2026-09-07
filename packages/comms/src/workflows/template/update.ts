@@ -2,6 +2,7 @@ import { commsTemplate } from "#/db-schemas";
 import { TEMPLATE_EVENTS } from "#/pubsub";
 import { UpdateTemplateSchema } from "#/schemas/template";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { metadataEqual } from "#/utils/metadata";
 import { auditAndPublish } from "#/workflow-steps/audit";
 import { fetchTemplateStep } from "#/workflow-steps/fetch-template";
 
@@ -44,10 +45,7 @@ export const updateTemplate = Workflow.name("comms.template.update")
         set.subject = next;
       }
     }
-    if (
-      input.metadata !== undefined &&
-      JSON.stringify(input.metadata) !== JSON.stringify(current.metadata)
-    ) {
+    if (input.metadata !== undefined && !metadataEqual(input.metadata, current.metadata)) {
       set.metadata = input.metadata;
     }
 

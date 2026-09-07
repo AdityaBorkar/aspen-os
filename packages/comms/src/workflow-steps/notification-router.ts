@@ -44,12 +44,11 @@ export async function routeNotification(
   const preferenceRules = await loadPreferenceRules(resolved, input.type, deps.db);
   const scope = tenantScope();
 
-  const outOfBand: RoutedOutOfBand[] = [];
   const channelTypesToResolve = requested.filter(
     (channelType): channelType is ChannelType =>
       channelType !== "inapp" && !suppressOutOfBand && isEnabled(preferenceRules, channelType),
   );
-  const resolvedChannels = await Promise.all(
+  const outOfBand: RoutedOutOfBand[] = await Promise.all(
     channelTypesToResolve.map(async (channelType) => {
       const channel = await resolveDefaultChannel(channelType, scope, {
         db: deps.db,
@@ -58,7 +57,6 @@ export async function routeNotification(
       return { channel, channelType };
     }),
   );
-  outOfBand.push(...resolvedChannels);
 
   const channelTypes = requested.filter((channelType) =>
     channelType === "inapp"

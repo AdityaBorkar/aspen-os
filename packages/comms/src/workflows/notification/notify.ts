@@ -197,10 +197,7 @@ async function enqueueOutOfBandMessages(ctx: EnqueueContext): Promise<EnqueueRes
       }
 
       const body = template ? renderTemplate(template.body, params) : (parsed.body ?? parsed.title);
-      const subject =
-        template && template.subject !== null && template.subject !== undefined
-          ? renderTemplate(template.subject, params)
-          : null;
+      const subject = template?.subject != null ? renderTemplate(template.subject, params) : null;
 
       const [row] = await db
         .insert(commsMessage)
@@ -273,11 +270,9 @@ function templateParams(input: NotifyInput): Record<string, JsonValue> {
     return {};
   }
   const parsed = safeParse(record(string(), JsonValueSchema), metadata.templateParams);
-  if (parsed.success) {
-    const nested = parsed.output;
-    if (!Array.isArray(nested)) {
-      return nested;
-    }
+  // `record()` also accepts arrays at runtime; those are not valid param maps.
+  if (parsed.success && !Array.isArray(parsed.output)) {
+    return parsed.output;
   }
   return {};
 }

@@ -9,16 +9,7 @@ export interface RenderOptions {
 }
 
 function isRecord(value: JsonValue): value is Record<string, JsonValue> {
-  if (value === null || value === undefined) {
-    return false;
-  }
-  if (Array.isArray(value)) {
-    return false;
-  }
-  if (value instanceof Date) {
-    return false;
-  }
-  return value instanceof Object;
+  return value instanceof Object && !Array.isArray(value) && !(value instanceof Date);
 }
 
 function resolvePath(params: Record<string, JsonValue>, key: string): JsonValue | undefined {

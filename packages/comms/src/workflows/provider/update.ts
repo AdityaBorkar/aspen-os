@@ -1,6 +1,7 @@
 import { commsProvider } from "#/db-schemas";
 import { UpdateProviderSchema } from "#/schemas/provider";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { metadataEqual } from "#/utils/metadata";
 import { auditAndPublish } from "#/workflow-steps/audit";
 import { fetchProviderStep } from "#/workflow-steps/fetch-provider";
 
@@ -26,10 +27,7 @@ export const updateProvider = Workflow.name("comms.provider.update")
     ) {
       changes.defaultSenderAddress = input.defaultSenderAddress;
     }
-    if (
-      input.metadata !== undefined &&
-      JSON.stringify(input.metadata) !== JSON.stringify(current.metadata)
-    ) {
+    if (input.metadata !== undefined && !metadataEqual(input.metadata, current.metadata)) {
       changes.metadata = input.metadata ?? null;
     }
 
