@@ -25,18 +25,14 @@ export const updateNote = Workflow.name("notes.note.update")
       access: parsed.access,
       body: parsed.body,
       metadata: parsed.metadata,
-      scopeId: parsed.scopeId ?? null,
-      scopeType: parsed.scopeType ?? null,
+      scopeId: parsed.scopeId,
+      scopeType: parsed.scopeType,
       tags: parsed.tags,
-      title: parsed.title ?? null,
+      title: parsed.title,
       type: parsed.type,
     });
 
-    const [updated] = await ctx.db
-      .update(note)
-      .set({ ...updates })
-      .where(eq(note.id, id))
-      .returning();
+    const [updated] = await ctx.db.update(note).set(updates).where(eq(note.id, id)).returning();
 
     if (!updated) {
       throw new Error(`Note with id "${id}" not found.`);

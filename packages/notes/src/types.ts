@@ -3,6 +3,7 @@ export type {
   NoteCreatedEvent,
   NoteDeletedEvent,
   NoteEventMap,
+  NoteEventNote,
   NotesEventMap,
   NoteUpdatedEvent,
 } from "#/pubsub";

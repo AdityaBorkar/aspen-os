@@ -13,41 +13,27 @@ export const events = {
   NOTE_EVENTS,
 };
 
+export interface NoteEventNote {
+  access: NotesAccess;
+  body: string;
+  id: string;
+  scopeId: string | null;
+  scopeType: string | null;
+  title: string | null;
+  type: NoteType;
+}
+
 export interface NoteCreatedEvent {
-  note: {
-    access: NotesAccess;
-    body: string;
-    id: string;
-    scopeId: string | null;
-    scopeType: string | null;
-    title: string | null;
-    type: NoteType;
-  };
+  note: NoteEventNote;
 }
 
 export interface NoteUpdatedEvent {
   changes: Record<string, JsonValue>;
-  note: {
-    access: NotesAccess;
-    body: string;
-    id: string;
-    scopeId: string | null;
-    scopeType: string | null;
-    title: string | null;
-    type: NoteType;
-  };
+  note: NoteEventNote;
 }
 
 export interface NoteDeletedEvent {
-  note: {
-    access: NotesAccess;
-    body: string;
-    id: string;
-    scopeId: string | null;
-    scopeType: string | null;
-    title: string | null;
-    type: NoteType;
-  };
+  note: NoteEventNote;
 }
 
 export interface NoteEventMap {

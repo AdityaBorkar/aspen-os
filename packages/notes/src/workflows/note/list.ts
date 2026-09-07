@@ -30,7 +30,7 @@ export const listNotes = Workflow.name("notes.note.list")
       if (parsed.type) {
         conditions.push(eq(note.type, parsed.type));
       }
-      if (parsed.tags && parsed.tags.length > 0) {
+      if (parsed.tags?.length) {
         conditions.push(arrayOverlaps(note.tags, parsed.tags));
       }
       if (parsed.search) {
@@ -38,7 +38,7 @@ export const listNotes = Workflow.name("notes.note.list")
         conditions.push(or(ilike(note.title, pattern), ilike(note.body, pattern)));
       }
 
-      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+      const whereClause = and(...conditions);
 
       return ctx.db
         .select()
