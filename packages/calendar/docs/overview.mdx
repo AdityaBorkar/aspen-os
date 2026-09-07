@@ -18,17 +18,18 @@ export class Calendar implements Module {
 
 The module is **stateful** (workspace schedule-service pattern). `$initialize({ db, pubsub })` stores unit refs; `$prepareRuntime()` registers the reminder-dispatcher cron (`calendar:reminder-scan`) and the task bridge; `$cleanup()` unregisters both.
 
-| Config key         | Default     | Notes                              |
-| ------------------ | ----------- | ---------------------------------- |
-| `reminderScanCron` | `* * * * *` | pg-boss cron for the reminder scan |
+| Config key         | Default     | Notes                                                                 |
+| ------------------ | ----------- | --------------------------------------------------------------------- |
+| `reminderScanCron` | `* * * * *` | pg-boss cron for the reminder scan                                    |
+| `tasksEnabled`     | `true`      | Subscribe to `task:*` events; set `false` when tasks is not installed |
 
 ## Access Model
 
-Calendars carry an `access` value — `personal` (default) or `global` — plus an `ownerId`. **Events, attendees, and reminders inherit their calendar's access** (no own access column); reminders are additionally **recipient-scoped** via `userId`. Enforcement lives in `services/access-service.ts`:
+Calendars carry an `access` value — `personal` (default) or `global` — plus an `ownerId`. **Events, attendees, and reminders inherit their calendar's access** (no own access column); reminders are additionally **recipient-scoped** via `userId`. Enforcement lives in `workflow-steps/access-service.ts`:
 
 ```text
 assertCanAccess          = global OR ownerId === actorId            (read paths)
-assertCanMutate          = ownerId === actorId OR tenant admin      (write paths)
+assertCanMutate          = ownerId === actorId OR tenant admin      (write paths, explicit db)
 assertCanAccessReminder  = userId === actorId
                            OR (targetType = event AND event's calendar readable)
 ```
@@ -58,11 +59,11 @@ task:due_date_changed ──▶ task bridge ──▶ due-date reminder bundle (
 
 ## Recurrence
 
-Recurrence is a structured jsonb config validated by `EventRecurrenceSchema`: `{ frequency, interval, count?, until?, byDay? }`. Occurrences are computed **on read** by `services/recurrence.ts` — never materialized. `count` and `until` are mutually exclusive; `byDay` is weekly-only.
+Recurrence is a structured jsonb config validated by `EventRecurrenceSchema`: `{ frequency, interval, count?, until?, byDay? }`. Occurrences are computed **on read** by `workflow-steps/recurrence.ts` — never materialized. `count` and `until` are mutually exclusive; `byDay` is weekly-only.
 
 ## Task Integration
 
-The module stays `$dependencies = []`. Tasks publishes `task:due_date_changed` / `task:deleted` / `task:status_changed`; the calendar-side `services/task-bridge.ts` subscribes and materializes/cancels task due-date reminders (`targetType = task`). No direct cross-module calls.
+The module stays `$dependencies = []`. Tasks publishes `task:due_date_changed` / `task:deleted` / `task:status_changed` (carrying `toStatusCategory` + `isTerminal`); the calendar-side `services/task-bridge.ts` subscribes and materializes/cancels task due-date reminders (`targetType = task`). No direct cross-module calls or cross-module table reads.
 
 ## Module Structure
 
@@ -72,11 +73,11 @@ packages/calendar/src/
   module.ts             # Module class (implements Module, stateful)
   auth.ts               # defineAcl() ACL declaration
   pubsub.ts             # calendar:* events (4 groups)
-  db-schemas/           # 4 tables + 8 enums
+  db-schemas/           # 4 tables + 7 enums
   types.ts              # Type re-exports
   schemas/              # Valibot validation schemas
-  services/             # access-service, event-service, recurrence, reminder-dispatcher, task-bridge
-  workflow-steps/       # fetch-calendar/event/attendee/reminder + fetch-event-calendar
+  services/             # reminder-dispatcher, task-bridge
+  workflow-steps/       # fetch (+ factory), access-service, access-scope, event-service, payloads, recurrence
   workflows/            # One file per action under workflows/<entity>/<verb>.ts
   utils/                # Enums, audit constants, strip-undefined
 ```

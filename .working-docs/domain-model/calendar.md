@@ -96,8 +96,8 @@ Platform single reminder surface. `{ targetType (event/task/note/file/custom), t
 
 - `offset` reminders resolve `remindAt` from target anchor (event start) or caller-supplied value
 - `custom`/`due_date`/`overdue` require explicit `remindAt`
-- Task reminders (`targetType = task`) materialized by calendar-side **task bridge** from `task:due_date_changed`: three rows per recipient (due − 1d, due − 1h, due); deleted on `task:deleted` and on completion/cancellation
-- **Reminder dispatcher** cron (`calendar:reminder-scan`) runs `processPending` — publishes `calendar:reminder_due` (full payload), marks `isSent`/`sentAt`, inserts next occurrence for recurring reminders
+- Task reminders (`targetType = task`) materialized by calendar-side **task bridge** from `task:due_date_changed`: three rows per recipient (due − 1d, due − 1h, due) in one transaction (deduplicated recipients); deleted on `task:deleted` and on terminal statuses via `task:status_changed` (`isTerminal`/`toStatusCategory` in the event, legacy fallback reads `task_status`)
+- **Reminder dispatcher** cron (`calendar:reminder-scan`) runs `processPending` — claims a bounded batch (100, oldest first) with a conditional `isSent` flip so concurrent scans never double-deliver (claim released on publish failure for retry), publishes `calendar:reminder_due` (full payload), inserts next occurrence for recurring reminders with a known interval
 
 ## Domain Events — 14
 
@@ -149,5 +149,5 @@ Platform single reminder surface. `{ targetType (event/task/note/file/custom), t
 3. **Event window** — `startsAt < endsAt` unless `allDay`; `endsAt` required for timed events.
 4. **Recurrence config** — `count`/`until` mutually exclusive; `byDay` weekly-only; interval ≥ 1.
 5. **Offset re-anchoring** — event `update` re-anchors `type = offset` reminders (`remindAt = startsAt − offsetMinutes`).
-6. **Task bridge** — task due-date changes materialize 3-point bundle per recipient (assignees ∪ reporter); task delete removes all task reminders; completion/cancellation removes pending ones.
-7. **Dispatcher idempotence** — `processPending` fires `isSent = false AND remindAt <= now` rows, marking `isSent` so next scan skips them.
+6. **Task bridge** — task due-date changes materialize a 3-point bundle per deduplicated recipient (assignees ∪ reporter) transactionally; task delete removes all task reminders; terminal statuses (from the event's `isTerminal`/`toStatusCategory`) remove pending ones. Bridge disabled via `tasksEnabled: false` when tasks is not installed.
+7. **Dispatcher idempotence** — `processPending` fires a bounded batch of `isSent = false AND remindAt <= now` rows (oldest first), claiming each with a conditional write so concurrent scans skip claimed rows; claims release on publish failure for retry.

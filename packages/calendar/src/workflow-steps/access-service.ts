@@ -1,7 +1,7 @@
 import { calendar, calendarEvent } from "#/db-schemas";
+import { CALENDAR_ACCESS, REMINDER_TARGET } from "#/utils/constants";
 import type { CalendarAccess } from "#/utils/constants";
 
-import { getContext } from "@aspen-os/platform/server";
 import { eq, sql } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
@@ -16,14 +16,19 @@ export function assertCanAccess(row: AccessScopedRow, actorId: string | undefine
   if (!actorId) {
     throw new Error("Authentication required");
   }
-  if (row.access !== "global" && row.ownerId !== actorId) {
+  if (row.access !== CALENDAR_ACCESS.GLOBAL && row.ownerId !== actorId) {
     throw new Error("You do not have access to this calendar");
   }
 }
 
+/**
+ * Owner-or-admin mutation gate. `db` is an explicit parameter so the admin
+ * lookup stays testable — no hidden `getContext()` dependency.
+ */
 export async function assertCanMutate(
   row: AccessScopedRow,
   actorId: string | undefined,
+  db: PostgresJsDatabase,
 ): Promise<void> {
   if (!actorId) {
     throw new Error("Authentication required");
@@ -31,7 +36,7 @@ export async function assertCanMutate(
   if (row.ownerId === actorId) {
     return;
   }
-  if (await isTenantAdmin(actorId)) {
+  if (await isTenantAdmin(db, actorId)) {
     return;
   }
   throw new Error("Only the owner or a tenant admin can modify this calendar");
@@ -47,8 +52,7 @@ export function resolveActorId(actorId: string | undefined, explicit?: string): 
   return actorId;
 }
 
-export async function isTenantAdmin(actorId: string): Promise<boolean> {
-  const { db } = getContext();
+export async function isTenantAdmin(db: PostgresJsDatabase, actorId: string): Promise<boolean> {
   try {
     const [row] = await db.execute<{ role: string | null }>(
       sql`SELECT role FROM "user" WHERE id = ${actorId}`,
@@ -76,7 +80,7 @@ export async function assertCanAccessReminder(
   if (reminder.userId === actorId) {
     return;
   }
-  if (reminder.targetType === "event") {
+  if (reminder.targetType === REMINDER_TARGET.EVENT) {
     const [event] = await db
       .select({ calendarId: calendarEvent.calendarId })
       .from(calendarEvent)

@@ -1,5 +1,8 @@
-import { calendar, calendarEvent, calendarReminder } from "#/db-schemas";
+import { calendarReminder } from "#/db-schemas";
 import { ReminderFiltersSchema } from "#/types";
+import { REMINDER_TARGET } from "#/utils/constants";
+import { accessibleEventIds } from "#/workflow-steps/access-scope";
+import { resolveActorId } from "#/workflow-steps/access-service";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, inArray, or } from "drizzle-orm";
@@ -10,27 +13,15 @@ const ListInputSchema = object({ filters: optional(ReminderFiltersSchema) });
 export const listReminders = Workflow.name("calendar.reminder.list")
   .input(ListInputSchema)
   .handler(async ({ filters }, ctx) => {
-    if (!ctx.actorId) {
-      throw new Error("Authentication required");
-    }
+    const actorId = resolveActorId(ctx.actorId);
     const parsed = parse(ReminderFiltersSchema, filters ?? {});
-
-    const accessibleCalendars = ctx.db
-      .select({ id: calendar.id })
-      .from(calendar)
-      .where(or(eq(calendar.access, "global"), eq(calendar.ownerId, ctx.actorId)));
-
-    const accessibleEvents = ctx.db
-      .select({ id: calendarEvent.id })
-      .from(calendarEvent)
-      .where(inArray(calendarEvent.calendarId, accessibleCalendars));
 
     const conditions = [
       or(
-        eq(calendarReminder.userId, ctx.actorId),
+        eq(calendarReminder.userId, actorId),
         and(
-          eq(calendarReminder.targetType, "event"),
-          inArray(calendarReminder.targetId, accessibleEvents),
+          eq(calendarReminder.targetType, REMINDER_TARGET.EVENT),
+          inArray(calendarReminder.targetId, accessibleEventIds(ctx.db, actorId)),
         ),
       ),
     ];

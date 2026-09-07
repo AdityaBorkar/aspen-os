@@ -8,7 +8,6 @@ export {
   calendarAttendeeStatusEnum,
   calendarAttendeeTypeEnum,
   calendarEventStatusEnum,
-  calendarRecurrenceFrequencyEnum,
   calendarReminderChannelEnum,
   calendarReminderTargetEnum,
   calendarReminderTypeEnum,

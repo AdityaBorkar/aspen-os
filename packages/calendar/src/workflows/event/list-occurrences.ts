@@ -1,6 +1,7 @@
 import { EventFiltersSchema, OccurrencesQuerySchema } from "#/types";
+import { resolveActorId } from "#/workflow-steps/access-service";
 import { queryEvents } from "#/workflow-steps/event-service";
-import { expandOccurrences } from "#/workflow-steps/recurrence";
+import { expandOccurrences, resolveOccurrenceRange } from "#/workflow-steps/recurrence";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, optional, parse } from "valibot";
@@ -13,16 +14,11 @@ const InputSchema = object({
 export const listEventOccurrences = Workflow.name("calendar.event.list-occurrences")
   .input(InputSchema)
   .handler(async ({ filters, query }, ctx) => {
-    if (!ctx.actorId) {
-      throw new Error("Authentication required");
-    }
     const parsedFilters = parse(EventFiltersSchema, filters ?? {});
     const parsedQuery = parse(OccurrencesQuerySchema, query ?? {});
 
-    const events = await queryEvents(ctx.db, ctx.actorId, parsedFilters);
+    const events = await queryEvents(ctx.db, resolveActorId(ctx.actorId), parsedFilters);
+    const range = resolveOccurrenceRange(parsedQuery);
 
-    const from = parsedQuery.from ?? new Date(0);
-    const to = parsedQuery.to ?? new Date("9999-12-31T23:59:59.999Z");
-
-    return events.flatMap((event) => expandOccurrences(event, from, to, parsedQuery.limit ?? 100));
+    return events.flatMap((event) => expandOccurrences(event, range));
   });

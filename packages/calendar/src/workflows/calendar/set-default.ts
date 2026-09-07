@@ -3,7 +3,8 @@ import { CALENDAR_EVENTS } from "#/pubsub";
 import { IdSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { assertCanMutate } from "#/workflow-steps/access-service";
-import { fetchCalendarStep } from "#/workflow-steps/fetch-calendar";
+import { fetchCalendarStep } from "#/workflow-steps/fetch";
+import { toCalendarPayload } from "#/workflow-steps/payloads";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -16,22 +17,25 @@ export const setDefaultCalendar = Workflow.name("calendar.calendar.set-default")
   .handler(async ({ id }, ctx) => {
     const found = await ctx.step.run(fetchCalendarStep, { id });
 
-    await assertCanMutate(found, ctx.actorId);
+    await assertCanMutate(found, ctx.actorId, ctx.db);
 
-    await ctx.db
-      .update(calendar)
-      .set({ isDefault: false })
-      .where(eq(calendar.ownerId, found.ownerId));
+    const updated = await ctx.db.transaction(async (tx) => {
+      await tx
+        .update(calendar)
+        .set({ isDefault: false })
+        .where(eq(calendar.ownerId, found.ownerId));
 
-    const [updated] = await ctx.db
-      .update(calendar)
-      .set({ isDefault: true, updatedBy: ctx.actorId ?? null })
-      .where(eq(calendar.id, id))
-      .returning();
+      const [row] = await tx
+        .update(calendar)
+        .set({ isDefault: true, updatedBy: ctx.actorId ?? null })
+        .where(eq(calendar.id, id))
+        .returning();
 
-    if (!updated) {
-      throw new Error(`Calendar with id "${id}" not found.`);
-    }
+      if (!row) {
+        throw new Error(`Calendar with id "${id}" not found.`);
+      }
+      return row;
+    });
 
     await ctx.step.run("audit-and-notify", async () => {
       await ctx.audit.write({
@@ -44,12 +48,7 @@ export const setDefaultCalendar = Workflow.name("calendar.calendar.set-default")
       });
 
       await ctx.pubsub.publish(CALENDAR_EVENTS.UPDATED, {
-        calendar: {
-          access: updated.access,
-          id: updated.id,
-          name: updated.name,
-          ownerId: updated.ownerId,
-        },
+        calendar: toCalendarPayload(updated),
       });
     });
 

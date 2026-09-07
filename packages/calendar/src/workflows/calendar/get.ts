@@ -1,6 +1,6 @@
 import { WithIdSchema } from "#/types";
 import { assertCanAccess } from "#/workflow-steps/access-service";
-import { fetchCalendarStep } from "#/workflow-steps/fetch-calendar";
+import { fetchCalendarStep } from "#/workflow-steps/fetch";
 
 import { Workflow } from "@aspen-os/platform/server";
 

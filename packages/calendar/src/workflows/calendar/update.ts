@@ -4,7 +4,8 @@ import { IdSchema, UpdateCalendarSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { stripUndefined } from "#/utils/strip-undefined";
 import { assertCanMutate } from "#/workflow-steps/access-service";
-import { fetchCalendarStep } from "#/workflow-steps/fetch-calendar";
+import { fetchCalendarStep } from "#/workflow-steps/fetch";
+import { toCalendarPayload } from "#/workflow-steps/payloads";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -19,14 +20,7 @@ export const updateCalendar = Workflow.name("calendar.calendar.update")
 
     const existing = await ctx.step.run(fetchCalendarStep, { id });
 
-    await assertCanMutate(existing, ctx.actorId);
-
-    if (parsed.isDefault === true) {
-      await ctx.db
-        .update(calendar)
-        .set({ isDefault: false })
-        .where(eq(calendar.ownerId, existing.ownerId));
-    }
+    await assertCanMutate(existing, ctx.actorId, ctx.db);
 
     const updates = stripUndefined({
       access: parsed.access,
@@ -38,15 +32,21 @@ export const updateCalendar = Workflow.name("calendar.calendar.update")
       updatedBy: ctx.actorId ?? null,
     });
 
-    const [updated] = await ctx.db
-      .update(calendar)
-      .set({ ...updates })
-      .where(eq(calendar.id, id))
-      .returning();
+    const updated = await ctx.db.transaction(async (tx) => {
+      if (parsed.isDefault === true) {
+        await tx
+          .update(calendar)
+          .set({ isDefault: false })
+          .where(eq(calendar.ownerId, existing.ownerId));
+      }
 
-    if (!updated) {
-      throw new Error(`Calendar with id "${id}" not found.`);
-    }
+      const [row] = await tx.update(calendar).set(updates).where(eq(calendar.id, id)).returning();
+
+      if (!row) {
+        throw new Error(`Calendar with id "${id}" not found.`);
+      }
+      return row;
+    });
 
     await ctx.step.run("audit-and-notify", async () => {
       await ctx.audit.write({
@@ -60,12 +60,7 @@ export const updateCalendar = Workflow.name("calendar.calendar.update")
       });
 
       await ctx.pubsub.publish(CALENDAR_EVENTS.UPDATED, {
-        calendar: {
-          access: updated.access,
-          id: updated.id,
-          name: updated.name,
-          ownerId: updated.ownerId,
-        },
+        calendar: toCalendarPayload(updated),
       });
     });
 

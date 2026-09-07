@@ -1,16 +1,19 @@
-import { calendarEvent, calendarReminder } from "#/db-schemas";
+import { calendarEvent } from "#/db-schemas";
 import { EVENT_EVENTS } from "#/pubsub";
 import { IdSchema, UpdateEventSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { stripUndefined } from "#/utils/strip-undefined";
-import { assertCanAccess, assertCanMutate } from "#/workflow-steps/access-service";
-import { validateEventWindow, validateSourceLink } from "#/workflow-steps/event-service";
-import { fetchCalendarStep } from "#/workflow-steps/fetch-calendar";
-import { fetchEventStep } from "#/workflow-steps/fetch-event";
-import { fetchEventCalendarStep } from "#/workflow-steps/fetch-event-calendar";
+import { assertCanMutate } from "#/workflow-steps/access-service";
+import {
+  rescheduleOffsetReminders,
+  validateEventWindow,
+  validateSourceLink,
+} from "#/workflow-steps/event-service";
+import { fetchCalendarStep, fetchEventCalendarStep, fetchEventStep } from "#/workflow-steps/fetch";
+import { toEventPayload } from "#/workflow-steps/payloads";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { object, parse } from "valibot";
 
 const UpdateInputSchema = object({ id: IdSchema, input: UpdateEventSchema });
@@ -22,16 +25,13 @@ export const updateEvent = Workflow.name("calendar.event.update")
 
     const existing = await ctx.step.run(fetchEventStep, { id });
 
-    let { calendarId } = existing;
     let cal = await ctx.step.run(fetchEventCalendarStep, { eventId: existing.id });
-    await assertCanMutate(cal, ctx.actorId);
+    await assertCanMutate(cal, ctx.actorId, ctx.db);
 
     const nextCalendarId = parsed.calendarId;
     if (nextCalendarId && nextCalendarId !== existing.calendarId) {
-      calendarId = nextCalendarId;
-      cal = await ctx.step.run(fetchCalendarStep, { id: calendarId });
-      assertCanAccess(cal, ctx.actorId);
-      await assertCanMutate(cal, ctx.actorId);
+      cal = await ctx.step.run(fetchCalendarStep, { id: nextCalendarId });
+      await assertCanMutate(cal, ctx.actorId, ctx.db);
     }
 
     const nextStartsAt = parsed.startsAt ?? existing.startsAt;
@@ -64,7 +64,7 @@ export const updateEvent = Workflow.name("calendar.event.update")
 
     const [updated] = await ctx.db
       .update(calendarEvent)
-      .set({ ...updates })
+      .set(updates)
       .where(eq(calendarEvent.id, id))
       .returning();
 
@@ -73,28 +73,7 @@ export const updateEvent = Workflow.name("calendar.event.update")
     }
 
     if (parsed.startsAt && parsed.startsAt.getTime() !== existing.startsAt.getTime()) {
-      const offsetReminders = await ctx.db
-        .select()
-        .from(calendarReminder)
-        .where(
-          and(
-            eq(calendarReminder.targetType, "event"),
-            eq(calendarReminder.targetId, existing.id),
-            eq(calendarReminder.type, "offset"),
-          ),
-        );
-
-      await Promise.all(
-        offsetReminders.map(async (reminder) => {
-          if (reminder.offsetMinutes === null) {
-            return;
-          }
-          await ctx.db
-            .update(calendarReminder)
-            .set({ remindAt: new Date(nextStartsAt.getTime() - reminder.offsetMinutes * 60_000) })
-            .where(eq(calendarReminder.id, reminder.id));
-        }),
-      );
+      await rescheduleOffsetReminders(ctx.db, existing.id, nextStartsAt);
     }
 
     await ctx.step.run("audit-and-notify", async () => {
@@ -118,13 +97,7 @@ export const updateEvent = Workflow.name("calendar.event.update")
 
       await ctx.pubsub.publish(EVENT_EVENTS.UPDATED, {
         calendarId: updated.calendarId,
-        event: {
-          calendarId: updated.calendarId,
-          endsAt: updated.endsAt?.toISOString() ?? null,
-          id: updated.id,
-          startsAt: updated.startsAt.toISOString(),
-          title: updated.title,
-        },
+        event: toEventPayload(updated),
         sourceEntityId: updated.sourceEntityId,
         sourceType: updated.sourceType,
       });

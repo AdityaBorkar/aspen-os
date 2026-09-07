@@ -1,8 +1,9 @@
 import { calendarEvent, calendarReminder } from "#/db-schemas";
 import { REMINDER_EVENTS } from "#/pubsub";
-import { CreateReminderSchema } from "#/types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { CreateReminderSchema, TARGETS_REQUIRING_ID } from "#/types";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, REMINDER_TARGET, REMINDER_TYPE } from "#/utils/constants";
 import { resolveActorId } from "#/workflow-steps/access-service";
+import { toReminderPayload } from "#/workflow-steps/payloads";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -10,42 +11,23 @@ import { object, parse } from "valibot";
 
 const CreateInputSchema = object({ input: CreateReminderSchema });
 
-const TARGET_REQUIRING_ID = new Set(["event", "task", "note", "file"]);
-
-function validateReminderAnchor(input: {
-  offsetMinutes: number | null | undefined;
-  remindAt: Date | null | undefined;
-  targetId: string | null | undefined;
-  targetType: string;
-  type: string;
-}): void {
-  if (input.type === "offset") {
-    if (input.offsetMinutes === null || input.offsetMinutes === undefined) {
-      throw new Error("offsetMinutes is required for offset reminders");
-    }
-    if (input.remindAt === undefined) {
-      throw new Error("remindAt is required for offset reminders with no resolvable target anchor");
-    }
-    return;
-  }
-  if (!input.remindAt) {
-    throw new Error("remindAt is required for this reminder type");
-  }
-}
-
 export const createReminder = Workflow.name("calendar.reminder.create")
   .input(CreateInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateReminderSchema, input);
     const actorId = resolveActorId(ctx.actorId);
 
-    if (TARGET_REQUIRING_ID.has(parsed.targetType) && !parsed.targetId) {
+    if (TARGETS_REQUIRING_ID.has(parsed.targetType) && !parsed.targetId) {
       throw new Error(`targetId is required for targetType "${parsed.targetType}"`);
     }
 
-    let { remindAt } = parsed;
-    if (parsed.type === "offset") {
-      if (parsed.targetType === "event" && parsed.targetId && remindAt === undefined) {
+    let remindAt: Date | null | undefined = parsed.remindAt;
+    if (parsed.type === REMINDER_TYPE.OFFSET) {
+      if (
+        parsed.targetType === REMINDER_TARGET.EVENT &&
+        parsed.targetId &&
+        remindAt === undefined
+      ) {
         const [event] = await ctx.db
           .select({ startsAt: calendarEvent.startsAt })
           .from(calendarEvent)
@@ -56,19 +38,14 @@ export const createReminder = Workflow.name("calendar.reminder.create")
           throw new Error(`Event with id "${parsed.targetId}" not found.`);
         }
 
-        if (parsed.offsetMinutes !== null && parsed.offsetMinutes !== undefined) {
-          remindAt = new Date(event.startsAt.getTime() - parsed.offsetMinutes * 60_000);
-        }
+        remindAt = new Date(event.startsAt.getTime() - parsed.offsetMinutes * 60_000);
+      }
+      if (remindAt === undefined) {
+        throw new Error(
+          "remindAt is required for offset reminders with no resolvable target anchor",
+        );
       }
     }
-
-    validateReminderAnchor({
-      offsetMinutes: parsed.offsetMinutes,
-      remindAt,
-      targetId: parsed.targetId,
-      targetType: parsed.targetType,
-      type: parsed.type,
-    });
 
     const [created] = await ctx.db
       .insert(calendarReminder)
@@ -101,16 +78,7 @@ export const createReminder = Workflow.name("calendar.reminder.create")
       });
 
       await ctx.pubsub.publish(REMINDER_EVENTS.CREATED, {
-        reminder: {
-          channel: created.channel,
-          id: created.id,
-          isRecurring: created.isRecurring,
-          message: created.message,
-          targetId: created.targetId,
-          targetType: created.targetType,
-          type: created.type,
-          userId: created.userId,
-        },
+        reminder: toReminderPayload(created),
       });
     });
 

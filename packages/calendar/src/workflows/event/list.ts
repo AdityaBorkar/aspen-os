@@ -1,4 +1,5 @@
 import { EventFiltersSchema } from "#/types";
+import { resolveActorId } from "#/workflow-steps/access-service";
 import { queryEvents } from "#/workflow-steps/event-service";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -9,10 +10,7 @@ const ListInputSchema = object({ filters: optional(EventFiltersSchema) });
 export const listEvents = Workflow.name("calendar.event.list")
   .input(ListInputSchema)
   .handler(async ({ filters }, ctx) => {
-    if (!ctx.actorId) {
-      throw new Error("Authentication required");
-    }
     const parsed = parse(EventFiltersSchema, filters ?? {});
 
-    return queryEvents(ctx.db, ctx.actorId, parsed);
+    return queryEvents(ctx.db, resolveActorId(ctx.actorId), parsed);
   });

@@ -1,7 +1,6 @@
 import { acl } from "#/auth";
 import { control_plane_schemas, tenant_schemas } from "#/db-schemas";
 import { events } from "#/pubsub";
-import { setCalendarConfig } from "#/runtime";
 import {
   registerReminderDispatcher,
   unregisterReminderDispatcher,
@@ -21,16 +20,13 @@ import type {
 
 const DEFAULT_CONFIG: Required<CalendarModuleConfig> = {
   reminderScanCron: "* * * * *",
+  tasksEnabled: true,
 };
 
 export type { CalendarModuleConfig };
 
-function isDatabaseUnit(unit: Unit | undefined): unit is DatabaseUnit {
-  return unit?.$name === "db";
-}
-
-function isPubSubUnit(unit: Unit | undefined): unit is PubSubUnit {
-  return unit?.$name === "pubsub";
+function isUnit<TUnit extends Unit>(unit: Unit | undefined, name: TUnit["$name"]): unit is TUnit {
+  return unit?.$name === name;
 }
 
 export class Calendar implements Module {
@@ -49,7 +45,6 @@ export class Calendar implements Module {
 
   constructor(config: CalendarModuleConfig) {
     this.$config = { ...DEFAULT_CONFIG, ...config };
-    setCalendarConfig(this.$config);
   }
 
   $prepareInfra(): ModuleInfra {
@@ -62,10 +57,10 @@ export class Calendar implements Module {
 
   $initialize(units: Record<string, Unit>): void {
     const { db, pubsub } = units;
-    if (isDatabaseUnit(db)) {
+    if (isUnit<DatabaseUnit>(db, "db")) {
       this.#db = db;
     }
-    if (isPubSubUnit(pubsub)) {
+    if (isUnit<PubSubUnit>(pubsub, "pubsub")) {
       this.#pubsub = pubsub;
     }
   }
@@ -86,8 +81,13 @@ export class Calendar implements Module {
       pubsub: this.#pubsub,
     };
 
-    this.#reminderScanTopic = await registerReminderDispatcher(deps);
-    this.#taskBridgeTopics = await registerTaskBridge(deps);
+    this.#reminderScanTopic = await registerReminderDispatcher({
+      ...deps,
+      cron: this.$config.reminderScanCron,
+    });
+    this.#taskBridgeTopics = await registerTaskBridge(deps, {
+      enabled: this.$config.tasksEnabled,
+    });
   }
 
   async $cleanup(): Promise<void> {

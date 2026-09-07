@@ -1,7 +1,9 @@
+import { status } from "#/db-schemas/status";
 import { task } from "#/db-schemas/task";
 import { taskAssignee } from "#/db-schemas/task-assignee";
 import { TASK_EVENTS } from "#/pubsub";
 import { IdSchema, UpdateTaskSchema } from "#/types";
+import { STATUS_CATEGORY } from "#/utils/constants";
 import { fetchTaskStep } from "#/workflow-steps/fetch-task";
 import { validateTransition } from "#/workflows/status/transition/validate";
 import { addActivity, validateParentTask } from "#/workflows/utils";
@@ -112,11 +114,21 @@ export const updateTask = Workflow.name("task.update")
       ];
 
       if (statusChanged && input.patch.statusId) {
+        const [nextStatus] = await ctx.db
+          .select({ category: status.category })
+          .from(status)
+          .where(eq(status.id, input.patch.statusId))
+          .limit(1);
+        const toStatusCategory = nextStatus?.category ?? null;
         notifications.push(
           ctx.pubsub.publish(TASK_EVENTS.STATUS_CHANGED, {
             fromStatus: current.statusId,
+            isTerminal:
+              toStatusCategory === STATUS_CATEGORY.COMPLETED ||
+              toStatusCategory === STATUS_CATEGORY.CANCELLED,
             task: { id: updated.id, title: updated.title },
             toStatus: input.patch.statusId,
+            toStatusCategory,
           }),
         );
       }

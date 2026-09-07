@@ -68,6 +68,7 @@ export {
   ReminderTargetSchema,
   ReminderTypeSchema,
   ScopeTypeSchema,
+  TARGETS_REQUIRING_ID,
   TimezoneSchema,
   UpdateAttendeeSchema,
   UpdateCalendarSchema,
@@ -110,4 +111,10 @@ export {
 
 export interface CalendarModuleConfig {
   reminderScanCron?: string;
+  /**
+   * Subscribe to `task:*` events for the task-reminder bridge. Disable when
+   * the tasks module is not installed; subscription errors otherwise
+   * propagate instead of being silently swallowed.
+   */
+  tasksEnabled?: boolean;
 }

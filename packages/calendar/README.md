@@ -16,7 +16,7 @@ const calendar = Calendar.create({
 
 - `$name = "calendar"`, `$dependencies = []` — stateful (`$initialize({ db, pubsub })`; `$prepareRuntime()` registers `calendar:reminder-scan` cron + task bridge; `$cleanup()` unregisters)
 - 4 workflow groups: `calendars`, `events`, `attendees`, `reminders`
-- 4 tenant tables (`calendar_` prefix) + 8 pgEnums; 14 domain events; 4 ACL resources
+- 4 tenant tables (`calendar_` prefix) + 7 pgEnums; 14 domain events; 4 ACL resources
 
 ## Surface
 

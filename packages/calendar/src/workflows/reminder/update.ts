@@ -4,7 +4,8 @@ import { IdSchema, UpdateReminderSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { stripUndefined } from "#/utils/strip-undefined";
 import { assertCanAccessReminder } from "#/workflow-steps/access-service";
-import { fetchReminderStep } from "#/workflow-steps/fetch-reminder";
+import { fetchReminderStep } from "#/workflow-steps/fetch";
+import { toReminderPayload } from "#/workflow-steps/payloads";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -32,7 +33,7 @@ export const updateReminder = Workflow.name("calendar.reminder.update")
 
     const [updated] = await ctx.db
       .update(calendarReminder)
-      .set({ ...updates })
+      .set(updates)
       .where(eq(calendarReminder.id, id))
       .returning();
 
@@ -53,16 +54,7 @@ export const updateReminder = Workflow.name("calendar.reminder.update")
 
       await ctx.pubsub.publish(REMINDER_EVENTS.UPDATED, {
         changes: parsed,
-        reminder: {
-          channel: updated.channel,
-          id: updated.id,
-          isRecurring: updated.isRecurring,
-          message: updated.message,
-          targetId: updated.targetId,
-          targetType: updated.targetType,
-          type: updated.type,
-          userId: updated.userId,
-        },
+        reminder: toReminderPayload(updated),
       });
     });
 

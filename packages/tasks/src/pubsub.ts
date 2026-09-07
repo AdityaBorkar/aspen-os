@@ -34,8 +34,10 @@ export interface TaskDeletedEvent {
 
 export interface TaskStatusChangedEvent {
   fromStatus: string;
+  isTerminal: boolean;
   task: { id: string; title: string };
   toStatus: string;
+  toStatusCategory: string | null;
 }
 
 export interface TaskAssignedEvent {

@@ -1,4 +1,3 @@
-import { getCalendarConfig } from "#/runtime";
 import { SCHEDULED_JOBS } from "#/utils/constants";
 import { processPendingReminders } from "#/workflows/reminder/process-pending";
 
@@ -7,16 +6,16 @@ import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 export interface ReminderDispatcherDeps {
   audit: AuditUnit;
+  cron: string;
   db: PostgresJsDatabase;
   pubsub: PubSubUnit;
 }
 
 export async function registerReminderDispatcher(deps: ReminderDispatcherDeps): Promise<string> {
   const topic = SCHEDULED_JOBS.REMINDER_SCAN;
-  const cron = getCalendarConfig().reminderScanCron;
 
   await deps.pubsub.schedule({
-    cron,
+    cron: deps.cron,
     data: {},
     topic,
   });
@@ -43,6 +42,6 @@ export async function unregisterReminderDispatcher(
     await pubsub.unsubscribe(topic);
     await pubsub.unschedule(topic);
   } catch {
-    // Best-effort
+    // Best-effort cleanup
   }
 }

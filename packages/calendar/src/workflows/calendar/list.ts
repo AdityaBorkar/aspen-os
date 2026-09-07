@@ -1,8 +1,10 @@
 import { calendar } from "#/db-schemas";
 import { CalendarFiltersSchema } from "#/types";
+import { escapeLikePattern, visibleCalendarCondition } from "#/workflow-steps/access-scope";
+import { resolveActorId } from "#/workflow-steps/access-service";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { and, asc, eq, ilike, or } from "drizzle-orm";
+import { and, asc, eq, ilike } from "drizzle-orm";
 import { object, optional, parse } from "valibot";
 
 const ListInputSchema = object({ filters: optional(CalendarFiltersSchema) });
@@ -10,12 +12,10 @@ const ListInputSchema = object({ filters: optional(CalendarFiltersSchema) });
 export const listCalendars = Workflow.name("calendar.calendar.list")
   .input(ListInputSchema)
   .handler(async ({ filters }, ctx) => {
-    if (!ctx.actorId) {
-      throw new Error("Authentication required");
-    }
+    const actorId = resolveActorId(ctx.actorId);
     const parsed = parse(CalendarFiltersSchema, filters ?? {});
 
-    const conditions = [or(eq(calendar.access, "global"), eq(calendar.ownerId, ctx.actorId))];
+    const conditions = [visibleCalendarCondition(actorId)];
 
     if (parsed.access) {
       conditions.push(eq(calendar.access, parsed.access));
@@ -24,7 +24,7 @@ export const listCalendars = Workflow.name("calendar.calendar.list")
       conditions.push(eq(calendar.isDefault, parsed.isDefault));
     }
     if (parsed.search) {
-      conditions.push(ilike(calendar.name, `%${parsed.search}%`));
+      conditions.push(ilike(calendar.name, `%${escapeLikePattern(parsed.search)}%`));
     }
 
     return ctx.db

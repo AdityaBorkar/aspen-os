@@ -3,6 +3,7 @@ import {
   calendarReminderTargetEnum,
   calendarReminderTypeEnum,
 } from "#/db-schemas/enums";
+import type { ReminderInterval } from "#/utils/constants";
 
 import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
@@ -14,7 +15,7 @@ export const calendarReminder = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     createdBy: text("created_by").notNull(),
     id: uuidv7("id").primaryKey(),
-    interval: text("interval"),
+    interval: text("interval").$type<ReminderInterval | null>(),
     isRecurring: boolean("is_recurring").notNull().default(false),
     isSent: boolean("is_sent").notNull().default(false),
     message: text("message"),

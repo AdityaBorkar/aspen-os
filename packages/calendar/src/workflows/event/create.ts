@@ -4,7 +4,8 @@ import { CreateEventSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { assertCanMutate } from "#/workflow-steps/access-service";
 import { validateEventWindow, validateSourceLink } from "#/workflow-steps/event-service";
-import { fetchCalendarStep } from "#/workflow-steps/fetch-calendar";
+import { fetchCalendarStep } from "#/workflow-steps/fetch";
+import { toEventPayload } from "#/workflow-steps/payloads";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
@@ -17,7 +18,7 @@ export const createEvent = Workflow.name("calendar.event.create")
     const parsed = parse(CreateEventSchema, input);
 
     const cal = await ctx.step.run(fetchCalendarStep, { id: parsed.calendarId });
-    await assertCanMutate(cal, ctx.actorId);
+    await assertCanMutate(cal, ctx.actorId, ctx.db);
 
     validateEventWindow(parsed);
     validateSourceLink(parsed.sourceType, parsed.sourceEntityId);
@@ -61,13 +62,7 @@ export const createEvent = Workflow.name("calendar.event.create")
 
       await ctx.pubsub.publish(EVENT_EVENTS.CREATED, {
         calendarId: created.calendarId,
-        event: {
-          calendarId: created.calendarId,
-          endsAt: created.endsAt?.toISOString() ?? null,
-          id: created.id,
-          startsAt: created.startsAt.toISOString(),
-          title: created.title,
-        },
+        event: toEventPayload(created),
         sourceEntityId: created.sourceEntityId,
         sourceType: created.sourceType,
       });

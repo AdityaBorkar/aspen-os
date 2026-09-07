@@ -3,7 +3,6 @@ import {
   ATTENDEE_TYPE,
   CALENDAR_ACCESS,
   EVENT_STATUS,
-  RECURRENCE_FREQUENCY,
   REMINDER_CHANNEL,
   REMINDER_TARGET,
   REMINDER_TYPE,
@@ -20,13 +19,6 @@ export const calendarEventStatusEnum = pgEnum("calendar_event_status", [
   EVENT_STATUS.CONFIRMED,
   EVENT_STATUS.TENTATIVE,
   EVENT_STATUS.CANCELLED,
-]);
-
-export const calendarRecurrenceFrequencyEnum = pgEnum("calendar_recurrence_frequency", [
-  RECURRENCE_FREQUENCY.DAILY,
-  RECURRENCE_FREQUENCY.WEEKLY,
-  RECURRENCE_FREQUENCY.MONTHLY,
-  RECURRENCE_FREQUENCY.YEARLY,
 ]);
 
 export const calendarReminderTargetEnum = pgEnum("calendar_reminder_target", [

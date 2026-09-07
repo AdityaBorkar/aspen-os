@@ -1,14 +1,18 @@
 import { calendarReminder } from "#/db-schemas";
-import { REMINDER_TARGET, REMINDER_TYPE } from "#/utils/constants";
+import { REMINDER_CHANNEL, REMINDER_TARGET, REMINDER_TYPE } from "#/utils/constants";
 
 import type { InferSchemaOutput, PubSubUnit, StandardSchema } from "@aspen-os/platform/server";
 import { and, eq, sql } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
-import { nullable, object, string, array } from "valibot";
+import { array, boolean, nullable, object, optional, string } from "valibot";
 
 export interface TaskBridgeDeps {
   db: PostgresJsDatabase;
   pubsub: PubSubUnit;
+}
+
+export interface TaskBridgeOptions {
+  enabled?: boolean;
 }
 
 const TaskDueDateChangedEventSchema = object({
@@ -23,12 +27,17 @@ const TaskDeletedEventSchema = object({
 
 const TaskStatusChangedEventSchema = object({
   fromStatus: string(),
+  isTerminal: optional(boolean()),
   task: object({
     id: string(),
     title: string(),
   }),
   toStatus: string(),
+  toStatusCategory: optional(string()),
 });
+
+/** Mirrors tasks `STATUS_CATEGORY` terminal values (`completed`, `cancelled`). */
+const TERMINAL_TASK_STATUS_CATEGORIES: ReadonlySet<string> = new Set(["cancelled", "completed"]);
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -50,27 +59,30 @@ async function handleDueDateChanged(
   event: { dueDate: string | null; taskId: string; userIds: string[] },
   { db }: TaskBridgeDeps,
 ): Promise<void> {
-  await deletePendingTaskReminders(db, event.taskId);
+  const userIds = [...new Set(event.userIds)];
+  const dueDate = event.dueDate ? new Date(event.dueDate) : null;
 
-  if (!event.dueDate) {
+  if (!dueDate || Number.isNaN(dueDate.getTime()) || userIds.length === 0) {
+    await deletePendingTaskReminders(db, event.taskId);
     return;
   }
 
-  const dueDate = new Date(event.dueDate);
-
-  await db.insert(calendarReminder).values(
-    event.userIds.flatMap((userId) =>
-      DUE_DATE_OFFSETS_MS.map((offset) => ({
-        channel: "pubsub" as const,
-        createdBy: "task-bridge",
-        remindAt: new Date(dueDate.getTime() - offset),
-        targetId: event.taskId,
-        targetType: REMINDER_TARGET.TASK,
-        type: REMINDER_TYPE.DUE_DATE,
-        userId,
-      })),
-    ),
+  const rows = userIds.flatMap((userId) =>
+    DUE_DATE_OFFSETS_MS.map((offset) => ({
+      channel: REMINDER_CHANNEL.PUBSUB,
+      createdBy: "task-bridge",
+      remindAt: new Date(dueDate.getTime() - offset),
+      targetId: event.taskId,
+      targetType: REMINDER_TARGET.TASK,
+      type: REMINDER_TYPE.DUE_DATE,
+      userId,
+    })),
   );
+
+  await db.transaction(async (tx) => {
+    await deletePendingTaskReminders(tx, event.taskId);
+    await tx.insert(calendarReminder).values(rows);
+  });
 }
 
 async function handleTaskDeleted(event: { taskId: string }, { db }: TaskBridgeDeps): Promise<void> {
@@ -85,38 +97,73 @@ async function handleTaskDeleted(event: { taskId: string }, { db }: TaskBridgeDe
 }
 
 async function handleTaskStatusChanged(
-  event: { task: { id: string }; toStatus: string },
+  event: {
+    isTerminal?: boolean;
+    task: { id: string };
+    toStatus: string;
+    toStatusCategory?: string;
+  },
   { db }: TaskBridgeDeps,
 ): Promise<void> {
-  const [row] = await db.execute<{ category: string | null }>(
-    sql`SELECT category FROM "status" WHERE id = ${event.toStatus}`,
-  );
-  if (!row) {
+  // Preferred path: terminality travels in the event — no cross-module read.
+  if (event.isTerminal !== undefined) {
+    if (event.isTerminal) {
+      await deletePendingTaskReminders(db, event.task.id);
+    }
     return;
   }
-  if (row.category === "completed" || row.category === "cancelled") {
-    await deletePendingTaskReminders(db, event.task.id);
+  if (event.toStatusCategory !== undefined) {
+    if (TERMINAL_TASK_STATUS_CATEGORIES.has(event.toStatusCategory)) {
+      await deletePendingTaskReminders(db, event.task.id);
+    }
+    return;
+  }
+
+  // Compatibility fallback for publishers that predate the terminal fields.
+  // Tasks owns the `task_status` table; a missing table means tasks is not
+  // installed here, so there is nothing to clean up.
+  try {
+    const [row] = await db.execute<{ category: string | null }>(
+      sql`SELECT category FROM "task_status" WHERE id = ${event.toStatus}`,
+    );
+    if (row && TERMINAL_TASK_STATUS_CATEGORIES.has(row.category ?? "")) {
+      await deletePendingTaskReminders(db, event.task.id);
+    }
+  } catch {
+    // Tasks tables absent — nothing to clean up
   }
 }
 
-export async function registerTaskBridge(deps: TaskBridgeDeps): Promise<string[]> {
-  const topics: string[] = [];
-  const subscribe = subscribeSafe(deps);
+export async function registerTaskBridge(
+  deps: TaskBridgeDeps,
+  options?: TaskBridgeOptions,
+): Promise<string[]> {
+  if (options?.enabled === false) {
+    return [];
+  }
+
+  async function subscribe<TSchema extends StandardSchema>(
+    topic: string,
+    schema: TSchema,
+    handler: (data: InferSchemaOutput<TSchema>) => Promise<void>,
+  ): Promise<void> {
+    await deps.pubsub.subscribe(topic, async (message) => {
+      const result = await schema["~standard"].validate(message.data);
+      if (!result.issues) {
+        await handler(result.value);
+      }
+    });
+  }
 
   await subscribe("task:due_date_changed", TaskDueDateChangedEventSchema, (data) =>
     handleDueDateChanged(data, deps),
   );
-  topics.push("task:due_date_changed");
-
   await subscribe("task:deleted", TaskDeletedEventSchema, (data) => handleTaskDeleted(data, deps));
-  topics.push("task:deleted");
-
   await subscribe("task:status_changed", TaskStatusChangedEventSchema, (data) =>
     handleTaskStatusChanged(data, deps),
   );
-  topics.push("task:status_changed");
 
-  return topics;
+  return ["task:due_date_changed", "task:deleted", "task:status_changed"];
 }
 
 export async function unregisterTaskBridge(
@@ -128,27 +175,8 @@ export async function unregisterTaskBridge(
       try {
         await pubsub.unsubscribe(topic);
       } catch {
-        // Ignore
+        // Best-effort cleanup
       }
     }),
   );
-}
-
-function subscribeSafe(deps: TaskBridgeDeps) {
-  return async function subscribe<TSchema extends StandardSchema>(
-    topic: string,
-    schema: TSchema,
-    handler: (data: InferSchemaOutput<TSchema>) => Promise<void>,
-  ): Promise<void> {
-    try {
-      await deps.pubsub.subscribe(topic, async (message) => {
-        const result = await schema["~standard"].validate(message.data);
-        if (!result.issues) {
-          await handler(result.value);
-        }
-      });
-    } catch {
-      // Tasks module not installed — silently no-op
-    }
-  };
 }

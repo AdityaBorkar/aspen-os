@@ -28,6 +28,7 @@ export type { CreateReminderInput, ReminderFilters, UpdateReminderInput } from "
 export {
   CreateReminderSchema,
   ReminderFiltersSchema,
+  TARGETS_REQUIRING_ID,
   UpdateReminderSchema,
 } from "#/schemas/reminder";
 export type {

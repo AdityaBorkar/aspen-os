@@ -32,16 +32,3 @@ export const AttendeeTypeSchema = picklist(Object.values(ATTENDEE_TYPE));
 export const AttendeeStatusSchema = picklist(Object.values(ATTENDEE_STATUS));
 
 export const WeekdaySchema = picklist(Object.values(WEEKDAY));
-
-export {
-  ATTENDEE_STATUS,
-  ATTENDEE_TYPE,
-  CALENDAR_ACCESS,
-  EVENT_STATUS,
-  RECURRENCE_FREQUENCY,
-  REMINDER_CHANNEL,
-  REMINDER_INTERVAL,
-  REMINDER_TARGET,
-  REMINDER_TYPE,
-  WEEKDAY,
-} from "#/utils/constants";

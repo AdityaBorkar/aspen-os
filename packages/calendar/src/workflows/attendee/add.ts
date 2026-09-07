@@ -3,7 +3,8 @@ import { ATTENDEE_EVENTS } from "#/pubsub";
 import { CreateAttendeeSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { assertCanMutate } from "#/workflow-steps/access-service";
-import { fetchEventCalendarStep } from "#/workflow-steps/fetch-event-calendar";
+import { fetchEventCalendarStep } from "#/workflow-steps/fetch";
+import { toAttendeePayload } from "#/workflow-steps/payloads";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
@@ -16,7 +17,7 @@ export const addAttendee = Workflow.name("calendar.attendee.add")
     const parsed = parse(CreateAttendeeSchema, input);
 
     const cal = await ctx.step.run(fetchEventCalendarStep, { eventId: parsed.eventId });
-    await assertCanMutate(cal, ctx.actorId);
+    await assertCanMutate(cal, ctx.actorId, ctx.db);
 
     const [created] = await ctx.db
       .insert(calendarAttendee)
@@ -45,12 +46,7 @@ export const addAttendee = Workflow.name("calendar.attendee.add")
       });
 
       await ctx.pubsub.publish(ATTENDEE_EVENTS.INVITED, {
-        attendee: {
-          email: created.email,
-          id: created.id,
-          name: created.name,
-          status: created.status,
-        },
+        attendee: toAttendeePayload(created),
         calendarId: cal.id,
         eventId: created.eventId,
       });

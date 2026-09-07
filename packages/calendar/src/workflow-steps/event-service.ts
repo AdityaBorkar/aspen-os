@@ -1,8 +1,13 @@
-import { calendar, calendarEvent } from "#/db-schemas";
+import { calendarEvent, calendarReminder } from "#/db-schemas";
 import type { EventFilters } from "#/schemas";
+import { REMINDER_TARGET, REMINDER_TYPE } from "#/utils/constants";
+import { accessibleCalendarIds, escapeLikePattern } from "#/workflow-steps/access-scope";
 
-import { and, asc, eq, gte, ilike, inArray, lte, or } from "drizzle-orm";
+import type { WorkflowContext } from "@aspen-os/platform/server";
+import { and, asc, eq, gte, ilike, inArray, isNotNull, lte, sql } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
+
+type CalendarDb = WorkflowContext["db"];
 
 export interface EventWindowInput {
   allDay?: boolean;
@@ -32,16 +37,11 @@ export function validateSourceLink(
 }
 
 export async function queryEvents(
-  db: PostgresJsDatabase,
+  db: CalendarDb,
   actorId: string,
   filters: EventFilters,
 ): Promise<(typeof calendarEvent.$inferSelect)[]> {
-  const accessibleCalendars = db
-    .select({ id: calendar.id })
-    .from(calendar)
-    .where(or(eq(calendar.access, "global"), eq(calendar.ownerId, actorId)));
-
-  const conditions = [inArray(calendarEvent.calendarId, accessibleCalendars)];
+  const conditions = [inArray(calendarEvent.calendarId, accessibleCalendarIds(db, actorId))];
 
   if (filters.calendarId) {
     conditions.push(eq(calendarEvent.calendarId, filters.calendarId));
@@ -62,7 +62,7 @@ export async function queryEvents(
     conditions.push(eq(calendarEvent.sourceEntityId, filters.sourceEntityId));
   }
   if (filters.search) {
-    conditions.push(ilike(calendarEvent.title, `%${filters.search}%`));
+    conditions.push(ilike(calendarEvent.title, `%${escapeLikePattern(filters.search)}%`));
   }
 
   return db
@@ -72,4 +72,29 @@ export async function queryEvents(
     .orderBy(asc(calendarEvent.startsAt))
     .limit(filters.limit ?? 50)
     .offset(filters.offset ?? 0);
+}
+
+/**
+ * Re-anchors every `offset` reminder of an event after its start moves:
+ * `remindAt = nextStartsAt − offsetMinutes`. A single UPDATE — no N+1, and
+ * rows without an offset are left untouched.
+ */
+export async function rescheduleOffsetReminders(
+  db: PostgresJsDatabase,
+  eventId: string,
+  nextStartsAt: Date,
+): Promise<void> {
+  await db
+    .update(calendarReminder)
+    .set({
+      remindAt: sql`${nextStartsAt} - (${calendarReminder.offsetMinutes} * INTERVAL '1 minute')`,
+    })
+    .where(
+      and(
+        eq(calendarReminder.targetType, REMINDER_TARGET.EVENT),
+        eq(calendarReminder.targetId, eventId),
+        eq(calendarReminder.type, REMINDER_TYPE.OFFSET),
+        isNotNull(calendarReminder.offsetMinutes),
+      ),
+    );
 }

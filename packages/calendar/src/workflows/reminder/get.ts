@@ -1,6 +1,6 @@
 import { WithIdSchema } from "#/types";
 import { assertCanAccessReminder } from "#/workflow-steps/access-service";
-import { fetchReminderStep } from "#/workflow-steps/fetch-reminder";
+import { fetchReminderStep } from "#/workflow-steps/fetch";
 
 import { Workflow } from "@aspen-os/platform/server";
 

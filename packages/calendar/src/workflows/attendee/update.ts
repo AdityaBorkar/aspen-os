@@ -4,8 +4,8 @@ import { IdSchema, UpdateAttendeeSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { stripUndefined } from "#/utils/strip-undefined";
 import { assertCanMutate } from "#/workflow-steps/access-service";
-import { fetchAttendeeStep } from "#/workflow-steps/fetch-attendee";
-import { fetchEventCalendarStep } from "#/workflow-steps/fetch-event-calendar";
+import { fetchAttendeeStep, fetchEventCalendarStep } from "#/workflow-steps/fetch";
+import { toAttendeePayload } from "#/workflow-steps/payloads";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -21,7 +21,7 @@ export const updateAttendee = Workflow.name("calendar.attendee.update")
     const existing = await ctx.step.run(fetchAttendeeStep, { id });
     const cal = await ctx.step.run(fetchEventCalendarStep, { eventId: existing.eventId });
 
-    await assertCanMutate(cal, ctx.actorId);
+    await assertCanMutate(cal, ctx.actorId, ctx.db);
 
     const updates = stripUndefined({
       attendeeId: parsed.attendeeId,
@@ -34,7 +34,7 @@ export const updateAttendee = Workflow.name("calendar.attendee.update")
 
     const [updated] = await ctx.db
       .update(calendarAttendee)
-      .set({ ...updates })
+      .set(updates)
       .where(eq(calendarAttendee.id, id))
       .returning();
 
@@ -54,12 +54,7 @@ export const updateAttendee = Workflow.name("calendar.attendee.update")
       });
 
       await ctx.pubsub.publish(ATTENDEE_EVENTS.UPDATED, {
-        attendee: {
-          email: updated.email,
-          id: updated.id,
-          name: updated.name,
-          status: updated.status,
-        },
+        attendee: toAttendeePayload(updated),
         calendarId: cal.id,
         eventId: updated.eventId,
       });

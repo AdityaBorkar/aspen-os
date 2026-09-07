@@ -1,9 +1,9 @@
 import { calendar, calendarAttendee, calendarEvent, calendarReminder } from "#/db-schemas";
 import { CALENDAR_EVENTS } from "#/pubsub";
 import { WithIdSchema } from "#/types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, REMINDER_TARGET } from "#/utils/constants";
 import { assertCanMutate } from "#/workflow-steps/access-service";
-import { fetchCalendarStep } from "#/workflow-steps/fetch-calendar";
+import { fetchCalendarStep } from "#/workflow-steps/fetch";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, inArray } from "drizzle-orm";
@@ -13,29 +13,31 @@ export const deleteCalendar = Workflow.name("calendar.calendar.delete")
   .handler(async ({ id }, ctx) => {
     const existing = await ctx.step.run(fetchCalendarStep, { id });
 
-    await assertCanMutate(existing, ctx.actorId);
+    await assertCanMutate(existing, ctx.actorId, ctx.db);
 
-    const rows = await ctx.db
-      .select({ id: calendarEvent.id })
-      .from(calendarEvent)
-      .where(eq(calendarEvent.calendarId, id));
+    await ctx.db.transaction(async (tx) => {
+      const rows = await tx
+        .select({ id: calendarEvent.id })
+        .from(calendarEvent)
+        .where(eq(calendarEvent.calendarId, id));
 
-    const eventIds = rows.map((row) => row.id);
+      const eventIds = rows.map((row) => row.id);
 
-    if (eventIds.length > 0) {
-      await ctx.db
-        .delete(calendarReminder)
-        .where(
-          and(
-            eq(calendarReminder.targetType, "event"),
-            inArray(calendarReminder.targetId, eventIds),
-          ),
-        );
-      await ctx.db.delete(calendarAttendee).where(inArray(calendarAttendee.eventId, eventIds));
-    }
+      if (eventIds.length > 0) {
+        await tx
+          .delete(calendarReminder)
+          .where(
+            and(
+              eq(calendarReminder.targetType, REMINDER_TARGET.EVENT),
+              inArray(calendarReminder.targetId, eventIds),
+            ),
+          );
+        await tx.delete(calendarAttendee).where(inArray(calendarAttendee.eventId, eventIds));
+      }
 
-    await ctx.db.delete(calendarEvent).where(eq(calendarEvent.calendarId, id));
-    await ctx.db.delete(calendar).where(eq(calendar.id, id));
+      await tx.delete(calendarEvent).where(eq(calendarEvent.calendarId, id));
+      await tx.delete(calendar).where(eq(calendar.id, id));
+    });
 
     await ctx.step.run("audit-and-notify", async () => {
       await ctx.audit.write({

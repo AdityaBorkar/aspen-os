@@ -160,7 +160,7 @@ const reminders = await p.calendar.reminders.list({
 
 ### Dispatcher
 
-`getPending` returns `isSent = false AND remindAt <= now`. `processPending` publishes `calendar:reminder_due` (full reminder payload), marks `isSent`/`sentAt`, and schedules the next occurrence for `isRecurring` reminders (intervals `daily`/`weekly`/`monthly`/`yearly`/`every_2_hours`). The module's `$prepareRuntime()` registers the `calendar:reminder-scan` cron (`* * * * *` by default) which runs `processPending` — no host cron needed.
+`getPending` returns `isSent = false AND remindAt <= now`. `processPending` claims a bounded batch (100, oldest first) with a conditional `isSent` flip so concurrent scans never double-deliver, publishes `calendar:reminder_due` (full reminder payload), and schedules the next occurrence for `isRecurring` reminders with a known interval (`daily`/`weekly`/`monthly`/`every_2_hours`; unknown legacy values stay acknowledged-but-not-rescheduled). The module's `$prepareRuntime()` registers the `calendar:reminder-scan` cron (`* * * * *` by default) which runs `processPending` — no host cron needed.
 
 ## Conventions
 
