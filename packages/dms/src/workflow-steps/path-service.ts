@@ -1,6 +1,7 @@
 import * as schemas from "#/db-schemas";
 import { getDmsConfig } from "#/runtime";
 import type { BreadcrumbItem, PathResolution } from "#/types";
+import { escapeLike } from "#/utils/escape-like";
 
 import { getContext } from "@aspen-os/platform/server";
 import { and, eq, sql } from "drizzle-orm";
@@ -15,21 +16,10 @@ interface AncestorRow {
   path: string;
 }
 
-function maxDepth(): number {
-  return getDmsConfig().maxNestingDepth;
-}
-
 export function joinPath(...parts: string[]): string {
   const collapsed = parts.join("/").replaceAll(/\/{2,}/g, "/");
   const trimmed = collapsed.length > 1 ? collapsed.replace(/\/+$/g, "") : collapsed;
   return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
-}
-
-function escapeLike(value: string): string {
-  return value
-    .replaceAll("\\", String.raw`\\`)
-    .replaceAll("%", String.raw`\%`)
-    .replaceAll("_", String.raw`\_`);
 }
 
 async function getAncestors(
@@ -209,21 +199,19 @@ export async function wouldCreateCycle({
     return true;
   }
 
-  const bound = maxDepth() + 1;
-  const chain = await getAncestors(db, newParentId, bound);
-  if (chain.some((ancestor) => ancestor.id === folderId)) {
-    return true;
-  }
-  return chain.length > maxDepth();
+  const limit = getDmsConfig().maxNestingDepth;
+  const chain = await getAncestors(db, newParentId, limit + 1);
+  return chain.some((ancestor) => ancestor.id === folderId) || chain.length > limit;
 }
 
 export async function getDepth({ folderId }: { folderId: string }): Promise<number> {
   const { db } = getContext();
-  const chain = await getAncestors(db, folderId, maxDepth() + 2);
+  const limit = getDmsConfig().maxNestingDepth;
+  const chain = await getAncestors(db, folderId, limit + 2);
   const depth = Math.max(chain.length - 1, 0);
 
-  if (depth > maxDepth()) {
-    throw new Error(`Folder hierarchy exceeds maximum depth of ${maxDepth()}`);
+  if (depth > limit) {
+    throw new Error(`Folder hierarchy exceeds maximum depth of ${limit}`);
   }
 
   return depth;

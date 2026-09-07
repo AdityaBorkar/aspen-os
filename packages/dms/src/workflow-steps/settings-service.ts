@@ -58,7 +58,7 @@ const SETTING_DEFS = {
     schema: number(),
   },
   logDownloads: {
-    fallback: (_config: DmsRuntimeConfig) => false,
+    fallback: () => false,
     key: SETTING_KEYS.LOG_DOWNLOADS,
     schema: boolean(),
   },
@@ -97,17 +97,17 @@ export async function getSetting(db: DB, key: string): Promise<JsonValue | null>
 }
 
 export async function setSetting(db: DB, key: string, value: JsonValue): Promise<void> {
-  const existing = await db
+  const [existingRow] = await db
     .select({ id: dmsSetting.id })
     .from(dmsSetting)
     .where(eq(dmsSetting.key, key))
     .limit(1);
 
-  await (existing[0]
+  await (existingRow
     ? db
         .update(dmsSetting)
         .set({ updatedAt: new Date(), value })
-        .where(eq(dmsSetting.id, existing[0].id))
+        .where(eq(dmsSetting.id, existingRow.id))
     : db.insert(dmsSetting).values({ key, value }));
 }
 

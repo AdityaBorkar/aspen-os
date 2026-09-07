@@ -1,6 +1,7 @@
 import { FILE_EVENTS } from "#/pubsub";
 import { getDmsConfig } from "#/runtime";
-import { getDownloadLink, resolveDownloadExpiry } from "#/services/download-link-service";
+import { resolveDownloadExpiry } from "#/services/download-link-service";
+import { getSignedGetUrl } from "#/services/storage-bridge";
 import { DownloadOptionsSchema, FileIdSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, SETTING_KEYS } from "#/utils/constants";
 import { fetchFileStep } from "#/workflow-steps/fetch-file";
@@ -37,7 +38,7 @@ export const downloadFile = Workflow.name("dms.file.download")
     });
 
     const url = await ctx.step.run("get-signed-url", async () =>
-      getDownloadLink({ expiresIn, key: file.storageKey }),
+      getSignedGetUrl({ expiresIn, key: file.storageKey }),
     );
 
     const logDownloads = await getSetting(ctx.db, SETTING_KEYS.LOG_DOWNLOADS);

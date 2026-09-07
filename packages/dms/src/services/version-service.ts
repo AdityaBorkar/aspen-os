@@ -102,11 +102,7 @@ export async function appendVersion(
   return { newVersion, storageKey, updated };
 }
 
-export interface RevertVersionResult {
-  newVersion: number;
-  storageKey: string;
-  updated: DmsFile;
-}
+export type RevertVersionResult = AppendVersionResult;
 
 /**
  * Revert flow: snapshot the OLD (pre-revert) file state, server-side copy

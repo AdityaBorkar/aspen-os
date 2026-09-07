@@ -43,5 +43,5 @@ export const renameFile = Workflow.name("dms.file.rename")
       oldPath,
     });
 
-    return updated ?? file;
+    return updated;
   });

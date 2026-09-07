@@ -38,5 +38,5 @@ export const removeFileMetadata = Workflow.name("dms.file.remove-metadata")
       });
     });
 
-    return updated ?? file;
+    return updated;
   });

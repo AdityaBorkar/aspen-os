@@ -46,12 +46,11 @@ export function validateFieldValues(
 
   for (const field of fields) {
     let value = values[field.name];
-    if (value === undefined && field.defaultValue !== null && field.defaultValue !== undefined) {
+    if (value === undefined && field.defaultValue != null) {
       value = field.defaultValue;
     }
 
     const isEmpty = value === undefined || value === null || value === "";
-
     if (field.isRequired && isEmpty) {
       missing.push(field.name);
       errors.push({
@@ -65,32 +64,35 @@ export function validateFieldValues(
       continue;
     }
 
-    if (
-      (field.type === "select" || field.type === "multi-select") &&
-      field.options !== null &&
-      field.options !== undefined
-    ) {
-      const optionList = Array.isArray(field.options)
-        ? field.options
-        : field.options instanceof Object
-          ? Object.keys(field.options)
-          : [];
-      if (optionList.length > 0) {
-        const allowed = new Set(optionList.map(String));
-        const selected = field.type === "multi-select" && Array.isArray(value) ? value : [value];
-        for (const item of selected) {
-          if (item !== null && item !== undefined && !allowed.has(toText(item))) {
-            errors.push({
-              message: `"${toText(item)}" is not an allowed option for "${field.label}".`,
-              name: field.name,
-            });
-          }
+    if ((field.type === "select" || field.type === "multi-select") && field.options != null) {
+      const optionList = optionKeys(field.options);
+      if (optionList.length === 0) {
+        continue;
+      }
+      const allowed = new Set(optionList.map(String));
+      const selected = field.type === "multi-select" && Array.isArray(value) ? value : [value];
+      for (const item of selected) {
+        if (item !== null && item !== undefined && !allowed.has(toText(item))) {
+          errors.push({
+            message: `"${toText(item)}" is not an allowed option for "${field.label}".`,
+            name: field.name,
+          });
         }
       }
     }
   }
 
   return { errors, missing };
+}
+
+function optionKeys(options: JsonValue): string[] {
+  if (Array.isArray(options)) {
+    return options.map(String);
+  }
+  if (options instanceof Object) {
+    return Object.keys(options);
+  }
+  return [];
 }
 
 const PLACEHOLDER_REGEX = /\{(?<key>[^}]+)\}/g;

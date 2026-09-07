@@ -61,5 +61,5 @@ export const revertToVersion = Workflow.name("dms.version.revert")
       });
     });
 
-    return updated ?? file;
+    return updated;
   });

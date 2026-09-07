@@ -128,5 +128,5 @@ export const classifyFile = Workflow.name("dms.file.classify")
       });
     });
 
-    return updated ?? file;
+    return updated;
   });

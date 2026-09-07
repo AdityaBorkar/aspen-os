@@ -1,5 +1,6 @@
 import { dmsFile } from "#/db-schemas";
 import type { FileViewCondition, FileViewSort } from "#/types";
+import { escapeLike } from "#/utils/escape-like";
 import { toText } from "#/utils/to-text";
 
 import type { JsonValue } from "@aspen-os/platform/server";
@@ -29,47 +30,29 @@ export interface ConditionContext {
   ownerId?: string | null;
 }
 
+const COLUMN_SQL = {
+  class: sql`${dmsFile.classId}`,
+  classId: sql`${dmsFile.classId}`,
+  contentType: sql`${dmsFile.contentType}`,
+  createdAt: sql`${dmsFile.createdAt}`,
+  expiryDate: sql`${dmsFile.expiryDate}`,
+  id: sql`${dmsFile.id}`,
+  name: sql`${dmsFile.name}`,
+  owner: sql`${dmsFile.ownerId}`,
+  ownerId: sql`${dmsFile.ownerId}`,
+  size: sql`${dmsFile.size}`,
+  status: sql`${dmsFile.status}`,
+  updatedAt: sql`${dmsFile.updatedAt}`,
+  uploadedBy: sql`${dmsFile.uploadedBy}`,
+} satisfies Record<string, SQL>;
+
 function columnSql(field: string): SQL | null {
-  switch (field) {
-    case "class":
-    case "classId": {
-      return sql`${dmsFile.classId}`;
-    }
-    case "contentType": {
-      return sql`${dmsFile.contentType}`;
-    }
-    case "createdAt": {
-      return sql`${dmsFile.createdAt}`;
-    }
-    case "expiryDate": {
-      return sql`${dmsFile.expiryDate}`;
-    }
-    case "id": {
-      return sql`${dmsFile.id}`;
-    }
-    case "name": {
-      return sql`${dmsFile.name}`;
-    }
-    case "owner":
-    case "ownerId": {
-      return sql`${dmsFile.ownerId}`;
-    }
-    case "size": {
-      return sql`${dmsFile.size}`;
-    }
-    case "status": {
-      return sql`${dmsFile.status}`;
-    }
-    case "updatedAt": {
-      return sql`${dmsFile.updatedAt}`;
-    }
-    case "uploadedBy": {
-      return sql`${dmsFile.uploadedBy}`;
-    }
-    default: {
-      return null;
-    }
+  if (field in COLUMN_SQL) {
+    // SAFETY: the `in` guard proves `field` is a known column key at runtime,
+    // so the lookup yields a static SQL fragment.
+    return COLUMN_SQL[field as keyof typeof COLUMN_SQL];
   }
+  return null;
 }
 
 const NumericStringSchema = pipe(
@@ -99,11 +82,42 @@ function parseDate(value: JsonValue): string | null {
   return parsed.success ? parsed.output.toISOString() : null;
 }
 
+function labelExistsSql(label: string, negated: boolean, joinLabel: boolean): SQL {
+  if (joinLabel) {
+    if (negated) {
+      return sql`NOT EXISTS (
+        SELECT 1 FROM dms_entity_label el
+        JOIN dms_label lbl ON lbl.id = el.label_id
+        WHERE el.entity_id = ${dmsFile.id}
+          AND el.entity_type = 'file'
+          AND lbl.name = ${label}
+      )`;
+    }
+    return sql`EXISTS (
+        SELECT 1 FROM dms_entity_label el
+        JOIN dms_label lbl ON lbl.id = el.label_id
+        WHERE el.entity_id = ${dmsFile.id}
+          AND el.entity_type = 'file'
+          AND lbl.name = ${label}
+      )`;
+  }
+  if (negated) {
+    return sql`NOT EXISTS (
+        SELECT 1 FROM dms_entity_label el
+        WHERE el.entity_id = ${dmsFile.id} AND el.entity_type = 'file'
+      )`;
+  }
+  return sql`EXISTS (
+        SELECT 1 FROM dms_entity_label el
+        WHERE el.entity_id = ${dmsFile.id} AND el.entity_type = 'file'
+      )`;
+}
+
 /**
  * Builds a drizzle SQL condition for a single view condition over file
  * columns, metadata keys, and label conditions.
  */
-export function buildCondition(cond: FileViewCondition, _ctx?: ConditionContext): SQL | null {
+export function buildCondition(cond: FileViewCondition): SQL | null {
   const { field, operator, value } = cond;
 
   if (field === "label" || field === "labels") {
@@ -113,34 +127,16 @@ export function buildCondition(cond: FileViewCondition, _ctx?: ConditionContext)
       return null;
     }
     if (operator === "eq" || operator === "contains") {
-      return sql`EXISTS (
-        SELECT 1 FROM dms_entity_label el
-        JOIN dms_label lbl ON lbl.id = el.label_id
-        WHERE el.entity_id = ${dmsFile.id}
-          AND el.entity_type = 'file'
-          AND lbl.name = ${label}
-      )`;
+      return labelExistsSql(label, false, true);
     }
     if (operator === "notContains") {
-      return sql`NOT EXISTS (
-        SELECT 1 FROM dms_entity_label el
-        JOIN dms_label lbl ON lbl.id = el.label_id
-        WHERE el.entity_id = ${dmsFile.id}
-          AND el.entity_type = 'file'
-          AND lbl.name = ${label}
-      )`;
+      return labelExistsSql(label, true, true);
     }
     if (operator === "isEmpty") {
-      return sql`NOT EXISTS (
-        SELECT 1 FROM dms_entity_label el
-        WHERE el.entity_id = ${dmsFile.id} AND el.entity_type = 'file'
-      )`;
+      return labelExistsSql(label, true, false);
     }
     if (operator === "isNotEmpty") {
-      return sql`EXISTS (
-        SELECT 1 FROM dms_entity_label el
-        WHERE el.entity_id = ${dmsFile.id} AND el.entity_type = 'file'
-      )`;
+      return labelExistsSql(label, false, false);
     }
     return null;
   }
@@ -165,22 +161,17 @@ export function buildCondition(cond: FileViewCondition, _ctx?: ConditionContext)
     return null;
   }
 
-  const type =
-    field === "createdAt" || field === "updatedAt" || field === "expiryDate"
-      ? "date"
-      : field === "size" || field === "version"
-        ? "number"
-        : "string";
+  let type: "date" | "number" | "string" = "string";
+  if (field === "createdAt" || field === "updatedAt" || field === "expiryDate") {
+    type = "date";
+  } else if (field === "size" || field === "version") {
+    type = "number";
+  }
 
   return buildGenericCondition({ col, operator, type, value });
 }
 
-function escapeLike(value: string): string {
-  return value
-    .replaceAll("\\", String.raw`\\`)
-    .replaceAll("%", String.raw`\%`)
-    .replaceAll("_", String.raw`\_`);
-}
+const NUMBER_OPS = { gt, gte, lt, lte } as const;
 
 function buildGenericCondition(input: {
   col: SQL;
@@ -222,33 +213,15 @@ function buildGenericCondition(input: {
       const values = Array.isArray(value) ? value : [value];
       return notInArray(col, values);
     }
-    case "gt": {
-      const num = coerceNumber(value);
-      if (num === null) {
-        return null;
-      }
-      return gt(col, num);
-    }
-    case "gte": {
-      const num = coerceNumber(value);
-      if (num === null) {
-        return null;
-      }
-      return gte(col, num);
-    }
-    case "lt": {
-      const num = coerceNumber(value);
-      if (num === null) {
-        return null;
-      }
-      return lt(col, num);
-    }
+    case "gt":
+    case "gte":
+    case "lt":
     case "lte": {
       const num = coerceNumber(value);
       if (num === null) {
         return null;
       }
-      return lte(col, num);
+      return NUMBER_OPS[operator](col, num);
     }
     case "between": {
       if (!Array.isArray(value) || value.length < 2) {
@@ -267,19 +240,13 @@ function buildGenericCondition(input: {
     case "isNotEmpty": {
       return isNotNull(col);
     }
-    case "dateBefore": {
-      const date = parseDate(value);
-      if (!date) {
-        return null;
-      }
-      return lte(col, date);
-    }
+    case "dateBefore":
     case "dateAfter": {
       const date = parseDate(value);
       if (!date) {
         return null;
       }
-      return gte(col, date);
+      return operator === "dateBefore" ? lte(col, date) : gte(col, date);
     }
     default: {
       return null;
@@ -302,7 +269,7 @@ export function buildConditionsWhere(
 
   const parts: SQL[] = [];
   for (const cond of conditions ?? []) {
-    const built = buildCondition(cond, ctx);
+    const built = buildCondition(cond);
     if (built) {
       parts.push(built);
     }

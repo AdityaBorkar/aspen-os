@@ -45,5 +45,5 @@ export const moveFile = Workflow.name("dms.file.move")
       oldPath: file.path,
     });
 
-    return updated ?? file;
+    return updated;
   });

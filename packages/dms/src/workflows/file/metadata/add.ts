@@ -37,5 +37,5 @@ export const addFileMetadata = Workflow.name("dms.file.add-metadata")
       });
     });
 
-    return updated ?? file;
+    return updated;
   });

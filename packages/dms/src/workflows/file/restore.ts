@@ -63,5 +63,5 @@ export const restoreFile = Workflow.name("dms.file.restore")
       await ctx.pubsub.publish(FILE_EVENTS.RESTORED, { fileId: id });
     });
 
-    return updated ?? file;
+    return updated;
   });

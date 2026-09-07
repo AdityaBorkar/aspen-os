@@ -1,5 +1,6 @@
 import { getDmsConfig } from "#/runtime";
-import { getDownloadLink, resolveDownloadExpiry } from "#/services/download-link-service";
+import { resolveDownloadExpiry } from "#/services/download-link-service";
+import { getSignedGetUrl } from "#/services/storage-bridge";
 import { DownloadOptionsSchema, FileIdSchema } from "#/types";
 import { fetchFileStep } from "#/workflow-steps/fetch-file";
 
@@ -24,7 +25,7 @@ export const getFileDownloadLink = Workflow.name("dms.file.download-link")
     });
 
     const url = await ctx.step.run("get-signed-url", async () =>
-      getDownloadLink({ expiresIn, key: file.storageKey }),
+      getSignedGetUrl({ expiresIn, key: file.storageKey }),
     );
 
     return { expiresIn, file, url };

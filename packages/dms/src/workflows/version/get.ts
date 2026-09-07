@@ -1,6 +1,7 @@
 import { dmsFileVersion } from "#/db-schemas";
 import { getDmsConfig } from "#/runtime";
-import { getDownloadLink, resolveDownloadExpiry } from "#/services/download-link-service";
+import { resolveDownloadExpiry } from "#/services/download-link-service";
+import { getSignedGetUrl } from "#/services/storage-bridge";
 import { IdSchema } from "#/types";
 import { SETTING_KEYS } from "#/utils/constants";
 import { fetchFileStep } from "#/workflow-steps/fetch-file";
@@ -43,7 +44,7 @@ export const getFileVersion = Workflow.name("dms.version.get")
     });
 
     const url = await ctx.step.run("get-signed-url", async () =>
-      getDownloadLink({
+      getSignedGetUrl({
         expiresIn: resolveDownloadExpiry({
           defaultExpiry,
           maxExpiry: config.maxDownloadLinkExpiry,

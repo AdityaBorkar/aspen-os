@@ -38,12 +38,12 @@ function resolveFileSortField(field: string): SQL | null {
  * the apply handler stays declarative: trashed/triaged rows are excluded
  * unless the caller explicitly targets them.
  */
-export interface StatusFilter {
+interface StatusFilter {
   includeTrashed: boolean;
   includeTriage: boolean;
 }
 
-export function parseStatusFilter(filters: FileViewCondition[]): StatusFilter {
+function parseStatusFilter(filters: FileViewCondition[]): StatusFilter {
   const explicitStatus = filters.find((filter) => filter.field === "status");
   return {
     includeTrashed: explicitStatus?.value === "trashed",

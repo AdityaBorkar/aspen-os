@@ -7,6 +7,7 @@ import type {
   QuickSearchInput,
   SearchOptions,
 } from "#/types";
+import { escapeLike } from "#/utils/escape-like";
 import { toText } from "#/utils/to-text";
 import { buildSortOrder } from "#/workflow-steps/condition-service";
 
@@ -16,16 +17,7 @@ import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 type DB = PostgresJsDatabase;
 
-/**
- * Escapes LIKE wildcards so user input matches literally. PostgreSQL LIKE
- * treats backslash as the default escape character.
- */
-export function escapeLike(value: string): string {
-  return value
-    .replaceAll("\\", String.raw`\\`)
-    .replaceAll("%", String.raw`\%`)
-    .replaceAll("_", String.raw`\_`);
-}
+export { escapeLike };
 
 export interface QuickSearchHit {
   file: DmsFile;
@@ -114,24 +106,20 @@ function buildLabelCondition(labelIds: string[]): SQL {
   )`;
 }
 
+const SORT_COLUMNS = {
+  createdAt: sql`${dmsFile.createdAt}`,
+  name: sql`${dmsFile.name}`,
+  size: sql`${dmsFile.size}`,
+  updatedAt: sql`${dmsFile.updatedAt}`,
+} satisfies Record<string, SQL>;
+
 function resolveSortField(field: string): SQL | null {
-  switch (field) {
-    case "createdAt": {
-      return sql`${dmsFile.createdAt}`;
-    }
-    case "size": {
-      return sql`${dmsFile.size}`;
-    }
-    case "updatedAt": {
-      return sql`${dmsFile.updatedAt}`;
-    }
-    case "name": {
-      return sql`${dmsFile.name}`;
-    }
-    default: {
-      return null;
-    }
+  if (field in SORT_COLUMNS) {
+    // SAFETY: the `in` guard proves `field` is a known sort key at runtime,
+    // so the lookup yields a static SQL fragment.
+    return SORT_COLUMNS[field as keyof typeof SORT_COLUMNS];
   }
+  return null;
 }
 
 /**

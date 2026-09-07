@@ -50,5 +50,5 @@ export const deleteFile = Workflow.name("dms.file.delete")
       await ctx.pubsub.publish(FILE_EVENTS.TRASHED, { deletedBy, fileId: id });
     });
 
-    return updated ?? file;
+    return updated;
   });
