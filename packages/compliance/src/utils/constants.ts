@@ -70,6 +70,56 @@ export const DEFAULT_REMINDER_DAYS_EXPIRY = [90, 60, 30, 7];
 export const DEFAULT_REMINDER_DAYS_DUE = [30, 15, 7, 1];
 export const DEFAULT_ESCALATION_DAYS = [1, 7, 30];
 
+export const SYSTEM_ACTOR = "system";
+
+export const MAX_PERIODS_PER_RUN = 120;
+
+export function reminderDefaults(expiryBased: boolean | undefined): number[] {
+  return expiryBased ? DEFAULT_REMINDER_DAYS_EXPIRY : DEFAULT_REMINDER_DAYS_DUE;
+}
+
+export const ACTIVE_DOCUMENT_STATUSES = [
+  VERIFICATION_STATUS.DRAFT,
+  VERIFICATION_STATUS.SUBMITTED,
+  VERIFICATION_STATUS.UNDER_REVIEW,
+  VERIFICATION_STATUS.VERIFIED,
+] as const;
+
+export const EXPIRY_ELIGIBLE_STATUSES = [
+  VERIFICATION_STATUS.VERIFIED,
+  VERIFICATION_STATUS.SUBMITTED,
+  VERIFICATION_STATUS.UNDER_REVIEW,
+] as const;
+
+export const OVERDUE_ELIGIBLE_STATUSES = [
+  VERIFICATION_STATUS.DRAFT,
+  VERIFICATION_STATUS.SUBMITTED,
+  VERIFICATION_STATUS.UNDER_REVIEW,
+  VERIFICATION_STATUS.VERIFIED,
+] as const;
+
+export const TRANSITION_CANDIDATE_STATUSES = [
+  VERIFICATION_STATUS.SUBMITTED,
+  VERIFICATION_STATUS.UNDER_REVIEW,
+  VERIFICATION_STATUS.VERIFIED,
+  VERIFICATION_STATUS.REJECTED,
+  VERIFICATION_STATUS.EXPIRED,
+  VERIFICATION_STATUS.OVERDUE,
+] as const;
+
+/**
+ * Health-score policy: verified docs add, expired/overdue penalize double,
+ * rejected penalizes single. `total` counts non-archived documents.
+ * Overlapping expired+overdue states double-penalize by design.
+ * Empty tenants score 100 (no evidence of poor health).
+ */
+export const HEALTH_SCORE_WEIGHTS = {
+  expired: -2,
+  overdue: -2,
+  rejected: -1,
+  verified: 1,
+} as const;
+
 export const SCHEDULED_JOBS = {
   DAILY_ESCALATION: "compliance:daily-escalation",
   DAILY_EXPIRY_SCAN: "compliance:daily-expiry-scan",

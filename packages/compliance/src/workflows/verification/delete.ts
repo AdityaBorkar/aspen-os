@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 
 const deleteVerificationRule = Workflow.name("verification.delete").handler(
   async (input: { id: string }, ctx) => {
-    await ctx.step.run(fetchRuleStep, { id: input.id });
+    const current = await ctx.step.run(fetchRuleStep, { id: input.id });
 
     await ctx.db
       .delete(complianceVerificationRule)
@@ -14,10 +14,12 @@ const deleteVerificationRule = Workflow.name("verification.delete").handler(
 
     await ctx.audit.write({
       action: "updated",
+      actorId: ctx.actorId,
       crudAction: "delete",
       entityId: input.id,
       entityType: "verification_rule",
       metadata: { note: "Verification rule deleted" },
+      previousState: current,
     });
   },
 );

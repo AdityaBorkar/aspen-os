@@ -1,16 +1,9 @@
 import { acl } from "#/auth";
 import { control_plane_schemas, tenant_schemas } from "#/db-schemas";
 import { events } from "#/pubsub";
-import { registerEventBridgeSubscriptions, unregisterEventBridge } from "#/services/event-bridge";
-import {
-  registerObligationGenerator,
-  unregisterObligationGenerator,
-} from "#/services/obligation-generator";
-import {
-  registerReminderHandlers,
-  registerReminderSchedules,
-  unregisterReminderEngine,
-} from "#/services/reminder-engine";
+import { registerEventBridgeSubscriptions } from "#/services/event-bridge";
+import { registerObligationGenerator } from "#/services/obligation-generator";
+import { registerReminderHandlers, registerReminderSchedules } from "#/services/reminder-engine";
 import { audit, dashboard, documents, obligations, verification } from "#/workflows";
 
 import { getContext } from "@aspen-os/platform/server";
@@ -41,9 +34,7 @@ export class Compliance implements Module {
   #db: DatabaseUnit | null = null;
   #pubsub: PubSubUnit | null = null;
   #kvStore: KvStoreUnit | null = null;
-  #reminderTopics: string[] = [];
-  #obligationGenTopic: string | null = null;
-  #eventBridgeTopics: string[] = [];
+  #topics: string[] = [];
 
   constructor(config: ComplianceModuleConfig) {
     this.$config = config;
@@ -65,12 +56,12 @@ export class Compliance implements Module {
 
   async $prepareRuntime(): Promise<void> {
     if (!this.#db || !this.#pubsub || !this.#kvStore) {
-      return;
+      throw new Error("Compliance module requires db, pubsub, and kvStore units");
     }
 
     const ctx = getContext();
     if (!ctx.audit) {
-      return;
+      throw new Error("Compliance module requires an audit context for runtime schedules");
     }
 
     await registerReminderSchedules({ pubsub: this.#pubsub });
@@ -83,9 +74,8 @@ export class Compliance implements Module {
       pubsub: this.#pubsub,
     };
 
-    this.#reminderTopics = await registerReminderHandlers(reminderDeps);
-
-    this.#obligationGenTopic = await registerObligationGenerator();
+    const reminderTopics = await registerReminderHandlers(reminderDeps);
+    const obligationGenTopic = await registerObligationGenerator();
 
     const eventBridgeDeps = {
       audit: ctx.audit,
@@ -93,24 +83,24 @@ export class Compliance implements Module {
       pubsub: this.#pubsub,
     };
 
-    this.#eventBridgeTopics = await registerEventBridgeSubscriptions(eventBridgeDeps);
+    const eventBridgeTopics = await registerEventBridgeSubscriptions(eventBridgeDeps);
+    this.#topics = [...reminderTopics, obligationGenTopic, ...eventBridgeTopics];
   }
 
   async $cleanup(): Promise<void> {
-    if (this.#pubsub) {
-      await unregisterReminderEngine(this.#reminderTopics, {
-        pubsub: this.#pubsub,
-      });
-      if (this.#obligationGenTopic) {
-        await unregisterObligationGenerator(this.#obligationGenTopic);
-      }
-      await unregisterEventBridge(this.#eventBridgeTopics, {
-        pubsub: this.#pubsub,
-      });
+    const pubsub = this.#pubsub;
+    if (pubsub && this.#topics.length > 0) {
+      await Promise.all(
+        this.#topics.map(async (topic) => {
+          try {
+            await pubsub.unsubscribe(topic);
+          } catch {
+            // Ignore unsubscribe failures during cleanup.
+          }
+        }),
+      );
     }
-    this.#reminderTopics = [];
-    this.#obligationGenTopic = null;
-    this.#eventBridgeTopics = [];
+    this.#topics = [];
     this.#db = null;
     this.#pubsub = null;
     this.#kvStore = null;

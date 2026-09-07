@@ -5,19 +5,27 @@ import {
   VerificationStatusSchema,
 } from "#/schemas/enums";
 
+import { JsonValueSchema } from "@aspen-os/platform/server";
 import {
   array,
   boolean,
   date,
+  literal,
   minLength,
   nullable,
   number,
   object,
   optional,
+  partial,
+  pick,
   pipe,
+  record,
   string,
+  union,
 } from "valibot";
 import type { InferOutput } from "valibot";
+
+const metadataSchema = optional(nullable(record(string(), JsonValueSchema)));
 
 export const CreateComplianceDocumentSchema = object({
   assignedReviewer: optional(nullable(string())),
@@ -36,7 +44,7 @@ export const CreateComplianceDocumentSchema = object({
   issueDate: optional(date()),
   issuingAuthority: optional(nullable(string())),
   jurisdiction: optional(nullable(string())),
-  metadata: optional(nullable(object({}))),
+  metadata: metadataSchema,
   name: pipe(string(), minLength(1, "Document name is required")),
   notes: optional(nullable(string())),
   obligationId: optional(nullable(string())),
@@ -54,36 +62,47 @@ export const CreateComplianceDocumentSchema = object({
 
 export type CreateComplianceDocumentInput = InferOutput<typeof CreateComplianceDocumentSchema>;
 
-export const UpdateComplianceDocumentSchema = object({
-  assignedReviewer: optional(nullable(string())),
-  assignedTo: optional(nullable(string())),
-  attachment: optional(nullable(string())),
-  autoRenewal: optional(boolean()),
-  branch: optional(nullable(string())),
-  category: optional(ComplianceCategorySchema),
-  connection: optional(nullable(string())),
-  documentType: optional(nullable(string())),
-  dueDate: optional(date()),
-  effectiveDate: optional(date()),
-  escalationDays: optional(array(number())),
-  expiryDate: optional(date()),
-  issueDate: optional(date()),
-  issuingAuthority: optional(nullable(string())),
-  jurisdiction: optional(nullable(string())),
-  metadata: optional(nullable(object({}))),
-  name: optional(string()),
-  notes: optional(nullable(string())),
-  periodEnd: optional(date()),
-  periodStart: optional(date()),
-  referenceNumber: optional(nullable(string())),
-  reminderChannel: optional(ReminderChannelSchema),
-  reminderDays: optional(array(number())),
-  renewalDate: optional(date()),
-  renewalFrequency: optional(RenewalFrequencySchema),
-  verificationStatus: optional(VerificationStatusSchema),
-});
+const MUTABLE_DOCUMENT_KEYS = [
+  "assignedReviewer",
+  "assignedTo",
+  "attachment",
+  "autoRenewal",
+  "branch",
+  "category",
+  "connection",
+  "documentType",
+  "dueDate",
+  "effectiveDate",
+  "escalationDays",
+  "expiryDate",
+  "issueDate",
+  "issuingAuthority",
+  "jurisdiction",
+  "metadata",
+  "name",
+  "notes",
+  "periodEnd",
+  "periodStart",
+  "referenceNumber",
+  "reminderChannel",
+  "reminderDays",
+  "renewalDate",
+  "renewalFrequency",
+] as const;
+
+export const UpdateComplianceDocumentSchema = partial(
+  pick(CreateComplianceDocumentSchema, MUTABLE_DOCUMENT_KEYS),
+);
 
 export type UpdateComplianceDocumentInput = InferOutput<typeof UpdateComplianceDocumentSchema>;
+
+export const IMMUTABLE_DOCUMENT_KEYS = [
+  "createdBy",
+  "obligationId",
+  "sourceEntityId",
+  "sourceEntityType",
+  "sourceModule",
+] as const;
 
 export const ComplianceDocumentFiltersSchema = object({
   assignedReviewer: optional(string()),
@@ -93,10 +112,15 @@ export const ComplianceDocumentFiltersSchema = object({
   expiringWithinDays: optional(number()),
   jurisdiction: optional(string()),
   obligationId: optional(string()),
+  orderBy: optional(
+    union([literal("updatedAtDesc"), literal("periodStartAsc"), literal("expiryAsc")]),
+  ),
+  requireCompletedAtNull: optional(boolean()),
   reviewer: optional(string()),
   sourceEntityId: optional(string()),
   sourceEntityType: optional(string()),
   sourceModule: optional(string()),
+  statuses: optional(array(VerificationStatusSchema)),
   verificationStatus: optional(VerificationStatusSchema),
 });
 

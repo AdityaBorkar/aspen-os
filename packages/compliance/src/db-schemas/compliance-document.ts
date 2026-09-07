@@ -4,6 +4,7 @@ import {
   renewalFrequencyEnum,
   verificationStatusEnum,
 } from "#/db-schemas/enums";
+import { DEFAULT_REMINDER_DAYS_EXPIRY } from "#/utils/constants";
 
 import { uuidv7 } from "@aspen-os/platform/server";
 import type { JsonValue } from "@aspen-os/platform/server";
@@ -51,7 +52,7 @@ export const complianceDocument = pgTable(
     referenceNumber: text("reference_number"),
     rejectionReason: text("rejection_reason"),
     reminderChannel: reminderChannelEnum("reminder_channel").default("pubsub"),
-    reminderDays: integer("reminder_days").array().default([90, 60, 30, 7]),
+    reminderDays: integer("reminder_days").array().default(DEFAULT_REMINDER_DAYS_EXPIRY),
     renewalDate: date("renewal_date"),
     renewalFrequency: renewalFrequencyEnum("renewal_frequency"),
     renewedFrom: text("renewed_from"),

@@ -1,17 +1,29 @@
-import { isWorkflowKvStore } from "#/workflows/utils";
+import { dashboardSummaryKey, dashboardSummaryPattern } from "#/workflows/dashboard/cache/keys";
+import { getKvStore } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
+import { object, optional, string } from "valibot";
 
-const CACHE_KEY = "compliance:dashboard:summary";
+const InvalidateInputSchema = object({
+  branch: optional(string()),
+});
 
-const invalidateCache = Workflow.name("dashboard.invalidate-cache").handler(
-  async (_input: Record<string, never>, ctx): Promise<void> => {
-    const kvStore = isWorkflowKvStore(ctx.config.kvStore) ? ctx.config.kvStore : undefined;
+const invalidateCache = Workflow.name("dashboard.invalidate-cache")
+  .input(InvalidateInputSchema)
+  .handler(async ({ branch }, ctx): Promise<void> => {
+    const kvStore = getKvStore(ctx.config);
     if (!kvStore) {
       return;
     }
-    await kvStore.del(CACHE_KEY);
-  },
-);
+    if (branch) {
+      await kvStore.del(dashboardSummaryKey(branch));
+      return;
+    }
+    if (kvStore.clear) {
+      await kvStore.clear(dashboardSummaryPattern());
+      return;
+    }
+    await kvStore.del(dashboardSummaryKey());
+  });
 
 export { invalidateCache };

@@ -66,6 +66,7 @@ export type {
   VerificationStatus,
 } from "#/utils/constants";
 export {
+  ACTIVE_DOCUMENT_STATUSES,
   AUDIT_ACTION,
   AUDIT_ENTITY_TYPE,
   COMPLIANCE_CATEGORY,
@@ -73,19 +74,25 @@ export {
   DEFAULT_ESCALATION_DAYS,
   DEFAULT_REMINDER_DAYS_DUE,
   DEFAULT_REMINDER_DAYS_EXPIRY,
+  EXPIRY_ELIGIBLE_STATUSES,
+  HEALTH_SCORE_WEIGHTS,
+  MAX_PERIODS_PER_RUN,
   OBLIGATION_FREQUENCY,
+  OVERDUE_ELIGIBLE_STATUSES,
   REMINDER_CHANNEL,
   RENEWAL_FREQUENCY,
   SCHEDULED_JOBS,
+  SYSTEM_ACTOR,
+  TRANSITION_CANDIDATE_STATUSES,
   VERIFICATION_STATUS,
 } from "#/utils/constants";
 
 export interface DashboardSummary {
   activeObligations: number;
-  byBranch: Record<string, number>;
-  byCategory: Record<string, number>;
-  bySourceModule: Record<string, number>;
-  byStatus: Record<string, number>;
+  byBranch: Partial<Record<string, number>>;
+  byCategory: Partial<Record<ComplianceCategory, number>>;
+  bySourceModule: Partial<Record<string, number>>;
+  byStatus: Partial<Record<VerificationStatus, number>>;
   documentsGenerated30d: number;
   dueSoon: number;
   expired: number;

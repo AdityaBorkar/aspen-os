@@ -1,6 +1,8 @@
 import { complianceDocument } from "#/db-schemas";
 import { COMPLIANCE_EVENTS } from "#/pubsub";
+import { VERIFICATION_STATUS } from "#/utils/constants";
 import { fetchDocumentStep } from "#/workflow-steps/fetch-document";
+import { assertTransitionAllowed } from "#/workflows/document/transition";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -10,18 +12,17 @@ const rejectDocument = Workflow.name("document.reject").handler(
     const { id, reviewerId, reason } = input;
     const current = await ctx.step.run(fetchDocumentStep, { id });
 
-    if (current.verificationStatus !== "under_review") {
-      throw new Error(`Cannot reject document in status "${current.verificationStatus}"`);
-    }
+    assertTransitionAllowed(current.verificationStatus, VERIFICATION_STATUS.REJECTED);
 
+    const now = new Date();
     const [updated] = await ctx.db
       .update(complianceDocument)
       .set({
         rejectionReason: reason,
-        reviewedAt: new Date(),
+        reviewedAt: now,
         reviewedBy: reviewerId,
-        updatedAt: new Date(),
-        verificationStatus: "rejected",
+        updatedAt: now,
+        verificationStatus: VERIFICATION_STATUS.REJECTED,
       })
       .where(eq(complianceDocument.id, id))
       .returning();

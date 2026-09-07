@@ -12,10 +12,12 @@ const listVerificationRules = Workflow.name("verification.list").handler(
         sourceModule?: string;
         isActive?: boolean;
       };
+      limit?: number;
+      offset?: number;
     },
     ctx,
   ) => {
-    const { filters } = input;
+    const { filters, limit, offset } = input;
     const conditions = [];
 
     if (filters?.category) {
@@ -30,11 +32,27 @@ const listVerificationRules = Workflow.name("verification.list").handler(
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    return ctx.db
+    let query = ctx.db
       .select()
       .from(complianceVerificationRule)
       .where(whereClause)
-      .orderBy(asc(complianceVerificationRule.priority));
+      .orderBy(asc(complianceVerificationRule.priority))
+      .$dynamic();
+
+    if (limit !== undefined) {
+      if (!Number.isInteger(limit) || limit < 0) {
+        throw new Error("limit must be an integer >= 0");
+      }
+      query = query.limit(limit);
+    }
+    if (offset !== undefined) {
+      if (!Number.isInteger(offset) || offset < 0) {
+        throw new Error("offset must be an integer >= 0");
+      }
+      query = query.offset(offset);
+    }
+
+    return query;
   },
 );
 

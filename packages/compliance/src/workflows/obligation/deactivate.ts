@@ -1,11 +1,13 @@
 import { complianceObligation } from "#/db-schemas";
 import { COMPLIANCE_EVENTS } from "#/pubsub";
+import { fetchObligationStep } from "#/workflow-steps/fetch-obligation";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 
 const deactivateObligation = Workflow.name("obligation.deactivate").handler(
-  async (input: { id: string }, ctx) => {
+  async (input: { id: string; performedBy?: string }, ctx) => {
+    const current = await ctx.step.run(fetchObligationStep, { id: input.id });
     const [updated] = await ctx.db
       .update(complianceObligation)
       .set({ isActive: false, updatedAt: new Date() })
@@ -18,8 +20,12 @@ const deactivateObligation = Workflow.name("obligation.deactivate").handler(
 
     await ctx.audit.write({
       action: "obligation_deactivated",
+      actorId: input.performedBy ?? ctx.actorId ?? current.createdBy,
+      crudAction: "update",
       entityId: input.id,
       entityType: "compliance_obligation",
+      newState: updated,
+      previousState: current,
     });
 
     await ctx.pubsub.publish(COMPLIANCE_EVENTS.OBLIGATION_DEACTIVATED, {

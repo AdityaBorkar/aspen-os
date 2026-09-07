@@ -1,15 +1,17 @@
 import { complianceObligation } from "#/db-schemas";
 import type { NewComplianceObligation } from "#/db-schemas";
 import { COMPLIANCE_EVENTS } from "#/pubsub";
-import { UpdateObligationSchema } from "#/types";
-import type { UpdateObligationInput } from "#/types";
+import { UpdateObligationSchema } from "#/schemas";
+import type { UpdateObligationInput } from "#/schemas";
+import { toDateOnly } from "#/utils/dates";
 import { fetchObligationStep } from "#/workflow-steps/fetch-obligation";
-import { toRecord } from "#/workflows/utils";
+import { diffRecords } from "#/workflows/document/shared";
 
 import { Workflow } from "@aspen-os/platform/server";
-import type { JsonValue } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { parse } from "valibot";
+
+const DATE_KEYS = new Set(["endDate", "startDate"]);
 
 const updateObligation = Workflow.name("obligation.update").handler(
   async (input: { id: string; patch: UpdateObligationInput }, ctx) => {
@@ -19,72 +21,22 @@ const updateObligation = Workflow.name("obligation.update").handler(
 
     const updateData: Partial<NewComplianceObligation> = { updatedAt: new Date() };
 
-    if (parsed.name !== undefined) {
-      updateData.name = parsed.name;
+    for (const [key, value] of Object.entries(parsed)) {
+      if (value === undefined) {
+        continue;
+      }
+      if (DATE_KEYS.has(key)) {
+        // SAFETY: DATE_KEYS only contains date columns, so narrowed values are Date instances.
+        Object.assign(updateData, {
+          [key]: value ? toDateOnly(value as Date) : null,
+        });
+      } else {
+        Object.assign(updateData, { [key]: value });
+      }
     }
-    if (parsed.category !== undefined) {
-      updateData.category = parsed.category;
-    }
-    if (parsed.documentType !== undefined) {
-      updateData.documentType = parsed.documentType;
-    }
-    if (parsed.frequency !== undefined) {
-      updateData.frequency = parsed.frequency;
-    }
-    if (parsed.customCron !== undefined) {
-      updateData.customCron = parsed.customCron;
-    }
-    if (parsed.dueDay !== undefined) {
-      updateData.dueDay = parsed.dueDay;
-    }
-    if (parsed.dueMonthOffset !== undefined) {
-      updateData.dueMonthOffset = parsed.dueMonthOffset;
-    }
-    if (parsed.expiryBased !== undefined) {
-      updateData.expiryBased = parsed.expiryBased;
-    }
-    if (parsed.expiryDurationMonths !== undefined) {
-      updateData.expiryDurationMonths = parsed.expiryDurationMonths;
-    }
-    if (parsed.periodBased !== undefined) {
-      updateData.periodBased = parsed.periodBased;
-    }
-    if (parsed.defaultReminderDays !== undefined) {
-      updateData.defaultReminderDays = parsed.defaultReminderDays;
-    }
-    if (parsed.defaultEscalationDays !== undefined) {
-      updateData.defaultEscalationDays = parsed.defaultEscalationDays;
-    }
-    if (parsed.defaultMetadata !== undefined) {
-      updateData.defaultMetadata = parsed.defaultMetadata;
-    }
-    if (parsed.defaultIssuingAuthority !== undefined) {
-      updateData.defaultIssuingAuthority = parsed.defaultIssuingAuthority;
-    }
-    if (parsed.defaultJurisdiction !== undefined) {
-      updateData.defaultJurisdiction = parsed.defaultJurisdiction;
-    }
-    if (parsed.defaultAssignedReviewer !== undefined) {
-      updateData.defaultAssignedReviewer = parsed.defaultAssignedReviewer;
-    }
-    if (parsed.defaultAssignedTo !== undefined) {
-      updateData.defaultAssignedTo = parsed.defaultAssignedTo;
-    }
-    if (parsed.branch !== undefined) {
-      updateData.branch = parsed.branch;
-    }
-    if (parsed.startDate !== undefined) {
-      const [date] = parsed.startDate.toISOString().split("T");
-      updateData.startDate = date;
-    }
-    if (parsed.endDate !== undefined) {
-      updateData.endDate = parsed.endDate ? parsed.endDate.toISOString().split("T")[0] : null;
-    }
-    if (parsed.isActive !== undefined) {
-      updateData.isActive = parsed.isActive;
-    }
-    if (parsed.autoGenerate !== undefined) {
-      updateData.autoGenerate = parsed.autoGenerate;
+
+    if (Object.keys(updateData).length <= 1) {
+      return current;
     }
 
     const [updated] = await ctx.db
@@ -97,19 +49,7 @@ const updateObligation = Workflow.name("obligation.update").handler(
       throw new Error("Database operation returned no result");
     }
 
-    const changes: Record<string, { new: JsonValue; old: JsonValue }> = {};
-    const oldRecord = toRecord(current);
-    const newRecord = toRecord(updated);
-    for (const key of Object.keys(updateData)) {
-      if (key === "updatedAt") {
-        continue;
-      }
-      const oldVal = oldRecord[key];
-      const newVal = newRecord[key];
-      if (oldVal !== newVal) {
-        changes[key] = { new: newVal, old: oldVal };
-      }
-    }
+    const changes = diffRecords(current, updated, Object.keys(updateData));
 
     await ctx.audit.write({
       action: "updated",

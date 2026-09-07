@@ -1,27 +1,24 @@
 import { complianceDocument } from "#/db-schemas";
 import type { TimelineEntry } from "#/types";
+import { ACTIVE_DOCUMENT_STATUSES } from "#/utils/constants";
+import { futureDateOnly } from "#/utils/dates";
 import { daysUntil } from "#/workflow-steps/status-derivation";
+import { requireValidDays } from "#/workflows/document/shared";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, asc, inArray, isNotNull, lte, or } from "drizzle-orm";
 
 const getDocumentTimeline = Workflow.name("document.timeline").handler(
   async (input: { days: number }, ctx): Promise<TimelineEntry[]> => {
-    const futureDate = new Date();
-    futureDate.setDate(futureDate.getDate() + input.days);
-    const futureDateStr = futureDate.toISOString().split("T")[0]!;
+    requireValidDays("days", input.days);
+    const futureDateStr = futureDateOnly(input.days);
 
     const docs = await ctx.db
       .select()
       .from(complianceDocument)
       .where(
         and(
-          inArray(complianceDocument.verificationStatus, [
-            "verified",
-            "submitted",
-            "under_review",
-            "draft",
-          ]),
+          inArray(complianceDocument.verificationStatus, [...ACTIVE_DOCUMENT_STATUSES]),
           or(
             and(
               isNotNull(complianceDocument.expiryDate),
@@ -38,7 +35,8 @@ const getDocumentTimeline = Workflow.name("document.timeline").handler(
 
     return docs.map((doc) => {
       const targetDate = doc.expiryDate ?? doc.dueDate;
-      const daysRemaining = targetDate ? (daysUntil(targetDate) ?? 0) : 0;
+      const raw = targetDate ? daysUntil(targetDate) : null;
+      const daysRemaining = raw === null || Number.isNaN(raw) ? 0 : raw;
       return {
         assignedReviewer: doc.assignedReviewer,
         assignedTo: doc.assignedTo,

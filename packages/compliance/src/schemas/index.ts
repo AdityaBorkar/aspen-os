@@ -37,3 +37,5 @@ export {
   CreateVerificationRuleSchema,
   UpdateVerificationRuleSchema,
 } from "#/schemas/verification-rule";
+export type { DashboardSummaryOutput } from "#/schemas/dashboard";
+export { DashboardSummarySchema } from "#/schemas/dashboard";

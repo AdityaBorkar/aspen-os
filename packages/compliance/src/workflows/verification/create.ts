@@ -1,5 +1,5 @@
 import { complianceVerificationRule } from "#/db-schemas";
-import { CreateVerificationRuleSchema } from "#/types";
+import { CreateVerificationRuleSchema } from "#/schemas";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
@@ -30,6 +30,7 @@ const createVerificationRule = Workflow.name("verification.create")
 
     await ctx.audit.write({
       action: "created",
+      actorId: ctx.actorId,
       crudAction: "create",
       entityId: result.id,
       entityType: "verification_rule",

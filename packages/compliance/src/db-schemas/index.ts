@@ -19,7 +19,15 @@ export {
   complianceVerificationRule,
   type NewComplianceVerificationRule,
 } from "#/db-schemas/compliance-verification-rule";
-export { complianceCategoryEnum, verificationStatusEnum } from "#/db-schemas/enums";
+export {
+  auditActionEnum,
+  auditEntityTypeEnum,
+  complianceCategoryEnum,
+  obligationFrequencyEnum,
+  reminderChannelEnum,
+  renewalFrequencyEnum,
+  verificationStatusEnum,
+} from "#/db-schemas/enums";
 export { sql };
 
 export const complianceTables = {

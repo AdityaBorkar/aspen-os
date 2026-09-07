@@ -1,7 +1,7 @@
 import { complianceVerificationRule } from "#/db-schemas";
 import type { NewComplianceVerificationRule } from "#/db-schemas";
-import { UpdateVerificationRuleSchema } from "#/types";
-import type { UpdateVerificationRuleInput } from "#/types";
+import { UpdateVerificationRuleSchema } from "#/schemas";
+import type { UpdateVerificationRuleInput } from "#/schemas";
 import { fetchRuleStep } from "#/workflow-steps/fetch-rule";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -15,27 +15,10 @@ const updateVerificationRule = Workflow.name("verification.update").handler(
     const parsed = parse(UpdateVerificationRuleSchema, patch);
 
     const updateData: Partial<NewComplianceVerificationRule> = {};
-
-    if (parsed.name !== undefined) {
-      updateData.name = parsed.name;
-    }
-    if (parsed.category !== undefined) {
-      updateData.category = parsed.category;
-    }
-    if (parsed.sourceModule !== undefined) {
-      updateData.sourceModule = parsed.sourceModule;
-    }
-    if (parsed.assignedReviewer !== undefined) {
-      updateData.assignedReviewer = parsed.assignedReviewer;
-    }
-    if (parsed.requiredReviewerRole !== undefined) {
-      updateData.requiredReviewerRole = parsed.requiredReviewerRole;
-    }
-    if (parsed.isActive !== undefined) {
-      updateData.isActive = parsed.isActive;
-    }
-    if (parsed.priority !== undefined) {
-      updateData.priority = parsed.priority;
+    for (const [key, value] of Object.entries(parsed)) {
+      if (value !== undefined) {
+        Object.assign(updateData, { [key]: value });
+      }
     }
 
     if (Object.keys(updateData).length === 0) {
@@ -54,6 +37,7 @@ const updateVerificationRule = Workflow.name("verification.update").handler(
 
     await ctx.audit.write({
       action: "updated",
+      actorId: ctx.actorId,
       crudAction: "update",
       entityId: id,
       entityType: "verification_rule",

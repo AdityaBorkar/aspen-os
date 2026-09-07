@@ -1,13 +1,19 @@
 import type { VerificationStatus } from "#/utils/constants";
+import { VERIFICATION_STATUS } from "#/utils/constants";
+
+const MS_PER_DAY = 86_400_000;
 
 export function daysUntil(dateStr: string | null): number | null {
   if (!dateStr) {
     return null;
   }
   const target = new Date(dateStr);
+  if (!Number.isFinite(target.getTime())) {
+    return null;
+  }
   const now = new Date();
   const diff = target.getTime() - now.getTime();
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  return Math.ceil(diff / MS_PER_DAY);
 }
 
 export function daysSince(dateStr: string | null): number | null {
@@ -15,17 +21,20 @@ export function daysSince(dateStr: string | null): number | null {
     return null;
   }
   const target = new Date(dateStr);
+  if (!Number.isFinite(target.getTime())) {
+    return null;
+  }
   const now = new Date();
   const diff = now.getTime() - target.getTime();
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  return Math.ceil(diff / MS_PER_DAY);
 }
 
 export function isTerminal(status: VerificationStatus): boolean {
-  return status === "archived" || status === "renewed";
+  return status === VERIFICATION_STATUS.ARCHIVED || status === VERIFICATION_STATUS.RENEWED;
 }
 
 export function isAutoTransitionable(status: VerificationStatus): boolean {
-  return status !== "draft" && !isTerminal(status);
+  return status !== VERIFICATION_STATUS.DRAFT && !isTerminal(status);
 }
 
 export function deriveExpiryStatus(
@@ -45,8 +54,13 @@ export function deriveExpiryStatus(
   }
 
   if (days <= 0) {
-    if (currentStatus === "verified" || currentStatus === "submitted") {
-      return "expired";
+    if (
+      currentStatus === VERIFICATION_STATUS.VERIFIED ||
+      currentStatus === VERIFICATION_STATUS.SUBMITTED ||
+      currentStatus === VERIFICATION_STATUS.UNDER_REVIEW ||
+      currentStatus === VERIFICATION_STATUS.OVERDUE
+    ) {
+      return VERIFICATION_STATUS.EXPIRED;
     }
   }
 
@@ -59,6 +73,9 @@ export function deriveOverdueStatus(
   completedAt: Date | null,
 ): VerificationStatus | null {
   if (!isAutoTransitionable(currentStatus)) {
+    return null;
+  }
+  if (currentStatus === VERIFICATION_STATUS.EXPIRED) {
     return null;
   }
   if (!dueDate) {
@@ -74,7 +91,7 @@ export function deriveOverdueStatus(
   }
 
   if (days <= 0) {
-    return "overdue";
+    return VERIFICATION_STATUS.OVERDUE;
   }
 
   return null;
@@ -91,9 +108,7 @@ export function shouldNotify(
       if (!lastNotifiedAt) {
         return true;
       }
-      const lastNotifiedDays = Math.ceil(
-        (Date.now() - lastNotifiedAt.getTime()) / (1000 * 60 * 60 * 24),
-      );
+      const lastNotifiedDays = Math.ceil((Date.now() - lastNotifiedAt.getTime()) / MS_PER_DAY);
       const nextThreshold = sorted.find((candidate) => candidate < threshold);
       if (nextThreshold === undefined) {
         return lastNotifiedDays > 0;
@@ -126,9 +141,7 @@ export function shouldEscalate(
       if (!lastEscalatedAt) {
         return index + 1;
       }
-      const lastEscalatedDays = Math.ceil(
-        (Date.now() - lastEscalatedAt.getTime()) / (1000 * 60 * 60 * 24),
-      );
+      const lastEscalatedDays = Math.ceil((Date.now() - lastEscalatedAt.getTime()) / MS_PER_DAY);
       const nextThreshold = sorted[index + 1];
       if (nextThreshold !== undefined && daysSinceTarget >= nextThreshold) {
         continue;

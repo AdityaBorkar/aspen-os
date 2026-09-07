@@ -1,4 +1,4 @@
-import type { ComplianceCategory, VerificationStatus } from "#/utils/constants";
+import type { ComplianceCategory } from "#/utils/constants";
 
 import type { JsonValue } from "@aspen-os/platform/server";
 
@@ -46,21 +46,22 @@ export const DOCUMENT_EVENTS = {
   SUBMITTED: COMPLIANCE_EVENTS.DOCUMENT_SUBMITTED,
   UPDATED: COMPLIANCE_EVENTS.DOCUMENT_UPDATED,
   VERIFIED: COMPLIANCE_EVENTS.DOCUMENT_VERIFIED,
-} as const;
+} as const satisfies Record<string, (typeof COMPLIANCE_EVENTS)[keyof typeof COMPLIANCE_EVENTS]>;
 
 export const OBLIGATION_EVENTS = {
   ACTIVATED: COMPLIANCE_EVENTS.OBLIGATION_ACTIVATED,
   CREATED: COMPLIANCE_EVENTS.OBLIGATION_CREATED,
   DEACTIVATED: COMPLIANCE_EVENTS.OBLIGATION_DEACTIVATED,
   UPDATED: COMPLIANCE_EVENTS.OBLIGATION_UPDATED,
-} as const;
+} as const satisfies Record<string, (typeof COMPLIANCE_EVENTS)[keyof typeof COMPLIANCE_EVENTS]>;
 
 export const SYSTEM_EVENTS = {
   SCHEDULED_JOB_EXECUTED: COMPLIANCE_EVENTS.SCHEDULED_JOB_EXECUTED,
   WEEKLY_SUMMARY: COMPLIANCE_EVENTS.WEEKLY_SUMMARY,
-} as const;
+} as const satisfies Record<string, (typeof COMPLIANCE_EVENTS)[keyof typeof COMPLIANCE_EVENTS]>;
 
 export const events = {
+  COMPLIANCE_EVENTS,
   DOCUMENT_EVENTS,
   OBLIGATION_EVENTS,
   SYSTEM_EVENTS,
@@ -256,9 +257,3 @@ export interface SystemEventMap {
 }
 
 export type ComplianceEventMap = DocumentEventMap & ObligationEventMap & SystemEventMap;
-
-export interface VerificationStatusChangeEvent {
-  documentId: string;
-  fromStatus: VerificationStatus;
-  toStatus: VerificationStatus;
-}

@@ -4,13 +4,20 @@ import type { RenewalChainEntry } from "#/types";
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 
+const MAX_CHAIN_DEPTH = 50;
+
 const getRenewalChain = Workflow.name("document.renewal-chain").handler(
   async (input: { id: string }, ctx): Promise<RenewalChainEntry[]> => {
     const chain: RenewalChainEntry[] = [];
+    const visited = new Set<string>();
     let currentId: string | null = input.id;
 
     // oxlint-disable eslint/no-await-in-loop
-    while (currentId) {
+    while (currentId && chain.length < MAX_CHAIN_DEPTH) {
+      if (visited.has(currentId)) {
+        break;
+      }
+      visited.add(currentId);
       const [doc] = await ctx.db
         .select({
           createdAt: complianceDocument.createdAt,

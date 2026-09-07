@@ -1,6 +1,8 @@
 import { complianceObligation } from "#/db-schemas";
 import { COMPLIANCE_EVENTS } from "#/pubsub";
-import { CreateObligationSchema } from "#/types";
+import { CreateObligationSchema } from "#/schemas";
+import { reminderDefaults } from "#/utils/constants";
+import { toDateOnly } from "#/utils/dates";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
@@ -12,8 +14,7 @@ const createObligation = Workflow.name("obligation.create")
   .handler(async ({ input }, ctx) => {
     const parsed = input;
 
-    const defaultReminderDays =
-      parsed.defaultReminderDays ?? (parsed.expiryBased ? [90, 60, 30, 7] : [30, 15, 7, 1]);
+    const defaultReminderDays = parsed.defaultReminderDays ?? reminderDefaults(parsed.expiryBased);
 
     const [result] = await ctx.db
       .insert(complianceObligation)
@@ -33,7 +34,7 @@ const createObligation = Workflow.name("obligation.create")
         documentType: parsed.documentType ?? null,
         dueDay: parsed.dueDay ?? null,
         dueMonthOffset: parsed.dueMonthOffset ?? null,
-        endDate: parsed.endDate ? parsed.endDate.toISOString().split("T")[0] : null,
+        endDate: parsed.endDate ? toDateOnly(parsed.endDate) : null,
         expiryBased: parsed.expiryBased ?? false,
         expiryDurationMonths: parsed.expiryDurationMonths ?? null,
         frequency: parsed.frequency,
@@ -43,7 +44,7 @@ const createObligation = Workflow.name("obligation.create")
         sourceEntityId: parsed.sourceEntityId ?? null,
         sourceEntityType: parsed.sourceEntityType ?? null,
         sourceModule: parsed.sourceModule,
-        startDate: parsed.startDate.toISOString().slice(0, 10),
+        startDate: toDateOnly(parsed.startDate),
       })
       .returning();
 

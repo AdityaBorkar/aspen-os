@@ -66,6 +66,7 @@ export const documents = {
   create: createDocument,
   get: getDocumentById,
   getActiveDocumentsForReminders,
+  getById: getDocumentById,
   getByObligation: getDocumentsByObligation,
   getBySource: getDocumentsBySource,
   getDueSoonDocuments,
@@ -94,6 +95,7 @@ export const obligations = {
   activate: activateObligation,
   create: createObligation,
   deactivate: deactivateObligation,
+  /** @deprecated use getById */
   get: getObligationById,
   getActive: getActiveObligations,
   getById: getObligationById,
@@ -105,6 +107,7 @@ export const obligations = {
 export const verification = {
   create: createVerificationRule,
   delete: deleteVerificationRule,
+  /** @deprecated use getById */
   get: getVerificationRuleById,
   getById: getVerificationRuleById,
   list: listVerificationRules,

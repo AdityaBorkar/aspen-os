@@ -1,39 +1,22 @@
 import { complianceDocument, complianceObligation } from "#/db-schemas";
+import { DashboardSummarySchema } from "#/schemas/dashboard";
 import type { DashboardSummary } from "#/types";
-import { computeHealthScore, isWorkflowKvStore } from "#/workflows/utils";
+import { VERIFICATION_STATUS } from "#/utils/constants";
+import { futureDateOnly, todayDateOnly } from "#/utils/dates";
+import { dashboardSummaryKey } from "#/workflows/dashboard/cache/keys";
+import { computeHealthScore, getCacheTtl, getKvStore } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, gte, isNotNull, sql } from "drizzle-orm";
-import { number, object, record, safeParse, string } from "valibot";
-
-const CACHE_KEY = "compliance:dashboard:summary";
-
-const DashboardSummarySchema = object({
-  activeObligations: number(),
-  byBranch: record(string(), number()),
-  byCategory: record(string(), number()),
-  bySourceModule: record(string(), number()),
-  byStatus: record(string(), number()),
-  documentsGenerated30d: number(),
-  dueSoon: number(),
-  expired: number(),
-  expiringSoon: number(),
-  healthScore: number(),
-  overdue: number(),
-  pendingReview: number(),
-  rejected: number(),
-  total: number(),
-  verified: number(),
-});
+import { safeParse } from "valibot";
 
 const getDashboardSummary = Workflow.name("dashboard.summary").handler(
   async (input: { branchFilter?: string }, ctx): Promise<DashboardSummary> => {
     const { branchFilter } = input;
-    const kvStore = isWorkflowKvStore(ctx.config.kvStore) ? ctx.config.kvStore : undefined;
-    const cacheTtlResult = safeParse(number(), ctx.config.cacheTtl);
-    const cacheTtl = cacheTtlResult.success ? cacheTtlResult.output : 300;
+    const kvStore = getKvStore(ctx.config);
+    const cacheTtl = getCacheTtl(ctx.config, 300);
 
-    const cacheKey = branchFilter ? `${CACHE_KEY}:${branchFilter}` : CACHE_KEY;
+    const cacheKey = dashboardSummaryKey(branchFilter);
 
     const cached = kvStore ? await kvStore.get(cacheKey) : null;
     const cachedSummary = safeParse(DashboardSummarySchema, cached);
@@ -49,111 +32,120 @@ const getDashboardSummary = Workflow.name("dashboard.summary").handler(
     }
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const [counts] = await db
-      .select({
-        expired: sql<number>`count(*) filter (where ${complianceDocument.verificationStatus} = 'expired')::int`,
-        overdue: sql<number>`count(*) filter (where ${complianceDocument.verificationStatus} = 'overdue')::int`,
-        pendingReview: sql<number>`count(*) filter (where ${complianceDocument.verificationStatus} in ('submitted', 'under_review'))::int`,
-        rejected: sql<number>`count(*) filter (where ${complianceDocument.verificationStatus} = 'rejected')::int`,
-        total: sql<number>`count(*) filter (where ${complianceDocument.verificationStatus} != 'archived')::int`,
-        verified: sql<number>`count(*) filter (where ${complianceDocument.verificationStatus} = 'verified')::int`,
-      })
-      .from(complianceDocument)
-      .where(whereClause);
+    const nowStr = todayDateOnly();
+    const futureStr = futureDateOnly(30);
 
-    const now = new Date();
-    const thirtyDaysLater = new Date();
-    thirtyDaysLater.setDate(thirtyDaysLater.getDate() + 30);
-    const nowStr = now.toISOString().split("T")[0]!;
-    const futureStr = thirtyDaysLater.toISOString().split("T")[0]!;
+    const [
+      countsRows,
+      dateCountsRows,
+      categoryRows,
+      sourceRows,
+      branchRows,
+      statusRows,
+      obligationCountRows,
+      generatedCountRows,
+    ] = await Promise.all([
+      db
+        .select({
+          expired: sql<number>`count(*) filter (where ${complianceDocument.verificationStatus} = ${VERIFICATION_STATUS.EXPIRED})::int`,
+          overdue: sql<number>`count(*) filter (where ${complianceDocument.verificationStatus} = ${VERIFICATION_STATUS.OVERDUE})::int`,
+          pendingReview: sql<number>`count(*) filter (where ${complianceDocument.verificationStatus} in (${VERIFICATION_STATUS.SUBMITTED}, ${VERIFICATION_STATUS.UNDER_REVIEW}))::int`,
+          rejected: sql<number>`count(*) filter (where ${complianceDocument.verificationStatus} = ${VERIFICATION_STATUS.REJECTED})::int`,
+          total: sql<number>`count(*) filter (where ${complianceDocument.verificationStatus} != ${VERIFICATION_STATUS.ARCHIVED})::int`,
+          verified: sql<number>`count(*) filter (where ${complianceDocument.verificationStatus} = ${VERIFICATION_STATUS.VERIFIED})::int`,
+        })
+        .from(complianceDocument)
+        .where(whereClause),
+      db
+        .select({
+          dueSoon: sql<number>`count(*) filter (where ${complianceDocument.dueDate} is not null and ${complianceDocument.dueDate} <= ${futureStr} and ${complianceDocument.dueDate} >= ${nowStr} and ${complianceDocument.completedAt} is null)::int`,
+          expiringSoon: sql<number>`count(*) filter (where ${complianceDocument.expiryDate} is not null and ${complianceDocument.expiryDate} <= ${futureStr} and ${complianceDocument.expiryDate} >= ${nowStr})::int`,
+        })
+        .from(complianceDocument)
+        .where(whereClause),
+      db
+        .select({
+          category: complianceDocument.category,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(complianceDocument)
+        .where(whereClause)
+        .groupBy(complianceDocument.category),
+      db
+        .select({
+          count: sql<number>`count(*)::int`,
+          sourceModule: complianceDocument.sourceModule,
+        })
+        .from(complianceDocument)
+        .where(whereClause)
+        .groupBy(complianceDocument.sourceModule),
+      db
+        .select({
+          branch: complianceDocument.branch,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(complianceDocument)
+        .where(whereClause)
+        .groupBy(complianceDocument.branch),
+      db
+        .select({
+          count: sql<number>`count(*)::int`,
+          status: complianceDocument.verificationStatus,
+        })
+        .from(complianceDocument)
+        .where(whereClause)
+        .groupBy(complianceDocument.verificationStatus),
+      db
+        .select({
+          count: sql<number>`count(*)::int`,
+        })
+        .from(complianceObligation)
+        .where(eq(complianceObligation.isActive, true)),
+      (() => {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const generatedConditions = [
+          isNotNull(complianceDocument.obligationId),
+          gte(complianceDocument.createdAt, thirtyDaysAgo),
+        ];
+        if (branchFilter) {
+          generatedConditions.push(eq(complianceDocument.branch, branchFilter));
+        }
+        return db
+          .select({
+            count: sql<number>`count(*)::int`,
+          })
+          .from(complianceDocument)
+          .where(and(...generatedConditions));
+      })(),
+    ]);
 
-    const [dateCounts] = await db
-      .select({
-        dueSoon: sql<number>`count(*) filter (where ${complianceDocument.dueDate} is not null and ${complianceDocument.dueDate} <= '${sql.raw(futureStr)}' and ${complianceDocument.dueDate} >= '${sql.raw(nowStr)}' and ${complianceDocument.completedAt} is null)::int`,
-        expiringSoon: sql<number>`count(*) filter (where ${complianceDocument.expiryDate} is not null and ${complianceDocument.expiryDate} <= '${sql.raw(futureStr)}' and ${complianceDocument.expiryDate} >= '${sql.raw(nowStr)}')::int`,
-      })
-      .from(complianceDocument)
-      .where(whereClause);
+    const [counts] = countsRows;
+    const [dateCounts] = dateCountsRows;
+    const [obligationCount] = obligationCountRows;
+    const [generatedCount] = generatedCountRows;
 
-    const categoryRows = await db
-      .select({
-        category: complianceDocument.category,
-        count: sql<number>`count(*)::int`,
-      })
-      .from(complianceDocument)
-      .where(whereClause)
-      .groupBy(complianceDocument.category);
-
-    const byCategory: Record<string, number> = {};
+    const byCategory: DashboardSummary["byCategory"] = {};
     for (const row of categoryRows) {
       byCategory[row.category] = row.count;
     }
 
-    const sourceRows = await db
-      .select({
-        count: sql<number>`count(*)::int`,
-        sourceModule: complianceDocument.sourceModule,
-      })
-      .from(complianceDocument)
-      .where(whereClause)
-      .groupBy(complianceDocument.sourceModule);
-
-    const bySourceModule: Record<string, number> = {};
+    const bySourceModule: DashboardSummary["bySourceModule"] = {};
     for (const row of sourceRows) {
       bySourceModule[row.sourceModule] = row.count;
     }
 
-    const branchRows = await db
-      .select({
-        branch: complianceDocument.branch,
-        count: sql<number>`count(*)::int`,
-      })
-      .from(complianceDocument)
-      .where(whereClause)
-      .groupBy(complianceDocument.branch);
-
-    const byBranch: Record<string, number> = {};
+    const byBranch: DashboardSummary["byBranch"] = {};
     for (const row of branchRows) {
       if (row.branch) {
         byBranch[row.branch] = row.count;
       }
     }
 
-    const statusRows = await db
-      .select({
-        count: sql<number>`count(*)::int`,
-        status: complianceDocument.verificationStatus,
-      })
-      .from(complianceDocument)
-      .where(whereClause)
-      .groupBy(complianceDocument.verificationStatus);
-
-    const byStatus: Record<string, number> = {};
+    const byStatus: DashboardSummary["byStatus"] = {};
     for (const row of statusRows) {
       byStatus[row.status] = row.count;
     }
-
-    const [obligationCount] = await db
-      .select({
-        count: sql<number>`count(*)::int`,
-      })
-      .from(complianceObligation)
-      .where(eq(complianceObligation.isActive, true));
-
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const [generatedCount] = await db
-      .select({
-        count: sql<number>`count(*)::int`,
-      })
-      .from(complianceDocument)
-      .where(
-        and(
-          isNotNull(complianceDocument.obligationId),
-          gte(complianceDocument.createdAt, thirtyDaysAgo),
-        ),
-      );
 
     const total = counts?.total ?? 0;
     const verified = counts?.verified ?? 0;
@@ -169,7 +161,9 @@ const getDashboardSummary = Workflow.name("dashboard.summary").handler(
       verified,
     });
 
-    const summary = {
+    // Note: `total` excludes archived documents while `byStatus` includes
+    // every status, so total !== sum(byStatus) by design.
+    const summary: DashboardSummary = {
       activeObligations: obligationCount?.count ?? 0,
       byBranch,
       byCategory,
@@ -188,7 +182,9 @@ const getDashboardSummary = Workflow.name("dashboard.summary").handler(
     };
 
     if (kvStore) {
-      await kvStore.set(cacheKey, summary, cacheTtl);
+      // JSON round-trip intentionally erases the nominal DashboardSummary type to plain JSON for kvStore.
+      // oxlint-disable unicorn/prefer-structured-clone
+      await kvStore.set(cacheKey, JSON.parse(JSON.stringify(summary)), cacheTtl);
     }
 
     return summary;

@@ -1,6 +1,8 @@
 import { complianceDocument } from "#/db-schemas";
 import { COMPLIANCE_EVENTS } from "#/pubsub";
+import { VERIFICATION_STATUS } from "#/utils/constants";
 import { fetchDocumentStep } from "#/workflow-steps/fetch-document";
+import { assertTransitionAllowed } from "#/workflows/document/transition";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -11,7 +13,7 @@ const completeDocument = Workflow.name("document.complete").handler(
       id: string;
       data: {
         completedAt?: Date;
-        referenceNumber?: string;
+        referenceNumber?: string | null;
         attachmentKey?: string;
       };
     },
@@ -20,15 +22,23 @@ const completeDocument = Workflow.name("document.complete").handler(
     const { id, data } = input;
     const current = await ctx.step.run(fetchDocumentStep, { id });
     const completedAt = data.completedAt ?? new Date();
+    if (!Number.isFinite(completedAt.getTime())) {
+      throw new Error("completedAt must be a valid Date");
+    }
 
+    if (current.verificationStatus !== VERIFICATION_STATUS.VERIFIED) {
+      assertTransitionAllowed(current.verificationStatus, VERIFICATION_STATUS.VERIFIED);
+    }
+
+    const now = new Date();
     const [updated] = await ctx.db
       .update(complianceDocument)
       .set({
         attachment: data.attachmentKey ?? current.attachment,
         completedAt,
         referenceNumber: data.referenceNumber ?? current.referenceNumber,
-        updatedAt: new Date(),
-        verificationStatus: "verified",
+        updatedAt: now,
+        verificationStatus: VERIFICATION_STATUS.VERIFIED,
       })
       .where(eq(complianceDocument.id, id))
       .returning();

@@ -1,23 +1,16 @@
 import { complianceDocument } from "#/db-schemas";
+import { expiredCondition } from "#/workflows/document/shared";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { and, inArray, isNotNull, lte } from "drizzle-orm";
+import { asc } from "drizzle-orm";
 
 const getExpiredDocuments = Workflow.name("document.expired").handler(
-  async (_input: Record<string, never>, ctx) => {
-    const todayStr = new Date().toISOString().split("T")[0]!;
-
-    return ctx.db
+  async (_input: Record<string, never>, ctx) =>
+    ctx.db
       .select()
       .from(complianceDocument)
-      .where(
-        and(
-          isNotNull(complianceDocument.expiryDate),
-          lte(complianceDocument.expiryDate, todayStr),
-          inArray(complianceDocument.verificationStatus, ["verified", "submitted", "under_review"]),
-        ),
-      );
-  },
+      .where(expiredCondition())
+      .orderBy(asc(complianceDocument.expiryDate)),
 );
 
 export { getExpiredDocuments };
