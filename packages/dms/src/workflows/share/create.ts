@@ -1,6 +1,7 @@
-import { dmsFile, dmsFolder, dmsShare } from "#/db-schemas";
+import { dmsShare } from "#/db-schemas";
 import { SHARE_EVENTS } from "#/pubsub";
-import { CreateShareSchema } from "#/types";
+import { resolveEntity } from "#/services/entity-resolver";
+import { CreateShareSchema, parseShareExpiry } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, GRANTEE_TYPE } from "#/utils/constants";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -14,29 +15,17 @@ export const createShare = Workflow.name("dms.share.create")
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateShareSchema, input);
 
-    if (parsed.entityType === "file") {
-      const [file] = await ctx.db
-        .select({ id: dmsFile.id, status: dmsFile.status })
-        .from(dmsFile)
-        .where(eq(dmsFile.id, parsed.entityId))
-        .limit(1);
-
-      if (!file) {
-        throw new Error(`File "${parsed.entityId}" not found.`);
-      }
-      if (file.status !== "active") {
+    const entity = await resolveEntity(ctx.db, parsed.entityType, parsed.entityId);
+    if (!entity) {
+      throw new Error(
+        `${parsed.entityType === "file" ? "File" : "Folder"} "${parsed.entityId}" not found.`,
+      );
+    }
+    if (!entity.isSharable) {
+      if (entity.kind === "file") {
         throw new Error("Files must be active before they can be shared. Classify the file first.");
       }
-    } else {
-      const [folder] = await ctx.db
-        .select({ id: dmsFolder.id })
-        .from(dmsFolder)
-        .where(eq(dmsFolder.id, parsed.entityId))
-        .limit(1);
-
-      if (!folder) {
-        throw new Error(`Folder "${parsed.entityId}" not found.`);
-      }
+      throw new Error("Trashed folders cannot be shared. Restore the folder first.");
     }
 
     const existing = await ctx.db
@@ -56,12 +45,14 @@ export const createShare = Workflow.name("dms.share.create")
       throw new Error("This entity is already shared with the specified grantee.");
     }
 
+    const expiresAt = parseShareExpiry(parsed.expiresAt ?? null);
+
     const [share] = await ctx.db
       .insert(dmsShare)
       .values({
         entityId: parsed.entityId,
         entityType: parsed.entityType,
-        expiresAt: parsed.expiresAt ? new Date(parsed.expiresAt) : null,
+        expiresAt,
         granteeId: parsed.granteeId,
         granteeType: parsed.granteeType,
         message: parsed.message ?? null,

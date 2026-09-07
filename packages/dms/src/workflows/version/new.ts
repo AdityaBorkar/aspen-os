@@ -1,14 +1,10 @@
-import { dmsFile, dmsFileVersion } from "#/db-schemas";
 import { FILE_EVENTS } from "#/pubsub";
-import { getDmsConfig } from "#/runtime";
-import { pruneVersions } from "#/services/purge-service";
-import { computeStorageKey, upload as uploadStorage } from "#/services/storage-bridge";
+import { appendVersion } from "#/services/version-service";
 import { IdSchema, NewVersionSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchFileStep } from "#/workflow-steps/fetch-file";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { eq } from "drizzle-orm";
 import { is, object, parse, string } from "valibot";
 
 const NewVersionInputSchema = object({
@@ -31,68 +27,22 @@ export const newFileVersion = Workflow.name("dms.version.new")
       );
     }
 
-    const config = getDmsConfig();
-    const newVersion = file.version + 1;
-
-    const name = parsed.name ?? file.name;
-    const storageKey = computeStorageKey({
-      fileId,
-      name,
-      version: newVersion,
-    });
-
     const { body } = parsed;
     if (!(body instanceof Buffer) && !(body instanceof ReadableStream) && !is(string(), body)) {
       throw new Error("Invalid file body: expected a string, Buffer, or ReadableStream.");
     }
 
-    const fileObject = await ctx.step.run("upload-storage", async () =>
-      uploadStorage({
-        body,
-        contentType: parsed.contentType ?? file.contentType,
-        key: storageKey,
-      }),
-    );
-
-    await ctx.step.run("record-history", async () => {
-      await ctx.db.insert(dmsFileVersion).values({
-        compression: file.compression,
-        contentType: file.contentType,
-        etag: file.etag,
-        fileId,
-        isCurrent: false,
-        name: file.name,
-        size: file.size,
-        storageKey: file.storageKey,
-        uploadedBy: file.uploadedBy,
-        version: file.version,
-      });
-    });
-
     const actorId = ctx.actorId ?? parsed.uploadedBy ?? file.ownerId;
 
-    const [updated] = await ctx.db
-      .update(dmsFile)
-      .set({
-        contentType: parsed.contentType ?? file.contentType,
-        etag: fileObject.etag ?? null,
-        name,
-        size: fileObject.size,
-        storageKey,
-        updatedAt: new Date(),
+    const { newVersion, updated } = await ctx.step.run("append-version", async () =>
+      appendVersion(ctx.db, file, {
+        actorId,
+        body,
+        contentType: parsed.contentType ?? undefined,
+        name: parsed.name ?? undefined,
         uploadedBy: actorId,
-        version: newVersion,
-      })
-      .where(eq(dmsFile.id, fileId))
-      .returning();
-
-    if (!updated) {
-      throw new Error(`File with id "${fileId}" not found.`);
-    }
-
-    await ctx.step.run("prune", async () => {
-      await pruneVersions(ctx.db, fileId, config.maxVersions);
-    });
+      }),
+    );
 
     await ctx.step.run("audit-and-notify", async () => {
       await ctx.audit.write({
@@ -101,7 +51,7 @@ export const newFileVersion = Workflow.name("dms.version.new")
         entityId: fileId,
         entityType: AUDIT_ENTITY_TYPE.FILE,
         metadata: { version: newVersion },
-        newState: { name, size: fileObject.size, version: newVersion },
+        newState: { name: updated.name, size: updated.size, version: newVersion },
         previousState: { name: file.name, size: file.size, version: file.version },
       });
 

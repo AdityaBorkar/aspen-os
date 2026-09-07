@@ -1,11 +1,10 @@
-import { dmsFile } from "#/db-schemas";
 import { FILE_EVENTS } from "#/pubsub";
 import { AddMetadataSchema, IdSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchFileStep } from "#/workflow-steps/fetch-file";
+import { patchFileMetadata } from "#/workflows/file/metadata/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { eq } from "drizzle-orm";
 import { object, parse } from "valibot";
 
 const AddMetadataInputSchema = object({ id: IdSchema, input: AddMetadataSchema });
@@ -16,20 +15,10 @@ export const addFileMetadata = Workflow.name("dms.file.add-metadata")
     const file = await ctx.step.run(fetchFileStep, { id });
     const parsed = parse(AddMetadataSchema, input);
 
-    const metadata = {
-      ...file.metadata,
+    const updated = await patchFileMetadata(ctx.db, file, (metadata) => ({
+      ...metadata,
       [parsed.key]: parsed.value,
-    };
-
-    const [updated] = await ctx.db
-      .update(dmsFile)
-      .set({ metadata, updatedAt: new Date() })
-      .where(eq(dmsFile.id, id))
-      .returning();
-
-    if (!updated) {
-      throw new Error(`File "${id}" not found.`);
-    }
+    }));
 
     await ctx.step.run("audit-and-notify", async () => {
       await ctx.audit.write({
@@ -38,7 +27,7 @@ export const addFileMetadata = Workflow.name("dms.file.add-metadata")
         entityId: id,
         entityType: AUDIT_ENTITY_TYPE.FILE,
         metadata: { key: parsed.key },
-        newState: { metadata },
+        newState: { metadata: updated.metadata },
         previousState: { metadata: file.metadata },
       });
 

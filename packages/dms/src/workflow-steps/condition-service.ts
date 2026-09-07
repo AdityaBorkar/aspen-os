@@ -17,6 +17,7 @@ import {
   lt,
   lte,
   ne,
+  notIlike,
   notInArray,
   sql,
 } from "drizzle-orm";
@@ -85,7 +86,7 @@ const DateStringSchema = pipe(
   check((val) => !Number.isNaN(val.getTime())),
 );
 
-function parseNumeric(value: JsonValue): number | null {
+function coerceNumber(value: JsonValue): number | null {
   const parsed = safeParse(union([number(), NumericStringSchema]), value);
   return parsed.success ? parsed.output : null;
 }
@@ -154,7 +155,9 @@ export function buildCondition(cond: FileViewCondition, _ctx?: ConditionContext)
   }
 
   if (field.startsWith("classField:")) {
-    return null;
+    throw new Error(
+      `Unsupported condition field "${field}": class field conditions are not filterable.`,
+    );
   }
 
   const col = columnSql(field);
@@ -170,6 +173,13 @@ export function buildCondition(cond: FileViewCondition, _ctx?: ConditionContext)
         : "string";
 
   return buildGenericCondition({ col, operator, type, value });
+}
+
+function escapeLike(value: string): string {
+  return value
+    .replaceAll("\\", String.raw`\\`)
+    .replaceAll("%", String.raw`\%`)
+    .replaceAll("_", String.raw`\_`);
 }
 
 function buildGenericCondition(input: {
@@ -196,13 +206,13 @@ function buildGenericCondition(input: {
       if (type === "date" || type === "number") {
         return null;
       }
-      return ilike(col, `%${toText(value)}%`);
+      return ilike(col, `%${escapeLike(toText(value))}%`);
     }
     case "notContains": {
       if (type === "date" || type === "number") {
         return null;
       }
-      return sql`NOT (${ilike(col, `%${toText(value)}%`)})`;
+      return notIlike(col, `%${escapeLike(toText(value))}%`);
     }
     case "in": {
       const values = Array.isArray(value) ? value : [value];
@@ -213,28 +223,28 @@ function buildGenericCondition(input: {
       return notInArray(col, values);
     }
     case "gt": {
-      const num = parseNumeric(value);
+      const num = coerceNumber(value);
       if (num === null) {
         return null;
       }
       return gt(col, num);
     }
     case "gte": {
-      const num = parseNumeric(value);
+      const num = coerceNumber(value);
       if (num === null) {
         return null;
       }
       return gte(col, num);
     }
     case "lt": {
-      const num = parseNumeric(value);
+      const num = coerceNumber(value);
       if (num === null) {
         return null;
       }
       return lt(col, num);
     }
     case "lte": {
-      const num = parseNumeric(value);
+      const num = coerceNumber(value);
       if (num === null) {
         return null;
       }
@@ -244,8 +254,8 @@ function buildGenericCondition(input: {
       if (!Array.isArray(value) || value.length < 2) {
         return null;
       }
-      const lower = parseNumeric(value[0]);
-      const upper = parseNumeric(value[1]);
+      const lower = coerceNumber(value[0]);
+      const upper = coerceNumber(value[1]);
       if (lower === null || upper === null) {
         return null;
       }
@@ -279,7 +289,8 @@ function buildGenericCondition(input: {
 
 /**
  * Builds the combined SQL where clause for an array of view conditions.
- * Unsupported conditions are silently skipped.
+ * Unsupported conditions are silently skipped, except class field
+ * conditions which throw (fail-closed).
  */
 export function buildConditionsWhere(
   conditions: FileViewCondition[] | undefined,

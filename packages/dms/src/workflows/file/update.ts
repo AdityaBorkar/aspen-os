@@ -1,8 +1,6 @@
-import { dmsFile, dmsFileVersion } from "#/db-schemas";
+import { dmsFile } from "#/db-schemas";
 import { FILE_EVENTS } from "#/pubsub";
-import { getDmsConfig } from "#/runtime";
-import { pruneVersions } from "#/services/purge-service";
-import { computeStorageKey, upload as uploadStorage } from "#/services/storage-bridge";
+import { appendVersion } from "#/services/version-service";
 import { FileIdSchema, UpdateFileSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { stripUndefined } from "#/utils/strip-undefined";
@@ -20,7 +18,6 @@ export const updateFile = Workflow.name("dms.file.update")
   .handler(async ({ id, input }, ctx) => {
     const file = await ctx.step.run(fetchFileStep, { id });
     const parsed = parse(UpdateFileSchema, input);
-    const config = getDmsConfig();
     const actorId = ctx.actorId ?? parsed.uploadedBy ?? file.uploadedBy;
 
     let current = file;
@@ -32,58 +29,16 @@ export const updateFile = Workflow.name("dms.file.update")
         throw new Error("Invalid file body: expected a string, Buffer, or ReadableStream.");
       }
 
-      const newVersion = file.version + 1;
-      const storageKey = computeStorageKey({
-        fileId: id,
-        name: parsed.name ?? file.name,
-        version: newVersion,
-      });
-
-      const fileObject = await ctx.step.run("upload-storage", async () =>
-        uploadStorage({
+      const result = await ctx.step.run("append-version", async () =>
+        appendVersion(ctx.db, file, {
+          actorId,
           body,
-          contentType: parsed.contentType ?? file.contentType,
-          key: storageKey,
+          contentType: parsed.contentType ?? undefined,
+          name: parsed.name ?? undefined,
         }),
       );
-
-      await ctx.step.run("save-version", async () => {
-        await ctx.db.insert(dmsFileVersion).values({
-          compression: file.compression,
-          contentType: file.contentType,
-          etag: file.etag,
-          fileId: id,
-          isCurrent: false,
-          name: file.name,
-          size: file.size,
-          storageKey: file.storageKey,
-          uploadedBy: actorId,
-          version: file.version,
-        });
-      });
-
-      const [updated] = await ctx.db
-        .update(dmsFile)
-        .set({
-          contentType: parsed.contentType ?? file.contentType,
-          etag: fileObject.etag ?? null,
-          size: fileObject.size,
-          storageKey,
-          updatedAt: new Date(),
-          version: newVersion,
-        })
-        .where(eq(dmsFile.id, id))
-        .returning();
-
-      if (!updated) {
-        throw new Error(`File "${id}" not found.`);
-      }
-      current = updated;
+      current = result.updated;
       versionAdded = true;
-
-      await ctx.step.run("prune-old-versions", async () => {
-        await pruneVersions(ctx.db, id, config.maxVersions);
-      });
     }
 
     const metadataUpdates = stripUndefined({

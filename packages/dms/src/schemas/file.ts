@@ -46,6 +46,7 @@ export const UploadFileSchema = object({
 export type UploadFileInput = InferOutput<typeof UploadFileSchema>;
 
 export const UploadBulkSchema = object({
+  batchId: optional(string()),
   inputs: array(UploadFileSchema),
 });
 

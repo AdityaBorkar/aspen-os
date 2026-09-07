@@ -1,7 +1,7 @@
 import { acl } from "#/auth";
 import { control_plane_schemas, tenant_schemas } from "#/db-schemas";
 import { events } from "#/pubsub";
-import { setDmsConfig, setDmsStorage } from "#/runtime";
+import { setDmsConfig, setDmsStorage, resetDmsRuntime } from "#/runtime";
 import {
   registerExpiryScanHandler,
   registerExpiryScanner,
@@ -40,16 +40,11 @@ const DEFAULT_CONFIG: Required<DmsModuleConfig> = {
 
 export type { DmsModuleConfig };
 
-function isDatabaseUnit(unit: Unit | undefined): unit is DatabaseUnit {
-  return unit?.$name === "db";
-}
-
-function isPubSubUnit(unit: Unit | undefined): unit is PubSubUnit {
-  return unit?.$name === "pubsub";
-}
-
-function isStorageUnit(unit: Unit | undefined): unit is StorageUnit {
-  return unit?.$name === "storage";
+function isUnit(unit: Unit | undefined, name: "db"): unit is DatabaseUnit;
+function isUnit(unit: Unit | undefined, name: "pubsub"): unit is PubSubUnit;
+function isUnit(unit: Unit | undefined, name: "storage"): unit is StorageUnit;
+function isUnit(unit: Unit | undefined, name: string): boolean {
+  return unit?.$name === name;
 }
 
 export class Dms implements Module {
@@ -58,7 +53,7 @@ export class Dms implements Module {
   }
 
   readonly $name = "dms";
-  readonly $dependencies: readonly string[] = [];
+  readonly $dependencies: readonly string[] = ["db", "pubsub", "storage"];
   readonly $config: Required<DmsModuleConfig>;
 
   #db: DatabaseUnit | null = null;
@@ -67,7 +62,11 @@ export class Dms implements Module {
   #purgeTopic: string | null = null;
 
   constructor(config: DmsModuleConfig) {
-    this.$config = { ...DEFAULT_CONFIG, ...config };
+    this.$config = {
+      ...DEFAULT_CONFIG,
+      ...config,
+      defaultCompression: { ...DEFAULT_CONFIG.defaultCompression, ...config.defaultCompression },
+    };
     setDmsConfig(this.$config);
   }
 
@@ -81,25 +80,25 @@ export class Dms implements Module {
 
   $initialize(units: Record<string, Unit>): void {
     const { db, pubsub, storage } = units;
-    if (isDatabaseUnit(db)) {
+    if (isUnit(db, "db")) {
       this.#db = db;
     }
-    if (isPubSubUnit(pubsub)) {
+    if (isUnit(pubsub, "pubsub")) {
       this.#pubsub = pubsub;
     }
-    if (isStorageUnit(storage)) {
+    if (isUnit(storage, "storage")) {
       setDmsStorage(storage);
     }
   }
 
   async $prepareRuntime(): Promise<void> {
     if (!this.#pubsub || !this.#db) {
-      return;
+      throw new Error("DMS runtime units not initialized: db and pubsub are required");
     }
 
     const ctx = getContext();
     if (!ctx.audit) {
-      return;
+      throw new Error("DMS runtime requires an audit unit in context");
     }
 
     const deps = {
@@ -108,26 +107,32 @@ export class Dms implements Module {
       pubsub: this.#pubsub,
     };
 
-    this.#expiryTopic = await registerExpiryScanner(this.#pubsub);
-    await registerExpiryScanHandler(this.#expiryTopic, deps);
+    const [expiryTopic, purgeTopic] = await Promise.all([
+      registerExpiryScanner(this.#pubsub),
+      registerPurgeSchedule(this.#pubsub),
+    ]);
+    this.#expiryTopic = expiryTopic;
+    this.#purgeTopic = purgeTopic;
 
-    this.#purgeTopic = await registerPurgeSchedule(this.#pubsub);
-    await registerPurgeHandler(this.#purgeTopic, deps);
+    await Promise.all([
+      registerExpiryScanHandler(expiryTopic, deps),
+      registerPurgeHandler(purgeTopic, deps),
+    ]);
   }
 
   async $cleanup(): Promise<void> {
     if (this.#pubsub) {
-      await unregisterExpiryScanner(this.#expiryTopic, {
-        pubsub: this.#pubsub,
-      });
-      await unregisterPurgeSchedule(this.#purgeTopic, {
-        pubsub: this.#pubsub,
-      });
+      const pubsub = this.#pubsub;
+      await Promise.allSettled([
+        unregisterExpiryScanner(this.#expiryTopic, { pubsub }),
+        unregisterPurgeSchedule(this.#purgeTopic, { pubsub }),
+      ]);
     }
     this.#expiryTopic = null;
     this.#purgeTopic = null;
     this.#db = null;
     this.#pubsub = null;
+    resetDmsRuntime();
   }
 
   readonly access = wf.access;

@@ -1,13 +1,12 @@
 import * as schemas from "#/db-schemas";
 import { computeArchiveKey, get, getSignedGetUrl, upload } from "#/services/storage-bridge";
-import type { FolderDownloadLinkOptions } from "#/types";
-import { promisify } from "node:util";
 
 import { getContext } from "@aspen-os/platform/server";
 import { eq, sql } from "drizzle-orm";
 
 const LARGE_FOLDER_FILE_THRESHOLD = 1000;
 const LARGE_FOLDER_SIZE_THRESHOLD = 1024 * 1024 * 1024;
+const ZIP_CONCURRENCY = 10;
 
 export interface ArchiveResult {
   key: string;
@@ -19,12 +18,18 @@ export interface ArchiveJobData {
   includeSubfolders: boolean;
 }
 
+export interface CreateArchiveOptions {
+  expiresIn?: number;
+  includeSubfolders?: boolean;
+  skipSizeCheck?: boolean;
+}
+
 export async function createArchive({
   folderId,
   options,
 }: {
   folderId: string;
-  options?: FolderDownloadLinkOptions;
+  options?: CreateArchiveOptions;
 }): Promise<ArchiveResult> {
   const { db } = getContext();
   const [folder] = await db
@@ -44,38 +49,26 @@ export async function createArchive({
   });
 
   const totalSize = files.reduce((sum, file) => sum + file.size, 0);
-  if (files.length > LARGE_FOLDER_FILE_THRESHOLD || totalSize > LARGE_FOLDER_SIZE_THRESHOLD) {
+  if (
+    !options?.skipSizeCheck &&
+    (files.length > LARGE_FOLDER_FILE_THRESHOLD || totalSize > LARGE_FOLDER_SIZE_THRESHOLD)
+  ) {
     throw new ArchiveTooLargeError(folderId, files.length, totalSize);
   }
 
   return generateZip({
     expiresIn: options?.expiresIn,
     files,
+    folderId: folder.id,
     folderName: folder.name,
     folderPath: folder.path,
   });
 }
 
 export async function processArchiveJob(data: ArchiveJobData): Promise<ArchiveResult> {
-  const { db } = getContext();
-  const [folder] = await db
-    .select()
-    .from(schemas.dmsFolder)
-    .where(eq(schemas.dmsFolder.id, data.folderId))
-    .limit(1);
-
-  if (!folder) {
-    throw new Error(`Folder "${data.folderId}" not found.`);
-  }
-
-  const files = await collectFiles({
-    folderPath: folder.path,
-    includeSubfolders: data.includeSubfolders,
-  });
-  return generateZip({
-    files,
-    folderName: folder.name,
-    folderPath: folder.path,
+  return createArchive({
+    folderId: data.folderId,
+    options: { includeSubfolders: data.includeSubfolders, skipSizeCheck: true },
   });
 }
 
@@ -109,29 +102,43 @@ async function collectFiles({
 async function generateZip({
   expiresIn,
   files,
+  folderId,
   folderName,
   folderPath,
 }: {
   expiresIn?: number;
   files: (typeof schemas.dmsFile.$inferSelect)[];
+  folderId: string;
   folderName: string;
   folderPath: string;
 }): Promise<ArchiveResult> {
   const { zip, strToU8 } = await import("fflate");
-  // SAFETY: fflate's zip() matches the Node-style (data, callback) signature.
-  // Promisify wraps it, so the promoted type is (data) => Promise<data>.
-  const zipAsync = promisify(zip) as (data: Record<string, Uint8Array>) => Promise<Uint8Array>;
+  const zipAsync = (data: Record<string, Uint8Array>): Promise<Uint8Array> =>
+    new Promise<Uint8Array>((resolve, reject) => {
+      zip(data, (error, result) => {
+        if (error) {
+          reject(error instanceof Error ? error : new Error(String(error)));
+        } else {
+          resolve(result);
+        }
+      });
+    });
 
   const zipEntries: Record<string, Uint8Array> = {};
   const basePathLength = folderPath.length;
 
-  await Promise.all(
-    files.map(async (file) => {
-      const data = await get({ key: file.storageKey });
-      const relativePath = file.path ? file.path.slice(basePathLength + 1) : file.name;
-      zipEntries[relativePath] = new Uint8Array(data);
-    }),
-  );
+  // oxlint-disable eslint/no-await-in-loop
+  for (let start = 0; start < files.length; start += ZIP_CONCURRENCY) {
+    const chunk = files.slice(start, start + ZIP_CONCURRENCY);
+    await Promise.all(
+      chunk.map(async (file) => {
+        const data = await get({ key: file.storageKey });
+        const relativePath = file.path ? file.path.slice(basePathLength + 1) : file.name;
+        zipEntries[relativePath] = new Uint8Array(data);
+      }),
+    );
+  }
+  // oxlint-enable eslint/no-await-in-loop
 
   const manifest = strToU8(
     JSON.stringify(
@@ -147,7 +154,7 @@ async function generateZip({
   zipEntries["_manifest.json"] = manifest;
 
   const zipData = await zipAsync(zipEntries);
-  const archiveKey = computeArchiveKey({ folderId: folderName });
+  const archiveKey = computeArchiveKey({ folderId });
   await upload({
     body: Buffer.from(zipData),
     contentType: "application/zip",

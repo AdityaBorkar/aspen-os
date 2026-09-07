@@ -1,5 +1,5 @@
 import { dmsLabel } from "#/db-schemas";
-import { CreateLabelSchema } from "#/types";
+import { assertLabelOwner, CreateLabelSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
@@ -11,11 +11,7 @@ export const createLabel = Workflow.name("dms.label.create")
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateLabelSchema, input);
 
-    if (!parsed.isGlobal && !parsed.ownerId) {
-      throw new Error(
-        "Personal labels must have an ownerId. Set isGlobal=true for org-wide labels.",
-      );
-    }
+    assertLabelOwner(parsed.isGlobal, parsed.ownerId);
 
     const [label] = await ctx.db
       .insert(dmsLabel)

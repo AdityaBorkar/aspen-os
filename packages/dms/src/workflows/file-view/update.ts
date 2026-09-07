@@ -3,6 +3,7 @@ import { FILE_VIEW_EVENTS } from "#/pubsub";
 import { IdSchema, UpdateFileViewSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { stripUndefined } from "#/utils/strip-undefined";
+import { unsetDefaultFileView } from "#/workflows/file-view/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -21,11 +22,28 @@ export const updateFileView = Workflow.name("dms.file-view.update")
       sort: patch.sort,
     });
 
-    const [updated] = await ctx.db
-      .update(dmsFileView)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(dmsFileView.id, id))
-      .returning();
+    const updated = await ctx.db.transaction(async (tx) => {
+      // Default-flip must be atomic with the update so two concurrent
+      // default flips cannot leave two defaults for one owner.
+      if (updates.isDefault === true) {
+        const [current] = await tx
+          .select({ ownerId: dmsFileView.ownerId })
+          .from(dmsFileView)
+          .where(eq(dmsFileView.id, id))
+          .limit(1);
+        if (!current) {
+          throw new Error(`File view "${id}" not found.`);
+        }
+        await unsetDefaultFileView(tx, current.ownerId);
+      }
+
+      const [next] = await tx
+        .update(dmsFileView)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(dmsFileView.id, id))
+        .returning();
+      return next;
+    });
 
     if (!updated) {
       throw new Error(`File view "${id}" not found.`);

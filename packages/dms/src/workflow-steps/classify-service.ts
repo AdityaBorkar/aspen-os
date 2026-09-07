@@ -2,7 +2,7 @@ import { dmsClassField } from "#/db-schemas";
 import { toText } from "#/utils/to-text";
 
 import type { JsonValue } from "@aspen-os/platform/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 export interface ClassFieldRow {
@@ -24,8 +24,11 @@ export async function getActiveFields(
   db: PostgresJsDatabase,
   classId: string,
 ): Promise<ClassFieldRow[]> {
-  const rows = await db.select().from(dmsClassField).where(eq(dmsClassField.classId, classId));
-  return rows.filter((row) => row.isActive);
+  const rows = await db
+    .select()
+    .from(dmsClassField)
+    .where(and(eq(dmsClassField.classId, classId), eq(dmsClassField.isActive, true)));
+  return rows;
 }
 
 /**
@@ -96,12 +99,6 @@ function padZero(value: number | string, width: number): string {
   return String(value).padStart(width, "0");
 }
 
-function safePart(value: JsonValue): string {
-  return toText(value)
-    .replaceAll(/[\\/]+/g, "_")
-    .replaceAll("\0", "");
-}
-
 function formatDateToken(token: string, date: Date): string {
   switch (token) {
     case "MM": {
@@ -114,6 +111,7 @@ function formatDateToken(token: string, date: Date): string {
       return String(date.getFullYear());
     }
     default: {
+      // Unknown date tokens resolve to empty so forward-compatible templates degrade visibly.
       return "";
     }
   }
@@ -147,14 +145,14 @@ export function renderFileNamingSchema(input: {
     if (key.startsWith("field:")) {
       const fieldName = key.slice("field:".length);
       const value = input.fieldValues?.[fieldName];
-      return value === undefined || value === null || value === "" ? "_" : safePart(value);
+      return value === undefined || value === null || value === "" ? "_" : toText(value);
     }
     switch (key) {
       case "class": {
-        return safePart(input.className ?? "_");
+        return input.className ?? "_";
       }
       case "docNumber": {
-        return safePart(input.docNumber);
+        return input.docNumber;
       }
       case "date": {
         return date.toISOString().slice(0, 10);

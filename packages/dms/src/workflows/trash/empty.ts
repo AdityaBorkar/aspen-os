@@ -6,7 +6,7 @@ import type { EmptyTrashOptions } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { and, eq, isNull, or } from "drizzle-orm";
+import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 
 const EmptyTrashSchema = EmptyTrashOptionsSchema;
@@ -41,7 +41,10 @@ export const emptyTrash = Workflow.name("dms.trash.empty")
         .where(
           and(
             isNull(dmsLegalHold.releasedAt),
-            or(...trashedFiles.map((row) => eq(dmsLegalHold.fileId, row.id))),
+            inArray(
+              dmsLegalHold.fileId,
+              trashedFiles.map((row) => row.id),
+            ),
           ),
         );
       for (const hold of heldRows) {

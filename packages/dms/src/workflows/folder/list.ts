@@ -1,18 +1,19 @@
 import { dmsFile, dmsFolder } from "#/db-schemas";
+import { escapeLike } from "#/services/search-service";
 import { ListFolderOptionsSchema } from "#/types";
-import type { DmsFile, ListFolderOptions } from "#/types";
+import type { DmsFile } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, sql } from "drizzle-orm";
-import { parse } from "valibot";
+import { nullable, object, optional, parse, string } from "valibot";
+
+const ListFoldersInputSchema = object({
+  id: optional(nullable(string())),
+  opts: optional(ListFolderOptionsSchema),
+});
 
 export const listFolders = Workflow.name("dms.folder.list").handler(async (input, ctx) => {
-  // SAFETY: the handler input is the unvalidated workflow payload.
-  // Only the optional id/opts are read here; opts is validated below.
-  const { id, opts } = (input ?? {}) as {
-    id?: string | null;
-    opts?: ListFolderOptions;
-  };
+  const { id, opts } = parse(ListFoldersInputSchema, input ?? {});
   const validated = parse(ListFolderOptionsSchema, opts ?? {});
   const limit = validated.limit ?? 50;
   const offset = validated.offset ?? 0;
@@ -24,7 +25,7 @@ export const listFolders = Workflow.name("dms.folder.list").handler(async (input
     id ? eq(dmsFolder.parentId, id) : sql`${dmsFolder.parentId} IS NULL`,
   ];
   if (validated.search) {
-    folderConditions.push(sql`${dmsFolder.name} ilike ${`%${validated.search}%`}`);
+    folderConditions.push(sql`${dmsFolder.name} ilike ${`%${escapeLike(validated.search)}%`}`);
   }
 
   const folders = await ctx.db
@@ -38,7 +39,7 @@ export const listFolders = Workflow.name("dms.folder.list").handler(async (input
   if (id) {
     const fileConditions = [eq(dmsFile.status, "active"), eq(dmsFile.folderId, id)];
     if (validated.search) {
-      fileConditions.push(sql`${dmsFile.name} ilike ${`%${validated.search}%`}`);
+      fileConditions.push(sql`${dmsFile.name} ilike ${`%${escapeLike(validated.search)}%`}`);
     }
     files = await ctx.db
       .select()
@@ -48,6 +49,9 @@ export const listFolders = Workflow.name("dms.folder.list").handler(async (input
       .offset(offset);
   }
 
+  // Sorting is applied in memory after limit/offset, so pages are only
+  // sorted within themselves — full cross-page ordering would need ORDER BY
+  // in the queries above. Kept as-is to preserve existing behavior.
   const sortFn = (left: { name: string }, right: { name: string }) => {
     const cmp = left.name.localeCompare(right.name);
     return sortOrder === "desc" ? -cmp : cmp;

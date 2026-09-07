@@ -1,6 +1,6 @@
 import { FILE_EVENTS } from "#/pubsub";
 import { getDmsConfig } from "#/runtime";
-import { getSignedGetUrl } from "#/services/storage-bridge";
+import { getDownloadLink, resolveDownloadExpiry } from "#/services/download-link-service";
 import { DownloadOptionsSchema, FileIdSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, SETTING_KEYS } from "#/utils/constants";
 import { fetchFileStep } from "#/workflow-steps/fetch-file";
@@ -17,11 +17,10 @@ export const downloadFile = Workflow.name("dms.file.download")
     const file = await ctx.step.run(fetchFileStep, { id });
     const config = getDmsConfig();
 
-    const defaultExpirySetting = await getSetting(
-      ctx.db,
-      SETTING_KEYS.PRESIGNED_URL_DEFAULT_EXPIRY,
-    );
-    const maxExpirySetting = await getSetting(ctx.db, SETTING_KEYS.PRESIGNED_URL_MAX_EXPIRY);
+    const [defaultExpirySetting, maxExpirySetting] = await Promise.all([
+      getSetting(ctx.db, SETTING_KEYS.PRESIGNED_URL_DEFAULT_EXPIRY),
+      getSetting(ctx.db, SETTING_KEYS.PRESIGNED_URL_MAX_EXPIRY),
+    ]);
     const defaultExpiryParsed = safeParse(number(), defaultExpirySetting);
     const maxExpiryParsed = safeParse(number(), maxExpirySetting);
     const defaultExpiry = defaultExpiryParsed.success
@@ -31,10 +30,14 @@ export const downloadFile = Workflow.name("dms.file.download")
       ? maxExpiryParsed.output
       : config.maxDownloadLinkExpiry;
 
-    const expiresIn = Math.min(options?.expiresIn ?? defaultExpiry, maxExpiry);
+    const expiresIn = resolveDownloadExpiry({
+      defaultExpiry,
+      maxExpiry,
+      requested: options?.expiresIn,
+    });
 
     const url = await ctx.step.run("get-signed-url", async () =>
-      getSignedGetUrl({ expiresIn, key: file.storageKey }),
+      getDownloadLink({ expiresIn, key: file.storageKey }),
     );
 
     const logDownloads = await getSetting(ctx.db, SETTING_KEYS.LOG_DOWNLOADS);

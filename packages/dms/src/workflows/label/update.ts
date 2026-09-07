@@ -1,5 +1,5 @@
 import { dmsLabel } from "#/db-schemas";
-import { IdSchema, UpdateLabelSchema } from "#/types";
+import { assertLabelOwner, IdSchema, UpdateLabelSchema } from "#/types";
 import { stripUndefined } from "#/utils/strip-undefined";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -20,10 +20,15 @@ export const updateLabel = Workflow.name("dms.label.update")
       ownerId: parsed.ownerId,
     });
 
-    if (updates.isGlobal === false && updates.ownerId === null) {
-      throw new Error(
-        "Personal labels must have an ownerId. Set isGlobal=true for org-wide labels.",
-      );
+    if (updates.isGlobal !== undefined || updates.ownerId !== undefined) {
+      const [current] = await ctx.db
+        .select({ isGlobal: dmsLabel.isGlobal, ownerId: dmsLabel.ownerId })
+        .from(dmsLabel)
+        .where(eq(dmsLabel.id, id))
+        .limit(1);
+      const effectiveGlobal = updates.isGlobal ?? current?.isGlobal;
+      const effectiveOwner = updates.ownerId !== undefined ? updates.ownerId : current?.ownerId;
+      assertLabelOwner(effectiveGlobal, effectiveOwner);
     }
 
     const [updated] = await ctx.db

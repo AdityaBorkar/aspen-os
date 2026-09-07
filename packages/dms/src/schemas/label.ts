@@ -1,15 +1,31 @@
 import { EntityTypeSchema } from "#/schemas/enums";
 import { HexColorSchema, LabelNameSchema } from "#/schemas/utils";
 
-import { boolean, minLength, nullable, number, object, optional, pipe, string } from "valibot";
+import {
+  boolean,
+  check,
+  minLength,
+  nullable,
+  number,
+  object,
+  optional,
+  pipe,
+  string,
+} from "valibot";
 import type { InferOutput } from "valibot";
 
-export const CreateLabelSchema = object({
-  color: HexColorSchema,
-  isGlobal: optional(boolean(), false),
-  name: LabelNameSchema,
-  ownerId: optional(nullable(string())),
-});
+export const CreateLabelSchema = pipe(
+  object({
+    color: HexColorSchema,
+    isGlobal: optional(boolean(), false),
+    name: LabelNameSchema,
+    ownerId: optional(nullable(string())),
+  }),
+  check(
+    (value) => value.isGlobal || Boolean(value.ownerId),
+    "Personal labels must have an ownerId. Set isGlobal=true for org-wide labels.",
+  ),
+);
 
 export type CreateLabelInput = InferOutput<typeof CreateLabelSchema>;
 
@@ -46,3 +62,19 @@ export const ListByLabelOptionsSchema = object({
 });
 
 export type ListByLabelOptions = InferOutput<typeof ListByLabelOptionsSchema>;
+
+/**
+ * Runtime invariant shared by label create/update: personal labels must carry
+ * an ownerId, global labels may omit it.
+ */
+export function assertLabelOwner(
+  isGlobal: boolean | undefined,
+  ownerId: string | null | undefined,
+): void {
+  if (isGlobal === false && (ownerId === null || ownerId === undefined)) {
+    throw new Error("Personal labels must have an ownerId. Set isGlobal=true for org-wide labels.");
+  }
+  if (!isGlobal && !ownerId) {
+    throw new Error("Personal labels must have an ownerId. Set isGlobal=true for org-wide labels.");
+  }
+}

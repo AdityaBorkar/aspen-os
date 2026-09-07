@@ -1,29 +1,35 @@
 import { dmsClass, dmsFile, dmsFolder, dmsLegalHold } from "#/db-schemas";
+import { ListTrashOptionsSchema } from "#/types";
+import type { ListTrashOptions } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, inArray, or, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
+import { boolean, object, optional, string } from "valibot";
 
-export interface TrashFilters {
-  classId?: string;
-  deletedBy?: string;
-  held?: boolean;
-  limit?: number;
-  offset?: number;
-  search?: string;
-  status?: "trashed" | "expired";
-}
+const ListTrashInputSchema = object({
+  admin: optional(boolean(), false),
+  filters: optional(ListTrashOptionsSchema),
+  userId: string(),
+});
 
-export const listTrash = Workflow.name("dms.trash.list").handler(
-  async (input: { filters?: TrashFilters; userId: string; admin?: boolean }, ctx) => {
-    const filters = input.filters ?? {};
+export const listTrash = Workflow.name("dms.trash.list")
+  .input(ListTrashInputSchema)
+  .handler(async (input: { admin?: boolean; filters?: ListTrashOptions; userId: string }, ctx) => {
+    const filters: ListTrashOptions = input.filters ?? { limit: 50, offset: 0 };
     const conditions: SQL[] = [or(eq(dmsFile.status, "trashed"), eq(dmsFile.status, "expired"))!];
 
-    if (!input.admin) {
-      conditions.push(eq(dmsFile.ownerId, input.userId));
+    // Owner scoping: an explicit filters.ownerId wins; otherwise non-admins
+    // are scoped to their own userId and admins see everything.
+    const effectiveOwner = filters.ownerId ?? (input.admin ? undefined : input.userId);
+    if (effectiveOwner) {
+      conditions.push(eq(dmsFile.ownerId, effectiveOwner));
     }
     if (filters.status) {
-      conditions.push(eq(dmsFile.status, filters.status));
+      // SAFETY: the trash listing only queries trashed/expired rows (see the
+      // base conditions above), so a caller-supplied status filter is only
+      // meaningful as "trashed" | "expired" here.
+      conditions.push(eq(dmsFile.status, filters.status as "trashed" | "expired"));
     }
     if (filters.classId) {
       conditions.push(eq(dmsFile.classId, filters.classId));
@@ -58,6 +64,9 @@ export const listTrash = Workflow.name("dms.trash.list").handler(
       holdMap.set(hold.fileId, list);
     }
 
+    const isHeld = (fileId: string): boolean =>
+      (holdMap.get(fileId) ?? []).some((hold) => hold.releasedAt === null);
+
     const classIds = [
       ...new Set(rows.map((row) => row.classId).filter((value): value is string => Boolean(value))),
     ];
@@ -67,9 +76,26 @@ export const listTrash = Workflow.name("dms.trash.list").handler(
         : [];
     const classMap = new Map(classes.map((cls) => [cls.id, cls]));
 
+    let files = rows.map((row) => ({
+      file: row,
+      held: isHeld(row.id),
+      hold: holdMap.get(row.id)?.find((hold) => hold.releasedAt === null) ?? null,
+      provenance:
+        row.status === "trashed"
+          ? { at: row.deletedAt, by: row.deletedBy }
+          : { at: row.expiredAt, by: null },
+      retainedClass: row.classId ? (classMap.get(row.classId) ?? null) : null,
+    }));
+
+    // `held` was previously accepted but never read; filter in memory after
+    // the hold join above.
+    if (filters.held !== undefined) {
+      files = files.filter((entry) => entry.held === filters.held);
+    }
+
     const folderConditions: SQL[] = [eq(dmsFolder.isTrashed, true)];
-    if (!input.admin) {
-      folderConditions.push(eq(dmsFolder.ownerId, input.userId));
+    if (effectiveOwner) {
+      folderConditions.push(eq(dmsFolder.ownerId, effectiveOwner));
     }
     if (filters.search) {
       const term = `%${filters.search}%`;
@@ -83,18 +109,5 @@ export const listTrash = Workflow.name("dms.trash.list").handler(
       .limit(filters.limit ?? 50)
       .offset(filters.offset ?? 0);
 
-    return {
-      files: rows.map((row) => ({
-        file: row,
-        held: (holdMap.get(row.id) ?? []).some((hold) => !hold.releasedAt),
-        hold: holdMap.get(row.id)?.find((hold) => !hold.releasedAt) ?? null,
-        provenance:
-          row.status === "trashed"
-            ? { at: row.deletedAt, by: row.deletedBy }
-            : { at: row.expiredAt, by: null },
-        retainedClass: row.classId ? (classMap.get(row.classId) ?? null) : null,
-      })),
-      folders,
-    };
-  },
-);
+    return { files, folders };
+  });

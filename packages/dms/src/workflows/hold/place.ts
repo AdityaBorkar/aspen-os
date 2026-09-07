@@ -2,6 +2,7 @@ import { dmsLegalHold } from "#/db-schemas";
 import { FILE_EVENTS } from "#/pubsub";
 import { IdSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { isHoldable } from "#/utils/lifecycle";
 import { fetchFileStep } from "#/workflow-steps/fetch-file";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -18,10 +19,15 @@ export const placeLegalHold = Workflow.name("dms.hold.place")
   .input(PlaceHoldInputSchema)
   .handler(async ({ fileId, placedBy, reason }, ctx) => {
     const file = await ctx.step.run(fetchFileStep, { id: fileId });
-    if (file.status === "trashed" || file.status === "triaged") {
+    if (!isHoldable(file.status)) {
       throw new Error(`File "${fileId}" cannot be placed on hold in its current state.`);
     }
 
+    // RACE NOTE: dms_legal_hold has no partial unique index on
+    // (file_id) WHERE released_at IS NULL, so onConflictDoNothing cannot
+    // target active holds. Keep select-then-insert; two concurrent placers
+    // may both insert, and the second insert wins via the update path on
+    // retry. Add a partial unique index to make this atomic.
     const [active] = await ctx.db
       .select()
       .from(dmsLegalHold)

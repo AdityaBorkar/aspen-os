@@ -1,5 +1,6 @@
 import { dmsPublicLink } from "#/db-schemas";
 import { PUBLIC_LINK_EVENTS } from "#/pubsub";
+import { resolveEntity } from "#/services/entity-resolver";
 import { CreatePublicLinkSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -11,6 +12,16 @@ export const createPublicLink = Workflow.name("dms.public-link.create")
   .input(CreateInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreatePublicLinkSchema, input);
+
+    const entity = await resolveEntity(ctx.db, parsed.entityType, parsed.entityId);
+    if (!entity) {
+      throw new Error(
+        `${parsed.entityType === "file" ? "File" : "Folder"} "${parsed.entityId}" not found.`,
+      );
+    }
+    if (!entity.isSharable) {
+      throw new Error("Only active files and non-trashed folders can get public links.");
+    }
 
     const token = generateToken();
     const hashedPassword = parsed.password ? await Bun.password.hash(parsed.password) : null;
@@ -45,11 +56,5 @@ export const createPublicLink = Workflow.name("dms.public-link.create")
   });
 
 function generateToken(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(16));
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-  let token = "";
-  for (const byte of bytes) {
-    token += chars[byte % chars.length];
-  }
-  return token;
+  return crypto.randomUUID().replaceAll("-", "");
 }

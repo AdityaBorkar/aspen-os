@@ -10,20 +10,20 @@ export const getFolder = Workflow.name("dms.folder.get")
   .handler(async ({ id }, ctx) => {
     const fetched = await ctx.step.run(fetchFolderStep, { id });
 
-    const [childFolders] = await ctx.db
-      .select({ value: count() })
-      .from(dmsFolder)
-      .where(sql`${dmsFolder.parentId} = ${fetched.id} AND ${dmsFolder.isTrashed} = false`);
-
-    const [childFiles] = await ctx.db
-      .select({ value: count() })
-      .from(dmsFile)
-      .where(sql`${dmsFile.folderId} = ${fetched.id} AND ${dmsFile.status} != 'trashed'`);
-
-    const [sizes] = await ctx.db
-      .select({ value: sql<number>`coalesce(sum(${dmsFile.size}), 0)` })
-      .from(dmsFile)
-      .where(sql`${dmsFile.path} like ${`${fetched.path}/%`} AND ${dmsFile.status} != 'trashed'`);
+    const [[childFolders], [childFiles], [sizes]] = await Promise.all([
+      ctx.db
+        .select({ value: count() })
+        .from(dmsFolder)
+        .where(sql`${dmsFolder.parentId} = ${fetched.id} AND ${dmsFolder.isTrashed} = false`),
+      ctx.db
+        .select({ value: count() })
+        .from(dmsFile)
+        .where(sql`${dmsFile.folderId} = ${fetched.id} AND ${dmsFile.status} != 'trashed'`),
+      ctx.db
+        .select({ value: sql<number>`coalesce(sum(${dmsFile.size}), 0)` })
+        .from(dmsFile)
+        .where(sql`${dmsFile.path} like ${`${fetched.path}/%`} AND ${dmsFile.status} != 'trashed'`),
+    ]);
 
     return {
       ...fetched,

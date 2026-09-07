@@ -1,5 +1,6 @@
 import { dmsFile } from "#/db-schemas";
 import { ApplyFileViewSchema } from "#/types";
+import type { FileViewCondition } from "#/types";
 import { buildConditionsWhere, buildSortOrder } from "#/workflow-steps/condition-service";
 import { fetchFileViewStep } from "#/workflow-steps/fetch-file-view";
 
@@ -32,6 +33,24 @@ function resolveFileSortField(field: string): SQL | null {
   }
 }
 
+/**
+ * Sniff explicit status conditions out of a view filter list. Kept isolated so
+ * the apply handler stays declarative: trashed/triaged rows are excluded
+ * unless the caller explicitly targets them.
+ */
+export interface StatusFilter {
+  includeTrashed: boolean;
+  includeTriage: boolean;
+}
+
+export function parseStatusFilter(filters: FileViewCondition[]): StatusFilter {
+  const explicitStatus = filters.find((filter) => filter.field === "status");
+  return {
+    includeTrashed: explicitStatus?.value === "trashed",
+    includeTriage: explicitStatus?.value === "triaged",
+  };
+}
+
 export const applyFileView = Workflow.name("dms.file-view.apply")
   .input(ApplyInputSchema)
   .handler(async (input, ctx) => {
@@ -45,24 +64,19 @@ export const applyFileView = Workflow.name("dms.file-view.apply")
 
     return ctx.step.run("query", async () => {
       const conditions: SQL[] = [];
-
-      const explicitStatus = filters.find((filter) => filter.field === "status");
-      const targetsTriage = explicitStatus?.value === "triaged";
-      const targetsTrashed = explicitStatus?.value === "trashed";
+      const { includeTrashed, includeTriage } = parseStatusFilter(filters);
 
       const base = buildConditionsWhere(filters, {});
       if (base) {
         conditions.push(base);
       }
 
-      conditions.push(sql`${dmsFile.status} <> 'trashed'`, sql`${dmsFile.status} <> 'triaged'`);
-      if (targetsTrashed) {
-        conditions.pop();
+      if (includeTrashed) {
         conditions.push(sql`${dmsFile.status} = 'trashed'`);
-      }
-      if (targetsTriage) {
-        conditions.pop();
+      } else if (includeTriage) {
         conditions.push(sql`${dmsFile.status} = 'triaged'`);
+      } else {
+        conditions.push(sql`${dmsFile.status} <> 'trashed'`, sql`${dmsFile.status} <> 'triaged'`);
       }
 
       const orderBy = buildSortOrder(sort, resolveFileSortField);

@@ -8,8 +8,69 @@ import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 export type DB = PostgresJsDatabase;
 
+interface AncestorRow {
+  id: string;
+  name: string;
+  parentId: string | null;
+  path: string;
+}
+
 function maxDepth(): number {
   return getDmsConfig().maxNestingDepth;
+}
+
+export function joinPath(...parts: string[]): string {
+  const collapsed = parts.join("/").replaceAll(/\/{2,}/g, "/");
+  const trimmed = collapsed.length > 1 ? collapsed.replace(/\/+$/g, "") : collapsed;
+  return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+}
+
+function escapeLike(value: string): string {
+  return value
+    .replaceAll("\\", String.raw`\\`)
+    .replaceAll("%", String.raw`\%`)
+    .replaceAll("_", String.raw`\_`);
+}
+
+async function getAncestors(
+  db: DB,
+  folderId: string,
+  maxEntries = Number.POSITIVE_INFINITY,
+): Promise<AncestorRow[]> {
+  const chain: AncestorRow[] = [];
+  const visited = new Set<string>();
+  let currentId: string | null = folderId;
+
+  // oxlint-disable eslint/no-await-in-loop
+  while (currentId !== null) {
+    if (visited.has(currentId)) {
+      break;
+    }
+    visited.add(currentId);
+    if (chain.length >= maxEntries) {
+      break;
+    }
+
+    const [row] = await db
+      .select({
+        id: schemas.dmsFolder.id,
+        name: schemas.dmsFolder.name,
+        parentId: schemas.dmsFolder.parentId,
+        path: schemas.dmsFolder.path,
+      })
+      .from(schemas.dmsFolder)
+      .where(eq(schemas.dmsFolder.id, currentId))
+      .limit(1);
+
+    if (!row) {
+      break;
+    }
+    chain.push(row);
+    currentId = row.parentId;
+  }
+  // oxlint-enable eslint/no-await-in-loop
+
+  return chain;
 }
 
 export async function computeFolderPath({
@@ -20,10 +81,10 @@ export async function computeFolderPath({
   parentId: string | null;
 }): Promise<string> {
   if (!parentId) {
-    return `/${name}`;
+    return joinPath("/", name);
   }
   const parentPath = await getFolderPath({ folderId: parentId });
-  return `${parentPath}/${name}`;
+  return joinPath(parentPath, name);
 }
 
 export async function computeFilePath({
@@ -37,7 +98,7 @@ export async function computeFilePath({
     return null;
   }
   const folderPath = await getFolderPath({ folderId });
-  return `${folderPath}/${name}`;
+  return joinPath(folderPath, name);
 }
 
 export async function resolvePath({ path }: { path: string }): Promise<PathResolution | null> {
@@ -81,69 +142,35 @@ export async function getBreadcrumbs({
   folderId: string;
 }): Promise<BreadcrumbItem[]> {
   const { db } = getContext();
-  const [folder] = await db
-    .select({
-      id: schemas.dmsFolder.id,
-      name: schemas.dmsFolder.name,
-      parentId: schemas.dmsFolder.parentId,
-      path: schemas.dmsFolder.path,
-    })
-    .from(schemas.dmsFolder)
-    .where(eq(schemas.dmsFolder.id, folderId))
-    .limit(1);
+  const chain = await getAncestors(db, folderId);
 
-  if (!folder) {
+  if (chain.length === 0) {
     throw new Error(`Folder "${folderId}" not found.`);
   }
 
-  const breadcrumbs: BreadcrumbItem[] = [{ id: folder.id, name: folder.name, path: folder.path }];
-
-  let currentParentId = folder.parentId;
-  // oxlint-disable eslint/no-await-in-loop
-  while (currentParentId) {
-    const [parent] = await db
-      .select({
-        id: schemas.dmsFolder.id,
-        name: schemas.dmsFolder.name,
-        parentId: schemas.dmsFolder.parentId,
-        path: schemas.dmsFolder.path,
-      })
-      .from(schemas.dmsFolder)
-      .where(eq(schemas.dmsFolder.id, currentParentId))
-      .limit(1);
-
-    if (!parent) {
-      break;
-    }
-    breadcrumbs.unshift({
-      id: parent.id,
-      name: parent.name,
-      path: parent.path,
-    });
-    currentParentId = parent.parentId;
-  }
-  // oxlint-enable eslint/no-await-in-loop
-
-  return breadcrumbs;
+  return chain
+    .toReversed()
+    .map((folder) => ({ id: folder.id, name: folder.name, path: folder.path }));
 }
 
 export async function cascadePaths(
   { newPath, oldPath }: { oldPath: string; newPath: string },
   db: DB,
 ): Promise<void> {
-  const prefix = `${oldPath}/%`;
+  const now = new Date();
+  const prefix = `${escapeLike(oldPath)}/%`;
 
   const descendantFolders = await db
     .select({ id: schemas.dmsFolder.id, path: schemas.dmsFolder.path })
     .from(schemas.dmsFolder)
-    .where(sql`${schemas.dmsFolder.path} like ${prefix}`);
+    .where(sql`${schemas.dmsFolder.path} like ${prefix} escape '\'`);
 
   await Promise.all(
     descendantFolders.map(async (folder) => {
       const updatedPath = newPath + folder.path.slice(oldPath.length);
       await db
         .update(schemas.dmsFolder)
-        .set({ path: updatedPath, updatedAt: new Date() })
+        .set({ path: updatedPath, updatedAt: now })
         .where(eq(schemas.dmsFolder.id, folder.id));
     }),
   );
@@ -151,7 +178,7 @@ export async function cascadePaths(
   const descendantFiles = await db
     .select({ id: schemas.dmsFile.id, path: schemas.dmsFile.path })
     .from(schemas.dmsFile)
-    .where(sql`${schemas.dmsFile.path} like ${prefix}`);
+    .where(sql`${schemas.dmsFile.path} like ${prefix} escape '\'`);
 
   await Promise.all(
     descendantFiles.map(async (file) => {
@@ -161,7 +188,7 @@ export async function cascadePaths(
       const updatedPath = newPath + file.path.slice(oldPath.length);
       await db
         .update(schemas.dmsFile)
-        .set({ path: updatedPath, updatedAt: new Date() })
+        .set({ path: updatedPath, updatedAt: now })
         .where(eq(schemas.dmsFile.id, file.id));
     }),
   );
@@ -182,70 +209,33 @@ export async function wouldCreateCycle({
     return true;
   }
 
-  let currentId: string | null = newParentId;
-  let depth = 0;
-
-  // oxlint-disable eslint/no-await-in-loop
-  while (currentId !== null) {
-    if (currentId === folderId) {
-      return true;
-    }
-    if (depth >= maxDepth()) {
-      return true;
-    }
-
-    const [parent] = await db
-      .select({ parentId: schemas.dmsFolder.parentId })
-      .from(schemas.dmsFolder)
-      .where(eq(schemas.dmsFolder.id, currentId))
-      .limit(1);
-
-    if (!parent) {
-      break;
-    }
-    currentId = parent.parentId;
-    depth++;
+  const bound = maxDepth() + 1;
+  const chain = await getAncestors(db, newParentId, bound);
+  if (chain.some((ancestor) => ancestor.id === folderId)) {
+    return true;
   }
-  // oxlint-enable eslint/no-await-in-loop
-
-  return false;
+  return chain.length > maxDepth();
 }
 
 export async function getDepth({ folderId }: { folderId: string }): Promise<number> {
   const { db } = getContext();
-  let depth = 0;
-  let currentId: string | null = folderId;
+  const chain = await getAncestors(db, folderId, maxDepth() + 2);
+  const depth = Math.max(chain.length - 1, 0);
 
-  // oxlint-disable eslint/no-await-in-loop
-  while (currentId !== null) {
-    const [parent] = await db
-      .select({ parentId: schemas.dmsFolder.parentId })
-      .from(schemas.dmsFolder)
-      .where(eq(schemas.dmsFolder.id, currentId))
-      .limit(1);
-
-    if (!parent?.parentId) {
-      break;
-    }
-    currentId = parent.parentId;
-    depth++;
-
-    if (depth > maxDepth()) {
-      throw new Error(`Folder hierarchy exceeds maximum depth of ${maxDepth()}`);
-    }
+  if (depth > maxDepth()) {
+    throw new Error(`Folder hierarchy exceeds maximum depth of ${maxDepth()}`);
   }
-  // oxlint-enable eslint/no-await-in-loop
 
   return depth;
 }
 
 export async function getSubtreeMaxDepth({ folderPath }: { folderPath: string }): Promise<number> {
   const { db } = getContext();
-  const prefix = `${folderPath}/%`;
+  const prefix = `${escapeLike(folderPath)}/%`;
   const descendants = await db
     .select({ path: schemas.dmsFolder.path })
     .from(schemas.dmsFolder)
-    .where(sql`${schemas.dmsFolder.path} like ${prefix}`);
+    .where(sql`${schemas.dmsFolder.path} like ${prefix} escape '\'`);
 
   const baseDepth = folderPath.split("/").length - 1;
   let maxDepthValue = 0;
@@ -296,6 +286,9 @@ export async function checkNameUniqueness({
     sql`lower(${schemas.dmsFile.path}) = ${lowerPath}`,
     sql`${schemas.dmsFile.status} != 'trashed'`,
   ];
+  if (excludeId) {
+    fileConditions.push(sql`${schemas.dmsFile.id} != ${excludeId}`);
+  }
 
   const [existingFile] = await db
     .select({ id: schemas.dmsFile.id })

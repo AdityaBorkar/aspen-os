@@ -1,6 +1,17 @@
 import { EmailSchema } from "#/schemas/utils";
 
-import { check, maxLength, nullish, object, optional, pipe, string } from "valibot";
+import {
+  boolean,
+  check,
+  maxLength,
+  nullish,
+  object,
+  optional,
+  pipe,
+  string,
+  transform,
+  union,
+} from "valibot";
 import type { InferOutput } from "valibot";
 
 export const ContactNameSchema = pipe(
@@ -63,7 +74,15 @@ export const RemoveContactSchema = object({
 export type RemoveContactInput = InferOutput<typeof RemoveContactSchema>;
 
 export const ContactFiltersSchema = object({
-  isRemoved: optional(string()),
+  isRemoved: optional(
+    union([
+      boolean(),
+      pipe(
+        string(),
+        transform((value) => value.toLowerCase() === "true"),
+      ),
+    ]),
+  ),
   search: optional(string()),
 });
 

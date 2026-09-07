@@ -1,3 +1,4 @@
+import { normalizeSearchRanges } from "#/schemas/search";
 import { searchFiles, searchFolders } from "#/services/search-service";
 import { SearchInputSchema } from "#/workflows/search/shared";
 
@@ -7,17 +8,18 @@ export const searchFilesWorkflow = Workflow.name("dms.search.full-text")
   .input(SearchInputSchema)
   .handler(async ({ options, query }, ctx) => {
     const actorId = ctx.actorId ?? "dms:system";
+    const { dateRange, sizeRange } = normalizeSearchRanges(options);
     const files = await searchFiles(ctx.db, {
       admin: actorId === "dms:admin",
       classId: options.classId,
       contentType: options.contentType,
-      dateRange: options.dateRange,
+      dateRange,
       labels: options.labels,
       limit: options.limit ?? 50,
       offset: options.offset ?? 0,
       query,
-      scope: options.scope ?? "mine",
-      sizeRange: options.sizeRange,
+      scope: options.scope ?? "my_files",
+      sizeRange,
       sort: options.sort,
       status: options.status,
       userId: actorId,

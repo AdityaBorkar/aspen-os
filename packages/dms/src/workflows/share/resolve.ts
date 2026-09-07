@@ -1,5 +1,6 @@
-import { dmsFile, dmsFolder, dmsShare } from "#/db-schemas";
+import { dmsFile, dmsShare } from "#/db-schemas";
 import { getDmsConfig } from "#/runtime";
+import { resolveEntity } from "#/services/entity-resolver";
 import { getSignedGetUrl } from "#/services/storage-bridge";
 import { ResolveShareTokenSchema } from "#/types";
 
@@ -29,17 +30,24 @@ export const resolveShareToken = Workflow.name("dms.share.resolve")
       throw new Error("Invalid or expired share token.");
     }
 
+    const entity = await resolveEntity(ctx.db, share.entityType, share.entityId);
+    if (!entity?.isAccessible) {
+      throw new Error(
+        share.entityType === "file"
+          ? "The shared file is not available."
+          : "The shared folder is not available.",
+      );
+    }
+
     if (share.entityType === "file") {
       const [file] = await ctx.db
-        .select()
+        .select({ storageKey: dmsFile.storageKey })
         .from(dmsFile)
-        .where(and(eq(dmsFile.id, share.entityId), eq(dmsFile.status, "active")))
+        .where(eq(dmsFile.id, share.entityId))
         .limit(1);
-
       if (!file) {
         throw new Error("The shared file is not available.");
       }
-
       const url = await ctx.step.run("get-signed-url", async () =>
         getSignedGetUrl({
           expiresIn: config.defaultDownloadLinkExpiry,
@@ -48,25 +56,15 @@ export const resolveShareToken = Workflow.name("dms.share.resolve")
       );
 
       return {
-        entityId: file.id,
+        entityId: share.entityId,
         entityType: "file" as const,
         expiresIn: config.defaultDownloadLinkExpiry,
         url,
       };
     }
 
-    const [folder] = await ctx.db
-      .select()
-      .from(dmsFolder)
-      .where(and(eq(dmsFolder.id, share.entityId), eq(dmsFolder.isTrashed, false)))
-      .limit(1);
-
-    if (!folder) {
-      throw new Error("The shared folder is not available.");
-    }
-
     return {
-      entityId: folder.id,
+      entityId: share.entityId,
       entityType: "folder" as const,
       expiresIn: config.defaultDownloadLinkExpiry,
       url: null,

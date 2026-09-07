@@ -14,21 +14,24 @@ export const createFileView = Workflow.name("dms.file-view.create")
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateFileViewSchema, input);
 
-    if (parsed.isDefault) {
-      await unsetDefaultFileView(ctx.db, parsed.ownerId);
-    }
+    const view = await ctx.db.transaction(async (tx) => {
+      if (parsed.isDefault) {
+        await unsetDefaultFileView(tx, parsed.ownerId);
+      }
 
-    const [view] = await ctx.db
-      .insert(dmsFileView)
-      .values({
-        filters: parsed.filters ?? [],
-        isDefault: parsed.isDefault,
-        isShared: parsed.isShared,
-        name: parsed.name,
-        ownerId: parsed.ownerId,
-        sort: parsed.sort ?? [],
-      })
-      .returning();
+      const [created] = await tx
+        .insert(dmsFileView)
+        .values({
+          filters: parsed.filters ?? [],
+          isDefault: parsed.isDefault,
+          isShared: parsed.isShared,
+          name: parsed.name,
+          ownerId: parsed.ownerId,
+          sort: parsed.sort ?? [],
+        })
+        .returning();
+      return created;
+    });
 
     await ctx.step.run("audit-and-notify", async () => {
       await ctx.audit.write({

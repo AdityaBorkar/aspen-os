@@ -86,6 +86,20 @@ export async function isFileHeld(db: PostgresJsDatabase, fileId: string): Promis
   return Boolean(hold);
 }
 
+export async function getHeldFileIds(
+  db: PostgresJsDatabase,
+  fileIds: string[],
+): Promise<Set<string>> {
+  if (fileIds.length === 0) {
+    return new Set();
+  }
+  const rows = await db
+    .select({ fileId: dmsLegalHold.fileId })
+    .from(dmsLegalHold)
+    .where(and(inArray(dmsLegalHold.fileId, fileIds), isNull(dmsLegalHold.releasedAt)));
+  return new Set(rows.map((row) => row.fileId));
+}
+
 /**
  * Permanently deletes a file: removes the current and every version object and
  * cascades version rows, labels, shares, public links, and legal holds.
@@ -119,18 +133,22 @@ export async function deleteFilePermanently(
     }),
   );
 
-  await db
-    .delete(dmsEntityLabel)
-    .where(and(eq(dmsEntityLabel.entityType, "file"), eq(dmsEntityLabel.entityId, fileId)));
-  await db
-    .delete(dmsShare)
-    .where(and(eq(dmsShare.entityType, "file"), eq(dmsShare.entityId, fileId)));
-  await db
-    .delete(dmsPublicLink)
-    .where(and(eq(dmsPublicLink.entityType, "file"), eq(dmsPublicLink.entityId, fileId)));
-  await db.delete(dmsFileVersion).where(eq(dmsFileVersion.fileId, fileId));
-  await db.delete(dmsLegalHold).where(eq(dmsLegalHold.fileId, fileId));
-  await db.delete(dmsFile).where(eq(dmsFile.id, fileId));
+  await db.transaction(async (tx) => {
+    await Promise.all([
+      tx
+        .delete(dmsEntityLabel)
+        .where(and(eq(dmsEntityLabel.entityType, "file"), eq(dmsEntityLabel.entityId, fileId))),
+      tx
+        .delete(dmsShare)
+        .where(and(eq(dmsShare.entityType, "file"), eq(dmsShare.entityId, fileId))),
+      tx
+        .delete(dmsPublicLink)
+        .where(and(eq(dmsPublicLink.entityType, "file"), eq(dmsPublicLink.entityId, fileId))),
+      tx.delete(dmsFileVersion).where(eq(dmsFileVersion.fileId, fileId)),
+      tx.delete(dmsLegalHold).where(eq(dmsLegalHold.fileId, fileId)),
+      tx.delete(dmsFile).where(eq(dmsFile.id, fileId)),
+    ]);
+  });
 
   return keys;
 }
@@ -167,9 +185,13 @@ export async function deleteFolderPermanently(
     .where(sql`${dmsFile.path} like ${prefix}`);
 
   const filesPurged: string[] = [];
+  const heldIds = await getHeldFileIds(
+    db,
+    descendantFiles.map((file) => file.id),
+  );
   // oxlint-disable eslint/no-await-in-loop
   for (const file of descendantFiles) {
-    if (await isFileHeld(db, file.id)) {
+    if (heldIds.has(file.id)) {
       continue;
     }
     await deleteFilePermanently(db, file.id);
@@ -189,6 +211,10 @@ export async function deleteFolderPermanently(
  * legal hold are always skipped.
  */
 export async function runAutoPurge(deps: PurgeDeps): Promise<number> {
+  // Pagination note: this scan loads all trashed/expired candidates in one
+  // query to preserve existing behavior. For very large tenants this should
+  // page by cursor (limit/offset or keyset); per-file work below is bounded
+  // in chunks so a future pagination pass only needs to wrap this fetch.
   const files = await deps.db
     .select({
       classId: dmsFile.classId,
@@ -200,41 +226,54 @@ export async function runAutoPurge(deps: PurgeDeps): Promise<number> {
     .from(dmsFile)
     .where(or(eq(dmsFile.status, "trashed"), eq(dmsFile.status, "expired")));
 
-  const results = await Promise.all(
-    files.map(async (file) => {
-      if (await isFileHeld(deps.db, file.id)) {
-        return false;
-      }
-
-      const retentionDays = await resolveRetentionDays(deps.db, file.classId);
-      const anchor = file.deletedAt ?? file.expiredAt;
-      if (!anchor) {
-        return false;
-      }
-
-      const cutoff = new Date(anchor.getTime() + retentionDays * 24 * 60 * 60 * 1000);
-      if (cutoff > new Date()) {
-        return false;
-      }
-
-      const keys = await deleteFilePermanently(deps.db, file.id);
-
-      await deps.audit.write({
-        action: "purged",
-        crudAction: "delete",
-        entityId: file.id,
-        entityType: "dms:file",
-        metadata: { storageKey: keys[0] ?? null },
-      });
-
-      await deps.pubsub.publish(FILE_EVENTS.PURGED, {
-        fileId: file.id,
-        storageKey: keys[0] ?? "",
-      });
-
-      return true;
-    }),
+  const heldIds = await getHeldFileIds(
+    deps.db,
+    files.map((file) => file.id),
   );
+
+  const AUTO_PURGE_BATCH_SIZE = 20;
+  let purged = 0;
+  // oxlint-disable eslint/no-await-in-loop
+  for (let start = 0; start < files.length; start += AUTO_PURGE_BATCH_SIZE) {
+    const chunk = files.slice(start, start + AUTO_PURGE_BATCH_SIZE);
+    const results = await Promise.all(
+      chunk.map(async (file) => {
+        if (heldIds.has(file.id)) {
+          return false;
+        }
+
+        const retentionDays = await resolveRetentionDays(deps.db, file.classId);
+        const anchor = file.deletedAt ?? file.expiredAt;
+        if (!anchor) {
+          return false;
+        }
+
+        const cutoff = new Date(anchor.getTime() + retentionDays * 24 * 60 * 60 * 1000);
+        if (cutoff > new Date()) {
+          return false;
+        }
+
+        const keys = await deleteFilePermanently(deps.db, file.id);
+
+        await deps.audit.write({
+          action: "purged",
+          crudAction: "delete",
+          entityId: file.id,
+          entityType: "dms:file",
+          metadata: { storageKey: keys[0] ?? null },
+        });
+
+        await deps.pubsub.publish(FILE_EVENTS.PURGED, {
+          fileId: file.id,
+          storageKey: keys[0] ?? "",
+        });
+
+        return true;
+      }),
+    );
+    purged += results.filter(Boolean).length;
+  }
+  // oxlint-enable eslint/no-await-in-loop
 
   const config = getDmsConfig();
   const folderCutoff = new Date(Date.now() - config.trashRetentionDays * 24 * 60 * 60 * 1000);
@@ -260,7 +299,7 @@ export async function runAutoPurge(deps: PurgeDeps): Promise<number> {
   }
   // oxlint-enable eslint/no-await-in-loop
 
-  return results.filter(Boolean).length + folderCount;
+  return purged + folderCount;
 }
 
 /**

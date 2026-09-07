@@ -27,3 +27,11 @@ export const LabelNameSchema = pipe(
 export const FileIdSchema = string();
 
 export const WithFileIdSchema = object({ id: FileIdSchema });
+
+/**
+ * Non-empty string factory shared by DMS schemas. Requires at least one
+ * character with a caller-provided message.
+ */
+export function nonEmptyString(message = "Field is required") {
+  return pipe(string(), minLength(1, message));
+}

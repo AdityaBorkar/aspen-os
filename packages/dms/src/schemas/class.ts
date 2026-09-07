@@ -1,5 +1,5 @@
 import { FieldTypeSchema } from "#/schemas/enums";
-import { NameSchema } from "#/schemas/utils";
+import { HexColorSchema, NameSchema } from "#/schemas/utils";
 
 import {
   array,
@@ -12,6 +12,7 @@ import {
   optional,
   pipe,
   string,
+  union,
   number as valibotNumber,
 } from "valibot";
 import type { InferOutput } from "valibot";
@@ -34,7 +35,7 @@ export const LabelSchema = pipe(
 );
 
 export const CreateClassSchema = object({
-  color: optional(nullable(string())),
+  color: optional(nullable(union([HexColorSchema, string()]))),
   createdBy: string(),
   description: optional(nullable(string())),
   fileNamingSchema: optional(nullable(FileNamingSchema)),
@@ -46,7 +47,7 @@ export const CreateClassSchema = object({
 export type CreateClassInput = InferOutput<typeof CreateClassSchema>;
 
 export const UpdateClassSchema = object({
-  color: optional(nullable(string())),
+  color: optional(nullable(union([HexColorSchema, string()]))),
   description: optional(nullable(string())),
   fileNamingSchema: optional(nullable(FileNamingSchema)),
   icon: optional(nullable(string())),

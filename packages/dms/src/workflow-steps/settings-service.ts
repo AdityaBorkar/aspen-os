@@ -1,31 +1,89 @@
 import { dmsSetting } from "#/db-schemas";
 import { getDmsConfig } from "#/runtime";
+import type { DmsRuntimeConfig } from "#/runtime";
+import { CompressionOptionSchema } from "#/schemas";
 import type { CompressionOption } from "#/types";
 import { SETTING_KEYS } from "#/utils/constants";
 
 import type { JsonValue } from "@aspen-os/platform/server";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
-import { boolean, number, object, safeParse, string } from "valibot";
+import { boolean, number, safeParse } from "valibot";
+import type { GenericSchema, InferOutput } from "valibot";
 
 type DB = PostgresJsDatabase;
 
 export interface DmsSettingsValues {
   autoPurgeEveryHours: number;
-  defaultCompression: { enabled: boolean; mode: string };
+  defaultCompression: CompressionOption;
   defaultRetentionDays: number;
   logDownloads: boolean;
   presignedUrlDefaultExpiry: number;
   presignedUrlMaxExpiry: number;
 }
 
-const CompressionOptionGuard = object({
-  enabled: boolean(),
-  mode: string(),
-});
-
 export function isCompressionOption(value: JsonValue): value is CompressionOption {
-  return safeParse(CompressionOptionGuard, value).success;
+  return safeParse(CompressionOptionSchema, value).success;
+}
+
+interface SettingDef<TSchema extends GenericSchema> {
+  fallback: (config: DmsRuntimeConfig) => InferOutput<TSchema>;
+  key: string;
+  schema: TSchema;
+}
+
+function coerce<TSchema extends GenericSchema>(
+  schema: TSchema,
+  value: JsonValue,
+  fallback: InferOutput<TSchema>,
+): InferOutput<TSchema> {
+  const parsed = safeParse(schema, value);
+  return parsed.success ? parsed.output : fallback;
+}
+
+const SETTING_DEFS = {
+  autoPurgeEveryHours: {
+    fallback: (config: DmsRuntimeConfig) => config.defaultAutoPurgeEveryHours,
+    key: SETTING_KEYS.AUTO_PURGE_EVERY_HOURS,
+    schema: number(),
+  },
+  defaultCompression: {
+    fallback: (config: DmsRuntimeConfig) => config.defaultCompression,
+    key: SETTING_KEYS.DEFAULT_COMPRESSION,
+    schema: CompressionOptionSchema,
+  },
+  defaultRetentionDays: {
+    fallback: (config: DmsRuntimeConfig) => config.defaultRetentionDays,
+    key: SETTING_KEYS.DEFAULT_RETENTION_DAYS,
+    schema: number(),
+  },
+  logDownloads: {
+    fallback: (_config: DmsRuntimeConfig) => false,
+    key: SETTING_KEYS.LOG_DOWNLOADS,
+    schema: boolean(),
+  },
+  presignedUrlDefaultExpiry: {
+    fallback: (config: DmsRuntimeConfig) => config.defaultDownloadLinkExpiry,
+    key: SETTING_KEYS.PRESIGNED_URL_DEFAULT_EXPIRY,
+    schema: number(),
+  },
+  presignedUrlMaxExpiry: {
+    fallback: (config: DmsRuntimeConfig) => config.maxDownloadLinkExpiry,
+    key: SETTING_KEYS.PRESIGNED_URL_MAX_EXPIRY,
+    schema: number(),
+  },
+};
+
+function readDef<TSchema extends GenericSchema>(
+  def: SettingDef<TSchema>,
+  stored: Map<string, JsonValue>,
+  config: DmsRuntimeConfig,
+): InferOutput<TSchema> {
+  const fallback = def.fallback(config);
+  const raw = stored.get(def.key) ?? fallback;
+  // SAFETY: fallbacks are static config defaults or previously validated schema
+  // outputs, so both branches are JSON-compatible setting values.
+  return coerce(def.schema, raw as JsonValue, fallback);
 }
 
 export async function getSetting(db: DB, key: string): Promise<JsonValue | null> {
@@ -53,89 +111,29 @@ export async function setSetting(db: DB, key: string, value: JsonValue): Promise
     : db.insert(dmsSetting).values({ key, value }));
 }
 
-const DEFAULT_VALUES = {
-  [SETTING_KEYS.AUTO_PURGE_EVERY_HOURS]: 24,
-  [SETTING_KEYS.DEFAULT_COMPRESSION]: { enabled: true, mode: "none" },
-  [SETTING_KEYS.DEFAULT_RETENTION_DAYS]: 180,
-  [SETTING_KEYS.LOG_DOWNLOADS]: false,
-  [SETTING_KEYS.PRESIGNED_URL_DEFAULT_EXPIRY]: 3600,
-  [SETTING_KEYS.PRESIGNED_URL_MAX_EXPIRY]: 604_800,
-} satisfies Record<string, JsonValue>;
-
 export async function getDefaultSetting(key: string): Promise<JsonValue | null> {
-  switch (key) {
-    case SETTING_KEYS.AUTO_PURGE_EVERY_HOURS: {
-      return getDmsConfig().defaultAutoPurgeEveryHours;
-    }
-    case SETTING_KEYS.DEFAULT_COMPRESSION: {
-      return getDmsConfig().defaultCompression;
-    }
-    case SETTING_KEYS.DEFAULT_RETENTION_DAYS: {
-      return getDmsConfig().defaultRetentionDays;
-    }
-    case SETTING_KEYS.LOG_DOWNLOADS: {
-      return DEFAULT_VALUES[SETTING_KEYS.LOG_DOWNLOADS];
-    }
-    case SETTING_KEYS.PRESIGNED_URL_DEFAULT_EXPIRY: {
-      return DEFAULT_VALUES[SETTING_KEYS.PRESIGNED_URL_DEFAULT_EXPIRY];
-    }
-    case SETTING_KEYS.PRESIGNED_URL_MAX_EXPIRY: {
-      return DEFAULT_VALUES[SETTING_KEYS.PRESIGNED_URL_MAX_EXPIRY];
-    }
-    default: {
-      return null;
-    }
+  const def = Object.values(SETTING_DEFS).find((entry) => entry.key === key);
+  if (!def) {
+    return null;
   }
+  return def.fallback(getDmsConfig());
 }
 
 export async function getSettingValues(db: DB): Promise<DmsSettingsValues> {
   const config = getDmsConfig();
-
-  const raw = async (key: string, fallback: JsonValue): Promise<JsonValue> => {
-    const value = await getSetting(db, key);
-    return value ?? fallback;
-  };
-
-  const autoPurgeEveryHours = await raw(
-    SETTING_KEYS.AUTO_PURGE_EVERY_HOURS,
-    config.defaultAutoPurgeEveryHours,
-  );
-  const defaultCompression = await raw(SETTING_KEYS.DEFAULT_COMPRESSION, config.defaultCompression);
-  const defaultRetentionDays = await raw(
-    SETTING_KEYS.DEFAULT_RETENTION_DAYS,
-    config.defaultRetentionDays,
-  );
-  const logDownloads = await raw(SETTING_KEYS.LOG_DOWNLOADS, false);
-  const presignedUrlDefaultExpiry = await raw(
-    SETTING_KEYS.PRESIGNED_URL_DEFAULT_EXPIRY,
-    config.defaultDownloadLinkExpiry,
-  );
-  const presignedUrlMaxExpiry = await raw(
-    SETTING_KEYS.PRESIGNED_URL_MAX_EXPIRY,
-    config.maxDownloadLinkExpiry,
-  );
+  const keys = Object.values(SETTING_DEFS).map((def) => def.key);
+  const rows = await db
+    .select({ key: dmsSetting.key, value: dmsSetting.value })
+    .from(dmsSetting)
+    .where(inArray(dmsSetting.key, keys));
+  const stored = new Map<string, JsonValue>(rows.map((row) => [row.key, row.value]));
 
   return {
-    autoPurgeEveryHours: asNumber(autoPurgeEveryHours, config.defaultAutoPurgeEveryHours),
-    defaultCompression: isCompressionOption(defaultCompression)
-      ? defaultCompression
-      : config.defaultCompression,
-    defaultRetentionDays: asNumber(defaultRetentionDays, config.defaultRetentionDays),
-    logDownloads: asBoolean(logDownloads, false),
-    presignedUrlDefaultExpiry: asNumber(
-      presignedUrlDefaultExpiry,
-      config.defaultDownloadLinkExpiry,
-    ),
-    presignedUrlMaxExpiry: asNumber(presignedUrlMaxExpiry, config.maxDownloadLinkExpiry),
+    autoPurgeEveryHours: readDef(SETTING_DEFS.autoPurgeEveryHours, stored, config),
+    defaultCompression: readDef(SETTING_DEFS.defaultCompression, stored, config),
+    defaultRetentionDays: readDef(SETTING_DEFS.defaultRetentionDays, stored, config),
+    logDownloads: readDef(SETTING_DEFS.logDownloads, stored, config),
+    presignedUrlDefaultExpiry: readDef(SETTING_DEFS.presignedUrlDefaultExpiry, stored, config),
+    presignedUrlMaxExpiry: readDef(SETTING_DEFS.presignedUrlMaxExpiry, stored, config),
   };
-}
-
-function asNumber(value: JsonValue, fallback: number): number {
-  const parsed = safeParse(number(), value);
-  return parsed.success ? parsed.output : fallback;
-}
-
-function asBoolean(value: JsonValue, fallback: boolean): boolean {
-  const parsed = safeParse(boolean(), value);
-  return parsed.success ? parsed.output : fallback;
 }

@@ -30,6 +30,12 @@ export function isAuditRow(value: JsonValue): value is AuditRow {
   return safeParse(AuditRowSchema, value).success;
 }
 
+/**
+ * Back-compat entity-type map: old audit rows use snake/camel variants
+ * ("file_view", "fileView", "public_link", "publicLink"). Canonical types are
+ * the AUDIT_ENTITY_TYPE ("dms:*") values; normalize() enforces canonical form
+ * on read while this map keeps old rows readable.
+ */
 export function mapEntityType(type: string): string {
   switch (type) {
     case "class": {
@@ -73,7 +79,7 @@ export function normalize(row: AuditRow) {
     actorId: row.actorId,
     changes: row.changes,
     entityId: row.entityId,
-    entityType: row.entityType,
+    entityType: mapEntityType(row.entityType),
     id: row.id,
     metadata: row.metadata,
     newState: row.newState,

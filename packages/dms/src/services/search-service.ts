@@ -16,6 +16,17 @@ import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 type DB = PostgresJsDatabase;
 
+/**
+ * Escapes LIKE wildcards so user input matches literally. PostgreSQL LIKE
+ * treats backslash as the default escape character.
+ */
+export function escapeLike(value: string): string {
+  return value
+    .replaceAll("\\", String.raw`\\`)
+    .replaceAll("%", String.raw`\%`)
+    .replaceAll("_", String.raw`\_`);
+}
+
 export interface QuickSearchHit {
   file: DmsFile;
   matched: {
@@ -51,7 +62,9 @@ export async function searchFolders(
   return db
     .select()
     .from(dmsFolder)
-    .where(and(eq(dmsFolder.isTrashed, false), ilike(dmsFolder.name, `%${input.query}%`)))
+    .where(
+      and(eq(dmsFolder.isTrashed, false), ilike(dmsFolder.name, `%${escapeLike(input.query)}%`)),
+    )
     .orderBy(asc(dmsFolder.name))
     .limit(input.limit)
     .offset(input.offset);
@@ -143,7 +156,6 @@ export async function searchFiles(
     userId: string;
   },
 ): Promise<DmsFile[]> {
-  void db;
   const conditions: SQL[] = [];
   conditions.push(buildSearchVector(input.query));
 
@@ -153,14 +165,10 @@ export async function searchFiles(
     conditions.push(eq(dmsFile.status, "active"));
   }
 
-  if (!input.admin && input.scope === "mine") {
+  if (input.scope === "mine") {
     conditions.push(eq(dmsFile.ownerId, input.userId));
-  } else if (!input.admin && input.scope !== "mine") {
+  } else if (!input.admin) {
     conditions.push(...buildVisibilityScope({ admin: false, userId: input.userId }));
-  }
-
-  if (input.admin && input.scope === "mine") {
-    conditions.push(eq(dmsFile.ownerId, input.userId));
   }
 
   if (input.classId) {
@@ -219,7 +227,7 @@ export async function searchItems(
   if (input.type !== "file") {
     const folderConditions = [
       eq(dmsFolder.isTrashed, false),
-      ilike(dmsFolder.name, `%${input.query}%`),
+      ilike(dmsFolder.name, `%${escapeLike(input.query)}%`),
     ];
     folders.push(
       ...(await db
@@ -233,9 +241,10 @@ export async function searchItems(
   }
 
   if (input.type !== "folder") {
+    const pattern = `%${escapeLike(input.query)}%`;
     const fileConditions = [
       eq(dmsFile.status, "active"),
-      sql`(${dmsFile.name} ilike ${`%${input.query}%`} OR coalesce(${dmsFile.description}, '') ilike ${`%${input.query}%`})`,
+      sql`(${dmsFile.name} ilike ${pattern} OR coalesce(${dmsFile.description}, '') ilike ${pattern})`,
     ];
     files.push(
       ...(await db
@@ -279,18 +288,12 @@ export async function quickSearch(
     };
   });
 
-  const classRows = await db
-    .select({ name: dmsClass.name })
-    .from(dmsClass)
-    .where(ilike(dmsClass.name, `%${query}%`))
-    .limit(5);
+  const pattern = `%${escapeLike(query)}%`;
+  const [classRows, labelRows] = await Promise.all([
+    db.select({ name: dmsClass.name }).from(dmsClass).where(ilike(dmsClass.name, pattern)).limit(5),
+    db.select({ name: dmsLabel.name }).from(dmsLabel).where(ilike(dmsLabel.name, pattern)).limit(5),
+  ]);
   const classes = classRows.map((row) => row.name);
-
-  const labelRows = await db
-    .select({ name: dmsLabel.name })
-    .from(dmsLabel)
-    .where(ilike(dmsLabel.name, `%${query}%`))
-    .limit(5);
   const labels = labelRows.map((row) => row.name);
 
   return { classes, files, labels };

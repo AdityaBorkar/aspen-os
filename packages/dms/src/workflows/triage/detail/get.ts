@@ -1,9 +1,12 @@
+import { dmsClassField } from "#/db-schemas";
 import { IdSchema } from "#/types";
-import { getActiveFields, validateFieldValues } from "#/workflow-steps/classify-service";
+import type { ClassFieldRow } from "#/workflow-steps/classify-service";
+import { validateFieldValues } from "#/workflow-steps/classify-service";
 import { fetchFileStep } from "#/workflow-steps/fetch-file";
 import { listClasses } from "#/workflows/class/list";
 
 import { Workflow } from "@aspen-os/platform/server";
+import { inArray } from "drizzle-orm";
 import { object } from "valibot";
 
 const DetailInputSchema = object({ id: IdSchema });
@@ -18,15 +21,35 @@ export const getTriageDetail = Workflow.name("dms.triage.detail")
       { db: ctx.db, pubsub: ctx.pubsub },
     );
 
-    const candidateReport = await ctx.step.run("missing-required-fields", async () =>
-      Promise.all(
-        classes.map(async (cls) => {
-          const fields = await getActiveFields(ctx.db, cls.id);
-          const { missing } = validateFieldValues(fields, file.fieldValues ?? {});
-          return { classId: cls.id, className: cls.name, missing };
-        }),
-      ),
-    );
+    const classIds = classes.map((cls) => cls.id);
+    const fieldRows =
+      classIds.length > 0
+        ? await ctx.db.select().from(dmsClassField).where(inArray(dmsClassField.classId, classIds))
+        : [];
+
+    const byClass = new Map<string, ClassFieldRow[]>();
+    for (const row of fieldRows) {
+      if (!row.isActive) {
+        continue;
+      }
+      const list = byClass.get(row.classId) ?? [];
+      list.push({
+        defaultValue: row.defaultValue,
+        isActive: row.isActive,
+        isRequired: row.isRequired,
+        label: row.label,
+        name: row.name,
+        options: row.options,
+        type: row.type,
+      });
+      byClass.set(row.classId, list);
+    }
+
+    const candidateReport = classes.map((cls) => {
+      const fields = byClass.get(cls.id) ?? [];
+      const { missing } = validateFieldValues(fields, file.fieldValues ?? undefined);
+      return { classId: cls.id, className: cls.name, missing };
+    });
 
     return { file, missingRequiredFields: candidateReport };
   });

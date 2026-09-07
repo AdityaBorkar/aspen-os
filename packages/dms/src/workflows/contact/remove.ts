@@ -5,7 +5,7 @@ import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchContactStep } from "#/workflow-steps/fetch-contact";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { object } from "valibot";
 
 const RemoveInputSchema = object({ id: IdSchema, input: RemoveContactSchema });
@@ -23,8 +23,8 @@ export const removeContact = Workflow.name("dms.contact.remove")
       throw new Error(`Contact "${id}" is already removed.`);
     }
 
-    await ctx.step.run("mark-removed", async () => {
-      await ctx.db
+    const revoked = await ctx.db.transaction(async (tx) => {
+      await tx
         .update(dmsContact)
         .set({
           deletionReason: reason,
@@ -33,18 +33,12 @@ export const removeContact = Workflow.name("dms.contact.remove")
           updatedAt: new Date(),
         })
         .where(eq(dmsContact.id, id));
-    });
 
-    const revoked = await ctx.step.run("revoke-shares", async () => {
-      const rows = await ctx.db
-        .select({ id: dmsShare.id })
-        .from(dmsShare)
-        .where(eq(dmsShare.granteeId, id));
-
-      if (rows.length > 0) {
-        await ctx.db.delete(dmsShare).where(eq(dmsShare.granteeId, id));
-      }
-      return rows.length;
+      const deleted = await tx
+        .delete(dmsShare)
+        .where(and(eq(dmsShare.granteeId, id), eq(dmsShare.granteeType, "contact")))
+        .returning({ id: dmsShare.id });
+      return deleted.length;
     });
 
     await ctx.step.run("audit-and-notify", async () => {

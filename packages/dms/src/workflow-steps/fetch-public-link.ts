@@ -1,19 +1,10 @@
 import { dmsPublicLink } from "#/db-schemas";
-import { WithIdSchema } from "#/types";
+import { WithIdSchema } from "#/schemas";
+import { makeFetchStep } from "#/workflow-steps/fetch-entity";
 
-import { WorkflowStep } from "@aspen-os/platform/server";
-import { eq } from "drizzle-orm";
-
-export const fetchPublicLinkStep = WorkflowStep.name("dms-fetch-public-link")
-  .input(WithIdSchema)
-  .handler(async (input, ctx) => {
-    const [row] = await ctx.db
-      .select()
-      .from(dmsPublicLink)
-      .where(eq(dmsPublicLink.id, input.id))
-      .limit(1);
-    if (!row) {
-      throw new Error(`Public link with id "${input.id}" not found.`);
-    }
-    return row;
-  });
+export const fetchPublicLinkStep = makeFetchStep(
+  "dms-fetch-public-link",
+  dmsPublicLink,
+  "Public link",
+  WithIdSchema,
+);

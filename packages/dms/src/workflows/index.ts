@@ -89,6 +89,8 @@ import { getCurrentVersion, listFileVersions } from "#/workflows/version/list";
 import { newFileVersion } from "#/workflows/version/new";
 import { revertToVersion } from "#/workflows/version/revert";
 
+// Group taxonomy mirrors DMS domain areas; getContact lives in contact/list
+// (no contact/get module) and group/alias names are frozen for compatibility.
 export const activity = {
   get: getActivity,
   getClass: getClassActivity,

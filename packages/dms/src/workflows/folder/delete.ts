@@ -25,17 +25,18 @@ export const deleteFolder = Workflow.name("dms.folder.delete")
       return row;
     });
 
-    const [childFolder] = await ctx.db
-      .select({ id: dmsFolder.id })
-      .from(dmsFolder)
-      .where(and(eq(dmsFolder.parentId, id), eq(dmsFolder.isTrashed, false)))
-      .limit(1);
-
-    const [childFile] = await ctx.db
-      .select({ id: dmsFile.id })
-      .from(dmsFile)
-      .where(and(eq(dmsFile.folderId, id), eq(dmsFile.status, "active")))
-      .limit(1);
+    const [[childFolder], [childFile]] = await Promise.all([
+      ctx.db
+        .select({ id: dmsFolder.id })
+        .from(dmsFolder)
+        .where(and(eq(dmsFolder.parentId, id), eq(dmsFolder.isTrashed, false)))
+        .limit(1),
+      ctx.db
+        .select({ id: dmsFile.id })
+        .from(dmsFile)
+        .where(and(eq(dmsFile.folderId, id), eq(dmsFile.status, "active")))
+        .limit(1),
+    ]);
 
     if ((childFolder || childFile) && !force) {
       throw new Error(

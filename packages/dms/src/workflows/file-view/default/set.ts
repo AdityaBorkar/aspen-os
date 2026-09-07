@@ -22,15 +22,18 @@ export const setDefaultFileView = Workflow.name("dms.file-view.set-default")
       throw new Error(`File view "${id}" not found.`);
     }
 
-    await ctx.step.run("unset-previous", async () => {
-      await unsetDefaultFileView(ctx.db, view.ownerId);
-    });
+    const updated = await ctx.db.transaction(async (tx) => {
+      await ctx.step.run("unset-previous", async () => {
+        await unsetDefaultFileView(tx, view.ownerId);
+      });
 
-    const [updated] = await ctx.db
-      .update(dmsFileView)
-      .set({ isDefault: true, updatedAt: new Date() })
-      .where(eq(dmsFileView.id, id))
-      .returning();
+      const [next] = await tx
+        .update(dmsFileView)
+        .set({ isDefault: true, updatedAt: new Date() })
+        .where(eq(dmsFileView.id, id))
+        .returning();
+      return next;
+    });
 
     await ctx.pubsub.publish(FILE_VIEW_EVENTS.UPDATED, { fileViewId: id });
 

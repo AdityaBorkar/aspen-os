@@ -1,5 +1,5 @@
 import { dmsShare } from "#/db-schemas";
-import { IdSchema, UpdateShareSchema } from "#/types";
+import { IdSchema, parseShareExpiry, UpdateShareSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { stripUndefined } from "#/utils/strip-undefined";
 
@@ -13,7 +13,7 @@ export const updateShare = Workflow.name("dms.share.update")
   .input(UpdateInputSchema)
   .handler(async ({ id, patch }, ctx) => {
     const updates = stripUndefined({
-      expiresAt: patch.expiresAt ? new Date(patch.expiresAt) : null,
+      expiresAt: patch.expiresAt !== undefined ? parseShareExpiry(patch.expiresAt) : undefined,
       permission: patch.permission,
     });
 

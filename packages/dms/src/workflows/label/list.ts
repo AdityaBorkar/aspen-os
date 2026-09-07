@@ -2,23 +2,23 @@ import { dmsLabel } from "#/db-schemas";
 import { ListLabelsOptionsSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { and, eq } from "drizzle-orm";
-import { object, optional, parse } from "valibot";
+import { and, eq, or } from "drizzle-orm";
+import { object, optional } from "valibot";
 
 const ListLabelsSchema = object({
-  opts: optional(object({})),
+  opts: optional(ListLabelsOptionsSchema),
 });
 
 export const listLabels = Workflow.name("dms.label.list")
   .input(ListLabelsSchema)
   .handler(async ({ opts }, ctx) => {
-    const parsed = parse(ListLabelsOptionsSchema, opts ?? {});
+    const parsed = opts ?? { includeGlobal: true, limit: 50, offset: 0 };
 
     const conditions = [];
 
     if (parsed.ownerId) {
       if (parsed.includeGlobal) {
-        conditions.push(and(eq(dmsLabel.isGlobal, true), eq(dmsLabel.ownerId, parsed.ownerId)));
+        conditions.push(or(eq(dmsLabel.isGlobal, true), eq(dmsLabel.ownerId, parsed.ownerId)));
       } else {
         conditions.push(eq(dmsLabel.ownerId, parsed.ownerId));
       }

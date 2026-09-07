@@ -40,12 +40,12 @@ export const moveFolder = Workflow.name("dms.folder.move")
     });
 
     if (newParentId) {
-      const parentDepth = await ctx.step.run("get-parent-depth", async () =>
-        getDepth({ folderId: newParentId }),
-      );
-      const subtreeDepth = await ctx.step.run("get-subtree-depth", async () =>
-        getSubtreeMaxDepth({ folderPath: fetched.path }),
-      );
+      const [parentDepth, subtreeDepth] = await Promise.all([
+        ctx.step.run("get-parent-depth", async () => getDepth({ folderId: newParentId })),
+        ctx.step.run("get-subtree-depth", async () =>
+          getSubtreeMaxDepth({ folderPath: fetched.path }),
+        ),
+      ]);
       const md = getDmsConfig().maxNestingDepth;
       if (parentDepth + 1 + subtreeDepth >= md) {
         throw new Error(`Maximum nesting depth of ${md} would be exceeded.`);

@@ -20,6 +20,9 @@ const ClassifyInputSchema = object({ id: IdSchema, input: ClassifyFileSchema });
 const MAX_SEQ = 999_999;
 
 async function nextDocNumber(db: PostgresJsDatabase): Promise<string> {
+  // Count-based numbering: two concurrent classifies can read the same count
+  // and produce the same docNumber. A DB sequence would fix the race but
+  // requires a migration; kept count-based to avoid migration risk.
   const rows = await db
     .select({ value: count(dmsFile.id) })
     .from(dmsFile)

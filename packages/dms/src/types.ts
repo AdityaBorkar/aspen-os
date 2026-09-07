@@ -113,6 +113,7 @@ export {
   ApplyFileViewSchema,
   ApplyLabelSchema,
   ArchiveClassSchema,
+  assertLabelOwner,
   ClassFiltersSchema,
   ClassifyFileSchema,
   CompressionModeSchema,
@@ -154,6 +155,9 @@ export {
   MoveFolderSchema,
   NameSchema,
   NewVersionSchema,
+  nonEmptyString,
+  normalizeSearchRanges,
+  parseShareExpiry,
   PublicLinkPermissionSchema,
   QuickSearchSchema,
   RemoveContactSchema,
@@ -226,13 +230,6 @@ export type {
   NewDmsPublicLink,
 };
 
-export type DmsFileRow = DmsFile;
-export type DmsFolderRow = DmsFolder;
-export type DmsFileVersionRow = DmsFileVersion;
-export type DmsLabelRow = DmsLabel;
-export type DmsPublicLinkRow = DmsPublicLink;
-export type DmsAccessLogRow = DmsAccessLog;
-
 export interface BreadcrumbItem {
   id: string;
   name: string;
@@ -246,25 +243,26 @@ export interface PathResolution {
   type: EntityType;
 }
 
-export interface FolderWithMetadata {
-  childCount: number;
-  color: string | null;
-  createdAt: Date;
-  description: string | null;
-  id: string;
-  isTrashed: boolean;
-  name: string;
-  ownerId: string;
-  parentId: string | null;
-  path: string;
-  totalSize: number;
-  trashedAt: Date | null;
-  updatedAt: Date;
-}
+// Derived from DmsFolder plus computed metadata; value re-exports above stay
+// here to preserve existing import paths.
+export type FolderWithMetadata = Pick<
+  DmsFolder,
+  | "color"
+  | "createdAt"
+  | "description"
+  | "id"
+  | "isTrashed"
+  | "name"
+  | "ownerId"
+  | "parentId"
+  | "path"
+  | "trashedAt"
+  | "updatedAt"
+> & { childCount: number; totalSize: number };
 
 export interface SearchResult {
-  files: DmsFileRow[];
-  folders: DmsFolderRow[];
+  files: DmsFile[];
+  folders: DmsFolder[];
 }
 
 export type SearchScope = "all" | "my_files" | "shared_with_me";

@@ -1,21 +1,10 @@
 import { dmsFileView } from "#/db-schemas";
-import { IdSchema } from "#/types";
+import { WithIdSchema } from "#/schemas";
+import { makeFetchStep } from "#/workflow-steps/fetch-entity";
 
-import { WorkflowStep } from "@aspen-os/platform/server";
-import { eq } from "drizzle-orm";
-import { object } from "valibot";
-
-export const fetchFileViewStep = WorkflowStep.name("dms-fetch-file-view")
-  .input(object({ id: IdSchema }))
-  .handler(async (input, ctx) => {
-    const [view] = await ctx.db
-      .select()
-      .from(dmsFileView)
-      .where(eq(dmsFileView.id, input.id))
-      .limit(1);
-
-    if (!view) {
-      throw new Error(`File view with id "${input.id}" not found.`);
-    }
-    return view;
-  });
+export const fetchFileViewStep = makeFetchStep(
+  "dms-fetch-file-view",
+  dmsFileView,
+  "File view",
+  WithIdSchema,
+);

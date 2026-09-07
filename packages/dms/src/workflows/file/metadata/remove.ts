@@ -1,11 +1,10 @@
-import { dmsFile } from "#/db-schemas";
 import { FILE_EVENTS } from "#/pubsub";
 import { IdSchema, RemoveMetadataSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchFileStep } from "#/workflow-steps/fetch-file";
+import { patchFileMetadata } from "#/workflows/file/metadata/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { eq } from "drizzle-orm";
 import { object, parse } from "valibot";
 
 const RemoveMetadataInputSchema = object({ id: IdSchema, input: RemoveMetadataSchema });
@@ -16,18 +15,11 @@ export const removeFileMetadata = Workflow.name("dms.file.remove-metadata")
     const file = await ctx.step.run(fetchFileStep, { id });
     const parsed = parse(RemoveMetadataSchema, input);
 
-    const metadata = { ...file.metadata };
-    delete metadata[parsed.key];
-
-    const [updated] = await ctx.db
-      .update(dmsFile)
-      .set({ metadata, updatedAt: new Date() })
-      .where(eq(dmsFile.id, id))
-      .returning();
-
-    if (!updated) {
-      throw new Error(`File "${id}" not found.`);
-    }
+    const updated = await patchFileMetadata(ctx.db, file, (metadata) => {
+      const next = { ...metadata };
+      delete next[parsed.key];
+      return next;
+    });
 
     await ctx.step.run("audit-and-notify", async () => {
       await ctx.audit.write({
@@ -36,7 +28,7 @@ export const removeFileMetadata = Workflow.name("dms.file.remove-metadata")
         entityId: id,
         entityType: AUDIT_ENTITY_TYPE.FILE,
         metadata: { key: parsed.key },
-        newState: { metadata },
+        newState: { metadata: updated.metadata },
         previousState: { metadata: file.metadata },
       });
 

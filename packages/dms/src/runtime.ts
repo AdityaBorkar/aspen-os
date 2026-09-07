@@ -19,7 +19,10 @@ export function getDmsStorage(): StorageUnit {
 }
 
 export function setDmsConfig(value: DmsRuntimeConfig): void {
-  config = value;
+  config = Object.freeze({
+    ...value,
+    defaultCompression: Object.freeze({ ...value.defaultCompression }),
+  });
 }
 
 export function getDmsConfig(): DmsRuntimeConfig {
@@ -27,4 +30,9 @@ export function getDmsConfig(): DmsRuntimeConfig {
     throw new Error("DMS config not initialized");
   }
   return config;
+}
+
+export function resetDmsRuntime(): void {
+  storage = null;
+  config = null;
 }

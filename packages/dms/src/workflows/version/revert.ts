@@ -1,12 +1,6 @@
-import { dmsFile, dmsFileVersion } from "#/db-schemas";
+import { dmsFileVersion } from "#/db-schemas";
 import { FILE_EVENTS } from "#/pubsub";
-import { getDmsConfig } from "#/runtime";
-import { pruneVersions } from "#/services/purge-service";
-import {
-  computeStorageKey,
-  get as getStorage,
-  upload as uploadStorage,
-} from "#/services/storage-bridge";
+import { revertVersion } from "#/services/version-service";
 import { IdSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchFileStep } from "#/workflow-steps/fetch-file";
@@ -45,57 +39,10 @@ export const revertToVersion = Workflow.name("dms.version.revert")
       return row;
     });
 
-    const config = getDmsConfig();
-    const newVersionNumber = file.version + 1;
-
-    const storageKey = computeStorageKey({
-      fileId,
-      name: target.name ?? file.name,
-      version: newVersionNumber,
-    });
-
-    await ctx.step.run("copy-bytes", async () => {
-      const bytes = await getStorage({ key: target.storageKey });
-      await uploadStorage({
-        body: bytes,
-        contentType: target.contentType,
-        key: storageKey,
-      });
-    });
-
-    await ctx.step.run("record-history", async () => {
-      await ctx.db.insert(dmsFileVersion).values({
-        compression: target.compression,
-        contentType: target.contentType,
-        etag: target.etag,
-        fileId,
-        isCurrent: true,
-        name: target.name,
-        size: target.size,
-        storageKey,
-        uploadedBy: ctx.actorId ?? file.ownerId,
-        version: newVersionNumber,
-      });
-    });
-
-    const [updated] = await ctx.db
-      .update(dmsFile)
-      .set({
-        contentType: target.contentType,
-        etag: target.etag,
-        name: target.name ?? file.name,
-        size: target.size,
-        storageKey,
-        updatedAt: new Date(),
-        uploadedBy: ctx.actorId ?? file.ownerId,
-        version: newVersionNumber,
-      })
-      .where(eq(dmsFile.id, fileId))
-      .returning();
-
-    await ctx.step.run("prune", async () => {
-      await pruneVersions(ctx.db, fileId, config.maxVersions);
-    });
+    const actorId = ctx.actorId ?? file.ownerId;
+    const { newVersion: newVersionNumber, updated } = await ctx.step.run("revert-bytes", async () =>
+      revertVersion(ctx.db, file, { actorId, target }),
+    );
 
     await ctx.step.run("audit-and-notify", async () => {
       await ctx.audit.write({

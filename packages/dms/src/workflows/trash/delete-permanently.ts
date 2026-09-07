@@ -6,6 +6,7 @@ import {
 } from "#/services/purge-service";
 import { IdSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { isPurgeableFile, isPurgeableFolder } from "#/utils/lifecycle";
 import { fetchFileStep } from "#/workflow-steps/fetch-file";
 import { fetchFolderStep } from "#/workflow-steps/fetch-folder";
 
@@ -27,7 +28,7 @@ export const deletePermanently = Workflow.name("dms.trash.delete-permanently")
     if (entityType === "file") {
       const file = await ctx.step.run(fetchFileStep, { id });
 
-      if (file.status !== "trashed" && file.status !== "expired") {
+      if (!isPurgeableFile(file.status)) {
         throw new Error("Only files in the trash can be permanently deleted.");
       }
 
@@ -59,7 +60,7 @@ export const deletePermanently = Workflow.name("dms.trash.delete-permanently")
 
     const folder = await ctx.step.run(fetchFolderStep, { id });
 
-    if (!folder.isTrashed) {
+    if (!isPurgeableFolder(folder.isTrashed)) {
       throw new Error("Only folders in the trash can be permanently deleted.");
     }
 

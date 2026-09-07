@@ -111,6 +111,7 @@ export type {
 } from "#/schemas/label";
 export {
   ApplyLabelSchema,
+  assertLabelOwner,
   CreateLabelSchema,
   ListByLabelOptionsSchema,
   ListLabelsOptionsSchema,
@@ -128,6 +129,7 @@ export {
 } from "#/schemas/public-link";
 export {
   DateRangeSchema,
+  normalizeSearchRanges,
   SearchScopeSchema,
   SearchSortOrderSchema,
   SizeRangeSchema,
@@ -143,6 +145,7 @@ export type {
 export {
   CreateShareSchema,
   ListSharedWithMeOptionsSchema,
+  parseShareExpiry,
   ResolveShareTokenSchema,
   UpdateShareSchema,
 } from "#/schemas/share";
@@ -156,6 +159,7 @@ export {
   IdSchema,
   LabelNameSchema,
   NameSchema,
+  nonEmptyString,
   WithFileIdSchema,
   WithIdSchema,
 } from "#/schemas/utils";
