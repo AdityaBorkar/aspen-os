@@ -16,9 +16,10 @@
 - Build a build-step package from its directory with `bun run build`. The build-step packages are `platform`, `organization`, `masters`, `notes`, `calendar`, `management`, `comms`, `dms`, `workspace`, and `constants`.
 - `scripts/build.ts` deletes/recreates `.output`. For every build-step package except `constants`, it also rewrites `package.json` exports/bin to `.output` paths; `constants` keeps its source export and only emits declarations. `bun run build --dev` rewrites configured exports/bin back to `./src/*` without emitting. After a clean checkout, or after changing `platform`, build the required build-step packages before typechecking raw-source consumers (`compliance`, `tasks`, and `hr`).
 - `bun run clean` also deletes `bun.lockb`; use it only when intentionally removing the lockfile and generated artifacts.
-- The generated better-auth schema is committed at `packages/platform/src/server/auth/db-schema.ts`; regenerate it from `packages/platform` with `bun run gen:auth-schema`, not by hand.
+- The generated better-auth schema is committed at `packages/platform/src/server/db/schema/auth.ts`; regenerate it from `packages/platform` with `bun run gen:auth-schema`, not by hand.
 - Docs commands run from `docs`: `bun run dev` serves port 3005, `bun run check:types` runs `fumadocs-mdx` then TypeScript, `bun run build` runs Cloudflare type generation then Vite, and `bun run deploy` deploys with Wrangler. If `.source/` is missing, run `bunx fumadocs-mdx` because install scripts are disabled.
 - There are no package test scripts or CI workflows. The maintained test suite is the custom oxlint plugin: `cd tools/oxlint/anti-slop && bun test`.
+- Root `bun run build` is `nx run-many -t build`; `nx.json` sets `check:types` to depend on `^build`, so typechecking through Nx builds dependencies first.
 
 ## Architecture
 
@@ -27,7 +28,7 @@
 - Modules declare schemas, ACL, and event contracts from `$prepareInfra()`. Platform code pushes schemas, applies merged ACL, then invokes module `$prepareRuntime()`. Runtime-wired modules must unregister schedules/subscriptions in `$cleanup()`.
 - A normal domain module has `src/module.ts`, `auth.ts`, `pubsub.ts`, `types.ts`, `db-schemas/`, `schemas/`, `workflows/`, and optional `services/` or `runtime.ts`. Keep one workflow action per file and compose public workflow groups in the module.
 - Each package's `#/*` import alias is package-local. The root `tsconfig.json` has no paths mapping, so do not use a package's `#/*` alias from another package.
-- Domain input validation uses Valibot. Use Zod for oRPC procedure inputs and environment variables.
+- Domain input validation uses Valibot. Zod is a declared platform dependency but has no established source pattern (no Zod input schemas in RPC source); do not introduce new Zod-based validation without checking `CODING_CONVENTIONS.md` first.
 
 ## Data And Events
 
@@ -40,30 +41,6 @@
 
 ## Local Infrastructure And Hooks
 
-- The only checked-in local infrastructure is PostgreSQL: `docker compose -f packages/platform/src/server/example.docker-compose.yaml up -d`. It uses database/user `aspen`, password `change-me`, port `5432`, and disables RLS for the example. No S3/SeaweedFS service is provided by this compose file.
+- There is no checked-in compose file or local infra script; tests and platform runs need an externally provided PostgreSQL.
 - `.oxlintrc.json` enables type-aware linting and the `tools/oxlint/anti-slop` plugin. In particular, module mocking, unsafe dictionary types, reflective access, TODO/FIXME warning comments, and nonconforming filenames can fail lint; read the rule/config rather than bypassing it.
 - Husky runs `bunx lint-staged` on pre-commit (oxfmt on staged files) and `bunx commitlint --edit $1` on commit messages. Commit types are limited to `build chore ci docs feat fix perf refactor revert test wip`.
-
-<!-- nx configuration start-->
-<!-- Leave the start & end comments to automatically receive updates. -->
-
-## General Guidelines for working with Nx
-
-- For navigating/exploring the workspace, invoke the `nx-workspace` skill first - it has patterns for querying projects, targets, and dependencies
-- When running tasks (for example build, lint, test, e2e, etc.), always prefer running the task through `nx` (i.e. `nx run`, `nx run-many`, `nx affected`) instead of using the underlying tooling directly
-- Prefix nx commands with the workspace's package manager (e.g., `pnpm nx build`, `npm exec nx test`) - avoids using globally installed CLI
-- You have access to the Nx MCP server and its tools, use them to help the user
-- For Nx plugin best practices, check `node_modules/@nx/<plugin>/PLUGIN.md`. Not all plugins have this file - proceed without it if unavailable.
-- NEVER guess CLI flags - always check nx_docs or `--help` first when unsure
-
-## Scaffolding & Generators
-
-- For scaffolding tasks (creating apps, libs, project structure, setup), ALWAYS invoke the `nx-generate` skill FIRST before exploring or calling MCP tools
-
-## When to use nx_docs
-
-- USE for: advanced config options, unfamiliar flags, migration guides, plugin configuration, edge cases
-- DON'T USE for: basic generator syntax (`nx g @nx/react:app`), standard commands, things you already know
-- The `nx-generate` skill handles generator discovery internally - don't call nx_docs just to look up generator syntax
-
-<!-- nx configuration end-->
