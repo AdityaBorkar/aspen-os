@@ -9,24 +9,23 @@ import { watcher } from "#/db-schemas/watcher";
 import type { TaskLinkType } from "#/utils/constants";
 import { TASK_LINK_TYPE } from "#/utils/constants";
 
-import type { JsonValue } from "@aspen-os/platform/server";
+import type { JsonValue, WorkflowContext } from "@aspen-os/platform/server";
 import { and, eq, isNull, sql } from "drizzle-orm";
-import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 export const MAX_NESTING_DEPTH = 3;
 
-type DrizzleDB = PostgresJsDatabase;
+type Db = WorkflowContext["db"];
 
-export function requireRow<TRow>(rows: TRow[], label: string, id: string): TRow {
+export function requireRow<TRow>(rows: readonly TRow[], label: string, id: string): TRow {
   const [result] = rows;
-  if (!result) {
+  if (result === undefined) {
     throw new Error(`${label} with id "${id}" not found.`);
   }
   return result;
 }
 
 export async function generateTaskNumber(
-  db: DrizzleDB,
+  db: Db,
   projectId: string,
 ): Promise<{ displayNumber: string; taskSeq: number }> {
   const [proj] = await db
@@ -43,7 +42,7 @@ export async function generateTaskNumber(
 }
 
 export async function validateParentTask(
-  db: DrizzleDB,
+  db: Db,
   options: {
     parentId: string;
     projectId: string;
@@ -74,7 +73,7 @@ export async function validateParentTask(
 }
 
 export async function wouldCreateParentCycle(
-  db: DrizzleDB,
+  db: Db,
   parentId: string,
   taskId: string,
 ): Promise<boolean> {
@@ -102,7 +101,7 @@ export async function wouldCreateParentCycle(
   return false;
 }
 
-export async function getParentDepth(db: DrizzleDB, taskId: string): Promise<number> {
+export async function getParentDepth(db: Db, taskId: string): Promise<number> {
   let depth = 0;
   let currentId: string | null = taskId;
 
@@ -129,27 +128,19 @@ export async function getParentDepth(db: DrizzleDB, taskId: string): Promise<num
   return depth;
 }
 
-export async function unsetLeadAssignee(db: DrizzleDB, taskId: string): Promise<void> {
+export async function unsetLeadAssignee(db: Db, taskId: string): Promise<void> {
   await db
     .update(taskAssignee)
     .set({ isLead: false })
     .where(and(eq(taskAssignee.taskId, taskId), eq(taskAssignee.isLead, true)));
 }
 
-export async function ensureWatcher(db: DrizzleDB, taskId: string, userId: string): Promise<void> {
-  const [existing] = await db
-    .select({ id: watcher.id })
-    .from(watcher)
-    .where(and(eq(watcher.taskId, taskId), eq(watcher.userId, userId)))
-    .limit(1);
-
-  if (!existing) {
-    await db.insert(watcher).values({ taskId, userId });
-  }
+export async function ensureWatcher(db: Db, taskId: string, userId: string): Promise<void> {
+  await db.insert(watcher).values({ taskId, userId }).onConflictDoNothing();
 }
 
 export async function addActivity(
-  db: DrizzleDB,
+  db: Db,
   options: {
     taskId: string;
     userId: string;
@@ -167,11 +158,7 @@ export async function addActivity(
   });
 }
 
-export async function ensureKeyUnique(
-  db: DrizzleDB,
-  key: string,
-  excludeId?: string,
-): Promise<void> {
+export async function ensureKeyUnique(db: Db, key: string, excludeId?: string): Promise<void> {
   const conditions = [eq(project.key, key)];
   if (excludeId) {
     conditions.push(sql`${project.id} != ${excludeId}`);
@@ -188,22 +175,19 @@ export async function ensureKeyUnique(
   }
 }
 
-export async function unsetDefaultProjectStatus(
-  db: DrizzleDB,
-  projectId: string | null,
-): Promise<void> {
+export async function unsetDefaultProjectStatus(db: Db, projectId: string | null): Promise<void> {
   await db
     .update(status)
     .set({ isDefault: false })
     .where(projectId === null ? isNull(status.projectId) : eq(status.projectId, projectId));
 }
 
-export async function unsetDefaultTaskType(db: DrizzleDB, projectId: string): Promise<void> {
+export async function unsetDefaultTaskType(db: Db, projectId: string): Promise<void> {
   await db.update(taskType).set({ isDefault: false }).where(eq(taskType.projectId, projectId));
 }
 
 export async function unsetDefaultSavedView(
-  db: DrizzleDB,
+  db: Db,
   ownerId: string,
   projectId: string | null,
 ): Promise<void> {

@@ -1,4 +1,4 @@
-import { maxLength, minLength, pipe, regex, string } from "valibot";
+import { integer, maxLength, minLength, number, pipe, regex, string } from "valibot";
 
 export { HexColorSchema, IdSchema, NameSchema } from "@aspen-os/platform/server";
 
@@ -9,6 +9,9 @@ export const TitleSchema = pipe(
   minLength(1, "Title is required"),
   maxLength(500, "Must be at most 500 characters"),
 );
+
+/** A whole number (e.g. sort orders, durations in whole units). */
+export const IntSchema = pipe(number(), integer());
 
 export const ProjectKeySchema = pipe(
   string(),

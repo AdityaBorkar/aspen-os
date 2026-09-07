@@ -88,6 +88,7 @@ export {
 export {
   HexColorSchema,
   IdSchema,
+  IntSchema,
   NameSchema,
   ProjectKeySchema,
   TitleSchema,

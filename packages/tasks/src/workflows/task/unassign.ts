@@ -10,16 +10,18 @@ import { object } from "valibot";
 export const unassignTask = Workflow.name("task.unassign")
   .input(object({ taskId: IdSchema, userId: IdSchema }))
   .handler(async ({ taskId, userId }, ctx) => {
-    await ctx.db
-      .delete(taskAssignee)
-      .where(and(eq(taskAssignee.taskId, taskId), eq(taskAssignee.userId, userId)));
+    await ctx.db.transaction(async (tx) => {
+      await tx
+        .delete(taskAssignee)
+        .where(and(eq(taskAssignee.taskId, taskId), eq(taskAssignee.userId, userId)));
 
-    await addActivity(ctx.db, {
-      action: "assignee_removed",
-      newValue: null,
-      oldValue: { userId },
-      taskId,
-      userId,
+      await addActivity(tx, {
+        action: "assignee_removed",
+        newValue: null,
+        oldValue: { userId },
+        taskId,
+        userId,
+      });
     });
 
     await ctx.step.run("notify", async () => {

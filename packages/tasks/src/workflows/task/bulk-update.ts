@@ -12,6 +12,10 @@ const BulkUpdateInputSchema = object({
 export const bulkUpdateTask = Workflow.name("task.bulk-update")
   .input(BulkUpdateInputSchema)
   .handler(async ({ input }, ctx) => {
+    // Fast path: statusId/parentId changes require per-task validation
+    // (transition rules, hierarchy checks), so they are rejected here.
+    // This path emits no activity entries: the input carries no actor and
+    // the update applies to many rows in a single statement.
     if (input.patch.statusId !== undefined) {
       throw new Error("Bulk update cannot change statusId; update tasks individually.");
     }

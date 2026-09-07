@@ -1,7 +1,7 @@
 import { ProjectMemberRoleSchema, StatusCategorySchema } from "#/schemas/enums";
-import { HexColorSchema, IdSchema, NameSchema } from "#/schemas/utils";
+import { HexColorSchema, IdSchema, IntSchema, NameSchema } from "#/schemas/utils";
 
-import { boolean, integer, nullable, number, object, omit, optional, partial, pipe } from "valibot";
+import { boolean, nullable, object, omit, optional, partial } from "valibot";
 import type { InferOutput } from "valibot";
 
 export const CreateStatusSchema = object({
@@ -11,7 +11,7 @@ export const CreateStatusSchema = object({
   isResolved: optional(boolean()),
   name: NameSchema,
   projectId: optional(nullable(IdSchema)),
-  sortOrder: optional(pipe(number(), integer())),
+  sortOrder: optional(IntSchema),
 });
 
 export type CreateStatusInput = InferOutput<typeof CreateStatusSchema>;

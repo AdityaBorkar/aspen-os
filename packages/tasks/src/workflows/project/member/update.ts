@@ -21,7 +21,7 @@ export const updateProjectMember = Workflow.name("project.update-member")
       .returning();
 
     if (!updated) {
-      throw new Error("Project member not found.");
+      throw new Error(`Project member "${userId}" in project "${projectId}" not found.`);
     }
 
     return updated;

@@ -18,7 +18,7 @@ export const deleteTaskLink = Workflow.name("link.delete")
       .limit(1);
 
     if (!link) {
-      throw new Error("Task link not found.");
+      throw new Error(`Task link "${sourceId}" -> "${targetId}" not found.`);
     }
 
     const parsedLinkType = safeParse(TaskLinkTypeSchema, link.linkType);
@@ -26,17 +26,20 @@ export const deleteTaskLink = Workflow.name("link.delete")
       throw new Error(`Unknown task link type "${link.linkType}".`);
     }
 
-    await ctx.db.delete(taskLink).where(eq(taskLink.id, link.id));
-
-    await ctx.db
-      .delete(taskLink)
-      .where(
-        and(
-          eq(taskLink.sourceId, targetId),
-          eq(taskLink.targetId, sourceId),
-          eq(taskLink.linkType, linkTypeInverse(parsedLinkType.output)),
-        ),
-      );
+    await ctx.db.transaction(async (tx) => {
+      await Promise.all([
+        tx.delete(taskLink).where(eq(taskLink.id, link.id)),
+        tx
+          .delete(taskLink)
+          .where(
+            and(
+              eq(taskLink.sourceId, targetId),
+              eq(taskLink.targetId, sourceId),
+              eq(taskLink.linkType, linkTypeInverse(parsedLinkType.output)),
+            ),
+          ),
+      ]);
+    });
 
     await ctx.step.run("notify", async () => {
       await ctx.pubsub.publish(TASK_EVENTS.UNLINKED, { sourceId, targetId });

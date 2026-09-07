@@ -59,7 +59,7 @@ export const createTask = Workflow.name("task.create")
     });
 
     await ctx.step.run("notify", async () => {
-      const notifications: Promise<unknown>[] = [
+      const notifications: Promise<string | null>[] = [
         ctx.pubsub.publish(TASK_EVENTS.CREATED, {
           dueDate: result.dueDate ? result.dueDate.toISOString() : null,
           task: {
@@ -76,6 +76,8 @@ export const createTask = Workflow.name("task.create")
           ctx.pubsub.publish(TASK_EVENTS.DUE_DATE_CHANGED, {
             dueDate: result.dueDate.toISOString(),
             taskId: result.id,
+            // Assignees cannot exist yet at creation time (assignment is a
+            // separate workflow), so only the reporter is notified here.
             userIds: [result.reporterId],
           }),
         );

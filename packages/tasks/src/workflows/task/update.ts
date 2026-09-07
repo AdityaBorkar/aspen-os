@@ -21,17 +21,8 @@ export const updateTask = Workflow.name("task.update")
   .handler(async (input, ctx) => {
     const current = await ctx.step.run(fetchTaskStep, { id: input.id });
 
-    if (input.patch.parentId !== undefined) {
-      if (input.patch.parentId !== null) {
-        if (input.patch.parentId === input.id) {
-          throw new Error("A task cannot be its own parent.");
-        }
-        await validateParentTask(ctx.db, {
-          currentTaskId: input.id,
-          parentId: input.patch.parentId,
-          projectId: current.projectId,
-        });
-      }
+    if (input.patch.parentId === input.id) {
+      throw new Error("A task cannot be its own parent.");
     }
 
     const changes: Record<string, JsonValue> = {};
@@ -39,13 +30,27 @@ export const updateTask = Workflow.name("task.update")
     const statusChanged =
       input.patch.statusId !== undefined && input.patch.statusId !== current.statusId;
 
+    const parentChanged = input.patch.parentId !== undefined && input.patch.parentId !== null;
+
+    const [, transitionAllowed] = await Promise.all([
+      parentChanged && input.patch.parentId
+        ? validateParentTask(ctx.db, {
+            currentTaskId: input.id,
+            parentId: input.patch.parentId,
+            projectId: current.projectId,
+          })
+        : Promise.resolve(),
+      statusChanged && input.patch.statusId
+        ? validateTransition.run({
+            fromStatusId: current.statusId,
+            projectId: current.projectId,
+            toStatusId: input.patch.statusId,
+          })
+        : Promise.resolve(true),
+    ]);
+
     if (statusChanged && input.patch.statusId) {
-      const allowed = await validateTransition.run({
-        fromStatusId: current.statusId,
-        projectId: current.projectId,
-        toStatusId: input.patch.statusId,
-      });
-      if (!allowed) {
+      if (!transitionAllowed) {
         throw new Error(
           `Transition from "${current.statusId}" to "${input.patch.statusId}" is not allowed.`,
         );
@@ -99,7 +104,7 @@ export const updateTask = Workflow.name("task.update")
     });
 
     await ctx.step.run("notify", async () => {
-      const notifications: Promise<unknown>[] = [
+      const notifications: Promise<string | null>[] = [
         ctx.pubsub.publish(TASK_EVENTS.UPDATED, {
           changes,
           task: { id: updated.id, title: updated.title },
@@ -128,7 +133,7 @@ export const updateTask = Workflow.name("task.update")
               ...new Set([current.reporterId, ...assignees.map((assignee) => assignee.userId)]),
             ];
 
-            await ctx.pubsub.publish(TASK_EVENTS.DUE_DATE_CHANGED, {
+            return ctx.pubsub.publish(TASK_EVENTS.DUE_DATE_CHANGED, {
               dueDate: input.patch.dueDate ? input.patch.dueDate.toISOString() : null,
               taskId: updated.id,
               userIds,

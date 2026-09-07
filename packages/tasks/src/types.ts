@@ -1,4 +1,4 @@
-import type { TaskLinkType } from "#/utils/constants";
+import type { CreateTaskLinkInput } from "#/schemas";
 
 export type {
   TaskAssignedEvent,
@@ -65,6 +65,7 @@ export {
   CreateTimeEntrySchema,
   CreateWatcherSchema,
   IdSchema,
+  IntSchema,
   ProjectFiltersSchema,
   TaskFiltersSchema,
   TimeEntryFiltersSchema,
@@ -80,11 +81,7 @@ export {
   UpdateTimeEntrySchema,
 } from "#/schemas";
 
-export interface TaskLinkInfo {
-  linkType: TaskLinkType;
-  sourceId: string;
-  targetId: string;
-}
+export type TaskLinkInfo = CreateTaskLinkInput;
 
 export interface TaskDependencyNode {
   dependsOn: string[];

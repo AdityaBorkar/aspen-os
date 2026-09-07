@@ -1,25 +1,13 @@
-import { IdSchema } from "#/schemas/utils";
+import { IdSchema, IntSchema } from "#/schemas/utils";
 
-import {
-  boolean,
-  date,
-  integer,
-  nullable,
-  number,
-  object,
-  omit,
-  optional,
-  partial,
-  pipe,
-  string,
-} from "valibot";
+import { boolean, date, nullable, object, omit, optional, partial, string } from "valibot";
 import type { InferOutput } from "valibot";
 
 export const CreateTimeEntrySchema = object({
   billable: optional(boolean()),
   date: optional(date()),
   description: optional(nullable(string())),
-  duration: pipe(number(), integer()),
+  duration: IntSchema,
   taskId: IdSchema,
   userId: IdSchema,
 });

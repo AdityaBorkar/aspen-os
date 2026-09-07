@@ -3,13 +3,79 @@ import { taskLink } from "#/db-schemas/task-link";
 import type { CriticalPathResult, TaskDependencyNode } from "#/types";
 import { TASK_LINK_TYPE } from "#/utils/constants";
 
+import type { WorkflowContext } from "@aspen-os/platform/server";
 import { and, eq, inArray } from "drizzle-orm";
-import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
-type DrizzleDB = PostgresJsDatabase;
+type Db = WorkflowContext["db"];
+
+interface BlocksSubgraph {
+  adj: Map<string, string[]>;
+  inDegree: Map<string, number>;
+}
+
+async function loadBlocksSubgraph(db: Db, taskIds: string[]): Promise<BlocksSubgraph> {
+  const adj = new Map<string, string[]>();
+  const inDegree = new Map<string, number>();
+
+  for (const id of taskIds) {
+    adj.set(id, []);
+    inDegree.set(id, 0);
+  }
+
+  const links = await db
+    .select({ sourceId: taskLink.sourceId, targetId: taskLink.targetId })
+    .from(taskLink)
+    .where(
+      and(
+        eq(taskLink.linkType, TASK_LINK_TYPE.BLOCKS),
+        inArray(taskLink.sourceId, taskIds),
+        inArray(taskLink.targetId, taskIds),
+      ),
+    );
+
+  for (const link of links) {
+    if (adj.has(link.sourceId) && inDegree.has(link.targetId)) {
+      adj.get(link.sourceId)?.push(link.targetId);
+      inDegree.set(link.targetId, (inDegree.get(link.targetId) ?? 0) + 1);
+    }
+  }
+
+  return { adj, inDegree };
+}
+
+function kahnOrder(subgraph: BlocksSubgraph): string[] {
+  const inDegree = new Map(subgraph.inDegree);
+  const queue: string[] = [];
+  for (const [id, degree] of inDegree.entries()) {
+    if (degree === 0) {
+      queue.push(id);
+    }
+  }
+
+  const sorted: string[] = [];
+  let head = 0;
+  while (head < queue.length) {
+    const current = queue[head];
+    if (current === undefined) {
+      break;
+    }
+    head += 1;
+    sorted.push(current);
+
+    for (const neighbor of subgraph.adj.get(current) ?? []) {
+      const newDegree = (inDegree.get(neighbor) ?? 0) - 1;
+      inDegree.set(neighbor, newDegree);
+      if (newDegree === 0) {
+        queue.push(neighbor);
+      }
+    }
+  }
+
+  return sorted;
+}
 
 export async function wouldCreateCycle(
-  db: DrizzleDB,
+  db: Db,
   sourceId: string,
   targetId: string,
 ): Promise<boolean> {
@@ -37,13 +103,8 @@ export async function wouldCreateCycle(
     }
     visited.add(current);
 
-    const blockingLinks = await db
-      .select({ targetId: taskLink.targetId })
-      .from(taskLink)
-      .where(and(eq(taskLink.sourceId, current), eq(taskLink.linkType, TASK_LINK_TYPE.BLOCKS)));
-
-    for (const link of blockingLinks) {
-      queue.push(link.targetId);
+    for (const next of await getDependencies(db, current)) {
+      queue.push(next);
     }
   }
   // oxlint-enable eslint/no-await-in-loop
@@ -51,7 +112,7 @@ export async function wouldCreateCycle(
   return false;
 }
 
-export async function getDependencies(db: DrizzleDB, taskId: string): Promise<string[]> {
+export async function getDependencies(db: Db, taskId: string): Promise<string[]> {
   const links = await db
     .select({ targetId: taskLink.targetId })
     .from(taskLink)
@@ -60,7 +121,7 @@ export async function getDependencies(db: DrizzleDB, taskId: string): Promise<st
   return links.map((link) => link.targetId);
 }
 
-export async function getDependents(db: DrizzleDB, taskId: string): Promise<string[]> {
+export async function getDependents(db: Db, taskId: string): Promise<string[]> {
   const links = await db
     .select({ sourceId: taskLink.sourceId })
     .from(taskLink)
@@ -69,66 +130,12 @@ export async function getDependents(db: DrizzleDB, taskId: string): Promise<stri
   return links.map((link) => link.sourceId);
 }
 
-export async function topologicalSort(db: DrizzleDB, taskIds: string[]): Promise<string[]> {
+export async function topologicalSort(db: Db, taskIds: string[]): Promise<string[]> {
   if (taskIds.length === 0) {
     return [];
   }
 
-  const adj = new Map<string, string[]>();
-  const inDegree = new Map<string, number>();
-
-  for (const id of taskIds) {
-    adj.set(id, []);
-    inDegree.set(id, 0);
-  }
-
-  const links = await db
-    .select({
-      linkType: taskLink.linkType,
-      sourceId: taskLink.sourceId,
-      targetId: taskLink.targetId,
-    })
-    .from(taskLink)
-    .where(
-      and(
-        eq(taskLink.linkType, TASK_LINK_TYPE.BLOCKS),
-        inArray(taskLink.sourceId, taskIds),
-        inArray(taskLink.targetId, taskIds),
-      ),
-    );
-
-  for (const link of links) {
-    if (adj.has(link.sourceId) && inDegree.has(link.targetId)) {
-      adj.get(link.sourceId)?.push(link.targetId);
-      inDegree.set(link.targetId, (inDegree.get(link.targetId) ?? 0) + 1);
-    }
-  }
-
-  const queue: string[] = [];
-  for (const [id, degree] of inDegree.entries()) {
-    if (degree === 0) {
-      queue.push(id);
-    }
-  }
-
-  const sorted: string[] = [];
-  let head = 0;
-  while (head < queue.length) {
-    const current = queue[head];
-    if (current === undefined) {
-      break;
-    }
-    head += 1;
-    sorted.push(current);
-
-    for (const neighbor of adj.get(current) ?? []) {
-      const newDegree = (inDegree.get(neighbor) ?? 0) - 1;
-      inDegree.set(neighbor, newDegree);
-      if (newDegree === 0) {
-        queue.push(neighbor);
-      }
-    }
-  }
+  const sorted = kahnOrder(await loadBlocksSubgraph(db, taskIds));
 
   if (sorted.length !== taskIds.length) {
     throw new Error("Cannot topologically sort: cycle detected in task graph.");
@@ -137,10 +144,7 @@ export async function topologicalSort(db: DrizzleDB, taskIds: string[]): Promise
   return sorted;
 }
 
-export async function getCriticalPath(
-  db: DrizzleDB,
-  projectId: string,
-): Promise<CriticalPathResult> {
+export async function getCriticalPath(db: Db, projectId: string): Promise<CriticalPathResult> {
   const tasks = await db
     .select({
       estimatedHours: task.estimatedHours,
@@ -156,54 +160,20 @@ export async function getCriticalPath(
 
   const taskMap = new Map(tasks.map((taskRow) => [taskRow.id, taskRow]));
   const taskIds = tasks.map((taskRow) => taskRow.id);
-  const adj = new Map<string, string[]>();
-  const inDegree = new Map<string, number>();
-
-  for (const taskRow of tasks) {
-    adj.set(taskRow.id, []);
-    inDegree.set(taskRow.id, 0);
-  }
-
-  const links = await db
-    .select({
-      sourceId: taskLink.sourceId,
-      targetId: taskLink.targetId,
-    })
-    .from(taskLink)
-    .where(
-      and(
-        eq(taskLink.linkType, TASK_LINK_TYPE.BLOCKS),
-        inArray(taskLink.sourceId, taskIds),
-        inArray(taskLink.targetId, taskIds),
-      ),
-    );
-
-  for (const link of links) {
-    if (adj.has(link.sourceId) && inDegree.has(link.targetId)) {
-      adj.get(link.sourceId)?.push(link.targetId);
-      inDegree.set(link.targetId, (inDegree.get(link.targetId) ?? 0) + 1);
-    }
-  }
+  const { adj, inDegree } = await loadBlocksSubgraph(db, taskIds);
+  const order = kahnOrder({ adj, inDegree });
 
   const maxDuration = new Map<string, number>();
   const parent = new Map<string, string | null>();
-  const queue: string[] = [];
 
   for (const taskRow of tasks) {
     if ((inDegree.get(taskRow.id) ?? 0) === 0) {
-      queue.push(taskRow.id);
       maxDuration.set(taskRow.id, parseHours(taskMap.get(taskRow.id)?.estimatedHours));
       parent.set(taskRow.id, null);
     }
   }
 
-  let head = 0;
-  while (head < queue.length) {
-    const current = queue[head];
-    if (current === undefined) {
-      break;
-    }
-    head += 1;
+  for (const current of order) {
     const currentDuration = maxDuration.get(current) ?? 0;
 
     for (const neighbor of adj.get(current) ?? []) {
@@ -213,12 +183,6 @@ export async function getCriticalPath(
       if (newDuration > (maxDuration.get(neighbor) ?? 0)) {
         maxDuration.set(neighbor, newDuration);
         parent.set(neighbor, current);
-      }
-
-      const newDegree = (inDegree.get(neighbor) ?? 0) - 1;
-      inDegree.set(neighbor, newDegree);
-      if (newDegree === 0) {
-        queue.push(neighbor);
       }
     }
   }
@@ -247,47 +211,32 @@ export async function getCriticalPath(
 }
 
 export async function buildDependencyGraph(
-  db: DrizzleDB,
+  db: Db,
   taskIds: string[],
 ): Promise<TaskDependencyNode[]> {
   if (taskIds.length === 0) {
     return [];
   }
 
-  const tasks = await db
-    .select({
-      id: task.id,
-      title: task.title,
-    })
-    .from(task)
-    .where(inArray(task.id, taskIds));
-
-  const links = await db
-    .select({ sourceId: taskLink.sourceId, targetId: taskLink.targetId })
-    .from(taskLink)
-    .where(
-      and(
-        eq(taskLink.linkType, TASK_LINK_TYPE.BLOCKS),
-        inArray(taskLink.sourceId, taskIds),
-        inArray(taskLink.targetId, taskIds),
-      ),
-    );
-
-  const depsByTask = new Map<string, string[]>();
-  for (const taskRow of tasks) {
-    depsByTask.set(taskRow.id, []);
-  }
-  for (const link of links) {
-    depsByTask.get(link.sourceId)?.push(link.targetId);
-  }
+  const [tasks, { adj }] = await Promise.all([
+    db
+      .select({
+        id: task.id,
+        title: task.title,
+      })
+      .from(task)
+      .where(inArray(task.id, taskIds)),
+    loadBlocksSubgraph(db, taskIds),
+  ]);
 
   return tasks.map((taskRow) => ({
-    dependsOn: depsByTask.get(taskRow.id) ?? [],
+    dependsOn: adj.get(taskRow.id) ?? [],
     id: taskRow.id,
     title: taskRow.title,
   }));
 }
 
+// Tasks without an estimate contribute zero duration to the critical path.
 function parseHours(value: string | null | undefined): number {
   if (!value) {
     return 0;

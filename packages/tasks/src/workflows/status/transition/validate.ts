@@ -31,12 +31,14 @@ export const validateTransition = Workflow.name("status.validate-transition")
         return true;
       }
 
-      const anyTransition = await ctx.db
+      // Projects with no configured transitions allow every transition.
+      // Once at least one transition exists, only configured ones are allowed.
+      const configuredTransitions = await ctx.db
         .select({ id: statusTransition.id })
         .from(statusTransition)
         .where(eq(statusTransition.projectId, projectId))
         .limit(1);
 
-      return anyTransition.length === 0;
+      return configuredTransitions.length === 0;
     }),
   );

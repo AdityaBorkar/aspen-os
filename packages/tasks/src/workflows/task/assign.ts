@@ -16,29 +16,35 @@ export const assignTask = Workflow.name("task.assign")
   .handler(async ({ input }, ctx) => {
     await ctx.step.run(fetchTaskStep, { id: input.taskId });
 
-    if (input.isLead) {
-      await unsetLeadAssignee(ctx.db, input.taskId);
-    }
+    const [result] = await ctx.db.transaction(async (tx) => {
+      if (input.isLead) {
+        await unsetLeadAssignee(tx, input.taskId);
+      }
 
-    const [result] = await ctx.db
-      .insert(taskAssignee)
-      .values({
-        assignedBy: input.assignedBy,
-        isLead: input.isLead ?? false,
-        taskId: input.taskId,
-        userId: input.userId,
-      })
-      .returning();
+      const inserted = await tx
+        .insert(taskAssignee)
+        .values({
+          assignedBy: input.assignedBy,
+          isLead: input.isLead ?? false,
+          taskId: input.taskId,
+          userId: input.userId,
+        })
+        .returning();
 
-    await ensureWatcher(ctx.db, input.taskId, input.userId);
-    await addActivity(ctx.db, {
-      action: "assignee_added",
-      newValue: {
-        userId: input.userId,
-      },
-      oldValue: null,
-      taskId: input.taskId,
-      userId: input.assignedBy,
+      await Promise.all([
+        ensureWatcher(tx, input.taskId, input.userId),
+        addActivity(tx, {
+          action: "assignee_added",
+          newValue: {
+            userId: input.userId,
+          },
+          oldValue: null,
+          taskId: input.taskId,
+          userId: input.assignedBy,
+        }),
+      ]);
+
+      return inserted;
     });
 
     await ctx.step.run("notify", async () => {
