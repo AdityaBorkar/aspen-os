@@ -11,14 +11,10 @@ export { NOTE_EVENTS, events } from "#/pubsub";
 export type { CreateNoteInput, NoteFilters, UpdateNoteInput } from "#/schemas";
 export {
   CreateNoteSchema,
-  IdSchema,
-  JsonValueSchema,
   NoteFiltersSchema,
   NotesAccessSchema,
   NoteTypeSchema,
-  ScopeTypeSchema,
   UpdateNoteSchema,
-  WithIdSchema,
 } from "#/schemas";
 export type { AuditAction, AuditEntityType, NotesAccess } from "#/utils/constants";
 export { AUDIT_ACTION, AUDIT_ENTITY_TYPE, NOTES_ACCESS } from "#/utils/constants";

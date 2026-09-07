@@ -3,5 +3,3 @@ export { CreateNoteSchema, NoteFiltersSchema, UpdateNoteSchema } from "#/schemas
 export type { NotesAccess } from "#/utils/constants";
 export type { NoteType } from "@aspen-os/constants";
 export { NotesAccessSchema, NoteTypeSchema } from "#/schemas/enums";
-export { IdSchema, ScopeTypeSchema, WithIdSchema } from "#/schemas/utils";
-export { JsonValueSchema } from "#/schemas/json";

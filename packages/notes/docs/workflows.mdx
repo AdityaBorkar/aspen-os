@@ -28,11 +28,11 @@ await p.notes.notes.update({
 await p.notes.notes.delete({ id });
 ```
 
-`create` derives `ownerId` from `actorId`; pass an explicit `ownerId` to override. `access` defaults to `personal`. `update` and `delete` are owner/admin-only (`assertCanMutate`).
+`create` derives `ownerId` from `actorId`; an explicit `ownerId` for another user requires a tenant admin. `access` defaults to `personal`. `scopeType`/`scopeId` must be provided together. `update` and `delete` are owner/admin-only (`assertCanMutate`). `update` with no fields is rejected, and `metadata` is replaced wholesale (not merged) — send the full map.
 
 ## Listing
 
-`list` filters by an access-scoped default (`access = 'global' OR ownerId = actorId`) plus optional filters:
+`list` filters by an access-scoped default (`access = 'global' OR ownerId = actorId`; skipped for tenant admins) plus optional filters:
 
 ```ts
 const notes = await p.notes.notes.list({
@@ -48,7 +48,7 @@ const notes = await p.notes.notes.list({
 });
 ```
 
-Results are ordered by `createdAt` descending.
+Results are ordered by `createdAt` descending. `limit` defaults to 50 (max 100), `offset` defaults to 0. `scopeType`/`scopeId` must be provided together. `search` matches `title`/`body` case-insensitively; `%`, `_`, and `\` in the search text are escaped so they match literally.
 
 ## Conventions
 

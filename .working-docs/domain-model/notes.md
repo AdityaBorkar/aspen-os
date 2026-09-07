@@ -36,20 +36,22 @@
 **Invariants**:
 
 - `access` is a `NOTES_ACCESS` value (`personal`/`global`, default `personal`); `type` is a shared `NOTE_TYPE` value (`general`/`call`/`email`/`meeting`/`contract_renewal`/`issue`, default `general`).
-- `ownerId` defaults from `actorId` at create time; explicit input wins.
-- `scopeType` is a documented `<module>:<entity>` registry value (e.g. `masters:contact`, `tasks:task`, `calendar:event`, `dms:file`) — free-form text, not a pgEnum, so notes outlive the scoped module.
-- Access enforcement (services/access-service): read = `global` OR `ownerId === actorId`; mutate = owner or tenant admin.
+- `ownerId` defaults from `actorId` at create time; an explicit `ownerId` for another user requires a tenant admin.
+- `scopeType` is a documented `<module>:<entity>` registry value (e.g. `masters:contact`, `tasks:task`, `calendar:event`, `dms:file`) — free-form text, not a pgEnum, so notes outlive the scoped module. `scopeType`/`scopeId` must be provided together (both set or both unset) on create, update, and list filters; half-scoped input is rejected.
+- Access enforcement (workflow-steps/access-service): read = `global` OR `ownerId === actorId` OR tenant admin (admins bypass the list access filter); mutate = owner or tenant admin. Admin checks go through the platform `AuthUnit` user service.
 - No separate tag entity in v1 — `tags text[]` only.
 
 **Lifecycle commands**: `create(input)`, `update(id, patch)`, `delete(id)`, `get(id)`, `list(filters?)`.
 
 ## Domain Events — 3
 
-| Event                | Payload                                                                    | Trigger      |
-| -------------------- | -------------------------------------------------------------------------- | ------------ |
-| `notes:note_created` | `{ note: { id, title, body, type, access, scopeType, scopeId } }`          | Note created |
-| `notes:note_updated` | `{ note: { id, title, body, type, access, scopeType, scopeId }, changes }` | Note updated |
-| `notes:note_deleted` | `{ note: { id, title, body, type, access, scopeType, scopeId } }`          | Note deleted |
+| Event                | Payload                                                                                             | Trigger      |
+| -------------------- | --------------------------------------------------------------------------------------------------- | ------------ |
+| `notes:note_created` | `{ note: { id, ownerId, title, body, type, access, tags, metadata, scopeType, scopeId } }`          | Note created |
+| `notes:note_updated` | `{ note: { id, ownerId, title, body, type, access, tags, metadata, scopeType, scopeId }, changes }` | Note updated |
+| `notes:note_deleted` | `{ note: { id, ownerId, title, body, type, access, tags, metadata, scopeType, scopeId } }`          | Note deleted |
+
+`changes` carries the applied field updates. `metadata` updates replace the map wholesale; empty update patches are rejected.
 
 ## Command-Query Separation
 
@@ -68,11 +70,11 @@
 | Note    | Get note   | `p.notes.notes.get({ id })`       |
 | Note    | List notes | `p.notes.notes.list({ filters })` |
 
-`.list()` applies an access-scoped default (`access = 'global' OR ownerId = actorId`) plus optional `scopeType`/`scopeId`, `type`, `tags` (any-match), `search` (title/body `ilike`), `limit`/`offset`.
+`.list()` applies an access-scoped default (`access = 'global' OR ownerId = actorId`, skipped for tenant admins) plus optional `scopeType`/`scopeId` (must be provided together), `type`, `tags` (any-match), `search` (title/body `ilike` with `LIKE` metacharacters escaped), `limit` (default 50, max 100)/`offset` (default 0).
 
 ## Invariants & Business Rules
 
-1. **Access scoping** — `personal` notes are owner-only; `global` notes are tenant-readable. Mutations (update/delete) are owner- or tenant-admin-only.
+1. **Access scoping** — `personal` notes are owner-only (tenant admins excepted); `global` notes are tenant-readable. Reads (`get`/`list`) allow `global` notes, owners, and tenant admins. Mutations (update/delete) are owner- or tenant-admin-only.
 2. **Scope is free-form** — `scopeType` is documented `<module>:<entity>` text, not a pgEnum; `scopeId` is the scoped row's UUIDv7 id.
 3. **Title optional** — quick-capture allows untitled notes; `body` is required.
 4. **Distinct from Draft** — a workspace `Draft` is approval-lifecycle content, not a note. Notes are first-class standalone annotations.

@@ -18,13 +18,13 @@ export const NOTE_EVENTS = {
 
 ## Event Map
 
-| Event                | Payload                                                                    | Trigger      |
-| -------------------- | -------------------------------------------------------------------------- | ------------ |
-| `notes:note_created` | `{ note: { id, title, body, type, access, scopeType, scopeId } }`          | Note created |
-| `notes:note_updated` | `{ note: { id, title, body, type, access, scopeType, scopeId }, changes }` | Note updated |
-| `notes:note_deleted` | `{ note: { id, title, body, type, access, scopeType, scopeId } }`          | Note deleted |
+| Event                | Payload                                                                                             | Trigger      |
+| -------------------- | --------------------------------------------------------------------------------------------------- | ------------ |
+| `notes:note_created` | `{ note: { id, ownerId, title, body, type, access, tags, metadata, scopeType, scopeId } }`          | Note created |
+| `notes:note_updated` | `{ note: { id, ownerId, title, body, type, access, tags, metadata, scopeType, scopeId }, changes }` | Note updated |
+| `notes:note_deleted` | `{ note: { id, ownerId, title, body, type, access, tags, metadata, scopeType, scopeId } }`          | Note deleted |
 
-`scopeType`/`scopeId` are `null` for unscoped notes.
+`scopeType`/`scopeId` are `null` for unscoped notes. `changes` on `notes:note_updated` carries the applied field updates (absent fields were untouched).
 
 ## Usage
 
@@ -36,10 +36,13 @@ Events are published via `PubSubUnit.publish()`:
 await p.pubsub.publish("notes:note_created", {
   note: {
     id,
+    ownerId,
     title: "Call notes",
     body: "…",
     type: "call",
     access: "personal",
+    tags: [],
+    metadata: {},
     scopeType: null,
     scopeId: null,
   },

@@ -17,8 +17,11 @@ export interface NoteEventNote {
   access: NotesAccess;
   body: string;
   id: string;
+  metadata: Record<string, JsonValue>;
+  ownerId: string;
   scopeId: string | null;
   scopeType: string | null;
+  tags: string[];
   title: string | null;
   type: NoteType;
 }

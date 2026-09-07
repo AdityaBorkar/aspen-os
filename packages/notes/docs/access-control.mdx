@@ -22,12 +22,14 @@ export const acl = defineAcl({
 
 ## Row-Level Enforcement
 
-The ACL declares operations; row-level access is enforced in the workflows via `services/access-service.ts`:
+The ACL declares operations; row-level access is enforced in the workflows via `workflow-steps/access-service.ts`:
 
-| Function          | Rule                                  | Applied in         |
-| ----------------- | ------------------------------------- | ------------------ |
-| `assertCanAccess` | `global` OR `ownerId === actorId`     | `get`, `list`      |
-| `assertCanMutate` | `ownerId === actorId` OR tenant admin | `update`, `delete` |
+| Function          | Rule                                              | Applied in         |
+| ----------------- | ------------------------------------------------- | ------------------ |
+| `assertCanAccess` | `global` OR `ownerId === actorId` OR tenant admin | `get`, `list`      |
+| `assertCanMutate` | `ownerId === actorId` OR tenant admin             | `update`, `delete` |
+
+Tenant admins bypass the `list` access filter and can read any note. Admin checks go through the platform `AuthUnit` user service (`ctx.auth`), not raw SQL, so they work across tenancy modes and surface lookup failures instead of swallowing them.
 
 <Callout type="info">
   The ACL is the *declaration* of operations. Role definitions and permission enforcement are

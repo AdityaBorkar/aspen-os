@@ -14,7 +14,7 @@ Downstream of the Platform (Customer–Supplier). Implements the `Module` interf
 - 1 database table (tenant schema, no prefix): `note`
 - 3 domain events published via PubSub (`NotesEventMap`)
 - 1 ACL resource: `note`
-- Valibot validation schemas for all inputs; `services/access-service.ts` for row-level access enforcement
+- Valibot validation schemas for all inputs; `workflow-steps/access-service.ts` for row-level access enforcement
 - `$prepareInfra()` returns declarative infra (db schemas, acl, events) — schema pushing handled centrally by the platform
 - Has a build step (build script + `build` field in package.json)
 
@@ -24,7 +24,7 @@ Downstream of the Platform (Customer–Supplier). Implements the `Module` interf
 p.notes.notes        { create, delete, get, list, update }
 ```
 
-`create` derives `ownerId` from `actorId` (explicit `ownerId` wins), defaults `access = personal`, validates `type` and the `scopeType` `<module>:<entity>` format. `update`/`delete` are owner/tenant-admin-only (`assertCanMutate`). `.list()` is access-scoped with `scopeType`/`scopeId`, `type`, `tags` (any-match), and `search` (title/body `ilike`) filters. Workflows are one file per action under `workflows/note/<verb>.ts`.
+`create` derives `ownerId` from `actorId` (an explicit `ownerId` for another user requires a tenant admin), defaults `access = personal`, validates `type`, the `scopeType` `<module>:<entity>` format, and the `scopeType`/`scopeId` pairing. `update`/`delete` are owner/tenant-admin-only (`assertCanMutate`). `.list()` is access-scoped (admins unscoped) with `scopeType`/`scopeId` (paired), `type`, `tags` (any-match), and `search` (title/body `ilike`) filters. Workflows are one file per action under `workflows/note/<verb>.ts`.
 
 ## Cross-context integration
 

@@ -22,14 +22,14 @@ The module declares no platform-module dependencies. It is stateless — `$initi
 
 ## Access Model
 
-Every note has an `access` value — `personal` (default) or `global` — plus an `ownerId` derived from `actorId` at create time. Access is enforced at runtime via `services/access-service.ts`:
+Every note has an `access` value — `personal` (default) or `global` — plus an `ownerId` derived from `actorId` at create time. Access is enforced at runtime via `workflow-steps/access-service.ts`:
 
 ```text
-assertCanAccess  = global OR ownerId === actorId        (read paths)
-assertCanMutate  = ownerId === actorId OR tenant admin  (update/delete paths)
+assertCanAccess  = global OR ownerId === actorId OR tenant admin   (read paths)
+assertCanMutate  = ownerId === actorId OR tenant admin             (update/delete paths)
 ```
 
-A `global` note is readable by anyone in the tenant; only the owner or a tenant admin can modify or delete it. This is the same access/ACL split as dms/workspace/calendar.
+A `global` note is readable by anyone in the tenant; tenant admins can additionally read any `personal` note, and only the owner or a tenant admin can modify or delete a note.
 
 ## Lifecycle
 
@@ -48,7 +48,7 @@ create ──▶ note (personal | global, optional scopeType/scopeId, type, tags
 | ------- | ------------------------------------------- |
 | `notes` | `create`, `get`, `list`, `update`, `delete` |
 
-`create` derives `ownerId` from `actorId` (explicit `ownerId` input wins), defaults `access = personal`, validates `type` and the `scopeType` `<module>:<entity>` format.
+`create` derives `ownerId` from `actorId` (an explicit `ownerId` is accepted only from a tenant admin, otherwise it is rejected), defaults `access = personal`, validates `type` and the `scopeType` `<module>:<entity>` format, and requires `scopeType`/`scopeId` to be provided together — half-scoped notes are rejected.
 
 ## Module Structure
 
@@ -60,9 +60,8 @@ packages/notes/src/
   pubsub.ts             # notes:note_* events
   db-schemas/           # note table + enums
   types.ts              # Type re-exports
-  schemas/              # Valibot validation schemas
-  services/             # access-service (assertCanAccess/assertCanMutate)
-  workflow-steps/       # fetch-note step
+  schemas/              # Valibot validation schemas (note, enums)
+  workflow-steps/       # fetch-note step + access-service (assertCanAccess/assertCanMutate/resolveOwnerId)
   workflows/            # One file per action under workflows/note/<verb>.ts
   utils/                # Audit + access constants, strip-undefined
 ```

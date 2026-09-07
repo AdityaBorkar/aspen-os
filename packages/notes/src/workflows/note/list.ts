@@ -1,40 +1,47 @@
 import { note } from "#/db-schemas";
-import { NoteFiltersSchema } from "#/types";
+import { NoteFiltersSchema } from "#/schemas";
+import { NOTES_ACCESS } from "#/utils/constants";
+import { isTenantAdmin, requireActorId } from "#/workflow-steps/access-service";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, arrayOverlaps, desc, eq, ilike, or } from "drizzle-orm";
-import { object, optional, parse } from "valibot";
+import { object, optional } from "valibot";
 
 const ListNotesSchema = object({
-  filters: optional(NoteFiltersSchema),
+  filters: optional(NoteFiltersSchema, {}),
 });
+
+function escapeLikePattern(value: string): string {
+  return value.replace(/[\\%_]/g, (match) => `\\${match}`);
+}
 
 export const listNotes = Workflow.name("notes.note.list")
   .input(ListNotesSchema)
   .handler(async ({ filters }, ctx) => {
-    const parsed = parse(NoteFiltersSchema, filters ?? {});
+    const actor = requireActorId(ctx.actorId);
+    const admin = await isTenantAdmin(actor, ctx.auth);
 
     return ctx.step.run("query", async () => {
-      if (!ctx.actorId) {
-        throw new Error("Authentication required");
+      const conditions = [];
+
+      if (!admin) {
+        conditions.push(or(eq(note.access, NOTES_ACCESS.GLOBAL), eq(note.ownerId, actor)));
       }
 
-      const conditions = [or(eq(note.access, "global"), eq(note.ownerId, ctx.actorId))];
-
-      if (parsed.scopeType) {
-        conditions.push(eq(note.scopeType, parsed.scopeType));
+      if (filters.scopeType) {
+        conditions.push(eq(note.scopeType, filters.scopeType));
       }
-      if (parsed.scopeId) {
-        conditions.push(eq(note.scopeId, parsed.scopeId));
+      if (filters.scopeId) {
+        conditions.push(eq(note.scopeId, filters.scopeId));
       }
-      if (parsed.type) {
-        conditions.push(eq(note.type, parsed.type));
+      if (filters.type) {
+        conditions.push(eq(note.type, filters.type));
       }
-      if (parsed.tags?.length) {
-        conditions.push(arrayOverlaps(note.tags, parsed.tags));
+      if (filters.tags?.length) {
+        conditions.push(arrayOverlaps(note.tags, filters.tags));
       }
-      if (parsed.search) {
-        const pattern = `%${parsed.search}%`;
+      if (filters.search) {
+        const pattern = `%${escapeLikePattern(filters.search)}%`;
         conditions.push(or(ilike(note.title, pattern), ilike(note.body, pattern)));
       }
 
@@ -45,7 +52,7 @@ export const listNotes = Workflow.name("notes.note.list")
         .from(note)
         .where(whereClause)
         .orderBy(desc(note.createdAt))
-        .limit(parsed.limit ?? 50)
-        .offset(parsed.offset ?? 0);
+        .limit(filters.limit)
+        .offset(filters.offset);
     });
   });

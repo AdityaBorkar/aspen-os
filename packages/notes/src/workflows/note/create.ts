@@ -1,33 +1,32 @@
 import { note } from "#/db-schemas";
 import { NOTE_EVENTS } from "#/pubsub";
-import { CreateNoteSchema } from "#/types";
+import { CreateNoteSchema } from "#/schemas";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { resolveActorId } from "#/workflow-steps/access-service";
+import { resolveOwnerId } from "#/workflow-steps/access-service";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import type { JsonValue } from "@aspen-os/platform/server";
+import { object } from "valibot";
 
 const CreateInputSchema = object({ input: CreateNoteSchema });
 
 export const createNote = Workflow.name("notes.note.create")
   .input(CreateInputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(CreateNoteSchema, input);
-
-    const ownerId = resolveActorId(ctx.actorId, parsed.ownerId);
+    const ownerId = await resolveOwnerId(ctx.actorId, input.ownerId, ctx.auth);
 
     const [created] = await ctx.db
       .insert(note)
       .values({
-        access: parsed.access,
-        body: parsed.body,
-        metadata: parsed.metadata ?? {},
+        access: input.access,
+        body: input.body,
+        metadata: input.metadata ?? {},
         ownerId,
-        scopeId: parsed.scopeId ?? null,
-        scopeType: parsed.scopeType ?? null,
-        tags: parsed.tags ?? [],
-        title: parsed.title ?? null,
-        type: parsed.type,
+        scopeId: input.scopeId ?? null,
+        scopeType: input.scopeType ?? null,
+        tags: input.tags,
+        title: input.title ?? null,
+        type: input.type,
       })
       .returning();
 
@@ -49,8 +48,12 @@ export const createNote = Workflow.name("notes.note.create")
           access: created.access,
           body: created.body,
           id: created.id,
+          // SAFETY: metadata is written above from validated input (defaulting to {}), so the stored jsonb is a string-keyed object by construction.
+          metadata: (created.metadata ?? {}) as Record<string, JsonValue>,
+          ownerId: created.ownerId,
           scopeId: created.scopeId,
           scopeType: created.scopeType,
+          tags: created.tags,
           title: created.title,
           type: created.type,
         },
