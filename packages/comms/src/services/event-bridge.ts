@@ -1,24 +1,29 @@
-import { commsProvider } from "#/db-schemas";
-import { getCommsRuntime } from "#/runtime";
 import { createAdapter } from "#/services/adapters/index";
 import { resolveProviderCredential } from "#/services/credential-service";
+import { findFirstActiveProvider } from "#/services/providers";
+import {
+  EMAIL_PROVIDER_KINDS,
+  OTP_BODY_TEMPLATE,
+  OTP_FALLBACK_SENDER,
+  OTP_SUBJECT,
+} from "#/utils/constants";
 import { renderTemplate } from "#/workflow-steps/template-renderer";
 import { ensureDefaults } from "#/workflows/channel/ensure-defaults";
-import { notify } from "#/workflows/notification/notify";
+import { createNotify } from "#/workflows/notification/notify";
 
 import type {
-  InferSchemaOutput,
-  StandardSchema,
   AuditUnit,
+  AuthUnit,
   DatabaseUnit,
+  InferSchemaOutput,
+  KvStoreUnit,
+  LogUnit,
   PubSubUnit,
+  StandardSchema,
 } from "@aspen-os/platform/server";
 import { isGlobalTenantId } from "@aspen-os/platform/server";
-import { and, eq, inArray } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { array, nullish, number, object, optional, string } from "valibot";
-
-const EMAIL_PROVIDER_KINDS = ["ses", "resend", "postmark", "smtp"] as const;
 
 const RecipientRefSchema = object({
   id: string(),
@@ -76,55 +81,88 @@ const OtpRequestedEventSchema = object({
 
 export interface EventBridgeDeps {
   audit: AuditUnit;
+  auth: AuthUnit;
   db: PostgresJsDatabase;
   dbUnit: DatabaseUnit;
+  kvStore: KvStoreUnit;
+  log?: LogUnit;
   pubsub: PubSubUnit;
+}
+
+async function subscribeValidated<TSchema extends StandardSchema>(
+  deps: EventBridgeDeps,
+  subscription: {
+    handler: (data: InferSchemaOutput<TSchema>, deps: EventBridgeDeps) => Promise<void>;
+    schema: TSchema;
+    topic: string;
+  },
+): Promise<boolean> {
+  const { handler, schema, topic } = subscription;
+  try {
+    await deps.pubsub.subscribe(topic, async (message) => {
+      const result = await schema["~standard"].validate(message.data);
+      if (result.issues) {
+        deps.log?.warn(`Ignoring malformed event on "${topic}".`, { topic });
+        return;
+      }
+      try {
+        await handler(result.value, deps);
+      } catch (error) {
+        deps.log?.error(
+          `Event handler for "${topic}" failed.`,
+          error instanceof Error ? error : new Error(String(error)),
+          { topic },
+        );
+        throw error;
+      }
+    });
+    return true;
+  } catch (error) {
+    deps.log?.warn(`Skipping event subscription for "${topic}".`, {
+      error: error instanceof Error ? error.message : String(error),
+      topic,
+    });
+    return false;
+  }
 }
 
 export async function registerEventBridgeSubscriptions(deps: EventBridgeDeps): Promise<string[]> {
   const topics: string[] = [];
-  const subscribe = subscribeSafe(deps);
+  const add = async <TSchema extends StandardSchema>(
+    topic: string,
+    schema: TSchema,
+    handler: (data: InferSchemaOutput<TSchema>, deps: EventBridgeDeps) => Promise<void>,
+  ): Promise<void> => {
+    const subscribed = await subscribeValidated(deps, { handler, schema, topic });
+    if (subscribed) {
+      topics.push(topic);
+    }
+  };
 
-  await subscribe("compliance:document_expiring", DocumentExpiringEventSchema, async (data) => {
-    await handleDocumentExpiring(data, deps);
-  });
-  topics.push("compliance:document_expiring");
-
-  await subscribe("compliance:document_due", DocumentDueEventSchema, async (data) => {
-    await handleDocumentDue(data, deps);
-  });
-  topics.push("compliance:document_due");
-
-  await subscribe("calendar:reminder_due", ReminderDueEventSchema, async (data) => {
-    await handleReminderDue(data, deps);
-  });
-  topics.push("calendar:reminder_due");
-
-  await subscribe("dms:file_expired", FileExpiredEventSchema, async (data) => {
-    await handleFileExpired(data, deps);
-  });
-  topics.push("dms:file_expired");
-
-  await subscribe("announcement:published", AnnouncementPublishedEventSchema, async (data) => {
-    await handleAnnouncementPublished(data, deps);
-  });
-  topics.push("announcement:published");
-
-  await subscribe("management:tenant_provisioned", TenantLifecycleEventSchema, async (data) => {
-    await handleTenantLifecycle(data.tenantId, deps);
-  });
-  topics.push("management:tenant_provisioned");
-
-  await subscribe("management:tenant_activated", TenantLifecycleEventSchema, async (data) => {
-    await handleTenantLifecycle(data.tenantId, deps);
-  });
-  topics.push("management:tenant_activated");
-
-  await subscribe("auth:email_otp_requested", OtpRequestedEventSchema, async (data) => {
-    await handleOtpRequested(data, deps);
-  });
-  topics.push("auth:email_otp_requested");
-
+  await add("compliance:document_expiring", DocumentExpiringEventSchema, (data, target) =>
+    handleDocumentExpiring(data, target),
+  );
+  await add("compliance:document_due", DocumentDueEventSchema, (data, target) =>
+    handleDocumentDue(data, target),
+  );
+  await add("calendar:reminder_due", ReminderDueEventSchema, (data, target) =>
+    handleReminderDue(data, target),
+  );
+  await add("dms:file_expired", FileExpiredEventSchema, (data, target) =>
+    handleFileExpired(data, target),
+  );
+  await add("announcement:published", AnnouncementPublishedEventSchema, (data, target) =>
+    handleAnnouncementPublished(data, target),
+  );
+  await add("management:tenant_provisioned", TenantLifecycleEventSchema, (data, target) =>
+    handleTenantLifecycle(data.tenantId, target),
+  );
+  await add("management:tenant_activated", TenantLifecycleEventSchema, (data, target) =>
+    handleTenantLifecycle(data.tenantId, target),
+  );
+  await add("auth:email_otp_requested", OtpRequestedEventSchema, (data, target) =>
+    handleOtpRequested(data, target),
+  );
   return topics;
 }
 
@@ -136,30 +174,36 @@ export async function unregisterEventBridge(
     topics.map(async (topic) => {
       try {
         await pubsub.unsubscribe(topic);
-      } catch {
-        // Ignore
+      } catch (error) {
+        console.warn(`Failed to unsubscribe event topic "${topic}": ${String(error)}`);
       }
     }),
   );
 }
 
-function subscribeSafe(deps: EventBridgeDeps) {
-  return async function subscribe<TSchema extends StandardSchema>(
-    topic: string,
-    schema: TSchema,
-    handler: (data: InferSchemaOutput<TSchema>) => Promise<void>,
-  ): Promise<void> {
-    try {
-      await deps.pubsub.subscribe(topic, async (message) => {
-        const result = await schema["~standard"].validate(message.data);
-        if (!result.issues) {
-          await handler(result.value);
-        }
-      });
-    } catch {
-      // Source module not installed — silently no-op
-    }
-  };
+interface DocumentNotification {
+  days: number;
+  documentId: string;
+  kind: "document_due" | "document_expiring";
+  recipientId: string;
+  title: string;
+}
+
+async function notifyDocument(input: DocumentNotification, deps: EventBridgeDeps): Promise<void> {
+  const notify = createNotify(deps.dbUnit);
+  await notify.run(
+    {
+      input: {
+        recipient: { id: input.recipientId, type: "user" },
+        severity: severityForDays(input.days),
+        sourceEntity: { id: input.documentId, type: "compliance_document" },
+        sourceModule: "compliance",
+        title: input.title,
+        type: input.kind,
+      },
+    },
+    runOptions(deps),
+  );
 }
 
 async function handleDocumentExpiring(
@@ -167,22 +211,18 @@ async function handleDocumentExpiring(
   deps: EventBridgeDeps,
 ): Promise<void> {
   if (!event.recipient) {
+    deps.log?.warn("Ignoring document_expiring event without recipient.");
     return;
   }
-  await notify.run(
+  await notifyDocument(
     {
-      input: {
-        recipient: { id: event.recipient.id, type: "user" },
-        severity: severityForDays(event.daysUntilExpiry),
-        sourceEntity: { id: event.documentId, type: "compliance_document" },
-        sourceModule: "compliance",
-        title: `Compliance document expiring in ${event.daysUntilExpiry} day${
-          event.daysUntilExpiry === 1 ? "" : "s"
-        }`,
-        type: "document_expiring",
-      },
+      days: event.daysUntilExpiry,
+      documentId: event.documentId,
+      kind: "document_expiring",
+      recipientId: event.recipient.id,
+      title: `Compliance document expiring in ${event.daysUntilExpiry} day${event.daysUntilExpiry === 1 ? "" : "s"}`,
     },
-    runOptions(deps),
+    deps,
   );
 }
 
@@ -191,22 +231,18 @@ async function handleDocumentDue(
   deps: EventBridgeDeps,
 ): Promise<void> {
   if (!event.recipient) {
+    deps.log?.warn("Ignoring document_due event without recipient.");
     return;
   }
-  await notify.run(
+  await notifyDocument(
     {
-      input: {
-        recipient: { id: event.recipient.id, type: "user" },
-        severity: severityForDays(event.daysUntilDue),
-        sourceEntity: { id: event.documentId, type: "compliance_document" },
-        sourceModule: "compliance",
-        title: `Compliance document due in ${event.daysUntilDue} day${
-          event.daysUntilDue === 1 ? "" : "s"
-        }`,
-        type: "document_due",
-      },
+      days: event.daysUntilDue,
+      documentId: event.documentId,
+      kind: "document_due",
+      recipientId: event.recipient.id,
+      title: `Compliance document due in ${event.daysUntilDue} day${event.daysUntilDue === 1 ? "" : "s"}`,
     },
-    runOptions(deps),
+    deps,
   );
 }
 
@@ -214,6 +250,7 @@ async function handleReminderDue(
   event: InferSchemaOutput<typeof ReminderDueEventSchema>,
   deps: EventBridgeDeps,
 ): Promise<void> {
+  const notify = createNotify(deps.dbUnit);
   await notify.run(
     {
       input: {
@@ -232,6 +269,7 @@ async function handleFileExpired(
   event: InferSchemaOutput<typeof FileExpiredEventSchema>,
   deps: EventBridgeDeps,
 ): Promise<void> {
+  const notify = createNotify(deps.dbUnit);
   await notify.run(
     {
       input: {
@@ -246,24 +284,41 @@ async function handleFileExpired(
   );
 }
 
+const ANNOUNCEMENT_FANOUT = 10;
+
 async function handleAnnouncementPublished(
   event: InferSchemaOutput<typeof AnnouncementPublishedEventSchema>,
   deps: EventBridgeDeps,
 ): Promise<void> {
+  const notify = createNotify(deps.dbUnit);
   // oxlint-disable eslint/no-await-in-loop
-  for (const userId of event.recipientUserIds) {
-    await notify.run(
-      {
-        input: {
-          recipient: { id: userId, type: "user" },
-          sourceEntity: { id: event.announcement.id, type: "announcement" },
-          sourceModule: "hr",
-          title: event.announcement.title,
-          type: "announcement",
-        },
-      },
-      runOptions(deps),
+  for (let index = 0; index < event.recipientUserIds.length; index += ANNOUNCEMENT_FANOUT) {
+    const chunk = event.recipientUserIds.slice(index, index + ANNOUNCEMENT_FANOUT);
+    const outcomes = await Promise.allSettled(
+      chunk.map(async (userId) =>
+        notify.run(
+          {
+            input: {
+              recipient: { id: userId, type: "user" },
+              sourceEntity: { id: event.announcement.id, type: "announcement" },
+              sourceModule: "hr",
+              title: event.announcement.title,
+              type: "announcement",
+            },
+          },
+          runOptions(deps),
+        ),
+      ),
     );
+    for (const outcome of outcomes) {
+      if (outcome.status === "rejected") {
+        const { reason } = outcome;
+        deps.log?.error(
+          "Announcement fan-out failed for a recipient.",
+          reason instanceof Error ? reason : new Error(String(reason)),
+        );
+      }
+    }
   }
   // oxlint-enable eslint/no-await-in-loop
 }
@@ -273,23 +328,21 @@ async function handleTenantLifecycle(tenantId: string, deps: EventBridgeDeps): P
     return;
   }
 
-  const ensure = ensureDefaults(deps.dbUnit);
-
   if (deps.dbUnit.tenancyMode === "isolated") {
     const db = await deps.dbUnit.getTenantDb(tenantId);
-    await ensure.run(
+    await ensureDefaults(deps.dbUnit).run(
       { input: { entityId: tenantId, entityType: "organization" } },
-      { audit: deps.audit, db, pubsub: deps.pubsub },
+      { audit: deps.audit, db, log: deps.log, pubsub: deps.pubsub },
     );
     return;
   }
 
   // SAFETY: runWithTenant hands the callback a session-scoped drizzle instance
-  // Whose surface is a PostgresJsDatabase; the generic schema parameter is erased.
+  // whose surface matches the workflow db type; the generic parameter is erased.
   await deps.dbUnit.runWithTenant(tenantId, (db) =>
-    ensure.run(
+    ensureDefaults(deps.dbUnit).run(
       { input: { entityId: tenantId, entityType: "organization" } },
-      { audit: deps.audit, db, pubsub: deps.pubsub },
+      { audit: deps.audit, db, log: deps.log, pubsub: deps.pubsub },
     ),
   );
 }
@@ -298,46 +351,60 @@ async function handleOtpRequested(
   event: InferSchemaOutput<typeof OtpRequestedEventSchema>,
   deps: EventBridgeDeps,
 ): Promise<void> {
-  const { auth, kvStore } = getCommsRuntime();
-
-  const [provider] = await deps.db
-    .select()
-    .from(commsProvider)
-    .where(
-      and(eq(commsProvider.isActive, true), inArray(commsProvider.kind, [...EMAIL_PROVIDER_KINDS])),
-    )
-    .orderBy(commsProvider.createdAt)
-    .limit(1);
-
+  const provider = await findFirstActiveProvider(deps.db, [...EMAIL_PROVIDER_KINDS]);
   if (!provider) {
-    return;
+    deps.log?.error(
+      "Dropping OTP email: no active email provider.",
+      new Error("no active email provider"),
+      { email: event.email },
+    );
+    throw new Error("Cannot send OTP email: no active email provider.");
   }
 
-  const credential = await resolveProviderCredential(provider, kvStore).catch(() => null);
-  if (!credential) {
-    return;
-  }
+  const credential: Awaited<ReturnType<typeof resolveProviderCredential>> =
+    await resolveProviderCredential(provider, deps.kvStore).catch((credentialError): never => {
+      const detail =
+        credentialError instanceof Error ? credentialError.message : String(credentialError);
+      deps.log?.error(
+        `Dropping OTP email: credential failed for provider "${provider.id}".`,
+        credentialError instanceof Error ? credentialError : new Error(detail),
+        { providerId: provider.id },
+      );
+      throw new Error(`Cannot send OTP email: ${detail}`, { cause: credentialError });
+    });
 
-  const stored = await auth.rest.otp.get(event.tokenRef);
+  const stored = await deps.auth.rest.otp.get(event.tokenRef);
   if (!stored) {
+    deps.log?.warn("Dropping OTP email: token expired or unknown.", { tokenRef: event.tokenRef });
     return;
+  }
+
+  const senderAddress = provider.defaultSenderAddress ?? OTP_FALLBACK_SENDER;
+  if (!provider.defaultSenderAddress) {
+    deps.log?.warn("OTP email uses fallback sender address.", { providerId: provider.id });
   }
 
   const adapter = createAdapter("email");
   await adapter.send({
-    channel: { senderAddress: provider.defaultSenderAddress ?? "no-reply@aspen.local" },
+    channel: { senderAddress },
     credential,
     kind: provider.kind,
     message: {
-      body: renderTemplate("Your verification code is {otp}.", { otp: stored.otp }),
-      subject: "Your verification code",
+      body: renderTemplate(OTP_BODY_TEMPLATE, { otp: stored.otp }),
+      subject: OTP_SUBJECT,
       to: event.email,
     },
   });
 }
 
 function runOptions(deps: EventBridgeDeps) {
-  return { audit: deps.audit, db: deps.db, pubsub: deps.pubsub };
+  return {
+    audit: deps.audit,
+    auth: deps.auth,
+    db: deps.db,
+    log: deps.log,
+    pubsub: deps.pubsub,
+  };
 }
 
 function severityForDays(days: number): "normal" | "important" | "urgent" {

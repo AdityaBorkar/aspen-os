@@ -24,6 +24,7 @@ export const commsMessage = pgTable(
     status: commsMessageStatusEnum("status").notNull().default("queued"),
     subject: text("subject"),
     templateId: text("template_id"),
+    tenantId: text("tenant_id"),
     to: text("to").notNull(),
   },
   (table) => [
@@ -32,6 +33,7 @@ export const commsMessage = pgTable(
     index("idx_comms_message_notification").on(table.notificationId),
     index("idx_comms_message_provider").on(table.providerMessageId),
     index("idx_comms_message_created").on(table.createdAt),
+    index("idx_comms_message_tenant").on(table.tenantId),
   ],
 );
 

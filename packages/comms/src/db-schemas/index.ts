@@ -34,6 +34,11 @@ export const commsTables = {
   commsTemplate,
 } as const;
 
+/**
+ * Provider rows are host-global (control plane). Everything else is
+ * per-tenant. Do not query commsProvider on a tenant `ctx.db` — use the
+ * control-plane handle (see findFirstActiveProvider / ensure-defaults).
+ */
 export const control_plane_schemas = {
   commsProvider,
 } as const;

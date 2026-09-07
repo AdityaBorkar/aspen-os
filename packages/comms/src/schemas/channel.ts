@@ -7,7 +7,18 @@ import {
 import { MetadataSchema } from "#/schemas/json";
 import { IdSchema, NameSchema } from "#/schemas/utils";
 
-import { array, boolean, nullable, object, optional, record, string } from "valibot";
+import {
+  array,
+  boolean,
+  integer,
+  nullable,
+  number,
+  object,
+  optional,
+  pipe,
+  record,
+  string,
+} from "valibot";
 import type { InferOutput } from "valibot";
 
 export const ProviderCredentialSchema = record(string(), string());
@@ -36,9 +47,11 @@ export const UpdateChannelSchema = object({
 export type UpdateChannelInput = InferOutput<typeof UpdateChannelSchema>;
 
 export const ChannelFiltersSchema = object({
-  entityId: optional(string()),
-  entityType: optional(string()),
+  entityId: optional(IdSchema),
+  entityType: optional(MasterEntityTypeSchema),
   isDefault: optional(boolean()),
+  limit: optional(pipe(number(), integer())),
+  offset: optional(pipe(number(), integer())),
   source: optional(ChannelSourceSchema),
   status: optional(ChannelStatusSchema),
   type: optional(ChannelTypeSchema),

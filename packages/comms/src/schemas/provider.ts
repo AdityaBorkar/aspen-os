@@ -3,7 +3,7 @@ import { ProviderKindSchema } from "#/schemas/enums";
 import { MetadataSchema } from "#/schemas/json";
 import { IdSchema, NameSchema } from "#/schemas/utils";
 
-import { boolean, nullable, object, optional, string } from "valibot";
+import { boolean, integer, nullable, number, object, optional, pipe, string } from "valibot";
 import type { InferOutput } from "valibot";
 
 export const CreateProviderSchema = object({
@@ -28,6 +28,8 @@ export type UpdateProviderInput = InferOutput<typeof UpdateProviderSchema>;
 export const ProviderFiltersSchema = object({
   isActive: optional(boolean()),
   kind: optional(ProviderKindSchema),
+  limit: optional(pipe(number(), integer())),
+  offset: optional(pipe(number(), integer())),
 });
 
 export type ProviderFilters = InferOutput<typeof ProviderFiltersSchema>;

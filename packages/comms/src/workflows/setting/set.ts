@@ -1,32 +1,30 @@
 import { SETTING_EVENTS } from "#/pubsub";
-import { SetSettingSchema } from "#/types";
+import { SetSettingSchema } from "#/schemas/setting";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { auditAndPublish } from "#/workflow-steps/audit";
 import { setSetting } from "#/workflow-steps/settings-service";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const SetInputSchema = object({ input: SetSettingSchema });
 
 export const setSettingWorkflow = Workflow.name("comms.settings.set")
   .input(SetInputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(SetSettingSchema, input);
-    await setSetting(ctx.db, parsed.key, parsed.value);
+    await setSetting(ctx.db, input.key, input.value);
 
-    await ctx.step.run("audit-and-notify", async () => {
-      await ctx.audit.write({
-        action: AUDIT_ACTION.UPDATED,
-        crudAction: "update",
-        entityId: parsed.key,
-        entityType: AUDIT_ENTITY_TYPE.SETTING,
-        newState: { key: parsed.key, value: parsed.value },
-      });
-
-      await ctx.pubsub.publish(SETTING_EVENTS.UPDATED, {
-        changes: { [parsed.key]: parsed.value },
-      });
+    await auditAndPublish(ctx, {
+      action: AUDIT_ACTION.UPDATED,
+      crudAction: "update",
+      entityId: input.key,
+      entityType: AUDIT_ENTITY_TYPE.SETTING,
+      event: {
+        payload: { changes: { [input.key]: input.value } },
+        topic: SETTING_EVENTS.UPDATED,
+      },
+      newState: { key: input.key, value: input.value },
     });
 
-    return { key: parsed.key };
+    return { key: input.key };
   });

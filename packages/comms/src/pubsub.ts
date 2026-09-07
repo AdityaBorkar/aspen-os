@@ -1,3 +1,10 @@
+import type {
+  ChannelSource,
+  ChannelStatus,
+  ChannelType,
+  ProviderKind,
+  RecipientType,
+} from "@aspen-os/constants";
 import type { JsonValue } from "@aspen-os/platform/server";
 
 export const CHANNEL_EVENTS = {
@@ -56,9 +63,9 @@ export interface ChannelCreatedEvent {
   channel: {
     id: string;
     name: string;
-    source: string;
-    status: string;
-    type: string;
+    source: ChannelSource;
+    status: ChannelStatus;
+    type: ChannelType;
   };
 }
 
@@ -69,8 +76,8 @@ export interface ChannelUpdatedEvent {
 
 export interface ChannelStatusChangedEvent {
   channelId: string;
-  from: string;
-  to: string;
+  from: ChannelStatus;
+  to: ChannelStatus;
 }
 
 export interface ChannelCredentialRotatedEvent {
@@ -86,13 +93,13 @@ export interface ChannelTestedEvent {
 export interface ChannelDefaultChangedEvent {
   channelId: string;
   isDefault: boolean;
-  type: string;
+  type: ChannelType;
 }
 
 export interface ProviderCreatedEvent {
   provider: {
     id: string;
-    kind: string;
+    kind: ProviderKind;
     name: string;
   };
 }
@@ -106,7 +113,7 @@ export interface NotificationCreatedEvent {
   channelTypes: string[];
   notificationId: string;
   recipientId: string;
-  recipientType: string;
+  recipientType: RecipientType;
   type: string;
 }
 
@@ -123,7 +130,7 @@ export interface NotificationDismissedEvent {
 }
 
 export interface MessageQueuedEvent {
-  channelType: string;
+  channelType: ChannelType;
   messageId: string;
   to: string;
 }

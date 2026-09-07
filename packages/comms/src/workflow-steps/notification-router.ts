@@ -1,6 +1,8 @@
 import { commsPreference } from "#/db-schemas";
-import type { CommsChannel, EnsureDefaultsInput, NotifyInput } from "#/types";
-import { SETTING_KEYS, NOTIFICATION_CHANNEL_TYPE } from "#/utils/constants";
+import type { CommsChannel } from "#/db-schemas/channel";
+import type { EnsureDefaultsInput } from "#/schemas/channel";
+import type { NotifyInput } from "#/schemas/notification";
+import { DEFAULT_REQUESTED_CHANNEL_TYPES, SETTING_KEYS } from "#/utils/constants";
 import type { NotificationChannelType } from "#/utils/constants";
 import { resolveDefaultChannel } from "#/workflow-steps/channel-resolver";
 import type { ChannelScope } from "#/workflow-steps/channel-resolver";
@@ -10,7 +12,7 @@ import { getSetting } from "#/workflow-steps/settings-service";
 import type { ChannelType } from "@aspen-os/constants";
 import { MASTER_ENTITY_TYPE } from "@aspen-os/constants";
 import { getContext } from "@aspen-os/platform/server";
-import { and, eq, isNull, or } from "drizzle-orm";
+import { and, asc, eq, isNull, or } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { boolean, safeParse } from "valibot";
 
@@ -31,13 +33,6 @@ export interface NotificationRouterDeps {
   };
 }
 
-const DEFAULT_REQUESTED_CHANNEL_TYPES = [
-  NOTIFICATION_CHANNEL_TYPE.INAPP,
-  NOTIFICATION_CHANNEL_TYPE.EMAIL,
-  NOTIFICATION_CHANNEL_TYPE.SMS,
-  NOTIFICATION_CHANNEL_TYPE.WHATSAPP,
-] as const;
-
 export async function routeNotification(
   input: NotifyInput,
   resolved: ResolvedRecipient,
@@ -50,32 +45,28 @@ export async function routeNotification(
   const scope = tenantScope();
 
   const outOfBand: RoutedOutOfBand[] = [];
-  // oxlint-disable eslint/no-await-in-loop
-  for (const channelType of requested) {
-    if (channelType === NOTIFICATION_CHANNEL_TYPE.INAPP) {
-      continue;
-    }
-    if (suppressOutOfBand) {
-      continue;
-    }
-    if (!isEnabled(preferenceRules, channelType)) {
-      continue;
-    }
-    const channel = await resolveDefaultChannel(channelType, scope, {
-      db: deps.db,
-      ensureDefaults: deps.ensureDefaults,
-    });
-    outOfBand.push({ channel, channelType });
-  }
+  const channelTypesToResolve = requested.filter(
+    (channelType): channelType is ChannelType =>
+      channelType !== "inapp" && !suppressOutOfBand && isEnabled(preferenceRules, channelType),
+  );
+  const resolvedChannels = await Promise.all(
+    channelTypesToResolve.map(async (channelType) => {
+      const channel = await resolveDefaultChannel(channelType, scope, {
+        db: deps.db,
+        ensureDefaults: deps.ensureDefaults,
+      });
+      return { channel, channelType };
+    }),
+  );
+  outOfBand.push(...resolvedChannels);
 
   const channelTypes = requested.filter((channelType) =>
-    channelType === NOTIFICATION_CHANNEL_TYPE.INAPP
+    channelType === "inapp"
       ? isEnabled(preferenceRules, channelType)
       : outOfBand.some((decision) => decision.channelType === channelType),
   );
 
   return { channelTypes, outOfBand };
-  // oxlint-enable eslint/no-await-in-loop
 }
 
 interface PreferenceRule {
@@ -102,7 +93,10 @@ async function loadPreferenceRules(
         eq(commsPreference.userId, resolved.recipientId),
         or(eq(commsPreference.type, type), isNull(commsPreference.type)),
       ),
-    );
+    )
+    // Specific (non-null type) rows sort after defaults so they overwrite
+    // deterministically; channel ordering keeps the merge stable.
+    .orderBy(asc(commsPreference.type), asc(commsPreference.channelType));
 
   for (const row of rows) {
     const current = rules.get(row.channelType);

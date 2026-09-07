@@ -1,5 +1,3 @@
-import { NOTIFICATION_CHANNEL_TYPE } from "#/utils/constants";
-
 import {
   CHANNEL_SOURCE,
   CHANNEL_STATUS,
@@ -12,6 +10,8 @@ import {
 } from "@aspen-os/constants";
 import { pgEnum } from "drizzle-orm/pg-core";
 
+const INAPP_CHANNEL_TYPE = "inapp" as const;
+
 export const commsChannelTypeEnum = pgEnum("comms_channel_type", [
   CHANNEL_TYPE.EMAIL,
   CHANNEL_TYPE.OTHER,
@@ -21,12 +21,12 @@ export const commsChannelTypeEnum = pgEnum("comms_channel_type", [
 ]);
 
 export const commsPreferenceChannelTypeEnum = pgEnum("comms_preference_channel_type", [
-  NOTIFICATION_CHANNEL_TYPE.EMAIL,
-  NOTIFICATION_CHANNEL_TYPE.INAPP,
-  NOTIFICATION_CHANNEL_TYPE.OTHER,
-  NOTIFICATION_CHANNEL_TYPE.PUSH,
-  NOTIFICATION_CHANNEL_TYPE.SMS,
-  NOTIFICATION_CHANNEL_TYPE.WHATSAPP,
+  CHANNEL_TYPE.EMAIL,
+  INAPP_CHANNEL_TYPE,
+  CHANNEL_TYPE.OTHER,
+  CHANNEL_TYPE.PUSH,
+  CHANNEL_TYPE.SMS,
+  CHANNEL_TYPE.WHATSAPP,
 ]);
 
 export const commsChannelSourceEnum = pgEnum("comms_channel_source", [

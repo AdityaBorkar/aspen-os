@@ -38,14 +38,14 @@ Host delivery capability registry (control-plane, host-admin). Runs in the globa
 
 The in-app inbox + notification intent. `notify` is the single entry point for in-app + out-of-band notification.
 
-| Method                    | Behavior                                                                                                            |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `notify`                  | Routes per recipient → channel types → preference opt-outs → suppression → materializes the row (+ queued messages) |
-| `getInbox`                | Caller-scoped (`recipientId = actorId`); ordered `urgent` → `important` → `normal`, then `createdAt` desc           |
-| `markRead` / `markUnread` | Status transitions; publish `notification:read` / nothing-on-unread                                                 |
-| `dismiss`                 | Status `dismissed`; publishes `notification:dismissed`                                                              |
-| `unreadCount`             | Badge count for the caller                                                                                          |
-| `get` / `list`            | Admin/full listing; filters: `recipientType`, `recipientId`, `type`, `severity`, `status`                           |
+| Method                    | Behavior                                                                                                                                                                                                  |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `notify`                  | Routes per recipient → channel types → preference opt-outs → suppression → materializes the row (+ queued messages). Returns `{ notification, dispatched, skipped }` so callers can see per-channel skips |
+| `getInbox`                | Caller-scoped (`recipientId = actorId`); ordered `urgent` → `important` → `normal`, then `createdAt` desc                                                                                                 |
+| `markRead` / `markUnread` | Status transitions; publish `notification:read` / nothing-on-unread                                                                                                                                       |
+| `dismiss`                 | Status `dismissed`; publishes `notification:dismissed`                                                                                                                                                    |
+| `unreadCount`             | Badge count for the caller                                                                                                                                                                                |
+| `get` / `list`            | Admin/full listing; filters: `recipientType`, `recipientId`, `type`, `severity`, `status`                                                                                                                 |
 
 ## `preferences`
 

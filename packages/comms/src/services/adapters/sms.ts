@@ -1,49 +1,64 @@
 import { requireCredential } from "#/services/adapters/shared";
 import type { DeliveryAdapter, SendInput, TestInput } from "#/services/adapters/shared";
+import { VERIFICATION_MESSAGE_BODY } from "#/utils/constants";
 
 import { PROVIDER_KIND } from "@aspen-os/constants";
+import { object, safeParse, string } from "valibot";
+
+const TwilioResponseSchema = object({ sid: string() });
 
 export function createSmsAdapter(): DeliveryAdapter {
-  return {
-    async send({
-      channel,
-      credential,
-      message,
-    }: SendInput): Promise<{ providerMessageId: string }> {
-      const accountSid = requireCredential(credential, "accountSid");
-      const authToken = requireCredential(credential, "authToken");
-      const response = await fetch(
-        `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
-        {
-          body: new URLSearchParams({
-            Body: message.body,
-            From: channel.senderAddress,
-            To: message.to,
-          }),
-          headers: {
-            Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          method: "POST",
+  async function send({
+    channel,
+    credential,
+    kind,
+    message,
+  }: SendInput): Promise<{ providerMessageId: string }> {
+    if (kind !== PROVIDER_KIND.TWILIO) {
+      throw new Error(`SMS delivery requires provider kind "twilio", got "${kind}".`);
+    }
+    const scope = "Twilio SMS channel";
+    const accountSid = requireCredential(credential, "accountSid", scope);
+    const authToken = requireCredential(credential, "authToken", scope);
+    const response = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+      {
+        body: new URLSearchParams({
+          Body: message.body,
+          From: channel.senderAddress,
+          To: message.to,
+        }),
+        headers: {
+          Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
+          "Content-Type": "application/x-www-form-urlencoded",
         },
-      );
-      if (!response.ok) {
-        throw new Error(`Twilio send failed (${response.status}): ${await response.text()}`);
-      }
-      // SAFETY: the Twilio Messages API returns a JSON object with a "sid" field on success.
-      const data = (await response.json()) as { sid?: string };
-      return { providerMessageId: data.sid ?? crypto.randomUUID() };
-    },
-    async test({ channel, credential, recipientAddress }: TestInput): Promise<void> {
+        method: "POST",
+      },
+    );
+    if (!response.ok) {
+      throw new Error(`Twilio send failed (${response.status}): ${await response.text()}`);
+    }
+    // SAFETY: Twilio returns JSON; the schema below validates the sid field.
+    const data: unknown = await response.json();
+    const parsed = safeParse(TwilioResponseSchema, data);
+    if (!parsed.success) {
+      throw new Error("Twilio send succeeded but returned no sid; refusing to invent one.");
+    }
+    return { providerMessageId: parsed.output.sid };
+  }
+
+  return {
+    send,
+    async test({ channel, credential, kind, recipientAddress }: TestInput): Promise<void> {
       if (!recipientAddress) {
         throw new Error("recipientAddress is required to verify an SMS channel.");
       }
-      await this.send({
+      await send({
         channel,
         credential,
-        kind: PROVIDER_KIND.TWILIO,
+        kind,
         message: {
-          body: "This is a verification message from your communication channel configuration.",
+          body: VERIFICATION_MESSAGE_BODY,
           to: recipientAddress,
         },
       });

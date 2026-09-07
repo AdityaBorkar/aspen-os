@@ -2,7 +2,7 @@ import { ChannelTypeSchema } from "#/schemas/enums";
 import { MetadataSchema } from "#/schemas/json";
 import { IdSchema, NameSchema } from "#/schemas/utils";
 
-import { boolean, nullable, object, optional, string } from "valibot";
+import { boolean, integer, nullable, number, object, optional, pipe, string } from "valibot";
 import type { InferOutput } from "valibot";
 
 export const CreateTemplateSchema = object({
@@ -30,7 +30,9 @@ export type UpdateTemplateInput = InferOutput<typeof UpdateTemplateSchema>;
 export const TemplateFiltersSchema = object({
   channelType: optional(ChannelTypeSchema),
   isActive: optional(boolean()),
+  limit: optional(pipe(number(), integer())),
   name: optional(string()),
+  offset: optional(pipe(number(), integer())),
 });
 
 export type TemplateFilters = InferOutput<typeof TemplateFiltersSchema>;

@@ -84,24 +84,25 @@ The in-app inbox row + notification intent.
 
 Delivery outbox. One row per outbound send.
 
-| Column                                   | Type           | Description                                                     |
-| ---------------------------------------- | -------------- | --------------------------------------------------------------- |
-| `id`                                     | text (PK)      | Auto UUIDv7                                                     |
-| `notification_id`                        | text (soft FK) | Owning notification; null for standalone sends (channel `test`) |
-| `channel_id`                             | text (soft FK) | Channel used (nulled when the channel is deleted)               |
-| `channel_type`                           | enum           | `email`, `sms`, `whatsapp` (never `inapp`)                      |
-| `provider_id`                            | text (soft FK) | Resolved provider at send time                                  |
-| `to`                                     | text           | Recipient address                                               |
-| `subject`                                | text           | Email subject                                                   |
-| `body`                                   | text           | Rendered body (or template ref)                                 |
-| `template_id`                            | text (soft FK) | `comms_template` used; WhatsApp requires a provider template    |
-| `status`                                 | enum           | `comms_message_status`                                          |
-| `attempts`                               | integer        | Delivery attempts so far                                        |
-| `last_error`                             | text           | Last failure message                                            |
-| `provider_message_id`                    | text           | Provider receipt correlation id                                 |
-| `queued_at` / `sent_at` / `delivered_at` | timestamptz    | Lifecycle timestamps                                            |
-| `metadata`                               | jsonb          | `tenantId` (delivery tenant context), template params           |
-| `created_at`                             | timestamptz    | Creation timestamp                                              |
+| Column                                   | Type           | Description                                                                |
+| ---------------------------------------- | -------------- | -------------------------------------------------------------------------- |
+| `id`                                     | text (PK)      | Auto UUIDv7                                                                |
+| `notification_id`                        | text (soft FK) | Owning notification; null for standalone sends (channel `test`)            |
+| `channel_id`                             | text (soft FK) | Channel used (nulled when the channel is deleted)                          |
+| `channel_type`                           | enum           | `email`, `sms`, `whatsapp` (never `inapp`)                                 |
+| `provider_id`                            | text (soft FK) | Resolved provider at send time                                             |
+| `to`                                     | text           | Recipient address                                                          |
+| `subject`                                | text           | Email subject                                                              |
+| `body`                                   | text           | Rendered body (or template ref)                                            |
+| `template_id`                            | text (soft FK) | `comms_template` used; WhatsApp requires a provider template               |
+| `tenant_id`                              | text           | Delivery tenant context (fail-closed routing; replaces metadata smuggling) |
+| `status`                                 | enum           | `comms_message_status`                                                     |
+| `attempts`                               | integer        | Delivery attempts so far                                                   |
+| `last_error`                             | text           | Last failure message                                                       |
+| `provider_message_id`                    | text           | Provider receipt correlation id                                            |
+| `queued_at` / `sent_at` / `delivered_at` | timestamptz    | Lifecycle timestamps                                                       |
+| `metadata`                               | jsonb          | Template params (`templateParams` key or top-level `templateParams` input) |
+| `created_at`                             | timestamptz    | Creation timestamp                                                         |
 
 ### `comms_preference` (tenant)
 

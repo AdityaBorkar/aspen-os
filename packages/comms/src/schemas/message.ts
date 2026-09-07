@@ -1,14 +1,14 @@
 import { ChannelTypeSchema, MessageStatusSchema } from "#/schemas/enums";
 import { IdSchema } from "#/schemas/utils";
 
-import { integer, number, object, optional, pipe, string } from "valibot";
+import { integer, number, object, optional, pipe } from "valibot";
 import type { InferOutput } from "valibot";
 
 export const MessageFiltersSchema = object({
-  channelId: optional(string()),
+  channelId: optional(IdSchema),
   channelType: optional(ChannelTypeSchema),
   limit: optional(pipe(number(), integer())),
-  notificationId: optional(string()),
+  notificationId: optional(IdSchema),
   offset: optional(pipe(number(), integer())),
   status: optional(MessageStatusSchema),
 });

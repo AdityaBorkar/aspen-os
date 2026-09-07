@@ -1,7 +1,8 @@
 import { commsNotification } from "#/db-schemas";
 import { NOTIFICATION_EVENTS } from "#/pubsub";
-import { IdSchema } from "#/types";
+import { IdSchema } from "#/schemas/utils";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { auditAndPublish } from "#/workflow-steps/audit";
 import { fetchNotificationStep } from "#/workflow-steps/fetch-notification";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -29,19 +30,15 @@ export const markRead = Workflow.name("comms.notification.mark-read")
       throw new Error(`Notification with id "${input.id}" not found.`);
     }
 
-    await ctx.step.run("audit-and-notify", async () => {
-      await ctx.audit.write({
-        action: AUDIT_ACTION.MARKED_READ,
-        crudAction: "update",
-        entityId: updated.id,
-        entityType: AUDIT_ENTITY_TYPE.NOTIFICATION,
-      });
-
-      await ctx.pubsub.publish(NOTIFICATION_EVENTS.READ, {
-        at: at.toISOString(),
-        notificationId: updated.id,
-        userId: updated.recipientId,
-      });
+    await auditAndPublish(ctx, {
+      action: AUDIT_ACTION.MARKED_READ,
+      crudAction: "update",
+      entityId: updated.id,
+      entityType: AUDIT_ENTITY_TYPE.NOTIFICATION,
+      event: {
+        payload: { at: at.toISOString(), notificationId: updated.id, userId: updated.recipientId },
+        topic: NOTIFICATION_EVENTS.READ,
+      },
     });
 
     return updated;

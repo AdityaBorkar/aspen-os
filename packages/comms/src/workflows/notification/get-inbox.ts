@@ -1,17 +1,17 @@
 import { commsNotification } from "#/db-schemas";
-import { GetInboxSchema } from "#/types";
+import { GetInboxSchema } from "#/schemas/notification";
+import { clampListLimit, clampListOffset } from "#/utils/constants";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const GetInboxInputSchema = object({ input: GetInboxSchema });
 
 export const getInbox = Workflow.name("comms.notification.get-inbox")
   .input(GetInboxInputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(GetInboxSchema, input);
-    const { filters } = parsed;
+    const { filters } = input;
 
     if (!ctx.actorId) {
       throw new Error("Inbox queries require an authenticated actor.");
@@ -34,8 +34,8 @@ export const getInbox = Workflow.name("comms.notification.get-inbox")
       where.push(lte(commsNotification.createdAt, new Date(filters.toDate)));
     }
 
-    const limit = filters?.limit ?? 50;
-    const offset = filters?.offset ?? 0;
+    const limit = clampListLimit(filters?.limit);
+    const offset = clampListOffset(filters?.offset);
 
     return ctx.db
       .select()

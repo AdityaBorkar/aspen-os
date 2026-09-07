@@ -4,17 +4,28 @@ import {
   RecipientTypeSchema,
   NotificationChannelTypeSchema,
 } from "#/schemas/enums";
-import { MetadataSchema } from "#/schemas/json";
-import { IdSchema } from "#/schemas/utils";
+import { MetadataSchema, JsonValueSchema } from "#/schemas/json";
+import { EmailSchema, IdSchema, NameSchema, PhoneSchema } from "#/schemas/utils";
 
-import { array, boolean, integer, nullable, number, object, optional, pipe, string } from "valibot";
+import {
+  array,
+  boolean,
+  integer,
+  nullable,
+  number,
+  object,
+  optional,
+  pipe,
+  record,
+  string,
+} from "valibot";
 import type { InferOutput } from "valibot";
 
 export const RecipientSchema = object({
-  email: optional(string()),
+  email: optional(EmailSchema),
   id: IdSchema,
-  name: optional(string()),
-  phone: optional(string()),
+  name: optional(NameSchema),
+  phone: optional(PhoneSchema),
   type: RecipientTypeSchema,
 });
 
@@ -34,6 +45,7 @@ export const NotifySchema = object({
   ),
   sourceModule: optional(string()),
   templateId: optional(IdSchema),
+  templateParams: optional(record(string(), JsonValueSchema)),
   title: string(),
   type: string(),
 });
@@ -61,7 +73,7 @@ export type GetInboxInput = InferOutput<typeof GetInboxSchema>;
 export const NotificationFiltersSchema = object({
   limit: optional(pipe(number(), integer())),
   offset: optional(pipe(number(), integer())),
-  recipientId: optional(string()),
+  recipientId: optional(IdSchema),
   recipientType: optional(RecipientTypeSchema),
   severity: optional(NotificationSeveritySchema),
   status: optional(NotificationStatusSchema),

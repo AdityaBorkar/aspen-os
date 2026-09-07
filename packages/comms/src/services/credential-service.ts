@@ -40,6 +40,45 @@ export async function resolveChannelProvider(
   return row ?? null;
 }
 
+export interface DeliveryCredentialInput {
+  channel: CommsChannel;
+  kvStore: KvStoreUnit;
+  provider: CommsProvider | null;
+}
+
+/**
+ * One home for delivery credential resolution. Host channels resolve their
+ * provider credential; tenant channels resolve their own ref. Never returns
+ * null and never swallows errors — failures carry channel/provider ids.
+ */
+export async function resolveDeliveryCredential(
+  input: DeliveryCredentialInput,
+): Promise<ProviderCredential> {
+  const { channel, kvStore, provider } = input;
+  if (channel.source === "host") {
+    if (!provider) {
+      throw new Error(`Host channel "${channel.id}" has no provider; cannot resolve credential.`);
+    }
+    try {
+      return await resolveProviderCredential(provider, kvStore);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `Provider credential for channel "${channel.id}" (provider "${provider.id}") could not be resolved: ${detail}`,
+        { cause: error },
+      );
+    }
+  }
+  try {
+    return await resolveChannelCredential(channel, kvStore);
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(`Credential for channel "${channel.id}" could not be resolved: ${detail}`, {
+      cause: error,
+    });
+  }
+}
+
 async function resolveCredentialRef(
   credentialRef: string,
   kvStore: KvStoreUnit,

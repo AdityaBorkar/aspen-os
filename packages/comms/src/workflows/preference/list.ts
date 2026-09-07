@@ -1,17 +1,17 @@
 import { commsPreference } from "#/db-schemas";
-import { ListPreferencesSchema } from "#/types";
+import { ListPreferencesSchema } from "#/schemas/preference";
+import { listPagination } from "#/workflow-steps/lists";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { and, eq } from "drizzle-orm";
-import { object, parse } from "valibot";
+import { and, desc, eq } from "drizzle-orm";
+import { object } from "valibot";
 
 const ListInputSchema = object({ input: ListPreferencesSchema });
 
 export const listPreferences = Workflow.name("comms.preference.list")
   .input(ListInputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(ListPreferencesSchema, input);
-    const { filters } = parsed;
+    const { filters } = input;
 
     const where = [];
     if (filters?.userId) {
@@ -24,11 +24,20 @@ export const listPreferences = Workflow.name("comms.preference.list")
       where.push(eq(commsPreference.channelType, filters.channelType));
     }
 
+    const { limit, offset } = listPagination(filters ?? undefined);
     if (where.length === 0) {
-      return ctx.db.select().from(commsPreference);
+      return ctx.db
+        .select()
+        .from(commsPreference)
+        .orderBy(desc(commsPreference.createdAt))
+        .limit(limit)
+        .offset(offset);
     }
     return ctx.db
       .select()
       .from(commsPreference)
-      .where(and(...where));
+      .where(and(...where))
+      .orderBy(desc(commsPreference.createdAt))
+      .limit(limit)
+      .offset(offset);
   });

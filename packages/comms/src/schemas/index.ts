@@ -98,11 +98,14 @@ export type {
   SetSettingInput,
 } from "#/schemas/setting";
 export {
+  DefaultChannelsValueSchema,
   GetSettingSchema,
   ListSettingsSchema,
+  SenderOverrideValueSchema,
   SettingKeySchema,
   SettingValueSchema,
   SetSettingSchema,
+  SuppressOutOfBandValueSchema,
 } from "#/schemas/setting";
 export type {
   CreateTemplateInput,

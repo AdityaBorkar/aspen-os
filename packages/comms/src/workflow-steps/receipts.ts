@@ -1,11 +1,10 @@
 import { commsMessage } from "#/db-schemas";
 import { MESSAGE_EVENTS } from "#/pubsub";
+import { runInTenantContext, tenantIdFromMetadata } from "#/services/tenant";
 
 import type { DatabaseUnit, PubSubUnit } from "@aspen-os/platform/server";
-import { isGlobalTenantId } from "@aspen-os/platform/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray, ne, sql } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
-import { object, optional, safeParse, string } from "valibot";
 
 export interface ProviderReceiptInput {
   error?: string;
@@ -39,7 +38,10 @@ export async function handleProviderReceipt(
     return false;
   }
 
-  const tenantId = tenantIdFor(message);
+  const tenantId = message.tenantId ?? tenantIdFromMetadata(message.metadata);
+  if (!tenantId) {
+    return false;
+  }
   await runInTenantContext(deps.db, tenantId, async (db) => {
     if (input.status === "delivered") {
       await markDelivered(db, message);
@@ -68,7 +70,7 @@ async function markDelivered(
   await db
     .update(commsMessage)
     .set({ deliveredAt: at, status: "delivered" })
-    .where(and(eq(commsMessage.id, message.id), eq(commsMessage.status, "sent")));
+    .where(and(eq(commsMessage.id, message.id), inArray(commsMessage.status, ["sent", "sending"])));
 }
 
 async function markFailed(
@@ -76,31 +78,9 @@ async function markFailed(
   message: typeof commsMessage.$inferSelect,
   error: string,
 ): Promise<void> {
-  const attempts = message.attempts + 1;
   await db
     .update(commsMessage)
-    .set({ attempts, lastError: error, status: "failed" })
-    .where(eq(commsMessage.id, message.id));
-}
-
-function tenantIdFor(message: typeof commsMessage.$inferSelect): string {
-  const parsed = safeParse(object({ tenantId: optional(string()) }), message.metadata ?? {});
-  return parsed.success && parsed.output.tenantId ? parsed.output.tenantId : "default";
-}
-
-async function runInTenantContext<TValue>(
-  dbUnit: DatabaseUnit,
-  tenantId: string,
-  fn: (db: PostgresJsDatabase) => Promise<TValue>,
-): Promise<TValue> {
-  if (isGlobalTenantId(tenantId)) {
-    return fn(dbUnit.controlPlaneDb);
-  }
-  if (dbUnit.tenancyMode === "isolated") {
-    const db = await dbUnit.getTenantDb(tenantId);
-    return fn(db);
-  }
-  // SAFETY: runWithTenant hands the callback a session-scoped drizzle instance
-  // Whose surface is a PostgresJsDatabase; the generic schema parameter is erased.
-  return dbUnit.runWithTenant(tenantId, (db) => fn(db));
+    // SAFETY: atomic increment avoids lost updates on concurrent receipts.
+    .set({ attempts: sql`${commsMessage.attempts} + 1`, lastError: error, status: "failed" })
+    .where(and(eq(commsMessage.id, message.id), ne(commsMessage.status, "delivered")));
 }

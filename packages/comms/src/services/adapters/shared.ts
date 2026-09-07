@@ -1,4 +1,5 @@
-import type { CommsChannel, ProviderCredential } from "#/types";
+import type { CommsChannel } from "#/db-schemas/channel";
+import type { ProviderCredential } from "#/schemas/channel";
 
 import type { ChannelType, ProviderKind } from "@aspen-os/constants";
 import { CHANNEL_TYPE, PROVIDER_KIND } from "@aspen-os/constants";
@@ -29,17 +30,38 @@ export interface DeliveryAdapter {
   test?: (input: TestInput) => Promise<void>;
 }
 
+/**
+ * Strict email-kind inference for legacy tenant channels that carry no
+ * provider row. Exactly one credential shape must match; ambiguous or empty
+ * credentials throw instead of silently defaulting to SMTP (which has no
+ * sender implementation and would fail later at send time).
+ */
 export function inferEmailKind(credential: ProviderCredential): ProviderKind {
+  const matches: ProviderKind[] = [];
   if (credential.accessKeyId && credential.secretAccessKey) {
-    return PROVIDER_KIND.SES;
+    matches.push(PROVIDER_KIND.SES);
   }
   if (credential.apiKey) {
-    return PROVIDER_KIND.RESEND;
+    matches.push(PROVIDER_KIND.RESEND);
   }
   if (credential.serverToken) {
-    return PROVIDER_KIND.POSTMARK;
+    matches.push(PROVIDER_KIND.POSTMARK);
   }
-  return PROVIDER_KIND.SMTP;
+  if (matches.length === 1) {
+    const [kind] = matches;
+    if (!kind) {
+      throw new Error("Email credential matched no known provider shape.");
+    }
+    return kind;
+  }
+  if (matches.length > 1) {
+    throw new Error(
+      `Email credential matches multiple providers (${matches.join(", ")}); store an explicit provider kind instead of inferring.`,
+    );
+  }
+  throw new Error(
+    "Email credential matches no known provider shape (expected SES accessKeyId+secretAccessKey, Resend apiKey, or Postmark serverToken).",
+  );
 }
 
 export function providerKindForChannel(
@@ -71,10 +93,15 @@ export function stripHtml(input: string): string {
     .trim();
 }
 
-export function requireCredential(credential: ProviderCredential, key: string): string {
+export function requireCredential(
+  credential: ProviderCredential,
+  key: string,
+  scope?: string,
+): string {
   const value = credential[key];
   if (!value) {
-    throw new Error(`Provider credential is missing "${key}".`);
+    const where = scope ? ` for ${scope}` : "";
+    throw new Error(`Provider credential is missing "${key}"${where}.`);
   }
   return value;
 }

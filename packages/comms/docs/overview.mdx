@@ -73,7 +73,7 @@ $initialize(units: {
 }): void;
 ```
 
-`$initialize()` stores the units in a module singleton (`runtime.ts`) so stateless workflows can resolve recipients and construct the default-channel resolver.
+`$initialize()` keeps the units on the module instance. Factories that need non-workflow units (`createChannel`/`deleteChannel`/`rotateChannelCredential`/`testChannel` need `kvStore`; `createNotify`/`ensureDefaults` need the `DatabaseUnit` for control-plane provider reads) are built in memoized getters, so workflows never reach around explicit dependencies.
 
 ## Infrastructure
 

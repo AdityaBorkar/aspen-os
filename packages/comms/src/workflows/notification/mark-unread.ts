@@ -1,6 +1,7 @@
 import { commsNotification } from "#/db-schemas";
-import { IdSchema } from "#/types";
+import { IdSchema } from "#/schemas/utils";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { auditAndPublish } from "#/workflow-steps/audit";
 import { fetchNotificationStep } from "#/workflow-steps/fetch-notification";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -27,7 +28,7 @@ export const markUnread = Workflow.name("comms.notification.mark-unread")
       throw new Error(`Notification with id "${input.id}" not found.`);
     }
 
-    await ctx.audit.write({
+    await auditAndPublish(ctx, {
       action: AUDIT_ACTION.MARKED_UNREAD,
       crudAction: "update",
       entityId: updated.id,

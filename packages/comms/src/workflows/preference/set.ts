@@ -1,28 +1,28 @@
 import { commsPreference } from "#/db-schemas";
 import { PREFERENCE_EVENTS } from "#/pubsub";
-import { SetPreferenceSchema } from "#/types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { SetPreferenceSchema } from "#/schemas/preference";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, channelTypePriority } from "#/utils/constants";
+import { auditAndPublish } from "#/workflow-steps/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, isNull } from "drizzle-orm";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const SetInputSchema = object({ input: SetPreferenceSchema });
 
 export const setPreference = Workflow.name("comms.preference.set")
   .input(SetInputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(SetPreferenceSchema, input);
-    const type = parsed.type ?? null;
+    const type = input.type ?? null;
 
     const existing = await ctx.db
       .select({ id: commsPreference.id, priority: commsPreference.priority })
       .from(commsPreference)
       .where(
         and(
-          eq(commsPreference.userId, parsed.userId),
+          eq(commsPreference.userId, input.userId),
           type === null ? isNull(commsPreference.type) : eq(commsPreference.type, type),
-          eq(commsPreference.channelType, parsed.channelType),
+          eq(commsPreference.channelType, input.channelType),
         ),
       )
       .limit(1);
@@ -33,8 +33,8 @@ export const setPreference = Workflow.name("comms.preference.set")
       ? await ctx.db
           .update(commsPreference)
           .set({
-            enabled: parsed.enabled,
-            priority: parsed.priority ?? row.priority ?? builtinPriority(parsed.channelType),
+            enabled: input.enabled,
+            priority: input.priority ?? row.priority ?? channelTypePriority(input.channelType),
             type,
             updatedAt: new Date(),
           })
@@ -43,11 +43,11 @@ export const setPreference = Workflow.name("comms.preference.set")
       : await ctx.db
           .insert(commsPreference)
           .values({
-            channelType: parsed.channelType,
-            enabled: parsed.enabled,
-            priority: parsed.priority ?? builtinPriority(parsed.channelType),
+            channelType: input.channelType,
+            enabled: input.enabled,
+            priority: input.priority ?? channelTypePriority(input.channelType),
             type,
-            userId: parsed.userId,
+            userId: input.userId,
           })
           .returning();
 
@@ -55,47 +55,27 @@ export const setPreference = Workflow.name("comms.preference.set")
       throw new Error("Failed to upsert preference.");
     }
 
-    await ctx.step.run("audit-and-notify", async () => {
-      await ctx.audit.write({
-        action: AUDIT_ACTION.UPDATED,
-        crudAction: "update",
-        entityId: updated.id,
-        entityType: AUDIT_ENTITY_TYPE.PREFERENCE,
-        newState: {
+    await auditAndPublish(ctx, {
+      action: AUDIT_ACTION.UPDATED,
+      crudAction: "update",
+      entityId: updated.id,
+      entityType: AUDIT_ENTITY_TYPE.PREFERENCE,
+      event: {
+        payload: {
           channelType: updated.channelType,
           enabled: updated.enabled,
           type: updated.type,
           userId: updated.userId,
         },
-      });
-
-      await ctx.pubsub.publish(PREFERENCE_EVENTS.UPDATED, {
+        topic: PREFERENCE_EVENTS.UPDATED,
+      },
+      newState: {
         channelType: updated.channelType,
         enabled: updated.enabled,
         type: updated.type,
         userId: updated.userId,
-      });
+      },
     });
 
     return updated;
   });
-
-function builtinPriority(channelType: string): number {
-  switch (channelType) {
-    case "inapp": {
-      return 1;
-    }
-    case "email": {
-      return 2;
-    }
-    case "sms": {
-      return 3;
-    }
-    case "whatsapp": {
-      return 4;
-    }
-    default: {
-      return 5;
-    }
-  }
-}

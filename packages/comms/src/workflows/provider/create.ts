@@ -1,11 +1,12 @@
 import { commsProvider } from "#/db-schemas";
 import { PROVIDER_EVENTS } from "#/pubsub";
-import { CreateProviderSchema } from "#/types";
+import { CreateProviderSchema } from "#/schemas/provider";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { auditAndPublish } from "#/workflow-steps/audit";
 
 import type { KvStoreUnit } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const CreateInputSchema = object({ input: CreateProviderSchema });
 
@@ -13,21 +14,17 @@ export function createProvider(kvStore: KvStoreUnit) {
   return Workflow.name("comms.provider.create")
     .input(CreateInputSchema)
     .handler(async ({ input }, ctx) => {
-      const parsed = parse(CreateProviderSchema, input);
-
       const credentialRef = `comms:provider:${crypto.randomUUID()}:credential`;
-      await ctx.step.run("store-credential", () =>
-        kvStore.set(credentialRef, parsed.credential, 0),
-      );
+      await ctx.step.run("store-credential", () => kvStore.set(credentialRef, input.credential, 0));
 
       const [row] = await ctx.db
         .insert(commsProvider)
         .values({
           credentialRef,
-          defaultSenderAddress: parsed.defaultSenderAddress ?? null,
-          kind: parsed.kind,
-          metadata: parsed.metadata ?? null,
-          name: parsed.name,
+          defaultSenderAddress: input.defaultSenderAddress ?? null,
+          kind: input.kind,
+          metadata: input.metadata ?? null,
+          name: input.name,
         })
         .returning();
 
@@ -35,25 +32,18 @@ export function createProvider(kvStore: KvStoreUnit) {
         throw new Error("Failed to create provider.");
       }
 
-      await ctx.step.run("audit-and-notify", async () => {
-        await ctx.audit.write({
-          action: AUDIT_ACTION.CREATED,
-          crudAction: "create",
-          entityId: row.id,
-          entityType: AUDIT_ENTITY_TYPE.PROVIDER,
-          newState: {
-            kind: row.kind,
-            name: row.name,
+      await auditAndPublish(ctx, {
+        action: AUDIT_ACTION.CREATED,
+        crudAction: "create",
+        entityId: row.id,
+        entityType: AUDIT_ENTITY_TYPE.PROVIDER,
+        event: {
+          payload: {
+            provider: { id: row.id, kind: row.kind, name: row.name },
           },
-        });
-
-        await ctx.pubsub.publish(PROVIDER_EVENTS.CREATED, {
-          provider: {
-            id: row.id,
-            kind: row.kind,
-            name: row.name,
-          },
-        });
+          topic: PROVIDER_EVENTS.CREATED,
+        },
+        newState: { kind: row.kind, name: row.name },
       });
 
       return row;

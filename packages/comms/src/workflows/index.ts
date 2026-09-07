@@ -13,7 +13,6 @@ import { getInbox } from "./notification/get-inbox";
 import { listNotifications } from "./notification/list";
 import { markRead } from "./notification/mark-read";
 import { markUnread } from "./notification/mark-unread";
-import { notify } from "./notification/notify";
 import { unreadCount } from "./notification/unread-count";
 import { getPreference } from "./preference/get";
 import { listPreferences } from "./preference/list";
@@ -31,6 +30,14 @@ import { deactivateTemplate } from "./template/deactivate";
 import { getTemplate } from "./template/get";
 import { listTemplates } from "./template/list";
 import { updateTemplate } from "./template/update";
+
+export { createChannel } from "./channel/create";
+export { deleteChannel } from "./channel/delete";
+export { ensureDefaults } from "./channel/ensure-defaults";
+export { rotateChannelCredential } from "./channel/rotate-credential";
+export { testChannel } from "./channel/test";
+export { createNotify } from "./notification/notify";
+export { createProvider } from "./provider/create";
 
 export const channelActions = {
   activate: activateChannel,
@@ -56,7 +63,6 @@ export const notifications = {
   list: listNotifications,
   markRead,
   markUnread,
-  notify,
   unreadCount,
 } as const;
 

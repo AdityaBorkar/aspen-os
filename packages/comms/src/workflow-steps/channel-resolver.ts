@@ -1,5 +1,6 @@
 import { commsChannel } from "#/db-schemas";
-import type { EnsureDefaultsInput, CommsChannel } from "#/types";
+import type { CommsChannel } from "#/db-schemas/channel";
+import type { EnsureDefaultsInput } from "#/schemas/channel";
 import { SETTING_KEYS } from "#/utils/constants";
 import { getSetting } from "#/workflow-steps/settings-service";
 
@@ -57,6 +58,8 @@ async function resolveOverrideId(
   if (value === null) {
     return null;
   }
+  // Primary validation happens at setting-write time (SetSettingSchema variant);
+  // a parse failure here means legacy/malformed data — treat as unset.
   const parsed = safeParse(record(string(), string()), value);
   if (!parsed.success) {
     return null;

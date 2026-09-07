@@ -1,52 +1,80 @@
 import { commsTemplate } from "#/db-schemas";
 import { TEMPLATE_EVENTS } from "#/pubsub";
-import { UpdateTemplateSchema } from "#/types";
+import { UpdateTemplateSchema } from "#/schemas/template";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { auditAndPublish } from "#/workflow-steps/audit";
 import { fetchTemplateStep } from "#/workflow-steps/fetch-template";
 
+import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-import { object, parse } from "valibot";
+import { object } from "valibot";
 
 const UpdateInputSchema = object({ input: UpdateTemplateSchema });
+
+interface TemplatePatch {
+  body?: string;
+  metadata?: Record<string, JsonValue> | null;
+  name?: string;
+  providerTemplateId?: string | null;
+  subject?: string | null;
+}
 
 export const updateTemplate = Workflow.name("comms.template.update")
   .input(UpdateInputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(UpdateTemplateSchema, input);
-    const current = await ctx.step.run(fetchTemplateStep, { id: parsed.id });
+    const current = await ctx.step.run(fetchTemplateStep, { id: input.id });
+
+    const set: TemplatePatch = {};
+    if (input.body !== undefined && input.body !== current.body) {
+      set.body = input.body;
+    }
+    if (input.name !== undefined && input.name !== current.name) {
+      set.name = input.name;
+    }
+    if (input.providerTemplateId !== undefined) {
+      const next = input.providerTemplateId ?? null;
+      if (next !== current.providerTemplateId) {
+        set.providerTemplateId = next;
+      }
+    }
+    if (input.subject !== undefined) {
+      const next = input.subject ?? null;
+      if (next !== current.subject) {
+        set.subject = next;
+      }
+    }
+    if (
+      input.metadata !== undefined &&
+      JSON.stringify(input.metadata) !== JSON.stringify(current.metadata)
+    ) {
+      set.metadata = input.metadata;
+    }
+
+    if (Object.keys(set).length === 0) {
+      return current;
+    }
 
     const [updated] = await ctx.db
       .update(commsTemplate)
-      .set({
-        body: parsed.body ?? current.body,
-        metadata: parsed.metadata ?? current.metadata,
-        name: parsed.name ?? current.name,
-        providerTemplateId: parsed.providerTemplateId ?? current.providerTemplateId,
-        subject: parsed.subject ?? current.subject,
-        updatedAt: new Date(),
-      })
-      .where(eq(commsTemplate.id, parsed.id))
+      .set({ ...set, updatedAt: new Date() })
+      .where(eq(commsTemplate.id, input.id))
       .returning();
 
     if (!updated) {
-      throw new Error(`Template with id "${parsed.id}" not found.`);
+      throw new Error(`Template with id "${input.id}" not found.`);
     }
 
-    await ctx.step.run("audit-and-notify", async () => {
-      await ctx.audit.write({
-        action: AUDIT_ACTION.UPDATED,
-        crudAction: "update",
-        entityId: updated.id,
-        entityType: AUDIT_ENTITY_TYPE.TEMPLATE,
-        newState: { channelType: updated.channelType, name: updated.name },
-      });
-
-      await ctx.pubsub.publish(TEMPLATE_EVENTS.UPDATED, {
-        isActive: updated.isActive,
-        name: updated.name,
-        templateId: updated.id,
-      });
+    await auditAndPublish(ctx, {
+      action: AUDIT_ACTION.UPDATED,
+      crudAction: "update",
+      entityId: updated.id,
+      entityType: AUDIT_ENTITY_TYPE.TEMPLATE,
+      event: {
+        payload: { isActive: updated.isActive, name: updated.name, templateId: updated.id },
+        topic: TEMPLATE_EVENTS.UPDATED,
+      },
+      newState: { channelType: updated.channelType, name: updated.name },
     });
 
     return updated;

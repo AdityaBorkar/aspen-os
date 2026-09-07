@@ -16,6 +16,8 @@ export type SetPreferenceInput = InferOutput<typeof SetPreferenceSchema>;
 
 export const PreferenceFiltersSchema = object({
   channelType: optional(NotificationChannelTypeSchema),
+  limit: optional(pipe(number(), integer())),
+  offset: optional(pipe(number(), integer())),
   type: optional(string()),
   userId: optional(IdSchema),
 });

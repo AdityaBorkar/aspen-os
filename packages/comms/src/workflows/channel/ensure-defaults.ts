@@ -1,47 +1,31 @@
-import { commsChannel, commsProvider } from "#/db-schemas";
+import { commsChannel } from "#/db-schemas";
 import { CHANNEL_EVENTS } from "#/pubsub";
-import { EnsureDefaultsSchema } from "#/types";
+import { EnsureDefaultsSchema } from "#/schemas/channel";
+import { findFirstActiveProvider } from "#/services/providers";
 import {
+  AUDIT_ACTION,
   AUDIT_ENTITY_TYPE,
-  SETTING_KEYS,
   DEFAULT_CHANNEL_TYPES,
-  PROVIDER_KINDS_BY_CHANNEL_TYPE,
+  SETTING_KEYS,
+  providerKindsForChannelType,
 } from "#/utils/constants";
+import { auditAndPublish } from "#/workflow-steps/audit";
 import { getSetting } from "#/workflow-steps/settings-service";
 
-import type { ChannelType } from "@aspen-os/constants";
 import { getContext, Workflow } from "@aspen-os/platform/server";
 import type { DatabaseUnit } from "@aspen-os/platform/server";
-import { and, eq, inArray } from "drizzle-orm";
-import { object, parse, safeParse, string } from "valibot";
+import { and, eq } from "drizzle-orm";
+import { object, safeParse, string } from "valibot";
 
 const EnsureDefaultsInputSchema = object({ input: EnsureDefaultsSchema });
-
-function channelTypeKinds(type: ChannelType) {
-  switch (type) {
-    case "email": {
-      return PROVIDER_KINDS_BY_CHANNEL_TYPE.email;
-    }
-    case "sms": {
-      return PROVIDER_KINDS_BY_CHANNEL_TYPE.sms;
-    }
-    case "whatsapp": {
-      return PROVIDER_KINDS_BY_CHANNEL_TYPE.whatsapp;
-    }
-    default: {
-      return null;
-    }
-  }
-}
 
 export function ensureDefaults(dbUnit: DatabaseUnit) {
   return Workflow.name("comms.channel.ensure-defaults")
     .input(EnsureDefaultsInputSchema)
     .handler(async ({ input }, ctx) => {
-      const parsed = parse(EnsureDefaultsSchema, input);
-      const entityType = parsed.entityType ?? "organization";
-      const entityId = parsed.entityId ?? getContext().tenantId ?? "default";
-      const types = parsed.channelTypes ?? [...DEFAULT_CHANNEL_TYPES];
+      const entityType = input.entityType ?? "organization";
+      const entityId = input.entityId ?? getContext().tenantId ?? "default";
+      const types = input.channelTypes ?? [...DEFAULT_CHANNEL_TYPES];
 
       const senderOverride = await getSetting(
         ctx.db,
@@ -50,92 +34,96 @@ export function ensureDefaults(dbUnit: DatabaseUnit) {
       const parsedOverride = safeParse(string(), senderOverride);
       const defaultSenderAddress = parsedOverride.success ? parsedOverride.output : null;
 
-      let materialized = 0;
-      // oxlint-disable eslint/no-await-in-loop
-      for (const type of types) {
-        const existing = await ctx.db
-          .select({ id: commsChannel.id })
-          .from(commsChannel)
-          .where(
-            and(
-              eq(commsChannel.entityId, entityId),
-              eq(commsChannel.entityType, entityType),
-              eq(commsChannel.status, "active"),
-              eq(commsChannel.type, type),
-            ),
-          )
-          .limit(1);
+      const results = await Promise.all(
+        types.map(async (type) => {
+          const existing = await ctx.db
+            .select({ id: commsChannel.id })
+            .from(commsChannel)
+            .where(
+              and(
+                eq(commsChannel.entityId, entityId),
+                eq(commsChannel.entityType, entityType),
+                eq(commsChannel.status, "active"),
+                eq(commsChannel.type, type),
+              ),
+            )
+            .limit(1);
 
-        if (existing.length > 0) {
-          continue;
-        }
+          if (existing.length > 0) {
+            return null;
+          }
 
-        const providerKinds = channelTypeKinds(type);
-        if (!providerKinds) {
-          continue;
-        }
+          const providerKinds = providerKindsForChannelType(type);
+          if (!providerKinds) {
+            ctx.log.warn(`ensure-defaults skips unsupported channel type "${type}".`, {
+              entityId,
+              type,
+            });
+            return null;
+          }
 
-        const [provider] = await dbUnit.controlPlaneDb
-          .select()
-          .from(commsProvider)
-          .where(
-            and(eq(commsProvider.isActive, true), inArray(commsProvider.kind, [...providerKinds])),
-          )
-          .orderBy(commsProvider.createdAt)
-          .limit(1);
-        if (!provider) {
-          continue;
-        }
+          const provider = await findFirstActiveProvider(
+            // SAFETY: providers live on the control plane; ctx.db is tenant-scoped.
+            dbUnit.controlPlaneDb,
+            providerKinds,
+          );
+          if (!provider) {
+            return null;
+          }
 
-        const senderAddress = defaultSenderAddress ?? provider.defaultSenderAddress;
-        if (!senderAddress) {
-          continue;
-        }
+          const senderAddress = defaultSenderAddress ?? provider.defaultSenderAddress;
+          if (!senderAddress) {
+            ctx.log.warn(`ensure-defaults skips "${type}": provider has no sender address.`, {
+              providerId: provider.id,
+              type,
+            });
+            return null;
+          }
 
-        const [row] = await ctx.db
-          .insert(commsChannel)
-          .values({
-            entityId,
-            entityType,
-            isDefault: true,
-            name: `Default ${type}`,
-            providerId: provider.id,
-            senderAddress,
-            source: "host",
-            status: "active",
-            type,
-            verifiedAt: new Date(),
-          })
-          .returning();
+          const [row] = await ctx.db
+            .insert(commsChannel)
+            .values({
+              entityId,
+              entityType,
+              isDefault: true,
+              name: `Default ${type}`,
+              providerId: provider.id,
+              senderAddress,
+              source: "host",
+              status: "active",
+              type,
+              verifiedAt: new Date(),
+            })
+            .returning();
 
-        if (!row) {
-          continue;
-        }
+          if (!row) {
+            return null;
+          }
 
-        materialized++;
-        await ctx.audit.write({
-          action: "created",
-          crudAction: "create",
-          entityId: row.id,
-          entityType: AUDIT_ENTITY_TYPE.CHANNEL,
-          newState: {
-            entityId,
-            entityType,
-            name: row.name,
-            providerId: provider.id,
-            source: "host",
-            type,
-          },
-        });
+          await auditAndPublish(ctx, {
+            action: AUDIT_ACTION.CREATED,
+            crudAction: "create",
+            entityId: row.id,
+            entityType: AUDIT_ENTITY_TYPE.CHANNEL,
+            event: {
+              payload: { channelId: row.id, isDefault: true, type },
+              topic: CHANNEL_EVENTS.DEFAULT_CHANGED,
+            },
+            newState: {
+              entityId,
+              entityType,
+              name: row.name,
+              providerId: provider.id,
+              source: "host",
+              type,
+            },
+          });
 
-        await ctx.pubsub.publish(CHANNEL_EVENTS.DEFAULT_CHANGED, {
-          channelId: row.id,
-          isDefault: true,
-          type,
-        });
-      }
+          return row.id;
+        }),
+      );
 
+      const materialized = results.filter((id) => id !== null).length;
       return { entityId, entityType, materialized };
-      // oxlint-enable eslint/no-await-in-loop
     });
 }

@@ -1,17 +1,17 @@
 import { commsChannel } from "#/db-schemas";
-import { ListChannelsSchema } from "#/types";
+import { ListChannelsSchema } from "#/schemas/channel";
+import { listPagination } from "#/workflow-steps/lists";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { and, eq } from "drizzle-orm";
-import { object, parse } from "valibot";
+import { and, desc, eq } from "drizzle-orm";
+import { object } from "valibot";
 
 const ListInputSchema = object({ input: ListChannelsSchema });
 
 export const listChannels = Workflow.name("comms.channel.list")
   .input(ListInputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(ListChannelsSchema, input);
-    const { filters } = parsed;
+    const { filters } = input;
 
     const where = [];
     if (filters?.type) {
@@ -33,11 +33,20 @@ export const listChannels = Workflow.name("comms.channel.list")
       where.push(eq(commsChannel.isDefault, filters.isDefault));
     }
 
+    const { limit, offset } = listPagination(filters ?? undefined);
     if (where.length === 0) {
-      return ctx.db.select().from(commsChannel);
+      return ctx.db
+        .select()
+        .from(commsChannel)
+        .orderBy(desc(commsChannel.createdAt))
+        .limit(limit)
+        .offset(offset);
     }
     return ctx.db
       .select()
       .from(commsChannel)
-      .where(and(...where));
+      .where(and(...where))
+      .orderBy(desc(commsChannel.createdAt))
+      .limit(limit)
+      .offset(offset);
   });

@@ -1,64 +1,92 @@
 import { commsChannel } from "#/db-schemas";
 import { CHANNEL_EVENTS } from "#/pubsub";
-import { UpdateChannelSchema } from "#/types";
+import { UpdateChannelSchema } from "#/schemas/channel";
+import { JsonValueSchema } from "#/schemas/json";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { auditAndPublish } from "#/workflow-steps/audit";
 import { fetchChannelStep } from "#/workflow-steps/fetch-channel";
 
 import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-import { object, parse } from "valibot";
+import { object, record, safeParse, string } from "valibot";
 
 const UpdateInputSchema = object({ input: UpdateChannelSchema });
+
+function isRecord(value: JsonValue | null | undefined): value is Record<string, JsonValue> {
+  if (Array.isArray(value)) {
+    return false;
+  }
+  return safeParse(record(string(), JsonValueSchema), value).success;
+}
+
+function sortKeys(value: JsonValue | null | undefined): JsonValue | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  if (Array.isArray(value)) {
+    return value.map((entry) => sortKeys(entry));
+  }
+  if (!isRecord(value)) {
+    return value;
+  }
+  const sorted: Record<string, JsonValue> = {};
+  for (const key of Object.keys(value).toSorted()) {
+    const entry = value[key];
+    if (entry !== undefined) {
+      sorted[key] = sortKeys(entry);
+    }
+  }
+  return sorted;
+}
+
+function metadataEqual(
+  left: Record<string, JsonValue> | null | undefined,
+  right: Record<string, JsonValue> | null | undefined,
+): boolean {
+  return JSON.stringify(sortKeys(left)) === JSON.stringify(sortKeys(right));
+}
 
 export const updateChannel = Workflow.name("comms.channel.update")
   .input(UpdateInputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(UpdateChannelSchema, input);
-    const current = await ctx.step.run(fetchChannelStep, { id: parsed.id });
+    const current = await ctx.step.run(fetchChannelStep, { id: input.id });
 
     const changes: Record<string, JsonValue> = {};
-    if (parsed.name !== undefined && parsed.name !== current.name) {
-      changes.name = parsed.name;
+    if (input.name !== undefined && input.name !== current.name) {
+      changes.name = input.name;
     }
-    if (parsed.senderAddress !== undefined && parsed.senderAddress !== current.senderAddress) {
-      changes.senderAddress = parsed.senderAddress;
+    if (input.senderAddress !== undefined && input.senderAddress !== current.senderAddress) {
+      changes.senderAddress = input.senderAddress;
     }
-    if (
-      parsed.metadata !== undefined &&
-      JSON.stringify(parsed.metadata) !== JSON.stringify(current.metadata)
-    ) {
-      changes.metadata = parsed.metadata;
+    if (input.metadata !== undefined && !metadataEqual(input.metadata, current.metadata)) {
+      changes.metadata = input.metadata ?? null;
+    }
+
+    if (Object.keys(changes).length === 0) {
+      return current;
     }
 
     const [updated] = await ctx.db
       .update(commsChannel)
-      .set({
-        metadata: parsed.metadata ?? current.metadata,
-        name: parsed.name ?? current.name,
-        senderAddress: parsed.senderAddress ?? current.senderAddress,
-        updatedAt: new Date(),
-      })
-      .where(eq(commsChannel.id, parsed.id))
+      .set({ ...changes, updatedAt: new Date() })
+      .where(eq(commsChannel.id, input.id))
       .returning();
 
     if (!updated) {
-      throw new Error(`Channel with id "${parsed.id}" not found.`);
+      throw new Error(`Channel with id "${input.id}" not found.`);
     }
 
-    await ctx.step.run("audit-and-notify", async () => {
-      await ctx.audit.write({
-        action: AUDIT_ACTION.UPDATED,
-        changes,
-        crudAction: "update",
-        entityId: updated.id,
-        entityType: AUDIT_ENTITY_TYPE.CHANNEL,
-      });
-
-      await ctx.pubsub.publish(CHANNEL_EVENTS.UPDATED, {
-        changes,
-        channelId: updated.id,
-      });
+    await auditAndPublish(ctx, {
+      action: AUDIT_ACTION.UPDATED,
+      changes,
+      crudAction: "update",
+      entityId: updated.id,
+      entityType: AUDIT_ENTITY_TYPE.CHANNEL,
+      event: {
+        payload: { changes, channelId: updated.id },
+        topic: CHANNEL_EVENTS.UPDATED,
+      },
     });
 
     return updated;

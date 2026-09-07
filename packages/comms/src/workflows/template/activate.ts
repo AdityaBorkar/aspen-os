@@ -1,7 +1,8 @@
 import { commsTemplate } from "#/db-schemas";
 import { TEMPLATE_EVENTS } from "#/pubsub";
-import { IdSchema } from "#/types";
+import { IdSchema } from "#/schemas/utils";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { auditAndPublish } from "#/workflow-steps/audit";
 import { fetchTemplateStep } from "#/workflow-steps/fetch-template";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -28,19 +29,15 @@ export const activateTemplate = Workflow.name("comms.template.activate")
       throw new Error(`Template with id "${input.id}" not found.`);
     }
 
-    await ctx.step.run("audit-and-notify", async () => {
-      await ctx.audit.write({
-        action: AUDIT_ACTION.ACTIVATED,
-        crudAction: "update",
-        entityId: updated.id,
-        entityType: AUDIT_ENTITY_TYPE.TEMPLATE,
-      });
-
-      await ctx.pubsub.publish(TEMPLATE_EVENTS.ACTIVATED, {
-        isActive: true,
-        name: updated.name,
-        templateId: updated.id,
-      });
+    await auditAndPublish(ctx, {
+      action: AUDIT_ACTION.ACTIVATED,
+      crudAction: "update",
+      entityId: updated.id,
+      entityType: AUDIT_ENTITY_TYPE.TEMPLATE,
+      event: {
+        payload: { isActive: true, name: updated.name, templateId: updated.id },
+        topic: TEMPLATE_EVENTS.ACTIVATED,
+      },
     });
 
     return updated;
