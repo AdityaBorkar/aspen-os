@@ -1,8 +1,8 @@
-import { dmsLabel } from "#/db-schemas";
 import { ListLabelsOptionsSchema } from "#/types";
 
+import { masterLabel } from "@aspen-os/masters";
 import { Workflow } from "@aspen-os/platform/server";
-import { and, eq, or } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { object, optional } from "valibot";
 
 const ListLabelsSchema = object({
@@ -18,19 +18,26 @@ export const listLabels = Workflow.name("dms.label.list")
 
     if (parsed.ownerId) {
       if (parsed.includeGlobal) {
-        conditions.push(or(eq(dmsLabel.is_global, true), eq(dmsLabel.owner_id, parsed.ownerId)));
+        conditions.push(
+          or(
+            and(isNull(masterLabel.scope_type), isNull(masterLabel.scope_id)),
+            and(eq(masterLabel.scope_type, "user"), eq(masterLabel.scope_id, parsed.ownerId)),
+          )!,
+        );
       } else {
-        conditions.push(eq(dmsLabel.owner_id, parsed.ownerId));
+        conditions.push(
+          and(eq(masterLabel.scope_type, "user"), eq(masterLabel.scope_id, parsed.ownerId))!,
+        );
       }
     } else if (parsed.includeGlobal) {
-      conditions.push(eq(dmsLabel.is_global, true));
+      conditions.push(and(isNull(masterLabel.scope_type), isNull(masterLabel.scope_id))!);
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     return ctx.db
       .select()
-      .from(dmsLabel)
+      .from(masterLabel)
       .where(whereClause)
       .limit(parsed.limit ?? 50)
       .offset(parsed.offset ?? 0);

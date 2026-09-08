@@ -52,6 +52,7 @@ export class Masters implements Module {
   readonly contacts = wf.contacts;
   readonly entities = wf.entities;
   readonly filterViews = wf.filterViews;
+  readonly labels = wf.labels;
   readonly orgBranches = wf.orgBranches;
   readonly paymentMethods = wf.paymentMethods;
   readonly settings = wf.settings;

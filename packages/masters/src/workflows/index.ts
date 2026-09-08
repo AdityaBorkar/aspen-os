@@ -27,6 +27,14 @@ import { duplicateFilterView } from "#/workflows/filter-view/duplicate";
 import { getFilterView } from "#/workflows/filter-view/get";
 import { listFilterViews } from "#/workflows/filter-view/list";
 import { updateFilterView } from "#/workflows/filter-view/update";
+import { applyLabel } from "#/workflows/label/apply";
+import { listEntitiesByLabel } from "#/workflows/label/by-label/list";
+import { createLabel } from "#/workflows/label/create";
+import { deleteLabel } from "#/workflows/label/delete";
+import { getLabel } from "#/workflows/label/get";
+import { listLabels } from "#/workflows/label/list";
+import { removeLabel } from "#/workflows/label/remove";
+import { updateLabel } from "#/workflows/label/update";
 import { createOrgBranch } from "#/workflows/org-branch/create";
 import { getOrgBranch } from "#/workflows/org-branch/get";
 import { listOrgBranches } from "#/workflows/org-branch/list";
@@ -117,6 +125,17 @@ export const unitsOfMeasure = {
   get: getUnitOfMeasure,
   list: listUnitsOfMeasure,
   update: updateUnitOfMeasure,
+} as const;
+
+export const labels = {
+  apply: applyLabel,
+  create: createLabel,
+  delete: deleteLabel,
+  get: getLabel,
+  list: listLabels,
+  listByLabel: listEntitiesByLabel,
+  remove: removeLabel,
+  update: updateLabel,
 } as const;
 
 export const connectionActions = {

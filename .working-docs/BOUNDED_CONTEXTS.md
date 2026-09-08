@@ -182,7 +182,7 @@ Domain events published via PubSub as plain string topics. Event counts by modul
 - Compliance: 23 events
 - Tasks: 11 events (incl. `task:due_date_changed`)
 - Calendar: 14 events (3 calendar + 4 event + 3 attendee + 4 reminder, incl. `calendar:reminder_due`)
-- Workspace: 26 events (13 draft + 4 view + 6 dashboard + 4 widget + 2 pin + 1 schedule)
+- Workspace: 28 events (13 draft + 4 view + 6 dashboard + 4 widget + 2 pin + 2 watch + 1 schedule)
 - DMS: 27 events (13 file + 6 folder + 3 class + 2 share + 3 public_link + 3 file_view)
 - Comms: 21 events (6 channel + 2 provider + 3 notification + 4 message + 1 preference + 4 template + 1 setting)
 - Management Plane: 17 events (8 tenant + 4 service_provider + 5 platform_user)

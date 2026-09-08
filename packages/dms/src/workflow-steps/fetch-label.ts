@@ -1,4 +1,5 @@
-import { dmsLabel } from "#/db-schemas";
 import { makeFetchStep } from "#/workflow-steps/fetch-entity";
 
-export const fetchLabelStep = makeFetchStep("dms-fetch-label", dmsLabel, "Label");
+import { masterLabel } from "@aspen-os/masters";
+
+export const fetchLabelStep = makeFetchStep("dms-fetch-label", masterLabel, "Label");

@@ -1,4 +1,4 @@
-import { dmsClass, dmsFile, dmsFolder, dmsLabel } from "#/db-schemas";
+import { dmsClass, dmsFile, dmsFolder } from "#/db-schemas";
 import type {
   DmsFile,
   DmsFolder,
@@ -11,6 +11,7 @@ import { escapeLike } from "#/utils/escape-like";
 import { toText } from "#/utils/to-text";
 import { buildSortOrder } from "#/workflow-steps/condition-service";
 
+import { masterLabel } from "@aspen-os/masters";
 import { and, asc, desc, eq, gte, ilike, lte, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
@@ -279,7 +280,11 @@ export async function quickSearch(
   const pattern = `%${escapeLike(query)}%`;
   const [classRows, labelRows] = await Promise.all([
     db.select({ name: dmsClass.name }).from(dmsClass).where(ilike(dmsClass.name, pattern)).limit(5),
-    db.select({ name: dmsLabel.name }).from(dmsLabel).where(ilike(dmsLabel.name, pattern)).limit(5),
+    db
+      .select({ name: masterLabel.name })
+      .from(masterLabel)
+      .where(ilike(masterLabel.name, pattern))
+      .limit(5),
   ]);
   const classes = classRows.map((row) => row.name);
   const labels = labelRows.map((row) => row.name);

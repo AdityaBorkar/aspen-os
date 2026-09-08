@@ -2,10 +2,11 @@ import type { DmsAccessLog, NewDmsAccessLog } from "#/db-schemas/access-log";
 import type { DmsFile, NewDmsFile } from "#/db-schemas/file";
 import type { DmsFileVersion, NewDmsFileVersion } from "#/db-schemas/file-version";
 import type { DmsFolder, NewDmsFolder } from "#/db-schemas/folder";
-import type { DmsLabel, NewDmsLabel } from "#/db-schemas/label";
 import type { DmsPublicLink, NewDmsPublicLink } from "#/db-schemas/public-link";
 import type { CompressionOption } from "#/schemas";
 import type { EntityType } from "#/utils/constants";
+
+import type { MasterLabel, NewMasterLabel } from "@aspen-os/masters";
 
 export type { DmsClass, NewDmsClass } from "#/db-schemas/class";
 export type { DmsClassField, NewDmsClassField } from "#/db-schemas/class-field";
@@ -196,15 +197,15 @@ export type {
   DmsFile,
   DmsFileVersion,
   DmsFolder,
-  DmsLabel,
   DmsPublicLink,
   NewDmsAccessLog,
   NewDmsFile,
   NewDmsFileVersion,
   NewDmsFolder,
-  NewDmsLabel,
   NewDmsPublicLink,
 };
+export type DmsLabel = MasterLabel;
+export type NewDmsLabel = NewMasterLabel;
 
 export interface BreadcrumbItem {
   id: string;

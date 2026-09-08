@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@aspen-os/constants": "workspace:*",
+    "@aspen-os/masters": "workspace:*",
     "@aspen-os/platform": "workspace:*",
     "drizzle-orm": "catalog:",
     "fflate": "catalog:",

@@ -2,7 +2,6 @@ import { activityLog } from "#/db-schemas/activity-log";
 import { attachment } from "#/db-schemas/attachment";
 import { automationRule } from "#/db-schemas/automation-rule";
 import { comment } from "#/db-schemas/comment";
-import { label } from "#/db-schemas/label";
 import { project } from "#/db-schemas/project";
 import { projectMember } from "#/db-schemas/project-member";
 import { status } from "#/db-schemas/status";
@@ -26,7 +25,6 @@ export {
   taskLinkTypeEnum,
   taskPriorityEnum,
 } from "#/db-schemas/enums";
-export { label } from "#/db-schemas/label";
 export { project } from "#/db-schemas/project";
 export { projectMember } from "#/db-schemas/project-member";
 export { status } from "#/db-schemas/status";
@@ -39,7 +37,6 @@ export { timeEntry } from "#/db-schemas/time-entry";
 export { watcher } from "#/db-schemas/watcher";
 
 export const control_plane_schemas = {
-  label,
   project,
   projectMember,
   status,

@@ -66,6 +66,14 @@ export const ORG_BRANCH_EVENTS = {
 // Deprecated aliases — prefer ORG_BRANCH_EVENTS.
 export const BRANCH_EVENTS = ORG_BRANCH_EVENTS;
 
+export const LABEL_EVENTS = {
+  APPLIED: "masters:label_applied",
+  CREATED: "masters:label_created",
+  REMOVED: "masters:label_removed",
+  REMOVED_FROM_ENTITY: "masters:label_removed_from_entity",
+  UPDATED: "masters:label_updated",
+} as const;
+
 export const events = {
   ADDRESS_EVENTS,
   BRANCH_EVENTS,
@@ -73,6 +81,7 @@ export const events = {
   CONTACT_EVENTS,
   ENTITY_EVENTS,
   FILTER_VIEW_EVENTS,
+  LABEL_EVENTS,
   ORG_BRANCH_EVENTS,
   PAYMENT_METHOD_EVENTS,
   UNIT_OF_MEASURE_EVENTS,
@@ -347,11 +356,51 @@ export interface OrgBranchEventMap {
 // Deprecated alias — prefer OrgBranchEventMap.
 export type BranchEventMap = OrgBranchEventMap;
 
+export interface LabelCreatedEvent {
+  label: {
+    color: string | null;
+    id: string;
+    name: string;
+    scopeId: string | null;
+    scopeType: string | null;
+  };
+}
+
+export interface LabelUpdatedEvent {
+  changes: Record<string, JsonValue>;
+  label: { id: string; name: string };
+}
+
+export interface LabelRemovedEvent {
+  labelId: string;
+}
+
+export interface LabelAppliedEvent {
+  entityId: string;
+  entityType: string;
+  labelId: string;
+}
+
+export interface LabelRemovedFromEntityEvent {
+  entityId: string;
+  entityType: string;
+  labelId: string;
+}
+
+export interface LabelEventMap {
+  [LABEL_EVENTS.APPLIED]: LabelAppliedEvent;
+  [LABEL_EVENTS.CREATED]: LabelCreatedEvent;
+  [LABEL_EVENTS.REMOVED]: LabelRemovedEvent;
+  [LABEL_EVENTS.REMOVED_FROM_ENTITY]: LabelRemovedFromEntityEvent;
+  [LABEL_EVENTS.UPDATED]: LabelUpdatedEvent;
+}
+
 export type MastersEventMap = AddressEventMap &
   ConnectionEventMap &
   ContactEventMap &
   EntityEventMap &
   FilterViewEventMap &
+  LabelEventMap &
   OrgBranchEventMap &
   PaymentMethodEventMap &
   UnitOfMeasureEventMap;

@@ -1,6 +1,6 @@
-import { dmsLabel } from "#/db-schemas";
 import { assertLabelOwner, CreateLabelSchema } from "#/types";
 
+import { masterLabel } from "@aspen-os/masters";
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
 
@@ -13,13 +13,16 @@ export const createLabel = Workflow.name("dms.label.create")
 
     assertLabelOwner(parsed.isGlobal, parsed.ownerId);
 
+    const scopeType = parsed.isGlobal ? null : "user";
+    const scopeId = parsed.isGlobal ? null : (parsed.ownerId ?? null);
+
     const [label] = await ctx.db
-      .insert(dmsLabel)
+      .insert(masterLabel)
       .values({
         color: parsed.color,
-        is_global: parsed.isGlobal,
         name: parsed.name,
-        owner_id: parsed.ownerId ?? null,
+        scope_id: scopeId,
+        scope_type: scopeType,
       })
       .returning();
 

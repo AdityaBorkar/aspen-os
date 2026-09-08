@@ -57,11 +57,10 @@ export class Dms implements Module {
   }
 
   readonly $name = "dms";
-  readonly $dependencies: readonly string[] = [];
+  readonly $dependencies: readonly string[] = ["masters"];
   /**
-   * Optional peer topics consumed at runtime. Introspection-only — never
-   * validated, so DMS runs solo or without masters. The contact-share bridge
-   * revokes contact grants when a masters contact is removed.
+   * Peer topics consumed at runtime. DMS now depends on masters for the unified label taxonomy
+   * (`master_label`). The contact-share bridge revokes contact grants when a masters contact is removed.
    */
   readonly $consumes: readonly string[] = ["masters:contact_removed"];
   readonly $config: Required<DmsModuleConfig>;

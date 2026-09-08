@@ -2,7 +2,9 @@ export type { MasterAddress, NewMasterAddress } from "#/db-schemas/address";
 export type { MasterConnection, NewMasterConnection } from "#/db-schemas/connection";
 export type { MasterContact, NewMasterContact } from "#/db-schemas/contact";
 export type { MasterEntity, NewMasterEntity } from "#/db-schemas/entity";
+export type { MasterEntityLabel, NewMasterEntityLabel } from "#/db-schemas/entity-label";
 export type { MasterFilterView, NewMasterFilterView } from "#/db-schemas/filter-view";
+export type { MasterLabel, NewMasterLabel } from "#/db-schemas/label";
 export type { MasterPaymentMethod, NewMasterPaymentMethod } from "#/db-schemas/payment-method";
 export type { MasterSetting, NewMasterSetting } from "#/db-schemas/setting";
 export type { MasterUnitOfMeasure, NewMasterUnitOfMeasure } from "#/db-schemas/unit-of-measure";
@@ -33,7 +35,12 @@ export type {
   FilterViewDeletedEvent,
   FilterViewDuplicatedEvent,
   FilterViewEventMap,
-  FilterViewUpdatedEvent,
+  LabelAppliedEvent,
+  LabelCreatedEvent,
+  LabelEventMap,
+  LabelRemovedEvent,
+  LabelRemovedFromEntityEvent,
+  LabelUpdatedEvent,
   MastersEventMap,
   OrgBranchCreatedEvent,
   OrgBranchEventMap,
@@ -59,6 +66,7 @@ export {
   ENTITY_EVENTS,
   events,
   FILTER_VIEW_EVENTS,
+  LABEL_EVENTS,
   ORG_BRANCH_EVENTS,
   PAYMENT_METHOD_EVENTS,
   UNIT_OF_MEASURE_EVENTS,
@@ -66,6 +74,7 @@ export {
 export type {
   Address,
   AddressFilters,
+  ApplyLabelInput,
   BranchFilters,
   BranchTreeNode,
   ConnectionCredential,
@@ -77,6 +86,7 @@ export type {
   CreateContactInput,
   CreateEntityInput,
   CreateFilterViewInput,
+  CreateLabelInput,
   CreateOrgBranchInput,
   CreatePaymentMethodInput,
   CreateUnitOfMeasureInput,
@@ -86,10 +96,12 @@ export type {
   FilterViewSort,
   GetDefaultFilterViewInput,
   GetSettingInput,
+  LabelFilters,
   ListAddressesInput,
   ListConnectionsInput,
   ListContactsInput,
   ListEntitiesInput,
+  ListLabelsInput,
   ListPaymentMethodsInput,
   ListUnitsOfMeasureInput,
   OrgBranchFilters,
@@ -97,6 +109,7 @@ export type {
   OrgBranding,
   PaymentMethodFilters,
   RemoveContactInput,
+  RemoveLabelInput,
   RotateConnectionCredentialInput,
   SetSettingInput,
   UpdateAddressInput,
@@ -105,6 +118,7 @@ export type {
   UpdateContactInput,
   UpdateEntityInput,
   UpdateFilterViewInput,
+  UpdateLabelInput,
   UpdateOrgBranchInput,
   UpdatePaymentMethodInput,
   UnitOfMeasureFilters,
@@ -113,6 +127,7 @@ export type {
 export {
   AddressFiltersSchema,
   AddressSchema,
+  ApplyLabelSchema,
   BranchCodeSchema,
   BranchFiltersSchema,
   BranchTypeSchema,
@@ -129,6 +144,7 @@ export {
   CreateContactSchema,
   CreateEntitySchema,
   CreateFilterViewSchema,
+  CreateLabelSchema,
   CreateOrgBranchSchema,
   CreatePaymentMethodSchema,
   CreateUnitOfMeasureSchema,
@@ -146,10 +162,13 @@ export {
   GetSettingSchema,
   IdSchema,
   IntegrationTypeSchema,
+  LabelFiltersSchema,
+  LabelNameSchema,
   ListAddressesSchema,
   ListConnectionsSchema,
   ListContactsSchema,
   ListEntitiesSchema,
+  ListLabelsSchema,
   ListPaymentMethodsSchema,
   ListUnitsOfMeasureSchema,
   MasterEntityTypeSchema,
@@ -163,6 +182,7 @@ export {
   PaymentMethodStatusSchema,
   PaymentMethodTypeSchema,
   RemoveContactSchema,
+  RemoveLabelSchema,
   RotateConnectionCredentialSchema,
   SetSettingSchema,
   UnitOfMeasureFiltersSchema,
@@ -172,6 +192,7 @@ export {
   UpdateContactSchema,
   UpdateEntitySchema,
   UpdateFilterViewSchema,
+  UpdateLabelSchema,
   UpdateOrgBranchSchema,
   UpdatePaymentMethodSchema,
   UpdateUnitOfMeasureSchema,

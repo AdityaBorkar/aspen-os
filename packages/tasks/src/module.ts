@@ -23,7 +23,7 @@ export class Tasks implements Module {
   }
 
   readonly $name = "tasks";
-  readonly $dependencies = [] as const;
+  readonly $dependencies = ["masters"] as const;
   readonly $config: TaskModuleConfig;
 
   constructor(config: TaskModuleConfig) {

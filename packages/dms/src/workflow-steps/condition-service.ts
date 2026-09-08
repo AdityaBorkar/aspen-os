@@ -87,7 +87,7 @@ function labelExistsSql(label: string, negated: boolean, joinLabel: boolean): SQ
     if (negated) {
       return sql`NOT EXISTS (
         SELECT 1 FROM dms_entity_label el
-        JOIN dms_label lbl ON lbl.id = el.label_id
+        JOIN master_label lbl ON lbl.id = el.label_id
         WHERE el.entity_id = ${dmsFile.id}
           AND el.entity_type = 'file'
           AND lbl.name = ${label}
@@ -95,7 +95,7 @@ function labelExistsSql(label: string, negated: boolean, joinLabel: boolean): SQ
     }
     return sql`EXISTS (
         SELECT 1 FROM dms_entity_label el
-        JOIN dms_label lbl ON lbl.id = el.label_id
+        JOIN master_label lbl ON lbl.id = el.label_id
         WHERE el.entity_id = ${dmsFile.id}
           AND el.entity_type = 'file'
           AND lbl.name = ${label}

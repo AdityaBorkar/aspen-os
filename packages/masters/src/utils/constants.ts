@@ -5,6 +5,7 @@ export const AUDIT_ENTITY_TYPE = {
   CONTACT: "masters:contact",
   ENTITY: "masters:entity",
   FILTER_VIEW: "masters:filter_view",
+  LABEL: "masters:label",
   ORG_BRANCH: "masters:org_branch",
   PAYMENT_METHOD: "masters:payment_method",
   SETTING: "masters:setting",

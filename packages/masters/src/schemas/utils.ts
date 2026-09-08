@@ -2,7 +2,7 @@ import { isValidCountryCode } from "@aspen-os/constants";
 import { JsonValueSchema, NameSchema as PlatformNameSchema } from "@aspen-os/platform/server";
 import { check, maxLength, minLength, pipe, record, regex, string, transform } from "valibot";
 
-export { EmailSchema, IdSchema, WithIdSchema } from "@aspen-os/platform/server";
+export { EmailSchema, HexColorSchema, IdSchema, WithIdSchema } from "@aspen-os/platform/server";
 
 export const NameSchema = PlatformNameSchema;
 

@@ -125,6 +125,23 @@ export {
   WithIdSchema,
 } from "#/schemas/utils";
 export type {
+  ApplyLabelInput,
+  CreateLabelInput,
+  LabelFilters,
+  ListLabelsInput,
+  RemoveLabelInput,
+  UpdateLabelInput,
+} from "#/schemas/label";
+export {
+  ApplyLabelSchema,
+  CreateLabelSchema,
+  LabelFiltersSchema,
+  LabelNameSchema,
+  ListLabelsSchema,
+  RemoveLabelSchema,
+  UpdateLabelSchema,
+} from "#/schemas/label";
+export type {
   BranchFilters,
   BranchTreeNode,
   CreateBranchInput,

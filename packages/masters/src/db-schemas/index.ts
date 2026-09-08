@@ -2,7 +2,9 @@ import { masterAddress } from "#/db-schemas/address";
 import { masterConnection } from "#/db-schemas/connection";
 import { masterContact } from "#/db-schemas/contact";
 import { masterEntity } from "#/db-schemas/entity";
+import { masterEntityLabel } from "#/db-schemas/entity-label";
 import { masterFilterView } from "#/db-schemas/filter-view";
+import { masterLabel } from "#/db-schemas/label";
 import { orgBranch } from "#/db-schemas/org-branch";
 import { masterPaymentMethod } from "#/db-schemas/payment-method";
 import { masterSetting } from "#/db-schemas/setting";
@@ -12,6 +14,7 @@ export { masterAddress } from "#/db-schemas/address";
 export { masterConnection } from "#/db-schemas/connection";
 export { masterContact } from "#/db-schemas/contact";
 export { masterEntity } from "#/db-schemas/entity";
+export { masterEntityLabel } from "#/db-schemas/entity-label";
 export { branch, branchTypeEnum, orgBranch, orgBranchTypeEnum } from "#/db-schemas/org-branch";
 export {
   masterCardBrandEnum,
@@ -29,6 +32,7 @@ export {
   masterUomCategoryEnum,
 } from "#/db-schemas/enums";
 export { masterFilterView } from "#/db-schemas/filter-view";
+export { masterLabel } from "#/db-schemas/label";
 export { masterPaymentMethod } from "#/db-schemas/payment-method";
 export { masterSetting } from "#/db-schemas/setting";
 export { masterUnitOfMeasure } from "#/db-schemas/unit-of-measure";
@@ -38,7 +42,9 @@ export const mastersTables = {
   masterConnection,
   masterContact,
   masterEntity,
+  masterEntityLabel,
   masterFilterView,
+  masterLabel,
   masterPaymentMethod,
   masterSetting,
   masterUnitOfMeasure,
