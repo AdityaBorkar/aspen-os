@@ -21,12 +21,12 @@ export const updateAddress = Workflow.name("masters.address.update")
 
     const updates = stripUndefined({
       city: input.patch.city,
-      country: input.patch.country,
+      country: input.patch.country?.toUpperCase(),
       label: input.patch.label,
       line1: input.patch.line1,
       line2: input.patch.line2,
       metadata: input.patch.metadata,
-      postalCode: input.patch.postalCode,
+      postal_code: input.patch.postalCode,
       state: input.patch.state,
     });
 

@@ -69,10 +69,17 @@ On create, `name` may be omitted when both `firstName` and `lastName` are given 
 
 Access: `p.masters.addresses`
 
-Address records scoped per `(entityType, entityId)`.
+Address records scoped per `(entityType, entityId)`. `AddressSchema` is the single canonical
+address shape — every other module must reference it instead of redefining address fields.
+Country codes are ISO 3166-1 alpha-2, normalized to uppercase at the schema boundary and stored uppercase.
 
 ```ts
+import { AddressSchema } from "@aspen-os/masters";
+
 await p.masters.addresses.create({ entityType: "organization", entityId, line1, city, state, postalCode, country, label });
+await p.masters.addresses.create({
+  input: { entityType: "branch", entityId: branch.id, line1, city, country },
+});
 await p.masters.addresses.get({ id });
 await p.masters.addresses.update({ id, patch });
 await p.masters.addresses.delete({ id });

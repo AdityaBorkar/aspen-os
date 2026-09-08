@@ -26,23 +26,13 @@ export const createBranch = Workflow.name("branch.create")
     const [result] = await ctx.db
       .insert(branch)
       .values({
-        address_line1: input.addressLine1,
-        address_line2: input.addressLine2 ?? null,
         capacity: input.capacity ?? null,
-        city: input.city,
         closed_date: input.closedDate ? toDateOnly(input.closedDate) : null,
         code: input.code.toUpperCase(),
-        country: input.country.toUpperCase(),
-        email: input.email ?? null,
-        manager: input.manager ?? null,
         metadata: input.metadata ?? null,
         name: input.name,
-        notes: input.notes ?? null,
         opened_date: input.openedDate ? toDateOnly(input.openedDate) : null,
         parent_branch: input.parentBranch ?? null,
-        phone: input.phone ?? null,
-        postal_code: input.postalCode ?? null,
-        state: input.state ?? null,
         timezone: input.timezone ?? null,
         type: input.type,
       })

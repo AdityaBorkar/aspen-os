@@ -55,6 +55,7 @@ export {
   UNIT_OF_MEASURE_EVENTS,
 } from "#/pubsub";
 export type {
+  Address,
   AddressFilters,
   ConnectionCredential,
   ConnectionFilters,
@@ -94,6 +95,7 @@ export type {
 } from "#/schemas";
 export {
   AddressFiltersSchema,
+  AddressSchema,
   CardBrandSchema,
   ConnectionCredentialSchema,
   ConnectionFiltersSchema,

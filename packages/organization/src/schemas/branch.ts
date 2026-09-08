@@ -1,27 +1,23 @@
 import { BranchTypeSchema } from "#/schemas/enums";
-import { BranchCodeSchema, CountryCodeSchema, NameSchema } from "#/schemas/utils";
+import { BranchCodeSchema, NameSchema } from "#/schemas/utils";
 
-import { date, minLength, nullable, number, object, optional, pipe, string } from "valibot";
+import { date, nullable, number, object, optional, string } from "valibot";
 import type { InferOutput } from "valibot";
 
+/**
+ * Branch identity only. Postal addresses live in `master_address`
+ * (`entityType: "branch"`, canonical `AddressSchema` in `@aspen-os/masters`),
+ * contacts in `master_contact` (`entityType: "branch"`), and free-text notes
+ * in `note` (branch scope). Do not re-add inline address/contact/note fields here.
+ */
 export const CreateBranchSchema = object({
-  addressLine1: pipe(string(), minLength(1, "Address is required")),
-  addressLine2: optional(nullable(string())),
   capacity: optional(nullable(number())),
-  city: pipe(string(), minLength(1, "City is required")),
   closedDate: optional(date()),
   code: BranchCodeSchema,
-  country: CountryCodeSchema,
-  email: optional(nullable(string())),
-  manager: optional(nullable(string())),
   metadata: optional(nullable(object({}))),
   name: NameSchema,
-  notes: optional(nullable(string())),
   openedDate: optional(date()),
   parentBranch: optional(nullable(string())),
-  phone: optional(nullable(string())),
-  postalCode: optional(nullable(string())),
-  state: optional(nullable(string())),
   timezone: optional(nullable(string())),
   type: BranchTypeSchema,
 });
@@ -29,23 +25,13 @@ export const CreateBranchSchema = object({
 export type CreateBranchInput = InferOutput<typeof CreateBranchSchema>;
 
 export const UpdateBranchSchema = object({
-  addressLine1: optional(string()),
-  addressLine2: optional(nullable(string())),
   capacity: optional(nullable(number())),
-  city: optional(string()),
   closedDate: optional(date()),
   code: optional(BranchCodeSchema),
-  country: optional(CountryCodeSchema),
-  email: optional(nullable(string())),
-  manager: optional(nullable(string())),
   metadata: optional(nullable(object({}))),
   name: optional(NameSchema),
-  notes: optional(nullable(string())),
   openedDate: optional(date()),
   parentBranch: optional(nullable(string())),
-  phone: optional(nullable(string())),
-  postalCode: optional(nullable(string())),
-  state: optional(nullable(string())),
   timezone: optional(nullable(string())),
   type: optional(BranchTypeSchema),
 });
@@ -53,7 +39,6 @@ export const UpdateBranchSchema = object({
 export type UpdateBranchInput = InferOutput<typeof UpdateBranchSchema>;
 
 export const BranchFiltersSchema = object({
-  country: optional(CountryCodeSchema),
   parentBranch: optional(string()),
   type: optional(BranchTypeSchema),
 });

@@ -53,18 +53,21 @@ Contact record (business relationship), optionally scoped to an owner or global.
 
 ### `master_address`
 
-Address record.
+Address record. `AddressSchema` is the single canonical address shape — branch, organization,
+and every future consumer reference this table (via `entityType`/`entityId`) instead of
+inline address columns or free-text address fields. Country codes are ISO 3166-1 alpha-2,
+uppercased at the schema boundary and stored uppercase.
 
-| Column        | Type  | Description        |
-| ------------- | ----- | ------------------ |
-| `label`       | text  | Address label      |
-| `line1`       | text  | Address line 1     |
-| `line2`       | text  | Address line 2     |
-| `city`        | text  | City               |
-| `state`       | text  | State/Province     |
-| `postal_code` | text  | Postal code        |
-| `country`     | text  | ISO 3166-1 alpha-2 |
-| `metadata`    | jsonb | Flexible metadata  |
+| Column        | Type  | Description                          |
+| ------------- | ----- | ------------------------------------ |
+| `label`       | text  | Address label                        |
+| `line1`       | text  | Address line 1 (required)            |
+| `line2`       | text  | Address line 2                       |
+| `city`        | text  | City                                 |
+| `state`       | text  | State/Province                       |
+| `postal_code` | text  | Postal code                          |
+| `country`     | text  | ISO 3166-1 alpha-2, stored uppercase |
+| `metadata`    | jsonb | Flexible metadata                    |
 
 ### `master_bank_account`
 

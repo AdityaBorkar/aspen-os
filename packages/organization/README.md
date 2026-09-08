@@ -106,7 +106,7 @@ platform.organization.branches.tree(): Promise<BranchTreeNode[]>
 - Max 5-level hierarchy depth (single ancestor walk).
 - Unknown parents rejected; no self-parent; no circular parent references.
 - Unique branch codes (case-insensitive, uppercased on insert).
-- Country codes validated against ISO 3166-1 alpha-2 at the schema boundary.
+- No inline address/contact/note columns — use `p.masters.addresses` / `p.masters.contacts` (`entityType: "branch"`) and `p.notes.notes` (branch scope); canonical address shape is `AddressSchema` in `@aspen-os/masters`.
 - `tree()` returns all branches; orphaned subtrees are promoted to roots instead of dropped.
 
 ## Validation Schemas
@@ -115,11 +115,14 @@ All input validation uses **Valibot**. Each entity has `Create*Schema`, `Update*
 
 Shared validators in `schemas/utils.ts`:
 
-| Validator           | Rules                                                          |
-| ------------------- | -------------------------------------------------------------- |
-| `NameSchema`        | String, 1-255 chars                                            |
-| `BranchCodeSchema`  | String, 2-20 chars, alphanumeric + hyphens (stored uppercase)  |
-| `CountryCodeSchema` | String, ISO 3166-1 alpha-2 membership via `isValidCountryCode` |
+| Validator          | Rules                                                         |
+| ------------------ | ------------------------------------------------------------- |
+| `NameSchema`       | String, 1-255 chars                                           |
+| `BranchCodeSchema` | String, 2-20 chars, alphanumeric + hyphens (stored uppercase) |
+
+Branch addresses, contacts, and notes are not validated here — use the canonical `AddressSchema`
+in `@aspen-os/masters` (`p.masters.addresses` with `entityType: "branch"`), `master_contact`
+(`entityType: "branch"`), and `note` (branch scope).
 
 Schemas are co-exported with their inferred types:
 
@@ -163,7 +166,7 @@ packages/organization/
     schemas/
       index.ts            # Barrel re-exports
       enums.ts            # Valibot enum schema (branch type)
-      utils.ts            # Shared validators (name, code, country)
+      utils.ts            # Shared validators (name, code)
       branch.ts           # Create/Update/Filters schemas
     workflows/
       branch/             # Branch workflows (hierarchy enforcement, tree)

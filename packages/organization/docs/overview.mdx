@@ -20,7 +20,7 @@ MODULE (stateless — $initialize / $prepareRuntime / $cleanup are no-ops)
 
 ## Hierarchical Branches
 
-Branches form a tree via nullable `parentBranch` (a plain text id — no database FK). The single ancestor walk in `validateParentBranch` verifies the parent exists, rejects circular references, and enforces max 5 levels. Codes are uppercased on write and unique case-insensitively; country codes are validated against ISO 3166-1 alpha-2 at the schema boundary. `tree` returns all branches and promotes orphans to roots instead of dropping subtrees.
+Branches form a tree via nullable `parentBranch` (a plain text id — no database FK). The single ancestor walk in `validateParentBranch` verifies the parent exists, rejects circular references, and enforces max 5 levels. Codes are uppercased on write and unique case-insensitively. Branch rows carry identity only — postal addresses live in `master_address` (`entityType: "branch"`), contacts in `master_contact` (`entityType: "branch"`), and free-text notes in `note` (branch scope); the canonical address shape is `AddressSchema` in `@aspen-os/masters`. `tree` returns all branches and promotes orphans to roots instead of dropping subtrees.
 
 ## Stateless Workflows
 
@@ -61,12 +61,12 @@ packages/organization/src/
   schemas/              # Valibot validation schemas
     branch.ts           # CreateBranchSchema, UpdateBranchSchema, BranchFiltersSchema
     enums.ts            # BranchTypeSchema
-    utils.ts            # BranchCode, CountryCode schemas
+    utils.ts            # BranchCodeSchema
   workflows/
     branch/             # create, get, list, tree, update
     utils.ts            # Code uniqueness, HQ guard, parent validation, buildTree
   workflow-steps/       # fetch-branch
-  utils/                # toDateOnly (Date → YYYY-MM-DD)
+  utils/                # toDateOnly (Date → YYYY-MM-DD), strip-undefined
 ```
 
 ## Package

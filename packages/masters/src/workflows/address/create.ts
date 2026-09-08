@@ -17,7 +17,7 @@ export const createAddress = Workflow.name("masters.address.create")
       .insert(masterAddress)
       .values({
         city: parsed.city ?? null,
-        country: parsed.country,
+        country: parsed.country.toUpperCase(),
         entity_id: parsed.entityId,
         entity_type: parsed.entityType,
         label: parsed.label ?? null,

@@ -1,7 +1,7 @@
 import { branch } from "#/db-schemas";
 import type { BranchTreeNode } from "#/types";
 
-import type { JsonValue, WorkflowContext } from "@aspen-os/platform/server";
+import type { WorkflowContext } from "@aspen-os/platform/server";
 import { and, eq, ne } from "drizzle-orm";
 
 type Db = WorkflowContext["db"];
@@ -91,19 +91,6 @@ export async function validateParentBranch(
       `Cannot add a child to this branch. Maximum hierarchy depth of ${MAX_HIERARCHY_DEPTH} levels would be exceeded.`,
     );
   }
-}
-
-/** Defined-only entries of a values object (undefined means "column untouched"). */
-export function collectChanges<TValue extends Record<string, JsonValue>>(
-  obj: TValue,
-): Partial<TValue> {
-  const result = { ...obj };
-  for (const [key, value] of Object.entries(result)) {
-    if (value === undefined) {
-      delete result[key];
-    }
-  }
-  return result;
 }
 
 export function buildTree(

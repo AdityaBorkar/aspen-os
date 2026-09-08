@@ -1,4 +1,5 @@
 export type {
+  Address,
   AddressFilters,
   CreateAddressInput,
   ListAddressesInput,
@@ -6,6 +7,7 @@ export type {
 } from "#/schemas/address";
 export {
   AddressFiltersSchema,
+  AddressSchema,
   CreateAddressSchema,
   ListAddressesSchema,
   UpdateAddressSchema,

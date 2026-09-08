@@ -2,9 +2,9 @@ import { branch } from "#/db-schemas";
 import { BRANCH_EVENTS } from "#/pubsub";
 import { UpdateBranchSchema } from "#/types";
 import { toDateOnly } from "#/utils/dates";
+import { stripUndefined } from "#/utils/strip-undefined";
 import { fetchBranchStep } from "#/workflow-steps/fetch-branch";
 import {
-  collectChanges,
   ensureCodeUnique,
   ensureNoHeadquartersExists,
   validateParentBranch,
@@ -36,27 +36,19 @@ export const updateBranch = Workflow.name("branch.update")
       await validateParentBranch(ctx.db, input.patch.parentBranch, input.id);
     }
 
-    const values = {
-      addressLine1: input.patch.addressLine1,
-      addressLine2: input.patch.addressLine2,
+    const values = stripUndefined({
       capacity: input.patch.capacity,
-      city: input.patch.city,
-      closedDate: input.patch.closedDate ? toDateOnly(input.patch.closedDate) : undefined,
+      closed_date:
+        input.patch.closedDate === undefined ? undefined : toDateOnly(input.patch.closedDate),
       code: input.patch.code?.toUpperCase(),
-      country: input.patch.country?.toUpperCase(),
-      email: input.patch.email,
-      manager: input.patch.manager,
       metadata: input.patch.metadata,
       name: input.patch.name,
-      notes: input.patch.notes,
-      openedDate: input.patch.openedDate ? toDateOnly(input.patch.openedDate) : undefined,
-      parentBranch: input.patch.parentBranch,
-      phone: input.patch.phone,
-      postalCode: input.patch.postalCode,
-      state: input.patch.state,
+      opened_date:
+        input.patch.openedDate === undefined ? undefined : toDateOnly(input.patch.openedDate),
+      parent_branch: input.patch.parentBranch,
       timezone: input.patch.timezone,
       type: input.patch.type,
-    };
+    });
 
     const [updated] = await ctx.db
       .update(branch)
@@ -70,7 +62,7 @@ export const updateBranch = Workflow.name("branch.update")
 
     await ctx.pubsub.publish(BRANCH_EVENTS.UPDATED, {
       branch: { id: updated.id, name: updated.name },
-      changes: collectChanges(values),
+      changes: values,
     });
 
     return updated;

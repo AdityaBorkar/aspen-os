@@ -17,31 +17,25 @@ The Organization module defines 1 table and 1 enum using Drizzle ORM. The table 
 ### `branch`
 
 Hierarchical branch structure with a self-referential parent id (no database FK — enforced in the workflow).
+Branch identity only — postal addresses live in `master_address` (`entityType: "branch"`),
+contacts (email, phone, manager) in `master_contact` (`entityType: "branch"`),
+and free-text notes in `note` (`scopeType: "branch"` or `masters:branch` per the notes scope registry).
+The canonical address shape is `AddressSchema` in `@aspen-os/masters` — do not redefine address fields here.
 
-| Column          | Type          | Description                         |
-| --------------- | ------------- | ----------------------------------- |
-| `id`            | text (PK)     | UUIDv7                              |
-| `name`          | text          | Branch name                         |
-| `code`          | text (unique) | Branch code, uppercased on write    |
-| `type`          | branch_type   | Branch type                         |
-| `parent_branch` | text          | Parent branch id (nullable, no FK)  |
-| `address_line1` | text          | Address line 1                      |
-| `address_line2` | text          | Address line 2                      |
-| `city`          | text          | City                                |
-| `state`         | text          | State/Province                      |
-| `postal_code`   | text          | Postal code                         |
-| `country`       | text          | ISO 3166-1 alpha-2 code, uppercased |
-| `email`         | text          | Contact email                       |
-| `phone`         | text          | Contact phone                       |
-| `manager`       | text          | Branch manager                      |
-| `timezone`      | text          | Timezone                            |
-| `opened_date`   | date          | Opened date                         |
-| `closed_date`   | date          | Closed date                         |
-| `capacity`      | integer       | Capacity                            |
-| `notes`         | text          | Free-text notes                     |
-| `metadata`      | jsonb         | Flexible metadata                   |
-| `created_at`    | timestamptz   | Creation timestamp                  |
-| `updated_at`    | timestamptz   | Last update timestamp               |
+| Column          | Type          | Description                        |
+| --------------- | ------------- | ---------------------------------- |
+| `id`            | text (PK)     | UUIDv7                             |
+| `name`          | text          | Branch name                        |
+| `code`          | text (unique) | Branch code, uppercased on write   |
+| `type`          | branch_type   | Branch type                        |
+| `parent_branch` | text          | Parent branch id (nullable, no FK) |
+| `timezone`      | text          | Timezone                           |
+| `opened_date`   | date          | Opened date                        |
+| `closed_date`   | date          | Closed date                        |
+| `capacity`      | integer       | Capacity                           |
+| `metadata`      | jsonb         | Flexible metadata                  |
+| `created_at`    | timestamptz   | Creation timestamp                 |
+| `updated_at`    | timestamptz   | Last update timestamp              |
 
 ## Relationships
 
