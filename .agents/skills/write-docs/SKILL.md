@@ -5,22 +5,23 @@ description: Write lean MDX documentation — Use when the user asks to write or
 
 A lean doc earns every line. **Lean** means maximum knowledge transfer per word — no sentence that restates what the adjacent code block shows, no paragraph the reader could skip and lose nothing. The source code is the truth; the doc is the map.
 
-Documentation follows [Diátaxis](https://diataxis.fr) — four doc types, each with a distinct purpose and structure. Classify first; the type determines the structure.
+Documentation follows [Diátaxis](https://diataxis.fr) — doc types with distinct purposes and structures. Classify first; the type determines the structure.
 
 ## Step 1 — Classify and extract
 
 Read the source code, not existing docs. Determine the doc type:
 
-| Type          | When                                                 | Structure                                  |
-| ------------- | ---------------------------------------------------- | ------------------------------------------ |
-| **Reference** | Documenting an API surface (unit, workflow, service) | [`DOC-TYPES.md`](DOC-TYPES.md) § Reference |
-| **Guide**     | Step-by-step how-to                                  | [`DOC-TYPES.md`](DOC-TYPES.md) § Guide     |
-| **Overview**  | Architecture, concepts, relationships                | [`DOC-TYPES.md`](DOC-TYPES.md) § Overview  |
-| **Schema**    | Tables, events, enums                                | [`DOC-TYPES.md`](DOC-TYPES.md) § Schema    |
+| Type               | When                                         | Structure                                       |
+| ------------------ | -------------------------------------------- | ----------------------------------------------- |
+| **Reference**      | Domain workflows and operations for a module | [`DOC-TYPES.md`](DOC-TYPES.md) § Reference      |
+| **Workflow Steps** | Reusable steps composed via `ctx.step.run()` | [`DOC-TYPES.md`](DOC-TYPES.md) § Workflow Steps |
+| **Guide**          | Step-by-step how-to                          | [`DOC-TYPES.md`](DOC-TYPES.md) § Guide          |
+| **Overview**       | Architecture, concepts, config, dependencies | [`DOC-TYPES.md`](DOC-TYPES.md) § Overview       |
+| **Schema**         | Tables, events, enums                        | [`DOC-TYPES.md`](DOC-TYPES.md) § Schema         |
 
 Open the type's section in [`DOC-TYPES.md`](DOC-TYPES.md) and follow its structure.
 
-**Completion**: doc type chosen, and every public method, type, table, event, and enum in the source accounted for in your extraction.
+**Completion**: doc type chosen; every public method, type, table, event, enum, and step in the source accounted for in your extraction; every name, count, and column you claim verified against source — never copied from existing docs (stale docs are sediment, not truth).
 
 ## Step 2 — Write the MDX
 
@@ -64,7 +65,7 @@ display: Custom Label # optional, overrides sidebar label
 ### Code blocks
 
 - Annotate with `title="path"` when showing a real file.
-- Use `text` language for diagrams and flows.
+- Use `mermaid` for diagrams and relationships; `text` only for non-graph flows.
 - Use `ts`/`json`/`yaml` for real code.
 - Inline comments only when the code is non-obvious.
 
@@ -85,6 +86,12 @@ Run the lean test on every sentence: _does this transfer knowledge the reader co
 - A sentence before a code block that restates what the code does.
 - A sentence after a code block that explains what the code showed.
 - An adjective that doesn't change behaviour ("powerful", "flexible", "robust").
-- A section that duplicates content from another page.
+- A section that duplicates content from another page. Banned duplications — each lives in exactly one place:
+  - Method lists: Features (Reference) owns them; never repeat as a second "Public API" block.
+  - Events/Schema summaries on the Reference page — link to the events/schema pages instead.
+  - `Configuration` / `Dependencies` on the Reference page — they live on the Overview page.
+  - Enum "used in" columns — the enum name already encodes this; list Values only.
+  - Counts in prose ("9 tables") — they rot; state scope without brittle numbers, or derive them from your extraction.
+  - Event-constant dumps, event-map type dumps, generic publish/subscribe usage — the Event Map tables are the contract.
 
-**Completion**: no sentence fails the lean test; no content duplicated across pages.
+**Completion**: no sentence fails the lean test; every fact has a single source of truth — no content duplicated across pages.

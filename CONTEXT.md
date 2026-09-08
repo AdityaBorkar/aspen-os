@@ -193,19 +193,15 @@ _Avoid_: Audit Trail, Change Log, Audit Service
 
 ### Organization Domain
 
-**Organization**:
-Business entity w/ `name`, `slug` (unique), `status` (active/suspended/archived), contact info, branding (logo, accent color), locale settings. Root entity of organization context.
-_Avoid_: Company, Tenant
-
 **Branch**:
-Physical or logical location belonging to an Organization. Has `name`, `code` (unique), `type` (headquarters/office/warehouse/store/factory/remote/other), supports hierarchical nesting up to 5 levels deep. Exactly one headquarters branch per organization.
+Physical or logical location w/ `name`, `code` (unique), `type` (headquarters/office/warehouse/store/factory/remote/other), hierarchical nesting up to 5 levels deep. Exactly one headquarters branch per organization (enforced in workflow). Only table in module (`branch`, tenant schema).
 _Avoid_: Location, Site, Office
 
 **Organization Workflow**:
-Domain operation within Organization module, built on platform `Workflow` builder. Two workflows: `OrganizationWorkflow`, `BranchWorkflow`. Exposed as readonly properties on module instance: `p.organization.organizations`, `p.organization.branches`.
-_Avoid_: Service, Handler
+Domain operation within Organization module, built on platform `Workflow` builder. One group exposed on module instance: `p.organization.branches` (`create`, `get`, `list`, `tree`, `update`).
 
-> Former Connection, Connection Contact, Connection Note, Address, + Bank Account entities now live in **Masters** module as polymorphic master data (see "Masters Domain" below).
+> Organization profile (name, branding, logo) lives in **Masters** settings (`org.*` keys); contacts, addresses, bank accounts, connections live in **Masters** as polymorphic master data (see "Masters Domain" below).
+> _Avoid_: Service, Handler
 
 ### Masters Domain
 
@@ -359,6 +355,40 @@ _Avoid_: Alert, Notification, "Reminder Engine" (compliance's document-expiry sc
 **Task Bridge**:
 Calendar-side service (`services/task-bridge.ts`) that subscribes to `task:due_date_changed`/`task:deleted`/`task:status_changed` + materializes/cancels task due-date reminders — three `due_date` rows per recipient (due − 1d, due − 1h, due; `userIds` = assignees ∪ reporter), deletion on task delete, suppression on completion/cancellation. Event-driven, so both modules stay `$dependencies = []`.
 _Avoid_: Event Listener (compliance's EventBridge = general pattern; Task Bridge = calendar-specific consumer)
+
+### Comms Domain
+
+**Channel**:
+Named sender endpoint (`from`: email address, WhatsApp number, SMS sender ID) plus credentials to send from it. `tenant` (BYOC — credentials in tenant kvStore via `credentialRef`) or `host` (references a `comms_provider`; carries no credential material).
+_Avoid_: Sender, Integration
+
+**Provider**:
+Host's delivery capability registry (control-plane `comms_provider` table). Host credentials live in host kvStore, never in tenant rows.
+_Avoid_: Vendor, Gateway
+
+**Notification**:
+Persisted intent + in-app inbox row. The row **is** the inbox — in-app delivery is zero extra work. Has `type`/`title`/`body`, `severity`, `recipientType`/`recipientId`, `to` snapshot, `channelTypes[]`, `status` (unread/read/dismissed), `sourceModule`/`sourceEntity`.
+_Avoid_: Alert, Inbox Item
+
+**Message**:
+Delivery outbox row (`comms_message`) — one per outbound send. Status lifecycle `queued → sending → sent → delivered/failed`, w/ attempts/retries + provider receipts. Swept by `comms:message-sweeper` cron (`* * * * *`), which dispatches per-message in tenant context. Never a `comms:deliver` topic.
+_Avoid_: Event, Payload
+
+**Recipient**:
+The `to`: an internal user (resolved via Auth unit) or an external contact (address carried in producer payload). Separate from Channel (the `from`) by design — comms reads no other module's tables.
+_Avoid_: Target, Destination
+
+**Default Channel**:
+At most one `isDefault` per `(type, entityType, entityId)`. Host defaults materialize lazily; a default must be `active` and verified.
+_Avoid_: Fallback Channel
+
+**Preference**:
+Per-user routing + consent row: `(userId, type, channelType)` opt-outs plus the `(userId, null, channelType)` default row. `inapp` is a routing-only pseudo channel type — never a real channel.
+_Avoid_: Setting (that is workspace/host config), Subscription
+
+**Comms Workflow**:
+Domain operation within Comms module, built on platform `Workflow` builder. Seven groups exposed on module instance: `p.comms.channels`, `p.comms.providers`, `p.comms.notifications` (getter-bound to `db`/`kvStore` via `createNotify`), `p.comms.preferences`, `p.comms.templates`, `p.comms.settings`, `p.comms.messages`. Runtime-wired (`{ db, kvStore, pubsub, auth}`): `$prepareRuntime()` registers the message sweeper + 8 event-bridge subscriptions; `$cleanup()` unregisters both.
+_Avoid_: Service, Handler
 
 ### HR Domain
 
@@ -636,10 +666,10 @@ _Avoid_: Onboarding (that's the Tenant Status stage AFTER provisioning), Setup, 
 │Organizat.│ │   Compliance     │ │    Tasks     │ │     DMS      │ │     HR       │ │    Notes     │ │ Management Plane │ │   Masters   │ │  Calendar   │ │  Workspace   │
 │  Module  │ │    Module        │ │   Module     │ │   Module     │ │   Module     │ │    Module    │ │     Module       │ │   Module    │ │   Module    │ │   Module     │
 │          │ │                  │ │              │ │              │ │ (conformant) │ │  (stateless) │ │                  │ │             │ │             │ │              │
-│2 workflows│ │ 5 wf groups     │ │ 10 wf groups │ │ 18 wf groups │ │ ~307 methods│ │ 1 wf group   │ │ 3 wf groups     │ │ 7 wf groups │ │ 4 wf groups │ │ 10 wf groups │
-│2 tables  │ │ 3 services       │ │ 16 tables    │ │ 14 tables    │ │ 54 tables    │ │ 1 table      │ │ 3 owned tables   │ │ 7 tables    │ │ 4 tables    │ │ 10 tables    │
-│10 events │ │ 3 tables         │ │ 11 events    │ │ 33 events    │ │ 58 events    │ │ 3 events     │ │ 0 shadow tables  │ │ 29 events   │ │ 14 events   │ │ 32 events    │
-│deps: none│ │ 23 events        │ │ units:       │ │ 11 ACL res.  │ │ 3 crons      │ │ 1 ACL res.   │ │ 16 events        │ │ 7 ACL res.  │ │ 4 ACL res.  │ │ 11 ACL res.  │
+│1 wf group │ │ 5 wf groups     │ │ 9 wf groups  │ │ 16 wf groups │ │ ~307 methods│ │ 1 wf group   │ │ 3 wf groups     │ │ 8 wf groups │ │ 4 wf groups │ │ 8 wf groups  │
+│1 table    │ │ 3 services       │ │ 15 tables    │ │ 12 tables    │ │ 54 tables    │ │ 1 table      │ │ 3 owned tables   │ │ 8 tables    │ │ 4 tables    │ │ 8 tables     │
+│2 events   │ │ 3 tables         │ │ 11 events    │ │ 27 events    │ │ 58 events    │ │ 3 events     │ │ 0 shadow tables  │ │ 27 events   │ │ 14 events   │ │ 28 events    │
+│deps: none│ │ 23 events        │ │ units:       │ │ 9 ACL res.   │ │ 3 crons      │ │ 1 ACL res.   │ │ 17 events        │ │ 8 ACL res.  │ │ 4 ACL res.  │ │ 9 ACL res.   │
 │none      │ │ units:           │ │ db, pubsub  │ │ units:       │ │ units:       │ │ units:       │ │ deps: organization│ │ units:      │ │ units:      │ │ units:       │
 │units:    │ │ db, kvStore,     │ │              │ │ db, pubsub,  │ │ db, pubsub  │ │ none         │ │ units:           │ │ db, kvStore│ │ db, pubsub │ │ db, pubsub   │
 │none      │ │ pubsub           │ │              │ │ storage      │ │              │ │              │ │ db, auth, pubsub │ │ (conns)    │ │             │ │              │
@@ -658,8 +688,8 @@ Implemented: DMS module — unified document/files management on a single `file`
   delete + legal holds + expiry scanner, Activity Feed via AuditUnit; folders,
   labels (`dms_label` + `dms_entity_label`), file views. Reuses StorageUnit
   (unified `dms/{tenant}/{fileId}/v{n}/{name}` keys), AuthUnit, PubSub
-  (expiry-scan + auto-purge crons), AuditUnit. 14 `dms_*` tables, all tenant
-  schemas. No module deps. 18 workflow groups, 33 events.
+  (expiry-scan + auto-purge crons), AuditUnit. 12 `dms_*` tables, all tenant
+  schemas. No module deps. 16 workflow groups, 27 events.
 
 Implemented: Workspace module — dependency-free personal-workspace surface:
   drafts (draft → submitted → approved → published, optional approval, reject →
@@ -671,10 +701,23 @@ Implemented: Workspace module — dependency-free personal-workspace surface:
   schedules (per-schedule pg-boss crons → `workspace:schedule_due`, host
   delivers), user-scoped utilities (pins, recent, quick search, settings,
   watches). Access = first-class user-set enum — `personal` (owner-only) /
-  `global` (org-wide). 10 `workspace_*` tables, all tenant schemas, 4 pgEnums,
-  32 events, 11 ACL resources. No module deps. Units: db, pubsub.
+  `global` (org-wide). 8 `workspace_*` tables, all tenant schemas, 4 pgEnums,
+  28 events, 9 ACL resources. No module deps. Units: db, pubsub.
 
-Stubs (package.json only — no source): accounting, crm, fleet, inventory, reports, pharmacy
+Implemented: Comms module — notification/inbox + out-of-band delivery on a
+  three-layer model: channel (sender `from` endpoint, tenant BYOC or host
+  provider ref, credentials only in kvStore), notification (persisted intent
+  + in-app inbox row), message (delivery outbox, `queued → sending → sent →
+  delivered/failed`, swept by `comms:message-sweeper` cron). Runtime-wired
+  (`db, kvStore, pubsub, auth`); `$prepareRuntime()` registers sweeper + 8
+  event-bridge subscriptions (`compliance:document_expiring`/`document_due`,
+  `calendar:reminder_due`, `dms:file_expired`, `announcement:published`,
+  `management:tenant_provisioned`/`tenant_activated`,
+  `auth:email_otp_requested` — OTP never persisted, delivered inline via
+  `rest.otp`). 1 control-plane table (`comms_provider`) + 6 tenant tables,
+  21 events, 7 ACL resources. No module deps.
+
+Stubs (package.json only — no source): crm, fleet, inventory, reports
 ```
 
 ## Known Gaps
@@ -688,17 +731,17 @@ Stubs (package.json only — no source): accounting, crm, fleet, inventory, repo
 7. **Management module `$name` = `"management"`** — matches `@aspen-os/management` package name (renamed from `management-plane`). Proxy accessor = `p.management`.
 8. **`context.actorId` typed but never populated by framework** — `AsyncLocalStorage` context declares `actorId?: string` but platform never sets it from authenticated session. Audit entries fall back to `"system"` until app code or middleware populates it.
 9. **ADR-0009 accepted for Layer 1** — `AuditUnit` + `audit_log` table described in ADR-0009's Layer 1 built + shipped; ADR status now "Accepted (Layer 1)". Layer 2 (trigger-based blind-write capture, ADR-0010) remains proposed/unimplemented.
-10. **`audit_log.id` now conforms** — previously `uuid()` + `$defaultFn(() => uuidv7())` (the sole native uuid column); now uses `uuidv7("id").primaryKey()` (text), matching every other table.
+10. **`audit_log.id` now conforms** — previously `uuid()` + `$defaultFn(() => uuidv7())` (the sole native uuid column); now uses `uuidv7().primaryKey()` (text), matching every other table.
 11. **HR module fully conformant** — `Hr implements Module`, has `$prepareRuntime()`, follows one-file-per-action workflow layout. (Earlier docs marked HR "partial/not conformant"; no longer the case.)
 12. **Masters extraction (`.working-docs/sow/masters.md`) complete** — `@aspen-os/masters` owns contacts, addresses, bank accounts, integration connections, + notes as polymorphic tenant master data; organization module holds only `organization` + `branch`, depends on `masters`. `connection` redesigned from business-relationship model to integration connections (credentials in platform `kvStore`, referenced by `credentialRef`). Host deployments must run §9 migration: `DROP TABLE` `address`, `bank_account`, `connection`, `connection_contact`, `connection_note` (after mapping data to masters) + remove old `organization:connection_created` compliance subscription.
-13. **Masters Phase 2 (`.working-docs/sow/masters-phase-2.md`) complete** — `@aspen-os/masters` also owns `master_entity`, `master_unit_of_measure`, `master_payment_method` (8 tables, 8 workflow groups, 31 events, 8 ACL resources at Phase 2 completion). `entity` = `master_entity_type` owner value; `unitOfMeasure` tenant-wide reference data (one base unit per category); `paymentMethod` owner-scoped w/ masked-only card data + primary per `(entityType, entityId, direction)`. All Phase 2 additions additive — Phase 1 surface unchanged. (After notes module removed `master_note`, masters back to 7 tables / 7 groups / 29 events / 7 ACL resources — see gap 15.)
-14. **Workspace module (`.working-docs/sow/workspace.md`) implemented** — `@aspen-os/workspace` provides drafts, filter views, dashboards, widgets, schedules, utilities (10 tenant tables, 4 pgEnums, 32 events, 11 ACL resources). Host apps must register view resolvers (`registerViewResolver`) for every domain they serve + subscribe to `workspace:schedule_due` / `workspace:draft_published` — both silently dropped by pg-boss when unsubscribed (health check flags them). `context.actorId` (gap 8) feeds module's access scoping: `create` falls back to explicit `ownerId`/`userId` input when context actor unset.
-15. **Notes module (`.working-docs/sow/notes.md`) implemented** — `@aspen-os/notes` owns first-class `note` entity (`personal`/`global` access, optional `(scopeType, scopeId)` scope, `NOTE_TYPE`, tags; 1 tenant table, 3 events, 1 ACL resource). Note concept removed from `@aspen-os/masters` (`master_note`, `p.masters.notes`, `masters:note_added`/`note_removed`, `note` ACL resource, note schemas) — masters back to 7 tables / 7 groups / 29 events / 7 ACL resources. Host deployments must migrate `master_note` rows to `note` (map `entityType → scopeType = masters:<entityType>`, `entityId → scopeId`, `content → body`, `userId → ownerId`) + `DROP TABLE master_note` afterward; `pushSchema` never drops it.
+13. **Masters Phase 2 (`.working-docs/sow/masters-phase-2.md`) complete** — `@aspen-os/masters` also owns `master_entity`, `master_unit_of_measure`, `master_payment_method` (8 tables, 8 workflow groups, 31 events, 8 ACL resources at Phase 2 completion). `entity` = `master_entity_type` owner value; `unitOfMeasure` tenant-wide reference data (one base unit per category); `paymentMethod` owner-scoped w/ masked-only card data + primary per `(entityType, entityId, direction)`. All Phase 2 additions additive — Phase 1 surface unchanged. (After notes module removed `master_note` + `filterViews`/`settings` were added, masters now at 8 tables / 8 groups / 27 events / 8 ACL resources — see gap 15.)
+14. **Workspace module (`.working-docs/sow/workspace.md`) implemented** — `@aspen-os/workspace` provides drafts, filter views, dashboards, widgets, schedules, utilities (8 tenant tables, 4 pgEnums, 28 events, 9 ACL resources). Host apps must register view resolvers (`registerViewResolver`) for every domain they serve + subscribe to `workspace:schedule_due` / `workspace:draft_published` — both silently dropped by pg-boss when unsubscribed (health check flags them). `context.actorId` (gap 8) feeds module's access scoping: `create` falls back to explicit `ownerId`/`userId` input when context actor unset.
+15. **Notes module (`.working-docs/sow/notes.md`) implemented** — `@aspen-os/notes` owns first-class `note` entity (`personal`/`global` access, optional `(scopeType, scopeId)` scope, `NOTE_TYPE`, tags; 1 tenant table, 3 events, 1 ACL resource). Note concept removed from `@aspen-os/masters` (`master_note`, `p.masters.notes`, `masters:note_added`/`note_removed`, `note` ACL resource, note schemas) — masters now at 8 tables / 8 groups / 27 events / 8 ACL resources (`filterViews` + `settings` added after the removal). Host deployments must migrate `master_note` rows to `note` (map `entityType → scopeType = masters:<entityType>`, `entityId → scopeId`, `content → body`, `userId → ownerId`) + `DROP TABLE master_note` afterward; `pushSchema` never drops it.
 
 ## Anti-Patterns
 
 - Don't register modules after `create()` — pass them to `Platform.create()` as second arg (an array)
-- Don't use native UUID columns — always `id: uuidv7("id").primaryKey()` (SQL `text`; the `uuidv7` type generates the UUIDv7 default at insert time in JS)
+- Don't use native UUID columns — always `id: uuidv7().primaryKey()` (SQL `text`; the `uuidv7` type generates the UUIDv7 default at insert time in JS)
 - Don't use `timestamp without time zone` — always `withTimezone: true`
 - Don't create barrel files unless explicitly told
 - Don't import bare `@aspen-os/platform` — use `/server` or `/client` subpath explicitly

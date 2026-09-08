@@ -1,0 +1,51 @@
+---
+title: Workflow Steps
+description: Reusable workflow steps composed by the Masters module workflows.
+icon: IconBlocks
+---
+
+Reusable units composed via `ctx.step.run()`. Fetch steps load a row by `id`; invariant steps enforce UOM rules; access helpers guard filter views.
+
+## Fetch Steps
+
+All built on the `defineFetchByIdStep` factory (`workflow-steps/fetch-by-id.ts`). Input `{ id }`; throws `<Label> with id "<id>" not found` when missing.
+
+| Step                     | Name                            | Used by                                                                               |
+| ------------------------ | ------------------------------- | ------------------------------------------------------------------------------------- |
+| `fetchAddressStep`       | `masters-fetch-address`         | addresses `get` / `update` / `delete`                                                 |
+| `fetchContactStep`       | `masters-fetch-contact`         | contacts `get` / `update` / `remove` / `delete`                                       |
+| `fetchConnectionStep`    | `masters-fetch-connection`      | connections `get` / `update` / `delete` / `check` / `rotateCredential`                |
+| `fetchEntityStep`        | `masters-fetch-entity`          | entities `get` / `update` / `delete`                                                  |
+| `fetchPaymentMethodStep` | `masters-fetch-payment-method`  | paymentMethods `get` / `update` / `delete` / `activate` / `deactivate` / `setPrimary` |
+| `fetchFilterViewStep`    | `masters-fetch-filter-view`     | filterViews `get` / `update` / `delete` / `duplicate` / `setDefault`                  |
+| `fetchUnitOfMeasureStep` | `masters-fetch-unit-of-measure` | unitsOfMeasure `get` / `update` / `delete`                                            |
+
+```ts title="src/workflow-steps/fetch-contact.ts"
+export const fetchContactStep = defineFetchByIdStep<MasterContact>({
+  idColumn: masterContact.id,
+  label: "Contact",
+  stepName: "masters-fetch-contact",
+  table: masterContact,
+});
+```
+
+## Invariant Steps
+
+| Step                                                                     | Input                                                                                                                                                                                                        | Used by                            |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- |
+| `assertBaseUnitInvariantStep` (`masters-assert-uom-base-unit-invariant`) | `{ category, isBaseUnit, baseUnitId, conversionFactor, excludeId? }` — base units take no reference/factor and must be unique per category; derived units must reference their category's base with a factor | unitsOfMeasure `create` / `update` |
+| `assertNoReferencingUnitsStep` (`masters-assert-uom-no-references`)      | `{ id }` — throws when another unit references it as `base_unit_id`                                                                                                                                          | unitsOfMeasure `delete`            |
+
+## Filter View Access
+
+Plain functions (`workflow-steps/filter-view-access.ts`), not steps. `assertCanMutate` is async (tenant-admin lookup).
+
+| Helper            | Rule                                    |
+| ----------------- | --------------------------------------- |
+| `requireActorId`  | Throws when no actor                    |
+| `assertCanAccess` | `global` OR owner                       |
+| `assertCanMutate` | Owner or tenant admin                   |
+| `resolveActorId`  | Explicit `ownerId` override, else actor |
+| `isTenantAdmin`   | `user.role = admin` check               |
+
+Used by filterViews `create` (owner resolution), `get` / `duplicate` (read check), `update` / `delete` / `setDefault` (mutate check).
