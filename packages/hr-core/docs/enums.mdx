@@ -1,81 +1,27 @@
 ---
 title: Enums
-description: Valibot enum schemas defined in the HR module, grouped by domain.
+description: Enums for the hr-core module.
 icon: IconNumber123
 ---
 
-The HR module defines 29 Valibot enum schemas in `src/schemas/enums.ts`.
+Enums are `pgEnum` values defined in `src/db-schemas/enums.ts`.
 
-## Announcement
-
-| Enum                         | Values                                        |
-| ---------------------------- | --------------------------------------------- |
-| `AnnouncementStatusSchema`   | `archived`, `draft`, `published`, `scheduled` |
-| `AnnouncementChannelSchema`  | `custom`, `general`, `hr`                     |
-| `AnnouncementPrioritySchema` | `important`, `normal`, `urgent`               |
-
-## Employee
-
-| Enum                     | Values                                                                   |
-| ------------------------ | ------------------------------------------------------------------------ |
-| `EmployeeStatusSchema`   | `active`, `inactive`, `left`, `suspended`                                |
-| `GenderSchema`           | `female`, `male`, `other`, `prefer_not_to_say`                           |
-| `EmploymentTypeSchema`   | `contract`, `freelance`, `intern`, `part_time`, `permanent`, `temporary` |
-| `SkillProficiencySchema` | `advanced`, `beginner`, `expert`, `intermediate`                         |
-
-## Attendance
-
-| Enum                            | Values                                                        |
-| ------------------------------- | ------------------------------------------------------------- |
-| `AttendanceStatusSchema`        | `absent`, `half_day`, `on_leave`, `present`, `work_from_home` |
-| `CheckinLogTypeSchema`          | `in`, `out`                                                   |
-| `AttendanceRequestStatusSchema` | `approved`, `pending`, `rejected`                             |
-
-## Leave
-
-| Enum                            | Values                                                  |
-| ------------------------------- | ------------------------------------------------------- |
-| `LeaveApplicationStatusSchema`  | `approved`, `cancelled`, `draft`, `pending`, `rejected` |
-| `LeaveAllocationStatusSchema`   | `active`, `cancelled`, `expired`                        |
-| `CompensatoryLeaveStatusSchema` | `approved`, `pending`, `rejected`                       |
-| `LeaveEncashmentStatusSchema`   | `approved`, `paid`, `pending`, `rejected`               |
-| `EarnedLeaveFrequencySchema`    | `half_yearly`, `monthly`, `quarterly`, `yearly`         |
-| `LeaveBlockListScopeSchema`     | `company`, `department`                                 |
-
-## Lifecycle
-
-| Enum                        | Values                                              |
-| --------------------------- | --------------------------------------------------- |
-| `OnboardingStatusSchema`    | `cancelled`, `completed`, `in_progress`, `pending`  |
-| `SeparationStatusSchema`    | `cancelled`, `completed`, `in_progress`, `pending`  |
-| `LifecycleTaskStatusSchema` | `completed`, `in_progress`, `pending`, `skipped`    |
-| `PromotionStatusSchema`     | `approved`, `completed`, `pending`, `rejected`      |
-| `TransferStatusSchema`      | `approved`, `completed`, `pending`, `rejected`      |
-| `ExitInterviewStatusSchema` | `cancelled`, `completed`, `scheduled`               |
-| `FullAndFinalStatusSchema`  | `approved`, `cancelled`, `draft`, `paid`, `pending` |
-
-## Overtime
-
-| Enum                   | Values                            |
-| ---------------------- | --------------------------------- |
-| `OvertimeStatusSchema` | `approved`, `pending`, `rejected` |
-
-## Shift
-
-| Enum                          | Values                            |
-| ----------------------------- | --------------------------------- |
-| `ShiftRequestStatusSchema`    | `approved`, `pending`, `rejected` |
-| `ShiftAssignmentStatusSchema` | `active`, `completed`, `inactive` |
-
-## Setup
-
-| Enum                | Values                                        |
-| ------------------- | --------------------------------------------- |
-| `HolidayTypeSchema` | `company`, `optional`, `public`, `weekly_off` |
-
-## Access
-
-| Enum                     | Values                                                                                    |
-| ------------------------ | ----------------------------------------------------------------------------------------- |
-| `AccessLevelSchema`      | `full`, `manage`, `read_only`                                                             |
-| `PermissionActionSchema` | `approve`, `archive`, `create`, `delete`, `manage`, `publish`, `reject`, `update`, `view` |
+| Enum                       | Values                                                                                    |
+| -------------------------- | ----------------------------------------------------------------------------------------- |
+| `hr_employee_status`       | `active`, `inactive`, `left`, `suspended`                                                 |
+| `hr_gender`                | `female`, `male`, `other`, `prefer_not_to_say`                                            |
+| `hr_employment_type`       | `contract`, `freelance`, `intern`, `part_time`, `permanent`, `temporary`                  |
+| `hr_lifecycle_task_status` | `completed`, `in_progress`, `pending`, `skipped`                                          |
+| `hr_onboarding_status`     | `cancelled`, `completed`, `in_progress`, `pending`                                        |
+| `hr_separation_status`     | `cancelled`, `completed`, `in_progress`, `pending`                                        |
+| `hr_promotion_status`      | `approved`, `completed`, `pending`, `rejected`                                            |
+| `hr_transfer_status`       | `approved`, `completed`, `pending`, `rejected`                                            |
+| `hr_skill_proficiency`     | `advanced`, `beginner`, `expert`, `intermediate`                                          |
+| `hr_exit_interview_status` | `cancelled`, `completed`, `scheduled`                                                     |
+| `hr_full_and_final_status` | `approved`, `cancelled`, `draft`, `paid`, `pending`                                       |
+| `hr_holiday_type`          | `company`, `optional`, `public`, `weekly_off`                                             |
+| `hr_access_level`          | `full`, `manage`, `read_only`                                                             |
+| `hr_permission_action`     | `approve`, `archive`, `create`, `delete`, `manage`, `publish`, `reject`, `update`, `view` |
+| `hr_announcement_status`   | `archived`, `draft`, `published`, `scheduled`                                             |
+| `hr_announcement_channel`  | `custom`, `general`, `hr`                                                                 |
+| `hr_announcement_priority` | `important`, `normal`, `urgent`                                                           |

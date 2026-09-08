@@ -1,110 +1,167 @@
 ---
 title: Overview
-description: Module structure, workflows, and schema layout of the HR domain module.
+description: Architecture and concepts for the HR Core domain module.
 icon: IconInfoCircle
 ---
 
-The HR module is a domain module for human resources management covering access control (HR users, RBAC roles), employees, attendance, leave, lifecycle, overtime, shifts, positions, announcements, and HR setup.
+The hr-core module owns canonical employee records, position structure, lifecycle, organizational setup, access control, and announcements.
 
 ## Module
 
 ```ts title="src/module.ts"
-export interface HrModuleConfig {
-  country: "INDIA";
-}
-
-export class Hr implements Module {
-  static create(config: HrModuleConfig): Hr;
-  readonly $name = "hr"; // proxy key: p.hr
+export class HrCore implements Module {
+  readonly $name = "hrCore"; // proxy key: p.hrCore
   readonly $dependencies = [] as const;
 }
 ```
 
-```ts
-const hr = Hr.create({ country: "INDIA" });
+## Configuration
+
+```ts title="src/module.ts"
+export interface HrCoreModuleConfig {
+  country: "INDIA";
+}
 ```
 
-The module declares no platform-module dependencies. `$initialize()` stores `{ db, pubsub }`.
+```ts title="usage"
+import { HrCore } from "@aspen-os/hr-core";
 
-## Runtime wiring
-
-`$prepareRuntime()` registers three cron schedules and the lifecycle reconciliation subscriptions; `$cleanup()` unregisters them.
-
-| Topic                       | Cron        | Action                              |
-| --------------------------- | ----------- | ----------------------------------- |
-| `hr:daily-attendance-sync`  | `0 1 * * *` | Sync daily attendance records       |
-| `hr:daily-leave-accrual`    | `0 0 * * *` | Accrue leave balances               |
-| `hr:announcement-scheduler` | `* * * * *` | Publish due scheduled announcements |
-
-| Subscription                     | Action                                                                    |
-| -------------------------------- | ------------------------------------------------------------------------- |
-| `lifecycle:separation_completed` | Auto-close open position assignments, emit `position:unassigned`          |
-| `lifecycle:transfer_approved`    | Close assignments stuck in the old department, emit `position:unassigned` |
-
-## Access control
-
-`defineAcl` in `src/auth.ts` — 12 resources:
-
-| Resource       | Actions                                        |
-| -------------- | ---------------------------------------------- |
-| `announcement` | archive, create, delete, publish, read, update |
-| `attendance`   | approve, create, read, reject, update          |
-| `employee`     | create, delete, read, update                   |
-| `hrPermission` | create, delete, read, update                   |
-| `hrRole`       | create, delete, read, update                   |
-| `hrUser`       | create, delete, read, update                   |
-| `leave`        | approve, create, read, reject, update          |
-| `lifecycle`    | approve, create, read, reject, update          |
-| `overtime`     | approve, create, read, reject, update          |
-| `position`     | create, delete, read, update                   |
-| `setup`        | create, delete, read, update                   |
-| `shift`        | approve, create, read, reject, update          |
-
-## Module Structure
-
-```text
-packages/hr/src/
-  module.ts             # HrModule class: $initialize, $prepareInfra, $prepareRuntime, $cleanup, workflow groups
-  index.ts              # Public exports: module class, types, events
-  auth.ts               # defineAcl permission matrix (12 resources)
-  pubsub.ts             # Per-group event constants + typed event maps (10 groups → HrEventMap)
-  types.ts              # Public types re-exported from schemas/ + tree node interfaces
-  db-schemas/           # Drizzle table definitions (control-plane + tenant schemas)
-    index.ts            # control_plane_schemas + tenant_schemas
-    announcement.ts     # hr_announcement, hr_announcement_recipient (tenant)
-    position.ts         # hr_position, hr_position_assignment (tenant)
-  schemas/              # Valibot validation schemas (per entity file + index.ts)
-  utils/
-    constants.ts        # HR_PERMISSION_MODULE, PERMISSION_ACTION, schedules
-    announcement-utils.ts # Audience resolution + recipient snapshot helpers
-    position-utils.ts   # Position hierarchy/assignment helpers, manager resolver, tree builders
-  workflows/            # Per-action workflow files composed into a router in index.ts
-    index.ts            # Workflow router (per-entity as-const groups)
-    utils.ts            # Shared workflow helpers (org chart tree, department tree, cycles)
-  services/
-    reconciliation.ts   # Lifecycle reconciliation bridge (separation auto-close, transfer guidance)
+const hrCore = HrCore.create({ country: "INDIA" });
 ```
 
-## Workflows
+`country` is reserved for country-specific validation (currently only `"INDIA"`).
 
-| Workflow               | Access Path         | Manages                                                                                                 |
-| ---------------------- | ------------------- | ------------------------------------------------------------------------------------------------------- |
-| `AccessWorkflow`       | `p.hr.access`       | HR users, RBAC roles, permissions, role-permission and user-role mappings, branch-wise access           |
-| `AnnouncementWorkflow` | `p.hr.announcement` | Announcements, audience targeting, scheduling, publishing, pinning, delivery snapshot + stats           |
-| `EmployeeWorkflow`     | `p.hr.employee`     | Employee records, groups, health insurance, skill maps, org chart                                       |
-| `AttendanceWorkflow`   | `p.hr.attendance`   | Attendance, check-ins, attendance requests                                                              |
-| `LeaveWorkflow`        | `p.hr.leave`        | Leave types, periods, policies, allocations, applications, encashment, block lists, adjustments, ledger |
-| `LifecycleWorkflow`    | `p.hr.lifecycle`    | Onboarding, promotions, transfers, separations, exit interviews, full and final statements              |
-| `OvertimeWorkflow`     | `p.hr.overtime`     | Overtime types and overtime slips                                                                       |
-| `PositionWorkflow`     | `p.hr.position`     | Job positions, position assignments/history, org/position trees, team/direct reports/peers              |
-| `SetupWorkflow`        | `p.hr.setup`        | HR/payroll settings, employment types, departments (tree ops), designations, grades, holiday lists      |
-| `ShiftWorkflow`        | `p.hr.shift`        | Shift types, locations, assignments, requests, schedules, schedule assignments                          |
+## Dependencies
 
-## Schemas
+No module `$dependencies`. `$initialize()` binds `DatabaseUnit` and `PubSubUnit`; `$prepareInfra()` contributes `auth.acl`, `db.{control_plane_schemas, tenant_schemas}`, and `events`. `$prepareRuntime()` registers two reconciliation subscriptions (`lifecycle:separation_completed`, `lifecycle:transfer_approved`) and unregisters them in `$cleanup()`.
 
-Validation schemas live in `src/schemas/` and are re-exported from `src/schemas/index.ts`. Each domain file defines `Create*Schema`, `Update*Schema`, and `*FiltersSchema` objects with corresponding `InferOutput` types. Shared pipes (`NameSchema`, `EmployeeIdSchema`, `EmailSchema`, `PhoneSchema`) are in `utils.ts`.
+## Architecture
+
+```mermaid
+flowchart TB
+  subgraph platform[Platform]
+    DB[(DatabaseUnit)]
+    PS[(PubSubUnit)]
+  end
+
+  subgraph hrCore[HrCore]
+    PI[$prepareInfra]
+    PR[$prepareRuntime]
+    RC[reconciliation]
+  end
+
+  PI --> ACL[auth.acl]
+  PI --> CP[control_plane_schemas\nhr_user, hr_role, hr_permission...]
+  PI --> TS[tenant_schemas\nemployee, hr_position, hr_announcement...]
+  PI --> EV[events\naccess, announcement, employee, lifecycle, position, setup]
+
+  PR -->|subscribe| LC_SEP[lifecycle:separation_completed]
+  PR -->|subscribe| LC_TR[lifecycle:transfer_approved]
+  LC_SEP --> RC -->|publish position:unassigned| PS
+  LC_TR --> RC
+
+  HR_CORE_WORKFLOWS[workflows\naccess, announcement, employee, lifecycle, position, setup] --> DB
+  HR_CORE_WORKFLOWS --> PS
+
+  DB --- CP
+  DB --- TS
+```
+
+Announcement scheduling no longer owns a cron — `hr_announcement.scheduled_for` is materialized as a `calendar_reminder` (`targetType: announcement`) and dispatched by the single `calendar:reminder-scan` cron.
+
+## Employee
+
+Canonical employee row (`employee` tenant table) identified by `employee_id` (business id, unique) and `id` (UUIDv7 PK). Carries org placement (`company`, `department`, `designation`, `branch`, `grade`, `holiday_list`), employment type, status (`active`/`inactive`/`left`/`suspended`), and personal/contact/bank fields. `reportsTo` is a soft text FK used as manager fallback when no position assignment resolves. `ensureEmployeeIdUnique` enforces business-id uniqueness on create/update.
+
+## Employee Groups and Supplemental Records
+
+`employee_group` + `employee_group_member` (members removed before group delete; duplicate membership rejected). `employee_health_insurance` (per employee, `policyNumber` required) and `employee_skill_map` (proficiency via `hr_skill_proficiency` enum) both validate the employee exists before insert.
+
+## Position and Assignments
+
+`hr_position` is a stable job slot (`department`, `branch`, `reports_to_position` forming hierarchy, `headcount`, `is_active`). `hr_position_assignment` is a dated posting (`employee_id`, `position_id`, `from_date`, `to_date` nullable for open-ended, `is_primary` unique per employee among current assignments). Position names are unique within a department; `reportsToPosition` cycle checked by ancestor walk (depth 10). Assignment validates headcount, single open-ended per position per employee, and clears conflicting primaries.
+
+## Lifecycle
+
+Onboarding, promotion, transfer, separation are first-class tracks (`employee_onboarding`, `employee_promotion`, `employee_transfer`, `employee_separation`) with status enums; onboarding/separation own task tables (`onboarding_task`, `separation_task`, status `hr_lifecycle_task_status`) that cascade-delete. Promotion/transfer carry `approved/rejected/completed` transitions; `approvePromotion` syncs `employee.designation` (+ grade/department), `approveTransfer` emits `lifecycle:transfer_approved`, completing a separation emits `lifecycle:separation_completed`. Exit interviews (`exit_interview`) and full-and-final settlements (`full_and_final_statement`, totals computed on approve) close the offboarding chain.
+
+## Access Control
+
+```ts title="src/auth.ts"
+export const acl = defineAcl({
+  announcement: ["archive", "create", "delete", "publish", "read", "update"],
+  employee: ["create", "delete", "read", "update"],
+  hrPermission: ["create", "delete", "read", "update"],
+  hrRole: ["create", "delete", "read", "update"],
+  hrUser: ["create", "delete", "read", "update"],
+  lifecycle: ["approve", "create", "read", "reject", "update"],
+  position: ["create", "delete", "read", "update"],
+  setup: ["create", "delete", "read", "update"],
+});
+```
+
+`hr_user` links an auth `user_id` to an `employee_id`; `hr_role`/`hr_permission`/`hr_role_permission` form RBAC, `hr_user_role` grants roles optionally branch-scoped, `hr_user_branch_access` grants direct branch access with `hr_access_level`.
+
+## Announcements
+
+`hr_announcement` stores author (`ctx.actorId` required), body/title, `channel` (`general`/`hr`/`custom`), `audience` JSON (`type` + `ids`), `priority` (`normal`/`important`/`urgent` via `@aspen-os/constants` `NOTIFICATION_SEVERITY`), `status` (`draft`/`scheduled`/`published`/`archived`), and `scheduled_for`. `hr_announcement_recipient` snapshots delivery at publish time. Only `draft`/`scheduled` are editable; publish is idempotent, resolves audience through subtree expansion (departments include children), validates strong-refs (`employees`, `groups`, `roles`, `individuals`), and emits `announcement:published` with `recipientUserIds` (auth `userId`s — employees without HR users are snapshot-only). Read/ack counts are read back from `@aspen-os/comms` notifications (`sourceModule: "hr"`).
+
+## Organizational Setup
+
+Control-plane catalog: `department` (hierarchical `parent_department`, `manager` head, `code` uppercased unique, `is_active` soft delete blocked while children/positions/employees exist), `designation`, `employment_type`, `employee_grade`, `holiday_list`/`holiday` (list owns weekly off pattern, holidays reference `hr_holiday_type`), `hr_settings` and `payroll_settings` (singleton upserts). Department moves and head changes emit `setup:department_moved` / `setup:department_head_changed`; ancestor walk (depth 10) prevents cycles.
+
+## Relationships
+
+```mermaid
+flowchart LR
+  subgraph hrCoreDomain[hr-core tenant tables]
+    EMP[employee]
+    POS[hr_position]
+    ASM[hr_position_assignment]
+    ANN[hr_announcement]
+  end
+
+  subgraph control[control-plane]
+    DEPT[department]
+    DESIG[designation]
+    GRADE[employee_grade]
+    HRLIST[holiday_list]
+    HRU[hr_user]
+    ROLE[hr_role]
+  end
+
+  subgraph external[Other modules]
+    ATT[hr-attendance]
+    LEAVE[hr-leave]
+    CAL[calendar]
+    COMMS[comms]
+  end
+
+  EMP -. soft FK .-> DEPT
+  EMP -. soft FK .-> DESIG
+  POS -. soft FK .-> DEPT
+  ASM -->|position_id| POS
+  ASM -. soft FK .-> EMP
+  HRU -. soft FK .-> EMP
+  ATT -. employee_id .-> EMP
+  LEAVE -. employee_id .-> EMP
+  ANN -->|calendar_reminder targetType=announcement| CAL
+  ANN -->|announcement:published → notification| COMMS
+  LC_SEP_EVENT[lifecycle:separation_completed] --> ASM
+  LC_TR_EVENT[lifecycle:transfer_approved] --> ASM
+```
+
+All cross-table links are soft text FKs (no DB constraints); invariants are workflow-enforced. `hr-attendance` and `hr-leave` reference `employee` via `employee_id` without a hard FK.
 
 <Callout type="info">
-  The module is conformant: `Hr implements Module`, `$prepareRuntime()` registers the three cron
-  schedules and the lifecycle reconciliation subscriptions, and `$cleanup()` unregisters them.
+  Announcement publishing no longer runs `hr:announcement-scheduler` — scheduling is a
+  `calendar_reminder` row; the single `calendar:reminder-scan` dispatcher publishes due
+  announcements.
+</Callout>
+
+<Callout type="warn">
+  `lifecycle:separation_completed` and `lifecycle:transfer_approved` are consumed internally for
+  position reconciliation — closing open-ended assignments and emitting `position:unassigned`. Hosts
+  subscribing to `position:unassigned` must handle both direct unassigns and reconciliation-emitted
+  ones.
 </Callout>

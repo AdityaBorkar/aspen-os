@@ -1,23 +1,19 @@
 ---
 title: Access Control
-description: ACL resources and operations declared by the Masters module.
+description: ACL resources and operations for the Masters module.
 icon: IconShield
 ---
-
-The Masters module declares its ACL via `defineAcl()`, which the platform merges from the module's `ModuleInfra.auth.acl` and applies to `AuthUnit` during `$prepareInfra()`.
-
-## Resources & Operations
 
 ```ts title="src/auth.ts"
 import { defineAcl } from "@aspen-os/platform/server";
 
 export const acl = defineAcl({
   address: ["create", "delete", "read", "update"],
-  bankAccount: ["activate", "create", "deactivate", "delete", "read", "set_primary", "update"],
   connection: ["check", "create", "delete", "read", "rotate_credential", "update"],
   contact: ["create", "delete", "read", "update"],
   entity: ["create", "delete", "read", "update"],
-  filterView: ["create", "delete", "duplicate", "read", "set_default", "update"],
+  label: ["apply", "create", "delete", "read", "remove", "update"],
+  orgBranch: ["create", "read", "update"],
   paymentMethod: ["activate", "create", "deactivate", "delete", "read", "set_primary", "update"],
   setting: ["read", "update"],
   unitOfMeasure: ["create", "delete", "read", "update"],
@@ -27,19 +23,13 @@ export const acl = defineAcl({
 | Resource        | Operations                                                                    |
 | --------------- | ----------------------------------------------------------------------------- |
 | `address`       | `create`, `delete`, `read`, `update`                                          |
-| `bankAccount`   | `activate`, `create`, `deactivate`, `delete`, `read`, `set_primary`, `update` |
 | `connection`    | `check`, `create`, `delete`, `read`, `rotate_credential`, `update`            |
 | `contact`       | `create`, `delete`, `read`, `update`                                          |
 | `entity`        | `create`, `delete`, `read`, `update`                                          |
-| `filterView`    | `create`, `delete`, `duplicate`, `read`, `set_default`, `update`              |
+| `label`         | `apply`, `create`, `delete`, `read`, `remove`, `update`                       |
+| `orgBranch`     | `create`, `read`, `update`                                                    |
 | `paymentMethod` | `activate`, `create`, `deactivate`, `delete`, `read`, `set_primary`, `update` |
 | `setting`       | `read`, `update`                                                              |
 | `unitOfMeasure` | `create`, `delete`, `read`, `update`                                          |
 
-<Callout type="info">
-  The ACL is the *declaration* of operations. Role definitions and permission enforcement are
-  application-level concerns — the module exposes the workflows that perform these operations; the
-  host app decides who may call them. In particular, credential management (`rotate_credential`),
-  `check`, `set_primary` (payment method), and `activate`/`deactivate` are sensitive operations that
-  should be restricted to privileged roles.
-</Callout>
+Workflows are bound to these operations; the host app maps roles to allowed operations via `AuthUnit`. Row-level enforcement is workflow-inline (e.g., `orgBranch` parent checks, label scope), not a DB policy — no RLS predicates are declared by this module. Sensitive operations (`rotate_credential`, `check`, `set_primary`, `activate`/`deactivate`) should be restricted to privileged roles.

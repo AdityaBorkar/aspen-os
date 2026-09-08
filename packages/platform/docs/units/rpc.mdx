@@ -4,47 +4,34 @@ description: Type-safe API procedures powered by oRPC with validation.
 icon: IconWorld
 ---
 
-The `RpcUnit` (`$name: "rpc"`) provides an RPC layer using [oRPC](https://orpc.uno) with input validation. It exposes a router and an HTTP handler.
+The `RpcUnit` (`$name: "rpc"`) exposes an oRPC router and HTTP handler.
 
 ## Configuration
 
 ```ts title="src/server/rpc/types.ts"
 interface RpcConfig {
-  prefix?: string; // default: "/api/rpc"
+  prefix?: string; // default "/api/rpc"
 }
 ```
-
-### Example
 
 ```ts
-const rpcConfig: RpcConfig = {
-  prefix: "/api/rpc",
-};
+const rpcConfig: RpcConfig = { prefix: "/api/rpc" };
 ```
 
-## Public API
+## Features
 
-```ts title="src/server/rpc/index.ts"
-class RpcUnit {
-  readonly $name = "rpc";
-  readonly router = router; // oRPC Router
+### Handling requests
 
-  readonly server: {
-    handle(
-      request: Request,
-      context: RpcContext,
-    ): Promise<{ matched: boolean; response: Response | undefined }>;
-    router: RpcRouter;
-  };
-
-  async $prepareInfra(): Promise<void>;
-  async $cleanup(): Promise<void>;
-}
+```ts
+const result = await platform.rpc.server.handle(request, {
+  db: platform.db.db,
+  pubsub: platform.pubsub,
+});
+if (result.matched) return result.response;
+// else fall through
 ```
 
-## RPC Context
-
-The RPC context provides `db` and `pubsub` to procedures at request time:
+`handle()` matches `request.url` against `prefix`; `RpcContext` is provided at request time, not construction.
 
 ```ts title="src/server/rpc/types.ts"
 interface RpcContext {
@@ -55,62 +42,35 @@ interface RpcContext {
 ```
 
 <Callout type="warn">
-  The `RpcUnit` constructor accepts `{ auth, db, logs, pubsub }` as deps but does **not** use them at construction time. The `RpcContext` is passed at request time via `handle()`, not injected at construction.
+  Constructor deps `{ auth, db, logs, pubsub }` are not used at construction — context arrives via `handle()`.
 </Callout>
 
-## Handling Requests
+### Defining procedures
 
-```ts
-const result = await platform.rpc.server.handle(request, {
-  db: platform.db.db,
-  pubsub: platform.pubsub,
-});
-
-if (result.matched) {
-  return result.response;
-}
-// If not matched, fall through to other handlers
-```
-
-## Defining Procedures
-
-Procedures are defined on the `base` handler (`os.$context<RpcContext>()`):
+Procedures are built on `base = os.$context<RpcContext>()`:
 
 ```ts title="src/server/rpc/procedures/echo.ts"
 import { base } from "#/server/rpc/base";
-
 export const echo = base.handler(async () => ({ echo: "input.message" }));
 ```
 
-Input validation uses Standard Schema (Valibot in domain code) — pass a schema to the handler chain per oRPC's API.
+Input validation uses Standard Schema (Valibot); chain schema before handler per oRPC API.
 
-## Router Structure
-
-The router is a nested object of procedures:
+### Router
 
 ```ts title="src/server/rpc/router.ts"
-// router.ts
 export const router = {
   echo: echoProcedure,
-  health: {
-    check: healthCheckProcedure,
-  },
+  health: { check: healthCheckProcedure },
 };
+// platform.rpc.router / platform.rpc.server.router
 ```
 
-## Request Matching
-
-The `handle()` method checks if the request URL starts with the configured `prefix`. If it matches, the oRPC handler processes the request. If not, it returns `{ matched: false, response: undefined }` so the caller can fall through to other handlers.
-
-## Base Handler
-
-The `base` handler is created with the `RpcContext` type:
+### Base handler
 
 ```ts title="src/server/rpc/base.ts"
 import { os } from "@orpc/server";
 // base = os.$context<RpcContext>()
 ```
 
-## Dependency
-
-Receives `{ auth, db, logs, pubsub }` via constructor injection, though these are not used by the unit itself at construction time. The actual context (`RpcContext`) is provided at request time.
+Receives `{ auth, db, logs, pubsub }` via injection though only request-time context is used.

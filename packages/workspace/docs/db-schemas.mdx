@@ -4,173 +4,168 @@ description: Tables, enums, and relationships owned by the Workspace module.
 icon: IconDatabase
 ---
 
-The module owns **7 tenant tables** and **4 pgEnums**. All are `tenant_schemas` with the `workspace_` prefix — there are no control-plane tables. IDs are text `uuidv7` PKs; timestamps are `timestamptz`; no DB-level foreign keys (soft FKs by naming convention).
-
-Filter views live in `@aspen-os/masters` (table `master_filter_view`); workspace widgets reference them via the `view_id` soft reference.
+The module owns tenant tables with `workspace_` prefix and no control-plane tables. Shared columns `id` (uuidv7 PK), `created_at`, `updated_at` (timestamptz) stated once; `updated_at` auto-updates on row change.
 
 ## Enums
 
-| Enum                     | Column(s)                                              | Values                                                    |
-| ------------------------ | ------------------------------------------------------ | --------------------------------------------------------- |
-| `workspace_access`       | `workspace_draft.access`, `workspace_dashboard.access` | `personal`, `global`                                      |
-| `workspace_draft_status` | `workspace_draft.status`                               | `draft`, `submitted`, `approved`, `rejected`, `published` |
-| `workspace_widget_type`  | `workspace_widget.type`                                | `metric`, `breakdown`, `list`, `embed`                    |
-| `workspace_item_type`    | `workspace_recent.item_type`                           | `draft`, `view`, `dashboard`                              |
+| Enum                           | Values                                                    |
+| ------------------------------ | --------------------------------------------------------- |
+| `workspace_access`             | `personal`, `global`                                      |
+| `workspace_draft_status`       | `draft`, `submitted`, `approved`, `rejected`, `published` |
+| `workspace_widget_type`        | `metric`, `breakdown`, `list`, `embed`                    |
+| `workspace_item_type`          | `draft`, `view`, `dashboard`                              |
+| `workspace_filter_view_access` | `personal`, `global`                                      |
+| `workspace_filter_view_type`   | `list`, `board`, `calendar`, `timeline`                   |
 
 ## Tables
 
+### `workspace_dashboard`
+
+Named collection of widgets over a grid layout.
+
+| Column        | Type                            | Description     |
+| ------------- | ------------------------------- | --------------- |
+| `access`      | `workspace_access`              | `personal`      |
+| `description` | text                            | Description     |
+| `layout`      | jsonb (`WidgetPlacement[]`)     | Grid layout     |
+| `metadata`    | jsonb                           | Opaque metadata |
+| `name`        | text                            | Dashboard name  |
+| `owner_id`    | text (FK → better-auth user.id) | Owner           |
+
+Indexes: `idx_workspace_dashboard_owner` on `owner_id`, `idx_workspace_dashboard_access` on `access`.
+
+### `workspace_delivery_schedule`
+
+Per-dashboard cron delivery; alias `workspace_schedule` (back-compat, same PG table).
+
+| Column         | Type                               | Description                        |
+| -------------- | ---------------------------------- | ---------------------------------- |
+| `config`       | jsonb (`ScheduleConfig`)           | `{ recipients, format, subject? }` |
+| `created_by`   | text                               | Creator                            |
+| `cron`         | text                               | pg-boss cron expression            |
+| `dashboard_id` | text (FK → workspace_dashboard.id) | Parent dashboard                   |
+| `is_active`    | boolean                            | `true`; `pause`/`resume` toggles   |
+| `last_error`   | text                               | Last run error                     |
+| `last_run_at`  | timestamptz                        | Last run timestamp                 |
+
+Indexes: `idx_workspace_delivery_schedule_dashboard` on `dashboard_id`.
+
 ### `workspace_draft`
 
-Saved, unpublished content with an optional approval lifecycle and soft-delete trash.
+Saved, unpublished content with approval lifecycle and soft-delete.
 
-| Column               | Type                          | Description                                       |
-| -------------------- | ----------------------------- | ------------------------------------------------- |
-| `access`             | enum `workspace_access`       | `personal` (default) or `global`                  |
-| `approved_at`        | timestamptz                   | set by `approve`                                  |
-| `approved_by`        | text                          | set by `approve`                                  |
-| `body`               | text                          | markdown/text content, default `''`               |
-| `created_at`         | timestamptz                   |                                                   |
-| `deleted_at`         | timestamptz                   | set by `trash`, cleared by `restore`              |
-| `id`                 | text PK (`uuidv7`)            |                                                   |
-| `metadata`           | jsonb                         | opaque — attachment refs, structured fields       |
-| `notes`              | text                          | free-form annotation                              |
-| `owner_id`           | text                          | creating user                                     |
-| `published_at`       | timestamptz                   | set by `publish`                                  |
-| `published_by`       | text                          | set by `publish`                                  |
-| `rejected_at`        | timestamptz                   | set by `reject`                                   |
-| `rejected_by`        | text                          | set by `reject`                                   |
-| `rejection_reason`   | text                          | required by `reject`                              |
-| `status`             | enum `workspace_draft_status` | `draft` (default)                                 |
-| `submitted_at`       | timestamptz                   | set by `submit`                                   |
-| `submitted_by`       | text                          | set by `submit`                                   |
-| `target_domain`      | text                          | what the draft becomes on publish (`dms:file`, …) |
-| `target_entity_id`   | text                          | recorded after the host creates the target entity |
-| `target_entity_type` | text                          | entity type within the domain                     |
-| `title`              | text                          | required                                          |
-| `updated_at`         | timestamptz                   |                                                   |
+| Column               | Type                            | Description           |
+| -------------------- | ------------------------------- | --------------------- |
+| `access`             | `workspace_access`              | `personal`            |
+| `approved_at`        | timestamptz                     | Approve timestamp     |
+| `approved_by`        | text                            | Approver              |
+| `body`               | text                            | Content, default `''` |
+| `deleted_at`         | timestamptz                     | Trash timestamp       |
+| `metadata`           | jsonb                           | Opaque metadata       |
+| `notes`              | text                            | Annotation            |
+| `owner_id`           | text (FK → better-auth user.id) | Owner                 |
+| `published_at`       | timestamptz                     | Publish timestamp     |
+| `published_by`       | text                            | Publisher             |
+| `rejected_at`        | timestamptz                     | Reject timestamp      |
+| `rejected_by`        | text                            | Rejector              |
+| `rejection_reason`   | text                            | Reject reason         |
+| `status`             | `workspace_draft_status`        | `draft`               |
+| `submitted_at`       | timestamptz                     | Submit timestamp      |
+| `submitted_by`       | text                            | Submitter             |
+| `target_domain`      | text                            | Publish domain        |
+| `target_entity_id`   | text                            | Target entity id      |
+| `target_entity_type` | text                            | Target entity type    |
+| `title`              | text                            | Title                 |
 
-Indexes: `idx_workspace_draft_owner`, `idx_workspace_draft_status`, `idx_workspace_draft_access`.
+Indexes: `idx_workspace_draft_owner` on `owner_id`, `idx_workspace_draft_status` on `status`, `idx_workspace_draft_access` on `access`.
 
 ### `workspace_draft_comment`
 
-Threaded review comments on a draft.
+Threaded comments on a draft.
 
-| Column       | Type               | Description                    |
-| ------------ | ------------------ | ------------------------------ |
-| `author_id`  | text               | commenter                      |
-| `content`    | text               |                                |
-| `created_at` | timestamptz        |                                |
-| `draft_id`   | text               | soft FK → `workspace_draft.id` |
-| `id`         | text PK (`uuidv7`) |                                |
-| `updated_at` | timestamptz        |                                |
+| Column      | Type                           | Description  |
+| ----------- | ------------------------------ | ------------ |
+| `author_id` | text                           | Author       |
+| `content`   | text                           | Body         |
+| `draft_id`  | text (FK → workspace_draft.id) | Parent draft |
 
-Indexes: `idx_workspace_draft_comment_draft`.
+Indexes: `idx_workspace_draft_comment_draft` on `draft_id`.
 
-### `workspace_dashboard`
+### `workspace_filter_view`
 
-A named collection of widgets over a grid layout.
+Saved filter/sort/group configuration.
 
-| Column        | Type                        | Description                              |
-| ------------- | --------------------------- | ---------------------------------------- |
-| `access`      | enum `workspace_access`     | `personal` (default) or `global`         |
-| `created_at`  | timestamptz                 |                                          |
-| `description` | text                        |                                          |
-| `id`          | text PK (`uuidv7`)          |                                          |
-| `layout`      | jsonb (`WidgetPlacement[]`) | `{ widgetId, x, y, w, h }`, default `[]` |
-| `metadata`    | jsonb                       | opaque                                   |
-| `name`        | text                        |                                          |
-| `owner_id`    | text                        |                                          |
-| `updated_at`  | timestamptz                 |                                          |
+| Column       | Type                            | Description                  |
+| ------------ | ------------------------------- | ---------------------------- |
+| `access`     | `workspace_filter_view_access`  | `personal`                   |
+| `conditions` | jsonb (`FilterViewCondition[]`) | Filter conditions            |
+| `domain`     | text                            | Domain (`<module>:<entity>`) |
+| `group_by`   | text                            | Group-by field               |
+| `is_default` | boolean                         | Default flag                 |
+| `metadata`   | jsonb                           | Opaque metadata              |
+| `name`       | text                            | View name                    |
+| `owner_id`   | text (FK → better-auth user.id) | Owner                        |
+| `project_id` | text                            | Project scope                |
+| `sort`       | jsonb (`FilterViewSort[]`)      | Sort clauses                 |
+| `view_type`  | `workspace_filter_view_type`    | `list`                       |
 
-Indexes: `idx_workspace_dashboard_owner`, `idx_workspace_dashboard_access`.
-
-### `workspace_widget`
-
-A declarative widget on a dashboard; inherits dashboard access.
-
-| Column              | Type                              | Description                                                         |
-| ------------------- | --------------------------------- | ------------------------------------------------------------------- |
-| `config`            | jsonb (`WidgetConfig`)            | type-specific, incl. `range`                                        |
-| `created_at`        | timestamptz                       |                                                                     |
-| `dashboard_id`      | text                              | soft FK → `workspace_dashboard.id`                                  |
-| `domain`            | text                              | datasource domain (null for `embed`)                                |
-| `filter`            | jsonb (`WidgetFilterCondition[]`) | inline conditions; mutually exclusive with `view_id`                |
-| `id`                | text PK (`uuidv7`)                |                                                                     |
-| `last_error`        | text                              | set by `widgets.refresh` on failure                                 |
-| `last_refreshed_at` | timestamptz                       | set by `widgets.refresh`                                            |
-| `title`             | text                              |                                                                     |
-| `type`              | enum `workspace_widget_type`      | `metric`, `breakdown`, `list`, `embed`                              |
-| `updated_at`        | timestamptz                       |                                                                     |
-| `view_id`           | text                              | soft FK → `master_filter_view.id`; reuses a saved view's conditions |
-
-Indexes: `idx_workspace_widget_dashboard`.
-
-### `workspace_schedule`
-
-Per-dashboard cron delivery schedule; inherits dashboard access.
-
-| Column         | Type                     | Description                                          |
-| -------------- | ------------------------ | ---------------------------------------------------- |
-| `config`       | jsonb (`ScheduleConfig`) | `{ recipients, format: export\|pdf\|url, subject? }` |
-| `created_at`   | timestamptz              |                                                      |
-| `created_by`   | text                     |                                                      |
-| `cron`         | text                     | pg-boss cron expression (`"0 8 * * *"`)              |
-| `dashboard_id` | text                     | soft FK → `workspace_dashboard.id`                   |
-| `id`           | text PK (`uuidv7`)       |                                                      |
-| `is_active`    | boolean                  | default `true`; `pause`/`resume` toggle it           |
-| `last_error`   | text                     | set by `markRun`                                     |
-| `last_run_at`  | timestamptz              | set by `markRun`                                     |
-| `updated_at`   | timestamptz              |                                                      |
-
-Indexes: `idx_workspace_schedule_dashboard`.
+Indexes: `idx_workspace_filter_view_domain_access` on `(domain, access)`, `idx_workspace_filter_view_owner` on `owner_id`, `idx_workspace_filter_view_project` on `project_id`.
 
 ### `workspace_pin`
 
-Per-user sidebar shortcut. `item_type` is free-form text drawn from the documented `PIN_ITEM_TYPE` registry (`draft`/`view`/`dashboard` for workspace entities; `triage`/`file_view`/`class` for dms items) — pins soft-reference any tenant item by `(itemType, itemId)` with no module dependency.
+Per-user sidebar shortcut.
 
-| Column       | Type               | Description                                                                   |
-| ------------ | ------------------ | ----------------------------------------------------------------------------- |
-| `created_at` | timestamptz        |                                                                               |
-| `id`         | text PK (`uuidv7`) |                                                                               |
-| `item_id`    | text               |                                                                               |
-| `item_type`  | text               | registry value (`draft`, `view`, `dashboard`, `triage`, `file_view`, `class`) |
-| `sort_order` | integer            | default `0`                                                                   |
-| `user_id`    | text               |                                                                               |
+| Column       | Type    | Description        |
+| ------------ | ------- | ------------------ |
+| `item_id`    | text    | Pinned item id     |
+| `item_type`  | text    | Registry value     |
+| `sort_order` | integer | Order, default `0` |
+| `user_id`    | text    | Owner              |
 
-Unique `(user_id, item_type, item_id)`; index `idx_workspace_pin_user`.
+Indexes: `idx_workspace_pin_user` on `user_id`, `idx_workspace_pin_user_item` unique on `(user_id, item_type, item_id)`.
 
 ### `workspace_recent`
 
-Per-user recent items; `touch` upserts + bumps `last_accessed_at` and trims to the configured cap.
+Per-user recent items; `touch` upserts and trims to `maxRecentItems`.
 
-| Column             | Type                       | Description                  |
-| ------------------ | -------------------------- | ---------------------------- |
-| `created_at`       | timestamptz                |                              |
-| `id`               | text PK (`uuidv7`)         |                              |
-| `item_id`          | text                       |                              |
-| `item_type`        | enum `workspace_item_type` | `draft`, `view`, `dashboard` |
-| `last_accessed_at` | timestamptz                | bumped by `touch`            |
-| `user_id`          | text                       |                              |
+| Column             | Type                  | Description                  |
+| ------------------ | --------------------- | ---------------------------- |
+| `item_id`          | text                  | Item id                      |
+| `item_type`        | `workspace_item_type` | `draft`, `view`, `dashboard` |
+| `last_accessed_at` | timestamptz           | Last access time             |
+| `user_id`          | text                  | Owner                        |
 
-Unique `(user_id, item_type, item_id)`; index `idx_workspace_recent_user`.
+Indexes: `idx_workspace_recent_user` on `user_id`, `idx_workspace_recent_user_item` unique on `(user_id, item_type, item_id)`.
+
+### `workspace_widget`
+
+Declarative widget on a dashboard; inherits dashboard access.
+
+| Column              | Type                                 | Description                             |
+| ------------------- | ------------------------------------ | --------------------------------------- |
+| `config`            | jsonb (`WidgetConfig`)               | Type-specific config                    |
+| `dashboard_id`      | text (FK → workspace_dashboard.id)   | Parent dashboard                        |
+| `domain`            | text                                 | Datasource domain                       |
+| `filter`            | jsonb (`WidgetFilterCondition[]`)    | Inline filter, exclusive with `view_id` |
+| `last_error`        | text                                 | Refresh error                           |
+| `last_refreshed_at` | timestamptz                          | Refresh timestamp                       |
+| `title`             | text                                 | Title                                   |
+| `type`              | `workspace_widget_type`              | Widget type                             |
+| `view_id`           | text (FK → workspace_filter_view.id) | Reused filter view                      |
+
+Indexes: `idx_workspace_widget_dashboard` on `dashboard_id`.
 
 ## Relationships
 
-```text
-workspace_draft 1:N workspace_draft_comment (draft_id)
-workspace_dashboard 1:N workspace_widget (dashboard_id)
-workspace_dashboard 1:N workspace_schedule (dashboard_id)
-workspace_widget N:1 master_filter_view (view_id — datasource reuse, cross-module soft FK)
-pin ── item_type + item_id ──▶ any registry item (workspace entities + dms items + masters filter views)
-recent ── item_type + item_id ──▶ workspace entity (draft/view/dashboard)
+```mermaid
+flowchart TB
+  dashboard["workspace_dashboard"] -->|dashboard_id| widget["workspace_widget"]
+  dashboard -->|dashboard_id| schedule["workspace_delivery_schedule"]
+  draft["workspace_draft"] -->|draft_id| comment["workspace_draft_comment"]
+  widget -->|view_id| filterView["workspace_filter_view"]
+  pin["workspace_pin"] -. "item_type + item_id soft" .-> draft
+  recent["workspace_recent"] -. "item_type + item_id soft" .-> dashboard
+  schedule -. cron topic .-> platform["pg-boss"]
 ```
 
-## Usage
-
-```ts
-// Query with access scoping (list) — same predicate as access-service
-await db
-  .select()
-  .from(workspaceDraft)
-  .where(or(eq(workspaceDraft.access, "global"), eq(workspaceDraft.ownerId, actorId)));
-```
+All relationships are soft (workflow-enforced); no hard FKs.

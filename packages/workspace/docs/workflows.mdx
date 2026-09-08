@@ -1,107 +1,140 @@
 ---
 title: Workflows
-description: Every domain workflow and operation exposed by the Workspace module.
+description: Workflows exposed by the Workspace module.
 icon: IconWorkflow
 ---
 
-All workflows are module-prefixed (`workspace.<entity>.<verb>`), one file per action under `src/workflows/<entity>/`. Workflow groups are composed `as const` in `workflows/index.ts`.
+The Workspace module exposes `dashboards`, `deliverySchedules` (alias `schedules`), `drafts`, `filterViews`, `pins`, `recent`, `search`, and `widgets` via `p.workspace` (`$name = "workspace"`).
+
+Workflows validate with Valibot; `create` takes `{ input }`, `update` takes `{ id, patch }` where `undefined` leaves the column untouched. Mutations write an audit entry and publish a domain event.
 
 ## Drafts
 
-### Lifecycle
-
-```
-draft ──submit──▶ submitted ──approve──▶ approved ──publish──▶ published
-                     │                        ▲
-                     └──reject (reason)──▶ rejected ──reopen──┘
-draft ───────────────────────publish (approval optional)──▶ published
-published ──reopen──▶ draft   ·   trashed (deletedAt set) ──restore──▶ draft
-```
-
-`transitionDraft()` (in `workflows/draft/utils.ts`) is an atomic `UPDATE … WHERE status IN (from)` guard — concurrent transitions can't double-apply. Each transition writes an audit entry and publishes the matching `workspace:draft_*` event; `publish` carries `{ draft }` (full draft row) in its payload so hosts can act without a follow-up read.
-
-| Workflow                                        | Guard / notes                                                                                                  |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `create`                                        | `ownerId` from `actorId` (fallback: explicit input); defaults `access = personal`                              |
-| `get`                                           | access-checked single read                                                                                     |
-| `update`                                        | patch semantics — `undefined` fields are unchanged; lifecycle fields are not editable here                     |
-| `submit`                                        | `draft → submitted`; records `submittedBy`/`submittedAt`                                                       |
-| `approve`                                       | `submitted → approved`; records `approvedBy`/`approvedAt`                                                      |
-| `reject`                                        | `submitted → rejected`; `rejectionReason` required                                                             |
-| `publish`                                       | `approved` **or** `draft` → `published`; optionally records `targetDomain`/`targetEntityId`/`targetEntityType` |
-| `reopen`                                        | `published`/`rejected` → `draft`; clears lifecycle timestamps (history retained via audit)                     |
-| `trash` / `restore`                             | soft-delete via `deletedAt` (idempotent)                                                                       |
-| `duplicate`                                     | new `draft` copy, `access = personal`, new owner                                                               |
-| `delete`                                        | hard delete — removes the row and its comments                                                                 |
-| `addComment` / `listComments` / `removeComment` | threaded comments; access on the draft; author, draft owner, or tenant admin may remove                        |
-
-Draft `.list()` filters: `status`, `targetDomain`, `includeTrashed` (excludes `deletedAt`-set rows by default), `search` (title/body `ilike`), `limit`/`offset`. Always access-scoped.
+Lifecycle with approval, trash, and threaded comments.
 
 ```ts
-await p.workspace.drafts.submit.run({ id }, { actorId });
-await p.workspace.drafts.approve.run({ id }, { actorId });
-await p.workspace.drafts.publish.run(
-  { input: { id, targetDomain: "dms:file", targetEntityType: "file" } },
-  { actorId },
-);
+await p.workspace.drafts.create({
+  input: { title: "Q3 offer", body: "...", targetDomain: "dms:file" },
+});
+await p.workspace.drafts.update({ id, patch: { title: "Q3 offer v2" } });
+await p.workspace.drafts.submit({ id });
+await p.workspace.drafts.approve({ id });
+await p.workspace.drafts.reject({ id, input: { rejectionReason: "needs revision" } });
+await p.workspace.drafts.publish({ input: { id, targetDomain: "dms:file" } });
+await p.workspace.drafts.reopen({ id });
+await p.workspace.drafts.trash({ id });
+await p.workspace.drafts.restore({ id });
+await p.workspace.drafts.duplicate({ id });
+await p.workspace.drafts.delete({ id });
+await p.workspace.drafts.get({ id });
+await p.workspace.drafts.list({ filters: { status: "draft", search, limit: 20, offset: 0 } });
+await p.workspace.drafts.addComment({ input: { draftId: id, content: "looks good" } });
+await p.workspace.drafts.listComments({ draftId: id });
+await p.workspace.drafts.removeComment({ id: commentId });
 ```
-
-## Filter Views
-
-Saved filter/sort/group configurations live in `@aspen-os/masters` as `p.masters.filterViews` (table `master_filter_view`) — see [Masters Workflows](/docs/masters/workflows#filter-views). Workspace widgets reference a view via the `viewId` soft reference (or an inline `filter`).
 
 ## Dashboards
 
-| Workflow              | Notes                                                                                                                                |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `create`/`update`     | `layout` is a jsonb array of `{ widgetId, x, y, w, h }`; no overlap validation in v1                                                 |
-| `get`/`list`/`delete` | access-scoped read / filtered list (`access`, `search`, `limit`/`offset`) / hard delete (widgets and schedules cascade by dashboard) |
-| `duplicate`           | copies the dashboard **and its widgets**, remapping `layout` widgetIds to the new widget ids                                         |
-| `export`              | returns `{ dashboard, layout, widgets }` — a re-importable JSON snapshot (widgets include their source `id` for layout remapping)    |
-| `import`              | recreates from a snapshot; new ids; `access` defaults to `personal` unless the snapshot specifies `global`                           |
+Named collections of widgets over a grid layout.
 
 ```ts
-const snapshot = await p.workspace.dashboards.export.run({ id }, { actorId });
-const clone = await p.workspace.dashboards.import.run({ input: snapshot }, { actorId });
+const dash = await p.workspace.dashboards.create({
+  input: { name: "Pipeline", layout: [{ widgetId, x: 0, y: 0, w: 6, h: 2 }] },
+});
+await p.workspace.dashboards.update({ id: dash.id, patch: { name: "Pipeline v2" } });
+await p.workspace.dashboards.get({ id: dash.id });
+await p.workspace.dashboards.list({ filters: { search, limit: 20, offset: 0 } });
+await p.workspace.dashboards.duplicate({ id: dash.id });
+const snapshot = await p.workspace.dashboards.export({ id: dash.id });
+await p.workspace.dashboards.import({ input: snapshot });
+await p.workspace.dashboards.delete({ id: dash.id });
 ```
 
 ## Widgets
 
-Four types, each with a type-specific `config` (validated against the matching valibot schema) and a datasource rule:
+Declarative widgets on a dashboard; inherit dashboard access.
 
-| Type        | Config shape                                                 | Datasource rule                                      |
-| ----------- | ------------------------------------------------------------ | ---------------------------------------------------- |
-| `metric`    | `{ aggregation: count\|sum\|avg\|min\|max, field?, range? }` | requires `domain` + exactly one of `filter`/`viewId` |
-| `breakdown` | `{ field, limit?, order?, range? }`                          | requires `domain` + exactly one of `filter`/`viewId` |
-| `list`      | `{ columns?, limit?, range? }`                               | requires `domain` + exactly one of `filter`/`viewId` |
-| `embed`     | `{ kind: markdown\|url\|iframe, content, height? }`          | no datasource                                        |
-
-`WidgetRange = { preset: today|yesterday|this_week|last_7_days|this_month|this_quarter|this_year|all_time|custom, from?, to? }`.
-
-`add`/`update`/`move`/`remove` require mutation access on the parent dashboard; `get`/`list` require read access (widgets inherit dashboard access). `refresh(id, { error? })` sets `lastRefreshedAt` (and `lastError` on failure) — hosts call it after re-resolving a widget's datasource.
+```ts
+await p.workspace.widgets.add({
+  input: {
+    dashboardId,
+    title: "Revenue",
+    type: "metric",
+    domain: "dms:file",
+    config: { aggregation: "count" },
+    filter: [],
+  },
+});
+await p.workspace.widgets.update({ id: widgetId, patch: { title: "Revenue v2" } });
+await p.workspace.widgets.move({ id: widgetId, input: { layout: { x: 1, y: 0 } } });
+await p.workspace.widgets.refresh({ id: widgetId, input: { error: null } });
+await p.workspace.widgets.get({ id: widgetId });
+await p.workspace.widgets.list({ dashboardId });
+await p.workspace.widgets.remove({ id: widgetId });
+```
 
 ## Schedules
 
-Schedules are per-dashboard cron deliveries (config: `{ recipients, format: export|pdf|url, subject? }`). Access inherits from the parent dashboard.
+Per-dashboard cron delivery; `deliverySchedules` is the canonical alias of `schedules`.
 
-| Workflow     | Notes                                                                                         |
-| ------------ | --------------------------------------------------------------------------------------------- |
-| `create`     | registers a pg-boss cron on topic `workspace:schedule:<id>` + the module's delivery handler   |
-| `get`/`list` | access resolved through the parent dashboard; `list` filters: `dashboardId`, `limit`/`offset` |
-| `update`     | re-registers the cron when `cron` changes and the schedule is active                          |
-| `pause`      | `isActive = false`; unregisters the cron topic                                                |
-| `resume`     | `isActive = true`; re-registers the cron topic                                                |
-| `markRun`    | records `lastRunAt` (`at` or now) and `lastError`; hosts call after delivering                |
-| `delete`     | unregisters the cron and deletes the row                                                      |
+```ts
+const sched = await p.workspace.schedules.create({
+  input: { dashboardId, cron: "0 8 * * *", config: { recipients: ["a@b.com"], format: "pdf" } },
+});
+await p.workspace.deliverySchedules.update({ id: sched.id, patch: { cron: "0 9 * * *" } });
+await p.workspace.schedules.pause({ id: sched.id });
+await p.workspace.schedules.resume({ id: sched.id });
+await p.workspace.schedules.markRun({ id: sched.id, input: { at: new Date().toISOString() } });
+await p.workspace.schedules.get({ id: sched.id });
+await p.workspace.schedules.list({ filters: { dashboardId } });
+await p.workspace.schedules.delete({ id: sched.id });
+```
 
-When a cron fires, the handler reads the schedule + dashboard and publishes `workspace:schedule_due` with the full `{ schedule, dashboard, at }` payload. **Delivery is the host's job** — the module never renders or sends. If the host doesn't subscribe to `workspace:schedule_due`, pg-boss silently drops it (the platform health check flags produced-but-unsubscribed topics).
+Cron registers `workspace:delivery_schedule:<id>` and emits `workspace:delivery_due` (`workspace:schedule_due` deprecated).
 
-## Utilities
+## Filter Views
 
-| Group    | Workflows                  | Notes                                                                                                                                              |
-| -------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pins`   | `create`, `delete`, `list` | sidebar shortcuts; `itemType` from the cross-module `PIN_ITEM_TYPE` registry (workspace entities + dms items); unique `(userId, itemType, itemId)` |
-| `recent` | `touch`, `list`            | `touch` upserts + bumps `lastAccessedAt`; trims to `maxRecentItems`                                                                                |
-| `search` | `quick`                    | access-scoped `ilike` over drafts/dashboards, merged result                                                                                        |
+Saved filter/sort/group configurations.
 
-All utilities are strictly user-scoped (`userId = actorId`) — no access column, no `access-service` involvement.
+```ts
+const view = await p.workspace.filterViews.create({
+  input: { name: "My invoices", domain: "dms:file", conditions: [], sort: [] },
+});
+await p.workspace.filterViews.update({ id: view.id, patch: { name: "My invoices v2" } });
+await p.workspace.filterViews.get({ id: view.id });
+await p.workspace.filterViews.list({ filters: { domain: "dms:file" } });
+await p.workspace.filterViews.duplicate({ id: view.id });
+await p.workspace.filterViews.getDefault({ domain: "dms:file" });
+await p.workspace.filterViews.setDefault({ id: view.id });
+await p.workspace.filterViews.delete({ id: view.id });
+```
+
+## Pins
+
+Per-user sidebar shortcuts.
+
+```ts
+await p.workspace.pins.create({ input: { itemId, itemType: "dashboard" } });
+await p.workspace.pins.list({ filters: { itemType: "dashboard" } });
+await p.workspace.pins.delete({ id: pinId });
+```
+
+## Recent
+
+Per-user recent items bounded by `maxRecentItems`.
+
+```ts
+await p.workspace.recent.touch({ input: { itemId, itemType: "draft" } });
+await p.workspace.recent.list({ limit: 20 });
+```
+
+## Search
+
+Access-scoped quick search over drafts and dashboards.
+
+```ts
+const res = await p.workspace.search.quick({ input: { query: "INV" } });
+// { dashboards: [{ id, name, access }], drafts: [{ id, title, status, access }] }
+```
+
+Links: [Events](/docs/workspace/events) · [DB Schemas](/docs/workspace/db-schemas)

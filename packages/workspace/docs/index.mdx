@@ -1,12 +1,10 @@
 ---
 title: Workspace
-description: Personal workspace surfaces — drafts, dashboards, widgets, schedules, and utilities.
+description: Tenant workspace — drafts, dashboards, widgets, delivery schedules, filter views, pins, recent, and search.
 icon: IconLayoutDashboard
 ---
 
-The Workspace module provides generic personal-workspace surfaces on `@aspen-os/platform`: **drafts** (saved, unpublished content with an optional approval lifecycle and threaded comments) and **dashboards** (named collections of metric/breakdown/list/embed widgets over a grid layout, with optional scheduled delivery) — plus the utility surfaces **pins, recent items, and quick search**. Saved filter views live in `@aspen-os/masters` (`p.masters.filterViews`); settings live in `@aspen-os/masters` (`p.masters.settings`).
-
-Every data entity's **access is set by the user** at create/update time: `personal` (owner-only) or `global` (organization-wide within the tenant). Widgets and schedules **inherit** their parent dashboard's access.
+The Workspace module provides tenant-scoped `dashboards`/`deliverySchedules`/`schedules`, `drafts`, `filterViews`, `pins`, `recent`, `search`, and `widgets` on `@aspen-os/platform`.
 
 ## Documentation
 
@@ -14,7 +12,7 @@ Every data entity's **access is set by the user** at create/update time: `person
   <Card
     title="Overview"
     href="/docs/workspace/overview"
-    description="Architecture, initialization, config, and module structure"
+    description="Architecture, config, and module structure"
   />
   <Card
     title="Workflows"
@@ -29,7 +27,7 @@ Every data entity's **access is set by the user** at create/update time: `person
   <Card
     title="Access Control"
     href="/docs/workspace/access-control"
-    description="Resources, operations, and permission matrix"
+    description="Resources and operations"
   />
   <Card
     title="Events"

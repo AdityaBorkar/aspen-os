@@ -24,8 +24,18 @@ export const compliance = defineDocs({
   docs,
 });
 
-export const hr = defineDocs({
-  dir: `../packages/hr/docs`,
+export const hrCore = defineDocs({
+  dir: `../packages/hr-core/docs`,
+  docs,
+});
+
+export const hrAttendance = defineDocs({
+  dir: `../packages/hr-attendance/docs`,
+  docs,
+});
+
+export const hrLeave = defineDocs({
+  dir: `../packages/hr-leave/docs`,
   docs,
 });
 

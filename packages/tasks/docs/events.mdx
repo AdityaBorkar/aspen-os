@@ -1,68 +1,25 @@
 ---
 title: Events
-description: Domain event map for the Tasks module — 11 task events.
+description: Domain events published by the Tasks module.
 icon: IconBell
 ---
 
-The Tasks module defines 11 task events published as plain string topics via PubSub.
-
-## Event Constants
-
-```ts title="src/pubsub.ts"
-export const TASK_EVENTS = {
-  ASSIGNED: "task:assigned",
-  COMMENTED: "task:commented",
-  CREATED: "task:created",
-  DELETED: "task:deleted",
-  DUE_DATE_CHANGED: "task:due_date_changed",
-  LINKED: "task:linked",
-  STATUS_CHANGED: "task:status_changed",
-  TIME_LOGGED: "task:time_logged",
-  UNASSIGNED: "task:unassigned",
-  UNLINKED: "task:unlinked",
-  UPDATED: "task:updated",
-} as const;
-```
+11 events published as plain string topics. Depends on `masters` (`$dependencies = ["masters"]`).
 
 ## Event Map
 
 | Event                   | Payload                                                                       | Trigger                                |
 | ----------------------- | ----------------------------------------------------------------------------- | -------------------------------------- |
 | `task:created`          | `{ task: { id, number, projectId, title }, dueDate }`                         | Task created                           |
-| `task:updated`          | `{ task: { id, title }, changes: Record<string, unknown> }`                   | Task updated                           |
+| `task:updated`          | `{ task: { id, title }, changes }`                                            | Task updated                           |
 | `task:deleted`          | `{ taskId }`                                                                  | Task deleted                           |
-| `task:status_changed`   | `{ task: { id, title }, fromStatus, toStatus, toStatusCategory, isTerminal }` | Task status changed                    |
-| `task:assigned`         | `{ taskId, userId, assignedBy }`                                              | User assigned to task                  |
-| `task:unassigned`       | `{ taskId, userId }`                                                          | User unassigned from task              |
-| `task:linked`           | `{ sourceId, targetId, linkType }`                                            | Task link created                      |
-| `task:unlinked`         | `{ sourceId, targetId }`                                                      | Task link deleted                      |
-| `task:commented`        | `{ taskId, comment: { id, body } }`                                           | Comment added to task                  |
-| `task:due_date_changed` | `{ taskId, dueDate, userIds }`                                                | Task due date set/changed/cleared      |
+| `task:status_changed`   | `{ task: { id, title }, fromStatus, toStatus, toStatusCategory, isTerminal }` | Status changed                         |
+| `task:assigned`         | `{ taskId, userId, assignedBy }`                                              | User assigned                          |
+| `task:unassigned`       | `{ taskId, userId }`                                                          | User unassigned                        |
+| `task:linked`           | `{ sourceId, targetId, linkType }`                                            | Link created                           |
+| `task:unlinked`         | `{ sourceId, targetId }`                                                      | Link deleted                           |
+| `task:commented`        | `{ taskId, comment: { id, body } }`                                           | Comment added                          |
+| `task:due_date_changed` | `{ taskId, dueDate, userIds }`                                                | Due date set/changed/cleared           |
 | `task:time_logged`      | `{ taskId, timeEntry: { id, duration, userId } }`                             | Reserved — defined but never published |
 
-`task:time_logged` is reserved: no workflow publishes it today.
-
-`task:due_date_changed` (`userIds` = assignees ∪ reporter) is consumed by the `@aspen-os/calendar` task bridge to materialize/cancel task reminders (`calendar_reminder` rows with `targetType = task`). The bridge also consumes `task:deleted` (delete all task reminders for the task) and `task:status_changed` (delete pending reminders when `isTerminal` or `toStatusCategory` is `completed`/`cancelled`). The former `reminder:fired` event was removed with the reminder surface — reminders now fire `calendar:reminder_due` from the calendar dispatcher. Tasks stays `$dependencies = []` — no direct cross-module calls.
-
-## Usage
-
-```ts
-// Subscribe to task creation
-await p.pubsub.subscribe("task:created", async (message) => {
-  const { task } = message.data;
-  // React to new task
-});
-
-// Subscribe to due date changes
-await p.pubsub.subscribe("task:due_date_changed", async (message) => {
-  const { taskId, dueDate, userIds } = message.data;
-  // Calendar's task bridge materializes reminders here
-});
-```
-
-<Callout type="info">
-  The event map (`TaskDomainEventMap`) is a type-level contract. Events are published as plain
-  string topics via PubSub — the map provides TypeScript inference for subscribers but does not
-  enforce topics at runtime. Unsubscribed topics are silently dropped by pg-boss; the health check
-  flags only topics actually published.
-</Callout>
+`task:due_date_changed` (`userIds` = assignees ∪ reporter) is consumed by `@aspen-os/calendar` to materialize `calendar_reminder` rows (`targetType = task`); `task:deleted` and terminal `task:status_changed` cancel them.

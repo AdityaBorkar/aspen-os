@@ -6,67 +6,53 @@ icon: IconInfoCircle
 
 The platform is organized around three concepts: **units** (infrastructure), **modules** (domain logic), and the platform **orchestrator** — one of three platform classes — that wires them together.
 
-## Architecture
-
-```text
-                    PLATFORM ORCHESTRATOR
-
-  SingleTenantPlatform / SharedTenantPlatform / IsolatedTenantPlatform
-                         │
-  BasePlatform.createCore(db, config, modules)
-    ├── Instantiates 8 units in dependency order
-    │   logs → audit → pubsub → auth → storage → kvStore → rpc
-    │   (db passed in; pubsub.setAuth(auth) after auth creation)
-    │
-    └── Validates module $dependencies
-        └── Calls mod.$initialize(units) for each module
-            └── Returns Proxy-wrapped platform instance
-
-  Proxy access:
-    platform.db          → DatabaseUnit
-    platform.auth         → AuthUnit
-    platform.organization → Organization (module instance by $name)
-    platform.getUnit("db")
-    platform.getModule("organization")
-```
-
 ## Entry Surfaces
 
-`@aspen-os/platform` declares only `./client` and `./server` in its `exports`. No bare `"."` entry — import via subpaths.
+`@aspen-os/platform` declares three subpaths in `exports`:
+
+```json title="package.json"
+{
+  "exports": {
+    "./client": "./.output/client/index.js",
+    "./server": "./.output/server/index.js",
+    "./server/db-schemas": "./.output/server/db/schema/index.js"
+  }
+}
+```
+
+No bare `"."` entry — import via subpaths. `./server/db-schemas` re-exports the platform's Drizzle schemas (`audit_log`, `workflow_runs`, etc.) for external tooling.
 
 ### Server (`@aspen-os/platform/server`)
 
 Exports three platform classes, all extending `BasePlatform`:
 
-- `SingleTenantPlatform` — single DB, `run(fn)`
+- `SingleTenantPlatform` — single DB, `run(tenantId, fn)` with `"$global"` sentinel
 - `SharedTenantPlatform` — one DB with RLS, `run(tenantId, fn)`
-- `IsolatedTenantPlatform` — DB-per-tenant, `run(tenantId, fn)`
+- `IsolatedTenantPlatform` — DB-per-tenant, `run(tenantId, fn)` with per-tenant pools (overrides `$prepareInfra`)
 
 Also exports:
 
-- `BasePlatform` (abstract), `CommonConfig` type
+- `BasePlatform`, `CommonConfig` type
 - `getContext()` — access `AsyncLocalStorage` inside `run()`
 - `Workflow`, `WorkflowStep` — durable workflow builder
 - `Unit`, `Module` interfaces, `ModuleInfra` type
 - `defineAcl`, `AclDeclaration`
-- `isGlobalTenantId`
-- All 8 unit classes and their config types:
-  `AuditUnit`, `AuthUnit`, `DatabaseUnit`, `KvStoreUnit`, `LogUnit`, `PubSubUnit`, `RpcUnit`, `StorageUnit`
+- `isGlobalTenantId`, `generateUuidv7`, `uuidv7`
+- All 8 unit classes and their config types
 - `PlatformInstance`, `PlatformUnits`, `TenancyMode`, `TenantResolver` types
+- `context`, `password`, `EmailSchema` etc.
 
 ### Client (`@aspen-os/platform/client`)
 
-Exports a single `Platform` class (browser-side, 3 units):
+Exports a single `Platform` class (browser-side, 3 units: `auth`, `logs`, `rpc` stubs). Client `AuthUnit` takes only `AuthConfig`; no `db`, no tenancy.
 
-- `AuthUnit` — wraps better-auth React client
-- `LogUnit` — stub (throws on `$prepareInfra`/`$cleanup`)
-- `RpcUnit` — stub (no-op)
+<Callout type="warn">
+  Server `run(tenantId, fn)` requires a tenant id (`"$global"` for control-plane / single-tenant). Client `Platform.run(fn)` takes **no** tenant id — it sets `{ auth, logs, rpc }` on `AsyncLocalStorage` and invokes `fn()` synchronously.
+</Callout>
 
-Client `AuthUnit` takes only `AuthConfig` (better-auth options). No `access_control` or `roles` config.
+## Configuration
 
-## Config Types
-
-Each platform class defines its own config that extends `CommonConfig`:
+Each platform class extends `CommonConfig` with its own `db` shape:
 
 ```ts title="src/server/base-platform.ts"
 type CommonConfig = {
@@ -77,120 +63,120 @@ type CommonConfig = {
   rpc: RpcConfig;
   storage: StorageConfig;
 };
+// SingleTenantConfig  = CommonConfig & { db: DatabaseConfig }
+// SharedTenantConfig  = CommonConfig & { db: DatabaseConfig }
+// IsolatedTenantConfig= CommonConfig & { db: IsolatedTenantDatabaseConfig }
 ```
 
-`CommonConfig` does **not** include `db` or `tenancy` — these are the platform class's responsibility:
+`CommonConfig` has no `db` — the tenancy mode is the `DatabaseUnit` constructor's second arg, not a config field. `IsolatedTenantDatabaseConfig` carries `controlPlaneDbName`, `tenantDbPrefix`, `tenantDbDefaults`, and a `TenantResolver`.
 
-```ts
-// SingleTenantConfig = CommonConfig & { db: DatabaseConfig }
-// SharedTenantConfig   = CommonConfig & { db: DatabaseConfig }
-// IsolatedTenantConfig = CommonConfig & { db: IsolatedTenantDatabaseConfig }
+## Architecture
+
+```mermaid
+flowchart TB
+  Create["Platform.create(config, modules: Module[])"] --> Core["BasePlatform.createCore(db, CommonConfig, modules)"]
+  Core --> Units["instantiate 8 units\nlogs → audit → pubsub → auth\nstorage → kvStore → rpc\n(db passed in; pubsub.setAuth(auth))"]
+  Units --> Validate["validate module $dependencies"]
+  Validate --> Init["mod.$initialize(units)"]
+  Init --> Proxy["return Proxy-wrapped instance"]
+  Proxy --> Access["Proxy access\np.db → DatabaseUnit\np.auth → AuthUnit\np.organization → module by $name\np.getUnit / p.getModule"]
 ```
-
-Tenancy mode is a `DatabaseUnit` constructor argument, not a config field.
 
 ## Lifecycle
 
-```text
-SingleTenantPlatform.create(config, modules)   creates units + validates deps + initializes modules
-    ↓
-p.$prepareInfra()                               unit.$prepareInfra() → mod.$prepareInfra() (merges ACL/schemas)
-                                                → db.prepareWithModules()
-                                                → auth.applyModuleAcl()
-                                                → mod.$prepareRuntime()
-    ↓
-p.run(tenantId, fn)                             AsyncLocalStorage { audit, auth, db, log, pubsub }
-                                                "$global" → control-plane db; else per-tenant db (isolated)
-    ↓
-p.$cleanup()                                    mod.$cleanup() → unit.$cleanup()
+```mermaid
+flowchart TB
+  A["SingleTenantPlatform.create(config, modules)\ninstantiates units + validates deps + $initialize"] --> B["p.$prepareInfra()"]
+  B --> B1["unit.$prepareInfra() in parallel\n(rethrows per-unit with name)"]
+  B1 --> B2["collect mod.$prepareInfra()\n→ merged ACL + control_plane_schemas + tenant_schemas"]
+  B2 --> B3["db.prepareWithModules(merged...) – pushSchemasTo controlPlaneDb"]
+  B3 --> B4["auth.applyModuleAcl(mergedAcl)"]
+  B4 --> B5["mod.$prepareRuntime() in parallel\nrun('$global', ...)"]
+  B5 --> C["p.run(tenantId, fn)\nAsyncLocalStorage { audit, auth, db, log, pubsub }"]
+  C --> D["p.$cleanup()\nPromise.allSettled modules + units\n→ throw AggregateError if any fail"]
+  D --> E["pool.end() / boss.stop()"]
 ```
 
 ### `create(config, modules)`
 
-Static factory — the **only** way to construct a platform. Accepts modules as an **array**, not an object:
+Static factory — the **only** way to construct a platform. Modules are an **array**, not an object:
 
 ```ts
 const p = SingleTenantPlatform.create(config, [organizationModule]);
 ```
 
-Inside `BasePlatform.createCore()`:
-
-1. Instantiates all 8 units in dependency order
-2. Cross-wires `pubsub.setAuth(auth)`
-3. Validates each module's `$dependencies` are present
-4. Calls `mod.$initialize?.(units)` on each module
-5. Returns a Proxy-wrapped instance
-
-<Callout type="warn">
-  No `new Platform()`, no `registerModule()`. All modules passed at construction time.
-</Callout>
+Inside `createCore()`: instantiate units in dependency order, cross-wire `pubsub.setAuth(auth)`, validate `$dependencies`, call `$initialize`, return Proxy.
 
 ### `$prepareInfra()`
 
-Calls each unit's `$prepareInfra()`, collects `ModuleInfra` from modules (merged ACL and DB schemas), calls `db.prepareWithModules()` to push schemas, calls `auth.applyModuleAcl()`, then runs each module's `$prepareRuntime()`. In shared mode, applies RLS policies. In isolated mode, iterates tenants and calls `$prepareTenant()`.
+Base implementation: runs every unit's `$prepareInfra()` (`Promise.all`, rethrows per-unit as `Failed to prepare unit "name"`), merges `ModuleInfra` (schemas + ACL), calls `db.prepareWithModules(controlSchemas, tenantSchemas)` on the control-plane DB, applies ACL via `auth.applyModuleAcl`, then runs each module's `$prepareRuntime()` via `run("$global", ...)`.
+
+`SharedTenantPlatform` does **not** auto-apply RLS — call `db.applyRlsPolicies(db)` explicitly. `IsolatedTenantPlatform` **overrides** `$prepareInfra`: prepares `db`/`auth` with `try/catch` + `console.error`, prepares remaining units sequentially, runs `$prepareRuntime` per-module with `run("$global", ...)`, then iterates `resolver.list()` and runs `mod.$prepareTenant?.(tenantId)` per tenant (also `console.error` on failure, not throw).
 
 ### `run(tenantId, fn)`
-
-Executes `fn` inside `AsyncLocalStorage` providing `{ audit, auth, db, log, pubsub, tenantId? }`:
-
-- `auth` — the `AuthUnit` (not raw betterAuth)
-- `db` — control-plane `PostgresJsDatabase` (or per-tenant in isolated mode)
-- `pubsub` — the `PubSubUnit`
-- `audit` — the `AuditUnit`
-- `log` — the `LogUnit`
-- `tenantId` — the passed tenant id (`"$global"` for control-plane work)
 
 ```ts title="src/server/base-platform.ts"
 run<TValue>(tenantId: string, fn: () => TValue | Promise<TValue>): Promise<TValue>
 ```
 
-One signature — no overloads. Single-tenant callers pass `"$global"` (resolves to the control-plane DB); shared/isolated callers pass the real tenant id. `isGlobalTenantId()` tests for `"$global"`.
+One signature — no overloads. Single-tenant callers pass `"$global"` (resolves to `controlPlaneDb`); shared callers run inside `db.runWithTenant` only when the workflow explicitly uses it; isolated callers resolve `getTenantDb(tenantId)` and expose it via `context`. Inside `fn`, `getContext()` yields `{ audit, auth, db, log, pubsub, tenantId? }`.
 
 ### `$cleanup()`
 
-Runs `mod.$cleanup()` then `unit.$cleanup()`. Errors are caught and logged per-item.
+```ts title="src/server/base-platform.ts"
+async $cleanup(): Promise<void> {
+  const moduleResults = await Promise.allSettled(modules.map(m => run("$global", () => m.$cleanup())));
+  const unitResults   = await Promise.allSettled(Object.values(units).map(u => u.$cleanup()));
+  const failures = [...moduleResults, ...unitResults].flatMap(r => r.status==="rejected"?[r.reason]:[]);
+  if (failures.length) throw new AggregateError(failures, `Failed to clean up ${failures.length} unit(s)/module(s)`);
+}
+```
+
+Aggregate — not per-item logging. Modules are cleaned before units.
+
+## Dependency Graph
+
+```mermaid
+flowchart TB
+  DB[(DatabaseUnit)]
+  DB --> Audit[AuditUnit]
+  DB --> Logs[LogUnit]
+  DB --> PubSub[PubSubUnit]
+  Audit --> PubSub
+  Logs --> PubSub
+  DB --> Auth[AuthUnit]
+  PubSub --> Auth
+  DB --> Storage[StorageUnit]
+  DB --> KvStore[KvStoreUnit]
+  Auth --> Rpc[RpcUnit]
+  DB --> Rpc
+  Logs --> Rpc
+  PubSub --> Rpc
+```
+
+`DatabaseUnit` is the root; `RpcUnit` is the most connected (4 deps).
 
 ## Diagnostics
 
-No `healthCheck()` exists on the platform. Use the RPC health procedure and the PubSub probes directly:
+No `healthCheck()` on the platform. Use the RPC procedure and PubSub probes:
 
 ```ts
 const result = await p.rpc.server.handle(request, { db: p.db.db, pubsub: p.pubsub });
 // router.health.check → { status: "ok" }
 
-await p.pubsub.getQueueSize("some:topic"); // pubsub connectivity probe, works on unregistered topics
-p.pubsub.getUnsubscribedProducedTopics(); // topics published to with no subscriber (pg-boss silently drops these)
+await p.pubsub.getQueueSize("some:topic"); // works on unregistered topics
+p.pubsub.getUnsubscribedProducedTopics(); // topics published with no subscriber
 ```
-
-## Dependency Graph
-
-Units are constructor-injected. `DatabaseUnit` is the root — every other unit depends on it directly or transitively.
-
-| Unit      | Injected deps                                                                  |
-| --------- | ------------------------------------------------------------------------------ |
-| `db`      | — (owns `postgres.Sql` pool + drizzle, plus tenancy state)                     |
-| `audit`   | `{ db }`                                                                       |
-| `logs`    | `{ db }`                                                                       |
-| `pubsub`  | `{ audit, db, log }`                                                           |
-| `auth`    | `{ db, pubsub }` — wired after creation: `pubsub.setAuth(auth)`                |
-| `storage` | `{ db }`                                                                       |
-| `rpc`     | `{ auth, db, logs, pubsub }` (unused at construction; context at request time) |
-| `kvStore` | `{ db }`                                                                       |
 
 ## Accessing Units and Modules
 
-The platform instance is a Proxy that intercepts property access:
+The instance is a Proxy — units first, then modules by `$name`:
 
 ```ts
-// Proxy access (preferred)
 p.db; // → DatabaseUnit
 p.auth; // → AuthUnit
-p.organization; // → Organization (module instance by $name)
-p.management; // → ManagementPlane module ($name = "management")
-
-// Typed accessors
+p.organization; // → Organization (module $name)
+p.management; // → ManagementPlane
 p.getUnit("db"); // → DatabaseUnit
-p.getModule("organization"); // throws if not found
+p.getModule("organization"); // throws if missing
 ```
-
-The Proxy checks units first, then modules. If a property matches a unit key, the unit is returned; otherwise it checks modules by `$name`; otherwise falls through to `BasePlatform` methods.

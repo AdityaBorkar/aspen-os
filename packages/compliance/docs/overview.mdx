@@ -1,10 +1,10 @@
 ---
 title: Overview
-description: Architecture, initialization, and module structure of the Compliance domain module.
+description: Architecture, initialization, and runtime wiring of the Compliance domain module.
 icon: IconInfoCircle
 ---
 
-The Compliance module manages compliance documents through their full lifecycle — creation, submission, verification, expiry, renewal, and archival — with obligation templates, automated reminders, and audit trails.
+The Compliance module manages compliance documents through their full lifecycle — creation, submission, verification, expiry, renewal, and archival — with obligation templates and audit trails.
 
 ## Module
 
@@ -13,102 +13,99 @@ export class Compliance implements Module {
   static create(config: ComplianceModuleConfig): Compliance;
   readonly $name = "compliance";
   readonly $dependencies: readonly string[] = [];
+  readonly $consumes: readonly string[] = [
+    "hr:employee_onboarded",
+    "hr:employee_separated",
+    "fleet:vehicle_registered",
+    "masters:org_branch_created",
+    "accounting:financial_year_started",
+    "masters:contact_created",
+  ];
 }
 ```
 
-`ComplianceModuleConfig`:
+## Configuration
 
-| Option                  | Type        | Default | Description                              |
-| ----------------------- | ----------- | ------- | ---------------------------------------- |
-| `country`               | `"INDIA"`   | —       | Country-specific configuration           |
-| `dashboardCacheTtl`     | `number?`   | `300`   | KV cache TTL for dashboard summary       |
-| `defaultReminderDays`   | `number[]?` | —       | Days before expiry/due to send reminders |
-| `defaultEscalationDays` | `number[]?` | —       | Days after expiry to escalate            |
-
-## Initialization
-
-```ts
-$initialize(units: { db: DatabaseUnit; kvStore: KvStoreUnit; pubsub: PubSubUnit }): void {
-  this.#db = units.db;
-  this.#pubsub = units.pubsub;
-  this.#kvStore = units.kvStore;
+```ts title="src/module.ts"
+export interface ComplianceModuleConfig {
+  country: "INDIA";
+  dashboardCacheTtl?: number; // default 300
+  defaultReminderDays?: number[];
+  defaultEscalationDays?: number[];
 }
 ```
 
-## Runtime
-
-`$prepareRuntime()` registers the module's schedules and handlers:
-
-1. Reminder schedules via `registerReminderSchedules()`
-2. Reminder handlers (`registerReminderHandlers`) — needs `ctx.audit`
-3. Obligation generator handler (`registerObligationGenerator`)
-4. Event-bridge subscriptions (`registerEventBridgeSubscriptions`) — listens to organization events
-
-`$cleanup()` unregisters all of them. `$prepareInfra()` declares the module's ACL, DB schemas, and events.
-
-## Module Structure
-
-```text
-packages/compliance/src/
-  module.ts             # Module class (Compliance.create, $prepareInfra/Runtime/Cleanup)
-  index.ts              # Re-exports module + types
-  auth.ts               # ACL declaration
-  db-schemas/           # tables + enums (tenant_schemas; control_plane empty)
-  types.ts              # DashboardSummary, TimelineEntry, re-exports
-  utils/constants.ts    # Enums, defaults, cron schedules, scheduled job names
-  pubsub.ts             # COMPLIANCE_EVENTS + event interfaces + ComplianceEventMap
-  schemas/              # Valibot input/filter schemas
-  workflow-steps/       # fetch-document/obligation/rule, status-derivation
-  workflows/
-    document.ts (dir)   # lifecycle + reminder/scan queries
-    obligation.ts (dir)
-    verification.ts (dir)
-    audit.ts (dir)
-    dashboard.ts (dir)
-  services/
-    reminder-engine.ts
-    obligation-generator.ts
-    event-bridge.ts
-```
-
-## Workflow Accessors
-
 ```ts
-p.compliance.documents; // → DocumentWorkflow
-p.compliance.obligations; // → ObligationWorkflow
-p.compliance.verification; // → VerificationWorkflow
-p.compliance.audit; // → AuditWorkflow
-p.compliance.dashboard; // → DashboardWorkflow
+const compliance = Compliance.create({ country: "INDIA" });
+SingleTenantPlatform.create(config, [compliance]);
 ```
 
-## Scheduled Jobs
+## Dependencies
 
-| Job Name                             | Cron        | Registered by                      |
-| ------------------------------------ | ----------- | ---------------------------------- |
-| `compliance:daily-expiry-scan`       | `0 8 * * *` | `registerReminderSchedules()`      |
-| `compliance:daily-status-transition` | `0 0 * * *` | `registerReminderSchedules()`      |
-| `compliance:daily-escalation`        | `0 9 * * *` | `registerReminderSchedules()`      |
-| `compliance:weekly-summary`          | `0 9 * * 1` | `registerReminderSchedules()`      |
-| `compliance:obligation-generate`     | `0 6 * * *` | Subscribed only — no cron fires it |
+No hard module dependencies. Runtime requires platform units `db`, `kvStore`, `pubsub` (stored in `$initialize`) and an `audit` context from `getContext()` at `$prepareRuntime` time. Optional peer topics in `$consumes` are introspection-only — a missing producer (including stub modules) silently no-ops, so compliance composes solo or in any subset.
+
+## Architecture
+
+```mermaid
+flowchart TB
+  subgraph Platform
+    P[Platform.create] --> PrepInfra["$prepareInfra()\ndeclares acl + db schemas + events"]
+    PrepInfra --> Init["$initialize({db,kvStore,pubsub})"]
+    Init --> Runtime["$prepareRuntime()"]
+    Runtime --> OG["registerObligationGenerator()\nsubscribes compliance:obligation-generate"]
+    Runtime --> EB["registerEventBridgeSubscriptions()\nsubscribes 8 external topics"]
+    OG & EB --> Topics["#topics[]"]
+    Topics --> Cleanup["$cleanup()\nunsubscribe all Topics"]
+  end
+  subgraph DB
+    TenantSchemas["tenant_schemas: document, obligation, verification_rule"]
+  end
+  PrepInfra -.-> TenantSchemas
+  EB -.->|"hr / fleet / masters / accounting"| HR[External modules]
+```
+
+`$prepareInfra()` returns `{ auth: { acl }, db: { control_plane_schemas: {}, tenant_schemas }, events }`. `$initialize` stores unit handles; `$prepareRuntime` registers only the two runtime subscriptions; `$cleanup` unsubscribes and clears state. No reminder schedules are registered.
+
+## Key Concepts
+
+### Tenant-Scope
+
+All three tables (`document`, `obligation`, `verification_rule`) live in `tenant_schemas` (per-tenant in isolated mode, single DB in single/shared mode). Every document carries `sourceModule`/`sourceEntityId` soft links to external entities — no hard FK across modules.
+
+### Obligation Templates
+
+`obligation` rows are recurring-templates (`frequency`, `periodBased`/`expiryBased`, `autoGenerate`). The obligation generator materializes `document` rows per period, copying defaults (`reminderDays`, `escalationDays`, `assignedTo`, reviewer, jurisdiction).
+
+### Verification Flow
+
+`verification_status` derives from workflow actions (`submit` → `under_review` → `verified`/`rejected`, past `expiryDate` → `expired`/`overdue`, `renew` archives old and creates new). `verification_rule` auto-assigns `assigned_reviewer` by `category`/`sourceModule` priority.
+
+## Relationships
+
+```mermaid
+flowchart LR
+  Obligation -- "1:N soft FK obligation_id" --> Document
+  Document -- "self soft FK renewed_from" --> Document
+  Branch["organization branch"] -- "soft FK branch" --> Document
+  Document -. "sourceModule/sourceEntityId" .-> External["hr / fleet / masters / accounting entities"]
+  VerificationRule -- "matches category + sourceModule" --> Document
+```
+
+Soft FKs are logical — enforced by workflows and event-bridge dedup, not DB constraints.
+
+## Runtime Wiring
+
+`$prepareRuntime()` registers exactly two participants:
+
+1. **Obligation generator** — `pubsub.subscribe("compliance:obligation-generate", generatePendingDocuments)` via `registerObligationGenerator()`; handler iterates `obligations.getActive`, computes periods, dedupes by `obligationId:periodStart:periodEnd:dueDate:expiryDate`, then `documents.create` + `publish("compliance:document_generated")`.
+2. **Event bridge** — `registerEventBridgeSubscriptions({ audit, db, pubsub })` subscribes 8 topics (6 logical peers; `branch:created` aliases) validating with Valibot and deduping by `{sourceModule, sourceEntityId, documentType}`.
+
+No reminder crons are registered — expiry/due reminders are published by document workflows as `compliance:document_expiring` facts consumed by the calendar bridge.
 
 <Callout type="warn">
-  `CRON_SCHEDULES.OBLIGATION_GENERATE` (`0 6 * * *`) is defined but never passed to
-  `pubsub.schedule()`. The obligation generator subscribes to the topic; trigger it externally or
-  via `generatePendingDocuments()` until a schedule is registered.
+  `CRON_SCHEDULES` and `SCHEDULED_JOBS` (`daily-expiry-scan`, `daily-status-transition`,
+  `daily-escalation`, `weekly-summary`, plus `obligation-generate` at `0 6 * * *`) are defined in
+  `src/utils/constants.ts` but **never passed to `pubsub.schedule()`**. The obligation generator
+  subscribes to its topic — trigger it externally or via `generatePendingDocuments()` until a
+  schedule is registered. Reminder jobs are deprecated; see `services/reminder-engine.ts` stub.
 </Callout>
-
-## Package
-
-```json title="package.json"
-{
-  "name": "@aspen-os/compliance",
-  "type": "module",
-  "exports": { ".": "./src/index.ts" },
-  "dependencies": {
-    "@aspen-os/platform": "workspace:*",
-    "@aspen-os/constants": "workspace:*",
-    "drizzle-orm": "catalog:",
-    "valibot": "catalog:"
-  }
-}
-```

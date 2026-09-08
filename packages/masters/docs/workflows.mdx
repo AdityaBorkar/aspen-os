@@ -1,108 +1,57 @@
 ---
 title: Workflows
-description: API reference for the workflow groups exposed by the Masters module.
+description: Workflows exposed by the Masters module.
 icon: IconListCheck
 ---
 
-Nine workflow groups via `p.masters`: `contacts`, `addresses`, `bankAccounts`, `connections`, `entities`, `paymentMethods`, `unitsOfMeasure`, `filterViews`, `settings`.
+Workflow groups via `p.masters` — `addresses`, `contacts`, `entities`, `orgBranches` (`branches` alias), `paymentMethods`, `settings`, `unitsOfMeasure`, `labels`, and `connections` (access key `p.masters`).
 
-Scoped entities (`addresses`, `bankAccounts`, `connections`, `paymentMethods`) require `entityType` + `entityId` on create/list. `contacts` scope is optional (omitted = global address-book entry). `entities` and `unitsOfMeasure` are tenant-level. Create takes Valibot-validated input; update takes `{ id, patch }`. Each operation audit-logs and publishes a domain event.
+Scoped groups (`addresses`, `contacts`, `connections`, `paymentMethods`) require `entityType` + `entityId` on create/list; `contacts` allows null scope for global entries. Create takes Valibot-validated `input` and update takes `{ id, patch }`, each mutation audit-logs and publishes a domain event.
 
 ## Features
 
-### Contacts
-
-Access: `p.masters.contacts`
-
-Contact records: business relationships (`vendor`, `client`, `insurer`, …) scoped to an owner, plus global address-book entries absorbed from DMS (external sharing handles, optionally linked to an internal user).
-
-```ts
-await p.masters.contacts.create({ entityType: "organization", entityId, name, type: "insurer", email });
-await p.masters.contacts.create({ input: { firstName, lastName, email, phone, company, title } }); // global
-await p.masters.contacts.get({ id });
-await p.masters.contacts.update({ id, patch });
-await p.masters.contacts.delete({ id }); // hard delete
-
-// Soft remove — reason required; DMS revokes every share granted to the contact
-await p.masters.contacts.remove({ id, input: { reason: "Left the project" } });
-
-const contacts = await p.masters.contacts.list({ entityType: "organization", entityId, filters? });
-const all = await p.masters.contacts.list({ filters: { search, type, isRemoved } }); // global search
-```
-
-On create, `name` may be omitted when both `firstName` and `lastName` are given (derived as `"first last"`); `type` defaults to `other`. DMS field mapping: `companyName` → `company`, `designation` → `title`. Only organization-scoped insurer contacts trigger the compliance insurance flow.
-
 ### Addresses
 
-Access: `p.masters.addresses`
-
-Address records scoped per `(entityType, entityId)`. `AddressSchema` is the single canonical
-address shape — every other module must reference it instead of redefining address fields.
-Country codes are ISO 3166-1 alpha-2, normalized to uppercase at the schema boundary and stored uppercase.
-
 ```ts
-import { AddressSchema } from "@aspen-os/masters";
-
-await p.masters.addresses.create({ entityType: "organization", entityId, line1, city, state, postalCode, country, label });
 await p.masters.addresses.create({
-  input: { entityType: "branch", entityId: branch.id, line1, city, country },
+  entityType: "organization",
+  entityId,
+  line1,
+  city,
+  state,
+  postalCode,
+  country,
+  label,
 });
 await p.masters.addresses.get({ id });
-await p.masters.addresses.update({ id, patch });
+await p.masters.addresses.update({ id, patch: { city, state } });
 await p.masters.addresses.delete({ id });
-
-const addresses = await p.masters.addresses.list({ entityType: "organization", entityId, filters? });
+await p.masters.addresses.list({ entityType: "organization", entityId });
 ```
 
-### Bank Accounts
+Country is ISO 3166-1 alpha-2, normalized uppercase.
 
-Access: `p.masters.bankAccounts`
-
-Bank account records with a primary flag and active toggle, scoped per `(entityType, entityId)`.
+### Contacts
 
 ```ts
-await p.masters.bankAccounts.create({ entityType, entityId, accountHolderName, accountNumber, bankName, ... });
-await p.masters.bankAccounts.get({ id });
-await p.masters.bankAccounts.update({ id, patch });
-await p.masters.bankAccounts.delete({ id });
-await p.masters.bankAccounts.setPrimary({ id });
-await p.masters.bankAccounts.activate({ id });
-await p.masters.bankAccounts.deactivate({ id });
-
-const accounts = await p.masters.bankAccounts.list({ entityType, entityId, filters? });
-```
-
-### Connections
-
-Access: `p.masters.connections`
-
-Integration connections to external APIs/entities. Credentials are stored in the platform `kvStore` (referenced by `credentialRef`); the module holds no plaintext secret material.
-
-```ts
-await p.masters.connections.create({
-  entityType, entityId,
-  name, type: "api_key", baseUrl: "https://api.example.com",
-  credential: { apiKey: "..." },
+await p.masters.contacts.create({
+  entityType: "organization",
+  entityId,
+  name,
+  type: "insurer",
+  email,
 });
-await p.masters.connections.get({ id });
-await p.masters.connections.update({ id, patch });
-await p.masters.connections.delete({ id });
-
-// Endpoint validation — issues a GET to baseUrl (10s timeout) and records lastTestedAt
-const result = await p.masters.connections.check({ id });
-// { ok, status, testedAt, error? }
-
-// Credential rotation — writes a new kvStore secret and bumps credentialRef
-await p.masters.connections.rotateCredential({ id, credential: { apiKey: "..." } });
-
-const connections = await p.masters.connections.list({ entityType, entityId, filters? });
+await p.masters.contacts.create({ input: { firstName, lastName, email, phone, company, title } }); // global when entityType/entityId omitted
+await p.masters.contacts.get({ id });
+await p.masters.contacts.update({ id, patch: { phone } });
+await p.masters.contacts.list({ entityType: "organization", entityId });
+await p.masters.contacts.remove({ id, input: { reason: "Left the project" } }); // soft-remove with reason
+await p.masters.contacts.delete({ id }); // hard delete
 ```
+
+Global contacts have `entity_type` / `entity_id` null.
 
 ### Entities
-
-Access: `p.masters.entities`
-
-Tenant-level business parties (company/institution) with rich metadata (`ENTITY_TYPE`, `ENTITY_STATUS`, taxId, registrationNumber, …). Optional `organizationId` links an entity to an `organization` profile. `code` is unique per tenant.
 
 ```ts
 await p.masters.entities.create({
@@ -110,26 +59,35 @@ await p.masters.entities.create({
   type: "hospital",
   industry: "Healthcare",
   taxId,
-  registrationNumber,
-  foundedDate,
   timezone: "Asia/Kolkata",
 });
 await p.masters.entities.get({ id });
-await p.masters.entities.update({ id, patch });
+await p.masters.entities.update({ id, patch: { status: "archived" } });
 await p.masters.entities.delete({ id });
-
-const entities = await p.masters.entities.list({
-  filters: { type, status, organizationId, search, limit, offset },
-});
+await p.masters.entities.list({ filters: { type, status, search } });
 ```
 
-Status transitions are enforced on `update` via the `status` patch field: `active` ↔ `inactive`, and both → `archived` (terminal).
+`code` is unique per tenant. Status `active ↔ inactive → archived` (terminal).
 
-### Payment Methods
+### Org branches
 
-Access: `p.masters.paymentMethods`
+```ts
+await p.masters.orgBranches.create({
+  name,
+  code: "HQ-001",
+  type: "headquarters",
+  parentOrgBranch: parentId,
+});
+await p.masters.orgBranches.get({ id });
+await p.masters.orgBranches.list({ filters: { type, parentOrgBranch } });
+await p.masters.orgBranches.tree({ id }); // subtree rooted at id
+await p.masters.orgBranches.update({ id, patch: { name, capacity } });
+// deprecated alias: p.masters.branches === p.masters.orgBranches
+```
 
-Modes of payment scoped per `(entityType, entityId)`. Type-specific fields are validated: `card` requires `cardBrand`/`cardLast4`/`cardExpiryMonth`/`cardExpiryYear` (masked only); `upi` requires `upiId`; `bank_account`/`imps`/`cheque` require `bankAccountId`. `setPrimary` enforces one primary per `(entityType, entityId, direction)`.
+`code` is unique. `parent_org_branch` is self-referential; root rows have `null`.
+
+### Payment methods
 
 ```ts
 await p.masters.paymentMethods.create({
@@ -141,46 +99,27 @@ await p.masters.paymentMethods.create({
   direction: "both",
 });
 await p.masters.paymentMethods.get({ id });
-await p.masters.paymentMethods.update({ id, patch });
+await p.masters.paymentMethods.update({ id, patch: { name } });
 await p.masters.paymentMethods.delete({ id });
-await p.masters.paymentMethods.setPrimary({ id });
 await p.masters.paymentMethods.activate({ id });
 await p.masters.paymentMethods.deactivate({ id });
-
-const methods = await p.masters.paymentMethods.list({
-  entityType,
-  entityId,
-  filters: { type, direction, status },
-});
+await p.masters.paymentMethods.setPrimary({ id }); // one primary per (entityType, entityId, direction)
+await p.masters.paymentMethods.list({ entityType, entityId, filters: { type, direction, status } });
 ```
 
-### Filter Views
+Card data is masked only (`card_brand`, `card_last4`, expiry). `setPrimary` clears other primaries in scope.
 
-Access: `p.masters.filterViews`
-
-Cross-domain saved filter/sort/group configurations, consolidated from tasks saved views, DMS file views, and workspace views. `domain` is free-form `<module>:<entity>` text (`tasks:task`, `dms:file`, `notes:note`, `hr:employee`, `compliance:document`, `workspace:draft`, …). `viewType` (`list`/`board`/`calendar`/`timeline`) preserves the tasks board layouts; `projectId` preserves tasks project scoping (`null` for other domains). `access` is user-set (`personal` owner-only, `global` org-wide); `list` enforces `global OR owner` at SQL level, and `get`/`update`/`delete` enforce owner-or-admin mutation. `isDefault` is unique per `(owner, domain, project)`. Storage-only: the module never executes a view — hosts read `conditions`/`sort` and query their own tables.
+### Settings
 
 ```ts
-await p.masters.filterViews.create({
-  input: { name, domain: "tasks:task", conditions, sort, viewType: "board", projectId },
-});
-await p.masters.filterViews.get({ id });
-await p.masters.filterViews.update({ id, input: { name, conditions } });
-await p.masters.filterViews.delete({ id });
-await p.masters.filterViews.duplicate({ id }); // personal copy under the caller
-await p.masters.filterViews.setDefault({ id });
-await p.masters.filterViews.getDefault({ ownerId, domain, projectId });
-
-const views = await p.masters.filterViews.list({
-  filters: { domain, access, isDefault, projectId, viewType, search },
-});
+await p.masters.settings.set({ key: "org.branding", value: { accentColor: "#0EA5E9" } });
+await p.masters.settings.set({ key: "home_dashboard", value: dashboardId }); // per-user when key not org.*
+await p.masters.settings.get({ key: "org.branding" });
 ```
 
-### Units of Measure
+`org.*` keys are tenant-wide (`user_id` null); other keys are per-user. `set` upserts.
 
-Access: `p.masters.unitsOfMeasure`
-
-Tenant-wide reference data. Exactly one base unit per `category`; derived units reference the category's base with a `conversionFactor`. A UOM referenced as another's `baseUnitId` cannot be deleted.
+### Units of measure
 
 ```ts
 await p.masters.unitsOfMeasure.create({
@@ -199,23 +138,52 @@ await p.masters.unitsOfMeasure.create({
   conversionFactor: 0.001,
 });
 await p.masters.unitsOfMeasure.get({ id });
-await p.masters.unitsOfMeasure.update({ id, patch });
-await p.masters.unitsOfMeasure.delete({ id });
-
-const units = await p.masters.unitsOfMeasure.list({ filters: { category, isActive } });
+await p.masters.unitsOfMeasure.update({ id, patch: { symbol } });
+await p.masters.unitsOfMeasure.delete({ id }); // blocked if referenced as base_unit_id
+await p.masters.unitsOfMeasure.list({ filters: { category, isActive } });
 ```
 
-### Settings
+One base unit per category; invariant enforced by workflow step.
 
-Access: `p.masters.settings`
-
-Tenant key–value store. Keys under the `org.` prefix are tenant-wide rows holding the organization profile (`org.id`, `org.branding`, `org.logo`); every other key is scoped to the acting user (consolidated from the workspace `workspace_setting` surface). `set` upserts and audit-logs; `get` returns the value or `null`. Well-known `org.*` keys are shape-validated; all other keys accept any JSON value.
+### Labels
 
 ```ts
-await p.masters.settings.set({ key: "org.id", value: "org-1" });
-await p.masters.settings.set({ key: "org.branding", value: { accentColor: "#0EA5E9", name } });
-await p.masters.settings.set({ key: "org.logo", value: "logos/aspen.png" });
-await p.masters.settings.set({ key: "home_dashboard", value: dashboardId });
-
-const orgId = await p.masters.settings.get({ key: "org.id" });
+await p.masters.labels.create({
+  name: "priority",
+  color: "#EF4444",
+  scopeType: "task",
+  scopeId: projectId,
+});
+await p.masters.labels.get({ id });
+await p.masters.labels.update({ id, patch: { color } });
+await p.masters.labels.delete({ id });
+await p.masters.labels.list({ filters: { scopeType, scopeId, search } });
+await p.masters.labels.apply({ input: { labelId, entityId, entityType: "task", appliedBy } });
+await p.masters.labels.remove({ entityId, entityType: "task", labelId });
+await p.masters.labels.listByLabel({ labelId }); // entities carrying the label
 ```
+
+Scoped labels: `scopeType` / `scopeId` nullable; global when both null. `apply` is idempotent via `onConflictDoNothing`.
+
+### Connections
+
+```ts
+await p.masters.connections.create({
+  entityType,
+  entityId,
+  name,
+  type: "api_key",
+  baseUrl: "https://api.example.com",
+  credential: { apiKey: "..." },
+});
+await p.masters.connections.get({ id });
+await p.masters.connections.update({ id, patch: { name, status: "inactive" } });
+await p.masters.connections.delete({ id });
+await p.masters.connections.check({ id }); // tests base_url, updates last_tested_at
+await p.masters.connections.rotateCredential({ id, credential: { apiKey: "..." } });
+await p.masters.connections.list({ entityType, entityId });
+```
+
+Credentials are stored in `kvStore` under `credential_ref`; plaintext never persists in the row. Requires `$initialize` `kvStore` unit.
+
+Events: see [Events](/docs/masters/events). Schema: see [Database Schema](/docs/masters/db-schemas).

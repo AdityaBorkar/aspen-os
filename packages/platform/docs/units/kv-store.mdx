@@ -4,165 +4,91 @@ description: Redis-like key-value store implemented over Postgres with TTL, scan
 icon: IconKey
 ---
 
-The `KvStoreUnit` (`$name: "kvStore"`) provides a Redis-like key-value API backed by a Postgres `UNLOGGED` table. It is a **core unit** — required in `PlatformConfig`, not optional.
+The `KvStoreUnit` (`$name: "kvStore"`) provides a Redis-like API over a Postgres `UNLOGGED` table. Core unit — required in config.
 
 ## Configuration
 
 ```ts title="src/server/kv-store/types.ts"
 interface KvStoreConfig {
-  defaultTtl?: number; // default: 3600 (seconds)
-  keyPrefix?: string; // default: "" (no prefix)
+  defaultTtl?: number; // default 3600 seconds
+  keyPrefix?: string; // default ""
 }
 ```
-
-### Example
 
 ```ts
-const kvConfig: KvStoreConfig = {
-  defaultTtl: 1800, // 30 minutes
-  keyPrefix: "recruiter",
-};
-```
-
-## Public API
-
-```ts title="src/server/kv-store/index.ts"
-class KvStoreUnit {
-  readonly $name = "kvStore";
-  readonly db_schema: typeof db_schema;
-
-  // Basic operations
-  async get(key: string): Promise<JsonValue | null>;
-  async set(key: string, value: JsonValue, ttl?: number): Promise<void>;
-  async del(key: string): Promise<void>;
-  async exists(key: string): Promise<boolean>;
-
-  // Counter operations
-  async increment(key: string, amount?: number): Promise<number>;
-  async decrement(key: string, amount?: number): Promise<number>;
-
-  // Cache-aside pattern
-  async getOrSet(key: string, factory: () => Promise<JsonValue>, ttl?: number): Promise<JsonValue>;
-
-  // Bulk operations
-  async clear(pattern?: string): Promise<void>;
-
-  async $prepareInfra(): Promise<void>;
-  async $cleanup(): Promise<void>;
-}
+const kvConfig: KvStoreConfig = { defaultTtl: 1800, keyPrefix: "recruiter" };
 ```
 
 ## Features
 
-### Basic Get/Set
+### Basic get/set
 
 ```ts
-// Set a value (uses defaultTtl if ttl not specified)
-await platform.kvStore.set("user:123:preferences", {
-  theme: "dark",
-  language: "en",
-});
-
-// Get a value (returns null if expired or not found)
-const prefs = await platform.kvStore.get("user:123:preferences");
-
-// Delete a value
+await platform.kvStore.set("user:123:preferences", { theme: "dark" });
+const prefs = await platform.kvStore.get("user:123:preferences"); // null if expired
 await platform.kvStore.del("user:123:preferences");
-
-// Check existence
 const exists = await platform.kvStore.exists("user:123:preferences");
 ```
 
-### TTL (Time-to-Live)
+Strings stored as-is; others JSON-serialized.
+
+### TTL
 
 ```ts
-// Custom TTL (overrides defaultTtl)
-await platform.kvStore.set("otp:123", "123456", 300); // 5 minutes
-
-// TTL of 0 or negative means no expiration
+await platform.kvStore.set("otp:123", "123456", 300); // 5 min
 await platform.kvStore.set("config:settings", config, 0); // never expires
 ```
 
 <Callout type="info">
-  Expired entries are **lazily evicted** on read — when `get()` encounters an expired entry, it
-  deletes it and returns `null`.
+  Expired entries are lazily evicted on `get()` — deleted then `null` returned.
 </Callout>
 
-### Counter Operations
-
-```ts
-// Increment (default by 1)
-await platform.kvStore.increment("visits:page:home"); // → 1
-await platform.kvStore.increment("visits:page:home", 5); // → 6
-
-// Decrement
-await platform.kvStore.decrement("credits:user:123"); // → -1
-await platform.kvStore.decrement("credits:user:123", 10); // → -11
-```
-
-### Cache-Aside Pattern
-
-The `getOrSet` method implements the cache-aside pattern — if the key exists, return the cached value; otherwise, call the factory, cache the result, and return it:
+### Cache-aside
 
 ```ts
 const dashboard = await platform.kvStore.getOrSet(
   "dashboard:org:123",
-  async () => {
-    // This only runs on cache miss
-    return await computeExpensiveDashboard("org-123");
-  },
-  3600, // cache for 1 hour
+  async () => computeExpensiveDashboard("org-123"),
+  3600,
 );
 ```
 
-### Pattern-Based Clearing
-
-Clear keys matching a glob pattern:
+### Counters
 
 ```ts
-// Clear all keys matching a pattern
-await platform.kvStore.clear("user:123:*");
-
-// Clear all keys with the configured prefix
-await platform.kvStore.clear();
+await platform.kvStore.increment("visits:page:home"); // → 1
+await platform.kvStore.increment("visits:page:home", 5); // → 6
+await platform.kvStore.decrement("credits:user:123");
 ```
 
-<Callout type="warn">
-  The `clear()` method uses a cursor-based scan to avoid loading all keys into memory. It internally
-  translates `*` to `%` and `?` to `_` for SQL `LIKE` matching.
-</Callout>
-
-## Key Prefixing
-
-Keys are automatically prefixed with both the configured `keyPrefix` (if set) and the current `tenantId` from the request context:
+### Pattern clear
 
 ```ts
-// Config: { keyPrefix: "recruiter" }
-// Context: { tenantId: "tenant_123" }
-// Set key: "user:123"
-// Actual DB key: "recruiter:tenant_123:user:123"
+await platform.kvStore.clear("user:123:*"); // * → %, ? → _ LIKE; cursor-scanned
+await platform.kvStore.clear(); // scoped to tenant prefix
 ```
 
-If no `keyPrefix` is configured, keys are prefixed with just the tenant: `tenant_123:user:123`. The `clear()` method is scoped to the current tenant's prefix.
+### Key prefixing
 
-## Value Serialization
+Keys are prefixed with `keyPrefix` + `tenantId` from context:
 
-- String values are stored as-is
-- Non-string values are JSON-serialized on `set()` and JSON-parsed on `get()`
-- If parsing fails, the raw value is returned
+```ts
+// config { keyPrefix: "recruiter" }, context { tenantId: "tenant_123" }
+// set "user:123" → DB key "recruiter:tenant_123:user:123"
+```
 
-## KV Store Table
+Without `keyPrefix`: `tenant_123:user:123`. `clear()` is tenant-scoped.
 
-The `kv_store` table is an `UNLOGGED TABLE` — no Write-Ahead Log (WAL) for performance. This means data may be lost on Postgres crash (by design — cache semantics).
+### Table
 
-| Column       | Type        | Description                            |
-| ------------ | ----------- | -------------------------------------- |
-| `key`        | text (PK)   | Cache key (includes prefix + tenantId) |
-| `value`      | text        | JSON-serialized or raw string          |
-| `expires_at` | timestamptz | TTL expiration (nullable = no expiry)  |
-| `tenant_id`  | text        | Tenant scope (default: `"default"`)    |
-| `updated_at` | timestamptz | Last update timestamp                  |
+`kv_store` is `UNLOGGED` (no WAL — cache semantics, may lose data on crash).
 
-## Dependency
+| Column       | Type          | Description                |
+| ------------ | ------------- | -------------------------- |
+| `key`        | `text (PK)`   | Includes prefix + tenantId |
+| `value`      | `text`        | JSON or raw string         |
+| `expires_at` | `timestamptz` | nullable = no expiry       |
+| `tenant_id`  | `text`        | default `"default"`        |
+| `updated_at` | `timestamptz` | Last update                |
 
-Receives `{ db: DatabaseUnit }` via constructor injection. Uses the Drizzle instance for all SQL operations.
+Receives `{ db: DatabaseUnit }` via injection.

@@ -1,18 +1,18 @@
 ---
-title: HR
-description: Domain module for employee records, attendance, leave, lifecycle, overtime, shifts, announcements, and HR setup.
+title: HR Attendance
+description: Attendance, overtime, and shift scheduling.
 icon: IconUsers
 ---
 
-The HR module provides employee management, attendance tracking, leave administration, lifecycle workflows, overtime, shift scheduling, position/structure management, internal announcements, and HR setup configuration.
+The hr-attendance module owns attendance tracking, raw check-ins, overtime claims, and shift scheduling — all tenant-scoped and referencing hr-core employees via soft `employee_id`.
 
 ## Documentation
 
 <Cards>
   <Card
     title="Overview"
-    href="/docs/hr/overview"
-    description="Module structure, workflows, and schema layout"
+    href="/docs/hr-attendance/overview"
+    description="Architecture, module config, and key concepts"
   />
 </Cards>
 
@@ -21,18 +21,18 @@ The HR module provides employee management, attendance tracking, leave administr
 <Cards>
   <Card
     title="Workflows"
-    href="/docs/hr/workflows"
-    description="10 workflow classes, method signatures, shared types"
+    href="/docs/hr-attendance/workflows"
+    description="Three groups (attendance, overtime, shift) via p.hrAttendance"
   />
   <Card
     title="Events"
-    href="/docs/hr/events"
-    description="58 topics, payloads, triggers, reconciliation"
+    href="/docs/hr-attendance/events"
+    description="Domain events across three groups"
   />
-  <Card title="DB Schemas" href="/docs/hr/db-schemas" description="54 tables across 10 domains" />
+  <Card title="DB Schemas" href="/docs/hr-attendance/db-schemas" description="Tenant tables" />
   <Card
     title="Enums"
-    href="/docs/hr/enums"
-    description="29 Valibot enum schemas grouped by domain"
+    href="/docs/hr-attendance/enums"
+    description="pgEnums for attendance, overtime, and shift"
   />
 </Cards>

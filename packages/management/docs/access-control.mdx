@@ -4,7 +4,7 @@ description: ACL resources and operations declared by the Management Plane modul
 icon: IconShield
 ---
 
-The Management Plane declares its ACL via `defineAcl()`, which the platform merges from the module's `ModuleInfra.auth.acl` and applies to `AuthUnit` during `$prepareInfra()`.
+The Management Plane declares its ACL via `defineAcl()` merged by the platform during `$prepareInfra()`.
 
 ## Resources & Operations
 
@@ -12,6 +12,7 @@ The Management Plane declares its ACL via `defineAcl()`, which the platform merg
 import { defineAcl } from "@aspen-os/platform/server";
 
 export const acl = defineAcl({
+  organization: ["create", "delete", "read", "update"],
   platformUser: ["create", "delete", "read", "update"],
   serviceProvider: ["create", "delete", "read", "update"],
   tenant: ["create", "delete", "read", "update"],
@@ -23,19 +24,11 @@ export const acl = defineAcl({
 | `tenant`          | `create`, `read`, `update`, `delete` |
 | `serviceProvider` | `create`, `read`, `update`, `delete` |
 | `platformUser`    | `create`, `read`, `update`, `delete` |
-
-<Callout type="info">
-  The ACL is the *declaration* of operations. Role definitions and permission enforcement are
-  application-level concerns — the module exposes the workflows that perform these operations; the
-  host app decides who may call them.
-</Callout>
+| `organization`    | `create`, `read`, `update`, `delete` |
 
 ## Wiring
 
-The platform merges this ACL with other modules' ACLs and applies it via `auth.applyModuleAcl()`:
-
-```ts
-// In module.$prepareInfra()
+```ts title="src/module.ts"
 $prepareInfra(): ModuleInfra {
   return {
     auth: { acl },

@@ -1,110 +1,136 @@
 ---
 title: Overview
-description: Module structure, workflows, and schema layout of the HR domain module.
+description: Architecture and concepts for the HR Leave domain module.
 icon: IconInfoCircle
 ---
 
-The HR module is a domain module for human resources management covering access control (HR users, RBAC roles), employees, attendance, leave, lifecycle, overtime, shifts, positions, announcements, and HR setup.
+The hr-leave module owns leave types, policies, allocations, applications, encashment, compensatory leave, block lists, adjustments, and the append-only ledger — all tenant-scoped and linked to hr-core employees via soft `employee_id`.
 
 ## Module
 
 ```ts title="src/module.ts"
-export interface HrModuleConfig {
-  country: "INDIA";
-}
-
-export class Hr implements Module {
-  static create(config: HrModuleConfig): Hr;
-  readonly $name = "hr"; // proxy key: p.hr
+export class HrLeave implements Module {
+  readonly $name = "hrLeave"; // proxy key: p.hrLeave
   readonly $dependencies = [] as const;
 }
 ```
 
-```ts
-const hr = Hr.create({ country: "INDIA" });
+## Configuration
+
+```ts title="src/module.ts"
+export interface HrLeaveModuleConfig {
+  country: "INDIA";
+}
 ```
 
-The module declares no platform-module dependencies. `$initialize()` stores `{ db, pubsub }`.
+```ts title="usage"
+import { HrLeave } from "@aspen-os/hr-leave";
 
-## Runtime wiring
-
-`$prepareRuntime()` registers three cron schedules and the lifecycle reconciliation subscriptions; `$cleanup()` unregisters them.
-
-| Topic                       | Cron        | Action                              |
-| --------------------------- | ----------- | ----------------------------------- |
-| `hr:daily-attendance-sync`  | `0 1 * * *` | Sync daily attendance records       |
-| `hr:daily-leave-accrual`    | `0 0 * * *` | Accrue leave balances               |
-| `hr:announcement-scheduler` | `* * * * *` | Publish due scheduled announcements |
-
-| Subscription                     | Action                                                                    |
-| -------------------------------- | ------------------------------------------------------------------------- |
-| `lifecycle:separation_completed` | Auto-close open position assignments, emit `position:unassigned`          |
-| `lifecycle:transfer_approved`    | Close assignments stuck in the old department, emit `position:unassigned` |
-
-## Access control
-
-`defineAcl` in `src/auth.ts` — 12 resources:
-
-| Resource       | Actions                                        |
-| -------------- | ---------------------------------------------- |
-| `announcement` | archive, create, delete, publish, read, update |
-| `attendance`   | approve, create, read, reject, update          |
-| `employee`     | create, delete, read, update                   |
-| `hrPermission` | create, delete, read, update                   |
-| `hrRole`       | create, delete, read, update                   |
-| `hrUser`       | create, delete, read, update                   |
-| `leave`        | approve, create, read, reject, update          |
-| `lifecycle`    | approve, create, read, reject, update          |
-| `overtime`     | approve, create, read, reject, update          |
-| `position`     | create, delete, read, update                   |
-| `setup`        | create, delete, read, update                   |
-| `shift`        | approve, create, read, reject, update          |
-
-## Module Structure
-
-```text
-packages/hr/src/
-  module.ts             # HrModule class: $initialize, $prepareInfra, $prepareRuntime, $cleanup, workflow groups
-  index.ts              # Public exports: module class, types, events
-  auth.ts               # defineAcl permission matrix (12 resources)
-  pubsub.ts             # Per-group event constants + typed event maps (10 groups → HrEventMap)
-  types.ts              # Public types re-exported from schemas/ + tree node interfaces
-  db-schemas/           # Drizzle table definitions (control-plane + tenant schemas)
-    index.ts            # control_plane_schemas + tenant_schemas
-    announcement.ts     # hr_announcement, hr_announcement_recipient (tenant)
-    position.ts         # hr_position, hr_position_assignment (tenant)
-  schemas/              # Valibot validation schemas (per entity file + index.ts)
-  utils/
-    constants.ts        # HR_PERMISSION_MODULE, PERMISSION_ACTION, schedules
-    announcement-utils.ts # Audience resolution + recipient snapshot helpers
-    position-utils.ts   # Position hierarchy/assignment helpers, manager resolver, tree builders
-  workflows/            # Per-action workflow files composed into a router in index.ts
-    index.ts            # Workflow router (per-entity as-const groups)
-    utils.ts            # Shared workflow helpers (org chart tree, department tree, cycles)
-  services/
-    reconciliation.ts   # Lifecycle reconciliation bridge (separation auto-close, transfer guidance)
+const hrLeave = HrLeave.create({ country: "INDIA" });
 ```
 
-## Workflows
+`country` is reserved for country-specific rules (currently only `"INDIA"`).
 
-| Workflow               | Access Path         | Manages                                                                                                 |
-| ---------------------- | ------------------- | ------------------------------------------------------------------------------------------------------- |
-| `AccessWorkflow`       | `p.hr.access`       | HR users, RBAC roles, permissions, role-permission and user-role mappings, branch-wise access           |
-| `AnnouncementWorkflow` | `p.hr.announcement` | Announcements, audience targeting, scheduling, publishing, pinning, delivery snapshot + stats           |
-| `EmployeeWorkflow`     | `p.hr.employee`     | Employee records, groups, health insurance, skill maps, org chart                                       |
-| `AttendanceWorkflow`   | `p.hr.attendance`   | Attendance, check-ins, attendance requests                                                              |
-| `LeaveWorkflow`        | `p.hr.leave`        | Leave types, periods, policies, allocations, applications, encashment, block lists, adjustments, ledger |
-| `LifecycleWorkflow`    | `p.hr.lifecycle`    | Onboarding, promotions, transfers, separations, exit interviews, full and final statements              |
-| `OvertimeWorkflow`     | `p.hr.overtime`     | Overtime types and overtime slips                                                                       |
-| `PositionWorkflow`     | `p.hr.position`     | Job positions, position assignments/history, org/position trees, team/direct reports/peers              |
-| `SetupWorkflow`        | `p.hr.setup`        | HR/payroll settings, employment types, departments (tree ops), designations, grades, holiday lists      |
-| `ShiftWorkflow`        | `p.hr.shift`        | Shift types, locations, assignments, requests, schedules, schedule assignments                          |
+## Dependencies
 
-## Schemas
+No module `$dependencies`. `$initialize()` binds `DatabaseUnit` and `PubSubUnit`; `$prepareInfra()` contributes `auth.acl`, `db.tenant_schemas`, and `events`; `$prepareRuntime()` schedules `hr:daily-leave-accrual` (`0 0 * * *`) and unregisters it in `$cleanup()`.
 
-Validation schemas live in `src/schemas/` and are re-exported from `src/schemas/index.ts`. Each domain file defines `Create*Schema`, `Update*Schema`, and `*FiltersSchema` objects with corresponding `InferOutput` types. Shared pipes (`NameSchema`, `EmployeeIdSchema`, `EmailSchema`, `PhoneSchema`) are in `utils.ts`.
+## Architecture
+
+```mermaid
+flowchart TB
+  subgraph platform[Platform]
+    DB[(DatabaseUnit)]
+    PS[(PubSubUnit)]
+  end
+
+  subgraph hrLeave[HrLeave]
+    PI[$prepareInfra]
+    PR[$prepareRuntime]
+  end
+
+  PI --> ACL[auth.acl\nleave]
+  PI --> TS[tenant_schemas\nleave_type, leave_period, leave_policy, leave_allocation, leave_application, leave_encashment, leave_ledger_entry...]
+  PI --> EV[events\nleave]
+
+  PR -->|schedule 0 0 * * *| CRON[hr:daily-leave-accrual]
+
+  WF[workflows\nleave] --> DB
+  WF --> PS
+  DB --- TS
+```
+
+`control_plane_schemas` is empty — all tables are tenant-scoped.
+
+## Leave Types and Periods
+
+`leave_type` defines a leave kind (`name`, `max_days_allowed`, eligibility `applicable_after_working_days`, flags `is_earned_leave` / `is_carry_forward` / `is_leave_without_pay` / `is_partially_paid`, `earned_leave_frequency` monthly/quarterly/half_yearly/yearly, `max_carry_forward_days`, `max_continuous_days_allowed`). `leave_period` is a calendar window (`name`, `company`, `start_date`/`end_date`, `is_active`). Both soft-delete via `is_active`.
+
+## Policies and Assignments
+
+`leave_policy` is a header; `leave_policy_detail` caps a leave type within a policy (`leave_policy_id`, `leave_type`, `max_days`, `carry_forward_days`). `leave_policy_assignment` binds a policy + period to an employee over a validity window (`employee_id`, `leave_policy`, `leave_period`, `effective_from`/`effective_to`, `is_active`).
+
+## Allocations, Applications, and Ledger
+
+`leave_allocation` grants days to an employee (`leave_type`, `leave_period`, optional `leave_policy_assignment`, `total_days`, `used_days`, `earned_days`, `carry_forwarded_days`, `hr_leave_allocation_status`). `leave_application` requests a window (`leave_type`, `from_date`/`to_date`, `total_days`, optional `is_half_day`, `leave_allocation` charge ref, `hr_leave_application_status`). Approving an application bumps `used_days` and appends a `leave_ledger_entry` (`transaction_type: application`); cancelling reverses it. `leave_ledger_entry` is append-only (`employee_id`, `leave_type`, `days` delta, `transaction_type`, `description`, optional `leave_application`).
+
+## Encashment, Compensatory, Block Lists, and Adjustments
+
+`leave_encashment` claims encashment of unused days (`leave_type`, `leave_period`, `encashable_days`/`encashed_days`, `amount`, `hr_leave_encashment_status`; paid is terminal via `markLeaveEncashmentPaid`). `compensatory_leave_request` compensates a worked-off `work_date` (`leave_type`, `number_of_days`, `hr_compensatory_leave_status`; approval creates a `leave_allocation` and a `transaction_type: compensatory` ledger entry). `leave_block_list` is a blackout window (`scope` company/department, `from_date`/`to_date`, blocks `createLeaveApplication` when overlapped). `leave_adjustment` is a manual correction (`employee_id`, `leave_type`, `days`, `adjusted_by`, `reason`, backing `leave_ledger_entry`).
+
+## Relationships
+
+```mermaid
+flowchart LR
+  subgraph hrCore[hr-core]
+    EMP[employee]
+  end
+
+  subgraph hrLeaveDomain[hr-leave tenant tables]
+    LT[leave_type]
+    LP[leave_period]
+    LPO[leave_policy]
+    LPD[leave_policy_detail]
+    LPA[leave_policy_assignment]
+    LA[leave_allocation]
+    LAP[leave_application]
+    LE[leave_encashment]
+    LBL[leave_block_list]
+    LADJ[leave_adjustment]
+    LLE[leave_ledger_entry]
+    CLR[compensatory_leave_request]
+  end
+
+  LPD -->|leave_policy_id| LPO
+  LPA -->|leave_policy| LPO
+  LPA -->|leave_period| LP
+  LPA -->|employee_id| EMP
+  LA -->|employee_id| EMP
+  LA -->|leave_type| LT
+  LA -->|leave_period| LP
+  LAP -->|employee_id| EMP
+  LAP -->|leave_type| LT
+  LAP -->|leave_allocation| LA
+  LE -->|employee_id| EMP
+  LE -->|leave_type| LT
+  LADJ -->|employee_id| EMP
+  LADJ -->|leave_ledger_entry| LLE
+  LLE -->|employee_id| EMP
+  CLR -->|employee_id| EMP
+  CLR -->|leave_type| LT
+```
+
+All links are soft text FKs (no DB constraints); `leave_type`/`leave_period`/`leave_policy` existence is validated on create of dependent rows.
+
+## Access Control
+
+```ts title="src/auth.ts"
+export const acl = defineAcl({
+  leave: ["approve", "create", "read", "reject", "update"],
+});
+```
 
 <Callout type="info">
-  The module is conformant: `Hr implements Module`, `$prepareRuntime()` registers the three cron
-  schedules and the lifecycle reconciliation subscriptions, and `$cleanup()` unregisters them.
+  `hr:daily-leave-accrual` is the only scheduled topic — no in-repo subscription yet; the host must
+  subscribe if it implements earned-leave accrual.
 </Callout>

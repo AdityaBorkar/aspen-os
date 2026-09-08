@@ -1,16 +1,15 @@
 ---
 title: Access Control
-description: ACL resources, actions, and the runtime personal/global scoping model.
+description: ACL resources and operations declared by the Workspace module.
 icon: IconShieldLock
 ---
 
-Access control has two layers, split exactly as dms splits them:
-
-1. **ACL** — the module's capability matrix, applied via `AuthUnit.applyModuleAcl()` at prepare time (the RPC/authorization layer).
-2. **Runtime scoping** — `personal` vs `global` visibility enforced in workflow code via `services/access-service.ts`. `personal` = `ownerId` only; `global` = any user in the tenant. Widgets and schedules inherit their parent dashboard's access (no own access column).
+The Workspace declares its ACL via `defineAcl()` merged during `$prepareInfra()`.
 
 ```ts title="src/auth.ts"
-defineAcl({
+import { defineAcl } from "@aspen-os/platform/server";
+
+export const acl = defineAcl({
   dashboard: ["create", "read", "update", "delete", "duplicate", "export", "import"],
   draft: [
     "create",
@@ -28,29 +27,44 @@ defineAcl({
     "comment",
   ],
   draftComment: ["create", "read", "delete"],
-  widget: ["create", "read", "update", "delete", "refresh"],
-  schedule: ["create", "read", "update", "delete", "pause", "resume", "mark_run"],
+  filterView: ["create", "delete", "duplicate", "read", "set_default", "update"],
   pin: ["create", "read", "delete"],
   recent: ["read", "touch"],
+  schedule: ["create", "read", "update", "delete", "pause", "resume", "mark_run"],
   search: ["read"],
+  widget: ["create", "read", "update", "delete", "refresh"],
 });
 ```
 
-## Runtime rules
+| Resource       | Operations                                                                                                                           |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `dashboard`    | `create`, `read`, `update`, `delete`, `duplicate`, `export`, `import`                                                                |
+| `draft`        | `create`, `read`, `update`, `delete`, `trash`, `restore`, `publish`, `submit`, `approve`, `reject`, `reopen`, `duplicate`, `comment` |
+| `draftComment` | `create`, `read`, `delete`                                                                                                           |
+| `filterView`   | `create`, `read`, `update`, `delete`, `duplicate`, `set_default`                                                                     |
+| `pin`          | `create`, `read`, `delete`                                                                                                           |
+| `recent`       | `read`, `touch`                                                                                                                      |
+| `schedule`     | `create`, `read`, `update`, `delete`, `pause`, `resume`, `mark_run`                                                                  |
+| `search`       | `read`                                                                                                                               |
+| `widget`       | `create`, `read`, `update`, `delete`, `refresh`                                                                                      |
 
-| Helper                     | Applies to           | Rule                                                                                  |
-| -------------------------- | -------------------- | ------------------------------------------------------------------------------------- |
-| `assertCanAccess(row, id)` | reads (`get`/`list`) | `access = 'global' OR ownerId = actorId`; throws if neither                           |
-| `assertCanMutate(row, id)` | all mutations        | `ownerId === actorId`, **or** tenant admin (`user.role = 'admin'`, best-effort check) |
+## Runtime Rules
 
-`list()`/`get()` apply the access predicate at the SQL level (`global OR owner = actorId`) rather than fetching and filtering in JS.
+| Helper            | Applies to   | Rule                                     |
+| ----------------- | ------------ | ---------------------------------------- |
+| `assertCanAccess` | `get`/`list` | `access = 'global' OR ownerId = actorId` |
+| `assertCanMutate` | mutations    | `ownerId = actorId` or tenant admin      |
 
-## User-scoped resources
+`list`/`get` filter at SQL level; mutations go through `assertCanMutate`. Pins and recent are user-scoped (`userId = actorId`) with no access column.
 
-Pins and recent carry **no access column** — they are always scoped to `userId = actorId`, enforced in every workflow. There is no `access-service` call for them.
+## Wiring
 
-## Tenancy
-
-All seven rows are **tenant schemas** — `personal`/`global` scoping operates within the tenant, and tenant isolation (RLS in shared mode, DB-per-tenant in isolated mode) is enforced by the platform database layer on top of it.
-
-Filter views (`filterView` ACL) live in `@aspen-os/masters` — see [Masters Access Control](/docs/masters/access-control).
+```ts title="src/module.ts"
+$prepareInfra(): ModuleInfra {
+  return {
+    auth: { acl },
+    db: { control_plane_schemas: {}, tenant_schemas: workspaceTables },
+    events,
+  };
+}
+```

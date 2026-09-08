@@ -1,60 +1,68 @@
 ---
 title: Events
-description: Domain events and pubsub topics published by the Workspace module.
+description: Domain events published by the Workspace module.
 icon: IconBell
 ---
 
-All events are published as plain string topics on `PubSubUnit` (`ctx.pubsub.publish(topic, payload)`), typed via `WorkspaceEventMap`.
+All events are plain string topics via `ctx.pubsub.publish`, typed via `WorkspaceEventMap`.
 
-## Drafts
+## Draft Events
 
-| Event                             | Payload                                                              |
-| --------------------------------- | -------------------------------------------------------------------- |
-| `workspace:draft_created`         | `{ draftId, ownerId, access }`                                       |
-| `workspace:draft_updated`         | `{ draftId, changes }`                                               |
-| `workspace:draft_submitted`       | `{ draftId, submittedBy }`                                           |
-| `workspace:draft_approved`        | `{ draftId, approvedBy }`                                            |
-| `workspace:draft_rejected`        | `{ draftId, rejectedBy, rejectionReason }`                           |
-| `workspace:draft_published`       | `{ draft }` — full draft row; hosts create the target entity from it |
-| `workspace:draft_reopened`        | `{ draftId }`                                                        |
-| `workspace:draft_trashed`         | `{ draftId }`                                                        |
-| `workspace:draft_restored`        | `{ draftId }`                                                        |
-| `workspace:draft_duplicated`      | `{ draftId, duplicateId }`                                           |
-| `workspace:draft_commented`       | `{ draftId, commentId, authorId }`                                   |
-| `workspace:draft_comment_removed` | `{ draftId, commentId }`                                             |
-| `workspace:draft_deleted`         | `{ draftId }`                                                        |
+| Event                             | Payload                                    | Trigger                |
+| --------------------------------- | ------------------------------------------ | ---------------------- |
+| `workspace:draft_created`         | `{ draftId, ownerId, access }`             | `drafts.create`        |
+| `workspace:draft_updated`         | `{ draftId, changes }`                     | `drafts.update`        |
+| `workspace:draft_submitted`       | `{ draftId, submittedBy }`                 | `drafts.submit`        |
+| `workspace:draft_approved`        | `{ draftId, approvedBy }`                  | `drafts.approve`       |
+| `workspace:draft_rejected`        | `{ draftId, rejectedBy, rejectionReason }` | `drafts.reject`        |
+| `workspace:draft_published`       | `{ draft }`                                | `drafts.publish`       |
+| `workspace:draft_reopened`        | `{ draftId }`                              | `drafts.reopen`        |
+| `workspace:draft_trashed`         | `{ draftId }`                              | `drafts.trash`         |
+| `workspace:draft_restored`        | `{ draftId }`                              | `drafts.restore`       |
+| `workspace:draft_duplicated`      | `{ draftId, duplicateId }`                 | `drafts.duplicate`     |
+| `workspace:draft_commented`       | `{ draftId, commentId, authorId }`         | `drafts.addComment`    |
+| `workspace:draft_comment_removed` | `{ draftId, commentId }`                   | `drafts.removeComment` |
+| `workspace:draft_deleted`         | `{ draftId }`                              | `drafts.delete`        |
 
-Filter view events (`masters:filter_view_created/updated/duplicated/deleted`) live in `@aspen-os/masters` — see [Masters Events](/docs/masters/events).
+## Dashboard Events
 
-## Dashboards
+| Event                             | Payload                            | Trigger                |
+| --------------------------------- | ---------------------------------- | ---------------------- |
+| `workspace:dashboard_created`     | `{ dashboardId, ownerId, access }` | `dashboards.create`    |
+| `workspace:dashboard_updated`     | `{ dashboardId }`                  | `dashboards.update`    |
+| `workspace:dashboard_duplicated`  | `{ dashboardId, duplicateId }`     | `dashboards.duplicate` |
+| `workspace:dashboard_scheduled`   | `{ dashboardId, scheduleId }`      | `schedules.create`     |
+| `workspace:dashboard_unscheduled` | `{ dashboardId, scheduleId }`      | `schedules.delete`     |
+| `workspace:dashboard_deleted`     | `{ dashboardId }`                  | `dashboards.delete`    |
 
-| Event                             | Payload                            |
-| --------------------------------- | ---------------------------------- |
-| `workspace:dashboard_created`     | `{ dashboardId, ownerId, access }` |
-| `workspace:dashboard_updated`     | `{ dashboardId }`                  |
-| `workspace:dashboard_duplicated`  | `{ dashboardId, duplicateId }`     |
-| `workspace:dashboard_scheduled`   | `{ dashboardId, scheduleId }`      |
-| `workspace:dashboard_unscheduled` | `{ dashboardId, scheduleId }`      |
-| `workspace:dashboard_deleted`     | `{ dashboardId }`                  |
+## Widget Events
 
-## Widgets
+| Event                        | Payload                     | Trigger           |
+| ---------------------------- | --------------------------- | ----------------- |
+| `workspace:widget_added`     | `{ dashboardId, widgetId }` | `widgets.add`     |
+| `workspace:widget_updated`   | `{ dashboardId, widgetId }` | `widgets.update`  |
+| `workspace:widget_refreshed` | `{ widgetId, error }`       | `widgets.refresh` |
+| `workspace:widget_removed`   | `{ dashboardId, widgetId }` | `widgets.remove`  |
 
-| Event                        | Payload                     |
-| ---------------------------- | --------------------------- |
-| `workspace:widget_added`     | `{ dashboardId, widgetId }` |
-| `workspace:widget_updated`   | `{ dashboardId, widgetId }` |
-| `workspace:widget_refreshed` | `{ widgetId, error }`       |
-| `workspace:widget_removed`   | `{ dashboardId, widgetId }` |
+## Filter View Events
 
-## Utilities
+| Event                              | Payload                                     | Trigger                 |
+| ---------------------------------- | ------------------------------------------- | ----------------------- |
+| `workspace:filter_view_created`    | `{ filterViewId, ownerId, access, domain }` | `filterViews.create`    |
+| `workspace:filter_view_updated`    | `{ filterViewId }`                          | `filterViews.update`    |
+| `workspace:filter_view_duplicated` | `{ filterViewId, duplicateId }`             | `filterViews.duplicate` |
+| `workspace:filter_view_deleted`    | `{ filterViewId }`                          | `filterViews.delete`    |
 
-| Event                    | Payload                                                                                   |
-| ------------------------ | ----------------------------------------------------------------------------------------- |
-| `workspace:pin_created`  | `{ userId, itemType, itemId }`                                                            |
-| `workspace:pin_removed`  | `{ userId, itemType, itemId }`                                                            |
-| `workspace:schedule_due` | `{ schedule, dashboard, at }` — full payload so hosts can deliver without follow-up reads |
+## Pin Events
 
-## Consumer guidance
+| Event                   | Payload                        | Trigger       |
+| ----------------------- | ------------------------------ | ------------- |
+| `workspace:pin_created` | `{ userId, itemType, itemId }` | `pins.create` |
+| `workspace:pin_removed` | `{ userId, itemType, itemId }` | `pins.delete` |
 
-- **`workspace:draft_published`** — the host subscribes to create the target entity (`targetDomain`/`targetEntityType` on the row) and backfill `targetEntityId`.
-- **`workspace:schedule_due`** — the host subscribes to render and deliver (email/PDF/export). If no consumer is registered, pg-boss **silently drops** the message — the platform health check flags produced-but-unsubscribed topics.
+## Delivery Schedule Events
+
+| Event                    | Payload                       | Trigger                                      |
+| ------------------------ | ----------------------------- | -------------------------------------------- |
+| `workspace:delivery_due` | `{ at, dashboard, schedule }` | pg-boss cron fires                           |
+| `workspace:schedule_due` | `{ at, dashboard, schedule }` | deprecated alias of `workspace:delivery_due` |

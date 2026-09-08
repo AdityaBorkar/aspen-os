@@ -1,65 +1,129 @@
 ---
 title: Overview
-description: Architecture, initialization, and module structure of the Tasks domain module.
+description: Architecture, dependencies, and concepts for the Tasks module.
 icon: IconInfoCircle
 ---
 
-The Tasks module manages projects, tasks, statuses, time tracking, comments, attachments, automation rules, and dependency graphs. Saved views moved to `@aspen-os/masters` (`p.masters.filterViews`, `domain: "tasks:task"`).
+The Tasks module manages projects, tasks, and their collaboration surface — statuses, types, assignees, links, comments, attachments, time tracking, and automation.
 
-> Task reminders moved to `@aspen-os/calendar` — they are `calendar_reminder` rows with `targetType = task`, materialized by the calendar task bridge from `task:due_date_changed` and cancelled on `task:deleted` / terminal `task:status_changed`. This module no longer owns any reminder surface.
+## Module
 
-## Module Configuration
+```ts title="src/module.ts"
+export class Tasks implements Module {
+  static create(): Tasks;
+  readonly $name = "tasks"; // proxy key: p.tasks
+  readonly $dependencies = ["masters"] as const;
+  $prepareInfra(): ModuleInfra { auth: { acl }, db: { control_plane_schemas, tenant_schemas }, events }
+}
+```
 
-```ts
-import { Tasks } from "@aspen-os/tasks";
+## Configuration
+
+```ts title="src/module.ts"
+export type TaskModuleConfig = undefined;
 
 const tasks = Tasks.create();
 ```
 
-The module takes no configuration. Workflows publish `task:*` events directly via `ctx.pubsub.publish`.
+No configuration — `Tasks.create()` takes no args.
 
-## Initialization
+## Dependencies
 
-```ts title="src/index.ts"
-$initialize(): void
+| Dependency | Kind                   | Purpose                                                                                                          |
+| ---------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `masters`  | module `$dependencies` | Label taxonomy (`master_label`) and contact identities consumed by task labels/mentions (soft FK, no hard DB FK) |
+| `db`       | unit                   | Control and tenant tables; no `kvStore` or `storage`                                                             |
+| `pubsub`   | unit                   | Publishes `task:*` events; consumers include `@aspen-os/calendar` bridge                                         |
+| `audit`    | context                | `ctx.audit.write` per mutation                                                                                   |
+
+`$initialize()` is empty — workflows are stateless flat `Workflow` objects.
+
+## Architecture
+
+```mermaid
+flowchart TB
+  subgraph ControlDB[control-plane — control_plane_schemas]
+    P[task_project]
+    PM[task_project_member]
+    ST[task_status]
+    STR[task_status_transition]
+    TT[task_type]
+  end
+  subgraph TenantDB[tenant — tenant_schemas]
+    T[task]
+    TA[task_assignee]
+    TL[task_link]
+    TE[task_time_entry]
+    C[task_comment]
+    ATT[task_attachment]
+    W[task_watcher]
+    AL[task_activity_log]
+    AR[task_automation_rule]
+  end
+  P --- PM
+  P --- ST
+  P --- STR
+  P --- TT
+  P --- T
+  T --- TA
+  T --- TL
+  T --- TE
+  T --- C
+  T --- ATT
+  T --- W
+  T --- AL
+  P --- AR
 ```
 
-The `$initialize()` method is empty. Workflows are flat imported `Workflow` objects aggregated on the class — they are not instantiated per-call. Workflows publish `task:*` events directly via `ctx.pubsub.publish`, so `task:*` events actually fire.
+Control (`task_project`, `task_project_member`, `task_status`, `task_status_transition`, `task_type`) and tenant tables (`task`, `task_assignee`, `task_link`, `task_time_entry`, `task_comment`, `task_attachment`, `task_watcher`, `task_activity_log`, `task_automation_rule`); no `task_label_def` — labels live in `@aspen-os/masters`.
 
-## Module Structure
+## Key concepts
 
-```text
-packages/tasks/src/
-  index.ts              # Tasks class + type re-exports
-  types.ts              # Re-exports from schemas/ + domain interfaces
-  pubsub.ts             # 11 task events + event maps
-  auth.ts               # Empty ACL (defineAcl({}))
-  db-schemas/           # 15 tables + 6 enums (6 control + 9 tenant)
-  schemas/              # Valibot input/filter schemas (one file per entity)
-  workflows/            # One file per action (9 workflow groups)
-  workflow-steps/       # Reusable fetch-* steps + dependency-graph helpers
-  utils/                # filter-engine, constants
+### Projects and keys
+
+`task_project.key` (2–10 uppercase letters, unique) drives display numbers `KEY-SEQ` via `task_counter`. `leadId` auto-membered as `admin`. `delete` blocked when tasks exist — archive instead.
+
+### Statuses and transitions
+
+`task_status` is project-scoped or global (`project_id` null). `is_default` unique per scope; `is_resolved` marks completion. Optional `task_status_transition` rules default to open model when empty; `validateTransition` checks explicit rules; `requires_comment` / `requires_role` are transition guards.
+
+### Tasks
+
+`task` holds `status_id`, `type_id`, `parent_id` (self-ref, max depth 3, cycle-checked), `priority` (`task_priority`), `labels` (text[]), `estimated_hours`, dates, and archived flag. Creation increments `task_counter`; subtasks and `bulkUpdate` are explicit workflows.
+
+### Collaboration
+
+`task_assignee` (one lead via `is_lead`), `task_watcher` (idempotent), `task_comment` (threaded `parent_id`, soft-delete), `task_attachment` (optionally `comment_id`), `task_activity_log` (append-only), `task_link` (directed `task_link_type` with inverse), `task_time_entry` (minutes, `billable`).
+
+## Relationships
+
+```mermaid
+flowchart LR
+  P[task_project] --> PM[task_project_member]
+  P --> ST[task_status]
+  P --> STR[task_status_transition]
+  P --> TT[task_type]
+  P --> T[task]
+  P --> AR[task_automation_rule]
+  ST --> STR
+  ST --> T
+  TT --> T
+  T -->|parent_id| T
+  T --> TA[task_assignee]
+  T --> TL[task_link]
+  T --> TE[task_time_entry]
+  T --> C[task_comment]
+  T --> ATT[task_attachment]
+  T --> W[task_watcher]
+  T --> AL[task_activity_log]
+  C -->|parent_id| C
+  C --> ATT
 ```
 
-## Accessing Workflows
-
-```ts
-p.tasks.projects; // → projects (Workflow group)
-p.tasks.tasks; // → tasks
-p.tasks.statuses; // → statuses
-p.tasks.taskTypes; // → taskTypes
-p.tasks.timeEntries; // → timeEntries
-p.tasks.comments; // → comments
-p.tasks.links; // → links
-p.tasks.collaboration; // → collaboration
-p.tasks.automations; // → automations
-```
-
-## Accessing Services
-
-The `Tasks` module exposes no public service accessors. The `dependency-graph` helpers under `workflow-steps/` (called with an explicit `db` handle) and the `filter-engine` utility are consumed directly by workflow code, not surfaced as module properties.
+All relationships are logical (text FKs), workflow-enforced; `task` parent depth and cycle checks are code guards.
 
 <Callout type="info">
-  Workflow accessors are plain module properties — no initialization guard. Workflows are stateless
-  `Workflow` objects that use `getContext()` at runtime.
+  Saved views live in `@aspen-os/masters` as `p.masters.filterViews` (`domain: "tasks:task"`). Task
+  reminders live in `@aspen-os/calendar` (`targetType = task`) via the `task:due_date_changed`
+  bridge — this module owns no reminder surface.
 </Callout>

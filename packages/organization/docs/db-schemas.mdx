@@ -1,55 +1,28 @@
 ---
 title: DB Schemas
-description: Database tables, enums, and relationships for the Organization module.
+description: Database tables and enums declared by the Organization module — none.
 icon: IconDatabase
 ---
 
-The Organization module defines 1 table and 1 enum using Drizzle ORM. The table is a tenant schema (`tenant_schemas`); `control_plane_schemas` is empty. Contacts, addresses, bank accounts, connections, and notes moved to the **Masters** module (`@aspen-os/masters`); the organization profile moved to Masters settings (`org.*` keys).
+The Organization module declares no tables; `control_plane_schemas` and `tenant_schemas` are empty, with no shared columns.
 
 ## Enums
 
-| Enum          | Table Column  | Values                                                                       |
-| ------------- | ------------- | ---------------------------------------------------------------------------- |
-| `branch_type` | `branch.type` | `headquarters`, `office`, `warehouse`, `store`, `factory`, `remote`, `other` |
+| Enum | Values |
+| ---- | ------ |
+| —    | —      |
+
+No enums.
 
 ## Tables
 
-### `branch`
-
-Hierarchical branch structure with a self-referential parent id (no database FK — enforced in the workflow).
-Branch identity only — postal addresses live in `master_address` (`entityType: "branch"`),
-contacts (email, phone, manager) in `master_contact` (`entityType: "branch"`),
-and free-text notes in `note` (`scopeType: "branch"` or `masters:branch` per the notes scope registry).
-The canonical address shape is `AddressSchema` in `@aspen-os/masters` — do not redefine address fields here.
-
-| Column          | Type          | Description                        |
-| --------------- | ------------- | ---------------------------------- |
-| `id`            | text (PK)     | UUIDv7                             |
-| `name`          | text          | Branch name                        |
-| `code`          | text (unique) | Branch code, uppercased on write   |
-| `type`          | branch_type   | Branch type                        |
-| `parent_branch` | text          | Parent branch id (nullable, no FK) |
-| `timezone`      | text          | Timezone                           |
-| `opened_date`   | date          | Opened date                        |
-| `closed_date`   | date          | Closed date                        |
-| `capacity`      | integer       | Capacity                           |
-| `metadata`      | jsonb         | Flexible metadata                  |
-| `created_at`    | timestamptz   | Creation timestamp                 |
-| `updated_at`    | timestamptz   | Last update timestamp              |
+No tables. Branch table `org_branch` lives in `@aspen-os/masters`.
 
 ## Relationships
 
-```text
-branch.parent_branch ──self-ref──→ branch.id (logical; cycle/depth enforced in workflow)
+```mermaid
+flowchart TB
+  Empty["No tables"]
 ```
 
-Structured contacts, addresses, and bank accounts for a branch are managed via `p.masters.*` with `entityType`/`entityId` scoping.
-
-## Usage
-
-Rows are read and written through workflows, not direct SQL:
-
-```ts
-const offices = await p.organization.branches.list({ filters: { type: "office" } });
-const tree = await p.organization.branches.tree({});
-```
+No relationships — no foreign keys.

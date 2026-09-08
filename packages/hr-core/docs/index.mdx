@@ -1,18 +1,18 @@
 ---
-title: HR
-description: Domain module for employee records, attendance, leave, lifecycle, overtime, shifts, announcements, and HR setup.
+title: HR Core
+description: Employee records, position structure, lifecycle, organizational setup, access, and announcements.
 icon: IconUsers
 ---
 
-The HR module provides employee management, attendance tracking, leave administration, lifecycle workflows, overtime, shift scheduling, position/structure management, internal announcements, and HR setup configuration.
+The hr-core module owns canonical HR data — employees, positions, lifecycle, org setup, access control, and announcements — used by hr-attendance and hr-leave via soft `employee_id` references.
 
 ## Documentation
 
 <Cards>
   <Card
     title="Overview"
-    href="/docs/hr/overview"
-    description="Module structure, workflows, and schema layout"
+    href="/docs/hr-core/overview"
+    description="Architecture, module config, and key concepts"
   />
 </Cards>
 
@@ -21,18 +21,18 @@ The HR module provides employee management, attendance tracking, leave administr
 <Cards>
   <Card
     title="Workflows"
-    href="/docs/hr/workflows"
-    description="10 workflow classes, method signatures, shared types"
+    href="/docs/hr-core/workflows"
+    description="Six groups (access, announcement, employee, lifecycle, position, setup) via p.hrCore"
   />
+  <Card title="Events" href="/docs/hr-core/events" description="Domain events across six groups" />
   <Card
-    title="Events"
-    href="/docs/hr/events"
-    description="58 topics, payloads, triggers, reconciliation"
+    title="DB Schemas"
+    href="/docs/hr-core/db-schemas"
+    description="Control-plane and tenant tables"
   />
-  <Card title="DB Schemas" href="/docs/hr/db-schemas" description="54 tables across 10 domains" />
   <Card
     title="Enums"
-    href="/docs/hr/enums"
-    description="29 Valibot enum schemas grouped by domain"
+    href="/docs/hr-core/enums"
+    description="pgEnums for status, type, and action"
   />
 </Cards>

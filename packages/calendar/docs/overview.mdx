@@ -4,7 +4,7 @@ description: Architecture, access model, and module structure of the Calendar mo
 icon: IconInfoCircle
 ---
 
-The Calendar module owns the three time-domain surfaces — **calendars** (named, colored collections), **events** (time-boxed entries with recurrence, attendees, timezone, and a polymorphic source link), and **reminders** (the platform's single polymorphic reminder surface). Task reminders live here as `targetType = task` rows, driven by an event-driven task bridge.
+The Calendar module owns the three time-domain surfaces — calendars, events with recurrence and attendees, and the platform's single polymorphic reminder surface (`calendar_reminder`) for `event`, `task`, `compliance_document`, and other targets.
 
 ## Module
 
@@ -13,89 +13,98 @@ export class Calendar implements Module {
   static create(config?: CalendarModuleConfig): Calendar;
   readonly $name = "calendar"; // proxy key: p.calendar
   readonly $dependencies: readonly string[] = [];
+  readonly $consumes: readonly string[] = [
+    "task:due_date_changed",
+    "task:deleted",
+    "task:status_changed",
+    "compliance:document_expiring",
+    "compliance:document_due",
+    "compliance:document_archived",
+    "compliance:document_deleted",
+  ];
 }
 ```
 
-The module is **stateful** (workspace schedule-service pattern). `$initialize({ db, pubsub })` stores unit refs; `$prepareRuntime()` registers the reminder-dispatcher cron (`calendar:reminder-scan`) and the task bridge; `$cleanup()` unregisters both.
+`$consumes` is introspection-only, never validated. Set `tasksEnabled: false` or `complianceEnabled: false` to skip the respective bridge.
 
-| Config key         | Default     | Notes                                                                 |
-| ------------------ | ----------- | --------------------------------------------------------------------- |
-| `reminderScanCron` | `* * * * *` | pg-boss cron for the reminder scan                                    |
-| `tasksEnabled`     | `true`      | Subscribe to `task:*` events; set `false` when tasks is not installed |
+## Configuration
 
-## Access Model
-
-Calendars carry an `access` value — `personal` (default) or `global` — plus an `ownerId`. **Events, attendees, and reminders inherit their calendar's access** (no own access column); reminders are additionally **recipient-scoped** via `userId`. Enforcement lives in `workflow-steps/access-service.ts`:
-
-```text
-assertCanAccess          = global OR ownerId === actorId            (read paths)
-assertCanMutate          = ownerId === actorId OR tenant admin      (write paths, explicit db)
-assertCanAccessReminder  = userId === actorId
-                           OR (targetType = event AND event's calendar readable)
+```ts title="src/types.ts"
+type CalendarModuleConfig = {
+  complianceEnabled?: boolean; // true — subscribe to compliance:document_* events
+  reminderScanCron?: string; // "* * * * *" — pg-boss cron for the reminder scan
+  tasksEnabled?: boolean; // true — subscribe to task:* events
+};
 ```
 
-## Lifecycle
-
-```text
-calendar ──▶ create/get/list/update/delete/setDefault
-                │  first calendar auto-defaults; setDefault clears the owner's other defaults
-event ──────▶ create/update/get/list/delete/cancel + getOccurrences/listOccurrences
-                │  recurrence expanded on read; offset reminders re-anchored on update
-attendee ──▶ add/get/list/update/remove
-reminder ──▶ create/update/get/list/delete + getPending/processPending
-                │  processPending runs on the calendar:reminder-scan cron
-                ▼
-task:due_date_changed ──▶ task bridge ──▶ due-date reminder bundle (targetType = task)
+```ts
+const calendar = Calendar.create({
+  reminderScanCron: "* * * * *",
+  tasksEnabled: true,
+  complianceEnabled: true,
+});
+const p = IsolatedTenantPlatform.create(config, [calendar]);
 ```
 
-## What It Exposes
+## Dependencies
 
-Four workflow groups on the platform proxy key `p.calendar` — see the Workflows page for method signatures:
+No module dependencies (`$dependencies: []`). Runtime wiring via units:
 
-| Getter      | Concern                                     |
-| ----------- | ------------------------------------------- |
-| `calendars` | Named collections, default calendar         |
-| `events`    | Time-boxed entries, recurrence, occurrences |
-| `attendees` | Invitees on events                          |
-| `reminders` | Polymorphic reminders, pending scan         |
+| Unit     | Purpose                                                    |
+| -------- | ---------------------------------------------------------- |
+| `db`     | Tenant tables; pg-boss schedules                           |
+| `pubsub` | Reminder dispatcher cron + task and compliance bridges     |
+| `audit`  | Audit writes via `getContext().audit` in `$prepareRuntime` |
 
-## Recurrence
+## Architecture
 
-Recurrence is a structured jsonb config validated by `EventRecurrenceSchema`: `{ frequency, interval, count?, until?, byDay? }`. Occurrences are computed **on read** by `workflow-steps/recurrence.ts` — never materialized. `count` and `until` are mutually exclusive; `byDay` is weekly-only.
+```mermaid
+flowchart TB
+  subgraph Runtime[runtime — $prepareRuntime]
+    RD[reminder-dispatcher<br/>calendar:reminder-scan<br/>* * * * *]
+    TB[task-bridge<br/>task:due_date_changed / deleted / status_changed]
+    CB[compliance-bridge<br/>compliance:document_*]
+  end
 
-## Task Integration
+  subgraph TenantDB[tenant database — calendarTables]
+    C[calendar_calendar]
+    E[calendar_event]
+    A[calendar_attendee]
+    R[calendar_reminder<br/>polymorphic target_type]
+  end
 
-The module stays `$dependencies = []`. The tasks module publishes `task:due_date_changed` / `task:deleted` / `task:status_changed` (carrying `toStatusCategory` + `isTerminal`); the calendar-side `services/task-bridge.ts` subscribes and materializes/cancels task due-date reminders (`targetType = task`). No direct cross-module calls or cross-module table reads. These optional peer topics are declared as `$consumes` (introspection-only, never validated) — set `tasksEnabled: false` when tasks is not installed to skip the bridge subscriptions.
-
-## Module Structure
-
-```text
-packages/calendar/src/
-  index.ts              # Module class re-exports + dbSchema namespace
-  module.ts             # Module class (implements Module, stateful)
-  auth.ts               # defineAcl() ACL declaration
-  pubsub.ts             # calendar:* events (4 groups)
-  db-schemas/           # 4 tables + 7 enums
-  types.ts              # Type re-exports
-  schemas/              # Valibot validation schemas
-  services/             # reminder-dispatcher, task-bridge
-  workflow-steps/       # fetch (+ factory), access-service, access-scope, event-service, payloads, recurrence
-  workflows/            # One file per action under workflows/<entity>/<verb>.ts
-  utils/                # Enums, audit constants, strip-undefined
+  TB & CB -->|materialize rows| R
+  RD -->|scan isSent=false & remindAt <= now| R
+  R -->|calendar:reminder_due| comms[comms event bridge]
+  C --> E --> A
+  C --> E --> R
 ```
 
-## Package
+`$initialize({ db, pubsub })` stores refs; `$prepareRuntime()` registers the reminder-dispatcher and both bridges; `$cleanup()` unregisters all three.
 
-```json title="package.json"
-{
-  "name": "@aspen-os/calendar",
-  "type": "module",
-  "exports": { ".": "./.output/index.js" },
-  "dependencies": {
-    "@aspen-os/platform": "workspace:*",
-    "@aspen-os/constants": "workspace:*",
-    "drizzle-orm": "catalog:",
-    "valibot": "catalog:"
-  }
-}
+## Key concepts
+
+### Access inheritance
+
+Calendars carry `access` (`personal` default or `global`) plus `ownerId`. Events, attendees, and reminders inherit their calendar's access via `access-service.ts`; reminders are additionally recipient-scoped via `userId`. `assertCanAccess` is `global OR ownerId === actorId`; `assertCanMutate` is `ownerId === actorId OR tenant admin`; reminders allow `userId === actorId` or a readable event calendar.
+
+### Recurrence on read
+
+`calendar_event.recurrence` is `{ frequency, interval, count?, until?, byDay? }` validated by `EventRecurrenceSchema`. Occurrences are computed on read by `workflow-steps/recurrence.ts`, never materialized. `count` and `until` are mutually exclusive; `byDay` is weekly-only.
+
+### Single reminder surface
+
+`calendar_reminder` is polymorphic (`target_type` / `target_id` → any module entity). Task due-date reminders (`target_type = task`) are three rows per recipient (`due − 1d`, `due − 1h`, `due`) created by the task bridge. Compliance document reminders (`target_type = compliance_document`) are `reminderDays` rows per recipient created by the compliance bridge (expiry/due dates). No direct cross-module table reads.
+
+## Relationships
+
+```mermaid
+flowchart LR
+  user[(better-auth user)] -. owner_id .-> C[calendar_calendar]
+  C -->|calendar_id| E[calendar_event]
+  E -->|event_id| A[calendar_attendee]
+  E -->|target_type=event| R[calendar_reminder]
+  R -. target_type/task<br/>compliance_document/custom .-> EXTERNAL[any module entity]
 ```
+
+All FKs are soft/logical. `reminder.target_id` is free-form except `custom` allows empty.

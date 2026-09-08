@@ -1,94 +1,70 @@
 ---
 title: Overview
-description: Architecture, initialization, and module structure of the Organization domain module.
+description: Architecture, configuration, and module structure of the Organization stub.
 icon: IconInfoCircle
 ---
 
-The Organization module owns the tenant's hierarchical branches. The organization profile (id, branding, logo) lives in Masters settings (`org.*` keys via `p.masters.settings`).
+The Organization module is a stub placeholder with no domain, tables, events, or workflows; branch hierarchy lives in `@aspen-os/masters` as `org_branch` via `p.masters.orgBranches`.
 
-## Architecture
+## Module
 
-```text
-TENANT DATABASE (tenant_schemas; control_plane_schemas is empty)
-  branch ──self-ref──→ branch (parent_branch, max 5 levels)
-
-MODULE (stateless — $initialize / $prepareRuntime / $cleanup are no-ops)
-  Organization.create({ country: "INDIA" })
-    $prepareInfra() → { auth.acl, db.{control_plane_schemas, tenant_schemas}, events }
-    p.organization.branches → { create, get, list, tree, update }
-```
-
-## Hierarchical Branches
-
-Branches form a tree via nullable `parentBranch` (a plain text id — no database FK). The single ancestor walk in `validateParentBranch` verifies the parent exists, rejects circular references, and enforces max 5 levels. Codes are uppercased on write and unique case-insensitively. Branch rows carry identity only — postal addresses live in `master_address` (`entityType: "branch"`), contacts in `master_contact` (`entityType: "branch"`), and free-text notes in `note` (branch scope); the canonical address shape is `AddressSchema` in `@aspen-os/masters`. `tree` returns all branches and promotes orphans to roots instead of dropping subtrees.
-
-## Stateless Workflows
-
-One file per action under `workflows/<entity>/<verb>.ts`. All inputs are Valibot schemas (`schemas/`); `update` takes `{ id, patch }` where `undefined` means "column untouched".
-
-## Relationships
-
-| Module     | Direction     | Connection                                                                                                   |
-| ---------- | ------------- | ------------------------------------------------------------------------------------------------------------ |
-| Masters    | Extracted out | Contacts, addresses, bank accounts, connections, notes, and the `org.*` settings live in `@aspen-os/masters` |
-| Management | Provisions    | Seeds tenants against the better-auth org ID; the org profile is stored as `org.*` settings in Masters       |
-| Compliance | Subscribes    | Consumes branch events (trade license, fire safety, annual obligations)                                      |
-| Platform   | Host          | Provides `db`, `pubsub`, `step`; pushes schemas and merges ACL centrally                                     |
-
-<Callout type="info">
-  `OrganizationConfig` (`{ country: "INDIA" }`) is reserved for future country-specific
-  validation and currently unused — `Organization.create()` works on its own.
-</Callout>
-
-## Access Control
-
-```ts title="src/auth.ts"
-export const acl = defineAcl({
-  branch: ["create", "read", "update"],
-});
-```
-
-## Module Structure
-
-```text
-packages/organization/src/
-  index.ts              # Module class re-exports
-  module.ts             # Module class (implements Module)
-  auth.ts               # defineAcl() ACL declaration
-  pubsub.ts             # Events for the branch group
-  db-schemas/           # Per-entity tables (branch)
-  types.ts              # Type re-exports
-  schemas/              # Valibot validation schemas
-    branch.ts           # CreateBranchSchema, UpdateBranchSchema, BranchFiltersSchema
-    enums.ts            # BranchTypeSchema
-    utils.ts            # BranchCodeSchema
-  workflows/
-    branch/             # create, get, list, tree, update
-    utils.ts            # Code uniqueness, HQ guard, parent validation, buildTree
-  workflow-steps/       # fetch-branch
-  utils/                # toDateOnly (Date → YYYY-MM-DD), strip-undefined
-```
-
-## Package
-
-```json title="package.json"
-{
-  "name": "@aspen-os/organization",
-  "type": "module",
-  "exports": { ".": "./.output/index.js" },
-  "dependencies": {
-    "@aspen-os/platform": "workspace:*",
-    "@aspen-os/constants": "workspace:*",
-    "drizzle-orm": "catalog:",
-    "valibot": "catalog:"
-  }
+```ts title="src/module.ts"
+export class Organization implements Module {
+  static create(config: OrganizationConfig = { country: "INDIA" }): Organization;
+  readonly $name = "organization"; // proxy key: p.organization
+  readonly $dependencies: readonly string[] = [];
 }
 ```
 
-## Constants & Enums
+## Configuration
 
-Organization-specific enums come from `@aspen-os/constants`:
+```ts title="src/module.ts"
+export interface OrganizationConfig {
+  country: "INDIA";
+}
+```
 
-| Enum         | Values                                                                       |
-| ------------ | ---------------------------------------------------------------------------- |
-| `BranchType` | `headquarters`, `office`, `warehouse`, `store`, `factory`, `remote`, `other` |
+```ts
+import { Organization } from "@aspen-os/organization";
+
+const organization = Organization.create(); // defaults to { country: "INDIA" }
+const custom = Organization.create({ country: "INDIA" });
+```
+
+Reserved for future country-specific validation; currently unused.
+
+## Dependencies
+
+No module dependencies (`$dependencies: []`). No unit bindings — `$initialize` / `$prepareRuntime` / `$cleanup` are no-ops.
+
+## Architecture
+
+```mermaid
+flowchart TB
+  subgraph Platform
+    P[Platform]
+  end
+  subgraph Organization["Organization Module"]
+    M["Organization<br/>$name = organization"]
+    INFRA["$prepareInfra()<br/>auth: {}<br/>db: { control_plane_schemas: {}, tenant_schemas: {} }<br/>events: {}"]
+  end
+  M --> INFRA
+  P -. pushes schemas / merges ACL .-> INFRA
+```
+
+`$prepareInfra()` returns empty `control_plane_schemas`, `tenant_schemas`, `events`, and `defineAcl({})`.
+
+## Relationships
+
+```mermaid
+flowchart LR
+  Org["organization (stub)"] -. no tables/events .-> Platform["@aspen-os/platform"]
+  Masters["@aspen-os/masters<br/>org_branch<br/>p.masters.orgBranches"] --> Platform
+```
+
+Branch domain was moved to Masters — see `masters:org_branch` and `p.masters.orgBranches` (`branches` deprecated alias).
+
+<Callout type="info">
+  This is a scaffold stub per `.agents/skills/write-module/SKILL.md`. Do not add branch logic here —
+  use `@aspen-os/masters`.
+</Callout>

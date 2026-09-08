@@ -1,15 +1,13 @@
 ---
 title: Organization
-description: Domain module for the tenant's hierarchical branches.
+description: Stub placeholder — no domain, tables, events, or workflows; branch hierarchy lives in Masters.
 icon: IconBuilding
 ---
 
-The Organization module manages the tenant's hierarchical branches. The organization profile (id, branding, logo) lives in Masters settings (`org.*` keys via `p.masters.settings`).
+The Organization module is a stub placeholder with no domain, tables, events, or workflows. Branch hierarchy lives in `@aspen-os/masters` as `org_branch` via `p.masters.orgBranches`.
 
 <Callout type="info">
-  Contacts, addresses, bank accounts, integration connections, and notes now live in the **Masters**
-  module (`@aspen-os/masters`) as polymorphic tenant master data. This module owns only branches and
-  has no module dependencies.
+  Scaffold per `.agents/skills/write-module/SKILL.md`. Do not implement branch logic here.
 </Callout>
 
 ## Documentation
@@ -18,26 +16,18 @@ The Organization module manages the tenant's hierarchical branches. The organiza
   <Card
     title="Overview"
     href="/docs/organization/overview"
-    description="Architecture, initialization, and module structure"
+    description="Architecture, configuration, and stub status"
   />
   <Card
     title="Workflows"
     href="/docs/organization/workflows"
-    description="Domain workflows and operations"
+    description="No workflows — branch lives in Masters"
   />
 </Cards>
 
 ## Reference
 
 <Cards>
-  <Card
-    title="Schema"
-    href="/docs/organization/db-schemas"
-    description="Database tables and relationships"
-  />
-  <Card
-    title="Events"
-    href="/docs/organization/events"
-    description="Domain events and pubsub topics"
-  />
+  <Card title="Events" href="/docs/organization/events" description="No events" />
+  <Card title="Database Schema" href="/docs/organization/db-schemas" description="No tables" />
 </Cards>

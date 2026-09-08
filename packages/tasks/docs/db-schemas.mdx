@@ -1,10 +1,10 @@
 ---
 title: Schema
-description: Database tables, enums, and relationships for the Tasks module.
+description: Tables and enums for the Tasks module.
 icon: IconDatabase
 ---
 
-The Tasks module defines 15 tables and 6 enums using Drizzle ORM.
+Control and tenant tables with `task_` prefix; shared columns `id` (text PK, UUIDv7), `created_at`, `updated_at` (timestamptz) where present — stated once.
 
 ## Enums
 
@@ -19,264 +19,212 @@ The Tasks module defines 15 tables and 6 enums using Drizzle ORM.
 
 ## Tables
 
-### `task_project`
+### `task_project` (control)
 
-Top-level project container with a unique key used for task numbering.
+| Column                 | Type                    | Description            |
+| ---------------------- | ----------------------- | ---------------------- |
+| `key`                  | text (unique)           | 2–10 uppercase letters |
+| `name`                 | text                    |                        |
+| `description`          | text                    | Nullable               |
+| `lead_id`              | text                    | Project lead           |
+| `status`               | `project_status`        | Default `active`       |
+| `start_date`           | timestamptz             | Nullable               |
+| `target_date`          | timestamptz             | Nullable               |
+| `default_task_type_id` | text (FK → `task_type`) | Nullable               |
+| `task_counter`         | integer                 | Default `0`            |
 
-| Column                 | Type                  | Description                                                   |
-| ---------------------- | --------------------- | ------------------------------------------------------------- |
-| `id`                   | text (PK)             | UUID                                                          |
-| `name`                 | text                  | Project name                                                  |
-| `key`                  | text (unique)         | 2–10 uppercase letters, used for task numbers (e.g. `PROJ-1`) |
-| `description`          | text                  | Description (nullable)                                        |
-| `lead_id`              | text                  | Project lead user ID                                          |
-| `status`               | project_status        | Defaults to `active`                                          |
-| `start_date`           | timestamptz           | Start date (nullable)                                         |
-| `target_date`          | timestamptz           | Target date (nullable)                                        |
-| `default_task_type_id` | text (FK → task_type) | Default task type (nullable)                                  |
-| `task_counter`         | integer               | Monotonically incremented per task created, defaults to 0     |
-| `created_at`           | timestamptz           | Creation timestamp                                            |
-| `updated_at`           | timestamptz           | Last update timestamp                                         |
+Indexes: unique `key`, `idx_task_project_lead` (`lead_id`), `idx_task_project_status` (`status`).
 
-### `task_project_member`
+### `task_project_member` (control)
 
-Project membership with role-based access.
+| Column       | Type                       | Description      |
+| ------------ | -------------------------- | ---------------- |
+| `project_id` | text (FK → `task_project`) |                  |
+| `user_id`    | text                       |                  |
+| `role`       | `project_member_role`      | Default `member` |
+| `joined_at`  | timestamptz                |                  |
 
-| Column       | Type                     | Description          |
-| ------------ | ------------------------ | -------------------- |
-| `project_id` | text (FK → task_project) | Project ID           |
-| `user_id`    | text                     | User ID              |
-| `role`       | project_member_role      | Defaults to `member` |
-| `joined_at`  | timestamptz              | Join timestamp       |
+Indexes: unique `uq_task_project_member_project_user` (`project_id`, `user_id`), `idx_task_project_member_project` (`project_id`), `idx_task_project_member_user` (`user_id`).
 
-Unique index on `(project_id, user_id)`.
+### `task_status` (control)
 
-### `task_type`
+| Column        | Type                       | Description       |
+| ------------- | -------------------------- | ----------------- |
+| `name`        | text                       |                   |
+| `category`    | `status_category`          |                   |
+| `color`       | text                       | Nullable          |
+| `is_default`  | boolean                    | Default `false`   |
+| `is_resolved` | boolean                    | Default `false`   |
+| `sort_order`  | integer                    | Default `0`       |
+| `project_id`  | text (FK → `task_project`) | Nullable = global |
 
-Task type definitions (e.g. Bug, Feature, Epic), project-scoped or global.
+Indexes: `idx_task_status_project` (`project_id`), `idx_task_status_sort` (`sort_order`).
 
-| Column       | Type                     | Description                       |
-| ------------ | ------------------------ | --------------------------------- |
-| `id`         | text (PK)                | UUID                              |
-| `name`       | text                     | Type name                         |
-| `color`      | text                     | Hex color (nullable)              |
-| `icon`       | text                     | Icon identifier (nullable)        |
-| `is_default` | boolean                  | Defaults to `false`               |
-| `project_id` | text (FK → task_project) | Project scope (nullable = global) |
+### `task_status_transition` (control)
 
-### `task_status`
+| Column             | Type                       | Description     |
+| ------------------ | -------------------------- | --------------- |
+| `project_id`       | text (FK → `task_project`) |                 |
+| `from_status_id`   | text (FK → `task_status`)  |                 |
+| `to_status_id`     | text (FK → `task_status`)  |                 |
+| `requires_comment` | boolean                    | Default `false` |
+| `requires_role`    | text                       | Nullable        |
 
-Task statuses with category classification and sort ordering.
+Indexes: unique `uq_task_status_transition` (`from_status_id`, `to_status_id`, `project_id`), `idx_task_status_transition_project` (`project_id`).
 
-| Column        | Type                     | Description                                                    |
-| ------------- | ------------------------ | -------------------------------------------------------------- |
-| `id`          | text (PK)                | UUID                                                           |
-| `name`        | text                     | Status name                                                    |
-| `category`    | status_category          | Workflow category                                              |
-| `color`       | text                     | Hex color (nullable)                                           |
-| `is_default`  | boolean                  | Defaults to `false`                                            |
-| `is_resolved` | boolean                  | Whether this status marks task completion, defaults to `false` |
-| `sort_order`  | integer                  | Display order, defaults to 0                                   |
-| `project_id`  | text (FK → task_project) | Project scope (nullable = global)                              |
+### `task_type` (control)
 
-### `task_status_transition`
+| Column       | Type                       | Description       |
+| ------------ | -------------------------- | ----------------- |
+| `name`       | text                       |                   |
+| `color`      | text                       | Nullable          |
+| `icon`       | text                       | Nullable          |
+| `is_default` | boolean                    | Default `false`   |
+| `project_id` | text (FK → `task_project`) | Nullable = global |
 
-Optional transition rules between statuses.
+Indexes: `idx_task_type_project` (`project_id`).
 
-| Column             | Type                     | Description                             |
-| ------------------ | ------------------------ | --------------------------------------- |
-| `id`               | text (PK)                | UUID                                    |
-| `project_id`       | text (FK → task_project) | Project ID                              |
-| `from_status_id`   | text (FK → task_status)  | Source status                           |
-| `to_status_id`     | text (FK → task_status)  | Target status                           |
-| `requires_comment` | boolean                  | Defaults to `false`                     |
-| `requires_role`    | text                     | Required role for transition (nullable) |
+### `task` (tenant)
 
-Unique index on `(from_status_id, to_status_id, project_id)`.
+| Column            | Type                       | Description                      |
+| ----------------- | -------------------------- | -------------------------------- |
+| `number`          | text                       | Display `KEY-SEQ`, nullable      |
+| `task_number`     | integer                    | Sequential per project, nullable |
+| `title`           | text                       |                                  |
+| `description`     | text                       | Nullable                         |
+| `project_id`      | text (FK → `task_project`) |                                  |
+| `status_id`       | text (FK → `task_status`)  |                                  |
+| `type_id`         | text (FK → `task_type`)    | Nullable                         |
+| `parent_id`       | text (FK → `task`)         | Self-ref, nullable               |
+| `reporter_id`     | text                       |                                  |
+| `priority`        | `task_priority`            | Default `none`                   |
+| `labels`          | text[]                     | Default `[]`                     |
+| `sort_order`      | integer                    | Default `0`                      |
+| `estimated_hours` | numeric                    | Nullable                         |
+| `start_date`      | timestamptz                | Nullable                         |
+| `due_date`        | timestamptz                | Nullable                         |
+| `assigned_at`     | timestamptz                | Nullable                         |
+| `completed_at`    | timestamptz                | Nullable                         |
+| `is_archived`     | boolean                    | Default `false`                  |
 
-### `task_label_def`
+Indexes: `idx_task_project` (`project_id`), `idx_task_status` (`status_id`), `idx_task_type` (`type_id`), `idx_task_parent` (`parent_id`), `idx_task_reporter` (`reporter_id`), `idx_task_priority` (`priority`), `idx_task_archived` (`is_archived`), `idx_task_due_date` (`due_date`).
 
-Label definitions, project-scoped or global.
+### `task_assignee` (tenant)
 
-| Column       | Type                     | Description                       |
-| ------------ | ------------------------ | --------------------------------- |
-| `id`         | text (PK)                | UUID                              |
-| `name`       | text                     | Label name                        |
-| `color`      | text                     | Hex color (nullable)              |
-| `project_id` | text (FK → task_project) | Project scope (nullable = global) |
+| Column        | Type               | Description     |
+| ------------- | ------------------ | --------------- |
+| `task_id`     | text (FK → `task`) |                 |
+| `user_id`     | text               |                 |
+| `assigned_by` | text               |                 |
+| `is_lead`     | boolean            | Default `false` |
+| `assigned_at` | timestamptz        |                 |
 
-### `task`
+Indexes: unique `uq_task_assignee_task_user` (`task_id`, `user_id`), `idx_task_assignee_task` (`task_id`), `idx_task_assignee_user` (`user_id`).
 
-The core task table.
+### `task_link` (tenant)
 
-| Column            | Type                       | Description                                 |
-| ----------------- | -------------------------- | ------------------------------------------- |
-| `id`              | text (PK)                  | UUID                                        |
-| `title`           | text                       | Task title                                  |
-| `description`     | text                       | Description (nullable)                      |
-| `number`          | text                       | Display number (e.g. `PROJ-1`) (nullable)   |
-| `task_number`     | integer                    | Sequential number within project (nullable) |
-| `project_id`      | text (FK → task_project)   | Project ID                                  |
-| `status_id`       | text (FK → task_status)    | Status ID                                   |
-| `type_id`         | text (FK → task_type)      | Task type (nullable)                        |
-| `parent_id`       | text (FK → task, self-ref) | Parent task for subtasks (nullable)         |
-| `reporter_id`     | text                       | Reporter user ID                            |
-| `priority`        | task_priority              | Defaults to `none`                          |
-| `labels`          | text[]                     | Array of label names, defaults to `[]`      |
-| `sort_order`      | integer                    | Display order, defaults to 0                |
-| `estimated_hours` | numeric                    | Estimated hours (nullable)                  |
-| `start_date`      | timestamptz                | Start date (nullable)                       |
-| `due_date`        | timestamptz                | Due date (nullable)                         |
-| `assigned_at`     | timestamptz                | First assignment timestamp (nullable)       |
-| `completed_at`    | timestamptz                | Completion timestamp (nullable)             |
-| `is_archived`     | boolean                    | Defaults to `false`                         |
-| `created_at`      | timestamptz                | Creation timestamp                          |
-| `updated_at`      | timestamptz                | Last update timestamp                       |
+| Column      | Type               | Description |
+| ----------- | ------------------ | ----------- |
+| `source_id` | text (FK → `task`) |             |
+| `target_id` | text (FK → `task`) |             |
+| `link_type` | `task_link_type`   |             |
 
-### `task_assignee`
+Indexes: unique `uq_task_link_source_target_type` (`source_id`, `target_id`, `link_type`), `idx_task_link_source` (`source_id`), `idx_task_link_target` (`target_id`).
 
-Many-to-many task assignments with lead designation.
+### `task_time_entry` (tenant)
 
-| Column        | Type             | Description                                            |
-| ------------- | ---------------- | ------------------------------------------------------ |
-| `id`          | text (PK)        | UUID                                                   |
-| `task_id`     | text (FK → task) | Task ID                                                |
-| `user_id`     | text             | User ID                                                |
-| `assigned_by` | text             | Assigning user ID                                      |
-| `is_lead`     | boolean          | Whether this is the lead assignee, defaults to `false` |
-| `assigned_at` | timestamptz      | Assignment timestamp                                   |
+| Column        | Type               | Description     |
+| ------------- | ------------------ | --------------- |
+| `task_id`     | text (FK → `task`) |                 |
+| `user_id`     | text               |                 |
+| `duration`    | integer            | Minutes         |
+| `date`        | date               |                 |
+| `description` | text               | Nullable        |
+| `billable`    | boolean            | Default `false` |
 
-Unique index on `(task_id, user_id)`.
+Indexes: `idx_task_time_entry_task` (`task_id`), `idx_task_time_entry_user` (`user_id`), `idx_task_time_entry_date` (`date`).
 
-### `task_link`
+### `task_activity_log` (tenant)
 
-Directed dependency links between tasks.
+| Column      | Type               | Description         |
+| ----------- | ------------------ | ------------------- |
+| `task_id`   | text (FK → `task`) |                     |
+| `user_id`   | text               |                     |
+| `action`    | text               | e.g. `task_created` |
+| `old_value` | jsonb              | Nullable            |
+| `new_value` | jsonb              | Nullable            |
 
-| Column       | Type             | Description        |
-| ------------ | ---------------- | ------------------ |
-| `id`         | text (PK)        | UUID               |
-| `source_id`  | text (FK → task) | Source task ID     |
-| `target_id`  | text (FK → task) | Target task ID     |
-| `link_type`  | task_link_type   | Link type          |
-| `created_at` | timestamptz      | Creation timestamp |
+Indexes: `idx_task_activity_log_task` (`task_id`), `idx_task_activity_log_action` (`action`), `idx_task_activity_log_created` (`created_at`).
 
-Unique index on `(source_id, target_id, link_type)`.
+### `task_comment` (tenant)
 
-### `task_time_entry`
+| Column       | Type                       | Description        |
+| ------------ | -------------------------- | ------------------ |
+| `task_id`    | text (FK → `task`)         |                    |
+| `user_id`    | text                       |                    |
+| `body`       | text                       |                    |
+| `parent_id`  | text (FK → `task_comment`) | Self-ref, nullable |
+| `is_deleted` | boolean                    | Default `false`    |
+| `edited_at`  | timestamptz                | Nullable           |
 
-Time tracking entries on tasks.
+Indexes: `idx_task_comment_task` (`task_id`), `idx_task_comment_parent` (`parent_id`), `idx_task_comment_user` (`user_id`).
 
-| Column        | Type             | Description            |
-| ------------- | ---------------- | ---------------------- |
-| `id`          | text (PK)        | UUID                   |
-| `task_id`     | text (FK → task) | Task ID                |
-| `user_id`     | text             | User ID                |
-| `duration`    | integer          | Duration in minutes    |
-| `date`        | date             | Date of work           |
-| `description` | text             | Description (nullable) |
-| `billable`    | boolean          | Defaults to `false`    |
-| `created_at`  | timestamptz      | Creation timestamp     |
+### `task_attachment` (tenant)
 
-### `task_activity_log`
+| Column        | Type                       | Description     |
+| ------------- | -------------------------- | --------------- |
+| `task_id`     | text (FK → `task`)         |                 |
+| `file_id`     | text                       | Storage file id |
+| `uploaded_by` | text                       |                 |
+| `comment_id`  | text (FK → `task_comment`) | Nullable        |
 
-Append-only audit trail for task actions.
+Indexes: `idx_task_attachment_task` (`task_id`), `idx_task_attachment_comment` (`comment_id`).
 
-| Column       | Type             | Description                                                                 |
-| ------------ | ---------------- | --------------------------------------------------------------------------- |
-| `id`         | text (PK)        | UUID                                                                        |
-| `task_id`    | text (FK → task) | Task ID                                                                     |
-| `user_id`    | text             | User who performed the action                                               |
-| `action`     | text             | Action identifier (e.g. `task_created`, `status_changed`, `assignee_added`) |
-| `old_value`  | jsonb            | Previous value (nullable)                                                   |
-| `new_value`  | jsonb            | New value (nullable)                                                        |
-| `created_at` | timestamptz      | Action timestamp                                                            |
+### `task_watcher` (tenant)
 
-### `task_comment`
+| Column    | Type               | Description |
+| --------- | ------------------ | ----------- |
+| `task_id` | text (FK → `task`) |             |
+| `user_id` | text               |             |
 
-Threaded comments on tasks.
+Indexes: unique `uq_task_watcher_task_user` (`task_id`, `user_id`), `idx_task_watcher_task` (`task_id`), `idx_task_watcher_user` (`user_id`).
 
-| Column       | Type                               | Description                           |
-| ------------ | ---------------------------------- | ------------------------------------- |
-| `id`         | text (PK)                          | UUID                                  |
-| `task_id`    | text (FK → task)                   | Task ID                               |
-| `user_id`    | text                               | Author user ID                        |
-| `body`       | text                               | Comment body                          |
-| `parent_id`  | text (FK → task_comment, self-ref) | Parent comment for threads (nullable) |
-| `is_deleted` | boolean                            | Soft delete flag, defaults to `false` |
-| `edited_at`  | timestamptz                        | Last edit timestamp (nullable)        |
-| `created_at` | timestamptz                        | Creation timestamp                    |
+### `task_automation_rule` (tenant)
 
-### `task_attachment`
+| Column       | Type                       | Description    |
+| ------------ | -------------------------- | -------------- |
+| `name`       | text                       |                |
+| `project_id` | text (FK → `task_project`) |                |
+| `trigger`    | `automation_trigger`       |                |
+| `conditions` | jsonb                      | Nullable       |
+| `actions`    | jsonb                      |                |
+| `is_active`  | boolean                    | Default `true` |
 
-File attachments on tasks, optionally linked to a comment.
-
-| Column        | Type                     | Description                   |
-| ------------- | ------------------------ | ----------------------------- |
-| `id`          | text (PK)                | UUID                          |
-| `task_id`     | text (FK → task)         | Task ID                       |
-| `file_id`     | text                     | Storage file ID               |
-| `uploaded_by` | text                     | Uploader user ID              |
-| `comment_id`  | text (FK → task_comment) | Associated comment (nullable) |
-| `created_at`  | timestamptz              | Upload timestamp              |
-
-### `task_watcher`
-
-Users watching a task for notifications.
-
-| Column     | Type             | Description           |
-| ---------- | ---------------- | --------------------- |
-| `id`       | text (PK)        | UUID                  |
-| `task_id`  | text (FK → task) | Task ID               |
-| `user_id`  | text             | User ID               |
-| `added_at` | timestamptz      | Watch start timestamp |
-
-Unique index on `(task_id, user_id)`.
-
-Saved views moved to `@aspen-os/masters` (`master_filter_view`, `domain: "tasks:task"`) — see [Masters DB Schemas](/docs/masters/db-schemas).
-
-### `task_automation_rule`
-
-Automation rules with triggers, conditions, and actions.
-
-| Column       | Type                     | Description                          |
-| ------------ | ------------------------ | ------------------------------------ |
-| `id`         | text (PK)                | UUID                                 |
-| `name`       | text                     | Rule name                            |
-| `project_id` | text (FK → task_project) | Project ID                           |
-| `trigger`    | automation_trigger       | Trigger type                         |
-| `conditions` | jsonb                    | Condition key-value pairs (nullable) |
-| `actions`    | jsonb                    | Array of action objects              |
-| `is_active`  | boolean                  | Defaults to `true`                   |
-| `created_at` | timestamptz              | Creation timestamp                   |
-| `updated_at` | timestamptz              | Last update timestamp                |
+Indexes: `idx_task_automation_rule_project` (`project_id`), `idx_task_automation_rule_trigger` (`trigger`), `idx_task_automation_rule_active` (`is_active`).
 
 ## Relationships
 
-```text
-task_project ──1:N──→ task_project_member
-task_project ──1:N──→ task_type
-task_project ──1:N──→ task_status
-task_project ──1:N──→ task_status_transition
-task_project ──1:N──→ task_label_def
-task_project ──1:N──→ task
-task_project ──1:N──→ task_automation_rule
-
-task_status ──1:N──→ task_status_transition (from_status_id)
-task_status ──1:N──→ task_status_transition (to_status_id)
-task_status ──1:N──→ task
-
-task_type ──1:N──→ task
-
-task ──self-ref──→ task (parent_id, max depth 3)
-task ──1:N──→ task_assignee
-task ──1:N──→ task_link (source_id)
-task ──1:N──→ task_link (target_id)
-task ──1:N──→ task_time_entry
-task ──1:N──→ task_activity_log
-task ──1:N──→ task_comment
-task ──1:N──→ task_attachment
-task ──1:N──→ task_watcher
-
-task_comment ──self-ref──→ task_comment (parent_id)
-task_comment ──1:N──→ task_attachment (comment_id)
+```mermaid
+flowchart LR
+  P[task_project] --> PM[task_project_member]
+  P --> ST[task_status]
+  P --> STR[task_status_transition]
+  P --> TT[task_type]
+  P --> T[task]
+  P --> AR[task_automation_rule]
+  ST --> STR
+  ST --> T
+  TT --> T
+  T -->|parent_id| T
+  T --> TA[task_assignee]
+  T --> TL[task_link]
+  T --> TE[task_time_entry]
+  T --> AL[task_activity_log]
+  T --> C[task_comment]
+  T --> ATT[task_attachment]
+  T --> W[task_watcher]
+  C -->|parent_id| C
+  C --> ATT
 ```
+
+All FKs are logical (text), workflow-enforced. Saved views moved to `@aspen-os/masters` (`master_filter_view`, `domain: "tasks:task"`) is not a task table.

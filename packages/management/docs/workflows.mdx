@@ -1,155 +1,118 @@
 ---
 title: Workflows
-description: API reference for the workflow groups exposed by the Management Plane module.
+description: Workflows exposed by the Management Plane module.
 icon: IconListCheck
 ---
 
-The Management Plane exposes workflows as flat `Workflow` objects grouped under three accessors: `tenants`, `serviceProviders`, and `users`. All operate on the control-plane DB. Access via the platform proxy key `p.management` ($name is `"management"`).
+The Management Plane exposes `tenants`, `serviceProviders`, `organizations`, and `users` via `p.management` (`$name = "management"`).
+
+Workflows validate with Valibot; `create` takes a single input object, `update` takes `{ id, patch }` where `undefined` leaves the column untouched. Mutations write an audit entry and publish a domain event.
 
 ## Tenants
 
-Access: `p.management.tenants` (a getter, throws if accessed before `$initialize`).
-
-### Lifecycle
+Lifecycle, SP assignment, reads and profile updates.
 
 ```ts
-// Provision a new tenant — creates the org + provisions the tenant DB
+// Provision
 await p.management.tenants.onboard({
-  tenant: {
-    name: "Acme Corp",
-    slug: "acme-corp",
-    logo: "logos/acme.png",
-    plan: "pro",
-    serviceProviderId: "sp-1",
-    // optional per-tenant DB overrides: databaseHost, databaseName, ...
-  },
+  tenant: { name: "Acme", slug: "acme", plan: "pro", serviceProviderId: "sp-1" },
   userId: "user-1",
 });
 
-// Status transitions
-await p.management.tenants.activate({ id: tenantId }); // onboarding → active
+// Lifecycle
+await p.management.tenants.activate({ id: tenantId });
 await p.management.tenants.suspend({ id: tenantId, reason: "unpaid" });
 await p.management.tenants.reactivate({ id: tenantId });
 await p.management.tenants.churn({ id: tenantId, reason: "competitor" });
 
-// Service provider assignment
-await p.management.tenants.assignServiceProvider({ tenantId, serviceProviderId });
+// SP assignment
+await p.management.tenants.assignServiceProvider({ tenantId, serviceProviderId: "sp-1" });
 await p.management.tenants.unassignServiceProvider({ tenantId });
-```
 
-### Reads & updates
-
-```ts
+// Reads & updates
 const tenant = await p.management.tenants.get({ id: tenantId });
 const tenants = await p.management.tenants.list({
   filters: { status: "active", plan, serviceProviderId, search, limit: 50, offset: 0 },
 });
-await p.management.tenants.update({
-  id: tenantId,
-  profile: { name, slug, logo },
-  companion: { plan },
-});
-```
-
-Status changes go only through the lifecycle transitions above — `update` cannot change `status`.
-
-`onboard` runs as a durable workflow with internal steps (`create-organization`, `provision-tenant`, `seed-profile` on isolated mode, `record-tenant`, `audit-and-notify`). `provision-tenant` calls `DatabaseUnit.provisionTenant()` and deletes the org row if provisioning fails. It emits `tenant:provisioned` and requires `ctx.auth`.
-
-### Validation Schemas
-
-- `ProvisionTenantSchema` — `name`, `slug`, optional `logo`, `plan`, `serviceProviderId`, and per-tenant DB overrides (`databaseHost`, `databaseName`, `databasePassword`, `databasePort`, `databaseSsl`, `databaseUser`)
-- `UpdateTenantProfileSchema` — `name?`, `slug?`, `logo?` (writes the `organization` row)
-- `UpdateTenantCompanionSchema` — `plan?` (writes the `tenant` companion row; `status` is not accepted — use the lifecycle transitions)
-- `TenantFiltersSchema` — `status?` (enum), `plan?`, `serviceProviderId?`, `search?`, `limit?`, `offset?`
-
-## ServiceProviders
-
-Access: `p.management.serviceProviders` (readonly object).
-
-```ts
-// Create
-const sp = await p.management.serviceProviders.create({
-  name: "Acme Integrators",
-  slug: "acme-integrators",
-  description: "Field installation and training services",
-  email: "ops@acme-integrators.com",
-  phone: "+91-9876543210",
-  website: "https://acme-integrators.com",
-  address: "Mumbai, IN",
-});
-
-// List / get
-const sps = await p.management.serviceProviders.list({ filters: { status: "active" } });
-const sp = await p.management.serviceProviders.get({ id: spId });
-
-// Update
-await p.management.serviceProviders.update({ id: spId, patch: { phone: "+91-9999999999" } });
-
-// Status — inactive SPs shouldn't be assigned to new tenants
-await p.management.serviceProviders.deactivate({ id: spId });
-await p.management.serviceProviders.activate({ id: spId });
-
-// Assigned tenants and users (paginated)
-const tenants = await p.management.serviceProviders.listAssignedTenants({ spId, limit: 50 });
-const users = await p.management.serviceProviders.listUsers({ spId, limit: 50 });
+await p.management.tenants.update({ id: tenantId, profile: { name, slug }, companion: { plan } });
 ```
 
 <Callout type="warn">
-  Tenant transitions throw when the current status is not the expected source (`onboarding` →
-  `active`, `active` → `suspended`, `suspended` → `active`, `active`/`suspended` → `churned`). SP
-  transitions are idempotent — `activate`/`deactivate` return the row unchanged when already in the
-  target status.
+  Status changes only via lifecycle transitions; `update` cannot change `status`. Tenant transitions
+  throw on wrong source status; SP transitions are idempotent.
 </Callout>
+
+## Service Providers
+
+Create, read, update, lifecycle, and assigned-entity listings.
+
+```ts
+const sp = await p.management.serviceProviders.create({
+  name: "Acme Integrators",
+  slug: "acme-integrators",
+  email: "ops@acme.com",
+});
+const sps = await p.management.serviceProviders.list({
+  filters: { status: "active", search, limit: 50, offset: 0 },
+});
+const one = await p.management.serviceProviders.get({ id: spId });
+await p.management.serviceProviders.update({ id: spId, patch: { phone: "+91-9999999999" } });
+await p.management.serviceProviders.deactivate({ id: spId });
+await p.management.serviceProviders.activate({ id: spId });
+const tenants = await p.management.serviceProviders.listAssignedTenants({
+  spId,
+  limit: 50,
+  offset: 0,
+});
+const users = await p.management.serviceProviders.listUsers({ spId, limit: 50, offset: 0 });
+```
+
+## Organizations
+
+Platform-level organizations (`managed_organization`).
+
+```ts
+const org = await p.management.organizations.create({
+  name: "Acme Org",
+  slug: "acme-org",
+  branding: { logo: "logos/acme.png" },
+});
+const one = await p.management.organizations.get({ id: orgId });
+const orgs = await p.management.organizations.list({ filters: { search, limit: 50, offset: 0 } });
+await p.management.organizations.update({ id: orgId, patch: { name: "Acme Central" } });
+```
 
 ## Users
 
-Access: `p.management.users` (readonly object).
+Create, read, update, delete, and role/SP assignment.
 
 ```ts
-// Create a platform user (password required)
 await p.management.users.create({
   email: "admin@aspen-os.com",
-  name: "Platform Admin",
+  name: "Admin",
   password: "secret",
   role: "platform_admin",
 });
-
-// SP user — spId required
 await p.management.users.create({
-  email: "field@acme-integrators.com",
-  name: "Field Agent",
+  email: "field@acme.com",
+  name: "Field",
   password: "secret",
   role: "sp_user",
   spId: "sp-1",
 });
-
-// List / get / update / delete
-const users = await p.management.users.list({ filters: { role: "sp_user", spId: "sp-1" } });
+const users = await p.management.users.list({
+  filters: { role: "sp_user", spId: "sp-1", search, limit: 50, offset: 0 },
+});
 const user = await p.management.users.get({ id: userId });
 await p.management.users.update({ id: userId, patch: { name, role, spId } });
 await p.management.users.delete({ id: userId });
-
-// Role / SP assignment
 await p.management.users.assignRole({ id: userId, role: "platform_admin" });
 await p.management.users.assignToServiceProvider({ id: userId, spId: "sp-2" });
 ```
 
 <Callout type="warn">
-  `user.create` and `user.update` enforce the `spId` rule against the effective role: `spId` is
-  required when the resulting role is `"sp_user"` and must not be set otherwise. Both verify the SP
-  exists. `assignRole` to a non-SP role clears a stale SP assignment, and assigning `"sp_user"`
-  requires an existing SP assignment.
+  `spId` required when the resulting role is `sp_user` and must be absent otherwise; both verify the
+  SP exists.
 </Callout>
 
-## Notes
-
-- All workflows are `Workflow.name(...)` objects, each with Valibot input validation and status persistence via the platform's `Workflow` engine.
-
-| Group              | Workflow names                                                                                                                                                                     |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tenants`          | `tenant.onboard`, `tenant.get`, `tenant.list`, `tenant.update`, `tenant.activate`, `tenant.suspend`, `tenant.reactivate`, `tenant.churn`, `tenant.assign-sp`, `tenant.unassign-sp` |
-| `serviceProviders` | `sp.create`, `sp.get`, `sp.list`, `sp.update`, `sp.activate`, `sp.deactivate`, `sp.assigned-tenants`, `sp.users`                                                                   |
-| `users`            | `user.create`, `user.get`, `user.list`, `user.update`, `user.delete`, `user.assign-role`, `user.assign-sp`                                                                         |
-
-- Lifecycle and CRUD operations write audit entries (`ctx.audit.write`) and publish domain events via `ctx.pubsub`.
-- Report filter types (`TenantUsageFilters`, `LifecycleReportFilters`, `AuditReportFilters` in `src/schemas/report.ts`) are exported from `#/types` but have no workflows yet.
+Links: [Events](/docs/management/events) · [DB Schemas](/docs/management/db-schemas)

@@ -1,906 +1,531 @@
 ---
 title: DB Schemas
-description: 54 tables declared by the HR module — 14 control-plane + 40 tenant.
+description: Database tables and enums for the hr-core module.
 icon: IconDatabase
 ---
 
-The HR module declares 54 tables: 14 control-plane tables (setup + access, shared across tenants) and 40 tenant tables (operational/transactional). Every table uses `id: uuidv7("id").primaryKey()`. Cross-row links are soft text FKs (no DB constraints). Enum columns reference the 29 `hr_*` pgEnums — see `enums.mdx` for values.
+Control-plane and tenant tables (`hr_` and domain prefixes). Shared columns `id` (text PK, UUIDv7), `created_at`, `updated_at` (timestamptz) on every table unless noted; no hard FKs — all cross-row links are soft text FKs validated in workflows.
 
-Schema is applied with Drizzle `pushSchema()` during platform preparation; there are no migration files.
+## Enums
 
-## Access (control-plane)
+| Enum                       | Values                                                                                    |
+| -------------------------- | ----------------------------------------------------------------------------------------- |
+| `hr_employee_status`       | `active`, `inactive`, `left`, `suspended`                                                 |
+| `hr_gender`                | `female`, `male`, `other`, `prefer_not_to_say`                                            |
+| `hr_employment_type`       | `contract`, `freelance`, `intern`, `part_time`, `permanent`, `temporary`                  |
+| `hr_lifecycle_task_status` | `completed`, `in_progress`, `pending`, `skipped`                                          |
+| `hr_onboarding_status`     | `cancelled`, `completed`, `in_progress`, `pending`                                        |
+| `hr_separation_status`     | `cancelled`, `completed`, `in_progress`, `pending`                                        |
+| `hr_promotion_status`      | `approved`, `completed`, `pending`, `rejected`                                            |
+| `hr_transfer_status`       | `approved`, `completed`, `pending`, `rejected`                                            |
+| `hr_skill_proficiency`     | `advanced`, `beginner`, `expert`, `intermediate`                                          |
+| `hr_exit_interview_status` | `cancelled`, `completed`, `scheduled`                                                     |
+| `hr_full_and_final_status` | `approved`, `cancelled`, `draft`, `paid`, `pending`                                       |
+| `hr_holiday_type`          | `company`, `optional`, `public`, `weekly_off`                                             |
+| `hr_access_level`          | `full`, `manage`, `read_only`                                                             |
+| `hr_permission_action`     | `approve`, `archive`, `create`, `delete`, `manage`, `publish`, `reject`, `update`, `view` |
+| `hr_announcement_status`   | `archived`, `draft`, `published`, `scheduled`                                             |
+| `hr_announcement_channel`  | `custom`, `general`, `hr`                                                                 |
+| `hr_announcement_priority` | `important`, `normal`, `urgent`                                                           |
 
-### `hr_user`
+## Tables
 
-HR users linking auth users to employees.
+### `hr_user` — control-plane
 
-| Column                      | Type                 | Description       |
-| --------------------------- | -------------------- | ----------------- |
-| `id`                        | text (PK)            | Auto UUIDv7       |
-| `user_id`                   | text                 | Auth user id      |
-| `employee_id`               | text (FK → employee) | Linked employee   |
-| `is_active`                 | boolean              | Default true      |
-| `created_at` / `updated_at` | timestamptz          | Record timestamps |
+HR user linking an auth user to an employee.
 
-### `hr_role`
+| Column        | Type                 | Description     |
+| ------------- | -------------------- | --------------- |
+| `employee_id` | text (FK → employee) | Linked employee |
+| `user_id`     | text                 | Auth user id    |
+| `is_active`   | boolean              | Default true    |
 
-Custom RBAC roles.
+Indexes: `idx_hr_user_employee_id` (`employee_id`), `idx_hr_user_user_id` (`user_id`).
 
-| Column                      | Type        | Description                       |
-| --------------------------- | ----------- | --------------------------------- |
-| `id`                        | text (PK)   | Auto UUIDv7                       |
-| `name`                      | text        | Unique role name                  |
-| `description`               | text        | Optional                          |
-| `is_system`                 | boolean     | System roles survive `deleteRole` |
-| `is_active`                 | boolean     | Default true                      |
-| `created_at` / `updated_at` | timestamptz | Record timestamps                 |
+### `hr_role` — control-plane
 
-### `hr_permission`
+| Column        | Type    | Description                 |
+| ------------- | ------- | --------------------------- |
+| `name`        | text    | Role name                   |
+| `description` | text    | Optional                    |
+| `is_system`   | boolean | System roles survive delete |
+| `is_active`   | boolean | Default true                |
 
-Module + action permission rows.
+### `hr_permission` — control-plane
 
-| Column        | Type                   | Description                                                     |
-| ------------- | ---------------------- | --------------------------------------------------------------- |
-| `id`          | text (PK)              | Auto UUIDv7                                                     |
-| `module`      | text                   | e.g. `employee`                                                 |
-| `action`      | `hr_permission_action` | approve/archive/create/delete/manage/publish/reject/update/view |
-| `description` | text                   | Optional                                                        |
-| `created_at`  | timestamptz            | Record timestamp                                                |
+| Column        | Type                   | Description       |
+| ------------- | ---------------------- | ----------------- |
+| `module`      | text                   | e.g. `employee`   |
+| `action`      | `hr_permission_action` | Permission action |
+| `description` | text                   | Optional          |
 
-### `hr_role_permission`
-
-Role ↔ permission links.
+### `hr_role_permission` — control-plane
 
 | Column          | Type                      | Description        |
 | --------------- | ------------------------- | ------------------ |
-| `id`            | text (PK)                 | Auto UUIDv7        |
 | `role_id`       | text (FK → hr_role)       | Owning role        |
 | `permission_id` | text (FK → hr_permission) | Granted permission |
-| `created_at`    | timestamptz               | Record timestamp   |
 
-### `hr_user_role`
+Indexes: `idx_hr_role_permission_role_id` (`role_id`), `idx_hr_role_permission_permission_id` (`permission_id`).
 
-User ↔ role grants, optionally branch-scoped.
+### `hr_user_role` — control-plane
 
-| Column                      | Type                | Description         |
-| --------------------------- | ------------------- | ------------------- |
-| `id`                        | text (PK)           | Auto UUIDv7         |
-| `hr_user_id`                | text (FK → hr_user) | Grantee             |
-| `role_id`                   | text (FK → hr_role) | Granted role        |
-| `branch_id`                 | text                | Null = global grant |
-| `created_at` / `updated_at` | timestamptz         | Record timestamps   |
+Branch-scoped role grants.
 
-### `hr_user_branch_access`
+| Column       | Type                | Description   |
+| ------------ | ------------------- | ------------- |
+| `hr_user_id` | text (FK → hr_user) | Grantee       |
+| `role_id`    | text (FK → hr_role) | Granted role  |
+| `branch_id`  | text                | Null = global |
+
+Indexes: `idx_hr_user_role_hr_user_id` (`hr_user_id`), `idx_hr_user_role_role_id` (`role_id`), `idx_hr_user_role_branch_id` (`branch_id`).
+
+### `hr_user_branch_access` — control-plane
 
 Direct branch grants.
 
-| Column                      | Type                | Description         |
-| --------------------------- | ------------------- | ------------------- |
-| `id`                        | text (PK)           | Auto UUIDv7         |
-| `hr_user_id`                | text (FK → hr_user) | Grantee             |
-| `branch_id`                 | text                | Granted branch      |
-| `access_level`              | `hr_access_level`   | Default `read_only` |
-| `created_at` / `updated_at` | timestamptz         | Record timestamps   |
-
-## Setup (control-plane)
-
-### `hr_settings`
-
-Singleton HR settings (upserted by `updateHrSettings`).
-
-| Column                             | Type        | Description             |
-| ---------------------------------- | ----------- | ----------------------- |
-| `id`                               | text (PK)   | Auto UUIDv7             |
-| `employee_naming_series`           | text        | Employee id series      |
-| `default_holiday_list`             | text        | Default list id         |
-| `leave_approval_workflow`          | text        | Approval chain          |
-| `leave_without_pay_handling`       | text        | LWP policy              |
-| `expense_claim_default`            | text        | Default claim type      |
-| `auto_attendance`                  | boolean     | Auto mark attendance    |
-| `geolocation_tracking`             | boolean     | Check-in geo required   |
-| `allow_multiple_shift_assignments` | boolean     | Overlapping assignments |
-| `created_at` / `updated_at`        | timestamptz | Record timestamps       |
-
-### `payroll_settings`
-
-Singleton payroll settings (upserted by `updatePayrollSettings`).
-
-| Column                           | Type        | Description           |
-| -------------------------------- | ----------- | --------------------- |
-| `id`                             | text (PK)   | Auto UUIDv7           |
-| `payroll_period_start` / `_end`  | text        | Pay cycle bounds      |
-| `fiscal_year_start` / `_end`     | text        | Fiscal bounds         |
-| `rounding`                       | text        | Rounding rule         |
-| `income_tax_component`           | text        | Tax component         |
-| `benefits_application_mandatory` | boolean     | Benefits gate         |
-| `multi_currency_expense_claims`  | boolean     | Multi-currency claims |
-| `created_at` / `updated_at`      | timestamptz | Record timestamps     |
-
-### `employment_type`
-
-Employment type catalog.
-
-| Column                      | Type        | Description       |
-| --------------------------- | ----------- | ----------------- |
-| `id`                        | text (PK)   | Auto UUIDv7       |
-| `name`                      | text        | Type name         |
-| `description`               | text        | Optional          |
-| `is_active`                 | boolean     | Soft-delete flag  |
-| `created_at` / `updated_at` | timestamptz | Record timestamps |
-
-### `department`
-
-Hierarchical departments; `code` uppercased on write.
-
-| Column                      | Type                   | Description          |
-| --------------------------- | ---------------------- | -------------------- |
-| `id`                        | text (PK)              | Auto UUIDv7          |
-| `code`                      | text                   | Uppercased, unique   |
-| `name`                      | text                   | Display name         |
-| `parent_department`         | text (FK → department) | Null = root          |
-| `manager`                   | text (FK → employee)   | Department head      |
-| `cost_center`               | text                   | Optional             |
-| `headcount`                 | integer                | Sanctioned headcount |
-| `metadata`                  | jsonb                  | Extra attributes     |
-| `is_active`                 | boolean                | Soft-delete flag     |
-| `created_at` / `updated_at` | timestamptz            | Record timestamps    |
-
-### `designation`
-
-Designation catalog.
-
-| Column                      | Type        | Description       |
-| --------------------------- | ----------- | ----------------- |
-| `id`                        | text (PK)   | Auto UUIDv7       |
-| `name`                      | text        | Designation name  |
-| `description`               | text        | Optional          |
-| `is_active`                 | boolean     | Soft-delete flag  |
-| `created_at` / `updated_at` | timestamptz | Record timestamps |
-
-### `employee_grade`
-
-Employee grade catalog.
-
-| Column                      | Type        | Description             |
-| --------------------------- | ----------- | ----------------------- |
-| `id`                        | text (PK)   | Auto UUIDv7             |
-| `name`                      | text        | Grade name              |
-| `description`               | text        | Optional                |
-| `default_salary_structure`  | text        | Linked salary structure |
-| `is_active`                 | boolean     | Soft-delete flag        |
-| `created_at` / `updated_at` | timestamptz | Record timestamps       |
-
-### `holiday_list`
-
-Yearly holiday lists.
-
-| Column                      | Type        | Description        |
-| --------------------------- | ----------- | ------------------ |
-| `id`                        | text (PK)   | Auto UUIDv7        |
-| `name`                      | text        | List name          |
-| `description`               | text        | Optional           |
-| `year`                      | integer     | Calendar year      |
-| `weekly_off_days`           | jsonb       | Weekly off pattern |
-| `is_active`                 | boolean     | Soft-delete flag   |
-| `created_at` / `updated_at` | timestamptz | Record timestamps  |
-
-### `holiday`
-
-Holidays within a list (hard-deleted by `deleteHoliday`).
-
-| Column                      | Type                     | Description       |
-| --------------------------- | ------------------------ | ----------------- |
-| `id`                        | text (PK)                | Auto UUIDv7       |
-| `holiday_list_id`           | text (FK → holiday_list) | Owning list       |
-| `name`                      | text                     | Holiday name      |
-| `date`                      | date                     | Holiday date      |
-| `type`                      | `hr_holiday_type`        | Default `public`  |
-| `description`               | text                     | Optional          |
-| `created_at` / `updated_at` | timestamptz              | Record timestamps |
-
-## Employee (tenant)
-
-### `employee`
-
-Core employee record; `employee_id` unique.
-
-| Column                                                                                 | Type                 | Description                                             |
-| -------------------------------------------------------------------------------------- | -------------------- | ------------------------------------------------------- |
-| `id`                                                                                   | text (PK)            | Auto UUIDv7                                             |
-| `employee_id`                                                                          | text                 | Unique business id                                      |
-| `first_name` / `middle_name` / `last_name`                                             | text                 | Name parts (first/last required)                        |
-| `company`                                                                              | text                 | Owning company                                          |
-| `department`                                                                           | text                 | Department id                                           |
-| `designation`                                                                          | text                 | Designation id                                          |
-| `employment_type`                                                                      | `hr_employment_type` | contract/freelance/intern/part_time/permanent/temporary |
-| `status`                                                                               | `hr_employee_status` | Default `active`                                        |
-| `date_of_joining`                                                                      | date                 | Required                                                |
-| `date_of_leaving`                                                                      | date                 | Set by `markAsLeft`                                     |
-| `reports_to`                                                                           | text (FK → employee) | Manager fallback                                        |
-| `grade` / `branch` / `holiday_list`                                                    | text                 | Org placement refs                                      |
-| `gender`                                                                               | `hr_gender`          | Optional                                                |
-| `date_of_birth` / `blood_group` / `marital_status`                                     | text/date            | Personal details                                        |
-| `email` / `phone` / `work_email` / `work_phone` / `personal_email` / `personal_phone`  | text                 | Contact channels                                        |
-| `current_address` / `permanent_address` / `city` / `state` / `country` / `postal_code` | text                 | Addresses                                               |
-| `bank_name` / `bank_branch` / `bank_account_number` / `ifsc_code`                      | text                 | Bank details                                            |
-| `tax_id` / `social_security_number` / `salary_structure_assignment`                    | text                 | Payroll refs                                            |
-| `emergency_contact_name` / `emergency_contact_phone` / `emergency_contact_relation`    | text                 | Emergency contact                                       |
-| `image`                                                                                | text                 | Photo ref                                               |
-| `metadata`                                                                             | jsonb                | Extra attributes                                        |
-| `created_at` / `updated_at`                                                            | timestamptz          | Record timestamps                                       |
-
-### `employee_group`
-
-Employee groups (members removed before group delete).
-
-| Column                      | Type        | Description       |
-| --------------------------- | ----------- | ----------------- |
-| `id`                        | text (PK)   | Auto UUIDv7       |
-| `name`                      | text        | Group name        |
-| `description`               | text        | Optional          |
-| `is_active`                 | boolean     | Default true      |
-| `created_at` / `updated_at` | timestamptz | Record timestamps |
-
-### `employee_group_member`
-
-Group memberships (unique per group + employee).
-
-| Column                      | Type                       | Description       |
-| --------------------------- | -------------------------- | ----------------- |
-| `id`                        | text (PK)                  | Auto UUIDv7       |
-| `group_id`                  | text (FK → employee_group) | Owning group      |
-| `employee_id`               | text (FK → employee)       | Member            |
-| `created_at` / `updated_at` | timestamptz                | Record timestamps |
-
-### `employee_health_insurance`
-
-Health insurance policies per employee.
-
-| Column                      | Type                 | Description       |
-| --------------------------- | -------------------- | ----------------- |
-| `id`                        | text (PK)            | Auto UUIDv7       |
-| `employee_id`               | text (FK → employee) | Policy holder     |
-| `insurer`                   | text                 | Insurer name      |
-| `policy_number`             | text                 | Policy number     |
-| `start_date` / `end_date`   | date                 | Coverage window   |
-| `premium_amount`            | text                 | Premium           |
-| `coverage_details`          | text                 | Coverage notes    |
-| `is_active`                 | boolean              | Default true      |
-| `metadata`                  | jsonb                | Extra attributes  |
-| `created_at` / `updated_at` | timestamptz          | Record timestamps |
-
-### `employee_skill_map`
-
-Skill assessments per employee.
-
-| Column                                                      | Type                   | Description                           |
-| ----------------------------------------------------------- | ---------------------- | ------------------------------------- |
-| `id`                                                        | text (PK)              | Auto UUIDv7                           |
-| `employee_id`                                               | text (FK → employee)   | Assessed employee                     |
-| `skill`                                                     | text                   | Skill name                            |
-| `proficiency`                                               | `hr_skill_proficiency` | beginner/intermediate/advanced/expert |
-| `assessed_by` / `assessment_date`                           | text/date              | Assessment audit                      |
-| `certification_name` / `certification_date` / `expiry_date` | text/date              | Certification                         |
-| `notes`                                                     | text                   | Optional                              |
-| `created_at` / `updated_at`                                 | timestamptz            | Record timestamps                     |
-
-### `employee_checkin`
-
-Raw check-in/out punches feeding attendance.
-
-| Column                      | Type                  | Description       |
-| --------------------------- | --------------------- | ----------------- |
-| `id`                        | text (PK)             | Auto UUIDv7       |
-| `employee_id`               | text (FK → employee)  | Who punched       |
-| `time`                      | timestamptz           | Punch time        |
-| `log_type`                  | `hr_checkin_log_type` | `in` / `out`      |
-| `shift`                     | text                  | Shift type ref    |
-| `device_id`                 | text                  | Capture device    |
-| `latitude` / `longitude`    | text                  | Geo punch         |
-| `is_off_shift`              | boolean               | Off-shift punch   |
-| `metadata`                  | jsonb                 | Extra attributes  |
-| `created_at` / `updated_at` | timestamptz           | Record timestamps |
-
-### `employee_onboarding`
-
-Onboarding tracks (tasks cascade-deleted).
-
-| Column                                                | Type                   | Description       |
-| ----------------------------------------------------- | ---------------------- | ----------------- |
-| `id`                                                  | text (PK)              | Auto UUIDv7       |
-| `employee_id`                                         | text (FK → employee)   | Joiner            |
-| `start_date`                                          | date                   | Joining date      |
-| `expected_completion_date` / `actual_completion_date` | date                   | Plan vs actual    |
-| `status`                                              | `hr_onboarding_status` | Default `pending` |
-| `notes`                                               | text                   | Optional          |
-| `metadata`                                            | jsonb                  | Extra attributes  |
-| `created_at` / `updated_at`                           | timestamptz            | Record timestamps |
-
-### `employee_promotion`
-
-Promotion cases (approve syncs `employee.designation`).
-
-| Column                                             | Type                  | Description       |
-| -------------------------------------------------- | --------------------- | ----------------- |
-| `id`                                               | text (PK)             | Auto UUIDv7       |
-| `employee_id`                                      | text (FK → employee)  | Promotee          |
-| `current_designation` / `new_designation`          | text                  | Required pair     |
-| `current_department` / `new_department`            | text                  | Optional pair     |
-| `current_grade` / `new_grade`                      | text                  | Optional pair     |
-| `effective_date`                                   | date                  | Effective date    |
-| `salary_revision`                                  | text                  | Revised salary    |
-| `reason`                                           | text                  | Justification     |
-| `status`                                           | `hr_promotion_status` | Default `pending` |
-| `approved_by` / `approved_at`                      | text/timestamptz      | Approval audit    |
-| `rejected_by` / `rejected_at` / `rejection_reason` | text/timestamptz/text | Rejection audit   |
-| `created_at` / `updated_at`                        | timestamptz           | Record timestamps |
-
-### `employee_separation`
-
-Separation cases (tasks cascade-deleted; completing emits `lifecycle:separation_completed`).
-
-| Column                           | Type                   | Description        |
-| -------------------------------- | ---------------------- | ------------------ |
-| `id`                             | text (PK)              | Auto UUIDv7        |
-| `employee_id`                    | text (FK → employee)   | Leaver             |
-| `resignation_date` / `exit_date` | date                   | Required exit date |
-| `reason` / `notes`               | text                   | Optional           |
-| `status`                         | `hr_separation_status` | Default `pending`  |
-| `metadata`                       | jsonb                  | Extra attributes   |
-| `created_at` / `updated_at`      | timestamptz            | Record timestamps  |
-
-### `employee_transfer`
-
-Transfer cases (approve emits `lifecycle:transfer_approved`).
-
-| Column                                             | Type                  | Description       |
-| -------------------------------------------------- | --------------------- | ----------------- |
-| `id`                                               | text (PK)             | Auto UUIDv7       |
-| `employee_id`                                      | text (FK → employee)  | Transferee        |
-| `from_branch` / `to_branch`                        | text                  | Branch move       |
-| `from_company` / `to_company`                      | text                  | Company move      |
-| `from_department` / `to_department`                | text                  | Department move   |
-| `effective_date`                                   | date                  | Effective date    |
-| `reason`                                           | text                  | Justification     |
-| `status`                                           | `hr_transfer_status`  | Default `pending` |
-| `approved_by` / `approved_at`                      | text/timestamptz      | Approval audit    |
-| `rejected_by` / `rejected_at` / `rejection_reason` | text/timestamptz/text | Rejection audit   |
-| `created_at` / `updated_at`                        | timestamptz           | Record timestamps |
-
-## Attendance (tenant)
-
-### `attendance`
-
-One row per employee per date; future dates rejected.
-
-| Column                              | Type                   | Description                                     |
-| ----------------------------------- | ---------------------- | ----------------------------------------------- |
-| `id`                                | text (PK)              | Auto UUIDv7                                     |
-| `employee_id`                       | text (FK → employee)   | Attendee                                        |
-| `date`                              | date                   | Attendance date                                 |
-| `status`                            | `hr_attendance_status` | present/absent/half_day/on_leave/work_from_home |
-| `check_in_time` / `check_out_time`  | timestamptz            | Derived punches                                 |
-| `working_hours`                     | text                   | Derived duration                                |
-| `late_entry` / `late_entry_minutes` | boolean/integer        | Late tracking                                   |
-| `early_exit` / `early_exit_minutes` | boolean/integer        | Early tracking                                  |
-| `is_half_day` / `half_day_type`     | boolean/text           | Half-day flag                                   |
-| `shift`                             | text                   | Shift type ref                                  |
-| `attendance_request`                | text                   | Correction request ref                          |
-| `notes`                             | text                   | Optional                                        |
-| `metadata`                          | jsonb                  | Extra attributes                                |
-| `created_at` / `updated_at`         | timestamptz            | Record timestamps                               |
-
-### `attendance_request`
-
-Attendance correction requests (pending → approved/rejected).
-
-| Column                                             | Type                           | Description       |
-| -------------------------------------------------- | ------------------------------ | ----------------- |
-| `id`                                               | text (PK)                      | Auto UUIDv7       |
-| `employee_id`                                      | text (FK → employee)           | Requester         |
-| `from_date` / `to_date`                            | date                           | Correction window |
-| `reason`                                           | text                           | Required          |
-| `status`                                           | `hr_attendance_request_status` | Default `pending` |
-| `approved_by` / `approved_at`                      | text/timestamptz               | Approval audit    |
-| `rejected_by` / `rejected_at` / `rejection_reason` | text/timestamptz/text          | Rejection audit   |
-| `created_at` / `updated_at`                        | timestamptz                    | Record timestamps |
-
-### `compensatory_leave_request`
-
-Compensatory leave for worked-off days (approve creates an allocation + ledger entry).
-
-| Column                                             | Type                           | Description                     |
-| -------------------------------------------------- | ------------------------------ | ------------------------------- |
-| `id`                                               | text (PK)                      | Auto UUIDv7                     |
-| `employee_id`                                      | text (FK → employee)           | Requester                       |
-| `work_date`                                        | date                           | Worked date                     |
-| `number_of_days`                                   | numeric                        | Default 1                       |
-| `leave_type`                                       | text                           | Credited leave type             |
-| `leave_allocation`                                 | text                           | Allocation ref (set on approve) |
-| `reason`                                           | text                           | Required                        |
-| `status`                                           | `hr_compensatory_leave_status` | Default `pending`               |
-| `approved_by` / `approved_at`                      | text/timestamptz               | Approval audit                  |
-| `rejected_by` / `rejected_at` / `rejection_reason` | text/timestamptz/text          | Rejection audit                 |
-| `created_at` / `updated_at`                        | timestamptz                    | Record timestamps               |
-
-## Leave (tenant)
-
-### `leave_type`
-
-Leave type definitions (delete = soft `isActive: false`).
-
-| Column                           | Type                        | Description                          |
-| -------------------------------- | --------------------------- | ------------------------------------ |
-| `id`                             | text (PK)                   | Auto UUIDv7                          |
-| `name`                           | text                        | Type name                            |
-| `max_days_allowed`               | integer                     | Annual cap                           |
-| `applicable_after_working_days`  | integer                     | Eligibility gate                     |
-| `is_earned_leave`                | boolean                     | Accrues over time                    |
-| `earned_leave_frequency`         | `hr_earned_leave_frequency` | monthly/quarterly/half_yearly/yearly |
-| `is_carry_forward`               | boolean                     | Unused days carry over               |
-| `max_carry_forward_days`         | integer                     | Carry cap                            |
-| `max_continuous_days_allowed`    | integer                     | Single-stretch cap                   |
-| `is_leave_without_pay`           | boolean                     | Skips balance check                  |
-| `is_partially_paid`              | boolean                     | Partial pay flag                     |
-| `allow_negative_balance`         | boolean                     | Overdraft allowed                    |
-| `include_holidays_within_leaves` | boolean                     | Holiday counting                     |
-| `is_active`                      | boolean                     | Soft-delete flag                     |
-| `created_at` / `updated_at`      | timestamptz                 | Record timestamps                    |
-
-### `leave_period`
-
-Leave calendar periods (delete = soft `isActive: false`).
-
-| Column                      | Type        | Description       |
-| --------------------------- | ----------- | ----------------- |
-| `id`                        | text (PK)   | Auto UUIDv7       |
-| `name`                      | text        | Period name       |
-| `company`                   | text        | Owning company    |
-| `start_date` / `end_date`   | date        | Period bounds     |
-| `is_active`                 | boolean     | Soft-delete flag  |
-| `created_at` / `updated_at` | timestamptz | Record timestamps |
-
-### `leave_policy`
-
-Leave policy headers (delete cascades to details first).
-
-| Column                      | Type        | Description       |
-| --------------------------- | ----------- | ----------------- |
-| `id`                        | text (PK)   | Auto UUIDv7       |
-| `name`                      | text        | Policy name       |
-| `description`               | text        | Optional          |
-| `is_active`                 | boolean     | Default true      |
-| `created_at` / `updated_at` | timestamptz | Record timestamps |
-
-### `leave_policy_detail`
-
-Per-type caps within a policy.
-
-| Column                      | Type                     | Description       |
-| --------------------------- | ------------------------ | ----------------- |
-| `id`                        | text (PK)                | Auto UUIDv7       |
-| `leave_policy_id`           | text (FK → leave_policy) | Owning policy     |
-| `leave_type`                | text                     | Capped type       |
-| `max_days`                  | integer                  | Type cap          |
-| `carry_forward_days`        | integer                  | Carry allowance   |
-| `created_at` / `updated_at` | timestamptz              | Record timestamps |
-
-### `leave_policy_assignment`
-
-Policy + period assigned to an employee.
-
-| Column                            | Type                 | Description       |
-| --------------------------------- | -------------------- | ----------------- |
-| `id`                              | text (PK)            | Auto UUIDv7       |
-| `employee_id`                     | text (FK → employee) | Assignee          |
-| `leave_policy`                    | text                 | Policy ref        |
-| `leave_period`                    | text                 | Period ref        |
-| `effective_from` / `effective_to` | date                 | Validity window   |
-| `is_active`                       | boolean              | Default true      |
-| `created_at` / `updated_at`       | timestamptz          | Record timestamps |
-
-### `leave_allocation`
-
-Granted leave balances (delete sets `status: cancelled`).
-
-| Column                                                              | Type                         | Description       |
-| ------------------------------------------------------------------- | ---------------------------- | ----------------- |
-| `id`                                                                | text (PK)                    | Auto UUIDv7       |
-| `employee_id`                                                       | text (FK → employee)         | Holder            |
-| `leave_type`                                                        | text                         | Allocated type    |
-| `leave_period`                                                      | text                         | Period ref        |
-| `leave_policy_assignment`                                           | text                         | Source assignment |
-| `total_days` / `used_days` / `earned_days` / `carry_forwarded_days` | numeric                      | Balance parts     |
-| `status`                                                            | `hr_leave_allocation_status` | Default `active`  |
-| `created_at` / `updated_at`                                         | timestamptz                  | Record timestamps |
-
-### `leave_application`
-
-Leave applications (approve bumps `usedDays` + ledger; cancel reverses).
-
-| Column                                             | Type                          | Description        |
-| -------------------------------------------------- | ----------------------------- | ------------------ |
-| `id`                                               | text (PK)                     | Auto UUIDv7        |
-| `employee_id`                                      | text (FK → employee)          | Applicant          |
-| `leave_type`                                       | text                          | Requested type     |
-| `from_date` / `to_date`                            | date                          | Leave window       |
-| `total_days`                                       | numeric                       | Day count          |
-| `is_half_day` / `half_day_date`                    | boolean/date                  | Half-day detail    |
-| `leave_allocation`                                 | text                          | Charged allocation |
-| `reason`                                           | text                          | Optional           |
-| `status`                                           | `hr_leave_application_status` | Default `draft`    |
-| `approved_by` / `approved_at`                      | text/timestamptz              | Approval audit     |
-| `cancelled_at`                                     | timestamptz                   | Cancellation time  |
-| `rejected_by` / `rejected_at` / `rejection_reason` | text/timestamptz/text         | Rejection audit    |
-| `created_at` / `updated_at`                        | timestamptz                   | Record timestamps  |
-
-### `leave_encashment`
-
-Encashment cases (paid is terminal).
-
-| Column                                             | Type                         | Description       |
-| -------------------------------------------------- | ---------------------------- | ----------------- |
-| `id`                                               | text (PK)                    | Auto UUIDv7       |
-| `employee_id`                                      | text (FK → employee)         | Claimant          |
-| `leave_type` / `leave_period`                      | text                         | Source balance    |
-| `encashable_days` / `encashed_days`                | numeric                      | Claimed vs paid   |
-| `amount`                                           | numeric                      | Payout            |
-| `status`                                           | `hr_leave_encashment_status` | Default `pending` |
-| `approved_by` / `approved_at`                      | text/timestamptz             | Approval audit    |
-| `rejected_by` / `rejected_at` / `rejection_reason` | text/timestamptz/text        | Rejection audit   |
-| `created_at` / `updated_at`                        | timestamptz                  | Record timestamps |
-
-### `leave_block_list`
-
-Blackout windows blocking applications.
-
-| Column                      | Type                        | Description        |
-| --------------------------- | --------------------------- | ------------------ |
-| `id`                        | text (PK)                   | Auto UUIDv7        |
-| `name`                      | text                        | Block name         |
-| `scope`                     | `hr_leave_block_list_scope` | company/department |
-| `company` / `department`    | text                        | Scope refs         |
-| `from_date` / `to_date`     | date                        | Blocked window     |
-| `reason`                    | text                        | Optional           |
-| `is_active`                 | boolean                     | Default true       |
-| `created_at` / `updated_at` | timestamptz                 | Record timestamps  |
-
-### `leave_adjustment`
-
-Manual balance corrections (create-only + list).
-
-| Column                        | Type                           | Description       |
-| ----------------------------- | ------------------------------ | ----------------- |
-| `id`                          | text (PK)                      | Auto UUIDv7       |
-| `employee_id`                 | text (FK → employee)           | Holder            |
-| `leave_type` / `leave_period` | text                           | Target balance    |
-| `days`                        | numeric                        | Adjustment (+/−)  |
-| `adjusted_by`                 | text                           | Corrector         |
-| `reason`                      | text                           | Required          |
-| `leave_ledger_entry`          | text (FK → leave_ledger_entry) | Backing entry     |
-| `created_at` / `updated_at`   | timestamptz                    | Record timestamps |
-
-### `leave_ledger_entry`
-
-Append-only balance journal (read via `listLedgerEntries`).
-
-| Column                      | Type                 | Description                             |
-| --------------------------- | -------------------- | --------------------------------------- |
-| `id`                        | text (PK)            | Auto UUIDv7                             |
-| `employee_id`               | text (FK → employee) | Holder                                  |
-| `leave_type`                | text                 | Affected type                           |
-| `days`                      | numeric              | Delta                                   |
-| `transaction_type`          | text                 | application/cancellation/compensatory/… |
-| `description`               | text                 | Required                                |
-| `leave_application`         | text                 | Source application                      |
-| `created_at` / `updated_at` | timestamptz          | Record timestamps                       |
-
-## Lifecycle (tenant)
-
-### `onboarding_task`
-
-Tasks under an onboarding track.
-
-| Column                          | Type                            | Description       |
-| ------------------------------- | ------------------------------- | ----------------- |
-| `id`                            | text (PK)                       | Auto UUIDv7       |
-| `onboarding_id`                 | text (FK → employee_onboarding) | Parent track      |
-| `title`                         | text                            | Task title        |
-| `description`                   | text                            | Optional          |
-| `assigned_to` / `department`    | text                            | Ownership         |
-| `due_date`                      | date                            | Due date          |
-| `status`                        | `hr_lifecycle_task_status`      | Default `pending` |
-| `completed_by` / `completed_at` | text/timestamptz                | Completion audit  |
-| `notes`                         | text                            | Optional          |
-| `created_at` / `updated_at`     | timestamptz                     | Record timestamps |
-
-### `separation_task`
-
-Tasks under a separation case.
-
-| Column                          | Type                            | Description       |
-| ------------------------------- | ------------------------------- | ----------------- |
-| `id`                            | text (PK)                       | Auto UUIDv7       |
-| `separation_id`                 | text (FK → employee_separation) | Parent case       |
-| `title`                         | text                            | Task title        |
-| `description`                   | text                            | Optional          |
-| `assigned_to` / `department`    | text                            | Ownership         |
-| `due_date`                      | date                            | Due date          |
-| `status`                        | `hr_lifecycle_task_status`      | Default `pending` |
-| `completed_by` / `completed_at` | text/timestamptz                | Completion audit  |
-| `notes`                         | text                            | Optional          |
-| `created_at` / `updated_at`     | timestamptz                     | Record timestamps |
-
-### `exit_interview`
-
-Exit interviews linked to separations.
-
-| Column                              | Type                       | Description         |
-| ----------------------------------- | -------------------------- | ------------------- |
-| `id`                                | text (PK)                  | Auto UUIDv7         |
-| `employee_id`                       | text (FK → employee)       | Leaver              |
-| `separation_id`                     | text                       | Source separation   |
-| `interviewer`                       | text                       | Interviewer         |
-| `scheduled_date` / `completed_date` | timestamptz                | Schedule vs actual  |
-| `status`                            | `hr_exit_interview_status` | Default `scheduled` |
-| `feedback`                          | text                       | Free-form feedback  |
-| `questionnaire_template`            | text                       | Template ref        |
-| `responses`                         | jsonb                      | Structured answers  |
-| `created_at` / `updated_at`         | timestamptz                | Record timestamps   |
-
-### `full_and_final_statement`
-
-Settlement statements (approve computes totals; paid is terminal).
-
-| Column                                                       | Type                       | Description         |
-| ------------------------------------------------------------ | -------------------------- | ------------------- |
-| `id`                                                         | text (PK)                  | Auto UUIDv7         |
-| `employee_id`                                                | text (FK → employee)       | Leaver              |
-| `separation_id`                                              | text                       | Source separation   |
-| `pending_salary` / `leave_encashment` / `gratuity` / `bonus` | numeric                    | Earnings parts      |
-| `deductions` / `loan_recovery`                               | numeric                    | Deduction parts     |
-| `total_earnings` / `total_deductions` / `net_payable`        | numeric                    | Computed on approve |
-| `status`                                                     | `hr_full_and_final_status` | Default `draft`     |
-| `approved_by` / `approved_at`                                | text/timestamptz           | Approval audit      |
-| `paid_at` / `payment_entry`                                  | timestamptz/text           | Payment audit       |
-| `notes`                                                      | text                       | Optional            |
-| `metadata`                                                   | jsonb                      | Extra attributes    |
-| `created_at` / `updated_at`                                  | timestamptz                | Record timestamps   |
-
-## Overtime (tenant)
-
-### `overtime_type`
-
-Overtime rate definitions (delete = soft `isActive: false`).
-
-| Column                                                              | Type        | Description          |
-| ------------------------------------------------------------------- | ----------- | -------------------- |
-| `id`                                                                | text (PK)   | Auto UUIDv7          |
-| `name`                                                              | text        | Type name            |
-| `description`                                                       | text        | Optional             |
-| `amount_calculation`                                                | text        | Default `fixed`      |
-| `fixed_hourly_rate`                                                 | numeric     | Base rate            |
-| `standard_multiplier` / `holiday_multiplier` / `weekend_multiplier` | numeric     | Rate multipliers     |
-| `max_overtime_hours_per_day`                                        | numeric     | Daily cap            |
-| `overtime_salary_component`                                         | text        | Salary component ref |
-| `is_active`                                                         | boolean     | Soft-delete flag     |
-| `created_at` / `updated_at`                                         | timestamptz | Record timestamps    |
-
-### `overtime_slip`
-
-Overtime claims (approve computes `amount`).
-
-| Column                                               | Type                  | Description         |
-| ---------------------------------------------------- | --------------------- | ------------------- |
-| `id`                                                 | text (PK)             | Auto UUIDv7         |
-| `employee_id`                                        | text (FK → employee)  | Claimant            |
-| `overtime_type`                                      | text                  | Rate type           |
-| `from_date` / `to_date`                              | date                  | Claim window        |
-| `standard_hours` / `holiday_hours` / `weekend_hours` | numeric               | Hour split          |
-| `total_overtime_hours`                               | numeric               | Required total      |
-| `amount`                                             | numeric               | Computed on approve |
-| `status`                                             | `hr_overtime_status`  | Default `pending`   |
-| `notes`                                              | text                  | Optional            |
-| `metadata`                                           | jsonb                 | Extra attributes    |
-| `approved_by` / `approved_at`                        | text/timestamptz      | Approval audit      |
-| `rejected_by` / `rejected_at` / `rejection_reason`   | text/timestamptz/text | Rejection audit     |
-| `created_at` / `updated_at`                          | timestamptz           | Record timestamps   |
-
-## Shift (tenant)
-
-### `shift_type`
-
-Shift definitions (delete = soft `isActive: false`).
-
-| Column                                                      | Type        | Description       |
-| ----------------------------------------------------------- | ----------- | ----------------- |
-| `id`                                                        | text (PK)   | Auto UUIDv7       |
-| `name`                                                      | text        | Shift name        |
-| `start_time` / `end_time`                                   | text        | Daily window      |
-| `late_entry_grace_minutes` / `early_exit_grace_minutes`     | integer     | Grace periods     |
-| `begin_check_in_before_start` / `allow_check_out_after_end` | integer     | Punch windows     |
-| `enable_auto_attendance` / `enable_auto_update_sync`        | boolean     | Automation flags  |
-| `mark_attendance_on_holidays`                               | boolean     | Holiday marking   |
-| `allow_overtime`                                            | boolean     | Overtime flag     |
-| `overtime_type`                                             | text        | Overtime rate ref |
-| `holiday_list`                                              | text        | Holiday list ref  |
-| `working_hours_calculation`                                 | text        | Calculation rule  |
-| `working_hours_threshold_for_half_day` / `_for_absent`      | text        | Thresholds        |
-| `process_attendance_after` / `determine_check_in_by`        | text        | Processing rules  |
-| `is_active`                                                 | boolean     | Soft-delete flag  |
-| `created_at` / `updated_at`                                 | timestamptz | Record timestamps |
-
-### `shift_location`
-
-Geofenced shift locations (delete = soft `isActive: false`).
-
-| Column                      | Type        | Description         |
-| --------------------------- | ----------- | ------------------- |
-| `id`                        | text (PK)   | Auto UUIDv7         |
-| `name`                      | text        | Location name       |
-| `latitude` / `longitude`    | text        | Center point        |
-| `radius`                    | integer     | Meters, default 500 |
-| `is_active`                 | boolean     | Soft-delete flag    |
-| `created_at` / `updated_at` | timestamptz | Record timestamps   |
-
-### `shift_assignment`
-
-Employee → shift type postings.
-
-| Column                      | Type                         | Description       |
-| --------------------------- | ---------------------------- | ----------------- |
-| `id`                        | text (PK)                    | Auto UUIDv7       |
-| `employee_id`               | text (FK → employee)         | Assignee          |
-| `shift_type`                | text                         | Posted shift      |
-| `shift_location`            | text                         | Location ref      |
-| `start_date` / `end_date`   | date                         | Posting window    |
-| `status`                    | `hr_shift_assignment_status` | Default `active`  |
-| `notes`                     | text                         | Optional          |
-| `created_at` / `updated_at` | timestamptz                  | Record timestamps |
-
-### `shift_request`
-
-Shift change requests (approve creates an assignment and links it back).
-
-| Column                                             | Type                      | Description            |
-| -------------------------------------------------- | ------------------------- | ---------------------- |
-| `id`                                               | text (PK)                 | Auto UUIDv7            |
-| `employee_id`                                      | text (FK → employee)      | Requester              |
-| `shift_type`                                       | text                      | Requested shift        |
-| `from_date` / `to_date`                            | date                      | Requested window       |
-| `reason`                                           | text                      | Optional               |
-| `shift_assignment`                                 | text                      | Created assignment ref |
-| `status`                                           | `hr_shift_request_status` | Default `pending`      |
-| `approved_by` / `approved_at`                      | text/timestamptz          | Approval audit         |
-| `rejected_by` / `rejected_at` / `rejection_reason` | text/timestamptz/text     | Rejection audit        |
-| `created_at` / `updated_at`                        | timestamptz               | Record timestamps      |
-
-### `shift_schedule`
-
-Weekly day-of-week patterns per shift type.
-
-| Column                      | Type        | Description       |
-| --------------------------- | ----------- | ----------------- |
-| `id`                        | text (PK)   | Auto UUIDv7       |
-| `name`                      | text        | Schedule name     |
-| `shift_type`                | text        | Applied shift     |
-| `monday` … `sunday`         | boolean     | Active weekdays   |
-| `is_active`                 | boolean     | Default true      |
-| `created_at` / `updated_at` | timestamptz | Record timestamps |
-
-### `shift_schedule_assignment`
-
-Employees posted to a weekly schedule.
-
-| Column                      | Type                 | Description       |
-| --------------------------- | -------------------- | ----------------- |
-| `id`                        | text (PK)            | Auto UUIDv7       |
-| `employee_id`               | text (FK → employee) | Assignee          |
-| `shift_schedule`            | text                 | Schedule ref      |
-| `start_date` / `end_date`   | date                 | Posting window    |
-| `is_active`                 | boolean              | Default true      |
-| `created_at` / `updated_at` | timestamptz          | Record timestamps |
-
-## Position (tenant)
-
-### `hr_position`
-
-Stable job slots; names unique per department.
-
-| Column                      | Type                    | Description                             |
-| --------------------------- | ----------------------- | --------------------------------------- |
-| `id`                        | text (PK)               | Auto UUIDv7                             |
-| `name`                      | text                    | Unique within department                |
-| `department`                | text                    | Department id                           |
-| `designation`               | text                    | Designation ref                         |
-| `employment_type`           | text                    | Employment type ref                     |
-| `branch`                    | text                    | Branch ref                              |
-| `reports_to_position`       | text (FK → hr_position) | Parent slot, cycle-checked              |
-| `headcount`                 | integer                 | Assignment cap, default 1               |
-| `job_description`           | text                    | Optional                                |
-| `is_active`                 | boolean                 | Deactivate blocks on active assignments |
-| `created_at` / `updated_at` | timestamptz             | Record timestamps                       |
-
-### `hr_position_assignment`
-
-Employee ↔ position links; open-ended (`to_date` null) rows are current.
-
-| Column                      | Type                    | Description                       |
-| --------------------------- | ----------------------- | --------------------------------- |
-| `id`                        | text (PK)               | Auto UUIDv7                       |
-| `position_id`               | text (FK → hr_position) | Slot                              |
-| `employee_id`               | text (FK → employee)    | Incumbent                         |
-| `from_date` / `to_date`     | date                    | Tenure window                     |
-| `is_primary`                | boolean                 | Unique per employee among current |
-| `created_at` / `updated_at` | timestamptz             | Record timestamps                 |
-
-## Announcement (tenant)
-
-### `hr_announcement`
-
-Internal broadcasts; `published` rows immutable except pin/archive.
-
-| Column                         | Type                       | Description              |
-| ------------------------------ | -------------------------- | ------------------------ |
-| `id`                           | text (PK)                  | Auto UUIDv7              |
-| `title` / `body`               | text                       | Content                  |
-| `author`                       | text                       | Author HR user           |
-| `channel`                      | `hr_announcement_channel`  | general/hr/custom        |
-| `priority`                     | `hr_announcement_priority` | Default `normal`         |
-| `status`                       | `hr_announcement_status`   | Default `draft`          |
-| `audience`                     | jsonb                      | Targeting snapshot input |
-| `require_acknowledgement`      | boolean                    | Ack required flag        |
-| `scheduled_for`                | timestamptz                | Future publish time      |
-| `published_at` / `archived_at` | timestamptz                | Lifecycle stamps         |
-| `pinned` / `pinned_by`         | boolean/text               | Pin state                |
-| `created_at` / `updated_at`    | timestamptz                | Record timestamps        |
-
-### `hr_announcement_recipient`
-
-Delivery snapshot materialized at publish time.
-
-| Column            | Type                        | Description                               |
-| ----------------- | --------------------------- | ----------------------------------------- |
-| `id`              | text (PK)                   | Auto UUIDv7                               |
-| `announcement_id` | text (FK → hr_announcement) | Parent announcement                       |
-| `employee_id`     | text (FK → employee)        | Recipient employee                        |
-| `hr_user_id`      | text (FK → hr_user)         | Linked HR user                            |
-| `user_id`         | text                        | Auth user id; null without linked HR user |
-| `created_at`      | timestamptz                 | Snapshot time                             |
+| Column         | Type                | Description         |
+| -------------- | ------------------- | ------------------- |
+| `hr_user_id`   | text (FK → hr_user) | Grantee             |
+| `branch_id`    | text                | Granted branch      |
+| `access_level` | `hr_access_level`   | Default `read_only` |
+
+Indexes: `idx_hr_user_branch_access_hr_user_id` (`hr_user_id`), `idx_hr_user_branch_access_branch_id` (`branch_id`).
+
+### `hr_settings` — control-plane
+
+Singleton HR settings (upserted).
+
+| Column                             | Type    | Description             |
+| ---------------------------------- | ------- | ----------------------- |
+| `employee_naming_series`           | text    | Employee id series      |
+| `default_holiday_list`             | text    | Default list id         |
+| `leave_approval_workflow`          | text    | Approval chain          |
+| `leave_without_pay_handling`       | text    | LWP policy              |
+| `expense_claim_default`            | text    | Default claim type      |
+| `auto_attendance`                  | boolean | Auto mark attendance    |
+| `geolocation_tracking`             | boolean | Check-in geo required   |
+| `allow_multiple_shift_assignments` | boolean | Overlapping assignments |
+
+### `payroll_settings` — control-plane
+
+Singleton payroll settings (upserted).
+
+| Column                           | Type    | Description           |
+| -------------------------------- | ------- | --------------------- |
+| `payroll_period_start`           | text    | Pay cycle start       |
+| `payroll_period_end`             | text    | Pay cycle end         |
+| `fiscal_year_start`              | text    | Fiscal start          |
+| `fiscal_year_end`                | text    | Fiscal end            |
+| `rounding`                       | text    | Rounding rule         |
+| `income_tax_component`           | text    | Tax component         |
+| `benefits_application_mandatory` | boolean | Benefits gate         |
+| `multi_currency_expense_claims`  | boolean | Multi-currency claims |
+
+### `employment_type` — control-plane
+
+| Column        | Type    | Description      |
+| ------------- | ------- | ---------------- |
+| `name`        | text    | Type name        |
+| `description` | text    | Optional         |
+| `is_active`   | boolean | Soft-delete flag |
+
+Indexes: `idx_employment_type_is_active` (`is_active`).
+
+### `department` — control-plane
+
+Hierarchical departments.
+
+| Column              | Type                   | Description          |
+| ------------------- | ---------------------- | -------------------- |
+| `code`              | text                   | Uppercased, unique   |
+| `name`              | text                   | Display name         |
+| `parent_department` | text (FK → department) | Null = root          |
+| `manager`           | text (FK → employee)   | Department head      |
+| `cost_center`       | text                   | Optional             |
+| `headcount`         | integer                | Sanctioned headcount |
+| `metadata`          | jsonb                  | Extra attributes     |
+| `is_active`         | boolean                | Soft-delete flag     |
+
+Indexes: `idx_department_is_active` (`is_active`), `idx_department_parent_department` (`parent_department`).
+
+### `designation` — control-plane
+
+| Column        | Type    | Description      |
+| ------------- | ------- | ---------------- |
+| `name`        | text    | Designation name |
+| `description` | text    | Optional         |
+| `is_active`   | boolean | Soft-delete flag |
+
+### `employee_grade` — control-plane
+
+| Column                     | Type    | Description             |
+| -------------------------- | ------- | ----------------------- |
+| `name`                     | text    | Grade name              |
+| `description`              | text    | Optional                |
+| `default_salary_structure` | text    | Linked salary structure |
+| `is_active`                | boolean | Soft-delete flag        |
+
+### `holiday_list` — control-plane
+
+| Column            | Type    | Description        |
+| ----------------- | ------- | ------------------ |
+| `name`            | text    | List name          |
+| `description`     | text    | Optional           |
+| `year`            | integer | Calendar year      |
+| `weekly_off_days` | jsonb   | Weekly off pattern |
+| `is_active`       | boolean | Soft-delete flag   |
+
+### `holiday` — control-plane
+
+| Column            | Type                     | Description      |
+| ----------------- | ------------------------ | ---------------- |
+| `holiday_list_id` | text (FK → holiday_list) | Owning list      |
+| `name`            | text                     | Holiday name     |
+| `date`            | date                     | Holiday date     |
+| `type`            | `hr_holiday_type`        | Default `public` |
+| `description`     | text                     | Optional         |
+
+Indexes: `idx_holiday_holiday_list_id` (`holiday_list_id`).
+
+### `employee` — tenant
+
+Core employee record; `employee_id` is the unique business id.
+
+| Column                        | Type                 | Description        |
+| ----------------------------- | -------------------- | ------------------ |
+| `employee_id`                 | text                 | Unique business id |
+| `first_name`                  | text                 | Required           |
+| `middle_name`                 | text                 | Optional           |
+| `last_name`                   | text                 | Required           |
+| `company`                     | text                 | Owning company     |
+| `department`                  | text                 | Department id      |
+| `designation`                 | text                 | Designation id     |
+| `employment_type`             | `hr_employment_type` | Employment type    |
+| `status`                      | `hr_employee_status` | Default `active`   |
+| `date_of_joining`             | date                 | Required           |
+| `date_of_leaving`             | date                 | Set by markAsLeft  |
+| `reports_to`                  | text (FK → employee) | Manager fallback   |
+| `grade`                       | text                 | Org ref            |
+| `branch`                      | text                 | Org ref            |
+| `holiday_list`                | text                 | Org ref            |
+| `gender`                      | `hr_gender`          | Optional           |
+| `date_of_birth`               | date                 | Optional           |
+| `blood_group`                 | text                 | Optional           |
+| `marital_status`              | text                 | Optional           |
+| `email`                       | text                 | Contact            |
+| `phone`                       | text                 | Contact            |
+| `work_email`                  | text                 | Contact            |
+| `work_phone`                  | text                 | Contact            |
+| `personal_email`              | text                 | Contact            |
+| `personal_phone`              | text                 | Contact            |
+| `current_address`             | text                 | Address            |
+| `permanent_address`           | text                 | Address            |
+| `city`                        | text                 | Address            |
+| `state`                       | text                 | Address            |
+| `country`                     | text                 | Address            |
+| `postal_code`                 | text                 | Address            |
+| `bank_name`                   | text                 | Bank               |
+| `bank_branch`                 | text                 | Bank               |
+| `bank_account_number`         | text                 | Bank               |
+| `ifsc_code`                   | text                 | Bank               |
+| `tax_id`                      | text                 | Payroll ref        |
+| `social_security_number`      | text                 | Payroll ref        |
+| `salary_structure_assignment` | text                 | Payroll ref        |
+| `emergency_contact_name`      | text                 | Emergency          |
+| `emergency_contact_phone`     | text                 | Emergency          |
+| `emergency_contact_relation`  | text                 | Emergency          |
+| `image`                       | text                 | Photo ref          |
+| `metadata`                    | jsonb                | Extra              |
+
+Indexes: `idx_employee_employee_id` (`employee_id`), `idx_employee_company` (`company`), `idx_employee_status` (`status`).
+
+### `employee_group` — tenant
+
+| Column        | Type    | Description  |
+| ------------- | ------- | ------------ |
+| `name`        | text    | Group name   |
+| `description` | text    | Optional     |
+| `is_active`   | boolean | Default true |
+
+### `employee_group_member` — tenant
+
+| Column        | Type                       | Description  |
+| ------------- | -------------------------- | ------------ |
+| `group_id`    | text (FK → employee_group) | Owning group |
+| `employee_id` | text (FK → employee)       | Member       |
+
+Indexes: `idx_employee_group_member_group_id` (`group_id`), `idx_employee_group_member_employee_id` (`employee_id`).
+
+### `employee_health_insurance` — tenant
+
+| Column             | Type                 | Description    |
+| ------------------ | -------------------- | -------------- |
+| `employee_id`      | text (FK → employee) | Policy holder  |
+| `insurer`          | text                 | Insurer name   |
+| `policy_number`    | text                 | Policy number  |
+| `start_date`       | date                 | Coverage start |
+| `end_date`         | date                 | Coverage end   |
+| `premium_amount`   | text                 | Premium        |
+| `coverage_details` | text                 | Coverage notes |
+| `is_active`        | boolean              | Default true   |
+| `metadata`         | jsonb                | Extra          |
+
+Indexes: `idx_employee_health_insurance_employee_id` (`employee_id`).
+
+### `employee_skill_map` — tenant
+
+| Column               | Type                   | Description       |
+| -------------------- | ---------------------- | ----------------- |
+| `employee_id`        | text (FK → employee)   | Assessed employee |
+| `skill`              | text                   | Skill name        |
+| `proficiency`        | `hr_skill_proficiency` | Proficiency       |
+| `assessed_by`        | text                   | Audit             |
+| `assessment_date`    | date                   | Audit             |
+| `certification_name` | text                   | Certification     |
+| `certification_date` | date                   | Certification     |
+| `expiry_date`        | date                   | Certification     |
+| `notes`              | text                   | Optional          |
+
+Indexes: `idx_employee_skill_map_employee_id` (`employee_id`).
+
+### `employee_onboarding` — tenant
+
+| Column                     | Type                   | Description       |
+| -------------------------- | ---------------------- | ----------------- |
+| `employee_id`              | text (FK → employee)   | Joiner            |
+| `start_date`               | date                   | Joining date      |
+| `expected_completion_date` | date                   | Plan              |
+| `actual_completion_date`   | date                   | Actual            |
+| `status`                   | `hr_onboarding_status` | Default `pending` |
+| `notes`                    | text                   | Optional          |
+| `metadata`                 | jsonb                  | Extra             |
+
+Indexes: `idx_employee_onboarding_employee_id` (`employee_id`), `idx_employee_onboarding_status` (`status`).
+
+### `employee_promotion` — tenant
+
+| Column                | Type                  | Description       |
+| --------------------- | --------------------- | ----------------- |
+| `employee_id`         | text (FK → employee)  | Promotee          |
+| `current_designation` | text                  | Required          |
+| `new_designation`     | text                  | Required          |
+| `current_department`  | text                  | Optional          |
+| `new_department`      | text                  | Optional          |
+| `current_grade`       | text                  | Optional          |
+| `new_grade`           | text                  | Optional          |
+| `effective_date`      | date                  | Effective date    |
+| `salary_revision`     | text                  | Revised salary    |
+| `reason`              | text                  | Justification     |
+| `status`              | `hr_promotion_status` | Default `pending` |
+| `approved_by`         | text                  | Audit             |
+| `approved_at`         | timestamptz           | Audit             |
+| `rejected_by`         | text                  | Audit             |
+| `rejected_at`         | timestamptz           | Audit             |
+| `rejection_reason`    | text                  | Audit             |
+
+Indexes: `idx_employee_promotion_employee_id` (`employee_id`), `idx_employee_promotion_status` (`status`).
+
+### `employee_separation` — tenant
+
+| Column             | Type                   | Description        |
+| ------------------ | ---------------------- | ------------------ |
+| `employee_id`      | text (FK → employee)   | Leaver             |
+| `resignation_date` | date                   | Optional           |
+| `exit_date`        | date                   | Required exit date |
+| `reason`           | text                   | Optional           |
+| `notes`            | text                   | Optional           |
+| `status`           | `hr_separation_status` | Default `pending`  |
+| `metadata`         | jsonb                  | Extra              |
+
+Indexes: `idx_employee_separation_employee_id` (`employee_id`), `idx_employee_separation_status` (`status`).
+
+### `employee_transfer` — tenant
+
+| Column             | Type                 | Description       |
+| ------------------ | -------------------- | ----------------- |
+| `employee_id`      | text (FK → employee) | Transferee        |
+| `from_branch`      | text                 | Branch move       |
+| `to_branch`        | text                 | Branch move       |
+| `from_company`     | text                 | Company move      |
+| `to_company`       | text                 | Company move      |
+| `from_department`  | text                 | Department move   |
+| `to_department`    | text                 | Department move   |
+| `effective_date`   | date                 | Effective date    |
+| `reason`           | text                 | Justification     |
+| `status`           | `hr_transfer_status` | Default `pending` |
+| `approved_by`      | text                 | Audit             |
+| `approved_at`      | timestamptz          | Audit             |
+| `rejected_by`      | text                 | Audit             |
+| `rejected_at`      | timestamptz          | Audit             |
+| `rejection_reason` | text                 | Audit             |
+
+Indexes: `idx_employee_transfer_employee_id` (`employee_id`), `idx_employee_transfer_status` (`status`).
+
+### `onboarding_task` — tenant
+
+| Column          | Type                            | Description       |
+| --------------- | ------------------------------- | ----------------- |
+| `onboarding_id` | text (FK → employee_onboarding) | Parent track      |
+| `title`         | text                            | Task title        |
+| `description`   | text                            | Optional          |
+| `assigned_to`   | text                            | Ownership         |
+| `department`    | text                            | Ownership         |
+| `due_date`      | date                            | Due date          |
+| `status`        | `hr_lifecycle_task_status`      | Default `pending` |
+| `completed_by`  | text                            | Completion audit  |
+| `completed_at`  | timestamptz                     | Completion audit  |
+| `notes`         | text                            | Optional          |
+
+Indexes: `idx_onboarding_task_onboarding_id` (`onboarding_id`).
+
+### `separation_task` — tenant
+
+| Column          | Type                            | Description       |
+| --------------- | ------------------------------- | ----------------- |
+| `separation_id` | text (FK → employee_separation) | Parent case       |
+| `title`         | text                            | Task title        |
+| `description`   | text                            | Optional          |
+| `assigned_to`   | text                            | Ownership         |
+| `department`    | text                            | Ownership         |
+| `due_date`      | date                            | Due date          |
+| `status`        | `hr_lifecycle_task_status`      | Default `pending` |
+| `completed_by`  | text                            | Completion audit  |
+| `completed_at`  | timestamptz                     | Completion audit  |
+| `notes`         | text                            | Optional          |
+
+Indexes: `idx_separation_task_separation_id` (`separation_id`).
+
+### `exit_interview` — tenant
+
+| Column                   | Type                       | Description         |
+| ------------------------ | -------------------------- | ------------------- |
+| `employee_id`            | text (FK → employee)       | Leaver              |
+| `separation_id`          | text                       | Source separation   |
+| `interviewer`            | text                       | Interviewer         |
+| `scheduled_date`         | timestamptz                | Scheduled           |
+| `completed_date`         | timestamptz                | Actual              |
+| `status`                 | `hr_exit_interview_status` | Default `scheduled` |
+| `feedback`               | text                       | Free-form           |
+| `questionnaire_template` | text                       | Template ref        |
+| `responses`              | jsonb                      | Structured answers  |
+
+Indexes: `idx_exit_interview_employee_id` (`employee_id`), `idx_exit_interview_status` (`status`).
+
+### `full_and_final_statement` — tenant
+
+| Column             | Type                       | Description         |
+| ------------------ | -------------------------- | ------------------- |
+| `employee_id`      | text (FK → employee)       | Leaver              |
+| `separation_id`    | text                       | Source separation   |
+| `pending_salary`   | numeric                    | Default 0           |
+| `leave_encashment` | numeric                    | Default 0           |
+| `gratuity`         | numeric                    | Default 0           |
+| `bonus`            | numeric                    | Default 0           |
+| `deductions`       | numeric                    | Default 0           |
+| `loan_recovery`    | numeric                    | Default 0           |
+| `total_earnings`   | numeric                    | Computed on approve |
+| `total_deductions` | numeric                    | Computed on approve |
+| `net_payable`      | numeric                    | Computed on approve |
+| `status`           | `hr_full_and_final_status` | Default `draft`     |
+| `approved_by`      | text                       | Audit               |
+| `approved_at`      | timestamptz                | Audit               |
+| `paid_at`          | timestamptz                | Payment audit       |
+| `payment_entry`    | text                       | Payment audit       |
+| `notes`            | text                       | Optional            |
+| `metadata`         | jsonb                      | Extra               |
+
+Indexes: `idx_full_and_final_statement_employee_id` (`employee_id`), `idx_full_and_final_statement_status` (`status`).
+
+### `hr_position` — tenant
+
+| Column                | Type                    | Description     |
+| --------------------- | ----------------------- | --------------- |
+| `name`                | text                    | Position name   |
+| `department`          | text                    | Department id   |
+| `branch`              | text                    | Branch id       |
+| `designation`         | text                    | Designation id  |
+| `employment_type`     | text                    | Employment type |
+| `headcount`           | integer                 | Default 1       |
+| `is_active`           | boolean                 | Default true    |
+| `reports_to_position` | text (FK → hr_position) | Parent position |
+| `job_description`     | text                    | Optional        |
+
+Indexes: `idx_hr_position_department` (`department`), `idx_hr_position_is_active` (`is_active`), `idx_hr_position_reports_to_position` (`reports_to_position`).
+
+### `hr_position_assignment` — tenant
+
+| Column        | Type                    | Description       |
+| ------------- | ----------------------- | ----------------- |
+| `employee_id` | text (FK → employee)    | Assignee          |
+| `position_id` | text (FK → hr_position) | Position          |
+| `from_date`   | date                    | Start             |
+| `to_date`     | date                    | Null = open-ended |
+| `is_primary`  | boolean                 | Default false     |
+
+Indexes: `idx_hr_position_assignment_employee_id` (`employee_id`), `idx_hr_position_assignment_position_id` (`position_id`).
+
+### `hr_announcement` — tenant
+
+| Column                    | Type                       | Description      |
+| ------------------------- | -------------------------- | ---------------- |
+| `author`                  | text                       | Creator          |
+| `title`                   | text                       | Title            |
+| `body`                    | text                       | Body             |
+| `channel`                 | `hr_announcement_channel`  | Channel          |
+| `audience`                | jsonb                      | `{ type, ids? }` |
+| `priority`                | `hr_announcement_priority` | Default `normal` |
+| `status`                  | `hr_announcement_status`   | Default `draft`  |
+| `require_acknowledgement` | boolean                    | Default false    |
+| `scheduled_for`           | timestamptz                | Future schedule  |
+| `published_at`            | timestamptz                | Publish time     |
+| `archived_at`             | timestamptz                | Archive time     |
+| `pinned`                  | boolean                    | Default false    |
+| `pinned_by`               | text                       | Pinner           |
+
+Indexes: `idx_hr_announcement_status` (`status`), `idx_hr_announcement_author` (`author`), `idx_hr_announcement_scheduled_for` (`scheduled_for`).
+
+### `hr_announcement_recipient` — tenant
+
+| Column            | Type                        | Description       |
+| ----------------- | --------------------------- | ----------------- |
+| `announcement_id` | text (FK → hr_announcement) | Announcement      |
+| `employee_id`     | text                        | Snapshot employee |
+| `hr_user_id`      | text                        | Snapshot hr user  |
+| `user_id`         | text                        | Auth user         |
+
+Indexes: `idx_hr_announcement_recipient_announcement_id` (`announcement_id`), `idx_hr_announcement_recipient_user_id` (`user_id`).
 
 ## Relationships
 
-```text
-employee ──1:N── employee_group_member ──N:1── employee_group
-employee ──1:N── employee_health_insurance / employee_skill_map / employee_checkin
-employee ──1:N── attendance / attendance_request / compensatory_leave_request
-employee ──1:N── employee_onboarding ──1:N── onboarding_task
-employee ──1:N── employee_separation ──1:N── separation_task
-employee ──1:N── employee_promotion / employee_transfer
-employee ──1:N── leave_allocation / leave_application / leave_encashment /
-                 leave_adjustment / leave_ledger_entry / leave_policy_assignment
-employee ──1:N── overtime_slip / shift_assignment / shift_request /
-                 shift_schedule_assignment / hr_position_assignment
-employee ──N:1── reports_to ──→ employee (org chart fallback)
+All FKs are soft (logical, no DB constraints); invariants enforced in workflows.
 
-leave_type ──1:N── leave_policy_detail ──N:1── leave_policy
-leave_policy + leave_period ──→ leave_policy_assignment ──→ leave_allocation ──→ leave_application ──→ leave_ledger_entry
-leave_block_list (company/department scope) gates leave_application
-holiday_list ──1:N── holiday
-department ──N:1── parent_department ──→ department (tree, max depth 10)
-hr_position ──N:1── reports_to_position ──→ hr_position (tree, max depth 10)
-hr_position ──1:N── hr_position_assignment ──N:1── employee
-hr_announcement ──1:N── hr_announcement_recipient
-hr_user ──1:N── hr_user_role ──N:1── hr_role ──1:N── hr_role_permission ──N:1── hr_permission
-hr_user ──1:N── hr_user_branch_access
-```
-
-## Usage
-
-```ts
-// Tables push via Drizzle pushSchema() in $prepareInfra() — no migration files.
-import { dbSchema } from "@aspen-os/hr";
-
-// Query (inside a workflow handler or platform run context)
-const rows = await ctx.db.select().from(dbSchema.employee);
+```mermaid
+flowchart LR
+  EMP[employee] -->|reports_to| EMP
+  EGM[employee_group_member] -->|group_id| EG[employee_group]
+  EGM -->|employee_id| EMP
+  EHI[employee_health_insurance] -->|employee_id| EMP
+  ESM[employee_skill_map] -->|employee_id| EMP
+  EOB[employee_onboarding] -->|employee_id| EMP
+  EPT[employee_promotion] -->|employee_id| EMP
+  EST[employee_separation] -->|employee_id| EMP
+  ETR[employee_transfer] -->|employee_id| EMP
+  OT[onboarding_task] -->|onboarding_id| EOB
+  ST[separation_task] -->|separation_id| EST
+  EI[exit_interview] -->|employee_id| EMP
+  EI -->|separation_id| EST
+  FFS[full_and_final_statement] -->|employee_id| EMP
+  HRP[hr_position] -->|reports_to_position| HRP
+  HRA[hr_position_assignment] -->|position_id| HRP
+  HRA -->|employee_id| EMP
+  HRA -. is_primary unique per employee .-> EMP
+  HOL[holiday] -->|holiday_list_id| HL[holiday_list]
+  HRP_ann[hr_announcement_recipient] -->|announcement_id| HRANN[hr_announcement]
+  HUR[hr_user_role] -->|hr_user_id| HRU[hr_user]
+  HUR -->|role_id| HRROLE[hr_role]
+  HRP2[hr_role_permission] -->|role_id| HRROLE
+  HRP2 -->|permission_id| HRPERM[hr_permission]
+  HUBA[hr_user_branch_access] -->|hr_user_id| HRU
+  DEPT[department] -->|parent_department| DEPT
 ```

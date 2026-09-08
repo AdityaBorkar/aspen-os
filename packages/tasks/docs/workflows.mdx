@@ -1,258 +1,180 @@
 ---
 title: Workflows
-description: API reference for the 10 workflows exposed by the Tasks module.
+description: Workflows exposed by the Tasks module.
 icon: IconListCheck
 ---
 
-The Tasks module exposes 9 workflow groups as flat `Workflow` objects: `projects`, `tasks`, `statuses`, `taskTypes`, `timeEntries`, `comments`, `links`, `collaboration`, and `automations`. Saved views live in `@aspen-os/masters` (`p.masters.filterViews`).
+Workflow groups via `p.tasks` — `projects`, `tasks`, `statuses`, `taskTypes`, `timeEntries`, `comments`, `links`, `collaboration`, and `automations` (access key `p.tasks`).
 
-> Task reminders are owned by `@aspen-os/calendar` (`targetType = task`); the calendar task bridge subscribes `task:due_date_changed`, `task:deleted`, and `task:status_changed` to materialize/cancel them. No reminder workflows exist in this module — no `task_reminder` surface, no direct cross-module calls.
+Scope varies by group — projects own tasks via `projectId`; statuses, types, and automation rules are project-scoped or global (`projectId` nullable); time entries, comments, and links are task-scoped. Create takes `{ input }` (Valibot), update takes `{ id, patch }`, and mutations write `task_activity_log` and publish `task:*` events.
 
-## ProjectWorkflow
-
-Access: `p.tasks.projects`
-
-Manages projects and their members.
+## Features
 
 ### Projects
 
 ```ts
-create(input: CreateProjectInput): Promise<project>
-update(id: string, patch: UpdateProjectInput): Promise<project>
-archive(id: string): Promise<project>
-restore(id: string): Promise<project>
-delete(id: string): Promise<void>
-get(id: string): Promise<project>
-list(filters?: ProjectFilters): Promise<project[]>
+await p.tasks.projects.create({ input: { name: "Roadmap", key: "ROAD", leadId, description } });
+await p.tasks.projects.get({ id });
+await p.tasks.projects.list();
+await p.tasks.projects.update({ id, patch: { name, description } });
+await p.tasks.projects.archive({ id });
+await p.tasks.projects.restore({ id });
+await p.tasks.projects.delete({ id }); // blocked when tasks exist
+
+await p.tasks.projects.addMember({ input: { projectId, userId, role: "member" } });
+await p.tasks.projects.updateMember({ projectId, userId, patch: { role: "admin" } });
+await p.tasks.projects.removeMember({ projectId, userId });
+await p.tasks.projects.listMembers({ projectId });
 ```
 
-### Members
-
-```ts
-addMember(input: CreateProjectMemberInput): Promise<projectMember>
-updateMember(projectId: string, userId: string, patch: UpdateProjectMemberInput): Promise<projectMember>
-removeMember(projectId: string, userId: string): Promise<void>
-listMembers(projectId: string): Promise<projectMember[]>
-```
-
-- `create` auto-adds the `leadId` user as a project member with `admin` role.
-- `create` and `update` enforce unique project `key` (2–10 uppercase letters).
-- `delete` throws if the project has any tasks — archive instead.
-
-## TaskWorkflow
-
-Access: `p.tasks.tasks`
-
-Manages tasks, subtasks, assignees, and activity logging.
+`key` is 2–10 uppercase letters, unique. `leadId` auto-added as `admin`. `delete` throws if tasks exist.
 
 ### Tasks
 
 ```ts
-create(input: CreateTaskInput): Promise<task>
-update(id: string, patch: UpdateTaskInput): Promise<task>
-delete(id: string): Promise<void>
-archive(id: string): Promise<task>
-restore(id: string): Promise<task>
-bulkUpdate(input: BulkUpdateTaskInput): Promise<task[]>
-get(id: string): Promise<task>
-list(filters?: TaskFilters): Promise<task[]>
+await p.tasks.tasks.create({
+  input: {
+    projectId,
+    title,
+    statusId,
+    typeId,
+    reporterId,
+    priority: "high",
+    labels,
+    dueDate,
+    parentId,
+  },
+});
+await p.tasks.tasks.get({ id });
+await p.tasks.tasks.list({ filters: { projectId, statusId, assigneeId, search } });
+await p.tasks.tasks.update({ id, patch: { title, statusId, priority } });
+await p.tasks.tasks.bulkUpdate({ input: { ids, patch: { priority: "urgent" } } }); // no statusId/parentId
+await p.tasks.tasks.delete({ id });
+await p.tasks.tasks.archive({ id });
+await p.tasks.tasks.restore({ id });
+
+await p.tasks.tasks.getSubTasks({ parentId });
+await p.tasks.tasks.getCompletionSummary({ parentId });
+await p.tasks.tasks.assign({ input: { taskId, userId, assignedBy, isLead } });
+await p.tasks.tasks.unassign({ taskId, userId });
+await p.tasks.tasks.getAssignees({ taskId });
+await p.tasks.tasks.getLoggedHours({ taskId });
 ```
 
-### Subtasks
-
-```ts
-getSubTasks(parentId: string): Promise<task[]>
-getCompletionSummary(parentId: string): Promise<TaskCompletionSummary>
-```
-
-### Assignees
-
-```ts
-assign(input: AssignTaskInput): Promise<taskAssignee>
-unassign(taskId: string, userId: string): Promise<void>
-getAssignees(taskId: string): Promise<taskAssignee[]>
-getLoggedHours(taskId: string): Promise<number>
-```
-
-- `create` generates a display number (`KEY-SEQ`) by incrementing the project's `taskCounter`.
-- Parent tasks must belong to the same project. Nesting depth is capped at 3 levels.
-- Setting a parent that would create a circular reference throws.
-- `assign` with `isLead: true` unsets any existing lead assignee on the task.
-- `assign` auto-adds the assignee as a watcher.
-- `update` writes activity log entries for status changes and field updates.
-
-## StatusWorkflow
-
-Access: `p.tasks.statuses`
-
-Manages task statuses and status transition rules.
+`number` is `KEY-SEQ` from `task_project.task_counter`. Parent must be same project; depth ≤3; cycles rejected. `isLead` clears prior lead.
 
 ### Statuses
 
 ```ts
-create(input: CreateStatusInput): Promise<status>
-update(id: string, patch: UpdateStatusInput): Promise<status>
-delete(id: string): Promise<void>
-get(id: string): Promise<status>
-list(projectId?: string): Promise<status[]>
-getGlobal(): Promise<status[]>
+await p.tasks.statuses.create({
+  input: { name: "In Progress", category: "started", projectId, isDefault, isResolved, color },
+});
+await p.tasks.statuses.get({ id });
+await p.tasks.statuses.list({ projectId });
+await p.tasks.statuses.getGlobal();
+await p.tasks.statuses.update({ id, patch: { name, category } });
+await p.tasks.statuses.delete({ id });
+
+await p.tasks.statuses.createTransition({
+  input: { projectId, fromStatusId, toStatusId, requiresComment },
+});
+await p.tasks.statuses.deleteTransition({ id });
+await p.tasks.statuses.listTransitions({ projectId });
+await p.tasks.statuses.validateTransition({ fromStatusId, toStatusId, projectId }); // true when open model or rule exists
 ```
 
-### Transitions
+`isDefault` clears prior default in scope. `fromStatusId !== toStatusId`.
+
+### Task types
 
 ```ts
-createTransition(input: CreateStatusTransitionInput): Promise<statusTransition>
-deleteTransition(id: string): Promise<void>
-listTransitions(projectId: string): Promise<statusTransition[]>
-validateTransition(fromStatusId: string, toStatusId: string, projectId: string): Promise<boolean>
+await p.tasks.taskTypes.createTaskType({
+  input: { name: "Bug", color, icon, projectId, isDefault },
+});
+await p.tasks.taskTypes.updateTaskType({ id, patch: { name } });
+await p.tasks.taskTypes.deleteTaskType({ id });
+await p.tasks.taskTypes.listTaskTypes({ projectId });
+
+await p.tasks.taskTypes.createLabel({ input: { name: "frontend", color, projectId } }); // label helper, not master_label
+await p.tasks.taskTypes.updateLabel({ id, patch: { name } });
+await p.tasks.taskTypes.deleteLabel({ id });
+await p.tasks.taskTypes.listLabels({ projectId });
 ```
 
-- Setting `isDefault: true` on a new or updated status unsets the previous default for that project (or global scope if `projectId` is null).
-- `validateTransition` returns `true` if an explicit transition rule exists, or if no transition rules are defined for the project (open model).
-- `createTransition` rejects `fromStatusId === toStatusId`.
+Types and labels are project-scoped or global (`projectId` null). `isDefault` clears prior default in scope.
 
-## TaskTypeWorkflow
-
-Access: `p.tasks.taskTypes`
-
-Manages task types and labels.
-
-### Task Types
+### Time entries
 
 ```ts
-createTaskType(input: CreateTaskTypeInput): Promise<taskType>
-updateTaskType(id: string, patch: UpdateTaskTypeInput): Promise<taskType>
-deleteTaskType(id: string): Promise<void>
-listTaskTypes(projectId?: string): Promise<taskType[]>
+await p.tasks.timeEntries.create({
+  input: { taskId, userId, duration: 60, date, description, billable },
+});
+await p.tasks.timeEntries.get({ id });
+await p.tasks.timeEntries.list({ taskId });
+await p.tasks.timeEntries.update({ id, patch: { duration } });
+await p.tasks.timeEntries.delete({ id });
+await p.tasks.timeEntries.getTotalDuration({ taskId, billableOnly: true });
 ```
 
-### Labels
+`date` defaults to today. Duration in minutes.
+
+### Comments
 
 ```ts
-createLabel(input: CreateLabelInput): Promise<label>
-updateLabel(id: string, patch: UpdateLabelInput): Promise<label>
-deleteLabel(id: string): Promise<void>
-listLabels(projectId?: string): Promise<label[]>
+await p.tasks.comments.create({ input: { taskId, userId, body, parentId } });
+await p.tasks.comments.get({ id });
+await p.tasks.comments.listByTask({ taskId });
+await p.tasks.comments.listReplies({ parentId });
+await p.tasks.comments.update({ id, patch: { body } }); // sets edited_at
+await p.tasks.comments.delete({ id }); // soft: is_deleted true, body "[comment deleted]"
 ```
 
-- Setting `isDefault: true` on a task type unsets the previous default for that project (or global scope if `projectId` is null).
-- Task types and labels can be project-scoped (`projectId` set) or global (`projectId` null).
-
-## TimeEntryWorkflow
-
-Access: `p.tasks.timeEntries`
-
-Manages time tracking entries on tasks.
-
-```ts
-create(input: CreateTimeEntryInput): Promise<timeEntry>
-update(id: string, patch: UpdateTimeEntryInput): Promise<timeEntry>
-delete(id: string): Promise<void>
-get(id: string): Promise<timeEntry>
-list(filters?: TimeEntryFilters): Promise<timeEntry[]>
-getTotalDuration(taskId: string, billableOnly?: boolean): Promise<number>
-```
-
-- `create` defaults `date` to today if not provided.
-- `getTotalDuration` sums the `duration` column (integer) and returns 0 when no entries exist.
-
-## CommentWorkflow
-
-Access: `p.tasks.comments`
-
-Manages threaded comments on tasks.
-
-```ts
-create(input: CreateCommentInput): Promise<comment>
-update(id: string, patch: UpdateCommentInput): Promise<comment>
-delete(id: string): Promise<comment>
-get(id: string): Promise<comment>
-listByTask(taskId: string): Promise<comment[]>
-listReplies(parentId: string): Promise<comment[]>
-```
-
-- `delete` is a soft delete — sets `isDeleted: true` and `body: "[comment deleted]"`.
-- `update` sets `editedAt` to the current timestamp.
-
-## LinkWorkflow
-
-Access: `p.tasks.links`
-
-Manages dependency links between tasks and exposes graph operations.
+Threaded via `parentId`.
 
 ### Links
 
 ```ts
-create(input: CreateTaskLinkInput): Promise<taskLink>
-delete(sourceId: string, targetId: string): Promise<void>
-listByTask(taskId: string): Promise<{ incoming: taskLink[]; outgoing: taskLink[] }>
+await p.tasks.links.create({ input: { sourceId, targetId, linkType: "blocks" } });
+await p.tasks.links.delete({ sourceId, targetId });
+await p.tasks.links.listByTask({ taskId }); // { incoming, outgoing }
+await p.tasks.links.topologicalSort({ taskIds });
+await p.tasks.links.getCriticalPath({ projectId }); // { duration, path } by estimated_hours
+await p.tasks.links.getDependencyGraph({ taskIds }); // nodes with dependsOn
 ```
 
-### Graph Operations
+`sourceId !== targetId`; `blocks` creates inverse `blocked_by` and checks cycles via BFS. `topologicalSort` throws on cycle.
+
+### Collaboration
 
 ```ts
-topologicalSort(taskIds: string[]): Promise<string[]>
-getCriticalPath(projectId: string): Promise<CriticalPathResult>
-getDependencyGraph(taskIds: string[]): Promise<TaskDependencyNode[]>
+await p.tasks.collaboration.addWatcher({ input: { taskId, userId } }); // idempotent
+await p.tasks.collaboration.removeWatcher({ taskId, userId });
+await p.tasks.collaboration.listWatchers({ taskId });
+
+await p.tasks.collaboration.addAttachment({ input: { taskId, fileId, uploadedBy, commentId } });
+await p.tasks.collaboration.deleteAttachment({ id });
+await p.tasks.collaboration.listAttachments({ taskId });
+await p.tasks.collaboration.listAttachmentsByComment({ commentId });
+
+await p.tasks.collaboration.getActivityLog({ taskId, action });
 ```
 
-- `create` rejects self-links (`sourceId === targetId`).
-- `create` with `linkType: "blocks"` checks for cycles via BFS traversal of the dependency graph.
-- Each link creates an inverse link automatically: `blocks` ↔ `blocked_by`, `related_to` ↔ `related_to`, `duplicates` ↔ `duplicates`, `caused_by` ↔ `caused_by`, `split_from` ↔ `split_from`.
-- `delete` removes both the link and its inverse.
-- `topologicalSort` throws if a cycle is detected.
+`assign` auto-adds watcher.
 
-## CollaborationWorkflow
-
-Access: `p.tasks.collaboration`
-
-Manages watchers, attachments, and activity logs.
-
-### Watchers
+### Automations
 
 ```ts
-addWatcher(input: CreateWatcherInput): Promise<watcher>
-removeWatcher(taskId: string, userId: string): Promise<void>
-listWatchers(taskId: string): Promise<watcher[]>
+await p.tasks.automations.create({
+  input: { name, projectId, trigger: "status_change", conditions, actions, isActive },
+});
+await p.tasks.automations.get({ id });
+await p.tasks.automations.listByProject({ projectId });
+await p.tasks.automations.getActiveRules({ projectId, trigger });
+await p.tasks.automations.update({ id, patch: { name, isActive } });
+await p.tasks.automations.delete({ id });
+await p.tasks.automations.evaluateRules({ projectId, taskId, trigger, values }); // exact-match conditions
 ```
 
-### Attachments
+Triggers `status_change`, `assignment_change`, `due_date_passed`, `task_created`, `task_updated`. Unparseable conditions never match.
 
-```ts
-addAttachment(input: CreateAttachmentInput): Promise<attachment>
-deleteAttachment(id: string): Promise<void>
-listAttachments(taskId: string): Promise<attachment[]>
-listAttachmentsByComment(commentId: string): Promise<attachment[]>
-```
-
-### Activity Log
-
-```ts
-getActivityLog(taskId: string, action?: string): Promise<activityLog[]>
-```
-
-- `addWatcher` is idempotent — returns the existing watcher row if already present.
-
-## AutomationWorkflow
-
-Access: `p.tasks.automations`
-
-Manages automation rules that trigger actions on task events.
-
-```ts
-create(input: CreateAutomationRuleInput): Promise<automationRule>
-update(id: string, patch: UpdateAutomationRuleInput): Promise<automationRule>
-delete(id: string): Promise<void>
-get(id: string): Promise<automationRule>
-listByProject(projectId: string): Promise<automationRule[]>
-getActiveRules(projectId: string, trigger: string): Promise<automationRule[]>
-evaluateRules(context: { projectId: string; taskId: string; trigger: string; values: Record<string, unknown> }): Promise<AutomationAction[]>
-```
-
-- `evaluateRules` fetches active rules for the project matching the trigger, checks each rule's `conditions` against the context `values`, and returns the `actions` array from all matching rules.
-- Condition matching is exact equality per key. Rules with unparseable conditions never match.
-- Triggers: `status_change`, `assignment_change`, `due_date_passed`, `task_created`, `task_updated`.
-
-## Filter Views (moved to Masters)
-
-Saved views live in `@aspen-os/masters` as `p.masters.filterViews` (table `master_filter_view`, `domain: "tasks:task"`, `viewType: list|board|calendar|timeline`, `projectId` for project scoping) — see [Masters Workflows](/docs/masters/workflows#filter-views).
+Events: see [Events](/docs/tasks/events). Schema: see [Schema](/docs/tasks/db-schemas).

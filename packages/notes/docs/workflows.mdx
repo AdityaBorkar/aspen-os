@@ -4,17 +4,23 @@ description: API reference for the note workflows exposed by the Notes module.
 icon: IconListCheck
 ---
 
-The Notes module exposes one workflow group — `notes` — as a flat `Workflow` object, accessed via the platform proxy key `p.notes`.
+Workflow group via `p.notes`: `notes`.
 
-## Notes
+Scoped notes use `scopeType` + `scopeId` (`<module>:<entity>` registry value, owning row id); both required together; create takes Valibot `{ input }`, update takes `{ id, input }`, `get`/`delete` take `{ id }`. Every mutation writes an audit entry and publishes a `notes:note_*` event.
+
+## Features
+
+### Notes
 
 Access: `p.notes.notes`
+
+First-class notes: quick-capture (`title` optional) or scoped annotation (`masters:contact`, `tasks:task`, `calendar:event`, …). `access` defaults to `personal`; `ownerId` is derived from `actorId`.
 
 ```ts
 await p.notes.notes.create({
   input: {
-    body: "Follow up on pricing",
     title: "Call notes",
+    body: "Follow up on pricing",
     type: "call",
     access: "personal",
     tags: ["sales"],
@@ -25,21 +31,14 @@ await p.notes.notes.create({
 await p.notes.notes.get({ id });
 await p.notes.notes.update({
   id,
-  input: { body: "…", access: "global", tags: ["sales", "urgent"] },
+  input: { body: "Updated pricing notes", access: "global", tags: ["sales", "urgent"] },
 });
 await p.notes.notes.delete({ id });
 ```
 
-`create` derives `ownerId` from `actorId`; an explicit `ownerId` for another user requires a tenant admin. `access` defaults to `personal`. `scopeType`/`scopeId` must be provided together. `update` and `delete` are owner/admin-only (`assertCanMutate`). `update` with no fields is rejected, and `metadata` is replaced wholesale (not merged) — send the full map. `delete` returns `{ removed: true }`.
+`update` with no fields is rejected; `metadata` is replaced wholesale, not merged.
 
-<Callout type="warn">
-  `body` is required (non-blank, max 50,000 chars); `title` max 255 chars; at most 20 tags (each max
-  64 chars, non-empty). `search` max 200 chars.
-</Callout>
-
-## Listing
-
-`list` filters by an access-scoped default (`access = 'global' OR ownerId = actorId`; skipped for tenant admins) plus optional filters:
+### Listing
 
 ```ts
 const notes = await p.notes.notes.list({
@@ -47,16 +46,17 @@ const notes = await p.notes.notes.list({
     scopeType: "masters:contact",
     scopeId: contactId,
     type: "call",
-    tags: ["sales"], // any-match
-    search: "pricing", // ilike on title/body
+    tags: ["sales"],
+    search: "pricing",
     limit: 50,
     offset: 0,
   },
 });
 ```
 
-Results are ordered by `createdAt` descending. `limit` defaults to 50 (max 100), `offset` defaults to 0. `scopeType`/`scopeId` must be provided together. `search` matches `title`/`body` case-insensitively; `%`, `_`, and `\` in the search text are escaped so they match literally.
+Results ordered by `createdAt` descending, `limit` defaults to 50 (max 100). `list` is access-scoped (`global OR ownerId = actorId`; skipped for tenant admins). `search` matches `title`/`body` case-insensitively with `%`, `_`, `\` escaped.
 
-## Conventions
+## Links
 
-All workflow methods are `Workflow.name(...)` instances with Valibot input validation. `create` takes `{ input: CreateNoteSchema }`; `update` takes `{ id, input: UpdateNoteSchema }`; `get`/`delete` take `{ id }`; `list` takes `{ filters?: NoteFiltersSchema }`. `create`/`update`/`delete` write an audit entry (via `ctx.audit`) and publish a `notes:note_*` event; `get`/`list` are read-only.
+- Events: [Notes Events](/docs/notes/events)
+- Schema: [Notes Schema](/docs/notes/db-schemas)

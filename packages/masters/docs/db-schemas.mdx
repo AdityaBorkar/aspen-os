@@ -1,238 +1,233 @@
 ---
 title: DB Schemas
-description: Database tables, enums, and relationships for the Masters module.
+description: Tables and enums for the Masters module.
 icon: IconDatabase
 ---
 
-Tenant tables (`master_` prefix) and 13 enums. Shared columns: `id` (text PK, UUIDv7), `created_at`, `updated_at` (timestamptz).
+Tenant tables with `master_` and `org_branch` prefixes; `control_plane_schemas = {}`. Shared columns `id` (text PK, UUIDv7), `created_at`, `updated_at` (timestamptz) stated once — not per table.
 
 ## Enums
 
 | Enum                                   | Values                                                                                                                                                                          |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `master_entity_type`                   | `organization`, `branch`, `connection`, `contact`, `entity`                                                                                                                     |
-| `master_contact_type`                  | `client`, `vendor`, `partner`, `subsidiary`, `parent_company`, `investor`, `regulator`, `insurer`, `bank`, `other`                                                              |
-| `master_integration_type`              | `api_key`, `oauth2`, `webhook`, `basic_auth`, `database`, `other`                                                                                                               |
-| `master_connection_status`             | `active`, `inactive`, `expired`, `revoked`                                                                                                                                      |
-| `master_entity_type_enum`              | `customer`, `vendor`, `partner`, `hospital`, `clinic`, `laboratory`, `pharmacy`, `insurer`, `regulator`, `bank`, `staffing_agency`, `training_institute`, `government`, `other` |
-| `master_entity_status_enum`            | `active`, `inactive`, `archived`                                                                                                                                                |
-| `master_uom_category_enum`             | `length`, `mass`, `volume`, `count`, `time`, `area`, `temperature`, `data`, `other`                                                                                             |
-| `master_payment_method_type_enum`      | `bank_account`, `card`, `upi`, `imps`, `cheque`                                                                                                                                 |
-| `master_payment_method_status_enum`    | `active`, `inactive`, `archived`                                                                                                                                                |
-| `master_payment_method_direction_enum` | `inbound`, `outbound`, `both`                                                                                                                                                   |
-| `master_card_brand_enum`               | `visa`, `mastercard`, `amex`, `rupay`, `other`                                                                                                                                  |
-| `master_filter_view_access`            | `personal`, `global`                                                                                                                                                            |
-| `master_filter_view_type`              | `list`, `board`, `calendar`, `timeline`                                                                                                                                         |
+| `master_entity_type`                   | `branch`, `connection`, `contact`, `entity`, `organization`, `org_branch`                                                                                                       |
+| `master_entity_type_enum`              | `bank`, `clinic`, `customer`, `government`, `hospital`, `insurer`, `laboratory`, `other`, `partner`, `pharmacy`, `regulator`, `staffing_agency`, `training_institute`, `vendor` |
+| `master_entity_status_enum`            | `active`, `archived`, `inactive`                                                                                                                                                |
+| `master_contact_type`                  | `bank`, `client`, `insurer`, `investor`, `other`, `parent_company`, `partner`, `regulator`, `subsidiary`, `vendor`                                                              |
+| `master_integration_type`              | `api_key`, `basic_auth`, `database`, `oauth2`, `other`, `webhook`                                                                                                               |
+| `master_connection_status`             | `active`, `expired`, `inactive`, `revoked`                                                                                                                                      |
+| `master_uom_category_enum`             | `area`, `count`, `data`, `length`, `mass`, `other`, `temperature`, `time`, `volume`                                                                                             |
+| `master_payment_method_type_enum`      | `bank_account`, `card`, `cheque`, `imps`, `upi`                                                                                                                                 |
+| `master_payment_method_status_enum`    | `active`, `archived`, `inactive`                                                                                                                                                |
+| `master_payment_method_direction_enum` | `both`, `inbound`, `outbound`                                                                                                                                                   |
+| `master_card_brand_enum`               | `amex`, `mastercard`, `other`, `rupay`, `visa`                                                                                                                                  |
+| `org_branch_type`                      | `factory`, `headquarters`, `office`, `other`, `remote`, `store`, `warehouse`                                                                                                    |
 
 ## Tables
 
-Polymorphic tables share `entity_type` + `entity_id`. `master_unit_of_measure` is tenant-wide (no scope pair); `master_setting` scopes by key prefix.
-
-### `master_contact`
-
-Contact record, optionally owner-scoped or global.
-
-| Column            | Type                | Description                                |
-| ----------------- | ------------------- | ------------------------------------------ |
-| `name`            | text                | Derived from `first_name` + `last_name`    |
-| `first_name`      | text                | Split first name                           |
-| `last_name`       | text                | Split last name                            |
-| `email`           | text                | Contact email                              |
-| `phone`           | text                | Contact phone                              |
-| `title`           | text                | Job title                                  |
-| `company`         | text                | Company name                               |
-| `type`            | master_contact_type | Defaults to `other`                        |
-| `linked_user_id`  | text                | Internal AuthUnit user link                |
-| `created_by`      | text                | Who added the contact                      |
-| `is_removed`      | boolean             | Soft-delete flag, default `false`          |
-| `deletion_reason` | text                | Required on `remove`                       |
-| `removed_at`      | timestamptz         | When removed                               |
-| `entity_type`     | master_entity_type  | Owner type, nullable for global contacts   |
-| `entity_id`       | text                | Owner row id, nullable for global contacts |
-| `metadata`        | jsonb               | Flexible metadata                          |
-
-Indexes: `idx_master_contact_email` (`email`), `idx_master_contact_entity` (`entity_type`, `entity_id`), `idx_master_contact_type` (`type`).
-
 ### `master_address`
 
-Canonical address shape referenced via `entityType`/`entityId`. Country is ISO 3166-1 alpha-2, stored uppercase.
-
-| Column        | Type  | Description       |
-| ------------- | ----- | ----------------- |
-| `label`       | text  | Address label     |
-| `line1`       | text  | Required          |
-| `line2`       | text  |                   |
-| `city`        | text  |                   |
-| `state`       | text  | State/Province    |
-| `postal_code` | text  |                   |
-| `country`     | text  | Uppercase alpha-2 |
-| `metadata`    | jsonb |                   |
+| Column        | Type                 | Description       |
+| ------------- | -------------------- | ----------------- |
+| `entity_type` | `master_entity_type` | Owner type        |
+| `entity_id`   | text                 | Owner row id      |
+| `label`       | text                 | Address label     |
+| `line1`       | text                 | Required          |
+| `line2`       | text                 |                   |
+| `city`        | text                 |                   |
+| `state`       | text                 |                   |
+| `postal_code` | text                 |                   |
+| `country`     | text                 | Uppercase alpha-2 |
+| `metadata`    | jsonb                |                   |
 
 Indexes: `idx_master_address_entity` (`entity_type`, `entity_id`), `idx_master_address_country` (`country`).
 
-### `master_bank_account`
+### `master_contact`
 
-Bank account record. `is_primary` and `is_active` are scoped per `(entity_type, entity_id)`.
+| Column            | Type                            | Description                        |
+| ----------------- | ------------------------------- | ---------------------------------- |
+| `name`            | text                            | Derived `first_name` + `last_name` |
+| `first_name`      | text                            |                                    |
+| `last_name`       | text                            |                                    |
+| `email`           | text                            |                                    |
+| `phone`           | text                            |                                    |
+| `title`           | text                            | Job title                          |
+| `company`         | text                            |                                    |
+| `type`            | `master_contact_type`           |                                    |
+| `linked_user_id`  | text                            | Auth user link                     |
+| `created_by`      | text                            |                                    |
+| `is_removed`      | boolean                         | Default `false`                    |
+| `deletion_reason` | text                            | Required on `remove`               |
+| `removed_at`      | timestamptz                     |                                    |
+| `entity_type`     | `master_entity_type` (nullable) | Null for global                    |
+| `entity_id`       | text (nullable)                 | Null for global                    |
+| `metadata`        | jsonb                           |                                    |
 
-| Column                | Type    | Description   |
-| --------------------- | ------- | ------------- |
-| `account_holder_name` | text    |               |
-| `account_number`      | text    |               |
-| `account_type`        | text    |               |
-| `bank_name`           | text    |               |
-| `branch_name`         | text    |               |
-| `routing_number`      | text    |               |
-| `swift_code`          | text    |               |
-| `currency`            | text    | Default `USD` |
-| `is_active`           | boolean |               |
-| `is_primary`          | boolean |               |
-| `metadata`            | jsonb   |               |
-
-Indexes: (`entity_type`, `entity_id`), `is_primary`, `is_active`.
+Indexes: `idx_master_contact_email` (`email`), `idx_master_contact_entity` (`entity_type`, `entity_id`), `idx_master_contact_type` (`type`).
 
 ### `master_connection`
 
-Integration connection. No plaintext credentials — `credential_ref` points at the encrypted kvStore secret.
-
-| Column           | Type                     | Description              |
-| ---------------- | ------------------------ | ------------------------ |
-| `name`           | text                     |                          |
-| `type`           | master_integration_type  |                          |
-| `status`         | master_connection_status | Default `active`         |
-| `base_url`       | text                     | Endpoint URL             |
-| `description`    | text                     |                          |
-| `credential_ref` | text                     | kvStore secret reference |
-| `last_tested_at` | timestamptz              | Last successful test     |
-| `last_used_at`   | timestamptz              | Last use                 |
-| `metadata`       | jsonb                    |                          |
+| Column           | Type                       | Description              |
+| ---------------- | -------------------------- | ------------------------ |
+| `entity_type`    | `master_entity_type`       | Owner type               |
+| `entity_id`      | text                       | Owner row id             |
+| `name`           | text                       |                          |
+| `type`           | `master_integration_type`  |                          |
+| `status`         | `master_connection_status` | Default `active`         |
+| `base_url`       | text                       | Endpoint URL             |
+| `description`    | text                       |                          |
+| `credential_ref` | text                       | kvStore secret reference |
+| `last_tested_at` | timestamptz                |                          |
+| `last_used_at`   | timestamptz                |                          |
+| `metadata`       | jsonb                      |                          |
 
 Indexes: `idx_master_connection_entity` (`entity_type`, `entity_id`), `idx_master_connection_status` (`status`), `idx_master_connection_type` (`type`).
 
 ### `master_entity`
 
-Tenant-level business party. Optional `organization_id` links to an `organization` profile row.
-
-| Column                | Type                      | Description                  |
-| --------------------- | ------------------------- | ---------------------------- |
-| `name`                | text (not null)           | Legal/trade name             |
-| `code`                | text (unique)             | Unique per tenant            |
-| `type`                | master_entity_type_enum   |                              |
-| `status`              | master_entity_status_enum | Default `active`             |
-| `industry`            | text                      |                              |
-| `website`             | text                      |                              |
-| `phone`               | text                      |                              |
-| `email`               | text                      |                              |
-| `tax_id`              | text                      | VAT/GST/tax registration     |
-| `registration_number` | text                      | Company registration number  |
-| `founded_date`        | date                      |                              |
-| `timezone`            | text                      | IANA timezone                |
-| `locale`              | text                      | BCP-47 locale                |
-| `organization_id`     | text                      | FK → organization (optional) |
-| `metadata`            | jsonb                     |                              |
+| Column                | Type                        | Description            |
+| --------------------- | --------------------------- | ---------------------- |
+| `name`                | text                        | Legal/trade name       |
+| `code`                | text (unique)               | Unique per tenant      |
+| `type`                | `master_entity_type_enum`   |                        |
+| `status`              | `master_entity_status_enum` | Default `active`       |
+| `industry`            | text                        |                        |
+| `website`             | text                        |                        |
+| `phone`               | text                        |                        |
+| `email`               | text                        |                        |
+| `tax_id`              | text                        | VAT/GST                |
+| `registration_number` | text                        |                        |
+| `founded_date`        | date                        |                        |
+| `timezone`            | text                        | IANA                   |
+| `locale`              | text                        | BCP-47                 |
+| `organization_id`     | text                        | Soft FK → organization |
+| `metadata`            | jsonb                       |                        |
 
 Indexes: `idx_master_entity_type` (`type`), `idx_master_entity_status` (`status`), `idx_master_entity_organization` (`organization_id`), unique `idx_master_entity_code` (`code`).
 
-### `master_unit_of_measure`
+### `master_label`
 
-Tenant-wide reference data. One base unit per category (workflow-enforced); derived units reference the base via `base_unit_id` + `conversion_factor`.
+| Column       | Type | Description             |
+| ------------ | ---- | ----------------------- |
+| `name`       | text |                         |
+| `color`      | text |                         |
+| `scope_type` | text | Nullable; null = global |
+| `scope_id`   | text | Nullable                |
 
-| Column              | Type                     | Description                   |
-| ------------------- | ------------------------ | ----------------------------- |
-| `name`              | text (not null)          | e.g. "Kilogram"               |
-| `code`              | text (not null, unique)  | e.g. `kg`                     |
-| `category`          | master_uom_category_enum |                               |
-| `symbol`            | text                     | e.g. `kg`                     |
-| `decimal_places`    | integer                  | Default `2`                   |
-| `is_base_unit`      | boolean                  | Default `false`               |
-| `base_unit_id`      | text                     | Null for base units (self-FK) |
-| `conversion_factor` | numeric                  | Null for base units           |
-| `is_active`         | boolean                  | Default `true`                |
-| `metadata`          | jsonb                    |                               |
+Indexes: `idx_master_label_scope` (`scope_type`, `scope_id`), `idx_master_label_name` (`name`), unique `uq_master_label_scope_name` (`scope_type`, `scope_id`, `name`) nulls-not-distinct.
 
-Indexes: unique `idx_master_uom_code` (`code`), `idx_master_uom_category` (`category`), `idx_master_uom_is_active` (`is_active`).
+### `master_entity_label`
+
+| Column        | Type                       | Description            |
+| ------------- | -------------------------- | ---------------------- |
+| `label_id`    | text (FK → `master_label`) |                        |
+| `entity_type` | text                       | Polymorphic owner type |
+| `entity_id`   | text                       | Polymorphic owner id   |
+| `applied_by`  | text                       |                        |
+| `applied_at`  | timestamptz                |                        |
+
+Indexes: unique `uq_master_entity_label_unique` (`entity_type`, `entity_id`, `label_id`), `idx_master_entity_label_label` (`label_id`), `idx_master_entity_label_entity` (`entity_type`, `entity_id`).
+
+### `org_branch`
+
+| Column              | Type              | Description           |
+| ------------------- | ----------------- | --------------------- |
+| `code`              | text (unique)     | Branch code           |
+| `name`              | text              |                       |
+| `type`              | `org_branch_type` |                       |
+| `capacity`          | integer           |                       |
+| `parent_org_branch` | text              | Self-ref; null = root |
+| `timezone`          | text              |                       |
+| `opened_date`       | date              |                       |
+| `closed_date`       | date              |                       |
+| `metadata`          | jsonb             |                       |
+
+Indexes: `idx_org_branch_type` (`type`), `idx_org_branch_parent` (`parent_org_branch`).
 
 ### `master_payment_method`
 
-Payment mode per `(entity_type, entity_id)`. `is_primary` is scoped per `(entity_type, entity_id, direction)`. Card data is masked-only (brand/last4/expiry; no PAN).
-
-| Column              | Type                                 | Description                        |
-| ------------------- | ------------------------------------ | ---------------------------------- |
-| `type`              | master_payment_method_type_enum      |                                    |
-| `name`              | text (not null)                      | Display name                       |
-| `code`              | text                                 |                                    |
-| `direction`         | master_payment_method_direction_enum |                                    |
-| `status`            | master_payment_method_status_enum    | Default `active`                   |
-| `bank_account_id`   | text                                 | Logical FK → `master_bank_account` |
-| `bank_name`         | text                                 | Denormalized display               |
-| `card_brand`        | master_card_brand_enum               |                                    |
-| `card_last4`        | text                                 | Masked only                        |
-| `card_expiry_month` | integer                              | 1–12                               |
-| `card_expiry_year`  | integer                              | 4-digit                            |
-| `upi_id`            | text                                 | VPA, e.g. `business@okhdfcbank`    |
-| `cheque_series`     | text                                 | Cheque prefix/leaf range           |
-| `details`           | jsonb                                | Type-specific extension            |
-| `is_primary`        | boolean                              | Default `false`                    |
-| `entity_type`       | master_entity_type                   | Owner type                         |
-| `entity_id`         | text (not null)                      | Owner row id                       |
-| `is_active`         | boolean                              | Default `true`                     |
-| `metadata`          | jsonb                                |                                    |
+| Column                | Type                                   | Description             |
+| --------------------- | -------------------------------------- | ----------------------- |
+| `entity_type`         | `master_entity_type`                   | Owner type              |
+| `entity_id`           | text                                   | Owner row id            |
+| `name`                | text                                   | Display name            |
+| `type`                | `master_payment_method_type_enum`      |                         |
+| `direction`           | `master_payment_method_direction_enum` |                         |
+| `status`              | `master_payment_method_status_enum`    | Default `active`        |
+| `code`                | text                                   |                         |
+| `bank_name`           | text                                   |                         |
+| `account_holder_name` | text                                   |                         |
+| `account_number`      | text                                   |                         |
+| `account_type`        | text                                   |                         |
+| `branch_name`         | text                                   |                         |
+| `routing_number`      | text                                   |                         |
+| `swift_code`          | text                                   |                         |
+| `currency`            | text                                   |                         |
+| `card_brand`          | `master_card_brand_enum` (nullable)    |                         |
+| `card_last4`          | text                                   | Masked only             |
+| `card_expiry_month`   | integer                                | 1–12                    |
+| `card_expiry_year`    | integer                                | 4-digit                 |
+| `cheque_series`       | text                                   |                         |
+| `upi_id`              | text                                   | VPA                     |
+| `details`             | jsonb                                  | Type-specific extension |
+| `is_primary`          | boolean                                | Default `false`         |
+| `is_active`           | boolean                                | Default `true`          |
+| `metadata`            | jsonb                                  |                         |
 
 Indexes: `idx_master_payment_method_entity` (`entity_type`, `entity_id`), `idx_master_payment_method_type` (`type`), `idx_master_payment_method_is_primary` (`is_primary`), `idx_master_payment_method_is_active` (`is_active`).
 
-### `master_filter_view`
-
-Cross-domain saved filter/sort/group config. `is_default` is unique per `(owner_id, domain, project_id)`.
-
-| Column       | Type                      | Description                         |
-| ------------ | ------------------------- | ----------------------------------- |
-| `name`       | text (not null)           |                                     |
-| `domain`     | text (not null)           | Free-form `<module>:<entity>`       |
-| `conditions` | jsonb                     | Default `[]`                        |
-| `sort`       | jsonb                     | Default `[]`                        |
-| `group_by`   | text                      |                                     |
-| `view_type`  | master_filter_view_type   | Default `list`                      |
-| `access`     | master_filter_view_access | Default `personal`                  |
-| `owner_id`   | text (not null)           | Owning user                         |
-| `project_id` | text                      | Tasks scope; null for other domains |
-| `is_default` | boolean                   | Default `false`                     |
-| `metadata`   | jsonb                     |                                     |
-
-Indexes: `idx_master_filter_view_domain_access` (`domain`, `access`), `idx_master_filter_view_owner` (`owner_id`), `idx_master_filter_view_project` (`project_id`).
-
 ### `master_setting`
 
-Tenant key–value store. `org.*` keys are tenant-wide (`user_id` null); other keys are per-user.
+Key–value store; `user_id` null holds tenant-wide `org.*` keys.
 
-| Column    | Type  | Description                 |
-| --------- | ----- | --------------------------- |
-| `key`     | text  | `org.id`, `org.branding`, … |
-| `user_id` | text  | Null for tenant-wide rows   |
-| `value`   | jsonb | Setting value               |
+| Column    | Type                | Description                 |
+| --------- | ------------------- | --------------------------- |
+| `key`     | text                | `org.id`, `org.branding`, … |
+| `user_id` | text                | Null for tenant-wide        |
+| `value`   | jsonb (`JsonValue`) |                             |
 
-Indexes: `idx_master_setting_user` (`user_id`); unique `uq_master_setting_user_key` (`user_id`, `key`), nulls-not-distinct.
+Indexes: `idx_master_setting_user` (`user_id`), unique `uq_master_setting_user_key` (`user_id`, `key`) nulls-not-distinct.
+
+### `master_unit_of_measure`
+
+One base unit per category (workflow-enforced); derived units reference the base.
+
+| Column              | Type                       | Description            |
+| ------------------- | -------------------------- | ---------------------- |
+| `name`              | text                       |                        |
+| `code`              | text (unique)              | e.g. `kg`              |
+| `category`          | `master_uom_category_enum` |                        |
+| `symbol`            | text                       |                        |
+| `decimal_places`    | integer                    | Default `2`            |
+| `is_base_unit`      | boolean                    | Default `false`        |
+| `base_unit_id`      | text                       | Self-FK; null for base |
+| `conversion_factor` | numeric                    | Null for base          |
+| `is_active`         | boolean                    | Default `true`         |
+| `metadata`          | jsonb                      |                        |
+
+Indexes: unique `idx_master_uom_code` (`code`), `idx_master_uom_category` (`category`), `idx_master_uom_is_active` (`is_active`).
 
 ## Relationships
 
-References are soft (logical, no DB-level FKs). Primary flags and the UOM base-unit invariant are workflow-enforced.
+Soft (logical, workflow-enforced) — no DB-level FKs to owners.
 
 ```mermaid
 flowchart LR
-  subgraph owners[Owner entities]
+  subgraph Owners
     ORG[organization]
     BR[branch]
+    OB[org_branch]
     CON[connection]
     CT[contact]
     ENT[entity]
   end
-
-  owners -->|entity_type + entity_id| MC[master_contact]
-  owners -->|entity_type + entity_id| MA[master_address]
-  owners -->|entity_type + entity_id| MB[master_bank_account]
-  owners -->|entity_type + entity_id| MCON[master_connection]
-  owners -->|entity_type + entity_id| MPM[master_payment_method]
-
-  MC -. global, no owner .-> MC
-  ME[master_entity] -->|organization_id| ORG
-  MPM -->|bank_account_id| MB
+  Owners -->|entity_type + entity_id| A[master_address]
+  Owners -->|entity_type + entity_id| C[master_contact]
+  Owners -->|entity_type + entity_id| CO[master_connection]
+  Owners -->|entity_type + entity_id| PM[master_payment_method]
+  L[master_label] -->|label_id| EL[master_entity_label]
+  Owners -->|entity_type + entity_id| EL
+  OB -->|parent_org_branch| OB
   UOM[master_unit_of_measure] -->|base_unit_id| UOM
+  E[master_entity] -. organization_id .-> ORG
 ```

@@ -1,67 +1,33 @@
 ---
 title: Events
-description: 58 declared topics (17 emitted), payloads, triggers, and the 2 reconciliation subscriptions.
+description: Domain event map for the hr-core module.
 icon: IconBell
 ---
 
-Events are typed via `HrEventMap` in `src/pubsub.ts` — 10 per-group maps (`EmployeeEventMap`, `AttendanceEventMap`, …) intersected into one. 17 topics are emitted by workflows; the rest are declared contracts with no in-repo publisher yet (`—` in Trigger). Two topics are consumed internally for position reconciliation.
-
-<Callout type="warn">
-  Pubsub starts lazily: publishing to a topic with no `subscribe()` consumer silently drops the
-  message. The host app must subscribe to every emitted topic it cares about.
-</Callout>
+The hr-core module defines domain events across six groups. Events are type-level contracts published as plain string topics via `PubSubUnit`.
 
 ## Employee
 
-| Event                     | Payload                                                 | Trigger |
-| ------------------------- | ------------------------------------------------------- | ------- |
-| `employee:created`        | `{ employee: { id, employeeId, firstName, lastName } }` | —       |
-| `employee:updated`        | `{ employee: { id, name }, changes }`                   | —       |
-| `employee:status_changed` | `{ employeeId, fromStatus, toStatus }`                  | —       |
-| `employee:group_created`  | `{ group: { id, name } }`                               | —       |
-
-## Attendance
-
-| Event                         | Payload                                            | Trigger |
-| ----------------------------- | -------------------------------------------------- | ------- |
-| `attendance:created`          | `{ attendance: { id, employeeId, date, status } }` | —       |
-| `attendance:checkin_created`  | `{ checkin: { id, employeeId, logType, time } }`   | —       |
-| `attendance:request_created`  | `{ request: { id, employeeId, fromDate } }`        | —       |
-| `attendance:request_approved` | `{ requestId, approvedBy }`                        | —       |
-| `attendance:request_rejected` | `{ requestId, rejectedBy }`                        | —       |
-
-## Leave
-
-| Event                         | Payload                                                                       | Trigger |
-| ----------------------------- | ----------------------------------------------------------------------------- | ------- |
-| `leave:application_submitted` | `{ application: { id, employeeId, leaveType, fromDate, toDate, totalDays } }` | —       |
-| `leave:application_approved`  | `{ applicationId, approvedBy }`                                               | —       |
-| `leave:application_rejected`  | `{ applicationId, rejectedBy }`                                               | —       |
-| `leave:application_cancelled` | `{ applicationId }`                                                           | —       |
-| `leave:allocation_created`    | `{ allocation: { id, employeeId, leaveType, totalDays } }`                    | —       |
-| `leave:encashment_requested`  | `{ encashment: { id, employeeId, leaveType, encashableDays } }`               | —       |
+| Event                     | Payload                                                 | Trigger                |
+| ------------------------- | ------------------------------------------------------- | ---------------------- |
+| `employee:created`        | `{ employee: { id, employeeId, firstName, lastName } }` | `employee.create`      |
+| `employee:updated`        | `{ employee: { id, name }, changes }`                   | `employee.update`      |
+| `employee:status_changed` | `{ employeeId, fromStatus, toStatus }`                  | status mutation        |
+| `employee:group_created`  | `{ group: { id, name } }`                               | `employee.createGroup` |
 
 ## Lifecycle
 
 | Event                                | Payload                                                                 | Trigger                                           |
 | ------------------------------------ | ----------------------------------------------------------------------- | ------------------------------------------------- |
-| `lifecycle:onboarding_started`       | `{ onboarding: { id, employeeId, startDate } }`                         | —                                                 |
-| `lifecycle:onboarding_completed`     | `{ onboardingId, employeeId }`                                          | —                                                 |
-| `lifecycle:promotion_requested`      | `{ promotion: { id, employeeId, currentDesignation, newDesignation } }` | —                                                 |
-| `lifecycle:promotion_approved`       | `{ promotionId, employeeId, approvedBy }`                               | —                                                 |
-| `lifecycle:transfer_requested`       | `{ transfer: { id, employeeId, fromDepartment, toDepartment } }`        | —                                                 |
+| `lifecycle:onboarding_started`       | `{ onboarding: { id, employeeId, startDate } }`                         | `lifecycle.createOnboarding`                      |
+| `lifecycle:onboarding_completed`     | `{ employeeId, onboardingId }`                                          | onboarding completion                             |
+| `lifecycle:promotion_requested`      | `{ promotion: { id, employeeId, currentDesignation, newDesignation } }` | `lifecycle.createPromotion`                       |
+| `lifecycle:promotion_approved`       | `{ promotionId, employeeId, approvedBy }`                               | `lifecycle.approvePromotion`                      |
+| `lifecycle:transfer_requested`       | `{ transfer: { id, employeeId, fromDepartment, toDepartment } }`        | `lifecycle.createTransfer`                        |
 | `lifecycle:transfer_approved`        | `{ transferId, employeeId, approvedBy }`                                | `lifecycle.approveTransfer`                       |
-| `lifecycle:separation_initiated`     | `{ separation: { id, employeeId, exitDate } }`                          | —                                                 |
-| `lifecycle:separation_completed`     | `{ separationId, employeeId }`                                          | `lifecycle.updateSeparation` (status → completed) |
-| `lifecycle:exit_interview_scheduled` | `{ exitInterviewId, employeeId, scheduledDate }`                        | —                                                 |
-
-## Overtime
-
-| Event                    | Payload                                                        | Trigger |
-| ------------------------ | -------------------------------------------------------------- | ------- |
-| `overtime:slip_created`  | `{ slip: { id, employeeId, overtimeType, fromDate, toDate } }` | —       |
-| `overtime:slip_approved` | `{ slipId, approvedBy }`                                       | —       |
-| `overtime:slip_rejected` | `{ slipId, rejectedBy }`                                       | —       |
+| `lifecycle:separation_initiated`     | `{ separation: { id, employeeId, exitDate } }`                          | `lifecycle.createSeparation`                      |
+| `lifecycle:separation_completed`     | `{ separationId, employeeId }`                                          | `lifecycle.updateSeparation` status → `completed` |
+| `lifecycle:exit_interview_scheduled` | `{ exitInterviewId, employeeId, scheduledDate }`                        | `lifecycle.createExitInterview`                   |
 
 ## Position
 
@@ -73,40 +39,31 @@ Events are typed via `HrEventMap` in `src/pubsub.ts` — 10 per-group maps (`Emp
 | `position:activated`   | `{ positionId }`                                       | `position.activate`                                                        |
 | `position:assigned`    | `{ assignment: { positionId, employeeId, fromDate } }` | `position.assignEmployee`                                                  |
 | `position:unassigned`  | `{ positionId, employeeId, toDate }`                   | `position.unassignEmployee`, `position.transferAssignment`, reconciliation |
-| `position:reassigned`  | `{ fromPositionId, toPositionId, employeeId }`         | `position.transferAssignment`                                              |
+| `position:reassigned`  | `{ employeeId, fromPositionId, toPositionId }`         | `position.transferAssignment`                                              |
 
 ## Setup
 
 | Event                           | Payload                                      | Trigger                   |
 | ------------------------------- | -------------------------------------------- | ------------------------- |
-| `setup:department_created`      | `{ department: { id, code, name } }`         | —                         |
+| `setup:department_created`      | `{ department: { id, code, name } }`         | `setup.createDepartment`  |
 | `setup:department_moved`        | `{ departmentId, fromParentId, toParentId }` | `setup.moveDepartment`    |
 | `setup:department_head_changed` | `{ departmentId, headEmployeeId }`           | `setup.setDepartmentHead` |
-| `setup:designation_created`     | `{ designation: { id, name } }`              | —                         |
-| `setup:holiday_list_created`    | `{ holidayList: { id, name, year } }`        | —                         |
-| `setup:settings_updated`        | `{ changes }`                                | —                         |
-
-## Shift
-
-| Event                      | Payload                                                    | Trigger |
-| -------------------------- | ---------------------------------------------------------- | ------- |
-| `shift:assignment_created` | `{ assignment: { id, employeeId, shiftType, startDate } }` | —       |
-| `shift:request_created`    | `{ request: { id, employeeId, shiftType, fromDate } }`     | —       |
-| `shift:request_approved`   | `{ requestId, approvedBy }`                                | —       |
-| `shift:request_rejected`   | `{ requestId, rejectedBy }`                                | —       |
+| `setup:designation_created`     | `{ designation: { id, name } }`              | `setup.createDesignation` |
+| `setup:holiday_list_created`    | `{ holidayList: { id, name, year } }`        | `setup.createHolidayList` |
+| `setup:settings_updated`        | `{ changes }`                                | `setup.updateHrSettings`  |
 
 ## Access
 
-| Event                          | Payload                                           | Trigger |
-| ------------------------------ | ------------------------------------------------- | ------- |
-| `access:user_created`          | `{ user: { id, employeeId, userId } }`            | —       |
-| `access:user_activated`        | `{ hrUserId }`                                    | —       |
-| `access:user_deactivated`      | `{ hrUserId }`                                    | —       |
-| `access:role_created`          | `{ role: { id, name, isSystem } }`                | —       |
-| `access:role_assigned`         | `{ assignment: { hrUserId, roleId, branchId } }`  | —       |
-| `access:role_revoked`          | `{ hrUserId, roleId, branchId }`                  | —       |
-| `access:branch_access_granted` | `{ access: { hrUserId, branchId, accessLevel } }` | —       |
-| `access:branch_access_revoked` | `{ hrUserId, branchId }`                          | —       |
+| Event                          | Payload                                           | Trigger                     |
+| ------------------------------ | ------------------------------------------------- | --------------------------- |
+| `access:user_created`          | `{ user: { id, employeeId, userId } }`            | `access.createUser`         |
+| `access:user_activated`        | `{ hrUserId }`                                    | user activation             |
+| `access:user_deactivated`      | `{ hrUserId }`                                    | user deactivation           |
+| `access:role_created`          | `{ role: { id, name, isSystem } }`                | `access.createRole`         |
+| `access:role_assigned`         | `{ assignment: { hrUserId, roleId, branchId } }`  | `access.assignRoleToUser`   |
+| `access:role_revoked`          | `{ hrUserId, roleId, branchId }`                  | `access.removeRoleFromUser` |
+| `access:branch_access_granted` | `{ access: { hrUserId, branchId, accessLevel } }` | `access.grantBranchAccess`  |
+| `access:branch_access_revoked` | `{ hrUserId, branchId }`                          | `access.revokeBranchAccess` |
 
 ## Announcement
 
@@ -120,25 +77,7 @@ Events are typed via `HrEventMap` in `src/pubsub.ts` — 10 per-group maps (`Emp
 | `announcement:pinned`    | `{ announcementId, pinned, pinnedBy }`              | `announcement.pin`, `announcement.unpin`       |
 
 <Callout type="info">
-  `announcement:published` is consumed by `@aspen-os/comms` — one `notification` per
-  `recipientUserIds` entry (`sourceModule: "hr"`). `announcement.getStats` reads
-  read/acknowledgement counts back from those rows. `recipientUserIds` are auth user IDs; employees
-  without an HR user are snapshot-only.
+  `announcement:published` fans out to `@aspen-os/comms` (one `notification` per `recipientUserIds`
+  entry, `sourceModule: "hr"`). `lifecycle:separation_completed` and `lifecycle:transfer_approved`
+  are consumed internally for position reconciliation.
 </Callout>
-
-## Consumed (reconciliation subscriptions)
-
-Registered in `$prepareRuntime()` via `registerReconciliation`, unregistered in `$cleanup()`.
-
-| Topic                            | Action                                                                                                        |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `lifecycle:separation_completed` | Close the employee's open-ended position assignments at `exitDate`, emit `position:unassigned` per assignment |
-| `lifecycle:transfer_approved`    | Close open assignments sitting in `fromDepartment` at `effectiveDate`, emit `position:unassigned`             |
-
-## Usage
-
-```ts title="src/services/reconciliation.ts"
-await pubsub.subscribe("lifecycle:separation_completed", async (message) => {
-  const { employeeId, separationId } = message.data;
-});
-```

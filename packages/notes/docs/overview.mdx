@@ -4,9 +4,7 @@ description: Architecture, access model, and module structure of the Notes modul
 icon: IconInfoCircle
 ---
 
-The Notes module owns the first-class `note` entity: optional `title`/`body`, `personal`/`global` access, `tags`, and an optional polymorphic `(scopeType, scopeId)` scope with a `type` (`NOTE_TYPE`). The polymorphic scope preserves the masters annotation use-case (contact/entity/connection notes) — removing masters notes was not a domain regression.
-
-`scopeType` is a free-form `<module>:<entity>` registry value (e.g. `masters:contact`, `tasks:task`, `calendar:event`); `scopeId` is the owning row's UUIDv7 id. Notes with a scope are annotation notes; unscoped notes are standalone quick-capture entries.
+The Notes module owns the first-class `note` entity — optional `title`/`body`, `personal`/`global` access, `tags`, and an optional polymorphic `(scopeType, scopeId)` scope with a `type` (`NOTE_TYPE`).
 
 ## Module
 
@@ -18,75 +16,69 @@ export class Notes implements Module {
 }
 ```
 
-The module declares no platform-module dependencies. It is stateless — `$initialize`/`$prepareRuntime`/`$cleanup` are empty.
+## Configuration
 
-## Access Model
+```ts title="src/module.ts"
+export type NotesModuleConfig = undefined;
 
-Every note has an `access` value — `personal` (default) or `global` — plus an `ownerId` derived from `actorId` at create time. Access is enforced at runtime via `workflow-steps/access-service.ts`:
-
-```text
-assertCanAccess  = global OR ownerId === actorId OR tenant admin   (read paths)
-assertCanMutate  = ownerId === actorId OR tenant admin             (update/delete paths)
+Notes.create(); // stateless — $initialize / $prepareRuntime / $cleanup are empty
 ```
 
-A `global` note is readable by anyone in the tenant; tenant admins can additionally read any `personal` note, and only the owner or a tenant admin can modify or delete a note.
+## Dependencies
 
-## Lifecycle
+No module dependencies (`$dependencies: []`). Stateless — no unit bindings; workflows receive `db` via the platform context.
 
-```text
-create ──▶ note (personal | global, optional scopeType/scopeId, type, tags)
-             │
-             ├── get    ──▶ assertCanAccess
-             ├── list   ──▶ access-scoped filter + scope/type/tags/search
-             ├── update ──▶ assertCanMutate; publishes note_updated
-             └── delete ──▶ assertCanMutate; publishes note_deleted
+## Architecture
+
+```mermaid
+flowchart TB
+  subgraph TenantDB[tenant database]
+    N[note<br/>personal/global, polymorphic scope]
+  end
+
+  masters[master_contact / entity / connection] -. scopeType/scopeId .-> N
+  tasks[task] -. scopeType/scopeId .-> N
+  calendar[calendar_event] -. scopeType/scopeId .-> N
 ```
 
-## What It Exposes
+The single `note` table is a tenant schema; there are no control-plane tables.
 
-| Getter  | Methods                                     |
-| ------- | ------------------------------------------- |
-| `notes` | `create`, `get`, `list`, `update`, `delete` |
+## Key concepts
 
-`create` derives `ownerId` from `actorId` (an explicit `ownerId` is accepted only from a tenant admin, otherwise it is rejected), defaults `access = personal`, validates `type` and the `scopeType` `<module>:<entity>` format, and requires `scopeType`/`scopeId` to be provided together — half-scoped notes are rejected.
+### Polymorphic scope
 
-## Module Structure
+`scopeType` is a free-form `<module>:<entity>` registry value (e.g. `masters:contact`, `tasks:task`, `calendar:event`); `scopeId` is the owning row's UUIDv7 id. Both required together; half-scoped notes are rejected. Unscoped notes are standalone quick-capture entries.
+
+### Access inheritance
+
+Every note has `access` (`personal` default or `global`) plus `ownerId` derived from `actorId` at creation. Runtime enforcement via `workflow-steps/access-service.ts`:
+
+```text
+assertCanAccess  = global OR ownerId === actorId OR tenant admin   (read)
+assertCanMutate  = ownerId === actorId OR tenant admin             (update/delete)
+```
+
+`create` accepts an explicit `ownerId` only from a tenant admin.
+
+## Relationships
+
+```mermaid
+flowchart LR
+  user[(better-auth user)] -. owner_id .-> N[note]
+  N -. scope_type/scope_id .-> EXT[any module entity<br/>masters:contact, tasks:task, ...]
+```
+
+The polymorphic scope is intentionally free-form text (no FK) so notes outlive the scoped entity's module.
+
+## Module structure
 
 ```text
 packages/notes/src/
-  index.ts              # Module class re-exports + dbSchema namespace
-  module.ts             # Module class (implements Module)
-  auth.ts               # defineAcl() ACL declaration
-  pubsub.ts             # notes:note_* events
-  db-schemas/           # note table + enums
-  types.ts              # Type re-exports
-  schemas/              # Valibot validation schemas (note, enums)
-  workflow-steps/       # fetch-note step + access-service (assertCanAccess/assertCanMutate/resolveOwnerId)
-  workflows/            # One file per action under workflows/note/<verb>.ts
-  utils/                # Audit + access constants, strip-undefined
+  module.ts         # $name, stateless lifecycle
+  auth.ts           # defineAcl 1 resource
+  pubsub.ts         # 3 note events
+  db-schemas/       # note table + 2 enums
+  workflows/        # notes group — one file per action
+  workflow-steps/   # fetch-note, access-service
+  schemas/          # Valibot validation
 ```
-
-## Package
-
-```json title="package.json"
-{
-  "name": "@aspen-os/notes",
-  "type": "module",
-  "exports": { ".": "./.output/index.js" },
-  "dependencies": {
-    "@aspen-os/platform": "workspace:*",
-    "@aspen-os/constants": "workspace:*",
-    "drizzle-orm": "catalog:",
-    "valibot": "catalog:"
-  }
-}
-```
-
-## Constants & Enums
-
-| Enum          | Values                                                             |
-| ------------- | ------------------------------------------------------------------ |
-| `NotesAccess` | `personal`, `global`                                               |
-| `NoteType`    | `general`, `call`, `email`, `meeting`, `contract_renewal`, `issue` |
-
-`NoteType` comes from the shared `@aspen-os/constants` (`NOTE_TYPE`); `NotesAccess` is module-local (workspace vocabulary, not promoted to a shared enum).

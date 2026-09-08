@@ -5,17 +5,14 @@
     "./docs",
     "package.json",
     "README.md",
-    "./.output"
+    "./src"
   ],
   "type": "module",
   "imports": {
     "#/*": "./src/*"
   },
   "exports": {
-    ".": {
-      "default": "./.output/index.js",
-      "types": "./.output/index.d.ts"
-    }
+    ".": "./src/index.ts"
   },
   "scripts": {
     "build": "bun run ../../scripts/build.ts",

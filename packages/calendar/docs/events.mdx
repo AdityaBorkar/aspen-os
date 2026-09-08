@@ -1,40 +1,10 @@
 ---
 title: Events
-description: Domain event map for the Calendar module — 14 events across 4 event groups.
+description: Domain event map for the Calendar module.
 icon: IconBell
 ---
 
-The Calendar module defines 14 domain events in 4 groups. Events are type-level contracts published as plain string topics via PubSub.
-
-## Event Constants
-
-```ts title="src/pubsub.ts"
-export const CALENDAR_EVENTS = {
-  CREATED: "calendar:calendar_created",
-  UPDATED: "calendar:calendar_updated",
-  DELETED: "calendar:calendar_deleted",
-} as const;
-
-export const EVENT_EVENTS = {
-  CREATED: "calendar:event_created",
-  UPDATED: "calendar:event_updated",
-  CANCELLED: "calendar:event_cancelled",
-  DELETED: "calendar:event_deleted",
-} as const;
-
-export const ATTENDEE_EVENTS = {
-  INVITED: "calendar:attendee_invited",
-  UPDATED: "calendar:attendee_updated",
-  REMOVED: "calendar:attendee_removed",
-} as const;
-
-export const REMINDER_EVENTS = {
-  CREATED: "calendar:reminder_created",
-  UPDATED: "calendar:reminder_updated",
-  DELETED: "calendar:reminder_deleted",
-  DUE: "calendar:reminder_due",
-} as const;
-```
+The Calendar module publishes domain events as plain string topics via `PubSub`.
 
 ## Event Map
 
@@ -73,28 +43,3 @@ export const REMINDER_EVENTS = {
 | `calendar:reminder_updated` | `{ reminder: { id, type, targetType, targetId, message, channel, userId, isRecurring }, changes }`  | Reminder updated             |
 | `calendar:reminder_deleted` | `{ reminderId }`                                                                                    | Reminder deleted             |
 | `calendar:reminder_due`     | `{ remindAt, reminder: { id, type, targetType, targetId, message, channel, userId, isRecurring } }` | Reminder dispatcher fired it |
-
-`calendar:reminder_due` carries the **full reminder payload** so hosts can deliver without a follow-up read.
-
-## Usage
-
-### Subscribing to Events
-
-```ts
-await p.pubsub.subscribe("calendar:reminder_due", async (message) => {
-  const { remindAt, reminder } = message.data;
-  // Deliver to reminder.userId (push/email/SMS is a host concern)
-});
-```
-
-<Callout type="warn">
-  The task bridge also subscribes to `task:due_date_changed`, `task:deleted`, and
-  `task:status_changed` (published by `@aspen-os/tasks`) — it materializes and cancels task
-  reminders. If tasks is not installed, those subscriptions silently no-op.
-</Callout>
-
-<Callout type="info">
-  The event map is a type-level contract — it is not enforced at runtime. Workflows publish events
-  as plain string topics. Unsubscribed topics are silently dropped by pg-boss; the health check
-  flags only topics actually published.
-</Callout>

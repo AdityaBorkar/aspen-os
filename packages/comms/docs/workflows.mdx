@@ -4,92 +4,69 @@ description: Every workflow group and method exposed by p.comms.
 icon: IconTool
 ---
 
-All workflows are module-prefixed (`comms.channel.create`) and input-wrapped (`{ input }`); handlers `parse()` the inner schema. `channels` and `providers` are getters bound to the `kvStore`/`db` units; the other groups are stateless `readonly`.
+Workflow groups via `p.comms`: `channels`, `providers`, `notifications`, `preferences`, `templates`, `settings`, `messages`, plus the lazy `ensureDefaults` helper. `channels` and `providers` are getters bound to `kvStore`/`db`; the others are stateless.
 
-## `channels`
+Scoped channel defaults use `(type, entityType, entityId)`; create takes Valibot `{ input }`, update takes `{ id, patch }`. Each mutation writes an audit entry and publishes a `comms:*` event.
+
+## Features
+
+### Channels
+
+Access: `p.comms.channels`
 
 Tenant BYOC channels (sender endpoints). `create` stores the credential in the tenant kvStore and inserts the row as `inactive`.
 
-| Method             | Input                           | Behavior                                                                                                             |
-| ------------------ | ------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `create`           | `CreateChannelSchema`           | BYOC only; writes `comms:channel:<id>:credential`, status `inactive`                                                 |
-| `update`           | `UpdateChannelSchema`           | `name`, `senderAddress`, `metadata`; cannot change `type`/`source`                                                   |
-| `get` / `list`     | `id` / `ListChannelsSchema`     | Filters: `type`, `source`, `status`, `entityType`, `entityId`, `isDefault`                                           |
-| `test`             | `TestChannelSchema`             | Sends a verification message; sets `verifiedAt`/`lastTestedAt`; host channels are already verified                   |
-| `activate`         | `id`                            | Requires `verifiedAt`; host defaults materialize active                                                              |
-| `deactivate`       | `id`                            | Clears `isDefault`                                                                                                   |
-| `setDefault`       | `id`                            | Requires `active` + `verifiedAt`; clears the other defaults in the same `(type, entityType, entityId)` scope         |
-| `rotateCredential` | `RotateChannelCredentialSchema` | Writes a new kvStore ref, swaps `credentialRef`, deletes the old key                                                 |
-| `delete`           | `id`                            | Rejected while non-terminal messages reference the channel; nulls `channelId` on historical rows; deletes credential |
-| `ensureDefaults`   | `EnsureDefaultsSchema`          | Lazy host-default materialization per type from an active `provider` (idempotent)                                    |
+```ts
+const channel = await p.comms.channels.create({
+  input: {
+    name: "SES Mail",
+    type: "email",
+    senderAddress: "noreply@acme.com",
+    credential: { apiKey: "..." },
+  },
+});
+await p.comms.channels.test({ id: channel.id }); // sends verification, sets verifiedAt
+await p.comms.channels.activate({ id: channel.id });
+await p.comms.channels.setDefault({ id: channel.id }); // requires active + verifiedAt
+await p.comms.channels.rotateCredential({ id: channel.id, credential: { apiKey: "..." } });
 
-## `providers`
+await p.comms.channels.get({ id: channel.id });
+await p.comms.channels.list({ filters: { type: "email", source: "tenant", status: "active" } });
+await p.comms.channels.update({ id: channel.id, patch: { name: "Primary SES" } });
+await p.comms.channels.deactivate({ id: channel.id });
+await p.comms.channels.delete({ id: channel.id }); // rejected while non-terminal messages reference it
+await p.comms.channels.ensureDefaults({ input: { entityId, entityType: "organization" } });
+```
 
-Host delivery capability registry (control-plane, host-admin). Runs in the global tenant context, never a tenant-scoped `run()`.
+### Providers
 
-| Method                    | Behavior                                                                  |
-| ------------------------- | ------------------------------------------------------------------------- |
-| `create`                  | Writes `comms:provider:<id>:credential` to the host kvStore               |
-| `update`                  | `name`, `defaultSenderAddress`, `metadata`                                |
-| `activate` / `deactivate` | Flips `isActive`; deactivated providers leave `ensureDefaults` resolution |
-| `get` / `list`            | Filters: `kind`, `isActive`                                               |
+Access: `p.comms.providers`
 
-## `notifications`
+Host delivery capability registry (control-plane, host-admin). Runs in the global tenant context.
 
-The in-app inbox + notification intent. `notify` is the single entry point for in-app + out-of-band notification.
+```ts
+const provider = await p.comms.providers.create({
+  input: {
+    name: "Host SES",
+    kind: "ses",
+    credential: { accessKeyId: "..." },
+    defaultSenderAddress: "noreply@aspenos.com",
+  },
+});
+await p.comms.providers.activate({ id: provider.id });
+await p.comms.providers.deactivate({ id: provider.id });
+await p.comms.providers.get({ id: provider.id });
+await p.comms.providers.list({ filters: { kind: "ses", isActive: true } });
+await p.comms.providers.update({ id: provider.id, patch: { name: "Host SES v2" } });
+```
 
-| Method                    | Behavior                                                                                                                                                                                                  |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `notify`                  | Routes per recipient → channel types → preference opt-outs → suppression → materializes the row (+ queued messages). Returns `{ notification, dispatched, skipped }` so callers can see per-channel skips |
-| `getInbox`                | Caller-scoped (`recipientId = actorId`); ordered `urgent` → `important` → `normal`, then `createdAt` desc                                                                                                 |
-| `markRead` / `markUnread` | Status transitions; publish `notification:read` / nothing-on-unread                                                                                                                                       |
-| `dismiss`                 | Status `dismissed`; publishes `notification:dismissed`                                                                                                                                                    |
-| `unreadCount`             | Badge count for the caller                                                                                                                                                                                |
-| `get` / `list`            | Admin/full listing; filters: `recipientType`, `recipientId`, `type`, `severity`, `status`                                                                                                                 |
+### Notifications
 
-## `preferences`
+Access: `p.comms.notifications`
 
-Per-user routing + consent (DPDP/HIPAA opt-outs).
+The in-app inbox + notification intent. `notify` is the single entry point for in-app + out-of-band.
 
-| Method | Behavior                                                                                                             |
-| ------ | -------------------------------------------------------------------------------------------------------------------- |
-| `get`  | Exact `(userId, type, channelType)` wins; else the `(userId, null, channelType)` default row; else built-in defaults |
-| `list` | Filter rows                                                                                                          |
-| `set`  | Upsert one row (enforced in-workflow; the nullable `type` key is not DB-unique)                                      |
-
-## `templates`
-
-Email/SMS/WhatsApp bodies with `{var}` placeholders. WhatsApp requires `providerTemplateId` (Meta pre-approved template).
-
-| Method                    | Behavior                                             |
-| ------------------------- | ---------------------------------------------------- |
-| `create` / `update`       | `{var}` templates; `providerTemplateId` for WhatsApp |
-| `activate` / `deactivate` | Inactive templates are rejected at `notify` time     |
-| `get` / `list`            | Filters: `channelType`, `name`, `isActive`           |
-
-## `settings`
-
-Tenant-wide comms settings (dms `settings.get/set` pattern).
-
-| Key                                | Type    | Purpose                                                                 |
-| ---------------------------------- | ------- | ----------------------------------------------------------------------- |
-| `defaultChannels`                  | jsonb   | `channelType → channelId` explicit overrides                            |
-| `suppressOutOfBand`                | boolean | Tenant kill switch for email/SMS/WhatsApp (in-app unaffected)           |
-| `hostDefaultSenderAddressOverride` | text    | Overrides the provider `defaultSenderAddress` for materialized defaults |
-
-## `messages`
-
-Delivery outbox (admin).
-
-| Method         | Behavior                                                        |
-| -------------- | --------------------------------------------------------------- |
-| `get` / `list` | Filters: `status`, `channelType`, `channelId`, `notificationId` |
-| `retry`        | Re-queues a `failed` message (attempts reset)                   |
-
-```ts title="usage.ts"
-const p = IsolatedTenantPlatform.create(config, [comms]);
-
-// In-app only
+```ts
 await p.comms.notifications.notify({
   input: {
     recipient: { id: userId, type: "user" },
@@ -98,8 +75,81 @@ await p.comms.notifications.notify({
     type: "document_expiring",
   },
 });
-
 await p.comms.notifications.getInbox({ input: { filters: { unreadOnly: true } } });
 await p.comms.notifications.markRead({ input: { id: notificationId } });
+await p.comms.notifications.dismiss({ input: { id: notificationId } });
+await p.comms.notifications.get({ id: notificationId });
+await p.comms.notifications.list({ filters: { type: "document_expiring", status: "unread" } });
 await p.comms.notifications.unreadCount.run({}, { actorId: userId });
 ```
+
+`getInbox` is caller-scoped (`recipientId = actorId`), ordered `urgent` → `important` → `normal` then `createdAt` desc.
+
+### Preferences
+
+Access: `p.comms.preferences`
+
+Per-user routing + consent (DPDP/HIPAA opt-outs).
+
+```ts
+await p.comms.preferences.set({
+  input: { userId, type: "document_expiring", channelType: "email", enabled: false },
+});
+await p.comms.preferences.get({ userId, type: "document_expiring", channelType: "email" });
+await p.comms.preferences.list({ filters: { userId } });
+```
+
+Exact `(userId, type, channelType)` wins; else the `(userId, null, channelType)` default row.
+
+### Templates
+
+Access: `p.comms.templates`
+
+Email/SMS/WhatsApp bodies with `{var}` placeholders. WhatsApp requires `providerTemplateId`.
+
+```ts
+await p.comms.templates.create({
+  input: {
+    name: "document-expiring",
+    channelType: "email",
+    subject: "Expiring: {name}",
+    body: "Hi {name}...",
+    isActive: true,
+  },
+});
+await p.comms.templates.activate({ id: templateId });
+await p.comms.templates.deactivate({ id: templateId });
+await p.comms.templates.get({ id: templateId });
+await p.comms.templates.list({ filters: { channelType: "email", isActive: true } });
+await p.comms.templates.update({ id: templateId, patch: { body: "Updated {name}" } });
+```
+
+### Settings
+
+Access: `p.comms.settings`
+
+Tenant-wide settings.
+
+```ts
+await p.comms.settings.set({ input: { key: "suppressOutOfBand", value: true } });
+await p.comms.settings.get({ key: "suppressOutOfBand" });
+```
+
+Keys: `defaultChannels` (`channelType → channelId`), `suppressOutOfBand` (boolean), `hostDefaultSenderAddressOverride` (text).
+
+### Messages
+
+Access: `p.comms.messages`
+
+Delivery outbox (admin). `retry` re-queues a `failed` message.
+
+```ts
+await p.comms.messages.get({ id: messageId });
+await p.comms.messages.list({ filters: { status: "failed", channelType: "email" } });
+await p.comms.messages.retry({ id: messageId });
+```
+
+## Links
+
+- Events: [Comms Events](/docs/comms/events)
+- Schema: [Comms Schema](/docs/comms/db-schemas)

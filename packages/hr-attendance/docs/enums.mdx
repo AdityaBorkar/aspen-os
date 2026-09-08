@@ -1,81 +1,16 @@
 ---
 title: Enums
-description: Valibot enum schemas defined in the HR module, grouped by domain.
+description: Enums for the hr-attendance module.
 icon: IconNumber123
 ---
 
-The HR module defines 29 Valibot enum schemas in `src/schemas/enums.ts`.
+Enums are `pgEnum` values defined in `src/db-schemas/enums.ts`.
 
-## Announcement
-
-| Enum                         | Values                                        |
-| ---------------------------- | --------------------------------------------- |
-| `AnnouncementStatusSchema`   | `archived`, `draft`, `published`, `scheduled` |
-| `AnnouncementChannelSchema`  | `custom`, `general`, `hr`                     |
-| `AnnouncementPrioritySchema` | `important`, `normal`, `urgent`               |
-
-## Employee
-
-| Enum                     | Values                                                                   |
-| ------------------------ | ------------------------------------------------------------------------ |
-| `EmployeeStatusSchema`   | `active`, `inactive`, `left`, `suspended`                                |
-| `GenderSchema`           | `female`, `male`, `other`, `prefer_not_to_say`                           |
-| `EmploymentTypeSchema`   | `contract`, `freelance`, `intern`, `part_time`, `permanent`, `temporary` |
-| `SkillProficiencySchema` | `advanced`, `beginner`, `expert`, `intermediate`                         |
-
-## Attendance
-
-| Enum                            | Values                                                        |
-| ------------------------------- | ------------------------------------------------------------- |
-| `AttendanceStatusSchema`        | `absent`, `half_day`, `on_leave`, `present`, `work_from_home` |
-| `CheckinLogTypeSchema`          | `in`, `out`                                                   |
-| `AttendanceRequestStatusSchema` | `approved`, `pending`, `rejected`                             |
-
-## Leave
-
-| Enum                            | Values                                                  |
-| ------------------------------- | ------------------------------------------------------- |
-| `LeaveApplicationStatusSchema`  | `approved`, `cancelled`, `draft`, `pending`, `rejected` |
-| `LeaveAllocationStatusSchema`   | `active`, `cancelled`, `expired`                        |
-| `CompensatoryLeaveStatusSchema` | `approved`, `pending`, `rejected`                       |
-| `LeaveEncashmentStatusSchema`   | `approved`, `paid`, `pending`, `rejected`               |
-| `EarnedLeaveFrequencySchema`    | `half_yearly`, `monthly`, `quarterly`, `yearly`         |
-| `LeaveBlockListScopeSchema`     | `company`, `department`                                 |
-
-## Lifecycle
-
-| Enum                        | Values                                              |
-| --------------------------- | --------------------------------------------------- |
-| `OnboardingStatusSchema`    | `cancelled`, `completed`, `in_progress`, `pending`  |
-| `SeparationStatusSchema`    | `cancelled`, `completed`, `in_progress`, `pending`  |
-| `LifecycleTaskStatusSchema` | `completed`, `in_progress`, `pending`, `skipped`    |
-| `PromotionStatusSchema`     | `approved`, `completed`, `pending`, `rejected`      |
-| `TransferStatusSchema`      | `approved`, `completed`, `pending`, `rejected`      |
-| `ExitInterviewStatusSchema` | `cancelled`, `completed`, `scheduled`               |
-| `FullAndFinalStatusSchema`  | `approved`, `cancelled`, `draft`, `paid`, `pending` |
-
-## Overtime
-
-| Enum                   | Values                            |
-| ---------------------- | --------------------------------- |
-| `OvertimeStatusSchema` | `approved`, `pending`, `rejected` |
-
-## Shift
-
-| Enum                          | Values                            |
-| ----------------------------- | --------------------------------- |
-| `ShiftRequestStatusSchema`    | `approved`, `pending`, `rejected` |
-| `ShiftAssignmentStatusSchema` | `active`, `completed`, `inactive` |
-
-## Setup
-
-| Enum                | Values                                        |
-| ------------------- | --------------------------------------------- |
-| `HolidayTypeSchema` | `company`, `optional`, `public`, `weekly_off` |
-
-## Access
-
-| Enum                     | Values                                                                                    |
-| ------------------------ | ----------------------------------------------------------------------------------------- |
-| `AccessLevelSchema`      | `full`, `manage`, `read_only`                                                             |
-| `PermissionActionSchema` | `approve`, `archive`, `create`, `delete`, `manage`, `publish`, `reject`, `update`, `view` |
+| Enum                           | Values                                                        |
+| ------------------------------ | ------------------------------------------------------------- |
+| `hr_attendance_status`         | `absent`, `half_day`, `on_leave`, `present`, `work_from_home` |
+| `hr_checkin_log_type`          | `in`, `out`                                                   |
+| `hr_attendance_request_status` | `approved`, `pending`, `rejected`                             |
+| `hr_shift_request_status`      | `approved`, `pending`, `rejected`                             |
+| `hr_shift_assignment_status`   | `active`, `completed`, `inactive`                             |
+| `hr_overtime_status`           | `approved`, `pending`, `rejected`                             |

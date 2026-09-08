@@ -1,10 +1,10 @@
 ---
 title: Overview
-description: Architecture, multi-tenancy model, initialization, and config of the Management Plane module.
+description: Architecture, tenancy model, initialization, and config of the Management Plane module.
 icon: IconInfoCircle
 ---
 
-The Management Plane is the control-plane module of a multi-tenant SaaS. It manages tenants (SaaS customer accounts), service providers (implementation partners), and platform users, operating against the **control-plane** database and its per-tenant provisioning.
+The Management Plane is the control-plane module managing tenants, service providers, managed organizations, and platform users.
 
 ## Module
 
@@ -16,93 +16,79 @@ export class ManagementPlane implements Module {
 }
 ```
 
-`ManagementPlaneConfig` is `undefined` — the module takes no external config. Its DB/ACL/events are declared via `$prepareInfra()`.
+## Configuration
 
-## Architecture
-
-The module runs against the control-plane DB:
-
-```text
-CONTROL-PLANE DATABASE
-  Management Plane tables (control_plane_schemas):
-    tenant, service_provider, service_provider_user
-  better-auth tables (single realm, via platform):
-    user, session, account, verification
-    organization, member, invitation   ← Organization plugin
-  tenant schemas: (empty — tenant_schemas = {})
+```ts title="src/module.ts"
+export type ManagementPlaneConfig = undefined;
 ```
-
-Domain data (branches, tasks, drive, HR, compliance) lives in per-tenant databases managed by their own modules. The Management Plane never queries them directly.
-
-## What It Exposes
-
-The module exposes three workflow groups:
-
-| Getter                      | Methods                                                                                                                              |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `tenants` (getter)          | `activate`, `assignServiceProvider`, `churn`, `get`, `list`, `onboard`, `reactivate`, `suspend`, `unassignServiceProvider`, `update` |
-| `serviceProviders` (getter) | `activate`, `create`, `deactivate`, `get`, `listAssignedTenants`, `listUsers`, `list`, `update`                                      |
-| `users` (getter)            | `assignRole`, `assignToServiceProvider`, `create`, `delete`, `get`, `list`, `update`                                                 |
 
 ```ts
-// Access via the platform proxy ($name = "management")
-const p = IsolatedTenantPlatform.create(config, [managementPlane]);
+import { ManagementPlane } from "@aspen-os/management";
 
-await p.management.tenants.list();
-await p.management.users.create({ email, password, role });
-await p.management.serviceProviders.create({ name, slug });
+const management = ManagementPlane.create(undefined);
 ```
 
-`tenants` is a getter that throws if accessed before `$initialize()` (it is bound to the DB unit). `serviceProviders` and `users` are stateless readonly objects.
-
-## Initialization
-
-`$initialize()` receives `db`, `auth`, and `pubsub` units and stores a reference to `db`:
-
-```ts
-$initialize(units: { db: DatabaseUnit; auth: AuthUnit; pubsub: PubSubUnit }): void {
-  this.#db = units.db;
-}
-```
-
-`$prepareRuntime()` and `$cleanup()` are no-ops.
-
-## Infrastructure
-
-`$prepareInfra()` returns:
-
-```ts
-$prepareInfra(): ModuleInfra {
-  return {
-    auth: { acl },                        // platformUser, serviceProvider, tenant
-    db: { control_plane_schemas, tenant_schemas },  // 3 control-plane tables | tenant_schemas = {}
-    events,                               // tenant:, service_provider:, platform_user: topics
-  };
-}
-```
+No external config; DB/ACL/events declared via `$prepareInfra()`.
 
 ## Dependencies
 
-No hard module dependencies (`$dependencies = []`). `onboard` creates the better-auth `organization` row (via the platform `AuthUnit` / control-plane `organization` table) that the `tenant` companion shares its ID with — it never calls `@aspen-os/organization` workflows, so the organization domain module is not required.
+No module dependencies (`$dependencies: []`). Unit bindings via `$initialize(units: { db: DatabaseUnit; auth: AuthUnit; pubsub: PubSubUnit })` — `db` for control-plane tables and `provisionTenant`/`seedTenantDb`, `auth` for better-auth organization creation in `tenants.onboard`, `pubsub` for domain events. `tenants` is a getter bound to the stored `db` (throws before `$initialize`); `serviceProviders`, `organizations`, `users` are readonly.
 
-## Package
+## Architecture
 
-```json title="package.json"
-{
-  "name": "@aspen-os/management",
-  "type": "module",
-  "exports": { ".": "./.output/index.js" },
-  "dependencies": {
-    "@aspen-os/constants": "workspace:*",
-    "@aspen-os/platform": "workspace:*",
-    "drizzle-orm": "catalog:",
-    "valibot": "catalog:"
-  }
-}
+```mermaid
+flowchart TB
+  subgraph ControlPlane["Control-Plane Database"]
+    tenant["tenant"]
+    sp["service_provider"]
+    spu["service_provider_user"]
+    org["managed_organization<br/>(PG: managed_organization)"]
+    authOrg["organization<br/>(better-auth)"]
+    authUser["user<br/>(better-auth)"]
+  end
+  subgraph TenantDB["Tenant Databases"]
+    empty["tenant_schemas = {}"]
+  end
+  MP["ManagementPlane<br/>$name = management"]
+  MP --> ControlPlane
+  MP -. provisionTenant/seedTenantDb .-> TenantDB
 ```
 
-## Tenant Lifecycle
+`$prepareInfra()` returns control-plane schemas (`tenant`, `service_provider`, `service_provider_user`, `managed_organization`), empty tenant schemas, merged ACL, and domain events.
 
-The `tenants` group drives the full lifecycle: `onboard` (provisions the tenant), `activate`, `suspend`, `reactivate`, `churn`. Service-provider assignment is `assignServiceProvider` / `unassignServiceProvider`.
+## Key Concepts
 
-The module audits each operation via the platform's `AuditUnit` (`ctx.audit.write()`), using `AUDIT_ACTION` constants (e.g. `tenant_activated`, `sp_created`, `platform_user_created`).
+### Tenants
+
+Control-plane companion to better-auth `organization` (shared `id`). Lifecycle via `activate`/`suspend`/`reactivate`/`churn`; SP assignment via `assignServiceProvider`/`unassignServiceProvider`; `onboard` provisions the tenant DB and seeds the `organization` row on isolated tenancy.
+
+### Service Providers
+
+Implementation partners (`service_provider`). Status `active`/`inactive`; assigned tenants and users queried via `listAssignedTenants`/`listUsers`.
+
+### Managed Organizations
+
+Platform-level organizations (`managed_organization`, PG `managed_organization`) to avoid collision with better-auth `organization`. CRUD via `organizations` group.
+
+### Platform Users
+
+Better-auth `user` rows plus `service_provider_user` membership (1:1 user→SP). Role `sp_user` requires an SP assignment; other roles must not have one.
+
+## Relationships
+
+```mermaid
+flowchart LR
+  tenant -- service_provider_id --> sp
+  spu -- service_provider_id --> sp
+  spu -- user_id --> authUser
+  tenant -- id 1:1 --> authOrg
+  org -. independent .- sp
+  org -. independent .- tenant
+```
+
+Soft logical links; uniqueness on `service_provider_user (service_provider_id, user_id)` and `(user_id)` enforces 1:1 user→SP.
+
+<Callout type="info">
+  `tenants.onboard` creates the better-auth `organization` via `AuthUnit` and deletes it if
+  `provisionTenant` fails. `update` cannot change `tenant.status` — use lifecycle transitions.
+</Callout>

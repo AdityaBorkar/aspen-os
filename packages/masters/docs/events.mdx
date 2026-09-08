@@ -1,14 +1,14 @@
 ---
 title: Events
-description: Domain event map for the Masters module — 27 events across 8 event groups.
+description: Domain events published by the Masters module.
 icon: IconBell
 ---
 
-27 domain events across 8 groups, published as plain string topics. `masters:contact_created` replaces `organization:connection_created` for the compliance insurer flow.
+30 events across 8 groups, published as plain string topics.
 
 ## Event Map
 
-### Contact Events
+### Contact
 
 | Event                     | Payload                                          | Trigger              |
 | ------------------------- | ------------------------------------------------ | -------------------- |
@@ -16,9 +16,7 @@ icon: IconBell
 | `masters:contact_updated` | `{ contact: { id, name }, changes, entityType }` | Contact updated      |
 | `masters:contact_removed` | `{ contactId, entityId, entityType, reason }`    | Contact soft-removed |
 
-`entityType`/`entityId` are `null` for global contacts. DMS revokes shares on `masters:contact_removed`.
-
-### Address Events
+### Address
 
 | Event                     | Payload                                                     | Trigger         |
 | ------------------------- | ----------------------------------------------------------- | --------------- |
@@ -26,16 +24,7 @@ icon: IconBell
 | `masters:address_updated` | `{ address: { id }, changes, entityId, entityType }`        | Address updated |
 | `masters:address_removed` | `{ addressId, entityId, entityType }`                       | Address removed |
 
-### Bank Account Events
-
-| Event                              | Payload                                                             | Trigger             |
-| ---------------------------------- | ------------------------------------------------------------------- | ------------------- |
-| `masters:bank_account_created`     | `{ bankAccount: { id, bankName, currency }, entityId, entityType }` | Account created     |
-| `masters:bank_account_updated`     | `{ bankAccount: { id }, changes, entityId, entityType }`            | Account updated     |
-| `masters:bank_account_activated`   | `{ bankAccountId }`                                                 | Account activated   |
-| `masters:bank_account_deactivated` | `{ bankAccountId }`                                                 | Account deactivated |
-
-### Connection Events
+### Connection
 
 | Event                                   | Payload                                                       | Trigger            |
 | --------------------------------------- | ------------------------------------------------------------- | ------------------ |
@@ -45,7 +34,7 @@ icon: IconBell
 | `masters:connection_credential_rotated` | `{ connectionId }`                                            | Credential rotated |
 | `masters:connection_removed`            | `{ connectionId, entityId, entityType }`                      | Connection removed |
 
-### Entity Events
+### Entity
 
 | Event                    | Payload                                   | Trigger        |
 | ------------------------ | ----------------------------------------- | -------------- |
@@ -53,7 +42,26 @@ icon: IconBell
 | `masters:entity_updated` | `{ entity: { id, name, type }, changes }` | Entity updated |
 | `masters:entity_removed` | `{ entity: { id, name, type } }`          | Entity removed |
 
-### Unit of Measure Events
+### Label
+
+| Event                               | Payload                                              | Trigger                   |
+| ----------------------------------- | ---------------------------------------------------- | ------------------------- |
+| `masters:label_created`             | `{ label: { id, name, color, scopeType, scopeId } }` | Label created             |
+| `masters:label_updated`             | `{ label: { id, name }, changes }`                   | Label updated             |
+| `masters:label_removed`             | `{ labelId }`                                        | Label deleted             |
+| `masters:label_applied`             | `{ labelId, entityId, entityType }`                  | Label applied to entity   |
+| `masters:label_removed_from_entity` | `{ labelId, entityId, entityType }`                  | Label removed from entity |
+
+### Org branch
+
+| Event                        | Payload                                   | Trigger            |
+| ---------------------------- | ----------------------------------------- | ------------------ |
+| `masters:org_branch_created` | `{ orgBranch: { id, name, code, type } }` | Org branch created |
+| `masters:org_branch_updated` | `{ orgBranch: { id, name }, changes }`    | Org branch updated |
+
+Aliases `BRANCH_EVENTS`, `BranchCreatedEvent` exist for backward compatibility.
+
+### Unit of measure
 
 | Event                             | Payload                                              | Trigger     |
 | --------------------------------- | ---------------------------------------------------- | ----------- |
@@ -61,22 +69,13 @@ icon: IconBell
 | `masters:unit_of_measure_updated` | `{ unitOfMeasure: { id, code, category }, changes }` | UOM updated |
 | `masters:unit_of_measure_removed` | `{ unitOfMeasure: { id, code, category } }`          | UOM removed |
 
-### Payment Method Events
+### Payment method
 
-| Event                                | Payload                                                                | Trigger     |
-| ------------------------------------ | ---------------------------------------------------------------------- | ----------- |
-| `masters:payment_method_created`     | `{ paymentMethod: { id, name, type }, entityType, entityId }`          | Created     |
-| `masters:payment_method_updated`     | `{ paymentMethod: { id, name, type }, entityType, entityId, changes }` | Updated     |
-| `masters:payment_method_removed`     | `{ paymentMethod: { id, name, type }, entityType, entityId }`          | Removed     |
-| `masters:payment_method_activated`   | `{ paymentMethodId, entityType, entityId }`                            | Activated   |
-| `masters:payment_method_deactivated` | `{ paymentMethodId, entityType, entityId }`                            | Deactivated |
-| `masters:payment_method_primary_set` | `{ paymentMethodId, entityType, entityId, direction }`                 | Primary set |
-
-### Filter View Events
-
-| Event                            | Payload                                     | Trigger    |
-| -------------------------------- | ------------------------------------------- | ---------- |
-| `masters:filter_view_created`    | `{ filterViewId, access, domain, ownerId }` | Created    |
-| `masters:filter_view_updated`    | `{ filterViewId }`                          | Updated    |
-| `masters:filter_view_duplicated` | `{ filterViewId, duplicateId }`             | Duplicated |
-| `masters:filter_view_deleted`    | `{ filterViewId }`                          | Deleted    |
+| Event                                | Payload                                                                | Trigger                    |
+| ------------------------------------ | ---------------------------------------------------------------------- | -------------------------- |
+| `masters:payment_method_created`     | `{ paymentMethod: { id, name, type }, entityType, entityId }`          | Payment method created     |
+| `masters:payment_method_updated`     | `{ paymentMethod: { id, name, type }, entityType, entityId, changes }` | Payment method updated     |
+| `masters:payment_method_removed`     | `{ paymentMethod: { id, name, type }, entityType, entityId }`          | Payment method removed     |
+| `masters:payment_method_activated`   | `{ paymentMethodId, entityType, entityId }`                            | Payment method activated   |
+| `masters:payment_method_deactivated` | `{ paymentMethodId, entityType, entityId }`                            | Payment method deactivated |
+| `masters:payment_method_primary_set` | `{ paymentMethodId, entityType, entityId, direction }`                 | Primary set                |

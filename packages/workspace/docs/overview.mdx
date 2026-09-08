@@ -4,9 +4,7 @@ description: Architecture, access model, initialization, config, and module stru
 icon: IconInfoCircle
 ---
 
-The Workspace module is a dependency-free personal-workspace surface built on `@aspen-os/platform`: **drafts**, **dashboards** (with widgets and schedules), and per-user **utilities** (pins, recent, and quick search). It stores and serves configuration; rendering, analytics execution, and scheduled delivery are the host application's responsibility. Settings live in `@aspen-os/masters` (`p.masters.settings`).
-
-Filter views (saved filter/sort/group configurations) live in `@aspen-os/masters` (`p.masters.filterViews`); workspace widgets keep an inline `filter` or a `viewId` soft reference to a masters filter view.
+The Workspace module is a tenant-scoped surface for drafts, dashboards (with widgets and delivery schedules), filter views, pins, recent items, and quick search.
 
 ## Module
 
@@ -14,103 +12,84 @@ Filter views (saved filter/sort/group configurations) live in `@aspen-os/masters
 export class Workspace implements Module {
   static create(config?: WorkspaceModuleConfig): Workspace;
   readonly $name = "workspace"; // proxy key: p.workspace
-  readonly $dependencies: readonly string[] = []; // no domain-module deps
+  readonly $dependencies: readonly string[] = [];
 }
 ```
 
-## Access Model
+## Configuration
 
-Every data entity carries a user-set `access` enum — `personal` (visible only to `ownerId`) or `global` (org-wide within the tenant). Widgets and schedules inherit their parent dashboard's access. Runtime scoping lives in workflow code via `services/access-service.ts`:
+```ts title="src/types.ts"
+export interface WorkspaceModuleConfig {
+  maxRecentItems?: number; // default 50
+  quickSearchLimit?: number; // default 10
+}
+```
 
-| Helper                     | Rule                                                             |
-| -------------------------- | ---------------------------------------------------------------- |
-| `assertCanAccess(row, id)` | `access = 'global' OR ownerId = actorId`                         |
-| `assertCanMutate(row, id)` | ownership of the row, **or** `user.role = 'admin'` (best-effort) |
+```ts
+import { Workspace } from "@aspen-os/workspace";
 
-`list()`/`get()` filter at SQL level (`global OR owner = actorId`); mutations go through `assertCanMutate`. Pins and recent are always user-scoped (`userId = actorId`) and carry no access column.
+const workspace = Workspace.create(); // { maxRecentItems: 50, quickSearchLimit: 10 }
+const custom = Workspace.create({ maxRecentItems: 100, quickSearchLimit: 20 });
+```
+
+## Dependencies
+
+No module dependencies (`$dependencies: []`). Unit bindings: `db` and `pubsub` stored in `$initialize` for `$prepareRuntime`/`$cleanup`; `ctx.audit` resolved via `getContext()` in `$prepareRuntime` to register the schedule runner. `$prepareRuntime` registers a pg-boss cron per active delivery schedule plus the delivery handler; `$cleanup` unregisters them.
 
 ## Architecture
 
-```text
-TENANT DATABASE (7 tables, workspace_ prefix)
-  workspace_draft, workspace_draft_comment
-  workspace_dashboard, workspace_widget, workspace_schedule
-  workspace_pin, workspace_recent
+```mermaid
+flowchart TB
+  subgraph TenantDB["Tenant Database (tenant_schemas)"]
+    draft["workspace_draft"]
+    draftComment["workspace_draft_comment"]
+    dashboard["workspace_dashboard"]
+    widget["workspace_widget"]
+    schedule["workspace_delivery_schedule<br/>(alias: workspace_schedule)"]
+    filterView["workspace_filter_view"]
+    pin["workspace_pin"]
+    recent["workspace_recent"]
+  end
+  subgraph ControlPlane["Control Plane"]
+    empty["control_plane_schemas = {}"]
+  end
+  WS["Workspace<br/>$name = workspace"] --> TenantDB
+  WS -.-> ControlPlane
 ```
 
-```text
-Host app                Workspace module                    Platform units
-──────────              ────────────────                    ──────────────
-create draft ── publish ──▶ workspace:draft_published ──► host creates target entity
-schedule due  ── cron ────▶ workspace:schedule_due ──────► host renders/delivers
+```mermaid
+flowchart LR
+  host["Host App"] -- "workspace:draft_published<br/>workspace:delivery_due" --> WS
+  WS -- "pg-boss cron workspace:delivery_schedule:<id>" --> host
 ```
 
-## What It Exposes
+Filter views are workspace-owned (`workspace_filter_view`), not Masters; widgets reference a view via `viewId` or inline `filter`.
 
-| Getter       | Methods                                                                                                                                                                         |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `drafts`     | `create`, `get`, `update`, `list`, `delete`, `submit`, `approve`, `reject`, `publish`, `reopen`, `trash`, `restore`, `duplicate`, `addComment`, `listComments`, `removeComment` |
-| `dashboards` | `create`, `get`, `update`, `list`, `delete`, `duplicate`, `export`, `import`                                                                                                    |
-| `widgets`    | `add`, `get`, `list`, `update`, `move`, `refresh`, `remove` (top-level group; workflows live under `dashboard/widget/`)                                                         |
-| `schedules`  | `create`, `get`, `update`, `list`, `delete`, `pause`, `resume`, `markRun`                                                                                                       |
-| `pins`       | `create`, `delete`, `list` (cross-module item-type registry — workspace entities + dms items pinnable)                                                                          |
-| `recent`     | `touch`, `list` (bounded — trimmed to `maxRecentItems` per user)                                                                                                                |
-| `search`     | `quick` (access-scoped over drafts, dashboards)                                                                                                                                 |
+## Key Concepts
 
-```ts
-// Access via the platform proxy ($name = "workspace")
-const p = IsolatedTenantPlatform.create(config, [workspace]);
+### Access
 
-await p.workspace.drafts.create({
-  input: { title: "Q3 offer letter", body: "…", targetDomain: "recruiter:contract" },
-});
-await p.workspace.dashboards.create({
-  input: { name: "Pipeline", layout: [{ widgetId, x: 0, y: 0, w: 6, h: 2 }] },
-});
+`workspace_draft`, `workspace_dashboard`, `workspace_filter_view` carry `access` (`personal`/`global`); widgets and delivery schedules inherit dashboard access. Pins and recent are user-scoped (`userId = actorId`) with no access column.
+
+### Schedules
+
+Canonical table `workspace_delivery_schedule` (alias `workspace_schedule` for back-compat). Topic `workspace:delivery_due` is canonical; `workspace:schedule_due` is deprecated but still emitted.
+
+## Relationships
+
+```mermaid
+flowchart LR
+  dashboard -->|dashboard_id| widget
+  dashboard -->|dashboard_id| schedule
+  draft -->|draft_id| draftComment
+  widget -->|view_id soft FK| filterView
+  pin -. "item_type + item_id" .-> draft
+  recent -. "item_type + item_id" .-> draft
 ```
 
-## Filter Views
+All FKs are soft (workflow-enforced); no hard DB FKs.
 
-Saved filter/sort/group configurations live in `@aspen-os/masters` as `p.masters.filterViews` (table `master_filter_view`), consolidated from the former workspace views, tasks saved views, and DMS file views. `domain` stays free-form text (`<module>:<entity>`), so app-defined domains like `recruiter:candidate` work without a platform change; the built-in domains are `workspace:draft`, `tasks:task`, `dms:file`, `compliance:document`, `hr:employee`, and `notes:note`. Masters is storage-only — hosts read a view's `conditions`/`sort` and query their own tables. Workspace widgets reference a view via the `viewId` soft-FK (or an inline `filter`).
-
-## Initialization
-
-`$initialize()` receives the `db` and `pubsub` units and stores them for `$prepareRuntime()` / `$cleanup()`:
-
-```ts
-$initialize(units: { db: DatabaseUnit; pubsub: PubSubUnit }): void;
-```
-
-`$prepareRuntime()` runs `registerScheduleRunner()` — it enumerates every **active** schedule row and registers a pg-boss cron per schedule (topic `workspace:schedule:<id>`), plus the module's own delivery handler. `$cleanup()` unregisters all of them.
-
-## Config
-
-`WorkspaceModuleConfig` (all optional):
-
-```ts
-type WorkspaceModuleConfig = {
-  maxRecentItems?: number; // 50 — recent-item cap per user
-  quickSearchLimit?: number; // 10 — per-surface quick-search cap
-};
-```
-
-## Infrastructure
-
-`$prepareInfra()` returns:
-
-```ts
-$prepareInfra(): ModuleInfra {
-  return {
-    auth: { acl },                      // draft, draftComment, dashboard, widget, schedule, …
-    db: { control_plane_schemas: {}, tenant_schemas: workspaceTables }, // 7 tenant tables
-    events,                             // workspace:* topics
-  };
-}
-```
-
-## Key Invariants
-
-- **Dependency-free** — workspace never creates entities in other modules; `domain` is opaque. Hosts subscribe to `workspace:draft_published` to create target entities and read masters filter views to query their own tables.
-- **Approval is optional** — `publish` accepts both `approved` and `draft` states; hosts without a review step skip `submit`/`approve`.
-- **Widgets are declarative** — `metric`/`breakdown`/`list` widgets require a `domain` and exactly one of an inline `filter` or a `viewId` soft reference to a masters filter view; `embed` widgets forbid a datasource. The module stores configs and tracks `lastRefreshedAt`/`lastError`; it never computes aggregations.
-- **Scheduled delivery is event-driven** — the module only emits `workspace:schedule_due`; rendering and sending are the host's job.
+<Callout type="info">
+  `deliverySchedules` is an alias of `schedules` (`src/workflows/index.ts`); prefer
+  `deliverySchedules`.
+</Callout>

@@ -1,95 +1,98 @@
 ---
 title: DB Schemas
-description: Control-plane and tenant tables declared by the Management Plane module.
+description: Control-plane tables and enums declared by the Management Plane module.
 icon: IconDatabase
 ---
 
-The Management Plane declares 3 control-plane tables (`tenant`, `service_provider`, `service_provider_user`). `tenant_schemas` is empty — no tables are pushed to tenant DBs.
+The Management Plane declares control-plane tables with `managed_organization` PG name `managed_organization` and empty tenant schemas. Shared columns `id`, `created_at`, `updated_at` are timestamptz/uuidv7 unless noted; tenant `id` is text sharing better-auth `organization.id`.
 
 ## Enums
 
-| Enum                      | Table Column              | Values                                         |
-| ------------------------- | ------------------------- | ---------------------------------------------- |
-| `tenant_status`           | `tenant.status`           | `onboarding`, `active`, `suspended`, `churned` |
-| `service_provider_status` | `service_provider.status` | `active`, `inactive`                           |
+| Enum                      | Values                                         |
+| ------------------------- | ---------------------------------------------- |
+| `tenant_status`           | `onboarding`, `active`, `suspended`, `churned` |
+| `service_provider_status` | `active`, `inactive`                           |
 
-## Control-Plane Tables
+## Tables
 
 ### `tenant`
 
-Companion to the better-auth `organization` row. Holds lifecycle, plan, SP assignment, and per-tenant DB connection params.
+Companion to better-auth `organization`; holds lifecycle, plan, SP assignment, and per-tenant DB connection params.
 
-| Column                                                                                                       | Type                     | Description                      |
-| ------------------------------------------------------------------------------------------------------------ | ------------------------ | -------------------------------- |
-| `id`                                                                                                         | text (PK)                | Shares the better-auth org ID.   |
-| `status`                                                                                                     | tenant_status            | Default `onboarding`.            |
-| `plan`                                                                                                       | text                     | Subscription plan identifier.    |
-| `service_provider_id`                                                                                        | text                     | Active SP assignment.            |
-| `signup_at`                                                                                                  | timestamptz (notNull)    | When the tenant signed up.       |
-| `suspended_at`                                                                                               | timestamptz              | Last suspension timestamp.       |
-| `suspended_reason`                                                                                           | text                     | Suspension reason.               |
-| `churned_at`                                                                                                 | timestamptz              | Churn timestamp.                 |
-| `churn_reason`                                                                                               | text                     | Churn reason.                    |
-| `database_host` / `database_name` / `database_user` / `database_password` / `database_port` / `database_ssl` | text / integer / boolean | Per-tenant DB connection params. |
-| `created_at`                                                                                                 | timestamptz (notNull)    | Default `now()`.                 |
-| `updated_at`                                                                                                 | timestamptz (notNull)    | Default `now()`.                 |
+| Column                | Type                                         | Description            |
+| --------------------- | -------------------------------------------- | ---------------------- |
+| `churn_reason`        | text                                         | Churn reason           |
+| `churned_at`          | timestamptz                                  | Churn timestamp        |
+| `database_host`       | text                                         | Per-tenant DB host     |
+| `database_name`       | text                                         | Per-tenant DB name     |
+| `database_password`   | text                                         | Per-tenant DB password |
+| `database_port`       | integer                                      | Per-tenant DB port     |
+| `database_ssl`        | boolean                                      | Per-tenant DB SSL      |
+| `database_user`       | text                                         | Per-tenant DB user     |
+| `id`                  | text (PK) (FK → better-auth organization.id) | Shared tenant/org id   |
+| `plan`                | text                                         | Subscription plan      |
+| `service_provider_id` | text (FK → service_provider.id)              | Assigned SP            |
+| `signup_at`           | timestamptz                                  | Signup timestamp       |
+| `status`              | `tenant_status`                              | Lifecycle status       |
+| `suspended_at`        | timestamptz                                  | Suspension timestamp   |
+| `suspended_reason`    | text                                         | Suspension reason      |
 
-Indexed on `status`, `service_provider_id`, and `plan`.
+Indexes: `idx_tenant_status` on `status`, `idx_tenant_service_provider` on `service_provider_id`, `idx_tenant_plan` on `plan`.
 
 ### `service_provider`
 
-An implementation/integration partner that does physical-world onboarding work.
+Implementation partner.
 
-| Column        | Type                    | Description                                        |
-| ------------- | ----------------------- | -------------------------------------------------- |
-| `id`          | text (PK)               | `uuidv7("id").primaryKey()` — generated at insert. |
-| `name`        | text (notNull)          | Display name.                                      |
-| `slug`        | text (notNull, unique)  | URL-safe identifier.                               |
-| `logo`        | text                    | Logo URL or Storage reference.                     |
-| `description` | text                    | Free-text description of services.                 |
-| `email`       | text                    | Primary contact email.                             |
-| `phone`       | text                    | Primary contact phone.                             |
-| `website`     | text                    | Website URL.                                       |
-| `address`     | text                    | Address (single text field).                       |
-| `status`      | service_provider_status | Default `active`.                                  |
-| `created_at`  | timestamptz (notNull)   | Default `now()`.                                   |
-| `updated_at`  | timestamptz (notNull)   | Default `now()`.                                   |
+| Column        | Type                      | Description         |
+| ------------- | ------------------------- | ------------------- |
+| `address`     | text                      | Address             |
+| `description` | text                      | Description         |
+| `email`       | text                      | Contact email       |
+| `id`          | text (PK)                 | uuidv7              |
+| `logo`        | text                      | Logo reference      |
+| `name`        | text                      | Display name        |
+| `phone`       | text                      | Contact phone       |
+| `slug`        | text (unique)             | URL-safe identifier |
+| `status`      | `service_provider_status` | `active`            |
+| `website`     | text                      | Website URL         |
 
-Indexed on `status`.
+Indexes: `idx_service_provider_status` on `status`.
 
 ### `service_provider_user`
 
-Join row linking one platform user to one service provider. Carries the SP membership — there is no `spId` column on `user`.
+Join linking a platform user to a service provider; no `spId` on `user`.
 
-| Column                | Type                  | Description                  |
-| --------------------- | --------------------- | ---------------------------- |
-| `id`                  | text (PK)             | `uuidv7("id").primaryKey()`. |
-| `service_provider_id` | text (notNull)        | FK → `service_provider.id`.  |
-| `user_id`             | text (notNull)        | FK → better-auth `user.id`.  |
-| `created_at`          | timestamptz (notNull) | Default `now()`.             |
-| `updated_at`          | timestamptz (notNull) | Default `now()`.             |
+| Column                | Type                            | Description   |
+| --------------------- | ------------------------------- | ------------- |
+| `id`                  | text (PK)                       | uuidv7        |
+| `service_provider_id` | text (FK → service_provider.id) | Owning SP     |
+| `user_id`             | text (FK → better-auth user.id) | Platform user |
 
-Unique on (`service_provider_id`, `user_id`) and on `user_id` (1:1 user→SP). Indexed on `service_provider_id`.
+Indexes: `service_provider_user_unique` unique on `(service_provider_id, user_id)`, `service_provider_user_user_unique` unique on `user_id`, `idx_service_provider_user_sp` on `service_provider_id`.
 
-<Callout type="warn">
-  `role = "sp_user"` requires a `service_provider_user` row; any other role must have none. Enforced
-  in the user workflows, not by the database.
-</Callout>
+### `managed_organization`
 
-## Tenant Schemas
+Platform-level organization; PG table `managed_organization`.
 
-`tenant_schemas` is empty — the module pushes nothing to tenant DBs.
+| Column     | Type          | Description         |
+| ---------- | ------------- | ------------------- |
+| `branding` | jsonb         | Branding JSON       |
+| `id`       | text (PK)     | uuidv7              |
+| `name`     | text          | Display name        |
+| `slug`     | text (unique) | URL-safe identifier |
+
+Indexes: `idx_managed_organization_slug` on `slug`, `idx_managed_organization_name` on `name`.
 
 ## Relationships
 
-```text
-tenant ──N:1──→ service_provider (via service_provider_id)
-service_provider_user ──N:1──→ service_provider
-service_provider_user ──N:1──→ user (better-auth, 1:1 user→SP via unique user_id)
-organization (better-auth) ──1:1──→ tenant (companion, shared ID)
+```mermaid
+flowchart LR
+  tenant -->|service_provider_id| sp[service_provider]
+  spu[service_provider_user] -->|service_provider_id| sp
+  spu -->|user_id| user[better-auth user]
+  tenant -. 1:1 shared id .-> org[better-auth organization]
+  managed_organization -. independent .- tenant
+  managed_organization -. independent .- sp
 ```
 
-<Callout type="info">
-  Per-tenant domain tables (organization, branch, task, dms_file, employee, HR tables, etc.) are NOT
-  defined here — they live in each tenant's own database and are managed by their own modules.
-</Callout>
+All links are soft (workflow-enforced), except `tenant.id` shares better-auth `organization.id`; no hard DB FKs.

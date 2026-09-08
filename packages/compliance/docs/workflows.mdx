@@ -4,16 +4,16 @@ description: API reference for the workflow groups exposed by the Compliance mod
 icon: IconListCheck
 ---
 
-The Compliance module exposes five workflow groups as flat `Workflow` objects: `documents`, `obligations`, `verification`, `audit`, and `dashboard`. Access via the platform proxy key `p.compliance`.
+The Compliance module exposes five workflow groups via `p.compliance`: `documents`, `obligations`, `verification`, `audit`, `dashboard`.
+
+Scope: workflows are tenant-scoped via `p.run(tenantId, fn)`; each method is a `Workflow` (Valibot `input` on create, `{ id, patch }` on update, `{ id }` / `{ filters }` on reads). All publish domain events and write `audit_log` entries via `AuditUnit`.
 
 ## Documents
 
-Access: `p.compliance.documents`
-
-Manages compliance documents through their full lifecycle.
+Manage document lifecycle, assignment, and queries.
 
 ```ts
-// Create
+// create: input validated by Valibot, publishes document_created
 const doc = await p.compliance.documents.create({
   name: "GST Registration Certificate",
   category: "tax",
@@ -29,45 +29,35 @@ await p.compliance.documents.submit({ id });
 await p.compliance.documents.verify({ id, reviewerId });
 await p.compliance.documents.reject({ id, reviewerId, reason });
 await p.compliance.documents.complete({ id, data: { referenceNumber } });
-await p.compliance.documents.renew({ id, newData });
-// Renew (archives old, creates new)
-
+await p.compliance.documents.renew({ id, newData }); // archives old, creates new
 await p.compliance.documents.archive({ id, archivedBy, reason });
 await p.compliance.documents.snooze({ id, snoozedBy, snoozedUntil });
-await p.compliance.documents.update({ id, patch });
 await p.compliance.documents.assignReviewer({ id, reviewerId });
 await p.compliance.documents.assignTo({ id, assigneeId });
 await p.compliance.documents.uploadAttachment({ id, storageKey });
 await p.compliance.documents.updateStatus({ id, status, performedBy });
+await p.compliance.documents.update({ id, patch });
 
-// Queries (`get` and `getById` are aliases)
-const doc = await p.compliance.documents.getById({ id });
+// reads
+const byId = await p.compliance.documents.getById({ id }); // get is alias of getById
 const list = await p.compliance.documents.list({ filters });
 const bySource = await p.compliance.documents.getBySource({ sourceModule, sourceEntityId });
 const byObligation = await p.compliance.documents.getByObligation({ obligationId });
 const chain = await p.compliance.documents.getRenewalChain({ id });
 const timeline = await p.compliance.documents.getTimeline({ limit });
+
+// scanning helpers (internal — used by obligation generator / legacy scans, not caller-facing)
+const expiring = await p.compliance.documents.getExpiringDocuments({ daysUntilExpiry });
+const dueSoon = await p.compliance.documents.getDueSoonDocuments({ daysUntilDue });
+const expired = await p.compliance.documents.getExpiredDocuments();
+const overdue = await p.compliance.documents.getOverdueDocuments();
 ```
 
-### Verification Status Flow
-
-```text
-draft → submitted → under_review → verified
-                         ↓
-                     rejected → (resubmit) → submitted
-
-verified/expired/overdue → renewed → (new document, draft)
-```
-
-### Reminder/query helpers
-
-The `documents` group also exposes reminder-driven queries: `getActiveDocumentsForReminders`, `getExpiredAndOverdueDocuments`, `getEscalatableDocuments`, `getExpiringDocuments`, `getDueSoonDocuments`, `getExpiredDocuments`, `getOverdueDocuments`, `markRenewalInProgress`, `updateNotifiedAt`, `updateEscalatedAt`.
+`markRenewalInProgress`, `updateNotifiedAt`, `updateEscalatedAt`, `getActiveDocumentsForReminders`, `getExpiredAndOverdueDocuments`, `getEscalatableDocuments` are internal scan/mutator helpers — not for direct callers.
 
 ## Obligations
 
-Access: `p.compliance.obligations`
-
-Recurring compliance obligation templates that auto-generate documents.
+Recurring templates that auto-generate documents.
 
 ```ts
 const obligation = await p.compliance.obligations.create({
@@ -77,7 +67,6 @@ const obligation = await p.compliance.obligations.create({
   sourceModule: "organization",
   createdBy: "user-1",
   startDate: new Date("2024-04-01"),
-  expiryBased: false,
   periodBased: true,
   dueDay: 31,
   dueMonthOffset: 0,
@@ -90,24 +79,20 @@ await p.compliance.obligations.update({ id, patch });
 await p.compliance.obligations.activate({ id });
 await p.compliance.obligations.deactivate({ id });
 
-const obligation = await p.compliance.obligations.getById({ id });
+const one = await p.compliance.obligations.getById({ id }); // get is deprecated alias
 const list = await p.compliance.obligations.list({ filters });
 const active = await p.compliance.obligations.getActive();
 const periods = await p.compliance.obligations.getUpcomingPeriods({ id });
 ```
 
-### Obligation Frequencies
-
-`monthly`, `quarterly`, `semi_annual`, `annual`, `biennial`, `triennial`, `custom`
+Frequencies: `monthly`, `quarterly`, `semi_annual`, `annual`, `biennial`, `triennial`, `custom`.
 
 ## Verification
 
-Access: `p.compliance.verification`
-
-Verification rules that auto-assign reviewers based on category and source module.
+Auto-assign reviewer rules by category and source module.
 
 ```ts
-await p.compliance.verification.create({
+const rule = await p.compliance.verification.create({
   name: "Tax documents require finance reviewer",
   category: "tax",
   sourceModule: "organization",
@@ -119,65 +104,33 @@ await p.compliance.verification.create({
 
 await p.compliance.verification.update({ id, patch });
 await p.compliance.verification.delete({ id });
-const rule = await p.compliance.verification.getById({ id });
+const one = await p.compliance.verification.getById({ id }); // get is deprecated alias
 const rules = await p.compliance.verification.list({ filters });
-const match = await p.compliance.verification.match({ category, sourceModule, ... });
+const match = await p.compliance.verification.match({ category, sourceModule });
 ```
 
 ## Audit
 
-Access: `p.compliance.audit`
-
-Audit-trail workflows over the platform's `AuditUnit` entries.
+Read `audit_log` entries written by workflows via `AuditUnit`.
 
 ```ts
-const trail = await p.compliance.audit.getAuditTrail({ entityType, entityId, ... });
+const trail = await p.compliance.audit.getAuditTrail({ entityType, entityId });
 const entries = await p.compliance.audit.list({ filters });
 const exported = await p.compliance.audit.export({ filters });
 ```
 
-<Callout type="info">
-  Entries are written by workflows via the platform's `AuditUnit` (`ctx.audit.write()`); there is no
-  module-owned audit table.
-</Callout>
-
 ## Dashboard
 
-Access: `p.compliance.dashboard`
-
-Cached compliance summary data (backed by `KvStoreUnit`).
+Cached summary backed by `KvStoreUnit`.
 
 ```ts
-const summary = await p.compliance.dashboard.getSummary();
+const summary = await p.compliance.dashboard.getSummary(); // cached dashboardCacheTtl seconds
 await p.compliance.dashboard.invalidateCache();
 ```
 
-The summary aggregates counts by status, category, branch, and source module, plus expiring/expired/overdue/pending counts and a health score, cached for `dashboardCacheTtl` seconds.
+Aggregates counts by status/category/branch/source module, plus expiring/expired/overdue/pending and a health score.
 
-## Events
+## Links
 
-| Group         | Events published                                                                                                                                                                                                                                        |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `documents`   | `document_created`, `document_updated`, `document_submitted`, `document_verified`, `document_rejected`, `document_completed`, `document_renewed`, `document_archived`, `document_snoozed`, `document_reviewer_assigned`, `document_attachment_uploaded` |
-| `obligations` | `obligation_created`, `obligation_updated`, `obligation_activated`, `obligation_deactivated`                                                                                                                                                            |
-
-Expiry, escalation, and summary events (`document_expiring`, `document_expired`, `document_escalated`, `weekly_summary`) are published by services, not workflows. See [Events](/docs/compliance/events).
-
-## Schema
-
-| Group                | Tables                                        |
-| -------------------- | --------------------------------------------- |
-| `documents`          | `document`                                    |
-| `obligations`        | `obligation`                                  |
-| `verification`       | `verification_rule`                           |
-| `audit`, `dashboard` | None — platform `audit_log` and `KvStoreUnit` |
-
-See [Schema](/docs/compliance/db-schemas).
-
-## Dependencies
-
-No hard module dependencies (`$dependencies = []`). Runtime requires platform `db`, `kvStore`, `pubsub` units plus an audit context (`ctx.audit`). Optional peer topics consumed by the event bridge are declared as `$consumes` (introspection-only, never validated) — a missing producer silently no-ops, so compliance composes solo or in any subset.
-
-## Notes
-
-All workflow methods are `Workflow.name(...)` instances with Valibot input validation and platform workflow persistence. Create-style methods take `{ input: CreateXxxSchema }`; update takes `{ id, patch }`. `get` is a deprecated alias of `getById` on `obligations` and `verification`. Internal scan helpers (`updateNotifiedAt`, `updateEscalatedAt`, `markRenewalInProgress`, `getActiveDocumentsForReminders`, `getExpiredAndOverdueDocuments`, `getEscalatableDocuments`) serve the reminder engine, not callers.
+- Events: [Events](/docs/compliance/events) — 23 event payloads and triggers.
+- Schema: [Schema](/docs/compliance/db-schemas) — tenant tables, enums, and indexes.

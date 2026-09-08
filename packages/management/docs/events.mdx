@@ -1,122 +1,46 @@
 ---
 title: Events
-description: Domain event map for the Management Plane module — 17 events across 3 event groups.
+description: Domain events published by the Management Plane module.
 icon: IconBell
 ---
 
-The Management Plane module defines 17 domain events across 3 event groups. Events are type-level contracts published as plain string topics via PubSub.
+The Management Plane defines domain events across `TENANT`, `SERVICE_PROVIDER`, `PLATFORM_USER`, and `ORGANIZATION` topics.
 
-## Event Constants
+## Tenant Events
 
-```ts title="src/pubsub.ts"
-export const TENANT_EVENTS = {
-  PROVISIONED: "tenant:provisioned",
-  ACTIVATED: "tenant:activated",
-  SUSPENDED: "tenant:suspended",
-  REACTIVATED: "tenant:reactivated",
-  CHURNED: "tenant:churned",
-  PROFILE_UPDATED: "tenant:profile_updated",
-  SP_ASSIGNED: "tenant:sp_assigned",
-  SP_UNASSIGNED: "tenant:sp_unassigned",
-} as const;
+| Event                    | Payload                            | Trigger                           |
+| ------------------------ | ---------------------------------- | --------------------------------- |
+| `tenant:provisioned`     | `{ tenantId, serviceProviderId? }` | `tenants.onboard` completes       |
+| `tenant:activated`       | `{ tenantId }`                     | `tenants.activate`                |
+| `tenant:suspended`       | `{ tenantId, reason }`             | `tenants.suspend`                 |
+| `tenant:reactivated`     | `{ tenantId }`                     | `tenants.reactivate`              |
+| `tenant:churned`         | `{ tenantId, reason }`             | `tenants.churn`                   |
+| `tenant:profile_updated` | `{ tenantId, changes }`            | `tenants.update`                  |
+| `tenant:sp_assigned`     | `{ tenantId, serviceProviderId }`  | `tenants.assignServiceProvider`   |
+| `tenant:sp_unassigned`   | `{ tenantId }`                     | `tenants.unassignServiceProvider` |
 
-export const SERVICE_PROVIDER_EVENTS = {
-  CREATED: "service_provider:created",
-  UPDATED: "service_provider:updated",
-  DEACTIVATED: "service_provider:deactivated",
-  ACTIVATED: "service_provider:activated",
-} as const;
+## Service Provider Events
 
-export const PLATFORM_USER_EVENTS = {
-  CREATED: "platform_user:created",
-  UPDATED: "platform_user:updated",
-  DELETED: "platform_user:deleted",
-  ROLE_ASSIGNED: "platform_user:role_assigned",
-  SP_ASSIGNED: "platform_user:sp_assigned",
-} as const;
-```
+| Event                          | Payload                                      | Trigger                       |
+| ------------------------------ | -------------------------------------------- | ----------------------------- |
+| `service_provider:created`     | `{ serviceProvider: { id, name, slug } }`    | `serviceProviders.create`     |
+| `service_provider:updated`     | `{ serviceProvider: { id, name }, changes }` | `serviceProviders.update`     |
+| `service_provider:deactivated` | `{ serviceProviderId }`                      | `serviceProviders.deactivate` |
+| `service_provider:activated`   | `{ serviceProviderId }`                      | `serviceProviders.activate`   |
 
-## Event Map
+## Platform User Events
 
-### Tenant Events
+| Event                         | Payload                         | Trigger                         |
+| ----------------------------- | ------------------------------- | ------------------------------- |
+| `platform_user:created`       | `{ user: { id, email, role } }` | `users.create`                  |
+| `platform_user:updated`       | `{ userId, changes }`           | `users.update`                  |
+| `platform_user:deleted`       | `{ userId }`                    | `users.delete`                  |
+| `platform_user:role_assigned` | `{ userId, role }`              | `users.assignRole`              |
+| `platform_user:sp_assigned`   | `{ userId, role, spId }`        | `users.assignToServiceProvider` |
 
-| Event                    | Payload                            | Trigger                    |
-| ------------------------ | ---------------------------------- | -------------------------- |
-| `tenant:provisioned`     | `{ tenantId, serviceProviderId? }` | `tenant.onboard` completes |
-| `tenant:activated`       | `{ tenantId }`                     | `tenant.activate`          |
-| `tenant:suspended`       | `{ tenantId, reason }`             | `tenant.suspend`           |
-| `tenant:reactivated`     | `{ tenantId }`                     | `tenant.reactivate`        |
-| `tenant:churned`         | `{ tenantId, reason }`             | `tenant.churn`             |
-| `tenant:profile_updated` | `{ tenantId, changes }`            | `tenant.update`            |
-| `tenant:sp_assigned`     | `{ tenantId, serviceProviderId }`  | `tenant.assign-sp`         |
-| `tenant:sp_unassigned`   | `{ tenantId }`                     | `tenant.unassign-sp`       |
+## Organization Events
 
-### Service Provider Events
-
-| Event                          | Payload                                      | Trigger         |
-| ------------------------------ | -------------------------------------------- | --------------- |
-| `service_provider:created`     | `{ serviceProvider: { id, name, slug } }`    | `sp.create`     |
-| `service_provider:updated`     | `{ serviceProvider: { id, name }, changes }` | `sp.update`     |
-| `service_provider:deactivated` | `{ serviceProviderId }`                      | `sp.deactivate` |
-| `service_provider:activated`   | `{ serviceProviderId }`                      | `sp.activate`   |
-
-### Platform User Events
-
-| Event                         | Payload                         | Trigger            |
-| ----------------------------- | ------------------------------- | ------------------ |
-| `platform_user:created`       | `{ user: { id, email, role } }` | `user.create`      |
-| `platform_user:updated`       | `{ userId, changes }`           | `user.update`      |
-| `platform_user:deleted`       | `{ userId }`                    | `user.delete`      |
-| `platform_user:role_assigned` | `{ userId, role }`              | `user.assign-role` |
-| `platform_user:sp_assigned`   | `{ userId, role, spId }`        | `user.assign-sp`   |
-
-## Usage
-
-### Publishing Events
-
-Events are published via `PubSubUnit.publish()`:
-
-```ts
-await p.pubsub.publish("tenant:provisioned", {
-  tenantId: "org-123",
-  serviceProviderId: "sp-1",
-});
-```
-
-### Subscribing to Events
-
-```ts
-// React to a new tenant being provisioned (e.g., a future billing module)
-await p.pubsub.subscribe("tenant:provisioned", async (message) => {
-  const { tenantId, serviceProviderId } = message.data;
-  // Start billing, send welcome email, etc.
-});
-
-// Track SP assignments for analytics
-await p.pubsub.subscribe("tenant:sp_assigned", async (message) => {
-  const { tenantId, serviceProviderId } = message.data;
-  // Update SP performance metrics
-});
-```
-
-## Event Map Type
-
-```ts title="src/pubsub.ts"
-export type ManagementPlaneEventMap = TenantEventMap &
-  ServiceProviderEventMap &
-  PlatformUserEventMap;
-```
-
-<Callout type="info">
-  The event map is a type-level contract — it is not enforced at runtime. Workflows publish events as plain string topics. The type map ensures type safety when subscribing if you use the typed `Message<T>` generic.
-</Callout>
-
-## Cross-Module Integration
-
-Other modules can subscribe to Management Plane events to react to tenant lifecycle changes:
-
-| Subscriber              | Subscribed Topic                                                               | Action                                       |
-| ----------------------- | ------------------------------------------------------------------------------ | -------------------------------------------- |
-| Future billing module   | `tenant:provisioned`, `tenant:activated`, `tenant:suspended`, `tenant:churned` | Start/stop billing, adjust plan              |
-| Notification service    | `tenant:provisioned`, `tenant:sp_assigned`                                     | Send welcome emails, notify SP of assignment |
-| SP performance tracking | `tenant:sp_assigned`, `tenant:activated`                                       | Update onboarding duration metrics           |
+| Event                  | Payload                                          | Trigger                |
+| ---------------------- | ------------------------------------------------ | ---------------------- |
+| `organization:created` | `{ organization: { id, name, slug, branding } }` | `organizations.create` |
+| `organization:updated` | `{ organization: { id, name }, changes }`        | `organizations.update` |

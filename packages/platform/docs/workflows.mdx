@@ -4,132 +4,79 @@ description: Durable, step-based workflow builder provided by the platform serve
 icon: IconGitBranch
 ---
 
-The platform provides a `Workflow` builder for durable, step-based workflows on the server. Define reusable steps with `WorkflowStep`, then call them via `ctx.step.run(stepInstance, input)`. Inline steps use `ctx.step.run("name", fn)`.
+The platform provides a `Workflow` builder for durable, step-based workflows on the server. Define steps with `WorkflowStep`, then call them via `ctx.step.run()` inside `Workflow.name()`. Runs and steps persist to `workflow_runs` / `workflow_steps`.
 
-## Public API
+## Defining Workflows
 
-```ts title="src/server/workflows/index.ts"
-import { Workflow, WorkflowStep } from "@aspen-os/platform/server";
-
-// Build a workflow
-Workflow.name(name): {
-  handler(fn): WorkflowInstance;
-  input(schema).handler(fn): WorkflowInstance;   // schema is a Standard Schema
-}
-
-// Build a reusable step
-WorkflowStep.name(name): {
-  handler(fn): WorkflowStepInstance;
-  input(schema).handler(fn): WorkflowStepInstance;
-}
-```
-
-```ts title="src/server/workflows/types.ts"
-interface WorkflowInstance<TInput, TOutput> {
-  readonly name: string;
-  run(input: TInput, options?: RunOptions): Promise<TOutput>;
-}
-
-type WorkflowRunStatus = "running" | "completed" | "failed";
-type WorkflowStepStatus = "pending" | "running" | "completed" | "failed" | "skipped";
-
-interface StepOptions {
-  retries?: number;
-}
-
-interface StepRunner {
-  run<T>(name: string, fn: () => T | Promise<T>, options?: StepOptions): Promise<T>;
-  run<TInput, TOutput>(
-    step: WorkflowStepInstance<TInput, TOutput>,
-    input: TInput,
-    options?: StepOptions,
-  ): Promise<TOutput>;
-  sleep(ms: number): Promise<void>;
-}
-
-interface RunOptions {
-  actorId?: string;
-  audit?: AuditUnit;
-  auth?: AuthUnit;
-  config?: Record<string, unknown>;
-  db?: DrizzleDB;
-  log?: LogUnit;
-  pubsub?: PubSubUnit;
-}
-```
-
-## Workflow Context
-
-```ts title="src/server/workflows/types.ts"
-interface WorkflowContext<TSchemas = Record<string, never>> {
-  actorId?: string;
-  audit: AuditUnit;
-  auth?: AuthUnit;
-  config: Record<string, unknown>;
-  db: DrizzleDB<TSchemas>;
-  log: ChildLogger;
-  pubsub: PubSubUnit;
-  runId: string;
-  step: StepRunner;
-}
-```
-
-The context is built from `RunOptions` — if omitted, defaults come from `getContext()`. It throws unless `audit`, `auth`, `db`, `log`, and `pubsub` are all available.
-
-## Usage
+Register a workflow with `Workflow.name()` — optionally with Valibot `input` validation — then `handler(input, ctx)`.
 
 ```ts
 import { Workflow, WorkflowStep } from "@aspen-os/platform/server";
+import { object, string } from "valibot";
 
-const fetchStep = WorkflowStep.name("fetch").handler(async (input, ctx) => {
-  return ctx.db.select().from(table).limit(1);
-});
+const MyInput = object({ id: string() });
 
 const myWorkflow = Workflow.name("my-workflow")
-  .input(MySchema)
+  .input(MyInput)
   .handler(async (input, ctx) => {
-    const result = await ctx.step.run(fetchStep, { id: input.id });
-    // inline step:
+    const row = await ctx.step.run(fetchStep, { id: input.id });
     const count = await ctx.step.run("count", async () => 42);
-    return result;
+    await ctx.step.sleep(5_000);
+    return row;
   });
 
-// run:
-await myWorkflow.run(input, { actorId });
+await myWorkflow.run({ id: "123" }, { actorId: "user-1" }); // inside or outside run()
 ```
 
-Steps run inside `WorkflowContext` with step-level retry (`StepOptions.retries`) and status tracking. Workflow runs and steps are persisted to the `workflow_runs` and `workflow_steps` tables, owned by `DatabaseUnit`.
+`ctx` provides `{ actorId, audit, auth, config, db, log, pubsub, runId, step }`. `RunOptions` overrides ambient context; if omitted, `getContext()` supplies `audit`, `auth`, `db`, `log`, `pubsub`.
 
-## Scenarios
+## Reusable Steps
 
-### Durable Steps
-
-`WorkflowStep.name(name).handler(fn)` (optionally `.input(schema)`) produces a `WorkflowStepInstance`. Pass it to `ctx.step.run(step, input)`:
+Create `WorkflowStep` once, reuse across workflows. Steps handle input validation, retries, and result caching.
 
 ```ts
-const step = WorkflowStep.name("send-notification")
-  .input(NotificationSchema)
+const fetchStep = WorkflowStep.name("fetch")
+  .input(object({ id: string() }))
   .handler(async (input, ctx) => {
-    return ctx.pubsub.publish("notify", input);
+    return ctx.db.select().from(table).limit(1);
   });
 
-await ctx.step.run(step, { userId, message }, { retries: 3 });
+await ctx.step.run(fetchStep, { id: "123" }, { retries: 3 });
 ```
 
-### Inline Steps
+On retry, a completed step's cached `output` is returned without re-executing the handler.
+
+## Inline Steps
+
+For one-off logic, pass a name and inline function:
 
 ```ts
-const value = await ctx.step.run("compute", async () => {
-  return expensiveCalculation();
+const value = await ctx.step.run("compute", async () => expensiveCalculation(), { retries: 1 });
+```
+
+## Retries and Sleeping
+
+```ts
+await ctx.step.run("send-notification", async () => ctx.pubsub.publish("notify", data), {
+  retries: 3,
 });
+await ctx.step.sleep(5_000);
 ```
 
-### Sleeping
+`retries` is per-step; the engine persists `attempt`, `status`, and `duration_ms` per step. Sleeping uses `node:timers/promises`.
+
+## Persisted State
+
+Workflows and steps are owned by `DatabaseUnit` and written via `WorkflowEngine`:
 
 ```ts
-await ctx.step.sleep(5_000); // pause the workflow
+// tables owned by DatabaseUnit.getSchemas()
+workflowRuns; // { id, workflow_name, status, input, output, error, started_at, completed_at, duration_ms }
+workflowSteps; // { id, run_id, step_name, status, attempt, output, error, started_at, completed_at, duration_ms }
 ```
 
-## Dependency
+`WorkflowRunStatus = "running" | "completed" | "failed"`; `WorkflowStepStatus = "pending" | "running" | "completed" | "failed" | "skipped"`.
 
-`Workflow`, `WorkflowStep`, and all workflow types are re-exported from `@aspen-os/platform/server`. Runs/steps persist via `DatabaseUnit`'s `workflow_runs` and `workflow_steps` tables.
+## Handling Errors
+
+Failures serialize via `serializeError` (depth 5 `cause` chain) into `error` jsonb; the logger receives `attempts` and `stepName`. Validation failures throw `SchemaError` from `@standard-schema/utils` before the handler runs.

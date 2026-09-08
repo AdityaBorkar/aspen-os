@@ -12,12 +12,12 @@ Shared `as const` enum objects, derived union types, and ISO 3166-1 country code
   TypeScript source, never bundled JS.
 </Callout>
 
-## Public API
+## Opening
 
 Every domain module follows one pattern — an `as const` object plus a derived union:
 
 ```ts title="packages/constants/src/organization.ts"
-export const BRANCH_TYPE = {
+export const ORG_BRANCH_TYPE = {
   FACTORY: "factory",
   HEADQUARTERS: "headquarters",
   OFFICE: "office",
@@ -27,11 +27,15 @@ export const BRANCH_TYPE = {
   WAREHOUSE: "warehouse",
 } as const;
 
-export type BranchType = (typeof BRANCH_TYPE)[keyof typeof BRANCH_TYPE];
+export type OrgBranchType = (typeof ORG_BRANCH_TYPE)[keyof typeof ORG_BRANCH_TYPE];
+
+// Deprecated alias — prefer ORG_BRANCH_TYPE / OrgBranchType
+export const BRANCH_TYPE = ORG_BRANCH_TYPE;
+export type BranchType = OrgBranchType;
 ```
 
 ```ts title="packages/constants/src/country-codes.ts"
-export const COUNTRY_CODES = [...] as const; // 249 ISO 3166-1 alpha-2 codes
+export const COUNTRY_CODES = [...] as const; // ISO 3166-1 alpha-2
 
 export type CountryCode = (typeof COUNTRY_CODES)[number];
 
@@ -40,60 +44,66 @@ export function parseCountryCode(input: string): CountryCode | undefined;
 ```
 
 ```ts
-import { BRANCH_TYPE, type BranchType } from "@aspen-os/constants";
+import { ORG_BRANCH_TYPE, type OrgBranchType } from "@aspen-os/constants";
 
-const type: BranchType = BRANCH_TYPE.HEADQUARTERS; // "headquarters"
+const type: OrgBranchType = ORG_BRANCH_TYPE.HEADQUARTERS; // "headquarters"
 ```
+
+## Scope conventions
+
+Import from the package root (`@aspen-os/constants`) — every module re-exports from `src/index.ts` (6 modules: `organization`, `masters`, `notes`, `compliance`, `comms`, `country-codes`). Country codes are ISO 3166-1 alpha-2, normalized to uppercase at the `parseCountryCode` boundary and stored uppercase.
 
 ## Features
 
 ### Organization (`src/organization.ts`)
 
-| Constant      | Type         | Values                                                                       |
-| ------------- | ------------ | ---------------------------------------------------------------------------- |
-| `BRANCH_TYPE` | `BranchType` | `factory`, `headquarters`, `office`, `other`, `remote`, `store`, `warehouse` |
+| Enum              | Values                                                                       |
+| ----------------- | ---------------------------------------------------------------------------- |
+| `ORG_BRANCH_TYPE` | `factory`, `headquarters`, `office`, `other`, `remote`, `store`, `warehouse` |
+
+`BRANCH_TYPE` / `BranchType` are deprecated aliases for `ORG_BRANCH_TYPE` / `OrgBranchType`.
 
 ### Masters (`src/masters.ts`)
 
-| Constant                   | Type                     | Values                                                                                                                                                                          |
-| -------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CONTACT_TYPE`             | `ContactType`            | `bank`, `client`, `insurer`, `investor`, `other`, `parent_company`, `partner`, `regulator`, `subsidiary`, `vendor`                                                              |
-| `INTEGRATION_TYPE`         | `IntegrationType`        | `api_key`, `basic_auth`, `database`, `oauth2`, `other`, `webhook`                                                                                                               |
-| `CONNECTION_STATUS`        | `ConnectionStatus`       | `active`, `expired`, `inactive`, `revoked`                                                                                                                                      |
-| `MASTER_ENTITY_TYPE`       | `MasterEntityType`       | `branch`, `connection`, `contact`, `entity`, `organization`                                                                                                                     |
-| `MASTER_ENTITY_KIND`       | `MasterEntityKind`       | `bank`, `clinic`, `customer`, `government`, `hospital`, `insurer`, `laboratory`, `other`, `partner`, `pharmacy`, `regulator`, `staffing_agency`, `training_institute`, `vendor` |
-| `ENTITY_STATUS`            | `EntityStatus`           | `active`, `archived`, `inactive`                                                                                                                                                |
-| `UOM_CATEGORY`             | `UomCategory`            | `area`, `count`, `data`, `length`, `mass`, `other`, `temperature`, `time`, `volume`                                                                                             |
-| `PAYMENT_METHOD_TYPE`      | `PaymentMethodType`      | `bank_account`, `card`, `cheque`, `imps`, `upi`                                                                                                                                 |
-| `PAYMENT_METHOD_STATUS`    | `PaymentMethodStatus`    | `active`, `archived`, `inactive`                                                                                                                                                |
-| `PAYMENT_METHOD_DIRECTION` | `PaymentMethodDirection` | `both`, `inbound`, `outbound`                                                                                                                                                   |
-| `CARD_BRAND`               | `CardBrand`              | `amex`, `mastercard`, `other`, `rupay`, `visa`                                                                                                                                  |
+| Enum                       | Values                                                                                                                                                                          |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CONTACT_TYPE`             | `bank`, `client`, `insurer`, `investor`, `other`, `parent_company`, `partner`, `regulator`, `subsidiary`, `vendor`                                                              |
+| `INTEGRATION_TYPE`         | `api_key`, `basic_auth`, `database`, `oauth2`, `other`, `webhook`                                                                                                               |
+| `CONNECTION_STATUS`        | `active`, `expired`, `inactive`, `revoked`                                                                                                                                      |
+| `MASTER_ENTITY_TYPE`       | `branch`, `connection`, `contact`, `entity`, `organization`, `org_branch`                                                                                                       |
+| `MASTER_ENTITY_KIND`       | `bank`, `clinic`, `customer`, `government`, `hospital`, `insurer`, `laboratory`, `other`, `partner`, `pharmacy`, `regulator`, `staffing_agency`, `training_institute`, `vendor` |
+| `ENTITY_STATUS`            | `active`, `archived`, `inactive`                                                                                                                                                |
+| `UOM_CATEGORY`             | `area`, `count`, `data`, `length`, `mass`, `other`, `temperature`, `time`, `volume`                                                                                             |
+| `PAYMENT_METHOD_TYPE`      | `bank_account`, `card`, `cheque`, `imps`, `upi`                                                                                                                                 |
+| `PAYMENT_METHOD_STATUS`    | `active`, `archived`, `inactive`                                                                                                                                                |
+| `PAYMENT_METHOD_DIRECTION` | `both`, `inbound`, `outbound`                                                                                                                                                   |
+| `CARD_BRAND`               | `amex`, `mastercard`, `other`, `rupay`, `visa`                                                                                                                                  |
 
 ### Notes (`src/notes.ts`)
 
-| Constant    | Type       | Values                                                             |
-| ----------- | ---------- | ------------------------------------------------------------------ |
-| `NOTE_TYPE` | `NoteType` | `call`, `contract_renewal`, `email`, `general`, `issue`, `meeting` |
+| Enum        | Values                                                             |
+| ----------- | ------------------------------------------------------------------ |
+| `NOTE_TYPE` | `call`, `contract_renewal`, `email`, `general`, `issue`, `meeting` |
 
 ### Compliance (`src/compliance.ts`)
 
-| Constant              | Type                 | Values                                                                                                                                                                               |
-| --------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `COMPLIANCE_CATEGORY` | `ComplianceCategory` | `audit`, `certificate`, `data_privacy`, `environmental`, `financial`, `hr`, `insurance`, `legal`, `license`, `other`, `permit`, `property`, `regulatory`, `safety`, `tax`, `vehicle` |
-| `RENEWAL_FREQUENCY`   | `RenewalFrequency`   | `annual`, `biennial`, `monthly`, `one_time`, `quarterly`, `semi_annual`, `triennial`                                                                                                 |
+| Enum                  | Values                                                                                                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `COMPLIANCE_CATEGORY` | `audit`, `certificate`, `data_privacy`, `environmental`, `financial`, `hr`, `insurance`, `legal`, `license`, `other`, `permit`, `property`, `regulatory`, `safety`, `tax`, `vehicle` |
+| `RENEWAL_FREQUENCY`   | `annual`, `biennial`, `monthly`, `one_time`, `quarterly`, `semi_annual`, `triennial`                                                                                                 |
 
 ### Comms (`src/comms.ts`)
 
-| Constant                | Type                   | Values                                                                          |
-| ----------------------- | ---------------------- | ------------------------------------------------------------------------------- |
-| `CHANNEL_TYPE`          | `ChannelType`          | `email`, `sms`, `whatsapp`, `push`, `other`                                     |
-| `CHANNEL_SOURCE`        | `ChannelSource`        | `tenant`, `host`                                                                |
-| `CHANNEL_STATUS`        | `ChannelStatus`        | `active`, `inactive`, `revoked`, `expired`                                      |
-| `PROVIDER_KIND`         | `ProviderKind`         | `smtp`, `ses`, `resend`, `postmark`, `twilio`, `whatsapp_business_api`, `other` |
-| `RECIPIENT_TYPE`        | `RecipientType`        | `user`, `contact`                                                               |
-| `NOTIFICATION_STATUS`   | `NotificationStatus`   | `unread`, `read`, `dismissed`                                                   |
-| `NOTIFICATION_SEVERITY` | `NotificationSeverity` | `normal`, `important`, `urgent`                                                 |
-| `MESSAGE_STATUS`        | `MessageStatus`        | `queued`, `sending`, `sent`, `delivered`, `failed`                              |
+| Enum                    | Values                                                                          |
+| ----------------------- | ------------------------------------------------------------------------------- |
+| `CHANNEL_TYPE`          | `email`, `sms`, `whatsapp`, `push`, `other`                                     |
+| `CHANNEL_SOURCE`        | `tenant`, `host`                                                                |
+| `CHANNEL_STATUS`        | `active`, `inactive`, `revoked`, `expired`                                      |
+| `PROVIDER_KIND`         | `smtp`, `ses`, `resend`, `postmark`, `twilio`, `whatsapp_business_api`, `other` |
+| `RECIPIENT_TYPE`        | `user`, `contact`                                                               |
+| `NOTIFICATION_STATUS`   | `unread`, `read`, `dismissed`                                                   |
+| `NOTIFICATION_SEVERITY` | `normal`, `important`, `urgent`                                                 |
+| `MESSAGE_STATUS`        | `queued`, `sending`, `sent`, `delivered`, `failed`                              |
 
 ### Country codes (`src/country-codes.ts`)
 
@@ -119,7 +129,7 @@ function isCountry(input: string): input is CountryCode {
   return isValidCountryCode(input); // strict: only uppercase codes narrow
 }
 
-COUNTRY_CODES; // readonly ["AD", "AE", ..., "ZW"] — 249 ISO 3166-1 alpha-2 codes
+COUNTRY_CODES; // readonly ISO 3166-1 alpha-2 codes
 ```
 
 <Callout type="warn">
@@ -127,6 +137,6 @@ COUNTRY_CODES; // readonly ["AD", "AE", ..., "ZW"] — 249 ISO 3166-1 alpha-2 co
   never narrows. Normalize first when the input is untrusted.
 </Callout>
 
-## Dependencies
+## Links
 
-`@aspen-os/constants` has no dependencies.
+- Package: `@aspen-os/constants` — no dependencies

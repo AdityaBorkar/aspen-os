@@ -1,56 +1,13 @@
 ---
 title: Events
-description: Domain event map for the Organization module — 2 branch events.
+description: Domain events published by the Organization module — none.
 icon: IconBell
 ---
 
-The Organization module defines 2 domain events in 1 event group. Events are type-level contracts published as plain string topics via PubSub. Every command workflow publishes exactly one event.
+The Organization module defines no events.
 
-## Event Constants
+| Event | Payload | Trigger |
+| ----- | ------- | ------- |
+| —     | —       | —       |
 
-```ts title="src/pubsub.ts"
-export const BRANCH_EVENTS = {
-  CREATED: "branch:created",
-  UPDATED: "branch:updated",
-} as const;
-```
-
-## Event Map
-
-### Branch Events
-
-| Event            | Payload                                | Trigger        |
-| ---------------- | -------------------------------------- | -------------- |
-| `branch:created` | `{ branch: { code, id, name, type } }` | Branch created |
-| `branch:updated` | `{ branch: { id, name }, changes }`    | Branch updated |
-
-## Usage
-
-### Publishing Events
-
-Events are published via `PubSubUnit.publish()`:
-
-```ts
-await p.pubsub.publish("branch:created", {
-  branch: { code: "HQ-MUM", id: "br-1", name: "HQ Mumbai", type: "headquarters" },
-});
-```
-
-### Subscribing to Events
-
-```ts
-await p.pubsub.subscribe("branch:created", async (message) => {
-  console.log("Branch created:", message.data.branch);
-});
-```
-
-## Event Map Type
-
-```ts title="src/pubsub.ts"
-export type OrganizationDomainEventMap = BranchEventMap;
-```
-
-<Callout type="info">
-  The event map is a type-level contract — it is not enforced at runtime. Workflows publish events
-  as plain string topics.
-</Callout>
+No topics. Branch events live in `@aspen-os/masters` if applicable — see [Masters Events](/docs/masters/events).
