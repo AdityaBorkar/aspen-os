@@ -38,7 +38,7 @@ export const downloadFile = Workflow.name("dms.file.download")
     });
 
     const url = await ctx.step.run("get-signed-url", async () =>
-      getSignedGetUrl({ expiresIn, key: file.storageKey }),
+      getSignedGetUrl({ expiresIn, key: file.storage_key }),
     );
 
     const logDownloads = await getSetting(ctx.db, SETTING_KEYS.LOG_DOWNLOADS);
@@ -47,12 +47,12 @@ export const downloadFile = Workflow.name("dms.file.download")
         action: AUDIT_ACTION.DOWNLOADED,
         entityId: file.id,
         entityType: AUDIT_ENTITY_TYPE.FILE,
-        metadata: { storageKey: file.storageKey, version: file.version },
+        metadata: { storage_key: file.storage_key, version: file.version },
       });
     }
 
     await ctx.pubsub.publish(FILE_EVENTS.DOWNLOADED, {
-      file: { id: file.id, name: file.name, ownerId: file.ownerId },
+      file: { id: file.id, name: file.name, owner_id: file.owner_id },
       userId: ctx.actorId ?? "",
     });
 

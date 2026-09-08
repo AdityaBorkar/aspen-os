@@ -21,8 +21,8 @@ export const listFolders = Workflow.name("dms.folder.list").handler(async (input
   const sortOrder = validated.sortOrder ?? "asc";
 
   const folderConditions = [
-    eq(dmsFolder.isTrashed, false),
-    id ? eq(dmsFolder.parentId, id) : sql`${dmsFolder.parentId} IS NULL`,
+    eq(dmsFolder.is_trashed, false),
+    id ? eq(dmsFolder.parent_id, id) : sql`${dmsFolder.parent_id} IS NULL`,
   ];
   if (validated.search) {
     folderConditions.push(sql`${dmsFolder.name} ilike ${`%${escapeLike(validated.search)}%`}`);
@@ -37,7 +37,7 @@ export const listFolders = Workflow.name("dms.folder.list").handler(async (input
 
   let files: DmsFile[] = [];
   if (id) {
-    const fileConditions = [eq(dmsFile.status, "active"), eq(dmsFile.folderId, id)];
+    const fileConditions = [eq(dmsFile.status, "active"), eq(dmsFile.folder_id, id)];
     if (validated.search) {
       fileConditions.push(sql`${dmsFile.name} ilike ${`%${escapeLike(validated.search)}%`}`);
     }

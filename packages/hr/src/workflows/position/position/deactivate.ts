@@ -16,7 +16,7 @@ export const deactivatePosition = Workflow.name("hr.position.deactivate")
     const { id } = input;
 
     const position = await fetchPositionById(ctx.db, id);
-    if (!position.isActive) {
+    if (!position.is_active) {
       return position;
     }
 
@@ -24,7 +24,7 @@ export const deactivatePosition = Workflow.name("hr.position.deactivate")
 
     const [updated] = await ctx.db
       .update(hrPosition)
-      .set({ isActive: false, updatedAt: new Date() })
+      .set({ is_active: false, updated_at: new Date() })
       .where(eq(hrPosition.id, id))
       .returning();
 

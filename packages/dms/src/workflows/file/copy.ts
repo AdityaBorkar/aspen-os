@@ -31,7 +31,7 @@ export const copyFile = Workflow.name("dms.file.copy")
     const newStorageKey = computeStorageKey({ fileId: newFileId, name: file.name, version: 1 });
 
     const copied = await ctx.step.run("copy-storage", async () =>
-      copyStorage({ destKey: newStorageKey, sourceKey: file.storageKey }),
+      copyStorage({ destKey: newStorageKey, sourceKey: file.storage_key }),
     );
 
     const status = newFolderId ? ("active" as const) : ("triaged" as const);
@@ -39,18 +39,18 @@ export const copyFile = Workflow.name("dms.file.copy")
     const [newFile] = await ctx.db
       .insert(dmsFile)
       .values({
-        contentType: file.contentType,
+        content_type: file.content_type,
         description: file.description,
         etag: copied.etag ?? null,
-        folderId: newFolderId,
+        folder_id: newFolderId,
         id: newFileId,
         name: file.name,
-        ownerId: file.ownerId,
+        owner_id: file.owner_id,
         path: newPath,
         size: copied.size,
         status,
-        storageKey: newStorageKey,
-        uploadedBy: file.uploadedBy,
+        storage_key: newStorageKey,
+        uploaded_by: file.uploaded_by,
         version: 1,
       })
       .returning();

@@ -13,5 +13,5 @@ export const listHolidaysByList = Workflow.name("hr.setup.list-holidays-by-list"
   .handler(async (input, ctx) => {
     const { holidayListId } = input;
 
-    return ctx.db.select().from(holiday).where(eq(holiday.holidayListId, holidayListId));
+    return ctx.db.select().from(holiday).where(eq(holiday.holiday_list_id, holidayListId));
   });

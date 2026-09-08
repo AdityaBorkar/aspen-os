@@ -39,7 +39,7 @@ export const updateAnnouncement = Workflow.name("hr.announcement.update")
       .set({
         ...parsed,
         audience: channel === "custom" ? audience : null,
-        updatedAt: new Date(),
+        updated_at: new Date(),
       })
       .where(eq(hrAnnouncement.id, id))
       .returning();

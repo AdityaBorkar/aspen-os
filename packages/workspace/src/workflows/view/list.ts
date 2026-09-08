@@ -16,7 +16,7 @@ export const listViews = Workflow.name("workspace.view.list")
     const validated = parse(ViewFiltersSchema, filters);
 
     const conditions = [
-      or(eq(workspaceView.access, "global"), eq(workspaceView.ownerId, ctx.actorId)),
+      or(eq(workspaceView.access, "global"), eq(workspaceView.owner_id, ctx.actorId)),
     ];
     if (validated.domain) {
       conditions.push(eq(workspaceView.domain, validated.domain));
@@ -25,7 +25,7 @@ export const listViews = Workflow.name("workspace.view.list")
       conditions.push(eq(workspaceView.access, validated.access));
     }
     if (validated.isDefault !== undefined) {
-      conditions.push(eq(workspaceView.isDefault, validated.isDefault));
+      conditions.push(eq(workspaceView.is_default, validated.isDefault));
     }
     if (validated.search) {
       conditions.push(sql`${workspaceView.name} ilike ${`%${validated.search}%`}`);

@@ -17,6 +17,9 @@ export const revokeBranchAccess = Workflow.name("hr.access.revoke-branch-access"
     await ctx.db
       .delete(hrUserBranchAccess)
       .where(
-        and(eq(hrUserBranchAccess.hrUserId, hrUserId), eq(hrUserBranchAccess.branchId, branchId)),
+        and(
+          eq(hrUserBranchAccess.hr_user_id, hrUserId),
+          eq(hrUserBranchAccess.branch_id, branchId),
+        ),
       );
   });

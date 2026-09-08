@@ -19,7 +19,7 @@ export const deleteBankAccount = Workflow.name("masters.bank-account.delete")
         crudAction: "delete",
         entityId: current.id,
         entityType: AUDIT_ENTITY_TYPE.BANK_ACCOUNT,
-        metadata: { entityId: current.entityId, entityType: current.entityType },
+        metadata: { entity_id: current.entity_id, entity_type: current.entity_type },
       });
     });
 

@@ -22,7 +22,7 @@ export const updateChannel = Workflow.name("comms.channel.update")
     if (input.name !== undefined && input.name !== current.name) {
       changes.name = input.name;
     }
-    if (input.senderAddress !== undefined && input.senderAddress !== current.senderAddress) {
+    if (input.senderAddress !== undefined && input.senderAddress !== current.sender_address) {
       changes.senderAddress = input.senderAddress;
     }
     if (input.metadata !== undefined && !metadataEqual(input.metadata, current.metadata)) {
@@ -35,7 +35,7 @@ export const updateChannel = Workflow.name("comms.channel.update")
 
     const [updated] = await ctx.db
       .update(commsChannel)
-      .set({ ...changes, updatedAt: new Date() })
+      .set({ ...changes, updated_at: new Date() })
       .where(eq(commsChannel.id, input.id))
       .returning();
 

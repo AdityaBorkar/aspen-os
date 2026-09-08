@@ -20,7 +20,7 @@ export const addDraftComment = Workflow.name("workspace.draft.comment.add")
 
     const [comment] = await ctx.db
       .insert(workspaceDraftComment)
-      .values({ authorId, content: parsed.content, draftId: parsed.draftId })
+      .values({ author_id: authorId, content: parsed.content, draft_id: parsed.draftId })
       .returning();
 
     if (!comment) {

@@ -18,13 +18,13 @@ export const createProject = Workflow.name("project.create")
     const [result] = await ctx.db
       .insert(project)
       .values({
-        defaultTaskTypeId: input.defaultTaskTypeId ?? null,
+        default_task_type_id: input.defaultTaskTypeId ?? null,
         description: input.description ?? null,
         key: input.key,
-        leadId: input.leadId,
+        lead_id: input.leadId,
         name: input.name,
-        startDate: input.startDate ?? null,
-        targetDate: input.targetDate ?? null,
+        start_date: input.startDate ?? null,
+        target_date: input.targetDate ?? null,
       })
       .returning();
 
@@ -33,9 +33,9 @@ export const createProject = Workflow.name("project.create")
     }
 
     await ctx.db.insert(projectMember).values({
-      projectId: result.id,
+      project_id: result.id,
       role: "admin",
-      userId: input.leadId,
+      user_id: input.leadId,
     });
 
     return result;

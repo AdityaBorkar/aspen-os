@@ -4,16 +4,16 @@ import { index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-cor
 export const serviceProviderUser = pgTable(
   "service_provider_user",
   {
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    id: uuidv7("id").primaryKey(),
-    serviceProviderId: text("service_provider_id").notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-    userId: text("user_id").notNull(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    id: uuidv7().primaryKey(),
+    service_provider_id: text().notNull(),
+    updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    user_id: text().notNull(),
   },
   (table) => [
-    uniqueIndex("service_provider_user_unique").on(table.serviceProviderId, table.userId),
-    uniqueIndex("service_provider_user_user_unique").on(table.userId),
-    index("idx_service_provider_user_sp").on(table.serviceProviderId),
+    uniqueIndex("service_provider_user_unique").on(table.service_provider_id, table.user_id),
+    uniqueIndex("service_provider_user_user_unique").on(table.user_id),
+    index("idx_service_provider_user_sp").on(table.service_provider_id),
   ],
 );
 

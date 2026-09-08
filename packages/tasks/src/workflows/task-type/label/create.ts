@@ -16,7 +16,7 @@ export const createLabel = Workflow.name("task-type.create-label")
       .values({
         color: input.color ?? null,
         name: input.name,
-        projectId: input.projectId ?? null,
+        project_id: input.projectId ?? null,
       })
       .returning();
 

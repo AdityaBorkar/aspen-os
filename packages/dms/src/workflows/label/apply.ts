@@ -14,10 +14,10 @@ export const applyLabel = Workflow.name("dms.label.apply")
     await ctx.db
       .insert(dmsEntityLabel)
       .values({
-        appliedBy: parsed.appliedBy,
-        entityId: parsed.entityId,
-        entityType: parsed.entityType,
-        labelId: parsed.labelId,
+        applied_by: parsed.appliedBy,
+        entity_id: parsed.entityId,
+        entity_type: parsed.entityType,
+        label_id: parsed.labelId,
       })
       .onConflictDoNothing();
 

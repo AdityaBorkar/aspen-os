@@ -61,7 +61,7 @@ export const updateBranch = Workflow.name("branch.update")
 
     const [updated] = await ctx.db
       .update(branch)
-      .set({ ...values, updatedAt: new Date() })
+      .set({ ...values, updated_at: new Date() })
       .where(eq(branch.id, input.id))
       .returning();
 

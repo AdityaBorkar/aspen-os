@@ -55,7 +55,7 @@ export async function searchFolders(
     .select()
     .from(dmsFolder)
     .where(
-      and(eq(dmsFolder.isTrashed, false), ilike(dmsFolder.name, `%${escapeLike(input.query)}%`)),
+      and(eq(dmsFolder.is_trashed, false), ilike(dmsFolder.name, `%${escapeLike(input.query)}%`)),
     )
     .orderBy(asc(dmsFolder.name))
     .limit(input.limit)
@@ -74,7 +74,7 @@ export function buildVisibilityScope(input: { admin?: boolean; userId: string })
   }
   const { userId } = input;
   return [
-    sql`(${dmsFile.ownerId} = ${userId} OR EXISTS (
+    sql`(${dmsFile.owner_id} = ${userId} OR EXISTS (
       SELECT 1 FROM dms_share s
       WHERE s.entity_id = ${dmsFile.id}
         AND s.entity_type = 'file'
@@ -107,10 +107,10 @@ function buildLabelCondition(labelIds: string[]): SQL {
 }
 
 const SORT_COLUMNS = {
-  createdAt: sql`${dmsFile.createdAt}`,
+  createdAt: sql`${dmsFile.created_at}`,
   name: sql`${dmsFile.name}`,
   size: sql`${dmsFile.size}`,
-  updatedAt: sql`${dmsFile.updatedAt}`,
+  updatedAt: sql`${dmsFile.updated_at}`,
 } satisfies Record<string, SQL>;
 
 function resolveSortField(field: string): SQL | null {
@@ -154,25 +154,25 @@ export async function searchFiles(
   }
 
   if (input.scope === "mine") {
-    conditions.push(eq(dmsFile.ownerId, input.userId));
+    conditions.push(eq(dmsFile.owner_id, input.userId));
   } else if (!input.admin) {
     conditions.push(...buildVisibilityScope({ admin: false, userId: input.userId }));
   }
 
   if (input.classId) {
-    conditions.push(eq(dmsFile.classId, input.classId));
+    conditions.push(eq(dmsFile.class_id, input.classId));
   }
   if (input.contentType) {
-    conditions.push(eq(dmsFile.contentType, input.contentType));
+    conditions.push(eq(dmsFile.content_type, input.contentType));
   }
   if (input.labels && input.labels.length > 0) {
     conditions.push(buildLabelCondition(input.labels));
   }
   if (input.dateRange?.start) {
-    conditions.push(gte(dmsFile.createdAt, new Date(input.dateRange.start)));
+    conditions.push(gte(dmsFile.created_at, new Date(input.dateRange.start)));
   }
   if (input.dateRange?.end) {
-    conditions.push(lte(dmsFile.createdAt, new Date(input.dateRange.end)));
+    conditions.push(lte(dmsFile.created_at, new Date(input.dateRange.end)));
   }
   if (input.sizeRange?.min !== undefined) {
     conditions.push(gte(dmsFile.size, input.sizeRange.min));
@@ -183,7 +183,7 @@ export async function searchFiles(
 
   const orderBy = buildSortOrder(input.sort, resolveSortField);
   if (orderBy.length === 0) {
-    orderBy.push(desc(dmsFile.createdAt));
+    orderBy.push(desc(dmsFile.created_at));
   }
 
   return db
@@ -214,7 +214,7 @@ export async function searchItems(
 
   if (input.type !== "file") {
     const folderConditions = [
-      eq(dmsFolder.isTrashed, false),
+      eq(dmsFolder.is_trashed, false),
       ilike(dmsFolder.name, `%${escapeLike(input.query)}%`),
     ];
     folders.push(
@@ -307,7 +307,7 @@ function findMatchInFile(file: DmsFile, query: string): { field: string; value: 
     }
   }
 
-  const { fieldValues: fields } = file;
+  const { field_values: fields } = file;
   if (fields) {
     for (const [key, raw] of Object.entries(fields)) {
       const value = toText(raw);

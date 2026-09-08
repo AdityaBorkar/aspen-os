@@ -16,11 +16,11 @@ export const createLeaveEncashment = Workflow.name("hr.leave.create-leave-encash
     const [result] = await ctx.db
       .insert(leaveEncashment)
       .values({
-        employeeId: parsed.employeeId,
-        encashableDays: parsed.encashableDays,
-        encashedDays: parsed.encashedDays,
-        leavePeriod: parsed.leavePeriod,
-        leaveType: parsed.leaveType,
+        employee_id: parsed.employeeId,
+        encashable_days: parsed.encashableDays,
+        encashed_days: parsed.encashedDays,
+        leave_period: parsed.leavePeriod,
+        leave_type: parsed.leaveType,
       })
       .returning();
 

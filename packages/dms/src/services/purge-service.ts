@@ -64,7 +64,7 @@ async function resolveRetentionDays(
 ): Promise<number> {
   if (classId) {
     const [cls] = await db
-      .select({ retentionDays: dmsClass.retentionDays })
+      .select({ retentionDays: dmsClass.retention_days })
       .from(dmsClass)
       .where(eq(dmsClass.id, classId))
       .limit(1);
@@ -81,7 +81,7 @@ export async function isFileHeld(db: PostgresJsDatabase, fileId: string): Promis
   const [hold] = await db
     .select({ id: dmsLegalHold.id })
     .from(dmsLegalHold)
-    .where(and(eq(dmsLegalHold.fileId, fileId), isNull(dmsLegalHold.releasedAt)))
+    .where(and(eq(dmsLegalHold.file_id, fileId), isNull(dmsLegalHold.released_at)))
     .limit(1);
   return Boolean(hold);
 }
@@ -94,9 +94,9 @@ export async function getHeldFileIds(
     return new Set();
   }
   const rows = await db
-    .select({ fileId: dmsLegalHold.fileId })
+    .select({ fileId: dmsLegalHold.file_id })
     .from(dmsLegalHold)
-    .where(and(inArray(dmsLegalHold.fileId, fileIds), isNull(dmsLegalHold.releasedAt)));
+    .where(and(inArray(dmsLegalHold.file_id, fileIds), isNull(dmsLegalHold.released_at)));
   return new Set(rows.map((row) => row.fileId));
 }
 
@@ -110,15 +110,15 @@ export async function deleteFilePermanently(
   fileId: string,
 ): Promise<string[]> {
   const [current] = await db
-    .select({ storageKey: dmsFile.storageKey })
+    .select({ storageKey: dmsFile.storage_key })
     .from(dmsFile)
     .where(eq(dmsFile.id, fileId))
     .limit(1);
 
   const versionKeys = await db
-    .select({ storageKey: dmsFileVersion.storageKey })
+    .select({ storageKey: dmsFileVersion.storage_key })
     .from(dmsFileVersion)
-    .where(eq(dmsFileVersion.fileId, fileId));
+    .where(eq(dmsFileVersion.file_id, fileId));
 
   const keys = [current?.storageKey, ...versionKeys.map((version) => version.storageKey)].filter(
     (key): key is string => Boolean(key),
@@ -137,15 +137,15 @@ export async function deleteFilePermanently(
     await Promise.all([
       tx
         .delete(dmsEntityLabel)
-        .where(and(eq(dmsEntityLabel.entityType, "file"), eq(dmsEntityLabel.entityId, fileId))),
+        .where(and(eq(dmsEntityLabel.entity_type, "file"), eq(dmsEntityLabel.entity_id, fileId))),
       tx
         .delete(dmsShare)
-        .where(and(eq(dmsShare.entityType, "file"), eq(dmsShare.entityId, fileId))),
+        .where(and(eq(dmsShare.entity_type, "file"), eq(dmsShare.entity_id, fileId))),
       tx
         .delete(dmsPublicLink)
-        .where(and(eq(dmsPublicLink.entityType, "file"), eq(dmsPublicLink.entityId, fileId))),
-      tx.delete(dmsFileVersion).where(eq(dmsFileVersion.fileId, fileId)),
-      tx.delete(dmsLegalHold).where(eq(dmsLegalHold.fileId, fileId)),
+        .where(and(eq(dmsPublicLink.entity_type, "file"), eq(dmsPublicLink.entity_id, fileId))),
+      tx.delete(dmsFileVersion).where(eq(dmsFileVersion.file_id, fileId)),
+      tx.delete(dmsLegalHold).where(eq(dmsLegalHold.file_id, fileId)),
       tx.delete(dmsFile).where(eq(dmsFile.id, fileId)),
     ]);
   });
@@ -217,9 +217,9 @@ export async function runAutoPurge(deps: PurgeDeps): Promise<number> {
   // in chunks so a future pagination pass only needs to wrap this fetch.
   const files = await deps.db
     .select({
-      classId: dmsFile.classId,
-      deletedAt: dmsFile.deletedAt,
-      expiredAt: dmsFile.expiredAt,
+      classId: dmsFile.class_id,
+      deletedAt: dmsFile.deleted_at,
+      expiredAt: dmsFile.expired_at,
       id: dmsFile.id,
       status: dmsFile.status,
     })
@@ -282,9 +282,9 @@ export async function runAutoPurge(deps: PurgeDeps): Promise<number> {
     .from(dmsFolder)
     .where(
       and(
-        eq(dmsFolder.isTrashed, true),
-        isNotNull(dmsFolder.trashedAt),
-        lt(dmsFolder.trashedAt, folderCutoff),
+        eq(dmsFolder.is_trashed, true),
+        isNotNull(dmsFolder.trashed_at),
+        lt(dmsFolder.trashed_at, folderCutoff),
       ),
     );
 
@@ -314,11 +314,11 @@ export async function pruneVersions(
   const versions = await db
     .select({
       id: dmsFileVersion.id,
-      storageKey: dmsFileVersion.storageKey,
+      storageKey: dmsFileVersion.storage_key,
       version: dmsFileVersion.version,
     })
     .from(dmsFileVersion)
-    .where(eq(dmsFileVersion.fileId, fileId))
+    .where(eq(dmsFileVersion.file_id, fileId))
     .orderBy(desc(dmsFileVersion.version));
 
   if (versions.length <= maxVersions) {

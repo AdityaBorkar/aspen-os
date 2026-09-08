@@ -32,7 +32,7 @@ export const newFileVersion = Workflow.name("dms.version.new")
       throw new Error("Invalid file body: expected a string, Buffer, or ReadableStream.");
     }
 
-    const actorId = ctx.actorId ?? parsed.uploadedBy ?? file.ownerId;
+    const actorId = ctx.actorId ?? parsed.uploadedBy ?? file.owner_id;
 
     const { newVersion, updated } = await ctx.step.run("append-version", async () =>
       appendVersion(ctx.db, file, {

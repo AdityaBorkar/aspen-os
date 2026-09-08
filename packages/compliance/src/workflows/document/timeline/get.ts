@@ -18,37 +18,37 @@ const getDocumentTimeline = Workflow.name("document.timeline").handler(
       .from(complianceDocument)
       .where(
         and(
-          inArray(complianceDocument.verificationStatus, [...ACTIVE_DOCUMENT_STATUSES]),
+          inArray(complianceDocument.verification_status, [...ACTIVE_DOCUMENT_STATUSES]),
           or(
             and(
-              isNotNull(complianceDocument.expiryDate),
-              lte(complianceDocument.expiryDate, futureDateStr),
+              isNotNull(complianceDocument.expiry_date),
+              lte(complianceDocument.expiry_date, futureDateStr),
             ),
             and(
-              isNotNull(complianceDocument.dueDate),
-              lte(complianceDocument.dueDate, futureDateStr),
+              isNotNull(complianceDocument.due_date),
+              lte(complianceDocument.due_date, futureDateStr),
             ),
           ),
         ),
       )
-      .orderBy(asc(complianceDocument.expiryDate));
+      .orderBy(asc(complianceDocument.expiry_date));
 
     return docs.map((doc) => {
-      const targetDate = doc.expiryDate ?? doc.dueDate;
+      const targetDate = doc.expiry_date ?? doc.due_date;
       const daysRemaining = targetDate ? (daysUntil(targetDate) ?? 0) : 0;
       return {
-        assignedReviewer: doc.assignedReviewer,
-        assignedTo: doc.assignedTo,
+        assignedReviewer: doc.assigned_reviewer,
+        assignedTo: doc.assigned_to,
         category: doc.category,
         daysRemaining,
-        documentType: doc.documentType,
-        expiryDate: doc.expiryDate,
+        documentType: doc.document_type,
+        expiryDate: doc.expiry_date,
         id: doc.id,
-        isObligationGenerated: doc.obligationId !== null,
+        isObligationGenerated: doc.obligation_id !== null,
         name: doc.name,
-        remindersSent: doc.lastNotifiedAt !== null,
-        sourceModule: doc.sourceModule,
-        verificationStatus: doc.verificationStatus,
+        remindersSent: doc.last_notified_at !== null,
+        sourceModule: doc.source_module,
+        verificationStatus: doc.verification_status,
       };
     });
   },

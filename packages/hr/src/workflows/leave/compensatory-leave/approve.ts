@@ -29,28 +29,28 @@ export const approveCompensatoryLeave = Workflow.name("hr.leave.approve-compensa
     const updated = await ctx.db.transaction(async (tx) => {
       const allocation = await insertLeaveAllocation(tx, {
         carryForwardedDays: "0",
-        employeeId: request.employeeId,
+        employeeId: request.employee_id,
         leavePeriod,
-        leaveType: request.leaveType,
-        totalDays: request.numberOfDays,
+        leaveType: request.leave_type,
+        totalDays: request.number_of_days,
       });
 
       await insertLeaveLedgerEntry(tx, {
-        days: request.numberOfDays,
-        description: `Compensatory leave approved for work on ${request.workDate}`,
-        employeeId: request.employeeId,
-        leaveType: request.leaveType,
+        days: request.number_of_days,
+        description: `Compensatory leave approved for work on ${request.work_date}`,
+        employeeId: request.employee_id,
+        leaveType: request.leave_type,
         transactionType: "compensatory",
       });
 
       const [row] = await tx
         .update(compensatoryLeaveRequest)
         .set({
-          approvedAt: new Date(),
-          approvedBy,
-          leaveAllocation: allocation.id,
+          approved_at: new Date(),
+          approved_by: approvedBy,
+          leave_allocation: allocation.id,
           status: "approved",
-          updatedAt: new Date(),
+          updated_at: new Date(),
         })
         .where(eq(compensatoryLeaveRequest.id, id))
         .returning();

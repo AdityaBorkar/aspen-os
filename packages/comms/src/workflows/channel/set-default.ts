@@ -19,7 +19,7 @@ export const setDefaultChannel = Workflow.name("comms.channel.set-default")
     if (channel.status !== "active") {
       throw new Error(`Channel "${input.id}" must be active before it can be made the default.`);
     }
-    if (!channel.verifiedAt) {
+    if (!channel.verified_at) {
       throw new Error(
         `Channel "${input.id}" must be verified (channels.test) before it can be made the default.`,
       );
@@ -30,19 +30,19 @@ export const setDefaultChannel = Workflow.name("comms.channel.set-default")
     const updated = await ctx.step.run("set-default", async () => {
       await ctx.db
         .update(commsChannel)
-        .set({ isDefault: false })
+        .set({ is_default: false })
         .where(
           and(
-            eq(commsChannel.entityId, channel.entityId),
-            eq(commsChannel.entityType, channel.entityType),
+            eq(commsChannel.entity_id, channel.entity_id),
+            eq(commsChannel.entity_type, channel.entity_type),
             eq(commsChannel.type, channel.type),
-            eq(commsChannel.isDefault, true),
+            eq(commsChannel.is_default, true),
           ),
         );
 
       const [row] = await ctx.db
         .update(commsChannel)
-        .set({ isDefault: true, updatedAt: new Date() })
+        .set({ is_default: true, updated_at: new Date() })
         .where(eq(commsChannel.id, input.id))
         .returning();
 

@@ -20,8 +20,8 @@ export const resolveShareToken = Workflow.name("dms.share.resolve")
       .from(dmsShare)
       .where(
         and(
-          eq(dmsShare.shareToken, input.token),
-          or(isNull(dmsShare.expiresAt), gt(dmsShare.expiresAt, new Date())),
+          eq(dmsShare.share_token, input.token),
+          or(isNull(dmsShare.expires_at), gt(dmsShare.expires_at, new Date())),
         ),
       )
       .limit(1);
@@ -30,20 +30,20 @@ export const resolveShareToken = Workflow.name("dms.share.resolve")
       throw new Error("Invalid or expired share token.");
     }
 
-    const entity = await resolveEntity(ctx.db, share.entityType, share.entityId);
+    const entity = await resolveEntity(ctx.db, share.entity_type, share.entity_id);
     if (!entity?.isAccessible) {
       throw new Error(
-        share.entityType === "file"
+        share.entity_type === "file"
           ? "The shared file is not available."
           : "The shared folder is not available.",
       );
     }
 
-    if (share.entityType === "file") {
+    if (share.entity_type === "file") {
       const [file] = await ctx.db
-        .select({ storageKey: dmsFile.storageKey })
+        .select({ storageKey: dmsFile.storage_key })
         .from(dmsFile)
-        .where(eq(dmsFile.id, share.entityId))
+        .where(eq(dmsFile.id, share.entity_id))
         .limit(1);
       if (!file) {
         throw new Error("The shared file is not available.");
@@ -56,7 +56,7 @@ export const resolveShareToken = Workflow.name("dms.share.resolve")
       );
 
       return {
-        entityId: share.entityId,
+        entityId: share.entity_id,
         entityType: "file" as const,
         expiresIn: config.defaultDownloadLinkExpiry,
         url,
@@ -64,7 +64,7 @@ export const resolveShareToken = Workflow.name("dms.share.resolve")
     }
 
     return {
-      entityId: share.entityId,
+      entityId: share.entity_id,
       entityType: "folder" as const,
       expiresIn: config.defaultDownloadLinkExpiry,
       url: null,

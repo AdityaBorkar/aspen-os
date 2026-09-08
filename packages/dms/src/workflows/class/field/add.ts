@@ -15,7 +15,7 @@ export const addClassField = Workflow.name("dms.class.add-field")
     const parsed = parse(CreateClassFieldSchema, input);
 
     const [cls] = await ctx.db
-      .select({ id: dmsClass.id, isActive: dmsClass.isActive })
+      .select({ id: dmsClass.id, isActive: dmsClass.is_active })
       .from(dmsClass)
       .where(eq(dmsClass.id, parsed.classId))
       .limit(1);
@@ -30,14 +30,14 @@ export const addClassField = Workflow.name("dms.class.add-field")
     const [field] = await ctx.db
       .insert(dmsClassField)
       .values({
-        classId: parsed.classId,
-        defaultValue: parsed.defaultValue ?? null,
-        includeInSearch: parsed.includeInSearch,
-        isRequired: parsed.isRequired,
+        class_id: parsed.classId,
+        default_value: parsed.defaultValue ?? null,
+        include_in_search: parsed.includeInSearch,
+        is_required: parsed.isRequired,
         label: parsed.label,
         name: parsed.name,
         options: parsed.options ?? null,
-        sortOrder: parsed.sortOrder,
+        sort_order: parsed.sortOrder,
         type: parsed.type,
       })
       .returning();

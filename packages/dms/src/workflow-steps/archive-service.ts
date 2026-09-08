@@ -93,7 +93,7 @@ async function collectFiles({
     .select()
     .from(schemas.dmsFile)
     .where(
-      sql`${schemas.dmsFile.folderId} = (
+      sql`${schemas.dmsFile.folder_id} = (
         SELECT id FROM dms_folder WHERE path = ${folderPath}
       ) AND ${schemas.dmsFile.status} != 'trashed'`,
     );
@@ -132,7 +132,7 @@ async function generateZip({
     const chunk = files.slice(start, start + ZIP_CONCURRENCY);
     await Promise.all(
       chunk.map(async (file) => {
-        const data = await get({ key: file.storageKey });
+        const data = await get({ key: file.storage_key });
         const relativePath = file.path ? file.path.slice(basePathLength + 1) : file.name;
         zipEntries[relativePath] = new Uint8Array(data);
       }),

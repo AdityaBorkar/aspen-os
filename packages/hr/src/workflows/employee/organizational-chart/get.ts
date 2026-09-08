@@ -37,22 +37,22 @@ export const getOrganizationalChart = Workflow.name("hr.employee.get-organizatio
         .select({
           department: employee.department,
           designation: employee.designation,
-          firstName: employee.firstName,
+          firstName: employee.first_name,
           id: employee.id,
           image: employee.image,
-          lastName: employee.lastName,
-          reportsTo: employee.reportsTo,
+          lastName: employee.last_name,
+          reportsTo: employee.reports_to,
         })
         .from(employee)
         .where(and(...employeeConditions)),
       ctx.db
         .select({
-          employeeId: hrPositionAssignment.employeeId,
-          isPrimary: hrPositionAssignment.isPrimary,
-          positionId: hrPositionAssignment.positionId,
+          employeeId: hrPositionAssignment.employee_id,
+          isPrimary: hrPositionAssignment.is_primary,
+          positionId: hrPositionAssignment.position_id,
         })
         .from(hrPositionAssignment)
-        .where(isNull(hrPositionAssignment.toDate)),
+        .where(isNull(hrPositionAssignment.to_date)),
     ]);
 
     let employees = allEmployees;

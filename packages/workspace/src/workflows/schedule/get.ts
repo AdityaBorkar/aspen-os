@@ -11,7 +11,7 @@ export const getSchedule = Workflow.name("workspace.schedule.get")
   .input(GetInputSchema)
   .handler(async ({ id }, ctx) => {
     const schedule = await ctx.step.run(fetchScheduleStep, { id });
-    const dashboard = await ctx.step.run(fetchDashboardStep, { id: schedule.dashboardId });
+    const dashboard = await ctx.step.run(fetchDashboardStep, { id: schedule.dashboard_id });
     assertCanAccess(dashboard, ctx.actorId);
     return schedule;
   });

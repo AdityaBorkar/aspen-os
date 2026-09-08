@@ -18,9 +18,9 @@ export const removeLabel = Workflow.name("dms.label.remove")
       .delete(dmsEntityLabel)
       .where(
         and(
-          eq(dmsEntityLabel.entityId, entityId),
-          eq(dmsEntityLabel.entityType, entityType),
-          eq(dmsEntityLabel.labelId, labelId),
+          eq(dmsEntityLabel.entity_id, entityId),
+          eq(dmsEntityLabel.entity_type, entityType),
+          eq(dmsEntityLabel.label_id, labelId),
         ),
       );
 

@@ -22,11 +22,11 @@ export const rejectLeaveEncashment = Workflow.name("hr.leave.reject-leave-encash
     const [updated] = await ctx.db
       .update(leaveEncashment)
       .set({
-        rejectedAt: new Date(),
-        rejectedBy,
-        rejectionReason,
+        rejected_at: new Date(),
+        rejected_by: rejectedBy,
+        rejection_reason: rejectionReason,
         status: "rejected",
-        updatedAt: new Date(),
+        updated_at: new Date(),
       })
       .where(eq(leaveEncashment.id, id))
       .returning();

@@ -22,21 +22,21 @@ export const removeShare = Workflow.name("dms.share.remove")
       await ctx.audit.write({
         action: AUDIT_ACTION.SHARE_REVOKED,
         crudAction: "delete",
-        entityId: share.entityId,
+        entityId: share.entity_id,
         entityType: AUDIT_ENTITY_TYPE.SHARE,
         metadata: {
-          entityType: share.entityType,
-          granteeId: share.granteeId,
-          granteeType: share.granteeType,
+          entityType: share.entity_type,
+          granteeId: share.grantee_id,
+          granteeType: share.grantee_type,
           shareId: id,
         },
       });
 
       await ctx.pubsub.publish(SHARE_EVENTS.REVOKED, {
-        entityId: share.entityId,
-        entityType: share.entityType,
-        granteeId: share.granteeId,
-        granteeType: share.granteeType,
+        entityId: share.entity_id,
+        entityType: share.entity_type,
+        granteeId: share.grantee_id,
+        granteeType: share.grantee_type,
         shareId: id,
       });
     });

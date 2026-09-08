@@ -15,14 +15,14 @@ export const archiveClass = Workflow.name("dms.class.archive")
   .handler(async ({ id }, ctx) => {
     const cls = await ctx.step.run(fetchClassStep, { id });
 
-    if (!cls.isActive) {
+    if (!cls.is_active) {
       throw new Error(`Class "${id}" is already archived.`);
     }
 
     const [triaged] = await ctx.db
       .select({ id: dmsFile.id })
       .from(dmsFile)
-      .where(and(eq(dmsFile.classId, id), eq(dmsFile.status, "triaged")))
+      .where(and(eq(dmsFile.class_id, id), eq(dmsFile.status, "triaged")))
       .limit(1);
 
     if (triaged) {
@@ -31,7 +31,7 @@ export const archiveClass = Workflow.name("dms.class.archive")
 
     const [updated] = await ctx.db
       .update(dmsClass)
-      .set({ isActive: false, updatedAt: new Date() })
+      .set({ is_active: false, updated_at: new Date() })
       .where(eq(dmsClass.id, id))
       .returning();
 

@@ -21,13 +21,13 @@ export const updateExitInterview = Workflow.name("hr.lifecycle.update-exit-inter
 
     const updateData: Partial<typeof exitInterview.$inferInsert> = {
       ...rest,
-      updatedAt: new Date(),
+      updated_at: new Date(),
     };
     if (scheduledDate) {
-      updateData.scheduledDate = new Date(scheduledDate);
+      updateData.scheduled_date = new Date(scheduledDate);
     }
     if (completedDate) {
-      updateData.completedDate = new Date(completedDate);
+      updateData.completed_date = new Date(completedDate);
     }
 
     const [updated] = await ctx.db

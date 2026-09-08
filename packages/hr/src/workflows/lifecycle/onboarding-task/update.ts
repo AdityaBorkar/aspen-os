@@ -19,10 +19,10 @@ export const updateOnboardingTask = Workflow.name("hr.lifecycle.update-onboardin
 
     const updateData: Partial<typeof onboardingTask.$inferInsert> = {
       ...parsed,
-      updatedAt: new Date(),
+      updated_at: new Date(),
     };
     if (parsed.status === "completed") {
-      updateData.completedAt = new Date();
+      updateData.completed_at = new Date();
     }
 
     const [updated] = await ctx.db

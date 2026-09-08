@@ -21,11 +21,11 @@ export const deleteEvent = Workflow.name("calendar.event.delete")
         .delete(calendarReminder)
         .where(
           and(
-            eq(calendarReminder.targetType, REMINDER_TARGET.EVENT),
-            eq(calendarReminder.targetId, event.id),
+            eq(calendarReminder.target_type, REMINDER_TARGET.EVENT),
+            eq(calendarReminder.target_id, event.id),
           ),
         );
-      await tx.delete(calendarAttendee).where(eq(calendarAttendee.eventId, event.id));
+      await tx.delete(calendarAttendee).where(eq(calendarAttendee.event_id, event.id));
       await tx.delete(calendarEvent).where(eq(calendarEvent.id, event.id));
     });
 
@@ -39,7 +39,7 @@ export const deleteEvent = Workflow.name("calendar.event.delete")
       });
 
       await ctx.pubsub.publish(EVENT_EVENTS.DELETED, {
-        calendarId: event.calendarId,
+        calendarId: event.calendar_id,
         eventId: event.id,
       });
     });

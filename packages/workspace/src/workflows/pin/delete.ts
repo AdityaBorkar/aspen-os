@@ -19,9 +19,9 @@ export const unpinItem = Workflow.name("workspace.pin.delete")
     const parsed = parse(UnpinItemSchema, input);
 
     const [pin] = await ctx.db
-      .select({ itemId: workspacePin.itemId, itemType: workspacePin.itemType })
+      .select({ itemId: workspacePin.item_id, itemType: workspacePin.item_type })
       .from(workspacePin)
-      .where(and(eq(workspacePin.id, parsed.id), eq(workspacePin.userId, ctx.actorId)))
+      .where(and(eq(workspacePin.id, parsed.id), eq(workspacePin.user_id, ctx.actorId)))
       .limit(1);
 
     if (!pin) {
@@ -30,7 +30,7 @@ export const unpinItem = Workflow.name("workspace.pin.delete")
 
     await ctx.db
       .delete(workspacePin)
-      .where(and(eq(workspacePin.id, parsed.id), eq(workspacePin.userId, ctx.actorId)));
+      .where(and(eq(workspacePin.id, parsed.id), eq(workspacePin.user_id, ctx.actorId)));
 
     await ctx.audit.write({
       action: AUDIT_ACTION.UNPINNED,

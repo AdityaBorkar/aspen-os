@@ -15,7 +15,7 @@ export const deleteHolidayList = Workflow.name("hr.setup.delete-holiday-list")
 
     const [updated] = await ctx.db
       .update(holidayList)
-      .set({ isActive: false, updatedAt: new Date() })
+      .set({ is_active: false, updated_at: new Date() })
       .where(eq(holidayList.id, id))
       .returning();
 

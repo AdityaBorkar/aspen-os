@@ -41,25 +41,25 @@ export async function queryEvents(
   actorId: string,
   filters: EventFilters,
 ): Promise<(typeof calendarEvent.$inferSelect)[]> {
-  const conditions = [inArray(calendarEvent.calendarId, accessibleCalendarIds(db, actorId))];
+  const conditions = [inArray(calendarEvent.calendar_id, accessibleCalendarIds(db, actorId))];
 
   if (filters.calendarId) {
-    conditions.push(eq(calendarEvent.calendarId, filters.calendarId));
+    conditions.push(eq(calendarEvent.calendar_id, filters.calendarId));
   }
   if (filters.from) {
-    conditions.push(gte(calendarEvent.startsAt, filters.from));
+    conditions.push(gte(calendarEvent.starts_at, filters.from));
   }
   if (filters.to) {
-    conditions.push(lte(calendarEvent.startsAt, filters.to));
+    conditions.push(lte(calendarEvent.starts_at, filters.to));
   }
   if (filters.status) {
     conditions.push(eq(calendarEvent.status, filters.status));
   }
   if (filters.sourceType) {
-    conditions.push(eq(calendarEvent.sourceType, filters.sourceType));
+    conditions.push(eq(calendarEvent.source_type, filters.sourceType));
   }
   if (filters.sourceEntityId) {
-    conditions.push(eq(calendarEvent.sourceEntityId, filters.sourceEntityId));
+    conditions.push(eq(calendarEvent.source_entity_id, filters.sourceEntityId));
   }
   if (filters.search) {
     conditions.push(ilike(calendarEvent.title, `%${escapeLikePattern(filters.search)}%`));
@@ -69,7 +69,7 @@ export async function queryEvents(
     .select()
     .from(calendarEvent)
     .where(and(...conditions))
-    .orderBy(asc(calendarEvent.startsAt))
+    .orderBy(asc(calendarEvent.starts_at))
     .limit(filters.limit ?? 50)
     .offset(filters.offset ?? 0);
 }
@@ -87,14 +87,14 @@ export async function rescheduleOffsetReminders(
   await db
     .update(calendarReminder)
     .set({
-      remindAt: sql`${nextStartsAt} - (${calendarReminder.offsetMinutes} * INTERVAL '1 minute')`,
+      remind_at: sql`${nextStartsAt} - (${calendarReminder.offset_minutes} * INTERVAL '1 minute')`,
     })
     .where(
       and(
-        eq(calendarReminder.targetType, REMINDER_TARGET.EVENT),
-        eq(calendarReminder.targetId, eventId),
+        eq(calendarReminder.target_type, REMINDER_TARGET.EVENT),
+        eq(calendarReminder.target_id, eventId),
         eq(calendarReminder.type, REMINDER_TYPE.OFFSET),
-        isNotNull(calendarReminder.offsetMinutes),
+        isNotNull(calendarReminder.offset_minutes),
       ),
     );
 }

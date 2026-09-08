@@ -16,14 +16,14 @@ const listObligations = Workflow.name("obligation.list").handler(
       conditions.push(eq(complianceObligation.category, parsed.category));
     }
     if (parsed.sourceModule) {
-      conditions.push(eq(complianceObligation.sourceModule, parsed.sourceModule));
+      conditions.push(eq(complianceObligation.source_module, parsed.sourceModule));
     }
     const active = parsed.isActive ?? parsed.active;
     if (active !== undefined) {
-      conditions.push(eq(complianceObligation.isActive, active));
+      conditions.push(eq(complianceObligation.is_active, active));
     }
     if (parsed.expiryBased !== undefined) {
-      conditions.push(eq(complianceObligation.expiryBased, parsed.expiryBased));
+      conditions.push(eq(complianceObligation.expiry_based, parsed.expiryBased));
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
@@ -32,7 +32,7 @@ const listObligations = Workflow.name("obligation.list").handler(
       .select()
       .from(complianceObligation)
       .where(whereClause)
-      .orderBy(desc(complianceObligation.updatedAt))
+      .orderBy(desc(complianceObligation.updated_at))
       .$dynamic();
 
     if (parsed.limit !== undefined) {

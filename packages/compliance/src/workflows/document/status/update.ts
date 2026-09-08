@@ -29,16 +29,16 @@ const updateDocumentStatus = Workflow.name("document.update-status").handler(
       );
     }
     const current = await ctx.step.run(fetchDocumentStep, { id });
-    if (current.verificationStatus === status) {
+    if (current.verification_status === status) {
       return current;
     }
 
-    assertTransitionAllowed(current.verificationStatus, status);
+    assertTransitionAllowed(current.verification_status, status);
 
     const now = new Date();
     const [updated] = await ctx.db
       .update(complianceDocument)
-      .set({ updatedAt: now, verificationStatus: status })
+      .set({ updated_at: now, verification_status: status })
       .where(eq(complianceDocument.id, id))
       .returning();
 
@@ -51,7 +51,7 @@ const updateDocumentStatus = Workflow.name("document.update-status").handler(
       actorId: performedBy ?? undefined,
       entityId: id,
       entityType: "compliance_document",
-      previousState: { verificationStatus: current.verificationStatus },
+      previousState: { verification_status: current.verification_status },
     });
 
     return updated;

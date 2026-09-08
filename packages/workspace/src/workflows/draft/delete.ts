@@ -17,7 +17,7 @@ export const deleteDraft = Workflow.name("workspace.draft.delete")
     await assertCanMutate(draft, ctx.actorId);
 
     await ctx.step.run("delete-comments", async () => {
-      await ctx.db.delete(workspaceDraftComment).where(eq(workspaceDraftComment.draftId, id));
+      await ctx.db.delete(workspaceDraftComment).where(eq(workspaceDraftComment.draft_id, id));
     });
 
     await ctx.db.delete(workspaceDraft).where(eq(workspaceDraft.id, id));

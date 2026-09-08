@@ -68,7 +68,7 @@ export const fetchEventCalendarStep = WorkflowStep.name("calendar-fetch-event-ca
   .input(object({ eventId: string() }))
   .handler(async ({ eventId }, ctx) => {
     const [event] = await ctx.db
-      .select({ calendarId: calendarEvent.calendarId })
+      .select({ calendarId: calendarEvent.calendar_id })
       .from(calendarEvent)
       .where(eq(calendarEvent.id, eventId))
       .limit(1);

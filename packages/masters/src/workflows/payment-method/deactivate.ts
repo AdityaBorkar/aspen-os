@@ -12,13 +12,13 @@ export const deactivatePaymentMethod = Workflow.name("masters.payment-method.dea
   .handler(async (input, ctx) => {
     const current = await ctx.step.run(fetchPaymentMethodStep, { id: input.id });
 
-    if (!current.isActive) {
+    if (!current.is_active) {
       return current;
     }
 
     const [updated] = await ctx.db
       .update(masterPaymentMethod)
-      .set({ isActive: false, updatedAt: new Date() })
+      .set({ is_active: false, updated_at: new Date() })
       .where(eq(masterPaymentMethod.id, input.id))
       .returning();
 
@@ -34,8 +34,8 @@ export const deactivatePaymentMethod = Workflow.name("masters.payment-method.dea
       });
 
       await ctx.pubsub.publish(PAYMENT_METHOD_EVENTS.DEACTIVATED, {
-        entityId: updated.entityId,
-        entityType: updated.entityType,
+        entityId: updated.entity_id,
+        entityType: updated.entity_type,
         paymentMethodId: updated.id,
       });
     });

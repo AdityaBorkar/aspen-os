@@ -33,17 +33,17 @@ export const listContacts = Workflow.name("dms.contact.list")
     const conditions: SQL[] = [];
     const isRemoved = coerceIsRemoved(input.filters?.isRemoved);
     if (isRemoved === undefined) {
-      conditions.push(eq(dmsContact.isRemoved, false));
+      conditions.push(eq(dmsContact.is_removed, false));
     } else {
-      conditions.push(eq(dmsContact.isRemoved, isRemoved));
+      conditions.push(eq(dmsContact.is_removed, isRemoved));
     }
     if (input.filters?.search) {
       const term = `%${input.filters.search}%`;
       const searchCondition = or(
-        ilike(dmsContact.firstName, term),
-        ilike(dmsContact.lastName, term),
+        ilike(dmsContact.first_name, term),
+        ilike(dmsContact.last_name, term),
         ilike(dmsContact.email, term),
-        ilike(dmsContact.companyName, term),
+        ilike(dmsContact.company_name, term),
       );
       if (searchCondition) {
         conditions.push(searchCondition);
@@ -54,5 +54,5 @@ export const listContacts = Workflow.name("dms.contact.list")
       .select()
       .from(dmsContact)
       .where(and(...conditions))
-      .orderBy(dmsContact.lastName);
+      .orderBy(dmsContact.last_name);
   });

@@ -31,7 +31,7 @@ export const updateClass = Workflow.name("dms.class.update")
 
     const [updated] = await ctx.db
       .update(dmsClass)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates, updated_at: new Date() })
       .where(eq(dmsClass.id, id))
       .returning();
 
@@ -45,16 +45,16 @@ export const updateClass = Workflow.name("dms.class.update")
       await ctx.audit.write({
         action: AUDIT_ACTION.UPDATED,
         changes: ctx.audit.diff(
-          { name: current.name, retentionDays: current.retentionDays },
-          { name: updated.name, retentionDays: updated.retentionDays },
+          { name: current.name, retention_days: current.retention_days },
+          { name: updated.name, retention_days: updated.retention_days },
         ) as Record<string, JsonValue> | undefined,
         crudAction: "update",
         entityId: id,
         entityType: AUDIT_ENTITY_TYPE.CLASS,
-        newState: { name: updated.name, retentionDays: updated.retentionDays },
+        newState: { name: updated.name, retention_days: updated.retention_days },
         previousState: {
           name: current.name,
-          retentionDays: current.retentionDays,
+          retentionDays: current.retention_days,
         },
       });
 

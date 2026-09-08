@@ -18,12 +18,12 @@ export const listLabels = Workflow.name("dms.label.list")
 
     if (parsed.ownerId) {
       if (parsed.includeGlobal) {
-        conditions.push(or(eq(dmsLabel.isGlobal, true), eq(dmsLabel.ownerId, parsed.ownerId)));
+        conditions.push(or(eq(dmsLabel.is_global, true), eq(dmsLabel.owner_id, parsed.ownerId)));
       } else {
-        conditions.push(eq(dmsLabel.ownerId, parsed.ownerId));
+        conditions.push(eq(dmsLabel.owner_id, parsed.ownerId));
       }
     } else if (parsed.includeGlobal) {
-      conditions.push(eq(dmsLabel.isGlobal, true));
+      conditions.push(eq(dmsLabel.is_global, true));
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;

@@ -6,7 +6,7 @@ import { getContext } from "@aspen-os/platform/server";
 
 export interface AccessScopedRow {
   access: NotesAccess;
-  ownerId: string;
+  owner_id: string;
 }
 
 const ADMIN_ROLE = "admin";
@@ -34,7 +34,7 @@ export async function assertCanAccess(
   auth?: AuthUnit,
 ): Promise<void> {
   const actor = requireActorId(actorId);
-  if (row.access === NOTES_ACCESS.GLOBAL || row.ownerId === actor) {
+  if (row.access === NOTES_ACCESS.GLOBAL || row.owner_id === actor) {
     return;
   }
   if (await isTenantAdmin(actor, auth)) {
@@ -49,7 +49,7 @@ export async function assertCanMutate(
   auth?: AuthUnit,
 ): Promise<void> {
   const actor = requireActorId(actorId);
-  if (row.ownerId === actor) {
+  if (row.owner_id === actor) {
     return;
   }
   if (await isTenantAdmin(actor, auth)) {

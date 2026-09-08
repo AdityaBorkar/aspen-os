@@ -10,7 +10,7 @@ const getOverdueDocuments = Workflow.name("document.overdue").handler(
       .select()
       .from(complianceDocument)
       .where(overdueCondition())
-      .orderBy(asc(complianceDocument.dueDate)),
+      .orderBy(asc(complianceDocument.due_date)),
 );
 
 export { getOverdueDocuments };

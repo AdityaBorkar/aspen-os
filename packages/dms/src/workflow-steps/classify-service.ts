@@ -5,15 +5,7 @@ import type { JsonValue } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
-export interface ClassFieldRow {
-  defaultValue: JsonValue | null;
-  isActive: boolean;
-  isRequired: boolean;
-  label: string;
-  name: string;
-  options: JsonValue | null;
-  type: string;
-}
+export type ClassFieldRow = typeof dmsClassField.$inferSelect;
 
 export interface FieldValidationResult {
   errors: { message: string; name: string }[];
@@ -27,7 +19,7 @@ export async function getActiveFields(
   const rows = await db
     .select()
     .from(dmsClassField)
-    .where(and(eq(dmsClassField.classId, classId), eq(dmsClassField.isActive, true)));
+    .where(and(eq(dmsClassField.class_id, classId), eq(dmsClassField.is_active, true)));
   return rows;
 }
 
@@ -46,12 +38,12 @@ export function validateFieldValues(
 
   for (const field of fields) {
     let value = values[field.name];
-    if (value === undefined && field.defaultValue != null) {
-      value = field.defaultValue;
+    if (value === undefined && field.default_value != null) {
+      value = field.default_value;
     }
 
     const isEmpty = value === undefined || value === null || value === "";
-    if (field.isRequired && isEmpty) {
+    if (field.is_required && isEmpty) {
       missing.push(field.name);
       errors.push({
         message: `Field "${field.label}" is required.`,

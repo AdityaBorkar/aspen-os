@@ -19,7 +19,7 @@ export const updateAttendee = Workflow.name("calendar.attendee.update")
     const parsed = parse(UpdateAttendeeSchema, input);
 
     const existing = await ctx.step.run(fetchAttendeeStep, { id });
-    const cal = await ctx.step.run(fetchEventCalendarStep, { eventId: existing.eventId });
+    const cal = await ctx.step.run(fetchEventCalendarStep, { eventId: existing.event_id });
 
     await assertCanMutate(cal, ctx.actorId, ctx.db);
 
@@ -56,7 +56,7 @@ export const updateAttendee = Workflow.name("calendar.attendee.update")
       await ctx.pubsub.publish(ATTENDEE_EVENTS.UPDATED, {
         attendee: toAttendeePayload(updated),
         calendarId: cal.id,
-        eventId: updated.eventId,
+        eventId: updated.event_id,
       });
     });
 

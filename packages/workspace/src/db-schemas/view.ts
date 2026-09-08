@@ -10,31 +10,31 @@ import { workspaceAccessEnum } from "./enums";
 export const workspaceView = pgTable(
   "workspace_view",
   {
-    access: workspaceAccessEnum("access").notNull().default("personal"),
-    conditions: jsonb("conditions")
+    access: workspaceAccessEnum().notNull().default("personal"),
+    conditions: jsonb()
       .notNull()
       .$type<ViewCondition[]>()
       .default(sql`'[]'::jsonb`),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    domain: text("domain").notNull(),
-    groupBy: text("group_by"),
-    id: uuidv7("id").primaryKey(),
-    isDefault: boolean("is_default").notNull().default(false),
-    metadata: jsonb("metadata").$type<Record<string, JsonValue>>(),
-    name: text("name").notNull(),
-    ownerId: text("owner_id").notNull(),
-    sort: jsonb("sort")
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    domain: text().notNull(),
+    group_by: text(),
+    id: uuidv7().primaryKey(),
+    is_default: boolean().notNull().default(false),
+    metadata: jsonb().$type<Record<string, JsonValue>>(),
+    name: text().notNull(),
+    owner_id: text().notNull(),
+    sort: jsonb()
       .notNull()
       .$type<ViewSort[]>()
       .default(sql`'[]'::jsonb`),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
+    updated_at: timestamp({ withTimezone: true })
       .notNull()
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
   (table) => [
     index("idx_workspace_view_domain_access").on(table.domain, table.access),
-    index("idx_workspace_view_owner").on(table.ownerId),
+    index("idx_workspace_view_owner").on(table.owner_id),
   ],
 );
 

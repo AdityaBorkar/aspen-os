@@ -123,13 +123,13 @@ async function processMessage(
   message: typeof commsMessage.$inferSelect,
   deps: DeliveryWorkerDeps,
 ): Promise<void> {
-  const { channelId } = message;
+  const { channel_id: channelId } = message;
   if (!channelId) {
     await failMessageOnControlPlane(deps, message, "Message has no channelId.");
     return;
   }
 
-  const tenantId = message.tenantId ?? tenantIdFromMetadata(message.metadata);
+  const tenantId = message.tenant_id ?? tenantIdFromMetadata(message.metadata);
   if (!tenantId) {
     await failMessageOnControlPlane(
       deps,
@@ -167,20 +167,20 @@ async function processMessage(
     }
 
     const controlPlane = deps.db.controlPlaneDb;
-    const provider = channel.providerId
+    const provider = channel.provider_id
       ? await resolveChannelProvider(channel, controlPlane)
       : null;
 
-    const template = message.templateId
+    const template = message.template_id
       ? await db
           .select()
           .from(commsTemplate)
-          .where(eq(commsTemplate.id, message.templateId))
+          .where(eq(commsTemplate.id, message.template_id))
           .limit(1)
           .then((rows) => rows[0] ?? null)
       : null;
 
-    if (message.channelType === "whatsapp" && !template?.providerTemplateId) {
+    if (message.channel_type === "whatsapp" && !template?.provider_template_id) {
       await recordOutcome({
         db,
         deps,
@@ -210,7 +210,7 @@ async function processMessage(
             : providerKindForChannel(channel.type, credential),
         message: {
           body: message.body,
-          providerTemplateId: template?.providerTemplateId ?? null,
+          providerTemplateId: template?.provider_template_id ?? null,
           subject: message.subject,
           to: message.to,
         },
@@ -220,15 +220,15 @@ async function processMessage(
       await db
         .update(commsMessage)
         .set({
-          providerMessageId: result.providerMessageId,
-          sentAt: now,
+          provider_message_id: result.providerMessageId,
+          sent_at: now,
           status: "sent",
         })
         .where(eq(commsMessage.id, message.id));
 
       await db
         .update(commsChannel)
-        .set({ lastUsedAt: now, updatedAt: now })
+        .set({ last_used_at: now, updated_at: now })
         .where(eq(commsChannel.id, channel.id));
 
       await deps.pubsub.publish(MESSAGE_EVENTS.SENT, {
@@ -333,7 +333,7 @@ async function recordOutcome({
     .update(commsMessage)
     .set({
       attempts: sql`${commsMessage.attempts} + 1`,
-      lastError: error,
+      last_error: error,
       status: terminal ? "failed" : "queued",
     })
     .where(eq(commsMessage.id, message.id))
@@ -360,7 +360,7 @@ async function failMessageOnControlPlane(
   // atomic column arithmetic.
   await db
     .update(commsMessage)
-    .set({ attempts: sql`${commsMessage.attempts} + 1`, lastError: error, status: "failed" })
+    .set({ attempts: sql`${commsMessage.attempts} + 1`, last_error: error, status: "failed" })
     .where(eq(commsMessage.id, message.id));
   await deps.pubsub.publish(MESSAGE_EVENTS.FAILED, {
     attempts: message.attempts + 1,

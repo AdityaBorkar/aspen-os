@@ -31,7 +31,7 @@ const updateDocument = Workflow.name("document.update").handler(
     const current = await ctx.step.run(fetchDocumentStep, { id });
     const parsed = parse(UpdateComplianceDocumentSchema, patch);
 
-    const updateData: Partial<NewComplianceDocument> = { updatedAt: new Date() };
+    const updateData: Partial<NewComplianceDocument> = { updated_at: new Date() };
 
     for (const [key, value] of Object.entries(parsed)) {
       if (value === undefined) {
@@ -61,7 +61,7 @@ const updateDocument = Workflow.name("document.update").handler(
 
     await ctx.audit.write({
       action: "updated",
-      actorId: current.createdBy,
+      actorId: current.created_by,
       changes,
       crudAction: "update",
       entityId: id,

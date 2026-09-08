@@ -25,7 +25,7 @@ export const importDashboard = Workflow.name("workspace.dashboard.import")
         description: parsed.dashboard.description ?? null,
         metadata: parsed.dashboard.metadata,
         name: parsed.dashboard.name,
-        ownerId,
+        owner_id: ownerId,
       })
       .returning();
 
@@ -43,12 +43,12 @@ export const importDashboard = Workflow.name("workspace.dashboard.import")
             .insert(workspaceWidget)
             .values({
               config,
-              dashboardId: dashboard.id,
+              dashboard_id: dashboard.id,
               domain: snapshot.domain ?? null,
               filter: snapshot.filter ?? null,
               title: snapshot.title,
               type: snapshot.type,
-              viewId: snapshot.viewId ?? null,
+              view_id: snapshot.viewId ?? null,
             })
             .returning();
           return { index, inserted };
@@ -81,7 +81,7 @@ export const importDashboard = Workflow.name("workspace.dashboard.import")
 
     await ctx.db
       .update(workspaceDashboard)
-      .set({ layout, updatedAt: new Date() })
+      .set({ layout, updated_at: new Date() })
       .where(eq(workspaceDashboard.id, dashboard.id));
 
     await ctx.audit.write({
@@ -95,7 +95,7 @@ export const importDashboard = Workflow.name("workspace.dashboard.import")
     await ctx.pubsub.publish(DASHBOARD_EVENTS.CREATED, {
       access: dashboard.access,
       dashboardId: dashboard.id,
-      ownerId: dashboard.ownerId,
+      ownerId: dashboard.owner_id,
     });
 
     return dashboard;

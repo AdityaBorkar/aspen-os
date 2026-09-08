@@ -21,7 +21,7 @@ export const markLeaveEncashmentPaid = Workflow.name("hr.leave.mark-leave-encash
       .update(leaveEncashment)
       .set({
         status: "paid",
-        updatedAt: new Date(),
+        updated_at: new Date(),
       })
       .where(eq(leaveEncashment.id, id))
       .returning();

@@ -19,7 +19,7 @@ export const getDepartmentSubtree = Workflow.name("hr.setup.get-department-subtr
     await fetchDepartmentById(ctx.db, id);
 
     const [activeDepartments, counts] = await Promise.all([
-      ctx.db.select().from(department).where(eq(department.isActive, true)),
+      ctx.db.select().from(department).where(eq(department.is_active, true)),
       getDepartmentCounts(ctx.db),
     ]);
 

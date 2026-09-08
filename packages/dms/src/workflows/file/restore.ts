@@ -19,29 +19,29 @@ export const restoreFile = Workflow.name("dms.file.restore")
       throw new Error(`File "${id}" is not in the trash.`);
     }
 
-    let { folderId } = file;
-    if (folderId) {
+    let { folder_id } = file;
+    if (folder_id) {
       const [folder] = await ctx.db
-        .select({ id: dmsFolder.id, isTrashed: dmsFolder.isTrashed })
+        .select({ id: dmsFolder.id, isTrashed: dmsFolder.is_trashed })
         .from(dmsFolder)
-        .where(eq(dmsFolder.id, folderId))
+        .where(eq(dmsFolder.id, folder_id))
         .limit(1);
       if (!folder || folder.isTrashed) {
-        folderId = null;
+        folder_id = null;
       }
     }
 
     const [updated] = await ctx.db
       .update(dmsFile)
       .set({
-        deletedAt: null,
-        deletedBy: null,
-        expiredAt: null,
-        expiryDate: expiryDate ?? null,
-        folderId,
-        path: folderId ? file.path : null,
+        deleted_at: null,
+        deleted_by: null,
+        expired_at: null,
+        expiry_date: expiryDate ?? null,
+        folder_id,
+        path: folder_id ? file.path : null,
         status: "active",
-        updatedAt: new Date(),
+        updated_at: new Date(),
       })
       .where(eq(dmsFile.id, id))
       .returning();

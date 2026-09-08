@@ -17,7 +17,7 @@ export const pauseSchedule = Workflow.name("workspace.schedule.pause")
   .input(PauseInputSchema)
   .handler(async ({ id }, ctx) => {
     const schedule = await ctx.step.run(fetchScheduleStep, { id });
-    const dashboard = await ctx.step.run(fetchDashboardStep, { id: schedule.dashboardId });
+    const dashboard = await ctx.step.run(fetchDashboardStep, { id: schedule.dashboard_id });
     await assertCanMutate(dashboard, ctx.actorId);
 
     await ctx.step.run("unregister-cron", async () => {
@@ -26,7 +26,7 @@ export const pauseSchedule = Workflow.name("workspace.schedule.pause")
 
     const [updated] = await ctx.db
       .update(workspaceSchedule)
-      .set({ isActive: false, updatedAt: new Date() })
+      .set({ is_active: false, updated_at: new Date() })
       .where(eq(workspaceSchedule.id, id))
       .returning();
 
@@ -39,11 +39,11 @@ export const pauseSchedule = Workflow.name("workspace.schedule.pause")
       crudAction: "update",
       entityId: id,
       entityType: AUDIT_ENTITY_TYPE.SCHEDULE,
-      metadata: { dashboardId: schedule.dashboardId },
+      metadata: { dashboard_id: schedule.dashboard_id },
     });
 
     await ctx.pubsub.publish(DASHBOARD_EVENTS.UNSCHEDULED, {
-      dashboardId: schedule.dashboardId,
+      dashboardId: schedule.dashboard_id,
       scheduleId: id,
     });
 

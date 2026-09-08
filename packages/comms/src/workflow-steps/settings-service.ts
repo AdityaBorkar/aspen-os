@@ -27,7 +27,7 @@ export async function setSetting(db: DB, key: string, value: JsonValue): Promise
   await (existing[0]
     ? db
         .update(commsSetting)
-        .set({ updatedAt: new Date(), value })
+        .set({ updated_at: new Date(), value })
         .where(eq(commsSetting.id, existing[0].id))
     : db.insert(commsSetting).values({ key, value }));
 }

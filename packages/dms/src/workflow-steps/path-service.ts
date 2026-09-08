@@ -45,7 +45,7 @@ async function getAncestors(
       .select({
         id: schemas.dmsFolder.id,
         name: schemas.dmsFolder.name,
-        parentId: schemas.dmsFolder.parentId,
+        parentId: schemas.dmsFolder.parent_id,
         path: schemas.dmsFolder.path,
       })
       .from(schemas.dmsFolder)
@@ -160,7 +160,7 @@ export async function cascadePaths(
       const updatedPath = newPath + folder.path.slice(oldPath.length);
       await db
         .update(schemas.dmsFolder)
-        .set({ path: updatedPath, updatedAt: now })
+        .set({ path: updatedPath, updated_at: now })
         .where(eq(schemas.dmsFolder.id, folder.id));
     }),
   );
@@ -178,7 +178,7 @@ export async function cascadePaths(
       const updatedPath = newPath + file.path.slice(oldPath.length);
       await db
         .update(schemas.dmsFile)
-        .set({ path: updatedPath, updatedAt: now })
+        .set({ path: updatedPath, updated_at: now })
         .where(eq(schemas.dmsFile.id, file.id));
     }),
   );
@@ -254,7 +254,7 @@ export async function checkNameUniqueness({
 
   const folderConditions = [
     sql`lower(${schemas.dmsFolder.path}) = ${lowerPath}`,
-    eq(schemas.dmsFolder.isTrashed, false),
+    eq(schemas.dmsFolder.is_trashed, false),
   ];
   if (excludeId) {
     folderConditions.push(sql`${schemas.dmsFolder.id} != ${excludeId}`);

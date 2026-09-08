@@ -17,18 +17,18 @@ export function toDays(value: string, label: string): number {
 }
 
 interface LeaveBalanceColumns {
-  carryForwardedDays: string;
-  earnedDays: string;
-  totalDays: string;
-  usedDays: string;
+  carry_forwarded_days: string;
+  earned_days: string;
+  total_days: string;
+  used_days: string;
 }
 
 export function remainingDays(allocation: LeaveBalanceColumns): number {
   return (
-    toDays(allocation.totalDays, "totalDays") +
-    toDays(allocation.carryForwardedDays, "carryForwardedDays") +
-    toDays(allocation.earnedDays, "earnedDays") -
-    toDays(allocation.usedDays, "usedDays")
+    toDays(allocation.total_days, "totalDays") +
+    toDays(allocation.carry_forwarded_days, "carryForwardedDays") +
+    toDays(allocation.earned_days, "earnedDays") -
+    toDays(allocation.used_days, "usedDays")
   );
 }
 
@@ -41,10 +41,10 @@ export interface AllocationDays {
 }
 
 export function allocationDays(allocation: LeaveBalanceColumns): AllocationDays {
-  const allocated = toDays(allocation.totalDays, "totalDays");
-  const carryForwarded = toDays(allocation.carryForwardedDays, "carryForwardedDays");
-  const earned = toDays(allocation.earnedDays, "earnedDays");
-  const used = toDays(allocation.usedDays, "usedDays");
+  const allocated = toDays(allocation.total_days, "totalDays");
+  const carryForwarded = toDays(allocation.carry_forwarded_days, "carryForwardedDays");
+  const earned = toDays(allocation.earned_days, "earnedDays");
+  const used = toDays(allocation.used_days, "usedDays");
   return {
     allocated,
     carryForwarded,
@@ -66,9 +66,9 @@ export async function checkLeaveBlockList(
     .from(leaveBlockList)
     .where(
       and(
-        eq(leaveBlockList.isActive, true),
-        sql`${leaveBlockList.fromDate} <= ${toDate}`,
-        sql`${leaveBlockList.toDate} >= ${fromDate}`,
+        eq(leaveBlockList.is_active, true),
+        sql`${leaveBlockList.from_date} <= ${toDate}`,
+        sql`${leaveBlockList.to_date} >= ${fromDate}`,
       ),
     );
 
@@ -96,8 +96,8 @@ export async function checkLeaveBalance(
       .from(leaveAllocation)
       .where(
         and(
-          eq(leaveAllocation.employeeId, employeeId),
-          eq(leaveAllocation.leaveType, leaveTypeName),
+          eq(leaveAllocation.employee_id, employeeId),
+          eq(leaveAllocation.leave_type, leaveTypeName),
           eq(leaveAllocation.status, "active"),
         ),
       ),
@@ -106,7 +106,7 @@ export async function checkLeaveBalance(
 
   const [allocation] = allocations;
   if (!allocation) {
-    if (!leaveTypeRecord.allowNegativeBalance) {
+    if (!leaveTypeRecord.allow_negative_balance) {
       throw new Error(`No active leave allocation found for leave type "${leaveTypeName}".`);
     }
     return;
@@ -114,7 +114,7 @@ export async function checkLeaveBalance(
 
   const available = remainingDays(allocation);
 
-  if (days > available && !leaveTypeRecord.allowNegativeBalance) {
+  if (days > available && !leaveTypeRecord.allow_negative_balance) {
     throw new Error(
       `Insufficient leave balance. Available: ${available} days, Requested: ${days} days.`,
     );
@@ -141,14 +141,14 @@ export async function insertLeaveAllocation(
   const [result] = await db
     .insert(leaveAllocation)
     .values({
-      carryForwardedDays: input.carryForwardedDays,
-      earnedDays: input.earnedDays ?? "0",
-      employeeId: input.employeeId,
-      leavePeriod: input.leavePeriod,
-      leavePolicyAssignment: input.leavePolicyAssignment ?? null,
-      leaveType: input.leaveType,
-      totalDays: input.totalDays,
-      usedDays: input.usedDays ?? "0",
+      carry_forwarded_days: input.carryForwardedDays,
+      earned_days: input.earnedDays ?? "0",
+      employee_id: input.employeeId,
+      leave_period: input.leavePeriod,
+      leave_policy_assignment: input.leavePolicyAssignment ?? null,
+      leave_type: input.leaveType,
+      total_days: input.totalDays,
+      used_days: input.usedDays ?? "0",
     })
     .returning();
 
@@ -162,7 +162,7 @@ export async function insertLeaveAllocation(
 export async function updateLeaveAllocation(db: Db, id: string, patch: { usedDays: string }) {
   const [updated] = await db
     .update(leaveAllocation)
-    .set({ ...patch, updatedAt: new Date() })
+    .set({ ...patch, updated_at: new Date() })
     .where(eq(leaveAllocation.id, id))
     .returning();
 
@@ -180,7 +180,7 @@ export async function adjustAllocationUsage(
   adjustment: { deltaDays: number; floorAtZero: boolean },
 ) {
   const allocation = await fetchLeaveAllocationById(db, allocationId);
-  const next = toDays(allocation.usedDays, "usedDays") + adjustment.deltaDays;
+  const next = toDays(allocation.used_days, "usedDays") + adjustment.deltaDays;
   return updateLeaveAllocation(db, allocationId, {
     usedDays: (adjustment.floorAtZero ? Math.max(0, next) : next).toString(),
   });
@@ -202,10 +202,10 @@ export async function insertLeaveLedgerEntry(
     .values({
       days: input.days,
       description: input.description,
-      employeeId: input.employeeId,
-      leaveApplication: input.leaveApplication ?? null,
-      leaveType: input.leaveType,
-      transactionType: input.transactionType,
+      employee_id: input.employeeId,
+      leave_application: input.leaveApplication ?? null,
+      leave_type: input.leaveType,
+      transaction_type: input.transactionType,
     })
     .returning();
 

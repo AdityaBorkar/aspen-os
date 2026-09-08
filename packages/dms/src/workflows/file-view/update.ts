@@ -27,7 +27,7 @@ export const updateFileView = Workflow.name("dms.file-view.update")
       // default flips cannot leave two defaults for one owner.
       if (updates.isDefault === true) {
         const [current] = await tx
-          .select({ ownerId: dmsFileView.ownerId })
+          .select({ ownerId: dmsFileView.owner_id })
           .from(dmsFileView)
           .where(eq(dmsFileView.id, id))
           .limit(1);
@@ -39,7 +39,7 @@ export const updateFileView = Workflow.name("dms.file-view.update")
 
       const [next] = await tx
         .update(dmsFileView)
-        .set({ ...updates, updatedAt: new Date() })
+        .set({ ...updates, updated_at: new Date() })
         .where(eq(dmsFileView.id, id))
         .returning();
       return next;

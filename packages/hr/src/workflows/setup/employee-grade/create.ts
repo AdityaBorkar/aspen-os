@@ -16,7 +16,7 @@ export const createEmployeeGrade = Workflow.name("hr.setup.create-employee-grade
     const [result] = await ctx.db
       .insert(employeeGrade)
       .values({
-        defaultSalaryStructure: parsed.defaultSalaryStructure ?? null,
+        default_salary_structure: parsed.defaultSalaryStructure ?? null,
         description: parsed.description ?? null,
         name: parsed.name,
       })

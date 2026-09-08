@@ -17,7 +17,7 @@ export const deleteSchedule = Workflow.name("workspace.schedule.delete")
   .input(DeleteInputSchema)
   .handler(async ({ id }, ctx) => {
     const schedule = await ctx.step.run(fetchScheduleStep, { id });
-    const dashboard = await ctx.step.run(fetchDashboardStep, { id: schedule.dashboardId });
+    const dashboard = await ctx.step.run(fetchDashboardStep, { id: schedule.dashboard_id });
     await assertCanMutate(dashboard, ctx.actorId);
 
     await ctx.step.run("unregister-cron", async () => {
@@ -31,11 +31,11 @@ export const deleteSchedule = Workflow.name("workspace.schedule.delete")
       crudAction: "delete",
       entityId: id,
       entityType: AUDIT_ENTITY_TYPE.SCHEDULE,
-      metadata: { dashboardId: schedule.dashboardId },
+      metadata: { dashboard_id: schedule.dashboard_id },
     });
 
     await ctx.pubsub.publish(DASHBOARD_EVENTS.UNSCHEDULED, {
-      dashboardId: schedule.dashboardId,
+      dashboardId: schedule.dashboard_id,
       scheduleId: id,
     });
 

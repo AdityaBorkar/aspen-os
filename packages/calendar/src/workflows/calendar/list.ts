@@ -21,7 +21,7 @@ export const listCalendars = Workflow.name("calendar.calendar.list")
       conditions.push(eq(calendar.access, parsed.access));
     }
     if (parsed.isDefault !== undefined) {
-      conditions.push(eq(calendar.isDefault, parsed.isDefault));
+      conditions.push(eq(calendar.is_default, parsed.isDefault));
     }
     if (parsed.search) {
       conditions.push(ilike(calendar.name, `%${escapeLikePattern(parsed.search)}%`));

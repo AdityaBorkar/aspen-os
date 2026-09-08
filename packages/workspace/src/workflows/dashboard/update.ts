@@ -30,7 +30,7 @@ export const updateDashboard = Workflow.name("workspace.dashboard.update")
 
     const [updated] = await ctx.db
       .update(workspaceDashboard)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates, updated_at: new Date() })
       .where(eq(workspaceDashboard.id, id))
       .returning();
 

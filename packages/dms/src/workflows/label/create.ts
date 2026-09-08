@@ -17,9 +17,9 @@ export const createLabel = Workflow.name("dms.label.create")
       .insert(dmsLabel)
       .values({
         color: parsed.color,
-        isGlobal: parsed.isGlobal,
+        is_global: parsed.isGlobal,
         name: parsed.name,
-        ownerId: parsed.ownerId ?? null,
+        owner_id: parsed.ownerId ?? null,
       })
       .returning();
 

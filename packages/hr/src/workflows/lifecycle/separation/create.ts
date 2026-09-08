@@ -16,12 +16,12 @@ export const createSeparation = Workflow.name("hr.lifecycle.create-separation")
     const [result] = await ctx.db
       .insert(employeeSeparation)
       .values({
-        employeeId: parsed.employeeId,
-        exitDate: parsed.exitDate,
+        employee_id: parsed.employeeId,
+        exit_date: parsed.exitDate,
         metadata: parsed.metadata ?? null,
         notes: parsed.notes ?? null,
         reason: parsed.reason ?? null,
-        resignationDate: parsed.resignationDate ?? null,
+        resignation_date: parsed.resignationDate ?? null,
       })
       .returning();
 

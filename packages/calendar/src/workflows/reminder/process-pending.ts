@@ -18,8 +18,8 @@ export const processPendingReminders = Workflow.name("calendar.reminder.process-
       ctx.db
         .select()
         .from(calendarReminder)
-        .where(and(eq(calendarReminder.isSent, false), lte(calendarReminder.remindAt, now)))
-        .orderBy(asc(calendarReminder.remindAt))
+        .where(and(eq(calendarReminder.is_sent, false), lte(calendarReminder.remind_at, now)))
+        .orderBy(asc(calendarReminder.remind_at))
         .limit(BATCH_LIMIT),
     );
 
@@ -31,8 +31,8 @@ export const processPendingReminders = Workflow.name("calendar.reminder.process-
         // and publish can lose a firing — same as any non-outbox design).
         const [claimed] = await ctx.db
           .update(calendarReminder)
-          .set({ isSent: true, sentAt: now })
-          .where(and(eq(calendarReminder.id, row.id), eq(calendarReminder.isSent, false)))
+          .set({ is_sent: true, sent_at: now })
+          .where(and(eq(calendarReminder.id, row.id), eq(calendarReminder.is_sent, false)))
           .returning();
         if (!claimed) {
           return false;
@@ -40,13 +40,13 @@ export const processPendingReminders = Workflow.name("calendar.reminder.process-
 
         try {
           await ctx.pubsub.publish(REMINDER_EVENTS.DUE, {
-            remindAt: claimed.remindAt?.toISOString() ?? now.toISOString(),
+            remindAt: claimed.remind_at?.toISOString() ?? now.toISOString(),
             reminder: toReminderPayload(claimed),
           });
         } catch (error) {
           await ctx.db
             .update(calendarReminder)
-            .set({ isSent: false, sentAt: null })
+            .set({ is_sent: false, sent_at: null })
             .where(eq(calendarReminder.id, claimed.id));
           throw error;
         }
@@ -54,21 +54,21 @@ export const processPendingReminders = Workflow.name("calendar.reminder.process-
         // The interval column is free text and can hold legacy values: decode
         // it at the boundary. Unknown values stay acknowledged-but-not
         // rescheduled so one poison row never stalls the batch.
-        if (claimed.isRecurring && claimed.interval && claimed.remindAt) {
+        if (claimed.is_recurring && claimed.interval && claimed.remind_at) {
           const interval = safeParse(ReminderIntervalSchema, claimed.interval);
           if (interval.success) {
             await ctx.db.insert(calendarReminder).values({
               channel: claimed.channel,
-              createdBy: claimed.createdBy,
+              created_by: claimed.created_by,
               interval: interval.output,
-              isRecurring: true,
+              is_recurring: true,
               message: claimed.message,
-              offsetMinutes: claimed.offsetMinutes,
-              remindAt: computeNextOccurrence(claimed.remindAt, interval.output),
-              targetId: claimed.targetId,
-              targetType: claimed.targetType,
+              offset_minutes: claimed.offset_minutes,
+              remind_at: computeNextOccurrence(claimed.remind_at, interval.output),
+              target_id: claimed.target_id,
+              target_type: claimed.target_type,
               type: claimed.type,
-              userId: claimed.userId,
+              user_id: claimed.user_id,
             });
           }
         }

@@ -15,13 +15,13 @@ export const activateTemplate = Workflow.name("comms.template.activate")
   .input(ActivateInputSchema)
   .handler(async ({ input }, ctx) => {
     const current = await ctx.step.run(fetchTemplateStep, { id: input.id });
-    if (current.isActive) {
+    if (current.is_active) {
       return current;
     }
 
     const [updated] = await ctx.db
       .update(commsTemplate)
-      .set({ isActive: true, updatedAt: new Date() })
+      .set({ is_active: true, updated_at: new Date() })
       .where(eq(commsTemplate.id, input.id))
       .returning();
 

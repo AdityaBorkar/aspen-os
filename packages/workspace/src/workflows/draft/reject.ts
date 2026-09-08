@@ -24,9 +24,9 @@ export const rejectDraft = Workflow.name("workspace.draft.reject")
         id: parsed.id,
         toStatus: DRAFT_STATUS.REJECTED,
         values: {
-          rejectedAt: new Date(),
-          rejectedBy: actorId,
-          rejectionReason: parsed.rejectionReason,
+          rejected_at: new Date(),
+          rejected_by: actorId,
+          rejection_reason: parsed.rejectionReason,
         },
       }),
     );

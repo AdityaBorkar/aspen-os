@@ -18,13 +18,13 @@ export const listMessages = Workflow.name("comms.message.list")
       where.push(eq(commsMessage.status, filters.status));
     }
     if (filters?.channelType) {
-      where.push(eq(commsMessage.channelType, filters.channelType));
+      where.push(eq(commsMessage.channel_type, filters.channelType));
     }
     if (filters?.channelId) {
-      where.push(eq(commsMessage.channelId, filters.channelId));
+      where.push(eq(commsMessage.channel_id, filters.channelId));
     }
     if (filters?.notificationId) {
-      where.push(eq(commsMessage.notificationId, filters.notificationId));
+      where.push(eq(commsMessage.notification_id, filters.notificationId));
     }
 
     const { limit, offset } = listPagination(filters ?? undefined);
@@ -34,7 +34,7 @@ export const listMessages = Workflow.name("comms.message.list")
       .select()
       .from(commsMessage)
       .where(and(...where))
-      .orderBy(desc(commsMessage.createdAt))
+      .orderBy(desc(commsMessage.created_at))
       .limit(limit)
       .offset(offset);
   });

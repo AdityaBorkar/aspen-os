@@ -9,7 +9,7 @@ export const listStatuses = Workflow.name("status.list")
   .input(object({ projectId: optional(IdSchema) }))
   .handler(async ({ projectId }, ctx) =>
     ctx.step.run("query", async () => {
-      const conditions = projectId ? eq(status.projectId, projectId) : undefined;
-      return ctx.db.select().from(status).where(conditions).orderBy(asc(status.sortOrder));
+      const conditions = projectId ? eq(status.project_id, projectId) : undefined;
+      return ctx.db.select().from(status).where(conditions).orderBy(asc(status.sort_order));
     }),
   );

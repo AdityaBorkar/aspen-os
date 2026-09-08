@@ -18,7 +18,7 @@ export const deactivateConnection = Workflow.name("masters.connection.deactivate
 
     const [updated] = await ctx.db
       .update(masterConnection)
-      .set({ status: "inactive", updatedAt: new Date() })
+      .set({ status: "inactive", updated_at: new Date() })
       .where(eq(masterConnection.id, input.id))
       .returning();
 

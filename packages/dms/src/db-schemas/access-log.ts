@@ -6,20 +6,20 @@ import { index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 export const dmsAccessLog = pgTable(
   "dms_access_log",
   {
-    accessedBy: text("accessed_by"),
-    action: text("action").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    entityId: text("entity_id").notNull(),
-    entityType: dmsEntityTypeEnum("entity_type").notNull(),
-    id: uuidv7("id").primaryKey(),
-    ip: text("ip"),
-    publicLinkId: text("public_link_id"),
-    userAgent: text("user_agent"),
+    accessed_by: text(),
+    action: text().notNull(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    entity_id: text().notNull(),
+    entity_type: dmsEntityTypeEnum().notNull(),
+    id: uuidv7().primaryKey(),
+    ip: text(),
+    public_link_id: text(),
+    user_agent: text(),
   },
   (table) => [
-    index("idx_dms_access_log_entity").on(table.entityId, table.entityType),
-    index("idx_dms_access_log_public_link").on(table.publicLinkId),
-    index("idx_dms_access_log_created").on(table.createdAt),
+    index("idx_dms_access_log_entity").on(table.entity_id, table.entity_type),
+    index("idx_dms_access_log_public_link").on(table.public_link_id),
+    index("idx_dms_access_log_created").on(table.created_at),
   ],
 );
 

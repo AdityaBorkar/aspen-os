@@ -18,7 +18,7 @@ export const createHolidayList = Workflow.name("hr.setup.create-holiday-list")
       .values({
         description: parsed.description ?? null,
         name: parsed.name,
-        weeklyOffDays: parsed.weeklyOffDays ?? [],
+        weekly_off_days: parsed.weeklyOffDays ?? [],
         year: parsed.year,
       })
       .returning();

@@ -30,7 +30,7 @@ export const updateShare = Workflow.name("dms.share.update")
     await ctx.audit.write({
       action: AUDIT_ACTION.SHARED,
       crudAction: "update",
-      entityId: updated.entityId,
+      entityId: updated.entity_id,
       entityType: AUDIT_ENTITY_TYPE.SHARE,
       metadata: { permission: updated.permission, shareId: id },
     });

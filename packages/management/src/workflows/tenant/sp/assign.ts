@@ -25,7 +25,7 @@ export const assignServiceProvider = Workflow.name("tenant.assign-sp")
     await ctx.step.run("assign", async () => {
       const [updated] = await ctx.db
         .update(tenant)
-        .set({ serviceProviderId, updatedAt: new Date() })
+        .set({ service_provider_id: serviceProviderId, updated_at: new Date() })
         .where(eq(tenant.id, tenantId))
         .returning();
 

@@ -19,7 +19,7 @@ export const deleteCalendar = Workflow.name("calendar.calendar.delete")
       const rows = await tx
         .select({ id: calendarEvent.id })
         .from(calendarEvent)
-        .where(eq(calendarEvent.calendarId, id));
+        .where(eq(calendarEvent.calendar_id, id));
 
       const eventIds = rows.map((row) => row.id);
 
@@ -28,14 +28,14 @@ export const deleteCalendar = Workflow.name("calendar.calendar.delete")
           .delete(calendarReminder)
           .where(
             and(
-              eq(calendarReminder.targetType, REMINDER_TARGET.EVENT),
-              inArray(calendarReminder.targetId, eventIds),
+              eq(calendarReminder.target_type, REMINDER_TARGET.EVENT),
+              inArray(calendarReminder.target_id, eventIds),
             ),
           );
-        await tx.delete(calendarAttendee).where(inArray(calendarAttendee.eventId, eventIds));
+        await tx.delete(calendarAttendee).where(inArray(calendarAttendee.event_id, eventIds));
       }
 
-      await tx.delete(calendarEvent).where(eq(calendarEvent.calendarId, id));
+      await tx.delete(calendarEvent).where(eq(calendarEvent.calendar_id, id));
       await tx.delete(calendar).where(eq(calendar.id, id));
     });
 

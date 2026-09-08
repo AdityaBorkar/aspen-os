@@ -10,8 +10,8 @@ export const listPaymentMethods = Workflow.name("masters.payment-method.list")
     ctx.step.run("query", async () => {
       const parsed = input.filters ?? {};
       const conditions = [
-        eq(masterPaymentMethod.entityType, input.entityType),
-        eq(masterPaymentMethod.entityId, input.entityId),
+        eq(masterPaymentMethod.entity_type, input.entityType),
+        eq(masterPaymentMethod.entity_id, input.entityId),
       ];
 
       if (parsed.direction) {
@@ -28,6 +28,6 @@ export const listPaymentMethods = Workflow.name("masters.payment-method.list")
         .select()
         .from(masterPaymentMethod)
         .where(and(...conditions))
-        .orderBy(desc(masterPaymentMethod.createdAt));
+        .orderBy(desc(masterPaymentMethod.created_at));
     }),
   );

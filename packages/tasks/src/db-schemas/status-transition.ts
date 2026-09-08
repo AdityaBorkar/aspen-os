@@ -4,20 +4,20 @@ import { boolean, index, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core"
 export const statusTransition = pgTable(
   "task_status_transition",
   {
-    fromStatusId: text("from_status_id").notNull(),
-    id: uuidv7("id").primaryKey(),
-    projectId: text("project_id").notNull(),
-    requiresComment: boolean("requires_comment").notNull().default(false),
-    requiresRole: text("requires_role"),
-    toStatusId: text("to_status_id").notNull(),
+    from_status_id: text().notNull(),
+    id: uuidv7().primaryKey(),
+    project_id: text().notNull(),
+    requires_comment: boolean().notNull().default(false),
+    requires_role: text(),
+    to_status_id: text().notNull(),
   },
   (table) => [
     uniqueIndex("uq_task_status_transition").on(
-      table.fromStatusId,
-      table.toStatusId,
-      table.projectId,
+      table.from_status_id,
+      table.to_status_id,
+      table.project_id,
     ),
-    index("idx_task_status_transition_project").on(table.projectId),
+    index("idx_task_status_transition_project").on(table.project_id),
   ],
 );
 

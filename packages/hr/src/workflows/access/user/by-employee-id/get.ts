@@ -16,7 +16,7 @@ export const getUserByEmployeeId = Workflow.name("hr.access.get-user-by-employee
     const [record] = await ctx.db
       .select()
       .from(hrUser)
-      .where(eq(hrUser.employeeId, employeeId))
+      .where(eq(hrUser.employee_id, employeeId))
       .limit(1);
     return record ?? null;
   });

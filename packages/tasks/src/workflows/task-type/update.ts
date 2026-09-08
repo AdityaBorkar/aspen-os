@@ -17,8 +17,8 @@ export const updateTaskType = Workflow.name("task-type.update")
   .handler(async ({ id, patch }, ctx) => {
     const current = await ctx.step.run(fetchTaskTypeStep, { id });
 
-    if (patch.isDefault && current.projectId) {
-      await unsetDefaultTaskType(ctx.db, current.projectId);
+    if (patch.isDefault && current.project_id) {
+      await unsetDefaultTaskType(ctx.db, current.project_id);
     }
 
     const [updated] = await ctx.db
@@ -26,7 +26,7 @@ export const updateTaskType = Workflow.name("task-type.update")
       .set({
         color: patch.color,
         icon: patch.icon,
-        isDefault: patch.isDefault,
+        is_default: patch.isDefault,
         name: patch.name,
       })
       .where(eq(taskType.id, id))

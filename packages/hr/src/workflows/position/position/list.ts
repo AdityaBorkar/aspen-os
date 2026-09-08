@@ -27,7 +27,7 @@ export const listPositions = Workflow.name("hr.position.list")
       conditions.push(eq(hrPosition.designation, parsed.designation));
     }
     if (parsed.isActive !== undefined) {
-      conditions.push(eq(hrPosition.isActive, parsed.isActive));
+      conditions.push(eq(hrPosition.is_active, parsed.isActive));
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
@@ -38,13 +38,13 @@ export const listPositions = Workflow.name("hr.position.list")
     }
 
     const assignmentRows = await ctx.db
-      .select({ positionId: hrPositionAssignment.positionId })
+      .select({ positionId: hrPositionAssignment.position_id })
       .from(hrPositionAssignment)
       .where(
         and(
-          isNull(hrPositionAssignment.toDate),
+          isNull(hrPositionAssignment.to_date),
           inArray(
-            hrPositionAssignment.positionId,
+            hrPositionAssignment.position_id,
             positions.map((position) => position.id),
           ),
         ),

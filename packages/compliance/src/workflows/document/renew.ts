@@ -21,51 +21,51 @@ const renewDocument = Workflow.name("document.renew").handler(
     const { id, newData } = input;
     const current = await ctx.step.run(fetchDocumentStep, { id });
 
-    assertTransitionAllowed(current.verificationStatus, VERIFICATION_STATUS.RENEWED);
+    assertTransitionAllowed(current.verification_status, VERIFICATION_STATUS.RENEWED);
 
     const now = new Date();
     await ctx.db
       .update(complianceDocument)
-      .set({ updatedAt: now, verificationStatus: VERIFICATION_STATUS.RENEWED })
+      .set({ updated_at: now, verification_status: VERIFICATION_STATUS.RENEWED })
       .where(eq(complianceDocument.id, id));
 
     const reminderDays = newData.reminderDays ??
-      current.reminderDays ?? [...DEFAULT_REMINDER_DAYS_EXPIRY];
-    const escalationDays = newData.escalationDays ?? current.escalationDays;
+      current.reminder_days ?? [...DEFAULT_REMINDER_DAYS_EXPIRY];
+    const escalationDays = newData.escalationDays ?? current.escalation_days;
 
     const [newDoc] = await ctx.db
       .insert(complianceDocument)
       .values({
-        assignedReviewer: newData.assignedReviewer ?? current.assignedReviewer,
-        assignedTo: newData.assignedTo ?? current.assignedTo,
+        assigned_reviewer: newData.assignedReviewer ?? current.assigned_reviewer,
+        assigned_to: newData.assignedTo ?? current.assigned_to,
         attachment: newData.attachment ?? current.attachment,
-        autoRenewal: newData.autoRenewal ?? current.autoRenewal,
+        auto_renewal: newData.autoRenewal ?? current.auto_renewal,
         branch: newData.branch ?? current.branch,
         category: newData.category ?? current.category,
         connection: newData.connection ?? current.connection,
-        createdBy: newData.createdBy ?? current.createdBy,
-        documentType: newData.documentType ?? current.documentType,
-        dueDate: resolveDate(newData.dueDate, current.dueDate),
-        escalationDays,
-        expiryDate: resolveDate(newData.expiryDate, current.expiryDate),
-        issueDate: resolveDate(newData.issueDate, current.issueDate),
-        issuingAuthority: newData.issuingAuthority ?? current.issuingAuthority,
+        created_by: newData.createdBy ?? current.created_by,
+        document_type: newData.documentType ?? current.document_type,
+        due_date: resolveDate(newData.dueDate, current.due_date),
+        escalation_days: escalationDays,
+        expiry_date: resolveDate(newData.expiryDate, current.expiry_date),
+        issue_date: resolveDate(newData.issueDate, current.issue_date),
+        issuing_authority: newData.issuingAuthority ?? current.issuing_authority,
         jurisdiction: newData.jurisdiction ?? current.jurisdiction,
         metadata: newData.metadata ?? current.metadata,
         name: newData.name ?? current.name,
         notes: newData.notes ?? current.notes,
-        obligationId: current.obligationId,
-        periodEnd: resolveDate(newData.periodEnd, current.periodEnd),
-        periodStart: resolveDate(newData.periodStart, current.periodStart),
-        referenceNumber: newData.referenceNumber ?? null,
-        reminderDays,
-        renewalDate: resolveDate(newData.renewalDate, current.renewalDate),
-        renewalFrequency: newData.renewalFrequency ?? current.renewalFrequency,
-        renewedFrom: id,
-        sourceEntityId: current.sourceEntityId,
-        sourceEntityType: current.sourceEntityType,
-        sourceModule: current.sourceModule,
-        verificationStatus: VERIFICATION_STATUS.DRAFT,
+        obligation_id: current.obligation_id,
+        period_end: resolveDate(newData.periodEnd, current.period_end),
+        period_start: resolveDate(newData.periodStart, current.period_start),
+        reference_number: newData.referenceNumber ?? null,
+        reminder_days: reminderDays,
+        renewal_date: resolveDate(newData.renewalDate, current.renewal_date),
+        renewal_frequency: newData.renewalFrequency ?? current.renewal_frequency,
+        renewed_from: id,
+        source_entity_id: current.source_entity_id,
+        source_entity_type: current.source_entity_type,
+        source_module: current.source_module,
+        verification_status: VERIFICATION_STATUS.DRAFT,
       })
       .returning();
 
@@ -75,11 +75,11 @@ const renewDocument = Workflow.name("document.renew").handler(
 
     await ctx.audit.write({
       action: "renewed",
-      actorId: current.createdBy,
+      actorId: current.created_by,
       entityId: newDoc.id,
       entityType: "compliance_document",
       metadata: { newDocumentId: newDoc.id, oldDocumentId: id },
-      previousState: { id, verificationStatus: current.verificationStatus },
+      previousState: { id, verification_status: current.verification_status },
     });
 
     await ctx.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_RENEWED, {

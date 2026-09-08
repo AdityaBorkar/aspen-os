@@ -4,17 +4,17 @@ import { boolean, index, pgTable, text, timestamp, uniqueIndex } from "drizzle-o
 export const taskAssignee = pgTable(
   "task_assignee",
   {
-    assignedAt: timestamp("assigned_at", { withTimezone: true }).notNull().defaultNow(),
-    assignedBy: text("assigned_by").notNull(),
-    id: uuidv7("id").primaryKey(),
-    isLead: boolean("is_lead").notNull().default(false),
-    taskId: text("task_id").notNull(),
-    userId: text("user_id").notNull(),
+    assigned_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    assigned_by: text().notNull(),
+    id: uuidv7().primaryKey(),
+    is_lead: boolean().notNull().default(false),
+    task_id: text().notNull(),
+    user_id: text().notNull(),
   },
   (table) => [
-    uniqueIndex("uq_task_assignee_task_user").on(table.taskId, table.userId),
-    index("idx_task_assignee_task").on(table.taskId),
-    index("idx_task_assignee_user").on(table.userId),
+    uniqueIndex("uq_task_assignee_task_user").on(table.task_id, table.user_id),
+    index("idx_task_assignee_task").on(table.task_id),
+    index("idx_task_assignee_user").on(table.user_id),
   ],
 );
 

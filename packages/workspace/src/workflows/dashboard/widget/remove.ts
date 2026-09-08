@@ -15,7 +15,7 @@ export const removeWidget = Workflow.name("workspace.widget.remove")
   .input(RemoveInputSchema)
   .handler(async ({ id }, ctx) => {
     const widget = await ctx.step.run(fetchWidgetStep, { id });
-    const dashboard = await ctx.step.run(fetchDashboardStep, { id: widget.dashboardId });
+    const dashboard = await ctx.step.run(fetchDashboardStep, { id: widget.dashboard_id });
     await assertCanMutate(dashboard, ctx.actorId);
 
     await ctx.db.delete(workspaceWidget).where(eq(workspaceWidget.id, id));
@@ -23,7 +23,7 @@ export const removeWidget = Workflow.name("workspace.widget.remove")
     const layout = dashboard.layout.filter((placement) => placement.widgetId !== id);
     await ctx.db
       .update(workspaceDashboard)
-      .set({ layout, updatedAt: new Date() })
+      .set({ layout, updated_at: new Date() })
       .where(eq(workspaceDashboard.id, dashboard.id));
 
     await ctx.audit.write({

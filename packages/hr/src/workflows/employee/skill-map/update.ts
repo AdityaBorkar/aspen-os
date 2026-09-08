@@ -19,7 +19,7 @@ export const updateSkillMap = Workflow.name("hr.employee.update-skill-map")
 
     const [updated] = await ctx.db
       .update(employeeSkillMap)
-      .set({ ...parsed, updatedAt: new Date() })
+      .set({ ...parsed, updated_at: new Date() })
       .where(eq(employeeSkillMap.id, id))
       .returning();
 

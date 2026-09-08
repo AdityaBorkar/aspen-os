@@ -26,13 +26,13 @@ export const transferAssignment = Workflow.name("hr.position.transfer")
 
     const source = await fetchPositionAssignmentById(ctx.db, assignmentId);
 
-    if (source.toDate !== null) {
+    if (source.to_date !== null) {
       throw new Error(`Assignment "${assignmentId}" is already closed.`);
     }
 
     await Promise.all([
       ensurePositionActive(ctx.db, transferInput.newPositionId),
-      fetchEmployeeById(ctx.db, source.employeeId),
+      fetchEmployeeById(ctx.db, source.employee_id),
     ]);
 
     const toDate = transferInput.toDate ?? todayString();
@@ -41,8 +41,8 @@ export const transferAssignment = Workflow.name("hr.position.transfer")
     const { closed, created } = await ctx.db.transaction(async (tx) => {
       const [closedSource] = await tx
         .update(hrPositionAssignment)
-        .set({ toDate, updatedAt: new Date() })
-        .where(and(eq(hrPositionAssignment.id, assignmentId), isNull(hrPositionAssignment.toDate)))
+        .set({ to_date: toDate, updated_at: new Date() })
+        .where(and(eq(hrPositionAssignment.id, assignmentId), isNull(hrPositionAssignment.to_date)))
         .returning();
 
       if (!closedSource) {
@@ -50,23 +50,23 @@ export const transferAssignment = Workflow.name("hr.position.transfer")
       }
 
       await closeConflictingAssignment(tx, {
-        employeeId: source.employeeId,
+        employeeId: source.employee_id,
         positionId: transferInput.newPositionId,
         toDate: fromDate,
       });
       await ensureAssignable(tx, {
-        employeeId: source.employeeId,
-        isPrimary: source.isPrimary,
+        employeeId: source.employee_id,
+        isPrimary: source.is_primary,
         positionId: transferInput.newPositionId,
       });
 
       const [createdTarget] = await tx
         .insert(hrPositionAssignment)
         .values({
-          employeeId: source.employeeId,
-          fromDate,
-          isPrimary: source.isPrimary,
-          positionId: transferInput.newPositionId,
+          employee_id: source.employee_id,
+          from_date: fromDate,
+          is_primary: source.is_primary,
+          position_id: transferInput.newPositionId,
         })
         .returning();
 
@@ -77,13 +77,13 @@ export const transferAssignment = Workflow.name("hr.position.transfer")
     });
 
     await ctx.pubsub.publish(POSITION_EVENTS.UNASSIGNED, {
-      employeeId: source.employeeId,
-      positionId: source.positionId,
+      employeeId: source.employee_id,
+      positionId: source.position_id,
       toDate,
     });
     await ctx.pubsub.publish(POSITION_EVENTS.REASSIGNED, {
-      employeeId: source.employeeId,
-      fromPositionId: source.positionId,
+      employeeId: source.employee_id,
+      fromPositionId: source.position_id,
       toPositionId: transferInput.newPositionId,
     });
 

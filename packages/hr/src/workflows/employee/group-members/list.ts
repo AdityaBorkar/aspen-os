@@ -16,5 +16,5 @@ export const listGroupMembers = Workflow.name("hr.employee.list-group-members")
     return ctx.db
       .select()
       .from(employeeGroupMember)
-      .where(eq(employeeGroupMember.groupId, groupId));
+      .where(eq(employeeGroupMember.group_id, groupId));
   });

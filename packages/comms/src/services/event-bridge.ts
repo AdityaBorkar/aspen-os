@@ -366,14 +366,14 @@ async function handleOtpRequested(
     return;
   }
 
-  const senderAddress = provider.defaultSenderAddress ?? OTP_FALLBACK_SENDER;
-  if (!provider.defaultSenderAddress) {
+  const senderAddress = provider.default_sender_address ?? OTP_FALLBACK_SENDER;
+  if (!provider.default_sender_address) {
     deps.log?.warn("OTP email uses fallback sender address.", { providerId: provider.id });
   }
 
   const adapter = createAdapter("email");
   await adapter.send({
-    channel: { senderAddress },
+    channel: { sender_address: senderAddress },
     credential,
     kind: provider.kind,
     message: {

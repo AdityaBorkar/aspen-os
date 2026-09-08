@@ -15,15 +15,15 @@ export const setPrimaryAddress = Workflow.name("masters.address.set-primary")
     await ctx.step.run("unset-primary", () =>
       unsetPrimaryForOwner({
         db: ctx.db,
-        entityId: address.entityId,
-        entityType: address.entityType,
+        entityId: address.entity_id,
+        entityType: address.entity_type,
         table: masterAddress,
       }),
     );
 
     const [updated] = await ctx.db
       .update(masterAddress)
-      .set({ isPrimary: true, updatedAt: new Date() })
+      .set({ is_primary: true, updated_at: new Date() })
       .where(eq(masterAddress.id, input.id))
       .returning();
 
@@ -31,7 +31,7 @@ export const setPrimaryAddress = Workflow.name("masters.address.set-primary")
       action: AUDIT_ACTION.PRIMARY_SET,
       entityId: address.id,
       entityType: AUDIT_ENTITY_TYPE.ADDRESS,
-      metadata: { entityId: address.entityId, entityType: address.entityType },
+      metadata: { entity_id: address.entity_id, entity_type: address.entity_type },
     });
 
     return updated;

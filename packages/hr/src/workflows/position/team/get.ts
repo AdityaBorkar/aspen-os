@@ -18,8 +18,8 @@ export const getTeam = Workflow.name("hr.position.get-team")
     await fetchEmployeeById(ctx.db, employeeId);
 
     const [positions, assignments, activeEmployees] = await Promise.all([
-      ctx.db.select().from(hrPosition).where(eq(hrPosition.isActive, true)),
-      ctx.db.select().from(hrPositionAssignment).where(isNull(hrPositionAssignment.toDate)),
+      ctx.db.select().from(hrPosition).where(eq(hrPosition.is_active, true)),
+      ctx.db.select().from(hrPositionAssignment).where(isNull(hrPositionAssignment.to_date)),
       ctx.db.select().from(employee).where(eq(employee.status, "active")),
     ]);
 
@@ -27,16 +27,16 @@ export const getTeam = Workflow.name("hr.position.get-team")
 
     const employeePositions = new Map<string, string[]>();
     for (const assignment of assignments) {
-      const list = employeePositions.get(assignment.employeeId) ?? [];
-      list.push(assignment.positionId);
-      employeePositions.set(assignment.employeeId, list);
+      const list = employeePositions.get(assignment.employee_id) ?? [];
+      list.push(assignment.position_id);
+      employeePositions.set(assignment.employee_id, list);
     }
 
     const childrenByParent = new Map<string | null, string[]>();
     for (const position of positions) {
-      const siblings = childrenByParent.get(position.reportsToPosition) ?? [];
+      const siblings = childrenByParent.get(position.reports_to_position) ?? [];
       siblings.push(position.id);
-      childrenByParent.set(position.reportsToPosition, siblings);
+      childrenByParent.set(position.reports_to_position, siblings);
     }
 
     const teamPositions = new Set<string>();

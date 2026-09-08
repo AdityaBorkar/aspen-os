@@ -88,21 +88,21 @@ async function loadPreferenceRules(
     .from(commsPreference)
     .where(
       and(
-        eq(commsPreference.userId, resolved.recipientId),
+        eq(commsPreference.user_id, resolved.recipientId),
         or(eq(commsPreference.type, type), isNull(commsPreference.type)),
       ),
     )
     // Specific (non-null type) rows sort after defaults so they overwrite
     // deterministically; channel ordering keeps the merge stable.
-    .orderBy(asc(commsPreference.type), asc(commsPreference.channelType));
+    .orderBy(asc(commsPreference.type), asc(commsPreference.channel_type));
 
   for (const row of rows) {
-    const current = rules.get(row.channelType);
+    const current = rules.get(row.channel_type);
     if (current && !row.type) {
       continue;
     }
-    rules.set(row.channelType, {
-      channelType: row.channelType,
+    rules.set(row.channel_type, {
+      channelType: row.channel_type,
       enabled: row.enabled,
       priority: row.priority,
     });

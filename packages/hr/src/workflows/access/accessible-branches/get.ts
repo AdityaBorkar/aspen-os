@@ -14,14 +14,14 @@ export const getAccessibleBranches = Workflow.name("hr.access.get-accessible-bra
     const { hrUserId } = input;
 
     const direct = await ctx.db
-      .select({ branchId: hrUserBranchAccess.branchId })
+      .select({ branchId: hrUserBranchAccess.branch_id })
       .from(hrUserBranchAccess)
-      .where(eq(hrUserBranchAccess.hrUserId, hrUserId));
+      .where(eq(hrUserBranchAccess.hr_user_id, hrUserId));
 
     const roleBased = await ctx.db
-      .select({ branchId: hrUserRole.branchId })
+      .select({ branchId: hrUserRole.branch_id })
       .from(hrUserRole)
-      .where(and(eq(hrUserRole.hrUserId, hrUserId), isNotNull(hrUserRole.branchId)));
+      .where(and(eq(hrUserRole.hr_user_id, hrUserId), isNotNull(hrUserRole.branch_id)));
 
     const branchIds = new Set<string>();
     for (const directRow of direct) {

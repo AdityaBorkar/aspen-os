@@ -41,11 +41,11 @@ export const updateUnitOfMeasure = Workflow.name("masters.unit-of-measure.update
       input.patch.conversionFactor !== undefined;
 
     const baseUnitId =
-      input.patch.baseUnitId !== undefined ? input.patch.baseUnitId : current.baseUnitId;
+      input.patch.baseUnitId !== undefined ? input.patch.baseUnitId : current.base_unit_id;
     const conversionFactor =
       input.patch.conversionFactor !== undefined
         ? input.patch.conversionFactor
-        : current.conversionFactor;
+        : current.conversion_factor;
 
     if (touchesStructure) {
       await ctx.step.run(assertBaseUnitInvariantStep, {
@@ -53,7 +53,7 @@ export const updateUnitOfMeasure = Workflow.name("masters.unit-of-measure.update
         category: input.patch.category ?? current.category,
         conversionFactor,
         excludeId: input.id,
-        isBaseUnit: input.patch.isBaseUnit ?? current.isBaseUnit,
+        isBaseUnit: input.patch.isBaseUnit ?? current.is_base_unit,
       });
     }
 
@@ -74,7 +74,7 @@ export const updateUnitOfMeasure = Workflow.name("masters.unit-of-measure.update
 
     const [updated] = await ctx.db
       .update(masterUnitOfMeasure)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates, updated_at: new Date() })
       .where(eq(masterUnitOfMeasure.id, input.id))
       .returning();
 

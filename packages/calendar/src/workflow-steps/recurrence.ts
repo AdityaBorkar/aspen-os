@@ -23,12 +23,12 @@ export interface Occurrence {
 }
 
 export interface OccurrenceSource {
-  calendarId: string;
-  endsAt: Date | null;
+  calendar_id: string;
+  ends_at: Date | null;
   id: string;
   location: string | null;
   recurrence: EventRecurrenceRow | null;
-  startsAt: Date;
+  starts_at: Date;
   status: EventStatus;
   title: string;
 }
@@ -78,10 +78,10 @@ function weekStart(anchor: Date): Date {
 }
 
 function toOccurrence(event: OccurrenceSource, startsAt: Date): Occurrence {
-  const duration = event.endsAt ? event.endsAt.getTime() - event.startsAt.getTime() : null;
+  const duration = event.ends_at ? event.ends_at.getTime() - event.starts_at.getTime() : null;
 
   return {
-    calendarId: event.calendarId,
+    calendarId: event.calendar_id,
     endsAt: duration !== null ? new Date(startsAt.getTime() + duration) : null,
     eventId: event.id,
     id: event.id,
@@ -127,7 +127,7 @@ export function expandOccurrences(event: OccurrenceSource, range: OccurrenceRang
   const { recurrence } = event;
 
   if (!recurrence) {
-    const start = new Date(event.startsAt);
+    const start = new Date(event.starts_at);
     if (start >= from && start <= to) {
       results.push(toOccurrence(event, start));
     }
@@ -136,7 +136,7 @@ export function expandOccurrences(event: OccurrenceSource, range: OccurrenceRang
 
   const { frequency } = recurrence;
   const interval = recurrence.interval ?? 1;
-  const anchor = new Date(event.startsAt);
+  const anchor = new Date(event.starts_at);
   const until = recurrence.until ? new Date(recurrence.until) : null;
   const count = recurrence.count ?? null;
 

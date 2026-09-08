@@ -20,13 +20,13 @@ export const deleteConnection = Workflow.name("masters.connection.delete")
         crudAction: "delete",
         entityId: current.id,
         entityType: AUDIT_ENTITY_TYPE.CONNECTION,
-        metadata: { entityId: current.entityId, entityType: current.entityType },
+        metadata: { entity_id: current.entity_id, entity_type: current.entity_type },
       });
 
       await ctx.pubsub.publish(CONNECTION_EVENTS.REMOVED, {
         connectionId: current.id,
-        entityId: current.entityId,
-        entityType: current.entityType,
+        entityId: current.entity_id,
+        entityType: current.entity_type,
       });
     });
 

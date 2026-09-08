@@ -24,11 +24,11 @@ export const publishDraft = Workflow.name("workspace.draft.publish")
         id: parsed.id,
         toStatus: DRAFT_STATUS.PUBLISHED,
         values: {
-          publishedAt: new Date(),
-          publishedBy: actorId,
-          targetDomain: parsed.targetDomain ?? draft.targetDomain,
-          targetEntityId: parsed.targetEntityId ?? draft.targetEntityId,
-          targetEntityType: parsed.targetEntityType ?? draft.targetEntityType,
+          published_at: new Date(),
+          published_by: actorId,
+          target_domain: parsed.targetDomain ?? draft.target_domain,
+          target_entity_id: parsed.targetEntityId ?? draft.target_entity_id,
+          target_entity_type: parsed.targetEntityType ?? draft.target_entity_type,
         },
       }),
     );
@@ -38,7 +38,7 @@ export const publishDraft = Workflow.name("workspace.draft.publish")
       crudAction: "update",
       entityId: parsed.id,
       entityType: AUDIT_ENTITY_TYPE.DRAFT,
-      newState: { status: updated.status, targetEntityId: updated.targetEntityId },
+      newState: { status: updated.status, target_entity_id: updated.target_entity_id },
       previousState: { status: draft.status },
     });
 

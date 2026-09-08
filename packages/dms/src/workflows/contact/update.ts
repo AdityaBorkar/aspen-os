@@ -29,7 +29,7 @@ export const updateContact = Workflow.name("dms.contact.update")
 
     const [updated] = await ctx.db
       .update(dmsContact)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates, updated_at: new Date() })
       .where(eq(dmsContact.id, id))
       .returning();
 
@@ -40,13 +40,13 @@ export const updateContact = Workflow.name("dms.contact.update")
         action: AUDIT_ACTION.UPDATED,
         changes: ctx.audit.diff(
           {
-            companyName: current.companyName,
+            companyName: current.company_name,
             designation: current.designation,
             email: current.email,
             phone: current.phone,
           },
           {
-            companyName: updated?.companyName,
+            companyName: updated?.company_name,
             designation: updated?.designation,
             email: updated?.email,
             phone: updated?.phone,

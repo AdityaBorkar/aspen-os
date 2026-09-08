@@ -14,7 +14,7 @@ export const deleteSeparation = Workflow.name("hr.lifecycle.delete-separation")
     const { id } = input;
 
     // Delete tasks first
-    await ctx.db.delete(separationTask).where(eq(separationTask.separationId, id));
+    await ctx.db.delete(separationTask).where(eq(separationTask.separation_id, id));
 
     const [deleted] = await ctx.db
       .delete(employeeSeparation)

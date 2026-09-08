@@ -9,7 +9,7 @@ const getActiveObligations = Workflow.name("obligation.active").handler(
       .select()
       .from(complianceObligation)
       .where(
-        and(eq(complianceObligation.isActive, true), eq(complianceObligation.autoGenerate, true)),
+        and(eq(complianceObligation.is_active, true), eq(complianceObligation.auto_generate, true)),
       ),
 );
 

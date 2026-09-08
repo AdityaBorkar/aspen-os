@@ -32,7 +32,7 @@ export const updateFolder = Workflow.name("dms.folder.update")
       .set({
         color: parsed.color,
         description: parsed.description,
-        updatedAt: new Date(),
+        updated_at: new Date(),
       })
       .where(eq(dmsFolder.id, id))
       .returning();

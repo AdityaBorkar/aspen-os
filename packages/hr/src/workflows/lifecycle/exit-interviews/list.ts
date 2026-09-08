@@ -18,7 +18,7 @@ export const listExitInterviews = Workflow.name("hr.lifecycle.list-exit-intervie
     const conditions = [];
 
     if (parsed.employeeId) {
-      conditions.push(eq(exitInterview.employeeId, parsed.employeeId));
+      conditions.push(eq(exitInterview.employee_id, parsed.employeeId));
     }
     if (parsed.status) {
       conditions.push(eq(exitInterview.status, parsed.status));

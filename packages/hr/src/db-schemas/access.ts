@@ -6,80 +6,80 @@ import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 export const hrUser = pgTable(
   "hr_user",
   {
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    employeeId: text("employee_id").notNull(),
-    id: uuidv7("id").primaryKey(),
-    isActive: boolean("is_active").notNull().default(true),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-    userId: text("user_id").notNull(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    employee_id: text().notNull(),
+    id: uuidv7().primaryKey(),
+    is_active: boolean().notNull().default(true),
+    updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    user_id: text().notNull(),
   },
   (table) => [
-    index("idx_hr_user_employee_id").on(table.employeeId),
-    index("idx_hr_user_user_id").on(table.userId),
+    index("idx_hr_user_employee_id").on(table.employee_id),
+    index("idx_hr_user_user_id").on(table.user_id),
   ],
 );
 
 export const hrRole = pgTable("hr_role", {
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  description: text("description"),
-  id: uuidv7("id").primaryKey(),
-  isActive: boolean("is_active").notNull().default(true),
-  isSystem: boolean("is_system").notNull().default(false),
-  name: text("name").notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  description: text(),
+  id: uuidv7().primaryKey(),
+  is_active: boolean().notNull().default(true),
+  is_system: boolean().notNull().default(false),
+  name: text().notNull(),
+  updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
 
 export const hrPermission = pgTable("hr_permission", {
-  action: permissionActionEnum("action").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  description: text("description"),
-  id: uuidv7("id").primaryKey(),
-  module: text("module").notNull(),
+  action: permissionActionEnum().notNull(),
+  created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  description: text(),
+  id: uuidv7().primaryKey(),
+  module: text().notNull(),
 });
 
 export const hrRolePermission = pgTable(
   "hr_role_permission",
   {
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    id: uuidv7("id").primaryKey(),
-    permissionId: text("permission_id").notNull(),
-    roleId: text("role_id").notNull(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    id: uuidv7().primaryKey(),
+    permission_id: text().notNull(),
+    role_id: text().notNull(),
   },
   (table) => [
-    index("idx_hr_role_permission_role_id").on(table.roleId),
-    index("idx_hr_role_permission_permission_id").on(table.permissionId),
+    index("idx_hr_role_permission_role_id").on(table.role_id),
+    index("idx_hr_role_permission_permission_id").on(table.permission_id),
   ],
 );
 
 export const hrUserRole = pgTable(
   "hr_user_role",
   {
-    branchId: text("branch_id"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    hrUserId: text("hr_user_id").notNull(),
-    id: uuidv7("id").primaryKey(),
-    roleId: text("role_id").notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    branch_id: text(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    hr_user_id: text().notNull(),
+    id: uuidv7().primaryKey(),
+    role_id: text().notNull(),
+    updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    index("idx_hr_user_role_hr_user_id").on(table.hrUserId),
-    index("idx_hr_user_role_role_id").on(table.roleId),
-    index("idx_hr_user_role_branch_id").on(table.branchId),
+    index("idx_hr_user_role_hr_user_id").on(table.hr_user_id),
+    index("idx_hr_user_role_role_id").on(table.role_id),
+    index("idx_hr_user_role_branch_id").on(table.branch_id),
   ],
 );
 
 export const hrUserBranchAccess = pgTable(
   "hr_user_branch_access",
   {
-    accessLevel: accessLevelEnum("access_level").notNull().default("read_only"),
-    branchId: text("branch_id").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    hrUserId: text("hr_user_id").notNull(),
-    id: uuidv7("id").primaryKey(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    access_level: accessLevelEnum().notNull().default("read_only"),
+    branch_id: text().notNull(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    hr_user_id: text().notNull(),
+    id: uuidv7().primaryKey(),
+    updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    index("idx_hr_user_branch_access_hr_user_id").on(table.hrUserId),
-    index("idx_hr_user_branch_access_branch_id").on(table.branchId),
+    index("idx_hr_user_branch_access_hr_user_id").on(table.hr_user_id),
+    index("idx_hr_user_branch_access_branch_id").on(table.branch_id),
   ],
 );

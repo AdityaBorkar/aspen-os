@@ -14,11 +14,11 @@ export const getFolder = Workflow.name("dms.folder.get")
       ctx.db
         .select({ value: count() })
         .from(dmsFolder)
-        .where(sql`${dmsFolder.parentId} = ${fetched.id} AND ${dmsFolder.isTrashed} = false`),
+        .where(sql`${dmsFolder.parent_id} = ${fetched.id} AND ${dmsFolder.is_trashed} = false`),
       ctx.db
         .select({ value: count() })
         .from(dmsFile)
-        .where(sql`${dmsFile.folderId} = ${fetched.id} AND ${dmsFile.status} != 'trashed'`),
+        .where(sql`${dmsFile.folder_id} = ${fetched.id} AND ${dmsFile.status} != 'trashed'`),
       ctx.db
         .select({ value: sql<number>`coalesce(sum(${dmsFile.size}), 0)` })
         .from(dmsFile)

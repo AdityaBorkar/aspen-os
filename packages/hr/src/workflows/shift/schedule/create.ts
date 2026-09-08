@@ -24,7 +24,7 @@ export const createShiftSchedule = Workflow.name("hr.shift.create-shift-schedule
         monday: parsed.monday ?? false,
         name: parsed.name,
         saturday: parsed.saturday ?? false,
-        shiftType: parsed.shiftType,
+        shift_type: parsed.shiftType,
         sunday: parsed.sunday ?? false,
         thursday: parsed.thursday ?? false,
         tuesday: parsed.tuesday ?? false,

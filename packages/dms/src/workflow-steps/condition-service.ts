@@ -31,19 +31,19 @@ export interface ConditionContext {
 }
 
 const COLUMN_SQL = {
-  class: sql`${dmsFile.classId}`,
-  classId: sql`${dmsFile.classId}`,
-  contentType: sql`${dmsFile.contentType}`,
-  createdAt: sql`${dmsFile.createdAt}`,
-  expiryDate: sql`${dmsFile.expiryDate}`,
+  class: sql`${dmsFile.class_id}`,
+  classId: sql`${dmsFile.class_id}`,
+  contentType: sql`${dmsFile.content_type}`,
+  createdAt: sql`${dmsFile.created_at}`,
+  expiryDate: sql`${dmsFile.expiry_date}`,
   id: sql`${dmsFile.id}`,
   name: sql`${dmsFile.name}`,
-  owner: sql`${dmsFile.ownerId}`,
-  ownerId: sql`${dmsFile.ownerId}`,
+  owner: sql`${dmsFile.owner_id}`,
+  ownerId: sql`${dmsFile.owner_id}`,
   size: sql`${dmsFile.size}`,
   status: sql`${dmsFile.status}`,
-  updatedAt: sql`${dmsFile.updatedAt}`,
-  uploadedBy: sql`${dmsFile.uploadedBy}`,
+  updatedAt: sql`${dmsFile.updated_at}`,
+  uploadedBy: sql`${dmsFile.uploaded_by}`,
 } satisfies Record<string, SQL>;
 
 function columnSql(field: string): SQL | null {
@@ -276,10 +276,10 @@ export function buildConditionsWhere(
   }
 
   if (ctx?.classId) {
-    parts.push(eq(dmsFile.classId, ctx.classId));
+    parts.push(eq(dmsFile.class_id, ctx.classId));
   }
   if (ctx?.ownerId) {
-    parts.push(eq(dmsFile.ownerId, ctx.ownerId));
+    parts.push(eq(dmsFile.owner_id, ctx.ownerId));
   }
 
   return parts.length > 0 ? and(...parts) : undefined;

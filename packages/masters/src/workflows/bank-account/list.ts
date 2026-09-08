@@ -10,18 +10,18 @@ export const listBankAccounts = Workflow.name("masters.bank-account.list")
     ctx.step.run("query", async () => {
       const parsed = input.filters ?? {};
       const conditions = [
-        eq(masterBankAccount.entityType, input.entityType),
-        eq(masterBankAccount.entityId, input.entityId),
+        eq(masterBankAccount.entity_type, input.entityType),
+        eq(masterBankAccount.entity_id, input.entityId),
       ];
 
       if (parsed.currency) {
         conditions.push(eq(masterBankAccount.currency, parsed.currency));
       }
       if (parsed.isActive !== undefined) {
-        conditions.push(eq(masterBankAccount.isActive, parsed.isActive));
+        conditions.push(eq(masterBankAccount.is_active, parsed.isActive));
       }
       if (parsed.isPrimary !== undefined) {
-        conditions.push(eq(masterBankAccount.isPrimary, parsed.isPrimary));
+        conditions.push(eq(masterBankAccount.is_primary, parsed.isPrimary));
       }
 
       return ctx.db

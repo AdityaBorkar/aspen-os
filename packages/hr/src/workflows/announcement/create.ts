@@ -44,8 +44,8 @@ export const createAnnouncement = Workflow.name("hr.announcement.create")
         body: parsed.body,
         channel: parsed.channel,
         priority: parsed.priority,
-        requireAcknowledgement: parsed.requireAcknowledgement,
-        scheduledFor: scheduledAt,
+        require_acknowledgement: parsed.requireAcknowledgement,
+        scheduled_for: scheduledAt,
         status: scheduledAt ? "scheduled" : "draft",
         title: parsed.title,
       })

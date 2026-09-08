@@ -16,7 +16,7 @@ export const listUnitsOfMeasure = Workflow.name("masters.unit-of-measure.list")
         conditions.push(eq(masterUnitOfMeasure.category, parsed.category));
       }
       if (parsed.isActive !== undefined) {
-        conditions.push(eq(masterUnitOfMeasure.isActive, parsed.isActive));
+        conditions.push(eq(masterUnitOfMeasure.is_active, parsed.isActive));
       }
 
       return ctx.db

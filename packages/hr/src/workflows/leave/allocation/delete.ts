@@ -15,7 +15,7 @@ export const deleteLeaveAllocation = Workflow.name("hr.leave.delete-leave-alloca
 
     const [updated] = await ctx.db
       .update(leaveAllocation)
-      .set({ status: "cancelled", updatedAt: new Date() })
+      .set({ status: "cancelled", updated_at: new Date() })
       .where(eq(leaveAllocation.id, id))
       .returning();
 

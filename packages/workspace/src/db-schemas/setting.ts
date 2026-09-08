@@ -5,19 +5,19 @@ import { index, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm
 export const workspaceSetting = pgTable(
   "workspace_setting",
   {
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    id: uuidv7("id").primaryKey(),
-    key: text("key").notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    id: uuidv7().primaryKey(),
+    key: text().notNull(),
+    updated_at: timestamp({ withTimezone: true })
       .notNull()
       .defaultNow()
       .$onUpdate(() => new Date()),
-    userId: text("user_id").notNull(),
-    value: jsonb("value").notNull().$type<JsonValue>(),
+    user_id: text().notNull(),
+    value: jsonb().notNull().$type<JsonValue>(),
   },
   (table) => [
-    index("idx_workspace_setting_user").on(table.userId),
-    uniqueIndex("idx_workspace_setting_user_key").on(table.userId, table.key),
+    index("idx_workspace_setting_user").on(table.user_id),
+    uniqueIndex("idx_workspace_setting_user_key").on(table.user_id, table.key),
   ],
 );
 

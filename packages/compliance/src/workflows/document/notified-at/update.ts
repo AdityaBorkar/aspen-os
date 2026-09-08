@@ -10,7 +10,7 @@ const updateDocumentNotifiedAt = Workflow.name("document.update-notified-at").ha
     const now = new Date();
     await ctx.db
       .update(complianceDocument)
-      .set({ lastNotifiedAt: now, updatedAt: now })
+      .set({ last_notified_at: now, updated_at: now })
       .where(eq(complianceDocument.id, input.id));
   },
 );

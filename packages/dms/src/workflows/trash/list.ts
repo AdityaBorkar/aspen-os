@@ -23,7 +23,7 @@ export const listTrash = Workflow.name("dms.trash.list")
     // are scoped to their own userId and admins see everything.
     const effectiveOwner = filters.ownerId ?? (input.admin ? undefined : input.userId);
     if (effectiveOwner) {
-      conditions.push(eq(dmsFile.ownerId, effectiveOwner));
+      conditions.push(eq(dmsFile.owner_id, effectiveOwner));
     }
     if (filters.status) {
       // SAFETY: the trash listing only queries trashed/expired rows (see the
@@ -32,15 +32,15 @@ export const listTrash = Workflow.name("dms.trash.list")
       conditions.push(eq(dmsFile.status, filters.status as "trashed" | "expired"));
     }
     if (filters.classId) {
-      conditions.push(eq(dmsFile.classId, filters.classId));
+      conditions.push(eq(dmsFile.class_id, filters.classId));
     }
     if (filters.deletedBy) {
-      conditions.push(eq(dmsFile.deletedBy, filters.deletedBy));
+      conditions.push(eq(dmsFile.deleted_by, filters.deletedBy));
     }
     if (filters.search) {
       const term = `%${filters.search}%`;
       conditions.push(
-        sql`(${dmsFile.name} ilike ${term} OR coalesce(${dmsFile.docNumber}, '') ilike ${term})`,
+        sql`(${dmsFile.name} ilike ${term} OR coalesce(${dmsFile.doc_number}, '') ilike ${term})`,
       );
     }
 
@@ -54,21 +54,23 @@ export const listTrash = Workflow.name("dms.trash.list")
     const ids = rows.map((row) => row.id);
     const holds =
       ids.length > 0
-        ? await ctx.db.select().from(dmsLegalHold).where(inArray(dmsLegalHold.fileId, ids))
+        ? await ctx.db.select().from(dmsLegalHold).where(inArray(dmsLegalHold.file_id, ids))
         : [];
 
     const holdMap = new Map<string, (typeof holds)[number][]>();
     for (const hold of holds) {
-      const list = holdMap.get(hold.fileId) ?? [];
+      const list = holdMap.get(hold.file_id) ?? [];
       list.push(hold);
-      holdMap.set(hold.fileId, list);
+      holdMap.set(hold.file_id, list);
     }
 
     const isHeld = (fileId: string): boolean =>
-      (holdMap.get(fileId) ?? []).some((hold) => hold.releasedAt === null);
+      (holdMap.get(fileId) ?? []).some((hold) => hold.released_at === null);
 
     const classIds = [
-      ...new Set(rows.map((row) => row.classId).filter((value): value is string => Boolean(value))),
+      ...new Set(
+        rows.map((row) => row.class_id).filter((value): value is string => Boolean(value)),
+      ),
     ];
     const classes =
       classIds.length > 0
@@ -79,12 +81,12 @@ export const listTrash = Workflow.name("dms.trash.list")
     let files = rows.map((row) => ({
       file: row,
       held: isHeld(row.id),
-      hold: holdMap.get(row.id)?.find((hold) => hold.releasedAt === null) ?? null,
+      hold: holdMap.get(row.id)?.find((hold) => hold.released_at === null) ?? null,
       provenance:
         row.status === "trashed"
-          ? { at: row.deletedAt, by: row.deletedBy }
-          : { at: row.expiredAt, by: null },
-      retainedClass: row.classId ? (classMap.get(row.classId) ?? null) : null,
+          ? { at: row.deleted_at, by: row.deleted_by }
+          : { at: row.expired_at, by: null },
+      retainedClass: row.class_id ? (classMap.get(row.class_id) ?? null) : null,
     }));
 
     // `held` was previously accepted but never read; filter in memory after
@@ -93,9 +95,9 @@ export const listTrash = Workflow.name("dms.trash.list")
       files = files.filter((entry) => entry.held === filters.held);
     }
 
-    const folderConditions: SQL[] = [eq(dmsFolder.isTrashed, true)];
+    const folderConditions: SQL[] = [eq(dmsFolder.is_trashed, true)];
     if (effectiveOwner) {
-      folderConditions.push(eq(dmsFolder.ownerId, effectiveOwner));
+      folderConditions.push(eq(dmsFolder.owner_id, effectiveOwner));
     }
     if (filters.search) {
       const term = `%${filters.search}%`;

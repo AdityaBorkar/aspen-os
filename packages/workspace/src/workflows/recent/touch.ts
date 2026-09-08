@@ -23,9 +23,9 @@ export const touchRecent = Workflow.name("workspace.recent.touch")
       .from(workspaceRecent)
       .where(
         and(
-          eq(workspaceRecent.userId, userId),
-          eq(workspaceRecent.itemType, parsed.itemType),
-          eq(workspaceRecent.itemId, parsed.itemId),
+          eq(workspaceRecent.user_id, userId),
+          eq(workspaceRecent.item_type, parsed.itemType),
+          eq(workspaceRecent.item_id, parsed.itemId),
         ),
       )
       .limit(1);
@@ -33,7 +33,7 @@ export const touchRecent = Workflow.name("workspace.recent.touch")
     if (existing[0]) {
       const [updated] = await ctx.db
         .update(workspaceRecent)
-        .set({ lastAccessedAt: now })
+        .set({ last_accessed_at: now })
         .where(eq(workspaceRecent.id, existing[0].id))
         .returning();
       return updated ?? existing[0];
@@ -41,7 +41,7 @@ export const touchRecent = Workflow.name("workspace.recent.touch")
 
     const [recent] = await ctx.db
       .insert(workspaceRecent)
-      .values({ itemId: parsed.itemId, itemType: parsed.itemType, userId })
+      .values({ item_id: parsed.itemId, item_type: parsed.itemType, user_id: userId })
       .returning();
 
     if (!recent) {
@@ -52,8 +52,8 @@ export const touchRecent = Workflow.name("workspace.recent.touch")
       const rows = await ctx.db
         .select({ id: workspaceRecent.id })
         .from(workspaceRecent)
-        .where(eq(workspaceRecent.userId, userId))
-        .orderBy(desc(workspaceRecent.lastAccessedAt));
+        .where(eq(workspaceRecent.user_id, userId))
+        .orderBy(desc(workspaceRecent.last_accessed_at));
 
       const max = getWorkspaceConfig().maxRecentItems;
       const toDelete = rows.slice(max).map((row) => row.id);

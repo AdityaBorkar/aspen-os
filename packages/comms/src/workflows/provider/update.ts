@@ -23,7 +23,7 @@ export const updateProvider = Workflow.name("comms.provider.update")
     }
     if (
       input.defaultSenderAddress !== undefined &&
-      input.defaultSenderAddress !== current.defaultSenderAddress
+      input.defaultSenderAddress !== current.default_sender_address
     ) {
       changes.defaultSenderAddress = input.defaultSenderAddress;
     }
@@ -37,7 +37,7 @@ export const updateProvider = Workflow.name("comms.provider.update")
 
     const [updated] = await ctx.db
       .update(commsProvider)
-      .set({ ...changes, updatedAt: new Date() })
+      .set({ ...changes, updated_at: new Date() })
       .where(eq(commsProvider.id, input.id))
       .returning();
 
@@ -51,7 +51,7 @@ export const updateProvider = Workflow.name("comms.provider.update")
       entityId: updated.id,
       entityType: AUDIT_ENTITY_TYPE.PROVIDER,
       newState: {
-        defaultSenderAddress: updated.defaultSenderAddress,
+        defaultSenderAddress: updated.default_sender_address,
         kind: updated.kind,
         name: updated.name,
       },

@@ -19,7 +19,7 @@ export const updateLeaveType = Workflow.name("hr.leave.update-leave-type")
 
     const [updated] = await ctx.db
       .update(leaveType)
-      .set({ ...parsed, updatedAt: new Date() })
+      .set({ ...parsed, updated_at: new Date() })
       .where(eq(leaveType.id, id))
       .returning();
 

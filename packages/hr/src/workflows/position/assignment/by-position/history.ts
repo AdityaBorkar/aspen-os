@@ -16,6 +16,6 @@ export const getPositionHistory = Workflow.name("hr.position.get-position-histor
     return ctx.db
       .select()
       .from(hrPositionAssignment)
-      .where(eq(hrPositionAssignment.positionId, positionId))
-      .orderBy(desc(hrPositionAssignment.fromDate));
+      .where(eq(hrPositionAssignment.position_id, positionId))
+      .orderBy(desc(hrPositionAssignment.from_date));
   });

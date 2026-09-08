@@ -21,26 +21,26 @@ export const approveFullAndFinal = Workflow.name("hr.lifecycle.approve-full-and-
 
     // Calculate totals
     const totalEarnings =
-      toDays(statement.pendingSalary, "pendingSalary") +
-      toDays(statement.leaveEncashment, "leaveEncashment") +
+      toDays(statement.pending_salary, "pendingSalary") +
+      toDays(statement.leave_encashment, "leaveEncashment") +
       toDays(statement.bonus, "bonus") +
       toDays(statement.gratuity, "gratuity");
 
     const totalDeductions =
-      toDays(statement.loanRecovery, "loanRecovery") + toDays(statement.deductions, "deductions");
+      toDays(statement.loan_recovery, "loanRecovery") + toDays(statement.deductions, "deductions");
 
     const netPayable = totalEarnings - totalDeductions;
 
     const [updated] = await ctx.db
       .update(fullAndFinalStatement)
       .set({
-        approvedAt: new Date(),
-        approvedBy,
-        netPayable: netPayable.toString(),
+        approved_at: new Date(),
+        approved_by: approvedBy,
+        net_payable: netPayable.toString(),
         status: "approved",
-        totalDeductions: totalDeductions.toString(),
-        totalEarnings: totalEarnings.toString(),
-        updatedAt: new Date(),
+        total_deductions: totalDeductions.toString(),
+        total_earnings: totalEarnings.toString(),
+        updated_at: new Date(),
       })
       .where(eq(fullAndFinalStatement.id, id))
       .returning();

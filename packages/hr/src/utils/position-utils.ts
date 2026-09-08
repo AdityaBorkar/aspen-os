@@ -58,7 +58,7 @@ export async function wouldCreatePositionCircular(
     }
 
     const [position] = await db
-      .select({ reportsToPosition: hrPosition.reportsToPosition })
+      .select({ reportsToPosition: hrPosition.reports_to_position })
       .from(hrPosition)
       .where(eq(hrPosition.id, currentId))
       .limit(1);
@@ -111,7 +111,7 @@ export async function listOpenAssignmentsForPosition(db: Db, positionId: string)
     .select()
     .from(hrPositionAssignment)
     .where(
-      and(eq(hrPositionAssignment.positionId, positionId), isNull(hrPositionAssignment.toDate)),
+      and(eq(hrPositionAssignment.position_id, positionId), isNull(hrPositionAssignment.to_date)),
     );
 }
 
@@ -122,8 +122,8 @@ export async function ensurePositionHasCapacity(
 ): Promise<void> {
   const position = await fetchPositionById(db, positionId);
   const conditions = [
-    eq(hrPositionAssignment.positionId, positionId),
-    isNull(hrPositionAssignment.toDate),
+    eq(hrPositionAssignment.position_id, positionId),
+    isNull(hrPositionAssignment.to_date),
   ];
   if (excludingAssignmentId) {
     conditions.push(sql`${hrPositionAssignment.id} != ${excludingAssignmentId}`);
@@ -147,9 +147,9 @@ export async function ensureNoOpenAssignmentForEmployeeInPosition(
   positionId: string,
 ): Promise<void> {
   const conditions = [
-    eq(hrPositionAssignment.employeeId, employeeId),
-    eq(hrPositionAssignment.positionId, positionId),
-    isNull(hrPositionAssignment.toDate),
+    eq(hrPositionAssignment.employee_id, employeeId),
+    eq(hrPositionAssignment.position_id, positionId),
+    isNull(hrPositionAssignment.to_date),
   ];
 
   const [existing] = await db
@@ -169,12 +169,12 @@ export async function clearOtherCurrentPrimaryAssignments(
 ): Promise<void> {
   await db
     .update(hrPositionAssignment)
-    .set({ isPrimary: false, updatedAt: new Date() })
+    .set({ is_primary: false, updated_at: new Date() })
     .where(
       and(
-        eq(hrPositionAssignment.employeeId, employeeId),
-        eq(hrPositionAssignment.isPrimary, true),
-        isNull(hrPositionAssignment.toDate),
+        eq(hrPositionAssignment.employee_id, employeeId),
+        eq(hrPositionAssignment.is_primary, true),
+        isNull(hrPositionAssignment.to_date),
       ),
     );
 }
@@ -189,12 +189,12 @@ export async function closeConflictingAssignment(
 ): Promise<void> {
   await db
     .update(hrPositionAssignment)
-    .set({ toDate: assignment.toDate, updatedAt: new Date() })
+    .set({ to_date: assignment.toDate, updated_at: new Date() })
     .where(
       and(
-        eq(hrPositionAssignment.employeeId, assignment.employeeId),
-        eq(hrPositionAssignment.positionId, assignment.positionId),
-        isNull(hrPositionAssignment.toDate),
+        eq(hrPositionAssignment.employee_id, assignment.employeeId),
+        eq(hrPositionAssignment.position_id, assignment.positionId),
+        isNull(hrPositionAssignment.to_date),
       ),
     );
 }
@@ -216,7 +216,7 @@ export async function ensureAssignable(
 
 export async function ensurePositionActive(db: Db, positionId: string) {
   const position = await fetchPositionById(db, positionId);
-  if (!position.isActive) {
+  if (!position.is_active) {
     throw new Error(`Position "${position.name}" is not active.`);
   }
   return position;
@@ -227,7 +227,7 @@ export async function assertNoActiveAssignments(db: Db, positionId: string): Pro
     .select({ id: hrPositionAssignment.id })
     .from(hrPositionAssignment)
     .where(
-      and(eq(hrPositionAssignment.positionId, positionId), isNull(hrPositionAssignment.toDate)),
+      and(eq(hrPositionAssignment.position_id, positionId), isNull(hrPositionAssignment.to_date)),
     )
     .limit(1);
 
@@ -246,23 +246,23 @@ export interface PositionChainData {
 }
 
 export function buildPositionChainData(
-  positions: { id: string; reportsToPosition: string | null }[],
-  assignments: { employeeId: string; isPrimary: boolean; positionId: string }[],
+  positions: { id: string; reports_to_position: string | null }[],
+  assignments: { employee_id: string; is_primary: boolean; position_id: string }[],
 ): PositionChainData {
   const parentByPosition = new Map<string, string | null>();
   for (const position of positions) {
-    parentByPosition.set(position.id, position.reportsToPosition);
+    parentByPosition.set(position.id, position.reports_to_position);
   }
 
   const incumbentsByPosition = new Map<string, string[]>();
   for (const assignment of assignments) {
-    const incumbents = incumbentsByPosition.get(assignment.positionId) ?? [];
-    if (assignment.isPrimary) {
-      incumbents.unshift(assignment.employeeId);
+    const incumbents = incumbentsByPosition.get(assignment.position_id) ?? [];
+    if (assignment.is_primary) {
+      incumbents.unshift(assignment.employee_id);
     } else {
-      incumbents.push(assignment.employeeId);
+      incumbents.push(assignment.employee_id);
     }
-    incumbentsByPosition.set(assignment.positionId, incumbents);
+    incumbentsByPosition.set(assignment.position_id, incumbents);
   }
 
   return { incumbentsByPosition, parentByPosition };
@@ -270,7 +270,7 @@ export function buildPositionChainData(
 
 export function resolveManagerFromChain(
   chain: PositionChainData,
-  employee: { id: string; reportsTo: string | null },
+  employee: { id: string; reports_to: string | null },
   employeePositions: Map<string, string[]>,
 ): string | null {
   const positions = employeePositions.get(employee.id) ?? [];
@@ -289,12 +289,12 @@ export function resolveManagerFromChain(
     }
   }
 
-  return employee.reportsTo ?? null;
+  return employee.reports_to ?? null;
 }
 
 export async function resolveManagerIdMap(
   db: Db,
-  employees: { id: string; reportsTo: string | null }[],
+  employees: { id: string; reports_to: string | null }[],
 ): Promise<Map<string, string | null>> {
   if (employees.length === 0) {
     return new Map();
@@ -302,16 +302,16 @@ export async function resolveManagerIdMap(
 
   const [positions, assignments] = await Promise.all([
     db.select().from(hrPosition),
-    db.select().from(hrPositionAssignment).where(isNull(hrPositionAssignment.toDate)),
+    db.select().from(hrPositionAssignment).where(isNull(hrPositionAssignment.to_date)),
   ]);
 
   const chain = buildPositionChainData(positions, assignments);
 
   const employeePositions = new Map<string, string[]>();
   for (const assignment of assignments) {
-    const list = employeePositions.get(assignment.employeeId) ?? [];
-    list.push(assignment.positionId);
-    employeePositions.set(assignment.employeeId, list);
+    const list = employeePositions.get(assignment.employee_id) ?? [];
+    list.push(assignment.position_id);
+    employeePositions.set(assignment.employee_id, list);
   }
 
   return new Map(
@@ -336,7 +336,7 @@ export function buildPositionTree(
     department: string;
     id: string;
     name: string;
-    reportsToPosition: string | null;
+    reports_to_position: string | null;
   }[],
   incumbentsByPosition: Map<string, string[]>,
   employeeById: Map<string, PositionTreeEmployee>,
@@ -347,8 +347,8 @@ export function buildPositionTree(
 
   for (const position of positions) {
     const parent =
-      position.reportsToPosition !== null && included.has(position.reportsToPosition)
-        ? position.reportsToPosition
+      position.reports_to_position !== null && included.has(position.reports_to_position)
+        ? position.reports_to_position
         : null;
     const siblings = childrenByParent.get(parent) ?? [];
     siblings.push(position.id);

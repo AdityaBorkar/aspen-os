@@ -11,7 +11,7 @@ const assignDocumentTo = Workflow.name("document.assign-to").handler(
 
     const [updated] = await ctx.db
       .update(complianceDocument)
-      .set({ assignedTo: userId, updatedAt: new Date() })
+      .set({ assigned_to: userId, updated_at: new Date() })
       .where(eq(complianceDocument.id, id))
       .returning();
 
@@ -21,11 +21,11 @@ const assignDocumentTo = Workflow.name("document.assign-to").handler(
 
     await ctx.audit.write({
       action: "updated",
-      actorId: current.createdBy,
+      actorId: current.created_by,
       entityId: id,
       entityType: "compliance_document",
       metadata: { assigneeId: userId },
-      previousState: { assignedTo: current.assignedTo },
+      previousState: { assigned_to: current.assigned_to },
     });
 
     return updated;

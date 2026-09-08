@@ -21,14 +21,14 @@ export const getLeaveBalance = Workflow.name("hr.leave.get-leave-balance")
       .from(leaveAllocation)
       .where(
         and(
-          eq(leaveAllocation.employeeId, employeeId),
-          eq(leaveAllocation.leavePeriod, leavePeriod),
+          eq(leaveAllocation.employee_id, employeeId),
+          eq(leaveAllocation.leave_period, leavePeriod),
         ),
       );
 
     const balances: (AllocationDays & { leaveType: string })[] = [];
     for (const alloc of allocations) {
-      balances.push({ ...allocationDays(alloc), leaveType: alloc.leaveType });
+      balances.push({ ...allocationDays(alloc), leaveType: alloc.leave_type });
     }
     return balances;
   });

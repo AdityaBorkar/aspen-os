@@ -17,11 +17,11 @@ export const deleteDashboard = Workflow.name("workspace.dashboard.delete")
     await assertCanMutate(dashboard, ctx.actorId);
 
     await ctx.step.run("delete-widgets", async () => {
-      await ctx.db.delete(workspaceWidget).where(eq(workspaceWidget.dashboardId, id));
+      await ctx.db.delete(workspaceWidget).where(eq(workspaceWidget.dashboard_id, id));
     });
 
     await ctx.step.run("delete-schedules", async () => {
-      await ctx.db.delete(workspaceSchedule).where(eq(workspaceSchedule.dashboardId, id));
+      await ctx.db.delete(workspaceSchedule).where(eq(workspaceSchedule.dashboard_id, id));
     });
 
     await ctx.db.delete(workspaceDashboard).where(eq(workspaceDashboard.id, id));

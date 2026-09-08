@@ -7,18 +7,18 @@ import { boolean, index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-
 export const commsTemplate = pgTable(
   "comms_template",
   {
-    body: text("body").notNull(),
-    channelType: commsChannelTypeEnum("channel_type").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    id: uuidv7("id").primaryKey(),
-    isActive: boolean("is_active").notNull().default(true),
-    metadata: jsonb("metadata").$type<Record<string, JsonValue> | null>(),
-    name: text("name").notNull(),
-    providerTemplateId: text("provider_template_id"),
-    subject: text("subject"),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    body: text().notNull(),
+    channel_type: commsChannelTypeEnum().notNull(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    id: uuidv7().primaryKey(),
+    is_active: boolean().notNull().default(true),
+    metadata: jsonb().$type<Record<string, JsonValue> | null>(),
+    name: text().notNull(),
+    provider_template_id: text(),
+    subject: text(),
+    updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index("idx_comms_template_channel_name").on(table.channelType, table.name)],
+  (table) => [index("idx_comms_template_channel_name").on(table.channel_type, table.name)],
 );
 
 export type CommsTemplate = typeof commsTemplate.$inferSelect;

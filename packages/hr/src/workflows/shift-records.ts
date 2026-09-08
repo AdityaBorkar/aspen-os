@@ -17,12 +17,12 @@ export async function insertShiftAssignment(
   const [result] = await db
     .insert(shiftAssignment)
     .values({
-      employeeId: input.employeeId,
-      endDate: input.endDate ?? null,
+      employee_id: input.employeeId,
+      end_date: input.endDate ?? null,
       notes: input.notes ?? null,
-      shiftLocation: input.shiftLocation ?? null,
-      shiftType: input.shiftType,
-      startDate: input.startDate,
+      shift_location: input.shiftLocation ?? null,
+      shift_type: input.shiftType,
+      start_date: input.startDate,
     })
     .returning();
 

@@ -16,5 +16,5 @@ export const listSeparationTasks = Workflow.name("hr.lifecycle.list-separation-t
     return ctx.db
       .select()
       .from(separationTask)
-      .where(eq(separationTask.separationId, separationId));
+      .where(eq(separationTask.separation_id, separationId));
   });

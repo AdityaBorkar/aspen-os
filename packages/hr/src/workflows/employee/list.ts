@@ -33,13 +33,13 @@ export const list = Workflow.name("hr.employee.list")
       conditions.push(eq(employee.grade, parsed.grade));
     }
     if (parsed.employmentType) {
-      conditions.push(eq(employee.employmentType, parsed.employmentType));
+      conditions.push(eq(employee.employment_type, parsed.employmentType));
     }
     if (parsed.status) {
       conditions.push(eq(employee.status, parsed.status));
     }
     if (parsed.reportsTo) {
-      conditions.push(eq(employee.reportsTo, parsed.reportsTo));
+      conditions.push(eq(employee.reports_to, parsed.reportsTo));
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;

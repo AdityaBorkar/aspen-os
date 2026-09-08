@@ -17,9 +17,9 @@ export const createLeavePeriod = Workflow.name("hr.leave.create-leave-period")
       .insert(leavePeriod)
       .values({
         company: parsed.company ?? null,
-        endDate: parsed.endDate,
+        end_date: parsed.endDate,
         name: parsed.name,
-        startDate: parsed.startDate,
+        start_date: parsed.startDate,
       })
       .returning();
 

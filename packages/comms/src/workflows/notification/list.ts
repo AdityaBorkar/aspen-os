@@ -15,10 +15,10 @@ export const listNotifications = Workflow.name("comms.notification.list")
 
     const where = [];
     if (filters?.recipientType) {
-      where.push(eq(commsNotification.recipientType, filters.recipientType));
+      where.push(eq(commsNotification.recipient_type, filters.recipientType));
     }
     if (filters?.recipientId) {
-      where.push(eq(commsNotification.recipientId, filters.recipientId));
+      where.push(eq(commsNotification.recipient_id, filters.recipientId));
     }
     if (filters?.type) {
       where.push(eq(commsNotification.type, filters.type));
@@ -37,7 +37,7 @@ export const listNotifications = Workflow.name("comms.notification.list")
       .select()
       .from(commsNotification)
       .where(and(...where))
-      .orderBy(desc(commsNotification.createdAt))
+      .orderBy(desc(commsNotification.created_at))
       .limit(limit)
       .offset(offset);
   });

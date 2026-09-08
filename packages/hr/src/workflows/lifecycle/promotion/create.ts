@@ -16,16 +16,16 @@ export const createPromotion = Workflow.name("hr.lifecycle.create-promotion")
     const [result] = await ctx.db
       .insert(employeePromotion)
       .values({
-        currentDepartment: parsed.currentDepartment ?? null,
-        currentDesignation: parsed.currentDesignation,
-        currentGrade: parsed.currentGrade ?? null,
-        effectiveDate: parsed.effectiveDate,
-        employeeId: parsed.employeeId,
-        newDepartment: parsed.newDepartment ?? null,
-        newDesignation: parsed.newDesignation,
-        newGrade: parsed.newGrade ?? null,
+        current_department: parsed.currentDepartment ?? null,
+        current_designation: parsed.currentDesignation,
+        current_grade: parsed.currentGrade ?? null,
+        effective_date: parsed.effectiveDate,
+        employee_id: parsed.employeeId,
+        new_department: parsed.newDepartment ?? null,
+        new_designation: parsed.newDesignation,
+        new_grade: parsed.newGrade ?? null,
         reason: parsed.reason ?? null,
-        salaryRevision: parsed.salaryRevision ?? null,
+        salary_revision: parsed.salaryRevision ?? null,
       })
       .returning();
 

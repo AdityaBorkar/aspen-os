@@ -24,14 +24,14 @@ export function rotateChannelCredential(kvStore: KvStoreUnit) {
 
       const newRef = `comms:channel:${crypto.randomUUID()}:credential`;
       await ctx.step.run("store-credential", () => kvStore.set(newRef, input.credential, 0));
-      const oldRef = current.credentialRef;
+      const oldRef = current.credential_ref;
       if (oldRef) {
         await ctx.step.run("delete-old-credential", () => kvStore.del(oldRef));
       }
 
       const [updated] = await ctx.db
         .update(commsChannel)
-        .set({ credentialRef: newRef, updatedAt: new Date() })
+        .set({ credential_ref: newRef, updated_at: new Date() })
         .where(eq(commsChannel.id, input.id))
         .returning();
 

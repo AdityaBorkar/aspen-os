@@ -12,7 +12,7 @@ export const restoreTask = Workflow.name("task.restore")
     await ctx.step.run(fetchTaskStep, { id });
     const [updated] = await ctx.db
       .update(task)
-      .set({ isArchived: false, updatedAt: new Date() })
+      .set({ is_archived: false, updated_at: new Date() })
       .where(eq(task.id, id))
       .returning();
     return updated;

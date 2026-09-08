@@ -22,7 +22,7 @@ export const unassignServiceProvider = Workflow.name("tenant.unassign-sp")
     await ctx.step.run("unassign", async () => {
       await ctx.db
         .update(tenant)
-        .set({ serviceProviderId: null, updatedAt: new Date() })
+        .set({ service_provider_id: null, updated_at: new Date() })
         .where(eq(tenant.id, tenantId));
     });
 

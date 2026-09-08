@@ -20,13 +20,13 @@ export const deleteAddress = Workflow.name("masters.address.delete")
         crudAction: "delete",
         entityId: current.id,
         entityType: AUDIT_ENTITY_TYPE.ADDRESS,
-        metadata: { entityId: current.entityId, entityType: current.entityType },
+        metadata: { entity_id: current.entity_id, entity_type: current.entity_type },
       });
 
       await ctx.pubsub.publish(ADDRESS_EVENTS.REMOVED, {
         addressId: current.id,
-        entityId: current.entityId,
-        entityType: current.entityType,
+        entityId: current.entity_id,
+        entityType: current.entity_type,
       });
     });
 

@@ -68,21 +68,21 @@ export const uploadFile = Workflow.name("dms.file.upload")
     const [file] = await ctx.db
       .insert(dmsFile)
       .values({
-        batchId: parsed.batchId ?? null,
+        batch_id: parsed.batchId ?? null,
         compression,
-        contentType: parsed.contentType,
+        content_type: parsed.contentType,
         description: parsed.description ?? null,
         etag: fileObject.etag ?? null,
-        folderId,
+        folder_id: folderId,
         id: fileId,
         metadata: parsed.metadata ?? {},
         name: parsed.name,
-        ownerId: parsed.ownerId,
+        owner_id: parsed.ownerId,
         path,
         size: fileObject.size,
         status,
-        storageKey,
-        uploadedBy: actorId,
+        storage_key: storageKey,
+        uploaded_by: actorId,
         version: 1,
       })
       .returning();
@@ -101,10 +101,10 @@ export const uploadFile = Workflow.name("dms.file.upload")
         const rows = (parsed.labelIds ?? [])
           .filter((labelId) => validIds.has(labelId))
           .map((labelId) => ({
-            appliedBy: actorId,
-            entityId: file.id,
-            entityType: "file" as const,
-            labelId,
+            applied_by: actorId,
+            entity_id: file.id,
+            entity_type: "file" as const,
+            label_id: labelId,
           }));
         if (rows.length > 0) {
           await ctx.db.insert(dmsEntityLabel).values(rows).onConflictDoNothing();
@@ -120,18 +120,18 @@ export const uploadFile = Workflow.name("dms.file.upload")
         entityType: AUDIT_ENTITY_TYPE.FILE,
         metadata: { batchId: parsed.batchId ?? null, version: 1 },
         newState: {
-          contentType: file.contentType,
+          contentType: file.content_type,
           id: file.id,
           name: file.name,
           size: file.size,
           status: file.status,
-          storageKey: file.storageKey,
+          storageKey: file.storage_key,
         },
       });
 
       await ctx.pubsub.publish(FILE_EVENTS.UPLOADED, {
         batchId: parsed.batchId ?? undefined,
-        contentType: file.contentType,
+        contentType: file.content_type,
         fileId: file.id,
         size: file.size,
         version: file.version,

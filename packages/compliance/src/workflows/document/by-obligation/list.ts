@@ -8,8 +8,8 @@ const getDocumentsByObligation = Workflow.name("document.by-obligation").handler
     ctx.db
       .select()
       .from(complianceDocument)
-      .where(eq(complianceDocument.obligationId, input.obligationId))
-      .orderBy(asc(complianceDocument.periodStart)),
+      .where(eq(complianceDocument.obligation_id, input.obligationId))
+      .orderBy(asc(complianceDocument.period_start)),
 );
 
 export { getDocumentsByObligation };

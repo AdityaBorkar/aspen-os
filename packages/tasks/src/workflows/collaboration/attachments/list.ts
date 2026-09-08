@@ -9,6 +9,6 @@ export const listAttachments = Workflow.name("collaboration.list-attachments")
   .input(object({ taskId: IdSchema }))
   .handler(async ({ taskId }, ctx) =>
     ctx.step.run("query", async () =>
-      ctx.db.select().from(attachment).where(eq(attachment.taskId, taskId)),
+      ctx.db.select().from(attachment).where(eq(attachment.task_id, taskId)),
     ),
   );

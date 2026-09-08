@@ -13,5 +13,5 @@ export const listLeaveAdjustments = Workflow.name("hr.leave.list-leave-adjustmen
   .handler(async (input, ctx) => {
     const { employeeId } = input;
 
-    return ctx.db.select().from(leaveAdjustment).where(eq(leaveAdjustment.employeeId, employeeId));
+    return ctx.db.select().from(leaveAdjustment).where(eq(leaveAdjustment.employee_id, employeeId));
   });

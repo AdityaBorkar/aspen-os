@@ -26,9 +26,9 @@ async function linkExists(
     .from(taskLink)
     .where(
       and(
-        eq(taskLink.sourceId, options.sourceId),
-        eq(taskLink.targetId, options.targetId),
-        eq(taskLink.linkType, options.linkType),
+        eq(taskLink.source_id, options.sourceId),
+        eq(taskLink.target_id, options.targetId),
+        eq(taskLink.link_type, options.linkType),
       ),
     )
     .limit(1);
@@ -47,9 +47,9 @@ async function createInverseLink(
   await db
     .insert(taskLink)
     .values({
-      linkType: options.linkType,
-      sourceId: options.sourceId,
-      targetId: options.targetId,
+      link_type: options.linkType,
+      source_id: options.sourceId,
+      target_id: options.targetId,
     })
     .onConflictDoNothing();
 }
@@ -84,9 +84,9 @@ export const createTaskLink = Workflow.name("link.create")
       const inserted = await tx
         .insert(taskLink)
         .values({
-          linkType: input.linkType,
-          sourceId: input.sourceId,
-          targetId: input.targetId,
+          link_type: input.linkType,
+          source_id: input.sourceId,
+          target_id: input.targetId,
         })
         .returning();
 

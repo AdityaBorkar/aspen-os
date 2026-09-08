@@ -24,8 +24,8 @@ export const updateAddress = Workflow.name("masters.address.update")
       await ctx.step.run("unset-primary", () =>
         unsetPrimaryForOwner({
           db: ctx.db,
-          entityId: current.entityId,
-          entityType: current.entityType,
+          entityId: current.entity_id,
+          entityType: current.entity_type,
           table: masterAddress,
         }),
       );
@@ -45,7 +45,7 @@ export const updateAddress = Workflow.name("masters.address.update")
 
     const [updated] = await ctx.db
       .update(masterAddress)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates, updated_at: new Date() })
       .where(eq(masterAddress.id, input.id))
       .returning();
 
@@ -65,8 +65,8 @@ export const updateAddress = Workflow.name("masters.address.update")
       await ctx.pubsub.publish(ADDRESS_EVENTS.UPDATED, {
         address: { id: updated.id },
         changes: updates,
-        entityId: updated.entityId,
-        entityType: updated.entityType,
+        entityId: updated.entity_id,
+        entityType: updated.entity_type,
       });
     });
 

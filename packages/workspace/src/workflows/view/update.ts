@@ -23,7 +23,7 @@ export const updateView = Workflow.name("workspace.view.update")
 
     if (parsed.isDefault) {
       await ctx.step.run("unset-previous-default", async () => {
-        await unsetDefaultView(ctx.db, view.ownerId, parsed.domain ?? view.domain);
+        await unsetDefaultView(ctx.db, view.owner_id, parsed.domain ?? view.domain);
       });
     }
 
@@ -40,7 +40,7 @@ export const updateView = Workflow.name("workspace.view.update")
 
     const [updated] = await ctx.db
       .update(workspaceView)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates, updated_at: new Date() })
       .where(eq(workspaceView.id, id))
       .returning();
 

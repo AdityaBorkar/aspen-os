@@ -54,9 +54,9 @@ export const evaluateAutomationRules = Workflow.name("automation.evaluate")
         .from(automationRule)
         .where(
           and(
-            eq(automationRule.projectId, context.projectId),
+            eq(automationRule.project_id, context.projectId),
             eq(automationRule.trigger, trigger),
-            eq(automationRule.isActive, true),
+            eq(automationRule.is_active, true),
           ),
         ),
     );

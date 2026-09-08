@@ -31,7 +31,7 @@ export function defineSpStatusTransition(config: SpTransitionConfig) {
       const [updated] = await ctx.step.run("transition", () =>
         ctx.db
           .update(serviceProvider)
-          .set({ status: config.to, updatedAt: new Date() })
+          .set({ status: config.to, updated_at: new Date() })
           .where(eq(serviceProvider.id, id))
           .returning(),
       );

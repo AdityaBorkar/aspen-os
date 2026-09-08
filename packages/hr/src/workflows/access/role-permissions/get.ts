@@ -21,6 +21,6 @@ export const getRolePermissions = Workflow.name("hr.access.get-role-permissions"
         module: hrPermission.module,
       })
       .from(hrRolePermission)
-      .innerJoin(hrPermission, eq(hrRolePermission.permissionId, hrPermission.id))
-      .where(eq(hrRolePermission.roleId, roleId));
+      .innerJoin(hrPermission, eq(hrRolePermission.permission_id, hrPermission.id))
+      .where(eq(hrRolePermission.role_id, roleId));
   });

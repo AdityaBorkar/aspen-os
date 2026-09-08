@@ -16,13 +16,13 @@ export const activatePosition = Workflow.name("hr.position.activate")
     const { id } = input;
 
     const position = await fetchPositionById(ctx.db, id);
-    if (position.isActive) {
+    if (position.is_active) {
       return position;
     }
 
     const [updated] = await ctx.db
       .update(hrPosition)
-      .set({ isActive: true, updatedAt: new Date() })
+      .set({ is_active: true, updated_at: new Date() })
       .where(eq(hrPosition.id, id))
       .returning();
 

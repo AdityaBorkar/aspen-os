@@ -24,30 +24,22 @@ export const getTriageDetail = Workflow.name("dms.triage.detail")
     const classIds = classes.map((cls) => cls.id);
     const fieldRows =
       classIds.length > 0
-        ? await ctx.db.select().from(dmsClassField).where(inArray(dmsClassField.classId, classIds))
+        ? await ctx.db.select().from(dmsClassField).where(inArray(dmsClassField.class_id, classIds))
         : [];
 
     const byClass = new Map<string, ClassFieldRow[]>();
     for (const row of fieldRows) {
-      if (!row.isActive) {
+      if (!row.is_active) {
         continue;
       }
-      const list = byClass.get(row.classId) ?? [];
-      list.push({
-        defaultValue: row.defaultValue,
-        isActive: row.isActive,
-        isRequired: row.isRequired,
-        label: row.label,
-        name: row.name,
-        options: row.options,
-        type: row.type,
-      });
-      byClass.set(row.classId, list);
+      const list = byClass.get(row.class_id) ?? [];
+      list.push(row);
+      byClass.set(row.class_id, list);
     }
 
     const candidateReport = classes.map((cls) => {
       const fields = byClass.get(cls.id) ?? [];
-      const { missing } = validateFieldValues(fields, file.fieldValues ?? undefined);
+      const { missing } = validateFieldValues(fields, file.field_values ?? undefined);
       return { classId: cls.id, className: cls.name, missing };
     });
 

@@ -21,10 +21,10 @@ export const updateAutomationRule = Workflow.name("automation.update")
       .set({
         actions: patch.actions,
         conditions: patch.conditions,
-        isActive: patch.isActive,
+        is_active: patch.isActive,
         name: patch.name,
         trigger: patch.trigger,
-        updatedAt: new Date(),
+        updated_at: new Date(),
       })
       .where(eq(automationRule.id, id))
       .returning();

@@ -20,12 +20,12 @@ export const createOnboardingTask = Workflow.name("hr.lifecycle.create-onboardin
     const [result] = await ctx.db
       .insert(onboardingTask)
       .values({
-        assignedTo: parsed.assignedTo ?? null,
+        assigned_to: parsed.assignedTo ?? null,
         department: parsed.department ?? null,
         description: parsed.description ?? null,
-        dueDate: parsed.dueDate ?? null,
+        due_date: parsed.dueDate ?? null,
         notes: parsed.notes ?? null,
-        onboardingId: parsed.onboardingId,
+        onboarding_id: parsed.onboardingId,
         title: parsed.title,
       })
       .returning();

@@ -29,18 +29,18 @@ export interface AppendVersionInput {
 export async function snapshotVersion(
   db: DB,
   file: DmsFile,
-  actorId: string = file.uploadedBy,
+  actorId: string = file.uploaded_by,
 ): Promise<void> {
   await db.insert(dmsFileVersion).values({
     compression: file.compression,
-    contentType: file.contentType,
+    content_type: file.content_type,
     etag: file.etag,
-    fileId: file.id,
-    isCurrent: false,
+    file_id: file.id,
+    is_current: false,
     name: file.name,
     size: file.size,
-    storageKey: file.storageKey,
-    uploadedBy: actorId,
+    storage_key: file.storage_key,
+    uploaded_by: actorId,
     version: file.version,
   });
 }
@@ -62,7 +62,7 @@ export async function appendVersion(
 ): Promise<AppendVersionResult> {
   const newVersion = file.version + 1;
   const name = input.name ?? file.name;
-  const contentType = input.contentType ?? file.contentType;
+  const contentType = input.contentType ?? file.content_type;
   const storageKey =
     input.storageKey ??
     computeStorageKey({
@@ -82,13 +82,13 @@ export async function appendVersion(
   const [updated] = await db
     .update(dmsFile)
     .set({
-      contentType,
+      content_type: contentType,
       etag: fileObject.etag ?? null,
       name,
       size: fileObject.size,
-      storageKey,
-      updatedAt: new Date(),
-      uploadedBy: input.uploadedBy ?? file.uploadedBy,
+      storage_key: storageKey,
+      updated_at: new Date(),
+      uploaded_by: input.uploadedBy ?? file.uploaded_by,
       version: newVersion,
     })
     .where(eq(dmsFile.id, file.id))
@@ -125,7 +125,7 @@ export async function revertVersion(
 
   const copied = await copyStorage({
     destKey: storageKey,
-    sourceKey: target.storageKey,
+    sourceKey: target.storage_key,
   });
 
   await snapshotVersion(db, file, actorId);
@@ -133,13 +133,13 @@ export async function revertVersion(
   const [updated] = await db
     .update(dmsFile)
     .set({
-      contentType: target.contentType,
+      content_type: target.content_type,
       etag: copied.etag ?? target.etag ?? null,
       name: target.name ?? file.name,
       size: copied.size ?? target.size,
-      storageKey,
-      updatedAt: new Date(),
-      uploadedBy: actorId,
+      storage_key: storageKey,
+      updated_at: new Date(),
+      uploaded_by: actorId,
       version: newVersionNumber,
     })
     .where(eq(dmsFile.id, file.id))

@@ -16,9 +16,9 @@ export const assignRoleToUser = Workflow.name("hr.access.assign-role-to-user")
     const [result] = await ctx.db
       .insert(hrUserRole)
       .values({
-        branchId: parsed.branchId,
-        hrUserId: parsed.hrUserId,
-        roleId: parsed.roleId,
+        branch_id: parsed.branchId,
+        hr_user_id: parsed.hrUserId,
+        role_id: parsed.roleId,
       })
       .returning();
     return result;

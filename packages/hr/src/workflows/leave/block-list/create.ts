@@ -18,11 +18,11 @@ export const createLeaveBlockList = Workflow.name("hr.leave.create-leave-block-l
       .values({
         company: parsed.company ?? null,
         department: parsed.department ?? null,
-        fromDate: parsed.fromDate,
+        from_date: parsed.fromDate,
         name: parsed.name,
         reason: parsed.reason ?? null,
         scope: parsed.scope,
-        toDate: parsed.toDate,
+        to_date: parsed.toDate,
       })
       .returning();
 

@@ -19,7 +19,7 @@ export const updateLeaveEncashment = Workflow.name("hr.leave.update-leave-encash
 
     const [updated] = await ctx.db
       .update(leaveEncashment)
-      .set({ ...parsed, updatedAt: new Date() })
+      .set({ ...parsed, updated_at: new Date() })
       .where(eq(leaveEncashment.id, id))
       .returning();
 

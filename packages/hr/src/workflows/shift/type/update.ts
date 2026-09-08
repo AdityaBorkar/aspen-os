@@ -19,7 +19,7 @@ export const updateShiftType = Workflow.name("hr.shift.update-shift-type")
 
     const [updated] = await ctx.db
       .update(shiftType)
-      .set({ ...parsed, updatedAt: new Date() })
+      .set({ ...parsed, updated_at: new Date() })
       .where(eq(shiftType.id, id))
       .returning();
 

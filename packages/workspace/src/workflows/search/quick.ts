@@ -20,7 +20,7 @@ export const quickSearch = Workflow.name("workspace.search.quick")
 
     const accessScope = or(
       eq(workspaceDraft.access, "global"),
-      eq(workspaceDraft.ownerId, ctx.actorId),
+      eq(workspaceDraft.owner_id, ctx.actorId),
     );
 
     const drafts = await ctx.db
@@ -34,7 +34,7 @@ export const quickSearch = Workflow.name("workspace.search.quick")
       .where(
         and(
           accessScope,
-          isNull(workspaceDraft.deletedAt),
+          isNull(workspaceDraft.deleted_at),
           sql`(${workspaceDraft.title} ilike ${term} OR ${workspaceDraft.body} ilike ${term})`,
         ),
       )
@@ -50,7 +50,7 @@ export const quickSearch = Workflow.name("workspace.search.quick")
       .from(workspaceView)
       .where(
         and(
-          or(eq(workspaceView.access, "global"), eq(workspaceView.ownerId, ctx.actorId)),
+          or(eq(workspaceView.access, "global"), eq(workspaceView.owner_id, ctx.actorId)),
           sql`(${workspaceView.name} ilike ${term} OR ${workspaceView.domain} ilike ${term})`,
         ),
       )
@@ -65,7 +65,7 @@ export const quickSearch = Workflow.name("workspace.search.quick")
       .from(workspaceDashboard)
       .where(
         and(
-          or(eq(workspaceDashboard.access, "global"), eq(workspaceDashboard.ownerId, ctx.actorId)),
+          or(eq(workspaceDashboard.access, "global"), eq(workspaceDashboard.owner_id, ctx.actorId)),
           sql`(${workspaceDashboard.name} ilike ${term} OR ${workspaceDashboard.description} ilike ${term})`,
         ),
       )

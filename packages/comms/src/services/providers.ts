@@ -16,8 +16,8 @@ export async function findFirstActiveProvider(
   const [provider] = await db
     .select()
     .from(commsProvider)
-    .where(and(eq(commsProvider.isActive, true), inArray(commsProvider.kind, kinds)))
-    .orderBy(commsProvider.createdAt)
+    .where(and(eq(commsProvider.is_active, true), inArray(commsProvider.kind, kinds)))
+    .orderBy(commsProvider.created_at)
     .limit(1);
   return provider ?? null;
 }

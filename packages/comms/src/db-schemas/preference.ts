@@ -6,16 +6,16 @@ import { boolean, index, integer, pgTable, text, timestamp } from "drizzle-orm/p
 export const commsPreference = pgTable(
   "comms_preference",
   {
-    channelType: commsPreferenceChannelTypeEnum("channel_type").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    enabled: boolean("enabled").notNull().default(true),
-    id: uuidv7("id").primaryKey(),
-    priority: integer("priority").notNull().default(0),
-    type: text("type"),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-    userId: text("user_id").notNull(),
+    channel_type: commsPreferenceChannelTypeEnum().notNull(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    enabled: boolean().notNull().default(true),
+    id: uuidv7().primaryKey(),
+    priority: integer().notNull().default(0),
+    type: text(),
+    updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    user_id: text().notNull(),
   },
-  (table) => [index("idx_comms_preference_user").on(table.userId, table.type, table.channelType)],
+  (table) => [index("idx_comms_preference_user").on(table.user_id, table.type, table.channel_type)],
 );
 
 export type CommsPreference = typeof commsPreference.$inferSelect;

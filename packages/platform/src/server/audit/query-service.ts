@@ -19,28 +19,28 @@ export class AuditQueryService {
       conditions.push(eq(auditLog.action, filter.action));
     }
     if (filter.actorId) {
-      conditions.push(eq(auditLog.actorId, filter.actorId));
+      conditions.push(eq(auditLog.actor_id, filter.actorId));
     }
     if (filter.crudAction) {
-      conditions.push(eq(auditLog.crudAction, filter.crudAction));
+      conditions.push(eq(auditLog.crud_action, filter.crudAction));
     }
     if (filter.entityType) {
-      conditions.push(eq(auditLog.entityType, filter.entityType));
+      conditions.push(eq(auditLog.entity_type, filter.entityType));
     }
     if (filter.entityId) {
-      conditions.push(eq(auditLog.entityId, filter.entityId));
+      conditions.push(eq(auditLog.entity_id, filter.entityId));
     }
     if (filter.workflowRunId) {
-      conditions.push(eq(auditLog.workflowRunId, filter.workflowRunId));
+      conditions.push(eq(auditLog.workflow_run_id, filter.workflowRunId));
     }
     if (filter.tenantId) {
-      conditions.push(eq(auditLog.tenantId, filter.tenantId));
+      conditions.push(eq(auditLog.tenant_id, filter.tenantId));
     }
     if (filter.startTime) {
-      conditions.push(gte(auditLog.performedAt, filter.startTime));
+      conditions.push(gte(auditLog.performed_at, filter.startTime));
     }
     if (filter.endTime) {
-      conditions.push(lte(auditLog.performedAt, filter.endTime));
+      conditions.push(lte(auditLog.performed_at, filter.endTime));
     }
 
     const where = conditions.length > 0 ? and(...conditions) : undefined;
@@ -61,11 +61,11 @@ export class AuditQueryService {
   ): Promise<Record<string, JsonValue> | null> {
     const rows = await this.db
       .select({
-        crudAction: auditLog.crudAction,
-        newState: auditLog.newState,
+        crudAction: auditLog.crud_action,
+        newState: auditLog.new_state,
       })
       .from(auditLog)
-      .where(and(eq(auditLog.entityType, entityType), eq(auditLog.entityId, entityId)))
+      .where(and(eq(auditLog.entity_type, entityType), eq(auditLog.entity_id, entityId)))
       .orderBy(auditLog.seq);
 
     if (rows.length === 0) {
@@ -89,28 +89,28 @@ export class AuditQueryService {
       conditions.push(eq(auditLog.action, filter.action));
     }
     if (filter.actorId) {
-      conditions.push(eq(auditLog.actorId, filter.actorId));
+      conditions.push(eq(auditLog.actor_id, filter.actorId));
     }
     if (filter.crudAction) {
-      conditions.push(eq(auditLog.crudAction, filter.crudAction));
+      conditions.push(eq(auditLog.crud_action, filter.crudAction));
     }
     if (filter.entityType) {
-      conditions.push(eq(auditLog.entityType, filter.entityType));
+      conditions.push(eq(auditLog.entity_type, filter.entityType));
     }
     if (filter.entityId) {
-      conditions.push(eq(auditLog.entityId, filter.entityId));
+      conditions.push(eq(auditLog.entity_id, filter.entityId));
     }
     if (filter.workflowRunId) {
-      conditions.push(eq(auditLog.workflowRunId, filter.workflowRunId));
+      conditions.push(eq(auditLog.workflow_run_id, filter.workflowRunId));
     }
     if (filter.tenantId) {
-      conditions.push(eq(auditLog.tenantId, filter.tenantId));
+      conditions.push(eq(auditLog.tenant_id, filter.tenantId));
     }
     if (filter.startTime) {
-      conditions.push(gte(auditLog.performedAt, filter.startTime));
+      conditions.push(gte(auditLog.performed_at, filter.startTime));
     }
     if (filter.endTime) {
-      conditions.push(lte(auditLog.performedAt, filter.endTime));
+      conditions.push(lte(auditLog.performed_at, filter.endTime));
     }
 
     const where = conditions.length > 0 ? and(...conditions) : undefined;

@@ -12,6 +12,6 @@ export const listSharedSavedViews = Workflow.name("view.list-shared")
       ctx.db
         .select()
         .from(savedView)
-        .where(and(eq(savedView.projectId, projectId), eq(savedView.isShared, true))),
+        .where(and(eq(savedView.project_id, projectId), eq(savedView.is_shared, true))),
     ),
   );

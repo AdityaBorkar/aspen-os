@@ -10,8 +10,8 @@ export const listConnections = Workflow.name("masters.connection.list")
     ctx.step.run("query", async () => {
       const parsed = input.filters ?? {};
       const conditions = [
-        eq(masterConnection.entityType, input.entityType),
-        eq(masterConnection.entityId, input.entityId),
+        eq(masterConnection.entity_type, input.entityType),
+        eq(masterConnection.entity_id, input.entityId),
       ];
 
       if (parsed.type) {
@@ -23,7 +23,7 @@ export const listConnections = Workflow.name("masters.connection.list")
       if (parsed.search) {
         const searchCondition = or(
           ilike(masterConnection.name, `%${parsed.search}%`),
-          ilike(masterConnection.baseUrl, `%${parsed.search}%`),
+          ilike(masterConnection.base_url, `%${parsed.search}%`),
         );
         if (searchCondition) {
           conditions.push(searchCondition);

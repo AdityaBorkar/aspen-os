@@ -1,4 +1,5 @@
 import { complianceDocument, complianceObligation } from "#/db-schemas";
+import type { ComplianceDocument } from "#/db-schemas";
 import { DashboardSummarySchema } from "#/schemas/dashboard";
 import type { DashboardSummary } from "#/types";
 import { VERIFICATION_STATUS } from "#/utils/constants";
@@ -37,8 +38,8 @@ const getDashboardSummary = Workflow.name("dashboard.summary").handler(
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const generatedConditions = [
-      isNotNull(complianceDocument.obligationId),
-      gte(complianceDocument.createdAt, thirtyDaysAgo),
+      isNotNull(complianceDocument.obligation_id),
+      gte(complianceDocument.created_at, thirtyDaysAgo),
     ];
     if (branchFilter) {
       generatedConditions.push(eq(complianceDocument.branch, branchFilter));
@@ -56,19 +57,19 @@ const getDashboardSummary = Workflow.name("dashboard.summary").handler(
     ] = await Promise.all([
       db
         .select({
-          expired: sql<number>`count(*) filter (where ${complianceDocument.verificationStatus} = ${VERIFICATION_STATUS.EXPIRED})::int`,
-          overdue: sql<number>`count(*) filter (where ${complianceDocument.verificationStatus} = ${VERIFICATION_STATUS.OVERDUE})::int`,
-          pendingReview: sql<number>`count(*) filter (where ${complianceDocument.verificationStatus} in (${VERIFICATION_STATUS.SUBMITTED}, ${VERIFICATION_STATUS.UNDER_REVIEW}))::int`,
-          rejected: sql<number>`count(*) filter (where ${complianceDocument.verificationStatus} = ${VERIFICATION_STATUS.REJECTED})::int`,
-          total: sql<number>`count(*) filter (where ${complianceDocument.verificationStatus} != ${VERIFICATION_STATUS.ARCHIVED})::int`,
-          verified: sql<number>`count(*) filter (where ${complianceDocument.verificationStatus} = ${VERIFICATION_STATUS.VERIFIED})::int`,
+          expired: sql<number>`count(*) filter (where ${complianceDocument.verification_status} = ${VERIFICATION_STATUS.EXPIRED})::int`,
+          overdue: sql<number>`count(*) filter (where ${complianceDocument.verification_status} = ${VERIFICATION_STATUS.OVERDUE})::int`,
+          pendingReview: sql<number>`count(*) filter (where ${complianceDocument.verification_status} in (${VERIFICATION_STATUS.SUBMITTED}, ${VERIFICATION_STATUS.UNDER_REVIEW}))::int`,
+          rejected: sql<number>`count(*) filter (where ${complianceDocument.verification_status} = ${VERIFICATION_STATUS.REJECTED})::int`,
+          total: sql<number>`count(*) filter (where ${complianceDocument.verification_status} != ${VERIFICATION_STATUS.ARCHIVED})::int`,
+          verified: sql<number>`count(*) filter (where ${complianceDocument.verification_status} = ${VERIFICATION_STATUS.VERIFIED})::int`,
         })
         .from(complianceDocument)
         .where(whereClause),
       db
         .select({
-          dueSoon: sql<number>`count(*) filter (where ${complianceDocument.dueDate} is not null and ${complianceDocument.dueDate} <= ${futureStr} and ${complianceDocument.dueDate} >= ${nowStr} and ${complianceDocument.completedAt} is null)::int`,
-          expiringSoon: sql<number>`count(*) filter (where ${complianceDocument.expiryDate} is not null and ${complianceDocument.expiryDate} <= ${futureStr} and ${complianceDocument.expiryDate} >= ${nowStr})::int`,
+          dueSoon: sql<number>`count(*) filter (where ${complianceDocument.due_date} is not null and ${complianceDocument.due_date} <= ${futureStr} and ${complianceDocument.due_date} >= ${nowStr} and ${complianceDocument.completed_at} is null)::int`,
+          expiringSoon: sql<number>`count(*) filter (where ${complianceDocument.expiry_date} is not null and ${complianceDocument.expiry_date} <= ${futureStr} and ${complianceDocument.expiry_date} >= ${nowStr})::int`,
         })
         .from(complianceDocument)
         .where(whereClause),
@@ -83,11 +84,11 @@ const getDashboardSummary = Workflow.name("dashboard.summary").handler(
       db
         .select({
           count: sql<number>`count(*)::int`,
-          sourceModule: complianceDocument.sourceModule,
+          sourceModule: complianceDocument.source_module,
         })
         .from(complianceDocument)
         .where(whereClause)
-        .groupBy(complianceDocument.sourceModule),
+        .groupBy(complianceDocument.source_module),
       db
         .select({
           branch: complianceDocument.branch,
@@ -99,17 +100,17 @@ const getDashboardSummary = Workflow.name("dashboard.summary").handler(
       db
         .select({
           count: sql<number>`count(*)::int`,
-          status: complianceDocument.verificationStatus,
+          status: complianceDocument.verification_status,
         })
         .from(complianceDocument)
         .where(whereClause)
-        .groupBy(complianceDocument.verificationStatus),
+        .groupBy(complianceDocument.verification_status),
       db
         .select({
           count: sql<number>`count(*)::int`,
         })
         .from(complianceObligation)
-        .where(eq(complianceObligation.isActive, true)),
+        .where(eq(complianceObligation.is_active, true)),
       db
         .select({
           count: sql<number>`count(*)::int`,
@@ -125,13 +126,17 @@ const getDashboardSummary = Workflow.name("dashboard.summary").handler(
 
     const byCategory: DashboardSummary["byCategory"] = toCountMap(
       categoryRows,
-      (row) => row.category,
+      (row: { category: ComplianceDocument["category"]; count: number }) => row.category,
     );
     const bySourceModule: DashboardSummary["bySourceModule"] = toCountMap(
       sourceRows,
-      (row) => row.sourceModule,
+      (row: { count: number; sourceModule: ComplianceDocument["source_module"] }) =>
+        row.sourceModule,
     );
-    const byStatus: DashboardSummary["byStatus"] = toCountMap(statusRows, (row) => row.status);
+    const byStatus: DashboardSummary["byStatus"] = toCountMap(
+      statusRows,
+      (row: { count: number; status: ComplianceDocument["verification_status"] }) => row.status,
+    );
 
     const byBranch: DashboardSummary["byBranch"] = {};
     for (const row of branchRows) {

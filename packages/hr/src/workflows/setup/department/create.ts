@@ -22,12 +22,12 @@ export const createDepartment = Workflow.name("hr.setup.create-department")
       .insert(department)
       .values({
         code: parsed.code.toUpperCase(),
-        costCenter: parsed.costCenter ?? null,
+        cost_center: parsed.costCenter ?? null,
         headcount: parsed.headcount ?? null,
         manager: parsed.manager ?? null,
         metadata: parsed.metadata ?? null,
         name: parsed.name,
-        parentDepartment: parsed.parentDepartment ?? null,
+        parent_department: parsed.parentDepartment ?? null,
       })
       .returning();
 

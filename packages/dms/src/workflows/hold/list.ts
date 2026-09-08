@@ -11,6 +11,6 @@ export const listHolds = Workflow.name("dms.hold.list")
     ctx.db
       .select()
       .from(dmsLegalHold)
-      .where(eq(dmsLegalHold.fileId, fileId))
-      .orderBy(dmsLegalHold.placedAt),
+      .where(eq(dmsLegalHold.file_id, fileId))
+      .orderBy(dmsLegalHold.placed_at),
   );

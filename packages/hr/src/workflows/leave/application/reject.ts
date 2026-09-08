@@ -22,11 +22,11 @@ export const rejectLeaveApplication = Workflow.name("hr.leave.reject-leave-appli
     const [updated] = await ctx.db
       .update(leaveApplication)
       .set({
-        rejectedAt: new Date(),
-        rejectedBy,
-        rejectionReason,
+        rejected_at: new Date(),
+        rejected_by: rejectedBy,
+        rejection_reason: rejectionReason,
         status: "rejected",
-        updatedAt: new Date(),
+        updated_at: new Date(),
       })
       .where(eq(leaveApplication.id, id))
       .returning();

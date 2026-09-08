@@ -20,12 +20,12 @@ export function createChannel(kvStore: KvStoreUnit) {
       const [row] = await ctx.db
         .insert(commsChannel)
         .values({
-          credentialRef,
-          entityId: input.entityId,
-          entityType: input.entityType,
+          credential_ref: credentialRef,
+          entity_id: input.entityId,
+          entity_type: input.entityType,
           metadata: input.metadata ?? null,
           name: input.name,
-          senderAddress: input.senderAddress,
+          sender_address: input.senderAddress,
           source: "tenant",
           status: "inactive",
           type: input.type,
@@ -54,10 +54,10 @@ export function createChannel(kvStore: KvStoreUnit) {
           topic: CHANNEL_EVENTS.CREATED,
         },
         newState: {
-          entityId: row.entityId,
-          entityType: row.entityType,
+          entityId: row.entity_id,
+          entityType: row.entity_type,
           name: row.name,
-          senderAddress: row.senderAddress,
+          senderAddress: row.sender_address,
           status: row.status,
           type: row.type,
         },

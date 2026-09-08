@@ -16,10 +16,10 @@ export const createAttendanceRequest = Workflow.name("hr.attendance.create-atten
     const [result] = await ctx.db
       .insert(attendanceRequest)
       .values({
-        employeeId: parsed.employeeId,
-        fromDate: parsed.fromDate,
+        employee_id: parsed.employeeId,
+        from_date: parsed.fromDate,
         reason: parsed.reason,
-        toDate: parsed.toDate,
+        to_date: parsed.toDate,
       })
       .returning();
 

@@ -20,7 +20,7 @@ export const cancelScheduleAnnouncement = Workflow.name("hr.announcement.cancel-
 
     const [updated] = await ctx.db
       .update(hrAnnouncement)
-      .set({ scheduledFor: null, status: "draft", updatedAt: new Date() })
+      .set({ scheduled_for: null, status: "draft", updated_at: new Date() })
       .where(eq(hrAnnouncement.id, id))
       .returning();
 

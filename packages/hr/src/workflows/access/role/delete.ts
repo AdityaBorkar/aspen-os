@@ -15,7 +15,7 @@ export const deleteRole = Workflow.name("hr.access.delete-role")
 
     const [role] = await ctx.db.select().from(hrRole).where(eq(hrRole.id, id)).limit(1);
 
-    if (role?.isSystem) {
+    if (role?.is_system) {
       throw new Error(`Cannot delete system role "${role.name}".`);
     }
 

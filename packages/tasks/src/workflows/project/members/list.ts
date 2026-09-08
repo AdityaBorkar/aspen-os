@@ -9,6 +9,6 @@ export const listProjectMembers = Workflow.name("project.list-members")
   .input(object({ projectId: IdSchema }))
   .handler(async ({ projectId }, ctx) =>
     ctx.step.run("query", async () =>
-      ctx.db.select().from(projectMember).where(eq(projectMember.projectId, projectId)),
+      ctx.db.select().from(projectMember).where(eq(projectMember.project_id, projectId)),
     ),
   );

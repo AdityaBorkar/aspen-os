@@ -26,7 +26,7 @@ async function nextDocNumber(db: PostgresJsDatabase): Promise<string> {
   const rows = await db
     .select({ value: count(dmsFile.id) })
     .from(dmsFile)
-    .where(isNotNull(dmsFile.docNumber));
+    .where(isNotNull(dmsFile.doc_number));
   const value = rows[0]?.value ?? 0;
   const seq = (value + 1) % (MAX_SEQ + 1);
   return `DOC-${String(seq).padStart(6, "0")}`;
@@ -52,7 +52,7 @@ export const classifyFile = Workflow.name("dms.file.classify")
       if (!row) {
         throw new Error(`Class "${parsed.classId}" not found.`);
       }
-      if (!row.isActive) {
+      if (!row.is_active) {
         throw new Error(`Class "${parsed.classId}" is archived.`);
       }
       return row;
@@ -63,7 +63,7 @@ export const classifyFile = Workflow.name("dms.file.classify")
     const resolvedValues = await ctx.step.run("resolve-field-values", async () => {
       const values: Record<string, JsonValue> = {};
       for (const field of fields) {
-        values[field.name] = parsed.fieldValues?.[field.name] ?? field.defaultValue ?? null;
+        values[field.name] = parsed.fieldValues?.[field.name] ?? field.default_value ?? null;
       }
       return values;
     });
@@ -83,7 +83,7 @@ export const classifyFile = Workflow.name("dms.file.classify")
         docNumber,
         fieldValues: resolvedValues,
         originalName: file.name,
-        schema: cls.fileNamingSchema,
+        schema: cls.file_naming_schema,
       });
       return rendered ?? file.name;
     });
@@ -91,12 +91,12 @@ export const classifyFile = Workflow.name("dms.file.classify")
     const [updated] = await ctx.db
       .update(dmsFile)
       .set({
-        classId: cls.id,
-        docNumber,
-        fieldValues: resolvedValues,
+        class_id: cls.id,
+        doc_number: docNumber,
+        field_values: resolvedValues,
         name: newName,
         status: "active",
-        updatedAt: new Date(),
+        updated_at: new Date(),
       })
       .where(eq(dmsFile.id, id))
       .returning();

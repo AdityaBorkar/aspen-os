@@ -36,8 +36,8 @@ export const updateCalendar = Workflow.name("calendar.calendar.update")
       if (parsed.isDefault === true) {
         await tx
           .update(calendar)
-          .set({ isDefault: false })
-          .where(eq(calendar.ownerId, existing.ownerId));
+          .set({ is_default: false })
+          .where(eq(calendar.owner_id, existing.owner_id));
       }
 
       const [row] = await tx.update(calendar).set(updates).where(eq(calendar.id, id)).returning();
@@ -55,8 +55,8 @@ export const updateCalendar = Workflow.name("calendar.calendar.update")
         crudAction: "update",
         entityId: updated.id,
         entityType: AUDIT_ENTITY_TYPE.CALENDAR,
-        newState: { isDefault: updated.isDefault, name: updated.name },
-        previousState: { isDefault: existing.isDefault, name: existing.name },
+        newState: { is_default: updated.is_default, name: updated.name },
+        previousState: { is_default: existing.is_default, name: existing.name },
       });
 
       await ctx.pubsub.publish(CALENDAR_EVENTS.UPDATED, {

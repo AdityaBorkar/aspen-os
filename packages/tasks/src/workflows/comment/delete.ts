@@ -12,7 +12,7 @@ export const deleteComment = Workflow.name("comment.delete")
     await ctx.step.run(fetchCommentStep, { id });
     const [updated] = await ctx.db
       .update(comment)
-      .set({ body: "[comment deleted]", isDeleted: true })
+      .set({ body: "[comment deleted]", is_deleted: true })
       .where(eq(comment.id, id))
       .returning();
 

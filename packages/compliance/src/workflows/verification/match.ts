@@ -16,14 +16,14 @@ const matchVerificationRule = Workflow.name("verification.match").handler(
       .from(complianceVerificationRule)
       .where(
         and(
-          eq(complianceVerificationRule.isActive, true),
+          eq(complianceVerificationRule.is_active, true),
           or(
             isNull(complianceVerificationRule.category),
             eq(complianceVerificationRule.category, document.category),
           ),
           or(
-            isNull(complianceVerificationRule.sourceModule),
-            eq(complianceVerificationRule.sourceModule, document.sourceModule),
+            isNull(complianceVerificationRule.source_module),
+            eq(complianceVerificationRule.source_module, document.sourceModule),
           ),
         ),
       )

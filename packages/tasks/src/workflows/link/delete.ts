@@ -14,16 +14,16 @@ export const deleteTaskLink = Workflow.name("link.delete")
     const [link] = await ctx.db
       .select()
       .from(taskLink)
-      .where(and(eq(taskLink.sourceId, sourceId), eq(taskLink.targetId, targetId)))
+      .where(and(eq(taskLink.source_id, sourceId), eq(taskLink.target_id, targetId)))
       .limit(1);
 
     if (!link) {
       throw new Error(`Task link "${sourceId}" -> "${targetId}" not found.`);
     }
 
-    const parsedLinkType = safeParse(TaskLinkTypeSchema, link.linkType);
+    const parsedLinkType = safeParse(TaskLinkTypeSchema, link.link_type);
     if (!parsedLinkType.success) {
-      throw new Error(`Unknown task link type "${link.linkType}".`);
+      throw new Error(`Unknown task link type "${link.link_type}".`);
     }
 
     await ctx.db.transaction(async (tx) => {
@@ -33,9 +33,9 @@ export const deleteTaskLink = Workflow.name("link.delete")
           .delete(taskLink)
           .where(
             and(
-              eq(taskLink.sourceId, targetId),
-              eq(taskLink.targetId, sourceId),
-              eq(taskLink.linkType, linkTypeInverse(parsedLinkType.output)),
+              eq(taskLink.source_id, targetId),
+              eq(taskLink.target_id, sourceId),
+              eq(taskLink.link_type, linkTypeInverse(parsedLinkType.output)),
             ),
           ),
       ]);

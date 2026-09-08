@@ -29,7 +29,7 @@ export const assertBaseUnitInvariantStep = WorkflowStep.name(
 
       const conditions = [
         eq(masterUnitOfMeasure.category, input.category),
-        eq(masterUnitOfMeasure.isBaseUnit, true),
+        eq(masterUnitOfMeasure.is_base_unit, true),
         input.excludeId ? ne(masterUnitOfMeasure.id, input.excludeId) : undefined,
       ];
 
@@ -58,7 +58,7 @@ export const assertBaseUnitInvariantStep = WorkflowStep.name(
     const baseConditions = [
       eq(masterUnitOfMeasure.id, input.baseUnitId),
       eq(masterUnitOfMeasure.category, input.category),
-      eq(masterUnitOfMeasure.isBaseUnit, true),
+      eq(masterUnitOfMeasure.is_base_unit, true),
       input.excludeId ? ne(masterUnitOfMeasure.id, input.excludeId) : undefined,
     ];
 

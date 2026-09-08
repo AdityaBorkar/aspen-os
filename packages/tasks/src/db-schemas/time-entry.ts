@@ -4,18 +4,18 @@ import { boolean, date, index, integer, pgTable, text, timestamp } from "drizzle
 export const timeEntry = pgTable(
   "task_time_entry",
   {
-    billable: boolean("billable").notNull().default(false),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    date: date("date").notNull(),
-    description: text("description"),
-    duration: integer("duration").notNull(),
-    id: uuidv7("id").primaryKey(),
-    taskId: text("task_id").notNull(),
-    userId: text("user_id").notNull(),
+    billable: boolean().notNull().default(false),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    date: date().notNull(),
+    description: text(),
+    duration: integer().notNull(),
+    id: uuidv7().primaryKey(),
+    task_id: text().notNull(),
+    user_id: text().notNull(),
   },
   (table) => [
-    index("idx_task_time_entry_task").on(table.taskId),
-    index("idx_task_time_entry_user").on(table.userId),
+    index("idx_task_time_entry_task").on(table.task_id),
+    index("idx_task_time_entry_user").on(table.user_id),
     index("idx_task_time_entry_date").on(table.date),
   ],
 );

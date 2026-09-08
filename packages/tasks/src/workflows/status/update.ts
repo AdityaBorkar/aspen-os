@@ -18,7 +18,7 @@ export const updateStatus = Workflow.name("status.update")
     const current = await ctx.step.run(fetchStatusStep, { id });
 
     if (patch.isDefault) {
-      await unsetDefaultProjectStatus(ctx.db, current.projectId);
+      await unsetDefaultProjectStatus(ctx.db, current.project_id);
     }
 
     const [updated] = await ctx.db
@@ -26,10 +26,10 @@ export const updateStatus = Workflow.name("status.update")
       .set({
         category: patch.category,
         color: patch.color,
-        isDefault: patch.isDefault,
-        isResolved: patch.isResolved,
+        is_default: patch.isDefault,
+        is_resolved: patch.isResolved,
         name: patch.name,
-        sortOrder: patch.sortOrder,
+        sort_order: patch.sortOrder,
       })
       .where(eq(status.id, id))
       .returning();

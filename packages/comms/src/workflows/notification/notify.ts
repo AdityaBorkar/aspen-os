@@ -67,13 +67,13 @@ export function createNotify(dbUnit: DatabaseUnit) {
         .insert(commsNotification)
         .values({
           body: input.body ?? null,
-          channelTypes: routed.channelTypes,
+          channel_types: routed.channelTypes,
           metadata: input.metadata ?? null,
-          recipientId: resolved.recipientId,
-          recipientType: resolved.recipientType,
+          recipient_id: resolved.recipientId,
+          recipient_type: resolved.recipientType,
           severity: input.severity ?? "normal",
-          sourceEntity: input.sourceEntity ?? null,
-          sourceModule: input.sourceModule ?? "comms",
+          source_entity: input.sourceEntity ?? null,
+          source_module: input.sourceModule ?? "comms",
           title: input.title,
           to: resolved.to,
           type: input.type,
@@ -109,17 +109,17 @@ export function createNotify(dbUnit: DatabaseUnit) {
         entityType: AUDIT_ENTITY_TYPE.NOTIFICATION,
         event: {
           payload: {
-            channelTypes: row.channelTypes,
+            channelTypes: row.channel_types,
             notificationId: row.id,
-            recipientId: row.recipientId,
-            recipientType: row.recipientType,
+            recipientId: row.recipient_id,
+            recipientType: row.recipient_type,
             type: row.type,
           },
           topic: NOTIFICATION_EVENTS.CREATED,
         },
         newState: {
-          recipientId: row.recipientId,
-          recipientType: row.recipientType,
+          recipientId: row.recipient_id,
+          recipientType: row.recipient_type,
           type: row.type,
         },
       });
@@ -165,7 +165,7 @@ async function fetchTemplate(
 
 async function enqueueOutOfBandMessages(ctx: EnqueueContext): Promise<EnqueueResult> {
   const { db, notificationId, parsed, pubsub, resolved, routed, template } = ctx;
-  if (template && !template.isActive) {
+  if (template && !template.is_active) {
     return {
       dispatched: [],
       skipped: routed.map((decision) => ({
@@ -192,7 +192,7 @@ async function enqueueOutOfBandMessages(ctx: EnqueueContext): Promise<EnqueueRes
       if (!to) {
         return skip("no_address");
       }
-      if (decision.channelType === "whatsapp" && !template?.providerTemplateId) {
+      if (decision.channelType === "whatsapp" && !template?.provider_template_id) {
         return skip("whatsapp_requires_provider_template");
       }
 
@@ -203,16 +203,16 @@ async function enqueueOutOfBandMessages(ctx: EnqueueContext): Promise<EnqueueRes
         .insert(commsMessage)
         .values({
           body,
-          channelId: decision.channel.id,
-          channelType: decision.channelType,
+          channel_id: decision.channel.id,
+          channel_type: decision.channelType,
           metadata: parsed.metadata ?? null,
-          notificationId,
-          providerId: decision.channel.providerId ?? null,
-          queuedAt: now,
+          notification_id: notificationId,
+          provider_id: decision.channel.provider_id ?? null,
+          queued_at: now,
           status: "queued",
           subject,
-          templateId: parsed.templateId ?? null,
-          tenantId: tenantId ?? null,
+          template_id: parsed.templateId ?? null,
+          tenant_id: tenantId ?? null,
           to,
         })
         .returning();
@@ -222,12 +222,12 @@ async function enqueueOutOfBandMessages(ctx: EnqueueContext): Promise<EnqueueRes
       }
 
       await pubsub.publish(MESSAGE_EVENTS.QUEUED, {
-        channelType: row.channelType,
+        channelType: row.channel_type,
         messageId: row.id,
         to: row.to,
       });
       return {
-        dispatched: { channelType: row.channelType, messageId: row.id },
+        dispatched: { channelType: row.channel_type, messageId: row.id },
         skipped: null,
       };
     }),

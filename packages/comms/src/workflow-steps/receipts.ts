@@ -31,14 +31,14 @@ export async function handleProviderReceipt(
   const [message] = await deps.db.db
     .select()
     .from(commsMessage)
-    .where(eq(commsMessage.providerMessageId, input.providerMessageId))
+    .where(eq(commsMessage.provider_message_id, input.providerMessageId))
     .limit(1);
 
   if (!message) {
     return false;
   }
 
-  const tenantId = message.tenantId ?? tenantIdFromMetadata(message.metadata);
+  const tenantId = message.tenant_id ?? tenantIdFromMetadata(message.metadata);
   if (!tenantId) {
     return false;
   }
@@ -70,7 +70,7 @@ async function markDelivered(
   const at = new Date();
   await db
     .update(commsMessage)
-    .set({ deliveredAt: at, status: "delivered" })
+    .set({ delivered_at: at, status: "delivered" })
     .where(and(eq(commsMessage.id, message.id), inArray(commsMessage.status, ["sent", "sending"])));
 }
 
@@ -82,6 +82,6 @@ async function markFailed(
   await db
     .update(commsMessage)
     // SAFETY: atomic increment avoids lost updates on concurrent receipts.
-    .set({ attempts: sql`${commsMessage.attempts} + 1`, lastError: error, status: "failed" })
+    .set({ attempts: sql`${commsMessage.attempts} + 1`, last_error: error, status: "failed" })
     .where(and(eq(commsMessage.id, message.id), ne(commsMessage.status, "delivered")));
 }

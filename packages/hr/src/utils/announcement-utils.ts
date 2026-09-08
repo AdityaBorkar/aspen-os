@@ -69,9 +69,9 @@ async function resolveEmployees(db: Db, employeeIds: string[]): Promise<Resolved
   const foundIds = new Set(employeeRows.map((row) => row.id));
 
   const hrUserRows = await db
-    .select({ employeeId: hrUser.employeeId, hrUserId: hrUser.id, userId: hrUser.userId })
+    .select({ employeeId: hrUser.employee_id, hrUserId: hrUser.id, userId: hrUser.user_id })
     .from(hrUser)
-    .where(inArray(hrUser.employeeId, employeeIds));
+    .where(inArray(hrUser.employee_id, employeeIds));
 
   const hrUserByEmployeeId = new Map(hrUserRows.map((row) => [row.employeeId, row]));
 
@@ -110,7 +110,7 @@ function dedupeRecipients(recipients: ResolvedRecipient[]): ResolvedRecipient[] 
 
 async function expandDepartmentIds(db: Db, departmentIds: string[]): Promise<string[]> {
   const all = await db
-    .select({ id: department.id, parentId: department.parentDepartment })
+    .select({ id: department.id, parentId: department.parent_department })
     .from(department);
   return collectSubtreeIds(all, departmentIds);
 }
@@ -121,7 +121,7 @@ async function resolveHrUsers(db: Db, hrUserIds: string[]): Promise<ResolvedReci
   }
 
   const rows = await db
-    .select({ hrUserId: hrUser.id, userId: hrUser.userId })
+    .select({ hrUserId: hrUser.id, userId: hrUser.user_id })
     .from(hrUser)
     .where(inArray(hrUser.id, hrUserIds));
 
@@ -167,16 +167,16 @@ export async function resolveRecipients(
     await pushEmployees(rows.map((row) => row.id));
   } else if (type === "groups") {
     const memberRows = await db
-      .select({ employeeId: employeeGroupMember.employeeId })
+      .select({ employeeId: employeeGroupMember.employee_id })
       .from(employeeGroupMember)
-      .where(inArray(employeeGroupMember.groupId, ids));
+      .where(inArray(employeeGroupMember.group_id, ids));
     const employeeIds = [...new Set(memberRows.map((row) => row.employeeId))];
     await pushEmployees(employeeIds);
   } else if (type === "hr_users") {
     const activeHrUsers = await db
-      .select({ hrUserId: hrUser.id, userId: hrUser.userId })
+      .select({ hrUserId: hrUser.id, userId: hrUser.user_id })
       .from(hrUser)
-      .where(eq(hrUser.isActive, true));
+      .where(eq(hrUser.is_active, true));
     recipients.push(
       ...activeHrUsers.map((row) => ({
         employeeId: null,
@@ -186,9 +186,9 @@ export async function resolveRecipients(
     );
   } else if (type === "roles") {
     const userRoleRows = await db
-      .select({ hrUserId: hrUserRole.hrUserId })
+      .select({ hrUserId: hrUserRole.hr_user_id })
       .from(hrUserRole)
-      .where(inArray(hrUserRole.roleId, ids));
+      .where(inArray(hrUserRole.role_id, ids));
     const hrUserIds = [...new Set(userRoleRows.map((row) => row.hrUserId))];
     recipients.push(...(await resolveHrUsers(db, hrUserIds)));
   } else if (type === "individuals") {

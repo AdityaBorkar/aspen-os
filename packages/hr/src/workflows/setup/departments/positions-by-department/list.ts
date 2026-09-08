@@ -23,11 +23,11 @@ export const listPositionsByDepartment = Workflow.name("hr.setup.list-positions-
       const departments = await ctx.db
         .select()
         .from(department)
-        .where(eq(department.isActive, true));
+        .where(eq(department.is_active, true));
       departmentIds = collectSubtreeIds(
         departments.map((departmentItem) => ({
           id: departmentItem.id,
-          parentId: departmentItem.parentDepartment,
+          parentId: departmentItem.parent_department,
         })),
         [departmentId],
       );
@@ -36,5 +36,5 @@ export const listPositionsByDepartment = Workflow.name("hr.setup.list-positions-
     return ctx.db
       .select()
       .from(hrPosition)
-      .where(and(eq(hrPosition.isActive, true), inArray(hrPosition.department, departmentIds)));
+      .where(and(eq(hrPosition.is_active, true), inArray(hrPosition.department, departmentIds)));
   });

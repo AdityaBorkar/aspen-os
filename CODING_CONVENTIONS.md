@@ -315,24 +315,25 @@ packages/<module>/
 
 ### IDs
 
-- Domain/platform core IDs use the `uuidv7` Drizzle column type exported from `@aspen-os/platform/server` (defined in `src/server/db/schema/data-types.ts`): `id: uuidv7("id").primaryKey()`. It maps to SQL `text` and bakes in the insert-time JS `generateUuidv7()` default, avoiding DB-side `sql\`uuidv7()\`` magic.
-- Exception 1: better-auth tables (`user`, `session`, `account`, `verification`, `organization`, `member`, `invitation`, `apikey`, `twoFactor`, `passkey`) use `text("id").primaryKey()` without default; better-auth manages IDs (`bun run gen:auth-schema`).
-- Exception 2: `management.tenant.id` uses `text("id").primaryKey()` without default; onboarding supplies the ID.
+- Domain/platform core IDs use the `uuidv7` Drizzle column type exported from `@aspen-os/platform/server` (defined in `src/server/db/schema/data-types.ts`): `id: uuidv7().primaryKey()`. It maps to SQL `text` and bakes in the insert-time JS `generateUuidv7()` default, avoiding DB-side `sql\`uuidv7()\`` magic. Never pass an explicit name (`uuidv7("id")` is forbidden).
+- Exception 1: better-auth tables (`user`, `session`, `account`, `verification`, `organization`, `member`, `invitation`, `apikey`, `twoFactor`, `passkey`) use `text().primaryKey()` without default; better-auth manages IDs (`bun run gen:auth-schema`, then re-apply snake_case codemod as the generator emits explicit names).
+- Exception 2: `management.tenant.id` uses `text().primaryKey()` without default; onboarding supplies the ID.
 - The raw generator stays available as `generateUuidv7()` from `@aspen-os/platform/server` for places that need a UUIDv7 string outside a column default.
-- Workflow run/step schemas use `uuidv7("id")` defaults, but the engine supplies `crypto.randomUUID()` IDs.
+- Workflow run/step schemas use `uuidv7()` defaults, but the engine supplies `crypto.randomUUID()` IDs.
 
 ### Timestamps
 
-- Domain/core tables use `timestamp("...", { withTimezone: true })`; generated better-auth tables use timezone-less `timestamp(...)`.
-- Domain/core `createdAt` fields use `.notNull().defaultNow()`.
-- `updatedAt` generally uses `.notNull().defaultNow()`; some schemas add `$onUpdate(() => new Date())`, and workflows often set `updatedAt` explicitly.
-- `date` columns (e.g. `foundedDate`, `openedDate`, `expiryDate`) use Drizzle's `date()` type. Date workflows commonly convert `Date` via `.toISOString().split("T")[0]`; HR employee date fields accept/persist strings.
+- Domain/core tables use `timestamp({ withTimezone: true })`; generated better-auth tables use timezone-less `timestamp()`.
+- Domain/core `created_at` fields use `.notNull().defaultNow()`.
+- `updated_at` generally uses `.notNull().defaultNow()`; some schemas add `$onUpdate(() => new Date())`, and workflows often set `updated_at` explicitly.
+- `date` columns (e.g. `founded_date`, `opened_date`, `expiry_date`) use Drizzle's `date()` type with no explicit name. Date workflows commonly convert `Date` via `.toISOString().split("T")[0]`; HR employee date fields accept/persist strings.
 
 ### Table and column naming
 
-- Table names: `snake_case` (e.g. `connection_contact`, `dms_file`, `kv_store`, `workflow_runs`). DMS tables carry `dms_` prefix (`dms_file`, `dms_label`, `dms_share`, …).
-- Column names: `snake_case` in Postgres, `camelCase` in TypeScript (drizzle maps between them).
-- Table definitions sort columns alphabetically by TS property name.
+- Table names: `snake_case` first arg to `pgTable` (e.g. `connection_contact`, `dms_file`, `kv_store`, `workflow_runs`). DMS tables carry `dms_` prefix (`dms_file`, `dms_label`, `dms_share`, …).
+- Column names: `snake_case` in **both** Postgres and TypeScript. The TS object key **is** the column name — never repeat it inside the datatype params. Write `owner_id: text().notNull()`, never `ownerId: text("owner_id")`. Same for all types: `created_at: timestamp({ withTimezone: true })`, `size: bigint({ mode: "number" })`, `status: myEnum()`, `id: uuidv7()`.
+- Table definitions sort columns alphabetically by (snake_case) key.
+- API boundary: Valibot input schemas, event payload interfaces, `AuditEntry`/`AuditQuery`, and platform context (`ctx.actorId`, `ctx.tenantId`, …) stay `camelCase`. Map explicitly at the DB boundary: inserts/updates use snake keys with camel values (`owner_id: input.ownerId`), row reads use snake (`created.owner_id`), event publishes map back (`ownerId: created.owner_id`).
 
 ### Enums
 
@@ -348,15 +349,15 @@ packages/<module>/
 
 ### Other column types
 
-- `jsonb("metadata")` for flexible metadata — often `.default({})`.
-- `numeric` for monetary/decimal values (e.g. `annual_revenue`, `contract_value`).
-- `integer` for counts/capacity, `bigint("...", { mode: "number" })` for file sizes.
-- `text("...").array().default([])` for array fields (e.g. tags).
-- `boolean` fields use `.notNull().default(boolean)` pattern.
+- `jsonb()` for flexible metadata — often `.default({})`.
+- `numeric()` for monetary/decimal values (e.g. `annual_revenue`, `contract_value`).
+- `integer()` for counts/capacity, `bigint({ mode: "number" })` for file sizes.
+- `text().array().default([])` for array fields (e.g. tags).
+- `boolean` fields use `.notNull().default(boolean)` pattern (e.g. `is_archived: boolean().notNull().default(false)`).
 
 ### Foreign keys
 
-- Generated better-auth tables use explicit references such as `text("user_id").notNull().references(() => user.id, { onDelete: "cascade" })`.
+- Generated better-auth tables use explicit references such as `user_id: text().notNull().references(() => user.id, { onDelete: "cascade" })` (after re-applying the snake_case codemod post-generation).
 - Domain tables generally store related IDs as plain `text` without Drizzle foreign keys; do not assume cascade behavior.
 
 ### Relations
@@ -478,19 +479,19 @@ export type DomainEventMap = EntityEventMap & OtherEntityEventMap;
 
 ## Naming summary
 
-| Scope                   | Convention                            | Example                                                             |
-| ----------------------- | ------------------------------------- | ------------------------------------------------------------------- |
-| Files                   | `kebab-case`                          | `auth.ts`, `pubsub.ts`, `db-schemas/index.ts`                       |
-| Classes                 | `PascalCase`                          | `OrganizationWorkflow`, `DatabaseUnit`                              |
-| Constants               | `UPPER_SNAKE_CASE`                    | `ORGANIZATION_STATUS`, `COMPLIANCE_EVENTS`                          |
-| DB tables               | `snake_case`                          | `connection_contact`, `dms_file`                                    |
-| DB columns              | `snake_case` (mapped to camelCase TS) | `created_at` → `createdAt`                                          |
-| Event topics            | `domain:event_name`                   | `organization:updated`                                              |
-| Private fields          | `#` prefix                            | `#documents`, `#db`, `#pubsub`                                      |
-| Unit lifecycle (server) | `$` prefix                            | `$name`, `$prepareInfra`, `$cleanup`                                |
-| Module lifecycle        | `$` prefix                            | `$initialize`, `$prepareInfra`, `$prepareRuntime`                   |
-| Package exports         | `@aspen-os/<name>`                    | `@aspen-os/platform`, `@aspen-os/organization`, `@aspen-os/masters` |
-| Module `$name` property | `kebab-case` string                   | `"organization"`, `"compliance"`                                    |
+| Scope                   | Convention                        | Example                                                             |
+| ----------------------- | --------------------------------- | ------------------------------------------------------------------- |
+| Files                   | `kebab-case`                      | `auth.ts`, `pubsub.ts`, `db-schemas/index.ts`                       |
+| Classes                 | `PascalCase`                      | `OrganizationWorkflow`, `DatabaseUnit`                              |
+| Constants               | `UPPER_SNAKE_CASE`                | `ORGANIZATION_STATUS`, `COMPLIANCE_EVENTS`                          |
+| DB tables               | `snake_case`                      | `connection_contact`, `dms_file`                                    |
+| DB columns              | `snake_case` TS = DB (no mapping) | `created_at: timestamp()`, `owner_id: text()`                       |
+| Event topics            | `domain:event_name`               | `organization:updated`                                              |
+| Private fields          | `#` prefix                        | `#documents`, `#db`, `#pubsub`                                      |
+| Unit lifecycle (server) | `$` prefix                        | `$name`, `$prepareInfra`, `$cleanup`                                |
+| Module lifecycle        | `$` prefix                        | `$initialize`, `$prepareInfra`, `$prepareRuntime`                   |
+| Package exports         | `@aspen-os/<name>`                | `@aspen-os/platform`, `@aspen-os/organization`, `@aspen-os/masters` |
+| Module `$name` property | `kebab-case` string               | `"organization"`, `"compliance"`                                    |
 
 ## Commands & verification
 

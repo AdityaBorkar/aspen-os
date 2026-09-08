@@ -22,7 +22,7 @@ export const updateLabel = Workflow.name("dms.label.update")
 
     if (updates.isGlobal !== undefined || updates.ownerId !== undefined) {
       const [current] = await ctx.db
-        .select({ isGlobal: dmsLabel.isGlobal, ownerId: dmsLabel.ownerId })
+        .select({ isGlobal: dmsLabel.is_global, ownerId: dmsLabel.owner_id })
         .from(dmsLabel)
         .where(eq(dmsLabel.id, id))
         .limit(1);

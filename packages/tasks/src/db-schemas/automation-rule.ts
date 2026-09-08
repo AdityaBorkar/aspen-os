@@ -6,20 +6,20 @@ import { boolean, index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-
 export const automationRule = pgTable(
   "task_automation_rule",
   {
-    actions: jsonb("actions").notNull(),
-    conditions: jsonb("conditions"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    id: uuidv7("id").primaryKey(),
-    isActive: boolean("is_active").notNull().default(true),
-    name: text("name").notNull(),
-    projectId: text("project_id").notNull(),
-    trigger: automationTriggerEnum("trigger").notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    actions: jsonb().notNull(),
+    conditions: jsonb(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    id: uuidv7().primaryKey(),
+    is_active: boolean().notNull().default(true),
+    name: text().notNull(),
+    project_id: text().notNull(),
+    trigger: automationTriggerEnum().notNull(),
+    updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    index("idx_task_automation_rule_project").on(table.projectId),
+    index("idx_task_automation_rule_project").on(table.project_id),
     index("idx_task_automation_rule_trigger").on(table.trigger),
-    index("idx_task_automation_rule_active").on(table.isActive),
+    index("idx_task_automation_rule_active").on(table.is_active),
   ],
 );
 

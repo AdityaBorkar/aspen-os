@@ -27,8 +27,8 @@ export const addGroupMember = Workflow.name("hr.employee.add-group-member")
       .from(employeeGroupMember)
       .where(
         and(
-          eq(employeeGroupMember.groupId, parsed.groupId),
-          eq(employeeGroupMember.employeeId, parsed.employeeId),
+          eq(employeeGroupMember.group_id, parsed.groupId),
+          eq(employeeGroupMember.employee_id, parsed.employeeId),
         ),
       )
       .limit(1);
@@ -40,8 +40,8 @@ export const addGroupMember = Workflow.name("hr.employee.add-group-member")
     const [result] = await ctx.db
       .insert(employeeGroupMember)
       .values({
-        employeeId: parsed.employeeId,
-        groupId: parsed.groupId,
+        employee_id: parsed.employeeId,
+        group_id: parsed.groupId,
       })
       .returning();
 

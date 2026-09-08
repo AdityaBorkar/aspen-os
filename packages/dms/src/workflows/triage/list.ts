@@ -17,17 +17,17 @@ export const listTriage = Workflow.name("dms.triage.list")
       const conditions: SQL[] = [eq(dmsFile.status, "triaged")];
 
       if (filters.ownerId) {
-        conditions.push(eq(dmsFile.ownerId, filters.ownerId));
+        conditions.push(eq(dmsFile.owner_id, filters.ownerId));
       }
       if (filters.batchId) {
-        conditions.push(eq(dmsFile.batchId, filters.batchId));
+        conditions.push(eq(dmsFile.batch_id, filters.batchId));
       }
       if (filters.classId) {
-        conditions.push(eq(dmsFile.classId, filters.classId));
+        conditions.push(eq(dmsFile.class_id, filters.classId));
       }
       if (filters.search) {
         const term = `%${filters.search}%`;
-        const searchCondition = or(ilike(dmsFile.name, term), ilike(dmsFile.docNumber, term));
+        const searchCondition = or(ilike(dmsFile.name, term), ilike(dmsFile.doc_number, term));
         if (searchCondition) {
           conditions.push(searchCondition);
         }
@@ -40,7 +40,7 @@ export const listTriage = Workflow.name("dms.triage.list")
         .select()
         .from(dmsFile)
         .where(and(...conditions))
-        .orderBy(desc(dmsFile.createdAt))
+        .orderBy(desc(dmsFile.created_at))
         .limit(limit)
         .offset(offset);
     }),

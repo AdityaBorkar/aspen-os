@@ -12,7 +12,7 @@ export const listAutomationRulesByProject = Workflow.name("automation.list-by-pr
       ctx.db
         .select()
         .from(automationRule)
-        .where(eq(automationRule.projectId, projectId))
-        .orderBy(desc(automationRule.createdAt)),
+        .where(eq(automationRule.project_id, projectId))
+        .orderBy(desc(automationRule.created_at)),
     ),
   );

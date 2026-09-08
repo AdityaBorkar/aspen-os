@@ -26,14 +26,14 @@ export const bulkUpdateTask = Workflow.name("task.bulk-update")
       .update(task)
       .set({
         description: input.patch.description,
-        dueDate: input.patch.dueDate,
-        estimatedHours: input.patch.estimatedHours?.toString(),
+        due_date: input.patch.dueDate,
+        estimated_hours: input.patch.estimatedHours?.toString(),
         labels: input.patch.labels,
         priority: input.patch.priority,
-        startDate: input.patch.startDate,
+        start_date: input.patch.startDate,
         title: input.patch.title,
-        typeId: input.patch.typeId,
-        updatedAt: new Date(),
+        type_id: input.patch.typeId,
+        updated_at: new Date(),
       })
       .where(inArray(task.id, input.ids))
       .returning();

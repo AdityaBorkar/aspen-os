@@ -6,7 +6,7 @@ import { sql } from "drizzle-orm";
 
 export interface AccessScopedRow {
   access: WorkspaceAccess;
-  ownerId: string;
+  owner_id: string;
 }
 
 const ADMIN_ROLE = "admin";
@@ -20,7 +20,7 @@ export function requireActorId(actorId: string | undefined): string {
 
 export function assertCanAccess(row: AccessScopedRow, actorId: string | undefined): void {
   const actor = requireActorId(actorId);
-  if (row.access !== WORKSPACE_ACCESS.GLOBAL && row.ownerId !== actor) {
+  if (row.access !== WORKSPACE_ACCESS.GLOBAL && row.owner_id !== actor) {
     throw new Error("You do not have access to this item");
   }
 }
@@ -30,7 +30,7 @@ export async function assertCanMutate(
   actorId: string | undefined,
 ): Promise<void> {
   const actor = requireActorId(actorId);
-  if (row.ownerId === actor) {
+  if (row.owner_id === actor) {
     return;
   }
   if (await isTenantAdmin(actor)) {

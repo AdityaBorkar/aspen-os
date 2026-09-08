@@ -12,7 +12,10 @@ export const unreadCount = Workflow.name("comms.notification.unread-count").hand
       .select({ value: count() })
       .from(commsNotification)
       .where(
-        and(eq(commsNotification.recipientId, ctx.actorId), eq(commsNotification.status, "unread")),
+        and(
+          eq(commsNotification.recipient_id, ctx.actorId),
+          eq(commsNotification.status, "unread"),
+        ),
       );
     return { unread: row?.value ?? 0 };
   },

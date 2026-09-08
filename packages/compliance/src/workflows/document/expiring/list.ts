@@ -12,7 +12,7 @@ const getExpiringDocuments = Workflow.name("document.expiring").handler(
       .select()
       .from(complianceDocument)
       .where(expiryWindowCondition(input.days))
-      .orderBy(asc(complianceDocument.expiryDate));
+      .orderBy(asc(complianceDocument.expiry_date));
   },
 );
 

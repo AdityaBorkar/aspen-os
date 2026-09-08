@@ -19,7 +19,7 @@ export const updateBranchAccess = Workflow.name("hr.access.update-branch-access"
 
     const [result] = await ctx.db
       .update(hrUserBranchAccess)
-      .set({ ...parsed, updatedAt: new Date() })
+      .set({ ...parsed, updated_at: new Date() })
       .where(eq(hrUserBranchAccess.id, id))
       .returning();
     return result ?? null;

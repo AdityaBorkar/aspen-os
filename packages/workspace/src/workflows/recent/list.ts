@@ -15,15 +15,15 @@ export const listRecent = Workflow.name("workspace.recent.list")
     }
     const parsed = parse(ListRecentSchema, input);
 
-    const conditions = [eq(workspaceRecent.userId, ctx.actorId)];
+    const conditions = [eq(workspaceRecent.user_id, ctx.actorId)];
     if (parsed.itemType) {
-      conditions.push(eq(workspaceRecent.itemType, parsed.itemType));
+      conditions.push(eq(workspaceRecent.item_type, parsed.itemType));
     }
 
     return ctx.db
       .select()
       .from(workspaceRecent)
       .where(and(...conditions))
-      .orderBy(desc(workspaceRecent.lastAccessedAt))
+      .orderBy(desc(workspaceRecent.last_accessed_at))
       .limit(parsed.limit ?? 50);
   });

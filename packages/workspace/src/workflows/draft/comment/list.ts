@@ -19,8 +19,8 @@ export const listDraftComments = Workflow.name("workspace.draft.comment.list")
     return ctx.db
       .select()
       .from(workspaceDraftComment)
-      .where(eq(workspaceDraftComment.draftId, parsed.draftId))
-      .orderBy(asc(workspaceDraftComment.createdAt))
+      .where(eq(workspaceDraftComment.draft_id, parsed.draftId))
+      .orderBy(asc(workspaceDraftComment.created_at))
       .limit(parsed.limit ?? 50)
       .offset(parsed.offset ?? 0);
   });

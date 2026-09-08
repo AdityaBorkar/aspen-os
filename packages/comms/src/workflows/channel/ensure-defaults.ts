@@ -41,8 +41,8 @@ export function ensureDefaults(dbUnit: DatabaseUnit) {
             .from(commsChannel)
             .where(
               and(
-                eq(commsChannel.entityId, entityId),
-                eq(commsChannel.entityType, entityType),
+                eq(commsChannel.entity_id, entityId),
+                eq(commsChannel.entity_type, entityType),
                 eq(commsChannel.status, "active"),
                 eq(commsChannel.type, type),
               ),
@@ -71,7 +71,7 @@ export function ensureDefaults(dbUnit: DatabaseUnit) {
             return null;
           }
 
-          const senderAddress = defaultSenderAddress ?? provider.defaultSenderAddress;
+          const senderAddress = defaultSenderAddress ?? provider.default_sender_address;
           if (!senderAddress) {
             ctx.log.warn(`ensure-defaults skips "${type}": provider has no sender address.`, {
               providerId: provider.id,
@@ -83,16 +83,16 @@ export function ensureDefaults(dbUnit: DatabaseUnit) {
           const [row] = await ctx.db
             .insert(commsChannel)
             .values({
-              entityId,
-              entityType,
-              isDefault: true,
+              entity_id: entityId,
+              entity_type: entityType,
+              is_default: true,
               name: `Default ${type}`,
-              providerId: provider.id,
-              senderAddress,
+              provider_id: provider.id,
+              sender_address: senderAddress,
               source: "host",
               status: "active",
               type,
-              verifiedAt: new Date(),
+              verified_at: new Date(),
             })
             .returning();
 

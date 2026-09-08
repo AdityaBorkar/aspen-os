@@ -21,17 +21,17 @@ export const listRecipients = Workflow.name("hr.announcement.recipients.list")
     // Workflow validation applies the schema defaults when filters are
     // present; only the absent-filters case needs the literal defaults.
     const parsed = filters ?? { deliveredOnly: undefined, limit: 50, offset: 0 };
-    const conditions = [eq(hrAnnouncementRecipient.announcementId, announcementId)];
+    const conditions = [eq(hrAnnouncementRecipient.announcement_id, announcementId)];
 
     if (parsed.deliveredOnly) {
-      conditions.push(isNotNull(hrAnnouncementRecipient.userId));
+      conditions.push(isNotNull(hrAnnouncementRecipient.user_id));
     }
 
     return ctx.db
       .select()
       .from(hrAnnouncementRecipient)
       .where(and(...conditions))
-      .orderBy(desc(hrAnnouncementRecipient.createdAt))
+      .orderBy(desc(hrAnnouncementRecipient.created_at))
       .limit(parsed.limit)
       .offset(parsed.offset);
   });

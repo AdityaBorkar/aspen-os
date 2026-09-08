@@ -23,15 +23,15 @@ export const getOrgTree = Workflow.name("hr.position.get-org-tree")
       ctx.db
         .select({
           designation: employee.designation,
-          firstName: employee.firstName,
+          firstName: employee.first_name,
           id: employee.id,
           image: employee.image,
-          lastName: employee.lastName,
+          lastName: employee.last_name,
         })
         .from(employee)
         .where(and(...employeeConditions)),
-      ctx.db.select().from(hrPosition).where(eq(hrPosition.isActive, true)),
-      ctx.db.select().from(hrPositionAssignment).where(isNull(hrPositionAssignment.toDate)),
+      ctx.db.select().from(hrPosition).where(eq(hrPosition.is_active, true)),
+      ctx.db.select().from(hrPositionAssignment).where(isNull(hrPositionAssignment.to_date)),
     ]);
 
     const employeeSet = new Set(activeEmployees.map((employeeItem) => employeeItem.id));
@@ -47,7 +47,7 @@ export const getOrgTree = Workflow.name("hr.position.get-org-tree")
     );
 
     const filteredAssignments = assignments.filter((assignment) =>
-      employeeSet.has(assignment.employeeId),
+      employeeSet.has(assignment.employee_id),
     );
     const chain = buildPositionChainData(positions, filteredAssignments);
 

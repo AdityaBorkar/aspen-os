@@ -9,6 +9,6 @@ export const listAttachmentsByComment = Workflow.name("collaboration.list-attach
   .input(object({ commentId: IdSchema }))
   .handler(async ({ commentId }, ctx) =>
     ctx.step.run("query", async () =>
-      ctx.db.select().from(attachment).where(eq(attachment.commentId, commentId)),
+      ctx.db.select().from(attachment).where(eq(attachment.comment_id, commentId)),
     ),
   );

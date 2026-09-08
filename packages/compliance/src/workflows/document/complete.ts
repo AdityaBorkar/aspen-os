@@ -26,8 +26,8 @@ const completeDocument = Workflow.name("document.complete").handler(
       throw new Error("completedAt must be a valid Date");
     }
 
-    if (current.verificationStatus !== VERIFICATION_STATUS.VERIFIED) {
-      assertTransitionAllowed(current.verificationStatus, VERIFICATION_STATUS.VERIFIED);
+    if (current.verification_status !== VERIFICATION_STATUS.VERIFIED) {
+      assertTransitionAllowed(current.verification_status, VERIFICATION_STATUS.VERIFIED);
     }
 
     const now = new Date();
@@ -35,10 +35,10 @@ const completeDocument = Workflow.name("document.complete").handler(
       .update(complianceDocument)
       .set({
         attachment: data.attachmentKey ?? current.attachment,
-        completedAt,
-        referenceNumber: data.referenceNumber ?? current.referenceNumber,
-        updatedAt: now,
-        verificationStatus: VERIFICATION_STATUS.VERIFIED,
+        completed_at: completedAt,
+        reference_number: data.referenceNumber ?? current.reference_number,
+        updated_at: now,
+        verification_status: VERIFICATION_STATUS.VERIFIED,
       })
       .where(eq(complianceDocument.id, id))
       .returning();
@@ -49,7 +49,7 @@ const completeDocument = Workflow.name("document.complete").handler(
 
     await ctx.audit.write({
       action: "completed",
-      actorId: current.createdBy,
+      actorId: current.created_by,
       entityId: id,
       entityType: "compliance_document",
       metadata: {
@@ -62,8 +62,8 @@ const completeDocument = Workflow.name("document.complete").handler(
       completedAt: completedAt.toISOString(),
       documentId: id,
       referenceNumber: data.referenceNumber ?? null,
-      sourceEntityId: updated.sourceEntityId,
-      sourceModule: updated.sourceModule,
+      sourceEntityId: updated.source_entity_id,
+      sourceModule: updated.source_module,
     });
 
     return updated;

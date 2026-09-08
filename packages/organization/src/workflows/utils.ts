@@ -126,11 +126,11 @@ export async function validateParentBranch(
     }
     seen.add(currentId);
 
-    const [row] = await db
-      .select({ parentBranch: branch.parentBranch })
+    const [row] = (await db
+      .select({ parentBranch: branch.parent_branch })
       .from(branch)
       .where(eq(branch.id, currentId))
-      .limit(1);
+      .limit(1)) as { parentBranch: string | null }[];
 
     if (!row) {
       if (depth === 0) {
@@ -162,7 +162,7 @@ export async function setBranchActive(
 ): Promise<typeof branch.$inferSelect> {
   const [updated] = await db
     .update(branch)
-    .set({ isActive: options.isActive, updatedAt: new Date() })
+    .set({ is_active: options.isActive, updated_at: new Date() })
     .where(eq(branch.id, options.id))
     .returning();
 

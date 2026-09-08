@@ -24,12 +24,12 @@ export const getFileVersion = Workflow.name("dms.version.get")
     const config = getDmsConfig();
     const isCurrent = version === file.version;
     const storageKey = isCurrent
-      ? file.storageKey
+      ? file.storage_key
       : await ctx.step.run("fetch-history", async () => {
           const [row] = await ctx.db
-            .select({ storageKey: dmsFileVersion.storageKey })
+            .select({ storageKey: dmsFileVersion.storage_key })
             .from(dmsFileVersion)
-            .where(and(eq(dmsFileVersion.fileId, fileId), eq(dmsFileVersion.version, version)))
+            .where(and(eq(dmsFileVersion.file_id, fileId), eq(dmsFileVersion.version, version)))
             .limit(1);
           if (!row) {
             throw new Error(`File "${fileId}" has no version "${version}".`);

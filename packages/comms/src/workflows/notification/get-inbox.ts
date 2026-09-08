@@ -17,7 +17,7 @@ export const getInbox = Workflow.name("comms.notification.get-inbox")
       throw new Error("Inbox queries require an authenticated actor.");
     }
 
-    const where = [eq(commsNotification.recipientId, ctx.actorId)];
+    const where = [eq(commsNotification.recipient_id, ctx.actorId)];
     if (filters?.unreadOnly) {
       where.push(eq(commsNotification.status, "unread"));
     }
@@ -28,10 +28,10 @@ export const getInbox = Workflow.name("comms.notification.get-inbox")
       where.push(eq(commsNotification.severity, filters.severity));
     }
     if (filters?.fromDate) {
-      where.push(gte(commsNotification.createdAt, new Date(filters.fromDate)));
+      where.push(gte(commsNotification.created_at, new Date(filters.fromDate)));
     }
     if (filters?.toDate) {
-      where.push(lte(commsNotification.createdAt, new Date(filters.toDate)));
+      where.push(lte(commsNotification.created_at, new Date(filters.toDate)));
     }
 
     const limit = clampListLimit(filters?.limit);
@@ -47,7 +47,7 @@ export const getInbox = Workflow.name("comms.notification.get-inbox")
           WHEN 'important' THEN 1
           ELSE 2
         END`,
-        desc(commsNotification.createdAt),
+        desc(commsNotification.created_at),
       )
       .limit(limit)
       .offset(offset);

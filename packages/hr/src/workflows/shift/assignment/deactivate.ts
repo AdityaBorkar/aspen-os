@@ -15,7 +15,7 @@ export const deactivateShiftAssignment = Workflow.name("hr.shift.deactivate-shif
 
     const [updated] = await ctx.db
       .update(shiftAssignment)
-      .set({ status: "inactive", updatedAt: new Date() })
+      .set({ status: "inactive", updated_at: new Date() })
       .where(eq(shiftAssignment.id, id))
       .returning();
 

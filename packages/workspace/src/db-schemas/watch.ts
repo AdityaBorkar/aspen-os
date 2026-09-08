@@ -6,15 +6,15 @@ import { workspaceItemTypeEnum } from "./enums";
 export const workspaceWatch = pgTable(
   "workspace_watch",
   {
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    id: uuidv7("id").primaryKey(),
-    itemId: text("item_id").notNull(),
-    itemType: workspaceItemTypeEnum("item_type").notNull(),
-    userId: text("user_id").notNull(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    id: uuidv7().primaryKey(),
+    item_id: text().notNull(),
+    item_type: workspaceItemTypeEnum().notNull(),
+    user_id: text().notNull(),
   },
   (table) => [
-    index("idx_workspace_watch_user").on(table.userId),
-    uniqueIndex("idx_workspace_watch_user_item").on(table.userId, table.itemType, table.itemId),
+    index("idx_workspace_watch_user").on(table.user_id),
+    uniqueIndex("idx_workspace_watch_user_item").on(table.user_id, table.item_type, table.item_id),
   ],
 );
 

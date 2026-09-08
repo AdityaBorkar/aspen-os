@@ -39,11 +39,11 @@ export const assignEmployee = Workflow.name("hr.position.assign")
       const [created] = await tx
         .insert(hrPositionAssignment)
         .values({
-          employeeId,
-          fromDate,
-          isPrimary,
-          positionId,
-          toDate,
+          employee_id: employeeId,
+          from_date: fromDate,
+          is_primary: isPrimary,
+          position_id: positionId,
+          to_date: toDate,
         })
         .returning();
 

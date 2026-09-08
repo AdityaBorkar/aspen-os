@@ -26,7 +26,7 @@ export const deleteFileVersion = Workflow.name("dms.version.delete")
     const [row] = await ctx.db
       .select()
       .from(dmsFileVersion)
-      .where(and(eq(dmsFileVersion.fileId, fileId), eq(dmsFileVersion.version, version)))
+      .where(and(eq(dmsFileVersion.file_id, fileId), eq(dmsFileVersion.version, version)))
       .limit(1);
 
     if (!row) {
@@ -36,7 +36,7 @@ export const deleteFileVersion = Workflow.name("dms.version.delete")
     const otherCount = await ctx.db
       .select({ id: dmsFileVersion.id })
       .from(dmsFileVersion)
-      .where(and(eq(dmsFileVersion.fileId, fileId), ne(dmsFileVersion.id, row.id)))
+      .where(and(eq(dmsFileVersion.file_id, fileId), ne(dmsFileVersion.id, row.id)))
       .limit(1);
 
     if (otherCount.length === 0) {
@@ -46,7 +46,7 @@ export const deleteFileVersion = Workflow.name("dms.version.delete")
     }
 
     await ctx.step.run("remove-storage", async () => {
-      await removeStorage({ key: row.storageKey });
+      await removeStorage({ key: row.storage_key });
     });
 
     await ctx.step.run("delete-row", async () => {

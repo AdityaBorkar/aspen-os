@@ -20,8 +20,8 @@ export function createProvider(kvStore: KvStoreUnit) {
       const [row] = await ctx.db
         .insert(commsProvider)
         .values({
-          credentialRef,
-          defaultSenderAddress: input.defaultSenderAddress ?? null,
+          credential_ref: credentialRef,
+          default_sender_address: input.defaultSenderAddress ?? null,
           kind: input.kind,
           metadata: input.metadata ?? null,
           name: input.name,

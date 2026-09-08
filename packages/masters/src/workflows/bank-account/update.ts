@@ -24,8 +24,8 @@ export const updateBankAccount = Workflow.name("masters.bank-account.update")
       await ctx.step.run("unset-primary", () =>
         unsetPrimaryForOwner({
           db: ctx.db,
-          entityId: current.entityId,
-          entityType: current.entityType,
+          entityId: current.entity_id,
+          entityType: current.entity_type,
           table: masterBankAccount,
         }),
       );
@@ -47,7 +47,7 @@ export const updateBankAccount = Workflow.name("masters.bank-account.update")
 
     const [updated] = await ctx.db
       .update(masterBankAccount)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates, updated_at: new Date() })
       .where(eq(masterBankAccount.id, input.id))
       .returning();
 
@@ -67,8 +67,8 @@ export const updateBankAccount = Workflow.name("masters.bank-account.update")
       await ctx.pubsub.publish(BANK_ACCOUNT_EVENTS.UPDATED, {
         bankAccount: { id: updated.id },
         changes: updates,
-        entityId: updated.entityId,
-        entityType: updated.entityType,
+        entityId: updated.entity_id,
+        entityType: updated.entity_type,
       });
     });
 

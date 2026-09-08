@@ -33,10 +33,10 @@ export const createShare = Workflow.name("dms.share.create")
       .from(dmsShare)
       .where(
         and(
-          eq(dmsShare.entityType, parsed.entityType),
-          eq(dmsShare.entityId, parsed.entityId),
-          eq(dmsShare.granteeType, parsed.granteeType),
-          eq(dmsShare.granteeId, parsed.granteeId),
+          eq(dmsShare.entity_type, parsed.entityType),
+          eq(dmsShare.entity_id, parsed.entityId),
+          eq(dmsShare.grantee_type, parsed.granteeType),
+          eq(dmsShare.grantee_id, parsed.granteeId),
         ),
       )
       .limit(1);
@@ -50,15 +50,15 @@ export const createShare = Workflow.name("dms.share.create")
     const [share] = await ctx.db
       .insert(dmsShare)
       .values({
-        entityId: parsed.entityId,
-        entityType: parsed.entityType,
-        expiresAt,
-        granteeId: parsed.granteeId,
-        granteeType: parsed.granteeType,
+        entity_id: parsed.entityId,
+        entity_type: parsed.entityType,
+        expires_at: expiresAt,
+        grantee_id: parsed.granteeId,
+        grantee_type: parsed.granteeType,
         message: parsed.message ?? null,
         permission: parsed.permission ?? "viewer",
-        shareToken: parsed.granteeType === GRANTEE_TYPE.CONTACT ? crypto.randomUUID() : null,
-        sharedBy: parsed.sharedBy,
+        share_token: parsed.granteeType === GRANTEE_TYPE.CONTACT ? crypto.randomUUID() : null,
+        shared_by: parsed.sharedBy,
       })
       .returning();
 

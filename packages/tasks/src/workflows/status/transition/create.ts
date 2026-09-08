@@ -18,11 +18,11 @@ export const createTransition = Workflow.name("status.create-transition")
     const [result] = await ctx.db
       .insert(statusTransition)
       .values({
-        fromStatusId: input.fromStatusId,
-        projectId: input.projectId,
-        requiresComment: input.requiresComment ?? false,
-        requiresRole: input.requiresRole ?? null,
-        toStatusId: input.toStatusId,
+        from_status_id: input.fromStatusId,
+        project_id: input.projectId,
+        requires_comment: input.requiresComment ?? false,
+        requires_role: input.requiresRole ?? null,
+        to_status_id: input.toStatusId,
       })
       .returning();
 

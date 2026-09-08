@@ -24,12 +24,16 @@ export function generateUuidv7(): string {
  * Drop-in replacement for the previous
  * `text("id").primaryKey().$defaultFn(uuidv7)` incantation:
  * the generated default is baked into the type, so schemas write
- * `id: uuidv7("id").primaryKey()` directly.
+ * `id: uuidv7().primaryKey()` directly.
+ *
+ * Column name is inferred from the object key (do not pass an explicit
+ * name): `id: uuidv7().primaryKey()`, never `uuidv7("id")`.
  */
 const uuidv7Builder = customType<{ data: string; driverData: string; default: true }>({
   dataType: () => "text",
 });
 
-export function uuidv7<TName extends string>(name: TName) {
-  return uuidv7Builder<TName>(name).$defaultFn(generateUuidv7);
+export function uuidv7(name?: string) {
+  const column = name ? uuidv7Builder(name) : uuidv7Builder();
+  return column.$defaultFn(generateUuidv7);
 }

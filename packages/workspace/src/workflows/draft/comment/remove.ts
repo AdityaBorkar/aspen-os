@@ -27,9 +27,9 @@ export const removeDraftComment = Workflow.name("workspace.draft.comment.remove"
       throw new Error(`Comment "${id}" not found.`);
     }
 
-    const draft = await ctx.step.run(fetchDraftStep, { id: comment.draftId });
-    const isAuthor = comment.authorId === ctx.actorId;
-    const isDraftOwner = draft.ownerId === ctx.actorId;
+    const draft = await ctx.step.run(fetchDraftStep, { id: comment.draft_id });
+    const isAuthor = comment.author_id === ctx.actorId;
+    const isDraftOwner = draft.owner_id === ctx.actorId;
     const isAdmin = await isTenantAdmin(ctx.actorId);
 
     if (!isAuthor && !isDraftOwner && !isAdmin) {
@@ -43,12 +43,12 @@ export const removeDraftComment = Workflow.name("workspace.draft.comment.remove"
       crudAction: "delete",
       entityId: id,
       entityType: AUDIT_ENTITY_TYPE.DRAFT_COMMENT,
-      metadata: { draftId: comment.draftId },
+      metadata: { draft_id: comment.draft_id },
     });
 
     await ctx.pubsub.publish(DRAFT_EVENTS.COMMENT_REMOVED, {
       commentId: id,
-      draftId: comment.draftId,
+      draft_id: comment.draft_id,
     });
 
     return { id };

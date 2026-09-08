@@ -23,7 +23,7 @@ export const getSummary = Workflow.name("hr.attendance.get-summary")
       .from(attendance)
       .where(
         and(
-          eq(attendance.employeeId, employeeId),
+          eq(attendance.employee_id, employeeId),
           sql`${attendance.date} >= ${startDate}`,
           sql`${attendance.date} <= ${endDate}`,
         ),

@@ -18,7 +18,7 @@ export const listAttendanceRequests = Workflow.name("hr.attendance.list-attendan
     const conditions = [];
 
     if (parsed.employeeId) {
-      conditions.push(eq(attendanceRequest.employeeId, parsed.employeeId));
+      conditions.push(eq(attendanceRequest.employee_id, parsed.employeeId));
     }
     if (parsed.status) {
       conditions.push(eq(attendanceRequest.status, parsed.status));

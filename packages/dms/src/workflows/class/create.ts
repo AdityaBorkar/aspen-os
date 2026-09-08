@@ -17,12 +17,12 @@ export const createClass = Workflow.name("dms.class.create")
       .insert(dmsClass)
       .values({
         color: parsed.color ?? null,
-        createdBy: parsed.createdBy,
+        created_by: parsed.createdBy,
         description: parsed.description ?? null,
-        fileNamingSchema: parsed.fileNamingSchema ?? null,
+        file_naming_schema: parsed.fileNamingSchema ?? null,
         icon: parsed.icon ?? null,
         name: parsed.name,
-        retentionDays: parsed.retentionDays ?? null,
+        retention_days: parsed.retentionDays ?? null,
       })
       .returning();
 
@@ -35,7 +35,7 @@ export const createClass = Workflow.name("dms.class.create")
       crudAction: "create",
       entityId: cls.id,
       entityType: AUDIT_ENTITY_TYPE.CLASS,
-      newState: { id: cls.id, isActive: cls.isActive, name: cls.name },
+      newState: { id: cls.id, is_active: cls.is_active, name: cls.name },
     });
 
     await ctx.pubsub.publish(CLASS_EVENTS.CREATED, { classId: cls.id });

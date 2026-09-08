@@ -19,10 +19,10 @@ export const updateSeparationTask = Workflow.name("hr.lifecycle.update-separatio
 
     const updateData: Partial<typeof separationTask.$inferInsert> = {
       ...parsed,
-      updatedAt: new Date(),
+      updated_at: new Date(),
     };
     if (parsed.status === "completed") {
-      updateData.completedAt = new Date();
+      updateData.completed_at = new Date();
     }
 
     const [updated] = await ctx.db

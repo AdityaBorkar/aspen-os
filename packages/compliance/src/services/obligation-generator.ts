@@ -72,7 +72,7 @@ export async function generateForObligation(
   deps: ObligationGeneratorDeps,
 ): Promise<string[]> {
   const now = upToDate ?? new Date();
-  const endDate = obligation.endDate ? new Date(obligation.endDate) : null;
+  const endDate = obligation.end_date ? new Date(obligation.end_date) : null;
 
   if (endDate && endDate < now) {
     return [];
@@ -103,36 +103,37 @@ export async function generateForObligation(
     }
 
     const docName = generateDocumentName(obligation, period);
-    const reminderDays = obligation.defaultReminderDays ?? reminderDefaults(obligation.expiryBased);
+    const reminderDays =
+      obligation.default_reminder_days ?? reminderDefaults(obligation.expiry_based);
 
     const metadata = {
-      ...obligation.defaultMetadata,
+      ...obligation.default_metadata,
       idempotencyKey,
     };
 
     const doc = await documents.create.run(
       {
         input: {
-          assignedReviewer: obligation.defaultAssignedReviewer ?? undefined,
-          assignedTo: obligation.defaultAssignedTo ?? undefined,
+          assignedReviewer: obligation.default_assigned_reviewer ?? undefined,
+          assignedTo: obligation.default_assigned_to ?? undefined,
           branch: obligation.branch ?? undefined,
           category: obligation.category,
-          createdBy: obligation.createdBy,
-          documentType: obligation.documentType ?? undefined,
+          createdBy: obligation.created_by,
+          documentType: obligation.document_type ?? undefined,
           dueDate: period.dueDate ? new Date(period.dueDate) : undefined,
-          escalationDays: obligation.defaultEscalationDays ?? undefined,
+          escalationDays: obligation.default_escalation_days ?? undefined,
           expiryDate: period.expiryDate ? new Date(period.expiryDate) : undefined,
-          issuingAuthority: obligation.defaultIssuingAuthority ?? undefined,
-          jurisdiction: obligation.defaultJurisdiction ?? undefined,
+          issuingAuthority: obligation.default_issuing_authority ?? undefined,
+          jurisdiction: obligation.default_jurisdiction ?? undefined,
           metadata,
           name: docName,
           obligationId: obligation.id,
           periodEnd: period.periodEnd ? new Date(period.periodEnd) : undefined,
           periodStart: period.periodStart ? new Date(period.periodStart) : undefined,
           reminderDays,
-          sourceEntityId: obligation.sourceEntityId ?? undefined,
-          sourceEntityType: obligation.sourceEntityType ?? undefined,
-          sourceModule: obligation.sourceModule,
+          sourceEntityId: obligation.source_entity_id ?? undefined,
+          sourceEntityType: obligation.source_entity_type ?? undefined,
+          sourceModule: obligation.source_module,
         },
       },
       { audit: deps.audit, db: deps.db, pubsub: deps.pubsub },
@@ -141,7 +142,7 @@ export async function generateForObligation(
     await deps.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_GENERATED, {
       documentId: doc.id,
       obligationId: obligation.id,
-      sourceModule: obligation.sourceModule,
+      sourceModule: obligation.source_module,
     });
 
     generatedIds.push(doc.id);
@@ -174,10 +175,10 @@ function computePeriodsUpTo(obligation: ComplianceObligation, upTo: Date): Compu
   }
 
   const periods: ComputedPeriod[] = [];
-  const startDate = new Date(obligation.startDate);
+  const startDate = new Date(obligation.start_date);
   const startYear = startDate.getUTCFullYear();
   const startMonth = startDate.getUTCMonth();
-  const endDate = obligation.endDate ? new Date(obligation.endDate) : null;
+  const endDate = obligation.end_date ? new Date(obligation.end_date) : null;
   const horizon = endDate && endDate < upTo ? endDate : upTo;
 
   let index = 0;
@@ -197,24 +198,24 @@ function computePeriodsUpTo(obligation: ComplianceObligation, upTo: Date): Compu
       periodStart: null,
     };
 
-    if (obligation.periodBased) {
+    if (obligation.period_based) {
       entry.periodStart = toDateOnly(periodStart);
       entry.periodEnd = toDateOnly(periodEnd);
     }
 
-    if (obligation.expiryBased && obligation.expiryDurationMonths) {
+    if (obligation.expiry_based && obligation.expiry_duration_months) {
       const expiryDate = new Date(periodStart);
-      expiryDate.setUTCMonth(expiryDate.getUTCMonth() + obligation.expiryDurationMonths);
+      expiryDate.setUTCMonth(expiryDate.getUTCMonth() + obligation.expiry_duration_months);
       entry.expiryDate = toDateOnly(expiryDate);
-    } else if (!obligation.expiryBased) {
+    } else if (!obligation.expiry_based) {
       const dueDate = new Date(periodEnd);
-      const offset = obligation.dueMonthOffset ?? 0;
+      const offset = obligation.due_month_offset ?? 0;
       dueDate.setUTCMonth(dueDate.getUTCMonth() + offset);
-      if (obligation.dueDay) {
+      if (obligation.due_day) {
         const lastDay = new Date(
           Date.UTC(dueDate.getUTCFullYear(), dueDate.getUTCMonth() + 1, 0),
         ).getUTCDate();
-        dueDate.setUTCDate(Math.min(obligation.dueDay, lastDay));
+        dueDate.setUTCDate(Math.min(obligation.due_day, lastDay));
       }
       entry.dueDate = toDateOnly(dueDate);
     }
@@ -261,19 +262,19 @@ async function checkDocumentExists(options: {
   periodStart: string | null;
 }): Promise<boolean> {
   const conditions = [
-    eq(complianceDocument.obligationId, options.obligationId),
+    eq(complianceDocument.obligation_id, options.obligationId),
     options.periodStart
-      ? eq(complianceDocument.periodStart, options.periodStart)
-      : isNull(complianceDocument.periodStart),
+      ? eq(complianceDocument.period_start, options.periodStart)
+      : isNull(complianceDocument.period_start),
     options.periodEnd
-      ? eq(complianceDocument.periodEnd, options.periodEnd)
-      : isNull(complianceDocument.periodEnd),
+      ? eq(complianceDocument.period_end, options.periodEnd)
+      : isNull(complianceDocument.period_end),
     options.dueDate
-      ? eq(complianceDocument.dueDate, options.dueDate)
-      : isNull(complianceDocument.dueDate),
+      ? eq(complianceDocument.due_date, options.dueDate)
+      : isNull(complianceDocument.due_date),
     options.expiryDate
-      ? eq(complianceDocument.expiryDate, options.expiryDate)
-      : isNull(complianceDocument.expiryDate),
+      ? eq(complianceDocument.expiry_date, options.expiryDate)
+      : isNull(complianceDocument.expiry_date),
   ];
 
   const existing = await options.db

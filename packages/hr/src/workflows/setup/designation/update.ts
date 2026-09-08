@@ -19,7 +19,7 @@ export const updateDesignation = Workflow.name("hr.setup.update-designation")
 
     const [updated] = await ctx.db
       .update(designation)
-      .set({ ...parsed, updatedAt: new Date() })
+      .set({ ...parsed, updated_at: new Date() })
       .where(eq(designation.id, id))
       .returning();
 

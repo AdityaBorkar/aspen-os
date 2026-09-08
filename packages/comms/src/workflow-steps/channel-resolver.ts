@@ -78,8 +78,8 @@ async function fetchActiveById(
     .where(
       and(
         eq(commsChannel.id, id),
-        eq(commsChannel.entityType, scope.entityType),
-        eq(commsChannel.entityId, scope.entityId),
+        eq(commsChannel.entity_type, scope.entityType),
+        eq(commsChannel.entity_id, scope.entityId),
         eq(commsChannel.status, "active"),
       ),
     )
@@ -98,9 +98,9 @@ async function fetchActiveDefault(
     .where(
       and(
         eq(commsChannel.type, type),
-        eq(commsChannel.entityType, scope.entityType),
-        eq(commsChannel.entityId, scope.entityId),
-        eq(commsChannel.isDefault, true),
+        eq(commsChannel.entity_type, scope.entityType),
+        eq(commsChannel.entity_id, scope.entityId),
+        eq(commsChannel.is_default, true),
         eq(commsChannel.status, "active"),
       ),
     )

@@ -40,8 +40,8 @@ export const createFolder = Workflow.name("dms.folder.create")
         color: parsed.color ?? null,
         description: parsed.description ?? null,
         name: parsed.name,
-        ownerId: parsed.ownerId,
-        parentId,
+        owner_id: parsed.ownerId,
+        parent_id: parentId,
         path,
       })
       .returning();
@@ -54,8 +54,8 @@ export const createFolder = Workflow.name("dms.folder.create")
       folder: {
         id: folder.id,
         name: folder.name,
-        ownerId: folder.ownerId,
-        parentId: folder.parentId,
+        ownerId: folder.owner_id,
+        parentId: folder.parent_id,
         path: folder.path,
       },
     });

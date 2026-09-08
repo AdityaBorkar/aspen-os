@@ -16,5 +16,5 @@ export const listOnboardingTasks = Workflow.name("hr.lifecycle.list-onboarding-t
     return ctx.db
       .select()
       .from(onboardingTask)
-      .where(eq(onboardingTask.onboardingId, onboardingId));
+      .where(eq(onboardingTask.onboarding_id, onboardingId));
   });

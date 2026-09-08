@@ -13,13 +13,13 @@ export const deleteProject = Workflow.name("project.delete")
     const [taskExists] = await ctx.db
       .select({ id: task.id })
       .from(task)
-      .where(eq(task.projectId, id))
+      .where(eq(task.project_id, id))
       .limit(1);
 
     if (taskExists) {
       throw new Error("Cannot delete project with existing tasks. Archive instead.");
     }
 
-    await ctx.db.delete(projectMember).where(eq(projectMember.projectId, id));
+    await ctx.db.delete(projectMember).where(eq(projectMember.project_id, id));
     await ctx.db.delete(project).where(eq(project.id, id));
   });

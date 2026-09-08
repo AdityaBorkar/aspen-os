@@ -16,11 +16,11 @@ export const createCompensatoryLeave = Workflow.name("hr.leave.create-compensato
     const [result] = await ctx.db
       .insert(compensatoryLeaveRequest)
       .values({
-        employeeId: parsed.employeeId,
-        leaveType: parsed.leaveType,
-        numberOfDays: parsed.numberOfDays ?? "1",
+        employee_id: parsed.employeeId,
+        leave_type: parsed.leaveType,
+        number_of_days: parsed.numberOfDays ?? "1",
         reason: parsed.reason,
-        workDate: parsed.workDate,
+        work_date: parsed.workDate,
       })
       .returning();
 

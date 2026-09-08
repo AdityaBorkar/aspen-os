@@ -18,7 +18,7 @@ export const getSetting = Workflow.name("workspace.settings.get")
     const [row] = await ctx.db
       .select({ value: workspaceSetting.value })
       .from(workspaceSetting)
-      .where(and(eq(workspaceSetting.userId, ctx.actorId), eq(workspaceSetting.key, parsed.key)))
+      .where(and(eq(workspaceSetting.user_id, ctx.actorId), eq(workspaceSetting.key, parsed.key)))
       .limit(1);
 
     return row?.value ?? null;

@@ -12,13 +12,13 @@ export const deactivateUnitOfMeasure = Workflow.name("masters.unit-of-measure.de
   .handler(async (input, ctx) => {
     const current = await ctx.step.run(fetchUnitOfMeasureStep, { id: input.id });
 
-    if (!current.isActive) {
+    if (!current.is_active) {
       return current;
     }
 
     const [updated] = await ctx.db
       .update(masterUnitOfMeasure)
-      .set({ isActive: false, updatedAt: new Date() })
+      .set({ is_active: false, updated_at: new Date() })
       .where(eq(masterUnitOfMeasure.id, input.id))
       .returning();
 

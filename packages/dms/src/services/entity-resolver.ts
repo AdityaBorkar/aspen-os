@@ -37,7 +37,7 @@ export async function resolveEntity(
   }
 
   const [folder] = await db
-    .select({ id: dmsFolder.id, isTrashed: dmsFolder.isTrashed })
+    .select({ id: dmsFolder.id, isTrashed: dmsFolder.is_trashed })
     .from(dmsFolder)
     .where(eq(dmsFolder.id, id))
     .limit(1);

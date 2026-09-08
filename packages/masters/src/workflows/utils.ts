@@ -29,12 +29,12 @@ export async function unsetPrimaryForOwner(input: UnsetPrimaryForOwnerInput): Pr
   const { db, entityId, entityType, table } = input;
   await db
     .update(table)
-    .set({ isPrimary: false })
+    .set({ is_primary: false })
     .where(
       and(
-        eq(table.entityType, entityType),
-        eq(table.entityId, entityId),
-        eq(table.isPrimary, true),
+        eq(table.entity_type, entityType),
+        eq(table.entity_id, entityId),
+        eq(table.is_primary, true),
       ),
     );
 }
@@ -59,12 +59,12 @@ export async function unsetPrimaryPaymentMethods(
 
   await db
     .update(masterPaymentMethod)
-    .set({ isPrimary: false })
+    .set({ is_primary: false })
     .where(
       and(
-        eq(masterPaymentMethod.entityType, entityType),
-        eq(masterPaymentMethod.entityId, entityId),
-        eq(masterPaymentMethod.isPrimary, true),
+        eq(masterPaymentMethod.entity_type, entityType),
+        eq(masterPaymentMethod.entity_id, entityId),
+        eq(masterPaymentMethod.is_primary, true),
         inArray(masterPaymentMethod.direction, [...OVERLAPPING_DIRECTIONS[direction]]),
       ),
     );

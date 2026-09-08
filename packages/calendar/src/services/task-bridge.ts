@@ -48,9 +48,9 @@ async function deletePendingTaskReminders(db: PostgresJsDatabase, taskId: string
     .delete(calendarReminder)
     .where(
       and(
-        eq(calendarReminder.targetType, REMINDER_TARGET.TASK),
-        eq(calendarReminder.targetId, taskId),
-        eq(calendarReminder.isSent, false),
+        eq(calendarReminder.target_type, REMINDER_TARGET.TASK),
+        eq(calendarReminder.target_id, taskId),
+        eq(calendarReminder.is_sent, false),
       ),
     );
 }
@@ -70,12 +70,12 @@ async function handleDueDateChanged(
   const rows = userIds.flatMap((userId) =>
     DUE_DATE_OFFSETS_MS.map((offset) => ({
       channel: REMINDER_CHANNEL.PUBSUB,
-      createdBy: "task-bridge",
-      remindAt: new Date(dueDate.getTime() - offset),
-      targetId: event.taskId,
-      targetType: REMINDER_TARGET.TASK,
+      created_by: "task-bridge",
+      remind_at: new Date(dueDate.getTime() - offset),
+      target_id: event.taskId,
+      target_type: REMINDER_TARGET.TASK,
       type: REMINDER_TYPE.DUE_DATE,
-      userId,
+      user_id: userId,
     })),
   );
 
@@ -90,8 +90,8 @@ async function handleTaskDeleted(event: { taskId: string }, { db }: TaskBridgeDe
     .delete(calendarReminder)
     .where(
       and(
-        eq(calendarReminder.targetType, REMINDER_TARGET.TASK),
-        eq(calendarReminder.targetId, event.taskId),
+        eq(calendarReminder.target_type, REMINDER_TARGET.TASK),
+        eq(calendarReminder.target_id, event.taskId),
       ),
     );
 }

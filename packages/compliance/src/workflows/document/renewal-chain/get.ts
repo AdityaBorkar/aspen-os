@@ -1,10 +1,19 @@
 import { complianceDocument } from "#/db-schemas";
+import type { ComplianceDocument } from "#/db-schemas";
 import type { RenewalChainEntry } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 
 const MAX_CHAIN_DEPTH = 50;
+
+interface RenewalChainRow {
+  createdAt: Date;
+  id: string;
+  name: string;
+  renewedFrom: string | null;
+  verificationStatus: ComplianceDocument["verification_status"];
+}
 
 const getRenewalChain = Workflow.name("document.renewal-chain").handler(
   async (input: { id: string }, ctx): Promise<RenewalChainEntry[]> => {
@@ -18,13 +27,13 @@ const getRenewalChain = Workflow.name("document.renewal-chain").handler(
         break;
       }
       visited.add(currentId);
-      const [doc] = await ctx.db
+      const [doc]: RenewalChainRow[] = await ctx.db
         .select({
-          createdAt: complianceDocument.createdAt,
+          createdAt: complianceDocument.created_at,
           id: complianceDocument.id,
           name: complianceDocument.name,
-          renewedFrom: complianceDocument.renewedFrom,
-          verificationStatus: complianceDocument.verificationStatus,
+          renewedFrom: complianceDocument.renewed_from,
+          verificationStatus: complianceDocument.verification_status,
         })
         .from(complianceDocument)
         .where(eq(complianceDocument.id, currentId))

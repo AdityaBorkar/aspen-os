@@ -29,21 +29,21 @@ export const updateEvent = Workflow.name("calendar.event.update")
     await assertCanMutate(cal, ctx.actorId, ctx.db);
 
     const nextCalendarId = parsed.calendarId;
-    if (nextCalendarId && nextCalendarId !== existing.calendarId) {
+    if (nextCalendarId && nextCalendarId !== existing.calendar_id) {
       cal = await ctx.step.run(fetchCalendarStep, { id: nextCalendarId });
       await assertCanMutate(cal, ctx.actorId, ctx.db);
     }
 
-    const nextStartsAt = parsed.startsAt ?? existing.startsAt;
-    const nextEndsAt = parsed.endsAt !== undefined ? parsed.endsAt : existing.endsAt;
-    const nextAllDay = parsed.allDay ?? existing.allDay;
+    const nextStartsAt = parsed.startsAt ?? existing.starts_at;
+    const nextEndsAt = parsed.endsAt !== undefined ? parsed.endsAt : existing.ends_at;
+    const nextAllDay = parsed.allDay ?? existing.all_day;
 
     validateEventWindow({ allDay: nextAllDay, endsAt: nextEndsAt, startsAt: nextStartsAt });
 
     const nextSourceType =
-      parsed.sourceType !== undefined ? parsed.sourceType : existing.sourceType;
+      parsed.sourceType !== undefined ? parsed.sourceType : existing.source_type;
     const nextSourceEntityId =
-      parsed.sourceEntityId !== undefined ? parsed.sourceEntityId : existing.sourceEntityId;
+      parsed.sourceEntityId !== undefined ? parsed.sourceEntityId : existing.source_entity_id;
     validateSourceLink(nextSourceType, nextSourceEntityId);
 
     const updates = stripUndefined({
@@ -72,7 +72,7 @@ export const updateEvent = Workflow.name("calendar.event.update")
       throw new Error(`Event with id "${id}" not found.`);
     }
 
-    if (parsed.startsAt && parsed.startsAt.getTime() !== existing.startsAt.getTime()) {
+    if (parsed.startsAt && parsed.startsAt.getTime() !== existing.starts_at.getTime()) {
       await rescheduleOffsetReminders(ctx.db, existing.id, nextStartsAt);
     }
 
@@ -84,22 +84,22 @@ export const updateEvent = Workflow.name("calendar.event.update")
         entityId: updated.id,
         entityType: AUDIT_ENTITY_TYPE.EVENT,
         newState: {
-          calendarId: updated.calendarId,
-          startsAt: updated.startsAt,
+          calendarId: updated.calendar_id,
+          startsAt: updated.starts_at,
           title: updated.title,
         },
         previousState: {
-          calendarId: existing.calendarId,
-          startsAt: existing.startsAt,
+          calendarId: existing.calendar_id,
+          startsAt: existing.starts_at,
           title: existing.title,
         },
       });
 
       await ctx.pubsub.publish(EVENT_EVENTS.UPDATED, {
-        calendarId: updated.calendarId,
+        calendarId: updated.calendar_id,
         event: toEventPayload(updated),
-        sourceEntityId: updated.sourceEntityId,
-        sourceType: updated.sourceType,
+        sourceEntityId: updated.source_entity_id,
+        sourceType: updated.source_type,
       });
     });
 

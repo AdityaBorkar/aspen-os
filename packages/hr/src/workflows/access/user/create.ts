@@ -16,9 +16,9 @@ export const createUser = Workflow.name("hr.access.create-user")
     const [result] = await ctx.db
       .insert(hrUser)
       .values({
-        employeeId: parsed.employeeId,
-        isActive: parsed.isActive,
-        userId: parsed.userId,
+        employee_id: parsed.employeeId,
+        is_active: parsed.isActive,
+        user_id: parsed.userId,
       })
       .returning();
     return result;

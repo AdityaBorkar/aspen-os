@@ -16,17 +16,17 @@ export const createLeaveType = Workflow.name("hr.leave.create-leave-type")
     const [result] = await ctx.db
       .insert(leaveType)
       .values({
-        allowNegativeBalance: parsed.allowNegativeBalance ?? false,
-        applicableAfterWorkingDays: parsed.applicableAfterWorkingDays ?? 0,
-        earnedLeaveFrequency: parsed.earnedLeaveFrequency ?? null,
-        includeHolidaysWithinLeaves: parsed.includeHolidaysWithinLeaves ?? false,
-        isCarryForward: parsed.isCarryForward ?? false,
-        isEarnedLeave: parsed.isEarnedLeave ?? false,
-        isLeaveWithoutPay: parsed.isLeaveWithoutPay ?? false,
-        isPartiallyPaid: parsed.isPartiallyPaid ?? false,
-        maxCarryForwardDays: parsed.maxCarryForwardDays ?? null,
-        maxContinuousDaysAllowed: parsed.maxContinuousDaysAllowed ?? null,
-        maxDaysAllowed: parsed.maxDaysAllowed,
+        allow_negative_balance: parsed.allowNegativeBalance ?? false,
+        applicable_after_working_days: parsed.applicableAfterWorkingDays ?? 0,
+        earned_leave_frequency: parsed.earnedLeaveFrequency ?? null,
+        include_holidays_within_leaves: parsed.includeHolidaysWithinLeaves ?? false,
+        is_carry_forward: parsed.isCarryForward ?? false,
+        is_earned_leave: parsed.isEarnedLeave ?? false,
+        is_leave_without_pay: parsed.isLeaveWithoutPay ?? false,
+        is_partially_paid: parsed.isPartiallyPaid ?? false,
+        max_carry_forward_days: parsed.maxCarryForwardDays ?? null,
+        max_continuous_days_allowed: parsed.maxContinuousDaysAllowed ?? null,
+        max_days_allowed: parsed.maxDaysAllowed,
         name: parsed.name,
       })
       .returning();

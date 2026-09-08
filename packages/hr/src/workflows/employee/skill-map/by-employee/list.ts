@@ -16,5 +16,5 @@ export const listSkillMapByEmployee = Workflow.name("hr.employee.list-skill-map-
     return ctx.db
       .select()
       .from(employeeSkillMap)
-      .where(eq(employeeSkillMap.employeeId, employeeId));
+      .where(eq(employeeSkillMap.employee_id, employeeId));
   });

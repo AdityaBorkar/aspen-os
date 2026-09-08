@@ -43,22 +43,22 @@ export class FileMetadataService {
       .insert(fileMetadata)
       .values({
         bucket: input.bucket,
-        contentType: input.contentType ?? null,
+        content_type: input.contentType ?? null,
         etag: input.etag ?? null,
         key: input.key,
         metadata: input.metadata ?? {},
         size: input.size,
-        tenantId,
+        tenant_id: tenantId,
       })
       .onConflictDoUpdate({
         set: {
-          contentType: input.contentType ?? null,
+          content_type: input.contentType ?? null,
           etag: input.etag ?? null,
           metadata: input.metadata ?? {},
           size: input.size,
-          updatedAt: new Date(),
+          updated_at: new Date(),
         },
-        target: [fileMetadata.key, fileMetadata.tenantId],
+        target: [fileMetadata.key, fileMetadata.tenant_id],
       });
   }
 
@@ -67,17 +67,17 @@ export class FileMetadataService {
     const [row] = await this.#db
       .select({
         archived: fileMetadata.archived,
-        archivedKey: fileMetadata.archivedKey,
+        archivedKey: fileMetadata.archived_key,
         bucket: fileMetadata.bucket,
-        contentType: fileMetadata.contentType,
+        contentType: fileMetadata.content_type,
         etag: fileMetadata.etag,
         key: fileMetadata.key,
         metadata: fileMetadata.metadata,
         size: fileMetadata.size,
-        tenantId: fileMetadata.tenantId,
+        tenantId: fileMetadata.tenant_id,
       })
       .from(fileMetadata)
-      .where(and(eq(fileMetadata.key, key), eq(fileMetadata.tenantId, owner)))
+      .where(and(eq(fileMetadata.key, key), eq(fileMetadata.tenant_id, owner)))
       .limit(1);
     return row ?? null;
   }
@@ -86,14 +86,14 @@ export class FileMetadataService {
     const owner = resolveTenantId(tenantId);
     await this.#db
       .delete(fileMetadata)
-      .where(and(eq(fileMetadata.key, key), eq(fileMetadata.tenantId, owner)));
+      .where(and(eq(fileMetadata.key, key), eq(fileMetadata.tenant_id, owner)));
   }
 
   async markArchived(key: string, archivedKey: string, tenantId?: string): Promise<void> {
     const owner = resolveTenantId(tenantId);
     await this.#db
       .update(fileMetadata)
-      .set({ archived: true, archivedKey, updatedAt: new Date() })
-      .where(and(eq(fileMetadata.key, key), eq(fileMetadata.tenantId, owner)));
+      .set({ archived: true, archived_key: archivedKey, updated_at: new Date() })
+      .where(and(eq(fileMetadata.key, key), eq(fileMetadata.tenant_id, owner)));
   }
 }

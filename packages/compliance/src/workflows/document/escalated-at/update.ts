@@ -10,7 +10,7 @@ const updateDocumentEscalatedAt = Workflow.name("document.update-escalated-at").
     const now = new Date();
     await ctx.db
       .update(complianceDocument)
-      .set({ lastEscalatedAt: now, updatedAt: now })
+      .set({ last_escalated_at: now, updated_at: now })
       .where(eq(complianceDocument.id, input.id));
   },
 );

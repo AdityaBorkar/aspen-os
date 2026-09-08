@@ -9,7 +9,7 @@ export const getTimeEntryTotalDuration = Workflow.name("time-entry.total-duratio
   .input(object({ billableOnly: optional(boolean()), taskId: IdSchema }))
   .handler(async ({ taskId, billableOnly }, ctx) =>
     ctx.step.run("query", async () => {
-      const conditions = [eq(timeEntry.taskId, taskId)];
+      const conditions = [eq(timeEntry.task_id, taskId)];
       if (billableOnly) {
         conditions.push(eq(timeEntry.billable, true));
       }

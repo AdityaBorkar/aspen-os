@@ -18,10 +18,10 @@ export const listRoles = Workflow.name("hr.access.list-roles")
     const conditions = [];
 
     if (parsed.isActive !== undefined) {
-      conditions.push(eq(hrRole.isActive, parsed.isActive));
+      conditions.push(eq(hrRole.is_active, parsed.isActive));
     }
     if (parsed.isSystem !== undefined) {
-      conditions.push(eq(hrRole.isSystem, parsed.isSystem));
+      conditions.push(eq(hrRole.is_system, parsed.isSystem));
     }
     if (parsed.name) {
       conditions.push(eq(hrRole.name, parsed.name));

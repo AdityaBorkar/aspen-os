@@ -25,7 +25,7 @@ export const getFileDownloadLink = Workflow.name("dms.file.download-link")
     });
 
     const url = await ctx.step.run("get-signed-url", async () =>
-      getSignedGetUrl({ expiresIn, key: file.storageKey }),
+      getSignedGetUrl({ expiresIn, key: file.storage_key }),
     );
 
     return { expiresIn, file, url };

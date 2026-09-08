@@ -18,11 +18,11 @@ export const completeExitInterview = Workflow.name("hr.lifecycle.complete-exit-i
     const [updated] = await ctx.db
       .update(exitInterview)
       .set({
-        completedDate: new Date(),
+        completed_date: new Date(),
         feedback,
         responses,
         status: "completed",
-        updatedAt: new Date(),
+        updated_at: new Date(),
       })
       .where(eq(exitInterview.id, id))
       .returning();

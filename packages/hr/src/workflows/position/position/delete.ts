@@ -19,7 +19,7 @@ export const deletePosition = Workflow.name("hr.position.delete")
 
     const [updated] = await ctx.db
       .update(hrPosition)
-      .set({ isActive: false, updatedAt: new Date() })
+      .set({ is_active: false, updated_at: new Date() })
       .where(eq(hrPosition.id, id))
       .returning();
 

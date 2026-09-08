@@ -11,7 +11,7 @@ export const getDepartmentTree = Workflow.name("hr.setup.get-department-tree")
   .input(InputSchema)
   .handler(async (_input, ctx) => {
     const [activeDepartments, counts] = await Promise.all([
-      ctx.db.select().from(department).where(eq(department.isActive, true)),
+      ctx.db.select().from(department).where(eq(department.is_active, true)),
       getDepartmentCounts(ctx.db),
     ]);
 

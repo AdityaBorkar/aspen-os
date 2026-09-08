@@ -5,11 +5,11 @@ import { index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 export const dmsSetting = pgTable(
   "dms_setting",
   {
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    id: uuidv7("id").primaryKey(),
-    key: text("key").notNull().unique(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-    value: jsonb("value").notNull().$type<JsonValue>(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    id: uuidv7().primaryKey(),
+    key: text().notNull().unique(),
+    updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    value: jsonb().notNull().$type<JsonValue>(),
   },
   (table) => [index("idx_dms_setting_key").on(table.key)],
 );

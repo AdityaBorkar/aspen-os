@@ -21,10 +21,10 @@ export const approveAttendanceRequest = Workflow.name("hr.attendance.approve-att
     const [updated] = await ctx.db
       .update(attendanceRequest)
       .set({
-        approvedAt: new Date(),
-        approvedBy,
+        approved_at: new Date(),
+        approved_by: approvedBy,
         status: "approved",
-        updatedAt: new Date(),
+        updated_at: new Date(),
       })
       .where(eq(attendanceRequest.id, id))
       .returning();

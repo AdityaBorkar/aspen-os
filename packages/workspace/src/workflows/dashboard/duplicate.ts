@@ -21,7 +21,7 @@ export const duplicateDashboard = Workflow.name("workspace.dashboard.duplicate")
     const widgets = await ctx.db
       .select()
       .from(workspaceWidget)
-      .where(eq(workspaceWidget.dashboardId, id));
+      .where(eq(workspaceWidget.dashboard_id, id));
 
     const [duplicate] = await ctx.db
       .insert(workspaceDashboard)
@@ -30,7 +30,7 @@ export const duplicateDashboard = Workflow.name("workspace.dashboard.duplicate")
         description: dashboard.description,
         metadata: dashboard.metadata,
         name: dashboard.name,
-        ownerId,
+        owner_id: ownerId,
       })
       .returning();
 
@@ -47,12 +47,12 @@ export const duplicateDashboard = Workflow.name("workspace.dashboard.duplicate")
             .insert(workspaceWidget)
             .values({
               config: widget.config,
-              dashboardId: duplicate.id,
+              dashboard_id: duplicate.id,
               domain: widget.domain,
               filter: widget.filter,
               title: widget.title,
               type: widget.type,
-              viewId: widget.viewId,
+              view_id: widget.view_id,
             })
             .returning();
           return { inserted, originalId: widget.id };
@@ -84,7 +84,7 @@ export const duplicateDashboard = Workflow.name("workspace.dashboard.duplicate")
 
     await ctx.db
       .update(workspaceDashboard)
-      .set({ layout, updatedAt: new Date() })
+      .set({ layout, updated_at: new Date() })
       .where(eq(workspaceDashboard.id, duplicate.id));
 
     await ctx.audit.write({

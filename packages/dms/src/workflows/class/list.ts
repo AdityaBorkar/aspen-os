@@ -14,7 +14,7 @@ export const listClasses = Workflow.name("dms.class.list")
     ctx.step.run("query", async () => {
       const conditions: SQL[] = [];
       if (filters.activeOnly) {
-        conditions.push(eq(dmsClass.isActive, true));
+        conditions.push(eq(dmsClass.is_active, true));
       }
       if (filters.search) {
         const term = `%${filters.search}%`;

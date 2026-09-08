@@ -18,7 +18,7 @@ export const listShiftRequests = Workflow.name("hr.shift.list-shift-requests")
     const conditions = [];
 
     if (parsed.employeeId) {
-      conditions.push(eq(shiftRequest.employeeId, parsed.employeeId));
+      conditions.push(eq(shiftRequest.employee_id, parsed.employeeId));
     }
     if (parsed.status) {
       conditions.push(eq(shiftRequest.status, parsed.status));

@@ -8,5 +8,7 @@ import { object } from "valibot";
 export const removeWatcher = Workflow.name("collaboration.remove-watcher")
   .input(object({ taskId: IdSchema, userId: IdSchema }))
   .handler(async ({ taskId, userId }, ctx) => {
-    await ctx.db.delete(watcher).where(and(eq(watcher.taskId, taskId), eq(watcher.userId, userId)));
+    await ctx.db
+      .delete(watcher)
+      .where(and(eq(watcher.task_id, taskId), eq(watcher.user_id, userId)));
   });

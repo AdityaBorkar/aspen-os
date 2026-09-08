@@ -19,12 +19,12 @@ export const setDefaultView = Workflow.name("workspace.view.set-default")
     await assertCanMutate(view, ctx.actorId);
 
     await ctx.step.run("unset-previous", async () => {
-      await unsetDefaultView(ctx.db, view.ownerId, view.domain);
+      await unsetDefaultView(ctx.db, view.owner_id, view.domain);
     });
 
     const [updated] = await ctx.db
       .update(workspaceView)
-      .set({ isDefault: true, updatedAt: new Date() })
+      .set({ is_default: true, updated_at: new Date() })
       .where(eq(workspaceView.id, id))
       .returning();
 

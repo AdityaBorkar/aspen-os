@@ -19,7 +19,7 @@ export const updateLeaveApplication = Workflow.name("hr.leave.update-leave-appli
 
     const [updated] = await ctx.db
       .update(leaveApplication)
-      .set({ ...parsed, updatedAt: new Date() })
+      .set({ ...parsed, updated_at: new Date() })
       .where(eq(leaveApplication.id, id))
       .returning();
 

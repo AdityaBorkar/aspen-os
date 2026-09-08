@@ -144,7 +144,7 @@ async function documentExists(
   if (!filter.documentType) {
     return rows.length > 0;
   }
-  return rows.some((row) => row.documentType === filter.documentType);
+  return rows.some((row) => row.document_type === filter.documentType);
 }
 
 async function createManyDocuments(

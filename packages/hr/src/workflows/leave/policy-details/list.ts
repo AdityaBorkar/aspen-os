@@ -16,5 +16,5 @@ export const listLeavePolicyDetails = Workflow.name("hr.leave.list-leave-policy-
     return ctx.db
       .select()
       .from(leavePolicyDetail)
-      .where(eq(leavePolicyDetail.leavePolicyId, leavePolicyId));
+      .where(eq(leavePolicyDetail.leave_policy_id, leavePolicyId));
   });

@@ -19,9 +19,9 @@ export const unsubscribeWatch = Workflow.name("workspace.watch.unsubscribe")
     const parsed = parse(UnsubscribeWatchSchema, input);
 
     const [watch] = await ctx.db
-      .select({ itemId: workspaceWatch.itemId, itemType: workspaceWatch.itemType })
+      .select({ itemId: workspaceWatch.item_id, itemType: workspaceWatch.item_type })
       .from(workspaceWatch)
-      .where(and(eq(workspaceWatch.id, parsed.id), eq(workspaceWatch.userId, ctx.actorId)))
+      .where(and(eq(workspaceWatch.id, parsed.id), eq(workspaceWatch.user_id, ctx.actorId)))
       .limit(1);
 
     if (!watch) {
@@ -30,7 +30,7 @@ export const unsubscribeWatch = Workflow.name("workspace.watch.unsubscribe")
 
     await ctx.db
       .delete(workspaceWatch)
-      .where(and(eq(workspaceWatch.id, parsed.id), eq(workspaceWatch.userId, ctx.actorId)));
+      .where(and(eq(workspaceWatch.id, parsed.id), eq(workspaceWatch.user_id, ctx.actorId)));
 
     await ctx.audit.write({
       action: AUDIT_ACTION.WATCH_UNSUBSCRIBED,

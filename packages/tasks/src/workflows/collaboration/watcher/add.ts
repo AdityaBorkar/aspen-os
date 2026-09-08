@@ -15,7 +15,7 @@ export const addWatcher = Workflow.name("collaboration.add-watcher")
     const [existing] = await ctx.db
       .select({ id: watcher.id })
       .from(watcher)
-      .where(and(eq(watcher.taskId, input.taskId), eq(watcher.userId, input.userId)))
+      .where(and(eq(watcher.task_id, input.taskId), eq(watcher.user_id, input.userId)))
       .limit(1);
 
     if (existing) {
@@ -25,8 +25,8 @@ export const addWatcher = Workflow.name("collaboration.add-watcher")
     const [result] = await ctx.db
       .insert(watcher)
       .values({
-        taskId: input.taskId,
-        userId: input.userId,
+        task_id: input.taskId,
+        user_id: input.userId,
       })
       .returning();
 

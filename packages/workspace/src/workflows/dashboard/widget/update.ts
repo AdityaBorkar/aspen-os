@@ -19,14 +19,14 @@ export const updateWidget = Workflow.name("workspace.widget.update")
   .input(UpdateInputSchema)
   .handler(async ({ id, input }, ctx) => {
     const widget = await ctx.step.run(fetchWidgetStep, { id });
-    const dashboard = await ctx.step.run(fetchDashboardStep, { id: widget.dashboardId });
+    const dashboard = await ctx.step.run(fetchDashboardStep, { id: widget.dashboard_id });
     await assertCanMutate(dashboard, ctx.actorId);
     const parsed = parse(UpdateWidgetSchema, input);
 
     const type = parsed.type ?? widget.type;
     const domain = parsed.domain !== undefined ? parsed.domain : widget.domain;
     const filter = parsed.filter !== undefined ? parsed.filter : widget.filter;
-    const viewId = parsed.viewId !== undefined ? parsed.viewId : widget.viewId;
+    const viewId = parsed.viewId !== undefined ? parsed.viewId : widget.view_id;
 
     assertWidgetDatasource(type, { domain, filter, viewId });
     const config =
@@ -43,7 +43,7 @@ export const updateWidget = Workflow.name("workspace.widget.update")
 
     const [updated] = await ctx.db
       .update(workspaceWidget)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates, updated_at: new Date() })
       .where(eq(workspaceWidget.id, id))
       .returning();
 

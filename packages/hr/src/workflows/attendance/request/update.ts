@@ -19,7 +19,7 @@ export const updateAttendanceRequest = Workflow.name("hr.attendance.update-atten
 
     const [updated] = await ctx.db
       .update(attendanceRequest)
-      .set({ ...parsed, updatedAt: new Date() })
+      .set({ ...parsed, updated_at: new Date() })
       .where(eq(attendanceRequest.id, id))
       .returning();
 

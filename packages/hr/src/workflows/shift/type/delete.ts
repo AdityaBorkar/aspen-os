@@ -15,7 +15,7 @@ export const deleteShiftType = Workflow.name("hr.shift.delete-shift-type")
 
     const [updated] = await ctx.db
       .update(shiftType)
-      .set({ isActive: false, updatedAt: new Date() })
+      .set({ is_active: false, updated_at: new Date() })
       .where(eq(shiftType.id, id))
       .returning();
 

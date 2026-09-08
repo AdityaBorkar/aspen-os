@@ -30,9 +30,9 @@ export const createContact = Workflow.name("masters.contact.create")
       .values({
         company: parsed.company ?? null,
         email: parsed.email ?? null,
-        entityId: parsed.entityId,
-        entityType: parsed.entityType,
-        isPrimary: parsed.isPrimary,
+        entity_id: parsed.entityId,
+        entity_type: parsed.entityType,
+        is_primary: parsed.isPrimary,
         metadata: parsed.metadata ?? null,
         name: parsed.name,
         phone: parsed.phone ?? null,
@@ -53,9 +53,9 @@ export const createContact = Workflow.name("masters.contact.create")
         entityType: AUDIT_ENTITY_TYPE.CONTACT,
         newState: {
           email: contact.email,
-          entityId: contact.entityId,
-          entityType: contact.entityType,
-          isPrimary: contact.isPrimary,
+          entityId: contact.entity_id,
+          entityType: contact.entity_type,
+          isPrimary: contact.is_primary,
           name: contact.name,
           type: contact.type,
         },
@@ -67,7 +67,7 @@ export const createContact = Workflow.name("masters.contact.create")
           name: contact.name,
           type: contact.type,
         },
-        entityType: contact.entityType,
+        entityType: contact.entity_type,
       });
     });
 

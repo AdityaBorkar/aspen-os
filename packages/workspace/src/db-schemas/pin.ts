@@ -4,16 +4,16 @@ import { index, integer, pgTable, text, timestamp, uniqueIndex } from "drizzle-o
 export const workspacePin = pgTable(
   "workspace_pin",
   {
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    id: uuidv7("id").primaryKey(),
-    itemId: text("item_id").notNull(),
-    itemType: text("item_type").notNull(),
-    sortOrder: integer("sort_order").notNull().default(0),
-    userId: text("user_id").notNull(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    id: uuidv7().primaryKey(),
+    item_id: text().notNull(),
+    item_type: text().notNull(),
+    sort_order: integer().notNull().default(0),
+    user_id: text().notNull(),
   },
   (table) => [
-    index("idx_workspace_pin_user").on(table.userId),
-    uniqueIndex("idx_workspace_pin_user_item").on(table.userId, table.itemType, table.itemId),
+    index("idx_workspace_pin_user").on(table.user_id),
+    uniqueIndex("idx_workspace_pin_user_item").on(table.user_id, table.item_type, table.item_id),
   ],
 );
 

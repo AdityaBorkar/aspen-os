@@ -12,7 +12,7 @@ export const removeAttendee = Workflow.name("calendar.attendee.remove")
   .input(WithIdSchema)
   .handler(async ({ id }, ctx) => {
     const attendee = await ctx.step.run(fetchAttendeeStep, { id });
-    const cal = await ctx.step.run(fetchEventCalendarStep, { eventId: attendee.eventId });
+    const cal = await ctx.step.run(fetchEventCalendarStep, { eventId: attendee.event_id });
 
     await assertCanMutate(cal, ctx.actorId, ctx.db);
 
@@ -30,7 +30,7 @@ export const removeAttendee = Workflow.name("calendar.attendee.remove")
       await ctx.pubsub.publish(ATTENDEE_EVENTS.REMOVED, {
         attendeeId: attendee.id,
         calendarId: cal.id,
-        eventId: attendee.eventId,
+        eventId: attendee.event_id,
       });
     });
 

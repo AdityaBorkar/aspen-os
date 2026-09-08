@@ -10,7 +10,7 @@ const deactivateObligation = Workflow.name("obligation.deactivate").handler(
     const current = await ctx.step.run(fetchObligationStep, { id: input.id });
     const [updated] = await ctx.db
       .update(complianceObligation)
-      .set({ isActive: false, updatedAt: new Date() })
+      .set({ is_active: false, updated_at: new Date() })
       .where(eq(complianceObligation.id, input.id))
       .returning();
 
@@ -20,7 +20,7 @@ const deactivateObligation = Workflow.name("obligation.deactivate").handler(
 
     await ctx.audit.write({
       action: "obligation_deactivated",
-      actorId: input.performedBy ?? ctx.actorId ?? current.createdBy,
+      actorId: input.performedBy ?? ctx.actorId ?? current.created_by,
       crudAction: "update",
       entityId: input.id,
       entityType: "compliance_obligation",

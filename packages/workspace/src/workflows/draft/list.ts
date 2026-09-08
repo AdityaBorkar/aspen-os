@@ -16,17 +16,17 @@ export const listDrafts = Workflow.name("workspace.draft.list")
     const validated = parse(DraftFiltersSchema, filters);
 
     const conditions = [
-      or(eq(workspaceDraft.access, "global"), eq(workspaceDraft.ownerId, ctx.actorId)),
+      or(eq(workspaceDraft.access, "global"), eq(workspaceDraft.owner_id, ctx.actorId)),
     ];
 
     if (!validated.includeTrashed) {
-      conditions.push(isNull(workspaceDraft.deletedAt));
+      conditions.push(isNull(workspaceDraft.deleted_at));
     }
     if (validated.status) {
       conditions.push(eq(workspaceDraft.status, validated.status));
     }
     if (validated.targetDomain) {
-      conditions.push(eq(workspaceDraft.targetDomain, validated.targetDomain));
+      conditions.push(eq(workspaceDraft.target_domain, validated.targetDomain));
     }
     if (validated.search) {
       conditions.push(
@@ -38,7 +38,7 @@ export const listDrafts = Workflow.name("workspace.draft.list")
       .select()
       .from(workspaceDraft)
       .where(and(...conditions))
-      .orderBy(desc(workspaceDraft.updatedAt))
+      .orderBy(desc(workspaceDraft.updated_at))
       .limit(validated.limit ?? 50)
       .offset(validated.offset ?? 0);
   });

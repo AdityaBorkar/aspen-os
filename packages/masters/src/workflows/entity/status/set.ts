@@ -39,7 +39,7 @@ export const setEntityStatus = Workflow.name("masters.entity.set-status")
 
     const [updated] = await ctx.db
       .update(masterEntity)
-      .set({ status: input.status, updatedAt: new Date() })
+      .set({ status: input.status, updated_at: new Date() })
       .where(eq(masterEntity.id, input.id))
       .returning();
 

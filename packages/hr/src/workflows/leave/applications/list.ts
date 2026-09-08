@@ -18,10 +18,10 @@ export const listLeaveApplications = Workflow.name("hr.leave.list-leave-applicat
     const conditions = [];
 
     if (parsed.employeeId) {
-      conditions.push(eq(leaveApplication.employeeId, parsed.employeeId));
+      conditions.push(eq(leaveApplication.employee_id, parsed.employeeId));
     }
     if (parsed.leaveType) {
-      conditions.push(eq(leaveApplication.leaveType, parsed.leaveType));
+      conditions.push(eq(leaveApplication.leave_type, parsed.leaveType));
     }
     if (parsed.status) {
       conditions.push(eq(leaveApplication.status, parsed.status));

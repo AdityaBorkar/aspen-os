@@ -25,7 +25,7 @@ export function createSmsAdapter(): DeliveryAdapter {
       {
         body: new URLSearchParams({
           Body: message.body,
-          From: channel.senderAddress,
+          From: channel.sender_address,
           To: message.to,
         }),
         headers: {

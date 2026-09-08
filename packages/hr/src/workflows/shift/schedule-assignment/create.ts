@@ -22,11 +22,11 @@ export const createShiftScheduleAssignment = Workflow.name(
     const [result] = await ctx.db
       .insert(shiftScheduleAssignment)
       .values({
-        employeeId: parsed.employeeId,
-        endDate: parsed.endDate ?? null,
-        isActive: parsed.isActive ?? true,
-        shiftSchedule: parsed.shiftSchedule,
-        startDate: parsed.startDate,
+        employee_id: parsed.employeeId,
+        end_date: parsed.endDate ?? null,
+        is_active: parsed.isActive ?? true,
+        shift_schedule: parsed.shiftSchedule,
+        start_date: parsed.startDate,
       })
       .returning();
 

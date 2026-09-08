@@ -22,11 +22,11 @@ export const updateFullAndFinal = Workflow.name("hr.lifecycle.update-full-and-fi
 
     const updateData: Partial<typeof fullAndFinalStatement.$inferInsert> = {
       ...rest,
-      updatedAt: new Date(),
+      updated_at: new Date(),
     };
 
     if (paidAt) {
-      updateData.paidAt = new Date(paidAt);
+      updateData.paid_at = new Date(paidAt);
     }
 
     const [updated] = await ctx.db

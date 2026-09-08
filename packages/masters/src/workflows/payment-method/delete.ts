@@ -21,15 +21,15 @@ export const deletePaymentMethod = Workflow.name("masters.payment-method.delete"
         entityId: current.id,
         entityType: AUDIT_ENTITY_TYPE.PAYMENT_METHOD,
         metadata: {
-          entityId: current.entityId,
-          entityType: current.entityType,
+          entityId: current.entity_id,
+          entityType: current.entity_type,
           type: current.type,
         },
       });
 
       await ctx.pubsub.publish(PAYMENT_METHOD_EVENTS.REMOVED, {
-        entityId: current.entityId,
-        entityType: current.entityType,
+        entityId: current.entity_id,
+        entityType: current.entity_type,
         paymentMethod: { id: current.id, name: current.name, type: current.type },
       });
     });

@@ -11,7 +11,7 @@ export const getWidget = Workflow.name("workspace.widget.get")
   .input(GetInputSchema)
   .handler(async ({ id }, ctx) => {
     const widget = await ctx.step.run(fetchWidgetStep, { id });
-    const dashboard = await ctx.step.run(fetchDashboardStep, { id: widget.dashboardId });
+    const dashboard = await ctx.step.run(fetchDashboardStep, { id: widget.dashboard_id });
     assertCanAccess(dashboard, ctx.actorId);
     return widget;
   });

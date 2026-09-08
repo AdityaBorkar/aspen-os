@@ -14,7 +14,7 @@ export const deleteLeavePolicy = Workflow.name("hr.leave.delete-leave-policy")
     const { id } = input;
 
     // Delete policy details first
-    await ctx.db.delete(leavePolicyDetail).where(eq(leavePolicyDetail.leavePolicyId, id));
+    await ctx.db.delete(leavePolicyDetail).where(eq(leavePolicyDetail.leave_policy_id, id));
 
     const [deleted] = await ctx.db.delete(leavePolicy).where(eq(leavePolicy.id, id)).returning();
 

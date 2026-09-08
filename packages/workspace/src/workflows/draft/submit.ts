@@ -23,8 +23,8 @@ export const submitDraft = Workflow.name("workspace.draft.submit")
         id,
         toStatus: DRAFT_STATUS.SUBMITTED,
         values: {
-          submittedAt: new Date(),
-          submittedBy: actorId,
+          submitted_at: new Date(),
+          submitted_by: actorId,
         },
       }),
     );

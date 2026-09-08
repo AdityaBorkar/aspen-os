@@ -13,12 +13,12 @@ export const refreshWidget = Workflow.name("workspace.widget.refresh")
   .input(RefreshWidgetSchema)
   .handler(async ({ id, error }, ctx) => {
     const widget = await ctx.step.run(fetchWidgetStep, { id });
-    const dashboard = await ctx.step.run(fetchDashboardStep, { id: widget.dashboardId });
+    const dashboard = await ctx.step.run(fetchDashboardStep, { id: widget.dashboard_id });
     assertCanAccess(dashboard, ctx.actorId);
 
     const [updated] = await ctx.db
       .update(workspaceWidget)
-      .set({ lastError: error ?? null, lastRefreshedAt: new Date(), updatedAt: new Date() })
+      .set({ last_error: error ?? null, last_refreshed_at: new Date(), updated_at: new Date() })
       .where(eq(workspaceWidget.id, id))
       .returning();
 

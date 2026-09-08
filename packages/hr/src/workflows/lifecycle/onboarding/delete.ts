@@ -14,7 +14,7 @@ export const deleteOnboarding = Workflow.name("hr.lifecycle.delete-onboarding")
     const { id } = input;
 
     // Delete tasks first
-    await ctx.db.delete(onboardingTask).where(eq(onboardingTask.onboardingId, id));
+    await ctx.db.delete(onboardingTask).where(eq(onboardingTask.onboarding_id, id));
 
     const [deleted] = await ctx.db
       .delete(employeeOnboarding)

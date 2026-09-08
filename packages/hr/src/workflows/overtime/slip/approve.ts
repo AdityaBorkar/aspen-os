@@ -23,22 +23,22 @@ export const approveOvertimeSlip = Workflow.name("hr.overtime.approve-overtime-s
 
     const slip = await fetchOvertimeSlipById(ctx.db, id);
     requireStatus(slip, "pending", `Overtime slip "${id}"`);
-    const overtimeTypeRecord = await fetchOvertimeTypeById(ctx.db, slip.overtimeType);
+    const overtimeTypeRecord = await fetchOvertimeTypeById(ctx.db, slip.overtime_type);
 
     // Calculate amount
     let amount = 0;
-    const standardHours = toDays(slip.standardHours, "standardHours");
-    const holidayHours = toDays(slip.holidayHours, "holidayHours");
-    const weekendHours = toDays(slip.weekendHours, "weekendHours");
+    const standardHours = toDays(slip.standard_hours, "standardHours");
+    const holidayHours = toDays(slip.holiday_hours, "holidayHours");
+    const weekendHours = toDays(slip.weekend_hours, "weekendHours");
 
-    if (overtimeTypeRecord.amountCalculation === "fixed" && overtimeTypeRecord.fixedHourlyRate) {
-      const hourlyRate = toDays(overtimeTypeRecord.fixedHourlyRate, "fixedHourlyRate");
+    if (overtimeTypeRecord.amount_calculation === "fixed" && overtimeTypeRecord.fixed_hourly_rate) {
+      const hourlyRate = toDays(overtimeTypeRecord.fixed_hourly_rate, "fixedHourlyRate");
       const standardMultiplier = toDays(
-        overtimeTypeRecord.standardMultiplier,
+        overtimeTypeRecord.standard_multiplier,
         "standardMultiplier",
       );
-      const holidayMultiplier = toDays(overtimeTypeRecord.holidayMultiplier, "holidayMultiplier");
-      const weekendMultiplier = toDays(overtimeTypeRecord.weekendMultiplier, "weekendMultiplier");
+      const holidayMultiplier = toDays(overtimeTypeRecord.holiday_multiplier, "holidayMultiplier");
+      const weekendMultiplier = toDays(overtimeTypeRecord.weekend_multiplier, "weekendMultiplier");
 
       amount =
         standardHours * hourlyRate * standardMultiplier +
@@ -50,10 +50,10 @@ export const approveOvertimeSlip = Workflow.name("hr.overtime.approve-overtime-s
       .update(overtimeSlip)
       .set({
         amount: amount.toString(),
-        approvedAt: new Date(),
-        approvedBy,
+        approved_at: new Date(),
+        approved_by: approvedBy,
         status: "approved",
-        updatedAt: new Date(),
+        updated_at: new Date(),
       })
       .where(eq(overtimeSlip.id, id))
       .returning();

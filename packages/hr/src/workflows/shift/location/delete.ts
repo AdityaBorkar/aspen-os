@@ -15,7 +15,7 @@ export const deleteShiftLocation = Workflow.name("hr.shift.delete-shift-location
 
     const [updated] = await ctx.db
       .update(shiftLocation)
-      .set({ isActive: false, updatedAt: new Date() })
+      .set({ is_active: false, updated_at: new Date() })
       .where(eq(shiftLocation.id, id))
       .returning();
 

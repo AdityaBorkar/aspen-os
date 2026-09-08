@@ -19,12 +19,12 @@ export const listEntities = Workflow.name("masters.entity.list")
         conditions.push(eq(masterEntity.status, parsed.status));
       }
       if (parsed.organizationId) {
-        conditions.push(eq(masterEntity.organizationId, parsed.organizationId));
+        conditions.push(eq(masterEntity.organization_id, parsed.organizationId));
       }
       if (parsed.search) {
         const term = `%${parsed.search}%`;
         conditions.push(
-          sql`(${masterEntity.name} ilike ${term} or ${masterEntity.code} ilike ${term} or ${masterEntity.registrationNumber} ilike ${term})`,
+          sql`(${masterEntity.name} ilike ${term} or ${masterEntity.code} ilike ${term} or ${masterEntity.registration_number} ilike ${term})`,
         );
       }
 

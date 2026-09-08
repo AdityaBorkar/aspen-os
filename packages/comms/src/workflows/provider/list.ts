@@ -18,7 +18,7 @@ export const listProviders = Workflow.name("comms.provider.list")
       where.push(eq(commsProvider.kind, filters.kind));
     }
     if (filters?.isActive !== undefined) {
-      where.push(eq(commsProvider.isActive, filters.isActive));
+      where.push(eq(commsProvider.is_active, filters.isActive));
     }
 
     const { limit, offset } = listPagination(filters ?? undefined);
@@ -28,7 +28,7 @@ export const listProviders = Workflow.name("comms.provider.list")
       .select()
       .from(commsProvider)
       .where(and(...where))
-      .orderBy(desc(commsProvider.createdAt))
+      .orderBy(desc(commsProvider.created_at))
       .limit(limit)
       .offset(offset);
   });

@@ -19,8 +19,8 @@ export const listWidgets = Workflow.name("workspace.widget.list")
     return ctx.db
       .select()
       .from(workspaceWidget)
-      .where(eq(workspaceWidget.dashboardId, validated.dashboardId))
-      .orderBy(asc(workspaceWidget.createdAt))
+      .where(eq(workspaceWidget.dashboard_id, validated.dashboardId))
+      .orderBy(asc(workspaceWidget.created_at))
       .limit(validated.limit ?? 50)
       .offset(validated.offset ?? 0);
   });

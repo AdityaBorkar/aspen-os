@@ -21,21 +21,21 @@ export const listSchedules = Workflow.name("workspace.schedule.list")
       .select({ id: workspaceDashboard.id })
       .from(workspaceDashboard)
       .where(
-        or(eq(workspaceDashboard.access, "global"), eq(workspaceDashboard.ownerId, ctx.actorId)),
+        or(eq(workspaceDashboard.access, "global"), eq(workspaceDashboard.owner_id, ctx.actorId)),
       );
 
-    const conditions = [inArray(workspaceSchedule.dashboardId, accessibleDashboardIds)];
+    const conditions = [inArray(workspaceSchedule.dashboard_id, accessibleDashboardIds)];
     if (validated.dashboardId) {
       const dashboard = await ctx.step.run(fetchDashboardStep, { id: validated.dashboardId });
       assertCanAccess(dashboard, ctx.actorId);
-      conditions.push(eq(workspaceSchedule.dashboardId, validated.dashboardId));
+      conditions.push(eq(workspaceSchedule.dashboard_id, validated.dashboardId));
     }
 
     return ctx.db
       .select()
       .from(workspaceSchedule)
       .where(and(...conditions))
-      .orderBy(asc(workspaceSchedule.createdAt))
+      .orderBy(asc(workspaceSchedule.created_at))
       .limit(validated.limit ?? 50)
       .offset(validated.offset ?? 0);
   });

@@ -9,6 +9,8 @@ export const getPendingReminders = Workflow.name("calendar.reminder.get-pending"
       ctx.db
         .select()
         .from(calendarReminder)
-        .where(and(eq(calendarReminder.isSent, false), lte(calendarReminder.remindAt, new Date()))),
+        .where(
+          and(eq(calendarReminder.is_sent, false), lte(calendarReminder.remind_at, new Date())),
+        ),
     ),
 );

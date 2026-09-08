@@ -48,8 +48,8 @@ export const updateReminder = Workflow.name("calendar.reminder.update")
         crudAction: "update",
         entityId: updated.id,
         entityType: AUDIT_ENTITY_TYPE.REMINDER,
-        newState: { remindAt: updated.remindAt, type: updated.type },
-        previousState: { remindAt: existing.remindAt, type: existing.type },
+        newState: { remind_at: updated.remind_at, type: updated.type },
+        previousState: { remind_at: existing.remind_at, type: existing.type },
       });
 
       await ctx.pubsub.publish(REMINDER_EVENTS.UPDATED, {

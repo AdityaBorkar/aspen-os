@@ -25,11 +25,11 @@ export const moveDepartment = Workflow.name("hr.setup.move-department")
       await validateParentDepartment(ctx.db, newParentId, id);
     }
 
-    const parentDepartment = newParentId === undefined ? existing.parentDepartment : newParentId;
+    const parentDepartment = newParentId === undefined ? existing.parent_department : newParentId;
 
     const [updated] = await ctx.db
       .update(department)
-      .set({ parentDepartment, updatedAt: new Date() })
+      .set({ parent_department: parentDepartment, updated_at: new Date() })
       .where(eq(department.id, id))
       .returning();
 
@@ -39,7 +39,7 @@ export const moveDepartment = Workflow.name("hr.setup.move-department")
 
     await ctx.pubsub.publish(SETUP_EVENTS.DEPARTMENT_MOVED, {
       departmentId: id,
-      fromParentId: existing.parentDepartment,
+      fromParentId: existing.parent_department,
       toParentId: parentDepartment,
     });
 

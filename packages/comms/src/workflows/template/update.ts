@@ -35,7 +35,7 @@ export const updateTemplate = Workflow.name("comms.template.update")
     }
     if (input.providerTemplateId !== undefined) {
       const next = input.providerTemplateId ?? null;
-      if (next !== current.providerTemplateId) {
+      if (next !== current.provider_template_id) {
         set.providerTemplateId = next;
       }
     }
@@ -55,7 +55,7 @@ export const updateTemplate = Workflow.name("comms.template.update")
 
     const [updated] = await ctx.db
       .update(commsTemplate)
-      .set({ ...set, updatedAt: new Date() })
+      .set({ ...set, updated_at: new Date() })
       .where(eq(commsTemplate.id, input.id))
       .returning();
 
@@ -69,10 +69,10 @@ export const updateTemplate = Workflow.name("comms.template.update")
       entityId: updated.id,
       entityType: AUDIT_ENTITY_TYPE.TEMPLATE,
       event: {
-        payload: { isActive: updated.isActive, name: updated.name, templateId: updated.id },
+        payload: { is_active: updated.is_active, name: updated.name, templateId: updated.id },
         topic: TEMPLATE_EVENTS.UPDATED,
       },
-      newState: { channelType: updated.channelType, name: updated.name },
+      newState: { channel_type: updated.channel_type, name: updated.name },
     });
 
     return updated;

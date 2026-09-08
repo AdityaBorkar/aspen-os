@@ -20,7 +20,7 @@ export const listFullAndFinalStatements = Workflow.name(
     const conditions = [];
 
     if (parsed.employeeId) {
-      conditions.push(eq(fullAndFinalStatement.employeeId, parsed.employeeId));
+      conditions.push(eq(fullAndFinalStatement.employee_id, parsed.employeeId));
     }
     if (parsed.status) {
       conditions.push(eq(fullAndFinalStatement.status, parsed.status));

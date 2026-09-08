@@ -20,12 +20,12 @@ export const createSavedView = Workflow.name("view.create")
       .insert(savedView)
       .values({
         filters: input.filters ?? null,
-        groupBy: input.groupBy ?? null,
-        isDefault: input.isDefault ?? false,
-        isShared: input.isShared ?? false,
+        group_by: input.groupBy ?? null,
+        is_default: input.isDefault ?? false,
+        is_shared: input.isShared ?? false,
         name: input.name,
-        ownerId: input.ownerId,
-        projectId: input.projectId ?? null,
+        owner_id: input.ownerId,
+        project_id: input.projectId ?? null,
         sort: input.sort ?? null,
         type: input.type ?? "list",
       })

@@ -17,10 +17,10 @@ export const completeOnboardingTask = Workflow.name("hr.lifecycle.complete-onboa
     const [updated] = await ctx.db
       .update(onboardingTask)
       .set({
-        completedAt: new Date(),
-        completedBy,
+        completed_at: new Date(),
+        completed_by: completedBy,
         status: "completed",
-        updatedAt: new Date(),
+        updated_at: new Date(),
       })
       .where(eq(onboardingTask.id, id))
       .returning();

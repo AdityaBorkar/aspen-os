@@ -51,7 +51,7 @@ export const deletePermanently = Workflow.name("dms.trash.delete-permanently")
 
         await ctx.pubsub.publish(FILE_EVENTS.PURGED, {
           fileId: id,
-          storageKey: keys[0] ?? file.storageKey,
+          storageKey: keys[0] ?? file.storage_key,
         });
       });
 
@@ -60,7 +60,7 @@ export const deletePermanently = Workflow.name("dms.trash.delete-permanently")
 
     const folder = await ctx.step.run(fetchFolderStep, { id });
 
-    if (!isPurgeableFolder(folder.isTrashed)) {
+    if (!isPurgeableFolder(folder.is_trashed)) {
       throw new Error("Only folders in the trash can be permanently deleted.");
     }
 

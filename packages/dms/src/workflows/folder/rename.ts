@@ -20,20 +20,20 @@ export const renameFolder = Workflow.name("dms.folder.rename")
       await checkNameUniqueness({
         excludeId: id,
         name: parsed.name,
-        parentId: fetched.parentId,
+        parentId: fetched.parent_id,
       });
     });
 
     const oldPath = fetched.path;
-    const { parentId } = fetched;
-    const parentPath = parentId
-      ? await ctx.step.run("get-parent-path", async () => getFolderPath({ folderId: parentId }))
+    const { parent_id } = fetched;
+    const parentPath = parent_id
+      ? await ctx.step.run("get-parent-path", async () => getFolderPath({ folderId: parent_id }))
       : "";
     const newPath = `${parentPath}/${parsed.name}`;
 
     const [updated] = await ctx.db
       .update(dmsFolder)
-      .set({ name: parsed.name, path: newPath, updatedAt: new Date() })
+      .set({ name: parsed.name, path: newPath, updated_at: new Date() })
       .where(eq(dmsFolder.id, id))
       .returning();
 

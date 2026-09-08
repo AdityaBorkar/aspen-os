@@ -12,13 +12,13 @@ export const activatePaymentMethod = Workflow.name("masters.payment-method.activ
   .handler(async (input, ctx) => {
     const current = await ctx.step.run(fetchPaymentMethodStep, { id: input.id });
 
-    if (current.isActive) {
+    if (current.is_active) {
       return current;
     }
 
     const [updated] = await ctx.db
       .update(masterPaymentMethod)
-      .set({ isActive: true, updatedAt: new Date() })
+      .set({ is_active: true, updated_at: new Date() })
       .where(eq(masterPaymentMethod.id, input.id))
       .returning();
 
@@ -34,8 +34,8 @@ export const activatePaymentMethod = Workflow.name("masters.payment-method.activ
       });
 
       await ctx.pubsub.publish(PAYMENT_METHOD_EVENTS.ACTIVATED, {
-        entityId: updated.entityId,
-        entityType: updated.entityType,
+        entityId: updated.entity_id,
+        entityType: updated.entity_type,
         paymentMethodId: updated.id,
       });
     });

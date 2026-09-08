@@ -6,25 +6,25 @@ import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 export const calendar = pgTable(
   "calendar_calendar",
   {
-    access: calendarAccessEnum("access").notNull().default("personal"),
-    color: text("color"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    createdBy: text("created_by").notNull(),
-    description: text("description"),
-    id: uuidv7("id").primaryKey(),
-    isDefault: boolean("is_default").notNull().default(false),
-    name: text("name").notNull(),
-    ownerId: text("owner_id").notNull(),
-    timezone: text("timezone").notNull().default("UTC"),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
+    access: calendarAccessEnum().notNull().default("personal"),
+    color: text(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    created_by: text().notNull(),
+    description: text(),
+    id: uuidv7().primaryKey(),
+    is_default: boolean().notNull().default(false),
+    name: text().notNull(),
+    owner_id: text().notNull(),
+    timezone: text().notNull().default("UTC"),
+    updated_at: timestamp({ withTimezone: true })
       .notNull()
       .defaultNow()
       .$onUpdate(() => new Date()),
-    updatedBy: text("updated_by"),
+    updated_by: text(),
   },
   (table) => [
     index("idx_calendar_access").on(table.access),
-    index("idx_calendar_owner").on(table.ownerId),
+    index("idx_calendar_owner").on(table.owner_id),
   ],
 );
 

@@ -18,7 +18,7 @@ export const listSeparations = Workflow.name("hr.lifecycle.list-separations")
     const conditions = [];
 
     if (parsed.employeeId) {
-      conditions.push(eq(employeeSeparation.employeeId, parsed.employeeId));
+      conditions.push(eq(employeeSeparation.employee_id, parsed.employeeId));
     }
     if (parsed.status) {
       conditions.push(eq(employeeSeparation.status, parsed.status));

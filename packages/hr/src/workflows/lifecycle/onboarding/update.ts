@@ -19,7 +19,7 @@ export const updateOnboarding = Workflow.name("hr.lifecycle.update-onboarding")
 
     const [updated] = await ctx.db
       .update(employeeOnboarding)
-      .set({ ...parsed, updatedAt: new Date() })
+      .set({ ...parsed, updated_at: new Date() })
       .where(eq(employeeOnboarding.id, id))
       .returning();
 

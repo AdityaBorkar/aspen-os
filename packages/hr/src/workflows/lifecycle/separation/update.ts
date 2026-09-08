@@ -22,7 +22,7 @@ export const updateSeparation = Workflow.name("hr.lifecycle.update-separation")
 
     const [updated] = await ctx.db
       .update(employeeSeparation)
-      .set({ ...parsed, updatedAt: new Date() })
+      .set({ ...parsed, updated_at: new Date() })
       .where(eq(employeeSeparation.id, id))
       .returning();
 
@@ -31,7 +31,7 @@ export const updateSeparation = Workflow.name("hr.lifecycle.update-separation")
 
     if (transitionedToCompleted) {
       await ctx.pubsub.publish(LIFECYCLE_EVENTS.SEPARATION_COMPLETED, {
-        employeeId: existing.employeeId,
+        employeeId: existing.employee_id,
         separationId: id,
       });
     }

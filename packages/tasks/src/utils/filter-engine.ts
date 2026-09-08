@@ -13,29 +13,29 @@ export function buildTaskWhereClause(filters: TaskFilters | undefined): SQL | un
   const conditions: SQL[] = [];
 
   if (filters.projectId) {
-    conditions.push(eq(task.projectId, filters.projectId));
+    conditions.push(eq(task.project_id, filters.projectId));
   }
   if (filters.statusId) {
-    conditions.push(eq(task.statusId, filters.statusId));
+    conditions.push(eq(task.status_id, filters.statusId));
   }
   if (filters.typeId) {
-    conditions.push(eq(task.typeId, filters.typeId));
+    conditions.push(eq(task.type_id, filters.typeId));
   }
   if (filters.priority) {
     conditions.push(eq(task.priority, filters.priority));
   }
   if (filters.reporterId) {
-    conditions.push(eq(task.reporterId, filters.reporterId));
+    conditions.push(eq(task.reporter_id, filters.reporterId));
   }
   if (filters.parentId !== undefined) {
     if (filters.parentId === null) {
-      conditions.push(isNull(task.parentId));
+      conditions.push(isNull(task.parent_id));
     } else {
-      conditions.push(eq(task.parentId, filters.parentId));
+      conditions.push(eq(task.parent_id, filters.parentId));
     }
   }
   if (filters.isArchived !== undefined) {
-    conditions.push(eq(task.isArchived, filters.isArchived));
+    conditions.push(eq(task.is_archived, filters.isArchived));
   }
   if (filters.label) {
     conditions.push(sql`${task.labels} @> ARRAY[${filters.label}]::text[]`);
@@ -50,7 +50,7 @@ export function buildTaskWhereClause(filters: TaskFilters | undefined): SQL | un
   if (filters.assigneeId) {
     conditions.push(
       exists(
-        sql`select 1 from ${taskAssignee} where ${taskAssignee.taskId} = ${task.id} and ${taskAssignee.userId} = ${filters.assigneeId}`,
+        sql`select 1 from ${taskAssignee} where ${taskAssignee.task_id} = ${task.id} and ${taskAssignee.user_id} = ${filters.assigneeId}`,
       ),
     );
   }

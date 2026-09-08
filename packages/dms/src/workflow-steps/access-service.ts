@@ -1,5 +1,5 @@
 import * as schemas from "#/db-schemas";
-import type { SharePermission } from "#/types";
+import type { DmsFolder, SharePermission } from "#/types";
 
 import { getContext } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
@@ -73,7 +73,7 @@ export async function isOwner(
   const target = db ?? getContext().db;
   const table = OWNER_TABLES[entityType];
   const [row] = await target
-    .select({ ownerId: table.ownerId })
+    .select({ ownerId: table.owner_id })
     .from(table)
     .where(eq(table.id, entityId))
     .limit(1);
@@ -97,7 +97,7 @@ export async function getEffectivePermission(
   const directShare = await findDirectShare(target, entityId, entityType, userId);
 
   if (directShare) {
-    if (directShare.expiresAt && directShare.expiresAt < now) {
+    if (directShare.expires_at && directShare.expires_at < now) {
       return null;
     }
     return directShare.permission;
@@ -105,7 +105,7 @@ export async function getEffectivePermission(
 
   if (entityType === "file") {
     const [file] = await target
-      .select({ folderId: schemas.dmsFile.folderId })
+      .select({ folderId: schemas.dmsFile.folder_id })
       .from(schemas.dmsFile)
       .where(eq(schemas.dmsFile.id, entityId))
       .limit(1);
@@ -115,7 +115,7 @@ export async function getEffectivePermission(
     }
   } else {
     const [folder] = await target
-      .select({ parentId: schemas.dmsFolder.parentId })
+      .select({ parentId: schemas.dmsFolder.parent_id })
       .from(schemas.dmsFolder)
       .where(eq(schemas.dmsFolder.id, entityId))
       .limit(1);
@@ -131,13 +131,13 @@ export async function getEffectivePermission(
 export async function logAccess(input: AccessLogInput, db?: DB): Promise<void> {
   const target = db ?? getContext().db;
   await target.insert(schemas.dmsAccessLog).values({
-    accessedBy: input.accessedBy ?? null,
+    accessed_by: input.accessedBy ?? null,
     action: input.action,
-    entityId: input.entityId,
-    entityType: input.entityType,
+    entity_id: input.entityId,
+    entity_type: input.entityType,
     ip: input.ip ?? null,
-    publicLinkId: input.publicLinkId ?? null,
-    userAgent: input.userAgent ?? null,
+    public_link_id: input.publicLinkId ?? null,
+    user_agent: input.userAgent ?? null,
   });
 }
 
@@ -152,10 +152,10 @@ async function findDirectShare(
     .from(schemas.dmsShare)
     .where(
       and(
-        eq(schemas.dmsShare.entityId, entityId),
-        eq(schemas.dmsShare.entityType, entityType),
-        eq(schemas.dmsShare.granteeId, userId),
-        eq(schemas.dmsShare.granteeType, "user"),
+        eq(schemas.dmsShare.entity_id, entityId),
+        eq(schemas.dmsShare.entity_type, entityType),
+        eq(schemas.dmsShare.grantee_id, userId),
+        eq(schemas.dmsShare.grantee_type, "user"),
       ),
     )
     .limit(1);
@@ -192,7 +192,7 @@ async function getInheritedPermission(
 
     const share = await findDirectShare(target, currentId, "folder", userId);
     if (share) {
-      if (!share.expiresAt || share.expiresAt >= now) {
+      if (!share.expires_at || share.expires_at >= now) {
         if (
           !bestPermission ||
           PERMISSION_RANK[share.permission] > PERMISSION_RANK[bestPermission]
@@ -202,8 +202,8 @@ async function getInheritedPermission(
       }
     }
 
-    const [folder] = await target
-      .select({ parentId: schemas.dmsFolder.parentId })
+    const [folder]: { parentId: DmsFolder["parent_id"] }[] = await target
+      .select({ parentId: schemas.dmsFolder.parent_id })
       .from(schemas.dmsFolder)
       .where(eq(schemas.dmsFolder.id, currentId))
       .limit(1);

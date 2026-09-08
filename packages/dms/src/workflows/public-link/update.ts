@@ -22,13 +22,13 @@ export const updatePublicLink = Workflow.name("dms.public-link.update")
       updates.permission = parsed.permission;
     }
     if (parsed.expiresAt !== undefined) {
-      updates.expiresAt = parsed.expiresAt;
+      updates.expires_at = parsed.expiresAt;
     }
     if (parsed.isActive !== undefined) {
-      updates.isActive = parsed.isActive;
+      updates.is_active = parsed.isActive;
     }
     if (parsed.maxViews !== undefined) {
-      updates.maxViews = parsed.maxViews;
+      updates.max_views = parsed.maxViews;
     }
     if (parsed.password !== undefined) {
       updates.password = parsed.password ? await Bun.password.hash(parsed.password) : null;

@@ -34,7 +34,7 @@ export const updateDepartment = Workflow.name("hr.setup.update-department")
       .set({
         ...parsed,
         code: parsed.code?.toUpperCase(),
-        updatedAt: new Date(),
+        updated_at: new Date(),
       })
       .where(eq(department.id, id))
       .returning();

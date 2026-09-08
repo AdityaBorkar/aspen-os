@@ -9,7 +9,7 @@ export const getTaskCompletionSummary = Workflow.name("task.completion-summary")
   .input(object({ parentId: IdSchema }))
   .handler(async ({ parentId }, _ctx): Promise<TaskCompletionSummary> => {
     const subTasks = await getSubTasks.run({ parentId });
-    const completed = subTasks.filter((subTask) => subTask.completedAt !== null).length;
+    const completed = subTasks.filter((subTask) => subTask.completed_at !== null).length;
     const total = subTasks.length;
 
     return {

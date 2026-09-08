@@ -4,16 +4,16 @@ import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 export const dmsLabel = pgTable(
   "dms_label",
   {
-    color: text("color").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    id: uuidv7("id").primaryKey(),
-    isGlobal: boolean("is_global").notNull().default(false),
-    name: text("name").notNull(),
-    ownerId: text("owner_id"),
+    color: text().notNull(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    id: uuidv7().primaryKey(),
+    is_global: boolean().notNull().default(false),
+    name: text().notNull(),
+    owner_id: text(),
   },
   (table) => [
-    index("idx_dms_label_owner").on(table.ownerId),
-    index("idx_dms_label_global").on(table.isGlobal),
+    index("idx_dms_label_owner").on(table.owner_id),
+    index("idx_dms_label_global").on(table.is_global),
   ],
 );
 

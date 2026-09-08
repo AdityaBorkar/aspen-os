@@ -18,7 +18,7 @@ export const updateComment = Workflow.name("comment.update")
 
     const [updated] = await ctx.db
       .update(comment)
-      .set({ body: patch.body, editedAt: new Date() })
+      .set({ body: patch.body, edited_at: new Date() })
       .where(eq(comment.id, id))
       .returning();
 

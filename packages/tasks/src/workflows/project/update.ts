@@ -24,15 +24,15 @@ export const updateProject = Workflow.name("project.update")
     const [updated] = await ctx.db
       .update(project)
       .set({
-        defaultTaskTypeId: patch.defaultTaskTypeId,
+        default_task_type_id: patch.defaultTaskTypeId,
         description: patch.description,
         key: patch.key,
-        leadId: patch.leadId,
+        lead_id: patch.leadId,
         name: patch.name,
-        startDate: patch.startDate,
+        start_date: patch.startDate,
         status: patch.status,
-        targetDate: patch.targetDate,
-        updatedAt: new Date(),
+        target_date: patch.targetDate,
+        updated_at: new Date(),
       })
       .where(eq(project.id, id))
       .returning();

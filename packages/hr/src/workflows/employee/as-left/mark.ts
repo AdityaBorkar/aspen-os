@@ -17,9 +17,9 @@ export const markAsLeft = Workflow.name("hr.employee.mark-as-left")
     const [updated] = await ctx.db
       .update(employee)
       .set({
-        dateOfLeaving,
+        date_of_leaving: dateOfLeaving,
         status: "left",
-        updatedAt: new Date(),
+        updated_at: new Date(),
       })
       .where(eq(employee.id, id))
       .returning();

@@ -20,7 +20,7 @@ export const activateChannel = Workflow.name("comms.channel.activate")
       return current;
     }
 
-    if (!current.verifiedAt) {
+    if (!current.verified_at) {
       throw new Error(
         `Channel "${input.id}" must be verified (channels.test) before it can be activated.`,
       );
@@ -28,7 +28,7 @@ export const activateChannel = Workflow.name("comms.channel.activate")
 
     const [updated] = await ctx.db
       .update(commsChannel)
-      .set({ status: "active", updatedAt: new Date() })
+      .set({ status: "active", updated_at: new Date() })
       .where(eq(commsChannel.id, input.id))
       .returning();
 

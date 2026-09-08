@@ -18,7 +18,7 @@ export const activateConnection = Workflow.name("masters.connection.activate")
 
     const [updated] = await ctx.db
       .update(masterConnection)
-      .set({ status: "active", updatedAt: new Date() })
+      .set({ status: "active", updated_at: new Date() })
       .where(eq(masterConnection.id, input.id))
       .returning();
 

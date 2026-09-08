@@ -16,11 +16,11 @@ export const createCheckin = Workflow.name("hr.attendance.create-checkin")
     const [result] = await ctx.db
       .insert(employeeCheckin)
       .values({
-        deviceId: parsed.deviceId ?? null,
-        employeeId: parsed.employeeId,
-        isOffShift: parsed.isOffShift ?? false,
+        device_id: parsed.deviceId ?? null,
+        employee_id: parsed.employeeId,
+        is_off_shift: parsed.isOffShift ?? false,
         latitude: parsed.latitude ?? null,
-        logType: parsed.logType,
+        log_type: parsed.logType,
         longitude: parsed.longitude ?? null,
         metadata: parsed.metadata ?? null,
         shift: parsed.shift ?? null,

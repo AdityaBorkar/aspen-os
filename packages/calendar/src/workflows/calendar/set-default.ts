@@ -22,12 +22,12 @@ export const setDefaultCalendar = Workflow.name("calendar.calendar.set-default")
     const updated = await ctx.db.transaction(async (tx) => {
       await tx
         .update(calendar)
-        .set({ isDefault: false })
-        .where(eq(calendar.ownerId, found.ownerId));
+        .set({ is_default: false })
+        .where(eq(calendar.owner_id, found.owner_id));
 
       const [row] = await tx
         .update(calendar)
-        .set({ isDefault: true, updatedBy: ctx.actorId ?? null })
+        .set({ is_default: true, updated_by: ctx.actorId ?? null })
         .where(eq(calendar.id, id))
         .returning();
 
@@ -44,7 +44,7 @@ export const setDefaultCalendar = Workflow.name("calendar.calendar.set-default")
         entityId: updated.id,
         entityType: AUDIT_ENTITY_TYPE.CALENDAR,
         newState: { isDefault: true },
-        previousState: { isDefault: found.isDefault },
+        previousState: { is_default: found.is_default },
       });
 
       await ctx.pubsub.publish(CALENDAR_EVENTS.UPDATED, {

@@ -37,7 +37,7 @@ export const updateClassField = Workflow.name("dms.class.update-field")
 
     const [updated] = await ctx.db
       .update(dmsClassField)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates, updated_at: new Date() })
       .where(eq(dmsClassField.id, id))
       .returning();
 
@@ -45,22 +45,22 @@ export const updateClassField = Workflow.name("dms.class.update-field")
       await ctx.audit.write({
         action: AUDIT_ACTION.UPDATED,
         crudAction: "update",
-        entityId: current.classId,
+        entityId: current.class_id,
         entityType: AUDIT_ENTITY_TYPE.CLASS,
         metadata: { fieldId: id, fieldName: current.name },
         newState: { ...updates },
         previousState: {
-          defaultValue: current.defaultValue,
-          includeInSearch: current.includeInSearch,
-          isRequired: current.isRequired,
+          defaultValue: current.default_value,
+          includeInSearch: current.include_in_search,
+          isRequired: current.is_required,
           label: current.label,
           options: current.options,
-          sortOrder: current.sortOrder,
+          sortOrder: current.sort_order,
         },
       });
 
       await ctx.pubsub.publish(CLASS_EVENTS.UPDATED, {
-        classId: current.classId,
+        classId: current.class_id,
       });
     });
 

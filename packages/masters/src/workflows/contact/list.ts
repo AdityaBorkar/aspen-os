@@ -10,15 +10,15 @@ export const listContacts = Workflow.name("masters.contact.list")
     ctx.step.run("query", async () => {
       const parsed = input.filters ?? {};
       const conditions = [
-        eq(masterContact.entityType, input.entityType),
-        eq(masterContact.entityId, input.entityId),
+        eq(masterContact.entity_type, input.entityType),
+        eq(masterContact.entity_id, input.entityId),
       ];
 
       if (parsed.type) {
         conditions.push(eq(masterContact.type, parsed.type));
       }
       if (parsed.isPrimary !== undefined) {
-        conditions.push(eq(masterContact.isPrimary, parsed.isPrimary));
+        conditions.push(eq(masterContact.is_primary, parsed.isPrimary));
       }
       if (parsed.search) {
         const term = `%${parsed.search}%`;

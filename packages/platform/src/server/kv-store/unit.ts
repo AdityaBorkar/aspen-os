@@ -34,7 +34,7 @@ export class KvStoreUnit {
   async get(key: string): Promise<JsonValue | null> {
     const rows = await this.db
       .select({
-        expiresAt: db_schema.kvStore.expiresAt,
+        expiresAt: db_schema.kvStore.expires_at,
         value: db_schema.kvStore.value,
       })
       .from(db_schema.kvStore)
@@ -65,9 +65,9 @@ export class KvStoreUnit {
 
     await this.db
       .insert(db_schema.kvStore)
-      .values({ expiresAt, key: this.getKeyName(key), value: serialized })
+      .values({ expires_at: expiresAt, key: this.getKeyName(key), value: serialized })
       .onConflictDoUpdate({
-        set: { expiresAt, updatedAt: new Date(), value: serialized },
+        set: { expires_at: expiresAt, updated_at: new Date(), value: serialized },
         target: db_schema.kvStore.key,
       });
   }
@@ -96,16 +96,16 @@ export class KvStoreUnit {
     const result = await this.db
       .insert(db_schema.kvStore)
       .values({
-        expiresAt,
+        expires_at: expiresAt,
         key: fullKey,
         value: String(amount),
       })
       .onConflictDoUpdate({
         set: {
-          expiresAt,
-          updatedAt: new Date(),
+          expires_at: expiresAt,
+          updated_at: new Date(),
           value: sql`CASE
-            WHEN ${db_schema.kvStore.expiresAt} IS NULL OR ${db_schema.kvStore.expiresAt} > NOW()
+            WHEN ${db_schema.kvStore.expires_at} IS NULL OR ${db_schema.kvStore.expires_at} > NOW()
             THEN (CAST(${db_schema.kvStore.value} AS INTEGER) + ${amount})::text
             ELSE ${String(amount)}
           END`,

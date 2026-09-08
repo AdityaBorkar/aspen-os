@@ -28,25 +28,25 @@ export const createPaymentMethod = Workflow.name("masters.payment-method.create"
     const [paymentMethod] = await ctx.db
       .insert(masterPaymentMethod)
       .values({
-        bankAccountId: parsed.bankAccountId ?? null,
-        bankName: parsed.bankName ?? null,
-        cardBrand: parsed.cardBrand ?? null,
-        cardExpiryMonth: parsed.cardExpiryMonth ?? null,
-        cardExpiryYear: parsed.cardExpiryYear ?? null,
-        cardLast4: parsed.cardLast4 ?? null,
-        chequeSeries: parsed.chequeSeries ?? null,
+        bank_account_id: parsed.bankAccountId ?? null,
+        bank_name: parsed.bankName ?? null,
+        card_brand: parsed.cardBrand ?? null,
+        card_expiry_month: parsed.cardExpiryMonth ?? null,
+        card_expiry_year: parsed.cardExpiryYear ?? null,
+        card_last4: parsed.cardLast4 ?? null,
+        cheque_series: parsed.chequeSeries ?? null,
         code: parsed.code ?? null,
         details: parsed.details ?? null,
         direction: parsed.direction,
-        entityId: parsed.entityId,
-        entityType: parsed.entityType,
-        isActive: parsed.isActive,
-        isPrimary: parsed.isPrimary,
+        entity_id: parsed.entityId,
+        entity_type: parsed.entityType,
+        is_active: parsed.isActive,
+        is_primary: parsed.isPrimary,
         metadata: parsed.metadata ?? null,
         name: parsed.name,
         status: parsed.status,
         type: parsed.type,
-        upiId: parsed.upiId ?? null,
+        upi_id: parsed.upiId ?? null,
       })
       .returning();
 
@@ -62,16 +62,16 @@ export const createPaymentMethod = Workflow.name("masters.payment-method.create"
         entityType: AUDIT_ENTITY_TYPE.PAYMENT_METHOD,
         newState: {
           direction: paymentMethod.direction,
-          entityId: paymentMethod.entityId,
-          entityType: paymentMethod.entityType,
+          entityId: paymentMethod.entity_id,
+          entityType: paymentMethod.entity_type,
           name: paymentMethod.name,
           type: paymentMethod.type,
         },
       });
 
       await ctx.pubsub.publish(PAYMENT_METHOD_EVENTS.CREATED, {
-        entityId: paymentMethod.entityId,
-        entityType: paymentMethod.entityType,
+        entityId: paymentMethod.entity_id,
+        entityType: paymentMethod.entity_type,
         paymentMethod: { id: paymentMethod.id, name: paymentMethod.name, type: paymentMethod.type },
       });
     });

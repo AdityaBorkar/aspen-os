@@ -19,13 +19,13 @@ export const releaseLegalHold = Workflow.name("dms.hold.release")
     if (!hold) {
       throw new Error(`Legal hold "${holdId}" not found.`);
     }
-    if (hold.releasedAt) {
+    if (hold.released_at) {
       throw new Error(`Legal hold "${holdId}" is already released.`);
     }
 
     const [updated] = await ctx.db
       .update(dmsLegalHold)
-      .set({ releasedAt: new Date(), releasedBy })
+      .set({ released_at: new Date(), released_by: releasedBy })
       .where(eq(dmsLegalHold.id, holdId))
       .returning();
 
@@ -33,13 +33,13 @@ export const releaseLegalHold = Workflow.name("dms.hold.release")
       await ctx.audit.write({
         action: AUDIT_ACTION.HOLD_RELEASED,
         crudAction: "update",
-        entityId: hold.fileId,
+        entityId: hold.file_id,
         entityType: AUDIT_ENTITY_TYPE.FILE,
         metadata: { reason: hold.reason },
       });
 
       await ctx.pubsub.publish(FILE_EVENTS.HOLD_RELEASED, {
-        fileId: hold.fileId,
+        fileId: hold.file_id,
         reason: hold.reason,
       });
     });

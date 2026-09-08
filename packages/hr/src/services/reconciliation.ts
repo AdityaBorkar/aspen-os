@@ -27,13 +27,15 @@ async function closeAssignments(
   tx: Db,
   assignments: { id: string }[],
   toDate: string,
-): Promise<{ positionId: string }[]> {
+): Promise<{ position_id: string }[]> {
   const updates = await Promise.all(
     assignments.map(async (assignment) => {
       const [updated] = await tx
         .update(hrPositionAssignment)
-        .set({ toDate, updatedAt: new Date() })
-        .where(and(eq(hrPositionAssignment.id, assignment.id), isNull(hrPositionAssignment.toDate)))
+        .set({ to_date: toDate, updated_at: new Date() })
+        .where(
+          and(eq(hrPositionAssignment.id, assignment.id), isNull(hrPositionAssignment.to_date)),
+        )
         .returning();
       return updated;
     }),
@@ -43,14 +45,14 @@ async function closeAssignments(
 
 async function publishUnassigned(
   pubsub: PubSubUnit,
-  assignments: { positionId: string }[],
+  assignments: { position_id: string }[],
   event: { employeeId: string; toDate: string },
 ): Promise<void> {
   await Promise.all(
     assignments.map((assignment) =>
       pubsub.publish(POSITION_EVENTS.UNASSIGNED, {
         employeeId: event.employeeId,
-        positionId: assignment.positionId,
+        positionId: assignment.position_id,
         toDate: event.toDate,
       }),
     ),
@@ -68,17 +70,17 @@ async function handleSeparationCompleted(
       .from(hrPositionAssignment)
       .where(
         and(
-          eq(hrPositionAssignment.employeeId, event.employeeId),
-          isNull(hrPositionAssignment.toDate),
+          eq(hrPositionAssignment.employee_id, event.employeeId),
+          isNull(hrPositionAssignment.to_date),
         ),
       );
 
-    return closeAssignments(tx, openAssignments, separation.exitDate);
+    return closeAssignments(tx, openAssignments, separation.exit_date);
   });
 
   await publishUnassigned(pubsub, closed, {
     employeeId: event.employeeId,
-    toDate: separation.exitDate,
+    toDate: separation.exit_date,
   });
 }
 
@@ -87,7 +89,7 @@ async function handleTransferApproved(
   { db, pubsub }: ReconciliationDeps,
 ): Promise<void> {
   const transfer = await fetchTransferById(db, event.transferId);
-  if (!transfer.fromDepartment) {
+  if (!transfer.from_department) {
     return;
   }
 
@@ -96,31 +98,31 @@ async function handleTransferApproved(
       .select({
         assignmentId: hrPositionAssignment.id,
         department: hrPosition.department,
-        positionId: hrPositionAssignment.positionId,
+        positionId: hrPositionAssignment.position_id,
       })
       .from(hrPositionAssignment)
-      .innerJoin(hrPosition, eq(hrPositionAssignment.positionId, hrPosition.id))
+      .innerJoin(hrPosition, eq(hrPositionAssignment.position_id, hrPosition.id))
       .where(
         and(
-          eq(hrPositionAssignment.employeeId, event.employeeId),
-          isNull(hrPositionAssignment.toDate),
+          eq(hrPositionAssignment.employee_id, event.employeeId),
+          isNull(hrPositionAssignment.to_date),
         ),
       );
 
     const stale = openAssignments.filter(
-      (assignment) => assignment.department === transfer.fromDepartment,
+      (assignment) => assignment.department === transfer.from_department,
     );
 
     return closeAssignments(
       tx,
       stale.map((assignment) => ({ id: assignment.assignmentId })),
-      transfer.effectiveDate,
+      transfer.effective_date,
     );
   });
 
   await publishUnassigned(pubsub, closed, {
     employeeId: event.employeeId,
-    toDate: transfer.effectiveDate,
+    toDate: transfer.effective_date,
   });
 }
 

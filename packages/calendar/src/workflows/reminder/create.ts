@@ -29,7 +29,7 @@ export const createReminder = Workflow.name("calendar.reminder.create")
         remindAt === undefined
       ) {
         const [event] = await ctx.db
-          .select({ startsAt: calendarEvent.startsAt })
+          .select({ startsAt: calendarEvent.starts_at })
           .from(calendarEvent)
           .where(eq(calendarEvent.id, parsed.targetId))
           .limit(1);
@@ -51,16 +51,16 @@ export const createReminder = Workflow.name("calendar.reminder.create")
       .insert(calendarReminder)
       .values({
         channel: parsed.channel,
-        createdBy: actorId,
+        created_by: actorId,
         interval: parsed.interval ?? null,
-        isRecurring: parsed.isRecurring ?? false,
+        is_recurring: parsed.isRecurring ?? false,
         message: parsed.message ?? null,
-        offsetMinutes: parsed.offsetMinutes ?? null,
-        remindAt: remindAt ?? null,
-        targetId: parsed.targetId ?? "",
-        targetType: parsed.targetType,
+        offset_minutes: parsed.offsetMinutes ?? null,
+        remind_at: remindAt ?? null,
+        target_id: parsed.targetId ?? "",
+        target_type: parsed.targetType,
         type: parsed.type,
-        userId: parsed.userId,
+        user_id: parsed.userId,
       })
       .returning();
 
@@ -74,7 +74,11 @@ export const createReminder = Workflow.name("calendar.reminder.create")
         crudAction: "create",
         entityId: created.id,
         entityType: AUDIT_ENTITY_TYPE.REMINDER,
-        newState: { remindAt: created.remindAt, targetId: created.targetId, type: created.type },
+        newState: {
+          remind_at: created.remind_at,
+          target_id: created.target_id,
+          type: created.type,
+        },
       });
 
       await ctx.pubsub.publish(REMINDER_EVENTS.CREATED, {

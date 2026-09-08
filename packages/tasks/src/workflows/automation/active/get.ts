@@ -20,9 +20,9 @@ export const getActiveAutomationRules = Workflow.name("automation.get-active")
         .from(automationRule)
         .where(
           and(
-            eq(automationRule.projectId, projectId),
+            eq(automationRule.project_id, projectId),
             eq(automationRule.trigger, parsedTrigger.output),
-            eq(automationRule.isActive, true),
+            eq(automationRule.is_active, true),
           ),
         ),
     );

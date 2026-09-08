@@ -18,7 +18,7 @@ export const list = Workflow.name("hr.attendance.list")
     const conditions = [];
 
     if (parsed.employeeId) {
-      conditions.push(eq(attendance.employeeId, parsed.employeeId));
+      conditions.push(eq(attendance.employee_id, parsed.employeeId));
     }
     if (parsed.date) {
       conditions.push(eq(attendance.date, parsed.date));

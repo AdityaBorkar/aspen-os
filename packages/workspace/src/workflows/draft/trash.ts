@@ -18,14 +18,14 @@ export const trashDraft = Workflow.name("workspace.draft.trash")
     await assertCanMutate(draft, ctx.actorId);
     const actorId = resolveActorId(ctx.actorId);
 
-    if (draft.deletedAt) {
+    if (draft.deleted_at) {
       return draft;
     }
 
     const [updated] = await ctx.db
       .update(workspaceDraft)
-      .set({ deletedAt: new Date(), updatedAt: new Date() })
-      .where(and(eq(workspaceDraft.id, id), isNull(workspaceDraft.deletedAt)))
+      .set({ deleted_at: new Date(), updated_at: new Date() })
+      .where(and(eq(workspaceDraft.id, id), isNull(workspaceDraft.deleted_at)))
       .returning();
 
     if (!updated) {

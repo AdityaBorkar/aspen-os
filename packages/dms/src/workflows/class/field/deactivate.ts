@@ -21,13 +21,13 @@ export const deactivateClassField = Workflow.name("dms.class.deactivate-field")
     if (!current) {
       throw new Error(`Class field "${id}" not found.`);
     }
-    if (!current.isActive) {
+    if (!current.is_active) {
       throw new Error(`Class field "${id}" is already inactive.`);
     }
 
     const [updated] = await ctx.db
       .update(dmsClassField)
-      .set({ isActive: false, updatedAt: new Date() })
+      .set({ is_active: false, updated_at: new Date() })
       .where(eq(dmsClassField.id, id))
       .returning();
 
@@ -35,7 +35,7 @@ export const deactivateClassField = Workflow.name("dms.class.deactivate-field")
       await ctx.audit.write({
         action: AUDIT_ACTION.UPDATED,
         crudAction: "update",
-        entityId: current.classId,
+        entityId: current.class_id,
         entityType: AUDIT_ENTITY_TYPE.CLASS,
         metadata: { fieldId: id, fieldName: current.name },
         newState: { isActive: false },
@@ -43,7 +43,7 @@ export const deactivateClassField = Workflow.name("dms.class.deactivate-field")
       });
 
       await ctx.pubsub.publish(CLASS_EVENTS.UPDATED, {
-        classId: current.classId,
+        classId: current.class_id,
       });
     });
 

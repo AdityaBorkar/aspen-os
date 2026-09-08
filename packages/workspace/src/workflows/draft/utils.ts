@@ -17,7 +17,7 @@ export async function transitionDraft(
   const { fromStatuses, id, toStatus, values } = input;
   const [updated] = await db
     .update(workspaceDraft)
-    .set({ ...values, status: toStatus, updatedAt: new Date() })
+    .set({ ...values, status: toStatus, updated_at: new Date() })
     .where(and(eq(workspaceDraft.id, id), inArray(workspaceDraft.status, fromStatuses)))
     .returning();
 

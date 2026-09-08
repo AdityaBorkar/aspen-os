@@ -24,13 +24,13 @@ export const listChannels = Workflow.name("comms.channel.list")
       where.push(eq(commsChannel.status, filters.status));
     }
     if (filters?.entityType) {
-      where.push(eq(commsChannel.entityType, filters.entityType));
+      where.push(eq(commsChannel.entity_type, filters.entityType));
     }
     if (filters?.entityId) {
-      where.push(eq(commsChannel.entityId, filters.entityId));
+      where.push(eq(commsChannel.entity_id, filters.entityId));
     }
     if (filters?.isDefault !== undefined) {
-      where.push(eq(commsChannel.isDefault, filters.isDefault));
+      where.push(eq(commsChannel.is_default, filters.isDefault));
     }
 
     const { limit, offset } = listPagination(filters ?? undefined);
@@ -40,7 +40,7 @@ export const listChannels = Workflow.name("comms.channel.list")
       .select()
       .from(commsChannel)
       .where(and(...where))
-      .orderBy(desc(commsChannel.createdAt))
+      .orderBy(desc(commsChannel.created_at))
       .limit(limit)
       .offset(offset);
   });

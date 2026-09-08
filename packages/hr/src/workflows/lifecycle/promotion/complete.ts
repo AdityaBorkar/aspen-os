@@ -19,22 +19,22 @@ export const completePromotion = Workflow.name("hr.lifecycle.complete-promotion"
 
     const updated = await ctx.db.transaction(async (tx) => {
       const updateData: Partial<typeof employee.$inferInsert> = {
-        designation: promotion.newDesignation,
-        updatedAt: new Date(),
+        designation: promotion.new_designation,
+        updated_at: new Date(),
       };
-      if (promotion.newGrade) {
-        updateData.grade = promotion.newGrade;
+      if (promotion.new_grade) {
+        updateData.grade = promotion.new_grade;
       }
-      if (promotion.newDepartment) {
-        updateData.department = promotion.newDepartment;
+      if (promotion.new_department) {
+        updateData.department = promotion.new_department;
       }
-      await tx.update(employee).set(updateData).where(eq(employee.id, promotion.employeeId));
+      await tx.update(employee).set(updateData).where(eq(employee.id, promotion.employee_id));
 
       const [row] = await tx
         .update(employeePromotion)
         .set({
           status: "completed",
-          updatedAt: new Date(),
+          updated_at: new Date(),
         })
         .where(eq(employeePromotion.id, id))
         .returning();

@@ -27,7 +27,7 @@ export async function applyOrganizationUpdate(
 
   const [updated] = await ctx.db
     .update(organization)
-    .set({ ...values, updatedAt: new Date() })
+    .set({ ...values, updated_at: new Date() })
     .where(eq(organization.id, current.id))
     .returning();
 

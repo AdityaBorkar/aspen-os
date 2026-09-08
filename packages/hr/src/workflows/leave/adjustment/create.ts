@@ -25,12 +25,12 @@ export const createLeaveAdjustment = Workflow.name("hr.leave.create-leave-adjust
       const [row] = await tx
         .insert(leaveAdjustment)
         .values({
-          adjustedBy: input.adjustedBy,
+          adjusted_by: input.adjustedBy,
           days: input.days,
-          employeeId: input.employeeId,
-          leaveLedgerEntry: ledgerEntry.id,
-          leavePeriod: input.leavePeriod ?? null,
-          leaveType: input.leaveType,
+          employee_id: input.employeeId,
+          leave_ledger_entry: ledgerEntry.id,
+          leave_period: input.leavePeriod ?? null,
+          leave_type: input.leaveType,
           reason: input.reason,
         })
         .returning();

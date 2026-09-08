@@ -21,10 +21,10 @@ export const approveLeaveEncashment = Workflow.name("hr.leave.approve-leave-enca
     const [updated] = await ctx.db
       .update(leaveEncashment)
       .set({
-        approvedAt: new Date(),
-        approvedBy,
+        approved_at: new Date(),
+        approved_by: approvedBy,
         status: "approved",
-        updatedAt: new Date(),
+        updated_at: new Date(),
       })
       .where(eq(leaveEncashment.id, id))
       .returning();

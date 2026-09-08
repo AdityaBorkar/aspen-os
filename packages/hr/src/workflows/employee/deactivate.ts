@@ -15,7 +15,7 @@ export const deactivate = Workflow.name("hr.employee.deactivate")
 
     const [updated] = await ctx.db
       .update(employee)
-      .set({ status: "inactive", updatedAt: new Date() })
+      .set({ status: "inactive", updated_at: new Date() })
       .where(eq(employee.id, id))
       .returning();
 

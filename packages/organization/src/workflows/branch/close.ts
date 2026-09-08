@@ -12,7 +12,7 @@ export const closeBranch = Workflow.name("branch.close")
     const closedDate = toDateOnly(input.date);
     const [updated] = await ctx.db
       .update(branch)
-      .set({ closedDate, isActive: false, updatedAt: new Date() })
+      .set({ closed_date: closedDate, is_active: false, updated_at: new Date() })
       .where(eq(branch.id, input.id))
       .returning();
 

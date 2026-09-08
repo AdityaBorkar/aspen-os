@@ -16,14 +16,14 @@ export const createContact = Workflow.name("dms.contact.create")
     const [contact] = await ctx.db
       .insert(dmsContact)
       .values({
-        companyName: parsed.companyName,
-        createdBy: parsed.createdBy,
-        deletionReason: parsed.deletionReason ?? null,
+        company_name: parsed.companyName,
+        created_by: parsed.createdBy,
+        deletion_reason: parsed.deletionReason ?? null,
         designation: parsed.designation,
         email: parsed.email,
-        firstName: parsed.firstName,
-        lastName: parsed.lastName,
-        linkedUserId: parsed.linkedUserId ?? null,
+        first_name: parsed.firstName,
+        last_name: parsed.lastName,
+        linked_user_id: parsed.linkedUserId ?? null,
         phone: parsed.phone,
       })
       .returning();
@@ -39,7 +39,7 @@ export const createContact = Workflow.name("dms.contact.create")
         entityId: contact.id,
         entityType: AUDIT_ENTITY_TYPE.CONTACT,
         newState: {
-          companyName: contact.companyName,
+          companyName: contact.company_name,
           designation: contact.designation,
           email: contact.email,
         },

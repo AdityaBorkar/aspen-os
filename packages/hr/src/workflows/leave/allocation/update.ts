@@ -19,7 +19,7 @@ export const updateLeaveAllocation = Workflow.name("hr.leave.update-leave-alloca
 
     const [updated] = await ctx.db
       .update(leaveAllocation)
-      .set({ ...parsed, updatedAt: new Date() })
+      .set({ ...parsed, updated_at: new Date() })
       .where(eq(leaveAllocation.id, id))
       .returning();
 

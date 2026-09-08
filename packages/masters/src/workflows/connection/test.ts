@@ -12,20 +12,20 @@ export const testConnection = Workflow.name("masters.connection.test")
   .handler(async (input, ctx) => {
     const current = await ctx.step.run(fetchConnectionStep, { id: input.id });
 
-    const { baseUrl } = current;
-    if (!baseUrl) {
+    const { base_url } = current;
+    if (!base_url) {
       throw new Error(`Connection with id "${input.id}" has no base URL.`);
     }
 
-    const result = await ctx.step.run("test-endpoint", () => testEndpoint(baseUrl));
+    const result = await ctx.step.run("test-endpoint", () => testEndpoint(base_url));
 
     await ctx.step.run("record-test", () =>
       ctx.db
         .update(masterConnection)
         .set({
-          lastTestedAt: new Date(),
-          lastUsedAt: result.ok ? new Date() : current.lastUsedAt,
-          updatedAt: new Date(),
+          last_tested_at: new Date(),
+          last_used_at: result.ok ? new Date() : current.last_used_at,
+          updated_at: new Date(),
         })
         .where(eq(masterConnection.id, input.id)),
     );

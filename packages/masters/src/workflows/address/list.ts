@@ -10,15 +10,15 @@ export const listAddresses = Workflow.name("masters.address.list")
     ctx.step.run("query", async () => {
       const parsed = input.filters ?? {};
       const conditions = [
-        eq(masterAddress.entityType, input.entityType),
-        eq(masterAddress.entityId, input.entityId),
+        eq(masterAddress.entity_type, input.entityType),
+        eq(masterAddress.entity_id, input.entityId),
       ];
 
       if (parsed.country) {
         conditions.push(eq(masterAddress.country, parsed.country.toUpperCase()));
       }
       if (parsed.isPrimary !== undefined) {
-        conditions.push(eq(masterAddress.isPrimary, parsed.isPrimary));
+        conditions.push(eq(masterAddress.is_primary, parsed.isPrimary));
       }
 
       return ctx.db

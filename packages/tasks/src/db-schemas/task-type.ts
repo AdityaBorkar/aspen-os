@@ -4,14 +4,14 @@ import { boolean, index, pgTable, text } from "drizzle-orm/pg-core";
 export const taskType = pgTable(
   "task_type",
   {
-    color: text("color"),
-    icon: text("icon"),
-    id: uuidv7("id").primaryKey(),
-    isDefault: boolean("is_default").notNull().default(false),
-    name: text("name").notNull(),
-    projectId: text("project_id"),
+    color: text(),
+    icon: text(),
+    id: uuidv7().primaryKey(),
+    is_default: boolean().notNull().default(false),
+    name: text().notNull(),
+    project_id: text(),
   },
-  (table) => [index("idx_task_type_project").on(table.projectId)],
+  (table) => [index("idx_task_type_project").on(table.project_id)],
 );
 
 export type TaskType = typeof taskType.$inferSelect;

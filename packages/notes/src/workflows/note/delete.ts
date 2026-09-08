@@ -32,9 +32,9 @@ export const deleteNote = Workflow.name("notes.note.delete")
           id: existing.id,
           // SAFETY: metadata was written from validated input (defaulting to {}), so the stored jsonb is a string-keyed object by construction.
           metadata: (existing.metadata ?? {}) as Record<string, JsonValue>,
-          ownerId: existing.ownerId,
-          scopeId: existing.scopeId,
-          scopeType: existing.scopeType,
+          ownerId: existing.owner_id,
+          scopeId: existing.scope_id,
+          scopeType: existing.scope_type,
           tags: existing.tags,
           title: existing.title,
           type: existing.type,

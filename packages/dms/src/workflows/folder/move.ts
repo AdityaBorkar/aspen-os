@@ -60,7 +60,7 @@ export const moveFolder = Workflow.name("dms.folder.move")
 
     const [updated] = await ctx.db
       .update(dmsFolder)
-      .set({ parentId: newParentId, path: newPath, updatedAt: new Date() })
+      .set({ parent_id: newParentId, path: newPath, updated_at: new Date() })
       .where(eq(dmsFolder.id, id))
       .returning();
 

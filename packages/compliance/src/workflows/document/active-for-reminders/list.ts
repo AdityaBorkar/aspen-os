@@ -10,7 +10,7 @@ const getActiveDocumentsForReminders = Workflow.name("document.active-for-remind
       .select()
       .from(complianceDocument)
       .where(activeWithDateCondition())
-      .orderBy(desc(complianceDocument.updatedAt)),
+      .orderBy(desc(complianceDocument.updated_at)),
 );
 
 export { getActiveDocumentsForReminders };

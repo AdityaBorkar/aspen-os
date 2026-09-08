@@ -26,22 +26,22 @@ export const create = Workflow.name("hr.attendance.create")
     const [result] = await ctx.db
       .insert(attendance)
       .values({
-        attendanceRequest: parsed.attendanceRequest ?? null,
-        checkInTime: parsed.checkInTime ? new Date(parsed.checkInTime) : null,
-        checkOutTime: parsed.checkOutTime ? new Date(parsed.checkOutTime) : null,
+        attendance_request: parsed.attendanceRequest ?? null,
+        check_in_time: parsed.checkInTime ? new Date(parsed.checkInTime) : null,
+        check_out_time: parsed.checkOutTime ? new Date(parsed.checkOutTime) : null,
         date: parsed.date,
-        earlyExit: parsed.earlyExit ?? false,
-        earlyExitMinutes: parsed.earlyExitMinutes ?? 0,
-        employeeId: parsed.employeeId,
-        halfDayType: parsed.halfDayType ?? null,
-        isHalfDay: parsed.isHalfDay ?? false,
-        lateEntry: parsed.lateEntry ?? false,
-        lateEntryMinutes: parsed.lateEntryMinutes ?? 0,
+        early_exit: parsed.earlyExit ?? false,
+        early_exit_minutes: parsed.earlyExitMinutes ?? 0,
+        employee_id: parsed.employeeId,
+        half_day_type: parsed.halfDayType ?? null,
+        is_half_day: parsed.isHalfDay ?? false,
+        late_entry: parsed.lateEntry ?? false,
+        late_entry_minutes: parsed.lateEntryMinutes ?? 0,
         metadata: parsed.metadata ?? null,
         notes: parsed.notes ?? null,
         shift: parsed.shift ?? null,
         status: parsed.status,
-        workingHours: parsed.workingHours ?? null,
+        working_hours: parsed.workingHours ?? null,
       })
       .returning();
 

@@ -30,7 +30,7 @@ export const updateTask = Workflow.name("task.update")
     const changes: Record<string, JsonValue> = {};
 
     const statusChanged =
-      input.patch.statusId !== undefined && input.patch.statusId !== current.statusId;
+      input.patch.statusId !== undefined && input.patch.statusId !== current.status_id;
 
     const parentChanged = input.patch.parentId !== undefined && input.patch.parentId !== null;
 
@@ -39,13 +39,13 @@ export const updateTask = Workflow.name("task.update")
         ? validateParentTask(ctx.db, {
             currentTaskId: input.id,
             parentId: input.patch.parentId,
-            projectId: current.projectId,
+            projectId: current.project_id,
           })
         : Promise.resolve(),
       statusChanged && input.patch.statusId
         ? validateTransition.run({
-            fromStatusId: current.statusId,
-            projectId: current.projectId,
+            fromStatusId: current.status_id,
+            projectId: current.project_id,
             toStatusId: input.patch.statusId,
           })
         : Promise.resolve(true),
@@ -54,10 +54,10 @@ export const updateTask = Workflow.name("task.update")
     if (statusChanged && input.patch.statusId) {
       if (!transitionAllowed) {
         throw new Error(
-          `Transition from "${current.statusId}" to "${input.patch.statusId}" is not allowed.`,
+          `Transition from "${current.status_id}" to "${input.patch.statusId}" is not allowed.`,
         );
       }
-      changes.statusId = { from: current.statusId, to: input.patch.statusId };
+      changes.status_id = { from: current.status_id, to: input.patch.statusId };
     }
 
     if (input.patch.title !== undefined && input.patch.title !== current.title) {
@@ -66,11 +66,11 @@ export const updateTask = Workflow.name("task.update")
 
     const dueDateChanged =
       input.patch.dueDate !== undefined &&
-      (input.patch.dueDate?.getTime() ?? null) !== (current.dueDate?.getTime() ?? null);
+      (input.patch.dueDate?.getTime() ?? null) !== (current.due_date?.getTime() ?? null);
 
     if (dueDateChanged) {
       changes.dueDate = {
-        from: current.dueDate ? current.dueDate.toISOString() : null,
+        from: current.due_date ? current.due_date.toISOString() : null,
         to: input.patch.dueDate ? input.patch.dueDate.toISOString() : null,
       };
     }
@@ -79,16 +79,16 @@ export const updateTask = Workflow.name("task.update")
       .update(task)
       .set({
         description: input.patch.description,
-        dueDate: input.patch.dueDate,
-        estimatedHours: input.patch.estimatedHours?.toString(),
+        due_date: input.patch.dueDate,
+        estimated_hours: input.patch.estimatedHours?.toString(),
         labels: input.patch.labels,
-        parentId: input.patch.parentId,
+        parent_id: input.patch.parentId,
         priority: input.patch.priority,
-        startDate: input.patch.startDate,
-        statusId: input.patch.statusId,
+        start_date: input.patch.startDate,
+        status_id: input.patch.statusId,
         title: input.patch.title,
-        typeId: input.patch.typeId,
-        updatedAt: new Date(),
+        type_id: input.patch.typeId,
+        updated_at: new Date(),
       })
       .where(eq(task.id, input.id))
       .returning();
@@ -102,7 +102,7 @@ export const updateTask = Workflow.name("task.update")
       newValue: changes,
       oldValue: null,
       taskId: input.id,
-      userId: current.reporterId,
+      userId: current.reporter_id,
     });
 
     await ctx.step.run("notify", async () => {
@@ -122,7 +122,7 @@ export const updateTask = Workflow.name("task.update")
         const toStatusCategory = nextStatus?.category ?? null;
         notifications.push(
           ctx.pubsub.publish(TASK_EVENTS.STATUS_CHANGED, {
-            fromStatus: current.statusId,
+            fromStatus: current.status_id,
             isTerminal:
               toStatusCategory === STATUS_CATEGORY.COMPLETED ||
               toStatusCategory === STATUS_CATEGORY.CANCELLED,
@@ -137,12 +137,12 @@ export const updateTask = Workflow.name("task.update")
         notifications.push(
           (async () => {
             const assignees = await ctx.db
-              .select({ userId: taskAssignee.userId })
+              .select({ userId: taskAssignee.user_id })
               .from(taskAssignee)
-              .where(eq(taskAssignee.taskId, input.id));
+              .where(eq(taskAssignee.task_id, input.id));
 
             const userIds = [
-              ...new Set([current.reporterId, ...assignees.map((assignee) => assignee.userId)]),
+              ...new Set([current.reporter_id, ...assignees.map((assignee) => assignee.userId)]),
             ];
 
             return ctx.pubsub.publish(TASK_EVENTS.DUE_DATE_CHANGED, {

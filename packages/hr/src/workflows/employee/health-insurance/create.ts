@@ -20,14 +20,14 @@ export const createHealthInsurance = Workflow.name("hr.employee.create-health-in
     const [result] = await ctx.db
       .insert(employeeHealthInsurance)
       .values({
-        coverageDetails: parsed.coverageDetails ?? null,
-        employeeId: parsed.employeeId,
-        endDate: parsed.endDate ?? null,
+        coverage_details: parsed.coverageDetails ?? null,
+        employee_id: parsed.employeeId,
+        end_date: parsed.endDate ?? null,
         insurer: parsed.insurer,
         metadata: parsed.metadata ?? null,
-        policyNumber: parsed.policyNumber,
-        premiumAmount: parsed.premiumAmount ?? null,
-        startDate: parsed.startDate,
+        policy_number: parsed.policyNumber,
+        premium_amount: parsed.premiumAmount ?? null,
+        start_date: parsed.startDate,
       })
       .returning();
 

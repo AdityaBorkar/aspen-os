@@ -10,7 +10,7 @@ export const assertNoReferencingUnitsStep = WorkflowStep.name("masters-assert-uo
     const [referencing] = await ctx.db
       .select({ id: masterUnitOfMeasure.id, name: masterUnitOfMeasure.name })
       .from(masterUnitOfMeasure)
-      .where(eq(masterUnitOfMeasure.baseUnitId, input.id))
+      .where(eq(masterUnitOfMeasure.base_unit_id, input.id))
       .limit(1);
 
     if (referencing) {

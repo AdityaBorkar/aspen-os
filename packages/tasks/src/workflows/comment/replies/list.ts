@@ -12,7 +12,7 @@ export const listCommentReplies = Workflow.name("comment.list-replies")
       ctx.db
         .select()
         .from(comment)
-        .where(eq(comment.parentId, parentId))
-        .orderBy(desc(comment.createdAt)),
+        .where(eq(comment.parent_id, parentId))
+        .orderBy(desc(comment.created_at)),
     ),
   );

@@ -14,13 +14,13 @@ const createVerificationRule = Workflow.name("verification.create")
     const [result] = await ctx.db
       .insert(complianceVerificationRule)
       .values({
-        assignedReviewer: parsed.assignedReviewer ?? null,
+        assigned_reviewer: parsed.assignedReviewer ?? null,
         category: parsed.category ?? null,
-        isActive: parsed.isActive ?? true,
+        is_active: parsed.isActive ?? true,
         name: parsed.name,
         priority: parsed.priority ?? 0,
-        requiredReviewerRole: parsed.requiredReviewerRole ?? null,
-        sourceModule: parsed.sourceModule ?? null,
+        required_reviewer_role: parsed.requiredReviewerRole ?? null,
+        source_module: parsed.sourceModule ?? null,
       })
       .returning();
 

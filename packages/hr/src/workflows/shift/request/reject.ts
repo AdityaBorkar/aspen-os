@@ -22,11 +22,11 @@ export const rejectShiftRequest = Workflow.name("hr.shift.reject-shift-request")
     const [updated] = await ctx.db
       .update(shiftRequest)
       .set({
-        rejectedAt: new Date(),
-        rejectedBy,
-        rejectionReason,
+        rejected_at: new Date(),
+        rejected_by: rejectedBy,
+        rejection_reason: rejectionReason,
         status: "rejected",
-        updatedAt: new Date(),
+        updated_at: new Date(),
       })
       .where(eq(shiftRequest.id, id))
       .returning();

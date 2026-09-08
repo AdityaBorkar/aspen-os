@@ -42,7 +42,7 @@ export const cancelEvent = Workflow.name("calendar.event.cancel")
       });
 
       await ctx.pubsub.publish(EVENT_EVENTS.CANCELLED, {
-        calendarId: updated.calendarId,
+        calendarId: updated.calendar_id,
         event: toEventPayload(updated),
       });
     });

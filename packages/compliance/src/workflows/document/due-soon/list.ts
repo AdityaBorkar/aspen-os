@@ -12,7 +12,7 @@ const getDueSoonDocuments = Workflow.name("document.due-soon").handler(
       .select()
       .from(complianceDocument)
       .where(dueWindowCondition(input.days))
-      .orderBy(asc(complianceDocument.dueDate));
+      .orderBy(asc(complianceDocument.due_date));
   },
 );
 

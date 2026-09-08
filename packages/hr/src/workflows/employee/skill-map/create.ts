@@ -20,12 +20,12 @@ export const createSkillMap = Workflow.name("hr.employee.create-skill-map")
     const [result] = await ctx.db
       .insert(employeeSkillMap)
       .values({
-        assessedBy: parsed.assessedBy ?? null,
-        assessmentDate: parsed.assessmentDate ?? null,
-        certificationDate: parsed.certificationDate ?? null,
-        certificationName: parsed.certificationName ?? null,
-        employeeId: parsed.employeeId,
-        expiryDate: parsed.expiryDate ?? null,
+        assessed_by: parsed.assessedBy ?? null,
+        assessment_date: parsed.assessmentDate ?? null,
+        certification_date: parsed.certificationDate ?? null,
+        certification_name: parsed.certificationName ?? null,
+        employee_id: parsed.employeeId,
+        expiry_date: parsed.expiryDate ?? null,
         notes: parsed.notes ?? null,
         proficiency: parsed.proficiency,
         skill: parsed.skill,

@@ -18,8 +18,8 @@ export const createTimeEntry = Workflow.name("time-entry.create")
         date: (input.date ?? new Date()).toISOString().slice(0, 10),
         description: input.description ?? null,
         duration: input.duration,
-        taskId: input.taskId,
-        userId: input.userId,
+        task_id: input.taskId,
+        user_id: input.userId,
       })
       .returning();
 

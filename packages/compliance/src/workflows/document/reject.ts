@@ -12,17 +12,17 @@ const rejectDocument = Workflow.name("document.reject").handler(
     const { id, reviewerId, reason } = input;
     const current = await ctx.step.run(fetchDocumentStep, { id });
 
-    assertTransitionAllowed(current.verificationStatus, VERIFICATION_STATUS.REJECTED);
+    assertTransitionAllowed(current.verification_status, VERIFICATION_STATUS.REJECTED);
 
     const now = new Date();
     const [updated] = await ctx.db
       .update(complianceDocument)
       .set({
-        rejectionReason: reason,
-        reviewedAt: now,
-        reviewedBy: reviewerId,
-        updatedAt: now,
-        verificationStatus: VERIFICATION_STATUS.REJECTED,
+        rejection_reason: reason,
+        reviewed_at: now,
+        reviewed_by: reviewerId,
+        updated_at: now,
+        verification_status: VERIFICATION_STATUS.REJECTED,
       })
       .where(eq(complianceDocument.id, id))
       .returning();
@@ -37,7 +37,7 @@ const rejectDocument = Workflow.name("document.reject").handler(
       entityId: id,
       entityType: "compliance_document",
       metadata: { reason },
-      previousState: { verificationStatus: current.verificationStatus },
+      previousState: { verification_status: current.verification_status },
     });
 
     await ctx.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_REJECTED, {
@@ -45,8 +45,8 @@ const rejectDocument = Workflow.name("document.reject").handler(
       documentId: id,
       reason,
       rejectedBy: reviewerId,
-      sourceEntityId: updated.sourceEntityId,
-      sourceModule: updated.sourceModule,
+      sourceEntityId: updated.source_entity_id,
+      sourceModule: updated.source_module,
     });
 
     return updated;

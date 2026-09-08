@@ -5,15 +5,15 @@ import { index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-cor
 export const projectMember = pgTable(
   "task_project_member",
   {
-    joinedAt: timestamp("joined_at", { withTimezone: true }).notNull().defaultNow(),
-    projectId: text("project_id").notNull(),
-    role: projectMemberRoleEnum("role").notNull().default("member"),
-    userId: text("user_id").notNull(),
+    joined_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    project_id: text().notNull(),
+    role: projectMemberRoleEnum().notNull().default("member"),
+    user_id: text().notNull(),
   },
   (table) => [
-    uniqueIndex("uq_task_project_member_project_user").on(table.projectId, table.userId),
-    index("idx_task_project_member_project").on(table.projectId),
-    index("idx_task_project_member_user").on(table.userId),
+    uniqueIndex("uq_task_project_member_project_user").on(table.project_id, table.user_id),
+    index("idx_task_project_member_project").on(table.project_id),
+    index("idx_task_project_member_user").on(table.user_id),
   ],
 );
 

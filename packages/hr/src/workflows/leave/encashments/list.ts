@@ -18,7 +18,7 @@ export const listLeaveEncashments = Workflow.name("hr.leave.list-leave-encashmen
     const conditions = [];
 
     if (parsed.employeeId) {
-      conditions.push(eq(leaveEncashment.employeeId, parsed.employeeId));
+      conditions.push(eq(leaveEncashment.employee_id, parsed.employeeId));
     }
     if (parsed.status) {
       conditions.push(eq(leaveEncashment.status, parsed.status));

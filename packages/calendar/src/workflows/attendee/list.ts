@@ -15,10 +15,10 @@ export const listAttendees = Workflow.name("calendar.attendee.list")
     const actorId = resolveActorId(ctx.actorId);
     const parsed = parse(AttendeeFiltersSchema, filters ?? {});
 
-    const conditions = [inArray(calendarAttendee.eventId, accessibleEventIds(ctx.db, actorId))];
+    const conditions = [inArray(calendarAttendee.event_id, accessibleEventIds(ctx.db, actorId))];
 
     if (parsed.eventId) {
-      conditions.push(eq(calendarAttendee.eventId, parsed.eventId));
+      conditions.push(eq(calendarAttendee.event_id, parsed.eventId));
     }
     if (parsed.email) {
       conditions.push(eq(calendarAttendee.email, parsed.email));

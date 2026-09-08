@@ -18,19 +18,19 @@ export const listShiftAssignments = Workflow.name("hr.shift.list-shift-assignmen
     const conditions = [];
 
     if (parsed.employeeId) {
-      conditions.push(eq(shiftAssignment.employeeId, parsed.employeeId));
+      conditions.push(eq(shiftAssignment.employee_id, parsed.employeeId));
     }
     if (parsed.shiftType) {
-      conditions.push(eq(shiftAssignment.shiftType, parsed.shiftType));
+      conditions.push(eq(shiftAssignment.shift_type, parsed.shiftType));
     }
     if (parsed.status) {
       conditions.push(eq(shiftAssignment.status, parsed.status));
     }
     if (parsed.startDate) {
-      conditions.push(sql`${shiftAssignment.startDate} >= ${parsed.startDate}`);
+      conditions.push(sql`${shiftAssignment.start_date} >= ${parsed.startDate}`);
     }
     if (parsed.endDate) {
-      conditions.push(sql`${shiftAssignment.endDate} <= ${parsed.endDate}`);
+      conditions.push(sql`${shiftAssignment.end_date} <= ${parsed.endDate}`);
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;

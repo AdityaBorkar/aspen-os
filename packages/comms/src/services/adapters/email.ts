@@ -41,7 +41,7 @@ export function createEmailAdapter(): DeliveryAdapter {
     message,
   }: SendInput): Promise<{ providerMessageId: string }> {
     assertEmailKind(kind);
-    const from = channel.senderAddress;
+    const from = channel.sender_address;
     switch (kind) {
       case PROVIDER_KIND.SES: {
         return sendViaSes(credential, from, message);

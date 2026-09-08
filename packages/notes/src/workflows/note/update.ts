@@ -61,9 +61,9 @@ export const updateNote = Workflow.name("notes.note.update")
           id: updated.id,
           // SAFETY: metadata is written above from validated input, so the stored jsonb is a string-keyed object by construction.
           metadata: (updated.metadata ?? {}) as Record<string, JsonValue>,
-          ownerId: updated.ownerId,
-          scopeId: updated.scopeId,
-          scopeType: updated.scopeType,
+          ownerId: updated.owner_id,
+          scopeId: updated.scope_id,
+          scopeType: updated.scope_type,
           tags: updated.tags,
           title: updated.title,
           type: updated.type,

@@ -22,9 +22,9 @@ export const subscribeWatch = Workflow.name("workspace.watch.subscribe")
       .from(workspaceWatch)
       .where(
         and(
-          eq(workspaceWatch.userId, userId),
-          eq(workspaceWatch.itemType, parsed.itemType),
-          eq(workspaceWatch.itemId, parsed.itemId),
+          eq(workspaceWatch.user_id, userId),
+          eq(workspaceWatch.item_type, parsed.itemType),
+          eq(workspaceWatch.item_id, parsed.itemId),
         ),
       )
       .limit(1);
@@ -35,7 +35,7 @@ export const subscribeWatch = Workflow.name("workspace.watch.subscribe")
 
     const [watch] = await ctx.db
       .insert(workspaceWatch)
-      .values({ itemId: parsed.itemId, itemType: parsed.itemType, userId })
+      .values({ item_id: parsed.itemId, item_type: parsed.itemType, user_id: userId })
       .returning();
 
     if (!watch) {

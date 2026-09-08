@@ -248,16 +248,16 @@ export interface PathResolution {
 export type FolderWithMetadata = Pick<
   DmsFolder,
   | "color"
-  | "createdAt"
+  | "created_at"
   | "description"
   | "id"
-  | "isTrashed"
+  | "is_trashed"
   | "name"
-  | "ownerId"
-  | "parentId"
+  | "owner_id"
+  | "parent_id"
   | "path"
-  | "trashedAt"
-  | "updatedAt"
+  | "trashed_at"
+  | "updated_at"
 > & { childCount: number; totalSize: number };
 
 export interface SearchResult {

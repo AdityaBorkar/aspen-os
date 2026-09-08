@@ -12,13 +12,13 @@ export const activateBankAccount = Workflow.name("masters.bank-account.activate"
   .handler(async (input, ctx) => {
     const current = await ctx.step.run(fetchBankAccountStep, { id: input.id });
 
-    if (current.isActive) {
+    if (current.is_active) {
       return current;
     }
 
     const [updated] = await ctx.db
       .update(masterBankAccount)
-      .set({ isActive: true, updatedAt: new Date() })
+      .set({ is_active: true, updated_at: new Date() })
       .where(eq(masterBankAccount.id, input.id))
       .returning();
 

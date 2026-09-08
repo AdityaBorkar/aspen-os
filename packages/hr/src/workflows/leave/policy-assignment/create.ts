@@ -23,11 +23,11 @@ export const createLeavePolicyAssignment = Workflow.name("hr.leave.create-leave-
     const [result] = await ctx.db
       .insert(leavePolicyAssignment)
       .values({
-        effectiveFrom: parsed.effectiveFrom,
-        effectiveTo: parsed.effectiveTo ?? null,
-        employeeId: parsed.employeeId,
-        leavePeriod: parsed.leavePeriod,
-        leavePolicy: parsed.leavePolicy,
+        effective_from: parsed.effectiveFrom,
+        effective_to: parsed.effectiveTo ?? null,
+        employee_id: parsed.employeeId,
+        leave_period: parsed.leavePeriod,
+        leave_policy: parsed.leavePolicy,
       })
       .returning();
 

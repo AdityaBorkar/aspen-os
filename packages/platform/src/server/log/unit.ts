@@ -35,21 +35,21 @@ export class LogUnit {
     this.buffer = createLogBuffer(100, async (entries) => {
       await this.db.insert(logs).values(
         entries.map((entry) => ({
-          durationMs: entry.duration ?? null,
-          errorMessage: entry.error?.message ?? null,
-          errorName: entry.error?.name ?? null,
-          errorStack: entry.error?.stack ?? null,
+          duration_ms: entry.duration ?? null,
+          error_message: entry.error?.message ?? null,
+          error_name: entry.error?.name ?? null,
+          error_stack: entry.error?.stack ?? null,
           id: entry.id,
           level: entry.level,
           message: entry.message,
           metadata: entry.metadata ?? {},
-          requestId: entry.requestId ?? null,
+          request_id: entry.requestId ?? null,
           service: entry.service,
-          spanId: entry.spanId ?? null,
-          tenantId: entry.tenantId ?? "default",
+          span_id: entry.spanId ?? null,
+          tenant_id: entry.tenantId ?? "default",
           timestamp: entry.timestamp,
-          traceId: entry.traceId ?? null,
-          userId: entry.userId ?? null,
+          trace_id: entry.traceId ?? null,
+          user_id: entry.userId ?? null,
         })),
       );
     });

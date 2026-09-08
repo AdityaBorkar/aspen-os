@@ -18,23 +18,23 @@ export const completeTransfer = Workflow.name("hr.lifecycle.complete-transfer")
     requireStatus(transfer, "approved", `Transfer "${id}"`);
 
     const updated = await ctx.db.transaction(async (tx) => {
-      const updateData: Partial<typeof employee.$inferInsert> = { updatedAt: new Date() };
-      if (transfer.toBranch) {
-        updateData.branch = transfer.toBranch;
+      const updateData: Partial<typeof employee.$inferInsert> = { updated_at: new Date() };
+      if (transfer.to_branch) {
+        updateData.branch = transfer.to_branch;
       }
-      if (transfer.toDepartment) {
-        updateData.department = transfer.toDepartment;
+      if (transfer.to_department) {
+        updateData.department = transfer.to_department;
       }
-      if (transfer.toCompany) {
-        updateData.company = transfer.toCompany;
+      if (transfer.to_company) {
+        updateData.company = transfer.to_company;
       }
-      await tx.update(employee).set(updateData).where(eq(employee.id, transfer.employeeId));
+      await tx.update(employee).set(updateData).where(eq(employee.id, transfer.employee_id));
 
       const [row] = await tx
         .update(employeeTransfer)
         .set({
           status: "completed",
-          updatedAt: new Date(),
+          updated_at: new Date(),
         })
         .where(eq(employeeTransfer.id, id))
         .returning();

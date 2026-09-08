@@ -227,8 +227,8 @@ export class WorkflowEngine {
       .from(workflowSteps)
       .where(
         and(
-          eq(workflowSteps.runId, runId),
-          eq(workflowSteps.stepName, name),
+          eq(workflowSteps.run_id, runId),
+          eq(workflowSteps.step_name, name),
           eq(workflowSteps.status, "completed"),
         ),
       )
@@ -244,10 +244,10 @@ export class WorkflowEngine {
 
     await this.db.insert(workflowSteps).values({
       id: stepId,
-      runId,
-      startedAt,
+      run_id: runId,
+      started_at: startedAt,
       status: "running",
-      stepName: name,
+      step_name: name,
     });
 
     // oxlint-disable eslint/no-await-in-loop
@@ -295,8 +295,8 @@ export class WorkflowEngine {
       .update(workflowSteps)
       .set({
         attempt,
-        completedAt,
-        durationMs: durationMs(startedAt, completedAt),
+        completed_at: completedAt,
+        duration_ms: durationMs(startedAt, completedAt),
         output: result ?? null,
         status: "completed",
       })
@@ -325,8 +325,8 @@ export class WorkflowEngine {
       .update(workflowSteps)
       .set({
         attempt: maxAttempts,
-        completedAt,
-        durationMs: durationMs(startedAt, completedAt),
+        completed_at: completedAt,
+        duration_ms: durationMs(startedAt, completedAt),
         error: serialized,
         status: "failed",
       })
@@ -353,9 +353,9 @@ export class WorkflowEngine {
     await db.insert(workflowRuns).values({
       id: runId,
       input: input ?? null,
-      startedAt,
+      started_at: startedAt,
       status: "running",
-      workflowName: config.name,
+      workflow_name: config.name,
     });
 
     const ctx: WorkflowContext<TSchemas> = {
@@ -384,8 +384,8 @@ export class WorkflowEngine {
       await db
         .update(workflowRuns)
         .set({
-          completedAt,
-          durationMs: durationMs(startedAt, completedAt),
+          completed_at: completedAt,
+          duration_ms: durationMs(startedAt, completedAt),
           output: output ?? null,
           status: "completed",
         })
@@ -404,8 +404,8 @@ export class WorkflowEngine {
       await db
         .update(workflowRuns)
         .set({
-          completedAt,
-          durationMs: durationMs(startedAt, completedAt),
+          completed_at: completedAt,
+          duration_ms: durationMs(startedAt, completedAt),
           error: serializeError(normalized),
           status: "failed",
         })

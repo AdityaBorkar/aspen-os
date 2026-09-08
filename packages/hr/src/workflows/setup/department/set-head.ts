@@ -25,7 +25,7 @@ export const setDepartmentHead = Workflow.name("hr.setup.set-department-head")
 
     const [updated] = await ctx.db
       .update(department)
-      .set({ manager: headEmployeeId, updatedAt: new Date() })
+      .set({ manager: headEmployeeId, updated_at: new Date() })
       .where(eq(department.id, id))
       .returning();
 

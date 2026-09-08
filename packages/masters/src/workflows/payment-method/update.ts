@@ -23,19 +23,21 @@ export const updatePaymentMethod = Workflow.name("masters.payment-method.update"
 
     assertPaymentMethodTypeFields({
       bankAccountId:
-        input.patch.bankAccountId !== undefined ? input.patch.bankAccountId : current.bankAccountId,
-      cardBrand: input.patch.cardBrand !== undefined ? input.patch.cardBrand : current.cardBrand,
+        input.patch.bankAccountId !== undefined
+          ? input.patch.bankAccountId
+          : current.bank_account_id,
+      cardBrand: input.patch.cardBrand !== undefined ? input.patch.cardBrand : current.card_brand,
       cardExpiryMonth:
         input.patch.cardExpiryMonth !== undefined
           ? input.patch.cardExpiryMonth
-          : current.cardExpiryMonth,
+          : current.card_expiry_month,
       cardExpiryYear:
         input.patch.cardExpiryYear !== undefined
           ? input.patch.cardExpiryYear
-          : current.cardExpiryYear,
-      cardLast4: input.patch.cardLast4 !== undefined ? input.patch.cardLast4 : current.cardLast4,
+          : current.card_expiry_year,
+      cardLast4: input.patch.cardLast4 !== undefined ? input.patch.cardLast4 : current.card_last4,
       type: input.patch.type ?? current.type,
-      upiId: input.patch.upiId !== undefined ? input.patch.upiId : current.upiId,
+      upiId: input.patch.upiId !== undefined ? input.patch.upiId : current.upi_id,
     });
 
     if (input.patch.isPrimary === true) {
@@ -43,8 +45,8 @@ export const updatePaymentMethod = Workflow.name("masters.payment-method.update"
         unsetPrimaryPaymentMethods({
           db: ctx.db,
           direction: input.patch.direction ?? current.direction,
-          entityId: current.entityId,
-          entityType: current.entityType,
+          entityId: current.entity_id,
+          entityType: current.entity_type,
         }),
       );
     }
@@ -53,7 +55,7 @@ export const updatePaymentMethod = Workflow.name("masters.payment-method.update"
 
     const [updated] = await ctx.db
       .update(masterPaymentMethod)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates, updated_at: new Date() })
       .where(eq(masterPaymentMethod.id, input.id))
       .returning();
 
@@ -72,8 +74,8 @@ export const updatePaymentMethod = Workflow.name("masters.payment-method.update"
 
       await ctx.pubsub.publish(PAYMENT_METHOD_EVENTS.UPDATED, {
         changes: updates,
-        entityId: updated.entityId,
-        entityType: updated.entityType,
+        entityId: updated.entity_id,
+        entityType: updated.entity_type,
         paymentMethod: { id: updated.id, name: updated.name, type: updated.type },
       });
     });

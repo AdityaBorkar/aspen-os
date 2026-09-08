@@ -9,7 +9,7 @@ export const listTaskTypes = Workflow.name("task-type.list")
   .input(object({ projectId: optional(IdSchema) }))
   .handler(async ({ projectId }, ctx) =>
     ctx.step.run("query", async () => {
-      const conditions = projectId ? eq(taskType.projectId, projectId) : undefined;
+      const conditions = projectId ? eq(taskType.project_id, projectId) : undefined;
       return ctx.db.select().from(taskType).where(conditions);
     }),
   );

@@ -28,19 +28,19 @@ export const createBankAccount = Workflow.name("masters.bank-account.create")
     const [bankAccount] = await ctx.db
       .insert(masterBankAccount)
       .values({
-        accountHolderName: parsed.accountHolderName,
-        accountNumber: parsed.accountNumber,
-        accountType: parsed.accountType ?? null,
-        bankName: parsed.bankName,
-        branchName: parsed.branchName ?? null,
+        account_holder_name: parsed.accountHolderName,
+        account_number: parsed.accountNumber,
+        account_type: parsed.accountType ?? null,
+        bank_name: parsed.bankName,
+        branch_name: parsed.branchName ?? null,
         currency: parsed.currency,
-        entityId: parsed.entityId,
-        entityType: parsed.entityType,
-        isActive: parsed.isActive,
-        isPrimary: parsed.isPrimary,
+        entity_id: parsed.entityId,
+        entity_type: parsed.entityType,
+        is_active: parsed.isActive,
+        is_primary: parsed.isPrimary,
         metadata: parsed.metadata ?? null,
-        routingNumber: parsed.routingNumber ?? null,
-        swiftCode: parsed.swiftCode ?? null,
+        routing_number: parsed.routingNumber ?? null,
+        swift_code: parsed.swiftCode ?? null,
       })
       .returning();
 
@@ -55,23 +55,23 @@ export const createBankAccount = Workflow.name("masters.bank-account.create")
         entityId: bankAccount.id,
         entityType: AUDIT_ENTITY_TYPE.BANK_ACCOUNT,
         newState: {
-          bankName: bankAccount.bankName,
+          bankName: bankAccount.bank_name,
           currency: bankAccount.currency,
-          entityId: bankAccount.entityId,
-          entityType: bankAccount.entityType,
-          isActive: bankAccount.isActive,
-          isPrimary: bankAccount.isPrimary,
+          entityId: bankAccount.entity_id,
+          entityType: bankAccount.entity_type,
+          isActive: bankAccount.is_active,
+          isPrimary: bankAccount.is_primary,
         },
       });
 
       await ctx.pubsub.publish(BANK_ACCOUNT_EVENTS.CREATED, {
         bankAccount: {
-          bankName: bankAccount.bankName,
+          bankName: bankAccount.bank_name,
           currency: bankAccount.currency,
           id: bankAccount.id,
         },
-        entityId: bankAccount.entityId,
-        entityType: bankAccount.entityType,
+        entityId: bankAccount.entity_id,
+        entityType: bankAccount.entity_type,
       });
     });
 

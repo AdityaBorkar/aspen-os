@@ -21,10 +21,10 @@ export const getOvertimeSummary = Workflow.name("hr.overtime.get-overtime-summar
       .from(overtimeSlip)
       .where(
         and(
-          eq(overtimeSlip.employeeId, employeeId),
+          eq(overtimeSlip.employee_id, employeeId),
           eq(overtimeSlip.status, "approved"),
-          sql`${overtimeSlip.fromDate} >= ${fromDate}`,
-          sql`${overtimeSlip.toDate} <= ${toDate}`,
+          sql`${overtimeSlip.from_date} >= ${fromDate}`,
+          sql`${overtimeSlip.to_date} <= ${toDate}`,
         ),
       );
 
@@ -36,10 +36,10 @@ export const getOvertimeSummary = Workflow.name("hr.overtime.get-overtime-summar
     };
 
     for (const slip of slips) {
-      summary.standardHours += Number.parseFloat(slip.standardHours);
-      summary.holidayHours += Number.parseFloat(slip.holidayHours);
-      summary.weekendHours += Number.parseFloat(slip.weekendHours);
-      summary.totalHours += Number.parseFloat(slip.totalOvertimeHours);
+      summary.standardHours += Number.parseFloat(slip.standard_hours);
+      summary.holidayHours += Number.parseFloat(slip.holiday_hours);
+      summary.weekendHours += Number.parseFloat(slip.weekend_hours);
+      summary.totalHours += Number.parseFloat(slip.total_overtime_hours);
     }
 
     return summary;

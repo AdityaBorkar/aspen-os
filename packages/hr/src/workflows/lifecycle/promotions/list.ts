@@ -18,7 +18,7 @@ export const listPromotions = Workflow.name("hr.lifecycle.list-promotions")
     const conditions = [];
 
     if (parsed.employeeId) {
-      conditions.push(eq(employeePromotion.employeeId, parsed.employeeId));
+      conditions.push(eq(employeePromotion.employee_id, parsed.employeeId));
     }
     if (parsed.status) {
       conditions.push(eq(employeePromotion.status, parsed.status));

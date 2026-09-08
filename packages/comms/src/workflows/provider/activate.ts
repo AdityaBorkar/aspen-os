@@ -15,13 +15,13 @@ export const activateProvider = Workflow.name("comms.provider.activate")
   .input(ActivateInputSchema)
   .handler(async ({ input }, ctx) => {
     const current = await ctx.step.run(fetchProviderStep, { id: input.id });
-    if (current.isActive) {
+    if (current.is_active) {
       return current;
     }
 
     const [updated] = await ctx.db
       .update(commsProvider)
-      .set({ isActive: true, updatedAt: new Date() })
+      .set({ is_active: true, updated_at: new Date() })
       .where(eq(commsProvider.id, input.id))
       .returning();
 

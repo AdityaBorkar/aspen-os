@@ -54,15 +54,15 @@ export const setSetting = Workflow.name("workspace.settings.set")
     const existing = await ctx.db
       .select({ id: workspaceSetting.id })
       .from(workspaceSetting)
-      .where(and(eq(workspaceSetting.userId, userId), eq(workspaceSetting.key, parsed.key)))
+      .where(and(eq(workspaceSetting.user_id, userId), eq(workspaceSetting.key, parsed.key)))
       .limit(1);
 
     const operation = existing[0]
       ? ctx.db
           .update(workspaceSetting)
-          .set({ updatedAt: new Date(), value })
+          .set({ updated_at: new Date(), value })
           .where(eq(workspaceSetting.id, existing[0].id))
-      : ctx.db.insert(workspaceSetting).values({ key: parsed.key, userId, value });
+      : ctx.db.insert(workspaceSetting).values({ key: parsed.key, user_id: userId, value });
     await operation;
 
     await ctx.audit.write({

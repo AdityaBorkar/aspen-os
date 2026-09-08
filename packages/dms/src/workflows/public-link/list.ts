@@ -16,5 +16,5 @@ export const listPublicLinks = Workflow.name("dms.public-link.list")
     ctx.db
       .select()
       .from(dmsPublicLink)
-      .where(and(eq(dmsPublicLink.entityId, entityId), eq(dmsPublicLink.entityType, entityType))),
+      .where(and(eq(dmsPublicLink.entity_id, entityId), eq(dmsPublicLink.entity_type, entityType))),
   );

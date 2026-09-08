@@ -15,14 +15,14 @@ export const listWatches = Workflow.name("workspace.watch.list")
     }
     const parsed = parse(ListWatchesSchema, input);
 
-    const conditions = [eq(workspaceWatch.userId, ctx.actorId)];
+    const conditions = [eq(workspaceWatch.user_id, ctx.actorId)];
     if (parsed.itemType) {
-      conditions.push(eq(workspaceWatch.itemType, parsed.itemType));
+      conditions.push(eq(workspaceWatch.item_type, parsed.itemType));
     }
 
     return ctx.db
       .select()
       .from(workspaceWatch)
       .where(and(...conditions))
-      .orderBy(asc(workspaceWatch.createdAt));
+      .orderBy(asc(workspaceWatch.created_at));
   });

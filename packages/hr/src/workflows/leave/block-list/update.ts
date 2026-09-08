@@ -19,7 +19,7 @@ export const updateLeaveBlockList = Workflow.name("hr.leave.update-leave-block-l
 
     const [updated] = await ctx.db
       .update(leaveBlockList)
-      .set({ ...parsed, updatedAt: new Date() })
+      .set({ ...parsed, updated_at: new Date() })
       .where(eq(leaveBlockList.id, id))
       .returning();
 

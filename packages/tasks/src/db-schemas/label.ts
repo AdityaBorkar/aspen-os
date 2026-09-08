@@ -4,12 +4,12 @@ import { index, pgTable, text } from "drizzle-orm/pg-core";
 export const label = pgTable(
   "task_label_def",
   {
-    color: text("color"),
-    id: uuidv7("id").primaryKey(),
-    name: text("name").notNull(),
-    projectId: text("project_id"),
+    color: text(),
+    id: uuidv7().primaryKey(),
+    name: text().notNull(),
+    project_id: text(),
   },
-  (table) => [index("idx_task_label_def_project").on(table.projectId)],
+  (table) => [index("idx_task_label_def_project").on(table.project_id)],
 );
 
 export type Label = typeof label.$inferSelect;

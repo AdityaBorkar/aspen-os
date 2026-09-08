@@ -20,14 +20,14 @@ export const listSharedWithMe = Workflow.name("dms.share.list-shared-with-me")
     const shares = await ctx.db
       .select()
       .from(dmsShare)
-      .where(and(eq(dmsShare.granteeId, userId), eq(dmsShare.granteeType, "user")))
+      .where(and(eq(dmsShare.grantee_id, userId), eq(dmsShare.grantee_type, "user")))
       .limit(limit)
       .offset(offset);
 
     const createdPublicLinks = await ctx.db
       .select()
       .from(dmsPublicLink)
-      .where(eq(dmsPublicLink.createdBy, userId))
+      .where(eq(dmsPublicLink.created_by, userId))
       .limit(limit)
       .offset(offset);
 

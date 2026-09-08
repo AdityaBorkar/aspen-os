@@ -27,19 +27,19 @@ export const createTask = Workflow.name("task.create")
       .insert(task)
       .values({
         description: input.description ?? null,
-        dueDate: input.dueDate ?? null,
-        estimatedHours: input.estimatedHours?.toString() ?? null,
+        due_date: input.dueDate ?? null,
+        estimated_hours: input.estimatedHours?.toString() ?? null,
         labels: input.labels ?? [],
         number: displayNumber,
-        parentId: input.parentId ?? null,
+        parent_id: input.parentId ?? null,
         priority: input.priority ?? "none",
-        projectId: input.projectId,
-        reporterId: input.reporterId,
-        startDate: input.startDate ?? null,
-        statusId: input.statusId,
-        taskNumber: taskSeq,
+        project_id: input.projectId,
+        reporter_id: input.reporterId,
+        start_date: input.startDate ?? null,
+        status_id: input.statusId,
+        task_number: taskSeq,
         title: input.title,
-        typeId: input.typeId ?? null,
+        type_id: input.typeId ?? null,
       })
       .returning();
 
@@ -55,30 +55,30 @@ export const createTask = Workflow.name("task.create")
       },
       oldValue: null,
       taskId: result.id,
-      userId: result.reporterId,
+      userId: result.reporter_id,
     });
 
     await ctx.step.run("notify", async () => {
       const notifications: Promise<string | null>[] = [
         ctx.pubsub.publish(TASK_EVENTS.CREATED, {
-          dueDate: result.dueDate ? result.dueDate.toISOString() : null,
+          due_date: result.due_date ? result.due_date.toISOString() : null,
           task: {
             id: result.id,
             number: result.number,
-            projectId: result.projectId,
+            projectId: result.project_id,
             title: result.title,
           },
         }),
       ];
 
-      if (result.dueDate) {
+      if (result.due_date) {
         notifications.push(
           ctx.pubsub.publish(TASK_EVENTS.DUE_DATE_CHANGED, {
-            dueDate: result.dueDate.toISOString(),
+            dueDate: result.due_date.toISOString(),
             taskId: result.id,
             // Assignees cannot exist yet at creation time (assignment is a
             // separate workflow), so only the reporter is notified here.
-            userIds: [result.reporterId],
+            userIds: [result.reporter_id],
           }),
         );
       }

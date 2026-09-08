@@ -14,10 +14,10 @@ export const addAttachment = Workflow.name("collaboration.add-attachment")
     const [result] = await ctx.db
       .insert(attachment)
       .values({
-        commentId: input.commentId ?? null,
-        fileId: input.fileId,
-        taskId: input.taskId,
-        uploadedBy: input.uploadedBy,
+        comment_id: input.commentId ?? null,
+        file_id: input.fileId,
+        task_id: input.taskId,
+        uploaded_by: input.uploadedBy,
       })
       .returning();
 

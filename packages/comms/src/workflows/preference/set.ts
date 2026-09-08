@@ -20,9 +20,9 @@ export const setPreference = Workflow.name("comms.preference.set")
       .from(commsPreference)
       .where(
         and(
-          eq(commsPreference.userId, input.userId),
+          eq(commsPreference.user_id, input.userId),
           type === null ? isNull(commsPreference.type) : eq(commsPreference.type, type),
-          eq(commsPreference.channelType, input.channelType),
+          eq(commsPreference.channel_type, input.channelType),
         ),
       )
       .limit(1);
@@ -36,18 +36,18 @@ export const setPreference = Workflow.name("comms.preference.set")
             enabled: input.enabled,
             priority: input.priority ?? row.priority ?? channelTypePriority(input.channelType),
             type,
-            updatedAt: new Date(),
+            updated_at: new Date(),
           })
           .where(eq(commsPreference.id, row.id))
           .returning()
       : await ctx.db
           .insert(commsPreference)
           .values({
-            channelType: input.channelType,
+            channel_type: input.channelType,
             enabled: input.enabled,
             priority: input.priority ?? channelTypePriority(input.channelType),
             type,
-            userId: input.userId,
+            user_id: input.userId,
           })
           .returning();
 
@@ -62,18 +62,18 @@ export const setPreference = Workflow.name("comms.preference.set")
       entityType: AUDIT_ENTITY_TYPE.PREFERENCE,
       event: {
         payload: {
-          channelType: updated.channelType,
+          channelType: updated.channel_type,
           enabled: updated.enabled,
           type: updated.type,
-          userId: updated.userId,
+          userId: updated.user_id,
         },
         topic: PREFERENCE_EVENTS.UPDATED,
       },
       newState: {
-        channelType: updated.channelType,
+        channelType: updated.channel_type,
         enabled: updated.enabled,
         type: updated.type,
-        userId: updated.userId,
+        userId: updated.user_id,
       },
     });
 

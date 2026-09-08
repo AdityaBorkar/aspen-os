@@ -22,7 +22,7 @@ export const updateSchedule = Workflow.name("workspace.schedule.update")
   .input(UpdateInputSchema)
   .handler(async ({ id, input }, ctx) => {
     const schedule = await ctx.step.run(fetchScheduleStep, { id });
-    const dashboard = await ctx.step.run(fetchDashboardStep, { id: schedule.dashboardId });
+    const dashboard = await ctx.step.run(fetchDashboardStep, { id: schedule.dashboard_id });
     await assertCanMutate(dashboard, ctx.actorId);
     const parsed = parse(UpdateScheduleSchema, input);
 
@@ -34,7 +34,7 @@ export const updateSchedule = Workflow.name("workspace.schedule.update")
 
     const [updated] = await ctx.db
       .update(workspaceSchedule)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates, updated_at: new Date() })
       .where(eq(workspaceSchedule.id, id))
       .returning();
 
@@ -47,7 +47,7 @@ export const updateSchedule = Workflow.name("workspace.schedule.update")
       await ctx.step.run("re-register-cron", async () => {
         const deps = { audit: ctx.audit, db: ctx.db, pubsub: ctx.pubsub };
         await unregisterScheduleHandler(scheduleCronTopic(id), deps);
-        if (updated.isActive) {
+        if (updated.is_active) {
           await registerScheduleDelivery(deps, updated);
         }
       });
@@ -58,11 +58,11 @@ export const updateSchedule = Workflow.name("workspace.schedule.update")
       crudAction: "update",
       entityId: id,
       entityType: AUDIT_ENTITY_TYPE.SCHEDULE,
-      metadata: { dashboardId: schedule.dashboardId },
+      metadata: { dashboard_id: schedule.dashboard_id },
     });
 
     await ctx.pubsub.publish(DASHBOARD_EVENTS.SCHEDULED, {
-      dashboardId: schedule.dashboardId,
+      dashboardId: schedule.dashboard_id,
       scheduleId: id,
     });
 

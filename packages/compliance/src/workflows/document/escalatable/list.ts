@@ -10,12 +10,12 @@ const getEscalatableDocuments = Workflow.name("document.escalatable").handler(
       .select()
       .from(complianceDocument)
       .where(
-        inArray(complianceDocument.verificationStatus, [
+        inArray(complianceDocument.verification_status, [
           VERIFICATION_STATUS.EXPIRED,
           VERIFICATION_STATUS.OVERDUE,
         ]),
       )
-      .orderBy(asc(complianceDocument.updatedAt)),
+      .orderBy(asc(complianceDocument.updated_at)),
 );
 
 export { getEscalatableDocuments };

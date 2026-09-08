@@ -8,7 +8,9 @@ export const listShares = Workflow.name("dms.share.list").handler(
     ctx.db
       .select()
       .from(dmsShare)
-      .where(and(eq(dmsShare.entityId, input.entityId), eq(dmsShare.entityType, input.entityType))),
+      .where(
+        and(eq(dmsShare.entity_id, input.entityId), eq(dmsShare.entity_type, input.entityType)),
+      ),
 );
 
 export const listSharesByGrantee = Workflow.name("dms.share.list-by-grantee").handler(
@@ -17,6 +19,6 @@ export const listSharesByGrantee = Workflow.name("dms.share.list-by-grantee").ha
       .select()
       .from(dmsShare)
       .where(
-        and(eq(dmsShare.granteeId, input.granteeId), eq(dmsShare.granteeType, input.granteeType)),
+        and(eq(dmsShare.grantee_id, input.granteeId), eq(dmsShare.grantee_type, input.granteeType)),
       ),
 );

@@ -22,7 +22,7 @@ export const dismiss = Workflow.name("comms.notification.dismiss")
     const at = new Date();
     const [updated] = await ctx.db
       .update(commsNotification)
-      .set({ status: "dismissed", updatedAt: at })
+      .set({ status: "dismissed", updated_at: at })
       .where(eq(commsNotification.id, input.id))
       .returning();
 
@@ -36,7 +36,7 @@ export const dismiss = Workflow.name("comms.notification.dismiss")
       entityId: updated.id,
       entityType: AUDIT_ENTITY_TYPE.NOTIFICATION,
       event: {
-        payload: { at: at.toISOString(), notificationId: updated.id, userId: updated.recipientId },
+        payload: { at: at.toISOString(), notificationId: updated.id, userId: updated.recipient_id },
         topic: NOTIFICATION_EVENTS.DISMISSED,
       },
     });

@@ -20,8 +20,8 @@ export const restoreDraft = Workflow.name("workspace.draft.restore")
 
     const [updated] = await ctx.db
       .update(workspaceDraft)
-      .set({ deletedAt: null, updatedAt: new Date() })
-      .where(and(eq(workspaceDraft.id, id), isNotNull(workspaceDraft.deletedAt)))
+      .set({ deleted_at: null, updated_at: new Date() })
+      .where(and(eq(workspaceDraft.id, id), isNotNull(workspaceDraft.deleted_at)))
       .returning();
 
     if (!updated) {

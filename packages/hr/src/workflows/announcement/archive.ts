@@ -21,7 +21,7 @@ export const archiveAnnouncement = Workflow.name("hr.announcement.archive")
 
     const [updated] = await ctx.db
       .update(hrAnnouncement)
-      .set({ archivedAt: new Date(), status: "archived", updatedAt: new Date() })
+      .set({ archived_at: new Date(), status: "archived", updated_at: new Date() })
       .where(eq(hrAnnouncement.id, id))
       .returning();
 

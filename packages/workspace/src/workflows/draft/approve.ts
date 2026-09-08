@@ -23,8 +23,8 @@ export const approveDraft = Workflow.name("workspace.draft.approve")
         id,
         toStatus: DRAFT_STATUS.APPROVED,
         values: {
-          approvedAt: new Date(),
-          approvedBy: actorId,
+          approved_at: new Date(),
+          approved_by: actorId,
         },
       }),
     );

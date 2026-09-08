@@ -31,7 +31,7 @@ export const moveFile = Workflow.name("dms.file.move")
 
     const [updated] = await ctx.db
       .update(dmsFile)
-      .set({ folderId: newFolderId, path: newPath, updatedAt: new Date() })
+      .set({ folder_id: newFolderId, path: newPath, updated_at: new Date() })
       .where(eq(dmsFile.id, id))
       .returning();
 

@@ -12,14 +12,14 @@ export interface DeliveryMessage {
 }
 
 export interface SendInput {
-  channel: Pick<CommsChannel, "senderAddress">;
+  channel: Pick<CommsChannel, "sender_address">;
   credential: ProviderCredential;
   kind: ProviderKind;
   message: DeliveryMessage;
 }
 
 export interface TestInput {
-  channel: Pick<CommsChannel, "senderAddress">;
+  channel: Pick<CommsChannel, "sender_address">;
   credential: ProviderCredential;
   kind: ProviderKind;
   recipientAddress?: string;

@@ -13,7 +13,7 @@ const ApplyInputSchema = ApplyFileViewSchema;
 function resolveFileSortField(field: string): SQL | null {
   switch (field) {
     case "createdAt": {
-      return sql`${dmsFile.createdAt}`;
+      return sql`${dmsFile.created_at}`;
     }
     case "name": {
       return sql`${dmsFile.name}`;
@@ -22,10 +22,10 @@ function resolveFileSortField(field: string): SQL | null {
       return sql`${dmsFile.size}`;
     }
     case "updatedAt": {
-      return sql`${dmsFile.updatedAt}`;
+      return sql`${dmsFile.updated_at}`;
     }
     case "expiryDate": {
-      return sql`${dmsFile.expiryDate}`;
+      return sql`${dmsFile.expiry_date}`;
     }
     default: {
       return null;
@@ -81,7 +81,7 @@ export const applyFileView = Workflow.name("dms.file-view.apply")
 
       const orderBy = buildSortOrder(sort, resolveFileSortField);
       if (orderBy.length === 0) {
-        orderBy.push(desc(dmsFile.createdAt));
+        orderBy.push(desc(dmsFile.created_at));
       }
 
       return ctx.db

@@ -19,7 +19,7 @@ export const updateOvertimeType = Workflow.name("hr.overtime.update-overtime-typ
 
     const [updated] = await ctx.db
       .update(overtimeType)
-      .set({ ...parsed, updatedAt: new Date() })
+      .set({ ...parsed, updated_at: new Date() })
       .where(eq(overtimeType.id, id))
       .returning();
 

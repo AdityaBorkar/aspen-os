@@ -19,16 +19,16 @@ function tenantRecordColumns(
 ): NewTenant {
   const isolated = provisioning.tenancyMode === "isolated" ? provisioning : null;
   return {
-    databaseHost: isolated?.host ?? null,
-    databaseName: isolated?.database ?? null,
-    databasePassword: isolated?.password ?? null,
-    databasePort: isolated?.port ?? null,
-    databaseSsl: isolated?.ssl ?? null,
-    databaseUser: isolated?.user ?? null,
+    database_host: isolated?.host ?? null,
+    database_name: isolated?.database ?? null,
+    database_password: isolated?.password ?? null,
+    database_port: isolated?.port ?? null,
+    database_ssl: isolated?.ssl ?? null,
+    database_user: isolated?.user ?? null,
     id: tenantId,
     plan: parsed.plan ?? null,
-    serviceProviderId: parsed.serviceProviderId ?? null,
-    signupAt: new Date(),
+    service_provider_id: parsed.serviceProviderId ?? null,
+    signup_at: new Date(),
     status: "onboarding",
   };
 }
@@ -91,7 +91,7 @@ export function createOnboardTenant(dbUnit: DatabaseUnit) {
         await ctx.step.run("seed-profile", async () => {
           await dbUnit.seedTenantDb(provisioning, async (tenantDb) => {
             await tenantDb.insert(organization).values({
-              createdAt: new Date(),
+              created_at: new Date(),
               id: tenantId,
               logo: parsed.logo ?? null,
               name: parsed.name,

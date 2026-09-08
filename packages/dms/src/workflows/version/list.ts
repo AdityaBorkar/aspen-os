@@ -16,16 +16,16 @@ export const listFileVersions = Workflow.name("dms.version.list")
     const versions = await ctx.db
       .select()
       .from(dmsFileVersion)
-      .where(eq(dmsFileVersion.fileId, fileId))
+      .where(eq(dmsFileVersion.file_id, fileId))
       .orderBy(desc(dmsFileVersion.version));
 
     return {
       current: {
-        contentType: file.contentType,
+        contentType: file.content_type,
         etag: file.etag,
         name: file.name,
         size: file.size,
-        storageKey: file.storageKey,
+        storageKey: file.storage_key,
         version: file.version,
       },
       currentVersion: file.version,

@@ -14,7 +14,7 @@ export async function patchFileMetadata(
 
   const [updated] = await db
     .update(dmsFile)
-    .set({ metadata, updatedAt: new Date() })
+    .set({ metadata, updated_at: new Date() })
     .where(eq(dmsFile.id, file.id))
     .returning();
 

@@ -16,15 +16,15 @@ export const createOvertimeType = Workflow.name("hr.overtime.create-overtime-typ
     const [result] = await ctx.db
       .insert(overtimeType)
       .values({
-        amountCalculation: parsed.amountCalculation ?? "fixed",
+        amount_calculation: parsed.amountCalculation ?? "fixed",
         description: parsed.description ?? null,
-        fixedHourlyRate: parsed.fixedHourlyRate ?? null,
-        holidayMultiplier: parsed.holidayMultiplier ?? "2",
-        maxOvertimeHoursPerDay: parsed.maxOvertimeHoursPerDay ?? null,
+        fixed_hourly_rate: parsed.fixedHourlyRate ?? null,
+        holiday_multiplier: parsed.holidayMultiplier ?? "2",
+        max_overtime_hours_per_day: parsed.maxOvertimeHoursPerDay ?? null,
         name: parsed.name,
-        overtimeSalaryComponent: parsed.overtimeSalaryComponent ?? null,
-        standardMultiplier: parsed.standardMultiplier ?? "1.5",
-        weekendMultiplier: parsed.weekendMultiplier ?? "2",
+        overtime_salary_component: parsed.overtimeSalaryComponent ?? null,
+        standard_multiplier: parsed.standardMultiplier ?? "1.5",
+        weekend_multiplier: parsed.weekendMultiplier ?? "2",
       })
       .returning();
 

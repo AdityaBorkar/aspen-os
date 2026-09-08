@@ -15,11 +15,11 @@ export const getUserBranches = Workflow.name("hr.access.get-user-branches")
 
     const records = await ctx.db
       .select({
-        accessLevel: hrUserBranchAccess.accessLevel,
-        branchId: hrUserBranchAccess.branchId,
+        accessLevel: hrUserBranchAccess.access_level,
+        branchId: hrUserBranchAccess.branch_id,
         id: hrUserBranchAccess.id,
       })
       .from(hrUserBranchAccess)
-      .where(eq(hrUserBranchAccess.hrUserId, hrUserId));
+      .where(eq(hrUserBranchAccess.hr_user_id, hrUserId));
     return records;
   });

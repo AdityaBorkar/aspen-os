@@ -12,16 +12,16 @@ const verifyDocument = Workflow.name("document.verify").handler(
     const { id, reviewerId } = input;
     const current = await ctx.step.run(fetchDocumentStep, { id });
 
-    assertTransitionAllowed(current.verificationStatus, VERIFICATION_STATUS.VERIFIED);
+    assertTransitionAllowed(current.verification_status, VERIFICATION_STATUS.VERIFIED);
 
     const now = new Date();
     const [updated] = await ctx.db
       .update(complianceDocument)
       .set({
-        reviewedAt: now,
-        reviewedBy: reviewerId,
-        updatedAt: now,
-        verificationStatus: VERIFICATION_STATUS.VERIFIED,
+        reviewed_at: now,
+        reviewed_by: reviewerId,
+        updated_at: now,
+        verification_status: VERIFICATION_STATUS.VERIFIED,
       })
       .where(eq(complianceDocument.id, id))
       .returning();
@@ -35,14 +35,14 @@ const verifyDocument = Workflow.name("document.verify").handler(
       actorId: reviewerId,
       entityId: id,
       entityType: "compliance_document",
-      previousState: { verificationStatus: current.verificationStatus },
+      previousState: { verification_status: current.verification_status },
     });
 
     await ctx.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_VERIFIED, {
       category: updated.category,
       documentId: id,
-      sourceEntityId: updated.sourceEntityId,
-      sourceModule: updated.sourceModule,
+      sourceEntityId: updated.source_entity_id,
+      sourceModule: updated.source_module,
       verifiedBy: reviewerId,
     });
 

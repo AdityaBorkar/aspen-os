@@ -15,10 +15,10 @@ export const removeRoleFromUser = Workflow.name("hr.access.remove-role-from-user
   .handler(async (input, ctx) => {
     const { hrUserId, roleId, branchId } = input;
 
-    const conditions = [eq(hrUserRole.hrUserId, hrUserId), eq(hrUserRole.roleId, roleId)];
+    const conditions = [eq(hrUserRole.hr_user_id, hrUserId), eq(hrUserRole.role_id, roleId)];
 
     if (branchId !== undefined) {
-      conditions.push(eq(hrUserRole.branchId, branchId));
+      conditions.push(eq(hrUserRole.branch_id, branchId));
     }
 
     await ctx.db.delete(hrUserRole).where(and(...conditions));

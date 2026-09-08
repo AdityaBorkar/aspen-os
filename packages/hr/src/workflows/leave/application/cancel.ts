@@ -21,28 +21,28 @@ export const cancelLeaveApplication = Workflow.name("hr.leave.cancel-leave-appli
     const updated = await ctx.db.transaction(async (tx) => {
       // Only approved applications consumed allocation; cancelling a draft or
       // pending request must not move the balance.
-      if (application.leaveAllocation && application.status === "approved") {
-        await adjustAllocationUsage(tx, application.leaveAllocation, {
-          deltaDays: -toDays(application.totalDays, "totalDays"),
+      if (application.leave_allocation && application.status === "approved") {
+        await adjustAllocationUsage(tx, application.leave_allocation, {
+          deltaDays: -toDays(application.total_days, "totalDays"),
           floorAtZero: true,
         });
       }
 
       await insertLeaveLedgerEntry(tx, {
-        days: `-${application.totalDays}`,
+        days: `-${application.total_days}`,
         description: `Leave application cancelled`,
-        employeeId: application.employeeId,
+        employeeId: application.employee_id,
         leaveApplication: application.id,
-        leaveType: application.leaveType,
+        leaveType: application.leave_type,
         transactionType: "cancellation",
       });
 
       const [row] = await tx
         .update(leaveApplication)
         .set({
-          cancelledAt: new Date(),
+          cancelled_at: new Date(),
           status: "cancelled",
-          updatedAt: new Date(),
+          updated_at: new Date(),
         })
         .where(eq(leaveApplication.id, id))
         .returning();

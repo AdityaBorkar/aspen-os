@@ -15,7 +15,7 @@ export const deleteLeaveType = Workflow.name("hr.leave.delete-leave-type")
 
     const [updated] = await ctx.db
       .update(leaveType)
-      .set({ isActive: false, updatedAt: new Date() })
+      .set({ is_active: false, updated_at: new Date() })
       .where(eq(leaveType.id, id))
       .returning();
 

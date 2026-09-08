@@ -19,7 +19,7 @@ export const updatePromotion = Workflow.name("hr.lifecycle.update-promotion")
 
     const [updated] = await ctx.db
       .update(employeePromotion)
-      .set({ ...parsed, updatedAt: new Date() })
+      .set({ ...parsed, updated_at: new Date() })
       .where(eq(employeePromotion.id, id))
       .returning();
 

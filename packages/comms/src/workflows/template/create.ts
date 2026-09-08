@@ -16,10 +16,10 @@ export const createTemplate = Workflow.name("comms.template.create")
       .insert(commsTemplate)
       .values({
         body: input.body,
-        channelType: input.channelType,
+        channel_type: input.channelType,
         metadata: input.metadata ?? null,
         name: input.name,
-        providerTemplateId: input.providerTemplateId ?? null,
+        provider_template_id: input.providerTemplateId ?? null,
         subject: input.subject ?? null,
       })
       .returning();
@@ -34,10 +34,10 @@ export const createTemplate = Workflow.name("comms.template.create")
       entityId: row.id,
       entityType: AUDIT_ENTITY_TYPE.TEMPLATE,
       event: {
-        payload: { isActive: row.isActive, name: row.name, templateId: row.id },
+        payload: { is_active: row.is_active, name: row.name, templateId: row.id },
         topic: TEMPLATE_EVENTS.CREATED,
       },
-      newState: { channelType: row.channelType, name: row.name },
+      newState: { channel_type: row.channel_type, name: row.name },
     });
 
     return row;

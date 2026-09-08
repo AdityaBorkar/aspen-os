@@ -10,12 +10,12 @@ export async function unsetDefaultView(
 ): Promise<void> {
   await db
     .update(workspaceView)
-    .set({ isDefault: false })
+    .set({ is_default: false })
     .where(
       and(
-        eq(workspaceView.ownerId, ownerId),
+        eq(workspaceView.owner_id, ownerId),
         eq(workspaceView.domain, domain),
-        eq(workspaceView.isDefault, true),
+        eq(workspaceView.is_default, true),
       ),
     );
 }

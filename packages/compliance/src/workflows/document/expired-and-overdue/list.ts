@@ -10,7 +10,7 @@ const getExpiredAndOverdueDocuments = Workflow.name("document.expired-and-overdu
       .select()
       .from(complianceDocument)
       .where(expiredOrOverdueCondition())
-      .orderBy(desc(complianceDocument.updatedAt)),
+      .orderBy(desc(complianceDocument.updated_at)),
 );
 
 export { getExpiredAndOverdueDocuments };

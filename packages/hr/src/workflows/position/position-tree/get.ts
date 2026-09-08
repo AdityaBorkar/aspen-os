@@ -23,15 +23,15 @@ export const getPositionTree = Workflow.name("hr.position.get-position-tree")
     }
 
     const [positions, assignments, activeEmployees] = await Promise.all([
-      ctx.db.select().from(hrPosition).where(eq(hrPosition.isActive, true)),
-      ctx.db.select().from(hrPositionAssignment).where(isNull(hrPositionAssignment.toDate)),
+      ctx.db.select().from(hrPosition).where(eq(hrPosition.is_active, true)),
+      ctx.db.select().from(hrPositionAssignment).where(isNull(hrPositionAssignment.to_date)),
       ctx.db
         .select({
           designation: employee.designation,
-          firstName: employee.firstName,
+          firstName: employee.first_name,
           id: employee.id,
           image: employee.image,
-          lastName: employee.lastName,
+          lastName: employee.last_name,
         })
         .from(employee)
         .where(eq(employee.status, "active")),
@@ -56,13 +56,13 @@ export const getPositionTree = Workflow.name("hr.position.get-position-tree")
   });
 
 function collectSubtreePositions<
-  TPosition extends { id: string; reportsToPosition: string | null },
+  TPosition extends { id: string; reports_to_position: string | null },
 >(positions: TPosition[], rootPositionId: string): TPosition[] {
   const childrenByParent = new Map<string | null, string[]>();
   for (const position of positions) {
-    const siblings = childrenByParent.get(position.reportsToPosition) ?? [];
+    const siblings = childrenByParent.get(position.reports_to_position) ?? [];
     siblings.push(position.id);
-    childrenByParent.set(position.reportsToPosition, siblings);
+    childrenByParent.set(position.reports_to_position, siblings);
   }
 
   const included = new Set<string>([rootPositionId]);

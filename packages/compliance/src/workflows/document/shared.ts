@@ -21,10 +21,10 @@ export function expiryWindowCondition(days: number, now: Date = new Date()) {
   const todayStr = todayDateOnly(now);
   const futureStr = futureDateOnly(days, now);
   return and(
-    isNotNull(complianceDocument.expiryDate),
-    lte(complianceDocument.expiryDate, futureStr),
-    gte(complianceDocument.expiryDate, todayStr),
-    inArray(complianceDocument.verificationStatus, [
+    isNotNull(complianceDocument.expiry_date),
+    lte(complianceDocument.expiry_date, futureStr),
+    gte(complianceDocument.expiry_date, todayStr),
+    inArray(complianceDocument.verification_status, [
       VERIFICATION_STATUS.VERIFIED,
       VERIFICATION_STATUS.SUBMITTED,
     ]),
@@ -35,27 +35,27 @@ export function dueWindowCondition(days: number, now: Date = new Date()) {
   const todayStr = todayDateOnly(now);
   const futureStr = futureDateOnly(days, now);
   return and(
-    isNotNull(complianceDocument.dueDate),
-    lte(complianceDocument.dueDate, futureStr),
-    gte(complianceDocument.dueDate, todayStr),
-    isNull(complianceDocument.completedAt),
+    isNotNull(complianceDocument.due_date),
+    lte(complianceDocument.due_date, futureStr),
+    gte(complianceDocument.due_date, todayStr),
+    isNull(complianceDocument.completed_at),
   );
 }
 
 export function expiredCondition(now: Date = new Date()) {
   return and(
-    isNotNull(complianceDocument.expiryDate),
-    lte(complianceDocument.expiryDate, todayDateOnly(now)),
-    inArray(complianceDocument.verificationStatus, [...EXPIRY_ELIGIBLE_STATUSES]),
+    isNotNull(complianceDocument.expiry_date),
+    lte(complianceDocument.expiry_date, todayDateOnly(now)),
+    inArray(complianceDocument.verification_status, [...EXPIRY_ELIGIBLE_STATUSES]),
   );
 }
 
 export function overdueCondition(now: Date = new Date()) {
   return and(
-    isNotNull(complianceDocument.dueDate),
-    lte(complianceDocument.dueDate, todayDateOnly(now)),
-    isNull(complianceDocument.completedAt),
-    inArray(complianceDocument.verificationStatus, [...OVERDUE_ELIGIBLE_STATUSES]),
+    isNotNull(complianceDocument.due_date),
+    lte(complianceDocument.due_date, todayDateOnly(now)),
+    isNull(complianceDocument.completed_at),
+    inArray(complianceDocument.verification_status, [...OVERDUE_ELIGIBLE_STATUSES]),
   );
 }
 
@@ -65,8 +65,8 @@ export function expiredOrOverdueCondition(now: Date = new Date()) {
 
 export function activeWithDateCondition() {
   return and(
-    inArray(complianceDocument.verificationStatus, [...ACTIVE_DOCUMENT_STATUSES]),
-    or(isNotNull(complianceDocument.expiryDate), isNotNull(complianceDocument.dueDate)),
+    inArray(complianceDocument.verification_status, [...ACTIVE_DOCUMENT_STATUSES]),
+    or(isNotNull(complianceDocument.expiry_date), isNotNull(complianceDocument.due_date)),
   );
 }
 

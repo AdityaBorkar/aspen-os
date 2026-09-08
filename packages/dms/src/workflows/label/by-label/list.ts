@@ -17,11 +17,11 @@ export const listEntitiesByLabel = Workflow.name("dms.label.list-by-label")
 
     const entityLabels = await ctx.db
       .select({
-        entityId: dmsEntityLabel.entityId,
-        entityType: dmsEntityLabel.entityType,
+        entityId: dmsEntityLabel.entity_id,
+        entityType: dmsEntityLabel.entity_type,
       })
       .from(dmsEntityLabel)
-      .where(eq(dmsEntityLabel.labelId, labelId))
+      .where(eq(dmsEntityLabel.label_id, labelId))
       .limit(limit)
       .offset(offset);
 
@@ -37,7 +37,7 @@ export const listEntitiesByLabel = Workflow.name("dms.label.list-by-label")
         ? await ctx.db
             .select()
             .from(dmsFolder)
-            .where(and(eq(dmsFolder.isTrashed, false), sql`${dmsFolder.id} = ANY(${folderIds})`))
+            .where(and(eq(dmsFolder.is_trashed, false), sql`${dmsFolder.id} = ANY(${folderIds})`))
         : [];
 
     const files =

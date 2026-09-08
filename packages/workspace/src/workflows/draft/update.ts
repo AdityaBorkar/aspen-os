@@ -37,7 +37,7 @@ export const updateDraft = Workflow.name("workspace.draft.update")
 
     const [updated] = await ctx.db
       .update(workspaceDraft)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates, updated_at: new Date() })
       .where(eq(workspaceDraft.id, id))
       .returning();
 
@@ -49,18 +49,18 @@ export const updateDraft = Workflow.name("workspace.draft.update")
       access: draft.access,
       body: draft.body,
       notes: draft.notes,
-      targetDomain: draft.targetDomain,
-      targetEntityId: draft.targetEntityId,
-      targetEntityType: draft.targetEntityType,
+      targetDomain: draft.target_domain,
+      targetEntityId: draft.target_entity_id,
+      targetEntityType: draft.target_entity_type,
       title: draft.title,
     };
     const newState = {
       access: updated.access,
       body: updated.body,
       notes: updated.notes,
-      targetDomain: updated.targetDomain,
-      targetEntityId: updated.targetEntityId,
-      targetEntityType: updated.targetEntityType,
+      targetDomain: updated.target_domain,
+      targetEntityId: updated.target_entity_id,
+      targetEntityType: updated.target_entity_type,
       title: updated.title,
     };
     // SAFETY: diff() compares JsonValue-typed state snapshots. New/old values

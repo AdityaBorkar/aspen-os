@@ -21,9 +21,9 @@ export const createTaskType = Workflow.name("task-type.create")
       .values({
         color: input.color ?? null,
         icon: input.icon ?? null,
-        isDefault: input.isDefault ?? false,
+        is_default: input.isDefault ?? false,
         name: input.name,
-        projectId: input.projectId ?? null,
+        project_id: input.projectId ?? null,
       })
       .returning();
 

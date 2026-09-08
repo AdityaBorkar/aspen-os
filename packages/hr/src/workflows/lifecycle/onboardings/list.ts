@@ -18,7 +18,7 @@ export const listOnboardings = Workflow.name("hr.lifecycle.list-onboardings")
     const conditions = [];
 
     if (parsed.employeeId) {
-      conditions.push(eq(employeeOnboarding.employeeId, parsed.employeeId));
+      conditions.push(eq(employeeOnboarding.employee_id, parsed.employeeId));
     }
     if (parsed.status) {
       conditions.push(eq(employeeOnboarding.status, parsed.status));

@@ -18,7 +18,7 @@ export const updateFile = Workflow.name("dms.file.update")
   .handler(async ({ id, input }, ctx) => {
     const file = await ctx.step.run(fetchFileStep, { id });
     const parsed = parse(UpdateFileSchema, input);
-    const actorId = ctx.actorId ?? parsed.uploadedBy ?? file.uploadedBy;
+    const actorId = ctx.actorId ?? parsed.uploadedBy ?? file.uploaded_by;
 
     let current = file;
     let versionAdded = false;
@@ -51,7 +51,7 @@ export const updateFile = Workflow.name("dms.file.update")
     if (Object.keys(metadataUpdates).length > 0) {
       const [updated] = await ctx.db
         .update(dmsFile)
-        .set({ ...metadataUpdates, updatedAt: new Date() })
+        .set({ ...metadataUpdates, updated_at: new Date() })
         .where(eq(dmsFile.id, id))
         .returning();
 

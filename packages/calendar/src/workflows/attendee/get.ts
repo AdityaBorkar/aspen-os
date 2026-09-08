@@ -8,7 +8,7 @@ export const getAttendee = Workflow.name("calendar.attendee.get")
   .input(WithIdSchema)
   .handler(async ({ id }, ctx) => {
     const attendee = await ctx.step.run(fetchAttendeeStep, { id });
-    const cal = await ctx.step.run(fetchEventCalendarStep, { eventId: attendee.eventId });
+    const cal = await ctx.step.run(fetchEventCalendarStep, { eventId: attendee.event_id });
 
     assertCanAccess(cal, ctx.actorId);
 

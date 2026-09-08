@@ -16,11 +16,11 @@ export const createExitInterview = Workflow.name("hr.lifecycle.create-exit-inter
     const [result] = await ctx.db
       .insert(exitInterview)
       .values({
-        employeeId: parsed.employeeId,
+        employee_id: parsed.employeeId,
         interviewer: parsed.interviewer ?? null,
-        questionnaireTemplate: parsed.questionnaireTemplate ?? null,
-        scheduledDate: parsed.scheduledDate ? new Date(parsed.scheduledDate) : null,
-        separationId: parsed.separationId ?? null,
+        questionnaire_template: parsed.questionnaireTemplate ?? null,
+        scheduled_date: parsed.scheduledDate ? new Date(parsed.scheduledDate) : null,
+        separation_id: parsed.separationId ?? null,
       })
       .returning();
 

@@ -25,14 +25,14 @@ export const listNotes = Workflow.name("notes.note.list")
       const conditions = [];
 
       if (!admin) {
-        conditions.push(or(eq(note.access, NOTES_ACCESS.GLOBAL), eq(note.ownerId, actor)));
+        conditions.push(or(eq(note.access, NOTES_ACCESS.GLOBAL), eq(note.owner_id, actor)));
       }
 
       if (filters.scopeType) {
-        conditions.push(eq(note.scopeType, filters.scopeType));
+        conditions.push(eq(note.scope_type, filters.scopeType));
       }
       if (filters.scopeId) {
-        conditions.push(eq(note.scopeId, filters.scopeId));
+        conditions.push(eq(note.scope_id, filters.scopeId));
       }
       if (filters.type) {
         conditions.push(eq(note.type, filters.type));
@@ -51,7 +51,7 @@ export const listNotes = Workflow.name("notes.note.list")
         .select()
         .from(note)
         .where(whereClause)
-        .orderBy(desc(note.createdAt))
+        .orderBy(desc(note.created_at))
         .limit(filters.limit)
         .offset(filters.offset);
     });

@@ -15,12 +15,14 @@ export const getUserPermissions = Workflow.name("hr.access.get-user-permissions"
     const { hrUserId, branchId } = input;
 
     const userRoles = await ctx.db
-      .select({ roleId: hrUserRole.roleId })
+      .select({ roleId: hrUserRole.role_id })
       .from(hrUserRole)
       .where(
         and(
-          eq(hrUserRole.hrUserId, hrUserId),
-          branchId ? or(isNull(hrUserRole.branchId), eq(hrUserRole.branchId, branchId)) : undefined,
+          eq(hrUserRole.hr_user_id, hrUserId),
+          branchId
+            ? or(isNull(hrUserRole.branch_id), eq(hrUserRole.branch_id, branchId))
+            : undefined,
         ),
       );
 
@@ -35,8 +37,8 @@ export const getUserPermissions = Workflow.name("hr.access.get-user-permissions"
         module: hrPermission.module,
       })
       .from(hrRolePermission)
-      .innerJoin(hrPermission, eq(hrRolePermission.permissionId, hrPermission.id))
-      .where(inArray(hrRolePermission.roleId, roleIds));
+      .innerJoin(hrPermission, eq(hrRolePermission.permission_id, hrPermission.id))
+      .where(inArray(hrRolePermission.role_id, roleIds));
 
     const seen = new Set<string>();
     return permissions.filter((permission) => {

@@ -24,8 +24,8 @@ export const updateContact = Workflow.name("masters.contact.update")
       await ctx.step.run("unset-primary", () =>
         unsetPrimaryForOwner({
           db: ctx.db,
-          entityId: current.entityId,
-          entityType: current.entityType,
+          entityId: current.entity_id,
+          entityType: current.entity_type,
           table: masterContact,
         }),
       );
@@ -44,7 +44,7 @@ export const updateContact = Workflow.name("masters.contact.update")
 
     const [updated] = await ctx.db
       .update(masterContact)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates, updated_at: new Date() })
       .where(eq(masterContact.id, input.id))
       .returning();
 
@@ -64,7 +64,7 @@ export const updateContact = Workflow.name("masters.contact.update")
       await ctx.pubsub.publish(CONTACT_EVENTS.UPDATED, {
         changes: updates,
         contact: { id: updated.id, name: updated.name },
-        entityType: updated.entityType,
+        entityType: updated.entity_type,
       });
     });
 

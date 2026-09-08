@@ -26,7 +26,7 @@ export const listTenants = Workflow.name("tenant.list")
         conditions.push(eq(tenant.plan, parsed.plan));
       }
       if (parsed.serviceProviderId) {
-        conditions.push(eq(tenant.serviceProviderId, parsed.serviceProviderId));
+        conditions.push(eq(tenant.service_provider_id, parsed.serviceProviderId));
       }
       if (parsed.search) {
         const term = `%${escapeLikeTerm(parsed.search)}%`;
@@ -40,13 +40,13 @@ export const listTenants = Workflow.name("tenant.list")
 
       return ctx.db
         .select({
-          createdAt: organization.createdAt,
+          createdAt: organization.created_at,
           id: organization.id,
           logo: organization.logo,
           name: organization.name,
           plan: tenant.plan,
-          serviceProviderId: tenant.serviceProviderId,
-          signupAt: tenant.signupAt,
+          serviceProviderId: tenant.service_provider_id,
+          signupAt: tenant.signup_at,
           slug: organization.slug,
           status: tenant.status,
         })

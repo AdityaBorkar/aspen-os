@@ -15,7 +15,7 @@ export const deleteGroup = Workflow.name("hr.employee.delete-group")
     const { id } = input;
 
     const deleted = await ctx.db.transaction(async (tx) => {
-      await tx.delete(employeeGroupMember).where(eq(employeeGroupMember.groupId, id));
+      await tx.delete(employeeGroupMember).where(eq(employeeGroupMember.group_id, id));
 
       const [row] = await tx.delete(employeeGroup).where(eq(employeeGroup.id, id)).returning();
 

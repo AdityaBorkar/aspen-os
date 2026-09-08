@@ -22,10 +22,10 @@ export const approveTransfer = Workflow.name("hr.lifecycle.approve-transfer")
     const [updated] = await ctx.db
       .update(employeeTransfer)
       .set({
-        approvedAt: new Date(),
-        approvedBy,
+        approved_at: new Date(),
+        approved_by: approvedBy,
         status: "approved",
-        updatedAt: new Date(),
+        updated_at: new Date(),
       })
       .where(eq(employeeTransfer.id, id))
       .returning();
@@ -34,7 +34,7 @@ export const approveTransfer = Workflow.name("hr.lifecycle.approve-transfer")
 
     await ctx.pubsub.publish(LIFECYCLE_EVENTS.TRANSFER_APPROVED, {
       approvedBy,
-      employeeId: existing.employeeId,
+      employeeId: existing.employee_id,
       transferId: id,
     });
 

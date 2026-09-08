@@ -20,7 +20,7 @@ export const markUnread = Workflow.name("comms.notification.mark-unread")
 
     const [updated] = await ctx.db
       .update(commsNotification)
-      .set({ readAt: null, status: "unread", updatedAt: new Date() })
+      .set({ read_at: null, status: "unread", updated_at: new Date() })
       .where(eq(commsNotification.id, input.id))
       .returning();
 

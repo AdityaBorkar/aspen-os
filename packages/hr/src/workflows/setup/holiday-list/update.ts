@@ -19,7 +19,7 @@ export const updateHolidayList = Workflow.name("hr.setup.update-holiday-list")
 
     const [updated] = await ctx.db
       .update(holidayList)
-      .set({ ...parsed, updatedAt: new Date() })
+      .set({ ...parsed, updated_at: new Date() })
       .where(eq(holidayList.id, id))
       .returning();
 

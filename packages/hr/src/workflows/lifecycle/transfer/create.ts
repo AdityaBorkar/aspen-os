@@ -16,15 +16,15 @@ export const createTransfer = Workflow.name("hr.lifecycle.create-transfer")
     const [result] = await ctx.db
       .insert(employeeTransfer)
       .values({
-        effectiveDate: parsed.effectiveDate,
-        employeeId: parsed.employeeId,
-        fromBranch: parsed.fromBranch ?? null,
-        fromCompany: parsed.fromCompany ?? null,
-        fromDepartment: parsed.fromDepartment ?? null,
+        effective_date: parsed.effectiveDate,
+        employee_id: parsed.employeeId,
+        from_branch: parsed.fromBranch ?? null,
+        from_company: parsed.fromCompany ?? null,
+        from_department: parsed.fromDepartment ?? null,
         reason: parsed.reason ?? null,
-        toBranch: parsed.toBranch ?? null,
-        toCompany: parsed.toCompany ?? null,
-        toDepartment: parsed.toDepartment ?? null,
+        to_branch: parsed.toBranch ?? null,
+        to_company: parsed.toCompany ?? null,
+        to_department: parsed.toDepartment ?? null,
       })
       .returning();
 

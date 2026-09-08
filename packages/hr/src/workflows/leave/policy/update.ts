@@ -19,7 +19,7 @@ export const updateLeavePolicy = Workflow.name("hr.leave.update-leave-policy")
 
     const [updated] = await ctx.db
       .update(leavePolicy)
-      .set({ ...parsed, updatedAt: new Date() })
+      .set({ ...parsed, updated_at: new Date() })
       .where(eq(leavePolicy.id, id))
       .returning();
 

@@ -25,7 +25,7 @@ export const updatePayrollSettings = Workflow.name("hr.setup.update-payroll-sett
 
     const [updated] = await ctx.db
       .update(payrollSettings)
-      .set({ ...parsed, updatedAt: new Date() })
+      .set({ ...parsed, updated_at: new Date() })
       .where(eq(payrollSettings.id, current.id))
       .returning();
 

@@ -53,15 +53,15 @@ export function getCacheTtl(config: Record<string, JsonValue>, fallback = 300): 
 
 interface AuditLogRow {
   action: string;
-  actorId: string | null;
+  actor_id: string | null;
   changes: Record<string, JsonValue> | null;
-  entityId: string;
-  entityType: string;
+  entity_id: string;
+  entity_type: string;
   id: string;
   metadata: Record<string, JsonValue> | null;
-  newState: Record<string, JsonValue> | null;
-  performedAt: Date;
-  previousState: Record<string, JsonValue> | null;
+  new_state: Record<string, JsonValue> | null;
+  performed_at: Date;
+  previous_state: Record<string, JsonValue> | null;
 }
 
 export type { AuditLogRow };
@@ -87,15 +87,15 @@ export function normalize(row: AuditLogRow): ComplianceAuditEntry {
   return {
     action: row.action,
     changes: toChangeRecord(row.changes),
-    entityId: row.entityId,
-    entityType: row.entityType,
+    entityId: row.entity_id,
+    entityType: row.entity_type,
     id: row.id,
     metadata,
-    newState: row.newState,
+    newState: row.new_state,
     notes,
-    performedAt: row.performedAt,
-    performedBy: row.actorId,
-    previousState: row.previousState,
+    performedAt: row.performed_at,
+    performedBy: row.actor_id,
+    previousState: row.previous_state,
   };
 }
 

@@ -15,15 +15,15 @@ export const setPrimaryBankAccount = Workflow.name("masters.bank-account.set-pri
     await ctx.step.run("unset-primary", () =>
       unsetPrimaryForOwner({
         db: ctx.db,
-        entityId: bankAccount.entityId,
-        entityType: bankAccount.entityType,
+        entityId: bankAccount.entity_id,
+        entityType: bankAccount.entity_type,
         table: masterBankAccount,
       }),
     );
 
     const [updated] = await ctx.db
       .update(masterBankAccount)
-      .set({ isPrimary: true, updatedAt: new Date() })
+      .set({ is_primary: true, updated_at: new Date() })
       .where(eq(masterBankAccount.id, input.id))
       .returning();
 
@@ -31,7 +31,7 @@ export const setPrimaryBankAccount = Workflow.name("masters.bank-account.set-pri
       action: AUDIT_ACTION.PRIMARY_SET,
       entityId: bankAccount.id,
       entityType: AUDIT_ENTITY_TYPE.BANK_ACCOUNT,
-      metadata: { entityId: bankAccount.entityId, entityType: bankAccount.entityType },
+      metadata: { entity_id: bankAccount.entity_id, entity_type: bankAccount.entity_type },
     });
 
     return updated;

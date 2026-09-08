@@ -20,9 +20,9 @@ export const updateSavedView = Workflow.name("view.update")
       .update(savedView)
       .set({
         filters: patch.filters,
-        groupBy: patch.groupBy,
-        isDefault: patch.isDefault,
-        isShared: patch.isShared,
+        group_by: patch.groupBy,
+        is_default: patch.isDefault,
+        is_shared: patch.isShared,
         name: patch.name,
         sort: patch.sort,
         type: patch.type,

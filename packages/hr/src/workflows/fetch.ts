@@ -69,7 +69,7 @@ export async function ensureNoDuplicateAttendance(
   const [existing] = await db
     .select({ id: attendance.id })
     .from(attendance)
-    .where(and(eq(attendance.employeeId, employeeId), eq(attendance.date, date)))
+    .where(and(eq(attendance.employee_id, employeeId), eq(attendance.date, date)))
     .limit(1);
 
   if (existing) {
@@ -96,7 +96,7 @@ export async function ensureEmployeeIdUnique(
   employeeId: string,
   excludeId?: string,
 ): Promise<void> {
-  const conditions = [eq(employee.employeeId, employeeId)];
+  const conditions = [eq(employee.employee_id, employeeId)];
   if (excludeId) {
     conditions.push(sql`${employee.id} != ${excludeId}`);
   }

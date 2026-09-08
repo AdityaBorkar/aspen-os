@@ -15,7 +15,7 @@ export const deleteOvertimeType = Workflow.name("hr.overtime.delete-overtime-typ
 
     const [updated] = await ctx.db
       .update(overtimeType)
-      .set({ isActive: false, updatedAt: new Date() })
+      .set({ is_active: false, updated_at: new Date() })
       .where(eq(overtimeType.id, id))
       .returning();
 

@@ -167,10 +167,11 @@ export const dmsFileStatusEnum = pgEnum("dms_file_status", [
 **`src/db-schemas/<entity>.ts`** — one file per table. Conventions from AGENTS.md:
 
 - `pgTable("snake_case_name", { … }, (t) => [indexes])`
-- `id: uuidv7("id").primaryKey()` — `import { uuidv7 } from "@aspen-os/platform/server"` (do **not** use `sql\`uuidv7()\``) (exception: better-auth tables use plain `text("id").primaryKey()`) — the `uuidv7`column type bakes in the insert-time JS`generateUuidv7()` default
-- `createdAt` / `updatedAt` with timestamptz, `notNull().defaultNow()`, `$onUpdate(() => new Date())` on updatedAt only
-- Columns sorted alphabetically by TS property name
-- `pgEnum` from `./enums`, `date("expiry_date")` for plain dates, `bigint("size", { mode: "number" })` for sizes, `jsonb` for metadata
+- `id: uuidv7().primaryKey()` — `import { uuidv7 } from "@aspen-os/platform/server"` (do **not** use `sql\`uuidv7()\``and do **not** pass an explicit name) (exception: better-auth tables use plain`text().primaryKey()`) — the `uuidv7`column type bakes in the insert-time JS`generateUuidv7()` default
+- Column keys are `snake_case` and **are** the DB names: never repeat the name in params. Write `owner_id: text().notNull()`, never `ownerId: text("owner_id")`. Same for `created_at` / `updated_at` with timestamptz, `notNull().defaultNow()`, `$onUpdate(() => new Date())` on updated_at only
+- Columns sorted alphabetically by (snake_case) key
+- `pgEnum` from `./enums` used with no name (`status: myEnum()`), `date()` for plain dates, `bigint({ mode: "number" })` for sizes, `jsonb()` for metadata; indexes reference snake keys (`table.owner_id`)
+- Valibot/API inputs stay `camelCase`; map explicitly at the DB boundary (`owner_id: input.ownerId`)
 - Export types: `type <Entity> = typeof pgTable.$inferSelect` and `type New<Entity> = typeof pgTable.$inferInsert`
 
 **`src/db-schemas/index.ts`** — re-export every table const + enum, then build a named `<name>Tables` aggregate and the schema maps:

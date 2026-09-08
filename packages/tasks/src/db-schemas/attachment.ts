@@ -4,16 +4,16 @@ import { index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 export const attachment = pgTable(
   "task_attachment",
   {
-    commentId: text("comment_id"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    fileId: text("file_id").notNull(),
-    id: uuidv7("id").primaryKey(),
-    taskId: text("task_id").notNull(),
-    uploadedBy: text("uploaded_by").notNull(),
+    comment_id: text(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    file_id: text().notNull(),
+    id: uuidv7().primaryKey(),
+    task_id: text().notNull(),
+    uploaded_by: text().notNull(),
   },
   (table) => [
-    index("idx_task_attachment_task").on(table.taskId),
-    index("idx_task_attachment_comment").on(table.commentId),
+    index("idx_task_attachment_task").on(table.task_id),
+    index("idx_task_attachment_comment").on(table.comment_id),
   ],
 );
 

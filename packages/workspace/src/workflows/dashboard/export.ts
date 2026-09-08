@@ -16,7 +16,7 @@ export const exportDashboard = Workflow.name("workspace.dashboard.export")
     const widgets = await ctx.db
       .select()
       .from(workspaceWidget)
-      .where(eq(workspaceWidget.dashboardId, id));
+      .where(eq(workspaceWidget.dashboard_id, id));
 
     await ctx.audit.write({
       action: AUDIT_ACTION.EXPORTED,
@@ -39,7 +39,7 @@ export const exportDashboard = Workflow.name("workspace.dashboard.export")
         id: widget.id,
         title: widget.title,
         type: widget.type,
-        viewId: widget.viewId,
+        viewId: widget.view_id,
       })),
     };
   });

@@ -31,7 +31,7 @@ export const revertToVersion = Workflow.name("dms.version.revert")
       const [row] = await ctx.db
         .select()
         .from(dmsFileVersion)
-        .where(and(eq(dmsFileVersion.fileId, fileId), eq(dmsFileVersion.version, version)))
+        .where(and(eq(dmsFileVersion.file_id, fileId), eq(dmsFileVersion.version, version)))
         .limit(1);
       if (!row) {
         throw new Error(`File "${fileId}" has no version "${version}".`);
@@ -39,7 +39,7 @@ export const revertToVersion = Workflow.name("dms.version.revert")
       return row;
     });
 
-    const actorId = ctx.actorId ?? file.ownerId;
+    const actorId = ctx.actorId ?? file.owner_id;
     const { newVersion: newVersionNumber, updated } = await ctx.step.run("revert-bytes", async () =>
       revertVersion(ctx.db, file, { actorId, target }),
     );

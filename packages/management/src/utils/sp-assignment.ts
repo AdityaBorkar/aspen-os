@@ -24,20 +24,20 @@ export async function upsertSpAssignment<TSchemas extends SchemaMap>(
   const [existing] = await ctx.db
     .select({ id: serviceProviderUser.id })
     .from(serviceProviderUser)
-    .where(eq(serviceProviderUser.userId, userId))
+    .where(eq(serviceProviderUser.user_id, userId))
     .limit(1);
 
   if (existing) {
     await ctx.db
       .update(serviceProviderUser)
-      .set({ serviceProviderId: spId, updatedAt: new Date() })
+      .set({ service_provider_id: spId, updated_at: new Date() })
       .where(eq(serviceProviderUser.id, existing.id));
     return;
   }
 
   await ctx.db.insert(serviceProviderUser).values({
-    serviceProviderId: spId,
-    userId,
+    service_provider_id: spId,
+    user_id: userId,
   });
 }
 
@@ -45,5 +45,5 @@ export async function clearSpAssignment<TSchemas extends SchemaMap>(
   ctx: WorkflowContext<TSchemas>,
   userId: string,
 ): Promise<void> {
-  await ctx.db.delete(serviceProviderUser).where(eq(serviceProviderUser.userId, userId));
+  await ctx.db.delete(serviceProviderUser).where(eq(serviceProviderUser.user_id, userId));
 }

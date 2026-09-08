@@ -13,7 +13,7 @@ export const setDefaultFileView = Workflow.name("dms.file-view.set-default")
   .input(SetDefaultInputSchema)
   .handler(async ({ id }, ctx) => {
     const [view] = await ctx.db
-      .select({ id: dmsFileView.id, ownerId: dmsFileView.ownerId })
+      .select({ id: dmsFileView.id, ownerId: dmsFileView.owner_id })
       .from(dmsFileView)
       .where(eq(dmsFileView.id, id))
       .limit(1);
@@ -29,7 +29,7 @@ export const setDefaultFileView = Workflow.name("dms.file-view.set-default")
 
       const [next] = await tx
         .update(dmsFileView)
-        .set({ isDefault: true, updatedAt: new Date() })
+        .set({ is_default: true, updated_at: new Date() })
         .where(eq(dmsFileView.id, id))
         .returning();
       return next;

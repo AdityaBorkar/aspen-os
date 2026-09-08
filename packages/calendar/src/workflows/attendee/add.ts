@@ -22,10 +22,10 @@ export const addAttendee = Workflow.name("calendar.attendee.add")
     const [created] = await ctx.db
       .insert(calendarAttendee)
       .values({
-        attendeeId: parsed.attendeeId ?? null,
-        attendeeType: parsed.attendeeType,
+        attendee_id: parsed.attendeeId ?? null,
+        attendee_type: parsed.attendeeType,
         email: parsed.email,
-        eventId: parsed.eventId,
+        event_id: parsed.eventId,
         name: parsed.name ?? null,
         optional: parsed.optional ?? false,
         status: parsed.status,
@@ -42,13 +42,13 @@ export const addAttendee = Workflow.name("calendar.attendee.add")
         crudAction: "create",
         entityId: created.id,
         entityType: AUDIT_ENTITY_TYPE.ATTENDEE,
-        newState: { email: created.email, eventId: created.eventId, status: created.status },
+        newState: { email: created.email, event_id: created.event_id, status: created.status },
       });
 
       await ctx.pubsub.publish(ATTENDEE_EVENTS.INVITED, {
         attendee: toAttendeePayload(created),
         calendarId: cal.id,
-        eventId: created.eventId,
+        eventId: created.event_id,
       });
     });
 

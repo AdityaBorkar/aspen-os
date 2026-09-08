@@ -8,7 +8,7 @@ type CalendarDb = WorkflowContext["db"];
 
 /** Calendars visible to `actorId`: global calendars plus owned ones. */
 export function visibleCalendarCondition(actorId: string) {
-  return or(eq(calendar.access, CALENDAR_ACCESS.GLOBAL), eq(calendar.ownerId, actorId));
+  return or(eq(calendar.access, CALENDAR_ACCESS.GLOBAL), eq(calendar.owner_id, actorId));
 }
 
 /** Ids of calendars visible to `actorId`. */
@@ -21,7 +21,7 @@ export function accessibleEventIds(db: CalendarDb, actorId: string) {
   return db
     .select({ id: calendarEvent.id })
     .from(calendarEvent)
-    .where(inArray(calendarEvent.calendarId, accessibleCalendarIds(db, actorId)));
+    .where(inArray(calendarEvent.calendar_id, accessibleCalendarIds(db, actorId)));
 }
 
 /**

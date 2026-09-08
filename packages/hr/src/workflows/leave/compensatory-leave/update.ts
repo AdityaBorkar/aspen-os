@@ -19,7 +19,7 @@ export const updateCompensatoryLeave = Workflow.name("hr.leave.update-compensato
 
     const [updated] = await ctx.db
       .update(compensatoryLeaveRequest)
-      .set({ ...parsed, updatedAt: new Date() })
+      .set({ ...parsed, updated_at: new Date() })
       .where(eq(compensatoryLeaveRequest.id, id))
       .returning();
 

@@ -18,7 +18,7 @@ export const unassignEmployee = Workflow.name("hr.position.unassign")
 
     const assignment = await fetchPositionAssignmentById(ctx.db, assignmentId);
 
-    if (assignment.toDate !== null) {
+    if (assignment.to_date !== null) {
       throw new Error(`Assignment "${assignmentId}" is already closed.`);
     }
 
@@ -26,8 +26,8 @@ export const unassignEmployee = Workflow.name("hr.position.unassign")
 
     const [updated] = await ctx.db
       .update(hrPositionAssignment)
-      .set({ toDate, updatedAt: new Date() })
-      .where(and(eq(hrPositionAssignment.id, assignmentId), isNull(hrPositionAssignment.toDate)))
+      .set({ to_date: toDate, updated_at: new Date() })
+      .where(and(eq(hrPositionAssignment.id, assignmentId), isNull(hrPositionAssignment.to_date)))
       .returning();
 
     if (!updated) {
@@ -35,8 +35,8 @@ export const unassignEmployee = Workflow.name("hr.position.unassign")
     }
 
     await ctx.pubsub.publish(POSITION_EVENTS.UNASSIGNED, {
-      employeeId: assignment.employeeId,
-      positionId: assignment.positionId,
+      employeeId: assignment.employee_id,
+      positionId: assignment.position_id,
       toDate,
     });
 

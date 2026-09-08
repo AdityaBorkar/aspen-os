@@ -16,9 +16,9 @@ export const createComment = Workflow.name("comment.create")
       .insert(comment)
       .values({
         body: input.body,
-        parentId: input.parentId ?? null,
-        taskId: input.taskId,
-        userId: input.userId,
+        parent_id: input.parentId ?? null,
+        task_id: input.taskId,
+        user_id: input.userId,
       })
       .returning();
 
@@ -32,7 +32,7 @@ export const createComment = Workflow.name("comment.create")
           body: result.body,
           id: result.id,
         },
-        taskId: result.taskId,
+        taskId: result.task_id,
       });
     });
 

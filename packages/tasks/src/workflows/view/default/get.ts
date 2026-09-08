@@ -9,10 +9,10 @@ export const getDefaultSavedView = Workflow.name("view.get-default")
   .input(object({ ownerId: IdSchema, projectId: optional(IdSchema) }))
   .handler(async ({ ownerId, projectId }, ctx) =>
     ctx.step.run("query", async () => {
-      const conditions = [eq(savedView.ownerId, ownerId), eq(savedView.isDefault, true)];
+      const conditions = [eq(savedView.owner_id, ownerId), eq(savedView.is_default, true)];
 
       if (projectId) {
-        conditions.push(eq(savedView.projectId, projectId));
+        conditions.push(eq(savedView.project_id, projectId));
       }
 
       const [result] = await ctx.db

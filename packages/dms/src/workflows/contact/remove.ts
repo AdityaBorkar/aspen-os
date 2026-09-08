@@ -19,7 +19,7 @@ export const removeContact = Workflow.name("dms.contact.remove")
     if (!reason || reason.trim().length === 0) {
       throw new Error("Deletion reason is required to remove a contact.");
     }
-    if (contact.isRemoved) {
+    if (contact.is_removed) {
       throw new Error(`Contact "${id}" is already removed.`);
     }
 
@@ -27,16 +27,16 @@ export const removeContact = Workflow.name("dms.contact.remove")
       await tx
         .update(dmsContact)
         .set({
-          deletionReason: reason,
-          isRemoved: true,
-          removedAt: new Date(),
-          updatedAt: new Date(),
+          deletion_reason: reason,
+          is_removed: true,
+          removed_at: new Date(),
+          updated_at: new Date(),
         })
         .where(eq(dmsContact.id, id));
 
       const deleted = await tx
         .delete(dmsShare)
-        .where(and(eq(dmsShare.granteeId, id), eq(dmsShare.granteeType, "contact")))
+        .where(and(eq(dmsShare.grantee_id, id), eq(dmsShare.grantee_type, "contact")))
         .returning({ id: dmsShare.id });
       return deleted.length;
     });

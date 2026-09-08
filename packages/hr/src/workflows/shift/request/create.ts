@@ -20,11 +20,11 @@ export const createShiftRequest = Workflow.name("hr.shift.create-shift-request")
     const [result] = await ctx.db
       .insert(shiftRequest)
       .values({
-        employeeId: parsed.employeeId,
-        fromDate: parsed.fromDate,
+        employee_id: parsed.employeeId,
+        from_date: parsed.fromDate,
         reason: parsed.reason ?? null,
-        shiftType: parsed.shiftType,
-        toDate: parsed.toDate ?? null,
+        shift_type: parsed.shiftType,
+        to_date: parsed.toDate ?? null,
       })
       .returning();
 

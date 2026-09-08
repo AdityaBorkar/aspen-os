@@ -18,14 +18,14 @@ export const createFullAndFinal = Workflow.name("hr.lifecycle.create-full-and-fi
       .values({
         bonus: parsed.bonus ?? "0",
         deductions: parsed.deductions ?? "0",
-        employeeId: parsed.employeeId,
+        employee_id: parsed.employeeId,
         gratuity: parsed.gratuity ?? "0",
-        leaveEncashment: parsed.leaveEncashment ?? "0",
-        loanRecovery: parsed.loanRecovery ?? "0",
+        leave_encashment: parsed.leaveEncashment ?? "0",
+        loan_recovery: parsed.loanRecovery ?? "0",
         metadata: parsed.metadata ?? null,
         notes: parsed.notes ?? null,
-        pendingSalary: parsed.pendingSalary ?? "0",
-        separationId: parsed.separationId ?? null,
+        pending_salary: parsed.pendingSalary ?? "0",
+        separation_id: parsed.separationId ?? null,
       })
       .returning();
 

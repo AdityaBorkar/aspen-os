@@ -23,7 +23,7 @@ export const createDashboard = Workflow.name("workspace.dashboard.create")
         layout: parsed.layout ?? [],
         metadata: parsed.metadata,
         name: parsed.name,
-        ownerId,
+        owner_id: ownerId,
       })
       .returning();
 
@@ -42,7 +42,7 @@ export const createDashboard = Workflow.name("workspace.dashboard.create")
     await ctx.pubsub.publish(DASHBOARD_EVENTS.CREATED, {
       access: dashboard.access,
       dashboardId: dashboard.id,
-      ownerId: dashboard.ownerId,
+      ownerId: dashboard.owner_id,
     });
 
     return dashboard;

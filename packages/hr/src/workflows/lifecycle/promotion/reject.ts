@@ -22,11 +22,11 @@ export const rejectPromotion = Workflow.name("hr.lifecycle.reject-promotion")
     const [updated] = await ctx.db
       .update(employeePromotion)
       .set({
-        rejectedAt: new Date(),
-        rejectedBy,
-        rejectionReason,
+        rejected_at: new Date(),
+        rejected_by: rejectedBy,
+        rejection_reason: rejectionReason,
         status: "rejected",
-        updatedAt: new Date(),
+        updated_at: new Date(),
       })
       .where(eq(employeePromotion.id, id))
       .returning();

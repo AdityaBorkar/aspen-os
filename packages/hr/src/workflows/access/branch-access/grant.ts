@@ -16,9 +16,9 @@ export const grantBranchAccess = Workflow.name("hr.access.grant-branch-access")
     const [result] = await ctx.db
       .insert(hrUserBranchAccess)
       .values({
-        accessLevel: parsed.accessLevel,
-        branchId: parsed.branchId,
-        hrUserId: parsed.hrUserId,
+        access_level: parsed.accessLevel,
+        branch_id: parsed.branchId,
+        hr_user_id: parsed.hrUserId,
       })
       .returning();
     return result;

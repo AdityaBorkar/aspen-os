@@ -6,6 +6,27 @@ import { eq } from "drizzle-orm";
 import type { AuthServiceDeps, User } from "./types";
 import { toUser } from "./utils";
 
+function toUserFromRow(row: typeof user.$inferSelect): User {
+  return toUser({
+    banExpires: row.ban_expires,
+    banReason: row.ban_reason,
+    banned: row.banned,
+    createdAt: row.created_at,
+    displayUsername: row.display_username,
+    email: row.email,
+    emailVerified: row.email_verified,
+    id: row.id,
+    image: row.image,
+    name: row.name,
+    phoneNumber: row.phone_number,
+    phoneNumberVerified: row.phone_number_verified,
+    role: row.role,
+    twoFactorEnabled: row.two_factor_enabled,
+    updatedAt: row.updated_at,
+    username: row.username,
+  });
+}
+
 export async function createUser(
   { email, name, password }: { email: string; name?: string; password: string },
   { db, pubsub }: AuthServiceDeps,
@@ -16,7 +37,7 @@ export async function createUser(
     .insert(user)
     .values({
       email,
-      emailVerified: false,
+      email_verified: false,
       id: crypto.randomUUID(),
       name: name ?? "",
     })
@@ -27,14 +48,14 @@ export async function createUser(
   }
 
   await db.insert(account).values({
-    accountId: row.id,
+    account_id: row.id,
     id: crypto.randomUUID(),
     password: passwordHash,
-    providerId: "credential",
-    userId: row.id,
+    provider_id: "credential",
+    user_id: row.id,
   });
 
-  const $user = toUser(row);
+  const $user = toUserFromRow(row);
   await pubsub?.publish("user:created", { user: $user });
   return $user;
 }
@@ -47,7 +68,7 @@ export async function getUserById(
   if (!row) {
     return null;
   }
-  return toUser(row);
+  return toUserFromRow(row);
 }
 
 export async function getUserByEmail(
@@ -58,7 +79,7 @@ export async function getUserByEmail(
   if (!row) {
     return null;
   }
-  return toUser(row);
+  return toUserFromRow(row);
 }
 
 export async function updateUser(
@@ -88,7 +109,7 @@ export async function updateUser(
     throw new Error(`User "${id}" not found`);
   }
 
-  const $user = toUser(row);
+  const $user = toUserFromRow(row);
   await pubsub?.publish("user:updated", { user: $user });
   return $user;
 }

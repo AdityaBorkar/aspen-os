@@ -18,7 +18,7 @@ export const createLeaveApplication = Workflow.name("hr.leave.create-leave-appli
       checkLeaveBlockList(ctx.db, { fromDate: input.fromDate, toDate: input.toDate }),
     ]);
 
-    if (!leaveTypeRecord.isLeaveWithoutPay) {
+    if (!leaveTypeRecord.is_leave_without_pay) {
       await checkLeaveBalance(ctx.db, {
         days: toDays(input.totalDays, "totalDays"),
         employeeId: input.employeeId,
@@ -29,15 +29,15 @@ export const createLeaveApplication = Workflow.name("hr.leave.create-leave-appli
     const [result] = await ctx.db
       .insert(leaveApplication)
       .values({
-        employeeId: input.employeeId,
-        fromDate: input.fromDate,
-        halfDayDate: input.halfDayDate ?? null,
-        isHalfDay: input.isHalfDay ?? false,
-        leaveAllocation: input.leaveAllocation ?? null,
-        leaveType: input.leaveType,
+        employee_id: input.employeeId,
+        from_date: input.fromDate,
+        half_day_date: input.halfDayDate ?? null,
+        is_half_day: input.isHalfDay ?? false,
+        leave_allocation: input.leaveAllocation ?? null,
+        leave_type: input.leaveType,
         reason: input.reason ?? null,
-        toDate: input.toDate,
-        totalDays: input.totalDays,
+        to_date: input.toDate,
+        total_days: input.totalDays,
       })
       .returning();
 

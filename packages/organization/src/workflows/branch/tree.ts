@@ -13,10 +13,10 @@ export const getBranchTree = Workflow.name("branch.tree")
         .select({
           id: branch.id,
           name: branch.name,
-          parentBranch: branch.parentBranch,
+          parentBranch: branch.parent_branch,
         })
         .from(branch)
-        .where(eq(branch.isActive, true));
+        .where(eq(branch.is_active, true));
 
       return buildTree(allBranches);
     }),

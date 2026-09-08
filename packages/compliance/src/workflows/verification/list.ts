@@ -25,10 +25,10 @@ const listVerificationRules = Workflow.name("verification.list").handler(
       conditions.push(eq(complianceVerificationRule.category, filters.category));
     }
     if (filters?.sourceModule) {
-      conditions.push(eq(complianceVerificationRule.sourceModule, filters.sourceModule));
+      conditions.push(eq(complianceVerificationRule.source_module, filters.sourceModule));
     }
     if (filters?.isActive !== undefined) {
-      conditions.push(eq(complianceVerificationRule.isActive, filters.isActive));
+      conditions.push(eq(complianceVerificationRule.is_active, filters.isActive));
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;

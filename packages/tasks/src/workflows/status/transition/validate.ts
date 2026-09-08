@@ -20,9 +20,9 @@ export const validateTransition = Workflow.name("status.validate-transition")
         .from(statusTransition)
         .where(
           and(
-            eq(statusTransition.fromStatusId, fromStatusId),
-            eq(statusTransition.toStatusId, toStatusId),
-            eq(statusTransition.projectId, projectId),
+            eq(statusTransition.from_status_id, fromStatusId),
+            eq(statusTransition.to_status_id, toStatusId),
+            eq(statusTransition.project_id, projectId),
           ),
         )
         .limit(1);
@@ -36,7 +36,7 @@ export const validateTransition = Workflow.name("status.validate-transition")
       const configuredTransitions = await ctx.db
         .select({ id: statusTransition.id })
         .from(statusTransition)
-        .where(eq(statusTransition.projectId, projectId))
+        .where(eq(statusTransition.project_id, projectId))
         .limit(1);
 
       return configuredTransitions.length === 0;

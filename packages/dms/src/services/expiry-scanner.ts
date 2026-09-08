@@ -53,12 +53,12 @@ export async function scanExpiredFiles(deps: ExpiryScannerDeps): Promise<number>
   const [today] = now.toISOString().split("T");
 
   const rows = await deps.db
-    .select({ expiryDate: dmsFile.expiryDate, id: dmsFile.id, ownerId: dmsFile.ownerId })
+    .select({ expiryDate: dmsFile.expiry_date, id: dmsFile.id, ownerId: dmsFile.owner_id })
     .from(dmsFile)
     .where(
       and(
         eq(dmsFile.status, "active"),
-        sql`${dmsFile.expiryDate} IS NOT NULL AND ${dmsFile.expiryDate} <= ${today}`,
+        sql`${dmsFile.expiry_date} IS NOT NULL AND ${dmsFile.expiry_date} <= ${today}`,
       ),
     );
 
@@ -66,7 +66,7 @@ export async function scanExpiredFiles(deps: ExpiryScannerDeps): Promise<number>
     rows.map(async (row) => {
       const updated = await deps.db
         .update(dmsFile)
-        .set({ expiredAt: now, status: "expired", updatedAt: now })
+        .set({ expired_at: now, status: "expired", updated_at: now })
         .where(and(eq(dmsFile.id, row.id), eq(dmsFile.status, "active")))
         .returning();
 

@@ -8,38 +8,38 @@ import { workspaceAccessEnum, workspaceDraftStatusEnum } from "./enums";
 export const workspaceDraft = pgTable(
   "workspace_draft",
   {
-    access: workspaceAccessEnum("access").notNull().default("personal"),
-    approvedAt: timestamp("approved_at", { withTimezone: true }),
-    approvedBy: text("approved_by"),
-    body: text("body").notNull().default(""),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    deletedAt: timestamp("deleted_at", { withTimezone: true }),
-    id: uuidv7("id").primaryKey(),
-    metadata: jsonb("metadata")
+    access: workspaceAccessEnum().notNull().default("personal"),
+    approved_at: timestamp({ withTimezone: true }),
+    approved_by: text(),
+    body: text().notNull().default(""),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    deleted_at: timestamp({ withTimezone: true }),
+    id: uuidv7().primaryKey(),
+    metadata: jsonb()
       .notNull()
       .$type<Record<string, JsonValue>>()
       .default(sql`'{}'::jsonb`),
-    notes: text("notes"),
-    ownerId: text("owner_id").notNull(),
-    publishedAt: timestamp("published_at", { withTimezone: true }),
-    publishedBy: text("published_by"),
-    rejectedAt: timestamp("rejected_at", { withTimezone: true }),
-    rejectedBy: text("rejected_by"),
-    rejectionReason: text("rejection_reason"),
-    status: workspaceDraftStatusEnum("status").notNull().default("draft"),
-    submittedAt: timestamp("submitted_at", { withTimezone: true }),
-    submittedBy: text("submitted_by"),
-    targetDomain: text("target_domain"),
-    targetEntityId: text("target_entity_id"),
-    targetEntityType: text("target_entity_type"),
-    title: text("title").notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
+    notes: text(),
+    owner_id: text().notNull(),
+    published_at: timestamp({ withTimezone: true }),
+    published_by: text(),
+    rejected_at: timestamp({ withTimezone: true }),
+    rejected_by: text(),
+    rejection_reason: text(),
+    status: workspaceDraftStatusEnum().notNull().default("draft"),
+    submitted_at: timestamp({ withTimezone: true }),
+    submitted_by: text(),
+    target_domain: text(),
+    target_entity_id: text(),
+    target_entity_type: text(),
+    title: text().notNull(),
+    updated_at: timestamp({ withTimezone: true })
       .notNull()
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
   (table) => [
-    index("idx_workspace_draft_owner").on(table.ownerId),
+    index("idx_workspace_draft_owner").on(table.owner_id),
     index("idx_workspace_draft_status").on(table.status),
     index("idx_workspace_draft_access").on(table.access),
   ],

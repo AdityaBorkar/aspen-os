@@ -18,19 +18,19 @@ export const listCheckins = Workflow.name("hr.attendance.list-checkins")
     const conditions = [];
 
     if (parsed.employeeId) {
-      conditions.push(eq(employeeCheckin.employeeId, parsed.employeeId));
+      conditions.push(eq(employeeCheckin.employee_id, parsed.employeeId));
     }
     if (parsed.logType) {
-      conditions.push(eq(employeeCheckin.logType, parsed.logType));
+      conditions.push(eq(employeeCheckin.log_type, parsed.logType));
     }
     if (parsed.shift) {
       conditions.push(eq(employeeCheckin.shift, parsed.shift));
     }
     if (parsed.deviceId) {
-      conditions.push(eq(employeeCheckin.deviceId, parsed.deviceId));
+      conditions.push(eq(employeeCheckin.device_id, parsed.deviceId));
     }
     if (parsed.isOffShift !== undefined) {
-      conditions.push(eq(employeeCheckin.isOffShift, parsed.isOffShift));
+      conditions.push(eq(employeeCheckin.is_off_shift, parsed.isOffShift));
     }
     if (parsed.startDate) {
       conditions.push(sql`${employeeCheckin.time} >= ${new Date(parsed.startDate)}`);

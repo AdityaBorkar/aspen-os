@@ -22,29 +22,29 @@ const listDocuments = Workflow.name("document.list").handler(
       conditions.push(eq(complianceDocument.category, parsed.category));
     }
     if (parsed.verificationStatus) {
-      conditions.push(eq(complianceDocument.verificationStatus, parsed.verificationStatus));
+      conditions.push(eq(complianceDocument.verification_status, parsed.verificationStatus));
     }
     if (parsed.statuses && parsed.statuses.length > 0) {
-      conditions.push(inArray(complianceDocument.verificationStatus, [...parsed.statuses]));
+      conditions.push(inArray(complianceDocument.verification_status, [...parsed.statuses]));
     }
     if (parsed.branch) {
       conditions.push(eq(complianceDocument.branch, parsed.branch));
     }
     if (parsed.sourceModule) {
-      conditions.push(eq(complianceDocument.sourceModule, parsed.sourceModule));
+      conditions.push(eq(complianceDocument.source_module, parsed.sourceModule));
     }
     if (parsed.sourceEntityType) {
-      conditions.push(eq(complianceDocument.sourceEntityType, parsed.sourceEntityType));
+      conditions.push(eq(complianceDocument.source_entity_type, parsed.sourceEntityType));
     }
     if (parsed.sourceEntityId) {
-      conditions.push(eq(complianceDocument.sourceEntityId, parsed.sourceEntityId));
+      conditions.push(eq(complianceDocument.source_entity_id, parsed.sourceEntityId));
     }
     const reviewer = parsed.reviewer ?? parsed.assignedReviewer;
     if (reviewer) {
-      conditions.push(eq(complianceDocument.assignedReviewer, reviewer));
+      conditions.push(eq(complianceDocument.assigned_reviewer, reviewer));
     }
     if (parsed.obligationId) {
-      conditions.push(eq(complianceDocument.obligationId, parsed.obligationId));
+      conditions.push(eq(complianceDocument.obligation_id, parsed.obligationId));
     }
     if (parsed.jurisdiction) {
       conditions.push(eq(complianceDocument.jurisdiction, parsed.jurisdiction));
@@ -53,28 +53,31 @@ const listDocuments = Workflow.name("document.list").handler(
       const futureDateStr = futureDateOnly(parsed.expiringWithinDays);
       conditions.push(
         and(
-          isNotNull(complianceDocument.expiryDate),
-          lte(complianceDocument.expiryDate, futureDateStr),
+          isNotNull(complianceDocument.expiry_date),
+          lte(complianceDocument.expiry_date, futureDateStr),
         ),
       );
     }
     if (parsed.dueWithinDays !== undefined) {
       const futureDateStr = futureDateOnly(parsed.dueWithinDays);
       conditions.push(
-        and(isNotNull(complianceDocument.dueDate), lte(complianceDocument.dueDate, futureDateStr)),
+        and(
+          isNotNull(complianceDocument.due_date),
+          lte(complianceDocument.due_date, futureDateStr),
+        ),
       );
     }
     if (parsed.requireCompletedAtNull) {
-      conditions.push(isNull(complianceDocument.completedAt));
+      conditions.push(isNull(complianceDocument.completed_at));
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    let orderBy = desc(complianceDocument.updatedAt);
+    let orderBy = desc(complianceDocument.updated_at);
     if (parsed.orderBy === "periodStartAsc") {
-      orderBy = asc(complianceDocument.periodStart);
+      orderBy = asc(complianceDocument.period_start);
     } else if (parsed.orderBy === "expiryAsc") {
-      orderBy = asc(complianceDocument.expiryDate);
+      orderBy = asc(complianceDocument.expiry_date);
     }
 
     let query = ctx.db

@@ -5,25 +5,25 @@ import { instance, object, safeParse, string } from "valibot";
 
 export interface AuditRow {
   action: string;
-  actorId: string | null;
+  actor_id: string | null;
   changes: Record<string, JsonValue> | null;
-  entityId: string;
-  entityType: string;
+  entity_id: string;
+  entity_type: string;
   id: string;
   metadata: Record<string, JsonValue> | null;
-  newState: Record<string, JsonValue> | null;
-  performedAt: Date;
-  previousState: Record<string, JsonValue> | null;
+  new_state: Record<string, JsonValue> | null;
+  performed_at: Date;
+  previous_state: Record<string, JsonValue> | null;
   seq?: number;
   [key: string]: JsonValue;
 }
 
 const AuditRowSchema = object({
   action: string(),
-  entityId: string(),
-  entityType: string(),
+  entity_id: string(),
+  entity_type: string(),
   id: string(),
-  performedAt: instance(Date),
+  performed_at: instance(Date),
 });
 
 export function isAuditRow(value: JsonValue): value is AuditRow {
@@ -76,15 +76,15 @@ export function mapEntityType(type: string): string {
 export function normalize(row: AuditRow) {
   return {
     action: row.action,
-    actorId: row.actorId,
+    actorId: row.actor_id,
     changes: row.changes,
-    entityId: row.entityId,
-    entityType: mapEntityType(row.entityType),
+    entityId: row.entity_id,
+    entityType: mapEntityType(row.entity_type),
     id: row.id,
     metadata: row.metadata,
-    newState: row.newState,
-    performedAt: row.performedAt,
-    previousState: row.previousState,
+    newState: row.new_state,
+    performedAt: row.performed_at,
+    previousState: row.previous_state,
     seq: row.seq,
   };
 }

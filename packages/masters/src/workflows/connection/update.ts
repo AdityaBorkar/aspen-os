@@ -30,7 +30,7 @@ export const updateConnection = Workflow.name("masters.connection.update")
 
     const [updated] = await ctx.db
       .update(masterConnection)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates, updated_at: new Date() })
       .where(eq(masterConnection.id, input.id))
       .returning();
 
@@ -58,8 +58,8 @@ export const updateConnection = Workflow.name("masters.connection.update")
       await ctx.pubsub.publish(CONNECTION_EVENTS.UPDATED, {
         changes: updates,
         connection: { id: updated.id, name: updated.name },
-        entityId: updated.entityId,
-        entityType: updated.entityType,
+        entityId: updated.entity_id,
+        entityType: updated.entity_type,
       });
     });
 

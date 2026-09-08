@@ -11,24 +11,24 @@ export const restoreFolder = Workflow.name("dms.folder.restore")
   .handler(async ({ id }, ctx) => {
     const fetched = await ctx.step.run(fetchFolderStep, { id });
 
-    if (fetched.parentId) {
+    if (fetched.parent_id) {
       const [parent] = await ctx.db
-        .select({ id: dmsFolder.id, isTrashed: dmsFolder.isTrashed })
+        .select({ id: dmsFolder.id, isTrashed: dmsFolder.is_trashed })
         .from(dmsFolder)
-        .where(eq(dmsFolder.id, fetched.parentId))
+        .where(eq(dmsFolder.id, fetched.parent_id))
         .limit(1);
 
       if (!parent || parent.isTrashed) {
         await ctx.db
           .update(dmsFolder)
-          .set({ parentId: null, updatedAt: new Date() })
+          .set({ parent_id: null, updated_at: new Date() })
           .where(eq(dmsFolder.id, id));
       }
     }
 
     const [updated] = await ctx.db
       .update(dmsFolder)
-      .set({ isTrashed: false, trashedAt: null, updatedAt: new Date() })
+      .set({ is_trashed: false, trashed_at: null, updated_at: new Date() })
       .where(eq(dmsFolder.id, id))
       .returning();
 

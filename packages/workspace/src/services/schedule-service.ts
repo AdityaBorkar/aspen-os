@@ -53,7 +53,7 @@ export async function registerScheduleRunner(deps: ScheduleDeps): Promise<string
   const schedules = await deps.db
     .select({ cron: workspaceSchedule.cron, id: workspaceSchedule.id })
     .from(workspaceSchedule)
-    .where(eq(workspaceSchedule.isActive, true));
+    .where(eq(workspaceSchedule.is_active, true));
 
   return Promise.all(schedules.map((schedule) => registerScheduleDelivery(deps, schedule)));
 }
@@ -72,14 +72,14 @@ export async function deliverDueSchedule(deps: ScheduleDeps, scheduleId: string)
     .where(eq(workspaceSchedule.id, scheduleId))
     .limit(1);
 
-  if (!schedule || !schedule.isActive) {
+  if (!schedule || !schedule.is_active) {
     return;
   }
 
   const [dashboard] = await deps.db
     .select()
     .from(workspaceDashboard)
-    .where(eq(workspaceDashboard.id, schedule.dashboardId))
+    .where(eq(workspaceDashboard.id, schedule.dashboard_id))
     .limit(1);
 
   if (!dashboard) {
@@ -97,6 +97,6 @@ export async function deliverDueSchedule(deps: ScheduleDeps, scheduleId: string)
     crudAction: "update",
     entityId: schedule.id,
     entityType: AUDIT_ENTITY_TYPE.SCHEDULE,
-    metadata: { dashboardId: schedule.dashboardId },
+    metadata: { dashboardId: schedule.dashboard_id },
   });
 }

@@ -6,16 +6,16 @@ import { workspaceItemTypeEnum } from "./enums";
 export const workspaceRecent = pgTable(
   "workspace_recent",
   {
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    id: uuidv7("id").primaryKey(),
-    itemId: text("item_id").notNull(),
-    itemType: workspaceItemTypeEnum("item_type").notNull(),
-    lastAccessedAt: timestamp("last_accessed_at", { withTimezone: true }).notNull().defaultNow(),
-    userId: text("user_id").notNull(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    id: uuidv7().primaryKey(),
+    item_id: text().notNull(),
+    item_type: workspaceItemTypeEnum().notNull(),
+    last_accessed_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    user_id: text().notNull(),
   },
   (table) => [
-    index("idx_workspace_recent_user").on(table.userId),
-    uniqueIndex("idx_workspace_recent_user_item").on(table.userId, table.itemType, table.itemId),
+    index("idx_workspace_recent_user").on(table.user_id),
+    uniqueIndex("idx_workspace_recent_user_item").on(table.user_id, table.item_type, table.item_id),
   ],
 );
 

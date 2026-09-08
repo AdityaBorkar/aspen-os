@@ -20,12 +20,12 @@ export const createSeparationTask = Workflow.name("hr.lifecycle.create-separatio
     const [result] = await ctx.db
       .insert(separationTask)
       .values({
-        assignedTo: parsed.assignedTo ?? null,
+        assigned_to: parsed.assignedTo ?? null,
         department: parsed.department ?? null,
         description: parsed.description ?? null,
-        dueDate: parsed.dueDate ?? null,
+        due_date: parsed.dueDate ?? null,
         notes: parsed.notes ?? null,
-        separationId: parsed.separationId,
+        separation_id: parsed.separationId,
         title: parsed.title,
       })
       .returning();

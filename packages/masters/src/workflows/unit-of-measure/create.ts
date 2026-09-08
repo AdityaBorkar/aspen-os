@@ -34,13 +34,13 @@ export const createUnitOfMeasure = Workflow.name("masters.unit-of-measure.create
     const [unit] = await ctx.db
       .insert(masterUnitOfMeasure)
       .values({
-        baseUnitId: parsed.isBaseUnit ? null : (parsed.baseUnitId ?? null),
+        base_unit_id: parsed.isBaseUnit ? null : (parsed.baseUnitId ?? null),
         category: parsed.category,
         code: parsed.code,
-        conversionFactor: parsed.isBaseUnit ? null : (parsed.conversionFactor ?? null),
-        decimalPlaces: parsed.decimalPlaces,
-        isActive: parsed.isActive,
-        isBaseUnit: parsed.isBaseUnit,
+        conversion_factor: parsed.isBaseUnit ? null : (parsed.conversionFactor ?? null),
+        decimal_places: parsed.decimalPlaces,
+        is_active: parsed.isActive,
+        is_base_unit: parsed.isBaseUnit,
         metadata: parsed.metadata ?? null,
         name: parsed.name,
         symbol: parsed.symbol ?? null,

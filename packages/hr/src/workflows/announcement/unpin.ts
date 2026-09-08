@@ -19,13 +19,13 @@ export const unpinAnnouncement = Workflow.name("hr.announcement.unpin")
       throw new Error("Announcement unpinning requires an authenticated actor.");
     }
 
-    if (!existing.isPinned) {
+    if (!existing.is_pinned) {
       return existing;
     }
 
     const [updated] = await ctx.db
       .update(hrAnnouncement)
-      .set({ isPinned: false, pinnedBy: ctx.actorId, updatedAt: new Date() })
+      .set({ is_pinned: false, pinned_by: ctx.actorId, updated_at: new Date() })
       .where(eq(hrAnnouncement.id, id))
       .returning();
 

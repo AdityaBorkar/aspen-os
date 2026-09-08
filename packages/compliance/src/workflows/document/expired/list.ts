@@ -10,7 +10,7 @@ const getExpiredDocuments = Workflow.name("document.expired").handler(
       .select()
       .from(complianceDocument)
       .where(expiredCondition())
-      .orderBy(asc(complianceDocument.expiryDate)),
+      .orderBy(asc(complianceDocument.expiry_date)),
 );
 
 export { getExpiredDocuments };

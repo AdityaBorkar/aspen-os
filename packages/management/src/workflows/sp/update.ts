@@ -28,7 +28,7 @@ export const updateSp = Workflow.name("sp.update")
     await ctx.step.run("update-record", async () => {
       await ctx.db
         .update(serviceProvider)
-        .set({ ...data, updatedAt: new Date() })
+        .set({ ...data, updated_at: new Date() })
         .where(eq(serviceProvider.id, id));
     });
 

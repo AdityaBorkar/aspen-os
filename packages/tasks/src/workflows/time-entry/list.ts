@@ -12,10 +12,10 @@ export const listTimeEntries = Workflow.name("time-entry.list")
       const conditions = [];
 
       if (filters?.taskId) {
-        conditions.push(eq(timeEntry.taskId, filters.taskId));
+        conditions.push(eq(timeEntry.task_id, filters.taskId));
       }
       if (filters?.userId) {
-        conditions.push(eq(timeEntry.userId, filters.userId));
+        conditions.push(eq(timeEntry.user_id, filters.userId));
       }
       if (filters?.billable !== undefined) {
         conditions.push(eq(timeEntry.billable, filters.billable));

@@ -21,10 +21,10 @@ export const markFullAndFinalPaid = Workflow.name("hr.lifecycle.mark-full-and-fi
     const [updated] = await ctx.db
       .update(fullAndFinalStatement)
       .set({
-        paidAt: new Date(),
-        paymentEntry,
+        paid_at: new Date(),
+        payment_entry: paymentEntry,
         status: "paid",
-        updatedAt: new Date(),
+        updated_at: new Date(),
       })
       .where(eq(fullAndFinalStatement.id, id))
       .returning();

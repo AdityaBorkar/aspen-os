@@ -2,134 +2,134 @@ import { relations } from "drizzle-orm";
 import { boolean, index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
-  banExpires: timestamp("ban_expires"),
-  banReason: text("ban_reason"),
-  banned: boolean("banned").default(false),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  displayUsername: text("display_username"),
-  email: text("email").notNull().unique(),
-  emailVerified: boolean("email_verified").default(false).notNull(),
-  id: text("id").primaryKey(),
-  image: text("image"),
-  name: text("name").notNull(),
-  phoneNumber: text("phone_number").unique(),
-  phoneNumberVerified: boolean("phone_number_verified"),
-  role: text("role"),
-  twoFactorEnabled: boolean("two_factor_enabled").default(false),
-  updatedAt: timestamp("updated_at")
+  ban_expires: timestamp(),
+  ban_reason: text(),
+  banned: boolean().default(false),
+  created_at: timestamp().defaultNow().notNull(),
+  display_username: text(),
+  email: text().notNull().unique(),
+  email_verified: boolean().default(false).notNull(),
+  id: text().primaryKey(),
+  image: text(),
+  name: text().notNull(),
+  phone_number: text().unique(),
+  phone_number_verified: boolean(),
+  role: text(),
+  two_factor_enabled: boolean().default(false),
+  updated_at: timestamp()
     .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
-  username: text("username").unique(),
+  username: text().unique(),
 });
 
 export const session = pgTable(
   "session",
   {
-    activeOrganizationId: text("active_organization_id"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    expiresAt: timestamp("expires_at").notNull(),
-    id: text("id").primaryKey(),
-    impersonatedBy: text("impersonated_by"),
-    ipAddress: text("ip_address"),
-    token: text("token").notNull().unique(),
-    updatedAt: timestamp("updated_at")
+    active_organization_id: text(),
+    created_at: timestamp().defaultNow().notNull(),
+    expires_at: timestamp().notNull(),
+    id: text().primaryKey(),
+    impersonated_by: text(),
+    ip_address: text(),
+    token: text().notNull().unique(),
+    updated_at: timestamp()
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
-    userAgent: text("user_agent"),
-    userId: text("user_id")
+    user_agent: text(),
+    user_id: text()
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
   },
-  (table) => [index("session_userId_idx").on(table.userId)],
+  (table) => [index("session_userId_idx").on(table.user_id)],
 );
 
 export const account = pgTable(
   "account",
   {
-    accessToken: text("access_token"),
-    accessTokenExpiresAt: timestamp("access_token_expires_at"),
-    accountId: text("account_id").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    id: text("id").primaryKey(),
-    idToken: text("id_token"),
-    password: text("password"),
-    providerId: text("provider_id").notNull(),
-    refreshToken: text("refresh_token"),
-    refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
-    scope: text("scope"),
-    updatedAt: timestamp("updated_at")
+    access_token: text(),
+    access_token_expires_at: timestamp(),
+    account_id: text().notNull(),
+    created_at: timestamp().defaultNow().notNull(),
+    id: text().primaryKey(),
+    id_token: text(),
+    password: text(),
+    provider_id: text().notNull(),
+    refresh_token: text(),
+    refresh_token_expires_at: timestamp(),
+    scope: text(),
+    updated_at: timestamp()
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
-    userId: text("user_id")
+    user_id: text()
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
   },
-  (table) => [index("account_userId_idx").on(table.userId)],
+  (table) => [index("account_userId_idx").on(table.user_id)],
 );
 
 export const verification = pgTable(
   "verification",
   {
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    expiresAt: timestamp("expires_at").notNull(),
-    id: text("id").primaryKey(),
-    identifier: text("identifier").notNull(),
-    updatedAt: timestamp("updated_at")
+    created_at: timestamp().defaultNow().notNull(),
+    expires_at: timestamp().notNull(),
+    id: text().primaryKey(),
+    identifier: text().notNull(),
+    updated_at: timestamp()
       .defaultNow()
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
-    value: text("value").notNull(),
+    value: text().notNull(),
   },
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
 
 export const organization = pgTable("organization", {
-  createdAt: timestamp("created_at").notNull(),
-  id: text("id").primaryKey(),
-  logo: text("logo"),
-  metadata: text("metadata"),
-  name: text("name").notNull(),
-  slug: text("slug").notNull().unique(),
+  created_at: timestamp().notNull(),
+  id: text().primaryKey(),
+  logo: text(),
+  metadata: text(),
+  name: text().notNull(),
+  slug: text().notNull().unique(),
 });
 
 export const member = pgTable(
   "member",
   {
-    createdAt: timestamp("created_at").notNull(),
-    id: text("id").primaryKey(),
-    organizationId: text("organization_id")
+    created_at: timestamp().notNull(),
+    id: text().primaryKey(),
+    organization_id: text()
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
-    role: text("role").default("member").notNull(),
-    userId: text("user_id")
+    role: text().default("member").notNull(),
+    user_id: text()
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
   },
   (table) => [
-    index("member_organizationId_idx").on(table.organizationId),
-    index("member_userId_idx").on(table.userId),
+    index("member_organizationId_idx").on(table.organization_id),
+    index("member_userId_idx").on(table.user_id),
   ],
 );
 
 export const invitation = pgTable(
   "invitation",
   {
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    email: text("email").notNull(),
-    expiresAt: timestamp("expires_at").notNull(),
-    id: text("id").primaryKey(),
-    inviterId: text("inviter_id")
+    created_at: timestamp().defaultNow().notNull(),
+    email: text().notNull(),
+    expires_at: timestamp().notNull(),
+    id: text().primaryKey(),
+    inviter_id: text()
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    organizationId: text("organization_id")
+    organization_id: text()
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
-    role: text("role"),
-    status: text("status").default("pending").notNull(),
+    role: text(),
+    status: text().default("pending").notNull(),
   },
   (table) => [
-    index("invitation_organizationId_idx").on(table.organizationId),
+    index("invitation_organizationId_idx").on(table.organization_id),
     index("invitation_email_idx").on(table.email),
   ],
 );
@@ -137,32 +137,32 @@ export const invitation = pgTable(
 export const apikey = pgTable(
   "apikey",
   {
-    configId: text("config_id").default("default").notNull(),
-    createdAt: timestamp("created_at").notNull(),
-    enabled: boolean("enabled").default(true),
-    expiresAt: timestamp("expires_at"),
-    id: text("id").primaryKey(),
-    key: text("key").notNull(),
-    lastRefillAt: timestamp("last_refill_at"),
-    lastRequest: timestamp("last_request"),
-    metadata: text("metadata"),
-    name: text("name"),
-    permissions: text("permissions"),
-    prefix: text("prefix"),
-    rateLimitEnabled: boolean("rate_limit_enabled").default(true),
-    rateLimitMax: integer("rate_limit_max").default(10),
-    rateLimitTimeWindow: integer("rate_limit_time_window").default(86_400_000),
-    referenceId: text("reference_id").notNull(),
-    refillAmount: integer("refill_amount"),
-    refillInterval: integer("refill_interval"),
-    remaining: integer("remaining"),
-    requestCount: integer("request_count").default(0),
-    start: text("start"),
-    updatedAt: timestamp("updated_at").notNull(),
+    config_id: text().default("default").notNull(),
+    created_at: timestamp().notNull(),
+    enabled: boolean().default(true),
+    expires_at: timestamp(),
+    id: text().primaryKey(),
+    key: text().notNull(),
+    last_refill_at: timestamp(),
+    last_request: timestamp(),
+    metadata: text(),
+    name: text(),
+    permissions: text(),
+    prefix: text(),
+    rate_limit_enabled: boolean().default(true),
+    rate_limit_max: integer().default(10),
+    rate_limit_time_window: integer().default(86_400_000),
+    reference_id: text().notNull(),
+    refill_amount: integer(),
+    refill_interval: integer(),
+    remaining: integer(),
+    request_count: integer().default(0),
+    start: text(),
+    updated_at: timestamp().notNull(),
   },
   (table) => [
-    index("apikey_configId_idx").on(table.configId),
-    index("apikey_referenceId_idx").on(table.referenceId),
+    index("apikey_configId_idx").on(table.config_id),
+    index("apikey_referenceId_idx").on(table.reference_id),
     index("apikey_key_idx").on(table.key),
   ],
 );
@@ -170,42 +170,42 @@ export const apikey = pgTable(
 export const twoFactor = pgTable(
   "two_factor",
   {
-    backupCodes: text("backup_codes").notNull(),
-    failedVerificationCount: integer("failed_verification_count").default(0),
-    id: text("id").primaryKey(),
-    lockedUntil: timestamp("locked_until"),
-    secret: text("secret").notNull(),
-    userId: text("user_id")
+    backup_codes: text().notNull(),
+    failed_verification_count: integer().default(0),
+    id: text().primaryKey(),
+    locked_until: timestamp(),
+    secret: text().notNull(),
+    user_id: text()
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    verified: boolean("verified").default(true),
+    verified: boolean().default(true),
   },
   (table) => [
     index("twoFactor_secret_idx").on(table.secret),
-    index("twoFactor_userId_idx").on(table.userId),
+    index("twoFactor_userId_idx").on(table.user_id),
   ],
 );
 
 export const passkey = pgTable(
   "passkey",
   {
-    aaguid: text("aaguid"),
-    backedUp: boolean("backed_up").notNull(),
-    counter: integer("counter").notNull(),
-    createdAt: timestamp("created_at"),
-    credentialID: text("credential_id").notNull(),
-    deviceType: text("device_type").notNull(),
-    id: text("id").primaryKey(),
-    name: text("name"),
-    publicKey: text("public_key").notNull(),
-    transports: text("transports"),
-    userId: text("user_id")
+    aaguid: text(),
+    backed_up: boolean().notNull(),
+    counter: integer().notNull(),
+    created_at: timestamp(),
+    credential_id: text().notNull(),
+    device_type: text().notNull(),
+    id: text().primaryKey(),
+    name: text(),
+    public_key: text().notNull(),
+    transports: text(),
+    user_id: text()
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
   },
   (table) => [
-    index("passkey_userId_idx").on(table.userId),
-    index("passkey_credentialID_idx").on(table.credentialID),
+    index("passkey_userId_idx").on(table.user_id),
+    index("passkey_credentialID_idx").on(table.credential_id),
   ],
 );
 
@@ -220,14 +220,14 @@ export const userRelations = relations(user, ({ many }) => ({
 
 export const sessionRelations = relations(session, ({ one }) => ({
   user: one(user, {
-    fields: [session.userId],
+    fields: [session.user_id],
     references: [user.id],
   }),
 }));
 
 export const accountRelations = relations(account, ({ one }) => ({
   user: one(user, {
-    fields: [account.userId],
+    fields: [account.user_id],
     references: [user.id],
   }),
 }));
@@ -239,36 +239,36 @@ export const organizationRelations = relations(organization, ({ many }) => ({
 
 export const memberRelations = relations(member, ({ one }) => ({
   organization: one(organization, {
-    fields: [member.organizationId],
+    fields: [member.organization_id],
     references: [organization.id],
   }),
   user: one(user, {
-    fields: [member.userId],
+    fields: [member.user_id],
     references: [user.id],
   }),
 }));
 
 export const invitationRelations = relations(invitation, ({ one }) => ({
   organization: one(organization, {
-    fields: [invitation.organizationId],
+    fields: [invitation.organization_id],
     references: [organization.id],
   }),
   user: one(user, {
-    fields: [invitation.inviterId],
+    fields: [invitation.inviter_id],
     references: [user.id],
   }),
 }));
 
 export const twoFactorRelations = relations(twoFactor, ({ one }) => ({
   user: one(user, {
-    fields: [twoFactor.userId],
+    fields: [twoFactor.user_id],
     references: [user.id],
   }),
 }));
 
 export const passkeyRelations = relations(passkey, ({ one }) => ({
   user: one(user, {
-    fields: [passkey.userId],
+    fields: [passkey.user_id],
     references: [user.id],
   }),
 }));

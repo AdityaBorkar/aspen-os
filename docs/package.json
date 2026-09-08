@@ -8,7 +8,7 @@
     "check:lint": "oxlint --fix . ; oxfmt .",
     "check:types": "fumadocs-mdx && tsc --noEmit",
     "deploy": "wrangler deploy",
-    "dev": "nx serve dev --port 3005",
+    "dev": "vite dev --port 3005",
     "gen:cf-types": "wrangler types",
     "postinstall": "fumadocs-mdx",
     "preview": "nx vite:preview",

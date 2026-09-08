@@ -11,31 +11,31 @@ import { boolean, index, integer, pgTable, text, timestamp } from "drizzle-orm/p
 export const calendarReminder = pgTable(
   "calendar_reminder",
   {
-    channel: calendarReminderChannelEnum("channel").notNull().default("pubsub"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    createdBy: text("created_by").notNull(),
-    id: uuidv7("id").primaryKey(),
-    interval: text("interval").$type<ReminderInterval | null>(),
-    isRecurring: boolean("is_recurring").notNull().default(false),
-    isSent: boolean("is_sent").notNull().default(false),
-    message: text("message"),
-    offsetMinutes: integer("offset_minutes"),
-    remindAt: timestamp("remind_at", { withTimezone: true }),
-    sentAt: timestamp("sent_at", { withTimezone: true }),
-    targetId: text("target_id").notNull(),
-    targetType: calendarReminderTargetEnum("target_type").notNull(),
-    type: calendarReminderTypeEnum("type").notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
+    channel: calendarReminderChannelEnum().notNull().default("pubsub"),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    created_by: text().notNull(),
+    id: uuidv7().primaryKey(),
+    interval: text().$type<ReminderInterval | null>(),
+    is_recurring: boolean().notNull().default(false),
+    is_sent: boolean().notNull().default(false),
+    message: text(),
+    offset_minutes: integer(),
+    remind_at: timestamp({ withTimezone: true }),
+    sent_at: timestamp({ withTimezone: true }),
+    target_id: text().notNull(),
+    target_type: calendarReminderTargetEnum().notNull(),
+    type: calendarReminderTypeEnum().notNull(),
+    updated_at: timestamp({ withTimezone: true })
       .notNull()
       .defaultNow()
       .$onUpdate(() => new Date()),
-    userId: text("user_id").notNull(),
+    user_id: text().notNull(),
   },
   (table) => [
-    index("idx_calendar_reminder_at").on(table.remindAt),
-    index("idx_calendar_reminder_sent").on(table.isSent),
-    index("idx_calendar_reminder_target").on(table.targetType, table.targetId),
-    index("idx_calendar_reminder_user").on(table.userId),
+    index("idx_calendar_reminder_at").on(table.remind_at),
+    index("idx_calendar_reminder_sent").on(table.is_sent),
+    index("idx_calendar_reminder_target").on(table.target_type, table.target_id),
+    index("idx_calendar_reminder_user").on(table.user_id),
   ],
 );
 

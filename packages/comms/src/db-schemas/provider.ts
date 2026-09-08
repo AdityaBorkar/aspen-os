@@ -7,19 +7,19 @@ import { boolean, index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-
 export const commsProvider = pgTable(
   "comms_provider",
   {
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    credentialRef: text("credential_ref").notNull(),
-    defaultSenderAddress: text("default_sender_address"),
-    id: uuidv7("id").primaryKey(),
-    isActive: boolean("is_active").notNull().default(true),
-    kind: commsProviderKindEnum("kind").notNull(),
-    metadata: jsonb("metadata").$type<Record<string, JsonValue> | null>(),
-    name: text("name").notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    credential_ref: text().notNull(),
+    default_sender_address: text(),
+    id: uuidv7().primaryKey(),
+    is_active: boolean().notNull().default(true),
+    kind: commsProviderKindEnum().notNull(),
+    metadata: jsonb().$type<Record<string, JsonValue> | null>(),
+    name: text().notNull(),
+    updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_comms_provider_kind").on(table.kind),
-    index("idx_comms_provider_active").on(table.isActive),
+    index("idx_comms_provider_active").on(table.is_active),
   ],
 );
 

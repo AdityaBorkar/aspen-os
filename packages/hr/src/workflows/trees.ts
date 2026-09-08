@@ -143,7 +143,7 @@ export async function getDepartmentCounts(db: Db): Promise<DepartmentCounts> {
     db
       .select({ count: count(), departmentId: hrPosition.department })
       .from(hrPosition)
-      .where(eq(hrPosition.isActive, true))
+      .where(eq(hrPosition.is_active, true))
       .groupBy(hrPosition.department),
   ]);
 
@@ -159,14 +159,14 @@ export function buildDepartmentTree(
     id: string;
     manager: string | null;
     name: string;
-    parentDepartment: string | null;
+    parent_department: string | null;
   }[],
   counts: DepartmentCounts,
   options?: { depth?: number; rootIds?: Set<string> },
 ): DepartmentTreeNode[] {
   const rooted = departments.map((departmentItem) => ({
     ...departmentItem,
-    parentId: departmentItem.parentDepartment,
+    parentId: departmentItem.parent_department,
   }));
   const forest: DepartmentTreeNode[] = buildTree(rooted, (departmentItem, children) => ({
     children,

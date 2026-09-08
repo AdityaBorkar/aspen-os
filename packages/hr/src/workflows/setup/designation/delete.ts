@@ -15,7 +15,7 @@ export const deleteDesignation = Workflow.name("hr.setup.delete-designation")
 
     const [updated] = await ctx.db
       .update(designation)
-      .set({ isActive: false, updatedAt: new Date() })
+      .set({ is_active: false, updated_at: new Date() })
       .where(eq(designation.id, id))
       .returning();
 

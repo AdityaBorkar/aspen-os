@@ -28,7 +28,12 @@ export const deleteFile = Workflow.name("dms.file.delete")
     const deletedBy = ctx.actorId ?? "unknown";
     const [updated] = await ctx.db
       .update(dmsFile)
-      .set({ deletedAt: new Date(), deletedBy, status: "trashed", updatedAt: new Date() })
+      .set({
+        deleted_at: new Date(),
+        deleted_by: deletedBy,
+        status: "trashed",
+        updated_at: new Date(),
+      })
       .where(eq(dmsFile.id, id))
       .returning();
 

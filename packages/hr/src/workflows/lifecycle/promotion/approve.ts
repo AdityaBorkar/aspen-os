@@ -22,10 +22,10 @@ export const approvePromotion = Workflow.name("hr.lifecycle.approve-promotion")
       const [row] = await tx
         .update(employeePromotion)
         .set({
-          approvedAt: new Date(),
-          approvedBy,
+          approved_at: new Date(),
+          approved_by: approvedBy,
           status: "approved",
-          updatedAt: new Date(),
+          updated_at: new Date(),
         })
         .where(eq(employeePromotion.id, id))
         .returning();
@@ -33,17 +33,17 @@ export const approvePromotion = Workflow.name("hr.lifecycle.approve-promotion")
       const promotion = assertUpdated(row, `Promotion "${id}"`);
 
       const employeePatch: Partial<typeof employee.$inferInsert> = {
-        designation: existing.newDesignation,
-        updatedAt: new Date(),
+        designation: existing.new_designation,
+        updated_at: new Date(),
       };
-      if (existing.newGrade) {
-        employeePatch.grade = existing.newGrade;
+      if (existing.new_grade) {
+        employeePatch.grade = existing.new_grade;
       }
-      if (existing.newDepartment) {
-        employeePatch.department = existing.newDepartment;
+      if (existing.new_department) {
+        employeePatch.department = existing.new_department;
       }
 
-      await tx.update(employee).set(employeePatch).where(eq(employee.id, existing.employeeId));
+      await tx.update(employee).set(employeePatch).where(eq(employee.id, existing.employee_id));
 
       return promotion;
     });

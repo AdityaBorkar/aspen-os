@@ -124,17 +124,17 @@ async function runJob(
 
 type ReminderDoc = Pick<
   ComplianceDocument,
-  | "assignedTo"
-  | "completedAt"
-  | "createdBy"
-  | "dueDate"
-  | "expiryDate"
+  | "assigned_to"
+  | "completed_at"
+  | "created_by"
+  | "due_date"
+  | "expiry_date"
   | "id"
-  | "lastNotifiedAt"
-  | "reminderDays"
-  | "snoozedUntil"
-  | "sourceEntityId"
-  | "sourceModule"
+  | "last_notified_at"
+  | "reminder_days"
+  | "snoozed_until"
+  | "source_entity_id"
+  | "source_module"
 >;
 
 async function notifyDoc(input: {
@@ -149,8 +149,8 @@ async function notifyDoc(input: {
   const base = {
     documentId: doc.id,
     recipient,
-    sourceEntityId: doc.sourceEntityId,
-    sourceModule: doc.sourceModule,
+    sourceEntityId: doc.source_entity_id,
+    sourceModule: doc.source_module,
   };
   await (isExpiry
     ? deps.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_EXPIRING, {
@@ -196,32 +196,32 @@ export async function scanExpiringAndDueDocuments(deps: ReminderEngineDeps): Pro
     );
 
     const settled = await Promise.allSettled(
-      docs.map(async (doc) => {
-        if (isSnoozed(doc.snoozedUntil)) {
+      docs.map(async (doc: ComplianceDocument) => {
+        if (isSnoozed(doc.snoozed_until)) {
           return 0;
         }
 
-        const reminderDays = doc.reminderDays ?? [...DEFAULT_REMINDER_DAYS_EXPIRY];
+        const reminderDays = doc.reminder_days ?? [...DEFAULT_REMINDER_DAYS_EXPIRY];
 
         let expiryCandidate: number | null = null;
-        if (doc.expiryDate) {
-          const daysUntilExpiry = daysUntil(doc.expiryDate);
+        if (doc.expiry_date) {
+          const daysUntilExpiry = daysUntil(doc.expiry_date);
           if (
             daysUntilExpiry !== null &&
             daysUntilExpiry >= 0 &&
-            shouldNotify(reminderDays, doc.lastNotifiedAt, daysUntilExpiry)
+            shouldNotify(reminderDays, doc.last_notified_at, daysUntilExpiry)
           ) {
             expiryCandidate = daysUntilExpiry;
           }
         }
 
         let dueCandidate: number | null = null;
-        if (doc.dueDate && !doc.completedAt) {
-          const daysUntilDue = daysUntil(doc.dueDate);
+        if (doc.due_date && !doc.completed_at) {
+          const daysUntilDue = daysUntil(doc.due_date);
           if (
             daysUntilDue !== null &&
             daysUntilDue >= 0 &&
-            shouldNotify(reminderDays, doc.lastNotifiedAt, daysUntilDue)
+            shouldNotify(reminderDays, doc.last_notified_at, daysUntilDue)
           ) {
             dueCandidate = daysUntilDue;
           }
@@ -254,12 +254,12 @@ export async function transitionExpiredAndOverdueDocuments(
     );
 
     const settled = await Promise.allSettled(
-      docs.map(async (doc) => {
+      docs.map(async (doc: ComplianceDocument) => {
         // Expiry dominates overdue; deriveOverdueStatus already pins expired.
         const newStatus =
-          deriveExpiryStatus(doc.verificationStatus, doc.expiryDate) ??
-          deriveOverdueStatus(doc.verificationStatus, doc.dueDate, doc.completedAt);
-        if (!newStatus || newStatus === doc.verificationStatus) {
+          deriveExpiryStatus(doc.verification_status, doc.expiry_date) ??
+          deriveOverdueStatus(doc.verification_status, doc.due_date, doc.completed_at);
+        if (!newStatus || newStatus === doc.verification_status) {
           return 0;
         }
 
@@ -276,17 +276,17 @@ export async function transitionExpiredAndOverdueDocuments(
           await deps.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_EXPIRED, {
             category: doc.category,
             documentId: doc.id,
-            sourceEntityId: doc.sourceEntityId,
-            sourceModule: doc.sourceModule,
+            sourceEntityId: doc.source_entity_id,
+            sourceModule: doc.source_module,
           });
         } else if (newStatus === VERIFICATION_STATUS.OVERDUE) {
-          const daysOverdue = doc.dueDate ? Math.abs(daysUntil(doc.dueDate) ?? 0) : 0;
+          const daysOverdue = doc.due_date ? Math.abs(daysUntil(doc.due_date) ?? 0) : 0;
           await deps.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_OVERDUE, {
             category: doc.category,
             daysOverdue,
             documentId: doc.id,
-            sourceEntityId: doc.sourceEntityId,
-            sourceModule: doc.sourceModule,
+            sourceEntityId: doc.source_entity_id,
+            sourceModule: doc.source_module,
           });
         }
 
@@ -305,10 +305,10 @@ export async function scanEscalations(deps: ReminderEngineDeps): Promise<number>
     );
 
     const settled = await Promise.allSettled(
-      docs.map(async (doc) => {
-        const escalationDays = doc.escalationDays ?? [...DEFAULT_ESCALATION_DAYS];
+      docs.map(async (doc: ComplianceDocument) => {
+        const escalationDays = doc.escalation_days ?? [...DEFAULT_ESCALATION_DAYS];
 
-        const targetDate = doc.expiryDate ?? doc.dueDate;
+        const targetDate = doc.expiry_date ?? doc.due_date;
         if (!targetDate) {
           return 0;
         }
@@ -320,7 +320,7 @@ export async function scanEscalations(deps: ReminderEngineDeps): Promise<number>
 
         const escalationLevel = shouldEscalate(
           escalationDays,
-          doc.lastEscalatedAt,
+          doc.last_escalated_at,
           daysSinceTarget,
         );
 
@@ -387,8 +387,11 @@ export async function generateWeeklySummary(deps: ReminderEngineDeps): Promise<v
   });
 }
 
-function recipientFor(doc: { assignedTo: string | null; createdBy: string }): RecipientRef | null {
-  const id = doc.assignedTo ?? doc.createdBy;
+function recipientFor(doc: {
+  assigned_to: string | null;
+  created_by: string;
+}): RecipientRef | null {
+  const id = doc.assigned_to ?? doc.created_by;
   if (!id || id === SYSTEM_ACTOR) {
     return null;
   }

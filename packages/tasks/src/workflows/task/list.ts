@@ -11,6 +11,6 @@ export const listTasks = Workflow.name("task.list")
   .handler(async ({ filters }, ctx) =>
     ctx.step.run("query", async () => {
       const whereClause = buildTaskWhereClause(filters);
-      return ctx.db.select().from(task).where(whereClause).orderBy(desc(task.createdAt));
+      return ctx.db.select().from(task).where(whereClause).orderBy(desc(task.created_at));
     }),
   );

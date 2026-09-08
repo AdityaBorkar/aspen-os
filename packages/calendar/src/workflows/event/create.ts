@@ -26,17 +26,17 @@ export const createEvent = Workflow.name("calendar.event.create")
     const [created] = await ctx.db
       .insert(calendarEvent)
       .values({
-        allDay: parsed.allDay ?? false,
-        calendarId: parsed.calendarId,
+        all_day: parsed.allDay ?? false,
+        calendar_id: parsed.calendarId,
         color: parsed.color ?? null,
-        createdBy: ctx.actorId ?? "system",
+        created_by: ctx.actorId ?? "system",
         description: parsed.description ?? null,
-        endsAt: parsed.endsAt ?? null,
+        ends_at: parsed.endsAt ?? null,
         location: parsed.location ?? null,
         recurrence: parsed.recurrence ?? null,
-        sourceEntityId: parsed.sourceEntityId ?? null,
-        sourceType: parsed.sourceType ?? null,
-        startsAt: parsed.startsAt,
+        source_entity_id: parsed.sourceEntityId ?? null,
+        source_type: parsed.sourceType ?? null,
+        starts_at: parsed.startsAt,
         status: parsed.status,
         timezone: parsed.timezone ?? null,
         title: parsed.title,
@@ -54,17 +54,17 @@ export const createEvent = Workflow.name("calendar.event.create")
         entityId: created.id,
         entityType: AUDIT_ENTITY_TYPE.EVENT,
         newState: {
-          calendarId: created.calendarId,
-          startsAt: created.startsAt,
+          calendarId: created.calendar_id,
+          startsAt: created.starts_at,
           title: created.title,
         },
       });
 
       await ctx.pubsub.publish(EVENT_EVENTS.CREATED, {
-        calendarId: created.calendarId,
+        calendarId: created.calendar_id,
         event: toEventPayload(created),
-        sourceEntityId: created.sourceEntityId,
-        sourceType: created.sourceType,
+        sourceEntityId: created.source_entity_id,
+        sourceType: created.source_type,
       });
     });
 

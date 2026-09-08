@@ -23,10 +23,10 @@ export const createSchedule = Workflow.name("workspace.schedule.create")
       .insert(workspaceSchedule)
       .values({
         config: parsed.config,
-        createdBy,
+        created_by: createdBy,
         cron: parsed.cron,
-        dashboardId: parsed.dashboardId,
-        isActive: parsed.isActive ?? true,
+        dashboard_id: parsed.dashboardId,
+        is_active: parsed.isActive ?? true,
       })
       .returning();
 
@@ -34,7 +34,7 @@ export const createSchedule = Workflow.name("workspace.schedule.create")
       throw new Error("Failed to create schedule.");
     }
 
-    if (schedule.isActive) {
+    if (schedule.is_active) {
       await ctx.step.run("register-cron", async () => {
         await registerScheduleDelivery(
           { audit: ctx.audit, db: ctx.db, pubsub: ctx.pubsub },

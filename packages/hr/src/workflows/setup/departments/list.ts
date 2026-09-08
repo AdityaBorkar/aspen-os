@@ -18,10 +18,10 @@ export const listDepartments = Workflow.name("hr.setup.list-departments")
     const conditions = [];
 
     if (parsed.isActive !== undefined) {
-      conditions.push(eq(department.isActive, parsed.isActive));
+      conditions.push(eq(department.is_active, parsed.isActive));
     }
     if (parsed.parentDepartment) {
-      conditions.push(eq(department.parentDepartment, parsed.parentDepartment));
+      conditions.push(eq(department.parent_department, parsed.parentDepartment));
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;

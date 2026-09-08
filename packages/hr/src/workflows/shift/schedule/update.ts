@@ -19,7 +19,7 @@ export const updateShiftSchedule = Workflow.name("hr.shift.update-shift-schedule
 
     const [updated] = await ctx.db
       .update(shiftSchedule)
-      .set({ ...parsed, updatedAt: new Date() })
+      .set({ ...parsed, updated_at: new Date() })
       .where(eq(shiftSchedule.id, id))
       .returning();
 

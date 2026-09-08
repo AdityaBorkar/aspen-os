@@ -6,20 +6,20 @@ import { index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-cor
 export const taskLink = pgTable(
   "task_link",
   {
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    id: uuidv7("id").primaryKey(),
-    linkType: taskLinkTypeEnum("link_type").notNull(),
-    sourceId: text("source_id").notNull(),
-    targetId: text("target_id").notNull(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    id: uuidv7().primaryKey(),
+    link_type: taskLinkTypeEnum().notNull(),
+    source_id: text().notNull(),
+    target_id: text().notNull(),
   },
   (table) => [
     uniqueIndex("uq_task_link_source_target_type").on(
-      table.sourceId,
-      table.targetId,
-      table.linkType,
+      table.source_id,
+      table.target_id,
+      table.link_type,
     ),
-    index("idx_task_link_source").on(table.sourceId),
-    index("idx_task_link_target").on(table.targetId),
+    index("idx_task_link_source").on(table.source_id),
+    index("idx_task_link_target").on(table.target_id),
   ],
 );
 

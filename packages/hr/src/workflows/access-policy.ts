@@ -9,7 +9,7 @@ export async function hasBranchAccessUtil(db: Db, hrUserId: string, branchId: st
     .select({ id: hrUserBranchAccess.id })
     .from(hrUserBranchAccess)
     .where(
-      and(eq(hrUserBranchAccess.hrUserId, hrUserId), eq(hrUserBranchAccess.branchId, branchId)),
+      and(eq(hrUserBranchAccess.hr_user_id, hrUserId), eq(hrUserBranchAccess.branch_id, branchId)),
     )
     .limit(1);
   if (direct) {
@@ -19,7 +19,7 @@ export async function hasBranchAccessUtil(db: Db, hrUserId: string, branchId: st
   const [roleBased] = await db
     .select({ id: hrUserRole.id })
     .from(hrUserRole)
-    .where(and(eq(hrUserRole.hrUserId, hrUserId), eq(hrUserRole.branchId, branchId)))
+    .where(and(eq(hrUserRole.hr_user_id, hrUserId), eq(hrUserRole.branch_id, branchId)))
     .limit(1);
   return Boolean(roleBased);
 }
@@ -30,12 +30,12 @@ export async function getUserPermissionsUtil(
   branchId?: string,
 ): Promise<ResolvedPermission[]> {
   const userRoles = await db
-    .select({ roleId: hrUserRole.roleId })
+    .select({ roleId: hrUserRole.role_id })
     .from(hrUserRole)
     .where(
       and(
-        eq(hrUserRole.hrUserId, hrUserId),
-        branchId ? or(isNull(hrUserRole.branchId), eq(hrUserRole.branchId, branchId)) : undefined,
+        eq(hrUserRole.hr_user_id, hrUserId),
+        branchId ? or(isNull(hrUserRole.branch_id), eq(hrUserRole.branch_id, branchId)) : undefined,
       ),
     );
 
@@ -50,8 +50,8 @@ export async function getUserPermissionsUtil(
       module: hrPermission.module,
     })
     .from(hrRolePermission)
-    .innerJoin(hrPermission, eq(hrRolePermission.permissionId, hrPermission.id))
-    .where(inArray(hrRolePermission.roleId, roleIds));
+    .innerJoin(hrPermission, eq(hrRolePermission.permission_id, hrPermission.id))
+    .where(inArray(hrRolePermission.role_id, roleIds));
 
   const seen = new Set<string>();
   return permissions.filter((permission) => {
@@ -67,16 +67,16 @@ export async function getUserPermissionsUtil(
 export async function getUserRolesForBranchUtil(db: Db, hrUserId: string, branchId: string) {
   return db
     .select({
-      branchId: hrUserRole.branchId,
-      hrUserId: hrUserRole.hrUserId,
+      branchId: hrUserRole.branch_id,
+      hrUserId: hrUserRole.hr_user_id,
       id: hrUserRole.id,
-      roleId: hrUserRole.roleId,
+      roleId: hrUserRole.role_id,
     })
     .from(hrUserRole)
     .where(
       and(
-        eq(hrUserRole.hrUserId, hrUserId),
-        or(isNull(hrUserRole.branchId), eq(hrUserRole.branchId, branchId)),
+        eq(hrUserRole.hr_user_id, hrUserId),
+        or(isNull(hrUserRole.branch_id), eq(hrUserRole.branch_id, branchId)),
       ),
     );
 }
@@ -84,13 +84,13 @@ export async function getUserRolesForBranchUtil(db: Db, hrUserId: string, branch
 export async function getAccessibleBranchesUtil(db: Db, hrUserId: string): Promise<string[]> {
   const [direct, roleBased] = await Promise.all([
     db
-      .select({ branchId: hrUserBranchAccess.branchId })
+      .select({ branchId: hrUserBranchAccess.branch_id })
       .from(hrUserBranchAccess)
-      .where(eq(hrUserBranchAccess.hrUserId, hrUserId)),
+      .where(eq(hrUserBranchAccess.hr_user_id, hrUserId)),
     db
-      .select({ branchId: hrUserRole.branchId })
+      .select({ branchId: hrUserRole.branch_id })
       .from(hrUserRole)
-      .where(and(eq(hrUserRole.hrUserId, hrUserId), isNotNull(hrUserRole.branchId))),
+      .where(and(eq(hrUserRole.hr_user_id, hrUserId), isNotNull(hrUserRole.branch_id))),
   ]);
 
   const branchIds = new Set<string>([

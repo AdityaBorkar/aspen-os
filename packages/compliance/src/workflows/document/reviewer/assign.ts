@@ -12,10 +12,10 @@ const assignDocumentReviewer = Workflow.name("document.assign-reviewer").handler
     const { id, userId } = input;
     const current = await ctx.step.run(fetchDocumentStep, { id });
 
-    let newStatus: VerificationStatus = current.verificationStatus;
+    let newStatus: VerificationStatus = current.verification_status;
     if (
-      current.verificationStatus === VERIFICATION_STATUS.SUBMITTED ||
-      current.verificationStatus === VERIFICATION_STATUS.REJECTED
+      current.verification_status === VERIFICATION_STATUS.SUBMITTED ||
+      current.verification_status === VERIFICATION_STATUS.REJECTED
     ) {
       newStatus = VERIFICATION_STATUS.UNDER_REVIEW;
     }
@@ -24,9 +24,9 @@ const assignDocumentReviewer = Workflow.name("document.assign-reviewer").handler
     const [updated] = await ctx.db
       .update(complianceDocument)
       .set({
-        assignedReviewer: userId,
-        updatedAt: now,
-        verificationStatus: newStatus,
+        assigned_reviewer: userId,
+        updated_at: now,
+        verification_status: newStatus,
       })
       .where(eq(complianceDocument.id, id))
       .returning();
@@ -43,13 +43,13 @@ const assignDocumentReviewer = Workflow.name("document.assign-reviewer").handler
       metadata: {
         reviewerId: userId,
         statusTransitioned:
-          newStatus !== current.verificationStatus
-            ? `${current.verificationStatus}->${newStatus}`
+          newStatus !== current.verification_status
+            ? `${current.verification_status}->${newStatus}`
             : null,
       },
       previousState: {
-        assignedReviewer: current.assignedReviewer,
-        verificationStatus: current.verificationStatus,
+        assignedReviewer: current.assigned_reviewer,
+        verificationStatus: current.verification_status,
       },
     });
 

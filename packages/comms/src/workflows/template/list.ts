@@ -15,13 +15,13 @@ export const listTemplates = Workflow.name("comms.template.list")
 
     const where = [];
     if (filters?.channelType) {
-      where.push(eq(commsTemplate.channelType, filters.channelType));
+      where.push(eq(commsTemplate.channel_type, filters.channelType));
     }
     if (filters?.name) {
       where.push(eq(commsTemplate.name, filters.name));
     }
     if (filters?.isActive !== undefined) {
-      where.push(eq(commsTemplate.isActive, filters.isActive));
+      where.push(eq(commsTemplate.is_active, filters.isActive));
     }
 
     const { limit, offset } = listPagination(filters ?? undefined);
@@ -31,7 +31,7 @@ export const listTemplates = Workflow.name("comms.template.list")
       .select()
       .from(commsTemplate)
       .where(and(...where))
-      .orderBy(desc(commsTemplate.createdAt))
+      .orderBy(desc(commsTemplate.created_at))
       .limit(limit)
       .offset(offset);
   });

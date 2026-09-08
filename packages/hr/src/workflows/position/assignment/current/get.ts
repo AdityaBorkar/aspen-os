@@ -21,9 +21,9 @@ export const getCurrentAssignment = Workflow.name("hr.position.get-current-assig
       .select()
       .from(hrPositionAssignment)
       .where(
-        and(eq(hrPositionAssignment.positionId, positionId), isNull(hrPositionAssignment.toDate)),
+        and(eq(hrPositionAssignment.position_id, positionId), isNull(hrPositionAssignment.to_date)),
       )
-      .orderBy(desc(hrPositionAssignment.fromDate));
+      .orderBy(desc(hrPositionAssignment.from_date));
   });
 
 export const getCurrentPositions = Workflow.name("hr.position.get-current-positions")
@@ -35,7 +35,7 @@ export const getCurrentPositions = Workflow.name("hr.position.get-current-positi
       .select()
       .from(hrPositionAssignment)
       .where(
-        and(eq(hrPositionAssignment.employeeId, employeeId), isNull(hrPositionAssignment.toDate)),
+        and(eq(hrPositionAssignment.employee_id, employeeId), isNull(hrPositionAssignment.to_date)),
       )
-      .orderBy(desc(hrPositionAssignment.fromDate));
+      .orderBy(desc(hrPositionAssignment.from_date));
   });

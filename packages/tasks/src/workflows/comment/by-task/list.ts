@@ -12,7 +12,7 @@ export const listCommentsByTask = Workflow.name("comment.list-by-task")
       ctx.db
         .select()
         .from(comment)
-        .where(eq(comment.taskId, taskId))
-        .orderBy(desc(comment.createdAt)),
+        .where(eq(comment.task_id, taskId))
+        .orderBy(desc(comment.created_at)),
     ),
   );

@@ -21,11 +21,11 @@ export const emptyTrash = Workflow.name("dms.trash.empty")
     const fileConditions: SQL[] = [
       or(eq(dmsFile.status, "trashed"), eq(dmsFile.status, "expired"))!,
     ];
-    const folderConditions: SQL[] = [eq(dmsFolder.isTrashed, true)];
+    const folderConditions: SQL[] = [eq(dmsFolder.is_trashed, true)];
 
     if (validated?.ownerId) {
-      fileConditions.push(eq(dmsFile.ownerId, validated.ownerId));
-      folderConditions.push(eq(dmsFolder.ownerId, validated.ownerId));
+      fileConditions.push(eq(dmsFile.owner_id, validated.ownerId));
+      folderConditions.push(eq(dmsFolder.owner_id, validated.ownerId));
     }
 
     const trashedFiles = await ctx.db
@@ -36,13 +36,13 @@ export const emptyTrash = Workflow.name("dms.trash.empty")
     const heldIds = new Set<string>();
     if (trashedFiles.length > 0) {
       const heldRows = await ctx.db
-        .select({ fileId: dmsLegalHold.fileId })
+        .select({ fileId: dmsLegalHold.file_id })
         .from(dmsLegalHold)
         .where(
           and(
-            isNull(dmsLegalHold.releasedAt),
+            isNull(dmsLegalHold.released_at),
             inArray(
-              dmsLegalHold.fileId,
+              dmsLegalHold.file_id,
               trashedFiles.map((row) => row.id),
             ),
           ),

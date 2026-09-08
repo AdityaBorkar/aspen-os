@@ -18,7 +18,10 @@ export const hasBranchAccess = Workflow.name("hr.access.has-branch-access")
       .select({ id: hrUserBranchAccess.id })
       .from(hrUserBranchAccess)
       .where(
-        and(eq(hrUserBranchAccess.hrUserId, hrUserId), eq(hrUserBranchAccess.branchId, branchId)),
+        and(
+          eq(hrUserBranchAccess.hr_user_id, hrUserId),
+          eq(hrUserBranchAccess.branch_id, branchId),
+        ),
       )
       .limit(1);
     if (direct) {
@@ -28,7 +31,7 @@ export const hasBranchAccess = Workflow.name("hr.access.has-branch-access")
     const [roleBased] = await ctx.db
       .select({ id: hrUserRole.id })
       .from(hrUserRole)
-      .where(and(eq(hrUserRole.hrUserId, hrUserId), eq(hrUserRole.branchId, branchId)))
+      .where(and(eq(hrUserRole.hr_user_id, hrUserId), eq(hrUserRole.branch_id, branchId)))
       .limit(1);
     return Boolean(roleBased);
   });

@@ -27,7 +27,7 @@ const getUpcomingPeriods = Workflow.name("obligation.upcoming-periods").handler(
     if (monthsPerPeriod === null) {
       throw new Error(`Unsupported obligation frequency "${obligation.frequency}"`);
     }
-    const startDate = new Date(obligation.startDate);
+    const startDate = new Date(obligation.start_date);
     const startYear = startDate.getUTCFullYear();
     const startMonth = startDate.getUTCMonth();
 
@@ -42,20 +42,20 @@ const getUpcomingPeriods = Workflow.name("obligation.upcoming-periods").handler(
         periodStart: null,
       };
 
-      if (obligation.periodBased) {
+      if (obligation.period_based) {
         entry.periodStart = toDateOnly(periodStart);
         entry.periodEnd = toDateOnly(periodEnd);
       }
 
-      if (obligation.expiryBased && obligation.expiryDurationMonths) {
-        const expiryDate = addMonthsClamped(periodStart, obligation.expiryDurationMonths);
+      if (obligation.expiry_based && obligation.expiry_duration_months) {
+        const expiryDate = addMonthsClamped(periodStart, obligation.expiry_duration_months);
         entry.expiryDate = toDateOnly(expiryDate);
-      } else if (!obligation.expiryBased) {
-        const offset = obligation.dueMonthOffset ?? 0;
+      } else if (!obligation.expiry_based) {
+        const offset = obligation.due_month_offset ?? 0;
         const dueBase = addMonthsClamped(periodEnd, offset);
-        if (obligation.dueDay) {
+        if (obligation.due_day) {
           const lastDay = lastDayOfMonth(dueBase.getUTCFullYear(), dueBase.getUTCMonth());
-          dueBase.setUTCDate(Math.min(obligation.dueDay, lastDay));
+          dueBase.setUTCDate(Math.min(obligation.due_day, lastDay));
         }
         entry.dueDate = toDateOnly(dueBase);
       }

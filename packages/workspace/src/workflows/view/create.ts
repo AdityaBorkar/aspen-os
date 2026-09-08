@@ -28,11 +28,11 @@ export const createView = Workflow.name("workspace.view.create")
         access: parsed.access ?? WORKSPACE_ACCESS.PERSONAL,
         conditions: parsed.conditions ?? [],
         domain: parsed.domain,
-        groupBy: parsed.groupBy ?? null,
-        isDefault: parsed.isDefault ?? false,
+        group_by: parsed.groupBy ?? null,
+        is_default: parsed.isDefault ?? false,
         metadata: parsed.metadata,
         name: parsed.name,
-        ownerId,
+        owner_id: ownerId,
         sort: parsed.sort ?? [],
       })
       .returning();
@@ -52,7 +52,7 @@ export const createView = Workflow.name("workspace.view.create")
     await ctx.pubsub.publish(VIEW_EVENTS.CREATED, {
       access: view.access,
       domain: view.domain,
-      ownerId: view.ownerId,
+      ownerId: view.owner_id,
       viewId: view.id,
     });
 

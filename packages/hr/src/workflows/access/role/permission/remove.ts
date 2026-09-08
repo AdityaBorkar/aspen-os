@@ -17,6 +17,6 @@ export const removePermissionFromRole = Workflow.name("hr.access.remove-permissi
     await ctx.db
       .delete(hrRolePermission)
       .where(
-        and(eq(hrRolePermission.roleId, roleId), eq(hrRolePermission.permissionId, permissionId)),
+        and(eq(hrRolePermission.role_id, roleId), eq(hrRolePermission.permission_id, permissionId)),
       );
   });

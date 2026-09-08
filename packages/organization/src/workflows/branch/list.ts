@@ -16,13 +16,13 @@ export const listBranches = Workflow.name("branch.list")
         conditions.push(eq(branch.type, parsed.type));
       }
       if (parsed.isActive !== undefined) {
-        conditions.push(eq(branch.isActive, parsed.isActive));
+        conditions.push(eq(branch.is_active, parsed.isActive));
       }
       if (parsed.country) {
         conditions.push(eq(branch.country, parsed.country.toUpperCase()));
       }
       if (parsed.parentBranch) {
-        conditions.push(eq(branch.parentBranch, parsed.parentBranch));
+        conditions.push(eq(branch.parent_branch, parsed.parentBranch));
       }
 
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined;

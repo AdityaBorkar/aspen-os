@@ -17,14 +17,14 @@ export const setPrimaryPaymentMethod = Workflow.name("masters.payment-method.set
       unsetPrimaryPaymentMethods({
         db: ctx.db,
         direction: paymentMethod.direction,
-        entityId: paymentMethod.entityId,
-        entityType: paymentMethod.entityType,
+        entityId: paymentMethod.entity_id,
+        entityType: paymentMethod.entity_type,
       }),
     );
 
     const [updated] = await ctx.db
       .update(masterPaymentMethod)
-      .set({ isPrimary: true, updatedAt: new Date() })
+      .set({ is_primary: true, updated_at: new Date() })
       .where(eq(masterPaymentMethod.id, input.id))
       .returning();
 
@@ -39,15 +39,15 @@ export const setPrimaryPaymentMethod = Workflow.name("masters.payment-method.set
         entityType: AUDIT_ENTITY_TYPE.PAYMENT_METHOD,
         metadata: {
           direction: paymentMethod.direction,
-          entityId: paymentMethod.entityId,
-          entityType: paymentMethod.entityType,
+          entityId: paymentMethod.entity_id,
+          entityType: paymentMethod.entity_type,
         },
       });
 
       await ctx.pubsub.publish(PAYMENT_METHOD_EVENTS.PRIMARY_SET, {
         direction: paymentMethod.direction,
-        entityId: paymentMethod.entityId,
-        entityType: paymentMethod.entityType,
+        entityId: paymentMethod.entity_id,
+        entityType: paymentMethod.entity_type,
         paymentMethodId: paymentMethod.id,
       });
     });

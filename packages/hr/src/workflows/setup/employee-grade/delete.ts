@@ -15,7 +15,7 @@ export const deleteEmployeeGrade = Workflow.name("hr.setup.delete-employee-grade
 
     const [updated] = await ctx.db
       .update(employeeGrade)
-      .set({ isActive: false, updatedAt: new Date() })
+      .set({ is_active: false, updated_at: new Date() })
       .where(eq(employeeGrade.id, id))
       .returning();
 

@@ -16,7 +16,7 @@ export const listDashboards = Workflow.name("workspace.dashboard.list")
     const validated = parse(DashboardFiltersSchema, filters);
 
     const conditions = [
-      or(eq(workspaceDashboard.access, "global"), eq(workspaceDashboard.ownerId, ctx.actorId)),
+      or(eq(workspaceDashboard.access, "global"), eq(workspaceDashboard.owner_id, ctx.actorId)),
     ];
     if (validated.access) {
       conditions.push(eq(workspaceDashboard.access, validated.access));

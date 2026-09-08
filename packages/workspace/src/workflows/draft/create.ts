@@ -22,10 +22,10 @@ export const createDraft = Workflow.name("workspace.draft.create")
         body: parsed.body ?? "",
         metadata: parsed.metadata ?? {},
         notes: parsed.notes ?? null,
-        ownerId,
-        targetDomain: parsed.targetDomain ?? null,
-        targetEntityId: parsed.targetEntityId ?? null,
-        targetEntityType: parsed.targetEntityType ?? null,
+        owner_id: ownerId,
+        target_domain: parsed.targetDomain ?? null,
+        target_entity_id: parsed.targetEntityId ?? null,
+        target_entity_type: parsed.targetEntityType ?? null,
         title: parsed.title,
       })
       .returning();
@@ -45,7 +45,7 @@ export const createDraft = Workflow.name("workspace.draft.create")
     await ctx.pubsub.publish(DRAFT_EVENTS.CREATED, {
       access: draft.access,
       draftId: draft.id,
-      ownerId: draft.ownerId,
+      ownerId: draft.owner_id,
     });
 
     return draft;

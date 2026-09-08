@@ -25,12 +25,12 @@ export const addWidget = Workflow.name("workspace.widget.add")
       .insert(workspaceWidget)
       .values({
         config,
-        dashboardId: parsed.dashboardId,
+        dashboard_id: parsed.dashboardId,
         domain: parsed.domain ?? null,
         filter: parsed.filter ?? null,
         title: parsed.title,
         type: parsed.type,
-        viewId: parsed.viewId ?? null,
+        view_id: parsed.viewId ?? null,
       })
       .returning();
 

@@ -12,7 +12,7 @@ export const listProjects = Workflow.name("project.list")
       const conditions = [];
 
       if (filters?.leadId) {
-        conditions.push(eq(project.leadId, filters.leadId));
+        conditions.push(eq(project.lead_id, filters.leadId));
       }
       if (filters?.status) {
         conditions.push(eq(project.status, filters.status));
@@ -20,6 +20,6 @@ export const listProjects = Workflow.name("project.list")
 
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-      return ctx.db.select().from(project).where(whereClause).orderBy(desc(project.createdAt));
+      return ctx.db.select().from(project).where(whereClause).orderBy(desc(project.created_at));
     }),
   );

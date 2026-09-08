@@ -24,10 +24,10 @@ export const duplicateDraft = Workflow.name("workspace.draft.duplicate")
         body: draft.body,
         metadata: draft.metadata,
         notes: draft.notes,
-        ownerId,
-        targetDomain: draft.targetDomain,
-        targetEntityId: null,
-        targetEntityType: draft.targetEntityType,
+        owner_id: ownerId,
+        target_domain: draft.target_domain,
+        target_entity_id: null,
+        target_entity_type: draft.target_entity_type,
         title: draft.title,
       })
       .returning();

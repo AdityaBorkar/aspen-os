@@ -18,28 +18,28 @@ export const listReminders = Workflow.name("calendar.reminder.list")
 
     const conditions = [
       or(
-        eq(calendarReminder.userId, actorId),
+        eq(calendarReminder.user_id, actorId),
         and(
-          eq(calendarReminder.targetType, REMINDER_TARGET.EVENT),
-          inArray(calendarReminder.targetId, accessibleEventIds(ctx.db, actorId)),
+          eq(calendarReminder.target_type, REMINDER_TARGET.EVENT),
+          inArray(calendarReminder.target_id, accessibleEventIds(ctx.db, actorId)),
         ),
       ),
     ];
 
     if (parsed.targetType) {
-      conditions.push(eq(calendarReminder.targetType, parsed.targetType));
+      conditions.push(eq(calendarReminder.target_type, parsed.targetType));
     }
     if (parsed.targetId) {
-      conditions.push(eq(calendarReminder.targetId, parsed.targetId));
+      conditions.push(eq(calendarReminder.target_id, parsed.targetId));
     }
     if (parsed.type) {
       conditions.push(eq(calendarReminder.type, parsed.type));
     }
     if (parsed.userId) {
-      conditions.push(eq(calendarReminder.userId, parsed.userId));
+      conditions.push(eq(calendarReminder.user_id, parsed.userId));
     }
     if (parsed.isSent !== undefined) {
-      conditions.push(eq(calendarReminder.isSent, parsed.isSent));
+      conditions.push(eq(calendarReminder.is_sent, parsed.isSent));
     }
 
     return ctx.db

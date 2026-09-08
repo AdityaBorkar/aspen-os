@@ -29,13 +29,13 @@ export class LogQueryService {
       conditions.push(lte(logs.timestamp, filter.endTime));
     }
     if (filter.traceId) {
-      conditions.push(eq(logs.traceId, filter.traceId));
+      conditions.push(eq(logs.trace_id, filter.traceId));
     }
     if (filter.userId) {
-      conditions.push(eq(logs.userId, filter.userId));
+      conditions.push(eq(logs.user_id, filter.userId));
     }
     if (filter.tenantId) {
-      conditions.push(eq(logs.tenantId, filter.tenantId));
+      conditions.push(eq(logs.tenant_id, filter.tenantId));
     }
     if (filter.search) {
       conditions.push(ilike(logs.message, `%${filter.search}%`));
@@ -52,25 +52,25 @@ export class LogQueryService {
       .offset(filter.offset ?? 0);
 
     return rows.map((row) => ({
-      duration: row.durationMs ?? undefined,
-      error: row.errorName
+      duration: row.duration_ms ?? undefined,
+      error: row.error_name
         ? {
-            message: row.errorMessage ?? "",
-            name: row.errorName,
-            stack: row.errorStack ?? undefined,
+            message: row.error_message ?? "",
+            name: row.error_name,
+            stack: row.error_stack ?? undefined,
           }
         : undefined,
       id: row.id,
       level: row.level,
       message: row.message,
       metadata: row.metadata ?? undefined,
-      requestId: row.requestId ?? undefined,
+      requestId: row.request_id ?? undefined,
       service: row.service,
-      spanId: row.spanId ?? undefined,
-      tenantId: row.tenantId ?? undefined,
+      spanId: row.span_id ?? undefined,
+      tenantId: row.tenant_id ?? undefined,
       timestamp: row.timestamp,
-      traceId: row.traceId ?? undefined,
-      userId: row.userId ?? undefined,
+      traceId: row.trace_id ?? undefined,
+      userId: row.user_id ?? undefined,
     }));
   }
 
@@ -92,7 +92,7 @@ export class LogQueryService {
       conditions.push(lte(logs.timestamp, endTime));
     }
     if (tenantId) {
-      conditions.push(eq(logs.tenantId, tenantId));
+      conditions.push(eq(logs.tenant_id, tenantId));
     }
 
     const where = conditions.length > 0 ? and(...conditions) : undefined;

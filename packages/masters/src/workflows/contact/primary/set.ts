@@ -15,15 +15,15 @@ export const setPrimaryContact = Workflow.name("masters.contact.set-primary")
     await ctx.step.run("unset-primary", () =>
       unsetPrimaryForOwner({
         db: ctx.db,
-        entityId: contact.entityId,
-        entityType: contact.entityType,
+        entityId: contact.entity_id,
+        entityType: contact.entity_type,
         table: masterContact,
       }),
     );
 
     const [updated] = await ctx.db
       .update(masterContact)
-      .set({ isPrimary: true, updatedAt: new Date() })
+      .set({ is_primary: true, updated_at: new Date() })
       .where(eq(masterContact.id, input.id))
       .returning();
 
@@ -31,7 +31,7 @@ export const setPrimaryContact = Workflow.name("masters.contact.set-primary")
       action: AUDIT_ACTION.PRIMARY_SET,
       entityId: contact.id,
       entityType: AUDIT_ENTITY_TYPE.CONTACT,
-      metadata: { entityId: contact.entityId, entityType: contact.entityType },
+      metadata: { entity_id: contact.entity_id, entity_type: contact.entity_type },
     });
 
     return updated;

@@ -16,16 +16,16 @@ export const getUserRolesForBranch = Workflow.name("hr.access.get-user-roles-for
 
     return ctx.db
       .select({
-        branchId: hrUserRole.branchId,
-        hrUserId: hrUserRole.hrUserId,
+        branchId: hrUserRole.branch_id,
+        hrUserId: hrUserRole.hr_user_id,
         id: hrUserRole.id,
-        roleId: hrUserRole.roleId,
+        roleId: hrUserRole.role_id,
       })
       .from(hrUserRole)
       .where(
         and(
-          eq(hrUserRole.hrUserId, hrUserId),
-          or(isNull(hrUserRole.branchId), eq(hrUserRole.branchId, branchId)),
+          eq(hrUserRole.hr_user_id, hrUserId),
+          or(isNull(hrUserRole.branch_id), eq(hrUserRole.branch_id, branchId)),
         ),
       );
   });

@@ -22,7 +22,7 @@ export const deactivateChannel = Workflow.name("comms.channel.deactivate")
 
     const [updated] = await ctx.db
       .update(commsChannel)
-      .set({ isDefault: false, status: "inactive", updatedAt: new Date() })
+      .set({ is_default: false, status: "inactive", updated_at: new Date() })
       .where(eq(commsChannel.id, input.id))
       .returning();
 

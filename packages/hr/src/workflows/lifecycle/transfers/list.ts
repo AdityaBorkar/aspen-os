@@ -18,7 +18,7 @@ export const listTransfers = Workflow.name("hr.lifecycle.list-transfers")
     const conditions = [];
 
     if (parsed.employeeId) {
-      conditions.push(eq(employeeTransfer.employeeId, parsed.employeeId));
+      conditions.push(eq(employeeTransfer.employee_id, parsed.employeeId));
     }
     if (parsed.status) {
       conditions.push(eq(employeeTransfer.status, parsed.status));

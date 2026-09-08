@@ -18,8 +18,8 @@ export const removeGroupMember = Workflow.name("hr.employee.remove-group-member"
       .delete(employeeGroupMember)
       .where(
         and(
-          eq(employeeGroupMember.groupId, groupId),
-          eq(employeeGroupMember.employeeId, employeeId),
+          eq(employeeGroupMember.group_id, groupId),
+          eq(employeeGroupMember.employee_id, employeeId),
         ),
       )
       .returning();

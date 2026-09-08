@@ -12,15 +12,15 @@ const archiveDocument = Workflow.name("document.archive").handler(
     const { id } = input;
     const current = await ctx.step.run(fetchDocumentStep, { id });
 
-    if (current.verificationStatus === VERIFICATION_STATUS.ARCHIVED) {
+    if (current.verification_status === VERIFICATION_STATUS.ARCHIVED) {
       return current;
     }
-    assertTransitionAllowed(current.verificationStatus, VERIFICATION_STATUS.ARCHIVED);
+    assertTransitionAllowed(current.verification_status, VERIFICATION_STATUS.ARCHIVED);
 
     const now = new Date();
     const [updated] = await ctx.db
       .update(complianceDocument)
-      .set({ updatedAt: now, verificationStatus: VERIFICATION_STATUS.ARCHIVED })
+      .set({ updated_at: now, verification_status: VERIFICATION_STATUS.ARCHIVED })
       .where(eq(complianceDocument.id, id))
       .returning();
 
@@ -30,10 +30,10 @@ const archiveDocument = Workflow.name("document.archive").handler(
 
     await ctx.audit.write({
       action: "archived",
-      actorId: current.createdBy,
+      actorId: current.created_by,
       entityId: id,
       entityType: "compliance_document",
-      previousState: { verificationStatus: current.verificationStatus },
+      previousState: { verification_status: current.verification_status },
     });
 
     await ctx.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_ARCHIVED, {

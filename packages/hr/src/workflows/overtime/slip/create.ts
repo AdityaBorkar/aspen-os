@@ -20,16 +20,16 @@ export const createOvertimeSlip = Workflow.name("hr.overtime.create-overtime-sli
     const [result] = await ctx.db
       .insert(overtimeSlip)
       .values({
-        employeeId: parsed.employeeId,
-        fromDate: parsed.fromDate,
-        holidayHours: parsed.holidayHours ?? "0",
+        employee_id: parsed.employeeId,
+        from_date: parsed.fromDate,
+        holiday_hours: parsed.holidayHours ?? "0",
         metadata: parsed.metadata ?? null,
         notes: parsed.notes ?? null,
-        overtimeType: parsed.overtimeType,
-        standardHours: parsed.standardHours ?? "0",
-        toDate: parsed.toDate,
-        totalOvertimeHours: parsed.totalOvertimeHours,
-        weekendHours: parsed.weekendHours ?? "0",
+        overtime_type: parsed.overtimeType,
+        standard_hours: parsed.standardHours ?? "0",
+        to_date: parsed.toDate,
+        total_overtime_hours: parsed.totalOvertimeHours,
+        weekend_hours: parsed.weekendHours ?? "0",
       })
       .returning();
 

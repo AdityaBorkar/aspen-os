@@ -8,7 +8,7 @@ export const listFileViews = Workflow.name("dms.file-view.list").handler(
     ctx.db
       .select()
       .from(dmsFileView)
-      .where(or(eq(dmsFileView.ownerId, input.ownerId), eq(dmsFileView.isShared, true)))
+      .where(or(eq(dmsFileView.owner_id, input.ownerId), eq(dmsFileView.is_shared, true)))
       .orderBy(dmsFileView.name),
 );
 
@@ -17,7 +17,7 @@ export const listFileViewsByOwner = Workflow.name("dms.file-view.list-by-owner")
     ctx.db
       .select()
       .from(dmsFileView)
-      .where(eq(dmsFileView.ownerId, input.ownerId))
+      .where(eq(dmsFileView.owner_id, input.ownerId))
       .orderBy(dmsFileView.name),
 );
 
@@ -26,7 +26,7 @@ export const getDefaultFileView = Workflow.name("dms.file-view.get-default").han
     const [view] = await ctx.db
       .select()
       .from(dmsFileView)
-      .where(and(eq(dmsFileView.ownerId, input.ownerId), eq(dmsFileView.isDefault, true)))
+      .where(and(eq(dmsFileView.owner_id, input.ownerId), eq(dmsFileView.is_default, true)))
       .limit(1);
     return view ?? null;
   },

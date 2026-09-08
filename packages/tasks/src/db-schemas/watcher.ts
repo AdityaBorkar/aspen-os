@@ -4,15 +4,15 @@ import { index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-cor
 export const watcher = pgTable(
   "task_watcher",
   {
-    addedAt: timestamp("added_at", { withTimezone: true }).notNull().defaultNow(),
-    id: uuidv7("id").primaryKey(),
-    taskId: text("task_id").notNull(),
-    userId: text("user_id").notNull(),
+    added_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    id: uuidv7().primaryKey(),
+    task_id: text().notNull(),
+    user_id: text().notNull(),
   },
   (table) => [
-    uniqueIndex("uq_task_watcher_task_user").on(table.taskId, table.userId),
-    index("idx_task_watcher_task").on(table.taskId),
-    index("idx_task_watcher_user").on(table.userId),
+    uniqueIndex("uq_task_watcher_task_user").on(table.task_id, table.user_id),
+    index("idx_task_watcher_task").on(table.task_id),
+    index("idx_task_watcher_user").on(table.user_id),
   ],
 );
 

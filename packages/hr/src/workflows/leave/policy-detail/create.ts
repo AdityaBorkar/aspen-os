@@ -23,10 +23,10 @@ export const createLeavePolicyDetail = Workflow.name("hr.leave.create-leave-poli
     const [result] = await ctx.db
       .insert(leavePolicyDetail)
       .values({
-        carryForwardDays: parsed.carryForwardDays ?? 0,
-        leavePolicyId: parsed.leavePolicyId,
-        leaveType: parsed.leaveType,
-        maxDays: parsed.maxDays,
+        carry_forward_days: parsed.carryForwardDays ?? 0,
+        leave_policy_id: parsed.leavePolicyId,
+        leave_type: parsed.leaveType,
+        max_days: parsed.maxDays,
       })
       .returning();
 

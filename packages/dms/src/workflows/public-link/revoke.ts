@@ -10,8 +10,8 @@ export const revokePublicLink = Workflow.name("dms.public-link.revoke")
   .handler(async ({ id }, ctx) => {
     const [link] = await ctx.db
       .select({
-        entityId: dmsPublicLink.entityId,
-        entityType: dmsPublicLink.entityType,
+        entityId: dmsPublicLink.entity_id,
+        entityType: dmsPublicLink.entity_type,
         id: dmsPublicLink.id,
       })
       .from(dmsPublicLink)
@@ -22,7 +22,7 @@ export const revokePublicLink = Workflow.name("dms.public-link.revoke")
       throw new Error(`Public link with id "${id}" not found.`);
     }
 
-    await ctx.db.update(dmsPublicLink).set({ isActive: false }).where(eq(dmsPublicLink.id, id));
+    await ctx.db.update(dmsPublicLink).set({ is_active: false }).where(eq(dmsPublicLink.id, id));
 
     await ctx.pubsub.publish(PUBLIC_LINK_EVENTS.REVOKED, {
       entityId: link.entityId,

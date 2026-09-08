@@ -29,11 +29,11 @@ export const createPublicLink = Workflow.name("dms.public-link.create")
     const [publicLink] = await ctx.db
       .insert(dmsPublicLink)
       .values({
-        createdBy: parsed.createdBy,
-        entityId: parsed.entityId,
-        entityType: parsed.entityType,
-        expiresAt: parsed.expiresAt ?? null,
-        maxViews: parsed.maxViews ?? null,
+        created_by: parsed.createdBy,
+        entity_id: parsed.entityId,
+        entity_type: parsed.entityType,
+        expires_at: parsed.expiresAt ?? null,
+        max_views: parsed.maxViews ?? null,
         password: hashedPassword,
         permission: parsed.permission,
         token,
@@ -45,8 +45,8 @@ export const createPublicLink = Workflow.name("dms.public-link.create")
     }
 
     await ctx.pubsub.publish(PUBLIC_LINK_EVENTS.CREATED, {
-      entityId: publicLink.entityId,
-      entityType: publicLink.entityType,
+      entityId: publicLink.entity_id,
+      entityType: publicLink.entity_type,
       id: publicLink.id,
       permission: publicLink.permission,
       token: publicLink.token,

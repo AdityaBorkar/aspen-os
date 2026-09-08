@@ -26,11 +26,11 @@ export function createConnection(kvStore: KvStoreUnit) {
         [connectionRow] = await ctx.db
           .insert(masterConnection)
           .values({
-            baseUrl: parsed.baseUrl ?? null,
-            credentialRef,
+            base_url: parsed.baseUrl ?? null,
+            credential_ref: credentialRef,
             description: parsed.description ?? null,
-            entityId: parsed.entityId,
-            entityType: parsed.entityType,
+            entity_id: parsed.entityId,
+            entity_type: parsed.entityType,
             metadata: parsed.metadata ?? null,
             name: parsed.name,
             status: parsed.status,
@@ -54,9 +54,9 @@ export function createConnection(kvStore: KvStoreUnit) {
           entityId: connectionRow.id,
           entityType: AUDIT_ENTITY_TYPE.CONNECTION,
           newState: {
-            baseUrl: connectionRow.baseUrl,
-            entityId: connectionRow.entityId,
-            entityType: connectionRow.entityType,
+            baseUrl: connectionRow.base_url,
+            entityId: connectionRow.entity_id,
+            entityType: connectionRow.entity_type,
             name: connectionRow.name,
             status: connectionRow.status,
             type: connectionRow.type,
@@ -69,8 +69,8 @@ export function createConnection(kvStore: KvStoreUnit) {
             name: connectionRow.name,
             type: connectionRow.type,
           },
-          entityId: connectionRow.entityId,
-          entityType: connectionRow.entityType,
+          entityId: connectionRow.entity_id,
+          entityType: connectionRow.entity_type,
         });
       });
 

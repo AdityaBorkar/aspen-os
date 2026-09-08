@@ -31,13 +31,13 @@ export const placeLegalHold = Workflow.name("dms.hold.place")
     const [active] = await ctx.db
       .select()
       .from(dmsLegalHold)
-      .where(and(eq(dmsLegalHold.fileId, fileId), isNull(dmsLegalHold.releasedAt)))
+      .where(and(eq(dmsLegalHold.file_id, fileId), isNull(dmsLegalHold.released_at)))
       .limit(1);
 
     if (active) {
       const [updated] = await ctx.db
         .update(dmsLegalHold)
-        .set({ placedBy, reason, releasedAt: null, releasedBy: null })
+        .set({ placed_by: placedBy, reason, released_at: null, released_by: null })
         .where(eq(dmsLegalHold.id, active.id))
         .returning();
 
@@ -61,7 +61,7 @@ export const placeLegalHold = Workflow.name("dms.hold.place")
 
     const [hold] = await ctx.db
       .insert(dmsLegalHold)
-      .values({ fileId, placedBy, reason })
+      .values({ file_id: fileId, placed_by: placedBy, reason })
       .returning();
 
     await ctx.step.run("audit-and-notify", async () => {

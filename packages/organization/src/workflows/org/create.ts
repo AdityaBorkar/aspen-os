@@ -14,18 +14,18 @@ export const createOrganization = Workflow.name("org.create")
     const [org] = await ctx.db
       .insert(organization)
       .values({
-        accentColor: input.accentColor,
+        accent_color: input.accentColor,
         address: input.address ?? null,
         email: input.email ?? null,
-        foundedDate: input.foundedDate ? toDateOnly(input.foundedDate) : null,
+        founded_date: input.foundedDate ? toDateOnly(input.foundedDate) : null,
         industry: input.industry ?? null,
         locale: input.locale ?? "en-US",
         metadata: input.metadata ?? null,
         name: input.name,
         phone: input.phone ?? null,
-        registrationNumber: input.registrationNumber ?? null,
+        registration_number: input.registrationNumber ?? null,
         slug,
-        taxId: input.taxId ?? null,
+        tax_id: input.taxId ?? null,
         timezone: input.timezone ?? "UTC",
         website: input.website ?? null,
       })

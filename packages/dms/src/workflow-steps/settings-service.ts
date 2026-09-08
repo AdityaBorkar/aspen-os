@@ -106,7 +106,7 @@ export async function setSetting(db: DB, key: string, value: JsonValue): Promise
   await (existingRow
     ? db
         .update(dmsSetting)
-        .set({ updatedAt: new Date(), value })
+        .set({ updated_at: new Date(), value })
         .where(eq(dmsSetting.id, existingRow.id))
     : db.insert(dmsSetting).values({ key, value }));
 }

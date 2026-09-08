@@ -24,7 +24,7 @@ export function rotateConnectionCredential(kvStore: KvStoreUnit) {
       try {
         [updated] = await ctx.db
           .update(masterConnection)
-          .set({ credentialRef: newRef, updatedAt: new Date() })
+          .set({ credential_ref: newRef, updated_at: new Date() })
           .where(eq(masterConnection.id, input.id))
           .returning();
       } catch (error) {
@@ -37,8 +37,8 @@ export function rotateConnectionCredential(kvStore: KvStoreUnit) {
         throw new Error(`Connection with id "${input.id}" not found.`);
       }
 
-      if (current.credentialRef) {
-        await ctx.step.run("delete-old-credential", () => kvStore.del(current.credentialRef));
+      if (current.credential_ref) {
+        await ctx.step.run("delete-old-credential", () => kvStore.del(current.credential_ref));
       }
 
       await ctx.step.run("audit-and-notify", async () => {

@@ -16,15 +16,15 @@ export const markRunSchedule = Workflow.name("workspace.schedule.mark-run")
   .handler(async ({ input }, ctx) => {
     const parsed = parse(MarkRunScheduleSchema, input);
     const schedule = await ctx.step.run(fetchScheduleStep, { id: parsed.id });
-    const dashboard = await ctx.step.run(fetchDashboardStep, { id: schedule.dashboardId });
+    const dashboard = await ctx.step.run(fetchDashboardStep, { id: schedule.dashboard_id });
     assertCanAccess(dashboard, ctx.actorId);
 
     const [updated] = await ctx.db
       .update(workspaceSchedule)
       .set({
-        lastError: parsed.error ?? null,
-        lastRunAt: parsed.at ? new Date(parsed.at) : new Date(),
-        updatedAt: new Date(),
+        last_error: parsed.error ?? null,
+        last_run_at: parsed.at ? new Date(parsed.at) : new Date(),
+        updated_at: new Date(),
       })
       .where(eq(workspaceSchedule.id, parsed.id))
       .returning();
@@ -38,7 +38,7 @@ export const markRunSchedule = Workflow.name("workspace.schedule.mark-run")
       crudAction: "update",
       entityId: parsed.id,
       entityType: AUDIT_ENTITY_TYPE.SCHEDULE,
-      metadata: { dashboardId: schedule.dashboardId, error: parsed.error ?? null },
+      metadata: { dashboard_id: schedule.dashboard_id, error: parsed.error ?? null },
     });
 
     return updated;

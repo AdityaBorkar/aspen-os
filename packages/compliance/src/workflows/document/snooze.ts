@@ -18,7 +18,7 @@ const snoozeDocument = Workflow.name("document.snooze").handler(
 
     const [updated] = await ctx.db
       .update(complianceDocument)
-      .set({ snoozedUntil, updatedAt: now })
+      .set({ snoozed_until: snoozedUntil, updated_at: now })
       .where(eq(complianceDocument.id, id))
       .returning();
 

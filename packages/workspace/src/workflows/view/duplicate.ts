@@ -23,11 +23,11 @@ export const duplicateView = Workflow.name("workspace.view.duplicate")
         access: WORKSPACE_ACCESS.PERSONAL,
         conditions: view.conditions,
         domain: view.domain,
-        groupBy: view.groupBy,
-        isDefault: false,
+        group_by: view.group_by,
+        is_default: false,
         metadata: view.metadata,
         name: view.name,
-        ownerId,
+        owner_id: ownerId,
         sort: view.sort,
       })
       .returning();

@@ -16,7 +16,7 @@ export const moveWidget = Workflow.name("workspace.widget.move")
   .handler(async ({ input }, ctx) => {
     const parsed = parse(MoveWidgetSchema, input);
     const widget = await ctx.step.run(fetchWidgetStep, { id: parsed.id });
-    const dashboard = await ctx.step.run(fetchDashboardStep, { id: widget.dashboardId });
+    const dashboard = await ctx.step.run(fetchDashboardStep, { id: widget.dashboard_id });
     await assertCanMutate(dashboard, ctx.actorId);
 
     const placements = dashboard.layout.map((placement) =>
@@ -25,7 +25,7 @@ export const moveWidget = Workflow.name("workspace.widget.move")
 
     const [updated] = await ctx.db
       .update(workspaceDashboard)
-      .set({ layout: placements, updatedAt: new Date() })
+      .set({ layout: placements, updated_at: new Date() })
       .where(eq(workspaceDashboard.id, dashboard.id))
       .returning();
 

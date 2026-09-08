@@ -24,10 +24,10 @@ export const assignTask = Workflow.name("task.assign")
       const inserted = await tx
         .insert(taskAssignee)
         .values({
-          assignedBy: input.assignedBy,
-          isLead: input.isLead ?? false,
-          taskId: input.taskId,
-          userId: input.userId,
+          assigned_by: input.assignedBy,
+          is_lead: input.isLead ?? false,
+          task_id: input.taskId,
+          user_id: input.userId,
         })
         .returning();
 

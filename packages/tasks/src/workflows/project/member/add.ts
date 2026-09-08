@@ -13,10 +13,10 @@ export const addProjectMember = Workflow.name("project.add-member")
   .input(CreateInputSchema)
   .handler(async ({ input }, ctx) => {
     const [existing] = await ctx.db
-      .select({ userId: projectMember.userId })
+      .select({ userId: projectMember.user_id })
       .from(projectMember)
       .where(
-        and(eq(projectMember.projectId, input.projectId), eq(projectMember.userId, input.userId)),
+        and(eq(projectMember.project_id, input.projectId), eq(projectMember.user_id, input.userId)),
       )
       .limit(1);
 
@@ -27,9 +27,9 @@ export const addProjectMember = Workflow.name("project.add-member")
     const [result] = await ctx.db
       .insert(projectMember)
       .values({
-        projectId: input.projectId,
+        project_id: input.projectId,
         role: input.role ?? "member",
-        userId: input.userId,
+        user_id: input.userId,
       })
       .returning();
 

@@ -15,7 +15,7 @@ export const activate = Workflow.name("hr.employee.activate")
 
     const [updated] = await ctx.db
       .update(employee)
-      .set({ status: "active", updatedAt: new Date() })
+      .set({ status: "active", updated_at: new Date() })
       .where(eq(employee.id, id))
       .returning();
 

@@ -29,12 +29,12 @@ export const deleteFolder = Workflow.name("dms.folder.delete")
       ctx.db
         .select({ id: dmsFolder.id })
         .from(dmsFolder)
-        .where(and(eq(dmsFolder.parentId, id), eq(dmsFolder.isTrashed, false)))
+        .where(and(eq(dmsFolder.parent_id, id), eq(dmsFolder.is_trashed, false)))
         .limit(1),
       ctx.db
         .select({ id: dmsFile.id })
         .from(dmsFile)
-        .where(and(eq(dmsFile.folderId, id), eq(dmsFile.status, "active")))
+        .where(and(eq(dmsFile.folder_id, id), eq(dmsFile.status, "active")))
         .limit(1),
     ]);
 
@@ -46,7 +46,7 @@ export const deleteFolder = Workflow.name("dms.folder.delete")
 
     const [updated] = await ctx.db
       .update(dmsFolder)
-      .set({ isTrashed: true, trashedAt: new Date(), updatedAt: new Date() })
+      .set({ is_trashed: true, trashed_at: new Date(), updated_at: new Date() })
       .where(eq(dmsFolder.id, id))
       .returning();
 

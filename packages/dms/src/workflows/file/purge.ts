@@ -31,7 +31,7 @@ export const purgeFile = Workflow.name("dms.file.purge")
 
       await ctx.pubsub.publish(FILE_EVENTS.PURGED, {
         fileId: id,
-        storageKey: keys[0] ?? file.storageKey,
+        storageKey: keys[0] ?? file.storage_key,
       });
     });
 

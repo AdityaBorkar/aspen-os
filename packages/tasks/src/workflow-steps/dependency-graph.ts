@@ -23,13 +23,13 @@ async function loadBlocksSubgraph(db: Db, taskIds: string[]): Promise<BlocksSubg
   }
 
   const links = await db
-    .select({ sourceId: taskLink.sourceId, targetId: taskLink.targetId })
+    .select({ sourceId: taskLink.source_id, targetId: taskLink.target_id })
     .from(taskLink)
     .where(
       and(
-        eq(taskLink.linkType, TASK_LINK_TYPE.BLOCKS),
-        inArray(taskLink.sourceId, taskIds),
-        inArray(taskLink.targetId, taskIds),
+        eq(taskLink.link_type, TASK_LINK_TYPE.BLOCKS),
+        inArray(taskLink.source_id, taskIds),
+        inArray(taskLink.target_id, taskIds),
       ),
     );
 
@@ -114,20 +114,20 @@ export async function wouldCreateCycle(
 
 export async function getDependencies(db: Db, taskId: string): Promise<string[]> {
   const links = await db
-    .select({ targetId: taskLink.targetId })
+    .select({ targetId: taskLink.target_id })
     .from(taskLink)
-    .where(and(eq(taskLink.sourceId, taskId), eq(taskLink.linkType, TASK_LINK_TYPE.BLOCKS)));
+    .where(and(eq(taskLink.source_id, taskId), eq(taskLink.link_type, TASK_LINK_TYPE.BLOCKS)));
 
-  return links.map((link) => link.targetId);
+  return links.map((link: { targetId: string }) => link.targetId);
 }
 
 export async function getDependents(db: Db, taskId: string): Promise<string[]> {
   const links = await db
-    .select({ sourceId: taskLink.sourceId })
+    .select({ sourceId: taskLink.source_id })
     .from(taskLink)
-    .where(and(eq(taskLink.targetId, taskId), eq(taskLink.linkType, TASK_LINK_TYPE.BLOCKS)));
+    .where(and(eq(taskLink.target_id, taskId), eq(taskLink.link_type, TASK_LINK_TYPE.BLOCKS)));
 
-  return links.map((link) => link.sourceId);
+  return links.map((link: { sourceId: string }) => link.sourceId);
 }
 
 export async function topologicalSort(db: Db, taskIds: string[]): Promise<string[]> {
@@ -147,19 +147,26 @@ export async function topologicalSort(db: Db, taskIds: string[]): Promise<string
 export async function getCriticalPath(db: Db, projectId: string): Promise<CriticalPathResult> {
   const tasks = await db
     .select({
-      estimatedHours: task.estimatedHours,
+      estimatedHours: task.estimated_hours,
       id: task.id,
       title: task.title,
     })
     .from(task)
-    .where(eq(task.projectId, projectId));
+    .where(eq(task.project_id, projectId));
 
   if (tasks.length === 0) {
     return { duration: 0, path: [] };
   }
 
-  const taskMap = new Map(tasks.map((taskRow) => [taskRow.id, taskRow]));
-  const taskIds = tasks.map((taskRow) => taskRow.id);
+  const taskMap = new Map<string, { estimatedHours: string | null; id: string; title: string }>(
+    tasks.map((taskRow: { estimatedHours: string | null; id: string; title: string }) => [
+      taskRow.id,
+      taskRow,
+    ]),
+  );
+  const taskIds = tasks.map(
+    (taskRow: { estimatedHours: string | null; id: string; title: string }) => taskRow.id,
+  );
   const { adj, inDegree } = await loadBlocksSubgraph(db, taskIds);
   const order = kahnOrder({ adj, inDegree });
 
@@ -229,7 +236,7 @@ export async function buildDependencyGraph(
     loadBlocksSubgraph(db, taskIds),
   ]);
 
-  return tasks.map((taskRow) => ({
+  return tasks.map((taskRow: { id: string; title: string }) => ({
     dependsOn: adj.get(taskRow.id) ?? [],
     id: taskRow.id,
     title: taskRow.title,

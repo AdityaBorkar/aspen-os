@@ -21,20 +21,20 @@ export const approveShiftRequest = Workflow.name("hr.shift.approve-shift-request
 
     const updated = await ctx.db.transaction(async (tx) => {
       const assignment = await insertShiftAssignment(tx, {
-        employeeId: request.employeeId,
-        endDate: request.toDate ?? undefined,
-        shiftType: request.shiftType,
-        startDate: request.fromDate,
+        employeeId: request.employee_id,
+        endDate: request.to_date ?? undefined,
+        shiftType: request.shift_type,
+        startDate: request.from_date,
       });
 
       const [row] = await tx
         .update(shiftRequest)
         .set({
-          approvedAt: new Date(),
-          approvedBy,
-          shiftAssignment: assignment.id,
+          approved_at: new Date(),
+          approved_by: approvedBy,
+          shift_assignment: assignment.id,
           status: "approved",
-          updatedAt: new Date(),
+          updated_at: new Date(),
         })
         .where(eq(shiftRequest.id, id))
         .returning();

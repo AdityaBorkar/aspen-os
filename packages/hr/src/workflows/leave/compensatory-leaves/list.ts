@@ -18,7 +18,7 @@ export const listCompensatoryLeaves = Workflow.name("hr.leave.list-compensatory-
     const conditions = [];
 
     if (parsed.employeeId) {
-      conditions.push(eq(compensatoryLeaveRequest.employeeId, parsed.employeeId));
+      conditions.push(eq(compensatoryLeaveRequest.employee_id, parsed.employeeId));
     }
     if (parsed.status) {
       conditions.push(eq(compensatoryLeaveRequest.status, parsed.status));

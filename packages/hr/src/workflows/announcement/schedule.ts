@@ -30,7 +30,7 @@ export const scheduleAnnouncement = Workflow.name("hr.announcement.schedule")
 
     const [updated] = await ctx.db
       .update(hrAnnouncement)
-      .set({ scheduledFor: scheduledAt, status: "scheduled", updatedAt: new Date() })
+      .set({ scheduled_for: scheduledAt, status: "scheduled", updated_at: new Date() })
       .where(eq(hrAnnouncement.id, id))
       .returning();
 

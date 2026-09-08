@@ -22,7 +22,7 @@ export function deleteChannel(kvStore: KvStoreUnit) {
         .from(commsMessage)
         .where(
           and(
-            eq(commsMessage.channelId, input.id),
+            eq(commsMessage.channel_id, input.id),
             inArray(commsMessage.status, ["queued", "sending"]),
           ),
         )
@@ -36,15 +36,15 @@ export function deleteChannel(kvStore: KvStoreUnit) {
 
       await ctx.db
         .update(commsMessage)
-        .set({ channelId: null })
-        .where(eq(commsMessage.channelId, input.id));
+        .set({ channel_id: null })
+        .where(eq(commsMessage.channel_id, input.id));
 
       await ctx.db.delete(commsChannel).where(eq(commsChannel.id, input.id));
 
       if (current.source === "tenant") {
-        const { credentialRef } = current;
-        if (credentialRef) {
-          await ctx.step.run("delete-credential", () => kvStore.del(credentialRef));
+        const { credential_ref } = current;
+        if (credential_ref) {
+          await ctx.step.run("delete-credential", () => kvStore.del(credential_ref));
         }
       }
 

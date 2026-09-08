@@ -20,11 +20,11 @@ export const getPositionById = Workflow.name("hr.position.get-by-id")
       ctx.db
         .select({ id: hrPosition.id })
         .from(hrPosition)
-        .where(eq(hrPosition.reportsToPosition, id)),
+        .where(eq(hrPosition.reports_to_position, id)),
       ctx.db
         .select()
         .from(hrPositionAssignment)
-        .where(and(eq(hrPositionAssignment.positionId, id), isNull(hrPositionAssignment.toDate))),
+        .where(and(eq(hrPositionAssignment.position_id, id), isNull(hrPositionAssignment.to_date))),
     ]);
 
     return {

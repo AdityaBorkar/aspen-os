@@ -17,9 +17,9 @@ export const getPreference = Workflow.name("comms.preference.get")
         .from(commsPreference)
         .where(
           and(
-            eq(commsPreference.userId, input.userId),
+            eq(commsPreference.user_id, input.userId),
             eq(commsPreference.type, input.type),
-            eq(commsPreference.channelType, input.channelType),
+            eq(commsPreference.channel_type, input.channelType),
           ),
         )
         .limit(1);
@@ -34,9 +34,9 @@ export const getPreference = Workflow.name("comms.preference.get")
       .from(commsPreference)
       .where(
         and(
-          eq(commsPreference.userId, input.userId),
+          eq(commsPreference.user_id, input.userId),
           isNull(commsPreference.type),
-          eq(commsPreference.channelType, input.channelType),
+          eq(commsPreference.channel_type, input.channelType),
         ),
       )
       .limit(1);

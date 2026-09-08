@@ -17,7 +17,7 @@ export const getAnnouncementById = Workflow.name("hr.announcement.get-by-id")
     const [recipientCount] = await ctx.db
       .select({ count: count() })
       .from(hrAnnouncementRecipient)
-      .where(eq(hrAnnouncementRecipient.announcementId, id));
+      .where(eq(hrAnnouncementRecipient.announcement_id, id));
 
     return {
       ...announcement,

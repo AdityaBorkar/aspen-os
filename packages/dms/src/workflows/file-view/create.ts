@@ -23,10 +23,10 @@ export const createFileView = Workflow.name("dms.file-view.create")
         .insert(dmsFileView)
         .values({
           filters: parsed.filters ?? [],
-          isDefault: parsed.isDefault,
-          isShared: parsed.isShared,
+          is_default: parsed.isDefault,
+          is_shared: parsed.isShared,
           name: parsed.name,
-          ownerId: parsed.ownerId,
+          owner_id: parsed.ownerId,
           sort: parsed.sort ?? [],
         })
         .returning();

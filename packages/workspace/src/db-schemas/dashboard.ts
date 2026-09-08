@@ -10,24 +10,24 @@ import { workspaceAccessEnum } from "./enums";
 export const workspaceDashboard = pgTable(
   "workspace_dashboard",
   {
-    access: workspaceAccessEnum("access").notNull().default("personal"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    description: text("description"),
-    id: uuidv7("id").primaryKey(),
-    layout: jsonb("layout")
+    access: workspaceAccessEnum().notNull().default("personal"),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    description: text(),
+    id: uuidv7().primaryKey(),
+    layout: jsonb()
       .notNull()
       .$type<WidgetPlacement[]>()
       .default(sql`'[]'::jsonb`),
-    metadata: jsonb("metadata").$type<Record<string, JsonValue>>(),
-    name: text("name").notNull(),
-    ownerId: text("owner_id").notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
+    metadata: jsonb().$type<Record<string, JsonValue>>(),
+    name: text().notNull(),
+    owner_id: text().notNull(),
+    updated_at: timestamp({ withTimezone: true })
       .notNull()
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
   (table) => [
-    index("idx_workspace_dashboard_owner").on(table.ownerId),
+    index("idx_workspace_dashboard_owner").on(table.owner_id),
     index("idx_workspace_dashboard_access").on(table.access),
   ],
 );

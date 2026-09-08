@@ -22,7 +22,7 @@ export const createHoliday = Workflow.name("hr.setup.create-holiday")
       .values({
         date: parsed.date,
         description: parsed.description ?? null,
-        holidayListId: parsed.holidayListId,
+        holiday_list_id: parsed.holidayListId,
         name: parsed.name,
         type: parsed.type ?? "public",
       })

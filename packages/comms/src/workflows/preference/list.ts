@@ -15,13 +15,13 @@ export const listPreferences = Workflow.name("comms.preference.list")
 
     const where = [];
     if (filters?.userId) {
-      where.push(eq(commsPreference.userId, filters.userId));
+      where.push(eq(commsPreference.user_id, filters.userId));
     }
     if (filters?.type) {
       where.push(eq(commsPreference.type, filters.type));
     }
     if (filters?.channelType) {
-      where.push(eq(commsPreference.channelType, filters.channelType));
+      where.push(eq(commsPreference.channel_type, filters.channelType));
     }
 
     const { limit, offset } = listPagination(filters ?? undefined);
@@ -31,7 +31,7 @@ export const listPreferences = Workflow.name("comms.preference.list")
       .select()
       .from(commsPreference)
       .where(and(...where))
-      .orderBy(desc(commsPreference.createdAt))
+      .orderBy(desc(commsPreference.created_at))
       .limit(limit)
       .offset(offset);
   });

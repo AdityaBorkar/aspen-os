@@ -10,7 +10,7 @@ export const fetchOrganizationStep = WorkflowStep.name("fetch-organization")
     const [org] = await ctx.db
       .select()
       .from(organization)
-      .orderBy(asc(organization.createdAt))
+      .orderBy(asc(organization.created_at))
       .limit(1);
     return org ?? null;
   });

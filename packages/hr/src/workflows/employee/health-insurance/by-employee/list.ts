@@ -18,5 +18,5 @@ export const listHealthInsuranceByEmployee = Workflow.name(
     return ctx.db
       .select()
       .from(employeeHealthInsurance)
-      .where(eq(employeeHealthInsurance.employeeId, employeeId));
+      .where(eq(employeeHealthInsurance.employee_id, employeeId));
   });

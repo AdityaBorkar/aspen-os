@@ -18,13 +18,13 @@ export const listLeaveAllocations = Workflow.name("hr.leave.list-leave-allocatio
     const conditions = [];
 
     if (parsed.employeeId) {
-      conditions.push(eq(leaveAllocation.employeeId, parsed.employeeId));
+      conditions.push(eq(leaveAllocation.employee_id, parsed.employeeId));
     }
     if (parsed.leaveType) {
-      conditions.push(eq(leaveAllocation.leaveType, parsed.leaveType));
+      conditions.push(eq(leaveAllocation.leave_type, parsed.leaveType));
     }
     if (parsed.leavePeriod) {
-      conditions.push(eq(leaveAllocation.leavePeriod, parsed.leavePeriod));
+      conditions.push(eq(leaveAllocation.leave_period, parsed.leavePeriod));
     }
     if (parsed.status) {
       conditions.push(eq(leaveAllocation.status, parsed.status));

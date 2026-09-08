@@ -28,15 +28,15 @@ export const resolvePublicLink = Workflow.name("dms.public-link.resolve")
       .where(eq(dmsPublicLink.token, parsed.token))
       .limit(1);
 
-    if (!link?.isActive) {
+    if (!link?.is_active) {
       return null;
     }
 
-    if (link.expiresAt && link.expiresAt < new Date()) {
+    if (link.expires_at && link.expires_at < new Date()) {
       return null;
     }
 
-    if (link.maxViews !== null && link.viewCount >= link.maxViews) {
+    if (link.max_views !== null && link.view_count >= link.max_views) {
       return null;
     }
 
@@ -51,7 +51,7 @@ export const resolvePublicLink = Workflow.name("dms.public-link.resolve")
       }
     }
 
-    const entity = await resolveEntity(ctx.db, link.entityType, link.entityId);
+    const entity = await resolveEntity(ctx.db, link.entity_type, link.entity_id);
     if (!entity?.isAccessible) {
       return null;
     }
@@ -60,21 +60,21 @@ export const resolvePublicLink = Workflow.name("dms.public-link.resolve")
     // resolve wins the last view, this update touches zero rows and we treat
     // the link as exhausted.
     const bumped =
-      link.maxViews === null
+      link.max_views === null
         ? await ctx.db
             .update(dmsPublicLink)
-            .set({ viewCount: sql`${dmsPublicLink.viewCount} + 1` })
+            .set({ view_count: sql`${dmsPublicLink.view_count} + 1` })
             .where(eq(dmsPublicLink.id, link.id))
             .returning({ id: dmsPublicLink.id })
         : await ctx.db
             .update(dmsPublicLink)
-            .set({ viewCount: sql`${dmsPublicLink.viewCount} + 1` })
+            .set({ view_count: sql`${dmsPublicLink.view_count} + 1` })
             .where(
               and(
                 eq(dmsPublicLink.id, link.id),
                 or(
-                  isNull(dmsPublicLink.maxViews),
-                  sql`${dmsPublicLink.viewCount} < ${dmsPublicLink.maxViews}`,
+                  isNull(dmsPublicLink.max_views),
+                  sql`${dmsPublicLink.view_count} < ${dmsPublicLink.max_views}`,
                 ),
               ),
             )
@@ -87,8 +87,8 @@ export const resolvePublicLink = Workflow.name("dms.public-link.resolve")
     await logAccess(
       {
         action: "public_link_accessed",
-        entityId: link.entityId,
-        entityType: link.entityType,
+        entityId: link.entity_id,
+        entityType: link.entity_type,
         ip: null,
         publicLinkId: link.id,
         userAgent: null,
@@ -97,8 +97,8 @@ export const resolvePublicLink = Workflow.name("dms.public-link.resolve")
     );
 
     await ctx.pubsub.publish(PUBLIC_LINK_EVENTS.ACCESSED, {
-      entityId: link.entityId,
-      entityType: link.entityType,
+      entityId: link.entity_id,
+      entityType: link.entity_type,
       id: link.id,
       ip: null,
       token: link.token,
@@ -106,8 +106,8 @@ export const resolvePublicLink = Workflow.name("dms.public-link.resolve")
     });
 
     return {
-      entityId: link.entityId,
-      entityType: link.entityType,
+      entityId: link.entity_id,
+      entityType: link.entity_type,
       permission: link.permission,
       publicLinkId: link.id,
     };

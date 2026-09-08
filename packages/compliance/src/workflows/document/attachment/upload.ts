@@ -12,7 +12,7 @@ const uploadDocumentAttachment = Workflow.name("document.upload-attachment").han
 
     const [updated] = await ctx.db
       .update(complianceDocument)
-      .set({ attachment: storageKey, updatedAt: new Date() })
+      .set({ attachment: storageKey, updated_at: new Date() })
       .where(eq(complianceDocument.id, id))
       .returning();
 
@@ -22,7 +22,7 @@ const uploadDocumentAttachment = Workflow.name("document.upload-attachment").han
 
     await ctx.audit.write({
       action: "attachment_uploaded",
-      actorId: current.createdBy,
+      actorId: current.created_by,
       entityId: id,
       entityType: "compliance_document",
       metadata: { storageKey },

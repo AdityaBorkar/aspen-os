@@ -17,7 +17,7 @@ export const listShiftScheduleAssignments = Workflow.name(
 
     const conditions = [];
     if (employeeId) {
-      conditions.push(eq(shiftScheduleAssignment.employeeId, employeeId));
+      conditions.push(eq(shiftScheduleAssignment.employee_id, employeeId));
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;

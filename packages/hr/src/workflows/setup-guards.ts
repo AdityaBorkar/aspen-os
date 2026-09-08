@@ -44,7 +44,7 @@ export async function wouldCreateCircular(
     }
 
     const [parent] = await db
-      .select({ parentDepartment: department.parentDepartment })
+      .select({ parentDepartment: department.parent_department })
       .from(department)
       .where(eq(department.id, currentId))
       .limit(1);

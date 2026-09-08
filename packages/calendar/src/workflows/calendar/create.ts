@@ -20,14 +20,14 @@ export const createCalendar = Workflow.name("calendar.calendar.create")
     const [existing] = await ctx.db
       .select({ id: calendar.id })
       .from(calendar)
-      .where(eq(calendar.ownerId, ownerId))
+      .where(eq(calendar.owner_id, ownerId))
       .limit(1);
 
     const isDefault = parsed.isDefault === true || !existing;
 
     const created = await ctx.db.transaction(async (tx) => {
       if (isDefault) {
-        await tx.update(calendar).set({ isDefault: false }).where(eq(calendar.ownerId, ownerId));
+        await tx.update(calendar).set({ is_default: false }).where(eq(calendar.owner_id, ownerId));
       }
 
       const [row] = await tx
@@ -35,11 +35,11 @@ export const createCalendar = Workflow.name("calendar.calendar.create")
         .values({
           access: parsed.access,
           color: parsed.color ?? null,
-          createdBy: ownerId,
+          created_by: ownerId,
           description: parsed.description ?? null,
-          isDefault,
+          is_default: isDefault,
           name: parsed.name,
-          ownerId,
+          owner_id: ownerId,
           timezone: parsed.timezone ?? DEFAULT_CALENDAR_TIMEZONE,
         })
         .returning();
@@ -56,7 +56,7 @@ export const createCalendar = Workflow.name("calendar.calendar.create")
         crudAction: "create",
         entityId: created.id,
         entityType: AUDIT_ENTITY_TYPE.CALENDAR,
-        newState: { isDefault: created.isDefault, name: created.name },
+        newState: { is_default: created.is_default, name: created.name },
       });
 
       await ctx.pubsub.publish(CALENDAR_EVENTS.CREATED, {

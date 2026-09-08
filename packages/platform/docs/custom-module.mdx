@@ -90,12 +90,12 @@ import { myEntityStatusEnum } from "./enums";
 export const myEntity = pgTable(
   "my_entity",
   {
-    id: uuidv7("id").primaryKey(),
-    name: text("name").notNull(),
-    status: myEntityStatusEnum("status").notNull().default("active"),
-    metadata: jsonb("metadata"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    id: uuidv7().primaryKey(),
+    name: text().notNull(),
+    status: myEntityStatusEnum().notNull().default("active"),
+    metadata: jsonb(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index("idx_my_entity_status").on(table.status)],
 );

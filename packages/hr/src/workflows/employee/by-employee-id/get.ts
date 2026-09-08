@@ -16,7 +16,7 @@ export const getByEmployeeId = Workflow.name("hr.employee.get-by-employee-id")
     const [result] = await ctx.db
       .select()
       .from(employee)
-      .where(eq(employee.employeeId, employeeId))
+      .where(eq(employee.employee_id, employeeId))
       .limit(1);
 
     if (!result) {

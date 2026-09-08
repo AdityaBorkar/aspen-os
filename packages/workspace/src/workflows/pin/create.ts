@@ -22,9 +22,9 @@ export const pinItem = Workflow.name("workspace.pin.create")
       .from(workspacePin)
       .where(
         and(
-          eq(workspacePin.userId, userId),
-          eq(workspacePin.itemType, parsed.itemType),
-          eq(workspacePin.itemId, parsed.itemId),
+          eq(workspacePin.user_id, userId),
+          eq(workspacePin.item_type, parsed.itemType),
+          eq(workspacePin.item_id, parsed.itemId),
         ),
       )
       .limit(1);
@@ -35,7 +35,7 @@ export const pinItem = Workflow.name("workspace.pin.create")
 
     const [pin] = await ctx.db
       .insert(workspacePin)
-      .values({ itemId: parsed.itemId, itemType: parsed.itemType, userId })
+      .values({ item_id: parsed.itemId, item_type: parsed.itemType, user_id: userId })
       .returning();
 
     if (!pin) {

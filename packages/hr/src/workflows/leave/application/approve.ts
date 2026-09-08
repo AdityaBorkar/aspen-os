@@ -20,29 +20,29 @@ export const approveLeaveApplication = Workflow.name("hr.leave.approve-leave-app
     requireStatus(application, ["draft", "pending"], `Leave application "${id}"`);
 
     const updated = await ctx.db.transaction(async (tx) => {
-      if (application.leaveAllocation) {
-        await adjustAllocationUsage(tx, application.leaveAllocation, {
-          deltaDays: toDays(application.totalDays, "totalDays"),
+      if (application.leave_allocation) {
+        await adjustAllocationUsage(tx, application.leave_allocation, {
+          deltaDays: toDays(application.total_days, "totalDays"),
           floorAtZero: false,
         });
       }
 
       await insertLeaveLedgerEntry(tx, {
-        days: application.totalDays,
+        days: application.total_days,
         description: `Leave application approved`,
-        employeeId: application.employeeId,
+        employeeId: application.employee_id,
         leaveApplication: application.id,
-        leaveType: application.leaveType,
+        leaveType: application.leave_type,
         transactionType: "application",
       });
 
       const [row] = await tx
         .update(leaveApplication)
         .set({
-          approvedAt: new Date(),
-          approvedBy,
+          approved_at: new Date(),
+          approved_by: approvedBy,
           status: "approved",
-          updatedAt: new Date(),
+          updated_at: new Date(),
         })
         .where(eq(leaveApplication.id, id))
         .returning();

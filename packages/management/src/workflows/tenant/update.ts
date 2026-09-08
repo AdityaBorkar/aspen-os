@@ -34,7 +34,7 @@ export const updateTenant = Workflow.name("tenant.update")
       await ctx.step.run("update-companion", async () => {
         const [updated] = await ctx.db
           .update(tenant)
-          .set({ ...companionData, updatedAt: new Date() })
+          .set({ ...companionData, updated_at: new Date() })
           .where(eq(tenant.id, tenantId))
           .returning();
 

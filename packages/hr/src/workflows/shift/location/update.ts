@@ -19,7 +19,7 @@ export const updateShiftLocation = Workflow.name("hr.shift.update-shift-location
 
     const [updated] = await ctx.db
       .update(shiftLocation)
-      .set({ ...parsed, updatedAt: new Date() })
+      .set({ ...parsed, updated_at: new Date() })
       .where(eq(shiftLocation.id, id))
       .returning();
 

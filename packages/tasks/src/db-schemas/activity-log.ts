@@ -4,18 +4,18 @@ import { index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 export const activityLog = pgTable(
   "task_activity_log",
   {
-    action: text("action").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    id: uuidv7("id").primaryKey(),
-    newValue: jsonb("new_value"),
-    oldValue: jsonb("old_value"),
-    taskId: text("task_id").notNull(),
-    userId: text("user_id").notNull(),
+    action: text().notNull(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    id: uuidv7().primaryKey(),
+    new_value: jsonb(),
+    old_value: jsonb(),
+    task_id: text().notNull(),
+    user_id: text().notNull(),
   },
   (table) => [
-    index("idx_task_activity_log_task").on(table.taskId),
+    index("idx_task_activity_log_task").on(table.task_id),
     index("idx_task_activity_log_action").on(table.action),
-    index("idx_task_activity_log_created").on(table.createdAt),
+    index("idx_task_activity_log_created").on(table.created_at),
   ],
 );
 

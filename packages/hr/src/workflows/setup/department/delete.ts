@@ -20,12 +20,12 @@ export const deleteDepartment = Workflow.name("hr.setup.delete-department")
       ctx.db
         .select({ id: department.id })
         .from(department)
-        .where(and(eq(department.parentDepartment, id), eq(department.isActive, true)))
+        .where(and(eq(department.parent_department, id), eq(department.is_active, true)))
         .limit(1),
       ctx.db
         .select({ id: hrPosition.id })
         .from(hrPosition)
-        .where(and(eq(hrPosition.department, id), eq(hrPosition.isActive, true)))
+        .where(and(eq(hrPosition.department, id), eq(hrPosition.is_active, true)))
         .limit(1),
       ctx.db
         .select({ id: employee.id })
@@ -46,7 +46,7 @@ export const deleteDepartment = Workflow.name("hr.setup.delete-department")
 
     const [updated] = await ctx.db
       .update(department)
-      .set({ isActive: false, updatedAt: new Date() })
+      .set({ is_active: false, updated_at: new Date() })
       .where(eq(department.id, id))
       .returning();
 

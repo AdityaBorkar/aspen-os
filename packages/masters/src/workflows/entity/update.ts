@@ -55,7 +55,7 @@ export const updateEntity = Workflow.name("masters.entity.update")
 
     const [updated] = await ctx.db
       .update(masterEntity)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates, updated_at: new Date() })
       .where(eq(masterEntity.id, input.id))
       .returning();
 

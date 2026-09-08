@@ -7,7 +7,7 @@ import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 export interface AccessScopedRow {
   access: CalendarAccess;
-  ownerId: string;
+  owner_id: string;
 }
 
 const ADMIN_ROLE = "admin";
@@ -16,7 +16,7 @@ export function assertCanAccess(row: AccessScopedRow, actorId: string | undefine
   if (!actorId) {
     throw new Error("Authentication required");
   }
-  if (row.access !== CALENDAR_ACCESS.GLOBAL && row.ownerId !== actorId) {
+  if (row.access !== CALENDAR_ACCESS.GLOBAL && row.owner_id !== actorId) {
     throw new Error("You do not have access to this calendar");
   }
 }
@@ -33,7 +33,7 @@ export async function assertCanMutate(
   if (!actorId) {
     throw new Error("Authentication required");
   }
-  if (row.ownerId === actorId) {
+  if (row.owner_id === actorId) {
     return;
   }
   if (await isTenantAdmin(db, actorId)) {
@@ -64,9 +64,9 @@ export async function isTenantAdmin(db: PostgresJsDatabase, actorId: string): Pr
 }
 
 export interface ReminderAccessRow {
-  targetId: string;
-  targetType: string;
-  userId: string;
+  target_id: string;
+  target_type: string;
+  user_id: string;
 }
 
 export async function assertCanAccessReminder(
@@ -77,14 +77,14 @@ export async function assertCanAccessReminder(
   if (!actorId) {
     throw new Error("Authentication required");
   }
-  if (reminder.userId === actorId) {
+  if (reminder.user_id === actorId) {
     return;
   }
-  if (reminder.targetType === REMINDER_TARGET.EVENT) {
+  if (reminder.target_type === REMINDER_TARGET.EVENT) {
     const [event] = await db
-      .select({ calendarId: calendarEvent.calendarId })
+      .select({ calendarId: calendarEvent.calendar_id })
       .from(calendarEvent)
-      .where(eq(calendarEvent.id, reminder.targetId))
+      .where(eq(calendarEvent.id, reminder.target_id))
       .limit(1);
     if (event) {
       const [cal] = await db

@@ -12,20 +12,20 @@ const getDocumentsBySource = Workflow.name("document.by-source").handler(
     },
     ctx,
   ) => {
-    const conditions = [eq(complianceDocument.sourceModule, input.sourceModule)];
+    const conditions = [eq(complianceDocument.source_module, input.sourceModule)];
 
     if (input.sourceEntityType) {
-      conditions.push(eq(complianceDocument.sourceEntityType, input.sourceEntityType));
+      conditions.push(eq(complianceDocument.source_entity_type, input.sourceEntityType));
     }
     if (input.sourceEntityId) {
-      conditions.push(eq(complianceDocument.sourceEntityId, input.sourceEntityId));
+      conditions.push(eq(complianceDocument.source_entity_id, input.sourceEntityId));
     }
 
     return ctx.db
       .select()
       .from(complianceDocument)
       .where(and(...conditions))
-      .orderBy(desc(complianceDocument.updatedAt));
+      .orderBy(desc(complianceDocument.updated_at));
   },
 );
 

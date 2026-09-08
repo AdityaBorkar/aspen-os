@@ -16,9 +16,9 @@ export const createAutomationRule = Workflow.name("automation.create")
       .values({
         actions: input.actions,
         conditions: input.conditions ?? null,
-        isActive: input.isActive ?? true,
+        is_active: input.isActive ?? true,
         name: input.name,
-        projectId: input.projectId,
+        project_id: input.projectId,
         trigger: input.trigger,
       })
       .returning();

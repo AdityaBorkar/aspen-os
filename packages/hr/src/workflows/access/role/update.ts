@@ -19,7 +19,7 @@ export const updateRole = Workflow.name("hr.access.update-role")
 
     const [result] = await ctx.db
       .update(hrRole)
-      .set({ ...parsed, updatedAt: new Date() })
+      .set({ ...parsed, updated_at: new Date() })
       .where(eq(hrRole.id, id))
       .returning();
     return result ?? null;

@@ -16,8 +16,8 @@ export const assignPermissionToRole = Workflow.name("hr.access.assign-permission
     const [result] = await ctx.db
       .insert(hrRolePermission)
       .values({
-        permissionId: parsed.permissionId,
-        roleId: parsed.roleId,
+        permission_id: parsed.permissionId,
+        role_id: parsed.roleId,
       })
       .returning();
     return result;

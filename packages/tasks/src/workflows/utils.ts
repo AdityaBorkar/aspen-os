@@ -30,9 +30,9 @@ export async function generateTaskNumber(
 ): Promise<{ displayNumber: string; taskSeq: number }> {
   const [proj] = await db
     .update(project)
-    .set({ taskCounter: sql`${project.taskCounter} + 1` })
+    .set({ task_counter: sql`${project.task_counter} + 1` })
     .where(eq(project.id, projectId))
-    .returning({ key: project.key, taskCounter: project.taskCounter });
+    .returning({ key: project.key, taskCounter: project.task_counter });
 
   if (!proj) {
     throw new Error(`Project with id "${projectId}" not found.`);
@@ -55,7 +55,7 @@ export async function validateParentTask(
     throw new Error(`Parent task with id "${options.parentId}" not found.`);
   }
 
-  if (parent.projectId !== options.projectId) {
+  if (parent.project_id !== options.projectId) {
     throw new Error("Parent task must belong to the same project.");
   }
 
@@ -85,11 +85,11 @@ export async function wouldCreateParentCycle(
       return true;
     }
 
-    const [parent] = await db
-      .select({ parentId: task.parentId })
+    const [parent] = (await db
+      .select({ parentId: task.parent_id })
       .from(task)
       .where(eq(task.id, currentId))
-      .limit(1);
+      .limit(1)) as { parentId: string | null }[];
 
     if (!parent) {
       break;
@@ -107,11 +107,11 @@ export async function getParentDepth(db: Db, taskId: string): Promise<number> {
 
   // oxlint-disable eslint/no-await-in-loop
   while (currentId !== null) {
-    const [parent] = await db
-      .select({ parentId: task.parentId })
+    const [parent] = (await db
+      .select({ parentId: task.parent_id })
       .from(task)
       .where(eq(task.id, currentId))
-      .limit(1);
+      .limit(1)) as { parentId: string | null }[];
 
     if (!parent?.parentId) {
       break;
@@ -131,12 +131,12 @@ export async function getParentDepth(db: Db, taskId: string): Promise<number> {
 export async function unsetLeadAssignee(db: Db, taskId: string): Promise<void> {
   await db
     .update(taskAssignee)
-    .set({ isLead: false })
-    .where(and(eq(taskAssignee.taskId, taskId), eq(taskAssignee.isLead, true)));
+    .set({ is_lead: false })
+    .where(and(eq(taskAssignee.task_id, taskId), eq(taskAssignee.is_lead, true)));
 }
 
 export async function ensureWatcher(db: Db, taskId: string, userId: string): Promise<void> {
-  await db.insert(watcher).values({ taskId, userId }).onConflictDoNothing();
+  await db.insert(watcher).values({ task_id: taskId, user_id: userId }).onConflictDoNothing();
 }
 
 export async function addActivity(
@@ -151,10 +151,10 @@ export async function addActivity(
 ): Promise<void> {
   await db.insert(activityLog).values({
     action: options.action,
-    newValue: options.newValue ?? null,
-    oldValue: options.oldValue ?? null,
-    taskId: options.taskId,
-    userId: options.userId,
+    new_value: options.newValue ?? null,
+    old_value: options.oldValue ?? null,
+    task_id: options.taskId,
+    user_id: options.userId,
   });
 }
 
@@ -178,12 +178,12 @@ export async function ensureKeyUnique(db: Db, key: string, excludeId?: string): 
 export async function unsetDefaultProjectStatus(db: Db, projectId: string | null): Promise<void> {
   await db
     .update(status)
-    .set({ isDefault: false })
-    .where(projectId === null ? isNull(status.projectId) : eq(status.projectId, projectId));
+    .set({ is_default: false })
+    .where(projectId === null ? isNull(status.project_id) : eq(status.project_id, projectId));
 }
 
 export async function unsetDefaultTaskType(db: Db, projectId: string): Promise<void> {
-  await db.update(taskType).set({ isDefault: false }).where(eq(taskType.projectId, projectId));
+  await db.update(taskType).set({ is_default: false }).where(eq(taskType.project_id, projectId));
 }
 
 export async function unsetDefaultSavedView(
@@ -191,15 +191,15 @@ export async function unsetDefaultSavedView(
   ownerId: string,
   projectId: string | null,
 ): Promise<void> {
-  const conditions = [eq(savedView.ownerId, ownerId), eq(savedView.isDefault, true)];
+  const conditions = [eq(savedView.owner_id, ownerId), eq(savedView.is_default, true)];
 
   if (projectId) {
-    conditions.push(eq(savedView.projectId, projectId));
+    conditions.push(eq(savedView.project_id, projectId));
   }
 
   await db
     .update(savedView)
-    .set({ isDefault: false })
+    .set({ is_default: false })
     .where(and(...conditions));
 }
 

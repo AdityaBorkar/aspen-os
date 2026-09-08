@@ -16,20 +16,20 @@ export const renameFile = Workflow.name("dms.file.rename")
     const file = await ctx.step.run(fetchFileStep, { id });
     const parsed = parse(RenameFileSchema, input);
 
-    if (file.folderId) {
+    if (file.folder_id) {
       await ctx.step.run("check-name-uniqueness", async () => {
-        await checkNameUniqueness({ excludeId: id, name: parsed.name, parentId: file.folderId });
+        await checkNameUniqueness({ excludeId: id, name: parsed.name, parentId: file.folder_id });
       });
     }
 
     const newPath = await ctx.step.run("compute-path", async () =>
-      computeFilePath({ folderId: file.folderId, name: parsed.name }),
+      computeFilePath({ folderId: file.folder_id, name: parsed.name }),
     );
     const oldPath = file.path;
 
     const [updated] = await ctx.db
       .update(dmsFile)
-      .set({ name: parsed.name, path: newPath, updatedAt: new Date() })
+      .set({ name: parsed.name, path: newPath, updated_at: new Date() })
       .where(eq(dmsFile.id, id))
       .returning();
 

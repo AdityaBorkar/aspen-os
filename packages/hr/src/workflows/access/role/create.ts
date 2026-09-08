@@ -17,8 +17,8 @@ export const createRole = Workflow.name("hr.access.create-role")
       .insert(hrRole)
       .values({
         description: parsed.description,
-        isActive: parsed.isActive,
-        isSystem: parsed.isSystem,
+        is_active: parsed.isActive,
+        is_system: parsed.isSystem,
         name: parsed.name,
       })
       .returning();

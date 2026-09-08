@@ -21,11 +21,11 @@ export const createStatus = Workflow.name("status.create")
       .values({
         category: input.category,
         color: input.color ?? null,
-        isDefault: input.isDefault ?? false,
-        isResolved: input.isResolved ?? false,
+        is_default: input.isDefault ?? false,
+        is_resolved: input.isResolved ?? false,
         name: input.name,
-        projectId: input.projectId ?? null,
-        sortOrder: input.sortOrder ?? 0,
+        project_id: input.projectId ?? null,
+        sort_order: input.sortOrder ?? 0,
       })
       .returning();
 

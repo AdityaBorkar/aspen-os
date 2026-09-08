@@ -16,16 +16,16 @@ export function toCalendarPayload(row: CalendarRow) {
     access: row.access,
     id: row.id,
     name: row.name,
-    ownerId: row.ownerId,
+    ownerId: row.owner_id,
   } satisfies CalendarCreatedEvent["calendar"];
 }
 
 export function toEventPayload(row: EventRow) {
   return {
-    calendarId: row.calendarId,
-    endsAt: row.endsAt?.toISOString() ?? null,
+    calendarId: row.calendar_id,
+    endsAt: row.ends_at?.toISOString() ?? null,
     id: row.id,
-    startsAt: row.startsAt.toISOString(),
+    startsAt: row.starts_at.toISOString(),
     title: row.title,
   } satisfies CalendarEventPayload;
 }
@@ -43,11 +43,11 @@ export function toReminderPayload(row: ReminderRow) {
   return {
     channel: row.channel,
     id: row.id,
-    isRecurring: row.isRecurring,
+    isRecurring: row.is_recurring,
     message: row.message,
-    targetId: row.targetId,
-    targetType: row.targetType,
+    targetId: row.target_id,
+    targetType: row.target_type,
     type: row.type,
-    userId: row.userId,
+    userId: row.user_id,
   } satisfies ReminderPayload;
 }

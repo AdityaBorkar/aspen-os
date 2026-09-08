@@ -18,13 +18,13 @@ export const listUsers = Workflow.name("hr.access.list-users")
     const conditions = [];
 
     if (parsed.employeeId) {
-      conditions.push(eq(hrUser.employeeId, parsed.employeeId));
+      conditions.push(eq(hrUser.employee_id, parsed.employeeId));
     }
     if (parsed.isActive !== undefined) {
-      conditions.push(eq(hrUser.isActive, parsed.isActive));
+      conditions.push(eq(hrUser.is_active, parsed.isActive));
     }
     if (parsed.userId) {
-      conditions.push(eq(hrUser.userId, parsed.userId));
+      conditions.push(eq(hrUser.user_id, parsed.userId));
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;

@@ -27,8 +27,8 @@ export const retryMessage = Workflow.name("comms.message.retry")
       .update(commsMessage)
       .set({
         attempts: 0,
-        lastError: null,
-        queuedAt: now,
+        last_error: null,
+        queued_at: now,
         status: "queued",
       })
       .where(eq(commsMessage.id, input.id))
@@ -44,7 +44,7 @@ export const retryMessage = Workflow.name("comms.message.retry")
       entityId: updated.id,
       entityType: AUDIT_ENTITY_TYPE.MESSAGE,
       event: {
-        payload: { channelType: updated.channelType, messageId: updated.id, to: updated.to },
+        payload: { channel_type: updated.channel_type, messageId: updated.id, to: updated.to },
         topic: MESSAGE_EVENTS.QUEUED,
       },
     });

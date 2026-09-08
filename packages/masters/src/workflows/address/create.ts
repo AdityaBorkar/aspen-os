@@ -30,14 +30,14 @@ export const createAddress = Workflow.name("masters.address.create")
       .values({
         city: parsed.city ?? null,
         country: parsed.country,
-        entityId: parsed.entityId,
-        entityType: parsed.entityType,
-        isPrimary: parsed.isPrimary,
+        entity_id: parsed.entityId,
+        entity_type: parsed.entityType,
+        is_primary: parsed.isPrimary,
         label: parsed.label ?? null,
         line1: parsed.line1,
         line2: parsed.line2 ?? null,
         metadata: parsed.metadata ?? null,
-        postalCode: parsed.postalCode ?? null,
+        postal_code: parsed.postalCode ?? null,
         state: parsed.state ?? null,
       })
       .returning();
@@ -55,9 +55,9 @@ export const createAddress = Workflow.name("masters.address.create")
         newState: {
           city: address.city,
           country: address.country,
-          entityId: address.entityId,
-          entityType: address.entityType,
-          isPrimary: address.isPrimary,
+          entityId: address.entity_id,
+          entityType: address.entity_type,
+          isPrimary: address.is_primary,
           label: address.label,
           line1: address.line1,
         },
@@ -65,8 +65,8 @@ export const createAddress = Workflow.name("masters.address.create")
 
       await ctx.pubsub.publish(ADDRESS_EVENTS.CREATED, {
         address: { country: address.country, id: address.id, label: address.label },
-        entityId: address.entityId,
-        entityType: address.entityType,
+        entityId: address.entity_id,
+        entityType: address.entity_type,
       });
     });
 

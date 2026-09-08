@@ -19,7 +19,7 @@ export const updateHealthInsurance = Workflow.name("hr.employee.update-health-in
 
     const [updated] = await ctx.db
       .update(employeeHealthInsurance)
-      .set({ ...parsed, updatedAt: new Date() })
+      .set({ ...parsed, updated_at: new Date() })
       .where(eq(employeeHealthInsurance.id, id))
       .returning();
 

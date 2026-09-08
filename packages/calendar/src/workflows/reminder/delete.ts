@@ -23,7 +23,7 @@ export const deleteReminder = Workflow.name("calendar.reminder.delete")
         crudAction: "delete",
         entityId: existing.id,
         entityType: AUDIT_ENTITY_TYPE.REMINDER,
-        previousState: { remindAt: existing.remindAt, type: existing.type },
+        previousState: { remind_at: existing.remind_at, type: existing.type },
       });
 
       await ctx.pubsub.publish(REMINDER_EVENTS.DELETED, {

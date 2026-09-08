@@ -34,15 +34,15 @@ export const publishAnnouncement = Workflow.name("hr.announcement.publish")
         const [present] = await tx
           .select({ id: hrAnnouncementRecipient.id })
           .from(hrAnnouncementRecipient)
-          .where(eq(hrAnnouncementRecipient.announcementId, id))
+          .where(eq(hrAnnouncementRecipient.announcement_id, id))
           .limit(1);
         if (!present) {
           await tx.insert(hrAnnouncementRecipient).values(
             recipients.map((recipient) => ({
-              announcementId: id,
-              employeeId: recipient.employeeId,
-              hrUserId: recipient.hrUserId,
-              userId: recipient.userId,
+              announcement_id: id,
+              employee_id: recipient.employeeId,
+              hr_user_id: recipient.hrUserId,
+              user_id: recipient.userId,
             })),
           );
         }
@@ -50,7 +50,7 @@ export const publishAnnouncement = Workflow.name("hr.announcement.publish")
 
       const [row] = await tx
         .update(hrAnnouncement)
-        .set({ publishedAt: new Date(), status: "published", updatedAt: new Date() })
+        .set({ published_at: new Date(), status: "published", updated_at: new Date() })
         .where(eq(hrAnnouncement.id, id))
         .returning();
 

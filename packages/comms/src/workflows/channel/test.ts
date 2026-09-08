@@ -56,7 +56,7 @@ export function testChannel(kvStore: KvStoreUnit) {
 
         const [row] = await ctx.db
           .update(commsChannel)
-          .set({ lastTestedAt: testedAt, updatedAt: testedAt, verifiedAt: testedAt })
+          .set({ last_tested_at: testedAt, updated_at: testedAt, verified_at: testedAt })
           .where(eq(commsChannel.id, input.id))
           .returning();
 
@@ -82,9 +82,9 @@ export function testChannel(kvStore: KvStoreUnit) {
         await ctx.db
           .update(commsChannel)
           .set({
-            lastTestedAt: testedAt,
+            last_tested_at: testedAt,
             metadata: { ...channel.metadata, lastTestError: message },
-            updatedAt: testedAt,
+            updated_at: testedAt,
           })
           .where(eq(commsChannel.id, input.id));
 

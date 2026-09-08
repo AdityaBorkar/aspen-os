@@ -18,10 +18,10 @@ export const listOvertimeSlips = Workflow.name("hr.overtime.list-overtime-slips"
     const conditions = [];
 
     if (parsed.employeeId) {
-      conditions.push(eq(overtimeSlip.employeeId, parsed.employeeId));
+      conditions.push(eq(overtimeSlip.employee_id, parsed.employeeId));
     }
     if (parsed.overtimeType) {
-      conditions.push(eq(overtimeSlip.overtimeType, parsed.overtimeType));
+      conditions.push(eq(overtimeSlip.overtime_type, parsed.overtimeType));
     }
     if (parsed.status) {
       conditions.push(eq(overtimeSlip.status, parsed.status));

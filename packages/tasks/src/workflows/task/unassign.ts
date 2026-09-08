@@ -13,7 +13,7 @@ export const unassignTask = Workflow.name("task.unassign")
     await ctx.db.transaction(async (tx) => {
       await tx
         .delete(taskAssignee)
-        .where(and(eq(taskAssignee.taskId, taskId), eq(taskAssignee.userId, userId)));
+        .where(and(eq(taskAssignee.task_id, taskId), eq(taskAssignee.user_id, userId)));
 
       await addActivity(tx, {
         action: "assignee_removed",

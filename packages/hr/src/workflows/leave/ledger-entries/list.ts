@@ -14,9 +14,9 @@ export const listLedgerEntries = Workflow.name("hr.leave.list-ledger-entries")
   .handler(async (input, ctx) => {
     const { employeeId, leaveType } = input;
 
-    const conditions = [eq(leaveLedgerEntry.employeeId, employeeId)];
+    const conditions = [eq(leaveLedgerEntry.employee_id, employeeId)];
     if (leaveType) {
-      conditions.push(eq(leaveLedgerEntry.leaveType, leaveType));
+      conditions.push(eq(leaveLedgerEntry.leave_type, leaveType));
     }
 
     return ctx.db

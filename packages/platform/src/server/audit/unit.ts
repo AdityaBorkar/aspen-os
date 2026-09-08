@@ -61,18 +61,18 @@ export class AuditUnit {
     const resolved = this.resolveContextEntry(entry);
     await target.insert(auditLog).values({
       action: resolved.action,
-      actorId: resolved.actorId ?? "system",
+      actor_id: resolved.actorId ?? "system",
       changes: resolved.changes ?? null,
-      crudAction: resolved.crudAction ?? null,
-      entityId: resolved.entityId,
-      entityType: resolved.entityType,
-      idempotencyKey: resolved.idempotencyKey ?? null,
+      crud_action: resolved.crudAction ?? null,
+      entity_id: resolved.entityId,
+      entity_type: resolved.entityType,
+      idempotency_key: resolved.idempotencyKey ?? null,
       metadata: resolved.metadata ?? null,
-      newState: resolved.newState ?? null,
-      previousState: resolved.previousState ?? null,
-      requestId: resolved.requestId ?? null,
-      traceId: resolved.traceId ?? null,
-      workflowRunId: resolved.workflowRunId ?? null,
+      new_state: resolved.newState ?? null,
+      previous_state: resolved.previousState ?? null,
+      request_id: resolved.requestId ?? null,
+      trace_id: resolved.traceId ?? null,
+      workflow_run_id: resolved.workflowRunId ?? null,
     });
   }
 

@@ -18,13 +18,13 @@ export const listLeavePolicyAssignments = Workflow.name("hr.leave.list-leave-pol
     const conditions = [];
 
     if (parsed.employeeId) {
-      conditions.push(eq(leavePolicyAssignment.employeeId, parsed.employeeId));
+      conditions.push(eq(leavePolicyAssignment.employee_id, parsed.employeeId));
     }
     if (parsed.leavePolicy) {
-      conditions.push(eq(leavePolicyAssignment.leavePolicy, parsed.leavePolicy));
+      conditions.push(eq(leavePolicyAssignment.leave_policy, parsed.leavePolicy));
     }
     if (parsed.leavePeriod) {
-      conditions.push(eq(leavePolicyAssignment.leavePeriod, parsed.leavePeriod));
+      conditions.push(eq(leavePolicyAssignment.leave_period, parsed.leavePeriod));
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;

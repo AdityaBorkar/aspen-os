@@ -11,12 +11,12 @@ const markRenewalInProgress = Workflow.name("document.mark-renewal-in-progress")
     const { id } = input;
     const current = await ctx.step.run(fetchDocumentStep, { id });
 
-    assertTransitionAllowed(current.verificationStatus, VERIFICATION_STATUS.SUBMITTED);
+    assertTransitionAllowed(current.verification_status, VERIFICATION_STATUS.SUBMITTED);
 
     const now = new Date();
     const [updated] = await ctx.db
       .update(complianceDocument)
-      .set({ updatedAt: now, verificationStatus: VERIFICATION_STATUS.SUBMITTED })
+      .set({ updated_at: now, verification_status: VERIFICATION_STATUS.SUBMITTED })
       .where(eq(complianceDocument.id, id))
       .returning();
 
@@ -26,11 +26,11 @@ const markRenewalInProgress = Workflow.name("document.mark-renewal-in-progress")
 
     await ctx.audit.write({
       action: "updated",
-      actorId: current.createdBy,
+      actorId: current.created_by,
       entityId: id,
       entityType: "compliance_document",
       metadata: { note: "Renewal in progress" },
-      previousState: { verificationStatus: current.verificationStatus },
+      previousState: { verification_status: current.verification_status },
     });
 
     return updated;

@@ -23,7 +23,7 @@ export const listAssignedTenants = Workflow.name("sp.assigned-tenants")
       ctx.db
         .select()
         .from(tenant)
-        .where(eq(tenant.serviceProviderId, spId))
+        .where(eq(tenant.service_provider_id, spId))
         .orderBy(asc(tenant.id))
         .limit(input.limit ?? 50)
         .offset(input.offset ?? 0),
