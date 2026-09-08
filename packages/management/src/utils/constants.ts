@@ -15,6 +15,7 @@ export const SP_STATUS = {
 export type SpStatus = (typeof SP_STATUS)[keyof typeof SP_STATUS];
 
 export const AUDIT_ENTITY_TYPE = {
+  ORGANIZATION: "organization",
   PLATFORM_USER: "platformUser",
   SERVICE_PROVIDER: "serviceProvider",
   TENANT: "tenant",
@@ -23,6 +24,8 @@ export const AUDIT_ENTITY_TYPE = {
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPE)[keyof typeof AUDIT_ENTITY_TYPE];
 
 export const AUDIT_ACTION = {
+  ORGANIZATION_CREATED: "organization_created",
+  ORGANIZATION_UPDATED: "organization_updated",
   PLATFORM_USER_CREATED: "platform_user_created",
   PLATFORM_USER_DELETED: "platform_user_deleted",
   PLATFORM_USER_UPDATED: "platform_user_updated",

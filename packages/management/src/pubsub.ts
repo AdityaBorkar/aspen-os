@@ -26,7 +26,13 @@ export const PLATFORM_USER_EVENTS = {
   UPDATED: "platform_user:updated",
 } as const;
 
+export const ORGANIZATION_EVENTS = {
+  CREATED: "organization:created",
+  UPDATED: "organization:updated",
+} as const;
+
 export const events = {
+  ORGANIZATION_EVENTS,
   PLATFORM_USER_EVENTS,
   SERVICE_PROVIDER_EVENTS,
   TENANT_EVENTS,
@@ -121,6 +127,23 @@ export interface PlatformUserSpAssignedEvent {
   userId: string;
 }
 
+export interface OrganizationCreatedEvent {
+  organization: {
+    branding: JsonValue | null;
+    id: string;
+    name: string;
+    slug: string;
+  };
+}
+
+export interface OrganizationUpdatedEvent {
+  changes: Record<string, JsonValue>;
+  organization: {
+    id: string;
+    name: string;
+  };
+}
+
 export interface TenantEventMap {
   [TENANT_EVENTS.PROVISIONED]: TenantProvisionedEvent;
   [TENANT_EVENTS.ACTIVATED]: TenantActivatedEvent;
@@ -147,6 +170,12 @@ export interface PlatformUserEventMap {
   [PLATFORM_USER_EVENTS.SP_ASSIGNED]: PlatformUserSpAssignedEvent;
 }
 
+export interface OrganizationEventMap {
+  [ORGANIZATION_EVENTS.CREATED]: OrganizationCreatedEvent;
+  [ORGANIZATION_EVENTS.UPDATED]: OrganizationUpdatedEvent;
+}
+
 export type ManagementPlaneEventMap = TenantEventMap &
   ServiceProviderEventMap &
-  PlatformUserEventMap;
+  PlatformUserEventMap &
+  OrganizationEventMap;

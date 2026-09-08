@@ -1,6 +1,10 @@
 import { acl } from "#/auth";
 import { control_plane_schemas, tenant_schemas } from "#/db-schemas";
 import { events } from "#/pubsub";
+import { createOrganization } from "#/workflows/organization/create";
+import { getOrganization } from "#/workflows/organization/get";
+import { listOrganizations } from "#/workflows/organization/list";
+import { updateOrganization } from "#/workflows/organization/update";
 import { activateSp } from "#/workflows/sp/activate";
 import { listAssignedTenants } from "#/workflows/sp/assigned-tenant/list";
 import { createSp } from "#/workflows/sp/create";
@@ -99,6 +103,13 @@ export class ManagementPlane implements Module {
     listAssignedTenants,
     listUsers: listSpUsers,
     update: updateSp,
+  };
+
+  readonly organizations = {
+    create: createOrganization,
+    get: getOrganization,
+    list: listOrganizations,
+    update: updateOrganization,
   };
 
   readonly users = {

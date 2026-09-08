@@ -1,5 +1,7 @@
 export type {
   ManagementPlaneEventMap,
+  OrganizationCreatedEvent,
+  OrganizationUpdatedEvent,
   PlatformUserCreatedEvent,
   PlatformUserDeletedEvent,
   PlatformUserRoleAssignedEvent,
@@ -18,17 +20,26 @@ export type {
   TenantSpUnassignedEvent,
   TenantSuspendedEvent,
 } from "#/pubsub";
-export { PLATFORM_USER_EVENTS, SERVICE_PROVIDER_EVENTS, TENANT_EVENTS } from "#/pubsub";
+export {
+  ORGANIZATION_EVENTS,
+  PLATFORM_USER_EVENTS,
+  SERVICE_PROVIDER_EVENTS,
+  TENANT_EVENTS,
+} from "#/pubsub";
 export type {
   AuditReportFilters,
+  CreateOrganizationInput,
   CreatePlatformUserInput,
   CreateServiceProviderInput,
   LifecycleReportFilters,
+  OrganizationBranding,
+  OrganizationFilters,
   PlatformUserFilters,
   ProvisionTenantInput,
   ServiceProviderFilters,
   TenantFilters,
   TenantUsageFilters,
+  UpdateOrganizationInput,
   UpdatePlatformUserInput,
   UpdateServiceProviderInput,
   UpdateTenantCompanionInput,
@@ -38,14 +49,18 @@ export {
   AuditActionSchema,
   AuditEntityTypeSchema,
   AuditReportFiltersSchema,
+  CreateOrganizationSchema,
   CreatePlatformUserSchema,
   CreateServiceProviderSchema,
   EmailSchema,
+  HexColorSchema,
   IdSchema,
   LifecycleReportFiltersSchema,
   LimitSchema,
   NameSchema,
   OffsetSchema,
+  OrganizationBrandingSchema,
+  OrganizationFiltersSchema,
   PlatformUserFiltersSchema,
   ProvisionTenantSchema,
   RoleSchema,
@@ -55,10 +70,12 @@ export {
   TenantFiltersSchema,
   TenantStatusSchema,
   TenantUsageFiltersSchema,
+  UpdateOrganizationSchema,
   UpdatePlatformUserSchema,
   UpdateServiceProviderSchema,
   UpdateTenantCompanionSchema,
   UpdateTenantProfileSchema,
   WebsiteSchema,
 } from "#/schemas";
+export type { ManagedOrganization, NewManagedOrganization } from "#/db-schemas/organization";
 export type { AuditAction, AuditEntityType, Role, SpStatus, TenantStatus } from "#/utils/constants";
