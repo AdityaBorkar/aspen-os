@@ -4,7 +4,6 @@ import type { WorkspaceDraftComment } from "#/db-schemas/draft-comment";
 import type { WorkspacePin } from "#/db-schemas/pin";
 import type { WorkspaceRecent } from "#/db-schemas/recent";
 import type { WorkspaceSchedule } from "#/db-schemas/schedule";
-import type { WorkspaceWatch } from "#/db-schemas/watch";
 import type { WorkspaceWidget } from "#/db-schemas/widget";
 
 export type { WorkspaceDashboard, NewWorkspaceDashboard } from "#/db-schemas/dashboard";
@@ -13,7 +12,6 @@ export type { WorkspaceDraftComment, NewWorkspaceDraftComment } from "#/db-schem
 export type { WorkspacePin, NewWorkspacePin } from "#/db-schemas/pin";
 export type { WorkspaceRecent, NewWorkspaceRecent } from "#/db-schemas/recent";
 export type { WorkspaceSchedule, NewWorkspaceSchedule } from "#/db-schemas/schedule";
-export type { WorkspaceWatch, NewWorkspaceWatch } from "#/db-schemas/watch";
 export type { WorkspaceWidget, NewWorkspaceWidget } from "#/db-schemas/widget";
 export type {
   DashboardCreatedEvent,
@@ -42,9 +40,6 @@ export type {
   PinRemovedEvent,
   ScheduleDueEvent,
   ScheduleEventMap,
-  WatchSubscribedEvent,
-  WatchUnsubscribedEvent,
-  WatchEventMap,
   WidgetAddedEvent,
   WidgetEventMap,
   WidgetRefreshedEvent,
@@ -58,7 +53,6 @@ export {
   events,
   PIN_EVENTS,
   SCHEDULE_EVENTS,
-  WATCH_EVENTS,
   WIDGET_EVENTS,
 } from "#/pubsub";
 export type {
@@ -78,7 +72,6 @@ export type {
   ListDraftCommentsInput,
   ListPinsInput,
   ListRecentInput,
-  ListWatchesInput,
   MarkRunScheduleInput,
   MetricConfig,
   MoveWidgetInput,
@@ -89,10 +82,8 @@ export type {
   RejectDraftInput,
   ScheduleConfig,
   ScheduleFilters,
-  SubscribeWatchInput,
   TouchRecentInput,
   UnpinItemInput,
-  UnsubscribeWatchInput,
   UpdateDashboardInput,
   UpdateDraftInput,
   UpdateScheduleInput,
@@ -127,7 +118,6 @@ export {
   ListDraftCommentsSchema,
   ListPinsSchema,
   ListRecentSchema,
-  ListWatchesSchema,
   MarkRunScheduleSchema,
   MetricConfigSchema,
   MoveWidgetSchema,
@@ -142,12 +132,10 @@ export {
   ScheduleConfigSchema,
   ScheduleFormatSchema,
   ScheduleFiltersSchema,
-  SubscribeWatchSchema,
   TimezoneSchema,
   TitleSchema,
   TouchRecentSchema,
   UnpinItemSchema,
-  UnsubscribeWatchSchema,
   UpdateDashboardSchema,
   UpdateDraftSchema,
   UpdateScheduleSchema,
@@ -209,7 +197,6 @@ export type WorkspaceWidgetRow = WorkspaceWidget;
 export type WorkspaceScheduleRow = WorkspaceSchedule;
 export type WorkspacePinRow = WorkspacePin;
 export type WorkspaceRecentRow = WorkspaceRecent;
-export type WorkspaceWatchRow = WorkspaceWatch;
 
 export interface WorkspaceModuleConfig {
   maxRecentItems?: number;

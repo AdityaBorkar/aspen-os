@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "declarationDir": "../../.local/types/hr-attendance",
+    "paths": {
+      "#/*": ["./src/*"]
+    }
+  },
+  "extends": "../../tsconfig.json"
+}

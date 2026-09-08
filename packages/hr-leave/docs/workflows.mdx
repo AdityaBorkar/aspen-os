@@ -1,0 +1,841 @@
+---
+title: Workflows
+description: API reference for the 10 workflow classes exposed by the HR module.
+icon: IconListCheck
+---
+
+The HR module exposes 10 workflow classes, each managing a distinct HR domain aggregate.
+
+## Configuration
+
+```ts title="src/module.ts"
+export interface HrModuleConfig {
+  country: "INDIA";
+}
+```
+
+```ts
+import { Hr } from "@aspen-os/hr";
+
+const hr = Hr.create({ country: "INDIA" });
+```
+
+## AccessWorkflow
+
+Access: `p.hr.access`
+
+Manages HR users (system users linked to employees), custom RBAC roles, permissions, and branch-wise access control.
+
+### HR User
+
+```ts
+createUser(input: CreateHrUserInput)
+getUserById(id: string)
+getUserByEmployeeId(employeeId: string)
+getUserByUserId(userId: string)
+listUsers(filters?: HrUserFilters)
+updateUser(id: string, patch: UpdateHrUserInput)
+deleteUser(id: string)
+```
+
+### RBAC Role
+
+```ts
+createRole(input: CreateHrRoleInput)
+getRoleById(id: string)
+getRoleByName(name: string)
+listRoles(filters?: HrRoleFilters)
+updateRole(id: string, patch: UpdateHrRoleInput)
+deleteRole(id: string)
+```
+
+### Permission
+
+```ts
+createPermission(input: CreateHrPermissionInput)
+getPermissionById(id: string)
+listPermissions(filters?: HrPermissionFilters)
+listPermissionsByModule(module: string)
+deletePermission(id: string)
+```
+
+### Role-Permission Mapping
+
+```ts
+assignPermissionToRole(input: AssignPermissionInput)
+removePermissionFromRole(roleId: string, permissionId: string)
+getRolePermissions(roleId: string)
+```
+
+### User-Role Assignment
+
+```ts
+assignRoleToUser(input: AssignRoleInput)
+removeRoleFromUser(hrUserId: string, roleId: string, branchId?: string)
+getUserRoles(hrUserId: string)
+getUserRolesForBranch(hrUserId: string, branchId: string)
+```
+
+### Branch Access
+
+```ts
+grantBranchAccess(input: GrantBranchAccessInput)
+revokeBranchAccess(hrUserId: string, branchId: string)
+getUserBranches(hrUserId: string)
+updateBranchAccess(id: string, patch: UpdateBranchAccessInput)
+getAccessibleBranches(hrUserId: string): Promise<string[]>
+hasBranchAccess(hrUserId: string, branchId: string)
+```
+
+### Permission Resolution
+
+```ts
+getUserPermissions(hrUserId: string, branchId?: string): Promise<ResolvedPermission[]>
+hasPermission(hrUserId: string, module: string, action: string, branchId?: string): Promise<boolean>
+```
+
+### Business Rules
+
+- `deleteRole` refuses to delete a system role
+- `removeRoleFromUser` optionally scopes removal to a branch
+- `getAccessibleBranches` merges direct branch access with role-based branch grants
+- `getUserPermissions` returns de-duplicated `module:action` pairs from the user's resolved roles
+
+## AnnouncementWorkflow
+
+Access: `p.hr.announcement`
+
+Manages internal-communications announcements: authoring, audience targeting, scheduling, publishing, pinning, and the delivery snapshot.
+
+### Announcement
+
+```ts
+create(input: CreateAnnouncementInput)   // draft, or scheduled when scheduleAt is set
+update(id: string, patch: UpdateAnnouncementInput)
+delete(id: string)
+getById(id: string)                      // + recipientCount
+list(filters?: AnnouncementFilters)      // pinned-first, then newest first
+publish(id: string)                      // idempotent; materializes recipient snapshot, emits announcement:published
+schedule(id: string, scheduledFor: string)
+cancelSchedule(id: string)
+archive(id: string)
+restore(id: string)
+pin(id: string)
+unpin(id: string)
+```
+
+### Delivery Snapshot & Stats
+
+```ts
+listRecipients(announcementId: string, filters?: RecipientListFilters)
+getStats(announcementId: string)
+```
+
+`getStats` returns `{ totalRecipients, deliveredUserCount, employeeOnlyCount, readCount, unreadCount, dismissedCount, acknowledgementCount }` — delivery totals from `hr_announcement_recipient`, read/acknowledgement counts from `notification` rows (`sourceModule: "hr"`, `sourceEntity.type: "announcement"`).
+
+### Business Rules
+
+- Only `draft`/`scheduled` announcements can be edited or deleted; `published` is immutable except pin/archive
+- Publish is idempotent — re-publishing a published announcement returns it without re-emitting `announcement:published`
+- Scheduling requires `scheduledFor` in the future
+- Audiences resolve at publish time and snapshot to `hr_announcement_recipient`; `departments` targeting includes the department subtree
+- Strong-ref audiences (`employees`, `groups`, `roles`, `individuals`) validate unknown IDs at create/update; weak refs (`branches`, `departments`, `designations`) are ignored at publish time
+- `recipientUserIds` on `announcement:published` are auth user IDs (`hr_user.userId`); employees without an HR user appear in the snapshot only
+- The inbox, read receipts, and out-of-band delivery live in `@aspen-os/comms` — hr only produces `announcement:published`
+
+## EmployeeWorkflow
+
+Access: `p.hr.employee`
+
+Manages employee records, employee groups, health insurance, and skill maps.
+
+### Employee CRUD
+
+```ts
+create(input: CreateEmployeeInput)
+update(id: string, patch: UpdateEmployeeInput)
+getById(id: string)
+getByEmployeeId(employeeId: string)
+list(filters?: EmployeeFilters)
+deactivate(id: string)
+activate(id: string)
+markAsLeft(id: string, dateOfLeaving: string)
+getOrganizationalChart(company?: string, filters?: { department?: string; branch?: string; position?: string }): Promise<OrgTreeNode[]>
+```
+
+### Employee Group
+
+```ts
+createGroup(input: CreateEmployeeGroupInput)
+updateGroup(id: string, patch: UpdateEmployeeGroupInput)
+getGroupById(id: string)
+listGroups()
+deleteGroup(id: string)
+addGroupMember(input: AddGroupMemberInput)
+removeGroupMember(groupId: string, employeeId: string)
+listGroupMembers(groupId: string)
+```
+
+### Health Insurance
+
+```ts
+createHealthInsurance(input: CreateHealthInsuranceInput)
+updateHealthInsurance(id: string, patch: UpdateHealthInsuranceInput)
+getHealthInsuranceById(id: string)
+listHealthInsuranceByEmployee(employeeId: string)
+deleteHealthInsurance(id: string)
+```
+
+### Skill Map
+
+```ts
+createSkillMap(input: CreateSkillMapInput)
+updateSkillMap(id: string, patch: UpdateSkillMapInput)
+getSkillMapById(id: string)
+listSkillMapByEmployee(employeeId: string)
+deleteSkillMap(id: string)
+```
+
+### Business Rules
+
+- Employee ID uniqueness enforced on `create` and `update`
+- `deleteGroup` removes all members before deleting the group
+- `addGroupMember` verifies employee and group exist, rejects duplicate membership
+- `createHealthInsurance` and `createSkillMap` verify the employee exists before creating
+
+## AttendanceWorkflow
+
+Access: `p.hr.attendance`
+
+Manages attendance records, employee check-ins, and attendance correction requests.
+
+### Attendance
+
+```ts
+create(input: CreateAttendanceInput)
+update(id: string, patch: UpdateAttendanceInput)
+getById(id: string)
+list(filters?: AttendanceFilters)
+getSummary(employeeId: string, month: string): Promise<AttendanceSummary>
+deleteRecord(id: string)
+```
+
+### Checkin
+
+```ts
+createCheckin(input: CreateCheckinInput)
+getCheckinById(id: string)
+listCheckins(filters?: CheckinFilters)
+deleteCheckin(id: string)
+```
+
+### Attendance Request
+
+```ts
+createAttendanceRequest(input: CreateAttendanceRequestInput)
+updateAttendanceRequest(id: string, patch: UpdateAttendanceRequestInput)
+getAttendanceRequestById(id: string)
+listAttendanceRequests(filters?: AttendanceRequestFilters)
+approveAttendanceRequest(id: string, approvedBy: string)
+rejectAttendanceRequest(id: string, rejectedBy: string, rejectionReason: string)
+deleteAttendanceRequest(id: string)
+```
+
+### Business Rules
+
+- Cannot mark attendance for future dates
+- One attendance record per employee per date (duplicate check on `create`)
+- `getSummary` takes a `month` string (e.g. `"2024-01"`) and returns counts by status
+
+## LeaveWorkflow
+
+Access: `p.hr.leave`
+
+Manages leave types, periods, policies, allocations, applications, compensatory leave, encashment, block lists, adjustments, and ledger entries.
+
+### Leave Type
+
+```ts
+createLeaveType(input: CreateLeaveTypeInput)
+updateLeaveType(id: string, patch: UpdateLeaveTypeInput)
+getLeaveTypeById(id: string)
+listLeaveTypes()
+deleteLeaveType(id: string)
+```
+
+### Leave Period
+
+```ts
+createLeavePeriod(input: CreateLeavePeriodInput)
+updateLeavePeriod(id: string, patch: UpdateLeavePeriodInput)
+getLeavePeriodById(id: string)
+listLeavePeriods()
+deleteLeavePeriod(id: string)
+```
+
+### Leave Policy
+
+```ts
+createLeavePolicy(input: CreateLeavePolicyInput)
+updateLeavePolicy(id: string, patch: UpdateLeavePolicyInput)
+getLeavePolicyById(id: string)
+listLeavePolicies()
+deleteLeavePolicy(id: string)
+```
+
+### Leave Policy Detail
+
+```ts
+createLeavePolicyDetail(input: CreateLeavePolicyDetailInput)
+listLeavePolicyDetails(leavePolicyId: string)
+deleteLeavePolicyDetail(id: string)
+```
+
+### Leave Policy Assignment
+
+```ts
+createLeavePolicyAssignment(input: CreateLeavePolicyAssignmentInput)
+updateLeavePolicyAssignment(id: string, patch: UpdateLeavePolicyAssignmentInput)
+getLeavePolicyAssignmentById(id: string)
+listLeavePolicyAssignments(filters?: LeavePolicyAssignmentFilters)
+deleteLeavePolicyAssignment(id: string)
+```
+
+### Leave Allocation
+
+```ts
+createLeaveAllocation(input: CreateLeaveAllocationInput)
+updateLeaveAllocation(id: string, patch: UpdateLeaveAllocationInput)
+getLeaveAllocationById(id: string)
+listLeaveAllocations(filters?: LeaveAllocationFilters)
+getLeaveBalance(employeeId: string, leavePeriod: string): Promise<LeaveBalance[]>
+deleteLeaveAllocation(id: string)
+```
+
+### Leave Application
+
+```ts
+createLeaveApplication(input: CreateLeaveApplicationInput)
+updateLeaveApplication(id: string, patch: UpdateLeaveApplicationInput)
+getLeaveApplicationById(id: string)
+listLeaveApplications(filters?: LeaveApplicationFilters)
+approveLeaveApplication(id: string, approvedBy: string)
+rejectLeaveApplication(id: string, rejectedBy: string, rejectionReason: string)
+cancelLeaveApplication(id: string)
+deleteLeaveApplication(id: string)
+```
+
+### Compensatory Leave
+
+```ts
+createCompensatoryLeave(input: CreateCompensatoryLeaveInput)
+updateCompensatoryLeave(id: string, patch: UpdateCompensatoryLeaveInput)
+getCompensatoryLeaveById(id: string)
+listCompensatoryLeaves(filters?: CompensatoryLeaveFilters)
+approveCompensatoryLeave(id: string, approvedBy: string)
+rejectCompensatoryLeave(id: string, rejectedBy: string, rejectionReason: string)
+deleteCompensatoryLeave(id: string)
+```
+
+### Leave Encashment
+
+```ts
+createLeaveEncashment(input: CreateLeaveEncashmentInput)
+updateLeaveEncashment(id: string, patch: UpdateLeaveEncashmentInput)
+getLeaveEncashmentById(id: string)
+listLeaveEncashments(filters?: LeaveEncashmentFilters)
+approveLeaveEncashment(id: string, approvedBy: string)
+rejectLeaveEncashment(id: string, rejectedBy: string, rejectionReason: string)
+markLeaveEncashmentPaid(id: string)
+deleteLeaveEncashment(id: string)
+```
+
+### Leave Block List
+
+```ts
+createLeaveBlockList(input: CreateLeaveBlockListInput)
+updateLeaveBlockList(id: string, patch: UpdateLeaveBlockListInput)
+getLeaveBlockListById(id: string)
+listLeaveBlockLists(filters?: LeaveBlockListFilters)
+deleteLeaveBlockList(id: string)
+```
+
+### Leave Adjustment
+
+```ts
+createLeaveAdjustment(input: CreateLeaveAdjustmentInput)
+listLeaveAdjustments(employeeId: string)
+```
+
+### Leave Ledger Entry
+
+```ts
+listLedgerEntries(employeeId: string, leaveType?: string)
+```
+
+### Business Rules
+
+- `createLeaveApplication` checks the block list and leave balance (skipped when `isLeaveWithoutPay` is `true`)
+- `approveLeaveApplication` increments allocation `usedDays` and creates a ledger entry with `transactionType: "application"`
+- `cancelLeaveApplication` decrements allocation `usedDays` (floored at 0) and creates a reversal ledger entry with `transactionType: "cancellation"`
+- `approveCompensatoryLeave` creates a leave allocation and a `transactionType: "compensatory"` ledger entry
+- `deleteLeaveType` and `deleteLeavePeriod` are soft deletes (`isActive: false`)
+- `deleteLeaveAllocation` sets `status: "cancelled"`
+- `deleteLeavePolicy` hard deletes, cascading to policy details first
+- `createLeavePolicyDetail` verifies both the leave policy and leave type exist
+- `createLeavePolicyAssignment` verifies both the leave policy and leave period exist
+- `createLeaveAllocation` verifies the leave type and leave period exist
+
+## LifecycleWorkflow
+
+Access: `p.hr.lifecycle`
+
+Manages onboarding, promotions, transfers, separations, exit interviews, and full and final statements.
+
+### Onboarding
+
+```ts
+createOnboarding(input: CreateOnboardingInput)
+updateOnboarding(id: string, patch: UpdateOnboardingInput)
+getOnboardingById(id: string)
+listOnboardings(filters?: OnboardingFilters)
+deleteOnboarding(id: string)
+```
+
+### Onboarding Task
+
+```ts
+createOnboardingTask(input: CreateOnboardingTaskInput)
+updateOnboardingTask(id: string, patch: UpdateOnboardingTaskInput)
+getOnboardingTaskById(id: string)
+listOnboardingTasks(onboardingId: string)
+completeOnboardingTask(id: string, completedBy: string)
+deleteOnboardingTask(id: string)
+```
+
+### Promotion
+
+```ts
+createPromotion(input: CreatePromotionInput)
+updatePromotion(id: string, patch: UpdatePromotionInput)
+getPromotionById(id: string)
+listPromotions(filters?: PromotionFilters)
+approvePromotion(id: string, approvedBy: string)
+rejectPromotion(id: string, rejectedBy: string, rejectionReason: string)
+completePromotion(id: string)
+deletePromotion(id: string)
+```
+
+### Transfer
+
+```ts
+createTransfer(input: CreateTransferInput)
+updateTransfer(id: string, patch: UpdateTransferInput)
+getTransferById(id: string)
+listTransfers(filters?: TransferFilters)
+approveTransfer(id: string, approvedBy: string)
+rejectTransfer(id: string, rejectedBy: string, rejectionReason: string)
+completeTransfer(id: string)
+deleteTransfer(id: string)
+```
+
+### Separation
+
+```ts
+createSeparation(input: CreateSeparationInput)
+updateSeparation(id: string, patch: UpdateSeparationInput)
+getSeparationById(id: string)
+listSeparations(filters?: SeparationFilters)
+deleteSeparation(id: string)
+```
+
+### Separation Task
+
+```ts
+createSeparationTask(input: CreateSeparationTaskInput)
+updateSeparationTask(id: string, patch: UpdateSeparationTaskInput)
+getSeparationTaskById(id: string)
+listSeparationTasks(separationId: string)
+completeSeparationTask(id: string, completedBy: string)
+deleteSeparationTask(id: string)
+```
+
+### Exit Interview
+
+```ts
+createExitInterview(input: CreateExitInterviewInput)
+updateExitInterview(id: string, patch: UpdateExitInterviewInput)
+getExitInterviewById(id: string)
+listExitInterviews(filters?: ExitInterviewFilters)
+completeExitInterview(id: string, feedback: string, responses: Record<string, unknown>)
+deleteExitInterview(id: string)
+```
+
+### Full and Final Statement
+
+```ts
+createFullAndFinal(input: CreateFullAndFinalInput)
+updateFullAndFinal(id: string, patch: UpdateFullAndFinalInput)
+getFullAndFinalById(id: string)
+listFullAndFinalStatements(filters?: FullAndFinalFilters)
+approveFullAndFinal(id: string, approvedBy: string)
+markFullAndFinalPaid(id: string, paymentEntry: string)
+deleteFullAndFinal(id: string)
+```
+
+### Business Rules
+
+- `deleteOnboarding` and `deleteSeparation` cascade-delete their tasks first
+- `completeOnboardingTask` and `completeSeparationTask` set `completedAt` and `status: "completed"`
+- `updateOnboardingTask` and `updateSeparationTask` auto-set `completedAt` when status becomes `"completed"`
+- `approveFullAndFinal` calculates `totalEarnings`, `totalDeductions`, and `netPayable` from component amounts
+- `completePromotion` and `completeTransfer` mark status as `"completed"` — the employee record update is not yet wired to `EmployeeWorkflow`
+- `approvePromotion` syncs `employee.designation` (plus `grade` and `department` when the promotion sets them)
+- `approveTransfer` publishes `lifecycle:transfer_approved`; `updateSeparation` publishes `lifecycle:separation_completed` when status transitions to `"completed"`
+
+## OvertimeWorkflow
+
+Access: `p.hr.overtime`
+
+Manages overtime types and overtime slips with approval workflow and summary reporting.
+
+### Overtime Type
+
+```ts
+createOvertimeType(input: CreateOvertimeTypeInput)
+updateOvertimeType(id: string, patch: UpdateOvertimeTypeInput)
+getOvertimeTypeById(id: string)
+listOvertimeTypes()
+deleteOvertimeType(id: string)
+```
+
+### Overtime Slip
+
+```ts
+createOvertimeSlip(input: CreateOvertimeSlipInput)
+updateOvertimeSlip(id: string, patch: UpdateOvertimeSlipInput)
+getOvertimeSlipById(id: string)
+listOvertimeSlips(filters?: OvertimeSlipFilters)
+approveOvertimeSlip(id: string, approvedBy: string)
+rejectOvertimeSlip(id: string, rejectedBy: string, rejectionReason: string)
+getOvertimeSummary(employeeId: string, fromDate: string, toDate: string): Promise<OvertimeSummary>
+deleteOvertimeSlip(id: string)
+```
+
+### Business Rules
+
+- `approveOvertimeSlip` calculates `amount` using the overtime type's multipliers: `standardHours × rate × standardMultiplier + holidayHours × rate × holidayMultiplier + weekendHours × rate × weekendMultiplier` (only when `amountCalculation === "fixed"` and `fixedHourlyRate` is set)
+- `getOvertimeSummary` aggregates only approved slips within the date range
+- `deleteOvertimeType` is a soft delete (`isActive: false`)
+- `createOvertimeSlip` verifies the overtime type exists
+
+## PositionWorkflow
+
+Access: `p.hr.position`
+
+Manages job positions (stable job slots), employee position assignments with history, and structure views (org tree, position tree, direct reports, subordinates, peers, team).
+
+### Position
+
+```ts
+create(input: CreatePositionInput)
+update(id: string, patch: UpdatePositionInput)
+delete(id: string)
+deactivate(id: string)
+activate(id: string)
+getById(id: string)            // + directSubPositionCount, incumbents
+list(filters?: PositionFilters)  // + filledCount per position
+```
+
+### Position Assignment
+
+```ts
+assignEmployee(positionId: string, employeeId: string, input?: AssignEmployeeInput)
+unassignEmployee(assignmentId: string, toDate?: string | null)
+transferAssignment(assignmentId: string, input: TransferAssignmentInput)
+getPositionHistory(positionId: string)
+getEmployeePositionHistory(employeeId: string)
+getCurrentAssignment(positionId: string)
+getCurrentPositions(employeeId: string)
+```
+
+### Structure Views
+
+```ts
+getOrgTree(company?: string): Promise<PositionTreeNode[]>
+getPositionTree(positionId?: string): Promise<PositionTreeNode[]>
+getDirectReports(managerId: string)
+getSubordinates(managerId: string, depth?: number)
+getPeers(employeeId: string)
+getTeam(employeeId: string)
+```
+
+### Business Rules
+
+- Position names are unique within a department
+- `reportsToPosition` cannot create a cycle (ancestor walk, max depth 10); a position cannot be its own parent
+- Assignments cannot exceed the position's `headcount`
+- An employee has at most one open-ended assignment per position; `isPrimary` is unique per employee among current assignments
+- `delete` and `deactivate` are blocked while the position has active assignments
+- Assigning an employee closes a conflicting open-ended assignment to the same position; assigning a primary clears the employee's other current primaries
+- `transferAssignment` closes the source assignment and opens one at the target, preserving the primary flag
+- Direct reports / subordinates / peers resolve the manager through the position `reportsToPosition` chain, falling back to `employee.reportsTo`
+
+## SetupWorkflow
+
+Access: `p.hr.setup`
+
+Manages HR settings, payroll settings, employment types, departments, designations, employee grades, holiday lists, and holidays.
+
+### HR Settings
+
+```ts
+getHrSettings()
+updateHrSettings(patch: UpdateHrSettingsInput)
+```
+
+### Payroll Settings
+
+```ts
+getPayrollSettings()
+updatePayrollSettings(patch: UpdatePayrollSettingsInput)
+```
+
+### Employment Type
+
+```ts
+createEmploymentType(input: CreateEmploymentTypeInput)
+updateEmploymentType(id: string, patch: UpdateEmploymentTypeInput)
+getEmploymentTypeById(id: string)
+listEmploymentTypes()
+deleteEmploymentType(id: string)
+```
+
+### Department
+
+```ts
+createDepartment(input: CreateDepartmentInput)
+updateDepartment(id: string, patch: UpdateDepartmentInput)
+getDepartmentById(id: string)
+listDepartments(filters?: DepartmentFilters)
+deleteDepartment(id: string)
+moveDepartment(id: string, newParentId?: string | null)
+setDepartmentHead(id: string, employeeId?: string | null)
+getDepartmentTree(): Promise<DepartmentTreeNode[]>
+getDepartmentSubtree(id: string, depth?: number): Promise<DepartmentTreeNode[]>
+listPositionsByDepartment(departmentId: string, includeSubtree?: boolean)
+```
+
+### Designation
+
+```ts
+createDesignation(input: CreateDesignationInput)
+updateDesignation(id: string, patch: UpdateDesignationInput)
+getDesignationById(id: string)
+listDesignations()
+deleteDesignation(id: string)
+```
+
+### Employee Grade
+
+```ts
+createEmployeeGrade(input: CreateEmployeeGradeInput)
+updateEmployeeGrade(id: string, patch: UpdateEmployeeGradeInput)
+getEmployeeGradeById(id: string)
+listEmployeeGrades()
+deleteEmployeeGrade(id: string)
+```
+
+### Holiday List
+
+```ts
+createHolidayList(input: CreateHolidayListInput)
+updateHolidayList(id: string, patch: UpdateHolidayListInput)
+getHolidayListById(id: string)
+listHolidayLists()
+deleteHolidayList(id: string)
+```
+
+### Holiday
+
+```ts
+createHoliday(input: CreateHolidayInput)
+updateHoliday(id: string, patch: UpdateHolidayInput)
+getHolidayById(id: string)
+listHolidaysByList(holidayListId: string)
+deleteHoliday(id: string)
+```
+
+### Business Rules
+
+- `updateHrSettings` and `updatePayrollSettings` are upserts — they create the singleton settings row if it doesn't exist
+- Department codes are uppercased on `create` and `update`
+- `createDepartment` validates the parent department exists when `parentDepartment` is provided
+- `updateDepartment` prevents circular references by walking the parent chain (max depth 10)
+- A department cannot be set as its own parent
+- `updateDepartment` enforces department code uniqueness on update
+- `moveDepartment` re-parents a department and rejects cycles
+- `setDepartmentHead` sets/clears `department.manager`
+- `deleteDepartment` is a soft delete that is blocked while the department has child departments, active positions, or active employees
+- Departments carry optional `costCenter` and `headcount` (sanctioned headcount for reporting)
+- `deleteEmploymentType`, `deleteDesignation`, `deleteEmployeeGrade`, `deleteHolidayList` are soft deletes (`isActive: false`)
+- `deleteHoliday` is a hard delete
+- `createHoliday` verifies the holiday list exists
+
+## ShiftWorkflow
+
+Access: `p.hr.shift`
+
+Manages shift types, shift locations, shift assignments, shift requests, shift schedules, and schedule assignments.
+
+### Shift Type
+
+```ts
+createShiftType(input: CreateShiftTypeInput)
+updateShiftType(id: string, patch: UpdateShiftTypeInput)
+getShiftTypeById(id: string)
+listShiftTypes()
+deleteShiftType(id: string)
+```
+
+### Shift Location
+
+```ts
+createShiftLocation(input: CreateShiftLocationInput)
+updateShiftLocation(id: string, patch: UpdateShiftLocationInput)
+getShiftLocationById(id: string)
+listShiftLocations()
+deleteShiftLocation(id: string)
+```
+
+### Shift Assignment
+
+```ts
+createShiftAssignment(input: CreateShiftAssignmentInput)
+updateShiftAssignment(id: string, patch: UpdateShiftAssignmentInput)
+getShiftAssignmentById(id: string)
+listShiftAssignments(filters?: ShiftAssignmentFilters)
+deactivateShiftAssignment(id: string)
+deleteShiftAssignment(id: string)
+```
+
+### Shift Request
+
+```ts
+createShiftRequest(input: CreateShiftRequestInput)
+updateShiftRequest(id: string, patch: UpdateShiftRequestInput)
+getShiftRequestById(id: string)
+listShiftRequests(filters?: ShiftRequestFilters)
+approveShiftRequest(id: string, approvedBy: string)
+rejectShiftRequest(id: string, rejectedBy: string, rejectionReason: string)
+deleteShiftRequest(id: string)
+```
+
+### Shift Schedule
+
+```ts
+createShiftSchedule(input: CreateShiftScheduleInput)
+updateShiftSchedule(id: string, patch: UpdateShiftScheduleInput)
+getShiftScheduleById(id: string)
+listShiftSchedules()
+deleteShiftSchedule(id: string)
+```
+
+### Shift Schedule Assignment
+
+```ts
+createShiftScheduleAssignment(input: CreateShiftScheduleAssignmentInput)
+updateShiftScheduleAssignment(id: string, patch: UpdateShiftScheduleAssignmentInput)
+getShiftScheduleAssignmentById(id: string)
+listShiftScheduleAssignments(employeeId?: string)
+deleteShiftScheduleAssignment(id: string)
+```
+
+### Business Rules
+
+- `approveShiftRequest` creates a shift assignment from the request data and links it back to the request
+- `createShiftAssignment`, `createShiftRequest`, `createShiftSchedule`, and `createShiftScheduleAssignment` all verify the shift type exists first
+- `createShiftScheduleAssignment` verifies the shift schedule exists
+- `deactivateShiftAssignment` sets `status: "inactive"`
+- `deleteShiftType` and `deleteShiftLocation` are soft deletes (`isActive: false`)
+- `deleteShiftAssignment`, `deleteShiftSchedule`, and `deleteShiftScheduleAssignment` are hard deletes
+
+## Shared Types
+
+Return shapes defined in `src/types.ts`:
+
+```ts title="src/types.ts"
+interface AttendanceSummary {
+  month: string;
+  present: number;
+  absent: number;
+  halfDay: number;
+  workFromHome: number;
+  totalDays: number;
+}
+interface LeaveBalance {
+  leaveType: string;
+  allocated: number;
+  used: number;
+  remaining: number;
+  carryForwarded: number;
+  earned: number;
+}
+interface OvertimeSummary {
+  standardHours: number;
+  holidayHours: number;
+  weekendHours: number;
+  totalHours: number;
+}
+interface ResolvedPermission {
+  module: string;
+  action: string;
+}
+interface OrgTreeNode {
+  id: string;
+  name: string;
+  designation: string;
+  department: string;
+  position: string | null;
+  image: string | null;
+  children: OrgTreeNode[];
+}
+interface PositionTreeNode {
+  id: string;
+  name: string;
+  department: string;
+  branch: string | null;
+  incumbents: PositionIncumbent[];
+  children: PositionTreeNode[];
+}
+interface DepartmentTreeNode {
+  id: string;
+  name: string;
+  code: string;
+  headEmployeeId: string | null;
+  employeeCount: number;
+  positionCount: number;
+  children: DepartmentTreeNode[];
+}
+```
+
+Input/filter types (`Create*Input`, `Update*Input`, `*Filters`) are Valibot `InferOutput` types re-exported from `src/schemas/` — see `types.ts`.
+
+## Events
+
+Workflows emit 17 topics across 4 groups; the full 58-topic contract lives in `events.mdx`.
+
+| Group        | Emitted | Detail                                                     |
+| ------------ | ------- | ---------------------------------------------------------- |
+| Announcement | 6       | create/update/schedule/publish/archive/pin                 |
+| Position     | 7       | create/update/deactivate/activate/assign/unassign/reassign |
+| Setup        | 2       | department moved/head changed                              |
+| Lifecycle    | 2       | transfer approved/separation completed                     |
+
+## Schema
+
+54 tables: 14 control-plane (setup + access) + 40 tenant. See `db-schemas.mdx`. Enum columns use the 29 `hr_*` pgEnums in `enums.mdx`.
+
+## Dependencies
+
+No platform-module `$dependencies`. Reads `@aspen-os/comms` notification rows for announcement read/acknowledgement stats and `@aspen-os/constants` for announcement priority values.

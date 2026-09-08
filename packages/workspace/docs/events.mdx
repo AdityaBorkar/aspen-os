@@ -48,16 +48,13 @@ Filter view events (`masters:filter_view_created/updated/duplicated/deleted`) li
 
 ## Utilities
 
-| Event                          | Payload                                                                                   |
-| ------------------------------ | ----------------------------------------------------------------------------------------- |
-| `workspace:pin_created`        | `{ userId, itemType, itemId }`                                                            |
-| `workspace:pin_removed`        | `{ userId, itemType, itemId }`                                                            |
-| `workspace:watch_subscribed`   | `{ userId, itemType, itemId }`                                                            |
-| `workspace:watch_unsubscribed` | `{ userId, itemType, itemId }`                                                            |
-| `workspace:schedule_due`       | `{ schedule, dashboard, at }` — full payload so hosts can deliver without follow-up reads |
+| Event                    | Payload                                                                                   |
+| ------------------------ | ----------------------------------------------------------------------------------------- |
+| `workspace:pin_created`  | `{ userId, itemType, itemId }`                                                            |
+| `workspace:pin_removed`  | `{ userId, itemType, itemId }`                                                            |
+| `workspace:schedule_due` | `{ schedule, dashboard, at }` — full payload so hosts can deliver without follow-up reads |
 
 ## Consumer guidance
 
 - **`workspace:draft_published`** — the host subscribes to create the target entity (`targetDomain`/`targetEntityType` on the row) and backfill `targetEntityId`.
 - **`workspace:schedule_due`** — the host subscribes to render and deliver (email/PDF/export). If no consumer is registered, pg-boss **silently drops** the message — the platform health check flags produced-but-unsubscribed topics.
-- **`workspace:watch_*`** — workspace only persists subscriptions and emits the events; a future `notifications` module consumes them.

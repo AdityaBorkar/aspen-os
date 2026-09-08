@@ -13,10 +13,12 @@
 | `@aspen-os/notes`        | [`bounded-contexts/notes.md`](bounded-contexts/notes.md)               |
 | `@aspen-os/compliance`   | [`bounded-contexts/compliance.md`](bounded-contexts/compliance.md)     |
 | `@aspen-os/tasks`        | [`bounded-contexts/tasks.md`](bounded-contexts/tasks.md)               |
+| `@aspen-os/calendar`     | [`bounded-contexts/calendar.md`](bounded-contexts/calendar.md)         |
 | `@aspen-os/comms`        | [`bounded-contexts/comms.md`](bounded-contexts/comms.md)               |
 | `@aspen-os/dms`          | [`bounded-contexts/dms.md`](bounded-contexts/dms.md)                   |
 | `@aspen-os/hr`           | [`bounded-contexts/hr.md`](bounded-contexts/hr.md)                     |
 | `@aspen-os/management`   | [`bounded-contexts/management.md`](bounded-contexts/management.md)     |
+| `@aspen-os/workspace`    | [`bounded-contexts/workspace.md`](bounded-contexts/workspace.md)       |
 | Stubs                    | [`bounded-contexts/stubs.md`](bounded-contexts/stubs.md)               |
 
 Domain detail per context in [`domain-model/`](domain-model/) (also split per package).
@@ -73,46 +75,47 @@ Domain detail per context in [`domain-model/`](domain-model/) (also split per pa
 │  ┌───────────────┐  ┌───────────────────┐  ┌───────────────┐   │
 │  │ Recruiter App │  │ Organization      │  │ Compliance    │   │
 │  │ (not in repo) │  │ Module            │  │ Module        │   │
-│  │ uses          │  │ 2 wf groups       │  │ 5 wf groups   │   │
-│  │ SingleTenant  │  │ 2 tables          │  │ 3 services    │   │
-│  │ Platform      │  │ 10 events         │  │ 3 tables      │   │
+│  │ uses          │  │ 1 wf group        │  │ 5 wf groups   │   │
+│  │ SingleTenant  │  │ 1 table           │  │ 3 services    │   │
+│  │ Platform      │  │ 2 events          │  │ 3 tables      │   │
 │  │ .create()     │  │ deps: none        │  │ 23 events     │   │
 │  └───────────────┘  │ units: none       │  │ units: db,     │   │
 │                     └───────────────────┘  │ kvStore, pubsub│   │
 │  ┌───────────────────┐                     └───────────────┘   │
 │  │ Masters Module    │  ┌───────────────┐  ┌───────────────┐   │
-│  │ 7 wf groups       │  │ Tasks         │  │ DMS Module    │   │
-│  │ 7 tables          │  │ Module        │  │ 18 wf groups  │   │
-│  │ 29 events         │  │ 10 wf groups  │  │ 14 tables     │   │
-│  │ 7 ACL res.        │  │ 16 tables     │  │ 33 events     │   │
-│  │ units: kvStore    │  │ 11 events     │  │ 11 ACL res.   │   │
+│  │ 8 wf groups       │  │ Tasks         │  │ DMS Module    │   │
+│  │ 8 tables          │  │ Module        │  │ 16 wf groups  │   │
+│  │ 27 events         │  │ 9 wf groups   │  │ 12 tables     │   │
+│  │ 8 ACL res.        │  │ 15 tables     │  │ 27 events     │   │
+│  │ units: kvStore    │  │ 11 events     │  │ 9 ACL res.    │   │
 │  │ (connections)     │  │ units: none   │  │ units:        │   │
 │  └───────────────────┘  │               │  │ db, pubsub,   │   │
 │                         └───────────────┘  │ storage       │   │
 │  ┌───────────────┐  ┌───────────────┐  ┌───────────────────┐   │
 │  │ Notes Module  │  │ Calendar      │  │ Workspace         │   │
 │  │ 1 wf group    │  │ Module        │  │ Module            │   │
-│  │ 1 table       │  │ 4 wf groups   │  │ 10 wf groups      │   │
-│  │ 3 events      │  │ 4 tables      │  │ 10 tables         │   │
-│  │ 1 ACL res.    │  │ 14 events     │  │ 32 events         │   │
-│  │ units: none   │  │ 4 ACL res.    │  │ 11 ACL res.       │   │
+│  │ 1 table       │  │ 4 wf groups   │  │ 8 wf groups       │   │
+│  │ 3 events      │  │ 4 tables      │  │ 8 tables          │   │
+│  │ 1 ACL res.    │  │ 14 events     │  │ 28 events         │   │
+│  │ units: none   │  │ 4 ACL res.    │  │ 9 ACL res.        │   │
 │  └───────────────┘  │ units:        │  │ units:            │   │
 │                     │ db, pubsub    │  │ db, pubsub        │   │
 │                     └───────────────┘  └───────────────────┘   │
-│  ┌───────────────────────────┐                                   │
-│  │ Management Plane          │                                   │
-│  │ Module                    │                                   │
-│  │ 3 workflow groups         │                                   │
-│  │ 3 owned + 0 shadow tables │                                   │
-│  │ 16 events                 │                                   │
-│  │ deps: organization        │                                   │
-│  │ units: db, auth, pubsub   │                                   │
-│  └───────────────────────────┘                                   │
+│  ┌───────────────────────────┐  ┌───────────────────────────┐   │
+│  │ Management Plane          │  │ Comms Module              │   │
+│  │ Module                    │  │ 7 workflow groups         │   │
+│  │ 3 workflow groups         │  │ 1 control-plane + 6       │   │
+│  │ 3 owned + 0 shadow tables │  │ tenant tables (7 total)   │   │
+│  │ 17 events                 │  │ 21 events, 7 ACL res.     │   │
+│  │ deps: organization        │  │ deps: none                │   │
+│  │ units: db, auth, pubsub   │  │ units: db, kvStore,       │   │
+│  └───────────────────────────┘  │ pubsub, auth              │   │
+│                                 └───────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
 │                     STUB MODULES                                 │
-│  accounting, crm, fleet, inventory, reports, pharmacy           │
+│  crm, fleet, inventory, reports                                  │
 │  (package.json only — no source)                                 │
 └─────────────────────────────────────────────────────────────────┘
 
@@ -173,16 +176,16 @@ await p.run(tenantId, async () => {
 Domain events published via PubSub as plain string topics. Event counts by module (type-level `*EventMap` contracts, not runtime type-safe bus):
 
 - Auth: 8 events
-- Organization: 10 events
-- Masters: 29 events
+- Organization: 2 events
+- Masters: 27 events
 - Notes: 3 events
 - Compliance: 23 events
 - Tasks: 11 events (incl. `task:due_date_changed`)
 - Calendar: 14 events (3 calendar + 4 event + 3 attendee + 4 reminder, incl. `calendar:reminder_due`)
-- Workspace: 32 events (13 draft + 4 view + 6 dashboard + 4 widget + 2 pin + 2 watch + 1 schedule)
-- DMS: 30 events (13 file + 6 folder + 3 class + 2 share + 3 public_link + 3 file_view)
+- Workspace: 26 events (13 draft + 4 view + 6 dashboard + 4 widget + 2 pin + 1 schedule)
+- DMS: 27 events (13 file + 6 folder + 3 class + 2 share + 3 public_link + 3 file_view)
 - Comms: 21 events (6 channel + 2 provider + 3 notification + 4 message + 1 preference + 4 template + 1 setting)
-- Management Plane: 16 events (8 tenant + 4 service_provider + 4 platform_user)
+- Management Plane: 17 events (8 tenant + 4 service_provider + 5 platform_user)
 - HR: 58 events (10 event groups across employee, attendance, leave, lifecycle, overtime, position, setup, shift, access, announcement)
 
 Per-context event tables in `domain-model/<package>.md`.
@@ -191,23 +194,23 @@ Per-context event tables in `domain-model/<package>.md`.
 
 Compliance module's `EventBridge` service actively subscribes to other modules' events to auto-create compliance documents + obligations. Primary cross-context integration mechanism:
 
-| Subscribed Topic                                     | Source Module     | Action                                                                                                                    |
-| ---------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `hr:employee_onboarded`                              | HR                | Creates background check + ID verification documents                                                                      |
-| `hr:employee_separated`                              | HR                | Creates exit documents + final settlement documents                                                                       |
-| `fleet:vehicle_registered`                           | Fleet (stub)      | Creates pollution certificate + semi-annual obligation                                                                    |
-| `organization:branch_created`                        | Organization      | Creates trade license + fire safety certificate + annual obligation                                                       |
-| `accounting:financial_year_started`                  | Accounting (stub) | Creates monthly GST return obligation                                                                                     |
-| `masters:contact_created`                            | Masters           | Creates insurance policy document (if contact type is insurer and entity is organization-scoped; global contacts ignored) |
-| `task:due_date_changed`                              | Tasks             | Calendar task bridge — materializes/cancels the task due-date reminder bundle                                             |
-| `task:deleted`                                       | Tasks             | Calendar task bridge — deletes all task reminders for the task                                                            |
-| `task:status_changed`                                | Tasks             | Calendar task bridge — suppresses pending task reminders on completion/cancellation                                       |
-| `compliance:document_expiring` / `document_due`      | Compliance        | Comms event bridge — in-app + out-of-band notification to the document's assigned user                                    |
-| `calendar:reminder_due`                              | Calendar          | Comms event bridge — notify the reminder's `userId`                                                                       |
-| `dms:file_expired`                                   | DMS               | Comms event bridge — notify the file `ownerId`                                                                            |
-| `announcement:published`                             | HR                | Comms event bridge — per-recipient inbox fan-out                                                                          |
-| `management:tenant_provisioned` / `tenant_activated` | Management        | Comms event bridge — warm host default channels per tenant                                                                |
-| `auth:email_otp_requested`                           | Platform auth     | Comms event bridge — inline OTP email via the host default email provider                                                 |
+| Subscribed Topic                                     | Source Module                         | Action                                                                                                                    |
+| ---------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `hr:employee_onboarded`                              | HR                                    | Creates background check + ID verification documents                                                                      |
+| `hr:employee_separated`                              | HR                                    | Creates exit documents + final settlement documents                                                                       |
+| `fleet:vehicle_registered`                           | Fleet (stub)                          | Creates pollution certificate + semi-annual obligation                                                                    |
+| `organization:branch_created`                        | Organization                          | Creates trade license + fire safety certificate + annual obligation                                                       |
+| `accounting:financial_year_started`                  | Accounting (planned — no package yet) | Creates monthly GST return obligation                                                                                     |
+| `masters:contact_created`                            | Masters                               | Creates insurance policy document (if contact type is insurer and entity is organization-scoped; global contacts ignored) |
+| `task:due_date_changed`                              | Tasks                                 | Calendar task bridge — materializes/cancels the task due-date reminder bundle                                             |
+| `task:deleted`                                       | Tasks                                 | Calendar task bridge — deletes all task reminders for the task                                                            |
+| `task:status_changed`                                | Tasks                                 | Calendar task bridge — suppresses pending task reminders on completion/cancellation                                       |
+| `compliance:document_expiring` / `document_due`      | Compliance                            | Comms event bridge — in-app + out-of-band notification to the document's assigned user                                    |
+| `calendar:reminder_due`                              | Calendar                              | Comms event bridge — notify the reminder's `userId`                                                                       |
+| `dms:file_expired`                                   | DMS                                   | Comms event bridge — notify the file `ownerId`                                                                            |
+| `announcement:published`                             | HR                                    | Comms event bridge — per-recipient inbox fan-out                                                                          |
+| `management:tenant_provisioned` / `tenant_activated` | Management                            | Comms event bridge — warm host default channels per tenant                                                                |
+| `auth:email_otp_requested`                           | Platform auth                         | Comms event bridge — inline OTP email via the host default email provider                                                 |
 
 ### Schema Management
 
@@ -270,35 +273,33 @@ Five modules register scheduled cron jobs via PubSub:
 
 ## Context Map Table
 
-| Context          | Type          | Upstream                                      | Downstream                   | Relationship                                                                                                    |
-| ---------------- | ------------- | --------------------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| Shared Kernel    | Shared        | —                                             | All units/modules            | Unit & Module interfaces                                                                                        |
-| Database         | Shared Kernel | —                                             | All units                    | Foundation                                                                                                      |
-| Platform         | Customer      | —                                             | Units, Modules               | Creates & wires via `create()` — three server classes + one client class                                        |
-| Auth             | Conformist    | better-auth                                   | Modules                      | Adapts API                                                                                                      |
-| Logs             | Conformist    | pino, OTel                                    | —                            | Adapts API                                                                                                      |
-| PubSub           | Conformist    | pg-boss                                       | —                            | Adapts API                                                                                                      |
-| Storage          | Partner       | S3 (AWS SDK)                                  | DMS module                   | Defines interface                                                                                               |
-| RPC              | Conformist    | oRPC                                          | —                            | Adapts API                                                                                                      |
-| KV Store         | Conformist    | Postgres                                      | Compliance, Masters modules  | Redis-like API (core)                                                                                           |
-| Audit            | Core          | —                                             | All modules                  | Native platform unit — `audit_log` table, DB-record replayability                                               |
-| Workflow         | Core          | —                                             | All modules                  | Durable step runner (`workflow_runs`/`workflow_steps`)                                                          |
-| Client Platform  | —             | —                                             | —                            | Browser-side (3 units)                                                                                          |
-| Recruiter        | Downstream    | Platform                                      | —                            | Uses `SingleTenantPlatform`, registers organization + tasks (not yet in repo)                                   |
-| Organization     | Downstream    | Platform                                      | Compliance, Management Plane | 2 workflow groups, 2 tables, no module deps                                                                     |
-| Masters          | Downstream    | Platform, KV Store                            | Compliance, Organization     | 7 workflow groups, 7 tables, 29 events, 7 ACL resources                                                         |
-| Notes            | Downstream    | Platform                                      | —                            | 1 workflow group, 1 table, 3 events, 1 ACL resource                                                             |
-| Compliance       | Downstream    | Platform, HR, Organization, Fleet, Accounting | —                            | 5 workflow groups, 3 tables, 3 services, subscribes to external events                                          |
-| Tasks            | Downstream    | Platform                                      | Calendar                     | 10 workflow groups, 16 tables (6 control + 10 tenant), empty ACL                                                |
-| Calendar         | Downstream    | Platform                                      | —                            | 4 workflow groups, 4 tables, 14 events, 4 ACL resources, 1 cron + task bridge                                   |
-| Comms            | Downstream    | Platform, KV Store                            | —                            | 7 workflow groups, 7 tables (1 control + 6 tenant), 21 events, 7 ACL resources, 1 cron + 8 bridge subscriptions |
-| Workspace        | Downstream    | Platform                                      | —                            | 10 workflow groups, 10 tables, 32 events, 11 ACL resources, per-schedule crons                                  |
-| DMS              | Downstream    | Platform, Storage                             | —                            | 18 workflow groups, 14 tables, 33 events, 11 ACL resources, 2 crons                                             |
-| Management Plane | Downstream    | Platform, Organization                        | —                            | 3 workflow groups, 3 owned tables, 0 shadow tables, 16 events, has build step                                   |
-| HR               | Downstream    | Platform                                      | Compliance                   | ~307 workflow methods in 10 groups, 54 tables (14 control + 40 tenant), 58 events, 3 crons                      |
-| Accounting       | Stub          | —                                             | —                            | Package.json only                                                                                               |
-| CRM              | Stub          | —                                             | —                            | Package.json only                                                                                               |
-| Fleet            | Stub          | —                                             | —                            | Package.json only                                                                                               |
-| Inventory        | Stub          | —                                             | —                            | Package.json only                                                                                               |
-| Reports          | Stub          | —                                             | —                            | Package.json only                                                                                               |
-| Pharmacy         | Stub          | —                                             | —                            | Package.json only                                                                                               |
+| Context          | Type          | Upstream                                 | Downstream                   | Relationship                                                                                                    |
+| ---------------- | ------------- | ---------------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Shared Kernel    | Shared        | —                                        | All units/modules            | Unit & Module interfaces                                                                                        |
+| Database         | Shared Kernel | —                                        | All units                    | Foundation                                                                                                      |
+| Platform         | Customer      | —                                        | Units, Modules               | Creates & wires via `create()` — three server classes + one client class                                        |
+| Auth             | Conformist    | better-auth                              | Modules                      | Adapts API                                                                                                      |
+| Logs             | Conformist    | pino, OTel                               | —                            | Adapts API                                                                                                      |
+| PubSub           | Conformist    | pg-boss                                  | —                            | Adapts API                                                                                                      |
+| Storage          | Partner       | S3 (AWS SDK)                             | DMS module                   | Defines interface                                                                                               |
+| RPC              | Conformist    | oRPC                                     | —                            | Adapts API                                                                                                      |
+| KV Store         | Conformist    | Postgres                                 | Compliance, Masters modules  | Redis-like API (core)                                                                                           |
+| Audit            | Core          | —                                        | All modules                  | Native platform unit — `audit_log` table, DB-record replayability                                               |
+| Workflow         | Core          | —                                        | All modules                  | Durable step runner (`workflow_runs`/`workflow_steps`)                                                          |
+| Client Platform  | —             | —                                        | —                            | Browser-side (3 units)                                                                                          |
+| Recruiter        | Downstream    | Platform                                 | —                            | Uses `SingleTenantPlatform`, registers organization + tasks (not yet in repo)                                   |
+| Organization     | Downstream    | Platform                                 | Compliance, Management Plane | 1 workflow group, 1 table, 2 events, 1 ACL resource, no module deps                                             |
+| Masters          | Downstream    | Platform, KV Store                       | Compliance, Organization     | 8 workflow groups, 8 tables, 27 events, 8 ACL resources                                                         |
+| Notes            | Downstream    | Platform                                 | —                            | 1 workflow group, 1 table, 3 events, 1 ACL resource                                                             |
+| Compliance       | Downstream    | Platform, HR, Organization, Fleet (stub) | —                            | 5 workflow groups, 3 tables, 3 services, subscribes to external events                                          |
+| Tasks            | Downstream    | Platform                                 | Calendar                     | 9 workflow groups, 15 tables (6 control + 9 tenant), 11 events, empty ACL                                       |
+| Calendar         | Downstream    | Platform                                 | —                            | 4 workflow groups, 4 tables, 14 events, 4 ACL resources, 1 cron + task bridge                                   |
+| Comms            | Downstream    | Platform, KV Store                       | —                            | 7 workflow groups, 7 tables (1 control + 6 tenant), 21 events, 7 ACL resources, 1 cron + 8 bridge subscriptions |
+| Workspace        | Downstream    | Platform                                 | —                            | 8 workflow groups, 8 tables, 28 events, 9 ACL resources, per-schedule crons                                     |
+| DMS              | Downstream    | Platform, Storage                        | —                            | 16 workflow groups, 12 tables, 27 events, 9 ACL resources, 2 crons                                              |
+| Management Plane | Downstream    | Platform, Organization                   | —                            | 3 workflow groups, 3 owned tables, 0 shadow tables, 17 events, has build step                                   |
+| HR               | Downstream    | Platform                                 | Compliance                   | ~307 workflow methods in 10 groups, 54 tables (14 control + 40 tenant), 58 events, 3 crons                      |
+| CRM              | Stub          | —                                        | —                            | Package.json only                                                                                               |
+| Fleet            | Stub          | —                                        | —                            | Package.json only                                                                                               |
+| Inventory        | Stub          | —                                        | —                            | Package.json only                                                                                               |
+| Reports          | Stub          | —                                        | —                            | Package.json only                                                                                               |

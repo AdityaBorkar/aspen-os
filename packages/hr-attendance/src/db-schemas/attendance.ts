@@ -1,0 +1,88 @@
+import {
+  attendanceRequestStatusEnum,
+  attendanceStatusEnum,
+  checkinLogTypeEnum,
+} from "#/db-schemas/enums";
+
+import { uuidv7 } from "@aspen-os/platform/server";
+import {
+  boolean,
+  date,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core";
+
+export const attendance = pgTable(
+  "attendance",
+  {
+    attendance_request: text(),
+    check_in_time: timestamp({ withTimezone: true }),
+    check_out_time: timestamp({ withTimezone: true }),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    date: date().notNull(),
+    early_exit: boolean().notNull().default(false),
+    early_exit_minutes: integer().notNull().default(0),
+    employee_id: text().notNull(),
+    half_day_type: text(),
+    id: uuidv7().primaryKey(),
+    is_half_day: boolean().notNull().default(false),
+    late_entry: boolean().notNull().default(false),
+    late_entry_minutes: integer().notNull().default(0),
+    metadata: jsonb(),
+    notes: text(),
+    shift: text(),
+    status: attendanceStatusEnum().notNull(),
+    updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    working_hours: text(),
+  },
+  (table) => [
+    index("idx_attendance_employee_id").on(table.employee_id),
+    index("idx_attendance_date").on(table.date),
+  ],
+);
+
+export const attendanceRequest = pgTable(
+  "attendance_request",
+  {
+    approved_at: timestamp({ withTimezone: true }),
+    approved_by: text(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    employee_id: text().notNull(),
+    from_date: date().notNull(),
+    id: uuidv7().primaryKey(),
+    reason: text().notNull(),
+    rejected_at: timestamp({ withTimezone: true }),
+    rejected_by: text(),
+    rejection_reason: text(),
+    status: attendanceRequestStatusEnum().notNull().default("pending"),
+    to_date: date().notNull(),
+    updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_attendance_request_employee_id").on(table.employee_id),
+    index("idx_attendance_request_status").on(table.status),
+  ],
+);
+
+export const employeeCheckin = pgTable(
+  "employee_checkin",
+  {
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    device_id: text(),
+    employee_id: text().notNull(),
+    id: uuidv7().primaryKey(),
+    is_off_shift: boolean().notNull().default(false),
+    latitude: text(),
+    log_type: checkinLogTypeEnum().notNull(),
+    longitude: text(),
+    metadata: jsonb(),
+    shift: text(),
+    time: timestamp({ withTimezone: true }).notNull(),
+    updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("idx_employee_checkin_employee_id").on(table.employee_id)],
+);

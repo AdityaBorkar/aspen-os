@@ -4,18 +4,18 @@ description: Tables, enums, and relationships owned by the Workspace module.
 icon: IconDatabase
 ---
 
-The module owns **9 tenant tables** and **4 pgEnums**. All are `tenant_schemas` with the `workspace_` prefix — there are no control-plane tables. IDs are text `uuidv7` PKs; timestamps are `timestamptz`; no DB-level foreign keys (soft FKs by naming convention).
+The module owns **7 tenant tables** and **4 pgEnums**. All are `tenant_schemas` with the `workspace_` prefix — there are no control-plane tables. IDs are text `uuidv7` PKs; timestamps are `timestamptz`; no DB-level foreign keys (soft FKs by naming convention).
 
 Filter views live in `@aspen-os/masters` (table `master_filter_view`); workspace widgets reference them via the `view_id` soft reference.
 
 ## Enums
 
-| Enum                     | Column(s)                                                 | Values                                                    |
-| ------------------------ | --------------------------------------------------------- | --------------------------------------------------------- |
-| `workspace_access`       | `workspace_draft.access`, `workspace_dashboard.access`    | `personal`, `global`                                      |
-| `workspace_draft_status` | `workspace_draft.status`                                  | `draft`, `submitted`, `approved`, `rejected`, `published` |
-| `workspace_widget_type`  | `workspace_widget.type`                                   | `metric`, `breakdown`, `list`, `embed`                    |
-| `workspace_item_type`    | `workspace_recent.item_type`, `workspace_watch.item_type` | `draft`, `view`, `dashboard`                              |
+| Enum                     | Column(s)                                              | Values                                                    |
+| ------------------------ | ------------------------------------------------------ | --------------------------------------------------------- |
+| `workspace_access`       | `workspace_draft.access`, `workspace_dashboard.access` | `personal`, `global`                                      |
+| `workspace_draft_status` | `workspace_draft.status`                               | `draft`, `submitted`, `approved`, `rejected`, `published` |
+| `workspace_widget_type`  | `workspace_widget.type`                                | `metric`, `breakdown`, `list`, `embed`                    |
+| `workspace_item_type`    | `workspace_recent.item_type`                           | `draft`, `view`, `dashboard`                              |
 
 ## Tables
 
@@ -154,20 +154,6 @@ Per-user recent items; `touch` upserts + bumps `last_accessed_at` and trims to t
 
 Unique `(user_id, item_type, item_id)`; index `idx_workspace_recent_user`.
 
-### `workspace_watch`
-
-Per-user follow-subscription on a view or dashboard.
-
-| Column       | Type                       | Description                  |
-| ------------ | -------------------------- | ---------------------------- |
-| `created_at` | timestamptz                |                              |
-| `id`         | text PK (`uuidv7`)         |                              |
-| `item_id`    | text                       |                              |
-| `item_type`  | enum `workspace_item_type` | `draft`, `view`, `dashboard` |
-| `user_id`    | text                       |                              |
-
-Unique `(user_id, item_type, item_id)`; index `idx_workspace_watch_user`.
-
 ## Relationships
 
 ```text
@@ -176,7 +162,7 @@ workspace_dashboard 1:N workspace_widget (dashboard_id)
 workspace_dashboard 1:N workspace_schedule (dashboard_id)
 workspace_widget N:1 master_filter_view (view_id — datasource reuse, cross-module soft FK)
 pin ── item_type + item_id ──▶ any registry item (workspace entities + dms items + masters filter views)
-recent / watch ── item_type + item_id ──▶ workspace entity (draft/view/dashboard)
+recent ── item_type + item_id ──▶ workspace entity (draft/view/dashboard)
 ```
 
 ## Usage

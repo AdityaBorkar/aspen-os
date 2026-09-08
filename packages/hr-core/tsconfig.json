@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "declarationDir": "../../.local/types/hr-core",
+    "paths": {
+      "#/*": ["./src/*"]
+    }
+  },
+  "extends": "../../tsconfig.json"
+}

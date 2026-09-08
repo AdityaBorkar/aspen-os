@@ -101,6 +101,5 @@ export class Workspace implements Module {
   readonly recent = wf.recent;
   readonly schedules = wf.schedules;
   readonly search = wf.search;
-  readonly watches = wf.watches;
   readonly widgets = wf.widgets;
 }

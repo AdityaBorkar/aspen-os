@@ -32,7 +32,6 @@ defineAcl({
   schedule: ["create", "read", "update", "delete", "pause", "resume", "mark_run"],
   pin: ["create", "read", "delete"],
   recent: ["read", "touch"],
-  watch: ["create", "read", "delete"],
   search: ["read"],
 });
 ```
@@ -48,10 +47,10 @@ defineAcl({
 
 ## User-scoped resources
 
-Pins, recent, and watches carry **no access column** — they are always scoped to `userId = actorId`, enforced in every workflow. There is no `access-service` call for them.
+Pins and recent carry **no access column** — they are always scoped to `userId = actorId`, enforced in every workflow. There is no `access-service` call for them.
 
 ## Tenancy
 
-All nine rows are **tenant schemas** — `personal`/`global` scoping operates within the tenant, and tenant isolation (RLS in shared mode, DB-per-tenant in isolated mode) is enforced by the platform database layer on top of it.
+All seven rows are **tenant schemas** — `personal`/`global` scoping operates within the tenant, and tenant isolation (RLS in shared mode, DB-per-tenant in isolated mode) is enforced by the platform database layer on top of it.
 
 Filter views (`filterView` ACL) live in `@aspen-os/masters` — see [Masters Access Control](/docs/masters/access-control).

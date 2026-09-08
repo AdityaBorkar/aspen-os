@@ -1,6 +1,6 @@
 {
   "icon": "IconDatabase",
-  "pages": ["overview", "workflows", "access-control", "events", "db-schemas"],
+  "pages": ["overview", "workflows", "workflow-steps", "access-control", "events", "db-schemas"],
   "pagesIndex": "index",
   "root": true,
   "title": "Masters"

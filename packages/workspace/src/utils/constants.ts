@@ -98,7 +98,6 @@ export const AUDIT_ENTITY_TYPE = {
   RECENT: "workspace:recent",
   SCHEDULE: "workspace:schedule",
   SEARCH: "workspace:search",
-  WATCH: "workspace:watch",
   WIDGET: "workspace:widget",
 } as const;
 
@@ -128,8 +127,6 @@ export const AUDIT_ACTION = {
   TRASHED: "trashed",
   UNPINNED: "unpinned",
   UPDATED: "updated",
-  WATCH_SUBSCRIBED: "watch_subscribed",
-  WATCH_UNSUBSCRIBED: "watch_unsubscribed",
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTION)[keyof typeof AUDIT_ACTION];

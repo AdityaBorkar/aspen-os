@@ -4,7 +4,7 @@ description: Architecture, access model, initialization, config, and module stru
 icon: IconInfoCircle
 ---
 
-The Workspace module is a dependency-free personal-workspace surface built on `@aspen-os/platform`: **drafts**, **dashboards** (with widgets and schedules), and per-user **utilities** (pins, recent, quick search, watches). It stores and serves configuration; rendering, analytics execution, and scheduled delivery are the host application's responsibility. Settings live in `@aspen-os/masters` (`p.masters.settings`).
+The Workspace module is a dependency-free personal-workspace surface built on `@aspen-os/platform`: **drafts**, **dashboards** (with widgets and schedules), and per-user **utilities** (pins, recent, and quick search). It stores and serves configuration; rendering, analytics execution, and scheduled delivery are the host application's responsibility. Settings live in `@aspen-os/masters` (`p.masters.settings`).
 
 Filter views (saved filter/sort/group configurations) live in `@aspen-os/masters` (`p.masters.filterViews`); workspace widgets keep an inline `filter` or a `viewId` soft reference to a masters filter view.
 
@@ -27,15 +27,15 @@ Every data entity carries a user-set `access` enum — `personal` (visible only 
 | `assertCanAccess(row, id)` | `access = 'global' OR ownerId = actorId`                         |
 | `assertCanMutate(row, id)` | ownership of the row, **or** `user.role = 'admin'` (best-effort) |
 
-`list()`/`get()` filter at SQL level (`global OR owner = actorId`); mutations go through `assertCanMutate`. Pins, recent, and watches are always user-scoped (`userId = actorId`) and carry no access column.
+`list()`/`get()` filter at SQL level (`global OR owner = actorId`); mutations go through `assertCanMutate`. Pins and recent are always user-scoped (`userId = actorId`) and carry no access column.
 
 ## Architecture
 
 ```text
-TENANT DATABASE (8 tables, workspace_ prefix)
+TENANT DATABASE (7 tables, workspace_ prefix)
   workspace_draft, workspace_draft_comment
   workspace_dashboard, workspace_widget, workspace_schedule
-  workspace_pin, workspace_recent, workspace_watch
+  workspace_pin, workspace_recent
 ```
 
 ```text
@@ -56,7 +56,6 @@ schedule due  ── cron ────▶ workspace:schedule_due ─────
 | `pins`       | `create`, `delete`, `list` (cross-module item-type registry — workspace entities + dms items pinnable)                                                                          |
 | `recent`     | `touch`, `list` (bounded — trimmed to `maxRecentItems` per user)                                                                                                                |
 | `search`     | `quick` (access-scoped over drafts, dashboards)                                                                                                                                 |
-| `watches`    | `subscribe`, `unsubscribe`, `list` (follow-subscriptions on dashboards — distinct from `PubSubUnit` subscribe)                                                                  |
 
 ```ts
 // Access via the platform proxy ($name = "workspace")
@@ -103,7 +102,7 @@ type WorkspaceModuleConfig = {
 $prepareInfra(): ModuleInfra {
   return {
     auth: { acl },                      // draft, draftComment, dashboard, widget, schedule, …
-    db: { control_plane_schemas: {}, tenant_schemas: workspaceTables }, // 9 tenant tables
+    db: { control_plane_schemas: {}, tenant_schemas: workspaceTables }, // 7 tenant tables
     events,                             // workspace:* topics
   };
 }

@@ -1,0 +1,25 @@
+{
+  "name": "@aspen-os/hr-core",
+  "version": "0.1.0",
+  "type": "module",
+  "imports": {
+    "#/*": "./src/*"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "check:lint": "oxlint --fix . ; oxfmt .",
+    "check:types": "tsc -b"
+  },
+  "dependencies": {
+    "@aspen-os/constants": "workspace:*",
+    "@aspen-os/platform": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "valibot": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
+  }
+}

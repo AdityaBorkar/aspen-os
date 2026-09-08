@@ -98,11 +98,10 @@ When a cron fires, the handler reads the schedule + dashboard and publishes `wor
 
 ## Utilities
 
-| Group     | Workflows                          | Notes                                                                                                                                              |
-| --------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pins`    | `create`, `delete`, `list`         | sidebar shortcuts; `itemType` from the cross-module `PIN_ITEM_TYPE` registry (workspace entities + dms items); unique `(userId, itemType, itemId)` |
-| `recent`  | `touch`, `list`                    | `touch` upserts + bumps `lastAccessedAt`; trims to `maxRecentItems`                                                                                |
-| `search`  | `quick`                            | access-scoped `ilike` over drafts/dashboards, merged result                                                                                        |
-| `watches` | `subscribe`, `unsubscribe`, `list` | follow-subscriptions on dashboards (not pg-boss subscribe)                                                                                         |
+| Group    | Workflows                  | Notes                                                                                                                                              |
+| -------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pins`   | `create`, `delete`, `list` | sidebar shortcuts; `itemType` from the cross-module `PIN_ITEM_TYPE` registry (workspace entities + dms items); unique `(userId, itemType, itemId)` |
+| `recent` | `touch`, `list`            | `touch` upserts + bumps `lastAccessedAt`; trims to `maxRecentItems`                                                                                |
+| `search` | `quick`                    | access-scoped `ilike` over drafts/dashboards, merged result                                                                                        |
 
 All utilities are strictly user-scoped (`userId = actorId`) — no access column, no `access-service` involvement.

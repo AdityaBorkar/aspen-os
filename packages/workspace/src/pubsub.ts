@@ -39,11 +39,6 @@ export const PIN_EVENTS = {
   REMOVED: "workspace:pin_removed",
 } as const;
 
-export const WATCH_EVENTS = {
-  SUBSCRIBED: "workspace:watch_subscribed",
-  UNSUBSCRIBED: "workspace:watch_unsubscribed",
-} as const;
-
 export const SCHEDULE_EVENTS = {
   DUE: "workspace:schedule_due",
 } as const;
@@ -53,7 +48,6 @@ export const events = {
   DRAFT_EVENTS,
   PIN_EVENTS,
   SCHEDULE_EVENTS,
-  WATCH_EVENTS,
   WIDGET_EVENTS,
 };
 
@@ -168,10 +162,6 @@ export interface PinCreatedEvent {
 
 export type PinRemovedEvent = PinCreatedEvent;
 
-export type WatchSubscribedEvent = PinCreatedEvent;
-
-export type WatchUnsubscribedEvent = PinCreatedEvent;
-
 export interface ScheduleDueEvent {
   at: string;
   dashboard: WorkspaceDashboard;
@@ -215,11 +205,6 @@ export interface PinEventMap {
   [PIN_EVENTS.REMOVED]: PinRemovedEvent;
 }
 
-export interface WatchEventMap {
-  [WATCH_EVENTS.SUBSCRIBED]: WatchSubscribedEvent;
-  [WATCH_EVENTS.UNSUBSCRIBED]: WatchUnsubscribedEvent;
-}
-
 export interface ScheduleEventMap {
   [SCHEDULE_EVENTS.DUE]: ScheduleDueEvent;
 }
@@ -228,5 +213,4 @@ export type WorkspaceEventMap = DashboardEventMap &
   DraftEventMap &
   PinEventMap &
   ScheduleEventMap &
-  WatchEventMap &
   WidgetEventMap;

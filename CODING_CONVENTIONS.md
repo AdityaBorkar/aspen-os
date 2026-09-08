@@ -22,7 +22,7 @@ Section order: navigation; contiguous write bundle (`Domain modules` → `Databa
 ## Repository overview
 
 - **Bun monorepo** (`@aspen-os`): business framework (`@aspen-os/platform`), pluggable **units** (infrastructure), **modules** (domain logic), first-class multi-tenancy, Fumadocs site (`docs`).
-- **No host/example app** yet (first app intended: "Recruiter"). No `examples/` dir.
+- **No host/example app** yet (first app intended: "Recruiter"). `examples/` holds only `examples/recruiter/seaweedfs-s3.json` (a SeaweedFS/S3 config stub with no `package.json`).
 - **Workspace state**: `platform`, `masters`, `organization`, `compliance`, `tasks`, `calendar`, `dms`, `management`, `hr`, `workspace`, `notes`, `comms` fully implemented (all modules conform to `Module` interface), plus `constants` (shared enums). `drive` **removed from repo** — file/folder/label/share/trash surface consolidated into `dms`. Task reminders moved to `calendar`; note concept moved to `notes`; dms pins moved to `workspace`. Draft SOWs/todos live in `.draft/` (archived out of `.working-docs/`). `crm`, `fleet`, `inventory`, `reports` are not-started stubs.
 - Domain model lives in `.working-docs/` (`DOMAIN_MODEL.md` + `domain-model/<package>.md`, `BOUNDED_CONTEXTS.md` + `bounded-contexts/<package>.md`, `adr/`). Drafts live in `.draft/`. `docs/` = built Fumadocs site, **not** domain-doc source.
 
@@ -252,6 +252,7 @@ export class Organization implements Module {
   - `calendar` — `Record<string, Unit>` → `{ db, pubsub }` (type guards); reminder-dispatcher cron (`calendar:reminder-scan`) + task bridge; config in `runtime.ts` (`setCalendarConfig`/`getCalendarConfig`).
   - `dms` — `Record<string, Unit>` → `{ db, pubsub, storage }` (type guards, no auth); expiry-scan + auto-purge schedules/handlers; module runtime state in `runtime.ts` (`setDmsConfig`/`setDmsStorage`/`getDmsConfig`/`getDmsStorage`).
   - `workspace` — `Record<string, Unit>` → `{ db, pubsub }` (type guards); per-schedule pg-boss crons `workspace:schedule:<id>`; `runtime.ts` holds config + view-resolver registry (`registerViewResolver`/`getViewResolver`).
+  - `comms` — `{ db, kvStore, pubsub, auth }`; message-sweeper cron + 8 event-bridge subscriptions in `$prepareRuntime()`, unregister both in `$cleanup()`; `channels`/`providers`/`notifications` are memoized getters bound to `db`/`kvStore`, remaining groups `readonly`.
   - `hr` — `{ db, pubsub }`; schedules/unschedules daily attendance-sync + leave-accrual crons, no handlers; `workflows/index.ts` composes per-entity workflow groups.
   - `management` — `{ db, auth, pubsub }`, stores only `#db`; empty `$prepareRuntime()`/`$cleanup()`; `tenants` getter throws if `#db` null, `serviceProviders`/`users` `readonly`; `$dependencies: ["organization"]`.
   - `masters` — hybrid `{ db, kvStore }`; stateless `readonly` groups + `connections` getter binding `createConnection`/`rotateConnectionCredential` to `#kvStore` (throws if uninitialized); empty `$prepareRuntime()`/`$cleanup()`.
@@ -304,12 +305,12 @@ packages/<module>/
 
 - Package name: `@aspen-os/<module>`
 - `"type": "module"`; dependencies on other workspace packages via `"workspace:*"`, catalog versions via `catalog:`
-- `exports`: `"."` → `"./src/index.ts"` (raw TS) **except** `@aspen-os/platform`, `@aspen-os/organization`, `@aspen-os/masters`, `@aspen-os/notes`, `@aspen-os/calendar`, `@aspen-os/management`, `@aspen-os/dms`, `@aspen-os/workspace` which build to `.output/` via `scripts/build.ts`
+- `exports`: `"."` → `"./src/index.ts"` (raw TS) **except** `@aspen-os/platform`, `@aspen-os/organization`, `@aspen-os/masters`, `@aspen-os/notes`, `@aspen-os/calendar`, `@aspen-os/comms`, `@aspen-os/management`, `@aspen-os/dms`, `@aspen-os/workspace` which build to `.output/` via `scripts/build.ts`
 - Scripts: `check:lint` (`oxlint --fix . ; oxfmt .`) + `check:types` (`tsc -b`)
 
 ### Stub packages
 
-`@aspen-os/crm|fleet|inventory|reports`: package files contain the package name plus the local `#/*` import alias, with no exports/dependencies/scripts; `src/index.ts` is empty, and `docs/` holds only `index.mdx` + `meta.json` describing a "not-started" stub.
+`@aspen-os/crm|fleet|inventory|reports`: `package.json` holds only the package name (no exports/dependencies/scripts); `src/index.ts` is empty, and `docs/` holds `index.mdx` + `meta.json` + `overview.mdx` describing a "not-started" stub (`reports` additionally carries a `README.md`).
 
 ## Database
 
@@ -453,7 +454,7 @@ export type DomainEventMap = EntityEventMap & OtherEntityEventMap;
 - Drizzle adapter: `camelCase: false`, `provider: "pg"`, `usePlural: false`, `transaction: true`.
 - Adapter binds `db.controlPlaneDb`; auth is control-plane only.
 - Role = plain `text("role")` on `user`, not a separate table.
-- Auth tables (`auth/db-schema.ts`, 10 tables) do **not** follow `uuidv7()` IDs; better-auth manages IDs. Generate via `bun run gen:auth-schema` (`bunx auth generate --config ./src/server/auth/~config.ts --output ./src/server/auth/db-schema.ts`).
+- Auth tables (`server/db/schema/auth.ts`, 10 tables) do **not** follow `uuidv7()` IDs; better-auth manages IDs. Generate via `bun run gen:auth-schema` (`bunx auth generate --config ./src/server/auth/~config.ts --output ./src/server/db/schema/auth.ts`).
 - `rest` exposes REST `resource.action`: `user.{create, get, remove, role.assign, role.unassign, update}`, `session.{create, invalidate, validate}`, `role.{list, remove}`. Use `remove`, not `delete`.
 
 ## PubSub
@@ -501,8 +502,8 @@ Root (`/`):
 bun install            # install all workspace deps
 bun run check:lint     # oxlint --fix . ; oxfmt .
 bun run check:types    # tsc -b (root composite, all project references)
-bun run update:deps    # taze -rw --maturity-period 3
-bun run clean          # bunx rimraf --glob "**/{node_modules,.output,.local,bun.lockb}"
+bun run update-deps    # taze -rw --maturity-period 3 && bun install
+bun run clean          # bunx rimraf --glob "**/{node_modules,.nx,.output,.local,bun.lockb}"
 bun run prepare        # husky
 ```
 
@@ -516,7 +517,7 @@ cd packages/platform && bun run build          # scripts/build.ts → .output/
 
 ### Build gotcha (`.output/`)
 
-`platform`, `organization`, `masters`, `notes`, `calendar`, `management`, `dms`, `workspace` publish `exports`/`bin` pointing at `.output/` (build rewrites each package's `package.json` in place; `git status` shows it modified). TypeScript resolves types from `.output/`, not source. After changing exports, run `bun run build` **before** typechecking downstream packages (raw-src packages like `tasks`/`compliance`/`hr` resolve platform/types through `.output/`). `bun run build --dev` rewrites `exports`/`bin` back to `./src/*` (un-builds without emitting). Fresh clone or `bun run clean` wipes `.output/` — the `.output`-exporting packages must be rebuilt before downstream typechecking.
+`platform`, `organization`, `masters`, `notes`, `calendar`, `comms`, `management`, `dms`, `workspace` publish `exports`/`bin` pointing at `.output/` (build rewrites each package's `package.json` in place; `git status` shows it modified). TypeScript resolves types from `.output/`, not source. After changing exports, run `bun run build` **before** typechecking downstream packages (raw-src packages like `tasks`/`compliance`/`hr` resolve platform/types through `.output/`). `bun run build --dev` rewrites `exports`/`bin` back to `./src/*` (un-builds without emitting). Fresh clone or `bun run clean` wipes `.output/` — the `.output`-exporting packages must be rebuilt before downstream typechecking.
 
 Docs (`bun run dev` → 3005):
 
