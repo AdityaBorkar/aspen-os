@@ -4,78 +4,19 @@ description: Domain event map for the Masters module — 27 events across 8 even
 icon: IconBell
 ---
 
-The Masters module defines 27 domain events across 8 event groups. Events are type-level contracts published as plain string topics via PubSub. The `masters:contact_created` event replaces the old `organization:connection_created` for the compliance insurer flow.
-
-## Event Constants
-
-```ts title="src/pubsub.ts"
-export const CONTACT_EVENTS = {
-  CREATED: "masters:contact_created",
-  REMOVED: "masters:contact_removed",
-  UPDATED: "masters:contact_updated",
-} as const;
-
-export const ADDRESS_EVENTS = {
-  CREATED: "masters:address_created",
-  REMOVED: "masters:address_removed",
-  UPDATED: "masters:address_updated",
-} as const;
-
-export const BANK_ACCOUNT_EVENTS = {
-  ACTIVATED: "masters:bank_account_activated",
-  CREATED: "masters:bank_account_created",
-  DEACTIVATED: "masters:bank_account_deactivated",
-  UPDATED: "masters:bank_account_updated",
-} as const;
-
-export const CONNECTION_EVENTS = {
-  CREDENTIAL_ROTATED: "masters:connection_credential_rotated",
-  CREATED: "masters:connection_created",
-  REMOVED: "masters:connection_removed",
-  STATUS_CHANGED: "masters:connection_status_changed",
-  UPDATED: "masters:connection_updated",
-} as const;
-
-export const ENTITY_EVENTS = {
-  CREATED: "masters:entity_created",
-  REMOVED: "masters:entity_removed",
-  UPDATED: "masters:entity_updated",
-} as const;
-
-export const UNIT_OF_MEASURE_EVENTS = {
-  CREATED: "masters:unit_of_measure_created",
-  REMOVED: "masters:unit_of_measure_removed",
-  UPDATED: "masters:unit_of_measure_updated",
-} as const;
-
-export const PAYMENT_METHOD_EVENTS = {
-  ACTIVATED: "masters:payment_method_activated",
-  CREATED: "masters:payment_method_created",
-  DEACTIVATED: "masters:payment_method_deactivated",
-  PRIMARY_SET: "masters:payment_method_primary_set",
-  REMOVED: "masters:payment_method_removed",
-  UPDATED: "masters:payment_method_updated",
-} as const;
-
-export const FILTER_VIEW_EVENTS = {
-  CREATED: "masters:filter_view_created",
-  DELETED: "masters:filter_view_deleted",
-  DUPLICATED: "masters:filter_view_duplicated",
-  UPDATED: "masters:filter_view_updated",
-} as const;
-```
+27 domain events across 8 groups, published as plain string topics. `masters:contact_created` replaces `organization:connection_created` for the compliance insurer flow.
 
 ## Event Map
 
 ### Contact Events
 
-| Event                     | Payload                                          | Trigger                         |
-| ------------------------- | ------------------------------------------------ | ------------------------------- |
-| `masters:contact_created` | `{ contact: { id, name, type }, entityType }`    | Contact created                 |
-| `masters:contact_updated` | `{ contact: { id, name }, changes, entityType }` | Contact updated                 |
-| `masters:contact_removed` | `{ contactId, entityId, entityType, reason }`    | Contact soft-removed (`remove`) |
+| Event                     | Payload                                          | Trigger              |
+| ------------------------- | ------------------------------------------------ | -------------------- |
+| `masters:contact_created` | `{ contact: { id, name, type }, entityType }`    | Contact created      |
+| `masters:contact_updated` | `{ contact: { id, name }, changes, entityType }` | Contact updated      |
+| `masters:contact_removed` | `{ contactId, entityId, entityType, reason }`    | Contact soft-removed |
 
-`entityType`/`entityId` are `null` for global address-book contacts. DMS subscribes to `masters:contact_removed` and revokes every share granted to the contact.
+`entityType`/`entityId` are `null` for global contacts. DMS revokes shares on `masters:contact_removed`.
 
 ### Address Events
 
@@ -122,60 +63,20 @@ export const FILTER_VIEW_EVENTS = {
 
 ### Payment Method Events
 
-| Event                                | Payload                                                                | Trigger                    |
-| ------------------------------------ | ---------------------------------------------------------------------- | -------------------------- |
-| `masters:payment_method_created`     | `{ paymentMethod: { id, name, type }, entityType, entityId }`          | Payment method created     |
-| `masters:payment_method_updated`     | `{ paymentMethod: { id, name, type }, entityType, entityId, changes }` | Payment method updated     |
-| `masters:payment_method_removed`     | `{ paymentMethod: { id, name, type }, entityType, entityId }`          | Payment method removed     |
-| `masters:payment_method_activated`   | `{ paymentMethodId, entityType, entityId }`                            | Payment method activated   |
-| `masters:payment_method_deactivated` | `{ paymentMethodId, entityType, entityId }`                            | Payment method deactivated |
-| `masters:payment_method_primary_set` | `{ paymentMethodId, entityType, entityId, direction }`                 | Primary set                |
+| Event                                | Payload                                                                | Trigger     |
+| ------------------------------------ | ---------------------------------------------------------------------- | ----------- |
+| `masters:payment_method_created`     | `{ paymentMethod: { id, name, type }, entityType, entityId }`          | Created     |
+| `masters:payment_method_updated`     | `{ paymentMethod: { id, name, type }, entityType, entityId, changes }` | Updated     |
+| `masters:payment_method_removed`     | `{ paymentMethod: { id, name, type }, entityType, entityId }`          | Removed     |
+| `masters:payment_method_activated`   | `{ paymentMethodId, entityType, entityId }`                            | Activated   |
+| `masters:payment_method_deactivated` | `{ paymentMethodId, entityType, entityId }`                            | Deactivated |
+| `masters:payment_method_primary_set` | `{ paymentMethodId, entityType, entityId, direction }`                 | Primary set |
 
 ### Filter View Events
 
-| Event                            | Payload                                     | Trigger                |
-| -------------------------------- | ------------------------------------------- | ---------------------- |
-| `masters:filter_view_created`    | `{ filterViewId, access, domain, ownerId }` | Filter view created    |
-| `masters:filter_view_updated`    | `{ filterViewId }`                          | Filter view updated    |
-| `masters:filter_view_duplicated` | `{ filterViewId, duplicateId }`             | Filter view duplicated |
-| `masters:filter_view_deleted`    | `{ filterViewId }`                          | Filter view deleted    |
-
-## Usage
-
-### Publishing Events
-
-Events are published via `PubSubUnit.publish()`:
-
-```ts
-await p.pubsub.publish("masters:contact_created", {
-  contact: { id: "ct-1", name: "ICICI Lombard", type: "insurer" },
-  entityType: "organization",
-});
-```
-
-### Subscribing to Events
-
-```ts
-await p.pubsub.subscribe("masters:connection_status_changed", async (message) => {
-  const { connectionId, fromStatus, toStatus } = message.data;
-  // React to status change
-});
-```
-
-## Event Map Type
-
-```ts title="src/pubsub.ts"
-export type MastersEventMap = AddressEventMap &
-  BankAccountEventMap &
-  ConnectionEventMap &
-  ContactEventMap &
-  EntityEventMap &
-  FilterViewEventMap &
-  PaymentMethodEventMap &
-  UnitOfMeasureEventMap;
-```
-
-<Callout type="info">
-  The event map is a type-level contract — it is not enforced at runtime. Workflows publish events
-  as plain string topics.
-</Callout>
+| Event                            | Payload                                     | Trigger    |
+| -------------------------------- | ------------------------------------------- | ---------- |
+| `masters:filter_view_created`    | `{ filterViewId, access, domain, ownerId }` | Created    |
+| `masters:filter_view_updated`    | `{ filterViewId }`                          | Updated    |
+| `masters:filter_view_duplicated` | `{ filterViewId, duplicateId }`             | Duplicated |
+| `masters:filter_view_deleted`    | `{ filterViewId }`                          | Deleted    |

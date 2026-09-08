@@ -4,42 +4,9 @@ description: API reference for the workflow groups exposed by the Masters module
 icon: IconListCheck
 ---
 
-The Masters module exposes nine workflow groups as flat `Workflow` objects: `contacts`, `addresses`, `bankAccounts`, `connections`, `entities`, `paymentMethods`, `unitsOfMeasure`, `filterViews`, and `settings`. Access via the platform proxy key `p.masters`.
+Nine workflow groups via `p.masters`: `contacts`, `addresses`, `bankAccounts`, `connections`, `entities`, `paymentMethods`, `unitsOfMeasure`, `filterViews`, `settings`.
 
-Polymorphic entities (`addresses`, `bankAccounts`, `connections`, `paymentMethods`) require `entityType` and `entityId` (the owning `organization`, `branch`, `connection`, `contact`, or `entity`) on create/list; list queries filter on the `(entityType, entityId)` pair. `contacts` accept an optional scope: omit `entityType`/`entityId` for global address-book entries (absorbed from DMS) or pass them for owned contacts; `list` without a scope searches globally. Removed contacts are hidden from `list` by default (`filters.isRemoved`). `entities` and `unitsOfMeasure` are tenant-level — no scope pair.
-
-## Configuration
-
-```ts title="src/module.ts"
-export type MastersModuleConfig = undefined;
-
-Masters.create(); // $name = "masters" (proxy key: p.masters), $dependencies = []
-```
-
-Create-style methods take Valibot-validated input (`CreateXxxSchema`); update takes `{ id, patch: UpdateXxxSchema }`. Each operation writes audit entries (via `ctx.audit`) and publishes domain events via the platform context.
-
-## Public API
-
-```ts title="src/workflows/index.ts"
-readonly addresses = { create, delete, get, list, update };
-readonly bankAccounts = {
-  activate, create, deactivate, delete, get, list, setPrimary, update,
-};
-readonly contacts = { create, delete, get, list, remove, update };
-readonly entities = { create, delete, get, list, update };
-readonly filterViews = {
-  create, delete, duplicate, get, getDefault, list, setDefault, update,
-};
-readonly paymentMethods = {
-  activate, create, deactivate, delete, get, list, setPrimary, update,
-};
-readonly settings = { get, set };
-readonly unitsOfMeasure = {
-  create, delete, get, list, update,
-};
-// connections is a getter bound to the kvStore unit (same verbs + credential ops)
-get connections() // { check, create, delete, get, list, rotateCredential, update }
-```
+Scoped entities (`addresses`, `bankAccounts`, `connections`, `paymentMethods`) require `entityType` + `entityId` on create/list. `contacts` scope is optional (omitted = global address-book entry). `entities` and `unitsOfMeasure` are tenant-level. Create takes Valibot-validated input; update takes `{ id, patch }`. Each operation audit-logs and publishes a domain event.
 
 ## Features
 
@@ -252,41 +219,3 @@ await p.masters.settings.set({ key: "home_dashboard", value: dashboardId });
 
 const orgId = await p.masters.settings.get({ key: "org.id" });
 ```
-
-## Events
-
-| Event                                                                                                                         | Trigger                                                                                       |
-| ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `masters:contact_created`, `masters:contact_updated`, `masters:contact_removed`                                               | Contact create / update / remove (`remove` = soft delete with reason; `delete` = hard delete) |
-| `masters:address_created`, `masters:address_updated`, `masters:address_removed`                                               | Address create / update / delete                                                              |
-| `masters:bank_account_created`, `masters:bank_account_updated`                                                                | Account create / update                                                                       |
-| `masters:bank_account_activated`, `masters:bank_account_deactivated`                                                          | Account activate / deactivate                                                                 |
-| `masters:connection_created`, `masters:connection_updated`, `masters:connection_removed`                                      | Connection create / update / delete                                                           |
-| `masters:connection_status_changed`, `masters:connection_credential_rotated`                                                  | Status change / credential rotation                                                           |
-| `masters:entity_created`, `masters:entity_updated`, `masters:entity_removed`                                                  | Entity create / update / delete                                                               |
-| `masters:unit_of_measure_created`, `masters:unit_of_measure_updated`, `masters:unit_of_measure_removed`                       | UOM create / update / delete                                                                  |
-| `masters:payment_method_created`, `masters:payment_method_updated`, `masters:payment_method_removed`                          | Payment method create / update / delete                                                       |
-| `masters:payment_method_activated`, `masters:payment_method_deactivated`, `masters:payment_method_primary_set`                | Payment method activate / deactivate / primary set                                            |
-| `masters:filter_view_created`, `masters:filter_view_updated`, `masters:filter_view_duplicated`, `masters:filter_view_deleted` | Filter view create / update / duplicate / delete                                              |
-
-Full payloads: [Events](/docs/masters/events).
-
-## Schema
-
-| Table                    | Description                                                                               |
-| ------------------------ | ----------------------------------------------------------------------------------------- |
-| `master_contact`         | Contact record, optionally scoped per `(entityType, entityId)`; global rows have no owner |
-| `master_address`         | Address record scoped per `(entityType, entityId)`                                        |
-| `master_bank_account`    | Bank account scoped per `(entityType, entityId)`                                          |
-| `master_connection`      | Integration connection with `credentialRef` to kvStore                                    |
-| `master_entity`          | Tenant-level business party, optional `organizationId`                                    |
-| `master_payment_method`  | Payment mode scoped per `(entityType, entityId)`                                          |
-| `master_unit_of_measure` | Tenant-wide unit with base-unit / conversion structure                                    |
-| `master_filter_view`     | Saved `{ domain, conditions, sort, groupBy }` config with `personal`/`global` access      |
-| `master_setting`         | Key–value setting; `org.*` keys tenant-wide, other keys per-user                          |
-
-Full columns: [DB Schemas](/docs/masters/db-schemas).
-
-## Dependencies
-
-No module dependencies (`$dependencies: []`). The `connections` group binds the platform `kvStore` unit at `$initialize()` for credential storage; all other groups are stateless. Enum values come from `@aspen-os/constants`.

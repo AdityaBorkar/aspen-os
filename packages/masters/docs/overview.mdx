@@ -28,7 +28,17 @@ export class Masters implements Module {
 }
 ```
 
-The module declares no platform-module dependencies.
+## Configuration
+
+```ts title="src/module.ts"
+export type MastersModuleConfig = undefined;
+
+Masters.create(); // $name = "masters" (proxy key: p.masters), $dependencies = []
+```
+
+## Dependencies
+
+No module dependencies (`$dependencies: []`). The `connections` group binds the platform `kvStore` unit at `$initialize()` for credential storage; all other groups are stateless.
 
 ## Architecture
 
