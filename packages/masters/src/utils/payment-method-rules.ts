@@ -1,10 +1,12 @@
 import type { PaymentMethodType } from "@aspen-os/constants";
 
 export const PAYMENT_METHOD_TYPE_REQUIREMENTS_MESSAGE =
-  "Payment method type requires matching details (card: brand, last4, expiry; upi: upiId; bank_account/imps/cheque: bankAccountId).";
+  "Payment method type requires matching details (card: brand, last4, expiry; upi: upiId; bank_account/imps/cheque: accountHolderName, accountNumber, bankName).";
 
 export interface PaymentMethodTypeFields {
-  bankAccountId?: string | null | undefined;
+  accountHolderName?: string | null | undefined;
+  accountNumber?: string | null | undefined;
+  bankName?: string | null | undefined;
   cardBrand?: string | null | undefined;
   cardExpiryMonth?: number | null | undefined;
   cardExpiryYear?: number | null | undefined;
@@ -35,7 +37,11 @@ export function isPaymentMethodTypeComplete(method: PaymentMethodTypeFields): bo
     case "bank_account":
     case "imps":
     case "cheque": {
-      return isPresent(method.bankAccountId);
+      return (
+        isPresent(method.accountHolderName) &&
+        isPresent(method.accountNumber) &&
+        isPresent(method.bankName)
+      );
     }
   }
 }

@@ -1,5 +1,4 @@
 export type { MasterAddress, NewMasterAddress } from "#/db-schemas/address";
-export type { MasterBankAccount, NewMasterBankAccount } from "#/db-schemas/bank-account";
 export type { MasterConnection, NewMasterConnection } from "#/db-schemas/connection";
 export type { MasterContact, NewMasterContact } from "#/db-schemas/contact";
 export type { MasterEntity, NewMasterEntity } from "#/db-schemas/entity";
@@ -10,11 +9,6 @@ export type {
   AddressEventMap,
   AddressRemovedEvent,
   AddressUpdatedEvent,
-  BankAccountActivatedEvent,
-  BankAccountCreatedEvent,
-  BankAccountDeactivatedEvent,
-  BankAccountEventMap,
-  BankAccountUpdatedEvent,
   ConnectionCredentialRotatedEvent,
   ConnectionCreatedEvent,
   ConnectionEventMap,
@@ -45,7 +39,6 @@ export type {
 } from "#/pubsub";
 export {
   ADDRESS_EVENTS,
-  BANK_ACCOUNT_EVENTS,
   CONNECTION_EVENTS,
   CONTACT_EVENTS,
   ENTITY_EVENTS,
@@ -55,12 +48,10 @@ export {
 } from "#/pubsub";
 export type {
   AddressFilters,
-  BankAccountFilters,
   ConnectionCredential,
   ConnectionFilters,
   ContactFilters,
   CreateAddressInput,
-  CreateBankAccountInput,
   CreateConnectionInput,
   CreateContactInput,
   CreateEntityInput,
@@ -68,7 +59,6 @@ export type {
   CreateUnitOfMeasureInput,
   EntityFilters,
   ListAddressesInput,
-  ListBankAccountsInput,
   ListConnectionsInput,
   ListContactsInput,
   ListEntitiesInput,
@@ -78,7 +68,6 @@ export type {
   RemoveContactInput,
   RotateConnectionCredentialInput,
   UpdateAddressInput,
-  UpdateBankAccountInput,
   UpdateConnectionInput,
   UpdateContactInput,
   UpdateEntityInput,
@@ -88,7 +77,6 @@ export type {
 } from "#/schemas";
 export {
   AddressFiltersSchema,
-  BankAccountFiltersSchema,
   CardBrandSchema,
   ConnectionCredentialSchema,
   ConnectionFiltersSchema,
@@ -97,7 +85,6 @@ export {
   ContactTypeSchema,
   CountryCodeSchema,
   CreateAddressSchema,
-  CreateBankAccountSchema,
   CreateConnectionSchema,
   CreateContactSchema,
   CreateEntitySchema,
@@ -110,7 +97,6 @@ export {
   IdSchema,
   IntegrationTypeSchema,
   ListAddressesSchema,
-  ListBankAccountsSchema,
   ListConnectionsSchema,
   ListContactsSchema,
   ListEntitiesSchema,
@@ -126,7 +112,6 @@ export {
   RotateConnectionCredentialSchema,
   UnitOfMeasureFiltersSchema,
   UpdateAddressSchema,
-  UpdateBankAccountSchema,
   UpdateConnectionSchema,
   UpdateContactSchema,
   UpdateEntitySchema,

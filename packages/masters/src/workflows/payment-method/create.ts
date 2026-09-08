@@ -28,14 +28,18 @@ export const createPaymentMethod = Workflow.name("masters.payment-method.create"
     const [paymentMethod] = await ctx.db
       .insert(masterPaymentMethod)
       .values({
-        bank_account_id: parsed.bankAccountId ?? null,
+        account_holder_name: parsed.accountHolderName ?? null,
+        account_number: parsed.accountNumber ?? null,
+        account_type: parsed.accountType ?? null,
         bank_name: parsed.bankName ?? null,
+        branch_name: parsed.branchName ?? null,
         card_brand: parsed.cardBrand ?? null,
         card_expiry_month: parsed.cardExpiryMonth ?? null,
         card_expiry_year: parsed.cardExpiryYear ?? null,
         card_last4: parsed.cardLast4 ?? null,
         cheque_series: parsed.chequeSeries ?? null,
         code: parsed.code ?? null,
+        currency: parsed.currency ?? null,
         details: parsed.details ?? null,
         direction: parsed.direction,
         entity_id: parsed.entityId,
@@ -44,7 +48,9 @@ export const createPaymentMethod = Workflow.name("masters.payment-method.create"
         is_primary: parsed.isPrimary,
         metadata: parsed.metadata ?? null,
         name: parsed.name,
+        routing_number: parsed.routingNumber ?? null,
         status: parsed.status,
+        swift_code: parsed.swiftCode ?? null,
         type: parsed.type,
         upi_id: parsed.upiId ?? null,
       })

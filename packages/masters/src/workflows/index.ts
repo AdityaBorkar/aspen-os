@@ -3,14 +3,6 @@ import { deleteAddress } from "#/workflows/address/delete";
 import { getAddress } from "#/workflows/address/get";
 import { listAddresses } from "#/workflows/address/list";
 import { updateAddress } from "#/workflows/address/update";
-import { activateBankAccount } from "#/workflows/bank-account/activate";
-import { createBankAccount } from "#/workflows/bank-account/create";
-import { deactivateBankAccount } from "#/workflows/bank-account/deactivate";
-import { deleteBankAccount } from "#/workflows/bank-account/delete";
-import { getBankAccount } from "#/workflows/bank-account/get";
-import { listBankAccounts } from "#/workflows/bank-account/list";
-import { setPrimaryBankAccount } from "#/workflows/bank-account/primary/set";
-import { updateBankAccount } from "#/workflows/bank-account/update";
 import { checkConnection } from "#/workflows/connection/check";
 import { deleteConnection } from "#/workflows/connection/delete";
 import { getConnection } from "#/workflows/connection/get";
@@ -47,17 +39,6 @@ export const addresses = {
   get: getAddress,
   list: listAddresses,
   update: updateAddress,
-} as const;
-
-export const bankAccounts = {
-  activate: activateBankAccount,
-  create: createBankAccount,
-  deactivate: deactivateBankAccount,
-  delete: deleteBankAccount,
-  get: getBankAccount,
-  list: listBankAccounts,
-  setPrimary: setPrimaryBankAccount,
-  update: updateBankAccount,
 } as const;
 
 export const contacts = {

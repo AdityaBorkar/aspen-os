@@ -22,13 +22,6 @@ export const ADDRESS_EVENTS = {
   UPDATED: "masters:address_updated",
 } as const;
 
-export const BANK_ACCOUNT_EVENTS = {
-  ACTIVATED: "masters:bank_account_activated",
-  CREATED: "masters:bank_account_created",
-  DEACTIVATED: "masters:bank_account_deactivated",
-  UPDATED: "masters:bank_account_updated",
-} as const;
-
 export const CONNECTION_EVENTS = {
   CREATED: "masters:connection_created",
   CREDENTIAL_ROTATED: "masters:connection_credential_rotated",
@@ -60,7 +53,6 @@ export const PAYMENT_METHOD_EVENTS = {
 
 export const events = {
   ADDRESS_EVENTS,
-  BANK_ACCOUNT_EVENTS,
   CONNECTION_EVENTS,
   CONTACT_EVENTS,
   ENTITY_EVENTS,
@@ -110,27 +102,6 @@ export interface AddressUpdatedEvent {
 
 export interface AddressRemovedEvent extends OwnedResourceEvent {
   addressId: string;
-}
-
-export interface BankAccountCreatedEvent {
-  bankAccount: { bankName: string; currency: string; id: string };
-  entityId: string;
-  entityType: MasterEntityType;
-}
-
-export interface BankAccountActivatedEvent {
-  bankAccountId: string;
-}
-
-export interface BankAccountDeactivatedEvent {
-  bankAccountId: string;
-}
-
-export interface BankAccountUpdatedEvent {
-  bankAccount: { id: string };
-  changes: Record<string, JsonValue>;
-  entityId: string;
-  entityType: MasterEntityType;
 }
 
 export interface ConnectionCreatedEvent {
@@ -276,13 +247,6 @@ export interface AddressEventMap {
   [ADDRESS_EVENTS.UPDATED]: AddressUpdatedEvent;
 }
 
-export interface BankAccountEventMap {
-  [BANK_ACCOUNT_EVENTS.ACTIVATED]: BankAccountActivatedEvent;
-  [BANK_ACCOUNT_EVENTS.CREATED]: BankAccountCreatedEvent;
-  [BANK_ACCOUNT_EVENTS.DEACTIVATED]: BankAccountDeactivatedEvent;
-  [BANK_ACCOUNT_EVENTS.UPDATED]: BankAccountUpdatedEvent;
-}
-
 export interface ConnectionEventMap {
   [CONNECTION_EVENTS.CREDENTIAL_ROTATED]: ConnectionCredentialRotatedEvent;
   [CONNECTION_EVENTS.CREATED]: ConnectionCreatedEvent;
@@ -313,7 +277,6 @@ export interface PaymentMethodEventMap {
 }
 
 export type MastersEventMap = AddressEventMap &
-  BankAccountEventMap &
   ConnectionEventMap &
   ContactEventMap &
   EntityEventMap &

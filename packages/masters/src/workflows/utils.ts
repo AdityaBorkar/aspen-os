@@ -1,4 +1,4 @@
-import type { masterBankAccount, masterEntity, masterUnitOfMeasure } from "#/db-schemas";
+import type { masterEntity, masterUnitOfMeasure } from "#/db-schemas";
 import { masterPaymentMethod } from "#/db-schemas";
 import { assertPaymentMethodTypeFields } from "#/utils/payment-method-rules";
 
@@ -9,29 +9,6 @@ import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 export { assertPaymentMethodTypeFields };
 
 type DrizzleDB = PostgresJsDatabase;
-
-type PrimaryOwnedTable = typeof masterBankAccount;
-
-export interface UnsetPrimaryForOwnerInput {
-  db: DrizzleDB;
-  entityId: string;
-  entityType: MasterEntityType;
-  table: PrimaryOwnedTable;
-}
-
-export async function unsetPrimaryForOwner(input: UnsetPrimaryForOwnerInput): Promise<void> {
-  const { db, entityId, entityType, table } = input;
-  await db
-    .update(table)
-    .set({ is_primary: false })
-    .where(
-      and(
-        eq(table.entity_type, entityType),
-        eq(table.entity_id, entityId),
-        eq(table.is_primary, true),
-      ),
-    );
-}
 
 const OVERLAPPING_DIRECTIONS = {
   both: ["both", "inbound", "outbound"],

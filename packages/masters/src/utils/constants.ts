@@ -1,6 +1,5 @@
 export const AUDIT_ENTITY_TYPE = {
   ADDRESS: "masters:address",
-  BANK_ACCOUNT: "masters:bank_account",
   CONNECTION: "masters:connection",
   CONTACT: "masters:contact",
   ENTITY: "masters:entity",

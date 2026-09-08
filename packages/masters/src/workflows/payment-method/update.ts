@@ -22,10 +22,15 @@ export const updatePaymentMethod = Workflow.name("masters.payment-method.update"
     const current = await ctx.step.run(fetchPaymentMethodStep, { id: input.id });
 
     assertPaymentMethodTypeFields({
-      bankAccountId:
-        input.patch.bankAccountId !== undefined
-          ? input.patch.bankAccountId
-          : current.bank_account_id,
+      accountHolderName:
+        input.patch.accountHolderName !== undefined
+          ? input.patch.accountHolderName
+          : current.account_holder_name,
+      accountNumber:
+        input.patch.accountNumber !== undefined
+          ? input.patch.accountNumber
+          : current.account_number,
+      bankName: input.patch.bankName !== undefined ? input.patch.bankName : current.bank_name,
       cardBrand: input.patch.cardBrand !== undefined ? input.patch.cardBrand : current.card_brand,
       cardExpiryMonth:
         input.patch.cardExpiryMonth !== undefined

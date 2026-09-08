@@ -49,7 +49,6 @@ export class Masters implements Module {
   $cleanup() {}
 
   readonly addresses = wf.addresses;
-  readonly bankAccounts = wf.bankAccounts;
   readonly contacts = wf.contacts;
   readonly entities = wf.entities;
   readonly paymentMethods = wf.paymentMethods;

@@ -11,18 +11,6 @@ export {
   UpdateAddressSchema,
 } from "#/schemas/address";
 export type {
-  BankAccountFilters,
-  CreateBankAccountInput,
-  ListBankAccountsInput,
-  UpdateBankAccountInput,
-} from "#/schemas/bank-account";
-export {
-  BankAccountFiltersSchema,
-  CreateBankAccountSchema,
-  ListBankAccountsSchema,
-  UpdateBankAccountSchema,
-} from "#/schemas/bank-account";
-export type {
   ConnectionCredential,
   ConnectionFilters,
   CreateConnectionInput,

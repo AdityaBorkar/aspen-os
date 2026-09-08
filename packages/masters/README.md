@@ -1,6 +1,6 @@
 # @aspen-os/masters
 
-A domain module for the Aspen OS framework that owns **polymorphic tenant master data**: contacts, addresses, bank accounts, integration connections, entities, payment methods, and tenant-wide units of measure.
+A domain module for the Aspen OS framework that owns **polymorphic tenant master data**: contacts, addresses, integration connections, entities, payment methods, and tenant-wide units of measure.
 
 ## Overview
 
@@ -10,14 +10,13 @@ Every masters entity is scoped to an owner via a `(entityType, entityId)` pair (
 
 **Package**: `@aspen-os/masters`  
 **Module name**: `"masters"`  
-**Tables**: 7 tenant tables (`master_` prefix)  
+**Tables**: 6 tenant tables (`master_` prefix)  
 **Validation**: Valibot for all input schemas
 
 ## Workflow groups
 
 ```ts
 platform.masters.addresses; // create, delete, get, list, update
-platform.masters.bankAccounts; // activate, create, deactivate, delete, get, list, setPrimary, update
 platform.masters.connections; // check, create, delete, get, list, rotateCredential, update
 platform.masters.contacts; // create, delete, get, list, remove, update
 platform.masters.entities; // create, delete, get, list, update
