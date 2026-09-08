@@ -165,7 +165,7 @@ async function notifyDoc(input: {
   await deps.audit.write({
     action: "reminder_sent",
     entityId: doc.id,
-    entityType: "compliance_document",
+    entityType: "document",
     metadata: isExpiry
       ? { daysUntilExpiry: days, threshold: "expiry" }
       : { daysUntilDue: days, threshold: "due" },
@@ -339,7 +339,7 @@ export async function scanEscalations(deps: ReminderEngineDeps): Promise<number>
           await deps.audit.write({
             action: "escalated",
             entityId: doc.id,
-            entityType: "compliance_document",
+            entityType: "document",
             metadata: { daysSinceExpiry: daysSinceTarget, escalationLevel },
           });
 

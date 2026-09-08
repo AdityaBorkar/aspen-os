@@ -23,7 +23,7 @@ const activateObligation = Workflow.name("obligation.activate").handler(
       actorId: input.performedBy ?? ctx.actorId ?? current.created_by,
       crudAction: "update",
       entityId: input.id,
-      entityType: "compliance_obligation",
+      entityType: "obligation",
       newState: updated,
       previousState: current,
     });

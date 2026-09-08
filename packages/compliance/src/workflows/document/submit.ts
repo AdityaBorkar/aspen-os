@@ -29,7 +29,7 @@ const submitDocument = Workflow.name("document.submit").handler(
       action: "submitted",
       actorId: current.created_by,
       entityId: id,
-      entityType: "compliance_document",
+      entityType: "document",
       previousState: { verification_status: current.verification_status },
     });
 

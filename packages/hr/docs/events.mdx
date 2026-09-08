@@ -120,7 +120,7 @@ Events are typed via `HrEventMap` in `src/pubsub.ts` — 10 per-group maps (`Emp
 | `announcement:pinned`    | `{ announcementId, isPinned, pinnedBy }`            | `announcement.pin`, `announcement.unpin`       |
 
 <Callout type="info">
-  `announcement:published` is consumed by `@aspen-os/comms` — one `comms_notification` per
+  `announcement:published` is consumed by `@aspen-os/comms` — one `notification` per
   `recipientUserIds` entry (`sourceModule: "hr"`). `announcement.getStats` reads
   read/acknowledgement counts back from those rows. `recipientUserIds` are auth user IDs; employees
   without an HR user are snapshot-only.

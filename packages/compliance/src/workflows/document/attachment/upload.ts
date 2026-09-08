@@ -24,7 +24,7 @@ const uploadDocumentAttachment = Workflow.name("document.upload-attachment").han
       action: "attachment_uploaded",
       actorId: current.created_by,
       entityId: id,
-      entityType: "compliance_document",
+      entityType: "document",
       metadata: { storageKey },
     });
 

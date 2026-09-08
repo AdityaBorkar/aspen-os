@@ -36,8 +36,8 @@ export const REMINDER_CHANNEL = {
 export type ReminderChannel = (typeof REMINDER_CHANNEL)[keyof typeof REMINDER_CHANNEL];
 
 export const AUDIT_ENTITY_TYPE = {
-  COMPLIANCE_DOCUMENT: "compliance_document",
-  COMPLIANCE_OBLIGATION: "compliance_obligation",
+  COMPLIANCE_DOCUMENT: "document",
+  COMPLIANCE_OBLIGATION: "obligation",
   VERIFICATION_RULE: "verification_rule",
 } as const;
 

@@ -35,7 +35,7 @@ const rejectDocument = Workflow.name("document.reject").handler(
       action: "rejected",
       actorId: reviewerId,
       entityId: id,
-      entityType: "compliance_document",
+      entityType: "document",
       metadata: { reason },
       previousState: { verification_status: current.verification_status },
     });

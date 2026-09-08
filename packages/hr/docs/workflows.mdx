@@ -131,7 +131,7 @@ listRecipients(announcementId: string, filters?: RecipientListFilters)
 getStats(announcementId: string)
 ```
 
-`getStats` returns `{ totalRecipients, deliveredUserCount, employeeOnlyCount, readCount, unreadCount, dismissedCount, acknowledgementCount }` — delivery totals from `hr_announcement_recipient`, read/acknowledgement counts from `comms_notification` rows (`sourceModule: "hr"`, `sourceEntity.type: "announcement"`).
+`getStats` returns `{ totalRecipients, deliveredUserCount, employeeOnlyCount, readCount, unreadCount, dismissedCount, acknowledgementCount }` — delivery totals from `hr_announcement_recipient`, read/acknowledgement counts from `notification` rows (`sourceModule: "hr"`, `sourceEntity.type: "announcement"`).
 
 ### Business Rules
 

@@ -10,7 +10,7 @@ import {
 
 import { pgEnum } from "drizzle-orm/pg-core";
 
-export const complianceCategoryEnum = pgEnum("compliance_category", [
+export const complianceCategoryEnum = pgEnum("category", [
   COMPLIANCE_CATEGORY.TAX,
   COMPLIANCE_CATEGORY.LICENSE,
   COMPLIANCE_CATEGORY.CERTIFICATE,

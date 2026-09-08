@@ -50,7 +50,7 @@ const updateDocumentStatus = Workflow.name("document.update-status").handler(
       action: status,
       actorId: performedBy ?? undefined,
       entityId: id,
-      entityType: "compliance_document",
+      entityType: "document",
       previousState: { verification_status: current.verification_status },
     });
 

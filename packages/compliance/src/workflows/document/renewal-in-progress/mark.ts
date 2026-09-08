@@ -28,7 +28,7 @@ const markRenewalInProgress = Workflow.name("document.mark-renewal-in-progress")
       action: "updated",
       actorId: current.created_by,
       entityId: id,
-      entityType: "compliance_document",
+      entityType: "document",
       metadata: { note: "Renewal in progress" },
       previousState: { verification_status: current.verification_status },
     });

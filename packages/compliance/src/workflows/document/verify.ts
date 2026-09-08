@@ -34,7 +34,7 @@ const verifyDocument = Workflow.name("document.verify").handler(
       action: "verified",
       actorId: reviewerId,
       entityId: id,
-      entityType: "compliance_document",
+      entityType: "document",
       previousState: { verification_status: current.verification_status },
     });
 

@@ -4,7 +4,7 @@ description: Channels, providers, notifications, and out-of-band message deliver
 icon: IconMessageSquareShare
 ---
 
-The Comms module owns **channels** (sender endpoints), **host providers**, the **in-app notification inbox**, and the **out-of-band delivery outbox** for email, SMS, and WhatsApp. Tenant BYOC channels store credentials in the platform kvStore; host default channels materialize lazily from `comms_provider`.
+The Comms module owns **channels** (sender endpoints), **host providers**, the **in-app notification inbox**, and the **out-of-band delivery outbox** for email, SMS, and WhatsApp. Tenant BYOC channels store credentials in the platform kvStore; host default channels materialize lazily from `provider`.
 
 ## Concepts
 

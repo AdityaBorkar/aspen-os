@@ -5,7 +5,7 @@ import { uuidv7 } from "@aspen-os/platform/server";
 import { index, integer, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const commsMessage = pgTable(
-  "comms_message",
+  "message",
   {
     attempts: integer().notNull().default(0),
     body: text().notNull(),
@@ -28,12 +28,12 @@ export const commsMessage = pgTable(
     to: text().notNull(),
   },
   (table) => [
-    index("idx_comms_message_status").on(table.status),
-    index("idx_comms_message_channel").on(table.channel_id),
-    index("idx_comms_message_notification").on(table.notification_id),
-    index("idx_comms_message_provider").on(table.provider_message_id),
-    index("idx_comms_message_created").on(table.created_at),
-    index("idx_comms_message_tenant").on(table.tenant_id),
+    index("idx_message_status").on(table.status),
+    index("idx_message_channel").on(table.channel_id),
+    index("idx_message_notification").on(table.notification_id),
+    index("idx_message_provider").on(table.provider_message_id),
+    index("idx_message_created").on(table.created_at),
+    index("idx_message_tenant").on(table.tenant_id),
   ],
 );
 

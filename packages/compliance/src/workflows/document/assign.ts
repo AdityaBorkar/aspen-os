@@ -23,7 +23,7 @@ const assignDocumentTo = Workflow.name("document.assign-to").handler(
       action: "updated",
       actorId: current.created_by,
       entityId: id,
-      entityType: "compliance_document",
+      entityType: "document",
       metadata: { assigneeId: userId },
       previousState: { assigned_to: current.assigned_to },
     });

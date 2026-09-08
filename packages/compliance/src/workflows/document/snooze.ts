@@ -30,7 +30,7 @@ const snoozeDocument = Workflow.name("document.snooze").handler(
       action: "snoozed",
       actorId: snoozedBy,
       entityId: id,
-      entityType: "compliance_document",
+      entityType: "document",
       metadata: { snoozedUntil: snoozedUntil.toISOString() },
     });
 

@@ -23,13 +23,13 @@ export const getAnnouncementStats = Workflow.name("hr.announcement.stats.get")
     const deliveredUserCount = recipients.filter((recipient) => recipient.hasUser !== null).length;
     const employeeOnlyCount = totalRecipients - deliveredUserCount;
 
-    // NOTE: comms_notification is owned by @aspen-os/comms. Its drizzle table
+    // NOTE: notification is owned by @aspen-os/comms. Its drizzle table
     // cannot be imported here: comms' built declarations reference the
     // package-local `#/*` alias, which would resolve to hr's own sources.
     // Query the table directly so the dependency stays one-directional.
     const statusCounts = await ctx.db.execute<{ count: number; status: string }>(sql`
       SELECT status, COUNT(*)::int AS "count"
-      FROM comms_notification
+      FROM notification
       WHERE source_module = 'hr'
         AND source_entity->>'type' = 'announcement'
         AND source_entity->>'id' = ${announcementId}

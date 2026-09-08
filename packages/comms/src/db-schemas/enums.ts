@@ -12,7 +12,7 @@ import { pgEnum } from "drizzle-orm/pg-core";
 
 const INAPP_CHANNEL_TYPE = "inapp" as const;
 
-export const commsChannelTypeEnum = pgEnum("comms_channel_type", [
+export const commsChannelTypeEnum = pgEnum("channel_type", [
   CHANNEL_TYPE.EMAIL,
   CHANNEL_TYPE.OTHER,
   CHANNEL_TYPE.PUSH,
@@ -20,7 +20,7 @@ export const commsChannelTypeEnum = pgEnum("comms_channel_type", [
   CHANNEL_TYPE.WHATSAPP,
 ]);
 
-export const commsPreferenceChannelTypeEnum = pgEnum("comms_preference_channel_type", [
+export const commsPreferenceChannelTypeEnum = pgEnum("preference_channel_type", [
   CHANNEL_TYPE.EMAIL,
   INAPP_CHANNEL_TYPE,
   CHANNEL_TYPE.OTHER,
@@ -29,19 +29,19 @@ export const commsPreferenceChannelTypeEnum = pgEnum("comms_preference_channel_t
   CHANNEL_TYPE.WHATSAPP,
 ]);
 
-export const commsChannelSourceEnum = pgEnum("comms_channel_source", [
+export const commsChannelSourceEnum = pgEnum("channel_source", [
   CHANNEL_SOURCE.HOST,
   CHANNEL_SOURCE.TENANT,
 ]);
 
-export const commsChannelStatusEnum = pgEnum("comms_channel_status", [
+export const commsChannelStatusEnum = pgEnum("channel_status", [
   CHANNEL_STATUS.ACTIVE,
   CHANNEL_STATUS.EXPIRED,
   CHANNEL_STATUS.INACTIVE,
   CHANNEL_STATUS.REVOKED,
 ]);
 
-export const commsProviderKindEnum = pgEnum("comms_provider_kind", [
+export const commsProviderKindEnum = pgEnum("provider_kind", [
   PROVIDER_KIND.OTHER,
   PROVIDER_KIND.POSTMARK,
   PROVIDER_KIND.RESEND,
@@ -51,24 +51,24 @@ export const commsProviderKindEnum = pgEnum("comms_provider_kind", [
   PROVIDER_KIND.WHATSAPP_BUSINESS_API,
 ]);
 
-export const commsRecipientTypeEnum = pgEnum("comms_recipient_type", [
+export const commsRecipientTypeEnum = pgEnum("recipient_type", [
   RECIPIENT_TYPE.CONTACT,
   RECIPIENT_TYPE.USER,
 ]);
 
-export const commsNotificationStatusEnum = pgEnum("comms_notification_status", [
+export const commsNotificationStatusEnum = pgEnum("notification_status", [
   NOTIFICATION_STATUS.DISMISSED,
   NOTIFICATION_STATUS.READ,
   NOTIFICATION_STATUS.UNREAD,
 ]);
 
-export const commsNotificationSeverityEnum = pgEnum("comms_notification_severity", [
+export const commsNotificationSeverityEnum = pgEnum("notification_severity", [
   NOTIFICATION_SEVERITY.IMPORTANT,
   NOTIFICATION_SEVERITY.NORMAL,
   NOTIFICATION_SEVERITY.URGENT,
 ]);
 
-export const commsMessageStatusEnum = pgEnum("comms_message_status", [
+export const commsMessageStatusEnum = pgEnum("message_status", [
   MESSAGE_STATUS.DELIVERED,
   MESSAGE_STATUS.FAILED,
   MESSAGE_STATUS.QUEUED,

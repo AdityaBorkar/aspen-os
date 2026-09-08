@@ -9,7 +9,7 @@ import { uuidv7 } from "@aspen-os/platform/server";
 import { index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const commsNotification = pgTable(
-  "comms_notification",
+  "notification",
   {
     body: text(),
     channel_types: text().array().notNull().default([]),
@@ -29,10 +29,10 @@ export const commsNotification = pgTable(
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    index("idx_comms_notification_recipient").on(table.recipient_type, table.recipient_id),
-    index("idx_comms_notification_status").on(table.status),
-    index("idx_comms_notification_type").on(table.type),
-    index("idx_comms_notification_created").on(table.created_at),
+    index("idx_notification_recipient").on(table.recipient_type, table.recipient_id),
+    index("idx_notification_status").on(table.status),
+    index("idx_notification_type").on(table.type),
+    index("idx_notification_created").on(table.created_at),
   ],
 );
 

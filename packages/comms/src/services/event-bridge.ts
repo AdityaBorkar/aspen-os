@@ -197,7 +197,7 @@ async function notifyDocument(input: DocumentNotification, deps: EventBridgeDeps
       input: {
         recipient: { id: input.recipientId, type: "user" },
         severity: severityForDays(input.days),
-        sourceEntity: { id: input.documentId, type: "compliance_document" },
+        sourceEntity: { id: input.documentId, type: "document" },
         sourceModule: "compliance",
         title: `Compliance document ${input.kind === "document_due" ? "due" : "expiring"} in ${input.days} day${input.days === 1 ? "" : "s"}`,
         type: input.kind,

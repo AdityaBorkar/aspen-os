@@ -20,7 +20,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 export const complianceDocument = pgTable(
-  "compliance_document",
+  "document",
   {
     assigned_reviewer: text(),
     assigned_to: text(),
@@ -66,20 +66,20 @@ export const complianceDocument = pgTable(
     verification_status: verificationStatusEnum().notNull().default("draft"),
   },
   (table) => [
-    index("idx_compliance_document_category").on(table.category),
-    index("idx_compliance_document_status").on(table.verification_status),
-    index("idx_compliance_document_branch").on(table.branch),
-    index("idx_compliance_document_expiry").on(table.expiry_date),
-    index("idx_compliance_document_due").on(table.due_date),
-    index("idx_compliance_document_source").on(
+    index("idx_document_category").on(table.category),
+    index("idx_document_status").on(table.verification_status),
+    index("idx_document_branch").on(table.branch),
+    index("idx_document_expiry").on(table.expiry_date),
+    index("idx_document_due").on(table.due_date),
+    index("idx_document_source").on(
       table.source_module,
       table.source_entity_type,
       table.source_entity_id,
     ),
-    index("idx_compliance_document_reviewer").on(table.assigned_reviewer),
-    index("idx_compliance_document_assignee").on(table.assigned_to),
-    index("idx_compliance_document_obligation").on(table.obligation_id),
-    index("idx_compliance_document_renewed_from").on(table.renewed_from),
+    index("idx_document_reviewer").on(table.assigned_reviewer),
+    index("idx_document_assignee").on(table.assigned_to),
+    index("idx_document_obligation").on(table.obligation_id),
+    index("idx_document_renewed_from").on(table.renewed_from),
   ],
 );
 

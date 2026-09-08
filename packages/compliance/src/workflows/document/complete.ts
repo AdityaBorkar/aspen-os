@@ -51,7 +51,7 @@ const completeDocument = Workflow.name("document.complete").handler(
       action: "completed",
       actorId: current.created_by,
       entityId: id,
-      entityType: "compliance_document",
+      entityType: "document",
       metadata: {
         completedAt: completedAt.toISOString(),
         referenceNumber: data.referenceNumber ?? null,

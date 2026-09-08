@@ -65,7 +65,7 @@ const updateDocument = Workflow.name("document.update").handler(
       changes,
       crudAction: "update",
       entityId: id,
-      entityType: "compliance_document",
+      entityType: "document",
       newState: updated,
       previousState: current,
     });

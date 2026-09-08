@@ -21,7 +21,7 @@ Tenant BYOC channels (sender endpoints). `create` stores the credential in the t
 | `setDefault`       | `id`                            | Requires `active` + `verifiedAt`; clears the other defaults in the same `(type, entityType, entityId)` scope         |
 | `rotateCredential` | `RotateChannelCredentialSchema` | Writes a new kvStore ref, swaps `credentialRef`, deletes the old key                                                 |
 | `delete`           | `id`                            | Rejected while non-terminal messages reference the channel; nulls `channelId` on historical rows; deletes credential |
-| `ensureDefaults`   | `EnsureDefaultsSchema`          | Lazy host-default materialization per type from an active `comms_provider` (idempotent)                              |
+| `ensureDefaults`   | `EnsureDefaultsSchema`          | Lazy host-default materialization per type from an active `provider` (idempotent)                                    |
 
 ## `providers`
 

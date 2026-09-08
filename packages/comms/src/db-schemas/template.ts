@@ -5,7 +5,7 @@ import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const commsTemplate = pgTable(
-  "comms_template",
+  "template",
   {
     body: text().notNull(),
     channel_type: commsChannelTypeEnum().notNull(),
@@ -18,7 +18,7 @@ export const commsTemplate = pgTable(
     subject: text(),
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index("idx_comms_template_channel_name").on(table.channel_type, table.name)],
+  (table) => [index("idx_template_channel_name").on(table.channel_type, table.name)],
 );
 
 export type CommsTemplate = typeof commsTemplate.$inferSelect;

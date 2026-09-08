@@ -4,7 +4,7 @@ import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const commsPreference = pgTable(
-  "comms_preference",
+  "preference",
   {
     channel_type: commsPreferenceChannelTypeEnum().notNull(),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
@@ -15,7 +15,7 @@ export const commsPreference = pgTable(
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     user_id: text().notNull(),
   },
-  (table) => [index("idx_comms_preference_user").on(table.user_id, table.type, table.channel_type)],
+  (table) => [index("idx_preference_user").on(table.user_id, table.type, table.channel_type)],
 );
 
 export type CommsPreference = typeof commsPreference.$inferSelect;

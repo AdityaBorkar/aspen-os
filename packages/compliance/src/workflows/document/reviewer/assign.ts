@@ -39,7 +39,7 @@ const assignDocumentReviewer = Workflow.name("document.assign-reviewer").handler
       action: "reviewer_assigned",
       actorId: userId,
       entityId: id,
-      entityType: "compliance_document",
+      entityType: "document",
       metadata: {
         reviewerId: userId,
         statusTransitioned:

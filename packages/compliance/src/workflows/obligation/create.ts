@@ -57,7 +57,7 @@ const createObligation = Workflow.name("obligation.create")
       actorId: parsed.createdBy,
       crudAction: "create",
       entityId: result.id,
-      entityType: "compliance_obligation",
+      entityType: "obligation",
       newState: result,
     });
 

@@ -9,7 +9,7 @@ import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const commsChannel = pgTable(
-  "comms_channel",
+  "channel",
   {
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     credential_ref: text(),
@@ -30,10 +30,10 @@ export const commsChannel = pgTable(
     verified_at: timestamp({ withTimezone: true }),
   },
   (table) => [
-    index("idx_comms_channel_scope").on(table.entity_type, table.entity_id),
-    index("idx_comms_channel_type").on(table.type),
-    index("idx_comms_channel_status").on(table.status),
-    index("idx_comms_channel_provider").on(table.provider_id),
+    index("idx_channel_scope").on(table.entity_type, table.entity_id),
+    index("idx_channel_type").on(table.type),
+    index("idx_channel_status").on(table.status),
+    index("idx_channel_provider").on(table.provider_id),
   ],
 );
 

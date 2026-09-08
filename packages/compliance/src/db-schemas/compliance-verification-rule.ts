@@ -4,7 +4,7 @@ import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const complianceVerificationRule = pgTable(
-  "compliance_verification_rule",
+  "verification_rule",
   {
     assigned_reviewer: text(),
     category: complianceCategoryEnum(),
@@ -17,9 +17,9 @@ export const complianceVerificationRule = pgTable(
     source_module: text(),
   },
   (table) => [
-    index("idx_compliance_verification_rule_active").on(table.is_active),
-    index("idx_compliance_verification_rule_category").on(table.category),
-    index("idx_compliance_verification_rule_priority").on(table.priority),
+    index("idx_verification_rule_active").on(table.is_active),
+    index("idx_verification_rule_category").on(table.category),
+    index("idx_verification_rule_priority").on(table.priority),
   ],
 );
 

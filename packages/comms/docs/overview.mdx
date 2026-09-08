@@ -9,7 +9,7 @@ The Comms module is the notification + out-of-band delivery surface built on `@a
 <Callout type="warn">
   Comms is the single notification/inbox surface — there is no separate `notifications` package.
   There is no `comms:deliver` topic: out-of-band delivery runs through the `comms:message-sweeper`
-  cron scanning queued `comms_message` rows every minute.
+  cron scanning queued `message` rows every minute.
 </Callout>
 
 ## Module
@@ -30,17 +30,17 @@ The recipient (`to`) is deliberately separate from the channel (`from`). Interna
 
 ```text
 PROVIDER (control-plane)
-  comms_provider                     host delivery capability + credentialRef → host kvStore
+  provider                     host delivery capability + credentialRef → host kvStore
 
 CHANNEL (tenant)                     sender endpoint
-  comms_channel                      tenant BYOC (credentialRef → tenant kvStore) or
-                                     materialized host default (providerId → comms_provider)
+  channel                      tenant BYOC (credentialRef → tenant kvStore) or
+                                     materialized host default (providerId → provider)
 
 NOTIFICATION (tenant)                intent + inbox row
-  comms_notification                 the in-app inbox — unread/read/dismissed
+  notification                 the in-app inbox — unread/read/dismissed
 
 MESSAGE (tenant)                     delivery outbox
-  comms_message                      one row per outbound send; queued → sending → sent → delivered/failed
+  message                      one row per outbound send; queued → sending → sent → delivered/failed
 ```
 
 ## Lifecycle
@@ -49,8 +49,8 @@ MESSAGE (tenant)                     delivery outbox
 producer event (bridge) ──or── host app (p.comms.notifications.notify)
    → resolveRecipient (Auth unit / payload address)
    → routeNotification (requested channel types → preference opt-outs → suppressOutOfBand)
-   → comms_notification row (in-app is zero-delivery)   [always materialized unless inapp opted out]
-   → comms_message rows for surviving out-of-band channels (queued)
+   → notification row (in-app is zero-delivery)   [always materialized unless inapp opted out]
+   → message rows for surviving out-of-band channels (queued)
    → comms:message-sweeper cron (every minute) → adapter send → sent
    → provider receipt webhook → delivered / failed (terminal after 5 attempts)
 ```
@@ -100,5 +100,5 @@ $prepareInfra(): ModuleInfra {
 
 - **Credentials live only in kvStore** — tenant BYOC under `comms:channel:<id>:credential` (tenant scope), host providers under `comms:provider:<id>:credential` (control-plane scope). Rows carry a `credentialRef`, never material.
 - **A default must be active and verified** — `channels.setDefault` requires `active` + `verifiedAt`; `channels.activate` requires `verifiedAt`; host defaults are pre-verified at materialization.
-- **In-app is zero-delivery** — the `comms_notification` row _is_ the inbox; only non-`inapp` channel types produce `comms_message` rows.
+- **In-app is zero-delivery** — the `notification` row _is_ the inbox; only non-`inapp` channel types produce `message` rows.
 - **OTP never persists** — the Auth unit stores the OTP in a short-lived token store, publishes only `{ email, tokenRef, type }`, and the bridge delivers inline via the host default email provider.

@@ -77,7 +77,7 @@ const renewDocument = Workflow.name("document.renew").handler(
       action: "renewed",
       actorId: current.created_by,
       entityId: newDoc.id,
-      entityType: "compliance_document",
+      entityType: "document",
       metadata: { newDocumentId: newDoc.id, oldDocumentId: id },
       previousState: { id, verification_status: current.verification_status },
     });

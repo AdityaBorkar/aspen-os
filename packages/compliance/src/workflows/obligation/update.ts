@@ -57,7 +57,7 @@ const updateObligation = Workflow.name("obligation.update").handler(
       changes,
       crudAction: "update",
       entityId: id,
-      entityType: "compliance_obligation",
+      entityType: "obligation",
       newState: updated,
       previousState: current,
     });

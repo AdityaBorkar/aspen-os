@@ -8,68 +8,68 @@ The Compliance module defines 3 tables and 7 enums using Drizzle ORM. Audit trai
 
 ## Enums
 
-| Enum                   | Used in                                                                                                   | Values                                                                                                                                                                                                                                                                           |
-| ---------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `compliance_category`  | `compliance_document.category`, `compliance_obligation.category`, `compliance_verification_rule.category` | `tax`, `license`, `certificate`, `permit`, `insurance`, `regulatory`, `legal`, `hr`, `safety`, `environmental`, `audit`, `data_privacy`, `financial`, `property`, `vehicle`, `other`                                                                                             |
-| `verification_status`  | `compliance_document.verification_status`                                                                 | `draft`, `submitted`, `under_review`, `verified`, `rejected`, `expired`, `overdue`, `renewed`, `archived`                                                                                                                                                                        |
-| `renewal_frequency`    | `compliance_document.renewal_frequency`                                                                   | `monthly`, `quarterly`, `semi_annual`, `annual`, `biennial`, `triennial`, `one_time`                                                                                                                                                                                             |
-| `obligation_frequency` | `compliance_obligation.frequency`                                                                         | `monthly`, `quarterly`, `semi_annual`, `annual`, `biennial`, `triennial`, `custom`                                                                                                                                                                                               |
-| `reminder_channel`     | `compliance_document.reminder_channel`                                                                    | `email`, `pubsub`, `both`                                                                                                                                                                                                                                                        |
-| `audit_entity_type`    | AuditUnit `entityType` filter                                                                             | `compliance_document`, `compliance_obligation`, `verification_rule`                                                                                                                                                                                                              |
-| `audit_action`         | AuditUnit `action` filter                                                                                 | `created`, `updated`, `submitted`, `verified`, `rejected`, `completed`, `renewed`, `archived`, `escalated`, `expired`, `overdue`, `snoozed`, `reviewer_assigned`, `attachment_uploaded`, `reminder_sent`, `document_generated`, `obligation_activated`, `obligation_deactivated` |
+| Enum                   | Used in                                                                  | Values                                                                                                                                                                                                                                                                           |
+| ---------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `category`             | `document.category`, `obligation.category`, `verification_rule.category` | `tax`, `license`, `certificate`, `permit`, `insurance`, `regulatory`, `legal`, `hr`, `safety`, `environmental`, `audit`, `data_privacy`, `financial`, `property`, `vehicle`, `other`                                                                                             |
+| `verification_status`  | `document.verification_status`                                           | `draft`, `submitted`, `under_review`, `verified`, `rejected`, `expired`, `overdue`, `renewed`, `archived`                                                                                                                                                                        |
+| `renewal_frequency`    | `document.renewal_frequency`                                             | `monthly`, `quarterly`, `semi_annual`, `annual`, `biennial`, `triennial`, `one_time`                                                                                                                                                                                             |
+| `obligation_frequency` | `obligation.frequency`                                                   | `monthly`, `quarterly`, `semi_annual`, `annual`, `biennial`, `triennial`, `custom`                                                                                                                                                                                               |
+| `reminder_channel`     | `document.reminder_channel`                                              | `email`, `pubsub`, `both`                                                                                                                                                                                                                                                        |
+| `audit_entity_type`    | AuditUnit `entityType` filter                                            | `document`, `obligation`, `verification_rule`                                                                                                                                                                                                                                    |
+| `audit_action`         | AuditUnit `action` filter                                                | `created`, `updated`, `submitted`, `verified`, `rejected`, `completed`, `renewed`, `archived`, `escalated`, `expired`, `overdue`, `snoozed`, `reviewer_assigned`, `attachment_uploaded`, `reminder_sent`, `document_generated`, `obligation_activated`, `obligation_deactivated` |
 
 ## Tables
 
-### `compliance_document`
+### `document`
 
 The core table — stores compliance documents with their lifecycle state.
 
-| Column                | Type                                      | Description                          |
-| --------------------- | ----------------------------------------- | ------------------------------------ |
-| `id`                  | text (PK)                                 | UUID                                 |
-| `name`                | text                                      | Document name                        |
-| `category`            | compliance_category                       | Document category                    |
-| `verification_status` | verification_status                       | Lifecycle status                     |
-| `document_type`       | text                                      | Document type (nullable)             |
-| `reference_number`    | text                                      | Reference number (nullable)          |
-| `source_module`       | text                                      | Source module name                   |
-| `source_entity_id`    | text                                      | Source entity ID (nullable)          |
-| `source_entity_type`  | text                                      | Source entity type (nullable)        |
-| `branch`              | text (soft FK → organization branch)      | Branch (nullable)                    |
-| `connection`          | text (soft FK → organization connection)  | Connection (nullable)                |
-| `obligation_id`       | text (soft FK → compliance_obligation)    | Originating obligation (nullable)    |
-| `created_by`          | text                                      | Creator user ID                      |
-| `assigned_to`         | text                                      | Assigned user (nullable)             |
-| `assigned_reviewer`   | text                                      | Assigned reviewer (nullable)         |
-| `attachment`          | text                                      | Storage key (nullable)               |
-| `issue_date`          | date                                      | Issue date (nullable)                |
-| `effective_date`      | date                                      | Effective date (nullable)            |
-| `expiry_date`         | date                                      | Expiry date (nullable)               |
-| `due_date`            | date                                      | Due date (nullable)                  |
-| `renewal_date`        | date                                      | Renewal date (nullable)              |
-| `renewal_frequency`   | renewal_frequency                         | Renewal frequency (nullable)         |
-| `period_start`        | date                                      | Period start (nullable)              |
-| `period_end`          | date                                      | Period end (nullable)                |
-| `reminder_days`       | integer[]                                 | Days before expiry to remind         |
-| `escalation_days`     | integer[]                                 | Days after expiry to escalate        |
-| `reminder_channel`    | reminder_channel                          | How to send reminders                |
-| `auto_renewal`        | boolean                                   | Auto-renewal flag                    |
-| `jurisdiction`        | text                                      | Jurisdiction (nullable)              |
-| `issuing_authority`   | text                                      | Issuing authority (nullable)         |
-| `notes`               | text                                      | Notes (nullable)                     |
-| `metadata`            | jsonb                                     | Flexible metadata                    |
-| `snoozed_until`       | timestamptz                               | Snooze timestamp (nullable)          |
-| `renewed_from`        | text (soft self-FK → compliance_document) | Previous document in renewal chain   |
-| `reviewed_by`         | text                                      | Reviewer user ID (nullable)          |
-| `reviewed_at`         | timestamptz                               | Review timestamp (nullable)          |
-| `rejection_reason`    | text                                      | Rejection reason (nullable)          |
-| `completed_at`        | timestamptz                               | Completion timestamp (nullable)      |
-| `last_notified_at`    | timestamptz                               | Last reminder timestamp (nullable)   |
-| `last_escalated_at`   | timestamptz                               | Last escalation timestamp (nullable) |
-| `created_at`          | timestamptz                               | Creation timestamp                   |
-| `updated_at`          | timestamptz                               | Last update timestamp                |
+| Column                | Type                                     | Description                          |
+| --------------------- | ---------------------------------------- | ------------------------------------ |
+| `id`                  | text (PK)                                | UUID                                 |
+| `name`                | text                                     | Document name                        |
+| `category`            | category                                 | Document category                    |
+| `verification_status` | verification_status                      | Lifecycle status                     |
+| `document_type`       | text                                     | Document type (nullable)             |
+| `reference_number`    | text                                     | Reference number (nullable)          |
+| `source_module`       | text                                     | Source module name                   |
+| `source_entity_id`    | text                                     | Source entity ID (nullable)          |
+| `source_entity_type`  | text                                     | Source entity type (nullable)        |
+| `branch`              | text (soft FK → organization branch)     | Branch (nullable)                    |
+| `connection`          | text (soft FK → organization connection) | Connection (nullable)                |
+| `obligation_id`       | text (soft FK → obligation)              | Originating obligation (nullable)    |
+| `created_by`          | text                                     | Creator user ID                      |
+| `assigned_to`         | text                                     | Assigned user (nullable)             |
+| `assigned_reviewer`   | text                                     | Assigned reviewer (nullable)         |
+| `attachment`          | text                                     | Storage key (nullable)               |
+| `issue_date`          | date                                     | Issue date (nullable)                |
+| `effective_date`      | date                                     | Effective date (nullable)            |
+| `expiry_date`         | date                                     | Expiry date (nullable)               |
+| `due_date`            | date                                     | Due date (nullable)                  |
+| `renewal_date`        | date                                     | Renewal date (nullable)              |
+| `renewal_frequency`   | renewal_frequency                        | Renewal frequency (nullable)         |
+| `period_start`        | date                                     | Period start (nullable)              |
+| `period_end`          | date                                     | Period end (nullable)                |
+| `reminder_days`       | integer[]                                | Days before expiry to remind         |
+| `escalation_days`     | integer[]                                | Days after expiry to escalate        |
+| `reminder_channel`    | reminder_channel                         | How to send reminders                |
+| `auto_renewal`        | boolean                                  | Auto-renewal flag                    |
+| `jurisdiction`        | text                                     | Jurisdiction (nullable)              |
+| `issuing_authority`   | text                                     | Issuing authority (nullable)         |
+| `notes`               | text                                     | Notes (nullable)                     |
+| `metadata`            | jsonb                                    | Flexible metadata                    |
+| `snoozed_until`       | timestamptz                              | Snooze timestamp (nullable)          |
+| `renewed_from`        | text (soft self-FK → document)           | Previous document in renewal chain   |
+| `reviewed_by`         | text                                     | Reviewer user ID (nullable)          |
+| `reviewed_at`         | timestamptz                              | Review timestamp (nullable)          |
+| `rejection_reason`    | text                                     | Rejection reason (nullable)          |
+| `completed_at`        | timestamptz                              | Completion timestamp (nullable)      |
+| `last_notified_at`    | timestamptz                              | Last reminder timestamp (nullable)   |
+| `last_escalated_at`   | timestamptz                              | Last escalation timestamp (nullable) |
+| `created_at`          | timestamptz                              | Creation timestamp                   |
+| `updated_at`          | timestamptz                              | Last update timestamp                |
 
-### `compliance_obligation`
+### `obligation`
 
 Recurring compliance obligation templates.
 
@@ -77,7 +77,7 @@ Recurring compliance obligation templates.
 | --------------------------- | ------------------------------------ | ------------------------------------ |
 | `id`                        | text (PK)                            | UUID                                 |
 | `name`                      | text                                 | Obligation name                      |
-| `category`                  | compliance_category                  | Category                             |
+| `category`                  | category                             | Category                             |
 | `frequency`                 | obligation_frequency                 | Recurrence frequency                 |
 | `document_type`             | text                                 | Document type (nullable)             |
 | `source_module`             | text                                 | Source module name                   |
@@ -105,29 +105,29 @@ Recurring compliance obligation templates.
 | `created_at`                | timestamptz                          | Creation timestamp                   |
 | `updated_at`                | timestamptz                          | Last update timestamp                |
 
-### `compliance_verification_rule`
+### `verification_rule`
 
 Rules for auto-assigning reviewers based on category and source.
 
-| Column                   | Type                           | Description            |
-| ------------------------ | ------------------------------ | ---------------------- |
-| `id`                     | text (PK)                      | UUID                   |
-| `name`                   | text                           | Rule name              |
-| `category`               | compliance_category (nullable) | Category filter        |
-| `source_module`          | text (nullable)                | Source module filter   |
-| `assigned_reviewer`      | text (nullable)                | Reviewer to assign     |
-| `required_reviewer_role` | text (nullable)                | Required reviewer role |
-| `priority`               | integer                        | Rule priority          |
-| `is_active`              | boolean                        | Active flag            |
-| `created_at`             | timestamptz                    | Creation timestamp     |
-| `updated_at`             | timestamptz                    | Last update timestamp  |
+| Column                   | Type                | Description            |
+| ------------------------ | ------------------- | ---------------------- |
+| `id`                     | text (PK)           | UUID                   |
+| `name`                   | text                | Rule name              |
+| `category`               | category (nullable) | Category filter        |
+| `source_module`          | text (nullable)     | Source module filter   |
+| `assigned_reviewer`      | text (nullable)     | Reviewer to assign     |
+| `required_reviewer_role` | text (nullable)     | Required reviewer role |
+| `priority`               | integer             | Rule priority          |
+| `is_active`              | boolean             | Active flag            |
+| `created_at`             | timestamptz         | Creation timestamp     |
+| `updated_at`             | timestamptz         | Last update timestamp  |
 
 ## Relationships
 
 ```text
-compliance_obligation ──1:N (soft FK obligation_id)──→ compliance_document
-compliance_document   ──self-ref (soft FK renewed_from)──→ compliance_document
-organization branch   ──1:N (soft FK branch)──→ compliance_document
-organization connection ──1:N (soft FK connection)──→ compliance_document
-external entity {sourceModule, sourceEntityType, sourceEntityId} ←── compliance_document / compliance_obligation
+obligation ──1:N (soft FK obligation_id)──→ document
+document   ──self-ref (soft FK renewed_from)──→ document
+organization branch   ──1:N (soft FK branch)──→ document
+organization connection ──1:N (soft FK connection)──→ document
+external entity {sourceModule, sourceEntityType, sourceEntityId} ←── document / obligation
 ```

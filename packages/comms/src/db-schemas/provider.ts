@@ -5,7 +5,7 @@ import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const commsProvider = pgTable(
-  "comms_provider",
+  "provider",
   {
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     credential_ref: text().notNull(),
@@ -18,8 +18,8 @@ export const commsProvider = pgTable(
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    index("idx_comms_provider_kind").on(table.kind),
-    index("idx_comms_provider_active").on(table.is_active),
+    index("idx_provider_kind").on(table.kind),
+    index("idx_provider_active").on(table.is_active),
   ],
 );
 

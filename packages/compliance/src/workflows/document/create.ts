@@ -65,7 +65,7 @@ const createDocument = Workflow.name("document.create")
       actorId: input.createdBy,
       crudAction: "create",
       entityId: result.id,
-      entityType: "compliance_document",
+      entityType: "document",
       newState: result,
     });
 

@@ -54,7 +54,7 @@ Listens to obligation schedules and auto-generates compliance documents when the
 
 - Registers a handler for the `compliance:obligation-generate` scheduled job
 - When triggered, finds active obligations whose next period matches the current date
-- Creates a new `compliance_document` from the obligation template
+- Creates a new `document` from the obligation template
 - Fills in default values (reminder days, escalation days, assignee, reviewer, jurisdiction)
 - Publishes `compliance:document_generated` event
 
@@ -67,7 +67,7 @@ Find active obligations where autoGenerate = true
     ↓
 For each: calculate next period (dueDay, dueMonthOffset, frequency)
     ↓
-If period matches current date → create compliance_document
+If period matches current date → create document
     ↓
 Copy defaults from obligation (reminderDays, escalationDays, assignee, reviewer)
     ↓

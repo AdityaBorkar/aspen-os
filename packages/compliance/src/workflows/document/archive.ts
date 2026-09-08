@@ -32,7 +32,7 @@ const archiveDocument = Workflow.name("document.archive").handler(
       action: "archived",
       actorId: current.created_by,
       entityId: id,
-      entityType: "compliance_document",
+      entityType: "document",
       previousState: { verification_status: current.verification_status },
     });
 

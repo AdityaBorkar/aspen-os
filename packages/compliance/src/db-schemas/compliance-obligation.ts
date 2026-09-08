@@ -14,7 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 export const complianceObligation = pgTable(
-  "compliance_obligation",
+  "obligation",
   {
     auto_generate: boolean().notNull().default(true),
     branch: text(),
@@ -47,9 +47,9 @@ export const complianceObligation = pgTable(
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    index("idx_compliance_obligation_active").on(table.is_active),
-    index("idx_compliance_obligation_category").on(table.category),
-    index("idx_compliance_obligation_source").on(
+    index("idx_obligation_active").on(table.is_active),
+    index("idx_obligation_category").on(table.category),
+    index("idx_obligation_source").on(
       table.source_module,
       table.source_entity_type,
       table.source_entity_id,
