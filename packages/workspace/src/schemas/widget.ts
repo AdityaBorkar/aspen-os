@@ -24,8 +24,8 @@ import {
 import type { InferOutput } from "valibot";
 
 // Local filter-condition shape for widget datasources. Filter views themselves
-// live in masters (`p.masters.filterViews`); widgets keep only an inline
-// filter or a soft `viewId` reference to a masters filter view.
+// live in `p.workspace.filterViews`; widgets keep only an inline
+// filter or a soft `viewId` reference to a filter view.
 const WidgetFilterConditionSchema = object({
   field: pipe(
     string(),

@@ -14,8 +14,6 @@ import {
 } from "@aspen-os/constants";
 import { picklist } from "valibot";
 
-import { FILTER_VIEW_ACCESS, FILTER_VIEW_TYPE } from "../utils/constants";
-
 export const MasterEntityTypeSchema = picklist(Object.values(MASTER_ENTITY_TYPE));
 
 export const EntityTypeSchema = picklist(Object.values(MASTER_ENTITY_KIND));
@@ -38,10 +36,6 @@ export const IntegrationTypeSchema = picklist(Object.values(INTEGRATION_TYPE));
 
 export const ConnectionStatusSchema = picklist(Object.values(CONNECTION_STATUS));
 
-export const FilterViewAccessSchema = picklist(Object.values(FILTER_VIEW_ACCESS));
-
-export const FilterViewTypeSchema = picklist(Object.values(FILTER_VIEW_TYPE));
-
 export const OrgBranchTypeSchema = picklist(Object.values(ORG_BRANCH_TYPE));
 
 // Deprecated alias — prefer OrgBranchTypeSchema.
@@ -62,5 +56,3 @@ export {
   PAYMENT_METHOD_TYPE,
   UOM_CATEGORY,
 } from "@aspen-os/constants";
-
-export { FILTER_VIEW_ACCESS, FILTER_VIEW_DOMAIN, FILTER_VIEW_TYPE } from "../utils/constants";

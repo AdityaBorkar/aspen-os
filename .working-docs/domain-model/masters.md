@@ -1,6 +1,6 @@
 # Masters Domain Model
 
-> Package: `@aspen-os/masters`. Polymorphic tenant master data — contacts, addresses, bank accounts, integration connections, entities, payment methods — plus tenant-wide units of measure, the cross-domain filter view store, and the tenant settings KV. All 9 tables are tenant schemas (`master_` prefix). Contacts absorbed the DMS address book and may also be global (owner-less) entries. Filter views absorbed tasks saved views, DMS file views, and workspace views. Settings absorbed the workspace `workspace_setting` surface plus the organization profile (`org.*` tenant-wide keys).
+> Package: `@aspen-os/masters`. Polymorphic tenant master data — contacts, addresses, bank accounts, integration connections, entities, payment methods — plus tenant-wide units of measure and the tenant settings KV. All 8 tables are tenant schemas (`master_` prefix). Contacts absorbed the DMS address book and may also be global (owner-less) entries. Settings absorbed the workspace `workspace_setting` surface plus the organization profile (`org.*` tenant-wide keys). Filter views now live in `@aspen-os/workspace`.
 
 ## Entity-Relationship Diagram
 

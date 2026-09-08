@@ -34,6 +34,13 @@ export const WIDGET_EVENTS = {
   UPDATED: "workspace:widget_updated",
 } as const;
 
+export const FILTER_VIEW_EVENTS = {
+  CREATED: "workspace:filter_view_created",
+  DELETED: "workspace:filter_view_deleted",
+  DUPLICATED: "workspace:filter_view_duplicated",
+  UPDATED: "workspace:filter_view_updated",
+} as const;
+
 export const PIN_EVENTS = {
   CREATED: "workspace:pin_created",
   REMOVED: "workspace:pin_removed",
@@ -52,6 +59,7 @@ export const events = {
   DASHBOARD_EVENTS,
   DELIVERY_SCHEDULE_EVENTS,
   DRAFT_EVENTS,
+  FILTER_VIEW_EVENTS,
   PIN_EVENTS,
   SCHEDULE_EVENTS,
   WIDGET_EVENTS,
@@ -160,6 +168,26 @@ export interface WidgetRefreshedEvent {
 
 export type WidgetRemovedEvent = WidgetAddedEvent;
 
+export interface FilterViewCreatedEvent {
+  access: string;
+  domain: string;
+  filterViewId: string;
+  ownerId: string;
+}
+
+export interface FilterViewUpdatedEvent {
+  filterViewId: string;
+}
+
+export interface FilterViewDuplicatedEvent {
+  duplicateId: string;
+  filterViewId: string;
+}
+
+export interface FilterViewDeletedEvent {
+  filterViewId: string;
+}
+
 export interface PinCreatedEvent {
   itemId: string;
   itemType: string;
@@ -211,6 +239,13 @@ export interface WidgetEventMap {
   [WIDGET_EVENTS.UPDATED]: WidgetUpdatedEvent;
 }
 
+export interface FilterViewEventMap {
+  [FILTER_VIEW_EVENTS.CREATED]: FilterViewCreatedEvent;
+  [FILTER_VIEW_EVENTS.DELETED]: FilterViewDeletedEvent;
+  [FILTER_VIEW_EVENTS.DUPLICATED]: FilterViewDuplicatedEvent;
+  [FILTER_VIEW_EVENTS.UPDATED]: FilterViewUpdatedEvent;
+}
+
 export interface PinEventMap {
   [PIN_EVENTS.CREATED]: PinCreatedEvent;
   [PIN_EVENTS.REMOVED]: PinRemovedEvent;
@@ -227,6 +262,7 @@ export interface ScheduleEventMap {
 export type WorkspaceEventMap = DashboardEventMap &
   DeliveryScheduleEventMap &
   DraftEventMap &
+  FilterViewEventMap &
   PinEventMap &
   ScheduleEventMap &
   WidgetEventMap;

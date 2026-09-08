@@ -54,23 +54,6 @@ export {
   ListEntitiesSchema,
   UpdateEntitySchema,
 } from "#/schemas/entity";
-export type {
-  CreateFilterViewInput,
-  FilterViewCondition,
-  FilterViewFilters,
-  FilterViewSort,
-  GetDefaultFilterViewInput,
-  UpdateFilterViewInput,
-} from "#/schemas/filter-view";
-export {
-  CreateFilterViewSchema,
-  FilterViewConditionSchema,
-  FilterViewDomainSchema,
-  FilterViewFiltersSchema,
-  FilterViewSortSchema,
-  GetDefaultFilterViewSchema,
-  UpdateFilterViewSchema,
-} from "#/schemas/filter-view";
 export {
   BranchTypeSchema,
   CardBrandSchema,
@@ -78,8 +61,6 @@ export {
   ContactTypeSchema,
   EntityStatusSchema,
   EntityTypeSchema,
-  FilterViewAccessSchema,
-  FilterViewTypeSchema,
   IntegrationTypeSchema,
   MasterEntityTypeSchema,
   OrgBranchTypeSchema,

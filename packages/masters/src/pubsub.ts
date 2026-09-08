@@ -51,13 +51,6 @@ export const PAYMENT_METHOD_EVENTS = {
   UPDATED: "masters:payment_method_updated",
 } as const;
 
-export const FILTER_VIEW_EVENTS = {
-  CREATED: "masters:filter_view_created",
-  DELETED: "masters:filter_view_deleted",
-  DUPLICATED: "masters:filter_view_duplicated",
-  UPDATED: "masters:filter_view_updated",
-} as const;
-
 export const ORG_BRANCH_EVENTS = {
   CREATED: "masters:org_branch_created",
   UPDATED: "masters:org_branch_updated",
@@ -80,7 +73,6 @@ export const events = {
   CONNECTION_EVENTS,
   CONTACT_EVENTS,
   ENTITY_EVENTS,
-  FILTER_VIEW_EVENTS,
   LABEL_EVENTS,
   ORG_BRANCH_EVENTS,
   PAYMENT_METHOD_EVENTS,
@@ -262,26 +254,6 @@ export interface PaymentMethodPrimarySetEvent {
   paymentMethodId: string;
 }
 
-export interface FilterViewCreatedEvent {
-  access: string;
-  domain: string;
-  filterViewId: string;
-  ownerId: string;
-}
-
-export interface FilterViewUpdatedEvent {
-  filterViewId: string;
-}
-
-export interface FilterViewDuplicatedEvent {
-  duplicateId: string;
-  filterViewId: string;
-}
-
-export interface FilterViewDeletedEvent {
-  filterViewId: string;
-}
-
 export interface ContactEventMap {
   [CONTACT_EVENTS.CREATED]: ContactCreatedEvent;
   [CONTACT_EVENTS.REMOVED]: ContactRemovedEvent;
@@ -321,13 +293,6 @@ export interface PaymentMethodEventMap {
   [PAYMENT_METHOD_EVENTS.PRIMARY_SET]: PaymentMethodPrimarySetEvent;
   [PAYMENT_METHOD_EVENTS.REMOVED]: PaymentMethodRemovedEvent;
   [PAYMENT_METHOD_EVENTS.UPDATED]: PaymentMethodUpdatedEvent;
-}
-
-export interface FilterViewEventMap {
-  [FILTER_VIEW_EVENTS.CREATED]: FilterViewCreatedEvent;
-  [FILTER_VIEW_EVENTS.DELETED]: FilterViewDeletedEvent;
-  [FILTER_VIEW_EVENTS.DUPLICATED]: FilterViewDuplicatedEvent;
-  [FILTER_VIEW_EVENTS.UPDATED]: FilterViewUpdatedEvent;
 }
 
 export interface OrgBranchCreatedEvent {
@@ -399,7 +364,6 @@ export type MastersEventMap = AddressEventMap &
   ConnectionEventMap &
   ContactEventMap &
   EntityEventMap &
-  FilterViewEventMap &
   LabelEventMap &
   OrgBranchEventMap &
   PaymentMethodEventMap &

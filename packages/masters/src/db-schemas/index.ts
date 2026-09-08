@@ -3,7 +3,6 @@ import { masterConnection } from "#/db-schemas/connection";
 import { masterContact } from "#/db-schemas/contact";
 import { masterEntity } from "#/db-schemas/entity";
 import { masterEntityLabel } from "#/db-schemas/entity-label";
-import { masterFilterView } from "#/db-schemas/filter-view";
 import { masterLabel } from "#/db-schemas/label";
 import { orgBranch } from "#/db-schemas/org-branch";
 import { masterPaymentMethod } from "#/db-schemas/payment-method";
@@ -23,15 +22,12 @@ export {
   masterEntityKindEnum,
   masterEntityStatusEnum,
   masterEntityTypeEnum,
-  masterFilterViewAccessEnum,
-  masterFilterViewTypeEnum,
   masterIntegrationTypeEnum,
   masterPaymentMethodDirectionEnum,
   masterPaymentMethodStatusEnum,
   masterPaymentMethodTypeEnum,
   masterUomCategoryEnum,
 } from "#/db-schemas/enums";
-export { masterFilterView } from "#/db-schemas/filter-view";
 export { masterLabel } from "#/db-schemas/label";
 export { masterPaymentMethod } from "#/db-schemas/payment-method";
 export { masterSetting } from "#/db-schemas/setting";
@@ -43,7 +39,6 @@ export const mastersTables = {
   masterContact,
   masterEntity,
   masterEntityLabel,
-  masterFilterView,
   masterLabel,
   masterPaymentMethod,
   masterSetting,

@@ -1,4 +1,4 @@
-import { masterFilterView } from "#/db-schemas";
+import { workspaceFilterView } from "#/db-schemas";
 import { FILTER_VIEW_EVENTS } from "#/pubsub";
 import { IdSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
@@ -12,7 +12,7 @@ import { object } from "valibot";
 
 const SetDefaultInputSchema = object({ id: IdSchema });
 
-export const setDefaultFilterView = Workflow.name("masters.filter-view.set-default")
+export const setDefaultFilterView = Workflow.name("workspace.filter-view.set-default")
   .input(SetDefaultInputSchema)
   .handler(async ({ id }, ctx) => {
     const view = await ctx.step.run(fetchFilterViewStep, { id });
@@ -28,9 +28,9 @@ export const setDefaultFilterView = Workflow.name("masters.filter-view.set-defau
     });
 
     const [updated] = await ctx.db
-      .update(masterFilterView)
+      .update(workspaceFilterView)
       .set({ is_default: true, updated_at: new Date() })
-      .where(eq(masterFilterView.id, id))
+      .where(eq(workspaceFilterView.id, id))
       .returning();
 
     if (!updated) {

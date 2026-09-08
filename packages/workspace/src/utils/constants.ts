@@ -87,6 +87,33 @@ export const DELIVERY_SCHEDULE_CRON_TOPIC_PREFIX = "workspace:delivery_schedule:
 /** @deprecated Use DELIVERY_SCHEDULE_CRON_TOPIC_PREFIX — schedule vs reminder confusion. */
 export const SCHEDULE_CRON_TOPIC_PREFIX = "workspace:schedule:";
 
+export const FILTER_VIEW_ACCESS = {
+  GLOBAL: "global",
+  PERSONAL: "personal",
+} as const;
+
+export type FilterViewAccess = (typeof FILTER_VIEW_ACCESS)[keyof typeof FILTER_VIEW_ACCESS];
+
+export const FILTER_VIEW_TYPE = {
+  BOARD: "board",
+  CALENDAR: "calendar",
+  LIST: "list",
+  TIMELINE: "timeline",
+} as const;
+
+export type FilterViewType = (typeof FILTER_VIEW_TYPE)[keyof typeof FILTER_VIEW_TYPE];
+
+export const FILTER_VIEW_DOMAIN = {
+  COMPLIANCE_DOCUMENT: "compliance:document",
+  DMS_FILE: "dms:file",
+  HR_EMPLOYEE: "hr:employee",
+  NOTES_NOTE: "notes:note",
+  TASKS_TASK: "tasks:task",
+  WORKSPACE_DRAFT: "workspace:draft",
+} as const;
+
+export type FilterViewDomain = (typeof FILTER_VIEW_DOMAIN)[keyof typeof FILTER_VIEW_DOMAIN];
+
 export const AUDIT_ENTITY_TYPE = {
   DASHBOARD: "workspace:dashboard",
   DELIVERY_SCHEDULE: "workspace:delivery_schedule",
@@ -94,9 +121,7 @@ export const AUDIT_ENTITY_TYPE = {
   DMS_FILE: "dms:file",
   DRAFT: "workspace:draft",
   DRAFT_COMMENT: "workspace:draft_comment",
-  // Filter views consolidated in masters (`p.masters.filterViews`); kept as a
-  // cross-module audit reference like DMS_CLASS/DMS_FILE above.
-  FILTER_VIEW: "masters:filter_view",
+  FILTER_VIEW: "workspace:filter_view",
   PIN: "workspace:pin",
   RECENT: "workspace:recent",
   SCHEDULE: "workspace:delivery_schedule",

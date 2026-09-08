@@ -1,6 +1,9 @@
 import {
   DRAFT_STATUS,
   EMBED_KIND,
+  FILTER_VIEW_ACCESS,
+  FILTER_VIEW_DOMAIN,
+  FILTER_VIEW_TYPE,
   RANGE_PRESET,
   SCHEDULE_FORMAT,
   WIDGET_AGGREGATION,
@@ -27,9 +30,16 @@ export const RangePresetSchema = picklist(Object.values(RANGE_PRESET));
 
 export const ScheduleFormatSchema = picklist(Object.values(SCHEDULE_FORMAT));
 
+export const FilterViewAccessSchema = picklist(Object.values(FILTER_VIEW_ACCESS));
+
+export const FilterViewTypeSchema = picklist(Object.values(FILTER_VIEW_TYPE));
+
 export {
   DRAFT_STATUS,
   EMBED_KIND,
+  FILTER_VIEW_ACCESS,
+  FILTER_VIEW_DOMAIN,
+  FILTER_VIEW_TYPE,
   RANGE_PRESET,
   SCHEDULE_FORMAT,
   WIDGET_AGGREGATION,

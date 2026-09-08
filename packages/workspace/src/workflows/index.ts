@@ -29,6 +29,14 @@ import { restoreDraft } from "#/workflows/draft/restore";
 import { submitDraft } from "#/workflows/draft/submit";
 import { trashDraft } from "#/workflows/draft/trash";
 import { updateDraft } from "#/workflows/draft/update";
+import { createFilterView } from "#/workflows/filter-view/create";
+import { getDefaultFilterView } from "#/workflows/filter-view/default/get";
+import { setDefaultFilterView } from "#/workflows/filter-view/default/set";
+import { deleteFilterView } from "#/workflows/filter-view/delete";
+import { duplicateFilterView } from "#/workflows/filter-view/duplicate";
+import { getFilterView } from "#/workflows/filter-view/get";
+import { listFilterViews } from "#/workflows/filter-view/list";
+import { updateFilterView } from "#/workflows/filter-view/update";
 import { pinItem } from "#/workflows/pin/create";
 import { unpinItem } from "#/workflows/pin/delete";
 import { listPins } from "#/workflows/pin/list";
@@ -98,6 +106,17 @@ export const schedules = {
 
 // New canonical name — delivery_schedule makes the cron intent explicit vs calendar_reminder.
 export const deliverySchedules = schedules;
+
+export const filterViews = {
+  create: createFilterView,
+  delete: deleteFilterView,
+  duplicate: duplicateFilterView,
+  get: getFilterView,
+  getDefault: getDefaultFilterView,
+  list: listFilterViews,
+  setDefault: setDefaultFilterView,
+  update: updateFilterView,
+} as const;
 
 export const search = {
   quick: quickSearch,

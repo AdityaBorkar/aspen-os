@@ -5,12 +5,12 @@ import type { JsonValue } from "@aspen-os/platform/server";
 import { sql } from "drizzle-orm";
 import { boolean, index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
-import { masterFilterViewAccessEnum, masterFilterViewTypeEnum } from "./enums";
+import { workspaceFilterViewAccessEnum, workspaceFilterViewTypeEnum } from "./enums";
 
-export const masterFilterView = pgTable(
-  "master_filter_view",
+export const workspaceFilterView = pgTable(
+  "workspace_filter_view",
   {
-    access: masterFilterViewAccessEnum().notNull().default("personal"),
+    access: workspaceFilterViewAccessEnum().notNull().default("personal"),
     conditions: jsonb()
       .notNull()
       .$type<FilterViewCondition[]>()
@@ -32,14 +32,14 @@ export const masterFilterView = pgTable(
       .notNull()
       .defaultNow()
       .$onUpdate(() => new Date()),
-    view_type: masterFilterViewTypeEnum().notNull().default("list"),
+    view_type: workspaceFilterViewTypeEnum().notNull().default("list"),
   },
   (table) => [
-    index("idx_master_filter_view_domain_access").on(table.domain, table.access),
-    index("idx_master_filter_view_owner").on(table.owner_id),
-    index("idx_master_filter_view_project").on(table.project_id),
+    index("idx_workspace_filter_view_domain_access").on(table.domain, table.access),
+    index("idx_workspace_filter_view_owner").on(table.owner_id),
+    index("idx_workspace_filter_view_project").on(table.project_id),
   ],
 );
 
-export type MasterFilterView = typeof masterFilterView.$inferSelect;
-export type NewMasterFilterView = typeof masterFilterView.$inferInsert;
+export type WorkspaceFilterView = typeof workspaceFilterView.$inferSelect;
+export type NewWorkspaceFilterView = typeof workspaceFilterView.$inferInsert;

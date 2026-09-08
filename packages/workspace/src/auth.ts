@@ -18,6 +18,7 @@ export const acl = defineAcl({
     "comment",
   ],
   draftComment: ["create", "read", "delete"],
+  filterView: ["create", "delete", "duplicate", "read", "set_default", "update"],
   pin: ["create", "read", "delete"],
   recent: ["read", "touch"],
   schedule: ["create", "read", "update", "delete", "pause", "resume", "mark_run"],

@@ -81,7 +81,7 @@ export const AUDIT_ENTITY_TYPE = {
   CONTACT: "dms:contact",
   FILE: "dms:file",
   // Kept for reading pre-migration audit rows; filter views now live in
-  // masters as "masters:filter_view".
+  // workspace as "workspace:filter_view".
   FILE_VIEW: "dms:file_view",
   FOLDER: "dms:folder",
   LABEL: "dms:label",

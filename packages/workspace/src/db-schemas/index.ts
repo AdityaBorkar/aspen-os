@@ -1,6 +1,7 @@
 import { workspaceDashboard } from "#/db-schemas/dashboard";
 import { workspaceDraft } from "#/db-schemas/draft";
 import { workspaceDraftComment } from "#/db-schemas/draft-comment";
+import { workspaceFilterView } from "#/db-schemas/filter-view";
 import { workspacePin } from "#/db-schemas/pin";
 import { workspaceRecent } from "#/db-schemas/recent";
 import { workspaceDeliverySchedule, workspaceSchedule } from "#/db-schemas/schedule";
@@ -12,9 +13,12 @@ export { workspaceDraftComment } from "#/db-schemas/draft-comment";
 export {
   workspaceAccessEnum,
   workspaceDraftStatusEnum,
+  workspaceFilterViewAccessEnum,
+  workspaceFilterViewTypeEnum,
   workspaceItemTypeEnum,
   workspaceWidgetTypeEnum,
 } from "#/db-schemas/enums";
+export { workspaceFilterView } from "#/db-schemas/filter-view";
 export { workspacePin } from "#/db-schemas/pin";
 export { workspaceRecent } from "#/db-schemas/recent";
 export { workspaceDeliverySchedule, workspaceSchedule } from "#/db-schemas/schedule";
@@ -25,6 +29,7 @@ export const workspaceTables = {
   workspaceDeliverySchedule,
   workspaceDraft,
   workspaceDraftComment,
+  workspaceFilterView,
   workspacePin,
   workspaceRecent,
   workspaceSchedule,

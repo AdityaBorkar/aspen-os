@@ -1,4 +1,4 @@
-import { masterFilterView } from "#/db-schemas";
+import { workspaceFilterView } from "#/db-schemas";
 import { FILTER_VIEW_EVENTS } from "#/pubsub";
 import { IdSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, FILTER_VIEW_ACCESS } from "#/utils/constants";
@@ -10,7 +10,7 @@ import { object } from "valibot";
 
 const DuplicateInputSchema = object({ id: IdSchema });
 
-export const duplicateFilterView = Workflow.name("masters.filter-view.duplicate")
+export const duplicateFilterView = Workflow.name("workspace.filter-view.duplicate")
   .input(DuplicateInputSchema)
   .handler(async ({ id }, ctx) => {
     const view = await ctx.step.run(fetchFilterViewStep, { id });
@@ -18,7 +18,7 @@ export const duplicateFilterView = Workflow.name("masters.filter-view.duplicate"
     const ownerId = resolveActorId(ctx.actorId);
 
     const [duplicate] = await ctx.db
-      .insert(masterFilterView)
+      .insert(workspaceFilterView)
       .values({
         access: FILTER_VIEW_ACCESS.PERSONAL,
         conditions: view.conditions,

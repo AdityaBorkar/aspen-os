@@ -3,7 +3,6 @@ export type { MasterConnection, NewMasterConnection } from "#/db-schemas/connect
 export type { MasterContact, NewMasterContact } from "#/db-schemas/contact";
 export type { MasterEntity, NewMasterEntity } from "#/db-schemas/entity";
 export type { MasterEntityLabel, NewMasterEntityLabel } from "#/db-schemas/entity-label";
-export type { MasterFilterView, NewMasterFilterView } from "#/db-schemas/filter-view";
 export type { MasterLabel, NewMasterLabel } from "#/db-schemas/label";
 export type { MasterPaymentMethod, NewMasterPaymentMethod } from "#/db-schemas/payment-method";
 export type { MasterSetting, NewMasterSetting } from "#/db-schemas/setting";
@@ -31,10 +30,6 @@ export type {
   EntityEventMap,
   EntityRemovedEvent,
   EntityUpdatedEvent,
-  FilterViewCreatedEvent,
-  FilterViewDeletedEvent,
-  FilterViewDuplicatedEvent,
-  FilterViewEventMap,
   LabelAppliedEvent,
   LabelCreatedEvent,
   LabelEventMap,
@@ -65,7 +60,6 @@ export {
   CONTACT_EVENTS,
   ENTITY_EVENTS,
   events,
-  FILTER_VIEW_EVENTS,
   LABEL_EVENTS,
   ORG_BRANCH_EVENTS,
   PAYMENT_METHOD_EVENTS,
@@ -85,16 +79,11 @@ export type {
   CreateConnectionInput,
   CreateContactInput,
   CreateEntityInput,
-  CreateFilterViewInput,
   CreateLabelInput,
   CreateOrgBranchInput,
   CreatePaymentMethodInput,
   CreateUnitOfMeasureInput,
   EntityFilters,
-  FilterViewCondition,
-  FilterViewFilters,
-  FilterViewSort,
-  GetDefaultFilterViewInput,
   GetSettingInput,
   LabelFilters,
   ListAddressesInput,
@@ -117,7 +106,6 @@ export type {
   UpdateConnectionInput,
   UpdateContactInput,
   UpdateEntityInput,
-  UpdateFilterViewInput,
   UpdateLabelInput,
   UpdateOrgBranchInput,
   UpdatePaymentMethodInput,
@@ -143,7 +131,6 @@ export {
   CreateConnectionSchema,
   CreateContactSchema,
   CreateEntitySchema,
-  CreateFilterViewSchema,
   CreateLabelSchema,
   CreateOrgBranchSchema,
   CreatePaymentMethodSchema,
@@ -152,13 +139,6 @@ export {
   EntityFiltersSchema,
   EntityStatusSchema,
   EntityTypeSchema,
-  FilterViewAccessSchema,
-  FilterViewConditionSchema,
-  FilterViewDomainSchema,
-  FilterViewFiltersSchema,
-  FilterViewSortSchema,
-  FilterViewTypeSchema,
-  GetDefaultFilterViewSchema,
   GetSettingSchema,
   IdSchema,
   IntegrationTypeSchema,
@@ -191,7 +171,6 @@ export {
   UpdateConnectionSchema,
   UpdateContactSchema,
   UpdateEntitySchema,
-  UpdateFilterViewSchema,
   UpdateLabelSchema,
   UpdateOrgBranchSchema,
   UpdatePaymentMethodSchema,
@@ -206,8 +185,6 @@ export {
   SETTING_KEYS,
   SETTING_KEY_PREFIX,
 } from "#/utils/constants";
-export type { FilterViewAccess, FilterViewDomain, FilterViewType } from "#/utils/constants";
-export { FILTER_VIEW_ACCESS, FILTER_VIEW_DOMAIN, FILTER_VIEW_TYPE } from "#/utils/constants";
 export type {
   BranchType,
   CardBrand,

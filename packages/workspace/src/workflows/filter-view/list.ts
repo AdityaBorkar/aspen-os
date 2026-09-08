@@ -1,4 +1,4 @@
-import { masterFilterView } from "#/db-schemas";
+import { workspaceFilterView } from "#/db-schemas";
 import { FilterViewFiltersSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -7,7 +7,7 @@ import { object, parse } from "valibot";
 
 const ListInputSchema = object({ filters: FilterViewFiltersSchema });
 
-export const listFilterViews = Workflow.name("masters.filter-view.list")
+export const listFilterViews = Workflow.name("workspace.filter-view.list")
   .input(ListInputSchema)
   .handler(async ({ filters }, ctx) => {
     if (!ctx.actorId) {
@@ -16,36 +16,36 @@ export const listFilterViews = Workflow.name("masters.filter-view.list")
     const validated = parse(FilterViewFiltersSchema, filters);
 
     const conditions = [
-      or(eq(masterFilterView.access, "global"), eq(masterFilterView.owner_id, ctx.actorId)),
+      or(eq(workspaceFilterView.access, "global"), eq(workspaceFilterView.owner_id, ctx.actorId)),
     ];
     if (validated.domain) {
-      conditions.push(eq(masterFilterView.domain, validated.domain));
+      conditions.push(eq(workspaceFilterView.domain, validated.domain));
     }
     if (validated.access) {
-      conditions.push(eq(masterFilterView.access, validated.access));
+      conditions.push(eq(workspaceFilterView.access, validated.access));
     }
     if (validated.isDefault !== undefined) {
-      conditions.push(eq(masterFilterView.is_default, validated.isDefault));
+      conditions.push(eq(workspaceFilterView.is_default, validated.isDefault));
     }
     if (validated.projectId !== undefined) {
       conditions.push(
         validated.projectId === null
-          ? isNull(masterFilterView.project_id)
-          : eq(masterFilterView.project_id, validated.projectId),
+          ? isNull(workspaceFilterView.project_id)
+          : eq(workspaceFilterView.project_id, validated.projectId),
       );
     }
     if (validated.viewType) {
-      conditions.push(eq(masterFilterView.view_type, validated.viewType));
+      conditions.push(eq(workspaceFilterView.view_type, validated.viewType));
     }
     if (validated.search) {
-      conditions.push(sql`${masterFilterView.name} ilike ${`%${validated.search}%`}`);
+      conditions.push(sql`${workspaceFilterView.name} ilike ${`%${validated.search}%`}`);
     }
 
     return ctx.db
       .select()
-      .from(masterFilterView)
+      .from(workspaceFilterView)
       .where(and(...conditions))
-      .orderBy(asc(masterFilterView.name))
+      .orderBy(asc(workspaceFilterView.name))
       .limit(validated.limit ?? 50)
       .offset(validated.offset ?? 0);
   });

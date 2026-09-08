@@ -1,7 +1,7 @@
-import { masterFilterView } from "#/db-schemas";
+import { workspaceFilterView } from "#/db-schemas";
 import { FILTER_VIEW_EVENTS } from "#/pubsub";
 import { UpdateFilterViewSchema } from "#/types";
-import type { NewMasterFilterView } from "#/types";
+import type { NewWorkspaceFilterView } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchFilterViewStep } from "#/workflow-steps/fetch-filter-view";
 import { assertCanMutate } from "#/workflow-steps/filter-view-access";
@@ -14,7 +14,7 @@ import { object, parse, string } from "valibot";
 
 const UpdateInputSchema = object({ id: string(), input: UpdateFilterViewSchema });
 
-export const updateFilterView = Workflow.name("masters.filter-view.update")
+export const updateFilterView = Workflow.name("workspace.filter-view.update")
   .input(UpdateInputSchema)
   .handler(async ({ id, input }, ctx) => {
     const view = await ctx.step.run(fetchFilterViewStep, { id });
@@ -32,7 +32,7 @@ export const updateFilterView = Workflow.name("masters.filter-view.update")
       });
     }
 
-    const setClause: Partial<NewMasterFilterView> = { updated_at: new Date() };
+    const setClause: Partial<NewWorkspaceFilterView> = { updated_at: new Date() };
     if (parsed.access !== undefined) {
       setClause.access = parsed.access;
     }
@@ -62,9 +62,9 @@ export const updateFilterView = Workflow.name("masters.filter-view.update")
     }
 
     const [updated] = await ctx.db
-      .update(masterFilterView)
+      .update(workspaceFilterView)
       .set(setClause)
-      .where(eq(masterFilterView.id, id))
+      .where(eq(workspaceFilterView.id, id))
       .returning();
 
     if (!updated) {

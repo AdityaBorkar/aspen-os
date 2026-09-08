@@ -1,4 +1,4 @@
-import { masterFilterView } from "#/db-schemas";
+import { workspaceFilterView } from "#/db-schemas";
 
 import { and, eq, isNull } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
@@ -13,16 +13,16 @@ export interface UnsetDefaultFilterViewInput {
 export async function unsetDefaultFilterView(input: UnsetDefaultFilterViewInput): Promise<void> {
   const { db, domain, ownerId, projectId } = input;
   await db
-    .update(masterFilterView)
+    .update(workspaceFilterView)
     .set({ is_default: false })
     .where(
       and(
-        eq(masterFilterView.owner_id, ownerId),
-        eq(masterFilterView.domain, domain),
+        eq(workspaceFilterView.owner_id, ownerId),
+        eq(workspaceFilterView.domain, domain),
         projectId
-          ? eq(masterFilterView.project_id, projectId)
-          : isNull(masterFilterView.project_id),
-        eq(masterFilterView.is_default, true),
+          ? eq(workspaceFilterView.project_id, projectId)
+          : isNull(workspaceFilterView.project_id),
+        eq(workspaceFilterView.is_default, true),
       ),
     );
 }

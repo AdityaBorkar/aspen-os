@@ -1,6 +1,6 @@
 # Workspace Domain Model
 
-> Package: `@aspen-os/workspace`. Dependency-free personal-workspace surfaces: **drafts** (saved, unpublished content with an optional approval lifecycle and threaded comments), **dashboards** (named collections of metric/breakdown/list/embed widgets over a grid layout, with optional scheduled delivery), and **utilities** (pins, recent items, quick search). All 7 tables are tenant schemas with the `workspace_` prefix. Every data entity carries a user-set `access` enum — `personal` (owner-only) or `global` (org-wide within the tenant). Saved filter views live in `@aspen-os/masters` (`p.masters.filterViews`); settings live in `@aspen-os/masters` (`p.masters.settings`); workspace widgets reference filter views via an inline `filter` or a `viewId` soft reference.
+> Package: `@aspen-os/workspace`. Dependency-free personal-workspace surfaces: **drafts** (saved, unpublished content with an optional approval lifecycle and threaded comments), **dashboards** (named collections of metric/breakdown/list/embed widgets over a grid layout, with optional scheduled delivery), **utilities** (pins, recent items, quick search), and the cross-domain **filter view** store. All 8 tables are tenant schemas with the `workspace_` prefix. Every data entity carries a user-set `access` enum — `personal` (owner-only) or `global` (org-wide within the tenant). Settings live in `@aspen-os/masters` (`p.masters.settings`); workspace widgets reference filter views via an inline `filter` or a `viewId` soft FK.
 
 ## Entity-Relationship Diagram
 

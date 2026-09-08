@@ -1,5 +1,7 @@
 import {
   DRAFT_STATUS,
+  FILTER_VIEW_ACCESS,
+  FILTER_VIEW_TYPE,
   WIDGET_TYPE,
   WORKSPACE_ACCESS,
   WORKSPACE_ITEM_TYPE,
@@ -31,4 +33,16 @@ export const workspaceItemTypeEnum = pgEnum("workspace_item_type", [
   WORKSPACE_ITEM_TYPE.DRAFT,
   WORKSPACE_ITEM_TYPE.VIEW,
   WORKSPACE_ITEM_TYPE.DASHBOARD,
+]);
+
+export const workspaceFilterViewAccessEnum = pgEnum("workspace_filter_view_access", [
+  FILTER_VIEW_ACCESS.PERSONAL,
+  FILTER_VIEW_ACCESS.GLOBAL,
+]);
+
+export const workspaceFilterViewTypeEnum = pgEnum("workspace_filter_view_type", [
+  FILTER_VIEW_TYPE.LIST,
+  FILTER_VIEW_TYPE.BOARD,
+  FILTER_VIEW_TYPE.CALENDAR,
+  FILTER_VIEW_TYPE.TIMELINE,
 ]);

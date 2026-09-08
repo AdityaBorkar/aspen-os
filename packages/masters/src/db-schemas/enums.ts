@@ -13,8 +13,6 @@ import {
 } from "@aspen-os/constants";
 import { pgEnum } from "drizzle-orm/pg-core";
 
-import { FILTER_VIEW_ACCESS, FILTER_VIEW_TYPE } from "../utils/constants";
-
 export const masterEntityTypeEnum = pgEnum("master_entity_type", [
   MASTER_ENTITY_TYPE.BRANCH,
   MASTER_ENTITY_TYPE.CONNECTION,
@@ -114,16 +112,4 @@ export const masterCardBrandEnum = pgEnum("master_card_brand_enum", [
   CARD_BRAND.OTHER,
   CARD_BRAND.RUPAY,
   CARD_BRAND.VISA,
-]);
-
-export const masterFilterViewAccessEnum = pgEnum("master_filter_view_access", [
-  FILTER_VIEW_ACCESS.PERSONAL,
-  FILTER_VIEW_ACCESS.GLOBAL,
-]);
-
-export const masterFilterViewTypeEnum = pgEnum("master_filter_view_type", [
-  FILTER_VIEW_TYPE.LIST,
-  FILTER_VIEW_TYPE.BOARD,
-  FILTER_VIEW_TYPE.CALENDAR,
-  FILTER_VIEW_TYPE.TIMELINE,
 ]);

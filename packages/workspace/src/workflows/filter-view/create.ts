@@ -1,4 +1,4 @@
-import { masterFilterView } from "#/db-schemas";
+import { workspaceFilterView } from "#/db-schemas";
 import { FILTER_VIEW_EVENTS } from "#/pubsub";
 import { CreateFilterViewSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, FILTER_VIEW_ACCESS } from "#/utils/constants";
@@ -10,7 +10,7 @@ import { object, parse } from "valibot";
 
 const CreateInputSchema = object({ input: CreateFilterViewSchema });
 
-export const createFilterView = Workflow.name("masters.filter-view.create")
+export const createFilterView = Workflow.name("workspace.filter-view.create")
   .input(CreateInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateFilterViewSchema, input);
@@ -24,7 +24,7 @@ export const createFilterView = Workflow.name("masters.filter-view.create")
     }
 
     const [view] = await ctx.db
-      .insert(masterFilterView)
+      .insert(workspaceFilterView)
       .values({
         access: parsed.access ?? FILTER_VIEW_ACCESS.PERSONAL,
         conditions: parsed.conditions ?? [],

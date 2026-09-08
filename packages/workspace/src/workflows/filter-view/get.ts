@@ -6,7 +6,7 @@ import { object, string } from "valibot";
 
 const GetInputSchema = object({ id: string() });
 
-export const getFilterView = Workflow.name("masters.filter-view.get")
+export const getFilterView = Workflow.name("workspace.filter-view.get")
   .input(GetInputSchema)
   .handler(async ({ id }, ctx) => {
     const view = await ctx.step.run(fetchFilterViewStep, { id });

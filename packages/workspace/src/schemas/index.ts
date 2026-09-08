@@ -38,6 +38,8 @@ export {
   DraftStatusSchema,
   EMBED_KIND,
   EmbedKindSchema,
+  FilterViewAccessSchema,
+  FilterViewTypeSchema,
   RANGE_PRESET,
   RangePresetSchema,
   SCHEDULE_FORMAT,
@@ -51,6 +53,23 @@ export {
   WORKSPACE_ITEM_TYPE,
   WorkspaceItemTypeSchema,
 } from "#/schemas/enums";
+export type {
+  CreateFilterViewInput,
+  FilterViewCondition,
+  FilterViewFilters,
+  FilterViewSort,
+  GetDefaultFilterViewInput,
+  UpdateFilterViewInput,
+} from "#/schemas/filter-view";
+export {
+  CreateFilterViewSchema,
+  FilterViewConditionSchema,
+  FilterViewDomainSchema,
+  FilterViewFiltersSchema,
+  FilterViewSortSchema,
+  GetDefaultFilterViewSchema,
+  UpdateFilterViewSchema,
+} from "#/schemas/filter-view";
 export { JsonValueSchema } from "#/schemas/json";
 export type { ListPinsInput, PinItemInput, UnpinItemInput } from "#/schemas/pin";
 export { ListPinsSchema, PinItemInputSchema, UnpinItemSchema } from "#/schemas/pin";
