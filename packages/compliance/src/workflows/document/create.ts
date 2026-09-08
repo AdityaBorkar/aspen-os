@@ -77,6 +77,18 @@ const createDocument = Workflow.name("document.create")
       },
     });
 
+    // Fact for calendar reminder bridge — single dispatch path via calendar_reminder.
+    await ctx.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_EXPIRING, {
+      assignedTo: result.assigned_to,
+      createdBy: result.created_by,
+      documentId: result.id,
+      dueDate: result.due_date,
+      expiryDate: result.expiry_date,
+      reminderDays: result.reminder_days,
+      snoozedUntil: result.snoozed_until ? result.snoozed_until.toISOString() : null,
+      verificationStatus: result.verification_status,
+    });
+
     return result;
   });
 

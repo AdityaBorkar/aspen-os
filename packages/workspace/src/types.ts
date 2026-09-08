@@ -11,7 +11,12 @@ export type { WorkspaceDraft, NewWorkspaceDraft } from "#/db-schemas/draft";
 export type { WorkspaceDraftComment, NewWorkspaceDraftComment } from "#/db-schemas/draft-comment";
 export type { WorkspacePin, NewWorkspacePin } from "#/db-schemas/pin";
 export type { WorkspaceRecent, NewWorkspaceRecent } from "#/db-schemas/recent";
-export type { WorkspaceSchedule, NewWorkspaceSchedule } from "#/db-schemas/schedule";
+export type {
+  WorkspaceDeliverySchedule,
+  NewWorkspaceDeliverySchedule,
+  WorkspaceSchedule,
+  NewWorkspaceSchedule,
+} from "#/db-schemas/schedule";
 export type { WorkspaceWidget, NewWorkspaceWidget } from "#/db-schemas/widget";
 export type {
   DashboardCreatedEvent,
@@ -21,6 +26,8 @@ export type {
   DashboardScheduledEvent,
   DashboardUnscheduledEvent,
   DashboardUpdatedEvent,
+  DeliveryScheduleDueEvent,
+  DeliveryScheduleEventMap,
   DraftApprovedEvent,
   DraftCommentRemovedEvent,
   DraftCommentedEvent,
@@ -49,6 +56,7 @@ export type {
 } from "#/pubsub";
 export {
   DASHBOARD_EVENTS,
+  DELIVERY_SCHEDULE_EVENTS,
   DRAFT_EVENTS,
   events,
   PIN_EVENTS,
@@ -153,10 +161,18 @@ export {
 } from "#/schemas";
 export type { ScheduleDeps } from "#/services/schedule-service";
 export {
+  deliverDueDeliverySchedule,
+  deliverDueSchedule,
+  registerDeliveryScheduleDelivery,
+  registerDeliveryScheduleHandler,
+  registerDeliveryScheduleRunner,
   registerScheduleDelivery,
   registerScheduleHandler,
   registerScheduleRunner,
   scheduleCronTopic,
+  deliveryScheduleCronTopic,
+  unregisterDeliveryScheduleHandler,
+  unregisterDeliveryScheduleRunner,
   unregisterScheduleHandler,
   unregisterScheduleRunner,
 } from "#/services/schedule-service";
@@ -176,6 +192,7 @@ export type {
 export {
   AUDIT_ACTION,
   AUDIT_ENTITY_TYPE,
+  DELIVERY_SCHEDULE_CRON_TOPIC_PREFIX,
   DRAFT_STATUS,
   EMBED_KIND,
   PIN_ITEM_TYPE,

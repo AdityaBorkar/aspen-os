@@ -39,12 +39,18 @@ export const PIN_EVENTS = {
   REMOVED: "workspace:pin_removed",
 } as const;
 
+export const DELIVERY_SCHEDULE_EVENTS = {
+  DUE: "workspace:delivery_due",
+} as const;
+
+/** @deprecated Use DELIVERY_SCHEDULE_EVENTS — schedule vs reminder confusion. */
 export const SCHEDULE_EVENTS = {
   DUE: "workspace:schedule_due",
 } as const;
 
 export const events = {
   DASHBOARD_EVENTS,
+  DELIVERY_SCHEDULE_EVENTS,
   DRAFT_EVENTS,
   PIN_EVENTS,
   SCHEDULE_EVENTS,
@@ -162,6 +168,11 @@ export interface PinCreatedEvent {
 
 export type PinRemovedEvent = PinCreatedEvent;
 
+export interface DeliveryScheduleDueEvent {
+  at: string;
+  dashboard: WorkspaceDashboard;
+  schedule: WorkspaceSchedule;
+}
 export interface ScheduleDueEvent {
   at: string;
   dashboard: WorkspaceDashboard;
@@ -205,11 +216,16 @@ export interface PinEventMap {
   [PIN_EVENTS.REMOVED]: PinRemovedEvent;
 }
 
+export interface DeliveryScheduleEventMap {
+  [DELIVERY_SCHEDULE_EVENTS.DUE]: DeliveryScheduleDueEvent;
+}
+
 export interface ScheduleEventMap {
   [SCHEDULE_EVENTS.DUE]: ScheduleDueEvent;
 }
 
 export type WorkspaceEventMap = DashboardEventMap &
+  DeliveryScheduleEventMap &
   DraftEventMap &
   PinEventMap &
   ScheduleEventMap &

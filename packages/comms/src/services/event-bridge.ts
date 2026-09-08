@@ -25,34 +25,18 @@ import type {
 } from "@aspen-os/platform/server";
 import { isGlobalTenantId } from "@aspen-os/platform/server";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
-import { array, nullish, number, object, optional, string } from "valibot";
-
-const RecipientRefSchema = object({
-  id: string(),
-  type: string(),
-});
-
-const DocumentExpiringEventSchema = object({
-  daysUntilExpiry: number(),
-  documentId: string(),
-  recipient: optional(RecipientRefSchema),
-  sourceEntityId: nullish(string()),
-  sourceModule: string(),
-});
-
-const DocumentDueEventSchema = object({
-  daysUntilDue: number(),
-  documentId: string(),
-  recipient: optional(RecipientRefSchema),
-  sourceEntityId: nullish(string()),
-  sourceModule: string(),
-});
+import { array, boolean, nullish, object, optional, string } from "valibot";
 
 const ReminderDueEventSchema = object({
   remindAt: string(),
   reminder: object({
+    channel: optional(string()),
     id: string(),
+    isRecurring: optional(boolean()),
     message: nullish(string()),
+    targetId: optional(string()),
+    targetType: optional(string()),
+    type: optional(string()),
     userId: string(),
   }),
 });
@@ -79,6 +63,24 @@ const OtpRequestedEventSchema = object({
   email: string(),
   tokenRef: string(),
   type: string(),
+});
+
+const DeliveryDueEventSchema = object({
+  at: string(),
+  dashboard: object({
+    id: string(),
+    name: string(),
+  }),
+  schedule: object({
+    config: object({
+      format: optional(string()),
+      recipients: optional(array(string())),
+      subject: optional(nullish(string())),
+    }),
+    cron: string(),
+    dashboard_id: string(),
+    id: string(),
+  }),
 });
 
 export interface EventBridgeDeps {
@@ -141,12 +143,9 @@ export async function registerEventBridgeSubscriptions(deps: EventBridgeDeps): P
     }
   };
 
-  await add("compliance:document_expiring", DocumentExpiringEventSchema, (data, target) =>
-    handleDocumentExpiring(data, target),
-  );
-  await add("compliance:document_due", DocumentDueEventSchema, (data, target) =>
-    handleDocumentDue(data, target),
-  );
+  // Single reminder dispatcher: calendar:reminder-scan → calendar:reminder_due
+  // All reminder producers (tasks, compliance documents) materialize calendar_reminder rows
+  // via calendar bridges; comms consumes only calendar:reminder_due for delivery.
   await add("calendar:reminder_due", ReminderDueEventSchema, (data, target) =>
     handleReminderDue(data, target),
   );
@@ -155,6 +154,13 @@ export async function registerEventBridgeSubscriptions(deps: EventBridgeDeps): P
   );
   await add("announcement:published", AnnouncementPublishedEventSchema, (data, target) =>
     handleAnnouncementPublished(data, target),
+  );
+  await add("workspace:delivery_due", DeliveryDueEventSchema, (data, target) =>
+    handleDeliveryDue(data, target),
+  );
+  // Back-compat alias for renamed workspace schedule event
+  await add("workspace:schedule_due", DeliveryDueEventSchema, (data, target) =>
+    handleDeliveryDue(data, target),
   );
   await add("management:tenant_provisioned", TenantLifecycleEventSchema, (data, target) =>
     handleTenantLifecycle(data.tenantId, target),
@@ -183,78 +189,20 @@ export async function unregisterEventBridge(
   );
 }
 
-interface DocumentNotification {
-  days: number;
-  documentId: string;
-  kind: "document_due" | "document_expiring";
-  recipientId: string;
-}
-
-async function notifyDocument(input: DocumentNotification, deps: EventBridgeDeps): Promise<void> {
-  const notify = createNotify(deps.dbUnit);
-  await notify.run(
-    {
-      input: {
-        recipient: { id: input.recipientId, type: "user" },
-        severity: severityForDays(input.days),
-        sourceEntity: { id: input.documentId, type: "document" },
-        sourceModule: "compliance",
-        title: `Compliance document ${input.kind === "document_due" ? "due" : "expiring"} in ${input.days} day${input.days === 1 ? "" : "s"}`,
-        type: input.kind,
-      },
-    },
-    runOptions(deps),
-  );
-}
-
-async function handleDocumentExpiring(
-  event: InferSchemaOutput<typeof DocumentExpiringEventSchema>,
-  deps: EventBridgeDeps,
-): Promise<void> {
-  if (!event.recipient) {
-    deps.log?.warn("Ignoring document_expiring event without recipient.");
-    return;
-  }
-  await notifyDocument(
-    {
-      days: event.daysUntilExpiry,
-      documentId: event.documentId,
-      kind: "document_expiring",
-      recipientId: event.recipient.id,
-    },
-    deps,
-  );
-}
-
-async function handleDocumentDue(
-  event: InferSchemaOutput<typeof DocumentDueEventSchema>,
-  deps: EventBridgeDeps,
-): Promise<void> {
-  if (!event.recipient) {
-    deps.log?.warn("Ignoring document_due event without recipient.");
-    return;
-  }
-  await notifyDocument(
-    {
-      days: event.daysUntilDue,
-      documentId: event.documentId,
-      kind: "document_due",
-      recipientId: event.recipient.id,
-    },
-    deps,
-  );
-}
-
 async function handleReminderDue(
   event: InferSchemaOutput<typeof ReminderDueEventSchema>,
   deps: EventBridgeDeps,
 ): Promise<void> {
   const notify = createNotify(deps.dbUnit);
+  // Single dispatcher path: all reminders (task, compliance_document, custom) fire
+  // via calendar:reminder_due and become one comms notification + outbox messages.
+  const targetType = event.reminder.targetType ?? "reminder";
+  const sourceType = targetType === "compliance_document" ? "compliance_document" : targetType;
   await notify.run(
     {
       input: {
         recipient: { id: event.reminder.userId, type: "user" },
-        sourceEntity: { id: event.reminder.id, type: "reminder" },
+        sourceEntity: { id: event.reminder.targetId ?? event.reminder.id, type: sourceType },
         sourceModule: "calendar",
         title: event.reminder.message ?? "Reminder",
         type: "reminder_fired",
@@ -262,6 +210,45 @@ async function handleReminderDue(
     },
     runOptions(deps),
   );
+}
+
+async function handleDeliveryDue(
+  event: InferSchemaOutput<typeof DeliveryDueEventSchema>,
+  deps: EventBridgeDeps,
+): Promise<void> {
+  const recipients: string[] = event.schedule.config.recipients ?? [];
+  if (recipients.length === 0) {
+    deps.log?.warn("Ignoring delivery_due event without recipients.", {
+      scheduleId: event.schedule.id,
+    });
+    return;
+  }
+  const notify = createNotify(deps.dbUnit);
+  // Fan-out like announcements but via single delivery owner (comms sweeper) —
+  // no silent drop when host misses the event.
+  for (const userId of recipients) {
+    try {
+      await notify.run(
+        {
+          input: {
+            body: `Dashboard "${event.dashboard.name}" scheduled delivery is ready.`,
+            recipient: { id: userId, type: "user" },
+            sourceEntity: { id: event.schedule.id, type: "delivery_schedule" },
+            sourceModule: "workspace",
+            title: event.schedule.config.subject ?? `Dashboard delivery: ${event.dashboard.name}`,
+            type: "dashboard_delivery",
+          },
+        },
+        runOptions(deps),
+      );
+    } catch (error) {
+      deps.log?.error(
+        `Delivery fan-out failed for user "${userId}".`,
+        error instanceof Error ? error : new Error(String(error)),
+        { scheduleId: event.schedule.id, userId },
+      );
+    }
+  }
 }
 
 async function handleFileExpired(
@@ -371,6 +358,32 @@ async function handleOtpRequested(
     deps.log?.warn("OTP email uses fallback sender address.", { providerId: provider.id });
   }
 
+  // Unified path: create an inbox notification (like all delivery) then
+  // out-of-band via the same outbox. We create the notification row first
+  // so OTP is never "no notification row", then enqueue a message for the
+  // sweeper; we still send inline for low-latency OTP but the sweeper remains
+  // the single delivery owner for retries/audit.
+  const notify = createNotify(deps.dbUnit);
+  try {
+    await notify.run(
+      {
+        input: {
+          body: renderTemplate(OTP_BODY_TEMPLATE, { otp: stored.otp }),
+          recipient: { email: event.email, id: event.email, name: event.email, type: "contact" },
+          sourceEntity: { id: event.tokenRef, type: "otp" },
+          sourceModule: "auth",
+          title: OTP_SUBJECT,
+          type: "otp",
+        },
+      },
+      runOptions(deps),
+    );
+  } catch (error) {
+    deps.log?.warn("OTP notification creation failed, falling back to direct send.", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+
   const adapter = createAdapter("email");
   await adapter.send({
     channel: { sender_address: senderAddress },
@@ -410,14 +423,4 @@ function runOptions(deps: EventBridgeDeps) {
     log: deps.log,
     pubsub: deps.pubsub,
   };
-}
-
-function severityForDays(days: number): "normal" | "important" | "urgent" {
-  if (days <= 7) {
-    return "urgent";
-  }
-  if (days <= 30) {
-    return "important";
-  }
-  return "normal";
 }

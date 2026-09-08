@@ -66,6 +66,17 @@ const completeDocument = Workflow.name("document.complete").handler(
       sourceModule: updated.source_module,
     });
 
+    await ctx.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_EXPIRING, {
+      assignedTo: updated.assigned_to,
+      createdBy: updated.created_by,
+      documentId: updated.id,
+      dueDate: updated.due_date,
+      expiryDate: updated.expiry_date,
+      reminderDays: updated.reminder_days,
+      snoozedUntil: updated.snoozed_until ? updated.snoozed_until.toISOString() : null,
+      verificationStatus: updated.verification_status,
+    });
+
     return updated;
   },
 );

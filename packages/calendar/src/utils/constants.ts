@@ -23,6 +23,7 @@ export const RECURRENCE_FREQUENCY = {
 export type RecurrenceFrequency = (typeof RECURRENCE_FREQUENCY)[keyof typeof RECURRENCE_FREQUENCY];
 
 export const REMINDER_TARGET = {
+  COMPLIANCE_DOCUMENT: "compliance_document",
   CUSTOM: "custom",
   EVENT: "event",
   FILE: "file",

@@ -3,7 +3,6 @@ import { control_plane_schemas, tenant_schemas } from "#/db-schemas";
 import { events } from "#/pubsub";
 import { registerEventBridgeSubscriptions } from "#/services/event-bridge";
 import { registerObligationGenerator } from "#/services/obligation-generator";
-import { registerReminderHandlers, registerReminderSchedules } from "#/services/reminder-engine";
 import { audit, dashboard, documents, obligations, verification } from "#/workflows";
 
 import { getContext } from "@aspen-os/platform/server";
@@ -78,17 +77,6 @@ export class Compliance implements Module {
       throw new Error("Compliance module requires an audit context for runtime schedules");
     }
 
-    await registerReminderSchedules({ pubsub: this.#pubsub });
-
-    const reminderDeps = {
-      audit: ctx.audit,
-      cacheTtl: this.$config.dashboardCacheTtl ?? 300,
-      db: this.#db.db,
-      kvStore: this.#kvStore,
-      pubsub: this.#pubsub,
-    };
-
-    const reminderTopics = await registerReminderHandlers(reminderDeps);
     const obligationGenTopic = await registerObligationGenerator();
 
     const eventBridgeDeps = {
@@ -98,7 +86,7 @@ export class Compliance implements Module {
     };
 
     const eventBridgeTopics = await registerEventBridgeSubscriptions(eventBridgeDeps);
-    this.#topics = [...reminderTopics, obligationGenTopic, ...eventBridgeTopics];
+    this.#topics = [obligationGenTopic, ...eventBridgeTopics];
   }
 
   async $cleanup(): Promise<void> {

@@ -110,6 +110,7 @@ export {
 } from "#/utils/constants";
 
 export interface CalendarModuleConfig {
+  complianceEnabled?: boolean;
   reminderScanCron?: string;
   /**
    * Subscribe to `task:*` events for the task-reminder bridge. Disable when

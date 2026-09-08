@@ -2,7 +2,6 @@ import { acl } from "#/auth";
 import { control_plane_schemas, tenant_schemas } from "#/db-schemas";
 import { events } from "#/pubsub";
 import { registerReconciliation, unregisterReconciliation } from "#/services/reconciliation";
-import { CRON_SCHEDULES, SCHEDULED_JOBS } from "#/utils/constants";
 import * as wf from "#/workflows";
 
 import type { DatabaseUnit, Module, ModuleInfra, PubSubUnit } from "@aspen-os/platform/server";
@@ -46,10 +45,9 @@ export class HrCore implements Module {
       return;
     }
 
-    await this.#pubsub.schedule({
-      cron: CRON_SCHEDULES.ANNOUNCEMENT_SCHEDULER,
-      topic: SCHEDULED_JOBS.ANNOUNCEMENT_SCHEDULER,
-    });
+    // Announcement scheduling now via calendar_reminder (targetType=announcement) + single
+    // calendar:reminder-scan dispatcher. The old hr:announcement-scheduler minute cron
+    // is removed to keep one dispatcher, one reminder_due, one cron.
 
     this.#reconciliationTopics = await registerReconciliation({
       db: this.#db.db,
@@ -59,7 +57,6 @@ export class HrCore implements Module {
 
   async $cleanup(): Promise<void> {
     if (this.#pubsub) {
-      await this.#pubsub.unschedule(SCHEDULED_JOBS.ANNOUNCEMENT_SCHEDULER);
       await unregisterReconciliation(this.#reconciliationTopics, {
         pubsub: this.#pubsub,
       });

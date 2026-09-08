@@ -43,3 +43,15 @@ export const MarkRunScheduleSchema = object({
 });
 
 export type MarkRunScheduleInput = InferOutput<typeof MarkRunScheduleSchema>;
+
+// New canonical names
+export const DeliveryScheduleConfigSchema = ScheduleConfigSchema;
+export type DeliveryScheduleConfig = ScheduleConfig;
+export const CreateDeliveryScheduleSchema = CreateScheduleSchema;
+export type CreateDeliveryScheduleInput = CreateScheduleInput;
+export const UpdateDeliveryScheduleSchema = UpdateScheduleSchema;
+export type UpdateDeliveryScheduleInput = UpdateScheduleInput;
+export const DeliveryScheduleFiltersSchema = ScheduleFiltersSchema;
+export type DeliveryScheduleFilters = ScheduleFilters;
+export const MarkRunDeliveryScheduleSchema = MarkRunScheduleSchema;
+export type MarkRunDeliveryScheduleInput = MarkRunScheduleInput;

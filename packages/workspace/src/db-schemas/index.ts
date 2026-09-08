@@ -3,7 +3,7 @@ import { workspaceDraft } from "#/db-schemas/draft";
 import { workspaceDraftComment } from "#/db-schemas/draft-comment";
 import { workspacePin } from "#/db-schemas/pin";
 import { workspaceRecent } from "#/db-schemas/recent";
-import { workspaceSchedule } from "#/db-schemas/schedule";
+import { workspaceDeliverySchedule, workspaceSchedule } from "#/db-schemas/schedule";
 import { workspaceWidget } from "#/db-schemas/widget";
 
 export { workspaceDashboard } from "#/db-schemas/dashboard";
@@ -17,11 +17,12 @@ export {
 } from "#/db-schemas/enums";
 export { workspacePin } from "#/db-schemas/pin";
 export { workspaceRecent } from "#/db-schemas/recent";
-export { workspaceSchedule } from "#/db-schemas/schedule";
+export { workspaceDeliverySchedule, workspaceSchedule } from "#/db-schemas/schedule";
 export { workspaceWidget } from "#/db-schemas/widget";
 
 export const workspaceTables = {
   workspaceDashboard,
+  workspaceDeliverySchedule,
   workspaceDraft,
   workspaceDraftComment,
   workspacePin,

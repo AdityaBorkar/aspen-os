@@ -83,10 +83,13 @@ export const SCHEDULE_FORMAT = {
 
 export type ScheduleFormat = (typeof SCHEDULE_FORMAT)[keyof typeof SCHEDULE_FORMAT];
 
+export const DELIVERY_SCHEDULE_CRON_TOPIC_PREFIX = "workspace:delivery_schedule:";
+/** @deprecated Use DELIVERY_SCHEDULE_CRON_TOPIC_PREFIX — schedule vs reminder confusion. */
 export const SCHEDULE_CRON_TOPIC_PREFIX = "workspace:schedule:";
 
 export const AUDIT_ENTITY_TYPE = {
   DASHBOARD: "workspace:dashboard",
+  DELIVERY_SCHEDULE: "workspace:delivery_schedule",
   DMS_CLASS: "dms:class",
   DMS_FILE: "dms:file",
   DRAFT: "workspace:draft",
@@ -96,7 +99,7 @@ export const AUDIT_ENTITY_TYPE = {
   FILTER_VIEW: "masters:filter_view",
   PIN: "workspace:pin",
   RECENT: "workspace:recent",
-  SCHEDULE: "workspace:schedule",
+  SCHEDULE: "workspace:delivery_schedule",
   SEARCH: "workspace:search",
   WIDGET: "workspace:widget",
 } as const;

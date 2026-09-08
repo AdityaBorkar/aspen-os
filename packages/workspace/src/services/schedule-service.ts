@@ -1,6 +1,11 @@
-import { workspaceDashboard, workspaceSchedule } from "#/db-schemas";
-import { SCHEDULE_EVENTS } from "#/pubsub";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, SCHEDULE_CRON_TOPIC_PREFIX } from "#/utils/constants";
+import { workspaceDashboard, workspaceDeliverySchedule } from "#/db-schemas";
+import { DELIVERY_SCHEDULE_EVENTS } from "#/pubsub";
+import {
+  AUDIT_ACTION,
+  AUDIT_ENTITY_TYPE,
+  DELIVERY_SCHEDULE_CRON_TOPIC_PREFIX,
+  SCHEDULE_CRON_TOPIC_PREFIX,
+} from "#/utils/constants";
 
 import type { AuditUnit, PubSubUnit } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -13,12 +18,20 @@ export interface ScheduleDeps {
 }
 
 export function scheduleCronTopic(scheduleId: string): string {
-  return `${SCHEDULE_CRON_TOPIC_PREFIX}${scheduleId}`;
+  return `${DELIVERY_SCHEDULE_CRON_TOPIC_PREFIX}${scheduleId}`;
 }
 
 export async function registerScheduleHandler(topic: string, deps: ScheduleDeps): Promise<void> {
   await deps.pubsub.subscribe(topic, async () => {
-    const scheduleId = topic.slice(SCHEDULE_CRON_TOPIC_PREFIX.length);
+    let scheduleId: string | null = null;
+    if (topic.startsWith(DELIVERY_SCHEDULE_CRON_TOPIC_PREFIX)) {
+      scheduleId = topic.slice(DELIVERY_SCHEDULE_CRON_TOPIC_PREFIX.length);
+    } else if (topic.startsWith(SCHEDULE_CRON_TOPIC_PREFIX)) {
+      scheduleId = topic.slice(SCHEDULE_CRON_TOPIC_PREFIX.length);
+    }
+    if (!scheduleId) {
+      return;
+    }
     await deliverDueSchedule(deps, scheduleId);
   });
 }
@@ -40,6 +53,12 @@ export async function registerScheduleDelivery(
   schedule: { cron: string; id: string },
 ): Promise<string> {
   const topic = scheduleCronTopic(schedule.id);
+  // Migrate legacy schedule topic if present.
+  try {
+    await deps.pubsub.unschedule(`${SCHEDULE_CRON_TOPIC_PREFIX}${schedule.id}`);
+  } catch {
+    // Best-effort legacy cleanup
+  }
   await deps.pubsub.schedule({
     cron: schedule.cron,
     data: { scheduleId: schedule.id },
@@ -51,9 +70,9 @@ export async function registerScheduleDelivery(
 
 export async function registerScheduleRunner(deps: ScheduleDeps): Promise<string[]> {
   const schedules = await deps.db
-    .select({ cron: workspaceSchedule.cron, id: workspaceSchedule.id })
-    .from(workspaceSchedule)
-    .where(eq(workspaceSchedule.is_active, true));
+    .select({ cron: workspaceDeliverySchedule.cron, id: workspaceDeliverySchedule.id })
+    .from(workspaceDeliverySchedule)
+    .where(eq(workspaceDeliverySchedule.is_active, true));
 
   return Promise.all(schedules.map((schedule) => registerScheduleDelivery(deps, schedule)));
 }
@@ -68,8 +87,8 @@ export async function unregisterScheduleRunner(
 export async function deliverDueSchedule(deps: ScheduleDeps, scheduleId: string): Promise<void> {
   const [schedule] = await deps.db
     .select()
-    .from(workspaceSchedule)
-    .where(eq(workspaceSchedule.id, scheduleId))
+    .from(workspaceDeliverySchedule)
+    .where(eq(workspaceDeliverySchedule.id, scheduleId))
     .limit(1);
 
   if (!schedule || !schedule.is_active) {
@@ -86,17 +105,37 @@ export async function deliverDueSchedule(deps: ScheduleDeps, scheduleId: string)
     return;
   }
 
-  await deps.pubsub.publish(SCHEDULE_EVENTS.DUE, {
+  // Publish canonical delivery event; also publish legacy for hosts still on old topic.
+  await deps.pubsub.publish(DELIVERY_SCHEDULE_EVENTS.DUE, {
     at: new Date().toISOString(),
     dashboard,
     schedule,
   });
+  try {
+    const { SCHEDULE_EVENTS: LegacyScheduleEvents } = await import("#/pubsub");
+    await deps.pubsub.publish(LegacyScheduleEvents.DUE, {
+      at: new Date().toISOString(),
+      dashboard,
+      schedule,
+    });
+  } catch {
+    // Back-compat publish is best-effort
+  }
 
   await deps.audit.write({
     action: AUDIT_ACTION.DELIVERED,
     crudAction: "update",
     entityId: schedule.id,
-    entityType: AUDIT_ENTITY_TYPE.SCHEDULE,
+    entityType: AUDIT_ENTITY_TYPE.DELIVERY_SCHEDULE,
     metadata: { dashboardId: schedule.dashboard_id },
   });
 }
+
+// New canonical names — old schedule names remain as aliases for back-compat.
+export const deliveryScheduleCronTopic = scheduleCronTopic;
+export const registerDeliveryScheduleDelivery = registerScheduleDelivery;
+export const registerDeliveryScheduleHandler = registerScheduleHandler;
+export const unregisterDeliveryScheduleHandler = unregisterScheduleHandler;
+export const registerDeliveryScheduleRunner = registerScheduleRunner;
+export const unregisterDeliveryScheduleRunner = unregisterScheduleRunner;
+export const deliverDueDeliverySchedule = deliverDueSchedule;

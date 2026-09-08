@@ -1,6 +1,7 @@
 import { acl } from "#/auth";
 import { control_plane_schemas, tenant_schemas } from "#/db-schemas";
 import { events } from "#/pubsub";
+import { registerComplianceBridge, unregisterComplianceBridge } from "#/services/compliance-bridge";
 import {
   registerReminderDispatcher,
   unregisterReminderDispatcher,
@@ -19,6 +20,7 @@ import type {
 } from "@aspen-os/platform/server";
 
 const DEFAULT_CONFIG: Required<CalendarModuleConfig> = {
+  complianceEnabled: true,
   reminderScanCron: "* * * * *",
   tasksEnabled: true,
 };
@@ -37,14 +39,18 @@ export class Calendar implements Module {
   readonly $name = "calendar";
   readonly $dependencies: readonly string[] = [];
   /**
-   * Optional peer topics consumed by the task bridge. Introspection-only —
-   * never validated, so calendar runs solo or without tasks. Set
-   * `tasksEnabled: false` to skip these subscriptions entirely.
+   * Optional peer topics consumed by the bridges. Introspection-only —
+   * never validated, so calendar runs solo or without peers. Set
+   * `tasksEnabled: false` / `complianceEnabled: false` to skip.
    */
   readonly $consumes: readonly string[] = [
     "task:due_date_changed",
     "task:deleted",
     "task:status_changed",
+    "compliance:document_expiring",
+    "compliance:document_due",
+    "compliance:document_archived",
+    "compliance:document_deleted",
   ];
   readonly $config: Required<CalendarModuleConfig>;
 
@@ -52,6 +58,7 @@ export class Calendar implements Module {
   #pubsub: PubSubUnit | null = null;
   #reminderScanTopic: string | null = null;
   #taskBridgeTopics: string[] = [];
+  #complianceBridgeTopics: string[] = [];
 
   constructor(config: CalendarModuleConfig) {
     this.$config = { ...DEFAULT_CONFIG, ...config };
@@ -98,15 +105,20 @@ export class Calendar implements Module {
     this.#taskBridgeTopics = await registerTaskBridge(deps, {
       enabled: this.$config.tasksEnabled,
     });
+    this.#complianceBridgeTopics = await registerComplianceBridge(deps, {
+      enabled: this.$config.complianceEnabled,
+    });
   }
 
   async $cleanup(): Promise<void> {
     if (this.#pubsub) {
       await unregisterReminderDispatcher(this.#reminderScanTopic, { pubsub: this.#pubsub });
       await unregisterTaskBridge(this.#taskBridgeTopics, { pubsub: this.#pubsub });
+      await unregisterComplianceBridge(this.#complianceBridgeTopics, { pubsub: this.#pubsub });
     }
     this.#reminderScanTopic = null;
     this.#taskBridgeTopics = [];
+    this.#complianceBridgeTopics = [];
     this.#db = null;
     this.#pubsub = null;
   }

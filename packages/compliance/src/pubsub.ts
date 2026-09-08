@@ -109,19 +109,34 @@ export interface RecipientRef {
 }
 
 export interface DocumentExpiringEvent {
-  daysUntilExpiry: number;
+  /** Fact pathway: calendar bridge materializes calendar_reminder rows */
+  assignedTo?: string | null;
+  createdBy?: string;
+  daysUntilExpiry?: number;
   documentId: string;
+  dueDate?: string | null;
+  expiryDate?: string | null;
   recipient?: RecipientRef;
-  sourceEntityId: string | null;
-  sourceModule: string;
+  reminderDays?: number[] | null;
+  snoozedUntil?: string | null;
+  sourceEntityId?: string | null;
+  sourceModule?: string;
+  verificationStatus?: string;
 }
 
 export interface DocumentDueEvent {
-  daysUntilDue: number;
+  assignedTo?: string | null;
+  createdBy?: string;
+  daysUntilDue?: number;
   documentId: string;
+  dueDate?: string | null;
+  expiryDate?: string | null;
   recipient?: RecipientRef;
-  sourceEntityId: string | null;
-  sourceModule: string;
+  reminderDays?: number[] | null;
+  snoozedUntil?: string | null;
+  sourceEntityId?: string | null;
+  sourceModule?: string;
+  verificationStatus?: string;
 }
 
 export interface DocumentExpiredEvent {

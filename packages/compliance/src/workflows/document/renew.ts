@@ -87,6 +87,21 @@ const renewDocument = Workflow.name("document.renew").handler(
       oldDocumentId: id,
     });
 
+    await ctx.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_ARCHIVED, {
+      documentId: id,
+    });
+
+    await ctx.pubsub.publish(COMPLIANCE_EVENTS.DOCUMENT_EXPIRING, {
+      assignedTo: newDoc.assigned_to,
+      createdBy: newDoc.created_by,
+      documentId: newDoc.id,
+      dueDate: newDoc.due_date,
+      expiryDate: newDoc.expiry_date,
+      reminderDays: newDoc.reminder_days,
+      snoozedUntil: newDoc.snoozed_until ? newDoc.snoozed_until.toISOString() : null,
+      verificationStatus: newDoc.verification_status,
+    });
+
     return { newDocument: newDoc, oldDocument: current };
   },
 );

@@ -27,6 +27,7 @@ export const calendarReminderTargetEnum = pgEnum("calendar_reminder_target", [
   REMINDER_TARGET.NOTE,
   REMINDER_TARGET.FILE,
   REMINDER_TARGET.CUSTOM,
+  REMINDER_TARGET.COMPLIANCE_DOCUMENT,
 ]);
 
 export const calendarReminderTypeEnum = pgEnum("calendar_reminder_type", [
