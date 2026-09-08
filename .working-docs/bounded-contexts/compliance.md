@@ -26,7 +26,8 @@ Downstream of the Platform (Customer–Supplier). Runtime-wired — receives `{ 
 | `compliance:daily-status-transition` | `0 0 * * *` | Transition expired/overdue statuses |
 | `compliance:daily-escalation`        | `0 9 * * *` | Escalate past threshold             |
 | `compliance:weekly-summary`          | `0 9 * * 1` | Generate weekly summary             |
-| `compliance:obligation-generate`     | `0 6 * * *` | Generate documents from obligations |
+
+`compliance:obligation-generate` (`0 6 * * *`) is subscribed by the obligation generator but never scheduled — no cron fires it.
 
 ## Cross-context event subscriptions (EventBridge)
 

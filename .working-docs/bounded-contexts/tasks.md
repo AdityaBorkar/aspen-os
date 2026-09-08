@@ -8,16 +8,16 @@ Downstream of the Platform (Customer–Supplier). Stateless — `$initialize()` 
 
 ## Structure (`packages/tasks/`)
 
-- `Tasks.create(config?)` — factory returning a Module instance; `$config: TaskModuleConfig = { enableNotifications?: boolean }`
+- `Tasks.create()` — factory returning a Module instance; `$config` is `undefined` (no config)
 - `$name = "tasks"`, `$dependencies = []`
 - 10 workflow groups exposed as `readonly` properties: `tasks`, `projects`, `comments`, `links`, `timeEntries`, `statuses`, `taskTypes`, `automations`, `collaboration`, `views`
 - 16 database tables — the only module that splits between both `control_plane_schemas` and `tenant_schemas`:
   - **6 control-plane**: `label`, `project`, `project_member`, `status`, `status_transition`, `task_type`
   - **10 tenant**: `task`, `task_assignee`, `task_link`, `time_entry`, `activity_log`, `comment`, `attachment`, `watcher`, `saved_view`, `automation_rule`
-- 10 domain events published via PubSub (`TaskDomainEventMap`) — including `task:due_date_changed` (consumed by the calendar task bridge)
+- 11 domain events published via PubSub (`TaskDomainEventMap`) — including `task:due_date_changed` (consumed by the calendar task bridge) and `task:time_logged`
 - ACL is empty (`defineAcl({})`)
 - `$prepareInfra()` returns declarative infra (db schemas, events) — schema pushing handled centrally by the platform
-- `filter-engine.ts` is a utility in `utils/`; `report-service.ts` in `services/` is not imported by any workflow. `notification-bridge.ts` **is** wired — `create`/`update`/`delete`/`assign`/`unassign`/`comment`/`link` workflows and the status-change path publish `task:*` events through it.
+- `filter-engine.ts` is a utility in `utils/` (used by `workflows/task/list.ts`). No `services/` directory; no `notification-bridge` or `report-service` — `task:*` events are published inline by `create`/`update`/`delete`/`assign`/`unassign`/`comment`/`link` workflows and the status-change path.
 
 ## Exposed on the platform instance
 

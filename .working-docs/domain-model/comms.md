@@ -76,7 +76,7 @@ From `@aspen-os/constants` (shared-enum precedent from masters): `CHANNEL_TYPE` 
 
 - At most one default per `(type, entityType, entityId)`; a default must be `active` and verified.
 - Host channels never carry a `credentialRef`; tenant channels never reference a provider.
-- Credentials live only in kvStore — BYOC under `comms:channel:<id>:credential` (tenant scope), providers under `comms:provider:<id>:credential` (control-plane scope).
+- Credentials live only in kvStore — BYOC under `comms:channel:<uuid>:credential` (random UUID, tenant scope), providers under `comms:provider:<uuid>:credential` (random UUID, control-plane scope).
 - `notify` always materializes the in-app row unless the user's preference disables `inapp`; out-of-band messages only for channels that survive routing.
 - WhatsApp delivery requires a template with `providerTemplateId` (Meta pre-approved templates).
 - The OTP is never persisted: the auth unit publishes only `{ email, tokenRef, type }` and the bridge delivers inline.

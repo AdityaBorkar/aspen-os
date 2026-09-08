@@ -9,11 +9,11 @@ Downstream of the Platform (Customer–Supplier). Implements the `Module` interf
 ## Structure (`packages/organization/`)
 
 - `Organization.create(config)` — factory returning a Module instance; `$config: OrganizationConfig = { country: "INDIA" }`
-- `$name = "organization"`, `$dependencies = ["masters"]`
+- `$name = "organization"`, `$dependencies = []` — no module deps
 - Stateless: `$initialize()` / `$prepareRuntime()` / `$cleanup()` are empty
 - 2 workflow groups exposed as `readonly` properties: `organizations`, `branches`
 - 2 database tables (all `tenant_schemas`): `organization`, `branch`
-- 7 domain events published via PubSub (`OrganizationDomainEventMap`)
+- 10 domain events published via PubSub (`OrganizationDomainEventMap`)
 - 2 ACL resources: `organization`, `branch`
 - Valibot validation schemas for all inputs
 - `$prepareInfra()` returns declarative infra (db schemas, acl, events) — schema pushing handled centrally by the platform

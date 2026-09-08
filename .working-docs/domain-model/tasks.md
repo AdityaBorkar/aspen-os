@@ -112,20 +112,21 @@
 - **Comment**: threaded via `parentId`; supports attachments.
 - **Attachment**: `{ taskId, commentId?, storageKey, ... }`.
 
-## Domain Events — 10
+## Domain Events — 11
 
-| Event                   | Payload                                               | Trigger                           |
-| ----------------------- | ----------------------------------------------------- | --------------------------------- |
-| `task:created`          | `{ task: { id, number, projectId, title }, dueDate }` | Task created                      |
-| `task:updated`          | `{ task: { id, title }, changes }`                    | Task updated                      |
-| `task:deleted`          | `{ taskId }`                                          | Task deleted                      |
-| `task:status_changed`   | `{ task: { id, title }, fromStatus, toStatus }`       | Task status changed               |
-| `task:assigned`         | `{ taskId, userId, assignedBy }`                      | User assigned to task             |
-| `task:unassigned`       | `{ taskId, userId }`                                  | User unassigned from task         |
-| `task:linked`           | `{ sourceId, targetId, linkType }`                    | Task link created                 |
-| `task:unlinked`         | `{ sourceId, targetId }`                              | Task link removed                 |
-| `task:commented`        | `{ taskId, comment: { id, body } }`                   | Comment added                     |
-| `task:due_date_changed` | `{ taskId, dueDate, userIds }`                        | Task due date set/changed/cleared |
+| Event                   | Payload                                                                       | Trigger                           |
+| ----------------------- | ----------------------------------------------------------------------------- | --------------------------------- |
+| `task:created`          | `{ task: { id, number, projectId, title }, dueDate }`                         | Task created                      |
+| `task:updated`          | `{ task: { id, title }, changes }`                                            | Task updated                      |
+| `task:deleted`          | `{ taskId }`                                                                  | Task deleted                      |
+| `task:status_changed`   | `{ task: { id, title }, fromStatus, toStatus, isTerminal, toStatusCategory }` | Task status changed               |
+| `task:assigned`         | `{ taskId, userId, assignedBy }`                                              | User assigned to task             |
+| `task:unassigned`       | `{ taskId, userId }`                                                          | User unassigned from task         |
+| `task:linked`           | `{ sourceId, targetId, linkType }`                                            | Task link created                 |
+| `task:unlinked`         | `{ sourceId, targetId }`                                                      | Task link removed                 |
+| `task:commented`        | `{ taskId, comment: { id, body } }`                                           | Comment added                     |
+| `task:time_logged`      | `{ taskId, timeEntry: { id, duration, userId } }`                             | Time logged on task               |
+| `task:due_date_changed` | `{ taskId, dueDate, userIds }`                                                | Task due date set/changed/cleared |
 
 `task:due_date_changed` (`userIds` = assignees ∪ reporter) is consumed by the `@aspen-os/calendar` task bridge to materialize/cancel task reminders. The former `reminder:fired` event was removed with the reminder surface — reminders now fire `calendar:reminder_due` from the calendar dispatcher.
 

@@ -23,8 +23,8 @@ Section order: navigation; contiguous write bundle (`Domain modules` → `Databa
 
 - **Bun monorepo** (`@aspen-os`): business framework (`@aspen-os/platform`), pluggable **units** (infrastructure), **modules** (domain logic), first-class multi-tenancy, Fumadocs site (`docs`).
 - **No host/example app** yet (first app intended: "Recruiter"). No `examples/` dir.
-- **Workspace state**: `platform`, `masters`, `organization`, `compliance`, `tasks`, `calendar`, `dms`, `management`, `hr`, `workspace`, `notes` fully implemented (all modules conform to `Module` interface), plus `constants` (shared enums). `drive` **removed from repo** — file/folder/label/share/trash surface consolidated into `dms` (`.working-docs/sow/dms-consolidation.md`). Task reminders moved to `calendar` (`.working-docs/sow/calendar.md`); note concept moved to `notes` (`.working-docs/sow/notes.md`); dms pins moved to `workspace` (`.working-docs/sow/dms-pins-removal.md`). `crm`, `fleet`, `inventory`, `reports` are not-started stubs.
-- Domain model lives in `.working-docs/` (`DOMAIN_MODEL.md` + `domain-model/<package>.md`, `BOUNDED_CONTEXTS.md` + `bounded-contexts/<package>.md`, `TODO.md`, `adr/`, `sow/`, `todo/`). `docs/` = built Fumadocs site, **not** domain-doc source.
+- **Workspace state**: `platform`, `masters`, `organization`, `compliance`, `tasks`, `calendar`, `dms`, `management`, `hr`, `workspace`, `notes`, `comms` fully implemented (all modules conform to `Module` interface), plus `constants` (shared enums). `drive` **removed from repo** — file/folder/label/share/trash surface consolidated into `dms`. Task reminders moved to `calendar`; note concept moved to `notes`; dms pins moved to `workspace`. Draft SOWs/todos live in `.draft/` (archived out of `.working-docs/`). `crm`, `fleet`, `inventory`, `reports` are not-started stubs.
+- Domain model lives in `.working-docs/` (`DOMAIN_MODEL.md` + `domain-model/<package>.md`, `BOUNDED_CONTEXTS.md` + `bounded-contexts/<package>.md`, `adr/`). Drafts live in `.draft/`. `docs/` = built Fumadocs site, **not** domain-doc source.
 
 ## General
 
@@ -32,7 +32,7 @@ Section order: navigation; contiguous write bundle (`Domain modules` → `Databa
 - **Package manager**: Bun workspaces (`bun install`)
 - **Language**: TypeScript, ESM only (`"type": "module"`)
 - **Linter/formatter**: oxlint (`.oxlintrc.json`) + oxfmt (`.oxfmtrc.json`) — tools enforce style.
-- **No barrel files** unless explicitly told. Platform has no root export — import via subpaths (`@aspen-os/platform/server`, `@aspen-os/platform/client`, `@aspen-os/platform/server/db-schemas`). Module-internal workflow aggregates exist as `workflows/index.ts` routers in `dms`, `notes`, `masters`, `calendar`, `compliance`, `workspace`, and `hr`.
+- **No barrel files** unless explicitly told. Platform has no root export — import via subpaths (`@aspen-os/platform/server`, `@aspen-os/platform/client`, `@aspen-os/platform/server/db-schemas`). Module-internal workflow aggregates exist as `workflows/index.ts` routers in `dms`, `notes`, `masters`, `calendar`, `compliance`, `workspace`, `hr`, `tasks`, and `comms`.
 - **Gitignore**: `node_modules`, `.output`, `.build`, `.tanstack`, `.source`, `.wrangler`, `.nitro`, `.local`, `.cache`, `*.tsbuildinfo`, `.DS_Store`, `*.gen.ts`, `worker-configuration.d.ts`, `codedb.snapshot`, `.env*` except `.env.example`.
 - **Build step**: `platform`, `organization`, `masters`, `notes`, `calendar`, `management`, `dms`, `workspace`, `constants` have `build` script (`bun run build` → `scripts/build.ts` → `.output/`). All except `constants` carry `build` config rewriting `exports`/`bin` to `.output/`; `constants` emits declarations to `.output/` but keeps `exports` at `./src/index.ts`. Raw-src packages (`compliance`, `tasks`, `hr`) export raw `.ts`.
 
@@ -393,7 +393,7 @@ Platform declares `zod` and RPC docs show `z.object({ ... })`, but RPC source ha
 - Types derived via indexed access: `type X = (typeof OBJ)[keyof typeof OBJ]`.
 - Shared constants in `@aspen-os/constants` — per-domain modules re-exported by `src/index.ts` (`organization.ts`, `masters.ts`, `notes.ts`, `compliance.ts`, `comms.ts`, `country-codes.ts` with `COUNTRY_CODES` + `isValidCountryCode`/`parseCountryCode`); zero dependencies.
 - Module-specific constants in module's `constants.ts` (or `utils/constants.ts`).
-- Valibot `enum_()` schemas in `schemas/enums.ts` mirror constant objects.
+- Valibot `picklist`/`enum_()` schemas in `schemas/enums.ts` mirror constant objects.
 - `pgEnum` values reference constant objects.
 - No `Result<T, E>` / `PaginatedResult` types — don't create them.
 

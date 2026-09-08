@@ -4,17 +4,17 @@
 
 ## Relationship Type
 
-Downstream of the Platform (Customer–Supplier) and of every module that publishes domain events. **Conformist** to the Auth unit for recipient address resolution. Runtime-wired — receives `{ db, kvStore, pubsub, auth }` via `$initialize(units)`, stores them in a module singleton (`runtime.ts`), registers the message sweeper + event-bridge subscriptions in `$prepareRuntime()`.
+Downstream of the Platform (Customer–Supplier) and of every module that publishes domain events. **Conformist** to the Auth unit for recipient address resolution. Runtime-wired — receives `{ db, kvStore, pubsub, auth }` via `$initialize(units)`, stores them in private `#` fields on `Comms`, registers the message sweeper + event-bridge subscriptions in `$prepareRuntime()`.
 
 ## Structure (`packages/comms/`)
 
 - `Comms.create(config?)` — factory returning a Module instance; `$name = "comms"`, `$dependencies = []` (no module deps)
-- 7 workflow groups: `channels` (getter bound to `kvStore` + `db`), `providers` (getter bound to `kvStore`), and stateless `readonly` `notifications`, `preferences`, `templates`, `settings`, `messages`
-- Services: `channel-resolver` (lazy default resolution + `ensureDefaults` fallback), `recipient-resolver` (Auth unit), `notification-router` (routing/opt-outs), `template-renderer` (`{var}` substitution), `delivery-worker` (cron sweeper + per-message tenant context + retries), `receipts` (webhook correlation), `credential-service` (kvStore resolution), `settings-service`, `adapters/` (`email`, `sms`, `whatsapp`, `push` stub)
+- 7 workflow groups: `channels` (memoized getter bound to `db` + `kvStore`), `providers` (memoized getter bound to `kvStore`), `notifications` (memoized getter bound to `db` via `createNotify`), and stateless `readonly` `preferences`, `templates`, `settings`, `messages`
+- Services: `delivery-worker` (cron sweeper + per-message tenant context + retries), `event-bridge` (8 subscriptions), `credential-service` (kvStore resolution), `providers` (active-provider lookup), `tenant` (tenant-context helpers), `adapters/` (`email`, `sms`, `whatsapp`, `push` stub — factory serves email/sms/whatsapp only); WorkflowSteps: `channel-resolver`, `recipient-resolver`, `notification-router`, `template-renderer`, `receipts`, `settings-service`, `audit`, `lists`, `fetch-*` + `fetch-by-id` factory
 - 5 reusable `WorkflowStep`s (`fetch-*`): channel, provider, notification, template, message
 - 7 database tables: `comms_provider` (control-plane) + `comms_channel`, `comms_notification`, `comms_message`, `comms_preference`, `comms_template`, `comms_setting` (tenant)
 - 9 pgEnums; enum values shared from `@aspen-os/constants` (decision 12)
-- 29 domain events across 7 maps (`CHANNEL_EVENTS` 6, `PROVIDER_EVENTS` 2, `NOTIFICATION_EVENTS` 3, `MESSAGE_EVENTS` 4, `PREFERENCE_EVENTS` 1, `TEMPLATE_EVENTS` 4, `SETTING_EVENTS` 1) → `CommsEventMap`
+- 21 domain events across 7 maps (`CHANNEL_EVENTS` 6, `PROVIDER_EVENTS` 2, `NOTIFICATION_EVENTS` 3, `MESSAGE_EVENTS` 4, `PREFERENCE_EVENTS` 1, `TEMPLATE_EVENTS` 4, `SETTING_EVENTS` 1) → `CommsEventMap`
 - 7 ACL resources: `channel`, `provider` (host-admin, control-plane), `notification`, `preference`, `template`, `setting`, `message`
 - `$prepareRuntime()` — registers `comms:message-sweeper` cron (`* * * * *`) + handler and 8 event-bridge subscriptions; `$cleanup()` unregisters both
 - Has a build step (build script + `build` field in package.json)
@@ -34,7 +34,7 @@ p.comms.messages      { get, list, retry }
 
 ## Consumed topics (event bridge)
 
-`compliance:document_expiring` / `document_due`, `calendar:reminder_due`, `dms:file_expired`, `announcement:published` (hr, planned), `management:tenant_provisioned` / `tenant_activated`, `auth:email_otp_requested` (new). Subscription pattern copied from compliance's `event-bridge.ts` (`subscribeSafe`).
+`compliance:document_expiring` / `document_due`, `calendar:reminder_due`, `dms:file_expired`, `announcement:published` (hr, planned), `management:tenant_provisioned` / `tenant_activated`, `auth:email_otp_requested` (new). Subscription pattern copied from compliance's `event-bridge.ts` (`subscribeValidated`).
 
 ## Producer extensions
 

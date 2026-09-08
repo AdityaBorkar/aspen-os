@@ -11,5 +11,5 @@
 ## Usage rules
 
 - Module-specific constants live in the module's own `constants.ts` (or `utils/constants.ts`) — only genuinely shared enums belong here.
-- Valibot `enum_()` schemas in module `schemas/enums.ts` mirror these constants.
+- Valibot `picklist`/`enum_()` schemas in module `schemas/enums.ts` mirror these constants (masters uses `picklist`).
 - `pgEnum` values reference the constant objects.

@@ -117,7 +117,7 @@
 - `triage.classify(id, { classId, fieldValues })` → File (→ `active`; the one and only way out of Triage)
 - `update(id, patch)` / `rename(id, { name })` / `move(id, folderId)` / `copy(id, folderId)` / `delete(id)` (→ `trashed`) / `restore(id)` / `purge(id)`
 - `addMetadata` / `removeMetadata`
-- `version.new(id, input)` → FileVersion / `version.revert(id, versionId)` / `version.delete` / `version.getCurrent` / `version.list`
+- `version.new({ fileId, input })` → File (refuses `trashed`/`triaged`) / `version.revert({ fileId, version: number })` → File (copy-forward to new version) / `version.delete` (never current) / `version.getCurrent` / `version.list` (aliases under `p.dms.versions` + `p.dms.files.newVersion`/`revert`)
 - `holds.place(id, { reason })` (mandatory reason) / `holds.release(id)` / `holds.list`
 - `download(id)` / `getDownloadLink(id)`
 

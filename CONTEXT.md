@@ -269,7 +269,7 @@ Rule that matches documents by category + source module to determine required re
 _Avoid_: Review Policy, Approval Rule
 
 **Audit Entry**:
-Append-only record of actions taken on compliance entities (documents, obligations, verification rules). Has `entityType`, `entityId`, `action` (created/updated/submitted/verified/rejected/expired/overdue/renewed/archived/completed/escalated/reminder_sent/snoozed/attachment_uploaded/reviewer_assigned/obligation_activated/obligation_deactivated/document_generated), `performedBy`, `performedAt`, `previousState`, `newState`, `changes`.
+Append-only record of actions on compliance entities, written to platform `audit_log` via `AuditUnit` — no compliance-local table. Has `entityType`, `entityId`, `action` (created/updated/submitted/verified/rejected/expired/overdue/renewed/archived/completed/escalated/reminder_sent/snoozed/attachment_uploaded/reviewer_assigned/obligation_activated/obligation_deactivated/document_generated), `performedBy`, `performedAt`, `previousState`, `newState`, `changes`.
 _Avoid_: Audit Log, Change Record
 
 **Verification Status**:
@@ -409,6 +409,10 @@ _Avoid_: Title, Grade (distinct from Position — a designation tiers a position
 **Employment Type**:
 Classification of employment (e.g. full-time, part-time, contract) w/ `name`, `description`, `isActive`.
 _Avoid_: Contract Type, Employment Status
+
+**Announcement**:
+Internal broadcast authored by HR users, targeted at whole org or subset (branch/department/designation/group/role/individuals), delivered into comms inbox via `announcement:published` w/ delivery snapshot.
+_Avoid_: Notification (comms term)
 
 ### DMS Domain
 
@@ -632,11 +636,11 @@ _Avoid_: Onboarding (that's the Tenant Status stage AFTER provisioning), Setup, 
 │Organizat.│ │   Compliance     │ │    Tasks     │ │     DMS      │ │     HR       │ │    Notes     │ │ Management Plane │ │   Masters   │ │  Calendar   │ │  Workspace   │
 │  Module  │ │    Module        │ │   Module     │ │   Module     │ │   Module     │ │    Module    │ │     Module       │ │   Module    │ │   Module    │ │   Module     │
 │          │ │                  │ │              │ │              │ │ (conformant) │ │  (stateless) │ │                  │ │             │ │             │ │              │
-│2 workflows│ │ 5 wf groups     │ │ 10 wf groups │ │ 18 wf groups │ │ ~270 methods│ │ 1 wf group   │ │ 3 wf groups     │ │ 7 wf groups │ │ 4 wf groups │ │ 10 wf groups │
-│2 tables  │ │ 3 services       │ │ 16 tables    │ │ 14 tables    │ │ 52 tables    │ │ 1 table      │ │ 3 owned tables   │ │ 7 tables    │ │ 4 tables    │ │ 10 tables    │
-│7 events  │ │ 3 tables         │ │ 10 events    │ │ 33 events    │ │ 52 events    │ │ 3 events     │ │ 0 shadow tables  │ │ 29 events   │ │ 14 events   │ │ 32 events    │
-│deps:     │ │ 23 events        │ │ units:       │ │ 11 ACL res.  │ │ 2 crons      │ │ 1 ACL res.   │ │ 16 events        │ │ 7 ACL res.  │ │ 4 ACL res.  │ │ 11 ACL res.  │
-│masters   │ │ units:           │ │ db, pubsub  │ │ units:       │ │ units:       │ │ units:       │ │ deps: organization│ │ units:      │ │ units:      │ │ units:       │
+│2 workflows│ │ 5 wf groups     │ │ 10 wf groups │ │ 18 wf groups │ │ ~307 methods│ │ 1 wf group   │ │ 3 wf groups     │ │ 7 wf groups │ │ 4 wf groups │ │ 10 wf groups │
+│2 tables  │ │ 3 services       │ │ 16 tables    │ │ 14 tables    │ │ 54 tables    │ │ 1 table      │ │ 3 owned tables   │ │ 7 tables    │ │ 4 tables    │ │ 10 tables    │
+│10 events │ │ 3 tables         │ │ 11 events    │ │ 33 events    │ │ 58 events    │ │ 3 events     │ │ 0 shadow tables  │ │ 29 events   │ │ 14 events   │ │ 32 events    │
+│deps: none│ │ 23 events        │ │ units:       │ │ 11 ACL res.  │ │ 3 crons      │ │ 1 ACL res.   │ │ 16 events        │ │ 7 ACL res.  │ │ 4 ACL res.  │ │ 11 ACL res.  │
+│none      │ │ units:           │ │ db, pubsub  │ │ units:       │ │ units:       │ │ units:       │ │ deps: organization│ │ units:      │ │ units:      │ │ units:       │
 │units:    │ │ db, kvStore,     │ │              │ │ db, pubsub,  │ │ db, pubsub  │ │ none         │ │ units:           │ │ db, kvStore│ │ db, pubsub │ │ db, pubsub   │
 │none      │ │ pubsub           │ │              │ │ storage      │ │              │ │              │ │ db, auth, pubsub │ │ (conns)    │ │             │ │              │
 │          │ │                  │ │              │ │ 2 crons in   │ │ prepareInfra │ │              │ │                  │ │             │ │ schedules in│ │ schedules in │

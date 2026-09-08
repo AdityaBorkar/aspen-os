@@ -10,7 +10,7 @@ Downstream of the Platform (Customer–Supplier). Fully conformant — `implemen
 
 - `Hr.create(config)` — factory returning a Module instance; `$config: HrModuleConfig = { country: "INDIA" }`
 - `$name = "hr"`, `$dependencies = []`
-- 10 workflow groups exposed as `readonly` properties: `access`, `announcement`, `attendance`, `employee`, `leave`, `lifecycle`, `overtime`, `position`, `setup`, `shift` — ~290 public methods across per-action workflow files composed into a `workflows/index.ts` router
+- 10 workflow groups exposed as `readonly` properties: `access`, `announcement`, `attendance`, `employee`, `leave`, `lifecycle`, `overtime`, `position`, `setup`, `shift` — ~307 public methods across per-action workflow files composed into a `workflows/index.ts` router (shared helpers in `workflows/trees.ts` + `workflows/utils.ts` barrel)
 - 54 database tables:
   - **14 control-plane** (setup/access): `department`, `designation`, `employee_grade`, `employment_type`, `holiday`, `holiday_list`, `hr_permission`, `hr_role`, `hr_role_permission`, `hr_settings`, `hr_user`, `hr_user_branch_access`, `hr_user_role`, `payroll_settings`
   - **40 tenant** (operational/transactional): employee, attendance, leave, lifecycle, overtime, shift, position (+assignment), announcement (+recipient), employee check-in, groups, health insurance, skill maps, etc.
@@ -37,16 +37,16 @@ Reconciliation subscriptions (registered alongside the schedules, unregistered i
 p.hr.access       branch-scoped RBAC — users, roles, permissions, branch access (33 methods)
 p.hr.announcement internal communications — author, schedule, publish, archive, pin, audience
                   targeting, delivery snapshot + stats (14 methods)
-p.hr.attendance   records, check-ins, attendance requests (16 methods)
-p.hr.employee     employees, groups, health insurance, skill maps, org chart (29 methods)
+p.hr.attendance   records, check-ins, attendance requests (17 methods)
+p.hr.employee     employees, groups, health insurance, skill maps, org chart (27 methods)
 p.hr.leave        leave types/periods/policies/allocations/applications/compensatory leave/
-                  encashment/block lists/adjustments/ledger (55 methods)
-p.hr.lifecycle    onboarding, promotions, transfers, separation, F&F, exit interviews (49 methods)
-p.hr.overtime     overtime types + slips (14 methods)
+                  encashment/block lists/adjustments/ledger (60 methods)
+p.hr.lifecycle    onboarding, promotions, transfers, separation, F&F, exit interviews (51 methods)
+p.hr.overtime     overtime types + slips (13 methods)
 p.hr.position     positions, assignments, org/position trees, direct reports, team (20 methods)
 p.hr.setup        departments (+ tree ops), designations, grades, employment types, holidays,
-                  settings (40 methods)
-p.hr.shift        shift types, locations, assignments, requests, schedules (34 methods)
+                  settings (39 methods)
+p.hr.shift        shift types, locations, assignments, requests, schedules (33 methods)
 ```
 
 ## Cross-context integration

@@ -75,8 +75,8 @@ Domain detail per context in [`domain-model/`](domain-model/) (also split per pa
 │  │ (not in repo) │  │ Module            │  │ Module        │   │
 │  │ uses          │  │ 2 wf groups       │  │ 5 wf groups   │   │
 │  │ SingleTenant  │  │ 2 tables          │  │ 3 services    │   │
-│  │ Platform      │  │ 7 events          │  │ 3 tables      │   │
-│  │ .create()     │  │ deps: masters     │  │ 23 events     │   │
+│  │ Platform      │  │ 10 events         │  │ 3 tables      │   │
+│  │ .create()     │  │ deps: none        │  │ 23 events     │   │
 │  └───────────────┘  │ units: none       │  │ units: db,     │   │
 │                     └───────────────────┘  │ kvStore, pubsub│   │
 │  ┌───────────────────┐                     └───────────────┘   │
@@ -85,7 +85,7 @@ Domain detail per context in [`domain-model/`](domain-model/) (also split per pa
 │  │ 7 tables          │  │ Module        │  │ 18 wf groups  │   │
 │  │ 29 events         │  │ 10 wf groups  │  │ 14 tables     │   │
 │  │ 7 ACL res.        │  │ 16 tables     │  │ 33 events     │   │
-│  │ units: kvStore    │  │ 10 events     │  │ 11 ACL res.   │   │
+│  │ units: kvStore    │  │ 11 events     │  │ 11 ACL res.   │   │
 │  │ (connections)     │  │ units: none   │  │ units:        │   │
 │  └───────────────────┘  │               │  │ db, pubsub,   │   │
 │                         └───────────────┘  │ storage       │   │
@@ -124,7 +124,7 @@ Domain detail per context in [`domain-model/`](domain-model/) (also split per pa
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-> Workflow counts above = **workflow groups** (readonly properties on module instance), not files. Modules follow one-file-per-action layout (`workflows/<entity>/<verb>.ts`), so per-action file counts much higher (e.g. HR ~250 methods across 8 groups).
+> Workflow counts above = **workflow groups** (readonly properties on module instance), not files. Modules follow one-file-per-action layout (`workflows/<entity>/<verb>.ts`), so per-action file counts much higher (e.g. HR ~307 methods across 10 groups).
 
 ## Integration Patterns
 
@@ -173,17 +173,17 @@ await p.run(tenantId, async () => {
 Domain events published via PubSub as plain string topics. Event counts by module (type-level `*EventMap` contracts, not runtime type-safe bus):
 
 - Auth: 8 events
-- Organization: 7 events
+- Organization: 10 events
 - Masters: 29 events
 - Notes: 3 events
 - Compliance: 23 events
-- Tasks: 10 events (incl. `task:due_date_changed`)
+- Tasks: 11 events (incl. `task:due_date_changed`)
 - Calendar: 14 events (3 calendar + 4 event + 3 attendee + 4 reminder, incl. `calendar:reminder_due`)
 - Workspace: 32 events (13 draft + 4 view + 6 dashboard + 4 widget + 2 pin + 2 watch + 1 schedule)
 - DMS: 33 events (13 file + 6 folder + 3 class + 3 contact + 2 share + 3 public_link + 3 file_view)
-- Comms: 29 events (6 channel + 2 provider + 3 notification + 4 message + 1 preference + 4 template + 1 setting)
+- Comms: 21 events (6 channel + 2 provider + 3 notification + 4 message + 1 preference + 4 template + 1 setting)
 - Management Plane: 16 events (8 tenant + 4 service_provider + 4 platform_user)
-- HR: 43 events (8 event groups across employee, attendance, leave, lifecycle, overtime, setup, shift, access)
+- HR: 58 events (10 event groups across employee, attendance, leave, lifecycle, overtime, position, setup, shift, access, announcement)
 
 Per-context event tables in `domain-model/<package>.md`.
 
@@ -205,6 +205,7 @@ Compliance module's `EventBridge` service actively subscribes to other modules' 
 | `compliance:document_expiring` / `document_due`      | Compliance        | Comms event bridge — in-app + out-of-band notification to the document's assigned user    |
 | `calendar:reminder_due`                              | Calendar          | Comms event bridge — notify the reminder's `userId`                                       |
 | `dms:file_expired`                                   | DMS               | Comms event bridge — notify the file `ownerId`                                            |
+| `announcement:published`                             | HR                | Comms event bridge — per-recipient inbox fan-out                                          |
 | `management:tenant_provisioned` / `tenant_activated` | Management        | Comms event bridge — warm host default channels per tenant                                |
 | `auth:email_otp_requested`                           | Platform auth     | Comms event bridge — inline OTP email via the host default email provider                 |
 
@@ -237,11 +238,11 @@ Five modules register scheduled cron jobs via PubSub:
 | Compliance | `compliance:daily-status-transition` | `0 0 * * *`  | Transition expired/overdue statuses                                                   |
 | Compliance | `compliance:daily-escalation`        | `0 9 * * *`  | Escalate past threshold                                                               |
 | Compliance | `compliance:weekly-summary`          | `0 9 * * 1`  | Generate weekly summary                                                               |
-| Compliance | `compliance:obligation-generate`     | `0 6 * * *`  | Generate documents from obligations                                                   |
 | DMS        | `dms:expiry-scan`                    | `5 0 * * *`  | Promote past-due files to expired                                                     |
 | DMS        | `dms:auto-purge`                     | `30 3 * * *` | Purge trashed/expired files + folders past retention                                  |
 | HR         | `hr:daily-attendance-sync`           | `0 1 * * *`  | Sync daily attendance records                                                         |
 | HR         | `hr:daily-leave-accrual`             | `0 0 * * *`  | Accrue leave balances                                                                 |
+| HR         | `hr:announcement-scheduler`          | `* * * * *`  | Publish due scheduled announcements                                                   |
 | Calendar   | `calendar:reminder-scan`             | `* * * * *`  | Process pending reminders (publish `calendar:reminder_due`, mark sent, schedule next) |
 | Comms      | `comms:message-sweeper`              | `* * * * *`  | Scan `queued` messages; per-message tenant context, adapter dispatch, retries         |
 
@@ -284,17 +285,17 @@ Five modules register scheduled cron jobs via PubSub:
 | Workflow         | Core          | —                                             | All modules                  | Durable step runner (`workflow_runs`/`workflow_steps`)                                                          |
 | Client Platform  | —             | —                                             | —                            | Browser-side (3 units)                                                                                          |
 | Recruiter        | Downstream    | Platform                                      | —                            | Uses `SingleTenantPlatform`, registers organization + tasks (not yet in repo)                                   |
-| Organization     | Downstream    | Platform                                      | Compliance, Management Plane | 2 workflow groups, 2 tables, depends on Masters                                                                 |
+| Organization     | Downstream    | Platform                                      | Compliance, Management Plane | 2 workflow groups, 2 tables, no module deps                                                                     |
 | Masters          | Downstream    | Platform, KV Store                            | Compliance, Organization     | 7 workflow groups, 7 tables, 29 events, 7 ACL resources                                                         |
 | Notes            | Downstream    | Platform                                      | —                            | 1 workflow group, 1 table, 3 events, 1 ACL resource                                                             |
 | Compliance       | Downstream    | Platform, HR, Organization, Fleet, Accounting | —                            | 5 workflow groups, 3 tables, 3 services, subscribes to external events                                          |
 | Tasks            | Downstream    | Platform                                      | Calendar                     | 10 workflow groups, 16 tables (6 control + 10 tenant), empty ACL                                                |
 | Calendar         | Downstream    | Platform                                      | —                            | 4 workflow groups, 4 tables, 14 events, 4 ACL resources, 1 cron + task bridge                                   |
-| Comms            | Downstream    | Platform, KV Store                            | —                            | 7 workflow groups, 7 tables (1 control + 6 tenant), 29 events, 7 ACL resources, 1 cron + 8 bridge subscriptions |
+| Comms            | Downstream    | Platform, KV Store                            | —                            | 7 workflow groups, 7 tables (1 control + 6 tenant), 21 events, 7 ACL resources, 1 cron + 8 bridge subscriptions |
 | Workspace        | Downstream    | Platform                                      | —                            | 10 workflow groups, 10 tables, 32 events, 11 ACL resources, per-schedule crons                                  |
 | DMS              | Downstream    | Platform, Storage                             | —                            | 18 workflow groups, 14 tables, 33 events, 11 ACL resources, 2 crons                                             |
 | Management Plane | Downstream    | Platform, Organization                        | —                            | 3 workflow groups, 3 owned tables, 0 shadow tables, 16 events, has build step                                   |
-| HR               | Downstream    | Platform                                      | Compliance                   | ~250 workflow methods in 8 groups, 50 tables (14 control + 36 tenant), 43 events, 2 crons                       |
+| HR               | Downstream    | Platform                                      | Compliance                   | ~307 workflow methods in 10 groups, 54 tables (14 control + 40 tenant), 58 events, 3 crons                      |
 | Accounting       | Stub          | —                                             | —                            | Package.json only                                                                                               |
 | CRM              | Stub          | —                                             | —                            | Package.json only                                                                                               |
 | Fleet            | Stub          | —                                             | —                            | Package.json only                                                                                               |

@@ -4,20 +4,20 @@
 
 ## Relationship Type
 
-Downstream of the Platform (Customer–Supplier). Runtime-wired — receives `{ db, auth, pubsub, storage }` via `$initialize(units)` (stores `#db` + `#pubsub`, wires storage via `setDmsStorage()`; `auth` is type-required but unused), registers schedules/handlers in `$prepareRuntime()`.
+Downstream of the Platform (Customer–Supplier). Runtime-wired — receives `{ db, pubsub, storage }` via `$initialize(units)` (stores `#db` + `#pubsub`, wires storage via `setDmsStorage()`; audit comes from `getContext()` in `$prepareRuntime()`), registers schedules/handlers in `$prepareRuntime()`.
 
 ## Structure (`packages/dms/`)
 
 - `Dms.create(config?)` — factory returning a Module instance; `$config: Required<DmsModuleConfig>` (10 settings with defaults: `allowedContentTypes`, `defaultAutoPurgeEveryHours` (24), `defaultCompression`, `defaultDownloadLinkExpiry` (3600), `defaultRetentionDays` (180), `maxDownloadLinkExpiry` (604800), `maxFileSize` (5 GiB), `maxNestingDepth` (20), `maxVersions` (10), `trashRetentionDays` (30))
-- `$name = "dms"`, `$dependencies = []` — no module deps
+- `$name = "dms"`, `$dependencies = ["db", "pubsub", "storage"]`
 - 18 workflow groups exposed as `readonly` properties: `access`, `activity`, `archive`, `classes`, `contacts`, `fileViews`, `files`, `folders`, `holds`, `labels`, `paths`, `search`, `settings`, `shares`, `storage`, `trash`, `triage`, `versions`
-- 11 services: `access-service`, `archive-service`, `classify-service`, `compression-service`, `condition-service`, `expiry-scanner`, `path-service`, `purge-service`, `search-service`, `settings-service`, `storage-bridge`; 8 reusable `WorkflowStep`s (`fetch-*`) in `workflow-steps/`
+- 8 services: `compression-service`, `download-link-service`, `entity-resolver`, `expiry-scanner`, `purge-service`, `search-service`, `storage-bridge`, `version-service`; 15 reusable `WorkflowStep`s in `workflow-steps/` (9 `fetch-*` + `access-service`, `archive-service`, `classify-service`, `condition-service`, `path-service`, `settings-service`)
 - 14 database tables (all `tenant_schemas`, `dms_` prefix): `dms_folder`, `dms_file`, `dms_file_version`, `dms_class`, `dms_class_field`, `dms_entity_label`, `dms_label`, `dms_file_view`, `dms_contact`, `dms_share`, `dms_public_link`, `dms_legal_hold`, `dms_access_log`, `dms_setting`
 - 33 domain events across 7 maps (`CLASS_EVENTS` 3, `CONTACT_EVENTS` 3, `FILE_EVENTS` 13, `FILE_VIEW_EVENTS` 3, `FOLDER_EVENTS` 6, `PUBLIC_LINK_EVENTS` 3, `SHARE_EVENTS` 2) → `DmsEventMap`
 - 11 ACL resources: `class`, `classField`, `contact`, `file`, `fileView`, `folder`, `label`, `legalHold`, `publicLink`, `setting`, `share`
 - `$prepareRuntime()` — registers 2 cron schedules + handlers: `dms:expiry-scan` (`5 0 * * *`), `dms:auto-purge` (`30 3 * * *`); `$cleanup()` unregisters them
 - Audit-driven **Activity Feed**: file/folder activity is written inline to the platform's `AuditUnit` (`audit_log`), queried via `ctx.audit.query()` — not a DMS-owned table, not PubSub events
-- Module-scope runtime state in `runtime.ts` (`setDmsConfig`/`setDmsStorage`/`getDmsConfig`/`getDmsStorage`)
+- Module-scope runtime state in `runtime.ts` (`setDmsConfig`/`setDmsStorage`/`getDmsConfig`/`getDmsStorage`/`resetDmsRuntime`)
 - Has a build step (build script + `build` field in package.json)
 
 ## Exposed on the platform instance

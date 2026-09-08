@@ -38,7 +38,7 @@
 │    Assignment,Request,Schedule,ScheduleAssignment}                  │
 │                                                                     │
 │  (Module fully conformant — `implements Module`, `$prepareRuntime()`│
-│   schedules DAILY_ATTENDANCE_SYNC + DAILY_LEAVE_ACCRUAL crons and   │
+│   schedules DAILY_ATTENDANCE_SYNC + DAILY_LEAVE_ACCRUAL + ANNOUNCEMENT_SCHEDULER crons and   │
 │   registers lifecycle reconciliation subscriptions)                 │
 └─────────────────────────────────────────────────────────────────────┘
 ```

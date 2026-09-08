@@ -60,10 +60,11 @@
 
 **Relationships**: Belongs to `Organization` (N:1); self-referential `parentBranch` FK for hierarchy.
 
-## Domain Events — 7
+## Domain Events — 10
 
 | Event                           | Payload                                         | Trigger              |
 | ------------------------------- | ----------------------------------------------- | -------------------- |
+| `organization:created`          | `{ organization: { id, name, slug } }`          | Organization created |
 | `organization:updated`          | `{ changes, organization: { id, name, slug } }` | Organization updated |
 | `organization:branding_updated` | `{ logo?, accentColor?, name? }`                | Branding changed     |
 | `branch:created`                | `{ branch: { code, id, name, type } }`          | Branch created       |
@@ -71,6 +72,8 @@
 | `branch:activated`              | `{ branchId }`                                  | Branch activated     |
 | `branch:deactivated`            | `{ branchId }`                                  | Branch deactivated   |
 | `branch:closed`                 | `{ branchId, date }`                            | Branch closed        |
+| `branch:archived`               | `{ branchId }`                                  | Branch archived      |
+| `branch:restored`               | `{ branchId }`                                  | Branch restored      |
 
 ## Command-Query Separation
 
