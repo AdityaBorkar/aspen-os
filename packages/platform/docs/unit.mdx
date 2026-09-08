@@ -24,10 +24,10 @@ All eight are constructed inside `BasePlatform.createCore()`. `audit` takes no c
 
 | Key       | Unit class     | `$name`     | Depends on                   | Purpose                                             |
 | --------- | -------------- | ----------- | ---------------------------- | --------------------------------------------------- |
-| `db`      | `DatabaseUnit` | `"db"`      | —                            | PostgreSQL pool + Drizzle ORM, tenancy state        |
+| `db`      | `DatabaseUnit` | `"db"`      | —                            | postgres-js pool + Drizzle ORM, tenancy state       |
 | `audit`   | `AuditUnit`    | `"audit"`   | `{ db }`                     | Field-level audit log with transaction support      |
 | `logs`    | `LogUnit`      | `"logs"`    | `{ db }`                     | Structured logging to the database                  |
-| `pubsub`  | `PubSubUnit`   | `"pubsub"`  | `{ db }`                     | Pub/sub, subscriptions, scheduled jobs              |
+| `pubsub`  | `PubSubUnit`   | `"pubsub"`  | `{ audit, db, log }`         | Pub/sub, subscriptions, scheduled jobs              |
 | `auth`    | `AuthUnit`     | `"auth"`    | `{ db, pubsub }`             | better-auth (sessions, users, roles, 2FA, passkeys) |
 | `storage` | `StorageUnit`  | `"storage"` | `{ db }`                     | S3-compatible file storage with signed URLs         |
 | `rpc`     | `RpcUnit`      | `"rpc"`     | `{ auth, db, logs, pubsub }` | oRPC procedure registry and HTTP handler            |
@@ -46,9 +46,9 @@ All eight are constructed inside `BasePlatform.createCore()`. `audit` takes no c
 ```text
 db ← audit
 db ← logs
-db ← pubsub ← auth (pubsub.setAuth)
+db ← pubsub (also ← audit, logs; pubsub.setAuth after auth creation)
 db ← storage
-db ← auth
+db ← auth (also ← pubsub)
 db ← rpc (also ← logs, pubsub, auth)
 db ← kvStore
 ```
@@ -99,15 +99,15 @@ Units participate in the platform's `$prepareInfra()` and `$cleanup()` phases:
 
 ```text
 p.$prepareInfra()
-  → for each unit: unit.$prepareInfra?.()   // catches + logs per-unit errors
+  → for each unit: unit.$prepareInfra?.()   // BasePlatform rethrows per-unit failures with the unit name
   → collect ModuleInfra from modules (ACL + schemas)
   → db.prepareWithModules(controlSchemas, tenantSchemas)
   → auth.applyModuleAcl(acl)
   → for each module: mod.$prepareRuntime?.()
 
 p.$cleanup()
-  → for each module: mod.$cleanup()    // catches + logs per-module errors
-  → for each unit: unit.$cleanup()     // catches + logs per-unit errors
+  → for each module: mod.$cleanup()    // all-settled; failures aggregated into AggregateError
+  → for each unit: unit.$cleanup()     // all-settled; failures aggregated into AggregateError
 ```
 
 ### `$prepareInfra()`
@@ -159,17 +159,18 @@ The proxy checks units first, then modules.
 
 ### Inside request context
 
-Within `p.run(fn)`, the drizzle `db`, `pubsub`, `auth` (AuthUnit), `audit`, and `tenantId` are available via `AsyncLocalStorage`:
+Within `p.run(tenantId, fn)`, the drizzle `db`, `pubsub`, `auth` (AuthUnit), `audit`, `log`, and `tenantId` are available via `AsyncLocalStorage`:
 
 ```ts
 import { getContext } from "@aspen-os/platform/server";
 
-await p.run(async () => {
-  const { audit, auth, db, pubsub } = getContext();
-  // db: NodePgDatabase
+await p.run("$global", async () => {
+  const { audit, auth, db, log, pubsub } = getContext();
+  // db: PostgresJsDatabase
   // pubsub: PubSubUnit
   // auth: AuthUnit (not raw betterAuth)
   // audit: AuditUnit
+  // log: LogUnit
 });
 ```
 

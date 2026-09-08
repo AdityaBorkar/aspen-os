@@ -32,8 +32,8 @@ class KvStoreUnit {
   readonly db_schema: typeof db_schema;
 
   // Basic operations
-  async get<T = unknown>(key: string): Promise<T | null>;
-  async set(key: string, value: unknown, ttl?: number): Promise<void>;
+  async get(key: string): Promise<JsonValue | null>;
+  async set(key: string, value: JsonValue, ttl?: number): Promise<void>;
   async del(key: string): Promise<void>;
   async exists(key: string): Promise<boolean>;
 
@@ -42,7 +42,7 @@ class KvStoreUnit {
   async decrement(key: string, amount?: number): Promise<number>;
 
   // Cache-aside pattern
-  async getOrSet<T = unknown>(key: string, factory: () => Promise<T>, ttl?: number): Promise<T>;
+  async getOrSet(key: string, factory: () => Promise<JsonValue>, ttl?: number): Promise<JsonValue>;
 
   // Bulk operations
   async clear(pattern?: string): Promise<void>;

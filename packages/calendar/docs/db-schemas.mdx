@@ -18,6 +18,14 @@ The Calendar module defines 4 tables and 7 enums using Drizzle ORM. All tables a
 | `calendar_attendee_type`    | `calendar_attendee.attendee_type` | `user`, `contact`                              |
 | `calendar_attendee_status`  | `calendar_attendee.status`        | `invited`, `accepted`, `declined`, `tentative` |
 
+Validated in Valibot but stored as `jsonb`/free text (no pgEnum):
+
+| Set                   | Used in                      | Values                                        |
+| --------------------- | ---------------------------- | --------------------------------------------- |
+| `RecurrenceFrequency` | `calendar_event.recurrence`  | `daily`, `weekly`, `monthly`, `yearly`        |
+| `ReminderInterval`    | `calendar_reminder.interval` | `daily`, `weekly`, `monthly`, `every_2_hours` |
+| `Weekday`             | `recurrence.byDay`           | `MO`, `TU`, `WE`, `TH`, `FR`, `SA`, `SU`      |
+
 ## Tables
 
 ### `calendar_calendar`
@@ -90,24 +98,24 @@ Indexes: `idx_calendar_attendee_event` (`event_id`), `idx_calendar_attendee_emai
 
 The platform's single polymorphic reminder surface — `target_type`/`target_id` point at any module entity (`event`, `task`, `note`, `file`, or `custom`). Task reminders are `target_type = task` rows created by the task bridge.
 
-| Column           | Type                      | Description                                                                                     |
-| ---------------- | ------------------------- | ----------------------------------------------------------------------------------------------- |
-| `id`             | text (PK, UUIDv7)         |                                                                                                 |
-| `target_type`    | calendar_reminder_target  | `event` / `task` / `note` / `file` / `custom`                                                   |
-| `target_id`      | text (not null)           | Soft ref; free-form or empty for `custom`                                                       |
-| `type`           | calendar_reminder_type    | `offset` / `custom` / `due_date` / `overdue`                                                    |
-| `channel`        | calendar_reminder_channel | `pubsub` (the only real channel in v1)                                                          |
-| `remind_at`      | timestamptz               | Absolute; null until an offset anchor resolves                                                  |
-| `offset_minutes` | integer                   | For `type = offset`; anchor = target's start/due                                                |
-| `user_id`        | text (not null)           | Recipient (soft FK → user); access scoping                                                      |
-| `message`        | text                      |                                                                                                 |
-| `is_recurring`   | boolean (not null)        | Default `false`                                                                                 |
-| `interval`       | text                      | `daily` / `weekly` / `monthly` / `yearly` / `every_2_hours`; decoded at the dispatcher boundary |
-| `is_sent`        | boolean (not null)        | Default `false`                                                                                 |
-| `sent_at`        | timestamptz               | Set by the dispatcher                                                                           |
-| `created_by`     | text (not null)           | Creating actor (or `task-bridge` for bridge-created rows)                                       |
-| `created_at`     | timestamptz (not null)    | Default `now()`                                                                                 |
-| `updated_at`     | timestamptz (not null)    | Default `now()`, `$onUpdate`                                                                    |
+| Column           | Type                      | Description                                                                          |
+| ---------------- | ------------------------- | ------------------------------------------------------------------------------------ |
+| `id`             | text (PK, UUIDv7)         |                                                                                      |
+| `target_type`    | calendar_reminder_target  | `event` / `task` / `note` / `file` / `custom`                                        |
+| `target_id`      | text (not null)           | Soft ref; free-form or empty for `custom`                                            |
+| `type`           | calendar_reminder_type    | `offset` / `custom` / `due_date` / `overdue`                                         |
+| `channel`        | calendar_reminder_channel | `pubsub` (the only real channel in v1)                                               |
+| `remind_at`      | timestamptz               | Absolute; null until an offset anchor resolves                                       |
+| `offset_minutes` | integer                   | For `type = offset`; anchor = target's start/due                                     |
+| `user_id`        | text (not null)           | Recipient (soft FK → user); access scoping                                           |
+| `message`        | text                      |                                                                                      |
+| `is_recurring`   | boolean (not null)        | Default `false`                                                                      |
+| `interval`       | text                      | `daily` / `weekly` / `monthly` / `every_2_hours`; decoded at the dispatcher boundary |
+| `is_sent`        | boolean (not null)        | Default `false`                                                                      |
+| `sent_at`        | timestamptz               | Set by the dispatcher                                                                |
+| `created_by`     | text (not null)           | Creating actor (or `task-bridge` for bridge-created rows)                            |
+| `created_at`     | timestamptz (not null)    | Default `now()`                                                                      |
+| `updated_at`     | timestamptz (not null)    | Default `now()`, `$onUpdate`                                                         |
 
 Indexes: `idx_calendar_reminder_target` (`target_type`, `target_id`), `idx_calendar_reminder_user` (`user_id`), `idx_calendar_reminder_sent` (`is_sent`), `idx_calendar_reminder_at` (`remind_at`).
 

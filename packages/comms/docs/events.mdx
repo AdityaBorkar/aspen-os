@@ -6,6 +6,12 @@ icon: IconBell
 
 Events are typed via the `CommsEventMap` in `src/pubsub.ts`; topics publish as plain strings (convention). **Produced** topics are outbound contracts (host app / future consumers). **Consumed** topics are the producer side of the domain event ecosystem.
 
+<Callout type="warn">
+  Pubsub starts lazily: publishing to a topic with no `subscribe()` consumer silently drops the
+  message. Every bridge topic below is subscribed in `$prepareRuntime()`; the sweeper needs no
+  subscription because it is a cron, not a topic.
+</Callout>
+
 ## Consumed (event bridge subscriptions)
 
 | Topic                                                | Producer                     | comms handler                                                          |

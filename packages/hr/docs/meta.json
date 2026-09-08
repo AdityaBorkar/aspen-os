@@ -1,6 +1,6 @@
 {
   "icon": "IconUsers",
-  "pages": ["overview", "workflows", "enums"],
+  "pages": ["overview", "workflows", "events", "db-schemas", "enums"],
   "pagesIndex": "index",
   "root": true,
   "title": "HR"

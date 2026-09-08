@@ -4,7 +4,7 @@ description: Internal services powering the compliance module — reminder engin
 icon: IconDeviceGamepad3
 ---
 
-The Compliance module uses 4 internal service modules that handle scheduled jobs, auto-generation, event bridging, and status derivation. These are not directly accessible on the module — they are managed internally via the module lifecycle and registered in `$prepareRuntime()`.
+Three lifecycle services handle scheduled jobs, auto-generation, and event bridging. `StatusDerivation` is a pure-function utility (`workflow-steps/status-derivation.ts`), not a managed service. None are accessible on the module — they run via `$prepareRuntime()`.
 
 ## ReminderEngine
 
@@ -12,20 +12,19 @@ Manages automated expiry and due-date reminders via PubSub schedules and handler
 
 ### Responsibilities
 
-- Registers 5 cron schedules during `prepare()`
-- Handles `compliance:document_expiring` and `compliance:document_due` events
-- Sends reminders via configured channel (`email`, `pubsub`, or `both`)
-- Tracks multi-level escalation for overdue documents
+- Schedules 4 cron jobs via `registerReminderSchedules()`; subscribes handlers via `registerReminderHandlers()`
+- Publishes `document_expiring` / `document_due` (expiry wins on same scan), `document_expired` / `document_overdue`, `document_escalated`, `weekly_summary`, `scheduled_job_executed`
+- Skips snoozed documents; one notification per document per scan; multi-level escalation via `escalationDays`
 
 ### Scheduled Jobs
 
-| Job                                  | Cron        | Purpose                                                                            |
-| ------------------------------------ | ----------- | ---------------------------------------------------------------------------------- |
-| `compliance:daily-expiry-scan`       | `0 8 * * *` | Scans for documents nearing expiry, publishes `document_expiring` events           |
-| `compliance:daily-escalation`        | `0 9 * * *` | Escalates overdue documents, publishes `document_escalated` events                 |
-| `compliance:daily-status-transition` | `0 0 * * *` | Transitions expired → overdue, publishes `document_expired` and `document_overdue` |
-| `compliance:obligation-generate`     | `0 6 * * *` | Triggers obligation auto-generation                                                |
-| `compliance:weekly-summary`          | `0 9 * * 1` | Generates and publishes weekly summary                                             |
+| Job                                  | Cron        | Purpose                                                           |
+| ------------------------------------ | ----------- | ----------------------------------------------------------------- |
+| `compliance:daily-expiry-scan`       | `0 8 * * *` | Scans active docs, publishes `document_expiring` / `document_due` |
+| `compliance:daily-status-transition` | `0 0 * * *` | Derives `expired` / `overdue`, publishes matching events          |
+| `compliance:daily-escalation`        | `0 9 * * *` | Publishes `document_escalated` with `escalationLevel` 1..N        |
+| `compliance:weekly-summary`          | `0 9 * * 1` | Publishes `weekly_summary` from cached dashboard summary          |
+| `compliance:weekly-summary`          | `0 9 * * 1` | Generates and publishes weekly summary                            |
 
 ### Reminder Flow
 
@@ -81,31 +80,33 @@ Subscribes to external module events and creates compliance documents in respons
 
 ### Responsibilities
 
-- Registers PubSub subscriptions during `prepare()`
-- Listens to organization events (e.g., `organization:created`, `branch:created`)
-- When an organization event fires, checks if there are matching obligations
-- If a matching obligation exists and auto-generates, creates a compliance document
-- Unregisters all subscriptions in `destroy()`
+- Subscribes to 6 cross-module topics via `registerEventBridgeSubscriptions()`; unsubscribes in `$cleanup()`
+- Validates payloads with Valibot; skips invalid messages; dedupes by `{sourceModule, sourceEntityId, documentType}`
+
+| Topic                               | Creates                                                              |
+| ----------------------------------- | -------------------------------------------------------------------- |
+| `hr:employee_onboarded`             | Background-check + ID-verification docs                              |
+| `hr:employee_separated`             | Exit-documents + final-settlement docs                               |
+| `fleet:vehicle_registered`          | Semi-annual pollution obligation + certificate                       |
+| `organization:branch_created`       | Annual trade-license obligation + trade-license and fire-safety docs |
+| `accounting:financial_year_started` | Monthly GST-return obligation                                        |
+| `masters:contact_created`           | Insurance-policy doc (insurer contacts on organizations only)        |
 
 ### Event Bridge Flow
 
 ```text
-Organization module publishes "organization:created"
+organization:branch_created { branch: { id, name } }
     ↓
-EventBridge handler receives the event
+Validate payload → skip if invalid
     ↓
-Find obligations where sourceModule = "organization" and sourceEntityType = "organization"
+Create annual trade-license obligation (sourceEntityId = branch.id)
     ↓
-For each matching obligation: create compliance document
-    ↓
-Set sourceEntityId = organization.id on the new document
-    ↓
-Publish "compliance:document_generated"
+Create trade-license + fire-safety docs (dedupe by documentType)
 ```
 
-## StatusDerivation
+## StatusDerivation (utility)
 
-Derives the verification status of a compliance document from its dates and renewal state, rather than allowing direct status assignment.
+Pure functions in `workflow-steps/status-derivation.ts` deriving status from dates, not direct assignment.
 
 ### Status Derivation Rules
 

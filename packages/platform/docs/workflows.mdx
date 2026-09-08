@@ -53,6 +53,7 @@ interface RunOptions {
   auth?: AuthUnit;
   config?: Record<string, unknown>;
   db?: DrizzleDB;
+  log?: LogUnit;
   pubsub?: PubSubUnit;
 }
 ```
@@ -66,13 +67,14 @@ interface WorkflowContext<TSchemas = Record<string, never>> {
   auth?: AuthUnit;
   config: Record<string, unknown>;
   db: DrizzleDB<TSchemas>;
+  log: ChildLogger;
   pubsub: PubSubUnit;
   runId: string;
   step: StepRunner;
 }
 ```
 
-The context is built from `RunOptions` — if omitted, defaults come from `getContext()`. It throws if `db`, `pubsub`, or `audit` are missing.
+The context is built from `RunOptions` — if omitted, defaults come from `getContext()`. It throws unless `audit`, `auth`, `db`, `log`, and `pubsub` are all available.
 
 ## Usage
 

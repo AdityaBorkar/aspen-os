@@ -86,7 +86,7 @@ Delivery outbox (admin).
 | `get` / `list` | Filters: `status`, `channelType`, `channelId`, `notificationId` |
 | `retry`        | Re-queues a `failed` message (attempts reset)                   |
 
-```ts
+```ts title="usage.ts"
 const p = IsolatedTenantPlatform.create(config, [comms]);
 
 // In-app only

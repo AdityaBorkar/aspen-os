@@ -4,43 +4,55 @@ description: Architecture, initialization, and module structure of the Organizat
 icon: IconInfoCircle
 ---
 
-The Organization module manages the organization profile — the root business entity — and its hierarchical branches. It is a fully implemented domain module following the platform's module pattern. Contacts, addresses, bank accounts, integration connections, and notes were extracted into the **Masters** module (`@aspen-os/masters`).
+The Organization module owns the organization profile (the root business entity) and its hierarchical branches.
 
-## Module
+## Architecture
 
-```ts title="src/module.ts"
-export class Organization implements Module {
-  static create(config?: OrganizationConfig): Organization;
-  readonly $name = "organization";
-  readonly $dependencies: readonly string[] = [];
-}
+```text
+TENANT DATABASE (tenant_schemas; control_plane_schemas is empty)
+  organization ──1:N──→ branch ──self-ref──→ branch (parent_branch, max 5 levels)
+
+MODULE (stateless — $initialize / $prepareRuntime / $cleanup are no-ops)
+  Organization.create({ country: "INDIA" })
+    $prepareInfra() → { auth.acl, db.{control_plane_schemas, tenant_schemas}, events }
+    p.organization.organizations → { create, get, update, updateBranding, uploadLogo, deleteLogo }
+    p.organization.branches      → { create, get, list, tree, update,
+                                     activate, deactivate, close, archive, restore }
 ```
 
-`OrganizationConfig` is `{ country: "INDIA" }`, reserved for future country-specific validation and currently unused. It defaults when omitted, so `Organization.create()` works on its own.
+## Single Organization Profile
 
-## Infrastructure
+One row is the tenant's business identity (name, slug, status, branding, locale/timezone). Reads go through a fetch-once step (`fetch-organization`, earliest `createdAt` first); every mutation shares the single writer `applyOrganizationUpdate`, so not-found handling is identical. `create` auto-resolves a unique slug (`resolveUniqueSlug`); `update` rejects taken slugs (`ensureSlugAvailable`).
 
-`$prepareInfra()` declares the module's ACL, DB schemas, and events:
+## Hierarchical Branches
 
-```ts
-$prepareInfra(): ModuleInfra {
-  return {
-    auth: { acl },                              // organization, branch
-    db: { control_plane_schemas, tenant_schemas },
-    events,                                     // organization:*, branch:*
-  };
-}
-```
+Branches form a tree via nullable `parentBranch` (a plain text id — no database FK). The single ancestor walk in `validateParentBranch` verifies the parent exists, rejects circular references, and enforces max 5 levels. Codes are uppercased on write and unique case-insensitively; country codes are validated against ISO 3166-1 alpha-2 at the schema boundary. `tree` returns only active branches and promotes orphans to roots instead of dropping subtrees.
 
-`$initialize()`, `$prepareRuntime()`, and `$cleanup()` are no-ops — the workflows are stateless objects.
+## Stateless Workflows With Shared Writers
 
-## Workflow Accessors
+One file per action under `workflows/<entity>/<verb>.ts`. Branch lifecycle shares `setBranchActive` (`activate` / `deactivate` / `archive` / `restore` differ only in `isActive` flag and event); `close` additionally stamps `closedDate` and deactivates. All inputs are Valibot schemas (`schemas/`); `update` takes `{ id, patch }` where `undefined` means "column untouched".
 
-The module exposes two workflow groups as readonly objects:
+## Relationships
 
-```ts
-p.organization.organizations; // → OrganizationWorkflow
-p.organization.branches; // → BranchWorkflow
+| Module     | Direction               | Connection                                                                                                             |
+| ---------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Masters    | Extracted out           | Contacts, addresses, bank accounts, connections, notes live in `@aspen-os/masters`, scoped via `entityType`/`entityId` |
+| Management | Depends on Organization | Seeds the Organization profile row 1:1 with a Tenant (shares the better-auth org ID)                                   |
+| Compliance | Subscribes              | Consumes branch events (trade license, fire safety, annual obligations)                                                |
+| Platform   | Host                    | Provides `db`, `pubsub`, `step`; pushes schemas and merges ACL centrally                                               |
+
+<Callout type="info">
+  `OrganizationConfig` (`{ country: "INDIA" }`) is reserved for future country-specific
+  validation and currently unused — `Organization.create()` works on its own.
+</Callout>
+
+## Access Control
+
+```ts title="src/auth.ts"
+export const acl = defineAcl({
+  branch: ["activate", "archive", "close", "create", "deactivate", "read", "restore", "update"],
+  organization: ["create", "read", "update", "update_branding"],
+});
 ```
 
 ## Module Structure
@@ -54,11 +66,16 @@ packages/organization/src/
   db-schemas/           # Per-entity tables (organization, branch)
   types.ts              # Type re-exports
   schemas/              # Valibot validation schemas
-    index.ts
-    enums.ts
+    branch.ts           # CreateBranchSchema, UpdateBranchSchema, BranchFiltersSchema
+    organization.ts     # CreateOrganizationSchema, UpdateOrganizationSchema, UpdateBrandingSchema
+    enums.ts            # OrganizationStatusSchema, BranchTypeSchema
+    utils.ts            # AccentColor, BranchCode, CountryCode, LogoFile schemas
   workflows/
-    org/                # org CRUD, branding, logo
-    branch/             # branch CRUD, tree, lifecycle
+    org/                # create, get, update, branding/update, logo/upload, logo/delete
+    branch/             # create, get, list, tree, update, activate, deactivate, close, archive, restore
+    utils.ts            # Slug/code uniqueness, HQ guard, parent validation, setBranchActive, buildTree
+  workflow-steps/       # fetch-organization, fetch-branch
+  utils/                # toDateOnly (Date → YYYY-MM-DD)
 ```
 
 ## Package

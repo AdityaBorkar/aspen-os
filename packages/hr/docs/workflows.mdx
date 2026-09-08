@@ -6,6 +6,20 @@ icon: IconListCheck
 
 The HR module exposes 10 workflow classes, each managing a distinct HR domain aggregate.
 
+## Configuration
+
+```ts title="src/module.ts"
+export interface HrModuleConfig {
+  country: "INDIA";
+}
+```
+
+```ts
+import { Hr } from "@aspen-os/hr";
+
+const hr = Hr.create({ country: "INDIA" });
+```
+
 ## AccessWorkflow
 
 Access: `p.hr.access`
@@ -203,7 +217,7 @@ update(id: string, patch: UpdateAttendanceInput)
 getById(id: string)
 list(filters?: AttendanceFilters)
 getSummary(employeeId: string, month: string): Promise<AttendanceSummary>
-delete(id: string)
+deleteRecord(id: string)
 ```
 
 ### Checkin
@@ -745,3 +759,83 @@ deleteShiftScheduleAssignment(id: string)
 - `deactivateShiftAssignment` sets `status: "inactive"`
 - `deleteShiftType` and `deleteShiftLocation` are soft deletes (`isActive: false`)
 - `deleteShiftAssignment`, `deleteShiftSchedule`, and `deleteShiftScheduleAssignment` are hard deletes
+
+## Shared Types
+
+Return shapes defined in `src/types.ts`:
+
+```ts title="src/types.ts"
+interface AttendanceSummary {
+  month: string;
+  present: number;
+  absent: number;
+  halfDay: number;
+  workFromHome: number;
+  totalDays: number;
+}
+interface LeaveBalance {
+  leaveType: string;
+  allocated: number;
+  used: number;
+  remaining: number;
+  carryForwarded: number;
+  earned: number;
+}
+interface OvertimeSummary {
+  standardHours: number;
+  holidayHours: number;
+  weekendHours: number;
+  totalHours: number;
+}
+interface ResolvedPermission {
+  module: string;
+  action: string;
+}
+interface OrgTreeNode {
+  id: string;
+  name: string;
+  designation: string;
+  department: string;
+  position: string | null;
+  image: string | null;
+  children: OrgTreeNode[];
+}
+interface PositionTreeNode {
+  id: string;
+  name: string;
+  department: string;
+  branch: string | null;
+  incumbents: PositionIncumbent[];
+  children: PositionTreeNode[];
+}
+interface DepartmentTreeNode {
+  id: string;
+  name: string;
+  code: string;
+  headEmployeeId: string | null;
+  employeeCount: number;
+  positionCount: number;
+  children: DepartmentTreeNode[];
+}
+```
+
+Input/filter types (`Create*Input`, `Update*Input`, `*Filters`) are Valibot `InferOutput` types re-exported from `src/schemas/` — see `types.ts`.
+
+## Events
+
+Workflows emit 17 topics across 4 groups; the full 58-topic contract lives in `events.mdx`.
+
+| Group        | Emitted | Detail                                                     |
+| ------------ | ------- | ---------------------------------------------------------- |
+| Announcement | 6       | create/update/schedule/publish/archive/pin                 |
+| Position     | 7       | create/update/deactivate/activate/assign/unassign/reassign |
+| Setup        | 2       | department moved/head changed                              |
+| Lifecycle    | 2       | transfer approved/separation completed                     |
+
+## Schema
+
+54 tables: 14 control-plane (setup + access) + 40 tenant. See `db-schemas.mdx`. Enum columns use the 29 `hr_*` pgEnums in `enums.mdx`.
+
+## Dependencies
+
+No platform-module `$dependencies`. Reads `@aspen-os/comms` notification rows for announcement read/acknowledgement stats and `@aspen-os/constants` for announcement priority values.

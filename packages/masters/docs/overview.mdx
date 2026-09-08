@@ -4,7 +4,11 @@ description: Architecture, polymorphic ownership model, initialization, and modu
 icon: IconInfoCircle
 ---
 
-The Masters module owns **polymorphic tenant master data**: `contact`, `address`, `bankAccount`, `connection`, `entity`, and `paymentMethod` — plus **tenant-wide reference data**: `unitOfMeasure`. Every polymorphic entity is scoped to an owner via a `(entityType, entityId)` pair, where the owner type is one of `organization`, `branch`, `connection`, `contact`, or `entity` (`master_entity_type`).
+The Masters module owns **polymorphic tenant master data**: `contact`, `address`, `bankAccount`, `connection`, and `paymentMethod` — plus **tenant-level tables**: `entity` and `unitOfMeasure` reference data. Every polymorphic entity is scoped to an owner via a `(entityType, entityId)` pair, where the owner type is one of `organization`, `branch`, `connection`, `contact`, or `entity` (`master_entity_type`).
+
+<Callout type="info">
+  Masters does not own notes. Free-form annotation notes belong to `@aspen-os/notes`; scope them to a master row with `scopeType = masters:<entityType>`.
+</Callout>
 
 `connection` is an integration connection to an external API/entity — it stores `type`, `status`, `baseUrl`, and a `credentialRef` pointing at an encrypted secret in the platform `kvStore`. Credential material is never stored in plaintext; workflows support credential rotation and endpoint testing. Business relationships are modeled as `contact` records with a `type` (`vendor`, `client`, `insurer`, …).
 
@@ -37,7 +41,7 @@ The polymorphic scope mirrors the DMS `dms_entity_label` pattern: `entityType` i
 
 ## Lifecycle
 
-```
+```text
 connections: create (stores credential in kvStore, keeps credentialRef) ──▶ test ──▶ lastTestedAt
             └──▶ rotateCredential (new kvStore secret, bumped credentialRef)
             activate / deactivate ──▶ status (active | inactive | expired | revoked)
@@ -78,6 +82,7 @@ packages/masters/src/
   db-schemas/           # Per-entity tables + enums
   types.ts              # Type re-exports
   schemas/              # Valibot validation schemas
+  services/             # Connection credential + endpoint-test helpers
   workflow-steps/       # Reusable WorkflowSteps (fetch-<entity>.ts + business-rule steps)
   workflows/            # One file per action under workflows/<entity>/<verb>.ts
   utils/                # Audit constants + strip-undefined

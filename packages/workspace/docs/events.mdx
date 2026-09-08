@@ -8,21 +8,21 @@ All events are published as plain string topics on `PubSubUnit` (`ctx.pubsub.pub
 
 ## Drafts
 
-| Event                             | Payload                                                       |
-| --------------------------------- | ------------------------------------------------------------- |
-| `workspace:draft_created`         | `{ draftId, ownerId, access }`                                |
-| `workspace:draft_updated`         | `{ draftId, changes }`                                        |
-| `workspace:draft_submitted`       | `{ draftId, submittedBy }`                                    |
-| `workspace:draft_approved`        | `{ draftId, approvedBy }`                                     |
-| `workspace:draft_rejected`        | `{ draftId, rejectedBy, rejectionReason }`                    |
-| `workspace:draft_published`       | **full draft row** — hosts create the target entity from this |
-| `workspace:draft_reopened`        | `{ draftId }`                                                 |
-| `workspace:draft_trashed`         | `{ draftId }`                                                 |
-| `workspace:draft_restored`        | `{ draftId }`                                                 |
-| `workspace:draft_duplicated`      | `{ draftId, duplicateId }`                                    |
-| `workspace:draft_commented`       | `{ draftId, commentId, authorId }`                            |
-| `workspace:draft_comment_removed` | `{ draftId, commentId }`                                      |
-| `workspace:draft_deleted`         | `{ draftId }`                                                 |
+| Event                             | Payload                                                              |
+| --------------------------------- | -------------------------------------------------------------------- |
+| `workspace:draft_created`         | `{ draftId, ownerId, access }`                                       |
+| `workspace:draft_updated`         | `{ draftId, changes }`                                               |
+| `workspace:draft_submitted`       | `{ draftId, submittedBy }`                                           |
+| `workspace:draft_approved`        | `{ draftId, approvedBy }`                                            |
+| `workspace:draft_rejected`        | `{ draftId, rejectedBy, rejectionReason }`                           |
+| `workspace:draft_published`       | `{ draft }` — full draft row; hosts create the target entity from it |
+| `workspace:draft_reopened`        | `{ draftId }`                                                        |
+| `workspace:draft_trashed`         | `{ draftId }`                                                        |
+| `workspace:draft_restored`        | `{ draftId }`                                                        |
+| `workspace:draft_duplicated`      | `{ draftId, duplicateId }`                                           |
+| `workspace:draft_commented`       | `{ draftId, commentId, authorId }`                                   |
+| `workspace:draft_comment_removed` | `{ draftId, commentId }`                                             |
+| `workspace:draft_deleted`         | `{ draftId }`                                                        |
 
 ## Views
 

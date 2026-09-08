@@ -137,3 +137,19 @@ Email/SMS/WhatsApp bodies with `{var}` placeholders.
 ### `comms_setting` (tenant)
 
 Tenant defaults (dms `settings` pattern). Keys: `defaultChannels` (jsonb), `suppressOutOfBand` (boolean), `hostDefaultSenderAddressOverride` (text).
+
+| Column                      | Type        | Description        |
+| --------------------------- | ----------- | ------------------ |
+| `id`                        | text (PK)   | Auto UUIDv7        |
+| `key`                       | text        | Unique setting key |
+| `value`                     | jsonb       | Setting value      |
+| `created_at` / `updated_at` | timestamptz | Record timestamps  |
+
+## Relationships
+
+```text
+comms_provider 1:N comms_channel (provider_id, soft FK; source = host)
+comms_channel 1:N comms_message (channel_id, soft FK; nulled on channel delete)
+comms_notification 1:N comms_message (notification_id, soft FK; null for standalone sends)
+comms_template 1:N comms_message (template_id, soft FK)
+```

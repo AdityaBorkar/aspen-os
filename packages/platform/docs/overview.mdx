@@ -13,10 +13,10 @@ The platform is organized around three concepts: **units** (infrastructure), **m
 
   SingleTenantPlatform / SharedTenantPlatform / IsolatedTenantPlatform
                          │
-  BasePlatform.createCore(config, modules)
+  BasePlatform.createCore(db, config, modules)
     ├── Instantiates 8 units in dependency order
-    │   db → audit → logs → pubsub → auth → storage → kvStore → rpc
-    │   (pubsub.setAuth(auth) after auth creation)
+    │   logs → audit → pubsub → auth → storage → kvStore → rpc
+    │   (db passed in; pubsub.setAuth(auth) after auth creation)
     │
     └── Validates module $dependencies
         └── Calls mod.$initialize(units) for each module
@@ -99,8 +99,8 @@ p.$prepareInfra()                               unit.$prepareInfra() → mod.$pr
                                                 → auth.applyModuleAcl()
                                                 → mod.$prepareRuntime()
     ↓
-p.run(fn)                                       AsyncLocalStorage { audit, auth, db, pubsub }
-p.run(tenantId, fn)                             per-request db + tenantId in context
+p.run(tenantId, fn)                             AsyncLocalStorage { audit, auth, db, log, pubsub }
+                                                "$global" → control-plane db; else per-tenant db (isolated)
     ↓
 p.$cleanup()                                    mod.$cleanup() → unit.$cleanup()
 ```
@@ -129,53 +129,53 @@ Inside `BasePlatform.createCore()`:
 
 Calls each unit's `$prepareInfra()`, collects `ModuleInfra` from modules (merged ACL and DB schemas), calls `db.prepareWithModules()` to push schemas, calls `auth.applyModuleAcl()`, then runs each module's `$prepareRuntime()`. In shared mode, applies RLS policies. In isolated mode, iterates tenants and calls `$prepareTenant()`.
 
-### `run(fn)` / `run(tenantId, fn)`
+### `run(tenantId, fn)`
 
-Executes `fn` inside `AsyncLocalStorage` providing `{ audit, auth, db, pubsub, tenantId? }`:
+Executes `fn` inside `AsyncLocalStorage` providing `{ audit, auth, db, log, pubsub, tenantId? }`:
 
 - `auth` — the `AuthUnit` (not raw betterAuth)
-- `db` — control-plane `NodePgDatabase` (or per-tenant in multi-tenant modes)
+- `db` — control-plane `PostgresJsDatabase` (or per-tenant in isolated mode)
 - `pubsub` — the `PubSubUnit`
 - `audit` — the `AuditUnit`
-- `tenantId` — present only in multi-tenant modes
+- `log` — the `LogUnit`
+- `tenantId` — the passed tenant id (`"$global"` for control-plane work)
+
+```ts title="src/server/base-platform.ts"
+run<TValue>(tenantId: string, fn: () => TValue | Promise<TValue>): Promise<TValue>
+```
+
+One signature — no overloads. Single-tenant callers pass `"$global"` (resolves to the control-plane DB); shared/isolated callers pass the real tenant id. `isGlobalTenantId()` tests for `"$global"`.
 
 ### `$cleanup()`
 
 Runs `mod.$cleanup()` then `unit.$cleanup()`. Errors are caught and logged per-item.
 
-## Health Check
+## Diagnostics
 
-`BasePlatform.healthCheck()` returns a `HealthReport`:
+No `healthCheck()` exists on the platform. Use the RPC health procedure and the PubSub probes directly:
 
 ```ts
-type HealthReport = {
-  status: "ok" | "unhealthy";
-  checks: {
-    db: HealthCheckResult;
-    pubsub: HealthCheckResult;
-  };
-  unsubscribedTopics?: string[];
-  tenancyMode: TenancyMode;
-  at: string;
-};
-```
+const result = await p.rpc.server.handle(request, { db: p.db.db, pubsub: p.pubsub });
+// router.health.check → { status: "ok" }
 
-Probes both the control-plane DB (`SELECT 1`) and pg-boss (`getQueueSize`). Reports topics produced to but with no subscriber (pg-boss silently drops these).
+await p.pubsub.getQueueSize("some:topic"); // pubsub connectivity probe, works on unregistered topics
+p.pubsub.getUnsubscribedProducedTopics(); // topics published to with no subscriber (pg-boss silently drops these)
+```
 
 ## Dependency Graph
 
 Units are constructor-injected. `DatabaseUnit` is the root — every other unit depends on it directly or transitively.
 
-| Unit      | Injected deps                                                   |
-| --------- | --------------------------------------------------------------- |
-| `db`      | — (owns `pg.Pool` + drizzle, plus tenancy state)                |
-| `audit`   | `{ db }`                                                        |
-| `logs`    | `{ db }`                                                        |
-| `pubsub`  | `{ db }`                                                        |
-| `auth`    | `{ db, pubsub }` — wired after creation: `pubsub.setAuth(auth)` |
-| `storage` | `{ db }`                                                        |
-| `rpc`     | `{ auth, db, logs, pubsub }`                                    |
-| `kvStore` | `{ db }`                                                        |
+| Unit      | Injected deps                                                                  |
+| --------- | ------------------------------------------------------------------------------ |
+| `db`      | — (owns `postgres.Sql` pool + drizzle, plus tenancy state)                     |
+| `audit`   | `{ db }`                                                                       |
+| `logs`    | `{ db }`                                                                       |
+| `pubsub`  | `{ audit, db, log }`                                                           |
+| `auth`    | `{ db, pubsub }` — wired after creation: `pubsub.setAuth(auth)`                |
+| `storage` | `{ db }`                                                                       |
+| `rpc`     | `{ auth, db, logs, pubsub }` (unused at construction; context at request time) |
+| `kvStore` | `{ db }`                                                                       |
 
 ## Accessing Units and Modules
 

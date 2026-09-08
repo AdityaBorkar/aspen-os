@@ -4,6 +4,26 @@ description: Placeholder package — inventory module is not yet implemented.
 icon: IconPackages
 ---
 
-`@aspen-os/inventory` is a **not-started** stub. Its `src/index.ts` is empty and `package.json` has no exports, dependencies, or scripts.
+`@aspen-os/inventory` is a not-started stub with no module, workflows, tables, or events.
 
-This package is intended to provide an inventory management module, but no scope has been defined yet. See `docs/TODO.md` for planned work.
+<Callout type="warn">
+  Do not depend on `@aspen-os/inventory` — `src/index.ts` is empty and it registers no platform
+  module.
+</Callout>
+
+## Status
+
+```json title="packages/inventory/package.json"
+{
+  "name": "@aspen-os/inventory"
+}
+```
+
+```ts title="packages/inventory/src/index.ts"
+(empty — no exports)
+```
+
+No domain model, bounded context, or events. Listed as a stub in
+`.working-docs/bounded-contexts/stubs.md`. A future module would follow the
+management-aligned shape (`CODING_CONVENTIONS.md`,
+`.agents/skills/write-module/SKILL.md`).

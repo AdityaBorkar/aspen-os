@@ -4,16 +4,53 @@ description: Every constant, type, and utility exported by @aspen-os/constants.
 icon: IconNumber123
 ---
 
-The package has no dependencies. Each domain lives in its own module re-exported by `src/index.ts`: `organization`, `masters`, `notes`, `compliance`, `comms`, `country-codes`.
+Shared `as const` enum objects, derived union types, and ISO 3166-1 country code utilities consumed by every domain module.
 
-## Organization Constants (`src/organization.ts`)
+<Callout type="info">
+  Build exception: `package.json` defines no `build` field, so `scripts/build.ts` leaves `exports`
+  at `./src/index.ts` and only emits declarations into `.output`. Consumers always resolve
+  TypeScript source, never bundled JS.
+</Callout>
+
+## Public API
+
+Every domain module follows one pattern — an `as const` object plus a derived union:
+
+```ts title="packages/constants/src/organization.ts"
+export const ORGANIZATION_STATUS = {
+  ACTIVE: "active",
+  ARCHIVED: "archived",
+  SUSPENDED: "suspended",
+} as const;
+
+export type OrganizationStatus = (typeof ORGANIZATION_STATUS)[keyof typeof ORGANIZATION_STATUS];
+```
+
+```ts title="packages/constants/src/country-codes.ts"
+export const COUNTRY_CODES = [...] as const; // 249 ISO 3166-1 alpha-2 codes
+
+export type CountryCode = (typeof COUNTRY_CODES)[number];
+
+export function isValidCountryCode(code: string): code is CountryCode;
+export function parseCountryCode(input: string): CountryCode | undefined;
+```
+
+```ts
+import { ORGANIZATION_STATUS, type OrganizationStatus } from "@aspen-os/constants";
+
+const status: OrganizationStatus = ORGANIZATION_STATUS.ACTIVE; // "active"
+```
+
+## Features
+
+### Organization (`src/organization.ts`)
 
 | Constant              | Type                 | Values                                                                       |
 | --------------------- | -------------------- | ---------------------------------------------------------------------------- |
 | `ORGANIZATION_STATUS` | `OrganizationStatus` | `active`, `archived`, `suspended`                                            |
 | `BRANCH_TYPE`         | `BranchType`         | `factory`, `headquarters`, `office`, `other`, `remote`, `store`, `warehouse` |
 
-## Masters Constants (`src/masters.ts`)
+### Masters (`src/masters.ts`)
 
 | Constant                   | Type                     | Values                                                                                                                                                                          |
 | -------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -29,20 +66,20 @@ The package has no dependencies. Each domain lives in its own module re-exported
 | `PAYMENT_METHOD_DIRECTION` | `PaymentMethodDirection` | `both`, `inbound`, `outbound`                                                                                                                                                   |
 | `CARD_BRAND`               | `CardBrand`              | `amex`, `mastercard`, `other`, `rupay`, `visa`                                                                                                                                  |
 
-## Notes Constants (`src/notes.ts`)
+### Notes (`src/notes.ts`)
 
 | Constant    | Type       | Values                                                             |
 | ----------- | ---------- | ------------------------------------------------------------------ |
 | `NOTE_TYPE` | `NoteType` | `call`, `contract_renewal`, `email`, `general`, `issue`, `meeting` |
 
-## Compliance Constants (`src/compliance.ts`)
+### Compliance (`src/compliance.ts`)
 
 | Constant              | Type                 | Values                                                                                                                                                                               |
 | --------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `COMPLIANCE_CATEGORY` | `ComplianceCategory` | `audit`, `certificate`, `data_privacy`, `environmental`, `financial`, `hr`, `insurance`, `legal`, `license`, `other`, `permit`, `property`, `regulatory`, `safety`, `tax`, `vehicle` |
 | `RENEWAL_FREQUENCY`   | `RenewalFrequency`   | `annual`, `biennial`, `monthly`, `one_time`, `quarterly`, `semi_annual`, `triennial`                                                                                                 |
 
-## Comms Constants (`src/comms.ts`)
+### Comms (`src/comms.ts`)
 
 | Constant                | Type                   | Values                                                                          |
 | ----------------------- | ---------------------- | ------------------------------------------------------------------------------- |
@@ -55,7 +92,7 @@ The package has no dependencies. Each domain lives in its own module re-exported
 | `NOTIFICATION_SEVERITY` | `NotificationSeverity` | `normal`, `important`, `urgent`                                                 |
 | `MESSAGE_STATUS`        | `MessageStatus`        | `queued`, `sending`, `sent`, `delivered`, `failed`                              |
 
-## Country Codes (`src/country-codes.ts`)
+### Country codes (`src/country-codes.ts`)
 
 ```ts
 import {
@@ -81,3 +118,12 @@ function isCountry(input: string): input is CountryCode {
 
 COUNTRY_CODES; // readonly ["AD", "AE", ..., "ZW"] — 249 ISO 3166-1 alpha-2 codes
 ```
+
+<Callout type="warn">
+  `parseCountryCode` uppercases before matching, but `isValidCountryCode` does not — lowercase input
+  never narrows. Normalize first when the input is untrusted.
+</Callout>
+
+## Dependencies
+
+`@aspen-os/constants` has no dependencies.

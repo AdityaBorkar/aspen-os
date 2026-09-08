@@ -378,7 +378,7 @@ const p = SingleTenantPlatform.create(config, [myModule]);
 
 await p.$prepareInfra();
 
-await p.run(async () => {
+await p.run("$global", async () => {
   const entity = await p["my-module"].myEntities.create({
     name: "My Entity",
   });

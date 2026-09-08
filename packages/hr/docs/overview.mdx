@@ -6,6 +6,60 @@ icon: IconInfoCircle
 
 The HR module is a domain module for human resources management covering access control (HR users, RBAC roles), employees, attendance, leave, lifecycle, overtime, shifts, positions, announcements, and HR setup.
 
+## Module
+
+```ts title="src/module.ts"
+export interface HrModuleConfig {
+  country: "INDIA";
+}
+
+export class Hr implements Module {
+  static create(config: HrModuleConfig): Hr;
+  readonly $name = "hr"; // proxy key: p.hr
+  readonly $dependencies = [] as const;
+}
+```
+
+```ts
+const hr = Hr.create({ country: "INDIA" });
+```
+
+The module declares no platform-module dependencies. `$initialize()` stores `{ db, pubsub }`.
+
+## Runtime wiring
+
+`$prepareRuntime()` registers three cron schedules and the lifecycle reconciliation subscriptions; `$cleanup()` unregisters them.
+
+| Topic                       | Cron        | Action                              |
+| --------------------------- | ----------- | ----------------------------------- |
+| `hr:daily-attendance-sync`  | `0 1 * * *` | Sync daily attendance records       |
+| `hr:daily-leave-accrual`    | `0 0 * * *` | Accrue leave balances               |
+| `hr:announcement-scheduler` | `* * * * *` | Publish due scheduled announcements |
+
+| Subscription                     | Action                                                                    |
+| -------------------------------- | ------------------------------------------------------------------------- |
+| `lifecycle:separation_completed` | Auto-close open position assignments, emit `position:unassigned`          |
+| `lifecycle:transfer_approved`    | Close assignments stuck in the old department, emit `position:unassigned` |
+
+## Access control
+
+`defineAcl` in `src/auth.ts` — 12 resources:
+
+| Resource       | Actions                                        |
+| -------------- | ---------------------------------------------- |
+| `announcement` | archive, create, delete, publish, read, update |
+| `attendance`   | approve, create, read, reject, update          |
+| `employee`     | create, delete, read, update                   |
+| `hrPermission` | create, delete, read, update                   |
+| `hrRole`       | create, delete, read, update                   |
+| `hrUser`       | create, delete, read, update                   |
+| `leave`        | approve, create, read, reject, update          |
+| `lifecycle`    | approve, create, read, reject, update          |
+| `overtime`     | approve, create, read, reject, update          |
+| `position`     | create, delete, read, update                   |
+| `setup`        | create, delete, read, update                   |
+| `shift`        | approve, create, read, reject, update          |
+
 ## Module Structure
 
 ```text

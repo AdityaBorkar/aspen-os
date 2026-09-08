@@ -153,7 +153,7 @@ A mode of payment scoped per `(entity_type, entity_id)`. `is_primary` is scoped 
 | `card_expiry_year`  | integer                              | 4-digit                                                         |
 | `upi_id`            | text                                 | VPA, e.g. `business@okhdfcbank`                                 |
 | `cheque_series`     | text                                 | Cheque prefix/leaf range                                        |
-| `details`           | jsonb                                | Type-specific extension (IMPS details, notes)                   |
+| `details`           | jsonb                                | Type-specific extension (IMPS details, extra fields)            |
 | `is_primary`        | boolean                              | Default `false` — one per `(entity_type, entity_id, direction)` |
 | `entity_type`       | master_entity_type                   | Owner type                                                      |
 | `entity_id`         | text (not null)                      | Owner row id                                                    |

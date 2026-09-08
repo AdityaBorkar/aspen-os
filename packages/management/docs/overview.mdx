@@ -24,13 +24,12 @@ The module runs against the control-plane DB:
 
 ```text
 CONTROL-PLANE DATABASE
-  Management Plane tables:
-    tenant, service_provider
-  better-auth tables (single realm):
+  Management Plane tables (control_plane_schemas):
+    tenant, service_provider, service_provider_user
+  better-auth tables (single realm, via platform):
     user, session, account, verification
     organization, member, invitation   ← Organization plugin
-  tenant schemas (pushed to each tenant DB):
-    organization, user
+  tenant schemas: (empty — tenant_schemas = {})
 ```
 
 Domain data (branches, tasks, drive, HR, compliance) lives in per-tenant databases managed by their own modules. The Management Plane never queries them directly.
@@ -76,11 +75,15 @@ $initialize(units: { db: DatabaseUnit; auth: AuthUnit; pubsub: PubSubUnit }): vo
 $prepareInfra(): ModuleInfra {
   return {
     auth: { acl },                        // platformUser, serviceProvider, tenant
-    db: { control_plane_schemas, tenant_schemas },  // tenant, service_provider | organization, user
+    db: { control_plane_schemas, tenant_schemas },  // 3 control-plane tables | tenant_schemas = {}
     events,                               // tenant:, service_provider:, platform_user: topics
   };
 }
 ```
+
+## Dependencies
+
+Depends on `organization` (`$dependencies = ["organization"]`) — `onboard` creates the better-auth org row the `tenant` companion shares its ID with.
 
 ## Package
 
@@ -88,10 +91,10 @@ $prepareInfra(): ModuleInfra {
 {
   "name": "@aspen-os/management",
   "type": "module",
-  "exports": { ".": "./src/index.ts" },
+  "exports": { ".": "./.output/index.js" },
   "dependencies": {
-    "@aspen-os/platform": "workspace:*",
     "@aspen-os/constants": "workspace:*",
+    "@aspen-os/platform": "workspace:*",
     "drizzle-orm": "catalog:",
     "valibot": "catalog:"
   }

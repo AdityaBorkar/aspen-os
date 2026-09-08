@@ -1,72 +1,14 @@
 ---
 title: Services
-description: Internal helpers powering the Tasks module — reports, events, dependency graph, and filter engine.
+description: Internal helpers powering the Tasks module — dependency graph and filter engine.
 icon: IconDeviceGamepad3
 ---
 
-The Tasks module ships `dependency-graph` helpers under `workflow-steps/` (called with an explicit `db` handle) plus a query-building utility under `utils/filter-engine.ts`. None are exposed as module accessors — workflow code consumes them directly.
-
-## ReportService
-
-Consumed by workflow code via `getContext()`; not exposed as a module accessor.
-
-Aggregates task, assignee, and time data into summary, workload, time, and cumulative flow reports.
-
-```ts
-getTaskSummary(projectId: string): Promise<{
-  byPriority: Record<string, number>;
-  byStatus: Record<string, number>;
-  total: number;
-}>
-
-getWorkloadReport(projectId: string): Promise<{
-  assignedCount: number;
-  completedCount: number;
-  overdueCount: number;
-  userId: string;
-}[]>
-
-getTimeReport(projectId: string, dateFrom?: Date, dateTo?: Date): Promise<{
-  billable: boolean;
-  duration: string | null;
-  taskId: string;
-  userId: string;
-}[]>
-
-getCumulativeFlow(projectId: string, dateFrom: Date, dateTo: Date): Promise<{
-  count: number;
-  date: string;
-  statusId: string;
-}[]>
-```
-
-- `getTaskSummary` groups by `priority` and `statusId` in a single query, then assembles two count maps.
-- `getWorkloadReport` joins `task_assignee` with `task` and uses `SUM(CASE WHEN ...)` for completed and overdue counts.
-- `getTimeReport` joins `task_time_entry` with `task` to filter by project, grouping by user, task, and billable flag.
-- `getCumulativeFlow` executes raw SQL to bucket tasks by `DATE(created_at)` and `status_id`.
-
-## Task Events
-
-Workflows publish `task:*` events directly via `ctx.pubsub.publish(TASK_EVENTS.*, event)` — there is no bridge layer. Publishing happens in the create/update/delete/assign/unassign/comment/link workflows and the status-change path.
-
-```ts
-ctx.pubsub.publish(TASK_EVENTS.CREATED, event);
-ctx.pubsub.publish(TASK_EVENTS.UPDATED, event);
-ctx.pubsub.publish(TASK_EVENTS.DELETED, event);
-ctx.pubsub.publish(TASK_EVENTS.STATUS_CHANGED, event);
-ctx.pubsub.publish(TASK_EVENTS.ASSIGNED, event);
-ctx.pubsub.publish(TASK_EVENTS.UNASSIGNED, event);
-ctx.pubsub.publish(TASK_EVENTS.LINKED, event);
-ctx.pubsub.publish(TASK_EVENTS.UNLINKED, event);
-ctx.pubsub.publish(TASK_EVENTS.COMMENTED, event);
-ctx.pubsub.publish(TASK_EVENTS.DUE_DATE_CHANGED, event);
-```
-
-`TASK_EVENTS.DUE_DATE_CHANGED` feeds the `@aspen-os/calendar` task bridge, which materializes/cancels task reminders.
+The Tasks module has no `services/` directory and exposes no public service accessors. Workflow code consumes `workflow-steps/dependency-graph.ts` helpers (called with an explicit `db` handle) plus the `utils/filter-engine.ts` query builder directly.
 
 ## DependencyGraphService
 
-Used by `LinkWorkflow` for cycle detection and graph algorithms.
+Used by the `links` workflow group for cycle detection and graph algorithms.
 
 ```ts
 wouldCreateCycle(db, sourceId: string, targetId: string): Promise<boolean>
@@ -85,7 +27,7 @@ buildDependencyGraph(db, taskIds: string[]): Promise<TaskDependencyNode[]>
 
 ## FilterEngine
 
-Lives under `utils/filter-engine.ts`. Used by `TaskWorkflow.list()` to build Drizzle WHERE clauses from `TaskFilters`.
+Lives under `utils/filter-engine.ts`. Used by `tasks.list` to build Drizzle WHERE clauses from `TaskFilters`.
 
 ```ts
 buildTaskWhereClause(filters: TaskFilters | undefined): SQL | undefined

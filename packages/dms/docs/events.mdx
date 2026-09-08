@@ -4,7 +4,7 @@ description: Domain event map for the DMS module — domain events across 7 even
 icon: IconBell
 ---
 
-The DMS module defines domain events across 7 event groups. Events are type-level contracts published as plain string topics via PubSub, for cross-module consumers — the per-file activity feed reads the platform `AuditUnit`, not these topics.
+The DMS module defines 33 domain events across 7 event groups. Events are type-level contracts published as plain string topics via PubSub, for cross-module consumers — the per-file activity feed reads the platform `AuditUnit`, not these topics.
 
 ## Event Constants
 
@@ -77,7 +77,7 @@ export const FILE_VIEW_EVENTS = {
 | `dms:file_updated`                                | `{ fileId, changes }`                              | Update / metadata mutations   |
 | `dms:file_moved`                                  | `{ file: { id, name, path }, oldPath, newPath }`   | File moved or renamed         |
 | `dms:file_downloaded`                             | `{ file: { id, name, ownerId }, userId }`          | File downloaded               |
-| `dms:file_expired`                                | `{ fileId, expiryDate }`                           | Expiry scanner                |
+| `dms:file_expired`                                | `{ fileId, expiryDate, ownerId }`                  | Expiry scanner                |
 | `dms:file_trashed`                                | `{ fileId, deletedBy }`                            | Soft delete                   |
 | `dms:file_restored`                               | `{ fileId }`                                       | Trash restore                 |
 | `dms:file_purged`                                 | `{ fileId, storageKey }`                           | Permanent delete / auto-purge |
@@ -85,14 +85,15 @@ export const FILE_VIEW_EVENTS = {
 
 ### Folder / Class / Contact Events
 
-| Event                                                                 | Payload                                             | Trigger                        |
-| --------------------------------------------------------------------- | --------------------------------------------------- | ------------------------------ |
-| `dms:folder_created`                                                  | `{ folder: { id, name, ownerId, parentId, path } }` | Folder created                 |
-| `dms:folder_renamed`                                                  | `{ folder: { id, name, path }, oldName }`           | Folder renamed                 |
-| `dms:folder_moved`                                                    | `{ folder: { id, name, path }, oldPath, newPath }`  | Folder moved                   |
-| `dms:folder_trashed` / `dms:folder_restored` / `dms:folder_purged`    | `{ folderId }`                                      | Folder trash / restore / purge |
-| `dms:class_created` / `dms:class_updated` / `dms:class_archived`      | `{ classId }`                                       | Class mutations                |
-| `dms:contact_created` / `dms:contact_updated` / `dms:contact_removed` | `{ contactId, reason? }`                            | Contact mutations              |
+| Event                                                              | Payload                                             | Trigger                        |
+| ------------------------------------------------------------------ | --------------------------------------------------- | ------------------------------ |
+| `dms:folder_created`                                               | `{ folder: { id, name, ownerId, parentId, path } }` | Folder created                 |
+| `dms:folder_renamed`                                               | `{ folder: { id, name, path }, oldName }`           | Folder renamed                 |
+| `dms:folder_moved`                                                 | `{ folder: { id, name, path }, oldPath, newPath }`  | Folder moved                   |
+| `dms:folder_trashed` / `dms:folder_restored` / `dms:folder_purged` | `{ folderId }`                                      | Folder trash / restore / purge |
+| `dms:class_created` / `dms:class_updated` / `dms:class_archived`   | `{ classId }`                                       | Class mutations                |
+| `dms:contact_created` / `dms:contact_updated`                      | `{ contactId }`                                     | Contact create / update        |
+| `dms:contact_removed`                                              | `{ contactId, reason }`                             | Contact removed                |
 
 ### Share / Public Link / File View Events
 

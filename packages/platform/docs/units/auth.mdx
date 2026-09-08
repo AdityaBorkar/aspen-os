@@ -43,6 +43,9 @@ class AuthUnit implements Unit {
   applyModuleAcl(acl: Record<string, readonly string[]>): void;
 
   get rest(): {
+    otp: {
+      get(tokenRef: string): Promise<{ email: string; otp: string; type: string } | null>;
+    };
     role: {
       list(): Promise<RoleData[]>;
       remove(input: DeleteRoleInput): Promise<...>;
@@ -89,6 +92,9 @@ await p.auth.rest.role.list();
 await p.auth.rest.session.create({ email, password });
 await p.auth.rest.session.validate({ token });
 await p.auth.rest.session.invalidate({ sessionId });
+
+// Email OTP (in-process store, 10-min TTL — only the tokenRef is published)
+await p.auth.rest.otp.get(tokenRef);
 ```
 
 ## HTTP Handler
@@ -140,17 +146,16 @@ The auth tables follow better-auth's adapter pattern:
 
 The `createBetterAuthService()` factory configures better-auth with:
 
-| Plugin            | Purpose                                         |
-| ----------------- | ----------------------------------------------- |
-| `admin`           | Access control (receives `ac` when ACL applied) |
-| `username`        | Username support                                |
-| `organization`    | Multi-organization support                      |
-| `phoneNumber`     | Phone number authentication                     |
-| `emailOTP`        | Email OTP sign-in, verification, password reset |
-| `apiKey`          | API key authentication with rate limiting       |
-| `lastLoginMethod` | Tracks last login method                        |
-| `twoFactor`       | TOTP-based 2FA                                  |
-| `passkey`         | WebAuthn/passkey authentication                 |
+| Plugin         | Purpose                                         |
+| -------------- | ----------------------------------------------- |
+| `admin`        | Access control (receives `ac` when ACL applied) |
+| `username`     | Username support                                |
+| `organization` | Multi-organization support                      |
+| `phoneNumber`  | Phone number authentication                     |
+| `emailOTP`     | Email OTP sign-in, verification, password reset |
+| `apiKey`       | API key authentication with rate limiting       |
+| `twoFactor`    | TOTP-based 2FA                                  |
+| `passkey`      | WebAuthn/passkey authentication                 |
 
 ## Drizzle Adapter
 

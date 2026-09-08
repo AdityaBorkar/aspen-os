@@ -48,7 +48,7 @@ The RPC context provides `db` and `pubsub` to procedures at request time:
 
 ```ts title="src/server/rpc/types.ts"
 interface RpcContext {
-  db: NodePgDatabase<Record<string, never>>;
+  db: PostgresJsDatabase;
   pubsub: PubSubUnit;
   tenantId?: string;
 }
@@ -74,15 +74,15 @@ if (result.matched) {
 
 ## Defining Procedures
 
-Procedures are defined using oRPC's `os` base:
+Procedures are defined on the `base` handler (`os.$context<RpcContext>()`):
 
 ```ts title="src/server/rpc/procedures/echo.ts"
-import { os } from "../base";
+import { base } from "#/server/rpc/base";
 
-export const echo = os.input(z.object({ message: z.string() })).handler(async ({ input }) => {
-  return { echo: input.message };
-});
+export const echo = base.handler(async () => ({ echo: "input.message" }));
 ```
+
+Input validation uses Standard Schema (Valibot in domain code) — pass a schema to the handler chain per oRPC's API.
 
 ## Router Structure
 
@@ -104,11 +104,11 @@ The `handle()` method checks if the request URL starts with the configured `pref
 
 ## Base Handler
 
-The `os` base is created with the `RpcContext` type:
+The `base` handler is created with the `RpcContext` type:
 
 ```ts title="src/server/rpc/base.ts"
-import { os } from "./base";
-// os = os.$context<RpcContext>()
+import { os } from "@orpc/server";
+// base = os.$context<RpcContext>()
 ```
 
 ## Dependency

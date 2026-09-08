@@ -53,12 +53,12 @@ class PubSubUnit {
   async unsubscribe(topic: string): Promise<void>;
 
   // Scheduling
-  async schedule(
-    topic: string,
-    cron: string,
-    data?: unknown,
-    options?: ScheduleOptions,
-  ): Promise<void>;
+  async schedule(input: {
+    topic: string;
+    cron: string;
+    data?: MessageData;
+    options?: ScheduleOptions;
+  }): Promise<void>;
   async unschedule(topic: string): Promise<void>;
   async getSchedules(): Promise<unknown[]>;
 
@@ -131,10 +131,15 @@ The handler's `ctx.db` (via `getContext()`) is the tenant DB when running in iso
 
 ```ts
 // Daily at 8am
-await p.pubsub.schedule("compliance:daily-expiry-scan", "0 8 * * *");
+await p.pubsub.schedule({ topic: "compliance:daily-expiry-scan", cron: "0 8 * * *" });
 
 // Weekly summary every Monday at 9am (IST)
-await p.pubsub.schedule("compliance:weekly-summary", "0 9 * * 1", {}, { tz: "Asia/Kolkata" });
+await p.pubsub.schedule({
+  topic: "compliance:weekly-summary",
+  cron: "0 9 * * 1",
+  data: {},
+  options: { tz: "Asia/Kolkata" },
+});
 
 // List / cancel
 const schedules = await p.pubsub.getSchedules();
@@ -188,7 +193,7 @@ Domain modules register pubsub handlers and schedules in `$prepareRuntime()` and
 ```ts
 // In module.$prepareRuntime():
 await this.pubsub.subscribe("organization:created", this.handleOrgCreated);
-await this.pubsub.schedule("daily:cleanup", "0 2 * * *");
+await this.pubsub.schedule({ topic: "daily:cleanup", cron: "0 2 * * *" });
 
 // In module.$cleanup():
 await this.pubsub.unsubscribe("organization:created");
@@ -197,4 +202,4 @@ await this.pubsub.unschedule("daily:cleanup");
 
 ## Dependency
 
-Receives `{ db: DatabaseUnit }` via constructor injection, and is wired to `auth` via `setAuth(auth)` during `createCore()`. The single control-plane pg-boss is started lazily on first use.
+Receives `{ audit, db, log }` via constructor injection, and is wired to `auth` via `setAuth(auth)` during `createCore()`. The single control-plane pg-boss is started lazily on first use.

@@ -45,7 +45,11 @@ class LogUnit {
 
   // Query API
   async query(filter: LogQuery): Promise<LogEntry[]>;
-  async getStats(service?, startTime?, endTime?): Promise<LogStats>;
+  async getStats(filter?: {
+    service?: string;
+    startTime?: Date;
+    endTime?: Date;
+  }): Promise<LogStats>;
 
   async $prepareInfra(): Promise<void>;
   async $cleanup(): Promise<void>;
@@ -115,7 +119,11 @@ const entries = await platform.logs.query({
 Get aggregate statistics:
 
 ```ts
-const stats = await platform.logs.getStats("recruiter-api", new Date("2024-01-01"), new Date());
+const stats = await platform.logs.getStats({
+  service: "recruiter-api",
+  startTime: new Date("2024-01-01"),
+  endTime: new Date(),
+});
 
 // stats = {
 //   total: 15234,

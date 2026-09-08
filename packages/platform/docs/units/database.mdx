@@ -47,28 +47,36 @@ class DatabaseUnit<TSchemas> {
   readonly tenancyMode: TenancyMode;
   readonly resolver?: TenantResolver;
 
-  get db(): DrizzleDB<TSchemas>;              // stable wrapper (Proxy) — resolves per-request
-  get controlPlaneDb(): DrizzleDB<TSchemas>;  // control-plane drizzle instance
-  get pool(): pg.Pool;                        // control-plane connection pool
+  get db(): DrizzleDB<TSchemas>; // stable wrapper (Proxy) — resolves per-request
+  get controlPlaneDb(): DrizzleDB<TSchemas>; // control-plane drizzle instance
+  get pool(): Sql; // postgres-js pool for the control-plane connection
 
-  getSchemas(): Record<string, unknown>;      // core schemas (auth, logs, storage, kvStore, audit, workflows)
+  getSchemas(): Record<string, unknown>; // core schemas (auth, logs, storage, kvStore, audit, workflows)
 
+  async $prepareInfra(controlPlaneSchemas?, tenantSchemas?): Promise<void>;
   async prepareWithModules(
     controlPlaneSchemas: Record<string, unknown>,
     tenantSchemas: Record<string, unknown>,
-  ): Promise<void>;                           // push all schemas
+  ): Promise<void>; // push all schemas (Drizzle pushSchema, not migrations)
+
+  // Shared-mode RLS
+  async runWithTenant<TValue>(
+    tenantId: string,
+    fn: (db) => TValue | Promise<TValue>,
+  ): Promise<TValue>;
+  async applyRlsPolicies(db: DrizzleDB<TSchemas>): Promise<void>;
 
   // Isolated-mode provisioning
   async getTenantDb(tenantId: string): Promise<DrizzleDB<TSchemas>>;
-  async pushSchemasToTenant(tenantId: string, moduleSchemas: Record<string, unknown>): Promise<void>;
-  async provisionTenant(tenantId: string, config): Promise<...>;
-  async seedTenantDb(tenantId: string): Promise<void>;
-  async createTenant(tenantId: string): Promise<void>;
+  async pushSchemasToTenant(
+    tenantId: string,
+    moduleSchemas: Record<string, unknown>,
+  ): Promise<void>;
+  async provisionTenant(tenantId: string, config?): Promise<TenantProvisioningResult>;
+  async seedTenantDb(dbConfig: IsolatedTenantDbConfig, fn: (db) => Promise<void>): Promise<void>;
+  /** @deprecated Use provisionTenant instead */
+  async createTenant(tenantId: string, config?): Promise<IsolatedTenantDbConfig>;
 
-  // Shared-mode RLS
-  async applyRlsPolicies(db: DrizzleDB<TSchemas>): Promise<void>;
-
-  async $prepareInfra(...): Promise<void>;
   async $cleanup(): Promise<void>;
 }
 ```
@@ -80,7 +88,7 @@ class DatabaseUnit<TSchemas> {
 ```ts
 p.db.db; // stable wrapper — resolves per-request via context
 p.db.controlPlaneDb; // direct control-plane drizzle instance
-p.db.pool; // pg.Pool — control-plane connection pool
+p.db.pool; // postgres-js Sql pool — control-plane connection
 ```
 
 ## Schema Management
@@ -109,7 +117,15 @@ See the [Tenancy guide](/docs/platform/tenancy) for full details.
 
 ```ts
 await p.db.getTenantDb("tenant_123");
-// Lazily creates and caches a pg.Pool + drizzle instance for the tenant
+// Isolated only — lazily creates and caches a postgres-js pool + drizzle instance for the tenant
+```
+
+### Tenant-Scoped Transactions (shared mode)
+
+```ts
+await p.db.runWithTenant("tenant_123", async (db) => {
+  // db is a drizzle tx with SET LOCAL app.tenant_id + SET LOCAL ROLE tenant_role
+});
 ```
 
 ### RLS Policies (shared mode)
@@ -130,14 +146,14 @@ Inside `p.run()`, the Drizzle `db` is available via `getContext()`:
 ```ts
 import { getContext } from "@aspen-os/platform/server";
 
-// Single-tenant
-await p.run(async () => {
+// Control-plane work
+await p.run("$global", async () => {
   const { db } = getContext();
 });
 
 // Multi-tenant
 await p.run(tenantId, async () => {
   const { db, tenantId } = getContext();
-  // ctx also provides: auth (AuthUnit), pubsub (PubSubUnit), audit (AuditUnit)
+  // ctx also provides: auth (AuthUnit), pubsub (PubSubUnit), audit (AuditUnit), log (LogUnit)
 });
 ```

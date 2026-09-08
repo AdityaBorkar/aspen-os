@@ -35,17 +35,18 @@ await p.$prepareInfra();
 
 ## Running in Request Context
 
-`run()` provides request-scoped context via `AsyncLocalStorage`:
+`run(tenantId, fn)` provides request-scoped context via `AsyncLocalStorage`. Pass `"$global"` for control-plane/single-tenant work:
 
 ```ts
 import { getContext } from "@aspen-os/platform/server";
 
-await p.run(async () => {
-  const { audit, auth, db, pubsub } = getContext();
-  // db: NodePgDatabase (drizzle)
+await p.run("$global", async () => {
+  const { audit, auth, db, log, pubsub } = getContext();
+  // db: PostgresJsDatabase (drizzle, postgres-js)
   // pubsub: PubSubUnit
   // auth: AuthUnit (not raw betterAuth)
   // audit: AuditUnit
+  // log: LogUnit
 
   const result = await db.select().from(organizations);
   await pubsub.publish("organization:created", { organization });
@@ -100,11 +101,6 @@ const url = await p.storage.getSignedGetUrl("documents/report.pdf", {
 await p.storage.archive("documents/report.pdf");
 ```
 
-<Callout type="info">
-  Confirm the exact `StorageUnit` method names against the installed version — consult the [Storage
-  unit reference](/docs/platform/units/storage) for the current API surface.
-</Callout>
-
 ## Using the KV Store
 
 ```ts
@@ -138,25 +134,28 @@ await p.pubsub.subscribe("organization:created", async (message) => {
 });
 
 // Schedule a recurring job
-await p.pubsub.schedule(
-  "compliance:weekly-summary",
-  "0 9 * * 1", // every Monday at 9am
-  {},
-  { tz: "Asia/Kolkata" },
-);
+await p.pubsub.schedule({
+  topic: "compliance:weekly-summary",
+  cron: "0 9 * * 1", // every Monday at 9am
+  data: {},
+  options: { tz: "Asia/Kolkata" },
+});
 ```
 
 <Callout type="warn">
   Publishing to a topic with no registered subscriber is silently dropped by pg-boss.
-  `p.healthCheck()` reports these unsubscribed topics. Always `subscribe()` (register a worker)
+  `p.pubsub.getUnsubscribedProducedTopics()` reports these. Always `subscribe()` (register a worker)
   before `publish()` to the same topic.
 </Callout>
 
-## Health Check
+## Diagnostics
 
 ```ts
-const report = await p.healthCheck();
-// { status, checks: { db, pubsub }, unsubscribedTopics?, tenancyMode, at }
+await p.pubsub.getQueueSize("some:topic"); // connectivity probe, works on unregistered topics
+p.pubsub.getUnsubscribedProducedTopics(); // produced topics with no subscriber
+
+const result = await p.rpc.server.handle(request, { db: p.db.db, pubsub: p.pubsub });
+// router.health.check → { status: "ok" }
 ```
 
 ## Cleanup

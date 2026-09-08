@@ -42,7 +42,7 @@ export const acl = defineAcl({
 
 ## Admin-Only Authority
 
-The ACL is the _declaration_ of operations; role definitions and permission enforcement are application-level concerns. The following DMS semantics are **admin-only by design** and must be enforced by the host app's roles:
+The following DMS semantics are **admin-only by design** and must be enforced by the host app's roles:
 
 - Manage classes and class fields (`classes.*`)
 - Publish shared file views (`fileViews.create` with `isShared: true`) and update/delete them

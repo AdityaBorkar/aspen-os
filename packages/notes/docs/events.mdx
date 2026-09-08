@@ -11,8 +11,8 @@ The Notes module defines 3 domain events in a single group. Events are type-leve
 ```ts title="src/pubsub.ts"
 export const NOTE_EVENTS = {
   CREATED: "notes:note_created",
-  UPDATED: "notes:note_updated",
   DELETED: "notes:note_deleted",
+  UPDATED: "notes:note_updated",
 } as const;
 ```
 

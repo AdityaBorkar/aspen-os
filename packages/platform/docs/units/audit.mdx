@@ -13,8 +13,8 @@ class AuditUnit implements Unit {
   readonly $name = "audit";
 
   diff(
-    before?: Record<string, unknown> | null,
-    after?: Record<string, unknown> | null,
+    before?: Record<string, JsonValue> | null,
+    after?: Record<string, JsonValue> | null,
   ): Record<string, { new: unknown; old: unknown }> | undefined;
 
   async write(entry: AuditEntry, db?: AuditDatabase): Promise<void>;
@@ -42,14 +42,14 @@ type CrudAction = "create" | "update" | "delete";
 interface AuditEntry {
   action: string;
   actorId?: string;
-  changes?: Record<string, unknown>;
+  changes?: Record<string, JsonValue>;
   crudAction?: CrudAction;
   entityId: string;
   entityType: string;
   idempotencyKey?: string;
-  metadata?: Record<string, unknown>;
-  newState?: Record<string, unknown> | null;
-  previousState?: Record<string, unknown> | null;
+  metadata?: Record<string, JsonValue>;
+  newState?: Record<string, JsonValue> | null;
+  previousState?: Record<string, JsonValue> | null;
   requestId?: string;
   traceId?: string;
   workflowRunId?: string;
@@ -63,7 +63,7 @@ Get the `AuditUnit` from request context inside `run()`:
 ```ts
 import { getContext } from "@aspen-os/platform/server";
 
-await p.run(async () => {
+await p.run("$global", async () => {
   const { audit } = getContext();
 
   await audit.write({

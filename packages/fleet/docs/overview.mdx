@@ -1,0 +1,39 @@
+---
+title: Overview
+description: Stub status and known downstream expectation for the Fleet module.
+icon: IconInfoCircle
+---
+
+`@aspen-os/fleet` is a not-started placeholder — no domain model, bounded context, tables, or events.
+
+## Stub shape
+
+```text
+packages/fleet/
+  package.json  # name only, no exports/deps/scripts
+  src/index.ts  # empty (0 bytes)
+  docs/         # index.mdx + overview.mdx + meta.json
+```
+
+## Status
+
+Not started. A real module would follow the management-aligned module shape (`src/module.ts`, `auth.ts`, `pubsub.ts`, `db-schemas/`, `schemas/`, `workflows/`).
+
+## Expected event
+
+Compliance EventBridge names one fleet topic as a future trigger. Nothing publishes or subscribes today — type-level expectation only.
+
+| Topic                      | Downstream effect                              |
+| -------------------------- | ---------------------------------------------- |
+| `fleet:vehicle_registered` | Pollution certificate + semi-annual obligation |
+
+<Callout type="warn">
+  No payload contract exists. Do not emit or subscribe to this topic until the module is
+  implemented.
+</Callout>
+
+## Relationships
+
+| From         | To                     | Via                        | State         |
+| ------------ | ---------------------- | -------------------------- | ------------- |
+| Fleet (stub) | Compliance EventBridge | `fleet:vehicle_registered` | Expected only |

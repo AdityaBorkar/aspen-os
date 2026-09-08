@@ -8,7 +8,38 @@ The Masters module exposes seven workflow groups as flat `Workflow` objects: `co
 
 Polymorphic entities (`contacts`, `addresses`, `bankAccounts`, `connections`, `paymentMethods`) require `entityType` and `entityId` (the owning `organization`, `branch`, `connection`, `contact`, or `entity`) on create/list; list queries filter on the `(entityType, entityId)` pair. `entities` and `unitsOfMeasure` are tenant-level — no scope pair.
 
-## Contacts
+## Configuration
+
+```ts title="src/module.ts"
+export type MastersModuleConfig = undefined;
+
+Masters.create(); // $name = "masters" (proxy key: p.masters), $dependencies = []
+```
+
+Create-style methods take Valibot-validated input (`CreateXxxSchema`); update takes `{ id, patch: UpdateXxxSchema }`. Each operation writes audit entries (via `ctx.audit`) and publishes domain events via the platform context.
+
+## Public API
+
+```ts title="src/workflows/index.ts"
+readonly addresses = { create, delete, get, list, setPrimary, update };
+readonly bankAccounts = {
+  activate, create, deactivate, delete, get, list, setPrimary, update,
+};
+readonly contacts = { create, delete, get, list, setPrimary, update };
+readonly entities = { create, delete, get, list, setStatus, update };
+readonly paymentMethods = {
+  activate, create, deactivate, delete, get, list, setPrimary, update,
+};
+readonly unitsOfMeasure = {
+  activate, create, deactivate, delete, get, list, update,
+};
+// connections is a getter bound to the kvStore unit (same verbs + credential ops)
+get connections() // { activate, create, deactivate, delete, get, list, rotateCredential, test, update }
+```
+
+## Features
+
+### Contacts
 
 Access: `p.masters.contacts`
 
@@ -24,7 +55,7 @@ await p.masters.contacts.setPrimary({ id });
 const contacts = await p.masters.contacts.list({ entityType: "organization", entityId, filters? });
 ```
 
-## Addresses
+### Addresses
 
 Access: `p.masters.addresses`
 
@@ -40,7 +71,7 @@ await p.masters.addresses.setPrimary({ id });
 const addresses = await p.masters.addresses.list({ entityType: "organization", entityId, filters? });
 ```
 
-## Bank Accounts
+### Bank Accounts
 
 Access: `p.masters.bankAccounts`
 
@@ -58,7 +89,7 @@ await p.masters.bankAccounts.deactivate({ id });
 const accounts = await p.masters.bankAccounts.list({ entityType, entityId, filters? });
 ```
 
-## Connections
+### Connections
 
 Access: `p.masters.connections`
 
@@ -86,7 +117,7 @@ await p.masters.connections.rotateCredential({ id, credential: { apiKey: "..." }
 const connections = await p.masters.connections.list({ entityType, entityId, filters? });
 ```
 
-## Entities
+### Entities
 
 Access: `p.masters.entities`
 
@@ -114,7 +145,7 @@ const entities = await p.masters.entities.list({
 
 `setStatus` enforces `ENTITY_STATUS` transitions: `active` ↔ `inactive`, and both → `archived` (terminal).
 
-## Payment Methods
+### Payment Methods
 
 Access: `p.masters.paymentMethods`
 
@@ -143,7 +174,7 @@ const methods = await p.masters.paymentMethods.list({
 });
 ```
 
-## Units of Measure
+### Units of Measure
 
 Access: `p.masters.unitsOfMeasure`
 
@@ -174,6 +205,38 @@ await p.masters.unitsOfMeasure.deactivate({ id });
 const units = await p.masters.unitsOfMeasure.list({ filters: { category, isActive } });
 ```
 
-## Conventions
+## Events
 
-All workflow methods are `Workflow.name(...)` instances with Valibot input validation and platform workflow persistence. Create-style methods take `{ input: CreateXxxSchema }`; update takes `{ id, patch: UpdateXxxSchema }`. Each operation writes audit entries (via `ctx.audit`) and publishes domain events via the platform context.
+| Event                                                                                                          | Trigger                                            |
+| -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `masters:contact_created`, `masters:contact_updated`, `masters:contact_removed`                                | Contact create / update / delete                   |
+| `masters:address_created`, `masters:address_updated`, `masters:address_removed`                                | Address create / update / delete                   |
+| `masters:bank_account_created`, `masters:bank_account_updated`                                                 | Account create / update                            |
+| `masters:bank_account_activated`, `masters:bank_account_deactivated`                                           | Account activate / deactivate                      |
+| `masters:connection_created`, `masters:connection_updated`, `masters:connection_removed`                       | Connection create / update / delete                |
+| `masters:connection_status_changed`, `masters:connection_credential_rotated`                                   | Status change / credential rotation                |
+| `masters:entity_created`, `masters:entity_updated`, `masters:entity_removed`                                   | Entity create / update / delete                    |
+| `masters:unit_of_measure_created`, `masters:unit_of_measure_updated`, `masters:unit_of_measure_removed`        | UOM create / update / delete                       |
+| `masters:unit_of_measure_activated`, `masters:unit_of_measure_deactivated`                                     | UOM activate / deactivate                          |
+| `masters:payment_method_created`, `masters:payment_method_updated`, `masters:payment_method_removed`           | Payment method create / update / delete            |
+| `masters:payment_method_activated`, `masters:payment_method_deactivated`, `masters:payment_method_primary_set` | Payment method activate / deactivate / primary set |
+
+Full payloads: [Events](/docs/masters/events).
+
+## Schema
+
+| Table                    | Description                                            |
+| ------------------------ | ------------------------------------------------------ |
+| `master_contact`         | Contact record scoped per `(entityType, entityId)`     |
+| `master_address`         | Address record scoped per `(entityType, entityId)`     |
+| `master_bank_account`    | Bank account scoped per `(entityType, entityId)`       |
+| `master_connection`      | Integration connection with `credentialRef` to kvStore |
+| `master_entity`          | Tenant-level business party, optional `organizationId` |
+| `master_payment_method`  | Payment mode scoped per `(entityType, entityId)`       |
+| `master_unit_of_measure` | Tenant-wide unit with base-unit / conversion structure |
+
+Full columns: [DB Schemas](/docs/masters/db-schemas).
+
+## Dependencies
+
+No module dependencies (`$dependencies: []`). The `connections` group binds the platform `kvStore` unit at `$initialize()` for credential storage; all other groups are stateless. Enum values come from `@aspen-os/constants`.

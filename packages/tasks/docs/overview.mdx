@@ -6,7 +6,7 @@ icon: IconInfoCircle
 
 The Tasks module manages projects, tasks, statuses, time tracking, comments, attachments, automation rules, saved views, and dependency graphs.
 
-> Task reminders moved to `@aspen-os/calendar` — they are `calendar_reminder` rows with `targetType = task`, materialized by the calendar task bridge from `task:due_date_changed`. This module no longer owns any reminder surface.
+> Task reminders moved to `@aspen-os/calendar` — they are `calendar_reminder` rows with `targetType = task`, materialized by the calendar task bridge from `task:due_date_changed` and cancelled on `task:deleted` / terminal `task:status_changed`. This module no longer owns any reminder surface.
 
 ## Module Configuration
 

@@ -4,6 +4,24 @@ description: Placeholder package — fleet module is not yet implemented.
 icon: IconTruck
 ---
 
-`@aspen-os/fleet` is a **not-started** stub. Its `src/index.ts` is empty and `package.json` has no exports, dependencies, or scripts.
+`@aspen-os/fleet` is a not-started stub with no module, API, tables, or events.
 
-This package is intended to provide a fleet management module, but no scope has been defined yet. See `docs/TODO.md` for planned work.
+<Callout type="warn">
+  Do not import `@aspen-os/fleet` — `src/index.ts` is empty and `package.json` declares only a name.
+</Callout>
+
+```json title="package.json"
+{
+  "name": "@aspen-os/fleet"
+}
+```
+
+## Documentation
+
+<Cards>
+  <Card
+    title="Overview"
+    href="/docs/fleet/overview"
+    description="Stub status and the one known downstream expectation"
+  />
+</Cards>

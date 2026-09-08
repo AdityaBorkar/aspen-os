@@ -1,0 +1,30 @@
+---
+title: Access Control
+description: ACL resources and operations declared by the Compliance module.
+icon: IconShield
+---
+
+The Compliance module declares its ACL via `defineAcl()`, merged by the platform from `ModuleInfra.auth.acl` during `$prepareInfra()`.
+
+## Resources & Operations
+
+```ts title="src/auth.ts"
+import { defineAcl } from "@aspen-os/platform/server";
+
+export const acl = defineAcl({
+  complianceDocument: ["archive", "create", "delete", "read", "reject", "update", "verify"],
+  complianceObligation: ["activate", "create", "deactivate", "delete", "read", "update"],
+  complianceVerificationRule: ["create", "delete", "read", "update"],
+});
+```
+
+| Resource                     | Operations                                                          |
+| ---------------------------- | ------------------------------------------------------------------- |
+| `complianceDocument`         | `archive`, `create`, `delete`, `read`, `reject`, `update`, `verify` |
+| `complianceObligation`       | `activate`, `create`, `deactivate`, `delete`, `read`, `update`      |
+| `complianceVerificationRule` | `create`, `delete`, `read`, `update`                                |
+
+<Callout type="info">
+  The ACL is declaration-only. No workflow calls `ctx.auth`; role definitions and enforcement are
+  host-app concerns.
+</Callout>

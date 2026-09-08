@@ -1,0 +1,35 @@
+---
+title: Overview
+description: CRM stub status, package shape, and what a future module must define.
+icon: IconInfoCircle
+---
+
+`@aspen-os/crm` has no bounded context, domain model, or events. `.working-docs/bounded-contexts/stubs.md` lists it as a placeholder alongside accounting, fleet, inventory, pharmacy, and reports.
+
+## Package shape
+
+```text
+packages/crm/
+  package.json   # { "name": "@aspen-os/crm" } — no exports, deps, or scripts
+  src/index.ts   # empty (0 bytes)
+  docs/          # index.mdx + overview.mdx only
+```
+
+```json title="packages/crm/package.json"
+{
+  "name": "@aspen-os/crm"
+}
+```
+
+## Relationships
+
+| Direction    | Value                                                       |
+| ------------ | ----------------------------------------------------------- |
+| Context map  | Stub — no upstream, downstream, or module dependencies      |
+| Events       | None produced, none consumed                                |
+| Cross-module | No expectations (unlike `fleet` / `accounting` stub topics) |
+
+<Callout type="info">
+  When this stub becomes a real module, follow `.agents/skills/write-module/SKILL.md` and
+  `CODING_CONVENTIONS.md`. Do not infer scope from the package name — no CRM scope is defined yet.
+</Callout>

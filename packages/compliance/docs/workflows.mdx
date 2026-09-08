@@ -34,13 +34,14 @@ await p.compliance.documents.renew({ id, newData });
 
 await p.compliance.documents.archive({ id, archivedBy, reason });
 await p.compliance.documents.snooze({ id, snoozedBy, snoozedUntil });
+await p.compliance.documents.update({ id, patch });
 await p.compliance.documents.assignReviewer({ id, reviewerId });
 await p.compliance.documents.assignTo({ id, assigneeId });
 await p.compliance.documents.uploadAttachment({ id, storageKey });
 await p.compliance.documents.updateStatus({ id, status, performedBy });
 
-// Queries
-const doc = await p.compliance.documents.get({ id });
+// Queries (`get` and `getById` are aliases)
+const doc = await p.compliance.documents.getById({ id });
 const list = await p.compliance.documents.list({ filters });
 const bySource = await p.compliance.documents.getBySource({ sourceModule, sourceEntityId });
 const byObligation = await p.compliance.documents.getByObligation({ obligationId });
@@ -89,7 +90,7 @@ await p.compliance.obligations.update({ id, patch });
 await p.compliance.obligations.activate({ id });
 await p.compliance.obligations.deactivate({ id });
 
-const obligation = await p.compliance.obligations.get({ id });
+const obligation = await p.compliance.obligations.getById({ id });
 const list = await p.compliance.obligations.list({ filters });
 const active = await p.compliance.obligations.getActive();
 const periods = await p.compliance.obligations.getUpcomingPeriods({ id });
@@ -118,6 +119,7 @@ await p.compliance.verification.create({
 
 await p.compliance.verification.update({ id, patch });
 await p.compliance.verification.delete({ id });
+const rule = await p.compliance.verification.getById({ id });
 const rules = await p.compliance.verification.list({ filters });
 const match = await p.compliance.verification.match({ category, sourceModule, ... });
 ```
@@ -152,6 +154,30 @@ await p.compliance.dashboard.invalidateCache();
 
 The summary aggregates counts by status, category, branch, and source module, plus expiring/expired/overdue/pending counts and a health score, cached for `dashboardCacheTtl` seconds.
 
+## Events
+
+| Group         | Events published                                                                                                                                                                                                                                        |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `documents`   | `document_created`, `document_updated`, `document_submitted`, `document_verified`, `document_rejected`, `document_completed`, `document_renewed`, `document_archived`, `document_snoozed`, `document_reviewer_assigned`, `document_attachment_uploaded` |
+| `obligations` | `obligation_created`, `obligation_updated`, `obligation_activated`, `obligation_deactivated`                                                                                                                                                            |
+
+Expiry, escalation, and summary events (`document_expiring`, `document_expired`, `document_escalated`, `weekly_summary`) are published by services, not workflows. See [Events](/docs/compliance/events).
+
+## Schema
+
+| Group                | Tables                                        |
+| -------------------- | --------------------------------------------- |
+| `documents`          | `compliance_document`                         |
+| `obligations`        | `compliance_obligation`                       |
+| `verification`       | `compliance_verification_rule`                |
+| `audit`, `dashboard` | None — platform `audit_log` and `KvStoreUnit` |
+
+See [Schema](/docs/compliance/db-schemas).
+
+## Dependencies
+
+No module dependencies (`$dependencies = []`). Runtime requires platform `db`, `kvStore`, `pubsub` units plus an audit context (`ctx.audit`).
+
 ## Notes
 
-All workflow methods are `Workflow.name(...)` instances with Valibot input validation and platform workflow persistence. Create-style methods take `{ input: CreateXxxSchema }`; update takes `{ id, patch }`. Each operation writes audit entries and publishes domain events via the platform context.
+All workflow methods are `Workflow.name(...)` instances with Valibot input validation and platform workflow persistence. Create-style methods take `{ input: CreateXxxSchema }`; update takes `{ id, patch }`. `get` is a deprecated alias of `getById` on `obligations` and `verification`. Internal scan helpers (`updateNotifiedAt`, `updateEscalatedAt`, `markRenewalInProgress`, `getActiveDocumentsForReminders`, `getExpiredAndOverdueDocuments`, `getEscalatableDocuments`) serve the reminder engine, not callers.

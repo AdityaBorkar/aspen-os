@@ -68,7 +68,7 @@ await p.dms.versions.revert({ fileId, version: 2 }); // promotes version 2 as a 
 await p.dms.versions.delete({ fileId, version: 2 }); // cannot delete the current version
 ```
 
-`new` saves the previous current into `dms_file_version`, bumps the counter, and prunes the oldest versions beyond `maxVersions` (a version under an active legal hold is never pruned). `revert` copies the target revision's bytes into a new current version.
+`new` saves the previous current into `dms_file_version`, bumps the counter, and prunes the oldest versions beyond `maxVersions` (a version under an active legal hold is never pruned). `new` refuses `trashed` and `triaged` files; `revert` copies the target revision's bytes into a new current version.
 
 ## Folders
 

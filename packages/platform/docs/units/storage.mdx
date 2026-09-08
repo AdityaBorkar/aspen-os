@@ -74,7 +74,9 @@ class StorageUnit {
     options?: ListOptions,
   ): Promise<{ files: FileObject[]; nextContinuationToken?: string }>;
 
-  async $prepareInfra(): Promise<void>;
+  // DB metadata row (file_metadata table)
+  async getMetadataRow(key: string): Promise<...>;
+
   async $cleanup(): Promise<void>;
 }
 ```

@@ -68,6 +68,12 @@ await p.pubsub.subscribe("branch:created", async (message) => {
 });
 ```
 
+<Callout type="warn">
+  `branch:close` takes a `Date` input, but the `branch:closed` event `date` is a `YYYY-MM-DD` string
+  (`toDateOnly` conversion). The same applies to `openedDate` / `closedDate` / `foundedDate`
+  columns.
+</Callout>
+
 ## Event Map Type
 
 ```ts title="src/pubsub.ts"

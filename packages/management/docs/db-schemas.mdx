@@ -4,7 +4,7 @@ description: Control-plane and tenant tables declared by the Management Plane mo
 icon: IconDatabase
 ---
 
-The Management Plane declares 4 tables across two schema groups. Control-plane schemas (`tenant`, `service_provider`) are pushed to the control-plane DB; tenant schemas (`organization`, `user`) mirror columns used by the module's tenant-scoped workflows.
+The Management Plane declares 3 control-plane tables (`tenant`, `service_provider`, `service_provider_user`). `tenant_schemas` is empty — no tables are pushed to tenant DBs.
 
 ## Enums
 
@@ -57,16 +57,36 @@ An implementation/integration partner that does physical-world onboarding work.
 
 Indexed on `status`.
 
+### `service_provider_user`
+
+Join row linking one platform user to one service provider. Carries the SP membership — there is no `spId` column on `user`.
+
+| Column                | Type                  | Description                  |
+| --------------------- | --------------------- | ---------------------------- |
+| `id`                  | text (PK)             | `uuidv7("id").primaryKey()`. |
+| `service_provider_id` | text (notNull)        | FK → `service_provider.id`.  |
+| `user_id`             | text (notNull)        | FK → better-auth `user.id`.  |
+| `created_at`          | timestamptz (notNull) | Default `now()`.             |
+| `updated_at`          | timestamptz (notNull) | Default `now()`.             |
+
+Unique on (`service_provider_id`, `user_id`) and on `user_id` (1:1 user→SP). Indexed on `service_provider_id`.
+
+<Callout type="warn">
+  `role = "sp_user"` requires a `service_provider_user` row; any other role must have none. Enforced
+  in the user workflows, not by the database.
+</Callout>
+
 ## Tenant Schemas
 
-The `organization` and `user` mirrors are declared as tenant schemas (pushed to each tenant DB alongside other modules' tenant tables).
+`tenant_schemas` is empty — the module pushes nothing to tenant DBs.
 
 ## Relationships
 
 ```text
-tenant ──N:1──→ service_provider (active SP assignment)
-user ──N:1──→ service_provider (sp_user, via sp_id)
-organization (better-auth) ──1:1──→ tenant (companion)
+tenant ──N:1──→ service_provider (via service_provider_id)
+service_provider_user ──N:1──→ service_provider
+service_provider_user ──N:1──→ user (better-auth, 1:1 user→SP via unique user_id)
+organization (better-auth) ──1:1──→ tenant (companion, shared ID)
 ```
 
 <Callout type="info">

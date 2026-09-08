@@ -18,7 +18,7 @@ export class Dms implements Module {
 }
 ```
 
-The module declares no platform-module dependencies.
+The module requires the `db`, `pubsub`, and `storage` units (`$dependencies = ["db", "pubsub", "storage"]`).
 
 ## Architecture
 
@@ -89,15 +89,10 @@ await p.dms.fileViews.create({ input: { name: "Invoices", ownerId: userId, filte
 
 ## Initialization
 
-`$initialize()` receives `db`, `auth`, `pubsub`, and `storage` units, stores `db`/`pubsub`, and binds the `StorageUnit` into the storage bridge:
+`$initialize()` receives the `db`, `pubsub`, and `storage` units, stores `db`/`pubsub`, and binds the `StorageUnit` into the storage bridge (`setDmsStorage`). Audit comes from `getContext()` in `$prepareRuntime()`, not `$initialize()`:
 
 ```ts
-$initialize(units: {
-  db: DatabaseUnit;
-  auth: AuthUnit;
-  pubsub: PubSubUnit;
-  storage: StorageUnit;
-}): void;
+$initialize(units: Record<string, Unit>): void; // uses db, pubsub, storage
 ```
 
 `$prepareRuntime()` registers two scheduled pg-boss jobs with `ctx.audit` + the running DB:

@@ -1,6 +1,6 @@
 {
   "icon": "IconTruck",
-  "pages": [],
+  "pages": ["overview"],
   "pagesIndex": "index",
   "root": true,
   "title": "Fleet"

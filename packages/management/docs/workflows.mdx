@@ -53,7 +53,7 @@ await p.management.tenants.update({
 
 Status changes go only through the lifecycle transitions above — `update` cannot change `status`.
 
-`onboard` runs as a durable workflow with internal steps (`create-organization`, `record-tenant`, `audit-and-notify`) and calls `DatabaseUnit.provisionTenant()` for isolated-mode DB creation. It emits `tenant:provisioned` and requires `ctx.auth`.
+`onboard` runs as a durable workflow with internal steps (`create-organization`, `provision-tenant`, `seed-profile` on isolated mode, `record-tenant`, `audit-and-notify`). `provision-tenant` calls `DatabaseUnit.provisionTenant()` and deletes the org row if provisioning fails. It emits `tenant:provisioned` and requires `ctx.auth`.
 
 ### Validation Schemas
 
@@ -64,7 +64,7 @@ Status changes go only through the lifecycle transitions above — `update` cann
 
 ## ServiceProviders
 
-Access: `p.management.serviceProviders` (a getter, throws if accessed before `$initialize`).
+Access: `p.management.serviceProviders` (readonly object).
 
 ```ts
 // Create
@@ -89,14 +89,21 @@ await p.management.serviceProviders.update({ id: spId, patch: { phone: "+91-9999
 await p.management.serviceProviders.deactivate({ id: spId });
 await p.management.serviceProviders.activate({ id: spId });
 
-// Assigned tenants and users
-const tenants = await p.management.serviceProviders.listAssignedTenants({ spId });
-const users = await p.management.serviceProviders.listUsers({ spId });
+// Assigned tenants and users (paginated)
+const tenants = await p.management.serviceProviders.listAssignedTenants({ spId, limit: 50 });
+const users = await p.management.serviceProviders.listUsers({ spId, limit: 50 });
 ```
+
+<Callout type="warn">
+  Tenant transitions throw when the current status is not the expected source (`onboarding` →
+  `active`, `active` → `suspended`, `suspended` → `active`, `active`/`suspended` → `churned`). SP
+  transitions are idempotent — `activate`/`deactivate` return the row unchanged when already in the
+  target status.
+</Callout>
 
 ## Users
 
-Access: `p.management.users` (a getter, throws if accessed before `$initialize`).
+Access: `p.management.users` (readonly object).
 
 ```ts
 // Create a platform user (password required)
@@ -136,5 +143,13 @@ await p.management.users.assignToServiceProvider({ id: userId, spId: "sp-2" });
 
 ## Notes
 
-- All workflows are `Workflow.name(...)` objects (`tenant.activate`, `sp.create`, `user.assign-role`, etc.), each with Valibot input validation and status persistence via the platform's `Workflow` engine.
+- All workflows are `Workflow.name(...)` objects, each with Valibot input validation and status persistence via the platform's `Workflow` engine.
+
+| Group              | Workflow names                                                                                                                                                                     |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tenants`          | `tenant.onboard`, `tenant.get`, `tenant.list`, `tenant.update`, `tenant.activate`, `tenant.suspend`, `tenant.reactivate`, `tenant.churn`, `tenant.assign-sp`, `tenant.unassign-sp` |
+| `serviceProviders` | `sp.create`, `sp.get`, `sp.list`, `sp.update`, `sp.activate`, `sp.deactivate`, `sp.assigned-tenants`, `sp.users`                                                                   |
+| `users`            | `user.create`, `user.get`, `user.list`, `user.update`, `user.delete`, `user.assign-role`, `user.assign-sp`                                                                         |
+
 - Lifecycle and CRUD operations write audit entries (`ctx.audit.write`) and publish domain events via `ctx.pubsub`.
+- Report filter types (`TenantUsageFilters`, `LifecycleReportFilters`, `AuditReportFilters` in `src/schemas/report.ts`) are exported from `#/types` but have no workflows yet.

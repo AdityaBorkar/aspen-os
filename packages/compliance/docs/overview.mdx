@@ -8,7 +8,7 @@ The Compliance module manages compliance documents through their full lifecycle 
 
 ## Module
 
-```ts title="src/index.ts"
+```ts title="src/module.ts"
 export class Compliance implements Module {
   static create(config: ComplianceModuleConfig): Compliance;
   readonly $name = "compliance";
@@ -50,24 +50,25 @@ $initialize(units: { db: DatabaseUnit; kvStore: KvStoreUnit; pubsub: PubSubUnit 
 
 ```text
 packages/compliance/src/
-  index.ts              # Module class + type re-exports
-  db-schemas/           # tables + enums (control-plane + tenant)
-  types.ts              # Valibot schemas + domain interfaces
-  constants.ts          # Enums, defaults, cron schedules, scheduled job names
-  pubsub.ts             # events + event interfaces + ComplianceEventMap
+  module.ts             # Module class (Compliance.create, $prepareInfra/Runtime/Cleanup)
+  index.ts              # Re-exports module + types
+  auth.ts               # ACL declaration
+  db-schemas/           # tables + enums (tenant_schemas; control_plane empty)
+  types.ts              # DashboardSummary, TimelineEntry, re-exports
+  utils/constants.ts    # Enums, defaults, cron schedules, scheduled job names
+  pubsub.ts             # COMPLIANCE_EVENTS + event interfaces + ComplianceEventMap
+  schemas/              # Valibot input/filter schemas
+  workflow-steps/       # fetch-document/obligation/rule, status-derivation
   workflows/
-    document.ts
-    obligation.ts
-    verification.ts
-    audit.ts
-    dashboard.ts
+    document.ts (dir)   # lifecycle + reminder/scan queries
+    obligation.ts (dir)
+    verification.ts (dir)
+    audit.ts (dir)
+    dashboard.ts (dir)
   services/
     reminder-engine.ts
     obligation-generator.ts
     event-bridge.ts
-    status-derivation.ts
-  utils/
-    acl.ts
 ```
 
 ## Workflow Accessors
@@ -82,11 +83,19 @@ p.compliance.dashboard; // → DashboardWorkflow
 
 ## Scheduled Jobs
 
-| Job Name                                                                                                           | Cron                              | Description                              |
-| ------------------------------------------------------------------------------------------------------------------ | --------------------------------- | ---------------------------------------- |
-| `compliance:*` (daily expiry scan, daily escalation, daily status transition, obligation generate, weekly summary) | via `registerReminderSchedules()` | Automated compliance scans and summaries |
+| Job Name                             | Cron        | Registered by                      |
+| ------------------------------------ | ----------- | ---------------------------------- |
+| `compliance:daily-expiry-scan`       | `0 8 * * *` | `registerReminderSchedules()`      |
+| `compliance:daily-status-transition` | `0 0 * * *` | `registerReminderSchedules()`      |
+| `compliance:daily-escalation`        | `0 9 * * *` | `registerReminderSchedules()`      |
+| `compliance:weekly-summary`          | `0 9 * * 1` | `registerReminderSchedules()`      |
+| `compliance:obligation-generate`     | `0 6 * * *` | Subscribed only — no cron fires it |
 
-The exact job names and crons are defined in `src/constants.ts` and registered in `$prepareRuntime()`.
+<Callout type="warn">
+  `CRON_SCHEDULES.OBLIGATION_GENERATE` (`0 6 * * *`) is defined but never passed to
+  `pubsub.schedule()`. The obligation generator subscribes to the topic; trigger it externally or
+  via `generatePendingDocuments()` until a schedule is registered.
+</Callout>
 
 ## Package
 

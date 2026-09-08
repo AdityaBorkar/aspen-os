@@ -57,13 +57,13 @@ export const COMPLIANCE_EVENTS = {
 
 ### Expiry & Reminder Events
 
-| Event                           | Payload                                                               | Trigger                             |
-| ------------------------------- | --------------------------------------------------------------------- | ----------------------------------- |
-| `compliance:document_expiring`  | `{ daysUntilExpiry, documentId, sourceEntityId, sourceModule }`       | Expiry reminder threshold reached   |
-| `compliance:document_due`       | `{ daysUntilDue, documentId, sourceEntityId, sourceModule }`          | Due date reminder threshold reached |
-| `compliance:document_expired`   | `{ category, documentId, sourceEntityId, sourceModule }`              | Document expired                    |
-| `compliance:document_overdue`   | `{ category, daysOverdue, documentId, sourceEntityId, sourceModule }` | Document overdue                    |
-| `compliance:document_escalated` | `{ daysSinceExpiry, documentId, escalationLevel }`                    | Escalation triggered                |
+| Event                           | Payload                                                                     | Trigger                             |
+| ------------------------------- | --------------------------------------------------------------------------- | ----------------------------------- |
+| `compliance:document_expiring`  | `{ daysUntilExpiry, documentId, sourceEntityId, sourceModule, recipient? }` | Expiry reminder threshold reached   |
+| `compliance:document_due`       | `{ daysUntilDue, documentId, sourceEntityId, sourceModule, recipient? }`    | Due date reminder threshold reached |
+| `compliance:document_expired`   | `{ category, documentId, sourceEntityId, sourceModule }`                    | Document expired                    |
+| `compliance:document_overdue`   | `{ category, daysOverdue, documentId, sourceEntityId, sourceModule }`       | Document overdue                    |
+| `compliance:document_escalated` | `{ daysSinceExpiry, documentId, escalationLevel }`                          | Escalation triggered                |
 
 ### Obligation Events
 

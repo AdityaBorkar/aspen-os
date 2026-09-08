@@ -6,6 +6,12 @@ icon: IconInfoCircle
 
 The Comms module is the notification + out-of-band delivery surface built on `@aspen-os/platform`. It owns **channels** (sender endpoints), **host providers**, the **in-app notification inbox**, and the **delivery outbox** for email, SMS, and WhatsApp. It consumes the per-module pubsub domain events every implemented module already publishes (`compliance:document_expiring`, `calendar:reminder_due`, `dms:file_expired`, `management:tenant_*`, `auth:email_otp_requested`) and completes the notify half of each producer's `"audit-and-notify"` step.
 
+<Callout type="warn">
+  Comms is the single notification/inbox surface — there is no separate `notifications` package.
+  There is no `comms:deliver` topic: out-of-band delivery runs through the `comms:message-sweeper`
+  cron scanning queued `comms_message` rows every minute.
+</Callout>
+
 ## Module
 
 ```ts title="src/module.ts"
@@ -39,7 +45,7 @@ MESSAGE (tenant)                     delivery outbox
 
 ## Lifecycle
 
-```
+```text
 producer event (bridge) ──or── host app (p.comms.notifications.notify)
    → resolveRecipient (Auth unit / payload address)
    → routeNotification (requested channel types → preference opt-outs → suppressOutOfBand)
@@ -96,4 +102,3 @@ $prepareInfra(): ModuleInfra {
 - **A default must be active and verified** — `channels.setDefault` requires `active` + `verifiedAt`; `channels.activate` requires `verifiedAt`; host defaults are pre-verified at materialization.
 - **In-app is zero-delivery** — the `comms_notification` row _is_ the inbox; only non-`inapp` channel types produce `comms_message` rows.
 - **OTP never persists** — the Auth unit stores the OTP in a short-lived token store, publishes only `{ email, tokenRef, type }`, and the bridge delivers inline via the host default email provider.
-- **No producer-without-consumer drop** — the sweeper uses a cron, not a publish/subscribe topic; every bridge topic is subscribed in `$prepareRuntime()`.

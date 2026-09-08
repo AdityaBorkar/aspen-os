@@ -24,32 +24,32 @@ The polymorphic `entity_type` columns (`dms_entity_label`, `dms_share`, `dms_pub
 
 The single file entity — a merge of the former `dms_document` (records) and `dms_file` (filesystem) tables. Has a GIN expression index over `to_tsvector('simple', name || description || metadata || field_values)` for full-text search.
 
-| Column                      | Type          | Description                                                                                            |
-| --------------------------- | ------------- | ------------------------------------------------------------------------------------------------------ |
-| `id`                        | text (PK)     | Auto UUIDv7                                                                                            |
-| `name`                      | text          | Current file name (may differ from the current version's original name if a naming schema was applied) |
-| `version`                   | integer       | Current version number (starts at 1)                                                                   |
-| `storage_key`               | text          | `dms/{tenant}/{id}/v{version}/{safeName}`                                                              |
-| `content_type`              | text          | MIME type                                                                                              |
-| `size`                      | bigint        | Bytes of current version                                                                               |
-| `etag`                      | text          | S3 ETag for integrity                                                                                  |
-| `folder_id`                 | text          | Containing folder; `null` for triage-staged files                                                      |
-| `path`                      | text (unique) | Materialized path when in a folder (`/Projects/2026/invoice.pdf`); `null` for triage-staged files      |
-| `description`               | text          | Optional free-text description                                                                         |
-| `class_id`                  | text (FK)     | Class; `null` while triaged                                                                            |
-| `doc_number`                | text (unique) | `DOC-000123`, assigned on classification; `null` for plain filesystem files                            |
-| `field_values`              | jsonb         | Values for the assigned class fields (validated on classify)                                           |
-| `status`                    | enum          | `triaged`, `active`, `expired`, `trashed`                                                              |
-| `metadata`                  | jsonb         | Free-form key/value                                                                                    |
-| `compression`               | jsonb         | Per-file compression override                                                                          |
-| `batch_id`                  | text          | Groups bulk uploads                                                                                    |
-| `owner_id`                  | text          | Owner                                                                                                  |
-| `uploaded_by`               | text          | Who performed the upload                                                                               |
-| `expiry_date`               | date          | Optional expiry; when passed, status → `expired`                                                       |
-| `expired_at`                | timestamptz   | Expiry transition timestamp                                                                            |
-| `deleted_at`                | timestamptz   | Trash transition timestamp                                                                             |
-| `deleted_by`                | text          | Who soft-deleted                                                                                       |
-| `created_at` / `updated_at` | timestamptz   | Record timestamps                                                                                      |
+| Column                      | Type           | Description                                                                                                                                                                                        |
+| --------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                        | text (PK)      | Auto UUIDv7                                                                                                                                                                                        |
+| `name`                      | text           | Current file name (may differ from the current version's original name if a naming schema was applied)                                                                                             |
+| `version`                   | integer        | Current version number (starts at 1)                                                                                                                                                               |
+| `storage_key`               | text           | `dms/{tenant}/{id}/v{version}/{safeName}`                                                                                                                                                          |
+| `content_type`              | text           | MIME type                                                                                                                                                                                          |
+| `size`                      | bigint         | Bytes of current version                                                                                                                                                                           |
+| `etag`                      | text           | S3 ETag for integrity                                                                                                                                                                              |
+| `folder_id`                 | text           | Containing folder; `null` for triage-staged files                                                                                                                                                  |
+| `path`                      | text (indexed) | Materialized path when in a folder (`/Projects/2026/invoice.pdf`); `null` for triage-staged files. Uniqueness within the parent is app-enforced (`paths.checkNameUniqueness`), not a DB constraint |
+| `description`               | text           | Optional free-text description                                                                                                                                                                     |
+| `class_id`                  | text (FK)      | Class; `null` while triaged                                                                                                                                                                        |
+| `doc_number`                | text           | `DOC-000123`, count-based at classify time; `null` for plain filesystem files (no DB unique constraint)                                                                                            |
+| `field_values`              | jsonb          | Values for the assigned class fields (validated on classify)                                                                                                                                       |
+| `status`                    | enum           | `triaged`, `active`, `expired`, `trashed`                                                                                                                                                          |
+| `metadata`                  | jsonb          | Free-form key/value                                                                                                                                                                                |
+| `compression`               | jsonb          | Per-file compression override                                                                                                                                                                      |
+| `batch_id`                  | text           | Groups bulk uploads                                                                                                                                                                                |
+| `owner_id`                  | text           | Owner                                                                                                                                                                                              |
+| `uploaded_by`               | text           | Who performed the upload                                                                                                                                                                           |
+| `expiry_date`               | date           | Optional expiry; when passed, status → `expired`                                                                                                                                                   |
+| `expired_at`                | timestamptz    | Expiry transition timestamp                                                                                                                                                                        |
+| `deleted_at`                | timestamptz    | Trash transition timestamp                                                                                                                                                                         |
+| `deleted_by`                | text           | Who soft-deleted                                                                                                                                                                                   |
+| `created_at` / `updated_at` | timestamptz    | Record timestamps                                                                                                                                                                                  |
 
 Indexes: `status`, `class_id`, `folder_id`, `owner_id`, `batch_id`, `expiry_date`, `path`, GIN `search_vector`.
 
@@ -141,20 +141,20 @@ Indexed on `owner_id`, `is_shared`. (Sidebar pinning of views is the workspace m
 
 ### `dms_contact`
 
-| Column                      | Type        | Description                             |
-| --------------------------- | ----------- | --------------------------------------- |
-| `id`                        | text (PK)   | Auto UUIDv7                             |
-| `first_name` / `last_name`  | text        | Mandatory                               |
-| `email`                     | text        | Mandatory, org-unique                   |
-| `phone`                     | text        | Mandatory                               |
-| `company_name`              | text        | Mandatory                               |
-| `designation`               | text        | Mandatory                               |
-| `deletion_reason`           | text        | Required on remove                      |
-| `linked_user_id`            | text        | Optional link to internal AuthUnit user |
-| `is_removed`                | boolean     | Soft-delete flag                        |
-| `removed_at`                | timestamptz | When removed                            |
-| `created_by`                | text        | Who added                               |
-| `created_at` / `updated_at` | timestamptz | Record timestamps                       |
+| Column                      | Type        | Description                                  |
+| --------------------------- | ----------- | -------------------------------------------- |
+| `id`                        | text (PK)   | Auto UUIDv7                                  |
+| `first_name` / `last_name`  | text        | Mandatory                                    |
+| `email`                     | text        | Mandatory, indexed (no DB unique constraint) |
+| `phone`                     | text        | Mandatory                                    |
+| `company_name`              | text        | Mandatory                                    |
+| `designation`               | text        | Mandatory                                    |
+| `deletion_reason`           | text        | Required on remove                           |
+| `linked_user_id`            | text        | Optional link to internal AuthUnit user      |
+| `is_removed`                | boolean     | Soft-delete flag                             |
+| `removed_at`                | timestamptz | When removed                                 |
+| `created_by`                | text        | Who added                                    |
+| `created_at` / `updated_at` | timestamptz | Record timestamps                            |
 
 ### `dms_share`
 
