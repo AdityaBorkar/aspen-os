@@ -1,11 +1,6 @@
 import { acl } from "#/auth";
 import { control_plane_schemas, tenant_schemas } from "#/db-schemas";
 import { events } from "#/pubsub";
-import { createBranch } from "#/workflows/branch/create";
-import { getBranch } from "#/workflows/branch/get";
-import { listBranches } from "#/workflows/branch/list";
-import { getBranchTree } from "#/workflows/branch/tree";
-import { updateBranch } from "#/workflows/branch/update";
 
 import type { Module, ModuleInfra } from "@aspen-os/platform/server";
 
@@ -40,12 +35,4 @@ export class Organization implements Module {
   $prepareRuntime() {}
 
   $cleanup() {}
-
-  readonly branches = {
-    create: createBranch,
-    get: getBranch,
-    list: listBranches,
-    tree: getBranchTree,
-    update: updateBranch,
-  };
 }

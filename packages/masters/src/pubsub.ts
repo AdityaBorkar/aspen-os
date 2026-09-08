@@ -58,12 +58,22 @@ export const FILTER_VIEW_EVENTS = {
   UPDATED: "masters:filter_view_updated",
 } as const;
 
+export const ORG_BRANCH_EVENTS = {
+  CREATED: "masters:org_branch_created",
+  UPDATED: "masters:org_branch_updated",
+} as const;
+
+// Deprecated aliases — prefer ORG_BRANCH_EVENTS.
+export const BRANCH_EVENTS = ORG_BRANCH_EVENTS;
+
 export const events = {
   ADDRESS_EVENTS,
+  BRANCH_EVENTS,
   CONNECTION_EVENTS,
   CONTACT_EVENTS,
   ENTITY_EVENTS,
   FILTER_VIEW_EVENTS,
+  ORG_BRANCH_EVENTS,
   PAYMENT_METHOD_EVENTS,
   UNIT_OF_MEASURE_EVENTS,
 };
@@ -311,10 +321,37 @@ export interface FilterViewEventMap {
   [FILTER_VIEW_EVENTS.UPDATED]: FilterViewUpdatedEvent;
 }
 
+export interface OrgBranchCreatedEvent {
+  orgBranch: {
+    code: string;
+    id: string;
+    name: string;
+    type: string;
+  };
+}
+
+export interface OrgBranchUpdatedEvent {
+  changes: Record<string, JsonValue>;
+  orgBranch: { id: string; name: string };
+}
+
+// Deprecated aliases — prefer OrgBranchCreatedEvent / OrgBranchUpdatedEvent.
+export type BranchCreatedEvent = OrgBranchCreatedEvent;
+export type BranchUpdatedEvent = OrgBranchUpdatedEvent;
+
+export interface OrgBranchEventMap {
+  [ORG_BRANCH_EVENTS.CREATED]: OrgBranchCreatedEvent;
+  [ORG_BRANCH_EVENTS.UPDATED]: OrgBranchUpdatedEvent;
+}
+
+// Deprecated alias — prefer OrgBranchEventMap.
+export type BranchEventMap = OrgBranchEventMap;
+
 export type MastersEventMap = AddressEventMap &
   ConnectionEventMap &
   ContactEventMap &
   EntityEventMap &
   FilterViewEventMap &
+  OrgBranchEventMap &
   PaymentMethodEventMap &
   UnitOfMeasureEventMap;

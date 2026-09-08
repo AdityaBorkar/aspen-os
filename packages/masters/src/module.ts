@@ -52,9 +52,15 @@ export class Masters implements Module {
   readonly contacts = wf.contacts;
   readonly entities = wf.entities;
   readonly filterViews = wf.filterViews;
+  readonly orgBranches = wf.orgBranches;
   readonly paymentMethods = wf.paymentMethods;
   readonly settings = wf.settings;
   readonly unitsOfMeasure = wf.unitsOfMeasure;
+
+  // Deprecated alias — prefer orgBranches.
+  get branches() {
+    return this.orgBranches;
+  }
 
   get connections() {
     if (!this.#connections) {

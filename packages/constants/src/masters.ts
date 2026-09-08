@@ -39,6 +39,7 @@ export const MASTER_ENTITY_TYPE = {
   CONTACT: "contact",
   ENTITY: "entity",
   ORGANIZATION: "organization",
+  ORG_BRANCH: "org_branch",
 } as const;
 
 export type MasterEntityType = (typeof MASTER_ENTITY_TYPE)[keyof typeof MASTER_ENTITY_TYPE];

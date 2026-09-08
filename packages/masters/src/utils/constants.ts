@@ -1,9 +1,11 @@
 export const AUDIT_ENTITY_TYPE = {
   ADDRESS: "masters:address",
+  BRANCH: "masters:branch",
   CONNECTION: "masters:connection",
   CONTACT: "masters:contact",
   ENTITY: "masters:entity",
   FILTER_VIEW: "masters:filter_view",
+  ORG_BRANCH: "masters:org_branch",
   PAYMENT_METHOD: "masters:payment_method",
   SETTING: "masters:setting",
   UNIT_OF_MEASURE: "masters:unit_of_measure",

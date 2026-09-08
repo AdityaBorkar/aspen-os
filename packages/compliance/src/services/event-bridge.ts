@@ -36,6 +36,15 @@ const BranchCreatedEventSchema = object({
   }),
 });
 
+const OrgBranchCreatedEventSchema = object({
+  orgBranch: object({
+    code: string(),
+    id: string(),
+    name: string(),
+    type: string(),
+  }),
+});
+
 const FinancialYearStartedEventSchema = object({
   financialYear: string(),
 });
@@ -55,6 +64,7 @@ type EmployeeOnboardedEvent = InferSchemaOutput<typeof EmployeeOnboardedEventSch
 type EmployeeSeparatedEvent = InferSchemaOutput<typeof EmployeeSeparatedEventSchema>;
 type VehicleRegisteredEvent = InferSchemaOutput<typeof VehicleRegisteredEventSchema>;
 type BranchCreatedEvent = InferSchemaOutput<typeof BranchCreatedEventSchema>;
+type OrgBranchCreatedEvent = InferSchemaOutput<typeof OrgBranchCreatedEventSchema>;
 type FinancialYearStartedEvent = InferSchemaOutput<typeof FinancialYearStartedEventSchema>;
 type ContactCreatedEvent = InferSchemaOutput<typeof ContactCreatedEventSchema>;
 
@@ -86,8 +96,18 @@ const SUBSCRIPTIONS: {
   },
   {
     handler: (data, deps) => handleBranchCreated(data, deps),
+    schema: OrgBranchCreatedEventSchema,
+    topic: "masters:org_branch_created",
+  },
+  {
+    handler: (data, deps) => handleBranchCreated(data, deps),
     schema: BranchCreatedEventSchema,
     topic: "organization:branch_created",
+  },
+  {
+    handler: (data, deps) => handleBranchCreated(data, deps),
+    schema: BranchCreatedEventSchema,
+    topic: "branch:created",
   },
   {
     handler: (data, deps) => handleFinancialYearStarted(data, deps),
@@ -311,22 +331,31 @@ async function handleVehicleRegistered(
 }
 
 async function handleBranchCreated(
-  event: BranchCreatedEvent,
+  event: BranchCreatedEvent | OrgBranchCreatedEvent,
   deps: EventBridgeDeps,
 ): Promise<void> {
+  // SAFETY: Validated branch payloads have two shapes (branch vs orgBranch) from legacy and new topics; either validated shape carries the same identity.
+  const raw = event as {
+    branch?: BranchCreatedEvent["branch"];
+    orgBranch?: OrgBranchCreatedEvent["orgBranch"];
+  };
+  const branch = raw.branch ?? raw.orgBranch;
+  if (!branch) {
+    return;
+  }
   const obligationId = await createObligation(
     {
-      branch: event.branch.id,
+      branch: branch.id,
       category: "permit",
       createdBy: SYSTEM_ACTOR,
       documentType: "trade_license",
       expiryBased: true,
       expiryDurationMonths: 12,
       frequency: "annual",
-      name: `Annual Trade License Renewal — ${event.branch.name}`,
-      sourceEntityId: event.branch.id,
-      sourceEntityType: "branch",
-      sourceModule: "organization",
+      name: `Annual Trade License Renewal — ${branch.name}`,
+      sourceEntityId: branch.id,
+      sourceEntityType: "org_branch",
+      sourceModule: "masters",
       startDate: new Date(),
     },
     deps,
@@ -335,29 +364,29 @@ async function handleBranchCreated(
   await createManyDocuments(
     [
       {
-        branch: event.branch.id,
+        branch: branch.id,
         category: "permit",
         createdBy: SYSTEM_ACTOR,
         documentType: "trade_license",
         expiryDate: daysFromNow(365),
-        name: `Trade License — ${event.branch.name}`,
+        name: `Trade License — ${branch.name}`,
         obligationId,
         reminderDays: [90, 60, 30, 7],
-        sourceEntityId: event.branch.id,
-        sourceEntityType: "branch",
-        sourceModule: "organization",
+        sourceEntityId: branch.id,
+        sourceEntityType: "org_branch",
+        sourceModule: "masters",
       },
       {
-        branch: event.branch.id,
+        branch: branch.id,
         category: "safety",
         createdBy: SYSTEM_ACTOR,
         documentType: "fire_safety_certificate",
         expiryDate: daysFromNow(365),
-        name: `Fire Safety Certificate — ${event.branch.name}`,
+        name: `Fire Safety Certificate — ${branch.name}`,
         reminderDays: [90, 60, 30, 7],
-        sourceEntityId: event.branch.id,
-        sourceEntityType: "branch",
-        sourceModule: "organization",
+        sourceEntityId: branch.id,
+        sourceEntityType: "org_branch",
+        sourceModule: "masters",
       },
     ],
     deps,

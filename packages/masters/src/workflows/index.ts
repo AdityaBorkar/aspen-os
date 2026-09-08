@@ -27,6 +27,11 @@ import { duplicateFilterView } from "#/workflows/filter-view/duplicate";
 import { getFilterView } from "#/workflows/filter-view/get";
 import { listFilterViews } from "#/workflows/filter-view/list";
 import { updateFilterView } from "#/workflows/filter-view/update";
+import { createOrgBranch } from "#/workflows/org-branch/create";
+import { getOrgBranch } from "#/workflows/org-branch/get";
+import { listOrgBranches } from "#/workflows/org-branch/list";
+import { getOrgBranchTree } from "#/workflows/org-branch/tree";
+import { updateOrgBranch } from "#/workflows/org-branch/update";
 import { activatePaymentMethod } from "#/workflows/payment-method/activate";
 import { createPaymentMethod } from "#/workflows/payment-method/create";
 import { deactivatePaymentMethod } from "#/workflows/payment-method/deactivate";
@@ -78,6 +83,17 @@ export const filterViews = {
   setDefault: setDefaultFilterView,
   update: updateFilterView,
 } as const;
+
+export const orgBranches = {
+  create: createOrgBranch,
+  get: getOrgBranch,
+  list: listOrgBranches,
+  tree: getOrgBranchTree,
+  update: updateOrgBranch,
+} as const;
+
+// Deprecated alias — prefer orgBranches.
+export const branches = orgBranches;
 
 export const paymentMethods = {
   activate: activatePaymentMethod,

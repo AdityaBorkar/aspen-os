@@ -6,6 +6,7 @@ import {
   INTEGRATION_TYPE,
   MASTER_ENTITY_KIND,
   MASTER_ENTITY_TYPE,
+  ORG_BRANCH_TYPE,
   PAYMENT_METHOD_DIRECTION,
   PAYMENT_METHOD_STATUS,
   PAYMENT_METHOD_TYPE,
@@ -41,7 +42,13 @@ export const FilterViewAccessSchema = picklist(Object.values(FILTER_VIEW_ACCESS)
 
 export const FilterViewTypeSchema = picklist(Object.values(FILTER_VIEW_TYPE));
 
+export const OrgBranchTypeSchema = picklist(Object.values(ORG_BRANCH_TYPE));
+
+// Deprecated alias — prefer OrgBranchTypeSchema.
+export const BranchTypeSchema = OrgBranchTypeSchema;
+
 export {
+  BRANCH_TYPE,
   CARD_BRAND,
   CONTACT_TYPE,
   CONNECTION_STATUS,
@@ -49,6 +56,7 @@ export {
   INTEGRATION_TYPE,
   MASTER_ENTITY_KIND,
   MASTER_ENTITY_TYPE,
+  ORG_BRANCH_TYPE,
   PAYMENT_METHOD_DIRECTION,
   PAYMENT_METHOD_STATUS,
   PAYMENT_METHOD_TYPE,

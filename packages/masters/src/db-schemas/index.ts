@@ -3,6 +3,7 @@ import { masterConnection } from "#/db-schemas/connection";
 import { masterContact } from "#/db-schemas/contact";
 import { masterEntity } from "#/db-schemas/entity";
 import { masterFilterView } from "#/db-schemas/filter-view";
+import { orgBranch } from "#/db-schemas/org-branch";
 import { masterPaymentMethod } from "#/db-schemas/payment-method";
 import { masterSetting } from "#/db-schemas/setting";
 import { masterUnitOfMeasure } from "#/db-schemas/unit-of-measure";
@@ -11,6 +12,7 @@ export { masterAddress } from "#/db-schemas/address";
 export { masterConnection } from "#/db-schemas/connection";
 export { masterContact } from "#/db-schemas/contact";
 export { masterEntity } from "#/db-schemas/entity";
+export { branch, branchTypeEnum, orgBranch, orgBranchTypeEnum } from "#/db-schemas/org-branch";
 export {
   masterCardBrandEnum,
   masterConnectionStatusEnum,
@@ -40,6 +42,7 @@ export const mastersTables = {
   masterPaymentMethod,
   masterSetting,
   masterUnitOfMeasure,
+  orgBranch,
 } as const;
 
 export const control_plane_schemas = {} as const;

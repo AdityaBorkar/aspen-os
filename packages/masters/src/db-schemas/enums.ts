@@ -21,6 +21,7 @@ export const masterEntityTypeEnum = pgEnum("master_entity_type", [
   MASTER_ENTITY_TYPE.CONTACT,
   MASTER_ENTITY_TYPE.ENTITY,
   MASTER_ENTITY_TYPE.ORGANIZATION,
+  MASTER_ENTITY_TYPE.ORG_BRANCH,
 ]);
 
 export const masterEntityKindEnum = pgEnum("master_entity_type_enum", [

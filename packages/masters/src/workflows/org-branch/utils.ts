@@ -1,5 +1,5 @@
-import { branch } from "#/db-schemas";
-import type { BranchTreeNode } from "#/types";
+import { orgBranch } from "#/db-schemas";
+import type { OrgBranchTreeNode } from "#/schemas/org-branch";
 
 import type { WorkflowContext } from "@aspen-os/platform/server";
 import { and, eq, ne } from "drizzle-orm";
@@ -8,16 +8,20 @@ type Db = WorkflowContext["db"];
 
 const MAX_HIERARCHY_DEPTH = 5;
 
-export async function ensureCodeUnique(db: Db, code: string, excludeId?: string): Promise<void> {
+export async function ensureOrgBranchCodeUnique(
+  db: Db,
+  code: string,
+  excludeId?: string,
+): Promise<void> {
   const upperCode = code.toUpperCase();
   const conditions =
     excludeId === undefined
-      ? [eq(branch.code, upperCode)]
-      : [eq(branch.code, upperCode), ne(branch.id, excludeId)];
+      ? [eq(orgBranch.code, upperCode)]
+      : [eq(orgBranch.code, upperCode), ne(orgBranch.id, excludeId)];
 
   const [existing] = await db
-    .select({ id: branch.id })
-    .from(branch)
+    .select({ id: orgBranch.id })
+    .from(orgBranch)
     .where(and(...conditions))
     .limit(1);
 
@@ -26,15 +30,18 @@ export async function ensureCodeUnique(db: Db, code: string, excludeId?: string)
   }
 }
 
+// Deprecated alias — prefer ensureOrgBranchCodeUnique.
+export const ensureCodeUnique = ensureOrgBranchCodeUnique;
+
 export async function ensureNoHeadquartersExists(db: Db, excludeId?: string): Promise<void> {
   const conditions =
     excludeId === undefined
-      ? [eq(branch.type, "headquarters")]
-      : [eq(branch.type, "headquarters"), ne(branch.id, excludeId)];
+      ? [eq(orgBranch.type, "headquarters")]
+      : [eq(orgBranch.type, "headquarters"), ne(orgBranch.id, excludeId)];
 
   const [existing] = await db
-    .select({ id: branch.id })
-    .from(branch)
+    .select({ id: orgBranch.id })
+    .from(orgBranch)
     .where(and(...conditions))
     .limit(1);
 
@@ -43,7 +50,7 @@ export async function ensureNoHeadquartersExists(db: Db, excludeId?: string): Pr
   }
 }
 
-export async function validateParentBranch(
+export async function validateParentOrgBranch(
   db: Db,
   parentId: string,
   childId?: string,
@@ -64,12 +71,12 @@ export async function validateParentBranch(
     }
     seen.add(currentId);
 
-    // SAFETY: the select projects only branch.parent_branch, so rows carry that shape.
+    // SAFETY: the select projects only org_branch.parent_org_branch, so rows carry that shape.
     const [row] = (await db
-      .select({ parentBranch: branch.parent_branch })
-      .from(branch)
-      .where(eq(branch.id, currentId))
-      .limit(1)) as { parentBranch: string | null }[];
+      .select({ parentOrgBranch: orgBranch.parent_org_branch })
+      .from(orgBranch)
+      .where(eq(orgBranch.id, currentId))
+      .limit(1)) as { parentOrgBranch: string | null }[];
 
     if (!row) {
       if (depth === 0) {
@@ -78,7 +85,7 @@ export async function validateParentBranch(
       break;
     }
 
-    currentId = row.parentBranch;
+    currentId = row.parentOrgBranch;
     if (currentId !== null) {
       depth++;
     }
@@ -93,9 +100,12 @@ export async function validateParentBranch(
   }
 }
 
-export function buildTree(
-  branches: { id: string; name: string; parentBranch: string | null }[],
-): BranchTreeNode[] {
+// Deprecated alias — prefer validateParentOrgBranch.
+export const validateParentBranch = validateParentOrgBranch;
+
+export function buildOrgBranchTree(
+  branches: { id: string; name: string; parentOrgBranch: string | null }[],
+): OrgBranchTreeNode[] {
   const ids = new Set(branches.map((item) => item.id));
   const childrenByParent = new Map<string | null, typeof branches>();
 
@@ -103,13 +113,13 @@ export function buildTree(
     // Promote orphans (missing parent not in the result set) to roots
     // instead of silently dropping their subtrees.
     const key =
-      item.parentBranch !== null && !ids.has(item.parentBranch) ? null : item.parentBranch;
+      item.parentOrgBranch !== null && !ids.has(item.parentOrgBranch) ? null : item.parentOrgBranch;
     const group = childrenByParent.get(key) ?? [];
     group.push(item);
     childrenByParent.set(key, group);
   }
 
-  const build = (parentId: string | null): BranchTreeNode[] =>
+  const build = (parentId: string | null): OrgBranchTreeNode[] =>
     (childrenByParent.get(parentId) ?? []).map((item) => ({
       children: build(item.id),
       id: item.id,
@@ -118,3 +128,6 @@ export function buildTree(
 
   return build(null);
 }
+
+// Deprecated alias — prefer buildOrgBranchTree.
+export const buildTree = buildOrgBranchTree;

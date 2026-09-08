@@ -39,7 +39,7 @@ export class Compliance implements Module {
     "hr:employee_onboarded",
     "hr:employee_separated",
     "fleet:vehicle_registered",
-    "organization:branch_created",
+    "masters:org_branch_created",
     "accounting:financial_year_started",
     "masters:contact_created",
   ];
