@@ -1,10 +1,4 @@
-import type {
-  masterAddress,
-  masterBankAccount,
-  masterContact,
-  masterEntity,
-  masterUnitOfMeasure,
-} from "#/db-schemas";
+import type { masterBankAccount, masterEntity, masterUnitOfMeasure } from "#/db-schemas";
 import { masterPaymentMethod } from "#/db-schemas";
 import { assertPaymentMethodTypeFields } from "#/utils/payment-method-rules";
 
@@ -16,7 +10,7 @@ export { assertPaymentMethodTypeFields };
 
 type DrizzleDB = PostgresJsDatabase;
 
-type PrimaryOwnedTable = typeof masterAddress | typeof masterBankAccount | typeof masterContact;
+type PrimaryOwnedTable = typeof masterBankAccount;
 
 export interface UnsetPrimaryForOwnerInput {
   db: DrizzleDB;

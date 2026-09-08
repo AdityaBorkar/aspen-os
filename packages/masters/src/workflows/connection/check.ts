@@ -7,7 +7,7 @@ import { fetchConnectionStep } from "#/workflow-steps/fetch-connection";
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 
-export const testConnection = Workflow.name("masters.connection.test")
+export const checkConnection = Workflow.name("masters.connection.check")
   .input(WithIdSchema)
   .handler(async (input, ctx) => {
     const current = await ctx.step.run(fetchConnectionStep, { id: input.id });

@@ -2,7 +2,6 @@ import { masterAddress } from "#/db-schemas";
 import { ADDRESS_EVENTS } from "#/pubsub";
 import { CreateAddressSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { unsetPrimaryForOwner } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
@@ -14,17 +13,6 @@ export const createAddress = Workflow.name("masters.address.create")
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateAddressSchema, input);
 
-    if (parsed.isPrimary) {
-      await ctx.step.run("unset-primary", () =>
-        unsetPrimaryForOwner({
-          db: ctx.db,
-          entityId: parsed.entityId,
-          entityType: parsed.entityType,
-          table: masterAddress,
-        }),
-      );
-    }
-
     const [address] = await ctx.db
       .insert(masterAddress)
       .values({
@@ -32,7 +20,6 @@ export const createAddress = Workflow.name("masters.address.create")
         country: parsed.country,
         entity_id: parsed.entityId,
         entity_type: parsed.entityType,
-        is_primary: parsed.isPrimary,
         label: parsed.label ?? null,
         line1: parsed.line1,
         line2: parsed.line2 ?? null,
@@ -57,7 +44,6 @@ export const createAddress = Workflow.name("masters.address.create")
           country: address.country,
           entityId: address.entity_id,
           entityType: address.entity_type,
-          isPrimary: address.is_primary,
           label: address.label,
           line1: address.line1,
         },

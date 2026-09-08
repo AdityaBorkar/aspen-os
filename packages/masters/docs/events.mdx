@@ -1,10 +1,10 @@
 ---
 title: Events
-description: Domain event map for the Masters module — 29 events across 7 event groups.
+description: Domain event map for the Masters module — 27 events across 7 event groups.
 icon: IconBell
 ---
 
-The Masters module defines 29 domain events across 7 event groups. Events are type-level contracts published as plain string topics via PubSub. The `masters:contact_created` event replaces the old `organization:connection_created` for the compliance insurer flow.
+The Masters module defines 27 domain events across 7 event groups. Events are type-level contracts published as plain string topics via PubSub. The `masters:contact_created` event replaces the old `organization:connection_created` for the compliance insurer flow.
 
 ## Event Constants
 
@@ -43,9 +43,7 @@ export const ENTITY_EVENTS = {
 } as const;
 
 export const UNIT_OF_MEASURE_EVENTS = {
-  ACTIVATED: "masters:unit_of_measure_activated",
   CREATED: "masters:unit_of_measure_created",
-  DEACTIVATED: "masters:unit_of_measure_deactivated",
   REMOVED: "masters:unit_of_measure_removed",
   UPDATED: "masters:unit_of_measure_updated",
 } as const;
@@ -107,13 +105,11 @@ export const PAYMENT_METHOD_EVENTS = {
 
 ### Unit of Measure Events
 
-| Event                                 | Payload                                              | Trigger         |
-| ------------------------------------- | ---------------------------------------------------- | --------------- |
-| `masters:unit_of_measure_created`     | `{ unitOfMeasure: { id, code, category } }`          | UOM created     |
-| `masters:unit_of_measure_updated`     | `{ unitOfMeasure: { id, code, category }, changes }` | UOM updated     |
-| `masters:unit_of_measure_removed`     | `{ unitOfMeasure: { id, code, category } }`          | UOM removed     |
-| `masters:unit_of_measure_activated`   | `{ unitOfMeasureId }`                                | UOM activated   |
-| `masters:unit_of_measure_deactivated` | `{ unitOfMeasureId }`                                | UOM deactivated |
+| Event                             | Payload                                              | Trigger     |
+| --------------------------------- | ---------------------------------------------------- | ----------- |
+| `masters:unit_of_measure_created` | `{ unitOfMeasure: { id, code, category } }`          | UOM created |
+| `masters:unit_of_measure_updated` | `{ unitOfMeasure: { id, code, category }, changes }` | UOM updated |
+| `masters:unit_of_measure_removed` | `{ unitOfMeasure: { id, code, category } }`          | UOM removed |
 
 ### Payment Method Events
 

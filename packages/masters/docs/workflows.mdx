@@ -21,20 +21,20 @@ Create-style methods take Valibot-validated input (`CreateXxxSchema`); update ta
 ## Public API
 
 ```ts title="src/workflows/index.ts"
-readonly addresses = { create, delete, get, list, setPrimary, update };
+readonly addresses = { create, delete, get, list, update };
 readonly bankAccounts = {
   activate, create, deactivate, delete, get, list, setPrimary, update,
 };
-readonly contacts = { create, delete, get, list, setPrimary, update };
-readonly entities = { create, delete, get, list, setStatus, update };
+readonly contacts = { create, delete, get, list, update };
+readonly entities = { create, delete, get, list, update };
 readonly paymentMethods = {
   activate, create, deactivate, delete, get, list, setPrimary, update,
 };
 readonly unitsOfMeasure = {
-  activate, create, deactivate, delete, get, list, update,
+  create, delete, get, list, update,
 };
 // connections is a getter bound to the kvStore unit (same verbs + credential ops)
-get connections() // { activate, create, deactivate, delete, get, list, rotateCredential, test, update }
+get connections() // { check, create, delete, get, list, rotateCredential, update }
 ```
 
 ## Features
@@ -43,14 +43,13 @@ get connections() // { activate, create, deactivate, delete, get, list, rotateCr
 
 Access: `p.masters.contacts`
 
-Standalone contact records (business relationships — `vendor`, `client`, `insurer`, …). Primary contact is scoped per `(entityType, entityId)`.
+Standalone contact records (business relationships — `vendor`, `client`, `insurer`, …).
 
 ```ts
-await p.masters.contacts.create({ entityType: "organization", entityId, name, type: "insurer", email, isPrimary });
+await p.masters.contacts.create({ entityType: "organization", entityId, name, type: "insurer", email });
 await p.masters.contacts.get({ id });
 await p.masters.contacts.update({ id, patch });
 await p.masters.contacts.delete({ id });
-await p.masters.contacts.setPrimary({ id });
 
 const contacts = await p.masters.contacts.list({ entityType: "organization", entityId, filters? });
 ```
@@ -59,14 +58,13 @@ const contacts = await p.masters.contacts.list({ entityType: "organization", ent
 
 Access: `p.masters.addresses`
 
-Address records with a primary flag, scoped per `(entityType, entityId)`.
+Address records scoped per `(entityType, entityId)`.
 
 ```ts
 await p.masters.addresses.create({ entityType: "organization", entityId, line1, city, state, postalCode, country, label });
 await p.masters.addresses.get({ id });
 await p.masters.addresses.update({ id, patch });
 await p.masters.addresses.delete({ id });
-await p.masters.addresses.setPrimary({ id });
 
 const addresses = await p.masters.addresses.list({ entityType: "organization", entityId, filters? });
 ```
@@ -104,11 +102,9 @@ await p.masters.connections.create({
 await p.masters.connections.get({ id });
 await p.masters.connections.update({ id, patch });
 await p.masters.connections.delete({ id });
-await p.masters.connections.activate({ id });
-await p.masters.connections.deactivate({ id });
 
 // Endpoint validation — issues a GET to baseUrl (10s timeout) and records lastTestedAt
-const result = await p.masters.connections.test({ id });
+const result = await p.masters.connections.check({ id });
 // { ok, status, testedAt, error? }
 
 // Credential rotation — writes a new kvStore secret and bumps credentialRef
@@ -136,14 +132,13 @@ await p.masters.entities.create({
 await p.masters.entities.get({ id });
 await p.masters.entities.update({ id, patch });
 await p.masters.entities.delete({ id });
-await p.masters.entities.setStatus({ id, status: "inactive" });
 
 const entities = await p.masters.entities.list({
   filters: { type, status, organizationId, search, limit, offset },
 });
 ```
 
-`setStatus` enforces `ENTITY_STATUS` transitions: `active` ↔ `inactive`, and both → `archived` (terminal).
+Status transitions are enforced on `update` via the `status` patch field: `active` ↔ `inactive`, and both → `archived` (terminal).
 
 ### Payment Methods
 
@@ -199,8 +194,6 @@ await p.masters.unitsOfMeasure.create({
 await p.masters.unitsOfMeasure.get({ id });
 await p.masters.unitsOfMeasure.update({ id, patch });
 await p.masters.unitsOfMeasure.delete({ id });
-await p.masters.unitsOfMeasure.activate({ id });
-await p.masters.unitsOfMeasure.deactivate({ id });
 
 const units = await p.masters.unitsOfMeasure.list({ filters: { category, isActive } });
 ```
@@ -217,7 +210,6 @@ const units = await p.masters.unitsOfMeasure.list({ filters: { category, isActiv
 | `masters:connection_status_changed`, `masters:connection_credential_rotated`                                   | Status change / credential rotation                |
 | `masters:entity_created`, `masters:entity_updated`, `masters:entity_removed`                                   | Entity create / update / delete                    |
 | `masters:unit_of_measure_created`, `masters:unit_of_measure_updated`, `masters:unit_of_measure_removed`        | UOM create / update / delete                       |
-| `masters:unit_of_measure_activated`, `masters:unit_of_measure_deactivated`                                     | UOM activate / deactivate                          |
 | `masters:payment_method_created`, `masters:payment_method_updated`, `masters:payment_method_removed`           | Payment method create / update / delete            |
 | `masters:payment_method_activated`, `masters:payment_method_deactivated`, `masters:payment_method_primary_set` | Payment method activate / deactivate / primary set |
 

@@ -53,14 +53,12 @@ export {
 export type {
   CreateEntityInput,
   EntityFilters,
-  EntitySetStatusInput,
   ListEntitiesInput,
   UpdateEntityInput,
 } from "#/schemas/entity";
 export {
   CreateEntitySchema,
   EntityFiltersSchema,
-  EntitySetStatusSchema,
   ListEntitiesSchema,
   UpdateEntitySchema,
 } from "#/schemas/entity";

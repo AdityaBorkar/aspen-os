@@ -1,7 +1,7 @@
 import { masterEntityTypeEnum } from "#/db-schemas/enums";
 
 import { uuidv7 } from "@aspen-os/platform/server";
-import { boolean, index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const masterAddress = pgTable(
   "master_address",
@@ -12,7 +12,6 @@ export const masterAddress = pgTable(
     entity_id: text().notNull(),
     entity_type: masterEntityTypeEnum().notNull(),
     id: uuidv7().primaryKey(),
-    is_primary: boolean().notNull().default(false),
     label: text(),
     line1: text().notNull(),
     line2: text(),
@@ -24,7 +23,6 @@ export const masterAddress = pgTable(
   (table) => [
     index("idx_master_address_entity").on(table.entity_type, table.entity_id),
     index("idx_master_address_country").on(table.country),
-    index("idx_master_address_is_primary").on(table.is_primary),
   ],
 );
 

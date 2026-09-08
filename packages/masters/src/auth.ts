@@ -1,20 +1,11 @@
 import { defineAcl } from "@aspen-os/platform/server";
 
 export const acl = defineAcl({
-  address: ["create", "delete", "read", "set_primary", "update"],
+  address: ["create", "delete", "read", "update"],
   bankAccount: ["activate", "create", "deactivate", "delete", "read", "set_primary", "update"],
-  connection: [
-    "activate",
-    "create",
-    "deactivate",
-    "delete",
-    "read",
-    "rotate_credential",
-    "test",
-    "update",
-  ],
-  contact: ["create", "delete", "read", "set_primary", "update"],
-  entity: ["create", "delete", "read", "set_status", "update"],
+  connection: ["check", "create", "delete", "read", "rotate_credential", "update"],
+  contact: ["create", "delete", "read", "update"],
+  entity: ["create", "delete", "read", "update"],
   paymentMethod: ["activate", "create", "deactivate", "delete", "read", "set_primary", "update"],
-  unitOfMeasure: ["activate", "create", "deactivate", "delete", "read", "update"],
+  unitOfMeasure: ["create", "delete", "read", "update"],
 });

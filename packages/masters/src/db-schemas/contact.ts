@@ -1,7 +1,7 @@
 import { masterContactTypeEnum, masterEntityTypeEnum } from "#/db-schemas/enums";
 
 import { uuidv7 } from "@aspen-os/platform/server";
-import { boolean, index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const masterContact = pgTable(
   "master_contact",
@@ -12,7 +12,6 @@ export const masterContact = pgTable(
     entity_id: text().notNull(),
     entity_type: masterEntityTypeEnum().notNull(),
     id: uuidv7().primaryKey(),
-    is_primary: boolean().notNull().default(false),
     metadata: jsonb(),
     name: text().notNull(),
     phone: text(),
@@ -23,7 +22,6 @@ export const masterContact = pgTable(
   (table) => [
     index("idx_master_contact_entity").on(table.entity_type, table.entity_id),
     index("idx_master_contact_type").on(table.type),
-    index("idx_master_contact_is_primary").on(table.is_primary),
   ],
 );
 

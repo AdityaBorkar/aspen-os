@@ -60,10 +60,3 @@ export const ListEntitiesSchema = object({
 });
 
 export type ListEntitiesInput = InferOutput<typeof ListEntitiesSchema>;
-
-export const EntitySetStatusSchema = object({
-  id: IdSchema,
-  status: EntityStatusSchema,
-});
-
-export type EntitySetStatusInput = InferOutput<typeof EntitySetStatusSchema>;

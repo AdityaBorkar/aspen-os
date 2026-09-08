@@ -2,7 +2,6 @@ import { masterContact } from "#/db-schemas";
 import { CONTACT_EVENTS } from "#/pubsub";
 import { CreateContactSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { unsetPrimaryForOwner } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
@@ -14,17 +13,6 @@ export const createContact = Workflow.name("masters.contact.create")
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateContactSchema, input);
 
-    if (parsed.isPrimary) {
-      await ctx.step.run("unset-primary", () =>
-        unsetPrimaryForOwner({
-          db: ctx.db,
-          entityId: parsed.entityId,
-          entityType: parsed.entityType,
-          table: masterContact,
-        }),
-      );
-    }
-
     const [contact] = await ctx.db
       .insert(masterContact)
       .values({
@@ -32,7 +20,6 @@ export const createContact = Workflow.name("masters.contact.create")
         email: parsed.email ?? null,
         entity_id: parsed.entityId,
         entity_type: parsed.entityType,
-        is_primary: parsed.isPrimary,
         metadata: parsed.metadata ?? null,
         name: parsed.name,
         phone: parsed.phone ?? null,
@@ -55,7 +42,6 @@ export const createContact = Workflow.name("masters.contact.create")
           email: contact.email,
           entityId: contact.entity_id,
           entityType: contact.entity_type,
-          isPrimary: contact.is_primary,
           name: contact.name,
           type: contact.type,
         },

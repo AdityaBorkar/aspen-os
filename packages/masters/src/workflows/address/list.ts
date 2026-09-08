@@ -17,9 +17,6 @@ export const listAddresses = Workflow.name("masters.address.list")
       if (parsed.country) {
         conditions.push(eq(masterAddress.country, parsed.country.toUpperCase()));
       }
-      if (parsed.isPrimary !== undefined) {
-        conditions.push(eq(masterAddress.is_primary, parsed.isPrimary));
-      }
 
       return ctx.db
         .select()

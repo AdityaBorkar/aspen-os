@@ -4,7 +4,6 @@ import { UpdateAddressSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { stripUndefined } from "#/utils/strip-undefined";
 import { fetchAddressStep } from "#/workflow-steps/fetch-address";
-import { unsetPrimaryForOwner } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -18,23 +17,11 @@ const UpdateInputSchema = object({
 export const updateAddress = Workflow.name("masters.address.update")
   .input(UpdateInputSchema)
   .handler(async (input, ctx) => {
-    const current = await ctx.step.run(fetchAddressStep, { id: input.id });
-
-    if (input.patch.isPrimary === true) {
-      await ctx.step.run("unset-primary", () =>
-        unsetPrimaryForOwner({
-          db: ctx.db,
-          entityId: current.entity_id,
-          entityType: current.entity_type,
-          table: masterAddress,
-        }),
-      );
-    }
+    await ctx.step.run(fetchAddressStep, { id: input.id });
 
     const updates = stripUndefined({
       city: input.patch.city,
       country: input.patch.country,
-      isPrimary: input.patch.isPrimary,
       label: input.patch.label,
       line1: input.patch.line1,
       line2: input.patch.line2,

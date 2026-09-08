@@ -7,6 +7,7 @@ import { stripUndefined } from "#/utils/strip-undefined";
 import { fetchEntityStep } from "#/workflow-steps/fetch-entity";
 import { assertCodeUnique } from "#/workflows/utils";
 
+import type { EntityStatus } from "@aspen-os/constants";
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object, string } from "valibot";
@@ -16,10 +17,32 @@ const UpdateInputSchema = object({
   patch: UpdateEntitySchema,
 });
 
+function canTransition(from: EntityStatus, to: EntityStatus): boolean {
+  switch (from) {
+    case "active": {
+      return to === "archived" || to === "inactive";
+    }
+    case "archived": {
+      return false;
+    }
+    case "inactive": {
+      return to === "active" || to === "archived";
+    }
+  }
+}
+
 export const updateEntity = Workflow.name("masters.entity.update")
   .input(UpdateInputSchema)
   .handler(async (input, ctx) => {
     const current = await ctx.step.run(fetchEntityStep, { id: input.id });
+
+    if (input.patch.status !== undefined && input.patch.status !== current.status) {
+      if (!canTransition(current.status, input.patch.status)) {
+        throw new Error(
+          `Cannot transition entity status from "${current.status}" to "${input.patch.status}".`,
+        );
+      }
+    }
 
     const { code } = input.patch;
     if (code && code !== current.code) {

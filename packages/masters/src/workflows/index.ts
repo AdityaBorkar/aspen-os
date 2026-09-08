@@ -2,7 +2,6 @@ import { createAddress } from "#/workflows/address/create";
 import { deleteAddress } from "#/workflows/address/delete";
 import { getAddress } from "#/workflows/address/get";
 import { listAddresses } from "#/workflows/address/list";
-import { setPrimaryAddress } from "#/workflows/address/primary/set";
 import { updateAddress } from "#/workflows/address/update";
 import { activateBankAccount } from "#/workflows/bank-account/activate";
 import { createBankAccount } from "#/workflows/bank-account/create";
@@ -12,24 +11,20 @@ import { getBankAccount } from "#/workflows/bank-account/get";
 import { listBankAccounts } from "#/workflows/bank-account/list";
 import { setPrimaryBankAccount } from "#/workflows/bank-account/primary/set";
 import { updateBankAccount } from "#/workflows/bank-account/update";
-import { activateConnection } from "#/workflows/connection/activate";
-import { deactivateConnection } from "#/workflows/connection/deactivate";
+import { checkConnection } from "#/workflows/connection/check";
 import { deleteConnection } from "#/workflows/connection/delete";
 import { getConnection } from "#/workflows/connection/get";
 import { listConnections } from "#/workflows/connection/list";
-import { testConnection } from "#/workflows/connection/test";
 import { updateConnection } from "#/workflows/connection/update";
 import { createContact } from "#/workflows/contact/create";
 import { deleteContact } from "#/workflows/contact/delete";
 import { getContact } from "#/workflows/contact/get";
 import { listContacts } from "#/workflows/contact/list";
-import { setPrimaryContact } from "#/workflows/contact/primary/set";
 import { updateContact } from "#/workflows/contact/update";
 import { createEntity } from "#/workflows/entity/create";
 import { deleteEntity } from "#/workflows/entity/delete";
 import { getEntity } from "#/workflows/entity/get";
 import { listEntities } from "#/workflows/entity/list";
-import { setEntityStatus } from "#/workflows/entity/status/set";
 import { updateEntity } from "#/workflows/entity/update";
 import { activatePaymentMethod } from "#/workflows/payment-method/activate";
 import { createPaymentMethod } from "#/workflows/payment-method/create";
@@ -39,9 +34,7 @@ import { getPaymentMethod } from "#/workflows/payment-method/get";
 import { listPaymentMethods } from "#/workflows/payment-method/list";
 import { setPrimaryPaymentMethod } from "#/workflows/payment-method/primary/set";
 import { updatePaymentMethod } from "#/workflows/payment-method/update";
-import { activateUnitOfMeasure } from "#/workflows/unit-of-measure/activate";
 import { createUnitOfMeasure } from "#/workflows/unit-of-measure/create";
-import { deactivateUnitOfMeasure } from "#/workflows/unit-of-measure/deactivate";
 import { deleteUnitOfMeasure } from "#/workflows/unit-of-measure/delete";
 import { getUnitOfMeasure } from "#/workflows/unit-of-measure/get";
 import { listUnitsOfMeasure } from "#/workflows/unit-of-measure/list";
@@ -52,7 +45,6 @@ export const addresses = {
   delete: deleteAddress,
   get: getAddress,
   list: listAddresses,
-  setPrimary: setPrimaryAddress,
   update: updateAddress,
 } as const;
 
@@ -72,7 +64,6 @@ export const contacts = {
   delete: deleteContact,
   get: getContact,
   list: listContacts,
-  setPrimary: setPrimaryContact,
   update: updateContact,
 } as const;
 
@@ -81,7 +72,6 @@ export const entities = {
   delete: deleteEntity,
   get: getEntity,
   list: listEntities,
-  setStatus: setEntityStatus,
   update: updateEntity,
 } as const;
 
@@ -97,9 +87,7 @@ export const paymentMethods = {
 } as const;
 
 export const unitsOfMeasure = {
-  activate: activateUnitOfMeasure,
   create: createUnitOfMeasure,
-  deactivate: deactivateUnitOfMeasure,
   delete: deleteUnitOfMeasure,
   get: getUnitOfMeasure,
   list: listUnitsOfMeasure,
@@ -107,11 +95,9 @@ export const unitsOfMeasure = {
 } as const;
 
 export const connectionActions = {
-  activate: activateConnection,
-  deactivate: deactivateConnection,
+  check: checkConnection,
   delete: deleteConnection,
   get: getConnection,
   list: listConnections,
-  test: testConnection,
   update: updateConnection,
 } as const;

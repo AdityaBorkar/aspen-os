@@ -37,18 +37,20 @@ TENANT DATABASE
   master_unit_of_measure, master_payment_method
 ```
 
-The polymorphic scope mirrors the DMS `dms_entity_label` pattern: `entityType` is a pgEnum (`organization` | `branch` | `connection` | `contact` | `entity`) and `entityId` is the owning row's UUIDv7 id. Primary flags (`isPrimary`) are scoped per `(entityType, entityId)` — for payment methods per `(entityType, entityId, direction)`. `unitOfMeasure` is the only non-polymorphic table: it carries no `entityType`/`entityId` pair.
+The polymorphic scope mirrors the DMS `dms_entity_label` pattern: `entityType` is a pgEnum (`organization` | `branch` | `connection` | `contact` | `entity`) and `entityId` is the owning row's UUIDv7 id. Primary flags (`isPrimary`) are scoped per `(entityType, entityId)` for bank accounts — for payment methods per `(entityType, entityId, direction)`. `unitOfMeasure` is the only non-polymorphic table: it carries no `entityType`/`entityId` pair.
 
 ## Lifecycle
 
 ```text
-connections: create (stores credential in kvStore, keeps credentialRef) ──▶ test ──▶ lastTestedAt
+connections: create (stores credential in kvStore, keeps credentialRef) ──▶ check ──▶ lastTestedAt
             └──▶ rotateCredential (new kvStore secret, bumped credentialRef)
-            activate / deactivate ──▶ status (active | inactive | expired | revoked)
+            update(patch.status) ──▶ status (active | inactive | expired | revoked)
 
-contacts/addresses/bankAccounts: setPrimary enforces one primary per (entityType, entityId)
+contacts/addresses: no primary flag
 
-entities: create / update / delete / setStatus (active ↔ inactive, → archived terminal)
+bankAccounts: setPrimary enforces one primary per (entityType, entityId)
+
+entities: create / update / delete (update validates status: active ↔ inactive, → archived terminal)
 
 unitsOfMeasure: exactly one base unit per category; derived units reference the
   category's base with a conversionFactor; delete is blocked while referenced as baseUnitId
@@ -59,15 +61,15 @@ paymentMethods: setPrimary enforces one primary per (entityType, entityId, direc
 
 ## What It Exposes
 
-| Getter           | Methods                                                                                           |
-| ---------------- | ------------------------------------------------------------------------------------------------- |
-| `addresses`      | `create`, `get`, `list`, `update`, `delete`, `setPrimary`                                         |
-| `bankAccounts`   | `create`, `get`, `list`, `update`, `delete`, `activate`, `deactivate`, `setPrimary`               |
-| `connections`    | `create`, `get`, `list`, `update`, `delete`, `activate`, `deactivate`, `test`, `rotateCredential` |
-| `contacts`       | `create`, `get`, `list`, `update`, `delete`, `setPrimary`                                         |
-| `entities`       | `create`, `get`, `list`, `update`, `delete`, `setStatus`                                          |
-| `paymentMethods` | `create`, `get`, `list`, `update`, `delete`, `activate`, `deactivate`, `setPrimary`               |
-| `unitsOfMeasure` | `create`, `get`, `list`, `update`, `delete`, `activate`, `deactivate`                             |
+| Getter           | Methods                                                                             |
+| ---------------- | ----------------------------------------------------------------------------------- |
+| `addresses`      | `create`, `get`, `list`, `update`, `delete`                                         |
+| `bankAccounts`   | `create`, `get`, `list`, `update`, `delete`, `activate`, `deactivate`, `setPrimary` |
+| `connections`    | `create`, `get`, `list`, `update`, `delete`, `check`, `rotateCredential`            |
+| `contacts`       | `create`, `get`, `list`, `update`, `delete`                                         |
+| `entities`       | `create`, `get`, `list`, `update`, `delete`                                         |
+| `paymentMethods` | `create`, `get`, `list`, `update`, `delete`, `activate`, `deactivate`, `setPrimary` |
+| `unitsOfMeasure` | `create`, `get`, `list`, `update`, `delete`                                         |
 
 The `connections` group is a getter bound to the platform `kvStore` unit (credentials are written to the secret store at create/rotate time). All other groups are stateless `readonly` properties.
 

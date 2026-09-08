@@ -4,7 +4,6 @@ import { UpdateContactSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { stripUndefined } from "#/utils/strip-undefined";
 import { fetchContactStep } from "#/workflow-steps/fetch-contact";
-import { unsetPrimaryForOwner } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -18,23 +17,11 @@ const UpdateInputSchema = object({
 export const updateContact = Workflow.name("masters.contact.update")
   .input(UpdateInputSchema)
   .handler(async (input, ctx) => {
-    const current = await ctx.step.run(fetchContactStep, { id: input.id });
-
-    if (input.patch.isPrimary === true) {
-      await ctx.step.run("unset-primary", () =>
-        unsetPrimaryForOwner({
-          db: ctx.db,
-          entityId: current.entity_id,
-          entityType: current.entity_type,
-          table: masterContact,
-        }),
-      );
-    }
+    await ctx.step.run(fetchContactStep, { id: input.id });
 
     const updates = stripUndefined({
       company: input.patch.company,
       email: input.patch.email,
-      isPrimary: input.patch.isPrimary,
       metadata: input.patch.metadata,
       name: input.patch.name,
       phone: input.patch.phone,

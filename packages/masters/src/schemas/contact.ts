@@ -1,7 +1,7 @@
 import { MasterEntityTypeSchema, ContactTypeSchema } from "#/schemas/enums";
 import { EmailSchema, IdSchema, MetadataSchema, NameSchema } from "#/schemas/utils";
 
-import { boolean, maxLength, nullable, object, optional, pipe, string } from "valibot";
+import { maxLength, nullable, object, optional, pipe, string } from "valibot";
 import type { InferOutput } from "valibot";
 
 export const CreateContactSchema = object({
@@ -9,7 +9,6 @@ export const CreateContactSchema = object({
   email: optional(nullable(EmailSchema)),
   entityId: IdSchema,
   entityType: MasterEntityTypeSchema,
-  isPrimary: optional(boolean(), false),
   metadata: optional(nullable(MetadataSchema)),
   name: NameSchema,
   phone: optional(nullable(string())),
@@ -22,7 +21,6 @@ export type CreateContactInput = InferOutput<typeof CreateContactSchema>;
 export const UpdateContactSchema = object({
   company: optional(nullable(string())),
   email: optional(nullable(EmailSchema)),
-  isPrimary: optional(boolean()),
   metadata: optional(nullable(MetadataSchema)),
   name: optional(NameSchema),
   phone: optional(nullable(string())),
@@ -33,7 +31,6 @@ export const UpdateContactSchema = object({
 export type UpdateContactInput = InferOutput<typeof UpdateContactSchema>;
 
 export const ContactFiltersSchema = object({
-  isPrimary: optional(boolean()),
   search: optional(string()),
   type: optional(ContactTypeSchema),
 });

@@ -28,34 +28,32 @@ All polymorphic tables share the `entity_type` (pgEnum) + `entity_id` (text) pai
 
 ### `master_contact`
 
-Standalone contact record (business relationship). `is_primary` is scoped per `(entity_type, entity_id)`.
+Standalone contact record (business relationship).
 
-| Column       | Type                | Description              |
-| ------------ | ------------------- | ------------------------ |
-| `name`       | text                | Contact name             |
-| `email`      | text                | Contact email            |
-| `phone`      | text                | Contact phone            |
-| `title`      | text                | Job title                |
-| `company`    | text                | Company name             |
-| `type`       | master_contact_type | Contact type             |
-| `is_primary` | boolean             | Primary flag (per scope) |
-| `metadata`   | jsonb               | Flexible metadata        |
+| Column     | Type                | Description       |
+| ---------- | ------------------- | ----------------- |
+| `name`     | text                | Contact name      |
+| `email`    | text                | Contact email     |
+| `phone`    | text                | Contact phone     |
+| `title`    | text                | Job title         |
+| `company`  | text                | Company name      |
+| `type`     | master_contact_type | Contact type      |
+| `metadata` | jsonb               | Flexible metadata |
 
 ### `master_address`
 
-Address record. `is_primary` is scoped per `(entity_type, entity_id)`.
+Address record.
 
-| Column        | Type    | Description              |
-| ------------- | ------- | ------------------------ |
-| `label`       | text    | Address label            |
-| `line1`       | text    | Address line 1           |
-| `line2`       | text    | Address line 2           |
-| `city`        | text    | City                     |
-| `state`       | text    | State/Province           |
-| `postal_code` | text    | Postal code              |
-| `country`     | text    | ISO 3166-1 alpha-2       |
-| `is_primary`  | boolean | Primary flag (per scope) |
-| `metadata`    | jsonb   | Flexible metadata        |
+| Column        | Type  | Description        |
+| ------------- | ----- | ------------------ |
+| `label`       | text  | Address label      |
+| `line1`       | text  | Address line 1     |
+| `line2`       | text  | Address line 2     |
+| `city`        | text  | City               |
+| `state`       | text  | State/Province     |
+| `postal_code` | text  | Postal code        |
+| `country`     | text  | ISO 3166-1 alpha-2 |
+| `metadata`    | jsonb | Flexible metadata  |
 
 ### `master_bank_account`
 

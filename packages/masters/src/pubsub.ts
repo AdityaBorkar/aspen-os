@@ -44,9 +44,7 @@ export const ENTITY_EVENTS = {
 } as const;
 
 export const UNIT_OF_MEASURE_EVENTS = {
-  ACTIVATED: "masters:unit_of_measure_activated",
   CREATED: "masters:unit_of_measure_created",
-  DEACTIVATED: "masters:unit_of_measure_deactivated",
   REMOVED: "masters:unit_of_measure_removed",
   UPDATED: "masters:unit_of_measure_updated",
 } as const;
@@ -215,14 +213,6 @@ export interface UnitOfMeasureRemovedEvent {
   };
 }
 
-export interface UnitOfMeasureActivatedEvent {
-  unitOfMeasureId: string;
-}
-
-export interface UnitOfMeasureDeactivatedEvent {
-  unitOfMeasureId: string;
-}
-
 export interface PaymentMethodCreatedEvent {
   entityId: string;
   entityType: MasterEntityType;
@@ -307,9 +297,7 @@ export interface EntityEventMap {
 }
 
 export interface UnitOfMeasureEventMap {
-  [UNIT_OF_MEASURE_EVENTS.ACTIVATED]: UnitOfMeasureActivatedEvent;
   [UNIT_OF_MEASURE_EVENTS.CREATED]: UnitOfMeasureCreatedEvent;
-  [UNIT_OF_MEASURE_EVENTS.DEACTIVATED]: UnitOfMeasureDeactivatedEvent;
   [UNIT_OF_MEASURE_EVENTS.REMOVED]: UnitOfMeasureRemovedEvent;
   [UNIT_OF_MEASURE_EVENTS.UPDATED]: UnitOfMeasureUpdatedEvent;
 }
