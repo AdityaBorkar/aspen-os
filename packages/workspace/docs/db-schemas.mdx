@@ -168,21 +168,6 @@ Per-user follow-subscription on a view or dashboard.
 
 Unique `(user_id, item_type, item_id)`; index `idx_workspace_watch_user`.
 
-### `workspace_setting`
-
-Per-user workspace setting.
-
-| Column       | Type               | Description                                                            |
-| ------------ | ------------------ | ---------------------------------------------------------------------- |
-| `created_at` | timestamptz        |                                                                        |
-| `id`         | text PK (`uuidv7`) |                                                                        |
-| `key`        | text               | `home_dashboard`, `default_view.<domain>`, `default_range`, `timezone` |
-| `updated_at` | timestamptz        |                                                                        |
-| `user_id`    | text               |                                                                        |
-| `value`      | jsonb              | validated per key                                                      |
-
-Unique `(user_id, key)`; index `idx_workspace_setting_user`.
-
 ## Relationships
 
 ```text

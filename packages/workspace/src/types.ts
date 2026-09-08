@@ -4,7 +4,6 @@ import type { WorkspaceDraftComment } from "#/db-schemas/draft-comment";
 import type { WorkspacePin } from "#/db-schemas/pin";
 import type { WorkspaceRecent } from "#/db-schemas/recent";
 import type { WorkspaceSchedule } from "#/db-schemas/schedule";
-import type { WorkspaceSetting } from "#/db-schemas/setting";
 import type { WorkspaceWatch } from "#/db-schemas/watch";
 import type { WorkspaceWidget } from "#/db-schemas/widget";
 
@@ -14,7 +13,6 @@ export type { WorkspaceDraftComment, NewWorkspaceDraftComment } from "#/db-schem
 export type { WorkspacePin, NewWorkspacePin } from "#/db-schemas/pin";
 export type { WorkspaceRecent, NewWorkspaceRecent } from "#/db-schemas/recent";
 export type { WorkspaceSchedule, NewWorkspaceSchedule } from "#/db-schemas/schedule";
-export type { WorkspaceSetting, NewWorkspaceSetting } from "#/db-schemas/setting";
 export type { WorkspaceWatch, NewWorkspaceWatch } from "#/db-schemas/watch";
 export type { WorkspaceWidget, NewWorkspaceWidget } from "#/db-schemas/widget";
 export type {
@@ -121,7 +119,6 @@ export {
   EmbedConfigSchema,
   EmbedKindSchema,
   ExportDashboardSchema,
-  GetSettingSchema,
   IdSchema,
   ImportDashboardSchema,
   JsonValueSchema,
@@ -145,7 +142,6 @@ export {
   ScheduleConfigSchema,
   ScheduleFormatSchema,
   ScheduleFiltersSchema,
-  SetSettingSchema,
   SubscribeWatchSchema,
   TimezoneSchema,
   TitleSchema,
@@ -184,7 +180,6 @@ export type {
   PinItemType,
   RangePreset,
   ScheduleFormat,
-  SettingKey,
   WidgetAggregation,
   WidgetType,
   WorkspaceAccess,
@@ -199,7 +194,6 @@ export {
   RANGE_PRESET,
   SCHEDULE_CRON_TOPIC_PREFIX,
   SCHEDULE_FORMAT,
-  SETTING_KEYS,
   WIDGET_AGGREGATION,
   WIDGET_TYPE,
   WORKSPACE_ACCESS,
@@ -216,7 +210,6 @@ export type WorkspaceScheduleRow = WorkspaceSchedule;
 export type WorkspacePinRow = WorkspacePin;
 export type WorkspaceRecentRow = WorkspaceRecent;
 export type WorkspaceWatchRow = WorkspaceWatch;
-export type WorkspaceSettingRow = WorkspaceSetting;
 
 export interface WorkspaceModuleConfig {
   maxRecentItems?: number;

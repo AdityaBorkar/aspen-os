@@ -4,6 +4,7 @@ import { masterContact } from "#/db-schemas/contact";
 import { masterEntity } from "#/db-schemas/entity";
 import { masterFilterView } from "#/db-schemas/filter-view";
 import { masterPaymentMethod } from "#/db-schemas/payment-method";
+import { masterSetting } from "#/db-schemas/setting";
 import { masterUnitOfMeasure } from "#/db-schemas/unit-of-measure";
 
 export { masterAddress } from "#/db-schemas/address";
@@ -27,6 +28,7 @@ export {
 } from "#/db-schemas/enums";
 export { masterFilterView } from "#/db-schemas/filter-view";
 export { masterPaymentMethod } from "#/db-schemas/payment-method";
+export { masterSetting } from "#/db-schemas/setting";
 export { masterUnitOfMeasure } from "#/db-schemas/unit-of-measure";
 
 export const mastersTables = {
@@ -36,6 +38,7 @@ export const mastersTables = {
   masterEntity,
   masterFilterView,
   masterPaymentMethod,
+  masterSetting,
   masterUnitOfMeasure,
 } as const;
 

@@ -17,13 +17,17 @@ Shared `as const` enum objects, derived union types, and ISO 3166-1 country code
 Every domain module follows one pattern — an `as const` object plus a derived union:
 
 ```ts title="packages/constants/src/organization.ts"
-export const ORGANIZATION_STATUS = {
-  ACTIVE: "active",
-  ARCHIVED: "archived",
-  SUSPENDED: "suspended",
+export const BRANCH_TYPE = {
+  FACTORY: "factory",
+  HEADQUARTERS: "headquarters",
+  OFFICE: "office",
+  OTHER: "other",
+  REMOTE: "remote",
+  STORE: "store",
+  WAREHOUSE: "warehouse",
 } as const;
 
-export type OrganizationStatus = (typeof ORGANIZATION_STATUS)[keyof typeof ORGANIZATION_STATUS];
+export type BranchType = (typeof BRANCH_TYPE)[keyof typeof BRANCH_TYPE];
 ```
 
 ```ts title="packages/constants/src/country-codes.ts"
@@ -36,19 +40,18 @@ export function parseCountryCode(input: string): CountryCode | undefined;
 ```
 
 ```ts
-import { ORGANIZATION_STATUS, type OrganizationStatus } from "@aspen-os/constants";
+import { BRANCH_TYPE, type BranchType } from "@aspen-os/constants";
 
-const status: OrganizationStatus = ORGANIZATION_STATUS.ACTIVE; // "active"
+const type: BranchType = BRANCH_TYPE.HEADQUARTERS; // "headquarters"
 ```
 
 ## Features
 
 ### Organization (`src/organization.ts`)
 
-| Constant              | Type                 | Values                                                                       |
-| --------------------- | -------------------- | ---------------------------------------------------------------------------- |
-| `ORGANIZATION_STATUS` | `OrganizationStatus` | `active`, `archived`, `suspended`                                            |
-| `BRANCH_TYPE`         | `BranchType`         | `factory`, `headquarters`, `office`, `other`, `remote`, `store`, `warehouse` |
+| Constant      | Type         | Values                                                                       |
+| ------------- | ------------ | ---------------------------------------------------------------------------- |
+| `BRANCH_TYPE` | `BranchType` | `factory`, `headquarters`, `office`, `other`, `remote`, `store`, `warehouse` |
 
 ### Masters (`src/masters.ts`)
 

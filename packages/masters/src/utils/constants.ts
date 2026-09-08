@@ -5,6 +5,7 @@ export const AUDIT_ENTITY_TYPE = {
   ENTITY: "masters:entity",
   FILTER_VIEW: "masters:filter_view",
   PAYMENT_METHOD: "masters:payment_method",
+  SETTING: "masters:setting",
   UNIT_OF_MEASURE: "masters:unit_of_measure",
 } as const;
 
@@ -50,3 +51,28 @@ export const FILTER_VIEW_DOMAIN = {
 } as const;
 
 export type FilterViewDomain = (typeof FILTER_VIEW_DOMAIN)[keyof typeof FILTER_VIEW_DOMAIN];
+
+/**
+ * Keys under this prefix are tenant-wide settings (org.*); every other key is
+ * scoped to the acting user.
+ */
+export const SETTING_KEY_PREFIX = {
+  ORG: "org.",
+} as const;
+
+/**
+ * Settings keys, namespaced by scope: `org.*` keys are tenant-wide, all other
+ * keys are per-user. The former @aspen-os/workspace per-user settings migrated
+ * as-is.
+ */
+export const SETTING_KEYS = {
+  DEFAULT_RANGE: "default_range",
+  DEFAULT_VIEW: "default_view",
+  HOME_DASHBOARD: "home_dashboard",
+  ORG_BRANDING: "org.branding",
+  ORG_ID: "org.id",
+  ORG_LOGO: "org.logo",
+  TIMEZONE: "timezone",
+} as const;
+
+export type SettingKey = (typeof SETTING_KEYS)[keyof typeof SETTING_KEYS];

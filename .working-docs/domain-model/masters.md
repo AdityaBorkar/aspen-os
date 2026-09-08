@@ -1,6 +1,6 @@
 # Masters Domain Model
 
-> Package: `@aspen-os/masters`. Polymorphic tenant master data — contacts, addresses, bank accounts, integration connections, entities, payment methods — plus tenant-wide units of measure and the cross-domain filter view store. All 8 tables are tenant schemas (`master_` prefix). Contacts absorbed the DMS address book and may also be global (owner-less) entries. Filter views absorbed tasks saved views, DMS file views, and workspace views.
+> Package: `@aspen-os/masters`. Polymorphic tenant master data — contacts, addresses, bank accounts, integration connections, entities, payment methods — plus tenant-wide units of measure, the cross-domain filter view store, and the tenant settings KV. All 9 tables are tenant schemas (`master_` prefix). Contacts absorbed the DMS address book and may also be global (owner-less) entries. Filter views absorbed tasks saved views, DMS file views, and workspace views. Settings absorbed the workspace `workspace_setting` surface plus the organization profile (`org.*` tenant-wide keys).
 
 ## Entity-Relationship Diagram
 
@@ -167,6 +167,17 @@
 
 **Lifecycle commands**: `create(input)`, `get(id)`, `update(id, input)`, `delete(id)`, `duplicate(id)` (personal copy under the caller), `setDefault(id)`, `getDefault(ownerId, domain?, projectId?)`, `list(filters?)`.
 
+### Setting (Aggregate Root, key-scoped)
+
+**Identity**: `(key, user_id)` — unique per scope; `user_id` null means tenant-wide.
+
+**Invariants**:
+
+- Keys under the `org.` prefix are tenant-wide (`org.id`, `org.branding`, `org.logo`); every other key is scoped to the acting user (`user_id = actorId`, authentication required).
+- Well-known `org.*` keys get shape validation (`org.id`/`org.logo` are strings, `org.branding` is `{ accentColor?, name? }`); all other keys store any JSON value.
+
+**Lifecycle commands**: `get(key)`, `set(key, value)` (upsert, audit-logged).
+
 ## Domain Events — 27
 
 | Event                                                | Payload                                                                | Trigger                                                 |
@@ -204,25 +215,27 @@
 
 ### Commands (Write Side)
 
-| Context         | Command                | Method                                                           |
-| --------------- | ---------------------- | ---------------------------------------------------------------- |
-| Contact         | Create contact         | `p.masters.contacts.create()`                                    |
-| Contact         | Remove contact         | `p.masters.contacts.remove()` (soft, reason; revokes DMS shares) |
-| Contact         | Set primary            | `p.masters.contacts.setPrimary()`                                |
-| Address         | Create address         | `p.masters.addresses.create()`                                   |
-| Bank Account    | Create account         | `p.masters.bankAccounts.create()`                                |
-| Connection      | Create connection      | `p.masters.connections.create()`                                 |
-| Connection      | Test endpoint          | `p.masters.connections.test()`                                   |
-| Connection      | Rotate credential      | `p.masters.connections.rotateCredential()`                       |
-| Entity          | Create entity          | `p.masters.entities.create()`                                    |
-| Entity          | Set status             | `p.masters.entities.setStatus()`                                 |
-| Payment Method  | Create payment method  | `p.masters.paymentMethods.create()`                              |
-| Payment Method  | Set primary            | `p.masters.paymentMethods.setPrimary()`                          |
-| Unit of Measure | Create unit of measure | `p.masters.unitsOfMeasure.create()`                              |
-| Unit of Measure | Activate / deactivate  | `p.masters.unitsOfMeasure.activate()/deactivate()`               |
-| Filter View     | Create filter view     | `p.masters.filterViews.create()`                                 |
-| Filter View     | Duplicate filter view  | `p.masters.filterViews.duplicate()` (personal copy)              |
-| Filter View     | Set default view       | `p.masters.filterViews.setDefault()`                             |
+| Context         | Command                | Method                                                             |
+| --------------- | ---------------------- | ------------------------------------------------------------------ |
+| Contact         | Create contact         | `p.masters.contacts.create()`                                      |
+| Contact         | Remove contact         | `p.masters.contacts.remove()` (soft, reason; revokes DMS shares)   |
+| Contact         | Set primary            | `p.masters.contacts.setPrimary()`                                  |
+| Address         | Create address         | `p.masters.addresses.create()`                                     |
+| Bank Account    | Create account         | `p.masters.bankAccounts.create()`                                  |
+| Connection      | Create connection      | `p.masters.connections.create()`                                   |
+| Connection      | Test endpoint          | `p.masters.connections.test()`                                     |
+| Connection      | Rotate credential      | `p.masters.connections.rotateCredential()`                         |
+| Entity          | Create entity          | `p.masters.entities.create()`                                      |
+| Entity          | Set status             | `p.masters.entities.setStatus()`                                   |
+| Payment Method  | Create payment method  | `p.masters.paymentMethods.create()`                                |
+| Payment Method  | Set primary            | `p.masters.paymentMethods.setPrimary()`                            |
+| Unit of Measure | Create unit of measure | `p.masters.unitsOfMeasure.create()`                                |
+| Unit of Measure | Activate / deactivate  | `p.masters.unitsOfMeasure.activate()/deactivate()`                 |
+| Filter View     | Create filter view     | `p.masters.filterViews.create()`                                   |
+| Filter View     | Duplicate filter view  | `p.masters.filterViews.duplicate()` (personal copy)                |
+| Filter View     | Set default view       | `p.masters.filterViews.setDefault()`                               |
+| Setting         | Get setting            | `p.masters.settings.get(key)` (`org.*` tenant-wide, else per-user) |
+| Setting         | Set setting            | `p.masters.settings.set(key, value)` (upsert, audit-logged)        |
 
 ### Queries (Read Side)
 
@@ -238,6 +251,7 @@
 | Filter View     | Get filter view       | `p.masters.filterViews.get(id)` (access-checked)                                                                      |
 | Filter View     | List filter views     | `p.masters.filterViews.list(filters?)` (`global OR owner` at SQL level)                                               |
 | Filter View     | Get default view      | `p.masters.filterViews.getDefault(ownerId, domain?, projectId?)`                                                      |
+| Setting         | Get setting           | `p.masters.settings.get(key)` (returns the value or null)                                                             |
 
 ## Invariants & Business Rules
 
@@ -250,3 +264,4 @@
 7. **Payment method type fields** — type-specific required fields validated on create/update; card data is masked-only.
 8. **Contact soft-remove** — `remove` requires a reason, sets `is_removed`/`deletionReason`/`removedAt`, publishes `masters:contact_removed` (DMS revokes contact shares); `delete` is a hard delete.
 9. **Filter view defaults** — one default per `(ownerId, domain, projectId)`; `projectId` is null outside tasks scoping. Access is user-set (`personal`/`global`); only the owner or a tenant admin may mutate.
+10. **Settings scope is key-prefixed** — `org.*` keys are tenant-wide single rows (`user_id` null, unique per key via nulls-not-distinct); all other keys are unique per `(user_id, key)`. `set` upserts and audit-logs; there are no settings events.

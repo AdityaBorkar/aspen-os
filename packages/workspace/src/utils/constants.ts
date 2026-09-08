@@ -75,15 +75,6 @@ export const RANGE_PRESET = {
 
 export type RangePreset = (typeof RANGE_PRESET)[keyof typeof RANGE_PRESET];
 
-export const SETTING_KEYS = {
-  DEFAULT_RANGE: "default_range",
-  DEFAULT_VIEW: "default_view",
-  HOME_DASHBOARD: "home_dashboard",
-  TIMEZONE: "timezone",
-} as const;
-
-export type SettingKey = (typeof SETTING_KEYS)[keyof typeof SETTING_KEYS];
-
 export const SCHEDULE_FORMAT = {
   EXPORT: "export",
   PDF: "pdf",
@@ -107,7 +98,6 @@ export const AUDIT_ENTITY_TYPE = {
   RECENT: "workspace:recent",
   SCHEDULE: "workspace:schedule",
   SEARCH: "workspace:search",
-  SETTING: "workspace:setting",
   WATCH: "workspace:watch",
   WIDGET: "workspace:widget",
 } as const;

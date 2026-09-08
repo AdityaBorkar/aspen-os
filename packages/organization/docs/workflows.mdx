@@ -4,7 +4,7 @@ description: API reference for the workflow groups exposed by the Organization m
 icon: IconListCheck
 ---
 
-The Organization module exposes two workflow groups as flat `Workflow` objects: `organizations` and `branches`. Access via the platform proxy key `p.organization`.
+The Organization module exposes one workflow group as a flat `Workflow` object: `branches`. Access via the platform proxy key `p.organization`. The organization profile is managed through Masters settings (`p.masters.settings` with `org.*` keys).
 
 ## Configuration
 
@@ -23,51 +23,20 @@ const organization = Organization.create(); // defaults to { country: "INDIA" }
 ## Public API
 
 ```ts title="src/module.ts"
-readonly organizations = {
-  create: createOrganization, // (input: CreateOrganizationInput)
-  deleteLogo: deleteLogo, // (input: {})
-  get: getOrganization, // (input: {})
-  update: updateOrganization, // (input: UpdateOrganizationInput)
-  updateBranding: updateBranding, // (input: UpdateBrandingInput)
-  uploadLogo: uploadLogo, // (input: { storageKey: string })
-};
-
 readonly branches = {
-  activate: activateBranch, // (input: { id: string })
-  archive: archiveBranch, // (input: { id: string })
-  close: closeBranch, // (input: { id: string; date: Date })
   create: createBranch, // (input: CreateBranchInput)
-  deactivate: deactivateBranch, // (input: { id: string })
   get: getBranch, // (input: { id: string })
   list: listBranches, // (input: { filters?: BranchFilters })
-  restore: restoreBranch, // (input: { id: string })
   tree: getBranchTree, // (input: {})
   update: updateBranch, // (input: { id: string; patch: UpdateBranchInput })
 };
 ```
 
-### Organizations
-
-Access: `p.organization.organizations`
-
-Single-profile CRUD plus branding and logo. All mutations share `applyOrganizationUpdate`, so fetching, updating, and not-found handling behave identically. Every mutation publishes an event.
-
-```ts
-await p.organization.organizations.create({ name: "Aspen Health", slug: "aspen-health" });
-const org = await p.organization.organizations.get({});
-await p.organization.organizations.update({ name: "Aspen Health Ltd" });
-await p.organization.organizations.updateBranding({ accentColor: "#0EA5E9", logo: "key", name });
-await p.organization.organizations.uploadLogo({ storageKey: "logos/aspen.png" });
-await p.organization.organizations.deleteLogo({});
-```
-
-`create` derives a slug from the name when omitted and appends `-2`, `-3`, … until unique. `update` with an all-`undefined` payload (and `updateBranding` likewise) returns the current row without writing. `uploadLogo`/`deleteLogo` set/clear the `logo` storage key and publish `organization:branding_updated`.
-
 ### Branches
 
 Access: `p.organization.branches`
 
-Hierarchical branch CRUD, filtered listing, tree view, and lifecycle transitions. `activate` / `deactivate` / `archive` / `restore` share `setBranchActive` (one active-flag transition, distinct events); `close` additionally stamps `closedDate` and deactivates.
+Hierarchical branch CRUD, filtered listing, and tree view.
 
 ```ts
 await p.organization.branches.create({
@@ -79,28 +48,15 @@ await p.organization.branches.create({
   country: "IN",
 });
 await p.organization.branches.update({ id, patch: { name: "HQ Mumbai Central" } });
-await p.organization.branches.activate({ id });
-await p.organization.branches.deactivate({ id });
-await p.organization.branches.close({ id, date: new Date("2026-03-31") });
-await p.organization.branches.archive({ id });
-await p.organization.branches.restore({ id });
 await p.organization.branches.get({ id });
 
-// Hierarchical view (active branches only; orphans promoted to roots)
-const tree = await p.organization.branches.tree({});
+// Hierarchical view (orphans promoted to roots)
 // [{ id, name, children: [...] }]
+const tree = await p.organization.branches.tree({});
 
 const offices = await p.organization.branches.list({ filters: { type: "office" } });
-const activeInIndia = await p.organization.branches.list({
-  filters: { country: "IN", isActive: true },
-});
+const inIndia = await p.organization.branches.list({ filters: { country: "IN" } });
 ```
-
-<Callout type="warn">
-  `close` takes a `Date` but the `branch:closed` event carries a `YYYY-MM-DD` string, and the column
-  stores a date-only value. `create`/`update` accept `Date` for `openedDate` / `closedDate` /
-  `foundedDate` with the same conversion.
-</Callout>
 
 ### Business Rules
 
@@ -112,21 +68,17 @@ const activeInIndia = await p.organization.branches.list({
 
 ## Events
 
-| Event                                                                           | Trigger                                       |
-| ------------------------------------------------------------------------------- | --------------------------------------------- |
-| `organization:created`, `organization:updated`, `organization:branding_updated` | Org create / update / branding or logo change |
-| `branch:created`, `branch:updated`                                              | Branch create / update                        |
-| `branch:activated`, `branch:deactivated`, `branch:archived`, `branch:restored`  | Active-flag transitions                       |
-| `branch:closed`                                                                 | Branch closed with a date                     |
+| Event                              | Trigger                |
+| ---------------------------------- | ---------------------- |
+| `branch:created`, `branch:updated` | Branch create / update |
 
 Full payloads: [Events](/docs/organization/events).
 
 ## Schema
 
-| Table          | Description                                               |
-| -------------- | --------------------------------------------------------- |
-| `organization` | Root business profile with branding, locale, and status   |
-| `branch`       | Hierarchical branch with address, lifecycle, and capacity |
+| Table    | Description                                   |
+| -------- | --------------------------------------------- |
+| `branch` | Hierarchical branch with address and capacity |
 
 Full columns: [DB Schemas](/docs/organization/db-schemas).
 

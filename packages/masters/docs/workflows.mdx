@@ -4,7 +4,7 @@ description: API reference for the workflow groups exposed by the Masters module
 icon: IconListCheck
 ---
 
-The Masters module exposes eight workflow groups as flat `Workflow` objects: `contacts`, `addresses`, `bankAccounts`, `connections`, `entities`, `paymentMethods`, `unitsOfMeasure`, and `filterViews`. Access via the platform proxy key `p.masters`.
+The Masters module exposes nine workflow groups as flat `Workflow` objects: `contacts`, `addresses`, `bankAccounts`, `connections`, `entities`, `paymentMethods`, `unitsOfMeasure`, `filterViews`, and `settings`. Access via the platform proxy key `p.masters`.
 
 Polymorphic entities (`addresses`, `bankAccounts`, `connections`, `paymentMethods`) require `entityType` and `entityId` (the owning `organization`, `branch`, `connection`, `contact`, or `entity`) on create/list; list queries filter on the `(entityType, entityId)` pair. `contacts` accept an optional scope: omit `entityType`/`entityId` for global address-book entries (absorbed from DMS) or pass them for owned contacts; `list` without a scope searches globally. Removed contacts are hidden from `list` by default (`filters.isRemoved`). `entities` and `unitsOfMeasure` are tenant-level — no scope pair.
 
@@ -33,6 +33,7 @@ readonly filterViews = {
 readonly paymentMethods = {
   activate, create, deactivate, delete, get, list, setPrimary, update,
 };
+readonly settings = { get, set };
 readonly unitsOfMeasure = {
   create, delete, get, list, update,
 };
@@ -230,6 +231,21 @@ await p.masters.unitsOfMeasure.delete({ id });
 const units = await p.masters.unitsOfMeasure.list({ filters: { category, isActive } });
 ```
 
+### Settings
+
+Access: `p.masters.settings`
+
+Tenant key–value store. Keys under the `org.` prefix are tenant-wide rows holding the organization profile (`org.id`, `org.branding`, `org.logo`); every other key is scoped to the acting user (consolidated from the workspace `workspace_setting` surface). `set` upserts and audit-logs; `get` returns the value or `null`. Well-known `org.*` keys are shape-validated; all other keys accept any JSON value.
+
+```ts
+await p.masters.settings.set({ key: "org.id", value: "org-1" });
+await p.masters.settings.set({ key: "org.branding", value: { accentColor: "#0EA5E9", name } });
+await p.masters.settings.set({ key: "org.logo", value: "logos/aspen.png" });
+await p.masters.settings.set({ key: "home_dashboard", value: dashboardId });
+
+const orgId = await p.masters.settings.get({ key: "org.id" });
+```
+
 ## Events
 
 | Event                                                                                                                         | Trigger                                                                                       |
@@ -260,6 +276,7 @@ Full payloads: [Events](/docs/masters/events).
 | `master_payment_method`  | Payment mode scoped per `(entityType, entityId)`                                          |
 | `master_unit_of_measure` | Tenant-wide unit with base-unit / conversion structure                                    |
 | `master_filter_view`     | Saved `{ domain, conditions, sort, groupBy }` config with `personal`/`global` access      |
+| `master_setting`         | Key–value setting; `org.*` keys tenant-wide, other keys per-user                          |
 
 Full columns: [DB Schemas](/docs/masters/db-schemas).
 

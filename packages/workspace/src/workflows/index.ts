@@ -43,8 +43,6 @@ import { pauseSchedule } from "#/workflows/schedule/pause";
 import { resumeSchedule } from "#/workflows/schedule/resume";
 import { updateSchedule } from "#/workflows/schedule/update";
 import { quickSearch } from "#/workflows/search/quick";
-import { getSetting } from "#/workflows/settings/get";
-import { setSetting } from "#/workflows/settings/set";
 import { listWatches } from "#/workflows/watch/list";
 import { subscribeWatch } from "#/workflows/watch/subscribe";
 import { unsubscribeWatch } from "#/workflows/watch/unsubscribe";
@@ -103,11 +101,6 @@ export const schedules = {
 
 export const search = {
   quick: quickSearch,
-} as const;
-
-export const settings = {
-  get: getSetting,
-  set: setSetting,
 } as const;
 
 export const watches = {

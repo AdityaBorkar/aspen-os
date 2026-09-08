@@ -1,17 +1,7 @@
 import { BranchTypeSchema } from "#/schemas/enums";
 import { BranchCodeSchema, CountryCodeSchema, NameSchema } from "#/schemas/utils";
 
-import {
-  boolean,
-  date,
-  minLength,
-  nullable,
-  number,
-  object,
-  optional,
-  pipe,
-  string,
-} from "valibot";
+import { date, minLength, nullable, number, object, optional, pipe, string } from "valibot";
 import type { InferOutput } from "valibot";
 
 export const CreateBranchSchema = object({
@@ -47,7 +37,6 @@ export const UpdateBranchSchema = object({
   code: optional(BranchCodeSchema),
   country: optional(CountryCodeSchema),
   email: optional(nullable(string())),
-  isActive: optional(boolean()),
   manager: optional(nullable(string())),
   metadata: optional(nullable(object({}))),
   name: optional(NameSchema),
@@ -65,7 +54,6 @@ export type UpdateBranchInput = InferOutput<typeof UpdateBranchSchema>;
 
 export const BranchFiltersSchema = object({
   country: optional(CountryCodeSchema),
-  isActive: optional(boolean()),
   parentBranch: optional(string()),
   type: optional(BranchTypeSchema),
 });

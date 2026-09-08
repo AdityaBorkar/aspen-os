@@ -33,7 +33,6 @@ defineAcl({
   pin: ["create", "read", "delete"],
   recent: ["read", "touch"],
   watch: ["create", "read", "delete"],
-  setting: ["read", "update"],
   search: ["read"],
 });
 ```
@@ -49,7 +48,7 @@ defineAcl({
 
 ## User-scoped resources
 
-Pins, recent, settings, and watches carry **no access column** — they are always scoped to `userId = actorId`, enforced in every workflow. There is no `access-service` call for them.
+Pins, recent, and watches carry **no access column** — they are always scoped to `userId = actorId`, enforced in every workflow. There is no `access-service` call for them.
 
 ## Tenancy
 

@@ -8,6 +8,8 @@ The Masters module owns **polymorphic tenant master data**: `contact`, `address`
 
 It also owns the single cross-domain **filter view** store (`filterViews`): saved `{ domain, conditions, sort, groupBy }` configurations with `personal`/`global` access, consolidated from tasks saved views, DMS file views, and workspace views. Hosts read the stored conditions and query their own tables — the module never executes a view.
 
+It also owns the tenant **settings** KV (`settings`): `org.*` keys (`org.id`, `org.branding`, `org.logo`) are tenant-wide rows holding the organization profile; every other key is scoped to the acting user (consolidated from the workspace `workspace_setting` surface).
+
 <Callout type="info">
   Masters does not own notes. Free-form annotation notes belong to `@aspen-os/notes`; scope them to a master row with `scopeType = masters:<entityType>`.
 </Callout>
@@ -30,7 +32,7 @@ The module declares no platform-module dependencies.
 
 ## Architecture
 
-All eight tables are **tenant schemas** (`master_` prefix); there are no control-plane tables:
+All nine tables are **tenant schemas** (`master_` prefix); there are no control-plane tables:
 
 ```text
 TENANT DATABASE
@@ -38,9 +40,10 @@ TENANT DATABASE
   master_connection, master_entity
   master_unit_of_measure, master_payment_method
   master_filter_view
+  master_setting
 ```
 
-The polymorphic scope mirrors the DMS `dms_entity_label` pattern: `entityType` is a pgEnum (`organization` | `branch` | `connection` | `contact` | `entity`) and `entityId` is the owning row's UUIDv7 id — both nullable on `master_contact` for global address-book entries. Primary flags (`isPrimary`) are scoped per `(entityType, entityId)` for bank accounts — for payment methods per `(entityType, entityId, direction)`. `unitOfMeasure` is the only non-polymorphic table: it carries no `entityType`/`entityId` pair.
+The polymorphic scope mirrors the DMS `dms_entity_label` pattern: `entityType` is a pgEnum (`organization` | `branch` | `connection` | `contact` | `entity`) and `entityId` is the owning row's UUIDv7 id — both nullable on `master_contact` for global address-book entries. Primary flags (`isPrimary`) are scoped per `(entityType, entityId)` for bank accounts — for payment methods per `(entityType, entityId, direction)`. `unitOfMeasure` is tenant-wide reference data with no `entityType`/`entityId` pair; `master_setting` rows scope by key prefix instead — `org.*` keys are tenant-wide (`user_id` null), all other keys are per-user.
 
 ## Lifecycle
 
@@ -64,6 +67,9 @@ paymentMethods: setPrimary enforces one primary per (entityType, entityId, direc
 
 filterViews: create / get / list (access-scoped) / update / delete / duplicate /
   setDefault / getDefault; is_default is unique per (owner, domain, project)
+
+settings: get / set (upsert); `org.*` keys are tenant-wide, all other keys per-user;
+  set is audit-logged
 ```
 
 ## What It Exposes
@@ -77,6 +83,7 @@ filterViews: create / get / list (access-scoped) / update / delete / duplicate /
 | `entities`       | `create`, `get`, `list`, `update`, `delete`                                          |
 | `filterViews`    | `create`, `get`, `list`, `update`, `delete`, `duplicate`, `setDefault`, `getDefault` |
 | `paymentMethods` | `create`, `get`, `list`, `update`, `delete`, `activate`, `deactivate`, `setPrimary`  |
+| `settings`       | `get`, `set`                                                                         |
 | `unitsOfMeasure` | `create`, `get`, `list`, `update`, `delete`                                          |
 
 The `connections` group is a getter bound to the platform `kvStore` unit (credentials are written to the secret store at create/rotate time). All other groups are stateless `readonly` properties.

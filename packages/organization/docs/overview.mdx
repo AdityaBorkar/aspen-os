@@ -4,42 +4,36 @@ description: Architecture, initialization, and module structure of the Organizat
 icon: IconInfoCircle
 ---
 
-The Organization module owns the organization profile (the root business entity) and its hierarchical branches.
+The Organization module owns the tenant's hierarchical branches. The organization profile (id, branding, logo) lives in Masters settings (`org.*` keys via `p.masters.settings`).
 
 ## Architecture
 
 ```text
 TENANT DATABASE (tenant_schemas; control_plane_schemas is empty)
-  organization ──1:N──→ branch ──self-ref──→ branch (parent_branch, max 5 levels)
+  branch ──self-ref──→ branch (parent_branch, max 5 levels)
 
 MODULE (stateless — $initialize / $prepareRuntime / $cleanup are no-ops)
   Organization.create({ country: "INDIA" })
     $prepareInfra() → { auth.acl, db.{control_plane_schemas, tenant_schemas}, events }
-    p.organization.organizations → { create, get, update, updateBranding, uploadLogo, deleteLogo }
-    p.organization.branches      → { create, get, list, tree, update,
-                                     activate, deactivate, close, archive, restore }
+    p.organization.branches → { create, get, list, tree, update }
 ```
-
-## Single Organization Profile
-
-One row is the tenant's business identity (name, slug, status, branding, locale/timezone). Reads go through a fetch-once step (`fetch-organization`, earliest `createdAt` first); every mutation shares the single writer `applyOrganizationUpdate`, so not-found handling is identical. `create` auto-resolves a unique slug (`resolveUniqueSlug`); `update` rejects taken slugs (`ensureSlugAvailable`).
 
 ## Hierarchical Branches
 
-Branches form a tree via nullable `parentBranch` (a plain text id — no database FK). The single ancestor walk in `validateParentBranch` verifies the parent exists, rejects circular references, and enforces max 5 levels. Codes are uppercased on write and unique case-insensitively; country codes are validated against ISO 3166-1 alpha-2 at the schema boundary. `tree` returns only active branches and promotes orphans to roots instead of dropping subtrees.
+Branches form a tree via nullable `parentBranch` (a plain text id — no database FK). The single ancestor walk in `validateParentBranch` verifies the parent exists, rejects circular references, and enforces max 5 levels. Codes are uppercased on write and unique case-insensitively; country codes are validated against ISO 3166-1 alpha-2 at the schema boundary. `tree` returns all branches and promotes orphans to roots instead of dropping subtrees.
 
-## Stateless Workflows With Shared Writers
+## Stateless Workflows
 
-One file per action under `workflows/<entity>/<verb>.ts`. Branch lifecycle shares `setBranchActive` (`activate` / `deactivate` / `archive` / `restore` differ only in `isActive` flag and event); `close` additionally stamps `closedDate` and deactivates. All inputs are Valibot schemas (`schemas/`); `update` takes `{ id, patch }` where `undefined` means "column untouched".
+One file per action under `workflows/<entity>/<verb>.ts`. All inputs are Valibot schemas (`schemas/`); `update` takes `{ id, patch }` where `undefined` means "column untouched".
 
 ## Relationships
 
-| Module     | Direction               | Connection                                                                                                             |
-| ---------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Masters    | Extracted out           | Contacts, addresses, bank accounts, connections, notes live in `@aspen-os/masters`, scoped via `entityType`/`entityId` |
-| Management | Depends on Organization | Seeds the Organization profile row 1:1 with a Tenant (shares the better-auth org ID)                                   |
-| Compliance | Subscribes              | Consumes branch events (trade license, fire safety, annual obligations)                                                |
-| Platform   | Host                    | Provides `db`, `pubsub`, `step`; pushes schemas and merges ACL centrally                                               |
+| Module     | Direction     | Connection                                                                                                   |
+| ---------- | ------------- | ------------------------------------------------------------------------------------------------------------ |
+| Masters    | Extracted out | Contacts, addresses, bank accounts, connections, notes, and the `org.*` settings live in `@aspen-os/masters` |
+| Management | Provisions    | Seeds tenants against the better-auth org ID; the org profile is stored as `org.*` settings in Masters       |
+| Compliance | Subscribes    | Consumes branch events (trade license, fire safety, annual obligations)                                      |
+| Platform   | Host          | Provides `db`, `pubsub`, `step`; pushes schemas and merges ACL centrally                                     |
 
 <Callout type="info">
   `OrganizationConfig` (`{ country: "INDIA" }`) is reserved for future country-specific
@@ -50,8 +44,7 @@ One file per action under `workflows/<entity>/<verb>.ts`. Branch lifecycle share
 
 ```ts title="src/auth.ts"
 export const acl = defineAcl({
-  branch: ["activate", "archive", "close", "create", "deactivate", "read", "restore", "update"],
-  organization: ["create", "read", "update", "update_branding"],
+  branch: ["create", "read", "update"],
 });
 ```
 
@@ -62,19 +55,17 @@ packages/organization/src/
   index.ts              # Module class re-exports
   module.ts             # Module class (implements Module)
   auth.ts               # defineAcl() ACL declaration
-  pubsub.ts             # Events across 2 event groups
-  db-schemas/           # Per-entity tables (organization, branch)
+  pubsub.ts             # Events for the branch group
+  db-schemas/           # Per-entity tables (branch)
   types.ts              # Type re-exports
   schemas/              # Valibot validation schemas
     branch.ts           # CreateBranchSchema, UpdateBranchSchema, BranchFiltersSchema
-    organization.ts     # CreateOrganizationSchema, UpdateOrganizationSchema, UpdateBrandingSchema
-    enums.ts            # OrganizationStatusSchema, BranchTypeSchema
-    utils.ts            # AccentColor, BranchCode, CountryCode, LogoFile schemas
+    enums.ts            # BranchTypeSchema
+    utils.ts            # BranchCode, CountryCode schemas
   workflows/
-    org/                # create, get, update, branding/update, logo/upload, logo/delete
-    branch/             # create, get, list, tree, update, activate, deactivate, close, archive, restore
-    utils.ts            # Slug/code uniqueness, HQ guard, parent validation, setBranchActive, buildTree
-  workflow-steps/       # fetch-organization, fetch-branch
+    branch/             # create, get, list, tree, update
+    utils.ts            # Code uniqueness, HQ guard, parent validation, buildTree
+  workflow-steps/       # fetch-branch
   utils/                # toDateOnly (Date → YYYY-MM-DD)
 ```
 
@@ -98,7 +89,6 @@ packages/organization/src/
 
 Organization-specific enums come from `@aspen-os/constants`:
 
-| Enum                 | Values                                                                       |
-| -------------------- | ---------------------------------------------------------------------------- |
-| `OrganizationStatus` | `active`, `suspended`, `archived`                                            |
-| `BranchType`         | `headquarters`, `office`, `warehouse`, `store`, `factory`, `remote`, `other` |
+| Enum         | Values                                                                       |
+| ------------ | ---------------------------------------------------------------------------- |
+| `BranchType` | `headquarters`, `office`, `warehouse`, `store`, `factory`, `remote`, `other` |

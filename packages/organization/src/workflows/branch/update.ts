@@ -45,7 +45,6 @@ export const updateBranch = Workflow.name("branch.update")
       code: input.patch.code?.toUpperCase(),
       country: input.patch.country?.toUpperCase(),
       email: input.patch.email,
-      isActive: input.patch.isActive,
       manager: input.patch.manager,
       metadata: input.patch.metadata,
       name: input.patch.name,

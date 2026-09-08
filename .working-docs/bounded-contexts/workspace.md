@@ -1,6 +1,6 @@
 # Workspace Context
 
-> Package: `@aspen-os/workspace`. Dependency-free personal-workspace module — drafts (optional approval + comments), dashboards (widgets + grid layout + schedules), + per-user utilities (pins, recent, quick search, settings, watches). Every entity access user-set to `personal` or `global`. Filter views moved to `@aspen-os/masters` (`p.masters.filterViews`).
+> Package: `@aspen-os/workspace`. Dependency-free personal-workspace module — drafts (optional approval + comments), dashboards (widgets + grid layout + schedules), + per-user utilities (pins, recent, quick search, watches). Every entity access user-set to `personal` or `global`. Filter views moved to `@aspen-os/masters` (`p.masters.filterViews`); settings moved to `@aspen-os/masters` (`p.masters.settings`).
 
 ## Relationship Type
 
@@ -10,12 +10,12 @@ Downstream of Platform (Customer–Supplier). Runtime-wired — gets `{ db, pubs
 
 - `Workspace.create(config?)` — factory → Module instance; `$config: Required<WorkspaceModuleConfig>` (2 settings w/ defaults: `maxRecentItems` (50), `quickSearchLimit` (10))
 - `$name = "workspace"`, `$dependencies = []` — no module deps
-- 9 workflow groups as `readonly` props: `dashboards`, `drafts`, `pins`, `recent`, `schedules`, `search`, `settings`, `watches`, `widgets`
+- 8 workflow groups as `readonly` props: `dashboards`, `drafts`, `pins`, `recent`, `schedules`, `search`, `watches`, `widgets`
 - 2 services: `access-service` (personal/global scoping), `schedule-service` (cron register/unregister + delivery); 4 reusable `WorkflowStep`s (`fetch-draft`, `fetch-dashboard`, `fetch-widget`, `fetch-schedule`)
-- 9 tables (all `tenant_schemas`, `workspace_` prefix): `workspace_draft`, `workspace_draft_comment`, `workspace_dashboard`, `workspace_widget`, `workspace_schedule`, `workspace_pin`, `workspace_recent`, `workspace_watch`, `workspace_setting`
+- 8 tables (all `tenant_schemas`, `workspace_` prefix): `workspace_draft`, `workspace_draft_comment`, `workspace_dashboard`, `workspace_widget`, `workspace_schedule`, `workspace_pin`, `workspace_recent`, `workspace_watch`
 - 4 pgEnums: `workspace_access`, `workspace_draft_status`, `workspace_widget_type`, `workspace_item_type`
 - 28 events across 6 maps (`DRAFT_EVENTS` 13, `DASHBOARD_EVENTS` 6, `WIDGET_EVENTS` 4, `PIN_EVENTS` 2, `WATCH_EVENTS` 2, `SCHEDULE_EVENTS` 1) → `WorkspaceEventMap`
-- 10 ACL resources: `draft`, `draftComment`, `dashboard`, `widget`, `schedule`, `pin`, `recent`, `watch`, `setting`, `search`
+- 9 ACL resources: `draft`, `draftComment`, `dashboard`, `widget`, `schedule`, `pin`, `recent`, `watch`, `search`
 - `$prepareRuntime()` — `registerScheduleRunner()` enumerates active schedules, registers pg-boss cron per schedule (`workspace:schedule:<id>`); `$cleanup()` unregisters all. No fixed module-level cron (unlike dms expiry/auto-purge)
 - Module-scope runtime state in `runtime.ts` (`setWorkspaceConfig`/`getWorkspaceConfig`)
 - Build step (build script + `build` field in package.json), root `tsconfig.json` reference, `docs/source.config.ts` entry
@@ -31,18 +31,17 @@ p.workspace.pins       { create, delete, list }
 p.workspace.recent     { list, touch }
 p.workspace.schedules  { create, delete, get, list, markRun, pause, resume, update }
 p.workspace.search     { quick }
-p.workspace.settings   { get, set }
 p.workspace.watches    { list, subscribe, unsubscribe }
 p.workspace.widgets    { add, get, list, move, refresh, remove, update }
 ```
 
 ## Lineage
 
-New module — no prior package. `dms`/`tasks` saved views (`dms_file_view`, `task_saved_view`) + `isShared`/`isGlobal` booleans are precedents for access model but **not retrofitted**; workspace introduces first-class `personal`/`global` `access` enum. `dms_setting` precedent for user-scoped utilities; former `dms_pin` surface (sidebar pins for triage/file-view/class items) **consolidated here** — workspace pins = single pin concept (`.working-docs/sow/dms-pins-removal.md`). Filter views (`workspace_view` + the view-resolver registry) later **moved out** to `@aspen-os/masters` as `master_filter_view` (storage-only, no `apply`/resolvers); widget `viewId` is now a cross-module soft reference. Compliance's `dashboard` = module-local summary metrics, not generic dashboard entity.
+New module — no prior package. `dms`/`tasks` saved views (`dms_file_view`, `task_saved_view`) + `isShared`/`isGlobal` booleans are precedents for access model but **not retrofitted**; workspace introduces first-class `personal`/`global` `access` enum. `dms_setting` precedent for user-scoped utilities; former `dms_pin` surface (sidebar pins for triage/file-view/class items) **consolidated here** — workspace pins = single pin concept (`.working-docs/sow/dms-pins-removal.md`). Filter views (`workspace_view` + the view-resolver registry) later **moved out** to `@aspen-os/masters` as `master_filter_view` (storage-only, no `apply`/resolvers); widget `viewId` is now a cross-module soft reference. Settings (`workspace_setting`) later **moved out** to `@aspen-os/masters` as `master_setting` (key-prefixed scope: `org.*` tenant-wide, all other keys per-user). Compliance's `dashboard` = module-local summary metrics, not generic dashboard entity.
 
 ## Language
 
-- Draft, Approval, Domain (workspace), Dashboard, Widget, Schedule (workspace), Pin (workspace), Recent, Quick Search, Watch (workspace), Setting (workspace), Personal/Global access
+- Draft, Approval, Domain (workspace), Dashboard, Widget, Schedule (workspace), Pin (workspace), Recent, Quick Search, Watch (workspace), Personal/Global access
 - `workspace` here = **personal-workspace surface** (drafts/dashboards/utilities) — not Tenancy, not tasks Project/Board
 - `watches.subscribe`/`unsubscribe` = follow-subscriptions on views/dashboards (tasks-watcher vocabulary) — distinct from `PubSubUnit.subscribe`/`unsubscribe` (pg-boss)
 - Avoid: Workspace (for Tenant), Board/Project (for tasks), Saved Filter (for Filter View), Analytics/Metric (for Widget), Dashboard (for compliance summary metrics), Notification (for Watch)

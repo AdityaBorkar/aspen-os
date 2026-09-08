@@ -15,9 +15,6 @@ export const listBranches = Workflow.name("branch.list")
       if (parsed.type) {
         conditions.push(eq(branch.type, parsed.type));
       }
-      if (parsed.isActive !== undefined) {
-        conditions.push(eq(branch.is_active, parsed.isActive));
-      }
       if (parsed.country) {
         conditions.push(eq(branch.country, parsed.country.toUpperCase()));
       }

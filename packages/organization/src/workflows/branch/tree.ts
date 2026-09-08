@@ -2,7 +2,6 @@ import { branch } from "#/db-schemas";
 import { buildTree } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { eq } from "drizzle-orm";
 import { object } from "valibot";
 
 export const getBranchTree = Workflow.name("branch.tree")
@@ -15,8 +14,7 @@ export const getBranchTree = Workflow.name("branch.tree")
           name: branch.name,
           parentBranch: branch.parent_branch,
         })
-        .from(branch)
-        .where(eq(branch.is_active, true));
+        .from(branch);
 
       return buildTree(allBranches);
     }),

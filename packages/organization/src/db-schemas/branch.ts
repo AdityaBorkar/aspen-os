@@ -1,16 +1,6 @@
 import { BRANCH_TYPE } from "@aspen-os/constants";
 import { uuidv7 } from "@aspen-os/platform/server";
-import {
-  boolean,
-  date,
-  index,
-  integer,
-  jsonb,
-  pgEnum,
-  pgTable,
-  text,
-  timestamp,
-} from "drizzle-orm/pg-core";
+import { date, index, integer, jsonb, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const branchTypeEnum = pgEnum("branch_type", [
   BRANCH_TYPE.FACTORY,
@@ -35,7 +25,6 @@ export const branch = pgTable(
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     email: text(),
     id: uuidv7().primaryKey(),
-    is_active: boolean().notNull().default(true),
     manager: text(),
     metadata: jsonb(),
     name: text().notNull(),
@@ -51,7 +40,6 @@ export const branch = pgTable(
   },
   (table) => [
     index("idx_branch_type").on(table.type),
-    index("idx_branch_is_active").on(table.is_active),
     index("idx_branch_country").on(table.country),
     index("idx_branch_parent").on(table.parent_branch),
   ],

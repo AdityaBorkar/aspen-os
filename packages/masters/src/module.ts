@@ -53,6 +53,7 @@ export class Masters implements Module {
   readonly entities = wf.entities;
   readonly filterViews = wf.filterViews;
   readonly paymentMethods = wf.paymentMethods;
+  readonly settings = wf.settings;
   readonly unitsOfMeasure = wf.unitsOfMeasure;
 
   get connections() {

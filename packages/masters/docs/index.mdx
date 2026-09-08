@@ -1,10 +1,10 @@
 ---
 title: Masters
-description: Polymorphic tenant master data module — contacts, addresses, bank accounts, integration connections, entities, payment methods, units of measure, and filter views.
+description: Polymorphic tenant master data module — contacts, addresses, bank accounts, integration connections, entities, payment methods, units of measure, filter views, and settings.
 icon: IconDatabase
 ---
 
-The Masters module owns eight tenant tables: five polymorphic master-data entities — `contact`, `address`, `bankAccount`, `connection`, and `paymentMethod` — scoped to an owner via `(entityType, entityId)`, plus three tenant-level tables — `entity`, `unitOfMeasure`, and `filterView` (the cross-domain saved-filter store). Owner types are `organization`, `branch`, `connection`, `contact`, or `entity`. Contacts may also be global (no owner): the org-wide address book absorbed from DMS.
+The Masters module owns nine tenant tables: five polymorphic master-data entities — `contact`, `address`, `bankAccount`, `connection`, and `paymentMethod` — scoped to an owner via `(entityType, entityId)`, plus four tenant-level tables — `entity`, `unitOfMeasure`, `filterView` (the cross-domain saved-filter store), and `setting` (the tenant settings KV: `org.*` keys tenant-wide, other keys per-user). Owner types are `organization`, `branch`, `connection`, `contact`, or `entity`. Contacts may also be global (no owner): the org-wide address book absorbed from DMS.
 
 ## Documentation
 

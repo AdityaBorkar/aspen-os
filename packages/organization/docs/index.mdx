@@ -1,15 +1,15 @@
 ---
 title: Organization
-description: Domain module for the organization profile and its hierarchical branches.
+description: Domain module for the tenant's hierarchical branches.
 icon: IconBuilding
 ---
 
-The Organization module manages the organization profile (the root business entity) and its hierarchical branches.
+The Organization module manages the tenant's hierarchical branches. The organization profile (id, branding, logo) lives in Masters settings (`org.*` keys via `p.masters.settings`).
 
 <Callout type="info">
   Contacts, addresses, bank accounts, integration connections, and notes now live in the **Masters**
-  module (`@aspen-os/masters`) as polymorphic tenant master data. This module owns only the org
-  profile and branches and has no module dependencies.
+  module (`@aspen-os/masters`) as polymorphic tenant master data. This module owns only branches and
+  has no module dependencies.
 </Callout>
 
 ## Documentation

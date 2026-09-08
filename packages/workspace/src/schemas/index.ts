@@ -72,7 +72,6 @@ export {
 } from "#/schemas/schedule";
 export type { QuickSearchInput } from "#/schemas/search";
 export { QuickSearchSchema } from "#/schemas/search";
-export { GetSettingSchema, SetSettingSchema } from "#/schemas/setting";
 export type { ListWatchesInput, SubscribeWatchInput, UnsubscribeWatchInput } from "#/schemas/watch";
 export { ListWatchesSchema, SubscribeWatchSchema, UnsubscribeWatchSchema } from "#/schemas/watch";
 export type {

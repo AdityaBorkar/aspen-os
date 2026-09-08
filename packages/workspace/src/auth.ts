@@ -22,7 +22,6 @@ export const acl = defineAcl({
   recent: ["read", "touch"],
   schedule: ["create", "read", "update", "delete", "pause", "resume", "mark_run"],
   search: ["read"],
-  setting: ["read", "update"],
   watch: ["create", "read", "delete"],
   widget: ["create", "read", "update", "delete", "refresh"],
 });

@@ -35,6 +35,8 @@ import { getPaymentMethod } from "#/workflows/payment-method/get";
 import { listPaymentMethods } from "#/workflows/payment-method/list";
 import { setPrimaryPaymentMethod } from "#/workflows/payment-method/primary/set";
 import { updatePaymentMethod } from "#/workflows/payment-method/update";
+import { getSetting } from "#/workflows/settings/get";
+import { setSetting } from "#/workflows/settings/set";
 import { createUnitOfMeasure } from "#/workflows/unit-of-measure/create";
 import { deleteUnitOfMeasure } from "#/workflows/unit-of-measure/delete";
 import { getUnitOfMeasure } from "#/workflows/unit-of-measure/get";
@@ -86,6 +88,11 @@ export const paymentMethods = {
   list: listPaymentMethods,
   setPrimary: setPrimaryPaymentMethod,
   update: updatePaymentMethod,
+} as const;
+
+export const settings = {
+  get: getSetting,
+  set: setSetting,
 } as const;
 
 export const unitsOfMeasure = {

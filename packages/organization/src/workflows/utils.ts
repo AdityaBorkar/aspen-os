@@ -1,74 +1,12 @@
-import { branch, organization } from "#/db-schemas";
+import { branch } from "#/db-schemas";
 import type { BranchTreeNode } from "#/types";
 
 import type { JsonValue, WorkflowContext } from "@aspen-os/platform/server";
 import { and, eq, ne } from "drizzle-orm";
 
 type Db = WorkflowContext["db"];
-type Pubsub = WorkflowContext["pubsub"];
 
 const MAX_HIERARCHY_DEPTH = 5;
-const SLUG_MAX_LENGTH = 63;
-const DEFAULT_SLUG = "organization";
-
-function normalizeSlug(value: string): string {
-  return (
-    value
-      .toLowerCase()
-      .trim()
-      .replaceAll(/[^a-z0-9\s-]/g, "")
-      .replaceAll(/[\s_]+/g, "-")
-      .replaceAll(/-+/g, "-")
-      .replaceAll(/^-|-$/g, "")
-      .slice(0, SLUG_MAX_LENGTH)
-      .replaceAll(/-$/g, "") || DEFAULT_SLUG
-  );
-}
-
-export function generateSlug(name: string): string {
-  return normalizeSlug(name);
-}
-
-export async function ensureSlugAvailable(db: Db, slug: string, excludeId?: string): Promise<void> {
-  const conditions =
-    excludeId === undefined
-      ? [eq(organization.slug, slug)]
-      : [eq(organization.slug, slug), ne(organization.id, excludeId)];
-
-  const [existing] = await db
-    .select({ id: organization.id })
-    .from(organization)
-    .where(and(...conditions))
-    .limit(1);
-
-  if (existing) {
-    throw new Error(`Organization with slug "${slug}" already exists.`);
-  }
-}
-
-export async function resolveUniqueSlug(db: Db, baseSlug: string): Promise<string> {
-  const base = normalizeSlug(baseSlug);
-  let slug = base;
-  let suffix = 2;
-
-  // oxlint-disable eslint/no-await-in-loop
-  while (true) {
-    const [existing] = await db
-      .select({ id: organization.id })
-      .from(organization)
-      .where(eq(organization.slug, slug))
-      .limit(1);
-
-    if (!existing) {
-      return slug;
-    }
-
-    const tail = `-${suffix}`;
-    slug = `${base.slice(0, SLUG_MAX_LENGTH - tail.length)}${tail}`;
-    suffix++;
-  }
-  // oxlint-enable eslint/no-await-in-loop
-}
 
 export async function ensureCodeUnique(db: Db, code: string, excludeId?: string): Promise<void> {
   const upperCode = code.toUpperCase();
@@ -126,6 +64,7 @@ export async function validateParentBranch(
     }
     seen.add(currentId);
 
+    // SAFETY: the select projects only branch.parent_branch, so rows carry that shape.
     const [row] = (await db
       .select({ parentBranch: branch.parent_branch })
       .from(branch)
@@ -152,32 +91,6 @@ export async function validateParentBranch(
       `Cannot add a child to this branch. Maximum hierarchy depth of ${MAX_HIERARCHY_DEPTH} levels would be exceeded.`,
     );
   }
-}
-
-/** Shared active-flag transition for activate/deactivate/archive/restore. */
-export async function setBranchActive(
-  db: Db,
-  pubsub: Pubsub,
-  options: { date?: string; id: string; isActive: boolean; topic: string },
-): Promise<typeof branch.$inferSelect> {
-  const [updated] = await db
-    .update(branch)
-    .set({ is_active: options.isActive, updated_at: new Date() })
-    .where(eq(branch.id, options.id))
-    .returning();
-
-  if (!updated) {
-    throw new Error(`Branch with id "${options.id}" not found.`);
-  }
-
-  await pubsub.publish(
-    options.topic,
-    options.date === undefined
-      ? { branchId: options.id }
-      : { branchId: options.id, date: options.date },
-  );
-
-  return updated;
 }
 
 /** Defined-only entries of a values object (undefined means "column untouched"). */
