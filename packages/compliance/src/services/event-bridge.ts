@@ -10,7 +10,7 @@ import type {
   StandardSchema,
 } from "@aspen-os/platform/server";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
-import { object, string } from "valibot";
+import { nullable, object, string } from "valibot";
 
 const EmployeeOnboardedEventSchema = object({
   employeeId: string(),
@@ -46,7 +46,9 @@ const ContactCreatedEventSchema = object({
     name: string(),
     type: string(),
   }),
-  entityType: string(),
+  // Nullable since contacts can be global address-book entries; only
+  // organization-scoped insurer contacts produce insurance docs.
+  entityType: nullable(string()),
 });
 
 type EmployeeOnboardedEvent = InferSchemaOutput<typeof EmployeeOnboardedEventSchema>;

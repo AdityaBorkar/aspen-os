@@ -17,18 +17,6 @@ export {
   UpdateClassFieldSchema,
   UpdateClassSchema,
 } from "#/schemas/class";
-export type {
-  ContactFilters,
-  CreateContactInput,
-  RemoveContactInput,
-  UpdateContactInput,
-} from "#/schemas/contact";
-export {
-  ContactFiltersSchema,
-  CreateContactSchema,
-  RemoveContactSchema,
-  UpdateContactSchema,
-} from "#/schemas/contact";
 export {
   COMPRESSION_MODE,
   CompressionModeSchema,

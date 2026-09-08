@@ -20,6 +20,7 @@ import { createContact } from "#/workflows/contact/create";
 import { deleteContact } from "#/workflows/contact/delete";
 import { getContact } from "#/workflows/contact/get";
 import { listContacts } from "#/workflows/contact/list";
+import { removeContact } from "#/workflows/contact/remove";
 import { updateContact } from "#/workflows/contact/update";
 import { createEntity } from "#/workflows/entity/create";
 import { deleteEntity } from "#/workflows/entity/delete";
@@ -64,6 +65,7 @@ export const contacts = {
   delete: deleteContact,
   get: getContact,
   list: listContacts,
+  remove: removeContact,
   update: updateContact,
 } as const;
 

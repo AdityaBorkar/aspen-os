@@ -65,7 +65,7 @@ Recurrence is a structured jsonb config validated by `EventRecurrenceSchema`: `{
 
 ## Task Integration
 
-The module stays `$dependencies = []`. The tasks module publishes `task:due_date_changed` / `task:deleted` / `task:status_changed` (carrying `toStatusCategory` + `isTerminal`); the calendar-side `services/task-bridge.ts` subscribes and materializes/cancels task due-date reminders (`targetType = task`). No direct cross-module calls or cross-module table reads.
+The module stays `$dependencies = []`. The tasks module publishes `task:due_date_changed` / `task:deleted` / `task:status_changed` (carrying `toStatusCategory` + `isTerminal`); the calendar-side `services/task-bridge.ts` subscribes and materializes/cancels task due-date reminders (`targetType = task`). No direct cross-module calls or cross-module table reads. These optional peer topics are declared as `$consumes` (introspection-only, never validated) — set `tasksEnabled: false` when tasks is not installed to skip the bridge subscriptions.
 
 ## Module Structure
 

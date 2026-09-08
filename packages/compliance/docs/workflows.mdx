@@ -176,7 +176,7 @@ See [Schema](/docs/compliance/db-schemas).
 
 ## Dependencies
 
-No module dependencies (`$dependencies = []`). Runtime requires platform `db`, `kvStore`, `pubsub` units plus an audit context (`ctx.audit`).
+No hard module dependencies (`$dependencies = []`). Runtime requires platform `db`, `kvStore`, `pubsub` units plus an audit context (`ctx.audit`). Optional peer topics consumed by the event bridge are declared as `$consumes` (introspection-only, never validated) — a missing producer silently no-ops, so compliance composes solo or in any subset.
 
 ## Notes
 

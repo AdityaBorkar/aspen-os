@@ -6,7 +6,7 @@ icon: IconInfoCircle
 
 The DMS module is a unified document/files management system built on `@aspen-os/platform`. The class-first records system (triage, classes, versions) and the free-form filesystem (folders, paths) are consolidated onto **one `file` entity**: `dms_file` carries both the folder/path attributes of the filesystem and the class/triage/lifecycle attributes of the records system. `file` is the primary term.
 
-All binary storage is delegated to the platform's `StorageUnit` under version-bound keys (`dms/{tenant}/{fileId}/v{n}/{name}`); DMS owns the indexing semantics — classes, fields, labels, metadata, versions, file views, contacts, sharing, search, retention, and the trash.
+All binary storage is delegated to the platform's `StorageUnit` under version-bound keys (`dms/{tenant}/{fileId}/v{n}/{name}`); DMS owns the indexing semantics — classes, fields, labels, metadata, versions, file views, sharing, search, retention, and the trash. Contacts moved to Masters (`p.masters.contacts`); DMS shares still accept `contact` grantees holding Masters contact ids.
 
 ## Module
 
@@ -18,11 +18,11 @@ export class Dms implements Module {
 }
 ```
 
-The module requires the `db`, `pubsub`, and `storage` units (`$dependencies = ["db", "pubsub", "storage"]`).
+The module requires the `db`, `pubsub`, and `storage` units via `$initialize()` (unit wiring, not module dependencies). It has no hard module dependencies (`$dependencies = []`), so it composes solo or in any subset.
 
 ## Architecture
 
-The module operates against the **tenant** database (all 14 tables are tenant schemas; there are no control-plane tables):
+The module operates against the **tenant** database (all 13 tables are tenant schemas; there are no control-plane tables):
 
 ```text
 TENANT DATABASE
@@ -30,7 +30,7 @@ TENANT DATABASE
   dms_class, dms_class_field
   dms_label, dms_entity_label
   dms_file_view, dms_share, dms_public_link
-  dms_contact, dms_legal_hold, dms_setting, dms_access_log
+  dms_legal_hold, dms_setting, dms_access_log
 ```
 
 ## Lifecycle
@@ -60,7 +60,6 @@ The module exposes workflow + service groups:
 | `trash`     | `list`, `restore`, `deletePermanently`, `empty`, `purgeExpired`                                                                                                                                                                                 |
 | `fileViews` | `apply`, `create`, `update`, `delete`, `list`, `listByOwner`, `getDefault`, `setDefault`                                                                                                                                                        |
 | `triage`    | `list`, `detail`, `classify`                                                                                                                                                                                                                    |
-| `contacts`  | `create`, `get`, `list`, `update`, `remove`                                                                                                                                                                                                     |
 | `holds`     | `list`, `place`, `release`                                                                                                                                                                                                                      |
 | `settings`  | `get`, `set`                                                                                                                                                                                                                                    |
 | `search`    | `search`, `quick`, `promoteToView` (records + filesystem search merged)                                                                                                                                                                         |
@@ -95,14 +94,16 @@ await p.dms.fileViews.create({ input: { name: "Invoices", ownerId: userId, filte
 $initialize(units: Record<string, Unit>): void; // uses db, pubsub, storage
 ```
 
-`$prepareRuntime()` registers two scheduled pg-boss jobs with `ctx.audit` + the running DB:
+`$prepareRuntime()` registers two scheduled pg-boss jobs with `ctx.audit` + the running DB, plus the contact-share bridge subscription:
 
 | Job            | Topic             | Cron         | Purpose                                                                                                                          |
 | -------------- | ----------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------- |
 | Expiry scanner | `dms:expiry-scan` | `5 0 * * *`  | Promotes active files past their `expiryDate` to `expired`                                                                       |
 | Auto-purge     | `dms:auto-purge`  | `30 3 * * *` | Permanently deletes `trashed`/`expired` files past retention and trashed folders past `trashRetentionDays`, skipping legal holds |
 
-`$cleanup()` unsubscribes and unschedules both.
+It also subscribes to `masters:contact_removed` (contact-share bridge): removing a Masters contact revokes every DMS share granted to that contact, invalidating contact `shareToken`s immediately.
+
+`$cleanup()` unsubscribes and unschedules all three.
 
 ## Config
 
@@ -130,8 +131,8 @@ type DmsModuleConfig = {
 ```ts
 $prepareInfra(): ModuleInfra {
   return {
-    auth: { acl },                      // file, class, contact, share, file_view, folder, label, ...
-    db: { control_plane_schemas: {}, tenant_schemas: dmsTables }, // 14 tenant tables
+    auth: { acl },                      // file, class, share, file_view, folder, label, ...
+    db: { control_plane_schemas: {}, tenant_schemas: dmsTables }, // 13 tenant tables
     events,                             // dms:* topics
   };
 }

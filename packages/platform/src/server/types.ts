@@ -52,8 +52,21 @@ export interface Module<
   TT extends SchemaMap = SchemaMap,
 > {
   $cleanup: () => void | Promise<void>;
+  /**
+   * Hard module dependencies: other module `$name` values that must be
+   * provided to `Platform.create()`. Validated at creation time — throws if
+   * a listed module is missing. Units (`db`, `pubsub`, …) must never be
+   * listed here; they arrive via `$initialize(units)`.
+   */
   readonly $dependencies: readonly string[];
-  /** Each module types the subset of units it depends on (see $dependencies). */
+  /**
+   * Optional peer event topics this module subscribes to at runtime.
+   * Introspection-only: never validated at creation time, so single-module
+   * and subset compositions keep working when a producer is absent.
+   * A missing producer means the subscription silently no-ops.
+   */
+  readonly $consumes?: readonly string[];
+  /** Each module types the subset of units it uses from `$initialize(units)`. */
   $initialize: (units: any) => void;
   readonly $name: TName;
   $prepareInfra: () => ModuleInfra<TCP, TT>;

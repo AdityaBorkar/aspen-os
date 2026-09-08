@@ -29,6 +29,20 @@ export class Compliance implements Module {
 
   readonly $name = "compliance";
   readonly $dependencies: readonly string[] = [];
+  /**
+   * Optional peer topics consumed by the event bridge. Introspection-only —
+   * never validated, so compliance runs solo or in any subset. A missing
+   * producer (including not-yet-implemented stub modules) means its handler
+   * silently no-ops.
+   */
+  readonly $consumes: readonly string[] = [
+    "hr:employee_onboarded",
+    "hr:employee_separated",
+    "fleet:vehicle_registered",
+    "organization:branch_created",
+    "accounting:financial_year_started",
+    "masters:contact_created",
+  ];
   readonly $config: ComplianceModuleConfig;
 
   #db: DatabaseUnit | null = null;

@@ -180,7 +180,7 @@ Domain events published via PubSub as plain string topics. Event counts by modul
 - Tasks: 11 events (incl. `task:due_date_changed`)
 - Calendar: 14 events (3 calendar + 4 event + 3 attendee + 4 reminder, incl. `calendar:reminder_due`)
 - Workspace: 32 events (13 draft + 4 view + 6 dashboard + 4 widget + 2 pin + 2 watch + 1 schedule)
-- DMS: 33 events (13 file + 6 folder + 3 class + 3 contact + 2 share + 3 public_link + 3 file_view)
+- DMS: 30 events (13 file + 6 folder + 3 class + 2 share + 3 public_link + 3 file_view)
 - Comms: 21 events (6 channel + 2 provider + 3 notification + 4 message + 1 preference + 4 template + 1 setting)
 - Management Plane: 16 events (8 tenant + 4 service_provider + 4 platform_user)
 - HR: 58 events (10 event groups across employee, attendance, leave, lifecycle, overtime, position, setup, shift, access, announcement)
@@ -191,23 +191,23 @@ Per-context event tables in `domain-model/<package>.md`.
 
 Compliance module's `EventBridge` service actively subscribes to other modules' events to auto-create compliance documents + obligations. Primary cross-context integration mechanism:
 
-| Subscribed Topic                                     | Source Module     | Action                                                                                    |
-| ---------------------------------------------------- | ----------------- | ----------------------------------------------------------------------------------------- |
-| `hr:employee_onboarded`                              | HR                | Creates background check + ID verification documents                                      |
-| `hr:employee_separated`                              | HR                | Creates exit documents + final settlement documents                                       |
-| `fleet:vehicle_registered`                           | Fleet (stub)      | Creates pollution certificate + semi-annual obligation                                    |
-| `organization:branch_created`                        | Organization      | Creates trade license + fire safety certificate + annual obligation                       |
-| `accounting:financial_year_started`                  | Accounting (stub) | Creates monthly GST return obligation                                                     |
-| `masters:contact_created`                            | Masters           | Creates insurance policy document (if contact type is insurer and entity is organization) |
-| `task:due_date_changed`                              | Tasks             | Calendar task bridge — materializes/cancels the task due-date reminder bundle             |
-| `task:deleted`                                       | Tasks             | Calendar task bridge — deletes all task reminders for the task                            |
-| `task:status_changed`                                | Tasks             | Calendar task bridge — suppresses pending task reminders on completion/cancellation       |
-| `compliance:document_expiring` / `document_due`      | Compliance        | Comms event bridge — in-app + out-of-band notification to the document's assigned user    |
-| `calendar:reminder_due`                              | Calendar          | Comms event bridge — notify the reminder's `userId`                                       |
-| `dms:file_expired`                                   | DMS               | Comms event bridge — notify the file `ownerId`                                            |
-| `announcement:published`                             | HR                | Comms event bridge — per-recipient inbox fan-out                                          |
-| `management:tenant_provisioned` / `tenant_activated` | Management        | Comms event bridge — warm host default channels per tenant                                |
-| `auth:email_otp_requested`                           | Platform auth     | Comms event bridge — inline OTP email via the host default email provider                 |
+| Subscribed Topic                                     | Source Module     | Action                                                                                                                    |
+| ---------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `hr:employee_onboarded`                              | HR                | Creates background check + ID verification documents                                                                      |
+| `hr:employee_separated`                              | HR                | Creates exit documents + final settlement documents                                                                       |
+| `fleet:vehicle_registered`                           | Fleet (stub)      | Creates pollution certificate + semi-annual obligation                                                                    |
+| `organization:branch_created`                        | Organization      | Creates trade license + fire safety certificate + annual obligation                                                       |
+| `accounting:financial_year_started`                  | Accounting (stub) | Creates monthly GST return obligation                                                                                     |
+| `masters:contact_created`                            | Masters           | Creates insurance policy document (if contact type is insurer and entity is organization-scoped; global contacts ignored) |
+| `task:due_date_changed`                              | Tasks             | Calendar task bridge — materializes/cancels the task due-date reminder bundle                                             |
+| `task:deleted`                                       | Tasks             | Calendar task bridge — deletes all task reminders for the task                                                            |
+| `task:status_changed`                                | Tasks             | Calendar task bridge — suppresses pending task reminders on completion/cancellation                                       |
+| `compliance:document_expiring` / `document_due`      | Compliance        | Comms event bridge — in-app + out-of-band notification to the document's assigned user                                    |
+| `calendar:reminder_due`                              | Calendar          | Comms event bridge — notify the reminder's `userId`                                                                       |
+| `dms:file_expired`                                   | DMS               | Comms event bridge — notify the file `ownerId`                                                                            |
+| `announcement:published`                             | HR                | Comms event bridge — per-recipient inbox fan-out                                                                          |
+| `management:tenant_provisioned` / `tenant_activated` | Management        | Comms event bridge — warm host default channels per tenant                                                                |
+| `auth:email_otp_requested`                           | Platform auth     | Comms event bridge — inline OTP email via the host default email provider                                                 |
 
 ### Schema Management
 

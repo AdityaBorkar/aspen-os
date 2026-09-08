@@ -26,17 +26,18 @@ p.masters.addresses       { create, delete, get, list, setPrimary, update }
 p.masters.bankAccounts    { activate, create, deactivate, delete, get, list, setPrimary, update }
 p.masters.connections     { activate, create, deactivate, delete, get, list, rotateCredential,
                             test, update }
-p.masters.contacts        { create, delete, get, list, setPrimary, update }
+p.masters.contacts        { create, delete, get, list, remove, setPrimary, update }
 p.masters.entities        { create, delete, get, list, setStatus, update }
 p.masters.paymentMethods  { activate, create, deactivate, delete, get, list, setPrimary, update }
 p.masters.unitsOfMeasure  { activate, create, deactivate, delete, get, list, update }
 ```
 
-Polymorphic entities (`contacts`, `addresses`, `bankAccounts`, `connections`, `paymentMethods`) require `entityType` (`organization` | `branch` | `connection` | `contact` | `entity`) + `entityId` on create/list. `entities` and `unitsOfMeasure` are tenant-level — no scope pair. Workflows are one file per action under `workflows/<entity>/<verb>.ts`; reusable fetch steps and business-rule steps live in `workflow-steps/`.
+Polymorphic entities (`addresses`, `bankAccounts`, `connections`, `paymentMethods`) require `entityType` (`organization` | `branch` | `connection` | `contact` | `entity`) + `entityId` on create/list. `contacts` accept an optional scope — omit both for global address-book entries (absorbed from DMS); `entities` and `unitsOfMeasure` are tenant-level — no scope pair. Workflows are one file per action under `workflows/<entity>/<verb>.ts`; reusable fetch steps and business-rule steps live in `workflow-steps/`.
 
 ## Cross-context integration
 
-- **Compliance** subscribes to `masters:contact_created` and creates an `insurance_policy` compliance document when `contact.type === "insurer"` and `entityType === "organization"` (replaces the old `organization:connection_created` subscription).
+- **Compliance** subscribes to `masters:contact_created` and creates an `insurance_policy` compliance document when `contact.type === "insurer"` and `entityType === "organization"` (organization-scoped only; global contacts are ignored — replaces the old `organization:connection_created` subscription).
+- **DMS** subscribes to `masters:contact_removed` (contact-share bridge) and revokes every DMS share granted to the removed contact, invalidating contact `shareToken`s.
 - **Organization** depends on this module (`$dependencies: ["masters"]`) for the master-data surface that was extracted out of it.
 - **Notes** (removal): the note concept moved to `@aspen-os/notes` — scoped annotation notes migrate with `scopeType = masters:<entityType>`.
 - **Accounting / Inventory** (future, stubs) are the intended consumers of `paymentMethod` / `unitOfMeasure`.

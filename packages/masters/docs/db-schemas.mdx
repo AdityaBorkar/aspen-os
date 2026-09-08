@@ -28,17 +28,26 @@ All polymorphic tables share the `entity_type` (pgEnum) + `entity_id` (text) pai
 
 ### `master_contact`
 
-Standalone contact record (business relationship).
+Contact record (business relationship), optionally scoped to an owner or global. Absorbed the DMS address book: split-name fields, internal-user link, creator, and soft-remove columns.
 
-| Column     | Type                | Description       |
-| ---------- | ------------------- | ----------------- |
-| `name`     | text                | Contact name      |
-| `email`    | text                | Contact email     |
-| `phone`    | text                | Contact phone     |
-| `title`    | text                | Job title         |
-| `company`  | text                | Company name      |
-| `type`     | master_contact_type | Contact type      |
-| `metadata` | jsonb               | Flexible metadata |
+| Column            | Type                | Description                                                       |
+| ----------------- | ------------------- | ----------------------------------------------------------------- |
+| `name`            | text                | Contact name (derived from `first_name` + `last_name` if omitted) |
+| `first_name`      | text                | Split first name (DMS address book)                               |
+| `last_name`       | text                | Split last name (DMS address book)                                |
+| `email`           | text                | Contact email, indexed                                            |
+| `phone`           | text                | Contact phone                                                     |
+| `title`           | text                | Job title (absorbs DMS `designation`)                             |
+| `company`         | text                | Company name (absorbs DMS `company_name`)                         |
+| `type`            | master_contact_type | Contact type (defaults to `other`)                                |
+| `linked_user_id`  | text                | Optional link to an internal AuthUnit user                        |
+| `created_by`      | text                | Who added the contact                                             |
+| `is_removed`      | boolean             | Soft-delete flag (default `false`; hidden from `list` by default) |
+| `deletion_reason` | text                | Required on `remove`                                              |
+| `removed_at`      | timestamptz         | When removed                                                      |
+| `entity_type`     | master_entity_type  | Owner type, nullable for global contacts                          |
+| `entity_id`       | text                | Owner row id, nullable for global contacts                        |
+| `metadata`        | jsonb               | Flexible metadata                                                 |
 
 ### `master_address`
 
@@ -164,7 +173,7 @@ Indexes: `idx_master_payment_method_entity`, `idx_master_payment_method_type`, `
 
 ```text
 organization ──┐
-branch       ──┼──(entityType, entityId)──▶ master_contact
+branch       ──┼──(entityType, entityId)──▶ master_contact (or global: no owner)
 connection   ──┤                            master_address
 contact      ──┤                            master_bank_account
 entity       ──┘                            master_connection

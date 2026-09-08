@@ -76,6 +76,8 @@ export type SettingKey = (typeof SETTING_KEYS)[keyof typeof SETTING_KEYS];
 
 export const AUDIT_ENTITY_TYPE = {
   CLASS: "dms:class",
+  // Kept for reading pre-migration audit rows; new contact audit entries are
+  // written by masters as "masters:contact".
   CONTACT: "dms:contact",
   FILE: "dms:file",
   FILE_VIEW: "dms:file_view",
@@ -90,7 +92,6 @@ export type AuditEntityType = (typeof AUDIT_ENTITY_TYPE)[keyof typeof AUDIT_ENTI
 
 export const AUDIT_ACTION = {
   CLASSIFIED: "classified",
-  CONTACT_REMOVED: "contact_removed",
   DELETED: "deleted",
   DOWNLOADED: "downloaded",
   EXPIRED: "expired",

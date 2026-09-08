@@ -62,11 +62,13 @@ export const PAYMENT_METHOD_EVENTS = {
 
 ### Contact Events
 
-| Event                     | Payload                                          | Trigger         |
-| ------------------------- | ------------------------------------------------ | --------------- |
-| `masters:contact_created` | `{ contact: { id, name, type }, entityType }`    | Contact created |
-| `masters:contact_updated` | `{ contact: { id, name }, changes, entityType }` | Contact updated |
-| `masters:contact_removed` | `{ contactId, entityId, entityType }`            | Contact removed |
+| Event                     | Payload                                          | Trigger                         |
+| ------------------------- | ------------------------------------------------ | ------------------------------- |
+| `masters:contact_created` | `{ contact: { id, name, type }, entityType }`    | Contact created                 |
+| `masters:contact_updated` | `{ contact: { id, name }, changes, entityType }` | Contact updated                 |
+| `masters:contact_removed` | `{ contactId, entityId, entityType, reason }`    | Contact soft-removed (`remove`) |
+
+`entityType`/`entityId` are `null` for global address-book contacts. DMS subscribes to `masters:contact_removed` and revokes every share granted to the contact.
 
 ### Address Events
 

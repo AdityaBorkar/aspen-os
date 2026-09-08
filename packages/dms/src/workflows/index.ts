@@ -9,10 +9,6 @@ import { updateClassField } from "#/workflows/class/field/update";
 import { getClass } from "#/workflows/class/get";
 import { listClasses } from "#/workflows/class/list";
 import { updateClass } from "#/workflows/class/update";
-import { createContact } from "#/workflows/contact/create";
-import { getContact, listContacts } from "#/workflows/contact/list";
-import { removeContact } from "#/workflows/contact/remove";
-import { updateContact } from "#/workflows/contact/update";
 import { applyFileView } from "#/workflows/file-view/apply";
 import { createFileView } from "#/workflows/file-view/create";
 import { setDefaultFileView } from "#/workflows/file-view/default/set";
@@ -89,8 +85,10 @@ import { getCurrentVersion, listFileVersions } from "#/workflows/version/list";
 import { newFileVersion } from "#/workflows/version/new";
 import { revertToVersion } from "#/workflows/version/revert";
 
-// Group taxonomy mirrors DMS domain areas; getContact lives in contact/list
-// (no contact/get module) and group/alias names are frozen for compatibility.
+// Group taxonomy mirrors DMS domain areas; group/alias names are frozen for
+// compatibility. Contacts moved to masters (`p.masters.contacts`); DMS shares
+// still accept `contact` grantees referencing masters contact ids, and the
+// contact-share bridge revokes those grants on `masters:contact_removed`.
 export const activity = {
   get: getActivity,
   getClass: getClassActivity,
@@ -106,14 +104,6 @@ export const classes = {
   list: listClasses,
   update: updateClass,
   updateField: updateClassField,
-} as const;
-
-export const contacts = {
-  create: createContact,
-  get: getContact,
-  list: listContacts,
-  remove: removeContact,
-  update: updateContact,
 } as const;
 
 export const fileViews = {

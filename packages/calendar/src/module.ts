@@ -36,6 +36,16 @@ export class Calendar implements Module {
 
   readonly $name = "calendar";
   readonly $dependencies: readonly string[] = [];
+  /**
+   * Optional peer topics consumed by the task bridge. Introspection-only —
+   * never validated, so calendar runs solo or without tasks. Set
+   * `tasksEnabled: false` to skip these subscriptions entirely.
+   */
+  readonly $consumes: readonly string[] = [
+    "task:due_date_changed",
+    "task:deleted",
+    "task:status_changed",
+  ];
   readonly $config: Required<CalendarModuleConfig>;
 
   #db: DatabaseUnit | null = null;

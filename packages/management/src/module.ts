@@ -43,7 +43,7 @@ export class ManagementPlane implements Module {
   }
 
   readonly $name = "management";
-  readonly $dependencies = ["organization"];
+  readonly $dependencies: readonly string[] = [];
   readonly $config: ManagementPlaneConfig;
 
   #db: DatabaseUnit | null = null;

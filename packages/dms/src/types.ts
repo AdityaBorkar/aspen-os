@@ -9,7 +9,6 @@ import type { EntityType } from "#/utils/constants";
 
 export type { DmsClass, NewDmsClass } from "#/db-schemas/class";
 export type { DmsClassField, NewDmsClassField } from "#/db-schemas/class-field";
-export type { DmsContact, NewDmsContact } from "#/db-schemas/contact";
 export type { DmsEntityLabel, NewDmsEntityLabel } from "#/db-schemas/entity-label";
 export type { DmsFileView, NewDmsFileView } from "#/db-schemas/file-view";
 export type { DmsLegalHold, NewDmsLegalHold } from "#/db-schemas/legal-hold";
@@ -19,9 +18,6 @@ export type {
   ClassArchivedEvent,
   ClassCreatedEvent,
   ClassUpdatedEvent,
-  ContactCreatedEvent,
-  ContactRemovedEvent,
-  ContactUpdatedEvent,
   DmsEventMap,
   FileClassifiedEvent,
   FileDownloadedEvent,
@@ -53,7 +49,6 @@ export type {
 } from "#/pubsub";
 export {
   CLASS_EVENTS,
-  CONTACT_EVENTS,
   events,
   FILE_EVENTS,
   FILE_VIEW_EVENTS,
@@ -67,9 +62,7 @@ export type {
   ApplyLabelInput,
   ClassifyFileInput,
   CompressionOption,
-  ContactFilters,
   CreateClassFieldInput,
-  CreateContactInput,
   CreateFileViewInput,
   CreateFolderInput,
   CreateLabelInput,
@@ -89,7 +82,6 @@ export type {
   MoveFolderInput,
   NewVersionInput,
   QuickSearchInput,
-  RemoveContactInput,
   RemoveMetadataInput,
   RenameFileInput,
   RenameFolderInput,
@@ -98,7 +90,6 @@ export type {
   SearchOptions,
   TriageFilters,
   UpdateClassFieldInput,
-  UpdateContactInput,
   UpdateFileInput,
   UpdateFileViewInput,
   UpdateFolderInput,
@@ -118,10 +109,8 @@ export {
   ClassifyFileSchema,
   CompressionModeSchema,
   CompressionOptionSchema,
-  ContactFiltersSchema,
   CreateClassFieldSchema,
   CreateClassSchema,
-  CreateContactSchema,
   CreateFileViewSchema,
   CreateFolderSchema,
   CreateLabelSchema,
@@ -160,7 +149,6 @@ export {
   parseShareExpiry,
   PublicLinkPermissionSchema,
   QuickSearchSchema,
-  RemoveContactSchema,
   RemoveMetadataSchema,
   RenameFileSchema,
   RenameFolderSchema,
@@ -174,7 +162,6 @@ export {
   TriageFiltersSchema,
   UpdateClassFieldSchema,
   UpdateClassSchema,
-  UpdateContactSchema,
   UpdateFileSchema,
   UpdateFileViewSchema,
   UpdateFolderSchema,

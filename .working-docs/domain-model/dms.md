@@ -164,9 +164,9 @@
 
 **Invariants**:
 
-- Permission grant (`viewer`/`editor`/`owner`) on a File or Folder to a grantee — a **Contact** (token-based, no login required), an internal **User**, or a **Group**
+- Permission grant (`viewer`/`editor`/`owner`) on a File or Folder to a grantee — a Masters **Contact** (token-based, no login required; `granteeId` is the Masters contact id), an internal **User**, or a **Group**
 - Unique per `(entityType, entityId, granteeType, granteeId)` — one grant per grantee per entity
-- Revoking, or removing the contact, invalidates access immediately
+- Revoking, or removing the Masters contact (via the `masters:contact_removed` contact-share bridge), invalidates access immediately
 - Folder grants inherit down the folder tree
 
 **Lifecycle commands** (via `p.dms.shares`): `create(input)`, `update(id, patch)`, `remove(id)`, `get(id)`, `list(filters?)`, `listByGrantee(granteeType, granteeId)`, `listSharedWithMe(userId)`, `resolveToken(token)`.
@@ -205,10 +205,10 @@
 
 - **Setting**: `{ key (unique), value (jsonb) }` — DMS-wide settings (e.g. default retention).
 - **Access Log**: append-only `{ entityId, entityType, accessedBy?, action, ip?, userAgent?, publicLinkId? }` — public-link access and download tracking.
-- **Contact**: org-wide address-book entry (`firstName`, `lastName`, `email`, `phone`, `companyName`, `designation` — all mandatory) used as a sharing handle for external parties; may be linked to an internal AuthUnit user (`linkedUserId`). Removal requires a mandatory reason (`deletionReason`) and revokes all shares granted to the contact.
+- **Contact** (moved to Masters): contacts are Masters records (`p.masters.contacts`) — global address-book entries (`firstName`/`lastName`, `email`, `phone`, `company`, `title`, `type` defaulting to `other`) usable as DMS sharing handles for external parties; may be linked to an internal AuthUnit user (`linkedUserId`). Removal (`remove`) requires a mandatory reason and revokes all DMS shares granted to the contact via the contact-share bridge (`masters:contact_removed` subscription).
 - **Activity Feed**: per-entity chronological trail of DMS actions (upload, classify, version, share, delete, expire, restore, purge, hold) projected from the platform AuditUnit's `audit_log` — not a DMS-owned table, not PubSub events.
 
-## Domain Events — 33 (7 maps → `DmsEventMap`)
+## Domain Events — 30 (6 maps → `DmsEventMap`)
 
 ### File Events (`FILE_EVENTS`) — 13
 
@@ -247,13 +247,7 @@
 | `dms:class_updated`  | `{ classId }` | Class updated  |
 | `dms:class_archived` | `{ classId }` | Class archived |
 
-### Contact Events (`CONTACT_EVENTS`) — 3
-
-| Event                 | Payload                 | Trigger                          |
-| --------------------- | ----------------------- | -------------------------------- |
-| `dms:contact_created` | `{ contactId }`         | Contact created                  |
-| `dms:contact_updated` | `{ contactId }`         | Contact updated                  |
-| `dms:contact_removed` | `{ contactId, reason }` | Contact removed (revokes shares) |
+Contacts moved to Masters — see `masters:contact_created` / `masters:contact_updated` / `masters:contact_removed` in `domain-model/masters.md`. DMS subscribes to `masters:contact_removed` (contact-share bridge) and revokes every share granted to the removed contact.
 
 ### Share Events (`SHARE_EVENTS`) — 2
 
@@ -306,7 +300,6 @@
 | DMS     | Apply label        | `p.dms.labels.apply()`                                     |
 | DMS     | Create file view   | `p.dms.fileViews.create()`                                 |
 | DMS     | Set default view   | `p.dms.fileViews.setDefault()`                             |
-| DMS     | Create contact     | `p.dms.contacts.create()`                                  |
 
 ### Queries (Read Side)
 
@@ -342,4 +335,4 @@
 10. **Hold-aware purge** — permanent deletion and auto-purge of Files are blocked while an active Legal Hold exists; `trash.deletePermanently` is admin-only.
 11. **Retention** — class-level `retentionDays` overrides the settings default.
 12. **Classify validation** — required class fields must be satisfied before a File becomes active in that class.
-13. **Contact removal** — requires a mandatory reason and revokes all shares granted to the contact.
+13. **Contact removal** — Masters `remove` requires a mandatory reason; the DMS contact-share bridge revokes all shares granted to the contact.

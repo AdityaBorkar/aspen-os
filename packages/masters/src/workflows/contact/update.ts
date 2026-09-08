@@ -17,11 +17,14 @@ const UpdateInputSchema = object({
 export const updateContact = Workflow.name("masters.contact.update")
   .input(UpdateInputSchema)
   .handler(async (input, ctx) => {
-    await ctx.step.run(fetchContactStep, { id: input.id });
+    const current = await ctx.step.run(fetchContactStep, { id: input.id });
 
     const updates = stripUndefined({
       company: input.patch.company,
       email: input.patch.email,
+      first_name: input.patch.firstName,
+      last_name: input.patch.lastName,
+      linked_user_id: input.patch.linkedUserId,
       metadata: input.patch.metadata,
       name: input.patch.name,
       phone: input.patch.phone,
@@ -29,9 +32,17 @@ export const updateContact = Workflow.name("masters.contact.update")
       type: input.patch.type,
     });
 
+    // Keep the display name in sync when only the split name changes.
+    const derivedName =
+      updates.name ??
+      (updates.first_name !== undefined || updates.last_name !== undefined
+        ? `${updates.first_name ?? current.first_name ?? ""} ${updates.last_name ?? current.last_name ?? ""}`.trim()
+        : undefined);
+    const finalUpdates = stripUndefined({ ...updates, name: derivedName });
+
     const [updated] = await ctx.db
       .update(masterContact)
-      .set({ ...updates, updated_at: new Date() })
+      .set({ ...finalUpdates, updated_at: new Date() })
       .where(eq(masterContact.id, input.id))
       .returning();
 
@@ -42,14 +53,14 @@ export const updateContact = Workflow.name("masters.contact.update")
     await ctx.step.run("audit-and-notify", async () => {
       await ctx.audit.write({
         action: AUDIT_ACTION.UPDATED,
-        changes: updates,
+        changes: finalUpdates,
         crudAction: "update",
         entityId: updated.id,
         entityType: AUDIT_ENTITY_TYPE.CONTACT,
       });
 
       await ctx.pubsub.publish(CONTACT_EVENTS.UPDATED, {
-        changes: updates,
+        changes: finalUpdates,
         contact: { id: updated.id, name: updated.name },
         entityType: updated.entity_type,
       });

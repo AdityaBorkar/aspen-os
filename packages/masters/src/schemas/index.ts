@@ -42,12 +42,14 @@ export type {
   ContactFilters,
   CreateContactInput,
   ListContactsInput,
+  RemoveContactInput,
   UpdateContactInput,
 } from "#/schemas/contact";
 export {
   ContactFiltersSchema,
   CreateContactSchema,
   ListContactsSchema,
+  RemoveContactSchema,
   UpdateContactSchema,
 } from "#/schemas/contact";
 export type {

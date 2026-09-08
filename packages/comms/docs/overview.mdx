@@ -22,7 +22,7 @@ export class Comms implements Module {
 }
 ```
 
-The module declares no platform-module dependencies. It receives `{ db, kvStore, pubsub, auth }` in `$initialize()`.
+The module declares no hard module dependencies (`$dependencies = []`) and lists its optional peer subscriptions as `$consumes` (introspection-only, never validated — a missing producer silently no-ops). It receives `{ db, kvStore, pubsub, auth }` in `$initialize()`.
 
 ## Three-layer model
 

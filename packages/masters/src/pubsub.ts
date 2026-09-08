@@ -79,19 +79,20 @@ export interface ContactCreatedEvent {
     name: string;
     type: ContactType;
   };
-  entityType: MasterEntityType;
+  entityType: MasterEntityType | null;
 }
 
 export interface ContactUpdatedEvent {
   changes: Record<string, JsonValue>;
   contact: { id: string; name: string };
-  entityType: MasterEntityType;
+  entityType: MasterEntityType | null;
 }
 
 export interface ContactRemovedEvent {
   contactId: string;
-  entityId: string;
-  entityType: MasterEntityType;
+  entityId: string | null;
+  entityType: MasterEntityType | null;
+  reason: string;
 }
 
 export interface AddressCreatedEvent {

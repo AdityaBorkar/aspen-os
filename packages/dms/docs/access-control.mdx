@@ -14,7 +14,6 @@ import { defineAcl } from "@aspen-os/platform/server";
 export const acl = defineAcl({
   classField: ["create", "deactivate", "read", "update"],
   class: ["archive", "create", "read", "update"],
-  contact: ["create", "delete", "read", "update"],
   file: ["classify", "create", "delete", "download", "read", "restore", "update"],
   fileView: ["create", "delete", "read", "set_default", "update"],
   folder: ["create", "delete", "read", "update"],
@@ -31,7 +30,6 @@ export const acl = defineAcl({
 | `file`       | `classify`, `create`, `delete`, `download`, `read`, `restore`, `update` |
 | `classField` | `create`, `deactivate`, `read`, `update`                                |
 | `class`      | `archive`, `create`, `read`, `update`                                   |
-| `contact`    | `create`, `delete`, `read`, `update`                                    |
 | `fileView`   | `create`, `delete`, `read`, `set_default`, `update`                     |
 | `folder`     | `create`, `delete`, `read`, `update`                                    |
 | `label`      | `create`, `delete`, `read`, `update`                                    |

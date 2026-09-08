@@ -3,6 +3,10 @@ import { control_plane_schemas, tenant_schemas } from "#/db-schemas";
 import { events } from "#/pubsub";
 import { setDmsConfig, setDmsStorage, resetDmsRuntime } from "#/runtime";
 import {
+  registerContactShareBridge,
+  unregisterContactShareBridge,
+} from "#/services/contact-share-bridge";
+import {
   registerExpiryScanHandler,
   registerExpiryScanner,
   unregisterExpiryScanner,
@@ -53,13 +57,20 @@ export class Dms implements Module {
   }
 
   readonly $name = "dms";
-  readonly $dependencies: readonly string[] = ["db", "pubsub", "storage"];
+  readonly $dependencies: readonly string[] = [];
+  /**
+   * Optional peer topics consumed at runtime. Introspection-only — never
+   * validated, so DMS runs solo or without masters. The contact-share bridge
+   * revokes contact grants when a masters contact is removed.
+   */
+  readonly $consumes: readonly string[] = ["masters:contact_removed"];
   readonly $config: Required<DmsModuleConfig>;
 
   #db: DatabaseUnit | null = null;
   #pubsub: PubSubUnit | null = null;
   #expiryTopic: string | null = null;
   #purgeTopic: string | null = null;
+  #contactBridgeTopics: string[] = [];
 
   constructor(config: DmsModuleConfig) {
     this.$config = {
@@ -118,18 +129,26 @@ export class Dms implements Module {
       registerExpiryScanHandler(expiryTopic, deps),
       registerPurgeHandler(purgeTopic, deps),
     ]);
+
+    this.#contactBridgeTopics = await registerContactShareBridge({
+      db: this.#db.db,
+      pubsub: this.#pubsub,
+    });
   }
 
   async $cleanup(): Promise<void> {
     if (this.#pubsub) {
       const pubsub = this.#pubsub;
+      const contactBridgeTopics = this.#contactBridgeTopics;
       await Promise.allSettled([
         unregisterExpiryScanner(this.#expiryTopic, { pubsub }),
         unregisterPurgeSchedule(this.#purgeTopic, { pubsub }),
+        unregisterContactShareBridge(contactBridgeTopics, { pubsub }),
       ]);
     }
     this.#expiryTopic = null;
     this.#purgeTopic = null;
+    this.#contactBridgeTopics = [];
     this.#db = null;
     this.#pubsub = null;
     resetDmsRuntime();
@@ -139,7 +158,6 @@ export class Dms implements Module {
   readonly activity = wf.activity;
   readonly archive = wf.archive;
   readonly classes = wf.classes;
-  readonly contacts = wf.contacts;
   readonly fileViews = wf.fileViews;
   readonly files = wf.files;
   readonly folders = wf.folders;

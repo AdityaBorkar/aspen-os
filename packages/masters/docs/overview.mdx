@@ -4,7 +4,7 @@ description: Architecture, polymorphic ownership model, initialization, and modu
 icon: IconInfoCircle
 ---
 
-The Masters module owns **polymorphic tenant master data**: `contact`, `address`, `bankAccount`, `connection`, and `paymentMethod` — plus **tenant-level tables**: `entity` and `unitOfMeasure` reference data. Every polymorphic entity is scoped to an owner via a `(entityType, entityId)` pair, where the owner type is one of `organization`, `branch`, `connection`, `contact`, or `entity` (`master_entity_type`).
+The Masters module owns **polymorphic tenant master data**: `contact`, `address`, `bankAccount`, `connection`, and `paymentMethod` — plus **tenant-level tables**: `entity` and `unitOfMeasure` reference data. Every polymorphic entity except global contacts is scoped to an owner via a `(entityType, entityId)` pair, where the owner type is one of `organization`, `branch`, `connection`, `contact`, or `entity` (`master_entity_type`). Contacts may also be **global** (no owner) — the org-wide address book absorbed from DMS.
 
 <Callout type="info">
   Masters does not own notes. Free-form annotation notes belong to `@aspen-os/notes`; scope them to a master row with `scopeType = masters:<entityType>`.
@@ -37,7 +37,7 @@ TENANT DATABASE
   master_unit_of_measure, master_payment_method
 ```
 
-The polymorphic scope mirrors the DMS `dms_entity_label` pattern: `entityType` is a pgEnum (`organization` | `branch` | `connection` | `contact` | `entity`) and `entityId` is the owning row's UUIDv7 id. Primary flags (`isPrimary`) are scoped per `(entityType, entityId)` for bank accounts — for payment methods per `(entityType, entityId, direction)`. `unitOfMeasure` is the only non-polymorphic table: it carries no `entityType`/`entityId` pair.
+The polymorphic scope mirrors the DMS `dms_entity_label` pattern: `entityType` is a pgEnum (`organization` | `branch` | `connection` | `contact` | `entity`) and `entityId` is the owning row's UUIDv7 id — both nullable on `master_contact` for global address-book entries. Primary flags (`isPrimary`) are scoped per `(entityType, entityId)` for bank accounts — for payment methods per `(entityType, entityId, direction)`. `unitOfMeasure` is the only non-polymorphic table: it carries no `entityType`/`entityId` pair.
 
 ## Lifecycle
 
@@ -46,7 +46,8 @@ connections: create (stores credential in kvStore, keeps credentialRef) ──�
             └──▶ rotateCredential (new kvStore secret, bumped credentialRef)
             update(patch.status) ──▶ status (active | inactive | expired | revoked)
 
-contacts/addresses: no primary flag
+contacts/addresses: no primary flag; contacts support global (owner-less) rows
+  plus soft-remove with reason (`remove`) alongside hard `delete`
 
 bankAccounts: setPrimary enforces one primary per (entityType, entityId)
 
@@ -66,7 +67,7 @@ paymentMethods: setPrimary enforces one primary per (entityType, entityId, direc
 | `addresses`      | `create`, `get`, `list`, `update`, `delete`                                         |
 | `bankAccounts`   | `create`, `get`, `list`, `update`, `delete`, `activate`, `deactivate`, `setPrimary` |
 | `connections`    | `create`, `get`, `list`, `update`, `delete`, `check`, `rotateCredential`            |
-| `contacts`       | `create`, `get`, `list`, `update`, `delete`                                         |
+| `contacts`       | `create`, `get`, `list`, `update`, `delete`, `remove`                               |
 | `entities`       | `create`, `get`, `list`, `update`, `delete`                                         |
 | `paymentMethods` | `create`, `get`, `list`, `update`, `delete`, `activate`, `deactivate`, `setPrimary` |
 | `unitsOfMeasure` | `create`, `get`, `list`, `update`, `delete`                                         |

@@ -13,15 +13,21 @@ export const createContact = Workflow.name("masters.contact.create")
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateContactSchema, input);
 
+    const name = parsed.name ?? `${parsed.firstName} ${parsed.lastName}`;
+
     const [contact] = await ctx.db
       .insert(masterContact)
       .values({
         company: parsed.company ?? null,
+        created_by: parsed.createdBy ?? null,
         email: parsed.email ?? null,
-        entity_id: parsed.entityId,
-        entity_type: parsed.entityType,
+        entity_id: parsed.entityId ?? null,
+        entity_type: parsed.entityType ?? null,
+        first_name: parsed.firstName ?? null,
+        last_name: parsed.lastName ?? null,
+        linked_user_id: parsed.linkedUserId ?? null,
         metadata: parsed.metadata ?? null,
-        name: parsed.name,
+        name,
         phone: parsed.phone ?? null,
         title: parsed.title ?? null,
         type: parsed.type,

@@ -1,10 +1,10 @@
 ---
 title: Events
-description: Domain event map for the DMS module — domain events across 7 event groups.
+description: Domain event map for the DMS module — domain events across 6 event groups.
 icon: IconBell
 ---
 
-The DMS module defines 33 domain events across 7 event groups. Events are type-level contracts published as plain string topics via PubSub, for cross-module consumers — the per-file activity feed reads the platform `AuditUnit`, not these topics.
+The DMS module defines 30 domain events across 6 event groups. Events are type-level contracts published as plain string topics via PubSub, for cross-module consumers — the per-file activity feed reads the platform `AuditUnit`, not these topics.
 
 ## Event Constants
 
@@ -38,12 +38,6 @@ export const CLASS_EVENTS = {
   ARCHIVED: "dms:class_archived",
   CREATED: "dms:class_created",
   UPDATED: "dms:class_updated",
-} as const;
-
-export const CONTACT_EVENTS = {
-  CREATED: "dms:contact_created",
-  REMOVED: "dms:contact_removed",
-  UPDATED: "dms:contact_updated",
 } as const;
 
 export const SHARE_EVENTS = {
@@ -83,7 +77,7 @@ export const FILE_VIEW_EVENTS = {
 | `dms:file_purged`                                 | `{ fileId, storageKey }`                           | Permanent delete / auto-purge |
 | `dms:file_hold_placed` / `dms:file_hold_released` | `{ fileId, reason }`                               | Legal hold mutations          |
 
-### Folder / Class / Contact Events
+### Folder / Class Events
 
 | Event                                                              | Payload                                             | Trigger                        |
 | ------------------------------------------------------------------ | --------------------------------------------------- | ------------------------------ |
@@ -92,8 +86,8 @@ export const FILE_VIEW_EVENTS = {
 | `dms:folder_moved`                                                 | `{ folder: { id, name, path }, oldPath, newPath }`  | Folder moved                   |
 | `dms:folder_trashed` / `dms:folder_restored` / `dms:folder_purged` | `{ folderId }`                                      | Folder trash / restore / purge |
 | `dms:class_created` / `dms:class_updated` / `dms:class_archived`   | `{ classId }`                                       | Class mutations                |
-| `dms:contact_created` / `dms:contact_updated`                      | `{ contactId }`                                     | Contact create / update        |
-| `dms:contact_removed`                                              | `{ contactId, reason }`                             | Contact removed                |
+
+Contacts moved to Masters — see `masters:contact_created` / `masters:contact_updated` / `masters:contact_removed` in the Masters events reference. DMS subscribes to `masters:contact_removed` and revokes every share granted to the removed contact.
 
 ### Share / Public Link / File View Events
 
@@ -135,7 +129,6 @@ await p.pubsub.subscribe("dms:file_classified", async (message) => {
 export type DmsEventMap = FileEventMap &
   FolderEventMap &
   ClassEventMap &
-  ContactEventMap &
   ShareEventMap &
   PublicLinkEventMap &
   FileViewEventMap;
@@ -148,4 +141,4 @@ export type DmsEventMap = FileEventMap &
 
 ## Activity Feed vs Events
 
-DMS writes every action to the platform `AuditUnit` (`entityType` `dms:file`, `dms:folder`, `dms:contact`, `dms:class`, `dms:share`, `dms:file_view`) inline in each workflow. The per-file / per-class activity feed (`p.dms.activity.*`) is a projection over those entries, ordered by `seq`. PubSub events are published separately for cross-module integration and are not the source of the activity feed.
+DMS writes every action to the platform `AuditUnit` (`entityType` `dms:file`, `dms:folder`, `dms:class`, `dms:share`, `dms:file_view`) inline in each workflow. Pre-migration rows may still carry `dms:contact`; new contact audit entries are written by Masters as `masters:contact`. The per-file / per-class activity feed (`p.dms.activity.*`) is a projection over those entries, ordered by `seq`. PubSub events are published separately for cross-module integration and are not the source of the activity feed.

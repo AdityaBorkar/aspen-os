@@ -4,7 +4,7 @@ description: API reference for the workflow groups exposed by the DMS module.
 icon: IconListCheck
 ---
 
-The DMS module exposes workflows as flat `Workflow` objects grouped under accessors: `files`, `folders`, `classes`, `labels`, `shares`, `trash`, `fileViews`, `triage`, `contacts`, `holds`, `settings`, `search`, `activity`, `versions`, plus the `access`/`archive`/`paths`/`storage` services. Access via the platform proxy key `p.dms`.
+The DMS module exposes workflows as flat `Workflow` objects grouped under accessors: `files`, `folders`, `classes`, `labels`, `shares`, `trash`, `fileViews`, `triage`, `holds`, `settings`, `search`, `activity`, `versions`, plus the `access`/`archive`/`paths`/`storage` services. Access via the platform proxy key `p.dms`.
 
 ## Lifecycle Flow
 
@@ -159,7 +159,7 @@ await p.dms.shares.getPublicLink({ id });
 await p.dms.shares.revokePublicLink({ id });
 ```
 
-Sharing to a `contact` creates a `shareToken`; revoking the share or removing the contact invalidates it immediately. Sharing to a `user`/`group` enables access within normal authenticated visibility, and folder grants inherit down the folder tree. Only `active` files can be shared.
+Sharing to a `contact` (a Masters contact id) creates a `shareToken`; revoking the share or removing the Masters contact invalidates it immediately — DMS subscribes to `masters:contact_removed` and revokes every grant held by that contact. Sharing to a `user`/`group` enables access within normal authenticated visibility, and folder grants inherit down the folder tree. Only `active` files can be shared.
 
 ## File Views & Search
 
@@ -201,25 +201,19 @@ await p.dms.holds.list({ fileId });
 
 Retention counts from `deletedAt`/`expiredAt`, resolved per class (`retentionDays`) falling back to the `defaultRetentionDays` setting; trashed folders are purged after `trashRetentionDays`. Auto-purge is a system job (no ACL) that skips held files and never touches triaged/active files.
 
-## Contacts
+## Contacts (moved to Masters)
+
+Contact management moved to `p.masters.contacts` — the DMS `contacts` group was removed. Field mapping for the migration: `firstName`/`lastName` → split name fields (display `name` derived), `companyName` → `company`, `designation` → `title`, plus `linkedUserId`/`createdBy` carried over. Removal keeps the mandatory-reason soft delete (`remove`) with share revocation; `delete` is a hard delete.
 
 ```ts
-await p.dms.contacts.create({
-  input: {
-    firstName,
-    lastName,
-    email,
-    phone,
-    companyName,
-    designation,
-    createdBy,
-  }, // all 6 business fields mandatory
+await p.masters.contacts.create({
+  input: { firstName, lastName, email, phone, company, title, type: "other" },
 });
-await p.dms.contacts.update({ id, patch: { phone } });
-await p.dms.contacts.list({ filters: {} });
-await p.dms.contacts.get({ id });
+await p.masters.contacts.update({ id, patch: { phone } });
+await p.masters.contacts.list({ filters: {} });
+await p.masters.contacts.get({ id });
 
-await p.dms.contacts.remove({ id, input: { reason: "Left the project" } }); // reason required; revokes every grant
+await p.masters.contacts.remove({ id, input: { reason: "Left the project" } }); // reason required; revokes every DMS grant
 ```
 
 ## Settings & Activity

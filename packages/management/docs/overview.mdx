@@ -12,7 +12,7 @@ The Management Plane is the control-plane module of a multi-tenant SaaS. It mana
 export class ManagementPlane implements Module {
   static create(config: ManagementPlaneConfig): ManagementPlane;
   readonly $name = "management"; // proxy key: p.management
-  readonly $dependencies = ["organization"];
+  readonly $dependencies: readonly string[] = [];
 }
 ```
 
@@ -83,7 +83,7 @@ $prepareInfra(): ModuleInfra {
 
 ## Dependencies
 
-Depends on `organization` (`$dependencies = ["organization"]`) — `onboard` creates the better-auth org row the `tenant` companion shares its ID with.
+No hard module dependencies (`$dependencies = []`). `onboard` creates the better-auth `organization` row (via the platform `AuthUnit` / control-plane `organization` table) that the `tenant` companion shares its ID with — it never calls `@aspen-os/organization` workflows, so the organization domain module is not required.
 
 ## Package
 

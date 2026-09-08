@@ -19,13 +19,13 @@ Every masters entity is scoped to an owner via a `(entityType, entityId)` pair (
 platform.masters.addresses; // create, delete, get, list, update
 platform.masters.bankAccounts; // activate, create, deactivate, delete, get, list, setPrimary, update
 platform.masters.connections; // check, create, delete, get, list, rotateCredential, update
-platform.masters.contacts; // create, delete, get, list, update
+platform.masters.contacts; // create, delete, get, list, remove, update
 platform.masters.entities; // create, delete, get, list, update
 platform.masters.paymentMethods; // activate, create, deactivate, delete, get, list, setPrimary, update
 platform.masters.unitsOfMeasure; // create, delete, get, list, update
 ```
 
-All create/list operations take `entityType` + `entityId` for the polymorphic scope. The `connections` group is bound to the platform `kvStore` unit (management-hybrid getter).
+All create/list operations take `entityType` + `entityId` for the polymorphic scope, except `contacts` where the scope is optional (omit both for global address-book entries absorbed from DMS). The `connections` group is bound to the platform `kvStore` unit (management-hybrid getter).
 
 ## Quick Start
 

@@ -31,12 +31,6 @@ export const CLASS_EVENTS = {
   UPDATED: "dms:class_updated",
 } as const;
 
-export const CONTACT_EVENTS = {
-  CREATED: "dms:contact_created",
-  REMOVED: "dms:contact_removed",
-  UPDATED: "dms:contact_updated",
-} as const;
-
 export const SHARE_EVENTS = {
   CREATED: "dms:share_created",
   REVOKED: "dms:share_revoked",
@@ -56,7 +50,6 @@ export const FILE_VIEW_EVENTS = {
 
 export const events = {
   CLASS_EVENTS,
-  CONTACT_EVENTS,
   FILE_EVENTS,
   FILE_VIEW_EVENTS,
   FOLDER_EVENTS,
@@ -195,19 +188,6 @@ export interface ClassArchivedEvent {
   classId: string;
 }
 
-export interface ContactCreatedEvent {
-  contactId: string;
-}
-
-export interface ContactUpdatedEvent {
-  contactId: string;
-}
-
-export interface ContactRemovedEvent {
-  contactId: string;
-  reason: string;
-}
-
 export interface ShareCreatedEvent {
   entityId: string;
   entityType: "file" | "folder";
@@ -290,12 +270,6 @@ export interface ClassEventMap {
   [CLASS_EVENTS.UPDATED]: ClassUpdatedEvent;
 }
 
-export interface ContactEventMap {
-  [CONTACT_EVENTS.CREATED]: ContactCreatedEvent;
-  [CONTACT_EVENTS.REMOVED]: ContactRemovedEvent;
-  [CONTACT_EVENTS.UPDATED]: ContactUpdatedEvent;
-}
-
 export interface ShareEventMap {
   [SHARE_EVENTS.CREATED]: ShareCreatedEvent;
   [SHARE_EVENTS.REVOKED]: ShareRevokedEvent;
@@ -314,7 +288,6 @@ export interface FileViewEventMap {
 }
 
 export type DmsEventMap = ClassEventMap &
-  ContactEventMap &
   FileEventMap &
   FileViewEventMap &
   FolderEventMap &

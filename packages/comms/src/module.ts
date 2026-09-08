@@ -35,6 +35,21 @@ export class Comms implements Module {
 
   readonly $name = "comms";
   readonly $dependencies: readonly string[] = [];
+  /**
+   * Optional peer topics consumed by the event bridge. Introspection-only —
+   * never validated, so comms runs solo or in any subset. A missing producer
+   * means its bridge handler silently no-ops.
+   */
+  readonly $consumes: readonly string[] = [
+    "compliance:document_expiring",
+    "compliance:document_due",
+    "calendar:reminder_due",
+    "dms:file_expired",
+    "announcement:published",
+    "management:tenant_provisioned",
+    "management:tenant_activated",
+    "auth:email_otp_requested",
+  ];
   readonly $config: CommsModuleConfig;
 
   #auth: AuthUnit | null = null;
