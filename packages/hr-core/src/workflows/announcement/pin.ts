@@ -19,19 +19,19 @@ export const pinAnnouncement = Workflow.name("hr.announcement.pin")
       throw new Error("Announcement pinning requires an authenticated actor.");
     }
 
-    if (existing.is_pinned) {
+    if (existing.pinned) {
       return existing;
     }
 
     const [updated] = await ctx.db
       .update(hrAnnouncement)
-      .set({ is_pinned: true, pinned_by: ctx.actorId, updated_at: new Date() })
+      .set({ pinned: true, pinned_by: ctx.actorId, updated_at: new Date() })
       .where(eq(hrAnnouncement.id, id))
       .returning();
 
     await ctx.pubsub.publish(ANNOUNCEMENT_EVENTS.PINNED, {
       announcementId: id,
-      isPinned: true,
+      pinned: true,
       pinnedBy: ctx.actorId,
     });
 

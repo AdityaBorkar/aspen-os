@@ -33,7 +33,7 @@ export const hrAnnouncement = pgTable(
     channel: announcementChannelEnum().notNull(),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     id: uuidv7().primaryKey(),
-    is_pinned: boolean().notNull().default(false),
+    pinned: boolean().notNull().default(false),
     pinned_by: text(),
     priority: announcementPriorityEnum().notNull().default("normal"),
     published_at: timestamp({ withTimezone: true }),

@@ -117,7 +117,7 @@ Events are typed via `HrEventMap` in `src/pubsub.ts` — 10 per-group maps (`Emp
 | `announcement:scheduled` | `{ announcementId, scheduledFor }`                  | `announcement.schedule`                        |
 | `announcement:published` | `{ announcement: { id, title }, recipientUserIds }` | `announcement.publish`                         |
 | `announcement:archived`  | `{ announcementId }`                                | `announcement.archive`, `announcement.restore` |
-| `announcement:pinned`    | `{ announcementId, isPinned, pinnedBy }`            | `announcement.pin`, `announcement.unpin`       |
+| `announcement:pinned`    | `{ announcementId, pinned, pinnedBy }`              | `announcement.pin`, `announcement.unpin`       |
 
 <Callout type="info">
   `announcement:published` is consumed by `@aspen-os/comms` — one `notification` per

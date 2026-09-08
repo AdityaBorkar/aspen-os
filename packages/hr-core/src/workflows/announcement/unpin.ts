@@ -19,19 +19,19 @@ export const unpinAnnouncement = Workflow.name("hr.announcement.unpin")
       throw new Error("Announcement unpinning requires an authenticated actor.");
     }
 
-    if (!existing.is_pinned) {
+    if (!existing.pinned) {
       return existing;
     }
 
     const [updated] = await ctx.db
       .update(hrAnnouncement)
-      .set({ is_pinned: false, pinned_by: ctx.actorId, updated_at: new Date() })
+      .set({ pinned: false, pinned_by: ctx.actorId, updated_at: new Date() })
       .where(eq(hrAnnouncement.id, id))
       .returning();
 
     await ctx.pubsub.publish(ANNOUNCEMENT_EVENTS.PINNED, {
       announcementId: id,
-      isPinned: false,
+      pinned: false,
       pinnedBy: ctx.actorId,
     });
 

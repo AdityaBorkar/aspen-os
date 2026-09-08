@@ -852,7 +852,7 @@ Internal broadcasts; `published` rows immutable except pin/archive.
 | `require_acknowledgement`      | boolean                    | Ack required flag        |
 | `scheduled_for`                | timestamptz                | Future publish time      |
 | `published_at` / `archived_at` | timestamptz                | Lifecycle stamps         |
-| `is_pinned` / `pinned_by`      | boolean/text               | Pin state                |
+| `pinned` / `pinned_by`         | boolean/text               | Pin state                |
 | `created_at` / `updated_at`    | timestamptz                | Record timestamps        |
 
 ### `hr_announcement_recipient`

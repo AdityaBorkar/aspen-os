@@ -29,8 +29,8 @@ export const listAnnouncements = Workflow.name("hr.announcements.list")
     if (parsed.priority) {
       conditions.push(eq(hrAnnouncement.priority, parsed.priority));
     }
-    if (parsed.isPinned !== undefined) {
-      conditions.push(eq(hrAnnouncement.is_pinned, parsed.isPinned));
+    if (parsed.pinned !== undefined) {
+      conditions.push(eq(hrAnnouncement.pinned, parsed.pinned));
     }
     if (parsed.fromDate) {
       conditions.push(gte(hrAnnouncement.created_at, new Date(parsed.fromDate)));
@@ -51,5 +51,5 @@ export const listAnnouncements = Workflow.name("hr.announcements.list")
       .select()
       .from(hrAnnouncement)
       .where(whereClause)
-      .orderBy(desc(hrAnnouncement.is_pinned), desc(hrAnnouncement.created_at));
+      .orderBy(desc(hrAnnouncement.pinned), desc(hrAnnouncement.created_at));
   });

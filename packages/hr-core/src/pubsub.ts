@@ -301,7 +301,7 @@ export interface AnnouncementArchivedEvent {
 
 export interface AnnouncementPinnedEvent {
   announcementId: string;
-  isPinned: boolean;
+  pinned: boolean;
   pinnedBy: string;
 }
 

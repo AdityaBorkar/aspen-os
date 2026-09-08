@@ -62,7 +62,7 @@ export const AnnouncementFiltersSchema = object({
   author: optional(string()),
   channel: optional(AnnouncementChannelSchema),
   fromDate: optional(string()),
-  isPinned: optional(boolean()),
+  pinned: optional(boolean()),
   priority: optional(AnnouncementPrioritySchema),
   q: optional(string()),
   status: optional(AnnouncementStatusSchema),
