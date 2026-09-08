@@ -10,7 +10,6 @@ import type { EntityType } from "#/utils/constants";
 export type { DmsClass, NewDmsClass } from "#/db-schemas/class";
 export type { DmsClassField, NewDmsClassField } from "#/db-schemas/class-field";
 export type { DmsEntityLabel, NewDmsEntityLabel } from "#/db-schemas/entity-label";
-export type { DmsFileView, NewDmsFileView } from "#/db-schemas/file-view";
 export type { DmsLegalHold, NewDmsLegalHold } from "#/db-schemas/legal-hold";
 export type { DmsSetting, NewDmsSetting } from "#/db-schemas/setting";
 export type { DmsShare, NewDmsShare } from "#/db-schemas/share";
@@ -32,9 +31,6 @@ export type {
   FileUploadedEvent,
   FileVersionAddedEvent,
   FileVersionRevertedEvent,
-  FileViewCreatedEvent,
-  FileViewDeletedEvent,
-  FileViewUpdatedEvent,
   FolderCreatedEvent,
   FolderMovedEvent,
   FolderPurgedEvent,
@@ -51,19 +47,16 @@ export {
   CLASS_EVENTS,
   events,
   FILE_EVENTS,
-  FILE_VIEW_EVENTS,
   FOLDER_EVENTS,
   PUBLIC_LINK_EVENTS,
   SHARE_EVENTS,
 } from "#/pubsub";
 export type {
   AddMetadataInput,
-  ApplyFileViewInput,
   ApplyLabelInput,
   ClassifyFileInput,
   CompressionOption,
   CreateClassFieldInput,
-  CreateFileViewInput,
   CreateFolderInput,
   CreateLabelInput,
   CreatePublicLinkInput,
@@ -91,7 +84,6 @@ export type {
   TriageFilters,
   UpdateClassFieldInput,
   UpdateFileInput,
-  UpdateFileViewInput,
   UpdateFolderInput,
   UpdateLabelInput,
   UpdatePublicLinkInput,
@@ -101,7 +93,6 @@ export type {
 } from "#/schemas";
 export {
   AddMetadataSchema,
-  ApplyFileViewSchema,
   ApplyLabelSchema,
   ArchiveClassSchema,
   assertLabelOwner,
@@ -111,7 +102,6 @@ export {
   CompressionOptionSchema,
   CreateClassFieldSchema,
   CreateClassSchema,
-  CreateFileViewSchema,
   CreateFolderSchema,
   CreateLabelSchema,
   CreatePublicLinkSchema,
@@ -163,7 +153,6 @@ export {
   UpdateClassFieldSchema,
   UpdateClassSchema,
   UpdateFileSchema,
-  UpdateFileViewSchema,
   UpdateFolderSchema,
   UpdateLabelSchema,
   UpdatePublicLinkSchema,

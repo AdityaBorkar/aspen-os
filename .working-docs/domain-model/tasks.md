@@ -1,6 +1,6 @@
 # Tasks Domain Model
 
-> Package: `@aspen-os/tasks`. Projects, tasks, statuses, comments, links, time entries, saved views, and automation rules. 16 tables — 6 control-plane (global config) + 10 tenant (operational). Task reminders now live in `@aspen-os/calendar` (`targetType = task`), driven by `task:due_date_changed`.
+> Package: `@aspen-os/tasks`. Projects, tasks, statuses, comments, links, time entries, and automation rules. 15 tables — 6 control-plane (global config) + 9 tenant (operational). Task reminders now live in `@aspen-os/calendar` (`targetType = task`), driven by `task:due_date_changed`. Saved views now live in `@aspen-os/masters` (`p.masters.filterViews`, `domain: "tasks:task"`).
 
 ## Entity-Relationship Diagram
 
@@ -40,14 +40,13 @@
 │         │                  │ requiresRole)                          │
 │         │                  └──────────────┘                         │
 │         │                                                           │
-│         │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│         │  │ TaskLink     │  │ TimeEntry    │  │ SavedView    │     │
-│         │  │ sourceId(FK) │  │ taskId (FK)  │  │ ownerId      │     │
-│         │  │ targetId(FK) │  │ userId       │  │ projectId    │     │
-│         │  │ linkType     │  │ duration     │  │ type         │     │
-│         │  └──────────────┘  │ billable     │  │ filters(jsonb)│     │
-│         │                    └──────────────┘  │ sort/groupBy  │     │
-│         │                                      └──────────────┘     │
+│         │  ┌──────────────┐  ┌──────────────┐                        │
+│         │  │ TaskLink     │  │ TimeEntry    │                        │
+│         │  │ sourceId(FK) │  │ taskId (FK)  │                        │
+│         │  │ targetId(FK) │  │ userId       │                        │
+│         │  │ linkType     │  │ duration     │                        │
+│         │  └──────────────┘  │ billable     │                        │
+│         │                    └──────────────┘                        │
 │         │                                                           │
 │         │  ┌──────────────┐  ┌──────────────┐                      │
 │         │  │ AutomationRule│  │ Watcher      │                      │
@@ -104,7 +103,6 @@
 
 - **Task Status**: `{ name, category (backlog/unstarted/started/completed/cancelled), color, sortOrder, isDefault, isResolved }`. Transitions constrained via `TaskStatusTransition` rules (optionally requiring a comment or role). Project-scoped or global.
 - **Task Link**: typed relationship (`blocks`, `blocked_by`, `related_to`, `duplicates`, `caused_by`, `split_from`). Creating a link automatically creates its inverse; BFS cycle detection prevents circular dependencies.
-- **Saved View**: reusable `{ name, type (list/board/calendar/timeline), filters (jsonb), sort (jsonb), groupBy, isShared, isDefault }`, owned by a user, optionally project-scoped.
 - **Automation Rule**: trigger-action rule `{ trigger (status_change/assignment_change/due_date_passed/task_created/task_updated), conditions (jsonb), actions (jsonb), isActive }`, evaluated by the automation workflows.
 - **Time Entry**: `{ taskId, userId, duration (minutes), date, description, billable }`.
 - **Watcher**: user subscribed to task updates.

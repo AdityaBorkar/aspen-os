@@ -4,7 +4,7 @@ description: Database tables, enums, and relationships for the Tasks module.
 icon: IconDatabase
 ---
 
-The Tasks module defines 16 tables and 7 enums using Drizzle ORM.
+The Tasks module defines 15 tables and 6 enums using Drizzle ORM.
 
 ## Enums
 
@@ -15,7 +15,6 @@ The Tasks module defines 16 tables and 7 enums using Drizzle ORM.
 | `project_status`      | `active`, `archived`, `paused`                                                          |
 | `project_member_role` | `admin`, `member`, `viewer`                                                             |
 | `status_category`     | `backlog`, `unstarted`, `started`, `completed`, `cancelled`                             |
-| `saved_view_type`     | `list`, `board`, `calendar`, `timeline`                                                 |
 | `automation_trigger`  | `status_change`, `assignment_change`, `due_date_passed`, `task_created`, `task_updated` |
 
 ## Tables
@@ -233,22 +232,7 @@ Users watching a task for notifications.
 
 Unique index on `(task_id, user_id)`.
 
-### `task_saved_view`
-
-Saved filter/sort/grouping configurations.
-
-| Column       | Type                     | Description                                                 |
-| ------------ | ------------------------ | ----------------------------------------------------------- |
-| `id`         | text (PK)                | UUID                                                        |
-| `name`       | text                     | View name                                                   |
-| `owner_id`   | text                     | Owner user ID                                               |
-| `project_id` | text (FK → task_project) | Project scope (nullable)                                    |
-| `type`       | saved_view_type          | Defaults to `list`                                          |
-| `filters`    | jsonb                    | Filter configuration (nullable)                             |
-| `sort`       | jsonb                    | Sort configuration (nullable)                               |
-| `group_by`   | text                     | Grouping field (nullable)                                   |
-| `is_default` | boolean                  | Defaults to `false`                                         |
-| `is_shared`  | boolean                  | Whether visible to all project members, defaults to `false` |
+Saved views moved to `@aspen-os/masters` (`master_filter_view`, `domain: "tasks:task"`) — see [Masters DB Schemas](/docs/masters/db-schemas).
 
 ### `task_automation_rule`
 
@@ -275,7 +259,6 @@ task_project ──1:N──→ task_status
 task_project ──1:N──→ task_status_transition
 task_project ──1:N──→ task_label_def
 task_project ──1:N──→ task
-task_project ──1:N──→ task_saved_view
 task_project ──1:N──→ task_automation_rule
 
 task_status ──1:N──→ task_status_transition (from_status_id)

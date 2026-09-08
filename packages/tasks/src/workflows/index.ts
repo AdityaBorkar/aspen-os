@@ -74,14 +74,6 @@ import { getTimeEntry } from "#/workflows/time-entry/get";
 import { listTimeEntries } from "#/workflows/time-entry/list";
 import { getTimeEntryTotalDuration } from "#/workflows/time-entry/total-duration";
 import { updateTimeEntry } from "#/workflows/time-entry/update";
-import { listSavedViewsByOwner } from "#/workflows/view/by-owner/list";
-import { listSavedViewsByProject } from "#/workflows/view/by-project/list";
-import { createSavedView } from "#/workflows/view/create";
-import { getDefaultSavedView } from "#/workflows/view/default/get";
-import { deleteSavedView } from "#/workflows/view/delete";
-import { getSavedView } from "#/workflows/view/get";
-import { listSharedSavedViews } from "#/workflows/view/shared/list";
-import { updateSavedView } from "#/workflows/view/update";
 
 export const taskWorkflows = {
   archive: archiveTask,
@@ -184,15 +176,4 @@ export const collaborationWorkflows = {
   listAttachmentsByComment,
   listWatchers,
   removeWatcher,
-} as const;
-
-export const viewWorkflows = {
-  create: createSavedView,
-  delete: deleteSavedView,
-  get: getSavedView,
-  getDefault: getDefaultSavedView,
-  listByOwner: listSavedViewsByOwner,
-  listByProject: listSavedViewsByProject,
-  listShared: listSharedSavedViews,
-  update: updateSavedView,
 } as const;

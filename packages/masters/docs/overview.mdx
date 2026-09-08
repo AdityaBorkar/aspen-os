@@ -6,6 +6,8 @@ icon: IconInfoCircle
 
 The Masters module owns **polymorphic tenant master data**: `contact`, `address`, `bankAccount`, `connection`, and `paymentMethod` — plus **tenant-level tables**: `entity` and `unitOfMeasure` reference data. Every polymorphic entity except global contacts is scoped to an owner via a `(entityType, entityId)` pair, where the owner type is one of `organization`, `branch`, `connection`, `contact`, or `entity` (`master_entity_type`). Contacts may also be **global** (no owner) — the org-wide address book absorbed from DMS.
 
+It also owns the single cross-domain **filter view** store (`filterViews`): saved `{ domain, conditions, sort, groupBy }` configurations with `personal`/`global` access, consolidated from tasks saved views, DMS file views, and workspace views. Hosts read the stored conditions and query their own tables — the module never executes a view.
+
 <Callout type="info">
   Masters does not own notes. Free-form annotation notes belong to `@aspen-os/notes`; scope them to a master row with `scopeType = masters:<entityType>`.
 </Callout>
@@ -28,13 +30,14 @@ The module declares no platform-module dependencies.
 
 ## Architecture
 
-All seven tables are **tenant schemas** (`master_` prefix); there are no control-plane tables:
+All eight tables are **tenant schemas** (`master_` prefix); there are no control-plane tables:
 
 ```text
 TENANT DATABASE
   master_contact, master_address, master_bank_account
   master_connection, master_entity
   master_unit_of_measure, master_payment_method
+  master_filter_view
 ```
 
 The polymorphic scope mirrors the DMS `dms_entity_label` pattern: `entityType` is a pgEnum (`organization` | `branch` | `connection` | `contact` | `entity`) and `entityId` is the owning row's UUIDv7 id — both nullable on `master_contact` for global address-book entries. Primary flags (`isPrimary`) are scoped per `(entityType, entityId)` for bank accounts — for payment methods per `(entityType, entityId, direction)`. `unitOfMeasure` is the only non-polymorphic table: it carries no `entityType`/`entityId` pair.
@@ -58,19 +61,23 @@ unitsOfMeasure: exactly one base unit per category; derived units reference the
 
 paymentMethods: setPrimary enforces one primary per (entityType, entityId, direction);
   card data is masked-only (brand/last-4/expiry — never a PAN)
+
+filterViews: create / get / list (access-scoped) / update / delete / duplicate /
+  setDefault / getDefault; is_default is unique per (owner, domain, project)
 ```
 
 ## What It Exposes
 
-| Getter           | Methods                                                                             |
-| ---------------- | ----------------------------------------------------------------------------------- |
-| `addresses`      | `create`, `get`, `list`, `update`, `delete`                                         |
-| `bankAccounts`   | `create`, `get`, `list`, `update`, `delete`, `activate`, `deactivate`, `setPrimary` |
-| `connections`    | `create`, `get`, `list`, `update`, `delete`, `check`, `rotateCredential`            |
-| `contacts`       | `create`, `get`, `list`, `update`, `delete`, `remove`                               |
-| `entities`       | `create`, `get`, `list`, `update`, `delete`                                         |
-| `paymentMethods` | `create`, `get`, `list`, `update`, `delete`, `activate`, `deactivate`, `setPrimary` |
-| `unitsOfMeasure` | `create`, `get`, `list`, `update`, `delete`                                         |
+| Getter           | Methods                                                                              |
+| ---------------- | ------------------------------------------------------------------------------------ |
+| `addresses`      | `create`, `get`, `list`, `update`, `delete`                                          |
+| `bankAccounts`   | `create`, `get`, `list`, `update`, `delete`, `activate`, `deactivate`, `setPrimary`  |
+| `connections`    | `create`, `get`, `list`, `update`, `delete`, `check`, `rotateCredential`             |
+| `contacts`       | `create`, `get`, `list`, `update`, `delete`, `remove`                                |
+| `entities`       | `create`, `get`, `list`, `update`, `delete`                                          |
+| `filterViews`    | `create`, `get`, `list`, `update`, `delete`, `duplicate`, `setDefault`, `getDefault` |
+| `paymentMethods` | `create`, `get`, `list`, `update`, `delete`, `activate`, `deactivate`, `setPrimary`  |
+| `unitsOfMeasure` | `create`, `get`, `list`, `update`, `delete`                                          |
 
 The `connections` group is a getter bound to the platform `kvStore` unit (credentials are written to the secret store at create/rotate time). All other groups are stateless `readonly` properties.
 
@@ -81,7 +88,7 @@ packages/masters/src/
   index.ts              # Module class re-exports + dbSchema namespace
   module.ts             # Module class (implements Module)
   auth.ts               # defineAcl() ACL declaration
-  pubsub.ts             # Events across 7 event groups
+  pubsub.ts             # Events across 8 event groups
   db-schemas/           # Per-entity tables + enums
   types.ts              # Type re-exports
   schemas/              # Valibot validation schemas
@@ -124,3 +131,6 @@ Entity enums come from `@aspen-os/constants`:
 | `PaymentMethodStatus`    | `active`, `inactive`, `archived`                                                                                                                                                |
 | `PaymentMethodDirection` | `inbound`, `outbound`, `both`                                                                                                                                                   |
 | `CardBrand`              | `visa`, `mastercard`, `amex`, `rupay`, `other`                                                                                                                                  |
+| `FilterViewAccess`       | `personal`, `global`                                                                                                                                                            |
+| `FilterViewType`         | `list`, `board`, `calendar`, `timeline`                                                                                                                                         |
+| `FilterViewDomain`       | `tasks:task`, `dms:file`, `notes:note`, `hr:employee`, `compliance:document`, `workspace:draft` (free-form `<module>:<entity>`)                                                 |

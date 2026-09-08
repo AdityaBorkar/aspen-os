@@ -7,13 +7,13 @@ export function auditEntityType(itemType: string): AuditEntityType {
       return AUDIT_ENTITY_TYPE.DRAFT;
     }
     case WORKSPACE_ITEM_TYPE.VIEW: {
-      return AUDIT_ENTITY_TYPE.VIEW;
+      return AUDIT_ENTITY_TYPE.FILTER_VIEW;
     }
     case PIN_ITEM_TYPE.TRIAGE: {
       return AUDIT_ENTITY_TYPE.DMS_FILE;
     }
     case PIN_ITEM_TYPE.FILE_VIEW: {
-      return AUDIT_ENTITY_TYPE.DMS_FILE_VIEW;
+      return AUDIT_ENTITY_TYPE.FILTER_VIEW;
     }
     case PIN_ITEM_TYPE.CLASS: {
       return AUDIT_ENTITY_TYPE.DMS_CLASS;

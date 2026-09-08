@@ -9,16 +9,6 @@ import { updateClassField } from "#/workflows/class/field/update";
 import { getClass } from "#/workflows/class/get";
 import { listClasses } from "#/workflows/class/list";
 import { updateClass } from "#/workflows/class/update";
-import { applyFileView } from "#/workflows/file-view/apply";
-import { createFileView } from "#/workflows/file-view/create";
-import { setDefaultFileView } from "#/workflows/file-view/default/set";
-import { deleteFileView } from "#/workflows/file-view/delete";
-import {
-  getDefaultFileView,
-  listFileViews,
-  listFileViewsByOwner,
-} from "#/workflows/file-view/list";
-import { updateFileView } from "#/workflows/file-view/update";
 import { uploadBulkFiles } from "#/workflows/file/bulk/upload";
 import { classifyFile } from "#/workflows/file/classify";
 import { copyFile } from "#/workflows/file/copy";
@@ -60,7 +50,6 @@ import { resolvePublicLink } from "#/workflows/public-link/resolve";
 import { revokePublicLink } from "#/workflows/public-link/revoke";
 import { updatePublicLink } from "#/workflows/public-link/update";
 import { searchFilesWorkflow } from "#/workflows/search/full-text";
-import { promoteSearchToView } from "#/workflows/search/promote-to-view";
 import { quickSearchWorkflow } from "#/workflows/search/quick";
 import { access, archive, paths, storage } from "#/workflows/services";
 import { getSettingWorkflow } from "#/workflows/settings/get";
@@ -104,17 +93,6 @@ export const classes = {
   list: listClasses,
   update: updateClass,
   updateField: updateClassField,
-} as const;
-
-export const fileViews = {
-  apply: applyFileView,
-  create: createFileView,
-  delete: deleteFileView,
-  getDefault: getDefaultFileView,
-  list: listFileViews,
-  listByOwner: listFileViewsByOwner,
-  setDefault: setDefaultFileView,
-  update: updateFileView,
 } as const;
 
 export const files = {
@@ -169,7 +147,6 @@ export const labels = {
 } as const;
 
 export const search = {
-  promoteToView: promoteSearchToView,
   quick: quickSearchWorkflow,
   search: searchFilesWorkflow,
 } as const;

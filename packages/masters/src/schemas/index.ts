@@ -52,12 +52,31 @@ export {
   ListEntitiesSchema,
   UpdateEntitySchema,
 } from "#/schemas/entity";
+export type {
+  CreateFilterViewInput,
+  FilterViewCondition,
+  FilterViewFilters,
+  FilterViewSort,
+  GetDefaultFilterViewInput,
+  UpdateFilterViewInput,
+} from "#/schemas/filter-view";
+export {
+  CreateFilterViewSchema,
+  FilterViewConditionSchema,
+  FilterViewDomainSchema,
+  FilterViewFiltersSchema,
+  FilterViewSortSchema,
+  GetDefaultFilterViewSchema,
+  UpdateFilterViewSchema,
+} from "#/schemas/filter-view";
 export {
   CardBrandSchema,
   ConnectionStatusSchema,
   ContactTypeSchema,
   EntityStatusSchema,
   EntityTypeSchema,
+  FilterViewAccessSchema,
+  FilterViewTypeSchema,
   IntegrationTypeSchema,
   MasterEntityTypeSchema,
   PaymentMethodDirectionSchema,

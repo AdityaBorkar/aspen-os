@@ -4,7 +4,7 @@ description: Architecture, initialization, and module structure of the Tasks dom
 icon: IconInfoCircle
 ---
 
-The Tasks module manages projects, tasks, statuses, time tracking, comments, attachments, automation rules, saved views, and dependency graphs.
+The Tasks module manages projects, tasks, statuses, time tracking, comments, attachments, automation rules, and dependency graphs. Saved views moved to `@aspen-os/masters` (`p.masters.filterViews`, `domain: "tasks:task"`).
 
 > Task reminders moved to `@aspen-os/calendar` — they are `calendar_reminder` rows with `targetType = task`, materialized by the calendar task bridge from `task:due_date_changed` and cancelled on `task:deleted` / terminal `task:status_changed`. This module no longer owns any reminder surface.
 
@@ -34,9 +34,9 @@ packages/tasks/src/
   types.ts              # Re-exports from schemas/ + domain interfaces
   pubsub.ts             # 11 task events + event maps
   auth.ts               # Empty ACL (defineAcl({}))
-  db-schemas/           # 16 tables + 7 enums (6 control + 10 tenant)
+  db-schemas/           # 15 tables + 6 enums (6 control + 9 tenant)
   schemas/              # Valibot input/filter schemas (one file per entity)
-  workflows/            # One file per action (10 workflow groups)
+  workflows/            # One file per action (9 workflow groups)
   workflow-steps/       # Reusable fetch-* steps + dependency-graph helpers
   utils/                # filter-engine, constants
 ```
@@ -53,7 +53,6 @@ p.tasks.comments; // → comments
 p.tasks.links; // → links
 p.tasks.collaboration; // → collaboration
 p.tasks.automations; // → automations
-p.tasks.views; // → views
 ```
 
 ## Accessing Services

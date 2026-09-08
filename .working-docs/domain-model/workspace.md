@@ -1,6 +1,6 @@
 # Workspace Domain Model
 
-> Package: `@aspen-os/workspace`. Dependency-free personal-workspace surfaces: **drafts** (saved, unpublished content with an optional approval lifecycle and threaded comments), **filter views** (cross-domain saved filter/sort/group configs applied via a host-registered resolver registry), **dashboards** (named collections of metric/breakdown/list/embed widgets over a grid layout, with optional scheduled delivery), and **utilities** (pins, recent items, quick search, settings, watches). All 10 tables are tenant schemas with the `workspace_` prefix. Every data entity carries a user-set `access` enum — `personal` (owner-only) or `global` (org-wide within the tenant).
+> Package: `@aspen-os/workspace`. Dependency-free personal-workspace surfaces: **drafts** (saved, unpublished content with an optional approval lifecycle and threaded comments), **dashboards** (named collections of metric/breakdown/list/embed widgets over a grid layout, with optional scheduled delivery), and **utilities** (pins, recent items, quick search, settings, watches). All 9 tables are tenant schemas with the `workspace_` prefix. Every data entity carries a user-set `access` enum — `personal` (owner-only) or `global` (org-wide within the tenant). Saved filter views live in `@aspen-os/masters` (`p.masters.filterViews`); workspace widgets reference them via an inline `filter` or a `viewId` soft reference.
 
 ## Entity-Relationship Diagram
 
@@ -25,21 +25,19 @@
 │  │  targetEntityId │                                                 │
 │  └─────────────────┘                                                 │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐        │
-│  │      View       │  │   Dashboard     │  │    Widget       │        │
-│  │ id              │  │ id              │  │ id              │        │
-│  │ name / domain   │  │ name / desc     │  │ dashboardId (FK)│        │
-│  │ conditions(jsonb)│ │ layout (jsonb:  │  │ type (enum:     │        │
-│  │ sort (jsonb)    │  │  {widgetId,x,y, │  │  metric/        │        │
-│  │ groupBy         │  │   w,h}[])       │  │  breakdown/     │        │
-│  │ isDefault       │  │ access          │  │  list/embed)    │        │
-│  │ access          │  │                 │  │ config (jsonb)  │        │
-│  └────────┬────────┘  └───────┬─────────┘  │ domain / filter │        │
-│           │ N:1 (viewId,     │             │ viewId (FK →    │        │
-│           │ datasource reuse) │             │  View, soft)    │        │
-│           │                  │ 1:N (dashboardId)              │        │
-│           │                  ▼                                │        │
-│           │            ┌──────────────┐  ┌──────────────┐      │        │
-│           │            │  Schedule    │  │   Widget     │◀─────┘        │
+│  │   Dashboard     │  │    Widget       │  │ (Filter views │        │
+│  │ id              │  │ id              │  │  moved to     │        │
+│  │ name / desc     │  │ dashboardId (FK)│  │  Masters:     │        │
+│  │ layout (jsonb:  │  │ type (enum:     │  │  master_      │        │
+│  │  {widgetId,x,y, │  │  metric/        │  │  filter_view; │        │
+│  │   w,h}[])       │  │  breakdown/     │  │  widget       │        │
+│  │ access          │  │  list/embed)    │  │  viewId is a  │        │
+│  └───────┬─────────┘  │ config (jsonb)  │  │  cross-module │        │
+│          │1:N         │ domain / filter │  │  soft FK)     │        │
+│          │(dashboardId)│ viewId (soft FK │  └──────────────┘        │
+│          ▼            │  → masters)     │                           │
+│                       ┌──────────────┐                            │        │
+│                       │  Schedule    │                            │        │
 │           │            │ id           │  └──────────────┘                │
 │           │            │ dashboardId  │                                 │
 │           │            │ cron / config│                                 │
@@ -65,8 +63,8 @@
 3. **Runtime scoping lives in workflow code** — `services/access-service.ts` (`assertCanAccess` = `global OR owner`; `assertCanMutate` = owner or tenant admin). ACL is the capability matrix; it never encodes visibility.
 4. **Draft lifecycle is a guarded status machine** — `draft → submitted → approved → published`, `submitted → rejected` (requires `rejectionReason`), `published|rejected → draft` (`reopen`), `draft → published` directly (approval optional). Transitions are atomic `UPDATE … WHERE status IN (from)` guards. Trash is soft (`deletedAt`).
 5. **Approval is optional** — hosts without a review step call `publish` directly from `draft`.
-6. **Workspace is dependency-free** — `domain` is opaque free-form text (`<module>:<entity>`); the module never queries other modules' tables. View resolution happens through host-registered resolvers; publish/schedule delivery happens through host-subscribed events.
-7. **A widget datasource is `{ domain }` + exactly one of `filter`/`viewId`** — `embed` widgets forbid a datasource. `metric`/`breakdown`/`list` require it.
+6. **Workspace is dependency-free** — `domain` is opaque free-form text (`<module>:<entity>`); the module never queries other modules' tables. Publish/schedule delivery happens through host-subscribed events; filter-view execution (reading masters conditions, querying own tables) is the host's job.
+7. **A widget datasource is `{ domain }` + exactly one of `filter`/`viewId`** — `embed` widgets forbid a datasource. `metric`/`breakdown`/`list` require it. `viewId` is a cross-module soft reference to a masters filter view.
 8. **Widgets are declarative configs** — the module stores and serves them and tracks `lastRefreshedAt`/`lastError`; it never executes analytics.
 9. **Utilities are strictly user-scoped** — pins, recent, settings, watches carry no access column; `userId = actorId` at the row level.
 10. **Recent items are bounded** — `touch` trims each user's history to `maxRecentItems` (default 50).
@@ -78,7 +76,7 @@
 
 - **Draft** — a saved, unpublished piece of content (title/body/notes/metadata) with an optional review lifecycle. Not a "draft status" on another module's entity (contrast: compliance `document_status.draft`, hr contracts) — a first-class persistable entity.
 - **Approval** — the optional `submit → approve` gate on a draft; hosts skip it by publishing directly.
-- **Filter View** — a cross-domain saved `{ domain, conditions, sort, groupBy }` configuration. "Domain" is the dataset key (`<module>:<entity>`); conditions use the dms `FileViewCondition` shape `{ field, operator, value }`.
+- **Filter View** — now a Masters concept (`p.masters.filterViews`, table `master_filter_view`): a saved `{ domain, conditions, sort, groupBy }` configuration with `personal`/`global` access. "Domain" is the dataset key (`<module>:<entity>`).
 - **Dashboard** — a named collection of widgets plus a jsonb `layout` (`{ widgetId, x, y, w, h }[]`).
 - **Widget** — a declarative datasource config (`metric`/`breakdown`/`list`/`embed`) with runtime refresh metadata. No rendering, no analytics execution.
 - **Schedule** — a per-dashboard cron delivery configuration (`{ recipients, format, subject? }`); emits `workspace:schedule_due`, host delivers.

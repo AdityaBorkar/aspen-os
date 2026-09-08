@@ -1,20 +1,6 @@
 import { JsonValueSchema } from "#/schemas/json";
-import { NameSchema } from "#/schemas/utils";
 
-import {
-  array,
-  boolean,
-  check,
-  maxLength,
-  nullable,
-  number,
-  object,
-  optional,
-  picklist,
-  pipe,
-  string,
-  union,
-} from "valibot";
+import { check, maxLength, object, optional, picklist, pipe, string, union } from "valibot";
 import type { InferOutput } from "valibot";
 
 const KnownFieldSchema = picklist([
@@ -84,6 +70,10 @@ const DirectionSchema = union([
   ),
 ]);
 
+// Condition/sort shapes shared by search. Filter view *persistence* moved to
+// `@aspen-os/masters` (`p.masters.filterViews`, domain "dms:file"); this file
+// keeps only the shapes that `search` options and `condition-service` validate
+// against — the same `{ field, operator, value }` contract masters stores.
 export const FileViewConditionSchema = object({
   field: FieldSchema,
   operator: OperatorSchema,
@@ -98,34 +88,3 @@ export const FileViewSortSchema = object({
 });
 
 export type FileViewSort = InferOutput<typeof FileViewSortSchema>;
-
-export const CreateFileViewSchema = object({
-  filters: optional(array(FileViewConditionSchema), []),
-  isDefault: optional(boolean(), false),
-  isShared: optional(boolean(), false),
-  name: NameSchema,
-  ownerId: string(),
-  sort: optional(array(FileViewSortSchema), []),
-});
-
-export type CreateFileViewInput = InferOutput<typeof CreateFileViewSchema>;
-
-export const UpdateFileViewSchema = object({
-  filters: optional(array(FileViewConditionSchema)),
-  isDefault: optional(boolean()),
-  isShared: optional(boolean()),
-  name: optional(NameSchema),
-  sort: optional(array(FileViewSortSchema)),
-});
-
-export type UpdateFileViewInput = InferOutput<typeof UpdateFileViewSchema>;
-
-export const ApplyFileViewSchema = object({
-  filters: optional(array(FileViewConditionSchema)),
-  limit: optional(number(), 50),
-  offset: optional(number(), 0),
-  sort: optional(array(FileViewSortSchema)),
-  viewId: optional(nullable(string())),
-});
-
-export type ApplyFileViewInput = InferOutput<typeof ApplyFileViewSchema>;

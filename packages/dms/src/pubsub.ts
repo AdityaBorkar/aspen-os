@@ -42,16 +42,9 @@ export const PUBLIC_LINK_EVENTS = {
   REVOKED: "dms:public_link_revoked",
 } as const;
 
-export const FILE_VIEW_EVENTS = {
-  CREATED: "dms:file_view_created",
-  DELETED: "dms:file_view_deleted",
-  UPDATED: "dms:file_view_updated",
-} as const;
-
 export const events = {
   CLASS_EVENTS,
   FILE_EVENTS,
-  FILE_VIEW_EVENTS,
   FOLDER_EVENTS,
   PUBLIC_LINK_EVENTS,
   SHARE_EVENTS,
@@ -227,18 +220,6 @@ export interface PublicLinkRevokedEvent {
   publicLinkId: string;
 }
 
-export interface FileViewCreatedEvent {
-  fileViewId: string;
-}
-
-export interface FileViewUpdatedEvent {
-  fileViewId: string;
-}
-
-export interface FileViewDeletedEvent {
-  fileViewId: string;
-}
-
 export interface FileEventMap {
   [FILE_EVENTS.CLASSIFIED]: FileClassifiedEvent;
   [FILE_EVENTS.DOWNLOADED]: FileDownloadedEvent;
@@ -281,15 +262,8 @@ export interface PublicLinkEventMap {
   [PUBLIC_LINK_EVENTS.REVOKED]: PublicLinkRevokedEvent;
 }
 
-export interface FileViewEventMap {
-  [FILE_VIEW_EVENTS.CREATED]: FileViewCreatedEvent;
-  [FILE_VIEW_EVENTS.DELETED]: FileViewDeletedEvent;
-  [FILE_VIEW_EVENTS.UPDATED]: FileViewUpdatedEvent;
-}
-
 export type DmsEventMap = ClassEventMap &
   FileEventMap &
-  FileViewEventMap &
   FolderEventMap &
   PublicLinkEventMap &
   ShareEventMap;

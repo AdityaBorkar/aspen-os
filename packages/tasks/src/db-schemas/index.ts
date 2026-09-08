@@ -5,7 +5,6 @@ import { comment } from "#/db-schemas/comment";
 import { label } from "#/db-schemas/label";
 import { project } from "#/db-schemas/project";
 import { projectMember } from "#/db-schemas/project-member";
-import { savedView } from "#/db-schemas/saved-view";
 import { status } from "#/db-schemas/status";
 import { statusTransition } from "#/db-schemas/status-transition";
 import { task } from "#/db-schemas/task";
@@ -23,7 +22,6 @@ export {
   automationTriggerEnum,
   projectMemberRoleEnum,
   projectStatusEnum,
-  savedViewTypeEnum,
   statusCategoryEnum,
   taskLinkTypeEnum,
   taskPriorityEnum,
@@ -31,7 +29,6 @@ export {
 export { label } from "#/db-schemas/label";
 export { project } from "#/db-schemas/project";
 export { projectMember } from "#/db-schemas/project-member";
-export { savedView } from "#/db-schemas/saved-view";
 export { status } from "#/db-schemas/status";
 export { statusTransition } from "#/db-schemas/status-transition";
 export { task } from "#/db-schemas/task";
@@ -55,7 +52,6 @@ export const tenant_schemas = {
   attachment,
   automationRule,
   comment,
-  savedView,
   task,
   taskAssignee,
   taskLink,

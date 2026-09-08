@@ -2,6 +2,7 @@ import { masterAddress } from "#/db-schemas/address";
 import { masterConnection } from "#/db-schemas/connection";
 import { masterContact } from "#/db-schemas/contact";
 import { masterEntity } from "#/db-schemas/entity";
+import { masterFilterView } from "#/db-schemas/filter-view";
 import { masterPaymentMethod } from "#/db-schemas/payment-method";
 import { masterUnitOfMeasure } from "#/db-schemas/unit-of-measure";
 
@@ -16,12 +17,15 @@ export {
   masterEntityKindEnum,
   masterEntityStatusEnum,
   masterEntityTypeEnum,
+  masterFilterViewAccessEnum,
+  masterFilterViewTypeEnum,
   masterIntegrationTypeEnum,
   masterPaymentMethodDirectionEnum,
   masterPaymentMethodStatusEnum,
   masterPaymentMethodTypeEnum,
   masterUomCategoryEnum,
 } from "#/db-schemas/enums";
+export { masterFilterView } from "#/db-schemas/filter-view";
 export { masterPaymentMethod } from "#/db-schemas/payment-method";
 export { masterUnitOfMeasure } from "#/db-schemas/unit-of-measure";
 
@@ -30,6 +34,7 @@ export const mastersTables = {
   masterConnection,
   masterContact,
   masterEntity,
+  masterFilterView,
   masterPaymentMethod,
   masterUnitOfMeasure,
 } as const;

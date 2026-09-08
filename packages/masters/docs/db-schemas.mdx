@@ -4,7 +4,7 @@ description: Database tables, enums, and relationships for the Masters module.
 icon: IconDatabase
 ---
 
-The Masters module defines 7 tables and 11 enums using Drizzle ORM. All tables are tenant schemas with the `master_` prefix.
+The Masters module defines 8 tables and 13 enums using Drizzle ORM. All tables are tenant schemas with the `master_` prefix.
 
 ## Enums
 
@@ -21,6 +21,8 @@ The Masters module defines 7 tables and 11 enums using Drizzle ORM. All tables a
 | `master_payment_method_status_enum`    | `master_payment_method.status`     | `active`, `inactive`, `archived`                                                                                                                                                |
 | `master_payment_method_direction_enum` | `master_payment_method.direction`  | `inbound`, `outbound`, `both`                                                                                                                                                   |
 | `master_card_brand_enum`               | `master_payment_method.card_brand` | `visa`, `mastercard`, `amex`, `rupay`, `other`                                                                                                                                  |
+| `master_filter_view_access`            | `master_filter_view.access`        | `personal`, `global`                                                                                                                                                            |
+| `master_filter_view_type`              | `master_filter_view.view_type`     | `list`, `board`, `calendar`, `timeline`                                                                                                                                         |
 
 ## Tables
 
@@ -168,6 +170,26 @@ A mode of payment scoped per `(entity_type, entity_id)`. `is_primary` is scoped 
 | `metadata`          | jsonb                                | Flexible metadata                                               |
 
 Indexes: `idx_master_payment_method_entity`, `idx_master_payment_method_type`, `idx_master_payment_method_is_primary`, `idx_master_payment_method_is_active`.
+
+### `master_filter_view`
+
+Cross-domain saved filter/sort/group configuration (consolidated from tasks saved views, DMS file views, and workspace views). `access` is user-set (`personal`/`global`); `is_default` is unique per `(owner_id, domain, project_id)`.
+
+| Column       | Type                      | Description                                                 |
+| ------------ | ------------------------- | ----------------------------------------------------------- |
+| `name`       | text (not null)           | View name                                                   |
+| `domain`     | text (not null)           | Dataset key, free-form `<module>:<entity>`                  |
+| `conditions` | jsonb                     | `{ field, operator, value }[]` (default `[]`)               |
+| `sort`       | jsonb                     | `{ field, direction }[]` (default `[]`)                     |
+| `group_by`   | text                      | Optional group-by field                                     |
+| `view_type`  | master_filter_view_type   | `list` / `board` / `calendar` / `timeline` (default `list`) |
+| `access`     | master_filter_view_access | `personal` / `global` (default `personal`)                  |
+| `owner_id`   | text (not null)           | Owning user                                                 |
+| `project_id` | text                      | Tasks project scope; `null` for other domains               |
+| `is_default` | boolean                   | Default `false`                                             |
+| `metadata`   | jsonb                     | Flexible metadata                                           |
+
+Indexes: `idx_master_filter_view_domain_access`, `idx_master_filter_view_owner`, `idx_master_filter_view_project`.
 
 ## Relationships
 

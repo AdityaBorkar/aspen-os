@@ -24,14 +24,7 @@ All events are published as plain string topics on `PubSubUnit` (`ctx.pubsub.pub
 | `workspace:draft_comment_removed` | `{ draftId, commentId }`                                             |
 | `workspace:draft_deleted`         | `{ draftId }`                                                        |
 
-## Views
-
-| Event                       | Payload                               |
-| --------------------------- | ------------------------------------- |
-| `workspace:view_created`    | `{ viewId, ownerId, domain, access }` |
-| `workspace:view_updated`    | `{ viewId }`                          |
-| `workspace:view_duplicated` | `{ viewId, duplicateId }`             |
-| `workspace:view_deleted`    | `{ viewId }`                          |
+Filter view events (`masters:filter_view_created/updated/duplicated/deleted`) live in `@aspen-os/masters` — see [Masters Events](/docs/masters/events).
 
 ## Dashboards
 

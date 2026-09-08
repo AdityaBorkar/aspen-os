@@ -4,7 +4,7 @@ description: API reference for the workflow groups exposed by the Masters module
 icon: IconListCheck
 ---
 
-The Masters module exposes seven workflow groups as flat `Workflow` objects: `contacts`, `addresses`, `bankAccounts`, `connections`, `entities`, `paymentMethods`, and `unitsOfMeasure`. Access via the platform proxy key `p.masters`.
+The Masters module exposes eight workflow groups as flat `Workflow` objects: `contacts`, `addresses`, `bankAccounts`, `connections`, `entities`, `paymentMethods`, `unitsOfMeasure`, and `filterViews`. Access via the platform proxy key `p.masters`.
 
 Polymorphic entities (`addresses`, `bankAccounts`, `connections`, `paymentMethods`) require `entityType` and `entityId` (the owning `organization`, `branch`, `connection`, `contact`, or `entity`) on create/list; list queries filter on the `(entityType, entityId)` pair. `contacts` accept an optional scope: omit `entityType`/`entityId` for global address-book entries (absorbed from DMS) or pass them for owned contacts; `list` without a scope searches globally. Removed contacts are hidden from `list` by default (`filters.isRemoved`). `entities` and `unitsOfMeasure` are tenant-level — no scope pair.
 
@@ -27,6 +27,9 @@ readonly bankAccounts = {
 };
 readonly contacts = { create, delete, get, list, remove, update };
 readonly entities = { create, delete, get, list, update };
+readonly filterViews = {
+  create, delete, duplicate, get, getDefault, list, setDefault, update,
+};
 readonly paymentMethods = {
   activate, create, deactivate, delete, get, list, setPrimary, update,
 };
@@ -176,6 +179,28 @@ const methods = await p.masters.paymentMethods.list({
 });
 ```
 
+### Filter Views
+
+Access: `p.masters.filterViews`
+
+Cross-domain saved filter/sort/group configurations, consolidated from tasks saved views, DMS file views, and workspace views. `domain` is free-form `<module>:<entity>` text (`tasks:task`, `dms:file`, `notes:note`, `hr:employee`, `compliance:document`, `workspace:draft`, …). `viewType` (`list`/`board`/`calendar`/`timeline`) preserves the tasks board layouts; `projectId` preserves tasks project scoping (`null` for other domains). `access` is user-set (`personal` owner-only, `global` org-wide); `list` enforces `global OR owner` at SQL level, and `get`/`update`/`delete` enforce owner-or-admin mutation. `isDefault` is unique per `(owner, domain, project)`. Storage-only: the module never executes a view — hosts read `conditions`/`sort` and query their own tables.
+
+```ts
+await p.masters.filterViews.create({
+  input: { name, domain: "tasks:task", conditions, sort, viewType: "board", projectId },
+});
+await p.masters.filterViews.get({ id });
+await p.masters.filterViews.update({ id, input: { name, conditions } });
+await p.masters.filterViews.delete({ id });
+await p.masters.filterViews.duplicate({ id }); // personal copy under the caller
+await p.masters.filterViews.setDefault({ id });
+await p.masters.filterViews.getDefault({ ownerId, domain, projectId });
+
+const views = await p.masters.filterViews.list({
+  filters: { domain, access, isDefault, projectId, viewType, search },
+});
+```
+
 ### Units of Measure
 
 Access: `p.masters.unitsOfMeasure`
@@ -207,18 +232,19 @@ const units = await p.masters.unitsOfMeasure.list({ filters: { category, isActiv
 
 ## Events
 
-| Event                                                                                                          | Trigger                                                                                       |
-| -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `masters:contact_created`, `masters:contact_updated`, `masters:contact_removed`                                | Contact create / update / remove (`remove` = soft delete with reason; `delete` = hard delete) |
-| `masters:address_created`, `masters:address_updated`, `masters:address_removed`                                | Address create / update / delete                                                              |
-| `masters:bank_account_created`, `masters:bank_account_updated`                                                 | Account create / update                                                                       |
-| `masters:bank_account_activated`, `masters:bank_account_deactivated`                                           | Account activate / deactivate                                                                 |
-| `masters:connection_created`, `masters:connection_updated`, `masters:connection_removed`                       | Connection create / update / delete                                                           |
-| `masters:connection_status_changed`, `masters:connection_credential_rotated`                                   | Status change / credential rotation                                                           |
-| `masters:entity_created`, `masters:entity_updated`, `masters:entity_removed`                                   | Entity create / update / delete                                                               |
-| `masters:unit_of_measure_created`, `masters:unit_of_measure_updated`, `masters:unit_of_measure_removed`        | UOM create / update / delete                                                                  |
-| `masters:payment_method_created`, `masters:payment_method_updated`, `masters:payment_method_removed`           | Payment method create / update / delete                                                       |
-| `masters:payment_method_activated`, `masters:payment_method_deactivated`, `masters:payment_method_primary_set` | Payment method activate / deactivate / primary set                                            |
+| Event                                                                                                                         | Trigger                                                                                       |
+| ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `masters:contact_created`, `masters:contact_updated`, `masters:contact_removed`                                               | Contact create / update / remove (`remove` = soft delete with reason; `delete` = hard delete) |
+| `masters:address_created`, `masters:address_updated`, `masters:address_removed`                                               | Address create / update / delete                                                              |
+| `masters:bank_account_created`, `masters:bank_account_updated`                                                                | Account create / update                                                                       |
+| `masters:bank_account_activated`, `masters:bank_account_deactivated`                                                          | Account activate / deactivate                                                                 |
+| `masters:connection_created`, `masters:connection_updated`, `masters:connection_removed`                                      | Connection create / update / delete                                                           |
+| `masters:connection_status_changed`, `masters:connection_credential_rotated`                                                  | Status change / credential rotation                                                           |
+| `masters:entity_created`, `masters:entity_updated`, `masters:entity_removed`                                                  | Entity create / update / delete                                                               |
+| `masters:unit_of_measure_created`, `masters:unit_of_measure_updated`, `masters:unit_of_measure_removed`                       | UOM create / update / delete                                                                  |
+| `masters:payment_method_created`, `masters:payment_method_updated`, `masters:payment_method_removed`                          | Payment method create / update / delete                                                       |
+| `masters:payment_method_activated`, `masters:payment_method_deactivated`, `masters:payment_method_primary_set`                | Payment method activate / deactivate / primary set                                            |
+| `masters:filter_view_created`, `masters:filter_view_updated`, `masters:filter_view_duplicated`, `masters:filter_view_deleted` | Filter view create / update / duplicate / delete                                              |
 
 Full payloads: [Events](/docs/masters/events).
 
@@ -233,6 +259,7 @@ Full payloads: [Events](/docs/masters/events).
 | `master_entity`          | Tenant-level business party, optional `organizationId`                                    |
 | `master_payment_method`  | Payment mode scoped per `(entityType, entityId)`                                          |
 | `master_unit_of_measure` | Tenant-wide unit with base-unit / conversion structure                                    |
+| `master_filter_view`     | Saved `{ domain, conditions, sort, groupBy }` config with `personal`/`global` access      |
 
 Full columns: [DB Schemas](/docs/masters/db-schemas).
 

@@ -45,15 +45,6 @@ export const STATUS_CATEGORY = {
 
 export type StatusCategory = (typeof STATUS_CATEGORY)[keyof typeof STATUS_CATEGORY];
 
-export const SAVED_VIEW_TYPE = {
-  BOARD: "board",
-  CALENDAR: "calendar",
-  LIST: "list",
-  TIMELINE: "timeline",
-} as const;
-
-export type SavedViewType = (typeof SAVED_VIEW_TYPE)[keyof typeof SAVED_VIEW_TYPE];
-
 export const AUTOMATION_TRIGGER = {
   ASSIGNMENT_CHANGE: "assignment_change",
   DUE_DATE_PASSED: "due_date_passed",

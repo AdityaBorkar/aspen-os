@@ -11,7 +11,6 @@ import {
   taskTypeWorkflows,
   taskWorkflows,
   timeEntryWorkflows,
-  viewWorkflows,
 } from "#/workflows";
 
 import type { Module, ModuleInfra } from "@aspen-os/platform/server";
@@ -62,6 +61,4 @@ export class Tasks implements Module {
   readonly automations = automationWorkflows;
 
   readonly collaboration = collaborationWorkflows;
-
-  readonly views = viewWorkflows;
 }

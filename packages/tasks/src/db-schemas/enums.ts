@@ -2,7 +2,6 @@ import {
   AUTOMATION_TRIGGER,
   PROJECT_MEMBER_ROLE,
   PROJECT_STATUS,
-  SAVED_VIEW_TYPE,
   STATUS_CATEGORY,
   TASK_LINK_TYPE,
   TASK_PRIORITY,
@@ -35,11 +34,6 @@ export const projectMemberRoleEnum = pgEnum(
 export const statusCategoryEnum = pgEnum(
   "status_category",
   enumValues(Object.values(STATUS_CATEGORY)),
-);
-
-export const savedViewTypeEnum = pgEnum(
-  "saved_view_type",
-  enumValues(Object.values(SAVED_VIEW_TYPE)),
 );
 
 export const automationTriggerEnum = pgEnum(

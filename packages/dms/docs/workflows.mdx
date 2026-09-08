@@ -4,7 +4,7 @@ description: API reference for the workflow groups exposed by the DMS module.
 icon: IconListCheck
 ---
 
-The DMS module exposes workflows as flat `Workflow` objects grouped under accessors: `files`, `folders`, `classes`, `labels`, `shares`, `trash`, `fileViews`, `triage`, `holds`, `settings`, `search`, `activity`, `versions`, plus the `access`/`archive`/`paths`/`storage` services. Access via the platform proxy key `p.dms`.
+The DMS module exposes workflows as flat `Workflow` objects grouped under accessors: `files`, `folders`, `classes`, `labels`, `shares`, `trash`, `triage`, `holds`, `settings`, `search`, `activity`, `versions`, plus the `access`/`archive`/`paths`/`storage` services. Access via the platform proxy key `p.dms`.
 
 ## Lifecycle Flow
 
@@ -163,25 +163,15 @@ Sharing to a `contact` (a Masters contact id) creates a `shareToken`; revoking t
 
 ## File Views & Search
 
-```ts
-await p.dms.fileViews.create({
-  input: { name: "Invoices due this month", ownerId: userId, filters: [...], sort: [] },
-});
-await p.dms.fileViews.setDefault({ id: viewId });
-await p.dms.fileViews.list({ ownerId: userId });
-await p.dms.fileViews.listByOwner({ ownerId: userId });
-await p.dms.fileViews.getDefault({ ownerId: userId });
-await p.dms.fileViews.update({ id, patch: { filters } });
-await p.dms.fileViews.delete({ id });
-await p.dms.fileViews.apply({ viewId: viewId }); // resolves to a file listing
+Saved file views live in `@aspen-os/masters` as `p.masters.filterViews` with `domain: "dms:file"` — see [Masters Workflows](/docs/masters/workflows#filter-views). `searchToFileViewConditions({ query, options })` (in `services/search-service.ts`) converts a search into `{ filters, sort }` conditions ready to persist as a masters filter view.
 
+```ts
 // Search — records + filesystem search merged
 await p.dms.search.search({ query: "INV", options: { scope: "mine" } });
 await p.dms.search.quick({ input: { query: "INV" }, userId });
-await p.dms.search.promoteToView({ query: "INV", options: {}, name: "Search: INV", ownerId: userId });
 ```
 
-File views never expose triaged/trashed files unless a condition explicitly targets `status = triaged|trashed`. Full-text search covers current-version `name`, description, metadata scalars, and class `fieldValues` (respecting `Include In Search`), scoped to the caller's visibility; filesystem search also returns folders by name.
+File listings never expose triaged/trashed files unless a condition explicitly targets `status = triaged|trashed`. Full-text search covers current-version `name`, description, metadata scalars, and class `fieldValues` (respecting `Include In Search`), scoped to the caller's visibility; filesystem search also returns folders by name.
 
 ## Trash, Retention & Holds
 

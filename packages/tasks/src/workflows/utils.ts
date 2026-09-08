@@ -1,6 +1,5 @@
 import { activityLog } from "#/db-schemas/activity-log";
 import { project } from "#/db-schemas/project";
-import { savedView } from "#/db-schemas/saved-view";
 import { status } from "#/db-schemas/status";
 import { task } from "#/db-schemas/task";
 import { taskAssignee } from "#/db-schemas/task-assignee";
@@ -184,23 +183,6 @@ export async function unsetDefaultProjectStatus(db: Db, projectId: string | null
 
 export async function unsetDefaultTaskType(db: Db, projectId: string): Promise<void> {
   await db.update(taskType).set({ is_default: false }).where(eq(taskType.project_id, projectId));
-}
-
-export async function unsetDefaultSavedView(
-  db: Db,
-  ownerId: string,
-  projectId: string | null,
-): Promise<void> {
-  const conditions = [eq(savedView.owner_id, ownerId), eq(savedView.is_default, true)];
-
-  if (projectId) {
-    conditions.push(eq(savedView.project_id, projectId));
-  }
-
-  await db
-    .update(savedView)
-    .set({ is_default: false })
-    .where(and(...conditions));
 }
 
 const INVERSE_LINK_TYPES = {

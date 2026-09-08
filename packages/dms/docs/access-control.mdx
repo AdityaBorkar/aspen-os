@@ -15,7 +15,6 @@ export const acl = defineAcl({
   classField: ["create", "deactivate", "read", "update"],
   class: ["archive", "create", "read", "update"],
   file: ["classify", "create", "delete", "download", "read", "restore", "update"],
-  fileView: ["create", "delete", "read", "set_default", "update"],
   folder: ["create", "delete", "read", "update"],
   label: ["create", "delete", "read", "update"],
   legalHold: ["create", "read"],
@@ -30,7 +29,6 @@ export const acl = defineAcl({
 | `file`       | `classify`, `create`, `delete`, `download`, `read`, `restore`, `update` |
 | `classField` | `create`, `deactivate`, `read`, `update`                                |
 | `class`      | `archive`, `create`, `read`, `update`                                   |
-| `fileView`   | `create`, `delete`, `read`, `set_default`, `update`                     |
 | `folder`     | `create`, `delete`, `read`, `update`                                    |
 | `label`      | `create`, `delete`, `read`, `update`                                    |
 | `legalHold`  | `create`, `read`                                                        |
@@ -43,7 +41,7 @@ export const acl = defineAcl({
 The following DMS semantics are **admin-only by design** and must be enforced by the host app's roles:
 
 - Manage classes and class fields (`classes.*`)
-- Publish shared file views (`fileViews.create` with `isShared: true`) and update/delete them
+- Publish shared filter views (`p.masters.filterViews.create` with `access: "global"`) and update/delete them
 - Read/write module settings (`settings.set`)
 - Place/release legal holds (`holds.place`, `holds.release`)
 - Permanently delete from the trash (`trash.deletePermanently`, `trash.empty`)

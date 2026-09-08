@@ -4,16 +4,18 @@ description: Tables, enums, and relationships owned by the Workspace module.
 icon: IconDatabase
 ---
 
-The module owns **10 tenant tables** and **4 pgEnums**. All are `tenant_schemas` with the `workspace_` prefix — there are no control-plane tables. IDs are text `uuidv7` PKs; timestamps are `timestamptz`; no DB-level foreign keys (soft FKs by naming convention).
+The module owns **9 tenant tables** and **4 pgEnums**. All are `tenant_schemas` with the `workspace_` prefix — there are no control-plane tables. IDs are text `uuidv7` PKs; timestamps are `timestamptz`; no DB-level foreign keys (soft FKs by naming convention).
+
+Filter views live in `@aspen-os/masters` (table `master_filter_view`); workspace widgets reference them via the `view_id` soft reference.
 
 ## Enums
 
-| Enum                     | Column(s)                                                                       | Values                                                    |
-| ------------------------ | ------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| `workspace_access`       | `workspace_draft.access`, `workspace_view.access`, `workspace_dashboard.access` | `personal`, `global`                                      |
-| `workspace_draft_status` | `workspace_draft.status`                                                        | `draft`, `submitted`, `approved`, `rejected`, `published` |
-| `workspace_widget_type`  | `workspace_widget.type`                                                         | `metric`, `breakdown`, `list`, `embed`                    |
-| `workspace_item_type`    | `workspace_recent.item_type`, `workspace_watch.item_type`                       | `draft`, `view`, `dashboard`                              |
+| Enum                     | Column(s)                                                 | Values                                                    |
+| ------------------------ | --------------------------------------------------------- | --------------------------------------------------------- |
+| `workspace_access`       | `workspace_draft.access`, `workspace_dashboard.access`    | `personal`, `global`                                      |
+| `workspace_draft_status` | `workspace_draft.status`                                  | `draft`, `submitted`, `approved`, `rejected`, `published` |
+| `workspace_widget_type`  | `workspace_widget.type`                                   | `metric`, `breakdown`, `list`, `embed`                    |
+| `workspace_item_type`    | `workspace_recent.item_type`, `workspace_watch.item_type` | `draft`, `view`, `dashboard`                              |
 
 ## Tables
 
@@ -64,27 +66,6 @@ Threaded review comments on a draft.
 
 Indexes: `idx_workspace_draft_comment_draft`.
 
-### `workspace_view`
-
-Cross-domain saved filter/sort/group configuration.
-
-| Column       | Type                      | Description                                 |
-| ------------ | ------------------------- | ------------------------------------------- |
-| `access`     | enum `workspace_access`   | `personal` (default) or `global`            |
-| `conditions` | jsonb (`ViewCondition[]`) | `{ field, operator, value }`, default `[]`  |
-| `created_at` | timestamptz               |                                             |
-| `domain`     | text                      | free-form dataset key (`<module>:<entity>`) |
-| `group_by`   | text                      | group-by field                              |
-| `id`         | text PK (`uuidv7`)        |                                             |
-| `is_default` | boolean                   | per `(ownerId, domain)`, default `false`    |
-| `metadata`   | jsonb                     | opaque                                      |
-| `name`       | text                      |                                             |
-| `owner_id`   | text                      |                                             |
-| `sort`       | jsonb (`ViewSort[]`)      | `{ field, direction }`, default `[]`        |
-| `updated_at` | timestamptz               |                                             |
-
-Indexes: `idx_workspace_view_domain_access`, `idx_workspace_view_owner`.
-
 ### `workspace_dashboard`
 
 A named collection of widgets over a grid layout.
@@ -107,20 +88,20 @@ Indexes: `idx_workspace_dashboard_owner`, `idx_workspace_dashboard_access`.
 
 A declarative widget on a dashboard; inherits dashboard access.
 
-| Column              | Type                         | Description                                                     |
-| ------------------- | ---------------------------- | --------------------------------------------------------------- |
-| `config`            | jsonb (`WidgetConfig`)       | type-specific, incl. `range`                                    |
-| `created_at`        | timestamptz                  |                                                                 |
-| `dashboard_id`      | text                         | soft FK → `workspace_dashboard.id`                              |
-| `domain`            | text                         | datasource domain (null for `embed`)                            |
-| `filter`            | jsonb (`ViewCondition[]`)    | inline conditions; mutually exclusive with `view_id`            |
-| `id`                | text PK (`uuidv7`)           |                                                                 |
-| `last_error`        | text                         | set by `widgets.refresh` on failure                             |
-| `last_refreshed_at` | timestamptz                  | set by `widgets.refresh`                                        |
-| `title`             | text                         |                                                                 |
-| `type`              | enum `workspace_widget_type` | `metric`, `breakdown`, `list`, `embed`                          |
-| `updated_at`        | timestamptz                  |                                                                 |
-| `view_id`           | text                         | soft FK → `workspace_view.id`; reuses a saved view's conditions |
+| Column              | Type                              | Description                                                         |
+| ------------------- | --------------------------------- | ------------------------------------------------------------------- |
+| `config`            | jsonb (`WidgetConfig`)            | type-specific, incl. `range`                                        |
+| `created_at`        | timestamptz                       |                                                                     |
+| `dashboard_id`      | text                              | soft FK → `workspace_dashboard.id`                                  |
+| `domain`            | text                              | datasource domain (null for `embed`)                                |
+| `filter`            | jsonb (`WidgetFilterCondition[]`) | inline conditions; mutually exclusive with `view_id`                |
+| `id`                | text PK (`uuidv7`)                |                                                                     |
+| `last_error`        | text                              | set by `widgets.refresh` on failure                                 |
+| `last_refreshed_at` | timestamptz                       | set by `widgets.refresh`                                            |
+| `title`             | text                              |                                                                     |
+| `type`              | enum `workspace_widget_type`      | `metric`, `breakdown`, `list`, `embed`                              |
+| `updated_at`        | timestamptz                       |                                                                     |
+| `view_id`           | text                              | soft FK → `master_filter_view.id`; reuses a saved view's conditions |
 
 Indexes: `idx_workspace_widget_dashboard`.
 
@@ -208,8 +189,8 @@ Unique `(user_id, key)`; index `idx_workspace_setting_user`.
 workspace_draft 1:N workspace_draft_comment (draft_id)
 workspace_dashboard 1:N workspace_widget (dashboard_id)
 workspace_dashboard 1:N workspace_schedule (dashboard_id)
-workspace_widget N:1 workspace_view (view_id — datasource reuse, soft FK)
-pin ── item_type + item_id ──▶ any registry item (workspace entities + dms items)
+workspace_widget N:1 master_filter_view (view_id — datasource reuse, cross-module soft FK)
+pin ── item_type + item_id ──▶ any registry item (workspace entities + dms items + masters filter views)
 recent / watch ── item_type + item_id ──▶ workspace entity (draft/view/dashboard)
 ```
 

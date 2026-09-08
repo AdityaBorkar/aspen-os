@@ -19,6 +19,14 @@ import { deleteEntity } from "#/workflows/entity/delete";
 import { getEntity } from "#/workflows/entity/get";
 import { listEntities } from "#/workflows/entity/list";
 import { updateEntity } from "#/workflows/entity/update";
+import { createFilterView } from "#/workflows/filter-view/create";
+import { getDefaultFilterView } from "#/workflows/filter-view/default/get";
+import { setDefaultFilterView } from "#/workflows/filter-view/default/set";
+import { deleteFilterView } from "#/workflows/filter-view/delete";
+import { duplicateFilterView } from "#/workflows/filter-view/duplicate";
+import { getFilterView } from "#/workflows/filter-view/get";
+import { listFilterViews } from "#/workflows/filter-view/list";
+import { updateFilterView } from "#/workflows/filter-view/update";
 import { activatePaymentMethod } from "#/workflows/payment-method/activate";
 import { createPaymentMethod } from "#/workflows/payment-method/create";
 import { deactivatePaymentMethod } from "#/workflows/payment-method/deactivate";
@@ -56,6 +64,17 @@ export const entities = {
   get: getEntity,
   list: listEntities,
   update: updateEntity,
+} as const;
+
+export const filterViews = {
+  create: createFilterView,
+  delete: deleteFilterView,
+  duplicate: duplicateFilterView,
+  get: getFilterView,
+  getDefault: getDefaultFilterView,
+  list: listFilterViews,
+  setDefault: setDefaultFilterView,
+  update: updateFilterView,
 } as const;
 
 export const paymentMethods = {

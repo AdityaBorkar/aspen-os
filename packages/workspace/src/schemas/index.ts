@@ -73,22 +73,6 @@ export {
 export type { QuickSearchInput } from "#/schemas/search";
 export { QuickSearchSchema } from "#/schemas/search";
 export { GetSettingSchema, SetSettingSchema } from "#/schemas/setting";
-export type {
-  ApplyViewInput,
-  CreateViewInput,
-  ViewCondition,
-  ViewFilters,
-  ViewSort,
-  UpdateViewInput,
-} from "#/schemas/view";
-export {
-  ApplyViewSchema,
-  CreateViewSchema,
-  ViewConditionSchema,
-  ViewFiltersSchema,
-  ViewSortSchema,
-  UpdateViewSchema,
-} from "#/schemas/view";
 export type { ListWatchesInput, SubscribeWatchInput, UnsubscribeWatchInput } from "#/schemas/watch";
 export { ListWatchesSchema, SubscribeWatchSchema, UnsubscribeWatchSchema } from "#/schemas/watch";
 export type {
@@ -101,6 +85,7 @@ export type {
   RefreshWidgetInput,
   UpdateWidgetInput,
   WidgetConfig,
+  WidgetFilterCondition,
   WidgetFilters,
   WidgetPlacement,
   WidgetRange,

@@ -18,13 +18,6 @@ export const DRAFT_EVENTS = {
   UPDATED: "workspace:draft_updated",
 } as const;
 
-export const VIEW_EVENTS = {
-  CREATED: "workspace:view_created",
-  DELETED: "workspace:view_deleted",
-  DUPLICATED: "workspace:view_duplicated",
-  UPDATED: "workspace:view_updated",
-} as const;
-
 export const DASHBOARD_EVENTS = {
   CREATED: "workspace:dashboard_created",
   DELETED: "workspace:dashboard_deleted",
@@ -60,7 +53,6 @@ export const events = {
   DRAFT_EVENTS,
   PIN_EVENTS,
   SCHEDULE_EVENTS,
-  VIEW_EVENTS,
   WATCH_EVENTS,
   WIDGET_EVENTS,
 };
@@ -126,26 +118,6 @@ export interface DraftCommentRemovedEvent {
 
 export interface DraftDeletedEvent {
   draftId: string;
-}
-
-export interface ViewCreatedEvent {
-  access: string;
-  domain: string;
-  ownerId: string;
-  viewId: string;
-}
-
-export interface ViewUpdatedEvent {
-  viewId: string;
-}
-
-export interface ViewDuplicatedEvent {
-  duplicateId: string;
-  viewId: string;
-}
-
-export interface ViewDeletedEvent {
-  viewId: string;
 }
 
 export interface DashboardCreatedEvent {
@@ -222,13 +194,6 @@ export interface DraftEventMap {
   [DRAFT_EVENTS.UPDATED]: DraftUpdatedEvent;
 }
 
-export interface ViewEventMap {
-  [VIEW_EVENTS.CREATED]: ViewCreatedEvent;
-  [VIEW_EVENTS.DELETED]: ViewDeletedEvent;
-  [VIEW_EVENTS.DUPLICATED]: ViewDuplicatedEvent;
-  [VIEW_EVENTS.UPDATED]: ViewUpdatedEvent;
-}
-
 export interface DashboardEventMap {
   [DASHBOARD_EVENTS.CREATED]: DashboardCreatedEvent;
   [DASHBOARD_EVENTS.DELETED]: DashboardDeletedEvent;
@@ -263,6 +228,5 @@ export type WorkspaceEventMap = DashboardEventMap &
   DraftEventMap &
   PinEventMap &
   ScheduleEventMap &
-  ViewEventMap &
   WatchEventMap &
   WidgetEventMap;

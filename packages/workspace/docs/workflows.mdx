@@ -48,31 +48,7 @@ await p.workspace.drafts.publish.run(
 
 ## Filter Views
 
-| Workflow         | Notes                                                                                                                                                            |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `create`         | `domain` validated against the `<module>:<entity>` convention (free-form, not whitelisted); `isDefault` clears the owner's prior default for `(ownerId, domain)` |
-| `get` / `delete` | access-checked single read / hard delete                                                                                                                         |
-| `update`         | patch semantics; re-clears prior defaults when `isDefault` is set                                                                                                |
-| `apply`          | resolves `conditions`/`sort` through `getViewResolver(domain)` — **throws** if no resolver is registered                                                         |
-| `setDefault`     | clears the owner's other defaults for the same `domain`, then sets                                                                                               |
-| `duplicate`      | new id, `access = personal`, `isDefault = false`                                                                                                                 |
-| `list`           | filters: `domain`, `access`, `isDefault`, `search` (name), `limit`/`offset`; access-scoped                                                                       |
-
-```ts
-await p.workspace.views.create.run(
-  {
-    input: {
-      name: "Open roles",
-      domain: "recruiter:requisition",
-      conditions: [{ field: "status", operator: "eq", value: "open" }],
-      sort: [{ field: "updatedAt", direction: "desc" }],
-    },
-  },
-  { actorId },
-);
-
-const rows = await p.workspace.views.apply.run({ id: viewId, limit: 25 }, { actorId });
-```
+Saved filter/sort/group configurations live in `@aspen-os/masters` as `p.masters.filterViews` (table `master_filter_view`) — see [Masters Workflows](/docs/masters/workflows#filter-views). Workspace widgets reference a view via the `viewId` soft reference (or an inline `filter`).
 
 ## Dashboards
 
@@ -126,8 +102,8 @@ When a cron fires, the handler reads the schedule + dashboard and publishes `wor
 | ---------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `pins`     | `create`, `delete`, `list`         | sidebar shortcuts; `itemType` from the cross-module `PIN_ITEM_TYPE` registry (workspace entities + dms items); unique `(userId, itemType, itemId)` |
 | `recent`   | `touch`, `list`                    | `touch` upserts + bumps `lastAccessedAt`; trims to `maxRecentItems`                                                                                |
-| `search`   | `quick`                            | access-scoped `ilike` over drafts/views/dashboards, merged result                                                                                  |
+| `search`   | `quick`                            | access-scoped `ilike` over drafts/dashboards, merged result                                                                                        |
 | `settings` | `get`, `set`                       | keys: `home_dashboard`, `default_view.<domain>`, `default_range`, `timezone`; values validated per key                                             |
-| `watches`  | `subscribe`, `unsubscribe`, `list` | follow-subscriptions on views/dashboards (not pg-boss subscribe)                                                                                   |
+| `watches`  | `subscribe`, `unsubscribe`, `list` | follow-subscriptions on dashboards (not pg-boss subscribe)                                                                                         |
 
 All utilities are strictly user-scoped (`userId = actorId`) — no access column, no `access-service` involvement.

@@ -4,12 +4,14 @@ import {
   WidgetAggregationSchema,
   WidgetTypeSchema,
 } from "#/schemas/enums";
+import { JsonValueSchema } from "#/schemas/json";
 import { NameSchema } from "#/schemas/utils";
-import { ViewConditionSchema } from "#/schemas/view";
 
 import {
   array,
+  check,
   integer,
+  maxLength,
   nullable,
   number,
   object,
@@ -20,6 +22,25 @@ import {
   union,
 } from "valibot";
 import type { InferOutput } from "valibot";
+
+// Local filter-condition shape for widget datasources. Filter views themselves
+// live in masters (`p.masters.filterViews`); widgets keep only an inline
+// filter or a soft `viewId` reference to a masters filter view.
+const WidgetFilterConditionSchema = object({
+  field: pipe(
+    string(),
+    maxLength(255),
+    check((val) => val.length > 0, "Condition field is required"),
+  ),
+  operator: pipe(
+    string(),
+    maxLength(64),
+    check((val) => val.length > 0, "Condition operator is required"),
+  ),
+  value: optional(JsonValueSchema),
+});
+
+export type WidgetFilterCondition = InferOutput<typeof WidgetFilterConditionSchema>;
 
 export const WidgetRangeSchema = object({
   from: optional(nullable(string())),
@@ -87,7 +108,7 @@ export const AddWidgetSchema = object({
   config: WidgetConfigSchema,
   dashboardId: string(),
   domain: optional(nullable(string())),
-  filter: optional(nullable(array(ViewConditionSchema))),
+  filter: optional(nullable(array(WidgetFilterConditionSchema))),
   title: NameSchema,
   type: WidgetTypeSchema,
   viewId: optional(nullable(string())),
@@ -98,7 +119,7 @@ export type AddWidgetInput = InferOutput<typeof AddWidgetSchema>;
 export const UpdateWidgetSchema = object({
   config: optional(WidgetConfigSchema),
   domain: optional(nullable(string())),
-  filter: optional(nullable(array(ViewConditionSchema))),
+  filter: optional(nullable(array(WidgetFilterConditionSchema))),
   title: optional(NameSchema),
   type: optional(WidgetTypeSchema),
   viewId: optional(nullable(string())),
@@ -131,7 +152,7 @@ export type WidgetFilters = InferOutput<typeof WidgetFiltersSchema>;
 export const WidgetSnapshotSchema = object({
   config: WidgetConfigSchema,
   domain: optional(nullable(string())),
-  filter: optional(nullable(array(ViewConditionSchema))),
+  filter: optional(nullable(array(WidgetFilterConditionSchema))),
   id: optional(string()),
   title: NameSchema,
   type: WidgetTypeSchema,

@@ -124,21 +124,6 @@ Indexed on `class_id`, unique on `(class_id, name)`.
 
 `dms_label` defines color-coded labels (`name`, `color`, `is_global`, `owner_id`; global labels have `owner_id` null). `dms_entity_label` is a polymorphic join (`entity_id`, `entity_type` file/folder, `label_id`, `applied_by`, `applied_at`) with a unique constraint on `(entity_type, entity_id, label_id)`. A file or folder can carry multiple labels. (The former tag system was removed; labels are the single labeling mechanism.)
 
-### `dms_file_view`
-
-| Column                      | Type        | Description                                      |
-| --------------------------- | ----------- | ------------------------------------------------ |
-| `id`                        | text (PK)   | Auto UUIDv7                                      |
-| `name`                      | text        | View title                                       |
-| `owner_id`                  | text        | Creator                                          |
-| `filters`                   | jsonb       | Array of `{ field, operator, value }` conditions |
-| `sort`                      | jsonb       | Array of `{ field, direction }`                  |
-| `is_default`                | boolean     | Auto-applied for the owner                       |
-| `is_shared`                 | boolean     | Admin-published, visible to all users            |
-| `created_at` / `updated_at` | timestamptz | Record timestamps                                |
-
-Indexed on `owner_id`, `is_shared`. (Sidebar pinning of views is the workspace module's surface — `p.workspace.pins` with item type `file_view`.)
-
 ### `dms_share`
 
 The unified sharing table — grants to `user`/`group`/`contact` over polymorphic `file`/`folder` entities. Merges the former `dms_share` and `dms_item_share`. `contact` grantees hold Masters contact ids (contacts moved to `p.masters.contacts`); removing a Masters contact revokes its grants via the contact-share bridge.

@@ -102,7 +102,6 @@ export class Workspace implements Module {
   readonly schedules = wf.schedules;
   readonly search = wf.search;
   readonly settings = wf.settings;
-  readonly views = wf.views;
   readonly watches = wf.watches;
   readonly widgets = wf.widgets;
 }

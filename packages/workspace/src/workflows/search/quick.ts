@@ -1,4 +1,4 @@
-import { workspaceDashboard, workspaceDraft, workspaceView } from "#/db-schemas";
+import { workspaceDashboard, workspaceDraft } from "#/db-schemas";
 import { getWorkspaceConfig } from "#/runtime";
 import { QuickSearchSchema } from "#/types";
 
@@ -40,22 +40,6 @@ export const quickSearch = Workflow.name("workspace.search.quick")
       )
       .limit(limit);
 
-    const views = await ctx.db
-      .select({
-        access: workspaceView.access,
-        domain: workspaceView.domain,
-        id: workspaceView.id,
-        name: workspaceView.name,
-      })
-      .from(workspaceView)
-      .where(
-        and(
-          or(eq(workspaceView.access, "global"), eq(workspaceView.owner_id, ctx.actorId)),
-          sql`(${workspaceView.name} ilike ${term} OR ${workspaceView.domain} ilike ${term})`,
-        ),
-      )
-      .limit(limit);
-
     const dashboards = await ctx.db
       .select({
         access: workspaceDashboard.access,
@@ -71,5 +55,5 @@ export const quickSearch = Workflow.name("workspace.search.quick")
       )
       .limit(limit);
 
-    return { dashboards, drafts, views };
+    return { dashboards, drafts };
   });

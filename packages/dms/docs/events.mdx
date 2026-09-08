@@ -50,12 +50,6 @@ export const PUBLIC_LINK_EVENTS = {
   CREATED: "dms:public_link_created",
   REVOKED: "dms:public_link_revoked",
 } as const;
-
-export const FILE_VIEW_EVENTS = {
-  CREATED: "dms:file_view_created",
-  DELETED: "dms:file_view_deleted",
-  UPDATED: "dms:file_view_updated",
-} as const;
 ```
 
 ## Event Map
@@ -89,15 +83,16 @@ export const FILE_VIEW_EVENTS = {
 
 Contacts moved to Masters — see `masters:contact_created` / `masters:contact_updated` / `masters:contact_removed` in the Masters events reference. DMS subscribes to `masters:contact_removed` and revokes every share granted to the removed contact.
 
-### Share / Public Link / File View Events
+### Share / Public Link Events
 
-| Event                                                                       | Payload                                                     | Trigger                                               |
-| --------------------------------------------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------- |
-| `dms:share_created` / `dms:share_revoked`                                   | `{ shareId, entityId, entityType, granteeType, granteeId }` | Share create / revoke (any grantee type, incl. group) |
-| `dms:public_link_created`                                                   | `{ id, entityId, entityType, permission, token }`           | Public link created                                   |
-| `dms:public_link_accessed`                                                  | `{ id, entityId, entityType, token, ip, userAgent }`        | Public link resolved                                  |
-| `dms:public_link_revoked`                                                   | `{ publicLinkId, entityId, entityType }`                    | Public link revoked                                   |
-| `dms:file_view_created` / `dms:file_view_updated` / `dms:file_view_deleted` | `{ fileViewId }`                                            | File view mutations                                   |
+| Event                                     | Payload                                                     | Trigger                                               |
+| ----------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------- |
+| `dms:share_created` / `dms:share_revoked` | `{ shareId, entityId, entityType, granteeType, granteeId }` | Share create / revoke (any grantee type, incl. group) |
+| `dms:public_link_created`                 | `{ id, entityId, entityType, permission, token }`           | Public link created                                   |
+| `dms:public_link_accessed`                | `{ id, entityId, entityType, token, ip, userAgent }`        | Public link resolved                                  |
+| `dms:public_link_revoked`                 | `{ publicLinkId, entityId, entityType }`                    | Public link revoked                                   |
+
+File view events (`masters:filter_view_created/updated/duplicated/deleted`) live in `@aspen-os/masters` — see [Masters Events](/docs/masters/events).
 
 ## Usage
 
@@ -126,12 +121,11 @@ await p.pubsub.subscribe("dms:file_classified", async (message) => {
 ## Event Map Type
 
 ```ts title="src/pubsub.ts"
-export type DmsEventMap = FileEventMap &
+export type DmsEventMap = ClassEventMap &
+  FileEventMap &
   FolderEventMap &
-  ClassEventMap &
-  ShareEventMap &
   PublicLinkEventMap &
-  FileViewEventMap;
+  ShareEventMap;
 ```
 
 <Callout type="info">
@@ -141,4 +135,4 @@ export type DmsEventMap = FileEventMap &
 
 ## Activity Feed vs Events
 
-DMS writes every action to the platform `AuditUnit` (`entityType` `dms:file`, `dms:folder`, `dms:class`, `dms:share`, `dms:file_view`) inline in each workflow. Pre-migration rows may still carry `dms:contact`; new contact audit entries are written by Masters as `masters:contact`. The per-file / per-class activity feed (`p.dms.activity.*`) is a projection over those entries, ordered by `seq`. PubSub events are published separately for cross-module integration and are not the source of the activity feed.
+DMS writes every action to the platform `AuditUnit` (`entityType` `dms:file`, `dms:folder`, `dms:class`, `dms:share`) inline in each workflow. Pre-migration rows may still carry `dms:contact` or `dms:file_view`; new contact audit entries are written by Masters as `masters:contact` and new filter-view entries as `masters:filter_view`. The per-file / per-class activity feed (`p.dms.activity.*`) is a projection over those entries, ordered by `seq`. PubSub events are published separately for cross-module integration and are not the source of the activity feed.

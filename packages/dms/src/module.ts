@@ -158,7 +158,6 @@ export class Dms implements Module {
   readonly activity = wf.activity;
   readonly archive = wf.archive;
   readonly classes = wf.classes;
-  readonly fileViews = wf.fileViews;
   readonly files = wf.files;
   readonly folders = wf.folders;
   readonly holds = wf.holds;

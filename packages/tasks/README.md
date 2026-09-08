@@ -1,6 +1,6 @@
 # `@aspen-os/tasks`
 
-A domain module for the Aspen OS framework providing project/task management: projects, tasks with sub-tasks and multi-assignees, status workflows with transition rules, typed task links (dependency DAGs), time tracking, comments, attachments, automation rules, saved views, and collaboration (watchers, activity log).
+A domain module for the Aspen OS framework providing project/task management: projects, tasks with sub-tasks and multi-assignees, status workflows with transition rules, typed task links (dependency DAGs), time tracking, comments, attachments, automation rules, and collaboration (watchers, activity log). Saved views live in `@aspen-os/masters` (`p.masters.filterViews`, `domain: "tasks:task"`).
 
 > **Task reminders live in `@aspen-os/calendar`** — they are `calendar_reminder` rows with `targetType = task`, materialized by the calendar task bridge from `task:due_date_changed`. This module no longer owns any reminder surface.
 
@@ -19,8 +19,8 @@ const tasks = Tasks.create({
 | `enableNotifications` | `boolean` | `false` | Configures `task:*` event publishing via the notification bridge |
 
 - `$name = "tasks"`, `$dependencies = []` — stateless (`$initialize`/`$prepareRuntime`/`$cleanup` empty)
-- 10 workflow groups: `tasks`, `projects`, `comments`, `links`, `timeEntries`, `statuses`, `taskTypes`, `automations`, `collaboration`, `views`
-- 16 tables — 6 control-plane (`label`, `project`, `project_member`, `status`, `status_transition`, `task_type`) + 10 tenant (`task`, `task_assignee`, `task_link`, `time_entry`, `activity_log`, `comment`, `attachment`, `watcher`, `saved_view`, `automation_rule`)
+- 9 workflow groups: `tasks`, `projects`, `comments`, `links`, `timeEntries`, `statuses`, `taskTypes`, `automations`, `collaboration`
+- 15 tables — 6 control-plane (`label`, `project`, `project_member`, `status`, `status_transition`, `task_type`) + 9 tenant (`task`, `task_assignee`, `task_link`, `time_entry`, `activity_log`, `comment`, `attachment`, `watcher`, `automation_rule`)
 - 10 domain events via PubSub; empty ACL (`defineAcl({})`)
 
 ## Surface
@@ -42,8 +42,6 @@ p.tasks.taskTypes      { createLabel, createTaskType, deleteLabel, deleteTaskTyp
 p.tasks.automations    { create, delete, evaluateRules, get, getActiveRules, listByProject, update }
 p.tasks.collaboration  { addAttachment, addWatcher, deleteAttachment, getActivityLog,
                          listAttachments, listAttachmentsByComment, listWatchers, removeWatcher }
-p.tasks.views          { create, delete, get, getDefault, listByOwner, listByProject, listShared,
-                         update }
 ```
 
 ## Events

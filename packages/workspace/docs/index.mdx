@@ -1,10 +1,10 @@
 ---
 title: Workspace
-description: Personal workspace surfaces — drafts, filter views, dashboards, widgets, schedules, and utilities.
+description: Personal workspace surfaces — drafts, dashboards, widgets, schedules, and utilities.
 icon: IconLayoutDashboard
 ---
 
-The Workspace module provides generic personal-workspace surfaces on `@aspen-os/platform`: **drafts** (saved, unpublished content with an optional approval lifecycle and threaded comments), **filter views** (cross-domain saved filter/sort/group configurations, applied via a host-registered resolver registry), and **dashboards** (named collections of metric/breakdown/list/embed widgets over a grid layout, with optional scheduled delivery) — plus the utility surfaces **pins, recent items, quick search, settings, and watches**.
+The Workspace module provides generic personal-workspace surfaces on `@aspen-os/platform`: **drafts** (saved, unpublished content with an optional approval lifecycle and threaded comments) and **dashboards** (named collections of metric/breakdown/list/embed widgets over a grid layout, with optional scheduled delivery) — plus the utility surfaces **pins, recent items, quick search, settings, and watches**. Saved filter views live in `@aspen-os/masters` (`p.masters.filterViews`).
 
 Every data entity's **access is set by the user** at create/update time: `personal` (owner-only) or `global` (organization-wide within the tenant). Widgets and schedules **inherit** their parent dashboard's access.
 

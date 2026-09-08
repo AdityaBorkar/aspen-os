@@ -62,20 +62,8 @@ export {
   UploadBulkSchema,
   UploadFileSchema,
 } from "#/schemas/file";
-export type {
-  ApplyFileViewInput,
-  CreateFileViewInput,
-  FileViewCondition,
-  FileViewSort,
-  UpdateFileViewInput,
-} from "#/schemas/file-view";
-export {
-  ApplyFileViewSchema,
-  CreateFileViewSchema,
-  FileViewConditionSchema,
-  FileViewSortSchema,
-  UpdateFileViewSchema,
-} from "#/schemas/file-view";
+export type { FileViewCondition, FileViewSort } from "#/schemas/file-view";
+export { FileViewConditionSchema, FileViewSortSchema } from "#/schemas/file-view";
 export type {
   CreateFolderInput,
   ListFolderOptions,

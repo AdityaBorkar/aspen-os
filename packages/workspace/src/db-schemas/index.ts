@@ -5,7 +5,6 @@ import { workspacePin } from "#/db-schemas/pin";
 import { workspaceRecent } from "#/db-schemas/recent";
 import { workspaceSchedule } from "#/db-schemas/schedule";
 import { workspaceSetting } from "#/db-schemas/setting";
-import { workspaceView } from "#/db-schemas/view";
 import { workspaceWatch } from "#/db-schemas/watch";
 import { workspaceWidget } from "#/db-schemas/widget";
 
@@ -22,7 +21,6 @@ export { workspacePin } from "#/db-schemas/pin";
 export { workspaceRecent } from "#/db-schemas/recent";
 export { workspaceSchedule } from "#/db-schemas/schedule";
 export { workspaceSetting } from "#/db-schemas/setting";
-export { workspaceView } from "#/db-schemas/view";
 export { workspaceWatch } from "#/db-schemas/watch";
 export { workspaceWidget } from "#/db-schemas/widget";
 
@@ -34,7 +32,6 @@ export const workspaceTables = {
   workspaceRecent,
   workspaceSchedule,
   workspaceSetting,
-  workspaceView,
   workspaceWatch,
   workspaceWidget,
 } as const;

@@ -4,7 +4,6 @@ import { dmsClassField } from "#/db-schemas/class-field";
 import { dmsEntityLabel } from "#/db-schemas/entity-label";
 import { dmsFile } from "#/db-schemas/file";
 import { dmsFileVersion } from "#/db-schemas/file-version";
-import { dmsFileView } from "#/db-schemas/file-view";
 import { dmsFolder } from "#/db-schemas/folder";
 import { dmsLabel } from "#/db-schemas/label";
 import { dmsLegalHold } from "#/db-schemas/legal-hold";
@@ -25,7 +24,6 @@ export {
 } from "#/db-schemas/enums";
 export { dmsFile } from "#/db-schemas/file";
 export { dmsFileVersion } from "#/db-schemas/file-version";
-export { dmsFileView } from "#/db-schemas/file-view";
 export { dmsFolder } from "#/db-schemas/folder";
 export { dmsLabel } from "#/db-schemas/label";
 export { dmsLegalHold } from "#/db-schemas/legal-hold";
@@ -40,7 +38,6 @@ export const dmsTables = {
   dmsEntityLabel,
   dmsFile,
   dmsFileVersion,
-  dmsFileView,
   dmsFolder,
   dmsLabel,
   dmsLegalHold,

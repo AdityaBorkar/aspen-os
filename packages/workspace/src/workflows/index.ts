@@ -45,14 +45,6 @@ import { updateSchedule } from "#/workflows/schedule/update";
 import { quickSearch } from "#/workflows/search/quick";
 import { getSetting } from "#/workflows/settings/get";
 import { setSetting } from "#/workflows/settings/set";
-import { applyView } from "#/workflows/view/apply";
-import { createView } from "#/workflows/view/create";
-import { setDefaultView } from "#/workflows/view/default/set";
-import { deleteView } from "#/workflows/view/delete";
-import { duplicateView } from "#/workflows/view/duplicate";
-import { getView } from "#/workflows/view/get";
-import { listViews } from "#/workflows/view/list";
-import { updateView } from "#/workflows/view/update";
 import { listWatches } from "#/workflows/watch/list";
 import { subscribeWatch } from "#/workflows/watch/subscribe";
 import { unsubscribeWatch } from "#/workflows/watch/unsubscribe";
@@ -116,17 +108,6 @@ export const search = {
 export const settings = {
   get: getSetting,
   set: setSetting,
-} as const;
-
-export const views = {
-  apply: applyView,
-  create: createView,
-  delete: deleteView,
-  duplicate: duplicateView,
-  get: getView,
-  list: listViews,
-  setDefault: setDefaultView,
-  update: updateView,
 } as const;
 
 export const watches = {

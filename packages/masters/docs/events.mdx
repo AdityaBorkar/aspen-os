@@ -1,10 +1,10 @@
 ---
 title: Events
-description: Domain event map for the Masters module — 27 events across 7 event groups.
+description: Domain event map for the Masters module — 27 events across 8 event groups.
 icon: IconBell
 ---
 
-The Masters module defines 27 domain events across 7 event groups. Events are type-level contracts published as plain string topics via PubSub. The `masters:contact_created` event replaces the old `organization:connection_created` for the compliance insurer flow.
+The Masters module defines 27 domain events across 8 event groups. Events are type-level contracts published as plain string topics via PubSub. The `masters:contact_created` event replaces the old `organization:connection_created` for the compliance insurer flow.
 
 ## Event Constants
 
@@ -55,6 +55,13 @@ export const PAYMENT_METHOD_EVENTS = {
   PRIMARY_SET: "masters:payment_method_primary_set",
   REMOVED: "masters:payment_method_removed",
   UPDATED: "masters:payment_method_updated",
+} as const;
+
+export const FILTER_VIEW_EVENTS = {
+  CREATED: "masters:filter_view_created",
+  DELETED: "masters:filter_view_deleted",
+  DUPLICATED: "masters:filter_view_duplicated",
+  UPDATED: "masters:filter_view_updated",
 } as const;
 ```
 
@@ -124,6 +131,15 @@ export const PAYMENT_METHOD_EVENTS = {
 | `masters:payment_method_deactivated` | `{ paymentMethodId, entityType, entityId }`                            | Payment method deactivated |
 | `masters:payment_method_primary_set` | `{ paymentMethodId, entityType, entityId, direction }`                 | Primary set                |
 
+### Filter View Events
+
+| Event                            | Payload                                     | Trigger                |
+| -------------------------------- | ------------------------------------------- | ---------------------- |
+| `masters:filter_view_created`    | `{ filterViewId, access, domain, ownerId }` | Filter view created    |
+| `masters:filter_view_updated`    | `{ filterViewId }`                          | Filter view updated    |
+| `masters:filter_view_duplicated` | `{ filterViewId, duplicateId }`             | Filter view duplicated |
+| `masters:filter_view_deleted`    | `{ filterViewId }`                          | Filter view deleted    |
+
 ## Usage
 
 ### Publishing Events
@@ -154,6 +170,7 @@ export type MastersEventMap = AddressEventMap &
   ConnectionEventMap &
   ContactEventMap &
   EntityEventMap &
+  FilterViewEventMap &
   PaymentMethodEventMap &
   UnitOfMeasureEventMap;
 ```

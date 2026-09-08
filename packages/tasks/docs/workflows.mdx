@@ -4,7 +4,7 @@ description: API reference for the 10 workflows exposed by the Tasks module.
 icon: IconListCheck
 ---
 
-The Tasks module exposes 10 workflow groups as flat `Workflow` objects: `projects`, `tasks`, `statuses`, `taskTypes`, `timeEntries`, `comments`, `links`, `collaboration`, `automations`, and `views`.
+The Tasks module exposes 9 workflow groups as flat `Workflow` objects: `projects`, `tasks`, `statuses`, `taskTypes`, `timeEntries`, `comments`, `links`, `collaboration`, and `automations`. Saved views live in `@aspen-os/masters` (`p.masters.filterViews`).
 
 > Task reminders are owned by `@aspen-os/calendar` (`targetType = task`); the calendar task bridge subscribes `task:due_date_changed`, `task:deleted`, and `task:status_changed` to materialize/cancel them. No reminder workflows exist in this module — no `task_reminder` surface, no direct cross-module calls.
 
@@ -253,23 +253,6 @@ evaluateRules(context: { projectId: string; taskId: string; trigger: string; val
 - Condition matching is exact equality per key. Rules with unparseable conditions never match.
 - Triggers: `status_change`, `assignment_change`, `due_date_passed`, `task_created`, `task_updated`.
 
-## ViewWorkflow
+## Filter Views (moved to Masters)
 
-Access: `p.tasks.views`
-
-Manages saved views with filters, sorting, and grouping.
-
-```ts
-create(input: CreateSavedViewInput): Promise<savedView>
-update(id: string, patch: UpdateSavedViewInput): Promise<savedView>
-delete(id: string): Promise<void>
-get(id: string): Promise<savedView>
-listByOwner(ownerId: string): Promise<savedView[]>
-listByProject(projectId: string): Promise<savedView[]>
-listShared(projectId: string): Promise<savedView[]>
-getDefault(ownerId: string, projectId?: string): Promise<savedView | null>
-```
-
-- Setting `isDefault: true` unsets the previous default for that owner (and project, if specified).
-- View types: `list`, `board`, `calendar`, `timeline` (defaults to `list`).
-- `filters` and `sort` columns are `jsonb` — the schema accepts arbitrary objects.
+Saved views live in `@aspen-os/masters` as `p.masters.filterViews` (table `master_filter_view`, `domain: "tasks:task"`, `viewType: list|board|calendar|timeline`, `projectId` for project scoping) — see [Masters Workflows](/docs/masters/workflows#filter-views).

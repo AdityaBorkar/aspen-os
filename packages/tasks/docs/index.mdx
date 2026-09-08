@@ -1,10 +1,10 @@
 ---
 title: Tasks
-description: Domain module for project and task management with time tracking, dependencies, automation, and saved views.
+description: Domain module for project and task management with time tracking, dependencies, and automation.
 icon: IconCheckbox
 ---
 
-The Tasks module provides project-scoped task management with subtasks, dependency graphs, time tracking, comments, automation rules, and saved views.
+The Tasks module provides project-scoped task management with subtasks, dependency graphs, time tracking, comments, and automation rules. Saved views live in `@aspen-os/masters` (`p.masters.filterViews`, `domain: "tasks:task"`).
 
 > Task reminders live in `@aspen-os/calendar` (`targetType = task`), driven by `task:due_date_changed` and cancelled on `task:deleted` / terminal `task:status_changed`.
 
@@ -19,7 +19,7 @@ The Tasks module provides project-scoped task management with subtasks, dependen
   <Card
     title="Workflows"
     href="/docs/tasks/workflows"
-    description="10 workflow groups exposed on the module"
+    description="9 workflow groups exposed on the module"
   />
 </Cards>
 
@@ -35,6 +35,6 @@ The Tasks module provides project-scoped task management with subtasks, dependen
   <Card
     title="Schema"
     href="/docs/tasks/db-schemas"
-    description="16 tables, 7 enums, and relationships"
+    description="15 tables, 6 enums, and relationships"
   />
 </Cards>

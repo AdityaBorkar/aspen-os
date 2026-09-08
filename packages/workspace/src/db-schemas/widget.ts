@@ -1,5 +1,4 @@
-import type { ViewCondition } from "#/schemas/view";
-import type { WidgetConfig } from "#/schemas/widget";
+import type { WidgetConfig, WidgetFilterCondition } from "#/schemas/widget";
 
 import { uuidv7 } from "@aspen-os/platform/server";
 import { index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
@@ -13,7 +12,7 @@ export const workspaceWidget = pgTable(
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     dashboard_id: text().notNull(),
     domain: text(),
-    filter: jsonb().$type<ViewCondition[]>(),
+    filter: jsonb().$type<WidgetFilterCondition[]>(),
     id: uuidv7().primaryKey(),
     last_error: text(),
     last_refreshed_at: timestamp({ withTimezone: true }),

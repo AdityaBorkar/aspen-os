@@ -92,32 +92,22 @@ export const SCHEDULE_FORMAT = {
 
 export type ScheduleFormat = (typeof SCHEDULE_FORMAT)[keyof typeof SCHEDULE_FORMAT];
 
-export const VIEW_DOMAIN = {
-  COMPLIANCE_DOCUMENT: "compliance:document",
-  DMS_FILE: "dms:file",
-  HR_EMPLOYEE: "hr:employee",
-  NOTES_NOTE: "notes:note",
-  TASKS_TASK: "tasks:task",
-  WORKSPACE_DRAFT: "workspace:draft",
-} as const;
-
-export type ViewDomain = (typeof VIEW_DOMAIN)[keyof typeof VIEW_DOMAIN];
-
 export const SCHEDULE_CRON_TOPIC_PREFIX = "workspace:schedule:";
 
 export const AUDIT_ENTITY_TYPE = {
   DASHBOARD: "workspace:dashboard",
   DMS_CLASS: "dms:class",
   DMS_FILE: "dms:file",
-  DMS_FILE_VIEW: "dms:file_view",
   DRAFT: "workspace:draft",
   DRAFT_COMMENT: "workspace:draft_comment",
+  // Filter views consolidated in masters (`p.masters.filterViews`); kept as a
+  // cross-module audit reference like DMS_CLASS/DMS_FILE above.
+  FILTER_VIEW: "masters:filter_view",
   PIN: "workspace:pin",
   RECENT: "workspace:recent",
   SCHEDULE: "workspace:schedule",
   SEARCH: "workspace:search",
   SETTING: "workspace:setting",
-  VIEW: "workspace:view",
   WATCH: "workspace:watch",
   WIDGET: "workspace:widget",
 } as const;

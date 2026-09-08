@@ -1,24 +1,13 @@
 export type { CreateAutomationRuleInput, UpdateAutomationRuleInput } from "#/schemas/automation";
 export { CreateAutomationRuleSchema, UpdateAutomationRuleSchema } from "#/schemas/automation";
-export type {
-  CreateAttachmentInput,
-  CreateSavedViewInput,
-  CreateWatcherInput,
-  UpdateSavedViewInput,
-} from "#/schemas/collaboration";
-export {
-  CreateAttachmentSchema,
-  CreateSavedViewSchema,
-  CreateWatcherSchema,
-  UpdateSavedViewSchema,
-} from "#/schemas/collaboration";
+export type { CreateAttachmentInput, CreateWatcherInput } from "#/schemas/collaboration";
+export { CreateAttachmentSchema, CreateWatcherSchema } from "#/schemas/collaboration";
 export type { CreateCommentInput, UpdateCommentInput } from "#/schemas/comment";
 export { CreateCommentSchema, UpdateCommentSchema } from "#/schemas/comment";
 export {
   AutomationTriggerSchema,
   ProjectMemberRoleSchema,
   ProjectStatusSchema,
-  SavedViewTypeSchema,
   StatusCategorySchema,
   TaskLinkTypeSchema,
   TaskPrioritySchema,

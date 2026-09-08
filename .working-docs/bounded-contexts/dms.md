@@ -10,11 +10,11 @@ Downstream of the Platform (Customer–Supplier). Runtime-wired — receives `{ 
 
 - `Dms.create(config?)` — factory returning a Module instance; `$config: Required<DmsModuleConfig>` (10 settings with defaults: `allowedContentTypes`, `defaultAutoPurgeEveryHours` (24), `defaultCompression`, `defaultDownloadLinkExpiry` (3600), `defaultRetentionDays` (180), `maxDownloadLinkExpiry` (604800), `maxFileSize` (5 GiB), `maxNestingDepth` (20), `maxVersions` (10), `trashRetentionDays` (30))
 - `$name = "dms"`, `$dependencies = ["db", "pubsub", "storage"]`
-- 17 workflow groups exposed as `readonly` properties: `access`, `activity`, `archive`, `classes`, `fileViews`, `files`, `folders`, `holds`, `labels`, `paths`, `search`, `settings`, `shares`, `storage`, `trash`, `triage`, `versions`
-- 9 services: `compression-service`, `contact-share-bridge`, `download-link-service`, `entity-resolver`, `expiry-scanner`, `purge-service`, `search-service`, `storage-bridge`, `version-service`; 14 reusable `WorkflowStep`s in `workflow-steps/` (8 `fetch-*` + `access-service`, `archive-service`, `classify-service`, `condition-service`, `path-service`, `settings-service`)
-- 13 database tables (all `tenant_schemas`, `dms_` prefix): `dms_folder`, `dms_file`, `dms_file_version`, `dms_class`, `dms_class_field`, `dms_entity_label`, `dms_label`, `dms_file_view`, `dms_share`, `dms_public_link`, `dms_legal_hold`, `dms_access_log`, `dms_setting`
-- 30 domain events across 6 maps (`CLASS_EVENTS` 3, `FILE_EVENTS` 13, `FILE_VIEW_EVENTS` 3, `FOLDER_EVENTS` 6, `PUBLIC_LINK_EVENTS` 3, `SHARE_EVENTS` 2) → `DmsEventMap`
-- 10 ACL resources: `class`, `classField`, `file`, `fileView`, `folder`, `label`, `legalHold`, `publicLink`, `setting`, `share`
+- 16 workflow groups exposed as `readonly` properties: `access`, `activity`, `archive`, `classes`, `files`, `folders`, `holds`, `labels`, `paths`, `search`, `settings`, `shares`, `storage`, `trash`, `triage`, `versions`
+- 9 services: `compression-service`, `contact-share-bridge`, `download-link-service`, `entity-resolver`, `expiry-scanner`, `purge-service`, `search-service`, `storage-bridge`, `version-service`; 13 reusable `WorkflowStep`s in `workflow-steps/` (7 `fetch-*` + `access-service`, `archive-service`, `classify-service`, `condition-service`, `path-service`, `settings-service`)
+- 12 database tables (all `tenant_schemas`, `dms_` prefix): `dms_folder`, `dms_file`, `dms_file_version`, `dms_class`, `dms_class_field`, `dms_entity_label`, `dms_label`, `dms_share`, `dms_public_link`, `dms_legal_hold`, `dms_access_log`, `dms_setting`
+- 27 domain events across 5 maps (`CLASS_EVENTS` 3, `FILE_EVENTS` 13, `FOLDER_EVENTS` 6, `PUBLIC_LINK_EVENTS` 3, `SHARE_EVENTS` 2) → `DmsEventMap`
+- 9 ACL resources: `class`, `classField`, `file`, `folder`, `label`, `legalHold`, `publicLink`, `setting`, `share`
 - `$prepareRuntime()` — registers 2 cron schedules + handlers: `dms:expiry-scan` (`5 0 * * *`), `dms:auto-purge` (`30 3 * * *`); subscribes to `masters:contact_removed` (contact-share bridge revokes contact grants); `$cleanup()` unregisters all three
 - Audit-driven **Activity Feed**: file/folder activity is written inline to the platform's `AuditUnit` (`audit_log`), queried via `ctx.audit.query()` — not a DMS-owned table, not PubSub events
 - Module-scope runtime state in `runtime.ts` (`setDmsConfig`/`setDmsStorage`/`getDmsConfig`/`getDmsStorage`/`resetDmsRuntime`)
@@ -25,7 +25,6 @@ Downstream of the Platform (Customer–Supplier). Runtime-wired — receives `{ 
 ```
 p.dms.access       (service facade)   p.dms.archive   (service facade)   p.dms.activity
 p.dms.classes      { addField, archive, create, deactivateField, get, list, update, updateField }
-p.dms.fileViews    { apply, create, delete, getDefault, list, listByOwner, setDefault, update }
 p.dms.files        { addMetadata, classify, copy, delete, deleteVersion, download, get, getById,
                      getDownloadLink, listVersions, move, newVersion, purge, removeMetadata,
                      rename, restore, revert, update, upload, uploadBulk }
@@ -33,7 +32,7 @@ p.dms.folders      { create, delete, get, getById, list, move, rename, restore, 
 p.dms.holds        { list, place, release }
 p.dms.labels       { apply, create, delete, list, listByLabel, remove, update }
 p.dms.paths        (service facade)
-p.dms.search       { promoteToView, quick, search }
+p.dms.search       { quick, search }
 p.dms.settings     { get, set }
 p.dms.shares       { create, createPublicLink, get, getPublicLink, list, listByGrantee,
                      listPublicLinks, listSharedWithMe, remove, resolvePublicLink,
@@ -46,9 +45,9 @@ p.dms.versions     { delete, get, getCurrent, list, new, revert }
 
 ## Lineage
 
-DMS is the sole document-management module. The `@aspen-os/drive` package was **removed** and its free-form filesystem surface consolidated with the records system (`.working-docs/sow/dms-consolidation.md`, Phases 1–7 complete): one `file` entity (`dms_file` carries folder/path + class/triage/lifecycle), one label mechanism (`dms_label` + `dms_entity_label`), one sharing group (`p.dms.shares`), one trash module over `status`, and `fileViews` terminology — no `document`/`item-`/`tag`/`view`/`drive` leftovers. The `dms_document*`/`dms_tag`/`dms_view`/`dms_item_*` tables no longer exist.
+DMS is the sole document-management module. The `@aspen-os/drive` package was **removed** and its free-form filesystem surface consolidated with the records system (`.working-docs/sow/dms-consolidation.md`, Phases 1–7 complete): one `file` entity (`dms_file` carries folder/path + class/triage/lifecycle), one label mechanism (`dms_label` + `dms_entity_label`), one sharing group (`p.dms.shares`), one trash module over `status` — no `document`/`item-`/`tag`/`view`/`drive` leftovers. The `dms_document*`/`dms_tag`/`dms_view`/`dms_item_*`/`dms_file_view` tables no longer exist. Saved file views live in `@aspen-os/masters` (`p.masters.filterViews`, `domain: "dms:file"`).
 
 ## Language
 
-- File, Triage, Classify, Class, Class Field, File Version, File View, Full-Text Search, Share (DMS), Public Link (DMS), Legal Hold, Retention, Trash (DMS), Label (DMS), Activity Feed, DmsModuleConfig
-- Avoid: Document (for File), Inbox/Draft Folder (for Triage), Document Type/Category (for Class), Recycle Bin (for Trash), Tag (for Label), Saved Filter (for File View), External Link (for Share/Public Link)
+- File, Triage, Classify, Class, Class Field, File Version, Full-Text Search, Share (DMS), Public Link (DMS), Legal Hold, Retention, Trash (DMS), Label (DMS), Activity Feed, DmsModuleConfig
+- Avoid: Document (for File), Inbox/Draft Folder (for Triage), Document Type/Category (for Class), Recycle Bin (for Trash), Tag (for Label), Saved Filter (for Filter View — now a Masters concept), External Link (for Share/Public Link)

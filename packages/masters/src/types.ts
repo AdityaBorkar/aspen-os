@@ -2,6 +2,7 @@ export type { MasterAddress, NewMasterAddress } from "#/db-schemas/address";
 export type { MasterConnection, NewMasterConnection } from "#/db-schemas/connection";
 export type { MasterContact, NewMasterContact } from "#/db-schemas/contact";
 export type { MasterEntity, NewMasterEntity } from "#/db-schemas/entity";
+export type { MasterFilterView, NewMasterFilterView } from "#/db-schemas/filter-view";
 export type { MasterPaymentMethod, NewMasterPaymentMethod } from "#/db-schemas/payment-method";
 export type { MasterUnitOfMeasure, NewMasterUnitOfMeasure } from "#/db-schemas/unit-of-measure";
 export type {
@@ -23,6 +24,11 @@ export type {
   EntityEventMap,
   EntityRemovedEvent,
   EntityUpdatedEvent,
+  FilterViewCreatedEvent,
+  FilterViewDeletedEvent,
+  FilterViewDuplicatedEvent,
+  FilterViewEventMap,
+  FilterViewUpdatedEvent,
   MastersEventMap,
   OwnedResourceEvent,
   PaymentMethodActivatedEvent,
@@ -43,6 +49,7 @@ export {
   CONTACT_EVENTS,
   ENTITY_EVENTS,
   events,
+  FILTER_VIEW_EVENTS,
   PAYMENT_METHOD_EVENTS,
   UNIT_OF_MEASURE_EVENTS,
 } from "#/pubsub";
@@ -55,9 +62,14 @@ export type {
   CreateConnectionInput,
   CreateContactInput,
   CreateEntityInput,
+  CreateFilterViewInput,
   CreatePaymentMethodInput,
   CreateUnitOfMeasureInput,
   EntityFilters,
+  FilterViewCondition,
+  FilterViewFilters,
+  FilterViewSort,
+  GetDefaultFilterViewInput,
   ListAddressesInput,
   ListConnectionsInput,
   ListContactsInput,
@@ -71,6 +83,7 @@ export type {
   UpdateConnectionInput,
   UpdateContactInput,
   UpdateEntityInput,
+  UpdateFilterViewInput,
   UpdatePaymentMethodInput,
   UnitOfMeasureFilters,
   UpdateUnitOfMeasureInput,
@@ -88,12 +101,20 @@ export {
   CreateConnectionSchema,
   CreateContactSchema,
   CreateEntitySchema,
+  CreateFilterViewSchema,
   CreatePaymentMethodSchema,
   CreateUnitOfMeasureSchema,
   EmailSchema,
   EntityFiltersSchema,
   EntityStatusSchema,
   EntityTypeSchema,
+  FilterViewAccessSchema,
+  FilterViewConditionSchema,
+  FilterViewDomainSchema,
+  FilterViewFiltersSchema,
+  FilterViewSortSchema,
+  FilterViewTypeSchema,
+  GetDefaultFilterViewSchema,
   IdSchema,
   IntegrationTypeSchema,
   ListAddressesSchema,
@@ -115,6 +136,7 @@ export {
   UpdateConnectionSchema,
   UpdateContactSchema,
   UpdateEntitySchema,
+  UpdateFilterViewSchema,
   UpdatePaymentMethodSchema,
   UpdateUnitOfMeasureSchema,
   UomCategorySchema,
@@ -122,6 +144,8 @@ export {
 } from "#/schemas";
 export type { AuditAction, AuditEntityType } from "#/utils/constants";
 export { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+export type { FilterViewAccess, FilterViewDomain, FilterViewType } from "#/utils/constants";
+export { FILTER_VIEW_ACCESS, FILTER_VIEW_DOMAIN, FILTER_VIEW_TYPE } from "#/utils/constants";
 export type {
   CardBrand,
   ContactType,

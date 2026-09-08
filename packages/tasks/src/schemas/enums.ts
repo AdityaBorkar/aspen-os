@@ -2,7 +2,6 @@ import {
   AUTOMATION_TRIGGER,
   PROJECT_MEMBER_ROLE,
   PROJECT_STATUS,
-  SAVED_VIEW_TYPE,
   STATUS_CATEGORY,
   TASK_LINK_TYPE,
   TASK_PRIORITY,
@@ -19,7 +18,5 @@ export const ProjectStatusSchema = picklist(Object.values(PROJECT_STATUS));
 export const ProjectMemberRoleSchema = picklist(Object.values(PROJECT_MEMBER_ROLE));
 
 export const StatusCategorySchema = picklist(Object.values(STATUS_CATEGORY));
-
-export const SavedViewTypeSchema = picklist(Object.values(SAVED_VIEW_TYPE));
 
 export const AutomationTriggerSchema = picklist(Object.values(AUTOMATION_TRIGGER));

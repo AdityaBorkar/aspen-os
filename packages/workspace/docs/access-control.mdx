@@ -28,7 +28,6 @@ defineAcl({
     "comment",
   ],
   draftComment: ["create", "read", "delete"],
-  filterView: ["create", "read", "update", "delete", "set_default", "apply", "duplicate"],
   widget: ["create", "read", "update", "delete", "refresh"],
   schedule: ["create", "read", "update", "delete", "pause", "resume", "mark_run"],
   pin: ["create", "read", "delete"],
@@ -41,10 +40,10 @@ defineAcl({
 
 ## Runtime rules
 
-| Helper                     | Applies to                   | Rule                                                                                  |
-| -------------------------- | ---------------------------- | ------------------------------------------------------------------------------------- |
-| `assertCanAccess(row, id)` | reads (`get`/`list`/`apply`) | `access = 'global' OR ownerId = actorId`; throws if neither                           |
-| `assertCanMutate(row, id)` | all mutations                | `ownerId === actorId`, **or** tenant admin (`user.role = 'admin'`, best-effort check) |
+| Helper                     | Applies to           | Rule                                                                                  |
+| -------------------------- | -------------------- | ------------------------------------------------------------------------------------- |
+| `assertCanAccess(row, id)` | reads (`get`/`list`) | `access = 'global' OR ownerId = actorId`; throws if neither                           |
+| `assertCanMutate(row, id)` | all mutations        | `ownerId === actorId`, **or** tenant admin (`user.role = 'admin'`, best-effort check) |
 
 `list()`/`get()` apply the access predicate at the SQL level (`global OR owner = actorId`) rather than fetching and filtering in JS.
 
@@ -54,4 +53,6 @@ Pins, recent, settings, and watches carry **no access column** — they are alwa
 
 ## Tenancy
 
-All ten rows are **tenant schemas** — `personal`/`global` scoping operates within the tenant, and tenant isolation (RLS in shared mode, DB-per-tenant in isolated mode) is enforced by the platform database layer on top of it.
+All nine rows are **tenant schemas** — `personal`/`global` scoping operates within the tenant, and tenant isolation (RLS in shared mode, DB-per-tenant in isolated mode) is enforced by the platform database layer on top of it.
+
+Filter views (`filterView` ACL) live in `@aspen-os/masters` — see [Masters Access Control](/docs/masters/access-control).

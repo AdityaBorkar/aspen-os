@@ -5,7 +5,6 @@ import type { WorkspacePin } from "#/db-schemas/pin";
 import type { WorkspaceRecent } from "#/db-schemas/recent";
 import type { WorkspaceSchedule } from "#/db-schemas/schedule";
 import type { WorkspaceSetting } from "#/db-schemas/setting";
-import type { WorkspaceView } from "#/db-schemas/view";
 import type { WorkspaceWatch } from "#/db-schemas/watch";
 import type { WorkspaceWidget } from "#/db-schemas/widget";
 
@@ -16,7 +15,6 @@ export type { WorkspacePin, NewWorkspacePin } from "#/db-schemas/pin";
 export type { WorkspaceRecent, NewWorkspaceRecent } from "#/db-schemas/recent";
 export type { WorkspaceSchedule, NewWorkspaceSchedule } from "#/db-schemas/schedule";
 export type { WorkspaceSetting, NewWorkspaceSetting } from "#/db-schemas/setting";
-export type { WorkspaceView, NewWorkspaceView } from "#/db-schemas/view";
 export type { WorkspaceWatch, NewWorkspaceWatch } from "#/db-schemas/watch";
 export type { WorkspaceWidget, NewWorkspaceWidget } from "#/db-schemas/widget";
 export type {
@@ -46,11 +44,6 @@ export type {
   PinRemovedEvent,
   ScheduleDueEvent,
   ScheduleEventMap,
-  ViewCreatedEvent,
-  ViewDeletedEvent,
-  ViewDuplicatedEvent,
-  ViewEventMap,
-  ViewUpdatedEvent,
   WatchSubscribedEvent,
   WatchUnsubscribedEvent,
   WatchEventMap,
@@ -67,19 +60,16 @@ export {
   events,
   PIN_EVENTS,
   SCHEDULE_EVENTS,
-  VIEW_EVENTS,
   WATCH_EVENTS,
   WIDGET_EVENTS,
 } from "#/pubsub";
 export type {
-  ApplyViewInput,
   AddWidgetInput,
   BreakdownConfig,
   CreateDashboardInput,
   CreateDraftCommentInput,
   CreateDraftInput,
   CreateScheduleInput,
-  CreateViewInput,
   DashboardExport,
   DashboardFilters,
   DashboardSnapshot,
@@ -108,11 +98,7 @@ export type {
   UpdateDashboardInput,
   UpdateDraftInput,
   UpdateScheduleInput,
-  UpdateViewInput,
   UpdateWidgetInput,
-  ViewCondition,
-  ViewFilters,
-  ViewSort,
   WidgetConfig,
   WidgetFilters,
   WidgetPlacement,
@@ -121,13 +107,11 @@ export type {
 } from "#/schemas";
 export {
   AddWidgetSchema,
-  ApplyViewSchema,
   BreakdownConfigSchema,
   CreateDashboardSchema,
   CreateDraftCommentSchema,
   CreateDraftSchema,
   CreateScheduleSchema,
-  CreateViewSchema,
   DashboardExportSchema,
   DashboardFiltersSchema,
   DashboardSnapshotSchema,
@@ -171,7 +155,6 @@ export {
   UpdateDashboardSchema,
   UpdateDraftSchema,
   UpdateScheduleSchema,
-  UpdateViewSchema,
   UpdateWidgetSchema,
   WidgetAggregationSchema,
   WidgetConfigSchema,
@@ -183,9 +166,6 @@ export {
   WithIdSchema,
   WorkspaceAccessSchema,
   WorkspaceItemTypeSchema,
-  ViewConditionSchema,
-  ViewFiltersSchema,
-  ViewSortSchema,
 } from "#/schemas";
 export type { ScheduleDeps } from "#/services/schedule-service";
 export {
@@ -205,7 +185,6 @@ export type {
   RangePreset,
   ScheduleFormat,
   SettingKey,
-  ViewDomain,
   WidgetAggregation,
   WidgetType,
   WorkspaceAccess,
@@ -221,30 +200,17 @@ export {
   SCHEDULE_CRON_TOPIC_PREFIX,
   SCHEDULE_FORMAT,
   SETTING_KEYS,
-  VIEW_DOMAIN,
   WIDGET_AGGREGATION,
   WIDGET_TYPE,
   WORKSPACE_ACCESS,
   WORKSPACE_ITEM_TYPE,
 } from "#/utils/constants";
-export type {
-  ViewResolver,
-  ViewResolverOptions,
-  ViewResolverResult,
-  WorkspaceRuntimeConfig,
-} from "#/runtime";
-export {
-  getViewResolver,
-  getWorkspaceConfig,
-  hasViewResolver,
-  registerViewResolver,
-  setWorkspaceConfig,
-} from "#/runtime";
+export type { WorkspaceRuntimeConfig } from "#/runtime";
+export { getWorkspaceConfig, setWorkspaceConfig } from "#/runtime";
 
 export type WorkspaceDashboardRow = WorkspaceDashboard;
 export type WorkspaceDraftRow = WorkspaceDraft;
 export type WorkspaceDraftCommentRow = WorkspaceDraftComment;
-export type WorkspaceViewRow = WorkspaceView;
 export type WorkspaceWidgetRow = WorkspaceWidget;
 export type WorkspaceScheduleRow = WorkspaceSchedule;
 export type WorkspacePinRow = WorkspacePin;
@@ -268,11 +234,5 @@ export interface QuickSearchResult {
     id: string;
     status: string;
     title: string;
-  }[];
-  views: {
-    access: string;
-    domain: string;
-    id: string;
-    name: string;
   }[];
 }
