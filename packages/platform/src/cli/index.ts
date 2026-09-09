@@ -9,23 +9,6 @@ const program = new Command();
 
 program.name("aspen").description("Aspen OS Platform CLI").version("0.1.0");
 
-async function loadPlatform(configPath: string): Promise<PlatformInstance<Module[]>> {
-  const resolvedPath = resolve(process.cwd(), configPath);
-  try {
-    const mod = await import(resolvedPath);
-    const platformInstance = mod.platform || mod.p || mod.pm;
-    if (platformInstance) {
-      return platformInstance;
-    }
-    console.error(`Error: No 'platform' export found in ${resolvedPath}`);
-    return process.exit(1);
-  } catch (error) {
-    console.error(`Error: Failed to load config from ${resolvedPath}`);
-    console.error(error);
-    return process.exit(1);
-  }
-}
-
 program
   .command("db-studio")
   .description("Launch Drizzle Kit Studio for database management")
@@ -38,10 +21,6 @@ program
   )
   .action(async (options: { config: string; host: string; port: string; tenant?: string }) => {
     const platformInstance = await loadPlatform(options.config);
-
-    if (options.tenant && platformInstance.db.resolver) {
-      return;
-    }
 
     if (!platformInstance.db.config) {
       console.error("Error: Could not get database configuration from platform");
@@ -69,3 +48,20 @@ program
   });
 
 program.parse();
+
+async function loadPlatform(configPath: string): Promise<PlatformInstance<Module[]>> {
+  const resolvedPath = resolve(process.cwd(), configPath);
+  try {
+    const mod = await import(resolvedPath);
+    const platformInstance = mod.platform || mod.pm;
+    if (platformInstance) {
+      return platformInstance;
+    }
+    console.error(`Error: No 'platform' export found in ${resolvedPath}`);
+    return process.exit(1);
+  } catch (error) {
+    console.error(`Error: Failed to load config from ${resolvedPath}`);
+    console.error(error);
+    return process.exit(1);
+  }
+}

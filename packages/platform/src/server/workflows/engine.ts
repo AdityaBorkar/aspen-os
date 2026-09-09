@@ -75,31 +75,32 @@ async function validateInput<TInput, TOutput>(
 }
 
 function resolveRunStore(options?: RunOptions): Context {
-  const ambient = context.getStore();
+  console.log({ ctx3: Object.keys(context.getStore() || {}) });
+  const ctx = getContext();
   if (!options) {
-    return getContext();
+    return ctx;
   }
-  const audit = options.audit ?? ambient?.audit;
-  const auth = options.auth ?? ambient?.auth;
+  const audit = options.audit ?? ctx?.audit;
+  const auth = options.auth ?? ctx?.auth;
   // SAFETY: RunOptions.db uses the broad SchemaMap generic while Context.db uses the default schema; both are postgres-js drizzle instances sharing the same runtime surface.
-  const db = (options.db ?? ambient?.db) as Context["db"] | undefined;
-  const log = options.log ?? ambient?.log;
-  const pubsub = options.pubsub ?? ambient?.pubsub;
+  const db = (options.db ?? ctx?.db) as Context["db"] | undefined;
+  const log = options.log ?? ctx?.log;
+  const pubsub = options.pubsub ?? ctx?.pubsub;
   if (!audit || !auth || !db || !log || !pubsub) {
     throw new Error(
       "Workflow.run() requires audit, auth, db, log, and pubsub; provide them in RunOptions or call inside Platform.run().",
     );
   }
   return {
-    actorId: options.actorId ?? ambient?.actorId,
+    actorId: options.actorId ?? ctx?.actorId,
     audit,
     auth,
     db,
     log,
     pubsub,
-    requestId: ambient?.requestId,
-    tenantId: ambient?.tenantId,
-    traceId: ambient?.traceId,
+    requestId: ctx?.requestId,
+    tenantId: ctx?.tenantId,
+    traceId: ctx?.traceId,
   };
 }
 
@@ -123,7 +124,9 @@ export class Workflow<TInput, TOutput> implements WorkflowInstance<TInput, TOutp
 
   /** Executes this workflow against the ambient context (or the supplied one). */
   run(input: TInput, options?: RunOptions): Promise<TOutput> {
-    return executeWorkflow(
+    console.log("RUN:", { input, options });
+    console.log({ ctx1: Object.keys(context.getStore() || {}) });
+    return new WorkflowEngine().run(
       { handler: this.handler, name: this.name, schema: this.schema },
       input,
       options,
@@ -207,8 +210,11 @@ export class WorkflowStep<TInput, TOutput> implements WorkflowStepInstance<TInpu
 export class WorkflowEngine {
   private readonly db: DrizzleDB;
 
-  constructor(db: DrizzleDB) {
-    this.db = db;
+  constructor() {
+    console.log({ ctx2: Object.keys(context.getStore() || {}) });
+    const store = resolveRunStore();
+    console.log({ store });
+    this.db = store.db;
   }
 
   /** Runs a step (with input validation and retries) and persists its outcome. */
@@ -339,6 +345,8 @@ export class WorkflowEngine {
     input: TInput,
     options?: RunOptions,
   ): Promise<TOutput> {
+    console.log({ ctx4: Object.keys(context.getStore() || {}) });
+    console.log("RUNNING WORKFLOW", { config, input, options });
     const store = resolveRunStore(options);
     const { actorId, audit, db, pubsub, auth } = store;
 
@@ -472,18 +480,4 @@ class WorkflowRunner<TSchemas extends SchemaMap> implements StepRunner<TSchemas>
   async sleep(ms: number): Promise<void> {
     await sleep(ms);
   }
-}
-
-export async function executeWorkflow<
-  TInput,
-  TOutput,
-  TSchemas extends SchemaMap = Record<string, never>,
->(
-  config: WorkflowConfig<TInput, TOutput, TSchemas>,
-  input: TInput,
-  options?: RunOptions,
-): Promise<TOutput> {
-  // Resolve the store once and hand it to the engine so run persistence uses the same db.
-  const store = resolveRunStore(options);
-  return new WorkflowEngine(store.db).run(config, input, options);
 }

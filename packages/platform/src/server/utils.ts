@@ -36,6 +36,7 @@ export const context = new AsyncLocalStorage<Context>();
  */
 export function getContext() {
   const ctx = context.getStore();
+  console.log({ ctx });
   if (!ctx) {
     const caller =
       new Error("capture context caller").stack?.split("\n")[1]?.trim() ?? "unknown caller";
