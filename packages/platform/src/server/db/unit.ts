@@ -266,7 +266,27 @@ export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
     return db_schemas;
   }
 
-  protected async pushSchemasTo(_db: DrizzleDB<TSchemas>, _schemas: SchemaMap): Promise<void> {}
+  protected async pushSchemasTo(db: DrizzleDB<TSchemas>, schemas: SchemaMap): Promise<void> {
+    const { pushSchema } = await import("drizzle-kit/api");
+
+    const adapter = {
+      execute: async (query: Parameters<DrizzleDB<TSchemas>["execute"]>[0]) => ({
+        // SAFETY: postgres-js resolves execute() to a rows array; the cast only
+        rows: (await db.execute(query)) as unknown[],
+      }),
+    };
+
+    // SAFETY: pushSchema's schema type is structural (drizzle table definitions);
+    // @ts-expect-error DB Type Mismatch
+    const result = await pushSchema(schemas, adapter);
+    if (result.statementsToExecute.length > 0) {
+      console.log(`Applying ${result.statementsToExecute.length} Statements`);
+      if (result.hasDataLoss) {
+        console.warn("Schema push has data loss warnings:", result.warnings);
+      }
+      await result.apply();
+    }
+  }
 
   private async createTenantDatabase(dbConfig: IsolatedTenantDbConfig): Promise<void> {
     const admin = postgres({

@@ -85,16 +85,22 @@ export class IsolatedTenantPlatform<
       }
     }
 
-    // Preparing Units
+    // Preparing Units — failures are fatal so callers never see a false success.
     try {
       await this.units.db.$prepareInfra(controlSchemas, tenantSchemas);
     } catch (error) {
-      console.error(`Failed to prepare unit "${this.units.db.$name}"`, error);
+      throw new Error(
+        `Failed to prepare unit "${this.units.db.$name}": ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error },
+      );
     }
     try {
       await this.units.auth.$prepareInfra(acl);
     } catch (error) {
-      console.error(`Failed to prepare unit "${this.units.auth.$name}"`, error);
+      throw new Error(
+        `Failed to prepare unit "${this.units.auth.$name}": ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error },
+      );
     }
     // oxlint-disable eslint/no-await-in-loop
     for (const unit of Object.values(this.units)) {
@@ -104,7 +110,10 @@ export class IsolatedTenantPlatform<
       try {
         await unit.$prepareInfra?.();
       } catch (error) {
-        console.error(`Failed to prepare unit "${unit.$name}"`, error);
+        throw new Error(
+          `Failed to prepare unit "${unit.$name}": ${error instanceof Error ? error.message : String(error)}`,
+          { cause: error },
+        );
       }
     }
     // oxlint-enable eslint/no-await-in-loop
@@ -115,7 +124,10 @@ export class IsolatedTenantPlatform<
       try {
         await this.run("$global", () => mod.$prepareRuntime?.());
       } catch (error) {
-        console.error(`Failed to prepare module "${mod.$name}"`, error);
+        throw new Error(
+          `Failed to prepare module "${mod.$name}": ${error instanceof Error ? error.message : String(error)}`,
+          { cause: error },
+        );
       }
     }
     // oxlint-enable eslint/no-await-in-loop

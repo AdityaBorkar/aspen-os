@@ -10,7 +10,10 @@ import type { StorageUnit } from "#/server/storage";
 import type { PgTable } from "drizzle-orm/pg-core";
 import type { Relations } from "drizzle-orm/relations";
 
-export type SchemaMap = Record<string, PgTable | Relations>;
+export type SchemaMap = Record<
+  string,
+  PgTable | Relations | { readonly enumValues: readonly [string, ...string[]] }
+>;
 
 export type JsonValue =
   | boolean
