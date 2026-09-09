@@ -2,22 +2,31 @@
   "name": "@aspen-os/platform",
   "version": "0.1.0",
   "bin": {
-    "aspen": "./src/cli/index.ts"
+    "aspen": "./.output/cli/index.js"
   },
   "files": [
     "./docs",
     "package.json",
     "README.md",
-    "./src"
+    "./.output"
   ],
   "type": "module",
   "imports": {
     "#/*": "./src/*"
   },
   "exports": {
-    "./client": "./src/client/index.ts",
-    "./server": "./src/server/index.ts",
-    "./server/db-schemas": "./src/server/db/schema/index.ts"
+    "./client": {
+      "default": "./.output/client/index.js",
+      "types": "./.output/client/index.d.ts"
+    },
+    "./server": {
+      "default": "./.output/server/index.js",
+      "types": "./.output/server/index.d.ts"
+    },
+    "./server/db-schemas": {
+      "default": "./.output/server/db/schema/index.js",
+      "types": "./.output/server/db/schema/index.d.ts"
+    }
   },
   "publishConfig": {
     "access": "public",

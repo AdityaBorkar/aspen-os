@@ -2,7 +2,7 @@
   "name": "@aspen-os/constants",
   "version": "0.1.0",
   "files": [
-    "./src"
+    "./.output"
   ],
   "type": "module",
   "imports": {

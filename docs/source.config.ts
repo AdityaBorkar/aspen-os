@@ -14,11 +14,6 @@ export const platform = defineDocs({
   docs,
 });
 
-export const organization = defineDocs({
-  dir: `../packages/organization/docs`,
-  docs,
-});
-
 export const compliance = defineDocs({
   dir: `../packages/compliance/docs`,
   docs,

@@ -39,7 +39,6 @@
     { "path": "./packages/hr-core" },
     { "path": "./packages/hr-leave" },
     { "path": "./packages/inventory" },
-    { "path": "./packages/organization" },
     { "path": "./packages/reports" },
     { "path": "./packages/management" },
     { "path": "./packages/masters" },
