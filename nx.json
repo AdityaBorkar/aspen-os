@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
-  "parallel": 5,
+  "parallel": 20,
   "targetDefaults": {
     "build": {
       "dependsOn": ["^build"],
@@ -12,7 +12,7 @@
       "cache": true
     },
     "check:types": {
-      "dependsOn": ["^check:types", "^build"],
+      "dependsOn": ["^check:types"],
       "cache": true
     }
   },
