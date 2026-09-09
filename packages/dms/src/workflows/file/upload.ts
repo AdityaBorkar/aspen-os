@@ -1,4 +1,4 @@
-import { dmsEntityLabel, dmsFile } from "#/db-schemas";
+import { dmsEntityLabel, dmsFile, dmsLabelCache } from "#/db-schemas";
 import { FILE_EVENTS } from "#/pubsub";
 import { getDmsConfig } from "#/runtime";
 import { computeStorageKey, upload as uploadStorage } from "#/services/storage-bridge";
@@ -7,7 +7,6 @@ import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, SETTING_KEYS } from "#/utils/constants
 import { checkNameUniqueness, computeFilePath } from "#/workflow-steps/path-service";
 import { getSetting, isCompressionOption } from "#/workflow-steps/settings-service";
 
-import { masterLabel } from "@aspen-os/masters";
 import { Workflow } from "@aspen-os/platform/server";
 import { inArray } from "drizzle-orm";
 import { is, object, parse, string } from "valibot";
@@ -94,10 +93,12 @@ export const uploadFile = Workflow.name("dms.file.upload")
 
     if (parsed.labelIds && parsed.labelIds.length > 0) {
       await ctx.step.run("apply-labels", async () => {
+        // Validate against the DMS-local label projection synced from
+        // masters events — never read `master_label` directly.
         const labels = await ctx.db
-          .select({ id: masterLabel.id })
-          .from(masterLabel)
-          .where(inArray(masterLabel.id, parsed.labelIds ?? []));
+          .select({ id: dmsLabelCache.id })
+          .from(dmsLabelCache)
+          .where(inArray(dmsLabelCache.id, parsed.labelIds ?? []));
         const validIds = new Set(labels.map((label) => label.id));
         const rows = (parsed.labelIds ?? [])
           .filter((labelId) => validIds.has(labelId))

@@ -2,7 +2,7 @@ import { calendarReminder } from "#/db-schemas";
 import { REMINDER_CHANNEL, REMINDER_TARGET, REMINDER_TYPE } from "#/utils/constants";
 
 import type { InferSchemaOutput, PubSubUnit, StandardSchema } from "@aspen-os/platform/server";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { array, boolean, nullable, object, optional, string } from "valibot";
 
@@ -105,7 +105,9 @@ async function handleTaskStatusChanged(
   },
   { db }: TaskBridgeDeps,
 ): Promise<void> {
-  // Preferred path: terminality travels in the event — no cross-module read.
+  // Event-driven seam: terminality travels in the `task:status_changed`
+  // event (`isTerminal` / `toStatusCategory`, published by tasks).
+  // Calendar never reads the tasks-owned `task_status` table directly.
   if (event.isTerminal !== undefined) {
     if (event.isTerminal) {
       await deletePendingTaskReminders(db, event.task.id);
@@ -116,21 +118,9 @@ async function handleTaskStatusChanged(
     if (TERMINAL_TASK_STATUS_CATEGORIES.has(event.toStatusCategory)) {
       await deletePendingTaskReminders(db, event.task.id);
     }
-    return;
-  }
-
-  // Compatibility fallback for publishers that predate the terminal fields.
-  // Tasks owns the `task_status` table; a missing table means tasks is not
-  // installed here, so there is nothing to clean up.
-  try {
-    const [row] = await db.execute<{ category: string | null }>(
-      sql`SELECT category FROM "task_status" WHERE id = ${event.toStatus}`,
-    );
-    if (row && TERMINAL_TASK_STATUS_CATEGORIES.has(row.category ?? "")) {
-      await deletePendingTaskReminders(db, event.task.id);
-    }
-  } catch {
-    // Tasks tables absent — nothing to clean up
+    // Publishers that predate the terminal fields carry no terminality signal.
+    // Fail closed without a cross-aggregate read: keep pending reminders and
+    // let the next event with terminal fields drive cleanup.
   }
 }
 

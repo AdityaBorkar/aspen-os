@@ -11,6 +11,7 @@ import {
   registerExpiryScanner,
   unregisterExpiryScanner,
 } from "#/services/expiry-scanner";
+import { registerLabelBridge, unregisterLabelBridge } from "#/services/label-bridge";
 import {
   registerPurgeHandler,
   registerPurgeSchedule,
@@ -59,10 +60,17 @@ export class Dms implements Module {
   readonly $name = "dms";
   readonly $dependencies: readonly string[] = ["masters"];
   /**
-   * Peer topics consumed at runtime. DMS now depends on masters for the unified label taxonomy
-   * (`master_label`). The contact-share bridge revokes contact grants when a masters contact is removed.
+   * Peer topics consumed at runtime. Label names resolve via the DMS-local
+   * `dms_label_cache` projection synced from `masters:label_*` events —
+   * DMS never reads the masters-owned `master_label` table directly.
+   * The contact-share bridge revokes contact grants when a masters contact is removed.
    */
-  readonly $consumes: readonly string[] = ["masters:contact_removed"];
+  readonly $consumes: readonly string[] = [
+    "masters:contact_removed",
+    "masters:label_created",
+    "masters:label_updated",
+    "masters:label_removed",
+  ];
   readonly $config: Required<DmsModuleConfig>;
 
   #db: DatabaseUnit | null = null;
@@ -70,6 +78,7 @@ export class Dms implements Module {
   #expiryTopic: string | null = null;
   #purgeTopic: string | null = null;
   #contactBridgeTopics: string[] = [];
+  #labelBridgeTopics: string[] = [];
 
   constructor(config: DmsModuleConfig) {
     this.$config = {
@@ -133,21 +142,29 @@ export class Dms implements Module {
       db: this.#db.db,
       pubsub: this.#pubsub,
     });
+
+    this.#labelBridgeTopics = await registerLabelBridge({
+      db: this.#db.db,
+      pubsub: this.#pubsub,
+    });
   }
 
   async $cleanup(): Promise<void> {
     if (this.#pubsub) {
       const pubsub = this.#pubsub;
       const contactBridgeTopics = this.#contactBridgeTopics;
+      const labelBridgeTopics = this.#labelBridgeTopics;
       await Promise.allSettled([
         unregisterExpiryScanner(this.#expiryTopic, { pubsub }),
         unregisterPurgeSchedule(this.#purgeTopic, { pubsub }),
         unregisterContactShareBridge(contactBridgeTopics, { pubsub }),
+        unregisterLabelBridge(labelBridgeTopics, { pubsub }),
       ]);
     }
     this.#expiryTopic = null;
     this.#purgeTopic = null;
     this.#contactBridgeTopics = [];
+    this.#labelBridgeTopics = [];
     this.#db = null;
     this.#pubsub = null;
     resetDmsRuntime();

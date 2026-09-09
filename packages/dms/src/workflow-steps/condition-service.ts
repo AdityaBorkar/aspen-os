@@ -83,11 +83,14 @@ function parseDate(value: JsonValue): string | null {
 }
 
 function labelExistsSql(label: string, negated: boolean, joinLabel: boolean): SQL {
+  // Label names resolve via the DMS-local `dms_label_cache` projection,
+  // synced from `masters:label_*` events by the label bridge. DMS never
+  // joins the masters-owned `master_label` table directly.
   if (joinLabel) {
     if (negated) {
       return sql`NOT EXISTS (
         SELECT 1 FROM dms_entity_label el
-        JOIN master_label lbl ON lbl.id = el.label_id
+        JOIN dms_label_cache lbl ON lbl.id = el.label_id
         WHERE el.entity_id = ${dmsFile.id}
           AND el.entity_type = 'file'
           AND lbl.name = ${label}
@@ -95,7 +98,7 @@ function labelExistsSql(label: string, negated: boolean, joinLabel: boolean): SQ
     }
     return sql`EXISTS (
         SELECT 1 FROM dms_entity_label el
-        JOIN master_label lbl ON lbl.id = el.label_id
+        JOIN dms_label_cache lbl ON lbl.id = el.label_id
         WHERE el.entity_id = ${dmsFile.id}
           AND el.entity_type = 'file'
           AND lbl.name = ${label}

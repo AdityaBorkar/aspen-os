@@ -1,4 +1,4 @@
-import { dmsClass, dmsFile, dmsFolder } from "#/db-schemas";
+import { dmsClass, dmsFile, dmsFolder, dmsLabelCache } from "#/db-schemas";
 import type {
   DmsFile,
   DmsFolder,
@@ -11,7 +11,6 @@ import { escapeLike } from "#/utils/escape-like";
 import { toText } from "#/utils/to-text";
 import { buildSortOrder } from "#/workflow-steps/condition-service";
 
-import { masterLabel } from "@aspen-os/masters";
 import { and, asc, desc, eq, gte, ilike, lte, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
@@ -280,10 +279,12 @@ export async function quickSearch(
   const pattern = `%${escapeLike(query)}%`;
   const [classRows, labelRows] = await Promise.all([
     db.select({ name: dmsClass.name }).from(dmsClass).where(ilike(dmsClass.name, pattern)).limit(5),
+    // DMS-local projection of the masters label taxonomy, synced via the
+    // label bridge (`masters:label_*` events). Never read `master_label` here.
     db
-      .select({ name: masterLabel.name })
-      .from(masterLabel)
-      .where(ilike(masterLabel.name, pattern))
+      .select({ name: dmsLabelCache.name })
+      .from(dmsLabelCache)
+      .where(ilike(dmsLabelCache.name, pattern))
       .limit(5),
   ]);
   const classes = classRows.map((row) => row.name);

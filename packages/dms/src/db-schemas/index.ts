@@ -5,6 +5,7 @@ import { dmsEntityLabel } from "#/db-schemas/entity-label";
 import { dmsFile } from "#/db-schemas/file";
 import { dmsFileVersion } from "#/db-schemas/file-version";
 import { dmsFolder } from "#/db-schemas/folder";
+import { dmsLabelCache } from "#/db-schemas/label-cache";
 import { dmsLegalHold } from "#/db-schemas/legal-hold";
 import { dmsPublicLink } from "#/db-schemas/public-link";
 import { dmsSetting } from "#/db-schemas/setting";
@@ -24,6 +25,7 @@ export {
 export { dmsFile } from "#/db-schemas/file";
 export { dmsFileVersion } from "#/db-schemas/file-version";
 export { dmsFolder } from "#/db-schemas/folder";
+export { dmsLabelCache } from "#/db-schemas/label-cache";
 export { dmsLegalHold } from "#/db-schemas/legal-hold";
 export { dmsPublicLink } from "#/db-schemas/public-link";
 export { dmsSetting } from "#/db-schemas/setting";
@@ -37,6 +39,7 @@ export const dmsTables = {
   dmsFile,
   dmsFileVersion,
   dmsFolder,
+  dmsLabelCache,
   dmsLegalHold,
   dmsPublicLink,
   dmsSetting,
