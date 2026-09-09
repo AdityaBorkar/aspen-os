@@ -69,7 +69,7 @@
 8. **Widgets are declarative configs** — the module stores and serves them and tracks `lastRefreshedAt`/`lastError`; it never executes analytics.
 9. **Utilities are strictly user-scoped** — pins and recent carry no access column; `userId = actorId` at the row level.
 10. **Recent items are bounded** — `touch` trims each user's history to `maxRecentItems` (default 50).
-11. **Scheduled delivery is event-driven** — the module emits `workspace:schedule_due` (with full schedule + dashboard payload); hosts render and deliver. Per-schedule pg-boss crons (`workspace:schedule:<id>`) are consumed by the module's own handler.
+11. **Scheduled delivery is event-driven** — the module emits `workspace:delivery_due` (with full schedule + dashboard payload); hosts render and deliver. Per-schedule pg-boss crons (`workspace:delivery_schedule:<id>`) are consumed by the module's own handler.
 12. **Every `.list()` is access-scoped at SQL level** — `WHERE access = 'global' OR owner_id = actor_id`, plus entity filters (`status`, `domain`, `dashboardId`, `search`).
 13. **Pins are the generic cross-module link surface** — `itemType` values come from the documented `PIN_ITEM_TYPE` registry (`draft`/`view`/`dashboard` for workspace entities; `triage`/`file_view`/`class` for dms items), so dms (and any future module) items are pinnable by `(itemType, itemId)` soft reference with **no module dependency**. The pin column is free-form text like `domain`; the registry governs, it is not enforced by a schema.
 
@@ -80,6 +80,6 @@
 - **Filter View** — now a Masters concept (`p.masters.filterViews`, table `master_filter_view`): a saved `{ domain, conditions, sort, groupBy }` configuration with `personal`/`global` access. "Domain" is the dataset key (`<module>:<entity>`).
 - **Dashboard** — a named collection of widgets plus a jsonb `layout` (`{ widgetId, x, y, w, h }[]`).
 - **Widget** — a declarative datasource config (`metric`/`breakdown`/`list`/`embed`) with runtime refresh metadata. No rendering, no analytics execution.
-- **Schedule** — a per-dashboard cron delivery configuration (`{ recipients, format, subject? }`); emits `workspace:schedule_due`, host delivers.
+- **Schedule** — a per-dashboard cron delivery configuration (`{ recipients, format, subject? }`); emits `workspace:delivery_due`, host delivers.
 - **Pin** — a user's sidebar shortcut to any tenant item via the `PIN_ITEM_TYPE` registry: workspace entities (`draft`/`view`/`dashboard`) plus dms items (`triage`/`file_view`/`class`), soft-referenced by `(itemType, itemId)` with no module dependency. New modules adopt namespaced strings (`<module>:<entity>`); bare legacy strings stay valid for migrated rows.
 - **Personal / Global access** — the user-set visibility: `personal` = owner-only, `global` = org-wide within the tenant.

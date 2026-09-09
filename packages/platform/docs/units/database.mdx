@@ -79,7 +79,6 @@ Create the tenant DB and push schemas; shared mode returns `{ tenancyMode: "shar
 ```ts
 const result = await p.db.provisionTenant("tenant_123");
 // isolated → { tenancyMode: "isolated", database, host, ... }
-const cfg: IsolatedTenantDbConfig = await p.db.createTenant("tenant_123"); // deprecated alias
 ```
 
 ### Request context

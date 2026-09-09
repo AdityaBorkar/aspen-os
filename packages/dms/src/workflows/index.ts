@@ -74,9 +74,8 @@ import { getCurrentVersion, listFileVersions } from "#/workflows/version/list";
 import { newFileVersion } from "#/workflows/version/new";
 import { revertToVersion } from "#/workflows/version/revert";
 
-// Group taxonomy mirrors DMS domain areas; group/alias names are frozen for
-// compatibility. Contacts moved to masters (`p.masters.contacts`); DMS shares
-// still accept `contact` grantees referencing masters contact ids, and the
+// Group taxonomy mirrors DMS domain areas. Contacts moved to masters (`p.masters.contacts`); DMS shares
+// accept `contact` grantees referencing masters contact ids, and the
 // contact-share bridge revokes those grants on `masters:contact_removed`.
 export const activity = {
   get: getActivity,

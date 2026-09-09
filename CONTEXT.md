@@ -535,7 +535,7 @@ Declarative datasource config on a Dashboard — `metric` (count/sum/avg/min/max
 _Avoid_: Chart, KPI Card (implementation terms)
 
 **Schedule (workspace)**:
-Per-Dashboard cron delivery configuration (`{ recipients, format: export|pdf|url, subject? }`). `create`/`resume` register pg-boss cron on `workspace:schedule:<id>`; module's handler publishes `workspace:schedule_due` (full schedule + dashboard payload) + **host renders/delivers**. `markRun` records completion. Distinct from dms's module-level cron jobs (expiry scan, auto-purge).
+Per-Dashboard cron delivery configuration (`{ recipients, format: export|pdf|url, subject? }`). `create`/`resume` register pg-boss cron on `workspace:delivery_schedule:<id>`; module's handler publishes `workspace:delivery_due` (full schedule + dashboard payload) + **host renders/delivers**. `markRun` records completion. Distinct from dms's module-level cron jobs (expiry scan, auto-purge).
 _Avoid_: Recurring Delivery, Notification Job
 
 **Pin (workspace)**:
@@ -694,7 +694,7 @@ Implemented: Workspace module — dependency-free personal-workspace surface:
   `runtime.ts` — never touches other modules' tables), dashboards (widgets +
   jsonb grid layout, duplicate/export/import), declarative widgets (metric/
   breakdown/list/embed w/ date ranges + refresh metadata), event-driven
-  schedules (per-schedule pg-boss crons → `workspace:schedule_due`, host
+  schedules (per-schedule pg-boss crons → `workspace:delivery_due`, host
   delivers), user-scoped utilities (pins, recent, quick search, settings,
   watches). Access = first-class user-set enum — `personal` (owner-only) /
   `global` (org-wide). 8 `workspace_*` tables, all tenant schemas, 4 pgEnums,
@@ -731,7 +731,7 @@ Stubs (package.json only — no source): crm, fleet, inventory, reports
 11. **HR module fully conformant** — `Hr implements Module`, has `$prepareRuntime()`, follows one-file-per-action workflow layout. (Earlier docs marked HR "partial/not conformant"; no longer the case.)
 12. **Masters extraction (`.working-docs/sow/masters.md`) complete** — `@aspen-os/masters` owns contacts, addresses, bank accounts, integration connections, + notes as polymorphic tenant master data; organization module holds only `organization` + `branch`, depends on `masters`. `connection` redesigned from business-relationship model to integration connections (credentials in platform `kvStore`, referenced by `credentialRef`). Host deployments must run §9 migration: `DROP TABLE` `address`, `bank_account`, `connection`, `connection_contact`, `connection_note` (after mapping data to masters) + remove old `organization:connection_created` compliance subscription.
 13. **Masters Phase 2 (`.working-docs/sow/masters-phase-2.md`) complete** — `@aspen-os/masters` also owns `master_entity`, `master_unit_of_measure`, `master_payment_method` (8 tables, 8 workflow groups, 31 events, 8 ACL resources at Phase 2 completion). `entity` = `master_entity_type` owner value; `unitOfMeasure` tenant-wide reference data (one base unit per category); `paymentMethod` owner-scoped w/ masked-only card data + primary per `(entityType, entityId, direction)`. All Phase 2 additions additive — Phase 1 surface unchanged. (After notes module removed `master_note` + `filterViews`/`settings` were added, masters now at 8 tables / 8 groups / 27 events / 8 ACL resources — see gap 15.)
-14. **Workspace module (`.working-docs/sow/workspace.md`) implemented** — `@aspen-os/workspace` provides drafts, filter views, dashboards, widgets, schedules, utilities (8 tenant tables, 4 pgEnums, 28 events, 9 ACL resources). Host apps must register view resolvers (`registerViewResolver`) for every domain they serve + subscribe to `workspace:schedule_due` / `workspace:draft_published` — both silently dropped by pg-boss when unsubscribed (health check flags them). `context.actorId` (gap 8) feeds module's access scoping: `create` falls back to explicit `ownerId`/`userId` input when context actor unset.
+14. **Workspace module (`.working-docs/sow/workspace.md`) implemented** — `@aspen-os/workspace` provides drafts, filter views, dashboards, widgets, schedules, utilities (8 tenant tables, 4 pgEnums, 28 events, 9 ACL resources). Host apps must register view resolvers (`registerViewResolver`) for every domain they serve + subscribe to `workspace:delivery_due` / `workspace:draft_published` — both silently dropped by pg-boss when unsubscribed (health check flags them). `context.actorId` (gap 8) feeds module's access scoping: `create` falls back to explicit `ownerId`/`userId` input when context actor unset.
 15. **Notes module (`.working-docs/sow/notes.md`) implemented** — `@aspen-os/notes` owns first-class `note` entity (`personal`/`global` access, optional `(scopeType, scopeId)` scope, `NOTE_TYPE`, tags; 1 tenant table, 3 events, 1 ACL resource). Note concept removed from `@aspen-os/masters` (`master_note`, `p.masters.notes`, `masters:note_added`/`note_removed`, `note` ACL resource, note schemas) — masters now at 8 tables / 8 groups / 27 events / 8 ACL resources (`filterViews` + `settings` added after the removal). Host deployments must migrate `master_note` rows to `note` (map `entityType → scopeType = masters:<entityType>`, `entityId → scopeId`, `content → body`, `userId → ownerId`) + `DROP TABLE master_note` afterward; `pushSchema` never drops it.
 
 ## Anti-Patterns

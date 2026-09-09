@@ -121,17 +121,9 @@ export const HEALTH_SCORE_WEIGHTS = {
 } as const;
 
 export const SCHEDULED_JOBS = {
-  DAILY_ESCALATION: "compliance:daily-escalation",
-  DAILY_EXPIRY_SCAN: "compliance:daily-expiry-scan",
-  DAILY_STATUS_TRANSITION: "compliance:daily-status-transition",
   OBLIGATION_GENERATE: "compliance:obligation-generate",
-  WEEKLY_SUMMARY: "compliance:weekly-summary",
 } as const;
 
 export const CRON_SCHEDULES = {
-  DAILY_ESCALATION: "0 9 * * *",
-  DAILY_EXPIRY_SCAN: "0 8 * * *",
-  DAILY_STATUS_TRANSITION: "0 0 * * *",
   OBLIGATION_GENERATE: "0 6 * * *",
-  WEEKLY_SUMMARY: "0 9 * * 1",
 } as const;

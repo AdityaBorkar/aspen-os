@@ -96,7 +96,6 @@ export class Workspace implements Module {
   }
 
   readonly dashboards = wf.dashboards;
-  readonly deliverySchedules = wf.deliverySchedules;
   readonly drafts = wf.drafts;
   readonly filterViews = wf.filterViews;
   readonly pins = wf.pins;

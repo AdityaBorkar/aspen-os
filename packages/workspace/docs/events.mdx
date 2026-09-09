@@ -62,7 +62,6 @@ All events are plain string topics via `ctx.pubsub.publish`, typed via `Workspac
 
 ## Delivery Schedule Events
 
-| Event                    | Payload                       | Trigger                                      |
-| ------------------------ | ----------------------------- | -------------------------------------------- |
-| `workspace:delivery_due` | `{ at, dashboard, schedule }` | pg-boss cron fires                           |
-| `workspace:schedule_due` | `{ at, dashboard, schedule }` | deprecated alias of `workspace:delivery_due` |
+| Event                    | Payload                       | Trigger            |
+| ------------------------ | ----------------------------- | ------------------ |
+| `workspace:delivery_due` | `{ at, dashboard, schedule }` | pg-boss cron fires |

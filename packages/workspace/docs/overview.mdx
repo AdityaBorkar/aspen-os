@@ -45,7 +45,7 @@ flowchart TB
     draftComment["workspace_draft_comment"]
     dashboard["workspace_dashboard"]
     widget["workspace_widget"]
-    schedule["workspace_delivery_schedule<br/>(alias: workspace_schedule)"]
+    schedule["workspace_delivery_schedule"]
     filterView["workspace_filter_view"]
     pin["workspace_pin"]
     recent["workspace_recent"]
@@ -73,7 +73,7 @@ Filter views are workspace-owned (`workspace_filter_view`), not Masters; widgets
 
 ### Schedules
 
-Canonical table `workspace_delivery_schedule` (alias `workspace_schedule` for back-compat). Topic `workspace:delivery_due` is canonical; `workspace:schedule_due` is deprecated but still emitted.
+Table `workspace_delivery_schedule`. Topic `workspace:delivery_due`.
 
 ## Relationships
 
@@ -88,8 +88,3 @@ flowchart LR
 ```
 
 All FKs are soft (workflow-enforced); no hard DB FKs.
-
-<Callout type="info">
-  `deliverySchedules` is an alias of `schedules` (`src/workflows/index.ts`); prefer
-  `deliverySchedules`.
-</Callout>

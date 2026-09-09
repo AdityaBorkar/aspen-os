@@ -104,9 +104,6 @@ export const schedules = {
   update: updateSchedule,
 } as const;
 
-// New canonical name — delivery_schedule makes the cron intent explicit vs calendar_reminder.
-export const deliverySchedules = schedules;
-
 export const filterViews = {
   create: createFilterView,
   delete: deleteFilterView,

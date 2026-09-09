@@ -14,16 +14,15 @@ The Comms module publishes and consumes domain events as plain string topics via
 
 ## Consumed (event bridge)
 
-| Topic                           | Producer                      | Handler                                                               |
-| ------------------------------- | ----------------------------- | --------------------------------------------------------------------- |
-| `calendar:reminder_due`         | calendar reminder dispatcher  | `notify` to `reminder.userId` (`type: reminder_fired`)                |
-| `dms:file_expired`              | dms `expiry-scanner`          | `notify` to file `ownerId` (`type: file_expired`)                     |
-| `announcement:published`        | hr (planned)                  | one in-app notification per `recipientUserIds` (`type: announcement`) |
-| `workspace:delivery_due`        | workspace schedule            | fan-out `notify` per `recipients` (`type: dashboard_delivery`)        |
-| `workspace:schedule_due`        | workspace (back-compat alias) | same as `delivery_due`                                                |
-| `management:tenant_provisioned` | management                    | warm host default channels (`ensureDefaults`) per tenant              |
-| `management:tenant_activated`   | management                    | warm host default channels (`ensureDefaults`) per tenant              |
-| `auth:email_otp_requested`      | platform auth                 | inline OTP email via host default email provider                      |
+| Topic                           | Producer                     | Handler                                                               |
+| ------------------------------- | ---------------------------- | --------------------------------------------------------------------- |
+| `calendar:reminder_due`         | calendar reminder dispatcher | `notify` to `reminder.userId` (`type: reminder_fired`)                |
+| `dms:file_expired`              | dms `expiry-scanner`         | `notify` to file `ownerId` (`type: file_expired`)                     |
+| `announcement:published`        | hr (planned)                 | one in-app notification per `recipientUserIds` (`type: announcement`) |
+| `workspace:delivery_due`        | workspace schedule           | fan-out `notify` per `recipients` (`type: dashboard_delivery`)        |
+| `management:tenant_provisioned` | management                   | warm host default channels (`ensureDefaults`) per tenant              |
+| `management:tenant_activated`   | management                   | warm host default channels (`ensureDefaults`) per tenant              |
+| `auth:email_otp_requested`      | platform auth                | inline OTP email via host default email provider                      |
 
 Subscriptions register in `$prepareRuntime()` with Valibot validation; unknown topics no-op.
 

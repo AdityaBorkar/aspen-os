@@ -98,14 +98,6 @@ Soft FKs are logical — enforced by workflows and event-bridge dedup, not DB co
 `$prepareRuntime()` registers exactly two participants:
 
 1. **Obligation generator** — `pubsub.subscribe("compliance:obligation-generate", generatePendingDocuments)` via `registerObligationGenerator()`; handler iterates `obligations.getActive`, computes periods, dedupes by `obligationId:periodStart:periodEnd:dueDate:expiryDate`, then `documents.create` + `publish("compliance:document_generated")`.
-2. **Event bridge** — `registerEventBridgeSubscriptions({ audit, db, pubsub })` subscribes 8 topics (6 logical peers; `branch:created` aliases) validating with Valibot and deduping by `{sourceModule, sourceEntityId, documentType}`.
+2. **Event bridge** — `registerEventBridgeSubscriptions({ audit, db, pubsub })` subscribes 6 topics validating with Valibot and deduping by `{sourceModule, sourceEntityId, documentType}`.
 
 No reminder crons are registered — expiry/due reminders are published by document workflows as `compliance:document_expiring` facts consumed by the calendar bridge.
-
-<Callout type="warn">
-  `CRON_SCHEDULES` and `SCHEDULED_JOBS` (`daily-expiry-scan`, `daily-status-transition`,
-  `daily-escalation`, `weekly-summary`, plus `obligation-generate` at `0 6 * * *`) are defined in
-  `src/utils/constants.ts` but **never passed to `pubsub.schedule()`**. The obligation generator
-  subscribes to its topic — trigger it externally or via `generatePendingDocuments()` until a
-  schedule is registered. Reminder jobs are deprecated; see `services/reminder-engine.ts` stub.
-</Callout>

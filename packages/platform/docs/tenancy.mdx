@@ -94,8 +94,6 @@ p.db.provisionTenant(tenantId, config); // shared → { tenancyMode: "shared", t
 p.db.seedTenantDb(dbConfig, async (db) => {}); // run a seed fn against an isolated tenant DB
 ```
 
-<Callout type="warn">`createTenant()` is deprecated — use `provisionTenant()`.</Callout>
-
 In isolated mode, `IsolatedTenantPlatform.$prepareInfra()` also calls each module's `$prepareTenant(tenantId)` for every tenant returned by the resolver.
 
 <Callout type="info">

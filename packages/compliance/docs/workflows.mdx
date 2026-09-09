@@ -39,14 +39,14 @@ await p.compliance.documents.updateStatus({ id, status, performedBy });
 await p.compliance.documents.update({ id, patch });
 
 // reads
-const byId = await p.compliance.documents.getById({ id }); // get is alias of getById
+const byId = await p.compliance.documents.getById({ id });
 const list = await p.compliance.documents.list({ filters });
 const bySource = await p.compliance.documents.getBySource({ sourceModule, sourceEntityId });
 const byObligation = await p.compliance.documents.getByObligation({ obligationId });
 const chain = await p.compliance.documents.getRenewalChain({ id });
 const timeline = await p.compliance.documents.getTimeline({ limit });
 
-// scanning helpers (internal — used by obligation generator / legacy scans, not caller-facing)
+// scanning helpers (internal — used by obligation generator, not caller-facing)
 const expiring = await p.compliance.documents.getExpiringDocuments({ daysUntilExpiry });
 const dueSoon = await p.compliance.documents.getDueSoonDocuments({ daysUntilDue });
 const expired = await p.compliance.documents.getExpiredDocuments();
@@ -79,7 +79,7 @@ await p.compliance.obligations.update({ id, patch });
 await p.compliance.obligations.activate({ id });
 await p.compliance.obligations.deactivate({ id });
 
-const one = await p.compliance.obligations.getById({ id }); // get is deprecated alias
+const one = await p.compliance.obligations.getById({ id });
 const list = await p.compliance.obligations.list({ filters });
 const active = await p.compliance.obligations.getActive();
 const periods = await p.compliance.obligations.getUpcomingPeriods({ id });
@@ -104,7 +104,7 @@ const rule = await p.compliance.verification.create({
 
 await p.compliance.verification.update({ id, patch });
 await p.compliance.verification.delete({ id });
-const one = await p.compliance.verification.getById({ id }); // get is deprecated alias
+const one = await p.compliance.verification.getById({ id });
 const rules = await p.compliance.verification.list({ filters });
 const match = await p.compliance.verification.match({ category, sourceModule });
 ```

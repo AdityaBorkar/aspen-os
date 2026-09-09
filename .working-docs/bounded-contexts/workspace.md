@@ -12,11 +12,11 @@ Downstream of Platform (Customer–Supplier). Runtime-wired — gets `{ db, pubs
 - `$name = "workspace"`, `$dependencies = []` — no module deps
 - 8 workflow groups as `readonly` props: `dashboards`, `drafts`, `filterViews`, `pins`, `recent`, `schedules`, `search`, `widgets`
 - 2 services: `access-service` (personal/global scoping), `schedule-service` (cron register/unregister + delivery); 6 reusable `WorkflowStep`s (`fetch-draft`, `fetch-dashboard`, `fetch-widget`, `fetch-schedule`, `fetch-filter-view`, `filter-view-access`)
-- 8 tables (all `tenant_schemas`, `workspace_` prefix): `workspace_draft`, `workspace_draft_comment`, `workspace_dashboard`, `workspace_widget`, `workspace_schedule`, `workspace_pin`, `workspace_recent`, `workspace_filter_view`
+- 8 tables (all `tenant_schemas`, `workspace_` prefix): `workspace_draft`, `workspace_draft_comment`, `workspace_dashboard`, `workspace_widget`, `workspace_delivery_schedule`, `workspace_pin`, `workspace_recent`, `workspace_filter_view`
 - 6 pgEnums: `workspace_access`, `workspace_draft_status`, `workspace_widget_type`, `workspace_item_type`, `workspace_filter_view_access`, `workspace_filter_view_type`
-- 30 events across 6 maps (`DRAFT_EVENTS` 13, `DASHBOARD_EVENTS` 6, `WIDGET_EVENTS` 4, `PIN_EVENTS` 2, `FILTER_VIEW_EVENTS` 4, `SCHEDULE_EVENTS` 1) → `WorkspaceEventMap`
+- 29 events across 6 maps (`DRAFT_EVENTS` 13, `DASHBOARD_EVENTS` 6, `WIDGET_EVENTS` 4, `PIN_EVENTS` 2, `FILTER_VIEW_EVENTS` 4, `DELIVERY_SCHEDULE_EVENTS` 1) → `WorkspaceEventMap`
 - 9 ACL resources: `draft`, `draftComment`, `dashboard`, `widget`, `filterView`, `schedule`, `pin`, `recent`, `search`
-- `$prepareRuntime()` — `registerScheduleRunner()` enumerates active schedules, registers pg-boss cron per schedule (`workspace:schedule:<id>`); `$cleanup()` unregisters all. No fixed module-level cron (unlike dms expiry/auto-purge)
+- `$prepareRuntime()` — `registerScheduleRunner()` enumerates active schedules, registers pg-boss cron per schedule (`workspace:delivery_schedule:<id>`); `$cleanup()` unregisters all. No fixed module-level cron (unlike dms expiry/auto-purge)
 - Module-scope runtime state in `runtime.ts` (`setWorkspaceConfig`/`getWorkspaceConfig`)
 - Build step (build script + `build` field in package.json), root `tsconfig.json` reference, `docs/source.config.ts` entry
 

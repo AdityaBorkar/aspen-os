@@ -4,7 +4,7 @@ description: Workflows exposed by the Masters module.
 icon: IconListCheck
 ---
 
-Workflow groups via `p.masters` — `addresses`, `contacts`, `entities`, `orgBranches` (`branches` alias), `paymentMethods`, `settings`, `unitsOfMeasure`, `labels`, and `connections` (access key `p.masters`).
+Workflow groups via `p.masters` — `addresses`, `contacts`, `entities`, `orgBranches`, `paymentMethods`, `settings`, `unitsOfMeasure`, `labels`, and `connections` (access key `p.masters`).
 
 Scoped groups (`addresses`, `contacts`, `connections`, `paymentMethods`) require `entityType` + `entityId` on create/list; `contacts` allows null scope for global entries. Create takes Valibot-validated `input` and update takes `{ id, patch }`, each mutation audit-logs and publishes a domain event.
 
@@ -82,7 +82,6 @@ await p.masters.orgBranches.get({ id });
 await p.masters.orgBranches.list({ filters: { type, parentOrgBranch } });
 await p.masters.orgBranches.tree({ id }); // subtree rooted at id
 await p.masters.orgBranches.update({ id, patch: { name, capacity } });
-// deprecated alias: p.masters.branches === p.masters.orgBranches
 ```
 
 `code` is unique. `parent_org_branch` is self-referential; root rows have `null`.

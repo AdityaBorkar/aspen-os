@@ -64,7 +64,6 @@ export const documents = {
   assignTo: assignDocumentTo,
   complete: completeDocument,
   create: createDocument,
-  get: getDocumentById,
   getActiveDocumentsForReminders,
   getById: getDocumentById,
   getByObligation: getDocumentsByObligation,

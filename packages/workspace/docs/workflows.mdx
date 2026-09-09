@@ -4,7 +4,7 @@ description: Workflows exposed by the Workspace module.
 icon: IconWorkflow
 ---
 
-The Workspace module exposes `dashboards`, `deliverySchedules` (alias `schedules`), `drafts`, `filterViews`, `pins`, `recent`, `search`, and `widgets` via `p.workspace` (`$name = "workspace"`).
+The Workspace module exposes `dashboards`, `schedules`, `drafts`, `filterViews`, `pins`, `recent`, `search`, and `widgets` via `p.workspace` (`$name = "workspace"`).
 
 Workflows validate with Valibot; `create` takes `{ input }`, `update` takes `{ id, patch }` where `undefined` leaves the column untouched. Mutations write an audit entry and publish a domain event.
 
@@ -75,13 +75,13 @@ await p.workspace.widgets.remove({ id: widgetId });
 
 ## Schedules
 
-Per-dashboard cron delivery; `deliverySchedules` is the canonical alias of `schedules`.
+Per-dashboard cron delivery.
 
 ```ts
 const sched = await p.workspace.schedules.create({
   input: { dashboardId, cron: "0 8 * * *", config: { recipients: ["a@b.com"], format: "pdf" } },
 });
-await p.workspace.deliverySchedules.update({ id: sched.id, patch: { cron: "0 9 * * *" } });
+await p.workspace.schedules.update({ id: sched.id, patch: { cron: "0 9 * * *" } });
 await p.workspace.schedules.pause({ id: sched.id });
 await p.workspace.schedules.resume({ id: sched.id });
 await p.workspace.schedules.markRun({ id: sched.id, input: { at: new Date().toISOString() } });
@@ -90,7 +90,7 @@ await p.workspace.schedules.list({ filters: { dashboardId } });
 await p.workspace.schedules.delete({ id: sched.id });
 ```
 
-Cron registers `workspace:delivery_schedule:<id>` and emits `workspace:delivery_due` (`workspace:schedule_due` deprecated).
+Cron registers `workspace:delivery_schedule:<id>` and emits `workspace:delivery_due`.
 
 ## Filter Views
 

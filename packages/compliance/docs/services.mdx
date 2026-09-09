@@ -1,10 +1,10 @@
 ---
 title: Services
-description: Runtime services wired by the compliance module — obligation generator, event bridge, and the deprecated reminder stub.
+description: Runtime services wired by the compliance module — obligation generator and event bridge.
 icon: IconDeviceGamepad3
 ---
 
-Two runtime services are wired in `$prepareRuntime()`; a third path (`reminder-engine.ts`) is a deprecated stub that no longer registers schedules.
+Two runtime services are wired in `$prepareRuntime()`.
 
 ## Obligation Generator
 
@@ -26,7 +26,7 @@ flowchart TB
 
 ## Event Bridge
 
-Subscribes to 8 external topics (6 logical peers; `branch:created` aliases cover legacy naming) and creates compliance artifacts. Validates each message with Valibot; invalid payloads are skipped; creates are deduped by `{sourceModule, sourceEntityId, documentType}`.
+Subscribes to 6 external topics and creates compliance artifacts. Validates each message with Valibot; invalid payloads are skipped; creates are deduped by `{sourceModule, sourceEntityId, documentType}`.
 
 | Topic                                                                           | Creates                                                                              |
 | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
@@ -44,21 +44,4 @@ await registerEventBridgeSubscriptions({ audit, db, pubsub });
 
 `unregisterEventBridge(topics, { pubsub })` unsubscribes on teardown (called via module `$cleanup`).
 
-## Reminder Engine (deprecated)
-
-```ts title="src/services/reminder-engine.ts"
-// Deprecated: compliance reminder engine removed. Compliance now publishes
-// compliance:document_expiring facts from document workflows; the calendar
-// module's compliance bridge materializes calendar_reminder rows (same pattern
-// as the task bridge). The single dispatcher is calendar:reminder-scan
-// (* * * * *) publishing calendar:reminder_due. This file is retained only
-// to avoid breaking imports during migration and will be deleted.
-
-export async function registerReminderSchedules(): Promise<void> {}
-export async function registerReminderHandlers(): Promise<string[]> {
-  return [];
-}
-export async function unregisterReminderEngine(): Promise<void> {}
-```
-
-No cron schedules or handlers are registered by the compliance module. `SCHEDULED_JOBS` / `CRON_SCHEDULES` constants for `daily-expiry-scan`, `daily-status-transition`, `daily-escalation`, `weekly-summary` remain exported from `src/utils/constants.ts` for reference but are not scheduled — reminder delivery is now via the calendar bridge (`compliance:document_expiring` → `calendar_reminder` → `calendar:reminder-scan`).
+No cron schedules or handlers are registered by the compliance module. Reminder delivery is via the calendar bridge (`compliance:document_expiring` → `calendar_reminder` → `calendar:reminder-scan`).
