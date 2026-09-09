@@ -9,7 +9,6 @@ import type {
 import type { TenancyMode, TenantResolver, SchemaMap } from "#/server/types";
 import { context } from "#/server/utils";
 
-// import { pushSchema } from "drizzle-kit/api";
 import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
@@ -263,41 +262,11 @@ export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
     );
   }
 
-  /** @deprecated Use provisionTenant instead */
-  async createTenant(
-    tenantId: string,
-    options?: {
-      databaseName?: string;
-      host?: string;
-      password?: string;
-      port?: number;
-      ssl?: boolean;
-      user?: string;
-    },
-  ): Promise<IsolatedTenantDbConfig> {
-    const result = await this.provisionTenant(tenantId, options);
-    if (result.tenancyMode !== "isolated") {
-      throw new Error("createTenant requires isolated tenancy mode");
-    }
-    const { tenancyMode: _tenancyMode, ...dbConfig } = result;
-    return dbConfig;
-  }
-
   getSchemas() {
     return db_schemas;
   }
 
-  protected async pushSchemasTo(_db: DrizzleDB<TSchemas>, _schemas: SchemaMap): Promise<void> {
-    // // @ts-expect-error DB Type Mismatch
-    // const result = await pushSchema(schemas, db);
-    // if (result.statementsToExecute.length > 0) {
-    //   console.log(`Applying ${result.statementsToExecute.length} Statements`);
-    //   if (result.hasDataLoss) {
-    //     console.warn("Schema push has data loss warnings:", result.warnings);
-    //   }
-    //   await result.apply();
-    // }
-  }
+  protected async pushSchemasTo(_db: DrizzleDB<TSchemas>, _schemas: SchemaMap): Promise<void> {}
 
   private async createTenantDatabase(dbConfig: IsolatedTenantDbConfig): Promise<void> {
     const admin = postgres({

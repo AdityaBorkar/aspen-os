@@ -6,7 +6,6 @@ export type {
   SharedTenantDbConfig,
   SharedTenantProvisioningResult,
   SingleTenantDbConfig,
-  TenantDbConfig,
   TenantProvisioningResult,
 } from "#/server/db/types";
 export type { DrizzleDB } from "#/server/db/unit";

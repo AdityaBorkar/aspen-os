@@ -35,9 +35,6 @@ export interface SharedTenantDbConfig {
 
 export type SingleTenantDbConfig = Record<string, never>;
 
-/** @deprecated Use IsolatedTenantDbConfig instead */
-export type TenantDbConfig = IsolatedTenantDbConfig;
-
 export type IsolatedTenantProvisioningResult = {
   tenancyMode: "isolated";
 } & IsolatedTenantDbConfig;

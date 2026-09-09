@@ -1,4 +1,4 @@
-import { workspaceSchedule } from "#/db-schemas";
+import { workspaceDeliverySchedule } from "#/db-schemas";
 import { MarkRunScheduleSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { assertCanAccess } from "#/workflow-steps/access-service";
@@ -20,13 +20,13 @@ export const markRunSchedule = Workflow.name("workspace.schedule.mark-run")
     assertCanAccess(dashboard, ctx.actorId);
 
     const [updated] = await ctx.db
-      .update(workspaceSchedule)
+      .update(workspaceDeliverySchedule)
       .set({
         last_error: parsed.error ?? null,
         last_run_at: parsed.at ? new Date(parsed.at) : new Date(),
         updated_at: new Date(),
       })
-      .where(eq(workspaceSchedule.id, parsed.id))
+      .where(eq(workspaceDeliverySchedule.id, parsed.id))
       .returning();
 
     if (!updated) {

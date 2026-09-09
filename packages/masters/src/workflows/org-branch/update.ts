@@ -61,13 +61,9 @@ export const updateOrgBranch = Workflow.name("masters.org_branch.update")
     }
 
     await ctx.pubsub.publish(ORG_BRANCH_EVENTS.UPDATED, {
-      branch: { id: updated.id, name: updated.name },
       changes: values,
       orgBranch: { id: updated.id, name: updated.name },
     });
 
     return updated;
   });
-
-// Deprecated alias — prefer updateOrgBranch.
-export const updateBranch = updateOrgBranch;

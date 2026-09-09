@@ -81,9 +81,6 @@ export const orgBranches = {
   update: updateOrgBranch,
 } as const;
 
-// Deprecated alias — prefer orgBranches.
-export const branches = orgBranches;
-
 export const paymentMethods = {
   activate: activatePaymentMethod,
   create: createPaymentMethod,

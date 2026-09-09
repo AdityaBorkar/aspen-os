@@ -12,9 +12,6 @@ export const orgBranchTypeEnum = pgEnum("org_branch_type", [
   ORG_BRANCH_TYPE.WAREHOUSE,
 ]);
 
-// Deprecated alias — prefer orgBranchTypeEnum.
-export const branchTypeEnum = orgBranchTypeEnum;
-
 export const orgBranch = pgTable(
   "org_branch",
   {
@@ -37,12 +34,5 @@ export const orgBranch = pgTable(
   ],
 );
 
-// Deprecated alias — prefer orgBranch.
-export const branch = orgBranch;
-
 export type OrgBranch = typeof orgBranch.$inferSelect;
 export type NewOrgBranch = typeof orgBranch.$inferInsert;
-
-// Deprecated aliases — prefer OrgBranch / NewOrgBranch.
-export type Branch = OrgBranch;
-export type NewBranch = NewOrgBranch;

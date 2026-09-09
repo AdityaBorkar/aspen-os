@@ -4,7 +4,6 @@ import type { Module, PlatformInstance } from "#/server";
 import { resolve } from "node:path";
 
 import { Command } from "commander";
-// import { startStudioPostgresServer } from "drizzle-kit/api";
 
 const program = new Command();
 
@@ -41,8 +40,6 @@ program
     const platformInstance = await loadPlatform(options.config);
 
     if (options.tenant && platformInstance.db.resolver) {
-      // const tenantConfig = await platformInstance.db.resolver.resolve(options.tenant);
-      // await startStudioPostgresServer(platformInstance.db.getSchemas(), tenantConfig);
       return;
     }
 
@@ -50,8 +47,6 @@ program
       console.error("Error: Could not get database configuration from platform");
       process.exit(1);
     }
-
-    // await startStudioPostgresServer(platformInstance.db.getSchemas(), platformInstance.db.config);
   });
 
 program

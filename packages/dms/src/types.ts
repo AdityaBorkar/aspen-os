@@ -136,7 +136,6 @@ export {
   NameSchema,
   NewVersionSchema,
   nonEmptyString,
-  normalizeSearchRanges,
   parseShareExpiry,
   PublicLinkPermissionSchema,
   QuickSearchSchema,

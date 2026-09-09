@@ -14,7 +14,7 @@ export { masterConnection } from "#/db-schemas/connection";
 export { masterContact } from "#/db-schemas/contact";
 export { masterEntity } from "#/db-schemas/entity";
 export { masterEntityLabel } from "#/db-schemas/entity-label";
-export { branch, branchTypeEnum, orgBranch, orgBranchTypeEnum } from "#/db-schemas/org-branch";
+export { orgBranch, orgBranchTypeEnum } from "#/db-schemas/org-branch";
 export {
   masterCardBrandEnum,
   masterConnectionStatusEnum,

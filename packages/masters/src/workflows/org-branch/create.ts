@@ -42,14 +42,7 @@ export const createOrgBranch = Workflow.name("masters.org_branch.create")
       throw new Error("Failed to create org branch.");
     }
 
-    // Publish with both keys for backward compatibility — consumers may listen for `branch` or `orgBranch`.
     await ctx.pubsub.publish(ORG_BRANCH_EVENTS.CREATED, {
-      branch: {
-        code: result.code,
-        id: result.id,
-        name: result.name,
-        type: result.type,
-      },
       orgBranch: {
         code: result.code,
         id: result.id,
@@ -60,6 +53,3 @@ export const createOrgBranch = Workflow.name("masters.org_branch.create")
 
     return result;
   });
-
-// Deprecated alias — prefer createOrgBranch.
-export const createBranch = createOrgBranch;

@@ -1,4 +1,4 @@
-import { workspaceDashboard, workspaceSchedule } from "#/db-schemas";
+import { workspaceDashboard, workspaceDeliverySchedule } from "#/db-schemas";
 import { ScheduleFiltersSchema } from "#/types";
 import { assertCanAccess } from "#/workflow-steps/access-service";
 import { fetchDashboardStep } from "#/workflow-steps/fetch-dashboard";
@@ -24,18 +24,18 @@ export const listSchedules = Workflow.name("workspace.schedule.list")
         or(eq(workspaceDashboard.access, "global"), eq(workspaceDashboard.owner_id, ctx.actorId)),
       );
 
-    const conditions = [inArray(workspaceSchedule.dashboard_id, accessibleDashboardIds)];
+    const conditions = [inArray(workspaceDeliverySchedule.dashboard_id, accessibleDashboardIds)];
     if (validated.dashboardId) {
       const dashboard = await ctx.step.run(fetchDashboardStep, { id: validated.dashboardId });
       assertCanAccess(dashboard, ctx.actorId);
-      conditions.push(eq(workspaceSchedule.dashboard_id, validated.dashboardId));
+      conditions.push(eq(workspaceDeliverySchedule.dashboard_id, validated.dashboardId));
     }
 
     return ctx.db
       .select()
-      .from(workspaceSchedule)
+      .from(workspaceDeliverySchedule)
       .where(and(...conditions))
-      .orderBy(asc(workspaceSchedule.created_at))
+      .orderBy(asc(workspaceDeliverySchedule.created_at))
       .limit(validated.limit ?? 50)
       .offset(validated.offset ?? 0);
   });

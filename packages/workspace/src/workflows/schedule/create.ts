@@ -1,4 +1,4 @@
-import { workspaceSchedule } from "#/db-schemas";
+import { workspaceDeliverySchedule } from "#/db-schemas";
 import { DASHBOARD_EVENTS } from "#/pubsub";
 import { registerScheduleDelivery } from "#/services/schedule-service";
 import { CreateScheduleSchema } from "#/types";
@@ -20,7 +20,7 @@ export const createSchedule = Workflow.name("workspace.schedule.create")
     const createdBy = resolveActorId(ctx.actorId);
 
     const [schedule] = await ctx.db
-      .insert(workspaceSchedule)
+      .insert(workspaceDeliverySchedule)
       .values({
         config: parsed.config,
         created_by: createdBy,

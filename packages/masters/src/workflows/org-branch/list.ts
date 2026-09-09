@@ -24,6 +24,3 @@ export const listOrgBranches = Workflow.name("masters.org_branch.list")
       return ctx.db.select().from(orgBranch).where(whereClause);
     }),
   );
-
-// Deprecated alias — prefer listOrgBranches.
-export const listBranches = listOrgBranches;

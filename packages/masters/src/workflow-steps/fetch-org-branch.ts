@@ -8,6 +8,3 @@ export const fetchOrgBranchStep = defineFetchByIdStep<OrgBranch>({
   stepName: "masters-fetch-org-branch",
   table: orgBranch,
 });
-
-// Deprecated alias — prefer fetchOrgBranchStep.
-export const fetchBranchStep = fetchOrgBranchStep;

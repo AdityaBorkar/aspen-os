@@ -9,8 +9,3 @@ export const ORG_BRANCH_TYPE = {
 } as const;
 
 export type OrgBranchType = (typeof ORG_BRANCH_TYPE)[keyof typeof ORG_BRANCH_TYPE];
-
-// Deprecated alias — prefer ORG_BRANCH_TYPE / OrgBranchType.
-export const BRANCH_TYPE = ORG_BRANCH_TYPE;
-
-export type BranchType = OrgBranchType;

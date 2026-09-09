@@ -25,8 +25,5 @@ export const workspaceDeliverySchedule = pgTable(
 
 export type WorkspaceDeliverySchedule = typeof workspaceDeliverySchedule.$inferSelect;
 export type NewWorkspaceDeliverySchedule = typeof workspaceDeliverySchedule.$inferInsert;
-
-// Back-compat aliases — old schedule naming confuses with calendar reminders.
-export const workspaceSchedule = workspaceDeliverySchedule;
 export type WorkspaceSchedule = WorkspaceDeliverySchedule;
 export type NewWorkspaceSchedule = NewWorkspaceDeliverySchedule;

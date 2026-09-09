@@ -24,10 +24,6 @@ export const CreateOrgBranchSchema = object({
 
 export type CreateOrgBranchInput = InferOutput<typeof CreateOrgBranchSchema>;
 
-// Deprecated aliases — prefer CreateOrgBranchSchema / CreateOrgBranchInput.
-export const CreateBranchSchema = CreateOrgBranchSchema;
-export type CreateBranchInput = CreateOrgBranchInput;
-
 export const UpdateOrgBranchSchema = object({
   capacity: optional(nullable(number())),
   closedDate: optional(date()),
@@ -42,10 +38,6 @@ export const UpdateOrgBranchSchema = object({
 
 export type UpdateOrgBranchInput = InferOutput<typeof UpdateOrgBranchSchema>;
 
-// Deprecated aliases — prefer UpdateOrgBranchSchema / UpdateOrgBranchInput.
-export const UpdateBranchSchema = UpdateOrgBranchSchema;
-export type UpdateBranchInput = UpdateOrgBranchInput;
-
 export const OrgBranchFiltersSchema = object({
   parentOrgBranch: optional(string()),
   type: optional(OrgBranchTypeSchema),
@@ -53,15 +45,8 @@ export const OrgBranchFiltersSchema = object({
 
 export type OrgBranchFilters = InferOutput<typeof OrgBranchFiltersSchema>;
 
-// Deprecated aliases — prefer OrgBranchFiltersSchema / OrgBranchFilters.
-export const BranchFiltersSchema = OrgBranchFiltersSchema;
-export type BranchFilters = OrgBranchFilters;
-
 export interface OrgBranchTreeNode {
   children: OrgBranchTreeNode[];
   id: string;
   name: string;
 }
-
-// Deprecated alias — prefer OrgBranchTreeNode.
-export type BranchTreeNode = OrgBranchTreeNode;

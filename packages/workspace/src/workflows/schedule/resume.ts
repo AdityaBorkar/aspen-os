@@ -1,4 +1,4 @@
-import { workspaceSchedule } from "#/db-schemas";
+import { workspaceDeliverySchedule } from "#/db-schemas";
 import { DASHBOARD_EVENTS } from "#/pubsub";
 import { registerScheduleDelivery } from "#/services/schedule-service";
 import { IdSchema } from "#/types";
@@ -21,9 +21,9 @@ export const resumeSchedule = Workflow.name("workspace.schedule.resume")
     await assertCanMutate(dashboard, ctx.actorId);
 
     const [updated] = await ctx.db
-      .update(workspaceSchedule)
+      .update(workspaceDeliverySchedule)
       .set({ is_active: true, updated_at: new Date() })
-      .where(eq(workspaceSchedule.id, id))
+      .where(eq(workspaceDeliverySchedule.id, id))
       .returning();
 
     if (!updated) {

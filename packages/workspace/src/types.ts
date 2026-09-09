@@ -51,8 +51,6 @@ export type {
   PinCreatedEvent,
   PinEventMap,
   PinRemovedEvent,
-  ScheduleDueEvent,
-  ScheduleEventMap,
   WidgetAddedEvent,
   WidgetEventMap,
   WidgetRefreshedEvent,
@@ -67,7 +65,6 @@ export {
   events,
   FILTER_VIEW_EVENTS,
   PIN_EVENTS,
-  SCHEDULE_EVENTS,
   WIDGET_EVENTS,
 } from "#/pubsub";
 export type {
@@ -181,18 +178,11 @@ export {
 } from "#/schemas";
 export type { ScheduleDeps } from "#/services/schedule-service";
 export {
-  deliverDueDeliverySchedule,
   deliverDueSchedule,
-  registerDeliveryScheduleDelivery,
-  registerDeliveryScheduleHandler,
-  registerDeliveryScheduleRunner,
   registerScheduleDelivery,
   registerScheduleHandler,
   registerScheduleRunner,
   scheduleCronTopic,
-  deliveryScheduleCronTopic,
-  unregisterDeliveryScheduleHandler,
-  unregisterDeliveryScheduleRunner,
   unregisterScheduleHandler,
   unregisterScheduleRunner,
 } from "#/services/schedule-service";
@@ -223,7 +213,6 @@ export {
   FILTER_VIEW_TYPE,
   PIN_ITEM_TYPE,
   RANGE_PRESET,
-  SCHEDULE_CRON_TOPIC_PREFIX,
   SCHEDULE_FORMAT,
   WIDGET_AGGREGATION,
   WIDGET_TYPE,

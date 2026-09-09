@@ -84,8 +84,6 @@ export const SCHEDULE_FORMAT = {
 export type ScheduleFormat = (typeof SCHEDULE_FORMAT)[keyof typeof SCHEDULE_FORMAT];
 
 export const DELIVERY_SCHEDULE_CRON_TOPIC_PREFIX = "workspace:delivery_schedule:";
-/** @deprecated Use DELIVERY_SCHEDULE_CRON_TOPIC_PREFIX — schedule vs reminder confusion. */
-export const SCHEDULE_CRON_TOPIC_PREFIX = "workspace:schedule:";
 
 export const FILTER_VIEW_ACCESS = {
   GLOBAL: "global",

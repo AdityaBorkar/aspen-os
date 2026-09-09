@@ -15,10 +15,6 @@ export const OrgBranchCodeSchema = pipe(
   regex(ORG_BRANCH_CODE_REGEX, "Must be alphanumeric with hyphens"),
 );
 
-// Deprecated aliases — prefer OrgBranchCodeSchema.
-export const BranchCodeSchema = OrgBranchCodeSchema;
-export const BRANCH_CODE_REGEX = ORG_BRANCH_CODE_REGEX;
-
 export const MetadataSchema = record(string(), JsonValueSchema);
 
 const ISO_COUNTRY_CODE_REGEX = /^[A-Za-z]{2}$/;

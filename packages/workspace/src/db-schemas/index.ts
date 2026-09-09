@@ -4,7 +4,7 @@ import { workspaceDraftComment } from "#/db-schemas/draft-comment";
 import { workspaceFilterView } from "#/db-schemas/filter-view";
 import { workspacePin } from "#/db-schemas/pin";
 import { workspaceRecent } from "#/db-schemas/recent";
-import { workspaceDeliverySchedule, workspaceSchedule } from "#/db-schemas/schedule";
+import { workspaceDeliverySchedule } from "#/db-schemas/schedule";
 import { workspaceWidget } from "#/db-schemas/widget";
 
 export { workspaceDashboard } from "#/db-schemas/dashboard";
@@ -21,7 +21,7 @@ export {
 export { workspaceFilterView } from "#/db-schemas/filter-view";
 export { workspacePin } from "#/db-schemas/pin";
 export { workspaceRecent } from "#/db-schemas/recent";
-export { workspaceDeliverySchedule, workspaceSchedule } from "#/db-schemas/schedule";
+export { workspaceDeliverySchedule } from "#/db-schemas/schedule";
 export { workspaceWidget } from "#/db-schemas/widget";
 
 export const workspaceTables = {
@@ -32,7 +32,6 @@ export const workspaceTables = {
   workspaceFilterView,
   workspacePin,
   workspaceRecent,
-  workspaceSchedule,
   workspaceWidget,
 } as const;
 

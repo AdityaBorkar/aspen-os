@@ -56,9 +56,6 @@ export const ORG_BRANCH_EVENTS = {
   UPDATED: "masters:org_branch_updated",
 } as const;
 
-// Deprecated aliases — prefer ORG_BRANCH_EVENTS.
-export const BRANCH_EVENTS = ORG_BRANCH_EVENTS;
-
 export const LABEL_EVENTS = {
   APPLIED: "masters:label_applied",
   CREATED: "masters:label_created",
@@ -69,7 +66,6 @@ export const LABEL_EVENTS = {
 
 export const events = {
   ADDRESS_EVENTS,
-  BRANCH_EVENTS,
   CONNECTION_EVENTS,
   CONTACT_EVENTS,
   ENTITY_EVENTS,
@@ -309,17 +305,10 @@ export interface OrgBranchUpdatedEvent {
   orgBranch: { id: string; name: string };
 }
 
-// Deprecated aliases — prefer OrgBranchCreatedEvent / OrgBranchUpdatedEvent.
-export type BranchCreatedEvent = OrgBranchCreatedEvent;
-export type BranchUpdatedEvent = OrgBranchUpdatedEvent;
-
 export interface OrgBranchEventMap {
   [ORG_BRANCH_EVENTS.CREATED]: OrgBranchCreatedEvent;
   [ORG_BRANCH_EVENTS.UPDATED]: OrgBranchUpdatedEvent;
 }
-
-// Deprecated alias — prefer OrgBranchEventMap.
-export type BranchEventMap = OrgBranchEventMap;
 
 export interface LabelCreatedEvent {
   label: {

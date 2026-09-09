@@ -104,11 +104,11 @@ function postAction() {
   const agentTriggered = action !== "fix-auto-applying";
 
   output({
-    waitMode: true,
-    pollCount: 0,
-    lastCipeUrl: trackByCipeUrl ? cipeUrl : null,
-    expectedCommitSha: trackByCommitSha ? commitSha : null,
     agentTriggered,
+    expectedCommitSha: trackByCommitSha ? commitSha : null,
+    lastCipeUrl: trackByCipeUrl ? cipeUrl : null,
+    pollCount: 0,
+    waitMode: true,
   });
 }
 
@@ -124,10 +124,14 @@ function cycleCheck() {
   let envRerunCount = parseInt(getArg("--env-rerun-count") || "0", 10);
 
   // Cycle classification: if previous cycle was agent-triggered, count it
-  if (wasAgentTriggered) cycleCount++;
+  if (wasAgentTriggered) {
+    cycleCount++;
+  }
 
   // Reset env_rerun_count on non-environment status
-  if (status !== "environment_issue") envRerunCount = 0;
+  if (status !== "environment_issue") {
+    envRerunCount = 0;
+  }
 
   // Cycle limit gates. limitReached is a terminal stop; approachingLimit is an
   // advisory warning emitted in the two cycles before the cap.
@@ -135,10 +139,10 @@ function cycleCheck() {
   const approachingLimit = cycleCount >= maxCycles - 2;
 
   output({
-    cycleCount,
     agentTriggered: false,
-    envRerunCount,
     approachingLimit,
+    cycleCount,
+    envRerunCount,
     limitReached,
     message: limitReached
       ? `Cycle limit reached (${cycleCount}/${maxCycles}). Stopping.`
@@ -151,15 +155,19 @@ function cycleCheck() {
 // --- Dispatch ---
 
 switch (command) {
-  case "gate":
+  case "gate": {
     gate();
     break;
-  case "post-action":
+  }
+  case "post-action": {
     postAction();
     break;
-  case "cycle-check":
+  }
+  case "cycle-check": {
     cycleCheck();
     break;
-  default:
+  }
+  default: {
     output({ error: `Unknown command: ${command}` });
+  }
 }

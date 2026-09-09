@@ -158,10 +158,6 @@ export async function registerEventBridgeSubscriptions(deps: EventBridgeDeps): P
   await add("workspace:delivery_due", DeliveryDueEventSchema, (data, target) =>
     handleDeliveryDue(data, target),
   );
-  // Back-compat alias for renamed workspace schedule event
-  await add("workspace:schedule_due", DeliveryDueEventSchema, (data, target) =>
-    handleDeliveryDue(data, target),
-  );
   await add("management:tenant_provisioned", TenantLifecycleEventSchema, (data, target) =>
     handleTenantLifecycle(data.tenantId, target),
   );

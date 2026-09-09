@@ -19,6 +19,3 @@ export const getOrgBranchTree = Workflow.name("masters.org_branch.tree")
       return buildOrgBranchTree(allBranches);
     }),
   );
-
-// Deprecated alias — prefer getOrgBranchTree.
-export const getBranchTree = getOrgBranchTree;

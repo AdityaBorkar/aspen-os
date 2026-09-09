@@ -1,4 +1,4 @@
-import { workspaceSchedule } from "#/db-schemas";
+import { workspaceDeliverySchedule } from "#/db-schemas";
 import { DASHBOARD_EVENTS } from "#/pubsub";
 import {
   registerScheduleDelivery,
@@ -33,9 +33,9 @@ export const updateSchedule = Workflow.name("workspace.schedule.update")
     });
 
     const [updated] = await ctx.db
-      .update(workspaceSchedule)
+      .update(workspaceDeliverySchedule)
       .set({ ...updates, updated_at: new Date() })
-      .where(eq(workspaceSchedule.id, id))
+      .where(eq(workspaceDeliverySchedule.id, id))
       .returning();
 
     if (!updated) {

@@ -30,9 +30,6 @@ export async function ensureOrgBranchCodeUnique(
   }
 }
 
-// Deprecated alias — prefer ensureOrgBranchCodeUnique.
-export const ensureCodeUnique = ensureOrgBranchCodeUnique;
-
 export async function ensureNoHeadquartersExists(db: Db, excludeId?: string): Promise<void> {
   const conditions =
     excludeId === undefined
@@ -100,9 +97,6 @@ export async function validateParentOrgBranch(
   }
 }
 
-// Deprecated alias — prefer validateParentOrgBranch.
-export const validateParentBranch = validateParentOrgBranch;
-
 export function buildOrgBranchTree(
   branches: { id: string; name: string; parentOrgBranch: string | null }[],
 ): OrgBranchTreeNode[] {
@@ -128,6 +122,3 @@ export function buildOrgBranchTree(
 
   return build(null);
 }
-
-// Deprecated alias — prefer buildOrgBranchTree.
-export const buildTree = buildOrgBranchTree;

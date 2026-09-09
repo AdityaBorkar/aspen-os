@@ -27,15 +27,6 @@ const VehicleRegisteredEventSchema = object({
   vehicleRegistration: string(),
 });
 
-const BranchCreatedEventSchema = object({
-  branch: object({
-    code: string(),
-    id: string(),
-    name: string(),
-    type: string(),
-  }),
-});
-
 const OrgBranchCreatedEventSchema = object({
   orgBranch: object({
     code: string(),
@@ -63,7 +54,6 @@ const ContactCreatedEventSchema = object({
 type EmployeeOnboardedEvent = InferSchemaOutput<typeof EmployeeOnboardedEventSchema>;
 type EmployeeSeparatedEvent = InferSchemaOutput<typeof EmployeeSeparatedEventSchema>;
 type VehicleRegisteredEvent = InferSchemaOutput<typeof VehicleRegisteredEventSchema>;
-type BranchCreatedEvent = InferSchemaOutput<typeof BranchCreatedEventSchema>;
 type OrgBranchCreatedEvent = InferSchemaOutput<typeof OrgBranchCreatedEventSchema>;
 type FinancialYearStartedEvent = InferSchemaOutput<typeof FinancialYearStartedEventSchema>;
 type ContactCreatedEvent = InferSchemaOutput<typeof ContactCreatedEventSchema>;
@@ -98,16 +88,6 @@ const SUBSCRIPTIONS: {
     handler: (data, deps) => handleBranchCreated(data, deps),
     schema: OrgBranchCreatedEventSchema,
     topic: "masters:org_branch_created",
-  },
-  {
-    handler: (data, deps) => handleBranchCreated(data, deps),
-    schema: BranchCreatedEventSchema,
-    topic: "organization:branch_created",
-  },
-  {
-    handler: (data, deps) => handleBranchCreated(data, deps),
-    schema: BranchCreatedEventSchema,
-    topic: "branch:created",
   },
   {
     handler: (data, deps) => handleFinancialYearStarted(data, deps),
@@ -331,18 +311,10 @@ async function handleVehicleRegistered(
 }
 
 async function handleBranchCreated(
-  event: BranchCreatedEvent | OrgBranchCreatedEvent,
+  event: OrgBranchCreatedEvent,
   deps: EventBridgeDeps,
 ): Promise<void> {
-  // SAFETY: Validated branch payloads have two shapes (branch vs orgBranch) from legacy and new topics; either validated shape carries the same identity.
-  const raw = event as {
-    branch?: BranchCreatedEvent["branch"];
-    orgBranch?: OrgBranchCreatedEvent["orgBranch"];
-  };
-  const branch = raw.branch ?? raw.orgBranch;
-  if (!branch) {
-    return;
-  }
+  const branch = event.orgBranch;
   const obligationId = await createObligation(
     {
       branch: branch.id,

@@ -59,7 +59,7 @@ async function resolveOverrideId(
     return null;
   }
   // Primary validation happens at setting-write time (SetSettingSchema variant);
-  // a parse failure here means legacy/malformed data — treat as unset.
+  // a parse failure here is treated as unset.
   const parsed = safeParse(record(string(), string()), value);
   if (!parsed.success) {
     return null;

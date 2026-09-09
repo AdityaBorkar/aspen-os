@@ -51,9 +51,8 @@ export const processPendingReminders = Workflow.name("calendar.reminder.process-
           throw error;
         }
 
-        // The interval column is free text and can hold legacy values: decode
-        // it at the boundary. Unknown values stay acknowledged-but-not
-        // rescheduled so one poison row never stalls the batch.
+        // The interval column is free text: decode it at the boundary.
+        // Unknown values stay acknowledged-but-not rescheduled so one poison row never stalls the batch.
         if (claimed.is_recurring && claimed.interval && claimed.remind_at) {
           const interval = safeParse(ReminderIntervalSchema, claimed.interval);
           if (interval.success) {

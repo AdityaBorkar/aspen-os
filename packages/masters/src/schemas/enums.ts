@@ -38,11 +38,7 @@ export const ConnectionStatusSchema = picklist(Object.values(CONNECTION_STATUS))
 
 export const OrgBranchTypeSchema = picklist(Object.values(ORG_BRANCH_TYPE));
 
-// Deprecated alias — prefer OrgBranchTypeSchema.
-export const BranchTypeSchema = OrgBranchTypeSchema;
-
 export {
-  BRANCH_TYPE,
   CARD_BRAND,
   CONTACT_TYPE,
   CONNECTION_STATUS,

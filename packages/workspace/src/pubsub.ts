@@ -50,18 +50,12 @@ export const DELIVERY_SCHEDULE_EVENTS = {
   DUE: "workspace:delivery_due",
 } as const;
 
-/** @deprecated Use DELIVERY_SCHEDULE_EVENTS — schedule vs reminder confusion. */
-export const SCHEDULE_EVENTS = {
-  DUE: "workspace:schedule_due",
-} as const;
-
 export const events = {
   DASHBOARD_EVENTS,
   DELIVERY_SCHEDULE_EVENTS,
   DRAFT_EVENTS,
   FILTER_VIEW_EVENTS,
   PIN_EVENTS,
-  SCHEDULE_EVENTS,
   WIDGET_EVENTS,
 };
 
@@ -201,11 +195,6 @@ export interface DeliveryScheduleDueEvent {
   dashboard: WorkspaceDashboard;
   schedule: WorkspaceSchedule;
 }
-export interface ScheduleDueEvent {
-  at: string;
-  dashboard: WorkspaceDashboard;
-  schedule: WorkspaceSchedule;
-}
 
 export interface DraftEventMap {
   [DRAFT_EVENTS.APPROVED]: DraftApprovedEvent;
@@ -255,14 +244,9 @@ export interface DeliveryScheduleEventMap {
   [DELIVERY_SCHEDULE_EVENTS.DUE]: DeliveryScheduleDueEvent;
 }
 
-export interface ScheduleEventMap {
-  [SCHEDULE_EVENTS.DUE]: ScheduleDueEvent;
-}
-
 export type WorkspaceEventMap = DashboardEventMap &
   DeliveryScheduleEventMap &
   DraftEventMap &
   FilterViewEventMap &
   PinEventMap &
-  ScheduleEventMap &
   WidgetEventMap;

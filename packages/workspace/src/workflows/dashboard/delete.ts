@@ -1,4 +1,4 @@
-import { workspaceDashboard, workspaceSchedule, workspaceWidget } from "#/db-schemas";
+import { workspaceDashboard, workspaceDeliverySchedule, workspaceWidget } from "#/db-schemas";
 import { DASHBOARD_EVENTS } from "#/pubsub";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { assertCanMutate } from "#/workflow-steps/access-service";
@@ -21,7 +21,9 @@ export const deleteDashboard = Workflow.name("workspace.dashboard.delete")
     });
 
     await ctx.step.run("delete-schedules", async () => {
-      await ctx.db.delete(workspaceSchedule).where(eq(workspaceSchedule.dashboard_id, id));
+      await ctx.db
+        .delete(workspaceDeliverySchedule)
+        .where(eq(workspaceDeliverySchedule.dashboard_id, id));
     });
 
     await ctx.db.delete(workspaceDashboard).where(eq(workspaceDashboard.id, id));

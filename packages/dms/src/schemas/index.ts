@@ -105,7 +105,6 @@ export {
 } from "#/schemas/public-link";
 export {
   DateRangeSchema,
-  normalizeSearchRanges,
   SearchScopeSchema,
   SearchSortOrderSchema,
   SizeRangeSchema,

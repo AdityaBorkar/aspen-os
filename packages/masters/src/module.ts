@@ -57,11 +57,6 @@ export class Masters implements Module {
   readonly settings = wf.settings;
   readonly unitsOfMeasure = wf.unitsOfMeasure;
 
-  // Deprecated alias — prefer orgBranches.
-  get branches() {
-    return this.orgBranches;
-  }
-
   get connections() {
     if (!this.#connections) {
       throw new Error("Masters not initialized");

@@ -76,13 +76,7 @@ export type SettingKey = (typeof SETTING_KEYS)[keyof typeof SETTING_KEYS];
 
 export const AUDIT_ENTITY_TYPE = {
   CLASS: "dms:class",
-  // Kept for reading pre-migration audit rows; new contact audit entries are
-  // written by masters as "masters:contact".
-  CONTACT: "dms:contact",
   FILE: "dms:file",
-  // Kept for reading pre-migration audit rows; filter views now live in
-  // workspace as "workspace:filter_view".
-  FILE_VIEW: "dms:file_view",
   FOLDER: "dms:folder",
   LABEL: "dms:label",
   PUBLIC_LINK: "dms:public_link",

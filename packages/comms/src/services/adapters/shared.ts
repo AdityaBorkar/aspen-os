@@ -31,10 +31,9 @@ export interface DeliveryAdapter {
 }
 
 /**
- * Strict email-kind inference for legacy tenant channels that carry no
- * provider row. Exactly one credential shape must match; ambiguous or empty
- * credentials throw instead of silently defaulting to SMTP (which has no
- * sender implementation and would fail later at send time).
+ * Strict email-kind inference when provider kind is not stored.
+ * Exactly one credential shape must match; ambiguous or empty
+ * credentials throw instead of silently defaulting to SMTP.
  */
 export function inferEmailKind(credential: ProviderCredential): ProviderKind {
   const matches: ProviderKind[] = [];

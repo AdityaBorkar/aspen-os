@@ -1,4 +1,4 @@
-import { workspaceSchedule } from "#/db-schemas";
+import { workspaceDeliverySchedule } from "#/db-schemas";
 import { DASHBOARD_EVENTS } from "#/pubsub";
 import { scheduleCronTopic, unregisterScheduleHandler } from "#/services/schedule-service";
 import { IdSchema } from "#/types";
@@ -25,9 +25,9 @@ export const pauseSchedule = Workflow.name("workspace.schedule.pause")
     });
 
     const [updated] = await ctx.db
-      .update(workspaceSchedule)
+      .update(workspaceDeliverySchedule)
       .set({ is_active: false, updated_at: new Date() })
-      .where(eq(workspaceSchedule.id, id))
+      .where(eq(workspaceDeliverySchedule.id, id))
       .returning();
 
     if (!updated) {

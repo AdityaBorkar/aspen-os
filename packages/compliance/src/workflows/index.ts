@@ -95,8 +95,6 @@ export const obligations = {
   activate: activateObligation,
   create: createObligation,
   deactivate: deactivateObligation,
-  /** @deprecated use getById */
-  get: getObligationById,
   getActive: getActiveObligations,
   getById: getObligationById,
   getUpcomingPeriods,
@@ -107,8 +105,6 @@ export const obligations = {
 export const verification = {
   create: createVerificationRule,
   delete: deleteVerificationRule,
-  /** @deprecated use getById */
-  get: getVerificationRuleById,
   getById: getVerificationRuleById,
   list: listVerificationRules,
   match: matchVerificationRule,

@@ -1,4 +1,4 @@
-import { workspaceSchedule } from "#/db-schemas";
+import { workspaceDeliverySchedule } from "#/db-schemas";
 import { DASHBOARD_EVENTS } from "#/pubsub";
 import { scheduleCronTopic, unregisterScheduleHandler } from "#/services/schedule-service";
 import { IdSchema } from "#/types";
@@ -24,7 +24,7 @@ export const deleteSchedule = Workflow.name("workspace.schedule.delete")
       await unregisterScheduleHandler(scheduleCronTopic(id), { pubsub: ctx.pubsub });
     });
 
-    await ctx.db.delete(workspaceSchedule).where(eq(workspaceSchedule.id, id));
+    await ctx.db.delete(workspaceDeliverySchedule).where(eq(workspaceDeliverySchedule.id, id));
 
     await ctx.audit.write({
       action: AUDIT_ACTION.DELETED,
