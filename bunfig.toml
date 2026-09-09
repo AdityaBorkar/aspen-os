@@ -5,7 +5,7 @@ logLevel = "warn"
 depth = 10
 
 [run]
-bun = true
+bun = false
 silent = false
 
 [install]

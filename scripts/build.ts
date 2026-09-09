@@ -30,7 +30,8 @@ type JsonValue = boolean | number | string | null | JsonValue[] | { [key: string
 
 interface PackageJson {
   build?: BuildConfig;
-  [key: string]: JsonValue | BuildConfig | undefined;
+  dependencies?: Record<string, string>;
+  [key: string]: JsonValue | BuildConfig | Record<string, string> | undefined;
 }
 
 const $dev = process.argv.includes("--dev");
@@ -245,10 +246,22 @@ async function main() {
   }
 
   console.log("Building...");
+  // Workspace packages share runtime singletons (e.g. platform's AsyncLocalStorage
+  // execution context). Bundling `@aspen-os/*` into a domain package's `.output`
+  // creates a second copy of the platform runtime, so `Platform.run()` context set
+  // via `@aspen-os/platform` is invisible to workflows running from the bundled
+  // copy and every call fails with "Context was not initialized". Keep workspace
+  // deps external so all packages resolve the same platform instance at runtime.
+  const dependencyNames = Object.keys(pkg.dependencies ?? {});
+  const workspaceExternals = dependencyNames
+    .filter((dep) => dep.startsWith("@aspen-os/"))
+    .flatMap((dep) => [dep, `${dep}/*`]);
+  const external = [...new Set([...workspaceExternals, "@aspen-os/*"])];
   await Promise.all(
     entries.map(async ({ name, src, outdir, target }) => {
       const result = await build({
         entrypoints: [src],
+        external,
         format: "esm",
         // metafile: true,
         minify: false, // True,
