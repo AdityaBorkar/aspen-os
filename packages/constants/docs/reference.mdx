@@ -28,10 +28,6 @@ export const ORG_BRANCH_TYPE = {
 } as const;
 
 export type OrgBranchType = (typeof ORG_BRANCH_TYPE)[keyof typeof ORG_BRANCH_TYPE];
-
-// Deprecated alias — prefer ORG_BRANCH_TYPE / OrgBranchType
-export const BRANCH_TYPE = ORG_BRANCH_TYPE;
-export type BranchType = OrgBranchType;
 ```
 
 ```ts title="packages/constants/src/country-codes.ts"
@@ -60,8 +56,6 @@ Import from the package root (`@aspen-os/constants`) — every module re-exports
 | Enum              | Values                                                                       |
 | ----------------- | ---------------------------------------------------------------------------- |
 | `ORG_BRANCH_TYPE` | `factory`, `headquarters`, `office`, `other`, `remote`, `store`, `warehouse` |
-
-`BRANCH_TYPE` / `BranchType` are deprecated aliases for `ORG_BRANCH_TYPE` / `OrgBranchType`.
 
 ### Masters (`src/masters.ts`)
 

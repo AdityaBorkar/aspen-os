@@ -77,7 +77,7 @@ All tables are tenant schemas (`master_` / `org_branch`); there are no control-p
 
 ### Org branches
 
-`org_branch` models organizational hierarchy with `code` (unique), `type` (`org_branch_type`), `parent_org_branch` (self-ref, nullable), and optional `opened_date` / `closed_date` / `capacity`. Workflows: `create`, `get`, `list`, `tree`, `update` (exposed as `p.masters.orgBranches`; deprecated alias `p.masters.branches`).
+`org_branch` models organizational hierarchy with `code` (unique), `type` (`org_branch_type`), `parent_org_branch` (self-ref, nullable), and optional `opened_date` / `closed_date` / `capacity`. Workflows: `create`, `get`, `list`, `tree`, `update` (exposed as `p.masters.orgBranches`).
 
 ### Connections and secrets
 
