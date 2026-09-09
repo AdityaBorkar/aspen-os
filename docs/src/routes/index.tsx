@@ -20,13 +20,22 @@ function Home() {
             A business platform with pluggable units and modules.
           </p>
         </div>
-        <Link
-          className="rounded-lg bg-fd-primary px-6 py-3 font-medium text-fd-primary-foreground text-sm"
-          params={docsLinkParams}
-          to="/docs/$"
-        >
-          Read the Docs
-        </Link>
+        <div className="flex gap-3">
+          <Link
+            className="rounded-lg bg-fd-primary px-6 py-3 font-medium text-fd-primary-foreground text-sm"
+            params={docsLinkParams}
+            to="/docs/$"
+          >
+            Read the Docs
+          </Link>
+          <Link
+            className="rounded-lg border bg-fd-card px-6 py-3 font-medium text-sm"
+            params={{ _splat: "" }}
+            to="/ref/$"
+          >
+            Reference
+          </Link>
+        </div>
       </div>
     </HomeLayout>
   );

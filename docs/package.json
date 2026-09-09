@@ -4,12 +4,14 @@
   "type": "module",
   "sideEffects": false,
   "scripts": {
-    "build": "bun gen:cf-types && vite build",
+    "build": "bun run gen:ref && bun run gen:cf-types && vite build",
     "check:lint": "oxlint --fix . ; oxfmt .",
-    "check:types": "fumadocs-mdx && tsc --noEmit",
+    "check:types": "bun run gen:ref && fumadocs-mdx && tsc --noEmit",
     "deploy": "wrangler deploy",
     "dev": "vite dev --port 3005",
     "gen:cf-types": "wrangler types",
+    "gen:ref": "bun run ../scripts/generate-ref.ts",
+    "gen:ref:check": "bun run ../scripts/generate-ref.ts --check",
     "postinstall": "fumadocs-mdx",
     "preview": "nx vite:preview",
     "start": "nx vite:preview"
