@@ -1,4 +1,19 @@
-import { DOCS_ROUTE } from "./constants";
+import { DOCS_ROUTE, GIT_CONFIG } from "./constants";
+
+export function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .replaceAll(/[^a-z0-9]+/g, "-")
+    .replaceAll(/^-|-$/g, "");
+}
+
+export function trimSlashes(value: string): string {
+  return value.replace(/^\/+|\/+$/g, "");
+}
+
+export function githubFileUrl(file: string): string {
+  return `https://github.com/${GIT_CONFIG.user}/${GIT_CONFIG.repo}/blob/${GIT_CONFIG.branch}/${file}`;
+}
 
 export function markdownPathToSlugs(segs: string[]) {
   if (segs.length === 0) {

@@ -9,94 +9,27 @@ const docs = {
   }),
 };
 
-export const platform = defineDocs({
-  dir: `../packages/platform/docs`,
-  docs,
-});
+function definePackageDocs(dir: string) {
+  return defineDocs({ dir: `../packages/${dir}/docs`, docs });
+}
 
-export const compliance = defineDocs({
-  dir: `../packages/compliance/docs`,
-  docs,
-});
-
-export const hrCore = defineDocs({
-  dir: `../packages/hr-core/docs`,
-  docs,
-});
-
-export const hrAttendance = defineDocs({
-  dir: `../packages/hr-attendance/docs`,
-  docs,
-});
-
-export const hrLeave = defineDocs({
-  dir: `../packages/hr-leave/docs`,
-  docs,
-});
-
-export const dms = defineDocs({
-  dir: `../packages/dms/docs`,
-  docs,
-});
-
-export const constants = defineDocs({
-  dir: `../packages/constants/docs`,
-  docs,
-});
-
-export const comms = defineDocs({
-  dir: `../packages/comms/docs`,
-  docs,
-});
-
-export const tasks = defineDocs({
-  dir: `../packages/tasks/docs`,
-  docs,
-});
-
-export const management = defineDocs({
-  dir: `../packages/management/docs`,
-  docs,
-});
-
-export const masters = defineDocs({
-  dir: `../packages/masters/docs`,
-  docs,
-});
-
-export const crm = defineDocs({
-  dir: `../packages/crm/docs`,
-  docs,
-});
-
-export const fleet = defineDocs({
-  dir: `../packages/fleet/docs`,
-  docs,
-});
-
-export const inventory = defineDocs({
-  dir: `../packages/inventory/docs`,
-  docs,
-});
-
-export const reports = defineDocs({
-  dir: `../packages/reports/docs`,
-  docs,
-});
-
-export const workspace = defineDocs({
-  dir: `../packages/workspace/docs`,
-  docs,
-});
-
-export const notes = defineDocs({
-  dir: `../packages/notes/docs`,
-  docs,
-});
-
-export const calendar = defineDocs({
-  dir: `../packages/calendar/docs`,
-  docs,
-});
+export const platform = definePackageDocs("platform");
+export const compliance = definePackageDocs("compliance");
+export const hrCore = definePackageDocs("hr-core");
+export const hrAttendance = definePackageDocs("hr-attendance");
+export const hrLeave = definePackageDocs("hr-leave");
+export const dms = definePackageDocs("dms");
+export const constants = definePackageDocs("constants");
+export const comms = definePackageDocs("comms");
+export const tasks = definePackageDocs("tasks");
+export const management = definePackageDocs("management");
+export const masters = definePackageDocs("masters");
+export const crm = definePackageDocs("crm");
+export const fleet = definePackageDocs("fleet");
+export const inventory = definePackageDocs("inventory");
+export const reports = definePackageDocs("reports");
+export const workspace = definePackageDocs("workspace");
+export const notes = definePackageDocs("notes");
+export const calendar = definePackageDocs("calendar");
 
 export default defineConfig();

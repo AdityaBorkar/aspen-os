@@ -1,47 +1,273 @@
-import { GIT_CONFIG, REF_ROUTE } from "#/lib/constants";
+import { REF_ROUTE } from "#/lib/constants";
 import refData from "#/lib/generated/ref.json";
+import { githubFileUrl, slugify, trimSlashes } from "#/lib/paths";
 
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import type { ReactElement, ReactNode } from "react";
 
 type RefData = typeof refData;
+type ModuleRow = RefData["modules"][number];
+type SchemaRow = RefData["schemas"][number];
+type DbSchemaRow = RefData["dbSchemas"][number];
+type WorkflowRow = RefData["workflows"][number];
+type WorkflowStepRow = RefData["workflowSteps"][number];
+type EventRow = RefData["events"][number];
 
-const TABS = [
-  { label: "Overview", slug: "" },
-  { label: "Modules", slug: "modules" },
-  { label: "Schemas", slug: "schemas" },
-  { label: "DB Schemas", slug: "db-schemas" },
-  { label: "Workflows", slug: "workflows" },
-  { label: "Workflow Steps", slug: "workflow-steps" },
-  { label: "Events", slug: "events" },
+const CONTENT_TABS = [
+  {
+    blurb: (data: RefData) => `${data.modules.length} modules from packages/*/src/module.ts`,
+    label: "Modules",
+    slug: "modules",
+  },
+  {
+    blurb: (data: RefData) =>
+      `${data.schemas.length} Valibot schemas from packages/*/src/schemas/**/*.ts`,
+    label: "Schemas",
+    slug: "schemas",
+  },
+  {
+    blurb: (data: RefData) =>
+      `${data.dbSchemas.length} Drizzle tables/enums from packages/*/src/db-schemas/**/*.ts`,
+    label: "DB Schemas",
+    slug: "db-schemas",
+  },
+  {
+    blurb: (data: RefData) =>
+      `${data.workflows.length} Workflow.name(...) from packages/*/src/workflows/**/*.ts`,
+    label: "Workflows",
+    slug: "workflows",
+  },
+  {
+    blurb: (data: RefData) =>
+      `${data.workflowSteps.length} WorkflowStep.name(...) from packages/*/src/workflow-steps/**/*.ts`,
+    label: "Workflow Steps",
+    slug: "workflow-steps",
+  },
+  {
+    blurb: (data: RefData) => `${data.events.length} topics from packages/*/src/pubsub.ts`,
+    label: "Events",
+    slug: "events",
+  },
 ] as const;
 
+const TABS = [{ label: "Overview", slug: "" }, ...CONTENT_TABS] as const;
+
 type TabSlug = (typeof TABS)[number]["slug"];
+type ContentSlug = (typeof CONTENT_TABS)[number]["slug"];
 
 const VALID_SLUGS = new Set<string>(TABS.map((entry) => entry.slug));
 
-function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .replaceAll(/[^a-z0-9]+/g, "-")
-    .replaceAll(/^-|-$/g, "");
-}
-
-function githubUrl(file: string): string {
-  return `https://github.com/${GIT_CONFIG.user}/${GIT_CONFIG.repo}/blob/${GIT_CONFIG.branch}/${file}`;
+function isTabSlug(value: string): value is TabSlug {
+  return VALID_SLUGS.has(value);
 }
 
 export const Route = createFileRoute("/ref/$")({
   component: RefPage,
   loader: ({ params }) => {
-    const splat = params._splat ?? ""; // oxlint-disable-line no-underscore-dangle
-    const slug = splat.replaceAll(/^\/|\/$/g, "");
-    if (!VALID_SLUGS.has(slug)) {
+    const slug = trimSlashes(params._splat ?? ""); // oxlint-disable-line no-underscore-dangle
+    if (!isTabSlug(slug)) {
       throw notFound();
     }
-    // SAFETY: slug is validated against VALID_SLUGS which is derived from TABS slugs, so it is a valid TabSlug.
-    return { slug: slug as TabSlug };
+    return { slug };
   },
 });
+
+interface Column<T> {
+  cellClass?: string;
+  header: string;
+  render: (row: T) => ReactNode;
+}
+
+function TableWrapper({ children }: { children: ReactNode }) {
+  return <div className="overflow-x-auto rounded-lg border">{children}</div>;
+}
+
+function GitHubLink({ file }: { file: string }) {
+  return (
+    <a className="underline" href={githubFileUrl(file)} rel="noreferrer" target="_blank">
+      {file}
+    </a>
+  );
+}
+
+function Anchor({ id, children }: { children: ReactNode; id: string }) {
+  return (
+    <a className="underline decoration-dotted" href={`#${id}`}>
+      {children}
+    </a>
+  );
+}
+
+function DataTable<T>({
+  columns,
+  getAnchor,
+  getKey,
+  rows,
+}: {
+  columns: Column<T>[];
+  getAnchor: (row: T) => string;
+  getKey: (row: T) => string;
+  rows: T[];
+}) {
+  return (
+    <TableWrapper>
+      <table className="w-full text-sm">
+        <thead className="bg-fd-muted/50 text-left">
+          <tr>
+            {columns.map((column) => (
+              <th className="px-3 py-2" key={column.header}>
+                {column.header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr className="border-t" id={getAnchor(row)} key={getKey(row)}>
+              {columns.map((column) => (
+                <td className={`px-3 py-2 font-mono ${column.cellClass ?? ""}`} key={column.header}>
+                  {column.render(row)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </TableWrapper>
+  );
+}
+
+function orDash(value: string): string {
+  return value.length > 0 ? value : "—";
+}
+
+function joinOrDash(values: string[]): string {
+  return values.length > 0 ? values.join(", ") : "—";
+}
+
+const MODULE_COLUMNS: Column<ModuleRow>[] = [
+  {
+    header: "Module ($name)",
+    render: (row) => <Anchor id={slugify(row.name)}>{row.name}</Anchor>,
+  },
+  { cellClass: "text-xs", header: "Package", render: (row) => row.package },
+  { cellClass: "text-xs", header: "File", render: (row) => <GitHubLink file={row.file} /> },
+  { cellClass: "text-xs", header: "Dependencies", render: (row) => joinOrDash(row.dependencies) },
+  { cellClass: "text-xs", header: "Consumes", render: (row) => joinOrDash(row.consumes) },
+];
+
+const SCHEMA_COLUMNS: Column<SchemaRow>[] = [
+  {
+    header: "Schema",
+    render: (row) => <Anchor id={slugify(`${row.package}-${row.name}`)}>{row.name}</Anchor>,
+  },
+  { cellClass: "text-xs", header: "Package", render: (row) => row.package },
+  { cellClass: "text-xs", header: "File", render: (row) => <GitHubLink file={row.file} /> },
+];
+
+const DB_SCHEMA_COLUMNS: Column<DbSchemaRow>[] = [
+  {
+    header: "Table / Enum",
+    render: (row) => <Anchor id={slugify(row.tableName)}>{row.tableName}</Anchor>,
+  },
+  { cellClass: "text-xs", header: "Variable", render: (row) => row.name },
+  { cellClass: "text-xs", header: "Kind", render: (row) => row.kind },
+  { cellClass: "text-xs", header: "Package", render: (row) => row.package },
+  { cellClass: "text-xs", header: "File", render: (row) => <GitHubLink file={row.file} /> },
+];
+
+const WORKFLOW_COLUMNS: Column<WorkflowRow>[] = [
+  {
+    header: "Workflow",
+    render: (row) => <Anchor id={slugify(row.name)}>{row.name}</Anchor>,
+  },
+  { cellClass: "text-xs", header: "Package", render: (row) => row.package },
+  { cellClass: "text-xs", header: "Export", render: (row) => orDash(row.exportName ?? "") },
+  { cellClass: "text-xs", header: "File", render: (row) => <GitHubLink file={row.file} /> },
+];
+
+const WORKFLOW_STEP_COLUMNS: Column<WorkflowStepRow>[] = [
+  {
+    header: "Step",
+    render: (row) => <Anchor id={slugify(row.name)}>{row.name}</Anchor>,
+  },
+  { cellClass: "text-xs", header: "Package", render: (row) => row.package },
+  { cellClass: "text-xs", header: "Export", render: (row) => orDash(row.exportName ?? "") },
+  { cellClass: "text-xs", header: "File", render: (row) => <GitHubLink file={row.file} /> },
+];
+
+const EVENT_COLUMNS: Column<EventRow>[] = [
+  {
+    header: "Topic",
+    render: (row) => <Anchor id={slugify(row.topic)}>{row.topic}</Anchor>,
+  },
+  { cellClass: "text-xs", header: "Package", render: (row) => row.package },
+  { cellClass: "text-xs", header: "Constant", render: (row) => row.constant },
+  { cellClass: "text-xs", header: "File", render: (row) => <GitHubLink file={row.file} /> },
+];
+
+const TABLES = {
+  "db-schemas": {
+    render: (data) => (
+      <DataTable
+        columns={DB_SCHEMA_COLUMNS}
+        getAnchor={(row) => slugify(row.tableName)}
+        getKey={(row) => `${row.package}:${row.tableName}:${row.name}`}
+        rows={data.dbSchemas}
+      />
+    ),
+  },
+  events: {
+    render: (data) => (
+      <DataTable
+        columns={EVENT_COLUMNS}
+        getAnchor={(row) => slugify(row.topic)}
+        getKey={(row) => `${row.package}:${row.topic}`}
+        rows={data.events}
+      />
+    ),
+  },
+  modules: {
+    render: (data) => (
+      <DataTable
+        columns={MODULE_COLUMNS}
+        getAnchor={(row) => slugify(row.name)}
+        getKey={(row) => `${row.package}:${row.name}`}
+        rows={data.modules}
+      />
+    ),
+  },
+  schemas: {
+    render: (data) => (
+      <DataTable
+        columns={SCHEMA_COLUMNS}
+        getAnchor={(row) => slugify(`${row.package}-${row.name}`)}
+        getKey={(row) => `${row.package}:${row.name}:${row.file}`}
+        rows={data.schemas}
+      />
+    ),
+  },
+  "workflow-steps": {
+    render: (data) => (
+      <DataTable
+        columns={WORKFLOW_STEP_COLUMNS}
+        getAnchor={(row) => slugify(row.name)}
+        getKey={(row) => `${row.package}:${row.name}:${row.file}`}
+        rows={data.workflowSteps}
+      />
+    ),
+  },
+  workflows: {
+    render: (data) => (
+      <DataTable
+        columns={WORKFLOW_COLUMNS}
+        getAnchor={(row) => slugify(row.name)}
+        getKey={(row) => `${row.package}:${row.name}:${row.file}`}
+        rows={data.workflows}
+      />
+    ),
+  },
+} satisfies Record<ContentSlug, { render: (data: RefData) => ReactElement }>;
 
 function RefPage() {
   const { slug } = Route.useLoaderData();
@@ -89,22 +315,15 @@ function RefPage() {
         </div>
 
         <div className="mb-2 text-sm text-fd-muted-foreground">
-          Generated at {new Date(refData.generatedAt).toLocaleString()} — {refData.modules.length}{" "}
-          modules, {refData.schemas.length} schemas, {refData.dbSchemas.length} db schemas,{" "}
-          {refData.workflows.length} workflows, {refData.workflowSteps.length} steps,{" "}
-          {refData.events.length} events.
+          {refData.modules.length} modules, {refData.schemas.length} schemas,{" "}
+          {refData.dbSchemas.length} db schemas, {refData.workflows.length} workflows,{" "}
+          {refData.workflowSteps.length} steps, {refData.events.length} events.
           <span className="ml-2">
-            Source: <code>docs/.generated/ref.json</code> via <code>scripts/generate-ref.ts</code>
+            Source: generated at build time via <code>scripts/generate-ref.ts</code>
           </span>
         </div>
 
-        {slug === "" ? <Overview /> : null}
-        {slug === "modules" ? <ModulesTable data={refData} /> : null}
-        {slug === "schemas" ? <SchemasTable data={refData} /> : null}
-        {slug === "db-schemas" ? <DbSchemasTable data={refData} /> : null}
-        {slug === "workflows" ? <WorkflowsTable data={refData} /> : null}
-        {slug === "workflow-steps" ? <WorkflowStepsTable data={refData} /> : null}
-        {slug === "events" ? <EventsTable data={refData} /> : null}
+        {slug === "" ? <Overview /> : TABLES[slug].render(refData)}
       </div>
     </div>
   );
@@ -119,320 +338,20 @@ function Overview() {
         section:
       </p>
       <ul>
-        {TABS.filter((entry) => entry.slug !== "").map((tab) => (
+        {CONTENT_TABS.map((tab) => (
           <li key={tab.slug}>
             <Link className="underline" params={{ _splat: tab.slug }} to="/ref/$">
               {tab.label}
             </Link>{" "}
-            — {describeTab(tab.slug)}
+            — {tab.blurb(refData)}
           </li>
         ))}
       </ul>
       <p className="text-sm text-fd-muted-foreground">
         Endpoint: <code>{REF_ROUTE}/*</code>. Each table row is anchored (e.g.{" "}
-        <code>{REF_ROUTE}/workflows#task.create</code>). Data source is{" "}
-        <code>docs/.generated/ref.json</code> (committed, verified with{" "}
-        <code>bun run gen:ref --check</code>).
+        <code>{REF_ROUTE}/workflows#task.create</code>). Data source is generated at build time
+        (gitignored, verified with <code>bun run gen:ref --check</code>).
       </p>
     </div>
-  );
-}
-
-function describeTab(slug: string): string {
-  switch (slug) {
-    case "modules": {
-      return `${refData.modules.length} modules from packages/*/src/module.ts`;
-    }
-    case "schemas": {
-      return `${refData.schemas.length} Valibot schemas from packages/*/src/schemas/**/*.ts`;
-    }
-    case "db-schemas": {
-      return `${refData.dbSchemas.length} Drizzle tables/enums from packages/*/src/db-schemas/**/*.ts`;
-    }
-    case "workflows": {
-      return `${refData.workflows.length} Workflow.name(...) from packages/*/src/workflows/**/*.ts`;
-    }
-    case "workflow-steps": {
-      return `${refData.workflowSteps.length} WorkflowStep.name(...) from packages/*/src/workflow-steps/**/*.ts`;
-    }
-    case "events": {
-      return `${refData.events.length} topics from packages/*/src/pubsub.ts`;
-    }
-    default: {
-      return "";
-    }
-  }
-}
-
-function TableWrapper({ children }: { children: React.ReactNode }) {
-  return <div className="overflow-x-auto rounded-lg border">{children}</div>;
-}
-
-function ModulesTable({ data }: { data: RefData }) {
-  return (
-    <TableWrapper>
-      <table className="w-full text-sm">
-        <thead className="bg-fd-muted/50 text-left">
-          <tr>
-            <th className="px-3 py-2">Module ($name)</th>
-            <th className="px-3 py-2">Package</th>
-            <th className="px-3 py-2">File</th>
-            <th className="px-3 py-2">Dependencies</th>
-            <th className="px-3 py-2">Consumes</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.modules.map((mod) => (
-            <tr key={`${mod.package}:${mod.name}`} className="border-t" id={slugify(mod.name)}>
-              <td className="px-3 py-2 font-mono">
-                <a className="underline decoration-dotted" href={`#${slugify(mod.name)}`}>
-                  {mod.name}
-                </a>
-              </td>
-              <td className="px-3 py-2 font-mono text-xs">{mod.package}</td>
-              <td className="px-3 py-2 font-mono text-xs">
-                <a
-                  className="underline"
-                  href={githubUrl(mod.file)}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  {mod.file}
-                </a>
-              </td>
-              <td className="px-3 py-2 font-mono text-xs">
-                {mod.dependencies.length > 0 ? mod.dependencies.join(", ") : "—"}
-              </td>
-              <td className="px-3 py-2 font-mono text-xs">
-                {mod.consumes.length > 0 ? mod.consumes.join(", ") : "—"}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </TableWrapper>
-  );
-}
-
-function SchemasTable({ data }: { data: RefData }) {
-  return (
-    <TableWrapper>
-      <table className="w-full text-sm">
-        <thead className="bg-fd-muted/50 text-left">
-          <tr>
-            <th className="px-3 py-2">Schema</th>
-            <th className="px-3 py-2">Package</th>
-            <th className="px-3 py-2">File</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.schemas.map((schemaEntry) => (
-            <tr
-              key={`${schemaEntry.package}:${schemaEntry.name}:${schemaEntry.file}`}
-              className="border-t"
-              id={slugify(`${schemaEntry.package}-${schemaEntry.name}`)}
-            >
-              <td className="px-3 py-2 font-mono">
-                <a
-                  className="underline decoration-dotted"
-                  href={`#${slugify(`${schemaEntry.package}-${schemaEntry.name}`)}`}
-                >
-                  {schemaEntry.name}
-                </a>
-              </td>
-              <td className="px-3 py-2 font-mono text-xs">{schemaEntry.package}</td>
-              <td className="px-3 py-2 font-mono text-xs">
-                <a
-                  className="underline"
-                  href={githubUrl(schemaEntry.file)}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  {schemaEntry.file}
-                </a>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </TableWrapper>
-  );
-}
-
-function DbSchemasTable({ data }: { data: RefData }) {
-  return (
-    <TableWrapper>
-      <table className="w-full text-sm">
-        <thead className="bg-fd-muted/50 text-left">
-          <tr>
-            <th className="px-3 py-2">Table / Enum</th>
-            <th className="px-3 py-2">Variable</th>
-            <th className="px-3 py-2">Kind</th>
-            <th className="px-3 py-2">Package</th>
-            <th className="px-3 py-2">File</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.dbSchemas.map((dbSchema) => (
-            <tr
-              key={`${dbSchema.package}:${dbSchema.tableName}:${dbSchema.name}`}
-              className="border-t"
-              id={slugify(dbSchema.tableName)}
-            >
-              <td className="px-3 py-2 font-mono">
-                <a className="underline decoration-dotted" href={`#${slugify(dbSchema.tableName)}`}>
-                  {dbSchema.tableName}
-                </a>
-              </td>
-              <td className="px-3 py-2 font-mono text-xs">{dbSchema.name}</td>
-              <td className="px-3 py-2 text-xs">{dbSchema.kind}</td>
-              <td className="px-3 py-2 font-mono text-xs">{dbSchema.package}</td>
-              <td className="px-3 py-2 font-mono text-xs">
-                <a
-                  className="underline"
-                  href={githubUrl(dbSchema.file)}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  {dbSchema.file}
-                </a>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </TableWrapper>
-  );
-}
-
-function WorkflowsTable({ data }: { data: RefData }) {
-  return (
-    <TableWrapper>
-      <table className="w-full text-sm">
-        <thead className="bg-fd-muted/50 text-left">
-          <tr>
-            <th className="px-3 py-2">Workflow</th>
-            <th className="px-3 py-2">Package</th>
-            <th className="px-3 py-2">Export</th>
-            <th className="px-3 py-2">File</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.workflows.map((workflow) => (
-            <tr
-              key={`${workflow.package}:${workflow.name}:${workflow.file}`}
-              className="border-t"
-              id={slugify(workflow.name)}
-            >
-              <td className="px-3 py-2 font-mono">
-                <a className="underline decoration-dotted" href={`#${slugify(workflow.name)}`}>
-                  {workflow.name}
-                </a>
-              </td>
-              <td className="px-3 py-2 font-mono text-xs">{workflow.package}</td>
-              <td className="px-3 py-2 font-mono text-xs">{workflow.exportName ?? "—"}</td>
-              <td className="px-3 py-2 font-mono text-xs">
-                <a
-                  className="underline"
-                  href={githubUrl(workflow.file)}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  {workflow.file}
-                </a>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </TableWrapper>
-  );
-}
-
-function WorkflowStepsTable({ data }: { data: RefData }) {
-  return (
-    <TableWrapper>
-      <table className="w-full text-sm">
-        <thead className="bg-fd-muted/50 text-left">
-          <tr>
-            <th className="px-3 py-2">Step</th>
-            <th className="px-3 py-2">Package</th>
-            <th className="px-3 py-2">Export</th>
-            <th className="px-3 py-2">File</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.workflowSteps.map((step) => (
-            <tr
-              key={`${step.package}:${step.name}:${step.file}`}
-              className="border-t"
-              id={slugify(step.name)}
-            >
-              <td className="px-3 py-2 font-mono">
-                <a className="underline decoration-dotted" href={`#${slugify(step.name)}`}>
-                  {step.name}
-                </a>
-              </td>
-              <td className="px-3 py-2 font-mono text-xs">{step.package}</td>
-              <td className="px-3 py-2 font-mono text-xs">{step.exportName ?? "—"}</td>
-              <td className="px-3 py-2 font-mono text-xs">
-                <a
-                  className="underline"
-                  href={githubUrl(step.file)}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  {step.file}
-                </a>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </TableWrapper>
-  );
-}
-
-function EventsTable({ data }: { data: RefData }) {
-  return (
-    <TableWrapper>
-      <table className="w-full text-sm">
-        <thead className="bg-fd-muted/50 text-left">
-          <tr>
-            <th className="px-3 py-2">Topic</th>
-            <th className="px-3 py-2">Package</th>
-            <th className="px-3 py-2">Constant</th>
-            <th className="px-3 py-2">File</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.events.map((eventEntry) => (
-            <tr
-              key={`${eventEntry.package}:${eventEntry.topic}`}
-              className="border-t"
-              id={slugify(eventEntry.topic)}
-            >
-              <td className="px-3 py-2 font-mono">
-                <a className="underline decoration-dotted" href={`#${slugify(eventEntry.topic)}`}>
-                  {eventEntry.topic}
-                </a>
-              </td>
-              <td className="px-3 py-2 font-mono text-xs">{eventEntry.package}</td>
-              <td className="px-3 py-2 font-mono text-xs">{eventEntry.constant}</td>
-              <td className="px-3 py-2 font-mono text-xs">
-                <a
-                  className="underline"
-                  href={githubUrl(eventEntry.file)}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  {eventEntry.file}
-                </a>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </TableWrapper>
   );
 }

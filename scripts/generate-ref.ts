@@ -7,123 +7,249 @@ import fg from "fast-glob";
 
 const ROOT = resolve(import.meta.dir, "..");
 const OUTPUT_PATH = join(ROOT, "docs/.generated/ref.json");
+const SRC_OUTPUT_PATH = join(ROOT, "docs/src/lib/generated/ref.json");
 const CHECK_FLAG = process.argv.includes("--check");
 
-interface ModuleEntry {
+interface FileEntry {
+  file: string;
+  package: string;
+}
+
+interface ModuleEntry extends FileEntry {
   consumes: string[];
   dependencies: string[];
-  file: string;
   name: string;
-  package: string;
 }
 
-interface SchemaEntry {
-  file: string;
+interface SchemaEntry extends FileEntry {
   name: string;
-  package: string;
 }
 
-interface DbSchemaEntry {
-  file: string;
+interface DbSchemaEntry extends FileEntry {
   kind: "enum" | "table";
   name: string;
-  package: string;
   tableName: string;
 }
 
-interface WorkflowEntry {
+interface WorkflowEntry extends FileEntry {
   exportName: string | null;
-  file: string;
   name: string;
-  package: string;
 }
 
-interface WorkflowStepEntry {
+interface WorkflowStepEntry extends FileEntry {
   exportName: string | null;
-  file: string;
   name: string;
-  package: string;
 }
 
-interface EventEntry {
+interface EventEntry extends FileEntry {
   constant: string;
-  file: string;
   group: string;
-  package: string;
   topic: string;
 }
 
 interface RefData {
   dbSchemas: DbSchemaEntry[];
   events: EventEntry[];
-  generatedAt: string;
   modules: ModuleEntry[];
   schemas: SchemaEntry[];
   workflowSteps: WorkflowStepEntry[];
   workflows: WorkflowEntry[];
 }
 
+interface FileContext {
+  file: string;
+  packageName: string;
+}
+
 function toPosix(path: string): string {
-  return path.split("/").join("/").replaceAll("\\", "/");
+  return path.replaceAll("\\", "/");
+}
+
+function packageDirOf(file: string): string {
+  return file.split("/").slice(0, 2).join("/");
 }
 
 function extractQuotedStrings(input: string): string[] {
-  const matches = [...input.matchAll(/["']([^"']+)["']/g)];
-  return matches.map((m) => m[1] ?? "").filter(Boolean);
+  const out: string[] = [];
+  for (const match of input.matchAll(/["']([^"']+)["']/g)) {
+    const value = match[1];
+    if (value) {
+      out.push(value);
+    }
+  }
+  return out;
+}
+
+function readPackageName(pkgDir: string, content: string): string {
+  // SAFETY: package.json is external JSON; we only read its optional name field.
+  const parsed = JSON.parse(content) as { name?: string };
+  return parsed.name ? parsed.name : pkgDir;
+}
+
+async function getPackageName(pkgDir: string): Promise<string> {
+  try {
+    return readPackageName(pkgDir, await readFile(join(ROOT, pkgDir, "package.json"), "utf8"));
+  } catch {
+    return pkgDir;
+  }
+}
+
+function dedupeBy<T>(entries: T[], keyOf: (entry: T) => string): T[] {
+  const seen = new Set<string>();
+  return entries.filter((entry) => {
+    const key = keyOf(entry);
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
+
+async function collect<T>(
+  pattern: string,
+  parse: (content: string, ctx: FileContext) => T[],
+  compare: (a: T, b: T) => number,
+  keyOf?: (entry: T) => string,
+): Promise<T[]> {
+  const files = await fg(pattern, { absolute: false, cwd: ROOT });
+  const entries: T[] = [];
+  for (const file of files) {
+    const content = await readFile(join(ROOT, file), "utf8");
+    const ctx: FileContext = {
+      file: toPosix(file),
+      packageName: await getPackageName(packageDirOf(file)),
+    };
+    entries.push(...parse(content, ctx));
+  }
+  entries.sort(compare);
+  return keyOf ? dedupeBy(entries, keyOf) : entries;
+}
+
+function firstCapture(content: string, pattern: RegExp): string | null {
+  const match = pattern.exec(content);
+  const value = match?.[1];
+  return value ?? null;
+}
+
+function allCaptures(content: string, pattern: RegExp): string[] {
+  const out: string[] = [];
+  for (const match of content.matchAll(pattern)) {
+    const value = match[1];
+    if (value) {
+      out.push(value);
+    }
+  }
+  return out;
+}
+
+function parseModule(content: string, ctx: FileContext): ModuleEntry[] {
+  const name = firstCapture(content, /readonly\s+\$name\s*=\s*["']([^"']+)["']/) ?? ctx.packageName;
+  const dependencies = extractQuotedStrings(
+    firstCapture(content, /readonly\s+\$dependencies\s*=\s*\[([^\]]*)\]/s) ?? "",
+  );
+  const consumes = extractQuotedStrings(
+    firstCapture(content, /\$consumes\s*=\s*\[([^\]]*)\]/s) ?? "",
+  );
+  return [{ consumes, dependencies, file: ctx.file, name, package: ctx.packageName }];
+}
+
+function parseSchemas(content: string, ctx: FileContext): SchemaEntry[] {
+  return allCaptures(content, /export\s+(?:const\s+)?(\w+Schema)\b/g).map((name) => ({
+    file: ctx.file,
+    name,
+    package: ctx.packageName,
+  }));
+}
+
+const DB_DECLARATIONS = [
+  { kind: "table", pattern: /export\s+const\s+(\w+)\s*=\s*pgTable\(\s*["']([^"']+)["']/g },
+  { kind: "enum", pattern: /export\s+const\s+(\w+)\s*=\s*pgEnum\(\s*["']([^"']+)["']/g },
+] as const;
+
+function parseDbSchemas(content: string, ctx: FileContext): DbSchemaEntry[] {
+  const entries: DbSchemaEntry[] = [];
+  for (const { kind, pattern } of DB_DECLARATIONS) {
+    for (const match of content.matchAll(pattern)) {
+      const name = match[1];
+      const tableName = match[2];
+      if (name && tableName) {
+        entries.push({ file: ctx.file, kind, name, package: ctx.packageName, tableName });
+      }
+    }
+  }
+  return entries;
+}
+
+interface NamedCalls {
+  exportName: string | null;
+  names: string[];
+}
+
+function parseNamedCalls(fnLabel: string, content: string): NamedCalls {
+  const names = allCaptures(
+    content,
+    new RegExp(`${fnLabel}\\.name\\(\\s*["']([^"']+)["']\\s*\\)`, "g"),
+  );
+  if (names.length === 0) {
+    return { exportName: null, names: [] };
+  }
+  const exportName = firstCapture(
+    content,
+    new RegExp(`export\\s+const\\s+(\\w+)\\s*=\\s*${fnLabel}\\.name`),
+  );
+  return { exportName, names };
+}
+
+function parseWorkflows(content: string, ctx: FileContext): WorkflowEntry[] {
+  const { exportName, names } = parseNamedCalls("Workflow", content);
+  return names.map((name) => ({ exportName, file: ctx.file, name, package: ctx.packageName }));
+}
+
+function parseWorkflowSteps(content: string, ctx: FileContext): WorkflowStepEntry[] {
+  const { exportName, names } = parseNamedCalls("WorkflowStep", content);
+  return names.map((name) => ({ exportName, file: ctx.file, name, package: ctx.packageName }));
+}
+
+function parseEvents(content: string, ctx: FileContext): EventEntry[] {
+  const entries: EventEntry[] = [];
+  for (const block of content.matchAll(
+    /export\s+const\s+(\w+)\s*=\s*\{([\s\S]*?)\}\s*as\s+const/g,
+  )) {
+    const group = block[1];
+    const body = block[2];
+    if (!group || !group.endsWith("_EVENTS") || !body) {
+      continue;
+    }
+    for (const match of body.matchAll(/(\w+)\s*:\s*["']([^"']+)["']/g)) {
+      const constant = match[1];
+      const topic = match[2];
+      if (constant && topic?.includes(":")) {
+        entries.push({
+          constant: `${group}.${constant}`,
+          file: ctx.file,
+          group,
+          package: ctx.packageName,
+          topic,
+        });
+      }
+    }
+  }
+  return entries;
 }
 
 async function collectModules(): Promise<ModuleEntry[]> {
-  const files = await fg("packages/*/src/module.ts", { absolute: false, cwd: ROOT });
-  const entries: ModuleEntry[] = [];
-  for (const file of files) {
-    const full = join(ROOT, file);
-    const content = await readFile(full, "utf8");
-    const pkgDir = file.split("/").slice(0, 2).join("/");
-    const pkgJsonPath = join(ROOT, pkgDir, "package.json");
-    let pkgName = pkgDir;
-    try {
-      // SAFETY: package.json is JSON with optional name field; cast narrows to expected shape after parse.
-      const pkgJson = JSON.parse(await readFile(pkgJsonPath, "utf8")) as { name?: string };
-      if (pkgJson.name) {
-        pkgName = pkgJson.name;
-      }
-    } catch {
-      // ignore
-    }
-    const nameMatch = /readonly\s+\$name\s*=\s*["']([^"']+)["']/.exec(content);
-    const name = nameMatch?.[1] ?? pkgName;
-    const depsMatch = /readonly\s+\$dependencies\s*=\s*\[([^\]]*)\]/s.exec(content);
-    const dependencies = depsMatch ? extractQuotedStrings(depsMatch[1] ?? "") : [];
-    const consumesMatch = /readonly\s+\$consumes\s*=\s*\[([^\]]*)\]/s.exec(content);
-    const consumes = consumesMatch ? extractQuotedStrings(consumesMatch[1] ?? "") : [];
-    // also handle $consumes defined as static? fallback to search for $consumes anywhere
-    let extraConsumes: string[] = [];
-    if (!consumesMatch) {
-      const alt = /\$consumes[^[]*\[([^\]]*)\]/s.exec(content);
-      if (alt) {
-        extraConsumes = extractQuotedStrings(alt[1] ?? "");
-      }
-    }
-    entries.push({
-      consumes: consumes.length > 0 ? consumes : extraConsumes,
-      dependencies,
-      file: toPosix(file),
-      name,
-      package: pkgName,
-    });
-  }
-  // also include packages without module.ts as stub entries (no special processing)
+  const entries = await collect("packages/*/src/module.ts", parseModule, (a, b) =>
+    a.package.localeCompare(b.package),
+  );
+  const known = new Set(entries.map((entry) => packageDirOf(entry.file)));
   const pkgFiles = await fg("packages/*/package.json", { absolute: false, cwd: ROOT });
   for (const pkgFile of pkgFiles) {
-    const pkgDir = pkgFile.split("/").slice(0, 2).join("/");
-    const moduleFile = `${pkgDir}/src/module.ts`;
-    if (files.includes(moduleFile)) {
+    const pkgDir = packageDirOf(pkgFile);
+    if (known.has(pkgDir)) {
       continue;
     }
-    const full = join(ROOT, pkgFile);
-    // SAFETY: package.json shape is unknown after JSON.parse; name is optional string we read if present.
-    const pkgJson = JSON.parse(await readFile(full, "utf8")) as { name?: string };
-    const pkgName = pkgJson.name ?? pkgDir;
+    const pkgName = await getPackageName(pkgDir);
     entries.push({
       consumes: [],
       dependencies: [],
@@ -136,190 +262,52 @@ async function collectModules(): Promise<ModuleEntry[]> {
   return entries;
 }
 
-async function collectSchemas(): Promise<SchemaEntry[]> {
-  const files = await fg("packages/*/src/schemas/**/*.ts", { absolute: false, cwd: ROOT });
-  const entries: SchemaEntry[] = [];
-  for (const file of files) {
-    const content = await readFile(join(ROOT, file), "utf8");
-    const pkgName = await getPackageName(file);
-    // export const FooSchema
-    for (const m of content.matchAll(/export\s+(?:const\s+)?(\w+Schema)\b/g)) {
-      const name = m[1];
-      if (!name) {
-        continue;
-      }
-      entries.push({ file: toPosix(file), name, package: pkgName });
-    }
-    // also capture re-exported schemas via export { FooSchema } — already covered if source file defines, but handle index re-exports that don't define const
-    // Parse export { A, B } from "#/schemas/..." — we skip since those are re-exports, definitions already captured
-  }
-  entries.sort(
+function collectSchemas(): Promise<SchemaEntry[]> {
+  return collect(
+    "packages/*/src/schemas/**/*.ts",
+    parseSchemas,
     (a, b) =>
       a.package.localeCompare(b.package) ||
       a.name.localeCompare(b.name) ||
       a.file.localeCompare(b.file),
+    (entry) => `${entry.package}:${entry.name}:${entry.file}`,
   );
-  // deduplicate by package+name+file
-  const seen = new Set<string>();
-  const dedup: SchemaEntry[] = [];
-  for (const e of entries) {
-    const key = `${e.package}:${e.name}:${e.file}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      dedup.push(e);
-    }
-  }
-  return dedup;
 }
 
-async function collectDbSchemas(): Promise<DbSchemaEntry[]> {
-  const files = await fg("packages/*/src/db-schemas/**/*.ts", { absolute: false, cwd: ROOT });
-  const entries: DbSchemaEntry[] = [];
-  for (const file of files) {
-    const content = await readFile(join(ROOT, file), "utf8");
-    const pkgName = await getPackageName(file);
-    for (const m of content.matchAll(
-      /export\s+const\s+(\w+)\s*=\s*pgTable\(\s*["']([^"']+)["']/g,
-    )) {
-      const name = m[1];
-      const tableName = m[2];
-      if (!name || !tableName) {
-        continue;
-      }
-      entries.push({ file: toPosix(file), kind: "table", name, package: pkgName, tableName });
-    }
-    for (const m of content.matchAll(/export\s+const\s+(\w+)\s*=\s*pgEnum\(\s*["']([^"']+)["']/g)) {
-      const name = m[1];
-      const tableName = m[2];
-      if (!name || !tableName) {
-        continue;
-      }
-      entries.push({ file: toPosix(file), kind: "enum", name, package: pkgName, tableName });
-    }
-  }
-  entries.sort(
+function collectDbSchemas(): Promise<DbSchemaEntry[]> {
+  return collect(
+    "packages/*/src/db-schemas/**/*.ts",
+    parseDbSchemas,
     (a, b) =>
       a.package.localeCompare(b.package) ||
       a.tableName.localeCompare(b.tableName) ||
       a.name.localeCompare(b.name),
   );
-  return entries;
 }
 
-async function collectWorkflows(): Promise<WorkflowEntry[]> {
-  const files = await fg("packages/*/src/workflows/**/*.ts", { absolute: false, cwd: ROOT });
-  const entries: WorkflowEntry[] = [];
-  for (const file of files) {
-    const content = await readFile(join(ROOT, file), "utf8");
-    const pkgName = await getPackageName(file);
-    const workflowNames = [...content.matchAll(/Workflow\.name\(\s*["']([^"']+)["']\s*\)/g)].map(
-      (m) => m[1] ?? "",
-    );
-    if (workflowNames.length === 0) {
-      continue;
-    }
-    // capture export name
-    const exportMatch = /export\s+const\s+(\w+)\s*=\s*Workflow\.name/.exec(content);
-    const exportName = exportMatch?.[1] ?? null;
-    for (const name of workflowNames) {
-      if (!name) {
-        continue;
-      }
-      entries.push({ exportName, file: toPosix(file), name, package: pkgName });
-    }
-  }
-  entries.sort((a, b) => a.name.localeCompare(b.name) || a.package.localeCompare(b.package));
-  return entries;
+function collectWorkflows(): Promise<WorkflowEntry[]> {
+  return collect(
+    "packages/*/src/workflows/**/*.ts",
+    parseWorkflows,
+    (a, b) => a.name.localeCompare(b.name) || a.package.localeCompare(b.package),
+  );
 }
 
-async function collectWorkflowSteps(): Promise<WorkflowStepEntry[]> {
-  const files = await fg("packages/*/src/workflow-steps/**/*.ts", { absolute: false, cwd: ROOT });
-  const entries: WorkflowStepEntry[] = [];
-  for (const file of files) {
-    const content = await readFile(join(ROOT, file), "utf8");
-    const pkgName = await getPackageName(file);
-    const stepNames = [...content.matchAll(/WorkflowStep\.name\(\s*["']([^"']+)["']\s*\)/g)].map(
-      (m) => m[1] ?? "",
-    );
-    if (stepNames.length === 0) {
-      continue;
-    }
-    const exportMatch = /export\s+const\s+(\w+)\s*=\s*WorkflowStep\.name/.exec(content);
-    const exportName = exportMatch?.[1] ?? null;
-    // Also handle dynamic helper: return WorkflowStep.name(stepName) — skip those generic ones without literal
-    for (const name of stepNames) {
-      if (!name) {
-        continue;
-      }
-      // Skip generic stepName variable references that are not literals? Our regex only captures quoted literals, so it's fine
-      entries.push({ exportName, file: toPosix(file), name, package: pkgName });
-    }
-  }
-  // Some workflow steps use variable stepName param — they will be caught as literal? Already filtered.
-  // Also check for steps defined via WorkflowStep.name("...").handler in workflows? but those are workflows not steps — we only scan workflow-steps dir
-  entries.sort((a, b) => a.name.localeCompare(b.name) || a.package.localeCompare(b.package));
-  // deduplicate by name+package+file (some files define multiple steps via helper)
-  const seen = new Set<string>();
-  const dedup: WorkflowStepEntry[] = [];
-  for (const e of entries) {
-    const key = `${e.package}:${e.name}:${e.file}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      dedup.push(e);
-    }
-  }
-  return dedup;
+function collectWorkflowSteps(): Promise<WorkflowStepEntry[]> {
+  return collect(
+    "packages/*/src/workflow-steps/**/*.ts",
+    parseWorkflowSteps,
+    (a, b) => a.name.localeCompare(b.name) || a.package.localeCompare(b.package),
+    (entry) => `${entry.package}:${entry.name}:${entry.file}`,
+  );
 }
 
-async function collectEvents(): Promise<EventEntry[]> {
-  const files = await fg("packages/*/src/pubsub.ts", { absolute: false, cwd: ROOT });
-  const entries: EventEntry[] = [];
-  for (const file of files) {
-    const content = await readFile(join(ROOT, file), "utf8");
-    const pkgName = await getPackageName(file);
-    // Find const blocks like export const TASK_EVENTS = { ... } as const
-    const blocks = [
-      ...content.matchAll(/export\s+const\s+(\w+)\s*=\s*\{([\s\S]*?)\}\s*as\s+const/g),
-    ];
-    for (const block of blocks) {
-      const group = block[1] ?? "";
-      const body = block[2] ?? "";
-      if (!group.endsWith("_EVENTS")) {
-        continue;
-      }
-      for (const m of body.matchAll(/(\w+)\s*:\s*["']([^"']+)["']/g)) {
-        const constant = m[1] ?? "";
-        const topic = m[2] ?? "";
-        if (!topic.includes(":")) {
-          continue;
-        }
-        entries.push({
-          constant: `${group}.${constant}`,
-          file: toPosix(file),
-          group,
-          package: pkgName,
-          topic,
-        });
-      }
-    }
-    // Fallback: generic topic strings "domain:event" in file even if not in EVENTS const
-    // We already captured the canonical ones; no need for fallback.
-  }
-  entries.sort((a, b) => a.topic.localeCompare(b.topic) || a.package.localeCompare(b.package));
-  return entries;
-}
-
-async function getPackageName(file: string): Promise<string> {
-  const pkgDir = file.split("/").slice(0, 2).join("/");
-  try {
-    // SAFETY: package.json is external JSON; we only read optional name field, cast is safe after parse.
-    const pkgJson = JSON.parse(await readFile(join(ROOT, pkgDir, "package.json"), "utf8")) as {
-      name?: string;
-    };
-    return pkgJson.name ?? pkgDir;
-  } catch {
-    return pkgDir;
-  }
+function collectEvents(): Promise<EventEntry[]> {
+  return collect(
+    "packages/*/src/pubsub.ts",
+    parseEvents,
+    (a, b) => a.topic.localeCompare(b.topic) || a.package.localeCompare(b.package),
+  );
 }
 
 async function main() {
@@ -332,16 +320,7 @@ async function main() {
     collectEvents(),
   ]);
 
-  const data: RefData = {
-    dbSchemas,
-    events,
-    generatedAt: new Date().toISOString(),
-    modules,
-    schemas,
-    workflowSteps,
-    workflows,
-  };
-
+  const data: RefData = { dbSchemas, events, modules, schemas, workflowSteps, workflows };
   const json = `${JSON.stringify(data, null, 2)}\n`;
 
   if (CHECK_FLAG) {
@@ -352,12 +331,7 @@ async function main() {
       console.error(`Missing ${relative(ROOT, OUTPUT_PATH)} — run bun run gen:ref`);
       process.exit(1);
     }
-    // Compare without generatedAt for stability
-    // SAFETY: JSON.parse of ref.json produces RefData shape; validated by generator output.
-    const parseExisting = JSON.parse(existing) as RefData;
-    const normalizedExisting = { ...parseExisting, generatedAt: "" };
-    const normalizedNext = { ...data, generatedAt: "" };
-    if (JSON.stringify(normalizedExisting) !== JSON.stringify(normalizedNext)) {
+    if (existing !== json) {
       console.error(`Out of date ${relative(ROOT, OUTPUT_PATH)} — run bun run gen:ref`);
       process.exit(1);
     }
@@ -365,12 +339,11 @@ async function main() {
     return;
   }
 
-  await mkdir(join(ROOT, "docs/.generated"), { recursive: true });
-  await writeFile(OUTPUT_PATH, json);
-  // Also write to src/lib/generated for bundler-friendly import (Cloudflare Workers have no fs)
-  const srcGenerated = join(ROOT, "docs/src/lib/generated/ref.json");
-  await mkdir(join(ROOT, "docs/src/lib/generated"), { recursive: true });
-  await writeFile(srcGenerated, json);
+  await Promise.all([
+    mkdir(join(ROOT, "docs/.generated"), { recursive: true }),
+    mkdir(join(ROOT, "docs/src/lib/generated"), { recursive: true }),
+  ]);
+  await Promise.all([writeFile(OUTPUT_PATH, json), writeFile(SRC_OUTPUT_PATH, json)]);
   console.log(`Generated ${relative(ROOT, OUTPUT_PATH)}`);
   console.log(
     `  modules=${modules.length} schemas=${schemas.length} dbSchemas=${dbSchemas.length} workflows=${workflows.length} steps=${workflowSteps.length} events=${events.length}`,
