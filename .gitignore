@@ -23,8 +23,5 @@ worker-configuration.d.ts
 
 codedb.snapshot
 
-docs/.generated/ref.json
-docs/src/lib/generated/ref.json
-
 .claude/worktrees
 .claude/settings.local.json

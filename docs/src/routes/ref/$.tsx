@@ -1,5 +1,5 @@
+import refData from "#/../.generated/ref.json";
 import { REF_ROUTE } from "#/lib/constants";
-import refData from "#/lib/generated/ref.json";
 import { githubFileUrl, slugify, trimSlashes } from "#/lib/paths";
 
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
