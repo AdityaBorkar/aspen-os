@@ -37,7 +37,7 @@ export const markRunSchedule = Workflow.name("workspace.schedule.mark-run")
       action: AUDIT_ACTION.MARKED_RUN,
       crudAction: "update",
       entityId: parsed.id,
-      entityType: AUDIT_ENTITY_TYPE.SCHEDULE,
+      entityType: AUDIT_ENTITY_TYPE.DELIVERY_SCHEDULE,
       metadata: { dashboard_id: schedule.dashboard_id, error: parsed.error ?? null },
     });
 

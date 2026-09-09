@@ -27,13 +27,19 @@ export const OBLIGATION_FREQUENCY = {
 
 export type ObligationFrequency = (typeof OBLIGATION_FREQUENCY)[keyof typeof OBLIGATION_FREQUENCY];
 
-export const REMINDER_CHANNEL = {
+export const EXPIRY_POLICY_CHANNEL = {
   BOTH: "both",
   EMAIL: "email",
   PUBSUB: "pubsub",
 } as const;
 
-export type ReminderChannel = (typeof REMINDER_CHANNEL)[keyof typeof REMINDER_CHANNEL];
+export type ExpiryPolicyChannel =
+  (typeof EXPIRY_POLICY_CHANNEL)[keyof typeof EXPIRY_POLICY_CHANNEL];
+
+/** @deprecated Use EXPIRY_POLICY_CHANNEL — harmonized to expiry_policy_* */
+export const REMINDER_CHANNEL = EXPIRY_POLICY_CHANNEL;
+/** @deprecated Use ExpiryPolicyChannel */
+export type ReminderChannel = ExpiryPolicyChannel;
 
 export const AUDIT_ENTITY_TYPE = {
   COMPLIANCE_DOCUMENT: "document",
@@ -66,17 +72,25 @@ export const AUDIT_ACTION = {
 
 export type AuditAction = (typeof AUDIT_ACTION)[keyof typeof AUDIT_ACTION];
 
-export const DEFAULT_REMINDER_DAYS_EXPIRY = [90, 60, 30, 7];
-export const DEFAULT_REMINDER_DAYS_DUE = [30, 15, 7, 1];
+export const DEFAULT_EXPIRY_POLICY_DAYS_EXPIRY = [90, 60, 30, 7];
+export const DEFAULT_EXPIRY_POLICY_DAYS_DUE = [30, 15, 7, 1];
 export const DEFAULT_ESCALATION_DAYS = [1, 7, 30];
+
+/** @deprecated Use DEFAULT_EXPIRY_POLICY_DAYS_EXPIRY */
+export const DEFAULT_REMINDER_DAYS_EXPIRY = DEFAULT_EXPIRY_POLICY_DAYS_EXPIRY;
+/** @deprecated Use DEFAULT_EXPIRY_POLICY_DAYS_DUE */
+export const DEFAULT_REMINDER_DAYS_DUE = DEFAULT_EXPIRY_POLICY_DAYS_DUE;
 
 export const SYSTEM_ACTOR = "system";
 
 export const MAX_PERIODS_PER_RUN = 120;
 
-export function reminderDefaults(expiryBased: boolean | undefined): number[] {
-  return expiryBased ? DEFAULT_REMINDER_DAYS_EXPIRY : DEFAULT_REMINDER_DAYS_DUE;
+export function expiryPolicyDefaults(expiryBased: boolean | undefined): number[] {
+  return expiryBased ? DEFAULT_EXPIRY_POLICY_DAYS_EXPIRY : DEFAULT_EXPIRY_POLICY_DAYS_DUE;
 }
+
+/** @deprecated Use expiryPolicyDefaults */
+export const reminderDefaults = expiryPolicyDefaults;
 
 export const ACTIVE_DOCUMENT_STATUSES = [
   VERIFICATION_STATUS.DRAFT,

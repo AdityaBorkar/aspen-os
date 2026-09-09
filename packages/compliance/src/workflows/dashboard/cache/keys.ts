@@ -1,9 +1,9 @@
-export const DASHBOARD_SUMMARY_CACHE_KEY = "compliance:dashboard:summary";
-
-export function dashboardSummaryKey(branch?: string): string {
-  return branch ? `${DASHBOARD_SUMMARY_CACHE_KEY}:${branch}` : DASHBOARD_SUMMARY_CACHE_KEY;
-}
-
-export function dashboardSummaryPattern(): string {
-  return `${DASHBOARD_SUMMARY_CACHE_KEY}*`;
-}
+/** @deprecated Use workflows/summary/cache/keys.ts — harmonized Dashboard → Summary */
+export {
+  DASHBOARD_SUMMARY_CACHE_KEY,
+  SUMMARY_CACHE_KEY,
+  dashboardSummaryKey,
+  dashboardSummaryPattern,
+  summaryKey,
+  summaryPattern,
+} from "#/workflows/summary/cache/keys";

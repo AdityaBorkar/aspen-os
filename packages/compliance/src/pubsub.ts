@@ -116,7 +116,9 @@ export interface DocumentExpiringEvent {
   documentId: string;
   dueDate?: string | null;
   expiryDate?: string | null;
+  expiryPolicyDays?: number[] | null;
   recipient?: RecipientRef;
+  /** @deprecated Use expiryPolicyDays — harmonized */
   reminderDays?: number[] | null;
   snoozedUntil?: string | null;
   sourceEntityId?: string | null;
@@ -131,7 +133,9 @@ export interface DocumentDueEvent {
   documentId: string;
   dueDate?: string | null;
   expiryDate?: string | null;
+  expiryPolicyDays?: number[] | null;
   recipient?: RecipientRef;
+  /** @deprecated Use expiryPolicyDays */
   reminderDays?: number[] | null;
   snoozedUntil?: string | null;
   sourceEntityId?: string | null;

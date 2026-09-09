@@ -2,7 +2,7 @@ import { complianceDocument } from "#/db-schemas";
 import { COMPLIANCE_EVENTS } from "#/pubsub";
 import { CreateComplianceDocumentSchema } from "#/schemas";
 import type { CreateComplianceDocumentInput } from "#/schemas";
-import { DEFAULT_REMINDER_DAYS_EXPIRY, VERIFICATION_STATUS } from "#/utils/constants";
+import { DEFAULT_EXPIRY_POLICY_DAYS_EXPIRY, VERIFICATION_STATUS } from "#/utils/constants";
 import { toDbDate } from "#/workflows/document/shared";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -27,6 +27,9 @@ export function toDocumentInsertRow(
     effective_date: toDbDate(parsed.effectiveDate),
     escalation_days: parsed.escalationDays ?? null,
     expiry_date: toDbDate(parsed.expiryDate),
+    expiry_policy_channel: parsed.expiryPolicyChannel ?? parsed.reminderChannel ?? "pubsub",
+    expiry_policy_days: parsed.expiryPolicyDays ??
+      parsed.reminderDays ?? [...DEFAULT_EXPIRY_POLICY_DAYS_EXPIRY],
     issue_date: toDbDate(parsed.issueDate),
     issuing_authority: parsed.issuingAuthority ?? null,
     jurisdiction: parsed.jurisdiction ?? null,
@@ -37,8 +40,6 @@ export function toDocumentInsertRow(
     period_end: toDbDate(parsed.periodEnd),
     period_start: toDbDate(parsed.periodStart),
     reference_number: parsed.referenceNumber ?? null,
-    reminder_channel: parsed.reminderChannel ?? "pubsub",
-    reminder_days: parsed.reminderDays ?? [...DEFAULT_REMINDER_DAYS_EXPIRY],
     renewal_date: toDbDate(parsed.renewalDate),
     renewal_frequency: parsed.renewalFrequency ?? null,
     source_entity_id: parsed.sourceEntityId ?? null,
@@ -84,7 +85,8 @@ const createDocument = Workflow.name("document.create")
       documentId: result.id,
       dueDate: result.due_date,
       expiryDate: result.expiry_date,
-      reminderDays: result.reminder_days,
+      expiryPolicyDays: result.expiry_policy_days,
+      reminderDays: result.expiry_policy_days,
       snoozedUntil: result.snoozed_until ? result.snoozed_until.toISOString() : null,
       verificationStatus: result.verification_status,
     });

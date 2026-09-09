@@ -1,8 +1,6 @@
 import { exportAuditEntries } from "#/workflows/audit/export";
 import { listAuditEntries } from "#/workflows/audit/list";
 import { getAuditTrail } from "#/workflows/audit/trail/list";
-import { invalidateCache } from "#/workflows/dashboard/cache/invalidate";
-import { getDashboardSummary } from "#/workflows/dashboard/summary/get";
 import { getActiveDocumentsForReminders } from "#/workflows/document/active-for-reminders/list";
 import { archiveDocument } from "#/workflows/document/archive";
 import { assignDocumentTo } from "#/workflows/document/assign";
@@ -40,6 +38,8 @@ import { getObligationById } from "#/workflows/obligation/get";
 import { listObligations } from "#/workflows/obligation/list";
 import { getUpcomingPeriods } from "#/workflows/obligation/period/upcoming";
 import { updateObligation } from "#/workflows/obligation/update";
+import { invalidateCache } from "#/workflows/summary/cache/invalidate";
+import { getSummary } from "#/workflows/summary/get";
 import { createVerificationRule } from "#/workflows/verification/create";
 import { deleteVerificationRule } from "#/workflows/verification/delete";
 import { getVerificationRuleById } from "#/workflows/verification/get";
@@ -53,10 +53,13 @@ export const audit = {
   list: listAuditEntries,
 } as const;
 
-export const dashboard = {
-  getSummary: getDashboardSummary,
+export const summary = {
+  getSummary,
   invalidateCache,
 } as const;
+
+/** @deprecated Use summary — harmonized Dashboard → Summary (keep getSummary verb) */
+export const dashboard = summary;
 
 export const documents = {
   archive: archiveDocument,

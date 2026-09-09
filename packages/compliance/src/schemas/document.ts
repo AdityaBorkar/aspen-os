@@ -1,5 +1,6 @@
 import {
   ComplianceCategorySchema,
+  ExpiryPolicyChannelSchema,
   ReminderChannelSchema,
   RenewalFrequencySchema,
   VerificationStatusSchema,
@@ -41,6 +42,8 @@ export const CreateComplianceDocumentSchema = object({
   effectiveDate: optional(date()),
   escalationDays: optional(array(number())),
   expiryDate: optional(date()),
+  expiryPolicyChannel: optional(ExpiryPolicyChannelSchema),
+  expiryPolicyDays: optional(array(number())),
   issueDate: optional(date()),
   issuingAuthority: optional(nullable(string())),
   jurisdiction: optional(nullable(string())),
@@ -51,6 +54,7 @@ export const CreateComplianceDocumentSchema = object({
   periodEnd: optional(date()),
   periodStart: optional(date()),
   referenceNumber: optional(nullable(string())),
+  // Deprecated aliases — keep wire-compat for one minor
   reminderChannel: optional(ReminderChannelSchema),
   reminderDays: optional(array(number())),
   renewalDate: optional(date()),
@@ -75,6 +79,8 @@ const MUTABLE_DOCUMENT_KEYS = [
   "effectiveDate",
   "escalationDays",
   "expiryDate",
+  "expiryPolicyChannel",
+  "expiryPolicyDays",
   "issueDate",
   "issuingAuthority",
   "jurisdiction",

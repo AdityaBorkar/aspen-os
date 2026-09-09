@@ -1,7 +1,7 @@
 import { complianceDocument } from "#/db-schemas";
 import { COMPLIANCE_EVENTS } from "#/pubsub";
 import type { CreateComplianceDocumentInput } from "#/schemas";
-import { VERIFICATION_STATUS, DEFAULT_REMINDER_DAYS_EXPIRY } from "#/utils/constants";
+import { VERIFICATION_STATUS, DEFAULT_EXPIRY_POLICY_DAYS_EXPIRY } from "#/utils/constants";
 import { fetchDocumentStep } from "#/workflow-steps/fetch-document";
 import { toDbDate } from "#/workflows/document/shared";
 import { assertTransitionAllowed } from "#/workflows/document/transition";
@@ -29,8 +29,9 @@ const renewDocument = Workflow.name("document.renew").handler(
       .set({ updated_at: now, verification_status: VERIFICATION_STATUS.RENEWED })
       .where(eq(complianceDocument.id, id));
 
-    const reminderDays = newData.reminderDays ??
-      current.reminder_days ?? [...DEFAULT_REMINDER_DAYS_EXPIRY];
+    const expiryPolicyDays = newData.expiryPolicyDays ??
+      newData.reminderDays ??
+      current.expiry_policy_days ?? [...DEFAULT_EXPIRY_POLICY_DAYS_EXPIRY];
     const escalationDays = newData.escalationDays ?? current.escalation_days;
 
     const [newDoc] = await ctx.db
@@ -48,6 +49,7 @@ const renewDocument = Workflow.name("document.renew").handler(
         due_date: resolveDate(newData.dueDate, current.due_date),
         escalation_days: escalationDays,
         expiry_date: resolveDate(newData.expiryDate, current.expiry_date),
+        expiry_policy_days: expiryPolicyDays,
         issue_date: resolveDate(newData.issueDate, current.issue_date),
         issuing_authority: newData.issuingAuthority ?? current.issuing_authority,
         jurisdiction: newData.jurisdiction ?? current.jurisdiction,
@@ -58,7 +60,6 @@ const renewDocument = Workflow.name("document.renew").handler(
         period_end: resolveDate(newData.periodEnd, current.period_end),
         period_start: resolveDate(newData.periodStart, current.period_start),
         reference_number: newData.referenceNumber ?? null,
-        reminder_days: reminderDays,
         renewal_date: resolveDate(newData.renewalDate, current.renewal_date),
         renewal_frequency: newData.renewalFrequency ?? current.renewal_frequency,
         renewed_from: id,
@@ -97,7 +98,8 @@ const renewDocument = Workflow.name("document.renew").handler(
       documentId: newDoc.id,
       dueDate: newDoc.due_date,
       expiryDate: newDoc.expiry_date,
-      reminderDays: newDoc.reminder_days,
+      expiryPolicyDays: newDoc.expiry_policy_days,
+      reminderDays: newDoc.expiry_policy_days,
       snoozedUntil: newDoc.snoozed_until ? newDoc.snoozed_until.toISOString() : null,
       verificationStatus: newDoc.verification_status,
     });

@@ -2,8 +2,8 @@ import {
   AUDIT_ACTION,
   AUDIT_ENTITY_TYPE,
   COMPLIANCE_CATEGORY,
+  EXPIRY_POLICY_CHANNEL,
   OBLIGATION_FREQUENCY,
-  REMINDER_CHANNEL,
   RENEWAL_FREQUENCY,
   VERIFICATION_STATUS,
 } from "#/utils/constants";
@@ -61,11 +61,14 @@ export const obligationFrequencyEnum = pgEnum("obligation_frequency", [
   OBLIGATION_FREQUENCY.CUSTOM,
 ]);
 
-export const reminderChannelEnum = pgEnum("reminder_channel", [
-  REMINDER_CHANNEL.PUBSUB,
-  REMINDER_CHANNEL.EMAIL,
-  REMINDER_CHANNEL.BOTH,
+export const expiryPolicyChannelEnum = pgEnum("expiry_policy_channel", [
+  EXPIRY_POLICY_CHANNEL.PUBSUB,
+  EXPIRY_POLICY_CHANNEL.EMAIL,
+  EXPIRY_POLICY_CHANNEL.BOTH,
 ]);
+
+/** @deprecated Use expiryPolicyChannelEnum — harmonized to expiry_policy_* */
+export const reminderChannelEnum = expiryPolicyChannelEnum;
 
 export const auditEntityTypeEnum = pgEnum("audit_entity_type", [
   AUDIT_ENTITY_TYPE.COMPLIANCE_DOCUMENT,

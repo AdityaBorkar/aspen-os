@@ -1,7 +1,7 @@
 import { complianceDocument } from "#/db-schemas";
 import type { ComplianceObligation } from "#/db-schemas";
 import { COMPLIANCE_EVENTS } from "#/pubsub";
-import { MAX_PERIODS_PER_RUN, SCHEDULED_JOBS, reminderDefaults } from "#/utils/constants";
+import { MAX_PERIODS_PER_RUN, SCHEDULED_JOBS, expiryPolicyDefaults } from "#/utils/constants";
 import { formatMonthLabel, toDateOnly, utcMonthEnd, utcMonthStart } from "#/utils/dates";
 import { documents, obligations } from "#/workflows";
 import { monthsPerFrequency } from "#/workflows/utils";
@@ -103,8 +103,8 @@ export async function generateForObligation(
     }
 
     const docName = generateDocumentName(obligation, period);
-    const reminderDays =
-      obligation.default_reminder_days ?? reminderDefaults(obligation.expiry_based);
+    const expiryPolicyDays =
+      obligation.default_expiry_policy_days ?? expiryPolicyDefaults(obligation.expiry_based);
 
     const metadata = {
       ...obligation.default_metadata,
@@ -123,6 +123,7 @@ export async function generateForObligation(
           dueDate: period.dueDate ? new Date(period.dueDate) : undefined,
           escalationDays: obligation.default_escalation_days ?? undefined,
           expiryDate: period.expiryDate ? new Date(period.expiryDate) : undefined,
+          expiryPolicyDays,
           issuingAuthority: obligation.default_issuing_authority ?? undefined,
           jurisdiction: obligation.default_jurisdiction ?? undefined,
           metadata,
@@ -130,7 +131,6 @@ export async function generateForObligation(
           obligationId: obligation.id,
           periodEnd: period.periodEnd ? new Date(period.periodEnd) : undefined,
           periodStart: period.periodStart ? new Date(period.periodStart) : undefined,
-          reminderDays,
           sourceEntityId: obligation.source_entity_id ?? undefined,
           sourceEntityType: obligation.source_entity_type ?? undefined,
           sourceModule: obligation.source_module,

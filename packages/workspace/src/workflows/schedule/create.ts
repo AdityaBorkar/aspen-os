@@ -47,7 +47,7 @@ export const createSchedule = Workflow.name("workspace.schedule.create")
       action: AUDIT_ACTION.CREATED,
       crudAction: "create",
       entityId: schedule.id,
-      entityType: AUDIT_ENTITY_TYPE.SCHEDULE,
+      entityType: AUDIT_ENTITY_TYPE.DELIVERY_SCHEDULE,
       metadata: { dashboardId: parsed.dashboardId },
     });
 

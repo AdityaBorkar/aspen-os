@@ -33,17 +33,35 @@ const updateDocument = Workflow.name("document.update").handler(
 
     const updateData: Partial<NewComplianceDocument> = { updated_at: new Date() };
 
+    const CAMEL_TO_SNAKE = {
+      assignedReviewer: "assigned_reviewer",
+      assignedTo: "assigned_to",
+      autoRenewal: "auto_renewal",
+      documentType: "document_type",
+      escalationDays: "escalation_days",
+      expiryPolicyChannel: "expiry_policy_channel",
+      expiryPolicyDays: "expiry_policy_days",
+      issuingAuthority: "issuing_authority",
+      referenceNumber: "reference_number",
+      reminderChannel: "expiry_policy_channel",
+      reminderDays: "expiry_policy_days",
+      renewalFrequency: "renewal_frequency",
+    } satisfies Record<string, string>;
+
     for (const [key, value] of Object.entries(parsed)) {
       if (value === undefined) {
         continue;
       }
+      // SAFETY: key is checked via `in` guard, so narrowed keyof assertion is safe.
+      const dbKey =
+        key in CAMEL_TO_SNAKE ? CAMEL_TO_SNAKE[key as keyof typeof CAMEL_TO_SNAKE] : key;
       if (DATE_KEYS.has(key)) {
         // SAFETY: DATE_KEYS only contains date columns, so narrowed values are Date instances or null.
         Object.assign(updateData, {
-          [key]: toDbDate(value as Date | null | undefined),
+          [dbKey]: toDbDate(value as Date | null | undefined),
         });
       } else {
-        Object.assign(updateData, { [key]: value });
+        Object.assign(updateData, { [dbKey]: value });
       }
     }
 
@@ -81,7 +99,8 @@ const updateDocument = Workflow.name("document.update").handler(
       documentId: updated.id,
       dueDate: updated.due_date,
       expiryDate: updated.expiry_date,
-      reminderDays: updated.reminder_days,
+      expiryPolicyDays: updated.expiry_policy_days,
+      reminderDays: updated.expiry_policy_days,
       snoozedUntil: updated.snoozed_until ? updated.snoozed_until.toISOString() : null,
       verificationStatus: updated.verification_status,
     });

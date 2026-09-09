@@ -2,8 +2,8 @@ import {
   AUDIT_ACTION,
   AUDIT_ENTITY_TYPE,
   COMPLIANCE_CATEGORY,
+  EXPIRY_POLICY_CHANNEL,
   OBLIGATION_FREQUENCY,
-  REMINDER_CHANNEL,
   RENEWAL_FREQUENCY,
   VERIFICATION_STATUS,
 } from "#/utils/constants";
@@ -18,7 +18,9 @@ export const RenewalFrequencySchema = enum_(RENEWAL_FREQUENCY);
 
 export const ObligationFrequencySchema = enum_(OBLIGATION_FREQUENCY);
 
-export const ReminderChannelSchema = enum_(REMINDER_CHANNEL);
+export const ExpiryPolicyChannelSchema = enum_(EXPIRY_POLICY_CHANNEL);
+/** @deprecated Use ExpiryPolicyChannelSchema — harmonized to expiry_policy_* */
+export const ReminderChannelSchema = ExpiryPolicyChannelSchema;
 
 export const AuditEntityTypeSchema = enum_(AUDIT_ENTITY_TYPE);
 

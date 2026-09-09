@@ -46,7 +46,8 @@ const snoozeDocument = Workflow.name("document.snooze").handler(
       documentId: updated.id,
       dueDate: updated.due_date,
       expiryDate: updated.expiry_date,
-      reminderDays: updated.reminder_days,
+      expiryPolicyDays: updated.expiry_policy_days,
+      reminderDays: updated.expiry_policy_days,
       snoozedUntil: updated.snoozed_until ? updated.snoozed_until.toISOString() : null,
       verificationStatus: updated.verification_status,
     });

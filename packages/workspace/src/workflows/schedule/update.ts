@@ -57,7 +57,7 @@ export const updateSchedule = Workflow.name("workspace.schedule.update")
       action: AUDIT_ACTION.UPDATED,
       crudAction: "update",
       entityId: id,
-      entityType: AUDIT_ENTITY_TYPE.SCHEDULE,
+      entityType: AUDIT_ENTITY_TYPE.DELIVERY_SCHEDULE,
       metadata: { dashboard_id: schedule.dashboard_id },
     });
 

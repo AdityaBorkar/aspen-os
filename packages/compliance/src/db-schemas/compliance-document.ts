@@ -1,10 +1,10 @@
 import {
   complianceCategoryEnum,
-  reminderChannelEnum,
+  expiryPolicyChannelEnum,
   renewalFrequencyEnum,
   verificationStatusEnum,
 } from "#/db-schemas/enums";
-import { DEFAULT_REMINDER_DAYS_EXPIRY } from "#/utils/constants";
+import { DEFAULT_EXPIRY_POLICY_DAYS_EXPIRY } from "#/utils/constants";
 
 import { uuidv7 } from "@aspen-os/platform/server";
 import type { JsonValue } from "@aspen-os/platform/server";
@@ -37,6 +37,8 @@ export const complianceDocument = pgTable(
     effective_date: date(),
     escalation_days: integer().array(),
     expiry_date: date(),
+    expiry_policy_channel: expiryPolicyChannelEnum().default("pubsub"),
+    expiry_policy_days: integer().array().default(DEFAULT_EXPIRY_POLICY_DAYS_EXPIRY),
     id: uuidv7().primaryKey(),
     issue_date: date(),
     issuing_authority: text(),
@@ -51,8 +53,6 @@ export const complianceDocument = pgTable(
     period_start: date(),
     reference_number: text(),
     rejection_reason: text(),
-    reminder_channel: reminderChannelEnum().default("pubsub"),
-    reminder_days: integer().array().default(DEFAULT_REMINDER_DAYS_EXPIRY),
     renewal_date: date(),
     renewal_frequency: renewalFrequencyEnum(),
     renewed_from: text(),

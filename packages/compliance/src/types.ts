@@ -47,6 +47,7 @@ export {
   CreateComplianceDocumentSchema,
   CreateObligationSchema,
   CreateVerificationRuleSchema,
+  ExpiryPolicyChannelSchema,
   ObligationFiltersSchema,
   ObligationFrequencySchema,
   ReminderChannelSchema,
@@ -60,6 +61,7 @@ export type {
   AuditAction,
   AuditEntityType,
   ComplianceCategory,
+  ExpiryPolicyChannel,
   ObligationFrequency,
   ReminderChannel,
   RenewalFrequency,
@@ -72,9 +74,12 @@ export {
   COMPLIANCE_CATEGORY,
   CRON_SCHEDULES,
   DEFAULT_ESCALATION_DAYS,
+  DEFAULT_EXPIRY_POLICY_DAYS_DUE,
+  DEFAULT_EXPIRY_POLICY_DAYS_EXPIRY,
   DEFAULT_REMINDER_DAYS_DUE,
   DEFAULT_REMINDER_DAYS_EXPIRY,
   EXPIRY_ELIGIBLE_STATUSES,
+  EXPIRY_POLICY_CHANNEL,
   HEALTH_SCORE_WEIGHTS,
   MAX_PERIODS_PER_RUN,
   OBLIGATION_FREQUENCY,
@@ -87,7 +92,7 @@ export {
   VERIFICATION_STATUS,
 } from "#/utils/constants";
 
-export interface DashboardSummary {
+export interface Summary {
   activeObligations: number;
   byBranch: Partial<Record<string, number>>;
   byCategory: Partial<Record<ComplianceCategory, number>>;
@@ -104,6 +109,11 @@ export interface DashboardSummary {
   total: number;
   verified: number;
 }
+
+/** @deprecated Use Summary — harmonized Dashboard → Summary (keep getSummary verb) */
+export type DashboardSummary = Summary;
+/** Canonical alias */
+export type ComplianceSummary = Summary;
 
 export interface TimelineEntry {
   assignedReviewer: string | null;

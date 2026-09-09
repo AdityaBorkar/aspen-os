@@ -2,6 +2,8 @@
 
 Aspen OS = business application framework on Bun/TypeScript. Platform kernel provides composable infrastructure (database, auth, logging, pub/sub, RPC, storage, KV store) so domain modules build on top without reinventing plumbing.
 
+> **Ubiquitous-language harmonization (2026-09-09):** `Contact` = Masters business relationship (canonical); others are `ContactRef/AttendeeContact/RecipientContact` in prose (enum values stay wire-compat). `Connection` = Masters integration credential (glossary note; never business relationship). `Reminder` = Calendar (single dispatcher); `DeliverySchedule` = Workspace (per-dashboard cron). Compliance `reminder_*` → `expiry_policy_*`; `SCHEDULE_EVENTS` alias deleted. `Notification` = Comms inbox; `Announcement` = HR authoring only (`announcement:published` is intent, Comms owns delivery). `Dashboard` = Workspace composable; Compliance `Summary` (renamed `dashboard.*` → `summary.*`, `getSummary` kept). `Draft` = Workspace entity; others are draft status values. `AuditLog` = platform store; per-module `ActivityFeed` is projection (Tasks `activity_log` exempt or migrated). `Tenant` = SaaS customer (Management) + `ManagedOrganization`; Masters `Entity` + `OrgBranch`; `organization` package decommissioned/profile-view; employee↔contact disjoint documented. Roles scoped: `PlatformRole, ProjectRole, HrRole, ChannelRole`. `Share` (grant) + `PublicLink` (token) = DMS; `Attendee` = Calendar invite.
+
 ## Language
 
 ### Platform Kernel
@@ -253,7 +255,7 @@ _Avoid_: Service, Handler
 ### Compliance Domain
 
 **Compliance Document**:
-Regulatory or legal document tracked through verification lifecycle. Has `name`, `category` (tax/license/certificate/permit/insurance/regulatory/legal/hr/safety/environmental + module-local: data_privacy/financial/vehicle/property/audit/other), `verificationStatus` (draft/submitted/under_review/verified/rejected/expired/overdue/renewed/archived), `expiryDate`, `dueDate`, `reminderDays`, `escalationDays`, optional `renewalFrequency`. Supports renewal chains (archived old + created new via `renewedFrom`). Linked to external entities via `{sourceModule, sourceEntityType, sourceEntityId}`.
+Regulatory or legal document tracked through verification lifecycle. Has `name`, `category` (tax/license/certificate/permit/insurance/regulatory/legal/hr/safety/environmental + module-local: data_privacy/financial/vehicle/property/audit/other), `verificationStatus` (draft/submitted/under_review/verified/rejected/expired/overdue/renewed/archived), `expiryDate`, `dueDate`, `expiryPolicyDays` (canonical — `reminderDays` deprecated alias), `expiryPolicyChannel` (canonical — `reminderChannel` deprecated), `escalationDays`, optional `renewalFrequency`. Supports renewal chains (archived old + created new via `renewedFrom`). Linked to external entities via `{sourceModule, sourceEntityType, sourceEntityId}`. **Harmonized:** Calendar `Reminder` owns all time-based nudges; Compliance only stores expiry policy.
 _Avoid_: Certificate, Permit, Regulatory Record
 
 **Compliance Obligation**:
@@ -326,9 +328,9 @@ _Avoid_: Alert, Notification
 User subscribed to updates on a task. Watchers receive notifications when task updated, commented on, or status-changed.
 _Avoid_: Subscriber, Follower
 
-**Activity Log**:
-Append-only record of task actions: `task_created`, `task_updated`, `status_changed`, `assignee_added`, `assignee_removed`. Has `oldValue`, `newValue` (jsonb), `userId`, `taskId`.
-_Avoid_: Audit Trail, Change History
+**Activity Log** (Tasks — exempt projection):
+Append-only record of task actions: `task_created`, `task_updated`, `status_changed`, `assignee_added`, `assignee_removed`. Has `oldValue`, `newValue` (jsonb), `userId`, `taskId`. **Harmonized:** Platform `AuditLog` is the store; per-module `ActivityFeed` is a projection over `audit_log` (DMS `workflows/activity`, Compliance `workflows/audit`). Tasks `task_activity_log` is exempt (high-volume task timeline) — document exemption or migrate to projection.
+_Avoid_: Audit Trail, Change History (use `ActivityFeed` for projection)
 
 ### Calendar Domain
 
@@ -534,9 +536,9 @@ _Avoid_: Board, Analytics Page
 Declarative datasource config on a Dashboard — `metric` (count/sum/avg/min/max over domain + filter + date range), `breakdown` (group-by + range), `list` (first-N + range), `embed` (markdown/url/iframe). Module stores + serves configs, tracks `lastRefreshedAt`/`lastError`; does **not** render or execute analytics. Datasource = `{ domain }` + exactly one of inline `filter` or `viewId` soft-FK to saved Filter View.
 _Avoid_: Chart, KPI Card (implementation terms)
 
-**Schedule (workspace)**:
-Per-Dashboard cron delivery configuration (`{ recipients, format: export|pdf|url, subject? }`). `create`/`resume` register pg-boss cron on `workspace:delivery_schedule:<id>`; module's handler publishes `workspace:delivery_due` (full schedule + dashboard payload) + **host renders/delivers**. `markRun` records completion. Distinct from dms's module-level cron jobs (expiry scan, auto-purge).
-_Avoid_: Recurring Delivery, Notification Job
+**DeliverySchedule (workspace)**:
+Per-Dashboard cron delivery configuration (`{ recipients, format: export|pdf|url, subject? }`). `create`/`resume` register pg-boss cron on `workspace:delivery_schedule:<id>`; module's handler publishes `workspace:delivery_due` (full schedule + dashboard payload) + **host renders/delivers**. `markRun` records completion. Distinct from dms's module-level cron jobs (expiry scan, auto-purge). **Harmonized:** Workspace `DeliverySchedule` is canonical; never use "Schedule" for Calendar reminders (use Calendar `Reminder`).
+_Avoid_: Schedule (bare — use `DeliverySchedule`), Recurring Delivery, Notification Job
 
 **Pin (workspace)**:
 Per-user sidebar shortcut to any tenant item via `PIN_ITEM_TYPE` registry — workspace entities (`draft`/`view`/`dashboard`) + dms items (`triage`/`file_view`/`class`), soft-referenced by `(itemType, itemId)` w/ no module dependency; unique `(userId, itemType, itemId)`. Dms module's pin surface consolidated here.

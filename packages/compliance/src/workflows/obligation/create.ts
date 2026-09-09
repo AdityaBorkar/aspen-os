@@ -1,7 +1,7 @@
 import { complianceObligation } from "#/db-schemas";
 import { COMPLIANCE_EVENTS } from "#/pubsub";
 import { CreateObligationSchema } from "#/schemas";
-import { reminderDefaults } from "#/utils/constants";
+import { expiryPolicyDefaults } from "#/utils/constants";
 import { toDateOnly } from "#/utils/dates";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -14,7 +14,10 @@ const createObligation = Workflow.name("obligation.create")
   .handler(async ({ input }, ctx) => {
     const parsed = input;
 
-    const defaultReminderDays = parsed.defaultReminderDays ?? reminderDefaults(parsed.expiryBased);
+    const defaultExpiryPolicyDays =
+      parsed.defaultExpiryPolicyDays ??
+      parsed.defaultReminderDays ??
+      expiryPolicyDefaults(parsed.expiryBased);
 
     const [result] = await ctx.db
       .insert(complianceObligation)
@@ -27,10 +30,10 @@ const createObligation = Workflow.name("obligation.create")
         default_assigned_reviewer: parsed.defaultAssignedReviewer ?? null,
         default_assigned_to: parsed.defaultAssignedTo ?? null,
         default_escalation_days: parsed.defaultEscalationDays ?? null,
+        default_expiry_policy_days: defaultExpiryPolicyDays,
         default_issuing_authority: parsed.defaultIssuingAuthority ?? null,
         default_jurisdiction: parsed.defaultJurisdiction ?? null,
         default_metadata: parsed.defaultMetadata ?? null,
-        default_reminder_days: defaultReminderDays,
         document_type: parsed.documentType ?? null,
         due_day: parsed.dueDay ?? null,
         due_month_offset: parsed.dueMonthOffset ?? null,

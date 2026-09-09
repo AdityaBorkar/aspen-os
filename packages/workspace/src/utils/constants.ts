@@ -122,7 +122,6 @@ export const AUDIT_ENTITY_TYPE = {
   FILTER_VIEW: "workspace:filter_view",
   PIN: "workspace:pin",
   RECENT: "workspace:recent",
-  SCHEDULE: "workspace:delivery_schedule",
   SEARCH: "workspace:search",
   WIDGET: "workspace:widget",
 } as const;

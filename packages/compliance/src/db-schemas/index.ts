@@ -23,6 +23,7 @@ export {
   auditActionEnum,
   auditEntityTypeEnum,
   complianceCategoryEnum,
+  expiryPolicyChannelEnum,
   obligationFrequencyEnum,
   reminderChannelEnum,
   renewalFrequencyEnum,
