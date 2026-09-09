@@ -36,6 +36,7 @@ export type { AclDeclaration } from "#/server/auth";
 export { defineAcl } from "#/server/auth";
 export * from "#/server/db/schema";
 export { getContext, isGlobalTenantId, password } from "#/server/utils";
+export type { Context, ContextOverrides } from "#/server/utils";
 export { generateUuidv7, uuidv7 } from "#/server/db/schema/data-types";
 export type {
   AuthConfig,

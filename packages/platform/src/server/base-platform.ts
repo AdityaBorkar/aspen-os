@@ -200,7 +200,9 @@ export abstract class BasePlatform<
   }
 
   async run<TValue>(tenantId: string, fn: () => TValue | Promise<TValue>): Promise<TValue> {
+    const parent = context.getStore();
     const ctx: Context = {
+      actorId: parent?.actorId,
       audit: this.units.audit,
       auth: this.units.auth,
       // SAFETY: the Context db surface is schema-agnostic; the platform's merged-schema
@@ -211,6 +213,9 @@ export abstract class BasePlatform<
         : await this.units.db.getTenantDb(tenantId)) as Context["db"],
       log: this.units.logs,
       pubsub: this.units.pubsub,
+      requestId: parent?.requestId,
+      tenantId,
+      traceId: parent?.traceId,
     };
     return context.run(ctx, fn);
   }

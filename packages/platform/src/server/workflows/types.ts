@@ -1,8 +1,9 @@
 import type { AuditUnit } from "#/server/audit";
 import type { AuthUnit } from "#/server/auth";
-import type { ChildLogger, LogUnit } from "#/server/log";
+import type { ChildLogger } from "#/server/log";
 import type { PubSubUnit } from "#/server/pubsub";
 import type { JsonValue, SchemaMap } from "#/server/types";
+import type { ContextOverrides } from "#/server/utils";
 
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
@@ -68,14 +69,8 @@ export interface WorkflowConfig<
   schema?: StandardSchema<unknown, TInput>;
 }
 
-export interface RunOptions {
-  actorId?: string;
-  audit?: AuditUnit;
-  auth?: AuthUnit;
+export interface RunOptions extends ContextOverrides {
   config?: Record<string, JsonValue>;
-  db?: DrizzleDB<SchemaMap>;
-  log?: LogUnit;
-  pubsub?: PubSubUnit;
 }
 
 export interface WorkflowInstance<TInput, TOutput> {

@@ -2,7 +2,6 @@ import { workflowRuns, workflowSteps } from "#/server/db/schema";
 import type { ChildLogger } from "#/server/log";
 import type { SchemaMap } from "#/server/types";
 import { context, getContext } from "#/server/utils";
-import type { Context } from "#/server/utils";
 import { setTimeout as sleep } from "node:timers/promises";
 
 import { SchemaError } from "@standard-schema/utils";
@@ -74,36 +73,6 @@ async function validateInput<TInput, TOutput>(
   return result.value;
 }
 
-function resolveRunStore(options?: RunOptions): Context {
-  console.log({ ctx3: Object.keys(context.getStore() || {}) });
-  const ctx = getContext();
-  if (!options) {
-    return ctx;
-  }
-  const audit = options.audit ?? ctx?.audit;
-  const auth = options.auth ?? ctx?.auth;
-  // SAFETY: RunOptions.db uses the broad SchemaMap generic while Context.db uses the default schema; both are postgres-js drizzle instances sharing the same runtime surface.
-  const db = (options.db ?? ctx?.db) as Context["db"] | undefined;
-  const log = options.log ?? ctx?.log;
-  const pubsub = options.pubsub ?? ctx?.pubsub;
-  if (!audit || !auth || !db || !log || !pubsub) {
-    throw new Error(
-      "Workflow.run() requires audit, auth, db, log, and pubsub; provide them in RunOptions or call inside Platform.run().",
-    );
-  }
-  return {
-    actorId: options.actorId ?? ctx?.actorId,
-    audit,
-    auth,
-    db,
-    log,
-    pubsub,
-    requestId: ctx?.requestId,
-    tenantId: ctx?.tenantId,
-    traceId: ctx?.traceId,
-  };
-}
-
 /**
  * A workflow definition.
  *
@@ -124,9 +93,7 @@ export class Workflow<TInput, TOutput> implements WorkflowInstance<TInput, TOutp
 
   /** Executes this workflow against the ambient context (or the supplied one). */
   run(input: TInput, options?: RunOptions): Promise<TOutput> {
-    console.log("RUN:", { input, options });
-    console.log({ ctx1: Object.keys(context.getStore() || {}) });
-    return new WorkflowEngine().run(
+    return new WorkflowEngine(options).run(
       { handler: this.handler, name: this.name, schema: this.schema },
       input,
       options,
@@ -208,13 +175,23 @@ export class WorkflowStep<TInput, TOutput> implements WorkflowStepInstance<TInpu
  * database; concurrent runs are safe because per-run state lives in the run context, not here.
  */
 export class WorkflowEngine {
-  private readonly db: DrizzleDB;
+  private readonly defaultOptions?: RunOptions;
 
-  constructor() {
-    console.log({ ctx2: Object.keys(context.getStore() || {}) });
-    const store = resolveRunStore();
-    console.log({ store });
-    this.db = store.db;
+  constructor(options?: RunOptions) {
+    this.defaultOptions = options;
+  }
+
+  private resolveDb(): DrizzleDB {
+    const storeDb = context.getStore()?.db;
+    // SAFETY: RunOptions.db uses the broad SchemaMap generic while the engine db uses the default schema; both are postgres-js drizzle instances sharing the same runtime surface.
+    const fallbackDb = this.defaultOptions?.db as DrizzleDB | undefined;
+    const db = storeDb ?? fallbackDb;
+    if (!db) {
+      throw new Error(
+        "WorkflowEngine has no database; call inside Platform.run() or provide db in RunOptions.",
+      );
+    }
+    return db;
   }
 
   /** Runs a step (with input validation and retries) and persists its outcome. */
@@ -227,8 +204,9 @@ export class WorkflowEngine {
   }): Promise<TResult> {
     const { runId, name, fn, options, log } = input;
     const maxAttempts = (options?.retries ?? 0) + 1;
+    const db = this.resolveDb();
 
-    const [existing] = await this.db
+    const [existing] = await db
       .select({ output: workflowSteps.output })
       .from(workflowSteps)
       .where(
@@ -248,7 +226,7 @@ export class WorkflowEngine {
     const stepId = crypto.randomUUID();
     const startedAt = new Date();
 
-    await this.db.insert(workflowSteps).values({
+    await db.insert(workflowSteps).values({
       id: stepId,
       run_id: runId,
       started_at: startedAt,
@@ -297,7 +275,7 @@ export class WorkflowEngine {
   ): Promise<void> {
     const { attempt, result, startedAt } = outcome;
     const completedAt = new Date();
-    await this.db
+    await this.resolveDb()
       .update(workflowSteps)
       .set({
         attempt,
@@ -313,7 +291,7 @@ export class WorkflowEngine {
     stepId: string,
     outcome: { attempt: number; error: Error },
   ): Promise<void> {
-    await this.db
+    await this.resolveDb()
       .update(workflowSteps)
       .set({ attempt: outcome.attempt, error: serializeError(outcome.error), status: "running" })
       .where(eq(workflowSteps.id, stepId));
@@ -327,7 +305,7 @@ export class WorkflowEngine {
     const completedAt = new Date();
     const serialized = serializeError(error);
     serialized.attempts = maxAttempts;
-    await this.db
+    await this.resolveDb()
       .update(workflowSteps)
       .set({
         attempt: maxAttempts,
@@ -345,82 +323,85 @@ export class WorkflowEngine {
     input: TInput,
     options?: RunOptions,
   ): Promise<TOutput> {
-    console.log({ ctx4: Object.keys(context.getStore() || {}) });
-    console.log("RUNNING WORKFLOW", { config, input, options });
-    const store = resolveRunStore(options);
-    const { actorId, audit, db, pubsub, auth } = store;
+    const effectiveOptions = { ...this.defaultOptions, ...options };
+    const hasOverrides = Object.keys(effectiveOptions).length > 0;
+    const store = getContext(hasOverrides ? effectiveOptions : undefined);
+    return context.run(store, async () => {
+      const { actorId, audit, db, pubsub, auth } = store;
 
-    if (config.schema) {
-      input = await validateInput(config.schema, input);
-    }
-    const runId = crypto.randomUUID();
-    const startedAt = new Date();
-    const log = store.log.child({ runId, workflowName: config.name });
-    log.info(`Workflow "${config.name}" started`, { runId });
+      let currentInput = input;
+      if (config.schema) {
+        currentInput = await validateInput(config.schema, currentInput);
+      }
+      const runId = crypto.randomUUID();
+      const startedAt = new Date();
+      const log = store.log.child({ runId, workflowName: config.name });
+      log.info(`Workflow "${config.name}" started`, { runId });
 
-    await db.insert(workflowRuns).values({
-      id: runId,
-      input: input ?? null,
-      started_at: startedAt,
-      status: "running",
-      workflow_name: config.name,
+      await db.insert(workflowRuns).values({
+        id: runId,
+        input: currentInput ?? null,
+        started_at: startedAt,
+        status: "running",
+        workflow_name: config.name,
+      });
+
+      const ctx: WorkflowContext<TSchemas> = {
+        actorId,
+        audit,
+        auth,
+        config: effectiveOptions.config ?? {},
+        // SAFETY: the resolved db is a valid postgres-js drizzle instance for the merged schemas.
+        db: store.db as DrizzleDB<TSchemas>,
+        log,
+        pubsub,
+        runId,
+        // SAFETY: the step runner resolves the same context and db for every step invocation.
+        step: new WorkflowRunner<TSchemas>(this, () => ctx, runId),
+      };
+
+      try {
+        const output = await config.handler(currentInput, ctx);
+        const completedAt = new Date();
+
+        log.info(`Workflow "${config.name}" completed`, {
+          durationMs: durationMs(startedAt, completedAt),
+          runId,
+        });
+
+        await db
+          .update(workflowRuns)
+          .set({
+            completed_at: completedAt,
+            duration_ms: durationMs(startedAt, completedAt),
+            output: output ?? null,
+            status: "completed",
+          })
+          .where(eq(workflowRuns.id, runId));
+
+        return output;
+      } catch (error) {
+        const completedAt = new Date();
+        const normalized = normalizeError(error);
+
+        log.error(`Workflow "${config.name}" failed`, normalized, {
+          durationMs: durationMs(startedAt, completedAt),
+          runId,
+        });
+
+        await db
+          .update(workflowRuns)
+          .set({
+            completed_at: completedAt,
+            duration_ms: durationMs(startedAt, completedAt),
+            error: serializeError(normalized),
+            status: "failed",
+          })
+          .where(eq(workflowRuns.id, runId));
+
+        throw normalized;
+      }
     });
-
-    const ctx: WorkflowContext<TSchemas> = {
-      actorId,
-      audit,
-      auth,
-      config: options?.config ?? {},
-      // SAFETY: the resolved db is a valid postgres-js drizzle instance for the merged schemas.
-      db: store.db as DrizzleDB<TSchemas>,
-      log,
-      pubsub,
-      runId,
-      // SAFETY: the step runner resolves the same context and db for every step invocation.
-      step: new WorkflowRunner<TSchemas>(this, () => ctx, runId),
-    };
-
-    try {
-      const output = await config.handler(input, ctx);
-      const completedAt = new Date();
-
-      log.info(`Workflow "${config.name}" completed`, {
-        durationMs: durationMs(startedAt, completedAt),
-        runId,
-      });
-
-      await db
-        .update(workflowRuns)
-        .set({
-          completed_at: completedAt,
-          duration_ms: durationMs(startedAt, completedAt),
-          output: output ?? null,
-          status: "completed",
-        })
-        .where(eq(workflowRuns.id, runId));
-
-      return output;
-    } catch (error) {
-      const completedAt = new Date();
-      const normalized = normalizeError(error);
-
-      log.error(`Workflow "${config.name}" failed`, normalized, {
-        durationMs: durationMs(startedAt, completedAt),
-        runId,
-      });
-
-      await db
-        .update(workflowRuns)
-        .set({
-          completed_at: completedAt,
-          duration_ms: durationMs(startedAt, completedAt),
-          error: serializeError(normalized),
-          status: "failed",
-        })
-        .where(eq(workflowRuns.id, runId));
-
-      throw normalized;
-    }
   }
 }
 
