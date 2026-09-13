@@ -14,9 +14,11 @@ import { listSps } from "#/workflows/sp/list";
 import { updateSp } from "#/workflows/sp/update";
 import { listSpUsers } from "#/workflows/sp/user/list";
 import { activateTenant } from "#/workflows/tenant/activate";
+import { getTenantBySlug } from "#/workflows/tenant/by-slug/get";
 import { churnTenant } from "#/workflows/tenant/churn";
 import { getTenant } from "#/workflows/tenant/get";
 import { listTenants } from "#/workflows/tenant/list";
+import { listTenantBranding } from "#/workflows/tenant/list-branding";
 import { createOnboardTenant } from "#/workflows/tenant/onboard";
 import { reactivateTenant } from "#/workflows/tenant/reactivate";
 import { assignServiceProvider } from "#/workflows/tenant/sp/assign";
@@ -85,7 +87,9 @@ export class ManagementPlane implements Module {
       assignServiceProvider,
       churn: churnTenant,
       get: getTenant,
+      getBySlug: getTenantBySlug,
       list: listTenants,
+      listBranding: listTenantBranding,
       onboard: createOnboardTenant(this.#requireDb()),
       reactivate: reactivateTenant,
       suspend: suspendTenant,

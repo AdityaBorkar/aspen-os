@@ -35,6 +35,10 @@ const tenants = await p.management.tenants.list({
   filters: { status: "active", plan, serviceProviderId, search, limit: 50, offset: 0 },
 });
 await p.management.tenants.update({ id: tenantId, profile: { name, slug }, companion: { plan } });
+
+// Public branding reads (no session required; login page, organization picker)
+const branding = await p.management.tenants.getBySlug({ slug: "acme" });
+const picker = await p.management.tenants.listBranding({ limit: 50, offset: 0 });
 ```
 
 <Callout type="warn">
