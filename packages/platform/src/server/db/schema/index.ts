@@ -1,5 +1,5 @@
 export * from "./audit";
-export * from "./auth";
+export * from "./auth.gen";
 export * from "./kv-store";
 export * from "./log";
 export * from "./storage";

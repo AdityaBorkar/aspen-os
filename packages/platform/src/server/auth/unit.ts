@@ -1,5 +1,5 @@
 import type { DatabaseUnit } from "#/server/db";
-import * as db_schema from "#/server/db/schema/auth";
+import * as db_schema from "#/server/db/schema/auth.gen.js";
 import type { PubSubUnit } from "#/server/pubsub";
 import type { Unit } from "#/server/types";
 
@@ -105,6 +105,7 @@ export class AuthUnit implements Unit {
   }
 }
 
+export type BetterAuthInstance = ReturnType<typeof betterAuth>;
 export function createBetterAuthService(
   config: AuthConfig,
   db: DrizzleDB,
@@ -130,11 +131,7 @@ export function createBetterAuthService(
       emailOTP({
         async sendVerificationOTP({ email, otp, type }) {
           const tokenRef = storeOtp({ email, otp, type });
-          await pubsub?.publish("auth:email_otp_requested", {
-            email,
-            tokenRef,
-            type,
-          });
+          await pubsub?.publish("auth:email_otp_requested", { email, tokenRef, type });
         },
       }),
       apiKey({
