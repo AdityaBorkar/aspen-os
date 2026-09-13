@@ -29,13 +29,13 @@ export const listUsers = Workflow.name("user.list")
 
       return ctx.db
         .select({
-          createdAt: user.created_at,
+          createdAt: user.createdAt,
           email: user.email,
           id: user.id,
           name: user.name,
           role: user.role,
           spId: serviceProviderUser.service_provider_id,
-          updatedAt: user.updated_at,
+          updatedAt: user.updatedAt,
         })
         .from(user)
         .leftJoin(serviceProviderUser, eq(serviceProviderUser.user_id, user.id))

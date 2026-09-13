@@ -3,6 +3,7 @@ import { computeArchiveKey, get, getSignedGetUrl, upload } from "#/services/stor
 
 import { getContext } from "@aspen-os/platform/server";
 import { eq, sql } from "drizzle-orm";
+import { zip, strToU8 } from "fflate";
 
 const LARGE_FOLDER_FILE_THRESHOLD = 1000;
 const LARGE_FOLDER_SIZE_THRESHOLD = 1024 * 1024 * 1024;
@@ -112,7 +113,6 @@ async function generateZip({
   folderName: string;
   folderPath: string;
 }): Promise<ArchiveResult> {
-  const { zip, strToU8 } = await import("fflate");
   const zipAsync = (data: Record<string, Uint8Array>): Promise<Uint8Array> =>
     new Promise<Uint8Array>((resolve, reject) => {
       zip(data, (error, result) => {

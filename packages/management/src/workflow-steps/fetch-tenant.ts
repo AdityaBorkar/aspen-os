@@ -24,7 +24,7 @@ export const fetchTenantStep = WorkflowStep.name("fetch-tenant")
     return {
       churnReason: companion?.churn_reason ?? null,
       churnedAt: companion?.churned_at ?? null,
-      createdAt: org.created_at,
+      createdAt: org.createdAt,
       databaseHost: companion?.database_host ?? null,
       databaseName: companion?.database_name ?? null,
       databasePassword: companion?.database_password ?? null,

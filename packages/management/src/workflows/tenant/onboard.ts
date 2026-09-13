@@ -91,7 +91,7 @@ export function createOnboardTenant(dbUnit: DatabaseUnit) {
         await ctx.step.run("seed-profile", async () => {
           await dbUnit.seedTenantDb(provisioning, async (tenantDb) => {
             await tenantDb.insert(organization).values({
-              created_at: new Date(),
+              createdAt: new Date(),
               id: tenantId,
               logo: parsed.logo ?? null,
               name: parsed.name,

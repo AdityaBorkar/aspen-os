@@ -3,7 +3,8 @@ import { useMDXComponents } from "#/components/mdx";
 import { createClientLoader, mergedEntries } from "#/lib/client-loader";
 import { cn } from "#/lib/cn";
 import { APP_NAME, DOCS_ROUTE, GIT_CONFIG, LAYOUT_BASE_OPTIONS } from "#/lib/constants";
-import { resolveContentPath } from "#/lib/paths";
+import { resolveContentPath, slugsToMarkdownPath } from "#/lib/paths";
+import { source } from "#/lib/source";
 import { STAGE } from "#/lib/stage";
 
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
@@ -44,8 +45,6 @@ const serverLoader = createServerFn({
 })
   .validator((slugs: string[]) => slugs)
   .handler(async ({ data: slugs }) => {
-    const { source } = await import("#/lib/source");
-    const { slugsToMarkdownPath } = await import("#/lib/paths");
     const page = source.getPage(slugs);
     if (!page) {
       throw notFound();

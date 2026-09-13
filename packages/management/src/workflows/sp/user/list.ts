@@ -23,13 +23,13 @@ export const listSpUsers = Workflow.name("sp.users")
     return ctx.step.run("query", async () =>
       ctx.db
         .select({
-          createdAt: user.created_at,
+          createdAt: user.createdAt,
           email: user.email,
           id: user.id,
           name: user.name,
           role: user.role,
           spId: serviceProviderUser.service_provider_id,
-          updatedAt: user.updated_at,
+          updatedAt: user.updatedAt,
         })
         .from(serviceProviderUser)
         .innerJoin(user, eq(serviceProviderUser.user_id, user.id))

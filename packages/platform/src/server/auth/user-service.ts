@@ -8,21 +8,21 @@ import { toUser } from "./utils";
 
 function toUserFromRow(row: typeof user.$inferSelect): User {
   return toUser({
-    banExpires: row.ban_expires,
-    banReason: row.ban_reason,
+    banExpires: row.banExpires,
+    banReason: row.banReason,
     banned: row.banned,
-    createdAt: row.created_at,
-    displayUsername: row.display_username,
+    createdAt: row.createdAt,
+    displayUsername: row.displayUsername,
     email: row.email,
-    emailVerified: row.email_verified,
+    emailVerified: row.emailVerified,
     id: row.id,
     image: row.image,
     name: row.name,
-    phoneNumber: row.phone_number,
-    phoneNumberVerified: row.phone_number_verified,
+    phoneNumber: row.phoneNumber,
+    phoneNumberVerified: row.phoneNumberVerified,
     role: row.role,
-    twoFactorEnabled: row.two_factor_enabled,
-    updatedAt: row.updated_at,
+    twoFactorEnabled: row.twoFactorEnabled,
+    updatedAt: row.updatedAt,
     username: row.username,
   });
 }
@@ -37,7 +37,7 @@ export async function createUser(
     .insert(user)
     .values({
       email,
-      email_verified: false,
+      emailVerified: false,
       id: crypto.randomUUID(),
       name: name ?? "",
     })
@@ -48,11 +48,11 @@ export async function createUser(
   }
 
   await db.insert(account).values({
-    account_id: row.id,
+    accountId: row.id,
     id: crypto.randomUUID(),
     password: passwordHash,
-    provider_id: "credential",
-    user_id: row.id,
+    providerId: "credential",
+    userId: row.id,
   });
 
   const $user = toUserFromRow(row);

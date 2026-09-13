@@ -1,6 +1,7 @@
 {
   "file_scan_exclusions": [
     "**/.nx",
+    "**/.agents",
     "**/.git",
     "**/.local",
     "**/.output",

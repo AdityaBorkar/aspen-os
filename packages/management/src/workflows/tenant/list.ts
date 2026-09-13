@@ -40,7 +40,7 @@ export const listTenants = Workflow.name("tenant.list")
 
       return ctx.db
         .select({
-          createdAt: organization.created_at,
+          createdAt: organization.createdAt,
           id: organization.id,
           logo: organization.logo,
           name: organization.name,
