@@ -173,14 +173,14 @@
 
 | Event                 | Payload                                | Trigger                                                |
 | --------------------- | -------------------------------------- | ------------------------------------------------------ |
-| `user:created`        | `{ user: User }`                       | User created                                           |
-| `user:updated`        | `{ user: User }`                       | User updated                                           |
-| `user:deleted`        | `{ userId: string }`                   | User deleted                                           |
-| `session:created`     | `{ session: Session, user: User }`     | Session authenticated                                  |
-| `session:invalidated` | `{ sessionId: string }`                | Session invalidated                                    |
-| `role:assigned`       | `{ roleName: string, userId: string }` | Role assigned to user                                  |
-| `role:unassigned`     | `{ userId: string }`                   | Role unassigned (note: missing `roleName` — known gap) |
-| `role:deleted`        | `{ roleName: string }`                 | Role deleted                                           |
+| `user.created`        | `{ user: User }`                       | User created                                           |
+| `user.updated`        | `{ user: User }`                       | User updated                                           |
+| `user.deleted`        | `{ userId: string }`                   | User deleted                                           |
+| `session.created`     | `{ session: Session, user: User }`     | Session authenticated                                  |
+| `session.invalidated` | `{ sessionId: string }`                | Session invalidated                                    |
+| `role.assigned`       | `{ roleName: string, userId: string }` | Role assigned to user                                  |
+| `role.unassigned`     | `{ userId: string }`                   | Role unassigned (note: missing `roleName` — known gap) |
+| `role.deleted`        | `{ roleName: string }`                 | Role deleted                                           |
 
 Auth events are published from the auth services (`services/{role,session,user}.ts`) as plain string topics.
 
@@ -258,6 +258,6 @@ Auth events are published from the auth services (`services/{role,session,user}.
 
 ## Not Yet Defined (Gaps)
 
-- File events (framework storage): `file:uploaded`, `file:deleted`, `file:archived`
-- Log events: `log:error-threshold-exceeded`
+- File events (framework storage): `file.uploaded`, `file.deleted`, `file.archived`
+- Log events: `log.error-threshold-exceeded`
 - KV events: (none expected — cache operations are internal)

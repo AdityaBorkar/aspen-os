@@ -82,7 +82,7 @@ await p.hrCore.announcement.listRecipients({ announcementId: id });
 await p.hrCore.announcement.getStats({ announcementId: id });
 ```
 
-Publish is idempotent — re-publishing a published announcement returns it without re-emitting `announcement:published`.
+Publish is idempotent — re-publishing a published announcement returns it without re-emitting `announcement.published`.
 
 ### Employee
 

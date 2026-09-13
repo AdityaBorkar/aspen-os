@@ -25,7 +25,7 @@ Compliance EventBridge names one fleet topic as a future trigger. Nothing publis
 
 | Topic                      | Downstream effect                              |
 | -------------------------- | ---------------------------------------------- |
-| `fleet:vehicle_registered` | Pollution certificate + semi-annual obligation |
+| `fleet.vehicle_registered` | Pollution certificate + semi-annual obligation |
 
 <Callout type="warn">
   No payload contract exists. Do not emit or subscribe to this topic until the module is
@@ -36,4 +36,4 @@ Compliance EventBridge names one fleet topic as a future trigger. Nothing publis
 
 | From         | To                     | Via                        | State         |
 | ------------ | ---------------------- | -------------------------- | ------------- |
-| Fleet (stub) | Compliance EventBridge | `fleet:vehicle_registered` | Expected only |
+| Fleet (stub) | Compliance EventBridge | `fleet.vehicle_registered` | Expected only |

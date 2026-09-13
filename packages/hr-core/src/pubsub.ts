@@ -3,10 +3,10 @@ import type { JsonValue } from "@aspen-os/platform/server";
 // ─── Employee Events ──────────────────────────────────────────────────────
 
 export const EMPLOYEE_EVENTS = {
-  CREATED: "employee:created",
-  GROUP_CREATED: "employee:group_created",
-  STATUS_CHANGED: "employee:status_changed",
-  UPDATED: "employee:updated",
+  CREATED: "employee.created",
+  GROUP_CREATED: "employee.group_created",
+  STATUS_CHANGED: "employee.status_changed",
+  UPDATED: "employee.updated",
 } as const;
 
 export interface EmployeeCreatedEvent {
@@ -36,15 +36,15 @@ export interface EmployeeGroupCreatedEvent {
 // ─── Lifecycle Events ─────────────────────────────────────────────────────
 
 export const LIFECYCLE_EVENTS = {
-  EXIT_INTERVIEW_SCHEDULED: "lifecycle:exit_interview_scheduled",
-  ONBOARDING_COMPLETED: "lifecycle:onboarding_completed",
-  ONBOARDING_STARTED: "lifecycle:onboarding_started",
-  PROMOTION_APPROVED: "lifecycle:promotion_approved",
-  PROMOTION_REQUESTED: "lifecycle:promotion_requested",
-  SEPARATION_COMPLETED: "lifecycle:separation_completed",
-  SEPARATION_INITIATED: "lifecycle:separation_initiated",
-  TRANSFER_APPROVED: "lifecycle:transfer_approved",
-  TRANSFER_REQUESTED: "lifecycle:transfer_requested",
+  EXIT_INTERVIEW_SCHEDULED: "lifecycle.exit_interview_scheduled",
+  ONBOARDING_COMPLETED: "lifecycle.onboarding_completed",
+  ONBOARDING_STARTED: "lifecycle.onboarding_started",
+  PROMOTION_APPROVED: "lifecycle.promotion_approved",
+  PROMOTION_REQUESTED: "lifecycle.promotion_requested",
+  SEPARATION_COMPLETED: "lifecycle.separation_completed",
+  SEPARATION_INITIATED: "lifecycle.separation_initiated",
+  TRANSFER_APPROVED: "lifecycle.transfer_approved",
+  TRANSFER_REQUESTED: "lifecycle.transfer_requested",
 } as const;
 
 export interface OnboardingStartedEvent {
@@ -112,13 +112,13 @@ export interface ExitInterviewScheduledEvent {
 // ─── Position Events ────────────────────────────────────────────────────
 
 export const POSITION_EVENTS = {
-  ACTIVATED: "position:activated",
-  ASSIGNED: "position:assigned",
-  CREATED: "position:created",
-  DEACTIVATED: "position:deactivated",
-  REASSIGNED: "position:reassigned",
-  UNASSIGNED: "position:unassigned",
-  UPDATED: "position:updated",
+  ACTIVATED: "position.activated",
+  ASSIGNED: "position.assigned",
+  CREATED: "position.created",
+  DEACTIVATED: "position.deactivated",
+  REASSIGNED: "position.reassigned",
+  UNASSIGNED: "position.unassigned",
+  UPDATED: "position.updated",
 } as const;
 
 export interface PositionCreatedEvent {
@@ -165,12 +165,12 @@ export interface PositionReassignedEvent {
 // ─── Setup Events ─────────────────────────────────────────────────────────
 
 export const SETUP_EVENTS = {
-  DEPARTMENT_CREATED: "setup:department_created",
-  DEPARTMENT_HEAD_CHANGED: "setup:department_head_changed",
-  DEPARTMENT_MOVED: "setup:department_moved",
-  DESIGNATION_CREATED: "setup:designation_created",
-  HOLIDAY_LIST_CREATED: "setup:holiday_list_created",
-  SETTINGS_UPDATED: "setup:settings_updated",
+  DEPARTMENT_CREATED: "setup.department_created",
+  DEPARTMENT_HEAD_CHANGED: "setup.department_head_changed",
+  DEPARTMENT_MOVED: "setup.department_moved",
+  DESIGNATION_CREATED: "setup.designation_created",
+  HOLIDAY_LIST_CREATED: "setup.holiday_list_created",
+  SETTINGS_UPDATED: "setup.settings_updated",
 } as const;
 
 export interface DepartmentCreatedEvent {
@@ -203,14 +203,14 @@ export interface HrSettingsUpdatedEvent {
 // ─── Access Events ────────────────────────────────────────────────────────
 
 export const ACCESS_EVENTS = {
-  BRANCH_ACCESS_GRANTED: "access:branch_access_granted",
-  BRANCH_ACCESS_REVOKED: "access:branch_access_revoked",
-  ROLE_ASSIGNED: "access:role_assigned",
-  ROLE_CREATED: "access:role_created",
-  ROLE_REVOKED: "access:role_revoked",
-  USER_ACTIVATED: "access:user_activated",
-  USER_CREATED: "access:user_created",
-  USER_DEACTIVATED: "access:user_deactivated",
+  BRANCH_ACCESS_GRANTED: "access.branch_access_granted",
+  BRANCH_ACCESS_REVOKED: "access.branch_access_revoked",
+  ROLE_ASSIGNED: "access.role_assigned",
+  ROLE_CREATED: "access.role_created",
+  ROLE_REVOKED: "access.role_revoked",
+  USER_ACTIVATED: "access.user_activated",
+  USER_CREATED: "access.user_created",
+  USER_DEACTIVATED: "access.user_deactivated",
 } as const;
 
 export interface AccessUserCreatedEvent {
@@ -263,12 +263,12 @@ export interface AccessBranchAccessRevokedEvent {
 // ─── Announcement Events ─────────────────────────────────────────────────
 
 export const ANNOUNCEMENT_EVENTS = {
-  ARCHIVED: "announcement:archived",
-  CREATED: "announcement:created",
-  PINNED: "announcement:pinned",
-  PUBLISHED: "announcement:published",
-  SCHEDULED: "announcement:scheduled",
-  UPDATED: "announcement:updated",
+  ARCHIVED: "announcement.archived",
+  CREATED: "announcement.created",
+  PINNED: "announcement.pinned",
+  PUBLISHED: "announcement.published",
+  SCHEDULED: "announcement.scheduled",
+  UPDATED: "announcement.updated",
 } as const;
 
 export interface AnnouncementCreatedEvent {

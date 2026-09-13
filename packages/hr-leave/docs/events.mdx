@@ -10,9 +10,9 @@ The hr-leave module defines domain events for leave in one group. Events are typ
 
 | Event                         | Payload                                                                       | Trigger                         |
 | ----------------------------- | ----------------------------------------------------------------------------- | ------------------------------- |
-| `leave:application_submitted` | `{ application: { id, employeeId, leaveType, fromDate, toDate, totalDays } }` | `leave.createLeaveApplication`  |
-| `leave:application_approved`  | `{ applicationId, approvedBy }`                                               | `leave.approveLeaveApplication` |
-| `leave:application_rejected`  | `{ applicationId, rejectedBy }`                                               | `leave.rejectLeaveApplication`  |
-| `leave:application_cancelled` | `{ applicationId }`                                                           | `leave.cancelLeaveApplication`  |
-| `leave:allocation_created`    | `{ allocation: { id, employeeId, leaveType, totalDays } }`                    | `leave.createLeaveAllocation`   |
-| `leave:encashment_requested`  | `{ encashment: { id, employeeId, leaveType, encashableDays } }`               | `leave.createLeaveEncashment`   |
+| `leave.application_submitted` | `{ application: { id, employeeId, leaveType, fromDate, toDate, totalDays } }` | `leave.createLeaveApplication`  |
+| `leave.application_approved`  | `{ applicationId, approvedBy }`                                               | `leave.approveLeaveApplication` |
+| `leave.application_rejected`  | `{ applicationId, rejectedBy }`                                               | `leave.rejectLeaveApplication`  |
+| `leave.application_cancelled` | `{ applicationId }`                                                           | `leave.cancelLeaveApplication`  |
+| `leave.allocation_created`    | `{ allocation: { id, employeeId, leaveType, totalDays } }`                    | `leave.createLeaveAllocation`   |
+| `leave.encashment_requested`  | `{ encashment: { id, employeeId, leaveType, encashableDays } }`               | `leave.createLeaveEncashment`   |

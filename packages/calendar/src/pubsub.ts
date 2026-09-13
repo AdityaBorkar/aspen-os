@@ -3,29 +3,29 @@ import type { AttendeeStatus, CalendarAccess } from "#/utils/constants";
 import type { JsonValue } from "@aspen-os/platform/server";
 
 export const CALENDAR_EVENTS = {
-  CREATED: "calendar:calendar_created",
-  DELETED: "calendar:calendar_deleted",
-  UPDATED: "calendar:calendar_updated",
+  CREATED: "calendar.calendar_created",
+  DELETED: "calendar.calendar_deleted",
+  UPDATED: "calendar.calendar_updated",
 } as const;
 
 export const EVENT_EVENTS = {
-  CANCELLED: "calendar:event_cancelled",
-  CREATED: "calendar:event_created",
-  DELETED: "calendar:event_deleted",
-  UPDATED: "calendar:event_updated",
+  CANCELLED: "calendar.event_cancelled",
+  CREATED: "calendar.event_created",
+  DELETED: "calendar.event_deleted",
+  UPDATED: "calendar.event_updated",
 } as const;
 
 export const ATTENDEE_EVENTS = {
-  INVITED: "calendar:attendee_invited",
-  REMOVED: "calendar:attendee_removed",
-  UPDATED: "calendar:attendee_updated",
+  INVITED: "calendar.attendee_invited",
+  REMOVED: "calendar.attendee_removed",
+  UPDATED: "calendar.attendee_updated",
 } as const;
 
 export const REMINDER_EVENTS = {
-  CREATED: "calendar:reminder_created",
-  DELETED: "calendar:reminder_deleted",
-  DUE: "calendar:reminder_due",
-  UPDATED: "calendar:reminder_updated",
+  CREATED: "calendar.reminder_created",
+  DELETED: "calendar.reminder_deleted",
+  DUE: "calendar.reminder_due",
+  UPDATED: "calendar.reminder_updated",
 } as const;
 
 export const events = {

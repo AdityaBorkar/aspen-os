@@ -14,7 +14,7 @@ export interface LabelBridgeDeps {
  * Event-driven projection of the masters label taxonomy.
  * DMS never reads `master_label` directly — label names for search and
  * view conditions come from the local `dms_label_cache`, synced from
- * `masters:label_created / label_updated / label_removed`.
+ * `masters.label_created / label_updated / label_removed`.
  */
 const LabelCreatedEventSchema = object({
   label: object({
@@ -90,9 +90,9 @@ async function handleLabelRemoved(
 }
 
 export const LABEL_BRIDGE_TOPICS = [
-  "masters:label_created",
-  "masters:label_updated",
-  "masters:label_removed",
+  "masters.label_created",
+  "masters.label_updated",
+  "masters.label_removed",
 ] as const;
 
 export async function registerLabelBridge(deps: LabelBridgeDeps): Promise<string[]> {
@@ -109,13 +109,13 @@ export async function registerLabelBridge(deps: LabelBridgeDeps): Promise<string
     });
   }
 
-  await subscribe("masters:label_created", LabelCreatedEventSchema, (data) =>
+  await subscribe("masters.label_created", LabelCreatedEventSchema, (data) =>
     handleLabelCreated(data, deps),
   );
-  await subscribe("masters:label_updated", LabelUpdatedEventSchema, (data) =>
+  await subscribe("masters.label_updated", LabelUpdatedEventSchema, (data) =>
     handleLabelUpdated(data, deps),
   );
-  await subscribe("masters:label_removed", LabelRemovedEventSchema, (data) =>
+  await subscribe("masters.label_removed", LabelRemovedEventSchema, (data) =>
     handleLabelRemoved(data, deps),
   );
 

@@ -1,17 +1,17 @@
 import type { JsonValue } from "@aspen-os/platform/server";
 
 export const TASK_EVENTS = {
-  ASSIGNED: "task:assigned",
-  COMMENTED: "task:commented",
-  CREATED: "task:created",
-  DELETED: "task:deleted",
-  DUE_DATE_CHANGED: "task:due_date_changed",
-  LINKED: "task:linked",
-  STATUS_CHANGED: "task:status_changed",
-  TIME_LOGGED: "task:time_logged",
-  UNASSIGNED: "task:unassigned",
-  UNLINKED: "task:unlinked",
-  UPDATED: "task:updated",
+  ASSIGNED: "task.assigned",
+  COMMENTED: "task.commented",
+  CREATED: "task.created",
+  DELETED: "task.deleted",
+  DUE_DATE_CHANGED: "task.due_date_changed",
+  LINKED: "task.linked",
+  STATUS_CHANGED: "task.status_changed",
+  TIME_LOGGED: "task.time_logged",
+  UNASSIGNED: "task.unassigned",
+  UNLINKED: "task.unlinked",
+  UPDATED: "task.updated",
 } as const;
 
 export const events = {

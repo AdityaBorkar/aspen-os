@@ -16,7 +16,7 @@ Downstream of the Platform (Customer–Supplier) and of every module that publis
 - 9 pgEnums; enum values shared from `@aspen-os/constants` (decision 12)
 - 21 domain events across 7 maps (`CHANNEL_EVENTS` 6, `PROVIDER_EVENTS` 2, `NOTIFICATION_EVENTS` 3, `MESSAGE_EVENTS` 4, `PREFERENCE_EVENTS` 1, `TEMPLATE_EVENTS` 4, `SETTING_EVENTS` 1) → `CommsEventMap`
 - 7 ACL resources: `channel`, `provider` (host-admin, control-plane), `notification`, `preference`, `template`, `setting`, `message`
-- `$prepareRuntime()` — registers `comms:message-sweeper` cron (`* * * * *`) + handler and 8 event-bridge subscriptions; `$cleanup()` unregisters both
+- `$prepareRuntime()` — registers `comms.message-sweeper` cron (`* * * * *`) + handler and 8 event-bridge subscriptions; `$cleanup()` unregisters both
 - Has a build step (build script + `build` field in package.json)
 
 ## Exposed on the platform instance
@@ -34,19 +34,19 @@ p.comms.messages      { get, list, retry }
 
 ## Consumed topics (event bridge)
 
-`compliance:document_expiring` / `document_due`, `calendar:reminder_due`, `dms:file_expired`, `announcement:published` (hr, planned), `management:tenant_provisioned` / `tenant_activated`, `auth:email_otp_requested` (new). Subscription pattern copied from compliance's `event-bridge.ts` (`subscribeValidated`).
+`compliance.document_expiring` / `document_due`, `calendar.reminder_due`, `dms.file_expired`, `announcement.published` (hr, planned), `management.tenant_provisioned` / `tenant_activated`, `auth.email_otp_requested` (new). Subscription pattern copied from compliance's `event-bridge.ts` (`subscribeValidated`).
 
 ## Producer extensions
 
 - **compliance** — `reminder-engine` payloads gain `recipient: { type: "user", id }` (the document's `assignedTo ?? createdBy`).
-- **dms** — `expiry-scanner`'s `dms:file_expired` payload gains `ownerId`.
-- **platform auth** — `sendVerificationOTP` no longer `console.log`s the OTP: it stores the OTP in a short-lived token store, publishes `auth:email_otp_requested` with `{ email, tokenRef, type }`, and exposes `rest.otp.get(tokenRef)` for inline delivery.
+- **dms** — `expiry-scanner`'s `dms.file_expired` payload gains `ownerId`.
+- **platform auth** — `sendVerificationOTP` no longer `console.log`s the OTP: it stores the OTP in a short-lived token store, publishes `auth.email_otp_requested` with `{ email, tokenRef, type }`, and exposes `rest.otp.get(tokenRef)` for inline delivery.
 
 ## Lineage
 
-Single module created from `.working-docs/sow/comms.md` (Phase 0–6 complete). Replaces the planned "comms" and "notifications" SOW items in `.working-docs/todo/.md`. The former `reminder:fired` producer seam (tasks) is handled via its live replacement `calendar:reminder_due`.
+Single module created from `.working-docs/sow/comms.md` (Phase 0–6 complete). Replaces the planned "comms" and "notifications" SOW items in `.working-docs/todo/.md`. The former `reminder:fired` producer seam (tasks) is handled via its live replacement `calendar.reminder_due`.
 
 ## Language
 
-- Channel, Provider, Notification, Message, Recipient, Default Channel, Preference, Template, In-app, Out-of-band, BYOC, host default, `notify`, `comms:message-sweeper`
-- Avoid: notifications package (single comms module), `comms:deliver` topic (cron-scan outbox instead), drive/parallel file model, raw OTP on a queue
+- Channel, Provider, Notification, Message, Recipient, Default Channel, Preference, Template, In-app, Out-of-band, BYOC, host default, `notify`, `comms.message-sweeper`
+- Avoid: notifications package (single comms module), `comms.deliver` topic (cron-scan outbox instead), drive/parallel file model, raw OTP on a queue

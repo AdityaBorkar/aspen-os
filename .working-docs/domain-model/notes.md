@@ -47,9 +47,9 @@
 
 | Event                | Payload                                                                                             | Trigger      |
 | -------------------- | --------------------------------------------------------------------------------------------------- | ------------ |
-| `notes:note_created` | `{ note: { id, ownerId, title, body, type, access, tags, metadata, scopeType, scopeId } }`          | Note created |
-| `notes:note_updated` | `{ note: { id, ownerId, title, body, type, access, tags, metadata, scopeType, scopeId }, changes }` | Note updated |
-| `notes:note_deleted` | `{ note: { id, ownerId, title, body, type, access, tags, metadata, scopeType, scopeId } }`          | Note deleted |
+| `notes.note_created` | `{ note: { id, ownerId, title, body, type, access, tags, metadata, scopeType, scopeId } }`          | Note created |
+| `notes.note_updated` | `{ note: { id, ownerId, title, body, type, access, tags, metadata, scopeType, scopeId }, changes }` | Note updated |
+| `notes.note_deleted` | `{ note: { id, ownerId, title, body, type, access, tags, metadata, scopeType, scopeId } }`          | Note deleted |
 
 `changes` carries the applied field updates. `metadata` updates replace the map wholesale; empty update patches are rejected.
 

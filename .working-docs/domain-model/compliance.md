@@ -131,29 +131,29 @@
 
 | Event                                     | Payload                                                                                                   | Trigger                                      |
 | ----------------------------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| `compliance:document_created`             | `{ document: { category, id, name } }`                                                                    | Document created                             |
-| `compliance:document_updated`             | `{ changes, document: { id, name } }`                                                                     | Document updated                             |
-| `compliance:document_submitted`           | `{ documentId, submittedBy }`                                                                             | Document submitted for review                |
-| `compliance:document_verified`            | `{ category, documentId, sourceEntityId, sourceModule, verifiedBy }`                                      | Document verified                            |
-| `compliance:document_rejected`            | `{ category, documentId, reason, rejectedBy, sourceEntityId, sourceModule }`                              | Document rejected                            |
-| `compliance:document_expiring`            | `{ daysUntilExpiry, documentId, sourceEntityId, sourceModule }`                                           | Expiry notification                          |
-| `compliance:document_due`                 | `{ daysUntilDue, documentId, sourceEntityId, sourceModule }`                                              | Due date notification                        |
-| `compliance:document_expired`             | `{ category, documentId, sourceEntityId, sourceModule }`                                                  | Document expired                             |
-| `compliance:document_overdue`             | `{ category, daysOverdue, documentId, sourceEntityId, sourceModule }`                                     | Document past due                            |
-| `compliance:document_completed`           | `{ completedAt, documentId, referenceNumber, sourceEntityId, sourceModule }`                              | Document completed                           |
-| `compliance:document_escalated`           | `{ daysSinceExpiry, documentId, escalationLevel }`                                                        | Escalation threshold reached                 |
-| `compliance:document_renewed`             | `{ newDocumentId, oldDocumentId }`                                                                        | Document renewed (old archived, new created) |
-| `compliance:document_archived`            | `{ documentId }`                                                                                          | Document archived                            |
-| `compliance:document_reviewer_assigned`   | `{ documentId, reviewerId }`                                                                              | Reviewer assigned                            |
-| `compliance:document_attachment_uploaded` | `{ documentId, storageKey }`                                                                              | Attachment uploaded                          |
-| `compliance:document_snoozed`             | `{ documentId, snoozedBy, snoozedUntil }`                                                                 | Document snoozed                             |
-| `compliance:document_generated`           | `{ documentId, obligationId, sourceModule }`                                                              | Auto-generated from obligation               |
-| `compliance:obligation_created`           | `{ obligation: { category, id, name } }`                                                                  | Obligation created                           |
-| `compliance:obligation_activated`         | `{ obligationId }`                                                                                        | Obligation activated                         |
-| `compliance:obligation_deactivated`       | `{ obligationId }`                                                                                        | Obligation deactivated                       |
-| `compliance:obligation_updated`           | `{ changes, obligation: { id, name } }`                                                                   | Obligation updated                           |
-| `compliance:weekly_summary`               | `{ summary: { activeObligations, documentsGenerated, expired, expiringSoon, overdue, total, verified } }` | Weekly dashboard summary                     |
-| `compliance:scheduled_job_executed`       | `{ errors, executionTime, jobName, recordsProcessed }`                                                    | Scheduled job completed                      |
+| `compliance.document_created`             | `{ document: { category, id, name } }`                                                                    | Document created                             |
+| `compliance.document_updated`             | `{ changes, document: { id, name } }`                                                                     | Document updated                             |
+| `compliance.document_submitted`           | `{ documentId, submittedBy }`                                                                             | Document submitted for review                |
+| `compliance.document_verified`            | `{ category, documentId, sourceEntityId, sourceModule, verifiedBy }`                                      | Document verified                            |
+| `compliance.document_rejected`            | `{ category, documentId, reason, rejectedBy, sourceEntityId, sourceModule }`                              | Document rejected                            |
+| `compliance.document_expiring`            | `{ daysUntilExpiry, documentId, sourceEntityId, sourceModule }`                                           | Expiry notification                          |
+| `compliance.document_due`                 | `{ daysUntilDue, documentId, sourceEntityId, sourceModule }`                                              | Due date notification                        |
+| `compliance.document_expired`             | `{ category, documentId, sourceEntityId, sourceModule }`                                                  | Document expired                             |
+| `compliance.document_overdue`             | `{ category, daysOverdue, documentId, sourceEntityId, sourceModule }`                                     | Document past due                            |
+| `compliance.document_completed`           | `{ completedAt, documentId, referenceNumber, sourceEntityId, sourceModule }`                              | Document completed                           |
+| `compliance.document_escalated`           | `{ daysSinceExpiry, documentId, escalationLevel }`                                                        | Escalation threshold reached                 |
+| `compliance.document_renewed`             | `{ newDocumentId, oldDocumentId }`                                                                        | Document renewed (old archived, new created) |
+| `compliance.document_archived`            | `{ documentId }`                                                                                          | Document archived                            |
+| `compliance.document_reviewer_assigned`   | `{ documentId, reviewerId }`                                                                              | Reviewer assigned                            |
+| `compliance.document_attachment_uploaded` | `{ documentId, storageKey }`                                                                              | Attachment uploaded                          |
+| `compliance.document_snoozed`             | `{ documentId, snoozedBy, snoozedUntil }`                                                                 | Document snoozed                             |
+| `compliance.document_generated`           | `{ documentId, obligationId, sourceModule }`                                                              | Auto-generated from obligation               |
+| `compliance.obligation_created`           | `{ obligation: { category, id, name } }`                                                                  | Obligation created                           |
+| `compliance.obligation_activated`         | `{ obligationId }`                                                                                        | Obligation activated                         |
+| `compliance.obligation_deactivated`       | `{ obligationId }`                                                                                        | Obligation deactivated                       |
+| `compliance.obligation_updated`           | `{ changes, obligation: { id, name } }`                                                                   | Obligation updated                           |
+| `compliance.weekly_summary`               | `{ summary: { activeObligations, documentsGenerated, expired, expiringSoon, overdue, total, verified } }` | Weekly dashboard summary                     |
+| `compliance.scheduled_job_executed`       | `{ errors, executionTime, jobName, recordsProcessed }`                                                    | Scheduled job completed                      |
 
 ## Command-Query Separation
 

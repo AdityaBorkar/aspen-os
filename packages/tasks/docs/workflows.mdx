@@ -6,7 +6,7 @@ icon: IconListCheck
 
 Workflow groups via `p.tasks` — `projects`, `tasks`, `statuses`, `taskTypes`, `timeEntries`, `comments`, `links`, `collaboration`, and `automations` (access key `p.tasks`).
 
-Scope varies by group — projects own tasks via `projectId`; statuses, types, and automation rules are project-scoped or global (`projectId` nullable); time entries, comments, and links are task-scoped. Create takes `{ input }` (Valibot), update takes `{ id, patch }`, and mutations write `task_activity_log` and publish `task:*` events.
+Scope varies by group — projects own tasks via `projectId`; statuses, types, and automation rules are project-scoped or global (`projectId` nullable); time entries, comments, and links are task-scoped. Create takes `{ input }` (Valibot), update takes `{ id, patch }`, and mutations write `task_activity_log` and publish `task.*` events.
 
 ## Features
 

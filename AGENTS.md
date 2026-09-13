@@ -35,7 +35,7 @@
 - Database changes use Drizzle `pushSchema()` during platform preparation, not migration files. Follow `CODING_CONVENTIONS.md` for schema details; domain IDs are text UUID v7 values, timestamps are timezone-aware, and PostgreSQL names are snake_case mapped to camelCase TypeScript properties.
 - pg-boss pub/sub starts lazily. Publishing to a topic with no `subscribe()` consumer silently drops the message (`send()` returns no job id); every produced topic needs a subscriber, and `healthCheck()` reports unsubscribed produced topics.
 - `@aspen-os/dms` is the single document/file surface; the former drive surface is consolidated there. Do not recreate a `drive` package or parallel file/tag/share/trash model.
-- `@aspen-os/comms` is the single notification/inbox and out-of-band delivery surface (channels, host providers, messages). Do not recreate a `notifications` package or a parallel `comms:deliver` topic — delivery is the cron-scan `comms:message-sweeper` outbox worker.
+- `@aspen-os/comms` is the single notification/inbox and out-of-band delivery surface (channels, host providers, messages). Do not recreate a `notifications` package or a parallel `comms.deliver` topic — delivery is the cron-scan `comms.message-sweeper` outbox worker.
 - `@aspen-os/notes` owns notes. `@aspen-os/masters` no longer owns notes or `master_note`.
 - `@aspen-os/calendar` owns the single reminder surface, including task reminders. `@aspen-os/tasks` publishes task events consumed by calendar's task bridge; do not add a second `task_reminder` surface or direct cross-module task/calendar calls.
 

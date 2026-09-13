@@ -32,7 +32,7 @@ export const PERMISSION_ACTION = {
 export type PermissionAction = (typeof PERMISSION_ACTION)[keyof typeof PERMISSION_ACTION];
 
 export const SCHEDULED_JOBS = {
-  ANNOUNCEMENT_SCHEDULER: "hr:announcement-scheduler",
+  ANNOUNCEMENT_SCHEDULER: "hr.announcement-scheduler",
 } as const;
 
 export const CRON_SCHEDULES = {

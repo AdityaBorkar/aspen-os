@@ -1,34 +1,34 @@
 import type { JsonValue } from "@aspen-os/platform/server";
 
 export const TENANT_EVENTS = {
-  ACTIVATED: "tenant:activated",
-  CHURNED: "tenant:churned",
-  PROFILE_UPDATED: "tenant:profile_updated",
-  PROVISIONED: "tenant:provisioned",
-  REACTIVATED: "tenant:reactivated",
-  SP_ASSIGNED: "tenant:sp_assigned",
-  SP_UNASSIGNED: "tenant:sp_unassigned",
-  SUSPENDED: "tenant:suspended",
+  ACTIVATED: "tenant.activated",
+  CHURNED: "tenant.churned",
+  PROFILE_UPDATED: "tenant.profile_updated",
+  PROVISIONED: "tenant.provisioned",
+  REACTIVATED: "tenant.reactivated",
+  SP_ASSIGNED: "tenant.sp_assigned",
+  SP_UNASSIGNED: "tenant.sp_unassigned",
+  SUSPENDED: "tenant.suspended",
 } as const;
 
 export const SERVICE_PROVIDER_EVENTS = {
-  ACTIVATED: "service_provider:activated",
-  CREATED: "service_provider:created",
-  DEACTIVATED: "service_provider:deactivated",
-  UPDATED: "service_provider:updated",
+  ACTIVATED: "service_provider.activated",
+  CREATED: "service_provider.created",
+  DEACTIVATED: "service_provider.deactivated",
+  UPDATED: "service_provider.updated",
 } as const;
 
 export const PLATFORM_USER_EVENTS = {
-  CREATED: "platform_user:created",
-  DELETED: "platform_user:deleted",
-  ROLE_ASSIGNED: "platform_user:role_assigned",
-  SP_ASSIGNED: "platform_user:sp_assigned",
-  UPDATED: "platform_user:updated",
+  CREATED: "platform_user.created",
+  DELETED: "platform_user.deleted",
+  ROLE_ASSIGNED: "platform_user.role_assigned",
+  SP_ASSIGNED: "platform_user.sp_assigned",
+  UPDATED: "platform_user.updated",
 } as const;
 
 export const ORGANIZATION_EVENTS = {
-  CREATED: "organization:created",
-  UPDATED: "organization:updated",
+  CREATED: "organization.created",
+  UPDATED: "organization.updated",
 } as const;
 
 export const events = {

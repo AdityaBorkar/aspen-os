@@ -33,7 +33,7 @@ const hrAttendance = HrAttendance.create({ country: "INDIA" });
 
 ## Dependencies
 
-No module `$dependencies`. `$initialize()` binds `DatabaseUnit` and `PubSubUnit`; `$prepareInfra()` contributes `auth.acl`, `db.tenant_schemas`, and `events`; `$prepareRuntime()` schedules `hr:daily-attendance-sync` (`0 1 * * *`) and unregisters it in `$cleanup()`.
+No module `$dependencies`. `$initialize()` binds `DatabaseUnit` and `PubSubUnit`; `$prepareInfra()` contributes `auth.acl`, `db.tenant_schemas`, and `events`; `$prepareRuntime()` schedules `hr.daily-attendance-sync` (`0 1 * * *`) and unregisters it in `$cleanup()`.
 
 ## Architecture
 
@@ -53,7 +53,7 @@ flowchart TB
   PI --> TS[tenant_schemas\nattendance, employee_checkin, overtime_*, shift_*]
   PI --> EV[events\nattendance, overtime, shift]
 
-  PR -->|schedule 0 1 * * *| CRON[hr:daily-attendance-sync]
+  PR -->|schedule 0 1 * * *| CRON[hr.daily-attendance-sync]
 
   WF[workflows\nattendance, overtime, shift] --> DB
   WF --> PS
@@ -68,7 +68,7 @@ flowchart TB
 
 ## Attendance Requests
 
-`attendance_request` is a correction request for a date range (`from_date`/`to_date`, `reason`, `hr_attendance_request_status` default `pending`). `approveAttendanceRequest` / `rejectAttendanceRequest` transition status; workflows publish `attendance:request_created` / `approved` / `rejected`.
+`attendance_request` is a correction request for a date range (`from_date`/`to_date`, `reason`, `hr_attendance_request_status` default `pending`). `approveAttendanceRequest` / `rejectAttendanceRequest` transition status; workflows publish `attendance.request_created` / `approved` / `rejected`.
 
 ## Overtime
 
@@ -127,6 +127,6 @@ export const acl = defineAcl({
 ```
 
 <Callout type="info">
-  `hr:daily-attendance-sync` is the only scheduled topic — no in-repo subscription yet; the host
+  `hr.daily-attendance-sync` is the only scheduled topic — no in-repo subscription yet; the host
   must subscribe if it implements auto-attendance synthesis.
 </Callout>

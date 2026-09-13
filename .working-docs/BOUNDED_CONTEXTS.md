@@ -180,8 +180,8 @@ Domain events published via PubSub as plain string topics. Event counts by modul
 - Masters: 27 events
 - Notes: 3 events
 - Compliance: 23 events
-- Tasks: 11 events (incl. `task:due_date_changed`)
-- Calendar: 14 events (3 calendar + 4 event + 3 attendee + 4 reminder, incl. `calendar:reminder_due`)
+- Tasks: 11 events (incl. `task.due_date_changed`)
+- Calendar: 14 events (3 calendar + 4 event + 3 attendee + 4 reminder, incl. `calendar.reminder_due`)
 - Workspace: 28 events (13 draft + 4 view + 6 dashboard + 4 widget + 2 pin + 2 watch + 1 schedule)
 - DMS: 27 events (13 file + 6 folder + 3 class + 2 share + 3 public_link + 3 file_view)
 - Comms: 21 events (6 channel + 2 provider + 3 notification + 4 message + 1 preference + 4 template + 1 setting)
@@ -196,21 +196,21 @@ Compliance module's `EventBridge` service actively subscribes to other modules' 
 
 | Subscribed Topic                                     | Source Module                         | Action                                                                                                                    |
 | ---------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `hr:employee_onboarded`                              | HR                                    | Creates background check + ID verification documents                                                                      |
-| `hr:employee_separated`                              | HR                                    | Creates exit documents + final settlement documents                                                                       |
-| `fleet:vehicle_registered`                           | Fleet (stub)                          | Creates pollution certificate + semi-annual obligation                                                                    |
-| `organization:branch_created`                        | Organization                          | Creates trade license + fire safety certificate + annual obligation                                                       |
-| `accounting:financial_year_started`                  | Accounting (planned — no package yet) | Creates monthly GST return obligation                                                                                     |
-| `masters:contact_created`                            | Masters                               | Creates insurance policy document (if contact type is insurer and entity is organization-scoped; global contacts ignored) |
-| `task:due_date_changed`                              | Tasks                                 | Calendar task bridge — materializes/cancels the task due-date reminder bundle                                             |
-| `task:deleted`                                       | Tasks                                 | Calendar task bridge — deletes all task reminders for the task                                                            |
-| `task:status_changed`                                | Tasks                                 | Calendar task bridge — suppresses pending task reminders on completion/cancellation                                       |
-| `compliance:document_expiring` / `document_due`      | Compliance                            | Comms event bridge — in-app + out-of-band notification to the document's assigned user                                    |
-| `calendar:reminder_due`                              | Calendar                              | Comms event bridge — notify the reminder's `userId`                                                                       |
-| `dms:file_expired`                                   | DMS                                   | Comms event bridge — notify the file `ownerId`                                                                            |
-| `announcement:published`                             | HR                                    | Comms event bridge — per-recipient inbox fan-out                                                                          |
-| `management:tenant_provisioned` / `tenant_activated` | Management                            | Comms event bridge — warm host default channels per tenant                                                                |
-| `auth:email_otp_requested`                           | Platform auth                         | Comms event bridge — inline OTP email via the host default email provider                                                 |
+| `hr.employee_onboarded`                              | HR                                    | Creates background check + ID verification documents                                                                      |
+| `hr.employee_separated`                              | HR                                    | Creates exit documents + final settlement documents                                                                       |
+| `fleet.vehicle_registered`                           | Fleet (stub)                          | Creates pollution certificate + semi-annual obligation                                                                    |
+| `organization.branch_created`                        | Organization                          | Creates trade license + fire safety certificate + annual obligation                                                       |
+| `accounting.financial_year_started`                  | Accounting (planned — no package yet) | Creates monthly GST return obligation                                                                                     |
+| `masters.contact_created`                            | Masters                               | Creates insurance policy document (if contact type is insurer and entity is organization-scoped; global contacts ignored) |
+| `task.due_date_changed`                              | Tasks                                 | Calendar task bridge — materializes/cancels the task due-date reminder bundle                                             |
+| `task.deleted`                                       | Tasks                                 | Calendar task bridge — deletes all task reminders for the task                                                            |
+| `task.status_changed`                                | Tasks                                 | Calendar task bridge — suppresses pending task reminders on completion/cancellation                                       |
+| `compliance.document_expiring` / `document_due`      | Compliance                            | Comms event bridge — in-app + out-of-band notification to the document's assigned user                                    |
+| `calendar.reminder_due`                              | Calendar                              | Comms event bridge — notify the reminder's `userId`                                                                       |
+| `dms.file_expired`                                   | DMS                                   | Comms event bridge — notify the file `ownerId`                                                                            |
+| `announcement.published`                             | HR                                    | Comms event bridge — per-recipient inbox fan-out                                                                          |
+| `management.tenant_provisioned` / `tenant_activated` | Management                            | Comms event bridge — warm host default channels per tenant                                                                |
+| `auth.email_otp_requested`                           | Platform auth                         | Comms event bridge — inline OTP email via the host default email provider                                                 |
 
 ### Schema Management
 
@@ -237,17 +237,17 @@ Five modules register scheduled cron jobs via PubSub:
 
 | Module     | Topic                                | Cron         | Action                                                                                |
 | ---------- | ------------------------------------ | ------------ | ------------------------------------------------------------------------------------- |
-| Compliance | `compliance:daily-expiry-scan`       | `0 8 * * *`  | Scan expiring documents                                                               |
-| Compliance | `compliance:daily-status-transition` | `0 0 * * *`  | Transition expired/overdue statuses                                                   |
-| Compliance | `compliance:daily-escalation`        | `0 9 * * *`  | Escalate past threshold                                                               |
-| Compliance | `compliance:weekly-summary`          | `0 9 * * 1`  | Generate weekly summary                                                               |
-| DMS        | `dms:expiry-scan`                    | `5 0 * * *`  | Promote past-due files to expired                                                     |
-| DMS        | `dms:auto-purge`                     | `30 3 * * *` | Purge trashed/expired files + folders past retention                                  |
-| HR         | `hr:daily-attendance-sync`           | `0 1 * * *`  | Sync daily attendance records                                                         |
-| HR         | `hr:daily-leave-accrual`             | `0 0 * * *`  | Accrue leave balances                                                                 |
-| HR         | `hr:announcement-scheduler`          | `* * * * *`  | Publish due scheduled announcements                                                   |
-| Calendar   | `calendar:reminder-scan`             | `* * * * *`  | Process pending reminders (publish `calendar:reminder_due`, mark sent, schedule next) |
-| Comms      | `comms:message-sweeper`              | `* * * * *`  | Scan `queued` messages; per-message tenant context, adapter dispatch, retries         |
+| Compliance | `compliance.daily-expiry-scan`       | `0 8 * * *`  | Scan expiring documents                                                               |
+| Compliance | `compliance.daily-status-transition` | `0 0 * * *`  | Transition expired/overdue statuses                                                   |
+| Compliance | `compliance.daily-escalation`        | `0 9 * * *`  | Escalate past threshold                                                               |
+| Compliance | `compliance.weekly-summary`          | `0 9 * * 1`  | Generate weekly summary                                                               |
+| DMS        | `dms.expiry-scan`                    | `5 0 * * *`  | Promote past-due files to expired                                                     |
+| DMS        | `dms.auto-purge`                     | `30 3 * * *` | Purge trashed/expired files + folders past retention                                  |
+| HR         | `hr.daily-attendance-sync`           | `0 1 * * *`  | Sync daily attendance records                                                         |
+| HR         | `hr.daily-leave-accrual`             | `0 0 * * *`  | Accrue leave balances                                                                 |
+| HR         | `hr.announcement-scheduler`          | `* * * * *`  | Publish due scheduled announcements                                                   |
+| Calendar   | `calendar.reminder-scan`             | `* * * * *`  | Process pending reminders (publish `calendar.reminder_due`, mark sent, schedule next) |
+| Comms      | `comms.message-sweeper`              | `* * * * *`  | Scan `queued` messages; per-message tenant context, adapter dispatch, retries         |
 
 ### Health Check
 

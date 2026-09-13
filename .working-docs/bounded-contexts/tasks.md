@@ -14,10 +14,10 @@ Downstream of the Platform (Customer–Supplier). Stateless — `$initialize()` 
 - 15 database tables — the only module that splits between both `control_plane_schemas` and `tenant_schemas`:
   - **6 control-plane**: `label`, `project`, `project_member`, `status`, `status_transition`, `task_type`
   - **9 tenant**: `task`, `task_assignee`, `task_link`, `time_entry`, `activity_log`, `comment`, `attachment`, `watcher`, `automation_rule`
-- 11 domain events published via PubSub (`TaskDomainEventMap`) — including `task:due_date_changed` (consumed by the calendar task bridge) and `task:time_logged`
+- 11 domain events published via PubSub (`TaskDomainEventMap`) — including `task.due_date_changed` (consumed by the calendar task bridge) and `task.time_logged`
 - ACL is empty (`defineAcl({})`)
 - `$prepareInfra()` returns declarative infra (db schemas, events) — schema pushing handled centrally by the platform
-- `filter-engine.ts` is a utility in `utils/` (used by `workflows/task/list.ts`). No `services/` directory; no `notification-bridge` or `report-service` — `task:*` events are published inline by `create`/`update`/`delete`/`assign`/`unassign`/`comment`/`link` workflows and the status-change path.
+- `filter-engine.ts` is a utility in `utils/` (used by `workflows/task/list.ts`). No `services/` directory; no `notification-bridge` or `report-service` — `task.*` events are published inline by `create`/`update`/`delete`/`assign`/`unassign`/`comment`/`link` workflows and the status-change path.
 
 ## Exposed on the platform instance
 
@@ -45,7 +45,7 @@ Workflows are one file per action under `workflows/<entity>/<verb>.ts` (e.g. `ta
 ## Cross-context integration
 
 - Compliance's EventBridge subscribes to events from other modules — Tasks is a **source** of work, not a consumer.
-- The `@aspen-os/calendar` task bridge consumes `task:due_date_changed`, `task:deleted`, and `task:status_changed` to materialize/cancel task reminders (`calendar_reminder` rows with `targetType = task`). Tasks stays `$dependencies = []` — no direct calls.
+- The `@aspen-os/calendar` task bridge consumes `task.due_date_changed`, `task.deleted`, and `task.status_changed` to materialize/cancel task reminders (`calendar_reminder` rows with `targetType = task`). Tasks stays `$dependencies = []` — no direct calls.
 
 ## Language
 

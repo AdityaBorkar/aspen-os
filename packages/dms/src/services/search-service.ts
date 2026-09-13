@@ -280,7 +280,7 @@ export async function quickSearch(
   const [classRows, labelRows] = await Promise.all([
     db.select({ name: dmsClass.name }).from(dmsClass).where(ilike(dmsClass.name, pattern)).limit(5),
     // DMS-local projection of the masters label taxonomy, synced via the
-    // label bridge (`masters:label_*` events). Never read `master_label` here.
+    // label bridge (`masters.label_*` events). Never read `master_label` here.
     db
       .select({ name: dmsLabelCache.name })
       .from(dmsLabelCache)

@@ -1,11 +1,11 @@
 // ─── Attendance Events ───────────────────────────────────────────────────
 
 export const ATTENDANCE_EVENTS = {
-  CHECKIN_CREATED: "attendance:checkin_created",
-  CREATED: "attendance:created",
-  REQUEST_APPROVED: "attendance:request_approved",
-  REQUEST_CREATED: "attendance:request_created",
-  REQUEST_REJECTED: "attendance:request_rejected",
+  CHECKIN_CREATED: "attendance.checkin_created",
+  CREATED: "attendance.created",
+  REQUEST_APPROVED: "attendance.request_approved",
+  REQUEST_CREATED: "attendance.request_created",
+  REQUEST_REJECTED: "attendance.request_rejected",
 } as const;
 
 export interface AttendanceCreatedEvent {
@@ -47,9 +47,9 @@ export interface AttendanceRequestRejectedEvent {
 // ─── Overtime Events ──────────────────────────────────────────────────────
 
 export const OVERTIME_EVENTS = {
-  SLIP_APPROVED: "overtime:slip_approved",
-  SLIP_CREATED: "overtime:slip_created",
-  SLIP_REJECTED: "overtime:slip_rejected",
+  SLIP_APPROVED: "overtime.slip_approved",
+  SLIP_CREATED: "overtime.slip_created",
+  SLIP_REJECTED: "overtime.slip_rejected",
 } as const;
 
 export interface OvertimeSlipCreatedEvent {
@@ -75,10 +75,10 @@ export interface OvertimeSlipRejectedEvent {
 // ─── Shift Events ─────────────────────────────────────────────────────────
 
 export const SHIFT_EVENTS = {
-  ASSIGNMENT_CREATED: "shift:assignment_created",
-  REQUEST_APPROVED: "shift:request_approved",
-  REQUEST_CREATED: "shift:request_created",
-  REQUEST_REJECTED: "shift:request_rejected",
+  ASSIGNMENT_CREATED: "shift.assignment_created",
+  REQUEST_APPROVED: "shift.request_approved",
+  REQUEST_CREATED: "shift.request_created",
+  REQUEST_REJECTED: "shift.request_rejected",
 } as const;
 
 export interface ShiftAssignmentCreatedEvent {

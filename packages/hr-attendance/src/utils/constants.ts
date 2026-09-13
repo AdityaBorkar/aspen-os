@@ -29,7 +29,7 @@ export const PERMISSION_ACTION = {
 export type PermissionAction = (typeof PERMISSION_ACTION)[keyof typeof PERMISSION_ACTION];
 
 export const SCHEDULED_JOBS = {
-  DAILY_ATTENDANCE_SYNC: "hr:daily-attendance-sync",
+  DAILY_ATTENDANCE_SYNC: "hr.daily-attendance-sync",
 } as const;
 
 export const CRON_SCHEDULES = {

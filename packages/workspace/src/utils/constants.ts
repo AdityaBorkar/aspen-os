@@ -83,7 +83,7 @@ export const SCHEDULE_FORMAT = {
 
 export type ScheduleFormat = (typeof SCHEDULE_FORMAT)[keyof typeof SCHEDULE_FORMAT];
 
-export const DELIVERY_SCHEDULE_CRON_TOPIC_PREFIX = "workspace:delivery_schedule:";
+export const DELIVERY_SCHEDULE_CRON_TOPIC_PREFIX = "workspace.delivery_schedule.";
 
 export const FILTER_VIEW_ACCESS = {
   GLOBAL: "global",

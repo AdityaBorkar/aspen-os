@@ -67,7 +67,7 @@ export const SETTING_KEYS = {
 export type SettingKey = (typeof SETTING_KEYS)[keyof typeof SETTING_KEYS];
 
 export const SCHEDULED_JOBS = {
-  MESSAGE_SWEEPER: "comms:message-sweeper",
+  MESSAGE_SWEEPER: "comms.message-sweeper",
 } as const;
 
 export type ScheduledJob = (typeof SCHEDULED_JOBS)[keyof typeof SCHEDULED_JOBS];

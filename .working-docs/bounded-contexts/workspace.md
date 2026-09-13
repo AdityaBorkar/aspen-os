@@ -16,7 +16,7 @@ Downstream of Platform (Customer–Supplier). Runtime-wired — gets `{ db, pubs
 - 6 pgEnums: `workspace_access`, `workspace_draft_status`, `workspace_widget_type`, `workspace_item_type`, `workspace_filter_view_access`, `workspace_filter_view_type`
 - 29 events across 6 maps (`DRAFT_EVENTS` 13, `DASHBOARD_EVENTS` 6, `WIDGET_EVENTS` 4, `PIN_EVENTS` 2, `FILTER_VIEW_EVENTS` 4, `DELIVERY_SCHEDULE_EVENTS` 1) → `WorkspaceEventMap`
 - 9 ACL resources: `draft`, `draftComment`, `dashboard`, `widget`, `filterView`, `schedule`, `pin`, `recent`, `search`
-- `$prepareRuntime()` — `registerScheduleRunner()` enumerates active schedules, registers pg-boss cron per schedule (`workspace:delivery_schedule:<id>`); `$cleanup()` unregisters all. No fixed module-level cron (unlike dms expiry/auto-purge)
+- `$prepareRuntime()` — `registerScheduleRunner()` enumerates active schedules, registers pg-boss cron per schedule (`workspace.delivery_schedule.<id>`); `$cleanup()` unregisters all. No fixed module-level cron (unlike dms expiry/auto-purge)
 - Module-scope runtime state in `runtime.ts` (`setWorkspaceConfig`/`getWorkspaceConfig`)
 - Build step (build script + `build` field in package.json), root `tsconfig.json` reference, `docs/source.config.ts` entry
 

@@ -46,7 +46,7 @@ export class HrCore implements Module {
     }
 
     // Announcement scheduling now via calendar_reminder (targetType=announcement) + single
-    // calendar:reminder-scan dispatcher. The old hr:announcement-scheduler minute cron
+    // calendar.reminder-scan dispatcher. The old hr.announcement-scheduler minute cron
     // is removed to keep one dispatcher, one reminder_due, one cron.
 
     this.#reconciliationTopics = await registerReconciliation({

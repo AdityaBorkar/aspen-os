@@ -46,11 +46,11 @@ export async function registerContactShareBridge(deps: ContactShareBridgeDeps): 
     });
   }
 
-  await subscribe("masters:contact_removed", MasterContactRemovedEventSchema, (data) =>
+  await subscribe("masters.contact_removed", MasterContactRemovedEventSchema, (data) =>
     handleContactRemoved(data, deps),
   );
 
-  return ["masters:contact_removed"];
+  return ["masters.contact_removed"];
 }
 
 export async function unregisterContactShareBridge(

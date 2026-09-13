@@ -20,16 +20,16 @@ Downstream of the Platform (Customer–Supplier). Fully conformant — `implemen
 
 | Topic                       | Cron        | Action                              |
 | --------------------------- | ----------- | ----------------------------------- |
-| `hr:daily-attendance-sync`  | `0 1 * * *` | Sync daily attendance records       |
-| `hr:daily-leave-accrual`    | `0 0 * * *` | Accrue leave balances               |
-| `hr:announcement-scheduler` | `* * * * *` | Publish due scheduled announcements |
+| `hr.daily-attendance-sync`  | `0 1 * * *` | Sync daily attendance records       |
+| `hr.daily-leave-accrual`    | `0 0 * * *` | Accrue leave balances               |
+| `hr.announcement-scheduler` | `* * * * *` | Publish due scheduled announcements |
 
 Reconciliation subscriptions (registered alongside the schedules, unregistered in `$cleanup()`):
 
 | Topic                            | Action                                                                                |
 | -------------------------------- | ------------------------------------------------------------------------------------- |
-| `lifecycle:separation_completed` | Auto-close the employee's open-ended position assignments, emit `position:unassigned` |
-| `lifecycle:transfer_approved`    | Surface transfer guidance when a current position sits in the old department          |
+| `lifecycle.separation_completed` | Auto-close the employee's open-ended position assignments, emit `position.unassigned` |
+| `lifecycle.transfer_approved`    | Surface transfer guidance when a current position sits in the old department          |
 
 ## Exposed on the platform instance
 
@@ -51,9 +51,9 @@ p.hr.shift        shift types, locations, assignments, requests, schedules (33 m
 
 ## Cross-context integration
 
-- Compliance's EventBridge subscribes to `hr:employee_onboarded` (background check + ID verification documents) and `hr:employee_separated` (exit + final settlement documents).
-- Comms' EventBridge subscribes to `announcement:published` (one `comms_notification` per auth-user recipient with `sourceModule: "hr"`, `sourceEntity.type: "announcement"`); hr's `getStats` reads read/acknowledgement counts back from those `comms_notification` rows (narrow, directed cross-module read for stats only).
-- Module-internal: the position group consumes `lifecycle:separation_completed` / `lifecycle:transfer_approved` to reconcile position assignments; `position:*` and `setup:department_*` events are produced by the position/setup workflows for host-app subscribers.
+- Compliance's EventBridge subscribes to `hr.employee_onboarded` (background check + ID verification documents) and `hr.employee_separated` (exit + final settlement documents).
+- Comms' EventBridge subscribes to `announcement.published` (one `comms_notification` per auth-user recipient with `sourceModule: "hr"`, `sourceEntity.type: "announcement"`); hr's `getStats` reads read/acknowledgement counts back from those `comms_notification` rows (narrow, directed cross-module read for stats only).
+- Module-internal: the position group consumes `lifecycle.separation_completed` / `lifecycle.transfer_approved` to reconcile position assignments; `position.*` and `setup.department_*` events are produced by the position/setup workflows for host-app subscribers.
 
 ## Language
 

@@ -72,32 +72,32 @@ const SUBSCRIPTIONS: {
   {
     handler: (data, deps) => handleEmployeeOnboarded(data, deps),
     schema: EmployeeOnboardedEventSchema,
-    topic: "hr:employee_onboarded",
+    topic: "hr.employee_onboarded",
   },
   {
     handler: (data, deps) => handleEmployeeSeparated(data, deps),
     schema: EmployeeSeparatedEventSchema,
-    topic: "hr:employee_separated",
+    topic: "hr.employee_separated",
   },
   {
     handler: (data, deps) => handleVehicleRegistered(data, deps),
     schema: VehicleRegisteredEventSchema,
-    topic: "fleet:vehicle_registered",
+    topic: "fleet.vehicle_registered",
   },
   {
     handler: (data, deps) => handleBranchCreated(data, deps),
     schema: OrgBranchCreatedEventSchema,
-    topic: "masters:org_branch_created",
+    topic: "masters.org_branch_created",
   },
   {
     handler: (data, deps) => handleFinancialYearStarted(data, deps),
     schema: FinancialYearStartedEventSchema,
-    topic: "accounting:financial_year_started",
+    topic: "accounting.financial_year_started",
   },
   {
     handler: (data, deps) => handleContactCreated(data, deps),
     schema: ContactCreatedEventSchema,
-    topic: "masters:contact_created",
+    topic: "masters.contact_created",
   },
 ];
 

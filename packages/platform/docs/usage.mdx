@@ -61,7 +61,7 @@ import { getContext } from "@aspen-os/platform/server";
 await p.run("$global", async () => {
   const { audit, auth, db, log, pubsub } = getContext();
   const result = await db.select().from(organizations);
-  await pubsub.publish("organization:created", { organization });
+  await pubsub.publish("organization.created", { organization });
 });
 ```
 
@@ -88,10 +88,10 @@ await p.run("$global", async () => {
   await p.kvStore.getOrSet("expensive:query", async () => runExpensiveQuery(), 3600);
 
   // PubSub (always subscribe before publish)
-  await p.pubsub.subscribe("organization:created", async (message) => console.log(message.data));
-  await p.pubsub.publish("organization:created", { organization });
+  await p.pubsub.subscribe("organization.created", async (message) => console.log(message.data));
+  await p.pubsub.publish("organization.created", { organization });
   await p.pubsub.schedule({
-    topic: "compliance:weekly-summary",
+    topic: "compliance.weekly-summary",
     cron: "0 9 * * 1",
     data: {},
     options: { tz: "Asia/Kolkata" },
@@ -109,7 +109,7 @@ await p.run("$global", async () => {
 Probe liveness, then shut down pools and workers.
 
 ```ts
-await p.pubsub.getQueueSize("some:topic"); // works on unregistered topics — connectivity probe
+await p.pubsub.getQueueSize("some.topic"); // works on unregistered topics — connectivity probe
 p.pubsub.getUnsubscribedProducedTopics(); // produced topics with no subscriber
 const result = await p.rpc.server.handle(request, { db: p.db.db, pubsub: p.pubsub });
 // router.health.check → { status: "ok" }

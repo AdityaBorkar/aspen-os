@@ -8,11 +8,11 @@ Two runtime services are wired in `$prepareRuntime()`.
 
 ## Obligation Generator
 
-Subscribes to `compliance:obligation-generate` and materializes `document` rows from active obligation templates.
+Subscribes to `compliance.obligation-generate` and materializes `document` rows from active obligation templates.
 
 ```mermaid
 flowchart TB
-  Topic["pubsub topic compliance:obligation-generate"] --> Handler["generatePendingDocuments()"]
+  Topic["pubsub topic compliance.obligation-generate"] --> Handler["generatePendingDocuments()"]
   Handler --> Active["obligations.getActive()"]
   Active --> Loop["for each obligation: computePeriodsUpTo()"]
   Loop --> Check{"idempotencyKey exists?\nobligationId:periodStart:periodEnd:dueDate:expiryDate"}
@@ -30,12 +30,12 @@ Subscribes to 6 external topics and creates compliance artifacts. Validates each
 
 | Topic                                                                           | Creates                                                                              |
 | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `hr:employee_onboarded`                                                         | `background_check` + `id_verification` docs (hr, 365d expiry)                        |
-| `hr:employee_separated`                                                         | `exit_documents` (7d due) + `final_settlement` (30d due)                             |
-| `fleet:vehicle_registered`                                                      | semi-annual `pollution_certificate` obligation + certificate doc                     |
-| `masters:org_branch_created` / `organization:branch_created` / `branch:created` | annual `trade_license` obligation + `trade_license` + `fire_safety_certificate` docs |
-| `accounting:financial_year_started`                                             | monthly `GST Return` obligation (periodBased, dueDay 20)                             |
-| `masters:contact_created`                                                       | `insurance_policy` doc on insurer contacts scoped to `organization` only             |
+| `hr.employee_onboarded`                                                         | `background_check` + `id_verification` docs (hr, 365d expiry)                        |
+| `hr.employee_separated`                                                         | `exit_documents` (7d due) + `final_settlement` (30d due)                             |
+| `fleet.vehicle_registered`                                                      | semi-annual `pollution_certificate` obligation + certificate doc                     |
+| `masters.org_branch_created` / `organization.branch_created` / `branch.created` | annual `trade_license` obligation + `trade_license` + `fire_safety_certificate` docs |
+| `accounting.financial_year_started`                                             | monthly `GST Return` obligation (periodBased, dueDay 20)                             |
+| `masters.contact_created`                                                       | `insurance_policy` doc on insurer contacts scoped to `organization` only             |
 
 ```ts title="src/services/event-bridge.ts"
 await registerEventBridgeSubscriptions({ audit, db, pubsub });
@@ -44,4 +44,4 @@ await registerEventBridgeSubscriptions({ audit, db, pubsub });
 
 `unregisterEventBridge(topics, { pubsub })` unsubscribes on teardown (called via module `$cleanup`).
 
-No cron schedules or handlers are registered by the compliance module. Reminder delivery is via the calendar bridge (`compliance:document_expiring` → `calendar_reminder` → `calendar:reminder-scan`).
+No cron schedules or handlers are registered by the compliance module. Reminder delivery is via the calendar bridge (`compliance.document_expiring` → `calendar_reminder` → `calendar.reminder-scan`).

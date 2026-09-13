@@ -61,15 +61,15 @@ export class Dms implements Module {
   readonly $dependencies: readonly string[] = ["masters"];
   /**
    * Peer topics consumed at runtime. Label names resolve via the DMS-local
-   * `dms_label_cache` projection synced from `masters:label_*` events —
+   * `dms_label_cache` projection synced from `masters.label_*` events —
    * DMS never reads the masters-owned `master_label` table directly.
    * The contact-share bridge revokes contact grants when a masters contact is removed.
    */
   readonly $consumes: readonly string[] = [
-    "masters:contact_removed",
-    "masters:label_created",
-    "masters:label_updated",
-    "masters:label_removed",
+    "masters.contact_removed",
+    "masters.label_created",
+    "masters.label_updated",
+    "masters.label_removed",
   ];
   readonly $config: Required<DmsModuleConfig>;
 

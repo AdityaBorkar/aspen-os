@@ -1,6 +1,6 @@
 # Tasks Domain Model
 
-> Package: `@aspen-os/tasks`. Projects, tasks, statuses, comments, links, time entries, and automation rules. 15 tables — 6 control-plane (global config) + 9 tenant (operational). Task reminders now live in `@aspen-os/calendar` (`targetType = task`), driven by `task:due_date_changed`. Saved views now live in `@aspen-os/masters` (`p.masters.filterViews`, `domain: "tasks:task"`).
+> Package: `@aspen-os/tasks`. Projects, tasks, statuses, comments, links, time entries, and automation rules. 15 tables — 6 control-plane (global config) + 9 tenant (operational). Task reminders now live in `@aspen-os/calendar` (`targetType = task`), driven by `task.due_date_changed`. Saved views now live in `@aspen-os/masters` (`p.masters.filterViews`, `domain: "tasks:task"`).
 
 ## Entity-Relationship Diagram
 
@@ -114,19 +114,19 @@
 
 | Event                   | Payload                                                                       | Trigger                           |
 | ----------------------- | ----------------------------------------------------------------------------- | --------------------------------- |
-| `task:created`          | `{ task: { id, number, projectId, title }, dueDate }`                         | Task created                      |
-| `task:updated`          | `{ task: { id, title }, changes }`                                            | Task updated                      |
-| `task:deleted`          | `{ taskId }`                                                                  | Task deleted                      |
-| `task:status_changed`   | `{ task: { id, title }, fromStatus, toStatus, isTerminal, toStatusCategory }` | Task status changed               |
-| `task:assigned`         | `{ taskId, userId, assignedBy }`                                              | User assigned to task             |
-| `task:unassigned`       | `{ taskId, userId }`                                                          | User unassigned from task         |
-| `task:linked`           | `{ sourceId, targetId, linkType }`                                            | Task link created                 |
-| `task:unlinked`         | `{ sourceId, targetId }`                                                      | Task link removed                 |
-| `task:commented`        | `{ taskId, comment: { id, body } }`                                           | Comment added                     |
-| `task:time_logged`      | `{ taskId, timeEntry: { id, duration, userId } }`                             | Time logged on task               |
-| `task:due_date_changed` | `{ taskId, dueDate, userIds }`                                                | Task due date set/changed/cleared |
+| `task.created`          | `{ task: { id, number, projectId, title }, dueDate }`                         | Task created                      |
+| `task.updated`          | `{ task: { id, title }, changes }`                                            | Task updated                      |
+| `task.deleted`          | `{ taskId }`                                                                  | Task deleted                      |
+| `task.status_changed`   | `{ task: { id, title }, fromStatus, toStatus, isTerminal, toStatusCategory }` | Task status changed               |
+| `task.assigned`         | `{ taskId, userId, assignedBy }`                                              | User assigned to task             |
+| `task.unassigned`       | `{ taskId, userId }`                                                          | User unassigned from task         |
+| `task.linked`           | `{ sourceId, targetId, linkType }`                                            | Task link created                 |
+| `task.unlinked`         | `{ sourceId, targetId }`                                                      | Task link removed                 |
+| `task.commented`        | `{ taskId, comment: { id, body } }`                                           | Comment added                     |
+| `task.time_logged`      | `{ taskId, timeEntry: { id, duration, userId } }`                             | Time logged on task               |
+| `task.due_date_changed` | `{ taskId, dueDate, userIds }`                                                | Task due date set/changed/cleared |
 
-`task:due_date_changed` (`userIds` = assignees ∪ reporter) is consumed by the `@aspen-os/calendar` task bridge to materialize/cancel task reminders. The former `reminder:fired` event was removed with the reminder surface — reminders now fire `calendar:reminder_due` from the calendar dispatcher.
+`task.due_date_changed` (`userIds` = assignees ∪ reporter) is consumed by the `@aspen-os/calendar` task bridge to materialize/cancel task reminders. The former `reminder:fired` event was removed with the reminder surface — reminders now fire `calendar.reminder_due` from the calendar dispatcher.
 
 ## Command-Query Separation
 

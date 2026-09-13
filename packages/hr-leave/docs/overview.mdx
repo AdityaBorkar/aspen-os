@@ -33,7 +33,7 @@ const hrLeave = HrLeave.create({ country: "INDIA" });
 
 ## Dependencies
 
-No module `$dependencies`. `$initialize()` binds `DatabaseUnit` and `PubSubUnit`; `$prepareInfra()` contributes `auth.acl`, `db.tenant_schemas`, and `events`; `$prepareRuntime()` schedules `hr:daily-leave-accrual` (`0 0 * * *`) and unregisters it in `$cleanup()`.
+No module `$dependencies`. `$initialize()` binds `DatabaseUnit` and `PubSubUnit`; `$prepareInfra()` contributes `auth.acl`, `db.tenant_schemas`, and `events`; `$prepareRuntime()` schedules `hr.daily-leave-accrual` (`0 0 * * *`) and unregisters it in `$cleanup()`.
 
 ## Architecture
 
@@ -53,7 +53,7 @@ flowchart TB
   PI --> TS[tenant_schemas\nleave_type, leave_period, leave_policy, leave_allocation, leave_application, leave_encashment, leave_ledger_entry...]
   PI --> EV[events\nleave]
 
-  PR -->|schedule 0 0 * * *| CRON[hr:daily-leave-accrual]
+  PR -->|schedule 0 0 * * *| CRON[hr.daily-leave-accrual]
 
   WF[workflows\nleave] --> DB
   WF --> PS
@@ -131,6 +131,6 @@ export const acl = defineAcl({
 ```
 
 <Callout type="info">
-  `hr:daily-leave-accrual` is the only scheduled topic — no in-repo subscription yet; the host must
+  `hr.daily-leave-accrual` is the only scheduled topic — no in-repo subscription yet; the host must
   subscribe if it implements earned-leave accrual.
 </Callout>

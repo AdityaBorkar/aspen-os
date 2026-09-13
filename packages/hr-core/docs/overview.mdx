@@ -33,7 +33,7 @@ const hrCore = HrCore.create({ country: "INDIA" });
 
 ## Dependencies
 
-No module `$dependencies`. `$initialize()` binds `DatabaseUnit` and `PubSubUnit`; `$prepareInfra()` contributes `auth.acl`, `db.{control_plane_schemas, tenant_schemas}`, and `events`. `$prepareRuntime()` registers two reconciliation subscriptions (`lifecycle:separation_completed`, `lifecycle:transfer_approved`) and unregisters them in `$cleanup()`.
+No module `$dependencies`. `$initialize()` binds `DatabaseUnit` and `PubSubUnit`; `$prepareInfra()` contributes `auth.acl`, `db.{control_plane_schemas, tenant_schemas}`, and `events`. `$prepareRuntime()` registers two reconciliation subscriptions (`lifecycle.separation_completed`, `lifecycle.transfer_approved`) and unregisters them in `$cleanup()`.
 
 ## Architecture
 
@@ -55,9 +55,9 @@ flowchart TB
   PI --> TS[tenant_schemas\nemployee, hr_position, hr_announcement...]
   PI --> EV[events\naccess, announcement, employee, lifecycle, position, setup]
 
-  PR -->|subscribe| LC_SEP[lifecycle:separation_completed]
-  PR -->|subscribe| LC_TR[lifecycle:transfer_approved]
-  LC_SEP --> RC -->|publish position:unassigned| PS
+  PR -->|subscribe| LC_SEP[lifecycle.separation_completed]
+  PR -->|subscribe| LC_TR[lifecycle.transfer_approved]
+  LC_SEP --> RC -->|publish position.unassigned| PS
   LC_TR --> RC
 
   HR_CORE_WORKFLOWS[workflows\naccess, announcement, employee, lifecycle, position, setup] --> DB
@@ -67,7 +67,7 @@ flowchart TB
   DB --- TS
 ```
 
-Announcement scheduling no longer owns a cron — `hr_announcement.scheduled_for` is materialized as a `calendar_reminder` (`targetType: announcement`) and dispatched by the single `calendar:reminder-scan` cron.
+Announcement scheduling no longer owns a cron — `hr_announcement.scheduled_for` is materialized as a `calendar_reminder` (`targetType: announcement`) and dispatched by the single `calendar.reminder-scan` cron.
 
 ## Employee
 
@@ -83,7 +83,7 @@ Canonical employee row (`employee` tenant table) identified by `employee_id` (bu
 
 ## Lifecycle
 
-Onboarding, promotion, transfer, separation are first-class tracks (`employee_onboarding`, `employee_promotion`, `employee_transfer`, `employee_separation`) with status enums; onboarding/separation own task tables (`onboarding_task`, `separation_task`, status `hr_lifecycle_task_status`) that cascade-delete. Promotion/transfer carry `approved/rejected/completed` transitions; `approvePromotion` syncs `employee.designation` (+ grade/department), `approveTransfer` emits `lifecycle:transfer_approved`, completing a separation emits `lifecycle:separation_completed`. Exit interviews (`exit_interview`) and full-and-final settlements (`full_and_final_statement`, totals computed on approve) close the offboarding chain.
+Onboarding, promotion, transfer, separation are first-class tracks (`employee_onboarding`, `employee_promotion`, `employee_transfer`, `employee_separation`) with status enums; onboarding/separation own task tables (`onboarding_task`, `separation_task`, status `hr_lifecycle_task_status`) that cascade-delete. Promotion/transfer carry `approved/rejected/completed` transitions; `approvePromotion` syncs `employee.designation` (+ grade/department), `approveTransfer` emits `lifecycle.transfer_approved`, completing a separation emits `lifecycle.separation_completed`. Exit interviews (`exit_interview`) and full-and-final settlements (`full_and_final_statement`, totals computed on approve) close the offboarding chain.
 
 ## Access Control
 
@@ -104,11 +104,11 @@ export const acl = defineAcl({
 
 ## Announcements
 
-`hr_announcement` stores author (`ctx.actorId` required), body/title, `channel` (`general`/`hr`/`custom`), `audience` JSON (`type` + `ids`), `priority` (`normal`/`important`/`urgent` via `@aspen-os/constants` `NOTIFICATION_SEVERITY`), `status` (`draft`/`scheduled`/`published`/`archived`), and `scheduled_for`. `hr_announcement_recipient` snapshots delivery at publish time. Only `draft`/`scheduled` are editable; publish is idempotent, resolves audience through subtree expansion (departments include children), validates strong-refs (`employees`, `groups`, `roles`, `individuals`), and emits `announcement:published` with `recipientUserIds` (auth `userId`s — employees without HR users are snapshot-only). Read/ack counts are read back from `@aspen-os/comms` notifications (`sourceModule: "hr"`).
+`hr_announcement` stores author (`ctx.actorId` required), body/title, `channel` (`general`/`hr`/`custom`), `audience` JSON (`type` + `ids`), `priority` (`normal`/`important`/`urgent` via `@aspen-os/constants` `NOTIFICATION_SEVERITY`), `status` (`draft`/`scheduled`/`published`/`archived`), and `scheduled_for`. `hr_announcement_recipient` snapshots delivery at publish time. Only `draft`/`scheduled` are editable; publish is idempotent, resolves audience through subtree expansion (departments include children), validates strong-refs (`employees`, `groups`, `roles`, `individuals`), and emits `announcement.published` with `recipientUserIds` (auth `userId`s — employees without HR users are snapshot-only). Read/ack counts are read back from `@aspen-os/comms` notifications (`sourceModule: "hr"`).
 
 ## Organizational Setup
 
-Control-plane catalog: `department` (hierarchical `parent_department`, `manager` head, `code` uppercased unique, `is_active` soft delete blocked while children/positions/employees exist), `designation`, `employment_type`, `employee_grade`, `holiday_list`/`holiday` (list owns weekly off pattern, holidays reference `hr_holiday_type`), `hr_settings` and `payroll_settings` (singleton upserts). Department moves and head changes emit `setup:department_moved` / `setup:department_head_changed`; ancestor walk (depth 10) prevents cycles.
+Control-plane catalog: `department` (hierarchical `parent_department`, `manager` head, `code` uppercased unique, `is_active` soft delete blocked while children/positions/employees exist), `designation`, `employment_type`, `employee_grade`, `holiday_list`/`holiday` (list owns weekly off pattern, holidays reference `hr_holiday_type`), `hr_settings` and `payroll_settings` (singleton upserts). Department moves and head changes emit `setup.department_moved` / `setup.department_head_changed`; ancestor walk (depth 10) prevents cycles.
 
 ## Relationships
 
@@ -146,22 +146,22 @@ flowchart LR
   ATT -. employee_id .-> EMP
   LEAVE -. employee_id .-> EMP
   ANN -->|calendar_reminder targetType=announcement| CAL
-  ANN -->|announcement:published → notification| COMMS
-  LC_SEP_EVENT[lifecycle:separation_completed] --> ASM
-  LC_TR_EVENT[lifecycle:transfer_approved] --> ASM
+  ANN -->|announcement.published → notification| COMMS
+  LC_SEP_EVENT[lifecycle.separation_completed] --> ASM
+  LC_TR_EVENT[lifecycle.transfer_approved] --> ASM
 ```
 
 All cross-table links are soft text FKs (no DB constraints); invariants are workflow-enforced. `hr-attendance` and `hr-leave` reference `employee` via `employee_id` without a hard FK.
 
 <Callout type="info">
-  Announcement publishing no longer runs `hr:announcement-scheduler` — scheduling is a
-  `calendar_reminder` row; the single `calendar:reminder-scan` dispatcher publishes due
+  Announcement publishing no longer runs `hr.announcement-scheduler` — scheduling is a
+  `calendar_reminder` row; the single `calendar.reminder-scan` dispatcher publishes due
   announcements.
 </Callout>
 
 <Callout type="warn">
-  `lifecycle:separation_completed` and `lifecycle:transfer_approved` are consumed internally for
-  position reconciliation — closing open-ended assignments and emitting `position:unassigned`. Hosts
-  subscribing to `position:unassigned` must handle both direct unassigns and reconciliation-emitted
+  `lifecycle.separation_completed` and `lifecycle.transfer_approved` are consumed internally for
+  position reconciliation — closing open-ended assignments and emitting `position.unassigned`. Hosts
+  subscribing to `position.unassigned` must handle both direct unassigns and reconciliation-emitted
   ones.
 </Callout>

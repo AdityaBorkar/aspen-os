@@ -131,7 +131,7 @@ export function createBetterAuthService(
       emailOTP({
         async sendVerificationOTP({ email, otp, type }) {
           const tokenRef = storeOtp({ email, otp, type });
-          await pubsub?.publish("auth:email_otp_requested", { email, tokenRef, type });
+          await pubsub?.publish("auth.email_otp_requested", { email, tokenRef, type });
         },
       }),
       apiKey({

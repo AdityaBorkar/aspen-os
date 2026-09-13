@@ -1,12 +1,12 @@
 // ─── Leave Events ─────────────────────────────────────────────────────────
 
 export const LEAVE_EVENTS = {
-  ALLOCATION_CREATED: "leave:allocation_created",
-  APPLICATION_APPROVED: "leave:application_approved",
-  APPLICATION_CANCELLED: "leave:application_cancelled",
-  APPLICATION_REJECTED: "leave:application_rejected",
-  APPLICATION_SUBMITTED: "leave:application_submitted",
-  ENCASHMENT_REQUESTED: "leave:encashment_requested",
+  ALLOCATION_CREATED: "leave.allocation_created",
+  APPLICATION_APPROVED: "leave.application_approved",
+  APPLICATION_CANCELLED: "leave.application_cancelled",
+  APPLICATION_REJECTED: "leave.application_rejected",
+  APPLICATION_SUBMITTED: "leave.application_submitted",
+  ENCASHMENT_REQUESTED: "leave.encashment_requested",
 } as const;
 
 export interface LeaveApplicationSubmittedEvent {

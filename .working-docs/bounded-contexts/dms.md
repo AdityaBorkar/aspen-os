@@ -15,7 +15,7 @@ Downstream of the Platform (Customer–Supplier). Runtime-wired — receives `{ 
 - 12 database tables (all `tenant_schemas`, `dms_` prefix): `dms_folder`, `dms_file`, `dms_file_version`, `dms_class`, `dms_class_field`, `dms_entity_label`, `dms_label`, `dms_share`, `dms_public_link`, `dms_legal_hold`, `dms_access_log`, `dms_setting`
 - 27 domain events across 5 maps (`CLASS_EVENTS` 3, `FILE_EVENTS` 13, `FOLDER_EVENTS` 6, `PUBLIC_LINK_EVENTS` 3, `SHARE_EVENTS` 2) → `DmsEventMap`
 - 9 ACL resources: `class`, `classField`, `file`, `folder`, `label`, `legalHold`, `publicLink`, `setting`, `share`
-- `$prepareRuntime()` — registers 2 cron schedules + handlers: `dms:expiry-scan` (`5 0 * * *`), `dms:auto-purge` (`30 3 * * *`); subscribes to `masters:contact_removed` (contact-share bridge revokes contact grants); `$cleanup()` unregisters all three
+- `$prepareRuntime()` — registers 2 cron schedules + handlers: `dms.expiry-scan` (`5 0 * * *`), `dms.auto-purge` (`30 3 * * *`); subscribes to `masters.contact_removed` (contact-share bridge revokes contact grants); `$cleanup()` unregisters all three
 - Audit-driven **Activity Feed**: file/folder activity is written inline to the platform's `AuditUnit` (`audit_log`), queried via `ctx.audit.query()` — not a DMS-owned table, not PubSub events
 - Module-scope runtime state in `runtime.ts` (`setDmsConfig`/`setDmsStorage`/`getDmsConfig`/`getDmsStorage`/`resetDmsRuntime`)
 - Has a build step (build script + `build` field in package.json)

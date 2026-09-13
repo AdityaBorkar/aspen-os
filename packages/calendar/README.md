@@ -2,7 +2,7 @@
 
 Domain module for Aspen OS framework owning three time-domain surfaces: **calendars** (named, colored collections w/ `personal`/`global` access), **events** (time-boxed entries w/ structured recurrence, attendees, timezone, polymorphic source link), **reminders** (platform single polymorphic reminder surface — `calendar_reminder` rows w/ `targetType` `event`/`task`/`note`/`file`/`custom`).
 
-> Task reminders live here as `targetType = task` rows. Module's **task bridge** subscribes `task:due_date_changed` / `task:deleted` / `task:status_changed` (published by `@aspen-os/tasks`), materializes/cancels task due-date reminders — event-driven, no cross-module calls.
+> Task reminders live here as `targetType = task` rows. Module's **task bridge** subscribes `task.due_date_changed` / `task.deleted` / `task.status_changed` (published by `@aspen-os/tasks`), materializes/cancels task due-date reminders — event-driven, no cross-module calls.
 
 ## Module
 
@@ -14,7 +14,7 @@ const calendar = Calendar.create({
 });
 ```
 
-- `$name = "calendar"`, `$dependencies = []` — stateful (`$initialize({ db, pubsub })`; `$prepareRuntime()` registers `calendar:reminder-scan` cron + task bridge; `$cleanup()` unregisters)
+- `$name = "calendar"`, `$dependencies = []` — stateful (`$initialize({ db, pubsub })`; `$prepareRuntime()` registers `calendar.reminder-scan` cron + task bridge; `$cleanup()` unregisters)
 - 4 workflow groups: `calendars`, `events`, `attendees`, `reminders`
 - 4 tenant tables (`calendar_` prefix) + 7 pgEnums; 14 domain events; 4 ACL resources
 
@@ -30,8 +30,8 @@ p.calendar.reminders  { create, delete, get, getPending, list, processPending, u
 
 ## Reminders
 
-- `processPending` publishes `calendar:reminder_due` (full payload), marks `isSent`/`sentAt`, schedules next occurrence for recurring reminders. Module registers own cron — no host cron needed.
-- Hosts must `subscribe()` to `calendar:reminder_due` (pg-boss silently drops unsubscribed topics; health check flags them).
+- `processPending` publishes `calendar.reminder_due` (full payload), marks `isSent`/`sentAt`, schedules next occurrence for recurring reminders. Module registers own cron — no host cron needed.
+- Hosts must `subscribe()` to `calendar.reminder_due` (pg-boss silently drops unsubscribed topics; health check flags them).
 
 ## Documentation
 

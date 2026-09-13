@@ -81,7 +81,7 @@
 - Database connection params (`databaseHost`, `databaseName`, `databasePort`, `databaseUser`, `databasePassword`, `databaseSsl`) record the per-tenant DB connection
 - `onboarding` is an opaque single stage — internal install/training/handoff sub-steps are NOT tracked
 
-**Lifecycle commands** (via `p.management.tenants`): `onboard(input)` (provisions a new tenant — creates the better-auth org, calls `dbUnit.provisionTenant()` which creates the DB + pushes schemas in isolated mode, seeds the profile via `dbUnit.seedTenantDb()`, records the tenant row, writes an audit entry, publishes `tenant:provisioned`), `get(id)` (joins `organization` + `tenant` tables), `list(filters?)`, `update(id, { profile?, companion? })`, `activate(id)`, `suspend(id, reason)`, `reactivate(id)`, `churn(id, reason)`, `assignServiceProvider(tenantId, spId)`, `unassignServiceProvider(tenantId)`.
+**Lifecycle commands** (via `p.management.tenants`): `onboard(input)` (provisions a new tenant — creates the better-auth org, calls `dbUnit.provisionTenant()` which creates the DB + pushes schemas in isolated mode, seeds the profile via `dbUnit.seedTenantDb()`, records the tenant row, writes an audit entry, publishes `tenant.provisioned`), `get(id)` (joins `organization` + `tenant` tables), `list(filters?)`, `update(id, { profile?, companion? })`, `activate(id)`, `suspend(id, reason)`, `reactivate(id)`, `churn(id, reason)`, `assignServiceProvider(tenantId, spId)`, `unassignServiceProvider(tenantId)`.
 
 **Relationships**: 1:1 with better-auth Organization (shares ID); N:1 with ServiceProvider (`serviceProviderId`).
 
@@ -128,32 +128,32 @@
 
 | Event                    | Payload                            | Trigger                                                         |
 | ------------------------ | ---------------------------------- | --------------------------------------------------------------- |
-| `tenant:provisioned`     | `{ tenantId, serviceProviderId? }` | Tenant provisioned (DB created, schemas pushed, profile seeded) |
-| `tenant:activated`       | `{ tenantId }`                     | Tenant activated (from onboarding/suspended)                    |
-| `tenant:suspended`       | `{ tenantId, reason }`             | Tenant suspended                                                |
-| `tenant:reactivated`     | `{ tenantId }`                     | Tenant reactivated from suspended                               |
-| `tenant:churned`         | `{ tenantId, reason }`             | Tenant churned (offboarded)                                     |
-| `tenant:profile_updated` | `{ tenantId, changes }`            | Tenant profile updated                                          |
-| `tenant:sp_assigned`     | `{ tenantId, serviceProviderId }`  | Service Provider assigned to tenant                             |
-| `tenant:sp_unassigned`   | `{ tenantId }`                     | Service Provider unassigned from tenant                         |
+| `tenant.provisioned`     | `{ tenantId, serviceProviderId? }` | Tenant provisioned (DB created, schemas pushed, profile seeded) |
+| `tenant.activated`       | `{ tenantId }`                     | Tenant activated (from onboarding/suspended)                    |
+| `tenant.suspended`       | `{ tenantId, reason }`             | Tenant suspended                                                |
+| `tenant.reactivated`     | `{ tenantId }`                     | Tenant reactivated from suspended                               |
+| `tenant.churned`         | `{ tenantId, reason }`             | Tenant churned (offboarded)                                     |
+| `tenant.profile_updated` | `{ tenantId, changes }`            | Tenant profile updated                                          |
+| `tenant.sp_assigned`     | `{ tenantId, serviceProviderId }`  | Service Provider assigned to tenant                             |
+| `tenant.sp_unassigned`   | `{ tenantId }`                     | Service Provider unassigned from tenant                         |
 
 ### Service Provider Events (4)
 
 | Event                          | Payload                                      | Trigger                      |
 | ------------------------------ | -------------------------------------------- | ---------------------------- |
-| `service_provider:created`     | `{ serviceProvider: { id, name, slug } }`    | Service Provider created     |
-| `service_provider:updated`     | `{ serviceProvider: { id, name }, changes }` | Service Provider updated     |
-| `service_provider:deactivated` | `{ serviceProviderId }`                      | Service Provider deactivated |
-| `service_provider:activated`   | `{ serviceProviderId }`                      | Service Provider activated   |
+| `service_provider.created`     | `{ serviceProvider: { id, name, slug } }`    | Service Provider created     |
+| `service_provider.updated`     | `{ serviceProvider: { id, name }, changes }` | Service Provider updated     |
+| `service_provider.deactivated` | `{ serviceProviderId }`                      | Service Provider deactivated |
+| `service_provider.activated`   | `{ serviceProviderId }`                      | Service Provider activated   |
 
 ### Platform User Events (4)
 
 | Event                         | Payload                         | Trigger                        |
 | ----------------------------- | ------------------------------- | ------------------------------ |
-| `platform_user:created`       | `{ user: { id, email, role } }` | Platform user created          |
-| `platform_user:updated`       | `{ userId, changes }`           | Platform user updated          |
-| `platform_user:deleted`       | `{ userId }`                    | Platform user deleted          |
-| `platform_user:role_assigned` | `{ userId, role }`              | Role assigned to platform user |
+| `platform_user.created`       | `{ user: { id, email, role } }` | Platform user created          |
+| `platform_user.updated`       | `{ userId, changes }`           | Platform user updated          |
+| `platform_user.deleted`       | `{ userId }`                    | Platform user deleted          |
+| `platform_user.role_assigned` | `{ userId, role }`              | Role assigned to platform user |
 
 ## Command-Query Separation
 

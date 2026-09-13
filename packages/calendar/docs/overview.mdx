@@ -14,13 +14,13 @@ export class Calendar implements Module {
   readonly $name = "calendar"; // proxy key: p.calendar
   readonly $dependencies: readonly string[] = [];
   readonly $consumes: readonly string[] = [
-    "task:due_date_changed",
-    "task:deleted",
-    "task:status_changed",
-    "compliance:document_expiring",
-    "compliance:document_due",
-    "compliance:document_archived",
-    "compliance:document_deleted",
+    "task.due_date_changed",
+    "task.deleted",
+    "task.status_changed",
+    "compliance.document_expiring",
+    "compliance.document_due",
+    "compliance.document_archived",
+    "compliance.document_deleted",
   ];
 }
 ```
@@ -33,7 +33,7 @@ export class Calendar implements Module {
 type CalendarModuleConfig = {
   complianceEnabled?: boolean; // true — subscribe to compliance:document_* events
   reminderScanCron?: string; // "* * * * *" — pg-boss cron for the reminder scan
-  tasksEnabled?: boolean; // true — subscribe to task:* events
+  tasksEnabled?: boolean; // true — subscribe to task.* events
 };
 ```
 
@@ -61,8 +61,8 @@ No module dependencies (`$dependencies: []`). Runtime wiring via units:
 ```mermaid
 flowchart TB
   subgraph Runtime[runtime — $prepareRuntime]
-    RD[reminder-dispatcher<br/>calendar:reminder-scan<br/>* * * * *]
-    TB[task-bridge<br/>task:due_date_changed / deleted / status_changed]
+    RD[reminder-dispatcher<br/>calendar.reminder-scan<br/>* * * * *]
+    TB[task-bridge<br/>task.due_date_changed / deleted / status_changed]
     CB[compliance-bridge<br/>compliance:document_*]
   end
 
@@ -75,7 +75,7 @@ flowchart TB
 
   TB & CB -->|materialize rows| R
   RD -->|scan isSent=false & remindAt <= now| R
-  R -->|calendar:reminder_due| comms[comms event bridge]
+  R -->|calendar.reminder_due| comms[comms event bridge]
   C --> E --> A
   C --> E --> R
 ```

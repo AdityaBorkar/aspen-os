@@ -90,7 +90,7 @@ await p.workspace.schedules.list({ filters: { dashboardId } });
 await p.workspace.schedules.delete({ id: sched.id });
 ```
 
-Cron registers `workspace:delivery_schedule:<id>` and emits `workspace:delivery_due`.
+Cron registers `workspace.delivery_schedule.<id>` and emits `workspace.delivery_due`.
 
 ## Filter Views
 

@@ -22,12 +22,12 @@ Downstream of the Platform (Customer–Supplier). Runtime-wired — receives `{ 
 
 | Topic                                | Cron        | Action                              |
 | ------------------------------------ | ----------- | ----------------------------------- |
-| `compliance:daily-expiry-scan`       | `0 8 * * *` | Scan expiring documents             |
-| `compliance:daily-status-transition` | `0 0 * * *` | Transition expired/overdue statuses |
-| `compliance:daily-escalation`        | `0 9 * * *` | Escalate past threshold             |
-| `compliance:weekly-summary`          | `0 9 * * 1` | Generate weekly summary             |
+| `compliance.daily-expiry-scan`       | `0 8 * * *` | Scan expiring documents             |
+| `compliance.daily-status-transition` | `0 0 * * *` | Transition expired/overdue statuses |
+| `compliance.daily-escalation`        | `0 9 * * *` | Escalate past threshold             |
+| `compliance.weekly-summary`          | `0 9 * * 1` | Generate weekly summary             |
 
-`compliance:obligation-generate` (`0 6 * * *`) is subscribed by the obligation generator but never scheduled — no cron fires it.
+`compliance.obligation-generate` (`0 6 * * *`) is subscribed by the obligation generator but never scheduled — no cron fires it.
 
 ## Cross-context event subscriptions (EventBridge)
 
@@ -35,12 +35,12 @@ The `EventBridge` service subscribes to events from other modules to auto-create
 
 | Subscribed topic                    | Source module     | Action                                                                                                                    |
 | ----------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `hr:employee_onboarded`             | HR                | Creates background check + ID verification documents                                                                      |
-| `hr:employee_separated`             | HR                | Creates exit documents + final settlement documents                                                                       |
-| `fleet:vehicle_registered`          | Fleet (stub)      | Creates pollution certificate + semi-annual obligation                                                                    |
-| `organization:branch_created`       | Organization      | Creates trade license + fire safety certificate + annual obligation                                                       |
-| `accounting:financial_year_started` | Accounting (stub) | Creates monthly GST return obligation                                                                                     |
-| `masters:contact_created`           | Masters           | Creates insurance policy document (if contact type is insurer and entity is organization-scoped; global contacts ignored) |
+| `hr.employee_onboarded`             | HR                | Creates background check + ID verification documents                                                                      |
+| `hr.employee_separated`             | HR                | Creates exit documents + final settlement documents                                                                       |
+| `fleet.vehicle_registered`          | Fleet (stub)      | Creates pollution certificate + semi-annual obligation                                                                    |
+| `organization.branch_created`       | Organization      | Creates trade license + fire safety certificate + annual obligation                                                       |
+| `accounting.financial_year_started` | Accounting (stub) | Creates monthly GST return obligation                                                                                     |
+| `masters.contact_created`           | Masters           | Creates insurance policy document (if contact type is insurer and entity is organization-scoped; global contacts ignored) |
 
 ## Language
 

@@ -164,7 +164,7 @@ No `healthCheck()` on the platform. Use the RPC procedure and PubSub probes:
 const result = await p.rpc.server.handle(request, { db: p.db.db, pubsub: p.pubsub });
 // router.health.check → { status: "ok" }
 
-await p.pubsub.getQueueSize("some:topic"); // works on unregistered topics
+await p.pubsub.getQueueSize("some.topic"); // works on unregistered topics
 p.pubsub.getUnsubscribedProducedTopics(); // topics published with no subscriber
 ```
 

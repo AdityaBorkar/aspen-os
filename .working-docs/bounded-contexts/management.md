@@ -41,7 +41,7 @@ p.management.users             { assignRole, assignToServiceProvider, create, de
 - **Service Provider User**: a user with `user.role = 'sp_user'` and a `service_provider_user` join row (1:1 user→SP). Scope is the SP they belong to, not a tenant.
 - **Platform User**: a user managed by this module — platform admins and SP users. Created/updated/deleted via the `users` workflow, which delegates to `AuthUnit.user`.
 - **Report**: a read-only view over the control-plane DB — tenant usage, provisioning & lifecycle, audit & activity, and SP performance. Never crosses into per-tenant DBs.
-- **Provisioning**: the `tenant.onboard` workflow — (1) create the better-auth Organization via `ctx.auth.service.api.createOrganization()`, (2) `dbUnit.provisionTenant(tenantId, dbOptions)` (isolated: `CREATE DATABASE` + `pushSchema()` against the new tenant DB; shared: no-op), (3) `dbUnit.seedTenantDb()` (isolated only) seeds the aspen-os Organization profile row, (4) record connection params + status in the `tenant` table, (5) audit entry, (6) publish `tenant:provisioned`. Sets status to `onboarding`.
+- **Provisioning**: the `tenant.onboard` workflow — (1) create the better-auth Organization via `ctx.auth.service.api.createOrganization()`, (2) `dbUnit.provisionTenant(tenantId, dbOptions)` (isolated: `CREATE DATABASE` + `pushSchema()` against the new tenant DB; shared: no-op), (3) `dbUnit.seedTenantDb()` (isolated only) seeds the aspen-os Organization profile row, (4) record connection params + status in the `tenant` table, (5) audit entry, (6) publish `tenant.provisioned`. Sets status to `onboarding`.
 
 ## Roles
 

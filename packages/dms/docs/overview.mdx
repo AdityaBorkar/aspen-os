@@ -13,7 +13,7 @@ export class Dms implements Module {
   static create(config?: DmsModuleConfig): Dms;
   readonly $name = "dms"; // proxy key: p.dms
   readonly $dependencies: readonly string[] = ["masters"];
-  readonly $consumes: readonly string[] = ["masters:contact_removed"];
+  readonly $consumes: readonly string[] = ["masters.contact_removed"];
 }
 ```
 
@@ -49,7 +49,7 @@ const p = IsolatedTenantPlatform.create(config, [masters, dms]);
 | `storage`  | unit (`$initialize`)                          | Binary objects under version-bound keys `dms/{tenant}/{fileId}/v{n}/{name}`           |
 | `audit`    | context (`getContext()` in `$prepareRuntime`) | Audit writes for every mutation                                                       |
 
-`$consumes: ["masters:contact_removed"]` — removing a Masters contact revokes every DMS share granted to that contact via the contact-share bridge. The platform does not validate `$consumes`.
+`$consumes: ["masters.contact_removed"]` — removing a Masters contact revokes every DMS share granted to that contact via the contact-share bridge. The platform does not validate `$consumes`.
 
 ## Architecture
 
@@ -109,7 +109,7 @@ Folders keep materialized `path` (`/Projects/2026`) with cycle-safe moves guarde
 
 ### Sharing, labels, holds
 
-Shares are grants to `user`/`group`/`contact` over polymorphic `file`/`folder` entities; folder grants inherit down the tree. `contact` grantees hold Masters contact ids — invalidated on `masters:contact_removed`. Labels live in `masters` (`master_label`); `dms_entity_label` links them to files/folders. Legal holds block purge.
+Shares are grants to `user`/`group`/`contact` over polymorphic `file`/`folder` entities; folder grants inherit down the tree. `contact` grantees hold Masters contact ids — invalidated on `masters.contact_removed`. Labels live in `masters` (`master_label`); `dms_entity_label` links them to files/folders. Legal holds block purge.
 
 ## Relationships
 
@@ -145,7 +145,7 @@ stateDiagram-v2
   expired --> purged: auto-purge
 ```
 
-`$prepareRuntime()` registers `dms:expiry-scan` (`5 0 * * *`) and `dms:auto-purge` (`30 3 * * *`) plus the contact-share bridge; `$cleanup()` unregisters all three.
+`$prepareRuntime()` registers `dms.expiry-scan` (`5 0 * * *`) and `dms.auto-purge` (`30 3 * * *`) plus the contact-share bridge; `$cleanup()` unregisters all three.
 
 ## Module structure
 

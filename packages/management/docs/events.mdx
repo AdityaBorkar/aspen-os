@@ -10,37 +10,37 @@ The Management Plane defines domain events across `TENANT`, `SERVICE_PROVIDER`, 
 
 | Event                    | Payload                            | Trigger                           |
 | ------------------------ | ---------------------------------- | --------------------------------- |
-| `tenant:provisioned`     | `{ tenantId, serviceProviderId? }` | `tenants.onboard` completes       |
-| `tenant:activated`       | `{ tenantId }`                     | `tenants.activate`                |
-| `tenant:suspended`       | `{ tenantId, reason }`             | `tenants.suspend`                 |
-| `tenant:reactivated`     | `{ tenantId }`                     | `tenants.reactivate`              |
-| `tenant:churned`         | `{ tenantId, reason }`             | `tenants.churn`                   |
-| `tenant:profile_updated` | `{ tenantId, changes }`            | `tenants.update`                  |
-| `tenant:sp_assigned`     | `{ tenantId, serviceProviderId }`  | `tenants.assignServiceProvider`   |
-| `tenant:sp_unassigned`   | `{ tenantId }`                     | `tenants.unassignServiceProvider` |
+| `tenant.provisioned`     | `{ tenantId, serviceProviderId? }` | `tenants.onboard` completes       |
+| `tenant.activated`       | `{ tenantId }`                     | `tenants.activate`                |
+| `tenant.suspended`       | `{ tenantId, reason }`             | `tenants.suspend`                 |
+| `tenant.reactivated`     | `{ tenantId }`                     | `tenants.reactivate`              |
+| `tenant.churned`         | `{ tenantId, reason }`             | `tenants.churn`                   |
+| `tenant.profile_updated` | `{ tenantId, changes }`            | `tenants.update`                  |
+| `tenant.sp_assigned`     | `{ tenantId, serviceProviderId }`  | `tenants.assignServiceProvider`   |
+| `tenant.sp_unassigned`   | `{ tenantId }`                     | `tenants.unassignServiceProvider` |
 
 ## Service Provider Events
 
 | Event                          | Payload                                      | Trigger                       |
 | ------------------------------ | -------------------------------------------- | ----------------------------- |
-| `service_provider:created`     | `{ serviceProvider: { id, name, slug } }`    | `serviceProviders.create`     |
-| `service_provider:updated`     | `{ serviceProvider: { id, name }, changes }` | `serviceProviders.update`     |
-| `service_provider:deactivated` | `{ serviceProviderId }`                      | `serviceProviders.deactivate` |
-| `service_provider:activated`   | `{ serviceProviderId }`                      | `serviceProviders.activate`   |
+| `service_provider.created`     | `{ serviceProvider: { id, name, slug } }`    | `serviceProviders.create`     |
+| `service_provider.updated`     | `{ serviceProvider: { id, name }, changes }` | `serviceProviders.update`     |
+| `service_provider.deactivated` | `{ serviceProviderId }`                      | `serviceProviders.deactivate` |
+| `service_provider.activated`   | `{ serviceProviderId }`                      | `serviceProviders.activate`   |
 
 ## Platform User Events
 
 | Event                         | Payload                         | Trigger                         |
 | ----------------------------- | ------------------------------- | ------------------------------- |
-| `platform_user:created`       | `{ user: { id, email, role } }` | `users.create`                  |
-| `platform_user:updated`       | `{ userId, changes }`           | `users.update`                  |
-| `platform_user:deleted`       | `{ userId }`                    | `users.delete`                  |
-| `platform_user:role_assigned` | `{ userId, role }`              | `users.assignRole`              |
-| `platform_user:sp_assigned`   | `{ userId, role, spId }`        | `users.assignToServiceProvider` |
+| `platform_user.created`       | `{ user: { id, email, role } }` | `users.create`                  |
+| `platform_user.updated`       | `{ userId, changes }`           | `users.update`                  |
+| `platform_user.deleted`       | `{ userId }`                    | `users.delete`                  |
+| `platform_user.role_assigned` | `{ userId, role }`              | `users.assignRole`              |
+| `platform_user.sp_assigned`   | `{ userId, role, spId }`        | `users.assignToServiceProvider` |
 
 ## Organization Events
 
 | Event                  | Payload                                          | Trigger                |
 | ---------------------- | ------------------------------------------------ | ---------------------- |
-| `organization:created` | `{ organization: { id, name, slug, branding } }` | `organizations.create` |
-| `organization:updated` | `{ organization: { id, name }, changes }`        | `organizations.update` |
+| `organization.created` | `{ organization: { id, name, slug, branding } }` | `organizations.create` |
+| `organization.updated` | `{ organization: { id, name }, changes }`        | `organizations.update` |

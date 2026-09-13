@@ -38,12 +38,12 @@ export class Compliance implements Module {
    * silently no-ops.
    */
   readonly $consumes: readonly string[] = [
-    "hr:employee_onboarded",
-    "hr:employee_separated",
-    "fleet:vehicle_registered",
-    "masters:org_branch_created",
-    "accounting:financial_year_started",
-    "masters:contact_created",
+    "hr.employee_onboarded",
+    "hr.employee_separated",
+    "fleet.vehicle_registered",
+    "masters.org_branch_created",
+    "accounting.financial_year_started",
+    "masters.contact_created",
   ];
   readonly $config: ComplianceModuleConfig;
 

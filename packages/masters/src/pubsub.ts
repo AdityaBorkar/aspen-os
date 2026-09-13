@@ -11,57 +11,57 @@ import type {
 import type { JsonValue } from "@aspen-os/platform/server";
 
 export const CONTACT_EVENTS = {
-  CREATED: "masters:contact_created",
-  REMOVED: "masters:contact_removed",
-  UPDATED: "masters:contact_updated",
+  CREATED: "masters.contact_created",
+  REMOVED: "masters.contact_removed",
+  UPDATED: "masters.contact_updated",
 } as const;
 
 export const ADDRESS_EVENTS = {
-  CREATED: "masters:address_created",
-  REMOVED: "masters:address_removed",
-  UPDATED: "masters:address_updated",
+  CREATED: "masters.address_created",
+  REMOVED: "masters.address_removed",
+  UPDATED: "masters.address_updated",
 } as const;
 
 export const CONNECTION_EVENTS = {
-  CREATED: "masters:connection_created",
-  CREDENTIAL_ROTATED: "masters:connection_credential_rotated",
-  REMOVED: "masters:connection_removed",
-  STATUS_CHANGED: "masters:connection_status_changed",
-  UPDATED: "masters:connection_updated",
+  CREATED: "masters.connection_created",
+  CREDENTIAL_ROTATED: "masters.connection_credential_rotated",
+  REMOVED: "masters.connection_removed",
+  STATUS_CHANGED: "masters.connection_status_changed",
+  UPDATED: "masters.connection_updated",
 } as const;
 
 export const ENTITY_EVENTS = {
-  CREATED: "masters:entity_created",
-  REMOVED: "masters:entity_removed",
-  UPDATED: "masters:entity_updated",
+  CREATED: "masters.entity_created",
+  REMOVED: "masters.entity_removed",
+  UPDATED: "masters.entity_updated",
 } as const;
 
 export const UNIT_OF_MEASURE_EVENTS = {
-  CREATED: "masters:unit_of_measure_created",
-  REMOVED: "masters:unit_of_measure_removed",
-  UPDATED: "masters:unit_of_measure_updated",
+  CREATED: "masters.unit_of_measure_created",
+  REMOVED: "masters.unit_of_measure_removed",
+  UPDATED: "masters.unit_of_measure_updated",
 } as const;
 
 export const PAYMENT_METHOD_EVENTS = {
-  ACTIVATED: "masters:payment_method_activated",
-  CREATED: "masters:payment_method_created",
-  DEACTIVATED: "masters:payment_method_deactivated",
-  PRIMARY_SET: "masters:payment_method_primary_set",
-  REMOVED: "masters:payment_method_removed",
-  UPDATED: "masters:payment_method_updated",
+  ACTIVATED: "masters.payment_method_activated",
+  CREATED: "masters.payment_method_created",
+  DEACTIVATED: "masters.payment_method_deactivated",
+  PRIMARY_SET: "masters.payment_method_primary_set",
+  REMOVED: "masters.payment_method_removed",
+  UPDATED: "masters.payment_method_updated",
 } as const;
 
 export const ORG_BRANCH_EVENTS = {
-  CREATED: "masters:org_branch_created",
-  UPDATED: "masters:org_branch_updated",
+  CREATED: "masters.org_branch_created",
+  UPDATED: "masters.org_branch_updated",
 } as const;
 
 export const LABEL_EVENTS = {
-  APPLIED: "masters:label_applied",
-  CREATED: "masters:label_created",
-  REMOVED: "masters:label_removed",
-  REMOVED_FROM_ENTITY: "masters:label_removed_from_entity",
-  UPDATED: "masters:label_updated",
+  APPLIED: "masters.label_applied",
+  CREATED: "masters.label_created",
+  REMOVED: "masters.label_removed",
+  REMOVED_FROM_ENTITY: "masters.label_removed_from_entity",
+  UPDATED: "masters.label_updated",
 } as const;
 
 export const events = {

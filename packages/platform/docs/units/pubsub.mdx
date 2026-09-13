@@ -26,13 +26,13 @@ Connection pool is created by pg-boss from DB config — not reused from `Databa
 ### Publishing
 
 ```ts
-const jobId = await p.pubsub.publish("organization:created", { organization: { id: "org-1" } });
+const jobId = await p.pubsub.publish("organization.created", { organization: { id: "org-1" } });
 await p.pubsub.publish(
-  "compliance:document_expiring",
+  "compliance.document_expiring",
   { documentId: "doc-1" },
   { retryLimit: 3, retryDelay: 60, retryBackoff: true, expireInMinutes: 60, priority: 1 },
 );
-await p.pubsub.publishBatch("notifications:send", [
+await p.pubsub.publishBatch("notifications.send", [
   { data: { userId: "1", message: "Hello" } },
   { data: { userId: "2", message: "World" }, options: { priority: 2 } },
 ]);
@@ -47,10 +47,10 @@ await p.pubsub.publishBatch("notifications:send", [
 ### Subscribing
 
 ```ts
-await p.pubsub.subscribe("organization:created", async (message) => {
+await p.pubsub.subscribe("organization.created", async (message) => {
   console.log(message.data, message.id, message.createdOn);
 });
-await p.pubsub.unsubscribe("organization:created");
+await p.pubsub.unsubscribe("organization.created");
 ```
 
 Handlers' `getContext().db` resolves to the tenant DB in isolated mode when subscribed inside `p.run(tenantId, ...)`.
@@ -58,22 +58,22 @@ Handlers' `getContext().db` resolves to the tenant DB in isolated mode when subs
 ### Scheduling
 
 ```ts
-await p.pubsub.schedule({ topic: "compliance:daily-expiry-scan", cron: "0 8 * * *" });
+await p.pubsub.schedule({ topic: "compliance.daily-expiry-scan", cron: "0 8 * * *" });
 await p.pubsub.schedule({
-  topic: "compliance:weekly-summary",
+  topic: "compliance.weekly-summary",
   cron: "0 9 * * 1",
   data: {},
   options: { tz: "Asia/Kolkata" },
 });
 const schedules = await p.pubsub.getSchedules();
-await p.pubsub.unschedule("compliance:weekly-summary");
+await p.pubsub.unschedule("compliance.weekly-summary");
 ```
 
 ### Queue management
 
 ```ts
-const size = await p.pubsub.getQueueSize("compliance:document_expiring"); // works on unregistered topics
-await p.pubsub.purgeQueue("notifications:send");
+const size = await p.pubsub.getQueueSize("compliance.document_expiring"); // works on unregistered topics
+await p.pubsub.purgeQueue("notifications.send");
 ```
 
 `getQueueSize` is the connectivity probe used by `rpc health check`.

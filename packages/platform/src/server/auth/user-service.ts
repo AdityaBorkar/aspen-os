@@ -56,7 +56,7 @@ export async function createUser(
   });
 
   const $user = toUserFromRow(row);
-  await pubsub?.publish("user:created", { user: $user });
+  await pubsub?.publish("user.created", { user: $user });
   return $user;
 }
 
@@ -110,7 +110,7 @@ export async function updateUser(
   }
 
   const $user = toUserFromRow(row);
-  await pubsub?.publish("user:updated", { user: $user });
+  await pubsub?.publish("user.updated", { user: $user });
   return $user;
 }
 
@@ -119,7 +119,7 @@ export async function deleteUser(
   { db, pubsub }: AuthServiceDeps,
 ): Promise<void> {
   await db.delete(user).where(eq(user.id, id));
-  await pubsub?.publish("user:deleted", { userId: id });
+  await pubsub?.publish("user.deleted", { userId: id });
 }
 
 export async function getUser(

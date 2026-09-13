@@ -110,7 +110,7 @@ Builds on the existing `department` table — no new table. **Current state**: t
 **Operations** (extend the `setup` group):
 
 - `moveDepartment(id, newParentId)` — re-parent a department; rejects cycles (reuse `validateParentDepartment`), updates the subtree.
-- `setDepartmentHead(id, employeeId)` — set/clear `department.manager`; emits `setup:department_head_changed`.
+- `setDepartmentHead(id, employeeId)` — set/clear `department.manager`; emits `setup.department_head_changed`.
 - `getDepartmentTree()` — full tree: name, code, manager (head), active position count, active employee count.
 - `getDepartmentSubtree(id, depth?)` — subtree rooted at a department.
 - `listPositionsByDepartment(id)` — active positions under a department (direct + subtree toggle).
@@ -127,11 +127,11 @@ Builds on the existing `department` table — no new table. **Current state**: t
 
 > ✅ **Phase 4 note** — `approvePromotion` now syncs `employee.designation` (plus `grade`/`department` when set); separation auto-close and transfer guidance subscribe in `$prepareRuntime()`.
 
-Structure must stay consistent as employees change. The lifecycle group already emits `lifecycle:promotion_approved`, `lifecycle:transfer_approved`, and `lifecycle:separation_completed` (part of the 43-event `HrEventMap`). The reconciliation steps below subscribe to these existing events — the position feature becomes their first consumer:
+Structure must stay consistent as employees change. The lifecycle group already emits `lifecycle.promotion_approved`, `lifecycle.transfer_approved`, and `lifecycle.separation_completed` (part of the 43-event `HrEventMap`). The reconciliation steps below subscribe to these existing events — the position feature becomes their first consumer:
 
-- **Promotion** (`lifecycle:promotion_approved`) — position assignment's designation-relevant fields are out of scope; the position itself is unchanged. `employee.designation` is synced by the promotion workflow itself — today `p.hr.lifecycle.approvePromotion` only marks the promotion record approved, so syncing `employee.designation` on approval is a **prerequisite this SOW assumes** (or a small lifecycle change this feature ships, noted in Phase 4).
-- **Transfer** (`lifecycle:transfer_approved`) — if the employee's current position belongs to the old department, HR is offered an automatic `transferAssignment` to a matching position in the new department (soft guidance, not enforced).
-- **Separation** (`lifecycle:separation_completed`) — open-ended position assignments of the employee are auto-closed (`toDate = exitDate`), and `position:unassigned` is emitted.
+- **Promotion** (`lifecycle.promotion_approved`) — position assignment's designation-relevant fields are out of scope; the position itself is unchanged. `employee.designation` is synced by the promotion workflow itself — today `p.hr.lifecycle.approvePromotion` only marks the promotion record approved, so syncing `employee.designation` on approval is a **prerequisite this SOW assumes** (or a small lifecycle change this feature ships, noted in Phase 4).
+- **Transfer** (`lifecycle.transfer_approved`) — if the employee's current position belongs to the old department, HR is offered an automatic `transferAssignment` to a matching position in the new department (soft guidance, not enforced).
+- **Separation** (`lifecycle.separation_completed`) — open-ended position assignments of the employee are auto-closed (`toDate = exitDate`), and `position.unassigned` is emitted.
 
 ---
 
@@ -175,7 +175,7 @@ Table counts move from **50 (14 control-plane + 36 tenant) to 52 (14 + 38)**; th
 | **Designation / Employment Type** | Optional position fields referencing the `setup` group (control-plane `designation`, `employment_type`).                                                           |
 | **Branch**                        | Optional `branch` scoping on positions; employees already carry `branch` — the branch master lives in `@aspen-os/organization` and is referenced by soft text key. |
 | **Access group**                  | `hr_permission` / `hr_role_permission` for `position` permission seeds; optional branch-scoped visibility of structure queries (`hr_user_branch_access`).          |
-| **Lifecycle group**               | `lifecycle:promotion_approved`, `lifecycle:transfer_approved`, `lifecycle:separation_completed` hooks auto-close/reconcile assignments.                            |
+| **Lifecycle group**               | `lifecycle.promotion_approved`, `lifecycle.transfer_approved`, `lifecycle.separation_completed` hooks auto-close/reconcile assignments.                            |
 
 ---
 
@@ -273,21 +273,21 @@ packages/hr/src/
 
 ### Domain Events
 
-Every existing HR event is prefixed by its workflow group (`employee:*`, `setup:*`, `lifecycle:*`, …). New events follow the same rule — the department events are `setup:department_head_changed` / `setup:department_moved` (the older `department:*` spelling would break the convention), and the new group's events are `position:*`. The event map grows from 43 to 52: a new `PositionEventMap` (7 events) and two entries on `SetupEventMap`.
+Every existing HR event is prefixed by its workflow group (`employee.*`, `setup.*`, `lifecycle.*`, …). New events follow the same rule — the department events are `setup.department_head_changed` / `setup.department_moved` (the older `department.*` spelling would break the convention), and the new group's events are `position.*`. The event map grows from 43 to 52: a new `PositionEventMap` (7 events) and two entries on `SetupEventMap`.
 
 | Event                           | Payload                                                | Trigger                                              |
 | ------------------------------- | ------------------------------------------------------ | ---------------------------------------------------- |
-| `position:created`              | `{ position: { id, name, department } }`               | Position created.                                    |
-| `position:updated`              | `{ position: { id }, changes }`                        | Position edited (incl. re-parent).                   |
-| `position:deactivated`          | `{ positionId }`                                       | Position deactivated.                                |
-| `position:activated`            | `{ positionId }`                                       | Position reactivated.                                |
-| `position:assigned`             | `{ assignment: { positionId, employeeId, fromDate } }` | Employee assigned to a position.                     |
-| `position:unassigned`           | `{ positionId, employeeId, toDate }`                   | Assignment closed (manual, transfer, or separation). |
-| `position:reassigned`           | `{ employeeId, fromPositionId, toPositionId }`         | Employee transferred between positions.              |
-| `setup:department_head_changed` | `{ departmentId, headEmployeeId }`                     | Department head set/cleared.                         |
-| `setup:department_moved`        | `{ departmentId, fromParentId, toParentId }`           | Department re-parented.                              |
+| `position.created`              | `{ position: { id, name, department } }`               | Position created.                                    |
+| `position.updated`              | `{ position: { id }, changes }`                        | Position edited (incl. re-parent).                   |
+| `position.deactivated`          | `{ positionId }`                                       | Position deactivated.                                |
+| `position.activated`            | `{ positionId }`                                       | Position reactivated.                                |
+| `position.assigned`             | `{ assignment: { positionId, employeeId, fromDate } }` | Employee assigned to a position.                     |
+| `position.unassigned`           | `{ positionId, employeeId, toDate }`                   | Assignment closed (manual, transfer, or separation). |
+| `position.reassigned`           | `{ employeeId, fromPositionId, toPositionId }`         | Employee transferred between positions.              |
+| `setup.department_head_changed` | `{ departmentId, headEmployeeId }`                     | Department head set/cleared.                         |
+| `setup.department_moved`        | `{ departmentId, fromParentId, toParentId }`           | Department re-parented.                              |
 
-> **PubSub pitfall**: `position:*` and `setup:department_*` are producer-only topics unless a consumer subscribes — pg-boss silently drops a published message when no queue row exists for the topic. The lifecycle-reconciliation hooks (§4) become consumers of `lifecycle:separation_completed` (and optionally `promotion_approved`/`transfer_approved`), but the position/department events themselves need either a host subscription or a `publish()` that throws when no queue row exists for the topic (platform rule). Wire this into the pubsub tests.
+> **PubSub pitfall**: `position.*` and `setup.department_*` are producer-only topics unless a consumer subscribes — pg-boss silently drops a published message when no queue row exists for the topic. The lifecycle-reconciliation hooks (§4) become consumers of `lifecycle.separation_completed` (and optionally `promotion_approved`/`transfer_approved`), but the position/department events themselves need either a host subscription or a `publish()` that throws when no queue row exists for the topic (platform rule). Wire this into the pubsub tests.
 
 ### Phase Sequencing
 
@@ -318,6 +318,6 @@ Every existing HR event is prefixed by its workflow group (`employee:*`, `setup:
 - **Assignment constraints**: headcount cap, one open-ended assignment per position, unique primary, transfer closes source assignment.
 - **Manager resolution**: derived manager via position chain vs `employee.reportsTo` fallback; consistency across `getDirectReports`/`getTeam`.
 - **Department tree**: moveDepartment cycle prevention, head set/clear, subtree projection, delete guards (children/positions/employees).
-- **Reconciliation**: separation auto-closes assignments; transfer guidance; events emitted on `lifecycle:*` events.
+- **Reconciliation**: separation auto-closes assignments; transfer guidance; events emitted on `lifecycle.*` events.
 - **Org chart**: enhanced nodes (department, position), filters by department/branch/position, existing `buildEmployeeTree` behavior unchanged for empty filters.
-- **PubSub**: `position:*`/`setup:department_*` payload correctness; producer-without-consumer throws (no silent drop).
+- **PubSub**: `position.*`/`setup.department_*` payload correctness; producer-without-consumer throws (no silent drop).

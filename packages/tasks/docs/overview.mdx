@@ -33,7 +33,7 @@ No configuration — `Tasks.create()` takes no args.
 | ---------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | `masters`  | module `$dependencies` | Label taxonomy (`master_label`) and contact identities consumed by task labels/mentions (soft FK, no hard DB FK) |
 | `db`       | unit                   | Control and tenant tables; no `kvStore` or `storage`                                                             |
-| `pubsub`   | unit                   | Publishes `task:*` events; consumers include `@aspen-os/calendar` bridge                                         |
+| `pubsub`   | unit                   | Publishes `task.*` events; consumers include `@aspen-os/calendar` bridge                                         |
 | `audit`    | context                | `ctx.audit.write` per mutation                                                                                   |
 
 `$initialize()` is empty — workflows are stateless flat `Workflow` objects.
@@ -124,6 +124,6 @@ All relationships are logical (text FKs), workflow-enforced; `task` parent depth
 
 <Callout type="info">
   Saved views live in `@aspen-os/masters` as `p.masters.filterViews` (`domain: "tasks:task"`). Task
-  reminders live in `@aspen-os/calendar` (`targetType = task`) via the `task:due_date_changed`
+  reminders live in `@aspen-os/calendar` (`targetType = task`) via the `task.due_date_changed`
   bridge — this module owns no reminder surface.
 </Callout>

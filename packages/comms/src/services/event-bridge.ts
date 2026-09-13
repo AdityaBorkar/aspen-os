@@ -143,28 +143,28 @@ export async function registerEventBridgeSubscriptions(deps: EventBridgeDeps): P
     }
   };
 
-  // Single reminder dispatcher: calendar:reminder-scan → calendar:reminder_due
+  // Single reminder dispatcher: calendar.reminder-scan → calendar.reminder_due
   // All reminder producers (tasks, compliance documents) materialize calendar_reminder rows
-  // via calendar bridges; comms consumes only calendar:reminder_due for delivery.
-  await add("calendar:reminder_due", ReminderDueEventSchema, (data, target) =>
+  // via calendar bridges; comms consumes only calendar.reminder_due for delivery.
+  await add("calendar.reminder_due", ReminderDueEventSchema, (data, target) =>
     handleReminderDue(data, target),
   );
-  await add("dms:file_expired", FileExpiredEventSchema, (data, target) =>
+  await add("dms.file_expired", FileExpiredEventSchema, (data, target) =>
     handleFileExpired(data, target),
   );
-  await add("announcement:published", AnnouncementPublishedEventSchema, (data, target) =>
+  await add("announcement.published", AnnouncementPublishedEventSchema, (data, target) =>
     handleAnnouncementPublished(data, target),
   );
-  await add("workspace:delivery_due", DeliveryDueEventSchema, (data, target) =>
+  await add("workspace.delivery_due", DeliveryDueEventSchema, (data, target) =>
     handleDeliveryDue(data, target),
   );
-  await add("management:tenant_provisioned", TenantLifecycleEventSchema, (data, target) =>
+  await add("management.tenant_provisioned", TenantLifecycleEventSchema, (data, target) =>
     handleTenantLifecycle(data.tenantId, target),
   );
-  await add("management:tenant_activated", TenantLifecycleEventSchema, (data, target) =>
+  await add("management.tenant_activated", TenantLifecycleEventSchema, (data, target) =>
     handleTenantLifecycle(data.tenantId, target),
   );
-  await add("auth:email_otp_requested", OtpRequestedEventSchema, (data, target) =>
+  await add("auth.email_otp_requested", OtpRequestedEventSchema, (data, target) =>
     handleOtpRequested(data, target),
   );
   return topics;
@@ -191,7 +191,7 @@ async function handleReminderDue(
 ): Promise<void> {
   const notify = createNotify(deps.dbUnit);
   // Single dispatcher path: all reminders (task, compliance_document, custom) fire
-  // via calendar:reminder_due and become one comms notification + outbox messages.
+  // via calendar.reminder_due and become one comms notification + outbox messages.
   const targetType = event.reminder.targetType ?? "reminder";
   const sourceType = targetType === "compliance_document" ? "compliance_document" : targetType;
   await notify.run(

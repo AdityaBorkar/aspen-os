@@ -10,25 +10,25 @@ The hr-attendance module defines domain events across three groups. Events are t
 
 | Event                         | Payload                                            | Trigger                               |
 | ----------------------------- | -------------------------------------------------- | ------------------------------------- |
-| `attendance:created`          | `{ attendance: { id, employeeId, date, status } }` | `attendance.create`                   |
-| `attendance:checkin_created`  | `{ checkin: { id, employeeId, logType, time } }`   | `attendance.createCheckin`            |
-| `attendance:request_created`  | `{ request: { id, employeeId, fromDate } }`        | `attendance.createAttendanceRequest`  |
-| `attendance:request_approved` | `{ requestId, approvedBy }`                        | `attendance.approveAttendanceRequest` |
-| `attendance:request_rejected` | `{ requestId, rejectedBy }`                        | `attendance.rejectAttendanceRequest`  |
+| `attendance.created`          | `{ attendance: { id, employeeId, date, status } }` | `attendance.create`                   |
+| `attendance.checkin_created`  | `{ checkin: { id, employeeId, logType, time } }`   | `attendance.createCheckin`            |
+| `attendance.request_created`  | `{ request: { id, employeeId, fromDate } }`        | `attendance.createAttendanceRequest`  |
+| `attendance.request_approved` | `{ requestId, approvedBy }`                        | `attendance.approveAttendanceRequest` |
+| `attendance.request_rejected` | `{ requestId, rejectedBy }`                        | `attendance.rejectAttendanceRequest`  |
 
 ## Overtime
 
 | Event                    | Payload                                                        | Trigger                        |
 | ------------------------ | -------------------------------------------------------------- | ------------------------------ |
-| `overtime:slip_created`  | `{ slip: { id, employeeId, overtimeType, fromDate, toDate } }` | `overtime.createOvertimeSlip`  |
-| `overtime:slip_approved` | `{ slipId, approvedBy }`                                       | `overtime.approveOvertimeSlip` |
-| `overtime:slip_rejected` | `{ slipId, rejectedBy }`                                       | `overtime.rejectOvertimeSlip`  |
+| `overtime.slip_created`  | `{ slip: { id, employeeId, overtimeType, fromDate, toDate } }` | `overtime.createOvertimeSlip`  |
+| `overtime.slip_approved` | `{ slipId, approvedBy }`                                       | `overtime.approveOvertimeSlip` |
+| `overtime.slip_rejected` | `{ slipId, rejectedBy }`                                       | `overtime.rejectOvertimeSlip`  |
 
 ## Shift
 
 | Event                      | Payload                                                    | Trigger                       |
 | -------------------------- | ---------------------------------------------------------- | ----------------------------- |
-| `shift:assignment_created` | `{ assignment: { id, employeeId, shiftType, startDate } }` | `shift.createShiftAssignment` |
-| `shift:request_created`    | `{ request: { id, employeeId, shiftType, fromDate } }`     | `shift.createShiftRequest`    |
-| `shift:request_approved`   | `{ requestId, approvedBy }`                                | `shift.approveShiftRequest`   |
-| `shift:request_rejected`   | `{ requestId, rejectedBy }`                                | `shift.rejectShiftRequest`    |
+| `shift.assignment_created` | `{ assignment: { id, employeeId, shiftType, startDate } }` | `shift.createShiftAssignment` |
+| `shift.request_created`    | `{ request: { id, employeeId, shiftType, fromDate } }`     | `shift.createShiftRequest`    |
+| `shift.request_approved`   | `{ requestId, approvedBy }`                                | `shift.approveShiftRequest`   |
+| `shift.request_rejected`   | `{ requestId, rejectedBy }`                                | `shift.rejectShiftRequest`    |

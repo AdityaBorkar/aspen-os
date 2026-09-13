@@ -876,7 +876,7 @@ packages/recruitment/
 | `offer:rejected`               | `{ offer, reason }`                   | Offer rejected.                               |
 | `referral:created`             | `{ referral }`                        | Employee referral submitted.                  |
 | `reminder:fired`               | `{ reminder }`                        | Reminder triggered.                           |
-| `task:assigned`                | `{ taskId, userId }`                  | Task assigned to a user.                      |
+| `task.assigned`                | `{ taskId, userId }`                  | Task assigned to a user.                      |
 
 ### Phase Sequencing
 

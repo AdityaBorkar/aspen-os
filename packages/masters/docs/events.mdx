@@ -12,68 +12,68 @@ icon: IconBell
 
 | Event                     | Payload                                          | Trigger              |
 | ------------------------- | ------------------------------------------------ | -------------------- |
-| `masters:contact_created` | `{ contact: { id, name, type }, entityType }`    | Contact created      |
-| `masters:contact_updated` | `{ contact: { id, name }, changes, entityType }` | Contact updated      |
-| `masters:contact_removed` | `{ contactId, entityId, entityType, reason }`    | Contact soft-removed |
+| `masters.contact_created` | `{ contact: { id, name, type }, entityType }`    | Contact created      |
+| `masters.contact_updated` | `{ contact: { id, name }, changes, entityType }` | Contact updated      |
+| `masters.contact_removed` | `{ contactId, entityId, entityType, reason }`    | Contact soft-removed |
 
 ### Address
 
 | Event                     | Payload                                                     | Trigger         |
 | ------------------------- | ----------------------------------------------------------- | --------------- |
-| `masters:address_created` | `{ address: { id, country, label }, entityId, entityType }` | Address created |
-| `masters:address_updated` | `{ address: { id }, changes, entityId, entityType }`        | Address updated |
-| `masters:address_removed` | `{ addressId, entityId, entityType }`                       | Address removed |
+| `masters.address_created` | `{ address: { id, country, label }, entityId, entityType }` | Address created |
+| `masters.address_updated` | `{ address: { id }, changes, entityId, entityType }`        | Address updated |
+| `masters.address_removed` | `{ addressId, entityId, entityType }`                       | Address removed |
 
 ### Connection
 
 | Event                                   | Payload                                                       | Trigger            |
 | --------------------------------------- | ------------------------------------------------------------- | ------------------ |
-| `masters:connection_created`            | `{ connection: { id, name, type }, entityId, entityType }`    | Connection created |
-| `masters:connection_updated`            | `{ connection: { id, name }, changes, entityId, entityType }` | Connection updated |
-| `masters:connection_status_changed`     | `{ connectionId, fromStatus, toStatus }`                      | Status changed     |
-| `masters:connection_credential_rotated` | `{ connectionId }`                                            | Credential rotated |
-| `masters:connection_removed`            | `{ connectionId, entityId, entityType }`                      | Connection removed |
+| `masters.connection_created`            | `{ connection: { id, name, type }, entityId, entityType }`    | Connection created |
+| `masters.connection_updated`            | `{ connection: { id, name }, changes, entityId, entityType }` | Connection updated |
+| `masters.connection_status_changed`     | `{ connectionId, fromStatus, toStatus }`                      | Status changed     |
+| `masters.connection_credential_rotated` | `{ connectionId }`                                            | Credential rotated |
+| `masters.connection_removed`            | `{ connectionId, entityId, entityType }`                      | Connection removed |
 
 ### Entity
 
 | Event                    | Payload                                   | Trigger        |
 | ------------------------ | ----------------------------------------- | -------------- |
-| `masters:entity_created` | `{ entity: { id, name, type } }`          | Entity created |
-| `masters:entity_updated` | `{ entity: { id, name, type }, changes }` | Entity updated |
-| `masters:entity_removed` | `{ entity: { id, name, type } }`          | Entity removed |
+| `masters.entity_created` | `{ entity: { id, name, type } }`          | Entity created |
+| `masters.entity_updated` | `{ entity: { id, name, type }, changes }` | Entity updated |
+| `masters.entity_removed` | `{ entity: { id, name, type } }`          | Entity removed |
 
 ### Label
 
 | Event                               | Payload                                              | Trigger                   |
 | ----------------------------------- | ---------------------------------------------------- | ------------------------- |
-| `masters:label_created`             | `{ label: { id, name, color, scopeType, scopeId } }` | Label created             |
-| `masters:label_updated`             | `{ label: { id, name }, changes }`                   | Label updated             |
-| `masters:label_removed`             | `{ labelId }`                                        | Label deleted             |
-| `masters:label_applied`             | `{ labelId, entityId, entityType }`                  | Label applied to entity   |
-| `masters:label_removed_from_entity` | `{ labelId, entityId, entityType }`                  | Label removed from entity |
+| `masters.label_created`             | `{ label: { id, name, color, scopeType, scopeId } }` | Label created             |
+| `masters.label_updated`             | `{ label: { id, name }, changes }`                   | Label updated             |
+| `masters.label_removed`             | `{ labelId }`                                        | Label deleted             |
+| `masters.label_applied`             | `{ labelId, entityId, entityType }`                  | Label applied to entity   |
+| `masters.label_removed_from_entity` | `{ labelId, entityId, entityType }`                  | Label removed from entity |
 
 ### Org branch
 
 | Event                        | Payload                                   | Trigger            |
 | ---------------------------- | ----------------------------------------- | ------------------ |
-| `masters:org_branch_created` | `{ orgBranch: { id, name, code, type } }` | Org branch created |
-| `masters:org_branch_updated` | `{ orgBranch: { id, name }, changes }`    | Org branch updated |
+| `masters.org_branch_created` | `{ orgBranch: { id, name, code, type } }` | Org branch created |
+| `masters.org_branch_updated` | `{ orgBranch: { id, name }, changes }`    | Org branch updated |
 
 ### Unit of measure
 
 | Event                             | Payload                                              | Trigger     |
 | --------------------------------- | ---------------------------------------------------- | ----------- |
-| `masters:unit_of_measure_created` | `{ unitOfMeasure: { id, code, category } }`          | UOM created |
-| `masters:unit_of_measure_updated` | `{ unitOfMeasure: { id, code, category }, changes }` | UOM updated |
-| `masters:unit_of_measure_removed` | `{ unitOfMeasure: { id, code, category } }`          | UOM removed |
+| `masters.unit_of_measure_created` | `{ unitOfMeasure: { id, code, category } }`          | UOM created |
+| `masters.unit_of_measure_updated` | `{ unitOfMeasure: { id, code, category }, changes }` | UOM updated |
+| `masters.unit_of_measure_removed` | `{ unitOfMeasure: { id, code, category } }`          | UOM removed |
 
 ### Payment method
 
 | Event                                | Payload                                                                | Trigger                    |
 | ------------------------------------ | ---------------------------------------------------------------------- | -------------------------- |
-| `masters:payment_method_created`     | `{ paymentMethod: { id, name, type }, entityType, entityId }`          | Payment method created     |
-| `masters:payment_method_updated`     | `{ paymentMethod: { id, name, type }, entityType, entityId, changes }` | Payment method updated     |
-| `masters:payment_method_removed`     | `{ paymentMethod: { id, name, type }, entityType, entityId }`          | Payment method removed     |
-| `masters:payment_method_activated`   | `{ paymentMethodId, entityType, entityId }`                            | Payment method activated   |
-| `masters:payment_method_deactivated` | `{ paymentMethodId, entityType, entityId }`                            | Payment method deactivated |
-| `masters:payment_method_primary_set` | `{ paymentMethodId, entityType, entityId, direction }`                 | Primary set                |
+| `masters.payment_method_created`     | `{ paymentMethod: { id, name, type }, entityType, entityId }`          | Payment method created     |
+| `masters.payment_method_updated`     | `{ paymentMethod: { id, name, type }, entityType, entityId, changes }` | Payment method updated     |
+| `masters.payment_method_removed`     | `{ paymentMethod: { id, name, type }, entityType, entityId }`          | Payment method removed     |
+| `masters.payment_method_activated`   | `{ paymentMethodId, entityType, entityId }`                            | Payment method activated   |
+| `masters.payment_method_deactivated` | `{ paymentMethodId, entityType, entityId }`                            | Payment method deactivated |
+| `masters.payment_method_primary_set` | `{ paymentMethodId, entityType, entityId, direction }`                 | Primary set                |

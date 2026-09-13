@@ -4,7 +4,7 @@
 
 ## Relationship Type
 
-Downstream of Platform (Customer–Supplier). Runtime-wired. **No module deps** — `$dependencies = []`. Task bridge consumes `task:*` events via PubSub (compliance EventBridge pattern): subscribes `task:due_date_changed` / `task:deleted` / `task:status_changed`, materializes/cancels task reminders (`targetType = task`). No direct cross-module calls.
+Downstream of Platform (Customer–Supplier). Runtime-wired. **No module deps** — `$dependencies = []`. Task bridge consumes `task.*` events via PubSub (compliance EventBridge pattern): subscribes `task.due_date_changed` / `task.deleted` / `task.status_changed`, materializes/cancels task reminders (`targetType = task`). No direct cross-module calls.
 
 ## Structure (`packages/calendar/`)
 
@@ -17,7 +17,7 @@ Downstream of Platform (Customer–Supplier). Runtime-wired. **No module deps** 
 - 8 pgEnums: `calendar_access`, `calendar_event_status`, `calendar_recurrence_frequency`, `calendar_reminder_target`, `calendar_reminder_type`, `calendar_reminder_channel`, `calendar_attendee_type`, `calendar_attendee_status`
 - 14 events across 4 maps (`CALENDAR_EVENTS` 3, `EVENT_EVENTS` 4, `ATTENDEE_EVENTS` 3, `REMINDER_EVENTS` 4) → `CalendarModuleEventMap`
 - 4 ACL resources: `calendar`, `event`, `attendee`, `reminder`
-- `$prepareRuntime()` — `registerReminderDispatcher()` registers fixed module cron `calendar:reminder-scan` (`* * * * *`), handler runs `processPendingReminders`; `registerTaskBridge()` subscribes 3 `task:*` topics; `$cleanup()` unregisters both
+- `$prepareRuntime()` — `registerReminderDispatcher()` registers fixed module cron `calendar.reminder-scan` (`* * * * *`), handler runs `processPendingReminders`; `registerTaskBridge()` subscribes 3 `task.*` topics; `$cleanup()` unregisters both
 - Module-scope config in `runtime.ts` (`setCalendarConfig`/`getCalendarConfig`)
 - Build step (build script + `build` field in package.json), root `tsconfig.json` reference, `docs/source.config.ts` entry
 
@@ -35,8 +35,8 @@ Workflows one file per action under `workflows/<entity>/<verb>.ts` (e.g. `event/
 
 ## Cross-context integration
 
-- **Tasks** = **source** of task reminders: task bridge subscribes `task:due_date_changed` (materialize due-date bundle per recipient), `task:deleted` (delete all task reminders), `task:status_changed` (suppress pending reminders on completion/cancellation).
-- **Reminder dispatcher** replaces old host-driven `p.tasks.reminders.processPending` — module registers own cron, no host cron needed. Hosts subscribe `calendar:reminder_due` (+ `calendar:event_*`/`attendee_*` if they surface calendar notifications).
+- **Tasks** = **source** of task reminders: task bridge subscribes `task.due_date_changed` (materialize due-date bundle per recipient), `task.deleted` (delete all task reminders), `task.status_changed` (suppress pending reminders on completion/cancellation).
+- **Reminder dispatcher** replaces old host-driven `p.tasks.reminders.processPending` — module registers own cron, no host cron needed. Hosts subscribe `calendar.reminder_due` (+ `calendar.event_*`/`attendee_*` if they surface calendar notifications).
 - Workspace treats `calendar:event` (and `calendar:reminder`) as documented built-in view domains — docs-level only, no code coupling.
 
 ## Language

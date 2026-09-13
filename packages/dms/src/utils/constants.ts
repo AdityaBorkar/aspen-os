@@ -106,8 +106,8 @@ export const AUDIT_ACTION = {
 export type AuditAction = (typeof AUDIT_ACTION)[keyof typeof AUDIT_ACTION];
 
 export const SCHEDULED_JOBS = {
-  AUTO_PURGE: "dms:auto-purge",
-  EXPIRY_SCAN: "dms:expiry-scan",
+  AUTO_PURGE: "dms.auto-purge",
+  EXPIRY_SCAN: "dms.expiry-scan",
 } as const;
 
 export type ScheduledJob = (typeof SCHEDULED_JOBS)[keyof typeof SCHEDULED_JOBS];

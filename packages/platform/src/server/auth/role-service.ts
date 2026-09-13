@@ -17,7 +17,7 @@ export async function assignRole(
   if (!row) {
     throw new Error(`User "${userId}" not found`);
   }
-  await pubsub?.publish("role:assigned", { roleName, userId });
+  await pubsub?.publish("role.assigned", { roleName, userId });
 }
 
 export async function unassignRole(
@@ -25,7 +25,7 @@ export async function unassignRole(
   { db, pubsub }: AuthServiceDeps,
 ): Promise<void> {
   await db.update(schema.user).set({ role: null }).where(eq(schema.user.id, userId));
-  await pubsub?.publish("role:unassigned", { userId });
+  await pubsub?.publish("role.unassigned", { userId });
 }
 
 export async function deleteRole(
@@ -33,7 +33,7 @@ export async function deleteRole(
   { db, pubsub }: AuthServiceDeps,
 ): Promise<void> {
   await db.update(schema.user).set({ role: null }).where(eq(schema.user.role, name));
-  await pubsub?.publish("role:deleted", { roleName: name });
+  await pubsub?.publish("role.deleted", { roleName: name });
 }
 
 export async function listRoles({ db }: AuthServiceDeps): Promise<RoleData[]> {

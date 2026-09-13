@@ -1,45 +1,45 @@
 import type { JsonValue } from "@aspen-os/platform/server";
 
 export const FILE_EVENTS = {
-  CLASSIFIED: "dms:file_classified",
-  DOWNLOADED: "dms:file_downloaded",
-  EXPIRED: "dms:file_expired",
-  HOLD_PLACED: "dms:file_hold_placed",
-  HOLD_RELEASED: "dms:file_hold_released",
-  MOVED: "dms:file_moved",
-  PURGED: "dms:file_purged",
-  RESTORED: "dms:file_restored",
-  TRASHED: "dms:file_trashed",
-  UPDATED: "dms:file_updated",
-  UPLOADED: "dms:file_uploaded",
-  VERSION_ADDED: "dms:file_version_added",
-  VERSION_REVERTED: "dms:file_version_reverted",
+  CLASSIFIED: "dms.file_classified",
+  DOWNLOADED: "dms.file_downloaded",
+  EXPIRED: "dms.file_expired",
+  HOLD_PLACED: "dms.file_hold_placed",
+  HOLD_RELEASED: "dms.file_hold_released",
+  MOVED: "dms.file_moved",
+  PURGED: "dms.file_purged",
+  RESTORED: "dms.file_restored",
+  TRASHED: "dms.file_trashed",
+  UPDATED: "dms.file_updated",
+  UPLOADED: "dms.file_uploaded",
+  VERSION_ADDED: "dms.file_version_added",
+  VERSION_REVERTED: "dms.file_version_reverted",
 } as const;
 
 export const FOLDER_EVENTS = {
-  CREATED: "dms:folder_created",
-  MOVED: "dms:folder_moved",
-  PURGED: "dms:folder_purged",
-  RENAMED: "dms:folder_renamed",
-  RESTORED: "dms:folder_restored",
-  TRASHED: "dms:folder_trashed",
+  CREATED: "dms.folder_created",
+  MOVED: "dms.folder_moved",
+  PURGED: "dms.folder_purged",
+  RENAMED: "dms.folder_renamed",
+  RESTORED: "dms.folder_restored",
+  TRASHED: "dms.folder_trashed",
 } as const;
 
 export const CLASS_EVENTS = {
-  ARCHIVED: "dms:class_archived",
-  CREATED: "dms:class_created",
-  UPDATED: "dms:class_updated",
+  ARCHIVED: "dms.class_archived",
+  CREATED: "dms.class_created",
+  UPDATED: "dms.class_updated",
 } as const;
 
 export const SHARE_EVENTS = {
-  CREATED: "dms:share_created",
-  REVOKED: "dms:share_revoked",
+  CREATED: "dms.share_created",
+  REVOKED: "dms.share_revoked",
 } as const;
 
 export const PUBLIC_LINK_EVENTS = {
-  ACCESSED: "dms:public_link_accessed",
-  CREATED: "dms:public_link_created",
-  REVOKED: "dms:public_link_revoked",
+  ACCESSED: "dms.public_link_accessed",
+  CREATED: "dms.public_link_created",
+  REVOKED: "dms.public_link_revoked",
 } as const;
 
 export const events = {

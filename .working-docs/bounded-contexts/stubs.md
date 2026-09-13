@@ -12,8 +12,8 @@ Some implemented modules already reference these stubs by topic name (type-level
 
 | Module     | Referenced by          | Event expectation                                                           |
 | ---------- | ---------------------- | --------------------------------------------------------------------------- |
-| Fleet      | Compliance EventBridge | `fleet:vehicle_registered` → pollution certificate + semi-annual obligation |
-| Accounting | Compliance EventBridge | `accounting:financial_year_started` → monthly GST return obligation         |
+| Fleet      | Compliance EventBridge | `fleet.vehicle_registered` → pollution certificate + semi-annual obligation |
+| Accounting | Compliance EventBridge | `accounting.financial_year_started` → monthly GST return obligation         |
 
 ## Status
 

@@ -88,7 +88,7 @@ export type Weekday = (typeof WEEKDAY)[keyof typeof WEEKDAY];
 export const DEFAULT_CALENDAR_TIMEZONE = "UTC";
 
 export const SCHEDULED_JOBS = {
-  REMINDER_SCAN: "calendar:reminder-scan",
+  REMINDER_SCAN: "calendar.reminder-scan",
 } as const;
 
 export type ScheduledJob = (typeof SCHEDULED_JOBS)[keyof typeof SCHEDULED_JOBS];

@@ -169,12 +169,12 @@ export type CreateBranchInput = InferOutput<typeof CreateBranchSchema>;
 
 ## Events
 
-Modules define events in the `"domain:event_name"` format, typed via an `EventMap` type — a compile-time contract, not a runtime bus. Published as plain string topics via PubSub:
+Modules define events in the `"domain.event_name"` format, typed via an `EventMap` type — a compile-time contract, not a runtime bus. Published as plain string topics via PubSub:
 
 ```ts title="src/pubsub.ts"
 export const ORG_EVENTS = {
-  BRANCH_CREATED: "organization:branch_created",
-  BRANCH_UPDATED: "organization:branch_updated",
+  BRANCH_CREATED: "organization.branch_created",
+  BRANCH_UPDATED: "organization.branch_updated",
 } as const;
 
 export type OrganizationEventMap = {
@@ -183,7 +183,7 @@ export type OrganizationEventMap = {
 ```
 
 ```ts
-await this.pubsub.publish("organization:branch_created", { branch });
+await this.pubsub.publish("organization.branch_created", { branch });
 ```
 
 <Callout type="info">

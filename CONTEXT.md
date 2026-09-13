@@ -2,7 +2,7 @@
 
 Aspen OS = business application framework on Bun/TypeScript. Platform kernel provides composable infrastructure (database, auth, logging, pub/sub, RPC, storage, KV store) so domain modules build on top without reinventing plumbing.
 
-> **Ubiquitous-language harmonization (2026-09-09):** `Contact` = Masters business relationship (canonical); others are `ContactRef/AttendeeContact/RecipientContact` in prose (enum values stay wire-compat). `Connection` = Masters integration credential (glossary note; never business relationship). `Reminder` = Calendar (single dispatcher); `DeliverySchedule` = Workspace (per-dashboard cron). Compliance `reminder_*` → `expiry_policy_*`; `SCHEDULE_EVENTS` alias deleted. `Notification` = Comms inbox; `Announcement` = HR authoring only (`announcement:published` is intent, Comms owns delivery). `Dashboard` = Workspace composable; Compliance `Summary` (renamed `dashboard.*` → `summary.*`, `getSummary` kept). `Draft` = Workspace entity; others are draft status values. `AuditLog` = platform store; per-module `ActivityFeed` is projection (Tasks `activity_log` exempt or migrated). `Tenant` = SaaS customer (Management) + `ManagedOrganization`; Masters `Entity` + `OrgBranch`; `organization` package decommissioned/profile-view; employee↔contact disjoint documented. Roles scoped: `PlatformRole, ProjectRole, HrRole, ChannelRole`. `Share` (grant) + `PublicLink` (token) = DMS; `Attendee` = Calendar invite.
+> **Ubiquitous-language harmonization (2026-09-09):** `Contact` = Masters business relationship (canonical); others are `ContactRef/AttendeeContact/RecipientContact` in prose (enum values stay wire-compat). `Connection` = Masters integration credential (glossary note; never business relationship). `Reminder` = Calendar (single dispatcher); `DeliverySchedule` = Workspace (per-dashboard cron). Compliance `reminder_*` → `expiry_policy_*`; `SCHEDULE_EVENTS` alias deleted. `Notification` = Comms inbox; `Announcement` = HR authoring only (`announcement.published` is intent, Comms owns delivery). `Dashboard` = Workspace composable; Compliance `Summary` (renamed `dashboard.*` → `summary.*`, `getSummary` kept). `Draft` = Workspace entity; others are draft status values. `AuditLog` = platform store; per-module `ActivityFeed` is projection (Tasks `activity_log` exempt or migrated). `Tenant` = SaaS customer (Management) + `ManagedOrganization`; Masters `Entity` + `OrgBranch`; `organization` package decommissioned/profile-view; employee↔contact disjoint documented. Roles scoped: `PlatformRole, ProjectRole, HrRole, ChannelRole`. `Share` (grant) + `PublicLink` (token) = DMS; `Attendee` = Calendar invite.
 
 ## Language
 
@@ -88,7 +88,7 @@ Declarative statement matrix defining `{ resource: [actions...] }`. Modules decl
 _Avoid_: Permission Matrix, ACL
 
 **Auth Event**:
-Typed domain event contract defined in auth services (`services/{role,session,user}.ts`). Events: `user:created`, `user:updated`, `user:deleted`, `session:created`, `session:invalidated`, `role:assigned`, `role:unassigned`, `role:deleted`. Published via PubSub as plain string topics — type-level contract, not runtime bus.
+Typed domain event contract defined in auth services (`services/{role,session,user}.ts`). Events: `user.created`, `user.updated`, `user.deleted`, `session.created`, `session.invalidated`, `role.assigned`, `role.unassigned`, `role.deleted`. Published via PubSub as plain string topics — type-level contract, not runtime bus.
 _Avoid_: Auth Signal, Auth Hook
 
 ### Logging
@@ -287,7 +287,7 @@ Service that auto-generates Compliance Documents from active Obligations based o
 _Avoid_: Document Factory, Auto-Generator
 
 **Event Bridge**:
-Service that subscribes to external module events (e.g. `hr:employee_onboarded`, `organization:branch_created`, `masters:contact_created`) + auto-creates relevant Compliance Documents + Obligations based on event type.
+Service that subscribes to external module events (e.g. `hr.employee_onboarded`, `organization.branch_created`, `masters.contact_created`) + auto-creates relevant Compliance Documents + Obligations based on event type.
 _Avoid_: Event Listener, Integration Hub
 
 ### Tasks Domain
@@ -321,7 +321,7 @@ Logged time record on a task w/ `duration` (minutes), `date`, `description`, `bi
 _Avoid_: Timesheet, Time Log
 
 **Task Reminder**:
-Time-bound follow-up on a task w/ `type` (due_date/custom/overdue), `remindAt`, `isRecurring`, `interval` (daily/weekly/monthly/every_2_hours), `isSent`, `userId`. **Moved to `@aspen-os/calendar`** — task reminders now `calendar_reminder` rows w/ `targetType = task`, materialized by calendar task bridge from `task:due_date_changed`.
+Time-bound follow-up on a task w/ `type` (due_date/custom/overdue), `remindAt`, `isRecurring`, `interval` (daily/weekly/monthly/every_2_hours), `isSent`, `userId`. **Moved to `@aspen-os/calendar`** — task reminders now `calendar_reminder` rows w/ `targetType = task`, materialized by calendar task bridge from `task.due_date_changed`.
 _Avoid_: Alert, Notification
 
 **Watcher**:
@@ -347,15 +347,15 @@ Computed-on-read expansion of an event's recurrence within `[from, to]` range: `
 _Avoid_: Instance, Exception (v1 has no per-occurrence divergence)
 
 **Attendee**:
-Invitee on an event — `email` + optional `name`/`attendeeId`/`attendeeType` (`user`/`contact`), `optional`, `status` (`invited`/`accepted`/`declined`/`tentative`). `add` publishes `calendar:attendee_invited`.
+Invitee on an event — `email` + optional `name`/`attendeeId`/`attendeeType` (`user`/`contact`), `optional`, `status` (`invited`/`accepted`/`declined`/`tentative`). `add` publishes `calendar.attendee_invited`.
 _Avoid_: Participant, Guest (implementation terms)
 
 **Reminder**:
-Platform's single polymorphic reminder surface — `calendar_reminder` rows w/ `targetType` (`event`/`task`/`note`/`file`/`custom`) + `targetId`. `type` = `offset` (resolved against target's start/due anchor), `custom`/`due_date`/`overdue` (absolute `remindAt`). Recipient-scoped via `userId`; delivered by module's dispatcher cron, which publishes `calendar:reminder_due` (full payload) + marks `isSent`. Task reminders = `targetType = task` rows created by task bridge.
+Platform's single polymorphic reminder surface — `calendar_reminder` rows w/ `targetType` (`event`/`task`/`note`/`file`/`custom`) + `targetId`. `type` = `offset` (resolved against target's start/due anchor), `custom`/`due_date`/`overdue` (absolute `remindAt`). Recipient-scoped via `userId`; delivered by module's dispatcher cron, which publishes `calendar.reminder_due` (full payload) + marks `isSent`. Task reminders = `targetType = task` rows created by task bridge.
 _Avoid_: Alert, Notification, "Reminder Engine" (compliance's document-expiry scanner = separate, out-of-scope surface)
 
 **Task Bridge**:
-Calendar-side service (`services/task-bridge.ts`) that subscribes to `task:due_date_changed`/`task:deleted`/`task:status_changed` + materializes/cancels task due-date reminders — three `due_date` rows per recipient (due − 1d, due − 1h, due; `userIds` = assignees ∪ reporter), deletion on task delete, suppression on completion/cancellation. Event-driven, so both modules stay `$dependencies = []`.
+Calendar-side service (`services/task-bridge.ts`) that subscribes to `task.due_date_changed`/`task.deleted`/`task.status_changed` + materializes/cancels task due-date reminders — three `due_date` rows per recipient (due − 1d, due − 1h, due; `userIds` = assignees ∪ reporter), deletion on task delete, suppression on completion/cancellation. Event-driven, so both modules stay `$dependencies = []`.
 _Avoid_: Event Listener (compliance's EventBridge = general pattern; Task Bridge = calendar-specific consumer)
 
 ### Comms Domain
@@ -373,7 +373,7 @@ Persisted intent + in-app inbox row. The row **is** the inbox — in-app deliver
 _Avoid_: Alert, Inbox Item
 
 **Message**:
-Delivery outbox row (`comms_message`) — one per outbound send. Status lifecycle `queued → sending → sent → delivered/failed`, w/ attempts/retries + provider receipts. Swept by `comms:message-sweeper` cron (`* * * * *`), which dispatches per-message in tenant context. Never a `comms:deliver` topic.
+Delivery outbox row (`comms_message`) — one per outbound send. Status lifecycle `queued → sending → sent → delivered/failed`, w/ attempts/retries + provider receipts. Swept by `comms.message-sweeper` cron (`* * * * *`), which dispatches per-message in tenant context. Never a `comms.deliver` topic.
 _Avoid_: Event, Payload
 
 **Recipient**:
@@ -443,7 +443,7 @@ Classification of employment (e.g. full-time, part-time, contract) w/ `name`, `d
 _Avoid_: Contract Type, Employment Status
 
 **Announcement**:
-Internal broadcast authored by HR users, targeted at whole org or subset (branch/department/designation/group/role/individuals), delivered into comms inbox via `announcement:published` w/ delivery snapshot.
+Internal broadcast authored by HR users, targeted at whole org or subset (branch/department/designation/group/role/individuals), delivered into comms inbox via `announcement.published` w/ delivery snapshot.
 _Avoid_: Notification (comms term)
 
 ### DMS Domain
@@ -537,7 +537,7 @@ Declarative datasource config on a Dashboard — `metric` (count/sum/avg/min/max
 _Avoid_: Chart, KPI Card (implementation terms)
 
 **DeliverySchedule (workspace)**:
-Per-Dashboard cron delivery configuration (`{ recipients, format: export|pdf|url, subject? }`). `create`/`resume` register pg-boss cron on `workspace:delivery_schedule:<id>`; module's handler publishes `workspace:delivery_due` (full schedule + dashboard payload) + **host renders/delivers**. `markRun` records completion. Distinct from dms's module-level cron jobs (expiry scan, auto-purge). **Harmonized:** Workspace `DeliverySchedule` is canonical; never use "Schedule" for Calendar reminders (use Calendar `Reminder`).
+Per-Dashboard cron delivery configuration (`{ recipients, format: export|pdf|url, subject? }`). `create`/`resume` register pg-boss cron on `workspace.delivery_schedule.<id>`; module's handler publishes `workspace.delivery_due` (full schedule + dashboard payload) + **host renders/delivers**. `markRun` records completion. Distinct from dms's module-level cron jobs (expiry scan, auto-purge). **Harmonized:** Workspace `DeliverySchedule` is canonical; never use "Schedule" for Calendar reminders (use Calendar `Reminder`).
 _Avoid_: Schedule (bare — use `DeliverySchedule`), Recurring Delivery, Notification Job
 
 **Pin (workspace)**:
@@ -623,7 +623,7 @@ Read-only view produced by Management Plane over control-plane DB. Four categori
 _Avoid_: Dashboard, Analytics, Metric
 
 **Provisioning**:
-Workflow that creates a new Tenant end-to-end, run by Management Plane module via `Workflow.name("tenant.onboard")`. Steps: (1) create better-auth Organization (the Tenant) via `ctx.auth.service.api.createOrganization()`, (2) call `dbUnit.provisionTenant(tenantId, dbOptions)` — in isolated mode issues `CREATE DATABASE` against Postgres server via admin connection, runs `pushSchema()` against new tenant DB w/ all platform + module schemas, returns connection params; in shared mode no-op, (3) seed aspen-os Organization profile row in new tenant DB via `dbUnit.seedTenantDb()` (isolated only), (4) record connection params + status in control-plane `tenant` table, (5) write audit entry via `ctx.audit.write(...)`, (6) publish `tenant:provisioned` event. Sets Tenant status to `onboarding`. Exposed via `p.management.tenants.onboard()`. Note: `ManagementPlaneConfig` currently `undefined` — provisioning workflow expects richer config (`tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`) but type not defined yet. Known WIP gap.
+Workflow that creates a new Tenant end-to-end, run by Management Plane module via `Workflow.name("tenant.onboard")`. Steps: (1) create better-auth Organization (the Tenant) via `ctx.auth.service.api.createOrganization()`, (2) call `dbUnit.provisionTenant(tenantId, dbOptions)` — in isolated mode issues `CREATE DATABASE` against Postgres server via admin connection, runs `pushSchema()` against new tenant DB w/ all platform + module schemas, returns connection params; in shared mode no-op, (3) seed aspen-os Organization profile row in new tenant DB via `dbUnit.seedTenantDb()` (isolated only), (4) record connection params + status in control-plane `tenant` table, (5) write audit entry via `ctx.audit.write(...)`, (6) publish `tenant.provisioned` event. Sets Tenant status to `onboarding`. Exposed via `p.management.tenants.onboard()`. Note: `ManagementPlaneConfig` currently `undefined` — provisioning workflow expects richer config (`tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`) but type not defined yet. Known WIP gap.
 _Avoid_: Onboarding (that's the Tenant Status stage AFTER provisioning), Setup, Initialization
 
 ## Context Relationships
@@ -696,7 +696,7 @@ Implemented: Workspace module — dependency-free personal-workspace surface:
   `runtime.ts` — never touches other modules' tables), dashboards (widgets +
   jsonb grid layout, duplicate/export/import), declarative widgets (metric/
   breakdown/list/embed w/ date ranges + refresh metadata), event-driven
-  schedules (per-schedule pg-boss crons → `workspace:delivery_due`, host
+  schedules (per-schedule pg-boss crons → `workspace.delivery_due`, host
   delivers), user-scoped utilities (pins, recent, quick search, settings,
   watches). Access = first-class user-set enum — `personal` (owner-only) /
   `global` (org-wide). 8 `workspace_*` tables, all tenant schemas, 4 pgEnums,
@@ -706,12 +706,12 @@ Implemented: Comms module — notification/inbox + out-of-band delivery on a
   three-layer model: channel (sender `from` endpoint, tenant BYOC or host
   provider ref, credentials only in kvStore), notification (persisted intent
   + in-app inbox row), message (delivery outbox, `queued → sending → sent →
-  delivered/failed`, swept by `comms:message-sweeper` cron). Runtime-wired
+  delivered/failed`, swept by `comms.message-sweeper` cron). Runtime-wired
   (`db, kvStore, pubsub, auth`); `$prepareRuntime()` registers sweeper + 8
-  event-bridge subscriptions (`compliance:document_expiring`/`document_due`,
-  `calendar:reminder_due`, `dms:file_expired`, `announcement:published`,
-  `management:tenant_provisioned`/`tenant_activated`,
-  `auth:email_otp_requested` — OTP never persisted, delivered inline via
+  event-bridge subscriptions (`compliance.document_expiring`/`document_due`,
+  `calendar.reminder_due`, `dms.file_expired`, `announcement.published`,
+  `management.tenant_provisioned`/`tenant_activated`,
+  `auth.email_otp_requested` — OTP never persisted, delivered inline via
   `rest.otp`). 1 control-plane table (`comms_provider`) + 6 tenant tables,
   21 events, 7 ACL resources. No module deps.
 
@@ -731,9 +731,9 @@ Stubs (package.json only — no source): crm, fleet, inventory, reports
 9. **ADR-0009 accepted for Layer 1** — `AuditUnit` + `audit_log` table described in ADR-0009's Layer 1 built + shipped; ADR status now "Accepted (Layer 1)". Layer 2 (trigger-based blind-write capture, ADR-0010) remains proposed/unimplemented.
 10. **`audit_log.id` now conforms** — previously `uuid()` + `$defaultFn(() => uuidv7())` (the sole native uuid column); now uses `uuidv7().primaryKey()` (text), matching every other table.
 11. **HR module fully conformant** — `Hr implements Module`, has `$prepareRuntime()`, follows one-file-per-action workflow layout. (Earlier docs marked HR "partial/not conformant"; no longer the case.)
-12. **Masters extraction (`.working-docs/sow/masters.md`) complete** — `@aspen-os/masters` owns contacts, addresses, bank accounts, integration connections, + notes as polymorphic tenant master data; organization module holds only `organization` + `branch`, depends on `masters`. `connection` redesigned from business-relationship model to integration connections (credentials in platform `kvStore`, referenced by `credentialRef`). Host deployments must run §9 migration: `DROP TABLE` `address`, `bank_account`, `connection`, `connection_contact`, `connection_note` (after mapping data to masters) + remove old `organization:connection_created` compliance subscription.
+12. **Masters extraction (`.working-docs/sow/masters.md`) complete** — `@aspen-os/masters` owns contacts, addresses, bank accounts, integration connections, + notes as polymorphic tenant master data; organization module holds only `organization` + `branch`, depends on `masters`. `connection` redesigned from business-relationship model to integration connections (credentials in platform `kvStore`, referenced by `credentialRef`). Host deployments must run §9 migration: `DROP TABLE` `address`, `bank_account`, `connection`, `connection_contact`, `connection_note` (after mapping data to masters) + remove old `organization.connection_created` compliance subscription.
 13. **Masters Phase 2 (`.working-docs/sow/masters-phase-2.md`) complete** — `@aspen-os/masters` also owns `master_entity`, `master_unit_of_measure`, `master_payment_method` (8 tables, 8 workflow groups, 31 events, 8 ACL resources at Phase 2 completion). `entity` = `master_entity_type` owner value; `unitOfMeasure` tenant-wide reference data (one base unit per category); `paymentMethod` owner-scoped w/ masked-only card data + primary per `(entityType, entityId, direction)`. All Phase 2 additions additive — Phase 1 surface unchanged. (After notes module removed `master_note` + `filterViews`/`settings` were added, masters now at 8 tables / 8 groups / 27 events / 8 ACL resources — see gap 15.)
-14. **Workspace module (`.working-docs/sow/workspace.md`) implemented** — `@aspen-os/workspace` provides drafts, filter views, dashboards, widgets, schedules, utilities (8 tenant tables, 4 pgEnums, 28 events, 9 ACL resources). Host apps must register view resolvers (`registerViewResolver`) for every domain they serve + subscribe to `workspace:delivery_due` / `workspace:draft_published` — both silently dropped by pg-boss when unsubscribed (health check flags them). `context.actorId` (gap 8) feeds module's access scoping: `create` falls back to explicit `ownerId`/`userId` input when context actor unset.
+14. **Workspace module (`.working-docs/sow/workspace.md`) implemented** — `@aspen-os/workspace` provides drafts, filter views, dashboards, widgets, schedules, utilities (8 tenant tables, 4 pgEnums, 28 events, 9 ACL resources). Host apps must register view resolvers (`registerViewResolver`) for every domain they serve + subscribe to `workspace.delivery_due` / `workspace.draft_published` — both silently dropped by pg-boss when unsubscribed (health check flags them). `context.actorId` (gap 8) feeds module's access scoping: `create` falls back to explicit `ownerId`/`userId` input when context actor unset.
 15. **Notes module (`.working-docs/sow/notes.md`) implemented** — `@aspen-os/notes` owns first-class `note` entity (`personal`/`global` access, optional `(scopeType, scopeId)` scope, `NOTE_TYPE`, tags; 1 tenant table, 3 events, 1 ACL resource). Note concept removed from `@aspen-os/masters` (`master_note`, `p.masters.notes`, `masters:note_added`/`note_removed`, `note` ACL resource, note schemas) — masters now at 8 tables / 8 groups / 27 events / 8 ACL resources (`filterViews` + `settings` added after the removal). Host deployments must migrate `master_note` rows to `note` (map `entityType → scopeType = masters:<entityType>`, `entityId → scopeId`, `content → body`, `userId → ownerId`) + `DROP TABLE master_note` afterward; `pushSchema` never drops it.
 
 ## Anti-Patterns

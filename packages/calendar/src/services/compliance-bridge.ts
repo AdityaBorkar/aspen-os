@@ -176,24 +176,24 @@ export async function registerComplianceBridge(
     });
   }
 
-  await subscribe("compliance:document_expiring", ComplianceDocumentFactSchema, (data) =>
+  await subscribe("compliance.document_expiring", ComplianceDocumentFactSchema, (data) =>
     handleDocumentFact(data, deps),
   );
-  await subscribe("compliance:document_due", ComplianceDocumentFactSchema, (data) =>
+  await subscribe("compliance.document_due", ComplianceDocumentFactSchema, (data) =>
     handleDocumentFact(data, deps),
   );
-  await subscribe("compliance:document_archived", ComplianceDocumentArchivedSchema, (data) =>
+  await subscribe("compliance.document_archived", ComplianceDocumentArchivedSchema, (data) =>
     handleDocumentArchived(data, deps),
   );
-  await subscribe("compliance:document_deleted", ComplianceDocumentDeletedSchema, (data) =>
+  await subscribe("compliance.document_deleted", ComplianceDocumentDeletedSchema, (data) =>
     handleDocumentArchived(data, deps),
   );
 
   return [
-    "compliance:document_expiring",
-    "compliance:document_due",
-    "compliance:document_archived",
-    "compliance:document_deleted",
+    "compliance.document_expiring",
+    "compliance.document_due",
+    "compliance.document_archived",
+    "compliance.document_deleted",
   ];
 }
 

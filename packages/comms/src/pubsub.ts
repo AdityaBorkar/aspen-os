@@ -8,45 +8,45 @@ import type {
 import type { JsonValue } from "@aspen-os/platform/server";
 
 export const CHANNEL_EVENTS = {
-  CREATED: "comms:channel_created",
-  CREDENTIAL_ROTATED: "comms:channel_credential_rotated",
-  DEFAULT_CHANGED: "comms:channel_default_changed",
-  STATUS_CHANGED: "comms:channel_status_changed",
-  TESTED: "comms:channel_tested",
-  UPDATED: "comms:channel_updated",
+  CREATED: "comms.channel_created",
+  CREDENTIAL_ROTATED: "comms.channel_credential_rotated",
+  DEFAULT_CHANGED: "comms.channel_default_changed",
+  STATUS_CHANGED: "comms.channel_status_changed",
+  TESTED: "comms.channel_tested",
+  UPDATED: "comms.channel_updated",
 } as const;
 
 export const PROVIDER_EVENTS = {
-  CREATED: "comms:provider_created",
-  STATUS_CHANGED: "comms:provider_status_changed",
+  CREATED: "comms.provider_created",
+  STATUS_CHANGED: "comms.provider_status_changed",
 } as const;
 
 export const NOTIFICATION_EVENTS = {
-  CREATED: "comms:notification_created",
-  DISMISSED: "comms:notification_dismissed",
-  READ: "comms:notification_read",
+  CREATED: "comms.notification_created",
+  DISMISSED: "comms.notification_dismissed",
+  READ: "comms.notification_read",
 } as const;
 
 export const MESSAGE_EVENTS = {
-  DELIVERED: "comms:message_delivered",
-  FAILED: "comms:message_failed",
-  QUEUED: "comms:message_queued",
-  SENT: "comms:message_sent",
+  DELIVERED: "comms.message_delivered",
+  FAILED: "comms.message_failed",
+  QUEUED: "comms.message_queued",
+  SENT: "comms.message_sent",
 } as const;
 
 export const PREFERENCE_EVENTS = {
-  UPDATED: "comms:preference_updated",
+  UPDATED: "comms.preference_updated",
 } as const;
 
 export const TEMPLATE_EVENTS = {
-  ACTIVATED: "comms:template_activated",
-  CREATED: "comms:template_created",
-  DEACTIVATED: "comms:template_deactivated",
-  UPDATED: "comms:template_updated",
+  ACTIVATED: "comms.template_activated",
+  CREATED: "comms.template_created",
+  DEACTIVATED: "comms.template_deactivated",
+  UPDATED: "comms.template_updated",
 } as const;
 
 export const SETTING_EVENTS = {
-  UPDATED: "comms:settings_updated",
+  UPDATED: "comms.settings_updated",
 } as const;
 
 export const events = {

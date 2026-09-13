@@ -84,7 +84,7 @@ function parseDate(value: JsonValue): string | null {
 
 function labelExistsSql(label: string, negated: boolean, joinLabel: boolean): SQL {
   // Label names resolve via the DMS-local `dms_label_cache` projection,
-  // synced from `masters:label_*` events by the label bridge. DMS never
+  // synced from `masters.label_*` events by the label bridge. DMS never
   // joins the masters-owned `master_label` table directly.
   if (joinLabel) {
     if (negated) {

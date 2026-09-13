@@ -10,43 +10,43 @@ The Compliance module defines 23 domain events (17 document + 4 obligation + 2 s
 
 | Event                                     | Payload                                                                      | Trigger                      |
 | ----------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------- |
-| `compliance:document_created`             | `{ document: { category, id, name } }`                                       | `documents.create`           |
-| `compliance:document_updated`             | `{ document: { id, name }, changes }`                                        | `documents.update`           |
-| `compliance:document_submitted`           | `{ documentId, submittedBy }`                                                | `documents.submit`           |
-| `compliance:document_verified`            | `{ category, documentId, sourceEntityId, sourceModule, verifiedBy }`         | `documents.verify`           |
-| `compliance:document_rejected`            | `{ category, documentId, reason, rejectedBy, sourceEntityId, sourceModule }` | `documents.reject`           |
-| `compliance:document_completed`           | `{ completedAt, documentId, referenceNumber, sourceEntityId, sourceModule }` | `documents.complete`         |
-| `compliance:document_archived`            | `{ documentId }`                                                             | `documents.archive`          |
-| `compliance:document_renewed`             | `{ newDocumentId, oldDocumentId }`                                           | `documents.renew`            |
-| `compliance:document_reviewer_assigned`   | `{ documentId, reviewerId }`                                                 | `documents.assignReviewer`   |
-| `compliance:document_attachment_uploaded` | `{ documentId, storageKey }`                                                 | `documents.uploadAttachment` |
-| `compliance:document_snoozed`             | `{ documentId, snoozedBy, snoozedUntil }`                                    | `documents.snooze`           |
-| `compliance:document_generated`           | `{ documentId, obligationId, sourceModule }`                                 | obligation generator         |
+| `compliance.document_created`             | `{ document: { category, id, name } }`                                       | `documents.create`           |
+| `compliance.document_updated`             | `{ document: { id, name }, changes }`                                        | `documents.update`           |
+| `compliance.document_submitted`           | `{ documentId, submittedBy }`                                                | `documents.submit`           |
+| `compliance.document_verified`            | `{ category, documentId, sourceEntityId, sourceModule, verifiedBy }`         | `documents.verify`           |
+| `compliance.document_rejected`            | `{ category, documentId, reason, rejectedBy, sourceEntityId, sourceModule }` | `documents.reject`           |
+| `compliance.document_completed`           | `{ completedAt, documentId, referenceNumber, sourceEntityId, sourceModule }` | `documents.complete`         |
+| `compliance.document_archived`            | `{ documentId }`                                                             | `documents.archive`          |
+| `compliance.document_renewed`             | `{ newDocumentId, oldDocumentId }`                                           | `documents.renew`            |
+| `compliance.document_reviewer_assigned`   | `{ documentId, reviewerId }`                                                 | `documents.assignReviewer`   |
+| `compliance.document_attachment_uploaded` | `{ documentId, storageKey }`                                                 | `documents.uploadAttachment` |
+| `compliance.document_snoozed`             | `{ documentId, snoozedBy, snoozedUntil }`                                    | `documents.snooze`           |
+| `compliance.document_generated`           | `{ documentId, obligationId, sourceModule }`                                 | obligation generator         |
 
 ## Expiry & Reminder
 
 | Event                           | Payload                                                                            | Trigger                                                  |
 | ------------------------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| `compliance:document_expiring`  | `{ documentId, daysUntilExpiry?, dueDate?, expiryDate?, assignedTo?, recipient? }` | `documents.*` publishing expiring fact (calendar bridge) |
-| `compliance:document_due`       | `{ documentId, daysUntilDue?, dueDate?, expiryDate?, assignedTo?, recipient? }`    | `documents.*` publishing due fact                        |
-| `compliance:document_expired`   | `{ category, documentId, sourceEntityId, sourceModule }`                           | status transition                                        |
-| `compliance:document_overdue`   | `{ category, daysOverdue, documentId, sourceEntityId, sourceModule }`              | status transition                                        |
-| `compliance:document_escalated` | `{ daysSinceExpiry, documentId, escalationLevel }`                                 | escalation                                               |
+| `compliance.document_expiring`  | `{ documentId, daysUntilExpiry?, dueDate?, expiryDate?, assignedTo?, recipient? }` | `documents.*` publishing expiring fact (calendar bridge) |
+| `compliance.document_due`       | `{ documentId, daysUntilDue?, dueDate?, expiryDate?, assignedTo?, recipient? }`    | `documents.*` publishing due fact                        |
+| `compliance.document_expired`   | `{ category, documentId, sourceEntityId, sourceModule }`                           | status transition                                        |
+| `compliance.document_overdue`   | `{ category, daysOverdue, documentId, sourceEntityId, sourceModule }`              | status transition                                        |
+| `compliance.document_escalated` | `{ daysSinceExpiry, documentId, escalationLevel }`                                 | escalation                                               |
 
 ## Obligation
 
 | Event                               | Payload                                  | Trigger                  |
 | ----------------------------------- | ---------------------------------------- | ------------------------ |
-| `compliance:obligation_created`     | `{ obligation: { category, id, name } }` | `obligations.create`     |
-| `compliance:obligation_activated`   | `{ obligationId }`                       | `obligations.activate`   |
-| `compliance:obligation_deactivated` | `{ obligationId }`                       | `obligations.deactivate` |
-| `compliance:obligation_updated`     | `{ obligation: { id, name }, changes }`  | `obligations.update`     |
+| `compliance.obligation_created`     | `{ obligation: { category, id, name } }` | `obligations.create`     |
+| `compliance.obligation_activated`   | `{ obligationId }`                       | `obligations.activate`   |
+| `compliance.obligation_deactivated` | `{ obligationId }`                       | `obligations.deactivate` |
+| `compliance.obligation_updated`     | `{ obligation: { id, name }, changes }`  | `obligations.update`     |
 
 ## System
 
 | Event                               | Payload                                                                                                   | Trigger        |
 | ----------------------------------- | --------------------------------------------------------------------------------------------------------- | -------------- |
-| `compliance:weekly_summary`         | `{ summary: { total, verified, expired, expiringSoon, overdue, activeObligations, documentsGenerated } }` | weekly summary |
-| `compliance:scheduled_job_executed` | `{ jobName, executionTime, recordsProcessed, errors }`                                                    | job completion |
+| `compliance.weekly_summary`         | `{ summary: { total, verified, expired, expiringSoon, overdue, activeObligations, documentsGenerated } }` | weekly summary |
+| `compliance.scheduled_job_executed` | `{ jobName, executionTime, recordsProcessed, errors }`                                                    | job completion |
 
 `DOCUMENT_EVENTS`, `OBLIGATION_EVENTS`, `SYSTEM_EVENTS` mirror `COMPLIANCE_EVENTS` subsets; `ComplianceEventMap` is `DocumentEventMap & ObligationEventMap & SystemEventMap`.

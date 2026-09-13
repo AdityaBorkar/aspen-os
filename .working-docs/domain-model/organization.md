@@ -46,8 +46,8 @@
 
 | Event            | Payload                                | Trigger        |
 | ---------------- | -------------------------------------- | -------------- |
-| `branch:created` | `{ branch: { code, id, name, type } }` | Branch created |
-| `branch:updated` | `{ branch: { id, name }, changes }`    | Branch updated |
+| `branch.created` | `{ branch: { code, id, name, type } }` | Branch created |
+| `branch.updated` | `{ branch: { id, name }, changes }`    | Branch updated |
 
 ## Command-Query Separation
 

@@ -59,8 +59,8 @@ flowchart TB
 
 ```mermaid
 flowchart LR
-  host["Host App"] -- "workspace:draft_published<br/>workspace:delivery_due" --> WS
-  WS -- "pg-boss cron workspace:delivery_schedule:<id>" --> host
+  host["Host App"] -- "workspace.draft_published<br/>workspace.delivery_due" --> WS
+  WS -- "pg-boss cron workspace.delivery_schedule.<id>" --> host
 ```
 
 Filter views are workspace-owned (`workspace_filter_view`), not Masters; widgets reference a view via `viewId` or inline `filter`.
@@ -73,7 +73,7 @@ Filter views are workspace-owned (`workspace_filter_view`), not Masters; widgets
 
 ### Schedules
 
-Table `workspace_delivery_schedule`. Topic `workspace:delivery_due`.
+Table `workspace_delivery_schedule`. Topic `workspace.delivery_due`.
 
 ## Relationships
 

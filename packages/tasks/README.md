@@ -2,7 +2,7 @@
 
 A domain module for the Aspen OS framework providing project/task management: projects, tasks with sub-tasks and multi-assignees, status workflows with transition rules, typed task links (dependency DAGs), time tracking, comments, attachments, automation rules, and collaboration (watchers, activity log). Saved views live in `@aspen-os/masters` (`p.masters.filterViews`, `domain: "tasks:task"`).
 
-> **Task reminders live in `@aspen-os/calendar`** — they are `calendar_reminder` rows with `targetType = task`, materialized by the calendar task bridge from `task:due_date_changed`. This module no longer owns any reminder surface.
+> **Task reminders live in `@aspen-os/calendar`** — they are `calendar_reminder` rows with `targetType = task`, materialized by the calendar task bridge from `task.due_date_changed`. This module no longer owns any reminder surface.
 
 ## Module
 
@@ -16,7 +16,7 @@ const tasks = Tasks.create({
 
 | Config                | Type      | Default | Notes                                                            |
 | --------------------- | --------- | ------- | ---------------------------------------------------------------- |
-| `enableNotifications` | `boolean` | `false` | Configures `task:*` event publishing via the notification bridge |
+| `enableNotifications` | `boolean` | `false` | Configures `task.*` event publishing via the notification bridge |
 
 - `$name = "tasks"`, `$dependencies = []` — stateless (`$initialize`/`$prepareRuntime`/`$cleanup` empty)
 - 9 workflow groups: `tasks`, `projects`, `comments`, `links`, `timeEntries`, `statuses`, `taskTypes`, `automations`, `collaboration`
@@ -48,24 +48,24 @@ p.tasks.collaboration  { addAttachment, addWatcher, deleteAttachment, getActivit
 
 | Event                   | Payload                                               | Trigger                       |
 | ----------------------- | ----------------------------------------------------- | ----------------------------- |
-| `task:created`          | `{ task: { id, number, projectId, title }, dueDate }` | Task created                  |
-| `task:updated`          | `{ task: { id, title }, changes }`                    | Task updated                  |
-| `task:deleted`          | `{ taskId }`                                          | Task deleted                  |
-| `task:status_changed`   | `{ task: { id, title }, fromStatus, toStatus }`       | Status changed                |
-| `task:assigned`         | `{ taskId, userId, assignedBy }`                      | User assigned                 |
-| `task:unassigned`       | `{ taskId, userId }`                                  | User unassigned               |
-| `task:linked`           | `{ sourceId, targetId, linkType }`                    | Task link created             |
-| `task:unlinked`         | `{ sourceId, targetId }`                              | Task link removed             |
-| `task:commented`        | `{ taskId, comment: { id, body } }`                   | Comment added                 |
-| `task:due_date_changed` | `{ taskId, dueDate, userIds }`                        | Task due date changed/cleared |
+| `task.created`          | `{ task: { id, number, projectId, title }, dueDate }` | Task created                  |
+| `task.updated`          | `{ task: { id, title }, changes }`                    | Task updated                  |
+| `task.deleted`          | `{ taskId }`                                          | Task deleted                  |
+| `task.status_changed`   | `{ task: { id, title }, fromStatus, toStatus }`       | Status changed                |
+| `task.assigned`         | `{ taskId, userId, assignedBy }`                      | User assigned                 |
+| `task.unassigned`       | `{ taskId, userId }`                                  | User unassigned               |
+| `task.linked`           | `{ sourceId, targetId, linkType }`                    | Task link created             |
+| `task.unlinked`         | `{ sourceId, targetId }`                              | Task link removed             |
+| `task.commented`        | `{ taskId, comment: { id, body } }`                   | Comment added                 |
+| `task.due_date_changed` | `{ taskId, dueDate, userIds }`                        | Task due date changed/cleared |
 
-`task:due_date_changed` (`userIds` = assignees ∪ reporter) is consumed by the `@aspen-os/calendar` task bridge to materialize/cancel task reminders.
+`task.due_date_changed` (`userIds` = assignees ∪ reporter) is consumed by the `@aspen-os/calendar` task bridge to materialize/cancel task reminders.
 
 ## Services
 
 | Service              | File                              | Purpose                                                                                               |
 | -------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `NotificationBridge` | `services/notification-bridge.ts` | `task:*` event publishers, wired into the create/update/delete/assign/unassign/comment/link workflows |
+| `NotificationBridge` | `services/notification-bridge.ts` | `task.*` event publishers, wired into the create/update/delete/assign/unassign/comment/link workflows |
 | `FilterEngine`       | `services/filter-engine.ts`       | Query builder for saved views and ad-hoc filters                                                      |
 | `ReportService`      | `services/report-service.ts`      | Reporting queries (task summary, workload, velocity, burndown, time)                                  |
 | `DependencyGraph`    | `services/dependency-graph.ts`    | DAG operations: cycle detection, topological sort, critical path analysis                             |
@@ -73,7 +73,7 @@ p.tasks.collaboration  { addAttachment, addWatcher, deleteAttachment, getActivit
 ## Cross-context
 
 - Compliance's EventBridge subscribes to other modules' events; Tasks is a source of work, not a consumer.
-- The `@aspen-os/calendar` task bridge consumes `task:due_date_changed`, `task:deleted`, and `task:status_changed` to materialize/cancel task reminders. Both modules stay `$dependencies = []`.
+- The `@aspen-os/calendar` task bridge consumes `task.due_date_changed`, `task.deleted`, and `task.status_changed` to materialize/cancel task reminders. Both modules stay `$dependencies = []`.
 
 ## Documentation
 

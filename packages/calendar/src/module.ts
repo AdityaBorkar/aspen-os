@@ -44,13 +44,13 @@ export class Calendar implements Module {
    * `tasksEnabled: false` / `complianceEnabled: false` to skip.
    */
   readonly $consumes: readonly string[] = [
-    "task:due_date_changed",
-    "task:deleted",
-    "task:status_changed",
-    "compliance:document_expiring",
-    "compliance:document_due",
-    "compliance:document_archived",
-    "compliance:document_deleted",
+    "task.due_date_changed",
+    "task.deleted",
+    "task.status_changed",
+    "compliance.document_expiring",
+    "compliance.document_due",
+    "compliance.document_archived",
+    "compliance.document_deleted",
   ];
   readonly $config: Required<CalendarModuleConfig>;
 

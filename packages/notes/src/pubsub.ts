@@ -4,9 +4,9 @@ import type { NoteType } from "@aspen-os/constants";
 import type { JsonValue } from "@aspen-os/platform/server";
 
 export const NOTE_EVENTS = {
-  CREATED: "notes:note_created",
-  DELETED: "notes:note_deleted",
-  UPDATED: "notes:note_updated",
+  CREATED: "notes.note_created",
+  DELETED: "notes.note_deleted",
+  UPDATED: "notes.note_updated",
 } as const;
 
 export const events = {

@@ -186,8 +186,8 @@ export type MyEntityFilters = InferOutput<typeof MyEntityFiltersSchema>;
 
 ```ts title="src/pubsub.ts"
 export const MY_ENTITY_EVENTS = {
-  CREATED: "my-module:entity_created",
-  UPDATED: "my-module:entity_updated",
+  CREATED: "my-module.entity_created",
+  UPDATED: "my-module.entity_updated",
 } as const;
 
 export const events = {
@@ -269,7 +269,7 @@ export const createMyEntity = Workflow.name("my-entity.create")
     if (!result) throw new Error("Failed to create my entity.");
 
     await ctx.audit.write({
-      action: "my-entity:created",
+      action: "my-entity.created",
       crudAction: "create",
       entityId: result.id,
       entityType: "myEntity",
@@ -401,4 +401,4 @@ await p.run("$global", async () => {
 | `$prepareRuntime()`                   | Registers pubsub handlers/schedules                                                                                                                    |
 | `$cleanup()` nulls fields             | Unregisters handlers and nulls private fields                                                                                                          |
 | Valibot for validation                | Domain module input validation                                                                                                                         |
-| Events as `"domain:event_name"`       | Typed via `EventMap`, published as plain strings                                                                                                       |
+| Events as `"domain.event_name"`       | Typed via `EventMap`, published as plain strings                                                                                                       |

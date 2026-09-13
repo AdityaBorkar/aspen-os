@@ -78,7 +78,7 @@
 
 **Invariants**: `type` is a `CONTACT_TYPE` value (defaults to `other`); primary contact is unique per `(entityType, entityId)`. Contacts may be owner-scoped (`entityType` + `entityId`) or global (both null — the DMS address-book entries). `name` may be omitted when both `firstName` and `lastName` are given (derived). DMS mapping: `companyName` → `company`, `designation` → `title`. Removed contacts stay as soft-deleted rows (`isRemoved`, `deletionReason`, `removedAt`) hidden from `list` by default.
 
-**Lifecycle commands**: `create(input)`, `update(id, patch)`, `delete(id)` (hard), `remove(id, { reason })` (soft, revokes DMS shares via `masters:contact_removed`), `setPrimary(id)`, `list(entityType?, entityId?, filters?)`.
+**Lifecycle commands**: `create(input)`, `update(id, patch)`, `delete(id)` (hard), `remove(id, { reason })` (soft, revokes DMS shares via `masters.contact_removed`), `setPrimary(id)`, `list(entityType?, entityId?, filters?)`.
 
 ### Address (Aggregate Root)
 
@@ -182,34 +182,34 @@
 
 | Event                                                | Payload                                                                | Trigger                                                 |
 | ---------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------- |
-| `masters:contact_created`                            | `{ contact: { id, name, type }, entityType }`                          | Contact created                                         |
-| `masters:contact_updated`                            | `{ contact: { id, name }, changes, entityType }`                       | Contact updated                                         |
-| `masters:contact_removed`                            | `{ contactId, entityId, entityType, reason }`                          | Contact soft-removed (`remove`); DMS revokes its shares |
-| `masters:address_created`                            | `{ address: { id, country, label }, entityId, entityType }`            | Address created                                         |
-| `masters:address_updated`                            | `{ address: { id }, changes, entityId, entityType }`                   | Address updated                                         |
-| `masters:address_removed`                            | `{ addressId, entityId, entityType }`                                  | Address removed                                         |
+| `masters.contact_created`                            | `{ contact: { id, name, type }, entityType }`                          | Contact created                                         |
+| `masters.contact_updated`                            | `{ contact: { id, name }, changes, entityType }`                       | Contact updated                                         |
+| `masters.contact_removed`                            | `{ contactId, entityId, entityType, reason }`                          | Contact soft-removed (`remove`); DMS revokes its shares |
+| `masters.address_created`                            | `{ address: { id, country, label }, entityId, entityType }`            | Address created                                         |
+| `masters.address_updated`                            | `{ address: { id }, changes, entityId, entityType }`                   | Address updated                                         |
+| `masters.address_removed`                            | `{ addressId, entityId, entityType }`                                  | Address removed                                         |
 | `masters:bank_account_created`                       | `{ bankAccount: { id, bankName, currency }, entityId, entityType }`    | Bank account created                                    |
 | `masters:bank_account_updated`                       | `{ bankAccount: { id }, changes, entityId, entityType }`               | Bank account updated                                    |
-| `masters:bank_account_activated`                     | `{ bankAccountId }`                                                    | Bank account activated                                  |
-| `masters:bank_account_deactivated`                   | `{ bankAccountId }`                                                    | Bank account deactivated                                |
-| `masters:connection_created`                         | `{ connection: { id, name, type }, entityId, entityType }`             | Connection created                                      |
-| `masters:connection_updated`                         | `{ connection: { id, name }, changes, entityId, entityType }`          | Connection updated                                      |
-| `masters:connection_status_changed`                  | `{ connectionId, fromStatus, toStatus }`                               | Connection status changed                               |
-| `masters:connection_credential_rotated`              | `{ connectionId }`                                                     | Connection credential rotated                           |
-| `masters:connection_removed`                         | `{ connectionId, entityId, entityType }`                               | Connection removed                                      |
-| `masters:entity_created` / `_removed`                | `{ entity: { id, name, type } }`                                       | Entity created / removed                                |
-| `masters:entity_updated`                             | `{ entity: { id, name, type }, changes }`                              | Entity updated                                          |
-| `masters:unit_of_measure_created` / `_removed`       | `{ unitOfMeasure: { id, code, category } }`                            | UOM created / removed                                   |
-| `masters:unit_of_measure_updated`                    | `{ unitOfMeasure: { id, code, category }, changes }`                   | UOM updated                                             |
-| `masters:unit_of_measure_activated` / `_deactivated` | `{ unitOfMeasureId }`                                                  | UOM activated / deactivated                             |
-| `masters:payment_method_created` / `_removed`        | `{ paymentMethod: { id, name, type }, entityType, entityId }`          | Payment method created / removed                        |
-| `masters:payment_method_updated`                     | `{ paymentMethod: { id, name, type }, entityType, entityId, changes }` | Payment method updated                                  |
-| `masters:payment_method_activated` / `_deactivated`  | `{ paymentMethodId, entityType, entityId }`                            | Payment method activated / deactivated                  |
-| `masters:payment_method_primary_set`                 | `{ paymentMethodId, entityType, entityId, direction }`                 | Payment method primary set                              |
-| `masters:filter_view_created`                        | `{ filterViewId, access, domain, ownerId }`                            | Filter view created                                     |
-| `masters:filter_view_updated`                        | `{ filterViewId }`                                                     | Filter view updated / default set                       |
-| `masters:filter_view_duplicated`                     | `{ filterViewId, duplicateId }`                                        | Filter view duplicated                                  |
-| `masters:filter_view_deleted`                        | `{ filterViewId }`                                                     | Filter view deleted                                     |
+| `masters.bank_account_activated`                     | `{ bankAccountId }`                                                    | Bank account activated                                  |
+| `masters.bank_account_deactivated`                   | `{ bankAccountId }`                                                    | Bank account deactivated                                |
+| `masters.connection_created`                         | `{ connection: { id, name, type }, entityId, entityType }`             | Connection created                                      |
+| `masters.connection_updated`                         | `{ connection: { id, name }, changes, entityId, entityType }`          | Connection updated                                      |
+| `masters.connection_status_changed`                  | `{ connectionId, fromStatus, toStatus }`                               | Connection status changed                               |
+| `masters.connection_credential_rotated`              | `{ connectionId }`                                                     | Connection credential rotated                           |
+| `masters.connection_removed`                         | `{ connectionId, entityId, entityType }`                               | Connection removed                                      |
+| `masters.entity_created` / `_removed`                | `{ entity: { id, name, type } }`                                       | Entity created / removed                                |
+| `masters.entity_updated`                             | `{ entity: { id, name, type }, changes }`                              | Entity updated                                          |
+| `masters.unit_of_measure_created` / `_removed`       | `{ unitOfMeasure: { id, code, category } }`                            | UOM created / removed                                   |
+| `masters.unit_of_measure_updated`                    | `{ unitOfMeasure: { id, code, category }, changes }`                   | UOM updated                                             |
+| `masters.unit_of_measure_activated` / `_deactivated` | `{ unitOfMeasureId }`                                                  | UOM activated / deactivated                             |
+| `masters.payment_method_created` / `_removed`        | `{ paymentMethod: { id, name, type }, entityType, entityId }`          | Payment method created / removed                        |
+| `masters.payment_method_updated`                     | `{ paymentMethod: { id, name, type }, entityType, entityId, changes }` | Payment method updated                                  |
+| `masters.payment_method_activated` / `_deactivated`  | `{ paymentMethodId, entityType, entityId }`                            | Payment method activated / deactivated                  |
+| `masters.payment_method_primary_set`                 | `{ paymentMethodId, entityType, entityId, direction }`                 | Payment method primary set                              |
+| `masters.filter_view_created`                        | `{ filterViewId, access, domain, ownerId }`                            | Filter view created                                     |
+| `masters.filter_view_updated`                        | `{ filterViewId }`                                                     | Filter view updated / default set                       |
+| `masters.filter_view_duplicated`                     | `{ filterViewId, duplicateId }`                                        | Filter view duplicated                                  |
+| `masters.filter_view_deleted`                        | `{ filterViewId }`                                                     | Filter view deleted                                     |
 
 ## Command-Query Separation
 
@@ -262,6 +262,6 @@
 5. **Entity status transitions** — `active` ↔ `inactive`, and both → `archived` (terminal).
 6. **UOM base-unit invariant** — exactly one base unit per category; base units have `baseUnitId`/`conversionFactor` null; derived units reference the base of their own category with `conversionFactor > 0`; referenced-as-base units cannot be deleted.
 7. **Payment method type fields** — type-specific required fields validated on create/update; card data is masked-only.
-8. **Contact soft-remove** — `remove` requires a reason, sets `is_removed`/`deletionReason`/`removedAt`, publishes `masters:contact_removed` (DMS revokes contact shares); `delete` is a hard delete.
+8. **Contact soft-remove** — `remove` requires a reason, sets `is_removed`/`deletionReason`/`removedAt`, publishes `masters.contact_removed` (DMS revokes contact shares); `delete` is a hard delete.
 9. **Filter view defaults** — one default per `(ownerId, domain, projectId)`; `projectId` is null outside tasks scoping. Access is user-set (`personal`/`global`); only the owner or a tenant admin may mutate.
 10. **Settings scope is key-prefixed** — `org.*` keys are tenant-wide single rows (`user_id` null, unique per key via nulls-not-distinct); all other keys are unique per `(user_id, key)`. `set` upserts and audit-logs; there are no settings events.

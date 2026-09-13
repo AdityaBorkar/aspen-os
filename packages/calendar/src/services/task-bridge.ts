@@ -105,7 +105,7 @@ async function handleTaskStatusChanged(
   },
   { db }: TaskBridgeDeps,
 ): Promise<void> {
-  // Event-driven seam: terminality travels in the `task:status_changed`
+  // Event-driven seam: terminality travels in the `task.status_changed`
   // event (`isTerminal` / `toStatusCategory`, published by tasks).
   // Calendar never reads the tasks-owned `task_status` table directly.
   if (event.isTerminal !== undefined) {
@@ -145,15 +145,15 @@ export async function registerTaskBridge(
     });
   }
 
-  await subscribe("task:due_date_changed", TaskDueDateChangedEventSchema, (data) =>
+  await subscribe("task.due_date_changed", TaskDueDateChangedEventSchema, (data) =>
     handleDueDateChanged(data, deps),
   );
-  await subscribe("task:deleted", TaskDeletedEventSchema, (data) => handleTaskDeleted(data, deps));
-  await subscribe("task:status_changed", TaskStatusChangedEventSchema, (data) =>
+  await subscribe("task.deleted", TaskDeletedEventSchema, (data) => handleTaskDeleted(data, deps));
+  await subscribe("task.status_changed", TaskStatusChangedEventSchema, (data) =>
     handleTaskStatusChanged(data, deps),
   );
 
-  return ["task:due_date_changed", "task:deleted", "task:status_changed"];
+  return ["task.due_date_changed", "task.deleted", "task.status_changed"];
 }
 
 export async function unregisterTaskBridge(

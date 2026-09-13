@@ -10,16 +10,16 @@ icon: IconBell
 
 | Event                   | Payload                                                                       | Trigger                                |
 | ----------------------- | ----------------------------------------------------------------------------- | -------------------------------------- |
-| `task:created`          | `{ task: { id, number, projectId, title }, dueDate }`                         | Task created                           |
-| `task:updated`          | `{ task: { id, title }, changes }`                                            | Task updated                           |
-| `task:deleted`          | `{ taskId }`                                                                  | Task deleted                           |
-| `task:status_changed`   | `{ task: { id, title }, fromStatus, toStatus, toStatusCategory, isTerminal }` | Status changed                         |
-| `task:assigned`         | `{ taskId, userId, assignedBy }`                                              | User assigned                          |
-| `task:unassigned`       | `{ taskId, userId }`                                                          | User unassigned                        |
-| `task:linked`           | `{ sourceId, targetId, linkType }`                                            | Link created                           |
-| `task:unlinked`         | `{ sourceId, targetId }`                                                      | Link deleted                           |
-| `task:commented`        | `{ taskId, comment: { id, body } }`                                           | Comment added                          |
-| `task:due_date_changed` | `{ taskId, dueDate, userIds }`                                                | Due date set/changed/cleared           |
-| `task:time_logged`      | `{ taskId, timeEntry: { id, duration, userId } }`                             | Reserved — defined but never published |
+| `task.created`          | `{ task: { id, number, projectId, title }, dueDate }`                         | Task created                           |
+| `task.updated`          | `{ task: { id, title }, changes }`                                            | Task updated                           |
+| `task.deleted`          | `{ taskId }`                                                                  | Task deleted                           |
+| `task.status_changed`   | `{ task: { id, title }, fromStatus, toStatus, toStatusCategory, isTerminal }` | Status changed                         |
+| `task.assigned`         | `{ taskId, userId, assignedBy }`                                              | User assigned                          |
+| `task.unassigned`       | `{ taskId, userId }`                                                          | User unassigned                        |
+| `task.linked`           | `{ sourceId, targetId, linkType }`                                            | Link created                           |
+| `task.unlinked`         | `{ sourceId, targetId }`                                                      | Link deleted                           |
+| `task.commented`        | `{ taskId, comment: { id, body } }`                                           | Comment added                          |
+| `task.due_date_changed` | `{ taskId, dueDate, userIds }`                                                | Due date set/changed/cleared           |
+| `task.time_logged`      | `{ taskId, timeEntry: { id, duration, userId } }`                             | Reserved — defined but never published |
 
-`task:due_date_changed` (`userIds` = assignees ∪ reporter) is consumed by `@aspen-os/calendar` to materialize `calendar_reminder` rows (`targetType = task`); `task:deleted` and terminal `task:status_changed` cancel them.
+`task.due_date_changed` (`userIds` = assignees ∪ reporter) is consumed by `@aspen-os/calendar` to materialize `calendar_reminder` rows (`targetType = task`); `task.deleted` and terminal `task.status_changed` cancel them.

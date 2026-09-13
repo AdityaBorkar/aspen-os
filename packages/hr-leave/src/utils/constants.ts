@@ -27,7 +27,7 @@ export const PERMISSION_ACTION = {
 export type PermissionAction = (typeof PERMISSION_ACTION)[keyof typeof PERMISSION_ACTION];
 
 export const SCHEDULED_JOBS = {
-  DAILY_LEAVE_ACCRUAL: "hr:daily-leave-accrual",
+  DAILY_LEAVE_ACCRUAL: "hr.daily-leave-accrual",
 } as const;
 
 export const CRON_SCHEDULES = {

@@ -6,7 +6,7 @@ icon: IconListCheck
 
 Workflow groups via `p.dms`: `files`, `folders`, `classes`, `labels`, `shares`, `trash`, `triage`, `holds`, `settings`, `search`, `activity`, `versions`, `access`, `archive`, `paths`, `storage`.
 
-Scoped workflows require `entityType` + `entityId` where polymorphic (`labels`, `shares`, `access`); create takes Valibot `{ input }`, update takes `{ id, patch }` (or `{ id, input }`). Every mutation writes an audit entry and publishes a `dms:*` event.
+Scoped workflows require `entityType` + `entityId` where polymorphic (`labels`, `shares`, `access`); create takes Valibot `{ input }`, update takes `{ id, patch }` (or `{ id, input }`). Every mutation writes an audit entry and publishes a `dms.*` event.
 
 ## Features
 
@@ -137,7 +137,7 @@ await p.dms.shares.getPublicLink({ id });
 await p.dms.shares.revokePublicLink({ id });
 ```
 
-Only `active` files can be shared. Removing a Masters contact revokes its grants (`masters:contact_removed` bridge).
+Only `active` files can be shared. Removing a Masters contact revokes its grants (`masters.contact_removed` bridge).
 
 ### Trash
 

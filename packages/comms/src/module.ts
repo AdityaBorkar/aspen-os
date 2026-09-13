@@ -41,13 +41,13 @@ export class Comms implements Module {
    * means its bridge handler silently no-ops.
    */
   readonly $consumes: readonly string[] = [
-    "calendar:reminder_due",
-    "dms:file_expired",
-    "announcement:published",
-    "workspace:delivery_due",
-    "management:tenant_provisioned",
-    "management:tenant_activated",
-    "auth:email_otp_requested",
+    "calendar.reminder_due",
+    "dms.file_expired",
+    "announcement.published",
+    "workspace.delivery_due",
+    "management.tenant_provisioned",
+    "management.tenant_activated",
+    "auth.email_otp_requested",
   ];
   readonly $config: CommsModuleConfig;
 

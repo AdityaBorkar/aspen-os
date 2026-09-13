@@ -10,8 +10,8 @@ The Notes module publishes domain events as plain string topics via `PubSub`.
 
 | Event                | Payload                                                                                             | Trigger      |
 | -------------------- | --------------------------------------------------------------------------------------------------- | ------------ |
-| `notes:note_created` | `{ note: { id, ownerId, title, body, type, access, tags, metadata, scopeType, scopeId } }`          | Note created |
-| `notes:note_updated` | `{ note: { id, ownerId, title, body, type, access, tags, metadata, scopeType, scopeId }, changes }` | Note updated |
-| `notes:note_deleted` | `{ note: { id, ownerId, title, body, type, access, tags, metadata, scopeType, scopeId } }`          | Note deleted |
+| `notes.note_created` | `{ note: { id, ownerId, title, body, type, access, tags, metadata, scopeType, scopeId } }`          | Note created |
+| `notes.note_updated` | `{ note: { id, ownerId, title, body, type, access, tags, metadata, scopeType, scopeId }, changes }` | Note updated |
+| `notes.note_deleted` | `{ note: { id, ownerId, title, body, type, access, tags, metadata, scopeType, scopeId } }`          | Note deleted |
 
 `scopeType`/`scopeId` are `null` for unscoped notes. `changes` carries the applied field updates.

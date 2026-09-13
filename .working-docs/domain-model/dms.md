@@ -152,7 +152,7 @@
 **Invariants**:
 
 - `path` must be unique (hierarchical, e.g. `/Projects/2024`); materialized with depth limit `maxNestingDepth` (default 20) and cycle-safe moves
-- `isTrashed` is a soft-delete flag; trashed folders are purged after `trashRetentionDays` (default 30) via the `dms:auto-purge` cron
+- `isTrashed` is a soft-delete flag; trashed folders are purged after `trashRetentionDays` (default 30) via the `dms.auto-purge` cron
 - Name uniqueness within parent (case-insensitive)
 
 **Lifecycle commands** (via `p.dms.folders`, `p.dms.paths`): `create(input)`, `rename(id, { name })`, `move(id, folderId)`, `update(id, patch)`, `get(id)`, `getById(id)`, `list(filters?)`, `restore(id)`, `delete(id)` (→ trashed).
@@ -167,7 +167,7 @@
 
 - Permission grant (`viewer`/`editor`/`owner`) on a File or Folder to a grantee — a Masters **Contact** (token-based, no login required; `granteeId` is the Masters contact id), an internal **User**, or a **Group**
 - Unique per `(entityType, entityId, granteeType, granteeId)` — one grant per grantee per entity
-- Revoking, or removing the Masters contact (via the `masters:contact_removed` contact-share bridge), invalidates access immediately
+- Revoking, or removing the Masters contact (via the `masters.contact_removed` contact-share bridge), invalidates access immediately
 - Folder grants inherit down the folder tree
 
 **Lifecycle commands** (via `p.dms.shares`): `create(input)`, `update(id, patch)`, `remove(id)`, `get(id)`, `list(filters?)`, `listByGrantee(granteeType, granteeId)`, `listSharedWithMe(userId)`, `resolveToken(token)`.
@@ -202,7 +202,7 @@ Saved file views now live in `@aspen-os/masters` as `p.masters.filterViews` (`do
 
 - **Setting**: `{ key (unique), value (jsonb) }` — DMS-wide settings (e.g. default retention).
 - **Access Log**: append-only `{ entityId, entityType, accessedBy?, action, ip?, userAgent?, publicLinkId? }` — public-link access and download tracking.
-- **Contact** (moved to Masters): contacts are Masters records (`p.masters.contacts`) — global address-book entries (`firstName`/`lastName`, `email`, `phone`, `company`, `title`, `type` defaulting to `other`) usable as DMS sharing handles for external parties; may be linked to an internal AuthUnit user (`linkedUserId`). Removal (`remove`) requires a mandatory reason and revokes all DMS shares granted to the contact via the contact-share bridge (`masters:contact_removed` subscription).
+- **Contact** (moved to Masters): contacts are Masters records (`p.masters.contacts`) — global address-book entries (`firstName`/`lastName`, `email`, `phone`, `company`, `title`, `type` defaulting to `other`) usable as DMS sharing handles for external parties; may be linked to an internal AuthUnit user (`linkedUserId`). Removal (`remove`) requires a mandatory reason and revokes all DMS shares granted to the contact via the contact-share bridge (`masters.contact_removed` subscription).
 - **Activity Feed**: per-entity chronological trail of DMS actions (upload, classify, version, share, delete, expire, restore, purge, hold) projected from the platform AuditUnit's `audit_log` — not a DMS-owned table, not PubSub events.
 
 ## Domain Events — 27 (5 maps → `DmsEventMap`)
@@ -211,57 +211,57 @@ Saved file views now live in `@aspen-os/masters` as `p.masters.filterViews` (`do
 
 | Event                       | Payload                                            | Trigger                            |
 | --------------------------- | -------------------------------------------------- | ---------------------------------- |
-| `dms:file_uploaded`         | `{ fileId, batchId?, contentType, size, version }` | File uploaded (active or triaged)  |
-| `dms:file_classified`       | `{ fileId, classId, docNumber }`                   | File classified (→ active)         |
-| `dms:file_updated`          | `{ fileId, changes }`                              | File updated                       |
-| `dms:file_downloaded`       | `{ file, userId }`                                 | File downloaded                    |
-| `dms:file_moved`            | `{ file, oldPath?, newPath? }`                     | File moved                         |
-| `dms:file_trashed`          | `{ fileId, deletedBy }`                            | File moved to trash                |
-| `dms:file_restored`         | `{ fileId }`                                       | File restored from trash           |
-| `dms:file_expired`          | `{ fileId, expiryDate }`                           | Expiry scanner promoted to expired |
-| `dms:file_purged`           | `{ fileId, storageKey }`                           | File permanently purged            |
-| `dms:file_version_added`    | `{ fileId, version }`                              | New version written                |
-| `dms:file_version_reverted` | `{ fileId, version }`                              | Version reverted                   |
-| `dms:file_hold_placed`      | `{ fileId, reason }`                               | Legal hold placed                  |
-| `dms:file_hold_released`    | `{ fileId, reason }`                               | Legal hold released                |
+| `dms.file_uploaded`         | `{ fileId, batchId?, contentType, size, version }` | File uploaded (active or triaged)  |
+| `dms.file_classified`       | `{ fileId, classId, docNumber }`                   | File classified (→ active)         |
+| `dms.file_updated`          | `{ fileId, changes }`                              | File updated                       |
+| `dms.file_downloaded`       | `{ file, userId }`                                 | File downloaded                    |
+| `dms.file_moved`            | `{ file, oldPath?, newPath? }`                     | File moved                         |
+| `dms.file_trashed`          | `{ fileId, deletedBy }`                            | File moved to trash                |
+| `dms.file_restored`         | `{ fileId }`                                       | File restored from trash           |
+| `dms.file_expired`          | `{ fileId, expiryDate }`                           | Expiry scanner promoted to expired |
+| `dms.file_purged`           | `{ fileId, storageKey }`                           | File permanently purged            |
+| `dms.file_version_added`    | `{ fileId, version }`                              | New version written                |
+| `dms.file_version_reverted` | `{ fileId, version }`                              | Version reverted                   |
+| `dms.file_hold_placed`      | `{ fileId, reason }`                               | Legal hold placed                  |
+| `dms.file_hold_released`    | `{ fileId, reason }`                               | Legal hold released                |
 
 ### Folder Events (`FOLDER_EVENTS`) — 6
 
 | Event                 | Payload                        | Trigger                    |
 | --------------------- | ------------------------------ | -------------------------- |
-| `dms:folder_created`  | `{ folder }`                   | Folder created             |
-| `dms:folder_renamed`  | `{ folder, oldName }`          | Folder renamed             |
-| `dms:folder_moved`    | `{ folder, oldPath, newPath }` | Folder moved               |
-| `dms:folder_trashed`  | `{ folderId }`                 | Folder moved to trash      |
-| `dms:folder_restored` | `{ folderId }`                 | Folder restored from trash |
-| `dms:folder_purged`   | `{ folderId }`                 | Folder permanently purged  |
+| `dms.folder_created`  | `{ folder }`                   | Folder created             |
+| `dms.folder_renamed`  | `{ folder, oldName }`          | Folder renamed             |
+| `dms.folder_moved`    | `{ folder, oldPath, newPath }` | Folder moved               |
+| `dms.folder_trashed`  | `{ folderId }`                 | Folder moved to trash      |
+| `dms.folder_restored` | `{ folderId }`                 | Folder restored from trash |
+| `dms.folder_purged`   | `{ folderId }`                 | Folder permanently purged  |
 
 ### Class Events (`CLASS_EVENTS`) — 3
 
 | Event                | Payload       | Trigger        |
 | -------------------- | ------------- | -------------- |
-| `dms:class_created`  | `{ classId }` | Class created  |
-| `dms:class_updated`  | `{ classId }` | Class updated  |
-| `dms:class_archived` | `{ classId }` | Class archived |
+| `dms.class_created`  | `{ classId }` | Class created  |
+| `dms.class_updated`  | `{ classId }` | Class updated  |
+| `dms.class_archived` | `{ classId }` | Class archived |
 
-Contacts moved to Masters — see `masters:contact_created` / `masters:contact_updated` / `masters:contact_removed` in `domain-model/masters.md`. DMS subscribes to `masters:contact_removed` (contact-share bridge) and revokes every share granted to the removed contact.
+Contacts moved to Masters — see `masters.contact_created` / `masters.contact_updated` / `masters.contact_removed` in `domain-model/masters.md`. DMS subscribes to `masters.contact_removed` (contact-share bridge) and revokes every share granted to the removed contact.
 
 ### Share Events (`SHARE_EVENTS`) — 2
 
 | Event               | Payload                                                     | Trigger       |
 | ------------------- | ----------------------------------------------------------- | ------------- |
-| `dms:share_created` | `{ shareId, entityId, entityType, granteeId, granteeType }` | Share granted |
-| `dms:share_revoked` | `{ shareId, entityId, entityType, granteeId, granteeType }` | Share revoked |
+| `dms.share_created` | `{ shareId, entityId, entityType, granteeId, granteeType }` | Share granted |
+| `dms.share_revoked` | `{ shareId, entityId, entityType, granteeId, granteeType }` | Share revoked |
 
 ### Public Link Events (`PUBLIC_LINK_EVENTS`) — 3
 
 | Event                      | Payload                                                | Trigger              |
 | -------------------------- | ------------------------------------------------------ | -------------------- |
-| `dms:public_link_created`  | `{ id, entityId, entityType, token, permission }`      | Public link created  |
-| `dms:public_link_revoked`  | `{ publicLinkId, entityId, entityType }`               | Public link revoked  |
-| `dms:public_link_accessed` | `{ id, entityId, entityType, token, ip?, userAgent? }` | Public link accessed |
+| `dms.public_link_created`  | `{ id, entityId, entityType, token, permission }`      | Public link created  |
+| `dms.public_link_revoked`  | `{ publicLinkId, entityId, entityType }`               | Public link revoked  |
+| `dms.public_link_accessed` | `{ id, entityId, entityType, token, ip?, userAgent? }` | Public link accessed |
 
-File view events moved to Masters (`masters:filter_view_created/updated/duplicated/deleted`) — see the Masters domain model.
+File view events moved to Masters (`masters.filter_view_created/updated/duplicated/deleted`) — see the Masters domain model.
 
 ## Command-Query Separation
 
@@ -316,7 +316,7 @@ File view events moved to Masters (`masters:filter_view_created/updated/duplicat
 4. **Name uniqueness within parent** — case-insensitive uniqueness check.
 5. **Version pruning** — old versions pruned to `maxVersions` (default 10); skipped under an active Legal Hold.
 6. **Permission inheritance** — `access.getEffectivePermission()` walks up the parent folder chain for inherited permissions.
-7. **Trash retention** — trashed/expired files and trashed folders are purged after retention via the `dms:auto-purge` cron; purge skipped for files on an active Legal Hold.
+7. **Trash retention** — trashed/expired files and trashed folders are purged after retention via the `dms.auto-purge` cron; purge skipped for files on an active Legal Hold.
 8. **Public link validation** — token, expiry, maxViews, and password (bcrypt) are checked on access.
 9. **Triage gate** — uploads without a folder land in `triaged`; the only exit is `classify()` (→ `active`). Uploads into a folder are `active` immediately.
 10. **Hold-aware purge** — permanent deletion and auto-purge of Files are blocked while an active Legal Hold exists; `trash.deletePermanently` is admin-only.

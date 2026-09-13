@@ -6,7 +6,7 @@ icon: IconListCheck
 
 Workflow groups via `p.calendar`: `calendars`, `events`, `attendees`, `reminders`.
 
-Scoped reminders require `targetType` + `targetId` (empty for `custom`); create takes Valibot `{ input }`, update takes `{ id, input }`, `get`/`delete`/`cancel` take `{ id }`. Every mutation writes an audit entry and publishes a `calendar:*` event.
+Scoped reminders require `targetType` + `targetId` (empty for `custom`); create takes Valibot `{ input }`, update takes `{ id, input }`, `get`/`delete`/`cancel` take `{ id }`. Every mutation writes an audit entry and publishes a `calendar.*` event.
 
 ## Features
 
@@ -84,7 +84,7 @@ await p.calendar.events.list({
 
 Access: `p.calendar.attendees`
 
-Invitees on events; `add` publishes `calendar:attendee_invited`.
+Invitees on events; `add` publishes `calendar.attendee_invited`.
 
 ```ts
 await p.calendar.attendees.add({
@@ -110,7 +110,7 @@ Status follows `invited → accepted/declined/tentative`; attendees inherit the 
 
 Access: `p.calendar.reminders`
 
-Polymorphic reminders; dispatcher runs on the `calendar:reminder-scan` cron (`* * * * *`).
+Polymorphic reminders; dispatcher runs on the `calendar.reminder-scan` cron (`* * * * *`).
 
 ```ts
 await p.calendar.reminders.create({
@@ -144,7 +144,7 @@ await p.calendar.reminders.processPending({});
 | `due_date` | `remindAt` required (task bridge and compliance bridge create these)                                                                       |
 | `overdue`  | `remindAt` required (hosts check state on delivery)                                                                                        |
 
-`getPending` returns `isSent = false AND remindAt <= now`. `processPending` claims a bounded batch (100, oldest first) with a conditional `isSent` flip, publishes `calendar:reminder_due`, and reschedules `isRecurring` reminders with a known interval.
+`getPending` returns `isSent = false AND remindAt <= now`. `processPending` claims a bounded batch (100, oldest first) with a conditional `isSent` flip, publishes `calendar.reminder_due`, and reschedules `isRecurring` reminders with a known interval.
 
 ```mermaid
 flowchart LR

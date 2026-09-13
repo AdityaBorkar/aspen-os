@@ -12,50 +12,50 @@ The DMS module publishes domain events as plain string topics via `PubSub`.
 
 | Event                       | Payload                                            | Trigger                       |
 | --------------------------- | -------------------------------------------------- | ----------------------------- |
-| `dms:file_uploaded`         | `{ fileId, batchId?, version, size, contentType }` | Upload / bulk upload          |
-| `dms:file_version_added`    | `{ fileId, version }`                              | New version                   |
-| `dms:file_version_reverted` | `{ fileId, version }`                              | Version revert                |
-| `dms:file_classified`       | `{ fileId, classId, docNumber }`                   | Triage classify               |
-| `dms:file_updated`          | `{ fileId, changes }`                              | Update / metadata mutations   |
-| `dms:file_moved`            | `{ file: { id, name, path }, oldPath, newPath }`   | File moved or renamed         |
-| `dms:file_downloaded`       | `{ file: { id, name, ownerId }, userId }`          | File downloaded               |
-| `dms:file_expired`          | `{ fileId, expiryDate, ownerId }`                  | Expiry scanner                |
-| `dms:file_trashed`          | `{ fileId, deletedBy }`                            | Soft delete                   |
-| `dms:file_restored`         | `{ fileId }`                                       | Trash restore                 |
-| `dms:file_purged`           | `{ fileId, storageKey }`                           | Permanent delete / auto-purge |
-| `dms:file_hold_placed`      | `{ fileId, reason }`                               | Legal hold placed             |
-| `dms:file_hold_released`    | `{ fileId, reason }`                               | Legal hold released           |
+| `dms.file_uploaded`         | `{ fileId, batchId?, version, size, contentType }` | Upload / bulk upload          |
+| `dms.file_version_added`    | `{ fileId, version }`                              | New version                   |
+| `dms.file_version_reverted` | `{ fileId, version }`                              | Version revert                |
+| `dms.file_classified`       | `{ fileId, classId, docNumber }`                   | Triage classify               |
+| `dms.file_updated`          | `{ fileId, changes }`                              | Update / metadata mutations   |
+| `dms.file_moved`            | `{ file: { id, name, path }, oldPath, newPath }`   | File moved or renamed         |
+| `dms.file_downloaded`       | `{ file: { id, name, ownerId }, userId }`          | File downloaded               |
+| `dms.file_expired`          | `{ fileId, expiryDate, ownerId }`                  | Expiry scanner                |
+| `dms.file_trashed`          | `{ fileId, deletedBy }`                            | Soft delete                   |
+| `dms.file_restored`         | `{ fileId }`                                       | Trash restore                 |
+| `dms.file_purged`           | `{ fileId, storageKey }`                           | Permanent delete / auto-purge |
+| `dms.file_hold_placed`      | `{ fileId, reason }`                               | Legal hold placed             |
+| `dms.file_hold_released`    | `{ fileId, reason }`                               | Legal hold released           |
 
 ### Folder
 
 | Event                 | Payload                                             | Trigger        |
 | --------------------- | --------------------------------------------------- | -------------- |
-| `dms:folder_created`  | `{ folder: { id, name, ownerId, parentId, path } }` | Folder created |
-| `dms:folder_renamed`  | `{ folder: { id, name, path }, oldName }`           | Folder renamed |
-| `dms:folder_moved`    | `{ folder: { id, name, path }, oldPath, newPath }`  | Folder moved   |
-| `dms:folder_trashed`  | `{ folderId }`                                      | Folder trash   |
-| `dms:folder_restored` | `{ folderId }`                                      | Folder restore |
-| `dms:folder_purged`   | `{ folderId }`                                      | Folder purge   |
+| `dms.folder_created`  | `{ folder: { id, name, ownerId, parentId, path } }` | Folder created |
+| `dms.folder_renamed`  | `{ folder: { id, name, path }, oldName }`           | Folder renamed |
+| `dms.folder_moved`    | `{ folder: { id, name, path }, oldPath, newPath }`  | Folder moved   |
+| `dms.folder_trashed`  | `{ folderId }`                                      | Folder trash   |
+| `dms.folder_restored` | `{ folderId }`                                      | Folder restore |
+| `dms.folder_purged`   | `{ folderId }`                                      | Folder purge   |
 
 ### Class
 
 | Event                | Payload       | Trigger        |
 | -------------------- | ------------- | -------------- |
-| `dms:class_created`  | `{ classId }` | Class created  |
-| `dms:class_updated`  | `{ classId }` | Class updated  |
-| `dms:class_archived` | `{ classId }` | Class archived |
+| `dms.class_created`  | `{ classId }` | Class created  |
+| `dms.class_updated`  | `{ classId }` | Class updated  |
+| `dms.class_archived` | `{ classId }` | Class archived |
 
 ### Share
 
 | Event               | Payload                                                     | Trigger                          |
 | ------------------- | ----------------------------------------------------------- | -------------------------------- |
-| `dms:share_created` | `{ shareId, entityId, entityType, granteeType, granteeId }` | Share created (any grantee type) |
-| `dms:share_revoked` | `{ shareId, entityId, entityType, granteeType, granteeId }` | Share revoked                    |
+| `dms.share_created` | `{ shareId, entityId, entityType, granteeType, granteeId }` | Share created (any grantee type) |
+| `dms.share_revoked` | `{ shareId, entityId, entityType, granteeType, granteeId }` | Share revoked                    |
 
 ### Public link
 
 | Event                      | Payload                                              | Trigger              |
 | -------------------------- | ---------------------------------------------------- | -------------------- |
-| `dms:public_link_created`  | `{ id, entityId, entityType, permission, token }`    | Public link created  |
-| `dms:public_link_accessed` | `{ id, entityId, entityType, token, ip, userAgent }` | Public link resolved |
-| `dms:public_link_revoked`  | `{ publicLinkId, entityId, entityType }`             | Public link revoked  |
+| `dms.public_link_created`  | `{ id, entityId, entityType, permission, token }`    | Public link created  |
+| `dms.public_link_accessed` | `{ id, entityId, entityType, token, ip, userAgent }` | Public link resolved |
+| `dms.public_link_revoked`  | `{ publicLinkId, entityId, entityType }`             | Public link revoked  |

@@ -10,58 +10,58 @@ All events are plain string topics via `ctx.pubsub.publish`, typed via `Workspac
 
 | Event                             | Payload                                    | Trigger                |
 | --------------------------------- | ------------------------------------------ | ---------------------- |
-| `workspace:draft_created`         | `{ draftId, ownerId, access }`             | `drafts.create`        |
-| `workspace:draft_updated`         | `{ draftId, changes }`                     | `drafts.update`        |
-| `workspace:draft_submitted`       | `{ draftId, submittedBy }`                 | `drafts.submit`        |
-| `workspace:draft_approved`        | `{ draftId, approvedBy }`                  | `drafts.approve`       |
-| `workspace:draft_rejected`        | `{ draftId, rejectedBy, rejectionReason }` | `drafts.reject`        |
-| `workspace:draft_published`       | `{ draft }`                                | `drafts.publish`       |
-| `workspace:draft_reopened`        | `{ draftId }`                              | `drafts.reopen`        |
-| `workspace:draft_trashed`         | `{ draftId }`                              | `drafts.trash`         |
-| `workspace:draft_restored`        | `{ draftId }`                              | `drafts.restore`       |
-| `workspace:draft_duplicated`      | `{ draftId, duplicateId }`                 | `drafts.duplicate`     |
-| `workspace:draft_commented`       | `{ draftId, commentId, authorId }`         | `drafts.addComment`    |
-| `workspace:draft_comment_removed` | `{ draftId, commentId }`                   | `drafts.removeComment` |
-| `workspace:draft_deleted`         | `{ draftId }`                              | `drafts.delete`        |
+| `workspace.draft_created`         | `{ draftId, ownerId, access }`             | `drafts.create`        |
+| `workspace.draft_updated`         | `{ draftId, changes }`                     | `drafts.update`        |
+| `workspace.draft_submitted`       | `{ draftId, submittedBy }`                 | `drafts.submit`        |
+| `workspace.draft_approved`        | `{ draftId, approvedBy }`                  | `drafts.approve`       |
+| `workspace.draft_rejected`        | `{ draftId, rejectedBy, rejectionReason }` | `drafts.reject`        |
+| `workspace.draft_published`       | `{ draft }`                                | `drafts.publish`       |
+| `workspace.draft_reopened`        | `{ draftId }`                              | `drafts.reopen`        |
+| `workspace.draft_trashed`         | `{ draftId }`                              | `drafts.trash`         |
+| `workspace.draft_restored`        | `{ draftId }`                              | `drafts.restore`       |
+| `workspace.draft_duplicated`      | `{ draftId, duplicateId }`                 | `drafts.duplicate`     |
+| `workspace.draft_commented`       | `{ draftId, commentId, authorId }`         | `drafts.addComment`    |
+| `workspace.draft_comment_removed` | `{ draftId, commentId }`                   | `drafts.removeComment` |
+| `workspace.draft_deleted`         | `{ draftId }`                              | `drafts.delete`        |
 
 ## Dashboard Events
 
 | Event                             | Payload                            | Trigger                |
 | --------------------------------- | ---------------------------------- | ---------------------- |
-| `workspace:dashboard_created`     | `{ dashboardId, ownerId, access }` | `dashboards.create`    |
-| `workspace:dashboard_updated`     | `{ dashboardId }`                  | `dashboards.update`    |
-| `workspace:dashboard_duplicated`  | `{ dashboardId, duplicateId }`     | `dashboards.duplicate` |
-| `workspace:dashboard_scheduled`   | `{ dashboardId, scheduleId }`      | `schedules.create`     |
-| `workspace:dashboard_unscheduled` | `{ dashboardId, scheduleId }`      | `schedules.delete`     |
-| `workspace:dashboard_deleted`     | `{ dashboardId }`                  | `dashboards.delete`    |
+| `workspace.dashboard_created`     | `{ dashboardId, ownerId, access }` | `dashboards.create`    |
+| `workspace.dashboard_updated`     | `{ dashboardId }`                  | `dashboards.update`    |
+| `workspace.dashboard_duplicated`  | `{ dashboardId, duplicateId }`     | `dashboards.duplicate` |
+| `workspace.dashboard_scheduled`   | `{ dashboardId, scheduleId }`      | `schedules.create`     |
+| `workspace.dashboard_unscheduled` | `{ dashboardId, scheduleId }`      | `schedules.delete`     |
+| `workspace.dashboard_deleted`     | `{ dashboardId }`                  | `dashboards.delete`    |
 
 ## Widget Events
 
 | Event                        | Payload                     | Trigger           |
 | ---------------------------- | --------------------------- | ----------------- |
-| `workspace:widget_added`     | `{ dashboardId, widgetId }` | `widgets.add`     |
-| `workspace:widget_updated`   | `{ dashboardId, widgetId }` | `widgets.update`  |
-| `workspace:widget_refreshed` | `{ widgetId, error }`       | `widgets.refresh` |
-| `workspace:widget_removed`   | `{ dashboardId, widgetId }` | `widgets.remove`  |
+| `workspace.widget_added`     | `{ dashboardId, widgetId }` | `widgets.add`     |
+| `workspace.widget_updated`   | `{ dashboardId, widgetId }` | `widgets.update`  |
+| `workspace.widget_refreshed` | `{ widgetId, error }`       | `widgets.refresh` |
+| `workspace.widget_removed`   | `{ dashboardId, widgetId }` | `widgets.remove`  |
 
 ## Filter View Events
 
 | Event                              | Payload                                     | Trigger                 |
 | ---------------------------------- | ------------------------------------------- | ----------------------- |
-| `workspace:filter_view_created`    | `{ filterViewId, ownerId, access, domain }` | `filterViews.create`    |
-| `workspace:filter_view_updated`    | `{ filterViewId }`                          | `filterViews.update`    |
-| `workspace:filter_view_duplicated` | `{ filterViewId, duplicateId }`             | `filterViews.duplicate` |
-| `workspace:filter_view_deleted`    | `{ filterViewId }`                          | `filterViews.delete`    |
+| `workspace.filter_view_created`    | `{ filterViewId, ownerId, access, domain }` | `filterViews.create`    |
+| `workspace.filter_view_updated`    | `{ filterViewId }`                          | `filterViews.update`    |
+| `workspace.filter_view_duplicated` | `{ filterViewId, duplicateId }`             | `filterViews.duplicate` |
+| `workspace.filter_view_deleted`    | `{ filterViewId }`                          | `filterViews.delete`    |
 
 ## Pin Events
 
 | Event                   | Payload                        | Trigger       |
 | ----------------------- | ------------------------------ | ------------- |
-| `workspace:pin_created` | `{ userId, itemType, itemId }` | `pins.create` |
-| `workspace:pin_removed` | `{ userId, itemType, itemId }` | `pins.delete` |
+| `workspace.pin_created` | `{ userId, itemType, itemId }` | `pins.create` |
+| `workspace.pin_removed` | `{ userId, itemType, itemId }` | `pins.delete` |
 
 ## Delivery Schedule Events
 
 | Event                    | Payload                       | Trigger            |
 | ------------------------ | ----------------------------- | ------------------ |
-| `workspace:delivery_due` | `{ at, dashboard, schedule }` | pg-boss cron fires |
+| `workspace.delivery_due` | `{ at, dashboard, schedule }` | pg-boss cron fires |

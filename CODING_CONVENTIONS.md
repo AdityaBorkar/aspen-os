@@ -75,7 +75,7 @@ Every item below is an imperative or an explicit prohibition. Pair each prohibit
 - Use `PascalCase` for classes, never `camelCase` for classes; use `DatabaseUnit`, `Dms`, `Compliance`, never `databaseUnit`.
 - Use `UPPER_SNAKE_CASE` for constants and constant objects, never `camelCase` for constants; use `FILE_STATUS`, `ENTITY_EVENTS`, never `fileStatus`.
 - Use `snake_case` for database tables and columns in both Postgres and TypeScript, never `camelCase` in DB code; write `owner_id: text().notNull()` never `ownerId: text("owner_id")`; the TS object key is the column name — never pass an explicit name string inside the column builder.
-- Use `domain:event_name` for event topics, never `domainEventName` or `domain.event_name`; write `"dms:file_uploaded"` never `"dms.fileUploaded"`.
+- Use `domain.event_name` for event topics, never `domainEventName` or `domain.event_name`; write `"dms.file_uploaded"` never `"dms.fileUploaded"`.
 - Use `$` prefix for lifecycle methods and properties, never bare names; use `$name`, `$dependencies`, `$initialize`, `$prepareInfra`, `$prepareRuntime`, `$prepareTenant`, `$cleanup`, never `name`/`initialize`.
 - Use `#` prefix for private fields, never `private` keyword or `_` prefix; use `#db`, `#pubsub`, `#expiryTopic`, never `private db` or `_db`.
 - Use `@aspen-os/<name>` for package imports, never relative cross-package imports; use `import { Dms } from "@aspen-os/dms"` never `import { Dms } from "../../dms/src"`.
@@ -107,7 +107,7 @@ Every item below is an imperative or an explicit prohibition. Pair each prohibit
 - Always implement the `Module` interface, never a bare class without `implements Module`; define `readonly $name`, `readonly $dependencies`, `$initialize`, `$prepareInfra`, `$prepareRuntime`, `$cleanup`, and optionally `$prepareTenant` for isolated-only modules.
 - Use `static create(config)` factory, never `new Module()` directly; store `readonly $config` and apply defaults in the constructor (e.g. `DEFAULT_CONFIG` spread).
 - Always declare `readonly $dependencies: readonly string[]` (type `[]` when empty), never omit the field; validation happens in `BasePlatform.createCore()` which throws if a listed dependency is missing; units (`db`, `pubsub`, etc.) must never be listed in `$dependencies` — they arrive via `$initialize(units)`.
-- Use `readonly $consumes: readonly string[]` for optional peer event topics, never validate `$consumes` at creation time; use it as introspection-only (`compliance` consumes `hr:*`, `fleet:*`, `masters:*`; `dms` consumes `masters:contact_removed`; `calendar` consumes `task:*`); a missing producer silently no-ops.
+- Use `readonly $consumes: readonly string[]` for optional peer event topics, never validate `$consumes` at creation time; use it as introspection-only (`compliance` consumes `hr.*`, `fleet.*`, `masters.*`; `dms` consumes `masters.contact_removed`; `calendar` consumes `task.*`); a missing producer silently no-ops.
 - Follow the lifecycle order `Platform.create(config, modules)` → `$prepareInfra()` → `run(...)` → `$cleanup()`, never call `$prepareRuntime` or `run` before `$prepareInfra`; creation validates `$dependencies`, calls `mod.$initialize(units)`, returns a Proxy resolving unit keys before module `$name`; `$prepareInfra` merges schemas/ACL, pushes schemas, applies ACL, then runs `$prepareRuntime` inside `runInContext`.
 - Always call `getContext()` inside `Platform.run()` or a `pubsub.wrapHandler` context, never outside; `getContext()` throws outside `AsyncLocalStorage` scope.
 - Use ` $initialize(units)` to capture unit refs, never store full `units` map untyped; stateless modules (e.g. `organization`, `tasks`, `notes`) keep empty `$initialize`/`$prepareRuntime`/`$cleanup` and expose `readonly` workflow groups; runtime-wired modules (`compliance`, `calendar`, `dms`, `workspace`, `comms`, `hr-*`, `management`, `masters`) keep `#private` unit refs, register schedules/subscriptions in `async $prepareRuntime()` and unregister/null them in `$cleanup()`.
@@ -158,7 +158,7 @@ Every item below is an imperative or an explicit prohibition. Pair each prohibit
 
 ### Events
 
-- Use `export const ENTITY_EVENTS = { CREATED: "domain:entity_created", ... } as const` with `UPPER_SNAKE` keys and `"domain:event_name"` lowercase snake_case values, never `camelCase` keys or `UPPER_SNAKE` values; pair with typed interfaces per event.
+- Use `export const ENTITY_EVENTS = { CREATED: "domain:entity_created", ... } as const` with `UPPER_SNAKE` keys and `"domain.event_name"` lowercase snake_case values, never `camelCase` keys or `UPPER_SNAKE` values; pair with typed interfaces per event.
 - Use `export type DomainEventMap = EntityEventMap & OtherEventMap` composed by intersection, never a single flat map; each `EventMap` maps `[ENTITY_EVENTS.X]` to its interface.
 - Pass `events = { ENTITY_EVENTS, ... }` through `ModuleInfra.events` as a type-level contract only; the platform has no runtime event side effects, never rely on `ModuleInfra.events` for publishing.
 - Publish via `ctx.pubsub.publish(EVENTS.X, payload)` (or `ctx.workflow.pubsub`), never direct `pg-boss` calls; map snake DB rows back to camel payloads at publish boundaries.
@@ -184,7 +184,7 @@ Every item below is an imperative or an explicit prohibition. Pair each prohibit
 - Never call `pubsub.$prepareInfra()` expecting eager start — the single control-plane `pg-boss` is lazily started on first `publish`/`subscribe`/`schedule`, not during `$prepareInfra()`; `publish` without a prior `subscribe` (`boss.work(topic)`) silently drops — `send()` returns `null` and no queue row is inserted, never assume fire-and-forget works without a consumer.
 - Always ensure every produced topic has a subscriber; `PubSubUnit.getUnsubscribedProducedTopics()` tracks produced topics lacking `subscriptions.has(topic)`; `BasePlatform.healthCheck()` probes `SELECT 1` + `getQueueSize` and marks `unhealthy` when unsubscribed produced topics exist.
 - Use `publish(topic, data, options?)`, `publishBatch(topic, messages)`, `subscribe(topic, handler)`, `unsubscribe(topic)`, `schedule({ topic, cron, data?, options? })`, `unschedule(topic)`, `getSchedules()`, `purgeQueue(topic)` via `PubSubUnit`, never raw `pg-boss` APIs elsewhere; handlers run inside `context.run({ audit, auth, db, log, pubsub, tenantId })` with isolated-tenant DB resolution when `tenancyMode==="isolated"` and `tenantId` is non-global.
-- Always register schedules and subscriptions in `$prepareRuntime()` and unregister in `$cleanup()`, never in `$initialize` or constructors; calendar uses `calendar:reminder-scan` cron + task bridge (`task:due_date_changed`, `task:deleted`, `task:status_changed`); dms uses `dms:expiry-scan` and `dms:purge` plus `masters:contact_removed` bridge; compliance uses obligation-generator plus event-bridge topics; comms uses `comms:message-sweeper` outbox cron + 6 event-bridge subscriptions; workspace uses per-schedule `workspace:delivery_schedule:<id>` crons; hr uses daily `attendance-sync` + `leave-accrual` schedules.
+- Always register schedules and subscriptions in `$prepareRuntime()` and unregister in `$cleanup()`, never in `$initialize` or constructors; calendar uses `calendar.reminder-scan` cron + task bridge (`task.due_date_changed`, `task.deleted`, `task.status_changed`); dms uses `dms.expiry-scan` and `dms.purge` plus `masters.contact_removed` bridge; compliance uses obligation-generator plus event-bridge topics; comms uses `comms.message-sweeper` outbox cron + 6 event-bridge subscriptions; workspace uses per-schedule `workspace.delivery_schedule.<id>` crons; hr uses daily `attendance-sync` + `leave-accrual` schedules.
 
 ### Build/ops
 
@@ -209,8 +209,8 @@ Pair each prohibition with its replacement:
 - Never add barrel files except `workflows/index.ts` routers — import via direct paths.
 - Never use `delete` in the auth REST API — use `remove`.
 - Never recreate a `drive` package or parallel file/tag/share/trash model — `@aspen-os/dms` is the single document/file surface (`dms_file`, `dms_folder`, `dms_share`, `dms_label`, `dms_share`, `dms_setting`, `dms_legal_hold`, `dms_access_log`, `dms_file_version`, `dms_class`, `dms_class_field`, `dms_entity_label`, `dms_public_link`).
-- Never recreate a `notifications` package or a parallel `comms:deliver` topic — `@aspen-os/comms` is the single notification/inbox surface; delivery is the cron-scan `comms:message-sweeper` outbox worker, never a direct publish.
-- Never add a second `task_reminder` surface — `@aspen-os/calendar` owns the single reminder surface (`calendar_reminder`); `@aspen-os/tasks` publishes `task:*` events consumed by calendar's task bridge, never direct cross-module calls.
+- Never recreate a `notifications` package or a parallel `comms.deliver` topic — `@aspen-os/comms` is the single notification/inbox surface; delivery is the cron-scan `comms.message-sweeper` outbox worker, never a direct publish.
+- Never add a second `task_reminder` surface — `@aspen-os/calendar` owns the single reminder surface (`calendar_reminder`); `@aspen-os/tasks` publishes `task.*` events consumed by calendar's task bridge, never direct cross-module calls.
 - Never own `master_note` or duplicate notes — `@aspen-os/notes` owns notes (`notes_note`).
 - Never add an overloaded `run()` signature — use `SingleTenantPlatform.run(fn)`, `SharedTenantPlatform.run(tenantId, fn)`, `IsolatedTenantPlatform.run(tenantId, fn)`.
 - Never use Zod for domain input validation — use Valibot; Zod stays for oRPC procedures and `docs/source.config.ts` only.
@@ -226,7 +226,7 @@ Pair each prohibition with its replacement:
 | Constants / enum objects | `UPPER_SNAKE_CASE`     | `FILE_STATUS`, `COMPLIANCE_CATEGORY`                                                                 |
 | DB tables                | `snake_case`           | `dms_file`, `kv_store`, `workflow_runs`                                                              |
 | DB columns (TS = DB)     | `snake_case`           | `created_at: timestamp({ withTimezone:true })`, `owner_id: text()`                                   |
-| Event topics             | `domain:event_name`    | `dms:file_uploaded`, `task:due_date_changed`, `calendar:reminder_due`                                |
+| Event topics             | `domain.event_name`    | `dms.file_uploaded`, `task.due_date_changed`, `calendar.reminder_due`                                |
 | Private fields           | `#` prefix             | `#db`, `#pubsub`, `#topics`                                                                          |
 | Unit/module lifecycle    | `$` prefix             | `$name`, `$dependencies`, `$initialize`, `$prepareInfra`, `$prepareRuntime`, `$cleanup`, `$consumes` |
 | Package exports          | `@aspen-os/<name>`     | `@aspen-os/platform`, `@aspen-os/dms`, `@aspen-os/constants`                                         |

@@ -88,7 +88,7 @@
 
 ### Attendee (Supporting entity)
 
-`{ eventId, email, name?, attendeeId?, attendeeType (user/contact), optional, status (invited/accepted/declined/tentative) }`. Soft-references user or masters contact; carries denormalized email/name snapshot. `add` publishes `calendar:attendee_invited`.
+`{ eventId, email, name?, attendeeId?, attendeeType (user/contact), optional, status (invited/accepted/declined/tentative) }`. Soft-references user or masters contact; carries denormalized email/name snapshot. `add` publishes `calendar.attendee_invited`.
 
 ### Reminder (Supporting entity, polymorphic)
 
@@ -96,27 +96,27 @@ Platform single reminder surface. `{ targetType (event/task/note/file/custom), t
 
 - `offset` reminders resolve `remindAt` from target anchor (event start) or caller-supplied value
 - `custom`/`due_date`/`overdue` require explicit `remindAt`
-- Task reminders (`targetType = task`) materialized by calendar-side **task bridge** from `task:due_date_changed`: three rows per recipient (due − 1d, due − 1h, due) in one transaction (deduplicated recipients); deleted on `task:deleted` and on terminal statuses via `task:status_changed` (`isTerminal`/`toStatusCategory` in the event, legacy fallback reads `task_status`)
-- **Reminder dispatcher** cron (`calendar:reminder-scan`) runs `processPending` — claims a bounded batch (100, oldest first) with a conditional `isSent` flip so concurrent scans never double-deliver (claim released on publish failure for retry), publishes `calendar:reminder_due` (full payload), inserts next occurrence for recurring reminders with a known interval
+- Task reminders (`targetType = task`) materialized by calendar-side **task bridge** from `task.due_date_changed`: three rows per recipient (due − 1d, due − 1h, due) in one transaction (deduplicated recipients); deleted on `task.deleted` and on terminal statuses via `task.status_changed` (`isTerminal`/`toStatusCategory` in the event, legacy fallback reads `task_status`)
+- **Reminder dispatcher** cron (`calendar.reminder-scan`) runs `processPending` — claims a bounded batch (100, oldest first) with a conditional `isSent` flip so concurrent scans never double-deliver (claim released on publish failure for retry), publishes `calendar.reminder_due` (full payload), inserts next occurrence for recurring reminders with a known interval
 
 ## Domain Events — 14
 
 | Event                       | Payload                                                                                             | Trigger                       |
 | --------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------- |
-| `calendar:calendar_created` | `{ calendar: { id, name, access, ownerId } }`                                                       | Calendar created              |
-| `calendar:calendar_updated` | `{ calendar: { id, name, access, ownerId } }`                                                       | Calendar updated              |
-| `calendar:calendar_deleted` | `{ calendarId }`                                                                                    | Calendar deleted              |
-| `calendar:event_created`    | `{ calendarId, event: { id, title, startsAt, endsAt, calendarId }, sourceType?, sourceEntityId? }`  | Event created                 |
-| `calendar:event_updated`    | `{ calendarId, event: { id, title, startsAt, endsAt, calendarId }, sourceType?, sourceEntityId? }`  | Event updated                 |
-| `calendar:event_cancelled`  | `{ calendarId, event: { id, title, startsAt, endsAt, calendarId } }`                                | Event cancelled               |
-| `calendar:event_deleted`    | `{ calendarId, eventId }`                                                                           | Event deleted                 |
-| `calendar:attendee_invited` | `{ calendarId, eventId, attendee: { id, email, name, status } }`                                    | Attendee added                |
-| `calendar:attendee_updated` | `{ calendarId, eventId, attendee: { id, email, name, status } }`                                    | Attendee updated              |
-| `calendar:attendee_removed` | `{ calendarId, eventId, attendeeId }`                                                               | Attendee removed              |
-| `calendar:reminder_created` | `{ reminder: { id, type, targetType, targetId, message, channel, userId, isRecurring } }`           | Reminder created              |
-| `calendar:reminder_updated` | `{ reminder: { ... }, changes }`                                                                    | Reminder updated              |
-| `calendar:reminder_deleted` | `{ reminderId }`                                                                                    | Reminder deleted              |
-| `calendar:reminder_due`     | `{ remindAt, reminder: { id, type, targetType, targetId, message, channel, userId, isRecurring } }` | Dispatcher fired the reminder |
+| `calendar.calendar_created` | `{ calendar: { id, name, access, ownerId } }`                                                       | Calendar created              |
+| `calendar.calendar_updated` | `{ calendar: { id, name, access, ownerId } }`                                                       | Calendar updated              |
+| `calendar.calendar_deleted` | `{ calendarId }`                                                                                    | Calendar deleted              |
+| `calendar.event_created`    | `{ calendarId, event: { id, title, startsAt, endsAt, calendarId }, sourceType?, sourceEntityId? }`  | Event created                 |
+| `calendar.event_updated`    | `{ calendarId, event: { id, title, startsAt, endsAt, calendarId }, sourceType?, sourceEntityId? }`  | Event updated                 |
+| `calendar.event_cancelled`  | `{ calendarId, event: { id, title, startsAt, endsAt, calendarId } }`                                | Event cancelled               |
+| `calendar.event_deleted`    | `{ calendarId, eventId }`                                                                           | Event deleted                 |
+| `calendar.attendee_invited` | `{ calendarId, eventId, attendee: { id, email, name, status } }`                                    | Attendee added                |
+| `calendar.attendee_updated` | `{ calendarId, eventId, attendee: { id, email, name, status } }`                                    | Attendee updated              |
+| `calendar.attendee_removed` | `{ calendarId, eventId, attendeeId }`                                                               | Attendee removed              |
+| `calendar.reminder_created` | `{ reminder: { id, type, targetType, targetId, message, channel, userId, isRecurring } }`           | Reminder created              |
+| `calendar.reminder_updated` | `{ reminder: { ... }, changes }`                                                                    | Reminder updated              |
+| `calendar.reminder_deleted` | `{ reminderId }`                                                                                    | Reminder deleted              |
+| `calendar.reminder_due`     | `{ remindAt, reminder: { id, type, targetType, targetId, message, channel, userId, isRecurring } }` | Dispatcher fired the reminder |
 
 ## Command-Query Separation
 

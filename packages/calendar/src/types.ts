@@ -113,7 +113,7 @@ export interface CalendarModuleConfig {
   complianceEnabled?: boolean;
   reminderScanCron?: string;
   /**
-   * Subscribe to `task:*` events for the task-reminder bridge. Disable when
+   * Subscribe to `task.*` events for the task-reminder bridge. Disable when
    * the tasks module is not installed; subscription errors otherwise
    * propagate instead of being silently swallowed.
    */

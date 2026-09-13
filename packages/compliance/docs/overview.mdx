@@ -14,12 +14,12 @@ export class Compliance implements Module {
   readonly $name = "compliance";
   readonly $dependencies: readonly string[] = [];
   readonly $consumes: readonly string[] = [
-    "hr:employee_onboarded",
-    "hr:employee_separated",
-    "fleet:vehicle_registered",
-    "masters:org_branch_created",
-    "accounting:financial_year_started",
-    "masters:contact_created",
+    "hr.employee_onboarded",
+    "hr.employee_separated",
+    "fleet.vehicle_registered",
+    "masters.org_branch_created",
+    "accounting.financial_year_started",
+    "masters.contact_created",
   ];
 }
 ```
@@ -52,7 +52,7 @@ flowchart TB
     P[Platform.create] --> PrepInfra["$prepareInfra()\ndeclares acl + db schemas + events"]
     PrepInfra --> Init["$initialize({db,kvStore,pubsub})"]
     Init --> Runtime["$prepareRuntime()"]
-    Runtime --> OG["registerObligationGenerator()\nsubscribes compliance:obligation-generate"]
+    Runtime --> OG["registerObligationGenerator()\nsubscribes compliance.obligation-generate"]
     Runtime --> EB["registerEventBridgeSubscriptions()\nsubscribes 8 external topics"]
     OG & EB --> Topics["#topics[]"]
     Topics --> Cleanup["$cleanup()\nunsubscribe all Topics"]
@@ -97,7 +97,7 @@ Soft FKs are logical — enforced by workflows and event-bridge dedup, not DB co
 
 `$prepareRuntime()` registers exactly two participants:
 
-1. **Obligation generator** — `pubsub.subscribe("compliance:obligation-generate", generatePendingDocuments)` via `registerObligationGenerator()`; handler iterates `obligations.getActive`, computes periods, dedupes by `obligationId:periodStart:periodEnd:dueDate:expiryDate`, then `documents.create` + `publish("compliance:document_generated")`.
+1. **Obligation generator** — `pubsub.subscribe("compliance.obligation-generate", generatePendingDocuments)` via `registerObligationGenerator()`; handler iterates `obligations.getActive`, computes periods, dedupes by `obligationId:periodStart:periodEnd:dueDate:expiryDate`, then `documents.create` + `publish("compliance.document_generated")`.
 2. **Event bridge** — `registerEventBridgeSubscriptions({ audit, db, pubsub })` subscribes 6 topics validating with Valibot and deduping by `{sourceModule, sourceEntityId, documentType}`.
 
-No reminder crons are registered — expiry/due reminders are published by document workflows as `compliance:document_expiring` facts consumed by the calendar bridge.
+No reminder crons are registered — expiry/due reminders are published by document workflows as `compliance.document_expiring` facts consumed by the calendar bridge.

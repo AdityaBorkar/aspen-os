@@ -29,7 +29,7 @@ Workflows are one file per action under `workflows/<entity>/<verb>.ts` (e.g. `br
 
 ## Cross-context integration
 
-- **Compliance** subscribes to `organization:branch_created` (trade license + fire safety certificate + annual obligation). The old `organization:connection_created` insurance flow was reworked to subscribe to `masters:contact_created` in the Masters module.
+- **Compliance** subscribes to `organization.branch_created` (trade license + fire safety certificate + annual obligation). The old `organization.connection_created` insurance flow was reworked to subscribe to `masters.contact_created` in the Masters module.
 - **Management** provisions tenants against the better-auth org ID; the organization profile (name, slug, logo, branding) is stored as `org.*` settings in Masters.
 - **Masters** (`@aspen-os/masters`) owns the polymorphic master data surface (contacts, addresses, bank accounts, connections, notes) that was extracted out of this module, plus the `org.*` tenant settings.
 

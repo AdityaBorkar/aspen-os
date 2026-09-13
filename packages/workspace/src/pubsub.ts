@@ -3,51 +3,51 @@ import type { WorkspaceDashboard, WorkspaceDraft, WorkspaceSchedule } from "#/ty
 import type { JsonValue } from "@aspen-os/platform/server";
 
 export const DRAFT_EVENTS = {
-  APPROVED: "workspace:draft_approved",
-  COMMENTED: "workspace:draft_commented",
-  COMMENT_REMOVED: "workspace:draft_comment_removed",
-  CREATED: "workspace:draft_created",
-  DELETED: "workspace:draft_deleted",
-  DUPLICATED: "workspace:draft_duplicated",
-  PUBLISHED: "workspace:draft_published",
-  REJECTED: "workspace:draft_rejected",
-  REOPENED: "workspace:draft_reopened",
-  RESTORED: "workspace:draft_restored",
-  SUBMITTED: "workspace:draft_submitted",
-  TRASHED: "workspace:draft_trashed",
-  UPDATED: "workspace:draft_updated",
+  APPROVED: "workspace.draft_approved",
+  COMMENTED: "workspace.draft_commented",
+  COMMENT_REMOVED: "workspace.draft_comment_removed",
+  CREATED: "workspace.draft_created",
+  DELETED: "workspace.draft_deleted",
+  DUPLICATED: "workspace.draft_duplicated",
+  PUBLISHED: "workspace.draft_published",
+  REJECTED: "workspace.draft_rejected",
+  REOPENED: "workspace.draft_reopened",
+  RESTORED: "workspace.draft_restored",
+  SUBMITTED: "workspace.draft_submitted",
+  TRASHED: "workspace.draft_trashed",
+  UPDATED: "workspace.draft_updated",
 } as const;
 
 export const DASHBOARD_EVENTS = {
-  CREATED: "workspace:dashboard_created",
-  DELETED: "workspace:dashboard_deleted",
-  DUPLICATED: "workspace:dashboard_duplicated",
-  SCHEDULED: "workspace:dashboard_scheduled",
-  UNSCHEDULED: "workspace:dashboard_unscheduled",
-  UPDATED: "workspace:dashboard_updated",
+  CREATED: "workspace.dashboard_created",
+  DELETED: "workspace.dashboard_deleted",
+  DUPLICATED: "workspace.dashboard_duplicated",
+  SCHEDULED: "workspace.dashboard_scheduled",
+  UNSCHEDULED: "workspace.dashboard_unscheduled",
+  UPDATED: "workspace.dashboard_updated",
 } as const;
 
 export const WIDGET_EVENTS = {
-  ADDED: "workspace:widget_added",
-  REFRESHED: "workspace:widget_refreshed",
-  REMOVED: "workspace:widget_removed",
-  UPDATED: "workspace:widget_updated",
+  ADDED: "workspace.widget_added",
+  REFRESHED: "workspace.widget_refreshed",
+  REMOVED: "workspace.widget_removed",
+  UPDATED: "workspace.widget_updated",
 } as const;
 
 export const FILTER_VIEW_EVENTS = {
-  CREATED: "workspace:filter_view_created",
-  DELETED: "workspace:filter_view_deleted",
-  DUPLICATED: "workspace:filter_view_duplicated",
-  UPDATED: "workspace:filter_view_updated",
+  CREATED: "workspace.filter_view_created",
+  DELETED: "workspace.filter_view_deleted",
+  DUPLICATED: "workspace.filter_view_duplicated",
+  UPDATED: "workspace.filter_view_updated",
 } as const;
 
 export const PIN_EVENTS = {
-  CREATED: "workspace:pin_created",
-  REMOVED: "workspace:pin_removed",
+  CREATED: "workspace.pin_created",
+  REMOVED: "workspace.pin_removed",
 } as const;
 
 export const DELIVERY_SCHEDULE_EVENTS = {
-  DUE: "workspace:delivery_due",
+  DUE: "workspace.delivery_due",
 } as const;
 
 export const events = {

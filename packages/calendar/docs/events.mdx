@@ -12,18 +12,18 @@ The Calendar module publishes domain events as plain string topics via `PubSub`.
 
 | Event                       | Payload                                       | Trigger          |
 | --------------------------- | --------------------------------------------- | ---------------- |
-| `calendar:calendar_created` | `{ calendar: { id, name, access, ownerId } }` | Calendar created |
-| `calendar:calendar_updated` | `{ calendar: { id, name, access, ownerId } }` | Calendar updated |
-| `calendar:calendar_deleted` | `{ calendarId }`                              | Calendar deleted |
+| `calendar.calendar_created` | `{ calendar: { id, name, access, ownerId } }` | Calendar created |
+| `calendar.calendar_updated` | `{ calendar: { id, name, access, ownerId } }` | Calendar updated |
+| `calendar.calendar_deleted` | `{ calendarId }`                              | Calendar deleted |
 
 ### Events
 
 | Event                      | Payload                                                                                            | Trigger         |
 | -------------------------- | -------------------------------------------------------------------------------------------------- | --------------- |
-| `calendar:event_created`   | `{ calendarId, event: { id, title, startsAt, endsAt, calendarId }, sourceType?, sourceEntityId? }` | Event created   |
-| `calendar:event_updated`   | `{ calendarId, event: { id, title, startsAt, endsAt, calendarId }, sourceType?, sourceEntityId? }` | Event updated   |
-| `calendar:event_cancelled` | `{ calendarId, event: { id, title, startsAt, endsAt, calendarId } }`                               | Event cancelled |
-| `calendar:event_deleted`   | `{ calendarId, eventId }`                                                                          | Event deleted   |
+| `calendar.event_created`   | `{ calendarId, event: { id, title, startsAt, endsAt, calendarId }, sourceType?, sourceEntityId? }` | Event created   |
+| `calendar.event_updated`   | `{ calendarId, event: { id, title, startsAt, endsAt, calendarId }, sourceType?, sourceEntityId? }` | Event updated   |
+| `calendar.event_cancelled` | `{ calendarId, event: { id, title, startsAt, endsAt, calendarId } }`                               | Event cancelled |
+| `calendar.event_deleted`   | `{ calendarId, eventId }`                                                                          | Event deleted   |
 
 `startsAt`/`endsAt` are ISO strings. `sourceType`/`sourceEntityId` are `null` for standalone events.
 
@@ -31,15 +31,15 @@ The Calendar module publishes domain events as plain string topics via `PubSub`.
 
 | Event                       | Payload                                                          | Trigger          |
 | --------------------------- | ---------------------------------------------------------------- | ---------------- |
-| `calendar:attendee_invited` | `{ calendarId, eventId, attendee: { id, email, name, status } }` | Attendee added   |
-| `calendar:attendee_updated` | `{ calendarId, eventId, attendee: { id, email, name, status } }` | Attendee updated |
-| `calendar:attendee_removed` | `{ calendarId, eventId, attendeeId }`                            | Attendee removed |
+| `calendar.attendee_invited` | `{ calendarId, eventId, attendee: { id, email, name, status } }` | Attendee added   |
+| `calendar.attendee_updated` | `{ calendarId, eventId, attendee: { id, email, name, status } }` | Attendee updated |
+| `calendar.attendee_removed` | `{ calendarId, eventId, attendeeId }`                            | Attendee removed |
 
 ### Reminders
 
 | Event                       | Payload                                                                                             | Trigger                      |
 | --------------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------- |
-| `calendar:reminder_created` | `{ reminder: { id, type, targetType, targetId, message, channel, userId, isRecurring } }`           | Reminder created             |
-| `calendar:reminder_updated` | `{ reminder: { id, type, targetType, targetId, message, channel, userId, isRecurring }, changes }`  | Reminder updated             |
-| `calendar:reminder_deleted` | `{ reminderId }`                                                                                    | Reminder deleted             |
-| `calendar:reminder_due`     | `{ remindAt, reminder: { id, type, targetType, targetId, message, channel, userId, isRecurring } }` | Reminder dispatcher fired it |
+| `calendar.reminder_created` | `{ reminder: { id, type, targetType, targetId, message, channel, userId, isRecurring } }`           | Reminder created             |
+| `calendar.reminder_updated` | `{ reminder: { id, type, targetType, targetId, message, channel, userId, isRecurring }, changes }`  | Reminder updated             |
+| `calendar.reminder_deleted` | `{ reminderId }`                                                                                    | Reminder deleted             |
+| `calendar.reminder_due`     | `{ remindAt, reminder: { id, type, targetType, targetId, message, channel, userId, isRecurring } }` | Reminder dispatcher fired it |

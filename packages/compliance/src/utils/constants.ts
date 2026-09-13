@@ -135,7 +135,7 @@ export const HEALTH_SCORE_WEIGHTS = {
 } as const;
 
 export const SCHEDULED_JOBS = {
-  OBLIGATION_GENERATE: "compliance:obligation-generate",
+  OBLIGATION_GENERATE: "compliance.obligation-generate",
 } as const;
 
 export const CRON_SCHEDULES = {

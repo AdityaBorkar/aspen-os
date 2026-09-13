@@ -37,8 +37,8 @@ Polymorphic entities (`addresses`, `bankAccounts`, `connections`, `paymentMethod
 
 ## Cross-context integration
 
-- **Compliance** subscribes to `masters:contact_created` and creates an `insurance_policy` compliance document when `contact.type === "insurer"` and `entityType === "organization"` (organization-scoped only; global contacts are ignored — replaces the old `organization:connection_created` subscription).
-- **DMS** subscribes to `masters:contact_removed` (contact-share bridge) and revokes every DMS share granted to the removed contact, invalidating contact `shareToken`s.
+- **Compliance** subscribes to `masters.contact_created` and creates an `insurance_policy` compliance document when `contact.type === "insurer"` and `entityType === "organization"` (organization-scoped only; global contacts are ignored — replaces the old `organization.connection_created` subscription).
+- **DMS** subscribes to `masters.contact_removed` (contact-share bridge) and revokes every DMS share granted to the removed contact, invalidating contact `shareToken`s.
 - **Organization** depends on this module (`$dependencies: ["masters"]`) for the master-data surface that was extracted out of it.
 - **Notes** (removal): the note concept moved to `@aspen-os/notes` — scoped annotation notes migrate with `scopeType = masters:<entityType>`.
 - **Accounting / Inventory** (future, stubs) are the intended consumers of `paymentMethod` / `unitOfMeasure`.

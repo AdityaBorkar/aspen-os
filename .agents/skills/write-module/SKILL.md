@@ -137,7 +137,7 @@ export const ENTITY_STATUS = {
 export type EntityStatus = (typeof ENTITY_STATUS)[keyof typeof ENTITY_STATUS];
 ```
 
-Beyond per-entity status enums, dms keeps `AUDIT_ACTION`, `AUDIT_ENTITY_TYPE` (`"dms:file"`-style), `SETTING_KEYS`, and `SCHEDULED_JOBS` (`"dms:auto-purge"`-style, used as pubsub cron topics) here — add whichever your module needs.
+Beyond per-entity status enums, dms keeps `AUDIT_ACTION`, `AUDIT_ENTITY_TYPE` (`"dms:file"`-style), `SETTING_KEYS`, and `SCHEDULED_JOBS` (`"dms.auto-purge"`-style, used as pubsub cron topics) here — add whichever your module needs.
 
 **`src/schemas/enums.ts`** — valibot `picklist` schemas that mirror constants, importing from `../utils/constants` and re-exporting the constants objects:
 
@@ -210,7 +210,7 @@ export const tenant_schemas = dmsTables;
 
 ## Step 7 — Events
 
-**`src/pubsub.ts`** — one `<ENTITY>_EVENTS` constant object per entity group. Format: `"<name>:<event_name>"` (dms: `"dms:file_uploaded"`). Export the `events` object, typed event interfaces, per-entity `<Entity>EventMap`, and a module-level intersection type named `<PascalName>EventMap` (dms's is `DmsEventMap`), exactly as dms does.
+**`src/pubsub.ts`** — one `<ENTITY>_EVENTS` constant object per entity group. Format: `"<name>:<event_name>"` (dms: `"dms.file_uploaded"`). Export the `events` object, typed event interfaces, per-entity `<Entity>EventMap`, and a module-level intersection type named `<PascalName>EventMap` (dms's is `DmsEventMap`), exactly as dms does.
 
 ## Step 8 — Workflows
 

@@ -8,7 +8,7 @@ The Comms module is the notification and out-of-band delivery surface built on `
 
 <Callout type="warn">
   Comms is the single notification surface — there is no separate `notifications` package. There is
-  no `comms:deliver` topic; delivery is the `comms:message-sweeper` cron scanning queued `message`
+  no `comms.deliver` topic; delivery is the `comms.message-sweeper` cron scanning queued `message`
   rows.
 </Callout>
 
@@ -20,13 +20,13 @@ export class Comms implements Module {
   readonly $name = "comms"; // proxy key: p.comms
   readonly $dependencies: readonly string[] = [];
   readonly $consumes: readonly string[] = [
-    "calendar:reminder_due",
-    "dms:file_expired",
-    "announcement:published",
-    "workspace:delivery_due",
-    "management:tenant_provisioned",
-    "management:tenant_activated",
-    "auth:email_otp_requested",
+    "calendar.reminder_due",
+    "dms.file_expired",
+    "announcement.published",
+    "workspace.delivery_due",
+    "management.tenant_provisioned",
+    "management.tenant_activated",
+    "auth.email_otp_requested",
   ];
 }
 ```
@@ -75,7 +75,7 @@ flowchart TB
   PR -. routing opt-out .-> N
 
   subgraph Runtime[runtime]
-    SWEEP[comms:message-sweeper<br/>* * * * *]
+    SWEEP[comms.message-sweeper<br/>* * * * *]
     BRIDGE[event bridge<br/>7 subscriptions]
   end
 
@@ -135,7 +135,7 @@ Provider receipt webhooks correlate by `providerMessageId` and promote the messa
 packages/comms/src/
   module.ts        # $name, $consumes, $prepareRuntime (sweeper + bridge)
   auth.ts          # defineAcl 7 resources
-  pubsub.ts        # comms:* events
+  pubsub.ts        # comms.* events
   db-schemas/      # 1 control-plane + 6 tenant tables + 9 enums
   services/        # delivery-worker, event-bridge, adapters, credential-service
   workflows/       # channels, providers, notifications, preferences, templates, settings, messages

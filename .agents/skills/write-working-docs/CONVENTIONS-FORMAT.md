@@ -32,11 +32,11 @@ Conventions the toolchain cannot catch — the meat, and where all imperatives a
 
 Contents (each written as prescriptive rules):
 
-- **Naming** — files `kebab-case`; classes `PascalCase`; constants `UPPER_SNAKE_CASE`; DB tables/columns `snake_case` (camelCase in TS); event topics `domain:event_name`; `$` lifecycle prefixes; `#` private fields.
+- **Naming** — files `kebab-case`; classes `PascalCase`; constants `UPPER_SNAKE_CASE`; DB tables/columns `snake_case` (camelCase in TS); event topics `domain.event_name`; `$` lifecycle prefixes; `#` private fields.
 - **Database** — `text` + `uuidv7()` IDs (never native UUID columns); always `timestamp(... { withTimezone: true })`; `pgEnum` lowercase values; indexes `idx_<table>_<column>`; `pushSchema()`, never migration files.
 - **Module shape** — `Module` interface, lifecycle order, stateless vs runtime-wired, file layout (`module.ts`, `auth.ts`, `pubsub.ts`, `db-schemas/`, `schemas/`, `workflows/`).
 - **Validation** — Valibot for all domain input; Zod only for oRPC procedure inputs and environment variables.
-- **Events** — constants `UPPER_SNAKE` keys, `"domain:event_name"` format, `EventMap` types.
+- **Events** — constants `UPPER_SNAKE` keys, `"domain.event_name"` format, `EventMap` types.
 - **Workflows** — builder API, one action per file under REST-style folders, idempotent steps.
 - **Auth** — better-auth + ACL via `defineAcl`; `remove`, never `delete`, in the REST API.
 - **PubSub** — lazy boss; every produced topic needs a subscriber (silent-drop pitfall).
