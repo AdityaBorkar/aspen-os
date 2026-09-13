@@ -123,4 +123,10 @@ async function verify(password: string, storedHash: string): Promise<boolean> {
   return timingSafeEqual(derivedKey, storedKey);
 }
 
+/**
+ * @deprecated Legacy helper — its `scrypt:…` format is incompatible with
+ * Better Auth's `account.password` verifier (`better-auth/crypto`) and
+ * produced perpetual "Invalid password" failures. Do not use for user
+ * credentials; auth code must use `hashPassword` from `better-auth/crypto`.
+ */
 export const password = { hash, verify };

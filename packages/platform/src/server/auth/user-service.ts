@@ -1,6 +1,6 @@
 import { account, user } from "#/server/db/schema";
-import { password as Password } from "#/server/utils";
 
+import { hashPassword } from "better-auth/crypto";
 import { eq } from "drizzle-orm";
 
 import type { AuthServiceDeps, User } from "./types";
@@ -31,12 +31,18 @@ export async function createUser(
   { email, name, password }: { email: string; name?: string; password: string },
   { db, pubsub }: AuthServiceDeps,
 ): Promise<User> {
-  const passwordHash = await Password.hash(password);
+  // Better Auth looks up credentials by lowercased email at sign-in and
+  // verifies `account.password` with its own scrypt hasher
+  // (`better-auth/crypto`). A custom hash format here can never verify and
+  // surfaces as "Invalid password", so hash with the same function and
+  // normalize the email exactly like Better Auth sign-up does.
+  const normalizedEmail = email.trim().toLowerCase();
+  const passwordHash = await hashPassword(password);
 
   const [row] = await db
     .insert(user)
     .values({
-      email,
+      email: normalizedEmail,
       emailVerified: false,
       id: crypto.randomUUID(),
       name: name ?? "",
@@ -75,7 +81,11 @@ export async function getUserByEmail(
   input: { email: string },
   { db }: AuthServiceDeps,
 ): Promise<User | null> {
-  const [row] = await db.select().from(user).where(eq(user.email, input.email)).limit(1);
+  const [row] = await db
+    .select()
+    .from(user)
+    .where(eq(user.email, input.email.trim().toLowerCase()))
+    .limit(1);
   if (!row) {
     return null;
   }
