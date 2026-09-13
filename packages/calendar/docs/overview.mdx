@@ -31,7 +31,7 @@ export class Calendar implements Module {
 
 ```ts title="src/types.ts"
 type CalendarModuleConfig = {
-  complianceEnabled?: boolean; // true — subscribe to compliance:document_* events
+  complianceEnabled?: boolean; // true — subscribe to compliance.document_* events
   reminderScanCron?: string; // "* * * * *" — pg-boss cron for the reminder scan
   tasksEnabled?: boolean; // true — subscribe to task.* events
 };
@@ -63,7 +63,7 @@ flowchart TB
   subgraph Runtime[runtime — $prepareRuntime]
     RD[reminder-dispatcher<br/>calendar.reminder-scan<br/>* * * * *]
     TB[task-bridge<br/>task.due_date_changed / deleted / status_changed]
-    CB[compliance-bridge<br/>compliance:document_*]
+    CB[compliance-bridge<br/>compliance.document_*]
   end
 
   subgraph TenantDB[tenant database — calendarTables]

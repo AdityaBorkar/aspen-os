@@ -1,6 +1,6 @@
 # Notes Domain Model
 
-> Package: `@aspen-os/notes`. The first-class **note** entity — `personal`/`global` access, optional polymorphic scope and type. One tenant table (`note`, no prefix). Replaces the masters note concept (`master_note`, `p.masters.notes`, `masters:note_added/removed`) without losing the annotation use-case.
+> Package: `@aspen-os/notes`. The first-class **note** entity — `personal`/`global` access, optional polymorphic scope and type. One tenant table (`note`, no prefix). Replaces the masters note concept (`master_note`, `p.masters.notes`, `masters.note_added/removed`) without losing the annotation use-case.
 
 ## Entity-Relationship Diagram
 

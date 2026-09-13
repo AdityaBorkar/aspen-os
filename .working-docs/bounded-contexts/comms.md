@@ -44,7 +44,7 @@ p.comms.messages      { get, list, retry }
 
 ## Lineage
 
-Single module created from `.working-docs/sow/comms.md` (Phase 0–6 complete). Replaces the planned "comms" and "notifications" SOW items in `.working-docs/todo/.md`. The former `reminder:fired` producer seam (tasks) is handled via its live replacement `calendar.reminder_due`.
+Single module created from `.working-docs/sow/comms.md` (Phase 0–6 complete). Replaces the planned "comms" and "notifications" SOW items in `.working-docs/todo/.md`. The former `reminder.fired` producer seam (tasks) is handled via its live replacement `calendar.reminder_due`.
 
 ## Language
 

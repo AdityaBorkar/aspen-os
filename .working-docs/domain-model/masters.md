@@ -188,8 +188,8 @@
 | `masters.address_created`                            | `{ address: { id, country, label }, entityId, entityType }`            | Address created                                         |
 | `masters.address_updated`                            | `{ address: { id }, changes, entityId, entityType }`                   | Address updated                                         |
 | `masters.address_removed`                            | `{ addressId, entityId, entityType }`                                  | Address removed                                         |
-| `masters:bank_account_created`                       | `{ bankAccount: { id, bankName, currency }, entityId, entityType }`    | Bank account created                                    |
-| `masters:bank_account_updated`                       | `{ bankAccount: { id }, changes, entityId, entityType }`               | Bank account updated                                    |
+| `masters.bank_account_created`                       | `{ bankAccount: { id, bankName, currency }, entityId, entityType }`    | Bank account created                                    |
+| `masters.bank_account_updated`                       | `{ bankAccount: { id }, changes, entityId, entityType }`               | Bank account updated                                    |
 | `masters.bank_account_activated`                     | `{ bankAccountId }`                                                    | Bank account activated                                  |
 | `masters.bank_account_deactivated`                   | `{ bankAccountId }`                                                    | Bank account deactivated                                |
 | `masters.connection_created`                         | `{ connection: { id, name, type }, entityId, entityType }`             | Connection created                                      |

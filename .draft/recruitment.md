@@ -849,33 +849,33 @@ packages/recruitment/
 
 | Event                          | Payload                               | Trigger                                       |
 | ------------------------------ | ------------------------------------- | --------------------------------------------- |
-| `client:created`               | `{ client }`                          | Client created.                               |
-| `client:updated`               | `{ client, changes }`                 | Client details modified.                      |
-| `mandate:created`              | `{ mandate }`                         | Job mandate created.                          |
-| `mandate:assigned`             | `{ mandateId, userId }`               | Mandate assigned to a recruiter.              |
-| `mandate:verified`             | `{ mandateId, userId }`               | Mandate verified by QC.                       |
-| `mandate:opened`               | `{ mandate }`                         | Mandate status changed to open.               |
-| `mandate:closed`               | `{ mandate, reason }`                 | Mandate closed.                               |
-| `mandate:prospect_linked`      | `{ mandateId, prospectId, linkId }`   | Prospect linked to mandate.                   |
-| `mandate:prospect_unlinked`    | `{ mandateId, prospectId }`           | Prospect unlinked from mandate.               |
-| `prospect:created`             | `{ prospect }`                        | Prospect created.                             |
-| `prospect:status_changed`      | `{ prospect, fromStatus, toStatus }`  | Prospect pipeline stage change.               |
-| `prospect:assigned`            | `{ prospectId, userId }`              | Prospect assigned to a recruiter.             |
-| `applicant:created`            | `{ applicant }`                       | New job application received.                 |
-| `applicant:screened`           | `{ applicantId, userId }`             | Application screened.                         |
-| `applicant:shortlisted`        | `{ applicant }`                       | Application shortlisted.                      |
-| `applicant:rejected`           | `{ applicant, reason }`               | Application rejected.                         |
-| `candidate:created`            | `{ candidate }`                       | Candidate created from applicant or prospect. |
-| `candidate:status_changed`     | `{ candidate, fromStatus, toStatus }` | Candidate pipeline stage change.              |
-| `interview:scheduled`          | `{ interview }`                       | Interview scheduled.                          |
-| `interview:completed`          | `{ interview }`                       | Interview marked as completed.                |
-| `interview:feedback_submitted` | `{ interview, feedback }`             | Interviewer submitted feedback.               |
-| `offer:created`                | `{ offer }`                           | Job offer created.                            |
-| `offer:sent`                   | `{ offer }`                           | Offer sent to candidate.                      |
-| `offer:accepted`               | `{ offer }`                           | Offer accepted.                               |
-| `offer:rejected`               | `{ offer, reason }`                   | Offer rejected.                               |
-| `referral:created`             | `{ referral }`                        | Employee referral submitted.                  |
-| `reminder:fired`               | `{ reminder }`                        | Reminder triggered.                           |
+| `client.created`               | `{ client }`                          | Client created.                               |
+| `client.updated`               | `{ client, changes }`                 | Client details modified.                      |
+| `mandate.created`              | `{ mandate }`                         | Job mandate created.                          |
+| `mandate.assigned`             | `{ mandateId, userId }`               | Mandate assigned to a recruiter.              |
+| `mandate.verified`             | `{ mandateId, userId }`               | Mandate verified by QC.                       |
+| `mandate.opened`               | `{ mandate }`                         | Mandate status changed to open.               |
+| `mandate.closed`               | `{ mandate, reason }`                 | Mandate closed.                               |
+| `mandate.prospect_linked`      | `{ mandateId, prospectId, linkId }`   | Prospect linked to mandate.                   |
+| `mandate.prospect_unlinked`    | `{ mandateId, prospectId }`           | Prospect unlinked from mandate.               |
+| `prospect.created`             | `{ prospect }`                        | Prospect created.                             |
+| `prospect.status_changed`      | `{ prospect, fromStatus, toStatus }`  | Prospect pipeline stage change.               |
+| `prospect.assigned`            | `{ prospectId, userId }`              | Prospect assigned to a recruiter.             |
+| `applicant.created`            | `{ applicant }`                       | New job application received.                 |
+| `applicant.screened`           | `{ applicantId, userId }`             | Application screened.                         |
+| `applicant.shortlisted`        | `{ applicant }`                       | Application shortlisted.                      |
+| `applicant.rejected`           | `{ applicant, reason }`               | Application rejected.                         |
+| `candidate.created`            | `{ candidate }`                       | Candidate created from applicant or prospect. |
+| `candidate.status_changed`     | `{ candidate, fromStatus, toStatus }` | Candidate pipeline stage change.              |
+| `interview.scheduled`          | `{ interview }`                       | Interview scheduled.                          |
+| `interview.completed`          | `{ interview }`                       | Interview marked as completed.                |
+| `interview.feedback_submitted` | `{ interview, feedback }`             | Interviewer submitted feedback.               |
+| `offer.created`                | `{ offer }`                           | Job offer created.                            |
+| `offer.sent`                   | `{ offer }`                           | Offer sent to candidate.                      |
+| `offer.accepted`               | `{ offer }`                           | Offer accepted.                               |
+| `offer.rejected`               | `{ offer, reason }`                   | Offer rejected.                               |
+| `referral.created`             | `{ referral }`                        | Employee referral submitted.                  |
+| `reminder.fired`               | `{ reminder }`                        | Reminder triggered.                           |
 | `task.assigned`                | `{ taskId, userId }`                  | Task assigned to a user.                      |
 
 ### Phase Sequencing

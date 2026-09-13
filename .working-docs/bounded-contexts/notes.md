@@ -29,7 +29,7 @@ p.notes.notes        { create, delete, get, list, update }
 ## Cross-context integration
 
 - **Workspace** (docs-level): `notes:note` is a built-in view domain (`VIEW_DOMAIN`); notes are linkable from workspace pins/recent. No code coupling.
-- **Masters** (removal): the notes module replaces the `master_note` table / `p.masters.notes` group / `masters:note_added`/`note_removed` events / note ACL resource / note schemas. Scoped annotation notes migrate with `scopeType = masters:<entityType>`, `scopeId = entityId`, `content → body`, `userId → ownerId`.
+- **Masters** (removal): the notes module replaces the `master_note` table / `p.masters.notes` group / `masters.note_added`/`note_removed` events / note ACL resource / note schemas. Scoped annotation notes migrate with `scopeType = masters:<entityType>`, `scopeId = entityId`, `content → body`, `userId → ownerId`.
 - **Calendar** (future, docs-level): `calendar_reminder.targetType = note` may target notes.
 - **Compliance** (out of scope, docs-level): hosts may link via `scopeType = compliance:document` at their discretion.
 

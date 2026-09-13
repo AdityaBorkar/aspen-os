@@ -210,7 +210,7 @@ export const tenant_schemas = dmsTables;
 
 ## Step 7 — Events
 
-**`src/pubsub.ts`** — one `<ENTITY>_EVENTS` constant object per entity group. Format: `"<name>:<event_name>"` (dms: `"dms.file_uploaded"`). Export the `events` object, typed event interfaces, per-entity `<Entity>EventMap`, and a module-level intersection type named `<PascalName>EventMap` (dms's is `DmsEventMap`), exactly as dms does.
+**`src/pubsub.ts`** — one `<ENTITY>_EVENTS` constant object per entity group. Format: `"<name>.<event_name>"` (dms: `"dms.file_uploaded"`). Export the `events` object, typed event interfaces, per-entity `<Entity>EventMap`, and a module-level intersection type named `<PascalName>EventMap` (dms's is `DmsEventMap`), exactly as dms does.
 
 ## Step 8 — Workflows
 
