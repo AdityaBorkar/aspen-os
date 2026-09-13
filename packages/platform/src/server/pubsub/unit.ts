@@ -77,7 +77,7 @@ export class PubSubUnit {
     await this.ensureStarted();
     try {
       const opts = this.toBossOptions(options);
-      const id = await this.boss.send(topic, data, opts);
+      const id = await this.withQueueEnsured(topic, () => this.boss.send(topic, data, opts));
       this.recordProduced(topic);
       if (!id) {
         console.warn(
@@ -104,7 +104,7 @@ export class PubSubUnit {
       ...this.toBossOptions(msg.options),
     }));
     try {
-      const result = await this.boss.insert(topic, jobs);
+      const result = await this.withQueueEnsured(topic, () => this.boss.insert(topic, jobs));
       this.recordProduced(topic, jobs.length);
       return result ?? [];
     } catch (error) {
@@ -160,6 +160,27 @@ export class PubSubUnit {
   }
 
   // -------------------------------------------------
+
+  /**
+   * pg-boss `send()`/`insert()` throw `Queue <name> does not exist` when no
+   * queue was created by a prior `work()`/`schedule()` call. Domain events
+   * are fire-and-forget, so auto-create the queue and retry once instead of
+   * failing the publishing workflow step.
+   */
+  private async withQueueEnsured<TValue>(
+    topic: string,
+    operation: () => Promise<TValue>,
+  ): Promise<TValue> {
+    try {
+      return await operation();
+    } catch (error) {
+      if (!(error instanceof Error) || !/Queue .* does not exist/.test(error.message)) {
+        throw error;
+      }
+      await this.boss.createQueue(topic);
+      return await operation();
+    }
+  }
 
   private createBoss(dbConfig: DatabaseConfig): PgBoss {
     return new PgBoss({
@@ -233,8 +254,8 @@ export class PubSubUnit {
 
   /**
    * Track that a message was published to `topic`. Used by the health check to
-   * detect topics that were produced to but have no registered consumer (which
-   * pg-boss silently drops).
+   * detect topics that were produced to but have no registered consumer (jobs
+   * queue durably until a subscriber appears).
    */
   private recordProduced(topic: string, count = 1): void {
     this.producedTopics.set(topic, (this.producedTopics.get(topic) ?? 0) + count);
@@ -242,8 +263,8 @@ export class PubSubUnit {
 
   /**
    * Topics that have been produced to but currently have no registered
-   * subscriber. Publishing to such a topic is silently dropped by pg-boss
-   * (send() returns null), so this flags a likely bug.
+   * subscriber. Messages queue durably until a consumer subscribes, so this
+   * flags a likely missing bridge rather than a dropped message.
    */
   getUnsubscribedProducedTopics(): string[] {
     return [...this.producedTopics.keys()].filter((topic) => !this.subscriptions.has(topic));

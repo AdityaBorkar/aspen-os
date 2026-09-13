@@ -45,8 +45,8 @@ export class Comms implements Module {
     "dms.file_expired",
     "announcement.published",
     "workspace.delivery_due",
-    "management.tenant_provisioned",
-    "management.tenant_activated",
+    "tenant.provisioned",
+    "tenant.activated",
     "auth.email_otp_requested",
   ];
   readonly $config: CommsModuleConfig;

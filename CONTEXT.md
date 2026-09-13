@@ -710,7 +710,7 @@ Implemented: Comms module — notification/inbox + out-of-band delivery on a
   (`db, kvStore, pubsub, auth`); `$prepareRuntime()` registers sweeper + 8
   event-bridge subscriptions (`compliance.document_expiring`/`document_due`,
   `calendar.reminder_due`, `dms.file_expired`, `announcement.published`,
-  `management.tenant_provisioned`/`tenant_activated`,
+  `tenant.provisioned`/`tenant.activated`,
   `auth.email_otp_requested` — OTP never persisted, delivered inline via
   `rest.otp`). 1 control-plane table (`comms_provider`) + 6 tenant tables,
   21 events, 7 ACL resources. No module deps.

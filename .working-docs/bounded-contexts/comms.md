@@ -34,7 +34,7 @@ p.comms.messages      { get, list, retry }
 
 ## Consumed topics (event bridge)
 
-`compliance.document_expiring` / `document_due`, `calendar.reminder_due`, `dms.file_expired`, `announcement.published` (hr, planned), `management.tenant_provisioned` / `tenant_activated`, `auth.email_otp_requested` (new). Subscription pattern copied from compliance's `event-bridge.ts` (`subscribeValidated`).
+`compliance.document_expiring` / `document_due`, `calendar.reminder_due`, `dms.file_expired`, `announcement.published` (hr, planned), `tenant.provisioned` / `tenant.activated`, `auth.email_otp_requested` (new). Subscription pattern copied from compliance's `event-bridge.ts` (`subscribeValidated`).
 
 ## Producer extensions
 

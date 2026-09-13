@@ -158,10 +158,10 @@ export async function registerEventBridgeSubscriptions(deps: EventBridgeDeps): P
   await add("workspace.delivery_due", DeliveryDueEventSchema, (data, target) =>
     handleDeliveryDue(data, target),
   );
-  await add("management.tenant_provisioned", TenantLifecycleEventSchema, (data, target) =>
+  await add("tenant.provisioned", TenantLifecycleEventSchema, (data, target) =>
     handleTenantLifecycle(data.tenantId, target),
   );
-  await add("management.tenant_activated", TenantLifecycleEventSchema, (data, target) =>
+  await add("tenant.activated", TenantLifecycleEventSchema, (data, target) =>
     handleTenantLifecycle(data.tenantId, target),
   );
   await add("auth.email_otp_requested", OtpRequestedEventSchema, (data, target) =>

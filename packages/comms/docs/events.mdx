@@ -6,23 +6,23 @@ icon: IconBell
 
 The Comms module publishes and consumes domain events as plain string topics via `PubSub`.
 
-<Callout type="warn">
-  Pubsub starts lazily: publishing to a topic with no subscriber silently drops the message. Every
-  bridge topic below is subscribed in `$prepareRuntime()`; the sweeper needs no subscription because
-  it is a cron.
+<Callout type="info">
+  Pubsub starts lazily: `publish()` auto-creates a missing queue and retries, so messages queue
+  durably until a consumer appears. Every bridge topic below is subscribed in `$prepareRuntime()`;
+  the sweeper needs no subscription because it is a cron.
 </Callout>
 
 ## Consumed (event bridge)
 
-| Topic                           | Producer                     | Handler                                                               |
-| ------------------------------- | ---------------------------- | --------------------------------------------------------------------- |
-| `calendar.reminder_due`         | calendar reminder dispatcher | `notify` to `reminder.userId` (`type: reminder_fired`)                |
-| `dms.file_expired`              | dms `expiry-scanner`         | `notify` to file `ownerId` (`type: file_expired`)                     |
-| `announcement.published`        | hr (planned)                 | one in-app notification per `recipientUserIds` (`type: announcement`) |
-| `workspace.delivery_due`        | workspace schedule           | fan-out `notify` per `recipients` (`type: dashboard_delivery`)        |
-| `management.tenant_provisioned` | management                   | warm host default channels (`ensureDefaults`) per tenant              |
-| `management.tenant_activated`   | management                   | warm host default channels (`ensureDefaults`) per tenant              |
-| `auth.email_otp_requested`      | platform auth                | inline OTP email via host default email provider                      |
+| Topic                      | Producer                     | Handler                                                               |
+| -------------------------- | ---------------------------- | --------------------------------------------------------------------- |
+| `calendar.reminder_due`    | calendar reminder dispatcher | `notify` to `reminder.userId` (`type: reminder_fired`)                |
+| `dms.file_expired`         | dms `expiry-scanner`         | `notify` to file `ownerId` (`type: file_expired`)                     |
+| `announcement.published`   | hr (planned)                 | one in-app notification per `recipientUserIds` (`type: announcement`) |
+| `workspace.delivery_due`   | workspace schedule           | fan-out `notify` per `recipients` (`type: dashboard_delivery`)        |
+| `tenant.provisioned`       | management                   | warm host default channels (`ensureDefaults`) per tenant              |
+| `tenant.activated`         | management                   | warm host default channels (`ensureDefaults`) per tenant              |
+| `auth.email_otp_requested` | platform auth                | inline OTP email via host default email provider                      |
 
 Subscriptions register in `$prepareRuntime()` with Valibot validation; unknown topics no-op.
 

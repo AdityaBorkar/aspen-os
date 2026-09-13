@@ -33,7 +33,7 @@
 ## Data And Events
 
 - Database changes use Drizzle `pushSchema()` during platform preparation, not migration files. Domain IDs are text UUID v7 values, timestamps are timezone-aware, PostgreSQL names are snake_case mapped to camelCase TypeScript properties; see `CODING_CONVENTIONS.md` for the exact column rules.
-- pg-boss pub/sub starts lazily. Publishing to a topic with no `subscribe()` consumer silently drops the message; every produced topic needs a subscriber, and `healthCheck()` reports unsubscribed produced topics.
+- pg-boss pub/sub starts lazily. `publish()` auto-creates a missing queue and retries, so messages queue durably until a `subscribe()` consumer appears; every produced topic still wants a subscriber, and `healthCheck()` reports unsubscribed produced topics.
 - `@aspen-os/dms` is the single document/file surface; do not recreate a `drive` package or parallel file/tag/share/trash model.
 - `@aspen-os/comms` is the single notification/inbox and out-of-band delivery surface. Do not recreate a `notifications` package or a parallel `comms.deliver` topic — delivery is the cron-scan `comms.message-sweeper` outbox worker.
 - `@aspen-os/notes` owns notes. `@aspen-os/masters` no longer owns notes.
