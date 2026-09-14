@@ -37,11 +37,16 @@ export const settle = Workflow.name("healthcare.billing.settle")
       ]),
     );
     const open = invoices.filter((row) => ["final", "partial"].includes(row.status));
+    const scoped =
+      parsed.episodeId === undefined
+        ? open
+        : open.filter((row) => row.encounter_id === parsed.episodeId);
     const balance = advances.reduce((sum, row) => sum + Number(row.balance), 0);
-    const gross = open.reduce((sum, row) => sum + (Number(row.total) - Number(row.paid)), 0);
+    const gross = scoped.reduce((sum, row) => sum + (Number(row.total) - Number(row.paid)), 0);
     return {
       balance,
-      openInvoices: open.map((row) => ({
+      episodeId: parsed.episodeId ?? null,
+      openInvoices: scoped.map((row) => ({
         due: Number(row.total) - Number(row.paid),
         id: row.id,
         invoiceNo: row.invoice_no,

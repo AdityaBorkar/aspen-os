@@ -3,6 +3,7 @@ import { BranchIdSchema, PaginationSchema } from "#/schemas/utils";
 
 import {
   array,
+  maxLength,
   maxValue,
   minLength,
   minValue,
@@ -108,7 +109,7 @@ const PainFiltersSchema = object({
 
 const RecordRiskScreenSchema = object({
   branchId: BranchIdSchema,
-  kind: picklist(["Braden", "Morse"]),
+  kind: picklist(["Braden", "MNA", "Morse"]),
   patientId: Id,
   score: number(),
   screenedBy: Id,
@@ -121,7 +122,8 @@ const RiskScreenFiltersSchema = object({
 });
 
 const AdministerDrugSchema = object({
-  batchId: Id,
+  allergies: optional(array(string())),
+  batchId: optional(pipe(string(), minLength(1))),
   branchId: BranchIdSchema,
   doctorOverrideId: optional(string()),
   dose: pipe(string(), minLength(1, "Dose is required")),
@@ -130,6 +132,7 @@ const AdministerDrugSchema = object({
   orderId: optional(string()),
   outcome: picklist(["Given", "Held", "Missed", "Refused"]),
   patientId: Id,
+  route: optional(pipe(string(), maxLength(50))),
   witness: optional(string()),
 });
 
@@ -140,12 +143,27 @@ const DrugAdminFiltersSchema = object({
   patientId: optional(string()),
 });
 
+const NursingConsumableSchema = object({
+  item: pipe(string(), minLength(1)),
+  qty: pipe(number(), minValue(1)),
+});
+
 const RecordSittingSchema = object({
   branchId: BranchIdSchema,
   consentId: Id,
+  consumables: optional(array(NursingConsumableSchema)),
   note: optional(string()),
   patientId: Id,
   phase: picklist(["post", "pre"]),
+  vitals: optional(
+    object({
+      bpDia: optional(number()),
+      bpSys: optional(number()),
+      pulse: optional(number()),
+      spo2: optional(number()),
+      temp: optional(number()),
+    }),
+  ),
 });
 
 const SittingFiltersSchema = object({
@@ -176,6 +194,7 @@ const RecordChecklistSchema = object({
       label: pipe(string(), minLength(1)),
     }),
   ),
+  kind: optional(picklist(["discharge", "general", "transfer"])),
   name: pipe(string(), minLength(1, "Checklist name is required")),
   patientId: optional(string()),
 });
@@ -245,6 +264,7 @@ export {
   HandoverFiltersSchema,
   IoFiltersSchema,
   NursingBoardSchema,
+  NursingConsumableSchema,
   NursingNoteFiltersSchema,
   NursingPatientRefSchema,
   NursingTaskFiltersSchema,

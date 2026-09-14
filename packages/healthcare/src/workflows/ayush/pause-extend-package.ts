@@ -42,6 +42,9 @@ export const pauseExtendPackage = Workflow.name("healthcare.ayush.pauseExtendPac
     }
     if (parsed.action === "complete") {
       patch.status = "Completed";
+      if (!parsed.outcomeNote && !parsed.reason) {
+        throw new Error("Package completion needs an outcome note; record the outcome first");
+      }
     }
     if (parsed.action === "extend") {
       if (!parsed.extendDays) {
@@ -57,7 +60,11 @@ export const pauseExtendPackage = Workflow.name("healthcare.ayush.pauseExtendPac
         .update(healthcareTherapyPackage)
         .set({
           ...patch,
-          payload: parsed.reason ? { ...pkg.payload, lastNote: parsed.reason } : pkg.payload,
+          payload: {
+            ...pkg.payload,
+            ...(parsed.reason ? { lastNote: parsed.reason } : {}),
+            ...(parsed.outcomeNote ? { outcomeNote: parsed.outcomeNote } : {}),
+          },
         })
         .where(eq(healthcareTherapyPackage.id, parsed.packageId))
         .returning(),

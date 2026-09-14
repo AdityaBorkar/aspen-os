@@ -155,7 +155,7 @@ export const healthcareNursingRiskScreen = pgTable(
 export const healthcareDrugAdministration = pgTable(
   "healthcare_drug_administration",
   {
-    batch_id: text().notNull(),
+    batch_id: text(),
     branch_id: text().notNull().default("main"),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     doctor_override_id: text(),

@@ -23,6 +23,7 @@ export const recordStayCharge = Workflow.name("healthcare.residents.record-stay-
           branch_id: branchId,
           charge_date: parsed.chargeDate,
           kind: parsed.kind ?? "stay",
+          payload: { reason: parsed.reason ?? null },
           resident_id: resident.id,
         })
         .returning(),
@@ -50,6 +51,7 @@ export const recordStayCharge = Workflow.name("healthcare.residents.record-stay-
       amount: Number(row.amount),
       chargeDate: row.charge_date,
       id: row.id,
+      kind: row.kind,
       residentId: row.resident_id,
     };
   });

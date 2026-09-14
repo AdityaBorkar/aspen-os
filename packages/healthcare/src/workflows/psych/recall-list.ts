@@ -26,13 +26,17 @@ export const recallList = Workflow.name("healthcare.psych.recallList")
         .limit(parsed.limit ?? 50);
     });
 
-    return rows.map((row) => ({
-      branchId: row.branch_id,
-      createdAt: row.created_at.toISOString(),
-      encounterId: row.encounter_id,
-      factors: row.factors,
-      id: row.id,
-      level: row.level,
-      patientId: row.patient_id,
-    }));
+    const now = Date.now();
+    return rows
+      .map((row) => ({
+        branchId: row.branch_id,
+        createdAt: row.created_at.toISOString(),
+        daysOverdue: Math.max(0, Math.floor((now - row.created_at.getTime()) / 86_400_000)),
+        encounterId: row.encounter_id,
+        factors: row.factors,
+        id: row.id,
+        level: row.level,
+        patientId: row.patient_id,
+      }))
+      .filter((row) => row.daysOverdue >= (parsed.minDaysOverdue ?? 0));
   });

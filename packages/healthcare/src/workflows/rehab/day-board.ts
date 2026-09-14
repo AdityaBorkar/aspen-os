@@ -3,7 +3,7 @@ import { RehabFiltersSchema } from "#/schemas/rehab";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, desc, eq } from "drizzle-orm";
-import { object, parse } from "valibot";
+import { is, object, parse, string } from "valibot";
 
 const DayBoardInputSchema = object({ input: RehabFiltersSchema });
 
@@ -30,15 +30,38 @@ export const dayBoard = Workflow.name("healthcare.rehab.dayBoard")
         .offset(parsed.offset ?? 0);
     });
 
-    return rows.map((row) => ({
-      branchId: row.branch_id,
-      createdAt: row.created_at.toISOString(),
-      date: row.date,
-      episodeId: row.episode_id,
-      id: row.id,
-      modality: row.modality,
-      patientId: row.patient_id,
-      slot: row.slot,
-      status: row.status,
-    }));
+    const sittings = rows.map((row) => {
+      const { payload } = row;
+      return {
+        branchId: row.branch_id,
+        createdAt: row.created_at.toISOString(),
+        date: row.date,
+        episodeId: row.episode_id,
+        equipmentId: is(string(), payload.equipmentId) ? payload.equipmentId : null,
+        id: row.id,
+        modality: row.modality,
+        patientId: row.patient_id,
+        slot: row.slot,
+        status: row.status,
+        therapistId: is(string(), payload.therapistId) ? payload.therapistId : null,
+      };
+    });
+    const count = (status: string) =>
+      sittings.filter((sitting) => sitting.status === status).length;
+    const load: Record<string, number> = {};
+    for (const sitting of sittings) {
+      if (sitting.therapistId) {
+        load[sitting.therapistId] = (load[sitting.therapistId] ?? 0) + 1;
+      }
+    }
+    return {
+      groups: {
+        booked: count("Booked"),
+        completed: count("Completed"),
+        inProgress: count("InProgress"),
+      },
+      load,
+      sittings,
+      total: sittings.length,
+    };
   });

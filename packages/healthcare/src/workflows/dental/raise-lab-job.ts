@@ -40,6 +40,12 @@ export const raiseLabJob = Workflow.name("healthcare.dental.raiseLabJob")
           kind: parsed.kind,
           lab_name: parsed.labName,
           patient_id: parsed.patientId,
+          payload: {
+            ...(parsed.dueDate ? { dueDate: parsed.dueDate } : {}),
+            ...(parsed.shade ? { shade: parsed.shade } : {}),
+            ...(parsed.metal ? { metal: parsed.metal } : {}),
+            ...(parsed.qcNote ? { qcNote: parsed.qcNote } : {}),
+          },
           plan_id: parsed.planId ?? null,
           status: parsed.status,
           tooth: parsed.tooth ?? null,
@@ -72,16 +78,24 @@ export const raiseLabJob = Workflow.name("healthcare.dental.raiseLabJob")
       });
     });
 
+    const spec =
+      row.payload && typeof row.payload === "object"
+        ? (row.payload as Record<string, unknown>)
+        : {};
     return {
       branchId: row.branch_id,
       createdAt: row.created_at.toISOString(),
+      dueDate: typeof spec.dueDate === "string" ? spec.dueDate : null,
       encounterId: row.encounter_id,
       history: row.history,
       id: row.id,
       kind: row.kind,
       labName: row.lab_name,
+      metal: typeof spec.metal === "string" ? spec.metal : null,
       patientId: row.patient_id,
       planId: row.plan_id,
+      qcNote: typeof spec.qcNote === "string" ? spec.qcNote : null,
+      shade: typeof spec.shade === "string" ? spec.shade : null,
       status: row.status,
       tooth: row.tooth,
     };

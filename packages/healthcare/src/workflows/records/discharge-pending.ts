@@ -1,59 +1,68 @@
-import { healthcareNursingTask, healthcareDaycareSitting } from "#/db-schemas/nursing";
+import { healthcareClinicalDocument, healthcareDischargeSummary } from "#/db-schemas/records";
 import { TimelineQuerySchema } from "#/schemas/records";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { and, eq } from "drizzle-orm";
-import { object, parse } from "valibot";
+import { desc, eq } from "drizzle-orm";
+import { is, object, optional, parse, string } from "valibot";
 
-const DischargePendingInputSchema = object({ input: TimelineQuerySchema });
+const DischargePendingInputSchema = object({
+  input: object({
+    ...TimelineQuerySchema.entries,
+    patientId: optional(string()),
+    ward: optional(string()),
+  }),
+});
 
 export const dischargePending = Workflow.name("healthcare.records.discharge-pending")
   .input(DischargePendingInputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(TimelineQuerySchema, input);
+    const parsed = parse(DischargePendingInputSchema, { input }).input;
     const branchId = parsed.branchId ?? "main";
-    const [sittings, tasks] = await ctx.step.run("load-pending", async () =>
+
+    const [summaries, docs] = await ctx.step.run("load-pending", async () =>
       Promise.all([
         ctx.db
           .select()
-          .from(healthcareDaycareSitting)
-          .where(
-            and(
-              eq(healthcareDaycareSitting.branch_id, branchId),
-              eq(healthcareDaycareSitting.patient_id, parsed.patientId),
-            ),
-          )
-          .limit(100),
+          .from(healthcareDischargeSummary)
+          .where(eq(healthcareDischargeSummary.branch_id, branchId))
+          .orderBy(desc(healthcareDischargeSummary.created_at))
+          .limit(500),
         ctx.db
           .select()
-          .from(healthcareNursingTask)
-          .where(
-            and(
-              eq(healthcareNursingTask.branch_id, branchId),
-              eq(healthcareNursingTask.patient_id, parsed.patientId),
-              eq(healthcareNursingTask.status, "open"),
-            ),
-          )
-          .limit(100),
+          .from(healthcareClinicalDocument)
+          .where(eq(healthcareClinicalDocument.branch_id, branchId))
+          .orderBy(desc(healthcareClinicalDocument.created_at))
+          .limit(500),
       ]),
     );
-    const days = new Map<string, { post: boolean; pre: boolean }>();
-    for (const sitting of sittings) {
-      const day = sitting.created_at.toISOString().slice(0, 10);
-      const entry = days.get(day) ?? { post: false, pre: false };
-      if (sitting.phase === "pre") {
-        entry.pre = true;
-      } else {
-        entry.post = true;
-      }
-      days.set(day, entry);
-    }
-    const pendingDays = [...days.entries()]
-      .filter(([, entry]) => entry.pre && !entry.post)
-      .map(([day]) => day);
+
+    const issued = new Set(summaries.map((row) => row.encounter_id));
+    const pending = docs
+      .filter((row) => {
+        if (parsed.patientId && row.patient_id !== parsed.patientId) {
+          return false;
+        }
+        if (parsed.ward) {
+          const ward = is(string(), row.payload.ward) ? row.payload.ward : null;
+          if (ward !== parsed.ward) {
+            return false;
+          }
+        }
+        return !issued.has(row.encounter_id ?? "");
+      })
+      .map((row) => ({
+        encounterId: row.encounter_id,
+        id: row.id,
+        label: row.label,
+        patientId: row.patient_id,
+        uploadedAt: row.uploaded_at.toISOString(),
+        ward: is(string(), row.payload.ward) ? row.payload.ward : null,
+      }));
+
     return {
-      openTasks: tasks.map((row) => ({ id: row.id, kind: row.kind, title: row.title })),
-      patientId: parsed.patientId,
-      pendingDays,
+      issued: summaries.length,
+      patientId: parsed.patientId ?? null,
+      pending,
+      ward: parsed.ward ?? null,
     };
   });

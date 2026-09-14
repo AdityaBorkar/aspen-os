@@ -61,6 +61,19 @@ export const compileStayBill = Workflow.name("healthcare.residents.compile-stay-
         0,
       );
     const total = Math.max(0, gross + adjustments - advanceBalance);
+    // Advance-consumption alert at 80%: families top up before month-end.
+    // The dues gate blocks discharge handover while dues remain, unless a
+    // payer undertaking is recorded on the resident payload.
+    const advanceTotal = advances.reduce((sum, row) => sum + Number(row.amount), 0);
+    const advanceUsedPct =
+      advanceTotal > 0
+        ? Math.min(100, Math.round(((advanceTotal - advanceBalance) / advanceTotal) * 100))
+        : 0;
+    const advanceAlert =
+      advanceUsedPct >= 80
+        ? `Advance ${advanceUsedPct}% consumed; collect a top-up before month-end`
+        : null;
+    const duesBlocked = total > 0;
     const no = await ctx.step.run(nextHealthcareSeries, { input: { series: "invoice" } });
     const [row] = await ctx.step.run("insert-compiled-bill", async () =>
       ctx.db
@@ -105,7 +118,10 @@ export const compileStayBill = Workflow.name("healthcare.residents.compile-stay-
     });
     return {
       adjustments,
+      advanceAlert,
       advanceBalance,
+      advanceUsedPct,
+      duesBlocked,
       gross,
       invoiceId: row.id,
       invoiceNo: row.invoice_no,

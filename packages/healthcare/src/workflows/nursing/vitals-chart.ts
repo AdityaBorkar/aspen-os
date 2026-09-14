@@ -69,5 +69,7 @@ export const vitalsChart = Workflow.name("healthcare.nursing.vitals-chart")
       ews: row.ews,
       id: row.id,
       patientId: row.patient_id,
+      repeatDue: row.ews > 0,
+      repeatPrompt: row.ews > 0 ? "Abnormal vitals: repeat in 15 min and inform the MO" : null,
     };
   });

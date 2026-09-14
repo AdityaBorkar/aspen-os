@@ -24,8 +24,13 @@ export const interimTab = Workflow.name("healthcare.billing.interim-tab")
         )
         .limit(500),
     );
-    const mine = rows.filter((row) => ["draft", "final", "partial"].includes(row.status));
+    const scoped =
+      parsed.episodeId === undefined
+        ? rows
+        : rows.filter((row) => row.encounter_id === parsed.episodeId);
+    const mine = scoped.filter((row) => ["draft", "final", "partial"].includes(row.status));
     return {
+      episodeId: parsed.episodeId ?? null,
       invoices: mine.map((row) => ({
         id: row.id,
         invoiceNo: row.invoice_no,

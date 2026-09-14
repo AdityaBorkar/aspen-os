@@ -65,10 +65,28 @@ export const closeStage = Workflow.name("healthcare.dental.closeStage")
       }
     }
 
+    if (parsed.to === "Done") {
+      if (!parsed.note || parsed.note.trim().length === 0) {
+        throw new Error("Stage cannot close without a clinical note; add the note first");
+      }
+      if (!parsed.nextAppointment && parsed.completed !== true) {
+        throw new Error(
+          "Stage cannot close without a next appointment or completion flag; set one of them",
+        );
+      }
+    }
+
     const [row] = await ctx.step.run("update-plan-stage", async () =>
       ctx.db
         .update(healthcarePlanStage)
-        .set({ stage: parsed.to })
+        .set({
+          payload: {
+            ...(parsed.note ? { closeNote: parsed.note } : {}),
+            ...(parsed.nextAppointment ? { nextAppointment: parsed.nextAppointment } : {}),
+            ...(parsed.completed !== undefined ? { completed: parsed.completed } : {}),
+          },
+          stage: parsed.to,
+        })
         .where(eq(healthcarePlanStage.id, stage.id))
         .returning(),
     );
@@ -92,8 +110,25 @@ export const closeStage = Workflow.name("healthcare.dental.closeStage")
       });
     });
 
+    const openStages = await ctx.step.run("count-open-stages", async () =>
+      ctx.db
+        .select({ id: healthcarePlanStage.id })
+        .from(healthcarePlanStage)
+        .where(
+          and(
+            eq(healthcarePlanStage.plan_id, parsed.planId),
+            eq(healthcarePlanStage.stage, "Planned"),
+          ),
+        ),
+    );
+
     return {
+      completed: parsed.completed ?? null,
       id: parsed.planId,
+      nextAppointment: parsed.nextAppointment ?? null,
+      note: parsed.note ?? null,
+      openStages: openStages.length,
+      planClosable: openStages.length === 0,
       stage: row.stage,
       stageId: row.id,
     };

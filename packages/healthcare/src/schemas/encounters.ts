@@ -60,6 +60,7 @@ export const PrescriptionItemSchema = object({
   days: pipe(number(), integer()),
   dose: pipe(string(), minLength(1, "Dose is required")),
   drug: pipe(string(), minLength(1, "Drug name is required")),
+  frequency: optional(pipe(string(), minLength(1))),
   warnings: optional(array(string())),
 });
 
@@ -85,9 +86,10 @@ export type RefillInput = InferOutput<typeof RefillSchema>;
 export const PlaceOrderSchema = object({
   encounterId: EncounterId,
   item: pipe(string(), minLength(1, "Order item is required")),
-  kind: picklist(["lab", "radiology", "procedure", "referral", "nursing"]),
+  kind: picklist(["lab", "radiology", "pharmacy", "procedure", "referral", "nursing"]),
   note: optional(string()),
   patientId: pipe(string(), minLength(1, "Patient ID is required")),
+  receivingUnit: optional(pipe(string(), minLength(1))),
 });
 
 export type PlaceOrderInput = InferOutput<typeof PlaceOrderSchema>;

@@ -28,6 +28,7 @@ export const placeOrder = Workflow.name("healthcare.encounters.place-order")
           kind: parsed.kind,
           note: parsed.note ?? null,
           patient_id: parsed.patientId,
+          payload: parsed.receivingUnit ? { receivingUnit: parsed.receivingUnit } : {},
           status: "ordered",
         })
         .returning(),

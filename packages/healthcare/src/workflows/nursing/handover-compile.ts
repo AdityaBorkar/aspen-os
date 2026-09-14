@@ -45,6 +45,18 @@ export const handoverCompile = Workflow.name("healthcare.nursing.handover-compil
     if (!row) {
       throw new Error("Failed to compile handover.");
     }
+    // Unsigned-handover flag: earlier drafts still awaiting sign-off stay
+    // visible on the dashboard until signed.
+    const unsignedCount = await ctx.step.run("count-unsigned", async () => {
+      const drafts = await ctx.db
+        .select({ id: healthcareHandover.id })
+        .from(healthcareHandover)
+        .where(
+          and(eq(healthcareHandover.branch_id, branchId), eq(healthcareHandover.status, "draft")),
+        )
+        .limit(100);
+      return drafts.length;
+    });
     const at = new Date().toISOString();
     await ctx.step.run("audit-and-notify", async () => {
       await ctx.audit.write({
@@ -65,5 +77,11 @@ export const handoverCompile = Workflow.name("healthcare.nursing.handover-compil
         id: row.id,
       });
     });
-    return { handoverId: row.id, openTasks: row.open_tasks.length, status: row.status };
+    return {
+      handoverId: row.id,
+      openTasks: row.open_tasks.length,
+      status: row.status,
+      unsignedCount,
+      unsignedFlag: unsignedCount > 0,
+    };
   });

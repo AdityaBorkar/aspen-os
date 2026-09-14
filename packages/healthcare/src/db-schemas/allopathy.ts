@@ -180,3 +180,32 @@ export const healthcareTriageEntry = pgTable(
 
 export type HealthcareTriageEntry = typeof healthcareTriageEntry.$inferSelect;
 export type NewHealthcareTriageEntry = typeof healthcareTriageEntry.$inferInsert;
+
+export const healthcareProblem = pgTable(
+  "healthcare_problem",
+  {
+    branch_id: text().notNull(),
+    code: text().notNull(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    created_by: text().notNull(),
+    encounter_id: text(),
+    id: uuidv7().primaryKey(),
+    label: text(),
+    patient_id: text().notNull(),
+    payload: jsonb().$type<Record<string, JsonValue>>().notNull().default({}),
+    status: text().notNull().default("active"),
+    system: text().notNull().default("ICD11"),
+    updated_at: timestamp({ withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index("idx_healthcare_problem_branch_id").on(table.branch_id),
+    index("idx_healthcare_problem_patient_id").on(table.patient_id),
+    index("idx_healthcare_problem_status").on(table.status),
+  ],
+);
+
+export type HealthcareProblem = typeof healthcareProblem.$inferSelect;
+export type NewHealthcareProblem = typeof healthcareProblem.$inferInsert;

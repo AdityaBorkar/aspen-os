@@ -91,6 +91,7 @@ export const RECORDS_EVENTS = {
   CREATED: "healthcare.records_created",
   MERGED: "healthcare.records_merged",
   UPDATED: "healthcare.records_updated",
+  VIEWED: "healthcare.records_viewed",
 } as const;
 
 export const OPERATIONS_EVENTS = {

@@ -24,6 +24,11 @@ export const registersAppend = Workflow.name("healthcare.records.registers-appen
           branch_id: branchId,
           details: parsed.details,
           entered_by: parsed.enteredBy,
+          payload: {
+            ...(parsed.encounterId ? { encounterId: parsed.encounterId } : {}),
+            ...(parsed.occurredAt ? { occurredAt: parsed.occurredAt } : {}),
+            ...(parsed.certifierId ? { certifierId: parsed.certifierId } : {}),
+          },
           register: parsed.register,
           serial,
           status: "live",
@@ -49,5 +54,13 @@ export const registersAppend = Workflow.name("healthcare.records.registers-appen
         id: row.id,
       });
     });
-    return { id: row.id, register: row.register, serial: row.serial, status: row.status };
+    return {
+      certifierId: parsed.certifierId ?? null,
+      encounterId: parsed.encounterId ?? null,
+      id: row.id,
+      occurredAt: parsed.occurredAt ?? null,
+      register: row.register,
+      serial: row.serial,
+      status: row.status,
+    };
   });

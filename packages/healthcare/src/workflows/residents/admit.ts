@@ -27,6 +27,13 @@ export const admit = Workflow.name("healthcare.residents.admit")
           name: parsed.name,
           nok_name: parsed.nokName,
           nok_phone: parsed.nokPhone,
+          payload: {
+            history: parsed.history ?? null,
+            idNumber: parsed.idNumber ?? null,
+            payerName: parsed.payerName ?? null,
+            payerPhone: parsed.payerPhone ?? null,
+            stayType: parsed.stayType ?? "long-stay",
+          },
           phone: parsed.phone,
           room_type: parsed.roomType ?? null,
           sex: parsed.sex,
@@ -68,6 +75,7 @@ export const admit = Workflow.name("healthcare.residents.admit")
       id: row.id,
       name: row.name,
       status: row.status,
+      stayType: parsed.stayType ?? "long-stay",
       uhid: row.uhid,
     };
   });

@@ -21,7 +21,7 @@ export const orderLabs = Workflow.name("healthcare.diagnostics.order-labs")
     }
     const known = await ctx.step.run("verify-tests", async () => {
       const rows = await ctx.db
-        .select({ code: healthcareLabTest.code, id: healthcareLabTest.id })
+        .select()
         .from(healthcareLabTest)
         .where(
           and(
@@ -35,6 +35,12 @@ export const orderLabs = Workflow.name("healthcare.diagnostics.order-labs")
     const missing = parsed.tests.filter((id) => !knownIds.has(id));
     if (missing.length > 0) {
       throw new Error(`Unknown test ids: ${missing.join(", ")}; create the test masters first.`);
+    }
+    const inactive = known.filter((row) => row.payload.active === false);
+    if (inactive.length > 0) {
+      throw new Error(
+        `Inactive tests cannot be ordered: ${inactive.map((row) => row.code).join(", ")}; reactivate the master first.`,
+      );
     }
 
     const orderNo = await ctx.step.run(nextHealthcareSeries, { input: { series: "lab-order" } });

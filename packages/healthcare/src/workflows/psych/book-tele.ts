@@ -83,6 +83,33 @@ export const bookTele = Workflow.name("healthcare.psych.bookTele")
       }
     }
 
+    // Tele sessions need a recorded consent before the link is issued, and
+    // minors need a signed caregiver consent first.
+    if (!parsed.consentId) {
+      throw new Error("Tele-psychiatry needs a recorded consent before the link is issued");
+    }
+    if (parsed.patientIsMinor) {
+      const consented = await ctx.step.run("check-minor-consent", async () => {
+        const [consent] = await ctx.db
+          .select({ id: healthcareCaregiverConsent.id })
+          .from(healthcareCaregiverConsent)
+          .where(
+            and(
+              eq(healthcareCaregiverConsent.patient_id, parsed.patientId),
+              eq(healthcareCaregiverConsent.branch_id, branchId),
+              eq(healthcareCaregiverConsent.status, "Signed"),
+            ),
+          )
+          .limit(1);
+        return Boolean(consent);
+      });
+      if (!consented) {
+        throw new Error(
+          "Minor patient needs a signed caregiver consent before tele-psychiatry starts",
+        );
+      }
+    }
+
     const [row] = await ctx.step.run("insert-tele-session", async () =>
       ctx.db
         .insert(healthcareCounsellingSession)
@@ -95,6 +122,11 @@ export const bookTele = Workflow.name("healthcare.psych.bookTele")
           mode: "tele",
           notes: parsed.notes ?? null,
           patient_id: parsed.patientId,
+          payload: {
+            billingSlab: `${parsed.durationMins}min`,
+            consentId: parsed.consentId ?? null,
+            link: parsed.link ?? null,
+          },
           status: "Booked",
         })
         .returning(),
@@ -125,6 +157,7 @@ export const bookTele = Workflow.name("healthcare.psych.bookTele")
     });
 
     return {
+      billingSlab: `${parsed.durationMins}min`,
       branchId: row.branch_id,
       createdAt: row.created_at.toISOString(),
       date: row.date,

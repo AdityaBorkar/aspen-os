@@ -41,6 +41,12 @@ export const sideEffectCheck = Workflow.name("healthcare.psych.sideEffectCheck")
           created_by: actorId,
           effects: parsed.effects,
           patient_id: parsed.patientId,
+          payload: {
+            eps: parsed.eps ?? "none",
+            metabolic: parsed.metabolic ?? "none",
+            sedation: parsed.sedation ?? "none",
+            weightKg: parsed.weightKg ?? null,
+          },
           prescription_id: parsed.prescriptionId,
           severity: parsed.severity,
         })
@@ -75,9 +81,13 @@ export const sideEffectCheck = Workflow.name("healthcare.psych.sideEffectCheck")
       branchId: row.branch_id,
       createdAt: row.created_at.toISOString(),
       effects: row.effects,
+      eps: parsed.eps ?? "none",
       id: row.id,
+      metabolic: parsed.metabolic ?? "none",
       patientId: row.patient_id,
       prescriptionId: row.prescription_id,
+      sedation: parsed.sedation ?? "none",
       severity: row.severity,
+      weightKg: parsed.weightKg ?? null,
     };
   });

@@ -1,6 +1,17 @@
 import { BranchIdSchema, PaginationSchema } from "#/schemas/utils";
 
-import { minLength, object, optional, picklist, pipe, string } from "valibot";
+import {
+  array,
+  maxLength,
+  minLength,
+  minValue,
+  number,
+  object,
+  optional,
+  picklist,
+  pipe,
+  string,
+} from "valibot";
 import type { InferOutput } from "valibot";
 
 const Id = pipe(string(), minLength(1, "ID is required"));
@@ -65,8 +76,11 @@ const BreakGlassSchema = object({
 
 const AppendRegisterSchema = object({
   branchId: BranchIdSchema,
+  certifierId: optional(Id),
   details: pipe(string(), minLength(1, "Entry details are required")),
+  encounterId: optional(string()),
   enteredBy: Id,
+  occurredAt: optional(pipe(string(), minLength(1))),
   register: picklist(["birth", "death", "lab", "mlc", "opd", "pharmacy", "radio", "referral"]),
 });
 
@@ -93,11 +107,33 @@ const MergeRecordsSchema = object({
 const CheckRetentionSchema = object({
   branchId: BranchIdSchema,
   patientId: optional(string()),
+  recordClass: optional(picklist(["ipd", "mlc", "opd"])),
+});
+
+const DischargePendingFiltersSchema = object({
+  branchId: BranchIdSchema,
+  patientId: optional(string()),
+  ward: optional(string()),
+});
+
+const RecentRxQuerySchema = object({
+  branchId: BranchIdSchema,
+  limit: optional(pipe(number(), minValue(1))),
+  patientId: Id,
 });
 
 const TimelineQuerySchema = object({
   branchId: BranchIdSchema,
   patientId: Id,
+});
+
+const FamilySummaryMultiSchema = object({
+  branchId: BranchIdSchema,
+  patientIds: pipe(
+    array(pipe(string(), minLength(1))),
+    minLength(1, "Select at least one resident"),
+    maxLength(200, "Too many residents in one summary"),
+  ),
 });
 
 const EncounterGetSchema = object({
@@ -180,6 +216,9 @@ type RegisterFilters = InferOutput<typeof RegisterFiltersSchema>;
 type MergeRecordsInput = InferOutput<typeof MergeRecordsSchema>;
 type CheckRetentionInput = InferOutput<typeof CheckRetentionSchema>;
 type TimelineQueryInput = InferOutput<typeof TimelineQuerySchema>;
+type FamilySummaryMultiInput = InferOutput<typeof FamilySummaryMultiSchema>;
+type DischargePendingFilters = InferOutput<typeof DischargePendingFiltersSchema>;
+type RecentRxQueryInput = InferOutput<typeof RecentRxQuerySchema>;
 type EncounterGetInput = InferOutput<typeof EncounterGetSchema>;
 type SearchRecordsInput = InferOutput<typeof SearchRecordsSchema>;
 type ConsentsGetInput = InferOutput<typeof ConsentsGetSchema>;
@@ -201,12 +240,15 @@ export {
   CheckRetentionSchema,
   ConsentsGetSchema,
   DischargeFiltersSchema,
+  DischargePendingFiltersSchema,
   DocumentFiltersSchema,
   EncounterGetSchema,
+  FamilySummaryMultiSchema,
   IssueDischargeSchema,
   MergeRecordsSchema,
   MessageFiltersSchema,
   OptOutMessageSchema,
+  RecentRxQuerySchema,
   RecordConsentSchema,
   RecordsIdSchema,
   RegisterFiltersSchema,
@@ -229,12 +271,15 @@ export type {
   CheckRetentionInput,
   ConsentsGetInput,
   DischargeFilters,
+  DischargePendingFilters,
   DocumentFilters,
   EncounterGetInput,
+  FamilySummaryMultiInput,
   IssueDischargeInput,
   MergeRecordsInput,
   MessageFilters,
   OptOutMessageInput,
+  RecentRxQueryInput,
   RecordConsentInput,
   RecordsIdInput,
   RegisterFilters,

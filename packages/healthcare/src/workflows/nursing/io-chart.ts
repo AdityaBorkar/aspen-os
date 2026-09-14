@@ -4,6 +4,7 @@ import { RecordIoSchema } from "#/schemas/nursing";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 
 import { Workflow } from "@aspen-os/platform/server";
+import { and, eq, gte } from "drizzle-orm";
 import { object, parse } from "valibot";
 
 const IoChartInputSchema = object({ input: RecordIoSchema });
@@ -44,8 +45,28 @@ export const ioChart = Workflow.name("healthcare.nursing.io-chart")
         id: row.id,
       });
     });
+    const dayBalance = await ctx.step.run("day-balance", async () => {
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+      const entries = await ctx.db
+        .select({
+          intakeMl: healthcareIoEntry.intake_ml,
+          outputMl: healthcareIoEntry.output_ml,
+        })
+        .from(healthcareIoEntry)
+        .where(
+          and(
+            eq(healthcareIoEntry.branch_id, branchId),
+            eq(healthcareIoEntry.patient_id, parsed.patientId),
+            gte(healthcareIoEntry.created_at, startOfDay),
+          ),
+        )
+        .limit(500);
+      return entries.reduce((sum, entry) => sum + entry.intakeMl - entry.outputMl, 0);
+    });
     return {
       balance: row.intake_ml - row.output_ml,
+      dayBalance,
       id: row.id,
       intakeMl: row.intake_ml,
       outputMl: row.output_ml,

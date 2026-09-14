@@ -7,7 +7,32 @@ import { object, parse } from "valibot";
 
 const RetentionCheckInputSchema = object({ input: CheckRetentionSchema });
 
-const DEFAULT_RETAIN_DAYS = 2555;
+// Retention periods per record class in days (Clinical Establishments Act
+// baseline: OPD 3 years, IPD 10 years, MLC never purgeable).
+function retainDaysFor(klass: string): number {
+  switch (klass) {
+    case "ipd": {
+      return 3650;
+    }
+    case "mlc": {
+      return Number.MAX_SAFE_INTEGER;
+    }
+    default: {
+      return 1095;
+    }
+  }
+}
+
+function recordClassOf(fileType: string): string {
+  const lower = fileType.toLowerCase();
+  if (lower.includes("mlc")) {
+    return "mlc";
+  }
+  if (lower.includes("ipd") || lower.includes("discharge")) {
+    return "ipd";
+  }
+  return "opd";
+}
 
 export const retentionCheck = Workflow.name("healthcare.records.retention-check")
   .input(RetentionCheckInputSchema)
@@ -28,7 +53,11 @@ export const retentionCheck = Workflow.name("healthcare.records.retention-check"
     const blocked: string[] = [];
     let eligible = 0;
     for (const doc of docs) {
-      const retainDays = Number(doc.payload?.retainDays ?? DEFAULT_RETAIN_DAYS);
+      const klass = recordClassOf(doc.file_type);
+      if (parsed.recordClass && klass !== parsed.recordClass) {
+        continue;
+      }
+      const retainDays = Number(doc.payload?.retainDays ?? retainDaysFor(klass));
       const expiry = doc.uploaded_at.getTime() + retainDays * 86_400_000;
       if (expiry > Date.now()) {
         blocked.push(doc.id);
@@ -36,5 +65,10 @@ export const retentionCheck = Workflow.name("healthcare.records.retention-check"
         eligible += 1;
       }
     }
-    return { blocked, eligible, purgeBlocked: blocked.length > 0 };
+    return {
+      blocked,
+      eligible,
+      periods: { ipd: 3650, mlc: "never", opd: 1095 },
+      purgeBlocked: blocked.length > 0,
+    };
   });

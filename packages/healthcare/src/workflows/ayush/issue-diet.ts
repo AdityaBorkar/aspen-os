@@ -24,6 +24,10 @@ export const issueDiet = Workflow.name("healthcare.ayush.issueDiet")
           chart: parsed.chart,
           created_by: actorId,
           patient_id: parsed.patientId,
+          payload: {
+            ...(parsed.pathyVariant ? { pathyVariant: parsed.pathyVariant } : {}),
+            ...(parsed.language ? { language: parsed.language } : {}),
+          },
           valid_from: parsed.validFrom,
           valid_to: parsed.validTo,
         })
@@ -54,10 +58,16 @@ export const issueDiet = Workflow.name("healthcare.ayush.issueDiet")
       });
     });
 
+    const dietSpec =
+      row.payload && typeof row.payload === "object"
+        ? (row.payload as Record<string, unknown>)
+        : {};
     return {
       branchId: row.branch_id,
       caseId: row.case_id,
       chart: row.chart,
+      language: typeof dietSpec.language === "string" ? dietSpec.language : null,
+      pathyVariant: typeof dietSpec.pathyVariant === "string" ? dietSpec.pathyVariant : null,
       createdAt: row.created_at.toISOString(),
       id: row.id,
       patientId: row.patient_id,

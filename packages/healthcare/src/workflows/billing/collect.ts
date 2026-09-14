@@ -1,12 +1,12 @@
 import { healthcareInvoice, healthcareReceipt } from "#/db-schemas/billing";
+import { healthcareCounter } from "#/db-schemas/counter";
 import { BILLING_EVENTS } from "#/pubsub";
 import { CollectPaymentSchema } from "#/schemas/billing";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchInvoiceStep } from "#/workflow-steps/fetch-invoice";
-import { nextHealthcareSeries } from "#/workflow-steps/series";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { object, parse } from "valibot";
 
 const CollectInputSchema = object({ input: CollectPaymentSchema });
@@ -24,26 +24,52 @@ export const collect = Workflow.name("healthcare.billing.collect")
     if (parsed.amount > due) {
       throw new Error("Collection exceeds the due amount; check the balance and retry");
     }
-    const no = await ctx.step.run(nextHealthcareSeries, { input: { series: "receipt" } });
+    const splits = parsed.lines ?? [{ amount: parsed.amount, mode: parsed.mode, ref: parsed.ref }];
+    const splitTotal = splits.reduce((sum, line) => sum + line.amount, 0);
+    if (Math.abs(splitTotal - parsed.amount) > 0.01) {
+      throw new Error("Split-mode lines must sum to the collection amount.");
+    }
     const paid = Number(invoice.paid) + parsed.amount;
     const status = paid >= Number(invoice.total) ? "paid" : "partial";
-    const [receipt] = await ctx.step.run("insert-receipt", async () =>
-      ctx.db
-        .insert(healthcareReceipt)
-        .values({
-          amount: String(parsed.amount),
-          branch_id: branchId,
-          invoice_id: invoice.id,
-          mode: parsed.mode,
-          receipt_no: `RCP-${String(no).padStart(6, "0")}`,
-          ref: parsed.ref ?? null,
-          status: "collected",
-        })
-        .returning(),
-    );
-    if (!receipt) {
-      throw new Error("Failed to record receipt.");
-    }
+    const receipts = await ctx.step.run("insert-receipts", async () => {
+      const created = [];
+      for (const [index, line] of splits.entries()) {
+        const [counter] = await ctx.db
+          .insert(healthcareCounter)
+          .values({ last_no: 1, series: "receipt" })
+          .onConflictDoUpdate({
+            set: { last_no: sql`${healthcareCounter.last_no} + 1` },
+            target: healthcareCounter.series,
+          })
+          .returning({ last_no: healthcareCounter.last_no });
+        if (!counter) {
+          throw new Error('Failed to advance healthcare series "receipt".');
+        }
+        const [receipt] = await ctx.db
+          .insert(healthcareReceipt)
+          .values({
+            amount: String(line.amount),
+            branch_id: branchId,
+            invoice_id: invoice.id,
+            mode: line.mode,
+            payload: {
+              episodeId: parsed.episodeId ?? null,
+              isAdvance: parsed.isAdvance ?? false,
+              splitIndex: index,
+              splits: splits.length,
+            },
+            receipt_no: `RCP-${String(counter.last_no).padStart(6, "0")}`,
+            ref: line.ref ?? parsed.ref ?? null,
+            status: "collected",
+          })
+          .returning();
+        if (!receipt) {
+          throw new Error("Failed to record receipt.");
+        }
+        created.push(receipt);
+      }
+      return created;
+    });
     const [row] = await ctx.step.run("update-invoice", async () =>
       ctx.db
         .update(healthcareInvoice)
@@ -56,19 +82,37 @@ export const collect = Workflow.name("healthcare.billing.collect")
     }
     const at = new Date().toISOString();
     await ctx.step.run("audit-and-notify", async () => {
+      const [first] = receipts;
       await ctx.audit.write({
         action: AUDIT_ACTION.COLLECTED,
         crudAction: "create",
-        entityId: receipt.id,
+        entityId: first?.id ?? invoice.id,
         entityType: AUDIT_ENTITY_TYPE.BILLING,
-        newState: { amount: receipt.amount, invoiceId: invoice.id, mode: receipt.mode },
+        newState: {
+          amount: parsed.amount,
+          invoiceId: invoice.id,
+          modes: splits.map((line) => `${line.mode}:${line.amount}`),
+          receiptIds: receipts.map((entry) => entry.id),
+        },
       });
-      await ctx.pubsub.publish(BILLING_EVENTS.COLLECTED, {
-        actorId: ctx.actorId,
-        at,
-        branchId,
-        id: receipt.id,
-      });
+      for (const entry of receipts) {
+        await ctx.pubsub.publish(BILLING_EVENTS.COLLECTED, {
+          actorId: ctx.actorId,
+          at,
+          branchId,
+          id: entry.id,
+        });
+      }
     });
-    return { invoiceStatus: row.status, paid, receiptId: receipt.id };
+    return {
+      invoiceStatus: row.status,
+      paid,
+      receiptIds: receipts.map((entry) => entry.id),
+      receipts: receipts.map((entry) => ({
+        amount: Number(entry.amount),
+        id: entry.id,
+        mode: entry.mode,
+        receiptNo: entry.receipt_no,
+      })),
+    };
   });

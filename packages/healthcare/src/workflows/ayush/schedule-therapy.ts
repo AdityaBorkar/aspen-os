@@ -4,7 +4,7 @@ import { CreateTherapySittingSchema } from "#/schemas/ayush";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { object, parse } from "valibot";
 
 const ScheduleTherapyInputSchema = object({
@@ -35,6 +35,41 @@ export const scheduleTherapy = Workflow.name("healthcare.ayush.scheduleTherapy")
     if (pkg.status !== "Active") {
       throw new Error("Therapy package is not active; resume or extend it before scheduling");
     }
+    if (pkg.valid_till && pkg.valid_till.getTime() < Date.now()) {
+      throw new Error("Therapy package has expired; extend it before scheduling");
+    }
+    const attended = pkg.used_sittings ?? 0;
+    if (pkg.total_sittings > 0 && attended >= pkg.total_sittings) {
+      throw new Error("Package sittings exhausted; sell a new package or extend");
+    }
+
+    if (parsed.therapistId) {
+      const clash = await ctx.step.run("check-therapist-conflict", async () => {
+        const clauses = [
+          eq(healthcareTherapySitting.date, parsed.date),
+          eq(healthcareTherapySitting.status, "Booked"),
+        ];
+        const rows = await ctx.db
+          .select()
+          .from(healthcareTherapySitting)
+          .where(and(...clauses));
+        return rows.filter((r) => {
+          const payload =
+            r.payload && typeof r.payload === "object"
+              ? (r.payload as Record<string, unknown>)
+              : {};
+          if (payload.therapistId === parsed.therapistId) return true;
+          if (parsed.roomId && payload.roomId === parsed.roomId) return true;
+          if (parsed.equipmentId && payload.equipmentId === parsed.equipmentId) return true;
+          return false;
+        });
+      });
+      if (clash.length > 0) {
+        throw new Error(
+          "Therapist/room/equipment is already booked for this date; pick another slot",
+        );
+      }
+    }
 
     const [row] = await ctx.step.run("insert-therapy-sitting", async () =>
       ctx.db
@@ -49,6 +84,13 @@ export const scheduleTherapy = Workflow.name("healthcare.ayush.scheduleTherapy")
           post_bp_dys: null,
           post_bp_sys: null,
           post_pulse: null,
+          payload: {
+            ...(parsed.therapistId ? { therapistId: parsed.therapistId } : {}),
+            ...(parsed.roomId ? { roomId: parsed.roomId } : {}),
+            ...(parsed.equipmentId ? { equipmentId: parsed.equipmentId } : {}),
+            ...(parsed.consumables ? { consumables: parsed.consumables } : {}),
+            ...(parsed.chargeLines ? { chargeLines: parsed.chargeLines } : {}),
+          },
           pre_bp_dys: null,
           pre_bp_sys: null,
           pre_pulse: null,

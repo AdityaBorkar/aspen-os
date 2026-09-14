@@ -51,6 +51,13 @@ export const recordSitting = Workflow.name("healthcare.ayush.recordSitting")
           pre_bp_dys: parsed.preVitals.bpDys,
           pre_bp_sys: parsed.preVitals.bpSys,
           pre_pulse: parsed.preVitals.pulse,
+          payload: {
+            ...(parsed.consumables ? { consumables: parsed.consumables } : {}),
+            ...(parsed.chargeLines ? { chargeLines: parsed.chargeLines } : {}),
+            ...(parsed.therapistId ? { therapistId: parsed.therapistId } : {}),
+            ...(parsed.roomId ? { roomId: parsed.roomId } : {}),
+            ...(parsed.equipmentId ? { equipmentId: parsed.equipmentId } : {}),
+          },
           status: parsed.status,
         })
         .returning(),

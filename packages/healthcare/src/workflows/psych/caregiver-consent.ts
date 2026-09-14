@@ -39,6 +39,10 @@ export const caregiverConsent = Workflow.name("healthcare.psych.caregiverConsent
           created_by: actorId,
           encounter_id: parsed.encounterId ?? null,
           patient_id: parsed.patientId,
+          payload: {
+            idNumber: parsed.idNumber ?? null,
+            patientIsMinor: parsed.patientIsMinor ?? false,
+          },
           relation: parsed.relation,
           scope: parsed.scope,
           status: parsed.status,
@@ -77,6 +81,7 @@ export const caregiverConsent = Workflow.name("healthcare.psych.caregiverConsent
       createdAt: row.created_at.toISOString(),
       encounterId: row.encounter_id,
       id: row.id,
+      idNumber: parsed.idNumber ?? null,
       patientId: row.patient_id,
       relation: row.relation,
       scope: row.scope,

@@ -22,12 +22,17 @@ const CreateResidentSchema = object({
   advance: pipe(number(), minValue(0, "Advance cannot be negative")),
   age: pipe(number(), minValue(0), maxValue(130)),
   branchId: BranchIdSchema,
+  history: optional(string()),
+  idNumber: optional(string()),
   name: pipe(string(), minLength(1, "Name is required")),
   nokName: pipe(string(), minLength(1, "Next-of-kin name is required")),
   nokPhone: pipe(string(), minLength(1, "Next-of-kin phone is required")),
+  payerName: optional(string()),
+  payerPhone: optional(string()),
   phone: pipe(string(), minLength(1, "Phone is required")),
   roomType: optional(string()),
   sex: picklist(["female", "male", "other"]),
+  stayType: optional(picklist(["long-stay", "short-stay"])),
 });
 
 const UpdateResidentSchema = object({
@@ -101,11 +106,20 @@ const PolypharmacyReviewFiltersSchema = object({
 });
 
 const CreateDailyLogSchema = object({
+  activity: optional(string()),
   appetite: optional(string()),
+  bpDys: optional(pipe(number(), minValue(0))),
+  bpSys: optional(pipe(number(), minValue(0))),
   branchId: BranchIdSchema,
+  diet: optional(string()),
+  medsGiven: optional(string()),
   mood: optional(string()),
   note: pipe(string(), minLength(1, "Note is required")),
+  physio: optional(string()),
   residentId: Id,
+  spo2: optional(pipe(number(), minValue(0), maxValue(100))),
+  sugarMgDl: optional(pipe(number(), minValue(0))),
+  tempC: optional(pipe(number(), minValue(0))),
 });
 
 const UpdateDailyLogSchema = object({
@@ -124,7 +138,9 @@ const CreateRoundSchema = object({
   branchId: BranchIdSchema,
   doneBy: Id,
   findings: pipe(string(), minLength(1, "Findings are required")),
+  nursingTasks: optional(array(pipe(string(), minLength(1)))),
   plan: optional(string()),
+  referralNote: optional(string()),
   residentId: Id,
 });
 
@@ -139,6 +155,8 @@ const CreateVisitLogSchema = object({
   purpose: pipe(string(), minLength(1, "Purpose is required")),
   relation: optional(string()),
   residentId: Id,
+  timeIn: optional(string()),
+  timeOut: optional(string()),
   visitor: pipe(string(), minLength(1, "Visitor name is required")),
 });
 
@@ -152,7 +170,11 @@ const CreateStayChargeSchema = object({
   amount: pipe(number(), minValue(0)),
   branchId: BranchIdSchema,
   chargeDate: DateStringSchema,
-  kind: optional(string(), "stay"),
+  kind: optional(
+    picklist(["care", "consumable", "credit-note", "debit-note", "meal", "stay"]),
+    "stay",
+  ),
+  reason: optional(string()),
   residentId: Id,
 });
 
@@ -171,6 +193,29 @@ const CompileStayBillSchema = object({
 const ResidentIdSchema = object({
   branchId: BranchIdSchema,
   id: Id,
+});
+
+const CreateFeedbackSchema = object({
+  actionTaken: optional(string()),
+  branchId: BranchIdSchema,
+  category: picklist(["family", "resident", "staff"]),
+  message: pipe(string(), minLength(1, "Feedback is required")),
+  residentId: optional(string()),
+  submittedBy: Id,
+});
+
+const RaiseAlertSchema = object({
+  branchId: BranchIdSchema,
+  kind: picklist(["chest-pain", "fall", "missed-dose", "missed-meal", "ulcer", "other"]),
+  note: pipe(string(), minLength(1, "Alert note is required")),
+  residentId: Id,
+});
+
+const FamilySummarySendSchema = object({
+  branchId: BranchIdSchema,
+  channel: optional(picklist(["sms", "whatsapp"]), "whatsapp"),
+  id: Id,
+  to: pipe(string(), minLength(1, "Recipient is required")),
 });
 
 const ResidentListSchema = object({
@@ -196,6 +241,9 @@ type RoundFilters = InferOutput<typeof RoundFiltersSchema>;
 type CreateVisitLogInput = InferOutput<typeof CreateVisitLogSchema>;
 type VisitLogFilters = InferOutput<typeof VisitLogFiltersSchema>;
 type CreateStayChargeInput = InferOutput<typeof CreateStayChargeSchema>;
+type CreateFeedbackInput = InferOutput<typeof CreateFeedbackSchema>;
+type RaiseAlertInput = InferOutput<typeof RaiseAlertSchema>;
+type FamilySummarySendInput = InferOutput<typeof FamilySummarySendSchema>;
 type StayChargeFilters = InferOutput<typeof StayChargeFiltersSchema>;
 type CompileStayBillInput = InferOutput<typeof CompileStayBillSchema>;
 type ResidentIdInput = InferOutput<typeof ResidentIdSchema>;
@@ -206,6 +254,7 @@ export {
   BedAssignmentFiltersSchema,
   CompileStayBillSchema,
   CreateDailyLogSchema,
+  CreateFeedbackSchema,
   CreateGeriatricScoreSchema,
   CreatePolypharmacyReviewSchema,
   CreateResidentSchema,
@@ -213,8 +262,10 @@ export {
   CreateStayChargeSchema,
   CreateVisitLogSchema,
   DailyLogFiltersSchema,
+  FamilySummarySendSchema,
   GeriatricScoreFiltersSchema,
   PolypharmacyReviewFiltersSchema,
+  RaiseAlertSchema,
   ResidentFiltersSchema,
   ResidentIdSchema,
   ResidentListSchema,
@@ -231,6 +282,7 @@ export type {
   BedAssignmentFilters,
   CompileStayBillInput,
   CreateDailyLogInput,
+  CreateFeedbackInput,
   CreateGeriatricScoreInput,
   CreatePolypharmacyReviewInput,
   CreateResidentInput,
@@ -238,8 +290,10 @@ export type {
   CreateStayChargeInput,
   CreateVisitLogInput,
   DailyLogFilters,
+  FamilySummarySendInput,
   GeriatricScoreFilters,
   PolypharmacyReviewFilters,
+  RaiseAlertInput,
   ResidentFilters,
   ResidentIdInput,
   ResidentListInput,

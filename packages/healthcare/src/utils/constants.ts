@@ -374,6 +374,7 @@ export const AUDIT_ACTION = {
   SIGNED: "signed",
   UPDATED: "updated",
   VERIFY: "verify",
+  VIEWED: "viewed",
   VOID: "void",
 } as const;
 

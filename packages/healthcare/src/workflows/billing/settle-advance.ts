@@ -23,6 +23,7 @@ export const settleAdvance = Workflow.name("healthcare.billing.settle-advance")
           branch_id: branchId,
           direction: parsed.direction,
           patient_id: parsed.patientId,
+          payload: { episodeId: parsed.episodeId ?? null },
         })
         .returning(),
     );

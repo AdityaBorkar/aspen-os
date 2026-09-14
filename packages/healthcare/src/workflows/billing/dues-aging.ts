@@ -12,6 +12,10 @@ export const duesAging = Workflow.name("healthcare.billing.dues-aging")
   .handler(async ({ input }, ctx) => {
     const parsed = parse(DuesAgingFiltersSchema, input);
     const branchId = parsed.branchId ?? "main";
+    const asOf = parsed.asOf ? new Date(parsed.asOf).getTime() : Date.now();
+    if (Number.isNaN(asOf)) {
+      throw new Error("Invalid asOf date; use an ISO date string.");
+    }
     const rows = await ctx.step.run("load-dues", async () =>
       ctx.db
         .select()
@@ -26,7 +30,7 @@ export const duesAging = Workflow.name("healthcare.billing.dues-aging")
       if (due <= 0 || row.status === "draft") {
         continue;
       }
-      const ageDays = Math.floor((Date.now() - row.created_at.getTime()) / 86_400_000);
+      const ageDays = Math.floor((asOf - row.created_at.getTime()) / 86_400_000);
       const bucket =
         ageDays <= 30 ? "current" : ageDays <= 60 ? "d30" : ageDays <= 90 ? "d60" : "d90plus";
       buckets[bucket] += due;
@@ -39,5 +43,5 @@ export const duesAging = Workflow.name("healthcare.billing.dues-aging")
         patientId: row.patient_id,
       });
     }
-    return { buckets, rows: aged };
+    return { asOf: new Date(asOf).toISOString(), buckets, rows: aged };
   });

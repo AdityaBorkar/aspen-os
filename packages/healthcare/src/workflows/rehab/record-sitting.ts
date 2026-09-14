@@ -36,8 +36,12 @@ export const recordSitting = Workflow.name("healthcare.rehab.recordSitting")
           "Completed sitting needs both pre- and post-therapy vitals; record both sets",
         );
       }
-      if (!parsed.modality) {
-        throw new Error("Completed sitting needs a modality; record the therapy modality");
+      const hasModality = Boolean(parsed.modality);
+      const hasExercise = (parsed.exercises?.length ?? 0) > 0;
+      if (!hasModality && !hasExercise) {
+        throw new Error(
+          "Completed sitting needs a modality with dosage/duration or an exercise entry; record one and retry",
+        );
       }
     }
 
@@ -57,6 +61,15 @@ export const recordSitting = Workflow.name("healthcare.rehab.recordSitting")
         .set({
           modality: parsed.modality ?? sitting.modality,
           notes: parsed.notes ?? null,
+          payload: {
+            ...sitting.payload,
+            consumables: parsed.consumables ?? [],
+            dosage: parsed.dosage ?? null,
+            durationMins: parsed.durationMins ?? null,
+            equipmentId: parsed.equipmentId ?? null,
+            exercises: parsed.exercises ?? [],
+            therapistId: parsed.therapistId ?? null,
+          },
           post_bp_dys: parsed.postVitals.bpDys,
           post_bp_sys: parsed.postVitals.bpSys,
           post_pulse: parsed.postVitals.pulse,
@@ -103,6 +116,13 @@ export const recordSitting = Workflow.name("healthcare.rehab.recordSitting")
     });
 
     return {
+      billingLines: (parsed.consumables ?? []).map((line) => ({
+        item: line.item,
+        qty: line.qty,
+        sittingId: row.id,
+      })),
+      dosage: parsed.dosage ?? null,
+      durationMins: parsed.durationMins ?? null,
       id: row.id,
       postVitals: {
         bpDys: row.post_bp_dys,

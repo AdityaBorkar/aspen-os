@@ -25,6 +25,10 @@ export const sellPackage = Workflow.name("healthcare.ayush.sellPackage")
           created_by: actorId,
           name: parsed.name,
           patient_id: parsed.patientId,
+          payload: {
+            ...(parsed.procedures ? { procedures: parsed.procedures } : {}),
+            ...(parsed.outcomeNote ? { outcomeNote: parsed.outcomeNote } : {}),
+          },
           status: parsed.status,
           total_sittings: parsed.totalSittings,
           used_sittings: 0,
@@ -58,16 +62,25 @@ export const sellPackage = Workflow.name("healthcare.ayush.sellPackage")
       });
     });
 
+    const sellSpec =
+      row.payload && typeof row.payload === "object"
+        ? (row.payload as Record<string, unknown>)
+        : {};
+    const attended = row.used_sittings ?? 0;
+    const remaining = Math.max(0, row.total_sittings - attended);
     return {
       branchId: row.branch_id,
+      attended,
       caseId: row.case_id,
+      procedures: Array.isArray(sellSpec.procedures) ? sellSpec.procedures : [],
       createdAt: row.created_at.toISOString(),
       id: row.id,
       name: row.name,
       patientId: row.patient_id,
       status: row.status,
+      remaining,
       totalSittings: row.total_sittings,
-      usedSittings: row.used_sittings,
+      usedSittings: attended,
       validTill: row.valid_till ? row.valid_till.toISOString() : null,
     };
   });

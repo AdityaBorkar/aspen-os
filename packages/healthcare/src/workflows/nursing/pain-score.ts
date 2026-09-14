@@ -64,5 +64,14 @@ export const painScore = Workflow.name("healthcare.nursing.pain-score")
         id: row.id,
       });
     });
-    return { id: row.id, patientId: row.patient_id, phase: row.phase, score: row.score };
+    return {
+      escalate: row.score >= 7,
+      id: row.id,
+      patientId: row.patient_id,
+      phase: row.phase,
+      reassessmentDue: row.phase === "pre",
+      reassessmentPrompt:
+        row.phase === "pre" ? "Reassess pain post-intervention and record a post score" : null,
+      score: row.score,
+    };
   });

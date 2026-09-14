@@ -76,6 +76,10 @@ export const bookChair = Workflow.name("healthcare.dental.bookChair")
           date: parsed.date,
           encounter_id: parsed.encounterId,
           patient_id: parsed.patientId,
+          payload: {
+            ...(parsed.durationMin !== undefined ? { durationMin: parsed.durationMin } : {}),
+            ...(parsed.bufferMin !== undefined ? { bufferMin: parsed.bufferMin } : {}),
+          },
           slot: parsed.slot,
           status: "Booked",
         })
@@ -109,9 +113,17 @@ export const bookChair = Workflow.name("healthcare.dental.bookChair")
 
     return {
       branchId: row.branch_id,
+      bufferMin:
+        typeof row.payload?.bufferMin === "number"
+          ? row.payload.bufferMin
+          : (parsed.bufferMin ?? 0),
       chairId: row.chair_id,
       createdAt: row.created_at.toISOString(),
       date: row.date,
+      durationMin:
+        typeof row.payload?.durationMin === "number"
+          ? row.payload.durationMin
+          : (parsed.durationMin ?? null),
       encounterId: row.encounter_id,
       id: row.id,
       patientId: row.patient_id,

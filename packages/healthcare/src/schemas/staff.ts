@@ -8,7 +8,9 @@ const Id = pipe(string(), minLength(1, "ID is required"));
 
 const UpsertStaffSchema = object({
   branchId: BranchIdSchema,
+  department: optional(string()),
   doj: optional(DateStringSchema),
+  exitDate: optional(DateStringSchema),
   name: pipe(string(), minLength(1, "Name is required")),
   phone: optional(string()),
   role: pipe(string(), minLength(1, "Role is required")),

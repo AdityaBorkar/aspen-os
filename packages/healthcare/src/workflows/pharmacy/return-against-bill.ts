@@ -1,4 +1,4 @@
-import { healthcarePharmacyReturn } from "#/db-schemas/pharmacy";
+import { healthcarePharmacyBatch, healthcarePharmacyReturn } from "#/db-schemas/pharmacy";
 import { PHARMACY_EVENTS } from "#/pubsub";
 import { ReturnSchema } from "#/schemas/pharmacy";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
@@ -7,6 +7,7 @@ import { nextHealthcareSeries } from "#/workflow-steps/series";
 
 import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
+import { eq } from "drizzle-orm";
 import { is, number, object, parse, string } from "valibot";
 
 const ReturnInputSchema = object({ input: ReturnSchema });
@@ -14,7 +15,7 @@ const ReturnInputSchema = object({ input: ReturnSchema });
 const RETURN_POLICY_DAYS = 7;
 
 interface SoldLine {
-  [key: string]: string | number;
+  [key: string]: string | number | null;
   itemId: string;
   qty: number;
 }
@@ -64,6 +65,8 @@ export const returnAgainstBill = Workflow.name("healthcare.pharmacy.return-again
 
     const returnNo = await ctx.step.run(nextHealthcareSeries, { input: { series: "return" } });
     const returnItems: SoldLine[] = parsed.items.map((line) => ({
+      batchId: line.batchId ?? null,
+      disposition: line.disposition ?? "restock",
       itemId: line.itemId,
       qty: line.qty,
     }));
@@ -81,6 +84,34 @@ export const returnAgainstBill = Workflow.name("healthcare.pharmacy.return-again
         .returning();
       if (!row) {
         throw new Error("Failed to record return.");
+      }
+      for (const line of parsed.items) {
+        const disposition = line.disposition ?? "restock";
+        if (!line.batchId) {
+          continue;
+        }
+        const [batch] = await ctx.db
+          .select()
+          .from(healthcarePharmacyBatch)
+          .where(eq(healthcarePharmacyBatch.id, line.batchId))
+          .limit(1);
+        if (!batch) {
+          continue;
+        }
+        if (disposition === "restock") {
+          await ctx.db
+            .update(healthcarePharmacyBatch)
+            .set({ qty: batch.qty + line.qty, status: "active" })
+            .where(eq(healthcarePharmacyBatch.id, batch.id));
+        } else {
+          await ctx.db
+            .update(healthcarePharmacyBatch)
+            .set({
+              payload: { ...batch.payload, quarantineReason: parsed.reason },
+              status: "quarantined",
+            })
+            .where(eq(healthcarePharmacyBatch.id, batch.id));
+        }
       }
       return row;
     });

@@ -55,8 +55,10 @@ export const involuntaryHook = Workflow.name("healthcare.psych.involuntaryHook")
     const hook = {
       actorId,
       at: nowIso,
+      authority: parsed.authority ?? null,
       legalRef: parsed.legalRef,
       reason: parsed.reason,
+      reviewDate: parsed.reviewDate ?? null,
     } satisfies Record<string, JsonValue>;
     const prior = assessment.payload.involuntaryHooks;
     const hooks = [...(Array.isArray(prior) ? prior : []), hook];
@@ -120,9 +122,11 @@ export const involuntaryHook = Workflow.name("healthcare.psych.involuntaryHook")
 
     return {
       assessmentId: row.id,
+      authority: parsed.authority ?? null,
       id: row.id,
       legalRef: parsed.legalRef,
       patientId: row.patient_id,
       reason: parsed.reason,
+      reviewDate: parsed.reviewDate ?? null,
     };
   });

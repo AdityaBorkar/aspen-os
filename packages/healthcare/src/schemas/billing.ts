@@ -3,6 +3,7 @@ import { BranchIdSchema, PaginationSchema } from "#/schemas/utils";
 
 import {
   array,
+  boolean,
   maxValue,
   minLength,
   minValue,
@@ -64,13 +65,25 @@ const ApplyDiscountSchema = object({
 const CollectPaymentSchema = object({
   amount: pipe(number(), minValue(0)),
   branchId: BranchIdSchema,
+  episodeId: optional(string()),
   invoiceId: Id,
+  isAdvance: optional(boolean()),
+  lines: optional(
+    array(
+      object({
+        amount: pipe(number(), minValue(0)),
+        mode: picklist(["card", "cash", "cheque", "neft", "upi"]),
+        ref: optional(string()),
+      }),
+    ),
+  ),
   mode: picklist(["card", "cash", "cheque", "neft", "upi"]),
   ref: optional(string()),
 });
 
 const SettleTabSchema = object({
   branchId: BranchIdSchema,
+  episodeId: optional(string()),
   patientId: Id,
 });
 
@@ -149,6 +162,7 @@ const SettleAdvanceSchema = object({
   amount: pipe(number(), minValue(0)),
   branchId: BranchIdSchema,
   direction: picklist(["adjust", "receive"]),
+  episodeId: optional(string()),
   patientId: Id,
 });
 
@@ -159,7 +173,20 @@ const AdvanceFiltersSchema = object({
 });
 
 const DuesAgingFiltersSchema = object({
+  asOf: optional(string()),
   branchId: BranchIdSchema,
+});
+
+const CollectionReportSchema = object({
+  branchId: BranchIdSchema,
+  desk: optional(string()),
+  from: optional(string()),
+  to: optional(string()),
+});
+
+const PackageLiabilitySchema = object({
+  branchId: BranchIdSchema,
+  includeExpired: optional(boolean()),
 });
 
 const GstExportFiltersSchema = object({
@@ -199,6 +226,8 @@ type CndnFilters = InferOutput<typeof CndnFiltersSchema>;
 type SettleAdvanceInput = InferOutput<typeof SettleAdvanceSchema>;
 type AdvanceFilters = InferOutput<typeof AdvanceFiltersSchema>;
 type DuesAgingFilters = InferOutput<typeof DuesAgingFiltersSchema>;
+type CollectionReportInput = InferOutput<typeof CollectionReportSchema>;
+type PackageLiabilityInput = InferOutput<typeof PackageLiabilitySchema>;
 type GstExportFilters = InferOutput<typeof GstExportFiltersSchema>;
 type InvoiceIdInput = InferOutput<typeof InvoiceIdSchema>;
 type ReceiptFilters = InferOutput<typeof ReceiptFiltersSchema>;
@@ -208,6 +237,7 @@ export {
   ApplyDiscountSchema,
   CndnFiltersSchema,
   CollectPaymentSchema,
+  CollectionReportSchema,
   CreateInvoiceSchema,
   CreatePackageBalanceSchema,
   CreatePricelistSchema,
@@ -219,6 +249,7 @@ export {
   InvoiceLineSchema,
   IssueCndnSchema,
   PackageBalanceFiltersSchema,
+  PackageLiabilitySchema,
   PricelistFiltersSchema,
   ReceiptFiltersSchema,
   RedeemPackageSchema,
@@ -235,6 +266,7 @@ export type {
   ApplyDiscountInput,
   CndnFilters,
   CollectPaymentInput,
+  CollectionReportInput,
   CreateInvoiceInput,
   CreatePackageBalanceInput,
   CreatePricelistInput,
@@ -246,6 +278,7 @@ export type {
   InvoiceLine,
   IssueCndnInput,
   PackageBalanceFilters,
+  PackageLiabilityInput,
   PricelistFilters,
   ReceiptFilters,
   RedeemPackageInput,

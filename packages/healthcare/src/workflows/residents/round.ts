@@ -1,3 +1,4 @@
+import { healthcareNursingTask } from "#/db-schemas/nursing";
 import { healthcareRound } from "#/db-schemas/residents";
 import { RESIDENT_EVENTS } from "#/pubsub";
 import { CreateRoundSchema } from "#/schemas/residents";
@@ -24,6 +25,7 @@ export const round = Workflow.name("healthcare.residents.round")
           done_by: parsed.doneBy,
           findings: parsed.findings,
           orders_note: ordersNote,
+          payload: { referralNote: parsed.referralNote ?? null },
           plan: parsed.plan ?? null,
           resident_id: resident.id,
         })
@@ -31,6 +33,22 @@ export const round = Workflow.name("healthcare.residents.round")
     );
     if (!row) {
       throw new Error("Failed to record round.");
+    }
+    // Round orders convert to nursing tasks so nothing ordered at the
+    // bedside stays invisible.
+    const taskTitles = parsed.nursingTasks ?? [];
+    if (taskTitles.length > 0) {
+      await ctx.step.run("create-nursing-tasks", async () => {
+        await ctx.db.insert(healthcareNursingTask).values(
+          taskTitles.map((title) => ({
+            branch_id: branchId,
+            kind: "round-order",
+            patient_id: resident.id,
+            payload: { residentId: resident.id, roundId: row.id },
+            title,
+          })),
+        );
+      });
     }
     const at = new Date().toISOString();
     await ctx.step.run("audit-and-notify", async () => {
@@ -48,5 +66,11 @@ export const round = Workflow.name("healthcare.residents.round")
         id: row.id,
       });
     });
-    return { id: row.id, ordersNote: row.orders_note, residentId: row.resident_id };
+    return {
+      id: row.id,
+      nursingTasksCreated: taskTitles.length,
+      ordersNote: row.orders_note,
+      referralNote: parsed.referralNote ?? null,
+      residentId: row.resident_id,
+    };
   });

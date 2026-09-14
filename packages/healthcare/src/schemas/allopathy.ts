@@ -64,10 +64,15 @@ const CreateExamFindingSchema = object({
 const UpdateExamFindingSchema = partial(CreateExamFindingSchema);
 
 const CreateChronicLogSchema = object({
+  antifungals: optional(pipe(string(), maxLength(1000))),
+  bpDys: optional(pipe(number(), minValue(0), maxValue(300))),
+  bpSys: optional(pipe(number(), minValue(0), maxValue(400))),
   branchId: BranchIdSchema,
   condition: picklist([
     "diabetes",
     "hypertension",
+    "tb",
+    "antenatal",
     "asthma",
     "copd",
     "epilepsy",
@@ -76,6 +81,8 @@ const CreateChronicLogSchema = object({
     "other",
   ]),
   encounterId: optional(pipe(string(), minLength(1))),
+  fundalHeightCm: optional(pipe(number(), minValue(0), maxValue(60))),
+  hba1c: optional(pipe(number(), minValue(0), maxValue(30))),
   parameter: RequiredText("Parameter"),
   patientId: RequiredText("Patient"),
   unit: RequiredText("Unit"),
@@ -139,16 +146,55 @@ const AllopathyFiltersSchema = object({
   patientId: optional(pipe(string(), minLength(1))),
 });
 
+const ProblemStatusSchema = picklist(["active", "resolved"]);
+
+const CreateProblemSchema = object({
+  branchId: BranchIdSchema,
+  code: RequiredText("ICD-11 code"),
+  encounterId: optional(pipe(string(), minLength(1))),
+  label: optional(pipe(string(), maxLength(500))),
+  patientId: RequiredText("Patient"),
+  status: ProblemStatusSchema,
+  system: picklist(["ICD11", "TM2", "NAMASTE"]),
+});
+
+const UpdateProblemSchema = object({
+  encounterId: optional(pipe(string(), minLength(1))),
+  problemId: RequiredText("Problem"),
+  status: ProblemStatusSchema,
+});
+
+const ProblemListFiltersSchema = object({
+  branchId: BranchIdSchema,
+  limit: optional(pipe(number(), integer())),
+  offset: optional(pipe(number(), integer())),
+  patientId: RequiredText("Patient"),
+  status: optional(ProblemStatusSchema),
+});
+
+const CheckInteractionSchema = object({
+  acknowledged: optional(array(pipe(string(), minLength(1))), []),
+  allergies: optional(array(pipe(string(), minLength(1))), []),
+  branchId: BranchIdSchema,
+  drugs: pipe(array(RequiredText("Drug")), minLength(1, "Add at least one drug")),
+  encounterId: optional(pipe(string(), minLength(1))),
+  patientId: RequiredText("Patient"),
+});
+
 export {
   AllopathyFiltersSchema,
+  CheckInteractionSchema,
   CreateChronicLogSchema,
+  CreateProblemSchema,
   CreateExamFindingSchema,
   CreateImmunizationSchema,
   CreateRegisterEntrySchema,
   CreateSoapNoteSchema,
   CreateTriageEntrySchema,
   DiagnosisEntrySchema,
+  ProblemListFiltersSchema,
   SoapNoteFiltersSchema,
+  UpdateProblemSchema,
   UpdateChronicLogSchema,
   UpdateExamFindingSchema,
   UpdateImmunizationSchema,
@@ -159,12 +205,15 @@ export {
 
 export type {
   AllopathyFiltersInput as AllopathyFilters,
+  CheckInteractionInput,
   ChronicLogInput as CreateChronicLogInput,
   ExamFindingInput as CreateExamFindingInput,
   ImmunizationInput as CreateImmunizationInput,
   RegisterEntryInput as CreateRegisterEntryInput,
   SoapNoteFiltersInput as SoapNoteFilters,
   SoapNoteInput as CreateSoapNoteInput,
+  ProblemInput as CreateProblemInput,
+  ProblemListFiltersInput as ProblemListFilters,
   TriageEntryInput as CreateTriageEntryInput,
   UpdateChronicLogInput,
   UpdateExamFindingInput,
@@ -188,3 +237,6 @@ type TriageEntryInput = InferOutput<typeof CreateTriageEntrySchema>;
 type UpdateTriageEntryInput = InferOutput<typeof UpdateTriageEntrySchema>;
 type SoapNoteFiltersInput = InferOutput<typeof SoapNoteFiltersSchema>;
 type AllopathyFiltersInput = InferOutput<typeof AllopathyFiltersSchema>;
+type CheckInteractionInput = InferOutput<typeof CheckInteractionSchema>;
+type ProblemInput = InferOutput<typeof CreateProblemSchema>;
+type ProblemListFiltersInput = InferOutput<typeof ProblemListFiltersSchema>;

@@ -5,10 +5,34 @@ import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchRehabEpisodeStep } from "#/workflow-steps/fetch-rehab-episode";
 import { scoreBand } from "#/workflow-steps/rehab-band";
 
+import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
 
 const AssessInputSchema = object({ input: CreateRehabAssessmentSchema });
+
+// Scale-specific totals for severity interpretation when the caller omits maxScore.
+function defaultMax(tool: string): number | null {
+  switch (tool) {
+    case "Barthel": {
+      return 100;
+    }
+    case "Berg": {
+      return 56;
+    }
+    case "FIM": {
+      return 126;
+    }
+    case "VAS": {
+      return 10;
+    }
+    default: {
+      return null;
+    }
+  }
+}
+
+const MMT_GRADE = /^[0-5][+-]?$/;
 
 export const assess = Workflow.name("healthcare.rehab.assess")
   .input(AssessInputSchema)
@@ -29,7 +53,27 @@ export const assess = Workflow.name("healthcare.rehab.assess")
 
     // GUSS high-risk (<=9/20) forces an NPO flag for swallow safety.
     const npoFlag = parsed.tool === "GUSS" && parsed.score <= 9;
-    const band = scoreBand(parsed.score, parsed.maxScore ?? null);
+    // Scale-specific totals: per-item entries must add up to the reported
+    // score, and well-known scales default their max when omitted.
+    const toolMax = parsed.maxScore ?? defaultMax(parsed.tool);
+    if (parsed.items && parsed.items.length > 0) {
+      const itemTotal = parsed.items.reduce((sum, item) => sum + item.score, 0);
+      if (Math.abs(itemTotal - parsed.score) > 0.001) {
+        throw new Error(
+          `Item scores total ${itemTotal} but the reported score is ${parsed.score}; fix the entries and retry`,
+        );
+      }
+    }
+    if (parsed.tool === "MMT" && parsed.mmtGrade && !MMT_GRADE.test(parsed.mmtGrade)) {
+      throw new Error("MMT grade must be 0-5 with optional +/- (for example 3+); fix it and retry");
+    }
+    const band = scoreBand(parsed.score, toolMax);
+    const structured = {
+      items: parsed.items ?? null,
+      mmtGrade: parsed.mmtGrade ?? null,
+      romDegrees: parsed.romDegrees ?? null,
+      romType: parsed.romType ?? null,
+    } satisfies Record<string, JsonValue>;
 
     const [row] = await ctx.step.run("insert-rehab-assessment", async () =>
       ctx.db
@@ -40,9 +84,10 @@ export const assess = Workflow.name("healthcare.rehab.assess")
           created_by: actorId,
           details: parsed.details ?? null,
           episode_id: parsed.episodeId,
-          max_score: parsed.maxScore === undefined ? null : String(parsed.maxScore),
+          max_score: toolMax === null ? null : String(toolMax),
           npo_flag: npoFlag,
           patient_id: parsed.patientId,
+          payload: { structured },
           score: String(parsed.score),
           status: parsed.status,
           tool: parsed.tool,

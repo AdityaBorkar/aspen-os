@@ -4,6 +4,7 @@ import { BranchIdSchema, PaginationSchema } from "#/schemas/utils";
 import type { InferOutput } from "valibot";
 import {
   array,
+  boolean,
   integer,
   minLength,
   nullable,
@@ -18,15 +19,27 @@ import {
 
 const Id = pipe(string(), minLength(1, "ID is required"));
 
+const ReferenceRangeSchema = object({
+  ageMax: optional(number()),
+  ageMin: optional(number()),
+  high: number(),
+  low: number(),
+  sex: optional(picklist(["M", "F", "any"])),
+});
+
 export const TestMasterSchema = object({
+  active: optional(boolean()),
   branchId: BranchIdSchema,
   code: pipe(string(), minLength(1, "Test code is required")),
+  method: optional(string()),
   name: pipe(string(), minLength(1, "Test name is required")),
   price: optional(number()),
+  ranges: optional(array(ReferenceRangeSchema)),
   refHigh: optional(number()),
   refLow: optional(number()),
   specimen: optional(string()),
   turnaroundHrs: optional(number()),
+  units: optional(string()),
 });
 
 export const PanelSchema = object({
@@ -51,6 +64,36 @@ export const SampleCollectSchema = object({
   collectedAt: optional(string()),
   collectedBy: Id,
   orderId: Id,
+});
+
+export const SampleReceiveSchema = object({
+  barcode: pipe(string(), minLength(1, "Barcode is required")),
+  branchId: BranchIdSchema,
+  condition: optional(picklist(["ok", "hemolysed", "insufficient", "clotted", "mislabeled"])),
+  receivedAt: optional(string()),
+  receivedBy: Id,
+});
+
+export const SampleRejectSchema = object({
+  barcode: pipe(string(), minLength(1, "Barcode is required")),
+  branchId: BranchIdSchema,
+  note: optional(string()),
+  reason: picklist(["hemolysed", "insufficient", "clotted", "mislabeled", "other"]),
+  rejectedBy: Id,
+});
+
+export const AddOnTestSchema = object({
+  branchId: BranchIdSchema,
+  orderId: Id,
+  requestedBy: Id,
+  tests: array(Id),
+});
+
+export const TatReportSchema = object({
+  branchId: BranchIdSchema,
+  from: optional(string()),
+  limit: optional(pipe(number(), integer())),
+  to: optional(string()),
 });
 
 export const ResultEntrySchema = object({
@@ -120,10 +163,13 @@ export const RadioAuthorizeSchema = object({
 
 export const QcLogSchema = object({
   branchId: BranchIdSchema,
+  deviations: optional(string()),
   equipment: pipe(string(), minLength(1, "Equipment is required")),
   loggedBy: Id,
   param: pipe(string(), minLength(1, "Parameter is required")),
-  status: picklist(["pass", "fail"]),
+  reagentLots: optional(array(string())),
+  status: picklist(["pass", "flag", "fail"]),
+  testFamily: optional(string()),
   value: string(),
 });
 
@@ -138,6 +184,12 @@ export const CancelOrderSchema = object({
 export const DiagnosticsIdSchema = object({
   branchId: BranchIdSchema,
   id: Id,
+});
+
+export const ProcessingStartSchema = object({
+  branchId: BranchIdSchema,
+  orderId: Id,
+  startedBy: Id,
 });
 
 export const CreateLabTestSchema = TestMasterSchema;
@@ -270,9 +322,14 @@ export const RadioBookingPatchSchema = partial(UpdateRadioBookingSchema);
 export { PaginationSchema };
 
 export type TestMasterInput = InferOutput<typeof TestMasterSchema>;
+export type ReferenceRange = InferOutput<typeof ReferenceRangeSchema>;
 export type PanelInput = InferOutput<typeof PanelSchema>;
 export type OrderLabsInput = InferOutput<typeof OrderLabsSchema>;
 export type SampleCollectInput = InferOutput<typeof SampleCollectSchema>;
+export type SampleReceiveInput = InferOutput<typeof SampleReceiveSchema>;
+export type SampleRejectInput = InferOutput<typeof SampleRejectSchema>;
+export type AddOnTestInput = InferOutput<typeof AddOnTestSchema>;
+export type TatReportInput = InferOutput<typeof TatReportSchema>;
 export type ResultEntryInput = InferOutput<typeof ResultEntrySchema>;
 export type CriticalAckInput = InferOutput<typeof CriticalAckSchema>;
 export type AuthorizeInput = InferOutput<typeof AuthorizeSchema>;
@@ -285,6 +342,7 @@ export type RadioAuthorizeInput = InferOutput<typeof RadioAuthorizeSchema>;
 export type QcLogInput = InferOutput<typeof QcLogSchema>;
 export type CancelOrderInput = InferOutput<typeof CancelOrderSchema>;
 export type DiagnosticsIdInput = InferOutput<typeof DiagnosticsIdSchema>;
+export type ProcessingStartInput = InferOutput<typeof ProcessingStartSchema>;
 export type UpdateLabTestInput = InferOutput<typeof UpdateLabTestSchema>;
 export type LabTestFilters = InferOutput<typeof LabTestFiltersSchema>;
 export type UpdateLabPanelInput = InferOutput<typeof UpdateLabPanelSchema>;

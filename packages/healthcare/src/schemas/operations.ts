@@ -26,7 +26,17 @@ const CreateBranchSchema = object({
 
 const SeedPresetsSchema = object({
   branchId: BranchIdSchema,
-  preset: picklist(["masters", "pricelist", "tests"]),
+  preset: picklist([
+    "masters",
+    "pricelist",
+    "tests",
+    "facilities",
+    "facility-mri",
+    "facility-ct",
+    "facility-xray",
+    "facility-usg",
+    "facility-therapy",
+  ]),
 });
 
 const DefineReportSchema = object({
@@ -77,7 +87,10 @@ const GrantExplorerSchema = object({
 const QueryExplorerSchema = object({
   branchId: BranchIdSchema,
   collection: pipe(string(), minLength(1, "Collection is required")),
+  filters: optional(string()),
   limit: optional(number()),
+  offset: optional(number()),
+  sort: optional(string()),
 });
 
 const ExplorerGrantFiltersSchema = object({

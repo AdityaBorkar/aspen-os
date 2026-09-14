@@ -3,6 +3,7 @@ import {
   healthcareRehabAssessment,
   healthcareRehabDischarge,
   healthcareRehabEpisode,
+  healthcareRehabSitting,
 } from "#/db-schemas/rehab";
 import { REHAB_EVENTS } from "#/pubsub";
 import { CreateDischargeSummarySchema } from "#/schemas/rehab";
@@ -65,6 +66,7 @@ export const discharge = Workflow.name("healthcare.rehab.discharge")
           episode_id: parsed.episodeId,
           outcome: parsed.outcome,
           patient_id: parsed.patientId,
+          payload: { homePlan: parsed.homePlan ?? null },
           summary: parsed.summary,
         })
         .returning(),
@@ -78,6 +80,20 @@ export const discharge = Workflow.name("healthcare.rehab.discharge")
         .update(healthcareRehabEpisode)
         .set({ status: "Discharged" })
         .where(eq(healthcareRehabEpisode.id, parsed.episodeId));
+    });
+
+    const attendance = await ctx.step.run("count-attendance", async () => {
+      const sittings = await ctx.db
+        .select({ status: healthcareRehabSitting.status })
+        .from(healthcareRehabSitting)
+        .where(eq(healthcareRehabSitting.episode_id, parsed.episodeId))
+        .limit(1000);
+      return {
+        attended: sittings.filter((sitting) => sitting.status === "Completed").length,
+        missed: sittings.filter(
+          (sitting) => sitting.status === "NoShow" || sitting.status === "Cancelled",
+        ).length,
+      };
     });
 
     await ctx.step.run("audit-and-notify", async () => {
@@ -102,10 +118,13 @@ export const discharge = Workflow.name("healthcare.rehab.discharge")
     });
 
     return {
+      attended: attendance.attended,
       branchId: row.branch_id,
       createdAt: row.created_at.toISOString(),
       episodeId: row.episode_id,
+      homePlan: parsed.homePlan ?? null,
       id: row.id,
+      missed: attendance.missed,
       outcome: row.outcome,
       patientId: row.patient_id,
       summary: row.summary,

@@ -38,6 +38,14 @@ export const logChronic = Workflow.name("healthcare.allopathy.logChronic")
           encounter_id: parsed.encounterId ?? null,
           parameter: parsed.parameter,
           patient_id: parsed.patientId,
+          payload: {
+            ...(parsed.hba1c !== undefined ? { hba1c: parsed.hba1c } : {}),
+            ...(parsed.bpSys !== undefined ? { bpSys: parsed.bpSys } : {}),
+            ...(parsed.bpDys !== undefined ? { bpDys: parsed.bpDys } : {}),
+            ...(parsed.fundalHeightCm !== undefined
+              ? { fundalHeightCm: parsed.fundalHeightCm }
+              : {}),
+          },
           unit: parsed.unit,
           value: String(parsed.value),
         })

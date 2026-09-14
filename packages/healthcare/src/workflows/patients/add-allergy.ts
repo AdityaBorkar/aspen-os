@@ -25,6 +25,7 @@ export const addAllergy = Workflow.name("healthcare.patients.add-allergy")
           name: parsed.name,
           note: parsed.note ?? null,
           patient_id: patient.id,
+          payload: parsed.reaction ? { reaction: parsed.reaction } : {},
           severity: parsed.severity,
         })
         .returning(),
@@ -57,6 +58,10 @@ export const addAllergy = Workflow.name("healthcare.patients.add-allergy")
       name: row.name,
       note: row.note,
       patientId: row.patient_id,
+      reaction:
+        typeof row.payload?.reaction === "string"
+          ? row.payload.reaction
+          : (parsed.reaction ?? null),
       severity: row.severity,
     };
   });

@@ -5,7 +5,7 @@ import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchRehabEpisodeStep } from "#/workflow-steps/fetch-rehab-episode";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { is, object, parse, string } from "valibot";
 
 const SetGoalsInputSchema = object({ input: CreateRehabGoalPlanSchema });
 
@@ -36,6 +36,11 @@ export const setGoals = Workflow.name("healthcare.rehab.setGoals")
             episode_id: parsed.episodeId,
             goal: goal.goal,
             patient_id: parsed.patientId,
+            payload: {
+              linkedScale: goal.linkedScale ?? null,
+              measure: goal.measure ?? null,
+              term: goal.term ?? null,
+            },
             status: goal.status,
             target_date: goal.targetDate ?? null,
           })),
@@ -69,8 +74,11 @@ export const setGoals = Workflow.name("healthcare.rehab.setGoals")
       goals: rows.map((row) => ({
         goal: row.goal,
         id: row.id,
+        linkedScale: is(string(), row.payload.linkedScale) ? row.payload.linkedScale : null,
+        measure: is(string(), row.payload.measure) ? row.payload.measure : null,
         status: row.status,
         targetDate: row.target_date,
+        term: is(string(), row.payload.term) ? row.payload.term : null,
       })),
       patientId: parsed.patientId,
     };

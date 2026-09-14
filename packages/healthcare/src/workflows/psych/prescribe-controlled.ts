@@ -28,6 +28,15 @@ export const prescribeControlled = Workflow.name("healthcare.psych.prescribeCont
       throw new Error("Patient does not match the parent encounter; check the selected patient");
     }
 
+    // Max-days cap: controlled supply beyond the cap needs a psychiatrist
+    // override with a reason.
+    const cap = parsed.maxDays ?? 30;
+    if (parsed.daysSupply > cap && (!parsed.override || !parsed.overrideReason)) {
+      throw new Error(
+        `Controlled supply is capped at ${cap} days; add a psychiatrist override with a reason for a longer course`,
+      );
+    }
+
     // Early-refill guard: refilling before the previous supply ran out
     // needs an override plus a reason.
     if (parsed.lastRefillAt) {

@@ -22,6 +22,7 @@ export const relapsePlan = Workflow.name("healthcare.psych.relapsePlan")
           branch_id: branchId,
           created_by: actorId,
           patient_id: parsed.patientId,
+          payload: { followUpDates: parsed.followUpDates ?? [] },
           responses: parsed.responses,
           support_contacts: parsed.supportContacts,
           triggers: parsed.triggers,
@@ -51,6 +52,7 @@ export const relapsePlan = Workflow.name("healthcare.psych.relapsePlan")
     return {
       branchId: row.branch_id,
       createdAt: row.created_at.toISOString(),
+      followUpDates: parsed.followUpDates ?? [],
       id: row.id,
       patientId: row.patient_id,
       responses: row.responses,

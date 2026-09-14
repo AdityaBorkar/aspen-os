@@ -20,6 +20,10 @@ export const visitLog = Workflow.name("healthcare.residents.visit-log")
         .insert(healthcareVisitLog)
         .values({
           branch_id: branchId,
+          payload: {
+            timeIn: parsed.timeIn ?? null,
+            timeOut: parsed.timeOut ?? null,
+          },
           purpose: parsed.purpose,
           relation: parsed.relation ?? null,
           resident_id: resident.id,
@@ -46,5 +50,11 @@ export const visitLog = Workflow.name("healthcare.residents.visit-log")
         id: row.id,
       });
     });
-    return { id: row.id, residentId: row.resident_id, visitor: row.visitor };
+    return {
+      id: row.id,
+      residentId: row.resident_id,
+      timeIn: parsed.timeIn ?? null,
+      timeOut: parsed.timeOut ?? null,
+      visitor: row.visitor,
+    };
   });

@@ -13,6 +13,7 @@ import {
   healthcareVisitLog,
 } from "#/db-schemas/residents";
 import { TimelineQuerySchema } from "#/schemas/records";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, desc, eq } from "drizzle-orm";
@@ -240,6 +241,16 @@ export const timeline = Workflow.name("healthcare.records.timeline")
           kind: "score",
           summary: `${row.kind}:${row.score}`,
         })),
-    ].sort((a, b) => b.at.localeCompare(a.at));
-    return { items: items.slice(0, 100), ms: Date.now() - started, patientId: parsed.patientId };
+    ];
+    const sorted = items.toSorted((first, second) => second.at.localeCompare(first.at));
+    await ctx.step.run("audit-view", async () => {
+      await ctx.audit.write({
+        action: AUDIT_ACTION.VIEWED,
+        crudAction: "create",
+        entityId: parsed.patientId,
+        entityType: AUDIT_ENTITY_TYPE.RECORDS,
+        newState: { patientId: parsed.patientId },
+      });
+    });
+    return { items: sorted.slice(0, 100), ms: Date.now() - started, patientId: parsed.patientId };
   });

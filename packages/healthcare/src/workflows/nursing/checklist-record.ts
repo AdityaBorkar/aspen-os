@@ -27,6 +27,7 @@ export const checklistRecord = Workflow.name("healthcare.nursing.checklist-recor
           items: parsed.items,
           name: parsed.name,
           patient_id: parsed.patientId ?? null,
+          payload: { kind: parsed.kind ?? "general" },
         })
         .returning(),
     );
@@ -49,5 +50,10 @@ export const checklistRecord = Workflow.name("healthcare.nursing.checklist-recor
         id: row.id,
       });
     });
-    return { id: row.id, name: row.name };
+    return {
+      id: row.id,
+      kind: parsed.kind ?? "general",
+      name: row.name,
+      printBlocked: false,
+    };
   });

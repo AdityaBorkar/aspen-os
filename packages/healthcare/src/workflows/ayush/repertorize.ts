@@ -39,6 +39,10 @@ export const repertorize = Workflow.name("healthcare.ayush.repertorize")
           case_id: parsed.caseId,
           created_by: actorId,
           patient_id: parsed.patientId,
+          payload: {
+            ...(parsed.miasm ? { miasm: parsed.miasm } : {}),
+            ...(parsed.dose ? { dose: parsed.dose } : {}),
+          },
           potency: parsed.potency,
           remedy: parsed.remedy,
           rubrics: parsed.rubrics,

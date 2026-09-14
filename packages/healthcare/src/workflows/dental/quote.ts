@@ -38,6 +38,10 @@ export const quote = Workflow.name("healthcare.dental.quote")
         .where(eq(healthcarePlanStage.plan_id, parsed.planId)),
     );
 
+    const validDays = parsed.validDays ?? 30;
+    const validTill =
+      parsed.validTill ?? new Date(Date.now() + validDays * 24 * 60 * 60 * 1000).toISOString();
+
     const subtotal = stages.reduce((sum, stage) => sum + Number(stage.price), 0);
     const discountPct = parsed.discountPct ?? 0;
     const gstPct = parsed.gstPct ?? 0;
@@ -52,6 +56,7 @@ export const quote = Workflow.name("healthcare.dental.quote")
           discount_pct: String(discountPct),
           gst_pct: String(gstPct),
           patient_id: parsed.patientId,
+          payload: { validDays, validTill },
           plan_id: parsed.planId,
           status: "Draft",
           subtotal: String(subtotal),
@@ -96,5 +101,7 @@ export const quote = Workflow.name("healthcare.dental.quote")
       status: row.status,
       subtotal,
       total,
+      validDays,
+      validTill,
     };
   });

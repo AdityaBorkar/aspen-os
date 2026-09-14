@@ -30,8 +30,12 @@ export const buildPackage = Workflow.name("healthcare.rehab.buildPackage")
 
     const rehabPackage = {
       frequency: parsed.frequency,
+      modalities: parsed.modalities ?? [],
+      price: parsed.price ?? null,
+      soldAt: new Date().toISOString(),
       totalSessions: parsed.totalSessions,
       usedSessions: 0,
+      validityDays: parsed.validityDays ?? null,
     } satisfies Record<string, JsonValue>;
     const [row] = await ctx.step.run("store-rehab-package", async () =>
       ctx.db
@@ -69,10 +73,23 @@ export const buildPackage = Workflow.name("healthcare.rehab.buildPackage")
     return {
       branchId: row.branch_id,
       episodeId: row.id,
+      expiry: expiryOf(rehabPackage),
       frequency: parsed.frequency,
       id: row.id,
+      modalities: parsed.modalities ?? [],
       patientId: row.patient_id,
+      price: parsed.price ?? null,
+      remaining: parsed.totalSessions,
       totalSessions: parsed.totalSessions,
       usedSessions: 0,
+      validityDays: parsed.validityDays ?? null,
     };
   });
+
+function expiryOf(pkg: { soldAt: string; validityDays: number | null }): string | null {
+  if (pkg.validityDays === null) {
+    return null;
+  }
+  const expiry = new Date(pkg.soldAt).getTime() + pkg.validityDays * 86_400_000;
+  return new Date(expiry).toISOString().slice(0, 10);
+}

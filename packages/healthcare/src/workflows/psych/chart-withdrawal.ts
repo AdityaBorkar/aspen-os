@@ -79,6 +79,7 @@ export const chartWithdrawal = Workflow.name("healthcare.psych.chartWithdrawal")
     }
 
     const { band, prompt } = withdrawalBand(parsed.tool, parsed.score);
+    const nextDueAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     const [row] = await ctx.step.run("insert-addiction-chart", async () =>
       ctx.db
         .insert(healthcareAddictionChart)
@@ -88,6 +89,13 @@ export const chartWithdrawal = Workflow.name("healthcare.psych.chartWithdrawal")
           created_by: actorId,
           encounter_id: parsed.encounterId ?? null,
           patient_id: parsed.patientId,
+          payload: {
+            chartSchedule: parsed.chartSchedule ?? "daily",
+            lastUseAt: parsed.lastUseAt ?? null,
+            nextDueAt,
+            substance: parsed.substance ?? null,
+            substanceHistory: parsed.substanceHistory ?? null,
+          },
           score: String(parsed.score),
           tool: parsed.tool,
         })
@@ -124,9 +132,11 @@ export const chartWithdrawal = Workflow.name("healthcare.psych.chartWithdrawal")
       createdAt: row.created_at.toISOString(),
       encounterId: row.encounter_id,
       id: row.id,
+      nextDueAt,
       patientId: row.patient_id,
       prompt,
       score: Number(row.score),
+      substance: parsed.substance ?? null,
       tool: row.tool,
     };
   });

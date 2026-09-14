@@ -9,6 +9,7 @@ import { BranchIdSchema, PaginationSchema } from "#/schemas/utils";
 import type { InferOutput } from "valibot";
 import {
   array,
+  boolean,
   integer,
   maxValue,
   minLength,
@@ -29,6 +30,7 @@ const Money = pipe(number(), minValue(0));
 
 export const ItemUpsertSchema = object({
   branchId: BranchIdSchema,
+  coldChain: optional(boolean()),
   gstPct: optional(pipe(number(), minValue(0), maxValue(100))),
   hsn: optional(string()),
   name: pipe(string(), minLength(1, "Item name is required")),
@@ -79,6 +81,8 @@ export const ReturnSchema = object({
   branchId: BranchIdSchema,
   items: array(
     object({
+      batchId: optional(string()),
+      disposition: optional(picklist(["restock", "quarantine"])),
       itemId: Id,
       qty: Qty,
     }),
@@ -148,6 +152,8 @@ export const TransferSchema = object({
 export const TransferAcceptSchema = object({
   acceptedBy: Id,
   branchId: BranchIdSchema,
+  decision: optional(picklist(["accept", "reject"]), "accept"),
+  reason: optional(string()),
   transferId: Id,
 });
 
@@ -159,6 +165,27 @@ export const ReorderSuggestSchema = object({
 export const PharmacyIdSchema = object({
   branchId: BranchIdSchema,
   id: Id,
+});
+
+export const ExpiryAlertQuerySchema = object({
+  branchId: BranchIdSchema,
+  store: optional(string()),
+  withinDays: optional(pipe(number(), minValue(1)), 90),
+});
+
+export const StockLedgerQuerySchema = object({
+  branchId: BranchIdSchema,
+  itemId: optional(string()),
+  limit: optional(pipe(number(), integer())),
+  store: optional(string()),
+});
+
+export const StockCorrectSchema = object({
+  batchId: Id,
+  branchId: BranchIdSchema,
+  correctedBy: Id,
+  deltaQty: pipe(number(), integer()),
+  reason: pipe(string(), minLength(1, "Correction reason is required")),
 });
 
 export const CreatePharmacyItemSchema = ItemUpsertSchema;
@@ -308,6 +335,9 @@ export type TransferInput = InferOutput<typeof TransferSchema>;
 export type TransferAcceptInput = InferOutput<typeof TransferAcceptSchema>;
 export type ReorderSuggestInput = InferOutput<typeof ReorderSuggestSchema>;
 export type PharmacyIdInput = InferOutput<typeof PharmacyIdSchema>;
+export type ExpiryAlertQueryInput = InferOutput<typeof ExpiryAlertQuerySchema>;
+export type StockLedgerQueryInput = InferOutput<typeof StockLedgerQuerySchema>;
+export type StockCorrectInput = InferOutput<typeof StockCorrectSchema>;
 export type CreatePharmacyItemInput = InferOutput<typeof CreatePharmacyItemSchema>;
 export type UpdatePharmacyItemInput = InferOutput<typeof UpdatePharmacyItemSchema>;
 export type PharmacyItemFilters = InferOutput<typeof PharmacyItemFiltersSchema>;

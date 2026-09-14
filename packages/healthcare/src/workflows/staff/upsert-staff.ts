@@ -3,11 +3,18 @@ import { OPERATIONS_EVENTS } from "#/pubsub";
 import { UpsertStaffSchema } from "#/schemas/staff";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 
+import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-import { object, parse } from "valibot";
+import { is, object, parse, string } from "valibot";
 
 const UpsertStaffInputSchema = object({ input: UpsertStaffSchema });
+
+function readStaffPayload(payload: Record<string, JsonValue>) {
+  const department = is(string(), payload.department) ? payload.department : null;
+  const exitDate = is(string(), payload.exitDate) ? payload.exitDate : null;
+  return { department, exitDate };
+}
 
 export const upsertStaff = Workflow.name("healthcare.staff.upsert-staff")
   .input(UpsertStaffInputSchema)
@@ -18,6 +25,10 @@ export const upsertStaff = Workflow.name("healthcare.staff.upsert-staff")
       branch_id: branchId,
       doj: parsed.doj ?? null,
       name: parsed.name,
+      payload: {
+        department: parsed.department ?? null,
+        exitDate: parsed.exitDate ?? null,
+      },
       phone: parsed.phone ?? null,
       role: parsed.role,
       status: parsed.status ?? "active",
@@ -35,6 +46,7 @@ export const upsertStaff = Workflow.name("healthcare.staff.upsert-staff")
     if (!row) {
       throw new Error("Failed to upsert staff.");
     }
+    const staffPayload = readStaffPayload(row.payload);
     const at = new Date().toISOString();
     await ctx.step.run("audit-and-notify", async () => {
       await ctx.audit.write({
@@ -51,5 +63,12 @@ export const upsertStaff = Workflow.name("healthcare.staff.upsert-staff")
         id: row.id,
       });
     });
-    return { id: row.id, name: row.name, role: row.role, status: row.status };
+    return {
+      department: staffPayload.department,
+      exitDate: staffPayload.exitDate,
+      id: row.id,
+      name: row.name,
+      role: row.role,
+      status: row.status,
+    };
   });

@@ -168,6 +168,7 @@ export interface ClinicOrderDto {
   kind: string;
   note: string | null;
   patientId: string;
+  receivingUnit: string | null;
   status: string;
 }
 
@@ -181,6 +182,8 @@ export function toClinicOrderDto(row: typeof healthcareClinicOrder.$inferSelect)
     kind: row.kind,
     note: row.note,
     patientId: row.patient_id,
+    receivingUnit:
+      typeof row.payload?.receivingUnit === "string" ? row.payload.receivingUnit : null,
     status: row.status,
   };
 }

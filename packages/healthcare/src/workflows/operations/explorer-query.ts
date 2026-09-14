@@ -3,10 +3,28 @@ import { QueryExplorerSchema } from "#/schemas/operations";
 import { healthcareExplorerTables, serializeExplorerRow } from "#/workflow-steps/explorer-tables";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { and, eq } from "drizzle-orm";
-import { object, parse } from "valibot";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { boolean, is, number, object, parse, record, string, union } from "valibot";
 
 const ExplorerQueryInputSchema = object({ input: QueryExplorerSchema });
+
+const FiltersSchema = record(string(), union([string(), number(), boolean()]));
+
+function parseJsonRecord(raw: string | undefined) {
+  if (!raw) {
+    return {};
+  }
+  let value: unknown;
+  try {
+    value = JSON.parse(raw);
+  } catch {
+    throw new Error("Explorer filters must be a JSON object of equality clauses.");
+  }
+  if (!is(FiltersSchema, value)) {
+    throw new Error("Explorer filters must be a JSON object of equality clauses.");
+  }
+  return value;
+}
 
 export const explorerQuery = Workflow.name("healthcare.operations.explorer-query")
   .input(ExplorerQueryInputSchema)
@@ -42,12 +60,28 @@ export const explorerQuery = Workflow.name("healthcare.operations.explorer-query
     if (!grant) {
       throw new Error("Explorer access not granted; request an ExplorerGrant first");
     }
-    const rows = await ctx.step.run("run-query", async () =>
-      ctx.db
-        .select()
-        .from(table)
-        .where(eq(table.branch_id, branchId))
-        .limit(parsed.limit ?? 100),
-    );
+    const filters = parseJsonRecord(parsed.filters);
+    const columnNames = new Set(Object.keys(table));
+    const conditions = [eq(table.branch_id, branchId)];
+    for (const [key, value] of Object.entries(filters)) {
+      if (columnNames.has(key)) {
+        // SAFETY: column names come from the allowlisted table's own keys and
+        // values are bound as parameters, so identifier injection is blocked.
+        conditions.push(sql`${sql.identifier(key)} = ${value}`);
+      }
+    }
+    const limit = Math.min(parsed.limit ?? 100, 1000);
+    const offset = parsed.offset ?? 0;
+    const [sortField, sortDir] = (parsed.sort ?? "").split(":");
+    const rows = await ctx.step.run("run-query", async () => {
+      const where = and(...conditions);
+      if (sortField && columnNames.has(sortField)) {
+        // SAFETY: sort field is an allowlisted column key, bound as identifier.
+        const order =
+          sortDir === "desc" ? desc(sql.identifier(sortField)) : asc(sql.identifier(sortField));
+        return ctx.db.select().from(table).where(where).orderBy(order).limit(limit).offset(offset);
+      }
+      return ctx.db.select().from(table).where(where).limit(limit).offset(offset);
+    });
     return rows.map((row) => serializeExplorerRow(row));
   });

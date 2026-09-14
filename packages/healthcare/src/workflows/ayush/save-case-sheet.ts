@@ -39,7 +39,15 @@ export const saveCaseSheet = Workflow.name("healthcare.ayush.saveCaseSheet")
           nadi: parsed.nadi,
           pathy: parsed.pathy,
           patient_id: parsed.patientId,
-          payload: { diagnoses: [], followups: [] },
+          payload: {
+            agni: parsed.agni ?? null,
+            diagnoses: [],
+            followupGrid: [],
+            followups: [],
+            koshtha: parsed.koshtha ?? null,
+            mala: parsed.mala ?? null,
+            planLines: parsed.planLines ?? [],
+          },
           prakriti: parsed.prakriti,
         })
         .returning(),

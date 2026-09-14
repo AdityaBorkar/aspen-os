@@ -71,6 +71,7 @@ export const CreateAllergySchema = object({
   name: pipe(string(), minLength(1, "Allergy name is required")),
   note: optional(string()),
   patientId: pipe(string(), minLength(1, "Patient ID is required")),
+  reaction: optional(pipe(string(), maxLength(500))),
   severity: picklist(["mild", "moderate", "severe"]),
 });
 

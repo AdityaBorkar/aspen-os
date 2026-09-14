@@ -1,4 +1,8 @@
-import { healthcareCounsellingSession, healthcareSafetyPlan } from "#/db-schemas/psych";
+import {
+  healthcareCaregiverConsent,
+  healthcareCounsellingSession,
+  healthcareSafetyPlan,
+} from "#/db-schemas/psych";
 import { PSYCH_EVENTS } from "#/pubsub";
 import { BookCounsellingSchema } from "#/schemas/psych";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
@@ -58,6 +62,28 @@ export const bookCounselling = Workflow.name("healthcare.psych.bookCounselling")
       }
     }
 
+    // Minor gate: patients flagged minor need a signed caregiver consent
+    // before counselling starts.
+    if (parsed.patientIsMinor) {
+      const consented = await ctx.step.run("check-minor-consent", async () => {
+        const [consent] = await ctx.db
+          .select({ id: healthcareCaregiverConsent.id })
+          .from(healthcareCaregiverConsent)
+          .where(
+            and(
+              eq(healthcareCaregiverConsent.patient_id, parsed.patientId),
+              eq(healthcareCaregiverConsent.branch_id, branchId),
+              eq(healthcareCaregiverConsent.status, "Signed"),
+            ),
+          )
+          .limit(1);
+        return Boolean(consent);
+      });
+      if (!consented) {
+        throw new Error("Minor patient needs a signed caregiver consent before counselling starts");
+      }
+    }
+
     const [row] = await ctx.step.run("insert-counselling-session", async () =>
       ctx.db
         .insert(healthcareCounsellingSession)
@@ -70,6 +96,11 @@ export const bookCounselling = Workflow.name("healthcare.psych.bookCounselling")
           mode: parsed.mode,
           notes: parsed.notes ?? null,
           patient_id: parsed.patientId,
+          payload: {
+            billingSlab: `${parsed.durationMins}min`,
+            consentId: parsed.consentId ?? null,
+            link: parsed.link ?? null,
+          },
           status: "Booked",
         })
         .returning(),
@@ -100,6 +131,7 @@ export const bookCounselling = Workflow.name("healthcare.psych.bookCounselling")
     });
 
     return {
+      billingSlab: `${parsed.durationMins}min`,
       branchId: row.branch_id,
       createdAt: row.created_at.toISOString(),
       date: row.date,

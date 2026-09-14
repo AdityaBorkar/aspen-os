@@ -4,22 +4,27 @@ import { AdministerDrugSchema } from "#/schemas/nursing";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { array, object, optional, parse, string } from "valibot";
+import { object, parse } from "valibot";
 
-const DrugAdminWithAllergiesSchema = object({
-  ...AdministerDrugSchema.entries,
-  allergies: optional(array(string())),
-});
+const DrugAdminInputSchema = object({ input: AdministerDrugSchema });
 
-const DrugAdminInputSchema = object({ input: DrugAdminWithAllergiesSchema });
+const INJECTABLE_HINT = /(inj\.?|injection|\biv\b|\bim\b|\bsc\b|vaccine|insulin|blood|infusion)/i;
 
 export const drugAdminister = Workflow.name("healthcare.nursing.drug-administer")
   .input(DrugAdminInputSchema)
   .handler(async ({ input }, ctx) => {
-    const parsed = parse(DrugAdminWithAllergiesSchema, input);
+    const parsed = parse(AdministerDrugSchema, input);
     const branchId = parsed.branchId ?? "main";
-    if (!parsed.batchId) {
-      throw new Error("Batch is required for drug administration; scan the batch and retry");
+    // Batch/lot trace is mandatory for Given injectables, vaccines, and blood
+    // products; Held/Refused/Missed outcomes never need a batch.
+    const needsBatch =
+      parsed.outcome === "Given" &&
+      (INJECTABLE_HINT.test(parsed.drug) ||
+        (parsed.route ? INJECTABLE_HINT.test(parsed.route) : true));
+    if (needsBatch && !parsed.batchId) {
+      throw new Error(
+        "Batch is required for this injectable administration; scan the batch and retry",
+      );
     }
     const hit = (parsed.allergies ?? []).find((allergen) =>
       parsed.drug.toLowerCase().includes(allergen.toLowerCase()),
@@ -34,7 +39,7 @@ export const drugAdminister = Workflow.name("healthcare.nursing.drug-administer"
       ctx.db
         .insert(healthcareDrugAdministration)
         .values({
-          batch_id: parsed.batchId,
+          batch_id: parsed.batchId ?? null,
           branch_id: branchId,
           doctor_override_id: parsed.doctorOverrideId ?? null,
           dose: parsed.dose,
@@ -44,6 +49,7 @@ export const drugAdminister = Workflow.name("healthcare.nursing.drug-administer"
           order_id: parsed.orderId ?? null,
           outcome: parsed.outcome.toLowerCase(),
           patient_id: parsed.patientId,
+          payload: { allergies: parsed.allergies ?? [], route: parsed.route ?? null },
           witness: parsed.witness ?? null,
         })
         .returning(),

@@ -44,6 +44,10 @@ export const sittingsSupport = Workflow.name("healthcare.nursing.sittings-suppor
           consent_id: parsed.consentId,
           note: parsed.note ?? null,
           patient_id: parsed.patientId,
+          payload: {
+            consumables: parsed.consumables ?? [],
+            vitals: parsed.vitals ?? null,
+          },
           phase: parsed.phase,
           recorded_by: ctx.actorId ?? null,
         })
@@ -68,5 +72,10 @@ export const sittingsSupport = Workflow.name("healthcare.nursing.sittings-suppor
         id: row.id,
       });
     });
-    return { id: row.id, patientId: row.patient_id, phase: row.phase };
+    return {
+      consumables: parsed.consumables ?? [],
+      id: row.id,
+      patientId: row.patient_id,
+      phase: row.phase,
+    };
   });

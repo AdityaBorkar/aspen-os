@@ -3,15 +3,21 @@ import { PHARMACY_EVENTS } from "#/pubsub";
 import { ItemUpsertSchema } from "#/schemas/pharmacy";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 
+import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
-import { object, parse } from "valibot";
+import { boolean, is, object, parse } from "valibot";
 
 const ItemUpsertInputSchema = object({ input: ItemUpsertSchema });
+
+function readColdChain(payload: Record<string, JsonValue>): boolean {
+  return is(boolean(), payload.coldChain) ? payload.coldChain : false;
+}
 
 function toDto(row: typeof healthcarePharmacyItem.$inferSelect) {
   return {
     branchId: row.branch_id,
+    coldChain: readColdChain(row.payload),
     createdAt: row.created_at.toISOString(),
     gstPct: row.gst_pct === null ? 0 : Number(row.gst_pct),
     hsn: row.hsn,
@@ -56,6 +62,10 @@ export const itemUpsert = Workflow.name("healthcare.pharmacy.item-upsert")
             gst_pct: parsed.gstPct === undefined ? duplicate.gst_pct : String(parsed.gstPct),
             hsn: parsed.hsn ?? duplicate.hsn,
             name: parsed.name,
+            payload: {
+              ...duplicate.payload,
+              coldChain: parsed.coldChain ?? readColdChain(duplicate.payload),
+            },
             reorder_level: parsed.reorderLevel ?? duplicate.reorder_level,
             schedule: parsed.schedule,
           })
@@ -95,6 +105,7 @@ export const itemUpsert = Workflow.name("healthcare.pharmacy.item-upsert")
           hsn: parsed.hsn ?? null,
           name: parsed.name,
           pack: parsed.pack,
+          payload: { coldChain: parsed.coldChain ?? false },
           reorder_level: parsed.reorderLevel ?? 0,
           salt: parsed.salt,
           schedule: parsed.schedule,
