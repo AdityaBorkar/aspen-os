@@ -1,0 +1,125 @@
+---
+title: Events
+description: Domain event map for the Healthcare module.
+icon: IconBell
+---
+
+The Healthcare module publishes domain events as plain string topics via `PubSub`. Every writer payload is a `HealthcareEntityEvent` (`{ id, branchId, at, actorId?, data? }`); reads publish nothing, and psych `breakGlass` is audit-only by design.
+
+## Event Map
+
+### Patient
+
+| Event                        | Payload                 | Trigger                                                                                                                 |
+| ---------------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `healthcare.patient_created` | `HealthcareEntityEvent` | `patients.register`                                                                                                     |
+| `healthcare.patient_updated` | `HealthcareEntityEvent` | `linkFamily`, `setFlag`, `addAllergy`, `archiveConsent`, `logCommunication`, `shareSlip`, `enrolRecall`, `requestMerge` |
+| `healthcare.patient_merged`  | `HealthcareEntityEvent` | `patients.approveMerge`                                                                                                 |
+
+### Practitioner
+
+| Event                             | Payload                 | Trigger                                                                                                        |
+| --------------------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `healthcare.practitioner_created` | `HealthcareEntityEvent` | `practitioners.create`                                                                                         |
+| `healthcare.practitioner_updated` | `HealthcareEntityEvent` | `update`, `deactivate`, `addRegistration`, `addEducation`, `addPosting`, `setSchedule`, `setFee`, `blockLeave` |
+
+### Facility
+
+| Event                         | Payload                 | Trigger                                                                      |
+| ----------------------------- | ----------------------- | ---------------------------------------------------------------------------- |
+| `healthcare.facility_created` | `HealthcareEntityEvent` | `facilities.create`                                                          |
+| `healthcare.facility_updated` | `HealthcareEntityEvent` | `update`, `setSchedule`, `addBlock`, `occupy`, `release`, `logSterilization` |
+
+### Service
+
+| Event                         | Payload                 | Trigger                                                                                 |
+| ----------------------------- | ----------------------- | --------------------------------------------------------------------------------------- |
+| `healthcare.service_created`  | `HealthcareEntityEvent` | `services.create`, `definePackage`                                                      |
+| `healthcare.service_updated`  | `HealthcareEntityEvent` | `update`, `publish`, `retire`, `mapFacilities`, `setPrice`, `addDiscountRule`, `redeem` |
+| `healthcare.service_redeemed` | `HealthcareEntityEvent` | Reserved — no publisher yet; `redeem` currently publishes `service_updated`             |
+
+### Appointment
+
+| Event                            | Payload                 | Trigger                                                                                                           |
+| -------------------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `healthcare.appointment_created` | `HealthcareEntityEvent` | `appointments.book`, `bookVideo`                                                                                  |
+| `healthcare.appointment_updated` | `HealthcareEntityEvent` | `reschedule`, `cancel`, `checkin`, `walkinToken`, `callNext`, `captureConsent`, `issueRecall`, `issueCertificate` |
+
+### Encounter
+
+| Event                          | Payload                 | Trigger                                                                                        |
+| ------------------------------ | ----------------------- | ---------------------------------------------------------------------------------------------- |
+| `healthcare.encounter_created` | `HealthcareEntityEvent` | `encounters.create`                                                                            |
+| `healthcare.encounter_signed`  | `HealthcareEntityEvent` | `encounters.sign`                                                                              |
+| `healthcare.encounter_updated` | `HealthcareEntityEvent` | `addDiagnosis`, `prescribe`, `refill`, `placeOrder`, `recordVitals`, `setFollowUp`, `addendum` |
+
+### EMR specialties
+
+| Event                                                           | Payload                 | Trigger                          |
+| --------------------------------------------------------------- | ----------------------- | -------------------------------- |
+| `healthcare.allopathy_created` / `healthcare.allopathy_updated` | `HealthcareEntityEvent` | All allopathy writers / updaters |
+| `healthcare.dental_created` / `healthcare.dental_updated`       | `HealthcareEntityEvent` | All dental writers / updaters    |
+| `healthcare.ayush_created` / `healthcare.ayush_updated`         | `HealthcareEntityEvent` | All ayush writers / updaters     |
+| `healthcare.rehab_created` / `healthcare.rehab_updated`         | `HealthcareEntityEvent` | All rehab writers / updaters     |
+| `healthcare.psych_created` / `healthcare.psych_updated`         | `HealthcareEntityEvent` | All psych writers / updaters     |
+
+### Resident
+
+| Event                         | Payload                 | Trigger                                                                                                                 |
+| ----------------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `healthcare.resident_created` | `HealthcareEntityEvent` | `admit`, `scoreGeriatric`, `polypharmacyReview`, `logDaily`, `round`, `visitLog`, `recordStayCharge`, `compileStayBill` |
+| `healthcare.resident_updated` | `HealthcareEntityEvent` | `residents.allocateBed`                                                                                                 |
+
+### Pharmacy
+
+| Event                           | Payload                 | Trigger                                                                             |
+| ------------------------------- | ----------------------- | ----------------------------------------------------------------------------------- |
+| `healthcare.pharmacy_created`   | `HealthcareEntityEvent` | `itemUpsert`, `batchReceive`, `returnAgainstBill`, `poCreate`, `transfer`, `piBook` |
+| `healthcare.pharmacy_updated`   | `HealthcareEntityEvent` | `partialClose`, `grnVerify`, `cndnIssue`, `transferAccept`                          |
+| `healthcare.pharmacy_dispensed` | `HealthcareEntityEvent` | `pharmacy.saleFromRx`                                                               |
+
+### Diagnostics
+
+| Event                               | Payload                 | Trigger                                                                                               |
+| ----------------------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------- |
+| `healthcare.diagnostics_created`    | `HealthcareEntityEvent` | `testMasterUpsert`, `panelCreate`, `orderLabs`, `radioBook`, `qcLog`                                  |
+| `healthcare.diagnostics_updated`    | `HealthcareEntityEvent` | `collectSample`, `receiveSample`, `resultEnter`, `criticalAck`, `deliver`, radio flows, `cancelOrder` |
+| `healthcare.diagnostics_authorized` | `HealthcareEntityEvent` | `authorize`, `radioAuthorize`                                                                         |
+
+### Billing
+
+| Event                          | Payload                 | Trigger                                                                                         |
+| ------------------------------ | ----------------------- | ----------------------------------------------------------------------------------------------- |
+| `healthcare.billing_created`   | `HealthcareEntityEvent` | `invoiceRaise`, `packageSell`, `pricelistUpsert`, `cndnIssue`                                   |
+| `healthcare.billing_updated`   | `HealthcareEntityEvent` | `invoiceFinalize`, `applyDiscount`, `repriceOnPayerSwitch`, `packageRedeem`, `packageExpireRun` |
+| `healthcare.billing_collected` | `HealthcareEntityEvent` | `collect`, `settleAdvance`                                                                      |
+
+### Nursing
+
+| Event                          | Payload                 | Trigger                                                                                                                                                                              |
+| ------------------------------ | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `healthcare.nursing_created`   | `HealthcareEntityEvent` | `tasksFromOrders`, `recordNote`, `vitalsChart`, `ioChart`, `painScore`, `riskScreen`, `drugAdminister`, `sittingsSupport`, `checklistRecord`, `handoverCompile`, non-red `triageTag` |
+| `healthcare.nursing_escalated` | `HealthcareEntityEvent` | `missedEscalate`, red `triageTag`                                                                                                                                                    |
+| `healthcare.nursing_updated`   | `HealthcareEntityEvent` | `nursing.handoverSign`                                                                                                                                                               |
+
+### Records
+
+| Event                        | Payload                 | Trigger                                                                                                                           |
+| ---------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `healthcare.records_created` | `HealthcareEntityEvent` | `breakglass`, `docsAttach`, `sharePrint`, `shareWhatsapp`, `registersAppend`, `addendumAppend`, `dischargeIssue`, `recordConsent` |
+| `healthcare.records_updated` | `HealthcareEntityEvent` | `docsVerify`, `registersVoid`                                                                                                     |
+| `healthcare.records_merged`  | `HealthcareEntityEvent` | `records.merge`                                                                                                                   |
+
+### Operations
+
+| Event                           | Payload                 | Trigger                                                                                                                                                                                                                     |
+| ------------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `healthcare.operations_created` | `HealthcareEntityEvent` | `mastersUpsert`, `branchesCreate`, `seedPresets`, `reportsDefine`, `complianceEvidence`, `messagingSend`, `messagingOptOut`, `explorerGrant`, staff `upsertStaff`/`rosterPlan`/`attendanceMark`/`leaveRequest`/`createRole` |
+| `healthcare.operations_updated` | `HealthcareEntityEvent` | `messagingRetry`, staff `leaveDecide`/`deleteRole`/`disableUser`                                                                                                                                                            |
+
+### Branch
+
+| Event                       | Payload                 | Trigger                                           |
+| --------------------------- | ----------------------- | ------------------------------------------------- |
+| `healthcare.branch_created` | `HealthcareEntityEvent` | `admin.createBranch`, `operations.branchesCreate` |
+| `healthcare.branch_updated` | `HealthcareEntityEvent` | `admin.updateBranch`                              |

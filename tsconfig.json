@@ -34,6 +34,7 @@
     { "path": "./packages/crm" },
     { "path": "./packages/dms" },
     { "path": "./packages/fleet" },
+    { "path": "./packages/healthcare" },
     { "path": "./packages/platform" },
     { "path": "./packages/hr-attendance" },
     { "path": "./packages/hr-core" },

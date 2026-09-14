@@ -26,6 +26,7 @@ export const management = definePackageDocs("management");
 export const masters = definePackageDocs("masters");
 export const crm = definePackageDocs("crm");
 export const fleet = definePackageDocs("fleet");
+export const healthcare = definePackageDocs("healthcare");
 export const inventory = definePackageDocs("inventory");
 export const reports = definePackageDocs("reports");
 export const workspace = definePackageDocs("workspace");

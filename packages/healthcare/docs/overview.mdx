@@ -1,0 +1,81 @@
+---
+title: Overview
+description: Architecture, tenancy model, configuration, and module structure of the Healthcare module.
+icon: IconInfoCircle
+---
+
+The Healthcare module is the OPD clinic backend: registration, EMR across five specialties, pharmacy, diagnostics, billing, nursing, and records — no ADT/IPD bed management, no OT scheduling, no insurance/TPA.
+
+## Module
+
+```ts title="src/module.ts"
+export class Healthcare implements Module {
+  static create(config?: HealthcareConfig): Healthcare;
+  readonly $name = "healthcare"; // proxy key: p.healthcare
+  readonly $dependencies: readonly string[] = [];
+}
+```
+
+`$prepareRuntime()` and `$cleanup()` are empty: the module wires no schedules or subscriptions yet. `$initialize()` keeps the scaffold shape.
+
+## Configuration
+
+```ts title="src/types.ts"
+type HealthcareConfig = {
+  tenantCodePrefix?: string; // "HC"
+};
+```
+
+```ts
+const healthcare = Healthcare.create({ tenantCodePrefix: "HC" });
+const p = IsolatedTenantPlatform.create(config, [healthcare]);
+```
+
+## Dependencies
+
+| Dependency | Kind                      | Purpose                                         |
+| ---------- | ------------------------- | ----------------------------------------------- |
+| `db`       | unit (via `ctx`)          | 141 tenant tables; gapless numbers via counters |
+| `pubsub`   | unit (via `ctx`)          | Domain events per mutation                      |
+| `audit`    | context (via `ctx.audit`) | Audit writes for every mutation                 |
+
+No module `$dependencies` and no `$consumes` topics.
+
+## Architecture
+
+```mermaid
+flowchart TB
+  subgraph Groups[workflow groups — p.healthcare.*]
+    direction LR
+    REG[patients practitioners facilities services appointments encounters admin]
+    EMR[allopathy dental ayush rehab psych]
+    OPS[residents pharmacy diagnostics billing nursing records operations staff]
+  end
+  Groups --> M[Healthcare module]
+  M --> INFRA[$prepareInfra: auth acl, tenant_schemas, events]
+  INFRA --> DB[(141 healthcare_* tables)]
+  INFRA --> PS[pubsub topics]
+```
+
+## Key concepts
+
+### Branch-scoped tenant rows
+
+Every clinical table carries `branch_id` (default `"main"`); workflows scope reads and writes to one branch. Cross-entity links are soft text references (`patient_id`, `encounter_id`) enforced by workflow guards, never foreign keys.
+
+### Gapless human-readable numbers
+
+`healthcare_counter` backs `nextHealthcareSeries` (`workflow-steps/series.ts`): UHID, invoice/receipt/package numbers, sale/return/PO/GRN/transfer numbers, lab/radio order numbers, register serials.
+
+### Audit and events per mutation
+
+Writers call `ctx.audit.write()` then `ctx.pubsub.publish()`; reads publish nothing. Specialty writers (allopathy, dental, ayush, rehab, psych) additionally gate on an open, same-patient `healthcare_encounter`.
+
+### Status representation
+
+Shared lifecycles use `pgEnum`s (`healthcare_appointment_status`, `healthcare_encounter_status`, `healthcare_lab_order_status`, …). Specialty-domain statuses stay clinic-capitalized text columns (`Open`, `Booked`, `Completed`) so ported guards keep their exact semantics.
+
+<Callout type="warn">
+  `SERVICE_EVENTS.REDEEMED` (`healthcare.service_redeemed`) is declared for future use; package
+  redemption currently publishes `SERVICE_EVENTS.UPDATED`, matching the ported call sites.
+</Callout>

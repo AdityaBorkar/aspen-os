@@ -1,0 +1,503 @@
+---
+title: Workflows
+description: API reference for the workflow groups exposed by the Healthcare module.
+icon: IconListCheck
+---
+
+Workflow groups via `p.healthcare`: `patients`, `practitioners`, `facilities`, `services`, `appointments`, `encounters`, `admin`, `allopathy`, `dental`, `ayush`, `rehab`, `psych`, `residents`, `pharmacy`, `diagnostics`, `billing`, `nursing`, `records`, `operations`, `staff`.
+
+Create takes Valibot `{ input }` with `branchId` (defaults `"main"`); reads take filter objects. Every mutation writes an audit entry and publishes a `healthcare.*` event; reads publish nothing.
+
+## Features
+
+### Patients
+
+Access: `p.healthcare.patients`
+
+Registration with phone/ABHA dedupe, family links, allergies, flags, consents, recalls, and two-party merge. Actions: `register`, `dedupeCheck`, `get`, `list`, `timeline`, `linkFamily`, `setFlag`, `addAllergy`, `archiveConsent`, `logCommunication`, `shareSlip`, `enrolRecall`, `requestMerge`, `approveMerge`.
+
+```ts
+const patient = await p.healthcare.patients.register({
+  input: { branchId: "main", fullName: "Asha Rao", gender: "female", phone: "9820011223" },
+});
+await p.healthcare.patients.dedupeCheck({ input: { branchId: "main", phone: "9820011223" } });
+await p.healthcare.patients.requestMerge({
+  input: {
+    branchId: "main",
+    duplicateId: dup.id,
+    primaryId: patient.id,
+    reason: "double registration",
+  },
+});
+```
+
+### Practitioners
+
+Access: `p.healthcare.practitioners`
+
+Doctor masters with registrations, education, postings, weekly schedules, fee versions, and leave blocks. `conflict` reports leave and booked-appointment overlap; `nextFreeSlot` scans schedules minus booked slots over 14 days. Actions: `create`, `get`, `list`, `update`, `deactivate`, `addRegistration`, `addEducation`, `addPosting`, `setSchedule`, `setFee`, `blockLeave`, `conflict`, `nextFreeSlot`.
+
+```ts
+const doc = await p.healthcare.practitioners.create({
+  input: {
+    branchId: "main",
+    name: "Dr. Iyer",
+    overallYrs: 12,
+    specialistYrs: 6,
+    specialty: "cardiology",
+  },
+});
+await p.healthcare.practitioners.setSchedule({
+  input: {
+    branchId: "main",
+    bufferMin: 0,
+    end: "13:00",
+    facilityId: room.id,
+    practitionerId: doc.id,
+    slotMin: 15,
+    start: "09:00",
+    weekday: "mon",
+  },
+});
+await p.healthcare.practitioners.nextFreeSlot({
+  input: { branchId: "main", practitionerId: doc.id },
+});
+```
+
+### Facilities
+
+Access: `p.healthcare.facilities`
+
+Rooms, chairs, and equipment with weekly schedules, blocks, single-occupancy occupy/release, and sterilization logs. Actions: `create`, `get`, `list`, `update`, `setSchedule`, `addBlock`, `overlap`, `occupy`, `release`, `logSterilization`, `statusBoard`.
+
+```ts
+const room = await p.healthcare.facilities.create({
+  input: { branchId: "main", category: "consultation", code: "CONS-01", name: "Consultation 1" },
+});
+await p.healthcare.facilities.occupy({
+  input: { branchId: "main", facilityId: room.id, note: "minor procedure" },
+});
+await p.healthcare.facilities.release({ input: { branchId: "main", facilityId: room.id } });
+```
+
+### Services
+
+Access: `p.healthcare.services`
+
+Billable services with versioned prices, discount rules, facility maps, and redeemable packages. Actions: `create`, `get`, `list`, `update`, `publish`, `retire`, `mapFacilities`, `setPrice`, `addDiscountRule`, `definePackage`, `redeem`.
+
+```ts
+const svc = await p.healthcare.services.create({
+  input: { branchId: "main", code: "CONS-GEN", name: "General consultation" },
+});
+await p.healthcare.services.setPrice({
+  input: { amount: 500, branchId: "main", serviceId: svc.id },
+});
+await p.healthcare.services.publish({ input: { branchId: "main", serviceId: svc.id } });
+```
+
+### Appointments
+
+Access: `p.healthcare.appointments`
+
+Slot computation (schedules minus leaves, facility blocks, and booked slots), booking with clash guards, FIFO queue tokens, video sessions, consents, recalls, and certificates. Actions: `computeSlots`, `book`, `get`, `list`, `reschedule`, `cancel`, `checkin`, `queueBoard`, `walkinToken`, `callNext`, `bookVideo`, `captureConsent`, `issueRecall`, `issueCertificate`.
+
+```ts
+const slots = await p.healthcare.appointments.computeSlots({
+  input: { branchId: "main", date: "2026-09-14", facilityId: room.id, practitionerId: doc.id },
+});
+const appt = await p.healthcare.appointments.book({
+  input: {
+    branchId: "main",
+    patientId: patient.id,
+    practitionerId: doc.id,
+    slotStart: slots[0].slotStart,
+  },
+});
+await p.healthcare.appointments.checkin({ input: { id: appt.id } });
+```
+
+### Encounters
+
+Access: `p.healthcare.encounters`
+
+The clinical visit: immutable after `sign`. Diagnoses (dedupe-guarded), prescriptions with interaction ack gates, 180-day refills, orders, vitals, follow-ups, and post-sign addenda. Actions: `create`, `get`, `sign`, `addDiagnosis`, `prescribe`, `refill`, `placeOrder`, `recordVitals`, `setFollowUp`, `addendum`.
+
+```ts
+const enc = await p.healthcare.encounters.create({
+  input: { branchId: "main", patientId: patient.id, specialty: "allopathy", visitType: "new" },
+});
+await p.healthcare.encounters.addDiagnosis({
+  input: {
+    branchId: "main",
+    code: "J06.9",
+    encounterId: enc.id,
+    kind: "provisional",
+    label: "URI",
+  },
+});
+await p.healthcare.encounters.sign({ input: { branchId: "main", encounterId: enc.id } });
+```
+
+### Admin
+
+Access: `p.healthcare.admin`
+
+Singleton company profile, branch CRUD on the shared `healthcare_branch` table, master-version/template/recall-rule stores, and audit-log queries. Actions: `getCompany`, `saveCompany`, `listBranches`, `createBranch`, `updateBranch`, `listMasterVersions`, `saveMasterVersion`, `listTemplates`, `saveTemplate`, `deleteTemplate`, `listRecallRules`, `saveRecallRule`, `deleteRecallRule`, `logs`.
+
+```ts
+await p.healthcare.admin.saveCompany({ input: { name: "City Clinic", slug: "city-clinic" } });
+await p.healthcare.admin.createBranch({
+  input: { address: "Linking Rd", name: "Bandra", subdomain: "bandra" },
+});
+await p.healthcare.admin.logs({
+  input: { action: "created", entityType: "healthcare:patient", limit: 50 },
+});
+```
+
+### Allopathy
+
+Access: `p.healthcare.allopathy`
+
+SOAP notes, exam findings, chronic-parameter logs, immunizations, triage entries, and statutory register entries. Every writer gates on an open, same-patient encounter. Actions: `saveSoap`, `saveExam`, `logChronic`, `recordImmunization`, `triageEntry`, `registerEntry`, `listSoap`.
+
+```ts
+await p.healthcare.allopathy.saveSoap({
+  input: {
+    assessment: "viral",
+    branchId: "main",
+    diagnoses: [{ code: "J06.9", label: "URI", system: "ICD11" }],
+    encounterId: enc.id,
+    objective: "throat congested",
+    patientId: patient.id,
+    plan: "rest",
+    subjective: "fever 3d",
+  },
+});
+await p.healthcare.allopathy.triageEntry({
+  input: {
+    branchId: "main",
+    encounterId: enc.id,
+    patientId: patient.id,
+    priority: "routine",
+    spo2: 98,
+  },
+});
+```
+
+### Dental
+
+Access: `p.healthcare.dental`
+
+FDI charts, staged treatment plans with chair-overlap guards, quotes, consent-before-chair, and lab jobs. Actions: `chart`, `buildPlan`, `quote`, `consent`, `bookChair`, `raiseLabJob`, `trackLabJob`, `closeStage`.
+
+```ts
+await p.healthcare.dental.chart({
+  input: {
+    branchId: "main",
+    encounterId: enc.id,
+    entries: [{ tooth: "16", condition: "caries" }],
+    patientId: patient.id,
+  },
+});
+const plan = await p.healthcare.dental.buildPlan({
+  input: {
+    branchId: "main",
+    encounterId: enc.id,
+    patientId: patient.id,
+    stages: [{ price: 8000, procedure: "RCT", stage: "Planned", tooth: "16" }],
+  },
+});
+await p.healthcare.dental.bookChair({
+  input: {
+    branchId: "main",
+    chairId: "chair-1",
+    date: "2026-09-14",
+    encounterId: enc.id,
+    patientId: patient.id,
+    slot: "10:00",
+  },
+});
+```
+
+### Ayush
+
+Access: `p.healthcare.ayush`
+
+Ayurveda/homeopathy case sheets with NAMASTE+TM2 dual coding, repertorization, therapy packages with pause/extend, pre/post-vitals sittings, diet plans, and yoga batches. Actions: `saveCaseSheet`, `repertorize`, `dualCode`, `bookNadi`, `scheduleTherapy`, `recordSitting`, `sellPackage`, `pauseExtendPackage`, `issueDiet`, `enrollYoga`, `createYogaBatch`.
+
+```ts
+const sheet = await p.healthcare.ayush.saveCaseSheet({
+  input: {
+    branchId: "main",
+    complaints: "joint pain",
+    dosha: "vata",
+    encounterId: enc.id,
+    nadi: "vataja",
+    pathy: "ayurveda",
+    patientId: patient.id,
+    prakriti: "vata",
+  },
+});
+await p.healthcare.ayush.dualCode({
+  input: {
+    branchId: "main",
+    caseId: sheet.id,
+    encounterId: enc.id,
+    namasteCode: "AYU-01",
+    patientId: patient.id,
+    tm2Code: "TM2-01",
+  },
+});
+```
+
+### Rehab
+
+Access: `p.healthcare.rehab`
+
+Physio/speech episodes with assessments, goal plans, packages, pre/post-vitals sittings, exercise sheets, outcome rescoring, and pre+post-gated discharge. Actions: `openEpisode`, `assess`, `setGoals`, `buildPackage`, `bookSitting`, `recordSitting`, `rescore`, `exerciseSheet`, `discharge`, `dayBoard`.
+
+```ts
+const ep = await p.healthcare.rehab.openEpisode({
+  input: {
+    branchId: "main",
+    condition: "frozen shoulder",
+    discipline: "physio",
+    encounterId: enc.id,
+    patientId: patient.id,
+    status: "Active",
+  },
+});
+await p.healthcare.rehab.assess({
+  input: {
+    branchId: "main",
+    episodeId: ep.id,
+    maxScore: 56,
+    patientId: patient.id,
+    score: 40,
+    status: "Final",
+    tool: "Berg",
+  },
+});
+```
+
+### Psych
+
+Access: `p.healthcare.psych`
+
+Masked assessments, scales with 24h re-admin gates, risk screens, safety plans, senior alerts, counselling/tele booking with consent gates, withdrawal charts, relapse plans, controlled prescriptions with early-refill gates, and break-glass access. Actions: `assess`, `scoreScale`, `screenRisk`, `saveSafetyPlan`, `alertSenior`, `bookCounselling`, `bookTele`, `chartWithdrawal`, `relapsePlan`, `prescribeControlled`, `sideEffectCheck`, `caregiverConsent`, `involuntaryHook`, `breakGlass`, `recallList`.
+
+```ts
+await p.healthcare.psych.screenRisk({
+  input: {
+    branchId: "main",
+    encounterId: enc.id,
+    factors: ["hopelessness"],
+    level: "Moderate",
+    patientId: patient.id,
+  },
+});
+await p.healthcare.psych.saveSafetyPlan({
+  input: {
+    branchId: "main",
+    contacts: ["9811112222"],
+    copingStrategies: "walk, call friend",
+    encounterId: enc.id,
+    meansRestriction: "remove sharps",
+    patientId: patient.id,
+    warningSigns: "isolation",
+  },
+});
+```
+
+### Residents
+
+Access: `p.healthcare.residents`
+
+Daycare resident stays: admission with advances, bed release-then-allocate, geriatric scores, polypharmacy reviews, daily logs, rounds, visit logs, stay charges, and compiled stay bills. Actions: `admit`, `allocateBed`, `scoreGeriatric`, `polypharmacyReview`, `logDaily`, `round`, `visitLog`, `familySummary`, `recordStayCharge`, `compileStayBill`, `getResident`, `listResidents`.
+
+```ts
+const resident = await p.healthcare.residents.admit({
+  input: {
+    advance: 5000,
+    age: 72,
+    branchId: "main",
+    name: "R. Menon",
+    nokName: "S. Menon",
+    nokPhone: "9811112222",
+    phone: "9820011223",
+    sex: "male",
+  },
+});
+await p.healthcare.residents.recordStayCharge({
+  input: {
+    amount: 1200,
+    branchId: "main",
+    chargeDate: "2026-09-13",
+    kind: "room",
+    residentId: resident.id,
+  },
+});
+await p.healthcare.residents.compileStayBill({
+  input: { branchId: "main", residentId: resident.id },
+});
+```
+
+### Pharmacy
+
+Access: `p.healthcare.pharmacy`
+
+Items, batches with 7-day return window, Rx sales with substitution records, partial closes, purchase orders, GRN verification, purchase invoices, and stock transfers. Actions: `itemUpsert`, `batchReceive`, `saleFromRx`, `partialClose`, `returnAgainstBill`, `poCreate`, `grnVerify`, `piBook`, `cndnIssue`, `transfer`, `transferAccept`, `reorderSuggest`, `getSale`.
+
+```ts
+const item = await p.healthcare.pharmacy.itemUpsert({
+  input: {
+    branchId: "main",
+    name: "Paracetamol 500",
+    pack: "strip-15",
+    salt: "paracetamol",
+    schedule: "H",
+    strength: "500mg",
+  },
+});
+await p.healthcare.pharmacy.batchReceive({
+  input: {
+    branchId: "main",
+    expiry: "2027-01-01",
+    itemId: item.id,
+    location: "main-store",
+    lot: "LOT-9",
+    mrp: 32,
+    qty: 500,
+    rate: 24,
+  },
+});
+```
+
+### Diagnostics
+
+Access: `p.healthcare.diagnostics`
+
+Lab test/panel masters, orders with barcode-tracked samples, versioned results with critical acks, four-eyes authorization, radiology bookings with reschedule/checkin/report flows, and QC logs. Actions: `testMasterUpsert`, `panelCreate`, `orderLabs`, `collectSample`, `receiveSample`, `resultEnter`, `criticalAck`, `authorize`, `deliver`, `radioBook`, `radioReschedule`, `radioCheckin`, `radioReportAttach`, `radioAuthorize`, `qcLog`, `cancelOrder`, `getOrder`, `queue`.
+
+```ts
+const order = await p.healthcare.diagnostics.orderLabs({
+  input: {
+    branchId: "main",
+    encounterId: enc.id,
+    patientId: patient.id,
+    priority: "routine",
+    tests: ["cbc-test-id"],
+  },
+});
+await p.healthcare.diagnostics.collectSample({
+  input: { barcode: "BC-0001", branchId: "main", collectedBy: "phleb-1", orderId: order.id },
+});
+await p.healthcare.diagnostics.resultEnter({
+  input: {
+    branchId: "main",
+    enteredBy: "tech-1",
+    orderId: order.id,
+    testCode: "CBC",
+    value: "5.2",
+  },
+});
+```
+
+### Billing
+
+Access: `p.healthcare.billing`
+
+Invoices with source-traced lines, maker-checker discounts, multi-mode collection, package sell/redeem/expiry, forward-only pricelists, credit/debit notes, advances, dues aging, and GST export. Actions: `invoiceRaise`, `invoiceFinalize`, `interimTab`, `applyDiscount`, `collect`, `settle`, `packageSell`, `packageRedeem`, `packageExpireRun`, `pricelistUpsert`, `repriceOnPayerSwitch`, `cndnIssue`, `settleAdvance`, `duesAging`, `gstExport`, `getInvoice`.
+
+```ts
+const inv = await p.healthcare.billing.invoiceRaise({
+  input: {
+    branchId: "main",
+    encounterId: enc.id,
+    lines: [{ price: 500, qty: 1, serviceId: svc.id, source: "consult" }],
+    patientId: patient.id,
+  },
+});
+await p.healthcare.billing.invoiceFinalize({ input: { branchId: "main", invoiceId: inv.id } });
+await p.healthcare.billing.collect({
+  input: { amount: 500, branchId: "main", invoiceId: inv.id, mode: "upi" },
+});
+```
+
+### Nursing
+
+Access: `p.healthcare.nursing`
+
+Daycare nursing: order-derived tasks with amber/red boards, vitals with EWS, IO charts, pre/post pain scores, risk screens, witnessed drug administration with missed-dose escalation, consented sittings, checklists, shift handovers, and triage tags. Actions: `tasksFromOrders`, `board`, `recordNote`, `vitalsChart`, `ioChart`, `painScore`, `riskScreen`, `drugAdminister`, `missedEscalate`, `sittingsSupport`, `checklistRecord`, `handoverCompile`, `handoverSign`, `triageTag`.
+
+```ts
+await p.healthcare.nursing.tasksFromOrders({
+  input: { branchId: "main", encounterId: enc.id, patientId: patient.id },
+});
+await p.healthcare.nursing.vitalsChart({
+  input: { branchId: "main", encounterId: enc.id, patientId: patient.id, pulse: 88, spo2: 97 },
+});
+```
+
+### Records
+
+Access: `p.healthcare.records`
+
+Patient timelines, document attach/verify with four-eyes, print/WhatsApp sharing, gapless medical registers with number-preserving voids, append-only addenda, daycare discharge summaries, consents, merges, and retention checks. Actions: `timeline`, `encounterGet`, `search`, `notesMask`, `breakglass`, `docsAttach`, `docsVerify`, `sharePrint`, `shareWhatsapp`, `familySummary`, `registersAppend`, `registersVoid`, `registersExport`, `addendumAppend`, `dischargePending`, `dischargeIssue`, `consentsGet`, `recordConsent`, `merge`, `retentionCheck`.
+
+```ts
+await p.healthcare.records.docsAttach({
+  input: {
+    branchId: "main",
+    encounterId: enc.id,
+    filePath: "docs/scan.pdf",
+    fileType: "scan",
+    patientId: patient.id,
+    uploadedBy: "reception-1",
+  },
+});
+await p.healthcare.records.registersAppend({
+  input: { branchId: "main", details: "OPD visit", enteredBy: "clerk-1", register: "opd" },
+});
+```
+
+### Operations
+
+Access: `p.healthcare.operations`
+
+Masters with version records, branch reads, preset seeding, grant-gated explorer queries with CSV export, report definitions with computed runs, compliance evidence, single-rail messaging with opt-outs, and audit queries. Actions: `mastersUpsert`, `mastersGet`, `branchesCreate`, `branchesGet`, `branchesList`, `seedPresets`, `explorerQuery`, `explorerExportCsv`, `reportsDefine`, `reportsGet`, `reportsList`, `reportsRun`, `complianceEvidence`, `complianceList`, `messagingSend`, `messagingRetry`, `messagingOptOut`, `explorerGrant`, `auditQuery`.
+
+```ts
+await p.healthcare.operations.mastersUpsert({
+  input: { branchId: "main", domain: "complaints", key: "fever", value: "Fever" },
+});
+await p.healthcare.operations.explorerQuery({
+  input: { branchId: "main", collection: "healthcare_invoice", limit: 50 },
+});
+```
+
+### Staff
+
+Access: `p.healthcare.staff`
+
+Staff profiles, month-scoped rosters, active-only attendance, leave requests with overlap blocks and maker-checker decisions, payroll export hooks, and role CRUD with holder-delete guards. Actions: `upsertStaff`, `rosterPlan`, `attendanceMark`, `leaveRequest`, `leaveDecide`, `payrollExport`, `listRoles`, `createRole`, `deleteRole`, `disableUser`.
+
+```ts
+const member = await p.healthcare.staff.upsertStaff({
+  input: { branchId: "main", name: "S. Nair", phone: "9811112222", role: "nurse" },
+});
+await p.healthcare.staff.leaveRequest({
+  input: {
+    branchId: "main",
+    from: "2026-09-20",
+    reason: "family",
+    staffId: member.id,
+    to: "2026-09-21",
+  },
+});
+```
+
+## Links out
+
+Domain events for every mutation live on the [Events](/docs/healthcare/events) page; table and enum references on [Database Schema](/docs/healthcare/db-schemas).
