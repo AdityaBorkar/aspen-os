@@ -201,11 +201,16 @@ import { nextPractitionerFreeSlot } from "#/workflows/practitioners/next-free-sl
 import { setPractitionerFee } from "#/workflows/practitioners/set-fee";
 import { setPractitionerSchedule } from "#/workflows/practitioners/set-schedule";
 import { updatePractitioner } from "#/workflows/practitioners/update";
+import { applyBulkRevision, previewBulkRevision } from "#/workflows/pricelists/bulk-revision";
+import { createPricelist } from "#/workflows/pricelists/create";
+import { ensureDefaultPricelist, listPricelists } from "#/workflows/pricelists/list";
+import { getPricelist, publishPricelist, retirePricelist } from "#/workflows/pricelists/publish";
+import { resolveServicePrice } from "#/workflows/pricelists/resolve-price";
+import { updatePricelist } from "#/workflows/pricelists/update";
 import { alertSenior } from "#/workflows/psych/alert-senior";
 import { assess as assessPsych } from "#/workflows/psych/assess";
 import { bookCounselling } from "#/workflows/psych/book-counselling";
 import { bookTele } from "#/workflows/psych/book-tele";
-import { breakGlass } from "#/workflows/psych/break-glass";
 import { caregiverConsent } from "#/workflows/psych/caregiver-consent";
 import { chartWithdrawal } from "#/workflows/psych/chart-withdrawal";
 import { closeReadiness as closePsychReadiness } from "#/workflows/psych/close-readiness";
@@ -218,7 +223,6 @@ import { scoreScale } from "#/workflows/psych/score-scale";
 import { screenRisk } from "#/workflows/psych/screen-risk";
 import { sideEffectCheck } from "#/workflows/psych/side-effect-check";
 import { addendumAppend } from "#/workflows/records/addendum-append";
-import { breakglass } from "#/workflows/records/breakglass";
 import { consentsGet } from "#/workflows/records/consents-get";
 import { dischargeIssue } from "#/workflows/records/discharge-issue";
 import { dischargePending } from "#/workflows/records/discharge-pending";
@@ -351,6 +355,19 @@ export const services = {
   update: updateService,
 } as const;
 
+export const pricelists = {
+  applyBulkRevision,
+  create: createPricelist,
+  ensureDefault: ensureDefaultPricelist,
+  get: getPricelist,
+  list: listPricelists,
+  previewBulkRevision,
+  publish: publishPricelist,
+  resolvePrice: resolveServicePrice,
+  retire: retirePricelist,
+  update: updatePricelist,
+} as const;
+
 export const appointments = {
   book: bookAppointment,
   bookVideo,
@@ -465,7 +482,6 @@ export const psych = {
   assess: assessPsych,
   bookCounselling,
   bookTele,
-  breakGlass,
   caregiverConsent,
   chartWithdrawal,
   closeReadiness: closePsychReadiness,
@@ -581,7 +597,6 @@ export const nursing = {
 
 export const records = {
   addendumAppend,
-  breakglass,
   consentsGet,
   dischargeIssue,
   dischargePending,

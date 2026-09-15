@@ -37,6 +37,8 @@ export const TestMasterSchema = object({
   ranges: optional(array(ReferenceRangeSchema)),
   refHigh: optional(number()),
   refLow: optional(number()),
+  referenceUomCategory: optional(string()),
+  referenceUomId: optional(string()),
   specimen: optional(string()),
   turnaroundHrs: optional(number()),
   units: optional(string()),
@@ -200,6 +202,8 @@ export const UpdateLabTestSchema = object({
   price: optional(nullable(number())),
   refHigh: optional(nullable(number())),
   refLow: optional(nullable(number())),
+  referenceUomCategory: optional(nullable(string())),
+  referenceUomId: optional(nullable(string())),
   specimen: optional(nullable(string())),
   turnaroundHrs: optional(nullable(number())),
 });

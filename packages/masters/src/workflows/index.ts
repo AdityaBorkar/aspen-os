@@ -42,11 +42,17 @@ import { setPrimaryPaymentMethod } from "#/workflows/payment-method/primary/set"
 import { updatePaymentMethod } from "#/workflows/payment-method/update";
 import { getSetting } from "#/workflows/settings/get";
 import { setSetting } from "#/workflows/settings/set";
+import { convertQuantity } from "#/workflows/unit-of-measure/convert";
 import { createUnitOfMeasure } from "#/workflows/unit-of-measure/create";
 import { deleteUnitOfMeasure } from "#/workflows/unit-of-measure/delete";
 import { getUnitOfMeasure } from "#/workflows/unit-of-measure/get";
 import { listUnitsOfMeasure } from "#/workflows/unit-of-measure/list";
+import { publishUnitOfMeasure } from "#/workflows/unit-of-measure/publish";
+import { retireUnitOfMeasure } from "#/workflows/unit-of-measure/retire";
+import { seedUnitsOfMeasure } from "#/workflows/unit-of-measure/seed";
+import { setDefaultUnitOfMeasure } from "#/workflows/unit-of-measure/set-default";
 import { updateUnitOfMeasure } from "#/workflows/unit-of-measure/update";
+import { listUnitOfMeasureVersions } from "#/workflows/unit-of-measure/versions";
 
 export const addresses = {
   create: createAddress,
@@ -98,11 +104,17 @@ export const settings = {
 } as const;
 
 export const unitsOfMeasure = {
+  convert: convertQuantity,
   create: createUnitOfMeasure,
   delete: deleteUnitOfMeasure,
   get: getUnitOfMeasure,
   list: listUnitsOfMeasure,
+  publish: publishUnitOfMeasure,
+  retire: retireUnitOfMeasure,
+  seed: seedUnitsOfMeasure,
+  setDefault: setDefaultUnitOfMeasure,
   update: updateUnitOfMeasure,
+  versions: listUnitOfMeasureVersions,
 } as const;
 
 export const labels = {

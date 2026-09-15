@@ -67,13 +67,6 @@ const AddendumFiltersSchema = object({
   encounterId: optional(string()),
 });
 
-const BreakGlassSchema = object({
-  accessedBy: Id,
-  branchId: BranchIdSchema,
-  patientId: Id,
-  reason: pipe(string(), minLength(1, "Break-glass reason is required")),
-});
-
 const AppendRegisterSchema = object({
   branchId: BranchIdSchema,
   certifierId: optional(Id),
@@ -209,7 +202,6 @@ type ShareRecordInput = InferOutput<typeof ShareRecordSchema>;
 type ShareLogFilters = InferOutput<typeof ShareLogFiltersSchema>;
 type AppendAddendumInput = InferOutput<typeof AppendAddendumSchema>;
 type AddendumFilters = InferOutput<typeof AddendumFiltersSchema>;
-type BreakGlassInput = InferOutput<typeof BreakGlassSchema>;
 type AppendRegisterInput = InferOutput<typeof AppendRegisterSchema>;
 type VoidRegisterInput = InferOutput<typeof VoidRegisterSchema>;
 type RegisterFilters = InferOutput<typeof RegisterFiltersSchema>;
@@ -236,7 +228,6 @@ export {
   AppendAddendumSchema,
   AppendRegisterSchema,
   AttachDocumentSchema,
-  BreakGlassSchema,
   CheckRetentionSchema,
   ConsentsGetSchema,
   DischargeFiltersSchema,
@@ -267,7 +258,6 @@ export type {
   AppendAddendumInput,
   AppendRegisterInput,
   AttachDocumentInput,
-  BreakGlassInput,
   CheckRetentionInput,
   ConsentsGetInput,
   DischargeFilters,

@@ -7,6 +7,8 @@ export type { MasterLabel, NewMasterLabel } from "#/db-schemas/label";
 export type { MasterPaymentMethod, NewMasterPaymentMethod } from "#/db-schemas/payment-method";
 export type { MasterSetting, NewMasterSetting } from "#/db-schemas/setting";
 export type { MasterUnitOfMeasure, NewMasterUnitOfMeasure } from "#/db-schemas/unit-of-measure";
+export type { MasterUomAlias, NewMasterUomAlias } from "#/db-schemas/unit-of-measure";
+export type { MasterUomVersion, NewMasterUomVersion } from "#/db-schemas/unit-of-measure";
 export type { OrgBranch, NewOrgBranch } from "#/db-schemas/org-branch";
 export type {
   AddressCreatedEvent,
@@ -46,8 +48,10 @@ export type {
   PaymentMethodRemovedEvent,
   PaymentMethodUpdatedEvent,
   UnitOfMeasureCreatedEvent,
+  UnitOfMeasureDefaultSetEvent,
   UnitOfMeasureEventMap,
   UnitOfMeasureRemovedEvent,
+  UnitOfMeasureRetiredEvent,
   UnitOfMeasureUpdatedEvent,
 } from "#/pubsub";
 export {
@@ -76,6 +80,7 @@ export type {
   CreateOrgBranchInput,
   CreatePaymentMethodInput,
   CreateUnitOfMeasureInput,
+  ConvertQuantityInput,
   EntityFilters,
   GetSettingInput,
   LabelFilters,
@@ -92,7 +97,9 @@ export type {
   PaymentMethodFilters,
   RemoveContactInput,
   RemoveLabelInput,
+  RetireUnitOfMeasureInput,
   RotateConnectionCredentialInput,
+  SetDefaultUnitOfMeasureInput,
   SetSettingInput,
   UpdateAddressInput,
   UpdateConnectionInput,
@@ -123,6 +130,7 @@ export {
   CreateOrgBranchSchema,
   CreatePaymentMethodSchema,
   CreateUnitOfMeasureSchema,
+  ConvertQuantitySchema,
   EmailSchema,
   EntityFiltersSchema,
   EntityStatusSchema,
@@ -151,7 +159,9 @@ export {
   PaymentMethodTypeSchema,
   RemoveContactSchema,
   RemoveLabelSchema,
+  RetireUnitOfMeasureSchema,
   RotateConnectionCredentialSchema,
+  SetDefaultUnitOfMeasureSchema,
   SetSettingSchema,
   UnitOfMeasureFiltersSchema,
   UpdateAddressSchema,
@@ -163,6 +173,7 @@ export {
   UpdatePaymentMethodSchema,
   UpdateUnitOfMeasureSchema,
   UomCategorySchema,
+  UomStatusSchema,
   WithIdSchema,
 } from "#/schemas";
 export type { AuditAction, AuditEntityType, SettingKey } from "#/utils/constants";

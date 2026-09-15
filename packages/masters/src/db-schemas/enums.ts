@@ -81,6 +81,7 @@ export const masterUomCategoryEnum = pgEnum("master_uom_category_enum", [
   UOM_CATEGORY.LENGTH,
   UOM_CATEGORY.MASS,
   UOM_CATEGORY.OTHER,
+  UOM_CATEGORY.SESSION,
   UOM_CATEGORY.TEMPERATURE,
   UOM_CATEGORY.TIME,
   UOM_CATEGORY.VOLUME,

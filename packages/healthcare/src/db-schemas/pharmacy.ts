@@ -49,6 +49,8 @@ export const healthcarePharmacyItem = pgTable(
     id: uuidv7().primaryKey(),
     name: text().notNull(),
     pack: text().notNull(),
+    reference_uom_category: text(),
+    reference_uom_id: text(),
     reorder_level: integer().notNull().default(0),
     salt: text().notNull(),
     schedule: text().notNull(),

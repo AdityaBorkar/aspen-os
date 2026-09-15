@@ -1328,23 +1328,6 @@ Indexes: `branch_id`, `patient_id`, `prescription_id`.
 
 Indexes: `branch_id`, `patient_id`, `status`.
 
-#### `healthcare_break_glass_log`
-
-Audit-only; publishes no event.
-
-| Column                      | Type        | Description |
-| --------------------------- | ----------- | ----------- |
-| `id`                        | text (PK)   |             |
-| `patient_id`                | text        |             |
-| `actor_id`                  | text        |             |
-| `reason`                    | text        |             |
-| `created_by`                | text        |             |
-| `payload`                   | jsonb       |             |
-| `branch_id`                 | text        |             |
-| `created_at` / `updated_at` | timestamptz |             |
-
-Indexes: `branch_id`, `patient_id`.
-
 ### Stay
 
 #### `healthcare_resident`
@@ -2149,20 +2132,6 @@ Append-only.
 | `created_at` / `updated_at` | timestamptz |             |
 
 Indexes: `branch_id`, `encounter_id`.
-
-#### `healthcare_breakglass_grant`
-
-| Column                        | Type               | Description |
-| ----------------------------- | ------------------ | ----------- |
-| `id`                          | text (PK)          |             |
-| `patient_id`                  | text               |             |
-| `reason`                      | text               |             |
-| `accessed_by` / `accessed_at` | text / timestamptz |             |
-| `payload`                     | jsonb              |             |
-| `branch_id`                   | text               |             |
-| `created_at` / `updated_at`   | timestamptz        |             |
-
-Indexes: `branch_id`, `patient_id`.
 
 #### `healthcare_merge_log`
 

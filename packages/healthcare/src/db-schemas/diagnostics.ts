@@ -44,6 +44,8 @@ export const healthcareLabTest = pgTable(
     price: numeric(),
     ref_high: numeric(),
     ref_low: numeric(),
+    reference_uom_category: text(),
+    reference_uom_id: text(),
     specimen: text(),
     turnaround_hrs: integer(),
   },

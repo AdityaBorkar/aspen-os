@@ -35,6 +35,8 @@ export const ItemUpsertSchema = object({
   hsn: optional(string()),
   name: pipe(string(), minLength(1, "Item name is required")),
   pack: pipe(string(), minLength(1, "Pack is required")),
+  referenceUomCategory: optional(string()),
+  referenceUomId: optional(string()),
   reorderLevel: optional(pipe(number(), minValue(0))),
   salt: pipe(string(), minLength(1, "Salt is required")),
   schedule: picklist(["H", "H1", "X", "OTC"]),

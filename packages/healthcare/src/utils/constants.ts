@@ -355,7 +355,6 @@ export type FacilityCategory = (typeof FACILITY_CATEGORY)[keyof typeof FACILITY_
 
 export const AUDIT_ACTION = {
   AUTHORIZED: "authorized",
-  BREAKGLASS: "breakglass",
   COLLECTED: "collected",
   CREATED: "created",
   DELETED: "deleted",

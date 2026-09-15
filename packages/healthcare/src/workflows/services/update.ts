@@ -19,6 +19,23 @@ export const updateService = Workflow.name("healthcare.services.update")
     if (parsed.patch.basePrice !== undefined && parsed.patch.basePrice < 0) {
       throw new Error(`Base price (${parsed.patch.basePrice}) cannot be negative.`);
     }
+    const durationUomId = parsed.patch.durationUomId ?? existing.duration_uom_id ?? undefined;
+    const durationValue =
+      parsed.patch.durationValue ??
+      (existing.duration_value === null ? undefined : Number(existing.duration_value));
+    if (durationUomId && !durationValue) {
+      throw new Error("A duration unit needs a duration value (e.g. 30 min).");
+    }
+    if (parsed.patch.durationValue !== undefined && !durationUomId) {
+      throw new Error("A duration value needs a governed Time UOM (see UOM master).");
+    }
+    if (
+      parsed.patch.billingUomId &&
+      !parsed.patch.billingUomCategory &&
+      !existing.billing_uom_category
+    ) {
+      throw new Error("A billing unit needs its UOM category (count or session).");
+    }
     const [row] = await ctx.step.run("update-service", async () =>
       ctx.db
         .update(healthcareService)
@@ -27,7 +44,18 @@ export const updateService = Workflow.name("healthcare.services.update")
             parsed.patch.basePrice !== undefined
               ? String(parsed.patch.basePrice)
               : existing.base_price,
+          billing_uom_category: parsed.patch.billingUomCategory ?? existing.billing_uom_category,
+          billing_uom_id: parsed.patch.billingUomId ?? existing.billing_uom_id,
+          department: parsed.patch.department ?? existing.department,
+          duration_uom_category: parsed.patch.durationUomCategory ?? existing.duration_uom_category,
+          duration_uom_id: parsed.patch.durationUomId ?? existing.duration_uom_id,
+          duration_value:
+            parsed.patch.durationValue !== undefined
+              ? String(parsed.patch.durationValue)
+              : existing.duration_value,
+          modality: parsed.patch.modality ?? existing.modality,
           name: parsed.patch.name ?? existing.name,
+          pathy: parsed.patch.pathy ?? existing.pathy,
           tele_exempt: parsed.patch.teleExempt ?? existing.tele_exempt,
           updated_at: new Date(),
         })

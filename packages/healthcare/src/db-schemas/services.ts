@@ -17,12 +17,20 @@ export const healthcareService = pgTable(
   "healthcare_service",
   {
     base_price: numeric(),
+    billing_uom_category: text(),
+    billing_uom_id: text(),
     branch_id: text().notNull().default("main"),
     code: text().notNull(),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    department: text(),
+    duration_uom_category: text(),
+    duration_uom_id: text(),
+    duration_value: numeric(),
     facility_ids: text().array().notNull().default([]),
     id: uuidv7().primaryKey(),
+    modality: text(),
     name: text().notNull(),
+    pathy: text(),
     payload: jsonb().$type<Record<string, JsonValue>>().notNull().default({}),
     status: text().notNull().default("draft"),
     tele_exempt: boolean().notNull().default(false),
@@ -48,9 +56,11 @@ export const healthcareServicePrice = pgTable(
     branch_id: text().notNull().default("main"),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     effective_from: date().notNull(),
+    gst_pct: numeric(),
     id: uuidv7().primaryKey(),
     payload: jsonb().$type<Record<string, JsonValue>>().notNull().default({}),
     pricelist: text().notNull().default("standard"),
+    pricelist_id: text(),
     service_id: text().notNull(),
     updated_at: timestamp({ withTimezone: true })
       .notNull()
@@ -60,6 +70,7 @@ export const healthcareServicePrice = pgTable(
   (table) => [
     index("idx_healthcare_service_price_branch_id").on(table.branch_id),
     index("idx_healthcare_service_price_service_id").on(table.service_id),
+    index("idx_healthcare_service_price_pricelist").on(table.pricelist_id),
   ],
 );
 

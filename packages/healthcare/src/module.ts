@@ -57,6 +57,7 @@ export class Healthcare implements Module {
   readonly patients = wf.patients;
   readonly pharmacy = wf.pharmacy;
   readonly practitioners = wf.practitioners;
+  readonly pricelists = wf.pricelists;
   readonly psych = wf.psych;
   readonly records = wf.records;
   readonly rehab = wf.rehab;

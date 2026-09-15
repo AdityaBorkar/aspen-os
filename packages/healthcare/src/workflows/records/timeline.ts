@@ -1,7 +1,6 @@
 import { healthcareInvoice, healthcareReceipt } from "#/db-schemas/billing";
 import { healthcareNursingVitals, healthcarePainScore } from "#/db-schemas/nursing";
 import {
-  healthcareBreakglassGrant,
   healthcareClinicalDocument,
   healthcareDischargeSummary,
   healthcareShareLog,
@@ -40,7 +39,6 @@ export const timeline = Workflow.name("healthcare.records.timeline")
       docs,
       shares,
       discharges,
-      grants,
       vitals,
       pains,
       invoices,
@@ -78,17 +76,6 @@ export const timeline = Workflow.name("healthcare.records.timeline")
           .from(healthcareDischargeSummary)
           .where(eq(healthcareDischargeSummary.branch_id, branchId))
           .orderBy(desc(healthcareDischargeSummary.created_at))
-          .limit(200),
-        ctx.db
-          .select()
-          .from(healthcareBreakglassGrant)
-          .where(
-            and(
-              eq(healthcareBreakglassGrant.branch_id, branchId),
-              eq(healthcareBreakglassGrant.patient_id, parsed.patientId),
-            ),
-          )
-          .orderBy(desc(healthcareBreakglassGrant.created_at))
           .limit(200),
         ctx.db
           .select()
@@ -177,12 +164,6 @@ export const timeline = Workflow.name("healthcare.records.timeline")
           kind: "discharge",
           summary: row.encounter_id,
         })),
-      ...grants.map((row) => ({
-        at: row.created_at.toISOString(),
-        id: row.id,
-        kind: "breakglass",
-        summary: row.reason,
-      })),
       ...vitals.map((row) => ({
         at: row.created_at.toISOString(),
         id: row.id,

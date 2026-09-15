@@ -20,10 +20,21 @@ export const listServices = Workflow.name("healthcare.services.list")
       if (parsed.status) {
         conditions.push(eq(healthcareService.status, parsed.status));
       }
+      if (parsed.department) {
+        conditions.push(ilike(healthcareService.department, `%${parsed.department}%`));
+      }
+      if (parsed.pathy) {
+        conditions.push(ilike(healthcareService.pathy, `%${parsed.pathy}%`));
+      }
+      if (parsed.modality) {
+        conditions.push(ilike(healthcareService.modality, `%${parsed.modality}%`));
+      }
       if (parsed.search) {
         const textMatch = or(
           ilike(healthcareService.code, `${parsed.search}%`),
           ilike(healthcareService.name, `%${parsed.search}%`),
+          ilike(healthcareService.department, `%${parsed.search}%`),
+          ilike(healthcareService.pathy, `%${parsed.search}%`),
         );
         if (textMatch) {
           conditions.push(textMatch);

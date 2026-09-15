@@ -78,6 +78,7 @@ export const UOM_CATEGORY = {
   LENGTH: "length",
   MASS: "mass",
   OTHER: "other",
+  SESSION: "session",
   TEMPERATURE: "temperature",
   TIME: "time",
   VOLUME: "volume",

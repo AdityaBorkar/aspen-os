@@ -16,7 +16,7 @@ export const acl = defineAcl({
   pharmacy: ["create", "delete", "read", "update"],
   practitioner: ["create", "delete", "read", "update"],
   psych: ["create", "delete", "override", "read", "update"],
-  records: ["breakglass", "create", "delete", "read", "update"],
+  records: ["create", "delete", "read", "update"],
   rehab: ["create", "delete", "read", "update"],
   resident: ["create", "delete", "read", "update"],
   service: ["create", "delete", "read", "update"],

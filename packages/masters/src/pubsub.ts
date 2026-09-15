@@ -38,7 +38,9 @@ export const ENTITY_EVENTS = {
 
 export const UNIT_OF_MEASURE_EVENTS = {
   CREATED: "masters.unit_of_measure_created",
+  DEFAULT_SET: "masters.unit_of_measure_default_set",
   REMOVED: "masters.unit_of_measure_removed",
+  RETIRED: "masters.unit_of_measure_retired",
   UPDATED: "masters.unit_of_measure_updated",
 } as const;
 
@@ -200,6 +202,24 @@ export interface UnitOfMeasureRemovedEvent {
   };
 }
 
+export interface UnitOfMeasureRetiredEvent {
+  reason: string | null;
+  unitOfMeasure: {
+    category: UomCategory;
+    code: string;
+    id: string;
+  };
+}
+
+export interface UnitOfMeasureDefaultSetEvent {
+  previousDefaultId: string | null;
+  unitOfMeasure: {
+    category: UomCategory;
+    code: string;
+    id: string;
+  };
+}
+
 export interface PaymentMethodCreatedEvent {
   entityId: string;
   entityType: MasterEntityType;
@@ -278,7 +298,9 @@ export interface EntityEventMap {
 
 export interface UnitOfMeasureEventMap {
   [UNIT_OF_MEASURE_EVENTS.CREATED]: UnitOfMeasureCreatedEvent;
+  [UNIT_OF_MEASURE_EVENTS.DEFAULT_SET]: UnitOfMeasureDefaultSetEvent;
   [UNIT_OF_MEASURE_EVENTS.REMOVED]: UnitOfMeasureRemovedEvent;
+  [UNIT_OF_MEASURE_EVENTS.RETIRED]: UnitOfMeasureRetiredEvent;
   [UNIT_OF_MEASURE_EVENTS.UPDATED]: UnitOfMeasureUpdatedEvent;
 }
 

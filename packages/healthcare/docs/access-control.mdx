@@ -27,7 +27,7 @@ export const acl = defineAcl({
   pharmacy: ["create", "delete", "read", "update"],
   practitioner: ["create", "delete", "read", "update"],
   psych: ["create", "delete", "override", "read", "update"],
-  records: ["breakglass", "create", "delete", "read", "update"],
+  records: ["create", "delete", "read", "update"],
   rehab: ["create", "delete", "read", "update"],
   resident: ["create", "delete", "read", "update"],
   service: ["create", "delete", "read", "update"],
@@ -51,7 +51,7 @@ export const acl = defineAcl({
 | `pharmacy`     | `create`, `delete`, `read`, `update`                     |
 | `practitioner` | `create`, `delete`, `read`, `update`                     |
 | `psych`        | `create`, `delete`, `override`, `read`, `update`         |
-| `records`      | `breakglass`, `create`, `delete`, `read`, `update`       |
+| `records`      | `create`, `delete`, `read`, `update`                     |
 | `rehab`        | `create`, `delete`, `read`, `update`                     |
 | `resident`     | `create`, `delete`, `read`, `update`                     |
 | `service`      | `create`, `delete`, `read`, `update`                     |
@@ -63,4 +63,3 @@ The following semantics are elevated by design and must be enforced by the host 
 - Billing discounts above 15% (`billing.discount-approve`) — maker-checker: the approver must differ from the discounter
 - Lab and radio authorization (`diagnostics.authorize`) — four-eyes: the authorizer must differ from the result enterer
 - Psych scale overrides and controlled-substance early refills (`psych.override`) — reason required, audited
-- Clinical record access outside the care team (`records.breakglass`) — reason required, audited, publishes no event

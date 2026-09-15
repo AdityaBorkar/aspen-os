@@ -4,7 +4,7 @@ description: Domain event map for the Healthcare module.
 icon: IconBell
 ---
 
-The Healthcare module publishes domain events as plain string topics via `PubSub`. Every writer payload is a `HealthcareEntityEvent` (`{ id, branchId, at, actorId?, data? }`); reads publish nothing, and psych `breakGlass` is audit-only by design.
+The Healthcare module publishes domain events as plain string topics via `PubSub`. Every writer payload is a `HealthcareEntityEvent` (`{ id, branchId, at, actorId?, data? }`); reads publish nothing.
 
 ## Event Map
 
@@ -104,11 +104,11 @@ The Healthcare module publishes domain events as plain string topics via `PubSub
 
 ### Records
 
-| Event                        | Payload                 | Trigger                                                                                                                           |
-| ---------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `healthcare.records_created` | `HealthcareEntityEvent` | `breakglass`, `docsAttach`, `sharePrint`, `shareWhatsapp`, `registersAppend`, `addendumAppend`, `dischargeIssue`, `recordConsent` |
-| `healthcare.records_updated` | `HealthcareEntityEvent` | `docsVerify`, `registersVoid`                                                                                                     |
-| `healthcare.records_merged`  | `HealthcareEntityEvent` | `records.merge`                                                                                                                   |
+| Event                        | Payload                 | Trigger                                                                                                             |
+| ---------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `healthcare.records_created` | `HealthcareEntityEvent` | `docsAttach`, `sharePrint`, `shareWhatsapp`, `registersAppend`, `addendumAppend`, `dischargeIssue`, `recordConsent` |
+| `healthcare.records_updated` | `HealthcareEntityEvent` | `docsVerify`, `registersVoid`                                                                                       |
+| `healthcare.records_merged`  | `HealthcareEntityEvent` | `records.merge`                                                                                                     |
 
 ### Operations
 

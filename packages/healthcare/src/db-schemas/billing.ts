@@ -3,6 +3,8 @@ import { healthcareInvoiceStatusEnum } from "#/db-schemas/enums";
 import type { JsonValue } from "@aspen-os/platform/server";
 import { uuidv7 } from "@aspen-os/platform/server";
 import {
+  boolean,
+  date,
   index,
   integer,
   jsonb,
@@ -112,11 +114,20 @@ export const healthcarePricelist = pgTable(
   "healthcare_pricelist",
   {
     branch_id: text().notNull().default("main"),
+    code: text().notNull().default("standard"),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    currency: text().notNull().default("INR"),
+    effective_from: date(),
+    effective_to: date(),
     id: uuidv7().primaryKey(),
+    is_default: boolean().notNull().default(false),
     name: text().notNull(),
+    payer: text(),
     payload: jsonb().$type<Record<string, JsonValue>>().notNull().default({}),
     rates: jsonb().$type<HealthcarePricelistRate[]>().notNull().default([]),
+    scope: text().notNull().default("branch"),
+    status: text().notNull().default("draft"),
+    tax_inclusive: boolean().notNull().default(true),
     updated_at: timestamp({ withTimezone: true })
       .notNull()
       .defaultNow()
@@ -124,8 +135,10 @@ export const healthcarePricelist = pgTable(
     version: integer().notNull().default(1),
   },
   (table) => [
+    index("idx_healthcare_pricelist_branch_code").on(table.branch_id, table.code),
     index("idx_healthcare_pricelist_branch_id").on(table.branch_id),
     index("idx_healthcare_pricelist_name").on(table.name),
+    index("idx_healthcare_pricelist_status").on(table.status),
   ],
 );
 

@@ -105,28 +105,6 @@ export const healthcareMedicalAddendum = pgTable(
   ],
 );
 
-export const healthcareBreakglassGrant = pgTable(
-  "healthcare_breakglass_grant",
-  {
-    accessed_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
-    accessed_by: text().notNull(),
-    branch_id: text().notNull().default("main"),
-    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
-    id: uuidv7().primaryKey(),
-    patient_id: text().notNull(),
-    payload: jsonb().$type<Record<string, JsonValue>>().notNull().default({}),
-    reason: text().notNull(),
-    updated_at: timestamp({ withTimezone: true })
-      .notNull()
-      .defaultNow()
-      .$onUpdate(() => new Date()),
-  },
-  (table) => [
-    index("idx_healthcare_breakglass_grant_branch_id").on(table.branch_id),
-    index("idx_healthcare_breakglass_grant_patient_id").on(table.patient_id),
-  ],
-);
-
 export const healthcareMergeLog = pgTable(
   "healthcare_merge_log",
   {
@@ -248,8 +226,6 @@ export type HealthcareMedicalRegister = typeof healthcareMedicalRegister.$inferS
 export type NewHealthcareMedicalRegister = typeof healthcareMedicalRegister.$inferInsert;
 export type HealthcareMedicalAddendum = typeof healthcareMedicalAddendum.$inferSelect;
 export type NewHealthcareMedicalAddendum = typeof healthcareMedicalAddendum.$inferInsert;
-export type HealthcareBreakglassGrant = typeof healthcareBreakglassGrant.$inferSelect;
-export type NewHealthcareBreakglassGrant = typeof healthcareBreakglassGrant.$inferInsert;
 export type HealthcareMergeLog = typeof healthcareMergeLog.$inferSelect;
 export type NewHealthcareMergeLog = typeof healthcareMergeLog.$inferInsert;
 export type HealthcareDischargeSummary = typeof healthcareDischargeSummary.$inferSelect;

@@ -1,3 +1,4 @@
+import { healthcarePricelist } from "#/db-schemas/billing";
 import type { healthcareDiscountRule, healthcareServicePrice } from "#/db-schemas/services";
 import { healthcarePackageDef, healthcareService } from "#/db-schemas/services";
 import { WithIdSchema } from "#/schemas";
@@ -37,12 +38,20 @@ export const fetchPackageStep = WorkflowStep.name("healthcare-fetch-package")
 
 export interface ServiceDto {
   basePrice: number | null;
+  billingUomCategory: string | null;
+  billingUomId: string | null;
   branchId: string;
   code: string;
   createdAt: string;
+  department: string | null;
+  durationUomCategory: string | null;
+  durationUomId: string | null;
+  durationValue: number | null;
   facilityIds: string[];
   id: string;
+  modality: string | null;
   name: string;
+  pathy: string | null;
   status: string;
   teleExempt: boolean;
   updatedAt: string;
@@ -51,12 +60,20 @@ export interface ServiceDto {
 export function toServiceDto(row: typeof healthcareService.$inferSelect): ServiceDto {
   return {
     basePrice: row.base_price === null ? null : Number(row.base_price),
+    billingUomCategory: row.billing_uom_category,
+    billingUomId: row.billing_uom_id,
     branchId: row.branch_id,
     code: row.code,
     createdAt: row.created_at.toISOString(),
+    department: row.department,
+    durationUomCategory: row.duration_uom_category,
+    durationUomId: row.duration_uom_id,
+    durationValue: row.duration_value === null ? null : Number(row.duration_value),
     facilityIds: row.facility_ids,
     id: row.id,
+    modality: row.modality,
     name: row.name,
+    pathy: row.pathy,
     status: row.status,
     teleExempt: row.tele_exempt,
     updatedAt: row.updated_at.toISOString(),
@@ -68,8 +85,10 @@ export interface ServicePriceDto {
   branchId: string;
   createdAt: string;
   effectiveFrom: string;
+  gstPct: number | null;
   id: string;
   pricelist: string;
+  pricelistId: string | null;
   serviceId: string;
   updatedAt: string;
 }
@@ -82,8 +101,10 @@ export function toServicePriceDto(
     branchId: row.branch_id,
     createdAt: row.created_at.toISOString(),
     effectiveFrom: row.effective_from,
+    gstPct: row.gst_pct === null ? null : Number(row.gst_pct),
     id: row.id,
     pricelist: row.pricelist,
+    pricelistId: row.pricelist_id,
     serviceId: row.service_id,
     updatedAt: row.updated_at.toISOString(),
   };
@@ -175,5 +196,57 @@ export function toPackageDefDto(row: typeof healthcarePackageDef.$inferSelect): 
     serviceIds: row.service_ids,
     status: row.status,
     updatedAt: row.updated_at.toISOString(),
+  };
+}
+
+export const fetchPricelistStep = WorkflowStep.name("healthcare-fetch-pricelist")
+  .input(WithIdSchema)
+  .handler(async (input, ctx) => {
+    const [row] = await ctx.db
+      .select()
+      .from(healthcarePricelist)
+      .where(eq(healthcarePricelist.id, input.id))
+      .limit(1);
+    if (!row) {
+      throw new Error(`Pricelist "${input.id}" not found.`);
+    }
+    return row;
+  });
+
+export interface PricelistDto {
+  branchId: string;
+  code: string;
+  createdAt: string;
+  currency: string;
+  effectiveFrom: string | null;
+  effectiveTo: string | null;
+  id: string;
+  isDefault: boolean;
+  name: string;
+  payer: string | null;
+  scope: string;
+  status: string;
+  taxInclusive: boolean;
+  updatedAt: string;
+  version: number;
+}
+
+export function toPricelistDto(row: typeof healthcarePricelist.$inferSelect): PricelistDto {
+  return {
+    branchId: row.branch_id,
+    code: row.code,
+    createdAt: row.created_at.toISOString(),
+    currency: row.currency,
+    effectiveFrom: row.effective_from,
+    effectiveTo: row.effective_to,
+    id: row.id,
+    isDefault: row.is_default,
+    name: row.name,
+    payer: row.payer,
+    scope: row.scope,
+    status: row.status,
+    taxInclusive: row.tax_inclusive,
+    updatedAt: row.updated_at.toISOString(),
+    version: row.version,
   };
 }

@@ -50,6 +50,9 @@ export const testMasterUpsert = Workflow.name("healthcare.diagnostics.test-maste
       price: parsed.price === undefined ? null : String(parsed.price),
       ref_high: parsed.refHigh === undefined ? null : String(parsed.refHigh),
       ref_low: parsed.refLow === undefined ? null : String(parsed.refLow),
+      reference_uom_category:
+        parsed.referenceUomCategory ?? existing?.reference_uom_category ?? null,
+      reference_uom_id: parsed.referenceUomId ?? existing?.reference_uom_id ?? null,
       specimen: parsed.specimen ?? null,
       turnaround_hrs: parsed.turnaroundHrs ?? null,
     };
@@ -84,6 +87,8 @@ export const testMasterUpsert = Workflow.name("healthcare.diagnostics.test-maste
       ranges: payload.ranges,
       refHigh: saved.row.ref_high === null ? null : Number(saved.row.ref_high),
       refLow: saved.row.ref_low === null ? null : Number(saved.row.ref_low),
+      referenceUomCategory: saved.row.reference_uom_category,
+      referenceUomId: saved.row.reference_uom_id,
       specimen: saved.row.specimen,
       turnaroundHrs: saved.row.turnaround_hrs,
       units: payload.units,

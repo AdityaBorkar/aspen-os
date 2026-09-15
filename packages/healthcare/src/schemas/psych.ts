@@ -175,12 +175,6 @@ const CreateInvoluntaryHookSchema = object({
   reviewDate: optional(pipe(string(), minLength(1))),
 });
 
-const CreateBreakGlassSchema = object({
-  branchId: BranchIdSchema,
-  patientId: RequiredText("Patient"),
-  reason: pipe(string(), minLength(10, "Break-glass needs a detailed reason")),
-});
-
 const RecallListFiltersSchema = object({
   branchId: BranchIdSchema,
   limit: optional(pipe(number(), minValue(1), maxValue(200, "Limit cannot exceed 200"))),
@@ -204,7 +198,6 @@ const PsychFiltersSchema = object({
 export {
   BookCounsellingSchema,
   CloseReadinessSchema,
-  CreateBreakGlassSchema,
   CreateCaregiverConsentSchema,
   CreateControlledPrescriptionSchema,
   CreateInvoluntaryHookSchema,
@@ -225,7 +218,6 @@ export {
 };
 
 export type {
-  BreakGlassInput as CreateBreakGlassInput,
   CaregiverConsentInput as CreateCaregiverConsentInput,
   CloseReadinessInput,
   ControlledPrescriptionInput as CreateControlledPrescriptionInput,
@@ -261,7 +253,6 @@ type SideEffectCheckInput = InferOutput<typeof CreateSideEffectCheckSchema>;
 type CaregiverConsentInput = InferOutput<typeof CreateCaregiverConsentSchema>;
 type UpdateCaregiverConsentInput = InferOutput<typeof UpdateCaregiverConsentSchema>;
 type InvoluntaryHookInput = InferOutput<typeof CreateInvoluntaryHookSchema>;
-type BreakGlassInput = InferOutput<typeof CreateBreakGlassSchema>;
 type CloseReadinessInput = InferOutput<typeof CloseReadinessSchema>;
 type RecallListFiltersInput = InferOutput<typeof RecallListFiltersSchema>;
 type PsychFiltersInput = InferOutput<typeof PsychFiltersSchema>;

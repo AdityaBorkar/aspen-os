@@ -69,16 +69,23 @@ export {
   UomCategorySchema,
 } from "#/schemas/enums";
 export type {
+  ConvertQuantityInput,
   CreateUnitOfMeasureInput,
   ListUnitsOfMeasureInput,
+  RetireUnitOfMeasureInput,
+  SetDefaultUnitOfMeasureInput,
   UnitOfMeasureFilters,
   UpdateUnitOfMeasureInput,
 } from "#/schemas/unit-of-measure";
 export {
+  ConvertQuantitySchema,
   CreateUnitOfMeasureSchema,
   ListUnitsOfMeasureSchema,
+  RetireUnitOfMeasureSchema,
+  SetDefaultUnitOfMeasureSchema,
   UnitOfMeasureFiltersSchema,
   UpdateUnitOfMeasureSchema,
+  UomStatusSchema,
 } from "#/schemas/unit-of-measure";
 export type {
   CreatePaymentMethodInput,

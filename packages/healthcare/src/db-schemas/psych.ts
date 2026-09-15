@@ -300,28 +300,3 @@ export const healthcareCaregiverConsent = pgTable(
 
 export type HealthcareCaregiverConsent = typeof healthcareCaregiverConsent.$inferSelect;
 export type NewHealthcareCaregiverConsent = typeof healthcareCaregiverConsent.$inferInsert;
-
-export const healthcareBreakGlassLog = pgTable(
-  "healthcare_break_glass_log",
-  {
-    actor_id: text().notNull(),
-    branch_id: text().notNull(),
-    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
-    created_by: text().notNull(),
-    id: uuidv7().primaryKey(),
-    patient_id: text().notNull(),
-    payload: jsonb().$type<Record<string, JsonValue>>().notNull().default({}),
-    reason: text().notNull(),
-    updated_at: timestamp({ withTimezone: true })
-      .notNull()
-      .defaultNow()
-      .$onUpdate(() => new Date()),
-  },
-  (table) => [
-    index("idx_healthcare_break_glass_log_branch_id").on(table.branch_id),
-    index("idx_healthcare_break_glass_log_patient_id").on(table.patient_id),
-  ],
-);
-
-export type HealthcareBreakGlassLog = typeof healthcareBreakGlassLog.$inferSelect;
-export type NewHealthcareBreakGlassLog = typeof healthcareBreakGlassLog.$inferInsert;

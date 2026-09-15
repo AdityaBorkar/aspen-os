@@ -2,7 +2,11 @@ import { healthcareServicePrice } from "#/db-schemas/services";
 import { SERVICE_EVENTS } from "#/pubsub";
 import { SetPriceSchema } from "#/schemas/services";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { fetchServiceStep, toServicePriceDto } from "#/workflow-steps/fetch-service";
+import {
+  fetchPricelistStep,
+  fetchServiceStep,
+  toServicePriceDto,
+} from "#/workflow-steps/fetch-service";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
@@ -16,6 +20,9 @@ export const setServicePrice = Workflow.name("healthcare.services.set-price")
     if (parsed.amount < 0) {
       throw new Error(`Price amount (${parsed.amount}) cannot be negative.`);
     }
+    if (parsed.gstPct !== undefined && parsed.gstPct < 0) {
+      throw new Error(`GST percent (${parsed.gstPct}) cannot be negative.`);
+    }
     const today = new Date().toISOString().slice(0, 10);
     const effectiveFrom = parsed.effectiveFrom ?? today;
     if (effectiveFrom < today) {
@@ -26,6 +33,9 @@ export const setServicePrice = Workflow.name("healthcare.services.set-price")
     const service = await ctx.step.run(fetchServiceStep, {
       id: parsed.serviceId,
     });
+    const pricelist = parsed.pricelistId
+      ? await ctx.step.run(fetchPricelistStep, { id: parsed.pricelistId })
+      : null;
     const [row] = await ctx.step.run("insert-price", async () =>
       ctx.db
         .insert(healthcareServicePrice)
@@ -33,8 +43,10 @@ export const setServicePrice = Workflow.name("healthcare.services.set-price")
           amount: String(parsed.amount),
           branch_id: parsed.branchId,
           effective_from: effectiveFrom,
+          gst_pct: parsed.gstPct !== undefined ? String(parsed.gstPct) : null,
           id: crypto.randomUUID(),
-          pricelist: parsed.pricelist ?? "standard",
+          pricelist: pricelist ? pricelist.code : (parsed.pricelist ?? "standard"),
+          pricelist_id: pricelist ? pricelist.id : null,
           service_id: parsed.serviceId,
         })
         .returning(),

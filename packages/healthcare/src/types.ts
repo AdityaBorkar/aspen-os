@@ -405,7 +405,6 @@ export type {
 } from "#/db-schemas/practitioners";
 export type {
   HealthcareAddictionChart,
-  HealthcareBreakGlassLog,
   HealthcareCaregiverConsent,
   HealthcareControlledPrescription,
   HealthcareCounsellingSession,
@@ -416,7 +415,6 @@ export type {
   HealthcareScaleResult,
   HealthcareSideEffectCheck,
   NewHealthcareAddictionChart,
-  NewHealthcareBreakGlassLog,
   NewHealthcareCaregiverConsent,
   NewHealthcareControlledPrescription,
   NewHealthcareCounsellingSession,
@@ -428,7 +426,6 @@ export type {
   NewHealthcareSideEffectCheck,
 } from "#/db-schemas/psych";
 export type {
-  HealthcareBreakglassGrant,
   HealthcareClinicalDocument,
   HealthcareConsentGrant,
   HealthcareDischargeSummary,
@@ -438,7 +435,6 @@ export type {
   HealthcareMessageLog,
   HealthcareMessageOptout,
   HealthcareShareLog,
-  NewHealthcareBreakglassGrant,
   NewHealthcareClinicalDocument,
   NewHealthcareConsentGrant,
   NewHealthcareDischargeSummary,
@@ -588,7 +584,7 @@ export type {
   CollectPaymentInput,
   CreateInvoiceInput,
   CreatePackageBalanceInput,
-  CreatePricelistInput,
+  CreatePricelistInput as BillingCreatePricelistInput,
   DuesAgingFilters,
   FinalizeInvoiceInput,
   GstExportFilters,
@@ -597,14 +593,14 @@ export type {
   InvoiceLine,
   IssueCndnInput,
   PackageBalanceFilters,
-  PricelistFilters,
+  BillingPricelistFilters,
   ReceiptFilters,
   RepriceInvoiceInput,
   SettleAdvanceInput,
   SettleTabInput,
   UpdateInvoiceInput,
   UpdatePackageBalanceInput,
-  UpdatePricelistInput,
+  UpdatePricelistInput as BillingUpdatePricelistInput,
 } from "#/schemas";
 export type {
   ClosePlanStageInput,
@@ -730,7 +726,6 @@ export type {
 } from "#/schemas";
 export type {
   BookCounsellingInput,
-  CreateBreakGlassInput,
   CreateCaregiverConsentInput,
   CreateControlledPrescriptionInput,
   CreateInvoluntaryHookInput,
@@ -753,7 +748,6 @@ export type {
   AppendAddendumInput,
   AppendRegisterInput,
   AttachDocumentInput,
-  BreakGlassInput,
   CheckRetentionInput,
   ConsentsGetInput,
   DischargeFilters,
