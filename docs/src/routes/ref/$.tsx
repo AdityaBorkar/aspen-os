@@ -57,6 +57,9 @@ type ContentSlug = (typeof CONTENT_TABS)[number]["slug"];
 
 const VALID_SLUGS = new Set<string>(TABS.map((entry) => entry.slug));
 
+const DOCS_LINK_PARAMS = { _splat: "platform" } as const;
+const REF_OVERVIEW_PARAMS = { _splat: "" } as const;
+
 function isTabSlug(value: string): value is TabSlug {
   return VALID_SLUGS.has(value);
 }
@@ -72,10 +75,10 @@ export const Route = createFileRoute("/ref/$")({
   },
 });
 
-interface Column<T> {
+interface Column<Row> {
   cellClass?: string;
   header: string;
-  render: (row: T) => ReactNode;
+  render: (row: Row) => ReactNode;
 }
 
 function TableWrapper({ children }: { children: ReactNode }) {
@@ -98,16 +101,16 @@ function Anchor({ id, children }: { children: ReactNode; id: string }) {
   );
 }
 
-function DataTable<T>({
+function DataTable<Row>({
   columns,
   getAnchor,
   getKey,
   rows,
 }: {
-  columns: Column<T>[];
-  getAnchor: (row: T) => string;
-  getKey: (row: T) => string;
-  rows: T[];
+  columns: Column<Row>[];
+  getAnchor: (row: Row) => string;
+  getKey: (row: Row) => string;
+  rows: Row[];
 }) {
   return (
     <TableWrapper>
@@ -206,13 +209,61 @@ const EVENT_COLUMNS: Column<EventRow>[] = [
   { cellClass: "text-xs", header: "File", render: (row) => <GitHubLink file={row.file} /> },
 ];
 
+function getModuleAnchor(row: ModuleRow): string {
+  return slugify(row.name);
+}
+
+function getModuleKey(row: ModuleRow): string {
+  return `${row.package}:${row.name}`;
+}
+
+function getSchemaAnchor(row: SchemaRow): string {
+  return slugify(`${row.package}-${row.name}`);
+}
+
+function getSchemaKey(row: SchemaRow): string {
+  return `${row.package}:${row.name}:${row.file}`;
+}
+
+function getDbAnchor(row: DbSchemaRow): string {
+  return slugify(row.tableName);
+}
+
+function getDbKey(row: DbSchemaRow): string {
+  return `${row.package}:${row.tableName}:${row.name}`;
+}
+
+function getWorkflowAnchor(row: WorkflowRow): string {
+  return slugify(row.name);
+}
+
+function getWorkflowKey(row: WorkflowRow): string {
+  return `${row.package}:${row.name}:${row.file}`;
+}
+
+function getWorkflowStepAnchor(row: WorkflowStepRow): string {
+  return slugify(row.name);
+}
+
+function getWorkflowStepKey(row: WorkflowStepRow): string {
+  return `${row.package}:${row.name}:${row.file}`;
+}
+
+function getEventAnchor(row: EventRow): string {
+  return slugify(row.topic);
+}
+
+function getEventKey(row: EventRow): string {
+  return `${row.package}:${row.topic}`;
+}
+
 const TABLES = {
   "db-schemas": {
     render: (data) => (
       <DataTable
         columns={DB_SCHEMA_COLUMNS}
-        getAnchor={(row) => slugify(row.tableName)}
-        getKey={(row) => `${row.package}:${row.tableName}:${row.name}`}
+        getAnchor={getDbAnchor}
+        getKey={getDbKey}
         rows={data.dbSchemas}
       />
     ),
@@ -221,8 +272,8 @@ const TABLES = {
     render: (data) => (
       <DataTable
         columns={EVENT_COLUMNS}
-        getAnchor={(row) => slugify(row.topic)}
-        getKey={(row) => `${row.package}:${row.topic}`}
+        getAnchor={getEventAnchor}
+        getKey={getEventKey}
         rows={data.events}
       />
     ),
@@ -231,8 +282,8 @@ const TABLES = {
     render: (data) => (
       <DataTable
         columns={MODULE_COLUMNS}
-        getAnchor={(row) => slugify(row.name)}
-        getKey={(row) => `${row.package}:${row.name}`}
+        getAnchor={getModuleAnchor}
+        getKey={getModuleKey}
         rows={data.modules}
       />
     ),
@@ -241,8 +292,8 @@ const TABLES = {
     render: (data) => (
       <DataTable
         columns={SCHEMA_COLUMNS}
-        getAnchor={(row) => slugify(`${row.package}-${row.name}`)}
-        getKey={(row) => `${row.package}:${row.name}:${row.file}`}
+        getAnchor={getSchemaAnchor}
+        getKey={getSchemaKey}
         rows={data.schemas}
       />
     ),
@@ -251,8 +302,8 @@ const TABLES = {
     render: (data) => (
       <DataTable
         columns={WORKFLOW_STEP_COLUMNS}
-        getAnchor={(row) => slugify(row.name)}
-        getKey={(row) => `${row.package}:${row.name}:${row.file}`}
+        getAnchor={getWorkflowStepAnchor}
+        getKey={getWorkflowStepKey}
         rows={data.workflowSteps}
       />
     ),
@@ -261,8 +312,8 @@ const TABLES = {
     render: (data) => (
       <DataTable
         columns={WORKFLOW_COLUMNS}
-        getAnchor={(row) => slugify(row.name)}
-        getKey={(row) => `${row.package}:${row.name}:${row.file}`}
+        getAnchor={getWorkflowAnchor}
+        getKey={getWorkflowKey}
         rows={data.workflows}
       />
     ),
@@ -281,12 +332,16 @@ function RefPage() {
           <nav className="flex gap-4 text-sm">
             <Link
               className="text-fd-muted-foreground hover:text-fd-foreground"
-              params={{ _splat: "platform" }}
+              params={DOCS_LINK_PARAMS}
               to="/docs/$"
             >
               Docs
             </Link>
-            <Link className="font-medium text-fd-foreground" params={{ _splat: "" }} to="/ref/$">
+            <Link
+              className="font-medium text-fd-foreground"
+              params={REF_OVERVIEW_PARAMS}
+              to="/ref/$"
+            >
               Reference
             </Link>
           </nav>
@@ -305,6 +360,7 @@ function RefPage() {
                     ? "rounded-full bg-fd-primary px-3 py-1 text-sm text-fd-primary-foreground"
                     : "rounded-full border bg-fd-card px-3 py-1 text-sm text-fd-muted-foreground hover:text-fd-foreground"
                 }
+                // oxlint-disable-next-line react-perf/jsx-no-new-object-as-prop -- TanStack Router requires a per-tab params object; each tab needs its own _splat value.
                 params={{ _splat: tab.slug }}
                 to="/ref/$"
               >
@@ -340,6 +396,7 @@ function Overview() {
       <ul>
         {CONTENT_TABS.map((tab) => (
           <li key={tab.slug}>
+            {/* oxlint-disable-next-line react-perf/jsx-no-new-object-as-prop -- TanStack Router requires a per-tab params object; each tab needs its own _splat value. */}
             <Link className="underline" params={{ _splat: tab.slug }} to="/ref/$">
               {tab.label}
             </Link>{" "}
@@ -348,7 +405,7 @@ function Overview() {
         ))}
       </ul>
       <p className="text-sm text-fd-muted-foreground">
-        Endpoint: <code>{REF_ROUTE}/*</code>. Each table row is anchored (e.g.{" "}
+        Endpoint: <code>{`${REF_ROUTE}/*`}</code>. Each table row is anchored (e.g.{" "}
         <code>{REF_ROUTE}/workflows#task.create</code>). Data source is generated at build time
         (gitignored, verified with <code>bun run gen:ref --check</code>).
       </p>

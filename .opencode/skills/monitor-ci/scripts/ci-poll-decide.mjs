@@ -27,7 +27,7 @@
 // --- Arg parsing ---
 
 const args = process.argv.slice(2);
-const ciInfoJson = args[0];
+const [ciInfoJson] = args;
 const pollCount = parseInt(args[1], 10) || 0;
 const verbosity = args[2] || "medium";
 
@@ -60,7 +60,7 @@ const prevFailureClassification = getArg("--prev-failure-classification");
 
 // --- Parse CI info ---
 
-let ci;
+let ci = null;
 try {
   ci = JSON.parse(ciInfoJson);
 } catch {
@@ -99,21 +99,21 @@ const failureClassification = rawFailureClassification?.toLowerCase() ?? null;
 
 function categorizeTasks() {
   const verifiedSet = new Set(verifiedTaskIds);
-  const unverified = failedTaskIds.filter((t) => !verifiedSet.has(t));
+  const unverified = failedTaskIds.filter((taskId) => !verifiedSet.has(taskId));
   if (unverified.length === 0) {
     return { category: "all_verified" };
   }
 
-  const e2e = unverified.filter((t) => {
-    const parts = t.split(":");
+  const e2e = unverified.filter((taskId) => {
+    const parts = taskId.split(":");
     return parts.length >= 2 && parts[1].includes("e2e");
   });
   if (e2e.length === unverified.length) {
     return { category: "e2e_only" };
   }
 
-  const verifiable = unverified.filter((t) => {
-    const parts = t.split(":");
+  const verifiable = unverified.filter((taskId) => {
+    const parts = taskId.split(":");
     return !(parts.length >= 2 && parts[1].includes("e2e"));
   });
   return { category: "needs_local_verify", verifiableTaskIds: verifiable };
@@ -340,59 +340,44 @@ function classify() {
 // buildOutput() — maps classification to full JSON output
 // ============================================================
 
-// Message templates keyed by status or key
+// Message templates keyed by status or key (keys in ascending order).
 const messages = {
-  // wait mode
-  new_cipe_detected: () => `New CI Attempt detected! CI: ${cipeStatus || "N/A"}`,
-  no_new_cipe: () => "New CI Attempt timeout exceeded. No new CI Attempt detected.",
-  waiting_for_cipe: () => "Waiting for new CI Attempt...",
-
-  // guards
-  polling_timeout: () => "Polling timeout exceeded.",
-  circuit_breaker: () => "No progress after 13 consecutive polls. Stopping.",
-
-  // terminal
+  ci_running: () => `CI: ${cipeStatus}`,
   ci_success: () => "CI passed successfully!",
   cipe_canceled: () => "CI Attempt was canceled.",
-  cipe_timed_out: () => "CI Attempt timed out.",
   cipe_no_tasks: () => "CI failed but no Nx tasks were recorded.",
-
-  // environment
-  environment_rerun_cap: () => "Environment rerun cap (2) exceeded. Bailing.",
+  cipe_timed_out: () => "CI Attempt timed out.",
+  circuit_breaker: () => "No progress after 13 consecutive polls. Stopping.",
   environment_issue: () => "CI: FAILED | Classification: ENVIRONMENT_STATE",
-
-  // throttled
-  self_healing_throttled: () => "Self-healing throttled \u2014 too many unapplied fixes.",
-
-  // polling
-  ci_running: () => `CI: ${cipeStatus}`,
-  sh_running: () => `CI: ${cipeStatus} | Self-healing: ${selfHealingStatus}`,
-  flaky_rerun: () => "CI: FAILED | Classification: FLAKY_TASK (auto-rerun in progress)",
+  environment_rerun_cap: () => "Environment rerun cap (2) exceeded. Bailing.",
+  fallback: () =>
+    `CI: ${cipeStatus || "N/A"} | Self-healing: ${
+      selfHealingStatus || "N/A"
+    } | Verification: ${verificationStatus || "N/A"}`,
+  fix_apply_ready: () => "Fix available and verified. Ready to apply.",
   fix_auto_applied: () => "CI: FAILED | Fix auto-applied, new CI Attempt spawning",
-  verification_pending: () =>
-    `CI: FAILED | Self-healing: COMPLETED | Verification: ${verificationStatus}`,
-
-  // actionable
-  fix_auto_applying: () => "Fix verified! Auto-applying...",
   fix_auto_apply_skipped: (extra) =>
     `Fix verified but auto-apply was skipped. ${
       extra?.autoApplySkipReason
         ? `Reason: ${extra.autoApplySkipReason}`
         : "Offer to apply manually."
     }`,
-  fix_needs_review: () =>
-    `Fix available but needs review. Verification: ${verificationStatus || "N/A"}`,
-  fix_apply_ready: () => "Fix available and verified. Ready to apply.",
+  fix_auto_applying: () => "Fix verified! Auto-applying...",
+  fix_failed: () => "Self-healing failed to generate a fix.",
   fix_needs_local_verify: (extra) =>
     `Fix available. ${extra.verifiableTaskIds.length} task(s) need local verification.`,
-  fix_failed: () => "Self-healing failed to generate a fix.",
+  fix_needs_review: () =>
+    `Fix available but needs review. Verification: ${verificationStatus || "N/A"}`,
+  flaky_rerun: () => "CI: FAILED | Classification: FLAKY_TASK (auto-rerun in progress)",
+  new_cipe_detected: () => `New CI Attempt detected! CI: ${cipeStatus || "N/A"}`,
   no_fix: () => "CI failed, no fix available.",
-
-  // fallback
-  fallback: () =>
-    `CI: ${cipeStatus || "N/A"} | Self-healing: ${
-      selfHealingStatus || "N/A"
-    } | Verification: ${verificationStatus || "N/A"}`,
+  no_new_cipe: () => "New CI Attempt timeout exceeded. No new CI Attempt detected.",
+  polling_timeout: () => "Polling timeout exceeded.",
+  self_healing_throttled: () => "Self-healing throttled \u2014 too many unapplied fixes.",
+  sh_running: () => `CI: ${cipeStatus} | Self-healing: ${selfHealingStatus}`,
+  verification_pending: () =>
+    `CI: FAILED | Self-healing: COMPLETED | Verification: ${verificationStatus}`,
+  waiting_for_cipe: () => "Waiting for new CI Attempt...",
 };
 
 // Codes where noProgressCount resets to 0 (genuine progress occurred)

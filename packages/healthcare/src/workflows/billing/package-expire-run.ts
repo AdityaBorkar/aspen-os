@@ -28,6 +28,7 @@ export const packageExpireRun = Workflow.name("healthcare.billing.package-expire
     );
     const now = Date.now();
     const lapsed: string[] = [];
+    // oxlint-disable eslint/no-await-in-loop
     for (const sale of sales) {
       if (sale.expires_at && sale.expires_at.getTime() < now) {
         await ctx.step.run(`lapse-${sale.id}`, async () =>
@@ -39,6 +40,7 @@ export const packageExpireRun = Workflow.name("healthcare.billing.package-expire
         lapsed.push(sale.id);
       }
     }
+    // oxlint-enable eslint/no-await-in-loop
     const at = new Date().toISOString();
     await ctx.step.run("audit-and-notify", async () => {
       await ctx.audit.write({

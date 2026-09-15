@@ -43,6 +43,7 @@ export const invoiceRaise = Workflow.name("healthcare.billing.invoice-raise")
       }
     }
     await ctx.step.run("verify-source-lines", async () => {
+      // oxlint-disable eslint/no-await-in-loop
       for (const line of parsed.lines) {
         if (line.source === "stay") {
           const [charge] = await ctx.db
@@ -79,6 +80,7 @@ export const invoiceRaise = Workflow.name("healthcare.billing.invoice-raise")
           }
         }
       }
+      // oxlint-enable eslint/no-await-in-loop
     });
     const no = await ctx.step.run(nextHealthcareSeries, { input: { series: "invoice" } });
     const discountPct = parsed.discountPct ?? 0;

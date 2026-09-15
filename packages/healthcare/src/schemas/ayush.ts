@@ -17,20 +17,20 @@ import {
 } from "valibot";
 import type { InferOutput } from "valibot";
 
-const RequiredText = (label: string) => pipe(string(), minLength(1, `${label} is required`));
+const requiredText = (label: string) => pipe(string(), minLength(1, `${label} is required`));
 
 const CreateAyushCaseSheetSchema = object({
   agni: optional(pipe(string(), maxLength(500))),
   branchId: BranchIdSchema,
-  complaints: RequiredText("Complaints"),
-  dosha: RequiredText("Dosha"),
-  encounterId: RequiredText("Encounter"),
+  complaints: requiredText("Complaints"),
+  dosha: requiredText("Dosha"),
+  encounterId: requiredText("Encounter"),
   history: optional(pipe(string(), maxLength(4000))),
   koshtha: optional(picklist(["mrudu", "madhya", "krura"])),
   mala: optional(pipe(string(), maxLength(500))),
-  nadi: RequiredText("Nadi"),
+  nadi: requiredText("Nadi"),
   pathy: picklist(["ayurveda", "yoga", "unani", "siddha", "homeopathy"]),
-  patientId: RequiredText("Patient"),
+  patientId: requiredText("Patient"),
   planLines: optional(
     array(
       object({
@@ -54,34 +54,34 @@ const UpdateAyushCaseSheetSchema = partial(CreateAyushCaseSheetSchema);
 
 const CreateRepertorizationSchema = object({
   branchId: BranchIdSchema,
-  caseId: RequiredText("Case sheet"),
+  caseId: requiredText("Case sheet"),
   dose: optional(pipe(string(), maxLength(500))),
   miasm: optional(picklist(["psora", "sycosis", "syphilis", "tubercular", "mixed"])),
-  patientId: RequiredText("Patient"),
-  potency: RequiredText("Potency"),
-  remedy: RequiredText("Remedy"),
-  rubrics: pipe(array(RequiredText("Rubric")), minLength(1, "Add at least one rubric")),
+  patientId: requiredText("Patient"),
+  potency: requiredText("Potency"),
+  remedy: requiredText("Remedy"),
+  rubrics: pipe(array(requiredText("Rubric")), minLength(1, "Add at least one rubric")),
 });
 
 const UpdateRepertorizationSchema = partial(CreateRepertorizationSchema);
 
 const CreateFollowUpSchema = object({
   branchId: BranchIdSchema,
-  caseId: RequiredText("Case sheet"),
+  caseId: requiredText("Case sheet"),
   improvement: picklist(["worse", "same", "better", "resolved"]),
-  notes: RequiredText("Notes"),
-  patientId: RequiredText("Patient"),
+  notes: requiredText("Notes"),
+  patientId: requiredText("Patient"),
   visitNo: pipe(number(), minValue(1, "Visit number must be at least 1")),
 });
 
 const CreateAyushDiagnosisSchema = object({
   branchId: BranchIdSchema,
-  caseId: RequiredText("Case sheet"),
-  encounterId: RequiredText("Encounter"),
+  caseId: requiredText("Case sheet"),
+  encounterId: requiredText("Encounter"),
   label: optional(pipe(string(), maxLength(500))),
-  namasteCode: RequiredText("NAMASTE code"),
-  patientId: RequiredText("Patient"),
-  tm2Code: RequiredText("TM2 code"),
+  namasteCode: requiredText("NAMASTE code"),
+  patientId: requiredText("Patient"),
+  tm2Code: requiredText("TM2 code"),
 });
 
 const VitalsSchema = object({
@@ -93,13 +93,13 @@ const VitalsSchema = object({
 const BookNadiSchema = object({
   branchId: BranchIdSchema,
   caseId: optional(pipe(string(), minLength(1))),
-  date: RequiredText("Date"),
+  date: requiredText("Date"),
   encounterId: optional(pipe(string(), minLength(1))),
-  facilityId: RequiredText("Facility"),
+  facilityId: requiredText("Facility"),
   findings: optional(pipe(string(), maxLength(2000))),
-  patientId: RequiredText("Patient"),
-  serviceId: RequiredText("Service"),
-  slot: RequiredText("Slot"),
+  patientId: requiredText("Patient"),
+  serviceId: requiredText("Service"),
+  slot: requiredText("Slot"),
 });
 
 const CreateTherapyPackageSchema = object({
@@ -107,7 +107,7 @@ const CreateTherapyPackageSchema = object({
   caseId: optional(pipe(string(), minLength(1))),
   name: picklist(["panchakarma", "abhyanga", "shirodhara", "nasya", "basti", "other"]),
   outcomeNote: optional(pipe(string(), maxLength(2000))),
-  patientId: RequiredText("Patient"),
+  patientId: requiredText("Patient"),
   procedures: optional(array(pipe(string(), minLength(1), maxLength(200)))),
   status: picklist(["Active", "Paused", "Expired", "Completed"]),
   totalSittings: pipe(number(), minValue(1, "Package needs at least 1 sitting")),
@@ -118,11 +118,11 @@ const UpdateTherapyPackageSchema = partial(CreateTherapyPackageSchema);
 
 const ChargeLineSchema = object({
   amount: pipe(number(), minValue(0, "Charge cannot be negative")),
-  label: RequiredText("Charge label"),
+  label: requiredText("Charge label"),
 });
 
 const ConsumableLineSchema = object({
-  item: RequiredText("Consumable"),
+  item: requiredText("Consumable"),
   qty: pipe(number(), minValue(0, "Quantity cannot be negative")),
 });
 
@@ -130,11 +130,11 @@ const CreateTherapySittingSchema = object({
   branchId: BranchIdSchema,
   chargeLines: optional(array(ChargeLineSchema)),
   consumables: optional(array(ConsumableLineSchema)),
-  date: RequiredText("Date"),
+  date: requiredText("Date"),
   equipmentId: optional(pipe(string(), minLength(1))),
   notes: optional(pipe(string(), maxLength(2000))),
-  packageId: RequiredText("Therapy package"),
-  patientId: RequiredText("Patient"),
+  packageId: requiredText("Therapy package"),
+  patientId: requiredText("Patient"),
   postVitals: VitalsSchema,
   preVitals: VitalsSchema,
   roomId: optional(pipe(string(), minLength(1))),
@@ -148,19 +148,19 @@ const PauseExtendPackageSchema = object({
   action: picklist(["pause", "resume", "extend", "complete"]),
   extendDays: optional(pipe(number(), minValue(1))),
   outcomeNote: optional(pipe(string(), maxLength(2000))),
-  packageId: RequiredText("Therapy package"),
+  packageId: requiredText("Therapy package"),
   reason: optional(pipe(string(), maxLength(1000))),
 });
 
 const CreateDietPlanSchema = object({
   branchId: BranchIdSchema,
   caseId: optional(pipe(string(), minLength(1))),
-  chart: RequiredText("Diet chart"),
+  chart: requiredText("Diet chart"),
   language: optional(pipe(string(), minLength(1))),
   pathyVariant: optional(picklist(["ayurveda", "homeopathy", "allopathy", "dental"])),
-  patientId: RequiredText("Patient"),
-  validFrom: RequiredText("Valid from"),
-  validTo: RequiredText("Valid to"),
+  patientId: requiredText("Patient"),
+  validFrom: requiredText("Valid from"),
+  validTo: requiredText("Valid to"),
 });
 
 const UpdateDietPlanSchema = partial(CreateDietPlanSchema);
@@ -168,62 +168,62 @@ const UpdateDietPlanSchema = partial(CreateDietPlanSchema);
 const CreateYogaBatchSchema = object({
   branchId: BranchIdSchema,
   capacity: pipe(number(), minValue(1, "Capacity must be at least 1")),
-  name: RequiredText("Batch name"),
-  schedule: RequiredText("Schedule"),
+  name: requiredText("Batch name"),
+  schedule: requiredText("Schedule"),
 });
 
 const UpdateYogaBatchSchema = partial(CreateYogaBatchSchema);
 
 const CreateYogaEnrollmentSchema = object({
-  batchId: RequiredText("Yoga batch"),
+  batchId: requiredText("Yoga batch"),
   branchId: BranchIdSchema,
-  patientId: RequiredText("Patient"),
+  patientId: requiredText("Patient"),
 });
 
 const YogaAttendanceSchema = object({
   attended: boolean(),
-  batchId: RequiredText("Yoga batch"),
+  batchId: requiredText("Yoga batch"),
   branchId: BranchIdSchema,
-  date: RequiredText("Date"),
-  patientId: RequiredText("Patient"),
+  date: requiredText("Date"),
+  patientId: requiredText("Patient"),
 });
 
 const AyushPrescriptionSchema = object({
   anupana: optional(pipe(string(), maxLength(500))),
   branchId: BranchIdSchema,
   caseId: optional(pipe(string(), minLength(1))),
-  encounterId: RequiredText("Encounter"),
+  encounterId: requiredText("Encounter"),
   items: pipe(
     array(
       object({
-        dose: RequiredText("Dose"),
-        drug: RequiredText("Drug"),
+        dose: requiredText("Dose"),
+        drug: requiredText("Drug"),
         kind: picklist(["classical", "proprietary"]),
       }),
     ),
     minLength(1, "Add at least one medicine"),
   ),
-  patientId: RequiredText("Patient"),
+  patientId: requiredText("Patient"),
 });
 
 const FollowUpGridSaveSchema = object({
   branchId: BranchIdSchema,
-  caseId: RequiredText("Case sheet"),
+  caseId: requiredText("Case sheet"),
   improvement: picklist(["worse", "same", "better", "resolved"]),
-  notes: RequiredText("Notes"),
-  patientId: RequiredText("Patient"),
+  notes: requiredText("Notes"),
+  patientId: requiredText("Patient"),
   visitNo: pipe(number(), minValue(1, "Visit number must be at least 1")),
 });
 
 const FollowUpGridListSchema = object({
   branchId: BranchIdSchema,
-  caseId: RequiredText("Case sheet"),
+  caseId: requiredText("Case sheet"),
 });
 
 const PackageOutcomeSchema = object({
   branchId: BranchIdSchema,
-  outcomeNote: RequiredText("Outcome note"),
-  packageId: RequiredText("Therapy package"),
+  outcomeNote: requiredText("Outcome note"),
+  packageId: requiredText("Therapy package"),
 });
 
 const AyushFiltersSchema = object({

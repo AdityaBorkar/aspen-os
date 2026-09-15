@@ -85,13 +85,17 @@ export const saleFromRx = Workflow.name("healthcare.pharmacy.sale-from-rx")
       list.push(batch);
       liveByItem.set(batch.item_id, list);
     }
-    for (const list of liveByItem.values()) {
-      list.sort((a, b) => a.expiry.localeCompare(b.expiry));
+    for (const [itemId, list] of liveByItem.entries()) {
+      liveByItem.set(
+        itemId,
+        list.toSorted((left, right) => left.expiry.localeCompare(right.expiry)),
+      );
     }
 
     const resolved: ResolvedLine[] = [];
     const nearExpiry: string[] = [];
     const substitutions: SubstitutionRecord[] = [];
+    // oxlint-disable eslint/no-await-in-loop
     for (const line of parsed.items satisfies SaleFromRxInput["items"]) {
       const item = byItemId.get(line.itemId);
       if (!item) {
@@ -178,11 +182,13 @@ export const saleFromRx = Workflow.name("healthcare.pharmacy.sale-from-rx")
         substituteOf: line.substituteOf ?? null,
       });
     }
+    // oxlint-enable eslint/no-await-in-loop
 
     const saleNo = await ctx.step.run(nextHealthcareSeries, { input: { series: "sale" } });
     const total = resolved.reduce((sum, line) => sum + line.mrp * line.qty, 0);
 
     const created = await ctx.step.run("dispense", async () => {
+      // oxlint-disable eslint/no-await-in-loop
       for (const line of resolved) {
         const [batch] = await ctx.db
           .select({ qty: healthcarePharmacyBatch.qty })
@@ -199,6 +205,7 @@ export const saleFromRx = Workflow.name("healthcare.pharmacy.sale-from-rx")
           .set({ qty: batch.qty - line.qty })
           .where(eq(healthcarePharmacyBatch.id, line.batchId));
       }
+      // oxlint-enable eslint/no-await-in-loop
       const [row] = await ctx.db
         .insert(healthcarePharmacySale)
         .values({

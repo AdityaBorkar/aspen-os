@@ -3,6 +3,7 @@ import { AYUSH_EVENTS } from "#/pubsub";
 import { CreateTherapySittingSchema } from "#/schemas/ayush";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 
+import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import { object, parse } from "valibot";
@@ -53,18 +54,15 @@ export const scheduleTherapy = Workflow.name("healthcare.ayush.scheduleTherapy")
           .select()
           .from(healthcareTherapySitting)
           .where(and(...clauses));
-        return rows.filter((r) => {
-          const payload =
-            r.payload && typeof r.payload === "object"
-              ? (r.payload as Record<string, unknown>)
-              : {};
-          if (payload.therapistId === parsed.therapistId) {
+        return rows.filter((sittingRow) => {
+          const { payload: sittingPayload } = sittingRow;
+          if (sittingPayload.therapistId === parsed.therapistId) {
             return true;
           }
-          if (parsed.roomId && payload.roomId === parsed.roomId) {
+          if (parsed.roomId && sittingPayload.roomId === parsed.roomId) {
             return true;
           }
-          if (parsed.equipmentId && payload.equipmentId === parsed.equipmentId) {
+          if (parsed.equipmentId && sittingPayload.equipmentId === parsed.equipmentId) {
             return true;
           }
           return false;
@@ -77,6 +75,22 @@ export const scheduleTherapy = Workflow.name("healthcare.ayush.scheduleTherapy")
       }
     }
 
+    const sittingPayload: Record<string, JsonValue> = {};
+    if (parsed.therapistId) {
+      sittingPayload.therapistId = parsed.therapistId;
+    }
+    if (parsed.roomId) {
+      sittingPayload.roomId = parsed.roomId;
+    }
+    if (parsed.equipmentId) {
+      sittingPayload.equipmentId = parsed.equipmentId;
+    }
+    if (parsed.consumables) {
+      sittingPayload.consumables = parsed.consumables;
+    }
+    if (parsed.chargeLines) {
+      sittingPayload.chargeLines = parsed.chargeLines;
+    }
     const [row] = await ctx.step.run("insert-therapy-sitting", async () =>
       ctx.db
         .insert(healthcareTherapySitting)
@@ -87,13 +101,7 @@ export const scheduleTherapy = Workflow.name("healthcare.ayush.scheduleTherapy")
           notes: parsed.notes ?? null,
           package_id: parsed.packageId,
           patient_id: parsed.patientId,
-          payload: {
-            ...(parsed.therapistId ? { therapistId: parsed.therapistId } : {}),
-            ...(parsed.roomId ? { roomId: parsed.roomId } : {}),
-            ...(parsed.equipmentId ? { equipmentId: parsed.equipmentId } : {}),
-            ...(parsed.consumables ? { consumables: parsed.consumables } : {}),
-            ...(parsed.chargeLines ? { chargeLines: parsed.chargeLines } : {}),
-          },
+          payload: sittingPayload,
           post_bp_dys: null,
           post_bp_sys: null,
           post_pulse: null,

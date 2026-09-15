@@ -7,6 +7,24 @@ import { object, parse } from "valibot";
 
 const NursingBoardInputSchema = object({ input: NursingBoardSchema });
 
+function toDto(row: {
+  due_at: Date | null;
+  id: string;
+  kind: string;
+  patient_id: string;
+  status: string;
+  title: string;
+}) {
+  return {
+    dueAt: row.due_at?.toISOString() ?? null,
+    id: row.id,
+    kind: row.kind,
+    patientId: row.patient_id,
+    status: row.status,
+    title: row.title,
+  };
+}
+
 export const board = Workflow.name("healthcare.nursing.board")
   .input(NursingBoardInputSchema)
   .handler(async ({ input }, ctx) => {
@@ -22,14 +40,6 @@ export const board = Workflow.name("healthcare.nursing.board")
     const open = rows.filter((row) => row.status === "open");
     const overdue = open.filter((row) => row.due_at && row.due_at.getTime() < now);
     const red = open.filter((row) => row.kind === "critical");
-    const toDto = (row: (typeof rows)[number]) => ({
-      dueAt: row.due_at?.toISOString() ?? null,
-      id: row.id,
-      kind: row.kind,
-      patientId: row.patient_id,
-      status: row.status,
-      title: row.title,
-    });
     return {
       amber: overdue.map(toDto),
       open: open.map(toDto),

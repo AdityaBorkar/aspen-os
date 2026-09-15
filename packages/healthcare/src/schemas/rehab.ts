@@ -17,14 +17,14 @@ import {
 } from "valibot";
 import type { InferOutput } from "valibot";
 
-const RequiredText = (label: string) => pipe(string(), minLength(1, `${label} is required`));
+const requiredText = (label: string) => pipe(string(), minLength(1, `${label} is required`));
 
 const CreateRehabEpisodeSchema = object({
   branchId: BranchIdSchema,
-  condition: RequiredText("Condition"),
+  condition: requiredText("Condition"),
   discipline: picklist(["occupational", "physio", "speech"]),
   encounterId: optional(pipe(string(), minLength(1))),
-  patientId: RequiredText("Patient"),
+  patientId: requiredText("Patient"),
   status: picklist(["Active", "Discharged"]),
 });
 
@@ -45,18 +45,18 @@ const RehabAssessmentToolSchema = picklist([
 const CreateRehabAssessmentSchema = object({
   branchId: BranchIdSchema,
   details: optional(pipe(string(), maxLength(4000))),
-  episodeId: RequiredText("Episode"),
+  episodeId: requiredText("Episode"),
   items: optional(
     array(
       object({
-        label: RequiredText("Item"),
+        label: requiredText("Item"),
         score: pipe(number("Item score must be a number"), minValue(0)),
       }),
     ),
   ),
   maxScore: optional(pipe(number(), minValue(0))),
   mmtGrade: optional(pipe(string(), minLength(1))),
-  patientId: RequiredText("Patient"),
+  patientId: requiredText("Patient"),
   romDegrees: optional(pipe(number(), minValue(0), maxValue(360))),
   romType: optional(picklist(["active", "passive"])),
   score: pipe(number("Score must be a number")),
@@ -66,11 +66,11 @@ const CreateRehabAssessmentSchema = object({
 
 const CreateRehabGoalPlanSchema = object({
   branchId: BranchIdSchema,
-  episodeId: RequiredText("Episode"),
+  episodeId: requiredText("Episode"),
   goals: pipe(
     array(
       object({
-        goal: RequiredText("Goal"),
+        goal: requiredText("Goal"),
         linkedScale: optional(RehabAssessmentToolSchema),
         measure: optional(pipe(string(), maxLength(500))),
         status: picklist(["open", "met", "abandoned"]),
@@ -80,15 +80,15 @@ const CreateRehabGoalPlanSchema = object({
     ),
     minLength(1, "Set at least one goal"),
   ),
-  patientId: RequiredText("Patient"),
+  patientId: requiredText("Patient"),
 });
 
 const CreateRehabPackageSchema = object({
   branchId: BranchIdSchema,
-  episodeId: RequiredText("Episode"),
-  frequency: RequiredText("Frequency"),
+  episodeId: requiredText("Episode"),
+  frequency: requiredText("Frequency"),
   modalities: optional(array(pipe(string(), minLength(1)))),
-  patientId: RequiredText("Patient"),
+  patientId: requiredText("Patient"),
   price: optional(pipe(number(), minValue(0))),
   totalSessions: pipe(number(), minValue(1, "Package needs at least 1 session")),
   validityDays: optional(pipe(number(), minValue(1))),
@@ -105,17 +105,17 @@ const RehabSittingStatusSchema = picklist([
 
 const BookRehabSittingSchema = object({
   branchId: BranchIdSchema,
-  date: RequiredText("Date"),
-  episodeId: RequiredText("Episode"),
+  date: requiredText("Date"),
+  episodeId: requiredText("Episode"),
   equipmentId: optional(pipe(string(), minLength(1))),
   packageId: optional(pipe(string(), minLength(1))),
-  patientId: RequiredText("Patient"),
+  patientId: requiredText("Patient"),
   slot: optional(pipe(string(), minLength(1))),
   therapistId: optional(pipe(string(), minLength(1))),
 });
 
 const RehabConsumableSchema = object({
-  item: RequiredText("Consumable"),
+  item: requiredText("Consumable"),
   qty: pipe(number(), minValue(1)),
 });
 
@@ -127,7 +127,7 @@ const RecordRehabSittingSchema = object({
   exercises: optional(
     array(
       object({
-        name: RequiredText("Exercise"),
+        name: requiredText("Exercise"),
         reps: optional(pipe(number(), minValue(0))),
         sets: optional(pipe(number(), minValue(0))),
       }),
@@ -145,21 +145,21 @@ const RecordRehabSittingSchema = object({
     bpSys: pipe(number(), minValue(0)),
     pulse: pipe(number(), minValue(0)),
   }),
-  sittingId: RequiredText("Sitting"),
+  sittingId: requiredText("Sitting"),
   status: RehabSittingStatusSchema,
   therapistId: optional(pipe(string(), minLength(1))),
 });
 
 const CreateExercisePrescriptionSchema = object({
   branchId: BranchIdSchema,
-  episodeId: RequiredText("Episode"),
+  episodeId: requiredText("Episode"),
   exercises: pipe(
     array(
       object({
         frequency: optional(pipe(string(), maxLength(200))),
         holdSecs: optional(pipe(number(), minValue(0))),
         mediaUrl: optional(pipe(string(), maxLength(2000))),
-        name: RequiredText("Exercise"),
+        name: requiredText("Exercise"),
         notes: optional(pipe(string(), maxLength(500))),
         precautions: optional(pipe(string(), maxLength(1000))),
         reps: optional(pipe(number(), minValue(0))),
@@ -168,36 +168,36 @@ const CreateExercisePrescriptionSchema = object({
     ),
     minLength(1, "Prescribe at least one exercise"),
   ),
-  patientId: RequiredText("Patient"),
+  patientId: requiredText("Patient"),
 });
 
 const CreateOutcomeScoreSchema = object({
   branchId: BranchIdSchema,
-  episodeId: RequiredText("Episode"),
-  patientId: RequiredText("Patient"),
+  episodeId: requiredText("Episode"),
+  patientId: requiredText("Patient"),
   score: pipe(number("Score must be a number")),
   tool: RehabAssessmentToolSchema,
 });
 
 const CreateDischargeSummarySchema = object({
   branchId: BranchIdSchema,
-  episodeId: RequiredText("Episode"),
+  episodeId: requiredText("Episode"),
   homePlan: optional(pipe(string(), maxLength(4000))),
   outcome: picklist(["recovered", "improved", "same", "referred", "dropped"]),
-  patientId: RequiredText("Patient"),
-  summary: RequiredText("Summary"),
+  patientId: requiredText("Patient"),
+  summary: requiredText("Summary"),
 });
 
 const ProgressChartSchema = object({
   branchId: BranchIdSchema,
-  episodeId: RequiredText("Episode"),
+  episodeId: requiredText("Episode"),
   tool: optional(RehabAssessmentToolSchema),
 });
 
 const ShareExerciseSheetSchema = object({
   branchId: BranchIdSchema,
   channel: picklist(["print", "whatsapp"]),
-  sheetId: RequiredText("Sheet"),
+  sheetId: requiredText("Sheet"),
   to: optional(pipe(string(), maxLength(50))),
 });
 

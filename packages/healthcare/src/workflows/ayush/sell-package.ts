@@ -3,6 +3,7 @@ import { AYUSH_EVENTS } from "#/pubsub";
 import { CreateTherapyPackageSchema } from "#/schemas/ayush";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 
+import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
 
@@ -16,6 +17,13 @@ export const sellPackage = Workflow.name("healthcare.ayush.sellPackage")
     const actorId = ctx.actorId ?? "system";
 
     const validDays = parsed.validDays ?? 90;
+    const packagePayload: Record<string, JsonValue> = {};
+    if (parsed.procedures) {
+      packagePayload.procedures = parsed.procedures;
+    }
+    if (parsed.outcomeNote) {
+      packagePayload.outcomeNote = parsed.outcomeNote;
+    }
     const [row] = await ctx.step.run("insert-therapy-package", async () =>
       ctx.db
         .insert(healthcareTherapyPackage)
@@ -25,10 +33,7 @@ export const sellPackage = Workflow.name("healthcare.ayush.sellPackage")
           created_by: actorId,
           name: parsed.name,
           patient_id: parsed.patientId,
-          payload: {
-            ...(parsed.procedures ? { procedures: parsed.procedures } : {}),
-            ...(parsed.outcomeNote ? { outcomeNote: parsed.outcomeNote } : {}),
-          },
+          payload: packagePayload,
           status: parsed.status,
           total_sittings: parsed.totalSittings,
           used_sittings: 0,
@@ -62,10 +67,7 @@ export const sellPackage = Workflow.name("healthcare.ayush.sellPackage")
       });
     });
 
-    const sellSpec =
-      row.payload && typeof row.payload === "object"
-        ? (row.payload as Record<string, unknown>)
-        : {};
+    const sellSpec: Record<string, JsonValue> = row.payload;
     const attended = row.used_sittings ?? 0;
     const remaining = Math.max(0, row.total_sittings - attended);
     return {

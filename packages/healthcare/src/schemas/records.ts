@@ -136,7 +136,9 @@ const EncounterGetSchema = object({
 
 const SearchRecordsSchema = object({
   branchId: BranchIdSchema,
+  // oxlint-disable eslint/id-length
   q: pipe(string(), minLength(1, "Search text is required")),
+  // oxlint-enable eslint/id-length
 });
 
 const ConsentsGetSchema = object({

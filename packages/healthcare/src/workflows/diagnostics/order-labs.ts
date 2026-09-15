@@ -57,7 +57,7 @@ export const orderLabs = Workflow.name("healthcare.diagnostics.order-labs")
           payer: parsed.payer ?? null,
           payload: {
             statusDetail: "ordered",
-            testCodes: known.map((row) => row.code),
+            testCodes: known.map((knownTest) => knownTest.code),
             tests: parsed.tests,
           },
           priority: parsed.priority,

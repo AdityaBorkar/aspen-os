@@ -45,7 +45,7 @@ export const progressChart = Workflow.name("healthcare.rehab.progressChart")
       ...new Set([...assessments.map((row) => row.tool), ...scores.map((row) => row.tool)]),
     ]
       .filter((tool) => !parsed.tool || tool === parsed.tool)
-      .sort();
+      .toSorted();
     const series = tools.map((tool) => {
       const preRows = assessments.filter((row) => row.tool === tool);
       const postRows = scores.filter((row) => row.tool === tool);

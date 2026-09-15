@@ -40,7 +40,7 @@ export const radioAuthorize = Workflow.name("healthcare.diagnostics.radio-author
     if (reports.length === 0) {
       throw new Error("No report attached yet; attach the report before authorizing.");
     }
-    const sorted = [...reports].sort((a, b) => a.version - b.version);
+    const sorted = reports.toSorted((left, right) => left.version - right.version);
     const target = parsed.version
       ? (sorted.find((report) => report.version === parsed.version) ?? null)
       : (sorted[sorted.length - 1] ?? null);

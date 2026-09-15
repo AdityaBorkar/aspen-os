@@ -1,9 +1,10 @@
 import { healthcareLabJob } from "#/db-schemas/dental";
 import { PendingJobsFiltersSchema } from "#/schemas/dental";
 
+import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
 import { and, desc, eq, inArray } from "drizzle-orm";
-import { object, parse } from "valibot";
+import { is, object, parse, string } from "valibot";
 
 const PendingJobsInputSchema = object({ input: PendingJobsFiltersSchema });
 
@@ -34,11 +35,8 @@ export const pendingJobs = Workflow.name("healthcare.dental.pendingJobs")
     );
     const now = Date.now();
     return jobs.map((row) => {
-      const spec =
-        row.payload && typeof row.payload === "object"
-          ? (row.payload as Record<string, unknown>)
-          : {};
-      const dueDate = typeof spec.dueDate === "string" ? spec.dueDate : null;
+      const spec: Record<string, JsonValue> = row.payload;
+      const dueDate = is(string(), spec.dueDate) ? spec.dueDate : null;
       const overdue = dueDate ? new Date(dueDate).getTime() < now : false;
       return {
         branchId: row.branch_id,
@@ -48,12 +46,12 @@ export const pendingJobs = Workflow.name("healthcare.dental.pendingJobs")
         id: row.id,
         kind: row.kind,
         labName: row.lab_name,
-        metal: typeof spec.metal === "string" ? spec.metal : null,
+        metal: is(string(), spec.metal) ? spec.metal : null,
         overdue,
         patientId: row.patient_id,
         planId: row.plan_id,
-        qcNote: typeof spec.qcNote === "string" ? spec.qcNote : null,
-        shade: typeof spec.shade === "string" ? spec.shade : null,
+        qcNote: is(string(), spec.qcNote) ? spec.qcNote : null,
+        shade: is(string(), spec.shade) ? spec.shade : null,
         status: row.status,
         tooth: row.tooth,
       };

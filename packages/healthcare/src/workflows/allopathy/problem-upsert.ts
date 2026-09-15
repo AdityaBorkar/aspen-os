@@ -5,7 +5,7 @@ import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
-import { object, parse, union } from "valibot";
+import { object, parse, union, is, string } from "valibot";
 
 const ProblemUpsertInputSchema = object({
   input: union([CreateProblemSchema, UpdateProblemSchema]),
@@ -28,8 +28,8 @@ function toDto(row: typeof healthcareProblem.$inferSelect) {
 export const problemUpsert = Workflow.name("healthcare.allopathy.problemUpsert")
   .input(ProblemUpsertInputSchema)
   .handler(async ({ input }, ctx) => {
-    const branchId =
-      "branchId" in input && typeof input.branchId === "string" ? input.branchId : "main";
+    const rawBranchId = "branchId" in input ? input.branchId : undefined;
+    const branchId = is(string(), rawBranchId) ? rawBranchId : "main";
     const actorId = ctx.actorId ?? "system";
 
     if ("problemId" in input) {

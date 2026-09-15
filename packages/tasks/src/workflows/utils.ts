@@ -84,11 +84,11 @@ export async function wouldCreateParentCycle(
       return true;
     }
 
-    const [parent] = (await db
+    const [parent] = await db
       .select({ parentId: task.parent_id })
       .from(task)
       .where(eq(task.id, currentId))
-      .limit(1)) as { parentId: string | null }[];
+      .limit(1);
 
     if (!parent) {
       break;
@@ -106,11 +106,11 @@ export async function getParentDepth(db: Db, taskId: string): Promise<number> {
 
   // oxlint-disable eslint/no-await-in-loop
   while (currentId !== null) {
-    const [parent] = (await db
+    const [parent] = await db
       .select({ parentId: task.parent_id })
       .from(task)
       .where(eq(task.id, currentId))
-      .limit(1)) as { parentId: string | null }[];
+      .limit(1);
 
     if (!parent?.parentId) {
       break;

@@ -14,7 +14,7 @@ function parseJsonRecord(raw: string | undefined) {
   if (!raw) {
     return {};
   }
-  let value: unknown;
+  let value: unknown = undefined;
   try {
     value = JSON.parse(raw);
   } catch {

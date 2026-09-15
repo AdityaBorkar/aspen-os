@@ -19,12 +19,12 @@ import {
 } from "valibot";
 import type { InferOutput } from "valibot";
 
-const RequiredText = (label: string) => pipe(string(), minLength(1, `${label} is required`));
+const requiredText = (label: string) => pipe(string(), minLength(1, `${label} is required`));
 
-const NonNegative = (label: string) =>
+const nonNegative = (label: string) =>
   pipe(number(`${label} must be a number`), minValue(0, `${label} cannot be negative`));
 
-const Percent = (label: string) =>
+const percent = (label: string) =>
   pipe(
     number(`${label} must be a number`),
     minValue(0, `${label} cannot be negative`),
@@ -35,7 +35,7 @@ const Percent = (label: string) =>
 const FdiToothSchema = pipe(
   string(),
   regex(
-    /^(1[1-8]|2[1-8]|3[1-8]|4[1-8]|5[1-5]|6[1-5]|7[1-5]|8[1-5])$/,
+    /^(?<tooth>1[1-8]|2[1-8]|3[1-8]|4[1-8]|5[1-5]|6[1-5]|7[1-5]|8[1-5])$/,
     "Must be a valid FDI tooth number",
   ),
 );
@@ -65,7 +65,7 @@ const ToothSurfaceSchema = picklist([
 
 const CreateDentalChartSchema = object({
   branchId: BranchIdSchema,
-  encounterId: RequiredText("Encounter"),
+  encounterId: requiredText("Encounter"),
   entries: pipe(
     array(
       object({
@@ -77,7 +77,7 @@ const CreateDentalChartSchema = object({
     ),
     minLength(1, "Chart at least one tooth"),
   ),
-  patientId: RequiredText("Patient"),
+  patientId: requiredText("Patient"),
 });
 
 const UpdateDentalChartSchema = partial(CreateDentalChartSchema);
@@ -86,13 +86,13 @@ const PlanStageSchema = picklist(["Planned", "Scheduled", "InChair", "Done"]);
 
 const CreateTreatmentPlanSchema = object({
   branchId: BranchIdSchema,
-  encounterId: RequiredText("Encounter"),
-  patientId: RequiredText("Patient"),
+  encounterId: requiredText("Encounter"),
+  patientId: requiredText("Patient"),
   stages: pipe(
     array(
       object({
-        price: NonNegative("Price"),
-        procedure: RequiredText("Procedure"),
+        price: nonNegative("Price"),
+        procedure: requiredText("Procedure"),
         stage: PlanStageSchema,
         tooth: optional(FdiToothSchema),
       }),
@@ -106,10 +106,10 @@ const UpdateTreatmentPlanSchema = partial(CreateTreatmentPlanSchema);
 
 const CreateQuoteSchema = object({
   branchId: BranchIdSchema,
-  discountPct: optional(Percent("Discount")),
-  gstPct: optional(Percent("GST")),
-  patientId: RequiredText("Patient"),
-  planId: RequiredText("Treatment plan"),
+  discountPct: optional(percent("Discount")),
+  gstPct: optional(percent("GST")),
+  patientId: requiredText("Patient"),
+  planId: requiredText("Treatment plan"),
   validDays: optional(pipe(number(), minValue(1, "Quote validity must be at least 1 day"))),
   validTill: optional(pipe(string(), minLength(1))),
 });
@@ -118,9 +118,9 @@ const UpdateQuoteSchema = partial(CreateQuoteSchema);
 
 const CreateDentalConsentSchema = object({
   branchId: BranchIdSchema,
-  encounterId: RequiredText("Encounter"),
-  patientId: RequiredText("Patient"),
-  procedureName: RequiredText("Procedure"),
+  encounterId: requiredText("Encounter"),
+  patientId: requiredText("Patient"),
+  procedureName: requiredText("Procedure"),
   signedAt: optional(pipe(string(), minLength(1))),
   status: picklist(["Pending", "Signed"]),
 });
@@ -130,12 +130,12 @@ const UpdateDentalConsentSchema = partial(CreateDentalConsentSchema);
 const CreateChairSlotSchema = object({
   branchId: BranchIdSchema,
   bufferMin: optional(pipe(number(), minValue(0, "Buffer cannot be negative"))),
-  chairId: RequiredText("Chair"),
-  date: RequiredText("Date"),
+  chairId: requiredText("Chair"),
+  date: requiredText("Date"),
   durationMin: optional(pipe(number(), minValue(1, "Duration must be at least 1 minute"))),
-  encounterId: RequiredText("Encounter"),
-  patientId: RequiredText("Patient"),
-  slot: RequiredText("Slot"),
+  encounterId: requiredText("Encounter"),
+  patientId: requiredText("Patient"),
+  slot: requiredText("Slot"),
 });
 
 const UpdateChairSlotSchema = partial(CreateChairSlotSchema);
@@ -145,9 +145,9 @@ const CreateLabJobSchema = object({
   dueDate: optional(pipe(string(), minLength(1))),
   encounterId: optional(pipe(string(), minLength(1))),
   kind: picklist(["crown", "bridge", "denture", "implant", "aligner", "other"]),
-  labName: RequiredText("Lab"),
+  labName: requiredText("Lab"),
   metal: optional(pipe(string(), maxLength(200))),
-  patientId: RequiredText("Patient"),
+  patientId: requiredText("Patient"),
   planId: optional(pipe(string(), minLength(1))),
   qcNote: optional(pipe(string(), maxLength(1000))),
   shade: optional(pipe(string(), maxLength(100))),
@@ -158,7 +158,7 @@ const CreateLabJobSchema = object({
 const UpdateLabJobSchema = partial(CreateLabJobSchema);
 
 const TrackLabJobSchema = object({
-  labJobId: RequiredText("Lab job"),
+  labJobId: requiredText("Lab job"),
   note: optional(pipe(string(), maxLength(1000))),
   status: picklist(["Raised", "InLab", "Trial", "Delivered", "Remake"]),
 });
@@ -167,7 +167,7 @@ const ClosePlanStageSchema = object({
   completed: optional(boolean()),
   nextAppointment: optional(pipe(string(), minLength(1))),
   note: optional(pipe(string(), maxLength(2000))),
-  planId: RequiredText("Treatment plan"),
+  planId: requiredText("Treatment plan"),
   stageIndex: pipe(
     number("Stage index must be a number"),
     minValue(0, "Stage index cannot be negative"),
@@ -176,9 +176,9 @@ const ClosePlanStageSchema = object({
 });
 
 const RescheduleStageSchema = object({
-  newDate: RequiredText("New date"),
+  newDate: requiredText("New date"),
   newSlot: optional(pipe(string(), minLength(1))),
-  planId: RequiredText("Treatment plan"),
+  planId: requiredText("Treatment plan"),
   reason: optional(pipe(string(), maxLength(1000))),
   stageIndex: pipe(
     number("Stage index must be a number"),
@@ -189,7 +189,7 @@ const RescheduleStageSchema = object({
 const ImplantMilestoneSchema = object({
   healingNote: optional(pipe(string(), maxLength(2000))),
   milestone: picklist(["placement", "healing", "loading"]),
-  planId: RequiredText("Treatment plan"),
+  planId: requiredText("Treatment plan"),
   stageIndex: pipe(
     number("Stage index must be a number"),
     minValue(0, "Stage index cannot be negative"),
@@ -198,10 +198,10 @@ const ImplantMilestoneSchema = object({
 
 const DentalPackageSchema = object({
   branchId: BranchIdSchema,
-  name: RequiredText("Package name"),
-  patientId: RequiredText("Patient"),
-  planId: RequiredText("Treatment plan"),
-  price: NonNegative("Price"),
+  name: requiredText("Package name"),
+  patientId: requiredText("Patient"),
+  planId: requiredText("Treatment plan"),
+  price: nonNegative("Price"),
 });
 
 const PendingJobsFiltersSchema = object({

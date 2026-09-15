@@ -41,6 +41,7 @@ export const tasksFromOrders = Workflow.name("healthcare.nursing.tasks-from-orde
       return true;
     });
     const mirrored = [];
+    // oxlint-disable eslint/no-await-in-loop
     for (const order of orders) {
       const [row] = await ctx.step.run(`mirror-${order.orderId ?? order.title}`, async () =>
         ctx.db
@@ -66,6 +67,7 @@ export const tasksFromOrders = Workflow.name("healthcare.nursing.tasks-from-orde
         });
       }
     }
+    // oxlint-enable eslint/no-await-in-loop
     const at = new Date().toISOString();
     await ctx.step.run("audit-and-notify", async () => {
       await ctx.audit.write({

@@ -89,7 +89,7 @@ export const bookTele = Workflow.name("healthcare.psych.bookTele")
       throw new Error("Tele-psychiatry needs a recorded consent before the link is issued");
     }
     if (parsed.patientIsMinor) {
-      const consented = await ctx.step.run("check-minor-consent", async () => {
+      const minorConsented = await ctx.step.run("check-minor-consent", async () => {
         const [consent] = await ctx.db
           .select({ id: healthcareCaregiverConsent.id })
           .from(healthcareCaregiverConsent)
@@ -103,7 +103,7 @@ export const bookTele = Workflow.name("healthcare.psych.bookTele")
           .limit(1);
         return Boolean(consent);
       });
-      if (!consented) {
+      if (!minorConsented) {
         throw new Error(
           "Minor patient needs a signed caregiver consent before tele-psychiatry starts",
         );

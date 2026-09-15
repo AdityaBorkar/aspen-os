@@ -222,6 +222,8 @@ async function handleDeliveryDue(
   const notify = createNotify(deps.dbUnit);
   // Fan-out like announcements but via single delivery owner (comms sweeper) —
   // no silent drop when host misses the event.
+  // Sequential per-recipient notify preserves delivery order and isolates failures.
+  // oxlint-disable eslint/no-await-in-loop
   for (const userId of recipients) {
     try {
       await notify.run(
@@ -245,6 +247,7 @@ async function handleDeliveryDue(
       );
     }
   }
+  // oxlint-enable eslint/no-await-in-loop
 }
 
 async function handleFileExpired(

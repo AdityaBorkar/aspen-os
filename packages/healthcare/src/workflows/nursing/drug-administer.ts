@@ -8,7 +8,8 @@ import { object, parse } from "valibot";
 
 const DrugAdminInputSchema = object({ input: AdministerDrugSchema });
 
-const INJECTABLE_HINT = /(inj\.?|injection|\biv\b|\bim\b|\bsc\b|vaccine|insulin|blood|infusion)/i;
+const INJECTABLE_HINT =
+  /(?<injectable>inj\.?|injection|\biv\b|\bim\b|\bsc\b|vaccine|insulin|blood|infusion)/i;
 
 export const drugAdminister = Workflow.name("healthcare.nursing.drug-administer")
   .input(DrugAdminInputSchema)

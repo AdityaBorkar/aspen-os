@@ -10,8 +10,8 @@ import { object, parse } from "valibot";
 const ComputeSlotsInputSchema = object({ input: ComputeSlotsSchema });
 
 function toMinutes(hhmm: string): number {
-  const [h, m] = hhmm.split(":").map(Number);
-  return (h ?? 0) * 60 + (m ?? 0);
+  const [hours, minutes] = hhmm.split(":").map(Number);
+  return (hours ?? 0) * 60 + (minutes ?? 0);
 }
 
 function toHHMM(mins: number): string {
@@ -86,17 +86,17 @@ export const computeSlots = Workflow.name("healthcare.appointments.compute-slots
     );
     const bookedSet = new Set(
       data.booked
-        .filter((b) => b.slot_start >= dayStart && b.slot_start < dayEnd)
-        .map((b) => b.slot_start.toISOString()),
+        .filter((booked) => booked.slot_start >= dayStart && booked.slot_start < dayEnd)
+        .map((booked) => booked.slot_start.toISOString()),
     );
     const slots: ComputedSlot[] = [];
     for (const schedule of data.schedules) {
       for (
-        let m = toMinutes(schedule.start_time);
-        m + schedule.slot_min <= toMinutes(schedule.end_time);
-        m += schedule.slot_min
+        let minutes = toMinutes(schedule.start_time);
+        minutes + schedule.slot_min <= toMinutes(schedule.end_time);
+        minutes += schedule.slot_min
       ) {
-        const slotStart = new Date(`${parsed.date}T${toHHMM(m)}:00Z`);
+        const slotStart = new Date(`${parsed.date}T${toHHMM(minutes)}:00Z`);
         const slotEnd = new Date(slotStart.getTime() + schedule.slot_min * 60_000);
         if (onLeave || bookedSet.has(slotStart.toISOString())) {
           slots.push({
@@ -124,5 +124,5 @@ export const computeSlots = Workflow.name("healthcare.appointments.compute-slots
         slots.push({ reserved, slotStart: slotStart.toISOString(), taken });
       }
     }
-    return slots.sort((a, b) => a.slotStart.localeCompare(b.slotStart));
+    return slots.toSorted((left, right) => left.slotStart.localeCompare(right.slotStart));
   });

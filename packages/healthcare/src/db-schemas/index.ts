@@ -68,6 +68,21 @@ import {
   healthcareVitals,
 } from "#/db-schemas/encounters";
 import {
+  healthcareAppointmentStatusEnum,
+  healthcareBatchStatusEnum,
+  healthcareEncounterStatusEnum,
+  healthcareGrnStatusEnum,
+  healthcareInvoiceStatusEnum,
+  healthcareLabOrderStatusEnum,
+  healthcarePoStatusEnum,
+  healthcareQueueTokenStatusEnum,
+  healthcareRadioOrderStatusEnum,
+  healthcareResidentStatusEnum,
+  healthcareSaleStatusEnum,
+  healthcareSittingStatusEnum,
+  healthcareTaskStatusEnum,
+} from "#/db-schemas/enums";
+import {
   healthcareFacility,
   healthcareFacilityBlock,
   healthcareSterilizationLog,
@@ -249,21 +264,6 @@ export {
   healthcareVitals,
 } from "#/db-schemas/encounters";
 export {
-  healthcareAppointmentStatusEnum,
-  healthcareBatchStatusEnum,
-  healthcareEncounterStatusEnum,
-  healthcareGrnStatusEnum,
-  healthcareInvoiceStatusEnum,
-  healthcareLabOrderStatusEnum,
-  healthcarePoStatusEnum,
-  healthcareQueueTokenStatusEnum,
-  healthcareRadioOrderStatusEnum,
-  healthcareResidentStatusEnum,
-  healthcareSaleStatusEnum,
-  healthcareSittingStatusEnum,
-  healthcareTaskStatusEnum,
-} from "#/db-schemas/enums";
-import {
   healthcareAppointmentStatusEnum,
   healthcareBatchStatusEnum,
   healthcareEncounterStatusEnum,

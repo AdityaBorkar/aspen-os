@@ -58,6 +58,9 @@ export const expiryAlerts = Workflow.name("healthcare.pharmacy.expiry-alerts")
         store: batch.location,
       });
     }
-    alerts.sort((a, b) => a.daysLeft - b.daysLeft);
-    return { alerts, asOf: new Date().toISOString(), withinDays };
+    return {
+      alerts: alerts.toSorted((left, right) => left.daysLeft - right.daysLeft),
+      asOf: new Date().toISOString(),
+      withinDays,
+    };
   });

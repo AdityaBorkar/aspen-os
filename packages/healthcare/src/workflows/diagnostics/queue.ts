@@ -7,9 +7,7 @@ import { is, object, parse, string } from "valibot";
 
 const QueueInputSchema = object({ input: DiagnosticsIdSchema });
 
-type PriorityRank = Record<string, number>;
-
-const PRIORITY_RANK: PriorityRank = { routine: 2, stat: 0, urgent: 1 };
+const PRIORITY_RANK = { routine: 2, stat: 0, urgent: 1 } satisfies Record<string, number>;
 
 export const queue = Workflow.name("healthcare.diagnostics.queue")
   .input(QueueInputSchema)
@@ -24,11 +22,14 @@ export const queue = Workflow.name("healthcare.diagnostics.queue")
         .where(eq(healthcareLabOrder.branch_id, branchId))
         .limit(200),
     );
-    return [...rows]
-      .sort(
-        (a, b) =>
-          (PRIORITY_RANK[a.priority] ?? 3) - (PRIORITY_RANK[b.priority] ?? 3) ||
-          a.created_at.getTime() - b.created_at.getTime(),
+    return rows
+      .toSorted(
+        (left, right) =>
+          // SAFETY: priority is free-form text; narrowing to known keys is safe because unknown values fall back to 3.
+          (PRIORITY_RANK[left.priority as keyof typeof PRIORITY_RANK] ?? 3) -
+            // SAFETY: priority is free-form text; narrowing to known keys is safe because unknown values fall back to 3.
+            (PRIORITY_RANK[right.priority as keyof typeof PRIORITY_RANK] ?? 3) ||
+          left.created_at.getTime() - right.created_at.getTime(),
       )
       .map((row) => {
         const rawDetail = row.payload.statusDetail;

@@ -4,8 +4,9 @@ import { CreateLabJobSchema } from "#/schemas/dental";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchEncounterStep } from "#/workflow-steps/fetch-encounter";
 
+import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { is, object, parse, string } from "valibot";
 
 const RaiseLabJobInputSchema = object({ input: CreateLabJobSchema });
 
@@ -29,6 +30,19 @@ export const raiseLabJob = Workflow.name("healthcare.dental.raiseLabJob")
     }
 
     const nowIso = new Date().toISOString();
+    const labJobPayload: Record<string, JsonValue> = {};
+    if (parsed.dueDate) {
+      labJobPayload.dueDate = parsed.dueDate;
+    }
+    if (parsed.shade) {
+      labJobPayload.shade = parsed.shade;
+    }
+    if (parsed.metal) {
+      labJobPayload.metal = parsed.metal;
+    }
+    if (parsed.qcNote) {
+      labJobPayload.qcNote = parsed.qcNote;
+    }
     const [row] = await ctx.step.run("insert-lab-job", async () =>
       ctx.db
         .insert(healthcareLabJob)
@@ -40,12 +54,7 @@ export const raiseLabJob = Workflow.name("healthcare.dental.raiseLabJob")
           kind: parsed.kind,
           lab_name: parsed.labName,
           patient_id: parsed.patientId,
-          payload: {
-            ...(parsed.dueDate ? { dueDate: parsed.dueDate } : {}),
-            ...(parsed.shade ? { shade: parsed.shade } : {}),
-            ...(parsed.metal ? { metal: parsed.metal } : {}),
-            ...(parsed.qcNote ? { qcNote: parsed.qcNote } : {}),
-          },
+          payload: labJobPayload,
           plan_id: parsed.planId ?? null,
           status: parsed.status,
           tooth: parsed.tooth ?? null,
@@ -78,24 +87,21 @@ export const raiseLabJob = Workflow.name("healthcare.dental.raiseLabJob")
       });
     });
 
-    const spec =
-      row.payload && typeof row.payload === "object"
-        ? (row.payload as Record<string, unknown>)
-        : {};
+    const spec: Record<string, JsonValue> = row.payload;
     return {
       branchId: row.branch_id,
       createdAt: row.created_at.toISOString(),
-      dueDate: typeof spec.dueDate === "string" ? spec.dueDate : null,
+      dueDate: is(string(), spec.dueDate) ? spec.dueDate : null,
       encounterId: row.encounter_id,
       history: row.history,
       id: row.id,
       kind: row.kind,
       labName: row.lab_name,
-      metal: typeof spec.metal === "string" ? spec.metal : null,
+      metal: is(string(), spec.metal) ? spec.metal : null,
       patientId: row.patient_id,
       planId: row.plan_id,
-      qcNote: typeof spec.qcNote === "string" ? spec.qcNote : null,
-      shade: typeof spec.shade === "string" ? spec.shade : null,
+      qcNote: is(string(), spec.qcNote) ? spec.qcNote : null,
+      shade: is(string(), spec.shade) ? spec.shade : null,
       status: row.status,
       tooth: row.tooth,
     };

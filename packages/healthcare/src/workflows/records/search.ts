@@ -12,7 +12,7 @@ export const search = Workflow.name("healthcare.records.search")
   .handler(async ({ input }, ctx) => {
     const parsed = parse(SearchRecordsSchema, input);
     const branchId = parsed.branchId ?? "main";
-    const q = parsed.q.toLowerCase();
+    const query = parsed.q.toLowerCase();
     const [docs, registers] = await ctx.step.run("load-search", async () =>
       Promise.all([
         ctx.db
@@ -38,6 +38,6 @@ export const search = Workflow.name("healthcare.records.search")
         kind: "register",
         text: `${row.register} ${row.details}`,
       })),
-    ].filter((hit) => hit.text.toLowerCase().includes(q));
+    ].filter((hit) => hit.text.toLowerCase().includes(query));
     return hits.slice(0, 50);
   });

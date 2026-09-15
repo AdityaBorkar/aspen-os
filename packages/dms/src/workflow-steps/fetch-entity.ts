@@ -4,6 +4,7 @@ import { WorkflowStep } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
 
+// oxlint-disable eslint/max-params -- 4th param is optional/defaulted, splitting would worsen readability
 export function makeFetchStep<TTable extends PgTable & { id: AnyPgColumn }>(
   name: string,
   table: TTable,

@@ -28,6 +28,17 @@ export const Route = createRootRoute({
   shellComponent: RootDocument,
 });
 
+const devtoolsConfig = {
+  position: "bottom-right",
+} as const;
+
+const devtoolsPlugins = [
+  {
+    name: "Tanstack Router",
+    render: <TanStackRouterDevtoolsPanel />,
+  },
+];
+
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
@@ -36,17 +47,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         {children}
-        <TanStackDevtools
-          config={{
-            position: "bottom-right",
-          }}
-          plugins={[
-            {
-              name: "Tanstack Router",
-              render: <TanStackRouterDevtoolsPanel />,
-            },
-          ]}
-        />
+        <TanStackDevtools config={devtoolsConfig} plugins={devtoolsPlugins} />
         <Scripts />
       </body>
     </html>

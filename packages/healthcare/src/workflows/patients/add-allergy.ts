@@ -5,7 +5,7 @@ import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchPatientStep } from "#/workflow-steps/fetch-patient";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { object, parse } from "valibot";
+import { is, object, parse, string } from "valibot";
 
 const AddAllergyInputSchema = object({ input: CreateAllergySchema });
 
@@ -58,10 +58,9 @@ export const addAllergy = Workflow.name("healthcare.patients.add-allergy")
       name: row.name,
       note: row.note,
       patientId: row.patient_id,
-      reaction:
-        typeof row.payload?.reaction === "string"
-          ? row.payload.reaction
-          : (parsed.reaction ?? null),
+      reaction: is(string(), row.payload.reaction)
+        ? row.payload.reaction
+        : (parsed.reaction ?? null),
       severity: row.severity,
     };
   });

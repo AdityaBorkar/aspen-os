@@ -9,6 +9,20 @@ const LARGE_FOLDER_FILE_THRESHOLD = 1000;
 const LARGE_FOLDER_SIZE_THRESHOLD = 1024 * 1024 * 1024;
 const ZIP_CONCURRENCY = 10;
 
+// oxlint-disable promise/avoid-new, promise/prefer-await-to-callbacks -- fflate `zip` exposes only a callback API; the Promise wrapper is the idiomatic promisification.
+function zipAsync(data: Record<string, Uint8Array>): Promise<Uint8Array> {
+  return new Promise<Uint8Array>((resolve, reject) => {
+    zip(data, (error, result) => {
+      if (error) {
+        reject(error instanceof Error ? error : new Error(String(error)));
+      } else {
+        resolve(result);
+      }
+    });
+  });
+}
+// oxlint-enable promise/avoid-new, promise/prefer-await-to-callbacks
+
 export interface ArchiveResult {
   key: string;
   url: string;
@@ -113,17 +127,6 @@ async function generateZip({
   folderName: string;
   folderPath: string;
 }): Promise<ArchiveResult> {
-  const zipAsync = (data: Record<string, Uint8Array>): Promise<Uint8Array> =>
-    new Promise<Uint8Array>((resolve, reject) => {
-      zip(data, (error, result) => {
-        if (error) {
-          reject(error instanceof Error ? error : new Error(String(error)));
-        } else {
-          resolve(result);
-        }
-      });
-    });
-
   const zipEntries: Record<string, Uint8Array> = {};
   const basePathLength = folderPath.length;
 

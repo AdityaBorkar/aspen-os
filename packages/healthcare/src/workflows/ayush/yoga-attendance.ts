@@ -14,9 +14,31 @@ import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
-import { object, parse } from "valibot";
+import { boolean, is, object, optional, parse, string } from "valibot";
 
 const YogaAttendanceInputSchema = object({ input: YogaAttendanceSchema });
+
+interface YogaAttendanceRecord {
+  [key: string]: string | boolean | undefined;
+  at?: string;
+  attended?: boolean;
+  date?: string;
+  markedBy?: string;
+}
+
+const YogaAttendanceRecordSchema = object({
+  at: optional(string()),
+  attended: optional(boolean()),
+  date: optional(string()),
+  markedBy: optional(string()),
+});
+
+function isYogaAttendanceRecord(value: JsonValue): value is YogaAttendanceRecord {
+  if (value instanceof Date || Array.isArray(value)) {
+    return false;
+  }
+  return is(YogaAttendanceRecordSchema, value);
+}
 
 export const markYogaAttendance = Workflow.name("healthcare.ayush.markYogaAttendance")
   .input(YogaAttendanceInputSchema)
@@ -49,7 +71,7 @@ export const markYogaAttendance = Workflow.name("healthcare.ayush.markYogaAttend
       markedBy: actorId,
     } satisfies Record<string, JsonValue>;
     const prior = enrollment.payload.attendance;
-    const attendance = [...(Array.isArray(prior) ? prior : []), entry];
+    const attendance: JsonValue[] = [...(Array.isArray(prior) ? prior : []), entry];
 
     const [row] = await ctx.step.run("record-attendance", async () =>
       ctx.db
@@ -84,12 +106,12 @@ export const markYogaAttendance = Workflow.name("healthcare.ayush.markYogaAttend
     });
 
     const batch = await ctx.step.run("fetch-batch", async () => {
-      const [b] = await ctx.db
+      const [batchRow] = await ctx.db
         .select()
         .from(healthcareYogaBatch)
         .where(eq(healthcareYogaBatch.id, parsed.batchId))
         .limit(1);
-      return b ?? null;
+      return batchRow ?? null;
     });
 
     return {
@@ -99,9 +121,11 @@ export const markYogaAttendance = Workflow.name("healthcare.ayush.markYogaAttend
       date: parsed.date,
       id: row.id,
       patientId: parsed.patientId,
-      sessionsAttended: attendance.filter((a) => {
-        const rec = a as Record<string, JsonValue>;
-        return rec.attended === true;
+      sessionsAttended: attendance.filter((attendanceEntry) => {
+        if (!isYogaAttendanceRecord(attendanceEntry)) {
+          return false;
+        }
+        return attendanceEntry.attended === true;
       }).length,
     };
   });
@@ -114,8 +138,8 @@ export const prescribeAyush = Workflow.name("healthcare.ayush.prescribe")
     const parsed = parse(AyushPrescriptionSchema, input);
     const branchId = parsed.branchId ?? "main";
     const actorId = ctx.actorId ?? "system";
-    const classical = parsed.items.filter((i) => i.kind === "classical");
-    const proprietary = parsed.items.filter((i) => i.kind === "proprietary");
+    const classical = parsed.items.filter((item) => item.kind === "classical");
+    const proprietary = parsed.items.filter((item) => item.kind === "proprietary");
 
     await ctx.step.run("audit-and-notify", async () => {
       await ctx.audit.write({

@@ -50,6 +50,7 @@ async function buildPreview(
   }
 
   const lines: BulkRevisionPreviewLine[] = [];
+  // oxlint-disable eslint/no-await-in-loop
   for (const service of services) {
     let next: number | null = targets.get(service.id) ?? null;
     const [current] = await db
@@ -83,6 +84,7 @@ async function buildPreview(
       serviceName: service.name,
     });
   }
+  // oxlint-enable eslint/no-await-in-loop
   return lines;
 }
 

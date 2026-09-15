@@ -1,31 +1,41 @@
 import * as TablerIcons from "@tabler/icons-react";
+import type { TablerIcon } from "@tabler/icons-react";
 import * as serverCollections from "collections/server";
 import { loader } from "fumadocs-core/source";
 import type { LoaderPlugin } from "fumadocs-core/source";
 import { createElement } from "react";
-import type { ElementType, ReactElement } from "react";
+import type { ReactElement } from "react";
+import { z } from "zod";
 
 import { DOCS_ROUTE } from "./constants";
+
+// Tabler icon components are forwardRef exotic objects carrying a $$typeof marker,
+// while the package namespace also holds a factory helper and export tables that do not.
+const iconMap = new Map<string, TablerIcon>(
+  Object.entries(TablerIcons).filter(
+    (entry): entry is [string, TablerIcon] => "$$typeof" in entry[1],
+  ),
+);
 
 function resolveIcon(icon: string | undefined): ReactElement | undefined {
   if (!icon) {
     return undefined;
   }
-  const iconMap = TablerIcons as Record<string, unknown>;
-  const iconEntry = iconMap[icon];
+  const iconEntry = iconMap.get(icon);
   if (!iconEntry) {
     console.warn(`[tabler-icons] Unknown icon: ${icon}`);
     return undefined;
   }
-  // SAFETY: tabler icons exports are forwardRef objects (not plain functions) and are renderable as React components.
-  return createElement(iconEntry as ElementType);
+  return createElement(iconEntry);
 }
+
+const iconNameSchema = z.string();
 
 function tablerIconPlugin(): LoaderPlugin {
   function replaceIcon<TNode extends { icon?: unknown }>(node: TNode): TNode {
-    if (typeof node.icon === "string" || node.icon === undefined) {
-      // SAFETY: the icon field is an icon-name string or absent; component icons (React elements) are left untouched.
-      node.icon = resolveIcon(node.icon);
+    const parsedIcon = iconNameSchema.safeParse(node.icon);
+    if (parsedIcon.success || node.icon === undefined) {
+      node.icon = resolveIcon(parsedIcon.success ? parsedIcon.data : undefined);
     }
     return node;
   }

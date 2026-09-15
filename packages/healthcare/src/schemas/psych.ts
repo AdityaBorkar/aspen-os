@@ -18,16 +18,16 @@ import {
 } from "valibot";
 import type { InferOutput } from "valibot";
 
-const RequiredText = (label: string) => pipe(string(), minLength(1, `${label} is required`));
+const requiredText = (label: string) => pipe(string(), minLength(1, `${label} is required`));
 
 const CreatePsychAssessmentSchema = object({
   branchId: BranchIdSchema,
-  chiefComplaint: RequiredText("Chief complaint"),
-  encounterId: RequiredText("Encounter"),
-  history: RequiredText("History"),
-  impression: RequiredText("Impression"),
-  mentalStatusExam: RequiredText("Mental status exam"),
-  patientId: RequiredText("Patient"),
+  chiefComplaint: requiredText("Chief complaint"),
+  encounterId: requiredText("Encounter"),
+  history: requiredText("History"),
+  impression: requiredText("Impression"),
+  mentalStatusExam: requiredText("Mental status exam"),
+  patientId: requiredText("Patient"),
 });
 
 const UpdatePsychAssessmentSchema = partial(CreatePsychAssessmentSchema);
@@ -47,56 +47,56 @@ const PsychScaleSchema = picklist([
 const CreateScaleResultSchema = object({
   assessmentId: optional(pipe(string(), minLength(1))),
   branchId: BranchIdSchema,
-  encounterId: RequiredText("Encounter"),
+  encounterId: requiredText("Encounter"),
   maxScore: pipe(number(), minValue(1)),
   override: optional(boolean()),
   overrideReason: optional(pipe(string(), maxLength(1000))),
-  patientId: RequiredText("Patient"),
+  patientId: requiredText("Patient"),
   scale: PsychScaleSchema,
   score: pipe(number("Score must be a number"), minValue(0)),
 });
 
 const CreateRiskScreenSchema = object({
   branchId: BranchIdSchema,
-  encounterId: RequiredText("Encounter"),
+  encounterId: requiredText("Encounter"),
   factors: pipe(
-    array(RequiredText("Risk factor")),
+    array(requiredText("Risk factor")),
     minLength(1, "Record at least one risk factor"),
   ),
   level: picklist(["Low", "Moderate", "High"]),
-  patientId: RequiredText("Patient"),
+  patientId: requiredText("Patient"),
 });
 
 const CreateSafetyPlanSchema = object({
   branchId: BranchIdSchema,
   contacts: pipe(
-    array(RequiredText("Contact")),
+    array(requiredText("Contact")),
     minLength(1, "Add at least one emergency contact"),
   ),
-  copingStrategies: RequiredText("Coping strategies"),
-  encounterId: RequiredText("Encounter"),
-  meansRestriction: RequiredText("Means restriction"),
-  patientId: RequiredText("Patient"),
-  warningSigns: RequiredText("Warning signs"),
+  copingStrategies: requiredText("Coping strategies"),
+  encounterId: requiredText("Encounter"),
+  meansRestriction: requiredText("Means restriction"),
+  patientId: requiredText("Patient"),
+  warningSigns: requiredText("Warning signs"),
 });
 
 const CreateSeniorAlertSchema = object({
   branchId: BranchIdSchema,
   encounterId: optional(pipe(string(), minLength(1))),
-  patientId: RequiredText("Patient"),
-  reason: RequiredText("Reason"),
+  patientId: requiredText("Patient"),
+  reason: requiredText("Reason"),
 });
 
 const BookCounsellingSchema = object({
   branchId: BranchIdSchema,
   consentId: optional(pipe(string(), minLength(1))),
-  date: RequiredText("Date"),
+  date: requiredText("Date"),
   durationMins: picklist([30, 45, 60]),
   encounterId: optional(pipe(string(), minLength(1))),
   link: optional(pipe(string(), maxLength(2000))),
   mode: picklist(["in-person", "tele"]),
   notes: optional(pipe(string(), maxLength(2000))),
-  patientId: RequiredText("Patient"),
+  patientId: requiredText("Patient"),
   patientIsMinor: optional(boolean()),
 });
 
@@ -105,7 +105,7 @@ const CreateWithdrawalChartSchema = object({
   chartSchedule: optional(pipe(string(), maxLength(500))),
   encounterId: optional(pipe(string(), minLength(1))),
   lastUseAt: optional(pipe(string(), minLength(1))),
-  patientId: RequiredText("Patient"),
+  patientId: requiredText("Patient"),
   score: pipe(number("Score must be a number"), minValue(0)),
   substance: optional(pipe(string(), maxLength(500))),
   substanceHistory: optional(pipe(string(), maxLength(4000))),
@@ -115,13 +115,13 @@ const CreateWithdrawalChartSchema = object({
 const CreateRelapsePlanSchema = object({
   branchId: BranchIdSchema,
   followUpDates: optional(array(pipe(string(), minLength(1)))),
-  patientId: RequiredText("Patient"),
-  responses: RequiredText("Planned responses"),
+  patientId: requiredText("Patient"),
+  responses: requiredText("Planned responses"),
   supportContacts: pipe(
-    array(RequiredText("Support contact")),
+    array(requiredText("Support contact")),
     minLength(1, "Add at least one support contact"),
   ),
-  triggers: pipe(array(RequiredText("Trigger")), minLength(1, "List at least one trigger")),
+  triggers: pipe(array(requiredText("Trigger")), minLength(1, "List at least one trigger")),
 });
 
 const UpdateRelapsePlanSchema = partial(CreateRelapsePlanSchema);
@@ -129,13 +129,13 @@ const UpdateRelapsePlanSchema = partial(CreateRelapsePlanSchema);
 const CreateControlledPrescriptionSchema = object({
   branchId: BranchIdSchema,
   daysSupply: pipe(number(), minValue(1, "Days supply must be at least 1")),
-  encounterId: RequiredText("Encounter"),
+  encounterId: requiredText("Encounter"),
   lastRefillAt: optional(pipe(string(), minLength(1))),
   maxDays: optional(pipe(number(), minValue(1))),
-  medicine: RequiredText("Medicine"),
+  medicine: requiredText("Medicine"),
   override: optional(boolean()),
   overrideReason: optional(pipe(string(), maxLength(1000))),
-  patientId: RequiredText("Patient"),
+  patientId: requiredText("Patient"),
   qty: pipe(number(), minValue(1, "Quantity must be at least 1")),
 });
 
@@ -144,8 +144,8 @@ const CreateSideEffectCheckSchema = object({
   effects: array(pipe(string(), maxLength(300))),
   eps: optional(picklist(["none", "mild", "moderate", "severe"])),
   metabolic: optional(picklist(["none", "flagged"])),
-  patientId: RequiredText("Patient"),
-  prescriptionId: RequiredText("Prescription"),
+  patientId: requiredText("Patient"),
+  prescriptionId: requiredText("Prescription"),
   sedation: optional(picklist(["none", "mild", "moderate", "severe"])),
   severity: picklist(["none", "mild", "moderate", "severe"]),
   weightKg: optional(pipe(number(), minValue(0))),
@@ -153,13 +153,13 @@ const CreateSideEffectCheckSchema = object({
 
 const CreateCaregiverConsentSchema = object({
   branchId: BranchIdSchema,
-  caregiverName: RequiredText("Caregiver name"),
+  caregiverName: requiredText("Caregiver name"),
   encounterId: optional(pipe(string(), minLength(1))),
   idNumber: optional(pipe(string(), maxLength(100))),
-  patientId: RequiredText("Patient"),
+  patientId: requiredText("Patient"),
   patientIsMinor: optional(boolean()),
-  relation: RequiredText("Relation"),
-  scope: RequiredText("Scope"),
+  relation: requiredText("Relation"),
+  scope: requiredText("Scope"),
   status: picklist(["Pending", "Signed"]),
 });
 
@@ -169,9 +169,9 @@ const CreateInvoluntaryHookSchema = object({
   authority: optional(pipe(string(), maxLength(500))),
   branchId: BranchIdSchema,
   encounterId: optional(pipe(string(), minLength(1))),
-  legalRef: RequiredText("Legal reference"),
-  patientId: RequiredText("Patient"),
-  reason: RequiredText("Reason"),
+  legalRef: requiredText("Legal reference"),
+  patientId: requiredText("Patient"),
+  reason: requiredText("Reason"),
   reviewDate: optional(pipe(string(), minLength(1))),
 });
 
@@ -184,8 +184,8 @@ const RecallListFiltersSchema = object({
 
 const CloseReadinessSchema = object({
   branchId: BranchIdSchema,
-  encounterId: RequiredText("Encounter"),
-  patientId: RequiredText("Patient"),
+  encounterId: requiredText("Encounter"),
+  patientId: requiredText("Patient"),
 });
 
 const PsychFiltersSchema = object({

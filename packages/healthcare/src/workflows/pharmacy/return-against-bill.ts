@@ -85,6 +85,7 @@ export const returnAgainstBill = Workflow.name("healthcare.pharmacy.return-again
       if (!row) {
         throw new Error("Failed to record return.");
       }
+      // oxlint-disable eslint/no-await-in-loop
       for (const line of parsed.items) {
         const disposition = line.disposition ?? "restock";
         if (!line.batchId) {
@@ -98,21 +99,19 @@ export const returnAgainstBill = Workflow.name("healthcare.pharmacy.return-again
         if (!batch) {
           continue;
         }
-        if (disposition === "restock") {
-          await ctx.db
-            .update(healthcarePharmacyBatch)
-            .set({ qty: batch.qty + line.qty, status: "active" })
-            .where(eq(healthcarePharmacyBatch.id, batch.id));
-        } else {
-          await ctx.db
-            .update(healthcarePharmacyBatch)
-            .set({
-              payload: { ...batch.payload, quarantineReason: parsed.reason },
-              status: "quarantined",
-            })
-            .where(eq(healthcarePharmacyBatch.id, batch.id));
-        }
+        await ctx.db
+          .update(healthcarePharmacyBatch)
+          .set(
+            disposition === "restock"
+              ? { qty: batch.qty + line.qty, status: "active" }
+              : {
+                  payload: { ...batch.payload, quarantineReason: parsed.reason },
+                  status: "quarantined",
+                },
+          )
+          .where(eq(healthcarePharmacyBatch.id, batch.id));
       }
+      // oxlint-enable eslint/no-await-in-loop
       return row;
     });
 

@@ -281,10 +281,13 @@ export const seedUnitsOfMeasure = Workflow.name("masters.unit-of-measure.seed")
 
     // SAFETY: SEEDS keys are exactly the UOM_CATEGORY values, so entries always pair a valid category with its rows.
     const entries = Object.entries(SEEDS) as [UomCategory, SeedRow[]][];
+    // oxlint-disable eslint/no-await-in-loop
     for (const [category, rows] of entries) {
       let baseId: string | null = null;
 
-      for (const row of [...rows].sort((a, b) => Number(b.isBaseUnit) - Number(a.isBaseUnit))) {
+      for (const row of rows.toSorted(
+        (left, right) => Number(right.isBaseUnit) - Number(left.isBaseUnit),
+      )) {
         const existing = await ctx.step.run(`check-${row.code}`, async () => {
           const [found] = await ctx.db
             .select({ id: masterUnitOfMeasure.id })
@@ -359,6 +362,7 @@ export const seedUnitsOfMeasure = Workflow.name("masters.unit-of-measure.seed")
         }
       }
     }
+    // oxlint-enable eslint/no-await-in-loop
 
     await ctx.step.run("audit-and-notify", async () => {
       await ctx.audit.write({

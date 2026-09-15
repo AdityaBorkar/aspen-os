@@ -184,6 +184,10 @@ export const stockLedger = Workflow.name("healthcare.pharmacy.stock-ledger")
         });
       }
     }
-    movements.sort((a, b) => (a.at < b.at ? 1 : -1));
-    return { branchId, movements: movements.slice(0, perTable) };
+    return {
+      branchId,
+      movements: movements
+        .toSorted((left, right) => (left.at < right.at ? 1 : -1))
+        .slice(0, perTable),
+    };
   });

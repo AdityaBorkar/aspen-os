@@ -7,6 +7,7 @@ import { DENTAL_EVENTS } from "#/pubsub";
 import { ClosePlanStageSchema } from "#/schemas/dental";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 
+import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
 import { and, asc, eq } from "drizzle-orm";
 import { object, parse } from "valibot";
@@ -76,15 +77,21 @@ export const closeStage = Workflow.name("healthcare.dental.closeStage")
       }
     }
 
+    const stagePayload: Record<string, JsonValue> = {};
+    if (parsed.note) {
+      stagePayload.closeNote = parsed.note;
+    }
+    if (parsed.nextAppointment) {
+      stagePayload.nextAppointment = parsed.nextAppointment;
+    }
+    if (parsed.completed !== undefined) {
+      stagePayload.completed = parsed.completed;
+    }
     const [row] = await ctx.step.run("update-plan-stage", async () =>
       ctx.db
         .update(healthcarePlanStage)
         .set({
-          payload: {
-            ...(parsed.note ? { closeNote: parsed.note } : {}),
-            ...(parsed.nextAppointment ? { nextAppointment: parsed.nextAppointment } : {}),
-            ...(parsed.completed !== undefined ? { completed: parsed.completed } : {}),
-          },
+          payload: stagePayload,
           stage: parsed.to,
         })
         .where(eq(healthcarePlanStage.id, stage.id))

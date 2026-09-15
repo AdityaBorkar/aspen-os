@@ -56,10 +56,12 @@ export type HealthcareExplorerCollection = keyof typeof healthcareExplorerTables
 
 export const HEALTHCARE_EXPLORER_COLLECTIONS = Object.keys(healthcareExplorerTables);
 
-export function serializeExplorerRow<T extends object>(row: T) {
+// oxlint-disable typescript/no-unnecessary-type-parameters
+export function serializeExplorerRow<Row extends object>(row: Row) {
   const out: Record<string, JsonValue> = {};
   for (const [key, value] of Object.entries(row)) {
     out[key] = value instanceof Date ? value.toISOString() : value;
   }
   return out;
 }
+// oxlint-enable typescript/no-unnecessary-type-parameters

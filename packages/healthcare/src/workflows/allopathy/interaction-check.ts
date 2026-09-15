@@ -25,7 +25,7 @@ export const checkInteraction = Workflow.name("healthcare.allopathy.checkInterac
   .input(CheckInteractionInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CheckInteractionSchema, input);
-    const normalized = parsed.drugs.map((d) => d.trim().toLowerCase());
+    const normalized = parsed.drugs.map((drugName) => drugName.trim().toLowerCase());
 
     const allergyRows = await ctx.step.run("fetch-allergies", async () =>
       ctx.db
@@ -34,8 +34,8 @@ export const checkInteraction = Workflow.name("healthcare.allopathy.checkInterac
         .where(eq(healthcareAllergy.patient_id, parsed.patientId)),
     );
     const allergyNames = new Set([
-      ...allergyRows.map((r) => r.name.trim().toLowerCase()),
-      ...parsed.allergies.map((a) => a.trim().toLowerCase()),
+      ...allergyRows.map((allergyRow) => allergyRow.name.trim().toLowerCase()),
+      ...parsed.allergies.map((allergy) => allergy.trim().toLowerCase()),
     ]);
 
     const warnings: InteractionWarning[] = [];
@@ -51,17 +51,17 @@ export const checkInteraction = Workflow.name("healthcare.allopathy.checkInterac
         }
       }
     }
-    for (const [a, b, message] of KNOWN_PAIRS) {
-      const hasA = normalized.some((d) => d.includes(a));
-      const hasB = normalized.some((d) => d.includes(b));
-      if (hasA && hasB) {
-        warnings.push({ drug: `${a} + ${b}`, kind: "interaction", message });
+    for (const [firstDrug, secondDrug, message] of KNOWN_PAIRS) {
+      const hasFirst = normalized.some((drugName) => drugName.includes(firstDrug));
+      const hasSecond = normalized.some((drugName) => drugName.includes(secondDrug));
+      if (hasFirst && hasSecond) {
+        warnings.push({ drug: `${firstDrug} + ${secondDrug}`, kind: "interaction", message });
       }
     }
 
     const acked = new Set(parsed.acknowledged);
     const unacknowledged = warnings.filter(
-      (w) => !acked.has(`${w.drug}:${w.message}`) && !acked.has(w.message),
+      (warning) => !acked.has(`${warning.drug}:${warning.message}`) && !acked.has(warning.message),
     );
     return {
       acknowledged: parsed.acknowledged,

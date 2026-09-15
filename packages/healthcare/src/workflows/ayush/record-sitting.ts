@@ -3,6 +3,7 @@ import { AYUSH_EVENTS } from "#/pubsub";
 import { CreateTherapySittingSchema } from "#/schemas/ayush";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 
+import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object, parse } from "valibot";
@@ -35,6 +36,22 @@ export const recordSitting = Workflow.name("healthcare.ayush.recordSitting")
       throw new Error("Patient does not match the therapy package; check the selected patient");
     }
 
+    const sittingPayload: Record<string, JsonValue> = {};
+    if (parsed.consumables) {
+      sittingPayload.consumables = parsed.consumables;
+    }
+    if (parsed.chargeLines) {
+      sittingPayload.chargeLines = parsed.chargeLines;
+    }
+    if (parsed.therapistId) {
+      sittingPayload.therapistId = parsed.therapistId;
+    }
+    if (parsed.roomId) {
+      sittingPayload.roomId = parsed.roomId;
+    }
+    if (parsed.equipmentId) {
+      sittingPayload.equipmentId = parsed.equipmentId;
+    }
     const [row] = await ctx.step.run("insert-therapy-sitting", async () =>
       ctx.db
         .insert(healthcareTherapySitting)
@@ -45,13 +62,7 @@ export const recordSitting = Workflow.name("healthcare.ayush.recordSitting")
           notes: parsed.notes ?? null,
           package_id: parsed.packageId,
           patient_id: parsed.patientId,
-          payload: {
-            ...(parsed.consumables ? { consumables: parsed.consumables } : {}),
-            ...(parsed.chargeLines ? { chargeLines: parsed.chargeLines } : {}),
-            ...(parsed.therapistId ? { therapistId: parsed.therapistId } : {}),
-            ...(parsed.roomId ? { roomId: parsed.roomId } : {}),
-            ...(parsed.equipmentId ? { equipmentId: parsed.equipmentId } : {}),
-          },
+          payload: sittingPayload,
           post_bp_dys: parsed.postVitals.bpDys,
           post_bp_sys: parsed.postVitals.bpSys,
           post_pulse: parsed.postVitals.pulse,

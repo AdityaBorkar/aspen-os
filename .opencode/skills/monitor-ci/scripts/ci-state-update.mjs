@@ -15,7 +15,7 @@
 // --- Arg parsing ---
 
 const args = process.argv.slice(2);
-const command = args[0];
+const [command] = args;
 
 function getFlag(name) {
   return args.includes(name);

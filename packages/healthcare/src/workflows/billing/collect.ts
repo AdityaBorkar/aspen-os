@@ -33,6 +33,7 @@ export const collect = Workflow.name("healthcare.billing.collect")
     const status = paid >= Number(invoice.total) ? "paid" : "partial";
     const receipts = await ctx.step.run("insert-receipts", async () => {
       const created = [];
+      // oxlint-disable eslint/no-await-in-loop
       for (const [index, line] of splits.entries()) {
         const [counter] = await ctx.db
           .insert(healthcareCounter)
@@ -68,6 +69,7 @@ export const collect = Workflow.name("healthcare.billing.collect")
         }
         created.push(receipt);
       }
+      // oxlint-enable eslint/no-await-in-loop
       return created;
     });
     const [row] = await ctx.step.run("update-invoice", async () =>
@@ -95,6 +97,7 @@ export const collect = Workflow.name("healthcare.billing.collect")
           receiptIds: receipts.map((entry) => entry.id),
         },
       });
+      // oxlint-disable eslint/no-await-in-loop
       for (const entry of receipts) {
         await ctx.pubsub.publish(BILLING_EVENTS.COLLECTED, {
           actorId: ctx.actorId,
@@ -103,6 +106,7 @@ export const collect = Workflow.name("healthcare.billing.collect")
           id: entry.id,
         });
       }
+      // oxlint-enable eslint/no-await-in-loop
     });
     return {
       invoiceStatus: row.status,

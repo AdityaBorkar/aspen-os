@@ -44,7 +44,7 @@ export const registerPatient = Workflow.name("healthcare.patients.register")
         )
         .limit(1);
     });
-    const first = dupes[0];
+    const [first] = dupes;
     if (first) {
       throw new Error(
         `Possible duplicate of ${first.uhid} (${first.full_name}); open that record or file a merge request instead of registering again.`,

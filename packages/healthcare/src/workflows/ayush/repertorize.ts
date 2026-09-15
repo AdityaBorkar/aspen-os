@@ -3,6 +3,7 @@ import { AYUSH_EVENTS } from "#/pubsub";
 import { CreateRepertorizationSchema } from "#/schemas/ayush";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 
+import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object, parse } from "valibot";
@@ -31,6 +32,13 @@ export const repertorize = Workflow.name("healthcare.ayush.repertorize")
       throw new Error("Patient does not match the case sheet; check the selected patient");
     }
 
+    const repertorizePayload: Record<string, JsonValue> = {};
+    if (parsed.miasm) {
+      repertorizePayload.miasm = parsed.miasm;
+    }
+    if (parsed.dose) {
+      repertorizePayload.dose = parsed.dose;
+    }
     const [row] = await ctx.step.run("insert-repertorization", async () =>
       ctx.db
         .insert(healthcareRepertorization)
@@ -39,10 +47,7 @@ export const repertorize = Workflow.name("healthcare.ayush.repertorize")
           case_id: parsed.caseId,
           created_by: actorId,
           patient_id: parsed.patientId,
-          payload: {
-            ...(parsed.miasm ? { miasm: parsed.miasm } : {}),
-            ...(parsed.dose ? { dose: parsed.dose } : {}),
-          },
+          payload: repertorizePayload,
           potency: parsed.potency,
           remedy: parsed.remedy,
           rubrics: parsed.rubrics,

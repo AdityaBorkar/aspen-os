@@ -10,7 +10,7 @@ import { healthcareEncounter } from "#/db-schemas/encounters";
 
 import { WorkflowStep } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-import { object, string } from "valibot";
+import { object, string, is } from "valibot";
 
 export const fetchEncounterStep = WorkflowStep.name("healthcare-fetch-encounter")
   .input(object({ id: string() }))
@@ -182,8 +182,7 @@ export function toClinicOrderDto(row: typeof healthcareClinicOrder.$inferSelect)
     kind: row.kind,
     note: row.note,
     patientId: row.patient_id,
-    receivingUnit:
-      typeof row.payload?.receivingUnit === "string" ? row.payload.receivingUnit : null,
+    receivingUnit: is(string(), row.payload.receivingUnit) ? row.payload.receivingUnit : null,
     status: row.status,
   };
 }

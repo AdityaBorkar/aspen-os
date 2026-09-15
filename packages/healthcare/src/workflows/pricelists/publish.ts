@@ -18,13 +18,21 @@ export const getPricelist = Workflow.name("healthcare.pricelists.get")
   });
 
 function rangesOverlap(
-  aFrom: string | null,
-  aTo: string | null,
-  bFrom: string | null,
-  bTo: string | null,
+  current: { from: string | null; to: string | null },
+  existing: { from: string | null; to: string | null },
 ): boolean {
-  const start = aFrom && bFrom ? (aFrom > bFrom ? aFrom : bFrom) : (aFrom ?? bFrom);
-  const end = aTo && bTo ? (aTo < bTo ? aTo : bTo) : (aTo ?? bTo);
+  let start: string | null | undefined = undefined;
+  if (current.from && existing.from) {
+    start = current.from > existing.from ? current.from : existing.from;
+  } else {
+    start = current.from ?? existing.from;
+  }
+  let end: string | null | undefined = undefined;
+  if (current.to && existing.to) {
+    end = current.to < existing.to ? current.to : existing.to;
+  } else {
+    end = current.to ?? existing.to;
+  }
   if (!start || !end) {
     return true;
   }
@@ -63,7 +71,12 @@ export const publishPricelist = Workflow.name("healthcare.pricelists.publish")
         .limit(50),
     );
     for (const sibling of siblings) {
-      if (rangesOverlap(effectiveFrom, effectiveTo, sibling.effective_from, sibling.effective_to)) {
+      if (
+        rangesOverlap(
+          { from: effectiveFrom, to: effectiveTo },
+          { from: sibling.effective_from, to: sibling.effective_to },
+        )
+      ) {
         throw new Error(
           `Pricelist "${existing.code}" already has a published version covering ${sibling.effective_from ?? "…"}–${sibling.effective_to ?? "…"}; overlapping effective ranges are rejected.`,
         );

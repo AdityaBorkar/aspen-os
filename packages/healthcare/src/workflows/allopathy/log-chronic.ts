@@ -4,6 +4,7 @@ import { CreateChronicLogSchema } from "#/schemas/allopathy";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchEncounterStep } from "#/workflow-steps/fetch-encounter";
 
+import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
 
@@ -28,6 +29,19 @@ export const logChronic = Workflow.name("healthcare.allopathy.logChronic")
       }
     }
 
+    const chronicPayload: Record<string, JsonValue> = {};
+    if (parsed.hba1c !== undefined) {
+      chronicPayload.hba1c = parsed.hba1c;
+    }
+    if (parsed.bpSys !== undefined) {
+      chronicPayload.bpSys = parsed.bpSys;
+    }
+    if (parsed.bpDys !== undefined) {
+      chronicPayload.bpDys = parsed.bpDys;
+    }
+    if (parsed.fundalHeightCm !== undefined) {
+      chronicPayload.fundalHeightCm = parsed.fundalHeightCm;
+    }
     const [row] = await ctx.step.run("insert-chronic-log", async () =>
       ctx.db
         .insert(healthcareChronicLog)
@@ -38,14 +52,7 @@ export const logChronic = Workflow.name("healthcare.allopathy.logChronic")
           encounter_id: parsed.encounterId ?? null,
           parameter: parsed.parameter,
           patient_id: parsed.patientId,
-          payload: {
-            ...(parsed.hba1c !== undefined ? { hba1c: parsed.hba1c } : {}),
-            ...(parsed.bpSys !== undefined ? { bpSys: parsed.bpSys } : {}),
-            ...(parsed.bpDys !== undefined ? { bpDys: parsed.bpDys } : {}),
-            ...(parsed.fundalHeightCm !== undefined
-              ? { fundalHeightCm: parsed.fundalHeightCm }
-              : {}),
-          },
+          payload: chronicPayload,
           unit: parsed.unit,
           value: String(parsed.value),
         })

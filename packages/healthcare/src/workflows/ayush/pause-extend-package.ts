@@ -3,6 +3,7 @@ import { AYUSH_EVENTS } from "#/pubsub";
 import { PauseExtendPackageSchema } from "#/schemas/ayush";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 
+import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object, parse } from "valibot";
@@ -55,16 +56,19 @@ export const pauseExtendPackage = Workflow.name("healthcare.ayush.pauseExtendPac
       patch.status = "Active";
     }
 
+    const packagePayload = { ...pkg.payload } satisfies Record<string, JsonValue>;
+    if (parsed.reason) {
+      packagePayload.lastNote = parsed.reason;
+    }
+    if (parsed.outcomeNote) {
+      packagePayload.outcomeNote = parsed.outcomeNote;
+    }
     const [row] = await ctx.step.run("update-therapy-package", async () =>
       ctx.db
         .update(healthcareTherapyPackage)
         .set({
           ...patch,
-          payload: {
-            ...pkg.payload,
-            ...(parsed.reason ? { lastNote: parsed.reason } : {}),
-            ...(parsed.outcomeNote ? { outcomeNote: parsed.outcomeNote } : {}),
-          },
+          payload: packagePayload,
         })
         .where(eq(healthcareTherapyPackage.id, parsed.packageId))
         .returning(),

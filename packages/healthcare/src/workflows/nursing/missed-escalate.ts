@@ -26,6 +26,7 @@ export const missedEscalate = Workflow.name("healthcare.nursing.missed-escalate"
         .limit(500);
     });
     const due = missed.filter((row) => row.outcome === "missed");
+    // oxlint-disable eslint/no-await-in-loop
     for (const row of due) {
       await ctx.step.run(`escalate-${row.id}`, async () =>
         ctx.db.insert(healthcareNursingEscalation).values({
@@ -37,6 +38,7 @@ export const missedEscalate = Workflow.name("healthcare.nursing.missed-escalate"
         }),
       );
     }
+    // oxlint-enable eslint/no-await-in-loop
     const at = new Date().toISOString();
     await ctx.step.run("audit-and-notify", async () => {
       await ctx.audit.write({

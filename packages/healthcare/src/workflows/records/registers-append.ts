@@ -4,6 +4,7 @@ import { AppendRegisterSchema } from "#/schemas/records";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { nextHealthcareSeries } from "#/workflow-steps/series";
 
+import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
 
@@ -17,6 +18,16 @@ export const registersAppend = Workflow.name("healthcare.records.registers-appen
     const serial = await ctx.step.run(nextHealthcareSeries, {
       input: { series: `register_${parsed.register}` },
     });
+    const registerPayload: Record<string, JsonValue> = {};
+    if (parsed.encounterId) {
+      registerPayload.encounterId = parsed.encounterId;
+    }
+    if (parsed.occurredAt) {
+      registerPayload.occurredAt = parsed.occurredAt;
+    }
+    if (parsed.certifierId) {
+      registerPayload.certifierId = parsed.certifierId;
+    }
     const [row] = await ctx.step.run("insert-entry", async () =>
       ctx.db
         .insert(healthcareMedicalRegister)
@@ -24,11 +35,7 @@ export const registersAppend = Workflow.name("healthcare.records.registers-appen
           branch_id: branchId,
           details: parsed.details,
           entered_by: parsed.enteredBy,
-          payload: {
-            ...(parsed.encounterId ? { encounterId: parsed.encounterId } : {}),
-            ...(parsed.occurredAt ? { occurredAt: parsed.occurredAt } : {}),
-            ...(parsed.certifierId ? { certifierId: parsed.certifierId } : {}),
-          },
+          payload: registerPayload,
           register: parsed.register,
           serial,
           status: "live",

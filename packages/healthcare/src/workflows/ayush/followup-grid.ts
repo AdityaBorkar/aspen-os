@@ -6,7 +6,7 @@ import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-import { object, parse } from "valibot";
+import { is, number, object, optional, parse, string } from "valibot";
 
 const SaveGridInputSchema = object({ input: FollowUpGridSaveSchema });
 
@@ -85,6 +85,28 @@ export const saveFollowUpGrid = Workflow.name("healthcare.ayush.saveFollowUpGrid
 
 const ListGridInputSchema = object({ input: FollowUpGridListSchema });
 
+interface FollowUpGridEntry {
+  [key: string]: string | number | undefined;
+  at?: string;
+  improvement?: string;
+  notes?: string;
+  visitNo?: number;
+}
+
+const FollowUpGridEntrySchema = object({
+  at: optional(string()),
+  improvement: optional(string()),
+  notes: optional(string()),
+  visitNo: optional(number()),
+});
+
+function isFollowUpGridEntry(value: JsonValue): value is FollowUpGridEntry {
+  if (value instanceof Date || Array.isArray(value)) {
+    return false;
+  }
+  return is(FollowUpGridEntrySchema, value);
+}
+
 export const listFollowUpGrid = Workflow.name("healthcare.ayush.listFollowUpGrid")
   .input(ListGridInputSchema)
   .handler(async ({ input }, ctx) => {
@@ -101,15 +123,15 @@ export const listFollowUpGrid = Workflow.name("healthcare.ayush.listFollowUpGrid
       return kase;
     });
     const grid = row.payload.followupGrid;
-    const rows = Array.isArray(grid) ? grid : [];
-    return rows.map((entry, index) => {
-      const e = entry as Record<string, JsonValue>;
+    const gridRows: JsonValue[] = Array.isArray(grid) ? grid : [];
+    return gridRows.map((entry, index) => {
+      const gridEntry: FollowUpGridEntry = isFollowUpGridEntry(entry) ? entry : {};
       return {
-        at: typeof e.at === "string" ? e.at : null,
-        improvement: typeof e.improvement === "string" ? e.improvement : "same",
+        at: is(string(), gridEntry.at) ? gridEntry.at : null,
+        improvement: is(string(), gridEntry.improvement) ? gridEntry.improvement : "same",
         index,
-        notes: typeof e.notes === "string" ? e.notes : "",
-        visitNo: typeof e.visitNo === "number" ? e.visitNo : index + 1,
+        notes: is(string(), gridEntry.notes) ? gridEntry.notes : "",
+        visitNo: is(number(), gridEntry.visitNo) ? gridEntry.visitNo : index + 1,
       };
     });
   });

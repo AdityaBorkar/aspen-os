@@ -17,6 +17,7 @@ export const rosterPlan = Workflow.name("healthcare.staff.roster-plan")
     if (parsed.entries.length === 0) {
       throw new Error("Roster needs at least one entry; add entries and retry");
     }
+    // oxlint-disable eslint/no-await-in-loop
     for (const entry of parsed.entries) {
       await ctx.step.run(fetchStaffStep, { id: entry.staffId });
       if (!entry.date.startsWith(parsed.month)) {
@@ -25,7 +26,9 @@ export const rosterPlan = Workflow.name("healthcare.staff.roster-plan")
         );
       }
     }
+    // oxlint-enable eslint/no-await-in-loop
     const inserted = [];
+    // oxlint-disable eslint/no-await-in-loop
     for (const entry of parsed.entries) {
       const [row] = await ctx.step.run(`roster-${entry.staffId}-${entry.date}`, async () =>
         ctx.db
@@ -43,6 +46,7 @@ export const rosterPlan = Workflow.name("healthcare.staff.roster-plan")
         inserted.push(row.id);
       }
     }
+    // oxlint-enable eslint/no-await-in-loop
     const at = new Date().toISOString();
     await ctx.step.run("audit-and-notify", async () => {
       await ctx.audit.write({

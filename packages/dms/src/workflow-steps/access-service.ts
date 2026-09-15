@@ -94,7 +94,7 @@ export async function getEffectivePermission(
 ): Promise<SharePermission | null> {
   const target = db ?? getContext().db;
   const now = new Date();
-  const directShare = await findDirectShare(target, entityId, entityType, userId);
+  const directShare = await findDirectShare(target, { entityId, entityType, userId });
 
   if (directShare) {
     if (directShare.expires_at && directShare.expires_at < now) {
@@ -143,9 +143,15 @@ export async function logAccess(input: AccessLogInput, db?: DB): Promise<void> {
 
 async function findDirectShare(
   db: DB,
-  entityId: string,
-  entityType: "file" | "folder",
-  userId: string,
+  {
+    entityId,
+    entityType,
+    userId,
+  }: {
+    entityId: string;
+    entityType: "file" | "folder";
+    userId: string;
+  },
 ): Promise<typeof schemas.dmsShare.$inferSelect | null> {
   const [share] = await db
     .select()
@@ -190,7 +196,11 @@ async function getInheritedPermission(
     }
     depth++;
 
-    const share = await findDirectShare(target, currentId, "folder", userId);
+    const share = await findDirectShare(target, {
+      entityId: currentId,
+      entityType: "folder",
+      userId,
+    });
     if (share) {
       if (!share.expires_at || share.expires_at >= now) {
         if (

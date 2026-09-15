@@ -3,6 +3,7 @@ import { DENTAL_EVENTS } from "#/pubsub";
 import { RescheduleStageSchema } from "#/schemas/dental";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 
+import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
 import { asc, eq } from "drizzle-orm";
 import { object, parse } from "valibot";
@@ -41,22 +42,28 @@ export const rescheduleStage = Workflow.name("healthcare.dental.rescheduleStage"
     // Sequence guard: a stage cannot move ahead of an earlier open stage.
     const earlierOpen = stages
       .slice(0, parsed.stageIndex)
-      .some((s) => s.stage === "Planned" || s.stage === "Scheduled");
+      .some((earlier) => earlier.stage === "Planned" || earlier.stage === "Scheduled");
     if (earlierOpen) {
       throw new Error(
         "Earlier stages are still open; rescheduling preserves sequence — complete them first",
       );
     }
 
+    const reschedulePayload: Record<string, JsonValue> = {};
+    if (parsed.newDate) {
+      reschedulePayload.scheduledDate = parsed.newDate;
+    }
+    if (parsed.newSlot) {
+      reschedulePayload.scheduledSlot = parsed.newSlot;
+    }
+    if (parsed.reason) {
+      reschedulePayload.rescheduleReason = parsed.reason;
+    }
     const [row] = await ctx.step.run("reschedule-stage", async () =>
       ctx.db
         .update(healthcarePlanStage)
         .set({
-          payload: {
-            ...(parsed.newDate ? { scheduledDate: parsed.newDate } : {}),
-            ...(parsed.newSlot ? { scheduledSlot: parsed.newSlot } : {}),
-            ...(parsed.reason ? { rescheduleReason: parsed.reason } : {}),
-          },
+          payload: reschedulePayload,
           stage: "Scheduled",
         })
         .where(eq(healthcarePlanStage.id, stage.id))

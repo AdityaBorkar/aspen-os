@@ -8,6 +8,7 @@ export const Route = createFileRoute("/")({
 });
 
 const docsLinkParams = { _splat: "platform" } as const;
+const refLinkParams = { _splat: "" } as const;
 
 function Home() {
   return (
@@ -30,7 +31,7 @@ function Home() {
           </Link>
           <Link
             className="rounded-lg border bg-fd-card px-6 py-3 font-medium text-sm"
-            params={{ _splat: "" }}
+            params={refLinkParams}
             to="/ref/$"
           >
             Reference

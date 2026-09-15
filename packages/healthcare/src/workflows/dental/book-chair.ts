@@ -4,9 +4,10 @@ import { CreateChairSlotSchema } from "#/schemas/dental";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchEncounterStep } from "#/workflow-steps/fetch-encounter";
 
+import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
-import { object, parse } from "valibot";
+import { is, number, object, parse } from "valibot";
 
 const BookChairInputSchema = object({ input: CreateChairSlotSchema });
 
@@ -66,6 +67,13 @@ export const bookChair = Workflow.name("healthcare.dental.bookChair")
       throw new Error("Chair slot is already booked; pick another chair, date, or slot");
     }
 
+    const chairPayload: Record<string, JsonValue> = {};
+    if (parsed.durationMin !== undefined) {
+      chairPayload.durationMin = parsed.durationMin;
+    }
+    if (parsed.bufferMin !== undefined) {
+      chairPayload.bufferMin = parsed.bufferMin;
+    }
     const [row] = await ctx.step.run("insert-chair-slot", async () =>
       ctx.db
         .insert(healthcareChairSlot)
@@ -76,10 +84,7 @@ export const bookChair = Workflow.name("healthcare.dental.bookChair")
           date: parsed.date,
           encounter_id: parsed.encounterId,
           patient_id: parsed.patientId,
-          payload: {
-            ...(parsed.durationMin !== undefined ? { durationMin: parsed.durationMin } : {}),
-            ...(parsed.bufferMin !== undefined ? { bufferMin: parsed.bufferMin } : {}),
-          },
+          payload: chairPayload,
           slot: parsed.slot,
           status: "Booked",
         })
@@ -113,17 +118,15 @@ export const bookChair = Workflow.name("healthcare.dental.bookChair")
 
     return {
       branchId: row.branch_id,
-      bufferMin:
-        typeof row.payload?.bufferMin === "number"
-          ? row.payload.bufferMin
-          : (parsed.bufferMin ?? 0),
+      bufferMin: is(number(), row.payload.bufferMin)
+        ? row.payload.bufferMin
+        : (parsed.bufferMin ?? 0),
       chairId: row.chair_id,
       createdAt: row.created_at.toISOString(),
       date: row.date,
-      durationMin:
-        typeof row.payload?.durationMin === "number"
-          ? row.payload.durationMin
-          : (parsed.durationMin ?? null),
+      durationMin: is(number(), row.payload.durationMin)
+        ? row.payload.durationMin
+        : (parsed.durationMin ?? null),
       encounterId: row.encounter_id,
       id: row.id,
       patientId: row.patient_id,

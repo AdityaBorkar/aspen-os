@@ -9,6 +9,12 @@ import { object, parse } from "valibot";
 
 const ImplantMilestoneInputSchema = object({ input: ImplantMilestoneSchema });
 
+interface ImplantMilestonePayload {
+  [key: string]: string | undefined;
+  healingNote?: string;
+  implantMilestone: string;
+}
+
 export const implantMilestone = Workflow.name("healthcare.dental.implantMilestone")
   .input(ImplantMilestoneInputSchema)
   .handler(async ({ input }, ctx) => {
@@ -46,24 +52,26 @@ export const implantMilestone = Workflow.name("healthcare.dental.implantMileston
           .from(healthcarePlanStage)
           .where(eq(healthcarePlanStage.plan_id, parsed.planId)),
       );
-      const healed = healing.some((s) => {
-        const payload =
-          s.payload && typeof s.payload === "object" ? (s.payload as Record<string, unknown>) : {};
-        return payload.implantMilestone === "healing";
+      const healed = healing.some((candidate) => {
+        const { payload: healingPayload } = candidate;
+        return healingPayload.implantMilestone === "healing";
       });
       if (!healed) {
         throw new Error("Loading blocked: record the healing milestone note first");
       }
     }
 
+    const milestonePayload: ImplantMilestonePayload = {
+      implantMilestone: parsed.milestone,
+    };
+    if (parsed.healingNote) {
+      milestonePayload.healingNote = parsed.healingNote;
+    }
     const [row] = await ctx.step.run("record-milestone", async () =>
       ctx.db
         .update(healthcarePlanStage)
         .set({
-          payload: {
-            implantMilestone: parsed.milestone,
-            ...(parsed.healingNote ? { healingNote: parsed.healingNote } : {}),
-          },
+          payload: milestonePayload,
         })
         .where(eq(healthcarePlanStage.id, stage.id))
         .returning(),
@@ -139,7 +147,7 @@ export const sellDentalPackage = Workflow.name("healthcare.dental.sellPackage")
           payload: {
             packageName: parsed.name,
             packagePrice: parsed.price,
-            packagedStages: stages.map((s) => s.id),
+            packagedStages: stages.map((stage) => stage.id),
           },
         })
         .where(eq(healthcareTreatmentPlan.id, parsed.planId))
@@ -175,6 +183,6 @@ export const sellDentalPackage = Workflow.name("healthcare.dental.sellPackage")
       packagePrice: parsed.price,
       patientId: row.patient_id,
       stageCount: stages.length,
-      stageIds: stages.map((s) => s.id),
+      stageIds: stages.map((stage) => stage.id),
     };
   });
