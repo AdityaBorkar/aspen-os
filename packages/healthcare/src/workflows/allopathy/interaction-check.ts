@@ -13,7 +13,7 @@ export interface InteractionWarning {
   message: string;
 }
 
-const KNOWN_PAIRS: Array<[string, string, string]> = [
+const KNOWN_PAIRS: [string, string, string][] = [
   ["warfarin", "aspirin", "Bleeding risk: warfarin + aspirin"],
   ["warfarin", "nsaid", "Bleeding risk: warfarin + NSAID"],
   ["methotrexate", "nsaid", "Methotrexate toxicity risk with NSAID"],

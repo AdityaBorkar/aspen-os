@@ -6,6 +6,12 @@ import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({
   head: () => ({
+    links: [
+      {
+        rel: "stylesheet",
+        href: appCss,
+      },
+    ],
     meta: [
       {
         charSet: "utf-8",
@@ -16,12 +22,6 @@ export const Route = createRootRoute({
       },
       {
         title: "TanStack Start Starter",
-      },
-    ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
       },
     ],
   }),

@@ -40,10 +40,10 @@ export const sampleReject = Workflow.name("healthcare.diagnostics.sample-reject"
         .set({
           payload: {
             ...sample.payload,
-            rejectedAt: new Date().toISOString(),
-            rejectedBy: parsed.rejectedBy,
             rejectNote: parsed.note ?? null,
             rejectReason: parsed.reason,
+            rejectedAt: new Date().toISOString(),
+            rejectedBy: parsed.rejectedBy,
           },
           status: "rejected",
         })

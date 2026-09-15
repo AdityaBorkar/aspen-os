@@ -106,7 +106,7 @@ export const listFollowUpGrid = Workflow.name("healthcare.ayush.listFollowUpGrid
       const e = entry as Record<string, JsonValue>;
       return {
         at: typeof e.at === "string" ? e.at : null,
-        improvement: typeof e.improvement === "string" ? (e.improvement as string) : "same",
+        improvement: typeof e.improvement === "string" ? e.improvement : "same",
         index,
         notes: typeof e.notes === "string" ? e.notes : "",
         visitNo: typeof e.visitNo === "number" ? e.visitNo : index + 1,

@@ -157,8 +157,8 @@ const CreateDietPlanSchema = object({
   caseId: optional(pipe(string(), minLength(1))),
   chart: RequiredText("Diet chart"),
   language: optional(pipe(string(), minLength(1))),
-  patientId: RequiredText("Patient"),
   pathyVariant: optional(picklist(["ayurveda", "homeopathy", "allopathy", "dental"])),
+  patientId: RequiredText("Patient"),
   validFrom: RequiredText("Valid from"),
   validTo: RequiredText("Valid to"),
 });

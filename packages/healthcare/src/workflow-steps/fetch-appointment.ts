@@ -43,7 +43,7 @@ export interface AppointmentDto {
 }
 
 export function toAppointmentDto(row: typeof healthcareAppointment.$inferSelect): AppointmentDto {
-  const payload = row.payload;
+  const { payload } = row;
   return {
     branchId: row.branch_id,
     createdAt: row.created_at.toISOString(),
@@ -107,7 +107,7 @@ export interface VideoSessionDto {
 export function toVideoSessionDto(
   row: typeof healthcareVideoSession.$inferSelect,
 ): VideoSessionDto {
-  const payload = row.payload;
+  const { payload } = row;
   return {
     appointmentId: row.appointment_id,
     branchId: row.branch_id,

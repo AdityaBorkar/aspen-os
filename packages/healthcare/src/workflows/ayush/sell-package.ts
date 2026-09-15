@@ -69,16 +69,16 @@ export const sellPackage = Workflow.name("healthcare.ayush.sellPackage")
     const attended = row.used_sittings ?? 0;
     const remaining = Math.max(0, row.total_sittings - attended);
     return {
-      branchId: row.branch_id,
       attended,
+      branchId: row.branch_id,
       caseId: row.case_id,
-      procedures: Array.isArray(sellSpec.procedures) ? sellSpec.procedures : [],
       createdAt: row.created_at.toISOString(),
       id: row.id,
       name: row.name,
       patientId: row.patient_id,
-      status: row.status,
+      procedures: Array.isArray(sellSpec.procedures) ? sellSpec.procedures : [],
       remaining,
+      status: row.status,
       totalSittings: row.total_sittings,
       usedSittings: attended,
       validTill: row.valid_till ? row.valid_till.toISOString() : null,

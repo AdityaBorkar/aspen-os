@@ -28,7 +28,7 @@ export const updateUnitOfMeasure = Workflow.name("masters.unit-of-measure.update
     const current = await ctx.step.run(fetchUnitOfMeasureStep, { id: input.id });
 
     if (current.is_system) {
-      const patch = input.patch;
+      const { patch } = input;
       const structural: string[] = [];
       if (patch.category !== undefined) {
         structural.push("category");

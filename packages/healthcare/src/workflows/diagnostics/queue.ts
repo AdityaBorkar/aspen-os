@@ -7,9 +7,7 @@ import { is, object, parse, string } from "valibot";
 
 const QueueInputSchema = object({ input: DiagnosticsIdSchema });
 
-interface PriorityRank {
-  [priority: string]: number;
-}
+type PriorityRank = Record<string, number>;
 
 const PRIORITY_RANK: PriorityRank = { routine: 2, stat: 0, urgent: 1 };
 

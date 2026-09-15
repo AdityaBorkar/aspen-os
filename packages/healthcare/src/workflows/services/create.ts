@@ -43,8 +43,8 @@ export const createService = Workflow.name("healthcare.services.create")
       );
     }
     if (parsed.department && parsed.modality) {
-      const department = parsed.department;
-      const modality = parsed.modality;
+      const { department } = parsed;
+      const { modality } = parsed;
       const clash = await ctx.step.run("check-name-duplicate", async () => {
         const [existing] = await ctx.db
           .select({ code: healthcareService.code, id: healthcareService.id })

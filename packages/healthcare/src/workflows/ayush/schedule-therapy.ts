@@ -58,9 +58,15 @@ export const scheduleTherapy = Workflow.name("healthcare.ayush.scheduleTherapy")
             r.payload && typeof r.payload === "object"
               ? (r.payload as Record<string, unknown>)
               : {};
-          if (payload.therapistId === parsed.therapistId) return true;
-          if (parsed.roomId && payload.roomId === parsed.roomId) return true;
-          if (parsed.equipmentId && payload.equipmentId === parsed.equipmentId) return true;
+          if (payload.therapistId === parsed.therapistId) {
+            return true;
+          }
+          if (parsed.roomId && payload.roomId === parsed.roomId) {
+            return true;
+          }
+          if (parsed.equipmentId && payload.equipmentId === parsed.equipmentId) {
+            return true;
+          }
           return false;
         });
       });
@@ -81,9 +87,6 @@ export const scheduleTherapy = Workflow.name("healthcare.ayush.scheduleTherapy")
           notes: parsed.notes ?? null,
           package_id: parsed.packageId,
           patient_id: parsed.patientId,
-          post_bp_dys: null,
-          post_bp_sys: null,
-          post_pulse: null,
           payload: {
             ...(parsed.therapistId ? { therapistId: parsed.therapistId } : {}),
             ...(parsed.roomId ? { roomId: parsed.roomId } : {}),
@@ -91,6 +94,9 @@ export const scheduleTherapy = Workflow.name("healthcare.ayush.scheduleTherapy")
             ...(parsed.consumables ? { consumables: parsed.consumables } : {}),
             ...(parsed.chargeLines ? { chargeLines: parsed.chargeLines } : {}),
           },
+          post_bp_dys: null,
+          post_bp_sys: null,
+          post_pulse: null,
           pre_bp_dys: null,
           pre_bp_sys: null,
           pre_pulse: null,
