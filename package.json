@@ -16,7 +16,8 @@
     "packages": [
       "./packages/*",
       "./examples/*",
-      "./docs"
+      "./docs",
+      "./website"
     ]
   },
   "type": "module",

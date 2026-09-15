@@ -228,7 +228,7 @@ Tenant-level business party (company/institution) w/ rich metadata — `name`, o
 _Avoid_: "Entity" for any polymorphic row owner; Vendors/Clients/Insurers (those are `Contact` records)
 
 **Unit of Measure**:
-Tenant-wide reference data (not polymorphic) — units across `UOM_CATEGORY` (length/mass/volume/count/time/area/temperature/data/other) w/ `name`, unique `code`, `symbol`, `decimalPlaces`, `isBaseUnit`, `baseUnitId` (self-reference), `conversionFactor`, `isActive`. Exactly one base unit per category; derived units reference category's base; unit referenced as another's `baseUnitId` cannot be deleted.
+Tenant-wide reference data (not polymorphic) — units across `UOM_CATEGORY` (length/mass/volume/count/time/area/temperature/data/session/other) w/ `name`, unique `code` (case-insensitive), `symbol` (unique, alias-collision-checked), `decimalPlaces`, `isBaseUnit`, `baseUnitId` (self-reference, same category), `conversionFactor`, `isActive`, `status` (`draft`/`published`/`inactive`), `isDefault` (one per category), `isSystem` (governed seed rows), `isIndivisible` (whole quantities only). Lifecycle: `create`, `publish`, `retire`; `setDefault` reassigns category default; `convert` does same-category active-only math; `seed` bootstraps system units; renames alias old code (`master_uom_alias`); factor changes append `master_uom_version` rows. Exactly one base unit per category; derived units reference category's base; unit referenced as another's `baseUnitId` cannot be deleted.
 _Avoid_: Per-owner UOM sets; "measurement unit" synonyms
 
 **Payment Method**:
@@ -556,6 +556,42 @@ _Avoid_: Preference (informal)
 First-class `access` enum on Drafts, Filter Views, Dashboards, set by user at create/update time. `personal` = visible only to `ownerId`; `global` = org-wide within tenant. Widgets + schedules **inherit** parent Dashboard's access. Replaces ad-hoc `isShared`/`isGlobal` booleans of dms/tasks **in this module** (those not retrofitted).
 _Avoid_: Sharing Flag, Visibility Scope
 
+### Healthcare Domain
+
+> Full subdomain detail (21 workflow groups, 140 tables, 47 events) lives in `.working-docs/domain-model/healthcare.md`. Terms below are the cross-module vocabulary; per-group method lists stay out of the glossary.
+
+**Patient**:
+Registered person receiving care — `healthcare_patient` + family links, allergies, consents, flags, recalls, merge requests. Dedupe on phone/ABHA; duplicates merge two-party (`requestMerge` → `approveMerge`).
+_Avoid_: Contact (that is masters business relationship), User (that is auth identity)
+
+**Practitioner**:
+Doctor master — registration, education, postings, weekly schedules, fee versions, leave blocks. `conflict` reports leave vs booked overlap; `nextFreeSlot` scans 14 days.
+_Avoid_: Employee (that is HR), User
+
+**Facility**:
+Room, chair, or equipment w/ weekly schedules, blocks, single-occupancy occupy/release, sterilization logs.
+_Avoid_: Branch (that is org structure or healthcare's subdomain routing row)
+
+**Healthcare Branch**:
+Subdomain routing row (`healthcare_branch`, `subdomain` UNIQUE) carrying `branchId` (defaults `"main"`) + `pricelist_ids` for pricelist resolution. Not org structure.
+_Avoid_: Branch (organization's physical location), OrgBranch (masters `org_branch`)
+
+**Service**:
+Billable clinical service w/ versioned prices (`healthcare_service_price`), discount rules, package defs. Resolved per branch via pricelists.
+_Avoid_: Procedure (that is RPC handler), Workflow Step
+
+**Pricelist**:
+Named price list bound to branches; `publish` freezes a version, `bulkRevision` reprices, `resolvePrice` picks the branch-applicable price.
+_Avoid_: Price (a resolved number, not the list)
+
+**Appointment**:
+Booked visit — slot computation, queue tokens (`callNext`/`checkin`), video sessions, certificates, recalls. `reschedule` requires a reason.
+_Avoid_: Encounter (the visit record itself), Visit Log (that is residents round log)
+
+**Encounter**:
+Visit record — diagnoses, prescriptions, vitals, clinic orders, follow-ups, addenda. `sign` closes it.
+_Avoid_: Appointment (booking), SOAP Note (one allopathy artifact inside it)
+
 ### Management Plane Domain
 
 **Tenancy Mode**:
@@ -715,6 +751,22 @@ Implemented: Comms module — notification/inbox + out-of-band delivery on a
   `rest.otp`). 1 control-plane table (`comms_provider`) + 6 tenant tables,
   21 events, 7 ACL resources. No module deps.
 
+Implemented: Healthcare module — stateless OPD clinic backend (`$initialize`/
+  `$prepareRuntime`/`$cleanup` empty, no schedules, no subscriptions): patients
+  (phone/ABHA dedupe, two-party merge), practitioners (schedules, fee versions,
+  `conflict`/`nextFreeSlot`), facilities (occupy/release, sterilization),
+  services + pricelists (branch resolution, publish/bulk-revision), appointments
+  (slots, queue, video), encounters (dx/rx/vitals, `sign`), five-specialty EMR
+  (allopathy/dental/ayush/rehab/psych), residents (long-stay, not IPD),
+  pharmacy (batch stock, ledger), diagnostics (order→sample→result→deliver +
+  radio track, `authorize`-gated), billing (raise→finalize→collect/settle,
+  `discount-approve`-gated), nursing (board, handover, escalation), records
+  (merge, retention, share logging), operations (explorer, reports, seed),
+  staff, admin. 140 `healthcare_*` tables (all tenant) + 13 pgEnums, 47 events
+  sharing one `HealthcareEntityEvent` payload, 19 ACL resources (elevated only
+  `billing:discount-approve`, `diagnostics:authorize`, `psych:override`).
+  No module deps. OPD only — no ADT/IPD, no OT, no insurance/TPA.
+
 Stubs (package.json only — no source): crm, fleet, inventory, reports
 ```
 
@@ -734,7 +786,7 @@ Stubs (package.json only — no source): crm, fleet, inventory, reports
 12. **Masters extraction (`.working-docs/sow/masters.md`) complete** — `@aspen-os/masters` owns contacts, addresses, bank accounts, integration connections, + notes as polymorphic tenant master data; organization module holds only `organization` + `branch`, depends on `masters`. `connection` redesigned from business-relationship model to integration connections (credentials in platform `kvStore`, referenced by `credentialRef`). Host deployments must run §9 migration: `DROP TABLE` `address`, `bank_account`, `connection`, `connection_contact`, `connection_note` (after mapping data to masters) + remove old `organization.connection_created` compliance subscription.
 13. **Masters Phase 2 (`.working-docs/sow/masters-phase-2.md`) complete** — `@aspen-os/masters` also owns `master_entity`, `master_unit_of_measure`, `master_payment_method` (8 tables, 8 workflow groups, 31 events, 8 ACL resources at Phase 2 completion). `entity` = `master_entity_type` owner value; `unitOfMeasure` tenant-wide reference data (one base unit per category); `paymentMethod` owner-scoped w/ masked-only card data + primary per `(entityType, entityId, direction)`. All Phase 2 additions additive — Phase 1 surface unchanged. (After notes module removed `master_note` + `filterViews`/`settings` were added, masters now at 8 tables / 8 groups / 27 events / 8 ACL resources — see gap 15.)
 14. **Workspace module (`.working-docs/sow/workspace.md`) implemented** — `@aspen-os/workspace` provides drafts, filter views, dashboards, widgets, schedules, utilities (8 tenant tables, 4 pgEnums, 28 events, 9 ACL resources). Host apps must register view resolvers (`registerViewResolver`) for every domain they serve + subscribe to `workspace.delivery_due` / `workspace.draft_published` — both silently dropped by pg-boss when unsubscribed (health check flags them). `context.actorId` (gap 8) feeds module's access scoping: `create` falls back to explicit `ownerId`/`userId` input when context actor unset.
-15. **Notes module (`.working-docs/sow/notes.md`) implemented** — `@aspen-os/notes` owns first-class `note` entity (`personal`/`global` access, optional `(scopeType, scopeId)` scope, `NOTE_TYPE`, tags; 1 tenant table, 3 events, 1 ACL resource). Note concept removed from `@aspen-os/masters` (`master_note`, `p.masters.notes`, `masters.note_added`/`note_removed`, `note` ACL resource, note schemas) — masters now at 8 tables / 8 groups / 27 events / 8 ACL resources (`filterViews` + `settings` added after the removal). Host deployments must migrate `master_note` rows to `note` (map `entityType → scopeType = masters:<entityType>`, `entityId → scopeId`, `content → body`, `userId → ownerId`) + `DROP TABLE master_note` afterward; `pushSchema` never drops it.
+15. **Notes module (`.working-docs/sow/notes.md`) implemented** — `@aspen-os/notes` owns first-class `note` entity (`personal`/`global` access, optional `(scopeType, scopeId)` scope, `NOTE_TYPE`, tags; 1 tenant table, 3 events, 1 ACL resource). Note concept removed from `@aspen-os/masters` (`master_note`, `p.masters.notes`, `masters.note_added`/`note_removed`, `note` ACL resource, note schemas) — masters now at 12 tables / 9 groups / 32 events / 9 ACL resources (labels, org branches, UOM alias/version tables + `publish`/`retire`/`setDefault`/`convert`/`seed`/`versions` added after the removal). Host deployments must migrate `master_note` rows to `note` (map `entityType → scopeType = masters:<entityType>`, `entityId → scopeId`, `content → body`, `userId → ownerId`) + `DROP TABLE master_note` afterward; `pushSchema` never drops it.
 
 ## Anti-Patterns
 

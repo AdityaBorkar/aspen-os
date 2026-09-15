@@ -4,7 +4,7 @@ description: Tables and enums for the Masters module.
 icon: IconDatabase
 ---
 
-Tenant tables with `master_` and `org_branch` prefixes; `control_plane_schemas = {}`. Shared columns `id` (text PK, UUIDv7), `created_at`, `updated_at` (timestamptz) stated once — not per table.
+Tenant tables with `master_` and `org_branch` prefixes and no control-plane tables; shared columns `id` (text PK, UUIDv7), `created_at`, `updated_at` (timestamptz) apply to all tables and are not repeated per table.
 
 ## Enums
 
@@ -16,7 +16,7 @@ Tenant tables with `master_` and `org_branch` prefixes; `control_plane_schemas =
 | `master_contact_type`                  | `bank`, `client`, `insurer`, `investor`, `other`, `parent_company`, `partner`, `regulator`, `subsidiary`, `vendor`                                                              |
 | `master_integration_type`              | `api_key`, `basic_auth`, `database`, `oauth2`, `other`, `webhook`                                                                                                               |
 | `master_connection_status`             | `active`, `expired`, `inactive`, `revoked`                                                                                                                                      |
-| `master_uom_category_enum`             | `area`, `count`, `data`, `length`, `mass`, `other`, `temperature`, `time`, `volume`                                                                                             |
+| `master_uom_category_enum`             | `area`, `count`, `data`, `length`, `mass`, `other`, `session`, `temperature`, `time`, `volume`                                                                                  |
 | `master_payment_method_type_enum`      | `bank_account`, `card`, `cheque`, `imps`, `upi`                                                                                                                                 |
 | `master_payment_method_status_enum`    | `active`, `archived`, `inactive`                                                                                                                                                |
 | `master_payment_method_direction_enum` | `both`, `inbound`, `outbound`                                                                                                                                                   |
@@ -203,9 +203,39 @@ One base unit per category (workflow-enforced); derived units reference the base
 | `base_unit_id`      | text                       | Self-FK; null for base |
 | `conversion_factor` | numeric                    | Null for base          |
 | `is_active`         | boolean                    | Default `true`         |
+| `is_default`        | boolean                    | Default `false`        |
+| `is_indivisible`    | boolean                    | Default `false`        |
+| `is_system`         | boolean                    | Default `false`        |
+| `status`            | text                       | Default `draft`        |
 | `metadata`          | jsonb                      |                        |
 
-Indexes: unique `idx_master_uom_code` (`code`), `idx_master_uom_category` (`category`), `idx_master_uom_is_active` (`is_active`).
+Indexes: unique `idx_master_uom_code` (`code`), `idx_master_uom_category` (`category`), `idx_master_uom_is_active` (`is_active`), `idx_master_uom_status` (`status`), `idx_master_uom_symbol` (`symbol`).
+
+### `master_uom_alias`
+
+Alias rows pointing at a unit of measure.
+
+| Column   | Type | Description     |
+| -------- | ---- | --------------- |
+| `alias`  | text | Unique alias    |
+| `uom_id` | text | Owning unit row |
+
+Indexes: unique `idx_master_uom_alias_alias` (`alias`), `idx_master_uom_alias_uom_id` (`uom_id`).
+
+### `master_uom_version`
+
+Effective-dated conversion versions for a unit of measure.
+
+| Column              | Type        | Description     |
+| ------------------- | ----------- | --------------- |
+| `uom_id`            | text        | Owning unit row |
+| `conversion_factor` | numeric     |                 |
+| `decimal_places`    | integer     |                 |
+| `effective_from`    | date        |                 |
+| `reason`            | text        |                 |
+| `superseded_at`     | timestamptz |                 |
+
+Indexes: `idx_master_uom_version_uom_id` (`uom_id`), `idx_master_uom_version_effective` (`uom_id`, `effective_from`).
 
 ## Relationships
 

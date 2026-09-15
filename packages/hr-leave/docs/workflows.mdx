@@ -4,7 +4,7 @@ description: API reference for the workflow group exposed by the hr-leave module
 icon: IconListCheck
 ---
 
-The hr-leave module exposes one workflow group via `p.hrLeave`: `leave`.
+The hr-leave module exposes the `leave` workflow group via `p.hrLeave`.
 
 Create inputs are Valibot-validated `{ input: Create*Input }`, update is `{ id, patch: Update*Input }` where `undefined` leaves a column untouched. Every command audit-logs and, where listed, publishes a domain event.
 

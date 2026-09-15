@@ -19,6 +19,7 @@
 | `@aspen-os/hr`           | [`bounded-contexts/hr.md`](bounded-contexts/hr.md)                     |
 | `@aspen-os/management`   | [`bounded-contexts/management.md`](bounded-contexts/management.md)     |
 | `@aspen-os/workspace`    | [`bounded-contexts/workspace.md`](bounded-contexts/workspace.md)       |
+| `@aspen-os/healthcare`   | [`bounded-contexts/healthcare.md`](bounded-contexts/healthcare.md)     |
 | Stubs                    | [`bounded-contexts/stubs.md`](bounded-contexts/stubs.md)               |
 
 Domain detail per context in [`domain-model/`](domain-model/) (also split per package).
@@ -83,10 +84,10 @@ Domain detail per context in [`domain-model/`](domain-model/) (also split per pa
 │                     └───────────────────┘  │ kvStore, pubsub│   │
 │  ┌───────────────────┐                     └───────────────┘   │
 │  │ Masters Module    │  ┌───────────────┐  ┌───────────────┐   │
-│  │ 8 wf groups       │  │ Tasks         │  │ DMS Module    │   │
-│  │ 8 tables          │  │ Module        │  │ 16 wf groups  │   │
-│  │ 27 events         │  │ 9 wf groups   │  │ 12 tables     │   │
-│  │ 8 ACL res.        │  │ 15 tables     │  │ 27 events     │   │
+│  │ 9 wf groups       │  │ Tasks         │  │ DMS Module    │   │
+│  │ 12 tables         │  │ Module        │  │ 16 wf groups  │   │
+│  │ 32 events         │  │ 9 wf groups   │  │ 12 tables     │   │
+│  │ 9 ACL res.        │  │ 15 tables     │  │ 27 events     │   │
 │  │ units: kvStore    │  │ 11 events     │  │ 9 ACL res.    │   │
 │  │ (connections)     │  │ units: none   │  │ units:        │   │
 │  └───────────────────┘  │               │  │ db, pubsub,   │   │
@@ -111,6 +112,10 @@ Domain detail per context in [`domain-model/`](domain-model/) (also split per pa
 │  │ units: db, auth, pubsub   │  │ units: db, kvStore,       │   │
 │  └───────────────────────────┘  │ pubsub, auth              │   │
 │                                 └───────────────────────────┘   │
+│  ┌───────────────────────────────────────────────────────────┐   │
+│  │ Healthcare Module: 21 wf groups, 140 tables (+13 pgEnums), │   │
+│  │ 47 events, 19 ACL res., deps: none, units: none (stateless)│   │
+│  └───────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
@@ -177,7 +182,7 @@ Domain events published via PubSub as plain string topics. Event counts by modul
 
 - Auth: 8 events
 - Organization: 2 events
-- Masters: 27 events
+- Masters: 32 events
 - Notes: 3 events
 - Compliance: 23 events
 - Tasks: 11 events (incl. `task.due_date_changed`)
@@ -186,6 +191,7 @@ Domain events published via PubSub as plain string topics. Event counts by modul
 - DMS: 27 events (13 file + 6 folder + 3 class + 2 share + 3 public_link + 3 file_view)
 - Comms: 21 events (6 channel + 2 provider + 3 notification + 4 message + 1 preference + 4 template + 1 setting)
 - Management Plane: 17 events (8 tenant + 4 service_provider + 5 platform_user)
+- Healthcare: 47 events (single `HealthcareEntityEvent` payload across 19 groups — patient 3, practitioner 2, facility 2, service 3, appointment 2, encounter 3, allopathy/dental/ayush/rehab/psych/resident 2 each, pharmacy/diagnostics/billing/nursing 3 each, records 4, operations 2, branch 2)
 - HR: 58 events (10 event groups across employee, attendance, leave, lifecycle, overtime, position, setup, shift, access, announcement)
 
 Per-context event tables in `domain-model/<package>.md`.
@@ -289,7 +295,7 @@ Five modules register scheduled cron jobs via PubSub:
 | Client Platform  | —             | —                                        | —                            | Browser-side (3 units)                                                                                          |
 | Recruiter        | Downstream    | Platform                                 | —                            | Uses `SingleTenantPlatform`, registers organization + tasks (not yet in repo)                                   |
 | Organization     | Downstream    | Platform                                 | Compliance, Management Plane | 1 workflow group, 1 table, 2 events, 1 ACL resource, no module deps                                             |
-| Masters          | Downstream    | Platform, KV Store                       | Compliance, Organization     | 8 workflow groups, 8 tables, 27 events, 8 ACL resources                                                         |
+| Masters          | Downstream    | Platform, KV Store                       | Compliance, Organization     | 9 workflow groups, 12 tables, 32 events, 9 ACL resources                                                        |
 | Notes            | Downstream    | Platform                                 | —                            | 1 workflow group, 1 table, 3 events, 1 ACL resource                                                             |
 | Compliance       | Downstream    | Platform, HR, Organization, Fleet (stub) | —                            | 5 workflow groups, 3 tables, 3 services, subscribes to external events                                          |
 | Tasks            | Downstream    | Platform                                 | Calendar                     | 9 workflow groups, 15 tables (6 control + 9 tenant), 11 events, empty ACL                                       |
@@ -299,6 +305,7 @@ Five modules register scheduled cron jobs via PubSub:
 | DMS              | Downstream    | Platform, Storage                        | —                            | 16 workflow groups, 12 tables, 27 events, 9 ACL resources, 2 crons                                              |
 | Management Plane | Downstream    | Platform, Organization                   | —                            | 3 workflow groups, 3 owned tables, 0 shadow tables, 17 events, has build step                                   |
 | HR               | Downstream    | Platform                                 | Compliance                   | ~307 workflow methods in 10 groups, 54 tables (14 control + 40 tenant), 58 events, 3 crons                      |
+| Healthcare       | Downstream    | Platform                                 | —                            | 21 workflow groups, 140 tables (all tenant), 47 events, 19 ACL resources, stateless, has build step             |
 | CRM              | Stub          | —                                        | —                            | Package.json only                                                                                               |
 | Fleet            | Stub          | —                                        | —                            | Package.json only                                                                                               |
 | Inventory        | Stub          | —                                        | —                            | Package.json only                                                                                               |

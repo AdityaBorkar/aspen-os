@@ -1,6 +1,6 @@
 # Masters Context
 
-> Package: `@aspen-os/masters`. Domain module for polymorphic tenant master data — contacts, addresses, bank accounts, integration connections, entities, and payment methods — plus tenant-wide units of measure and the tenant settings KV (organization profile + per-user settings).
+> Package: `@aspen-os/masters`. Polymorphic tenant master data — contacts, addresses, bank accounts, integration connections, entities, payment methods, labels, org branches — plus tenant-wide units of measure (alias + version history) and tenant settings KV (organization profile + per-user settings).
 
 ## Relationship Type
 
@@ -10,11 +10,11 @@ Downstream of the Platform (Customer–Supplier). Implements the `Module` interf
 
 - `Masters.create(config?)` — factory returning a Module instance; `$config: MastersModuleConfig = undefined`
 - `$name = "masters"`, `$dependencies = []`
-- `$initialize({ db, kvStore })` stores the kvStore unit; `$prepareRuntime()` / `$cleanup()` are empty
-- 7 workflow groups: `contacts`, `addresses`, `bankAccounts`, `entities`, `paymentMethods`, `unitsOfMeasure` (stateless `readonly` properties) and `connections` (getter bound to the kvStore unit for `create`/`rotateCredential`), plus `settings` (stateless `readonly` property for the tenant settings KV)
-- 8 database tables (all `tenant_schemas`, `master_` prefix): `master_contact`, `master_address`, `master_bank_account`, `master_connection`, `master_entity`, `master_payment_method`, `master_unit_of_measure`, `master_setting`
-- 23 domain events published via PubSub (`MastersEventMap`) — settings changes are audit-logged, not published
-- 8 ACL resources: `contact`, `address`, `bankAccount`, `connection`, `entity`, `paymentMethod`, `unitOfMeasure`, `setting`
+- `$initialize({ db, kvStore })` stores kvStore unit; `$prepareRuntime()` / `$cleanup()` empty
+- 9 workflow groups: `addresses`, `contacts`, `entities`, `labels`, `orgBranches`, `paymentMethods`, `settings`, `unitsOfMeasure` (stateless `readonly` properties) and `connections` (getter bound to kvStore unit for `create`/`rotateCredential`)
+- 12 database tables (all `tenant_schemas`; `master_` prefix except `org_branch`): `master_contact`, `master_address`, `master_connection`, `master_entity`, `master_payment_method`, `master_unit_of_measure`, `master_uom_alias`, `master_uom_version`, `master_label`, `master_entity_label`, `master_setting`, plus `org_branch`
+- 32 domain events published via PubSub (`MastersEventMap`) — settings changes are audit-logged, not published
+- 9 ACL resources: `contact`, `address`, `bankAccount`, `connection`, `entity`, `paymentMethod`, `unitOfMeasure`, `label`, `orgBranch`, `setting`
 - Valibot validation schemas for all inputs
 - `$prepareInfra()` returns declarative infra (db schemas, acl, events) — schema pushing handled centrally by the platform
 - Has a build step (build script + `build` field in package.json)
@@ -46,5 +46,5 @@ Polymorphic entities (`addresses`, `bankAccounts`, `connections`, `paymentMethod
 
 ## Language
 
-- Contact, Address, Bank Account, Connection (integration), Entity, Payment Method, Unit of Measure, `(entityType, entityId)` scope, `(entityType, entityId, direction)` primary scope, `credentialRef`, rotateCredential, base unit, conversionFactor, Setting (`org.*` tenant-wide, other keys per-user)
+- Contact, Address, Bank Account, Connection (integration), Entity, Payment Method, Unit of Measure, `(entityType, entityId)` scope, `(entityType, entityId, direction)` primary scope, `credentialRef`, rotateCredential, base unit, conversionFactor, UOM status (`draft`/`published`/`inactive`), category default, system unit, indivisible unit, alias, version, `convert`/`publish`/`retire`/`seed`/`setDefault`, `SESSION` category, Label (scope-keyed, `apply`/`remove`), OrgBranch (`org_branch`, `tree`), Setting (`org.*` tenant-wide, other keys per-user)
 - Avoid: Connection for business relationships (that is now a `Contact` with a `CONTACT_TYPE`); Vendors/Clients/Insurers as entities (they are `Contact` values); PAN/CVV or full card numbers for payment methods (masked `cardLast4` only); "UOM sets per owner" (units of measure are tenant-wide); Notes (that is now `@aspen-os/notes`); Filter View (now `@aspen-os/workspace`); Saved View / File View (those are now `Filter View` in workspace)

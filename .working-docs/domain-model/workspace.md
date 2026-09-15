@@ -77,7 +77,7 @@
 
 - **Draft** — a saved, unpublished piece of content (title/body/notes/metadata) with an optional review lifecycle. Not a "draft status" on another module's entity (contrast: compliance `document_status.draft`, hr contracts) — a first-class persistable entity.
 - **Approval** — the optional `submit → approve` gate on a draft; hosts skip it by publishing directly.
-- **Filter View** — now a Masters concept (`p.masters.filterViews`, table `master_filter_view`): a saved `{ domain, conditions, sort, groupBy }` configuration with `personal`/`global` access. "Domain" is the dataset key (`<module>:<entity>`).
+- **Filter View** — Workspace concept (`p.workspace.filterViews`, table `workspace_filter_view`): saved `{ domain, conditions, sort, groupBy }` configuration with `personal`/`global` access. "Domain" is dataset key (`<module>:<entity>`).
 - **Dashboard** — a named collection of widgets plus a jsonb `layout` (`{ widgetId, x, y, w, h }[]`).
 - **Widget** — a declarative datasource config (`metric`/`breakdown`/`list`/`embed`) with runtime refresh metadata. No rendering, no analytics execution.
 - **Schedule** — a per-dashboard cron delivery configuration (`{ recipients, format, subject? }`); emits `workspace.delivery_due`, host delivers.

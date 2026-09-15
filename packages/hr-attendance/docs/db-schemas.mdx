@@ -6,16 +6,7 @@ icon: IconDatabase
 
 All tables are tenant-scoped (`tenant_schemas`); `control_plane_schemas` is empty. Shared columns `id` (text PK, UUIDv7), `created_at`, `updated_at` (timestamptz) on every table; no hard FKs — links are soft text FKs validated in workflows.
 
-## Enums
-
-| Enum                           | Values                                                        |
-| ------------------------------ | ------------------------------------------------------------- |
-| `hr_attendance_status`         | `absent`, `half_day`, `on_leave`, `present`, `work_from_home` |
-| `hr_checkin_log_type`          | `in`, `out`                                                   |
-| `hr_attendance_request_status` | `approved`, `pending`, `rejected`                             |
-| `hr_shift_request_status`      | `approved`, `pending`, `rejected`                             |
-| `hr_shift_assignment_status`   | `active`, `completed`, `inactive`                             |
-| `hr_overtime_status`           | `approved`, `pending`, `rejected`                             |
+Enums: see [Enums](/docs/hr-attendance/enums).
 
 ## Tables
 

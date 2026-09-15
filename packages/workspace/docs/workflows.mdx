@@ -8,7 +8,9 @@ The Workspace module exposes `dashboards`, `schedules`, `drafts`, `filterViews`,
 
 Workflows validate with Valibot; `create` takes `{ input }`, `update` takes `{ id, patch }` where `undefined` leaves the column untouched. Mutations write an audit entry and publish a domain event.
 
-## Drafts
+## Features
+
+### Drafts
 
 Lifecycle with approval, trash, and threaded comments.
 
@@ -33,7 +35,7 @@ await p.workspace.drafts.listComments({ draftId: id });
 await p.workspace.drafts.removeComment({ id: commentId });
 ```
 
-## Dashboards
+### Dashboards
 
 Named collections of widgets over a grid layout.
 
@@ -50,7 +52,7 @@ await p.workspace.dashboards.import({ input: snapshot });
 await p.workspace.dashboards.delete({ id: dash.id });
 ```
 
-## Widgets
+### Widgets
 
 Declarative widgets on a dashboard; inherit dashboard access.
 
@@ -73,7 +75,7 @@ await p.workspace.widgets.list({ dashboardId });
 await p.workspace.widgets.remove({ id: widgetId });
 ```
 
-## Schedules
+### Schedules
 
 Per-dashboard cron delivery.
 
@@ -92,7 +94,7 @@ await p.workspace.schedules.delete({ id: sched.id });
 
 Cron registers `workspace.delivery_schedule.<id>` and emits `workspace.delivery_due`.
 
-## Filter Views
+### Filter Views
 
 Saved filter/sort/group configurations.
 
@@ -109,7 +111,7 @@ await p.workspace.filterViews.setDefault({ id: view.id });
 await p.workspace.filterViews.delete({ id: view.id });
 ```
 
-## Pins
+### Pins
 
 Per-user sidebar shortcuts.
 
@@ -119,7 +121,7 @@ await p.workspace.pins.list({ filters: { itemType: "dashboard" } });
 await p.workspace.pins.delete({ id: pinId });
 ```
 
-## Recent
+### Recent
 
 Per-user recent items bounded by `maxRecentItems`.
 
@@ -128,7 +130,7 @@ await p.workspace.recent.touch({ input: { itemId, itemType: "draft" } });
 await p.workspace.recent.list({ limit: 20 });
 ```
 
-## Search
+### Search
 
 Access-scoped quick search over drafts and dashboards.
 
@@ -137,4 +139,4 @@ const res = await p.workspace.search.quick({ input: { query: "INV" } });
 // { dashboards: [{ id, name, access }], drafts: [{ id, title, status, access }] }
 ```
 
-Links: [Events](/docs/workspace/events) · [DB Schemas](/docs/workspace/db-schemas)
+Events: see [Events](/docs/workspace/events). Schema: see [DB Schemas](/docs/workspace/db-schemas).

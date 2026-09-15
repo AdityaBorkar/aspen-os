@@ -6,16 +6,7 @@ icon: IconDatabase
 
 All tables are tenant-scoped (`tenant_schemas`); `control_plane_schemas` is empty. Shared columns `id` (text PK, UUIDv7), `created_at`, `updated_at` (timestamptz) on every table; no hard FKs — links are soft text FKs validated in workflows.
 
-## Enums
-
-| Enum                           | Values                                                  |
-| ------------------------------ | ------------------------------------------------------- |
-| `hr_leave_application_status`  | `approved`, `cancelled`, `draft`, `pending`, `rejected` |
-| `hr_leave_allocation_status`   | `active`, `cancelled`, `expired`                        |
-| `hr_compensatory_leave_status` | `approved`, `pending`, `rejected`                       |
-| `hr_leave_encashment_status`   | `approved`, `paid`, `pending`, `rejected`               |
-| `hr_earned_leave_frequency`    | `half_yearly`, `monthly`, `quarterly`, `yearly`         |
-| `hr_leave_block_list_scope`    | `company`, `department`                                 |
+Enums: see [Enums](/docs/hr-leave/enums).
 
 ## Tables
 

@@ -1,10 +1,10 @@
 ---
 title: Events
-description: Domain event map for the Compliance module — 23 events covering the full document lifecycle.
+description: Domain event map for the Compliance module covering the document lifecycle.
 icon: IconBell
 ---
 
-The Compliance module defines 23 domain events (17 document + 4 obligation + 2 system) via `COMPLIANCE_EVENTS` in `src/pubsub.ts`.
+The Compliance module defines domain events via `COMPLIANCE_EVENTS` in `src/pubsub.ts`.
 
 ## Document Lifecycle
 
@@ -48,5 +48,3 @@ The Compliance module defines 23 domain events (17 document + 4 obligation + 2 s
 | ----------------------------------- | --------------------------------------------------------------------------------------------------------- | -------------- |
 | `compliance.weekly_summary`         | `{ summary: { total, verified, expired, expiringSoon, overdue, activeObligations, documentsGenerated } }` | weekly summary |
 | `compliance.scheduled_job_executed` | `{ jobName, executionTime, recordsProcessed, errors }`                                                    | job completion |
-
-`DOCUMENT_EVENTS`, `OBLIGATION_EVENTS`, `SYSTEM_EVENTS` mirror `COMPLIANCE_EVENTS` subsets; `ComplianceEventMap` is `DocumentEventMap & ObligationEventMap & SystemEventMap`.

@@ -12,6 +12,7 @@ A **Module** is a package of domain business logic. Modules are optional, plugga
 interface Module<N extends string = string> {
   readonly $name: N;
   readonly $dependencies: readonly string[];
+  readonly $consumes?: readonly string[];
   $initialize(units: Record<string, Unit>): void;
   $prepareInfra(): ModuleInfra;
   $prepareRuntime(): void | Promise<void>;
@@ -45,7 +46,7 @@ type ModuleInfra = {
 
 <Callout type="warn">
   Required methods on `Module`: `$name`, `$dependencies`, `$initialize`, `$prepareInfra`,
-  `$prepareRuntime`, `$cleanup`. Only `$prepareTenant` is optional.
+  `$prepareRuntime`, `$cleanup`. Only `$consumes` and `$prepareTenant` are optional.
 </Callout>
 
 ## How Modules Are Created

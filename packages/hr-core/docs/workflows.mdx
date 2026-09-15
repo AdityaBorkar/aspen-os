@@ -4,7 +4,7 @@ description: API reference for the workflow groups exposed by the hr-core module
 icon: IconListCheck
 ---
 
-The hr-core module exposes six workflow groups via `p.hrCore`: `access`, `announcement`, `employee`, `lifecycle`, `position`, and `setup`.
+The hr-core module exposes workflow groups via `p.hrCore`: `access`, `announcement`, `employee`, `lifecycle`, `position`, and `setup`.
 
 Create inputs are Valibot-validated `{ input: Create*Input }`, update is `{ id, patch: Update*Input }` where `undefined` leaves a column untouched. Every command audit-logs and, where listed, publishes a domain event.
 

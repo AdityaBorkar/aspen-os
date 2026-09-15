@@ -4,13 +4,13 @@ description: API reference for the workflow groups exposed by the Compliance mod
 icon: IconListCheck
 ---
 
-The Compliance module exposes five workflow groups via `p.compliance`: `documents`, `obligations`, `verification`, `audit`, `dashboard`.
+The Compliance module exposes workflow groups via `p.compliance`: `documents`, `obligations`, `verification`, `audit`, `summary` (`dashboard` is a deprecated alias of `summary`).
 
-Scope: workflows are tenant-scoped via `p.run(tenantId, fn)`; each method is a `Workflow` (Valibot `input` on create, `{ id, patch }` on update, `{ id }` / `{ filters }` on reads). All publish domain events and write `audit_log` entries via `AuditUnit`.
+Workflows are tenant-scoped; create takes Valibot input, update takes `{ id, patch }`. Every mutation writes an audit entry and publishes a domain event.
 
-## Documents
+## Features
 
-Manage document lifecycle, assignment, and queries.
+### Documents
 
 ```ts
 // create: input validated by Valibot, publishes document_created
@@ -21,7 +21,7 @@ const doc = await p.compliance.documents.create({
   createdBy: "user-1",
   expiryDate: new Date("2025-03-31"),
   renewalFrequency: "annual",
-  reminderDays: [90, 60, 30, 7],
+  expiryPolicyDays: [90, 60, 30, 7],
   escalationDays: [1, 7, 30],
 });
 
@@ -55,9 +55,7 @@ const overdue = await p.compliance.documents.getOverdueDocuments();
 
 `markRenewalInProgress`, `updateNotifiedAt`, `updateEscalatedAt`, `getActiveDocumentsForReminders`, `getExpiredAndOverdueDocuments`, `getEscalatableDocuments` are internal scan/mutator helpers — not for direct callers.
 
-## Obligations
-
-Recurring templates that auto-generate documents.
+### Obligations
 
 ```ts
 const obligation = await p.compliance.obligations.create({
@@ -71,7 +69,7 @@ const obligation = await p.compliance.obligations.create({
   dueDay: 31,
   dueMonthOffset: 0,
   autoGenerate: true,
-  defaultReminderDays: [30, 15, 7, 1],
+  defaultExpiryPolicyDays: [30, 15, 7, 1],
   defaultEscalationDays: [1, 7, 30],
 });
 
@@ -87,9 +85,7 @@ const periods = await p.compliance.obligations.getUpcomingPeriods({ id });
 
 Frequencies: `monthly`, `quarterly`, `semi_annual`, `annual`, `biennial`, `triennial`, `custom`.
 
-## Verification
-
-Auto-assign reviewer rules by category and source module.
+### Verification
 
 ```ts
 const rule = await p.compliance.verification.create({
@@ -109,9 +105,7 @@ const rules = await p.compliance.verification.list({ filters });
 const match = await p.compliance.verification.match({ category, sourceModule });
 ```
 
-## Audit
-
-Read `audit_log` entries written by workflows via `AuditUnit`.
+### Audit
 
 ```ts
 const trail = await p.compliance.audit.getAuditTrail({ entityType, entityId });
@@ -119,18 +113,18 @@ const entries = await p.compliance.audit.list({ filters });
 const exported = await p.compliance.audit.export({ filters });
 ```
 
-## Dashboard
-
-Cached summary backed by `KvStoreUnit`.
+### Summary
 
 ```ts
-const summary = await p.compliance.dashboard.getSummary(); // cached dashboardCacheTtl seconds
-await p.compliance.dashboard.invalidateCache();
+const summary = await p.compliance.summary.getSummary();
+await p.compliance.summary.invalidateCache();
 ```
 
-Aggregates counts by status/category/branch/source module, plus expiring/expired/overdue/pending and a health score.
+<Callout type="warn">
+  `p.compliance.dashboard` is a deprecated alias of `summary` — use `summary`.
+</Callout>
 
 ## Links
 
-- Events: [Events](/docs/compliance/events) — 23 event payloads and triggers.
-- Schema: [Schema](/docs/compliance/db-schemas) — tenant tables, enums, and indexes.
+- Events: [Events](/docs/compliance/events)
+- Schema: [Schema](/docs/compliance/db-schemas)

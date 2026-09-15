@@ -4,7 +4,7 @@ description: Tables and enums declared by the Comms module.
 icon: IconDatabase
 ---
 
-The Comms module declares one control-plane table (`comms_provider`) and tenant tables with the `comms_` prefix. Every table uses `id: uuidv7("id").primaryKey()` and `timestamptz` for `created_at`/`updated_at`. `channel.entityType` reuses `MASTER_ENTITY_TYPE` values (constants-only; no `masters` dependency).
+The Comms module declares a control-plane `provider` table plus tenant tables (`channel`, `notification`, `message`, `preference`, `template`, `setting`). Code symbols carry the `comms` prefix (`commsChannel`, `commsProvider`, …). Every table uses `id: uuidv7("id").primaryKey()` and `timestamptz` timestamps (`message` tracks lifecycle timestamps instead of `updated_at`). `channel.entityType` reuses `MASTER_ENTITY_TYPE` values (constants-only; no `masters` dependency).
 
 ## Enums
 
@@ -24,7 +24,7 @@ The Comms module declares one control-plane table (`comms_provider`) and tenant 
 
 ## Tables
 
-### `comms_provider` (control plane)
+### `provider` (control plane)
 
 Host delivery capability registry. Credential lives in the host kvStore under `comms:provider:<id>:credential`.
 
@@ -39,7 +39,9 @@ Host delivery capability registry. Credential lives in the host kvStore under `c
 | `metadata`                  | jsonb           | Account ids, verified domains/numbers, rate limits      |
 | `created_at` / `updated_at` | timestamptz     | Record timestamps                                       |
 
-### `comms_channel` (tenant)
+Indexes: `idx_provider_kind(kind)`, `idx_provider_active(is_active)`.
+
+### `channel` (tenant)
 
 Sender endpoint. Host defaults are materialized lazily by `ensureDefaults` (`source = host`, `provider_id` set).
 
@@ -59,7 +61,9 @@ Sender endpoint. Host defaults are materialized lazily by `ensureDefaults` (`sou
 | `metadata`                                        | jsonb            | Provider config, WhatsApp template ids          |
 | `created_at` / `updated_at`                       | timestamptz      | Record timestamps                               |
 
-### `comms_notification` (tenant)
+Indexes: `idx_channel_scope(entity_type, entity_id)`, `idx_channel_type(type)`, `idx_channel_status(status)`, `idx_channel_provider(provider_id)`.
+
+### `notification` (tenant)
 
 The in-app inbox row + notification intent.
 
@@ -80,7 +84,9 @@ The in-app inbox row + notification intent.
 | `metadata`                        | jsonb                   | Producer payload extras                                  |
 | `created_at` / `updated_at`       | timestamptz             | Record timestamps                                        |
 
-### `comms_message` (tenant)
+Indexes: `idx_notification_recipient(recipient_type, recipient_id)`, `idx_notification_status(status)`, `idx_notification_type(type)`, `idx_notification_created(created_at)`.
+
+### `message` (tenant)
 
 Delivery outbox. One row per outbound send.
 
@@ -104,7 +110,9 @@ Delivery outbox. One row per outbound send.
 | `metadata`                               | jsonb            | Template params                                                   |
 | `created_at`                             | timestamptz      | Creation timestamp                                                |
 
-### `comms_preference` (tenant)
+Indexes: `idx_message_status(status)`, `idx_message_channel(channel_id)`, `idx_message_notification(notification_id)`, `idx_message_provider(provider_message_id)`, `idx_message_created(created_at)`, `idx_message_tenant(tenant_id)`.
+
+### `preference` (tenant)
 
 Per-user routing + consent. `type = null` is the default row (applies to all notification types); exact `(userId, type, channelType)` wins.
 
@@ -118,23 +126,27 @@ Per-user routing + consent. `type = null` is the default row (applies to all not
 | `priority`                  | integer                   | Routing order (`inapp` 1, `email` 2, `sms` 3, `whatsapp` 4) |
 | `created_at` / `updated_at` | timestamptz               | Record timestamps                                           |
 
-### `comms_template` (tenant)
+Indexes: `idx_preference_user(user_id, type, channel_type)`.
+
+### `template` (tenant)
 
 Email/SMS/WhatsApp bodies with `{var}` placeholders.
 
-| Column                      | Type        | Description                                       |
-| --------------------------- | ----------- | ------------------------------------------------- |
-| `id`                        | text (PK)   | Auto UUIDv7                                       |
-| `name`                      | text        | Stable key (`document-expiring`, `otp-email`)     |
-| `channel_type`              | enum        | `email`, `sms`, `whatsapp`                        |
-| `subject`                   | text        | Email subject with placeholders                   |
-| `body`                      | text        | Body template with placeholders                   |
-| `provider_template_id`      | text        | Meta WhatsApp template id (required for WhatsApp) |
-| `is_active`                 | boolean     | Inactive templates reject at `notify` time        |
-| `metadata`                  | jsonb       | Provider language/category, params schema         |
-| `created_at` / `updated_at` | timestamptz | Record timestamps                                 |
+| Column                      | Type           | Description                                       |
+| --------------------------- | -------------- | ------------------------------------------------- |
+| `id`                        | text (PK)      | Auto UUIDv7                                       |
+| `name`                      | text           | Stable key (`document-expiring`, `otp-email`)     |
+| `channel_type`              | `channel_type` | `email`, `sms`, `whatsapp`                        |
+| `subject`                   | text           | Email subject with placeholders                   |
+| `body`                      | text           | Body template with placeholders                   |
+| `provider_template_id`      | text           | Meta WhatsApp template id (required for WhatsApp) |
+| `is_active`                 | boolean        | Inactive templates reject at `notify` time        |
+| `metadata`                  | jsonb          | Provider language/category, params schema         |
+| `created_at` / `updated_at` | timestamptz    | Record timestamps                                 |
 
-### `comms_setting` (tenant)
+Indexes: `idx_template_channel_name(channel_type, name)`.
+
+### `setting` (tenant)
 
 Tenant defaults.
 
@@ -145,16 +157,18 @@ Tenant defaults.
 | `value`                     | jsonb       | Setting value      |
 | `created_at` / `updated_at` | timestamptz | Record timestamps  |
 
+Indexes: `idx_setting_key(key)`.
+
 Keys: `defaultChannels` (jsonb), `suppressOutOfBand` (boolean), `hostDefaultSenderAddressOverride` (text).
 
 ## Relationships
 
 ```mermaid
 flowchart LR
-  P[comms_provider] -->|provider_id soft FK| C[comms_channel]
-  C -->|channel_id soft FK| M[comms_message]
-  N[comms_notification] -->|notification_id soft FK| M
-  T[comms_template] -->|template_id soft FK| M
+  P[provider] -->|provider_id soft FK| C[channel]
+  C -->|channel_id soft FK| M[message]
+  N[notification] -->|notification_id soft FK| M
+  T[template] -->|template_id soft FK| M
 ```
 
 All FKs are soft; `provider` lives on the control-plane database. Credentials are never stored on rows.

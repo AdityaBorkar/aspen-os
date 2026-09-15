@@ -7,12 +7,9 @@ icon: IconNumber123
 Shared `as const` enum objects, derived union types, and ISO 3166-1 country code utilities consumed by every domain module.
 
 <Callout type="info">
-  Build exception: `package.json` defines no `build` field, so `scripts/build.ts` leaves `exports`
-  at `./src/index.ts` and only emits declarations into `.output`. Consumers always resolve
-  TypeScript source, never bundled JS.
+  Build exception: `scripts/build.ts` leaves `exports` at `./src/index.ts` and only emits
+  declarations into `.output`. Consumers always resolve TypeScript source, never bundled JS.
 </Callout>
-
-## Opening
 
 Every domain module follows one pattern — an `as const` object plus a derived union:
 
@@ -67,7 +64,7 @@ Import from the package root (`@aspen-os/constants`) — every module re-exports
 | `MASTER_ENTITY_TYPE`       | `branch`, `connection`, `contact`, `entity`, `organization`, `org_branch`                                                                                                       |
 | `MASTER_ENTITY_KIND`       | `bank`, `clinic`, `customer`, `government`, `hospital`, `insurer`, `laboratory`, `other`, `partner`, `pharmacy`, `regulator`, `staffing_agency`, `training_institute`, `vendor` |
 | `ENTITY_STATUS`            | `active`, `archived`, `inactive`                                                                                                                                                |
-| `UOM_CATEGORY`             | `area`, `count`, `data`, `length`, `mass`, `other`, `temperature`, `time`, `volume`                                                                                             |
+| `UOM_CATEGORY`             | `area`, `count`, `data`, `length`, `mass`, `other`, `session`, `temperature`, `time`, `volume`                                                                                  |
 | `PAYMENT_METHOD_TYPE`      | `bank_account`, `card`, `cheque`, `imps`, `upi`                                                                                                                                 |
 | `PAYMENT_METHOD_STATUS`    | `active`, `archived`, `inactive`                                                                                                                                                |
 | `PAYMENT_METHOD_DIRECTION` | `both`, `inbound`, `outbound`                                                                                                                                                   |
@@ -90,14 +87,14 @@ Import from the package root (`@aspen-os/constants`) — every module re-exports
 
 | Enum                    | Values                                                                          |
 | ----------------------- | ------------------------------------------------------------------------------- |
-| `CHANNEL_TYPE`          | `email`, `sms`, `whatsapp`, `push`, `other`                                     |
-| `CHANNEL_SOURCE`        | `tenant`, `host`                                                                |
-| `CHANNEL_STATUS`        | `active`, `inactive`, `revoked`, `expired`                                      |
-| `PROVIDER_KIND`         | `smtp`, `ses`, `resend`, `postmark`, `twilio`, `whatsapp_business_api`, `other` |
-| `RECIPIENT_TYPE`        | `user`, `contact`                                                               |
-| `NOTIFICATION_STATUS`   | `unread`, `read`, `dismissed`                                                   |
-| `NOTIFICATION_SEVERITY` | `normal`, `important`, `urgent`                                                 |
-| `MESSAGE_STATUS`        | `queued`, `sending`, `sent`, `delivered`, `failed`                              |
+| `CHANNEL_TYPE`          | `email`, `other`, `push`, `sms`, `whatsapp`                                     |
+| `CHANNEL_SOURCE`        | `host`, `tenant`                                                                |
+| `CHANNEL_STATUS`        | `active`, `expired`, `inactive`, `revoked`                                      |
+| `PROVIDER_KIND`         | `other`, `postmark`, `resend`, `ses`, `smtp`, `twilio`, `whatsapp_business_api` |
+| `RECIPIENT_TYPE`        | `contact`, `user`                                                               |
+| `NOTIFICATION_STATUS`   | `dismissed`, `read`, `unread`                                                   |
+| `NOTIFICATION_SEVERITY` | `important`, `normal`, `urgent`                                                 |
+| `MESSAGE_STATUS`        | `delivered`, `failed`, `queued`, `sending`, `sent`                              |
 
 ### Country codes (`src/country-codes.ts`)
 

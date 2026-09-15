@@ -1,6 +1,6 @@
 # Masters Domain Model
 
-> Package: `@aspen-os/masters`. Polymorphic tenant master data — contacts, addresses, bank accounts, integration connections, entities, payment methods — plus tenant-wide units of measure and the tenant settings KV. All 8 tables are tenant schemas (`master_` prefix). Contacts absorbed the DMS address book and may also be global (owner-less) entries. Settings absorbed the workspace `workspace_setting` surface plus the organization profile (`org.*` tenant-wide keys). Filter views now live in `@aspen-os/workspace`.
+> Package: `@aspen-os/masters`. Polymorphic tenant master data — contacts, addresses, bank accounts, integration connections, entities, payment methods, labels, org branches — plus tenant-wide units of measure (alias + version history) and tenant settings KV. 12 tables, all tenant schemas (`master_` prefix except `org_branch`). Contacts absorbed DMS address book; may be global (owner-less). Settings absorbed workspace `workspace_setting` surface + organization profile (`org.*` tenant-wide keys). Filter views live in `@aspen-os/workspace` (not here).
 
 ## Entity-Relationship Diagram
 
@@ -48,25 +48,31 @@
 │       (encrypted)                                                          │
 │                                                                             │
 │  ┌─────────────────────┐     ┌────────────────────────────────────────┐     │
-│  │ MasterPaymentMethod │     │       MasterUnitOfMeasure             │     │
-│  │  id                 │     │  id, name, code (uniq)                │     │
-│  │  type (bank_account │     │  category (UOM_CATEGORY)              │     │
-│  │    /card/upi/imps/  │     │  symbol, decimalPlaces                │     │
-│  │    cheque)          │     │  isBaseUnit (one per category)        │     │
-│  │  name, code         │     │  baseUnitId (self-FK, same category)  │     │
-│  │  direction          │     │  conversionFactor (to base unit)      │     │
-│  │  status, isActive   │     │  isActive, metadata                   │     │
-│  │  isPrimary (per     │     │  NO entityType/entityId (tenant-wide) │     │
-│  │    (entityType,     │     └────────────────────────────────────────┘     │
-│  │     entityId,       │                                                 │
-│  │     direction))     │                                                 │
-│  │  bankAccountId (FK) │     MasterPaymentMethod.bankAccountId →         │
-│  │  cardBrand/last4/   │       MasterBankAccount (logical)               │
-│  │    expiry (masked)  │     MasterUnitOfMeasure.baseUnitId →            │
-│  │  upiId, chequeSeries│       MasterUnitOfMeasure (self, same category) │
-│  │  details, metadata  │     MasterEntity.organizationId → organization  │
-│  │  entityType/entityId│                                                 │
-│  └─────────────────────┘                                                 │
+│  │ MasterPaymentMethod │     │       MasterUnitOfMeasure              │     │
+│  │  id                 │     │  id, name, code (uniq CI)              │     │
+│  │  type (bank_account │     │  category (UOM_CATEGORY+session)       │     │
+│  │    /card/upi/imps/  │     │  symbol (uniq CI), decimalPlaces       │     │
+│  │    cheque)          │     │  isBaseUnit (one per category)         │     │
+│  │  name, code         │     │  baseUnitId (self-FK, same category)   │     │
+│  │  direction          │     │  conversionFactor (to base unit)       │     │
+│  │  status, isActive   │     │  status (draft/published/inactive)     │     │
+│  │  isPrimary (per     │     │  isDefault (one per category)          │     │
+│  │    (entityType,     │     │  isSystem (governed), isIndivisible    │     │
+│  │     entityId,       │     │  isActive, metadata                    │     │
+│  │     direction))     │     │  NO entityType/entityId (tenant-wide)  │     │
+│  │  bankAccountId (FK) │     │  aliases → master_uom_alias (uniq)     │     │
+│  │  cardBrand/last4/   │     │  versions → master_uom_version         │     │
+│  │    expiry (masked)  │     └────────────────────────────────────────┘     │
+│  │  upiId, chequeSeries│  ┌─────────────────────┐  ┌──────────────────┐      │
+│  │  details, metadata  │  │ MasterLabel + join  │  │ OrgBranch +      │      │
+│  │  entityType/entityId│  │ label (scope-keyed) │  │ Setting (org.* / │      │
+│  └─────────────────────┘  │ entity_label (uniq) │  │  per-user keys)  │      │
+│                           └─────────────────────┘  └──────────────────┘      │
+│                           MasterPaymentMethod.bankAccountId →                 │
+│                             MasterBankAccount (logical)                       │
+│                           MasterUnitOfMeasure.baseUnitId →                    │
+│                             MasterUnitOfMeasure (self, same category)         │
+│                           MasterEntity.organizationId → organization          │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -144,28 +150,41 @@
 
 **Invariants**:
 
-- `code` is unique per tenant; `category` is a `UOM_CATEGORY` value (`length`/`mass`/`volume`/`count`/`time`/`area`/`temperature`/`data`/`other`).
+- `code` unique per tenant (case-insensitive); `name`/`symbol` also unique case-insensitive; `symbol` colliding with another unit's alias rejected. `category` is `UOM_CATEGORY` value (`length`/`mass`/`volume`/`count`/`time`/`area`/`temperature`/`data`/`session`/`other`).
 - **Exactly one base unit per category** — a base unit has `baseUnitId = null` and `conversionFactor = null`; a new base unit is rejected while another exists in the category (the existing base must first be demoted).
 - **Derived units reference the base unit of their own category** with a `conversionFactor > 0`; the referenced base must not be the unit itself.
 - A UOM referenced as another's `baseUnitId` cannot be deleted.
+- **Status lifecycle `draft`, `published`, `inactive`** — `publish` requires `symbol`, active flag, and (for derived) existing category base + `baseUnitId` + factor; `retire` sets `inactive` + `is_active false` and closes open versions. Retiring blocks system units, category defaults, already-inactive rows.
+- **One default per category** — `setDefault` requires active published unit (or base) and clears previous default via `assignCategoryDefault`; retired units can never be default.
+- **System units are governed** — `is_system` rows (from `seed`) reject structural edits (category/base/factor/code/symbol/default); only precision, active flag, name, metadata editable.
+- **Indivisible units take whole quantities only** — `convert` throws when either side would split (`is_indivisible` + non-integer); math is `base = qty × fromFactor`, `converted = roundHalfUp(base ÷ toFactor, toPrecision)` (`utils/uom-math.ts`).
+- **Conversion same-category, active-only** — cross-category conversion forbidden; retired/inactive units convert never.
+- **Renaming published unit preserves old code as alias** — `master_uom_alias` row (`alias` unique); factor/precision changes append `master_uom_version` row (`effective_from` date, `reason`, supersedes open versions).
 - Not owner-scoped — tenant-wide reference data.
 
-**Lifecycle commands**: `create(input)`, `update(id, patch)`, `delete(id)`, `activate(id)` / `deactivate(id)`, `list(filters?)`.
+**Lifecycle commands**: `create(input)`, `update(id, patch)`, `delete(id)`, `get(id)`, `list(filters?)`, `convert({ fromUomId, toUomId?, quantity })`, `publish(id)`, `retire(id, { reason? })`, `setDefault(id)`, `seed()` (idempotent system-unit bootstrap + per-row versions + defaults), `versions(id)` (desc by `effective_from`, limit 100).
 
-### Filter View (Aggregate Root)
+### Label (Aggregate Root, scope-keyed)
 
 **Identity**: `id` (text, UUID, generated by the `uuidv7` column type)
 
 **Invariants**:
 
-- `domain` is free-form `<module>:<entity>` text (`tasks:task`, `dms:file`, `notes:note`, `hr:employee`, `compliance:document`, `workspace:draft`, or app-defined) — never a FK; the module never queries other modules' tables.
-- `conditions`/`sort` are typed `{ field, operator, value? }[]` / `{ field, direction }[]` jsonb (default `[]`).
-- `viewType` is `list`/`board`/`calendar`/`timeline` (defaults to `list` — preserves tasks board layouts); `projectId` preserves tasks project scoping (`null` for other domains).
-- `access` is user-set `personal` (owner-only) / `global` (org-wide within the tenant); `list` enforces `global OR owner` at SQL level, reads enforce `assertCanAccess`, mutations enforce owner-or-tenant-admin.
-- **One default per `(ownerId, domain, projectId)`** — `create`/`update`/`setDefault` with `isDefault` unset the overlapping default first (null-`projectId` aware).
-- Storage-only — no `apply`, no resolver registry; hosts read the stored conditions and query their own tables.
+- Optional `(scopeType, scopeId)` pair; null pair = global label. Name unique per scope via `uq_master_label_scope_name` nulls-not-distinct.
+- Application is a `master_entity_label` join row unique per `(entityType, entityId, labelId)`; `apply`/`remove` idempotent at the join level.
 
-**Lifecycle commands**: `create(input)`, `get(id)`, `update(id, input)`, `delete(id)`, `duplicate(id)` (personal copy under the caller), `setDefault(id)`, `getDefault(ownerId, domain?, projectId?)`, `list(filters?)`.
+**Lifecycle commands**: `create(input)`, `get(id)`, `update(id, patch)`, `delete(id)`, `apply({ labelId, entityType, entityId })`, `remove({ labelId, entityType, entityId })`, `list(filters?)`, `listByLabel(labelId)`.
+
+### Org Branch (Aggregate Root)
+
+**Identity**: `id` (text, UUID, generated by the `uuidv7` column type)
+
+**Invariants**:
+
+- `code` unique per tenant; `type` is `ORG_BRANCH_TYPE` (`headquarters`/`office`/`warehouse`/`store`/`factory`/`remote`/`other`); optional `parent_org_branch` soft FK forms tree (max depth enforced in workflow).
+- Lives in masters as `org_branch` (no `master_` prefix) — organization module's former branch surface.
+
+**Lifecycle commands**: `create(input)`, `get(id)`, `update(id, patch)`, `list(filters?)`, `tree()`.
 
 ### Setting (Aggregate Root, key-scoped)
 
@@ -178,38 +197,41 @@
 
 **Lifecycle commands**: `get(key)`, `set(key, value)` (upsert, audit-logged).
 
-## Domain Events — 27
+## Domain Events — 32
 
-| Event                                                | Payload                                                                | Trigger                                                 |
-| ---------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------- |
-| `masters.contact_created`                            | `{ contact: { id, name, type }, entityType }`                          | Contact created                                         |
-| `masters.contact_updated`                            | `{ contact: { id, name }, changes, entityType }`                       | Contact updated                                         |
-| `masters.contact_removed`                            | `{ contactId, entityId, entityType, reason }`                          | Contact soft-removed (`remove`); DMS revokes its shares |
-| `masters.address_created`                            | `{ address: { id, country, label }, entityId, entityType }`            | Address created                                         |
-| `masters.address_updated`                            | `{ address: { id }, changes, entityId, entityType }`                   | Address updated                                         |
-| `masters.address_removed`                            | `{ addressId, entityId, entityType }`                                  | Address removed                                         |
-| `masters.bank_account_created`                       | `{ bankAccount: { id, bankName, currency }, entityId, entityType }`    | Bank account created                                    |
-| `masters.bank_account_updated`                       | `{ bankAccount: { id }, changes, entityId, entityType }`               | Bank account updated                                    |
-| `masters.bank_account_activated`                     | `{ bankAccountId }`                                                    | Bank account activated                                  |
-| `masters.bank_account_deactivated`                   | `{ bankAccountId }`                                                    | Bank account deactivated                                |
-| `masters.connection_created`                         | `{ connection: { id, name, type }, entityId, entityType }`             | Connection created                                      |
-| `masters.connection_updated`                         | `{ connection: { id, name }, changes, entityId, entityType }`          | Connection updated                                      |
-| `masters.connection_status_changed`                  | `{ connectionId, fromStatus, toStatus }`                               | Connection status changed                               |
-| `masters.connection_credential_rotated`              | `{ connectionId }`                                                     | Connection credential rotated                           |
-| `masters.connection_removed`                         | `{ connectionId, entityId, entityType }`                               | Connection removed                                      |
-| `masters.entity_created` / `_removed`                | `{ entity: { id, name, type } }`                                       | Entity created / removed                                |
-| `masters.entity_updated`                             | `{ entity: { id, name, type }, changes }`                              | Entity updated                                          |
-| `masters.unit_of_measure_created` / `_removed`       | `{ unitOfMeasure: { id, code, category } }`                            | UOM created / removed                                   |
-| `masters.unit_of_measure_updated`                    | `{ unitOfMeasure: { id, code, category }, changes }`                   | UOM updated                                             |
-| `masters.unit_of_measure_activated` / `_deactivated` | `{ unitOfMeasureId }`                                                  | UOM activated / deactivated                             |
-| `masters.payment_method_created` / `_removed`        | `{ paymentMethod: { id, name, type }, entityType, entityId }`          | Payment method created / removed                        |
-| `masters.payment_method_updated`                     | `{ paymentMethod: { id, name, type }, entityType, entityId, changes }` | Payment method updated                                  |
-| `masters.payment_method_activated` / `_deactivated`  | `{ paymentMethodId, entityType, entityId }`                            | Payment method activated / deactivated                  |
-| `masters.payment_method_primary_set`                 | `{ paymentMethodId, entityType, entityId, direction }`                 | Payment method primary set                              |
-| `masters.filter_view_created`                        | `{ filterViewId, access, domain, ownerId }`                            | Filter view created                                     |
-| `masters.filter_view_updated`                        | `{ filterViewId }`                                                     | Filter view updated / default set                       |
-| `masters.filter_view_duplicated`                     | `{ filterViewId, duplicateId }`                                        | Filter view duplicated                                  |
-| `masters.filter_view_deleted`                        | `{ filterViewId }`                                                     | Filter view deleted                                     |
+| Event                                               | Payload                                                                | Trigger                                                 |
+| --------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------- |
+| `masters.contact_created`                           | `{ contact: { id, name, type }, entityType }`                          | Contact created                                         |
+| `masters.contact_updated`                           | `{ contact: { id, name }, changes, entityType }`                       | Contact updated                                         |
+| `masters.contact_removed`                           | `{ contactId, entityId, entityType, reason }`                          | Contact soft-removed (`remove`); DMS revokes its shares |
+| `masters.address_created`                           | `{ address: { id, country, label }, entityId, entityType }`            | Address created                                         |
+| `masters.address_updated`                           | `{ address: { id }, changes, entityId, entityType }`                   | Address updated                                         |
+| `masters.address_removed`                           | `{ addressId, entityId, entityType }`                                  | Address removed                                         |
+| `masters.bank_account_created`                      | `{ bankAccount: { id, bankName, currency }, entityId, entityType }`    | Bank account created                                    |
+| `masters.bank_account_updated`                      | `{ bankAccount: { id }, changes, entityId, entityType }`               | Bank account updated                                    |
+| `masters.bank_account_activated`                    | `{ bankAccountId }`                                                    | Bank account activated                                  |
+| `masters.bank_account_deactivated`                  | `{ bankAccountId }`                                                    | Bank account deactivated                                |
+| `masters.connection_created`                        | `{ connection: { id, name, type }, entityId, entityType }`             | Connection created                                      |
+| `masters.connection_updated`                        | `{ connection: { id, name }, changes, entityId, entityType }`          | Connection updated                                      |
+| `masters.connection_status_changed`                 | `{ connectionId, fromStatus, toStatus }`                               | Connection status changed                               |
+| `masters.connection_credential_rotated`             | `{ connectionId }`                                                     | Connection credential rotated                           |
+| `masters.connection_removed`                        | `{ connectionId, entityId, entityType }`                               | Connection removed                                      |
+| `masters.entity_created` / `_removed`               | `{ entity: { id, name, type } }`                                       | Entity created / removed                                |
+| `masters.entity_updated`                            | `{ entity: { id, name, type }, changes }`                              | Entity updated                                          |
+| `masters.unit_of_measure_created` / `_removed`      | `{ unitOfMeasure: { id, code, category } }`                            | UOM created / removed                                   |
+| `masters.unit_of_measure_updated`                   | `{ unitOfMeasure: { id, code, category }, changes }`                   | UOM updated (incl. `publish` → `{ status: published }`) |
+| `masters.unit_of_measure_retired`                   | `{ unitOfMeasure: { id, code, category }, reason }`                    | UOM retired (`retire`)                                  |
+| `masters.unit_of_measure_default_set`               | `{ unitOfMeasure: { id, code, category }, previousDefaultId }`         | UOM category default reassigned                         |
+| `masters.payment_method_created` / `_removed`       | `{ paymentMethod: { id, name, type }, entityType, entityId }`          | Payment method created / removed                        |
+| `masters.payment_method_updated`                    | `{ paymentMethod: { id, name, type }, entityType, entityId, changes }` | Payment method updated                                  |
+| `masters.payment_method_activated` / `_deactivated` | `{ paymentMethodId, entityType, entityId }`                            | Payment method activated / deactivated                  |
+| `masters.payment_method_primary_set`                | `{ paymentMethodId, entityType, entityId, direction }`                 | Payment method primary set                              |
+| `masters.label_created`                             | `{ label: { id, name, color, scopeType, scopeId } }`                   | Label created                                           |
+| `masters.label_updated`                             | `{ label: { id, name }, changes }`                                     | Label updated                                           |
+| `masters.label_removed`                             | `{ labelId }`                                                          | Label deleted                                           |
+| `masters.label_applied` / `_removed_from_entity`    | `{ labelId, entityType, entityId }`                                    | Label applied / unapplied                               |
+| `masters.org_branch_created`                        | `{ orgBranch: { id, name, code, type } }`                              | Org branch created                                      |
+| `masters.org_branch_updated`                        | `{ orgBranch: { id, name }, changes }`                                 | Org branch updated                                      |
 
 ## Command-Query Separation
 
@@ -230,10 +252,13 @@
 | Payment Method  | Create payment method  | `p.masters.paymentMethods.create()`                                |
 | Payment Method  | Set primary            | `p.masters.paymentMethods.setPrimary()`                            |
 | Unit of Measure | Create unit of measure | `p.masters.unitsOfMeasure.create()`                                |
-| Unit of Measure | Activate / deactivate  | `p.masters.unitsOfMeasure.activate()/deactivate()`                 |
-| Filter View     | Create filter view     | `p.masters.filterViews.create()`                                   |
-| Filter View     | Duplicate filter view  | `p.masters.filterViews.duplicate()` (personal copy)                |
-| Filter View     | Set default view       | `p.masters.filterViews.setDefault()`                               |
+| Unit of Measure | Publish unit           | `p.masters.unitsOfMeasure.publish()` (draft → published)           |
+| Unit of Measure | Retire unit            | `p.masters.unitsOfMeasure.retire()` (→ inactive)                   |
+| Unit of Measure | Set category default   | `p.masters.unitsOfMeasure.setDefault()`                            |
+| Unit of Measure | Convert quantity       | `p.masters.unitsOfMeasure.convert()` (read-only math)              |
+| Unit of Measure | Seed system units      | `p.masters.unitsOfMeasure.seed()`                                  |
+| Label           | Create / apply label   | `p.masters.labels.create()` / `apply()`                            |
+| Org Branch      | Create branch          | `p.masters.orgBranches.create()`                                   |
 | Setting         | Get setting            | `p.masters.settings.get(key)` (`org.*` tenant-wide, else per-user) |
 | Setting         | Set setting            | `p.masters.settings.set(key, value)` (upsert, audit-logged)        |
 
@@ -248,9 +273,9 @@
 | Entity          | List entities         | `p.masters.entities.list(filters?)`                                                                                   |
 | Payment Method  | List payment methods  | `p.masters.paymentMethods.list(entityType, entityId, filters?)`                                                       |
 | Unit of Measure | List units of measure | `p.masters.unitsOfMeasure.list(filters?)`                                                                             |
-| Filter View     | Get filter view       | `p.masters.filterViews.get(id)` (access-checked)                                                                      |
-| Filter View     | List filter views     | `p.masters.filterViews.list(filters?)` (`global OR owner` at SQL level)                                               |
-| Filter View     | Get default view      | `p.masters.filterViews.getDefault(ownerId, domain?, projectId?)`                                                      |
+| Unit of Measure | List versions         | `p.masters.unitsOfMeasure.versions(id)`                                                                               |
+| Label           | List labels           | `p.masters.labels.list(filters?)` / `listByLabel(labelId)`                                                            |
+| Org Branch      | List / tree branches  | `p.masters.orgBranches.list()` / `tree()`                                                                             |
 | Setting         | Get setting           | `p.masters.settings.get(key)` (returns the value or null)                                                             |
 
 ## Invariants & Business Rules
@@ -261,7 +286,8 @@
 4. **Uppercase country codes** — `master_address.country` is stored as ISO 3166-1 alpha-2 uppercase.
 5. **Entity status transitions** — `active` ↔ `inactive`, and both → `archived` (terminal).
 6. **UOM base-unit invariant** — exactly one base unit per category; base units have `baseUnitId`/`conversionFactor` null; derived units reference the base of their own category with `conversionFactor > 0`; referenced-as-base units cannot be deleted.
-7. **Payment method type fields** — type-specific required fields validated on create/update; card data is masked-only.
-8. **Contact soft-remove** — `remove` requires a reason, sets `is_removed`/`deletionReason`/`removedAt`, publishes `masters.contact_removed` (DMS revokes contact shares); `delete` is a hard delete.
-9. **Filter view defaults** — one default per `(ownerId, domain, projectId)`; `projectId` is null outside tasks scoping. Access is user-set (`personal`/`global`); only the owner or a tenant admin may mutate.
-10. **Settings scope is key-prefixed** — `org.*` keys are tenant-wide single rows (`user_id` null, unique per key via nulls-not-distinct); all other keys are unique per `(user_id, key)`. `set` upserts and audit-logs; there are no settings events.
+7. **UOM lifecycle** — `draft`, `published`, `inactive`; one default per category; system units governed; indivisible units whole-quantity only; conversions same-category active-only; renames alias old code; factor changes version.
+8. **Payment method type fields** — type-specific required fields validated on create/update; card data is masked-only.
+9. **Contact soft-remove** — `remove` requires a reason, sets `is_removed`/`deletionReason`/`removedAt`, publishes `masters.contact_removed` (DMS revokes contact shares); `delete` is a hard delete.
+10. **Labels are scope-keyed** — `(scopeType, scopeId)` null pair = global; name unique per scope; application is a join row unique per `(entityType, entityId, labelId)`.
+11. **Settings scope is key-prefixed** — `org.*` keys are tenant-wide single rows (`user_id` null, unique per key via nulls-not-distinct); all other keys are unique per `(user_id, key)`. `set` upserts and audit-logs; there are no settings events.

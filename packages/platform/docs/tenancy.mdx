@@ -103,7 +103,13 @@ In isolated mode, `IsolatedTenantPlatform.$prepareInfra()` also calls each modul
 
 ### RLS Policies (shared mode)
 
-After schemas are pushed during `$prepareInfra()`, `SharedTenantPlatform` applies standard RLS policies to tables with a `tenant_id` column:
+`SharedTenantPlatform` does not auto-apply RLS — call `db.applyRlsPolicies(db)` explicitly
+after schemas are pushed during `$prepareInfra()`. It creates the `tenant_role` and a
+`tenant_isolation` policy on every table with a `tenant_id` column:
+
+```ts
+await p.db.applyRlsPolicies(p.db.controlPlaneDb);
+```
 
 ```sql
 ALTER TABLE <table> ENABLE ROW LEVEL SECURITY;
@@ -112,8 +118,6 @@ CREATE POLICY tenant_isolation ON <table>
   USING (tenant_id = current_setting('app.tenant_id', true))
   WITH CHECK (tenant_id = current_setting('app.tenant_id', true));
 ```
-
-RLS is applied in `$prepareInfra()` after the base `$prepareInfra()` completes.
 
 ### `tenant_id` Column
 

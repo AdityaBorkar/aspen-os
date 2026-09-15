@@ -47,7 +47,7 @@ No module dependencies (`$dependencies: []`). Unit bindings are explicit:
 
 | Unit      | Purpose                                                                                                          |
 | --------- | ---------------------------------------------------------------------------------------------------------------- |
-| `db`      | Control-plane `comms_provider` + tenant tables                                                                   |
+| `db`      | Control-plane `provider` + tenant tables                                                                         |
 | `kvStore` | Credentials (`comms:channel:<id>:credential` tenant scope, `comms:provider:<id>:credential` control-plane scope) |
 | `pubsub`  | Sweeper cron + event-bridge subscriptions                                                                        |
 | `auth`    | Recipient address resolution                                                                                     |
@@ -57,15 +57,15 @@ No module dependencies (`$dependencies: []`). Unit bindings are explicit:
 ```mermaid
 flowchart TB
   subgraph ControlPlane[control plane]
-    P[comms_provider]
+    P[provider]
   end
   subgraph Tenant[tenant]
-    C[comms_channel]
-    N[comms_notification]
-    M[comms_message]
-    PR[comms_preference]
-    T[comms_template]
-    S[comms_setting]
+    C[channel]
+    N[notification]
+    M[message]
+    PR[preference]
+    T[template]
+    S[setting]
   end
 
   P -. host default<br/>materialization .-> C
@@ -75,21 +75,21 @@ flowchart TB
   PR -. routing opt-out .-> N
 
   subgraph Runtime[runtime]
-    SWEEP[comms.message-sweeper<br/>* * * * *]
-    BRIDGE[event bridge<br/>7 subscriptions]
+    SWEEP[comms.message-sweeper<br/>cron scan of queued messages]
+    BRIDGE[event bridge<br/>peer-topic subscriptions]
   end
 
   BRIDGE -->|notify| N
   SWEEP -->|adapter send| M
 ```
 
-Tenant BYOC channels carry `credentialRef` (tenant kvStore); host defaults materialize lazily from an active `provider` (`source = host`, `provider_id` set).
+Tenant BYOC channels carry `credential_ref` (tenant kvStore); host defaults materialize lazily from an active `provider` (`source = host`, `provider_id` set).
 
 ## Key concepts
 
 ### Three-layer model
 
-`provider` (host capability + credentialRef) → `channel` (tenant sender endpoint, `tenant` BYOC or `host` default) → `notification` (in-app inbox row) + `message` (one outbox row per outbound channel). `inapp` is a routing-only pseudo channel type on preferences and `channelTypes`, never on a channel.
+`provider` (host capability + `credential_ref`) → `channel` (tenant sender endpoint, `tenant` BYOC or `host` default) → `notification` (in-app inbox row) + `message` (one outbox row per outbound channel). `inapp` is a routing-only pseudo channel type on preferences and `channelTypes`, never on a channel.
 
 ### Credentials in kvStore
 
@@ -107,10 +107,10 @@ The `notification` row _is_ the inbox; only non-`inapp` channel types produce `m
 
 ```mermaid
 flowchart LR
-  P[comms_provider] -->|provider_id soft FK| C[comms_channel]
-  C -->|channel_id soft FK| M[comms_message]
-  N[comms_notification] -->|notification_id soft FK| M
-  T[comms_template] -->|template_id soft FK| M
+  P[provider] -->|provider_id soft FK| C[channel]
+  C -->|channel_id soft FK| M[message]
+  N[notification] -->|notification_id soft FK| M
+  T[template] -->|template_id soft FK| M
 ```
 
 All FKs are soft (tenant isolation, control-plane split). The provider → channel link is valid only when `channel.source = host`.
@@ -134,9 +134,9 @@ Provider receipt webhooks correlate by `providerMessageId` and promote the messa
 ```text
 packages/comms/src/
   module.ts        # $name, $consumes, $prepareRuntime (sweeper + bridge)
-  auth.ts          # defineAcl 7 resources
+  auth.ts          # defineAcl resources
   pubsub.ts        # comms.* events
-  db-schemas/      # 1 control-plane + 6 tenant tables + 9 enums
+  db-schemas/      # control-plane provider + tenant tables and enums
   services/        # delivery-worker, event-bridge, adapters, credential-service
   workflows/       # channels, providers, notifications, preferences, templates, settings, messages
 ```

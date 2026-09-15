@@ -6,12 +6,6 @@ icon: IconBell
 
 The Comms module publishes and consumes domain events as plain string topics via `PubSub`.
 
-<Callout type="info">
-  Pubsub starts lazily: `publish()` auto-creates a missing queue and retries, so messages queue
-  durably until a consumer appears. Every bridge topic below is subscribed in `$prepareRuntime()`;
-  the sweeper needs no subscription because it is a cron.
-</Callout>
-
 ## Consumed (event bridge)
 
 | Topic                      | Producer                     | Handler                                                               |

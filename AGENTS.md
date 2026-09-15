@@ -2,10 +2,10 @@
 
 ## Repository Shape
 
-- Bun/TypeScript ESM monorepo. Workspaces: `packages/*`, `examples/*`, `docs`. `examples/recruiter` is only a SeaweedFS/S3 config stub (no `package.json`); there is no host/example app.
+- Bun/TypeScript ESM monorepo. Workspaces: `packages/*`, `docs` (`package.json` still globs `./examples/*` but no `examples/` dir exists on disk or in git).
 - `packages/platform` is the framework kernel. Import via `@aspen-os/platform/server`, `@aspen-os/platform/client`, `@aspen-os/platform/server/db-schemas`, and the `aspen` binary; there is no root platform export.
 - Domain modules live in `packages/*` and are passed as an array to a platform. `crm`, `fleet`, `inventory`, `reports` are placeholder packages (`package.json` holds only `name`); do not infer an API from their READMEs.
-- `.working-docs/` is the domain source of truth. Before domain/schema changes, read `CODING_CONVENTIONS.md` and the relevant `.working-docs/domain-model/`, `bounded-contexts/`, ADR, or SOW file. `docs/` is the generated Fumadocs site, not the domain source of truth.
+- `.working-docs/` is the domain source of truth. Before domain/schema changes, read `CODING_CONVENTIONS.md` and the relevant `.working-docs/domain-model/`, `bounded-contexts/`, or `adr/` file. `docs/` is the generated Fumadocs site, not the domain source of truth.
 - For new modules, follow `.agents/skills/write-module/SKILL.md`; for docs changes, use `.agents/skills/write-docs/SKILL.md`. `CODING_CONVENTIONS.md` is the exhaustive rule reference; this file is the lean pointer.
 
 ## Commands
@@ -13,7 +13,7 @@
 - Install with `bun install`. `bunfig.toml` sets `ignore-scripts = true`, so postinstall hooks never run.
 - Verify with `bun run check:lint` and `bun run check:types` (`tsc -b`). Lint is mutating: `oxlint --fix . ; oxfmt .`. Focused checks: `cd packages/<name> && bun run check:lint` / `bun run check:types`.
 - Root `bun run build` is `nx run-many -t build --exclude=docs --no-tui`. Build a build-step package from its directory with `bun run build` (`bun run ../../scripts/build.ts`).
-- Build-step packages (have a `build` script) are `platform`, `masters`, `notes`, `calendar`, `management`, `comms`, `dms`, `workspace`, and `constants`. Raw-source packages (no build, export `./src/index.ts`) are `compliance`, `tasks`, `hr-core`, `hr-attendance`, `hr-leave`.
+- Build-step packages (have a `build` script) are `platform`, `masters`, `notes`, `calendar`, `management`, `comms`, `dms`, `workspace`, `healthcare`, and `constants`. Raw-source packages (no build, export `./src/index.ts`) are `compliance`, `tasks`, `hr-core`, `hr-attendance`, `hr-leave`.
 - `scripts/build.ts` deletes/recreates `.output/` and rewrites `package.json` exports/bin to `.output` paths in place (`git status` shows `package.json` modified); `constants` keeps its `./src/index.ts` export and only emits declarations. `bun run build --dev` rewrites exports/bin back to `./src/*` without emitting. Rebuild the required build-step packages before typechecking raw-source consumers (`compliance`, `tasks`, `hr-*`) after a clean checkout or a `platform` change. Never commit `.output/`.
 - `bun run clean` deletes `node_modules`, `.nx`, `.output`, `.local`, and `bun.lockb`; use it only when intentionally removing the lockfile and generated artifacts.
 - Better-auth schema is generated, not hand-edited: from `packages/platform` run `bun run gen:auth-schema` (`bunx auth generate --config ./src/server/auth/~config.ts --output ./src/server/db/schema/auth.gen.ts`).

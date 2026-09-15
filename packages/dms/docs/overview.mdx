@@ -13,7 +13,12 @@ export class Dms implements Module {
   static create(config?: DmsModuleConfig): Dms;
   readonly $name = "dms"; // proxy key: p.dms
   readonly $dependencies: readonly string[] = ["masters"];
-  readonly $consumes: readonly string[] = ["masters.contact_removed"];
+  readonly $consumes: readonly string[] = [
+    "masters.contact_removed",
+    "masters.label_created",
+    "masters.label_updated",
+    "masters.label_removed",
+  ];
 }
 ```
 
@@ -49,7 +54,7 @@ const p = IsolatedTenantPlatform.create(config, [masters, dms]);
 | `storage`  | unit (`$initialize`)                          | Binary objects under version-bound keys `dms/{tenant}/{fileId}/v{n}/{name}`           |
 | `audit`    | context (`getContext()` in `$prepareRuntime`) | Audit writes for every mutation                                                       |
 
-`$consumes: ["masters.contact_removed"]` — removing a Masters contact revokes every DMS share granted to that contact via the contact-share bridge. The platform does not validate `$consumes`.
+`$consumes` lists the contact-share bridge topic plus the label-bridge projection topics — removing a Masters contact revokes every DMS share granted to that contact, and `masters.label_*` events sync the local `dms_label_cache`. The platform does not validate `$consumes`.
 
 ## Architecture
 
@@ -77,10 +82,12 @@ flowchart TB
       SE[dms_setting]
       AL[dms_access_log]
       EL[dms_entity_label]
+      LC[dms_label_cache]
     end
   end
 
   masters[master_label<br/>master_contact] -. soft FK .-> S & EL
+  masters -. label_created/updated/removed<br/>syncs LC .-> LC
   storage[(StorageUnit<br/>dms/{tenant}/{fileId}/v{n}/{name})] --- F
   F --- C
   F --- V
@@ -109,7 +116,7 @@ Folders keep materialized `path` (`/Projects/2026`) with cycle-safe moves guarde
 
 ### Sharing, labels, holds
 
-Shares are grants to `user`/`group`/`contact` over polymorphic `file`/`folder` entities; folder grants inherit down the tree. `contact` grantees hold Masters contact ids — invalidated on `masters.contact_removed`. Labels live in `masters` (`master_label`); `dms_entity_label` links them to files/folders. Legal holds block purge.
+Shares are grants to `user`/`group`/`contact` over polymorphic `file`/`folder` entities; folder grants inherit down the tree. `contact` grantees hold Masters contact ids — invalidated on `masters.contact_removed`. Labels live in `masters` (`master_label`); `dms_entity_label` links them to files/folders and `dms_label_cache` mirrors label names for search. Legal holds block purge.
 
 ## Relationships
 
@@ -120,7 +127,8 @@ flowchart LR
   F --> V[dms_file_version]
   FO[dms_folder] -->|parent_id| FO
   FO --> F
-  F & FO -->|entity_type+entity_id| EL[dms_entity_label] -->|label_id| ML[master_label]
+  F & FO -->|entity_type+entity_id| EL[dms_entity_label] -->|label_id| LC[dms_label_cache]
+  LC -. synced from .-> ML[master_label]
   F & FO -->|entity_type+entity_id| S[dms_share]
   F & FO -->|entity_type+entity_id| PL[dms_public_link]
   F --> LH[dms_legal_hold]
@@ -129,6 +137,11 @@ flowchart LR
 ```
 
 Relationships are logical, workflow-enforced; `entity_type` is `dms_entity_type` (`file` | `folder`). No hard DB FKs to `masters` tables.
+
+<Callout type="info">
+  DMS is the single document/file surface — no parallel `drive` model. Contacts and label
+  definitions stay in `masters`; DMS keeps only grants, joins, and the `dms_label_cache` projection.
+</Callout>
 
 ## Lifecycle
 
@@ -145,7 +158,7 @@ stateDiagram-v2
   expired --> purged: auto-purge
 ```
 
-`$prepareRuntime()` registers `dms.expiry-scan` (`5 0 * * *`) and `dms.auto-purge` (`30 3 * * *`) plus the contact-share bridge; `$cleanup()` unregisters all three.
+`$prepareRuntime()` registers `dms.expiry-scan` and `dms.auto-purge` plus the contact-share and label bridges; `$cleanup()` unregisters all four.
 
 ## Module structure
 
@@ -153,9 +166,9 @@ stateDiagram-v2
 packages/dms/src/
   module.ts    # $name, $dependencies, $consumes, $prepareInfra/Runtime
   auth.ts      # defineAcl 9 resources
-  pubsub.ts    # 27 events across 5 groups
-  db-schemas/  # 11 tenant tables + 6 enums
+  pubsub.ts    # events across 5 groups
+  db-schemas/  # tenant tables + 6 enums
   workflows/   # 16 groups — one file per action
-  services/    # expiry-scanner, purge-service, contact-share-bridge, paths, storage
+  services/    # expiry-scanner, purge-service, contact-share-bridge, label-bridge, paths, storage
   schemas/     # Valibot input schemas
 ```

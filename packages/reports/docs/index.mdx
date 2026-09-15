@@ -1,9 +1,36 @@
 ---
 title: Reports
-description: Placeholder package — centralized reporting module is not yet implemented.
+description: Placeholder package — reports module is not yet implemented.
 icon: IconReportAnalytics
 ---
 
-`@aspen-os/reports` is a **not-started** stub. Its `src/index.ts` is empty and `package.json` has no exports, dependencies, or scripts.
+`@aspen-os/reports` is a not-started stub with no module, workflows, tables, or events.
 
-This package is intended to provide a centralized reporting layer, but no scope has been defined yet. See `docs/TODO.md` for planned work.
+<Callout type="warn">
+  Do not depend on `@aspen-os/reports` — `src/index.ts` is empty and it registers no platform
+  module.
+</Callout>
+
+## Status
+
+```json title="packages/reports/package.json"
+{
+  "name": "@aspen-os/reports"
+}
+```
+
+```ts title="packages/reports/src/index.ts"
+(empty — no exports)
+```
+
+No domain model, bounded context, or events. Listed as a stub in
+`.working-docs/bounded-contexts/stubs.md`. A future module would follow the
+management-aligned shape (`CODING_CONVENTIONS.md`,
+`.agents/skills/write-module/SKILL.md`).
+
+## Relationships
+
+| Direction   | Value                                                  |
+| ----------- | ------------------------------------------------------ |
+| Context map | Stub — no upstream, downstream, or module dependencies |
+| Events      | None produced, none consumed                           |

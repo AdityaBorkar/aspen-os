@@ -4,7 +4,7 @@ description: Tenant tables, enums, and relationships declared by the DMS module.
 icon: IconDatabase
 ---
 
-The DMS module declares tenant tables with the `dms_` prefix. Every table uses `id: uuidv7("id").primaryKey()` and `timestamptz` (`withTimezone: true`) for `created_at`/`updated_at`. Labels live in `masters` (`master_label`); no `dms_label` table exists.
+The DMS module declares tenant tables with the `dms_` prefix. Shared columns `id`, `created_at`, `updated_at` appear on most tables and are omitted per-table below — `dms_label_cache` mirrors `masters` label ids (`text PK`, `updated_at` only). Labels are defined in `masters` (`master_label`); DMS stores only the `dms_entity_label` join plus the `dms_label_cache` projection.
 
 ## Enums
 
@@ -52,7 +52,7 @@ Single file entity merging filesystem and records attributes. Full-text search u
 | `deleted_by`                | text              | Who soft-deleted                                                            |
 | `created_at` / `updated_at` | timestamptz       | Record timestamps                                                           |
 
-Indexes: `status`, `class_id`, `folder_id`, `owner_id`, `batch_id`, `expiry_date`, `path`, GIN `search_vector`.
+Indexes: `idx_dms_file_search(GIN expression)`, `idx_dms_file_folder(folder_id)`, `idx_dms_file_class(class_id)`, `idx_dms_file_status(status)`, `idx_dms_file_owner(owner_id)`, `idx_dms_file_batch(batch_id)`, `idx_dms_file_expiry(expiry_date)`, `idx_dms_file_path(path)`.
 
 ### `dms_file_version`
 
@@ -71,7 +71,7 @@ Indexes: `status`, `class_id`, `folder_id`, `owner_id`, `batch_id`, `expiry_date
 | `is_current`   | boolean                | Mirrors file's current version |
 | `created_at`   | timestamptz            | Version creation               |
 
-Indexes: unique `(file_id, version)`, `file_id`.
+Indexes: unique `idx_dms_file_version_file_ver(file_id, version)`, `idx_dms_file_version_file(file_id)`.
 
 ### `dms_folder`
 
@@ -86,7 +86,7 @@ Indexes: unique `(file_id, version)`, `file_id`.
 | `is_trashed` / `trashed_at` | boolean / timestamptz | Soft-delete (trash)                               |
 | `created_at` / `updated_at` | timestamptz           | Record timestamps                                 |
 
-Indexes: `parent_id`, `owner_id`, `path`, `is_trashed`.
+Indexes: `idx_dms_folder_parent(parent_id)`, `idx_dms_folder_owner(owner_id)`, `idx_dms_folder_path(path)`, `idx_dms_folder_trashed(is_trashed)`.
 
 ### `dms_class`
 
@@ -101,6 +101,8 @@ Indexes: `parent_id`, `owner_id`, `path`, `is_trashed`.
 | `is_active`                 | boolean     | `false` archives the class                                              |
 | `created_by`                | text        | Admin who created it                                                    |
 | `created_at` / `updated_at` | timestamptz | Record timestamps                                                       |
+
+No secondary indexes.
 
 ### `dms_class_field`
 
@@ -119,7 +121,7 @@ Indexes: `parent_id`, `owner_id`, `path`, `is_trashed`.
 | `is_active`                 | boolean                 | Hidden from classify form when `false`     |
 | `created_at` / `updated_at` | timestamptz             | Record timestamps                          |
 
-Indexes: `class_id`, unique `(class_id, name)`.
+Indexes: `idx_dms_class_field_class(class_id)`, unique `idx_dms_class_field_class_name(class_id, name)`.
 
 ### `dms_entity_label`
 
@@ -134,7 +136,7 @@ Polymorphic join between `master_label` and `file`/`folder`.
 | `applied_by`  | text                       | Who applied                    |
 | `applied_at`  | timestamptz                | When applied                   |
 
-Indexes: unique `(entity_type, entity_id, label_id)`, `(entity_type, entity_id)`, `label_id`.
+Indexes: unique `idx_dms_entity_label_unique(entity_type, entity_id, label_id)`, `idx_dms_entity_label_entity(entity_type, entity_id)`, `idx_dms_entity_label_label(label_id)`.
 
 ### `dms_share`
 
@@ -154,7 +156,7 @@ Unified grant to `user`/`group`/`contact` over polymorphic `file`/`folder` entit
 | `expires_at`   | timestamptz            | Optional expiry                               |
 | `created_at`   | timestamptz            | Creation time                                 |
 
-Indexes: unique `(entity_type, entity_id, grantee_type, grantee_id)`, `(entity_id, entity_type)`, `(grantee_id, grantee_type)`.
+Indexes: unique `idx_dms_share_entity_grantee(entity_type, entity_id, grantee_type, grantee_id)`, `idx_dms_share_entity(entity_id, entity_type)`, `idx_dms_share_grantee(grantee_id, grantee_type)`.
 
 ### `dms_public_link`
 
@@ -171,7 +173,7 @@ Indexes: unique `(entity_type, entity_id, grantee_type, grantee_id)`, `(entity_i
 | `created_by`                | text                         | Creator                         |
 | `created_at`                | timestamptz                  | Creation                        |
 
-Indexes: `(entity_id, entity_type)`, `is_active`.
+Indexes: `idx_dms_public_link_entity(entity_id, entity_type)`, `idx_dms_public_link_active(is_active)`.
 
 ### `dms_legal_hold`
 
@@ -185,7 +187,7 @@ Indexes: `(entity_id, entity_type)`, `is_active`.
 | `released_by` | text                   | Admin who released              |
 | `released_at` | timestamptz            | When released (`null` = active) |
 
-Indexes: `file_id`, `released_at`.
+Indexes: `idx_dms_legal_hold_file(file_id)`, `idx_dms_legal_hold_released(released_at)`.
 
 ### `dms_setting`
 
@@ -195,6 +197,8 @@ Indexes: `file_id`, `released_at`.
 | `key`                       | text (unique) | Setting key       |
 | `value`                     | jsonb         | Setting value     |
 | `created_at` / `updated_at` | timestamptz   | Record timestamps |
+
+Indexes: `idx_dms_setting_key(key)`.
 
 Default keys: `defaultCompression`, `presignedUrlDefaultExpiry`, `presignedUrlMaxExpiry`, `defaultRetentionDays`, `autoPurgeEveryHours`, `logDownloads`.
 
@@ -210,7 +214,22 @@ Default keys: `defaultCompression`, `presignedUrlDefaultExpiry`, `presignedUrlMa
 | `public_link_id`            | text                     | Link used, if any              |
 | `created_at`                | timestamptz              | Access timestamp               |
 
-Indexes: `(entity_id, entity_type)`, `public_link_id`, `created_at`.
+Indexes: `idx_dms_access_log_entity(entity_id, entity_type)`, `idx_dms_access_log_public_link(public_link_id)`, `idx_dms_access_log_created(created_at)`.
+
+### `dms_label_cache`
+
+Projection of `masters` label taxonomy synced from `masters.label_created / label_updated / label_removed`; DMS never reads `master_label` directly.
+
+| Column       | Type        | Description         |
+| ------------ | ----------- | ------------------- |
+| `id`         | text (PK)   | Masters label id    |
+| `name`       | text        | Label name          |
+| `color`      | text        | Label color         |
+| `scope_type` | text        | Label scope type    |
+| `scope_id`   | text        | Label scope id      |
+| `updated_at` | timestamptz | Last sync timestamp |
+
+Indexes: `idx_dms_label_cache_name(name)`, `idx_dms_label_cache_scope(scope_type, scope_id)`.
 
 ## Relationships
 
@@ -221,7 +240,8 @@ flowchart LR
   F --> V[dms_file_version]
   FO[dms_folder] -->|parent_id| FO2[dms_folder]
   FO --> F
-  F & FO --> EL[dms_entity_label] --> ML[master_label<br/>masters]
+  F & FO --> EL[dms_entity_label] --> LC[dms_label_cache]
+  LC -. synced from .-> ML[master_label<br/>masters]
   F & FO --> S[dms_share]
   F & FO --> PL[dms_public_link]
   F --> LH[dms_legal_hold]

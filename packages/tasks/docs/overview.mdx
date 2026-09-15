@@ -77,21 +77,19 @@ flowchart TB
 
 Control (`task_project`, `task_project_member`, `task_status`, `task_status_transition`, `task_type`) and tenant tables (`task`, `task_assignee`, `task_link`, `task_time_entry`, `task_comment`, `task_attachment`, `task_watcher`, `task_activity_log`, `task_automation_rule`); no `task_label_def` — labels live in `@aspen-os/masters`.
 
-## Key concepts
-
-### Projects and keys
+## Projects and keys
 
 `task_project.key` (2–10 uppercase letters, unique) drives display numbers `KEY-SEQ` via `task_counter`. `leadId` auto-membered as `admin`. `delete` blocked when tasks exist — archive instead.
 
-### Statuses and transitions
+## Statuses and transitions
 
 `task_status` is project-scoped or global (`project_id` null). `is_default` unique per scope; `is_resolved` marks completion. Optional `task_status_transition` rules default to open model when empty; `validateTransition` checks explicit rules; `requires_comment` / `requires_role` are transition guards.
 
-### Tasks
+## Tasks
 
 `task` holds `status_id`, `type_id`, `parent_id` (self-ref, max depth 3, cycle-checked), `priority` (`task_priority`), `labels` (text[]), `estimated_hours`, dates, and archived flag. Creation increments `task_counter`; subtasks and `bulkUpdate` are explicit workflows.
 
-### Collaboration
+## Collaboration
 
 `task_assignee` (one lead via `is_lead`), `task_watcher` (idempotent), `task_comment` (threaded `parent_id`, soft-delete), `task_attachment` (optionally `comment_id`), `task_activity_log` (append-only), `task_link` (directed `task_link_type` with inverse), `task_time_entry` (minutes, `billable`).
 

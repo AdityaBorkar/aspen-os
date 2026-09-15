@@ -13,9 +13,12 @@ The platform is organized around three concepts: **units** (infrastructure), **m
 ```json title="package.json"
 {
   "exports": {
-    "./client": "./.output/client/index.js",
-    "./server": "./.output/server/index.js",
-    "./server/db-schemas": "./.output/server/db/schema/index.js"
+    "./client": { "default": "./.output/client/index.js", "types": "./.output/client/index.d.ts" },
+    "./server": { "default": "./.output/server/index.js", "types": "./.output/server/index.d.ts" },
+    "./server/db-schemas": {
+      "default": "./.output/server/db/schema/index.js",
+      "types": "./.output/server/db/schema/index.d.ts"
+    }
   }
 }
 ```
@@ -38,7 +41,7 @@ Also exports:
 - `Unit`, `Module` interfaces, `ModuleInfra` type
 - `defineAcl`, `AclDeclaration`
 - `isGlobalTenantId`, `generateUuidv7`, `uuidv7`
-- All 8 unit classes and their config types
+- All 8 unit config types and unit type exports
 - `PlatformInstance`, `PlatformUnits`, `TenancyMode`, `TenantResolver` types
 - `context`, `password`, `EmailSchema` etc.
 

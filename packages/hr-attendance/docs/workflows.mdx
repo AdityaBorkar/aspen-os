@@ -4,7 +4,7 @@ description: API reference for the workflow groups exposed by the hr-attendance 
 icon: IconListCheck
 ---
 
-The hr-attendance module exposes three workflow groups via `p.hrAttendance`: `attendance`, `overtime`, and `shift`.
+The hr-attendance module exposes workflow groups via `p.hrAttendance`: `attendance`, `overtime`, and `shift`.
 
 Create inputs are Valibot-validated `{ input: Create*Input }`, update is `{ id, patch: Update*Input }` where `undefined` leaves a column untouched. Every command audit-logs and, where listed, publishes a domain event.
 

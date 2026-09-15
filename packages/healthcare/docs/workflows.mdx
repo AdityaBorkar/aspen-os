@@ -4,7 +4,7 @@ description: API reference for the workflow groups exposed by the Healthcare mod
 icon: IconListCheck
 ---
 
-Workflow groups via `p.healthcare`: `patients`, `practitioners`, `facilities`, `services`, `appointments`, `encounters`, `admin`, `allopathy`, `dental`, `ayush`, `rehab`, `psych`, `residents`, `pharmacy`, `diagnostics`, `billing`, `nursing`, `records`, `operations`, `staff`.
+Workflow groups via `p.healthcare`: `patients`, `practitioners`, `facilities`, `services`, `pricelists`, `appointments`, `encounters`, `admin`, `allopathy`, `dental`, `ayush`, `rehab`, `psych`, `residents`, `pharmacy`, `diagnostics`, `billing`, `nursing`, `records`, `operations`, `staff`.
 
 Create takes Valibot `{ input }` with `branchId` (defaults `"main"`); reads take filter objects. Every mutation writes an audit entry and publishes a `healthcare.*` event; reads publish nothing.
 
@@ -95,6 +95,22 @@ await p.healthcare.services.setPrice({
 });
 await p.healthcare.services.publish({ input: { branchId: "main", serviceId: svc.id } });
 ```
+
+### Pricelists
+
+Versioned pricelists with publish/retire lifecycle, bulk revision preview/apply, and price resolution with `DEFAULT` fallback.
+
+```ts
+const list = await p.healthcare.pricelists.create({
+  input: { branchId: "main", code: "INS-A", name: "Insurer A" },
+});
+await p.healthcare.pricelists.publish({ input: { id: list.id } });
+await p.healthcare.pricelists.resolvePrice({
+  input: { branchId: "main", serviceId: svc.id, pricelistId: list.id },
+});
+```
+
+`DEFAULT` is reserved for the seeded fallback pricelist; only published pricelists resolve prices.
 
 ### Appointments
 

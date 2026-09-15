@@ -4,15 +4,13 @@ description: API reference for the note workflows exposed by the Notes module.
 icon: IconListCheck
 ---
 
-Workflow group via `p.notes`: `notes`.
+Workflow group `notes` via `p.notes`.
 
-Scoped notes use `scopeType` + `scopeId` (`<module>:<entity>` registry value, owning row id); both required together; create takes Valibot `{ input }`, update takes `{ id, input }`, `get`/`delete` take `{ id }`. Every mutation writes an audit entry and publishes a `notes.note_*` event.
+Scoped notes use `scopeType` + `scopeId` (both required together); create takes Valibot `{ input }`, update takes `{ id, input }`, and every mutation audit-logs and publishes a `notes.note_*` event.
 
 ## Features
 
 ### Notes
-
-Access: `p.notes.notes`
 
 First-class notes: quick-capture (`title` optional) or scoped annotation (`masters:contact`, `tasks:task`, `calendar:event`, …). `access` defaults to `personal`; `ownerId` is derived from `actorId`.
 
@@ -38,8 +36,6 @@ await p.notes.notes.delete({ id });
 
 `update` with no fields is rejected; `metadata` is replaced wholesale, not merged.
 
-### Listing
-
 ```ts
 const notes = await p.notes.notes.list({
   filters: {
@@ -56,7 +52,5 @@ const notes = await p.notes.notes.list({
 
 Results ordered by `createdAt` descending, `limit` defaults to 50 (max 100). `list` is access-scoped (`global OR ownerId = actorId`; skipped for tenant admins). `search` matches `title`/`body` case-insensitively with `%`, `_`, `\` escaped.
 
-## Links
-
-- Events: [Notes Events](/docs/notes/events)
-- Schema: [Notes Schema](/docs/notes/db-schemas)
+Events: see [Notes Events](/docs/notes/events).
+Schema: see [Notes Schema](/docs/notes/db-schemas).

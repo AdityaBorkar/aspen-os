@@ -30,8 +30,11 @@ export class Compliance implements Module {
 export interface ComplianceModuleConfig {
   country: "INDIA";
   dashboardCacheTtl?: number; // default 300
-  defaultReminderDays?: number[];
+  summaryCacheTtl?: number; // default 300
   defaultEscalationDays?: number[];
+  defaultExpiryPolicyDays?: number[];
+  /** @deprecated Use defaultExpiryPolicyDays */
+  defaultReminderDays?: number[];
 }
 ```
 
@@ -53,7 +56,7 @@ flowchart TB
     PrepInfra --> Init["$initialize({db,kvStore,pubsub})"]
     Init --> Runtime["$prepareRuntime()"]
     Runtime --> OG["registerObligationGenerator()\nsubscribes compliance.obligation-generate"]
-    Runtime --> EB["registerEventBridgeSubscriptions()\nsubscribes 8 external topics"]
+    Runtime --> EB["registerEventBridgeSubscriptions()\nsubscribes 6 external topics"]
     OG & EB --> Topics["#topics[]"]
     Topics --> Cleanup["$cleanup()\nunsubscribe all Topics"]
   end
@@ -70,7 +73,7 @@ flowchart TB
 
 ### Tenant-Scope
 
-All three tables (`document`, `obligation`, `verification_rule`) live in `tenant_schemas` (per-tenant in isolated mode, single DB in single/shared mode). Every document carries `sourceModule`/`sourceEntityId` soft links to external entities — no hard FK across modules.
+Tables live in `tenant_schemas` (per-tenant in isolated mode, single DB in single/shared mode). Every document carries `sourceModule`/`sourceEntityId` soft links to external entities — no hard FK across modules.
 
 ### Obligation Templates
 
@@ -93,11 +96,14 @@ flowchart LR
 
 Soft FKs are logical — enforced by workflows and event-bridge dedup, not DB constraints.
 
+<Callout type="info">
+  No reminder crons are registered — expiry/due reminders publish as `compliance.document_expiring`
+  facts consumed by the calendar bridge.
+</Callout>
+
 ## Runtime Wiring
 
 `$prepareRuntime()` registers exactly two participants:
 
 1. **Obligation generator** — `pubsub.subscribe("compliance.obligation-generate", generatePendingDocuments)` via `registerObligationGenerator()`; handler iterates `obligations.getActive`, computes periods, dedupes by `obligationId:periodStart:periodEnd:dueDate:expiryDate`, then `documents.create` + `publish("compliance.document_generated")`.
 2. **Event bridge** — `registerEventBridgeSubscriptions({ audit, db, pubsub })` subscribes 6 topics validating with Valibot and deduping by `{sourceModule, sourceEntityId, documentType}`.
-
-No reminder crons are registered — expiry/due reminders are published by document workflows as `compliance.document_expiring` facts consumed by the calendar bridge.

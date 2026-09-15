@@ -65,13 +65,11 @@ flowchart LR
 
 Filter views are workspace-owned (`workspace_filter_view`), not Masters; widgets reference a view via `viewId` or inline `filter`.
 
-## Key Concepts
-
-### Access
+## Access
 
 `workspace_draft`, `workspace_dashboard`, `workspace_filter_view` carry `access` (`personal`/`global`); widgets and delivery schedules inherit dashboard access. Pins and recent are user-scoped (`userId = actorId`) with no access column.
 
-### Schedules
+## Schedules
 
 Table `workspace_delivery_schedule`. Topic `workspace.delivery_due`.
 

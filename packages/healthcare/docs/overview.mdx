@@ -33,11 +33,11 @@ const p = IsolatedTenantPlatform.create(config, [healthcare]);
 
 ## Dependencies
 
-| Dependency | Kind                      | Purpose                                         |
-| ---------- | ------------------------- | ----------------------------------------------- |
-| `db`       | unit (via `ctx`)          | 141 tenant tables; gapless numbers via counters |
-| `pubsub`   | unit (via `ctx`)          | Domain events per mutation                      |
-| `audit`    | context (via `ctx.audit`) | Audit writes for every mutation                 |
+| Dependency | Kind                      | Purpose                                     |
+| ---------- | ------------------------- | ------------------------------------------- |
+| `db`       | unit (via `ctx`)          | Tenant tables; gapless numbers via counters |
+| `pubsub`   | unit (via `ctx`)          | Domain events per mutation                  |
+| `audit`    | context (via `ctx.audit`) | Audit writes for every mutation             |
 
 No module `$dependencies` and no `$consumes` topics.
 
@@ -47,13 +47,13 @@ No module `$dependencies` and no `$consumes` topics.
 flowchart TB
   subgraph Groups[workflow groups — p.healthcare.*]
     direction LR
-    REG[patients practitioners facilities services appointments encounters admin]
+    REG[patients practitioners facilities services pricelists appointments encounters admin]
     EMR[allopathy dental ayush rehab psych]
     OPS[residents pharmacy diagnostics billing nursing records operations staff]
   end
   Groups --> M[Healthcare module]
   M --> INFRA[$prepareInfra: auth acl, tenant_schemas, events]
-  INFRA --> DB[(141 healthcare_* tables)]
+  INFRA --> DB[(healthcare_* tenant tables)]
   INFRA --> PS[pubsub topics]
 ```
 

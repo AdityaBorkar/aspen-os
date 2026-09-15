@@ -99,9 +99,10 @@ await p.run("$global", async () => {
 });
 ```
 
-<Callout type="warn">
-  Publishing to a topic with no `subscribe()` is silently dropped — `publish()` returns `undefined`.
-  Check `p.pubsub.getUnsubscribedProducedTopics()`.
+<Callout type="info">
+  `publish()` auto-creates the queue on first use and retries, so publishing without a `subscribe()`
+  consumer queues durably instead of throwing. Use `p.pubsub.getUnsubscribedProducedTopics()` to
+  surface topics with no consumer.
 </Callout>
 
 ## Step 5: Check Health & Clean Up

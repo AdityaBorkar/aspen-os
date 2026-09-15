@@ -4,7 +4,7 @@ description: Domain events published by the Masters module.
 icon: IconBell
 ---
 
-30 events across 8 groups, published as plain string topics.
+Masters events published as plain string topics.
 
 ## Event Map
 
@@ -61,11 +61,13 @@ icon: IconBell
 
 ### Unit of measure
 
-| Event                             | Payload                                              | Trigger     |
-| --------------------------------- | ---------------------------------------------------- | ----------- |
-| `masters.unit_of_measure_created` | `{ unitOfMeasure: { id, code, category } }`          | UOM created |
-| `masters.unit_of_measure_updated` | `{ unitOfMeasure: { id, code, category }, changes }` | UOM updated |
-| `masters.unit_of_measure_removed` | `{ unitOfMeasure: { id, code, category } }`          | UOM removed |
+| Event                                 | Payload                                                        | Trigger     |
+| ------------------------------------- | -------------------------------------------------------------- | ----------- |
+| `masters.unit_of_measure_created`     | `{ unitOfMeasure: { id, code, category } }`                    | UOM created |
+| `masters.unit_of_measure_updated`     | `{ unitOfMeasure: { id, code, category }, changes }`           | UOM updated |
+| `masters.unit_of_measure_removed`     | `{ unitOfMeasure: { id, code, category } }`                    | UOM removed |
+| `masters.unit_of_measure_retired`     | `{ unitOfMeasure: { id, code, category }, reason }`            | UOM retired |
+| `masters.unit_of_measure_default_set` | `{ unitOfMeasure: { id, code, category }, previousDefaultId }` | Default set |
 
 ### Payment method
 

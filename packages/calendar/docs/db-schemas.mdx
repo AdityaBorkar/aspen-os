@@ -46,7 +46,7 @@ A named, colored collection of events. `access` defaults to `personal`; the firs
 | `timezone`                  | text              | IANA tz, default `UTC`                    |
 | `created_at` / `updated_at` | timestamptz       | Record timestamps                         |
 
-Indexes: `owner_id`, `access`.
+Indexes: `idx_calendar_owner(owner_id)`, `idx_calendar_access(access)`.
 
 ### `calendar_event`
 
@@ -71,7 +71,7 @@ A time-boxed entry on a calendar. Access inherited from the parent calendar. Rec
 | `created_by`                | text                    | Creating actor                                                             |
 | `created_at` / `updated_at` | timestamptz             | Record timestamps                                                          |
 
-Indexes: `calendar_id`, `starts_at`, `(source_type, source_entity_id)`, `status`.
+Indexes: `idx_calendar_event_calendar(calendar_id)`, `idx_calendar_event_starts(starts_at)`, `idx_calendar_event_source(source_type, source_entity_id)`, `idx_calendar_event_status(status)`.
 
 ### `calendar_attendee`
 
@@ -89,7 +89,7 @@ An invitee on an event. Soft-references a user or masters contact.
 | `status`                    | `calendar_attendee_status` | `invited` (default) / `accepted` / `declined` / `tentative` |
 | `created_at` / `updated_at` | timestamptz                | Record timestamps                                           |
 
-Indexes: `event_id`, `email`.
+Indexes: `idx_calendar_attendee_event(event_id)`, `idx_calendar_attendee_email(email)`.
 
 ### `calendar_reminder`
 
@@ -113,7 +113,7 @@ The platform's single polymorphic reminder surface.
 | `created_by`                | text                        | Creating actor (`task-bridge` / `compliance-bridge` for bridge rows)  |
 | `created_at` / `updated_at` | timestamptz                 | Record timestamps                                                     |
 
-Indexes: `(target_type, target_id)`, `user_id`, `is_sent`, `remind_at`.
+Indexes: `idx_calendar_reminder_target(target_type, target_id)`, `idx_calendar_reminder_user(user_id)`, `idx_calendar_reminder_sent(is_sent)`, `idx_calendar_reminder_at(remind_at)`.
 
 ## Relationships
 

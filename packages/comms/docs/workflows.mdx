@@ -4,9 +4,9 @@ description: Every workflow group and method exposed by p.comms.
 icon: IconTool
 ---
 
-Workflow groups via `p.comms`: `channels`, `providers`, `notifications`, `preferences`, `templates`, `settings`, `messages`, plus the lazy `ensureDefaults` helper. `channels` and `providers` are getters bound to `kvStore`/`db`; the others are stateless.
+Workflow groups via `p.comms`: `channels`, `providers`, `notifications`, `preferences`, `templates`, `settings`, `messages`, plus the lazy `ensureDefaults` helper. `channels`, `providers`, and `notifications` are getters binding `kvStore`/`db` factories; the others are plain workflow objects.
 
-Scoped channel defaults use `(type, entityType, entityId)`; create takes Valibot `{ input }`, update takes `{ id, patch }`. Each mutation writes an audit entry and publishes a `comms.*` event.
+Scoped channel defaults use `(type, entityType, entityId)`; create takes Valibot `{ input }`, update takes `{ input: { id, ... } }`, get/list take `{ input: ... }`. Each mutation writes an audit entry and publishes a `comms.*` event.
 
 ## Features
 
@@ -22,19 +22,25 @@ const channel = await p.comms.channels.create({
     name: "SES Mail",
     type: "email",
     senderAddress: "noreply@acme.com",
+    entityType: "organization",
+    entityId,
     credential: { apiKey: "..." },
   },
 });
-await p.comms.channels.test({ id: channel.id }); // sends verification, sets verifiedAt
-await p.comms.channels.activate({ id: channel.id });
-await p.comms.channels.setDefault({ id: channel.id }); // requires active + verifiedAt
-await p.comms.channels.rotateCredential({ id: channel.id, credential: { apiKey: "..." } });
+await p.comms.channels.test({ input: { id: channel.id, recipientAddress: "ops@acme.com" } });
+await p.comms.channels.activate({ input: { id: channel.id } });
+await p.comms.channels.setDefault({ input: { id: channel.id } }); // requires active + verifiedAt
+await p.comms.channels.rotateCredential({
+  input: { id: channel.id, credential: { apiKey: "..." } },
+});
 
-await p.comms.channels.get({ id: channel.id });
-await p.comms.channels.list({ filters: { type: "email", source: "tenant", status: "active" } });
-await p.comms.channels.update({ id: channel.id, patch: { name: "Primary SES" } });
-await p.comms.channels.deactivate({ id: channel.id });
-await p.comms.channels.delete({ id: channel.id }); // rejected while non-terminal messages reference it
+await p.comms.channels.get({ input: { id: channel.id } });
+await p.comms.channels.list({
+  input: { filters: { type: "email", source: "tenant", status: "active" } },
+});
+await p.comms.channels.update({ input: { id: channel.id, name: "Primary SES" } });
+await p.comms.channels.deactivate({ input: { id: channel.id } });
+await p.comms.channels.delete({ input: { id: channel.id } }); // rejected while queued/sending messages reference it
 await p.comms.channels.ensureDefaults({ input: { entityId, entityType: "organization" } });
 ```
 
@@ -53,11 +59,11 @@ const provider = await p.comms.providers.create({
     defaultSenderAddress: "noreply@aspenos.com",
   },
 });
-await p.comms.providers.activate({ id: provider.id });
-await p.comms.providers.deactivate({ id: provider.id });
-await p.comms.providers.get({ id: provider.id });
-await p.comms.providers.list({ filters: { kind: "ses", isActive: true } });
-await p.comms.providers.update({ id: provider.id, patch: { name: "Host SES v2" } });
+await p.comms.providers.activate({ input: { id: provider.id } });
+await p.comms.providers.deactivate({ input: { id: provider.id } });
+await p.comms.providers.get({ input: { id: provider.id } });
+await p.comms.providers.list({ input: { filters: { kind: "ses", isActive: true } } });
+await p.comms.providers.update({ input: { id: provider.id, name: "Host SES v2" } });
 ```
 
 ### Notifications
@@ -77,10 +83,13 @@ await p.comms.notifications.notify({
 });
 await p.comms.notifications.getInbox({ input: { filters: { unreadOnly: true } } });
 await p.comms.notifications.markRead({ input: { id: notificationId } });
+await p.comms.notifications.markUnread({ input: { id: notificationId } });
 await p.comms.notifications.dismiss({ input: { id: notificationId } });
-await p.comms.notifications.get({ id: notificationId });
-await p.comms.notifications.list({ filters: { type: "document_expiring", status: "unread" } });
-await p.comms.notifications.unreadCount.run({}, { actorId: userId });
+await p.comms.notifications.get({ input: { id: notificationId } });
+await p.comms.notifications.list({
+  input: { filters: { type: "document_expiring", status: "unread" } },
+});
+await p.comms.notifications.unreadCount({});
 ```
 
 `getInbox` is caller-scoped (`recipientId = actorId`), ordered `urgent` → `important` → `normal` then `createdAt` desc.
@@ -95,8 +104,10 @@ Per-user routing + consent (DPDP/HIPAA opt-outs).
 await p.comms.preferences.set({
   input: { userId, type: "document_expiring", channelType: "email", enabled: false },
 });
-await p.comms.preferences.get({ userId, type: "document_expiring", channelType: "email" });
-await p.comms.preferences.list({ filters: { userId } });
+await p.comms.preferences.get({
+  input: { userId, type: "document_expiring", channelType: "email" },
+});
+await p.comms.preferences.list({ input: { filters: { userId } } });
 ```
 
 Exact `(userId, type, channelType)` wins; else the `(userId, null, channelType)` default row.
@@ -114,14 +125,13 @@ await p.comms.templates.create({
     channelType: "email",
     subject: "Expiring: {name}",
     body: "Hi {name}...",
-    isActive: true,
   },
 });
-await p.comms.templates.activate({ id: templateId });
-await p.comms.templates.deactivate({ id: templateId });
-await p.comms.templates.get({ id: templateId });
-await p.comms.templates.list({ filters: { channelType: "email", isActive: true } });
-await p.comms.templates.update({ id: templateId, patch: { body: "Updated {name}" } });
+await p.comms.templates.activate({ input: { id: templateId } });
+await p.comms.templates.deactivate({ input: { id: templateId } });
+await p.comms.templates.get({ input: { id: templateId } });
+await p.comms.templates.list({ input: { filters: { channelType: "email", isActive: true } } });
+await p.comms.templates.update({ input: { id: templateId, body: "Updated {name}" } });
 ```
 
 ### Settings
@@ -132,7 +142,7 @@ Tenant-wide settings.
 
 ```ts
 await p.comms.settings.set({ input: { key: "suppressOutOfBand", value: true } });
-await p.comms.settings.get({ key: "suppressOutOfBand" });
+await p.comms.settings.get({ input: { key: "suppressOutOfBand" } });
 ```
 
 Keys: `defaultChannels` (`channelType → channelId`), `suppressOutOfBand` (boolean), `hostDefaultSenderAddressOverride` (text).
@@ -144,9 +154,9 @@ Access: `p.comms.messages`
 Delivery outbox (admin). `retry` re-queues a `failed` message.
 
 ```ts
-await p.comms.messages.get({ id: messageId });
-await p.comms.messages.list({ filters: { status: "failed", channelType: "email" } });
-await p.comms.messages.retry({ id: messageId });
+await p.comms.messages.get({ input: { id: messageId } });
+await p.comms.messages.list({ input: { filters: { status: "failed", channelType: "email" } } });
+await p.comms.messages.retry({ input: { id: messageId } });
 ```
 
 ## Links

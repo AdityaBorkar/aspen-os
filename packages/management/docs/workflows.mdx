@@ -8,7 +8,9 @@ The Management Plane exposes `tenants`, `serviceProviders`, `organizations`, and
 
 Workflows validate with Valibot; `create` takes a single input object, `update` takes `{ id, patch }` where `undefined` leaves the column untouched. Mutations write an audit entry and publish a domain event.
 
-## Tenants
+## Features
+
+### Tenants
 
 Lifecycle, SP assignment, reads and profile updates.
 
@@ -46,7 +48,7 @@ const picker = await p.management.tenants.listBranding({ limit: 50, offset: 0 })
   throw on wrong source status; SP transitions are idempotent.
 </Callout>
 
-## Service Providers
+### Service Providers
 
 Create, read, update, lifecycle, and assigned-entity listings.
 
@@ -71,7 +73,7 @@ const tenants = await p.management.serviceProviders.listAssignedTenants({
 const users = await p.management.serviceProviders.listUsers({ spId, limit: 50, offset: 0 });
 ```
 
-## Organizations
+### Organizations
 
 Platform-level organizations (`managed_organization`).
 
@@ -86,7 +88,7 @@ const orgs = await p.management.organizations.list({ filters: { search, limit: 5
 await p.management.organizations.update({ id: orgId, patch: { name: "Acme Central" } });
 ```
 
-## Users
+### Users
 
 Create, read, update, delete, and role/SP assignment.
 

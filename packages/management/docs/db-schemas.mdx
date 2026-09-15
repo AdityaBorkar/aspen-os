@@ -4,7 +4,7 @@ description: Control-plane tables and enums declared by the Management Plane mod
 icon: IconDatabase
 ---
 
-The Management Plane declares control-plane tables with `managed_organization` PG name `managed_organization` and empty tenant schemas. Shared columns `id`, `created_at`, `updated_at` are timestamptz/uuidv7 unless noted; tenant `id` is text sharing better-auth `organization.id`.
+The Management Plane declares control-plane tables and empty tenant schemas. Shared columns `id`, `created_at`, `updated_at` apply to all tables and are not repeated per table; `tenant.id` is text sharing better-auth `organization.id`.
 
 ## Enums
 
@@ -19,23 +19,22 @@ The Management Plane declares control-plane tables with `managed_organization` P
 
 Companion to better-auth `organization`; holds lifecycle, plan, SP assignment, and per-tenant DB connection params.
 
-| Column                | Type                                         | Description            |
-| --------------------- | -------------------------------------------- | ---------------------- |
-| `churn_reason`        | text                                         | Churn reason           |
-| `churned_at`          | timestamptz                                  | Churn timestamp        |
-| `database_host`       | text                                         | Per-tenant DB host     |
-| `database_name`       | text                                         | Per-tenant DB name     |
-| `database_password`   | text                                         | Per-tenant DB password |
-| `database_port`       | integer                                      | Per-tenant DB port     |
-| `database_ssl`        | boolean                                      | Per-tenant DB SSL      |
-| `database_user`       | text                                         | Per-tenant DB user     |
-| `id`                  | text (PK) (FK → better-auth organization.id) | Shared tenant/org id   |
-| `plan`                | text                                         | Subscription plan      |
-| `service_provider_id` | text (FK → service_provider.id)              | Assigned SP            |
-| `signup_at`           | timestamptz                                  | Signup timestamp       |
-| `status`              | `tenant_status`                              | Lifecycle status       |
-| `suspended_at`        | timestamptz                                  | Suspension timestamp   |
-| `suspended_reason`    | text                                         | Suspension reason      |
+| Column                | Type                            | Description            |
+| --------------------- | ------------------------------- | ---------------------- |
+| `churn_reason`        | text                            | Churn reason           |
+| `churned_at`          | timestamptz                     | Churn timestamp        |
+| `database_host`       | text                            | Per-tenant DB host     |
+| `database_name`       | text                            | Per-tenant DB name     |
+| `database_password`   | text                            | Per-tenant DB password |
+| `database_port`       | integer                         | Per-tenant DB port     |
+| `database_ssl`        | boolean                         | Per-tenant DB SSL      |
+| `database_user`       | text                            | Per-tenant DB user     |
+| `plan`                | text                            | Subscription plan      |
+| `service_provider_id` | text (FK → service_provider.id) | Assigned SP            |
+| `signup_at`           | timestamptz                     | Signup timestamp       |
+| `status`              | `tenant_status`                 | Lifecycle status       |
+| `suspended_at`        | timestamptz                     | Suspension timestamp   |
+| `suspended_reason`    | text                            | Suspension reason      |
 
 Indexes: `idx_tenant_status` on `status`, `idx_tenant_service_provider` on `service_provider_id`, `idx_tenant_plan` on `plan`.
 
@@ -48,7 +47,6 @@ Implementation partner.
 | `address`     | text                      | Address             |
 | `description` | text                      | Description         |
 | `email`       | text                      | Contact email       |
-| `id`          | text (PK)                 | uuidv7              |
 | `logo`        | text                      | Logo reference      |
 | `name`        | text                      | Display name        |
 | `phone`       | text                      | Contact phone       |
@@ -64,7 +62,6 @@ Join linking a platform user to a service provider; no `spId` on `user`.
 
 | Column                | Type                            | Description   |
 | --------------------- | ------------------------------- | ------------- |
-| `id`                  | text (PK)                       | uuidv7        |
 | `service_provider_id` | text (FK → service_provider.id) | Owning SP     |
 | `user_id`             | text (FK → better-auth user.id) | Platform user |
 
@@ -77,7 +74,6 @@ Platform-level organization; PG table `managed_organization`.
 | Column     | Type          | Description         |
 | ---------- | ------------- | ------------------- |
 | `branding` | jsonb         | Branding JSON       |
-| `id`       | text (PK)     | uuidv7              |
 | `name`     | text          | Display name        |
 | `slug`     | text (unique) | URL-safe identifier |
 

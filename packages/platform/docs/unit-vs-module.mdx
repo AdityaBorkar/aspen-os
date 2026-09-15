@@ -48,6 +48,7 @@ A **Module** is a package of domain logic. Modules are optional, pluggable, and 
 interface Module<N extends string = string> {
   readonly $name: N;
   readonly $dependencies: readonly string[];
+  readonly $consumes?: readonly string[];
   $initialize(units: Record<string, Unit>): void;
   $prepareInfra(): ModuleInfra;
   $prepareRuntime(): void | Promise<void>;

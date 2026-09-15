@@ -4,7 +4,7 @@ description: Reusable steps composed by the Masters module.
 icon: IconBlocks
 ---
 
-Reusable steps composed via `ctx.step.run()`. Fetch steps load a row by `id`; invariant steps enforce UOM rules.
+Reusable steps composed via `ctx.step.run()` for fetch-by-id loads and UOM invariants.
 
 ## Fetch Steps
 
@@ -55,4 +55,8 @@ export const fetchLabelStep = defineFetchByIdStep<MasterLabel>({
 
 ## Access Helpers
 
-No plain-function access helpers — all guards are `WorkflowStep`s run via `ctx.step.run()`. Invariant checks are the only shared steps beyond fetches; label/org-branch access is enforced inline in each workflow (scope checks, not reusable helpers).
+| Helper | Rule                                                                               |
+| ------ | ---------------------------------------------------------------------------------- |
+| —      | No plain-function helpers; all guards are `WorkflowStep`s run via `ctx.step.run()` |
+
+Label/org-branch access is enforced inline in each workflow (scope checks, not reusable helpers).
