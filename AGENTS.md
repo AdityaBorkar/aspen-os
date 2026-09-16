@@ -13,8 +13,8 @@
 ## Commands
 
 - Install with `bun install`. `bunfig.toml` sets `ignore-scripts = true`, so postinstall hooks never run.
-- Verify with `bun run check:lint` and `bun run check:types` (`tsc -b`). Lint is mutating: `oxlint --fix . ; oxfmt .`. Focused checks: `cd packages/<name> && bun run check:lint` / `bun run check:types`.
-- Root `bun run build` is `nx run-many -t build --exclude=docs --no-tui`. Build a build-step package from its directory with `bun run build` (`bun run ../../scripts/build.ts`).
+- Verify with `bun run check:lint` and `bun run check:types` (`tsc -b`). Lint is mutating: `oxlint --fix . ; oxfmt .`. Focused checks: `cd packages/<name> && bun run check:lint` / `bun run check:types` (only in packages with those scripts — `crm`, `fleet`, `inventory`, `reports` are scriptless stubs).
+- Root `bun run build` is `nx run-many -t build --exclude=docs --no-tui`. Build a build-step package from its directory with `bun run build` (`bun run ../../scripts/build.ts`); raw-source and stub packages have no `build` script.
 - Build-step packages (have a `build` script) are `platform`, `masters`, `notes`, `calendar`, `management`, `comms`, `dms`, `workspace`, `healthcare`, and `constants`. Raw-source packages (no build, export `./src/index.ts`) are `announcement`, `compliance`, `tasks`, `hr-core`, `hr-attendance`, `hr-leave`.
 - `scripts/build.ts` deletes/recreates `.output/` and rewrites `package.json` exports/bin to `.output` paths in place (`git status` shows `package.json` modified); `constants` keeps its `./src/index.ts` export and only emits declarations. `bun run build --dev` rewrites exports/bin back to `./src/*` without emitting. Rebuild the required build-step packages before typechecking raw-source consumers (`announcement`, `compliance`, `tasks`, `hr-*`) after a clean checkout or a `platform` change. Never commit `.output/`.
 - `bun run clean` deletes `node_modules`, `.nx`, `.output`, `.local`, and `bun.lockb`; use it only when intentionally removing the lockfile and generated artifacts.
