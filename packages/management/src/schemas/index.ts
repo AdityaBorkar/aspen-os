@@ -59,6 +59,32 @@ export {
   UpdateTenantCompanionSchema,
   UpdateTenantProfileSchema,
 } from "#/schemas/tenant";
+export type {
+  CreateTenantMemberInput,
+  CreateTenantMemberPayload,
+  RemoveTenantMemberInput,
+  TenantMemberGetInput,
+  TenantMemberIdPayload,
+  TenantMemberListInput,
+  TenantMemberRole,
+  TenantsByUserListInput,
+  UpdateTenantMemberInput,
+  UpdateTenantMemberPatch,
+  UpdateTenantMemberPayload,
+} from "#/schemas/tenant-member";
+export {
+  CreateTenantMemberInputSchema,
+  CreateTenantMemberPayloadSchema,
+  RemoveTenantMemberInputSchema,
+  TenantMemberGetInputSchema,
+  TenantMemberIdPayloadSchema,
+  TenantMemberListInputSchema,
+  TenantMemberRoleSchema,
+  TenantsByUserListInputSchema,
+  UpdateTenantMemberInputSchema,
+  UpdateTenantMemberPatchSchema,
+  UpdateTenantMemberPayloadSchema,
+} from "#/schemas/tenant-member";
 export {
   EmailSchema,
   HexColorSchema,

@@ -13,8 +13,16 @@ import { getSp } from "#/workflows/sp/get";
 import { listSps } from "#/workflows/sp/list";
 import { updateSp } from "#/workflows/sp/update";
 import { listSpUsers } from "#/workflows/sp/user/list";
+import { createTenantMember } from "#/workflows/tenant-member/create";
+import { getTenantMember } from "#/workflows/tenant-member/get";
+import { listTenantMembers } from "#/workflows/tenant-member/list";
+import { removeTenantMember } from "#/workflows/tenant-member/remove";
+import { updateTenantMember } from "#/workflows/tenant-member/update";
 import { activateTenant } from "#/workflows/tenant/activate";
 import { getTenantBySlug } from "#/workflows/tenant/by-slug/get";
+import { getTenantFullBySlug } from "#/workflows/tenant/by-slug/get-full";
+import { resolveTenantDatabase } from "#/workflows/tenant/by-slug/resolve-database";
+import { listTenantsByUser } from "#/workflows/tenant/by-user/list";
 import { churnTenant } from "#/workflows/tenant/churn";
 import { getTenant } from "#/workflows/tenant/get";
 import { listTenants } from "#/workflows/tenant/list";
@@ -88,15 +96,26 @@ export class ManagementPlane implements Module {
       churn: churnTenant,
       get: getTenant,
       getBySlug: getTenantBySlug,
+      getFullBySlug: getTenantFullBySlug,
       list: listTenants,
       listBranding: listTenantBranding,
+      listByUser: listTenantsByUser,
       onboard: createOnboardTenant(this.#requireDb()),
       reactivate: reactivateTenant,
+      resolveDatabase: resolveTenantDatabase,
       suspend: suspendTenant,
       unassignServiceProvider,
       update: updateTenant,
     };
   }
+
+  readonly tenantMembers = {
+    create: createTenantMember,
+    get: getTenantMember,
+    list: listTenantMembers,
+    remove: removeTenantMember,
+    update: updateTenantMember,
+  };
 
   readonly serviceProviders = {
     activate: activateSp,

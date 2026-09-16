@@ -19,6 +19,7 @@ export const AUDIT_ENTITY_TYPE = {
   PLATFORM_USER: "platformUser",
   SERVICE_PROVIDER: "serviceProvider",
   TENANT: "tenant",
+  TENANT_MEMBER: "tenantMember",
 } as const;
 
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPE)[keyof typeof AUDIT_ENTITY_TYPE];
@@ -39,6 +40,9 @@ export const AUDIT_ACTION = {
   SP_UPDATED: "sp_updated",
   TENANT_ACTIVATED: "tenant_activated",
   TENANT_CHURNED: "tenant_churned",
+  TENANT_MEMBER_ADDED: "tenant_member_added",
+  TENANT_MEMBER_REMOVED: "tenant_member_removed",
+  TENANT_MEMBER_UPDATED: "tenant_member_updated",
   TENANT_PROFILE_UPDATED: "tenant_profile_updated",
   TENANT_PROVISIONED: "tenant_provisioned",
   TENANT_REACTIVATED: "tenant_reactivated",

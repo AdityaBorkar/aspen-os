@@ -31,11 +31,18 @@ export const ORGANIZATION_EVENTS = {
   UPDATED: "organization.updated",
 } as const;
 
+export const TENANT_MEMBER_EVENTS = {
+  ADDED: "tenant.member_added",
+  REMOVED: "tenant.member_removed",
+  UPDATED: "tenant.member_updated",
+} as const;
+
 export const events = {
   ORGANIZATION_EVENTS,
   PLATFORM_USER_EVENTS,
   SERVICE_PROVIDER_EVENTS,
   TENANT_EVENTS,
+  TENANT_MEMBER_EVENTS,
 };
 
 export interface TenantProvisionedEvent {
@@ -144,6 +151,27 @@ export interface OrganizationUpdatedEvent {
   };
 }
 
+export interface TenantMemberAddedEvent {
+  member: {
+    email: string;
+    id: string;
+    role: string;
+    userId: string;
+  };
+  tenantId: string;
+}
+
+export interface TenantMemberUpdatedEvent {
+  changes: Record<string, JsonValue>;
+  memberId: string;
+  tenantId: string;
+}
+
+export interface TenantMemberRemovedEvent {
+  memberId: string;
+  tenantId: string;
+}
+
 export interface TenantEventMap {
   [TENANT_EVENTS.PROVISIONED]: TenantProvisionedEvent;
   [TENANT_EVENTS.ACTIVATED]: TenantActivatedEvent;
@@ -175,7 +203,14 @@ export interface OrganizationEventMap {
   [ORGANIZATION_EVENTS.UPDATED]: OrganizationUpdatedEvent;
 }
 
+export interface TenantMemberEventMap {
+  [TENANT_MEMBER_EVENTS.ADDED]: TenantMemberAddedEvent;
+  [TENANT_MEMBER_EVENTS.UPDATED]: TenantMemberUpdatedEvent;
+  [TENANT_MEMBER_EVENTS.REMOVED]: TenantMemberRemovedEvent;
+}
+
 export type ManagementPlaneEventMap = TenantEventMap &
   ServiceProviderEventMap &
   PlatformUserEventMap &
-  OrganizationEventMap;
+  OrganizationEventMap &
+  TenantMemberEventMap;
