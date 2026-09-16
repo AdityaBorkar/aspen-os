@@ -1,0 +1,24 @@
+---
+title: Overview
+description: What the pharmacy module owns
+icon: IconPill
+---
+
+Pharmacy inventory and dispensing workflows, split out of `@aspen-os/healthcare`.
+
+## Owns
+
+- Items, batches (FEFO, expiry hard-block), prescription-linked sales with
+  substitution guards, partial close, purchase orders, GRN verification,
+  purchase invoices, credit/debit notes, stock transfers, reorder suggestions,
+  and the stock ledger.
+
+## Depends on
+
+`healthcare` (`$dependencies = ["healthcare"]`) for gapless numbering
+(`healthcare_counter` via the local series step). Storage tables stay defined
+in the healthcare core; this module re-exports and pushes the same references.
+
+## Events
+
+Publishes `pharmacy.created`, `pharmacy.updated`, and `pharmacy.dispensed`.

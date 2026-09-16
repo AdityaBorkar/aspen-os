@@ -14,10 +14,10 @@ export interface HealthcareBridgeDeps {
 
 // Healthcare ACL adoption (HEALTHCARE-SPEC §15): the event envelope,
 // `data.fhir` hint shape, and the versioned nursing mirror entry are owned
-// by @aspen-os/healthcare (`src/fhir/event-hint.ts` → `FhirHintSchema` /
+// by @aspen-os/inpatient (`src/fhir/event-hint.ts` → `FhirHintSchema` /
 // `NursingOrderMirrorSchema`, version 1), and the canonical status maps by
-// `src/fhir/registries.ts`. This package does not depend on
-// @aspen-os/healthcare (dependency decision: no new workspace dependency —
+// its `src/fhir/registries.ts`. This package does not depend on
+// @aspen-os/inpatient (dependency decision: no new workspace dependency —
 // tasks is a raw-source package typechecked without a build edge to
 // healthcare, and the ACL stays importable without pulling workflow
 // graphs), so the shapes below duplicate the ACL values. On drift the ACL
@@ -217,9 +217,9 @@ async function subscribeHealthcareTopic(
 }
 
 export async function registerHealthcareBridge(deps: HealthcareBridgeDeps): Promise<string[]> {
-  await subscribeHealthcareTopic(deps, "healthcare.nursing_created", handleNursingCreated);
+  await subscribeHealthcareTopic(deps, "inpatient.nursing_created", handleNursingCreated);
   await subscribeHealthcareTopic(deps, "healthcare.encounter_updated", handleEncounterUpdated);
-  return ["healthcare.nursing_created", "healthcare.encounter_updated"];
+  return ["inpatient.nursing_created", "healthcare.encounter_updated"];
 }
 
 export async function unregisterHealthcareBridge(

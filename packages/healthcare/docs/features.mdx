@@ -1,10 +1,10 @@
 ---
 title: Features
-description: What a clinic can do — patients, appointments, visits, pharmacy, lab, billing, and more.
+description: What a clinic can do — patients, appointments, visits, billing, records, and the split-out care modules.
 icon: IconSparkles
 ---
 
-Healthcare runs the day-to-day of an outpatient clinic — from registering a patient to billing them — plus pharmacy, lab, and clinical records.
+Healthcare runs the day-to-day of an outpatient clinic — from registering a patient to billing them — plus clinical records. Specialty and ancillary care live in split-out modules: `@aspen-os/emr` (allopathy, dental, AYUSH, rehab, mental health), `@aspen-os/inpatient` (nursing, daycare stays), `@aspen-os/pharmacy`, and `@aspen-os/diagnostics` (lab and scans).
 
 ## Patients
 
@@ -39,6 +39,8 @@ Healthcare runs the day-to-day of an outpatient clinic — from registering a pa
 
 ## Speciality care
 
+Speciality care lives in `@aspen-os/emr` (`p.emr`):
+
 - **General medicine** — Track long-term conditions, vaccinations, and statutory registers.
 - **Dental** — Chart teeth, plan staged treatments, give estimates, and track lab jobs such as crowns.
 - **Ayurveda, homeopathy, and yoga** — Keep case sheets, schedule therapy sittings, sell packages, give diet charts, and run yoga batches.
@@ -47,12 +49,16 @@ Healthcare runs the day-to-day of an outpatient clinic — from registering a pa
 
 ## Daycare stays
 
+Daycare stays live in `@aspen-os/inpatient` (`p.inpatient.residents`):
+
 - **Admit for a day stay** — Admit with bed allocation and advance.
 - **Daily care and rounds** — Record nursing notes, doctor rounds, and visitor logs.
 - **Stay billing** — Add room and care charges and prepare the final bill.
 - **Family updates** — Prepare and share progress summaries with the family.
 
 ## Pharmacy
+
+Pharmacy lives in `@aspen-os/pharmacy` (`p.pharmacy`):
 
 - **Stock medicines** — Add medicines and receive new batches.
 - **Sell against prescription** — Bill medicines, handle part sales, and accept returns.
@@ -61,6 +67,8 @@ Healthcare runs the day-to-day of an outpatient clinic — from registering a pa
 - **Reorder and expiry alerts** — See what to reorder and what expires soon.
 
 ## Lab and scans
+
+Lab and scans live in `@aspen-os/diagnostics` (`p.diagnostics`):
 
 - **Order tests** — Order lab tests or book scans, including add-ons to an existing order.
 - **Track samples** — Follow collection, receipt, processing, and reporting with barcodes.
@@ -76,10 +84,10 @@ Healthcare runs the day-to-day of an outpatient clinic — from registering a pa
 
 ## Nursing and records
 
-- **Nursing tasks** — Turn doctor orders into nursing tasks with an urgency board.
-- **Charts** — Chart vitals, fluids, pain scores, and risk checks.
-- **Shift handover** — Prepare and sign off handovers between shifts.
-- **Patient records** — Search records, attach scanned files, share summaries, and issue discharge summaries.
+- **Nursing tasks** — Turn doctor orders into nursing tasks with an urgency board (`p.inpatient.nursing` in `@aspen-os/inpatient`).
+- **Charts** — Chart vitals, fluids, pain scores, and risk checks (`p.inpatient.nursing`).
+- **Shift handover** — Prepare and sign off handovers between shifts (`p.inpatient.nursing`).
+- **Patient records** — Search records, attach scanned files, share summaries, and issue discharge summaries (`p.healthcare.records`).
 
 ## Clinic setup and reports
 

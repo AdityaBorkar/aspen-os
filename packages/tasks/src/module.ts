@@ -37,7 +37,7 @@ export class Tasks implements Module {
   readonly $name = "tasks";
   readonly $dependencies = ["masters"] as const;
   readonly $consumes: readonly string[] = [
-    "healthcare.nursing_created",
+    "inpatient.nursing_created",
     "healthcare.encounter_updated",
   ];
   readonly $config: TaskModuleConfig;

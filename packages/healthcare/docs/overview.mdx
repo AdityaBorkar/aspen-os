@@ -4,7 +4,7 @@ description: Architecture, tenancy model, configuration, and module structure of
 icon: IconInfoCircle
 ---
 
-The Healthcare module is the OPD clinic backend: registration, EMR across five specialties, pharmacy, diagnostics, billing, nursing, and records — no ADT/IPD bed management, no OT scheduling, no insurance/TPA.
+The Healthcare module is the OPD clinic backend: registration, masters, appointments, encounters, billing, records, and operations. Specialty and ancillary care are split out: `@aspen-os/emr` (allopathy, dental, AYUSH, rehab, psychiatry), `@aspen-os/diagnostics` (lab and radiology), `@aspen-os/pharmacy`, and `@aspen-os/inpatient` (nursing and residents) — each declares `$dependencies = ["healthcare"]` on this core kernel. No ADT/IPD bed management, no OT scheduling, no insurance/TPA.
 
 ## Module
 
@@ -12,7 +12,7 @@ The Healthcare module is the OPD clinic backend: registration, EMR across five s
 export class Healthcare implements Module {
   static create(config?: HealthcareConfig): Healthcare;
   readonly $name = "healthcare"; // proxy key: p.healthcare
-  readonly $dependencies: readonly string[] = [];
+  readonly $dependencies: readonly string[] = ["masters"];
 }
 ```
 
@@ -39,7 +39,7 @@ const p = IsolatedTenantPlatform.create(config, [healthcare]);
 | `pubsub`   | unit (via `ctx`)          | Domain events per mutation                  |
 | `audit`    | context (via `ctx.audit`) | Audit writes for every mutation             |
 
-No module `$dependencies` and no `$consumes` topics.
+No module `$consumes` topics. Four care modules depend on this kernel via `$dependencies = ["healthcare"]`: `emr`, `diagnostics`, `pharmacy`, `inpatient`.
 
 ## Architecture
 
@@ -48,10 +48,15 @@ flowchart TB
   subgraph Groups[workflow groups — p.healthcare.*]
     direction LR
     REG[patients practitioners facilities services pricelists appointments encounters admin]
-    EMR[allopathy dental ayush rehab psych]
-    OPS[residents pharmacy diagnostics billing nursing records operations]
+    OPS[billing records operations]
+  end
+  subgraph Care[split-out care modules]
+    direction LR
+    EMR[p.emr: allopathy dental ayush rehab psych]
+    ANC[p.diagnostics p.pharmacy p.inpatient]
   end
   Groups --> M[Healthcare module]
+  Care --> M
   M --> INFRA[$prepareInfra: auth acl, tenant_schemas, events]
   INFRA --> DB[(healthcare_* tenant tables)]
   INFRA --> PS[pubsub topics]
@@ -65,11 +70,11 @@ Every clinical table carries `branch_id` (default `"main"`); workflows scope rea
 
 ### Gapless human-readable numbers
 
-`healthcare_counter` backs `nextHealthcareSeries` (`workflow-steps/series.ts`): UHID, invoice/receipt/package numbers, sale/return/PO/GRN/transfer numbers, lab/radio order numbers, register serials.
+`healthcare_counter` backs the numbering steps (`workflow-steps/series.ts` in the core; per-module copies named `<module>-next-series` in `diagnostics`, `pharmacy`, and `inpatient`): UHID, invoice/receipt/package numbers, sale/return/PO/GRN/transfer numbers, lab/radio order numbers, register serials.
 
 ### Audit and events per mutation
 
-Writers call `ctx.audit.write()` then `ctx.pubsub.publish()`; reads publish nothing. Specialty writers (allopathy, dental, ayush, rehab, psych) additionally gate on an open, same-patient `healthcare_encounter`.
+Writers call `ctx.audit.write()` then `ctx.pubsub.publish()`; reads publish nothing. Specialty writers (`@aspen-os/emr`: allopathy, dental, ayush, rehab, psych) additionally gate on an open, same-patient `healthcare_encounter` via their local `fetchOpenEncounterStep` copy.
 
 ### Status representation
 
@@ -77,4 +82,4 @@ Shared lifecycles use `pgEnum`s (`healthcare_appointment_status`, `healthcare_en
 
 ### Shared workflow helpers
 
-Cross-cutting logic shared by `workflows/*` lives in `workflows/shared/`: slot math and interval overlap (`scheduling`), package sell/redeem/expiry (`package-lifecycle`), pricelist codes and versioning (`pricelist-lifecycle`), branch slug/subdomain handling (`branch-lifecycle`), recipient-confirmation guard for shares (`share-guard`), unified consent reads across the four consent stores (`consent-lifecycle`), and psych session guards (`psych-booking`). The open-encounter gate all specialty writers use is the shared `fetchOpenEncounterStep`.
+Cross-cutting logic shared by `workflows/*` lives in `workflows/shared/`: slot math and interval overlap (`scheduling`), package sell/redeem/expiry (`package-lifecycle`), pricelist codes and versioning (`pricelist-lifecycle`), branch slug/subdomain handling (`branch-lifecycle`), recipient-confirmation guard for shares (`share-guard`), and unified consent reads across the four consent stores (`consent-lifecycle`). The psych session guards (`psych-booking`) moved with `@aspen-os/emr`; `package-lifecycle` and `board-query` are copied into the care modules that use them. The open-encounter gate all specialty writers use is the shared `fetchOpenEncounterStep` (copied per care module, reading the core `healthcare_encounter`).

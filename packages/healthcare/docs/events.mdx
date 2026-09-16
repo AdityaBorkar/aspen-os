@@ -8,6 +8,8 @@ The Healthcare module publishes domain events as plain string topics via `PubSub
 
 ## Event Map
 
+Moved topics live in their own modules now: `emr.*` (`@aspen-os/emr`), `diagnostics.*` (`@aspen-os/diagnostics`), `pharmacy.*` (`@aspen-os/pharmacy`), and `inpatient.*` (`@aspen-os/inpatient`, consumed by `tasks` and `comms`).
+
 ### Patient
 
 | Event                        | Payload                 | Trigger                                                                                                                 |
@@ -53,39 +55,6 @@ The Healthcare module publishes domain events as plain string topics via `PubSub
 | `healthcare.encounter_signed`  | `HealthcareEntityEvent` | `encounters.sign`                                                                              |
 | `healthcare.encounter_updated` | `HealthcareEntityEvent` | `addDiagnosis`, `prescribe`, `refill`, `placeOrder`, `recordVitals`, `setFollowUp`, `addendum` |
 
-### EMR specialties
-
-| Event                                                           | Payload                 | Trigger                          |
-| --------------------------------------------------------------- | ----------------------- | -------------------------------- |
-| `healthcare.allopathy_created` / `healthcare.allopathy_updated` | `HealthcareEntityEvent` | All allopathy writers / updaters |
-| `healthcare.dental_created` / `healthcare.dental_updated`       | `HealthcareEntityEvent` | All dental writers / updaters    |
-| `healthcare.ayush_created` / `healthcare.ayush_updated`         | `HealthcareEntityEvent` | All ayush writers / updaters     |
-| `healthcare.rehab_created` / `healthcare.rehab_updated`         | `HealthcareEntityEvent` | All rehab writers / updaters     |
-| `healthcare.psych_created` / `healthcare.psych_updated`         | `HealthcareEntityEvent` | All psych writers / updaters     |
-
-### Resident
-
-| Event                         | Payload                 | Trigger                                                                                                                 |
-| ----------------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `healthcare.resident_created` | `HealthcareEntityEvent` | `admit`, `scoreGeriatric`, `polypharmacyReview`, `logDaily`, `round`, `visitLog`, `recordStayCharge`, `compileStayBill` |
-| `healthcare.resident_updated` | `HealthcareEntityEvent` | `residents.allocateBed`                                                                                                 |
-
-### Pharmacy
-
-| Event                           | Payload                 | Trigger                                                                             |
-| ------------------------------- | ----------------------- | ----------------------------------------------------------------------------------- |
-| `healthcare.pharmacy_created`   | `HealthcareEntityEvent` | `itemUpsert`, `batchReceive`, `returnAgainstBill`, `poCreate`, `transfer`, `piBook` |
-| `healthcare.pharmacy_updated`   | `HealthcareEntityEvent` | `partialClose`, `grnVerify`, `cndnIssue`, `transferAccept`                          |
-| `healthcare.pharmacy_dispensed` | `HealthcareEntityEvent` | `pharmacy.saleFromRx`                                                               |
-
-### Diagnostics
-
-| Event                               | Payload                 | Trigger                                                                                               |
-| ----------------------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------- |
-| `healthcare.diagnostics_created`    | `HealthcareEntityEvent` | `testMasterUpsert`, `panelCreate`, `orderLabs`, `radioBook`, `qcLog`                                  |
-| `healthcare.diagnostics_updated`    | `HealthcareEntityEvent` | `collectSample`, `receiveSample`, `resultEnter`, `criticalAck`, `deliver`, radio flows, `cancelOrder` |
-| `healthcare.diagnostics_authorized` | `HealthcareEntityEvent` | `authorize`, `radioAuthorize`                                                                         |
-
 ### Billing
 
 | Event                          | Payload                 | Trigger                                                                                         |
@@ -93,14 +62,6 @@ The Healthcare module publishes domain events as plain string topics via `PubSub
 | `healthcare.billing_created`   | `HealthcareEntityEvent` | `invoiceRaise`, `packageSell`, `cndnIssue`                                                      |
 | `healthcare.billing_updated`   | `HealthcareEntityEvent` | `invoiceFinalize`, `applyDiscount`, `repriceOnPayerSwitch`, `packageRedeem`, `packageExpireRun` |
 | `healthcare.billing_collected` | `HealthcareEntityEvent` | `collect`, `settleAdvance`                                                                      |
-
-### Nursing
-
-| Event                          | Payload                 | Trigger                                                                                                                                                                              |
-| ------------------------------ | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `healthcare.nursing_created`   | `HealthcareEntityEvent` | `tasksFromOrders`, `recordNote`, `vitalsChart`, `ioChart`, `painScore`, `riskScreen`, `drugAdminister`, `sittingsSupport`, `checklistRecord`, `handoverCompile`, non-red `triageTag` |
-| `healthcare.nursing_escalated` | `HealthcareEntityEvent` | `missedEscalate`, red `triageTag`                                                                                                                                                    |
-| `healthcare.nursing_updated`   | `HealthcareEntityEvent` | `nursing.handoverSign`                                                                                                                                                               |
 
 ### Records
 

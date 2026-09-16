@@ -1,0 +1,17 @@
+---
+title: Access control
+description: EMR ACL resources
+icon: IconStethoscope
+---
+
+```ts
+defineAcl({
+  allopathy: ["create", "delete", "read", "update"],
+  ayush: ["create", "delete", "read", "update"],
+  dental: ["create", "delete", "read", "update"],
+  psych: ["create", "delete", "override", "read", "update"],
+  rehab: ["create", "delete", "read", "update"],
+});
+```
+
+Psychiatry keeps its `override` semantics and masked reads.

@@ -12,10 +12,11 @@ export interface HealthcareBridgeDeps {
 }
 
 // Healthcare ACL adoption (HEALTHCARE-SPEC §15): the event envelope and
-// `data.fhir` hint shape are owned by @aspen-os/healthcare
+// `data.fhir` hint shape are owned by @aspen-os/healthcare for
+// `healthcare.*` topics and by @aspen-os/inpatient for `inpatient.*` topics
 // (`src/fhir/event-hint.ts` → `FhirHintSchema`), and the canonical status
 // maps by `src/fhir/registries.ts`. This package does not depend on
-// @aspen-os/healthcare (dependency decision: no new workspace dependency —
+// @aspen-os/healthcare or @aspen-os/inpatient (dependency decision: no new workspace dependency —
 // comms builds without healthcare in the graph, and the ACL stays
 // importable without pulling workflow graphs), so the shapes below
 // duplicate the ACL values. On drift the ACL is the owner. Channel mapping
@@ -144,7 +145,7 @@ async function subscribeHealthcareTopic(deps: HealthcareBridgeDeps, topic: strin
 
 const HEALTHCARE_MESSAGE_TOPICS = [
   "healthcare.records_created",
-  "healthcare.resident_updated",
+  "inpatient.resident_updated",
 ] as const;
 
 export async function registerHealthcareBridge(deps: HealthcareBridgeDeps): Promise<string[]> {

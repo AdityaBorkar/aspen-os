@@ -1,0 +1,27 @@
+---
+title: Overview
+description: What the diagnostics module owns
+icon: IconFlaskConical
+---
+
+Laboratory and radiology workflows, split out of `@aspen-os/healthcare`.
+
+## Owns
+
+- Lab test/panel masters, lab orders, barcode samples, versioned results,
+  four-eyes authorization, critical acknowledgement, delivery, TAT and queue boards.
+- Radiology bookings, check-in, reporting, authorization, and rescheduling.
+- QC logging.
+
+## Depends on
+
+`healthcare` (`$dependencies = ["healthcare"]`) for the shared kernel:
+branch/counter numbering (`healthcare_counter` via the local series step),
+the open-encounter gate (`healthcare_encounter`), and canonical
+`healthcare_observation` dual-writes. Storage tables stay defined in the
+healthcare core; this module re-exports and pushes the same references.
+
+## Events
+
+Publishes `diagnostics.created`, `diagnostics.updated`, and
+`diagnostics.authorized`.

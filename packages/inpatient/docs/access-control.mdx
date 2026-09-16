@@ -1,0 +1,12 @@
+---
+title: Access control
+description: Inpatient ACL resources
+icon: IconBedDouble
+---
+
+```ts
+defineAcl({
+  nursing: ["create", "delete", "read", "update"],
+  resident: ["create", "delete", "read", "update"],
+});
+```

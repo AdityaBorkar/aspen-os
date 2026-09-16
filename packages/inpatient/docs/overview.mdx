@@ -1,0 +1,30 @@
+---
+title: Overview
+description: What the inpatient module owns
+icon: IconBedDouble
+---
+
+Bedside and stay care, split out of `@aspen-os/healthcare`: nursing and
+residents (daycare/long-stay).
+
+## Owns
+
+- Nursing: order-derived tasks, boards, vitals/EWS, intake-output, pain,
+  risk screens, witnessed drug administration, handovers, triage tags,
+  daycare sittings.
+- Residents: admission, bed allocation, geriatric scores, polypharmacy
+  reviews, daily logs, rounds, visit logs, stay charges and compiled bills,
+  family summaries.
+
+## Depends on
+
+`healthcare` (`$dependencies = ["healthcare"]`) for the open-encounter gate,
+`healthcare_observation` dual-writes, billing tables used by stay billing, and
+gapless numbering. Storage tables stay defined in the healthcare core; this
+module re-exports and pushes the same references.
+
+## Events
+
+Publishes `inpatient.nursing_created/escalated/updated` and
+`inpatient.resident_created/updated`. The `tasks` bridge consumes
+`inpatient.nursing_created`; `comms` consumes `inpatient.resident_updated`.

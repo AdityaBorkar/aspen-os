@@ -1,0 +1,7 @@
+{
+  "icon": "IconBedDouble",
+  "pages": ["overview", "workflows", "access-control", "events", "db-schemas"],
+  "pagesIndex": "index",
+  "root": true,
+  "title": "Inpatient"
+}

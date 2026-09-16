@@ -12,48 +12,32 @@ The Healthcare module declares its ACL via `defineAcl()`, which the platform mer
 import { defineAcl } from "@aspen-os/platform/server";
 
 export const acl = defineAcl({
-  allopathy: ["create", "delete", "read", "update"],
   appointment: ["create", "delete", "read", "update"],
-  ayush: ["create", "delete", "read", "update"],
   billing: ["create", "delete", "discount-approve", "read", "update"],
   branch: ["create", "delete", "read", "update"],
-  dental: ["create", "delete", "read", "update"],
-  diagnostics: ["authorize", "create", "delete", "read", "update"],
   encounter: ["create", "delete", "read", "update"],
   facility: ["create", "delete", "read", "update"],
-  nursing: ["create", "delete", "read", "update"],
   operations: ["create", "delete", "read", "update"],
   patient: ["create", "delete", "read", "update"],
-  pharmacy: ["create", "delete", "read", "update"],
   practitioner: ["create", "delete", "read", "update"],
-  psych: ["create", "delete", "override", "read", "update"],
   records: ["create", "delete", "read", "update"],
-  rehab: ["create", "delete", "read", "update"],
-  resident: ["create", "delete", "read", "update"],
   service: ["create", "delete", "read", "update"],
 });
 ```
 
+Moved resources live in their own modules: `diagnostics` (`@aspen-os/diagnostics`), `pharmacy` (`@aspen-os/pharmacy`), `allopathy`/`dental`/`ayush`/`rehab`/`psych` (`@aspen-os/emr`), and `nursing`/`resident` (`@aspen-os/inpatient`).
+
 | Resource       | Operations                                               |
 | -------------- | -------------------------------------------------------- |
-| `allopathy`    | `create`, `delete`, `read`, `update`                     |
 | `appointment`  | `create`, `delete`, `read`, `update`                     |
-| `ayush`        | `create`, `delete`, `read`, `update`                     |
 | `billing`      | `create`, `delete`, `discount-approve`, `read`, `update` |
 | `branch`       | `create`, `delete`, `read`, `update`                     |
-| `dental`       | `create`, `delete`, `read`, `update`                     |
-| `diagnostics`  | `authorize`, `create`, `delete`, `read`, `update`        |
 | `encounter`    | `create`, `delete`, `read`, `update`                     |
 | `facility`     | `create`, `delete`, `read`, `update`                     |
-| `nursing`      | `create`, `delete`, `read`, `update`                     |
 | `operations`   | `create`, `delete`, `read`, `update`                     |
 | `patient`      | `create`, `delete`, `read`, `update`                     |
-| `pharmacy`     | `create`, `delete`, `read`, `update`                     |
 | `practitioner` | `create`, `delete`, `read`, `update`                     |
-| `psych`        | `create`, `delete`, `override`, `read`, `update`         |
 | `records`      | `create`, `delete`, `read`, `update`                     |
-| `rehab`        | `create`, `delete`, `read`, `update`                     |
-| `resident`     | `create`, `delete`, `read`, `update`                     |
 | `service`      | `create`, `delete`, `read`, `update`                     |
 
 ## Elevated authority
@@ -61,5 +45,5 @@ export const acl = defineAcl({
 The following semantics are elevated by design and must be enforced by the host app's roles:
 
 - Billing discounts above 15% (`billing.discount-approve`) — maker-checker: the approver must differ from the discounter
-- Lab and radio authorization (`diagnostics.authorize`) — four-eyes: the authorizer must differ from the result enterer
-- Psych scale overrides and controlled-substance early refills (`psych.override`) — reason required, audited
+- Lab and radio authorization (`diagnostics.authorize` in `@aspen-os/diagnostics`) — four-eyes: the authorizer must differ from the result enterer
+- Psych scale overrides and controlled-substance early refills (`psych.override` in `@aspen-os/emr`) — reason required, audited

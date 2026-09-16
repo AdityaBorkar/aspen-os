@@ -32,7 +32,9 @@
     { "path": "./packages/constants" },
     { "path": "./packages/comms" },
     { "path": "./packages/crm" },
+    { "path": "./packages/diagnostics" },
     { "path": "./packages/dms" },
+    { "path": "./packages/emr" },
     { "path": "./packages/fleet" },
     { "path": "./packages/healthcare" },
     { "path": "./packages/platform" },
@@ -40,11 +42,13 @@
     { "path": "./packages/hr-core" },
     { "path": "./packages/announcement" },
     { "path": "./packages/hr-leave" },
+    { "path": "./packages/inpatient" },
     { "path": "./packages/inventory" },
     { "path": "./packages/reports" },
     { "path": "./packages/management" },
     { "path": "./packages/masters" },
     { "path": "./packages/notes" },
+    { "path": "./packages/pharmacy" },
     { "path": "./packages/tasks" },
     { "path": "./packages/workspace" }
   ]

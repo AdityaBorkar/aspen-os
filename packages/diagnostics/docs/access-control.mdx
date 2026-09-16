@@ -1,0 +1,13 @@
+---
+title: Access control
+description: Diagnostics ACL resources
+icon: IconFlaskConical
+---
+
+```ts
+defineAcl({
+  diagnostics: ["authorize", "create", "delete", "read", "update"],
+});
+```
+
+The `authorize` action guards the four-eyes authorization paths.

@@ -1,0 +1,23 @@
+---
+title: Pharmacy
+description: Pharmacy inventory and dispensing workflows.
+icon: IconPill
+---
+
+import { Cards } from "fumadocs-ui/components/card";
+
+Pharmacy inventory and dispensing workflows.
+
+Split out of `@aspen-os/healthcare`. Storage tables remain owned by the
+healthcare core kernel; this module owns the workflows, validation schemas,
+ACL, and events listed below.
+
+<Cards
+  cards={[
+    { description: "What this module owns", href: "./overview", title: "Overview" },
+    { description: "Workflow reference", href: "./workflows", title: "Workflows" },
+    { description: "ACL resources", href: "./access-control", title: "Access control" },
+    { description: "Published events", href: "./events", title: "Events" },
+    { description: "Table reference", href: "./db-schemas", title: "DB schemas" },
+  ]}
+/>

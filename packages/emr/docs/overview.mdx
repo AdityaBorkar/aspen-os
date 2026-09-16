@@ -1,0 +1,37 @@
+---
+title: Overview
+description: What the EMR module owns
+icon: IconStethoscope
+---
+
+Electronic medical records for five specialties, split out of
+`@aspen-os/healthcare`: allopathy, dental, AYUSH, rehab, and psychiatry.
+
+## Owns
+
+- Allopathy: SOAP notes, exams, chronic logs, immunizations, triage, problem
+  list, statutory registers.
+- Dental: FDI charts, staged treatment plans, quotes, chair slots, lab jobs,
+  implant milestones.
+- AYUSH: case sheets, dual coding, repertorization, therapy packages and
+  sittings, diet plans, yoga batches.
+- Rehab: episodes, assessments, goals, packages, sittings, exercise sheets,
+  discharge.
+- Psychiatry: masked assessments, scales, risk/safety plans, counselling and
+  tele sessions, withdrawal charts, relapse plans, controlled prescriptions.
+
+Every specialty write gates on an open same-patient encounter owned by the
+healthcare core.
+
+## Depends on
+
+`healthcare` (`$dependencies = ["healthcare"]`) for the open-encounter gate,
+`healthcare_observation` / `healthcare_condition` canonical writes, and shared
+patient/allergy reference tables. Storage tables stay defined in the
+healthcare core; this module re-exports and pushes the same references.
+
+## Events
+
+Publishes `emr.allopathy_created/updated`, `emr.dental_created/updated`,
+`emr.ayush_created/updated`, `emr.rehab_created/updated`, and
+`emr.psych_created/updated`.

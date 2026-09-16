@@ -51,23 +51,14 @@ export class Healthcare implements Module {
   $cleanup(): void {}
 
   readonly admin = wf.admin;
-  readonly allopathy = wf.allopathy;
   readonly appointments = wf.appointments;
-  readonly ayush = wf.ayush;
   readonly billing = wf.billing;
-  readonly dental = wf.dental;
-  readonly diagnostics = wf.diagnostics;
   readonly encounters = wf.encounters;
   readonly facilities = wf.facilities;
-  readonly nursing = wf.nursing;
   readonly operations = wf.operations;
   readonly patients = wf.patients;
-  readonly pharmacy = wf.pharmacy;
   readonly practitioners = wf.practitioners;
   readonly pricelists = wf.pricelists;
-  readonly psych = wf.psych;
   readonly records = wf.records;
-  readonly rehab = wf.rehab;
-  readonly residents = wf.residents;
   readonly services = wf.services;
 }

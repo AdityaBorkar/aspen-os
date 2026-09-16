@@ -50,7 +50,7 @@ export class Comms implements Module {
     "tenant.activated",
     "auth.email_otp_requested",
     "healthcare.records_created",
-    "healthcare.resident_updated",
+    "inpatient.resident_updated",
   ];
   readonly $config: CommsModuleConfig;
 

@@ -33,58 +33,10 @@ export const ENCOUNTER_EVENTS = {
   UPDATED: "healthcare.encounter_updated",
 } as const;
 
-export const ALLOPATHY_EVENTS = {
-  CREATED: "healthcare.allopathy_created",
-  UPDATED: "healthcare.allopathy_updated",
-} as const;
-
-export const DENTAL_EVENTS = {
-  CREATED: "healthcare.dental_created",
-  UPDATED: "healthcare.dental_updated",
-} as const;
-
-export const AYUSH_EVENTS = {
-  CREATED: "healthcare.ayush_created",
-  UPDATED: "healthcare.ayush_updated",
-} as const;
-
-export const REHAB_EVENTS = {
-  CREATED: "healthcare.rehab_created",
-  UPDATED: "healthcare.rehab_updated",
-} as const;
-
-export const PSYCH_EVENTS = {
-  CREATED: "healthcare.psych_created",
-  UPDATED: "healthcare.psych_updated",
-} as const;
-
-export const RESIDENT_EVENTS = {
-  CREATED: "healthcare.resident_created",
-  UPDATED: "healthcare.resident_updated",
-} as const;
-
-export const PHARMACY_EVENTS = {
-  CREATED: "healthcare.pharmacy_created",
-  DISPENSED: "healthcare.pharmacy_dispensed",
-  UPDATED: "healthcare.pharmacy_updated",
-} as const;
-
-export const DIAGNOSTICS_EVENTS = {
-  AUTHORIZED: "healthcare.diagnostics_authorized",
-  CREATED: "healthcare.diagnostics_created",
-  UPDATED: "healthcare.diagnostics_updated",
-} as const;
-
 export const BILLING_EVENTS = {
   COLLECTED: "healthcare.billing_collected",
   CREATED: "healthcare.billing_created",
   UPDATED: "healthcare.billing_updated",
-} as const;
-
-export const NURSING_EVENTS = {
-  CREATED: "healthcare.nursing_created",
-  ESCALATED: "healthcare.nursing_escalated",
-  UPDATED: "healthcare.nursing_updated",
 } as const;
 
 export const RECORDS_EVENTS = {
@@ -105,24 +57,15 @@ export const BRANCH_EVENTS = {
 } as const;
 
 export const events = {
-  ALLOPATHY_EVENTS,
   APPOINTMENT_EVENTS,
-  AYUSH_EVENTS,
   BILLING_EVENTS,
   BRANCH_EVENTS,
-  DENTAL_EVENTS,
-  DIAGNOSTICS_EVENTS,
   ENCOUNTER_EVENTS,
   FACILITY_EVENTS,
-  NURSING_EVENTS,
   OPERATIONS_EVENTS,
   PATIENT_EVENTS,
-  PHARMACY_EVENTS,
   PRACTITIONER_EVENTS,
-  PSYCH_EVENTS,
   RECORDS_EVENTS,
-  REHAB_EVENTS,
-  RESIDENT_EVENTS,
   SERVICE_EVENTS,
 };
 
@@ -167,58 +110,10 @@ export interface EncounterEventMap {
   [ENCOUNTER_EVENTS.UPDATED]: HealthcareEntityEvent;
 }
 
-export interface AllopathyEventMap {
-  [ALLOPATHY_EVENTS.CREATED]: HealthcareEntityEvent;
-  [ALLOPATHY_EVENTS.UPDATED]: HealthcareEntityEvent;
-}
-
-export interface DentalEventMap {
-  [DENTAL_EVENTS.CREATED]: HealthcareEntityEvent;
-  [DENTAL_EVENTS.UPDATED]: HealthcareEntityEvent;
-}
-
-export interface AyushEventMap {
-  [AYUSH_EVENTS.CREATED]: HealthcareEntityEvent;
-  [AYUSH_EVENTS.UPDATED]: HealthcareEntityEvent;
-}
-
-export interface RehabEventMap {
-  [REHAB_EVENTS.CREATED]: HealthcareEntityEvent;
-  [REHAB_EVENTS.UPDATED]: HealthcareEntityEvent;
-}
-
-export interface PsychEventMap {
-  [PSYCH_EVENTS.CREATED]: HealthcareEntityEvent;
-  [PSYCH_EVENTS.UPDATED]: HealthcareEntityEvent;
-}
-
-export interface ResidentEventMap {
-  [RESIDENT_EVENTS.CREATED]: HealthcareEntityEvent;
-  [RESIDENT_EVENTS.UPDATED]: HealthcareEntityEvent;
-}
-
-export interface PharmacyEventMap {
-  [PHARMACY_EVENTS.CREATED]: HealthcareEntityEvent;
-  [PHARMACY_EVENTS.DISPENSED]: HealthcareEntityEvent;
-  [PHARMACY_EVENTS.UPDATED]: HealthcareEntityEvent;
-}
-
-export interface DiagnosticsEventMap {
-  [DIAGNOSTICS_EVENTS.AUTHORIZED]: HealthcareEntityEvent;
-  [DIAGNOSTICS_EVENTS.CREATED]: HealthcareEntityEvent;
-  [DIAGNOSTICS_EVENTS.UPDATED]: HealthcareEntityEvent;
-}
-
 export interface BillingEventMap {
   [BILLING_EVENTS.COLLECTED]: HealthcareEntityEvent;
   [BILLING_EVENTS.CREATED]: HealthcareEntityEvent;
   [BILLING_EVENTS.UPDATED]: HealthcareEntityEvent;
-}
-
-export interface NursingEventMap {
-  [NURSING_EVENTS.CREATED]: HealthcareEntityEvent;
-  [NURSING_EVENTS.ESCALATED]: HealthcareEntityEvent;
-  [NURSING_EVENTS.UPDATED]: HealthcareEntityEvent;
 }
 
 export interface RecordsEventMap {
@@ -238,22 +133,13 @@ export interface BranchEventMap {
   [BRANCH_EVENTS.UPDATED]: HealthcareEntityEvent;
 }
 
-export type HealthcareEventMap = AllopathyEventMap &
-  AppointmentEventMap &
-  AyushEventMap &
+export type HealthcareEventMap = AppointmentEventMap &
   BillingEventMap &
   BranchEventMap &
-  DentalEventMap &
-  DiagnosticsEventMap &
   EncounterEventMap &
   FacilityEventMap &
-  NursingEventMap &
   OperationsEventMap &
   PatientEventMap &
-  PharmacyEventMap &
   PractitionerEventMap &
-  PsychEventMap &
   RecordsEventMap &
-  RehabEventMap &
-  ResidentEventMap &
   ServiceEventMap;
