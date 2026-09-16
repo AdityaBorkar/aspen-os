@@ -1,7 +1,6 @@
 import {
   ComplianceCategorySchema,
   ExpiryPolicyChannelSchema,
-  ReminderChannelSchema,
   RenewalFrequencySchema,
   VerificationStatusSchema,
 } from "#/schemas/enums";
@@ -54,9 +53,6 @@ export const CreateComplianceDocumentSchema = object({
   periodEnd: optional(date()),
   periodStart: optional(date()),
   referenceNumber: optional(nullable(string())),
-  // Deprecated aliases — keep wire-compat for one minor
-  reminderChannel: optional(ReminderChannelSchema),
-  reminderDays: optional(array(number())),
   renewalDate: optional(date()),
   renewalFrequency: optional(RenewalFrequencySchema),
   sourceEntityId: optional(nullable(string())),
@@ -90,8 +86,6 @@ const MUTABLE_DOCUMENT_KEYS = [
   "periodEnd",
   "periodStart",
   "referenceNumber",
-  "reminderChannel",
-  "reminderDays",
   "renewalDate",
   "renewalFrequency",
 ] as const;

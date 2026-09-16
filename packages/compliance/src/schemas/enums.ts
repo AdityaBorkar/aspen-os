@@ -19,8 +19,6 @@ export const RenewalFrequencySchema = enum_(RENEWAL_FREQUENCY);
 export const ObligationFrequencySchema = enum_(OBLIGATION_FREQUENCY);
 
 export const ExpiryPolicyChannelSchema = enum_(EXPIRY_POLICY_CHANNEL);
-/** @deprecated Use ExpiryPolicyChannelSchema — harmonized to expiry_policy_* */
-export const ReminderChannelSchema = ExpiryPolicyChannelSchema;
 
 export const AuditEntityTypeSchema = enum_(AUDIT_ENTITY_TYPE);
 

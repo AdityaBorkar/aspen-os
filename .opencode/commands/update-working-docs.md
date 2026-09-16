@@ -1,4 +1,8 @@
-# Skill: update-working-docs
+---
+description: Update Working Docs
+---
+
+# Command: update-working-docs
 
 **update-working-docs** keeps the repo's domain-doc surface — `.working-docs/`, `CONTEXT.md`, `CODING_CONVENTIONS.md` — **true** and **tight**: true to the code, tight in prose. Two passes, in order: Pass 1 models the current state via the `/domain-modeling` skill; Pass 2 compresses every file Pass 1 wrote via the `/caveman` skill. Run it when domain modeling work lands — a SOW phase completes, an ADR is written, a module surface changes, glossary terms shift.
 

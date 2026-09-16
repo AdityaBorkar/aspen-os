@@ -95,11 +95,11 @@ export function deriveOverdueStatus(
 }
 
 export function shouldNotify(
-  reminderDays: number[],
+  expiryPolicyDays: number[],
   lastNotifiedAt: Date | null,
   daysUntilTarget: number,
 ): boolean {
-  const sorted = reminderDays.toSorted((left, right) => right - left);
+  const sorted = expiryPolicyDays.toSorted((left, right) => right - left);
   for (const threshold of sorted) {
     if (daysUntilTarget <= threshold) {
       if (!lastNotifiedAt) {

@@ -56,7 +56,6 @@ const rejectDocument = Workflow.name("document.reject").handler(
       dueDate: updated.due_date,
       expiryDate: updated.expiry_date,
       expiryPolicyDays: updated.expiry_policy_days,
-      reminderDays: updated.expiry_policy_days,
       snoozedUntil: updated.snoozed_until ? updated.snoozed_until.toISOString() : null,
       verificationStatus: updated.verification_status,
     });

@@ -77,13 +77,13 @@
 - `ComplianceCategory` — enum: tax, license, certificate, permit, insurance, regulatory, legal, hr, safety, environmental, data_privacy, financial, vehicle, property, audit, other
 - `VerificationStatus` — enum: draft, submitted, under_review, verified, rejected, expired, overdue, renewed, archived
 - `RenewalFrequency` — enum: monthly, quarterly, semi_annual, annual, biennial, triennial, one_time
-- `ReminderChannel` — enum: pubsub, email, both
+- `ExpiryPolicyChannel` — enum: pubsub, email, both
 
 **Invariants**:
 
 - Verification status is derived from dates + renewal state by the `StatusDerivation` service, not set directly (except by explicit `updateStatus`)
 - Renewal chains: renewing archives the old document and creates a new one with `renewedFrom` FK
-- `reminderDays` array defines when expiry notifications fire (default: [90, 60, 30, 7])
+- `expiryPolicyDays` array defines when expiry notifications fire (default: [90, 60, 30, 7])
 - `escalationDays` array defines escalation thresholds (default: [1, 7, 30])
 - Soft FKs: `branch` → organization branch, `connection` → organization connection, `obligationId` → compliance_obligation, `{sourceModule, sourceEntityType, sourceEntityId}` → external entity
 

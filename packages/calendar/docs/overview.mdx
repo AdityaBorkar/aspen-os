@@ -94,7 +94,7 @@ Calendars carry `access` (`personal` default or `global`) plus `ownerId`. Events
 
 ### Single reminder surface
 
-`calendar_reminder` is polymorphic (`target_type` / `target_id` → any module entity). Task due-date reminders (`target_type = task`) are three rows per recipient (`due − 1d`, `due − 1h`, `due`) created by the task bridge. Compliance document reminders (`target_type = compliance_document`) are `reminderDays` rows per recipient created by the compliance bridge (expiry/due dates). No direct cross-module table reads.
+`calendar_reminder` is polymorphic (`target_type` / `target_id` → any module entity). Task due-date reminders (`target_type = task`) are three rows per recipient (`due − 1d`, `due − 1h`, `due`) created by the task bridge. Compliance document reminders (`target_type = compliance_document`) are `expiryPolicyDays` rows per recipient created by the compliance bridge (expiry/due dates). No direct cross-module table reads.
 
 ## Relationships
 

@@ -156,8 +156,6 @@ import {
   healthcareMedicalAddendum,
   healthcareMedicalRegister,
   healthcareMergeLog,
-  healthcareMessageLog,
-  healthcareMessageOptout,
   healthcareShareLog,
 } from "#/db-schemas/records";
 import {
@@ -353,8 +351,6 @@ export {
   healthcareMedicalAddendum,
   healthcareMedicalRegister,
   healthcareMergeLog,
-  healthcareMessageLog,
-  healthcareMessageOptout,
   healthcareShareLog,
 } from "#/db-schemas/records";
 export {
@@ -460,8 +456,6 @@ export const healthcareTables = {
   healthcareMedicalRegister,
   healthcareMergeLog,
   healthcareMergeRequest,
-  healthcareMessageLog,
-  healthcareMessageOptout,
   healthcareNursingChecklist,
   healthcareNursingEscalation,
   healthcareNursingNote,

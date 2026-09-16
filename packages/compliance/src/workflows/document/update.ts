@@ -43,8 +43,6 @@ const updateDocument = Workflow.name("document.update").handler(
       expiryPolicyDays: "expiry_policy_days",
       issuingAuthority: "issuing_authority",
       referenceNumber: "reference_number",
-      reminderChannel: "expiry_policy_channel",
-      reminderDays: "expiry_policy_days",
       renewalFrequency: "renewal_frequency",
     } satisfies Record<string, string>;
 
@@ -100,7 +98,6 @@ const updateDocument = Workflow.name("document.update").handler(
       dueDate: updated.due_date,
       expiryDate: updated.expiry_date,
       expiryPolicyDays: updated.expiry_policy_days,
-      reminderDays: updated.expiry_policy_days,
       snoozedUntil: updated.snoozed_until ? updated.snoozed_until.toISOString() : null,
       verificationStatus: updated.verification_status,
     });

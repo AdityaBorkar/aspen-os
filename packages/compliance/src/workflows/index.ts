@@ -58,9 +58,6 @@ export const summary = {
   invalidateCache,
 } as const;
 
-/** @deprecated Use summary — harmonized Dashboard → Summary (keep getSummary verb) */
-export const dashboard = summary;
-
 export const documents = {
   archive: archiveDocument,
   assignReviewer: assignDocumentReviewer,

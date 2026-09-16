@@ -7,9 +7,8 @@ export const healthcareClinicalDocument = pgTable(
   {
     branch_id: text().notNull().default("main"),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
-    dms_file_id: text(),
+    dms_file_id: text().notNull(),
     encounter_id: text(),
-    file_path: text().notNull(),
     file_type: text().notNull(),
     id: uuidv7().primaryKey(),
     label: text(),
@@ -174,52 +173,6 @@ export const healthcareConsentGrant = pgTable(
   ],
 );
 
-export const healthcareMessageLog = pgTable(
-  "healthcare_message_log",
-  {
-    branch_id: text().notNull().default("main"),
-    channel: text().notNull(),
-    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
-    id: uuidv7().primaryKey(),
-    opted_out: boolean().notNull().default(false),
-    patient_id: text(),
-    payload: jsonb().$type<Record<string, JsonValue>>().notNull().default({}),
-    status: text().notNull().default("queued"),
-    template: text(),
-    to: text().notNull(),
-    updated_at: timestamp({ withTimezone: true })
-      .notNull()
-      .defaultNow()
-      .$onUpdate(() => new Date()),
-  },
-  (table) => [
-    index("idx_healthcare_message_log_branch_id").on(table.branch_id),
-    index("idx_healthcare_message_log_status").on(table.status),
-    index("idx_healthcare_message_log_to").on(table.to),
-  ],
-);
-
-export const healthcareMessageOptout = pgTable(
-  "healthcare_message_optout",
-  {
-    branch_id: text().notNull().default("main"),
-    channel: text().notNull(),
-    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
-    id: uuidv7().primaryKey(),
-    opted_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
-    payload: jsonb().$type<Record<string, JsonValue>>().notNull().default({}),
-    to: text().notNull(),
-    updated_at: timestamp({ withTimezone: true })
-      .notNull()
-      .defaultNow()
-      .$onUpdate(() => new Date()),
-  },
-  (table) => [
-    index("idx_healthcare_message_optout_branch_id").on(table.branch_id),
-    index("idx_healthcare_message_optout_to").on(table.to),
-  ],
-);
-
 export type HealthcareClinicalDocument = typeof healthcareClinicalDocument.$inferSelect;
 export type NewHealthcareClinicalDocument = typeof healthcareClinicalDocument.$inferInsert;
 export type HealthcareShareLog = typeof healthcareShareLog.$inferSelect;
@@ -234,7 +187,3 @@ export type HealthcareDischargeSummary = typeof healthcareDischargeSummary.$infe
 export type NewHealthcareDischargeSummary = typeof healthcareDischargeSummary.$inferInsert;
 export type HealthcareConsentGrant = typeof healthcareConsentGrant.$inferSelect;
 export type NewHealthcareConsentGrant = typeof healthcareConsentGrant.$inferInsert;
-export type HealthcareMessageLog = typeof healthcareMessageLog.$inferSelect;
-export type NewHealthcareMessageLog = typeof healthcareMessageLog.$inferInsert;
-export type HealthcareMessageOptout = typeof healthcareMessageOptout.$inferSelect;
-export type NewHealthcareMessageOptout = typeof healthcareMessageOptout.$inferInsert;

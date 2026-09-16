@@ -11,11 +11,7 @@ import {
   healthcareNursingTask,
   healthcareDrugAdministration,
 } from "#/db-schemas/nursing";
-import {
-  healthcareClinicalDocument,
-  healthcareMedicalRegister,
-  healthcareMessageLog,
-} from "#/db-schemas/records";
+import { healthcareClinicalDocument, healthcareMedicalRegister } from "#/db-schemas/records";
 import {
   healthcareDailyLog,
   healthcareGeriatricScore,
@@ -39,7 +35,6 @@ export const healthcareExplorerTables = {
   healthcare_invoice: healthcareInvoice,
   healthcare_leave_request: healthcareLeaveRequest,
   healthcare_medical_register: healthcareMedicalRegister,
-  healthcare_message_log: healthcareMessageLog,
   healthcare_nursing_checklist: healthcareNursingChecklist,
   healthcare_nursing_task: healthcareNursingTask,
   healthcare_package_balance: healthcarePackageBalance,

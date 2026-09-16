@@ -49,8 +49,6 @@ export class Comms implements Module {
     "tenant.provisioned",
     "tenant.activated",
     "auth.email_otp_requested",
-    "healthcare.operations_created",
-    "healthcare.operations_updated",
     "healthcare.records_created",
     "healthcare.resident_updated",
   ];

@@ -54,7 +54,7 @@ export const mastersUpsert = Workflow.name("healthcare.operations.masters-upsert
         newState: { domain: row.domain, key: row.key, version: row.version },
       });
       // One shared catalogue surface is masters: healthcare keeps the clinical
-      // write for deprecated readers, masters owns the value set. The intent
+      // write with the masters intent attached, masters owns the value set. The intent
       // below maps the local domain/key/value row to a masters.setting key.
       const intent = healthcareMasterIntent({
         branchId,

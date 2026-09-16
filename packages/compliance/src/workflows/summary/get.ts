@@ -199,5 +199,3 @@ function toCountMap<Row extends { count: number }>(
 }
 
 export { getSummary };
-/** @deprecated Use getSummary — harmonized Dashboard → Summary (keep getSummary verb) */
-export const getDashboardSummary = getSummary;

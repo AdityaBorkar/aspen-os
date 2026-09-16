@@ -57,7 +57,7 @@ export const rosterPlan = Workflow.name("healthcare.staff.roster-plan")
         newState: { entries: inserted.length, month: parsed.month },
       });
       // Roster plans map to hr-attendance.shift; HR owns the shift record,
-      // healthcare keeps the deprecated month-bucketed mirror with the hr
+      // healthcare keeps the month-bucketed roster rows with the hr
       // intent attached.
       await ctx.pubsub.publish(OPERATIONS_EVENTS.CREATED, {
         actorId: ctx.actorId,

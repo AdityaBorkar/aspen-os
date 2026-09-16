@@ -50,7 +50,6 @@ export {
   ExpiryPolicyChannelSchema,
   ObligationFiltersSchema,
   ObligationFrequencySchema,
-  ReminderChannelSchema,
   RenewalFrequencySchema,
   UpdateComplianceDocumentSchema,
   UpdateObligationSchema,
@@ -63,7 +62,6 @@ export type {
   ComplianceCategory,
   ExpiryPolicyChannel,
   ObligationFrequency,
-  ReminderChannel,
   RenewalFrequency,
   VerificationStatus,
 } from "#/utils/constants";
@@ -76,15 +74,12 @@ export {
   DEFAULT_ESCALATION_DAYS,
   DEFAULT_EXPIRY_POLICY_DAYS_DUE,
   DEFAULT_EXPIRY_POLICY_DAYS_EXPIRY,
-  DEFAULT_REMINDER_DAYS_DUE,
-  DEFAULT_REMINDER_DAYS_EXPIRY,
   EXPIRY_ELIGIBLE_STATUSES,
   EXPIRY_POLICY_CHANNEL,
   HEALTH_SCORE_WEIGHTS,
   MAX_PERIODS_PER_RUN,
   OBLIGATION_FREQUENCY,
   OVERDUE_ELIGIBLE_STATUSES,
-  REMINDER_CHANNEL,
   RENEWAL_FREQUENCY,
   SCHEDULED_JOBS,
   SYSTEM_ACTOR,
@@ -110,8 +105,6 @@ export interface Summary {
   verified: number;
 }
 
-/** @deprecated Use Summary — harmonized Dashboard → Summary (keep getSummary verb) */
-export type DashboardSummary = Summary;
 /** Canonical alias */
 export type ComplianceSummary = Summary;
 

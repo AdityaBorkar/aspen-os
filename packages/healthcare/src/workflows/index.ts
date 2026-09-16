@@ -147,9 +147,6 @@ import { explorerGrant } from "#/workflows/operations/explorer-grant";
 import { explorerQuery } from "#/workflows/operations/explorer-query";
 import { mastersGet } from "#/workflows/operations/masters-get";
 import { mastersUpsert } from "#/workflows/operations/masters-upsert";
-import { messagingOptOut } from "#/workflows/operations/messaging-optout";
-import { messagingRetry } from "#/workflows/operations/messaging-retry";
-import { messagingSend } from "#/workflows/operations/messaging-send";
 import { reportsDefine } from "#/workflows/operations/reports-define";
 import { reportsGet } from "#/workflows/operations/reports-get";
 import { reportsList } from "#/workflows/operations/reports-list";
@@ -625,9 +622,6 @@ export const operations = {
   explorerQuery,
   mastersGet,
   mastersUpsert,
-  messagingOptOut,
-  messagingRetry,
-  messagingSend,
   reportsDefine,
   reportsGet,
   reportsList,

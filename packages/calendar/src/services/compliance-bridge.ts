@@ -25,7 +25,7 @@ const ComplianceDocumentFactSchema = object({
   documentId: string(),
   dueDate: nullable(string()),
   expiryDate: nullable(string()),
-  reminderDays: optional(nullable(array(number()))),
+  expiryPolicyDays: optional(nullable(array(number()))),
   snoozedUntil: nullable(string()),
   verificationStatus: optional(string()),
 });
@@ -60,7 +60,7 @@ async function handleDocumentFact(
     documentId: string;
     dueDate: string | null;
     expiryDate: string | null;
-    reminderDays?: number[] | null;
+    expiryPolicyDays?: number[] | null;
     snoozedUntil: string | null;
     verificationStatus?: string;
   },
@@ -88,10 +88,12 @@ async function handleDocumentFact(
     return;
   }
 
-  const reminderDays = event.reminderDays ?? [90, 60, 30, 7];
-  const validReminderDays = reminderDays.filter((days) => Number.isFinite(days) && days >= 0);
+  const expiryPolicyDays = event.expiryPolicyDays ?? [90, 60, 30, 7];
+  const validExpiryPolicyDays = expiryPolicyDays.filter(
+    (days) => Number.isFinite(days) && days >= 0,
+  );
 
-  if (validReminderDays.length === 0) {
+  if (validExpiryPolicyDays.length === 0) {
     await deletePendingComplianceReminders(db, event.documentId);
     return;
   }
@@ -120,7 +122,7 @@ async function handleDocumentFact(
 
   const rows = userIds.flatMap((userId) =>
     targetDates.flatMap(({ date: targetDate, label }) =>
-      validReminderDays.map((days) => ({
+      validExpiryPolicyDays.map((days) => ({
         channel: REMINDER_CHANNEL.PUBSUB,
         created_by: "compliance-bridge",
         message: `Compliance document ${label} in ${days} day${days === 1 ? "" : "s"}`,

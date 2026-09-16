@@ -30,7 +30,6 @@ const renewDocument = Workflow.name("document.renew").handler(
       .where(eq(complianceDocument.id, id));
 
     const expiryPolicyDays = newData.expiryPolicyDays ??
-      newData.reminderDays ??
       current.expiry_policy_days ?? [...DEFAULT_EXPIRY_POLICY_DAYS_EXPIRY];
     const escalationDays = newData.escalationDays ?? current.escalation_days;
 
@@ -99,7 +98,6 @@ const renewDocument = Workflow.name("document.renew").handler(
       dueDate: newDoc.due_date,
       expiryDate: newDoc.expiry_date,
       expiryPolicyDays: newDoc.expiry_policy_days,
-      reminderDays: newDoc.expiry_policy_days,
       snoozedUntil: newDoc.snoozed_until ? newDoc.snoozed_until.toISOString() : null,
       verificationStatus: newDoc.verification_status,
     });

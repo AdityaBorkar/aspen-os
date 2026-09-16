@@ -9,8 +9,8 @@ export const adminLogs = Workflow.name("healthcare.admin.logs")
   .input(LogsInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(AuditLogsQuerySchema, input);
-    // AuditQuery has no branch filter, so branchId is accepted for
-    // source-compat but only action/entityType/limit/offset reach the query.
+    // AuditQuery has no branch filter, so branchId is accepted but only
+    // action/entityType/limit/offset reach the query.
     const rows = await ctx.step.run("query-audit-logs", async () =>
       ctx.audit.query({
         action: parsed.action,

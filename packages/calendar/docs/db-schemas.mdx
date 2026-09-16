@@ -126,4 +126,4 @@ flowchart LR
   R -. target_type/task<br/>compliance_document/custom .-> EXT[any module entity]
 ```
 
-All FKs are soft, workflow-enforced. `reminder.interval` is decoded at the dispatcher boundary; unknown legacy values are acknowledged but not rescheduled.
+All FKs are soft, workflow-enforced. `reminder.interval` is decoded at the dispatcher boundary; unknown values are acknowledged but not rescheduled.

@@ -27,9 +27,8 @@ export function toDocumentInsertRow(
     effective_date: toDbDate(parsed.effectiveDate),
     escalation_days: parsed.escalationDays ?? null,
     expiry_date: toDbDate(parsed.expiryDate),
-    expiry_policy_channel: parsed.expiryPolicyChannel ?? parsed.reminderChannel ?? "pubsub",
-    expiry_policy_days: parsed.expiryPolicyDays ??
-      parsed.reminderDays ?? [...DEFAULT_EXPIRY_POLICY_DAYS_EXPIRY],
+    expiry_policy_channel: parsed.expiryPolicyChannel ?? "pubsub",
+    expiry_policy_days: parsed.expiryPolicyDays ?? [...DEFAULT_EXPIRY_POLICY_DAYS_EXPIRY],
     issue_date: toDbDate(parsed.issueDate),
     issuing_authority: parsed.issuingAuthority ?? null,
     jurisdiction: parsed.jurisdiction ?? null,
@@ -86,7 +85,6 @@ const createDocument = Workflow.name("document.create")
       dueDate: result.due_date,
       expiryDate: result.expiry_date,
       expiryPolicyDays: result.expiry_policy_days,
-      reminderDays: result.expiry_policy_days,
       snoozedUntil: result.snoozed_until ? result.snoozed_until.toISOString() : null,
       verificationStatus: result.verification_status,
     });

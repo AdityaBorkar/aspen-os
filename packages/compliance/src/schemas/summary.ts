@@ -20,8 +20,3 @@ export const SummarySchema = object({
 });
 
 export type SummaryOutput = InferOutput<typeof SummarySchema>;
-
-/** @deprecated Use SummarySchema — harmonized Dashboard → Summary */
-export const DashboardSummarySchema = SummarySchema;
-/** @deprecated Use SummaryOutput */
-export type DashboardSummaryOutput = SummaryOutput;

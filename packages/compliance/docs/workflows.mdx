@@ -4,7 +4,7 @@ description: API reference for the workflow groups exposed by the Compliance mod
 icon: IconListCheck
 ---
 
-The Compliance module exposes workflow groups via `p.compliance`: `documents`, `obligations`, `verification`, `audit`, `summary` (`dashboard` is a deprecated alias of `summary`).
+The Compliance module exposes workflow groups via `p.compliance`: `documents`, `obligations`, `verification`, `audit`, `summary`.
 
 Workflows are tenant-scoped; create takes Valibot input, update takes `{ id, patch }`. Every mutation writes an audit entry and publishes a domain event.
 
@@ -119,10 +119,6 @@ const exported = await p.compliance.audit.export({ filters });
 const summary = await p.compliance.summary.getSummary();
 await p.compliance.summary.invalidateCache();
 ```
-
-<Callout type="warn">
-  `p.compliance.dashboard` is a deprecated alias of `summary` — use `summary`.
-</Callout>
 
 ## Links
 

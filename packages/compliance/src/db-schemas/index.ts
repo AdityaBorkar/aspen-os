@@ -25,7 +25,6 @@ export {
   complianceCategoryEnum,
   expiryPolicyChannelEnum,
   obligationFrequencyEnum,
-  reminderChannelEnum,
   renewalFrequencyEnum,
   verificationStatusEnum,
 } from "#/db-schemas/enums";

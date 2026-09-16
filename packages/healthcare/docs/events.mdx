@@ -112,10 +112,10 @@ The Healthcare module publishes domain events as plain string topics via `PubSub
 
 ### Operations
 
-| Event                           | Payload                 | Trigger                                                                                                                                                                                                   |
-| ------------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `healthcare.operations_created` | `HealthcareEntityEvent` | `mastersUpsert`, `seedPresets`, `reportsDefine`, `complianceEvidence`, `messagingSend`, `messagingOptOut`, `explorerGrant`, staff `upsertStaff`/`rosterPlan`/`attendanceMark`/`leaveRequest`/`createRole` |
-| `healthcare.operations_updated` | `HealthcareEntityEvent` | `messagingRetry`, staff `leaveDecide`/`deleteRole`/`disableUser`                                                                                                                                          |
+| Event                           | Payload                 | Trigger                                                                                                                                                               |
+| ------------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `healthcare.operations_created` | `HealthcareEntityEvent` | `mastersUpsert`, `seedPresets`, `reportsDefine`, `complianceEvidence`, `explorerGrant`, staff `upsertStaff`/`rosterPlan`/`attendanceMark`/`leaveRequest`/`createRole` |
+| `healthcare.operations_updated` | `HealthcareEntityEvent` | staff `leaveDecide`/`deleteRole`/`disableUser`                                                                                                                        |
 
 ### Branch
 

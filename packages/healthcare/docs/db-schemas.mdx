@@ -1723,7 +1723,7 @@ Unique on booking + version.
 | `id`                        | text (PK)   |                            |
 | `booking_id`                | text        | (FK → radio booking, soft) |
 | `impression`                | text        |                            |
-| `report_path`               | text        |                            |
+| `dms_file_id`               | text        | (FK → dms.file, soft)      |
 | `version`                   | integer     |                            |
 | `authorized_by`             | text        |                            |
 | `status`                    | text        |                            |
@@ -2070,7 +2070,7 @@ Files-typed allowlist with four-eyes verification.
 | `patient_id`                  | text               |                              |
 | `encounter_id`                | text               |                              |
 | `label`                       | text               |                              |
-| `file_path` / `file_type`     | text               |                              |
+| `dms_file_id` / `file_type`   | text               | (FK → dms.file, soft)        |
 | `uploaded_by` / `uploaded_at` | text / timestamptz |                              |
 | `verified`                    | boolean            |                              |
 | `verified_by` / `verified_at` | text / timestamptz |                              |
@@ -2180,42 +2180,11 @@ Generic grant store; `consents-get` now returns a unified list across this store
 
 Indexes: `branch_id`, `patient_id`.
 
-#### `healthcare_message_log`
-
-| Column                      | Type        | Description               |
-| --------------------------- | ----------- | ------------------------- |
-| `id`                        | text (PK)   |                           |
-| `patient_id`                | text        |                           |
-| `channel`                   | text        | Single rail               |
-| `to`                        | text        |                           |
-| `template`                  | text        |                           |
-| `status`                    | text        | `queued` + opt-out blocks |
-| `opted_out`                 | boolean     |                           |
-| `payload`                   | jsonb       |                           |
-| `branch_id`                 | text        |                           |
-| `created_at` / `updated_at` | timestamptz |                           |
-
-Indexes: `branch_id`, `status`, `to`.
-
-#### `healthcare_message_optout`
-
-| Column                      | Type        | Description |
-| --------------------------- | ----------- | ----------- |
-| `id`                        | text (PK)   |             |
-| `channel`                   | text        |             |
-| `to`                        | text        |             |
-| `opted_at`                  | timestamptz |             |
-| `payload`                   | jsonb       |             |
-| `branch_id`                 | text        |             |
-| `created_at` / `updated_at` | timestamptz |             |
-
-Indexes: `branch_id`, `to`.
-
 ### Operations
 
 #### `healthcare_report_definition`
 
-Reports run only against the 21-table explorer allowlist.
+Reports run only against the 20-table explorer allowlist.
 
 | Column                      | Type        | Description |
 | --------------------------- | ----------- | ----------- |

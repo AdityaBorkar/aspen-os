@@ -118,8 +118,6 @@ export interface DocumentExpiringEvent {
   expiryDate?: string | null;
   expiryPolicyDays?: number[] | null;
   recipient?: RecipientRef;
-  /** @deprecated Use expiryPolicyDays — harmonized */
-  reminderDays?: number[] | null;
   snoozedUntil?: string | null;
   sourceEntityId?: string | null;
   sourceModule?: string;
@@ -135,8 +133,6 @@ export interface DocumentDueEvent {
   expiryDate?: string | null;
   expiryPolicyDays?: number[] | null;
   recipient?: RecipientRef;
-  /** @deprecated Use expiryPolicyDays */
-  reminderDays?: number[] | null;
   snoozedUntil?: string | null;
   sourceEntityId?: string | null;
   sourceModule?: string;

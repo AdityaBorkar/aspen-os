@@ -15,9 +15,7 @@ const createObligation = Workflow.name("obligation.create")
     const parsed = input;
 
     const defaultExpiryPolicyDays =
-      parsed.defaultExpiryPolicyDays ??
-      parsed.defaultReminderDays ??
-      expiryPolicyDefaults(parsed.expiryBased);
+      parsed.defaultExpiryPolicyDays ?? expiryPolicyDefaults(parsed.expiryBased);
 
     const [result] = await ctx.db
       .insert(complianceObligation)

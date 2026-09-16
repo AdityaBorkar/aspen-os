@@ -54,12 +54,12 @@ export const radioAuthorize = Workflow.name("healthcare.diagnostics.radio-author
     const rawAuthorizedVersion = booking.payload.authorizedVersion;
     const authorizedVersion = is(number(), rawAuthorizedVersion) ? rawAuthorizedVersion : 0;
     const isResign = authorizedVersion > 0 && target.version > authorizedVersion;
-    let resignDiff: { impressionChanged: boolean; reportPathChanged: boolean } | null = null;
+    let resignDiff: { dmsFileChanged: boolean; impressionChanged: boolean } | null = null;
     if (isResign) {
       const prior = sorted.find((report) => report.version === authorizedVersion) ?? null;
       resignDiff = {
+        dmsFileChanged: prior ? prior.dms_file_id !== target.dms_file_id : true,
         impressionChanged: prior ? prior.impression !== target.impression : true,
-        reportPathChanged: prior ? prior.report_path !== target.report_path : true,
       };
     }
 

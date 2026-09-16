@@ -18,9 +18,8 @@ const Id = pipe(string(), minLength(1, "ID is required"));
 
 const AttachDocumentSchema = object({
   branchId: BranchIdSchema,
-  dmsFileId: optional(string()),
+  dmsFileId: pipe(string(), minLength(1, "dms.file id is required")),
   encounterId: optional(string()),
-  filePath: pipe(string(), minLength(1, "File path is required")),
   fileType: pipe(string(), minLength(1, "File type is required")),
   label: optional(string()),
   patientId: Id,
@@ -168,31 +167,6 @@ const DischargeFiltersSchema = object({
   encounterId: optional(string()),
 });
 
-const SendMessageSchema = object({
-  branchId: BranchIdSchema,
-  channel: optional(picklist(["sms", "whatsapp"])),
-  patientId: optional(string()),
-  template: pipe(string(), minLength(1, "Template is required")),
-  to: pipe(string(), minLength(1, "Recipient is required")),
-});
-
-const RetryMessageSchema = object({
-  branchId: BranchIdSchema,
-  messageId: Id,
-});
-
-const OptOutMessageSchema = object({
-  branchId: BranchIdSchema,
-  channel: optional(picklist(["sms", "whatsapp"])),
-  to: pipe(string(), minLength(1, "Recipient is required")),
-});
-
-const MessageFiltersSchema = object({
-  ...PaginationSchema.entries,
-  branchId: BranchIdSchema,
-  status: optional(picklist(["delivered", "failed", "queued", "read", "sent"])),
-});
-
 const RecordsIdSchema = object({
   branchId: BranchIdSchema,
   id: Id,
@@ -220,10 +194,6 @@ type ConsentsGetInput = InferOutput<typeof ConsentsGetSchema>;
 type RecordConsentInput = InferOutput<typeof RecordConsentSchema>;
 type IssueDischargeInput = InferOutput<typeof IssueDischargeSchema>;
 type DischargeFilters = InferOutput<typeof DischargeFiltersSchema>;
-type SendMessageInput = InferOutput<typeof SendMessageSchema>;
-type RetryMessageInput = InferOutput<typeof RetryMessageSchema>;
-type OptOutMessageInput = InferOutput<typeof OptOutMessageSchema>;
-type MessageFilters = InferOutput<typeof MessageFiltersSchema>;
 type RecordsIdInput = InferOutput<typeof RecordsIdSchema>;
 
 export {
@@ -240,15 +210,11 @@ export {
   FamilySummaryMultiSchema,
   IssueDischargeSchema,
   MergeRecordsSchema,
-  MessageFiltersSchema,
-  OptOutMessageSchema,
   RecentRxQuerySchema,
   RecordConsentSchema,
   RecordsIdSchema,
   RegisterFiltersSchema,
-  RetryMessageSchema,
   SearchRecordsSchema,
-  SendMessageSchema,
   ShareLogFiltersSchema,
   ShareRecordSchema,
   TimelineQuerySchema,
@@ -270,15 +236,11 @@ export type {
   FamilySummaryMultiInput,
   IssueDischargeInput,
   MergeRecordsInput,
-  MessageFilters,
-  OptOutMessageInput,
   RecentRxQueryInput,
   RecordConsentInput,
   RecordsIdInput,
   RegisterFilters,
-  RetryMessageInput,
   SearchRecordsInput,
-  SendMessageInput,
   ShareLogFilters,
   ShareRecordInput,
   TimelineQueryInput,

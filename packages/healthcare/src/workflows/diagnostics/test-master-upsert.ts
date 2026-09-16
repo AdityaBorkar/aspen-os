@@ -104,8 +104,7 @@ export const testMasterUpsert = Workflow.name("healthcare.diagnostics.test-maste
       // Catalogue parts belong to masters: test masters reference
       // masters.unit-of-measure for reference_uom_id/category, panels and
       // discount-rule value parts reference masters.entity domains. The local
-      // lab-test row stays for deprecated readers with the masters intent
-      // attached.
+      // lab-test row carries the masters intent attached.
       await ctx.pubsub.publish(
         saved.created ? DIAGNOSTICS_EVENTS.CREATED : DIAGNOSTICS_EVENTS.UPDATED,
         {

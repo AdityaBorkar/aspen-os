@@ -1,10 +1,8 @@
 import { healthcareResident } from "#/db-schemas/residents";
-import { buildCommsMessageQueuedEvent } from "#/integrations/comms";
 import { RESIDENT_EVENTS } from "#/pubsub";
 import { FamilySummarySendSchema } from "#/schemas/residents";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchResidentStep } from "#/workflow-steps/fetch-resident";
-import { assertRecipientOptedIn, queueOutboundMessage } from "#/workflows/shared/messaging";
 
 import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
@@ -22,17 +20,6 @@ export const sendFamilySummary = Workflow.name("healthcare.residents.sendFamilyS
 
     const resident = await ctx.step.run(fetchResidentStep, { id: parsed.id });
     const channel = parsed.channel ?? "whatsapp";
-    await ctx.step.run("check-optout", async () => {
-      await assertRecipientOptedIn(ctx.db, branchId, parsed.to);
-    });
-    await ctx.step.run("queue-message", async () =>
-      queueOutboundMessage(ctx.db, {
-        branchId,
-        channel,
-        patientId: null,
-        to: parsed.to,
-      }),
-    );
     const delivery = {
       actorId,
       at: new Date().toISOString(),
@@ -56,26 +43,20 @@ export const sendFamilySummary = Workflow.name("healthcare.residents.sendFamilyS
         entityType: AUDIT_ENTITY_TYPE.RESIDENT,
         newState: { channel: parsed.channel ?? "whatsapp", residentId: resident.id, to: parsed.to },
       });
+      // Clinical delivery record; comms owns delivery. The comms
+      // healthcare-bridge materializes the outbound message from this event.
       await ctx.pubsub.publish(RESIDENT_EVENTS.UPDATED, {
         actorId,
         at: new Date().toISOString(),
         branchId,
         data: {
           channel,
+          healthcareMessageId: resident.id,
           residentId: resident.id,
           to: parsed.to,
         },
         id: resident.id,
       });
-      await ctx.pubsub.publish(
-        "comms.message_queued",
-        buildCommsMessageQueuedEvent({
-          branchId,
-          channel,
-          healthcareMessageId: resident.id,
-          to: parsed.to,
-        }),
-      );
     });
 
     return { deliveries, residentId: resident.id };

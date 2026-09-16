@@ -1,5 +1,4 @@
 import { healthcareClinicalDocument } from "#/db-schemas/records";
-import { clinicalFileReference } from "#/integrations/dms";
 import { RECORDS_EVENTS } from "#/pubsub";
 import { AttachDocumentSchema } from "#/schemas/records";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
@@ -34,9 +33,8 @@ export const docsAttach = Workflow.name("healthcare.records.docs-attach")
         .insert(healthcareClinicalDocument)
         .values({
           branch_id: branchId,
-          dms_file_id: parsed.dmsFileId ?? null,
+          dms_file_id: parsed.dmsFileId,
           encounter_id: parsed.encounterId ?? null,
-          file_path: parsed.filePath,
           file_type: parsed.fileType,
           label: parsed.label ?? null,
           patient_id: parsed.patientId,
@@ -48,11 +46,9 @@ export const docsAttach = Workflow.name("healthcare.records.docs-attach")
     if (!row) {
       throw new Error("Failed to attach document.");
     }
-    // Single file surface is dms: healthcare keeps clinical metadata plus a
-    // dms.file id, never a parallel version/share/hold/trash model. The raw
-    // file_path stays for deprecated readers; new writers pass dmsFileId and
-    // dms owns version/hold/share/public-link enforcement.
-    const fileRef = clinicalFileReference(row.dms_file_id, row.file_path);
+    // dms is the single file surface: healthcare stores clinical metadata plus
+    // the dms.file id. Version/hold/share/public-link enforcement comes from
+    // dms; healthcare never keeps a parallel file store.
     const at = new Date().toISOString();
     await ctx.step.run("audit-and-notify", async () => {
       await ctx.audit.write({
@@ -61,7 +57,7 @@ export const docsAttach = Workflow.name("healthcare.records.docs-attach")
         entityId: row.id,
         entityType: AUDIT_ENTITY_TYPE.RECORDS,
         newState: {
-          dmsFileId: fileRef.dmsFileId,
+          dmsFileId: row.dms_file_id,
           fileType: row.file_type,
           patientId: row.patient_id,
         },
@@ -71,7 +67,7 @@ export const docsAttach = Workflow.name("healthcare.records.docs-attach")
         at,
         branchId,
         data: {
-          dmsFileId: fileRef.dmsFileId,
+          dmsFileId: row.dms_file_id,
           encounterId: row.encounter_id ?? null,
           patientId: row.patient_id,
         },
@@ -79,7 +75,7 @@ export const docsAttach = Workflow.name("healthcare.records.docs-attach")
       });
     });
     return {
-      dmsFileId: fileRef.dmsFileId,
+      dmsFileId: row.dms_file_id,
       fileType: row.file_type,
       id: row.id,
       patientId: row.patient_id,

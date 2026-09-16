@@ -466,8 +466,8 @@ Patient timelines, document attach/verify with four-eyes, print/WhatsApp sharing
 await p.healthcare.records.docsAttach({
   input: {
     branchId: "main",
+    dmsFileId: file.id,
     encounterId: enc.id,
-    filePath: "docs/scan.pdf",
     fileType: "scan",
     patientId: patient.id,
     uploadedBy: "reception-1",
@@ -482,7 +482,7 @@ await p.healthcare.records.registersAppend({
 
 Access: `p.healthcare.operations`
 
-Masters with version records, preset seeding, grant-gated explorer queries with CSV export, report definitions with computed runs, compliance evidence, single-rail messaging with opt-outs, and audit queries. Actions: `mastersUpsert`, `mastersGet`, `seedPresets`, `explorerQuery`, `explorerExportCsv`, `reportsDefine`, `reportsGet`, `reportsList`, `reportsRun`, `complianceEvidence`, `complianceList`, `messagingSend`, `messagingRetry`, `messagingOptOut`, `explorerGrant`, `auditQuery`.
+Masters with version records, preset seeding, grant-gated explorer queries with CSV export, report definitions with computed runs, compliance evidence, and audit queries. Actions: `mastersUpsert`, `mastersGet`, `seedPresets`, `explorerQuery`, `explorerExportCsv`, `reportsDefine`, `reportsGet`, `reportsList`, `reportsRun`, `complianceEvidence`, `complianceList`, `explorerGrant`, `auditQuery`. Outbound delivery is owned by `comms` (see `shareWhatsapp`, `sendFamilySummary`).
 
 ```ts
 await p.healthcare.operations.mastersUpsert({

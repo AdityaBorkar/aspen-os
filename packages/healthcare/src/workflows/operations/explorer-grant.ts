@@ -38,8 +38,8 @@ export const explorerGrant = Workflow.name("healthcare.operations.explorer-grant
       });
       // The explorer-grant table lives in db-schemas/staff.ts but is owned by
       // operations; the shared surface owns grants/views/CSV/report-definitions.
-      // Workspace is the interim owner (reports is a placeholder); this row is
-      // the deprecated mirror of a workspace.filter-view grant.
+      // Workspace is the interim owner (reports is a placeholder); this row
+      // carries the workspace grant intent.
       await ctx.pubsub.publish(OPERATIONS_EVENTS.CREATED, {
         actorId: ctx.actorId,
         at,

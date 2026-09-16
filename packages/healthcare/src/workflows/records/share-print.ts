@@ -2,7 +2,7 @@ import { healthcareShareLog } from "#/db-schemas/records";
 import { RECORDS_EVENTS } from "#/pubsub";
 import { ShareRecordSchema } from "#/schemas/records";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { assertShareConfirmed } from "#/workflows/shared/messaging";
+import { assertShareConfirmed } from "#/workflows/shared/share-guard";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";

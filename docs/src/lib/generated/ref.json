@@ -862,20 +862,6 @@
       "tableName": "healthcare_merge_request"
     },
     {
-      "file": "packages/healthcare/src/db-schemas/records.ts",
-      "kind": "table",
-      "name": "healthcareMessageLog",
-      "package": "@aspen-os/healthcare",
-      "tableName": "healthcare_message_log"
-    },
-    {
-      "file": "packages/healthcare/src/db-schemas/records.ts",
-      "kind": "table",
-      "name": "healthcareMessageOptout",
-      "package": "@aspen-os/healthcare",
-      "tableName": "healthcare_message_optout"
-    },
-    {
       "file": "packages/healthcare/src/db-schemas/nursing.ts",
       "kind": "table",
       "name": "healthcareNursingChecklist",
@@ -3070,11 +3056,6 @@
       "package": "@aspen-os/compliance"
     },
     {
-      "file": "packages/compliance/src/schemas/summary.ts",
-      "name": "DashboardSummarySchema",
-      "package": "@aspen-os/compliance"
-    },
-    {
       "file": "packages/compliance/src/schemas/enums.ts",
       "name": "ExpiryPolicyChannelSchema",
       "package": "@aspen-os/compliance"
@@ -3087,11 +3068,6 @@
     {
       "file": "packages/compliance/src/schemas/enums.ts",
       "name": "ObligationFrequencySchema",
-      "package": "@aspen-os/compliance"
-    },
-    {
-      "file": "packages/compliance/src/schemas/enums.ts",
-      "name": "ReminderChannelSchema",
       "package": "@aspen-os/compliance"
     },
     {
@@ -8826,24 +8802,6 @@
       "exportName": "mastersUpsert",
       "file": "packages/healthcare/src/workflows/operations/masters-upsert.ts",
       "name": "healthcare.operations.masters-upsert",
-      "package": "@aspen-os/healthcare"
-    },
-    {
-      "exportName": "messagingOptOut",
-      "file": "packages/healthcare/src/workflows/operations/messaging-optout.ts",
-      "name": "healthcare.operations.messaging-optout",
-      "package": "@aspen-os/healthcare"
-    },
-    {
-      "exportName": "messagingRetry",
-      "file": "packages/healthcare/src/workflows/operations/messaging-retry.ts",
-      "name": "healthcare.operations.messaging-retry",
-      "package": "@aspen-os/healthcare"
-    },
-    {
-      "exportName": "messagingSend",
-      "file": "packages/healthcare/src/workflows/operations/messaging-send.ts",
-      "name": "healthcare.operations.messaging-send",
       "package": "@aspen-os/healthcare"
     },
     {

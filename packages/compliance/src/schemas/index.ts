@@ -13,7 +13,6 @@ export {
   AuditEntityTypeSchema,
   ComplianceCategorySchema,
   ObligationFrequencySchema,
-  ReminderChannelSchema,
   RenewalFrequencySchema,
   VerificationStatusSchema,
 } from "#/schemas/enums";
@@ -37,6 +36,6 @@ export {
   CreateVerificationRuleSchema,
   UpdateVerificationRuleSchema,
 } from "#/schemas/verification-rule";
-export type { DashboardSummaryOutput, SummaryOutput } from "#/schemas/summary";
-export { DashboardSummarySchema, SummarySchema } from "#/schemas/summary";
+export type { SummaryOutput } from "#/schemas/summary";
+export { SummarySchema } from "#/schemas/summary";
 export { ExpiryPolicyChannelSchema } from "#/schemas/enums";

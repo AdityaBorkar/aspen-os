@@ -4,7 +4,7 @@ import { events } from "#/pubsub";
 import { registerEventBridgeSubscriptions } from "#/services/event-bridge";
 import { registerHealthcareBridge, unregisterHealthcareBridge } from "#/services/healthcare-bridge";
 import { registerObligationGenerator } from "#/services/obligation-generator";
-import { audit, dashboard, documents, obligations, summary, verification } from "#/workflows";
+import { audit, documents, obligations, summary, verification } from "#/workflows";
 
 import { getContext } from "@aspen-os/platform/server";
 import type {
@@ -17,12 +17,9 @@ import type {
 
 export interface ComplianceModuleConfig {
   country: "INDIA";
-  dashboardCacheTtl?: number;
   summaryCacheTtl?: number;
   defaultEscalationDays?: number[];
   defaultExpiryPolicyDays?: number[];
-  /** @deprecated Use defaultExpiryPolicyDays — harmonized */
-  defaultReminderDays?: number[];
 }
 
 export class Compliance implements Module {
@@ -124,8 +121,6 @@ export class Compliance implements Module {
 
   readonly audit = audit;
   readonly summary = summary;
-  /** @deprecated Use summary — harmonized Dashboard → Summary */
-  readonly dashboard = dashboard;
   readonly documents = documents;
   readonly obligations = obligations;
   readonly verification = verification;

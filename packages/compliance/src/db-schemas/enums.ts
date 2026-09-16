@@ -67,9 +67,6 @@ export const expiryPolicyChannelEnum = pgEnum("expiry_policy_channel", [
   EXPIRY_POLICY_CHANNEL.BOTH,
 ]);
 
-/** @deprecated Use expiryPolicyChannelEnum — harmonized to expiry_policy_* */
-export const reminderChannelEnum = expiryPolicyChannelEnum;
-
 export const auditEntityTypeEnum = pgEnum("audit_entity_type", [
   AUDIT_ENTITY_TYPE.COMPLIANCE_DOCUMENT,
   AUDIT_ENTITY_TYPE.COMPLIANCE_OBLIGATION,
@@ -88,7 +85,6 @@ export const auditActionEnum = pgEnum("audit_action", [
   AUDIT_ACTION.ARCHIVED,
   AUDIT_ACTION.COMPLETED,
   AUDIT_ACTION.ESCALATED,
-  AUDIT_ACTION.REMINDER_SENT,
   AUDIT_ACTION.SNOOZED,
   AUDIT_ACTION.ATTACHMENT_UPLOADED,
   AUDIT_ACTION.REVIEWER_ASSIGNED,

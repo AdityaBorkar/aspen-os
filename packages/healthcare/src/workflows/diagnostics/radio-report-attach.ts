@@ -43,9 +43,8 @@ export const radioReportAttach = Workflow.name("healthcare.diagnostics.radio-rep
       await ctx.db.insert(healthcareRadioReport).values({
         booking_id: parsed.bookingId,
         branch_id: branchId,
-        dms_file_id: parsed.dmsFileId ?? null,
+        dms_file_id: parsed.dmsFileId,
         impression: parsed.impression ?? null,
-        report_path: parsed.reportPath,
         status: "draft",
         version,
       });
@@ -60,9 +59,8 @@ export const radioReportAttach = Workflow.name("healthcare.diagnostics.radio-rep
 
     const dto = {
       bookingId: booking.id,
-      dmsFileId: parsed.dmsFileId ?? null,
+      dmsFileId: parsed.dmsFileId,
       missingImpression: !parsed.impression,
-      reportPath: parsed.reportPath,
       status: "reported" as const,
       version,
     };

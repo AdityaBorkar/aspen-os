@@ -8,9 +8,9 @@ Downstream of the Platform (Customer–Supplier). Runtime-wired — receives `{ 
 
 ## Structure (`packages/compliance/`)
 
-- `Compliance.create(config)` — factory returning a Module instance; `$config: ComplianceModuleConfig = { country: "INDIA", dashboardCacheTtl?, defaultEscalationDays?, defaultReminderDays? }`
+- `Compliance.create(config)` — factory returning a Module instance; `$config: ComplianceModuleConfig = { country: "INDIA", summaryCacheTtl?, defaultEscalationDays?, defaultExpiryPolicyDays? }`
 - `$name = "compliance"`, `$dependencies = []`
-- 5 workflow groups: `documents`, `obligations`, `verification`, `audit`, `dashboard`
+- 5 workflow groups: `documents`, `obligations`, `verification`, `audit`, `summary`
 - 3 services: `ReminderEngine`, `ObligationGenerator`, `EventBridge` — registered in `$prepareRuntime()`, unregistered in `$cleanup()`. `StatusDerivation` is a utility (pure functions used internally by workflows and the reminder engine, not lifecycle-managed).
 - 3 database tables (all `tenant_schemas`): `compliance_document`, `compliance_obligation`, `compliance_verification_rule`
 - 23 domain events published via PubSub (`ComplianceEventMap`)

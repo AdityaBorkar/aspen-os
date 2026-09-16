@@ -32,8 +32,6 @@ export const CreateObligationSchema = object({
   defaultIssuingAuthority: optional(nullable(string())),
   defaultJurisdiction: optional(nullable(string())),
   defaultMetadata: optional(nullable(record(string(), JsonValueSchema))),
-  // Deprecated alias — keep wire-compat
-  defaultReminderDays: optional(array(number())),
   documentType: optional(nullable(string())),
   dueDay: optional(pipe(number(), integer())),
   dueMonthOffset: optional(pipe(number(), integer())),
@@ -64,7 +62,6 @@ const MUTABLE_OBLIGATION_KEYS = [
   "defaultIssuingAuthority",
   "defaultJurisdiction",
   "defaultMetadata",
-  "defaultReminderDays",
   "documentType",
   "dueDay",
   "dueMonthOffset",
