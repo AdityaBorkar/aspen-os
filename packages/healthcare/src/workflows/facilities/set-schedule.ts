@@ -7,6 +7,7 @@ import {
   readFacilitySchedules,
   toFacilityDto,
 } from "#/workflow-steps/fetch-facility";
+import { toMinutes } from "#/workflows/shared/scheduling";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -18,7 +19,7 @@ export const setFacilitySchedule = Workflow.name("healthcare.facilities.set-sche
   .input(SetScheduleInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(SetFacilityScheduleSchema, input);
-    if (parsed.open >= parsed.close) {
+    if (toMinutes(parsed.open) >= toMinutes(parsed.close)) {
       throw new Error(
         `Opening time (${parsed.open}) must be before closing time (${parsed.close}).`,
       );

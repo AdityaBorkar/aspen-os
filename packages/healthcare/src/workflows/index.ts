@@ -1,6 +1,7 @@
 import { createBranch } from "#/workflows/admin/create-branch";
 import { deleteRecallRule } from "#/workflows/admin/delete-recall-rule";
 import { deleteTemplate } from "#/workflows/admin/delete-template";
+import { getBranch } from "#/workflows/admin/get-branch";
 import { getCompany } from "#/workflows/admin/get-company";
 import { listBranches } from "#/workflows/admin/list-branches";
 import { listMasterVersions } from "#/workflows/admin/list-master-versions";
@@ -67,7 +68,6 @@ import { packageExpireRun } from "#/workflows/billing/package-expire-run";
 import { packageLiability } from "#/workflows/billing/package-liability";
 import { packageRedeem } from "#/workflows/billing/package-redeem";
 import { packageSell } from "#/workflows/billing/package-sell";
-import { pricelistUpsert } from "#/workflows/billing/pricelist-upsert";
 import { repriceOnPayerSwitch } from "#/workflows/billing/reprice-on-payer-switch";
 import { settle } from "#/workflows/billing/settle";
 import { settleAdvance } from "#/workflows/billing/settle-advance";
@@ -140,9 +140,6 @@ import { tasksFromOrders } from "#/workflows/nursing/tasks-from-orders";
 import { triageTag } from "#/workflows/nursing/triage-tag";
 import { vitalsChart } from "#/workflows/nursing/vitals-chart";
 import { auditQuery } from "#/workflows/operations/audit-query";
-import { branchesCreate } from "#/workflows/operations/branches-create";
-import { branchesGet } from "#/workflows/operations/branches-get";
-import { branchesList } from "#/workflows/operations/branches-list";
 import { complianceEvidence } from "#/workflows/operations/compliance-evidence";
 import { complianceList } from "#/workflows/operations/compliance-list";
 import { explorerExportCsv } from "#/workflows/operations/explorer-export-csv";
@@ -402,6 +399,7 @@ export const admin = {
   createBranch,
   deleteRecallRule,
   deleteTemplate,
+  getBranch,
   getCompany,
   listBranches,
   listMasterVersions,
@@ -572,7 +570,6 @@ export const billing = {
   packageLiability,
   packageRedeem,
   packageSell,
-  pricelistUpsert,
   repriceOnPayerSwitch,
   settle,
   settleAdvance,
@@ -621,9 +618,6 @@ export const records = {
 
 export const operations = {
   auditQuery,
-  branchesCreate,
-  branchesGet,
-  branchesList,
   complianceEvidence,
   complianceList,
   explorerExportCsv,

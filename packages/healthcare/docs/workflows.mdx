@@ -159,7 +159,7 @@ await p.healthcare.encounters.sign({ input: { branchId: "main", encounterId: enc
 
 Access: `p.healthcare.admin`
 
-Singleton company profile, branch CRUD on the shared `healthcare_branch` table, master-version/template/recall-rule stores, and audit-log queries. Actions: `getCompany`, `saveCompany`, `listBranches`, `createBranch`, `updateBranch`, `listMasterVersions`, `saveMasterVersion`, `listTemplates`, `saveTemplate`, `deleteTemplate`, `listRecallRules`, `saveRecallRule`, `deleteRecallRule`, `logs`.
+Singleton company profile, branch CRUD on the shared `healthcare_branch` table, master-version/template/recall-rule stores, and audit-log queries. Actions: `getCompany`, `saveCompany`, `listBranches`, `createBranch`, `getBranch`, `updateBranch`, `listMasterVersions`, `saveMasterVersion`, `listTemplates`, `saveTemplate`, `deleteTemplate`, `listRecallRules`, `saveRecallRule`, `deleteRecallRule`, `logs`.
 
 ```ts
 await p.healthcare.admin.saveCompany({ input: { name: "City Clinic", slug: "city-clinic" } });
@@ -424,7 +424,7 @@ await p.healthcare.diagnostics.resultEnter({
 
 Access: `p.healthcare.billing`
 
-Invoices with source-traced lines, maker-checker discounts, multi-mode collection, package sell/redeem/expiry, forward-only pricelists, credit/debit notes, advances, dues aging, and GST export. Actions: `invoiceRaise`, `invoiceFinalize`, `interimTab`, `applyDiscount`, `collect`, `settle`, `packageSell`, `packageRedeem`, `packageExpireRun`, `pricelistUpsert`, `repriceOnPayerSwitch`, `cndnIssue`, `settleAdvance`, `duesAging`, `gstExport`, `getInvoice`.
+Invoices with source-traced lines, maker-checker discounts, multi-mode collection, package sell/redeem/expiry, forward-only pricelists, credit/debit notes, advances, dues aging, and GST export. Actions: `invoiceRaise`, `invoiceFinalize`, `interimTab`, `applyDiscount`, `collect`, `settle`, `packageSell`, `packageRedeem`, `packageExpireRun`, `repriceOnPayerSwitch`, `cndnIssue`, `settleAdvance`, `duesAging`, `gstExport`, `getInvoice`.
 
 ```ts
 const inv = await p.healthcare.billing.invoiceRaise({
@@ -482,7 +482,7 @@ await p.healthcare.records.registersAppend({
 
 Access: `p.healthcare.operations`
 
-Masters with version records, branch reads, preset seeding, grant-gated explorer queries with CSV export, report definitions with computed runs, compliance evidence, single-rail messaging with opt-outs, and audit queries. Actions: `mastersUpsert`, `mastersGet`, `branchesCreate`, `branchesGet`, `branchesList`, `seedPresets`, `explorerQuery`, `explorerExportCsv`, `reportsDefine`, `reportsGet`, `reportsList`, `reportsRun`, `complianceEvidence`, `complianceList`, `messagingSend`, `messagingRetry`, `messagingOptOut`, `explorerGrant`, `auditQuery`.
+Masters with version records, preset seeding, grant-gated explorer queries with CSV export, report definitions with computed runs, compliance evidence, single-rail messaging with opt-outs, and audit queries. Actions: `mastersUpsert`, `mastersGet`, `seedPresets`, `explorerQuery`, `explorerExportCsv`, `reportsDefine`, `reportsGet`, `reportsList`, `reportsRun`, `complianceEvidence`, `complianceList`, `messagingSend`, `messagingRetry`, `messagingOptOut`, `explorerGrant`, `auditQuery`.
 
 ```ts
 await p.healthcare.operations.mastersUpsert({

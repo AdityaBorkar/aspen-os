@@ -1,3 +1,11 @@
+// Canonical branch plumbing for the healthcare bounded context.
+//
+// healthcare_branch is a subdomain-routing row (unique subdomain, address in
+// payload): it scopes every clinical table via branch_id, default "main".
+// It is not the organization hierarchy: Organization Branch / masters
+// orgBranch (code-unique tree with headquarters/office/warehouse types and
+// masters.org_branch_* events) lives in @aspen-os/masters. See
+// .working-docs/bounded-contexts/healthcare.md language section.
 import { healthcareBranch } from "#/db-schemas/branch";
 
 import { eq } from "drizzle-orm";

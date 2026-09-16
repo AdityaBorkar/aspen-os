@@ -3,6 +3,7 @@ import { PRACTITIONER_EVENTS } from "#/pubsub";
 import { SetPractitionerScheduleSchema } from "#/schemas/practitioners";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchPractitionerStep, toScheduleDto } from "#/workflow-steps/fetch-practitioner";
+import { toMinutes } from "#/workflows/shared/scheduling";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
@@ -17,7 +18,7 @@ export const setPractitionerSchedule = Workflow.name("healthcare.practitioners.s
     if (slotMin < 1) {
       throw new Error(`Slot length (${slotMin}) must be at least 1 minute.`);
     }
-    if (parsed.start >= parsed.end) {
+    if (toMinutes(parsed.start) >= toMinutes(parsed.end)) {
       throw new Error(`Schedule start (${parsed.start}) must be before end (${parsed.end}).`);
     }
     const practitioner = await ctx.step.run(fetchPractitionerStep, {

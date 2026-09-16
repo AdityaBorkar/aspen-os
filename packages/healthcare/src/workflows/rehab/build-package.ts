@@ -3,7 +3,7 @@ import { REHAB_EVENTS } from "#/pubsub";
 import { CreateRehabPackageSchema } from "#/schemas/rehab";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchRehabEpisodeStep } from "#/workflow-steps/fetch-rehab-episode";
-import { packageExpiryDateOnly } from "#/workflows/shared/package-lifecycle";
+import { packageExpiryDateOnly, remainingSessions } from "#/workflows/shared/package-lifecycle";
 
 import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
@@ -80,7 +80,7 @@ export const buildPackage = Workflow.name("healthcare.rehab.buildPackage")
       modalities: parsed.modalities ?? [],
       patientId: row.patient_id,
       price: parsed.price ?? null,
-      remaining: parsed.totalSessions,
+      remaining: remainingSessions(parsed.totalSessions, 0),
       totalSessions: parsed.totalSessions,
       usedSessions: 0,
       validityDays: parsed.validityDays ?? null,

@@ -3,6 +3,7 @@ import { RESIDENT_EVENTS } from "#/pubsub";
 import { FamilySummarySendSchema } from "#/schemas/residents";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchResidentStep } from "#/workflow-steps/fetch-resident";
+import { assertRecipientOptedIn, queueOutboundMessage } from "#/workflows/shared/messaging";
 
 import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
@@ -19,10 +20,22 @@ export const sendFamilySummary = Workflow.name("healthcare.residents.sendFamilyS
     const actorId = ctx.actorId ?? "system";
 
     const resident = await ctx.step.run(fetchResidentStep, { id: parsed.id });
+    const channel = parsed.channel ?? "whatsapp";
+    await ctx.step.run("check-optout", async () => {
+      await assertRecipientOptedIn(ctx.db, branchId, parsed.to);
+    });
+    await ctx.step.run("queue-message", async () =>
+      queueOutboundMessage(ctx.db, {
+        branchId,
+        channel,
+        patientId: null,
+        to: parsed.to,
+      }),
+    );
     const delivery = {
       actorId,
       at: new Date().toISOString(),
-      channel: parsed.channel ?? "whatsapp",
+      channel,
       to: parsed.to,
     } satisfies Record<string, JsonValue>;
     const prior = resident.payload.deliveries;

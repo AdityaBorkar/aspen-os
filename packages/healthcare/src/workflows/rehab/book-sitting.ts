@@ -3,6 +3,12 @@ import { REHAB_EVENTS } from "#/pubsub";
 import { BookRehabSittingSchema } from "#/schemas/rehab";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchRehabEpisodeStep } from "#/workflow-steps/fetch-rehab-episode";
+import { REHAB_BOARD_STATUSES, REHAB_OPEN_STATUSES } from "#/workflows/shared/board-query";
+import {
+  MS_PER_DAY,
+  packageExpiryDateOnly,
+  remainingSessions,
+} from "#/workflows/shared/package-lifecycle";
 
 import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
@@ -11,7 +17,7 @@ import { is, number, object, optional, parse, string } from "valibot";
 
 const BookSittingInputSchema = object({ input: BookRehabSittingSchema });
 
-const OPEN_STATUSES = ["Booked", "CheckedIn", "InProgress"];
+const OPEN_STATUSES = [...REHAB_OPEN_STATUSES];
 const FALLBACK_SLOTS = ["morning", "afternoon", "evening"];
 
 interface PackageState {
@@ -48,19 +54,19 @@ function readPackagePayload(payload: JsonValue): PackageNumbers {
 
 function packageState(payload: JsonValue, bookingDate: string): PackageState {
   const { soldAt, total, used, validityDays } = readPackagePayload(payload);
-  const remaining = total === null ? null : total - used;
+  const remaining = total === null ? null : remainingSessions(total, used);
   if (remaining !== null && remaining <= 0) {
     throw new Error("Package is exhausted; renew the package before booking another sitting");
   }
   let expiry: string | null = null;
   let expiryWarning: string | null = null;
   if (soldAt && validityDays !== null) {
-    const expiryMs = new Date(soldAt).getTime() + validityDays * 86_400_000;
-    expiry = new Date(expiryMs).toISOString().slice(0, 10);
-    if (bookingDate > expiry) {
+    expiry = packageExpiryDateOnly(soldAt, validityDays);
+    if (expiry && bookingDate > expiry) {
       throw new Error(`Package expired on ${expiry}; renew the package before booking`);
     }
-    const daysLeft = Math.ceil((expiryMs - new Date(bookingDate).getTime()) / 86_400_000);
+    const expiryMs = new Date(soldAt).getTime() + validityDays * MS_PER_DAY;
+    const daysLeft = Math.ceil((expiryMs - new Date(bookingDate).getTime()) / MS_PER_DAY);
     if (daysLeft <= 7) {
       expiryWarning = `Package expires on ${expiry} (${daysLeft} day(s) left)`;
     }
@@ -177,7 +183,7 @@ export const bookSitting = Workflow.name("healthcare.rehab.bookSitting")
           patient_id: parsed.patientId,
           payload: sittingPayload,
           slot: parsed.slot ?? null,
-          status: "Booked",
+          status: REHAB_BOARD_STATUSES.BOOKED,
         })
         .returning(),
     );

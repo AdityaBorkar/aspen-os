@@ -18,12 +18,6 @@ const MasterFiltersSchema = object({
   domain: optional(string()),
 });
 
-const CreateBranchSchema = object({
-  address: optional(string()),
-  name: pipe(string(), minLength(1, "Branch name is required")),
-  slug: optional(string()),
-});
-
 const SeedPresetsSchema = object({
   branchId: BranchIdSchema,
   preset: picklist([
@@ -111,7 +105,6 @@ const OperationsIdSchema = object({
 
 type UpsertMasterInput = InferOutput<typeof UpsertMasterSchema>;
 type MasterFilters = InferOutput<typeof MasterFiltersSchema>;
-type CreateBranchInput = InferOutput<typeof CreateBranchSchema>;
 type SeedPresetsInput = InferOutput<typeof SeedPresetsSchema>;
 type DefineReportInput = InferOutput<typeof DefineReportSchema>;
 type UpdateReportInput = InferOutput<typeof UpdateReportSchema>;
@@ -127,7 +120,6 @@ type OperationsIdInput = InferOutput<typeof OperationsIdSchema>;
 
 export {
   ComplianceFiltersSchema,
-  CreateBranchSchema,
   DefineReportSchema,
   ExplorerGrantFiltersSchema,
   GrantExplorerSchema,
@@ -145,7 +137,6 @@ export {
 
 export type {
   ComplianceFilters,
-  CreateBranchInput,
   DefineReportInput,
   ExplorerGrantFilters,
   GrantExplorerInput,

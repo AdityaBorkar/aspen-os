@@ -2,6 +2,10 @@ import type { JsonValue } from "@aspen-os/platform/server";
 import { uuidv7 } from "@aspen-os/platform/server";
 import { index, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
+// Subdomain-routing row for the healthcare bounded context: every clinical
+// table scopes to one branch via branch_id (default "main"). Not the
+// organization hierarchy (masters org_branch); see
+// workflows/shared/branch-lifecycle.ts.
 export const healthcareBranch = pgTable(
   "healthcare_branch",
   {

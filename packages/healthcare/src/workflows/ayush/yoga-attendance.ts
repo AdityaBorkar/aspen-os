@@ -10,6 +10,7 @@ import {
   YogaAttendanceSchema,
 } from "#/schemas/ayush";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { remainingSessions } from "#/workflows/shared/package-lifecycle";
 
 import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
@@ -228,7 +229,7 @@ export const recordPackageOutcome = Workflow.name("healthcare.ayush.recordPackag
       attended: row.used_sittings ?? 0,
       id: row.id,
       outcomeNote: parsed.outcomeNote,
-      remaining: Math.max(0, row.total_sittings - (row.used_sittings ?? 0)),
+      remaining: remainingSessions(row.total_sittings, row.used_sittings ?? 0),
       status: row.status,
       totalSittings: row.total_sittings,
     };

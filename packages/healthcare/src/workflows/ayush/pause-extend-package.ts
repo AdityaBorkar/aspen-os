@@ -2,6 +2,7 @@ import { healthcareTherapyPackage } from "#/db-schemas/ayush";
 import { AYUSH_EVENTS } from "#/pubsub";
 import { PauseExtendPackageSchema } from "#/schemas/ayush";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { packageExpiryAt } from "#/workflows/shared/package-lifecycle";
 
 import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
@@ -52,7 +53,7 @@ export const pauseExtendPackage = Workflow.name("healthcare.ayush.pauseExtendPac
         throw new Error("Extension needs a day count; pass extendDays");
       }
       const current = (pkg.valid_till ?? new Date()).getTime();
-      patch.valid_till = new Date(current + parsed.extendDays * 24 * 60 * 60 * 1000);
+      patch.valid_till = packageExpiryAt(parsed.extendDays, current);
       patch.status = "Active";
     }
 

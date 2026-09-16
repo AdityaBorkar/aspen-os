@@ -17,6 +17,8 @@ export const logCommunication = Workflow.name("healthcare.patients.log-communica
 
     const patient = await ctx.step.run(fetchPatientStep, { id: parsed.patientId });
 
+    // Historical log, not outbound delivery: new sends go through the
+    // opt-out gate in shared/messaging.ts (operations.messagingSend).
     const [row] = await ctx.step.run("insert-communication", async () =>
       ctx.db
         .insert(healthcareCommunication)

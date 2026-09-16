@@ -7,6 +7,7 @@ import {
   assertSubdomainFree,
   branchEventScope,
   branchInsertValues,
+  resolveBranchSubdomain,
 } from "#/workflows/shared/branch-lifecycle";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -18,14 +19,15 @@ export const createBranch = Workflow.name("healthcare.admin.create-branch")
   .input(CreateBranchInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateBranchSchema, input);
+    const subdomain = resolveBranchSubdomain(parsed.name, parsed.subdomain);
     await ctx.step.run("check-subdomain", async () => {
-      await assertSubdomainFree(ctx.db, parsed.subdomain);
+      await assertSubdomainFree(ctx.db, subdomain);
     });
     const [row] = await ctx.step.run("insert-branch", async () =>
       ctx.db
         .insert(healthcareBranch)
         .values({
-          ...branchInsertValues(parsed.name, parsed.address, parsed.subdomain),
+          ...branchInsertValues(parsed.name, parsed.address, subdomain),
           id: crypto.randomUUID(),
           kind: "branch",
         })

@@ -13,6 +13,118 @@ export function signedAuditAction(status: string): string {
   return status === "Signed" ? AUDIT_ACTION.SIGNED : AUDIT_ACTION.CREATED;
 }
 
+// Unified write path: the four consent stores keep their own tables and
+// per-source guards/audit topics, but every insert goes through one of these
+// helpers so column mapping and status defaults cannot drift apart again.
+export async function insertPatientConsent(
+  db: HealthcareDB,
+  input: {
+    branchId: string;
+    granted: boolean;
+    note: string | null;
+    patientId: string;
+    type: string;
+  },
+): Promise<typeof healthcareConsent.$inferSelect | null> {
+  const [row] = await db
+    .insert(healthcareConsent)
+    .values({
+      archived_at: new Date(),
+      branch_id: input.branchId,
+      granted: input.granted,
+      note: input.note,
+      patient_id: input.patientId,
+      type: input.type,
+    })
+    .returning();
+  return row ?? null;
+}
+
+export async function insertGrantConsent(
+  db: HealthcareDB,
+  input: {
+    branchId: string;
+    encounterId: string | null;
+    grantedBy: string | null;
+    kind: string;
+    patientId: string;
+  },
+): Promise<typeof healthcareConsentGrant.$inferSelect | null> {
+  const [row] = await db
+    .insert(healthcareConsentGrant)
+    .values({
+      branch_id: input.branchId,
+      encounter_id: input.encounterId,
+      granted_by: input.grantedBy,
+      kind: input.kind,
+      patient_id: input.patientId,
+      status: "granted",
+    })
+    .returning();
+  return row ?? null;
+}
+
+export async function insertDentalConsent(
+  db: HealthcareDB,
+  input: {
+    branchId: string;
+    createdBy: string;
+    encounterId: string;
+    patientId: string;
+    procedureName: string;
+    status: string;
+  },
+): Promise<typeof healthcareDentalConsent.$inferSelect | null> {
+  const [row] = await db
+    .insert(healthcareDentalConsent)
+    .values({
+      branch_id: input.branchId,
+      created_by: input.createdBy,
+      encounter_id: input.encounterId,
+      patient_id: input.patientId,
+      procedure_name: input.procedureName,
+      signed_at: input.status === "Signed" ? new Date() : null,
+      status: input.status,
+    })
+    .returning();
+  return row ?? null;
+}
+
+export async function insertCaregiverConsent(
+  db: HealthcareDB,
+  input: {
+    branchId: string;
+    caregiverName: string;
+    createdBy: string;
+    encounterId: string | null;
+    idNumber: string | null;
+    patientId: string;
+    patientIsMinor: boolean;
+    relation: string;
+    scope: string;
+    status: string;
+  },
+): Promise<typeof healthcareCaregiverConsent.$inferSelect | null> {
+  const [row] = await db
+    .insert(healthcareCaregiverConsent)
+    .values({
+      branch_id: input.branchId,
+      caregiver_name: input.caregiverName,
+      created_by: input.createdBy,
+      encounter_id: input.encounterId,
+      patient_id: input.patientId,
+      payload: {
+        idNumber: input.idNumber,
+        patientIsMinor: input.patientIsMinor,
+      },
+      relation: input.relation,
+      scope: input.scope,
+      status: input.status,
+    })
+    .returning();
+  return row ?? null;
+}
+
 export type ConsentSource = "caregiver" | "dental" | "grant" | "patient";
 
 export interface UnifiedConsent {

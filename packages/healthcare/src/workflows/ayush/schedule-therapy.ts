@@ -2,6 +2,7 @@ import { healthcareTherapyPackage, healthcareTherapySitting } from "#/db-schemas
 import { AYUSH_EVENTS } from "#/pubsub";
 import { CreateTherapySittingSchema } from "#/schemas/ayush";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { packageIsLapsed, remainingSessions } from "#/workflows/shared/package-lifecycle";
 
 import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
@@ -36,11 +37,11 @@ export const scheduleTherapy = Workflow.name("healthcare.ayush.scheduleTherapy")
     if (pkg.status !== "Active") {
       throw new Error("Therapy package is not active; resume or extend it before scheduling");
     }
-    if (pkg.valid_till && pkg.valid_till.getTime() < Date.now()) {
+    if (packageIsLapsed(pkg.status, pkg.valid_till)) {
       throw new Error("Therapy package has expired; extend it before scheduling");
     }
     const attended = pkg.used_sittings ?? 0;
-    if (pkg.total_sittings > 0 && attended >= pkg.total_sittings) {
+    if (pkg.total_sittings > 0 && remainingSessions(pkg.total_sittings, attended) <= 0) {
       throw new Error("Package sittings exhausted; sell a new package or extend");
     }
 

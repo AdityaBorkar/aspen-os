@@ -3,6 +3,11 @@ import { APPOINTMENT_EVENTS } from "#/pubsub";
 import { CallNextSchema } from "#/schemas/appointments";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { toQueueTokenDto } from "#/workflow-steps/fetch-appointment";
+import {
+  QUEUE_CALLED_STATUS,
+  QUEUE_WAITING_STATUS,
+  boardBranchOf,
+} from "#/workflows/shared/board-query";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, asc, eq } from "drizzle-orm";
@@ -15,11 +20,11 @@ export const callNext = Workflow.name("healthcare.appointments.call-next")
   .input(CallNextInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CallNextSchema, input);
-    const branchId = parsed.branchId ?? "main";
+    const branchId = boardBranchOf(parsed.branchId);
     const next = await ctx.step.run("peek-next", async () => {
       const conditions: SQL[] = [
         eq(healthcareQueueToken.branch_id, branchId),
-        eq(healthcareQueueToken.status, "waiting"),
+        eq(healthcareQueueToken.status, QUEUE_WAITING_STATUS),
       ];
       if (parsed.practitionerId) {
         conditions.push(eq(healthcareQueueToken.practitioner_id, parsed.practitionerId));
@@ -38,7 +43,7 @@ export const callNext = Workflow.name("healthcare.appointments.call-next")
     const [row] = await ctx.step.run("mark-called", async () =>
       ctx.db
         .update(healthcareQueueToken)
-        .set({ called_at: new Date(), status: "called" })
+        .set({ called_at: new Date(), status: QUEUE_CALLED_STATUS })
         .where(eq(healthcareQueueToken.id, next.id))
         .returning(),
     );

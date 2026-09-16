@@ -2,6 +2,7 @@ import { healthcarePlanStage, healthcareQuote, healthcareTreatmentPlan } from "#
 import { DENTAL_EVENTS } from "#/pubsub";
 import { CreateQuoteSchema } from "#/schemas/dental";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { MS_PER_DAY } from "#/workflows/shared/package-lifecycle";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -40,7 +41,7 @@ export const quote = Workflow.name("healthcare.dental.quote")
 
     const validDays = parsed.validDays ?? 30;
     const validTill =
-      parsed.validTill ?? new Date(Date.now() + validDays * 24 * 60 * 60 * 1000).toISOString();
+      parsed.validTill ?? new Date(Date.now() + validDays * MS_PER_DAY).toISOString();
 
     const subtotal = stages.reduce((sum, stage) => sum + Number(stage.price), 0);
     const discountPct = parsed.discountPct ?? 0;

@@ -3,6 +3,7 @@ import { APPOINTMENT_EVENTS } from "#/pubsub";
 import { WalkinTokenSchema } from "#/schemas/appointments";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { toQueueTokenDto } from "#/workflow-steps/fetch-appointment";
+import { QUEUE_WAITING_STATUS, boardBranchOf } from "#/workflows/shared/board-query";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { desc, eq } from "drizzle-orm";
@@ -14,7 +15,7 @@ export const walkinToken = Workflow.name("healthcare.appointments.walkin-token")
   .input(WalkinInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(WalkinTokenSchema, input);
-    const branchId = parsed.branchId ?? "main";
+    const branchId = boardBranchOf(parsed.branchId);
     // Walk-ins are always appended after the current max token number and
     // existing tokens are never renumbered, so a walk-in can never displace
     // a booked appointment in the queue order.
@@ -36,7 +37,7 @@ export const walkinToken = Workflow.name("healthcare.appointments.walkin-token")
           id: crypto.randomUUID(),
           patient_id: parsed.patientId ?? null,
           practitioner_id: parsed.practitionerId ?? null,
-          status: "waiting",
+          status: QUEUE_WAITING_STATUS,
           token_no: nextNo,
           walkin: parsed.walkin ?? false,
         })

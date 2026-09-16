@@ -1,7 +1,7 @@
-import { healthcareConsentGrant } from "#/db-schemas/records";
 import { RECORDS_EVENTS } from "#/pubsub";
 import { RecordConsentSchema } from "#/schemas/records";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { insertGrantConsent } from "#/workflows/shared/consent-lifecycle";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
@@ -13,18 +13,14 @@ export const recordConsent = Workflow.name("healthcare.records.record-consent")
   .handler(async ({ input }, ctx) => {
     const parsed = parse(RecordConsentSchema, input);
     const branchId = parsed.branchId ?? "main";
-    const [row] = await ctx.step.run("insert-consent", async () =>
-      ctx.db
-        .insert(healthcareConsentGrant)
-        .values({
-          branch_id: branchId,
-          encounter_id: parsed.encounterId ?? null,
-          granted_by: parsed.grantedBy ?? ctx.actorId ?? null,
-          kind: parsed.kind,
-          patient_id: parsed.patientId,
-          status: "granted",
-        })
-        .returning(),
+    const row = await ctx.step.run("insert-consent", async () =>
+      insertGrantConsent(ctx.db, {
+        branchId,
+        encounterId: parsed.encounterId ?? null,
+        grantedBy: parsed.grantedBy ?? ctx.actorId ?? null,
+        kind: parsed.kind,
+        patientId: parsed.patientId,
+      }),
     );
     if (!row) {
       throw new Error("Failed to record consent.");

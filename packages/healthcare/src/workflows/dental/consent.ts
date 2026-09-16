@@ -1,9 +1,8 @@
-import { healthcareDentalConsent } from "#/db-schemas/dental";
 import { DENTAL_EVENTS } from "#/pubsub";
 import { CreateDentalConsentSchema } from "#/schemas/dental";
 import { AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchOpenEncounterStep } from "#/workflow-steps/fetch-encounter";
-import { signedAuditAction } from "#/workflows/shared/consent-lifecycle";
+import { insertDentalConsent, signedAuditAction } from "#/workflows/shared/consent-lifecycle";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
@@ -22,20 +21,15 @@ export const consent = Workflow.name("healthcare.dental.consent")
       patientId: parsed.patientId,
     });
 
-    const now = new Date();
-    const [row] = await ctx.step.run("insert-dental-consent", async () =>
-      ctx.db
-        .insert(healthcareDentalConsent)
-        .values({
-          branch_id: branchId,
-          created_by: actorId,
-          encounter_id: parsed.encounterId,
-          patient_id: parsed.patientId,
-          procedure_name: parsed.procedureName,
-          signed_at: parsed.status === "Signed" ? now : null,
-          status: parsed.status,
-        })
-        .returning(),
+    const row = await ctx.step.run("insert-dental-consent", async () =>
+      insertDentalConsent(ctx.db, {
+        branchId,
+        createdBy: actorId,
+        encounterId: parsed.encounterId,
+        patientId: parsed.patientId,
+        procedureName: parsed.procedureName,
+        status: parsed.status,
+      }),
     );
     if (!row) {
       throw new Error("Failed to record the consent form.");

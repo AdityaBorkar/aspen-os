@@ -90,7 +90,7 @@ The Healthcare module publishes domain events as plain string topics via `PubSub
 
 | Event                          | Payload                 | Trigger                                                                                         |
 | ------------------------------ | ----------------------- | ----------------------------------------------------------------------------------------------- |
-| `healthcare.billing_created`   | `HealthcareEntityEvent` | `invoiceRaise`, `packageSell`, `pricelistUpsert`, `cndnIssue`                                   |
+| `healthcare.billing_created`   | `HealthcareEntityEvent` | `invoiceRaise`, `packageSell`, `cndnIssue`                                                      |
 | `healthcare.billing_updated`   | `HealthcareEntityEvent` | `invoiceFinalize`, `applyDiscount`, `repriceOnPayerSwitch`, `packageRedeem`, `packageExpireRun` |
 | `healthcare.billing_collected` | `HealthcareEntityEvent` | `collect`, `settleAdvance`                                                                      |
 
@@ -112,14 +112,14 @@ The Healthcare module publishes domain events as plain string topics via `PubSub
 
 ### Operations
 
-| Event                           | Payload                 | Trigger                                                                                                                                                                                                                     |
-| ------------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `healthcare.operations_created` | `HealthcareEntityEvent` | `mastersUpsert`, `branchesCreate`, `seedPresets`, `reportsDefine`, `complianceEvidence`, `messagingSend`, `messagingOptOut`, `explorerGrant`, staff `upsertStaff`/`rosterPlan`/`attendanceMark`/`leaveRequest`/`createRole` |
-| `healthcare.operations_updated` | `HealthcareEntityEvent` | `messagingRetry`, staff `leaveDecide`/`deleteRole`/`disableUser`                                                                                                                                                            |
+| Event                           | Payload                 | Trigger                                                                                                                                                                                                   |
+| ------------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `healthcare.operations_created` | `HealthcareEntityEvent` | `mastersUpsert`, `seedPresets`, `reportsDefine`, `complianceEvidence`, `messagingSend`, `messagingOptOut`, `explorerGrant`, staff `upsertStaff`/`rosterPlan`/`attendanceMark`/`leaveRequest`/`createRole` |
+| `healthcare.operations_updated` | `HealthcareEntityEvent` | `messagingRetry`, staff `leaveDecide`/`deleteRole`/`disableUser`                                                                                                                                          |
 
 ### Branch
 
-| Event                       | Payload                 | Trigger                                           |
-| --------------------------- | ----------------------- | ------------------------------------------------- |
-| `healthcare.branch_created` | `HealthcareEntityEvent` | `admin.createBranch`, `operations.branchesCreate` |
-| `healthcare.branch_updated` | `HealthcareEntityEvent` | `admin.updateBranch`                              |
+| Event                       | Payload                 | Trigger              |
+| --------------------------- | ----------------------- | -------------------- |
+| `healthcare.branch_created` | `HealthcareEntityEvent` | `admin.createBranch` |
+| `healthcare.branch_updated` | `HealthcareEntityEvent` | `admin.updateBranch` |

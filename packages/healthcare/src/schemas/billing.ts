@@ -114,28 +114,6 @@ const RedeemPackageSchema = object({
   serviceId: Id,
 });
 
-const CreatePricelistSchema = object({
-  branchId: BranchIdSchema,
-  name: pipe(string(), minLength(1, "Pricelist name is required")),
-  rates: array(
-    object({
-      price: pipe(number(), minValue(0)),
-      serviceId: Id,
-    }),
-  ),
-});
-
-const UpdatePricelistSchema = object({
-  name: optional(pipe(string(), minLength(1))),
-  pricelistId: Id,
-});
-
-const PricelistFiltersSchema = object({
-  ...PaginationSchema.entries,
-  branchId: BranchIdSchema,
-  name: optional(string()),
-});
-
 const RepriceInvoiceSchema = object({
   branchId: BranchIdSchema,
   invoiceId: Id,
@@ -217,9 +195,6 @@ type CreatePackageBalanceInput = InferOutput<typeof CreatePackageBalanceSchema>;
 type UpdatePackageBalanceInput = InferOutput<typeof UpdatePackageBalanceSchema>;
 type PackageBalanceFilters = InferOutput<typeof PackageBalanceFiltersSchema>;
 type RedeemPackageInput = InferOutput<typeof RedeemPackageSchema>;
-type CreatePricelistInput = InferOutput<typeof CreatePricelistSchema>;
-type UpdatePricelistInput = InferOutput<typeof UpdatePricelistSchema>;
-type PricelistFilters = InferOutput<typeof PricelistFiltersSchema>;
 type RepriceInvoiceInput = InferOutput<typeof RepriceInvoiceSchema>;
 type IssueCndnInput = InferOutput<typeof IssueCndnSchema>;
 type CndnFilters = InferOutput<typeof CndnFiltersSchema>;
@@ -240,7 +215,6 @@ export {
   CollectionReportSchema,
   CreateInvoiceSchema,
   CreatePackageBalanceSchema,
-  CreatePricelistSchema,
   DuesAgingFiltersSchema,
   FinalizeInvoiceSchema,
   GstExportFiltersSchema,
@@ -250,7 +224,6 @@ export {
   IssueCndnSchema,
   PackageBalanceFiltersSchema,
   PackageLiabilitySchema,
-  PricelistFiltersSchema,
   ReceiptFiltersSchema,
   RedeemPackageSchema,
   RepriceInvoiceSchema,
@@ -258,7 +231,6 @@ export {
   SettleTabSchema,
   UpdateInvoiceSchema,
   UpdatePackageBalanceSchema,
-  UpdatePricelistSchema,
 };
 
 export type {
@@ -269,7 +241,6 @@ export type {
   CollectionReportInput,
   CreateInvoiceInput,
   CreatePackageBalanceInput,
-  CreatePricelistInput,
   DuesAgingFilters,
   FinalizeInvoiceInput,
   GstExportFilters,
@@ -279,7 +250,6 @@ export type {
   IssueCndnInput,
   PackageBalanceFilters,
   PackageLiabilityInput,
-  PricelistFilters,
   ReceiptFilters,
   RedeemPackageInput,
   RepriceInvoiceInput,
@@ -287,5 +257,4 @@ export type {
   SettleTabInput,
   UpdateInvoiceInput,
   UpdatePackageBalanceInput,
-  UpdatePricelistInput,
 };
