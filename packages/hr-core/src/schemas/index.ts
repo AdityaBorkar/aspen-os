@@ -27,21 +27,6 @@ export {
   UpdateHrRoleSchema,
   UpdateHrUserSchema,
 } from "#/schemas/access";
-// Announcement schemas
-export type {
-  AnnouncementAudienceInput,
-  AnnouncementFilters,
-  CreateAnnouncementInput,
-  RecipientListFilters,
-  UpdateAnnouncementInput,
-} from "#/schemas/announcement";
-export {
-  AnnouncementAudienceSchema,
-  AnnouncementFiltersSchema,
-  CreateAnnouncementSchema,
-  RecipientListFiltersSchema,
-  UpdateAnnouncementSchema,
-} from "#/schemas/announcement";
 // Employee schemas
 export type {
   AddGroupMemberInput,
@@ -70,9 +55,6 @@ export {
 // Enum schemas
 export {
   AccessLevelSchema,
-  AnnouncementChannelSchema,
-  AnnouncementPrioritySchema,
-  AnnouncementStatusSchema,
   EmployeeStatusSchema,
   EmploymentTypeSchema,
   ExitInterviewStatusSchema,

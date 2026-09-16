@@ -1,6 +1,6 @@
 # @aspen-os/hr-core
 
-HR foundation module: employee records, positions, organizational setup, lifecycle (onboarding, promotion, transfer, separation), access control, and announcements.
+HR foundation module: employee records, positions, organizational setup, lifecycle (onboarding, promotion, transfer, separation), and access control. Announcements live in `@aspen-os/hr-announcement` (`$dependencies = ["hrCore"]`).
 
 ## Table of Contents
 

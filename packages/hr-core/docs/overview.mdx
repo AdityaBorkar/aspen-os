@@ -4,7 +4,7 @@ description: Architecture and concepts for the HR Core domain module.
 icon: IconInfoCircle
 ---
 
-The hr-core module owns canonical employee records, position structure, lifecycle, organizational setup, access control, and announcements.
+The hr-core module owns canonical employee records, position structure, lifecycle, organizational setup, and access control.
 
 ## Module
 
@@ -52,22 +52,20 @@ flowchart TB
 
   PI --> ACL[auth.acl]
   PI --> CP[control_plane_schemas\nhr_user, hr_role, hr_permission...]
-  PI --> TS[tenant_schemas\nemployee, hr_position, hr_announcement...]
-  PI --> EV[events\naccess, announcement, employee, lifecycle, position, setup]
+  PI --> TS[tenant_schemas\nemployee, hr_position...]
+  PI --> EV[events\naccess, employee, lifecycle, position, setup]
 
   PR -->|subscribe| LC_SEP[lifecycle.separation_completed]
   PR -->|subscribe| LC_TR[lifecycle.transfer_approved]
   LC_SEP --> RC -->|publish position.unassigned| PS
   LC_TR --> RC
 
-  HR_CORE_WORKFLOWS[workflows\naccess, announcement, employee, lifecycle, position, setup] --> DB
+  HR_CORE_WORKFLOWS[workflows\naccess, employee, lifecycle, position, setup] --> DB
   HR_CORE_WORKFLOWS --> PS
 
   DB --- CP
   DB --- TS
 ```
-
-Announcement scheduling no longer owns a cron — `hr_announcement.scheduled_for` is materialized as a `calendar_reminder` (`targetType: announcement`) and dispatched by the single `calendar.reminder-scan` cron.
 
 ## Employee
 
@@ -89,7 +87,6 @@ Onboarding, promotion, transfer, separation are first-class tracks (`employee_on
 
 ```ts title="src/auth.ts"
 export const acl = defineAcl({
-  announcement: ["archive", "create", "delete", "publish", "read", "update"],
   employee: ["create", "delete", "read", "update"],
   hrPermission: ["create", "delete", "read", "update"],
   hrRole: ["create", "delete", "read", "update"],
@@ -101,10 +98,6 @@ export const acl = defineAcl({
 ```
 
 `hr_user` links an auth `user_id` to an `employee_id`; `hr_role`/`hr_permission`/`hr_role_permission` form RBAC, `hr_user_role` grants roles optionally branch-scoped, `hr_user_branch_access` grants direct branch access with `hr_access_level`.
-
-## Announcements
-
-`hr_announcement` stores author (`ctx.actorId` required), body/title, `channel` (`general`/`hr`/`custom`), `audience` JSON (`type` + `ids`), `priority` (`normal`/`important`/`urgent` via `@aspen-os/constants` `NOTIFICATION_SEVERITY`), `status` (`draft`/`scheduled`/`published`/`archived`), and `scheduled_for`. `hr_announcement_recipient` snapshots delivery at publish time. Only `draft`/`scheduled` are editable; publish is idempotent, resolves audience through subtree expansion (departments include children), validates strong-refs (`employees`, `groups`, `roles`, `individuals`), and emits `announcement.published` with `recipientUserIds` (auth `userId`s — employees without HR users are snapshot-only). Read/ack counts are read back from `@aspen-os/comms` notifications (`sourceModule: "hr"`).
 
 ## Organizational Setup
 
@@ -118,7 +111,6 @@ flowchart LR
     EMP[employee]
     POS[hr_position]
     ASM[hr_position_assignment]
-    ANN[hr_announcement]
   end
 
   subgraph control[control-plane]
@@ -133,8 +125,7 @@ flowchart LR
   subgraph external[Other modules]
     ATT[hr-attendance]
     LEAVE[hr-leave]
-    CAL[calendar]
-    COMMS[comms]
+    ANN[hr-announcement]
   end
 
   EMP -. soft FK .-> DEPT
@@ -145,19 +136,12 @@ flowchart LR
   HRU -. soft FK .-> EMP
   ATT -. employee_id .-> EMP
   LEAVE -. employee_id .-> EMP
-  ANN -->|calendar_reminder targetType=announcement| CAL
-  ANN -->|announcement.published → notification| COMMS
+  ANN -. audience resolve .-> EMP
   LC_SEP_EVENT[lifecycle.separation_completed] --> ASM
   LC_TR_EVENT[lifecycle.transfer_approved] --> ASM
 ```
 
-All cross-table links are soft text FKs (no DB constraints); invariants are workflow-enforced. `hr-attendance` and `hr-leave` reference `employee` via `employee_id` without a hard FK.
-
-<Callout type="info">
-  Announcement publishing no longer runs `hr.announcement-scheduler` — scheduling is a
-  `calendar_reminder` row; the single `calendar.reminder-scan` dispatcher publishes due
-  announcements.
-</Callout>
+All cross-table links are soft text FKs (no DB constraints); invariants are workflow-enforced. `hr-attendance`, `hr-leave`, and `hr-announcement` reference `employee` via soft IDs without a hard FK.
 
 <Callout type="warn">
   `lifecycle.separation_completed` and `lifecycle.transfer_approved` are consumed internally for

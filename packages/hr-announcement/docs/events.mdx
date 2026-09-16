@@ -1,0 +1,23 @@
+---
+title: Events
+description: Domain event map for the hr-announcement module.
+icon: IconBell
+---
+
+The hr-announcement module defines announcement events. Events are type-level contracts published as plain string topics via `PubSubUnit`.
+
+## Announcement
+
+| Event                    | Payload                                             | Trigger                                        |
+| ------------------------ | --------------------------------------------------- | ---------------------------------------------- |
+| `announcement.created`   | `{ announcement: { id, title, channel, status } }`  | `announcement.create`                          |
+| `announcement.updated`   | `{ announcement: { id }, changes }`                 | `announcement.update`                          |
+| `announcement.scheduled` | `{ announcementId, scheduledFor }`                  | `announcement.schedule`                        |
+| `announcement.published` | `{ announcement: { id, title }, recipientUserIds }` | `announcement.publish`                         |
+| `announcement.archived`  | `{ announcementId }`                                | `announcement.archive`, `announcement.restore` |
+| `announcement.pinned`    | `{ announcementId, pinned, pinnedBy }`              | `announcement.pin`, `announcement.unpin`       |
+
+<Callout type="info">
+  `announcement.published` fans out to `@aspen-os/comms` (one `notification` per `recipientUserIds`
+  entry, `sourceModule: "hr"`).
+</Callout>

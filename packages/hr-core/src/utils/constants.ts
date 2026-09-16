@@ -1,6 +1,5 @@
 export const HR_PERMISSION_MODULE = {
   ACCESS: "access",
-  ANNOUNCEMENT: "announcement",
   EMPLOYEE: "employee",
   LIFECYCLE: "lifecycle",
   POSITION: "position",
@@ -30,11 +29,3 @@ export const PERMISSION_ACTION = {
 } as const;
 
 export type PermissionAction = (typeof PERMISSION_ACTION)[keyof typeof PERMISSION_ACTION];
-
-export const SCHEDULED_JOBS = {
-  ANNOUNCEMENT_SCHEDULER: "hr.announcement-scheduler",
-} as const;
-
-export const CRON_SCHEDULES = {
-  ANNOUNCEMENT_SCHEDULER: "* * * * *",
-} as const;

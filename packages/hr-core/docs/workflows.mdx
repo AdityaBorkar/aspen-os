@@ -4,7 +4,7 @@ description: API reference for the workflow groups exposed by the hr-core module
 icon: IconListCheck
 ---
 
-The hr-core module exposes workflow groups via `p.hrCore`: `access`, `announcement`, `employee`, `lifecycle`, `position`, and `setup`.
+The hr-core module exposes workflow groups via `p.hrCore`: `access`, `employee`, `lifecycle`, `position`, and `setup`.
 
 Create inputs are Valibot-validated `{ input: Create*Input }`, update is `{ id, patch: Update*Input }` where `undefined` leaves a column untouched. Every command audit-logs and, where listed, publishes a domain event.
 
@@ -43,46 +43,6 @@ await p.hrCore.access.revokeBranchAccess({ hrUserId, branchId });
 await p.hrCore.access.hasBranchAccess({ hrUserId, branchId });
 await p.hrCore.access.hasPermission({ hrUserId, module: "employee", action: "view", branchId });
 ```
-
-### Announcement
-
-Access: `p.hrCore.announcement`
-
-Authoring, audience targeting, scheduling, publishing, pinning, and delivery snapshot.
-
-```ts title="announcement — publish and schedule"
-await p.hrCore.announcement.create({
-  input: {
-    title: "Policy Update",
-    body: "New leave policy effective next month",
-    channel: "hr",
-    priority: "normal",
-    requireAcknowledgement: false,
-  },
-});
-await p.hrCore.announcement.create({
-  input: {
-    title: "Holiday Notice",
-    body: "Office closed Monday",
-    channel: "custom",
-    audience: { type: "departments", ids: ["dept-eng"] },
-    scheduleAt: "2026-09-10T09:00:00Z",
-  },
-});
-await p.hrCore.announcement.publish({ id });
-await p.hrCore.announcement.schedule({ id, scheduledFor: "2026-09-10T09:00:00Z" });
-await p.hrCore.announcement.cancelSchedule({ id });
-await p.hrCore.announcement.archive({ id });
-await p.hrCore.announcement.restore({ id });
-await p.hrCore.announcement.pin({ id });
-await p.hrCore.announcement.unpin({ id });
-await p.hrCore.announcement.getById({ id });
-await p.hrCore.announcement.list({ filters: { status: "published" } });
-await p.hrCore.announcement.listRecipients({ announcementId: id });
-await p.hrCore.announcement.getStats({ announcementId: id });
-```
-
-Publish is idempotent — re-publishing a published announcement returns it without re-emitting `announcement.published`.
 
 ### Employee
 

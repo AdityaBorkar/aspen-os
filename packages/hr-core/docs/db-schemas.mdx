@@ -445,37 +445,6 @@ Indexes: `idx_hr_position_department` (`department`), `idx_hr_position_is_active
 
 Indexes: `idx_hr_position_assignment_employee_id` (`employee_id`), `idx_hr_position_assignment_position_id` (`position_id`).
 
-### `hr_announcement` — tenant
-
-| Column                    | Type                       | Description      |
-| ------------------------- | -------------------------- | ---------------- |
-| `author`                  | text                       | Creator          |
-| `title`                   | text                       | Title            |
-| `body`                    | text                       | Body             |
-| `channel`                 | `hr_announcement_channel`  | Channel          |
-| `audience`                | jsonb                      | `{ type, ids? }` |
-| `priority`                | `hr_announcement_priority` | Default `normal` |
-| `status`                  | `hr_announcement_status`   | Default `draft`  |
-| `require_acknowledgement` | boolean                    | Default false    |
-| `scheduled_for`           | timestamptz                | Future schedule  |
-| `published_at`            | timestamptz                | Publish time     |
-| `archived_at`             | timestamptz                | Archive time     |
-| `pinned`                  | boolean                    | Default false    |
-| `pinned_by`               | text                       | Pinner           |
-
-Indexes: `idx_hr_announcement_status` (`status`), `idx_hr_announcement_author` (`author`), `idx_hr_announcement_scheduled_for` (`scheduled_for`).
-
-### `hr_announcement_recipient` — tenant
-
-| Column            | Type                        | Description       |
-| ----------------- | --------------------------- | ----------------- |
-| `announcement_id` | text (FK → hr_announcement) | Announcement      |
-| `employee_id`     | text                        | Snapshot employee |
-| `hr_user_id`      | text                        | Snapshot hr user  |
-| `user_id`         | text                        | Auth user         |
-
-Indexes: `idx_hr_announcement_recipient_announcement_id` (`announcement_id`), `idx_hr_announcement_recipient_user_id` (`user_id`).
-
 ## Relationships
 
 All FKs are soft (logical, no DB constraints); invariants enforced in workflows.
@@ -501,7 +470,6 @@ flowchart LR
   HRA -->|employee_id| EMP
   HRA -. is_primary unique per employee .-> EMP
   HOL[holiday] -->|holiday_list_id| HL[holiday_list]
-  HRP_ann[hr_announcement_recipient] -->|announcement_id| HRANN[hr_announcement]
   HUR[hr_user_role] -->|hr_user_id| HRU[hr_user]
   HUR -->|role_id| HRROLE[hr_role]
   HRP2[hr_role_permission] -->|role_id| HRROLE

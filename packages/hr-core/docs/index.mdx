@@ -1,10 +1,10 @@
 ---
 title: HR Core
-description: Employee records, position structure, lifecycle, organizational setup, access, and announcements.
+description: Employee records, position structure, lifecycle, organizational setup, and access.
 icon: IconUsers
 ---
 
-The hr-core module owns canonical HR data — employees, positions, lifecycle, org setup, access control, and announcements — used by hr-attendance and hr-leave via soft `employee_id` references.
+The hr-core module owns canonical HR data — employees, positions, lifecycle, org setup, and access control — used by hr-attendance, hr-leave, and hr-announcement via soft `employee_id` references.
 
 ## Documentation
 
@@ -22,7 +22,7 @@ The hr-core module owns canonical HR data — employees, positions, lifecycle, o
   <Card
     title="Workflows"
     href="/docs/hr-core/workflows"
-    description="Workflow groups (access, announcement, employee, lifecycle, position, setup) via p.hrCore"
+    description="Workflow groups (access, employee, lifecycle, position, setup) via p.hrCore"
   />
   <Card title="Events" href="/docs/hr-core/events" description="Domain events by group" />
   <Card

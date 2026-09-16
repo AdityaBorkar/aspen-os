@@ -17,7 +17,6 @@ export { HrCore, type HrCoreModuleConfig } from "#/module";
 export type { HrCoreEventMap } from "#/pubsub";
 export {
   ACCESS_EVENTS,
-  ANNOUNCEMENT_EVENTS,
   EMPLOYEE_EVENTS,
   LIFECYCLE_EVENTS,
   POSITION_EVENTS,

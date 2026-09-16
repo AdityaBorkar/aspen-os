@@ -65,19 +65,8 @@ The hr-core module defines domain events by group. Events are type-level contrac
 | `access.branch_access_granted` | `{ access: { hrUserId, branchId, accessLevel } }` | `access.grantBranchAccess`  |
 | `access.branch_access_revoked` | `{ hrUserId, branchId }`                          | `access.revokeBranchAccess` |
 
-## Announcement
-
-| Event                    | Payload                                             | Trigger                                        |
-| ------------------------ | --------------------------------------------------- | ---------------------------------------------- |
-| `announcement.created`   | `{ announcement: { id, title, channel, status } }`  | `announcement.create`                          |
-| `announcement.updated`   | `{ announcement: { id }, changes }`                 | `announcement.update`                          |
-| `announcement.scheduled` | `{ announcementId, scheduledFor }`                  | `announcement.schedule`                        |
-| `announcement.published` | `{ announcement: { id, title }, recipientUserIds }` | `announcement.publish`                         |
-| `announcement.archived`  | `{ announcementId }`                                | `announcement.archive`, `announcement.restore` |
-| `announcement.pinned`    | `{ announcementId, pinned, pinnedBy }`              | `announcement.pin`, `announcement.unpin`       |
-
 <Callout type="info">
-  `announcement.published` fans out to `@aspen-os/comms` (one `notification` per `recipientUserIds`
-  entry, `sourceModule: "hr"`). `lifecycle.separation_completed` and `lifecycle.transfer_approved`
-  are consumed internally for position reconciliation.
+  `lifecycle.separation_completed` and `lifecycle.transfer_approved` are consumed internally for
+  position reconciliation. Announcements live in `@aspen-os/hr-announcement` (`announcement.*`
+  events).
 </Callout>

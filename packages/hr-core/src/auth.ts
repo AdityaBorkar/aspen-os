@@ -1,7 +1,6 @@
 import { defineAcl } from "@aspen-os/platform/server";
 
 export const acl = defineAcl({
-  announcement: ["archive", "create", "delete", "publish", "read", "update"],
   employee: ["create", "delete", "read", "update"],
   hrPermission: ["create", "delete", "read", "update"],
   hrRole: ["create", "delete", "read", "update"],

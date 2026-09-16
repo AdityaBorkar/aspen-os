@@ -1,0 +1,53 @@
+---
+title: Workflows
+description: API reference for the workflow groups exposed by the hr-announcement module.
+icon: IconListCheck
+---
+
+The hr-announcement module exposes one workflow group via `p.hrAnnouncement`: `announcement`.
+
+Create inputs are Valibot-validated `{ input: CreateAnnouncementInput }`, update is `{ id, patch: UpdateAnnouncementInput }` where `undefined` leaves a column untouched. Every command audit-logs and, where listed, publishes a domain event.
+
+## Features
+
+### Announcement
+
+Access: `p.hrAnnouncement.announcement`
+
+Authoring, audience targeting, scheduling, publishing, pinning, and delivery snapshot.
+
+```ts title="announcement — publish and schedule"
+await p.hrAnnouncement.announcement.create({
+  input: {
+    title: "Policy Update",
+    body: "New leave policy effective next month",
+    channel: "hr",
+    priority: "normal",
+    requireAcknowledgement: false,
+  },
+});
+await p.hrAnnouncement.announcement.create({
+  input: {
+    title: "Holiday Notice",
+    body: "Office closed Monday",
+    channel: "custom",
+    audience: { type: "departments", ids: ["dept-eng"] },
+    scheduleAt: "2026-09-10T09:00:00Z",
+  },
+});
+await p.hrAnnouncement.announcement.publish({ id });
+await p.hrAnnouncement.announcement.schedule({ id, scheduledFor: "2026-09-10T09:00:00Z" });
+await p.hrAnnouncement.announcement.cancelSchedule({ id });
+await p.hrAnnouncement.announcement.archive({ id });
+await p.hrAnnouncement.announcement.restore({ id });
+await p.hrAnnouncement.announcement.pin({ id });
+await p.hrAnnouncement.announcement.unpin({ id });
+await p.hrAnnouncement.announcement.getById({ id });
+await p.hrAnnouncement.announcement.list({ filters: { status: "published" } });
+await p.hrAnnouncement.announcement.listRecipients({ announcementId: id });
+await p.hrAnnouncement.announcement.getStats({ announcementId: id });
+```
+
+Publish is idempotent — re-publishing a published announcement returns it without re-emitting `announcement.published`.
+
+Events emitted by these workflows: [Events](/docs/hr-announcement/events). Tables touched: [DB Schemas](/docs/hr-announcement/db-schemas).

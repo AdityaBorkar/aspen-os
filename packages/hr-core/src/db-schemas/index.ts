@@ -6,7 +6,6 @@ import {
   hrUserBranchAccess,
   hrUserRole,
 } from "#/db-schemas/access";
-import { hrAnnouncement, hrAnnouncementRecipient } from "#/db-schemas/announcement";
 import {
   employee,
   employeeGroup,
@@ -44,7 +43,6 @@ export {
   hrUserBranchAccess,
   hrUserRole,
 } from "#/db-schemas/access";
-export { hrAnnouncement, hrAnnouncementRecipient } from "#/db-schemas/announcement";
 export {
   employee,
   employeeGroup,
@@ -107,8 +105,6 @@ export const dbSchema = {
   fullAndFinalStatement,
   holiday,
   holidayList,
-  hrAnnouncement,
-  hrAnnouncementRecipient,
   hrPermission,
   hrPosition,
   hrPositionAssignment,
@@ -154,8 +150,6 @@ export const tenant_schemas = {
   employeeTransfer,
   exitInterview,
   fullAndFinalStatement,
-  hrAnnouncement,
-  hrAnnouncementRecipient,
   hrPosition,
   hrPositionAssignment,
   onboardingTask,

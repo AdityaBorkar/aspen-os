@@ -1,18 +1,9 @@
-import {
-  department,
-  employee,
-  employeeGroup,
-  employeeGroupMember,
-  hrAnnouncement,
-  hrRole,
-  hrUser,
-  hrUserRole,
-} from "#/db-schemas";
+import { hrAnnouncement } from "#/db-schemas";
 import type { AnnouncementAudience, AnnouncementAudienceType } from "#/db-schemas/announcement";
 import type { Db } from "#/workflows/db";
 import { collectSubtreeIds } from "#/workflows/trees";
 
-import { eq, inArray } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 export type AnnouncementChannel = "custom" | "general" | "hr";
 
@@ -56,23 +47,35 @@ export async function fetchAnnouncementById(db: Db, id: string) {
   return result;
 }
 
+function inList(ids: string[]) {
+  return sql.join(
+    ids.map((id) => sql`${id}`),
+    sql`, `,
+  );
+}
+
 async function resolveEmployees(db: Db, employeeIds: string[]): Promise<ResolvedRecipient[]> {
   if (employeeIds.length === 0) {
     return [];
   }
 
-  const employeeRows = await db
-    .select({ id: employee.id })
-    .from(employee)
-    .where(inArray(employee.id, employeeIds));
-
+  // NOTE: employee and hr_user are owned by @aspen-os/hr-core. Their drizzle
+  // tables cannot be imported here: hr-core is a raw-src package whose
+  // declarations reference the package-local `#/*` alias, which would resolve
+  // to this package's own sources. Query the tables directly so the
+  // dependency stays one-directional (module `$dependencies = ["hrCore"]`).
+  const employeeRows = await db.execute<{ id: string }>(
+    sql`SELECT id FROM employee WHERE id IN (${inList(employeeIds)})`,
+  );
   const foundIds = new Set(employeeRows.map((row) => row.id));
 
-  const hrUserRows = await db
-    .select({ employeeId: hrUser.employee_id, hrUserId: hrUser.id, userId: hrUser.user_id })
-    .from(hrUser)
-    .where(inArray(hrUser.employee_id, employeeIds));
-
+  const hrUserRows = await db.execute<{
+    employeeId: string;
+    hrUserId: string;
+    userId: string;
+  }>(
+    sql`SELECT id AS "hrUserId", user_id AS "userId", employee_id AS "employeeId" FROM hr_user WHERE employee_id IN (${inList(employeeIds)})`,
+  );
   const hrUserByEmployeeId = new Map(hrUserRows.map((row) => [row.employeeId, row]));
 
   const recipients: ResolvedRecipient[] = [];
@@ -109,9 +112,9 @@ function dedupeRecipients(recipients: ResolvedRecipient[]): ResolvedRecipient[] 
 }
 
 async function expandDepartmentIds(db: Db, departmentIds: string[]): Promise<string[]> {
-  const all = await db
-    .select({ id: department.id, parentId: department.parent_department })
-    .from(department);
+  const all = await db.execute<{ id: string; parentId: string | null }>(
+    sql`SELECT id, parent_department AS "parentId" FROM department`,
+  );
   return collectSubtreeIds(all, departmentIds);
 }
 
@@ -120,10 +123,9 @@ async function resolveHrUsers(db: Db, hrUserIds: string[]): Promise<ResolvedReci
     return [];
   }
 
-  const rows = await db
-    .select({ hrUserId: hrUser.id, userId: hrUser.user_id })
-    .from(hrUser)
-    .where(inArray(hrUser.id, hrUserIds));
+  const rows = await db.execute<{ hrUserId: string; userId: string }>(
+    sql`SELECT id AS "hrUserId", user_id AS "userId" FROM hr_user WHERE id IN (${inList(hrUserIds)})`,
+  );
 
   return rows.map((row) => ({ employeeId: null, hrUserId: row.hrUserId, userId: row.userId }));
 }
@@ -139,44 +141,46 @@ export async function resolveRecipients(
   };
 
   if (type === "all") {
-    const activeEmployees = await db
-      .select({ id: employee.id })
-      .from(employee)
-      .where(eq(employee.status, "active"));
+    const activeEmployees = await db.execute<{ id: string }>(
+      sql`SELECT id FROM employee WHERE status = 'active'`,
+    );
     await pushEmployees(activeEmployees.map((row) => row.id));
   } else if (type === "employees") {
     await pushEmployees(ids);
   } else if (type === "branches") {
-    const rows = await db
-      .select({ id: employee.id })
-      .from(employee)
-      .where(inArray(employee.branch, ids));
-    await pushEmployees(rows.map((row) => row.id));
+    if (ids.length > 0) {
+      const rows = await db.execute<{ id: string }>(
+        sql`SELECT id FROM employee WHERE branch IN (${inList(ids)})`,
+      );
+      await pushEmployees(rows.map((row) => row.id));
+    }
   } else if (type === "departments") {
     const expandedIds = await expandDepartmentIds(db, ids);
-    const rows = await db
-      .select({ id: employee.id })
-      .from(employee)
-      .where(inArray(employee.department, expandedIds));
-    await pushEmployees(rows.map((row) => row.id));
+    if (expandedIds.length > 0) {
+      const rows = await db.execute<{ id: string }>(
+        sql`SELECT id FROM employee WHERE department IN (${inList(expandedIds)})`,
+      );
+      await pushEmployees(rows.map((row) => row.id));
+    }
   } else if (type === "designations") {
-    const rows = await db
-      .select({ id: employee.id })
-      .from(employee)
-      .where(inArray(employee.designation, ids));
-    await pushEmployees(rows.map((row) => row.id));
+    if (ids.length > 0) {
+      const rows = await db.execute<{ id: string }>(
+        sql`SELECT id FROM employee WHERE designation IN (${inList(ids)})`,
+      );
+      await pushEmployees(rows.map((row) => row.id));
+    }
   } else if (type === "groups") {
-    const memberRows = await db
-      .select({ employeeId: employeeGroupMember.employee_id })
-      .from(employeeGroupMember)
-      .where(inArray(employeeGroupMember.group_id, ids));
-    const employeeIds = [...new Set(memberRows.map((row) => row.employeeId))];
-    await pushEmployees(employeeIds);
+    if (ids.length > 0) {
+      const memberRows = await db.execute<{ employeeId: string }>(
+        sql`SELECT employee_id AS "employeeId" FROM employee_group_member WHERE group_id IN (${inList(ids)})`,
+      );
+      const employeeIds = [...new Set(memberRows.map((row) => row.employeeId))];
+      await pushEmployees(employeeIds);
+    }
   } else if (type === "hr_users") {
-    const activeHrUsers = await db
-      .select({ hrUserId: hrUser.id, userId: hrUser.user_id })
-      .from(hrUser)
-      .where(eq(hrUser.is_active, true));
+    const activeHrUsers = await db.execute<{ hrUserId: string; userId: string }>(
+      sql`SELECT id AS "hrUserId", user_id AS "userId" FROM hr_user WHERE is_active = true`,
+    );
     recipients.push(
       ...activeHrUsers.map((row) => ({
         employeeId: null,
@@ -185,12 +189,13 @@ export async function resolveRecipients(
       })),
     );
   } else if (type === "roles") {
-    const userRoleRows = await db
-      .select({ hrUserId: hrUserRole.hr_user_id })
-      .from(hrUserRole)
-      .where(inArray(hrUserRole.role_id, ids));
-    const hrUserIds = [...new Set(userRoleRows.map((row) => row.hrUserId))];
-    recipients.push(...(await resolveHrUsers(db, hrUserIds)));
+    if (ids.length > 0) {
+      const userRoleRows = await db.execute<{ hrUserId: string }>(
+        sql`SELECT hr_user_id AS "hrUserId" FROM hr_user_role WHERE role_id IN (${inList(ids)})`,
+      );
+      const hrUserIds = [...new Set(userRoleRows.map((row) => row.hrUserId))];
+      recipients.push(...(await resolveHrUsers(db, hrUserIds)));
+    }
   } else if (type === "individuals") {
     recipients.push(...(await resolveHrUsers(db, ids)));
   }
@@ -219,22 +224,24 @@ export async function validateAudienceStrongRefs(
   }
 
   if (type === "employees") {
-    const rows = await db
-      .select({ id: employee.id })
-      .from(employee)
-      .where(inArray(employee.id, ids));
+    const rows = await db.execute<{ id: string }>(
+      sql`SELECT id FROM employee WHERE id IN (${inList(ids)})`,
+    );
     throwOnMissing(ids, new Set(rows.map((row) => row.id)), "Unknown employee ids");
   } else if (type === "individuals") {
-    const rows = await db.select({ id: hrUser.id }).from(hrUser).where(inArray(hrUser.id, ids));
+    const rows = await db.execute<{ id: string }>(
+      sql`SELECT id FROM hr_user WHERE id IN (${inList(ids)})`,
+    );
     throwOnMissing(ids, new Set(rows.map((row) => row.id)), "Unknown HR user ids");
   } else if (type === "groups") {
-    const rows = await db
-      .select({ id: employeeGroup.id })
-      .from(employeeGroup)
-      .where(inArray(employeeGroup.id, ids));
+    const rows = await db.execute<{ id: string }>(
+      sql`SELECT id FROM employee_group WHERE id IN (${inList(ids)})`,
+    );
     throwOnMissing(ids, new Set(rows.map((row) => row.id)), "Unknown employee group ids");
   } else if (type === "roles") {
-    const rows = await db.select({ id: hrRole.id }).from(hrRole).where(inArray(hrRole.id, ids));
+    const rows = await db.execute<{ id: string }>(
+      sql`SELECT id FROM hr_role WHERE id IN (${inList(ids)})`,
+    );
     throwOnMissing(ids, new Set(rows.map((row) => row.id)), "Unknown HR role ids");
   }
 }
