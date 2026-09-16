@@ -1,4 +1,4 @@
-import { healthcareChairSlot, healthcareDentalConsent } from "#/db-schemas/dental";
+import { healthcareChairSlot } from "#/db-schemas/dental";
 import { DENTAL_EVENTS } from "#/pubsub";
 import { CreateChairSlotSchema } from "#/schemas/dental";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
@@ -23,25 +23,8 @@ export const bookChair = Workflow.name("healthcare.dental.bookChair")
       patientId: parsed.patientId,
     });
 
-    const signed = await ctx.step.run("check-signed-consent", async () => {
-      const [row] = await ctx.db
-        .select({ id: healthcareDentalConsent.id })
-        .from(healthcareDentalConsent)
-        .where(
-          and(
-            eq(healthcareDentalConsent.encounter_id, parsed.encounterId),
-            eq(healthcareDentalConsent.patient_id, parsed.patientId),
-            eq(healthcareDentalConsent.status, "Signed"),
-          ),
-        )
-        .limit(1);
-      return row;
-    });
-    if (!signed) {
-      throw new Error(
-        "Consent must be signed before the first sitting; complete the consent form first",
-      );
-    }
+    // D5: signed-consent gate deleted with the consent stores; the chair
+    // books on encounter validity alone.
 
     const clash = await ctx.step.run("check-chair-overlap", async () => {
       const [row] = await ctx.db

@@ -78,6 +78,7 @@ export class Tasks implements Module {
     }
     this.#healthcareBridgeTopics = await registerHealthcareBridge({
       db: this.#db.db,
+      log: ctx.log,
       pubsub: this.#pubsub,
     });
   }

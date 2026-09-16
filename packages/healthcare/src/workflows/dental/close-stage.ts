@@ -1,8 +1,4 @@
-import {
-  healthcareDentalConsent,
-  healthcarePlanStage,
-  healthcareTreatmentPlan,
-} from "#/db-schemas/dental";
+import { healthcarePlanStage, healthcareTreatmentPlan } from "#/db-schemas/dental";
 import { DENTAL_EVENTS } from "#/pubsub";
 import { ClosePlanStageSchema } from "#/schemas/dental";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
@@ -20,9 +16,9 @@ export const closeStage = Workflow.name("healthcare.dental.closeStage")
     const parsed = parse(ClosePlanStageSchema, input);
     const actorId = ctx.actorId ?? "system";
 
-    const plan = await ctx.step.run("fetch-treatment-plan", async () => {
+    await ctx.step.run("fetch-treatment-plan", async () => {
       const [row] = await ctx.db
-        .select()
+        .select({ id: healthcareTreatmentPlan.id })
         .from(healthcareTreatmentPlan)
         .where(eq(healthcareTreatmentPlan.id, parsed.planId))
         .limit(1);
@@ -44,27 +40,7 @@ export const closeStage = Workflow.name("healthcare.dental.closeStage")
       throw new Error("Plan stage not found; check the stage index");
     }
 
-    if (parsed.to === "InChair" || parsed.to === "Done") {
-      const signed = await ctx.step.run("check-signed-consent", async () => {
-        const [row] = await ctx.db
-          .select({ id: healthcareDentalConsent.id })
-          .from(healthcareDentalConsent)
-          .where(
-            and(
-              eq(healthcareDentalConsent.encounter_id, plan.encounter_id),
-              eq(healthcareDentalConsent.patient_id, plan.patient_id),
-              eq(healthcareDentalConsent.status, "Signed"),
-            ),
-          )
-          .limit(1);
-        return row;
-      });
-      if (!signed) {
-        throw new Error(
-          "Consent must be signed before the first sitting; complete the consent form first",
-        );
-      }
-    }
+    // D5: signed-consent gate deleted with the consent stores.
 
     if (parsed.to === "Done") {
       if (!parsed.note || parsed.note.trim().length === 0) {

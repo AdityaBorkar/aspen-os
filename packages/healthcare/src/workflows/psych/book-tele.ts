@@ -4,11 +4,7 @@ import { BookCounsellingSchema } from "#/schemas/psych";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchOpenEncounterStep } from "#/workflow-steps/fetch-encounter";
 import { fetchLatestRiskStep } from "#/workflow-steps/fetch-risk-flag";
-import {
-  assertMinorConsent,
-  assertRiskCleared,
-  assertTeleConsent,
-} from "#/workflows/shared/psych-booking";
+import { assertRiskCleared } from "#/workflows/shared/psych-booking";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
@@ -29,10 +25,8 @@ export const bookTele = Workflow.name("healthcare.psych.bookTele")
       });
     }
 
-    // Tele sessions need a signed tele/general/counselling consent on file.
-    await ctx.step.run("check-tele-consent", async () => {
-      await assertTeleConsent(ctx.db, { branchId, patientId: parsed.patientId });
-    });
+    // D5: tele and minor consent gates deleted. Record tele/guardian
+    // discussion in the charting note instead of gating on it.
 
     // Moderate/High risk blocks further sessions until safety plan + senior alert exist.
     const risk = await ctx.step.run(fetchLatestRiskStep, {
@@ -43,20 +37,7 @@ export const bookTele = Workflow.name("healthcare.psych.bookTele")
       await assertRiskCleared(ctx.db, { branchId, patientId: parsed.patientId }, risk);
     });
 
-    // Tele sessions need a recorded consent before the link is issued, and
-    // minors need a signed caregiver consent first.
-    if (!parsed.consentId) {
-      throw new Error("Tele-psychiatry needs a recorded consent before the link is issued");
-    }
-    if (parsed.patientIsMinor) {
-      await ctx.step.run("check-minor-consent", async () => {
-        await assertMinorConsent(
-          ctx.db,
-          { branchId, patientId: parsed.patientId },
-          "Minor patient needs a signed caregiver consent before tele-psychiatry starts",
-        );
-      });
-    }
+    // D5: no recorded-consent or minor gate before the link is issued.
 
     const [row] = await ctx.step.run("insert-tele-session", async () =>
       ctx.db

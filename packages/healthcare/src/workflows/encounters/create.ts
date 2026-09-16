@@ -1,4 +1,5 @@
 import { healthcareEncounter } from "#/db-schemas/encounters";
+import { toFhirHint } from "#/fhir/event-hint";
 import { ENCOUNTER_EVENTS } from "#/pubsub";
 import { CreateEncounterSchema } from "#/schemas/encounters";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
@@ -47,6 +48,7 @@ export const createEncounter = Workflow.name("healthcare.encounters.create")
         actorId: ctx.actorId,
         at: new Date().toISOString(),
         branchId,
+        data: { fhir: toFhirHint("Encounter", row.id) },
         id: row.id,
       });
     });

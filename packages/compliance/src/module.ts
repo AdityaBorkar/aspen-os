@@ -91,6 +91,7 @@ export class Compliance implements Module {
     const eventBridgeTopics = await registerEventBridgeSubscriptions(eventBridgeDeps);
     this.#healthcareTopics = await registerHealthcareBridge({
       db: this.#db.db,
+      log: ctx.log,
       pubsub: this.#pubsub,
     });
     this.#topics = [obligationGenTopic, ...eventBridgeTopics];

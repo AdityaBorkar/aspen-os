@@ -79,14 +79,6 @@ export const BookVideoSchema = object({
 
 export type BookVideoInput = InferOutput<typeof BookVideoSchema>;
 
-export const CaptureConsentSchema = object({
-  appointmentId: AppointmentId,
-  granted: boolean(),
-  note: optional(string()),
-});
-
-export type CaptureConsentInput = InferOutput<typeof CaptureConsentSchema>;
-
 export const IssueRecallSchema = object({
   at: pipe(string(), minLength(1, "Recall date is required")),
   branchId: BranchIdSchema,

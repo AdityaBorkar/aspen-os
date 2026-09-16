@@ -5,6 +5,7 @@ import type {
 } from "#/db-schemas/appointments";
 import { healthcareAppointment } from "#/db-schemas/appointments";
 import { WithIdSchema } from "#/schemas";
+import { normalizeAppointmentFhirStatus } from "#/workflow-steps/canonical-dual-write";
 
 import { WorkflowStep } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -30,6 +31,7 @@ export interface AppointmentDto {
   daycare: boolean;
   durationMin: number | null;
   facilityId: string | null;
+  fhirStatus: string;
   id: string;
   note: string | null;
   patientId: string;
@@ -50,6 +52,7 @@ export function toAppointmentDto(row: typeof healthcareAppointment.$inferSelect)
     daycare: row.daycare,
     durationMin: row.duration_min,
     facilityId: row.facility_id,
+    fhirStatus: normalizeAppointmentFhirStatus(row.status),
     id: row.id,
     note: is(string(), payload.note) ? payload.note : null,
     patientId: row.patient_id,

@@ -3,7 +3,7 @@ import { BRANCH_EVENTS } from "#/pubsub";
 import { UpdateBranchSchema } from "#/schemas/admin";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchBranchStep, toBranchDto } from "#/workflow-steps/fetch-admin";
-import { branchEventScope } from "#/workflows/shared/branch-lifecycle";
+import { assertOrgBranchCode, branchEventScope } from "#/workflows/shared/branch-lifecycle";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -16,6 +16,10 @@ export const updateBranch = Workflow.name("healthcare.admin.update-branch")
   .handler(async ({ input }, ctx) => {
     const parsed = parse(UpdateBranchSchema, input);
     const current = await ctx.step.run(fetchBranchStep, { id: parsed.id });
+    // D6: a non-main branch must keep its masters org_branch pointer. The
+    // merged value is validated so the pointer cannot be cleared or broken.
+    const nextCode = parsed.patch.orgBranchCode ?? current.org_branch_code;
+    assertOrgBranchCode(current.subdomain, nextCode);
     const payload = { ...current.payload };
     if (parsed.patch.address !== undefined) {
       payload.address = parsed.patch.address;

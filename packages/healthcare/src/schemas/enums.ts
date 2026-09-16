@@ -1,4 +1,10 @@
 import {
+  CONDITION_CLINICAL_VALUES,
+  CONDITION_VERIFICATION_VALUES,
+  MEDREQ_INTENT_VALUES,
+  MEDREQ_STATUS_VALUES,
+} from "#/fhir/registries";
+import {
   APPOINTMENT_STATUS,
   AUDIT_ACTION,
   AUDIT_ENTITY_TYPE,
@@ -42,7 +48,14 @@ import {
 
 import { picklist } from "valibot";
 
-export const AppointmentStatusSchema = picklist(Object.values(APPOINTMENT_STATUS));
+export const AppointmentStatusSchema = picklist([
+  ...Object.values(APPOINTMENT_STATUS),
+  "proposed",
+  "pending",
+  "arrived",
+  "fulfilled",
+  "noshow",
+]);
 
 export const QueueTokenStatusSchema = picklist(Object.values(QUEUE_TOKEN_STATUS));
 
@@ -50,7 +63,11 @@ export const VideoStatusSchema = picklist(Object.values(VIDEO_STATUS));
 
 export const CertificateStatusSchema = picklist(Object.values(CERTIFICATE_STATUS));
 
-export const EncounterStatusSchema = picklist(Object.values(ENCOUNTER_STATUS));
+export const EncounterStatusSchema = picklist([
+  ...Object.values(ENCOUNTER_STATUS),
+  "in-progress",
+  "finished",
+]);
 
 export const VisitTypeSchema = picklist(Object.values(VISIT_TYPE));
 
@@ -85,6 +102,41 @@ export const ResidentStatusSchema = picklist(Object.values(RESIDENT_STATUS));
 export const DailyLogStatusSchema = picklist(Object.values(DAILY_LOG_STATUS));
 
 export const InvoiceStatusSchema = picklist(Object.values(INVOICE_STATUS));
+
+// Canonical alias axis (HEALTHCARE-SPEC §3.2): ledger writes stay on
+// InvoiceStatusSchema, while boundaries accept every legacy + canonical
+// literal. Canonical inputs normalize to the ledger before any column
+// comparison, and reads project fhir_status via the forward map.
+export const InvoiceStatusAliasSchema = picklist([
+  ...Object.values(INVOICE_STATUS),
+  "issued",
+  "balanced",
+  "cancelled",
+  "entered-in-error",
+]);
+
+// Canonical Condition axes (HEALTHCARE-SPEC §§3.2, 5). Stored on
+// healthcare_condition; legacy kind/status inputs normalize into these.
+export const ConditionClinicalStatusSchema = picklist(CONDITION_CLINICAL_VALUES);
+
+export const ConditionVerificationStatusSchema = picklist(CONDITION_VERIFICATION_VALUES);
+
+// Canonical MedicationRequest axes (HEALTHCARE-SPEC §§3.2, 8). New
+// prescription headers default to active/order; stored in payload.fhir
+// until a columnar promotion ships.
+export const MedicationRequestStatusSchema = picklist(MEDREQ_STATUS_VALUES);
+
+export const MedicationRequestIntentSchema = picklist(MEDREQ_INTENT_VALUES);
+
+// Canonical observation profile hints (HEALTHCARE-SPEC §6). Each charting
+// workflow fixes its own profile; callers may echo the hint for
+// forward-compatibility. Values double as the provenance source.
+export const ObservationProfileHintSchema = picklist([
+  "encounter-intake",
+  "triage",
+  "bedside",
+  "laboratory",
+]);
 
 export const PackageStatusSchema = picklist(Object.values(PACKAGE_STATUS));
 

@@ -1,5 +1,6 @@
 import { healthcareAppointment } from "#/db-schemas/appointments";
 import { AppointmentFiltersSchema } from "#/schemas/appointments";
+import { appointmentLedgerStatus } from "#/workflow-steps/canonical-dual-write";
 import { toAppointmentDto } from "#/workflow-steps/fetch-appointment";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -27,12 +28,15 @@ export const listAppointments = Workflow.name("healthcare.appointments.list")
       }
       if (parsed.status) {
         // SAFETY: AppointmentFiltersSchema documents status as an appointment status value;
-        // the eq() comparison binds it to the enum-typed status column, so the cast only
-        // names the column type for the query builder.
+        // appointmentLedgerStatus() collapses canonical aliases onto the closest ledger
+        // literal before the eq() comparison binds it to the enum-typed status column,
+        // so the cast only names the column type for the query builder.
         conditions.push(
           eq(
             healthcareAppointment.status,
-            parsed.status as (typeof healthcareAppointment.status.enumValues)[number],
+            appointmentLedgerStatus(
+              parsed.status,
+            ) as (typeof healthcareAppointment.status.enumValues)[number],
           ),
         );
       }

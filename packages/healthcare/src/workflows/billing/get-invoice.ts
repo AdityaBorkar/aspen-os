@@ -1,4 +1,5 @@
 import { InvoiceIdSchema } from "#/schemas/billing";
+import { normalizeInvoiceFhirStatus } from "#/workflow-steps/canonical-dual-write";
 import { fetchInvoiceStep } from "#/workflow-steps/fetch-invoice";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -15,6 +16,7 @@ export const getInvoice = Workflow.name("healthcare.billing.get-invoice")
       createdAt: row.created_at.toISOString(),
       discountPct: Number(row.discount_pct),
       encounterId: row.encounter_id,
+      fhirStatus: normalizeInvoiceFhirStatus(row.status),
       gstPct: Number(row.gst_pct),
       id: row.id,
       invoiceNo: row.invoice_no,

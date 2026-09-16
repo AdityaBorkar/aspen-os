@@ -3,7 +3,6 @@ import { BranchIdSchema, IdSchema, NameSchema, PhoneSchema } from "#/schemas/uti
 import type { InferOutput } from "valibot";
 import {
   array,
-  boolean,
   integer,
   maxLength,
   minLength,
@@ -75,14 +74,6 @@ export const CreateAllergySchema = object({
   severity: picklist(["mild", "moderate", "severe"]),
 });
 
-export const ArchiveConsentSchema = object({
-  branchId: BranchIdSchema,
-  granted: boolean(),
-  note: optional(string()),
-  patientId: pipe(string(), minLength(1, "Patient ID is required")),
-  type: pipe(string(), minLength(1, "Consent type is required")),
-});
-
 export const CreateFlagSchema = object({
   branchId: BranchIdSchema,
   label: pipe(string(), minLength(1, "Flag label is required")),
@@ -122,7 +113,6 @@ export type DedupeCheckInput = InferOutput<typeof DedupeCheckSchema>;
 export type PatientId = InferOutput<typeof PatientIdSchema>;
 export type CreateFamilyLinkInput = InferOutput<typeof CreateFamilyLinkSchema>;
 export type CreateAllergyInput = InferOutput<typeof CreateAllergySchema>;
-export type ArchiveConsentInput = InferOutput<typeof ArchiveConsentSchema>;
 export type CreateFlagInput = InferOutput<typeof CreateFlagSchema>;
 export type LogCommunicationInput = InferOutput<typeof LogCommunicationSchema>;
 export type EnrolRecallInput = InferOutput<typeof EnrolRecallSchema>;

@@ -38,6 +38,7 @@ import {
   healthcareReceipt,
 } from "#/db-schemas/billing";
 import { healthcareBranch } from "#/db-schemas/branch";
+import { healthcareCondition } from "#/db-schemas/condition";
 import { healthcareCounter } from "#/db-schemas/counter";
 import {
   healthcareChairSlot,
@@ -87,6 +88,7 @@ import {
   healthcareFacilityBlock,
   healthcareSterilizationLog,
 } from "#/db-schemas/facilities";
+import { healthcareInvoiceLine } from "#/db-schemas/invoice-line";
 import {
   healthcareDaycareSitting,
   healthcareDrugAdministration,
@@ -101,6 +103,7 @@ import {
   healthcarePainScore,
   healthcareTriageTag,
 } from "#/db-schemas/nursing";
+import { healthcareObservation } from "#/db-schemas/observation";
 import {
   healthcareComplianceEvidence,
   healthcareMasterEntry,
@@ -137,6 +140,7 @@ import {
   healthcarePractitionerRegistration,
   healthcarePractitionerSchedule,
 } from "#/db-schemas/practitioners";
+import { healthcarePrescriptionLine } from "#/db-schemas/prescription-line";
 import {
   healthcareAddictionChart,
   healthcareCaregiverConsent,
@@ -232,6 +236,7 @@ export {
   healthcareReceipt,
 } from "#/db-schemas/billing";
 export { healthcareBranch } from "#/db-schemas/branch";
+export { healthcareCondition } from "#/db-schemas/condition";
 export { healthcareCounter } from "#/db-schemas/counter";
 export {
   healthcareChairSlot,
@@ -282,6 +287,7 @@ export {
   healthcareFacilityBlock,
   healthcareSterilizationLog,
 } from "#/db-schemas/facilities";
+export { healthcareInvoiceLine } from "#/db-schemas/invoice-line";
 export {
   healthcareDaycareSitting,
   healthcareDrugAdministration,
@@ -296,6 +302,7 @@ export {
   healthcarePainScore,
   healthcareTriageTag,
 } from "#/db-schemas/nursing";
+export { healthcareObservation } from "#/db-schemas/observation";
 export {
   healthcareComplianceEvidence,
   healthcareMasterEntry,
@@ -332,6 +339,7 @@ export {
   healthcarePractitionerRegistration,
   healthcarePractitionerSchedule,
 } from "#/db-schemas/practitioners";
+export { healthcarePrescriptionLine } from "#/db-schemas/prescription-line";
 export {
   healthcareAddictionChart,
   healthcareCaregiverConsent,
@@ -407,6 +415,7 @@ export const healthcareTables = {
   healthcareCommunication,
   healthcareCompany,
   healthcareComplianceEvidence,
+  healthcareCondition,
   healthcareConsent,
   healthcareConsentGrant,
   healthcareControlledPrescription,
@@ -439,6 +448,7 @@ export const healthcareTables = {
   healthcareHandover,
   healthcareImmunization,
   healthcareInvoice,
+  healthcareInvoiceLine,
   healthcareInvoiceStatusEnum,
   healthcareIoEntry,
   healthcareLabJob,
@@ -462,6 +472,7 @@ export const healthcareTables = {
   healthcareNursingRiskScreen,
   healthcareNursingTask,
   healthcareNursingVitals,
+  healthcareObservation,
   healthcareOutcomeScore,
   healthcarePackageBalance,
   healthcarePackageDef,
@@ -481,6 +492,7 @@ export const healthcareTables = {
   healthcarePractitionerRegistration,
   healthcarePractitionerSchedule,
   healthcarePrescription,
+  healthcarePrescriptionLine,
   healthcarePricelist,
   healthcareProblem,
   healthcarePsychAssessment,

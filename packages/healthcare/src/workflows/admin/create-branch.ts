@@ -4,6 +4,7 @@ import { CreateBranchSchema } from "#/schemas/admin";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { toBranchDto } from "#/workflow-steps/fetch-admin";
 import {
+  assertOrgBranchCode,
   assertSubdomainFree,
   branchEventScope,
   branchInsertValues,
@@ -20,6 +21,8 @@ export const createBranch = Workflow.name("healthcare.admin.create-branch")
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateBranchSchema, input);
     const subdomain = resolveBranchSubdomain(parsed.name, parsed.subdomain);
+    // D6: non-main branches must carry a masters org_branch pointer.
+    const orgBranchCode = assertOrgBranchCode(subdomain, parsed.orgBranchCode);
     await ctx.step.run("check-subdomain", async () => {
       await assertSubdomainFree(ctx.db, subdomain);
     });
@@ -30,7 +33,7 @@ export const createBranch = Workflow.name("healthcare.admin.create-branch")
           ...branchInsertValues({
             address: parsed.address,
             name: parsed.name,
-            orgBranchCode: parsed.orgBranchCode,
+            orgBranchCode: orgBranchCode || null,
             subdomain,
           }),
           id: crypto.randomUUID(),

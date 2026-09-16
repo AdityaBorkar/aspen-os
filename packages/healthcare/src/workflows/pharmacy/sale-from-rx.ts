@@ -3,6 +3,7 @@ import {
   healthcarePharmacyItem,
   healthcarePharmacySale,
 } from "#/db-schemas/pharmacy";
+import { toFhirHint } from "#/fhir/event-hint";
 import { PHARMACY_EVENTS } from "#/pubsub";
 import { SaleFromRxSchema } from "#/schemas/pharmacy";
 import type { SaleFromRxInput } from "#/schemas/pharmacy";
@@ -254,6 +255,7 @@ export const saleFromRx = Workflow.name("healthcare.pharmacy.sale-from-rx")
         actorId: ctx.actorId,
         at: new Date().toISOString(),
         branchId,
+        data: { fhir: toFhirHint("MedicationDispense", created.id) },
         id: created.id,
       });
     });

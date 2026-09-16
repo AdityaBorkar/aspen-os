@@ -1,4 +1,4 @@
-import { InvoiceStatusSchema } from "#/schemas/enums";
+import { InvoiceStatusAliasSchema } from "#/schemas/enums";
 import { BranchIdSchema, PaginationSchema } from "#/schemas/utils";
 
 import {
@@ -46,7 +46,12 @@ const InvoiceFiltersSchema = object({
   ...PaginationSchema.entries,
   branchId: BranchIdSchema,
   patientId: optional(string()),
-  status: optional(InvoiceStatusSchema),
+  // Canonical alias axis (HEALTHCARE-SPEC §3.2): accepts every legacy
+  // ledger literal plus canonical issued/balanced/cancelled/entered-in-error.
+  // Consumers normalize to the ledger via invoiceLedgerStatus() before
+  // comparing against the status column; reads project fhir_status via
+  // the forward INVOICE_STATUS_MAP.
+  status: optional(InvoiceStatusAliasSchema),
 });
 
 const FinalizeInvoiceSchema = object({

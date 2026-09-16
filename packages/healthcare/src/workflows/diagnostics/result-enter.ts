@@ -3,10 +3,18 @@ import {
   healthcareLabResult,
   healthcareLabTest,
 } from "#/db-schemas/diagnostics";
+import { healthcareObservation } from "#/db-schemas/observation";
+import { toFhirHint } from "#/fhir/event-hint";
 import { DIAGNOSTICS_EVENTS } from "#/pubsub";
 import { ResultEntrySchema } from "#/schemas/diagnostics";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import {
+  buildLabObservationRow,
+  labInterpretationFromFlag,
+  labStatusForVersion,
+} from "#/workflow-steps/canonical-dual-write";
 import { fetchLabOrderStep } from "#/workflow-steps/fetch-diagnostics";
+import { fetchOpenEncounterStep } from "#/workflow-steps/fetch-encounter";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
@@ -23,6 +31,15 @@ export const resultEnter = Workflow.name("healthcare.diagnostics.result-enter")
     const order = await ctx.step.run(fetchLabOrderStep, { id: parsed.orderId });
     if (order.branch_id !== branchId) {
       throw new Error("Lab order belongs to a different branch; verify the order and retry.");
+    }
+    if (order.encounter_id) {
+      // Sign-freeze: laboratory observations inherit the parent encounter
+      // freeze; signed (finished) encounters only accept
+      // encounter_addendum writes.
+      await ctx.step.run(fetchOpenEncounterStep, {
+        id: order.encounter_id,
+        patientId: order.patient_id,
+      });
     }
     const rawDetail = order.payload.statusDetail;
     const detail = is(string(), rawDetail) ? rawDetail : "ordered";
@@ -86,35 +103,65 @@ export const resultEnter = Workflow.name("healthcare.diagnostics.result-enter")
       }
     }
 
+    // The observation id is pinned up front so the event hint can
+    // reference the canonical row without changing the DTO.
+    const observationId = crypto.randomUUID();
     const entered = await ctx.step.run("enter-result", async () => {
-      const [row] = await ctx.db
-        .insert(healthcareLabResult)
-        .values({
-          branch_id: branchId,
-          entered_by: parsed.enteredBy,
-          flag,
-          order_id: parsed.orderId,
-          payload: { delta },
-          test_code: parsed.testCode,
-          value: parsed.value,
-          version,
-        })
-        .returning();
+      // Dual-write (HEALTHCARE-SPEC §§6, 13): legacy lab result + order
+      // promotion first, canonical laboratory observation second, inside
+      // one transaction. value text becomes value_number when numeric else
+      // value_text; flag becomes interpretation; master refs snapshot.
+      const [row] = await ctx.db.transaction(async (tx) => {
+        const [result] = await tx
+          .insert(healthcareLabResult)
+          .values({
+            branch_id: branchId,
+            entered_by: parsed.enteredBy,
+            flag,
+            order_id: parsed.orderId,
+            payload: { delta },
+            test_code: parsed.testCode,
+            value: parsed.value,
+            version,
+          })
+          .returning();
+        if (!result) {
+          throw new Error("Failed to enter result.");
+        }
+        await tx
+          .update(healthcareLabOrder)
+          .set({
+            payload: {
+              ...order.payload,
+              draft: true,
+              enteredBy: parsed.enteredBy,
+              statusDetail: "resulted",
+            },
+            status: "processing",
+          })
+          .where(eq(healthcareLabOrder.id, order.id));
+        await tx.insert(healthcareObservation).values(
+          buildLabObservationRow({
+            absorbedId: result.id,
+            branchId,
+            encounterId: order.encounter_id,
+            id: observationId,
+            interpretation: labInterpretationFromFlag(flag),
+            numericValue: valueIsNumeric ? numericValue : null,
+            patientId: order.patient_id,
+            performerId: parsed.enteredBy,
+            refHigh: ref?.ref_high ?? null,
+            refLow: ref?.ref_low ?? null,
+            status: labStatusForVersion(version),
+            testCode: parsed.testCode,
+            valueText: parsed.value,
+          }),
+        );
+        return [result];
+      });
       if (!row) {
         throw new Error("Failed to enter result.");
       }
-      await ctx.db
-        .update(healthcareLabOrder)
-        .set({
-          payload: {
-            ...order.payload,
-            draft: true,
-            enteredBy: parsed.enteredBy,
-            statusDetail: "resulted",
-          },
-          status: "processing",
-        })
-        .where(eq(healthcareLabOrder.id, order.id));
       return row;
     });
 
@@ -141,6 +188,9 @@ export const resultEnter = Workflow.name("healthcare.diagnostics.result-enter")
         actorId: ctx.actorId,
         at: new Date().toISOString(),
         branchId,
+        // Hint points at the canonical Observation row written above; the
+        // event id stays the lab order so old consumers are unaffected.
+        data: { fhir: toFhirHint("Observation", observationId) },
         id: order.id,
       });
     });

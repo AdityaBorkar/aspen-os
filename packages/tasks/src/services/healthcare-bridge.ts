@@ -1,15 +1,33 @@
 import { task } from "#/db-schemas/task";
 import { TASK_EVENTS } from "#/pubsub";
 
-import type { InferSchemaOutput, PubSubUnit } from "@aspen-os/platform/server";
+import type { InferSchemaOutput, LogUnit, PubSubUnit } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
-import { array, nullish, object, optional, string } from "valibot";
+import { array, literal, nullish, object, optional, string } from "valibot";
 
 export interface HealthcareBridgeDeps {
   db: PostgresJsDatabase;
+  log?: LogUnit;
   pubsub: PubSubUnit;
 }
+
+// Healthcare ACL adoption (HEALTHCARE-SPEC §15): the event envelope,
+// `data.fhir` hint shape, and the versioned nursing mirror entry are owned
+// by @aspen-os/healthcare (`src/fhir/event-hint.ts` → `FhirHintSchema` /
+// `NursingOrderMirrorSchema`, version 1), and the canonical status maps by
+// `src/fhir/registries.ts`. This package does not depend on
+// @aspen-os/healthcare (dependency decision: no new workspace dependency —
+// tasks is a raw-source package typechecked without a build edge to
+// healthcare, and the ACL stays importable without pulling workflow
+// graphs), so the shapes below duplicate the ACL values. On drift the ACL
+// is the owner. `kind` stays pass-through with the healthcare default
+// ("general"); this bridge never re-maps healthcare statuses.
+const HealthcareFhirHintSchema = object({
+  id: string(),
+  mapsTo: optional(string()),
+  resourceType: string(),
+});
 
 const HealthcareOrderEntrySchema = object({
   dueAt: nullish(string()),
@@ -20,6 +38,7 @@ const HealthcareOrderEntrySchema = object({
   patientId: string(),
   status: optional(string()),
   title: string(),
+  version: optional(literal(1), 1),
 });
 
 const HealthcareEntityEventSchema = object({
@@ -29,6 +48,8 @@ const HealthcareEntityEventSchema = object({
   data: optional(
     object({
       encounterId: optional(string()),
+      // Additive ACL hint (HEALTHCARE-SPEC §15); ignored by this bridge.
+      fhir: optional(HealthcareFhirHintSchema),
       healthcareTaskId: optional(string()),
       kind: nullish(string()),
       mirrored: optional(array(HealthcareOrderEntrySchema)),
@@ -187,6 +208,8 @@ async function subscribeHealthcareTopic(
   await deps.pubsub.subscribe(topic, async (message) => {
     const result = await HealthcareEntityEventSchema["~standard"].validate(message.data);
     if (result.issues) {
+      // Silent-drop stays (no retry storms); the canonical reason is logged.
+      deps.log?.warn(`Ignoring malformed event on "${topic}".`, { topic });
       return;
     }
     await handler(result.value, deps);

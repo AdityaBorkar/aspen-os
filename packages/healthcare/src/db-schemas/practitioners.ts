@@ -18,6 +18,9 @@ export const healthcarePractitioner = pgTable(
     branch_id: text().notNull().default("main"),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     email: text(),
+    // D7 soft ref: informational link to the HR employee record. HR owns
+    // employment truth; healthcare never joins on this column.
+    employee_id: text(),
     id: uuidv7().primaryKey(),
     languages: text().array().notNull().default([]),
     name: text().notNull(),

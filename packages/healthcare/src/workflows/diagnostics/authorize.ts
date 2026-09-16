@@ -1,4 +1,5 @@
 import { healthcareLabOrder, healthcareLabResult } from "#/db-schemas/diagnostics";
+import { toFhirHint } from "#/fhir/event-hint";
 import { DIAGNOSTICS_EVENTS } from "#/pubsub";
 import { AuthorizeSchema } from "#/schemas/diagnostics";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
@@ -86,6 +87,7 @@ export const authorize = Workflow.name("healthcare.diagnostics.authorize")
         data: {
           authorizedBy: parsed.authorizedBy,
           complianceOwner: "compliance.verification",
+          fhir: toFhirHint("DiagnosticReport", order.id),
           orderId: order.id,
         },
         id: order.id,

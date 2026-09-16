@@ -74,6 +74,36 @@ export function branchInsertValues(options: BranchInsertOptions): BranchInsert {
   };
 }
 
+// D6: every non-main branch must point at a masters org_branch. The DB
+// column stays nullable (additive-first: backfill before NOT NULL), so the
+// gate lives here at workflow validation level. Format mirrors masters
+// OrgBranchCodeSchema (2-20 chars, alphanumeric with hyphens); existence
+// against masters.org_branch is verified by a future lookup and is not
+// checked here. The main seed shard is exempt.
+const ORG_BRANCH_CODE_FORMAT = /^[A-Za-z0-9]+(?<suffix>-[A-Za-z0-9]+)*$/;
+
+export function isMainBranch(subdomain: string): boolean {
+  return subdomain === "main";
+}
+
+export function assertOrgBranchCode(subdomain: string, code: string | null | undefined): string {
+  if (isMainBranch(subdomain)) {
+    return code ?? "";
+  }
+  const trimmed = code?.trim() ?? "";
+  if (!trimmed) {
+    throw new Error(
+      `Branch "${subdomain}" needs an org_branch_code pointing at a masters org_branch`,
+    );
+  }
+  if (trimmed.length < 2 || trimmed.length > 20 || !ORG_BRANCH_CODE_FORMAT.test(trimmed)) {
+    throw new Error(
+      `Branch "${subdomain}" has an invalid org_branch_code; use 2-20 alphanumeric characters with hyphens`,
+    );
+  }
+  return trimmed;
+}
+
 export function branchEventScope(row: typeof healthcareBranch.$inferSelect): string {
   return row.branch_id;
 }

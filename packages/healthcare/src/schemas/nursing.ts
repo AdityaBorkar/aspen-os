@@ -1,4 +1,8 @@
-import { DrugAdminStatusSchema, TaskStatusSchema } from "#/schemas/enums";
+import {
+  DrugAdminStatusSchema,
+  ObservationProfileHintSchema,
+  TaskStatusSchema,
+} from "#/schemas/enums";
 import { BranchIdSchema, PaginationSchema } from "#/schemas/utils";
 
 import {
@@ -67,6 +71,10 @@ const RecordVitalsSchema = object({
   encounterId: optional(string()),
   note: optional(string()),
   patientId: Id,
+  // Canonical profile hint (HEALTHCARE-SPEC §6): accepted for
+  // forward-compatibility and echoed to payload.fhir; the workflow fixes
+  // profile/source to bedside for the observation rows.
+  profile: optional(ObservationProfileHintSchema),
   pulse: optional(number()),
   rr: optional(number()),
   spo2: optional(number()),
@@ -150,7 +158,9 @@ const NursingConsumableSchema = object({
 
 const RecordSittingSchema = object({
   branchId: BranchIdSchema,
-  consentId: Id,
+  // Deprecated by D5: no gate or column write reads this. Optional so older
+  // callers keep validating; sittings-support ignores the value.
+  consentId: optional(Id),
   consumables: optional(array(NursingConsumableSchema)),
   note: optional(string()),
   patientId: Id,

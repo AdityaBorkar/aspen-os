@@ -27,7 +27,6 @@ import { bookAppointment } from "#/workflows/appointments/book";
 import { bookVideo } from "#/workflows/appointments/book-video";
 import { callNext } from "#/workflows/appointments/call-next";
 import { cancelAppointment } from "#/workflows/appointments/cancel";
-import { captureConsent } from "#/workflows/appointments/capture-consent";
 import { checkinAppointment } from "#/workflows/appointments/checkin";
 import { computeSlots } from "#/workflows/appointments/compute-slots";
 import { getAppointment } from "#/workflows/appointments/get";
@@ -75,7 +74,6 @@ import { bookChair } from "#/workflows/dental/book-chair";
 import { buildPlan } from "#/workflows/dental/build-plan";
 import { chart } from "#/workflows/dental/chart";
 import { closeStage } from "#/workflows/dental/close-stage";
-import { consent } from "#/workflows/dental/consent";
 import { implantMilestone, sellDentalPackage } from "#/workflows/dental/implant-milestone";
 import { pendingJobs } from "#/workflows/dental/pending-jobs";
 import { quote } from "#/workflows/dental/quote";
@@ -154,7 +152,6 @@ import { reportsRun } from "#/workflows/operations/reports-run";
 import { seedPresets } from "#/workflows/operations/seed-presets";
 import { addAllergy } from "#/workflows/patients/add-allergy";
 import { approveMerge } from "#/workflows/patients/approve-merge";
-import { archiveConsent } from "#/workflows/patients/archive-consent";
 import { dedupeCheckPatients } from "#/workflows/patients/dedupe-check";
 import { enrolRecall } from "#/workflows/patients/enrol-recall";
 import { getPatient } from "#/workflows/patients/get";
@@ -205,7 +202,6 @@ import { alertSenior } from "#/workflows/psych/alert-senior";
 import { assess as assessPsych } from "#/workflows/psych/assess";
 import { bookCounselling } from "#/workflows/psych/book-counselling";
 import { bookTele } from "#/workflows/psych/book-tele";
-import { caregiverConsent } from "#/workflows/psych/caregiver-consent";
 import { chartWithdrawal } from "#/workflows/psych/chart-withdrawal";
 import { closeReadiness as closePsychReadiness } from "#/workflows/psych/close-readiness";
 import { involuntaryHook } from "#/workflows/psych/involuntary-hook";
@@ -217,7 +213,6 @@ import { scoreScale } from "#/workflows/psych/score-scale";
 import { screenRisk } from "#/workflows/psych/screen-risk";
 import { sideEffectCheck } from "#/workflows/psych/side-effect-check";
 import { addendumAppend } from "#/workflows/records/addendum-append";
-import { consentsGet } from "#/workflows/records/consents-get";
 import { dischargeIssue } from "#/workflows/records/discharge-issue";
 import { dischargePending } from "#/workflows/records/discharge-pending";
 import { docsAttach } from "#/workflows/records/docs-attach";
@@ -228,7 +223,6 @@ import { familySummaryMulti as recordsFamilySummaryMulti } from "#/workflows/rec
 import { merge } from "#/workflows/records/merge";
 import { notesMask } from "#/workflows/records/notes-mask";
 import { recentlyUsedRx as recordsRecentlyUsedRx } from "#/workflows/records/recently-used-rx";
-import { recordConsent } from "#/workflows/records/record-consent";
 import { registersAppend } from "#/workflows/records/registers-append";
 import { registersExport } from "#/workflows/records/registers-export";
 import { registersVoid } from "#/workflows/records/registers-void";
@@ -275,23 +269,12 @@ import { redeemPackage } from "#/workflows/services/redeem";
 import { retireService } from "#/workflows/services/retire";
 import { setServicePrice } from "#/workflows/services/set-price";
 import { updateService } from "#/workflows/services/update";
-import { attendanceMark } from "#/workflows/staff/attendance-mark";
-import { createRole } from "#/workflows/staff/create-role";
-import { deleteRole } from "#/workflows/staff/delete-role";
-import { disableUser } from "#/workflows/staff/disable-user";
-import { leaveDecide } from "#/workflows/staff/leave-decide";
-import { leaveRequest } from "#/workflows/staff/leave-request";
-import { listRoles } from "#/workflows/staff/list-roles";
-import { payrollExport } from "#/workflows/staff/payroll-export";
-import { rosterPlan } from "#/workflows/staff/roster-plan";
-import { upsertStaff } from "#/workflows/staff/upsert-staff";
 
 // Group keys mirror the clinic `src/rpc/procedures/<ns>.ts` procedure names;
 // values are the ported workflow consts (aliased where file export names differ).
 export const patients = {
   addAllergy,
   approveMerge,
-  archiveConsent,
   dedupeCheck: dedupeCheckPatients,
   enrolRecall,
   get: getPatient,
@@ -367,7 +350,6 @@ export const appointments = {
   bookVideo,
   callNext,
   cancel: cancelAppointment,
-  captureConsent,
   checkin: checkinAppointment,
   computeSlots,
   get: getAppointment,
@@ -428,7 +410,6 @@ export const dental = {
   buildPlan,
   chart,
   closeStage,
-  consent,
   implantMilestone,
   pendingJobs,
   quote,
@@ -477,7 +458,6 @@ export const psych = {
   assess: assessPsych,
   bookCounselling,
   bookTele,
-  caregiverConsent,
   chartWithdrawal,
   closeReadiness: closePsychReadiness,
   involuntaryHook,
@@ -591,7 +571,6 @@ export const nursing = {
 
 export const records = {
   addendumAppend,
-  consentsGet,
   dischargeIssue,
   dischargePending,
   docsAttach,
@@ -602,7 +581,6 @@ export const records = {
   merge,
   notesMask,
   recentlyUsedRx: recordsRecentlyUsedRx,
-  recordConsent,
   registersAppend,
   registersExport,
   registersVoid,
@@ -627,17 +605,4 @@ export const operations = {
   reportsList,
   reportsRun,
   seedPresets,
-} as const;
-
-export const staff = {
-  attendanceMark,
-  createRole,
-  deleteRole,
-  disableUser,
-  leaveDecide,
-  leaveRequest,
-  listRoles,
-  payrollExport,
-  rosterPlan,
-  upsertStaff,
 } as const;

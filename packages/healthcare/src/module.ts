@@ -21,7 +21,14 @@ export class Healthcare implements Module {
   }
 
   readonly $name = "healthcare";
-  readonly $dependencies: readonly string[] = [];
+  // ADR-1 (HEALTHCARE-SPEC D5 consent removal): all consent write paths are
+  // deleted. Shares print/WhatsApp/family-summary proceed without a grant
+  // check; minor/tele psych flows lose their hard gate and rely on a charting
+  // note instead; ABDM consent (grantee+purpose+range+expiry) has no home
+  // until a future gateway project reintroduces it as a new bounded context.
+  // Consent tables stay pushed but unwritten until the later drop (§13).
+  // D6 branch pointer: healthcare resolves org meaning through masters.
+  readonly $dependencies: readonly string[] = ["masters"];
   readonly $config: Required<HealthcareConfig>;
 
   constructor(config: HealthcareConfig) {
@@ -63,5 +70,4 @@ export class Healthcare implements Module {
   readonly rehab = wf.rehab;
   readonly residents = wf.residents;
   readonly services = wf.services;
-  readonly staff = wf.staff;
 }

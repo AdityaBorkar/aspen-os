@@ -1,4 +1,5 @@
 import { healthcareAppointment } from "#/db-schemas/appointments";
+import { toFhirHint } from "#/fhir/event-hint";
 import { APPOINTMENT_EVENTS } from "#/pubsub";
 import { RescheduleAppointmentSchema } from "#/schemas/appointments";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
@@ -74,6 +75,7 @@ export const rescheduleAppointment = Workflow.name("healthcare.appointments.resc
         actorId: ctx.actorId,
         at: new Date().toISOString(),
         branchId: row.branch_id,
+        data: { fhir: toFhirHint("Appointment", row.id) },
         id: row.id,
       });
     });

@@ -4,7 +4,7 @@ import { BookCounsellingSchema } from "#/schemas/psych";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchOpenEncounterStep } from "#/workflow-steps/fetch-encounter";
 import { fetchLatestRiskStep } from "#/workflow-steps/fetch-risk-flag";
-import { assertMinorConsent, assertRiskCleared } from "#/workflows/shared/psych-booking";
+import { assertRiskCleared } from "#/workflows/shared/psych-booking";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
@@ -34,17 +34,8 @@ export const bookCounselling = Workflow.name("healthcare.psych.bookCounselling")
       await assertRiskCleared(ctx.db, { branchId, patientId: parsed.patientId }, risk);
     });
 
-    // Minor gate: patients flagged minor need a signed caregiver consent
-    // before counselling starts.
-    if (parsed.patientIsMinor) {
-      await ctx.step.run("check-minor-consent", async () => {
-        await assertMinorConsent(
-          ctx.db,
-          { branchId, patientId: parsed.patientId },
-          "Minor patient needs a signed caregiver consent before counselling starts",
-        );
-      });
-    }
+    // D5: no minor consent gate. Guardian discussion, when relevant,
+    // belongs in the charting note carried below.
 
     const [row] = await ctx.step.run("insert-counselling-session", async () =>
       ctx.db

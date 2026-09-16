@@ -1,3 +1,8 @@
+// Deprecated surface (HEALTHCARE-SPEC D7): roster, attendance, leave,
+// payroll, and role management moved to hr-core / hr-attendance / hr-leave.
+// This file stays so the pushed tables keep their history until the later
+// drop; no new healthcare workflow may import these schemas. The operations
+// explorer-grant table lives here but is owned by operations, not HR.
 import { LeaveStatusSchema } from "#/schemas/enums";
 import { BranchIdSchema, DateStringSchema, PaginationSchema } from "#/schemas/utils";
 

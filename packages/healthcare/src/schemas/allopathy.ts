@@ -1,3 +1,4 @@
+import { ConditionVerificationStatusSchema } from "#/schemas/enums";
 import { BranchIdSchema } from "#/schemas/utils";
 
 import {
@@ -116,6 +117,10 @@ const CreateRegisterEntrySchema = object({
 const UpdateRegisterEntrySchema = partial(CreateRegisterEntrySchema);
 
 const CreateTriageEntrySchema = object({
+  // Canonical diastolic alias (HEALTHCARE-SPEC §6): the bp_dys column typo
+  // is never renamed in place; new callers may pass bpDia instead.
+  // Normalization prefers bpDys, then bpDia.
+  bpDia: optional(pipe(number(), minValue(0), maxValue(300))),
   bpDys: optional(pipe(number(), minValue(0), maxValue(300))),
   bpSys: optional(pipe(number(), minValue(0), maxValue(400))),
   branchId: BranchIdSchema,
@@ -156,6 +161,10 @@ const CreateProblemSchema = object({
   patientId: requiredText("Patient"),
   status: ProblemStatusSchema,
   system: picklist(["ICD11", "TM2", "NAMASTE"]),
+  // Canonical alias (HEALTHCARE-SPEC §§3.2, 5): seeds
+  // healthcare_condition.verification_status on dual-write; defaults to
+  // unconfirmed when absent.
+  verificationStatus: optional(ConditionVerificationStatusSchema),
 });
 
 const UpdateProblemSchema = object({

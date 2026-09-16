@@ -89,6 +89,9 @@ const CreateSeniorAlertSchema = object({
 
 const BookCounsellingSchema = object({
   branchId: BranchIdSchema,
+  // Deprecated by D5: no consent gate reads this. Retained as an optional
+  // charting note reference so older callers keep validating; the value lands
+  // in payload only and never blocks booking.
   consentId: optional(pipe(string(), minLength(1))),
   date: requiredText("Date"),
   durationMins: picklist([30, 45, 60]),
@@ -151,20 +154,6 @@ const CreateSideEffectCheckSchema = object({
   weightKg: optional(pipe(number(), minValue(0))),
 });
 
-const CreateCaregiverConsentSchema = object({
-  branchId: BranchIdSchema,
-  caregiverName: requiredText("Caregiver name"),
-  encounterId: optional(pipe(string(), minLength(1))),
-  idNumber: optional(pipe(string(), maxLength(100))),
-  patientId: requiredText("Patient"),
-  patientIsMinor: optional(boolean()),
-  relation: requiredText("Relation"),
-  scope: requiredText("Scope"),
-  status: picklist(["Pending", "Signed"]),
-});
-
-const UpdateCaregiverConsentSchema = partial(CreateCaregiverConsentSchema);
-
 const CreateInvoluntaryHookSchema = object({
   authority: optional(pipe(string(), maxLength(500))),
   branchId: BranchIdSchema,
@@ -198,7 +187,6 @@ const PsychFiltersSchema = object({
 export {
   BookCounsellingSchema,
   CloseReadinessSchema,
-  CreateCaregiverConsentSchema,
   CreateControlledPrescriptionSchema,
   CreateInvoluntaryHookSchema,
   CreatePsychAssessmentSchema,
@@ -212,13 +200,11 @@ export {
   PsychFiltersSchema,
   PsychScaleSchema,
   RecallListFiltersSchema,
-  UpdateCaregiverConsentSchema,
   UpdatePsychAssessmentSchema,
   UpdateRelapsePlanSchema,
 };
 
 export type {
-  CaregiverConsentInput as CreateCaregiverConsentInput,
   CloseReadinessInput,
   ControlledPrescriptionInput as CreateControlledPrescriptionInput,
   CounsellingBookInput as BookCounsellingInput,
@@ -232,7 +218,6 @@ export type {
   ScaleResultInput as CreateScaleResultInput,
   SeniorAlertInput as CreateSeniorAlertInput,
   SideEffectCheckInput as CreateSideEffectCheckInput,
-  UpdateCaregiverConsentInput,
   UpdatePsychAssessmentInput,
   UpdateRelapsePlanInput,
   WithdrawalChartInput as CreateWithdrawalChartInput,
@@ -250,8 +235,6 @@ type RelapsePlanInput = InferOutput<typeof CreateRelapsePlanSchema>;
 type UpdateRelapsePlanInput = InferOutput<typeof UpdateRelapsePlanSchema>;
 type ControlledPrescriptionInput = InferOutput<typeof CreateControlledPrescriptionSchema>;
 type SideEffectCheckInput = InferOutput<typeof CreateSideEffectCheckSchema>;
-type CaregiverConsentInput = InferOutput<typeof CreateCaregiverConsentSchema>;
-type UpdateCaregiverConsentInput = InferOutput<typeof UpdateCaregiverConsentSchema>;
 type InvoluntaryHookInput = InferOutput<typeof CreateInvoluntaryHookSchema>;
 type CloseReadinessInput = InferOutput<typeof CloseReadinessSchema>;
 type RecallListFiltersInput = InferOutput<typeof RecallListFiltersSchema>;

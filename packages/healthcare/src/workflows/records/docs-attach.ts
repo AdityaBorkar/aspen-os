@@ -1,4 +1,5 @@
 import { healthcareClinicalDocument } from "#/db-schemas/records";
+import { toFhirHint } from "#/fhir/event-hint";
 import { RECORDS_EVENTS } from "#/pubsub";
 import { AttachDocumentSchema } from "#/schemas/records";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
@@ -69,6 +70,7 @@ export const docsAttach = Workflow.name("healthcare.records.docs-attach")
         data: {
           dmsFileId: row.dms_file_id,
           encounterId: row.encounter_id ?? null,
+          fhir: toFhirHint("DocumentReference", row.id),
           patientId: row.patient_id,
         },
         id: row.id,

@@ -1,4 +1,5 @@
 import { healthcarePatient } from "#/db-schemas/patient";
+import { toFhirHint } from "#/fhir/event-hint";
 import { PATIENT_EVENTS } from "#/pubsub";
 import { CreatePatientSchema } from "#/schemas/patients";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
@@ -88,6 +89,7 @@ export const registerPatient = Workflow.name("healthcare.patients.register")
         actorId: ctx.actorId,
         at: new Date().toISOString(),
         branchId,
+        data: { fhir: toFhirHint("Patient", row.id) },
         id: row.id,
       });
     });

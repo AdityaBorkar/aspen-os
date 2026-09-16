@@ -116,17 +116,6 @@ const CreateQuoteSchema = object({
 
 const UpdateQuoteSchema = partial(CreateQuoteSchema);
 
-const CreateDentalConsentSchema = object({
-  branchId: BranchIdSchema,
-  encounterId: requiredText("Encounter"),
-  patientId: requiredText("Patient"),
-  procedureName: requiredText("Procedure"),
-  signedAt: optional(pipe(string(), minLength(1))),
-  status: picklist(["Pending", "Signed"]),
-});
-
-const UpdateDentalConsentSchema = partial(CreateDentalConsentSchema);
-
 const CreateChairSlotSchema = object({
   branchId: BranchIdSchema,
   bufferMin: optional(pipe(number(), minValue(0, "Buffer cannot be negative"))),
@@ -225,7 +214,6 @@ export {
   ImplantMilestoneSchema,
   CreateChairSlotSchema,
   CreateDentalChartSchema,
-  CreateDentalConsentSchema,
   CreateLabJobSchema,
   CreateQuoteSchema,
   CreateTreatmentPlanSchema,
@@ -239,7 +227,6 @@ export {
   TrackLabJobSchema,
   UpdateChairSlotSchema,
   UpdateDentalChartSchema,
-  UpdateDentalConsentSchema,
   UpdateLabJobSchema,
   UpdateQuoteSchema,
   UpdateTreatmentPlanSchema,
@@ -249,7 +236,6 @@ export type {
   ChairSlotInput as CreateChairSlotInput,
   ClosePlanStageInput,
   DentalChartInput as CreateDentalChartInput,
-  DentalConsentInput as CreateDentalConsentInput,
   DentalFiltersInput as DentalFilters,
   DentalPackageInput as CreateDentalPackageInput,
   ImplantMilestoneInput,
@@ -261,7 +247,6 @@ export type {
   TreatmentPlanInput as CreateTreatmentPlanInput,
   UpdateChairSlotInput,
   UpdateDentalChartInput,
-  UpdateDentalConsentInput,
   UpdateLabJobInput,
   UpdateQuoteInput,
   UpdateTreatmentPlanInput,
@@ -273,8 +258,6 @@ type TreatmentPlanInput = InferOutput<typeof CreateTreatmentPlanSchema>;
 type UpdateTreatmentPlanInput = InferOutput<typeof UpdateTreatmentPlanSchema>;
 type QuoteInput = InferOutput<typeof CreateQuoteSchema>;
 type UpdateQuoteInput = InferOutput<typeof UpdateQuoteSchema>;
-type DentalConsentInput = InferOutput<typeof CreateDentalConsentSchema>;
-type UpdateDentalConsentInput = InferOutput<typeof UpdateDentalConsentSchema>;
 type ChairSlotInput = InferOutput<typeof CreateChairSlotSchema>;
 type UpdateChairSlotInput = InferOutput<typeof UpdateChairSlotSchema>;
 type LabJobInput = InferOutput<typeof CreateLabJobSchema>;

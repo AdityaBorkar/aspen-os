@@ -1,4 +1,5 @@
 import { healthcareNursingTask } from "#/db-schemas/nursing";
+import { NURSING_ORDER_MIRROR_VERSION } from "#/fhir/event-hint";
 import { NURSING_EVENTS } from "#/pubsub";
 import { BranchIdSchema } from "#/schemas/utils";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
@@ -49,6 +50,7 @@ export const tasksFromOrders = Workflow.name("healthcare.nursing.tasks-from-orde
       patientId: string;
       status: string;
       title: string;
+      version: typeof NURSING_ORDER_MIRROR_VERSION;
     }[] = [];
     // oxlint-disable eslint/no-await-in-loop
     for (const order of orders) {
@@ -77,6 +79,7 @@ export const tasksFromOrders = Workflow.name("healthcare.nursing.tasks-from-orde
           patientId: row.patient_id,
           status: row.status,
           title: row.title,
+          version: NURSING_ORDER_MIRROR_VERSION,
         });
       }
     }

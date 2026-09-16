@@ -1,4 +1,6 @@
 import { healthcareEncounterDiagnosis, healthcarePrescription } from "#/db-schemas/encounters";
+import { healthcarePrescriptionLine } from "#/db-schemas/prescription-line";
+import { toFhirHint } from "#/fhir/event-hint";
 import { ENCOUNTER_EVENTS } from "#/pubsub";
 import { PrescribeSchema } from "#/schemas/encounters";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
@@ -50,21 +52,58 @@ export const prescribe = Workflow.name("healthcare.encounters.prescribe")
         `Prescription has unacknowledged warnings: ${missing.join(", ")}. Acknowledge each warning and retry.`,
       );
     }
+    // The prescription header id is the MedicationRequest group identifier
+    // (see toFhirMedicationRequestSet); generated up front so the event hint
+    // can reference it without changing the DTO.
+    const prescriptionId = crypto.randomUUID();
     const [row] = await ctx.step.run("insert-prescription", async () =>
-      ctx.db
-        .insert(healthcarePrescription)
-        .values({
-          branch_id: encounter.branch_id,
-          encounter_id: parsed.encounterId,
-          id: crypto.randomUUID(),
-          item_count: parsed.items.length,
-          patient_id: parsed.patientId,
-          payload: {
-            acknowledgedWarnings: parsed.acknowledgedWarnings ?? [],
-            items: parsed.items,
-          },
-        })
-        .returning(),
+      // Dual-write (HEALTHCARE-SPEC §§8, 13): prescription header first
+      // (item_count stays derived from items[]), one
+      // healthcare_prescription_line row per item second, inside one
+      // transaction. Header status/intent live in payload.fhir until a
+      // columnar promotion ships; payload.items stays a derived cache.
+      ctx.db.transaction(async (tx) => {
+        const [header] = await tx
+          .insert(healthcarePrescription)
+          .values({
+            branch_id: encounter.branch_id,
+            encounter_id: parsed.encounterId,
+            id: prescriptionId,
+            item_count: parsed.items.length,
+            patient_id: parsed.patientId,
+            payload: {
+              acknowledgedWarnings: parsed.acknowledgedWarnings ?? [],
+              fhir: { intent: parsed.intent ?? "order", status: parsed.status ?? "active" },
+              items: parsed.items,
+            },
+          })
+          .returning();
+        if (!header) {
+          throw new Error("Failed to save prescription.");
+        }
+        await tx.insert(healthcarePrescriptionLine).values(
+          parsed.items.map((item) => ({
+            branch_id: encounter.branch_id,
+            days: item.days,
+            dose: item.dose,
+            drug: item.drug,
+            encounter_id: parsed.encounterId,
+            frequency: item.frequency ?? null,
+            id: crypto.randomUUID(),
+            patient_id: parsed.patientId,
+            payload: {
+              fhir: { intent: parsed.intent ?? "order" },
+            },
+            performer: null,
+            prescription_id: prescriptionId,
+            requester: ctx.actorId ?? null,
+            status: parsed.status ?? "active",
+            substitution_allowed: true,
+            warnings: item.warnings ?? [],
+          })),
+        );
+        return [header];
+      }),
     );
     if (!row) {
       throw new Error("Failed to save prescription.");
@@ -81,6 +120,9 @@ export const prescribe = Workflow.name("healthcare.encounters.prescribe")
         actorId: ctx.actorId,
         at: new Date().toISOString(),
         branchId: encounter.branch_id,
+        // Hint references the prescription group; per-line MedicationRequest
+        // views share it as groupIdentifier. Event id stays the encounter.
+        data: { fhir: toFhirHint("MedicationRequest", prescriptionId) },
         id: parsed.encounterId,
       });
     });

@@ -2,15 +2,32 @@ import { calendarEvent, calendarReminder } from "#/db-schemas";
 import { EVENT_EVENTS, REMINDER_EVENTS } from "#/pubsub";
 import { toEventPayload, toReminderPayload } from "#/workflow-steps/payloads";
 
-import type { InferSchemaOutput, PubSubUnit } from "@aspen-os/platform/server";
+import type { InferSchemaOutput, LogUnit, PubSubUnit } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { nullish, object, optional, string } from "valibot";
 
 export interface HealthcareBridgeDeps {
   db: PostgresJsDatabase;
+  log?: LogUnit;
   pubsub: PubSubUnit;
 }
+
+// Healthcare ACL adoption (HEALTHCARE-SPEC §15): the event envelope and
+// `data.fhir` hint shape are owned by @aspen-os/healthcare
+// (`src/fhir/event-hint.ts` → `FhirHintSchema`), and the canonical status
+// maps by `src/fhir/registries.ts`. This package does not depend on
+// @aspen-os/healthcare (dependency decision: no new workspace dependency —
+// calendar builds without healthcare in the graph, and the ACL stays
+// importable without pulling workflow graphs), so the shapes below
+// duplicate the ACL values. On drift the ACL is the owner. This bridge
+// never branches on healthcare statuses — it reads only scheduling
+// fields — so there are no status literals to adopt here.
+const HealthcareFhirHintSchema = object({
+  id: string(),
+  mapsTo: optional(string()),
+  resourceType: string(),
+});
 
 const HealthcareEntityEventSchema = object({
   actorId: optional(string()),
@@ -19,6 +36,8 @@ const HealthcareEntityEventSchema = object({
   data: optional(
     object({
       appointmentId: optional(string()),
+      // Additive ACL hint (HEALTHCARE-SPEC §15); ignored by this bridge.
+      fhir: optional(HealthcareFhirHintSchema),
       patientId: nullish(string()),
       practitionerId: nullish(string()),
       reason: nullish(string()),
@@ -148,6 +167,8 @@ async function subscribeHealthcareTopic(
   await deps.pubsub.subscribe(topic, async (message) => {
     const result = await HealthcareEntityEventSchema["~standard"].validate(message.data);
     if (result.issues) {
+      // Silent-drop stays (no retry storms); the canonical reason is logged.
+      deps.log?.warn(`Ignoring malformed event on "${topic}".`, { topic });
       return;
     }
     await handler(result.value, deps);

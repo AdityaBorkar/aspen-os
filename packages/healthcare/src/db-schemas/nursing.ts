@@ -209,6 +209,7 @@ export const healthcareDaycareSitting = pgTable(
   "healthcare_daycare_sitting",
   {
     branch_id: text().notNull().default("main"),
+    // Write path removed; column retained for historical reads (do NOT drop yet).
     consent_id: text(),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     id: uuidv7().primaryKey(),

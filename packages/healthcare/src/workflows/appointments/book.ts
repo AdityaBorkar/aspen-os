@@ -1,4 +1,5 @@
 import { healthcareAppointment } from "#/db-schemas/appointments";
+import { toFhirHint } from "#/fhir/event-hint";
 import { APPOINTMENT_EVENTS } from "#/pubsub";
 import { BookAppointmentSchema } from "#/schemas/appointments";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
@@ -81,6 +82,7 @@ export const bookAppointment = Workflow.name("healthcare.appointments.book")
         branchId,
         data: {
           appointmentId: row.id,
+          fhir: toFhirHint("Appointment", row.id),
           patientId: row.patient_id,
           practitionerId: row.practitioner_id,
           slotStart: row.slot_start.toISOString(),

@@ -1,8 +1,10 @@
 import { healthcareInvoice, healthcarePackageBalance } from "#/db-schemas/billing";
+import { healthcareInvoiceLine } from "#/db-schemas/invoice-line";
 import { healthcareStayCharge } from "#/db-schemas/residents";
 import { BILLING_EVENTS } from "#/pubsub";
 import { CreateInvoiceSchema } from "#/schemas/billing";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { normalizeInvoiceFhirStatus } from "#/workflow-steps/canonical-dual-write";
 import { nextHealthcareSeries } from "#/workflow-steps/series";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -86,22 +88,48 @@ export const invoiceRaise = Workflow.name("healthcare.billing.invoice-raise")
     const discountPct = parsed.discountPct ?? 0;
     const gstPct = parsed.gstPct ?? 0;
     const [row] = await ctx.step.run("insert-invoice", async () =>
-      ctx.db
-        .insert(healthcareInvoice)
-        .values({
-          branch_id: branchId,
-          discount_pct: String(discountPct),
-          encounter_id: parsed.encounterId ?? null,
-          gst_pct: String(gstPct),
-          invoice_no: `INV-${String(no).padStart(6, "0")}`,
-          lines: parsed.lines,
-          paid: "0",
-          patient_id: parsed.patientId,
-          payer: parsed.payer ?? null,
-          status: "draft",
-          total: String(totals(parsed.lines, discountPct, gstPct)),
-        })
-        .returning(),
+      // Dual-write (HEALTHCARE-SPEC §§11, 13): invoice header first (lines
+      // jsonb stays a derived cache rebuilt from the same lines[] source;
+      // total stays derived via totals()), one healthcare_invoice_line row
+      // per line second, inside one transaction. The ledger status column
+      // is untouched; fhir_status is the INVOICE_STATUS_MAP projection.
+      ctx.db.transaction(async (tx) => {
+        const invoiceId = crypto.randomUUID();
+        const [header] = await tx
+          .insert(healthcareInvoice)
+          .values({
+            branch_id: branchId,
+            discount_pct: String(discountPct),
+            encounter_id: parsed.encounterId ?? null,
+            gst_pct: String(gstPct),
+            id: invoiceId,
+            invoice_no: `INV-${String(no).padStart(6, "0")}`,
+            lines: parsed.lines,
+            paid: "0",
+            patient_id: parsed.patientId,
+            payer: parsed.payer ?? null,
+            payload: { fhir: { fhir_status: normalizeInvoiceFhirStatus("draft") } },
+            status: "draft",
+            total: String(totals(parsed.lines, discountPct, gstPct)),
+          })
+          .returning();
+        if (!header) {
+          throw new Error("Failed to raise invoice.");
+        }
+        await tx.insert(healthcareInvoiceLine).values(
+          parsed.lines.map((line) => ({
+            branch_id: branchId,
+            invoice_id: invoiceId,
+            patient_id: parsed.patientId,
+            price: String(line.price),
+            qty: line.qty,
+            service_id: line.serviceId,
+            source: line.source,
+            status: "active",
+          })),
+        );
+        return [header];
+      }),
     );
     if (!row) {
       throw new Error("Failed to raise invoice.");
@@ -125,6 +153,7 @@ export const invoiceRaise = Workflow.name("healthcare.billing.invoice-raise")
     return {
       createdAt: row.created_at.toISOString(),
       discountPct: Number(row.discount_pct),
+      fhirStatus: normalizeInvoiceFhirStatus(row.status),
       gstPct: Number(row.gst_pct),
       id: row.id,
       invoiceNo: row.invoice_no,

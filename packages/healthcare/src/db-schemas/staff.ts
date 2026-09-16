@@ -1,3 +1,7 @@
+// Deprecated tables (HEALTHCARE-SPEC D7): roster, attendance, leave, and
+// role management moved to hr-core / hr-attendance / hr-leave. Rows stay
+// pushed for history until the later drop; no healthcare workflow writes
+// them anymore. healthcare_explorer_grant is owned by operations and stays.
 import type { JsonValue } from "@aspen-os/platform/server";
 import { uuidv7 } from "@aspen-os/platform/server";
 import { date, index, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";

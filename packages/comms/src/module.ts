@@ -116,6 +116,7 @@ export class Comms implements Module {
 
     this.#healthcareTopics = await registerHealthcareBridge({
       db: this.#db.db,
+      log: ctx.log,
       pubsub: this.#pubsub,
     });
   }

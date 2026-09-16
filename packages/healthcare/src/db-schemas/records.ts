@@ -6,8 +6,11 @@ export const healthcareClinicalDocument = pgTable(
   "healthcare_clinical_document",
   {
     branch_id: text().notNull().default("main"),
+    category_code: text(),
+    content_type: text(),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     dms_file_id: text().notNull(),
+    doc_status: text(),
     encounter_id: text(),
     file_type: text().notNull(),
     id: uuidv7().primaryKey(),

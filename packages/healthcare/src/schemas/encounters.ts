@@ -1,3 +1,9 @@
+import {
+  ConditionVerificationStatusSchema,
+  MedicationRequestIntentSchema,
+  MedicationRequestStatusSchema,
+  ObservationProfileHintSchema,
+} from "#/schemas/enums";
 import { BranchIdSchema } from "#/schemas/utils";
 
 import {
@@ -52,6 +58,10 @@ export const AddDiagnosisSchema = object({
   label: pipe(string(), minLength(1, "Diagnosis label is required")),
   patientId: pipe(string(), minLength(1, "Patient ID is required")),
   primary: optional(boolean(), false),
+  // Canonical alias (HEALTHCARE-SPEC §§3.2, 5): when present it wins over
+  // kind for the healthcare_condition.verification_status dual-write;
+  // otherwise kind normalizes (provisional/confirmed map 1:1).
+  verificationStatus: optional(ConditionVerificationStatusSchema),
 });
 
 export type AddDiagnosisInput = InferOutput<typeof AddDiagnosisSchema>;
@@ -69,8 +79,14 @@ export type PrescriptionItem = InferOutput<typeof PrescriptionItemSchema>;
 export const PrescribeSchema = object({
   acknowledgedWarnings: optional(array(string())),
   encounterId: EncounterId,
+  // Canonical header axis (HEALTHCARE-SPEC §§3.2, 8): prescription header
+  // status defaults to active and intent to order, stored in
+  // payload.fhir until a columnar promotion ships. Items[] stay the
+  // line source and fan out to healthcare_prescription_line rows.
+  intent: optional(MedicationRequestIntentSchema, "order"),
   items: array(PrescriptionItemSchema),
   patientId: pipe(string(), minLength(1, "Patient ID is required")),
+  status: optional(MedicationRequestStatusSchema, "active"),
 });
 
 export type PrescribeInput = InferOutput<typeof PrescribeSchema>;
@@ -98,6 +114,10 @@ export const RecordVitalsSchema = object({
   bp: optional(string()),
   encounterId: EncounterId,
   patientId: pipe(string(), minLength(1, "Patient ID is required")),
+  // Canonical profile hint (HEALTHCARE-SPEC §6): accepted for
+  // forward-compatibility and echoed to payload.fhir; the workflow fixes
+  // profile/source to encounter-intake for the observation rows.
+  profile: optional(ObservationProfileHintSchema),
   pulse: optional(pipe(number(), integer())),
   spo2: optional(pipe(number(), integer())),
   tempC: optional(number()),

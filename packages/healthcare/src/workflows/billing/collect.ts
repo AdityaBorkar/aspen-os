@@ -3,6 +3,7 @@ import { healthcareCounter } from "#/db-schemas/counter";
 import { BILLING_EVENTS } from "#/pubsub";
 import { CollectPaymentSchema } from "#/schemas/billing";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { normalizeInvoiceFhirStatus } from "#/workflow-steps/canonical-dual-write";
 import { fetchInvoiceStep } from "#/workflow-steps/fetch-invoice";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -75,7 +76,17 @@ export const collect = Workflow.name("healthcare.billing.collect")
     const [row] = await ctx.step.run("update-invoice", async () =>
       ctx.db
         .update(healthcareInvoice)
-        .set({ paid: String(paid), status, updated_at: new Date() })
+        .set({
+          paid: String(paid),
+          // Ledger paid/status carry money truth; payload.fhir only
+          // refreshes the fhir_status projection.
+          payload: {
+            ...invoice.payload,
+            fhir: { fhir_status: normalizeInvoiceFhirStatus(status) },
+          },
+          status,
+          updated_at: new Date(),
+        })
         .where(eq(healthcareInvoice.id, invoice.id))
         .returning(),
     );
@@ -109,6 +120,7 @@ export const collect = Workflow.name("healthcare.billing.collect")
       // oxlint-enable eslint/no-await-in-loop
     });
     return {
+      invoiceFhirStatus: normalizeInvoiceFhirStatus(row.status),
       invoiceStatus: row.status,
       paid,
       receiptIds: receipts.map((entry) => entry.id),

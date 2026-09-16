@@ -1,14 +1,30 @@
 import { commsMessage, commsNotification } from "#/db-schemas";
 import { MESSAGE_EVENTS, NOTIFICATION_EVENTS } from "#/pubsub";
 
-import type { InferSchemaOutput, PubSubUnit } from "@aspen-os/platform/server";
+import type { InferSchemaOutput, LogUnit, PubSubUnit } from "@aspen-os/platform/server";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { nullish, object, optional, string } from "valibot";
 
 export interface HealthcareBridgeDeps {
   db: PostgresJsDatabase;
+  log?: LogUnit;
   pubsub: PubSubUnit;
 }
+
+// Healthcare ACL adoption (HEALTHCARE-SPEC §15): the event envelope and
+// `data.fhir` hint shape are owned by @aspen-os/healthcare
+// (`src/fhir/event-hint.ts` → `FhirHintSchema`), and the canonical status
+// maps by `src/fhir/registries.ts`. This package does not depend on
+// @aspen-os/healthcare (dependency decision: no new workspace dependency —
+// comms builds without healthcare in the graph, and the ACL stays
+// importable without pulling workflow graphs), so the shapes below
+// duplicate the ACL values. On drift the ACL is the owner. Channel mapping
+// stays comms-owned; healthcare statuses are never re-mapped here.
+const HealthcareFhirHintSchema = object({
+  id: string(),
+  mapsTo: optional(string()),
+  resourceType: string(),
+});
 
 const HealthcareEntityEventSchema = object({
   actorId: optional(string()),
@@ -18,6 +34,8 @@ const HealthcareEntityEventSchema = object({
     object({
       channel: optional(string()),
       docId: nullish(string()),
+      // Additive ACL hint (HEALTHCARE-SPEC §15); ignored by this bridge.
+      fhir: optional(HealthcareFhirHintSchema),
       healthcareMessageId: optional(string()),
       healthcareShareId: optional(string()),
       patientId: nullish(string()),
@@ -116,6 +134,8 @@ async function subscribeHealthcareTopic(deps: HealthcareBridgeDeps, topic: strin
   await deps.pubsub.subscribe(topic, async (message) => {
     const result = await HealthcareEntityEventSchema["~standard"].validate(message.data);
     if (result.issues) {
+      // Silent-drop stays (no retry storms); the canonical reason is logged.
+      deps.log?.warn(`Ignoring malformed event on "${topic}".`, { topic });
       return;
     }
     await handleHealthcareMessage(result.value, deps);

@@ -101,6 +101,7 @@ export class Calendar implements Module {
     const deps = {
       audit: ctx.audit,
       db: this.#db.db,
+      log: ctx.log,
       pubsub: this.#pubsub,
     };
 

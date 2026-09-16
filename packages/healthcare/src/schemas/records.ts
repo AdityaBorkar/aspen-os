@@ -141,19 +141,6 @@ const SearchRecordsSchema = object({
   // oxlint-enable eslint/id-length
 });
 
-const ConsentsGetSchema = object({
-  branchId: BranchIdSchema,
-  patientId: Id,
-});
-
-const RecordConsentSchema = object({
-  branchId: BranchIdSchema,
-  encounterId: optional(string()),
-  grantedBy: optional(string()),
-  kind: pipe(string(), minLength(1, "Consent kind is required")),
-  patientId: Id,
-});
-
 const IssueDischargeSchema = object({
   branchId: BranchIdSchema,
   encounterId: Id,
@@ -190,8 +177,6 @@ type DischargePendingFilters = InferOutput<typeof DischargePendingFiltersSchema>
 type RecentRxQueryInput = InferOutput<typeof RecentRxQuerySchema>;
 type EncounterGetInput = InferOutput<typeof EncounterGetSchema>;
 type SearchRecordsInput = InferOutput<typeof SearchRecordsSchema>;
-type ConsentsGetInput = InferOutput<typeof ConsentsGetSchema>;
-type RecordConsentInput = InferOutput<typeof RecordConsentSchema>;
 type IssueDischargeInput = InferOutput<typeof IssueDischargeSchema>;
 type DischargeFilters = InferOutput<typeof DischargeFiltersSchema>;
 type RecordsIdInput = InferOutput<typeof RecordsIdSchema>;
@@ -202,7 +187,6 @@ export {
   AppendRegisterSchema,
   AttachDocumentSchema,
   CheckRetentionSchema,
-  ConsentsGetSchema,
   DischargeFiltersSchema,
   DischargePendingFiltersSchema,
   DocumentFiltersSchema,
@@ -211,7 +195,6 @@ export {
   IssueDischargeSchema,
   MergeRecordsSchema,
   RecentRxQuerySchema,
-  RecordConsentSchema,
   RecordsIdSchema,
   RegisterFiltersSchema,
   SearchRecordsSchema,
@@ -228,7 +211,6 @@ export type {
   AppendRegisterInput,
   AttachDocumentInput,
   CheckRetentionInput,
-  ConsentsGetInput,
   DischargeFilters,
   DischargePendingFilters,
   DocumentFilters,
@@ -237,7 +219,6 @@ export type {
   IssueDischargeInput,
   MergeRecordsInput,
   RecentRxQueryInput,
-  RecordConsentInput,
   RecordsIdInput,
   RegisterFilters,
   SearchRecordsInput,

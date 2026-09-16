@@ -78,7 +78,6 @@ export {
   BookVideoSchema,
   CallNextSchema,
   CancelAppointmentSchema,
-  CaptureConsentSchema,
   CertificateFiltersSchema,
   ComputeSlotsSchema,
   CreateAppointmentSchema,
@@ -100,7 +99,6 @@ export type {
   BookVideoInput,
   CallNextInput,
   CancelAppointmentInput,
-  CaptureConsentInput,
   CertificateFiltersInput,
   ComputeSlotsInput,
   CreateAppointmentInput,
@@ -220,7 +218,6 @@ export {
   ClosePlanStageSchema,
   CreateChairSlotSchema,
   CreateDentalChartSchema,
-  CreateDentalConsentSchema,
   CreateLabJobSchema,
   CreateQuoteSchema,
   CreateTreatmentPlanSchema,
@@ -236,7 +233,6 @@ export {
   TrackLabJobSchema,
   UpdateChairSlotSchema,
   UpdateDentalChartSchema,
-  UpdateDentalConsentSchema,
   UpdateLabJobSchema,
   UpdateQuoteSchema,
   UpdateTreatmentPlanSchema,
@@ -245,7 +241,6 @@ export type {
   ClosePlanStageInput,
   CreateChairSlotInput,
   CreateDentalChartInput,
-  CreateDentalConsentInput,
   CreateDentalPackageInput,
   CreateLabJobInput,
   CreateQuoteInput,
@@ -257,7 +252,6 @@ export type {
   TrackLabJobInput,
   UpdateChairSlotInput,
   UpdateDentalChartInput,
-  UpdateDentalConsentInput,
   UpdateLabJobInput,
   UpdateQuoteInput,
   UpdateTreatmentPlanInput,
@@ -273,6 +267,8 @@ export {
   BATCH_STATUS,
   CertificateStatusSchema,
   CERTIFICATE_STATUS,
+  ConditionClinicalStatusSchema,
+  ConditionVerificationStatusSchema,
   ConsentStatusSchema,
   CONSENT_STATUS,
   CounsellingStatusSchema,
@@ -290,6 +286,7 @@ export {
   HandoverStatusSchema,
   HANDOVER_STATUS,
   InvoiceStatusSchema,
+  InvoiceStatusAliasSchema,
   INVOICE_STATUS,
   LabJobStatusSchema,
   LAB_JOB_STATUS,
@@ -299,6 +296,9 @@ export {
   LEAVE_STATUS,
   MessageStatusSchema,
   MESSAGE_STATUS,
+  MedicationRequestIntentSchema,
+  MedicationRequestStatusSchema,
+  ObservationProfileHintSchema,
   OrderKindSchema,
   ORDER_KIND,
   OrderStatusSchema,
@@ -493,7 +493,6 @@ export type {
 } from "#/schemas/operations";
 export {
   ApproveMergeSchema,
-  ArchiveConsentSchema,
   CreateAllergySchema,
   CreateFamilyLinkSchema,
   CreateFlagSchema,
@@ -508,7 +507,6 @@ export {
 } from "#/schemas/patients";
 export type {
   ApproveMergeInput,
-  ArchiveConsentInput,
   CreateAllergyInput,
   CreateFamilyLinkInput,
   CreateFlagInput,
@@ -554,7 +552,6 @@ export type {
 export {
   BookCounsellingSchema,
   CloseReadinessSchema,
-  CreateCaregiverConsentSchema,
   CreateControlledPrescriptionSchema,
   CreateInvoluntaryHookSchema,
   CreatePsychAssessmentSchema,
@@ -568,14 +565,12 @@ export {
   PsychFiltersSchema,
   PsychScaleSchema,
   RecallListFiltersSchema,
-  UpdateCaregiverConsentSchema,
   UpdatePsychAssessmentSchema,
   UpdateRelapsePlanSchema,
 } from "#/schemas/psych";
 export type {
   BookCounsellingInput,
   CloseReadinessInput,
-  CreateCaregiverConsentInput,
   CreateControlledPrescriptionInput,
   CreateInvoluntaryHookInput,
   CreatePsychAssessmentInput,
@@ -587,7 +582,6 @@ export type {
   CreateScaleResultInput,
   CreateSeniorAlertInput,
   CreateSideEffectCheckInput,
-  UpdateCaregiverConsentInput,
   UpdatePsychAssessmentInput,
   UpdateRelapsePlanInput,
   CreateWithdrawalChartInput,
@@ -598,7 +592,6 @@ export {
   AppendRegisterSchema,
   AttachDocumentSchema,
   CheckRetentionSchema,
-  ConsentsGetSchema,
   DischargeFiltersSchema,
   DischargePendingFiltersSchema,
   DocumentFiltersSchema,
@@ -607,7 +600,6 @@ export {
   IssueDischargeSchema,
   MergeRecordsSchema,
   RecentRxQuerySchema,
-  RecordConsentSchema,
   RecordsIdSchema,
   RegisterFiltersSchema,
   SearchRecordsSchema,
@@ -623,7 +615,6 @@ export type {
   AppendRegisterInput,
   AttachDocumentInput,
   CheckRetentionInput,
-  ConsentsGetInput,
   DischargeFilters,
   DischargePendingFilters,
   DocumentFilters,
@@ -632,7 +623,6 @@ export type {
   IssueDischargeInput,
   MergeRecordsInput,
   RecentRxQueryInput,
-  RecordConsentInput,
   RecordsIdInput,
   RegisterFilters,
   SearchRecordsInput,
@@ -982,3 +972,12 @@ export type {
   UpdatePurchaseOrderInput,
   UpdateStockTransferInput,
 } from "#/schemas/pharmacy";
+// Event enrichment contracts owned by the ACL (HEALTHCARE-SPEC §15).
+// Defined in #/fhir/event-hint; re-exported here so bridge consumers and
+// package-root imports resolve them through the schemas surface.
+export {
+  FhirHintSchema,
+  NURSING_ORDER_MIRROR_VERSION,
+  NursingOrderMirrorSchema,
+} from "#/fhir/event-hint";
+export type { FhirHintInput, NursingOrderMirrorInput } from "#/fhir/event-hint";

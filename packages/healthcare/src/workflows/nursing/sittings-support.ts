@@ -14,9 +14,8 @@ export const sittingsSupport = Workflow.name("healthcare.nursing.sittings-suppor
   .handler(async ({ input }, ctx) => {
     const parsed = parse(RecordSittingSchema, input);
     const branchId = parsed.branchId ?? "main";
-    if (!parsed.consentId) {
-      throw new Error("Daycare sitting needs consent first; capture consent and retry");
-    }
+    // D5: consent gate deleted with the consent stores. consent_id is legacy
+    // history only; new rows always write null.
     if (parsed.phase === "post") {
       const [pre] = await ctx.step.run("load-pre-sitting", async () =>
         ctx.db
@@ -41,7 +40,7 @@ export const sittingsSupport = Workflow.name("healthcare.nursing.sittings-suppor
         .insert(healthcareDaycareSitting)
         .values({
           branch_id: branchId,
-          consent_id: parsed.consentId,
+          consent_id: null,
           note: parsed.note ?? null,
           patient_id: parsed.patientId,
           payload: {

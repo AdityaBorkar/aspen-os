@@ -1,4 +1,5 @@
 import { healthcareLabOrder, healthcareLabTest } from "#/db-schemas/diagnostics";
+import { toFhirHint } from "#/fhir/event-hint";
 import { DIAGNOSTICS_EVENTS } from "#/pubsub";
 import { OrderLabsSchema } from "#/schemas/diagnostics";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
@@ -94,6 +95,7 @@ export const orderLabs = Workflow.name("healthcare.diagnostics.order-labs")
         actorId: ctx.actorId,
         at: new Date().toISOString(),
         branchId,
+        data: { fhir: toFhirHint("ServiceRequest", created.id) },
         id: created.id,
       });
     });

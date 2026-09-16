@@ -2,6 +2,7 @@ import { healthcareInvoice } from "#/db-schemas/billing";
 import { BILLING_EVENTS } from "#/pubsub";
 import { FinalizeInvoiceSchema } from "#/schemas/billing";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { normalizeInvoiceFhirStatus } from "#/workflow-steps/canonical-dual-write";
 import { fetchInvoiceStep } from "#/workflow-steps/fetch-invoice";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -22,7 +23,17 @@ export const invoiceFinalize = Workflow.name("healthcare.billing.invoice-finaliz
     const [row] = await ctx.step.run("finalize-invoice", async () =>
       ctx.db
         .update(healthcareInvoice)
-        .set({ status: "final", updated_at: new Date() })
+        .set({
+          // The ledger status column carries the transition; payload.fhir
+          // only refreshes the fhir_status projection (raise is its sole
+          // other writer, so wholesale replace drops nothing).
+          payload: {
+            ...invoice.payload,
+            fhir: { fhir_status: normalizeInvoiceFhirStatus("final") },
+          },
+          status: "final",
+          updated_at: new Date(),
+        })
         .where(eq(healthcareInvoice.id, invoice.id))
         .returning(),
     );
@@ -45,5 +56,9 @@ export const invoiceFinalize = Workflow.name("healthcare.billing.invoice-finaliz
         id: row.id,
       });
     });
-    return { invoiceId: row.id, status: row.status };
+    return {
+      fhirStatus: normalizeInvoiceFhirStatus(row.status),
+      invoiceId: row.id,
+      status: row.status,
+    };
   });

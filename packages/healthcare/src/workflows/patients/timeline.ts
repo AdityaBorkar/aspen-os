@@ -1,7 +1,6 @@
 import {
   healthcareAllergy,
   healthcareCommunication,
-  healthcareConsent,
   healthcareFamilyLink,
   healthcareFlag,
   healthcareMergeRequest,
@@ -24,56 +23,46 @@ export const patientTimeline = Workflow.name("healthcare.patients.timeline")
     const patient = await ctx.step.run(fetchPatientStep, { id: parsed.id });
     const patientId = patient.id;
 
-    const [links, allergies, consents, flags, communications, recalls, slips, merges] =
-      await Promise.all([
-        ctx.step.run("load-links", async () =>
-          ctx.db
-            .select()
-            .from(healthcareFamilyLink)
-            .where(eq(healthcareFamilyLink.patient_id, patientId)),
-        ),
-        ctx.step.run("load-allergies", async () =>
-          ctx.db
-            .select()
-            .from(healthcareAllergy)
-            .where(eq(healthcareAllergy.patient_id, patientId)),
-        ),
-        ctx.step.run("load-consents", async () =>
-          ctx.db
-            .select()
-            .from(healthcareConsent)
-            .where(eq(healthcareConsent.patient_id, patientId)),
-        ),
-        ctx.step.run("load-flags", async () =>
-          ctx.db.select().from(healthcareFlag).where(eq(healthcareFlag.patient_id, patientId)),
-        ),
-        ctx.step.run("load-communications", async () =>
-          ctx.db
-            .select()
-            .from(healthcareCommunication)
-            .where(eq(healthcareCommunication.patient_id, patientId)),
-        ),
-        ctx.step.run("load-recalls", async () =>
-          ctx.db.select().from(healthcareRecall).where(eq(healthcareRecall.patient_id, patientId)),
-        ),
-        ctx.step.run("load-slips", async () =>
-          ctx.db
-            .select()
-            .from(healthcareShareSlip)
-            .where(eq(healthcareShareSlip.patient_id, patientId)),
-        ),
-        ctx.step.run("load-merges", async () =>
-          ctx.db
-            .select()
-            .from(healthcareMergeRequest)
-            .where(
-              or(
-                eq(healthcareMergeRequest.primary_id, patientId),
-                eq(healthcareMergeRequest.duplicate_id, patientId),
-              ),
+    const [links, allergies, flags, communications, recalls, slips, merges] = await Promise.all([
+      ctx.step.run("load-links", async () =>
+        ctx.db
+          .select()
+          .from(healthcareFamilyLink)
+          .where(eq(healthcareFamilyLink.patient_id, patientId)),
+      ),
+      ctx.step.run("load-allergies", async () =>
+        ctx.db.select().from(healthcareAllergy).where(eq(healthcareAllergy.patient_id, patientId)),
+      ),
+      ctx.step.run("load-flags", async () =>
+        ctx.db.select().from(healthcareFlag).where(eq(healthcareFlag.patient_id, patientId)),
+      ),
+      ctx.step.run("load-communications", async () =>
+        ctx.db
+          .select()
+          .from(healthcareCommunication)
+          .where(eq(healthcareCommunication.patient_id, patientId)),
+      ),
+      ctx.step.run("load-recalls", async () =>
+        ctx.db.select().from(healthcareRecall).where(eq(healthcareRecall.patient_id, patientId)),
+      ),
+      ctx.step.run("load-slips", async () =>
+        ctx.db
+          .select()
+          .from(healthcareShareSlip)
+          .where(eq(healthcareShareSlip.patient_id, patientId)),
+      ),
+      ctx.step.run("load-merges", async () =>
+        ctx.db
+          .select()
+          .from(healthcareMergeRequest)
+          .where(
+            or(
+              eq(healthcareMergeRequest.primary_id, patientId),
+              eq(healthcareMergeRequest.duplicate_id, patientId),
             ),
-        ),
-      ]);
+          ),
+      ),
+    ]);
 
     return {
       allergies: allergies.map((row) => ({
@@ -88,12 +77,7 @@ export const patientTimeline = Workflow.name("healthcare.patients.timeline")
         id: row.id,
         message: row.message,
       })),
-      consents: consents.map((row) => ({
-        archivedAt: row.archived_at?.toISOString() ?? null,
-        granted: row.granted,
-        id: row.id,
-        type: row.type,
-      })),
+      // D5: consent history deleted with the consent stores.
       // Hook for the encounters/appointments slice: encounter rows live outside
       // the patients group, so consumers join them by patient id separately.
       encounterIds: [],

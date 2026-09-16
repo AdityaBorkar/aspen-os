@@ -1,9 +1,4 @@
-import {
-  healthcareAllergy,
-  healthcareConsent,
-  healthcareFamilyLink,
-  healthcareFlag,
-} from "#/db-schemas/patient";
+import { healthcareAllergy, healthcareFamilyLink, healthcareFlag } from "#/db-schemas/patient";
 import { PatientIdSchema } from "#/schemas/patients";
 import { fetchPatientStep, toPatientDto } from "#/workflow-steps/fetch-patient";
 
@@ -19,7 +14,7 @@ export const getPatient = Workflow.name("healthcare.patients.get")
     const parsed = parse(PatientIdSchema, input);
     const patient = await ctx.step.run(fetchPatientStep, { id: parsed.id });
 
-    const [links, allergies, consents, flags] = await Promise.all([
+    const [links, allergies, flags] = await Promise.all([
       ctx.step.run("load-links", async () =>
         ctx.db
           .select()
@@ -28,9 +23,6 @@ export const getPatient = Workflow.name("healthcare.patients.get")
       ),
       ctx.step.run("load-allergies", async () =>
         ctx.db.select().from(healthcareAllergy).where(eq(healthcareAllergy.patient_id, patient.id)),
-      ),
-      ctx.step.run("load-consents", async () =>
-        ctx.db.select().from(healthcareConsent).where(eq(healthcareConsent.patient_id, patient.id)),
       ),
       ctx.step.run("load-flags", async () =>
         ctx.db.select().from(healthcareFlag).where(eq(healthcareFlag.patient_id, patient.id)),
@@ -44,14 +36,6 @@ export const getPatient = Workflow.name("healthcare.patients.get")
         note: row.note,
         patientId: row.patient_id,
         severity: row.severity,
-      })),
-      consents: consents.map((row) => ({
-        archivedAt: row.archived_at?.toISOString() ?? null,
-        granted: row.granted,
-        id: row.id,
-        note: row.note,
-        patientId: row.patient_id,
-        type: row.type,
       })),
       flags: flags.map((row) => ({
         id: row.id,

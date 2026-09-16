@@ -7,10 +7,19 @@ import type {
   healthcareVitals,
 } from "#/db-schemas/encounters";
 import { healthcareEncounter } from "#/db-schemas/encounters";
+import {
+  diagnosisVerificationFromKind,
+  normalizeEncounterFhirStatus,
+} from "#/workflow-steps/canonical-dual-write";
 
 import { WorkflowStep } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-import { object, string, is } from "valibot";
+import { object, optional, string, is } from "valibot";
+
+const PrescriptionFhirSchema = object({
+  intent: optional(string()),
+  status: optional(string()),
+});
 
 export const fetchEncounterStep = WorkflowStep.name("healthcare-fetch-encounter")
   .input(object({ id: string() }))
@@ -30,7 +39,10 @@ const OpenEncounterInputSchema = object({ id: string(), patientId: string() });
 
 /**
  * Specialty writes require a parent encounter that is Open and belongs to the
- * same patient. Signed encounters are immutable; only addenda may follow.
+ * same patient. Signed (canonical finished) encounters are immutable; only
+ * addenda may follow. The in-progress literal is accepted as the canonical
+ * alias of open so unified Condition/Observation writers stay frozen after
+ * sign regardless of which axis a caller speaks.
  */
 export const fetchOpenEncounterStep = WorkflowStep.name("healthcare-fetch-open-encounter")
   .input(OpenEncounterInputSchema)
@@ -43,7 +55,7 @@ export const fetchOpenEncounterStep = WorkflowStep.name("healthcare-fetch-open-e
     if (!row) {
       throw new Error(`Encounter "${input.id}" not found.`);
     }
-    if (row.status !== "open") {
+    if (normalizeEncounterFhirStatus(row.status) !== "in-progress") {
       throw new Error(`Encounter "${input.id}" is signed and immutable; add an addendum instead.`);
     }
     if (row.patient_id !== input.patientId) {
@@ -58,6 +70,7 @@ export interface EncounterDto {
   appointmentId: string | null;
   branchId: string;
   createdAt: string;
+  fhirStatus: string;
   id: string;
   patientId: string;
   specialty: string;
@@ -71,6 +84,7 @@ export function toEncounterDto(row: typeof healthcareEncounter.$inferSelect): En
     appointmentId: row.appointment_id,
     branchId: row.branch_id,
     createdAt: row.created_at.toISOString(),
+    fhirStatus: normalizeEncounterFhirStatus(row.status),
     id: row.id,
     patientId: row.patient_id,
     specialty: row.specialty,
@@ -82,6 +96,7 @@ export function toEncounterDto(row: typeof healthcareEncounter.$inferSelect): En
 
 export interface DiagnosisDto {
   branchId: string;
+  clinicalStatus: string;
   code: string;
   createdAt: string;
   encounterId: string;
@@ -90,6 +105,7 @@ export interface DiagnosisDto {
   label: string;
   patientId: string;
   primary: boolean;
+  verificationStatus: string;
 }
 
 export function toDiagnosisDto(
@@ -97,6 +113,7 @@ export function toDiagnosisDto(
 ): DiagnosisDto {
   return {
     branchId: row.branch_id,
+    clinicalStatus: "active",
     code: row.code,
     createdAt: row.created_at.toISOString(),
     encounterId: row.encounter_id,
@@ -105,6 +122,7 @@ export function toDiagnosisDto(
     label: row.label,
     patientId: row.patient_id,
     primary: row.is_primary,
+    verificationStatus: diagnosisVerificationFromKind(row.kind, undefined),
   };
 }
 
@@ -113,21 +131,27 @@ export interface PrescriptionDto {
   createdAt: string;
   encounterId: string;
   id: string;
+  intent: string;
   items: unknown[];
   patientId: string;
+  status: string;
 }
 
 export function toPrescriptionDto(
   row: typeof healthcarePrescription.$inferSelect,
 ): PrescriptionDto {
   const { items } = row.payload;
+  const { fhir } = row.payload;
+  const header = is(PrescriptionFhirSchema, fhir) ? fhir : null;
   return {
     branchId: row.branch_id,
     createdAt: row.created_at.toISOString(),
     encounterId: row.encounter_id,
     id: row.id,
+    intent: header?.intent ?? "order",
     items: Array.isArray(items) ? items : [],
     patientId: row.patient_id,
+    status: header?.status ?? "active",
   };
 }
 
