@@ -1,6 +1,6 @@
 import { leaveApplication } from "#/db-schemas";
 import { CreateLeaveApplicationSchema } from "#/types";
-import { assertUpdated, fetchLeaveTypeById } from "#/workflows/fetch";
+import { assertUpdated, fetchLeaveType } from "#/workflows/fetch";
 import { checkLeaveBalance, checkLeaveBlockList, toDays } from "#/workflows/leave-accounts";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -10,11 +10,11 @@ const InputSchema = object({
   input: CreateLeaveApplicationSchema,
 });
 
-export const createLeaveApplication = Workflow.name("hr.leave.create-leave-application")
+export const createLeaveApplication = Workflow.name("hr.leave.application.create")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
     const [leaveTypeRecord] = await Promise.all([
-      fetchLeaveTypeById(ctx.db, input.leaveType),
+      fetchLeaveType(ctx.db, input.leaveType),
       checkLeaveBlockList(ctx.db, { fromDate: input.fromDate, toDate: input.toDate }),
     ]);
 

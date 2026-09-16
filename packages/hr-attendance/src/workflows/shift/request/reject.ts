@@ -1,5 +1,5 @@
 import { shiftRequest } from "#/db-schemas";
-import { assertUpdated, fetchShiftRequestById, requireStatus } from "#/workflows/utils";
+import { assertUpdated, fetchShiftRequest, requireStatus } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -11,12 +11,12 @@ const InputSchema = object({
   rejectionReason: pipe(string(), minLength(1, "rejectionReason is required")),
 });
 
-export const rejectShiftRequest = Workflow.name("hr.shift.reject-shift-request")
+export const rejectShiftRequest = Workflow.name("hr.shift.request.reject")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, rejectedBy, rejectionReason } = input;
 
-    const request = await fetchShiftRequestById(ctx.db, id);
+    const request = await fetchShiftRequest(ctx.db, id);
     requireStatus(request, "pending", `Shift request "${id}"`);
 
     const [updated] = await ctx.db

@@ -8,7 +8,7 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const deleteCheckin = Workflow.name("hr.attendance.delete-checkin")
+export const deleteCheckin = Workflow.name("hr.attendance.checkin.delete")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id } = input;

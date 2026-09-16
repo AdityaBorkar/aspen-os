@@ -10,7 +10,7 @@ const InputSchema = object({
   input: CreateLeaveAdjustmentSchema,
 });
 
-export const createLeaveAdjustment = Workflow.name("hr.leave.create-leave-adjustment")
+export const createLeaveAdjustment = Workflow.name("hr.leave.adjustment.create")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
     const created = await ctx.db.transaction(async (tx) => {

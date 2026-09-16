@@ -1,5 +1,5 @@
 import { leaveApplication } from "#/db-schemas";
-import { assertUpdated, fetchLeaveApplicationById, requireStatus } from "#/workflows/fetch";
+import { assertUpdated, fetchLeaveApplication, requireStatus } from "#/workflows/fetch";
 import { adjustAllocationUsage, insertLeaveLedgerEntry, toDays } from "#/workflows/leave-accounts";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -10,12 +10,12 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const cancelLeaveApplication = Workflow.name("hr.leave.cancel-leave-application")
+export const cancelLeaveApplication = Workflow.name("hr.leave.application.cancel")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id } = input;
 
-    const application = await fetchLeaveApplicationById(ctx.db, id);
+    const application = await fetchLeaveApplication(ctx.db, id);
     requireStatus(application, ["draft", "pending", "approved"], `Leave application "${id}"`);
 
     const updated = await ctx.db.transaction(async (tx) => {

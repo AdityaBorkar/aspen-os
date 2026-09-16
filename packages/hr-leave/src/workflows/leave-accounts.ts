@@ -1,6 +1,6 @@
 import { leaveAllocation, leaveBlockList, leaveLedgerEntry } from "#/db-schemas";
 import type { Db } from "#/workflows/db";
-import { fetchLeaveAllocationById, fetchLeaveTypeById } from "#/workflows/fetch";
+import { fetchLeaveAllocation, fetchLeaveType } from "#/workflows/fetch";
 
 import { and, eq, sql } from "drizzle-orm";
 
@@ -101,7 +101,7 @@ export async function checkLeaveBalance(
           eq(leaveAllocation.status, "active"),
         ),
       ),
-    fetchLeaveTypeById(db, leaveTypeName),
+    fetchLeaveType(db, leaveTypeName),
   ]);
 
   const [allocation] = allocations;
@@ -179,7 +179,7 @@ export async function adjustAllocationUsage(
   allocationId: string,
   adjustment: { deltaDays: number; floorAtZero: boolean },
 ) {
-  const allocation = await fetchLeaveAllocationById(db, allocationId);
+  const allocation = await fetchLeaveAllocation(db, allocationId);
   const next = toDays(allocation.used_days, "usedDays") + adjustment.deltaDays;
   return updateLeaveAllocation(db, allocationId, {
     usedDays: (adjustment.floorAtZero ? Math.max(0, next) : next).toString(),

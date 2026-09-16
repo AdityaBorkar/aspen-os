@@ -1,5 +1,5 @@
 import { leaveEncashment } from "#/db-schemas";
-import { assertUpdated, fetchLeaveEncashmentById, requireStatus } from "#/workflows/fetch";
+import { assertUpdated, fetchLeaveEncashment, requireStatus } from "#/workflows/fetch";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -10,12 +10,12 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const approveLeaveEncashment = Workflow.name("hr.leave.approve-leave-encashment")
+export const approveLeaveEncashment = Workflow.name("hr.leave.encashment.approve")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, approvedBy } = input;
 
-    const encashment = await fetchLeaveEncashmentById(ctx.db, id);
+    const encashment = await fetchLeaveEncashment(ctx.db, id);
     requireStatus(encashment, "pending", `Leave encashment "${id}"`);
 
     const [updated] = await ctx.db

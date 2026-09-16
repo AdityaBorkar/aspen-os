@@ -8,7 +8,7 @@ const InputSchema = object({
   input: CreateLeaveTypeSchema,
 });
 
-export const createLeaveType = Workflow.name("hr.leave.create-leave-type")
+export const createLeaveType = Workflow.name("hr.leave.type.create")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = input;

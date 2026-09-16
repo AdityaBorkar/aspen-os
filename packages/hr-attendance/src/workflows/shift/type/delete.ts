@@ -8,7 +8,7 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const deleteShiftType = Workflow.name("hr.shift.delete-shift-type")
+export const deleteShiftType = Workflow.name("hr.shift.type.delete")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id } = input;

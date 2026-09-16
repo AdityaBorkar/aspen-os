@@ -1,6 +1,6 @@
 import { leavePolicyDetail } from "#/db-schemas";
 import { CreateLeavePolicyDetailSchema } from "#/types";
-import { fetchLeavePolicyById, fetchLeaveTypeById } from "#/workflows/utils";
+import { fetchLeavePolicy, fetchLeaveType } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
@@ -9,16 +9,16 @@ const InputSchema = object({
   input: CreateLeavePolicyDetailSchema,
 });
 
-export const createLeavePolicyDetail = Workflow.name("hr.leave.create-leave-policy-detail")
+export const createLeavePolicyDetail = Workflow.name("hr.leave.policy-detail.create")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = input;
 
     // Verify leave policy exists
-    await fetchLeavePolicyById(ctx.db, parsed.leavePolicyId);
+    await fetchLeavePolicy(ctx.db, parsed.leavePolicyId);
 
     // Verify leave type exists
-    await fetchLeaveTypeById(ctx.db, parsed.leaveType);
+    await fetchLeaveType(ctx.db, parsed.leaveType);
 
     const [result] = await ctx.db
       .insert(leavePolicyDetail)

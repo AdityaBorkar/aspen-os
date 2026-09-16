@@ -53,7 +53,7 @@ export async function ensureNoDuplicateAttendance(
   }
 }
 
-export function fetchAttendanceRequestById(db: Db, id: string) {
+export function fetchAttendanceRequest(db: Db, id: string) {
   return fetchById(
     db.select().from(attendanceRequest).where(eq(attendanceRequest.id, id)).limit(1),
     "Attendance request",
@@ -63,7 +63,7 @@ export function fetchAttendanceRequestById(db: Db, id: string) {
 
 // ─── Overtime lookups ────────────────────────────────────────────────────────
 
-export function fetchOvertimeTypeById(db: Db, id: string) {
+export function fetchOvertimeType(db: Db, id: string) {
   return fetchById(
     db.select().from(overtimeType).where(eq(overtimeType.id, id)).limit(1),
     "Overtime type",
@@ -71,7 +71,7 @@ export function fetchOvertimeTypeById(db: Db, id: string) {
   );
 }
 
-export function fetchOvertimeSlipById(db: Db, id: string) {
+export function fetchOvertimeSlip(db: Db, id: string) {
   return fetchById(
     db.select().from(overtimeSlip).where(eq(overtimeSlip.id, id)).limit(1),
     "Overtime slip",
@@ -81,7 +81,7 @@ export function fetchOvertimeSlipById(db: Db, id: string) {
 
 // ─── Shift lookups ───────────────────────────────────────────────────────────
 
-export function fetchShiftTypeById(db: Db, id: string) {
+export function fetchShiftType(db: Db, id: string) {
   return fetchById(
     db.select().from(shiftType).where(eq(shiftType.id, id)).limit(1),
     "Shift type",
@@ -89,7 +89,7 @@ export function fetchShiftTypeById(db: Db, id: string) {
   );
 }
 
-export function fetchShiftRequestById(db: Db, id: string) {
+export function fetchShiftRequest(db: Db, id: string) {
   return fetchById(
     db.select().from(shiftRequest).where(eq(shiftRequest.id, id)).limit(1),
     "Shift request",
@@ -97,7 +97,7 @@ export function fetchShiftRequestById(db: Db, id: string) {
   );
 }
 
-export function fetchShiftScheduleById(db: Db, id: string) {
+export function fetchShiftSchedule(db: Db, id: string) {
   return fetchById(
     db.select().from(shiftSchedule).where(eq(shiftSchedule.id, id)).limit(1),
     "Shift schedule",

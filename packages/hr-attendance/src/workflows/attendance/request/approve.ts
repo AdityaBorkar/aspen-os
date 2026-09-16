@@ -1,5 +1,5 @@
 import { attendanceRequest } from "#/db-schemas";
-import { assertUpdated, fetchAttendanceRequestById, requireStatus } from "#/workflows/fetch";
+import { assertUpdated, fetchAttendanceRequest, requireStatus } from "#/workflows/fetch";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -10,12 +10,12 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const approveAttendanceRequest = Workflow.name("hr.attendance.approve-attendance-request")
+export const approveAttendanceRequest = Workflow.name("hr.attendance.request.approve")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, approvedBy } = input;
 
-    const request = await fetchAttendanceRequestById(ctx.db, id);
+    const request = await fetchAttendanceRequest(ctx.db, id);
     requireStatus(request, "pending", `Attendance request "${id}"`);
 
     const [updated] = await ctx.db

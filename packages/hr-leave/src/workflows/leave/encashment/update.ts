@@ -10,7 +10,7 @@ const InputSchema = object({
   patch: UpdateLeaveEncashmentSchema,
 });
 
-export const updateLeaveEncashment = Workflow.name("hr.leave.update-leave-encashment")
+export const updateLeaveEncashment = Workflow.name("hr.leave.encashment.update")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, patch } = input;

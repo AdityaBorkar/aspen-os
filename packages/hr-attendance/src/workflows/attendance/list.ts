@@ -9,7 +9,7 @@ const InputSchema = object({
   filters: optional(AttendanceFiltersSchema, {}),
 });
 
-export const list = Workflow.name("hr.attendance.list")
+export const listAttendances = Workflow.name("hr.attendance.list")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { filters } = input;

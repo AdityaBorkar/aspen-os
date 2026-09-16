@@ -8,7 +8,7 @@ const InputSchema = object({
   input: CreateLeaveEncashmentSchema,
 });
 
-export const createLeaveEncashment = Workflow.name("hr.leave.create-leave-encashment")
+export const createLeaveEncashment = Workflow.name("hr.leave.encashment.create")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = input;

@@ -8,7 +8,7 @@ const InputSchema = object({
   input: CreateShiftLocationSchema,
 });
 
-export const createShiftLocation = Workflow.name("hr.shift.create-shift-location")
+export const createShiftLocation = Workflow.name("hr.shift.location.create")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = input;

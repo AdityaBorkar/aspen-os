@@ -10,7 +10,7 @@ const InputSchema = object({
   patch: UpdateShiftTypeSchema,
 });
 
-export const updateShiftType = Workflow.name("hr.shift.update-shift-type")
+export const updateShiftType = Workflow.name("hr.shift.type.update")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, patch } = input;

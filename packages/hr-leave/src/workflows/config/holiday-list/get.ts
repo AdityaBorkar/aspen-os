@@ -8,7 +8,7 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const getHolidayListById = Workflow.name("hr.config.holiday-list.get")
+export const getHolidayList = Workflow.name("hr.config.holiday-list.get")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id } = input;

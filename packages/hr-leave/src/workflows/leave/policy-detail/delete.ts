@@ -8,7 +8,7 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const deleteLeavePolicyDetail = Workflow.name("hr.leave.delete-leave-policy-detail")
+export const deleteLeavePolicyDetail = Workflow.name("hr.leave.policy-detail.delete")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id } = input;

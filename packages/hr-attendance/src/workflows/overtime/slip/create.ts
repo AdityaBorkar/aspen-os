@@ -1,6 +1,6 @@
 import { overtimeSlip } from "#/db-schemas";
 import { CreateOvertimeSlipSchema } from "#/types";
-import { fetchOvertimeTypeById } from "#/workflows/utils";
+import { fetchOvertimeType } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
@@ -9,13 +9,13 @@ const InputSchema = object({
   input: CreateOvertimeSlipSchema,
 });
 
-export const createOvertimeSlip = Workflow.name("hr.overtime.create-overtime-slip")
+export const createOvertimeSlip = Workflow.name("hr.overtime.slip.create")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = input;
 
     // Verify overtime type exists
-    await fetchOvertimeTypeById(ctx.db, parsed.overtimeType);
+    await fetchOvertimeType(ctx.db, parsed.overtimeType);
 
     const [result] = await ctx.db
       .insert(overtimeSlip)

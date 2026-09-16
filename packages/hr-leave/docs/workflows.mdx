@@ -17,27 +17,27 @@ Access: `p.hrLeave.leave`
 Leave types, periods, policies, allocations, applications, encashment, compensatory leave, block lists, adjustments, and the append-only ledger.
 
 ```ts title="leave — types, periods, policies"
-await p.hrLeave.leave.createLeaveType({
+await p.hrLeave.leave.types.create({
   input: { name: "Sick Leave", maxDaysAllowed: 12, isCarryForward: true, maxCarryForwardDays: 5 },
 });
-await p.hrLeave.leave.updateLeaveType({ id, patch: { maxDaysAllowed: 15 } });
-await p.hrLeave.leave.getLeaveTypeById({ id });
-await p.hrLeave.leave.listLeaveTypes({});
-await p.hrLeave.leave.deleteLeaveType({ id }); // soft isActive=false
+await p.hrLeave.leave.types.update({ id, patch: { maxDaysAllowed: 15 } });
+await p.hrLeave.leave.types.get({ id });
+await p.hrLeave.leave.types.list({});
+await p.hrLeave.leave.types.delete({ id }); // soft isActive=false
 
-await p.hrLeave.leave.createLeavePeriod({
+await p.hrLeave.leave.periods.create({
   input: { name: "FY 2026-27", startDate: "2026-04-01", endDate: "2027-03-31" },
 });
-await p.hrLeave.leave.listLeavePeriods({});
+await p.hrLeave.leave.periods.list({});
 
-await p.hrLeave.leave.createLeavePolicy({ input: { name: "Standard Policy" } });
-await p.hrLeave.leave.createLeavePolicyDetail({
+await p.hrLeave.leave.policies.create({ input: { name: "Standard Policy" } });
+await p.hrLeave.leave.policyDetails.create({
   input: { leavePolicyId: "pol-1", leaveType: "lt-sick", maxDays: 12, carryForwardDays: 5 },
 });
-await p.hrLeave.leave.listLeavePolicyDetails({ leavePolicyId: "pol-1" });
-await p.hrLeave.leave.deleteLeavePolicyDetail({ id });
+await p.hrLeave.leave.policyDetails.list({ leavePolicyId: "pol-1" });
+await p.hrLeave.leave.policyDetails.delete({ id });
 
-await p.hrLeave.leave.createLeavePolicyAssignment({
+await p.hrLeave.leave.policyAssignments.create({
   input: {
     employeeId: "EMP-001",
     leavePolicy: "pol-1",
@@ -45,19 +45,19 @@ await p.hrLeave.leave.createLeavePolicyAssignment({
     effectiveFrom: "2026-04-01",
   },
 });
-await p.hrLeave.leave.listLeavePolicyAssignments({ filters: { employeeId: "EMP-001" } });
+await p.hrLeave.leave.policyAssignments.list({ filters: { employeeId: "EMP-001" } });
 ```
 
 ```ts title="leave — allocations and applications"
-await p.hrLeave.leave.createLeaveAllocation({
+await p.hrLeave.leave.allocations.create({
   input: { employeeId: "EMP-001", leaveType: "lt-sick", leavePeriod: "per-2026", totalDays: "12" },
 });
-await p.hrLeave.leave.updateLeaveAllocation({ id, patch: { totalDays: "15" } });
-await p.hrLeave.leave.getLeaveAllocationById({ id });
-await p.hrLeave.leave.listLeaveAllocations({ filters: { employeeId: "EMP-001" } });
-await p.hrLeave.leave.getLeaveBalance({ employeeId: "EMP-001", leavePeriod: "per-2026" });
+await p.hrLeave.leave.allocations.update({ id, patch: { totalDays: "15" } });
+await p.hrLeave.leave.allocations.get({ id });
+await p.hrLeave.leave.allocations.list({ filters: { employeeId: "EMP-001" } });
+await p.hrLeave.leave.balance.get({ employeeId: "EMP-001", leavePeriod: "per-2026" });
 
-await p.hrLeave.leave.createLeaveApplication({
+await p.hrLeave.leave.applications.create({
   input: {
     employeeId: "EMP-001",
     leaveType: "lt-sick",
@@ -67,20 +67,20 @@ await p.hrLeave.leave.createLeaveApplication({
     reason: "Fever",
   },
 });
-await p.hrLeave.leave.approveLeaveApplication({ id, approvedBy: "mgr-1" }); // bumps usedDays + ledger
-await p.hrLeave.leave.rejectLeaveApplication({
+await p.hrLeave.leave.applications.approve({ id, approvedBy: "mgr-1" }); // bumps usedDays + ledger
+await p.hrLeave.leave.applications.reject({
   id,
   rejectedBy: "mgr-1",
   rejectionReason: "Insufficient balance",
 });
-await p.hrLeave.leave.cancelLeaveApplication({ id }); // reverses usedDays + ledger
-await p.hrLeave.leave.listLeaveApplications({ filters: { employeeId: "EMP-001" } });
+await p.hrLeave.leave.applications.cancel({ id }); // reverses usedDays + ledger
+await p.hrLeave.leave.applications.list({ filters: { employeeId: "EMP-001" } });
 ```
 
-`createLeaveApplication` checks block lists and balance (skipped when `isLeaveWithoutPay`); `cancelLeaveApplication` floors `usedDays` at 0.
+`applications.create` checks block lists and balance (skipped when `isLeaveWithoutPay`); `applications.cancel` floors `usedDays` at 0.
 
 ```ts title="leave — encashment, compensatory, block lists"
-await p.hrLeave.leave.createLeaveEncashment({
+await p.hrLeave.leave.encashments.create({
   input: {
     employeeId: "EMP-001",
     leaveType: "lt-earn",
@@ -89,16 +89,16 @@ await p.hrLeave.leave.createLeaveEncashment({
     encashedDays: "5",
   },
 });
-await p.hrLeave.leave.approveLeaveEncashment({ id, approvedBy: "mgr-1" });
-await p.hrLeave.leave.rejectLeaveEncashment({
+await p.hrLeave.leave.encashments.approve({ id, approvedBy: "mgr-1" });
+await p.hrLeave.leave.encashments.reject({
   id,
   rejectedBy: "mgr-1",
   rejectionReason: "Not eligible",
 });
-await p.hrLeave.leave.markLeaveEncashmentPaid({ id });
-await p.hrLeave.leave.listLeaveEncashments({ filters: { employeeId: "EMP-001" } });
+await p.hrLeave.leave.encashments.markPaid({ id });
+await p.hrLeave.leave.encashments.list({ filters: { employeeId: "EMP-001" } });
 
-await p.hrLeave.leave.createCompensatoryLeave({
+await p.hrLeave.leave.compensatoryLeaves.create({
   input: {
     employeeId: "EMP-001",
     leaveType: "lt-comp",
@@ -107,10 +107,10 @@ await p.hrLeave.leave.createCompensatoryLeave({
     reason: "Weekend support",
   },
 });
-await p.hrLeave.leave.approveCompensatoryLeave({ id, approvedBy: "mgr-1" }); // creates allocation + ledger
-await p.hrLeave.leave.listCompensatoryLeaves({ filters: { employeeId: "EMP-001" } });
+await p.hrLeave.leave.compensatoryLeaves.approve({ id, approvedBy: "mgr-1" }); // creates allocation + ledger
+await p.hrLeave.leave.compensatoryLeaves.list({ filters: { employeeId: "EMP-001" } });
 
-await p.hrLeave.leave.createLeaveBlockList({
+await p.hrLeave.leave.blockLists.create({
   input: {
     name: "Year-end freeze",
     scope: "company",
@@ -119,11 +119,11 @@ await p.hrLeave.leave.createLeaveBlockList({
     toDate: "2027-01-01",
   },
 });
-await p.hrLeave.leave.listLeaveBlockLists({ filters: {} });
+await p.hrLeave.leave.blockLists.list({ filters: {} });
 ```
 
 ```ts title="leave — adjustments and ledger"
-await p.hrLeave.leave.createLeaveAdjustment({
+await p.hrLeave.leave.adjustments.create({
   input: {
     employeeId: "EMP-001",
     leaveType: "lt-sick",
@@ -133,8 +133,8 @@ await p.hrLeave.leave.createLeaveAdjustment({
     reason: "Correction",
   },
 });
-await p.hrLeave.leave.listLeaveAdjustments({ employeeId: "EMP-001" });
-await p.hrLeave.leave.listLedgerEntries({ employeeId: "EMP-001", leaveType: "lt-sick" });
+await p.hrLeave.leave.adjustments.list({ employeeId: "EMP-001" });
+await p.hrLeave.leave.ledgerEntries.list({ employeeId: "EMP-001", leaveType: "lt-sick" });
 ```
 
 ### Config

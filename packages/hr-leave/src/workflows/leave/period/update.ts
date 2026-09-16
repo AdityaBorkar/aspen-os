@@ -10,7 +10,7 @@ const InputSchema = object({
   patch: UpdateLeavePeriodSchema,
 });
 
-export const updateLeavePeriod = Workflow.name("hr.leave.update-leave-period")
+export const updateLeavePeriod = Workflow.name("hr.leave.period.update")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, patch } = input;

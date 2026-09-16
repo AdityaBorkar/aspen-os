@@ -1,6 +1,6 @@
 import { CreateLeaveAllocationSchema } from "#/types";
 import { insertLeaveAllocation } from "#/workflows/leave-accounts";
-import { fetchLeavePeriodById, fetchLeaveTypeById } from "#/workflows/utils";
+import { fetchLeavePeriod, fetchLeaveType } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
@@ -9,12 +9,12 @@ const InputSchema = object({
   input: CreateLeaveAllocationSchema,
 });
 
-export const createLeaveAllocation = Workflow.name("hr.leave.create-leave-allocation")
+export const createLeaveAllocation = Workflow.name("hr.leave.allocation.create")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
     await Promise.all([
-      fetchLeaveTypeById(ctx.db, input.leaveType),
-      fetchLeavePeriodById(ctx.db, input.leavePeriod),
+      fetchLeaveType(ctx.db, input.leaveType),
+      fetchLeavePeriod(ctx.db, input.leavePeriod),
     ]);
 
     return insertLeaveAllocation(ctx.db, {

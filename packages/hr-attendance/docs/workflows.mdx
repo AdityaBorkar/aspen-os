@@ -14,28 +14,28 @@ Create inputs are Valibot-validated `{ input: Create*Input }`, update is `{ id, 
 
 Access: `p.hrAttendance.attendance`
 
-Attendance records, raw check-ins, correction requests, and period summaries. `getSummary` aggregates by `month` string; duplicate attendance per employee per date and future dates are rejected.
+Attendance records, raw check-ins, correction requests, and period summaries. `summary.get` aggregates by `month` string; duplicate attendance per employee per date and future dates are rejected.
 
 ```ts title="attendance — records and check-ins"
 await p.hrAttendance.attendance.create({
   input: { employeeId: "EMP-001", date: "2026-09-08", status: "present", shift: "shift-day" },
 });
 await p.hrAttendance.attendance.update({ id, patch: { status: "half_day" } });
-await p.hrAttendance.attendance.getById({ id });
+await p.hrAttendance.attendance.get({ id });
 await p.hrAttendance.attendance.list({ filters: { employeeId: "EMP-001" } });
-await p.hrAttendance.attendance.getSummary({ employeeId: "EMP-001", month: "2026-09" });
-await p.hrAttendance.attendance.deleteRecord({ id });
+await p.hrAttendance.attendance.summary.get({ employeeId: "EMP-001", month: "2026-09" });
+await p.hrAttendance.attendance.delete({ id });
 
-await p.hrAttendance.attendance.createCheckin({
+await p.hrAttendance.attendance.checkins.create({
   input: { employeeId: "EMP-001", logType: "in", time: "2026-09-08T04:00:00Z", shift: "shift-day" },
 });
-await p.hrAttendance.attendance.getCheckinById({ id });
-await p.hrAttendance.attendance.listCheckins({ filters: { employeeId: "EMP-001" } });
-await p.hrAttendance.attendance.deleteCheckin({ id });
+await p.hrAttendance.attendance.checkins.get({ id });
+await p.hrAttendance.attendance.checkins.list({ filters: { employeeId: "EMP-001" } });
+await p.hrAttendance.attendance.checkins.delete({ id });
 ```
 
 ```ts title="attendance — correction requests"
-await p.hrAttendance.attendance.createAttendanceRequest({
+await p.hrAttendance.attendance.requests.create({
   input: {
     employeeId: "EMP-001",
     fromDate: "2026-09-01",
@@ -43,18 +43,18 @@ await p.hrAttendance.attendance.createAttendanceRequest({
     reason: "Missed punch",
   },
 });
-await p.hrAttendance.attendance.updateAttendanceRequest({
+await p.hrAttendance.attendance.requests.update({
   id,
   patch: { reason: "Missed punch — approved shift" },
 });
-await p.hrAttendance.attendance.approveAttendanceRequest({ id, approvedBy: "mgr-1" });
-await p.hrAttendance.attendance.rejectAttendanceRequest({
+await p.hrAttendance.attendance.requests.approve({ id, approvedBy: "mgr-1" });
+await p.hrAttendance.attendance.requests.reject({
   id,
   rejectedBy: "mgr-1",
   rejectionReason: "Insufficient proof",
 });
-await p.hrAttendance.attendance.listAttendanceRequests({ filters: { status: "pending" } });
-await p.hrAttendance.attendance.deleteAttendanceRequest({ id });
+await p.hrAttendance.attendance.requests.list({ filters: { status: "pending" } });
+await p.hrAttendance.attendance.requests.delete({ id });
 ```
 
 ### Overtime
@@ -64,7 +64,7 @@ Access: `p.hrAttendance.overtime`
 Overtime rate types and dated slips with approval, rejection, and summary aggregation.
 
 ```ts title="overtime — types and slips"
-await p.hrAttendance.overtime.createOvertimeType({
+await p.hrAttendance.overtime.types.create({
   input: {
     name: "Standard OT",
     amountCalculation: "fixed",
@@ -72,12 +72,12 @@ await p.hrAttendance.overtime.createOvertimeType({
     standardMultiplier: "1.5",
   },
 });
-await p.hrAttendance.overtime.updateOvertimeType({ id, patch: { weekendMultiplier: "2" } });
-await p.hrAttendance.overtime.getOvertimeTypeById({ id });
-await p.hrAttendance.overtime.listOvertimeTypes({});
-await p.hrAttendance.overtime.deleteOvertimeType({ id }); // soft delete isActive=false
+await p.hrAttendance.overtime.types.update({ id, patch: { weekendMultiplier: "2" } });
+await p.hrAttendance.overtime.types.get({ id });
+await p.hrAttendance.overtime.types.list({});
+await p.hrAttendance.overtime.types.delete({ id }); // soft delete isActive=false
 
-await p.hrAttendance.overtime.createOvertimeSlip({
+await p.hrAttendance.overtime.slips.create({
   input: {
     employeeId: "EMP-001",
     overtimeType: "ot-standard",
@@ -89,21 +89,21 @@ await p.hrAttendance.overtime.createOvertimeSlip({
     totalOvertimeHours: "6",
   },
 });
-await p.hrAttendance.overtime.approveOvertimeSlip({ id, approvedBy: "mgr-1" }); // computes amount when fixed
-await p.hrAttendance.overtime.rejectOvertimeSlip({
+await p.hrAttendance.overtime.slips.approve({ id, approvedBy: "mgr-1" }); // computes amount when fixed
+await p.hrAttendance.overtime.slips.reject({
   id,
   rejectedBy: "mgr-1",
   rejectionReason: "Exceeds cap",
 });
-await p.hrAttendance.overtime.getOvertimeSummary({
+await p.hrAttendance.overtime.summary.get({
   employeeId: "EMP-001",
   fromDate: "2026-09-01",
   toDate: "2026-09-30",
 });
-await p.hrAttendance.overtime.listOvertimeSlips({ filters: { status: "pending" } });
+await p.hrAttendance.overtime.slips.list({ filters: { status: "pending" } });
 ```
 
-`getOvertimeSummary` sums only `approved` slips in the date range; `createOvertimeSlip` validates the overtime type exists.
+`summary.get` sums only `approved` slips in the date range; `slips.create` validates the overtime type exists.
 
 ### Shift
 
@@ -112,23 +112,23 @@ Access: `p.hrAttendance.shift`
 Shift types, geofenced locations, dated assignments, requests, and weekly schedules.
 
 ```ts title="shift — types and locations"
-await p.hrAttendance.shift.createShiftType({
+await p.hrAttendance.shift.types.create({
   input: { name: "Day", startTime: "09:00", endTime: "18:00", lateEntryGraceMinutes: 10 },
 });
-await p.hrAttendance.shift.updateShiftType({ id, patch: { enableAutoAttendance: true } });
-await p.hrAttendance.shift.getShiftTypeById({ id });
-await p.hrAttendance.shift.listShiftTypes({});
-await p.hrAttendance.shift.deleteShiftType({ id }); // soft isActive=false
+await p.hrAttendance.shift.types.update({ id, patch: { enableAutoAttendance: true } });
+await p.hrAttendance.shift.types.get({ id });
+await p.hrAttendance.shift.types.list({});
+await p.hrAttendance.shift.types.delete({ id }); // soft isActive=false
 
-await p.hrAttendance.shift.createShiftLocation({
+await p.hrAttendance.shift.locations.create({
   input: { name: "HQ Gate", latitude: "19.076", longitude: "72.877", radius: 500 },
 });
-await p.hrAttendance.shift.updateShiftLocation({ id, patch: { radius: 300 } });
-await p.hrAttendance.shift.listShiftLocations({});
+await p.hrAttendance.shift.locations.update({ id, patch: { radius: 300 } });
+await p.hrAttendance.shift.locations.list({});
 ```
 
 ```ts title="shift — assignments, requests, schedules"
-await p.hrAttendance.shift.createShiftAssignment({
+await p.hrAttendance.shift.assignments.create({
   input: {
     employeeId: "EMP-001",
     shiftType: "shift-day",
@@ -136,11 +136,11 @@ await p.hrAttendance.shift.createShiftAssignment({
     status: "active",
   },
 });
-await p.hrAttendance.shift.updateShiftAssignment({ id, patch: { endDate: "2026-12-31" } });
-await p.hrAttendance.shift.deactivateShiftAssignment({ id }); // status → inactive
-await p.hrAttendance.shift.listShiftAssignments({ filters: { employeeId: "EMP-001" } });
+await p.hrAttendance.shift.assignments.update({ id, patch: { endDate: "2026-12-31" } });
+await p.hrAttendance.shift.assignments.deactivate({ id }); // status → inactive
+await p.hrAttendance.shift.assignments.list({ filters: { employeeId: "EMP-001" } });
 
-await p.hrAttendance.shift.createShiftRequest({
+await p.hrAttendance.shift.requests.create({
   input: {
     employeeId: "EMP-001",
     shiftType: "shift-night",
@@ -148,15 +148,15 @@ await p.hrAttendance.shift.createShiftRequest({
     reason: "Personal",
   },
 });
-await p.hrAttendance.shift.approveShiftRequest({ id, approvedBy: "mgr-1" }); // creates assignment, links back
-await p.hrAttendance.shift.rejectShiftRequest({
+await p.hrAttendance.shift.requests.approve({ id, approvedBy: "mgr-1" }); // creates assignment, links back
+await p.hrAttendance.shift.requests.reject({
   id,
   rejectedBy: "mgr-1",
   rejectionReason: "Staffing",
 });
-await p.hrAttendance.shift.listShiftRequests({ filters: { status: "pending" } });
+await p.hrAttendance.shift.requests.list({ filters: { status: "pending" } });
 
-await p.hrAttendance.shift.createShiftSchedule({
+await p.hrAttendance.shift.schedules.create({
   input: {
     name: "Mon-Fri Day",
     shiftType: "shift-day",
@@ -167,13 +167,13 @@ await p.hrAttendance.shift.createShiftSchedule({
     friday: true,
   },
 });
-await p.hrAttendance.shift.createShiftScheduleAssignment({
+await p.hrAttendance.shift.scheduleAssignments.create({
   input: { employeeId: "EMP-001", shiftSchedule: "sched-1", startDate: "2026-09-01" },
 });
-await p.hrAttendance.shift.listShiftSchedules({});
-await p.hrAttendance.shift.listShiftScheduleAssignments({ employeeId: "EMP-001" });
+await p.hrAttendance.shift.schedules.list({});
+await p.hrAttendance.shift.scheduleAssignments.list({ employeeId: "EMP-001" });
 ```
 
-`createShiftAssignment` / `createShiftRequest` / `createShiftSchedule` / `createShiftScheduleAssignment` validate the referenced `shift_type`/`shift_schedule` exists.
+`assignments.create` / `requests.create` / `schedules.create` / `scheduleAssignments.create` validate the referenced `shift_type`/`shift_schedule` exists.
 
 Events emitted by these workflows: [Events](/docs/hr-attendance/events). Tables touched: [DB Schemas](/docs/hr-attendance/db-schemas).

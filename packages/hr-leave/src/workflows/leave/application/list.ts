@@ -1,0 +1,33 @@
+import { leaveApplication } from "#/db-schemas";
+import { LeaveApplicationFiltersSchema } from "#/types";
+
+import { Workflow } from "@aspen-os/platform/server";
+import { and, eq } from "drizzle-orm";
+import { object, optional } from "valibot";
+
+const InputSchema = object({
+  filters: optional(LeaveApplicationFiltersSchema, {}),
+});
+
+export const listLeaveApplications = Workflow.name("hr.leave.application.list")
+  .input(InputSchema)
+  .handler(async (input, ctx) => {
+    const { filters } = input;
+
+    const parsed = filters;
+    const conditions = [];
+
+    if (parsed.employeeId) {
+      conditions.push(eq(leaveApplication.employee_id, parsed.employeeId));
+    }
+    if (parsed.leaveType) {
+      conditions.push(eq(leaveApplication.leave_type, parsed.leaveType));
+    }
+    if (parsed.status) {
+      conditions.push(eq(leaveApplication.status, parsed.status));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    return ctx.db.select().from(leaveApplication).where(whereClause);
+  });

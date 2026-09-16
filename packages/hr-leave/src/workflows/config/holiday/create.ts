@@ -1,6 +1,6 @@
 import { holiday } from "#/db-schemas";
 import { CreateHolidaySchema } from "#/types";
-import { fetchHolidayListById } from "#/workflows/utils";
+import { fetchHolidayList } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";
@@ -15,7 +15,7 @@ export const createHoliday = Workflow.name("hr.config.holiday.create")
     const parsed = input;
 
     // Verify holiday list exists
-    await fetchHolidayListById(ctx.db, parsed.holidayListId);
+    await fetchHolidayList(ctx.db, parsed.holidayListId);
 
     const [result] = await ctx.db
       .insert(holiday)

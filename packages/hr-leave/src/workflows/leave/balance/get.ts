@@ -11,7 +11,7 @@ const InputSchema = object({
   leavePeriod: pipe(string(), minLength(1, "leavePeriod is required")),
 });
 
-export const getLeaveBalance = Workflow.name("hr.leave.get-leave-balance")
+export const getLeaveBalance = Workflow.name("hr.leave.balance.get")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { employeeId, leavePeriod } = input;

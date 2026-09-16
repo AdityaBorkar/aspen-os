@@ -44,7 +44,7 @@ export function requireStatus(
 
 // ─── Leave lookups ───────────────────────────────────────────────────────────
 
-export function fetchLeaveTypeById(db: Db, id: string) {
+export function fetchLeaveType(db: Db, id: string) {
   return fetchById(
     db.select().from(leaveType).where(eq(leaveType.id, id)).limit(1),
     "Leave type",
@@ -52,7 +52,7 @@ export function fetchLeaveTypeById(db: Db, id: string) {
   );
 }
 
-export function fetchLeavePeriodById(db: Db, id: string) {
+export function fetchLeavePeriod(db: Db, id: string) {
   return fetchById(
     db.select().from(leavePeriod).where(eq(leavePeriod.id, id)).limit(1),
     "Leave period",
@@ -60,7 +60,7 @@ export function fetchLeavePeriodById(db: Db, id: string) {
   );
 }
 
-export function fetchLeavePolicyById(db: Db, id: string) {
+export function fetchLeavePolicy(db: Db, id: string) {
   return fetchById(
     db.select().from(leavePolicy).where(eq(leavePolicy.id, id)).limit(1),
     "Leave policy",
@@ -68,7 +68,7 @@ export function fetchLeavePolicyById(db: Db, id: string) {
   );
 }
 
-export function fetchLeaveAllocationById(db: Db, id: string) {
+export function fetchLeaveAllocation(db: Db, id: string) {
   return fetchById(
     db.select().from(leaveAllocation).where(eq(leaveAllocation.id, id)).limit(1),
     "Leave allocation",
@@ -76,7 +76,7 @@ export function fetchLeaveAllocationById(db: Db, id: string) {
   );
 }
 
-export function fetchLeaveApplicationById(db: Db, id: string) {
+export function fetchLeaveApplication(db: Db, id: string) {
   return fetchById(
     db.select().from(leaveApplication).where(eq(leaveApplication.id, id)).limit(1),
     "Leave application",
@@ -84,7 +84,7 @@ export function fetchLeaveApplicationById(db: Db, id: string) {
   );
 }
 
-export function fetchCompensatoryLeaveById(db: Db, id: string) {
+export function fetchCompensatoryLeave(db: Db, id: string) {
   return fetchById(
     db.select().from(compensatoryLeaveRequest).where(eq(compensatoryLeaveRequest.id, id)).limit(1),
     "Compensatory leave request",
@@ -92,7 +92,7 @@ export function fetchCompensatoryLeaveById(db: Db, id: string) {
   );
 }
 
-export function fetchLeaveEncashmentById(db: Db, id: string) {
+export function fetchLeaveEncashment(db: Db, id: string) {
   return fetchById(
     db.select().from(leaveEncashment).where(eq(leaveEncashment.id, id)).limit(1),
     "Leave encashment",
@@ -100,7 +100,7 @@ export function fetchLeaveEncashmentById(db: Db, id: string) {
   );
 }
 
-export function fetchHolidayListById(db: Db, id: string) {
+export function fetchHolidayList(db: Db, id: string) {
   return fetchById(
     db.select().from(holidayList).where(eq(holidayList.id, id)).limit(1),
     "Holiday list",

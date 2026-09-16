@@ -1,5 +1,5 @@
 import { compensatoryLeaveRequest } from "#/db-schemas";
-import { assertUpdated, fetchCompensatoryLeaveById, requireStatus } from "#/workflows/fetch";
+import { assertUpdated, fetchCompensatoryLeave, requireStatus } from "#/workflows/fetch";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -11,12 +11,12 @@ const InputSchema = object({
   rejectionReason: pipe(string(), minLength(1, "rejectionReason is required")),
 });
 
-export const rejectCompensatoryLeave = Workflow.name("hr.leave.reject-compensatory-leave")
+export const rejectCompensatoryLeave = Workflow.name("hr.leave.compensatory-leave.reject")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, rejectedBy, rejectionReason } = input;
 
-    const request = await fetchCompensatoryLeaveById(ctx.db, id);
+    const request = await fetchCompensatoryLeave(ctx.db, id);
     requireStatus(request, "pending", `Compensatory leave request "${id}"`);
 
     const [updated] = await ctx.db

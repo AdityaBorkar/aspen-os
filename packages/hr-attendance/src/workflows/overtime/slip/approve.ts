@@ -2,8 +2,8 @@ import { overtimeSlip } from "#/db-schemas";
 import { toDays } from "#/workflows/day-amounts";
 import {
   assertUpdated,
-  fetchOvertimeSlipById,
-  fetchOvertimeTypeById,
+  fetchOvertimeSlip,
+  fetchOvertimeType,
   requireStatus,
 } from "#/workflows/utils";
 
@@ -16,14 +16,14 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const approveOvertimeSlip = Workflow.name("hr.overtime.approve-overtime-slip")
+export const approveOvertimeSlip = Workflow.name("hr.overtime.slip.approve")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, approvedBy } = input;
 
-    const slip = await fetchOvertimeSlipById(ctx.db, id);
+    const slip = await fetchOvertimeSlip(ctx.db, id);
     requireStatus(slip, "pending", `Overtime slip "${id}"`);
-    const overtimeTypeRecord = await fetchOvertimeTypeById(ctx.db, slip.overtime_type);
+    const overtimeTypeRecord = await fetchOvertimeType(ctx.db, slip.overtime_type);
 
     // Calculate amount
     let amount = 0;

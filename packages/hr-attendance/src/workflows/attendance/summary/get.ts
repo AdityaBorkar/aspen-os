@@ -10,7 +10,7 @@ const InputSchema = object({
   month: pipe(string(), minLength(1, "month is required")),
 });
 
-export const getSummary = Workflow.name("hr.attendance.get-summary")
+export const getAttendanceSummary = Workflow.name("hr.attendance.summary.get")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { employeeId, month } = input;

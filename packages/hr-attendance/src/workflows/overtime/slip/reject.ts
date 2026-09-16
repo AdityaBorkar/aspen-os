@@ -1,5 +1,5 @@
 import { overtimeSlip } from "#/db-schemas";
-import { assertUpdated, fetchOvertimeSlipById, requireStatus } from "#/workflows/utils";
+import { assertUpdated, fetchOvertimeSlip, requireStatus } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -11,12 +11,12 @@ const InputSchema = object({
   rejectionReason: pipe(string(), minLength(1, "rejectionReason is required")),
 });
 
-export const rejectOvertimeSlip = Workflow.name("hr.overtime.reject-overtime-slip")
+export const rejectOvertimeSlip = Workflow.name("hr.overtime.slip.reject")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, rejectedBy, rejectionReason } = input;
 
-    const slip = await fetchOvertimeSlipById(ctx.db, id);
+    const slip = await fetchOvertimeSlip(ctx.db, id);
     requireStatus(slip, "pending", `Overtime slip "${id}"`);
 
     const [updated] = await ctx.db

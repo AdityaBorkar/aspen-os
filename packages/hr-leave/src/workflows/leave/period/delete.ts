@@ -8,7 +8,7 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const deleteLeavePeriod = Workflow.name("hr.leave.delete-leave-period")
+export const deleteLeavePeriod = Workflow.name("hr.leave.period.delete")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id } = input;

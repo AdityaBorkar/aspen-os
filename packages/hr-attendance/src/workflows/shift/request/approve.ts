@@ -1,6 +1,6 @@
 import { shiftRequest } from "#/db-schemas";
 import { insertShiftAssignment } from "#/workflows/shift-records";
-import { assertUpdated, fetchShiftRequestById, requireStatus } from "#/workflows/utils";
+import { assertUpdated, fetchShiftRequest, requireStatus } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -11,12 +11,12 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const approveShiftRequest = Workflow.name("hr.shift.approve-shift-request")
+export const approveShiftRequest = Workflow.name("hr.shift.request.approve")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, approvedBy } = input;
 
-    const request = await fetchShiftRequestById(ctx.db, id);
+    const request = await fetchShiftRequest(ctx.db, id);
     requireStatus(request, "pending", `Shift request "${id}"`);
 
     const updated = await ctx.db.transaction(async (tx) => {

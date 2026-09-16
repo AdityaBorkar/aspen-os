@@ -8,7 +8,7 @@ const InputSchema = object({
   input: CreateShiftTypeSchema,
 });
 
-export const createShiftType = Workflow.name("hr.shift.create-shift-type")
+export const createShiftType = Workflow.name("hr.shift.type.create")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = input;

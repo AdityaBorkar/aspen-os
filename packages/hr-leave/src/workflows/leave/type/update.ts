@@ -10,7 +10,7 @@ const InputSchema = object({
   patch: UpdateLeaveTypeSchema,
 });
 
-export const updateLeaveType = Workflow.name("hr.leave.update-leave-type")
+export const updateLeaveType = Workflow.name("hr.leave.type.update")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, patch } = input;

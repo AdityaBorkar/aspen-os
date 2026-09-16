@@ -8,7 +8,7 @@ const InputSchema = object({
   input: CreateLeavePeriodSchema,
 });
 
-export const createLeavePeriod = Workflow.name("hr.leave.create-leave-period")
+export const createLeavePeriod = Workflow.name("hr.leave.period.create")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = input;

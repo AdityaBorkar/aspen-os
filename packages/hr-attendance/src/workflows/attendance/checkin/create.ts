@@ -8,7 +8,7 @@ const InputSchema = object({
   input: CreateCheckinSchema,
 });
 
-export const createCheckin = Workflow.name("hr.attendance.create-checkin")
+export const createCheckin = Workflow.name("hr.attendance.checkin.create")
   .input(InputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = input;

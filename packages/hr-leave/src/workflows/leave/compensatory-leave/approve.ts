@@ -1,8 +1,8 @@
 import { compensatoryLeaveRequest } from "#/db-schemas";
 import {
   assertUpdated,
-  fetchCompensatoryLeaveById,
-  fetchLeavePeriodById,
+  fetchCompensatoryLeave,
+  fetchLeavePeriod,
   requireStatus,
 } from "#/workflows/fetch";
 import { insertLeaveAllocation, insertLeaveLedgerEntry } from "#/workflows/leave-accounts";
@@ -17,14 +17,14 @@ const InputSchema = object({
   leavePeriod: pipe(string(), minLength(1, "leavePeriod is required")),
 });
 
-export const approveCompensatoryLeave = Workflow.name("hr.leave.approve-compensatory-leave")
+export const approveCompensatoryLeave = Workflow.name("hr.leave.compensatory-leave.approve")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id, approvedBy, leavePeriod } = input;
 
-    const request = await fetchCompensatoryLeaveById(ctx.db, id);
+    const request = await fetchCompensatoryLeave(ctx.db, id);
     requireStatus(request, "pending", `Compensatory leave request "${id}"`);
-    await fetchLeavePeriodById(ctx.db, leavePeriod);
+    await fetchLeavePeriod(ctx.db, leavePeriod);
 
     const updated = await ctx.db.transaction(async (tx) => {
       const allocation = await insertLeaveAllocation(tx, {

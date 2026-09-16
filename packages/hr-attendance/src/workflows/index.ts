@@ -1,135 +1,159 @@
-import { getById } from "#/workflows/attendance/by-id/get";
-import { getCheckinById } from "#/workflows/attendance/checkin/by-id/get";
 import { createCheckin } from "#/workflows/attendance/checkin/create";
 import { deleteCheckin } from "#/workflows/attendance/checkin/delete";
-import { listCheckins } from "#/workflows/attendance/checkins/list";
-import { create } from "#/workflows/attendance/create";
-import { deleteRecord } from "#/workflows/attendance/delete";
-import { list } from "#/workflows/attendance/list";
+import { getCheckin } from "#/workflows/attendance/checkin/get";
+import { listCheckins } from "#/workflows/attendance/checkin/list";
+import { createAttendance } from "#/workflows/attendance/create";
+import { deleteAttendance } from "#/workflows/attendance/delete";
+import { getAttendance } from "#/workflows/attendance/get";
+import { listAttendances } from "#/workflows/attendance/list";
 import { approveAttendanceRequest } from "#/workflows/attendance/request/approve";
-import { getAttendanceRequestById } from "#/workflows/attendance/request/by-id/get";
 import { createAttendanceRequest } from "#/workflows/attendance/request/create";
 import { deleteAttendanceRequest } from "#/workflows/attendance/request/delete";
+import { getAttendanceRequest } from "#/workflows/attendance/request/get";
+import { listAttendanceRequests } from "#/workflows/attendance/request/list";
 import { rejectAttendanceRequest } from "#/workflows/attendance/request/reject";
 import { updateAttendanceRequest } from "#/workflows/attendance/request/update";
-import { listAttendanceRequests } from "#/workflows/attendance/requests/list";
-import { getSummary } from "#/workflows/attendance/summary/get";
-import { update } from "#/workflows/attendance/update";
+import { getAttendanceSummary } from "#/workflows/attendance/summary/get";
+import { updateAttendance } from "#/workflows/attendance/update";
 import { approveOvertimeSlip } from "#/workflows/overtime/slip/approve";
-import { getOvertimeSlipById } from "#/workflows/overtime/slip/by-id/get";
 import { createOvertimeSlip } from "#/workflows/overtime/slip/create";
 import { deleteOvertimeSlip } from "#/workflows/overtime/slip/delete";
+import { getOvertimeSlip } from "#/workflows/overtime/slip/get";
+import { listOvertimeSlips } from "#/workflows/overtime/slip/list";
 import { rejectOvertimeSlip } from "#/workflows/overtime/slip/reject";
 import { updateOvertimeSlip } from "#/workflows/overtime/slip/update";
-import { listOvertimeSlips } from "#/workflows/overtime/slips/list";
 import { getOvertimeSummary } from "#/workflows/overtime/summary/get";
-import { getOvertimeTypeById } from "#/workflows/overtime/type/by-id/get";
 import { createOvertimeType } from "#/workflows/overtime/type/create";
 import { deleteOvertimeType } from "#/workflows/overtime/type/delete";
+import { getOvertimeType } from "#/workflows/overtime/type/get";
+import { listOvertimeTypes } from "#/workflows/overtime/type/list";
 import { updateOvertimeType } from "#/workflows/overtime/type/update";
-import { listOvertimeTypes } from "#/workflows/overtime/types/list";
-import { getShiftAssignmentById } from "#/workflows/shift/assignment/by-id/get";
 import { createShiftAssignment } from "#/workflows/shift/assignment/create";
 import { deactivateShiftAssignment } from "#/workflows/shift/assignment/deactivate";
 import { deleteShiftAssignment } from "#/workflows/shift/assignment/delete";
+import { getShiftAssignment } from "#/workflows/shift/assignment/get";
+import { listShiftAssignments } from "#/workflows/shift/assignment/list";
 import { updateShiftAssignment } from "#/workflows/shift/assignment/update";
-import { listShiftAssignments } from "#/workflows/shift/assignments/list";
-import { getShiftLocationById } from "#/workflows/shift/location/by-id/get";
 import { createShiftLocation } from "#/workflows/shift/location/create";
 import { deleteShiftLocation } from "#/workflows/shift/location/delete";
+import { getShiftLocation } from "#/workflows/shift/location/get";
+import { listShiftLocations } from "#/workflows/shift/location/list";
 import { updateShiftLocation } from "#/workflows/shift/location/update";
-import { listShiftLocations } from "#/workflows/shift/locations/list";
 import { approveShiftRequest } from "#/workflows/shift/request/approve";
-import { getShiftRequestById } from "#/workflows/shift/request/by-id/get";
 import { createShiftRequest } from "#/workflows/shift/request/create";
 import { deleteShiftRequest } from "#/workflows/shift/request/delete";
+import { getShiftRequest } from "#/workflows/shift/request/get";
+import { listShiftRequests } from "#/workflows/shift/request/list";
 import { rejectShiftRequest } from "#/workflows/shift/request/reject";
 import { updateShiftRequest } from "#/workflows/shift/request/update";
-import { listShiftRequests } from "#/workflows/shift/requests/list";
-import { getShiftScheduleAssignmentById } from "#/workflows/shift/schedule-assignment/by-id/get";
 import { createShiftScheduleAssignment } from "#/workflows/shift/schedule-assignment/create";
 import { deleteShiftScheduleAssignment } from "#/workflows/shift/schedule-assignment/delete";
+import { getShiftScheduleAssignment } from "#/workflows/shift/schedule-assignment/get";
+import { listShiftScheduleAssignments } from "#/workflows/shift/schedule-assignment/list";
 import { updateShiftScheduleAssignment } from "#/workflows/shift/schedule-assignment/update";
-import { listShiftScheduleAssignments } from "#/workflows/shift/schedule-assignments/list";
-import { getShiftScheduleById } from "#/workflows/shift/schedule/by-id/get";
 import { createShiftSchedule } from "#/workflows/shift/schedule/create";
 import { deleteShiftSchedule } from "#/workflows/shift/schedule/delete";
+import { getShiftSchedule } from "#/workflows/shift/schedule/get";
+import { listShiftSchedules } from "#/workflows/shift/schedule/list";
 import { updateShiftSchedule } from "#/workflows/shift/schedule/update";
-import { listShiftSchedules } from "#/workflows/shift/schedules/list";
-import { getShiftTypeById } from "#/workflows/shift/type/by-id/get";
 import { createShiftType } from "#/workflows/shift/type/create";
 import { deleteShiftType } from "#/workflows/shift/type/delete";
+import { getShiftType } from "#/workflows/shift/type/get";
+import { listShiftTypes } from "#/workflows/shift/type/list";
 import { updateShiftType } from "#/workflows/shift/type/update";
-import { listShiftTypes } from "#/workflows/shift/types/list";
 
 export const attendance = {
-  approveAttendanceRequest,
-  create,
-  createAttendanceRequest,
-  createCheckin,
-  deleteAttendanceRequest,
-  deleteCheckin,
-  deleteRecord,
-  getAttendanceRequestById,
-  getById,
-  getCheckinById,
-  getSummary,
-  list,
-  listAttendanceRequests,
-  listCheckins,
-  rejectAttendanceRequest,
-  update,
-  updateAttendanceRequest,
+  checkins: {
+    create: createCheckin,
+    delete: deleteCheckin,
+    get: getCheckin,
+    list: listCheckins,
+  },
+  create: createAttendance,
+  delete: deleteAttendance,
+  get: getAttendance,
+  list: listAttendances,
+  requests: {
+    approve: approveAttendanceRequest,
+    create: createAttendanceRequest,
+    delete: deleteAttendanceRequest,
+    get: getAttendanceRequest,
+    list: listAttendanceRequests,
+    reject: rejectAttendanceRequest,
+    update: updateAttendanceRequest,
+  },
+  summary: {
+    get: getAttendanceSummary,
+  },
+  update: updateAttendance,
 } as const;
 
 export const overtime = {
-  approveOvertimeSlip,
-  createOvertimeSlip,
-  createOvertimeType,
-  deleteOvertimeSlip,
-  deleteOvertimeType,
-  getOvertimeSlipById,
-  getOvertimeSummary,
-  getOvertimeTypeById,
-  listOvertimeSlips,
-  listOvertimeTypes,
-  rejectOvertimeSlip,
-  updateOvertimeSlip,
-  updateOvertimeType,
+  slips: {
+    approve: approveOvertimeSlip,
+    create: createOvertimeSlip,
+    delete: deleteOvertimeSlip,
+    get: getOvertimeSlip,
+    list: listOvertimeSlips,
+    reject: rejectOvertimeSlip,
+    update: updateOvertimeSlip,
+  },
+  summary: {
+    get: getOvertimeSummary,
+  },
+  types: {
+    create: createOvertimeType,
+    delete: deleteOvertimeType,
+    get: getOvertimeType,
+    list: listOvertimeTypes,
+    update: updateOvertimeType,
+  },
 } as const;
 
 export const shift = {
-  approveShiftRequest,
-  createShiftAssignment,
-  createShiftLocation,
-  createShiftRequest,
-  createShiftSchedule,
-  createShiftScheduleAssignment,
-  createShiftType,
-  deactivateShiftAssignment,
-  deleteShiftAssignment,
-  deleteShiftLocation,
-  deleteShiftRequest,
-  deleteShiftSchedule,
-  deleteShiftScheduleAssignment,
-  deleteShiftType,
-  getShiftAssignmentById,
-  getShiftLocationById,
-  getShiftRequestById,
-  getShiftScheduleAssignmentById,
-  getShiftScheduleById,
-  getShiftTypeById,
-  listShiftAssignments,
-  listShiftLocations,
-  listShiftRequests,
-  listShiftScheduleAssignments,
-  listShiftSchedules,
-  listShiftTypes,
-  rejectShiftRequest,
-  updateShiftAssignment,
-  updateShiftLocation,
-  updateShiftRequest,
-  updateShiftSchedule,
-  updateShiftScheduleAssignment,
-  updateShiftType,
+  assignments: {
+    create: createShiftAssignment,
+    deactivate: deactivateShiftAssignment,
+    delete: deleteShiftAssignment,
+    get: getShiftAssignment,
+    list: listShiftAssignments,
+    update: updateShiftAssignment,
+  },
+  locations: {
+    create: createShiftLocation,
+    delete: deleteShiftLocation,
+    get: getShiftLocation,
+    list: listShiftLocations,
+    update: updateShiftLocation,
+  },
+  requests: {
+    approve: approveShiftRequest,
+    create: createShiftRequest,
+    delete: deleteShiftRequest,
+    get: getShiftRequest,
+    list: listShiftRequests,
+    reject: rejectShiftRequest,
+    update: updateShiftRequest,
+  },
+  scheduleAssignments: {
+    create: createShiftScheduleAssignment,
+    delete: deleteShiftScheduleAssignment,
+    get: getShiftScheduleAssignment,
+    list: listShiftScheduleAssignments,
+    update: updateShiftScheduleAssignment,
+  },
+  schedules: {
+    create: createShiftSchedule,
+    delete: deleteShiftSchedule,
+    get: getShiftSchedule,
+    list: listShiftSchedules,
+    update: updateShiftSchedule,
+  },
+  types: {
+    create: createShiftType,
+    delete: deleteShiftType,
+    get: getShiftType,
+    list: listShiftTypes,
+    update: updateShiftType,
+  },
 } as const;

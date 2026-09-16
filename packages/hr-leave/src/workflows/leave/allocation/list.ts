@@ -1,0 +1,36 @@
+import { leaveAllocation } from "#/db-schemas";
+import { LeaveAllocationFiltersSchema } from "#/types";
+
+import { Workflow } from "@aspen-os/platform/server";
+import { and, eq } from "drizzle-orm";
+import { object, optional } from "valibot";
+
+const InputSchema = object({
+  filters: optional(LeaveAllocationFiltersSchema, {}),
+});
+
+export const listLeaveAllocations = Workflow.name("hr.leave.allocation.list")
+  .input(InputSchema)
+  .handler(async (input, ctx) => {
+    const { filters } = input;
+
+    const parsed = filters;
+    const conditions = [];
+
+    if (parsed.employeeId) {
+      conditions.push(eq(leaveAllocation.employee_id, parsed.employeeId));
+    }
+    if (parsed.leaveType) {
+      conditions.push(eq(leaveAllocation.leave_type, parsed.leaveType));
+    }
+    if (parsed.leavePeriod) {
+      conditions.push(eq(leaveAllocation.leave_period, parsed.leavePeriod));
+    }
+    if (parsed.status) {
+      conditions.push(eq(leaveAllocation.status, parsed.status));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    return ctx.db.select().from(leaveAllocation).where(whereClause);
+  });
