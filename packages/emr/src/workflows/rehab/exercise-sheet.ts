@@ -11,7 +11,7 @@ const ExerciseSheetInputSchema = object({
   input: CreateExercisePrescriptionSchema,
 });
 
-export const exerciseSheet = Workflow.name("emr.rehab.exerciseSheet")
+export const exerciseSheet = Workflow.name("emr.rehab.exercise-sheet")
   .input(ExerciseSheetInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateExercisePrescriptionSchema, input);

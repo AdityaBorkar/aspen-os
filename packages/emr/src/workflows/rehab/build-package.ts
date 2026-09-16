@@ -12,7 +12,7 @@ import { object, parse } from "valibot";
 
 const BuildPackageInputSchema = object({ input: CreateRehabPackageSchema });
 
-export const buildPackage = Workflow.name("emr.rehab.buildPackage")
+export const buildPackage = Workflow.name("emr.rehab.build-package")
   .input(BuildPackageInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateRehabPackageSchema, input);

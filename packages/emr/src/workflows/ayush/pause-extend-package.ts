@@ -17,7 +17,7 @@ interface TherapyPackagePatch {
   valid_till?: Date | null;
 }
 
-export const pauseExtendPackage = Workflow.name("emr.ayush.pauseExtendPackage")
+export const pauseExtendPackage = Workflow.name("emr.ayush.pause-extend-package")
   .input(PauseExtendInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(PauseExtendPackageSchema, input);

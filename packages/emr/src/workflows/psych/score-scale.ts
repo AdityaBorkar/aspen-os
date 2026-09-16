@@ -21,7 +21,7 @@ function scaleBand(score: number, maxScore: number): string {
   return "severe";
 }
 
-export const scoreScale = Workflow.name("emr.psych.scoreScale")
+export const scoreScale = Workflow.name("emr.psych.score-scale")
   .input(ScoreScaleInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateScaleResultSchema, input);

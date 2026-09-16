@@ -7,7 +7,7 @@ import { object, parse } from "valibot";
 
 const RecallListInputSchema = object({ input: RecallListFiltersSchema });
 
-export const recallList = Workflow.name("emr.psych.recallList")
+export const recallList = Workflow.name("emr.psych.recall-list")
   .input(RecallListInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(RecallListFiltersSchema, input);

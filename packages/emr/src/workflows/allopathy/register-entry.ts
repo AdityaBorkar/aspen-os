@@ -9,7 +9,7 @@ import { object, parse } from "valibot";
 
 const RegisterEntryInputSchema = object({ input: CreateRegisterEntrySchema });
 
-export const registerEntry = Workflow.name("emr.allopathy.registerEntry")
+export const registerEntry = Workflow.name("emr.allopathy.register-entry")
   .input(RegisterEntryInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateRegisterEntrySchema, input);

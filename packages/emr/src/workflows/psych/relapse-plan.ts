@@ -8,7 +8,7 @@ import { object, parse } from "valibot";
 
 const RelapsePlanInputSchema = object({ input: CreateRelapsePlanSchema });
 
-export const relapsePlan = Workflow.name("emr.psych.relapsePlan")
+export const relapsePlan = Workflow.name("emr.psych.relapse-plan")
   .input(RelapsePlanInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateRelapsePlanSchema, input);

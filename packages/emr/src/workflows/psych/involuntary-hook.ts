@@ -13,7 +13,7 @@ const InvoluntaryHookInputSchema = object({
   input: CreateInvoluntaryHookSchema,
 });
 
-export const involuntaryHook = Workflow.name("emr.psych.involuntaryHook")
+export const involuntaryHook = Workflow.name("emr.psych.involuntary-hook")
   .input(InvoluntaryHookInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateInvoluntaryHookSchema, input);

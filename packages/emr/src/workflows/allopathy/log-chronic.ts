@@ -10,7 +10,7 @@ import { object, parse } from "valibot";
 
 const LogChronicInputSchema = object({ input: CreateChronicLogSchema });
 
-export const logChronic = Workflow.name("emr.allopathy.logChronic")
+export const logChronic = Workflow.name("emr.allopathy.log-chronic")
   .input(LogChronicInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateChronicLogSchema, input);

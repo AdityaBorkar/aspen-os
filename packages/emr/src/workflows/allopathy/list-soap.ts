@@ -7,7 +7,7 @@ import { object, parse } from "valibot";
 
 const ListSoapInputSchema = object({ input: SoapNoteFiltersSchema });
 
-export const listSoap = Workflow.name("emr.allopathy.listSoap")
+export const listSoap = Workflow.name("emr.allopathy.list-soap")
   .input(ListSoapInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(SoapNoteFiltersSchema, input);

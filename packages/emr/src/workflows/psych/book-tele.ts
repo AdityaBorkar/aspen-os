@@ -11,7 +11,7 @@ import { object, parse } from "valibot";
 
 const BookTeleInputSchema = object({ input: BookCounsellingSchema });
 
-export const bookTele = Workflow.name("emr.psych.bookTele")
+export const bookTele = Workflow.name("emr.psych.book-tele")
   .input(BookTeleInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(BookCounsellingSchema, input);

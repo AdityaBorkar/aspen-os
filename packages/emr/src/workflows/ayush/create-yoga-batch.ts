@@ -8,7 +8,7 @@ import { object, parse } from "valibot";
 
 const CreateYogaBatchInputSchema = object({ input: CreateYogaBatchSchema });
 
-export const createYogaBatch = Workflow.name("emr.ayush.createYogaBatch")
+export const createYogaBatch = Workflow.name("emr.ayush.create-yoga-batch")
   .input(CreateYogaBatchInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateYogaBatchSchema, input);

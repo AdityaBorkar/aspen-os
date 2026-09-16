@@ -9,7 +9,7 @@ import { object, parse } from "valibot";
 
 const ScreenRiskInputSchema = object({ input: CreateRiskScreenSchema });
 
-export const screenRisk = Workflow.name("emr.psych.screenRisk")
+export const screenRisk = Workflow.name("emr.psych.screen-risk")
   .input(ScreenRiskInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateRiskScreenSchema, input);

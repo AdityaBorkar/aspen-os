@@ -9,7 +9,7 @@ import { object, parse } from "valibot";
 
 const EnrollYogaInputSchema = object({ input: CreateYogaEnrollmentSchema });
 
-export const enrollYoga = Workflow.name("emr.ayush.enrollYoga")
+export const enrollYoga = Workflow.name("emr.ayush.enroll-yoga")
   .input(EnrollYogaInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateYogaEnrollmentSchema, input);

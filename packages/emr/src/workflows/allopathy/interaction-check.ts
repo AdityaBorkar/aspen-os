@@ -21,7 +21,7 @@ const KNOWN_PAIRS: [string, string, string][] = [
   ["ace inhibitor", "potassium", "Hyperkalemia risk: ACE inhibitor + potassium"],
 ];
 
-export const checkInteraction = Workflow.name("emr.allopathy.checkInteraction")
+export const checkInteraction = Workflow.name("emr.allopathy.check-interaction")
   .input(CheckInteractionInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CheckInteractionSchema, input);

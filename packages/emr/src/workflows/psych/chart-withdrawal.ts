@@ -59,7 +59,7 @@ function withdrawalBand(tool: string, score: number): WithdrawalBand {
   };
 }
 
-export const chartWithdrawal = Workflow.name("emr.psych.chartWithdrawal")
+export const chartWithdrawal = Workflow.name("emr.psych.chart-withdrawal")
   .input(ChartWithdrawalInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateWithdrawalChartSchema, input);

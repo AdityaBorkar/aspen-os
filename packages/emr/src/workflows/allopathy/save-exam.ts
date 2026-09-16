@@ -9,7 +9,7 @@ import { object, parse } from "valibot";
 
 const SaveExamInputSchema = object({ input: CreateExamFindingSchema });
 
-export const saveExam = Workflow.name("emr.allopathy.saveExam")
+export const saveExam = Workflow.name("emr.allopathy.save-exam")
   .input(SaveExamInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateExamFindingSchema, input);

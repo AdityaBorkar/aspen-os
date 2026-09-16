@@ -11,7 +11,7 @@ import { is, number, object, parse } from "valibot";
 
 const BookChairInputSchema = object({ input: CreateChairSlotSchema });
 
-export const bookChair = Workflow.name("emr.dental.bookChair")
+export const bookChair = Workflow.name("emr.dental.book-chair")
   .input(BookChairInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateChairSlotSchema, input);

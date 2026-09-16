@@ -9,7 +9,7 @@ import { object, parse } from "valibot";
 
 const SaveSoapInputSchema = object({ input: CreateSoapNoteSchema });
 
-export const saveSoap = Workflow.name("emr.allopathy.saveSoap")
+export const saveSoap = Workflow.name("emr.allopathy.save-soap")
   .input(SaveSoapInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateSoapNoteSchema, input);

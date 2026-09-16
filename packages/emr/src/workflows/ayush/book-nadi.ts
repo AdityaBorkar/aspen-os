@@ -10,7 +10,7 @@ import { object, parse } from "valibot";
 
 const BookNadiInputSchema = object({ input: BookNadiSchema });
 
-export const bookNadi = Workflow.name("emr.ayush.bookNadi")
+export const bookNadi = Workflow.name("emr.ayush.book-nadi")
   .input(BookNadiInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(BookNadiSchema, input);

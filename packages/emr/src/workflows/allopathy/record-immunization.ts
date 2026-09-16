@@ -10,7 +10,7 @@ const RecordImmunizationInputSchema = object({
   input: CreateImmunizationSchema,
 });
 
-export const recordImmunization = Workflow.name("emr.allopathy.recordImmunization")
+export const recordImmunization = Workflow.name("emr.allopathy.record-immunization")
   .input(RecordImmunizationInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateImmunizationSchema, input);

@@ -74,7 +74,7 @@ function packageState(payload: JsonValue, bookingDate: string): PackageState {
   return { expiry, expiryWarning, remaining };
 }
 
-export const bookSitting = Workflow.name("emr.rehab.bookSitting")
+export const bookSitting = Workflow.name("emr.rehab.book-sitting")
   .input(BookSittingInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(BookRehabSittingSchema, input);

@@ -12,7 +12,7 @@ const RecordSittingInputSchema = object({ input: RecordRehabSittingSchema });
 
 const RehabPackageUsageSchema = object({ usedSessions: optional(number()) });
 
-export const recordSitting = Workflow.name("emr.rehab.recordSitting")
+export const recordSitting = Workflow.name("emr.rehab.record-sitting")
   .input(RecordSittingInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(RecordRehabSittingSchema, input);

@@ -11,7 +11,7 @@ import { object, parse } from "valibot";
 
 const DualCodeInputSchema = object({ input: CreateAyushDiagnosisSchema });
 
-export const dualCode = Workflow.name("emr.ayush.dualCode")
+export const dualCode = Workflow.name("emr.ayush.dual-code")
   .input(DualCodeInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateAyushDiagnosisSchema, input);

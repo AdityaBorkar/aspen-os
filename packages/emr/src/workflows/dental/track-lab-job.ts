@@ -9,7 +9,7 @@ import { object, parse } from "valibot";
 
 const TrackLabJobInputSchema = object({ input: TrackLabJobSchema });
 
-export const trackLabJob = Workflow.name("emr.dental.trackLabJob")
+export const trackLabJob = Workflow.name("emr.dental.track-lab-job")
   .input(TrackLabJobInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(TrackLabJobSchema, input);

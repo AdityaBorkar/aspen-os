@@ -10,7 +10,7 @@ import { object, parse } from "valibot";
 
 const RescheduleStageInputSchema = object({ input: RescheduleStageSchema });
 
-export const rescheduleStage = Workflow.name("emr.dental.rescheduleStage")
+export const rescheduleStage = Workflow.name("emr.dental.reschedule-stage")
   .input(RescheduleStageInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(RescheduleStageSchema, input);

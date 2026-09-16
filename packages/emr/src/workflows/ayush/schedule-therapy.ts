@@ -13,7 +13,7 @@ const ScheduleTherapyInputSchema = object({
   input: CreateTherapySittingSchema,
 });
 
-export const scheduleTherapy = Workflow.name("emr.ayush.scheduleTherapy")
+export const scheduleTherapy = Workflow.name("emr.ayush.schedule-therapy")
   .input(ScheduleTherapyInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateTherapySittingSchema, input);

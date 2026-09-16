@@ -9,7 +9,7 @@ import { object, parse } from "valibot";
 
 const SaveCaseSheetInputSchema = object({ input: CreateAyushCaseSheetSchema });
 
-export const saveCaseSheet = Workflow.name("emr.ayush.saveCaseSheet")
+export const saveCaseSheet = Workflow.name("emr.ayush.save-case-sheet")
   .input(SaveCaseSheetInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateAyushCaseSheetSchema, input);

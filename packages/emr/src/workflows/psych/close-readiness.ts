@@ -8,7 +8,7 @@ import { object, parse } from "valibot";
 
 const CloseReadinessInputSchema = object({ input: CloseReadinessSchema });
 
-export const closeReadiness = Workflow.name("emr.psych.closeReadiness")
+export const closeReadiness = Workflow.name("emr.psych.close-readiness")
   .input(CloseReadinessInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CloseReadinessSchema, input);

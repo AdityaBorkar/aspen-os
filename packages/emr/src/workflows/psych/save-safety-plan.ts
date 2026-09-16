@@ -9,7 +9,7 @@ import { object, parse } from "valibot";
 
 const SaveSafetyPlanInputSchema = object({ input: CreateSafetyPlanSchema });
 
-export const saveSafetyPlan = Workflow.name("emr.psych.saveSafetyPlan")
+export const saveSafetyPlan = Workflow.name("emr.psych.save-safety-plan")
   .input(SaveSafetyPlanInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateSafetyPlanSchema, input);

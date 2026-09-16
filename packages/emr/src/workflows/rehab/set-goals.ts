@@ -9,7 +9,7 @@ import { is, object, parse, string } from "valibot";
 
 const SetGoalsInputSchema = object({ input: CreateRehabGoalPlanSchema });
 
-export const setGoals = Workflow.name("emr.rehab.setGoals")
+export const setGoals = Workflow.name("emr.rehab.set-goals")
   .input(SetGoalsInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateRehabGoalPlanSchema, input);

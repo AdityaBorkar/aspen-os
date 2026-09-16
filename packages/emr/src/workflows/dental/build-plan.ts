@@ -9,7 +9,7 @@ import { object, parse } from "valibot";
 
 const BuildPlanInputSchema = object({ input: CreateTreatmentPlanSchema });
 
-export const buildPlan = Workflow.name("emr.dental.buildPlan")
+export const buildPlan = Workflow.name("emr.dental.build-plan")
   .input(BuildPlanInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateTreatmentPlanSchema, input);

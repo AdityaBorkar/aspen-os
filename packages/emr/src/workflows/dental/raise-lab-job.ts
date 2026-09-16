@@ -10,7 +10,7 @@ import { is, object, parse, string } from "valibot";
 
 const RaiseLabJobInputSchema = object({ input: CreateLabJobSchema });
 
-export const raiseLabJob = Workflow.name("emr.dental.raiseLabJob")
+export const raiseLabJob = Workflow.name("emr.dental.raise-lab-job")
   .input(RaiseLabJobInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateLabJobSchema, input);

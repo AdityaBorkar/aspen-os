@@ -11,7 +11,7 @@ const PrescribeControlledInputSchema = object({
   input: CreateControlledPrescriptionSchema,
 });
 
-export const prescribeControlled = Workflow.name("emr.psych.prescribeControlled")
+export const prescribeControlled = Workflow.name("emr.psych.prescribe-controlled")
   .input(PrescribeControlledInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateControlledPrescriptionSchema, input);

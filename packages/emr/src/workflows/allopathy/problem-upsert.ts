@@ -27,7 +27,7 @@ function toDto(row: typeof healthcareProblem.$inferSelect) {
   };
 }
 
-export const problemUpsert = Workflow.name("emr.allopathy.problemUpsert")
+export const problemUpsert = Workflow.name("emr.allopathy.problem-upsert")
   .input(ProblemUpsertInputSchema)
   .handler(async ({ input }, ctx) => {
     const rawBranchId = "branchId" in input ? input.branchId : undefined;

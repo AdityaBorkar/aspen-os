@@ -10,7 +10,7 @@ import { object, parse } from "valibot";
 
 const ShareExerciseSheetInputSchema = object({ input: ShareExerciseSheetSchema });
 
-export const shareExerciseSheet = Workflow.name("emr.rehab.shareExerciseSheet")
+export const shareExerciseSheet = Workflow.name("emr.rehab.share-exercise-sheet")
   .input(ShareExerciseSheetInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(ShareExerciseSheetSchema, input);

@@ -8,7 +8,7 @@ import { is, object, parse, string } from "valibot";
 
 const DayBoardInputSchema = object({ input: RehabFiltersSchema });
 
-export const dayBoard = Workflow.name("emr.rehab.dayBoard")
+export const dayBoard = Workflow.name("emr.rehab.day-board")
   .input(DayBoardInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(RehabFiltersSchema, input);

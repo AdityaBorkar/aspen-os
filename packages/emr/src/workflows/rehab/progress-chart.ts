@@ -8,7 +8,7 @@ import { object, parse } from "valibot";
 
 const ProgressChartInputSchema = object({ input: ProgressChartSchema });
 
-export const progressChart = Workflow.name("emr.rehab.progressChart")
+export const progressChart = Workflow.name("emr.rehab.progress-chart")
   .input(ProgressChartInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(ProgressChartSchema, input);

@@ -11,7 +11,7 @@ import { object, parse } from "valibot";
 
 const RaiseAlertInputSchema = object({ input: RaiseAlertSchema });
 
-export const raiseAlert = Workflow.name("inpatient.residents.raiseAlert")
+export const raiseAlert = Workflow.name("inpatient.residents.raise-alert")
   .input(RaiseAlertInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(RaiseAlertSchema, input);

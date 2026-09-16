@@ -10,7 +10,7 @@ import { object, parse } from "valibot";
 
 const CloseStageInputSchema = object({ input: ClosePlanStageSchema });
 
-export const closeStage = Workflow.name("emr.dental.closeStage")
+export const closeStage = Workflow.name("emr.dental.close-stage")
   .input(CloseStageInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(ClosePlanStageSchema, input);

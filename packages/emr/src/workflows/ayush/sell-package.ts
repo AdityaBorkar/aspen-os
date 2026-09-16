@@ -14,7 +14,7 @@ import { object, parse } from "valibot";
 
 const SellPackageInputSchema = object({ input: CreateTherapyPackageSchema });
 
-export const sellPackage = Workflow.name("emr.ayush.sellPackage")
+export const sellPackage = Workflow.name("emr.ayush.sell-package")
   .input(SellPackageInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateTherapyPackageSchema, input);

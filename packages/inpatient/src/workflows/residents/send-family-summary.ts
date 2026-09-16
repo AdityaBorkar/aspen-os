@@ -11,7 +11,7 @@ import { object, parse } from "valibot";
 
 const SendFamilySummaryInputSchema = object({ input: FamilySummarySendSchema });
 
-export const sendFamilySummary = Workflow.name("inpatient.residents.sendFamilySummary")
+export const sendFamilySummary = Workflow.name("inpatient.residents.send-family-summary")
   .input(SendFamilySummaryInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(FamilySummarySendSchema, input);

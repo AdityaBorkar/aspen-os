@@ -11,7 +11,7 @@ const SideEffectCheckInputSchema = object({
   input: CreateSideEffectCheckSchema,
 });
 
-export const sideEffectCheck = Workflow.name("emr.psych.sideEffectCheck")
+export const sideEffectCheck = Workflow.name("emr.psych.side-effect-check")
   .input(SideEffectCheckInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateSideEffectCheckSchema, input);

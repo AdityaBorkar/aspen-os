@@ -8,7 +8,7 @@ import { is, object, parse, string } from "valibot";
 
 const PendingJobsInputSchema = object({ input: PendingJobsFiltersSchema });
 
-export const pendingJobs = Workflow.name("emr.dental.pendingJobs")
+export const pendingJobs = Workflow.name("emr.dental.pending-jobs")
   .input(PendingJobsInputSchema)
   .handler(async ({ input }, ctx) => {
     // Dental lab jobs are a clinical read view; fulfilment lives in

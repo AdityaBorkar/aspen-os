@@ -12,7 +12,7 @@ import { object, parse } from "valibot";
 
 const AlertSeniorInputSchema = object({ input: CreateSeniorAlertSchema });
 
-export const alertSenior = Workflow.name("emr.psych.alertSenior")
+export const alertSenior = Workflow.name("emr.psych.alert-senior")
   .input(AlertSeniorInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateSeniorAlertSchema, input);

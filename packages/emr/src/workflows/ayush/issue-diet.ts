@@ -9,7 +9,7 @@ import { is, object, parse, string } from "valibot";
 
 const IssueDietInputSchema = object({ input: CreateDietPlanSchema });
 
-export const issueDiet = Workflow.name("emr.ayush.issueDiet")
+export const issueDiet = Workflow.name("emr.ayush.issue-diet")
   .input(IssueDietInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateDietPlanSchema, input);

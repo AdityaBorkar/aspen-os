@@ -10,7 +10,7 @@ import { object, parse } from "valibot";
 
 const RecordSittingInputSchema = object({ input: CreateTherapySittingSchema });
 
-export const recordSitting = Workflow.name("emr.ayush.recordSitting")
+export const recordSitting = Workflow.name("emr.ayush.record-sitting")
   .input(RecordSittingInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateTherapySittingSchema, input);

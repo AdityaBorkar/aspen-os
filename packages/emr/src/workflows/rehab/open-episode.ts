@@ -9,7 +9,7 @@ import { object, parse } from "valibot";
 
 const OpenEpisodeInputSchema = object({ input: CreateRehabEpisodeSchema });
 
-export const openEpisode = Workflow.name("emr.rehab.openEpisode")
+export const openEpisode = Workflow.name("emr.rehab.open-episode")
   .input(OpenEpisodeInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateRehabEpisodeSchema, input);

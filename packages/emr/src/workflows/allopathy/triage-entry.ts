@@ -14,7 +14,7 @@ import { object, parse } from "valibot";
 
 const TriageEntryInputSchema = object({ input: CreateTriageEntrySchema });
 
-export const triageEntry = Workflow.name("emr.allopathy.triageEntry")
+export const triageEntry = Workflow.name("emr.allopathy.triage-entry")
   .input(TriageEntryInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateTriageEntrySchema, input);
