@@ -2,7 +2,9 @@
 
 ## Repository Shape
 
-- Bun/TypeScript ESM monorepo. Workspaces: `packages/*`, `docs` (`package.json` still globs `./examples/*` but no `examples/` dir exists on disk or in git).
+- Bun/TypeScript ESM monorepo. Workspaces: `packages/*`, `docs`, `website` (`package.json` also globs `./examples/*`, but `examples/` holds only the empty dir `examples/recruiter/seaweedfs-s3.json` — no `package.json`, not a build participant, safe to ignore).
+- `website/` is a separate TanStack Start app (Vite on port 3000, `biome` via `bun run check`/`lint`/`format`); root `oxlint`/`oxfmt` and `tsc -b` still walk it, so prefer its own scripts when working there.
+- There is no root `README.md`; `CONTEXT.md` (ubiquitous language), `.working-docs/`, and `CODING_CONVENTIONS.md` are the docs.
 - `packages/platform` is the framework kernel. Import via `@aspen-os/platform/server`, `@aspen-os/platform/client`, `@aspen-os/platform/server/db-schemas`, and the `aspen` binary; there is no root platform export.
 - Domain modules live in `packages/*` and are passed as an array to a platform. `crm`, `fleet`, `inventory`, `reports` are placeholder packages (`package.json` holds only `name`); do not infer an API from their READMEs.
 - `.working-docs/` is the domain source of truth. Before domain/schema changes, read `CODING_CONVENTIONS.md` and the relevant `.working-docs/domain-model/`, `bounded-contexts/`, or `adr/` file. `docs/` is the generated Fumadocs site, not the domain source of truth.
